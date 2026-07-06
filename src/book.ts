@@ -1,5 +1,5 @@
 import { App, TFile, TFolder } from "obsidian";
-import { bookFilePath, libraryBookPath, LIBRARY_ROOT } from "./paths";
+import { bookFilePath, libraryBookPath, libraryChapterPath, LIBRARY_ROOT } from "./paths";
 import { resolveOrder, type OrderResult } from "./ordering";
 import { mintId } from "./slug";
 import { modifyBackstageFrontmatter } from "./writeGuard";
@@ -16,12 +16,18 @@ import {
 	type SeriesBookEntry,
 } from "./series";
 import { nextBookFolderCode } from "./bookCode";
+import { nextChapterCode } from "./chapterCode";
 
 export interface CompileSettings {
 	format?: string;
 	chapter_heading?: string;
 	separator?: string;
 	output?: string;
+}
+
+export interface ChapterEntry {
+	chapterId: string;
+	chapterTitle: string;
 }
 
 export interface BookFrontmatter {
@@ -31,12 +37,29 @@ export interface BookFrontmatter {
 	bookIdReference: string;
 	bookTitleReference: string;
 	seriesOrderReference: number | null;
+	chapters: Record<string, ChapterEntry>;
 }
 
 function defaultBookContent(bookId: string, bookTitle: string, seriesOrderReference: number | null): string {
 	// JSON.stringify quotes/escapes the values so a title containing ":" or other
 	// YAML-significant characters (e.g. "Book One: The Beginning") still parses.
 	return `---\nbook-id-reference: ${JSON.stringify(bookId)}\nbook-title-reference: ${JSON.stringify(bookTitle)}\nseries-order-reference: ${seriesOrderReference ?? ""}\norder:\n---\n`;
+}
+
+/** Defensive parse mirroring series.ts's `parseBooksMap` — needs a string `chapter-id`, falls back to the filename (sans ".md") for the title. */
+function parseChaptersMap(raw: unknown): Record<string, ChapterEntry> {
+	if (!raw || typeof raw !== "object") return {};
+	const result: Record<string, ChapterEntry> = {};
+	for (const [filename, value] of Object.entries(raw as Record<string, unknown>)) {
+		if (!value || typeof value !== "object") continue;
+		const entry = value as Record<string, unknown>;
+		const chapterId = typeof entry["chapter-id"] === "string" ? entry["chapter-id"] : null;
+		if (!chapterId) continue;
+		const chapterTitle =
+			typeof entry["chapter-title"] === "string" ? entry["chapter-title"] : filename.replace(/\.md$/i, "");
+		result[filename] = { chapterId, chapterTitle };
+	}
+	return result;
 }
 
 export function getBookChapterFiles(app: App, bookFolderName: string): TFile[] {
@@ -61,6 +84,7 @@ export function readBookFrontmatter(app: App, bookFolderName: string): BookFront
 		goalDaily: typeof fm?.goal_daily === "number" ? fm.goal_daily : null,
 		order,
 		compile: fm?.compile && typeof fm.compile === "object" ? (fm.compile as CompileSettings) : null,
+		chapters: parseChaptersMap(fm?.chapters),
 	};
 }
 
@@ -68,6 +92,23 @@ export function getBookChapters(app: App, bookFolderName: string): OrderResult<T
 	const files = getBookChapterFiles(app, bookFolderName);
 	const fm = readBookFrontmatter(app, bookFolderName);
 	return resolveOrder(files, fm?.order ?? [], (file) => file.name);
+}
+
+export function getChapterEntry(app: App, bookFolderName: string, filename: string): ChapterEntry | null {
+	return readBookFrontmatter(app, bookFolderName)?.chapters[filename] ?? null;
+}
+
+export function getChapterId(app: App, bookFolderName: string, filename: string): string | null {
+	return getChapterEntry(app, bookFolderName, filename)?.chapterId ?? null;
+}
+
+/** Falls back to the filename (sans ".md") if no entry exists yet — same defensive pattern as `bookDisplayTitle`. */
+export function chapterDisplayTitle(app: App, bookFolderName: string, filename: string): string {
+	return getChapterEntry(app, bookFolderName, filename)?.chapterTitle ?? filename.replace(/\.md$/i, "");
+}
+
+export function collectAllChapterIds(app: App, bookFolderName: string): string[] {
+	return Object.values(readBookFrontmatter(app, bookFolderName)?.chapters ?? {}).map((entry) => entry.chapterId);
 }
 
 export async function writeBookOrder(app: App, bookFolderName: string, newOrder: string[]): Promise<void> {
@@ -160,6 +201,100 @@ export async function reorderSeriesBooks(app: App, newOrder: string[]): Promise<
 	}
 }
 
+/** Overwrites (or inserts) one chapter's entry in book.md's `chapters` map. */
+export async function upsertChapterEntry(
+	app: App,
+	bookFolderName: string,
+	filename: string,
+	chapterId: string,
+	chapterTitle: string,
+): Promise<void> {
+	const path = bookFilePath(bookFolderName);
+	const entry = getSeriesBookEntry(app, bookFolderName);
+	const bookId = entry?.bookId ?? mintId(bookFolderName, collectAllBookIds(app));
+	const bookTitle = entry?.bookTitle ?? bookFolderName;
+	const position = getSeriesOrderPosition(app, bookFolderName);
+	await modifyBackstageFrontmatter(
+		app,
+		app.vault,
+		path,
+		defaultBookContent(bookId, bookTitle, position),
+		(fm) => {
+			const chapters = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
+			chapters[filename] = { "chapter-id": chapterId, "chapter-title": chapterTitle };
+			fm.chapters = chapters;
+		},
+	);
+}
+
+/** Edits a chapter's title in book.md — a single write, since chapters have no separate mirror file the way books mirror series.md into book.md. */
+export async function renameChapterTitle(
+	app: App,
+	bookFolderName: string,
+	filename: string,
+	newTitle: string,
+): Promise<void> {
+	const path = bookFilePath(bookFolderName);
+	const entry = getSeriesBookEntry(app, bookFolderName);
+	const bookId = entry?.bookId ?? mintId(bookFolderName, collectAllBookIds(app));
+	const bookTitle = entry?.bookTitle ?? bookFolderName;
+	const position = getSeriesOrderPosition(app, bookFolderName);
+	await modifyBackstageFrontmatter(
+		app,
+		app.vault,
+		path,
+		defaultBookContent(bookId, bookTitle, position),
+		(fm) => {
+			const chapters = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
+			const existing = chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
+			const chapterId: string =
+				typeof existing["chapter-id"] === "string"
+					? existing["chapter-id"]
+					: nextChapterCode(bookId, collectAllChapterIds(app, bookFolderName));
+			chapters[filename] = { "chapter-id": chapterId, "chapter-title": newTitle };
+			fm.chapters = chapters;
+		},
+	);
+}
+
+/** Rekeys a chapter's `chapters` map entry when its file is renamed outside the plugin. No-op if `oldFilename` isn't present. */
+export async function renameChapterEntry(
+	app: App,
+	bookFolderName: string,
+	oldFilename: string,
+	newFilename: string,
+): Promise<void> {
+	const path = bookFilePath(bookFolderName);
+	await modifyBackstageFrontmatter(app, app.vault, path, `---\norder:\n---\n`, (fm) => {
+		const chapters = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
+		if (Object.prototype.hasOwnProperty.call(chapters, oldFilename)) {
+			chapters[newFilename] = chapters[oldFilename];
+			delete chapters[oldFilename];
+			fm.chapters = chapters;
+		}
+	});
+}
+
+/** Mints a `chapters` entry for every chapter file missing one. Never renames an existing id, never touches `order`. */
+export async function ensureAllChapterEntries(app: App, bookFolderName: string): Promise<Record<string, ChapterEntry>> {
+	const files = getBookChapterFiles(app, bookFolderName);
+	const fm = readBookFrontmatter(app, bookFolderName);
+	const chapters = fm?.chapters ?? {};
+	const merged: Record<string, ChapterEntry> = { ...chapters };
+	const entry = getSeriesBookEntry(app, bookFolderName);
+	const bookId = entry?.bookId ?? mintId(bookFolderName, collectAllBookIds(app));
+	const knownIds = new Set(Object.values(chapters).map((e) => e.chapterId));
+	for (const file of files) {
+		if (merged[file.name]) continue;
+		const chapterId = nextChapterCode(bookId, knownIds);
+		knownIds.add(chapterId);
+		const chapterTitle = file.basename;
+		merged[file.name] = { chapterId, chapterTitle };
+		await upsertChapterEntry(app, bookFolderName, file.name, chapterId, chapterTitle);
+	}
+	return merged;
+}
+
 async function ensureLibraryBookFolder(app: App, folderName: string): Promise<void> {
 	if (!app.vault.getAbstractFileByPath(LIBRARY_ROOT)) {
 		await app.vault.createFolder(LIBRARY_ROOT);
@@ -195,4 +330,25 @@ export async function createBook(app: App, initialTitle?: string): Promise<{ fol
 	await writeBookReferenceFields(app, folderName, bookId, bookTitle, position);
 
 	return { folderName, bookId };
+}
+
+/**
+ * Creates a new chapter: a file named `<chapter-id>.md` (lowercase, e.g.
+ * "knna_chapter-aaa.md") directly in the book's story-library folder,
+ * registered in book.md's `chapters` map with a default "Untitled" title,
+ * then opened. This — along with `createBook`'s folder creation — is one of
+ * the only two plugin-initiated writes inside `_sf-storylibrary`.
+ */
+export async function createChapter(app: App, bookFolderName: string): Promise<{ filename: string; chapterId: string }> {
+	const entry = getSeriesBookEntry(app, bookFolderName);
+	const bookId = entry?.bookId ?? mintId(bookFolderName, collectAllBookIds(app));
+	const chapterId = nextChapterCode(bookId, collectAllChapterIds(app, bookFolderName));
+	const filename = `${chapterId}.md`;
+	const path = libraryChapterPath(bookFolderName, filename);
+
+	const file = await app.vault.create(path, "");
+	await upsertChapterEntry(app, bookFolderName, filename, chapterId, "Untitled");
+	await app.workspace.getLeaf(false).openFile(file);
+
+	return { filename, chapterId };
 }

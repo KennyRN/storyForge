@@ -1,7 +1,7 @@
 import { Plugin, TFile, WorkspaceLeaf } from "obsidian";
 import { StoryForgeView, STORYFORGE_VIEW_TYPE } from "./view/StoryForgeView";
 import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders } from "./series";
-import { getBookChapterFiles, syncAllBookReferenceFields } from "./book";
+import { ensureAllChapterEntries, getBookChapterFiles, syncAllBookReferenceFields } from "./book";
 import { migrateVaultSchema } from "./migration";
 import { registerReconciliationEvents, reconcileBookOnLoad } from "./reconciliation";
 import { isLibraryChapterPath, bookFolderNameFromChapterPath } from "./paths";
@@ -45,6 +45,7 @@ export default class StoryForgePlugin extends Plugin {
 		const books = await ensureAllSeriesBookEntries(this.app);
 		await syncAllBookReferenceFields(this.app, books);
 		for (const folder of getLibraryBookFolders(this.app)) {
+			await ensureAllChapterEntries(this.app, folder.name);
 			await reconcileBookOnLoad(this.app, folder.name);
 		}
 	}

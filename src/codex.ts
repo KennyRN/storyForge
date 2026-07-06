@@ -80,8 +80,8 @@ export function buildCodexTree(app: App, visiblePaths: ReadonlySet<string>): Cod
 }
 
 export function getCodexView(app: App, currentBookId: string | null, mode: CodexViewMode): CodexTreeFolder | null {
+	if (mode === "hidden") return null;
 	const notes = collectCodexNotes(app);
-	const { codex, hidden } = partitionCodexNotes(notes, currentBookId);
-	const visible = mode === "codex" ? codex : hidden;
-	return buildCodexTree(app, new Set(visible.map((n) => n.path)));
+	const { codex } = partitionCodexNotes(notes, currentBookId);
+	return buildCodexTree(app, new Set(codex.map((n) => n.path)));
 }
