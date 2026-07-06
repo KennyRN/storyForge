@@ -14,8 +14,8 @@ export function bookFilePath(bookFolderName: string): string {
 	return `${bookBackstagePath(bookFolderName)}/book.md`;
 }
 
-export function historyFilePath(bookFolderName: string): string {
-	return `${bookBackstagePath(bookFolderName)}/history.yaml`;
+export function wordCountFilePath(): string {
+	return `${BACKSTAGE_ROOT}/wordcount.md`;
 }
 
 export function chapterSidecarFolderPath(bookFolderName: string): string {
