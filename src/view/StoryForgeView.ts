@@ -1,13 +1,17 @@
 import { ItemView, TFile, WorkspaceLeaf } from "obsidian";
 import type StoryForgePlugin from "../main";
-import { bookFolderNameFromChapterPath, libraryChapterPath } from "../paths";
+import { bookFolderNameFromChapterPath, isLibraryChapterPath, libraryChapterPath } from "../paths";
 import { getBookId } from "../series";
 import { renderTopPanel } from "./TopPanel";
 import { renderBottomPanel } from "./BottomPanel";
+import { renderStatsPanel, nextStatsMode, type StatsMode } from "./StatsPanel";
 import { SeriesModal } from "./SeriesModal";
 import type { CodexViewMode } from "../codex";
 import { debounce } from "../debounce";
 import { ICON_SERIES } from "../icons";
+import { countWords } from "../wordCount";
+import { readHistory } from "../history";
+import { latestTotal, todayISOInEngland, wordsToday } from "../historyMath";
 
 export const STORYFORGE_VIEW_TYPE = "storyforge-view";
 
@@ -16,6 +20,8 @@ export class StoryForgeView extends ItemView {
 	private topMode: "book" | "series" = "book";
 	private codexMode: CodexViewMode = "codex";
 	private collapsedCodexFolders = new Set<string>();
+	private statsMode: StatsMode = "daily";
+	private statsCounts: Record<StatsMode, number> = { daily: 0, chapter: 0, story: 0 };
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -67,6 +73,7 @@ export class StoryForgeView extends ItemView {
 
 		const topEl = container.createDiv({ cls: "sf-top-panel" });
 		const bottomEl = container.createDiv({ cls: "sf-bottom-panel" });
+		const statsEl = container.createDiv({ cls: "sf-stats-panel" });
 
 		renderTopPanel(this.app, topEl, {
 			mode: this.topMode,
@@ -103,6 +110,39 @@ export class StoryForgeView extends ItemView {
 				this.render();
 			},
 		});
+
+		renderStatsPanel(statsEl, {
+			mode: this.statsMode,
+			counts: this.statsCounts,
+			onToggleMode: () => {
+				this.statsMode = nextStatsMode(this.statsMode);
+				this.render();
+			},
+		});
+		void this.refreshStats();
+	}
+
+	private async refreshStats(): Promise<void> {
+		const activeFile = this.app.workspace.getActiveFile();
+		const chapter =
+			activeFile && isLibraryChapterPath(activeFile.path)
+				? countWords(await this.app.vault.read(activeFile))
+				: 0;
+
+		let daily = 0;
+		let story = 0;
+		if (this.currentBookFolderName) {
+			const history = await readHistory(this.app, this.currentBookFolderName);
+			daily = wordsToday(history.totals, todayISOInEngland());
+			story = latestTotal(history.totals);
+		}
+
+		const next: Record<StatsMode, number> = { daily, chapter, story };
+		const prev = this.statsCounts;
+		if (next.daily !== prev.daily || next.chapter !== prev.chapter || next.story !== prev.story) {
+			this.statsCounts = next;
+			this.render();
+		}
 	}
 
 	private async openChapter(bookFolderName: string, filename: string): Promise<void> {

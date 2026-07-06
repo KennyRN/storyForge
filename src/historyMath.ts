@@ -16,3 +16,10 @@ export function wordsToday(totals: Record<string, number>, todayISO: string): nu
 	const mostRecentPrior = priorDates[priorDates.length - 1];
 	return today - totals[mostRecentPrior];
 }
+
+/** The most recently recorded total (today's if present, otherwise the latest prior day's), or 0 if there is none. */
+export function latestTotal(totals: Record<string, number>): number {
+	const dates = Object.keys(totals).sort();
+	if (dates.length === 0) return 0;
+	return totals[dates[dates.length - 1]];
+}
