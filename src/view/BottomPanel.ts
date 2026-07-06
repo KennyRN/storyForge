@@ -13,13 +13,17 @@ export interface BottomPanelOptions {
 export function renderBottomPanel(app: App, container: HTMLElement, options: BottomPanelOptions): void {
 	container.empty();
 
+	const isHidden = options.mode === "hidden";
 	const header = container.createDiv({ cls: "sf-bottom-header" });
+	if (isHidden) header.addClass("sf-codex-hidden");
 	setIcon(header.createSpan({ cls: "sf-icon" }), ICON_CODEX);
 	header.createSpan({
 		cls: "sf-codex-toggle",
-		text: options.mode === "codex" ? "Codex" : "Hidden",
+		text: isHidden ? "codex hidden" : "Codex",
 	});
 	header.addEventListener("click", () => options.onToggleMode());
+
+	if (isHidden) return;
 
 	const treeEl = container.createDiv({ cls: "sf-codex-tree" });
 	const tree = getCodexView(app, options.currentBookId, options.mode);

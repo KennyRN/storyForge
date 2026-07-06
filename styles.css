@@ -38,9 +38,15 @@
 }
 
 .sf-book-line {
+	align-items: flex-start;
 	font-size: var(--font-ui-small);
 	color: var(--text-muted);
 	cursor: default;
+}
+
+.sf-book-text-wrap {
+	flex: 1;
+	min-width: 0;
 }
 
 .sf-icon {
@@ -145,6 +151,33 @@
 	white-space: nowrap;
 }
 
+.sf-row-title-wrap {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.sf-row-subtitle {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.sf-rename-input {
+	flex: 1;
+	min-width: 0;
+	font: inherit;
+	color: inherit;
+	background: var(--background-primary);
+	border: 1px solid var(--interactive-accent);
+	border-radius: 3px;
+	padding: 0 4px;
+}
+
 .sf-badge {
 	font-size: var(--font-ui-smaller);
 	color: var(--text-faint);
@@ -186,6 +219,11 @@
 	cursor: pointer;
 }
 
+.sf-codex-hidden .sf-icon,
+.sf-codex-hidden .sf-codex-toggle {
+	color: var(--text-faint);
+}
+
 .sf-codex-folder-header {
 	display: flex;
 	align-items: center;
@@ -207,9 +245,7 @@
 }
 
 .sf-codex-folder-name {
-	font-size: var(--font-ui-small);
 	color: var(--text-muted);
-	font-weight: 600;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -245,7 +281,7 @@
 }
 
 .sf-series-modal {
-	padding: 8px 4px;
+	padding: 16px;
 }
 
 .sf-modal-title-row {
@@ -253,11 +289,6 @@
 	flex-direction: column;
 	gap: 4px;
 	margin-bottom: 16px;
-}
-
-.sf-modal-label {
-	font-size: var(--font-ui-small);
-	color: var(--text-muted);
 }
 
 .sf-modal-input {
@@ -274,22 +305,51 @@
 	border-color: var(--interactive-accent);
 }
 
+.sf-modal-title-input {
+	font-size: 1.3em;
+	font-weight: 600;
+}
+
 .sf-modal-list-header {
+	margin-bottom: 5px;
+}
+
+.sf-modal-list-header h3 {
+	/* Themes (e.g. Minimal) apply their own heading margins globally, not just
+	   in note content — reset so the 5px gap above is the only spacing. */
+	margin: 0;
+}
+
+.sf-modal-hint-row {
 	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	margin-bottom: 4px;
+	align-items: flex-start;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.sf-modal-hint {
+	flex: 1;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	white-space: pre-line;
+	line-height: 1.4;
 }
 
 .sf-modal-add-book {
 	display: flex;
 	align-items: center;
+	flex-shrink: 0;
 	color: var(--text-muted);
 	cursor: pointer;
 }
 
 .sf-modal-add-book:hover {
 	color: var(--text-normal);
+}
+
+.sf-modal-add-book svg.svg-icon {
+	width: calc(var(--font-ui-smaller) * 2.8);
+	height: calc(var(--font-ui-smaller) * 2.8);
 }
 
 .sf-modal-book-list {

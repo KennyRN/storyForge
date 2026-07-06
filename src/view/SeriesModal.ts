@@ -2,7 +2,7 @@ import { App, Modal, Notice, setIcon, TFolder } from "obsidian";
 import { getSeriesBooks, readSeriesFrontmatter, writeSeriesTitle } from "../series";
 import { createBook, renameBookTitle, reorderSeriesBooks } from "../book";
 import { makeReorderable, type DragZone } from "./dragReorder";
-import { ICON_NEW_FILE } from "../icons";
+import { ICON_BOOK_PLUS } from "../icons";
 
 /** Editable series-settings modal: series title, per-book titles, reordering, and creating new books. */
 export class SeriesModal extends Modal {
@@ -26,11 +26,12 @@ export class SeriesModal extends Modal {
 		contentEl.empty();
 		contentEl.addClass("sf-series-modal");
 
-		contentEl.createEl("h2", { text: "Series settings" });
-
 		const titleRow = contentEl.createDiv({ cls: "sf-modal-title-row" });
-		titleRow.createEl("label", { cls: "sf-modal-label", text: "Series title" });
-		const titleInput = titleRow.createEl("input", { cls: "sf-modal-input", type: "text" });
+		const titleInput = titleRow.createEl("input", {
+			cls: "sf-modal-input sf-modal-title-input",
+			type: "text",
+			attr: { placeholder: "Series Name" },
+		});
 		titleInput.value = readSeriesFrontmatter(this.app).seriesTitle;
 		this.bindTextCommit(titleInput, async (value) => {
 			await writeSeriesTitle(this.app, value);
@@ -39,8 +40,14 @@ export class SeriesModal extends Modal {
 
 		const listHeader = contentEl.createDiv({ cls: "sf-modal-list-header" });
 		listHeader.createEl("h3", { text: "Books" });
-		const addBookBtn = listHeader.createSpan({ cls: "sf-modal-add-book", attr: { "aria-label": "New book" } });
-		setIcon(addBookBtn, ICON_NEW_FILE);
+
+		const hintRow = contentEl.createDiv({ cls: "sf-modal-hint-row" });
+		hintRow.createDiv({
+			cls: "sf-modal-hint",
+			text: "# inserts a counted number\n// breaks title into title and subtitle",
+		});
+		const addBookBtn = hintRow.createSpan({ cls: "sf-modal-add-book", attr: { "aria-label": "New book" } });
+		setIcon(addBookBtn, ICON_BOOK_PLUS);
 		addBookBtn.addEventListener("click", () => void this.handleCreateBook());
 
 		const bookList = contentEl.createDiv({ cls: "sf-modal-book-list" });

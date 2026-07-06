@@ -25,22 +25,26 @@ describe("titleToId", () => {
 
 describe("nextBookFolderCode", () => {
 	it("starts at the guide letter 'a' when no book exists yet", () => {
-		expect(nextBookFolderCode("UnTold Tales", [])).toBe("UTTa");
+		expect(nextBookFolderCode("UnTold Tales", [])).toBe("utta");
 	});
 
 	it("continues past the highest existing guide letter", () => {
-		expect(nextBookFolderCode("UnTold Tales", ["UTTa", "UTTb"])).toBe("UTTc");
+		expect(nextBookFolderCode("UnTold Tales", ["UTTa", "UTTb"])).toBe("uttc");
 	});
 
 	it("ignores names with a different 3-letter prefix", () => {
-		expect(nextBookFolderCode("UnTold Tales", ["ABCa", "ABCb"])).toBe("UTTa");
+		expect(nextBookFolderCode("UnTold Tales", ["ABCa", "ABCb"])).toBe("utta");
 	});
 
 	it("never reuses a gap left by a deleted book", () => {
-		expect(nextBookFolderCode("UnTold Tales", ["UTTa", "UTTc"])).toBe("UTTd");
+		expect(nextBookFolderCode("UnTold Tales", ["UTTa", "UTTc"])).toBe("uttd");
 	});
 
 	it("is case-insensitive when scanning existing names", () => {
-		expect(nextBookFolderCode("UnTold Tales", ["utta"])).toBe("UTTb");
+		expect(nextBookFolderCode("UnTold Tales", ["utta"])).toBe("uttb");
+	});
+
+	it("returns a fully lowercase code even though the prefix is derived uppercase internally", () => {
+		expect(nextBookFolderCode("UnTold Tales", [])).toMatch(/^[a-z]{4}$/);
 	});
 });

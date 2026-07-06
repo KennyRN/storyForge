@@ -90,5 +90,5 @@ export function nextBookFolderCode(seriesTitle: string, existingNames: Iterable<
 	if (nextIdx >= GUIDE_LETTER_COUNT) {
 		throw new Error(`storyForge: exhausted guide letters for prefix "${prefix}"`);
 	}
-	return `${prefix}${String.fromCharCode("a".charCodeAt(0) + nextIdx)}`;
+	return `${prefix}${String.fromCharCode("a".charCodeAt(0) + nextIdx)}`.toLowerCase();
 }

@@ -1,9 +1,19 @@
 import { App, Notice, TFile, TFolder, setIcon } from "obsidian";
 import { bookDisplayTitle, getSeriesBooks } from "../series";
-import { getBookChapters, reorderSeriesBooks, writeBookOrder } from "../book";
-import { libraryBookPath } from "../paths";
+import {
+	chapterDisplayTitle,
+	createBook,
+	createChapter,
+	getBookChapters,
+	renameBookTitle,
+	renameChapterTitle,
+	reorderSeriesBooks,
+	writeBookOrder,
+} from "../book";
 import { makeReorderable, type DragZone } from "./dragReorder";
-import { ICON_BOOK, ICON_FILTER, ICON_NEW_FILE, ICON_SERIES, ICON_UNPLACED } from "../icons";
+import { attachInlineRename } from "./inlineRename";
+import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
+import { ICON_BOOK, ICON_BOOK_PLUS, ICON_FILTER, ICON_NEW_FILE, ICON_SERIES, ICON_UNPLACED } from "../icons";
 
 export interface TopPanelOptions {
 	mode: "book" | "series";
@@ -32,10 +42,19 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 	});
 	seriesLine.addEventListener("click", () => options.onToggleMode());
 
-	const bookLine = header.createDiv({ cls: "sf-header-line sf-book-line" });
-	setIcon(bookLine.createSpan({ cls: "sf-icon" }), ICON_BOOK);
-	const bookTitle = options.currentBookFolderName ? bookDisplayTitle(app, options.currentBookFolderName) : "—";
-	bookLine.createSpan({ cls: "sf-header-text", text: bookTitle });
+	if (options.mode === "book") {
+		const bookLine = header.createDiv({ cls: "sf-header-line sf-book-line" });
+		setIcon(bookLine.createSpan({ cls: "sf-icon" }), ICON_BOOK);
+		const rawBookTitle = options.currentBookFolderName
+			? numberedBookTitle(app, series.ordered, series.unplaced, options.currentBookFolderName)
+			: "—";
+		const { title, subtitle } = splitTitleSubtitle(rawBookTitle);
+		const textWrap = bookLine.createDiv({ cls: "sf-book-text-wrap" });
+		textWrap.createSpan({ cls: "sf-header-text", text: title });
+		if (subtitle) {
+			textWrap.createDiv({ cls: "sf-header-text", text: subtitle });
+		}
+	}
 
 	const bodyEl = container.createDiv({ cls: "sf-top-body" });
 
@@ -48,6 +67,15 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 	}
 }
 
+/** The current book's title, with "#" resolved to its number among the series' "#"-titled books (same counter `renderSeriesList`'s rows use). */
+function numberedBookTitle(app: App, ordered: TFolder[], unplaced: TFolder[], bookFolderName: string): string {
+	const sequence = [...ordered, ...unplaced];
+	const idx = sequence.findIndex((folder) => folder.name === bookFolderName);
+	if (idx === -1) return bookDisplayTitle(app, bookFolderName);
+	const numbered = applyHashNumbering(sequence.map((folder) => bookDisplayTitle(app, folder.name)));
+	return numbered[idx];
+}
+
 function createRow(list: HTMLElement, key: string): HTMLElement {
 	const row = list.createDiv({ cls: "sf-row" });
 	row.dataset.key = key;
@@ -56,16 +84,27 @@ function createRow(list: HTMLElement, key: string): HTMLElement {
 	return row;
 }
 
-function renderUnplacedHeader(zone: HTMLElement, onCreateFile?: () => void): void {
+/** Renders a title, splitting off a "// subtitle" onto its own muted line if present. Returns the wrapper to pass to `attachInlineRename`. */
+function renderRowTitle(row: HTMLElement, displayTitle: string): HTMLElement {
+	const { title, subtitle } = splitTitleSubtitle(displayTitle);
+	const wrap = row.createDiv({ cls: "sf-row-title-wrap" });
+	wrap.createSpan({ cls: "sf-row-text", text: title });
+	if (subtitle) {
+		wrap.createDiv({ cls: "sf-row-subtitle", text: subtitle });
+	}
+	return wrap;
+}
+
+function renderUnplacedHeader(zone: HTMLElement, onCreateFile?: () => void, createIcon: string = ICON_NEW_FILE): void {
 	const header = zone.createDiv({ cls: "sf-unplaced-header" });
 	setIcon(header.createSpan({ cls: "sf-icon" }), ICON_UNPLACED);
 	header.createSpan({ cls: "sf-unplaced-label", text: "Unplaced" });
 	if (onCreateFile) {
 		const newFileBtn = header.createSpan({
 			cls: "sf-unplaced-new-file",
-			attr: { "aria-label": "New file" },
+			attr: { "aria-label": "New" },
 		});
-		setIcon(newFileBtn, ICON_NEW_FILE);
+		setIcon(newFileBtn, createIcon);
 		newFileBtn.addEventListener("click", (e) => {
 			e.stopPropagation();
 			onCreateFile();
@@ -73,19 +112,19 @@ function renderUnplacedHeader(zone: HTMLElement, onCreateFile?: () => void): voi
 	}
 }
 
-async function createUnplacedChapter(app: App, bookFolderName: string): Promise<void> {
-	const folderPath = libraryBookPath(bookFolderName);
-	let filename = "Untitled.md";
-	let n = 1;
-	while (app.vault.getAbstractFileByPath(`${folderPath}/${filename}`)) {
-		n += 1;
-		filename = `Untitled ${n}.md`;
-	}
+async function handleCreateChapter(app: App, bookFolderName: string): Promise<void> {
 	try {
-		const file = await app.vault.create(`${folderPath}/${filename}`, "");
-		await app.workspace.getLeaf(false).openFile(file);
+		await createChapter(app, bookFolderName);
 	} catch (err) {
-		new Notice(`storyForge: could not create file — ${(err as Error).message}`);
+		new Notice(`storyForge: could not create chapter — ${(err as Error).message}`);
+	}
+}
+
+async function handleCreateBook(app: App): Promise<void> {
+	try {
+		await createBook(app);
+	} catch (err) {
+		new Notice(`storyForge: could not create book — ${(err as Error).message}`);
 	}
 }
 
@@ -97,30 +136,45 @@ function renderSeriesList(
 	orphans: string[],
 	options: TopPanelOptions,
 ): void {
+	const rawTitles = [...ordered, ...unplaced].map((folder) => bookDisplayTitle(app, folder.name));
+	const numbered = applyHashNumbering(rawTitles);
+
 	const mainList = bodyEl.createDiv({ cls: "sf-top-list" });
-	for (const folder of ordered) {
+	ordered.forEach((folder, i) => {
 		const row = createRow(mainList, folder.name);
-		row.createSpan({ cls: "sf-row-text", text: bookDisplayTitle(app, folder.name) });
+		const label = renderRowTitle(row, numbered[i]);
 		row.addEventListener("click", (e) => {
 			if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
 			options.onSelectBook(folder.name);
 		});
-	}
+		attachInlineRename({
+			row,
+			label,
+			getCurrentTitle: () => bookDisplayTitle(app, folder.name),
+			onCommit: (newTitle) => renameBookTitle(app, folder.name, newTitle),
+		});
+	});
 	if (ordered.length === 0) {
 		mainList.createDiv({ cls: "sf-empty sf-empty-inline", text: "Drag a book here to sequence it." });
 	}
 
 	const unplacedZone = bodyEl.createDiv({ cls: "sf-unplaced-zone" });
-	renderUnplacedHeader(unplacedZone);
+	renderUnplacedHeader(unplacedZone, () => void handleCreateBook(app), ICON_BOOK_PLUS);
 	const unplacedList = unplacedZone.createDiv({ cls: "sf-top-list sf-unplaced-list" });
-	for (const folder of unplaced) {
+	unplaced.forEach((folder, i) => {
 		const row = createRow(unplacedList, folder.name);
-		row.createSpan({ cls: "sf-row-text", text: bookDisplayTitle(app, folder.name) });
+		const label = renderRowTitle(row, numbered[ordered.length + i]);
 		row.addEventListener("click", (e) => {
 			if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
 			options.onSelectBook(folder.name);
 		});
-	}
+		attachInlineRename({
+			row,
+			label,
+			getCurrentTitle: () => bookDisplayTitle(app, folder.name),
+			onCommit: (newTitle) => renameBookTitle(app, folder.name, newTitle),
+		});
+	});
 
 	if (orphans.length > 0) {
 		const orphanSection = bodyEl.createDiv({ cls: "sf-orphans" });
@@ -141,30 +195,45 @@ function renderSeriesList(
 function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, options: TopPanelOptions): void {
 	const { ordered, unplaced, orphans } = getBookChapters(app, bookFolderName);
 
+	const rawTitles = [...ordered, ...unplaced].map((file) => chapterDisplayTitle(app, bookFolderName, file.name));
+	const numbered = applyHashNumbering(rawTitles);
+
 	const mainList = bodyEl.createDiv({ cls: "sf-top-list" });
-	for (const file of ordered as TFile[]) {
+	(ordered as TFile[]).forEach((file, i) => {
 		const row = createRow(mainList, file.name);
-		row.createSpan({ cls: "sf-row-text", text: file.basename });
+		const label = renderRowTitle(row, numbered[i]);
 		row.addEventListener("click", (e) => {
 			if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
 			options.onOpenChapter(bookFolderName, file.name);
 		});
-	}
+		attachInlineRename({
+			row,
+			label,
+			getCurrentTitle: () => chapterDisplayTitle(app, bookFolderName, file.name),
+			onCommit: (newTitle) => renameChapterTitle(app, bookFolderName, file.name, newTitle),
+		});
+	});
 	if (ordered.length === 0) {
 		mainList.createDiv({ cls: "sf-empty sf-empty-inline", text: "Drag a chapter here to sequence it." });
 	}
 
 	const unplacedZone = bodyEl.createDiv({ cls: "sf-unplaced-zone" });
-	renderUnplacedHeader(unplacedZone, () => void createUnplacedChapter(app, bookFolderName));
+	renderUnplacedHeader(unplacedZone, () => void handleCreateChapter(app, bookFolderName));
 	const unplacedList = unplacedZone.createDiv({ cls: "sf-top-list sf-unplaced-list" });
-	for (const file of unplaced as TFile[]) {
+	(unplaced as TFile[]).forEach((file, i) => {
 		const row = createRow(unplacedList, file.name);
-		row.createSpan({ cls: "sf-row-text", text: file.basename });
+		const label = renderRowTitle(row, numbered[ordered.length + i]);
 		row.addEventListener("click", (e) => {
 			if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
 			options.onOpenChapter(bookFolderName, file.name);
 		});
-	}
+		attachInlineRename({
+			row,
+			label,
+			getCurrentTitle: () => chapterDisplayTitle(app, bookFolderName, file.name),
+			onCommit: (newTitle) => renameChapterTitle(app, bookFolderName, file.name, newTitle),
+		});
+	});
 
 	if (orphans.length > 0) {
 		const orphanSection = bodyEl.createDiv({ cls: "sf-orphans" });

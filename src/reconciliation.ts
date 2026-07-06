@@ -8,7 +8,7 @@ import {
 	chapterFilenameFromPath,
 	isLibraryChapterPath,
 } from "./paths";
-import { readBookFrontmatter, writeBookOrder, getBookChapters } from "./book";
+import { readBookFrontmatter, writeBookOrder, getBookChapters, renameChapterEntry } from "./book";
 import { getLibraryBookFolders, renameSeriesBookEntry } from "./series";
 import { renameChapterSidecar, readStoredFingerprint, listSidecarFilenames } from "./chapterSidecar";
 import { renameBackstagePath } from "./writeGuard";
@@ -104,6 +104,7 @@ async function handleChapterRename(app: App, oldPath: string, newPath: string): 
 		const newOrder = fm.order.map((entry) => (entry === oldFilename ? newFilename : entry));
 		await writeBookOrder(app, oldBook, newOrder);
 	}
+	await renameChapterEntry(app, oldBook, oldFilename, newFilename);
 	await renameChapterSidecar(app, oldBook, oldFilename, newFilename);
 }
 
