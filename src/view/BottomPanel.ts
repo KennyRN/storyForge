@@ -8,6 +8,8 @@ export interface BottomPanelOptions {
 	onToggleMode: () => void;
 	collapsedPaths: ReadonlySet<string>;
 	onToggleFolder: (path: string) => void;
+	activeFilePath: string | null;
+	highlightActiveChapter: boolean;
 }
 
 export function renderBottomPanel(app: App, container: HTMLElement, options: BottomPanelOptions): void {
@@ -18,7 +20,7 @@ export function renderBottomPanel(app: App, container: HTMLElement, options: Bot
 	if (isHidden) header.addClass("sf-codex-hidden");
 	setIcon(header.createSpan({ cls: "sf-icon" }), ICON_CODEX);
 	header.createSpan({
-		cls: "sf-codex-toggle",
+		cls: "sf-header-codex",
 		text: isHidden ? "codex hidden" : "Codex",
 	});
 	header.addEventListener("click", () => options.onToggleMode());
@@ -31,7 +33,7 @@ export function renderBottomPanel(app: App, container: HTMLElement, options: Bot
 		treeEl.createDiv({ cls: "sf-empty", text: "Nothing here yet." });
 		return;
 	}
-	renderTreeChildren(app, treeEl, tree.children, options.collapsedPaths, options.onToggleFolder);
+	renderTreeChildren(app, treeEl, tree.children, options.collapsedPaths, options.onToggleFolder, options.activeFilePath, options.highlightActiveChapter);
 }
 
 function renderTreeChildren(
@@ -40,6 +42,8 @@ function renderTreeChildren(
 	items: CodexTreeItem[],
 	collapsedPaths: ReadonlySet<string>,
 	onToggleFolder: (path: string) => void,
+	activeFilePath: string | null,
+	highlightActiveChapter: boolean,
 ): void {
 	for (const item of items) {
 		if (item.type === "folder") {
@@ -48,15 +52,19 @@ function renderTreeChildren(
 			const collapsed = collapsedPaths.has(item.path);
 			const chevron = headerEl.createSpan({ cls: "sf-codex-chevron" });
 			setIcon(chevron, collapsed ? "chevron-right" : "chevron-down");
-			headerEl.createSpan({ cls: "sf-codex-folder-name", text: item.name });
+			const folderNameEl = headerEl.createSpan({ cls: "sf-codex-folder-name", text: item.name });
+			folderNameEl.addClass("sf-styled-heading");
 			headerEl.addEventListener("click", () => onToggleFolder(item.path));
 
 			if (!collapsed) {
 				const childrenEl = folderEl.createDiv({ cls: "sf-codex-folder-children" });
-				renderTreeChildren(app, childrenEl, item.children, collapsedPaths, onToggleFolder);
+				renderTreeChildren(app, childrenEl, item.children, collapsedPaths, onToggleFolder, activeFilePath, highlightActiveChapter);
 			}
 		} else {
 			const fileEl = container.createDiv({ cls: "sf-codex-file" });
+			if (highlightActiveChapter && activeFilePath === item.path) {
+				fileEl.addClass("sf-row-selected");
+			}
 			fileEl.createSpan({ text: item.name });
 			fileEl.addEventListener("click", () => {
 				const file = app.vault.getAbstractFileByPath(item.path);
