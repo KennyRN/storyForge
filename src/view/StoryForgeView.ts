@@ -17,6 +17,7 @@ export const STORYFORGE_VIEW_TYPE = "storyforge-view";
 
 export class StoryForgeView extends ItemView {
 	private currentBookFolderName: string | null = null;
+	private activeChapterFilename: string | null = null;
 	private topMode: "book" | "series" = "book";
 	private codexMode: CodexViewMode = "codex";
 	private collapsedCodexFolders = new Set<string>();
@@ -61,13 +62,18 @@ export class StoryForgeView extends ItemView {
 			if (bookName) {
 				this.currentBookFolderName = bookName;
 				this.topMode = "book";
+				this.activeChapterFilename = file.name;
+			} else {
+				this.activeChapterFilename = null;
 			}
+		} else {
+			this.activeChapterFilename = null;
 		}
 		this.render();
 	}
 
 	render(): void {
-		const container = this.containerEl.children[1];
+		const container = this.contentEl;
 		container.empty();
 		container.addClass("storyforge-view");
 
@@ -78,6 +84,8 @@ export class StoryForgeView extends ItemView {
 		renderTopPanel(this.app, topEl, {
 			mode: this.topMode,
 			currentBookFolderName: this.currentBookFolderName,
+			activeChapterFilename: this.activeChapterFilename,
+			highlightActiveChapter: this.plugin.getSettings().highlightActiveChapter,
 			onToggleMode: () => {
 				this.topMode = this.topMode === "book" ? "series" : "book";
 				this.render();
@@ -92,6 +100,8 @@ export class StoryForgeView extends ItemView {
 		});
 
 		const currentBookId = this.currentBookFolderName ? getBookId(this.app, this.currentBookFolderName) : null;
+		const activeFile = this.app.workspace.getActiveFile();
+		const activeFilePath = activeFile?.path ?? null;
 
 		renderBottomPanel(this.app, bottomEl, {
 			currentBookId,
@@ -109,6 +119,8 @@ export class StoryForgeView extends ItemView {
 				}
 				this.render();
 			},
+			activeFilePath,
+			highlightActiveChapter: this.plugin.getSettings().highlightActiveChapter,
 		});
 
 		renderStatsPanel(statsEl, {

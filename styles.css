@@ -36,6 +36,22 @@
 	font-weight: 600;
 }
 
+.sf-styled-heading {
+	font-size: var(--font-ui-small);
+	font-weight: 600;
+	margin: 0;
+	padding: 0;
+	color: #fef3c7;
+	font-variant: small-caps;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.sf-styled-heading .sf-icon {
+	font-variant: normal;
+}
+
 .sf-book-line {
 	align-items: flex-start;
 	font-size: var(--font-ui-small);
@@ -91,11 +107,9 @@
 	color: var(--text-muted);
 }
 
-.sf-unplaced-label {
+.sf-header-unplaced {
 	flex: 1;
-	font-size: var(--font-ui-small);
 	font-weight: 600;
-	color: var(--text-muted);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -129,6 +143,10 @@
 
 .sf-row:hover {
 	background: var(--background-modifier-hover);
+}
+
+.sf-row.sf-row-selected {
+	background: #fef3c7;
 }
 
 .sf-row.sf-dragging {
@@ -268,15 +286,16 @@
 	cursor: pointer;
 }
 
-.sf-codex-toggle {
-	font-size: var(--font-ui-small);
+.sf-header-codex {
 	font-weight: 600;
-	color: var(--text-muted);
 	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
 }
 
 .sf-codex-hidden .sf-icon,
-.sf-codex-hidden .sf-codex-toggle {
+.sf-codex-hidden .sf-header-codex {
 	color: var(--text-faint);
 }
 
@@ -307,6 +326,11 @@
 	white-space: nowrap;
 }
 
+.sf-codex-folder-name.sf-styled-heading {
+	color: #4ade80;
+	font-variant: normal;
+}
+
 .sf-codex-folder-children {
 	padding-left: 10px;
 }
@@ -324,6 +348,10 @@
 
 .sf-codex-file:hover {
 	background: var(--background-modifier-hover);
+}
+
+.sf-codex-file.sf-row-selected {
+	background: #fef3c7;
 }
 
 .sf-series-filter-btn {

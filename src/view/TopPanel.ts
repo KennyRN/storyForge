@@ -18,6 +18,8 @@ import { ICON_BOOK, ICON_BOOK_PLUS, ICON_FILTER, ICON_NEW_FILE, ICON_SERIES, ICO
 export interface TopPanelOptions {
 	mode: "book" | "series";
 	currentBookFolderName: string | null;
+	activeChapterFilename: string | null;
+	highlightActiveChapter: boolean;
 	onToggleMode: () => void;
 	onSelectBook: (bookFolderName: string) => void;
 	onOpenChapter: (bookFolderName: string, filename: string) => void;
@@ -98,7 +100,7 @@ function renderRowTitle(row: HTMLElement, displayTitle: string): HTMLElement {
 function renderUnplacedHeader(zone: HTMLElement, onCreateFile?: () => void, createIcon: string = ICON_NEW_FILE): void {
 	const header = zone.createDiv({ cls: "sf-unplaced-header" });
 	setIcon(header.createSpan({ cls: "sf-icon" }), ICON_UNPLACED);
-	header.createSpan({ cls: "sf-unplaced-label", text: "Unplaced" });
+	header.createSpan({ cls: "sf-header-unplaced", text: "Unplaced" });
 	if (onCreateFile) {
 		const newFileBtn = header.createSpan({
 			cls: "sf-unplaced-new-file",
@@ -202,6 +204,9 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 	(ordered as TFile[]).forEach((file, i) => {
 		const row = createRow(mainList, file.name);
 		const label = renderRowTitle(row, numbered[i]);
+		if (options.highlightActiveChapter && options.activeChapterFilename === file.name) {
+			row.addClass("sf-row-selected");
+		}
 		row.addEventListener("click", (e) => {
 			if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
 			options.onOpenChapter(bookFolderName, file.name);
@@ -218,11 +223,14 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 	}
 
 	const unplacedZone = bodyEl.createDiv({ cls: "sf-unplaced-zone" });
-	renderUnplacedHeader(unplacedZone, () => void handleCreateChapter(app, bookFolderName));
+	renderUnplacedHeader(unplacedZone, () => void handleCreateChapter(app, bookFolderName), ICON_NEW_FILE);
 	const unplacedList = unplacedZone.createDiv({ cls: "sf-top-list sf-unplaced-list" });
 	(unplaced as TFile[]).forEach((file, i) => {
 		const row = createRow(unplacedList, file.name);
 		const label = renderRowTitle(row, numbered[ordered.length + i]);
+		if (options.highlightActiveChapter && options.activeChapterFilename === file.name) {
+			row.addClass("sf-row-selected");
+		}
 		row.addEventListener("click", (e) => {
 			if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
 			options.onOpenChapter(bookFolderName, file.name);
