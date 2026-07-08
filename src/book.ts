@@ -32,7 +32,9 @@ export interface ChapterEntry {
 
 export interface BookFrontmatter {
 	goalDaily: number | null;
-	order: string[];
+	chapterOrder: string[];
+	unplaced: string[];
+	archive: string[];
 	compile: CompileSettings | null;
 	bookIdReference: string;
 	bookTitleReference: string;
@@ -43,7 +45,7 @@ export interface BookFrontmatter {
 function defaultBookContent(bookId: string, bookTitle: string, seriesOrderReference: number | null): string {
 	// JSON.stringify quotes/escapes the values so a title containing ":" or other
 	// YAML-significant characters (e.g. "Book One: The Beginning") still parses.
-	return `---\nbook-id-reference: ${JSON.stringify(bookId)}\nbook-title-reference: ${JSON.stringify(bookTitle)}\nseries-order-reference: ${seriesOrderReference ?? ""}\norder:\n---\n`;
+	return `---\nbook-id-reference: ${JSON.stringify(bookId)}\nbook-title-reference: ${JSON.stringify(bookTitle)}\nseries-order-reference: ${seriesOrderReference ?? ""}\nchapter-order:\n---\n`;
 }
 
 /** Defensive parse mirroring series.ts's `parseBooksMap` — needs a string `chapter-id`, falls back to the filename (sans ".md") for the title. */
@@ -75,23 +77,51 @@ export function readBookFrontmatter(app: App, bookFolderName: string): BookFront
 	const file = app.vault.getAbstractFileByPath(path);
 	if (!file) return null;
 	const fm = app.metadataCache.getCache(path)?.frontmatter;
-	const order = Array.isArray(fm?.order) ? fm.order.filter((v: unknown) => typeof v === "string") : [];
-	return {
-		bookIdReference: typeof fm?.["book-id-reference"] === "string" ? fm["book-id-reference"] : "",
-		bookTitleReference:
-			typeof fm?.["book-title-reference"] === "string" ? fm["book-title-reference"] : bookFolderName,
-		seriesOrderReference: typeof fm?.["series-order-reference"] === "number" ? fm["series-order-reference"] : null,
-		goalDaily: typeof fm?.goal_daily === "number" ? fm.goal_daily : null,
-		order,
-		compile: fm?.compile && typeof fm.compile === "object" ? (fm.compile as CompileSettings) : null,
-		chapters: parseChaptersMap(fm?.chapters),
-	};
+		const chapterOrder = Array.isArray(fm?.["chapter-order"])
+			? fm["chapter-order"].filter((v: unknown) => typeof v === "string")
+			: Array.isArray(fm?.order)
+				? fm.order.filter((v: unknown) => typeof v === "string")
+				: [];
+		const unplaced = Array.isArray(fm?.unplaced) ? fm.unplaced.filter((v: unknown) => typeof v === "string") : [];
+		const archive = Array.isArray(fm?.archive) ? fm.archive.filter((v: unknown) => typeof v === "string") : [];
+		return {
+			bookIdReference: typeof fm?.["book-id-reference"] === "string" ? fm["book-id-reference"] : "",
+			bookTitleReference:
+				typeof fm?.["book-title-reference"] === "string" ? fm["book-title-reference"] : bookFolderName,
+			seriesOrderReference: typeof fm?.["series-order-reference"] === "number" ? fm["series-order-reference"] : null,
+			goalDaily: typeof fm?.goal_daily === "number" ? fm.goal_daily : null,
+			chapterOrder,
+			unplaced,
+			archive,
+			compile: fm?.compile && typeof fm.compile === "object" ? (fm.compile as CompileSettings) : null,
+			chapters: parseChaptersMap(fm?.chapters),
+		};
 }
 
 export function getBookChapters(app: App, bookFolderName: string): OrderResult<TFile> {
 	const files = getBookChapterFiles(app, bookFolderName);
 	const fm = readBookFrontmatter(app, bookFolderName);
-	return resolveOrder(files, fm?.order ?? [], (file) => file.name);
+	const archived = new Set(fm?.archive ?? []);
+	const liveFiles = files.filter((file) => !archived.has(file.name));
+	return resolveOrder(liveFiles, fm?.chapterOrder ?? [], (file) => file.name);
+}
+
+/** Returns every archived chapter (filename + display title) across all books. */
+export function getArchivedChapters(app: App): { bookFolderName: string; bookTitle: string; filename: string; chapterTitle: string }[] {
+	const result: { bookFolderName: string; bookTitle: string; filename: string; chapterTitle: string }[] = [];
+	for (const folder of getLibraryBookFolders(app)) {
+		const fm = readBookFrontmatter(app, folder.name);
+		if (!fm) continue;
+		for (const filename of fm.archive) {
+			result.push({
+				bookFolderName: folder.name,
+				bookTitle: fm.bookTitleReference || folder.name,
+				filename,
+				chapterTitle: chapterDisplayTitle(app, folder.name, filename),
+			});
+		}
+	}
+	return result;
 }
 
 export function getChapterEntry(app: App, bookFolderName: string, filename: string): ChapterEntry | null {
@@ -111,7 +141,7 @@ export function collectAllChapterIds(app: App, bookFolderName: string): string[]
 	return Object.values(readBookFrontmatter(app, bookFolderName)?.chapters ?? {}).map((entry) => entry.chapterId);
 }
 
-export async function writeBookOrder(app: App, bookFolderName: string, newOrder: string[]): Promise<void> {
+export async function writeBookChapterOrder(app: App, bookFolderName: string, newOrder: string[]): Promise<void> {
 	const path = bookFilePath(bookFolderName);
 	const entry = getSeriesBookEntry(app, bookFolderName);
 	const bookId = entry?.bookId ?? mintId(bookFolderName, collectAllBookIds(app));
@@ -123,7 +153,53 @@ export async function writeBookOrder(app: App, bookFolderName: string, newOrder:
 		path,
 		defaultBookContent(bookId, bookTitle, position),
 		(fm) => {
-			fm.order = newOrder;
+			fm["chapter-order"] = newOrder;
+		},
+	);
+}
+
+/** Moves a chapter to the archive list, removing it from chapter-order and unplaced. */
+export async function archiveChapter(app: App, bookFolderName: string, filename: string): Promise<void> {
+	const path = bookFilePath(bookFolderName);
+	const entry = getSeriesBookEntry(app, bookFolderName);
+	const bookId = entry?.bookId ?? mintId(bookFolderName, collectAllBookIds(app));
+	const bookTitle = entry?.bookTitle ?? bookFolderName;
+	const position = getSeriesOrderPosition(app, bookFolderName);
+	await modifyBackstageFrontmatter(
+		app,
+		app.vault,
+		path,
+		defaultBookContent(bookId, bookTitle, position),
+		(fm) => {
+			const chapterOrder = Array.isArray(fm["chapter-order"]) ? fm["chapter-order"] : [];
+			const unplaced = Array.isArray(fm.unplaced) ? fm.unplaced : [];
+			const archive = Array.isArray(fm.archive) ? fm.archive : [];
+			fm["chapter-order"] = chapterOrder.filter((v: string) => v !== filename);
+			fm.unplaced = unplaced.filter((v: string) => v !== filename);
+			if (!archive.includes(filename)) archive.push(filename);
+			fm.archive = archive;
+		},
+	);
+}
+
+/** Moves a chapter out of the archive back into the unplaced list. */
+export async function unarchiveChapter(app: App, bookFolderName: string, filename: string): Promise<void> {
+	const path = bookFilePath(bookFolderName);
+	const entry = getSeriesBookEntry(app, bookFolderName);
+	const bookId = entry?.bookId ?? mintId(bookFolderName, collectAllBookIds(app));
+	const bookTitle = entry?.bookTitle ?? bookFolderName;
+	const position = getSeriesOrderPosition(app, bookFolderName);
+	await modifyBackstageFrontmatter(
+		app,
+		app.vault,
+		path,
+		defaultBookContent(bookId, bookTitle, position),
+		(fm) => {
+			const unplaced = Array.isArray(fm.unplaced) ? fm.unplaced : [];
+			const archive = Array.isArray(fm.archive) ? fm.archive : [];
+			fm.archive = archive.filter((v: string) => v !== filename);
+			if (!unplaced.includes(filename)) unplaced.push(filename);
+			fm.unplaced = unplaced;
 		},
 	);
 }
@@ -272,6 +348,13 @@ export async function renameChapterEntry(
 			delete chapters[oldFilename];
 			fm.chapters = chapters;
 		}
+		const rekeyList = (list: unknown): string[] => {
+			if (!Array.isArray(list)) return [];
+			return list.map((v) => (v === oldFilename ? newFilename : v));
+		};
+		fm["chapter-order"] = rekeyList(fm["chapter-order"]);
+		fm.unplaced = rekeyList(fm.unplaced);
+		fm.archive = rekeyList(fm.archive);
 	});
 }
 
@@ -284,8 +367,10 @@ export async function ensureAllChapterEntries(app: App, bookFolderName: string):
 	const entry = getSeriesBookEntry(app, bookFolderName);
 	const bookId = entry?.bookId ?? mintId(bookFolderName, collectAllBookIds(app));
 	const knownIds = new Set(Object.values(chapters).map((e) => e.chapterId));
+	const archived = new Set(fm?.archive ?? []);
 	for (const file of files) {
 		if (merged[file.name]) continue;
+		if (archived.has(file.name)) continue;
 		const chapterId = nextChapterCode(bookId, knownIds);
 		knownIds.add(chapterId);
 		const chapterTitle = file.basename;

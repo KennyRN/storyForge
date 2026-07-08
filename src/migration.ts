@@ -7,8 +7,9 @@ const DEFAULT_SERIES_CONTENT = `---\nseries-title: Untitled Series\norder:\nbook
 
 /**
  * Migrates the old plain `title`/`id` schema (series.md's `title`, each
- * book.md's `id`/`title`) to the series-centralized schema. Every step only
- * acts when the legacy field is still present, so this is safe to run
+ * book.md's `id`/`title`) to the series-centralized schema. Also renames
+ * legacy `order` to `chapter-order` in each book.md. Every step only acts
+ * when the legacy field is still present, so this is safe to run
  * unconditionally on every load — a second run is a true no-op — and it
  * never re-mints an id for a folder that already had one.
  */
@@ -16,6 +17,9 @@ export async function migrateVaultSchema(app: App): Promise<void> {
 	await migrateSeriesTitleField(app);
 	for (const folder of getLibraryBookFolders(app)) {
 		await migrateLegacyBookEntry(app, folder.name);
+	}
+	for (const folder of getLibraryBookFolders(app)) {
+		await migrateChapterOrderField(app, folder.name);
 	}
 }
 
@@ -45,5 +49,24 @@ async function migrateLegacyBookEntry(app: App, folderName: string): Promise<voi
 	await modifyBackstageFrontmatter(app, app.vault, path, `---\norder:\n---\n`, (bookFm) => {
 		delete bookFm.id;
 		delete bookFm.title;
+	});
+}
+
+/**
+ * Renames the legacy `order` YAML key to `chapter-order` if `order` is present
+ * and `chapter-order` is not. Safe no-op on re-run.
+ */
+async function migrateChapterOrderField(app: App, folderName: string): Promise<void> {
+	const path = bookFilePath(folderName);
+	if (!app.vault.getAbstractFileByPath(path)) return;
+
+	const fm = app.metadataCache.getCache(path)?.frontmatter;
+	const hasLegacyOrder = Array.isArray(fm?.order);
+	const hasNewOrder = Array.isArray(fm?.["chapter-order"]);
+	if (!hasLegacyOrder || hasNewOrder) return;
+
+	await modifyBackstageFrontmatter(app, app.vault, path, `---\norder:\n---\n`, (bookFm) => {
+		bookFm["chapter-order"] = bookFm.order;
+		delete bookFm.order;
 	});
 }

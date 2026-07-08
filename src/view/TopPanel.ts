@@ -1,6 +1,7 @@
 import { App, Notice, TFile, TFolder, setIcon } from "obsidian";
 import { bookDisplayTitle, getSeriesBooks } from "../series";
 import {
+	archiveChapter,
 	chapterDisplayTitle,
 	createBook,
 	createChapter,
@@ -8,10 +9,10 @@ import {
 	renameBookTitle,
 	renameChapterTitle,
 	reorderSeriesBooks,
-	writeBookOrder,
+	writeBookChapterOrder,
 } from "../book";
 import { makeReorderable, type DragZone } from "./dragReorder";
-import { attachInlineRename } from "./inlineRename";
+import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
 import { ICON_BOOK, ICON_BOOK_PLUS, ICON_FILTER, ICON_NEW_FILE, ICON_SERIES, ICON_UNPLACED } from "../icons";
 
@@ -24,6 +25,7 @@ export interface TopPanelOptions {
 	onSelectBook: (bookFolderName: string) => void;
 	onOpenChapter: (bookFolderName: string, filename: string) => void;
 	onOpenSeriesModal: () => void;
+	onArchiveChapter?: () => void;
 }
 
 export function renderTopPanel(app: App, container: HTMLElement, options: TopPanelOptions): void {
@@ -63,7 +65,7 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 	if (options.mode === "series") {
 		renderSeriesList(app, bodyEl, series.ordered, series.unplaced, series.orphans, options);
 	} else if (options.currentBookFolderName) {
-		renderBookList(app, bodyEl, options.currentBookFolderName, options);
+		renderBookList(app, bodyEl, options.currentBookFolderName, options, container);
 	} else {
 		bodyEl.createDiv({ cls: "sf-empty", text: "Open a chapter to get started." });
 	}
@@ -194,7 +196,7 @@ function renderSeriesList(
 	});
 }
 
-function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, options: TopPanelOptions): void {
+function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, options: TopPanelOptions, container: HTMLElement): void {
 	const { ordered, unplaced, orphans } = getBookChapters(app, bookFolderName);
 
 	const rawTitles = [...ordered, ...unplaced].map((file) => chapterDisplayTitle(app, bookFolderName, file.name));
@@ -211,11 +213,21 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 			if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
 			options.onOpenChapter(bookFolderName, file.name);
 		});
+		const archiveItem: ExtraMenuItem = {
+			title: "Archive",
+			icon: "archive",
+			onClick: async () => {
+				await archiveChapter(app, bookFolderName, file.name);
+				renderTopPanel(app, container, options);
+				options.onArchiveChapter?.();
+			},
+		};
 		attachInlineRename({
 			row,
 			label,
 			getCurrentTitle: () => chapterDisplayTitle(app, bookFolderName, file.name),
 			onCommit: (newTitle) => renameChapterTitle(app, bookFolderName, file.name, newTitle),
+			extraMenuItems: [archiveItem],
 		});
 	});
 	if (ordered.length === 0) {
@@ -235,11 +247,21 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 			if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
 			options.onOpenChapter(bookFolderName, file.name);
 		});
+		const archiveItem: ExtraMenuItem = {
+			title: "Archive",
+			icon: "archive",
+			onClick: async () => {
+				await archiveChapter(app, bookFolderName, file.name);
+				renderTopPanel(app, container, options);
+				options.onArchiveChapter?.();
+			},
+		};
 		attachInlineRename({
 			row,
 			label,
 			getCurrentTitle: () => chapterDisplayTitle(app, bookFolderName, file.name),
 			onCommit: (newTitle) => renameChapterTitle(app, bookFolderName, file.name, newTitle),
+			extraMenuItems: [archiveItem],
 		});
 	});
 
@@ -255,6 +277,6 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 		{ key: "unplaced", container: unplacedList },
 	];
 	makeReorderable(zones, ".sf-row:not(.sf-orphan)", ".sf-drag-handle", (zoneRowKeys) => {
-		void writeBookOrder(app, bookFolderName, (zoneRowKeys.ordered ?? []).filter(Boolean));
+		void writeBookChapterOrder(app, bookFolderName, (zoneRowKeys.ordered ?? []).filter(Boolean));
 	});
 }

@@ -1,5 +1,11 @@
 import { Menu } from "obsidian";
 
+export interface ExtraMenuItem {
+	title: string;
+	icon: string;
+	onClick: () => void | Promise<void>;
+}
+
 export interface InlineRenameOptions {
 	/** The row element to bind the right-click handler to. */
 	row: HTMLElement;
@@ -7,13 +13,15 @@ export interface InlineRenameOptions {
 	label: HTMLElement;
 	/** The raw, stored title to seed the input with — not any display-only transform (e.g. "#" numbering) applied to `label`. */
 	getCurrentTitle: () => string;
-	/** Persists the new title. Metadata-only — never touches the filesystem. */
+	/** Persists the new title. Metadata-only — never renames files. */
 	onCommit: (newTitle: string) => Promise<void>;
+	/** Optional extra items to include in the right-click menu, after Rename. */
+	extraMenuItems?: ExtraMenuItem[];
 }
 
-/** Attaches a right-click "Rename" context menu to `row` that swaps `label` for an inline text input — metadata-only, never renames files. */
+/** Attaches a right-click context menu to `row` with a "Rename" action (and optional extra items) — metadata-only, never renames files. */
 export function attachInlineRename(options: InlineRenameOptions): void {
-	const { row, label, getCurrentTitle, onCommit } = options;
+	const { row, label, getCurrentTitle, onCommit, extraMenuItems } = options;
 
 	row.addEventListener("contextmenu", (event: MouseEvent) => {
 		event.preventDefault();
@@ -24,6 +32,17 @@ export function attachInlineRename(options: InlineRenameOptions): void {
 				.setIcon("pencil")
 				.onClick(() => beginEdit()),
 		);
+		if (extraMenuItems) {
+			menu.addSeparator();
+			for (const extra of extraMenuItems) {
+				menu.addItem((item) =>
+					item
+						.setTitle(extra.title)
+						.setIcon(extra.icon)
+						.onClick(() => void extra.onClick()),
+				);
+			}
+		}
 		menu.showAtMouseEvent(event);
 	});
 
