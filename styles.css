@@ -146,7 +146,6 @@
 }
 
 .sf-row.sf-row-selected {
-	background: #fef3c7;
 }
 
 .sf-row.sf-dragging {
@@ -351,7 +350,6 @@
 }
 
 .sf-codex-file.sf-row-selected {
-	background: #fef3c7;
 }
 
 .sf-series-filter-btn {
@@ -445,4 +443,44 @@
 .sf-modal-book-input {
 	flex: 1;
 	min-width: 0;
+}
+
+.sf-settings-tab > .setting-item,
+.sf-settings-tab > .setting-group {
+	margin-bottom: 0;
+}
+
+/* ── Archive Modal ── */
+
+.sf-archive-modal {
+	padding: 16px;
+}
+
+.sf-archive-modal h2 {
+	margin: 0 0 12px;
+}
+
+.sf-archive-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.sf-archive-label {
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.sf-archive-unarchive-btn {
+	display: flex;
+	align-items: center;
+	flex-shrink: 0;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.sf-archive-unarchive-btn:hover {
+	color: var(--text-normal);
 }

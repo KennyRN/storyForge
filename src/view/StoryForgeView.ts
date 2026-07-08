@@ -2,6 +2,7 @@ import { ItemView, TFile, WorkspaceLeaf } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { bookFolderNameFromChapterPath, isLibraryChapterPath, libraryChapterPath } from "../paths";
 import { getBookId } from "../series";
+import { getBookChapterFiles, readBookFrontmatter } from "../book";
 import { renderTopPanel } from "./TopPanel";
 import { renderBottomPanel } from "./BottomPanel";
 import { renderStatsPanel, nextStatsMode, type StatsMode } from "./StatsPanel";
@@ -9,9 +10,8 @@ import { SeriesModal } from "./SeriesModal";
 import type { CodexViewMode } from "../codex";
 import { debounce } from "../debounce";
 import { ICON_SERIES } from "../icons";
-import { countWords } from "../wordCount";
-import { readHistory } from "../history";
-import { latestTotal, todayISOInEngland, wordsToday } from "../historyMath";
+import { countWords, sumWordCounts } from "../wordCount";
+import { upsertTodayTotal } from "../history";
 
 export const STORYFORGE_VIEW_TYPE = "storyforge-view";
 
@@ -97,6 +97,12 @@ export class StoryForgeView extends ItemView {
 			},
 			onOpenChapter: (bookName, filename) => void this.openChapter(bookName, filename),
 			onOpenSeriesModal: () => new SeriesModal(this.app, () => this.render()).open(),
+			onArchiveChapter: async () => {
+				if (this.currentBookFolderName) {
+					await this.recomputeWordCount(this.currentBookFolderName);
+					await this.refreshStats();
+				}
+			},
 		});
 
 		const currentBookId = this.currentBookFolderName ? getBookId(this.app, this.currentBookFolderName) : null;
@@ -144,9 +150,14 @@ export class StoryForgeView extends ItemView {
 		let daily = 0;
 		let story = 0;
 		if (this.currentBookFolderName) {
-			const history = await readHistory(this.app, this.currentBookFolderName);
-			daily = wordsToday(history.totals, todayISOInEngland());
-			story = latestTotal(history.totals);
+			// All three stats are computed from live (non-archived) chapter files.
+			const chapterFiles = getBookChapterFiles(this.app, this.currentBookFolderName);
+			const archived = new Set(readBookFrontmatter(this.app, this.currentBookFolderName)?.archive ?? []);
+			const liveFiles = chapterFiles.filter((f) => !archived.has(f.name));
+			const contents = await Promise.all(liveFiles.map((f) => this.app.vault.read(f)));
+			story = sumWordCounts(contents);
+			// "daily" reflects the current total of all live content (not a delta from prior days).
+			daily = story;
 		}
 
 		const next: Record<StatsMode, number> = { daily, chapter, story };
@@ -155,6 +166,16 @@ export class StoryForgeView extends ItemView {
 			this.statsCounts = next;
 			this.render();
 		}
+	}
+
+	/** Re-computes the book's total wordcount (excluding archived chapters) and persists it to wordcount.md. */
+	private async recomputeWordCount(bookFolderName: string): Promise<void> {
+		const chapterFiles = getBookChapterFiles(this.app, bookFolderName);
+		const archived = new Set(readBookFrontmatter(this.app, bookFolderName)?.archive ?? []);
+		const liveFiles = chapterFiles.filter((f) => !archived.has(f.name));
+		const contents = await Promise.all(liveFiles.map((f) => this.app.vault.read(f)));
+		const total = sumWordCounts(contents);
+		await upsertTodayTotal(this.app, bookFolderName, total);
 	}
 
 	private async openChapter(bookFolderName: string, filename: string): Promise<void> {
