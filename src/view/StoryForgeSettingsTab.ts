@@ -1,5 +1,6 @@
 import { App, ButtonComponent, PluginSettingTab, Setting, SettingGroup, ToggleComponent, setIcon } from "obsidian";
 import type StoryForgePlugin from "../main";
+import type { CodexFolderIndicatorThickness } from "../main";
 import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
 import { PALETTE_NAMES, PaletteMode, PaletteName } from "../colorPalettes";
 import { PalettePickerModal } from "./PalettePickerModal";
@@ -447,6 +448,24 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 									await this.plugin.updateSetting("codexFolderColor", hex);
 									this.plugin.applyCodexFolderStyle();
 								}),
+							),
+					)
+					.addSetting((setting) =>
+						setting
+							.setName("Folder Indicator Line")
+							.setDesc("Vertical guide line showing what's nested inside a folder, coloured to match the folder colour.")
+							.addDropdown((dropdown) =>
+								dropdown
+									.addOption("none", "None")
+									.addOption("thin", "Thin")
+									.addOption("medium", "Medium")
+									.addOption("thick", "Thick")
+									.setValue(settings.codexFolderIndicatorThickness)
+									.onChange(async (value) => {
+										await this.plugin.updateSetting("codexFolderIndicatorThickness", value as CodexFolderIndicatorThickness);
+										this.plugin.applyCodexFolderStyle();
+										this.plugin.applyHighlightStyle();
+									}),
 							),
 					);
 

@@ -1,7 +1,6 @@
 import { addIcon } from "obsidian";
 
 export const ICON_UNPLACED = "sf-archive-drawer";
-export const ICON_NEW_FILE = "sf-file-plus";
 export const ICON_ARCHIVE = "sf-box";
 export const ICON_UNARCHIVE = "sf-inbox-download";
 export const ICON_CODEX = "sf-earth-fill";
@@ -13,14 +12,14 @@ export const ICON_DASHBOARD_CHART = "sf-dashboard-chart";
 export const ICON_EXCHANGE = "sf-exchange-b";
 export const ICON_CALENDAR = "sf-calendar-2";
 export const ICON_TOOLS = "sf-dashboard-3";
+export const ICON_FOLDER_PLUS = "sf-folder-plus";
+export const ICON_PLUS_SQUARE = "sf-plus-square";
 
 const INBOX_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><g fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.75 12H6a2 2 0 0 1 2 2a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2a2 2 0 0 1 2-2h3.25" /><path d="M15.25 2.75h-6.5a6 6 0 0 0-6 6v6.5a6 6 0 0 0 6 6h6.5a6 6 0 0 0 6-6v-6.5a6 6 0 0 0-6-6Z" /></g></svg>`;
 
-const INBOX_PLUS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path stroke-linejoin="round" d="M2.75 12H6a2 2 0 0 1 2 2a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2a2 2 0 0 1 2-2h3.25" /><path d="M21.25 10.375v4.875a6 6 0 0 1-6 6h-6.5a6 6 0 0 1-6-6v-6.5a6 6 0 0 1 6-6h4.875" /><path stroke-miterlimit="10" d="M18.745 2.75v5M16.25 5.255h5" /></g></svg>`;
-
 const BOX_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.382 8.813v8.5c0 .845.344 1.656.957 2.253a3.3 3.3 0 0 0 2.308.934h8.706c.866 0 1.696-.336 2.308-.934a3.15 3.15 0 0 0 .957-2.253v-8.5m0-5.313H4.382c-.901 0-1.632.714-1.632 1.594v2.125c0 .88.73 1.593 1.632 1.593h15.236c.901 0 1.632-.713 1.632-1.593V5.094c0-.88-.73-1.594-1.632-1.594" /></svg>`;
 
-const INBOX_DOWNLOAD_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path stroke-linejoin="round" d="M2.75 12H6a2 2 0 0 1 2 2a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2a2 2 0 0 1 2-2h3.25" /><path d="M21.25 10.375v4.875a6 6 0 0 1-6 6h-6.5a6 6 0 0 1-6-6v-6.5a6 6 0 0 1 6-6h4.875" /><path stroke-miterlimit="10" d="M18.957 7.75v-5" /><path stroke-linejoin="round" d="m16.664 5.645l1.967 1.967a.46.46 0 0 0 .652 0l1.967-1.967" /></g></svg>`;
+const ARROW_OUT_UP_SQUARE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M13 16V9h4l-5-6l-5 6h4v7z" /><path fill="currentColor" d="M19 19H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2z" /></svg>`;
 
 const EARTH_FILL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path fill="currentColor" d="M21.95 10.105v-.15a10.27 10.27 0 0 0-10-8.19a10.14 10.14 0 0 0-7 2.78l-.21.19a.1.1 0 0 0 0 .05a10.23 10.23 0 0 0 6.86 17.45h.4a10.26 10.26 0 0 0 10.25-10.25a10 10 0 0 0-.3-1.88m-9.94 10.66a12.2 12.2 0 0 1-.61-3.44c.11-1.52-1.21-1.66-1.78-1.72c-.86-.09-1.43-.15-1.43-1.88c.029-.898.119-1.794.27-2.68c.33-2.3.7-4.86-1.72-6.11a8.72 8.72 0 0 1 5.14-1.67a8.6 8.6 0 0 1 2 .23a3.6 3.6 0 0 1-.18 1.49c-1.16.33-1.18 1.85-1.2 3.62c.043.983-.058 1.967-.3 2.92a1.9 1.9 0 0 0 .76 2.38c.545.32 1.168.482 1.8.47a3.72 3.72 0 0 0 2.67-1.05a4 4 0 0 0 1.12-2.19q.045-.162.06-.33a.7.7 0 0 1 .29 0c.28 0 .65 0 1 .06h.62a8.72 8.72 0 0 1-8.54 9.9z"/></svg>`;
 
@@ -40,12 +39,15 @@ const CALENDAR_2_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 
 
 const DASHBOARD_3_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.318 2.75H4.682A1.93 1.93 0 0 0 2.75 4.682v3.885A1.93 1.93 0 0 0 4.682 10.5h14.636a1.93 1.93 0 0 0 1.932-1.932V4.682a1.93 1.93 0 0 0-1.932-1.932M8.567 13.5H4.682a1.93 1.93 0 0 0-1.932 1.933v3.885a1.93 1.93 0 0 0 1.932 1.932h3.885a1.93 1.93 0 0 0 1.932-1.932v-3.885A1.94 1.94 0 0 0 8.567 13.5m10.751 0h-3.885a1.94 1.94 0 0 0-1.932 1.933v3.885a1.93 1.93 0 0 0 1.932 1.932h3.885a1.933 1.933 0 0 0 1.932-1.932v-3.885a1.93 1.93 0 0 0-1.932-1.932"/></svg>`;
 
+const FOLDER_PLUS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path stroke-miterlimit="10" d="M11.993 10.307v6.874m-3.43-3.437h6.874" /><path stroke-linejoin="round" d="M21.25 9.883v7.698a3.083 3.083 0 0 1-3.083 3.083H5.833a3.083 3.083 0 0 1-3.083-3.083V6.419a3.083 3.083 0 0 1 3.083-3.083h3.084a3.08 3.08 0 0 1 2.57 1.377l.873 1.326a1.75 1.75 0 0 0 1.449.77h4.358a3.084 3.084 0 0 1 3.083 3.074" /></g></svg>`;
+
+const PLUS_SQUARE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.861V17.14M17.14 12H6.86" /><rect width="18.5" height="18.5" x="2.75" y="2.75" rx="6" /></g></svg>`;
+
 /** Registers storyForge's custom Lucide-style icons so `setIcon` can address them by id. */
 export function registerCustomIcons(): void {
 	addIcon(ICON_UNPLACED, INBOX_SVG);
-	addIcon(ICON_NEW_FILE, INBOX_PLUS_SVG);
 	addIcon(ICON_ARCHIVE, BOX_SVG);
-	addIcon(ICON_UNARCHIVE, INBOX_DOWNLOAD_SVG);
+	addIcon(ICON_UNARCHIVE, ARROW_OUT_UP_SQUARE_SVG);
 	addIcon(ICON_CODEX, EARTH_FILL_SVG);
 	addIcon(ICON_SERIES, LIBRARY_SVG);
 	addIcon(ICON_BOOK, BOOK_SVG);
@@ -55,4 +57,6 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_EXCHANGE, EXCHANGE_B_SVG);
 	addIcon(ICON_CALENDAR, CALENDAR_2_SVG);
 	addIcon(ICON_TOOLS, DASHBOARD_3_SVG);
+	addIcon(ICON_FOLDER_PLUS, FOLDER_PLUS_SVG);
+	addIcon(ICON_PLUS_SQUARE, PLUS_SQUARE_SVG);
 }

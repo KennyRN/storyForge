@@ -1,31 +1,70 @@
 import { App, TFile, setIcon } from "obsidian";
-import { getCodexView, type CodexTreeItem, type CodexViewMode } from "../codex";
-import { ICON_CODEX } from "../icons";
+import {
+	archiveCodexItem,
+	getCodexView,
+	isDescendantFolder,
+	moveCodexItem,
+	readCodexFrontmatter,
+	removeCodexFolder,
+	renameCodexFolder,
+	renameCodexNoteFile,
+	type CodexTreeItem,
+	type CodexViewMode,
+} from "../codex";
+import { ICON_ARCHIVE, ICON_CODEX, ICON_FOLDER_PLUS, ICON_PLUS_SQUARE } from "../icons";
+import { attachInlineRename } from "./inlineRename";
+import { attachCodexDragReorder, type CodexDragRowInfo } from "./dragReorderTree";
 
 export interface BottomPanelOptions {
 	currentBookId: string | null;
 	mode: CodexViewMode;
 	onToggleMode: () => void;
 	collapsedPaths: ReadonlySet<string>;
-	onToggleFolder: (path: string) => void;
+	onToggleFolder: (folderId: string) => void;
 	activeFilePath: string | null;
 	highlightActiveChapter: boolean;
+	onCreateFolder: () => void;
+	onCreateFile: () => void;
+	onOpenArchive: () => void;
 }
 
 export function renderBottomPanel(app: App, container: HTMLElement, options: BottomPanelOptions): void {
 	container.empty();
 
-	const isHidden = options.mode === "hidden";
+	const isCodexHidden = options.mode === "codexHidden";
 	const header = container.createDiv({ cls: "sf-bottom-header" });
-	if (isHidden) header.addClass("sf-codex-hidden");
+	if (isCodexHidden) header.addClass("sf-codex-hidden");
 	setIcon(header.createSpan({ cls: "sf-icon" }), ICON_CODEX);
 	header.createSpan({
 		cls: "sf-header-codex",
-		text: isHidden ? "codex hidden" : "Codex",
+		text: isCodexHidden ? "codex hidden" : "Codex",
 	});
 	header.addEventListener("click", () => options.onToggleMode());
 
-	if (isHidden) return;
+	if (!isCodexHidden) {
+		const newFileBtn = header.createSpan({ cls: "sf-codex-new-file-btn", attr: { "aria-label": "New file" } });
+		setIcon(newFileBtn, ICON_PLUS_SQUARE);
+		newFileBtn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			options.onCreateFile();
+		});
+
+		const newFolderBtn = header.createSpan({ cls: "sf-codex-new-folder-btn", attr: { "aria-label": "New folder" } });
+		setIcon(newFolderBtn, ICON_FOLDER_PLUS);
+		newFolderBtn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			options.onCreateFolder();
+		});
+
+		const archiveBtn = header.createSpan({ cls: "sf-codex-archive-btn", attr: { "aria-label": "Codex archive" } });
+		setIcon(archiveBtn, ICON_ARCHIVE);
+		archiveBtn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			options.onOpenArchive();
+		});
+	}
+
+	if (isCodexHidden) return;
 
 	const treeEl = container.createDiv({ cls: "sf-codex-tree" });
 	const tree = getCodexView(app, options.currentBookId, options.mode);
@@ -33,7 +72,29 @@ export function renderBottomPanel(app: App, container: HTMLElement, options: Bot
 		treeEl.createDiv({ cls: "sf-empty", text: "Nothing here yet." });
 		return;
 	}
-	renderTreeChildren(app, treeEl, tree.children, options.collapsedPaths, options.onToggleFolder, options.activeFilePath, options.highlightActiveChapter);
+
+	const rowInfo: CodexDragRowInfo[] = [];
+	renderTreeChildren(
+		app,
+		treeEl,
+		tree.children,
+		options.collapsedPaths,
+		options.onToggleFolder,
+		options.activeFilePath,
+		options.highlightActiveChapter,
+		null,
+		rowInfo,
+	);
+
+	const { folders } = readCodexFrontmatter(app);
+	attachCodexDragReorder(
+		treeEl,
+		rowInfo,
+		(ancestorId, candidateId) => isDescendantFolder(folders, ancestorId, candidateId),
+		(dragged, target) => {
+			void moveCodexItem(app, dragged.key, dragged.type, target.parentId, target.beforeKey);
+		},
+	);
 }
 
 function renderTreeChildren(
@@ -41,36 +102,89 @@ function renderTreeChildren(
 	container: HTMLElement,
 	items: CodexTreeItem[],
 	collapsedPaths: ReadonlySet<string>,
-	onToggleFolder: (path: string) => void,
+	onToggleFolder: (folderId: string) => void,
 	activeFilePath: string | null,
 	highlightActiveChapter: boolean,
+	parentKey: string | null,
+	rowInfo: CodexDragRowInfo[],
 ): void {
 	for (const item of items) {
 		if (item.type === "folder") {
 			const folderEl = container.createDiv({ cls: "sf-codex-folder" });
 			const headerEl = folderEl.createDiv({ cls: "sf-codex-folder-header" });
-			const collapsed = collapsedPaths.has(item.path);
+			headerEl.dataset.key = item.id;
+			headerEl.dataset.type = "folder";
+			rowInfo.push({ key: item.id, type: "folder", parentKey });
+
+			const handle = headerEl.createSpan({ cls: "sf-drag-handle" });
+			setIcon(handle, "grip-vertical");
+
+			const collapsed = collapsedPaths.has(item.id);
 			const chevron = headerEl.createSpan({ cls: "sf-codex-chevron" });
 			setIcon(chevron, collapsed ? "chevron-right" : "chevron-down");
 			const folderNameEl = headerEl.createSpan({ cls: "sf-codex-folder-name", text: item.name });
 			folderNameEl.addClass("sf-styled-heading");
-			headerEl.addEventListener("click", () => onToggleFolder(item.path));
+			headerEl.addEventListener("click", (e) => {
+				if (headerEl.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
+				onToggleFolder(item.id);
+			});
+
+			attachInlineRename({
+				row: headerEl,
+				label: folderNameEl,
+				getCurrentTitle: () => item.name,
+				onCommit: (name) => renameCodexFolder(app, item.id, name),
+				extraMenuItems: [
+					{ title: "Archive Entire Folder", icon: "archive", onClick: () => archiveCodexItem(app, item.id) },
+					{ title: "Remove Folder and Keep Items", icon: "trash-2", onClick: () => removeCodexFolder(app, item.id) },
+				],
+			});
 
 			if (!collapsed) {
 				const childrenEl = folderEl.createDiv({ cls: "sf-codex-folder-children" });
-				renderTreeChildren(app, childrenEl, item.children, collapsedPaths, onToggleFolder, activeFilePath, highlightActiveChapter);
+				childrenEl.createDiv({ cls: "sf-codex-folder-indicator" });
+				renderTreeChildren(
+					app,
+					childrenEl,
+					item.children,
+					collapsedPaths,
+					onToggleFolder,
+					activeFilePath,
+					highlightActiveChapter,
+					item.id,
+					rowInfo,
+				);
 			}
 		} else {
 			const fileEl = container.createDiv({ cls: "sf-codex-file" });
+			fileEl.dataset.key = item.path;
+			fileEl.dataset.type = "file";
+			rowInfo.push({ key: item.path, type: "file", parentKey });
+
+			const handle = fileEl.createSpan({ cls: "sf-drag-handle" });
+			setIcon(handle, "grip-vertical");
+
 			if (highlightActiveChapter && activeFilePath === item.path) {
 				fileEl.addClass("sf-row-selected");
 			}
-			fileEl.createSpan({ text: item.name });
-			fileEl.addEventListener("click", () => {
+			const label = fileEl.createSpan({ text: item.name });
+			fileEl.addEventListener("click", (e) => {
+				if (fileEl.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
 				const file = app.vault.getAbstractFileByPath(item.path);
 				if (file instanceof TFile) {
 					void app.workspace.getLeaf(false).openFile(file);
 				}
+			});
+
+			attachInlineRename({
+				row: fileEl,
+				label,
+				getCurrentTitle: () => item.name,
+				onCommit: async (name) => {
+					const file = app.vault.getAbstractFileByPath(item.path);
+					if (file instanceof TFile) await renameCodexNoteFile(app, file, name);
+				},
+				extraMenuItems: [{ title: "Archive", icon: "archive", onClick: () => archiveCodexItem(app, item.path) }],
 			});
 		}
 	}

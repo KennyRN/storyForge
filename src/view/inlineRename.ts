@@ -13,13 +13,13 @@ export interface InlineRenameOptions {
 	label: HTMLElement;
 	/** The raw, stored title to seed the input with — not any display-only transform (e.g. "#" numbering) applied to `label`. */
 	getCurrentTitle: () => string;
-	/** Persists the new title. Metadata-only — never renames files. */
+	/** Persists the new title — whatever that means to the caller (a metadata field for books/chapters, an actual file rename for Codex notes). */
 	onCommit: (newTitle: string) => Promise<void>;
 	/** Optional extra items to include in the right-click menu, after Rename. */
 	extraMenuItems?: ExtraMenuItem[];
 }
 
-/** Attaches a right-click context menu to `row` with a "Rename" action (and optional extra items) — metadata-only, never renames files. */
+/** Attaches a right-click context menu to `row` with a "Rename" action (and optional extra items) — purely a row/label swap plus a caller-supplied `onCommit`, agnostic to what renaming actually does underneath. */
 export function attachInlineRename(options: InlineRenameOptions): void {
 	const { row, label, getCurrentTitle, onCommit, extraMenuItems } = options;
 
