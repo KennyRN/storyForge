@@ -1,9 +1,9 @@
 import { App, parseYaml, stringifyYaml, TFile } from "obsidian";
 import { wordCountFilePath } from "./paths";
 import { writeBackstageFile } from "./writeGuard";
-import { todayISOInEngland, wordsToday } from "./historyMath";
+import { todayISOInEngland, wordsThisWeek, wordsToday } from "./historyMath";
 
-export { todayISOInEngland, wordsToday };
+export { todayISOInEngland, wordsThisWeek, wordsToday };
 
 export interface History {
 	totals: Record<string, number>;

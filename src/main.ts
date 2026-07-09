@@ -13,6 +13,7 @@ import { extractFingerprint } from "./fingerprint";
 import { updateChapterFingerprint } from "./chapterSidecar";
 import { debounce } from "./debounce";
 import { registerCustomIcons } from "./icons";
+import { refreshTabTitles, registerTabTitleOverrides } from "./tabTitles";
 import { PaletteColor, PaletteMode, PaletteName } from "./colorPalettes";
 
 export interface StoryForgePluginSettings {
@@ -25,8 +26,13 @@ export interface StoryForgePluginSettings {
 	hideFileNameBar: boolean;
 	hideNavRow: boolean;
 	highlightActiveChapter: boolean;
+	perPanelHighlighting: boolean;
 	highlightColor: string;
 	highlightTextColor: string;
+	unplacedHighlightColor: string;
+	unplacedHighlightTextColor: string;
+	codexHighlightColor: string;
+	codexHighlightTextColor: string;
 	unplacedMuted: boolean;
 	unplacedSmallCaps: boolean;
 	unplacedColor: string;
@@ -62,8 +68,13 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	hideFileNameBar: true,
 	hideNavRow: true,
 	highlightActiveChapter: true,
+	perPanelHighlighting: false,
 	highlightColor: "#fef3c7",
 	highlightTextColor: "#1f2937",
+	unplacedHighlightColor: "#fef3c7",
+	unplacedHighlightTextColor: "#1f2937",
+	codexHighlightColor: "#fef3c7",
+	codexHighlightTextColor: "#1f2937",
 	unplacedMuted: false,
 	unplacedSmallCaps: true,
 	unplacedColor: "#ffff00",
@@ -137,6 +148,7 @@ export default class StoryForgePlugin extends Plugin {
 		this.applyHighlightStyle();
 		this.applyCodexFolderStyle();
 		this.applyCodexNoteLabelStyle();
+		registerTabTitleOverrides(this.app, (eventRef) => this.registerEvent(eventRef));
 
 		registerReconciliationEvents(this.app, this);
 
@@ -154,6 +166,7 @@ export default class StoryForgePlugin extends Plugin {
 				void this.activateToolsView();
 			}
 			this.refreshCustomIcons();
+			refreshTabTitles(this.app);
 		});
 	}
 
@@ -307,10 +320,16 @@ export default class StoryForgePlugin extends Plugin {
 
 	applyHighlightStyle(): void {
 		const s = this.pluginSettings;
-		const rules: string[] = [
-			`.sf-row.sf-row-selected { background: ${s.highlightColor}; color: ${s.highlightTextColor}; }`,
-			`.sf-codex-file.sf-row-selected { background: ${s.highlightColor}; color: ${s.highlightTextColor}; }`,
-		];
+		const rules: string[] = s.perPanelHighlighting
+			? [
+					`.sf-top-list:not(.sf-unplaced-list) .sf-row.sf-row-selected { background: ${s.highlightColor}; color: ${s.highlightTextColor}; }`,
+					`.sf-unplaced-list .sf-row.sf-row-selected { background: ${s.unplacedHighlightColor}; color: ${s.unplacedHighlightTextColor}; }`,
+					`.sf-codex-file.sf-row-selected { background: ${s.codexHighlightColor}; color: ${s.codexHighlightTextColor}; }`,
+				]
+			: [
+					`.sf-row.sf-row-selected { background: ${s.highlightColor}; color: ${s.highlightTextColor}; }`,
+					`.sf-codex-file.sf-row-selected { background: ${s.highlightColor}; color: ${s.highlightTextColor}; }`,
+				];
 
 		if (!this.highlightStyleEl) {
 			this.highlightStyleEl = document.createElement("style");

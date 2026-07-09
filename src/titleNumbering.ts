@@ -32,3 +32,14 @@ export function splitTitleSubtitle(raw: string): SplitTitle {
 	const subtitle = raw.slice(idx + 2).trim();
 	return { title, subtitle: subtitle || null };
 }
+
+/**
+ * Formats a title for a single-line context (e.g. a tab header) that can't
+ * wrap to a second line: "Title: Subtitle" if there's a subtitle, else just
+ * the title. Contexts that already support two lines (the panel's own row
+ * rendering) should keep using `splitTitleSubtitle` directly instead.
+ */
+export function formatSingleLine(raw: string): string {
+	const { title, subtitle } = splitTitleSubtitle(raw);
+	return subtitle ? `${title}: ${subtitle}` : title;
+}

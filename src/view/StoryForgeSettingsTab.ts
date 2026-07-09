@@ -173,6 +173,14 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 
 		this.renderFoldableSection(containerEl, "ui-formatting", "h3", "storyForge Interface Formatting", (body) => {
 			const highlightGroup = new SettingGroup(body);
+			let highlightColourSetting: Setting | null = null;
+			let highlightTextColourSetting: Setting | null = null;
+			const applyHighlightNames = (perPanel: boolean) => {
+				highlightColourSetting?.setName(perPanel ? "Highlight Colour for Chapter/Book" : "Highlight Colour");
+				highlightTextColourSetting?.setName(
+					perPanel ? "Highlight Text Colour for Chapter/Book" : "Highlight Text Colour",
+				);
+			};
 			highlightGroup
 				.addSetting((setting) =>
 					setting
@@ -189,26 +197,41 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				)
 				.addSetting((setting) =>
 					setting
-						.setName("Highlight Colour")
+						.setName("Per Panel Highlighting")
+						.setDesc(
+							"Give the chapter/book list, Unplaced zone, and Codex panel their own highlight colours.",
+						)
+						.addToggle((toggle) =>
+							toggle.setValue(settings.perPanelHighlighting).onChange(async (value) => {
+								await this.plugin.updateSetting("perPanelHighlighting", value);
+								applyHighlightNames(value);
+								this.plugin.applyHighlightStyle();
+							}),
+						),
+				)
+				.addSetting((setting) => {
+					highlightColourSetting = setting;
+					setting
 						.setDesc("The colour used for the active chapter/item highlight.")
 						.addButton((button) =>
 							this.bindColorSwatchButton(button, settings.highlightColor, async (hex) => {
 								await this.plugin.updateSetting("highlightColor", hex);
 								this.plugin.applyHighlightStyle();
 							}),
-						),
-				)
-				.addSetting((setting) =>
+						);
+				})
+				.addSetting((setting) => {
+					highlightTextColourSetting = setting;
 					setting
-						.setName("Highlight Text Colour")
 						.setDesc("colour used for the active chapter/item highlight text")
 						.addButton((button) =>
 							this.bindColorSwatchButton(button, settings.highlightTextColor, async (hex) => {
 								await this.plugin.updateSetting("highlightTextColor", hex);
 								this.plugin.applyHighlightStyle();
 							}),
-						),
-				);
+						);
+				});
+			applyHighlightNames(settings.perPanelHighlighting);
 
 			this.renderFoldableSection(body, "unplaced", "h4", "Unplaced Panel", (unplacedBody) => {
 				const unplacedHeaderGroup = new SettingGroup(unplacedBody);
@@ -320,6 +343,32 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 									this.plugin.applyHeaderStyles();
 								});
 							}),
+					);
+
+				new Setting(unplacedBody).setDesc(
+					"highlights the currently selected chapter in the storyForge panel, only active if per panel highlighting is selected",
+				);
+				const unplacedHighlightGroup = new SettingGroup(unplacedBody);
+				unplacedHighlightGroup
+					.addSetting((setting) =>
+						setting
+							.setName("Highlight Colour")
+							.addButton((button) =>
+								this.bindColorSwatchButton(button, settings.unplacedHighlightColor, async (hex) => {
+									await this.plugin.updateSetting("unplacedHighlightColor", hex);
+									this.plugin.applyHighlightStyle();
+								}),
+							),
+					)
+					.addSetting((setting) =>
+						setting
+							.setName("Highlight Text Colour")
+							.addButton((button) =>
+								this.bindColorSwatchButton(button, settings.unplacedHighlightTextColor, async (hex) => {
+									await this.plugin.updateSetting("unplacedHighlightTextColor", hex);
+									this.plugin.applyHighlightStyle();
+								}),
+							),
 					);
 			});
 
@@ -461,6 +510,32 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 									this.plugin.applyCodexNoteLabelStyle();
 								});
 							}),
+					);
+
+				new Setting(codexBody).setDesc(
+					"highlights the currently selected note in the codex panel, only active if per panel highlighting is selected",
+				);
+				const codexHighlightGroup = new SettingGroup(codexBody);
+				codexHighlightGroup
+					.addSetting((setting) =>
+						setting
+							.setName("Highlight Colour")
+							.addButton((button) =>
+								this.bindColorSwatchButton(button, settings.codexHighlightColor, async (hex) => {
+									await this.plugin.updateSetting("codexHighlightColor", hex);
+									this.plugin.applyHighlightStyle();
+								}),
+							),
+					)
+					.addSetting((setting) =>
+						setting
+							.setName("Highlight Text Colour")
+							.addButton((button) =>
+								this.bindColorSwatchButton(button, settings.codexHighlightTextColor, async (hex) => {
+									await this.plugin.updateSetting("codexHighlightTextColor", hex);
+									this.plugin.applyHighlightStyle();
+								}),
+							),
 					);
 			});
 		});

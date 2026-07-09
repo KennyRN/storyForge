@@ -17,6 +17,7 @@ import {
 } from "./series";
 import { nextBookFolderCode } from "./bookCode";
 import { nextChapterCode } from "./chapterCode";
+import { applyHashNumbering } from "./titleNumbering";
 
 export interface CompileSettings {
 	format?: string;
@@ -136,6 +137,16 @@ export function getChapterId(app: App, bookFolderName: string, filename: string)
 /** Falls back to the filename (sans ".md") if no entry exists yet — same defensive pattern as `bookDisplayTitle`. */
 export function chapterDisplayTitle(app: App, bookFolderName: string, filename: string): string {
 	return getChapterEntry(app, bookFolderName, filename)?.chapterTitle ?? filename.replace(/\.md$/i, "");
+}
+
+/** The chapter's title, with "#" resolved to its number among the book's "#"-titled chapters (same counter the chapter list's rows use). */
+export function numberedChapterTitle(app: App, bookFolderName: string, filename: string): string {
+	const { ordered, unplaced } = getBookChapters(app, bookFolderName);
+	const sequence = [...ordered, ...unplaced];
+	const idx = sequence.findIndex((file) => file.name === filename);
+	if (idx === -1) return chapterDisplayTitle(app, bookFolderName, filename);
+	const numbered = applyHashNumbering(sequence.map((file) => chapterDisplayTitle(app, bookFolderName, file.name)));
+	return numbered[idx];
 }
 
 export function collectAllChapterIds(app: App, bookFolderName: string): string[] {
