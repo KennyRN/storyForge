@@ -457,8 +457,58 @@
 	margin-bottom: 0;
 }
 
-.sf-settings-tab > .setting-item + .setting-group {
+.sf-settings-tab > .setting-item + .setting-group,
+.sf-settings-tab > .setting-item + .setting-item {
 	margin-top: var(--size-4-6);
+}
+
+.sf-settings-section-body > .setting-item,
+.sf-settings-section-body > .setting-group {
+	margin-bottom: 0;
+}
+
+.sf-settings-section-body > .setting-item + .setting-item,
+.sf-settings-section-body > .setting-item + .setting-group {
+	margin-top: var(--size-4-6);
+}
+
+/* ── Settings Tab Foldable Sections ── */
+
+.sf-settings-section {
+	margin-top: var(--size-4-6);
+}
+
+.sf-settings-section-header {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 2px;
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+.sf-settings-section-header:hover {
+	background: var(--background-modifier-hover);
+}
+
+.sf-settings-section-header h3,
+.sf-settings-section-header h4 {
+	margin: 0;
+}
+
+.sf-settings-chevron {
+	display: flex;
+	align-items: center;
+	flex-shrink: 0;
+	color: var(--text-faint);
+}
+
+.sf-settings-section.sf-settings-collapsed > .sf-settings-section-body {
+	display: none;
+}
+
+.sf-settings-section-h4 {
+	padding-left: 10px;
 }
 
 /* ── Archive Modal ── */
