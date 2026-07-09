@@ -134,6 +134,18 @@
 	color: var(--text-normal);
 }
 
+.sf-unplaced-archive-btn {
+	display: flex;
+	align-items: center;
+	flex-shrink: 0;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.sf-unplaced-archive-btn:hover {
+	color: var(--text-normal);
+}
+
 .sf-unplaced-list {
 	min-height: 28px;
 	padding: 2px 4px 6px;
@@ -525,8 +537,24 @@
 	padding: 16px;
 }
 
-.sf-archive-modal h2 {
+.sf-archive-modal-header {
+	display: flex;
+	align-items: flex-end;
+	gap: 8px;
 	margin: 0 0 12px;
+}
+
+.sf-archive-modal-header h2 {
+	margin: 0;
+}
+
+.sf-archive-modal-header > .sf-icon {
+	font-size: 2em;
+}
+
+.sf-archive-modal-header > .sf-icon svg {
+	width: 1em;
+	height: 1em;
 }
 
 .sf-archive-list {
@@ -546,12 +574,8 @@
 	display: flex;
 	align-items: center;
 	flex-shrink: 0;
-	color: var(--text-muted);
-	cursor: pointer;
-}
-
-.sf-archive-unarchive-btn:hover {
 	color: var(--text-normal);
+	cursor: pointer;
 }
 
 /* ── Palette Picker Modal ── */

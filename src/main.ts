@@ -150,7 +150,9 @@ export default class StoryForgePlugin extends Plugin {
 
 		this.app.workspace.onLayoutReady(() => {
 			void this.initializeVaultState();
-			if (this.pluginSettings.useToolsPanel) void this.activateToolsView();
+			if (this.pluginSettings.useToolsPanel && this.app.workspace.getLeavesOfType(TOOLS_VIEW_TYPE).length === 0) {
+				void this.activateToolsView();
+			}
 			this.refreshCustomIcons();
 		});
 	}
@@ -165,6 +167,13 @@ export default class StoryForgePlugin extends Plugin {
 			for (const leaf of this.app.workspace.getLeavesOfType(type)) {
 				void leaf.setViewState(leaf.getViewState());
 			}
+		}
+	}
+
+	/** Forces any open storyForge view(s) to re-render, e.g. after a settings change with no other trigger. */
+	refreshStoryForgeViews(): void {
+		for (const leaf of this.app.workspace.getLeavesOfType(STORYFORGE_VIEW_TYPE)) {
+			(leaf.view as StoryForgeView).render();
 		}
 	}
 
