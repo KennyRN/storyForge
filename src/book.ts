@@ -106,18 +106,19 @@ export function getBookChapters(app: App, bookFolderName: string): OrderResult<T
 	return resolveOrder(liveFiles, fm?.chapterOrder ?? [], (file) => file.name);
 }
 
-/** Returns every archived chapter (filename + display title) across all books. */
-export function getArchivedChapters(app: App): { bookFolderName: string; bookTitle: string; filename: string; chapterTitle: string }[] {
+/** Returns every archived chapter (filename + display title), scoped to `bookFolderName` if given, otherwise across all books. */
+export function getArchivedChapters(app: App, bookFolderName?: string): { bookFolderName: string; bookTitle: string; filename: string; chapterTitle: string }[] {
 	const result: { bookFolderName: string; bookTitle: string; filename: string; chapterTitle: string }[] = [];
-	for (const folder of getLibraryBookFolders(app)) {
-		const fm = readBookFrontmatter(app, folder.name);
+	const names = bookFolderName ? [bookFolderName] : getLibraryBookFolders(app).map((f) => f.name);
+	for (const name of names) {
+		const fm = readBookFrontmatter(app, name);
 		if (!fm) continue;
 		for (const filename of fm.archive) {
 			result.push({
-				bookFolderName: folder.name,
-				bookTitle: fm.bookTitleReference || folder.name,
+				bookFolderName: name,
+				bookTitle: fm.bookTitleReference || name,
 				filename,
-				chapterTitle: chapterDisplayTitle(app, folder.name, filename),
+				chapterTitle: chapterDisplayTitle(app, name, filename),
 			});
 		}
 	}

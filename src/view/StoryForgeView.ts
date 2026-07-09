@@ -7,6 +7,7 @@ import { renderTopPanel } from "./TopPanel";
 import { renderBottomPanel } from "./BottomPanel";
 import { renderStatsPanel, nextStatsMode, type StatsMode } from "./StatsPanel";
 import { SeriesModal } from "./SeriesModal";
+import { ArchiveModal } from "./ArchiveModal";
 import type { CodexViewMode } from "../codex";
 import { debounce } from "../debounce";
 import { ICON_SERIES } from "../icons";
@@ -97,6 +98,11 @@ export class StoryForgeView extends ItemView {
 			},
 			onOpenChapter: (bookName, filename) => void this.openChapter(bookName, filename),
 			onOpenSeriesModal: () => new SeriesModal(this.app, () => this.render()).open(),
+			onOpenArchive: () => {
+				if (this.currentBookFolderName) {
+					new ArchiveModal(this.app, this.currentBookFolderName, () => this.render()).open();
+				}
+			},
 			onArchiveChapter: async () => {
 				if (this.currentBookFolderName) {
 					await this.recomputeWordCount(this.currentBookFolderName);

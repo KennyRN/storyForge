@@ -1,6 +1,5 @@
 import { App, ButtonComponent, PluginSettingTab, Setting, SettingGroup, ToggleComponent, setIcon } from "obsidian";
 import type StoryForgePlugin from "../main";
-import { ArchiveModal } from "./ArchiveModal";
 import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
 import { PALETTE_NAMES, PaletteMode, PaletteName } from "../colorPalettes";
 import { PalettePickerModal } from "./PalettePickerModal";
@@ -108,19 +107,6 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					.onClick(() => void this.plugin.activateToolsView()),
 			);
 
-		new Setting(containerEl)
-			.setName("Archived Chapters")
-			.setDesc("View and unarchive chapters that have been archived.")
-			.addButton((button) =>
-				button
-					.setButtonText("Archived Chapters")
-					.setIcon("eye")
-					.onClick(() => {
-						const modal = new ArchiveModal(this.app, () => void this.plugin.activateView());
-						modal.open();
-					}),
-			);
-
 		const paletteGroup = new SettingGroup(containerEl);
 		paletteGroup.addSetting((setting) =>
 			setting
@@ -197,6 +183,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 						.addToggle((toggle) =>
 							toggle.setValue(settings.highlightActiveChapter).onChange(async (value) => {
 								await this.plugin.updateSetting("highlightActiveChapter", value);
+								this.plugin.refreshStoryForgeViews();
 							}),
 						),
 				)
