@@ -1,5 +1,6 @@
 import { Plugin, TFile, WorkspaceLeaf } from "obsidian";
 import { StoryForgeView, STORYFORGE_VIEW_TYPE } from "./view/StoryForgeView";
+import { ToolsView, TOOLS_VIEW_TYPE } from "./view/ToolsPanel";
 import { StoryForgeSettingsTab } from "./view/StoryForgeSettingsTab";
 import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders } from "./series";
 import { ensureAllChapterEntries, getBookChapterFiles, readBookFrontmatter, syncAllBookReferenceFields } from "./book";
@@ -44,6 +45,7 @@ export interface StoryForgePluginSettings {
 	codexNoteLabelUseDefaultColor: boolean;
 	codexNoteLabelUseFolderColor: boolean;
 	collapsedSections: Record<string, boolean>;
+	useToolsPanel: boolean;
 }
 
 export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
@@ -77,6 +79,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	codexNoteLabelUseDefaultColor: false,
 	codexNoteLabelUseFolderColor: false,
 	collapsedSections: {},
+	useToolsPanel: true,
 };
 
 export default class StoryForgePlugin extends Plugin {
@@ -89,13 +92,29 @@ export default class StoryForgePlugin extends Plugin {
 	private codexNoteLabelStyleEl: HTMLStyleElement | null = null;
 
 	async onload(): Promise<void> {
+		// Defensively remove any style tags a previous (e.g. hot-reloaded) instance of this
+		// plugin left behind - onunload() prevents this going forward, but existing sessions
+		// may already have stale duplicates injected before that existed.
+		document
+			.querySelectorAll(
+				"#storyforge-visibility-styles, #storyforge-header-styles, #storyforge-highlight-styles, #storyforge-codex-folder-styles, #storyforge-codex-note-label-styles",
+			)
+			.forEach((el) => el.remove());
+
 		registerCustomIcons();
 		this.registerView(STORYFORGE_VIEW_TYPE, (leaf) => new StoryForgeView(leaf, this));
+		this.registerView(TOOLS_VIEW_TYPE, (leaf) => new ToolsView(leaf));
 
 		this.addCommand({
 			id: "open-storyforge-view",
 			name: "Open storyForge panel",
 			callback: () => void this.activateView(),
+		});
+
+		this.addCommand({
+			id: "open-tools-view",
+			name: "Open Tools panel",
+			callback: () => void this.activateToolsView(),
 		});
 
 		await this.loadSettings();
@@ -116,7 +135,39 @@ export default class StoryForgePlugin extends Plugin {
 			}),
 		);
 
-		this.app.workspace.onLayoutReady(() => void this.initializeVaultState());
+		this.app.workspace.onLayoutReady(() => {
+			void this.initializeVaultState();
+			if (this.pluginSettings.useToolsPanel) void this.activateToolsView();
+			this.refreshCustomIcons();
+		});
+	}
+
+	/**
+	 * Leaves restored from a saved workspace layout can draw their tab icon before this
+	 * plugin's custom icons finish registering, leaving Obsidian's fallback icon stuck in
+	 * the tab header. Re-applying each leaf's own view state forces Obsidian to redraw it.
+	 */
+	private refreshCustomIcons(): void {
+		for (const type of [STORYFORGE_VIEW_TYPE, TOOLS_VIEW_TYPE]) {
+			for (const leaf of this.app.workspace.getLeavesOfType(type)) {
+				void leaf.setViewState(leaf.getViewState());
+			}
+		}
+	}
+
+	onunload(): void {
+		// Detaching first runs ToolsView.onClose(), which restores the ribbon to its native parent.
+		this.app.workspace.detachLeavesOfType(TOOLS_VIEW_TYPE);
+		document.body.classList.remove("sf-use-tools-panel", "sf-tools-open");
+		for (const el of [
+			this.styleEl,
+			this.headerStyleEl,
+			this.highlightStyleEl,
+			this.codexFolderStyleEl,
+			this.codexNoteLabelStyleEl,
+		]) {
+			el?.remove();
+		}
 	}
 
 	async loadSettings(): Promise<void> {
@@ -163,6 +214,24 @@ export default class StoryForgePlugin extends Plugin {
 		}
 		if (this.pluginSettings.hideNavRow) {
 			rules.push(".view-header { display: none !important; }");
+		}
+		if (this.pluginSettings.useToolsPanel) {
+			document.body.classList.add("sf-use-tools-panel");
+			// Match Obsidian's own ribbon-width accounting (see its `show-ribbon` class) so the
+			// macOS traffic-light spacing math (--frame-left-space) recalculates correctly.
+			rules.push("body.sf-use-tools-panel { --ribbon-width: 0px; }");
+			// The native ribbon is hidden everywhere except while it's physically parented
+			// inside the open Tools pane (see ToolsView.mountRibbon).
+			rules.push("body.sf-use-tools-panel .workspace-ribbon { display: none !important; }");
+			// Must be at least as specific as the hide rule above (both use !important) - a plain
+			// ".sf-tools-view .workspace-ribbon" selector is weaker (no `body` element selector) and
+			// silently loses to it regardless of source order, leaving the ribbon `display: none`.
+			rules.push("body.sf-use-tools-panel .sf-tools-view .workspace-ribbon { display: flex !important; }");
+			rules.push(
+				"body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container { padding-left: calc(var(--size-4-2) + var(--frame-left-space)) !important; }",
+			);
+		} else {
+			document.body.classList.remove("sf-use-tools-panel");
 		}
 
 		// Always keep the style element and update its content
@@ -301,6 +370,16 @@ export default class StoryForgePlugin extends Plugin {
 		if (!leaf) {
 			leaf = workspace.getLeftLeaf(false);
 			await leaf?.setViewState({ type: STORYFORGE_VIEW_TYPE, active: true });
+		}
+		if (leaf) workspace.revealLeaf(leaf);
+	}
+
+	async activateToolsView(): Promise<void> {
+		const { workspace } = this.app;
+		let leaf: WorkspaceLeaf | null = workspace.getLeavesOfType(TOOLS_VIEW_TYPE)[0] ?? null;
+		if (!leaf) {
+			leaf = workspace.getLeftLeaf(false);
+			await leaf?.setViewState({ type: TOOLS_VIEW_TYPE, active: true });
 		}
 		if (leaf) workspace.revealLeaf(leaf);
 	}
