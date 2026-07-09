@@ -13,6 +13,7 @@ import { extractFingerprint } from "./fingerprint";
 import { updateChapterFingerprint } from "./chapterSidecar";
 import { debounce } from "./debounce";
 import { registerCustomIcons } from "./icons";
+import { PaletteColor, PaletteMode, PaletteName } from "./colorPalettes";
 
 export interface StoryForgePluginSettings {
 	hideHelp: boolean;
@@ -46,6 +47,9 @@ export interface StoryForgePluginSettings {
 	codexNoteLabelUseFolderColor: boolean;
 	collapsedSections: Record<string, boolean>;
 	useToolsPanel: boolean;
+	colorPaletteName: PaletteName;
+	colorPaletteMode: PaletteMode;
+	customPaletteColors: PaletteColor[];
 }
 
 export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
@@ -80,6 +84,15 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	codexNoteLabelUseFolderColor: false,
 	collapsedSections: {},
 	useToolsPanel: true,
+	colorPaletteName: "Nord",
+	colorPaletteMode: "dark",
+	customPaletteColors: [
+		{ name: "Custom 1", hex: "#ff6b6b" },
+		{ name: "Custom 2", hex: "#ffd93d" },
+		{ name: "Custom 3", hex: "#6bcb77" },
+		{ name: "Custom 4", hex: "#4d96ff" },
+		{ name: "Custom 5", hex: "#9d4edd" },
+	],
 };
 
 export default class StoryForgePlugin extends Plugin {
@@ -192,7 +205,16 @@ export default class StoryForgePlugin extends Plugin {
 		const rules: string[] = [];
 
 		if (this.pluginSettings.hideHelp) {
-			rules.push(".help { display: none !important; }");
+			// Hides the Help button's own clickable wrapper (not just the icon glyph), so no empty
+			// ghost button is left behind. Scoped to the vault-actions row so it doesn't affect
+			// any other ".help"-classed element elsewhere.
+			rules.push(".workspace-drawer-vault-actions .clickable-icon:has(.help) { display: none !important; }");
+		} else {
+			// Obsidian only reveals this row (Help + Settings icons) on hover of the vault-name area
+			// (display: var(--vault-profile-actions-display)); force it permanently visible so "off"
+			// genuinely means "shown", not "hover to reveal". Settings gear icon becomes always-visible
+			// too, since it shares this same container - confirmed acceptable.
+			rules.push(".workspace-drawer-vault-actions { display: flex !important; }");
 		}
 		if (this.pluginSettings.hideSearch) {
 			rules.push("div[aria-label='Search'] { display: none !important; }");

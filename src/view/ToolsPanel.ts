@@ -1,4 +1,5 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
+import { ICON_TOOLS } from "../icons";
 
 export const TOOLS_VIEW_TYPE = "storyforge-tools-view";
 
@@ -21,7 +22,7 @@ export class ToolsView extends ItemView {
 	}
 
 	getIcon(): string {
-		return "wrench";
+		return ICON_TOOLS;
 	}
 
 	async onOpen(): Promise<void> {

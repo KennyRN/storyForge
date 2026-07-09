@@ -10,6 +10,7 @@ export const ICON_BOOK_PLUS = "sf-book-plus";
 export const ICON_DASHBOARD_CHART = "sf-dashboard-chart";
 export const ICON_EXCHANGE = "sf-exchange-b";
 export const ICON_CALENDAR = "sf-calendar-2";
+export const ICON_TOOLS = "sf-dashboard-3";
 
 const ARCHIVE_DRAWER_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M19.194 9.079V7.821c0-.538-.216-1.054-.602-1.434a2.07 2.07 0 0 0-1.453-.594H6.86a2.07 2.07 0 0 0-1.453.594c-.386.38-.602.896-.602 1.434V9.08"/><path d="M6.861 5.793V4.779c0-.538.217-1.054.602-1.435a2.07 2.07 0 0 1 1.454-.594h6.166a2.07 2.07 0 0 1 1.454.594c.385.38.602.897.602 1.435v1.014m.781 3.043H6.08c-1.84 0-3.33 1.47-3.33 3.286v5.842c0 1.815 1.49 3.286 3.33 3.286h11.84c1.84 0 3.33-1.471 3.33-3.286v-5.842c0-1.815-1.49-3.286-3.33-3.286"/><path d="M7.889 12.893v1.014c0 .538.216 1.054.602 1.434c.385.38.908.594 1.453.594h4.112a2.07 2.07 0 0 0 1.453-.594c.386-.38.602-.896.602-1.434v-1.014"/></g></svg>`;
 
@@ -31,6 +32,8 @@ const EXCHANGE_B_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 
 
 const CALENDAR_2_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 4.625H7a4 4 0 0 0-4 4v8.75a4 4 0 0 0 4 4h10a4 4 0 0 0 4-4v-8.75a4 4 0 0 0-4-4m-14 6h18m-4-8v4m-10-4v4m.375 7.515h1.028m7.194 0h1.028m-5.139 0h1.028m-5.139 3.084h1.028m7.194 0h1.028m-5.139 0h1.028"/></svg>`;
 
+const DASHBOARD_3_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19.318 2.75H4.682A1.93 1.93 0 0 0 2.75 4.682v3.885A1.93 1.93 0 0 0 4.682 10.5h14.636a1.93 1.93 0 0 0 1.932-1.932V4.682a1.93 1.93 0 0 0-1.932-1.932M8.567 13.5H4.682a1.93 1.93 0 0 0-1.932 1.933v3.885a1.93 1.93 0 0 0 1.932 1.932h3.885a1.93 1.93 0 0 0 1.932-1.932v-3.885A1.94 1.94 0 0 0 8.567 13.5m10.751 0h-3.885a1.94 1.94 0 0 0-1.932 1.933v3.885a1.93 1.93 0 0 0 1.932 1.932h3.885a1.933 1.933 0 0 0 1.932-1.932v-3.885a1.93 1.93 0 0 0-1.932-1.932"/></svg>`;
+
 /** Registers storyForge's custom Lucide-style icons so `setIcon` can address them by id. */
 export function registerCustomIcons(): void {
 	addIcon(ICON_UNPLACED, ARCHIVE_DRAWER_SVG);
@@ -43,4 +46,5 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_DASHBOARD_CHART, DASHBOARD_CHART_SVG);
 	addIcon(ICON_EXCHANGE, EXCHANGE_B_SVG);
 	addIcon(ICON_CALENDAR, CALENDAR_2_SVG);
+	addIcon(ICON_TOOLS, DASHBOARD_3_SVG);
 }

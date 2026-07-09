@@ -457,6 +457,14 @@
 	margin-bottom: 0;
 }
 
+.sf-color-swatch-btn {
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	border-radius: 4px;
+	border: 1px solid var(--background-modifier-border);
+}
+
 .sf-settings-tab > .setting-item + .setting-group,
 .sf-settings-tab > .setting-item + .setting-item {
 	margin-top: var(--size-4-6);
@@ -544,6 +552,47 @@
 
 .sf-archive-unarchive-btn:hover {
 	color: var(--text-normal);
+}
+
+/* ── Palette Picker Modal ── */
+
+.sf-palette-picker-modal {
+	padding: 16px;
+}
+
+.sf-palette-picker-modal h2 {
+	margin: 0 0 12px;
+}
+
+.sf-palette-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	max-height: 60vh;
+	overflow-y: auto;
+}
+
+.sf-palette-row {
+	cursor: pointer;
+}
+
+.sf-palette-swatch {
+	width: 20px;
+	height: 20px;
+	flex-shrink: 0;
+	border-radius: 4px;
+	border: 1px solid var(--background-modifier-border);
+}
+
+.sf-palette-name {
+	flex: 1;
+}
+
+.sf-palette-hex {
+	flex-shrink: 0;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
 }
 
 /* ── Tools View (standalone pane hosting the native ribbon) ── */
