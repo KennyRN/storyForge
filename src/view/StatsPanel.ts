@@ -1,12 +1,13 @@
 import { setIcon } from "obsidian";
 import { ICON_CALENDAR, ICON_DASHBOARD_CHART, ICON_EXCHANGE } from "../icons";
 
-export type StatsMode = "daily" | "chapter" | "story";
+export type StatsMode = "daily" | "weekly" | "chapter" | "story";
 
-const MODE_ORDER: StatsMode[] = ["daily", "chapter", "story"];
+const MODE_ORDER: StatsMode[] = ["daily", "weekly", "chapter", "story"];
 
 const MODE_LABELS: Record<StatsMode, string> = {
 	daily: "daily wordcount",
+	weekly: "weekly wordcount",
 	chapter: "chapter wordcount",
 	story: "story wordcount",
 };
@@ -37,7 +38,7 @@ export function renderStatsPanel(container: HTMLElement, options: StatsPanelOpti
 	const actions = line.createDiv({ cls: "sf-stats-actions" });
 	const exchangeBtn = actions.createSpan({
 		cls: "sf-icon sf-stats-exchange",
-		attr: { "aria-label": "Switch word count" },
+		attr: { "aria-label": "switch wordcount" },
 	});
 	setIcon(exchangeBtn, ICON_EXCHANGE);
 	exchangeBtn.addEventListener("click", () => options.onToggleMode());

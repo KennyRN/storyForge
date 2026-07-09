@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { latestTotal, todayISOInEngland, wordsToday } from "../historyMath";
+import { latestTotal, mostRecentMondayISO, todayISOInEngland, wordsThisWeek, wordsToday } from "../historyMath";
 
 describe("todayISOInEngland", () => {
 	it("formats a date as an ISO YYYY-MM-DD string", () => {
@@ -27,6 +27,32 @@ describe("wordsToday", () => {
 	it("treats a day with no recorded total as 0", () => {
 		const totals = { "2026-07-01": 500 };
 		expect(wordsToday(totals, "2026-07-02")).toBe(-500);
+	});
+});
+
+describe("mostRecentMondayISO", () => {
+	it("returns the same date when it's already a Monday", () => {
+		expect(mostRecentMondayISO("2024-01-01")).toBe("2024-01-01"); // known Monday
+	});
+
+	it("returns the prior Monday for a mid-week date", () => {
+		expect(mostRecentMondayISO("2024-01-03")).toBe("2024-01-01"); // Wednesday
+	});
+
+	it("returns the prior Monday for a Sunday (end of week)", () => {
+		expect(mostRecentMondayISO("2024-01-07")).toBe("2024-01-01"); // Sunday
+	});
+});
+
+describe("wordsThisWeek", () => {
+	it("is the difference between today's total and the total from before this week's Monday", () => {
+		const totals = { "2023-12-31": 900, "2024-01-01": 1000, "2024-01-02": 1200, "2024-01-03": 1500 };
+		expect(wordsThisWeek(totals, "2024-01-03")).toBe(600);
+	});
+
+	it("falls back to today's total outright when there is no record before this week's Monday", () => {
+		const totals = { "2024-01-01": 100, "2024-01-03": 400 };
+		expect(wordsThisWeek(totals, "2024-01-03")).toBe(400);
 	});
 });
 

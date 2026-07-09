@@ -12,7 +12,7 @@ import type { CodexViewMode } from "../codex";
 import { debounce } from "../debounce";
 import { ICON_SERIES } from "../icons";
 import { countWords, sumWordCounts } from "../wordCount";
-import { upsertTodayTotal } from "../history";
+import { readHistory, todayISOInEngland, upsertTodayTotal, wordsThisWeek, wordsToday } from "../history";
 
 export const STORYFORGE_VIEW_TYPE = "storyforge-view";
 
@@ -23,7 +23,7 @@ export class StoryForgeView extends ItemView {
 	private codexMode: CodexViewMode = "codex";
 	private collapsedCodexFolders = new Set<string>();
 	private statsMode: StatsMode = "daily";
-	private statsCounts: Record<StatsMode, number> = { daily: 0, chapter: 0, story: 0 };
+	private statsCounts: Record<StatsMode, number> = { daily: 0, weekly: 0, chapter: 0, story: 0 };
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -154,21 +154,33 @@ export class StoryForgeView extends ItemView {
 				: 0;
 
 		let daily = 0;
+		let weekly = 0;
 		let story = 0;
 		if (this.currentBookFolderName) {
-			// All three stats are computed from live (non-archived) chapter files.
+			// All stats are computed from live (non-archived) chapter files.
 			const chapterFiles = getBookChapterFiles(this.app, this.currentBookFolderName);
 			const archived = new Set(readBookFrontmatter(this.app, this.currentBookFolderName)?.archive ?? []);
 			const liveFiles = chapterFiles.filter((f) => !archived.has(f.name));
 			const contents = await Promise.all(liveFiles.map((f) => this.app.vault.read(f)));
 			story = sumWordCounts(contents);
-			// "daily" reflects the current total of all live content (not a delta from prior days).
-			daily = story;
+
+			// "daily"/"weekly" are deltas against history, not the running total. Splice in
+			// today's live total in case the debounced background persist hasn't flushed yet.
+			const { totals } = await readHistory(this.app, this.currentBookFolderName);
+			const todayISO = todayISOInEngland();
+			const totalsWithLive = { ...totals, [todayISO]: story };
+			daily = wordsToday(totalsWithLive, todayISO);
+			weekly = wordsThisWeek(totalsWithLive, todayISO);
 		}
 
-		const next: Record<StatsMode, number> = { daily, chapter, story };
+		const next: Record<StatsMode, number> = { daily, weekly, chapter, story };
 		const prev = this.statsCounts;
-		if (next.daily !== prev.daily || next.chapter !== prev.chapter || next.story !== prev.story) {
+		if (
+			next.daily !== prev.daily ||
+			next.weekly !== prev.weekly ||
+			next.chapter !== prev.chapter ||
+			next.story !== prev.story
+		) {
 			this.statsCounts = next;
 			this.render();
 		}
