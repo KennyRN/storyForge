@@ -1,7 +1,9 @@
-import { App, PluginSettingTab, Setting, SettingGroup, ToggleComponent, setIcon } from "obsidian";
+import { App, ButtonComponent, PluginSettingTab, Setting, SettingGroup, ToggleComponent, setIcon } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { ArchiveModal } from "./ArchiveModal";
 import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
+import { PALETTE_NAMES, PaletteMode, PaletteName } from "../colorPalettes";
+import { PalettePickerModal } from "./PalettePickerModal";
 
 export class StoryForgeSettingsTab extends PluginSettingTab {
 	private plugin: StoryForgePlugin;
@@ -42,6 +44,27 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		});
 
 		renderBody(bodyEl);
+	}
+
+	/** Wires a button to act as a colour swatch: shows `initialHex`, opens the palette picker on click. */
+	private bindColorSwatchButton(
+		button: ButtonComponent,
+		initialHex: string,
+		onPick: (hex: string) => Promise<void>,
+	): void {
+		button.buttonEl.addClass("sf-color-swatch-btn");
+		button.buttonEl.setAttr("aria-label", "Choose colour");
+		const paint = (hex: string) => {
+			button.buttonEl.style.backgroundColor = hex;
+		};
+		paint(initialHex);
+		button.onClick(() => {
+			const s = this.plugin.getSettings();
+			new PalettePickerModal(this.app, s.colorPaletteName, s.colorPaletteMode, s.customPaletteColors, async (hex) => {
+				paint(hex);
+				await onPick(hex);
+			}).open();
+		});
 	}
 
 	display(): void {
@@ -98,7 +121,69 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					}),
 			);
 
-		this.renderFoldableSection(containerEl, "text-style", "h3", "Text Style", () => {});
+		const paletteGroup = new SettingGroup(containerEl);
+		paletteGroup.addSetting((setting) =>
+			setting
+				.setName("Colour Palette")
+				.setDesc("Palette used when picking colours for storyForge's UI elements below.")
+				.addDropdown((dropdown) => {
+					for (const name of PALETTE_NAMES) dropdown.addOption(name, name);
+					dropdown.setValue(settings.colorPaletteName).onChange(async (value) => {
+						await this.plugin.updateSetting("colorPaletteName", value as PaletteName);
+						this.display();
+					});
+				}),
+		);
+		if (settings.colorPaletteName !== "Custom") {
+			paletteGroup.addSetting((setting) =>
+				setting
+					.setName("Palette Mode")
+					.setDesc("Light or dark variant of the selected palette.")
+					.addDropdown((dropdown) =>
+						dropdown
+							.addOption("light", "Light")
+							.addOption("dark", "Dark")
+							.setValue(settings.colorPaletteMode)
+							.onChange(async (value) => {
+								await this.plugin.updateSetting("colorPaletteMode", value as PaletteMode);
+							}),
+					),
+			);
+		}
+
+		if (settings.colorPaletteName === "Custom") {
+			const customGroup = new SettingGroup(containerEl);
+			settings.customPaletteColors.forEach((entry, i) => {
+				customGroup.addSetting((setting) =>
+					setting
+						.setName(`Custom Colour ${i + 1}`)
+						.addText((text) =>
+							text.setValue(entry.name).setPlaceholder("Name").onChange(async (value) => {
+								const colors = settings.customPaletteColors.slice();
+								colors[i] = { ...colors[i], name: value };
+								await this.plugin.updateSetting("customPaletteColors", colors);
+							}),
+						)
+						.addText((text) => {
+							text.setValue(entry.hex);
+							text.inputEl.type = "color";
+							text.onChange(async (value) => {
+								const colors = settings.customPaletteColors.slice();
+								colors[i] = { ...colors[i], hex: value };
+								await this.plugin.updateSetting("customPaletteColors", colors);
+							});
+						}),
+				);
+			});
+		}
+
+		this.renderFoldableSection(containerEl, "text-style", "h3", "Text Style", (body) => {
+			this.renderFoldableSection(body, "text-style-editor", "h4", "Editor Text", () => {});
+			this.renderFoldableSection(body, "text-style-h1", "h4", "Heading 1", () => {});
+			this.renderFoldableSection(body, "text-style-h2", "h4", "Heading 2", () => {});
+			this.renderFoldableSection(body, "text-style-h3", "h4", "Heading 3", () => {});
+			this.renderFoldableSection(body, "text-style-other-headers", "h4", "Other Headers", () => {});
+		});
 
 		this.renderFoldableSection(containerEl, "ui-formatting", "h3", "storyForge Interface Formatting", (body) => {
 			const highlightGroup = new SettingGroup(body);
@@ -119,33 +204,23 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					setting
 						.setName("Highlight Colour")
 						.setDesc("The colour used for the active chapter/item highlight.")
-						.addText((text) => {
-							text.setValue(settings.highlightColor);
-							text.inputEl.type = "color";
-							text.onChange(async (value) => {
-								const v = value.trim();
-								if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)) {
-									await this.plugin.updateSetting("highlightColor", v);
-									this.plugin.applyHighlightStyle();
-								}
-							});
-						}),
+						.addButton((button) =>
+							this.bindColorSwatchButton(button, settings.highlightColor, async (hex) => {
+								await this.plugin.updateSetting("highlightColor", hex);
+								this.plugin.applyHighlightStyle();
+							}),
+						),
 				)
 				.addSetting((setting) =>
 					setting
 						.setName("Highlight Text Colour")
 						.setDesc("colour used for the active chapter/item highlight text")
-						.addText((text) => {
-							text.setValue(settings.highlightTextColor);
-							text.inputEl.type = "color";
-							text.onChange(async (value) => {
-								const v = value.trim();
-								if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)) {
-									await this.plugin.updateSetting("highlightTextColor", v);
-									this.plugin.applyHighlightStyle();
-								}
-							});
-						}),
+						.addButton((button) =>
+							this.bindColorSwatchButton(button, settings.highlightTextColor, async (hex) => {
+								await this.plugin.updateSetting("highlightTextColor", hex);
+								this.plugin.applyHighlightStyle();
+							}),
+						),
 				);
 
 			this.renderFoldableSection(body, "unplaced", "h4", "Unplaced Panel", (unplacedBody) => {
@@ -168,13 +243,10 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					.addSetting((setting) =>
 						setting
 							.setName("Header Colour")
-							.addText((text) =>
-								text.setValue(settings.unplacedColor).onChange(async (value) => {
-									const v = value.trim();
-									if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)) {
-										await this.plugin.updateSetting("unplacedColor", v);
-										this.plugin.applyHeaderStyles();
-									}
+							.addButton((button) =>
+								this.bindColorSwatchButton(button, settings.unplacedColor, async (hex) => {
+									await this.plugin.updateSetting("unplacedColor", hex);
+									this.plugin.applyHeaderStyles();
 								}),
 							),
 					)
@@ -223,17 +295,12 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 						setting
 							.setName("Unplaced Items Colour")
 							.setDesc("colour of unplaced items")
-							.addText((text) => {
-								text.setValue(settings.unplacedItemsColor);
-								text.inputEl.type = "color";
-								text.onChange(async (value) => {
-									const v = value.trim();
-									if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)) {
-										await this.plugin.updateSetting("unplacedItemsColor", v);
-										this.plugin.applyHeaderStyles();
-									}
-								});
-							}),
+							.addButton((button) =>
+								this.bindColorSwatchButton(button, settings.unplacedItemsColor, async (hex) => {
+									await this.plugin.updateSetting("unplacedItemsColor", hex);
+									this.plugin.applyHeaderStyles();
+								}),
+							),
 					)
 					.addSetting((setting) =>
 						setting
@@ -289,13 +356,10 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					.addSetting((setting) =>
 						setting
 							.setName("Header Colour")
-							.addText((text) =>
-								text.setValue(settings.codexColor).onChange(async (value) => {
-									const v = value.trim();
-									if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)) {
-										await this.plugin.updateSetting("codexColor", v);
-										this.plugin.applyHeaderStyles();
-									}
+							.addButton((button) =>
+								this.bindColorSwatchButton(button, settings.codexColor, async (hex) => {
+									await this.plugin.updateSetting("codexColor", hex);
+									this.plugin.applyHeaderStyles();
 								}),
 							),
 					)
@@ -342,17 +406,12 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 						setting
 							.setName("Folder Colour")
 							.setDesc("Colour of the codex folder names and chevrons.")
-							.addText((text) => {
-								text.setValue(settings.codexFolderColor);
-								text.inputEl.type = "color";
-								text.onChange(async (value) => {
-									const v = value.trim();
-									if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)) {
-										await this.plugin.updateSetting("codexFolderColor", v);
-										this.plugin.applyCodexFolderStyle();
-									}
-								});
-							}),
+							.addButton((button) =>
+								this.bindColorSwatchButton(button, settings.codexFolderColor, async (hex) => {
+									await this.plugin.updateSetting("codexFolderColor", hex);
+									this.plugin.applyCodexFolderStyle();
+								}),
+							),
 					);
 
 				const codexNoteLabelGroup = new SettingGroup(codexBody);
@@ -377,17 +436,12 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 						setting
 							.setName("Codex Note Label Colour")
 							.setDesc("Colour of the codex note (file) labels.")
-							.addText((text) => {
-								text.setValue(settings.codexNoteLabelColor);
-								text.inputEl.type = "color";
-								text.onChange(async (value) => {
-									const v = value.trim();
-									if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(v)) {
-										await this.plugin.updateSetting("codexNoteLabelColor", v);
-										this.plugin.applyCodexNoteLabelStyle();
-									}
-								});
-							}),
+							.addButton((button) =>
+								this.bindColorSwatchButton(button, settings.codexNoteLabelColor, async (hex) => {
+									await this.plugin.updateSetting("codexNoteLabelColor", hex);
+									this.plugin.applyCodexNoteLabelStyle();
+								}),
+							),
 					)
 					.addSetting((setting) =>
 						setting
