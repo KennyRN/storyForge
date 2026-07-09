@@ -1,6 +1,7 @@
 import { App, PluginSettingTab, Setting, SettingGroup, ToggleComponent } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { ArchiveModal } from "./ArchiveModal";
+import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
 
 export class StoryForgeSettingsTab extends PluginSettingTab {
 	private plugin: StoryForgePlugin;
@@ -10,12 +11,14 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
-		display(): void {
+	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
 		containerEl.addClass("sf-settings-tab");
 
 		containerEl.createEl("h2", { text: "storyForge" });
+
+		const settings = this.plugin.getSettings();
 
 		new Setting(containerEl)
 			.setName("Reopen storyForge panel")
@@ -25,6 +28,31 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					.setButtonText("Reopen panel")
 					.setCta()
 					.onClick(() => void this.plugin.activateView()),
+			);
+
+		new Setting(containerEl)
+			.setName("Reopen Tools panel")
+			.setDesc("If you've closed the Tools panel, click this button to bring it back.")
+			.addButton((button) =>
+				button
+					.setButtonText("Reopen Tools Panel")
+					.setCta()
+					.onClick(() => void this.plugin.activateToolsView()),
+			);
+
+		new Setting(containerEl)
+			.setName("Use Tools Panel")
+			.setDesc("ribbon is hidden and the ribbon icons can be found within the tools panel")
+			.addToggle((toggle) =>
+				toggle.setValue(settings.useToolsPanel).onChange(async (value) => {
+					await this.plugin.updateSetting("useToolsPanel", value);
+					this.plugin.applyVisibilityStyles();
+					if (value) {
+						void this.plugin.activateToolsView();
+					} else {
+						this.app.workspace.detachLeavesOfType(TOOLS_VIEW_TYPE);
+					}
+				}),
 			);
 
 		new Setting(containerEl)
@@ -41,8 +69,6 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			);
 
 		containerEl.createEl("h3", { text: "User Interface Formatting" });
-
-		const settings = this.plugin.getSettings();
 
 		const highlightGroup = new SettingGroup(containerEl);
 		highlightGroup
@@ -466,5 +492,16 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					),
 			);
 
+		containerEl.createEl("h3", { text: "Tools Panel" });
+
+		new Setting(containerEl)
+			.setName("Open Tools Panel")
+			.setDesc("Opens (or reveals) the standalone Tools pane in the left sidebar.")
+			.addButton((button) =>
+				button
+					.setButtonText("Open Tools Panel")
+					.setCta()
+					.onClick(() => void this.plugin.activateToolsView()),
+			);
 	}
 }

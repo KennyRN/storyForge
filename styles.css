@@ -1,3 +1,10 @@
+/* Obsidian's default .view-content padding is only zeroed for its own known view types
+   (e.g. markdown) - do the same for this plugin's views so they aren't inset. */
+.workspace-leaf-content[data-type="storyforge-view"] .view-content,
+.workspace-leaf-content[data-type="storyforge-tools-view"] .view-content {
+	padding: 0;
+}
+
 .storyforge-view {
 	box-sizing: border-box;
 	display: grid !important;
@@ -450,6 +457,10 @@
 	margin-bottom: 0;
 }
 
+.sf-settings-tab > .setting-item + .setting-group {
+	margin-top: var(--size-4-6);
+}
+
 /* ── Archive Modal ── */
 
 .sf-archive-modal {
@@ -483,4 +494,54 @@
 
 .sf-archive-unarchive-btn:hover {
 	color: var(--text-normal);
+}
+
+/* ── Tools View (standalone pane hosting the native ribbon) ── */
+
+.sf-tools-view {
+	display: flex;
+	overflow-y: auto;
+}
+
+.sf-tools-view .workspace-ribbon {
+	position: static;
+	flex: 1 1 auto;
+	width: 100%;
+	height: auto;
+	border-right: none;
+}
+
+/* Neutralize rules meant only for the ribbon's native top-left corner placement. */
+.sf-tools-view .workspace-ribbon.mod-left {
+	margin-top: 0;
+}
+
+.sf-tools-view .workspace-ribbon.mod-left::before {
+	content: none;
+}
+
+/* Each ribbon action becomes an icon + label row, with the icon in a fixed-width first
+   column (matching the old ribbon width) so every label lines up in a straight column. */
+.sf-tools-view .side-dock-ribbon-action {
+	display: grid;
+	grid-template-columns: 44px 1fr;
+	align-items: center;
+	width: 100%;
+	margin: 0;
+}
+
+.sf-tools-view .side-dock-ribbon-action svg {
+	grid-column: 1;
+	justify-self: center;
+}
+
+.sf-tools-view .side-dock-ribbon-action::after {
+	content: attr(aria-label);
+	grid-column: 2;
+	text-align: left;
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
