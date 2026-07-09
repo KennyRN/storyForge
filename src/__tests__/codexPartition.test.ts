@@ -16,20 +16,20 @@ describe("partitionCodexNotes", () => {
 		expect(codex.map((n) => n.path)).toEqual(["Characters/Maren.md", "Characters/Elias.md", "Characters/Both.md"]);
 	});
 
-	it("Hidden view is exactly the notes scoped to some other book, and nothing else", () => {
-		const { hidden } = partitionCodexNotes(notes, "book-one");
-		expect(hidden.map((n) => n.path)).toEqual(["Places/Storm-Coast.md"]);
+	it("fileHidden view is exactly the notes scoped to some other book, and nothing else", () => {
+		const { fileHidden } = partitionCodexNotes(notes, "book-one");
+		expect(fileHidden.map((n) => n.path)).toEqual(["Places/Storm-Coast.md"]);
 	});
 
 	it("partitions notes into exactly one view each, never both or neither", () => {
-		const { codex, hidden } = partitionCodexNotes(notes, "book-one");
-		expect(codex.length + hidden.length).toBe(notes.length);
+		const { codex, fileHidden } = partitionCodexNotes(notes, "book-one");
+		expect(codex.length + fileHidden.length).toBe(notes.length);
 	});
 
-	it("with no active book, Codex shows only universal notes and Hidden shows everything scoped", () => {
-		const { codex, hidden } = partitionCodexNotes(notes, null);
+	it("with no active book, Codex shows only universal notes and fileHidden shows everything scoped", () => {
+		const { codex, fileHidden } = partitionCodexNotes(notes, null);
 		expect(codex.map((n) => n.path)).toEqual(["Characters/Maren.md"]);
-		expect(hidden.map((n) => n.path)).toEqual(["Characters/Elias.md", "Places/Storm-Coast.md", "Characters/Both.md"]);
+		expect(fileHidden.map((n) => n.path)).toEqual(["Characters/Elias.md", "Places/Storm-Coast.md", "Characters/Both.md"]);
 	});
 });
 

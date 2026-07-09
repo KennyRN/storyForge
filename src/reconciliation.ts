@@ -6,10 +6,12 @@ import {
 	bookBackstagePath,
 	bookFolderNameFromChapterPath,
 	chapterFilenameFromPath,
+	isCodexNotePath,
 	isLibraryChapterPath,
 } from "./paths";
 import { readBookFrontmatter, writeBookChapterOrder, getBookChapters, renameChapterEntry } from "./book";
 import { getLibraryBookFolders, renameSeriesBookEntry } from "./series";
+import { rekeyCodexNotePath } from "./codex";
 import { renameChapterSidecar, readStoredFingerprint, listSidecarFilenames } from "./chapterSidecar";
 import { renameBackstagePath } from "./writeGuard";
 import { matchOrphansExact, matchOrphansByFingerprint, type OrphanCandidate } from "./orphanMatching";
@@ -85,11 +87,20 @@ export function registerReconciliationEvents(app: App, plugin: Plugin): void {
 				await handleChapterRename(app, oldPath, file.path);
 				return;
 			}
+			if (file instanceof TFile && isCodexNotePath(oldPath)) {
+				await handleCodexNoteRename(app, oldPath, file.path);
+				return;
+			}
 			if (file instanceof TFolder) {
 				await handleBookFolderRename(app, oldPath, file.path);
 			}
 		}),
 	);
+}
+
+/** Fires for renames done via this plugin's own Codex UI and via Obsidian's native file explorer alike. */
+async function handleCodexNoteRename(app: App, oldPath: string, newPath: string): Promise<void> {
+	await rekeyCodexNotePath(app, oldPath, isCodexNotePath(newPath) ? newPath : null);
 }
 
 async function handleChapterRename(app: App, oldPath: string, newPath: string): Promise<void> {

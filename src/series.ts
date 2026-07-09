@@ -10,6 +10,7 @@ export interface SeriesBookEntry {
 }
 
 export interface SeriesFrontmatter {
+	seriesId: string;
 	seriesTitle: string;
 	order: string[];
 	books: Record<string, SeriesBookEntry>;
@@ -40,14 +41,20 @@ function parseBooksMap(raw: unknown): Record<string, SeriesBookEntry> {
 export function readSeriesFrontmatter(app: App): SeriesFrontmatter {
 	const file = app.vault.getAbstractFileByPath(seriesFilePath());
 	if (!file) {
-		return { seriesTitle: "Untitled Series", order: [], books: {} };
+		return { seriesId: "", seriesTitle: "Untitled Series", order: [], books: {} };
 	}
 	const cache = app.metadataCache.getCache(seriesFilePath());
 	const fm = cache?.frontmatter;
 	const order = Array.isArray(fm?.order) ? fm.order.filter((v: unknown) => typeof v === "string") : [];
+	const seriesId = typeof fm?.["series-id"] === "string" ? fm["series-id"] : "";
 	const seriesTitle = typeof fm?.["series-title"] === "string" ? fm["series-title"] : "Untitled Series";
 	const books = parseBooksMap(fm?.books);
-	return { seriesTitle, order, books };
+	return { seriesId, seriesTitle, order, books };
+}
+
+/** Stable identifier for the vault's series, minted once and never re-derived from `seriesTitle` — see `migrateSeriesIdField`. */
+export function getSeriesId(app: App): string {
+	return readSeriesFrontmatter(app).seriesId;
 }
 
 export function getSeriesBooks(app: App): OrderResult<TFolder> & { seriesTitle: string } {

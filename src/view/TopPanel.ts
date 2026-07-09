@@ -14,7 +14,7 @@ import {
 import { makeReorderable, type DragZone } from "./dragReorder";
 import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
-import { ICON_ARCHIVE, ICON_BOOK, ICON_BOOK_PLUS, ICON_FILTER, ICON_NEW_FILE, ICON_SERIES, ICON_UNPLACED } from "../icons";
+import { ICON_ARCHIVE, ICON_BOOK, ICON_BOOK_PLUS, ICON_FILTER, ICON_PLUS_SQUARE, ICON_SERIES, ICON_UNPLACED } from "../icons";
 
 export interface TopPanelOptions {
 	mode: "book" | "series";
@@ -103,7 +103,7 @@ function renderRowTitle(row: HTMLElement, displayTitle: string): HTMLElement {
 function renderUnplacedHeader(
 	zone: HTMLElement,
 	onCreateFile?: () => void,
-	createIcon: string = ICON_NEW_FILE,
+	createIcon: string = ICON_PLUS_SQUARE,
 	onOpenArchive?: () => void,
 ): void {
 	const header = zone.createDiv({ cls: "sf-unplaced-header" });
@@ -252,7 +252,7 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 	}
 
 	const unplacedZone = bodyEl.createDiv({ cls: "sf-unplaced-zone" });
-	renderUnplacedHeader(unplacedZone, () => void handleCreateChapter(app, bookFolderName), ICON_NEW_FILE, options.onOpenArchive);
+	renderUnplacedHeader(unplacedZone, () => void handleCreateChapter(app, bookFolderName), ICON_PLUS_SQUARE, options.onOpenArchive);
 	const unplacedList = unplacedZone.createDiv({ cls: "sf-top-list sf-unplaced-list" });
 	(unplaced as TFile[]).forEach((file, i) => {
 		const row = createRow(unplacedList, file.name);

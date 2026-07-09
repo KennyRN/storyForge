@@ -6,6 +6,18 @@ export function seriesFilePath(): string {
 	return `${BACKSTAGE_ROOT}/series.md`;
 }
 
+export function codexFilePath(): string {
+	return `${BACKSTAGE_ROOT}/codex.md`;
+}
+
+/** True if `path` is a flat `.md` note directly inside `Codex/` (no nested segments — Codex folders are virtual, not real). */
+export function isCodexNotePath(path: string): boolean {
+	const prefix = `${CODEX_ROOT}/`;
+	if (!path.startsWith(prefix)) return false;
+	const rest = path.slice(prefix.length);
+	return rest.length > 0 && !rest.includes("/") && rest.toLowerCase().endsWith(".md");
+}
+
 export function bookBackstagePath(bookFolderName: string): string {
 	return `${BACKSTAGE_ROOT}/${bookFolderName}`;
 }

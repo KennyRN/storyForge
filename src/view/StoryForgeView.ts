@@ -1,4 +1,4 @@
-import { ItemView, TFile, WorkspaceLeaf } from "obsidian";
+import { ItemView, Notice, TFile, WorkspaceLeaf } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { bookFolderNameFromChapterPath, isLibraryChapterPath, libraryChapterPath } from "../paths";
 import { getBookId } from "../series";
@@ -8,7 +8,8 @@ import { renderBottomPanel } from "./BottomPanel";
 import { renderStatsPanel, nextStatsMode, type StatsMode } from "./StatsPanel";
 import { SeriesModal } from "./SeriesModal";
 import { ArchiveModal } from "./ArchiveModal";
-import type { CodexViewMode } from "../codex";
+import { CodexArchiveModal } from "./CodexArchiveModal";
+import { createCodexFolder, createCodexNote, readCodexFrontmatter, type CodexViewMode } from "../codex";
 import { debounce } from "../debounce";
 import { ICON_SERIES } from "../icons";
 import { countWords, sumWordCounts } from "../wordCount";
@@ -22,6 +23,7 @@ export class StoryForgeView extends ItemView {
 	private topMode: "book" | "series" = "book";
 	private codexMode: CodexViewMode = "codex";
 	private collapsedCodexFolders = new Set<string>();
+	private activeCodexFolderId: string | null = null;
 	private statsMode: StatsMode = "daily";
 	private statsCounts: Record<StatsMode, number> = { daily: 0, weekly: 0, chapter: 0, story: 0 };
 
@@ -119,20 +121,24 @@ export class StoryForgeView extends ItemView {
 			currentBookId,
 			mode: this.codexMode,
 			onToggleMode: () => {
-				this.codexMode = this.codexMode === "codex" ? "hidden" : "codex";
+				this.codexMode = this.codexMode === "codex" ? "codexHidden" : "codex";
 				this.render();
 			},
 			collapsedPaths: this.collapsedCodexFolders,
-			onToggleFolder: (path) => {
-				if (this.collapsedCodexFolders.has(path)) {
-					this.collapsedCodexFolders.delete(path);
+			onToggleFolder: (folderId) => {
+				if (this.collapsedCodexFolders.has(folderId)) {
+					this.collapsedCodexFolders.delete(folderId);
 				} else {
-					this.collapsedCodexFolders.add(path);
+					this.collapsedCodexFolders.add(folderId);
 				}
+				this.activeCodexFolderId = folderId;
 				this.render();
 			},
 			activeFilePath,
 			highlightActiveChapter: this.plugin.getSettings().highlightActiveChapter,
+			onCreateFolder: () => void this.handleCreateCodexFolder(),
+			onCreateFile: () => void this.handleCreateCodexFile(),
+			onOpenArchive: () => new CodexArchiveModal(this.app, () => this.render()).open(),
 		});
 
 		renderStatsPanel(statsEl, {
@@ -194,6 +200,28 @@ export class StoryForgeView extends ItemView {
 		const contents = await Promise.all(liveFiles.map((f) => this.app.vault.read(f)));
 		const total = sumWordCounts(contents);
 		await upsertTodayTotal(this.app, bookFolderName, total);
+	}
+
+	private codexTargetFolderId(): string | null {
+		const id = this.activeCodexFolderId;
+		return id && readCodexFrontmatter(this.app).folders[id] ? id : null;
+	}
+
+	private async handleCreateCodexFolder(): Promise<void> {
+		try {
+			await createCodexFolder(this.app, this.codexTargetFolderId());
+		} catch (err) {
+			new Notice(`storyForge: could not create folder — ${(err as Error).message}`);
+		}
+	}
+
+	private async handleCreateCodexFile(): Promise<void> {
+		try {
+			const file = await createCodexNote(this.app, this.codexTargetFolderId());
+			await this.app.workspace.getLeaf(false).openFile(file);
+		} catch (err) {
+			new Notice(`storyForge: could not create file — ${(err as Error).message}`);
+		}
 	}
 
 	private async openChapter(bookFolderName: string, filename: string): Promise<void> {

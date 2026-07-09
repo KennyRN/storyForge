@@ -16,6 +16,15 @@ import { registerCustomIcons } from "./icons";
 import { refreshTabTitles, registerTabTitleOverrides } from "./tabTitles";
 import { PaletteColor, PaletteMode, PaletteName } from "./colorPalettes";
 
+export type CodexFolderIndicatorThickness = "none" | "thin" | "medium" | "thick";
+
+const CODEX_FOLDER_INDICATOR_WIDTH_PX: Record<CodexFolderIndicatorThickness, number> = {
+	none: 0,
+	thin: 1,
+	medium: 2,
+	thick: 4,
+};
+
 export interface StoryForgePluginSettings {
 	hideHelp: boolean;
 	hideSearch: boolean;
@@ -47,6 +56,7 @@ export interface StoryForgePluginSettings {
 	codexFontSize: number;
 	codexFolderFontSize: number;
 	codexFolderColor: string;
+	codexFolderIndicatorThickness: CodexFolderIndicatorThickness;
 	codexNoteLabelFontSize: number;
 	codexNoteLabelColor: string;
 	codexNoteLabelUseDefaultColor: boolean;
@@ -89,6 +99,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	codexFontSize: 1,
 	codexFolderFontSize: 1,
 	codexFolderColor: "#4ade80",
+	codexFolderIndicatorThickness: "medium",
 	codexNoteLabelFontSize: 1,
 	codexNoteLabelColor: "#c8c8c8",
 	codexNoteLabelUseDefaultColor: false,
@@ -304,10 +315,12 @@ export default class StoryForgePlugin extends Plugin {
 			`.sf-unplaced-header > .sf-icon { color: ${unplacedColor}; font-size: ${s.unplacedFontSize}em; }`,
 			`.sf-unplaced-header > .sf-icon svg { width: 1em; height: 1em; }`,
 			`.sf-unplaced-list { font-size: ${s.unplacedItemsFontSize}em; color: ${unplacedItemsColor}; }`,
+			`.sf-unplaced-new-file:hover, .sf-unplaced-archive-btn:hover { color: ${unplacedColor}; }`,
 			`.sf-header-codex { color: ${codexColor}; font-variant: ${s.codexSmallCaps ? "small-caps" : "normal"}; font-size: ${s.codexFontSize}em; }`,
 			`.sf-bottom-header > .sf-icon { font-size: ${s.codexFontSize}em; }`,
 			`.sf-bottom-header > .sf-icon svg { width: 1em; height: 1em; }`,
 			`.sf-bottom-header:not(.sf-codex-hidden) > .sf-icon { color: ${codexColor}; }`,
+			`.sf-codex-new-file-btn:hover, .sf-codex-new-folder-btn:hover, .sf-codex-archive-btn:hover { color: ${codexColor}; }`,
 		];
 
 		if (!this.headerStyleEl) {
@@ -318,17 +331,25 @@ export default class StoryForgePlugin extends Plugin {
 		this.headerStyleEl.textContent = rules.join("\n");
 	}
 
+	/** Flat highlight, or (when the folder indicator line is enabled) a highlight that appears to glow outward from it. */
+	private codexSelectedBackground(flatColor: string): string {
+		const s = this.pluginSettings;
+		if (s.codexFolderIndicatorThickness === "none") return flatColor;
+		const glow = `color-mix(in srgb, ${s.codexFolderColor} 45%, transparent)`;
+		return `linear-gradient(to right, ${glow} 0px, transparent 28px), ${flatColor}`;
+	}
+
 	applyHighlightStyle(): void {
 		const s = this.pluginSettings;
 		const rules: string[] = s.perPanelHighlighting
 			? [
 					`.sf-top-list:not(.sf-unplaced-list) .sf-row.sf-row-selected { background: ${s.highlightColor}; color: ${s.highlightTextColor}; }`,
 					`.sf-unplaced-list .sf-row.sf-row-selected { background: ${s.unplacedHighlightColor}; color: ${s.unplacedHighlightTextColor}; }`,
-					`.sf-codex-file.sf-row-selected { background: ${s.codexHighlightColor}; color: ${s.codexHighlightTextColor}; }`,
+					`.sf-codex-file.sf-row-selected { background: ${this.codexSelectedBackground(s.codexHighlightColor)}; color: ${s.codexHighlightTextColor}; }`,
 				]
 			: [
 					`.sf-row.sf-row-selected { background: ${s.highlightColor}; color: ${s.highlightTextColor}; }`,
-					`.sf-codex-file.sf-row-selected { background: ${s.highlightColor}; color: ${s.highlightTextColor}; }`,
+					`.sf-codex-file.sf-row-selected { background: ${this.codexSelectedBackground(s.highlightColor)}; color: ${s.highlightTextColor}; }`,
 				];
 
 		if (!this.highlightStyleEl) {
@@ -341,9 +362,11 @@ export default class StoryForgePlugin extends Plugin {
 
 	applyCodexFolderStyle(): void {
 		const s = this.pluginSettings;
+		const indicatorWidth = CODEX_FOLDER_INDICATOR_WIDTH_PX[s.codexFolderIndicatorThickness];
 		const rules: string[] = [
 			`.sf-codex-folder-name, .sf-codex-folder-name.sf-styled-heading { color: ${s.codexFolderColor}; font-size: ${s.codexFolderFontSize}em; }`,
 			`.sf-codex-chevron { color: ${s.codexFolderColor}; font-size: ${s.codexFolderFontSize}em; }`,
+			`.sf-codex-folder-indicator { width: ${indicatorWidth}px; background: ${s.codexFolderColor}; }`,
 		];
 
 		if (!this.codexFolderStyleEl) {
