@@ -26,7 +26,11 @@ describe("nextChapterCode", () => {
 		expect(nextChapterCode("knna", ["knna_chapter-azz"])).toBe("knna_chapter-baa");
 	});
 
-	it("throws once all codes for a book are exhausted", () => {
-		expect(() => nextChapterCode("knna", ["knna_chapter-zzz"])).toThrow(/exhausted chapter codes/);
+	it("grows to a four-letter code past 'zzz' instead of throwing", () => {
+		expect(nextChapterCode("knna", ["knna_chapter-zzz"])).toBe("knna_chapter-aaaa");
+	});
+
+	it("continues past an existing four-letter code", () => {
+		expect(nextChapterCode("knna", ["knna_chapter-aaaa", "knna_chapter-aaab"])).toBe("knna_chapter-aaac");
 	});
 });

@@ -2,7 +2,6 @@ import { Menu } from "obsidian";
 
 export interface ExtraMenuItem {
 	title: string;
-	icon: string;
 	onClick: () => void | Promise<void>;
 }
 
@@ -26,21 +25,11 @@ export function attachInlineRename(options: InlineRenameOptions): void {
 	row.addEventListener("contextmenu", (event: MouseEvent) => {
 		event.preventDefault();
 		const menu = new Menu();
-		menu.addItem((item) =>
-			item
-				.setTitle("Rename")
-				.setIcon("pencil")
-				.onClick(() => beginEdit()),
-		);
+		menu.addItem((item) => item.setTitle("Rename").onClick(() => beginEdit()));
 		if (extraMenuItems) {
 			menu.addSeparator();
 			for (const extra of extraMenuItems) {
-				menu.addItem((item) =>
-					item
-						.setTitle(extra.title)
-						.setIcon(extra.icon)
-						.onClick(() => void extra.onClick()),
-				);
+				menu.addItem((item) => item.setTitle(extra.title).onClick(() => void extra.onClick()));
 			}
 		}
 		menu.showAtMouseEvent(event);

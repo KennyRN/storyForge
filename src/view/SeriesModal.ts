@@ -2,6 +2,7 @@ import { App, Modal, Notice, setIcon, TFolder } from "obsidian";
 import { getSeriesBooks, readSeriesFrontmatter, writeSeriesTitle } from "../series";
 import { createBook, renameBookTitle, reorderSeriesBooks } from "../book";
 import { makeReorderable, type DragZone } from "./dragReorder";
+import { makeAccessibleActivatable } from "./a11y";
 import { ICON_BOOK_PLUS } from "../icons";
 
 /** Editable series-settings modal: series title, per-book titles, reordering, and creating new books. */
@@ -49,6 +50,7 @@ export class SeriesModal extends Modal {
 		const addBookBtn = hintRow.createSpan({ cls: "sf-modal-add-book", attr: { "aria-label": "New book" } });
 		setIcon(addBookBtn, ICON_BOOK_PLUS);
 		addBookBtn.addEventListener("click", () => void this.handleCreateBook());
+		makeAccessibleActivatable(addBookBtn, () => void this.handleCreateBook());
 
 		const bookList = contentEl.createDiv({ cls: "sf-modal-book-list" });
 		const { ordered, unplaced } = getSeriesBooks(this.app);

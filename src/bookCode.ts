@@ -1,3 +1,5 @@
+import { fromBijectiveBase26, toBijectiveBase26 } from "./letterCode";
+
 /**
  * titleToId — derive a short, uppercase ID from a story title.
  *
@@ -30,7 +32,7 @@ const DEFAULT_STOP_WORDS = new Set([
 
 /** Break a title into meaningful segments. */
 function segment(title: string, splitCamelCase: boolean): string[] {
-	const words = title.split(/[^A-Za-z]+/).filter(Boolean);
+	const words = title.split(/[^\p{L}]+/u).filter(Boolean);
 	if (!splitCamelCase) return words;
 
 	const out: string[] = [];
@@ -68,27 +70,24 @@ export function titleToId(title: string, options: TitleToIdOptions = {}): string
 	return letters.slice(0, length).join("");
 }
 
-const GUIDE_LETTER_COUNT = 26;
-
 /**
- * Next 4-letter book folder code for `seriesTitle`: a 3-letter prefix from
- * `titleToId` plus a sequential guide letter that never reuses one already
- * seen in `existingNames` (even if that book's folders were since deleted).
+ * Next book folder code for `seriesTitle`: a 3-letter prefix from
+ * `titleToId` plus a sequential guide-letter suffix (a, b, ... z, aa, ab, ...)
+ * that never reuses one already seen in `existingNames` (even if that book's
+ * folders were since deleted). The suffix grows past "z" indefinitely, so
+ * there's no ceiling on how many books can share a prefix.
  */
 export function nextBookFolderCode(seriesTitle: string, existingNames: Iterable<string>): string {
 	const prefix = titleToId(seriesTitle, { length: 3 });
 	let maxIndex = -1;
 	for (const name of existingNames) {
-		if (name.length !== 4) continue;
+		if (name.length <= 3) continue;
 		if (name.slice(0, 3).toUpperCase() !== prefix) continue;
-		const guideChar = name[3].toLowerCase();
-		if (guideChar < "a" || guideChar > "z") continue;
-		const idx = guideChar.charCodeAt(0) - "a".charCodeAt(0);
+		const guideN = fromBijectiveBase26(name.slice(3).toLowerCase());
+		if (guideN === null) continue;
+		const idx = guideN - 1;
 		if (idx > maxIndex) maxIndex = idx;
 	}
 	const nextIdx = maxIndex + 1;
-	if (nextIdx >= GUIDE_LETTER_COUNT) {
-		throw new Error(`storyForge: exhausted guide letters for prefix "${prefix}"`);
-	}
-	return `${prefix}${String.fromCharCode("a".charCodeAt(0) + nextIdx)}`.toLowerCase();
+	return `${prefix}${toBijectiveBase26(nextIdx + 1)}`.toLowerCase();
 }

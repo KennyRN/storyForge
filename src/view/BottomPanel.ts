@@ -12,6 +12,7 @@ import {
 	type CodexViewMode,
 } from "../codex";
 import { ICON_ARCHIVE, ICON_CODEX, ICON_FOLDER_PLUS, ICON_PLUS_SQUARE } from "../icons";
+import { makeAccessibleActivatable } from "./a11y";
 import { attachInlineRename } from "./inlineRename";
 import { attachCodexDragReorder, type CodexDragRowInfo } from "./dragReorderTree";
 
@@ -48,6 +49,7 @@ export function renderBottomPanel(app: App, container: HTMLElement, options: Bot
 			e.stopPropagation();
 			options.onCreateFile();
 		});
+		makeAccessibleActivatable(newFileBtn, () => options.onCreateFile());
 
 		const newFolderBtn = header.createSpan({ cls: "sf-codex-new-folder-btn", attr: { "aria-label": "New folder" } });
 		setIcon(newFolderBtn, ICON_FOLDER_PLUS);
@@ -55,6 +57,7 @@ export function renderBottomPanel(app: App, container: HTMLElement, options: Bot
 			e.stopPropagation();
 			options.onCreateFolder();
 		});
+		makeAccessibleActivatable(newFolderBtn, () => options.onCreateFolder());
 
 		const archiveBtn = header.createSpan({ cls: "sf-codex-archive-btn", attr: { "aria-label": "Codex archive" } });
 		setIcon(archiveBtn, ICON_ARCHIVE);
@@ -62,6 +65,7 @@ export function renderBottomPanel(app: App, container: HTMLElement, options: Bot
 			e.stopPropagation();
 			options.onOpenArchive();
 		});
+		makeAccessibleActivatable(archiveBtn, () => options.onOpenArchive());
 	}
 
 	if (isCodexHidden) return;
@@ -135,8 +139,8 @@ function renderTreeChildren(
 				getCurrentTitle: () => item.name,
 				onCommit: (name) => renameCodexFolder(app, item.id, name),
 				extraMenuItems: [
-					{ title: "Archive Entire Folder", icon: "archive", onClick: () => archiveCodexItem(app, item.id) },
-					{ title: "Remove Folder and Keep Items", icon: "trash-2", onClick: () => removeCodexFolder(app, item.id) },
+					{ title: "Archive Entire Folder", onClick: () => archiveCodexItem(app, item.id) },
+					{ title: "Remove Folder and Keep Items", onClick: () => removeCodexFolder(app, item.id) },
 				],
 			});
 
@@ -184,7 +188,7 @@ function renderTreeChildren(
 					const file = app.vault.getAbstractFileByPath(item.path);
 					if (file instanceof TFile) await renameCodexNoteFile(app, file, name);
 				},
-				extraMenuItems: [{ title: "Archive", icon: "archive", onClick: () => archiveCodexItem(app, item.path) }],
+				extraMenuItems: [{ title: "Archive", onClick: () => archiveCodexItem(app, item.path) }],
 			});
 		}
 	}

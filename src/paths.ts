@@ -38,10 +38,6 @@ export function chapterSidecarPath(bookFolderName: string, chapterFilename: stri
 	return `${chapterSidecarFolderPath(bookFolderName)}/${chapterFilename}`;
 }
 
-export function exportsFolderPath(bookFolderName: string): string {
-	return `${bookBackstagePath(bookFolderName)}/exports`;
-}
-
 export function libraryBookPath(bookFolderName: string): string {
 	return `${LIBRARY_ROOT}/${bookFolderName}`;
 }

@@ -52,11 +52,6 @@ export function readSeriesFrontmatter(app: App): SeriesFrontmatter {
 	return { seriesId, seriesTitle, order, books };
 }
 
-/** Stable identifier for the vault's series, minted once and never re-derived from `seriesTitle` — see `migrateSeriesIdField`. */
-export function getSeriesId(app: App): string {
-	return readSeriesFrontmatter(app).seriesId;
-}
-
 export function getSeriesBooks(app: App): OrderResult<TFolder> & { seriesTitle: string } {
 	const folders = getLibraryBookFolders(app);
 	const { seriesTitle, order } = readSeriesFrontmatter(app);
@@ -78,14 +73,6 @@ export function bookDisplayTitle(app: App, folderName: string): string {
 
 export function collectAllBookIds(app: App): string[] {
 	return Object.values(readSeriesFrontmatter(app).books).map((entry) => entry.bookId);
-}
-
-export function findBookFolderNameById(app: App, bookId: string): string | null {
-	const { books } = readSeriesFrontmatter(app);
-	for (const [folderName, entry] of Object.entries(books)) {
-		if (entry.bookId === bookId) return folderName;
-	}
-	return null;
 }
 
 /** 1-based position of `folderName` in the series' display sequence (ordered, then unplaced), or null if it isn't a library folder. */

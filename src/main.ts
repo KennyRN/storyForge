@@ -5,7 +5,7 @@ import { StoryForgeSettingsTab } from "./view/StoryForgeSettingsTab";
 import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders } from "./series";
 import { ensureAllChapterEntries, getBookChapterFiles, readBookFrontmatter, syncAllBookReferenceFields } from "./book";
 import { migrateVaultSchema } from "./migration";
-import { registerReconciliationEvents, reconcileBookOnLoad } from "./reconciliation";
+import { registerReconciliationEvents } from "./reconciliation";
 import { isLibraryChapterPath, bookFolderNameFromChapterPath } from "./paths";
 import { sumWordCounts } from "./wordCount";
 import { upsertTodayTotal } from "./history";
@@ -15,6 +15,7 @@ import { debounce } from "./debounce";
 import { registerCustomIcons } from "./icons";
 import { refreshTabTitles, registerTabTitleOverrides } from "./tabTitles";
 import { PaletteColor, PaletteMode, PaletteName } from "./colorPalettes";
+import { OBSIDIAN_CSS_VARS, OBSIDIAN_SELECTORS } from "./obsidianInternals";
 
 export type CodexFolderIndicatorThickness = "none" | "thin" | "medium" | "thick";
 
@@ -61,7 +62,6 @@ export interface StoryForgePluginSettings {
 	codexNoteLabelColor: string;
 	codexNoteLabelUseDefaultColor: boolean;
 	codexNoteLabelUseFolderColor: boolean;
-	collapsedSections: Record<string, boolean>;
 	useToolsPanel: boolean;
 	colorPaletteName: PaletteName;
 	colorPaletteMode: PaletteMode;
@@ -104,7 +104,6 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	codexNoteLabelColor: "#c8c8c8",
 	codexNoteLabelUseDefaultColor: false,
 	codexNoteLabelUseFolderColor: false,
-	collapsedSections: {},
 	useToolsPanel: true,
 	colorPaletteName: "Nord",
 	colorPaletteMode: "dark",
@@ -120,11 +119,10 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 export default class StoryForgePlugin extends Plugin {
 	private recomputeDebouncers = new Map<string, () => void>();
 	private pluginSettings: StoryForgePluginSettings = DEFAULT_SETTINGS;
-	private styleEl: HTMLStyleElement | null = null;
-	private headerStyleEl: HTMLStyleElement | null = null;
-	private highlightStyleEl: HTMLStyleElement | null = null;
-	private codexFolderStyleEl: HTMLStyleElement | null = null;
-	private codexNoteLabelStyleEl: HTMLStyleElement | null = null;
+	/** One `<style>` element per (style-id, document) pair, so injected styling also applies inside pop-out windows. */
+	private styleEls = new Map<string, Map<Document, HTMLStyleElement>>();
+	/** Documents of currently open pop-out windows, kept in sync via the "window-open"/"window-close" workspace events. */
+	private extraDocs = new Set<Document>();
 
 	async onload(): Promise<void> {
 		// Defensively remove any style tags a previous (e.g. hot-reloaded) instance of this
@@ -171,6 +169,26 @@ export default class StoryForgePlugin extends Plugin {
 			}),
 		);
 
+		// Injected <style> tags only exist in the document they were appended to, so a pane
+		// detached into its own OS window (a WorkspaceWindow, with its own `doc`) starts out
+		// with none of this plugin's styling. Track it and re-apply everything into it.
+		this.registerEvent(
+			this.app.workspace.on("window-open", (win) => {
+				this.extraDocs.add(win.doc);
+				this.applyVisibilityStyles();
+				this.applyHeaderStyles();
+				this.applyHighlightStyle();
+				this.applyCodexFolderStyle();
+				this.applyCodexNoteLabelStyle();
+			}),
+		);
+		this.registerEvent(
+			this.app.workspace.on("window-close", (win) => {
+				this.extraDocs.delete(win.doc);
+				for (const perDoc of this.styleEls.values()) perDoc.delete(win.doc);
+			}),
+		);
+
 		this.app.workspace.onLayoutReady(() => {
 			void this.initializeVaultState();
 			if (this.pluginSettings.useToolsPanel && this.app.workspace.getLeavesOfType(TOOLS_VIEW_TYPE).length === 0) {
@@ -205,15 +223,11 @@ export default class StoryForgePlugin extends Plugin {
 		// Detaching first runs ToolsView.onClose(), which restores the ribbon to its native parent.
 		this.app.workspace.detachLeavesOfType(TOOLS_VIEW_TYPE);
 		document.body.classList.remove("sf-use-tools-panel", "sf-tools-open");
-		for (const el of [
-			this.styleEl,
-			this.headerStyleEl,
-			this.highlightStyleEl,
-			this.codexFolderStyleEl,
-			this.codexNoteLabelStyleEl,
-		]) {
-			el?.remove();
+		for (const perDoc of this.styleEls.values()) {
+			for (const el of perDoc.values()) el.remove();
 		}
+		this.styleEls.clear();
+		this.extraDocs.clear();
 	}
 
 	async loadSettings(): Promise<void> {
@@ -234,6 +248,31 @@ export default class StoryForgePlugin extends Plugin {
 		await this.saveSettings();
 	}
 
+	/** Injects/updates a named `<style>` element with `css` in `doc`, creating it if needed. */
+	private injectStyle(id: string, css: string, doc: Document): void {
+		let perDoc = this.styleEls.get(id);
+		if (!perDoc) {
+			perDoc = new Map();
+			this.styleEls.set(id, perDoc);
+		}
+		let el = perDoc.get(doc);
+		if (!el) {
+			el = doc.createElement("style");
+			el.id = id;
+			doc.head.appendChild(el);
+			perDoc.set(doc, el);
+		}
+		el.textContent = css;
+	}
+
+	/** Applies `css` under `id` to the main document and every open pop-out window. */
+	private applyStyleToAllDocs(id: string, css: string): void {
+		this.injectStyle(id, css, document);
+		for (const doc of this.extraDocs) {
+			this.injectStyle(id, css, doc);
+		}
+	}
+
 	applyVisibilityStyles(): void {
 		const rules: string[] = [];
 
@@ -241,61 +280,57 @@ export default class StoryForgePlugin extends Plugin {
 			// Hides the Help button's own clickable wrapper (not just the icon glyph), so no empty
 			// ghost button is left behind. Scoped to the vault-actions row so it doesn't affect
 			// any other ".help"-classed element elsewhere.
-			rules.push(".workspace-drawer-vault-actions .clickable-icon:has(.help) { display: none !important; }");
+			rules.push(`${OBSIDIAN_SELECTORS.helpButton} { display: none !important; }`);
 		} else {
 			// Obsidian only reveals this row (Help + Settings icons) on hover of the vault-name area
 			// (display: var(--vault-profile-actions-display)); force it permanently visible so "off"
 			// genuinely means "shown", not "hover to reveal". Settings gear icon becomes always-visible
 			// too, since it shares this same container - confirmed acceptable.
-			rules.push(".workspace-drawer-vault-actions { display: flex !important; }");
+			rules.push(`${OBSIDIAN_SELECTORS.vaultActions} { display: flex !important; }`);
 		}
 		if (this.pluginSettings.hideSearch) {
-			rules.push("div[aria-label='Search'] { display: none !important; }");
+			rules.push(`${OBSIDIAN_SELECTORS.searchNav} { display: none !important; }`);
 		}
 		if (this.pluginSettings.hideBookmarks) {
-			rules.push("div[aria-label='Bookmarks'] { display: none !important; }");
+			rules.push(`${OBSIDIAN_SELECTORS.bookmarksNav} { display: none !important; }`);
 		}
 		if (this.pluginSettings.hideFiles) {
-			rules.push("div[aria-label='Files'] { display: none !important; }");
+			rules.push(`${OBSIDIAN_SELECTORS.filesNav} { display: none !important; }`);
 		}
 		if (this.pluginSettings.hideLeftPanel) {
-			rules.push(".sidebar-toggle-button.mod-left { display: none !important; }");
+			rules.push(`${OBSIDIAN_SELECTORS.sidebarToggleLeft} { display: none !important; }`);
 		}
 		if (this.pluginSettings.hideRightPanel) {
-			rules.push(".sidebar-toggle-button.mod-right { display: none !important; }");
+			rules.push(`${OBSIDIAN_SELECTORS.sidebarToggleRight} { display: none !important; }`);
 		}
 		if (this.pluginSettings.hideFileNameBar) {
-			rules.push(".inline-title { display: none !important; }");
+			rules.push(`${OBSIDIAN_SELECTORS.inlineTitle} { display: none !important; }`);
 		}
 		if (this.pluginSettings.hideNavRow) {
-			rules.push(".view-header { display: none !important; }");
+			rules.push(`${OBSIDIAN_SELECTORS.viewHeader} { display: none !important; }`);
 		}
 		if (this.pluginSettings.useToolsPanel) {
 			document.body.classList.add("sf-use-tools-panel");
 			// Match Obsidian's own ribbon-width accounting (see its `show-ribbon` class) so the
 			// macOS traffic-light spacing math (--frame-left-space) recalculates correctly.
-			rules.push("body.sf-use-tools-panel { --ribbon-width: 0px; }");
+			rules.push(`body.sf-use-tools-panel { ${OBSIDIAN_CSS_VARS.ribbonWidth}: 0px; }`);
 			// The native ribbon is hidden everywhere except while it's physically parented
 			// inside the open Tools pane (see ToolsView.mountRibbon).
-			rules.push("body.sf-use-tools-panel .workspace-ribbon { display: none !important; }");
+			rules.push(`body.sf-use-tools-panel ${OBSIDIAN_SELECTORS.workspaceRibbon} { display: none !important; }`);
 			// Must be at least as specific as the hide rule above (both use !important) - a plain
 			// ".sf-tools-view .workspace-ribbon" selector is weaker (no `body` element selector) and
 			// silently loses to it regardless of source order, leaving the ribbon `display: none`.
-			rules.push("body.sf-use-tools-panel .sf-tools-view .workspace-ribbon { display: flex !important; }");
 			rules.push(
-				"body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container { padding-left: calc(var(--size-4-2) + var(--frame-left-space)) !important; }",
+				`body.sf-use-tools-panel .sf-tools-view ${OBSIDIAN_SELECTORS.workspaceRibbon} { display: flex !important; }`,
+			);
+			rules.push(
+				`body.sf-use-tools-panel ${OBSIDIAN_SELECTORS.tabHeaderContainer} { padding-left: calc(var(--size-4-2) + var(${OBSIDIAN_CSS_VARS.frameLeftSpace})) !important; }`,
 			);
 		} else {
 			document.body.classList.remove("sf-use-tools-panel");
 		}
 
-		// Always keep the style element and update its content
-		if (!this.styleEl) {
-			this.styleEl = document.createElement("style");
-			this.styleEl.id = "storyforge-visibility-styles";
-			document.head.appendChild(this.styleEl);
-		}
-		this.styleEl.textContent = rules.join("\n");
+		this.applyStyleToAllDocs("storyforge-visibility-styles", rules.join("\n"));
 	}
 
 	applyHeaderStyles(): void {
@@ -323,12 +358,7 @@ export default class StoryForgePlugin extends Plugin {
 			`.sf-codex-new-file-btn:hover, .sf-codex-new-folder-btn:hover, .sf-codex-archive-btn:hover { color: ${codexColor}; }`,
 		];
 
-		if (!this.headerStyleEl) {
-			this.headerStyleEl = document.createElement("style");
-			this.headerStyleEl.id = "storyforge-header-styles";
-			document.head.appendChild(this.headerStyleEl);
-		}
-		this.headerStyleEl.textContent = rules.join("\n");
+		this.applyStyleToAllDocs("storyforge-header-styles", rules.join("\n"));
 	}
 
 	/** Flat highlight, or (when the folder indicator line is enabled) a highlight that appears to glow outward from it. */
@@ -352,12 +382,7 @@ export default class StoryForgePlugin extends Plugin {
 					`.sf-codex-file.sf-row-selected { background: ${this.codexSelectedBackground(s.highlightColor)}; color: ${s.highlightTextColor}; }`,
 				];
 
-		if (!this.highlightStyleEl) {
-			this.highlightStyleEl = document.createElement("style");
-			this.highlightStyleEl.id = "storyforge-highlight-styles";
-			document.head.appendChild(this.highlightStyleEl);
-		}
-		this.highlightStyleEl.textContent = rules.join("\n");
+		this.applyStyleToAllDocs("storyforge-highlight-styles", rules.join("\n"));
 	}
 
 	applyCodexFolderStyle(): void {
@@ -369,12 +394,7 @@ export default class StoryForgePlugin extends Plugin {
 			`.sf-codex-folder-indicator { width: ${indicatorWidth}px; background: ${s.codexFolderColor}; }`,
 		];
 
-		if (!this.codexFolderStyleEl) {
-			this.codexFolderStyleEl = document.createElement("style");
-			this.codexFolderStyleEl.id = "storyforge-codex-folder-styles";
-			document.head.appendChild(this.codexFolderStyleEl);
-		}
-		this.codexFolderStyleEl.textContent = rules.join("\n");
+		this.applyStyleToAllDocs("storyforge-codex-folder-styles", rules.join("\n"));
 	}
 
 	applyCodexNoteLabelStyle(): void {
@@ -391,12 +411,7 @@ export default class StoryForgePlugin extends Plugin {
 			`.sf-codex-file { color: ${color}; font-size: ${s.codexNoteLabelFontSize}em; }`,
 		];
 
-		if (!this.codexNoteLabelStyleEl) {
-			this.codexNoteLabelStyleEl = document.createElement("style");
-			this.codexNoteLabelStyleEl.id = "storyforge-codex-note-label-styles";
-			document.head.appendChild(this.codexNoteLabelStyleEl);
-		}
-		this.codexNoteLabelStyleEl.textContent = rules.join("\n");
+		this.applyStyleToAllDocs("storyforge-codex-note-label-styles", rules.join("\n"));
 	}
 
 	private async initializeVaultState(): Promise<void> {
@@ -406,7 +421,6 @@ export default class StoryForgePlugin extends Plugin {
 		await syncAllBookReferenceFields(this.app, books);
 		for (const folder of getLibraryBookFolders(this.app)) {
 			await ensureAllChapterEntries(this.app, folder.name);
-			await reconcileBookOnLoad(this.app, folder.name);
 		}
 	}
 

@@ -1,9 +1,7 @@
 import { App, parseYaml, stringifyYaml, TFile } from "obsidian";
 import { chapterSidecarFolderPath, chapterSidecarPath } from "./paths";
 import { ensureBackstageFolder, modifyBackstageFrontmatter, renameBackstagePath, writeBackstageFile } from "./writeGuard";
-import { parseStoredFingerprintFromContent, type Fingerprint } from "./fingerprint";
-
-export { parseStoredFingerprintFromContent };
+import type { Fingerprint } from "./fingerprint";
 
 const AUTO_MARKER = "<!-- AUTO-MAINTAINED BELOW — do not edit, the plugin overwrites it -->";
 
@@ -31,14 +29,6 @@ export function buildSidecarContent(frontmatter: Record<string, unknown>, finger
 		"",
 	].join("\n");
 	return `---\n${yaml}\n---\n${body}`;
-}
-
-/** Sidecar frontmatter is user-owned; the plugin reads it for display but never rewrites it (aside from the `chapter` key it maintains as the identity anchor). */
-export function readChapterSidecarFrontmatter(app: App, bookFolderName: string, chapterFilename: string): Record<string, unknown> | null {
-	const path = chapterSidecarPath(bookFolderName, chapterFilename);
-	const file = app.vault.getAbstractFileByPath(path);
-	if (!(file instanceof TFile)) return null;
-	return app.metadataCache.getCache(path)?.frontmatter ?? null;
 }
 
 /** Rewrites only the plugin-owned body (opening/closing fingerprint), preserving user frontmatter untouched. */
@@ -75,22 +65,4 @@ export async function renameChapterSidecar(
 	await modifyBackstageFrontmatter(app, app.vault, newPath, buildSidecarContent({ chapter: newFilename }, { opening: "", closing: "" }), (fm) => {
 		fm.chapter = newFilename;
 	});
-}
-
-/** Reads the plugin-maintained opening/closing fingerprint back out of a sidecar file, for reconciliation matching. */
-export async function readStoredFingerprint(app: App, bookFolderName: string, chapterFilename: string): Promise<Fingerprint | null> {
-	const path = chapterSidecarPath(bookFolderName, chapterFilename);
-	const file = app.vault.getAbstractFileByPath(path);
-	if (!(file instanceof TFile)) return null;
-	const raw = await app.vault.read(file);
-	return parseStoredFingerprintFromContent(raw);
-}
-
-export function listSidecarFilenames(app: App, bookFolderName: string): string[] {
-	const folder = app.vault.getAbstractFileByPath(chapterSidecarFolderPath(bookFolderName));
-	if (!folder || !("children" in folder)) return [];
-	const children = (folder as { children: unknown[] }).children;
-	return children
-		.filter((child): child is TFile => child instanceof TFile && child.extension === "md")
-		.map((file) => file.basename + ".md");
 }

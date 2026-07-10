@@ -1,31 +1,25 @@
-const CODE_LETTER_COUNT = 26;
-const CODE_LENGTH = 3;
-const MAX_CODE_INDEX = CODE_LETTER_COUNT ** CODE_LENGTH; // 17576
+import { fromBijectiveBase26, toBijectiveBase26 } from "./letterCode";
 
-function tripleFromIndex(index: number): string {
-	let n = index;
-	const chars: string[] = [];
-	for (let i = 0; i < CODE_LENGTH; i++) {
-		chars.unshift(String.fromCharCode("a".charCodeAt(0) + (n % CODE_LETTER_COUNT)));
-		n = Math.floor(n / CODE_LETTER_COUNT);
-	}
-	return chars.join("");
+/** Bijective base-26 value of the first 3-letter code ("aaa"), so index 0 maps to "aaa" and index 17575 maps to "zzz". */
+const FIRST_TRIPLE_N = 26 + 26 ** 2 + 1;
+
+function codeFromIndex(index: number): string {
+	return toBijectiveBase26(index + FIRST_TRIPLE_N);
 }
 
-function indexFromTriple(triple: string): number | null {
-	if (!/^[a-z]{3}$/.test(triple)) return null;
-	let n = 0;
-	for (const ch of triple) {
-		n = n * CODE_LETTER_COUNT + (ch.charCodeAt(0) - "a".charCodeAt(0));
-	}
-	return n;
+function indexFromCode(code: string): number | null {
+	const n = fromBijectiveBase26(code);
+	if (n === null) return null;
+	const index = n - FIRST_TRIPLE_N;
+	return index >= 0 ? index : null;
 }
 
 /**
- * Next `<bookId>_chapter-<xxx>` chapter id for `bookId`: a base-26 triple
- * (aaa, aab, ... zzz) that never reuses a triple already seen in
+ * Next `<bookId>_chapter-<xxx>` chapter id for `bookId`: a letter code (aaa,
+ * aab, ... zzz, aaaa, aaab, ...) that never reuses a code already seen in
  * `existingChapterIds` for this book — even if that chapter's file was since
- * deleted — mirroring `nextBookFolderCode`'s "never reuse a gap" policy.
+ * deleted — mirroring `nextBookFolderCode`'s "never reuse a gap" policy. The
+ * code grows past "zzz" indefinitely, so there's no ceiling on chapter count.
  * `existingChapterIds` may contain ids for other books too; anything not
  * prefixed with this book's id is ignored.
  */
@@ -34,12 +28,9 @@ export function nextChapterCode(bookId: string, existingChapterIds: Iterable<str
 	let maxIndex = -1;
 	for (const id of existingChapterIds) {
 		if (!id.startsWith(prefix)) continue;
-		const idx = indexFromTriple(id.slice(prefix.length));
+		const idx = indexFromCode(id.slice(prefix.length));
 		if (idx !== null && idx > maxIndex) maxIndex = idx;
 	}
 	const nextIdx = maxIndex + 1;
-	if (nextIdx >= MAX_CODE_INDEX) {
-		throw new Error(`storyForge: exhausted chapter codes for book "${bookId}"`);
-	}
-	return `${prefix}${tripleFromIndex(nextIdx)}`;
+	return `${prefix}${codeFromIndex(nextIdx)}`;
 }

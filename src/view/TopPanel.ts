@@ -12,6 +12,7 @@ import {
 	writeBookChapterOrder,
 } from "../book";
 import { makeReorderable, type DragZone } from "./dragReorder";
+import { makeAccessibleActivatable } from "./a11y";
 import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
 import { ICON_ARCHIVE, ICON_BOOK, ICON_BOOK_PLUS, ICON_FILTER, ICON_PLUS_SQUARE, ICON_SERIES, ICON_UNPLACED } from "../icons";
@@ -45,6 +46,7 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 		e.stopPropagation();
 		options.onOpenSeriesModal();
 	});
+	makeAccessibleActivatable(filterBtn, () => options.onOpenSeriesModal());
 	seriesLine.addEventListener("click", () => options.onToggleMode());
 
 	if (options.mode === "book") {
@@ -64,7 +66,7 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 	const bodyEl = container.createDiv({ cls: "sf-top-body" });
 
 	if (options.mode === "series") {
-		renderSeriesList(app, bodyEl, series.ordered, series.unplaced, series.orphans, options);
+		renderSeriesList(app, bodyEl, series.ordered, series.unplaced, options);
 	} else if (options.currentBookFolderName) {
 		renderBookList(app, bodyEl, options.currentBookFolderName, options, container);
 	} else {
@@ -119,6 +121,7 @@ function renderUnplacedHeader(
 			e.stopPropagation();
 			onCreateFile();
 		});
+		makeAccessibleActivatable(newFileBtn, () => onCreateFile());
 	}
 	if (onOpenArchive) {
 		const archiveBtn = header.createSpan({
@@ -130,6 +133,7 @@ function renderUnplacedHeader(
 			e.stopPropagation();
 			onOpenArchive();
 		});
+		makeAccessibleActivatable(archiveBtn, () => onOpenArchive());
 	}
 }
 
@@ -154,7 +158,6 @@ function renderSeriesList(
 	bodyEl: HTMLElement,
 	ordered: TFolder[],
 	unplaced: TFolder[],
-	orphans: string[],
 	options: TopPanelOptions,
 ): void {
 	const rawTitles = [...ordered, ...unplaced].map((folder) => bookDisplayTitle(app, folder.name));
@@ -197,24 +200,17 @@ function renderSeriesList(
 		});
 	});
 
-	if (orphans.length > 0) {
-		const orphanSection = bodyEl.createDiv({ cls: "sf-orphans" });
-		for (const orphan of orphans) {
-			orphanSection.createDiv({ cls: "sf-row sf-orphan", text: `${orphan} — book no longer exists` });
-		}
-	}
-
 	const zones: DragZone[] = [
 		{ key: "ordered", container: mainList },
 		{ key: "unplaced", container: unplacedList },
 	];
-	makeReorderable(zones, ".sf-row:not(.sf-orphan)", ".sf-drag-handle", (zoneRowKeys) => {
+	makeReorderable(zones, ".sf-row", ".sf-drag-handle", (zoneRowKeys) => {
 		void reorderSeriesBooks(app, (zoneRowKeys.ordered ?? []).filter(Boolean));
 	});
 }
 
 function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, options: TopPanelOptions, container: HTMLElement): void {
-	const { ordered, unplaced, orphans } = getBookChapters(app, bookFolderName);
+	const { ordered, unplaced } = getBookChapters(app, bookFolderName);
 
 	const rawTitles = [...ordered, ...unplaced].map((file) => chapterDisplayTitle(app, bookFolderName, file.name));
 	const numbered = applyHashNumbering(rawTitles);
@@ -232,7 +228,6 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 		});
 		const archiveItem: ExtraMenuItem = {
 			title: "Archive",
-			icon: "archive",
 			onClick: async () => {
 				await archiveChapter(app, bookFolderName, file.name);
 				renderTopPanel(app, container, options);
@@ -266,7 +261,6 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 		});
 		const archiveItem: ExtraMenuItem = {
 			title: "Archive",
-			icon: "archive",
 			onClick: async () => {
 				await archiveChapter(app, bookFolderName, file.name);
 				renderTopPanel(app, container, options);
@@ -282,18 +276,11 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 		});
 	});
 
-	if (orphans.length > 0) {
-		const orphanSection = bodyEl.createDiv({ cls: "sf-orphans" });
-		for (const orphan of orphans) {
-			orphanSection.createDiv({ cls: "sf-row sf-orphan", text: `${orphan} — ordered chapter no longer exists` });
-		}
-	}
-
 	const zones: DragZone[] = [
 		{ key: "ordered", container: mainList },
 		{ key: "unplaced", container: unplacedList },
 	];
-	makeReorderable(zones, ".sf-row:not(.sf-orphan)", ".sf-drag-handle", (zoneRowKeys) => {
+	makeReorderable(zones, ".sf-row", ".sf-drag-handle", (zoneRowKeys) => {
 		void writeBookChapterOrder(app, bookFolderName, (zoneRowKeys.ordered ?? []).filter(Boolean));
 	});
 }
