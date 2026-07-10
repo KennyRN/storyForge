@@ -15,7 +15,7 @@ import { makeReorderable, type DragZone } from "./dragReorder";
 import { makeAccessibleActivatable } from "./a11y";
 import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
-import { ICON_ARCHIVE, ICON_BOOK, ICON_BOOK_PLUS, ICON_FILTER, ICON_PLUS_SQUARE, ICON_SERIES, ICON_UNPLACED } from "../icons";
+import { ICON_ARCHIVE, ICON_BOOK, ICON_BOOK_PLUS, ICON_FILTER, ICON_PLUS_SQUARE, ICON_SERIES, ICON_TIMELINE, ICON_UNPLACED } from "../icons";
 
 export interface TopPanelOptions {
 	mode: "book" | "series";
@@ -41,7 +41,7 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 	const seriesLine = header.createDiv({ cls: "sf-header-line sf-series-line" });
 	setIcon(seriesLine.createSpan({ cls: "sf-icon" }), ICON_SERIES);
 	seriesLine.createSpan({ cls: "sf-header-text", text: series.seriesTitle });
-	const filterBtn = seriesLine.createSpan({ cls: "sf-icon sf-series-filter-btn", attr: { "aria-label": "Series settings" } });
+	const filterBtn = seriesLine.createSpan({ cls: "sf-series-filter-btn", attr: { "aria-label": "Series settings" } });
 	setIcon(filterBtn, ICON_FILTER);
 	filterBtn.addEventListener("click", (e) => {
 		e.stopPropagation();
@@ -51,29 +51,30 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 	seriesLine.addEventListener("click", () => options.onToggleMode());
 
 	if (options.mode === "book") {
-		const bookLine = header.createDiv({ cls: "sf-header-line sf-book-line" });
+		const bookLine = header.createDiv({ cls: "sf-book-line" });
 		setIcon(bookLine.createSpan({ cls: "sf-icon" }), ICON_BOOK);
+		const titleRow = bookLine.createDiv({ cls: "sf-header-line sf-book-title-row" });
 		const rawBookTitle = options.currentBookFolderName
 			? numberedBookTitle(app, series.ordered, series.unplaced, options.currentBookFolderName)
 			: "—";
 		const { title, subtitle } = splitTitleSubtitle(rawBookTitle);
-		const textWrap = bookLine.createDiv({ cls: "sf-book-text-wrap" });
+		const textWrap = titleRow.createDiv({ cls: "sf-book-text-wrap" });
 		textWrap.createSpan({ cls: "sf-header-text", text: title });
-		if (subtitle) {
-			textWrap.createDiv({ cls: "sf-book-subtitle-text", text: subtitle });
-		}
 		if (options.currentBookFolderName) {
-			const bookSettingsBtn = bookLine.createSpan({
-				cls: "sf-icon sf-book-filter-btn",
-				attr: { "aria-label": "Book settings" },
+			const bookSettingsBtn = titleRow.createSpan({
+				cls: "sf-book-filter-btn",
+				attr: { "aria-label": "Synopsis and plot" },
 			});
-			setIcon(bookSettingsBtn, ICON_FILTER);
+			setIcon(bookSettingsBtn, ICON_TIMELINE);
 			const bookFolderName = options.currentBookFolderName;
 			bookSettingsBtn.addEventListener("click", (e) => {
 				e.stopPropagation();
 				options.onOpenBookSynopsisModal(bookFolderName);
 			});
 			makeAccessibleActivatable(bookSettingsBtn, () => options.onOpenBookSynopsisModal(bookFolderName));
+		}
+		if (subtitle) {
+			bookLine.createDiv({ cls: "sf-book-subtitle-text", text: subtitle });
 		}
 	}
 

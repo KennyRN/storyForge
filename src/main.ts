@@ -58,6 +58,10 @@ export interface StoryForgePluginSettings {
 	libraryBookTitleFontWeight: FontWeight;
 	libraryBookTitleColor: string;
 	libraryBookTitleSmallCaps: boolean;
+	libraryBookSubtitleFontSize: number;
+	libraryBookSubtitleFontWeight: FontWeight;
+	libraryBookSubtitleSmallCaps: boolean;
+	libraryHeaderDividerBelow: boolean;
 	unplacedHighlightColor: string;
 	unplacedHighlightTextColor: string;
 	codexHighlightColor: string;
@@ -183,6 +187,10 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	libraryBookTitleFontWeight: "400",
 	libraryBookTitleColor: "#9a9a9a",
 	libraryBookTitleSmallCaps: false,
+	libraryBookSubtitleFontSize: 0.5,
+	libraryBookSubtitleFontWeight: "400",
+	libraryBookSubtitleSmallCaps: false,
+	libraryHeaderDividerBelow: false,
 	unplacedHighlightColor: "#fef3c7",
 	unplacedHighlightTextColor: "#1f2937",
 	codexHighlightColor: "#fef3c7",
@@ -582,15 +590,17 @@ export default class StoryForgePlugin extends Plugin {
 
 	applyLibraryHeaderStyles(): void {
 		const s = this.pluginSettings;
-		const subtitleWeight = Math.min(Number(s.libraryBookTitleFontWeight), 400);
 		const rules: string[] = [
 			`.sf-series-line .sf-header-text { font-size: ${s.librarySeriesTitleFontSize}em; font-weight: ${s.librarySeriesTitleFontWeight}; color: ${s.librarySeriesTitleColor}; font-variant: ${s.librarySeriesTitleSmallCaps ? "small-caps" : "normal"}; }`,
 			`.sf-series-line .sf-icon { color: ${s.librarySeriesTitleColor}; font-size: ${s.librarySeriesTitleFontSize}em; }`,
 			`.sf-series-line .sf-icon svg { width: 1em; height: 1em; }`,
-			`.sf-book-line .sf-header-text { font-size: ${s.libraryBookTitleFontSize}em; font-weight: ${s.libraryBookTitleFontWeight}; color: ${s.libraryBookTitleColor}; font-variant: ${s.libraryBookTitleSmallCaps ? "small-caps" : "normal"}; }`,
+			`.sf-series-filter-btn:hover { color: ${s.librarySeriesTitleColor}; }`,
+			`.sf-book-line .sf-header-text { font-size: ${s.libraryBookTitleFontSize}em; font-weight: ${s.libraryBookTitleFontWeight}; color: ${s.libraryBookTitleColor}; font-variant: ${s.libraryBookTitleSmallCaps ? "small-caps" : "normal"}; line-height: 1; }`,
 			`.sf-book-line .sf-icon { color: ${s.libraryBookTitleColor}; font-size: ${s.libraryBookTitleFontSize}em; }`,
 			`.sf-book-line .sf-icon svg { width: 1em; height: 1em; }`,
-			`.sf-book-line .sf-book-subtitle-text { font-size: ${s.libraryBookTitleFontSize - 0.25}em; font-weight: ${subtitleWeight}; color: ${s.libraryBookTitleColor}; font-variant: ${s.libraryBookTitleSmallCaps ? "small-caps" : "normal"}; }`,
+			`.sf-book-filter-btn:hover { color: ${s.libraryBookTitleColor}; }`,
+			`.sf-book-line .sf-book-subtitle-text { font-size: ${s.libraryBookSubtitleFontSize}em; font-weight: ${s.libraryBookSubtitleFontWeight}; color: ${s.libraryBookTitleColor}; font-variant: ${s.libraryBookSubtitleSmallCaps ? "small-caps" : "normal"}; }`,
+			`.sf-top-header { border-bottom: ${s.libraryHeaderDividerBelow ? "1px solid var(--background-modifier-border)" : "none"}; }`,
 		];
 
 		this.applyStyleToAllDocs("storyforge-library-header-styles", rules.join("\n"));

@@ -862,6 +862,44 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			});
 	}
 
+	/** Renders the book subtitle's Size/Weight/Small caps group — no colour swatch, since the subtitle always tracks the book title's colour. */
+	private renderSubtitleStyleGroup(body: HTMLElement, settings: StoryForgePluginSettings): void {
+		const group = new SettingGroup(body);
+		group
+			.addSetting((setting) =>
+				setting
+					.setName("Subtitle size")
+					.setDesc("Text size, from 0.5em to 2em.")
+					.addSlider((slider) =>
+						slider
+							.setLimits(0.5, 2, 0.25)
+							.setValue(settings.libraryBookSubtitleFontSize)
+							.onChange(async (value) => {
+								await this.plugin.updateSetting("libraryBookSubtitleFontSize", value);
+								this.plugin.applyLibraryHeaderStyles();
+							}),
+					),
+			)
+			.addSetting((setting) => {
+				setting.setName("Subtitle weight");
+				this.bindFontWeightDropdown(setting, settings.libraryBookSubtitleFontWeight, async (value) => {
+					await this.plugin.updateSetting("libraryBookSubtitleFontWeight", value);
+					this.plugin.applyLibraryHeaderStyles();
+				});
+			})
+			.addSetting((setting) => {
+				setting
+					.setName("Subtitle small caps")
+					.addToggle((toggle) =>
+						toggle.setValue(settings.libraryBookSubtitleSmallCaps).onChange(async (value) => {
+							await this.plugin.updateSetting("libraryBookSubtitleSmallCaps", value);
+							this.plugin.applyLibraryHeaderStyles();
+						}),
+					);
+				setting.nameEl.style.fontVariant = "small-caps";
+			});
+	}
+
 	private renderUnplacedPanel(body: HTMLElement, settings: StoryForgePluginSettings): void {
 		this.renderFoldableSection(body, "unplaced", "h4", "Unplaced pane", (unplacedBody) => {
 			const useHeaderColorToggle = this.renderHeaderStyleGroup(unplacedBody, settings, {
@@ -1162,7 +1200,19 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					colorKey: "libraryBookTitleColor",
 					smallCapsKey: "libraryBookTitleSmallCaps",
 				});
+				this.renderSubtitleStyleGroup(libraryBody, settings);
 				this.renderLibraryHighlightRows(libraryBody, settings);
+				new SettingGroup(libraryBody).addSetting((setting) =>
+					setting
+						.setName("Divider below title")
+						.setDesc("Adds a border below the series/book title, matching the border between storyForge's panes.")
+						.addToggle((toggle) =>
+							toggle.setValue(settings.libraryHeaderDividerBelow).onChange(async (value) => {
+								await this.plugin.updateSetting("libraryHeaderDividerBelow", value);
+								this.plugin.applyLibraryHeaderStyles();
+							}),
+						),
+				);
 			});
 			this.renderUnplacedPanel(body, settings);
 			this.renderCodexPanel(body, settings);

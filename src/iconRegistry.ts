@@ -10,6 +10,7 @@ import {
 	ICON_FOLDER_PLUS,
 	ICON_PLUS_SQUARE,
 	ICON_SERIES,
+	ICON_TIMELINE,
 	ICON_TOOLS,
 	ICON_UNARCHIVE,
 	ICON_UNPLACED,
@@ -53,6 +54,12 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 	{ id: ICON_SERIES, label: "Series", source: "custom", usedIn: ["TopPanel.ts — series header line", "StoryForgeView.ts — view tab icon"] },
 	{ id: ICON_BOOK, label: "Book", source: "custom", usedIn: ["TopPanel.ts — book header line"] },
 	{ id: ICON_FILTER, label: "Settings", source: "custom", usedIn: ["TopPanel.ts — series settings button"] },
+	{
+		id: ICON_TIMELINE,
+		label: "Synopsis and plot",
+		source: "custom",
+		usedIn: ["TopPanel.ts — book synopsis/plot settings button"],
+	},
 	{
 		id: ICON_BOOK_PLUS,
 		label: "New book",
