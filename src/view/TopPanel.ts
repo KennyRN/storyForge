@@ -26,6 +26,7 @@ export interface TopPanelOptions {
 	onSelectBook: (bookFolderName: string) => void;
 	onOpenChapter: (bookFolderName: string, filename: string) => void;
 	onOpenSeriesModal: () => void;
+	onOpenBookSynopsisModal: (bookFolderName: string) => void;
 	onArchiveChapter?: () => void;
 	onOpenArchive?: () => void;
 }
@@ -59,7 +60,20 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 		const textWrap = bookLine.createDiv({ cls: "sf-book-text-wrap" });
 		textWrap.createSpan({ cls: "sf-header-text", text: title });
 		if (subtitle) {
-			textWrap.createDiv({ cls: "sf-header-text", text: subtitle });
+			textWrap.createDiv({ cls: "sf-book-subtitle-text", text: subtitle });
+		}
+		if (options.currentBookFolderName) {
+			const bookSettingsBtn = bookLine.createSpan({
+				cls: "sf-icon sf-book-filter-btn",
+				attr: { "aria-label": "Book settings" },
+			});
+			setIcon(bookSettingsBtn, ICON_FILTER);
+			const bookFolderName = options.currentBookFolderName;
+			bookSettingsBtn.addEventListener("click", (e) => {
+				e.stopPropagation();
+				options.onOpenBookSynopsisModal(bookFolderName);
+			});
+			makeAccessibleActivatable(bookSettingsBtn, () => options.onOpenBookSynopsisModal(bookFolderName));
 		}
 	}
 

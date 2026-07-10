@@ -48,9 +48,16 @@ export interface StoryForgePluginSettings {
 	hideFileNameBar: boolean;
 	hideNavRow: boolean;
 	highlightActiveChapter: boolean;
-	perPanelHighlighting: boolean;
 	highlightColor: string;
 	highlightTextColor: string;
+	librarySeriesTitleFontSize: number;
+	librarySeriesTitleFontWeight: FontWeight;
+	librarySeriesTitleColor: string;
+	librarySeriesTitleSmallCaps: boolean;
+	libraryBookTitleFontSize: number;
+	libraryBookTitleFontWeight: FontWeight;
+	libraryBookTitleColor: string;
+	libraryBookTitleSmallCaps: boolean;
 	unplacedHighlightColor: string;
 	unplacedHighlightTextColor: string;
 	codexHighlightColor: string;
@@ -166,9 +173,16 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	hideFileNameBar: true,
 	hideNavRow: true,
 	highlightActiveChapter: true,
-	perPanelHighlighting: false,
 	highlightColor: "#fef3c7",
 	highlightTextColor: "#1f2937",
+	librarySeriesTitleFontSize: 1,
+	librarySeriesTitleFontWeight: "600",
+	librarySeriesTitleColor: "#dcdcdc",
+	librarySeriesTitleSmallCaps: false,
+	libraryBookTitleFontSize: 0.75,
+	libraryBookTitleFontWeight: "400",
+	libraryBookTitleColor: "#9a9a9a",
+	libraryBookTitleSmallCaps: false,
 	unplacedHighlightColor: "#fef3c7",
 	unplacedHighlightTextColor: "#1f2937",
 	codexHighlightColor: "#fef3c7",
@@ -294,7 +308,7 @@ export default class StoryForgePlugin extends Plugin {
 		// may already have stale duplicates injected before that existed.
 		document
 			.querySelectorAll(
-				"#storyforge-visibility-styles, #storyforge-header-styles, #storyforge-highlight-styles, #storyforge-codex-folder-styles, #storyforge-codex-note-label-styles, #storyforge-heading1-link-styles, #storyforge-text-style-overrides",
+				"#storyforge-visibility-styles, #storyforge-header-styles, #storyforge-highlight-styles, #storyforge-library-header-styles, #storyforge-codex-folder-styles, #storyforge-codex-note-label-styles, #storyforge-heading1-link-styles, #storyforge-text-style-overrides",
 			)
 			.forEach((el) => el.remove());
 
@@ -319,6 +333,7 @@ export default class StoryForgePlugin extends Plugin {
 		this.applyVisibilityStyles();
 		this.applyHeaderStyles();
 		this.applyHighlightStyle();
+		this.applyLibraryHeaderStyles();
 		this.applyCodexFolderStyle();
 		this.applyCodexNoteLabelStyle();
 		this.applyHeading1LinkStyle();
@@ -344,6 +359,7 @@ export default class StoryForgePlugin extends Plugin {
 				this.applyVisibilityStyles();
 				this.applyHeaderStyles();
 				this.applyHighlightStyle();
+				this.applyLibraryHeaderStyles();
 				this.applyCodexFolderStyle();
 				this.applyCodexNoteLabelStyle();
 				this.applyHeading1LinkStyle();
@@ -555,18 +571,29 @@ export default class StoryForgePlugin extends Plugin {
 				? "var(--text-muted)"
 				: s.codexColor
 			: s.codexHighlightColor;
-		const rules: string[] = s.perPanelHighlighting
-			? [
-					`.sf-top-list:not(.sf-unplaced-list) .sf-row.sf-row-selected { background: ${s.highlightColor}; color: ${s.highlightTextColor}; }`,
-					`.sf-unplaced-list .sf-row.sf-row-selected { background: ${unplacedHighlightColor}; color: ${s.unplacedHighlightTextColor}; }`,
-					`.sf-codex-file.sf-row-selected { background: ${this.codexSelectedBackground(codexHighlightColor)}; color: ${s.codexHighlightTextColor}; }`,
-				]
-			: [
-					`.sf-row.sf-row-selected { background: ${s.highlightColor}; color: ${s.highlightTextColor}; }`,
-					`.sf-codex-file.sf-row-selected { background: ${this.codexSelectedBackground(s.highlightColor)}; color: ${s.highlightTextColor}; }`,
-				];
+		const rules: string[] = [
+			`.sf-top-list:not(.sf-unplaced-list) .sf-row.sf-row-selected { background: ${s.highlightColor}; color: ${s.highlightTextColor}; }`,
+			`.sf-unplaced-list .sf-row.sf-row-selected { background: ${unplacedHighlightColor}; color: ${s.unplacedHighlightTextColor}; }`,
+			`.sf-codex-file.sf-row-selected { background: ${this.codexSelectedBackground(codexHighlightColor)}; color: ${s.codexHighlightTextColor}; }`,
+		];
 
 		this.applyStyleToAllDocs("storyforge-highlight-styles", rules.join("\n"));
+	}
+
+	applyLibraryHeaderStyles(): void {
+		const s = this.pluginSettings;
+		const subtitleWeight = Math.min(Number(s.libraryBookTitleFontWeight), 400);
+		const rules: string[] = [
+			`.sf-series-line .sf-header-text { font-size: ${s.librarySeriesTitleFontSize}em; font-weight: ${s.librarySeriesTitleFontWeight}; color: ${s.librarySeriesTitleColor}; font-variant: ${s.librarySeriesTitleSmallCaps ? "small-caps" : "normal"}; }`,
+			`.sf-series-line .sf-icon { color: ${s.librarySeriesTitleColor}; font-size: ${s.librarySeriesTitleFontSize}em; }`,
+			`.sf-series-line .sf-icon svg { width: 1em; height: 1em; }`,
+			`.sf-book-line .sf-header-text { font-size: ${s.libraryBookTitleFontSize}em; font-weight: ${s.libraryBookTitleFontWeight}; color: ${s.libraryBookTitleColor}; font-variant: ${s.libraryBookTitleSmallCaps ? "small-caps" : "normal"}; }`,
+			`.sf-book-line .sf-icon { color: ${s.libraryBookTitleColor}; font-size: ${s.libraryBookTitleFontSize}em; }`,
+			`.sf-book-line .sf-icon svg { width: 1em; height: 1em; }`,
+			`.sf-book-line .sf-book-subtitle-text { font-size: ${s.libraryBookTitleFontSize - 0.25}em; font-weight: ${subtitleWeight}; color: ${s.libraryBookTitleColor}; font-variant: ${s.libraryBookTitleSmallCaps ? "small-caps" : "normal"}; }`,
+		];
+
+		this.applyStyleToAllDocs("storyforge-library-header-styles", rules.join("\n"));
 	}
 
 	applyCodexFolderStyle(): void {

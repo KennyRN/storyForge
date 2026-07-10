@@ -759,82 +759,107 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		});
 	}
 
-	private renderHighlightGroup(
-		body: HTMLElement,
-		settings: StoryForgePluginSettings,
-		onPerPanelChange: (perPanel: boolean) => void,
-	): void {
+	private renderHighlightGroup(body: HTMLElement, settings: StoryForgePluginSettings): void {
 		const highlightGroup = new SettingGroup(body);
-		highlightGroup
-			.addSetting((setting) =>
-				setting
-					.setName("Highlight active chapter/item")
-					.setDesc(
-						"highlights the currently selected chapter, or item, in the storyForge panel",
-					)
-					.addToggle((toggle) =>
-						toggle.setValue(settings.highlightActiveChapter).onChange(async (value) => {
-							await this.plugin.updateSetting("highlightActiveChapter", value);
-							this.plugin.refreshStoryForgeViews();
-						}),
-					),
-			)
-			.addSetting((setting) =>
-				setting
-					.setName("Per panel highlighting")
-					.setDesc(
-						"Give the chapter/book list, Unplaced zone, and Codex panel their own highlight colours.",
-					)
-					.addToggle((toggle) =>
-						toggle.setValue(settings.perPanelHighlighting).onChange(async (value) => {
-							await this.plugin.updateSetting("perPanelHighlighting", value);
-							onPerPanelChange(value);
-							this.plugin.applyHighlightStyle();
-						}),
-					),
-			);
+		highlightGroup.addSetting((setting) =>
+			setting
+				.setName("Highlight active chapter/item")
+				.setDesc(
+					"highlights the currently selected chapter, or item, in the storyForge panel",
+				)
+				.addToggle((toggle) =>
+					toggle.setValue(settings.highlightActiveChapter).onChange(async (value) => {
+						await this.plugin.updateSetting("highlightActiveChapter", value);
+						this.plugin.refreshStoryForgeViews();
+					}),
+				),
+		);
 	}
 
-	/**
-	 * Renders the chapter/book "Highlight colour"/"Highlight text colour" rows under the Library
-	 * pane section. Returns the name-swap closure so the caller can re-invoke it when the "Per
-	 * panel highlighting" toggle (rendered elsewhere) changes.
-	 */
-	private renderLibraryHighlightRows(body: HTMLElement, settings: StoryForgePluginSettings): (perPanel: boolean) => void {
+	/** Renders the "Highlight colour"/"Highlight text colour" rows for library items (chapter/book rows) under the Library pane section. */
+	private renderLibraryHighlightRows(body: HTMLElement, settings: StoryForgePluginSettings): void {
 		const libraryHighlightGroup = new SettingGroup(body);
-		let highlightColourSetting: Setting | null = null;
-		let highlightTextColourSetting: Setting | null = null;
-		const applyHighlightNames = (perPanel: boolean) => {
-			highlightColourSetting?.setName(perPanel ? "Highlight colour for chapter/book" : "Highlight colour");
-			highlightTextColourSetting?.setName(
-				perPanel ? "Highlight text colour for chapter/book" : "Highlight text colour",
-			);
-		};
 		libraryHighlightGroup
-			.addSetting((setting) => {
-				highlightColourSetting = setting;
+			.addSetting((setting) =>
 				setting
+					.setName("Highlight colour for library items")
 					.setDesc("The colour used for the active chapter/item highlight.")
 					.addButton((button) =>
 						this.bindColorSwatchButton(button, settings.highlightColor, async (hex) => {
 							await this.plugin.updateSetting("highlightColor", hex);
 							this.plugin.applyHighlightStyle();
 						}),
-					);
-			})
-			.addSetting((setting) => {
-				highlightTextColourSetting = setting;
+					),
+			)
+			.addSetting((setting) =>
 				setting
+					.setName("Highlight text colour for library items")
 					.setDesc("colour used for the active chapter/item highlight text")
 					.addButton((button) =>
 						this.bindColorSwatchButton(button, settings.highlightTextColor, async (hex) => {
 							await this.plugin.updateSetting("highlightTextColor", hex);
 							this.plugin.applyHighlightStyle();
 						}),
+					),
+			);
+	}
+
+	/** Renders the Size/Weight/Colour/Small caps group shared by the Library pane's series title and book title sections. */
+	private renderTitleStyleGroup(
+		body: HTMLElement,
+		settings: StoryForgePluginSettings,
+		config: {
+			labelPrefix: string;
+			sizeKey: "librarySeriesTitleFontSize" | "libraryBookTitleFontSize";
+			fontWeightKey: "librarySeriesTitleFontWeight" | "libraryBookTitleFontWeight";
+			colorKey: "librarySeriesTitleColor" | "libraryBookTitleColor";
+			smallCapsKey: "librarySeriesTitleSmallCaps" | "libraryBookTitleSmallCaps";
+		},
+	): void {
+		const group = new SettingGroup(body);
+		group
+			.addSetting((setting) =>
+				setting
+					.setName(`${config.labelPrefix} size`)
+					.setDesc("Text size, from 0.5em to 2em.")
+					.addSlider((slider) =>
+						slider
+							.setLimits(0.5, 2, 0.25)
+							.setValue(settings[config.sizeKey])
+							.onChange(async (value) => {
+								await this.plugin.updateSetting(config.sizeKey, value);
+								this.plugin.applyLibraryHeaderStyles();
+							}),
+					),
+			)
+			.addSetting((setting) => {
+				setting.setName(`${config.labelPrefix} weight`);
+				this.bindFontWeightDropdown(setting, settings[config.fontWeightKey], async (value) => {
+					await this.plugin.updateSetting(config.fontWeightKey, value);
+					this.plugin.applyLibraryHeaderStyles();
+				});
+			})
+			.addSetting((setting) =>
+				setting
+					.setName(`${config.labelPrefix} colour`)
+					.addButton((button) =>
+						this.bindColorSwatchButton(button, settings[config.colorKey], async (hex) => {
+							await this.plugin.updateSetting(config.colorKey, hex);
+							this.plugin.applyLibraryHeaderStyles();
+						}),
+					),
+			)
+			.addSetting((setting) => {
+				setting
+					.setName(`${config.labelPrefix} small caps`)
+					.addToggle((toggle) =>
+						toggle.setValue(settings[config.smallCapsKey]).onChange(async (value) => {
+							await this.plugin.updateSetting(config.smallCapsKey, value);
+							this.plugin.applyLibraryHeaderStyles();
+						}),
 					);
+				setting.nameEl.style.fontVariant = "small-caps";
 			});
-		applyHighlightNames(settings.perPanelHighlighting);
-		return applyHighlightNames;
 	}
 
 	private renderUnplacedPanel(body: HTMLElement, settings: StoryForgePluginSettings): void {
@@ -1121,10 +1146,23 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 
 	private renderUiFormattingSection(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
 		this.renderFoldableSection(containerEl, "ui-formatting", "h3", "storyForge interface", (body) => {
-			let applyHighlightNames: (perPanel: boolean) => void = () => {};
-			this.renderHighlightGroup(body, settings, (perPanel) => applyHighlightNames(perPanel));
+			this.renderHighlightGroup(body, settings);
 			this.renderFoldableSection(body, "library-pane", "h4", "Library pane", (libraryBody) => {
-				applyHighlightNames = this.renderLibraryHighlightRows(libraryBody, settings);
+				this.renderTitleStyleGroup(libraryBody, settings, {
+					labelPrefix: "Series title",
+					sizeKey: "librarySeriesTitleFontSize",
+					fontWeightKey: "librarySeriesTitleFontWeight",
+					colorKey: "librarySeriesTitleColor",
+					smallCapsKey: "librarySeriesTitleSmallCaps",
+				});
+				this.renderTitleStyleGroup(libraryBody, settings, {
+					labelPrefix: "Book title",
+					sizeKey: "libraryBookTitleFontSize",
+					fontWeightKey: "libraryBookTitleFontWeight",
+					colorKey: "libraryBookTitleColor",
+					smallCapsKey: "libraryBookTitleSmallCaps",
+				});
+				this.renderLibraryHighlightRows(libraryBody, settings);
 			});
 			this.renderUnplacedPanel(body, settings);
 			this.renderCodexPanel(body, settings);

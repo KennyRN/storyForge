@@ -2,7 +2,7 @@ import { App, TFile, TFolder } from "obsidian";
 import { bookFilePath, libraryBookPath, libraryChapterPath, LIBRARY_ROOT } from "./paths";
 import { resolveOrder, type OrderResult } from "./ordering";
 import { mintId } from "./slug";
-import { modifyBackstageFrontmatter } from "./writeGuard";
+import { modifyBackstageFrontmatter, writeBackstageFile } from "./writeGuard";
 import {
 	collectAllBookIds,
 	getLibraryBookFolders,
@@ -439,4 +439,64 @@ export async function createChapter(app: App, bookFolderName: string): Promise<{
 	await app.workspace.getLeaf(false).openFile(file);
 
 	return { filename, chapterId };
+}
+
+const SYNOPSIS_HEADER = "## Synopsis";
+
+/** Splits raw file content into its frontmatter fence (verbatim, incl. trailing newline) and body. */
+function splitFrontmatterAndBody(raw: string): { frontmatterBlock: string; body: string } {
+	if (!raw.startsWith("---")) return { frontmatterBlock: "", body: raw };
+	const end = raw.indexOf("\n---", 3);
+	if (end === -1) return { frontmatterBlock: "", body: raw };
+	let fenceEnd = end + 4;
+	if (raw[fenceEnd] === "\n") fenceEnd += 1;
+	return { frontmatterBlock: raw.slice(0, fenceEnd), body: raw.slice(fenceEnd) };
+}
+
+function extractSynopsisSection(body: string): string {
+	const idx = body.indexOf(SYNOPSIS_HEADER);
+	if (idx === -1) return "";
+	const start = idx + SYNOPSIS_HEADER.length;
+	const nextHeaderIdx = body.indexOf("\n## ", start);
+	return (nextHeaderIdx === -1 ? body.slice(start) : body.slice(start, nextHeaderIdx)).trim();
+}
+
+/** Replaces (or appends) the `## Synopsis` section, leaving any other body content untouched. */
+function upsertSynopsisSection(body: string, synopsis: string): string {
+	const newSection = `${SYNOPSIS_HEADER}\n${synopsis.trim()}\n`;
+	const idx = body.indexOf(SYNOPSIS_HEADER);
+	if (idx === -1) {
+		const sep = body.trim().length === 0 ? "" : "\n";
+		return `${body.trimEnd()}${sep}\n${newSection}`;
+	}
+	const start = idx + SYNOPSIS_HEADER.length;
+	const nextHeaderIdx = body.indexOf("\n## ", start);
+	const before = body.slice(0, idx);
+	const after = nextHeaderIdx === -1 ? "" : body.slice(nextHeaderIdx + 1);
+	return `${before}${newSection}${after}`;
+}
+
+/** Reads the book's synopsis from book.md's body, under a `## Synopsis` heading. Empty string if none exists yet. */
+export async function readBookSynopsis(app: App, bookFolderName: string): Promise<string> {
+	const file = app.vault.getAbstractFileByPath(bookFilePath(bookFolderName));
+	if (!(file instanceof TFile)) return "";
+	const { body } = splitFrontmatterAndBody(await app.vault.read(file));
+	return extractSynopsisSection(body);
+}
+
+/** Writes the book's synopsis into book.md's body under a `## Synopsis` heading, leaving the frontmatter and any other body content untouched. */
+export async function writeBookSynopsis(app: App, bookFolderName: string, synopsis: string): Promise<void> {
+	const path = bookFilePath(bookFolderName);
+	const file = app.vault.getAbstractFileByPath(path);
+	let raw: string;
+	if (file instanceof TFile) {
+		raw = await app.vault.read(file);
+	} else {
+		const entry = getSeriesBookEntry(app, bookFolderName);
+		const bookId = entry?.bookId ?? mintId(bookFolderName, collectAllBookIds(app));
+		const bookTitle = entry?.bookTitle ?? bookFolderName;
+		raw = defaultBookContent(bookId, bookTitle, getSeriesOrderPosition(app, bookFolderName));
+	}
+	const { frontmatterBlock, body } = splitFrontmatterAndBody(raw);
+	await writeBackstageFile(app.vault, path, frontmatterBlock + upsertSynopsisSection(body, synopsis));
 }
