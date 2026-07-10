@@ -1,5 +1,6 @@
 import { setIcon } from "obsidian";
 import { ICON_CALENDAR, ICON_DASHBOARD_CHART, ICON_EXCHANGE } from "../icons";
+import { makeAccessibleActivatable } from "./a11y";
 
 export type StatsMode = "daily" | "weekly" | "chapter" | "story";
 
@@ -42,6 +43,7 @@ export function renderStatsPanel(container: HTMLElement, options: StatsPanelOpti
 	});
 	setIcon(exchangeBtn, ICON_EXCHANGE);
 	exchangeBtn.addEventListener("click", () => options.onToggleMode());
+	makeAccessibleActivatable(exchangeBtn, () => options.onToggleMode());
 
 	setIcon(actions.createSpan({ cls: "sf-icon sf-stats-calendar" }), ICON_CALENDAR);
 }

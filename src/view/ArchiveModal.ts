@@ -2,6 +2,7 @@ import { App, Modal, setIcon, setTooltip, TFile } from "obsidian";
 import { getArchivedChapters, unarchiveChapter, chapterDisplayTitle } from "../book";
 import { splitTitleSubtitle } from "../titleNumbering";
 import { ICON_ARCHIVE, ICON_UNARCHIVE } from "../icons";
+import { makeAccessibleActivatable } from "./a11y";
 import { libraryChapterPath } from "../paths";
 import { stripForCounting } from "../wordCount";
 
@@ -90,15 +91,19 @@ export class ArchiveModal extends Modal {
 				attr: { "aria-label": "Unarchive" },
 			});
 			setIcon(unarchiveBtn, ICON_UNARCHIVE);
-			unarchiveBtn.addEventListener("click", async (e) => {
-				e.stopPropagation();
+			const handleUnarchive = async () => {
 				await unarchiveChapter(this.app, entry.bookFolderName, entry.filename);
 				this.archived = this.archived.filter(
 					(a) => !(a.bookFolderName === entry.bookFolderName && a.filename === entry.filename),
 				);
 				this.onChange();
 				this.render();
+			};
+			unarchiveBtn.addEventListener("click", async (e) => {
+				e.stopPropagation();
+				await handleUnarchive();
 			});
+			makeAccessibleActivatable(unarchiveBtn, () => void handleUnarchive());
 		}
 	}
 }

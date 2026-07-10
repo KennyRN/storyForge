@@ -47,6 +47,56 @@ export function attachCodexDragReorder(
 		const draggedType = rowEl.dataset.type as "file" | "folder" | undefined;
 		if (!handle || !draggedKey || !draggedType || !rowByKey.has(draggedKey)) continue;
 
+		handle.tabIndex = 0;
+		handle.setAttribute("role", "button");
+		if (!handle.hasAttribute("aria-label")) {
+			handle.setAttribute("aria-label", "Drag to reorder, or use arrow keys to move or change nesting");
+		}
+		handle.addEventListener("keydown", (event: KeyboardEvent) => {
+			const info = rowByKey.get(draggedKey);
+			if (!info) return;
+
+			if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+				event.preventDefault();
+				const siblings = rows.filter((r) => r.parentKey === info.parentKey);
+				const index = siblings.findIndex((r) => r.key === draggedKey);
+				if (index === -1) return;
+				if (event.key === "ArrowUp") {
+					if (index === 0) return;
+					onDrop(
+						{ key: draggedKey, type: draggedType },
+						{ parentId: info.parentKey, beforeKey: siblings[index - 1].key },
+					);
+				} else {
+					if (index === siblings.length - 1) return;
+					onDrop(
+						{ key: draggedKey, type: draggedType },
+						{ parentId: info.parentKey, beforeKey: siblings[index + 2]?.key ?? null },
+					);
+				}
+			} else if (event.key === "ArrowLeft") {
+				// Outdent: re-parent to the grandparent, positioned right after the current parent.
+				event.preventDefault();
+				if (info.parentKey === null) return;
+				const parentInfo = rowByKey.get(info.parentKey);
+				const grandparentKey = parentInfo?.parentKey ?? null;
+				const grandSiblings = rows.filter((r) => r.parentKey === grandparentKey);
+				const parentIndex = grandSiblings.findIndex((r) => r.key === info.parentKey);
+				onDrop(
+					{ key: draggedKey, type: draggedType },
+					{ parentId: grandparentKey, beforeKey: grandSiblings[parentIndex + 1]?.key ?? null },
+				);
+			} else if (event.key === "ArrowRight") {
+				// Indent: nest under the previous sibling, if it's a folder.
+				event.preventDefault();
+				const siblings = rows.filter((r) => r.parentKey === info.parentKey);
+				const index = siblings.findIndex((r) => r.key === draggedKey);
+				const prevSibling = index > 0 ? siblings[index - 1] : null;
+				if (!prevSibling || prevSibling.type !== "folder") return;
+				onDrop({ key: draggedKey, type: draggedType }, { parentId: prevSibling.key, beforeKey: null });
+			}
+		});
+
 		handle.addEventListener("pointerdown", (downEvent: PointerEvent) => {
 			if (downEvent.button !== 0 && downEvent.pointerType === "mouse") return;
 			downEvent.preventDefault();

@@ -13,6 +13,11 @@ describe("slugify", () => {
 	it("falls back to 'book' for a name with no alphanumeric characters", () => {
 		expect(slugify("***")).toBe("book");
 	});
+
+	it("preserves non-Latin letters instead of stripping them", () => {
+		expect(slugify("Война и мир")).toBe("война-и-мир");
+		expect(slugify("日本語のタイトル")).toBe("日本語のタイトル");
+	});
 });
 
 describe("mintId", () => {

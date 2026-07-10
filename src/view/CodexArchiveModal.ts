@@ -1,6 +1,7 @@
 import { App, Modal, setIcon, setTooltip, TFile } from "obsidian";
 import { getArchivedCodexItems, unarchiveCodexItem, type ArchivedCodexItem } from "../codex";
 import { ICON_ARCHIVE, ICON_UNARCHIVE } from "../icons";
+import { makeAccessibleActivatable } from "./a11y";
 import { stripForCounting } from "../wordCount";
 
 const EXCERPT_LENGTH = 200;
@@ -69,13 +70,17 @@ export class CodexArchiveModal extends Modal {
 			}
 			const unarchiveBtn = row.createSpan({ cls: "sf-archive-unarchive-btn", attr: { "aria-label": "Unarchive" } });
 			setIcon(unarchiveBtn, ICON_UNARCHIVE);
-			unarchiveBtn.addEventListener("click", async (e) => {
-				e.stopPropagation();
+			const handleUnarchive = async () => {
 				await unarchiveCodexItem(this.app, entry.key);
 				this.archived = this.archived.filter((a) => a.key !== entry.key);
 				this.onChange();
 				this.render();
+			};
+			unarchiveBtn.addEventListener("click", async (e) => {
+				e.stopPropagation();
+				await handleUnarchive();
 			});
+			makeAccessibleActivatable(unarchiveBtn, () => void handleUnarchive());
 		}
 	}
 }

@@ -42,34 +42,3 @@ export function extractFingerprint(raw: string): Fingerprint {
 	return { opening, closing };
 }
 
-/**
- * Similarity in [0, 1] between a stored fingerprint and a candidate file's
- * actual fingerprint, used only to rank reconciliation candidates.
- */
-export function fingerprintSimilarity(a: Fingerprint, b: Fingerprint): number {
-	const openingScore = stringSimilarity(a.opening, b.opening);
-	const closingScore = stringSimilarity(a.closing, b.closing);
-	return openingScore * 0.7 + closingScore * 0.3;
-}
-
-/** Parses the plugin-maintained opening/closing fingerprint back out of a sidecar file's rendered body. */
-export function parseStoredFingerprintFromContent(raw: string): Fingerprint {
-	const openingMatch = raw.match(/## opening\n([\s\S]*?)(?:\n\n## closing|\n*$)/);
-	const closingMatch = raw.match(/## closing\n([\s\S]*?)(?:\n*$)/);
-	return {
-		opening: openingMatch ? openingMatch[1].trim() : "",
-		closing: closingMatch ? closingMatch[1].trim() : "",
-	};
-}
-
-function stringSimilarity(a: string, b: string): number {
-	if (a === b) return a.length === 0 ? 0 : 1;
-	if (a.length === 0 || b.length === 0) return 0;
-	const setA = new Set(a.toLowerCase().split(/\s+/));
-	const setB = new Set(b.toLowerCase().split(/\s+/));
-	let shared = 0;
-	for (const word of setA) {
-		if (setB.has(word)) shared++;
-	}
-	return shared / Math.max(setA.size, setB.size);
-}

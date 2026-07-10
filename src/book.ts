@@ -130,10 +130,6 @@ export function getChapterEntry(app: App, bookFolderName: string, filename: stri
 	return readBookFrontmatter(app, bookFolderName)?.chapters[filename] ?? null;
 }
 
-export function getChapterId(app: App, bookFolderName: string, filename: string): string | null {
-	return getChapterEntry(app, bookFolderName, filename)?.chapterId ?? null;
-}
-
 /** Falls back to the filename (sans ".md") if no entry exists yet — same defensive pattern as `bookDisplayTitle`. */
 export function chapterDisplayTitle(app: App, bookFolderName: string, filename: string): string {
 	return getChapterEntry(app, bookFolderName, filename)?.chapterTitle ?? filename.replace(/\.md$/i, "");
@@ -238,28 +234,26 @@ async function writeBookReferenceFields(
 	);
 }
 
-/** Rewrites one book's `-reference` mirror fields in book.md from series.md's authoritative data. No-op if the folder has no series.md entry yet. */
-export async function syncBookReferenceFields(app: App, bookFolderName: string): Promise<void> {
-	const entry = getSeriesBookEntry(app, bookFolderName);
-	if (!entry) return;
-	const position = getSeriesOrderPosition(app, bookFolderName);
-	await writeBookReferenceFields(app, bookFolderName, entry.bookId, entry.bookTitle, position);
-}
-
 /**
- * Bulk-syncs every book's `-reference` mirrors. Pass `booksOverride` (e.g. the
- * map just returned by `ensureAllSeriesBookEntries`) when this runs right
- * after a series.md write in the same call chain, to avoid a stale
- * `metadataCache` re-read; omit it for a standalone sync (e.g. on load, once
- * prior writes have had time to settle).
+ * Bulk-syncs every book's `-reference` mirrors, in series display order
+ * (ordered, then unplaced). Pass `booksOverride`/`sequenceOverride` (e.g. the
+ * map just returned by `ensureAllSeriesBookEntries`, or an order just written
+ * by the caller) when this runs right after a series.md write in the same
+ * call chain, to avoid a stale `metadataCache` re-read; omit either for a
+ * standalone sync (e.g. on load, once prior writes have had time to settle).
  */
 export async function syncAllBookReferenceFields(
 	app: App,
 	booksOverride?: Record<string, SeriesBookEntry>,
+	sequenceOverride?: TFolder[],
 ): Promise<void> {
 	const books = booksOverride ?? readSeriesFrontmatter(app).books;
-	const { ordered, unplaced } = getSeriesBooks(app);
-	const sequence = [...ordered, ...unplaced];
+	const sequence =
+		sequenceOverride ??
+		(() => {
+			const { ordered, unplaced } = getSeriesBooks(app);
+			return [...ordered, ...unplaced];
+		})();
 	for (let i = 0; i < sequence.length; i++) {
 		const entry = books[sequence[i].name];
 		if (!entry) continue;
@@ -279,14 +273,11 @@ export async function reorderSeriesBooks(app: App, newOrder: string[]): Promise<
 	const { books } = readSeriesFrontmatter(app);
 	await writeSeriesOrder(app, newOrder);
 
+	// Resolved from `newOrder` directly (not re-read via getSeriesBooks) since the
+	// metadataCache may not have caught up with the write above yet.
 	const folders = getLibraryBookFolders(app);
 	const { ordered, unplaced } = resolveOrder(folders, newOrder, (folder) => folder.name);
-	const sequence = [...ordered, ...unplaced];
-	for (let i = 0; i < sequence.length; i++) {
-		const entry = books[sequence[i].name];
-		if (!entry) continue;
-		await writeBookReferenceFields(app, sequence[i].name, entry.bookId, entry.bookTitle, i + 1);
-	}
+	await syncAllBookReferenceFields(app, books, [...ordered, ...unplaced]);
 }
 
 /** Overwrites (or inserts) one chapter's entry in book.md's `chapters` map. */

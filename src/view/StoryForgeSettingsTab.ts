@@ -1,9 +1,10 @@
 import { App, ButtonComponent, PluginSettingTab, Setting, SettingGroup, ToggleComponent, setIcon } from "obsidian";
 import type StoryForgePlugin from "../main";
-import type { CodexFolderIndicatorThickness } from "../main";
+import type { CodexFolderIndicatorThickness, StoryForgePluginSettings } from "../main";
 import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
 import { PALETTE_NAMES, PaletteMode, PaletteName } from "../colorPalettes";
 import { PalettePickerModal } from "./PalettePickerModal";
+import { IconAuditModal } from "./IconAuditModal";
 
 export class StoryForgeSettingsTab extends PluginSettingTab {
 	private plugin: StoryForgePlugin;
@@ -67,16 +68,92 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		});
 	}
 
-	display(): void {
-		const { containerEl } = this;
-		containerEl.empty();
-		containerEl.addClass("sf-settings-tab");
-		this.expandedSections = new Set();
+	/** Wires two toggles so turning one on forces the other off. `persistA`/`persistB` persist that side's setting (and restyle) once both toggles exist. */
+	private bindExclusivePair(
+		toggleA: ToggleComponent,
+		toggleB: ToggleComponent,
+		persistA: (value: boolean) => Promise<void>,
+		persistB: (value: boolean) => Promise<void>,
+	): void {
+		toggleA.onChange(async (value) => {
+			if (value && toggleB.getValue()) {
+				toggleB.setValue(false);
+				await persistB(false);
+			}
+			await persistA(value);
+		});
+		toggleB.onChange(async (value) => {
+			if (value && toggleA.getValue()) {
+				toggleA.setValue(false);
+				await persistA(false);
+			}
+			await persistB(value);
+		});
+	}
 
-		containerEl.createEl("h2", { text: "storyForge" });
+	/** Renders the Header size/colour/Muted/Small caps group shared by the Unplaced and Codex panels. */
+	private renderHeaderStyleGroup(
+		body: HTMLElement,
+		settings: StoryForgePluginSettings,
+		config: {
+			sizeKey: "unplacedFontSize" | "codexFontSize";
+			colorKey: "unplacedColor" | "codexColor";
+			mutedKey: "unplacedMuted" | "codexMuted";
+			smallCapsKey: "unplacedSmallCaps" | "codexSmallCaps";
+			restyle: () => void;
+		},
+	): void {
+		const group = new SettingGroup(body);
+		group
+			.addSetting((setting) =>
+				setting
+					.setName("Header size")
+					.setDesc("size of header label and icon")
+					.addSlider((slider) =>
+						slider
+							.setLimits(0.5, 1.5, 0.25)
+							.setValue(settings[config.sizeKey])
+							.onChange(async (value) => {
+								await this.plugin.updateSetting(config.sizeKey, value);
+								config.restyle();
+							}),
+					),
+			)
+			.addSetting((setting) =>
+				setting
+					.setName("Header colour")
+					.addButton((button) =>
+						this.bindColorSwatchButton(button, settings[config.colorKey], async (hex) => {
+							await this.plugin.updateSetting(config.colorKey, hex);
+							config.restyle();
+						}),
+					),
+			)
+			.addSetting((setting) =>
+				setting
+					.setName("Muted")
+					.setDesc("override header colour with muted colour")
+					.addToggle((toggle) =>
+						toggle.setValue(settings[config.mutedKey]).onChange(async (value) => {
+							await this.plugin.updateSetting(config.mutedKey, value);
+							config.restyle();
+						}),
+					),
+			)
+			.addSetting((setting) => {
+				setting
+					.setName("Small caps")
+					.addToggle((toggle) =>
+						toggle.setValue(settings[config.smallCapsKey]).onChange(async (value) => {
+							await this.plugin.updateSetting(config.smallCapsKey, value);
+							config.restyle();
+						}),
+					);
+				setting.nameEl.style.fontVariant = "small-caps";
+			});
+	}
 
-		const settings = this.plugin.getSettings();
-
+	private renderTopActions(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
 		new Setting(containerEl)
 			.setName("Reopen storyForge panel")
 			.setDesc("If you've closed the storyForge panel, click this button to bring it back.")
@@ -88,7 +165,14 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName("Use Tools Panel")
+			.setName("Icon usage")
+			.setDesc("See every icon storyForge uses, custom and stock, and where each one is wired up.")
+			.addButton((button) =>
+				button.setButtonText("View icons").onClick(() => new IconAuditModal(this.app).open()),
+			);
+
+		new Setting(containerEl)
+			.setName("Use tools panel")
 			.setDesc("ribbon is hidden and the ribbon icons can be found within the tools panel")
 			.addToggle((toggle) =>
 				toggle.setValue(settings.useToolsPanel).onChange(async (value) => {
@@ -107,11 +191,13 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					.setCta()
 					.onClick(() => void this.plugin.activateToolsView()),
 			);
+	}
 
+	private renderPaletteSection(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
 		const paletteGroup = new SettingGroup(containerEl);
 		paletteGroup.addSetting((setting) =>
 			setting
-				.setName("Colour Palette")
+				.setName("Colour palette")
 				.setDesc("Palette used when picking colours for storyForge's UI elements below.")
 				.addDropdown((dropdown) => {
 					for (const name of PALETTE_NAMES) dropdown.addOption(name, name);
@@ -124,7 +210,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		if (settings.colorPaletteName !== "Custom") {
 			paletteGroup.addSetting((setting) =>
 				setting
-					.setName("Palette Mode")
+					.setName("Palette mode")
 					.setDesc("Light or dark variant of the selected palette.")
 					.addDropdown((dropdown) =>
 						dropdown
@@ -143,7 +229,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			settings.customPaletteColors.forEach((entry, i) => {
 				customGroup.addSetting((setting) =>
 					setting
-						.setName(`Custom Colour ${i + 1}`)
+						.setName(`Custom colour ${i + 1}`)
 						.addText((text) =>
 							text.setValue(entry.name).setPlaceholder("Name").onChange(async (value) => {
 								const colors = settings.customPaletteColors.slice();
@@ -163,405 +249,335 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				);
 			});
 		}
+	}
 
-		this.renderFoldableSection(containerEl, "text-style", "h3", "Text Style", (body) => {
-			this.renderFoldableSection(body, "text-style-editor", "h4", "Editor Text", () => {});
+	private renderTextStyleSection(containerEl: HTMLElement): void {
+		this.renderFoldableSection(containerEl, "text-style", "h3", "Text style", (body) => {
+			this.renderFoldableSection(body, "text-style-editor", "h4", "Editor text", () => {});
 			this.renderFoldableSection(body, "text-style-h1", "h4", "Heading 1", () => {});
 			this.renderFoldableSection(body, "text-style-h2", "h4", "Heading 2", () => {});
 			this.renderFoldableSection(body, "text-style-h3", "h4", "Heading 3", () => {});
-			this.renderFoldableSection(body, "text-style-other-headers", "h4", "Other Headers", () => {});
+			this.renderFoldableSection(body, "text-style-other-headers", "h4", "Other headers", () => {});
 		});
+	}
 
-		this.renderFoldableSection(containerEl, "ui-formatting", "h3", "storyForge Interface Formatting", (body) => {
-			const highlightGroup = new SettingGroup(body);
-			let highlightColourSetting: Setting | null = null;
-			let highlightTextColourSetting: Setting | null = null;
-			const applyHighlightNames = (perPanel: boolean) => {
-				highlightColourSetting?.setName(perPanel ? "Highlight Colour for Chapter/Book" : "Highlight Colour");
-				highlightTextColourSetting?.setName(
-					perPanel ? "Highlight Text Colour for Chapter/Book" : "Highlight Text Colour",
-				);
-			};
-			highlightGroup
-				.addSetting((setting) =>
-					setting
-						.setName("Highlight Active Chapter/Item")
-						.setDesc(
-							"highlights the currently selected chapter, or item, in the storyForge panel",
-						)
-						.addToggle((toggle) =>
-							toggle.setValue(settings.highlightActiveChapter).onChange(async (value) => {
-								await this.plugin.updateSetting("highlightActiveChapter", value);
-								this.plugin.refreshStoryForgeViews();
-							}),
-						),
-				)
-				.addSetting((setting) =>
-					setting
-						.setName("Per Panel Highlighting")
-						.setDesc(
-							"Give the chapter/book list, Unplaced zone, and Codex panel their own highlight colours.",
-						)
-						.addToggle((toggle) =>
-							toggle.setValue(settings.perPanelHighlighting).onChange(async (value) => {
-								await this.plugin.updateSetting("perPanelHighlighting", value);
-								applyHighlightNames(value);
-								this.plugin.applyHighlightStyle();
-							}),
-						),
-				)
-				.addSetting((setting) => {
-					highlightColourSetting = setting;
-					setting
-						.setDesc("The colour used for the active chapter/item highlight.")
-						.addButton((button) =>
-							this.bindColorSwatchButton(button, settings.highlightColor, async (hex) => {
-								await this.plugin.updateSetting("highlightColor", hex);
-								this.plugin.applyHighlightStyle();
-							}),
-						);
-				})
-				.addSetting((setting) => {
-					highlightTextColourSetting = setting;
-					setting
-						.setDesc("colour used for the active chapter/item highlight text")
-						.addButton((button) =>
-							this.bindColorSwatchButton(button, settings.highlightTextColor, async (hex) => {
-								await this.plugin.updateSetting("highlightTextColor", hex);
-								this.plugin.applyHighlightStyle();
-							}),
-						);
-				});
-			applyHighlightNames(settings.perPanelHighlighting);
-
-			this.renderFoldableSection(body, "unplaced", "h4", "Unplaced Panel", (unplacedBody) => {
-				const unplacedHeaderGroup = new SettingGroup(unplacedBody);
-				unplacedHeaderGroup
-					.addSetting((setting) =>
-						setting
-							.setName("Header Size")
-							.setDesc("size of header label and icon")
-							.addSlider((slider) =>
-								slider
-									.setLimits(0.5, 1.5, 0.25)
-									.setValue(settings.unplacedFontSize)
-									.onChange(async (value) => {
-										await this.plugin.updateSetting("unplacedFontSize", value);
-										this.plugin.applyHeaderStyles();
-									}),
-							),
+	private renderHighlightGroup(body: HTMLElement, settings: StoryForgePluginSettings): void {
+		const highlightGroup = new SettingGroup(body);
+		let highlightColourSetting: Setting | null = null;
+		let highlightTextColourSetting: Setting | null = null;
+		const applyHighlightNames = (perPanel: boolean) => {
+			highlightColourSetting?.setName(perPanel ? "Highlight colour for chapter/book" : "Highlight colour");
+			highlightTextColourSetting?.setName(
+				perPanel ? "Highlight text colour for chapter/book" : "Highlight text colour",
+			);
+		};
+		highlightGroup
+			.addSetting((setting) =>
+				setting
+					.setName("Highlight active chapter/item")
+					.setDesc(
+						"highlights the currently selected chapter, or item, in the storyForge panel",
 					)
-					.addSetting((setting) =>
-						setting
-							.setName("Header Colour")
-							.addButton((button) =>
-								this.bindColorSwatchButton(button, settings.unplacedColor, async (hex) => {
-									await this.plugin.updateSetting("unplacedColor", hex);
-									this.plugin.applyHeaderStyles();
-								}),
-							),
+					.addToggle((toggle) =>
+						toggle.setValue(settings.highlightActiveChapter).onChange(async (value) => {
+							await this.plugin.updateSetting("highlightActiveChapter", value);
+							this.plugin.refreshStoryForgeViews();
+						}),
+					),
+			)
+			.addSetting((setting) =>
+				setting
+					.setName("Per panel highlighting")
+					.setDesc(
+						"Give the chapter/book list, Unplaced zone, and Codex panel their own highlight colours.",
 					)
-					.addSetting((setting) =>
-						setting
-							.setName("Muted")
-							.setDesc("override header colour with muted colour")
-							.addToggle((toggle) =>
-								toggle.setValue(settings.unplacedMuted).onChange(async (value) => {
-									await this.plugin.updateSetting("unplacedMuted", value);
-									this.plugin.applyHeaderStyles();
-								}),
-							),
-					)
-					.addSetting((setting) => {
-						setting
-							.setName("Small Caps")
-							.addToggle((toggle) =>
-								toggle.setValue(settings.unplacedSmallCaps).onChange(async (value) => {
-									await this.plugin.updateSetting("unplacedSmallCaps", value);
-									this.plugin.applyHeaderStyles();
-								}),
-							);
-						setting.nameEl.style.fontVariant = "small-caps";
-					});
-
-				const unplacedItemsGroup = new SettingGroup(unplacedBody);
-				let itemsMutedToggle: ToggleComponent | null = null;
-				let itemsHeaderToggle: ToggleComponent | null = null;
-				unplacedItemsGroup
-					.addSetting((setting) =>
-						setting
-							.setName("Unplaced Items")
-							.setDesc("Text size of the items in the Unplaced pane, from 0.5em to 1.5em.")
-							.addSlider((slider) =>
-								slider
-									.setLimits(0.5, 1.5, 0.25)
-									.setValue(settings.unplacedItemsFontSize)
-									.onChange(async (value) => {
-										await this.plugin.updateSetting("unplacedItemsFontSize", value);
-										this.plugin.applyHeaderStyles();
-									}),
-							),
-					)
-					.addSetting((setting) =>
-						setting
-							.setName("Unplaced Items Colour")
-							.setDesc("colour of unplaced items")
-							.addButton((button) =>
-								this.bindColorSwatchButton(button, settings.unplacedItemsColor, async (hex) => {
-									await this.plugin.updateSetting("unplacedItemsColor", hex);
-									this.plugin.applyHeaderStyles();
-								}),
-							),
-					)
-					.addSetting((setting) =>
-						setting
-							.setName("Muted")
-							.setDesc("override colour with muted colour")
-							.addToggle((toggle) => {
-								itemsMutedToggle = toggle;
-								toggle.setValue(settings.unplacedItemsMuted).onChange(async (value) => {
-									if (value && itemsHeaderToggle?.getValue()) {
-										await this.plugin.updateSetting("unplacedItemsUseHeaderColor", false);
-										itemsHeaderToggle.setValue(false);
-									}
-									await this.plugin.updateSetting("unplacedItemsMuted", value);
-									this.plugin.applyHeaderStyles();
-								});
-							}),
-					)
-					.addSetting((setting) =>
-						setting
-							.setName("Header Colour")
-							.setDesc("override colour with header colour")
-							.addToggle((toggle) => {
-								itemsHeaderToggle = toggle;
-								toggle.setValue(settings.unplacedItemsUseHeaderColor).onChange(async (value) => {
-									if (value && itemsMutedToggle?.getValue()) {
-										await this.plugin.updateSetting("unplacedItemsMuted", false);
-										itemsMutedToggle.setValue(false);
-									}
-									await this.plugin.updateSetting("unplacedItemsUseHeaderColor", value);
-									this.plugin.applyHeaderStyles();
-								});
-							}),
+					.addToggle((toggle) =>
+						toggle.setValue(settings.perPanelHighlighting).onChange(async (value) => {
+							await this.plugin.updateSetting("perPanelHighlighting", value);
+							applyHighlightNames(value);
+							this.plugin.applyHighlightStyle();
+						}),
+					),
+			)
+			.addSetting((setting) => {
+				highlightColourSetting = setting;
+				setting
+					.setDesc("The colour used for the active chapter/item highlight.")
+					.addButton((button) =>
+						this.bindColorSwatchButton(button, settings.highlightColor, async (hex) => {
+							await this.plugin.updateSetting("highlightColor", hex);
+							this.plugin.applyHighlightStyle();
+						}),
 					);
-
-				new Setting(unplacedBody).setDesc(
-					"highlights the currently selected chapter in the storyForge panel, only active if per panel highlighting is selected",
-				);
-				const unplacedHighlightGroup = new SettingGroup(unplacedBody);
-				unplacedHighlightGroup
-					.addSetting((setting) =>
-						setting
-							.setName("Highlight Colour")
-							.addButton((button) =>
-								this.bindColorSwatchButton(button, settings.unplacedHighlightColor, async (hex) => {
-									await this.plugin.updateSetting("unplacedHighlightColor", hex);
-									this.plugin.applyHighlightStyle();
-								}),
-							),
-					)
-					.addSetting((setting) =>
-						setting
-							.setName("Highlight Text Colour")
-							.addButton((button) =>
-								this.bindColorSwatchButton(button, settings.unplacedHighlightTextColor, async (hex) => {
-									await this.plugin.updateSetting("unplacedHighlightTextColor", hex);
-									this.plugin.applyHighlightStyle();
-								}),
-							),
+			})
+			.addSetting((setting) => {
+				highlightTextColourSetting = setting;
+				setting
+					.setDesc("colour used for the active chapter/item highlight text")
+					.addButton((button) =>
+						this.bindColorSwatchButton(button, settings.highlightTextColor, async (hex) => {
+							await this.plugin.updateSetting("highlightTextColor", hex);
+							this.plugin.applyHighlightStyle();
+						}),
 					);
 			});
+		applyHighlightNames(settings.perPanelHighlighting);
+	}
 
-			this.renderFoldableSection(body, "codex", "h4", "Codex Panel", (codexBody) => {
-				const codexGroup = new SettingGroup(codexBody);
-				codexGroup
-					.addSetting((setting) =>
-						setting
-							.setName("Header Size")
-							.setDesc("size of header label and icon")
-							.addSlider((slider) =>
-								slider
-									.setLimits(0.5, 1.5, 0.25)
-									.setValue(settings.codexFontSize)
-									.onChange(async (value) => {
-										await this.plugin.updateSetting("codexFontSize", value);
-										this.plugin.applyHeaderStyles();
-									}),
-							),
-					)
-					.addSetting((setting) =>
-						setting
-							.setName("Header Colour")
-							.addButton((button) =>
-								this.bindColorSwatchButton(button, settings.codexColor, async (hex) => {
-									await this.plugin.updateSetting("codexColor", hex);
-									this.plugin.applyHeaderStyles();
-								}),
-							),
-					)
-					.addSetting((setting) =>
-						setting
-							.setName("Muted")
-							.setDesc("override header colour with muted colour")
-							.addToggle((toggle) =>
-								toggle.setValue(settings.codexMuted).onChange(async (value) => {
-									await this.plugin.updateSetting("codexMuted", value);
-									this.plugin.applyHeaderStyles();
-								}),
-							),
-					)
-					.addSetting((setting) => {
-						setting
-							.setName("Small Caps")
-							.addToggle((toggle) =>
-								toggle.setValue(settings.codexSmallCaps).onChange(async (value) => {
-									await this.plugin.updateSetting("codexSmallCaps", value);
-									this.plugin.applyHeaderStyles();
-								}),
-							);
-						setting.nameEl.style.fontVariant = "small-caps";
-					});
+	private renderUnplacedPanel(body: HTMLElement, settings: StoryForgePluginSettings): void {
+		this.renderFoldableSection(body, "unplaced", "h4", "Unplaced panel", (unplacedBody) => {
+			this.renderHeaderStyleGroup(unplacedBody, settings, {
+				sizeKey: "unplacedFontSize",
+				colorKey: "unplacedColor",
+				mutedKey: "unplacedMuted",
+				smallCapsKey: "unplacedSmallCaps",
+				restyle: () => this.plugin.applyHeaderStyles(),
+			});
 
-				const codexFolderGroup = new SettingGroup(codexBody);
-				codexFolderGroup
-					.addSetting((setting) =>
-						setting
-							.setName("Folder Size")
-							.setDesc("Font size of the codex folder names and chevrons, from 0.5em to 1.5em.")
-							.addSlider((slider) =>
-								slider
-									.setLimits(0.5, 1.5, 0.25)
-									.setValue(settings.codexFolderFontSize)
-									.onChange(async (value) => {
-										await this.plugin.updateSetting("codexFolderFontSize", value);
-										this.plugin.applyCodexFolderStyle();
-									}),
-							),
-					)
-					.addSetting((setting) =>
-						setting
-							.setName("Folder Colour")
-							.setDesc("Colour of the codex folder names and chevrons.")
-							.addButton((button) =>
-								this.bindColorSwatchButton(button, settings.codexFolderColor, async (hex) => {
-									await this.plugin.updateSetting("codexFolderColor", hex);
+			const unplacedItemsGroup = new SettingGroup(unplacedBody);
+			let itemsMutedToggle!: ToggleComponent;
+			let itemsHeaderToggle!: ToggleComponent;
+			unplacedItemsGroup
+				.addSetting((setting) =>
+					setting
+						.setName("Unplaced items")
+						.setDesc("Text size of the items in the Unplaced pane, from 0.5em to 1.5em.")
+						.addSlider((slider) =>
+							slider
+								.setLimits(0.5, 1.5, 0.25)
+								.setValue(settings.unplacedItemsFontSize)
+								.onChange(async (value) => {
+									await this.plugin.updateSetting("unplacedItemsFontSize", value);
+									this.plugin.applyHeaderStyles();
+								}),
+						),
+				)
+				.addSetting((setting) =>
+					setting
+						.setName("Unplaced items colour")
+						.setDesc("colour of unplaced items")
+						.addButton((button) =>
+							this.bindColorSwatchButton(button, settings.unplacedItemsColor, async (hex) => {
+								await this.plugin.updateSetting("unplacedItemsColor", hex);
+								this.plugin.applyHeaderStyles();
+							}),
+						),
+				)
+				.addSetting((setting) =>
+					setting
+						.setName("Muted")
+						.setDesc("override colour with muted colour")
+						.addToggle((toggle) => {
+							itemsMutedToggle = toggle;
+							toggle.setValue(settings.unplacedItemsMuted);
+						}),
+				)
+				.addSetting((setting) =>
+					setting
+						.setName("Header colour")
+						.setDesc("override colour with header colour")
+						.addToggle((toggle) => {
+							itemsHeaderToggle = toggle;
+							toggle.setValue(settings.unplacedItemsUseHeaderColor);
+						}),
+				);
+			this.bindExclusivePair(
+				itemsMutedToggle,
+				itemsHeaderToggle,
+				async (value) => {
+					await this.plugin.updateSetting("unplacedItemsMuted", value);
+					this.plugin.applyHeaderStyles();
+				},
+				async (value) => {
+					await this.plugin.updateSetting("unplacedItemsUseHeaderColor", value);
+					this.plugin.applyHeaderStyles();
+				},
+			);
+
+			new Setting(unplacedBody).setDesc(
+				"highlights the currently selected chapter in the storyForge panel, only active if per panel highlighting is selected",
+			);
+			const unplacedHighlightGroup = new SettingGroup(unplacedBody);
+			unplacedHighlightGroup
+				.addSetting((setting) =>
+					setting
+						.setName("Highlight colour")
+						.addButton((button) =>
+							this.bindColorSwatchButton(button, settings.unplacedHighlightColor, async (hex) => {
+								await this.plugin.updateSetting("unplacedHighlightColor", hex);
+								this.plugin.applyHighlightStyle();
+							}),
+						),
+				)
+				.addSetting((setting) =>
+					setting
+						.setName("Highlight text colour")
+						.addButton((button) =>
+							this.bindColorSwatchButton(button, settings.unplacedHighlightTextColor, async (hex) => {
+								await this.plugin.updateSetting("unplacedHighlightTextColor", hex);
+								this.plugin.applyHighlightStyle();
+							}),
+						),
+				);
+		});
+	}
+
+	private renderCodexPanel(body: HTMLElement, settings: StoryForgePluginSettings): void {
+		this.renderFoldableSection(body, "codex", "h4", "Codex panel", (codexBody) => {
+			this.renderHeaderStyleGroup(codexBody, settings, {
+				sizeKey: "codexFontSize",
+				colorKey: "codexColor",
+				mutedKey: "codexMuted",
+				smallCapsKey: "codexSmallCaps",
+				restyle: () => this.plugin.applyHeaderStyles(),
+			});
+
+			const codexFolderGroup = new SettingGroup(codexBody);
+			codexFolderGroup
+				.addSetting((setting) =>
+					setting
+						.setName("Folder size")
+						.setDesc("Font size of the codex folder names and chevrons, from 0.5em to 1.5em.")
+						.addSlider((slider) =>
+							slider
+								.setLimits(0.5, 1.5, 0.25)
+								.setValue(settings.codexFolderFontSize)
+								.onChange(async (value) => {
+									await this.plugin.updateSetting("codexFolderFontSize", value);
 									this.plugin.applyCodexFolderStyle();
 								}),
-							),
-					)
-					.addSetting((setting) =>
-						setting
-							.setName("Folder Indicator Line")
-							.setDesc("Vertical guide line showing what's nested inside a folder, coloured to match the folder colour.")
-							.addDropdown((dropdown) =>
-								dropdown
-									.addOption("none", "None")
-									.addOption("thin", "Thin")
-									.addOption("medium", "Medium")
-									.addOption("thick", "Thick")
-									.setValue(settings.codexFolderIndicatorThickness)
-									.onChange(async (value) => {
-										await this.plugin.updateSetting("codexFolderIndicatorThickness", value as CodexFolderIndicatorThickness);
-										this.plugin.applyCodexFolderStyle();
-										this.plugin.applyHighlightStyle();
-									}),
-							),
-					);
-
-				const codexNoteLabelGroup = new SettingGroup(codexBody);
-				let defaultToggle: ToggleComponent | null = null;
-				let folderToggle: ToggleComponent | null = null;
-				codexNoteLabelGroup
-					.addSetting((setting) =>
-						setting
-							.setName("Codex Note Label Size")
-							.setDesc("Font size of the codex note (file) labels, from 0.5em to 1.5em.")
-							.addSlider((slider) =>
-								slider
-									.setLimits(0.5, 1.5, 0.25)
-									.setValue(settings.codexNoteLabelFontSize)
-									.onChange(async (value) => {
-										await this.plugin.updateSetting("codexNoteLabelFontSize", value);
-										this.plugin.applyCodexNoteLabelStyle();
-									}),
-							),
-					)
-					.addSetting((setting) =>
-						setting
-							.setName("Codex Note Label Colour")
-							.setDesc("Colour of the codex note (file) labels.")
-							.addButton((button) =>
-								this.bindColorSwatchButton(button, settings.codexNoteLabelColor, async (hex) => {
-									await this.plugin.updateSetting("codexNoteLabelColor", hex);
-									this.plugin.applyCodexNoteLabelStyle();
+						),
+				)
+				.addSetting((setting) =>
+					setting
+						.setName("Folder colour")
+						.setDesc("Colour of the codex folder names and chevrons.")
+						.addButton((button) =>
+							this.bindColorSwatchButton(button, settings.codexFolderColor, async (hex) => {
+								await this.plugin.updateSetting("codexFolderColor", hex);
+								this.plugin.applyCodexFolderStyle();
+							}),
+						),
+				)
+				.addSetting((setting) =>
+					setting
+						.setName("Folder indicator line")
+						.setDesc("Vertical guide line showing what's nested inside a folder, coloured to match the folder colour.")
+						.addDropdown((dropdown) =>
+							dropdown
+								.addOption("none", "None")
+								.addOption("thin", "Thin")
+								.addOption("medium", "Medium")
+								.addOption("thick", "Thick")
+								.setValue(settings.codexFolderIndicatorThickness)
+								.onChange(async (value) => {
+									await this.plugin.updateSetting("codexFolderIndicatorThickness", value as CodexFolderIndicatorThickness);
+									this.plugin.applyCodexFolderStyle();
+									this.plugin.applyHighlightStyle();
 								}),
-							),
-					)
-					.addSetting((setting) =>
-						setting
-							.setName("Use Default Colour for Codex Note Label")
-							.setDesc("overrides the note colour and sets it the same as the body text")
-							.addToggle((toggle) => {
-								defaultToggle = toggle;
-								toggle.setValue(settings.codexNoteLabelUseDefaultColor).onChange(async (value) => {
-									if (value && folderToggle?.getValue()) {
-										await this.plugin.updateSetting("codexNoteLabelUseFolderColor", false);
-										folderToggle.setValue(false);
-									}
-									await this.plugin.updateSetting("codexNoteLabelUseDefaultColor", value);
-									this.plugin.applyCodexNoteLabelStyle();
-								});
-							}),
-					)
-					.addSetting((setting) =>
-						setting
-							.setName("Use Folder Colour for Codex Notes")
-							.setDesc("overrides the note colour and sets it the same as the codex folder colour")
-							.addToggle((toggle) => {
-								folderToggle = toggle;
-								toggle.setValue(settings.codexNoteLabelUseFolderColor).onChange(async (value) => {
-									if (value && defaultToggle?.getValue()) {
-										await this.plugin.updateSetting("codexNoteLabelUseDefaultColor", false);
-										defaultToggle.setValue(false);
-									}
-									await this.plugin.updateSetting("codexNoteLabelUseFolderColor", value);
-									this.plugin.applyCodexNoteLabelStyle();
-								});
-							}),
-					);
-
-				new Setting(codexBody).setDesc(
-					"highlights the currently selected note in the codex panel, only active if per panel highlighting is selected",
+						),
 				);
-				const codexHighlightGroup = new SettingGroup(codexBody);
-				codexHighlightGroup
-					.addSetting((setting) =>
-						setting
-							.setName("Highlight Colour")
-							.addButton((button) =>
-								this.bindColorSwatchButton(button, settings.codexHighlightColor, async (hex) => {
-									await this.plugin.updateSetting("codexHighlightColor", hex);
-									this.plugin.applyHighlightStyle();
-								}),
-							),
-					)
-					.addSetting((setting) =>
-						setting
-							.setName("Highlight Text Colour")
-							.addButton((button) =>
-								this.bindColorSwatchButton(button, settings.codexHighlightTextColor, async (hex) => {
-									await this.plugin.updateSetting("codexHighlightTextColor", hex);
-									this.plugin.applyHighlightStyle();
-								}),
-							),
-					);
-			});
-		});
 
-		this.renderFoldableSection(containerEl, "hide-ui", "h3", "Hide Obsidian Interface Elements", (body) => {
+			const codexNoteLabelGroup = new SettingGroup(codexBody);
+			let defaultToggle!: ToggleComponent;
+			let folderToggle!: ToggleComponent;
+			codexNoteLabelGroup
+				.addSetting((setting) =>
+					setting
+						.setName("Codex note label size")
+						.setDesc("Font size of the codex note (file) labels, from 0.5em to 1.5em.")
+						.addSlider((slider) =>
+							slider
+								.setLimits(0.5, 1.5, 0.25)
+								.setValue(settings.codexNoteLabelFontSize)
+								.onChange(async (value) => {
+									await this.plugin.updateSetting("codexNoteLabelFontSize", value);
+									this.plugin.applyCodexNoteLabelStyle();
+								}),
+						),
+				)
+				.addSetting((setting) =>
+					setting
+						.setName("Codex note label colour")
+						.setDesc("Colour of the codex note (file) labels.")
+						.addButton((button) =>
+							this.bindColorSwatchButton(button, settings.codexNoteLabelColor, async (hex) => {
+								await this.plugin.updateSetting("codexNoteLabelColor", hex);
+								this.plugin.applyCodexNoteLabelStyle();
+							}),
+						),
+				)
+				.addSetting((setting) =>
+					setting
+						.setName("Use default colour for Codex note label")
+						.setDesc("overrides the note colour and sets it the same as the body text")
+						.addToggle((toggle) => {
+							defaultToggle = toggle;
+							toggle.setValue(settings.codexNoteLabelUseDefaultColor);
+						}),
+				)
+				.addSetting((setting) =>
+					setting
+						.setName("Use folder colour for Codex notes")
+						.setDesc("overrides the note colour and sets it the same as the codex folder colour")
+						.addToggle((toggle) => {
+							folderToggle = toggle;
+							toggle.setValue(settings.codexNoteLabelUseFolderColor);
+						}),
+				);
+			this.bindExclusivePair(
+				defaultToggle,
+				folderToggle,
+				async (value) => {
+					await this.plugin.updateSetting("codexNoteLabelUseDefaultColor", value);
+					this.plugin.applyCodexNoteLabelStyle();
+				},
+				async (value) => {
+					await this.plugin.updateSetting("codexNoteLabelUseFolderColor", value);
+					this.plugin.applyCodexNoteLabelStyle();
+				},
+			);
+
+			new Setting(codexBody).setDesc(
+				"highlights the currently selected note in the codex panel, only active if per panel highlighting is selected",
+			);
+			const codexHighlightGroup = new SettingGroup(codexBody);
+			codexHighlightGroup
+				.addSetting((setting) =>
+					setting
+						.setName("Highlight colour")
+						.addButton((button) =>
+							this.bindColorSwatchButton(button, settings.codexHighlightColor, async (hex) => {
+								await this.plugin.updateSetting("codexHighlightColor", hex);
+								this.plugin.applyHighlightStyle();
+							}),
+						),
+				)
+				.addSetting((setting) =>
+					setting
+						.setName("Highlight text colour")
+						.addButton((button) =>
+							this.bindColorSwatchButton(button, settings.codexHighlightTextColor, async (hex) => {
+								await this.plugin.updateSetting("codexHighlightTextColor", hex);
+								this.plugin.applyHighlightStyle();
+							}),
+						),
+				);
+		});
+	}
+
+	private renderUiFormattingSection(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
+		this.renderFoldableSection(containerEl, "ui-formatting", "h3", "storyForge interface formatting", (body) => {
+			this.renderHighlightGroup(body, settings);
+			this.renderUnplacedPanel(body, settings);
+			this.renderCodexPanel(body, settings);
+		});
+	}
+
+	private renderHideUiSection(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
+		this.renderFoldableSection(containerEl, "hide-ui", "h3", "Hide Obsidian interface elements", (body) => {
 			new Setting(body)
-				.setName("Hide Help Button")
+				.setName("Hide help button")
 				.setDesc(
 					"Hides the help (?) button next to the vault picker.",
 				)
@@ -576,7 +592,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			hideSidebarGroup
 				.addSetting((setting) =>
 					setting
-						.setName("Hide Search Panel")
+						.setName("Hide search panel")
 						.setDesc("Hides the Search button at the top of the left sidebar.")
 						.addToggle((toggle) =>
 							toggle.setValue(settings.hideSearch).onChange(async (value) => {
@@ -587,7 +603,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				)
 				.addSetting((setting) =>
 					setting
-						.setName("Hide Bookmarks Panel")
+						.setName("Hide bookmarks panel")
 						.setDesc("Hides the Bookmarks button at the top of the left sidebar.")
 						.addToggle((toggle) =>
 							toggle.setValue(settings.hideBookmarks).onChange(async (value) => {
@@ -598,7 +614,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				)
 				.addSetting((setting) =>
 					setting
-						.setName("Hide Files Panel")
+						.setName("Hide files panel")
 						.setDesc("Hides the Files button at the top of the left sidebar.")
 						.addToggle((toggle) =>
 							toggle.setValue(settings.hideFiles).onChange(async (value) => {
@@ -612,7 +628,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			hidePanelsGroup
 				.addSetting((setting) =>
 					setting
-						.setName("Hide Left Panel Button")
+						.setName("Hide left panel button")
 						.setDesc("Hides the left sidebar collapse/expand button.")
 						.addToggle((toggle) =>
 							toggle.setValue(settings.hideLeftPanel).onChange(async (value) => {
@@ -623,7 +639,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				)
 				.addSetting((setting) =>
 					setting
-						.setName("Hide Right Panel Button")
+						.setName("Hide right panel button")
 						.setDesc("Hides the right sidebar collapse/expand button.")
 						.addToggle((toggle) =>
 							toggle.setValue(settings.hideRightPanel).onChange(async (value) => {
@@ -637,7 +653,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			hideMiscGroup
 				.addSetting((setting) =>
 					setting
-						.setName("Hide File Name Bar")
+						.setName("Hide file name bar")
 						.setDesc("Hides the large file name displayed at the top of the note content.")
 						.addToggle((toggle) =>
 							toggle.setValue(settings.hideFileNameBar).onChange(async (value) => {
@@ -648,7 +664,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				)
 				.addSetting((setting) =>
 					setting
-						.setName("Hide Navigation Row")
+						.setName("Hide navigation row")
 						.setDesc("Hides the bar beneath the tab that shows the navigation buttons, three-dot menu, and reader/edit view toggle.")
 						.addToggle((toggle) =>
 							toggle.setValue(settings.hideNavRow).onChange(async (value) => {
@@ -658,5 +674,20 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 						),
 				);
 		});
+	}
+
+	display(): void {
+		const { containerEl } = this;
+		containerEl.empty();
+		containerEl.addClass("sf-settings-tab");
+		this.expandedSections = new Set();
+
+		const settings = this.plugin.getSettings();
+
+		this.renderTopActions(containerEl, settings);
+		this.renderPaletteSection(containerEl, settings);
+		this.renderTextStyleSection(containerEl);
+		this.renderUiFormattingSection(containerEl, settings);
+		this.renderHideUiSection(containerEl, settings);
 	}
 }

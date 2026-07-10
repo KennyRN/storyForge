@@ -10,10 +10,9 @@ const item = (name: string): Item => ({ name });
 describe("resolveOrder", () => {
 	it("orders members according to the order list", () => {
 		const members = [item("c.md"), item("a.md"), item("b.md")];
-		const { ordered, unplaced, orphans } = resolveOrder(members, ["a.md", "b.md", "c.md"], (m) => m.name);
+		const { ordered, unplaced } = resolveOrder(members, ["a.md", "b.md", "c.md"], (m) => m.name);
 		expect(ordered.map((m) => m.name)).toEqual(["a.md", "b.md", "c.md"]);
 		expect(unplaced).toEqual([]);
-		expect(orphans).toEqual([]);
 	});
 
 	it("appends members absent from order as unplaced, in original (folder) order", () => {
@@ -23,11 +22,11 @@ describe("resolveOrder", () => {
 		expect(unplaced.map((m) => m.name)).toEqual(["a.md", "c.md"]);
 	});
 
-	it("surfaces an order entry with no matching member as an orphan, never dropping it silently", () => {
+	it("silently drops an order entry with no matching member", () => {
 		const members = [item("a.md")];
-		const { ordered, orphans } = resolveOrder(members, ["a.md", "missing.md"], (m) => m.name);
+		const { ordered, unplaced } = resolveOrder(members, ["a.md", "missing.md"], (m) => m.name);
 		expect(ordered.map((m) => m.name)).toEqual(["a.md"]);
-		expect(orphans).toEqual(["missing.md"]);
+		expect(unplaced).toEqual([]);
 	});
 
 	it("treats every member as unplaced when order is empty", () => {

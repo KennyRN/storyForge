@@ -10,8 +10,6 @@ export type PaletteName = PresetPaletteName | "Custom";
 // "Custom" always listed last - it's the user-defined escape hatch, not a preset.
 export const PALETTE_NAMES: PaletteName[] = ["Atom", "Ayu", "Catppuccin", "Dracula", "Everforest", "Flexoki", "Gruvbox", "Nord", "Rose Pine", "Solarized", "Custom"];
 
-export const CUSTOM_PALETTE_SIZE = 5;
-
 export interface PaletteColor {
 	name: string;
 	hex: string;
@@ -21,13 +19,6 @@ export interface PaletteVariant {
 	sourceFile: string;
 	colors: PaletteColor[];
 }
-
-export const CANONICAL_COLOR_ORDER = [
-	"Background", "Foreground",
-	"Black", "Red", "Green", "Yellow", "Blue", "Magenta", "Cyan", "White",
-	"Bright Black", "Bright Red", "Bright Green", "Bright Yellow",
-	"Bright Blue", "Bright Magenta", "Bright Cyan", "Bright White",
-] as const;
 
 export const COLOR_PALETTES: Record<PresetPaletteName, Record<PaletteMode, PaletteVariant>> = {
 	"Atom": {

@@ -21,6 +21,14 @@ describe("titleToId", () => {
 	it("supports a custom length", () => {
 		expect(titleToId("Indefatigable", { length: 4 })).toBe("INDE");
 	});
+
+	it("picks up letters from non-Latin scripts instead of discarding them", () => {
+		expect(titleToId("Война и мир")).toBe("ВИМ");
+	});
+
+	it("falls back to 'X' padding for a title with no letters at all", () => {
+		expect(titleToId("123 456")).toBe("XXX");
+	});
 });
 
 describe("nextBookFolderCode", () => {
@@ -46,5 +54,14 @@ describe("nextBookFolderCode", () => {
 
 	it("returns a fully lowercase code even though the prefix is derived uppercase internally", () => {
 		expect(nextBookFolderCode("UnTold Tales", [])).toMatch(/^[a-z]{4}$/);
+	});
+
+	it("rolls over to a two-letter guide suffix past 'z' instead of throwing", () => {
+		const existing = Array.from({ length: 26 }, (_, i) => `UTT${String.fromCharCode(97 + i)}`);
+		expect(nextBookFolderCode("UnTold Tales", existing)).toBe("uttaa");
+	});
+
+	it("continues past an existing multi-letter guide suffix", () => {
+		expect(nextBookFolderCode("UnTold Tales", ["UTTaa", "UTTab"])).toBe("uttac");
 	});
 });

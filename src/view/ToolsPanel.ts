@@ -1,5 +1,6 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import { ICON_TOOLS } from "../icons";
+import { OBSIDIAN_SELECTORS } from "../obsidianInternals";
 
 export const TOOLS_VIEW_TYPE = "storyforge-tools-view";
 
@@ -38,7 +39,7 @@ export class ToolsView extends ItemView {
 
 	/** Moves Obsidian's native ribbon into this pane so it's the only thing shown here. */
 	private mountRibbon(): void {
-		const ribbon = document.querySelector<HTMLElement>(".workspace-ribbon");
+		const ribbon = document.querySelector<HTMLElement>(OBSIDIAN_SELECTORS.workspaceRibbon);
 		if (!ribbon) return;
 		this.ribbonEl = ribbon;
 		this.ribbonOriginalParent = ribbon.parentElement;
@@ -48,7 +49,7 @@ export class ToolsView extends ItemView {
 		// Labels are always visible in this pane, so the hover tooltips (and their delay)
 		// are redundant here - strip the trigger attributes and restore them on restoreRibbon()
 		// so the native ribbon's tooltips keep working once it's back in its native spot.
-		ribbon.querySelectorAll<HTMLElement>(".side-dock-ribbon-action").forEach((action) => {
+		ribbon.querySelectorAll<HTMLElement>(OBSIDIAN_SELECTORS.ribbonAction).forEach((action) => {
 			this.tooltipAttrs.set(action, {
 				position: action.getAttribute("data-tooltip-position"),
 				delay: action.getAttribute("data-tooltip-delay"),
