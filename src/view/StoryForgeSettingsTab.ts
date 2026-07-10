@@ -1,6 +1,6 @@
 import { App, ButtonComponent, PluginSettingTab, Setting, SettingGroup, ToggleComponent, setIcon } from "obsidian";
 import type StoryForgePlugin from "../main";
-import type { CodexFolderIndicatorThickness, HeadingDividerThickness, HeadingFontWeight, StoryForgePluginSettings } from "../main";
+import type { CodexFolderIndicatorThickness, FontWeight, HeadingDividerThickness, HeadingFontWeight, StoryForgePluginSettings } from "../main";
 import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
 import { PALETTE_NAMES, PaletteMode, PaletteName } from "../colorPalettes";
 import { PalettePickerModal } from "./PalettePickerModal";
@@ -10,6 +10,16 @@ const HEADING_FONT_WEIGHT_OPTIONS: [HeadingFontWeight, string][] = [
 	["theme", "Theme default"],
 	["300", "Light"],
 	["400", "Regular"],
+	["500", "Medium"],
+	["600", "Semi Bold"],
+	["700", "Bold"],
+	["800", "Extra Bold"],
+	["900", "Black"],
+];
+
+const FONT_WEIGHT_OPTIONS: [FontWeight, string][] = [
+	["300", "Light"],
+	["400", "Normal"],
 	["500", "Medium"],
 	["600", "Semi Bold"],
 	["700", "Bold"],
@@ -80,6 +90,26 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		});
 	}
 
+	/** Adds a font-weight dropdown (no "theme default" option) to `setting`, wired to persist and preview the selected weight. */
+	private bindFontWeightDropdown(setting: Setting, value: FontWeight, onChange: (value: FontWeight) => Promise<void>): void {
+		setting.addDropdown((dropdown) => {
+			for (const [val, label] of FONT_WEIGHT_OPTIONS) {
+				dropdown.addOption(val, label);
+				const opt = dropdown.selectEl.options[dropdown.selectEl.options.length - 1];
+				opt.style.fontWeight = val;
+			}
+			const applySelectedWeight = (v: FontWeight) => {
+				dropdown.selectEl.style.fontWeight = v;
+			};
+			dropdown.setValue(value);
+			applySelectedWeight(value);
+			dropdown.onChange(async (v) => {
+				await onChange(v as FontWeight);
+				applySelectedWeight(v as FontWeight);
+			});
+		});
+	}
+
 	/** Wires two toggles so turning one on forces the other off. `persistA`/`persistB` persist that side's setting (and restyle) once both toggles exist. */
 	private bindExclusivePair(
 		toggleA: ToggleComponent,
@@ -109,6 +139,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		settings: StoryForgePluginSettings,
 		config: {
 			sizeKey: "unplacedFontSize" | "codexFontSize";
+			fontWeightKey: "unplacedFontWeight" | "codexFontWeight";
 			colorKey: "unplacedColor" | "codexColor";
 			mutedKey: "unplacedMuted" | "codexMuted";
 			smallCapsKey: "unplacedSmallCaps" | "codexSmallCaps";
@@ -133,6 +164,13 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 							}),
 					),
 			)
+			.addSetting((setting) => {
+				setting.setName("Header weight").setDesc("weight of header label");
+				this.bindFontWeightDropdown(setting, settings[config.fontWeightKey], async (value) => {
+					await this.plugin.updateSetting(config.fontWeightKey, value);
+					config.restyle();
+				});
+			})
 			.addSetting((setting) =>
 				setting
 					.setName("Header colour")
@@ -803,6 +841,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		this.renderFoldableSection(body, "unplaced", "h4", "Unplaced pane", (unplacedBody) => {
 			const useHeaderColorToggle = this.renderHeaderStyleGroup(unplacedBody, settings, {
 				sizeKey: "unplacedFontSize",
+				fontWeightKey: "unplacedFontWeight",
 				colorKey: "unplacedColor",
 				mutedKey: "unplacedMuted",
 				smallCapsKey: "unplacedSmallCaps",
@@ -897,6 +936,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		this.renderFoldableSection(body, "codex", "h4", "Codex pane", (codexBody) => {
 			const useHeaderColorToggle = this.renderHeaderStyleGroup(codexBody, settings, {
 				sizeKey: "codexFontSize",
+				fontWeightKey: "codexFontWeight",
 				colorKey: "codexColor",
 				mutedKey: "codexMuted",
 				smallCapsKey: "codexSmallCaps",
@@ -921,6 +961,13 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 								}),
 						),
 				)
+				.addSetting((setting) => {
+					setting.setName("Folder weight").setDesc("Font weight of the codex folder names.");
+					this.bindFontWeightDropdown(setting, settings.codexFolderFontWeight, async (value) => {
+						await this.plugin.updateSetting("codexFolderFontWeight", value);
+						this.plugin.applyCodexFolderStyle();
+					});
+				})
 				.addSetting((setting) => {
 					folderColourSetting = setting;
 					setting
@@ -973,6 +1020,13 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 								}),
 						),
 				)
+				.addSetting((setting) => {
+					setting.setName("Codex note label weight").setDesc("Font weight of the codex note (file) labels.");
+					this.bindFontWeightDropdown(setting, settings.codexNoteLabelFontWeight, async (value) => {
+						await this.plugin.updateSetting("codexNoteLabelFontWeight", value);
+						this.plugin.applyCodexNoteLabelStyle();
+					});
+				})
 				.addSetting((setting) => {
 					noteLabelColourSetting = setting;
 					setting

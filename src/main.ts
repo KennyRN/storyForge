@@ -30,6 +30,8 @@ export type HeadingDividerThickness = "thin" | "medium" | "thick";
 
 export type HeadingFontWeight = "theme" | "300" | "400" | "500" | "600" | "700" | "800" | "900";
 
+export type FontWeight = "300" | "400" | "500" | "600" | "700" | "800" | "900";
+
 const HEADING_DIVIDER_WIDTH_PX: Record<HeadingDividerThickness, number> = {
 	thin: 1,
 	medium: 2,
@@ -57,6 +59,7 @@ export interface StoryForgePluginSettings {
 	unplacedSmallCaps: boolean;
 	unplacedColor: string;
 	unplacedFontSize: number;
+	unplacedFontWeight: FontWeight;
 	unplacedItemsFontSize: number;
 	unplacedItemsColor: string;
 	unplacedItemsMuted: boolean;
@@ -65,10 +68,13 @@ export interface StoryForgePluginSettings {
 	codexSmallCaps: boolean;
 	codexColor: string;
 	codexFontSize: number;
+	codexFontWeight: FontWeight;
 	codexFolderFontSize: number;
+	codexFolderFontWeight: FontWeight;
 	codexFolderColor: string;
 	codexFolderIndicatorThickness: CodexFolderIndicatorThickness;
 	codexNoteLabelFontSize: number;
+	codexNoteLabelFontWeight: FontWeight;
 	codexNoteLabelColor: string;
 	codexNoteLabelUseDefaultColor: boolean;
 	codexNoteLabelUseFolderColor: boolean;
@@ -171,6 +177,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	unplacedSmallCaps: true,
 	unplacedColor: "#ffff00",
 	unplacedFontSize: 1,
+	unplacedFontWeight: "400",
 	unplacedItemsFontSize: 1,
 	unplacedItemsColor: "#c8c8c8",
 	unplacedItemsMuted: false,
@@ -179,10 +186,13 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	codexSmallCaps: true,
 	codexColor: "#bf00ff",
 	codexFontSize: 1,
+	codexFontWeight: "400",
 	codexFolderFontSize: 1,
+	codexFolderFontWeight: "400",
 	codexFolderColor: "#4ade80",
 	codexFolderIndicatorThickness: "medium",
 	codexNoteLabelFontSize: 1,
+	codexNoteLabelFontWeight: "400",
 	codexNoteLabelColor: "#c8c8c8",
 	codexNoteLabelUseDefaultColor: false,
 	codexNoteLabelUseFolderColor: false,
@@ -504,12 +514,12 @@ export default class StoryForgePlugin extends Plugin {
 			unplacedItemsColor = s.unplacedItemsColor;
 		}
 		const rules: string[] = [
-			`.sf-header-unplaced { color: ${unplacedColor}; font-variant: ${s.unplacedSmallCaps ? "small-caps" : "normal"}; font-size: ${s.unplacedFontSize}em; }`,
+			`.sf-header-unplaced { color: ${unplacedColor}; font-variant: ${s.unplacedSmallCaps ? "small-caps" : "normal"}; font-size: ${s.unplacedFontSize}em; font-weight: ${s.unplacedFontWeight}; }`,
 			`.sf-unplaced-header > .sf-icon { color: ${unplacedColor}; font-size: ${s.unplacedFontSize}em; }`,
 			`.sf-unplaced-header > .sf-icon svg { width: 1em; height: 1em; }`,
 			`.sf-unplaced-list { font-size: ${s.unplacedItemsFontSize}em; color: ${unplacedItemsColor}; }`,
 			`.sf-unplaced-new-file:hover, .sf-unplaced-archive-btn:hover { color: ${unplacedColor}; }`,
-			`.sf-header-codex { color: ${codexColor}; font-variant: ${s.codexSmallCaps ? "small-caps" : "normal"}; font-size: ${s.codexFontSize}em; }`,
+			`.sf-header-codex { color: ${codexColor}; font-variant: ${s.codexSmallCaps ? "small-caps" : "normal"}; font-size: ${s.codexFontSize}em; font-weight: ${s.codexFontWeight}; }`,
 			`.sf-bottom-header > .sf-icon { font-size: ${s.codexFontSize}em; }`,
 			`.sf-bottom-header > .sf-icon svg { width: 1em; height: 1em; }`,
 			`.sf-bottom-header:not(.sf-codex-hidden) > .sf-icon { color: ${codexColor}; }`,
@@ -525,12 +535,12 @@ export default class StoryForgePlugin extends Plugin {
 		return s.codexUseHeaderColorForAll ? (s.codexMuted ? "var(--text-muted)" : s.codexColor) : s.codexFolderColor;
 	}
 
-	/** Flat highlight, or (when the folder indicator line is enabled) a highlight that appears to glow outward from it. */
+	/** Flat highlight with a hard edge starting at the folder's indent guide line, so it appears to expand out of the line. */
 	private codexSelectedBackground(flatColor: string): string {
 		const s = this.pluginSettings;
 		if (s.codexFolderIndicatorThickness === "none") return flatColor;
-		const glow = `color-mix(in srgb, ${this.resolveCodexFolderColor()} 45%, transparent)`;
-		return `linear-gradient(to right, ${glow} 0px, transparent 28px), ${flatColor}`;
+		const x = "calc(var(--sf-codex-indent-guide-x, 0px) - var(--sf-codex-child-indent, 0px))";
+		return `linear-gradient(to right, transparent 0, transparent ${x}, ${flatColor} ${x})`;
 	}
 
 	applyHighlightStyle(): void {
@@ -564,7 +574,7 @@ export default class StoryForgePlugin extends Plugin {
 		const indicatorWidth = CODEX_FOLDER_INDICATOR_WIDTH_PX[s.codexFolderIndicatorThickness];
 		const folderColor = this.resolveCodexFolderColor();
 		const rules: string[] = [
-			`.sf-codex-folder-name, .sf-codex-folder-name.sf-styled-heading { color: ${folderColor}; font-size: ${s.codexFolderFontSize}em; }`,
+			`.sf-codex-folder-name, .sf-codex-folder-name.sf-styled-heading { color: ${folderColor}; font-size: ${s.codexFolderFontSize}em; font-weight: ${s.codexFolderFontWeight}; }`,
 			`.sf-codex-chevron { color: ${folderColor}; font-size: ${s.codexFolderFontSize}em; }`,
 			`.sf-codex-folder-indicator { width: ${indicatorWidth}px; background: ${folderColor}; }`,
 		];
@@ -585,7 +595,7 @@ export default class StoryForgePlugin extends Plugin {
 			color = s.codexNoteLabelColor;
 		}
 		const rules: string[] = [
-			`.sf-codex-file { color: ${color}; font-size: ${s.codexNoteLabelFontSize}em; }`,
+			`.sf-codex-file { color: ${color}; font-size: ${s.codexNoteLabelFontSize}em; font-weight: ${s.codexNoteLabelFontWeight}; }`,
 		];
 
 		this.applyStyleToAllDocs("storyforge-codex-note-label-styles", rules.join("\n"));
