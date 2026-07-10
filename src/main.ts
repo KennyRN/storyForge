@@ -26,6 +26,16 @@ const CODEX_FOLDER_INDICATOR_WIDTH_PX: Record<CodexFolderIndicatorThickness, num
 	thick: 4,
 };
 
+export type HeadingDividerThickness = "thin" | "medium" | "thick";
+
+export type HeadingFontWeight = "theme" | "300" | "400" | "500" | "600" | "700" | "800" | "900";
+
+const HEADING_DIVIDER_WIDTH_PX: Record<HeadingDividerThickness, number> = {
+	thin: 1,
+	medium: 2,
+	thick: 4,
+};
+
 export interface StoryForgePluginSettings {
 	hideHelp: boolean;
 	hideSearch: boolean;
@@ -50,7 +60,7 @@ export interface StoryForgePluginSettings {
 	unplacedItemsFontSize: number;
 	unplacedItemsColor: string;
 	unplacedItemsMuted: boolean;
-	unplacedItemsUseHeaderColor: boolean;
+	unplacedUseHeaderColorForAll: boolean;
 	codexMuted: boolean;
 	codexSmallCaps: boolean;
 	codexColor: string;
@@ -62,6 +72,78 @@ export interface StoryForgePluginSettings {
 	codexNoteLabelColor: string;
 	codexNoteLabelUseDefaultColor: boolean;
 	codexNoteLabelUseFolderColor: boolean;
+	codexUseHeaderColorForAll: boolean;
+	hideHeading1Links: boolean;
+	bodyTextOverrideSize: boolean;
+	bodyTextOverrideColor: boolean;
+	bodyTextSize: number;
+	bodyTextColor: string;
+	heading1OverrideSize: boolean;
+	heading1OverrideColor: boolean;
+	heading1Size: number;
+	heading1Color: string;
+	heading1OverrideFont: boolean;
+	heading1FontWeight: HeadingFontWeight;
+	heading1SmallCaps: boolean;
+	heading1DividerAbove: boolean;
+	heading1DividerAboveThickness: HeadingDividerThickness;
+	heading1DividerBelow: boolean;
+	heading1DividerBelowThickness: HeadingDividerThickness;
+	heading2OverrideSize: boolean;
+	heading2OverrideColor: boolean;
+	heading2Size: number;
+	heading2Color: string;
+	heading2OverrideFont: boolean;
+	heading2FontWeight: HeadingFontWeight;
+	heading2SmallCaps: boolean;
+	heading2DividerAbove: boolean;
+	heading2DividerAboveThickness: HeadingDividerThickness;
+	heading2DividerBelow: boolean;
+	heading2DividerBelowThickness: HeadingDividerThickness;
+	heading3OverrideSize: boolean;
+	heading3OverrideColor: boolean;
+	heading3Size: number;
+	heading3Color: string;
+	heading3OverrideFont: boolean;
+	heading3FontWeight: HeadingFontWeight;
+	heading3SmallCaps: boolean;
+	heading3DividerAbove: boolean;
+	heading3DividerAboveThickness: HeadingDividerThickness;
+	heading3DividerBelow: boolean;
+	heading3DividerBelowThickness: HeadingDividerThickness;
+	heading4OverrideSize: boolean;
+	heading4OverrideColor: boolean;
+	heading4Size: number;
+	heading4Color: string;
+	heading4OverrideFont: boolean;
+	heading4FontWeight: HeadingFontWeight;
+	heading4SmallCaps: boolean;
+	heading4DividerAbove: boolean;
+	heading4DividerAboveThickness: HeadingDividerThickness;
+	heading4DividerBelow: boolean;
+	heading4DividerBelowThickness: HeadingDividerThickness;
+	heading5OverrideSize: boolean;
+	heading5OverrideColor: boolean;
+	heading5Size: number;
+	heading5Color: string;
+	heading5OverrideFont: boolean;
+	heading5FontWeight: HeadingFontWeight;
+	heading5SmallCaps: boolean;
+	heading5DividerAbove: boolean;
+	heading5DividerAboveThickness: HeadingDividerThickness;
+	heading5DividerBelow: boolean;
+	heading5DividerBelowThickness: HeadingDividerThickness;
+	heading6OverrideSize: boolean;
+	heading6OverrideColor: boolean;
+	heading6Size: number;
+	heading6Color: string;
+	heading6OverrideFont: boolean;
+	heading6FontWeight: HeadingFontWeight;
+	heading6SmallCaps: boolean;
+	heading6DividerAbove: boolean;
+	heading6DividerAboveThickness: HeadingDividerThickness;
+	heading6DividerBelow: boolean;
+	heading6DividerBelowThickness: HeadingDividerThickness;
 	useToolsPanel: boolean;
 	colorPaletteName: PaletteName;
 	colorPaletteMode: PaletteMode;
@@ -92,7 +174,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	unplacedItemsFontSize: 1,
 	unplacedItemsColor: "#c8c8c8",
 	unplacedItemsMuted: false,
-	unplacedItemsUseHeaderColor: false,
+	unplacedUseHeaderColorForAll: false,
 	codexMuted: false,
 	codexSmallCaps: true,
 	codexColor: "#bf00ff",
@@ -104,6 +186,78 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	codexNoteLabelColor: "#c8c8c8",
 	codexNoteLabelUseDefaultColor: false,
 	codexNoteLabelUseFolderColor: false,
+	codexUseHeaderColorForAll: false,
+	hideHeading1Links: true,
+	bodyTextOverrideSize: false,
+	bodyTextOverrideColor: false,
+	bodyTextSize: 1,
+	bodyTextColor: "#c8c8c8",
+	heading1OverrideSize: false,
+	heading1OverrideColor: false,
+	heading1Size: 1,
+	heading1Color: "#c8c8c8",
+	heading1OverrideFont: false,
+	heading1FontWeight: "theme",
+	heading1SmallCaps: false,
+	heading1DividerAbove: false,
+	heading1DividerAboveThickness: "medium",
+	heading1DividerBelow: false,
+	heading1DividerBelowThickness: "medium",
+	heading2OverrideSize: false,
+	heading2OverrideColor: false,
+	heading2Size: 1,
+	heading2Color: "#c8c8c8",
+	heading2OverrideFont: false,
+	heading2FontWeight: "theme",
+	heading2SmallCaps: false,
+	heading2DividerAbove: false,
+	heading2DividerAboveThickness: "medium",
+	heading2DividerBelow: false,
+	heading2DividerBelowThickness: "medium",
+	heading3OverrideSize: false,
+	heading3OverrideColor: false,
+	heading3Size: 1,
+	heading3Color: "#c8c8c8",
+	heading3OverrideFont: false,
+	heading3FontWeight: "theme",
+	heading3SmallCaps: false,
+	heading3DividerAbove: false,
+	heading3DividerAboveThickness: "medium",
+	heading3DividerBelow: false,
+	heading3DividerBelowThickness: "medium",
+	heading4OverrideSize: false,
+	heading4OverrideColor: false,
+	heading4Size: 1,
+	heading4Color: "#c8c8c8",
+	heading4OverrideFont: false,
+	heading4FontWeight: "theme",
+	heading4SmallCaps: false,
+	heading4DividerAbove: false,
+	heading4DividerAboveThickness: "medium",
+	heading4DividerBelow: false,
+	heading4DividerBelowThickness: "medium",
+	heading5OverrideSize: false,
+	heading5OverrideColor: false,
+	heading5Size: 1,
+	heading5Color: "#c8c8c8",
+	heading5OverrideFont: false,
+	heading5FontWeight: "theme",
+	heading5SmallCaps: false,
+	heading5DividerAbove: false,
+	heading5DividerAboveThickness: "medium",
+	heading5DividerBelow: false,
+	heading5DividerBelowThickness: "medium",
+	heading6OverrideSize: false,
+	heading6OverrideColor: false,
+	heading6Size: 1,
+	heading6Color: "#c8c8c8",
+	heading6OverrideFont: false,
+	heading6FontWeight: "theme",
+	heading6SmallCaps: false,
+	heading6DividerAbove: false,
+	heading6DividerAboveThickness: "medium",
+	heading6DividerBelow: false,
+	heading6DividerBelowThickness: "medium",
 	useToolsPanel: true,
 	colorPaletteName: "Nord",
 	colorPaletteMode: "dark",
@@ -130,7 +284,7 @@ export default class StoryForgePlugin extends Plugin {
 		// may already have stale duplicates injected before that existed.
 		document
 			.querySelectorAll(
-				"#storyforge-visibility-styles, #storyforge-header-styles, #storyforge-highlight-styles, #storyforge-codex-folder-styles, #storyforge-codex-note-label-styles",
+				"#storyforge-visibility-styles, #storyforge-header-styles, #storyforge-highlight-styles, #storyforge-codex-folder-styles, #storyforge-codex-note-label-styles, #storyforge-heading1-link-styles, #storyforge-text-style-overrides",
 			)
 			.forEach((el) => el.remove());
 
@@ -157,6 +311,8 @@ export default class StoryForgePlugin extends Plugin {
 		this.applyHighlightStyle();
 		this.applyCodexFolderStyle();
 		this.applyCodexNoteLabelStyle();
+		this.applyHeading1LinkStyle();
+		this.applyTextStyleOverrides();
 		registerTabTitleOverrides(this.app, (eventRef) => this.registerEvent(eventRef));
 
 		registerReconciliationEvents(this.app, this);
@@ -180,6 +336,8 @@ export default class StoryForgePlugin extends Plugin {
 				this.applyHighlightStyle();
 				this.applyCodexFolderStyle();
 				this.applyCodexNoteLabelStyle();
+				this.applyHeading1LinkStyle();
+				this.applyTextStyleOverrides();
 			}),
 		);
 		this.registerEvent(
@@ -338,7 +496,7 @@ export default class StoryForgePlugin extends Plugin {
 		const unplacedColor = s.unplacedMuted ? "var(--text-muted)" : s.unplacedColor;
 		const codexColor = s.codexMuted ? "var(--text-muted)" : s.codexColor;
 		let unplacedItemsColor: string;
-		if (s.unplacedItemsUseHeaderColor) {
+		if (s.unplacedUseHeaderColorForAll) {
 			unplacedItemsColor = s.unplacedMuted ? "var(--text-muted)" : s.unplacedColor;
 		} else if (s.unplacedItemsMuted) {
 			unplacedItemsColor = "var(--text-muted)";
@@ -361,21 +519,37 @@ export default class StoryForgePlugin extends Plugin {
 		this.applyStyleToAllDocs("storyforge-header-styles", rules.join("\n"));
 	}
 
+	/** Resolves the codex folder colour, respecting `codexUseHeaderColorForAll`'s override of the folder colour picker. */
+	private resolveCodexFolderColor(): string {
+		const s = this.pluginSettings;
+		return s.codexUseHeaderColorForAll ? (s.codexMuted ? "var(--text-muted)" : s.codexColor) : s.codexFolderColor;
+	}
+
 	/** Flat highlight, or (when the folder indicator line is enabled) a highlight that appears to glow outward from it. */
 	private codexSelectedBackground(flatColor: string): string {
 		const s = this.pluginSettings;
 		if (s.codexFolderIndicatorThickness === "none") return flatColor;
-		const glow = `color-mix(in srgb, ${s.codexFolderColor} 45%, transparent)`;
+		const glow = `color-mix(in srgb, ${this.resolveCodexFolderColor()} 45%, transparent)`;
 		return `linear-gradient(to right, ${glow} 0px, transparent 28px), ${flatColor}`;
 	}
 
 	applyHighlightStyle(): void {
 		const s = this.pluginSettings;
+		const unplacedHighlightColor = s.unplacedUseHeaderColorForAll
+			? s.unplacedMuted
+				? "var(--text-muted)"
+				: s.unplacedColor
+			: s.unplacedHighlightColor;
+		const codexHighlightColor = s.codexUseHeaderColorForAll
+			? s.codexMuted
+				? "var(--text-muted)"
+				: s.codexColor
+			: s.codexHighlightColor;
 		const rules: string[] = s.perPanelHighlighting
 			? [
 					`.sf-top-list:not(.sf-unplaced-list) .sf-row.sf-row-selected { background: ${s.highlightColor}; color: ${s.highlightTextColor}; }`,
-					`.sf-unplaced-list .sf-row.sf-row-selected { background: ${s.unplacedHighlightColor}; color: ${s.unplacedHighlightTextColor}; }`,
-					`.sf-codex-file.sf-row-selected { background: ${this.codexSelectedBackground(s.codexHighlightColor)}; color: ${s.codexHighlightTextColor}; }`,
+					`.sf-unplaced-list .sf-row.sf-row-selected { background: ${unplacedHighlightColor}; color: ${s.unplacedHighlightTextColor}; }`,
+					`.sf-codex-file.sf-row-selected { background: ${this.codexSelectedBackground(codexHighlightColor)}; color: ${s.codexHighlightTextColor}; }`,
 				]
 			: [
 					`.sf-row.sf-row-selected { background: ${s.highlightColor}; color: ${s.highlightTextColor}; }`,
@@ -388,10 +562,11 @@ export default class StoryForgePlugin extends Plugin {
 	applyCodexFolderStyle(): void {
 		const s = this.pluginSettings;
 		const indicatorWidth = CODEX_FOLDER_INDICATOR_WIDTH_PX[s.codexFolderIndicatorThickness];
+		const folderColor = this.resolveCodexFolderColor();
 		const rules: string[] = [
-			`.sf-codex-folder-name, .sf-codex-folder-name.sf-styled-heading { color: ${s.codexFolderColor}; font-size: ${s.codexFolderFontSize}em; }`,
-			`.sf-codex-chevron { color: ${s.codexFolderColor}; font-size: ${s.codexFolderFontSize}em; }`,
-			`.sf-codex-folder-indicator { width: ${indicatorWidth}px; background: ${s.codexFolderColor}; }`,
+			`.sf-codex-folder-name, .sf-codex-folder-name.sf-styled-heading { color: ${folderColor}; font-size: ${s.codexFolderFontSize}em; }`,
+			`.sf-codex-chevron { color: ${folderColor}; font-size: ${s.codexFolderFontSize}em; }`,
+			`.sf-codex-folder-indicator { width: ${indicatorWidth}px; background: ${folderColor}; }`,
 		];
 
 		this.applyStyleToAllDocs("storyforge-codex-folder-styles", rules.join("\n"));
@@ -400,7 +575,9 @@ export default class StoryForgePlugin extends Plugin {
 	applyCodexNoteLabelStyle(): void {
 		const s = this.pluginSettings;
 		let color: string;
-		if (s.codexNoteLabelUseFolderColor) {
+		if (s.codexUseHeaderColorForAll) {
+			color = s.codexMuted ? "var(--text-muted)" : s.codexColor;
+		} else if (s.codexNoteLabelUseFolderColor) {
 			color = s.codexFolderColor;
 		} else if (s.codexNoteLabelUseDefaultColor) {
 			color = "var(--text-normal)";
@@ -412,6 +589,140 @@ export default class StoryForgePlugin extends Plugin {
 		];
 
 		this.applyStyleToAllDocs("storyforge-codex-note-label-styles", rules.join("\n"));
+	}
+
+	applyHeading1LinkStyle(): void {
+		const rules: string[] = this.pluginSettings.hideHeading1Links
+			? [`${OBSIDIAN_SELECTORS.h1Links} { color: inherit !important; text-decoration: inherit !important; }`]
+			: [];
+
+		this.applyStyleToAllDocs("storyforge-heading1-link-styles", rules.join("\n"));
+	}
+
+	/** Builds the size/colour/weight/small-caps/divider CSS rules for one heading level, across reading view and Live Preview. */
+	private buildHeadingRules(
+		level: 1 | 2 | 3 | 4 | 5 | 6,
+		overrideSize: boolean,
+		size: number,
+		overrideColor: boolean,
+		color: string,
+		fontWeight: HeadingFontWeight,
+		smallCaps: boolean,
+		dividerAbove: boolean,
+		dividerAboveThickness: HeadingDividerThickness,
+		dividerBelow: boolean,
+		dividerBelowThickness: HeadingDividerThickness,
+	): string[] {
+		const reading = OBSIDIAN_SELECTORS.headingReading[level];
+		const line = OBSIDIAN_SELECTORS.headingLivePreviewLine[level];
+		const text = OBSIDIAN_SELECTORS.headingLivePreviewText[level];
+		const rules: string[] = [];
+		if (overrideSize) rules.push(`${reading}, ${line} { font-size: ${size}em; }`);
+		if (overrideColor) rules.push(`${reading}, ${text} { color: ${color}; }`);
+		if (fontWeight !== "theme") rules.push(`${reading}, ${line} { font-weight: ${fontWeight}; }`);
+		if (smallCaps) rules.push(`${reading}, ${line} { font-variant: small-caps; }`);
+		if (dividerAbove) {
+			const thicknessPx = HEADING_DIVIDER_WIDTH_PX[dividerAboveThickness];
+			rules.push(`${reading}, ${line} { border-top: ${thicknessPx}px solid currentColor; }`);
+		}
+		if (dividerBelow) {
+			const thicknessPx = HEADING_DIVIDER_WIDTH_PX[dividerBelowThickness];
+			rules.push(`${reading}, ${line} { border-bottom: ${thicknessPx}px solid currentColor; }`);
+		}
+		return rules;
+	}
+
+	applyTextStyleOverrides(): void {
+		const s = this.pluginSettings;
+		const rules: string[] = [];
+		if (s.bodyTextOverrideSize) {
+			rules.push(`${OBSIDIAN_SELECTORS.bodyTextReading}, ${OBSIDIAN_SELECTORS.bodyTextLivePreview} { font-size: ${s.bodyTextSize}em; }`);
+		}
+		if (s.bodyTextOverrideColor) {
+			rules.push(`${OBSIDIAN_SELECTORS.bodyTextReading}, ${OBSIDIAN_SELECTORS.bodyTextLivePreview} { color: ${s.bodyTextColor}; }`);
+		}
+		rules.push(
+			...this.buildHeadingRules(
+				1,
+				s.heading1OverrideSize,
+				s.heading1Size,
+				s.heading1OverrideColor,
+				s.heading1Color,
+				s.heading1FontWeight,
+				s.heading1SmallCaps,
+				s.heading1DividerAbove,
+				s.heading1DividerAboveThickness,
+				s.heading1DividerBelow,
+				s.heading1DividerBelowThickness,
+			),
+			...this.buildHeadingRules(
+				2,
+				s.heading2OverrideSize,
+				s.heading2Size,
+				s.heading2OverrideColor,
+				s.heading2Color,
+				s.heading2FontWeight,
+				s.heading2SmallCaps,
+				s.heading2DividerAbove,
+				s.heading2DividerAboveThickness,
+				s.heading2DividerBelow,
+				s.heading2DividerBelowThickness,
+			),
+			...this.buildHeadingRules(
+				3,
+				s.heading3OverrideSize,
+				s.heading3Size,
+				s.heading3OverrideColor,
+				s.heading3Color,
+				s.heading3FontWeight,
+				s.heading3SmallCaps,
+				s.heading3DividerAbove,
+				s.heading3DividerAboveThickness,
+				s.heading3DividerBelow,
+				s.heading3DividerBelowThickness,
+			),
+			...this.buildHeadingRules(
+				4,
+				s.heading4OverrideSize,
+				s.heading4Size,
+				s.heading4OverrideColor,
+				s.heading4Color,
+				s.heading4FontWeight,
+				s.heading4SmallCaps,
+				s.heading4DividerAbove,
+				s.heading4DividerAboveThickness,
+				s.heading4DividerBelow,
+				s.heading4DividerBelowThickness,
+			),
+			...this.buildHeadingRules(
+				5,
+				s.heading5OverrideSize,
+				s.heading5Size,
+				s.heading5OverrideColor,
+				s.heading5Color,
+				s.heading5FontWeight,
+				s.heading5SmallCaps,
+				s.heading5DividerAbove,
+				s.heading5DividerAboveThickness,
+				s.heading5DividerBelow,
+				s.heading5DividerBelowThickness,
+			),
+			...this.buildHeadingRules(
+				6,
+				s.heading6OverrideSize,
+				s.heading6Size,
+				s.heading6OverrideColor,
+				s.heading6Color,
+				s.heading6FontWeight,
+				s.heading6SmallCaps,
+				s.heading6DividerAbove,
+				s.heading6DividerAboveThickness,
+				s.heading6DividerBelow,
+				s.heading6DividerBelowThickness,
+			),
+		);
+
+		this.applyStyleToAllDocs("storyforge-text-style-overrides", rules.join("\n"));
 	}
 
 	private async initializeVaultState(): Promise<void> {

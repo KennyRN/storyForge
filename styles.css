@@ -563,6 +563,10 @@
 	display: none;
 }
 
+.sf-settings-hidden {
+	display: none !important;
+}
+
 .sf-settings-section-h4 {
 	padding-left: 10px;
 }
