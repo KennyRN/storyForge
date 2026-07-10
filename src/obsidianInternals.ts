@@ -17,6 +17,50 @@ export const OBSIDIAN_SELECTORS = {
 	workspaceRibbon: ".workspace-ribbon",
 	ribbonAction: ".side-dock-ribbon-action",
 	tabHeaderContainer: ".mod-left-split .workspace-tab-header-container",
+	/**
+	 * Links inside a note's rendered H1: real `<a>` tags in reading view, but CM6 live-preview/edit
+	 * mode renders no `<a>` at all - links are `.cm-hmd-internal-link`/`.cm-link` spans (co-classed
+	 * with `.cm-header-1`) wrapping a `.cm-underline` span that carries the actual underline.
+	 */
+	h1Links:
+		".markdown-reading-view h1 a, .cm-header-1.cm-hmd-internal-link, .cm-header-1.cm-link, .cm-header-1.cm-hmd-internal-link .cm-underline, .cm-header-1.cm-link .cm-underline",
+	/**
+	 * Whole-heading selectors for H1-H3, per view mode: `headingReading` matches the real `<hN>` tag
+	 * in reading view; `headingLivePreviewLine` matches the CM6 line wrapper (`.HyperMD-header-N`,
+	 * confirmed for H1 - same class family expected for H2/H3, verify live); `headingLivePreviewText`
+	 * matches the inline `.cm-header-N` text spans within that line, used where colour must be set on
+	 * the actual text run rather than just the line container.
+	 */
+	headingReading: {
+		1: ".markdown-reading-view h1",
+		2: ".markdown-reading-view h2",
+		3: ".markdown-reading-view h3",
+		4: ".markdown-reading-view h4",
+		5: ".markdown-reading-view h5",
+		6: ".markdown-reading-view h6",
+	},
+	headingLivePreviewLine: {
+		1: ".HyperMD-header-1",
+		2: ".HyperMD-header-2",
+		3: ".HyperMD-header-3",
+		4: ".HyperMD-header-4",
+		5: ".HyperMD-header-5",
+		6: ".HyperMD-header-6",
+	},
+	headingLivePreviewText: {
+		1: ".cm-header-1",
+		2: ".cm-header-2",
+		3: ".cm-header-3",
+		4: ".cm-header-4",
+		5: ".cm-header-5",
+		6: ".cm-header-6",
+	},
+	/**
+	 * Body/paragraph text, per view mode. `bodyTextLivePreview` is a first guess (any CM6 line
+	 * without a heading class) - verify against real paragraph/list-item DOM before trusting it.
+	 */
+	bodyTextReading: ".markdown-reading-view p",
+	bodyTextLivePreview: ".cm-line:not(.HyperMD-header)",
 } as const;
 
 export const OBSIDIAN_CSS_VARS = {

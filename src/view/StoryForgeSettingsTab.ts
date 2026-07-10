@@ -1,14 +1,26 @@
 import { App, ButtonComponent, PluginSettingTab, Setting, SettingGroup, ToggleComponent, setIcon } from "obsidian";
 import type StoryForgePlugin from "../main";
-import type { CodexFolderIndicatorThickness, StoryForgePluginSettings } from "../main";
+import type { CodexFolderIndicatorThickness, HeadingDividerThickness, HeadingFontWeight, StoryForgePluginSettings } from "../main";
 import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
 import { PALETTE_NAMES, PaletteMode, PaletteName } from "../colorPalettes";
 import { PalettePickerModal } from "./PalettePickerModal";
 import { IconAuditModal } from "./IconAuditModal";
 
+const HEADING_FONT_WEIGHT_OPTIONS: [HeadingFontWeight, string][] = [
+	["theme", "Theme default"],
+	["300", "Light"],
+	["400", "Regular"],
+	["500", "Medium"],
+	["600", "Semi Bold"],
+	["700", "Bold"],
+	["800", "Extra Bold"],
+	["900", "Black"],
+];
+
 export class StoryForgeSettingsTab extends PluginSettingTab {
 	private plugin: StoryForgePlugin;
 	private expandedSections = new Set<string>();
+	private selectedOtherHeadingLevel: 4 | 5 | 6 = 4;
 
 	constructor(app: App, plugin: StoryForgePlugin) {
 		super(app, plugin);
@@ -100,10 +112,12 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			colorKey: "unplacedColor" | "codexColor";
 			mutedKey: "unplacedMuted" | "codexMuted";
 			smallCapsKey: "unplacedSmallCaps" | "codexSmallCaps";
+			useHeaderColorForAllKey: "unplacedUseHeaderColorForAll" | "codexUseHeaderColorForAll";
 			restyle: () => void;
 		},
-	): void {
+	): ToggleComponent {
 		const group = new SettingGroup(body);
+		let useHeaderColorForAllToggle!: ToggleComponent;
 		group
 			.addSetting((setting) =>
 				setting
@@ -131,6 +145,15 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			)
 			.addSetting((setting) =>
 				setting
+					.setName("Use header colour for all colour options")
+					.setDesc("Use the header colour everywhere below instead of picking separate colours.")
+					.addToggle((toggle) => {
+						useHeaderColorForAllToggle = toggle;
+						toggle.setValue(settings[config.useHeaderColorForAllKey]);
+					}),
+			)
+			.addSetting((setting) =>
+				setting
 					.setName("Muted")
 					.setDesc("override header colour with muted colour")
 					.addToggle((toggle) =>
@@ -151,6 +174,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					);
 				setting.nameEl.style.fontVariant = "small-caps";
 			});
+		return useHeaderColorForAllToggle;
 	}
 
 	private renderTopActions(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
@@ -251,26 +275,458 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		}
 	}
 
-	private renderTextStyleSection(containerEl: HTMLElement): void {
-		this.renderFoldableSection(containerEl, "text-style", "h3", "Text style", (body) => {
-			this.renderFoldableSection(body, "text-style-editor", "h4", "Editor text", () => {});
-			this.renderFoldableSection(body, "text-style-h1", "h4", "Heading 1", () => {});
-			this.renderFoldableSection(body, "text-style-h2", "h4", "Heading 2", () => {});
-			this.renderFoldableSection(body, "text-style-h3", "h4", "Heading 3", () => {});
-			this.renderFoldableSection(body, "text-style-other-headers", "h4", "Other headers", () => {});
+	/** Wires a toggle to persist `key`, hide/show `card` accordingly, and restyle - the shared pattern behind every conditional card in this file. */
+	private wireCardToggle(toggle: ToggleComponent, card: Setting, persist: (value: boolean) => Promise<void>, restyle: () => void): void {
+		const applyVisibility = (hidden: boolean) => card.settingEl.toggleClass("sf-settings-hidden", hidden);
+		toggle.onChange(async (value) => {
+			await persist(value);
+			applyVisibility(!value);
+			restyle();
+		});
+		applyVisibility(!toggle.getValue());
+	}
+
+	/**
+	 * Renders a card whose first row is a toggle, followed by a caller-built "reveal" row shown only
+	 * while the toggle is on. Returns the toggle and the card itself so callers can append further,
+	 * always-visible rows below the reveal row (used by the font-override card for Font weight/Small caps).
+	 */
+	private renderToggleWithRevealCard(
+		body: HTMLElement,
+		toggleLabel: string,
+		initialValue: boolean,
+		persist: (value: boolean) => Promise<void>,
+		buildRevealRow: (card: SettingGroup) => Setting,
+		restyle: () => void,
+		extraRowBefore?: (card: SettingGroup) => void,
+	): { toggle: ToggleComponent; card: SettingGroup } {
+		const card = new SettingGroup(body);
+		if (extraRowBefore) extraRowBefore(card);
+		let toggle!: ToggleComponent;
+		card.addSetting((setting) =>
+			setting.setName(toggleLabel).addToggle((t) => {
+				toggle = t;
+				t.setValue(initialValue);
+			}),
+		);
+		const revealRow = buildRevealRow(card);
+		this.wireCardToggle(toggle, revealRow, persist, restyle);
+		return { toggle, card };
+	}
+
+	/** Renders the "Override theme's default [font/header] size" card with its slider revealed in the same card when on. */
+	private renderSizeCard(
+		body: HTMLElement,
+		settings: StoryForgePluginSettings,
+		label: string,
+		sliderLabel: string,
+		overrideKey:
+			| "heading1OverrideSize"
+			| "heading2OverrideSize"
+			| "heading3OverrideSize"
+			| "heading4OverrideSize"
+			| "heading5OverrideSize"
+			| "heading6OverrideSize"
+			| "bodyTextOverrideSize",
+		sizeKey: "heading1Size" | "heading2Size" | "heading3Size" | "heading4Size" | "heading5Size" | "heading6Size" | "bodyTextSize",
+		min: number,
+		max: number,
+		restyle: () => void,
+		extraRowBefore?: (card: SettingGroup) => void,
+	): void {
+		this.renderToggleWithRevealCard(
+			body,
+			label,
+			settings[overrideKey],
+			(value) => this.plugin.updateSetting(overrideKey, value),
+			(card) => {
+				let sliderSetting!: Setting;
+				card.addSetting((setting) => {
+					sliderSetting = setting;
+					setting.setName(sliderLabel).addSlider((slider) =>
+						slider
+							.setLimits(min, max, 0.25)
+							.setValue(settings[sizeKey])
+							.onChange(async (value) => {
+								await this.plugin.updateSetting(sizeKey, value);
+								restyle();
+							}),
+					);
+				});
+				return sliderSetting;
+			},
+			restyle,
+			extraRowBefore,
+		);
+	}
+
+	/** Renders the "Override theme's default [font/header] colour" card with its colour swatch revealed in the same card when on. */
+	private renderColorOverrideCard(
+		body: HTMLElement,
+		settings: StoryForgePluginSettings,
+		label: string,
+		swatchLabel: string,
+		overrideKey:
+			| "heading1OverrideColor"
+			| "heading2OverrideColor"
+			| "heading3OverrideColor"
+			| "heading4OverrideColor"
+			| "heading5OverrideColor"
+			| "heading6OverrideColor"
+			| "bodyTextOverrideColor",
+		colorKey: "heading1Color" | "heading2Color" | "heading3Color" | "heading4Color" | "heading5Color" | "heading6Color" | "bodyTextColor",
+		restyle: () => void,
+	): void {
+		this.renderToggleWithRevealCard(
+			body,
+			label,
+			settings[overrideKey],
+			(value) => this.plugin.updateSetting(overrideKey, value),
+			(card) => {
+				let colorSetting!: Setting;
+				card.addSetting((setting) => {
+					colorSetting = setting;
+					setting.setName(swatchLabel).addButton((button) =>
+						this.bindColorSwatchButton(button, settings[colorKey], async (hex) => {
+							await this.plugin.updateSetting(colorKey, hex);
+							restyle();
+						}),
+					);
+				});
+				return colorSetting;
+			},
+			restyle,
+		);
+	}
+
+	/**
+	 * Renders the "Override theme's default font" card (inert toggle - no CSS wired yet) with an
+	 * optionless "Pick font" row revealed when on, followed by the always-visible "Font weight"
+	 * (wired to real CSS) and "Small caps" (wired) rows, in the same card.
+	 */
+	private renderFontCard(
+		body: HTMLElement,
+		settings: StoryForgePluginSettings,
+		overrideFontKey: "heading1OverrideFont" | "heading2OverrideFont" | "heading3OverrideFont" | "heading4OverrideFont" | "heading5OverrideFont" | "heading6OverrideFont",
+		fontWeightKey: "heading1FontWeight" | "heading2FontWeight" | "heading3FontWeight" | "heading4FontWeight" | "heading5FontWeight" | "heading6FontWeight",
+		smallCapsKey: "heading1SmallCaps" | "heading2SmallCaps" | "heading3SmallCaps" | "heading4SmallCaps" | "heading5SmallCaps" | "heading6SmallCaps",
+	): void {
+		const restyle = () => this.plugin.applyTextStyleOverrides();
+		const { card } = this.renderToggleWithRevealCard(
+			body,
+			"Override theme's default font",
+			settings[overrideFontKey],
+			(value) => this.plugin.updateSetting(overrideFontKey, value),
+			(card) => {
+				let pickFontSetting!: Setting;
+				card.addSetting((setting) => {
+					pickFontSetting = setting;
+					setting.setName("Pick font");
+				});
+				return pickFontSetting;
+			},
+			() => {},
+		);
+		card.addSetting((setting) => {
+			setting.setName("Font weight").addDropdown((dropdown) => {
+				for (const [value, label] of HEADING_FONT_WEIGHT_OPTIONS) {
+					dropdown.addOption(value, label);
+					const opt = dropdown.selectEl.options[dropdown.selectEl.options.length - 1];
+					opt.style.fontWeight = value === "theme" ? "" : value;
+				}
+				const applySelectedWeight = (value: HeadingFontWeight) => {
+					dropdown.selectEl.style.fontWeight = value === "theme" ? "" : value;
+				};
+				dropdown.setValue(settings[fontWeightKey]);
+				applySelectedWeight(settings[fontWeightKey]);
+				dropdown.onChange(async (value) => {
+					await this.plugin.updateSetting(fontWeightKey, value as HeadingFontWeight);
+					applySelectedWeight(value as HeadingFontWeight);
+					restyle();
+				});
+			});
+		});
+		card.addSetting((setting) => {
+			setting.setName("Small caps").addToggle((toggle) =>
+				toggle.setValue(settings[smallCapsKey]).onChange(async (value) => {
+					await this.plugin.updateSetting(smallCapsKey, value);
+					restyle();
+				}),
+			);
+			setting.nameEl.style.fontVariant = "small-caps";
 		});
 	}
 
-	private renderHighlightGroup(body: HTMLElement, settings: StoryForgePluginSettings): void {
-		const highlightGroup = new SettingGroup(body);
-		let highlightColourSetting: Setting | null = null;
-		let highlightTextColourSetting: Setting | null = null;
-		const applyHighlightNames = (perPanel: boolean) => {
-			highlightColourSetting?.setName(perPanel ? "Highlight colour for chapter/book" : "Highlight colour");
-			highlightTextColourSetting?.setName(
-				perPanel ? "Highlight text colour for chapter/book" : "Highlight text colour",
+	/** Renders the "Divider line above/below header" card: each side's toggle immediately followed by its own thickness dropdown, shown only while that side is on. */
+	private renderDividerCard(
+		body: HTMLElement,
+		settings: StoryForgePluginSettings,
+		aboveKey: "heading1DividerAbove" | "heading2DividerAbove" | "heading3DividerAbove" | "heading4DividerAbove" | "heading5DividerAbove" | "heading6DividerAbove",
+		aboveThicknessKey:
+			| "heading1DividerAboveThickness"
+			| "heading2DividerAboveThickness"
+			| "heading3DividerAboveThickness"
+			| "heading4DividerAboveThickness"
+			| "heading5DividerAboveThickness"
+			| "heading6DividerAboveThickness",
+		belowKey: "heading1DividerBelow" | "heading2DividerBelow" | "heading3DividerBelow" | "heading4DividerBelow" | "heading5DividerBelow" | "heading6DividerBelow",
+		belowThicknessKey:
+			| "heading1DividerBelowThickness"
+			| "heading2DividerBelowThickness"
+			| "heading3DividerBelowThickness"
+			| "heading4DividerBelowThickness"
+			| "heading5DividerBelowThickness"
+			| "heading6DividerBelowThickness",
+		restyle: () => void,
+	): void {
+		const card = new SettingGroup(body);
+
+		let aboveToggle!: ToggleComponent;
+		card.addSetting((setting) =>
+			setting.setName("Divider line above header").addToggle((toggle) => {
+				aboveToggle = toggle;
+				toggle.setValue(settings[aboveKey]);
+			}),
+		);
+		let aboveThicknessSetting!: Setting;
+		card.addSetting((setting) => {
+			aboveThicknessSetting = setting;
+			setting.setName("Thickness").addDropdown((dropdown) =>
+				dropdown
+					.addOption("thin", "Thin")
+					.addOption("medium", "Medium")
+					.addOption("thick", "Thick")
+					.setValue(settings[aboveThicknessKey])
+					.onChange(async (value) => {
+						await this.plugin.updateSetting(aboveThicknessKey, value as HeadingDividerThickness);
+						restyle();
+					}),
 			);
-		};
+		});
+		this.wireCardToggle(aboveToggle, aboveThicknessSetting, (value) => this.plugin.updateSetting(aboveKey, value), restyle);
+
+		let belowToggle!: ToggleComponent;
+		card.addSetting((setting) =>
+			setting.setName("Divider line below header").addToggle((toggle) => {
+				belowToggle = toggle;
+				toggle.setValue(settings[belowKey]);
+			}),
+		);
+		let belowThicknessSetting!: Setting;
+		card.addSetting((setting) => {
+			belowThicknessSetting = setting;
+			setting.setName("Thickness").addDropdown((dropdown) =>
+				dropdown
+					.addOption("thin", "Thin")
+					.addOption("medium", "Medium")
+					.addOption("thick", "Thick")
+					.setValue(settings[belowThicknessKey])
+					.onChange(async (value) => {
+						await this.plugin.updateSetting(belowThicknessKey, value as HeadingDividerThickness);
+						restyle();
+					}),
+			);
+		});
+		this.wireCardToggle(belowToggle, belowThicknessSetting, (value) => this.plugin.updateSetting(belowKey, value), restyle);
+	}
+
+	private renderTextStyleSection(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
+		this.renderFoldableSection(containerEl, "text-style", "h3", "Text style", (body) => {
+			const restyle = () => this.plugin.applyTextStyleOverrides();
+			this.renderFoldableSection(body, "text-style-editor", "h4", "Body text", (bodyTextBody) => {
+				this.renderSizeCard(
+					bodyTextBody,
+					settings,
+					"Override theme's default font size",
+					"Font size",
+					"bodyTextOverrideSize",
+					"bodyTextSize",
+					0.75,
+					1.75,
+					restyle,
+				);
+				this.renderColorOverrideCard(
+					bodyTextBody,
+					settings,
+					"Override theme's default font colour",
+					"Font colour",
+					"bodyTextOverrideColor",
+					"bodyTextColor",
+					restyle,
+				);
+			});
+			this.renderFoldableSection(body, "text-style-h1", "h4", "Heading 1", (h1Body) => {
+				this.renderSizeCard(
+					h1Body,
+					settings,
+					"Override theme's default header size",
+					"Header size",
+					"heading1OverrideSize",
+					"heading1Size",
+					1,
+					2.5,
+					restyle,
+					(card) =>
+						card.addSetting((setting) =>
+							setting
+								.setName("Hide Heading 1 Links")
+								.setDesc(
+									"When on, links inside a note's H1 heading render as plain text — no link colour or underline — so the title looks like a normal heading.",
+								)
+								.addToggle((toggle) =>
+									toggle.setValue(settings.hideHeading1Links).onChange(async (value) => {
+										await this.plugin.updateSetting("hideHeading1Links", value);
+										this.plugin.applyHeading1LinkStyle();
+									}),
+								),
+						),
+				);
+				this.renderColorOverrideCard(
+					h1Body,
+					settings,
+					"Override theme's default header colour",
+					"Header colour",
+					"heading1OverrideColor",
+					"heading1Color",
+					restyle,
+				);
+				this.renderFontCard(h1Body, settings, "heading1OverrideFont", "heading1FontWeight", "heading1SmallCaps");
+				this.renderDividerCard(
+					h1Body,
+					settings,
+					"heading1DividerAbove",
+					"heading1DividerAboveThickness",
+					"heading1DividerBelow",
+					"heading1DividerBelowThickness",
+					restyle,
+				);
+			});
+			this.renderFoldableSection(body, "text-style-h2", "h4", "Heading 2", (h2Body) => {
+				this.renderSizeCard(h2Body, settings, "Override theme's default header size", "Header size", "heading2OverrideSize", "heading2Size", 1, 2.5, restyle);
+				this.renderColorOverrideCard(
+					h2Body,
+					settings,
+					"Override theme's default header colour",
+					"Header colour",
+					"heading2OverrideColor",
+					"heading2Color",
+					restyle,
+				);
+				this.renderFontCard(h2Body, settings, "heading2OverrideFont", "heading2FontWeight", "heading2SmallCaps");
+				this.renderDividerCard(
+					h2Body,
+					settings,
+					"heading2DividerAbove",
+					"heading2DividerAboveThickness",
+					"heading2DividerBelow",
+					"heading2DividerBelowThickness",
+					restyle,
+				);
+			});
+			this.renderFoldableSection(body, "text-style-h3", "h4", "Heading 3", (h3Body) => {
+				this.renderSizeCard(h3Body, settings, "Override theme's default header size", "Header size", "heading3OverrideSize", "heading3Size", 1, 2.5, restyle);
+				this.renderColorOverrideCard(
+					h3Body,
+					settings,
+					"Override theme's default header colour",
+					"Header colour",
+					"heading3OverrideColor",
+					"heading3Color",
+					restyle,
+				);
+				this.renderFontCard(h3Body, settings, "heading3OverrideFont", "heading3FontWeight", "heading3SmallCaps");
+				this.renderDividerCard(
+					h3Body,
+					settings,
+					"heading3DividerAbove",
+					"heading3DividerAboveThickness",
+					"heading3DividerBelow",
+					"heading3DividerBelowThickness",
+					restyle,
+				);
+			});
+			this.renderFoldableSection(body, "text-style-other-headers", "h4", "Headings 4 thru 6", (otherBody) => {
+				const levelGroup = new SettingGroup(otherBody);
+				const levelElements: Record<4 | 5 | 6, HTMLElement[]> = { 4: [], 5: [], 6: [] };
+				const applySelectedLevel = (level: 4 | 5 | 6) => {
+					for (const [key, els] of Object.entries(levelElements)) {
+						const hidden = Number(key) !== level;
+						for (const el of els) el.toggleClass("sf-settings-hidden", hidden);
+					}
+				};
+				levelGroup.addSetting((setting) =>
+					setting.setName("Choose heading level").addDropdown((dropdown) =>
+						dropdown
+							.addOption("4", "Heading 4")
+							.addOption("5", "Heading 5")
+							.addOption("6", "Heading 6")
+							.setValue(String(this.selectedOtherHeadingLevel))
+							.onChange((value) => {
+								this.selectedOtherHeadingLevel = Number(value) as 4 | 5 | 6;
+								applySelectedLevel(this.selectedOtherHeadingLevel);
+							}),
+					),
+				);
+
+				// Cards render flat under `otherBody` (matching Heading 1-3) so Obsidian's own
+				// sibling-based `.setting-group` spacing applies; the elements newly added per level
+				// are captured afterward so the level selector can show/hide just that level's cards.
+				const before4 = otherBody.children.length;
+				this.renderSizeCard(otherBody, settings, "Override theme's default header size", "Header size", "heading4OverrideSize", "heading4Size", 0.75, 1.75, restyle);
+				this.renderColorOverrideCard(otherBody, settings, "Override theme's default header colour", "Header colour", "heading4OverrideColor", "heading4Color", restyle);
+				this.renderFontCard(otherBody, settings, "heading4OverrideFont", "heading4FontWeight", "heading4SmallCaps");
+				this.renderDividerCard(
+					otherBody,
+					settings,
+					"heading4DividerAbove",
+					"heading4DividerAboveThickness",
+					"heading4DividerBelow",
+					"heading4DividerBelowThickness",
+					restyle,
+				);
+				levelElements[4] = Array.from(otherBody.children).slice(before4) as HTMLElement[];
+
+				const before5 = otherBody.children.length;
+				this.renderSizeCard(otherBody, settings, "Override theme's default header size", "Header size", "heading5OverrideSize", "heading5Size", 0.75, 1.75, restyle);
+				this.renderColorOverrideCard(otherBody, settings, "Override theme's default header colour", "Header colour", "heading5OverrideColor", "heading5Color", restyle);
+				this.renderFontCard(otherBody, settings, "heading5OverrideFont", "heading5FontWeight", "heading5SmallCaps");
+				this.renderDividerCard(
+					otherBody,
+					settings,
+					"heading5DividerAbove",
+					"heading5DividerAboveThickness",
+					"heading5DividerBelow",
+					"heading5DividerBelowThickness",
+					restyle,
+				);
+				levelElements[5] = Array.from(otherBody.children).slice(before5) as HTMLElement[];
+
+				const before6 = otherBody.children.length;
+				this.renderSizeCard(otherBody, settings, "Override theme's default header size", "Header size", "heading6OverrideSize", "heading6Size", 0.75, 1.75, restyle);
+				this.renderColorOverrideCard(otherBody, settings, "Override theme's default header colour", "Header colour", "heading6OverrideColor", "heading6Color", restyle);
+				this.renderFontCard(otherBody, settings, "heading6OverrideFont", "heading6FontWeight", "heading6SmallCaps");
+				this.renderDividerCard(
+					otherBody,
+					settings,
+					"heading6DividerAbove",
+					"heading6DividerAboveThickness",
+					"heading6DividerBelow",
+					"heading6DividerBelowThickness",
+					restyle,
+				);
+				levelElements[6] = Array.from(otherBody.children).slice(before6) as HTMLElement[];
+
+				applySelectedLevel(this.selectedOtherHeadingLevel);
+			});
+		});
+	}
+
+	private renderHighlightGroup(
+		body: HTMLElement,
+		settings: StoryForgePluginSettings,
+		onPerPanelChange: (perPanel: boolean) => void,
+	): void {
+		const highlightGroup = new SettingGroup(body);
 		highlightGroup
 			.addSetting((setting) =>
 				setting
@@ -294,11 +750,29 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					.addToggle((toggle) =>
 						toggle.setValue(settings.perPanelHighlighting).onChange(async (value) => {
 							await this.plugin.updateSetting("perPanelHighlighting", value);
-							applyHighlightNames(value);
+							onPerPanelChange(value);
 							this.plugin.applyHighlightStyle();
 						}),
 					),
-			)
+			);
+	}
+
+	/**
+	 * Renders the chapter/book "Highlight colour"/"Highlight text colour" rows under the Library
+	 * pane section. Returns the name-swap closure so the caller can re-invoke it when the "Per
+	 * panel highlighting" toggle (rendered elsewhere) changes.
+	 */
+	private renderLibraryHighlightRows(body: HTMLElement, settings: StoryForgePluginSettings): (perPanel: boolean) => void {
+		const libraryHighlightGroup = new SettingGroup(body);
+		let highlightColourSetting: Setting | null = null;
+		let highlightTextColourSetting: Setting | null = null;
+		const applyHighlightNames = (perPanel: boolean) => {
+			highlightColourSetting?.setName(perPanel ? "Highlight colour for chapter/book" : "Highlight colour");
+			highlightTextColourSetting?.setName(
+				perPanel ? "Highlight text colour for chapter/book" : "Highlight text colour",
+			);
+		};
+		libraryHighlightGroup
 			.addSetting((setting) => {
 				highlightColourSetting = setting;
 				setting
@@ -322,21 +796,22 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					);
 			});
 		applyHighlightNames(settings.perPanelHighlighting);
+		return applyHighlightNames;
 	}
 
 	private renderUnplacedPanel(body: HTMLElement, settings: StoryForgePluginSettings): void {
-		this.renderFoldableSection(body, "unplaced", "h4", "Unplaced panel", (unplacedBody) => {
-			this.renderHeaderStyleGroup(unplacedBody, settings, {
+		this.renderFoldableSection(body, "unplaced", "h4", "Unplaced pane", (unplacedBody) => {
+			const useHeaderColorToggle = this.renderHeaderStyleGroup(unplacedBody, settings, {
 				sizeKey: "unplacedFontSize",
 				colorKey: "unplacedColor",
 				mutedKey: "unplacedMuted",
 				smallCapsKey: "unplacedSmallCaps",
+				useHeaderColorForAllKey: "unplacedUseHeaderColorForAll",
 				restyle: () => this.plugin.applyHeaderStyles(),
 			});
 
 			const unplacedItemsGroup = new SettingGroup(unplacedBody);
-			let itemsMutedToggle!: ToggleComponent;
-			let itemsHeaderToggle!: ToggleComponent;
+			let itemsColourSetting!: Setting;
 			unplacedItemsGroup
 				.addSetting((setting) =>
 					setting
@@ -352,7 +827,8 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 								}),
 						),
 				)
-				.addSetting((setting) =>
+				.addSetting((setting) => {
+					itemsColourSetting = setting;
 					setting
 						.setName("Unplaced items colour")
 						.setDesc("colour of unplaced items")
@@ -361,54 +837,37 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 								await this.plugin.updateSetting("unplacedItemsColor", hex);
 								this.plugin.applyHeaderStyles();
 							}),
-						),
-				)
+						);
+				})
 				.addSetting((setting) =>
 					setting
 						.setName("Muted")
 						.setDesc("override colour with muted colour")
-						.addToggle((toggle) => {
-							itemsMutedToggle = toggle;
-							toggle.setValue(settings.unplacedItemsMuted);
-						}),
-				)
-				.addSetting((setting) =>
-					setting
-						.setName("Header colour")
-						.setDesc("override colour with header colour")
-						.addToggle((toggle) => {
-							itemsHeaderToggle = toggle;
-							toggle.setValue(settings.unplacedItemsUseHeaderColor);
-						}),
+						.addToggle((toggle) =>
+							toggle.setValue(settings.unplacedItemsMuted).onChange(async (value) => {
+								await this.plugin.updateSetting("unplacedItemsMuted", value);
+								this.plugin.applyHeaderStyles();
+							}),
+						),
 				);
-			this.bindExclusivePair(
-				itemsMutedToggle,
-				itemsHeaderToggle,
-				async (value) => {
-					await this.plugin.updateSetting("unplacedItemsMuted", value);
-					this.plugin.applyHeaderStyles();
-				},
-				async (value) => {
-					await this.plugin.updateSetting("unplacedItemsUseHeaderColor", value);
-					this.plugin.applyHeaderStyles();
-				},
-			);
 
-			new Setting(unplacedBody).setDesc(
-				"highlights the currently selected chapter in the storyForge panel, only active if per panel highlighting is selected",
-			);
 			const unplacedHighlightGroup = new SettingGroup(unplacedBody);
+			let highlightColourSetting!: Setting;
 			unplacedHighlightGroup
-				.addSetting((setting) =>
+				.addSetting((setting) => {
+					highlightColourSetting = setting;
 					setting
 						.setName("Highlight colour")
+						.setDesc(
+							"highlights the currently selected chapter in the storyForge panel, only active if per panel highlighting is selected",
+						)
 						.addButton((button) =>
 							this.bindColorSwatchButton(button, settings.unplacedHighlightColor, async (hex) => {
 								await this.plugin.updateSetting("unplacedHighlightColor", hex);
 								this.plugin.applyHighlightStyle();
 							}),
-						),
-				)
+						);
+				})
 				.addSetting((setting) =>
 					setting
 						.setName("Highlight text colour")
@@ -419,20 +878,34 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 							}),
 						),
 				);
+
+			const applyUseHeaderColorVisibility = (hidden: boolean) => {
+				itemsColourSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+				highlightColourSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+			};
+			useHeaderColorToggle.onChange(async (value) => {
+				await this.plugin.updateSetting("unplacedUseHeaderColorForAll", value);
+				applyUseHeaderColorVisibility(value);
+				this.plugin.applyHeaderStyles();
+				this.plugin.applyHighlightStyle();
+			});
+			applyUseHeaderColorVisibility(settings.unplacedUseHeaderColorForAll);
 		});
 	}
 
 	private renderCodexPanel(body: HTMLElement, settings: StoryForgePluginSettings): void {
-		this.renderFoldableSection(body, "codex", "h4", "Codex panel", (codexBody) => {
-			this.renderHeaderStyleGroup(codexBody, settings, {
+		this.renderFoldableSection(body, "codex", "h4", "Codex pane", (codexBody) => {
+			const useHeaderColorToggle = this.renderHeaderStyleGroup(codexBody, settings, {
 				sizeKey: "codexFontSize",
 				colorKey: "codexColor",
 				mutedKey: "codexMuted",
 				smallCapsKey: "codexSmallCaps",
+				useHeaderColorForAllKey: "codexUseHeaderColorForAll",
 				restyle: () => this.plugin.applyHeaderStyles(),
 			});
 
 			const codexFolderGroup = new SettingGroup(codexBody);
+			let folderColourSetting!: Setting;
 			codexFolderGroup
 				.addSetting((setting) =>
 					setting
@@ -448,7 +921,8 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 								}),
 						),
 				)
-				.addSetting((setting) =>
+				.addSetting((setting) => {
+					folderColourSetting = setting;
 					setting
 						.setName("Folder colour")
 						.setDesc("Colour of the codex folder names and chevrons.")
@@ -457,8 +931,8 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 								await this.plugin.updateSetting("codexFolderColor", hex);
 								this.plugin.applyCodexFolderStyle();
 							}),
-						),
-				)
+						);
+				})
 				.addSetting((setting) =>
 					setting
 						.setName("Folder indicator line")
@@ -481,6 +955,9 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			const codexNoteLabelGroup = new SettingGroup(codexBody);
 			let defaultToggle!: ToggleComponent;
 			let folderToggle!: ToggleComponent;
+			let noteLabelColourSetting!: Setting;
+			let defaultColourToggleSetting!: Setting;
+			let folderColourToggleSetting!: Setting;
 			codexNoteLabelGroup
 				.addSetting((setting) =>
 					setting
@@ -496,7 +973,8 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 								}),
 						),
 				)
-				.addSetting((setting) =>
+				.addSetting((setting) => {
+					noteLabelColourSetting = setting;
 					setting
 						.setName("Codex note label colour")
 						.setDesc("Colour of the codex note (file) labels.")
@@ -505,26 +983,28 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 								await this.plugin.updateSetting("codexNoteLabelColor", hex);
 								this.plugin.applyCodexNoteLabelStyle();
 							}),
-						),
-				)
-				.addSetting((setting) =>
+						);
+				})
+				.addSetting((setting) => {
+					defaultColourToggleSetting = setting;
 					setting
 						.setName("Use default colour for Codex note label")
 						.setDesc("overrides the note colour and sets it the same as the body text")
 						.addToggle((toggle) => {
 							defaultToggle = toggle;
 							toggle.setValue(settings.codexNoteLabelUseDefaultColor);
-						}),
-				)
-				.addSetting((setting) =>
+						});
+				})
+				.addSetting((setting) => {
+					folderColourToggleSetting = setting;
 					setting
 						.setName("Use folder colour for Codex notes")
 						.setDesc("overrides the note colour and sets it the same as the codex folder colour")
 						.addToggle((toggle) => {
 							folderToggle = toggle;
 							toggle.setValue(settings.codexNoteLabelUseFolderColor);
-						}),
-				);
+						});
+				});
 			this.bindExclusivePair(
 				defaultToggle,
 				folderToggle,
@@ -538,21 +1018,23 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				},
 			);
 
-			new Setting(codexBody).setDesc(
-				"highlights the currently selected note in the codex panel, only active if per panel highlighting is selected",
-			);
 			const codexHighlightGroup = new SettingGroup(codexBody);
+			let codexHighlightColourSetting!: Setting;
 			codexHighlightGroup
-				.addSetting((setting) =>
+				.addSetting((setting) => {
+					codexHighlightColourSetting = setting;
 					setting
 						.setName("Highlight colour")
+						.setDesc(
+							"highlights the currently selected note in the codex panel, only active if per panel highlighting is selected",
+						)
 						.addButton((button) =>
 							this.bindColorSwatchButton(button, settings.codexHighlightColor, async (hex) => {
 								await this.plugin.updateSetting("codexHighlightColor", hex);
 								this.plugin.applyHighlightStyle();
 							}),
-						),
-				)
+						);
+				})
 				.addSetting((setting) =>
 					setting
 						.setName("Highlight text colour")
@@ -563,12 +1045,33 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 							}),
 						),
 				);
+
+			const applyUseHeaderColorVisibility = (hidden: boolean) => {
+				folderColourSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+				noteLabelColourSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+				defaultColourToggleSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+				folderColourToggleSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+				codexHighlightColourSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+			};
+			useHeaderColorToggle.onChange(async (value) => {
+				await this.plugin.updateSetting("codexUseHeaderColorForAll", value);
+				applyUseHeaderColorVisibility(value);
+				this.plugin.applyHeaderStyles();
+				this.plugin.applyHighlightStyle();
+				this.plugin.applyCodexFolderStyle();
+				this.plugin.applyCodexNoteLabelStyle();
+			});
+			applyUseHeaderColorVisibility(settings.codexUseHeaderColorForAll);
 		});
 	}
 
 	private renderUiFormattingSection(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
-		this.renderFoldableSection(containerEl, "ui-formatting", "h3", "storyForge interface formatting", (body) => {
-			this.renderHighlightGroup(body, settings);
+		this.renderFoldableSection(containerEl, "ui-formatting", "h3", "storyForge interface", (body) => {
+			let applyHighlightNames: (perPanel: boolean) => void = () => {};
+			this.renderHighlightGroup(body, settings, (perPanel) => applyHighlightNames(perPanel));
+			this.renderFoldableSection(body, "library-pane", "h4", "Library pane", (libraryBody) => {
+				applyHighlightNames = this.renderLibraryHighlightRows(libraryBody, settings);
+			});
 			this.renderUnplacedPanel(body, settings);
 			this.renderCodexPanel(body, settings);
 		});
@@ -686,7 +1189,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 
 		this.renderTopActions(containerEl, settings);
 		this.renderPaletteSection(containerEl, settings);
-		this.renderTextStyleSection(containerEl);
+		this.renderTextStyleSection(containerEl, settings);
 		this.renderUiFormattingSection(containerEl, settings);
 		this.renderHideUiSection(containerEl, settings);
 	}
