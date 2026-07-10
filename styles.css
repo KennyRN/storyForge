@@ -55,13 +55,27 @@
 }
 
 .sf-book-line {
-	align-items: flex-start;
+	display: grid;
+	grid-template-columns: auto 1fr;
+	column-gap: 6px;
+}
+
+.sf-book-line > .sf-icon {
+	align-self: end;
+}
+
+.sf-book-title-row {
+	align-items: flex-end;
 	cursor: default;
 }
 
 .sf-book-text-wrap {
 	flex: 1;
 	min-width: 0;
+}
+
+.sf-book-subtitle-text {
+	grid-column: 2;
 }
 
 .sf-icon {
@@ -422,24 +436,14 @@
 .sf-codex-file.sf-row-selected {
 }
 
-.sf-series-filter-btn {
-	margin-left: auto;
-	color: var(--text-muted);
-	cursor: pointer;
-}
-
-.sf-series-filter-btn:hover {
-	color: var(--text-normal);
-}
-
+.sf-series-filter-btn,
 .sf-book-filter-btn {
+	display: flex;
+	align-items: center;
+	flex-shrink: 0;
 	margin-left: auto;
 	color: var(--text-muted);
 	cursor: pointer;
-}
-
-.sf-book-filter-btn:hover {
-	color: var(--text-normal);
 }
 
 .sf-series-modal {
