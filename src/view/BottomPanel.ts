@@ -125,7 +125,7 @@ function renderTreeChildren(
 
 			const collapsed = collapsedPaths.has(item.id);
 			const chevron = headerEl.createSpan({ cls: "sf-codex-chevron" });
-			setIcon(chevron, collapsed ? "chevron-right" : "chevron-down");
+			chevron.toggleClass("sf-codex-chevron-collapsed", collapsed);
 			const folderNameEl = headerEl.createSpan({ cls: "sf-codex-folder-name", text: item.name });
 			folderNameEl.addClass("sf-styled-heading");
 			headerEl.addEventListener("click", (e) => {

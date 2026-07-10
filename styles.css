@@ -167,6 +167,8 @@
 .sf-drag-handle {
 	display: flex;
 	align-items: center;
+	width: 16px;
+	flex-shrink: 0;
 	color: var(--text-faint);
 	cursor: grab;
 	touch-action: none;
@@ -323,6 +325,8 @@
 	padding: 4px 6px;
 	border-radius: 4px;
 	cursor: pointer;
+	position: relative;
+	z-index: 2;
 }
 
 .sf-codex-folder-header:hover {
@@ -330,8 +334,9 @@
 }
 
 .sf-codex-folder {
-	/* header's 6px left padding + half the chevron's fixed 16px width */
-	--sf-codex-indent-guide-x: 14px;
+	/* header's 6px left padding + 16px drag handle + 4px gap + half the chevron's fixed 16px width */
+	--sf-codex-indent-guide-x: 34px;
+	--sf-codex-child-indent: 10px;
 }
 
 .sf-codex-chevron {
@@ -341,6 +346,21 @@
 	width: 16px;
 	flex-shrink: 0;
 	color: var(--text-faint);
+}
+
+.sf-codex-chevron::before {
+	content: "";
+	width: 0;
+	height: 0;
+	border-style: solid;
+	border-width: 7px 0 7px 9.8px;
+	border-color: transparent transparent transparent currentColor;
+	transition: transform 0.12s ease;
+	transform: rotate(90deg); /* expanded: pointing down */
+}
+
+.sf-codex-chevron.sf-codex-chevron-collapsed::before {
+	transform: rotate(0deg); /* collapsed: pointing right */
 }
 
 .sf-codex-folder-name {
@@ -357,12 +377,12 @@
 
 .sf-codex-folder-children {
 	position: relative;
-	padding-left: 10px;
+	padding-left: var(--sf-codex-child-indent);
 }
 
 .sf-codex-folder-indicator {
 	position: absolute;
-	top: 0;
+	top: -18px;
 	bottom: 0;
 	left: var(--sf-codex-indent-guide-x);
 	transform: translateX(-50%);
@@ -392,6 +412,8 @@
 .sf-codex-file {
 	display: flex;
 	align-items: center;
+	/* no chevron here, so bridge the gap a folder's chevron + 4px gap would take up, flush-aligning this label with its parent folder's name */
+	gap: 14px;
 	padding: 4px 6px;
 	border-radius: 4px;
 	cursor: pointer;
