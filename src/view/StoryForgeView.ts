@@ -7,6 +7,7 @@ import { renderTopPanel } from "./TopPanel";
 import { renderBottomPanel } from "./BottomPanel";
 import { renderStatsPanel, nextStatsMode, type StatsMode } from "./StatsPanel";
 import { SeriesModal } from "./SeriesModal";
+import { BookSynopsisModal } from "./BookSynopsisModal";
 import { ArchiveModal } from "./ArchiveModal";
 import { CodexArchiveModal } from "./CodexArchiveModal";
 import { createCodexFolder, createCodexNote, readCodexFrontmatter, type CodexViewMode } from "../codex";
@@ -100,6 +101,7 @@ export class StoryForgeView extends ItemView {
 			},
 			onOpenChapter: (bookName, filename) => void this.openChapter(bookName, filename),
 			onOpenSeriesModal: () => new SeriesModal(this.app, () => this.render()).open(),
+			onOpenBookSynopsisModal: (bookFolderName) => new BookSynopsisModal(this.app, bookFolderName, () => this.render()).open(),
 			onOpenArchive: () => {
 				if (this.currentBookFolderName) {
 					new ArchiveModal(this.app, this.currentBookFolderName, () => this.render()).open();
