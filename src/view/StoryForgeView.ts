@@ -21,7 +21,7 @@ export const STORYFORGE_VIEW_TYPE = "storyforge-view";
 export class StoryForgeView extends ItemView {
 	private currentBookFolderName: string | null = null;
 	private activeChapterFilename: string | null = null;
-	private topMode: "book" | "series" = "book";
+	private topMode: "book" | "series" = "series";
 	private codexMode: CodexViewMode = "codex";
 	private collapsedCodexFolders = new Set<string>();
 	private activeCodexFolderId: string | null = null;
@@ -50,6 +50,10 @@ export class StoryForgeView extends ItemView {
 	private readonly debouncedRender = debounce(() => this.render(), 400);
 
 	async onOpen(): Promise<void> {
+		const settings = this.plugin.getSettings();
+		this.currentBookFolderName = settings.selectedNovel;
+		this.activeChapterFilename = settings.selectedObject;
+		this.topMode = this.currentBookFolderName ? "book" : "series";
 		this.registerEvent(this.app.workspace.on("active-leaf-change", () => this.followActiveFile()));
 		this.registerEvent(this.app.workspace.on("file-open", () => this.followActiveFile()));
 		this.registerEvent(this.app.vault.on("rename", () => this.debouncedRender()));
@@ -67,13 +71,19 @@ export class StoryForgeView extends ItemView {
 				this.currentBookFolderName = bookName;
 				this.topMode = "book";
 				this.activeChapterFilename = file.name;
-			} else {
-				this.activeChapterFilename = null;
+				void this.persistSelection();
 			}
-		} else {
-			this.activeChapterFilename = null;
+		}
+		if (!this.currentBookFolderName) {
+			this.topMode = "series";
 		}
 		this.render();
+	}
+
+	/** Mirrors the panel's current book/chapter selection into settings, so leaving and returning to storyForge (even across a full close/reopen) picks up where it left off. */
+	private async persistSelection(): Promise<void> {
+		await this.plugin.updateSetting("selectedNovel", this.currentBookFolderName);
+		await this.plugin.updateSetting("selectedObject", this.activeChapterFilename);
 	}
 
 	render(): void {
@@ -91,12 +101,14 @@ export class StoryForgeView extends ItemView {
 			activeChapterFilename: this.activeChapterFilename,
 			highlightActiveChapter: this.plugin.getSettings().highlightActiveChapter,
 			onToggleMode: () => {
-				this.topMode = this.topMode === "book" ? "series" : "book";
+				this.topMode = this.topMode === "book" ? "series" : this.currentBookFolderName ? "book" : "series";
 				this.render();
 			},
 			onSelectBook: (name) => {
 				this.currentBookFolderName = name;
 				this.topMode = "book";
+				this.activeChapterFilename = null;
+				void this.persistSelection();
 				this.render();
 			},
 			onOpenChapter: (bookName, filename) => void this.openChapter(bookName, filename),

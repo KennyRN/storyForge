@@ -1,21 +1,11 @@
 import { App, ButtonComponent, PluginSettingTab, Setting, SettingGroup, ToggleComponent, setIcon } from "obsidian";
 import type StoryForgePlugin from "../main";
-import type { CodexFolderIndicatorThickness, FontWeight, HeadingDividerThickness, HeadingFontWeight, StoryForgePluginSettings } from "../main";
+import type { CodexFolderIndicatorThickness, FontWeight, HeadingDividerThickness, HeadingFontFamily, StoryForgePluginSettings } from "../main";
 import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
 import { PALETTE_NAMES, PaletteMode, PaletteName } from "../colorPalettes";
 import { PalettePickerModal } from "./PalettePickerModal";
 import { IconAuditModal } from "./IconAuditModal";
-
-const HEADING_FONT_WEIGHT_OPTIONS: [HeadingFontWeight, string][] = [
-	["theme", "Theme default"],
-	["300", "Light"],
-	["400", "Regular"],
-	["500", "Medium"],
-	["600", "Semi Bold"],
-	["700", "Bold"],
-	["800", "Extra Bold"],
-	["900", "Black"],
-];
+import { CUSTOM_FONTS } from "../fonts";
 
 const FONT_WEIGHT_OPTIONS: [FontWeight, string][] = [
 	["300", "Light"],
@@ -438,9 +428,11 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 	}
 
 	/**
-	 * Renders the "Override theme's default font" card (inert toggle - no CSS wired yet) with an
-	 * optionless "Pick font" row revealed when on, followed by the always-visible "Font weight"
-	 * (wired to real CSS) and "Small caps" (wired) rows, in the same card.
+	 * Renders the "Override theme's default font" card: the toggle, plus "Pick font", "Font weight",
+	 * and "Small caps" rows that are all shown/hidden together based on the toggle (not just "Pick
+	 * font" — every row in this card is inert while the override is off). `fontFamilyKey` is only
+	 * passed for heading1 today — heading2-6 keep the "Pick font" row as an inert label with no
+	 * control, unchanged.
 	 */
 	private renderFontCard(
 		body: HTMLElement,
@@ -448,43 +440,58 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		overrideFontKey: "heading1OverrideFont" | "heading2OverrideFont" | "heading3OverrideFont" | "heading4OverrideFont" | "heading5OverrideFont" | "heading6OverrideFont",
 		fontWeightKey: "heading1FontWeight" | "heading2FontWeight" | "heading3FontWeight" | "heading4FontWeight" | "heading5FontWeight" | "heading6FontWeight",
 		smallCapsKey: "heading1SmallCaps" | "heading2SmallCaps" | "heading3SmallCaps" | "heading4SmallCaps" | "heading5SmallCaps" | "heading6SmallCaps",
+		fontFamilyKey?: "heading1FontFamily",
 	): void {
 		const restyle = () => this.plugin.applyTextStyleOverrides();
-		const { card } = this.renderToggleWithRevealCard(
-			body,
-			"Override theme's default font",
-			settings[overrideFontKey],
-			(value) => this.plugin.updateSetting(overrideFontKey, value),
-			(card) => {
-				let pickFontSetting!: Setting;
-				card.addSetting((setting) => {
-					pickFontSetting = setting;
-					setting.setName("Pick font");
-				});
-				return pickFontSetting;
-			},
-			() => {},
+		const card = new SettingGroup(body);
+
+		let overrideToggle!: ToggleComponent;
+		card.addSetting((setting) =>
+			setting.setName("Override theme's default font").addToggle((toggle) => {
+				overrideToggle = toggle;
+				toggle.setValue(settings[overrideFontKey]);
+			}),
 		);
+
+		let pickFontSetting!: Setting;
 		card.addSetting((setting) => {
-			setting.setName("Font weight").addDropdown((dropdown) => {
-				for (const [value, label] of HEADING_FONT_WEIGHT_OPTIONS) {
-					dropdown.addOption(value, label);
-					const opt = dropdown.selectEl.options[dropdown.selectEl.options.length - 1];
-					opt.style.fontWeight = value === "theme" ? "" : value;
+			pickFontSetting = setting;
+			setting.setName("Pick font");
+			if (!fontFamilyKey) return;
+			setting.addDropdown((dropdown) => {
+				dropdown.addOption("theme", "Theme default");
+				for (const font of CUSTOM_FONTS) dropdown.addOption(font.id, font.label);
+				for (const opt of Array.from(dropdown.selectEl.options)) {
+					const font = CUSTOM_FONTS.find((f) => f.id === opt.value);
+					opt.style.fontFamily = font ? font.cssFontFamily : "";
 				}
-				const applySelectedWeight = (value: HeadingFontWeight) => {
-					dropdown.selectEl.style.fontWeight = value === "theme" ? "" : value;
+				const applySelectedFont = (value: HeadingFontFamily) => {
+					const font = CUSTOM_FONTS.find((f) => f.id === value);
+					dropdown.selectEl.style.fontFamily = font ? font.cssFontFamily : "";
 				};
-				dropdown.setValue(settings[fontWeightKey]);
-				applySelectedWeight(settings[fontWeightKey]);
+				dropdown.setValue(settings[fontFamilyKey]);
+				applySelectedFont(settings[fontFamilyKey]);
 				dropdown.onChange(async (value) => {
-					await this.plugin.updateSetting(fontWeightKey, value as HeadingFontWeight);
-					applySelectedWeight(value as HeadingFontWeight);
+					await this.plugin.updateSetting(fontFamilyKey, value as HeadingFontFamily);
+					applySelectedFont(value as HeadingFontFamily);
 					restyle();
 				});
 			});
 		});
+
+		let fontWeightSetting!: Setting;
 		card.addSetting((setting) => {
+			fontWeightSetting = setting;
+			setting.setName("Font weight");
+			this.bindFontWeightDropdown(setting, settings[fontWeightKey], async (value) => {
+				await this.plugin.updateSetting(fontWeightKey, value);
+				restyle();
+			});
+		});
+
+		let smallCapsSetting!: Setting;
+		card.addSetting((setting) => {
+			smallCapsSetting = setting;
 			setting.setName("Small caps").addToggle((toggle) =>
 				toggle.setValue(settings[smallCapsKey]).onChange(async (value) => {
 					await this.plugin.updateSetting(smallCapsKey, value);
@@ -493,6 +500,17 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			);
 			setting.nameEl.style.fontVariant = "small-caps";
 		});
+
+		const rows = [pickFontSetting, fontWeightSetting, smallCapsSetting];
+		const applyVisibility = (hidden: boolean) => {
+			for (const row of rows) row.settingEl.toggleClass("sf-settings-hidden", hidden);
+		};
+		overrideToggle.onChange(async (value) => {
+			await this.plugin.updateSetting(overrideFontKey, value);
+			applyVisibility(!value);
+			restyle();
+		});
+		applyVisibility(!overrideToggle.getValue());
 	}
 
 	/** Renders the "Divider line above/below header" card: each side's toggle immediately followed by its own thickness dropdown, shown only while that side is on. */
@@ -628,7 +646,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					"heading1Color",
 					restyle,
 				);
-				this.renderFontCard(h1Body, settings, "heading1OverrideFont", "heading1FontWeight", "heading1SmallCaps");
+				this.renderFontCard(h1Body, settings, "heading1OverrideFont", "heading1FontWeight", "heading1SmallCaps", "heading1FontFamily");
 				this.renderDividerCard(
 					h1Body,
 					settings,
