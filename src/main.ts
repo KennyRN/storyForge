@@ -169,6 +169,7 @@ export interface StoryForgePluginSettings {
 	customPaletteColors: PaletteColor[];
 	selectedNovel: string | null;
 	selectedObject: string | null;
+	collapsedCodexFolderIds: string[];
 }
 
 export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
@@ -307,6 +308,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	],
 	selectedNovel: null,
 	selectedObject: null,
+	collapsedCodexFolderIds: [],
 };
 
 export default class StoryForgePlugin extends Plugin {
