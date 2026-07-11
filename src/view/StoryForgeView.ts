@@ -54,6 +54,7 @@ export class StoryForgeView extends ItemView {
 		this.currentBookFolderName = settings.selectedNovel;
 		this.activeChapterFilename = settings.selectedObject;
 		this.topMode = this.currentBookFolderName ? "book" : "series";
+		this.collapsedCodexFolders = new Set(settings.collapsedCodexFolderIds);
 		this.registerEvent(this.app.workspace.on("active-leaf-change", () => this.followActiveFile()));
 		this.registerEvent(this.app.workspace.on("file-open", () => this.followActiveFile()));
 		this.registerEvent(this.app.vault.on("rename", () => this.debouncedRender()));
@@ -146,6 +147,7 @@ export class StoryForgeView extends ItemView {
 					this.collapsedCodexFolders.add(folderId);
 				}
 				this.activeCodexFolderId = folderId;
+				void this.plugin.updateSetting("collapsedCodexFolderIds", Array.from(this.collapsedCodexFolders));
 				this.render();
 			},
 			activeFilePath,
