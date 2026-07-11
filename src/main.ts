@@ -13,6 +13,7 @@ import { extractFingerprint } from "./fingerprint";
 import { updateChapterFingerprint } from "./chapterSidecar";
 import { debounce } from "./debounce";
 import { registerCustomIcons } from "./icons";
+import { buildCustomFontFaceCSS, buildCustomFontFamilyDeclaration, CUSTOM_FONTS } from "./fonts";
 import { refreshTabTitles, registerTabTitleOverrides } from "./tabTitles";
 import { PaletteColor, PaletteMode, PaletteName } from "./colorPalettes";
 import { OBSIDIAN_CSS_VARS, OBSIDIAN_SELECTORS } from "./obsidianInternals";
@@ -28,7 +29,7 @@ const CODEX_FOLDER_INDICATOR_WIDTH_PX: Record<CodexFolderIndicatorThickness, num
 
 export type HeadingDividerThickness = "thin" | "medium" | "thick";
 
-export type HeadingFontWeight = "theme" | "300" | "400" | "500" | "600" | "700" | "800" | "900";
+export type HeadingFontFamily = "theme" | "caroni" | "ibm-plex-sans-var" | "nunito";
 
 export type FontWeight = "300" | "400" | "500" | "600" | "700" | "800" | "900";
 
@@ -100,7 +101,8 @@ export interface StoryForgePluginSettings {
 	heading1Size: number;
 	heading1Color: string;
 	heading1OverrideFont: boolean;
-	heading1FontWeight: HeadingFontWeight;
+	heading1FontWeight: FontWeight;
+	heading1FontFamily: HeadingFontFamily;
 	heading1SmallCaps: boolean;
 	heading1DividerAbove: boolean;
 	heading1DividerAboveThickness: HeadingDividerThickness;
@@ -111,7 +113,7 @@ export interface StoryForgePluginSettings {
 	heading2Size: number;
 	heading2Color: string;
 	heading2OverrideFont: boolean;
-	heading2FontWeight: HeadingFontWeight;
+	heading2FontWeight: FontWeight;
 	heading2SmallCaps: boolean;
 	heading2DividerAbove: boolean;
 	heading2DividerAboveThickness: HeadingDividerThickness;
@@ -122,7 +124,7 @@ export interface StoryForgePluginSettings {
 	heading3Size: number;
 	heading3Color: string;
 	heading3OverrideFont: boolean;
-	heading3FontWeight: HeadingFontWeight;
+	heading3FontWeight: FontWeight;
 	heading3SmallCaps: boolean;
 	heading3DividerAbove: boolean;
 	heading3DividerAboveThickness: HeadingDividerThickness;
@@ -133,7 +135,7 @@ export interface StoryForgePluginSettings {
 	heading4Size: number;
 	heading4Color: string;
 	heading4OverrideFont: boolean;
-	heading4FontWeight: HeadingFontWeight;
+	heading4FontWeight: FontWeight;
 	heading4SmallCaps: boolean;
 	heading4DividerAbove: boolean;
 	heading4DividerAboveThickness: HeadingDividerThickness;
@@ -144,7 +146,7 @@ export interface StoryForgePluginSettings {
 	heading5Size: number;
 	heading5Color: string;
 	heading5OverrideFont: boolean;
-	heading5FontWeight: HeadingFontWeight;
+	heading5FontWeight: FontWeight;
 	heading5SmallCaps: boolean;
 	heading5DividerAbove: boolean;
 	heading5DividerAboveThickness: HeadingDividerThickness;
@@ -155,7 +157,7 @@ export interface StoryForgePluginSettings {
 	heading6Size: number;
 	heading6Color: string;
 	heading6OverrideFont: boolean;
-	heading6FontWeight: HeadingFontWeight;
+	heading6FontWeight: FontWeight;
 	heading6SmallCaps: boolean;
 	heading6DividerAbove: boolean;
 	heading6DividerAboveThickness: HeadingDividerThickness;
@@ -165,6 +167,8 @@ export interface StoryForgePluginSettings {
 	colorPaletteName: PaletteName;
 	colorPaletteMode: PaletteMode;
 	customPaletteColors: PaletteColor[];
+	selectedNovel: string | null;
+	selectedObject: string | null;
 }
 
 export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
@@ -229,7 +233,8 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	heading1Size: 1,
 	heading1Color: "#c8c8c8",
 	heading1OverrideFont: false,
-	heading1FontWeight: "theme",
+	heading1FontWeight: "400",
+	heading1FontFamily: "theme",
 	heading1SmallCaps: false,
 	heading1DividerAbove: false,
 	heading1DividerAboveThickness: "medium",
@@ -240,7 +245,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	heading2Size: 1,
 	heading2Color: "#c8c8c8",
 	heading2OverrideFont: false,
-	heading2FontWeight: "theme",
+	heading2FontWeight: "400",
 	heading2SmallCaps: false,
 	heading2DividerAbove: false,
 	heading2DividerAboveThickness: "medium",
@@ -251,7 +256,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	heading3Size: 1,
 	heading3Color: "#c8c8c8",
 	heading3OverrideFont: false,
-	heading3FontWeight: "theme",
+	heading3FontWeight: "400",
 	heading3SmallCaps: false,
 	heading3DividerAbove: false,
 	heading3DividerAboveThickness: "medium",
@@ -262,7 +267,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	heading4Size: 1,
 	heading4Color: "#c8c8c8",
 	heading4OverrideFont: false,
-	heading4FontWeight: "theme",
+	heading4FontWeight: "400",
 	heading4SmallCaps: false,
 	heading4DividerAbove: false,
 	heading4DividerAboveThickness: "medium",
@@ -273,7 +278,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	heading5Size: 1,
 	heading5Color: "#c8c8c8",
 	heading5OverrideFont: false,
-	heading5FontWeight: "theme",
+	heading5FontWeight: "400",
 	heading5SmallCaps: false,
 	heading5DividerAbove: false,
 	heading5DividerAboveThickness: "medium",
@@ -284,7 +289,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	heading6Size: 1,
 	heading6Color: "#c8c8c8",
 	heading6OverrideFont: false,
-	heading6FontWeight: "theme",
+	heading6FontWeight: "400",
 	heading6SmallCaps: false,
 	heading6DividerAbove: false,
 	heading6DividerAboveThickness: "medium",
@@ -300,6 +305,8 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 		{ name: "Custom 4", hex: "#4d96ff" },
 		{ name: "Custom 5", hex: "#9d4edd" },
 	],
+	selectedNovel: null,
+	selectedObject: null,
 };
 
 export default class StoryForgePlugin extends Plugin {
@@ -311,12 +318,17 @@ export default class StoryForgePlugin extends Plugin {
 	private extraDocs = new Set<Document>();
 
 	async onload(): Promise<void> {
+		// Loaded first, before registerView() below - Obsidian can start restoring a previously-open
+		// leaf of our view type as soon as it's registered, without waiting for the rest of onload()
+		// to resolve, so StoryForgeView.onOpen() must never risk reading pre-load default settings.
+		await this.loadSettings();
+
 		// Defensively remove any style tags a previous (e.g. hot-reloaded) instance of this
 		// plugin left behind - onunload() prevents this going forward, but existing sessions
 		// may already have stale duplicates injected before that existed.
 		document
 			.querySelectorAll(
-				"#storyforge-visibility-styles, #storyforge-header-styles, #storyforge-highlight-styles, #storyforge-library-header-styles, #storyforge-codex-folder-styles, #storyforge-codex-note-label-styles, #storyforge-heading1-link-styles, #storyforge-text-style-overrides",
+				"#storyforge-visibility-styles, #storyforge-header-styles, #storyforge-highlight-styles, #storyforge-library-header-styles, #storyforge-codex-folder-styles, #storyforge-codex-note-label-styles, #storyforge-heading1-link-styles, #storyforge-text-style-overrides, #storyforge-custom-fonts",
 			)
 			.forEach((el) => el.remove());
 
@@ -336,7 +348,6 @@ export default class StoryForgePlugin extends Plugin {
 			callback: () => void this.activateToolsView(),
 		});
 
-		await this.loadSettings();
 		this.addSettingTab(new StoryForgeSettingsTab(this.app, this));
 		this.applyVisibilityStyles();
 		this.applyHeaderStyles();
@@ -346,6 +357,7 @@ export default class StoryForgePlugin extends Plugin {
 		this.applyCodexNoteLabelStyle();
 		this.applyHeading1LinkStyle();
 		this.applyTextStyleOverrides();
+		this.applyCustomFontFaces();
 		registerTabTitleOverrides(this.app, (eventRef) => this.registerEvent(eventRef));
 
 		registerReconciliationEvents(this.app, this);
@@ -372,6 +384,7 @@ export default class StoryForgePlugin extends Plugin {
 				this.applyCodexNoteLabelStyle();
 				this.applyHeading1LinkStyle();
 				this.applyTextStyleOverrides();
+				this.applyCustomFontFaces();
 			}),
 		);
 		this.registerEvent(
@@ -646,6 +659,11 @@ export default class StoryForgePlugin extends Plugin {
 		this.applyStyleToAllDocs("storyforge-heading1-link-styles", rules.join("\n"));
 	}
 
+	/** Registers the `@font-face` rules for every embedded custom font. Not settings-dependent, so this just needs re-running per pop-out window, like the other apply*Styles methods. */
+	applyCustomFontFaces(): void {
+		this.applyStyleToAllDocs("storyforge-custom-fonts", buildCustomFontFaceCSS());
+	}
+
 	/** Builds the size/colour/weight/small-caps/divider CSS rules for one heading level, across reading view and Live Preview. */
 	private buildHeadingRules(
 		level: 1 | 2 | 3 | 4 | 5 | 6,
@@ -653,7 +671,8 @@ export default class StoryForgePlugin extends Plugin {
 		size: number,
 		overrideColor: boolean,
 		color: string,
-		fontWeight: HeadingFontWeight,
+		overrideFont: boolean,
+		fontWeight: FontWeight,
 		smallCaps: boolean,
 		dividerAbove: boolean,
 		dividerAboveThickness: HeadingDividerThickness,
@@ -666,7 +685,7 @@ export default class StoryForgePlugin extends Plugin {
 		const rules: string[] = [];
 		if (overrideSize) rules.push(`${reading}, ${line} { font-size: ${size}em; }`);
 		if (overrideColor) rules.push(`${reading}, ${text} { color: ${color}; }`);
-		if (fontWeight !== "theme") rules.push(`${reading}, ${line} { font-weight: ${fontWeight}; }`);
+		if (overrideFont) rules.push(`${reading}, ${line} { font-weight: ${fontWeight}; }`);
 		if (smallCaps) rules.push(`${reading}, ${line} { font-variant: small-caps; }`);
 		if (dividerAbove) {
 			const thicknessPx = HEADING_DIVIDER_WIDTH_PX[dividerAboveThickness];
@@ -688,6 +707,17 @@ export default class StoryForgePlugin extends Plugin {
 		if (s.bodyTextOverrideColor) {
 			rules.push(`${OBSIDIAN_SELECTORS.bodyTextReading}, ${OBSIDIAN_SELECTORS.bodyTextLivePreview} { color: ${s.bodyTextColor}; }`);
 		}
+		// Kept separate from buildHeadingRules (rather than threading a font-family param through
+		// all six of its call sites) since only heading1 has a real "Pick font" setting driving it today.
+		const heading1FontFamilyRules: string[] = [];
+		if (s.heading1OverrideFont && s.heading1FontFamily !== "theme") {
+			const font = CUSTOM_FONTS.find((f) => f.id === s.heading1FontFamily);
+			if (font) {
+				heading1FontFamilyRules.push(
+					`${OBSIDIAN_SELECTORS.headingReading[1]}, ${OBSIDIAN_SELECTORS.headingLivePreviewLine[1]} { ${buildCustomFontFamilyDeclaration(font, Number(s.heading1FontWeight))} }`,
+				);
+			}
+		}
 		rules.push(
 			...this.buildHeadingRules(
 				1,
@@ -695,6 +725,7 @@ export default class StoryForgePlugin extends Plugin {
 				s.heading1Size,
 				s.heading1OverrideColor,
 				s.heading1Color,
+				s.heading1OverrideFont,
 				s.heading1FontWeight,
 				s.heading1SmallCaps,
 				s.heading1DividerAbove,
@@ -702,12 +733,14 @@ export default class StoryForgePlugin extends Plugin {
 				s.heading1DividerBelow,
 				s.heading1DividerBelowThickness,
 			),
+			...heading1FontFamilyRules,
 			...this.buildHeadingRules(
 				2,
 				s.heading2OverrideSize,
 				s.heading2Size,
 				s.heading2OverrideColor,
 				s.heading2Color,
+				s.heading2OverrideFont,
 				s.heading2FontWeight,
 				s.heading2SmallCaps,
 				s.heading2DividerAbove,
@@ -721,6 +754,7 @@ export default class StoryForgePlugin extends Plugin {
 				s.heading3Size,
 				s.heading3OverrideColor,
 				s.heading3Color,
+				s.heading3OverrideFont,
 				s.heading3FontWeight,
 				s.heading3SmallCaps,
 				s.heading3DividerAbove,
@@ -734,6 +768,7 @@ export default class StoryForgePlugin extends Plugin {
 				s.heading4Size,
 				s.heading4OverrideColor,
 				s.heading4Color,
+				s.heading4OverrideFont,
 				s.heading4FontWeight,
 				s.heading4SmallCaps,
 				s.heading4DividerAbove,
@@ -747,6 +782,7 @@ export default class StoryForgePlugin extends Plugin {
 				s.heading5Size,
 				s.heading5OverrideColor,
 				s.heading5Color,
+				s.heading5OverrideFont,
 				s.heading5FontWeight,
 				s.heading5SmallCaps,
 				s.heading5DividerAbove,
@@ -760,6 +796,7 @@ export default class StoryForgePlugin extends Plugin {
 				s.heading6Size,
 				s.heading6OverrideColor,
 				s.heading6Color,
+				s.heading6OverrideFont,
 				s.heading6FontWeight,
 				s.heading6SmallCaps,
 				s.heading6DividerAbove,
