@@ -77,20 +77,19 @@ export function buildCustomFontFaceCSS(): string {
 
 /**
  * CSS for switching to a custom font at a given requested weight: real interpolation for a
- * variable font whose weightMin/weightMax range covers it (e.g. IBM Plex Sans Var), synthetic
- * bold plus a proportional text-stroke as a fallback once the request exceeds a font's native
- * weightMax — synthetic bold alone is binary (one fixed faux-bold strength), so anything beyond
- * it needs the stroke to keep visibly getting heavier. Shared so any future font-family picker
- * (not just heading1's) gets the same weight handling for free.
+ * variable font whose weightMin/weightMax range covers it (e.g. IBM Plex Sans Var); a no-op
+ * weight declaration for a static/single-weight font (e.g. Caroni), since it has no "wght" axis.
+ * Font-synthesis is deliberately left at its default (on) in both cases, so genuine <strong>/<b>
+ * text typed in the editor still renders bold via the browser's synthetic bold, even though these
+ * fonts have no real bold face — only the weight-picker-driven fake bolding is removed here.
  */
 export function buildCustomFontFamilyDeclaration(font: CustomFontEntry, requestedWeight: number): string {
+	if (font.weightMin === font.weightMax) {
+		return `font-family: "${font.cssFontFamily}", var(--font-text);`;
+	}
 	// Explicit font-variation-settings, not just font-weight - relying solely on the browser's
 	// implicit font-weight-range matching to drive a variable font's "wght" axis has proven
-	// unreliable; being explicit here is what actually makes the weight change visible. A no-op
-	// on a font with no "wght" axis (e.g. Caroni), so this is safe to apply unconditionally.
+	// unreliable; being explicit here is what actually makes the weight change visible.
 	const nativeWeight = Math.min(requestedWeight, font.weightMax);
-	const base = `font-family: "${font.cssFontFamily}", var(--font-text); font-synthesis: weight; font-variation-settings: "wght" ${nativeWeight};`;
-	if (requestedWeight <= font.weightMax) return base;
-	const strokeWidth = ((requestedWeight - font.weightMax) / (900 - font.weightMax)) * 0.6;
-	return `${base} -webkit-text-stroke: ${strokeWidth.toFixed(2)}px currentColor;`;
+	return `font-family: "${font.cssFontFamily}", var(--font-text); font-variation-settings: "wght" ${nativeWeight};`;
 }

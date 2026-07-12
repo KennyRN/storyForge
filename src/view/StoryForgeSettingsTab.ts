@@ -453,13 +453,14 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			}),
 		);
 
+		let selectedFontFamily: HeadingFontFamily | undefined = fontFamilyKey ? settings[fontFamilyKey] : undefined;
+
 		let pickFontSetting!: Setting;
 		card.addSetting((setting) => {
 			pickFontSetting = setting;
 			setting.setName("Pick font");
 			if (!fontFamilyKey) return;
 			setting.addDropdown((dropdown) => {
-				dropdown.addOption("theme", "Theme default");
 				for (const font of CUSTOM_FONTS) dropdown.addOption(font.id, font.label);
 				for (const opt of Array.from(dropdown.selectEl.options)) {
 					const font = CUSTOM_FONTS.find((f) => f.id === opt.value);
@@ -474,6 +475,8 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				dropdown.onChange(async (value) => {
 					await this.plugin.updateSetting(fontFamilyKey, value as HeadingFontFamily);
 					applySelectedFont(value as HeadingFontFamily);
+					selectedFontFamily = value as HeadingFontFamily;
+					applyVisibility(!overrideToggle.getValue());
 					restyle();
 				});
 			});
@@ -501,9 +504,19 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			setting.nameEl.style.fontVariant = "small-caps";
 		});
 
-		const rows = [pickFontSetting, fontWeightSetting, smallCapsSetting];
-		const applyVisibility = (hidden: boolean) => {
-			for (const row of rows) row.settingEl.toggleClass("sf-settings-hidden", hidden);
+		// A non-variable (single fixed-weight) font has no "wght" axis, so the weight picker has
+		// nothing to do - only show it once a variable font is selected. Only meaningful when
+		// fontFamilyKey is set (heading1 today); other heading levels apply weight to the theme's
+		// own font, which is always variable in the sense that any weight is meaningful.
+		const isSelectedFontVariable = (): boolean => {
+			if (!fontFamilyKey) return true;
+			const font = CUSTOM_FONTS.find((f) => f.id === selectedFontFamily);
+			return font ? font.weightMin !== font.weightMax : true;
+		};
+		const applyVisibility = (overrideOff: boolean) => {
+			pickFontSetting.settingEl.toggleClass("sf-settings-hidden", overrideOff);
+			smallCapsSetting.settingEl.toggleClass("sf-settings-hidden", overrideOff);
+			fontWeightSetting.settingEl.toggleClass("sf-settings-hidden", overrideOff || !isSelectedFontVariable());
 		};
 		overrideToggle.onChange(async (value) => {
 			await this.plugin.updateSetting(overrideFontKey, value);

@@ -29,7 +29,7 @@ const CODEX_FOLDER_INDICATOR_WIDTH_PX: Record<CodexFolderIndicatorThickness, num
 
 export type HeadingDividerThickness = "thin" | "medium" | "thick";
 
-export type HeadingFontFamily = "theme" | "caroni" | "ibm-plex-sans-var" | "nunito";
+export type HeadingFontFamily = "caroni" | "ibm-plex-sans-var" | "nunito";
 
 export type FontWeight = "300" | "400" | "500" | "600" | "700" | "800" | "900";
 
@@ -235,7 +235,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	heading1Color: "#c8c8c8",
 	heading1OverrideFont: false,
 	heading1FontWeight: "400",
-	heading1FontFamily: "theme",
+	heading1FontFamily: "caroni",
 	heading1SmallCaps: false,
 	heading1DividerAbove: false,
 	heading1DividerAboveThickness: "medium",
@@ -686,16 +686,24 @@ export default class StoryForgePlugin extends Plugin {
 		const text = OBSIDIAN_SELECTORS.headingLivePreviewText[level];
 		const rules: string[] = [];
 		if (overrideSize) rules.push(`${reading}, ${line} { font-size: ${size}em; }`);
-		if (overrideColor) rules.push(`${reading}, ${text} { color: ${color}; }`);
+		if (overrideColor) {
+			// !important alone isn't enough - some themes (e.g. Minimal's "colourful headings")
+			// set heading colour with !important too, and equal-importance ties still go to
+			// specificity before source order. `:not(#id-that-never-exists)` is a standard trick
+			// for adding ID-level specificity without needing a real ID, so this wins regardless
+			// of what selector/!important combination the active theme throws at heading colour.
+			const boost = ":not(#storyforge-specificity-boost)";
+			rules.push(`${reading}${boost}, ${text}${boost} { color: ${color} !important; }`);
+		}
 		if (overrideFont) rules.push(`${reading}, ${line} { font-weight: ${fontWeight}; }`);
-		if (smallCaps) rules.push(`${reading}, ${line} { font-variant: small-caps; }`);
+		if (smallCaps) rules.push(`${reading}, ${line}, ${text} { font-variant: small-caps; }`);
 		if (dividerAbove) {
 			const thicknessPx = HEADING_DIVIDER_WIDTH_PX[dividerAboveThickness];
-			rules.push(`${reading}, ${line} { border-top: ${thicknessPx}px solid currentColor; }`);
+			rules.push(`${reading}, ${line} { border-top: ${thicknessPx}px solid ${overrideColor ? color : "currentColor"}; }`);
 		}
 		if (dividerBelow) {
 			const thicknessPx = HEADING_DIVIDER_WIDTH_PX[dividerBelowThickness];
-			rules.push(`${reading}, ${line} { border-bottom: ${thicknessPx}px solid currentColor; }`);
+			rules.push(`${reading}, ${line} { border-bottom: ${thicknessPx}px solid ${overrideColor ? color : "currentColor"}; }`);
 		}
 		return rules;
 	}
@@ -712,7 +720,7 @@ export default class StoryForgePlugin extends Plugin {
 		// Kept separate from buildHeadingRules (rather than threading a font-family param through
 		// all six of its call sites) since only heading1 has a real "Pick font" setting driving it today.
 		const heading1FontFamilyRules: string[] = [];
-		if (s.heading1OverrideFont && s.heading1FontFamily !== "theme") {
+		if (s.heading1OverrideFont) {
 			const font = CUSTOM_FONTS.find((f) => f.id === s.heading1FontFamily);
 			if (font) {
 				heading1FontFamilyRules.push(
