@@ -1,4 +1,4 @@
-import { Plugin, TFile, WorkspaceLeaf } from "obsidian";
+import { Notice, Platform, Plugin, TFile, WorkspaceLeaf } from "obsidian";
 import type { Extension } from "@codemirror/state";
 import { cyclingGuideViewPlugin } from "./cyclingGuide";
 import { StoryForgeView, STORYFORGE_VIEW_TYPE } from "./view/StoryForgeView";
@@ -19,6 +19,7 @@ import { buildCustomFontFaceCSS, buildCustomFontFamilyDeclaration, CUSTOM_FONTS,
 import { refreshTabTitles, registerTabTitleOverrides } from "./tabTitles";
 import { PaletteColor, PaletteMode, PaletteName } from "./colorPalettes";
 import { OBSIDIAN_CSS_VARS, OBSIDIAN_SELECTORS } from "./obsidianInternals";
+import { runContentBackup } from "./backup";
 
 export type CodexFolderIndicatorThickness = "none" | "thin" | "medium" | "thick";
 
@@ -34,6 +35,8 @@ export type HeadingDividerThickness = "thin" | "medium" | "thick";
 export type CustomFontFamily = "caroni" | "ibm-plex-sans-var" | "nunito";
 
 export type FontWeight = "300" | "400" | "500" | "600" | "700" | "800" | "900";
+
+export type AutomaticBackupFrequency = "every-open" | "daily" | "weekly";
 
 const HEADING_DIVIDER_WIDTH_PX: Record<HeadingDividerThickness, number> = {
 	thin: 1,
@@ -186,6 +189,10 @@ export interface StoryForgePluginSettings {
 	cyclingGuideEnabled: boolean;
 	cyclingGuideThickness: HeadingDividerThickness;
 	cyclingGuideColor: string;
+	automaticBackupEnabled: boolean;
+	automaticBackupFrequency: AutomaticBackupFrequency;
+	automaticBackupFolder: string;
+	lastAutomaticBackupAt: number;
 }
 
 export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
@@ -339,6 +346,10 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	cyclingGuideEnabled: false,
 	cyclingGuideThickness: "thin",
 	cyclingGuideColor: "#f59e0b",
+	automaticBackupEnabled: false,
+	automaticBackupFrequency: "daily",
+	automaticBackupFolder: "",
+	lastAutomaticBackupAt: 0,
 };
 
 export default class StoryForgePlugin extends Plugin {
@@ -354,6 +365,7 @@ export default class StoryForgePlugin extends Plugin {
 	 * it plus `workspace.updateOptions()` keeps both open and freshly-opened editors in sync.
 	 */
 	private cyclingGuideExtensions: Extension[] = [];
+	private backupInProgress = false;
 
 	async onload(): Promise<void> {
 		// Loaded first, before registerView() below - Obsidian can start restoring a previously-open
@@ -443,7 +455,43 @@ export default class StoryForgePlugin extends Plugin {
 			}
 			this.refreshCustomIcons();
 			refreshTabTitles(this.app);
+			void this.maybeRunScheduledBackup("vault-open");
 		});
+
+		if (Platform.isDesktopApp) {
+			this.registerInterval(window.setInterval(() => void this.maybeRunScheduledBackup("interval"), 30 * 60 * 1000));
+		}
+	}
+
+	/**
+	 * Runs the automatic backup if enabled, a folder is configured, and it's due. "every-open" only
+	 * fires on `trigger === "vault-open"` - the recurring interval check exists purely to catch
+	 * daily/weekly backups becoming due while Obsidian is left open across multiple days.
+	 */
+	private async maybeRunScheduledBackup(trigger: "vault-open" | "interval"): Promise<void> {
+		if (!Platform.isDesktopApp || this.backupInProgress) return;
+		const { automaticBackupEnabled, automaticBackupFrequency, automaticBackupFolder, lastAutomaticBackupAt } = this.pluginSettings;
+		if (!automaticBackupEnabled || !automaticBackupFolder) return;
+
+		const now = Date.now();
+		let includeTime = false;
+		if (automaticBackupFrequency === "every-open") {
+			if (trigger !== "vault-open") return;
+			includeTime = true;
+		} else {
+			const thresholdMs = (automaticBackupFrequency === "daily" ? 24 : 24 * 7) * 60 * 60 * 1000;
+			if (lastAutomaticBackupAt !== 0 && now - lastAutomaticBackupAt < thresholdMs) return;
+		}
+
+		this.backupInProgress = true;
+		try {
+			await runContentBackup(this.app, automaticBackupFolder, includeTime);
+			await this.updateSetting("lastAutomaticBackupAt", now);
+		} catch (err) {
+			new Notice(`storyForge: automatic backup failed — ${(err as Error).message}`);
+		} finally {
+			this.backupInProgress = false;
+		}
 	}
 
 	/**
