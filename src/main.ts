@@ -753,8 +753,8 @@ export default class StoryForgePlugin extends Plugin {
 			`.sf-cycling-guide-line::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: ${px}px; background-color: ${s.cyclingGuideColor}; pointer-events: none; border-radius: ${borderRadius}; }`,
 			// Box = the divider's own colour; the icon inside it is coloured with the editor's
 			// background so it reads as "knocked out" of the coloured box, per the icon's design.
-			`.sf-cycling-guide-badge { position: absolute; top: calc(100% + ${px}px); right: 0; width: ${badgePx}px; height: ${badgePx}px; display: flex; align-items: center; justify-content: center; background-color: ${s.cyclingGuideColor}; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; pointer-events: none; }`,
-			`.sf-cycling-guide-badge-icon { display: flex; align-items: center; justify-content: center; color: var(--background-primary); font-size: ${flagSizeEm}em; }`,
+			`.sf-cycling-guide-badge { position: absolute; top: calc(100% + ${px}px); right: 0; width: ${badgePx}px; height: ${badgePx - 3}px; display: flex; align-items: flex-start; justify-content: center; background-color: ${s.cyclingGuideColor}; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; pointer-events: none; }`,
+			`.sf-cycling-guide-badge-icon { position: absolute; top: -1px; left: 0; right: 0; color: var(--background-primary); font-size: ${flagSizeEm}em; line-height: 0; text-align: center; }`,
 			`.sf-cycling-guide-badge-icon svg { width: 1em; height: 1em; }`,
 		];
 
