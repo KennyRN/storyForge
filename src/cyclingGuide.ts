@@ -27,8 +27,8 @@ class CycleBadgeWidget extends WidgetType {
 
 const cyclingGuideBadgeDeco = Decoration.widget({ widget: new CycleBadgeWidget(), side: 1 });
 
-/** Marks every line where the document's running word count (from the top of the file) crosses a new multiple of 500. */
-function buildCyclingGuideDecorations(view: EditorView): DecorationSet {
+/** Marks every line where the document's running word count (from the top of the file) crosses a new multiple of `intervalWords`. */
+function buildCyclingGuideDecorations(view: EditorView, intervalWords: number): DecorationSet {
 	const builder = new RangeSetBuilder<Decoration>();
 	const doc = view.state.doc;
 	let cumulative = 0;
@@ -36,7 +36,7 @@ function buildCyclingGuideDecorations(view: EditorView): DecorationSet {
 		const line = doc.line(i);
 		const before = cumulative;
 		cumulative += countWordsInLine(line.text);
-		if (Math.floor(cumulative / 500) > Math.floor(before / 500)) {
+		if (Math.floor(cumulative / intervalWords) > Math.floor(before / intervalWords)) {
 			builder.add(line.from, line.from, cyclingGuideLineDeco);
 			builder.add(line.to, line.to, cyclingGuideBadgeDeco);
 		}
@@ -44,18 +44,20 @@ function buildCyclingGuideDecorations(view: EditorView): DecorationSet {
 	return builder.finish();
 }
 
-/** CM6 extension for the "Cycling guide": a floating divider line after every 500-word mark, added/removed via a Compartment in main.ts. */
-export const cyclingGuideViewPlugin = ViewPlugin.fromClass(
-	class {
-		decorations: DecorationSet;
-		constructor(view: EditorView) {
-			this.decorations = buildCyclingGuideDecorations(view);
-		}
-		update(update: ViewUpdate): void {
-			if (update.docChanged) {
-				this.decorations = buildCyclingGuideDecorations(update.view);
+/** Creates a CM6 ViewPlugin for the "Cycling guide" with the given word interval. */
+export function createCyclingGuideViewPlugin(intervalWords: number) {
+	return ViewPlugin.fromClass(
+		class {
+			decorations: DecorationSet;
+			constructor(view: EditorView) {
+				this.decorations = buildCyclingGuideDecorations(view, intervalWords);
 			}
-		}
-	},
-	{ decorations: (v) => v.decorations },
-);
+			update(update: ViewUpdate): void {
+				if (update.docChanged) {
+					this.decorations = buildCyclingGuideDecorations(update.view, intervalWords);
+				}
+			}
+		},
+		{ decorations: (v) => v.decorations },
+	);
+}

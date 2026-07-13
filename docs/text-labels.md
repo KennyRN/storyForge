@@ -251,7 +251,18 @@ Notes on conventions used below:
 | settings.uiFormatting.cyclingGuide.thickness.option.thin | Thin | 952 |
 | settings.uiFormatting.cyclingGuide.thickness.option.medium | Medium | 953 |
 | settings.uiFormatting.cyclingGuide.thickness.option.thick | Thick | 954 |
-| settings.uiFormatting.cyclingGuide.lineColour.name | Line colour | 966 |
+| settings.uiFormatting.cyclingGuide.thickness.option.extraThick | Extra thick | 955 |
+| settings.uiFormatting.cyclingGuide.flagSize.name | Flag size | 965 |
+| settings.uiFormatting.cyclingGuide.flagSize.option.small | Small | 967 |
+| settings.uiFormatting.cyclingGuide.flagSize.option.medium | Medium | 968 |
+| settings.uiFormatting.cyclingGuide.flagSize.option.large | Large | 969 |
+| settings.uiFormatting.cyclingGuide.roundedLines.name | Rounded lines | 975 |
+| settings.uiFormatting.cyclingGuide.roundedLines.desc | Rounds the corners of the divider line, except the bottom-right where the flag sits. | 976 |
+| settings.uiFormatting.cyclingGuide.cycleLength.name | Cycle length | 985 |
+| settings.uiFormatting.cyclingGuide.cycleLength.option.short | Short | 987 |
+| settings.uiFormatting.cyclingGuide.cycleLength.option.medium | Medium | 988 |
+| settings.uiFormatting.cyclingGuide.cycleLength.option.long | Long | 989 |
+| settings.uiFormatting.cyclingGuide.lineColour.name | Line colour | 1000 |
 
 ### `renderLibraryHighlightRows`
 

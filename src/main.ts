@@ -1,6 +1,6 @@
 import { Notice, Platform, Plugin, TFile, WorkspaceLeaf } from "obsidian";
 import type { Extension } from "@codemirror/state";
-import { cyclingGuideViewPlugin } from "./cyclingGuide";
+import { createCyclingGuideViewPlugin } from "./cyclingGuide";
 import { StoryForgeView, STORYFORGE_VIEW_TYPE } from "./view/StoryForgeView";
 import { ToolsView, TOOLS_VIEW_TYPE } from "./view/ToolsPanel";
 import { StoryForgeSettingsTab } from "./view/StoryForgeSettingsTab";
@@ -32,7 +32,7 @@ const CODEX_FOLDER_INDICATOR_WIDTH_PX: Record<CodexFolderIndicatorThickness, num
 	thick: 4,
 };
 
-export type HeadingDividerThickness = "thin" | "medium" | "thick";
+export type HeadingDividerThickness = "thin" | "medium" | "thick" | "extra-thick";
 
 export type CustomFontFamily = "caroni" | "ibm-plex-sans-var" | "nunito";
 
@@ -42,10 +42,19 @@ export type AutomaticBackupFrequency = "every-open" | "daily" | "weekly";
 
 export type StatusBarView = "hidden" | "sync-only" | "all";
 
+export type CyclingGuideInterval = "short" | "medium" | "large";
+
+const CYCLING_GUIDE_INTERVAL_WORDS: Record<CyclingGuideInterval, number> = {
+	short: 300,
+	medium: 500,
+	large: 750,
+};
+
 const HEADING_DIVIDER_WIDTH_PX: Record<HeadingDividerThickness, number> = {
 	thin: 1,
 	medium: 2,
 	thick: 4,
+	"extra-thick": 6,
 };
 
 export interface StoryForgePluginSettings {
@@ -195,6 +204,9 @@ export interface StoryForgePluginSettings {
 	cyclingGuideEnabled: boolean;
 	cyclingGuideThickness: HeadingDividerThickness;
 	cyclingGuideColor: string;
+	cyclingGuideFlagSize: "small" | "medium" | "large";
+	cyclingGuideRoundedLines: boolean;
+	cyclingGuideInterval: CyclingGuideInterval;
 	automaticBackupEnabled: boolean;
 	automaticBackupFrequency: AutomaticBackupFrequency;
 	automaticBackupFolder: string;
@@ -354,6 +366,9 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	cyclingGuideEnabled: false,
 	cyclingGuideThickness: "thin",
 	cyclingGuideColor: "#f59e0b",
+	cyclingGuideFlagSize: "medium",
+	cyclingGuideRoundedLines: false,
+	cyclingGuideInterval: "medium",
 	automaticBackupEnabled: false,
 	automaticBackupFrequency: "daily",
 	automaticBackupFolder: "",
@@ -373,6 +388,7 @@ export default class StoryForgePlugin extends Plugin {
 	 * it plus `workspace.updateOptions()` keeps both open and freshly-opened editors in sync.
 	 */
 	private cyclingGuideExtensions: Extension[] = [];
+	private currentCyclingGuidePlugin: ReturnType<typeof createCyclingGuideViewPlugin> | null = null;
 	private backupInProgress = false;
 
 	async onload(): Promise<void> {
@@ -417,7 +433,7 @@ export default class StoryForgePlugin extends Plugin {
 		this.applyTextStyleOverrides();
 		this.applyCustomFontFaces();
 		this.applyCyclingGuideStyle();
-		if (this.pluginSettings.cyclingGuideEnabled) this.cyclingGuideExtensions.push(cyclingGuideViewPlugin);
+		if (this.pluginSettings.cyclingGuideEnabled) this.rebuildCyclingGuideExtension();
 		this.registerEditorExtension(this.cyclingGuideExtensions);
 		registerTabTitleOverrides(this.app, (eventRef) => this.registerEvent(eventRef));
 
@@ -727,23 +743,37 @@ export default class StoryForgePlugin extends Plugin {
 	applyCyclingGuideStyle(): void {
 		const s = this.pluginSettings;
 		const px = HEADING_DIVIDER_WIDTH_PX[s.cyclingGuideThickness];
+		const flagSizeEm = s.cyclingGuideFlagSize === "large" ? 1 : s.cyclingGuideFlagSize === "small" ? 0.6 : 0.75;
+		const baseBadgePx = 18;
+		const baseFlagEm = 0.75;
+		const badgePx = Math.round(baseBadgePx * flagSizeEm / baseFlagEm);
+		const borderRadius = s.cyclingGuideRoundedLines ? "3px 3px 0 3px" : "0";
 		const rules: string[] = [
 			`.sf-cycling-guide-line { position: relative; }`,
-			`.sf-cycling-guide-line::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: ${px}px; background-color: ${s.cyclingGuideColor}; pointer-events: none; }`,
+			`.sf-cycling-guide-line::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: ${px}px; background-color: ${s.cyclingGuideColor}; pointer-events: none; border-radius: ${borderRadius}; }`,
 			// Box = the divider's own colour; the icon inside it is coloured with the editor's
 			// background so it reads as "knocked out" of the coloured box, per the icon's design.
-			`.sf-cycling-guide-badge { position: absolute; top: 100%; right: 0; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; background-color: ${s.cyclingGuideColor}; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; pointer-events: none; }`,
-			`.sf-cycling-guide-badge-icon { display: flex; align-items: center; justify-content: center; color: var(--background-primary); font-size: 0.75em; }`,
+			`.sf-cycling-guide-badge { position: absolute; top: calc(100% + ${px}px); right: 0; width: ${badgePx}px; height: ${badgePx}px; display: flex; align-items: center; justify-content: center; background-color: ${s.cyclingGuideColor}; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; pointer-events: none; }`,
+			`.sf-cycling-guide-badge-icon { display: flex; align-items: center; justify-content: center; color: var(--background-primary); font-size: ${flagSizeEm}em; }`,
 			`.sf-cycling-guide-badge-icon svg { width: 1em; height: 1em; }`,
 		];
 
 		this.applyStyleToAllDocs("storyforge-cycling-guide-styles", rules.join("\n"));
 	}
 
+	/** Rebuilds the cycling guide CM6 extension with the current interval setting. */
+	rebuildCyclingGuideExtension(): void {
+		this.cyclingGuideExtensions.length = 0;
+		this.currentCyclingGuidePlugin = createCyclingGuideViewPlugin(CYCLING_GUIDE_INTERVAL_WORDS[this.pluginSettings.cyclingGuideInterval]);
+		this.cyclingGuideExtensions.push(this.currentCyclingGuidePlugin);
+		this.app.workspace.updateOptions();
+	}
+
 	/** Enables/disables the "Cycling guide" CM6 extension, applied to every currently-open editor and every editor opened from now on. */
 	setCyclingGuideEnabled(enabled: boolean): void {
 		this.cyclingGuideExtensions.length = 0;
-		if (enabled) this.cyclingGuideExtensions.push(cyclingGuideViewPlugin);
+		this.currentCyclingGuidePlugin = null;
+		if (enabled) this.rebuildCyclingGuideExtension();
 		this.app.workspace.updateOptions();
 	}
 
