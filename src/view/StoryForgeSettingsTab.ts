@@ -1,11 +1,12 @@
-import { App, ButtonComponent, Notice, PluginSettingTab, Setting, SettingGroup, ToggleComponent, setIcon } from "obsidian";
+import { App, ButtonComponent, Notice, Platform, PluginSettingTab, Setting, SettingGroup, ToggleComponent, setIcon } from "obsidian";
 import type StoryForgePlugin from "../main";
-import type { CodexFolderIndicatorThickness, CustomFontFamily, FontWeight, HeadingDividerThickness, StoryForgePluginSettings } from "../main";
+import type { AutomaticBackupFrequency, CodexFolderIndicatorThickness, CustomFontFamily, FontWeight, HeadingDividerThickness, StoryForgePluginSettings } from "../main";
 import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
 import { PALETTE_NAMES, PaletteMode, PaletteName } from "../colorPalettes";
 import { PalettePickerModal } from "./PalettePickerModal";
 import { IconAuditModal } from "./IconAuditModal";
 import { CUSTOM_FONTS } from "../fonts";
+import { runFullBackup } from "../backup";
 
 const FONT_WEIGHT_OPTIONS: [FontWeight, string][] = [
 	["300", "Light"],
@@ -1533,6 +1534,82 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			);
 	}
 
+	private renderAutomaticBackupSection(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
+		this.renderFoldableSection(containerEl, "automatic-backup", "h3", "Automatic backup", (body) => {
+			if (!Platform.isDesktopApp) {
+				new Setting(body).setName("Automatic backup").setDesc("Automatic backup is only available on desktop.");
+				return;
+			}
+
+			const card = new SettingGroup(body);
+			let folderValue = settings.automaticBackupFolder;
+			let frequencyRow!: Setting;
+
+			card.addSetting((setting) =>
+				setting
+					.setName("Automatic backup")
+					.setDesc("Automatically zip your vault's notes and attachments on a schedule.")
+					.addToggle((toggle) =>
+						toggle.setValue(settings.automaticBackupEnabled).onChange(async (value) => {
+							await this.plugin.updateSetting("automaticBackupEnabled", value);
+							frequencyRow.settingEl.toggleClass("sf-settings-hidden", !value);
+						}),
+					),
+			);
+
+			card.addSetting((setting) =>
+				setting
+					.setName("Backup folder")
+					.setDesc("Absolute folder path on this computer where backup zip files are saved. Required for both automatic and manual backups.")
+					.addText((text) =>
+						text
+							.setPlaceholder("/Users/you/Backups/storyForge")
+							.setValue(settings.automaticBackupFolder)
+							.onChange(async (value) => {
+								folderValue = value;
+								await this.plugin.updateSetting("automaticBackupFolder", value);
+							}),
+					),
+			);
+
+			card.addSetting((setting) => {
+				frequencyRow = setting.setName("Backup frequency").addDropdown((dropdown) =>
+					dropdown
+						.addOption("every-open", "Every time vault is opened")
+						.addOption("daily", "Once daily")
+						.addOption("weekly", "Once weekly")
+						.setValue(settings.automaticBackupFrequency)
+						.onChange(async (value) => {
+							await this.plugin.updateSetting("automaticBackupFrequency", value as AutomaticBackupFrequency);
+						}),
+				);
+				frequencyRow.settingEl.toggleClass("sf-settings-hidden", !settings.automaticBackupEnabled);
+			});
+
+			card.addSetting((setting) =>
+				setting
+					.setName("Back up now")
+					.setDesc("Creates a full backup zip immediately, including your .obsidian settings folder — saved to the backup folder above.")
+					.addButton((button) =>
+						button.setButtonText("Back up now").onClick(() => {
+							if (!folderValue) {
+								new Notice("storyForge: set a backup folder before backing up.");
+								return;
+							}
+							void (async () => {
+								try {
+									const path = await runFullBackup(this.app, folderValue);
+									new Notice(`storyForge: backup saved to ${path}`);
+								} catch (err) {
+									new Notice(`storyForge: backup failed — ${(err as Error).message}`);
+								}
+							})();
+						}),
+					),
+			);
+		});
+	}
+
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
@@ -1547,5 +1624,6 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		this.renderUiFormattingSection(containerEl, settings);
 		this.renderHideUiSection(containerEl, settings);
 		this.renderImportExportSection(containerEl);
+		this.renderAutomaticBackupSection(containerEl, settings);
 	}
 }
