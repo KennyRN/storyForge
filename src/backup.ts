@@ -7,12 +7,12 @@ function pad(n: number, width = 2): string {
 	return String(n).padStart(width, "0");
 }
 
-/** Builds `yyyymmdd-<vault>.zip`, or `yyyymmdd-hhmmss-<vault>.zip` when `includeTime` is set. */
+/** Builds `yyyymmdd - <vault>.zip`, or `yyyymmdd-hhmmss - <vault>.zip` when `includeTime` is set. */
 export function formatBackupFilename(vaultName: string, when: Date, includeTime: boolean): string {
 	const datePart = `${when.getFullYear()}${pad(when.getMonth() + 1)}${pad(when.getDate())}`;
 	const timePart = includeTime ? `-${pad(when.getHours())}${pad(when.getMinutes())}${pad(when.getSeconds())}` : "";
 	const safeVaultName = vaultName.replace(ILLEGAL_FILENAME_CHARS, "-");
-	return `${datePart}${timePart}-${safeVaultName}.zip`;
+	return `${datePart}${timePart} - ${safeVaultName}.zip`;
 }
 
 /** Builds `yyyymmdd-hhmmss - <vault> - full.zip`, used for the manual "Back up now" full backup. */
