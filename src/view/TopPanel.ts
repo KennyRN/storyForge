@@ -21,6 +21,7 @@ export type UnplacedViewMode = "unplaced" | "unplacedHidden";
 
 export interface TopPanelOptions {
 	mode: "book" | "series";
+	hideSeriesPane: boolean;
 	currentBookFolderName: string | null;
 	activeChapterFilename: string | null;
 	highlightActiveChapter: boolean;
@@ -42,17 +43,19 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 
 	const header = container.createDiv({ cls: "sf-top-header" });
 
-	const seriesLine = header.createDiv({ cls: "sf-header-line sf-series-line" });
-	setIcon(seriesLine.createSpan({ cls: "sf-icon" }), ICON_SERIES);
-	seriesLine.createSpan({ cls: "sf-header-text", text: series.seriesTitle });
-	const filterBtn = seriesLine.createSpan({ cls: "sf-series-filter-btn", attr: { "aria-label": "Series settings" } });
-	setIcon(filterBtn, ICON_FILTER);
-	filterBtn.addEventListener("click", (e) => {
-		e.stopPropagation();
-		options.onOpenSeriesModal();
-	});
-	makeAccessibleActivatable(filterBtn, () => options.onOpenSeriesModal());
-	seriesLine.addEventListener("click", () => options.onToggleMode());
+	if (!options.hideSeriesPane) {
+		const seriesLine = header.createDiv({ cls: "sf-header-line sf-series-line" });
+		setIcon(seriesLine.createSpan({ cls: "sf-icon" }), ICON_SERIES);
+		seriesLine.createSpan({ cls: "sf-header-text", text: series.seriesTitle });
+		const filterBtn = seriesLine.createSpan({ cls: "sf-series-filter-btn", attr: { "aria-label": "Series settings" } });
+		setIcon(filterBtn, ICON_FILTER);
+		filterBtn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			options.onOpenSeriesModal();
+		});
+		makeAccessibleActivatable(filterBtn, () => options.onOpenSeriesModal());
+		seriesLine.addEventListener("click", () => options.onToggleMode());
+	}
 
 	if (options.mode === "book") {
 		const bookLine = header.createDiv({ cls: "sf-book-line" });

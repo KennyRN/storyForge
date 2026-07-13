@@ -88,6 +88,12 @@ export class StoryForgeView extends ItemView {
 		await this.plugin.updateSetting("selectedObject", this.activeChapterFilename);
 	}
 
+	/** Clamps to "book" while the series pane is hidden, without discarding the user's underlying
+	 * topMode intent - so re-enabling the pane later in Settings restores a sane view. */
+	private effectiveTopMode(): "book" | "series" {
+		return this.plugin.getSettings().hideSeriesPane ? "book" : this.topMode;
+	}
+
 	render(): void {
 		const container = this.contentEl;
 		container.empty();
@@ -98,12 +104,14 @@ export class StoryForgeView extends ItemView {
 		const statsEl = container.createDiv({ cls: "sf-stats-panel" });
 
 		renderTopPanel(this.app, topEl, {
-			mode: this.topMode,
+			mode: this.effectiveTopMode(),
+			hideSeriesPane: this.plugin.getSettings().hideSeriesPane,
 			currentBookFolderName: this.currentBookFolderName,
 			activeChapterFilename: this.activeChapterFilename,
 			highlightActiveChapter: this.plugin.getSettings().highlightActiveChapter,
 			unplacedMode: this.unplacedMode,
 			onToggleMode: () => {
+				if (this.plugin.getSettings().hideSeriesPane) return;
 				this.topMode = this.topMode === "book" ? "series" : this.currentBookFolderName ? "book" : "series";
 				this.render();
 			},
