@@ -4,11 +4,15 @@ import type { AutomaticBackupFrequency, CodexFolderIndicatorThickness, CustomFon
 import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
 import { PALETTE_NAMES, PaletteMode, PaletteName } from "../colorPalettes";
 import { PalettePickerModal } from "./PalettePickerModal";
-import { IconAuditModal } from "./IconAuditModal";
 import { CUSTOM_FONTS } from "../fonts";
 import { runFullBackup } from "../backup";
 import { ensureWelcomeNote } from "../welcomeNote";
 import { ConvertToSeriesModal } from "./ConvertToSeriesModal";
+import { TextStyleModal } from "./TextStyleModal";
+import { UiFormattingModal } from "./UiFormattingModal";
+import { HideUiModal } from "./HideUiModal";
+import { ProtectionsModal } from "./ProtectionsModal";
+import { ICON_TEXT_STYLE, ICON_UI_FORMATTING, ICON_HIDE_UI, ICON_PROTECTIONS } from "../icons";
 
 const FONT_WEIGHT_OPTIONS: [FontWeight, string][] = [
 	["300", "Light"],
@@ -209,79 +213,40 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 	}
 
 	private renderTopActions(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
-		new Setting(containerEl)
-			.setName("Reopen storyForge panel")
-			.setDesc("If you've closed the storyForge panel, click this button to bring it back.")
-			.addButton((button) =>
-				button
-					.setButtonText("Reopen panel")
-					.setCta()
-					.onClick(() => void this.plugin.activateView()),
-			);
-
-		new Setting(containerEl)
-			.setName("Recreate welcome note")
-			.setDesc("Restores storyForge Welcome.md in your Codex if you've deleted it. If it still exists, this just opens it.")
-			.addButton((button) =>
-				button.setButtonText("Recreate welcome note").onClick(async () => {
-					try {
-						const file = await ensureWelcomeNote(this.app);
-						await this.app.workspace.getLeaf(false).openFile(file);
-					} catch (err) {
-						new Notice(`storyForge: could not recreate welcome note — ${(err as Error).message}`);
-					}
-				}),
-			);
-
-		new Setting(containerEl)
-			.setName("Icon usage")
-			.setDesc("See every icon storyForge uses, custom and stock, and where each one is wired up.")
-			.addButton((button) =>
-				button.setButtonText("View icons").onClick(() => new IconAuditModal(this.app).open()),
-			);
-
-		new Setting(containerEl)
-			.setName("Use tools panel")
-			.setDesc("ribbon is hidden and the ribbon icons can be found within the tools panel")
-			.addToggle((toggle) =>
-				toggle.setValue(settings.useToolsPanel).onChange(async (value) => {
-					await this.plugin.updateSetting("useToolsPanel", value);
-					this.plugin.applyVisibilityStyles();
-					if (value) {
-						void this.plugin.activateToolsView();
-					} else {
-						this.app.workspace.detachLeavesOfType(TOOLS_VIEW_TYPE);
-					}
-				}),
-			)
-			.addButton((button) =>
-				button
-					.setButtonText("Reopen Tools Panel")
-					.setCta()
-					.onClick(() => void this.plugin.activateToolsView()),
-			);
-
-		new Setting(containerEl)
-			.setName("Hide series pane")
-			.setDesc("Hides the series header and locks storyForge to book view — for standalone/non-series projects. Your series data isn't deleted; toggle this off anytime to bring it back.")
-			.addToggle((toggle) =>
-				toggle.setValue(settings.hideSeriesPane).onChange(async (value) => {
-					await this.plugin.updateSetting("hideSeriesPane", value);
-					this.plugin.refreshStoryForgeViews();
-				}),
-			);
-
-		if (settings.hideSeriesPane) {
-			new Setting(containerEl)
-				.setName("Convert to series")
-				.setDesc("Turn this standalone book into the first book of a series — lets you add more books to it later.")
+		const panelGroup = new SettingGroup(containerEl);
+		panelGroup.addSetting((setting) =>
+			setting
+				.setName("storyForge panel")
+				.setDesc("If you've closed the storyForge panel, click this button to bring it back.")
 				.addButton((button) =>
 					button
-						.setButtonText("Convert to series")
+						.setButtonText("Reopen panel")
 						.setCta()
-						.onClick(() => new ConvertToSeriesModal(this.app, this.plugin, () => this.display()).open()),
-				);
-		}
+						.onClick(() => void this.plugin.activateView()),
+				),
+		);
+		panelGroup.addSetting((setting) =>
+			setting
+				.setName("Tools panel")
+				.setDesc("ribbon is hidden and the ribbon icons can be found within the tools panel")
+				.addToggle((toggle) =>
+					toggle.setValue(settings.useToolsPanel).onChange(async (value) => {
+						await this.plugin.updateSetting("useToolsPanel", value);
+						this.plugin.applyVisibilityStyles();
+						if (value) {
+							void this.plugin.activateToolsView();
+						} else {
+							this.app.workspace.detachLeavesOfType(TOOLS_VIEW_TYPE);
+						}
+					}),
+				)
+				.addButton((button) =>
+					button
+						.setButtonText("Reopen Tools Panel")
+						.setCta()
+						.onClick(() => void this.plugin.activateToolsView()),
+				),
+		);
 	}
 
 	private renderPaletteSection(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
@@ -720,201 +685,52 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		this.wireCardToggle(belowToggle, belowThicknessSetting, (value) => this.plugin.updateSetting(belowKey, value), restyle);
 	}
 
-	private renderTextStyleSection(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
-		this.renderFoldableSection(containerEl, "text-style", "h3", "Text style", (body) => {
-			const restyle = () => this.plugin.applyTextStyleOverrides();
-			this.renderFoldableSection(body, "text-style-editor", "h4", "Body text", (bodyTextBody) => {
-				this.renderSizeCard(
-					bodyTextBody,
-					settings,
-					"Override theme's default font size",
-					"Font size",
-					"bodyTextOverrideSize",
-					"bodyTextSize",
-					0.75,
-					1.75,
-					restyle,
-				);
-				let emphasisLabelSetting: Setting | undefined;
-				const emphasisLabel = () =>
-					settings.bodyTextOverrideColor ? "Override body text's standard italic/bold colour" : "Override theme's default italic/bold colour";
-				this.renderColorOverrideCard(
-					bodyTextBody,
-					settings,
-					"Override theme's default font colour",
-					"Font colour",
-					"bodyTextOverrideColor",
-					"bodyTextColor",
-					restyle,
-					() => emphasisLabelSetting?.setName(emphasisLabel()),
-				);
-				this.renderFontCard(bodyTextBody, settings, "bodyTextOverrideFont", "bodyTextFontWeight", "bodyTextFontFamily");
-				emphasisLabelSetting = this.renderEmphasisColorOverrideCard(bodyTextBody, settings, emphasisLabel(), restyle);
-			});
-			this.renderFoldableSection(body, "text-style-h1", "h4", "Heading 1", (h1Body) => {
-				this.renderSizeCard(
-					h1Body,
-					settings,
-					"Override theme's default header size",
-					"Header size",
-					"heading1OverrideSize",
-					"heading1Size",
-					1,
-					2.5,
-					restyle,
-					(card) =>
-						card.addSetting((setting) =>
-							setting
-								.setName("Hide Heading 1 Links")
-								.setDesc(
-									"When on, links inside a note's H1 heading render as plain text — no link colour or underline — so the title looks like a normal heading.",
-								)
-								.addToggle((toggle) =>
-									toggle.setValue(settings.hideHeading1Links).onChange(async (value) => {
-										await this.plugin.updateSetting("hideHeading1Links", value);
-										this.plugin.applyHeading1LinkStyle();
-									}),
-								),
-						),
-				);
-				this.renderColorOverrideCard(
-					h1Body,
-					settings,
-					"Override theme's default header colour",
-					"Header colour",
-					"heading1OverrideColor",
-					"heading1Color",
-					restyle,
-				);
-				this.renderFontCard(h1Body, settings, "heading1OverrideFont", "heading1FontWeight", "heading1FontFamily", "heading1SmallCaps");
-				this.renderDividerCard(
-					h1Body,
-					settings,
-					"heading1DividerAbove",
-					"heading1DividerAboveThickness",
-					"heading1DividerBelow",
-					"heading1DividerBelowThickness",
-					restyle,
-				);
-			});
-			this.renderFoldableSection(body, "text-style-h2", "h4", "Heading 2", (h2Body) => {
-				this.renderSizeCard(h2Body, settings, "Override theme's default header size", "Header size", "heading2OverrideSize", "heading2Size", 1, 2.5, restyle);
-				this.renderColorOverrideCard(
-					h2Body,
-					settings,
-					"Override theme's default header colour",
-					"Header colour",
-					"heading2OverrideColor",
-					"heading2Color",
-					restyle,
-				);
-				this.renderFontCard(h2Body, settings, "heading2OverrideFont", "heading2FontWeight", "heading2FontFamily", "heading2SmallCaps");
-				this.renderDividerCard(
-					h2Body,
-					settings,
-					"heading2DividerAbove",
-					"heading2DividerAboveThickness",
-					"heading2DividerBelow",
-					"heading2DividerBelowThickness",
-					restyle,
-				);
-			});
-			this.renderFoldableSection(body, "text-style-h3", "h4", "Heading 3", (h3Body) => {
-				this.renderSizeCard(h3Body, settings, "Override theme's default header size", "Header size", "heading3OverrideSize", "heading3Size", 1, 2.5, restyle);
-				this.renderColorOverrideCard(
-					h3Body,
-					settings,
-					"Override theme's default header colour",
-					"Header colour",
-					"heading3OverrideColor",
-					"heading3Color",
-					restyle,
-				);
-				this.renderFontCard(h3Body, settings, "heading3OverrideFont", "heading3FontWeight", "heading3FontFamily", "heading3SmallCaps");
-				this.renderDividerCard(
-					h3Body,
-					settings,
-					"heading3DividerAbove",
-					"heading3DividerAboveThickness",
-					"heading3DividerBelow",
-					"heading3DividerBelowThickness",
-					restyle,
-				);
-			});
-			this.renderFoldableSection(body, "text-style-other-headers", "h4", "Headings 4 thru 6", (otherBody) => {
-				const levelGroup = new SettingGroup(otherBody);
-				const levelElements: Record<4 | 5 | 6, HTMLElement[]> = { 4: [], 5: [], 6: [] };
-				const applySelectedLevel = (level: 4 | 5 | 6) => {
-					for (const [key, els] of Object.entries(levelElements)) {
-						const hidden = Number(key) !== level;
-						for (const el of els) el.toggleClass("sf-settings-hidden", hidden);
-					}
-				};
-				levelGroup.addSetting((setting) =>
-					setting.setName("Choose heading level").addDropdown((dropdown) =>
-						dropdown
-							.addOption("4", "Heading 4")
-							.addOption("5", "Heading 5")
-							.addOption("6", "Heading 6")
-							.setValue(String(this.selectedOtherHeadingLevel))
-							.onChange((value) => {
-								this.selectedOtherHeadingLevel = Number(value) as 4 | 5 | 6;
-								applySelectedLevel(this.selectedOtherHeadingLevel);
-							}),
-					),
-				);
-
-				// Cards render flat under `otherBody` (matching Heading 1-3) so Obsidian's own
-				// sibling-based `.setting-group` spacing applies; the elements newly added per level
-				// are captured afterward so the level selector can show/hide just that level's cards.
-				const before4 = otherBody.children.length;
-				this.renderSizeCard(otherBody, settings, "Override theme's default header size", "Header size", "heading4OverrideSize", "heading4Size", 0.75, 1.75, restyle);
-				this.renderColorOverrideCard(otherBody, settings, "Override theme's default header colour", "Header colour", "heading4OverrideColor", "heading4Color", restyle);
-				this.renderFontCard(otherBody, settings, "heading4OverrideFont", "heading4FontWeight", "heading4FontFamily", "heading4SmallCaps");
-				this.renderDividerCard(
-					otherBody,
-					settings,
-					"heading4DividerAbove",
-					"heading4DividerAboveThickness",
-					"heading4DividerBelow",
-					"heading4DividerBelowThickness",
-					restyle,
-				);
-				levelElements[4] = Array.from(otherBody.children).slice(before4) as HTMLElement[];
-
-				const before5 = otherBody.children.length;
-				this.renderSizeCard(otherBody, settings, "Override theme's default header size", "Header size", "heading5OverrideSize", "heading5Size", 0.75, 1.75, restyle);
-				this.renderColorOverrideCard(otherBody, settings, "Override theme's default header colour", "Header colour", "heading5OverrideColor", "heading5Color", restyle);
-				this.renderFontCard(otherBody, settings, "heading5OverrideFont", "heading5FontWeight", "heading5FontFamily", "heading5SmallCaps");
-				this.renderDividerCard(
-					otherBody,
-					settings,
-					"heading5DividerAbove",
-					"heading5DividerAboveThickness",
-					"heading5DividerBelow",
-					"heading5DividerBelowThickness",
-					restyle,
-				);
-				levelElements[5] = Array.from(otherBody.children).slice(before5) as HTMLElement[];
-
-				const before6 = otherBody.children.length;
-				this.renderSizeCard(otherBody, settings, "Override theme's default header size", "Header size", "heading6OverrideSize", "heading6Size", 0.75, 1.75, restyle);
-				this.renderColorOverrideCard(otherBody, settings, "Override theme's default header colour", "Header colour", "heading6OverrideColor", "heading6Color", restyle);
-				this.renderFontCard(otherBody, settings, "heading6OverrideFont", "heading6FontWeight", "heading6FontFamily", "heading6SmallCaps");
-				this.renderDividerCard(
-					otherBody,
-					settings,
-					"heading6DividerAbove",
-					"heading6DividerAboveThickness",
-					"heading6DividerBelow",
-					"heading6DividerBelowThickness",
-					restyle,
-				);
-				levelElements[6] = Array.from(otherBody.children).slice(before6) as HTMLElement[];
-
-				applySelectedLevel(this.selectedOtherHeadingLevel);
-			});
+	private renderTextStyleButton(containerEl: HTMLElement): void {
+		const buttonEl = containerEl.createDiv({ cls: "sf-settings-button" });
+		const iconEl = buttonEl.createSpan({ cls: "sf-settings-button-icon" });
+		setIcon(iconEl, ICON_TEXT_STYLE);
+		const labelEl = buttonEl.createSpan({ cls: "sf-settings-button-label", text: "Text styling" });
+		buttonEl.addEventListener("click", () => {
+			new TextStyleModal(this.app, this.plugin).open();
 		});
+	}
+
+	private renderUiFormattingButton(containerEl: HTMLElement): void {
+		const buttonEl = containerEl.createDiv({ cls: "sf-settings-button" });
+		const iconEl = buttonEl.createSpan({ cls: "sf-settings-button-icon" });
+		setIcon(iconEl, ICON_UI_FORMATTING);
+		const labelEl = buttonEl.createSpan({ cls: "sf-settings-button-label", text: "storyForge interface" });
+		buttonEl.addEventListener("click", () => {
+			new UiFormattingModal(this.app, this.plugin).open();
+		});
+	}
+
+	private renderHideUiButton(containerEl: HTMLElement): void {
+		const buttonEl = containerEl.createDiv({ cls: "sf-settings-button" });
+		const iconEl = buttonEl.createSpan({ cls: "sf-settings-button-icon" });
+		setIcon(iconEl, ICON_HIDE_UI);
+		const labelEl = buttonEl.createSpan({ cls: "sf-settings-button-label", text: "Hide Obsidian interface elements" });
+		buttonEl.addEventListener("click", () => {
+			new HideUiModal(this.app, this.plugin).open();
+		});
+	}
+
+	private renderProtectionsButton(containerEl: HTMLElement): void {
+		const buttonEl = containerEl.createDiv({ cls: "sf-settings-button" });
+		const iconEl = buttonEl.createSpan({ cls: "sf-settings-button-icon" });
+		setIcon(iconEl, ICON_PROTECTIONS);
+		const labelEl = buttonEl.createSpan({ cls: "sf-settings-button-label", text: "Protections" });
+		buttonEl.addEventListener("click", () => {
+			new ProtectionsModal(this.app, this.plugin).open();
+		});
+	}
+
+	private renderButtonRow(containerEl: HTMLElement): void {
+		const row = containerEl.createDiv({ cls: "sf-settings-button-row" });
+		this.renderTextStyleButton(row);
+		this.renderUiFormattingButton(row);
+		this.renderHideUiButton(row);
+		this.renderProtectionsButton(row);
 	}
 
 	private renderHighlightGroup(body: HTMLElement, settings: StoryForgePluginSettings): void {
@@ -1443,284 +1259,6 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		});
 	}
 
-	private renderUiFormattingSection(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
-		this.renderFoldableSection(containerEl, "ui-formatting", "h3", "storyForge interface", (body) => {
-			this.renderHighlightGroup(body, settings);
-			this.renderCyclingGuideCard(body, settings);
-			this.renderFoldableSection(body, "library-pane", "h4", "Library pane", (libraryBody) => {
-				this.renderTitleStyleGroup(libraryBody, settings, {
-					labelPrefix: "Series title",
-					sizeKey: "librarySeriesTitleFontSize",
-					fontWeightKey: "librarySeriesTitleFontWeight",
-					colorKey: "librarySeriesTitleColor",
-					smallCapsKey: "librarySeriesTitleSmallCaps",
-				});
-				this.renderTitleStyleGroup(libraryBody, settings, {
-					labelPrefix: "Book title",
-					sizeKey: "libraryBookTitleFontSize",
-					fontWeightKey: "libraryBookTitleFontWeight",
-					colorKey: "libraryBookTitleColor",
-					smallCapsKey: "libraryBookTitleSmallCaps",
-				});
-				this.renderSubtitleStyleGroup(libraryBody, settings);
-				this.renderLibraryHighlightRows(libraryBody, settings);
-				new SettingGroup(libraryBody).addSetting((setting) =>
-					setting
-						.setName("Divider below title")
-						.setDesc("Adds a border below the series/book title, matching the border between storyForge's panes.")
-						.addToggle((toggle) =>
-							toggle.setValue(settings.libraryHeaderDividerBelow).onChange(async (value) => {
-								await this.plugin.updateSetting("libraryHeaderDividerBelow", value);
-								this.plugin.applyLibraryHeaderStyles();
-							}),
-						),
-				);
-			});
-			this.renderUnplacedPanel(body, settings);
-			this.renderCodexPanel(body, settings);
-		});
-	}
-
-	private renderHideUiSection(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
-		this.renderFoldableSection(containerEl, "hide-ui", "h3", "Hide Obsidian interface elements", (body) => {
-			new Setting(body)
-				.setName("Hide help button")
-				.setDesc(
-					"Hides the help (?) button next to the vault picker.",
-				)
-				.addToggle((toggle) =>
-					toggle.setValue(settings.hideHelp).onChange(async (value) => {
-						await this.plugin.updateSetting("hideHelp", value);
-						this.plugin.applyVisibilityStyles();
-					}),
-				);
-
-			const hideSidebarGroup = new SettingGroup(body);
-			hideSidebarGroup
-				.addSetting((setting) =>
-					setting
-						.setName("Hide search panel")
-						.setDesc("Hides the Search button at the top of the left sidebar.")
-						.addToggle((toggle) =>
-							toggle.setValue(settings.hideSearch).onChange(async (value) => {
-								await this.plugin.updateSetting("hideSearch", value);
-								this.plugin.applyVisibilityStyles();
-							}),
-						),
-				)
-				.addSetting((setting) =>
-					setting
-						.setName("Hide bookmarks panel")
-						.setDesc("Hides the Bookmarks button at the top of the left sidebar.")
-						.addToggle((toggle) =>
-							toggle.setValue(settings.hideBookmarks).onChange(async (value) => {
-								await this.plugin.updateSetting("hideBookmarks", value);
-								this.plugin.applyVisibilityStyles();
-							}),
-						),
-				)
-				.addSetting((setting) =>
-					setting
-						.setName("Hide files panel")
-						.setDesc("Hides the Files button at the top of the left sidebar.")
-						.addToggle((toggle) =>
-							toggle.setValue(settings.hideFiles).onChange(async (value) => {
-								await this.plugin.updateSetting("hideFiles", value);
-								this.plugin.applyVisibilityStyles();
-							}),
-						),
-				);
-
-			const hidePanelsGroup = new SettingGroup(body);
-			hidePanelsGroup
-				.addSetting((setting) =>
-					setting
-						.setName("Hide left panel button")
-						.setDesc("Hides the left sidebar collapse/expand button.")
-						.addToggle((toggle) =>
-							toggle.setValue(settings.hideLeftPanel).onChange(async (value) => {
-								await this.plugin.updateSetting("hideLeftPanel", value);
-								this.plugin.applyVisibilityStyles();
-							}),
-						),
-				)
-				.addSetting((setting) =>
-					setting
-						.setName("Hide right panel button")
-						.setDesc("Hides the right sidebar collapse/expand button.")
-						.addToggle((toggle) =>
-							toggle.setValue(settings.hideRightPanel).onChange(async (value) => {
-								await this.plugin.updateSetting("hideRightPanel", value);
-								this.plugin.applyVisibilityStyles();
-							}),
-						),
-				);
-
-			const hideMiscGroup = new SettingGroup(body);
-			hideMiscGroup
-				.addSetting((setting) =>
-					setting
-						.setName("Hide file name bar")
-						.setDesc("Hides the large file name displayed at the top of the note content.")
-						.addToggle((toggle) =>
-							toggle.setValue(settings.hideFileNameBar).onChange(async (value) => {
-								await this.plugin.updateSetting("hideFileNameBar", value);
-								this.plugin.applyVisibilityStyles();
-							}),
-						),
-				)
-				.addSetting((setting) =>
-					setting
-						.setName("Hide navigation row")
-						.setDesc("Hides the bar beneath the tab that shows the navigation buttons, three-dot menu, and reader/edit view toggle.")
-						.addToggle((toggle) =>
-							toggle.setValue(settings.hideNavRow).onChange(async (value) => {
-								await this.plugin.updateSetting("hideNavRow", value);
-								this.plugin.applyVisibilityStyles();
-							}),
-						),
-				)
-				.addSetting((setting) =>
-					setting
-						.setName("Status bar view")
-						.setDesc("Controls what's shown in Obsidian's bottom status bar.")
-						.addDropdown((dropdown) =>
-							dropdown
-								.addOption("hidden", "Hide status bar")
-								.addOption("sync-only", "Show only the Obsidian Sync icon")
-								.addOption("all", "Show all of the status bar")
-								.setValue(settings.statusBarView)
-								.onChange(async (value) => {
-									await this.plugin.updateSetting("statusBarView", value as StatusBarView);
-									this.plugin.applyVisibilityStyles();
-								}),
-						),
-				);
-		});
-	}
-
-	private renderImportExportSection(containerEl: HTMLElement): void {
-		this.renderFoldableSection(containerEl, "import-export", "h3", "Import & export storyForge settings", (body) => {
-			new Setting(body)
-				.setName("Export settings")
-				.setDesc("Saves all storyForge settings to a JSON file.")
-				.addButton((button) =>
-					button.setButtonText("Export").onClick(() => {
-						const json = JSON.stringify(this.plugin.getSettings(), null, 2);
-						const blob = new Blob([json], { type: "application/json" });
-						const url = URL.createObjectURL(blob);
-						const a = document.createElement("a");
-						a.href = url;
-						a.download = "storyforge-settings.json";
-						a.click();
-						URL.revokeObjectURL(url);
-					}),
-				);
-
-			new Setting(body)
-				.setName("Import settings")
-				.setDesc("Restores storyForge settings from a previously exported JSON file. This overwrites your current settings.")
-				.addButton((button) =>
-					button.setButtonText("Import").onClick(() => {
-						const input = document.createElement("input");
-						input.type = "file";
-						input.accept = "application/json";
-						input.addEventListener("change", () => {
-							const file = input.files?.[0];
-							if (!file) return;
-							void (async () => {
-								try {
-									const text = await file.text();
-									const parsed = JSON.parse(text);
-									await this.plugin.importSettings(parsed);
-									this.display();
-								} catch (err) {
-									new Notice(`storyForge: could not import settings — ${(err as Error).message}`);
-								}
-							})();
-						});
-						input.click();
-					}),
-				);
-		});
-	}
-
-	private renderAutomaticBackupSection(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
-		this.renderFoldableSection(containerEl, "automatic-backup", "h3", "Automatic backup", (body) => {
-			if (!Platform.isDesktopApp) {
-				new Setting(body).setName("Automatic backup").setDesc("Automatic backup is only available on desktop.");
-				return;
-			}
-
-			const card = new SettingGroup(body);
-			let folderValue = settings.automaticBackupFolder;
-			let frequencyRow!: Setting;
-
-			card.addSetting((setting) =>
-				setting
-					.setName("Automatic backup")
-					.setDesc("Automatically zip your vault's notes and attachments on a schedule.")
-					.addToggle((toggle) =>
-						toggle.setValue(settings.automaticBackupEnabled).onChange(async (value) => {
-							await this.plugin.updateSetting("automaticBackupEnabled", value);
-							frequencyRow.settingEl.toggleClass("sf-settings-hidden", !value);
-						}),
-					),
-			);
-
-			card.addSetting((setting) =>
-				setting
-					.setName("Backup folder")
-					.setDesc("Absolute folder path on this computer where backup zip files are saved. Required for both automatic and manual backups.")
-					.addText((text) =>
-						text
-							.setPlaceholder("/Users/you/Backups/storyForge")
-							.setValue(settings.automaticBackupFolder)
-							.onChange(async (value) => {
-								folderValue = value;
-								await this.plugin.updateSetting("automaticBackupFolder", value);
-							}),
-					),
-			);
-
-			card.addSetting((setting) => {
-				frequencyRow = setting.setName("Backup frequency").addDropdown((dropdown) =>
-					dropdown
-						.addOption("every-open", "Every time vault is opened")
-						.addOption("daily", "Once daily")
-						.addOption("weekly", "Once weekly")
-						.setValue(settings.automaticBackupFrequency)
-						.onChange(async (value) => {
-							await this.plugin.updateSetting("automaticBackupFrequency", value as AutomaticBackupFrequency);
-						}),
-				);
-				frequencyRow.settingEl.toggleClass("sf-settings-hidden", !settings.automaticBackupEnabled);
-			});
-
-			card.addSetting((setting) =>
-				setting
-					.setName("Back up now")
-					.setDesc("Creates a full backup zip immediately, including your .obsidian settings folder — saved to the backup folder above.")
-					.addButton((button) =>
-						button.setButtonText("Back up now").onClick(() => {
-							if (!folderValue) {
-								new Notice("storyForge: set a backup folder before backing up.");
-								return;
-							}
-							void (async () => {
-								try {
-									const path = await runFullBackup(this.app, folderValue);
-									new Notice(`storyForge: backup saved to ${path}`);
-								} catch (err) {
-									new Notice(`storyForge: backup failed — ${(err as Error).message}`);
-								}
-							})();
-						}),
-					),
-			);
-		});
-	}
-
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
@@ -1731,10 +1269,6 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 
 		this.renderTopActions(containerEl, settings);
 		this.renderPaletteSection(containerEl, settings);
-		this.renderTextStyleSection(containerEl, settings);
-		this.renderUiFormattingSection(containerEl, settings);
-		this.renderHideUiSection(containerEl, settings);
-		this.renderImportExportSection(containerEl);
-		this.renderAutomaticBackupSection(containerEl, settings);
+		this.renderButtonRow(containerEl);
 	}
 }
