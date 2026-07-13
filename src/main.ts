@@ -38,6 +38,8 @@ export type FontWeight = "300" | "400" | "500" | "600" | "700" | "800" | "900";
 
 export type AutomaticBackupFrequency = "every-open" | "daily" | "weekly";
 
+export type StatusBarView = "hidden" | "sync-only" | "all";
+
 const HEADING_DIVIDER_WIDTH_PX: Record<HeadingDividerThickness, number> = {
 	thin: 1,
 	medium: 2,
@@ -53,6 +55,7 @@ export interface StoryForgePluginSettings {
 	hideRightPanel: boolean;
 	hideFileNameBar: boolean;
 	hideNavRow: boolean;
+	statusBarView: StatusBarView;
 	highlightActiveChapter: boolean;
 	highlightColor: string;
 	highlightTextColor: string;
@@ -204,6 +207,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	hideRightPanel: true,
 	hideFileNameBar: true,
 	hideNavRow: true,
+	statusBarView: "all",
 	highlightActiveChapter: true,
 	highlightColor: "#fef3c7",
 	highlightTextColor: "#1f2937",
@@ -622,6 +626,11 @@ export default class StoryForgePlugin extends Plugin {
 		}
 		if (this.pluginSettings.hideNavRow) {
 			rules.push(`${OBSIDIAN_SELECTORS.viewHeader} { display: none !important; }`);
+		}
+		if (this.pluginSettings.statusBarView === "hidden") {
+			rules.push(`${OBSIDIAN_SELECTORS.statusBar} { display: none !important; }`);
+		} else if (this.pluginSettings.statusBarView === "sync-only") {
+			rules.push(`${OBSIDIAN_SELECTORS.statusBarNonSyncItem} { display: none !important; }`);
 		}
 		if (this.pluginSettings.useToolsPanel) {
 			document.body.classList.add("sf-use-tools-panel");

@@ -14,6 +14,8 @@ export const OBSIDIAN_SELECTORS = {
 	sidebarToggleRight: ".sidebar-toggle-button.mod-right",
 	inlineTitle: ".inline-title",
 	viewHeader: ".view-header",
+	statusBar: ".status-bar",
+	statusBarNonSyncItem: ".status-bar-item:not(.plugin-sync)",
 	workspaceRibbon: ".workspace-ribbon",
 	ribbonAction: ".side-dock-ribbon-action",
 	tabHeaderContainer: ".mod-left-split .workspace-tab-header-container",

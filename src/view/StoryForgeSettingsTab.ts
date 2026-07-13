@@ -1,6 +1,6 @@
 import { App, ButtonComponent, Notice, Platform, PluginSettingTab, Setting, SettingGroup, ToggleComponent, setIcon } from "obsidian";
 import type StoryForgePlugin from "../main";
-import type { AutomaticBackupFrequency, CodexFolderIndicatorThickness, CustomFontFamily, FontWeight, HeadingDividerThickness, StoryForgePluginSettings } from "../main";
+import type { AutomaticBackupFrequency, CodexFolderIndicatorThickness, CustomFontFamily, FontWeight, HeadingDividerThickness, StatusBarView, StoryForgePluginSettings } from "../main";
 import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
 import { PALETTE_NAMES, PaletteMode, PaletteName } from "../colorPalettes";
 import { PalettePickerModal } from "./PalettePickerModal";
@@ -1486,52 +1486,70 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 								this.plugin.applyVisibilityStyles();
 							}),
 						),
+				)
+				.addSetting((setting) =>
+					setting
+						.setName("Status bar view")
+						.setDesc("Controls what's shown in Obsidian's bottom status bar.")
+						.addDropdown((dropdown) =>
+							dropdown
+								.addOption("hidden", "Hide status bar")
+								.addOption("sync-only", "Show only the Obsidian Sync icon")
+								.addOption("all", "Show all of the status bar")
+								.setValue(settings.statusBarView)
+								.onChange(async (value) => {
+									await this.plugin.updateSetting("statusBarView", value as StatusBarView);
+									this.plugin.applyVisibilityStyles();
+								}),
+						),
 				);
 		});
 	}
 
 	private renderImportExportSection(containerEl: HTMLElement): void {
-		new Setting(containerEl)
-			.setName("Export settings")
-			.setDesc("Saves all storyForge settings to a JSON file.")
-			.addButton((button) =>
-				button.setButtonText("Export").onClick(() => {
-					const json = JSON.stringify(this.plugin.getSettings(), null, 2);
-					const blob = new Blob([json], { type: "application/json" });
-					const url = URL.createObjectURL(blob);
-					const a = document.createElement("a");
-					a.href = url;
-					a.download = "storyforge-settings.json";
-					a.click();
-					URL.revokeObjectURL(url);
-				}),
-			);
+		this.renderFoldableSection(containerEl, "import-export", "h3", "Import & export storyForge settings", (body) => {
+			new Setting(body)
+				.setName("Export settings")
+				.setDesc("Saves all storyForge settings to a JSON file.")
+				.addButton((button) =>
+					button.setButtonText("Export").onClick(() => {
+						const json = JSON.stringify(this.plugin.getSettings(), null, 2);
+						const blob = new Blob([json], { type: "application/json" });
+						const url = URL.createObjectURL(blob);
+						const a = document.createElement("a");
+						a.href = url;
+						a.download = "storyforge-settings.json";
+						a.click();
+						URL.revokeObjectURL(url);
+					}),
+				);
 
-		new Setting(containerEl)
-			.setName("Import settings")
-			.setDesc("Restores storyForge settings from a previously exported JSON file. This overwrites your current settings.")
-			.addButton((button) =>
-				button.setButtonText("Import").onClick(() => {
-					const input = document.createElement("input");
-					input.type = "file";
-					input.accept = "application/json";
-					input.addEventListener("change", () => {
-						const file = input.files?.[0];
-						if (!file) return;
-						void (async () => {
-							try {
-								const text = await file.text();
-								const parsed = JSON.parse(text);
-								await this.plugin.importSettings(parsed);
-								this.display();
-							} catch (err) {
-								new Notice(`storyForge: could not import settings — ${(err as Error).message}`);
-							}
-						})();
-					});
-					input.click();
-				}),
-			);
+			new Setting(body)
+				.setName("Import settings")
+				.setDesc("Restores storyForge settings from a previously exported JSON file. This overwrites your current settings.")
+				.addButton((button) =>
+					button.setButtonText("Import").onClick(() => {
+						const input = document.createElement("input");
+						input.type = "file";
+						input.accept = "application/json";
+						input.addEventListener("change", () => {
+							const file = input.files?.[0];
+							if (!file) return;
+							void (async () => {
+								try {
+									const text = await file.text();
+									const parsed = JSON.parse(text);
+									await this.plugin.importSettings(parsed);
+									this.display();
+								} catch (err) {
+									new Notice(`storyForge: could not import settings — ${(err as Error).message}`);
+								}
+							})();
+						});
+						input.click();
+					}),
+				);
+		});
 	}
 
 	private renderAutomaticBackupSection(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
