@@ -4,6 +4,7 @@ import {
 	ICON_BOOK_PLUS,
 	ICON_CALENDAR,
 	ICON_CODEX,
+	ICON_CYCLE_ALT,
 	ICON_DASHBOARD_CHART,
 	ICON_EXCHANGE,
 	ICON_FILTER,
@@ -76,6 +77,12 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		label: "New file",
 		source: "custom",
 		usedIn: ["TopPanel.ts — new chapter button (default)", "BottomPanel.ts — new Codex note button"],
+	},
+	{
+		id: ICON_CYCLE_ALT,
+		label: "Cycling guide badge",
+		source: "custom",
+		usedIn: ["cyclingGuide.ts — badge at the bottom-right of each 500-word divider line"],
 	},
 
 	// Stock (Lucide icons bundled with Obsidian, referenced by name)

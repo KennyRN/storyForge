@@ -61,6 +61,15 @@ export const OBSIDIAN_SELECTORS = {
 	 */
 	bodyTextReading: ".markdown-reading-view p",
 	bodyTextLivePreview: ".cm-line:not(.HyperMD-header)",
+	/**
+	 * Bold/italic emphasis within body text, per view mode: real `<strong>`/`<em>` tags in reading
+	 * view; `.cm-strong`/`.cm-em` are CM6's markdown-parser-generated classes in Live Preview (same
+	 * family as `.cm-header-N` above) - verify against real bold/italic text before trusting it.
+	 */
+	bodyTextBoldReading: ".markdown-reading-view strong",
+	bodyTextBoldLivePreview: ".cm-strong",
+	bodyTextItalicReading: ".markdown-reading-view em",
+	bodyTextItalicLivePreview: ".cm-em",
 } as const;
 
 export const OBSIDIAN_CSS_VARS = {

@@ -119,6 +119,12 @@
 	gap: 6px;
 	padding: 4px 10px 2px;
 	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.sf-unplaced-hidden .sf-icon,
+.sf-unplaced-hidden .sf-header-unplaced {
+	color: var(--text-faint);
 }
 
 .sf-header-unplaced {

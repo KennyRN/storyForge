@@ -1,6 +1,6 @@
-import { App, ButtonComponent, PluginSettingTab, Setting, SettingGroup, ToggleComponent, setIcon } from "obsidian";
+import { App, ButtonComponent, Notice, PluginSettingTab, Setting, SettingGroup, ToggleComponent, setIcon } from "obsidian";
 import type StoryForgePlugin from "../main";
-import type { CodexFolderIndicatorThickness, FontWeight, HeadingDividerThickness, HeadingFontFamily, StoryForgePluginSettings } from "../main";
+import type { CodexFolderIndicatorThickness, CustomFontFamily, FontWeight, HeadingDividerThickness, StoryForgePluginSettings } from "../main";
 import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
 import { PALETTE_NAMES, PaletteMode, PaletteName } from "../colorPalettes";
 import { PalettePickerModal } from "./PalettePickerModal";
@@ -404,12 +404,16 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			| "bodyTextOverrideColor",
 		colorKey: "heading1Color" | "heading2Color" | "heading3Color" | "heading4Color" | "heading5Color" | "heading6Color" | "bodyTextColor",
 		restyle: () => void,
+		onToggle?: (value: boolean) => void,
 	): void {
 		this.renderToggleWithRevealCard(
 			body,
 			label,
 			settings[overrideKey],
-			(value) => this.plugin.updateSetting(overrideKey, value),
+			async (value) => {
+				await this.plugin.updateSetting(overrideKey, value);
+				onToggle?.(value);
+			},
 			(card) => {
 				let colorSetting!: Setting;
 				card.addSetting((setting) => {
@@ -428,19 +432,95 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 	}
 
 	/**
+	 * Renders body text's "Override theme's default/body text's standard italic/bold colour" card
+	 * (label passed in by the caller, since it depends on whether body text's own font colour is
+	 * already overridden). Reveals "Bold colour" and "Italic colour" swatches together when on.
+	 * Uses the same manual multi-row visibility pattern as `renderFontCard` (two reveal rows, not
+	 * the single-row `renderToggleWithRevealCard`/`wireCardToggle` helpers). Returns the toggle
+	 * row's `Setting` so the caller can refresh its label later via `setName`.
+	 */
+	private renderEmphasisColorOverrideCard(body: HTMLElement, settings: StoryForgePluginSettings, label: string, restyle: () => void): Setting {
+		const card = new SettingGroup(body);
+
+		let toggle!: ToggleComponent;
+		let toggleSetting!: Setting;
+		card.addSetting((setting) => {
+			toggleSetting = setting;
+			setting.setName(label).addToggle((t) => {
+				toggle = t;
+				t.setValue(settings.bodyTextOverrideEmphasisColor);
+			});
+		});
+
+		let boldColorSetting!: Setting;
+		card.addSetting((setting) => {
+			boldColorSetting = setting;
+			setting.setName("Bold colour").addButton((button) =>
+				this.bindColorSwatchButton(button, settings.bodyTextBoldColor, async (hex) => {
+					await this.plugin.updateSetting("bodyTextBoldColor", hex);
+					restyle();
+				}),
+			);
+		});
+
+		let italicColorSetting!: Setting;
+		card.addSetting((setting) => {
+			italicColorSetting = setting;
+			setting.setName("Italic colour").addButton((button) =>
+				this.bindColorSwatchButton(button, settings.bodyTextItalicColor, async (hex) => {
+					await this.plugin.updateSetting("bodyTextItalicColor", hex);
+					restyle();
+				}),
+			);
+		});
+
+		const applyVisibility = (hidden: boolean) => {
+			boldColorSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+			italicColorSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+		};
+		toggle.onChange(async (value) => {
+			await this.plugin.updateSetting("bodyTextOverrideEmphasisColor", value);
+			applyVisibility(!value);
+			restyle();
+		});
+		applyVisibility(!toggle.getValue());
+
+		return toggleSetting;
+	}
+
+	/**
 	 * Renders the "Override theme's default font" card: the toggle, plus "Pick font", "Font weight",
 	 * and "Small caps" rows that are all shown/hidden together based on the toggle (not just "Pick
-	 * font" — every row in this card is inert while the override is off). `fontFamilyKey` is only
-	 * passed for heading1 today — heading2-6 keep the "Pick font" row as an inert label with no
-	 * control, unchanged.
+	 * font" — every row in this card is inert while the override is off).
 	 */
 	private renderFontCard(
 		body: HTMLElement,
 		settings: StoryForgePluginSettings,
-		overrideFontKey: "heading1OverrideFont" | "heading2OverrideFont" | "heading3OverrideFont" | "heading4OverrideFont" | "heading5OverrideFont" | "heading6OverrideFont",
-		fontWeightKey: "heading1FontWeight" | "heading2FontWeight" | "heading3FontWeight" | "heading4FontWeight" | "heading5FontWeight" | "heading6FontWeight",
-		smallCapsKey: "heading1SmallCaps" | "heading2SmallCaps" | "heading3SmallCaps" | "heading4SmallCaps" | "heading5SmallCaps" | "heading6SmallCaps",
-		fontFamilyKey?: "heading1FontFamily",
+		overrideFontKey:
+			| "heading1OverrideFont"
+			| "heading2OverrideFont"
+			| "heading3OverrideFont"
+			| "heading4OverrideFont"
+			| "heading5OverrideFont"
+			| "heading6OverrideFont"
+			| "bodyTextOverrideFont",
+		fontWeightKey:
+			| "heading1FontWeight"
+			| "heading2FontWeight"
+			| "heading3FontWeight"
+			| "heading4FontWeight"
+			| "heading5FontWeight"
+			| "heading6FontWeight"
+			| "bodyTextFontWeight",
+		fontFamilyKey?:
+			| "heading1FontFamily"
+			| "heading2FontFamily"
+			| "heading3FontFamily"
+			| "heading4FontFamily"
+			| "heading5FontFamily"
+			| "heading6FontFamily"
+			| "bodyTextFontFamily",
+		smallCapsKey?: "heading1SmallCaps" | "heading2SmallCaps" | "heading3SmallCaps" | "heading4SmallCaps" | "heading5SmallCaps" | "heading6SmallCaps",
 	): void {
 		const restyle = () => this.plugin.applyTextStyleOverrides();
 		const card = new SettingGroup(body);
@@ -453,7 +533,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			}),
 		);
 
-		let selectedFontFamily: HeadingFontFamily | undefined = fontFamilyKey ? settings[fontFamilyKey] : undefined;
+		let selectedFontFamily: CustomFontFamily | undefined = fontFamilyKey ? settings[fontFamilyKey] : undefined;
 
 		let pickFontSetting!: Setting;
 		card.addSetting((setting) => {
@@ -466,16 +546,16 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					const font = CUSTOM_FONTS.find((f) => f.id === opt.value);
 					opt.style.fontFamily = font ? font.cssFontFamily : "";
 				}
-				const applySelectedFont = (value: HeadingFontFamily) => {
+				const applySelectedFont = (value: CustomFontFamily) => {
 					const font = CUSTOM_FONTS.find((f) => f.id === value);
 					dropdown.selectEl.style.fontFamily = font ? font.cssFontFamily : "";
 				};
 				dropdown.setValue(settings[fontFamilyKey]);
 				applySelectedFont(settings[fontFamilyKey]);
 				dropdown.onChange(async (value) => {
-					await this.plugin.updateSetting(fontFamilyKey, value as HeadingFontFamily);
-					applySelectedFont(value as HeadingFontFamily);
-					selectedFontFamily = value as HeadingFontFamily;
+					await this.plugin.updateSetting(fontFamilyKey, value as CustomFontFamily);
+					applySelectedFont(value as CustomFontFamily);
+					selectedFontFamily = value as CustomFontFamily;
 					applyVisibility(!overrideToggle.getValue());
 					restyle();
 				});
@@ -492,17 +572,19 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			});
 		});
 
-		let smallCapsSetting!: Setting;
-		card.addSetting((setting) => {
-			smallCapsSetting = setting;
-			setting.setName("Small caps").addToggle((toggle) =>
-				toggle.setValue(settings[smallCapsKey]).onChange(async (value) => {
-					await this.plugin.updateSetting(smallCapsKey, value);
-					restyle();
-				}),
-			);
-			setting.nameEl.style.fontVariant = "small-caps";
-		});
+		let smallCapsSetting: Setting | undefined;
+		if (smallCapsKey) {
+			card.addSetting((setting) => {
+				smallCapsSetting = setting;
+				setting.setName("Small caps").addToggle((toggle) =>
+					toggle.setValue(settings[smallCapsKey]).onChange(async (value) => {
+						await this.plugin.updateSetting(smallCapsKey, value);
+						restyle();
+					}),
+				);
+				setting.nameEl.style.fontVariant = "small-caps";
+			});
+		}
 
 		// A non-variable (single fixed-weight) font has no "wght" axis, so the weight picker has
 		// nothing to do - only show it once a variable font is selected. Only meaningful when
@@ -515,7 +597,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		};
 		const applyVisibility = (overrideOff: boolean) => {
 			pickFontSetting.settingEl.toggleClass("sf-settings-hidden", overrideOff);
-			smallCapsSetting.settingEl.toggleClass("sf-settings-hidden", overrideOff);
+			smallCapsSetting?.settingEl.toggleClass("sf-settings-hidden", overrideOff);
 			fontWeightSetting.settingEl.toggleClass("sf-settings-hidden", overrideOff || !isSelectedFontVariable());
 		};
 		overrideToggle.onChange(async (value) => {
@@ -614,6 +696,9 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					1.75,
 					restyle,
 				);
+				let emphasisLabelSetting: Setting | undefined;
+				const emphasisLabel = () =>
+					settings.bodyTextOverrideColor ? "Override body text's standard italic/bold colour" : "Override theme's default italic/bold colour";
 				this.renderColorOverrideCard(
 					bodyTextBody,
 					settings,
@@ -622,7 +707,10 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					"bodyTextOverrideColor",
 					"bodyTextColor",
 					restyle,
+					() => emphasisLabelSetting?.setName(emphasisLabel()),
 				);
+				this.renderFontCard(bodyTextBody, settings, "bodyTextOverrideFont", "bodyTextFontWeight", "bodyTextFontFamily");
+				emphasisLabelSetting = this.renderEmphasisColorOverrideCard(bodyTextBody, settings, emphasisLabel(), restyle);
 			});
 			this.renderFoldableSection(body, "text-style-h1", "h4", "Heading 1", (h1Body) => {
 				this.renderSizeCard(
@@ -659,7 +747,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					"heading1Color",
 					restyle,
 				);
-				this.renderFontCard(h1Body, settings, "heading1OverrideFont", "heading1FontWeight", "heading1SmallCaps", "heading1FontFamily");
+				this.renderFontCard(h1Body, settings, "heading1OverrideFont", "heading1FontWeight", "heading1FontFamily", "heading1SmallCaps");
 				this.renderDividerCard(
 					h1Body,
 					settings,
@@ -681,7 +769,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					"heading2Color",
 					restyle,
 				);
-				this.renderFontCard(h2Body, settings, "heading2OverrideFont", "heading2FontWeight", "heading2SmallCaps");
+				this.renderFontCard(h2Body, settings, "heading2OverrideFont", "heading2FontWeight", "heading2FontFamily", "heading2SmallCaps");
 				this.renderDividerCard(
 					h2Body,
 					settings,
@@ -703,7 +791,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					"heading3Color",
 					restyle,
 				);
-				this.renderFontCard(h3Body, settings, "heading3OverrideFont", "heading3FontWeight", "heading3SmallCaps");
+				this.renderFontCard(h3Body, settings, "heading3OverrideFont", "heading3FontWeight", "heading3FontFamily", "heading3SmallCaps");
 				this.renderDividerCard(
 					h3Body,
 					settings,
@@ -743,7 +831,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				const before4 = otherBody.children.length;
 				this.renderSizeCard(otherBody, settings, "Override theme's default header size", "Header size", "heading4OverrideSize", "heading4Size", 0.75, 1.75, restyle);
 				this.renderColorOverrideCard(otherBody, settings, "Override theme's default header colour", "Header colour", "heading4OverrideColor", "heading4Color", restyle);
-				this.renderFontCard(otherBody, settings, "heading4OverrideFont", "heading4FontWeight", "heading4SmallCaps");
+				this.renderFontCard(otherBody, settings, "heading4OverrideFont", "heading4FontWeight", "heading4FontFamily", "heading4SmallCaps");
 				this.renderDividerCard(
 					otherBody,
 					settings,
@@ -758,7 +846,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				const before5 = otherBody.children.length;
 				this.renderSizeCard(otherBody, settings, "Override theme's default header size", "Header size", "heading5OverrideSize", "heading5Size", 0.75, 1.75, restyle);
 				this.renderColorOverrideCard(otherBody, settings, "Override theme's default header colour", "Header colour", "heading5OverrideColor", "heading5Color", restyle);
-				this.renderFontCard(otherBody, settings, "heading5OverrideFont", "heading5FontWeight", "heading5SmallCaps");
+				this.renderFontCard(otherBody, settings, "heading5OverrideFont", "heading5FontWeight", "heading5FontFamily", "heading5SmallCaps");
 				this.renderDividerCard(
 					otherBody,
 					settings,
@@ -773,7 +861,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				const before6 = otherBody.children.length;
 				this.renderSizeCard(otherBody, settings, "Override theme's default header size", "Header size", "heading6OverrideSize", "heading6Size", 0.75, 1.75, restyle);
 				this.renderColorOverrideCard(otherBody, settings, "Override theme's default header colour", "Header colour", "heading6OverrideColor", "heading6Color", restyle);
-				this.renderFontCard(otherBody, settings, "heading6OverrideFont", "heading6FontWeight", "heading6SmallCaps");
+				this.renderFontCard(otherBody, settings, "heading6OverrideFont", "heading6FontWeight", "heading6FontFamily", "heading6SmallCaps");
 				this.renderDividerCard(
 					otherBody,
 					settings,
@@ -805,6 +893,55 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					}),
 				),
 		);
+
+		let cyclingGuideToggle!: ToggleComponent;
+		highlightGroup.addSetting((setting) =>
+			setting
+				.setName("Cycling guide")
+				.setDesc("Draws a floating divider line in the editor after every 500 words, without shifting your text.")
+				.addToggle((toggle) => {
+					cyclingGuideToggle = toggle;
+					toggle.setValue(settings.cyclingGuideEnabled);
+				}),
+		);
+
+		let cyclingGuideThicknessSetting!: Setting;
+		highlightGroup.addSetting((setting) => {
+			cyclingGuideThicknessSetting = setting;
+			setting.setName("Thickness").addDropdown((dropdown) =>
+				dropdown
+					.addOption("thin", "Thin")
+					.addOption("medium", "Medium")
+					.addOption("thick", "Thick")
+					.setValue(settings.cyclingGuideThickness)
+					.onChange(async (value) => {
+						await this.plugin.updateSetting("cyclingGuideThickness", value as HeadingDividerThickness);
+						this.plugin.applyCyclingGuideStyle();
+					}),
+			);
+		});
+
+		let cyclingGuideColorSetting!: Setting;
+		highlightGroup.addSetting((setting) => {
+			cyclingGuideColorSetting = setting;
+			setting.setName("Line colour").addButton((button) =>
+				this.bindColorSwatchButton(button, settings.cyclingGuideColor, async (hex) => {
+					await this.plugin.updateSetting("cyclingGuideColor", hex);
+					this.plugin.applyCyclingGuideStyle();
+				}),
+			);
+		});
+
+		const applyCyclingGuideVisibility = (hidden: boolean) => {
+			cyclingGuideThicknessSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+			cyclingGuideColorSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+		};
+		cyclingGuideToggle.onChange(async (value) => {
+			await this.plugin.updateSetting("cyclingGuideEnabled", value);
+			this.plugin.setCyclingGuideEnabled(value);
+			applyCyclingGuideVisibility(!value);
+		});
+		applyCyclingGuideVisibility(!cyclingGuideToggle.getValue());
 	}
 
 	/** Renders the "Highlight colour"/"Highlight text colour" rows for library items (chapter/book rows) under the Library pane section. */
@@ -1352,6 +1489,50 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		});
 	}
 
+	private renderImportExportSection(containerEl: HTMLElement): void {
+		new Setting(containerEl)
+			.setName("Export settings")
+			.setDesc("Saves all storyForge settings to a JSON file.")
+			.addButton((button) =>
+				button.setButtonText("Export").onClick(() => {
+					const json = JSON.stringify(this.plugin.getSettings(), null, 2);
+					const blob = new Blob([json], { type: "application/json" });
+					const url = URL.createObjectURL(blob);
+					const a = document.createElement("a");
+					a.href = url;
+					a.download = "storyforge-settings.json";
+					a.click();
+					URL.revokeObjectURL(url);
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName("Import settings")
+			.setDesc("Restores storyForge settings from a previously exported JSON file. This overwrites your current settings.")
+			.addButton((button) =>
+				button.setButtonText("Import").onClick(() => {
+					const input = document.createElement("input");
+					input.type = "file";
+					input.accept = "application/json";
+					input.addEventListener("change", () => {
+						const file = input.files?.[0];
+						if (!file) return;
+						void (async () => {
+							try {
+								const text = await file.text();
+								const parsed = JSON.parse(text);
+								await this.plugin.importSettings(parsed);
+								this.display();
+							} catch (err) {
+								new Notice(`storyForge: could not import settings — ${(err as Error).message}`);
+							}
+						})();
+					});
+					input.click();
+				}),
+			);
+	}
+
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
@@ -1365,5 +1546,6 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		this.renderTextStyleSection(containerEl, settings);
 		this.renderUiFormattingSection(containerEl, settings);
 		this.renderHideUiSection(containerEl, settings);
+		this.renderImportExportSection(containerEl);
 	}
 }

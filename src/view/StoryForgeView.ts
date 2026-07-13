@@ -3,7 +3,7 @@ import type StoryForgePlugin from "../main";
 import { bookFolderNameFromChapterPath, isLibraryChapterPath, libraryChapterPath } from "../paths";
 import { getBookId } from "../series";
 import { getBookChapterFiles, readBookFrontmatter } from "../book";
-import { renderTopPanel } from "./TopPanel";
+import { renderTopPanel, type UnplacedViewMode } from "./TopPanel";
 import { renderBottomPanel } from "./BottomPanel";
 import { renderStatsPanel, nextStatsMode, type StatsMode } from "./StatsPanel";
 import { SeriesModal } from "./SeriesModal";
@@ -22,6 +22,7 @@ export class StoryForgeView extends ItemView {
 	private currentBookFolderName: string | null = null;
 	private activeChapterFilename: string | null = null;
 	private topMode: "book" | "series" = "series";
+	private unplacedMode: UnplacedViewMode = "unplaced";
 	private codexMode: CodexViewMode = "codex";
 	private collapsedCodexFolders = new Set<string>();
 	private activeCodexFolderId: string | null = null;
@@ -101,8 +102,13 @@ export class StoryForgeView extends ItemView {
 			currentBookFolderName: this.currentBookFolderName,
 			activeChapterFilename: this.activeChapterFilename,
 			highlightActiveChapter: this.plugin.getSettings().highlightActiveChapter,
+			unplacedMode: this.unplacedMode,
 			onToggleMode: () => {
 				this.topMode = this.topMode === "book" ? "series" : this.currentBookFolderName ? "book" : "series";
+				this.render();
+			},
+			onToggleUnplacedMode: () => {
+				this.unplacedMode = this.unplacedMode === "unplaced" ? "unplacedHidden" : "unplaced";
 				this.render();
 			},
 			onSelectBook: (name) => {

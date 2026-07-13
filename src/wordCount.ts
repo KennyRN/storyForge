@@ -19,10 +19,15 @@ export function stripForCounting(raw: string): string {
 	return text;
 }
 
+/** Counts whitespace-separated words in a single line of text, using the same rule as `countWords`. */
+export function countWordsInLine(text: string): number {
+	const matches = text.trim().match(/\S+/g);
+	return matches ? matches.length : 0;
+}
+
 export function countWords(raw: string): number {
 	const stripped = stripForCounting(raw);
-	const matches = stripped.trim().match(/\S+/g);
-	return matches ? matches.length : 0;
+	return countWordsInLine(stripped);
 }
 
 export function sumWordCounts(chapterContents: string[]): number {

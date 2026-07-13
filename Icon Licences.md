@@ -37,6 +37,15 @@ This project uses icons from the following third-party, open-source icon sets. A
 > **Note:** unlike the sets above, Boxicons icons are licensed under CC BY 4.0, which requires attribution. The attribution above (name, source link, licence) satisfies this requirement.
 
 ---
+
+## Siemens Industrial Experience Icons (ix)
+
+- **Icon used:** `cycle-alt`
+- **Author:** Siemens AG
+- **Source:** https://github.com/siemens/ix-icons
+- **Licence:** MIT License — *see [MIT License](#mit-license) below*
+
+---
 ---
 
 # Licence Texts
@@ -228,12 +237,12 @@ This project uses icons from the following third-party, open-source icon sets. A
 
 ## MIT License
 
-*Applies to: Famicons, Mynaui Icons*
+*Applies to: Famicons, Mynaui Icons, Siemens Industrial Experience Icons (ix)*
 
 ```
 MIT License
 
-Copyright (c) respective icon set authors (Famicons — Family; Mynaui Icons — Myna UI)
+Copyright (c) respective icon set authors (Famicons — Family; Mynaui Icons — Myna UI; Siemens Industrial Experience Icons — Siemens AG)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
