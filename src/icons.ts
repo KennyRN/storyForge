@@ -15,6 +15,7 @@ export const ICON_TOOLS = "sf-dashboard-3";
 export const ICON_FOLDER_PLUS = "sf-folder-plus";
 export const ICON_PLUS_SQUARE = "sf-plus-square";
 export const ICON_TIMELINE = "sf-timeline";
+export const ICON_CYCLE_ALT = "sf-cycle-alt";
 
 const INBOX_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><g fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.75 12H6a2 2 0 0 1 2 2a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2a2 2 0 0 1 2-2h3.25" /><path d="M15.25 2.75h-6.5a6 6 0 0 0-6 6v6.5a6 6 0 0 0 6 6h6.5a6 6 0 0 0 6-6v-6.5a6 6 0 0 0-6-6Z" /></g></svg>`;
 
@@ -46,6 +47,8 @@ const PLUS_SQUARE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24
 
 const TIMELINE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M19 9c-1.3 0-2.4.84-2.82 2H13V2h-2v3H7.82A2.99 2.99 0 0 0 5 3C3.35 3 2 4.35 2 6s1.35 3 3 3c1.3 0 2.4-.84 2.82-2H11v10H7.82A2.99 2.99 0 0 0 5 15c-1.65 0-3 1.35-3 3s1.35 3 3 3c1.3 0 2.4-.84 2.82-2H11v3h2v-9h3.18c.41 1.16 1.51 2 2.82 2c1.65 0 3-1.35 3-3s-1.35-3-3-3" /></svg>`;
 
+const CYCLE_ALT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M405.333 128c22.493 0 40.921 13.685 42.55 36.505l.117 3.291v176.408c0 23.249-20.59 38.112-42.667 39.796h-97.792l27.544 32.815L304.915 448l-79.085-81.745l79.085-81.745l30.17 31.184l-27.544 25.639h97.792V170.667H320V128zM207.085 64l79.085 81.745l-79.085 81.745l-30.17-31.184l25.752-25.639h-96v170.666H192V384h-85.333c-22.493 0-40.921-13.685-42.55-36.505L64 344.204V167.796c0-23.249 9.923-38.112 32-39.796h106.667l-25.752-32.815z" /></svg>`;
+
 /** Registers storyForge's custom Lucide-style icons so `setIcon` can address them by id. */
 export function registerCustomIcons(): void {
 	addIcon(ICON_UNPLACED, INBOX_SVG);
@@ -63,4 +66,5 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_FOLDER_PLUS, FOLDER_PLUS_SVG);
 	addIcon(ICON_PLUS_SQUARE, PLUS_SQUARE_SVG);
 	addIcon(ICON_TIMELINE, TIMELINE_SVG);
+	addIcon(ICON_CYCLE_ALT, CYCLE_ALT_SVG);
 }

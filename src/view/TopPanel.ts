@@ -17,12 +17,16 @@ import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
 import { ICON_ARCHIVE, ICON_BOOK, ICON_BOOK_PLUS, ICON_FILTER, ICON_PLUS_SQUARE, ICON_SERIES, ICON_TIMELINE, ICON_UNPLACED } from "../icons";
 
+export type UnplacedViewMode = "unplaced" | "unplacedHidden";
+
 export interface TopPanelOptions {
 	mode: "book" | "series";
 	currentBookFolderName: string | null;
 	activeChapterFilename: string | null;
 	highlightActiveChapter: boolean;
+	unplacedMode: UnplacedViewMode;
 	onToggleMode: () => void;
+	onToggleUnplacedMode: () => void;
 	onSelectBook: (bookFolderName: string) => void;
 	onOpenChapter: (bookFolderName: string, filename: string) => void;
 	onOpenSeriesModal: () => void;
@@ -119,13 +123,22 @@ function renderRowTitle(row: HTMLElement, displayTitle: string): HTMLElement {
 
 function renderUnplacedHeader(
 	zone: HTMLElement,
+	label: string,
+	isHidden: boolean,
+	onToggleMode: () => void,
 	onCreateFile?: () => void,
 	createIcon: string = ICON_PLUS_SQUARE,
 	onOpenArchive?: () => void,
 ): void {
 	const header = zone.createDiv({ cls: "sf-unplaced-header" });
+	if (isHidden) header.addClass("sf-unplaced-hidden");
 	setIcon(header.createSpan({ cls: "sf-icon" }), ICON_UNPLACED);
-	header.createSpan({ cls: "sf-header-unplaced", text: "Unplaced" });
+	header.createSpan({
+		cls: "sf-header-unplaced",
+		text: isHidden ? `${label.toLowerCase()} hidden` : label,
+	});
+	header.addEventListener("click", () => onToggleMode());
+	if (isHidden) return;
 	if (onCreateFile) {
 		const newFileBtn = header.createSpan({
 			cls: "sf-unplaced-new-file",
@@ -198,27 +211,36 @@ function renderSeriesList(
 	}
 
 	const unplacedZone = bodyEl.createDiv({ cls: "sf-unplaced-zone" });
-	renderUnplacedHeader(unplacedZone, () => void handleCreateBook(app), ICON_BOOK_PLUS);
-	const unplacedList = unplacedZone.createDiv({ cls: "sf-top-list sf-unplaced-list" });
-	unplaced.forEach((folder, i) => {
-		const row = createRow(unplacedList, folder.name);
-		const label = renderRowTitle(row, numbered[ordered.length + i]);
-		row.addEventListener("click", (e) => {
-			if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
-			options.onSelectBook(folder.name);
-		});
-		attachInlineRename({
-			row,
-			label,
-			getCurrentTitle: () => bookDisplayTitle(app, folder.name),
-			onCommit: (newTitle) => renameBookTitle(app, folder.name, newTitle),
-		});
-	});
+	const unplacedHidden = options.unplacedMode === "unplacedHidden";
+	renderUnplacedHeader(
+		unplacedZone,
+		"Unplaced Novels",
+		unplacedHidden,
+		options.onToggleUnplacedMode,
+		() => void handleCreateBook(app),
+		ICON_BOOK_PLUS,
+	);
 
-	const zones: DragZone[] = [
-		{ key: "ordered", container: mainList },
-		{ key: "unplaced", container: unplacedList },
-	];
+	const zones: DragZone[] = [{ key: "ordered", container: mainList }];
+	if (!unplacedHidden) {
+		const unplacedList = unplacedZone.createDiv({ cls: "sf-top-list sf-unplaced-list" });
+		unplaced.forEach((folder, i) => {
+			const row = createRow(unplacedList, folder.name);
+			const label = renderRowTitle(row, numbered[ordered.length + i]);
+			row.addEventListener("click", (e) => {
+				if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
+				options.onSelectBook(folder.name);
+			});
+			attachInlineRename({
+				row,
+				label,
+				getCurrentTitle: () => bookDisplayTitle(app, folder.name),
+				onCommit: (newTitle) => renameBookTitle(app, folder.name, newTitle),
+			});
+		});
+		zones.push({ key: "unplaced", container: unplacedList });
+	}
+
 	makeReorderable(zones, ".sf-row", ".sf-drag-handle", (zoneRowKeys) => {
 		void reorderSeriesBooks(app, (zoneRowKeys.ordered ?? []).filter(Boolean));
 	});
@@ -262,39 +284,49 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 	}
 
 	const unplacedZone = bodyEl.createDiv({ cls: "sf-unplaced-zone" });
-	renderUnplacedHeader(unplacedZone, () => void handleCreateChapter(app, bookFolderName), ICON_PLUS_SQUARE, options.onOpenArchive);
-	const unplacedList = unplacedZone.createDiv({ cls: "sf-top-list sf-unplaced-list" });
-	(unplaced as TFile[]).forEach((file, i) => {
-		const row = createRow(unplacedList, file.name);
-		const label = renderRowTitle(row, numbered[ordered.length + i]);
-		if (options.highlightActiveChapter && options.activeChapterFilename === file.name) {
-			row.addClass("sf-row-selected");
-		}
-		row.addEventListener("click", (e) => {
-			if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
-			options.onOpenChapter(bookFolderName, file.name);
-		});
-		const archiveItem: ExtraMenuItem = {
-			title: "Archive",
-			onClick: async () => {
-				await archiveChapter(app, bookFolderName, file.name);
-				renderTopPanel(app, container, options);
-				options.onArchiveChapter?.();
-			},
-		};
-		attachInlineRename({
-			row,
-			label,
-			getCurrentTitle: () => chapterDisplayTitle(app, bookFolderName, file.name),
-			onCommit: (newTitle) => renameChapterTitle(app, bookFolderName, file.name, newTitle),
-			extraMenuItems: [archiveItem],
-		});
-	});
+	const unplacedHidden = options.unplacedMode === "unplacedHidden";
+	renderUnplacedHeader(
+		unplacedZone,
+		"Unplaced Chapters",
+		unplacedHidden,
+		options.onToggleUnplacedMode,
+		() => void handleCreateChapter(app, bookFolderName),
+		ICON_PLUS_SQUARE,
+		options.onOpenArchive,
+	);
 
-	const zones: DragZone[] = [
-		{ key: "ordered", container: mainList },
-		{ key: "unplaced", container: unplacedList },
-	];
+	const zones: DragZone[] = [{ key: "ordered", container: mainList }];
+	if (!unplacedHidden) {
+		const unplacedList = unplacedZone.createDiv({ cls: "sf-top-list sf-unplaced-list" });
+		(unplaced as TFile[]).forEach((file, i) => {
+			const row = createRow(unplacedList, file.name);
+			const label = renderRowTitle(row, numbered[ordered.length + i]);
+			if (options.highlightActiveChapter && options.activeChapterFilename === file.name) {
+				row.addClass("sf-row-selected");
+			}
+			row.addEventListener("click", (e) => {
+				if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
+				options.onOpenChapter(bookFolderName, file.name);
+			});
+			const archiveItem: ExtraMenuItem = {
+				title: "Archive",
+				onClick: async () => {
+					await archiveChapter(app, bookFolderName, file.name);
+					renderTopPanel(app, container, options);
+					options.onArchiveChapter?.();
+				},
+			};
+			attachInlineRename({
+				row,
+				label,
+				getCurrentTitle: () => chapterDisplayTitle(app, bookFolderName, file.name),
+				onCommit: (newTitle) => renameChapterTitle(app, bookFolderName, file.name, newTitle),
+				extraMenuItems: [archiveItem],
+			});
+		});
+		zones.push({ key: "unplaced", container: unplacedList });
+	}
+
 	makeReorderable(zones, ".sf-row", ".sf-drag-handle", (zoneRowKeys) => {
 		void writeBookChapterOrder(app, bookFolderName, (zoneRowKeys.ordered ?? []).filter(Boolean));
 	});
