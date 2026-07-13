@@ -16,6 +16,10 @@ export const ICON_FOLDER_PLUS = "sf-folder-plus";
 export const ICON_PLUS_SQUARE = "sf-plus-square";
 export const ICON_TIMELINE = "sf-timeline";
 export const ICON_CYCLE_ALT = "sf-cycle-alt";
+export const ICON_TEXT_STYLE = "sf-text-style";
+export const ICON_UI_FORMATTING = "sf-ui-formatting";
+export const ICON_HIDE_UI = "sf-hide-ui";
+export const ICON_PROTECTIONS = "sf-protections";
 
 const INBOX_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><g fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.75 12H6a2 2 0 0 1 2 2a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2a2 2 0 0 1 2-2h3.25" /><path d="M15.25 2.75h-6.5a6 6 0 0 0-6 6v6.5a6 6 0 0 0 6 6h6.5a6 6 0 0 0 6-6v-6.5a6 6 0 0 0-6-6Z" /></g></svg>`;
 
@@ -49,6 +53,14 @@ const TIMELINE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24
 
 const CYCLE_ALT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path fill="currentColor" d="M405.333 128c22.493 0 40.921 13.685 42.55 36.505l.117 3.291v176.408c0 23.249-20.59 38.112-42.667 39.796h-97.792l27.544 32.815L304.915 448l-79.085-81.745l79.085-81.745l30.17 31.184l-27.544 25.639h97.792V170.667H320V128zM207.085 64l79.085 81.745l-79.085 81.745l-30.17-31.184l25.752-25.639h-96v170.666H192V384h-85.333c-22.493 0-40.921-13.685-42.55-36.505L64 344.204V167.796c0-23.249 9.923-38.112 32-39.796h106.667l-25.752-32.815z" /></svg>`;
 
+const TEXT_STYLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>`;
+
+const UI_FORMATTING_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12h4.5m4.5 0h4.5m4.5 0H21M3 6h4.5m4.5 0h4.5m4.5 0H21M3 18h4.5m4.5 0h4.5m4.5 0H21"/></svg>`;
+
+const HIDE_UI_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12h18M3 12a9 9 0 0 1 9-9m-9 9a9 9 0 0 0 9 9m-9-9a9 9 0 0 1 9-9m-9-9a9 9 0 0 0-9 9m9 9a9 9 0 0 1-9-9"/></svg>`;
+
+const PROTECTIONS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 2l7 4v5c0 5.5-3.8 10-7 12-3.2-2-7-6.5-7-12V6l7-4z"/></svg>`;
+
 /** Registers storyForge's custom Lucide-style icons so `setIcon` can address them by id. */
 export function registerCustomIcons(): void {
 	addIcon(ICON_UNPLACED, INBOX_SVG);
@@ -67,4 +79,8 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_PLUS_SQUARE, PLUS_SQUARE_SVG);
 	addIcon(ICON_TIMELINE, TIMELINE_SVG);
 	addIcon(ICON_CYCLE_ALT, CYCLE_ALT_SVG);
+	addIcon(ICON_TEXT_STYLE, TEXT_STYLE_SVG);
+	addIcon(ICON_UI_FORMATTING, UI_FORMATTING_SVG);
+	addIcon(ICON_HIDE_UI, HIDE_UI_SVG);
+	addIcon(ICON_PROTECTIONS, PROTECTIONS_SVG);
 }
