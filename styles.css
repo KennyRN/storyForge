@@ -906,3 +906,85 @@
 	color: var(--text-normal);
 	text-align: center;
 }
+
+/* ── Text Style Modal (tabbed) ── */
+
+.modal:has(.sf-text-style-modal) {
+	width: 560px;
+	height: 760px;
+	display: flex;
+	flex-direction: column;
+	padding: 0;
+}
+
+.sf-text-style-modal {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
+	padding: 16px;
+	min-height: 0;
+	min-width: 0;
+}
+
+.sf-text-style-tab-bar {
+	display: flex;
+	flex-direction: row;
+	gap: 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+	flex-shrink: 0;
+	box-sizing: border-box;
+}
+
+.sf-text-style-tab-btn {
+	appearance: none;
+	border: none;
+	background: transparent;
+	padding: var(--size-4-3) var(--size-4-4);
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-medium);
+	color: var(--text-muted);
+	cursor: pointer;
+	border-bottom: 2px solid transparent;
+	margin-bottom: -1px;
+	transition: color 0.15s ease, border-color 0.15s ease;
+	flex: 1;
+	white-space: nowrap;
+	box-sizing: border-box;
+}
+
+.sf-text-style-tab-btn:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+}
+
+.sf-text-style-tab-btn.is-active {
+	color: var(--text-accent);
+	border-bottom-color: var(--interactive-accent);
+}
+
+.sf-text-style-tab-body-wrapper {
+	flex: 1;
+	min-height: 0;
+	height: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	box-sizing: border-box;
+}
+
+.sf-text-style-tab-body {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-6);
+	box-sizing: border-box;
+}
+
+.sf-text-style-tab-body > .setting-item,
+.sf-text-style-tab-body > .setting-group {
+	margin-bottom: 0;
+}
+
+.sf-text-style-tab-body > .setting-item + .setting-group,
+.sf-text-style-tab-body > .setting-item + .setting-item {
+	margin-top: var(--size-4-6);
+}
