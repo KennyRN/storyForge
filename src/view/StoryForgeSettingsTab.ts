@@ -932,9 +932,13 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					}),
 				),
 		);
+	}
+
+	private renderCyclingGuideCard(body: HTMLElement, settings: StoryForgePluginSettings): void {
+		const cyclingGuideGroup = new SettingGroup(body);
 
 		let cyclingGuideToggle!: ToggleComponent;
-		highlightGroup.addSetting((setting) =>
+		cyclingGuideGroup.addSetting((setting) =>
 			setting
 				.setName("Cycling guide")
 				.setDesc("Draws a floating divider line in the editor after every 500 words, without shifting your text.")
@@ -945,13 +949,14 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		);
 
 		let cyclingGuideThicknessSetting!: Setting;
-		highlightGroup.addSetting((setting) => {
+		cyclingGuideGroup.addSetting((setting) => {
 			cyclingGuideThicknessSetting = setting;
 			setting.setName("Thickness").addDropdown((dropdown) =>
 				dropdown
 					.addOption("thin", "Thin")
 					.addOption("medium", "Medium")
 					.addOption("thick", "Thick")
+					.addOption("extra-thick", "Extra thick")
 					.setValue(settings.cyclingGuideThickness)
 					.onChange(async (value) => {
 						await this.plugin.updateSetting("cyclingGuideThickness", value as HeadingDividerThickness);
@@ -960,8 +965,54 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			);
 		});
 
+		let cyclingGuideFlagSizeSetting!: Setting;
+		cyclingGuideGroup.addSetting((setting) => {
+			cyclingGuideFlagSizeSetting = setting;
+			setting.setName("Flag size").addDropdown((dropdown) =>
+				dropdown
+					.addOption("small", "Small")
+					.addOption("medium", "Medium")
+					.addOption("large", "Large")
+					.setValue(settings.cyclingGuideFlagSize)
+					.onChange(async (value) => {
+						await this.plugin.updateSetting("cyclingGuideFlagSize", value as "small" | "medium" | "large");
+						this.plugin.applyCyclingGuideStyle();
+					}),
+			);
+		});
+
+		let cyclingGuideRoundedLinesSetting!: Setting;
+		cyclingGuideGroup.addSetting((setting) => {
+			cyclingGuideRoundedLinesSetting = setting;
+			setting
+				.setName("Rounded lines")
+				.setDesc("Rounds the corners of the divider line, except the bottom-right where the flag sits.")
+				.addToggle((toggle) =>
+					toggle.setValue(settings.cyclingGuideRoundedLines).onChange(async (value) => {
+						await this.plugin.updateSetting("cyclingGuideRoundedLines", value);
+						this.plugin.applyCyclingGuideStyle();
+					}),
+				);
+		});
+
+		let cyclingGuideIntervalSetting!: Setting;
+		cyclingGuideGroup.addSetting((setting) => {
+			cyclingGuideIntervalSetting = setting;
+			setting.setName("Cycle length").addDropdown((dropdown) =>
+				dropdown
+					.addOption("short", "Short")
+					.addOption("medium", "Medium")
+					.addOption("large", "Long")
+					.setValue(settings.cyclingGuideInterval)
+					.onChange(async (value) => {
+						await this.plugin.updateSetting("cyclingGuideInterval", value as "short" | "medium" | "large");
+						this.plugin.rebuildCyclingGuideExtension();
+					}),
+			);
+		});
+
 		let cyclingGuideColorSetting!: Setting;
-		highlightGroup.addSetting((setting) => {
+		cyclingGuideGroup.addSetting((setting) => {
 			cyclingGuideColorSetting = setting;
 			setting.setName("Line colour").addButton((button) =>
 				this.bindColorSwatchButton(button, settings.cyclingGuideColor, async (hex) => {
@@ -973,6 +1024,9 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 
 		const applyCyclingGuideVisibility = (hidden: boolean) => {
 			cyclingGuideThicknessSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+			cyclingGuideFlagSizeSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+			cyclingGuideRoundedLinesSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+			cyclingGuideIntervalSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 			cyclingGuideColorSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 		};
 		cyclingGuideToggle.onChange(async (value) => {
@@ -1392,6 +1446,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 	private renderUiFormattingSection(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
 		this.renderFoldableSection(containerEl, "ui-formatting", "h3", "storyForge interface", (body) => {
 			this.renderHighlightGroup(body, settings);
+			this.renderCyclingGuideCard(body, settings);
 			this.renderFoldableSection(body, "library-pane", "h4", "Library pane", (libraryBody) => {
 				this.renderTitleStyleGroup(libraryBody, settings, {
 					labelPrefix: "Series title",
