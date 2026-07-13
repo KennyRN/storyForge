@@ -134,10 +134,20 @@ export async function createCodexFolder(app: App, parentFolderId: string | null)
 	return newId;
 }
 
-export async function createCodexNote(app: App, parentFolderId: string | null): Promise<TFile> {
+export interface CreateCodexNoteOptions {
+	/** Fixed basename (incl. ".md") for the new note. Defaults to auto "New Note.md"/"New Note N.md". */
+	filename?: string;
+	content?: string;
+}
+
+export async function createCodexNote(
+	app: App,
+	parentFolderId: string | null,
+	options: CreateCodexNoteOptions = {},
+): Promise<TFile> {
 	if (!app.vault.getAbstractFileByPath(CODEX_ROOT)) await app.vault.createFolder(CODEX_ROOT);
-	const path = uniqueChildPath(app, CODEX_ROOT, "New Note", ".md");
-	const file = await app.vault.create(path, "");
+	const path = options.filename ? `${CODEX_ROOT}/${options.filename}` : uniqueChildPath(app, CODEX_ROOT, "New Note", ".md");
+	const file = await app.vault.create(path, options.content ?? "");
 	await modifyBackstageFrontmatter(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
 		const folders = parseFolders(fm.folders);
 		const order = parseStringArray(fm.order);

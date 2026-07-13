@@ -7,6 +7,8 @@ import { PalettePickerModal } from "./PalettePickerModal";
 import { IconAuditModal } from "./IconAuditModal";
 import { CUSTOM_FONTS } from "../fonts";
 import { runFullBackup } from "../backup";
+import { ensureWelcomeNote } from "../welcomeNote";
+import { ConvertToSeriesModal } from "./ConvertToSeriesModal";
 
 const FONT_WEIGHT_OPTIONS: [FontWeight, string][] = [
 	["300", "Light"],
@@ -218,6 +220,20 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName("Recreate welcome note")
+			.setDesc("Restores storyForge Welcome.md in your Codex if you've deleted it. If it still exists, this just opens it.")
+			.addButton((button) =>
+				button.setButtonText("Recreate welcome note").onClick(async () => {
+					try {
+						const file = await ensureWelcomeNote(this.app);
+						await this.app.workspace.getLeaf(false).openFile(file);
+					} catch (err) {
+						new Notice(`storyForge: could not recreate welcome note — ${(err as Error).message}`);
+					}
+				}),
+			);
+
+		new Setting(containerEl)
 			.setName("Icon usage")
 			.setDesc("See every icon storyForge uses, custom and stock, and where each one is wired up.")
 			.addButton((button) =>
@@ -244,6 +260,28 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					.setCta()
 					.onClick(() => void this.plugin.activateToolsView()),
 			);
+
+		new Setting(containerEl)
+			.setName("Hide series pane")
+			.setDesc("Hides the series header and locks storyForge to book view — for standalone/non-series projects. Your series data isn't deleted; toggle this off anytime to bring it back.")
+			.addToggle((toggle) =>
+				toggle.setValue(settings.hideSeriesPane).onChange(async (value) => {
+					await this.plugin.updateSetting("hideSeriesPane", value);
+					this.plugin.refreshStoryForgeViews();
+				}),
+			);
+
+		if (settings.hideSeriesPane) {
+			new Setting(containerEl)
+				.setName("Convert to series")
+				.setDesc("Turn this standalone book into the first book of a series — lets you add more books to it later.")
+				.addButton((button) =>
+					button
+						.setButtonText("Convert to series")
+						.setCta()
+						.onClick(() => new ConvertToSeriesModal(this.app, this.plugin, () => this.display()).open()),
+				);
+		}
 	}
 
 	private renderPaletteSection(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {

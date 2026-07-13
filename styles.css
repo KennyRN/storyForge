@@ -460,6 +460,17 @@
 	padding: 16px;
 }
 
+.sf-onboarding-modal {
+	padding: 16px;
+}
+
+.sf-onboarding-actions {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	margin-top: 12px;
+}
+
 .sf-modal-textarea {
 	width: 100%;
 	min-height: 240px;

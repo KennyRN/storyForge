@@ -8,7 +8,9 @@ import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders } f
 import { ensureAllChapterEntries, getBookChapterFiles, readBookFrontmatter, syncAllBookReferenceFields } from "./book";
 import { migrateVaultSchema } from "./migration";
 import { registerReconciliationEvents } from "./reconciliation";
-import { isLibraryChapterPath, bookFolderNameFromChapterPath } from "./paths";
+import { isLibraryChapterPath, bookFolderNameFromChapterPath, seriesFilePath, LIBRARY_ROOT, CODEX_ROOT } from "./paths";
+import { SeriesOnboardingModal } from "./view/SeriesOnboardingModal";
+import { ensureWelcomeNote } from "./welcomeNote";
 import { sumWordCounts } from "./wordCount";
 import { upsertTodayTotal } from "./history";
 import { extractFingerprint } from "./fingerprint";
@@ -55,6 +57,7 @@ export interface StoryForgePluginSettings {
 	hideRightPanel: boolean;
 	hideFileNameBar: boolean;
 	hideNavRow: boolean;
+	hideSeriesPane: boolean;
 	statusBarView: StatusBarView;
 	highlightActiveChapter: boolean;
 	highlightColor: string;
@@ -207,6 +210,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	hideRightPanel: true,
 	hideFileNameBar: true,
 	hideNavRow: true,
+	hideSeriesPane: false,
 	statusBarView: "all",
 	highlightActiveChapter: true,
 	highlightColor: "#fef3c7",
@@ -1021,7 +1025,40 @@ export default class StoryForgePlugin extends Plugin {
 		this.applyStyleToAllDocs("storyforge-text-style-overrides", rules.join("\n"));
 	}
 
+	/** Eagerly creates the story library and Codex root folders (mirrors the already-eager _sf-backstage
+	 * creation that modifyBackstageFrontmatter performs), so a fresh vault immediately has a place to drop
+	 * in existing notes. Each check is independent and idempotent - a no-op on every load after the first.
+	 * Bypasses writeGuard: LIBRARY_ROOT/CODEX_ROOT are paths its assertBackstagePath() forbids outright,
+	 * same as the existing lazy-creation call sites in book.ts and codex.ts. */
+	private async ensureEagerFolders(): Promise<void> {
+		if (!this.app.vault.getAbstractFileByPath(LIBRARY_ROOT)) {
+			await this.app.vault.createFolder(LIBRARY_ROOT);
+		}
+		if (!this.app.vault.getAbstractFileByPath(CODEX_ROOT)) {
+			await this.app.vault.createFolder(CODEX_ROOT);
+		}
+	}
+
+	/** Shown only on true first run (series.md doesn't exist yet), before ensureSeriesFile() would
+	 * otherwise silently seed it with "Untitled Series". Resolves once the modal closes by any path. */
+	private showFirstRunModal(): Promise<void> {
+		return new Promise((resolve) => {
+			new SeriesOnboardingModal(this.app, this, resolve).open();
+		});
+	}
+
 	private async initializeVaultState(): Promise<void> {
+		await this.ensureEagerFolders();
+		const isFirstRun = !this.app.vault.getAbstractFileByPath(seriesFilePath());
+		if (isFirstRun) {
+			await this.showFirstRunModal();
+			try {
+				const welcomeFile = await ensureWelcomeNote(this.app);
+				await this.app.workspace.getLeaf(false).openFile(welcomeFile);
+			} catch (err) {
+				console.error("storyForge: failed to create welcome note", err);
+			}
+		}
 		await ensureSeriesFile(this.app);
 		await migrateVaultSchema(this.app);
 		const books = await ensureAllSeriesBookEntries(this.app);
