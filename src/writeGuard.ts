@@ -52,6 +52,25 @@ export async function writeBackstageFile(vault: Vault, path: string, content: st
 	return vault.create(path, content);
 }
 
+export async function writeBackstageBinary(vault: Vault, path: string, data: ArrayBuffer): Promise<TFile> {
+	assertBackstagePath(path);
+	const existing = vault.getAbstractFileByPath(path);
+	if (existing instanceof TFile) {
+		await vault.modifyBinary(existing, data);
+		return existing;
+	}
+	await ensureParentFolder(vault, path);
+	return vault.createBinary(path, data);
+}
+
+export async function deleteBackstagePath(vault: Vault, path: string): Promise<void> {
+	assertBackstagePath(path);
+	const file = vault.getAbstractFileByPath(path);
+	if (file) {
+		await vault.delete(file);
+	}
+}
+
 export async function modifyBackstageFrontmatter(
 	app: { fileManager: { processFrontMatter: (file: TFile, fn: (fm: FrontMatterCache) => void) => Promise<void> } },
 	vault: Vault,

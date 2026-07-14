@@ -6,11 +6,13 @@ import {
 	createBook,
 	createChapter,
 	getBookChapters,
+	readBookFrontmatter,
 	renameBookTitle,
 	renameChapterTitle,
 	reorderSeriesBooks,
 	writeBookChapterOrder,
 } from "../book";
+import { bookBackstagePath } from "../paths";
 import { makeReorderable, type DragZone } from "./dragReorder";
 import { makeAccessibleActivatable } from "./a11y";
 import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
@@ -59,7 +61,21 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 
 	if (options.mode === "book") {
 		const bookLine = header.createDiv({ cls: "sf-book-line" });
-		setIcon(bookLine.createSpan({ cls: "sf-icon" }), ICON_BOOK);
+		const coverImage = options.currentBookFolderName
+			? readBookFrontmatter(app, options.currentBookFolderName)?.coverImage ?? null
+			: null;
+		const coverFile =
+			coverImage && options.currentBookFolderName
+				? app.vault.getAbstractFileByPath(`${bookBackstagePath(options.currentBookFolderName)}/${coverImage}`)
+				: null;
+		if (coverFile instanceof TFile) {
+			bookLine.createEl("img", {
+				cls: "sf-book-cover-thumb",
+				attr: { src: app.vault.getResourcePath(coverFile) },
+			});
+		} else {
+			setIcon(bookLine.createSpan({ cls: "sf-icon" }), ICON_BOOK);
+		}
 		const titleRow = bookLine.createDiv({ cls: "sf-header-line sf-book-title-row" });
 		const rawBookTitle = options.currentBookFolderName
 			? numberedBookTitle(app, series.ordered, series.unplaced, options.currentBookFolderName)
