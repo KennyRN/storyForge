@@ -34,7 +34,7 @@ const CODEX_FOLDER_INDICATOR_WIDTH_PX: Record<CodexFolderIndicatorThickness, num
 
 export type HeadingDividerThickness = "thin" | "medium" | "thick" | "extra-thick";
 
-export type CustomFontFamily = "caroni" | "ibm-plex-sans-var" | "nunito";
+export type CustomFontFamily = "ibm-plex-sans-var" | "nunito" | "caveat" | "playpen-sans";
 
 export type FontWeight = "300" | "400" | "500" | "600" | "700" | "800" | "900";
 
@@ -213,6 +213,23 @@ export interface StoryForgePluginSettings {
 	lastAutomaticBackupAt: number;
 }
 
+const FONT_FAMILY_SETTING_KEYS: (
+	| "bodyTextFontFamily"
+	| "heading1FontFamily"
+	| "heading2FontFamily"
+	| "heading3FontFamily"
+	| "heading4FontFamily"
+	| "heading5FontFamily"
+	| "heading6FontFamily"
+)[] = ["bodyTextFontFamily", "heading1FontFamily", "heading2FontFamily", "heading3FontFamily", "heading4FontFamily", "heading5FontFamily", "heading6FontFamily"];
+
+/** Caroni was removed as a font choice; any settings still carrying its id (from before the removal) fall back to the current default font. */
+function migrateRemovedCaroniFont(settings: StoryForgePluginSettings): void {
+	for (const key of FONT_FAMILY_SETTING_KEYS) {
+		if ((settings[key] as string) === "caroni") settings[key] = "ibm-plex-sans-var";
+	}
+}
+
 export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	hideHelp: true,
 	hideSearch: true,
@@ -277,14 +294,14 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	bodyTextItalicColor: "#c8c8c8",
 	bodyTextOverrideFont: false,
 	bodyTextFontWeight: "400",
-	bodyTextFontFamily: "caroni",
+	bodyTextFontFamily: "ibm-plex-sans-var",
 	heading1OverrideSize: false,
 	heading1OverrideColor: false,
 	heading1Size: 1,
 	heading1Color: "#c8c8c8",
 	heading1OverrideFont: false,
 	heading1FontWeight: "400",
-	heading1FontFamily: "caroni",
+	heading1FontFamily: "ibm-plex-sans-var",
 	heading1SmallCaps: false,
 	heading1DividerAbove: false,
 	heading1DividerAboveThickness: "medium",
@@ -296,7 +313,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	heading2Color: "#c8c8c8",
 	heading2OverrideFont: false,
 	heading2FontWeight: "400",
-	heading2FontFamily: "caroni",
+	heading2FontFamily: "ibm-plex-sans-var",
 	heading2SmallCaps: false,
 	heading2DividerAbove: false,
 	heading2DividerAboveThickness: "medium",
@@ -308,7 +325,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	heading3Color: "#c8c8c8",
 	heading3OverrideFont: false,
 	heading3FontWeight: "400",
-	heading3FontFamily: "caroni",
+	heading3FontFamily: "ibm-plex-sans-var",
 	heading3SmallCaps: false,
 	heading3DividerAbove: false,
 	heading3DividerAboveThickness: "medium",
@@ -320,7 +337,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	heading4Color: "#c8c8c8",
 	heading4OverrideFont: false,
 	heading4FontWeight: "400",
-	heading4FontFamily: "caroni",
+	heading4FontFamily: "ibm-plex-sans-var",
 	heading4SmallCaps: false,
 	heading4DividerAbove: false,
 	heading4DividerAboveThickness: "medium",
@@ -332,7 +349,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	heading5Color: "#c8c8c8",
 	heading5OverrideFont: false,
 	heading5FontWeight: "400",
-	heading5FontFamily: "caroni",
+	heading5FontFamily: "ibm-plex-sans-var",
 	heading5SmallCaps: false,
 	heading5DividerAbove: false,
 	heading5DividerAboveThickness: "medium",
@@ -344,7 +361,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	heading6Color: "#c8c8c8",
 	heading6OverrideFont: false,
 	heading6FontWeight: "400",
-	heading6FontFamily: "caroni",
+	heading6FontFamily: "ibm-plex-sans-var",
 	heading6SmallCaps: false,
 	heading6DividerAbove: false,
 	heading6DividerAboveThickness: "medium",
@@ -552,6 +569,7 @@ export default class StoryForgePlugin extends Plugin {
 	async loadSettings(): Promise<void> {
 		const data = await this.loadData();
 		this.pluginSettings = Object.assign({}, DEFAULT_SETTINGS, data);
+		migrateRemovedCaroniFont(this.pluginSettings);
 	}
 
 	async saveSettings(): Promise<void> {
@@ -570,6 +588,7 @@ export default class StoryForgePlugin extends Plugin {
 	/** Replaces all settings with `data` (merged over defaults, same as `loadSettings`), persists, and re-applies every style/extension so the change takes effect immediately. */
 	async importSettings(data: unknown): Promise<void> {
 		this.pluginSettings = Object.assign({}, DEFAULT_SETTINGS, data);
+		migrateRemovedCaroniFont(this.pluginSettings);
 		await this.saveSettings();
 
 		this.applyVisibilityStyles();

@@ -1,8 +1,8 @@
 import { App, TFile, TFolder } from "obsidian";
-import { bookFilePath, libraryBookPath, libraryChapterPath, LIBRARY_ROOT } from "./paths";
+import { bookBackstagePath, bookFilePath, libraryBookPath, libraryChapterPath, LIBRARY_ROOT } from "./paths";
 import { resolveOrder, type OrderResult } from "./ordering";
 import { mintId } from "./slug";
-import { modifyBackstageFrontmatter, writeBackstageFile } from "./writeGuard";
+import { deleteBackstagePath, modifyBackstageFrontmatter, writeBackstageBinary, writeBackstageFile } from "./writeGuard";
 import {
 	collectAllBookIds,
 	getLibraryBookFolders,
@@ -40,6 +40,7 @@ export interface BookFrontmatter {
 	bookIdReference: string;
 	bookTitleReference: string;
 	seriesOrderReference: number | null;
+	coverImage: string | null;
 	chapters: Record<string, ChapterEntry>;
 }
 
@@ -90,6 +91,7 @@ export function readBookFrontmatter(app: App, bookFolderName: string): BookFront
 			bookTitleReference:
 				typeof fm?.["book-title-reference"] === "string" ? fm["book-title-reference"] : bookFolderName,
 			seriesOrderReference: typeof fm?.["series-order-reference"] === "number" ? fm["series-order-reference"] : null,
+			coverImage: typeof fm?.["cover-image"] === "string" && fm["cover-image"] ? fm["cover-image"] : null,
 			goalDaily: typeof fm?.goal_daily === "number" ? fm.goal_daily : null,
 			chapterOrder,
 			unplaced,
@@ -164,6 +166,39 @@ export async function writeBookChapterOrder(app: App, bookFolderName: string, ne
 			fm["chapter-order"] = newOrder;
 		},
 	);
+}
+
+/** Writes/replaces the book's cover image (`_sf-backstage/<book>/cover.<ext>`) and records its filename in book.md's frontmatter. Removes the previous cover file first if its extension differs. Returns the new cover's vault path. */
+export async function writeBookCoverImage(
+	app: App,
+	bookFolderName: string,
+	data: ArrayBuffer,
+	extension: string,
+): Promise<string> {
+	const previous = readBookFrontmatter(app, bookFolderName)?.coverImage ?? null;
+	const filename = `cover.${extension}`;
+	const folder = bookBackstagePath(bookFolderName);
+	const path = `${folder}/${filename}`;
+	if (previous && previous !== filename) {
+		await deleteBackstagePath(app.vault, `${folder}/${previous}`);
+	}
+	await writeBackstageBinary(app.vault, path, data);
+
+	const bookPath = bookFilePath(bookFolderName);
+	const entry = getSeriesBookEntry(app, bookFolderName);
+	const bookId = entry?.bookId ?? mintId(bookFolderName, collectAllBookIds(app));
+	const bookTitle = entry?.bookTitle ?? bookFolderName;
+	const position = getSeriesOrderPosition(app, bookFolderName);
+	await modifyBackstageFrontmatter(
+		app,
+		app.vault,
+		bookPath,
+		defaultBookContent(bookId, bookTitle, position),
+		(fm) => {
+			fm["cover-image"] = filename;
+		},
+	);
+	return path;
 }
 
 /** Moves a chapter to the archive list, removing it from chapter-order and unplaced. */
