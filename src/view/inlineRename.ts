@@ -16,11 +16,13 @@ export interface InlineRenameOptions {
 	onCommit: (newTitle: string) => Promise<void>;
 	/** Optional extra items to include in the right-click menu, after Rename. */
 	extraMenuItems?: ExtraMenuItem[];
+	/** Optional extra element (e.g. a pencil icon button) that also triggers edit mode on click. */
+	trigger?: HTMLElement;
 }
 
 /** Attaches a right-click context menu to `row` with a "Rename" action (and optional extra items) — purely a row/label swap plus a caller-supplied `onCommit`, agnostic to what renaming actually does underneath. */
 export function attachInlineRename(options: InlineRenameOptions): void {
-	const { row, label, getCurrentTitle, onCommit, extraMenuItems } = options;
+	const { row, label, getCurrentTitle, onCommit, extraMenuItems, trigger } = options;
 
 	row.addEventListener("contextmenu", (event: MouseEvent) => {
 		event.preventDefault();
@@ -34,6 +36,13 @@ export function attachInlineRename(options: InlineRenameOptions): void {
 		}
 		menu.showAtMouseEvent(event);
 	});
+
+	if (trigger) {
+		trigger.addEventListener("click", (event) => {
+			event.stopPropagation();
+			beginEdit();
+		});
+	}
 
 	function beginEdit(): void {
 		if (!label.isConnected) return;

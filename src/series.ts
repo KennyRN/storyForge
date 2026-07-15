@@ -3,6 +3,7 @@ import { LIBRARY_ROOT, seriesFilePath } from "./paths";
 import { resolveOrder, type OrderResult } from "./ordering";
 import { modifyBackstageFrontmatter } from "./writeGuard";
 import { mintId } from "./slug";
+import { applyHashNumbering } from "./titleNumbering";
 
 export interface SeriesBookEntry {
 	bookId: string;
@@ -69,6 +70,16 @@ export function getBookId(app: App, folderName: string): string | null {
 
 export function bookDisplayTitle(app: App, folderName: string): string {
 	return getSeriesBookEntry(app, folderName)?.bookTitle ?? folderName;
+}
+
+/** The book's title, with "#" resolved to its number among the series' "#"-titled books (same counter TopPanel's row rendering uses). */
+export function numberedBookTitle(app: App, bookFolderName: string): string {
+	const { ordered, unplaced } = getSeriesBooks(app);
+	const sequence = [...ordered, ...unplaced];
+	const idx = sequence.findIndex((folder) => folder.name === bookFolderName);
+	if (idx === -1) return bookDisplayTitle(app, bookFolderName);
+	const numbered = applyHashNumbering(sequence.map((folder) => bookDisplayTitle(app, folder.name)));
+	return numbered[idx];
 }
 
 export function collectAllBookIds(app: App): string[] {
