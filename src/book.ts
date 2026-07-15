@@ -29,6 +29,8 @@ export interface CompileSettings {
 export interface ChapterEntry {
 	chapterId: string;
 	chapterTitle: string;
+	povPath: string | null;
+	povName: string | null;
 }
 
 export interface BookFrontmatter {
@@ -61,7 +63,9 @@ function parseChaptersMap(raw: unknown): Record<string, ChapterEntry> {
 		if (!chapterId) continue;
 		const chapterTitle =
 			typeof entry["chapter-title"] === "string" ? entry["chapter-title"] : filename.replace(/\.md$/i, "");
-		result[filename] = { chapterId, chapterTitle };
+		const povPath = typeof entry["pov-path"] === "string" ? entry["pov-path"] : null;
+		const povName = typeof entry["pov-name"] === "string" ? entry["pov-name"] : null;
+		result[filename] = { chapterId, chapterTitle, povPath, povName };
 	}
 	return result;
 }
@@ -365,10 +369,57 @@ export async function renameChapterTitle(
 				typeof existing["chapter-id"] === "string"
 					? existing["chapter-id"]
 					: nextChapterCode(bookId, collectAllChapterIds(app, bookFolderName));
-			chapters[filename] = { "chapter-id": chapterId, "chapter-title": newTitle };
+			chapters[filename] = { ...existing, "chapter-id": chapterId, "chapter-title": newTitle };
 			fm.chapters = chapters;
 		},
 	);
+}
+
+/** Sets (or overwrites) a chapter's PoV reference, preserving its existing id/title. */
+export async function writeChapterPov(
+	app: App,
+	bookFolderName: string,
+	filename: string,
+	povPath: string,
+	povName: string,
+): Promise<void> {
+	const path = bookFilePath(bookFolderName);
+	const entry = getSeriesBookEntry(app, bookFolderName);
+	const bookId = entry?.bookId ?? mintId(bookFolderName, collectAllBookIds(app));
+	const bookTitle = entry?.bookTitle ?? bookFolderName;
+	const position = getSeriesOrderPosition(app, bookFolderName);
+	await modifyBackstageFrontmatter(
+		app,
+		app.vault,
+		path,
+		defaultBookContent(bookId, bookTitle, position),
+		(fm) => {
+			const chapters = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
+			const existing = chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
+			chapters[filename] = { ...existing, "pov-path": povPath, "pov-name": povName };
+			fm.chapters = chapters;
+		},
+	);
+}
+
+/** Rewrites any chapter's PoV reference matching `oldPath` to `newPath` (or clears it if `newPath` is null), across every book — called when a Codex person note is renamed/moved. */
+export async function rekeyChapterPovReferences(app: App, oldPath: string, newPath: string | null): Promise<void> {
+	for (const folder of getLibraryBookFolders(app)) {
+		const fm = readBookFrontmatter(app, folder.name);
+		if (!fm) continue;
+		const hasMatch = Object.values(fm.chapters).some((entry) => entry.povPath === oldPath);
+		if (!hasMatch) continue;
+		await modifyBackstageFrontmatter(app, app.vault, bookFilePath(folder.name), `---\norder:\n---\n`, (bfm) => {
+			const chapters = bfm.chapters && typeof bfm.chapters === "object" ? bfm.chapters : {};
+			for (const [filename, raw] of Object.entries(chapters)) {
+				const entry = raw as Record<string, unknown>;
+				if (entry["pov-path"] === oldPath) {
+					chapters[filename] = { ...entry, "pov-path": newPath, "pov-name": newPath ? entry["pov-name"] : null };
+				}
+			}
+			bfm.chapters = chapters;
+		});
+	}
 }
 
 /** Rekeys a chapter's `chapters` map entry when its file is renamed outside the plugin. No-op if `oldFilename` isn't present. */
@@ -412,7 +463,7 @@ export async function ensureAllChapterEntries(app: App, bookFolderName: string):
 		const chapterId = nextChapterCode(bookId, knownIds);
 		knownIds.add(chapterId);
 		const chapterTitle = file.basename;
-		merged[file.name] = { chapterId, chapterTitle };
+		merged[file.name] = { chapterId, chapterTitle, povPath: null, povName: null };
 		await upsertChapterEntry(app, bookFolderName, file.name, chapterId, chapterTitle);
 	}
 	return merged;
@@ -477,6 +528,7 @@ export async function createChapter(app: App, bookFolderName: string): Promise<{
 }
 
 const SYNOPSIS_HEADER = "## Synopsis";
+const PLOT_HEADER = "## Plot";
 
 /** Splits raw file content into its frontmatter fence (verbatim, incl. trailing newline) and body. */
 function splitFrontmatterAndBody(raw: string): { frontmatterBlock: string; body: string } {
@@ -488,23 +540,23 @@ function splitFrontmatterAndBody(raw: string): { frontmatterBlock: string; body:
 	return { frontmatterBlock: raw.slice(0, fenceEnd), body: raw.slice(fenceEnd) };
 }
 
-function extractSynopsisSection(body: string): string {
-	const idx = body.indexOf(SYNOPSIS_HEADER);
+function extractSection(body: string, header: string): string {
+	const idx = body.indexOf(header);
 	if (idx === -1) return "";
-	const start = idx + SYNOPSIS_HEADER.length;
+	const start = idx + header.length;
 	const nextHeaderIdx = body.indexOf("\n## ", start);
 	return (nextHeaderIdx === -1 ? body.slice(start) : body.slice(start, nextHeaderIdx)).trim();
 }
 
-/** Replaces (or appends) the `## Synopsis` section, leaving any other body content untouched. */
-function upsertSynopsisSection(body: string, synopsis: string): string {
-	const newSection = `${SYNOPSIS_HEADER}\n${synopsis.trim()}\n`;
-	const idx = body.indexOf(SYNOPSIS_HEADER);
+/** Replaces (or appends) the given `## `-prefixed section, leaving any other body content untouched. */
+function upsertSection(body: string, header: string, content: string): string {
+	const newSection = `${header}\n${content.trim()}\n`;
+	const idx = body.indexOf(header);
 	if (idx === -1) {
 		const sep = body.trim().length === 0 ? "" : "\n";
 		return `${body.trimEnd()}${sep}\n${newSection}`;
 	}
-	const start = idx + SYNOPSIS_HEADER.length;
+	const start = idx + header.length;
 	const nextHeaderIdx = body.indexOf("\n## ", start);
 	const before = body.slice(0, idx);
 	const after = nextHeaderIdx === -1 ? "" : body.slice(nextHeaderIdx + 1);
@@ -516,7 +568,7 @@ export async function readBookSynopsis(app: App, bookFolderName: string): Promis
 	const file = app.vault.getAbstractFileByPath(bookFilePath(bookFolderName));
 	if (!(file instanceof TFile)) return "";
 	const { body } = splitFrontmatterAndBody(await app.vault.read(file));
-	return extractSynopsisSection(body);
+	return extractSection(body, SYNOPSIS_HEADER);
 }
 
 /** Writes the book's synopsis into book.md's body under a `## Synopsis` heading, leaving the frontmatter and any other body content untouched. */
@@ -533,5 +585,22 @@ export async function writeBookSynopsis(app: App, bookFolderName: string, synops
 		raw = defaultBookContent(bookId, bookTitle, getSeriesOrderPosition(app, bookFolderName));
 	}
 	const { frontmatterBlock, body } = splitFrontmatterAndBody(raw);
-	await writeBackstageFile(app.vault, path, frontmatterBlock + upsertSynopsisSection(body, synopsis));
+	await writeBackstageFile(app.vault, path, frontmatterBlock + upsertSection(body, SYNOPSIS_HEADER, synopsis));
+}
+
+/** Reads a chapter's plot notes from its own file body, under a `## Plot` heading. Empty string if none exists yet. */
+export async function readChapterPlot(app: App, bookFolderName: string, filename: string): Promise<string> {
+	const file = app.vault.getAbstractFileByPath(libraryChapterPath(bookFolderName, filename));
+	if (!(file instanceof TFile)) return "";
+	const { body } = splitFrontmatterAndBody(await app.vault.read(file));
+	return extractSection(body, PLOT_HEADER);
+}
+
+/** Writes a chapter's plot notes into its own file body under a `## Plot` heading, leaving frontmatter and the chapter's manuscript prose untouched. Chapter files live in the story library, so this writes directly via vault.modify rather than through the backstage guard (which physically refuses library writes). */
+export async function writeChapterPlot(app: App, bookFolderName: string, filename: string, plot: string): Promise<void> {
+	const path = libraryChapterPath(bookFolderName, filename);
+	const file = app.vault.getAbstractFileByPath(path);
+	if (!(file instanceof TFile)) return;
+	const { frontmatterBlock, body } = splitFrontmatterAndBody(await app.vault.read(file));
+	await app.vault.modify(file, frontmatterBlock + upsertSection(body, PLOT_HEADER, plot));
 }

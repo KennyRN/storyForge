@@ -552,6 +552,59 @@
 	border-color: var(--interactive-accent);
 }
 
+.sf-synopsis-rename-btn svg {
+	transform: scale(0.75);
+	color: var(--text-muted);
+}
+
+.sf-synopsis-plot-pane {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+}
+
+.sf-plot-chapter-block {
+	padding: 12px 0;
+}
+
+.sf-plot-chapter-block + .sf-plot-chapter-block {
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.sf-plot-chapter-title {
+	font-weight: 600;
+	margin-bottom: 6px;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	flex-wrap: wrap;
+}
+
+.sf-plot-chapter-pov-btn {
+	width: 0.9em;
+	height: 0.9em;
+	align-self: center;
+}
+
+.sf-plot-chapter-pov-btn svg {
+	width: 100%;
+	height: 100%;
+}
+
+.sf-plot-chapter-pov {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	color: var(--text-muted);
+	font-weight: 400;
+}
+
+.sf-plot-chapter-textarea {
+	min-height: 80px;
+}
+
 .sf-modal-title-row {
 	display: flex;
 	flex-direction: row;
@@ -804,6 +857,20 @@
 	font-family: var(--font-monospace);
 	font-size: var(--font-ui-smaller);
 	color: var(--text-faint);
+}
+
+.sf-codex-type-picker-modal,
+.sf-pov-picker-modal {
+	padding: 16px;
+}
+
+.sf-codex-type-picker-modal h2,
+.sf-pov-picker-modal h2 {
+	margin: 0 0 12px;
+}
+
+.sf-codex-type-icon {
+	margin-left: 6px;
 }
 
 /* ── Tools View (standalone pane hosting the native ribbon) ── */

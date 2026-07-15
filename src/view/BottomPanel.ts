@@ -1,6 +1,8 @@
 import { App, TFile, setIcon } from "obsidian";
 import {
 	archiveCodexItem,
+	codexTypeIcon,
+	getCodexEntryType,
 	getCodexView,
 	isDescendantFolder,
 	moveCodexItem,
@@ -15,6 +17,7 @@ import { ICON_ARCHIVE, ICON_CODEX, ICON_FOLDER_PLUS, ICON_PLUS_SQUARE } from "..
 import { makeAccessibleActivatable } from "./a11y";
 import { attachInlineRename } from "./inlineRename";
 import { attachCodexDragReorder, type CodexDragRowInfo } from "./dragReorderTree";
+import { CodexSetTypeModal } from "./CodexSetTypeModal";
 
 export interface BottomPanelOptions {
 	currentBookId: string | null;
@@ -172,6 +175,11 @@ function renderTreeChildren(
 				fileEl.addClass("sf-row-selected");
 			}
 			const label = fileEl.createSpan({ text: item.name });
+			const entryType = getCodexEntryType(app, item.path);
+			if (entryType) {
+				const typeIcon = fileEl.createSpan({ cls: "sf-icon sf-codex-type-icon" });
+				setIcon(typeIcon, codexTypeIcon(entryType) ?? "circle-help");
+			}
 			fileEl.addEventListener("click", (e) => {
 				if (fileEl.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
 				const file = app.vault.getAbstractFileByPath(item.path);
@@ -188,7 +196,10 @@ function renderTreeChildren(
 					const file = app.vault.getAbstractFileByPath(item.path);
 					if (file instanceof TFile) await renameCodexNoteFile(app, file, name);
 				},
-				extraMenuItems: [{ title: "Archive", onClick: () => archiveCodexItem(app, item.path) }],
+				extraMenuItems: [
+					{ title: "Archive", onClick: () => archiveCodexItem(app, item.path) },
+					{ title: "Set as...", onClick: () => new CodexSetTypeModal(app, item.path).open() },
+				],
 			});
 		}
 	}

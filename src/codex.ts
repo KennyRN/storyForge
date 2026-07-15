@@ -30,6 +30,20 @@ export interface CodexFrontmatterShape {
 	folders: CodexFolders;
 	order: string[];
 	archive: string[];
+	types: Record<string, string>;
+}
+
+export interface CodexTypeOption {
+	type: string;
+	label: string;
+	icon: string;
+}
+
+/** Every assignable Codex entry type ("Set as..."), in menu order. Add new types here only. */
+export const CODEX_TYPES: CodexTypeOption[] = [{ type: "person", label: "Person", icon: "user" }];
+
+export function codexTypeIcon(type: string): string | null {
+	return CODEX_TYPES.find((t) => t.type === type)?.icon ?? null;
 }
 
 export interface ArchivedCodexItem {
@@ -40,7 +54,7 @@ export interface ArchivedCodexItem {
 	childCount?: number;
 }
 
-const DEFAULT_CODEX_CONTENT = `---\nfolders:\norder:\narchive:\n---\n`;
+const DEFAULT_CODEX_CONTENT = `---\nfolders:\norder:\narchive:\ntypes:\n---\n`;
 
 function parseFolders(raw: unknown): CodexFolders {
 	if (!raw || typeof raw !== "object") return {};
@@ -59,16 +73,49 @@ function parseStringArray(raw: unknown): string[] {
 	return Array.isArray(raw) ? raw.filter((v): v is string => typeof v === "string") : [];
 }
 
+function parseTypes(raw: unknown): Record<string, string> {
+	if (!raw || typeof raw !== "object") return {};
+	const result: Record<string, string> = {};
+	for (const [path, value] of Object.entries(raw as Record<string, unknown>)) {
+		if (typeof value === "string") result[path] = value;
+	}
+	return result;
+}
+
 export function readCodexFrontmatter(app: App): CodexFrontmatterShape {
 	const file = app.vault.getAbstractFileByPath(codexFilePath());
-	if (!file) return { folders: {}, order: [], archive: [] };
+	if (!file) return { folders: {}, order: [], archive: [], types: {} };
 	const cache = app.metadataCache.getCache(codexFilePath());
 	const fm = cache?.frontmatter;
 	return {
 		folders: parseFolders(fm?.folders),
 		order: parseStringArray(fm?.order),
 		archive: parseStringArray(fm?.archive),
+		types: parseTypes(fm?.types),
 	};
+}
+
+export function getCodexEntryType(app: App, path: string): string | null {
+	return readCodexFrontmatter(app).types[path] ?? null;
+}
+
+export async function setCodexEntryType(app: App, path: string, type: string): Promise<void> {
+	await modifyBackstageFrontmatter(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
+		const types = parseTypes(fm.types);
+		types[path] = type;
+		fm.types = types;
+	});
+}
+
+/** Codex entries of the given type, scoped like the Codex pane itself (universal + this book's own, excluding archived). */
+export function getCodexEntriesByType(
+	app: App,
+	type: string,
+	currentBookId: string | null,
+): { path: string; name: string }[] {
+	const { types } = readCodexFrontmatter(app);
+	const { codex } = partitionCodexNotes(collectCodexNotes(app), currentBookId);
+	return codex.filter((note) => types[note.path] === type).map((note) => ({ path: note.path, name: codexBasename(note.path) }));
 }
 
 /** Flat, single-pass scan — Codex notes always live directly under `Codex/` now (folders are virtual). Archived paths (direct or nested inside an archived folder) are excluded. */
@@ -251,14 +298,21 @@ export async function rekeyCodexNotePath(app: App, oldPath: string, newPath: str
 		const folders = parseFolders(fm.folders);
 		const order = parseStringArray(fm.order);
 		const archive = parseStringArray(fm.archive);
+		const types = parseTypes(fm.types);
 		const rekey = (arr: string[]): string[] =>
 			newPath ? arr.map((k) => (k === oldPath ? newPath : k)) : arr.filter((k) => k !== oldPath);
 		for (const id of Object.keys(folders)) {
 			folders[id] = { ...folders[id], order: rekey(folders[id].order) };
 		}
+		if (oldPath in types) {
+			const value = types[oldPath];
+			delete types[oldPath];
+			if (newPath) types[newPath] = value;
+		}
 		fm.folders = folders;
 		fm.order = rekey(order);
 		fm.archive = rekey(archive);
+		fm.types = types;
 	});
 }
 

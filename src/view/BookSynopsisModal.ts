@@ -1,9 +1,24 @@
 import { App, Modal, Notice, setIcon, TFile } from "obsidian";
-import { readBookFrontmatter, readBookSynopsis, writeBookCoverImage, writeBookSynopsis } from "../book";
+import {
+	getBookChapters,
+	getChapterEntry,
+	numberedChapterTitle,
+	readBookSynopsis,
+	readBookFrontmatter,
+	readChapterPlot,
+	renameBookTitle,
+	writeBookCoverImage,
+	writeBookSynopsis,
+	writeChapterPlot,
+	writeChapterPov,
+} from "../book";
+import { getCodexEntriesByType } from "../codex";
 import { bookBackstagePath } from "../paths";
-import { bookDisplayTitle } from "../series";
+import { bookDisplayTitle, getBookId, numberedBookTitle } from "../series";
 import { splitTitleSubtitle } from "../titleNumbering";
-import { ICON_TIMELINE } from "../icons";
+import { ICON_PLUS_SQUARE, ICON_TIMELINE } from "../icons";
+import { attachInlineRename } from "./inlineRename";
+import { PovPickerModal } from "./PovPickerModal";
 
 /** Editable synopsis modal for a book, opened from the novel library pane's book-line settings button. */
 export class BookSynopsisModal extends Modal {
@@ -20,14 +35,7 @@ export class BookSynopsisModal extends Modal {
 		contentEl.addClass("sf-text-style-modal");
 
 		const bookLine = contentEl.createDiv({ cls: "sf-book-line sf-synopsis-book-title" });
-		const titleRow = bookLine.createDiv({ cls: "sf-header-line sf-book-title-row" });
-		const rawTitle = bookDisplayTitle(this.app, this.bookFolderName);
-		const { title, subtitle } = splitTitleSubtitle(rawTitle);
-		const textWrap = titleRow.createDiv({ cls: "sf-book-text-wrap" });
-		textWrap.createSpan({ cls: "sf-header-text", text: title });
-		if (subtitle) {
-			bookLine.createDiv({ cls: "sf-book-subtitle-text", text: subtitle });
-		}
+		this.renderTitleBlock(bookLine);
 
 		const body = contentEl.createDiv({ cls: "sf-synopsis-body" });
 		const cover = body.createDiv({ cls: "sf-synopsis-cover" });
@@ -44,6 +52,98 @@ export class BookSynopsisModal extends Modal {
 		const plotTitleRow = plotLine.createDiv({ cls: "sf-header-line sf-book-title-row" });
 		const plotTextWrap = plotTitleRow.createDiv({ cls: "sf-book-text-wrap" });
 		plotTextWrap.createSpan({ cls: "sf-header-text", text: "Plot" });
+
+		const plotPane = contentEl.createDiv({ cls: "sf-synopsis-plot-pane" });
+		await this.renderPlotPane(plotPane);
+	}
+
+	private renderTitleBlock(bookLine: HTMLElement): void {
+		bookLine.empty();
+		const titleRow = bookLine.createDiv({ cls: "sf-header-line sf-book-title-row" });
+		const numberedTitle = numberedBookTitle(this.app, this.bookFolderName);
+		const { title, subtitle } = splitTitleSubtitle(numberedTitle);
+		const textWrap = titleRow.createDiv({ cls: "sf-book-text-wrap" });
+		const titleLabel = textWrap.createSpan({ cls: "sf-header-text", text: title });
+		if (subtitle) {
+			bookLine.createDiv({ cls: "sf-book-subtitle-text", text: subtitle });
+		}
+
+		const renameBtn = titleRow.createSpan({
+			cls: "sf-book-filter-btn sf-synopsis-rename-btn",
+			attr: { "aria-label": "Rename novel" },
+		});
+		setIcon(renameBtn, "pencil");
+
+		attachInlineRename({
+			row: titleRow,
+			label: titleLabel,
+			getCurrentTitle: () => bookDisplayTitle(this.app, this.bookFolderName),
+			onCommit: async (newTitle) => {
+				await renameBookTitle(this.app, this.bookFolderName, newTitle);
+				this.onChange();
+				this.renderTitleBlock(bookLine);
+			},
+			trigger: renameBtn,
+		});
+	}
+
+	private async renderPlotPane(pane: HTMLElement): Promise<void> {
+		pane.empty();
+		const { ordered } = getBookChapters(this.app, this.bookFolderName);
+		if (ordered.length === 0) {
+			pane.createDiv({ cls: "sf-empty sf-empty-inline", text: "No placed chapters yet." });
+			return;
+		}
+		for (const file of ordered) {
+			const block = pane.createDiv({ cls: "sf-plot-chapter-block" });
+			const titleRow = block.createDiv({ cls: "sf-plot-chapter-title" });
+			titleRow.createSpan({ text: numberedChapterTitle(this.app, this.bookFolderName, file.name) });
+			const povWrap = titleRow.createSpan({ cls: "sf-plot-chapter-pov" });
+			this.paintPovBadge(povWrap, file.name);
+
+			const textarea = block.createEl("textarea", { cls: "sf-modal-textarea sf-plot-chapter-textarea" });
+			textarea.value = await readChapterPlot(this.app, this.bookFolderName, file.name);
+			textarea.addEventListener("blur", () => void writeChapterPlot(this.app, this.bookFolderName, file.name, textarea.value));
+			textarea.addEventListener("pointerdown", (e) => e.stopPropagation());
+		}
+	}
+
+	private paintPovBadge(povWrap: HTMLElement, filename: string): void {
+		const entry = getChapterEntry(this.app, this.bookFolderName, filename);
+		this.renderPovBadgeContent(povWrap, filename, entry?.povPath ?? null, entry?.povName ?? null);
+	}
+
+	private renderPovBadgeContent(
+		povWrap: HTMLElement,
+		filename: string,
+		povPath: string | null,
+		povName: string | null,
+	): void {
+		povWrap.empty();
+		povWrap.createSpan({ text: "(PoV: " });
+		if (povPath) {
+			povWrap.createSpan({ text: povName ?? povPath });
+		} else {
+			const addBtn = povWrap.createSpan({
+				cls: "sf-book-filter-btn sf-plot-chapter-pov-btn",
+				attr: { "aria-label": "Set PoV" },
+			});
+			setIcon(addBtn, ICON_PLUS_SQUARE);
+			addBtn.addEventListener("click", (e) => {
+				e.stopPropagation();
+				void this.openPovPicker(filename, povWrap);
+			});
+		}
+		povWrap.createSpan({ text: ")" });
+	}
+
+	private async openPovPicker(filename: string, povWrap: HTMLElement): Promise<void> {
+		const bookId = getBookId(this.app, this.bookFolderName);
+		const entries = getCodexEntriesByType(this.app, "person", bookId);
+		new PovPickerModal(this.app, entries, async (entry) => {
+			await writeChapterPov(this.app, this.bookFolderName, filename, entry.path, entry.name);
+			this.renderPovBadgeContent(povWrap, filename, entry.path, entry.name);
+		}).open();
 	}
 
 	private renderCover(cover: HTMLElement): void {

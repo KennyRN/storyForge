@@ -7,7 +7,7 @@ import {
 	isCodexNotePath,
 	isLibraryChapterPath,
 } from "./paths";
-import { readBookFrontmatter, writeBookChapterOrder, renameChapterEntry } from "./book";
+import { readBookFrontmatter, writeBookChapterOrder, renameChapterEntry, rekeyChapterPovReferences } from "./book";
 import { renameSeriesBookEntry } from "./series";
 import { rekeyCodexNotePath } from "./codex";
 import { renameChapterSidecar } from "./chapterSidecar";
@@ -34,7 +34,9 @@ export function registerReconciliationEvents(app: App, plugin: Plugin): void {
 
 /** Fires for renames done via this plugin's own Codex UI and via Obsidian's native file explorer alike. */
 async function handleCodexNoteRename(app: App, oldPath: string, newPath: string): Promise<void> {
-	await rekeyCodexNotePath(app, oldPath, isCodexNotePath(newPath) ? newPath : null);
+	const rekeyedPath = isCodexNotePath(newPath) ? newPath : null;
+	await rekeyCodexNotePath(app, oldPath, rekeyedPath);
+	await rekeyChapterPovReferences(app, oldPath, rekeyedPath);
 }
 
 async function handleChapterRename(app: App, oldPath: string, newPath: string): Promise<void> {
