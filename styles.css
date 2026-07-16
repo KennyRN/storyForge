@@ -1057,7 +1057,10 @@
 
 /* ── Text Style Modal (tabbed) ── */
 
-.modal:has(.sf-text-style-modal) {
+.modal:has(.sf-text-style-modal),
+.modal:has(.sf-ui-formatting-modal),
+.modal:has(.sf-hide-ui-modal),
+.modal:has(.sf-protections-modal) {
 	width: 560px;
 	height: 760px;
 	display: flex;
@@ -1065,7 +1068,10 @@
 	padding: 0;
 }
 
-.sf-text-style-modal {
+.sf-text-style-modal,
+.sf-ui-formatting-modal,
+.sf-hide-ui-modal,
+.sf-protections-modal {
 	flex: 1;
 	display: flex;
 	flex-direction: column;
