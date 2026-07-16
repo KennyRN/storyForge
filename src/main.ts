@@ -195,6 +195,8 @@ export interface StoryForgePluginSettings {
 	heading6DividerBelow: boolean;
 	heading6DividerBelowThickness: HeadingDividerThickness;
 	useToolsPanel: boolean;
+	/** "canonical" enforces SF-before-Tools tab order on open; flips to "user" (permanently) the first time the user drags Tools ahead of SF. */
+	panelOrderMode: "canonical" | "user";
 	colorPaletteName: PaletteName;
 	colorPaletteMode: PaletteMode;
 	customPaletteColors: PaletteColor[];
@@ -248,7 +250,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	librarySeriesTitleFontWeight: "600",
 	librarySeriesTitleColor: "#dcdcdc",
 	librarySeriesTitleSmallCaps: false,
-	libraryBookTitleFontSize: 0.75,
+	libraryBookTitleFontSize: 1,
 	libraryBookTitleFontWeight: "400",
 	libraryBookTitleColor: "#9a9a9a",
 	libraryBookTitleSmallCaps: false,
@@ -262,7 +264,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	codexHighlightTextColor: "#1f2937",
 	unplacedMuted: false,
 	unplacedSmallCaps: true,
-	unplacedColor: "#ffff00",
+	unplacedColor: "var(--text-accent)",
 	unplacedFontSize: 1,
 	unplacedFontWeight: "400",
 	unplacedItemsFontSize: 1,
@@ -271,7 +273,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	unplacedUseHeaderColorForAll: false,
 	codexMuted: false,
 	codexSmallCaps: true,
-	codexColor: "#bf00ff",
+	codexColor: "var(--text-accent)",
 	codexFontSize: 1,
 	codexFontWeight: "400",
 	codexFolderFontSize: 1,
@@ -368,6 +370,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	heading6DividerBelow: false,
 	heading6DividerBelowThickness: "medium",
 	useToolsPanel: true,
+	panelOrderMode: "canonical",
 	colorPaletteName: "Nord",
 	colorPaletteMode: "dark",
 	customPaletteColors: [
@@ -407,6 +410,8 @@ export default class StoryForgePlugin extends Plugin {
 	private cyclingGuideExtensions: Extension[] = [];
 	private currentCyclingGuidePlugin: ReturnType<typeof createCyclingGuideViewPlugin> | null = null;
 	private backupInProgress = false;
+	/** Guards enforcePanelOrder()'s own detach/recreate against being mistaken for a user tab drag by the layout-change watcher. */
+	private isAdjustingPanelOrder = false;
 
 	async onload(): Promise<void> {
 		// Loaded first, before registerView() below - Obsidian can start restoring a previously-open
@@ -491,9 +496,14 @@ export default class StoryForgePlugin extends Plugin {
 
 		this.app.workspace.onLayoutReady(() => {
 			void this.initializeVaultState();
+			if (this.app.workspace.getLeavesOfType(STORYFORGE_VIEW_TYPE).length === 0) {
+				void this.activateView();
+			}
 			if (this.pluginSettings.useToolsPanel && this.app.workspace.getLeavesOfType(TOOLS_VIEW_TYPE).length === 0) {
 				void this.activateToolsView();
 			}
+			void this.enforcePanelOrder();
+			this.registerPanelOrderWatcher();
 			this.refreshCustomIcons();
 			refreshTabTitles(this.app);
 			void this.maybeRunScheduledBackup("vault-open");
@@ -1162,5 +1172,54 @@ export default class StoryForgePlugin extends Plugin {
 			await leaf?.setViewState({ type: TOOLS_VIEW_TYPE, active: true });
 		}
 		if (leaf) workspace.revealLeaf(leaf);
+	}
+
+	/** True if the StoryForge leaf is visited before the Tools leaf when walking the workspace's layout tree (i.e. sits earlier among tabs in a shared group). If either is absent, there's nothing to enforce. */
+	private isSfBeforeTools(): boolean {
+		const order: string[] = [];
+		this.app.workspace.iterateAllLeaves((leaf) => {
+			const type = leaf.view.getViewType();
+			if (type === STORYFORGE_VIEW_TYPE) order.push("sf");
+			else if (type === TOOLS_VIEW_TYPE) order.push("tools");
+		});
+		const sfIndex = order.indexOf("sf");
+		const toolsIndex = order.indexOf("tools");
+		if (sfIndex === -1 || toolsIndex === -1) return true;
+		return sfIndex < toolsIndex;
+	}
+
+	/**
+	 * Corrects StoryForge/Tools tab order back to canonical (SF before Tools) when it's drifted -
+	 * e.g. an upgraded vault where Tools had previously been created first. Obsidian exposes no
+	 * public API to reorder two existing tabs in place, so this detaches and recreates both leaves
+	 * via the same public activateView()/activateToolsView() used elsewhere, guarded so the
+	 * layout-change watcher below never mistakes this self-correction for a user drag. No-ops once
+	 * the user has deliberately reordered the tabs (panelOrderMode === "user").
+	 */
+	private async enforcePanelOrder(): Promise<void> {
+		if (this.pluginSettings.panelOrderMode !== "canonical") return;
+		if (this.isSfBeforeTools()) return;
+		this.isAdjustingPanelOrder = true;
+		try {
+			this.app.workspace.detachLeavesOfType(STORYFORGE_VIEW_TYPE);
+			this.app.workspace.detachLeavesOfType(TOOLS_VIEW_TYPE);
+			await this.activateView();
+			if (this.pluginSettings.useToolsPanel) await this.activateToolsView();
+		} finally {
+			this.isAdjustingPanelOrder = false;
+		}
+	}
+
+	/** Detects a deliberate user drag of Tools ahead of StoryForge and switches to "user" mode permanently - after which Obsidian's own layout persistence carries the user's order across reopens with no further enforcement. */
+	private registerPanelOrderWatcher(): void {
+		this.registerEvent(
+			this.app.workspace.on("layout-change", () => {
+				if (this.isAdjustingPanelOrder) return;
+				if (this.pluginSettings.panelOrderMode !== "canonical") return;
+				if (!this.isSfBeforeTools()) {
+					void this.updateSetting("panelOrderMode", "user");
+				}
+			}),
+		);
 	}
 }
