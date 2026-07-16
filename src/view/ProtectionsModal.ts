@@ -4,7 +4,7 @@ import type { AutomaticBackupFrequency, StoryForgePluginSettings } from "../main
 import { runFullBackup } from "../backup";
 import { ensureWelcomeNote } from "../welcomeNote";
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { dialog } = require("electron");
+const { dialog } = require("@electron/remote");
 
 export class ProtectionsModal extends Modal {
 	private plugin: StoryForgePlugin;
