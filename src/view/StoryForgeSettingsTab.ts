@@ -757,7 +757,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		cyclingGuideGroup.addSetting((setting) =>
 			setting
 				.setName("Cycling guide")
-				.setDesc("Draws a floating divider line in the editor after every 500 words, without shifting your text.")
+				.setDesc("draws a floating guideline")
 				.addToggle((toggle) => {
 					cyclingGuideToggle = toggle;
 					toggle.setValue(settings.cyclingGuideEnabled);
