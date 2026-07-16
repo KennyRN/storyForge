@@ -479,6 +479,17 @@ async function ensureLibraryBookFolder(app: App, folderName: string): Promise<vo
 	}
 }
 
+const DEFAULT_BOOK_TITLE = "Untitled Novel";
+
+/** "Untitled Novel" / "Untitled Novel 2" / ... — same base+number disambiguation idiom as codex's uniqueChildPath. */
+function uniqueBookTitle(base: string, existingTitles: Iterable<string>): string {
+	const taken = new Set(existingTitles);
+	if (!taken.has(base)) return base;
+	let n = 2;
+	while (taken.has(`${base} ${n}`)) n++;
+	return `${base} ${n}`;
+}
+
 /**
  * Creates a new book: a folder named with a 4-letter code (3 letters from the
  * series title + a sequential guide letter) in both the story library and
@@ -493,7 +504,8 @@ export async function createBook(app: App, initialTitle?: string): Promise<{ fol
 	]);
 	const folderName = nextBookFolderCode(seriesTitle, candidateSpace);
 	const bookId = mintId(folderName, collectAllBookIds(app));
-	const bookTitle = initialTitle?.trim() || folderName;
+	const bookTitle =
+		initialTitle?.trim() || uniqueBookTitle(DEFAULT_BOOK_TITLE, Object.values(books).map((entry) => entry.bookTitle));
 	// Appended to the end of `order`, so its display position is right after
 	// every book already placed (read before writing — no stale-cache risk).
 	const { ordered } = getSeriesBooks(app);
