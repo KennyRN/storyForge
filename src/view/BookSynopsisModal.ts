@@ -9,6 +9,7 @@ import {
 	renameBookTitle,
 	writeBookCoverImage,
 	writeBookSynopsis,
+	writeChapterLocation,
 	writeChapterPlot,
 	writeChapterPov,
 } from "../book";
@@ -16,9 +17,9 @@ import { getCodexEntriesByType } from "../codex";
 import { bookBackstagePath } from "../paths";
 import { bookDisplayTitle, getBookId, numberedBookTitle } from "../series";
 import { splitTitleSubtitle } from "../titleNumbering";
-import { ICON_PLUS_SQUARE, ICON_TIMELINE } from "../icons";
+import { ICON_MAP_PIN, ICON_MAP_PIN_PLUS, ICON_PERSON_FILL_ADD, ICON_TIMELINE } from "../icons";
 import { attachInlineRename } from "./inlineRename";
-import { PovPickerModal } from "./PovPickerModal";
+import { CodexEntryPickerModal } from "./CodexEntryPickerModal";
 
 /** Editable synopsis modal for a book, opened from the novel library pane's book-line settings button. */
 export class BookSynopsisModal extends Modal {
@@ -100,6 +101,8 @@ export class BookSynopsisModal extends Modal {
 			titleRow.createSpan({ text: numberedChapterTitle(this.app, this.bookFolderName, file.name) });
 			const povWrap = titleRow.createSpan({ cls: "sf-plot-chapter-pov" });
 			this.paintPovBadge(povWrap, file.name);
+			const locWrap = titleRow.createSpan({ cls: "sf-plot-chapter-location" });
+			this.paintLocationBadge(locWrap, file.name);
 
 			const textarea = block.createEl("textarea", { cls: "sf-modal-textarea sf-plot-chapter-textarea" });
 			textarea.value = await readChapterPlot(this.app, this.bookFolderName, file.name);
@@ -122,28 +125,96 @@ export class BookSynopsisModal extends Modal {
 		povWrap.empty();
 		povWrap.createSpan({ text: "(PoV: " });
 		if (povPath) {
-			povWrap.createSpan({ text: povName ?? povPath });
+			const nameBtn = povWrap.createSpan({ cls: "sf-plot-chapter-badge-value", text: povName ?? povPath });
+			nameBtn.addEventListener("click", (e) => {
+				e.stopPropagation();
+				void this.openPovPicker(filename, povWrap, true);
+			});
 		} else {
 			const addBtn = povWrap.createSpan({
 				cls: "sf-book-filter-btn sf-plot-chapter-pov-btn",
 				attr: { "aria-label": "Set PoV" },
 			});
-			setIcon(addBtn, ICON_PLUS_SQUARE);
+			setIcon(addBtn, ICON_PERSON_FILL_ADD);
 			addBtn.addEventListener("click", (e) => {
 				e.stopPropagation();
-				void this.openPovPicker(filename, povWrap);
+				void this.openPovPicker(filename, povWrap, false);
 			});
 		}
 		povWrap.createSpan({ text: ")" });
 	}
 
-	private async openPovPicker(filename: string, povWrap: HTMLElement): Promise<void> {
+	private async openPovPicker(filename: string, povWrap: HTMLElement, hasValue: boolean): Promise<void> {
 		const bookId = getBookId(this.app, this.bookFolderName);
 		const entries = getCodexEntriesByType(this.app, "person", bookId);
-		new PovPickerModal(this.app, entries, async (entry) => {
-			await writeChapterPov(this.app, this.bookFolderName, filename, entry.path, entry.name);
-			this.renderPovBadgeContent(povWrap, filename, entry.path, entry.name);
-		}).open();
+		new CodexEntryPickerModal(
+			this.app,
+			"Set PoV",
+			"No person entries in the Codex yet.",
+			entries,
+			hasValue,
+			async (entry) => {
+				await writeChapterPov(this.app, this.bookFolderName, filename, entry.path, entry.name);
+				this.renderPovBadgeContent(povWrap, filename, entry.path, entry.name);
+			},
+			async () => {
+				await writeChapterPov(this.app, this.bookFolderName, filename, null, null);
+				this.renderPovBadgeContent(povWrap, filename, null, null);
+			},
+		).open();
+	}
+
+	private paintLocationBadge(locWrap: HTMLElement, filename: string): void {
+		const entry = getChapterEntry(this.app, this.bookFolderName, filename);
+		this.renderLocationBadgeContent(locWrap, filename, entry?.locationPath ?? null, entry?.locationName ?? null);
+	}
+
+	private renderLocationBadgeContent(
+		locWrap: HTMLElement,
+		filename: string,
+		locationPath: string | null,
+		locationName: string | null,
+	): void {
+		locWrap.empty();
+		if (locationPath) {
+			const badge = locWrap.createSpan({ cls: "sf-plot-chapter-badge-value" });
+			setIcon(badge.createSpan({ cls: "sf-icon" }), ICON_MAP_PIN);
+			badge.createSpan({ text: locationName ?? locationPath });
+			badge.addEventListener("click", (e) => {
+				e.stopPropagation();
+				void this.openLocationPicker(filename, locWrap, true);
+			});
+		} else {
+			const addBtn = locWrap.createSpan({
+				cls: "sf-book-filter-btn sf-plot-chapter-pov-btn",
+				attr: { "aria-label": "Set location" },
+			});
+			setIcon(addBtn, ICON_MAP_PIN_PLUS);
+			addBtn.addEventListener("click", (e) => {
+				e.stopPropagation();
+				void this.openLocationPicker(filename, locWrap, false);
+			});
+		}
+	}
+
+	private async openLocationPicker(filename: string, locWrap: HTMLElement, hasValue: boolean): Promise<void> {
+		const bookId = getBookId(this.app, this.bookFolderName);
+		const entries = getCodexEntriesByType(this.app, "place", bookId);
+		new CodexEntryPickerModal(
+			this.app,
+			"Set location",
+			"No place entries in the Codex yet.",
+			entries,
+			hasValue,
+			async (entry) => {
+				await writeChapterLocation(this.app, this.bookFolderName, filename, entry.path, entry.name);
+				this.renderLocationBadgeContent(locWrap, filename, entry.path, entry.name);
+			},
+			async () => {
+				await writeChapterLocation(this.app, this.bookFolderName, filename, null, null);
+				this.renderLocationBadgeContent(locWrap, filename, null, null);
+			},
+		).open();
 	}
 
 	private renderCover(cover: HTMLElement): void {

@@ -7,7 +7,13 @@ import {
 	isCodexNotePath,
 	isLibraryChapterPath,
 } from "./paths";
-import { readBookFrontmatter, writeBookChapterOrder, renameChapterEntry, rekeyChapterPovReferences } from "./book";
+import {
+	readBookFrontmatter,
+	writeBookChapterOrder,
+	renameChapterEntry,
+	rekeyChapterPovReferences,
+	rekeyChapterLocationReferences,
+} from "./book";
 import { renameSeriesBookEntry } from "./series";
 import { rekeyCodexNotePath } from "./codex";
 import { renameChapterSidecar } from "./chapterSidecar";
@@ -37,6 +43,7 @@ async function handleCodexNoteRename(app: App, oldPath: string, newPath: string)
 	const rekeyedPath = isCodexNotePath(newPath) ? newPath : null;
 	await rekeyCodexNotePath(app, oldPath, rekeyedPath);
 	await rekeyChapterPovReferences(app, oldPath, rekeyedPath);
+	await rekeyChapterLocationReferences(app, oldPath, rekeyedPath);
 }
 
 async function handleChapterRename(app: App, oldPath: string, newPath: string): Promise<void> {

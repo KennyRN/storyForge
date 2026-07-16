@@ -1,4 +1,5 @@
 import { App, TFile, TFolder } from "obsidian";
+import { ICON_MAP_PIN, ICON_PERSON_FILL } from "./icons";
 import { CODEX_ROOT, codexFilePath } from "./paths";
 import { partitionCodexNotes, findUnknownScopedNotes, type CodexNote } from "./codexPartition";
 import { modifyBackstageFrontmatter } from "./writeGuard";
@@ -40,7 +41,10 @@ export interface CodexTypeOption {
 }
 
 /** Every assignable Codex entry type ("Set as..."), in menu order. Add new types here only. */
-export const CODEX_TYPES: CodexTypeOption[] = [{ type: "person", label: "Person", icon: "user" }];
+export const CODEX_TYPES: CodexTypeOption[] = [
+	{ type: "person", label: "Person", icon: ICON_PERSON_FILL },
+	{ type: "place", label: "Place", icon: ICON_MAP_PIN },
+];
 
 export function codexTypeIcon(type: string): string | null {
 	return CODEX_TYPES.find((t) => t.type === type)?.icon ?? null;
