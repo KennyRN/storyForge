@@ -601,6 +601,22 @@
 	font-weight: 400;
 }
 
+.sf-plot-chapter-location {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	color: var(--text-muted);
+	font-weight: 400;
+	margin-left: auto;
+}
+
+.sf-plot-chapter-badge-value {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	cursor: pointer;
+}
+
 .sf-plot-chapter-textarea {
 	min-height: 80px;
 }
@@ -860,17 +876,24 @@
 }
 
 .sf-codex-type-picker-modal,
-.sf-pov-picker-modal {
+.sf-codex-entry-picker-modal {
 	padding: 16px;
 }
 
 .sf-codex-type-picker-modal h2,
-.sf-pov-picker-modal h2 {
+.sf-codex-entry-picker-modal h2 {
 	margin: 0 0 12px;
 }
 
 .sf-codex-type-icon {
 	margin-left: 6px;
+}
+
+.sf-picker-clear-row {
+	margin-top: 6px;
+	padding-top: 10px;
+	border-top: 1px solid var(--background-modifier-border);
+	color: var(--text-muted);
 }
 
 /* ── Tools View (standalone pane hosting the native ribbon) ── */

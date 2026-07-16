@@ -31,6 +31,8 @@ export interface ChapterEntry {
 	chapterTitle: string;
 	povPath: string | null;
 	povName: string | null;
+	locationPath: string | null;
+	locationName: string | null;
 }
 
 export interface BookFrontmatter {
@@ -65,7 +67,9 @@ function parseChaptersMap(raw: unknown): Record<string, ChapterEntry> {
 			typeof entry["chapter-title"] === "string" ? entry["chapter-title"] : filename.replace(/\.md$/i, "");
 		const povPath = typeof entry["pov-path"] === "string" ? entry["pov-path"] : null;
 		const povName = typeof entry["pov-name"] === "string" ? entry["pov-name"] : null;
-		result[filename] = { chapterId, chapterTitle, povPath, povName };
+		const locationPath = typeof entry["location-path"] === "string" ? entry["location-path"] : null;
+		const locationName = typeof entry["location-name"] === "string" ? entry["location-name"] : null;
+		result[filename] = { chapterId, chapterTitle, povPath, povName, locationPath, locationName };
 	}
 	return result;
 }
@@ -375,13 +379,13 @@ export async function renameChapterTitle(
 	);
 }
 
-/** Sets (or overwrites) a chapter's PoV reference, preserving its existing id/title. */
+/** Sets (or, when both are null, clears) a chapter's PoV reference, preserving its existing id/title. */
 export async function writeChapterPov(
 	app: App,
 	bookFolderName: string,
 	filename: string,
-	povPath: string,
-	povName: string,
+	povPath: string | null,
+	povName: string | null,
 ): Promise<void> {
 	const path = bookFilePath(bookFolderName);
 	const entry = getSeriesBookEntry(app, bookFolderName);
@@ -402,6 +406,33 @@ export async function writeChapterPov(
 	);
 }
 
+/** Sets (or, when both are null, clears) a chapter's location reference, preserving its existing id/title. */
+export async function writeChapterLocation(
+	app: App,
+	bookFolderName: string,
+	filename: string,
+	locationPath: string | null,
+	locationName: string | null,
+): Promise<void> {
+	const path = bookFilePath(bookFolderName);
+	const entry = getSeriesBookEntry(app, bookFolderName);
+	const bookId = entry?.bookId ?? mintId(bookFolderName, collectAllBookIds(app));
+	const bookTitle = entry?.bookTitle ?? bookFolderName;
+	const position = getSeriesOrderPosition(app, bookFolderName);
+	await modifyBackstageFrontmatter(
+		app,
+		app.vault,
+		path,
+		defaultBookContent(bookId, bookTitle, position),
+		(fm) => {
+			const chapters = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
+			const existing = chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
+			chapters[filename] = { ...existing, "location-path": locationPath, "location-name": locationName };
+			fm.chapters = chapters;
+		},
+	);
+}
+
 /** Rewrites any chapter's PoV reference matching `oldPath` to `newPath` (or clears it if `newPath` is null), across every book — called when a Codex person note is renamed/moved. */
 export async function rekeyChapterPovReferences(app: App, oldPath: string, newPath: string | null): Promise<void> {
 	for (const folder of getLibraryBookFolders(app)) {
@@ -415,6 +446,30 @@ export async function rekeyChapterPovReferences(app: App, oldPath: string, newPa
 				const entry = raw as Record<string, unknown>;
 				if (entry["pov-path"] === oldPath) {
 					chapters[filename] = { ...entry, "pov-path": newPath, "pov-name": newPath ? entry["pov-name"] : null };
+				}
+			}
+			bfm.chapters = chapters;
+		});
+	}
+}
+
+/** Rewrites any chapter's location reference matching `oldPath` to `newPath` (or clears it if `newPath` is null), across every book — called when a Codex place note is renamed/moved. */
+export async function rekeyChapterLocationReferences(app: App, oldPath: string, newPath: string | null): Promise<void> {
+	for (const folder of getLibraryBookFolders(app)) {
+		const fm = readBookFrontmatter(app, folder.name);
+		if (!fm) continue;
+		const hasMatch = Object.values(fm.chapters).some((entry) => entry.locationPath === oldPath);
+		if (!hasMatch) continue;
+		await modifyBackstageFrontmatter(app, app.vault, bookFilePath(folder.name), `---\norder:\n---\n`, (bfm) => {
+			const chapters = bfm.chapters && typeof bfm.chapters === "object" ? bfm.chapters : {};
+			for (const [filename, raw] of Object.entries(chapters)) {
+				const entry = raw as Record<string, unknown>;
+				if (entry["location-path"] === oldPath) {
+					chapters[filename] = {
+						...entry,
+						"location-path": newPath,
+						"location-name": newPath ? entry["location-name"] : null,
+					};
 				}
 			}
 			bfm.chapters = chapters;
@@ -463,7 +518,7 @@ export async function ensureAllChapterEntries(app: App, bookFolderName: string):
 		const chapterId = nextChapterCode(bookId, knownIds);
 		knownIds.add(chapterId);
 		const chapterTitle = file.basename;
-		merged[file.name] = { chapterId, chapterTitle, povPath: null, povName: null };
+		merged[file.name] = { chapterId, chapterTitle, povPath: null, povName: null, locationPath: null, locationName: null };
 		await upsertChapterEntry(app, bookFolderName, file.name, chapterId, chapterTitle);
 	}
 	return merged;
