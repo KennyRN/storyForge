@@ -59,8 +59,8 @@ export class ToolsView extends ItemView {
 		});
 	}
 
-	/** Restores the native ribbon to its original spot in the workspace DOM. */
-	private restoreRibbon(): void {
+	/** Restores the native ribbon to its original spot in the workspace DOM. Called from onClose() normally, and also directly from the plugin's onunload() so the ribbon comes home without needing a leaf-detach. Safe to call more than once - a no-op once already restored. */
+	restoreRibbon(): void {
 		if (!this.ribbonEl || !this.ribbonOriginalParent) return;
 		for (const [action, attrs] of this.tooltipAttrs) {
 			if (attrs.position !== null) action.setAttribute("data-tooltip-position", attrs.position);

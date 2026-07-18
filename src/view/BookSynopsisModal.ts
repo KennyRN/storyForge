@@ -232,6 +232,7 @@ export class BookSynopsisModal extends Modal {
 	}
 
 	private pickCoverImage(cover: HTMLElement): void {
+		// eslint-disable-next-line obsidianmd/prefer-create-el -- detached file-picker input, never appended to the DOM
 		const input = document.createElement("input");
 		input.type = "file";
 		input.accept = "image/*";

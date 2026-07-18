@@ -76,9 +76,9 @@ export class CodexArchiveModal extends Modal {
 				this.onChange();
 				this.render();
 			};
-			unarchiveBtn.addEventListener("click", async (e) => {
+			unarchiveBtn.addEventListener("click", (e) => {
 				e.stopPropagation();
-				await handleUnarchive();
+				void handleUnarchive();
 			});
 			makeAccessibleActivatable(unarchiveBtn, () => void handleUnarchive());
 		}

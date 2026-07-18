@@ -13,6 +13,7 @@ class CycleBadgeWidget extends WidgetType {
 	}
 
 	toDOM(): HTMLElement {
+		// eslint-disable-next-line obsidianmd/prefer-create-el -- CodeMirror's WidgetType.toDOM() must return a plain HTMLElement; there's no Obsidian container to hang createEl off of here
 		const badge = document.createElement("span");
 		badge.className = "sf-cycling-guide-badge";
 		const icon = badge.createSpan({ cls: "sf-cycling-guide-badge-icon" });

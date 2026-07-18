@@ -93,7 +93,7 @@ export function makeReorderable(
 
 			const onMove = (moveEvent: PointerEvent) => {
 				const deltaY = moveEvent.clientY - startY;
-				row.style.transform = `translateY(${deltaY}px)`;
+				row.setCssStyles({ transform: `translateY(${deltaY}px)` });
 
 				const currentCenter = startRect.top + startRect.height / 2 + deltaY;
 				const targetZone = zoneForPoint(currentCenter);
@@ -120,7 +120,7 @@ export function makeReorderable(
 					}
 					// Re-baseline against the row's new resting position so the
 					// translateY offset doesn't accumulate across moves.
-					row.style.transform = "";
+					row.setCssStyles({ transform: "" });
 					startRect = row.getBoundingClientRect();
 					startY = moveEvent.clientY;
 				}
@@ -130,7 +130,7 @@ export function makeReorderable(
 				window.removeEventListener("pointermove", onMove);
 				window.removeEventListener("pointerup", onUp);
 				row.classList.remove("sf-dragging");
-				row.style.transform = "";
+				row.setCssStyles({ transform: "" });
 				try {
 					handle.releasePointerCapture(pointerId);
 				} catch {

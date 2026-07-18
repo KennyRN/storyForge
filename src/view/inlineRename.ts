@@ -45,11 +45,9 @@ export function attachInlineRename(options: InlineRenameOptions): void {
 	}
 
 	function beginEdit(): void {
-		if (!label.isConnected) return;
+		if (!label.isConnected || !label.parentElement) return;
 		const currentTitle = getCurrentTitle();
-		const input = document.createElement("input");
-		input.type = "text";
-		input.className = "sf-rename-input";
+		const input = label.parentElement.createEl("input", { cls: "sf-rename-input", attr: { type: "text" } });
 		input.value = currentTitle;
 		label.replaceWith(input);
 		input.focus();

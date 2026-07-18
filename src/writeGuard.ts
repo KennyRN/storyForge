@@ -1,4 +1,4 @@
-import { TFile, Vault, type FrontMatterCache } from "obsidian";
+import { App, TFile, Vault, type FrontMatterCache } from "obsidian";
 import { BACKSTAGE_ROOT, CODEX_ROOT, LIBRARY_ROOT } from "./paths";
 
 /**
@@ -63,29 +63,32 @@ export async function writeBackstageBinary(vault: Vault, path: string, data: Arr
 	return vault.createBinary(path, data);
 }
 
-export async function deleteBackstagePath(vault: Vault, path: string): Promise<void> {
+export async function deleteBackstagePath(app: App, path: string): Promise<void> {
 	assertBackstagePath(path);
-	const file = vault.getAbstractFileByPath(path);
+	const file = app.vault.getAbstractFileByPath(path);
 	if (file) {
-		await vault.delete(file);
+		await app.fileManager.trashFile(file);
 	}
 }
 
-export async function modifyBackstageFrontmatter(
-	app: { fileManager: { processFrontMatter: (file: TFile, fn: (fm: FrontMatterCache) => void) => Promise<void> } },
+export async function modifyBackstageFrontmatter<T extends FrontMatterCache = FrontMatterCache>(
+	app: { fileManager: { processFrontMatter: (file: TFile, fn: (fm: T) => void) => Promise<void> } },
 	vault: Vault,
 	path: string,
 	defaultContent: string,
-	mutate: (frontmatter: FrontMatterCache) => void,
+	mutate: (frontmatter: T) => void,
 ): Promise<TFile> {
 	assertBackstagePath(path);
-	let file = vault.getAbstractFileByPath(path);
-	if (!(file instanceof TFile)) {
+	const existing = vault.getAbstractFileByPath(path);
+	let resolvedFile: TFile;
+	if (existing instanceof TFile) {
+		resolvedFile = existing;
+	} else {
 		await ensureParentFolder(vault, path);
-		file = await vault.create(path, defaultContent);
+		resolvedFile = await vault.create(path, defaultContent);
 	}
-	await app.fileManager.processFrontMatter(file as TFile, mutate);
-	return file as TFile;
+	await app.fileManager.processFrontMatter(resolvedFile, mutate);
+	return resolvedFile;
 }
 
 export async function renameBackstagePath(vault: Vault, oldPath: string, newPath: string): Promise<void> {

@@ -25,9 +25,9 @@ export function formatFullBackupFilename(vaultName: string, when: Date): string 
 
 /** Lazily requires Node's `fs`/`path` - never imported at module top-level so this file stays safe to load on mobile. */
 function getNodeFsPath(): { fs: typeof import("fs"); path: typeof import("path") } {
-	// eslint-disable-next-line @typescript-eslint/no-var-requires
+	// eslint-disable-next-line @typescript-eslint/no-var-requires -- lazy require keeps this module loadable on mobile, where fs doesn't exist
 	const fs = require("fs") as typeof import("fs");
-	// eslint-disable-next-line @typescript-eslint/no-var-requires
+	// eslint-disable-next-line @typescript-eslint/no-var-requires -- lazy require keeps this module loadable on mobile, where path doesn't exist
 	const path = require("path") as typeof import("path");
 	return { fs, path };
 }

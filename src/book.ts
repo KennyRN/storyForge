@@ -1,4 +1,4 @@
-import { App, TFile, TFolder } from "obsidian";
+import { App, TFile, TFolder, type FrontMatterCache } from "obsidian";
 import { bookBackstagePath, bookFilePath, libraryBookPath, libraryChapterPath, LIBRARY_ROOT } from "./paths";
 import { resolveOrder, type OrderResult } from "./ordering";
 import { mintId } from "./slug";
@@ -46,6 +46,30 @@ export interface BookFrontmatter {
 	seriesOrderReference: number | null;
 	coverImage: string | null;
 	chapters: Record<string, ChapterEntry>;
+}
+
+/** The raw, dash-cased on-disk shape of a `chapters` map entry, before `parseChaptersMap` sanitizes it. */
+export interface RawChapterEntry {
+	"chapter-id"?: unknown;
+	"chapter-title"?: unknown;
+	"pov-path"?: unknown;
+	"pov-name"?: unknown;
+	"location-path"?: unknown;
+	"location-name"?: unknown;
+}
+
+/** The raw, dash-cased on-disk shape of book.md's frontmatter, as read/written through `modifyBackstageFrontmatter`. */
+export interface RawBookFrontmatter extends FrontMatterCache {
+	chapters?: Record<string, RawChapterEntry>;
+	"chapter-order"?: unknown[];
+	/** Legacy pre-migration key, renamed to "chapter-order" by migrateChapterOrderField. */
+	order?: unknown[];
+	unplaced?: unknown[];
+	archive?: unknown[];
+	"cover-image"?: unknown;
+	"book-id-reference"?: unknown;
+	"book-title-reference"?: unknown;
+	"series-order-reference"?: unknown;
 }
 
 function defaultBookContent(bookId: string, bookTitle: string, seriesOrderReference: number | null): string {
@@ -165,7 +189,7 @@ export async function writeBookChapterOrder(app: App, bookFolderName: string, ne
 	const bookId = entry?.bookId ?? mintId(bookFolderName, collectAllBookIds(app));
 	const bookTitle = entry?.bookTitle ?? bookFolderName;
 	const position = getSeriesOrderPosition(app, bookFolderName);
-	await modifyBackstageFrontmatter(
+	await modifyBackstageFrontmatter<RawBookFrontmatter>(
 		app,
 		app.vault,
 		path,
@@ -188,7 +212,7 @@ export async function writeBookCoverImage(
 	const folder = bookBackstagePath(bookFolderName);
 	const path = `${folder}/${filename}`;
 	if (previous && previous !== filename) {
-		await deleteBackstagePath(app.vault, `${folder}/${previous}`);
+		await deleteBackstagePath(app, `${folder}/${previous}`);
 	}
 	await writeBackstageBinary(app.vault, path, data);
 
@@ -197,7 +221,7 @@ export async function writeBookCoverImage(
 	const bookId = entry?.bookId ?? mintId(bookFolderName, collectAllBookIds(app));
 	const bookTitle = entry?.bookTitle ?? bookFolderName;
 	const position = getSeriesOrderPosition(app, bookFolderName);
-	await modifyBackstageFrontmatter(
+	await modifyBackstageFrontmatter<RawBookFrontmatter>(
 		app,
 		app.vault,
 		bookPath,
@@ -216,7 +240,7 @@ export async function archiveChapter(app: App, bookFolderName: string, filename:
 	const bookId = entry?.bookId ?? mintId(bookFolderName, collectAllBookIds(app));
 	const bookTitle = entry?.bookTitle ?? bookFolderName;
 	const position = getSeriesOrderPosition(app, bookFolderName);
-	await modifyBackstageFrontmatter(
+	await modifyBackstageFrontmatter<RawBookFrontmatter>(
 		app,
 		app.vault,
 		path,
@@ -225,8 +249,8 @@ export async function archiveChapter(app: App, bookFolderName: string, filename:
 			const chapterOrder = Array.isArray(fm["chapter-order"]) ? fm["chapter-order"] : [];
 			const unplaced = Array.isArray(fm.unplaced) ? fm.unplaced : [];
 			const archive = Array.isArray(fm.archive) ? fm.archive : [];
-			fm["chapter-order"] = chapterOrder.filter((v: string) => v !== filename);
-			fm.unplaced = unplaced.filter((v: string) => v !== filename);
+			fm["chapter-order"] = chapterOrder.filter((v) => v !== filename);
+			fm.unplaced = unplaced.filter((v) => v !== filename);
 			if (!archive.includes(filename)) archive.push(filename);
 			fm.archive = archive;
 		},
@@ -240,7 +264,7 @@ export async function unarchiveChapter(app: App, bookFolderName: string, filenam
 	const bookId = entry?.bookId ?? mintId(bookFolderName, collectAllBookIds(app));
 	const bookTitle = entry?.bookTitle ?? bookFolderName;
 	const position = getSeriesOrderPosition(app, bookFolderName);
-	await modifyBackstageFrontmatter(
+	await modifyBackstageFrontmatter<RawBookFrontmatter>(
 		app,
 		app.vault,
 		path,
@@ -248,7 +272,7 @@ export async function unarchiveChapter(app: App, bookFolderName: string, filenam
 		(fm) => {
 			const unplaced = Array.isArray(fm.unplaced) ? fm.unplaced : [];
 			const archive = Array.isArray(fm.archive) ? fm.archive : [];
-			fm.archive = archive.filter((v: string) => v !== filename);
+			fm.archive = archive.filter((v) => v !== filename);
 			if (!unplaced.includes(filename)) unplaced.push(filename);
 			fm.unplaced = unplaced;
 		},
@@ -264,7 +288,7 @@ async function writeBookReferenceFields(
 	position: number | null,
 ): Promise<void> {
 	const path = bookFilePath(bookFolderName);
-	await modifyBackstageFrontmatter(
+	await modifyBackstageFrontmatter<RawBookFrontmatter>(
 		app,
 		app.vault,
 		path,
@@ -336,13 +360,13 @@ export async function upsertChapterEntry(
 	const bookId = entry?.bookId ?? mintId(bookFolderName, collectAllBookIds(app));
 	const bookTitle = entry?.bookTitle ?? bookFolderName;
 	const position = getSeriesOrderPosition(app, bookFolderName);
-	await modifyBackstageFrontmatter(
+	await modifyBackstageFrontmatter<RawBookFrontmatter>(
 		app,
 		app.vault,
 		path,
 		defaultBookContent(bookId, bookTitle, position),
 		(fm) => {
-			const chapters = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
+			const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
 			chapters[filename] = { "chapter-id": chapterId, "chapter-title": chapterTitle };
 			fm.chapters = chapters;
 		},
@@ -361,14 +385,15 @@ export async function renameChapterTitle(
 	const bookId = entry?.bookId ?? mintId(bookFolderName, collectAllBookIds(app));
 	const bookTitle = entry?.bookTitle ?? bookFolderName;
 	const position = getSeriesOrderPosition(app, bookFolderName);
-	await modifyBackstageFrontmatter(
+	await modifyBackstageFrontmatter<RawBookFrontmatter>(
 		app,
 		app.vault,
 		path,
 		defaultBookContent(bookId, bookTitle, position),
 		(fm) => {
-			const chapters = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
-			const existing = chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
+			const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
+			const existing: RawChapterEntry =
+				chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
 			const chapterId: string =
 				typeof existing["chapter-id"] === "string"
 					? existing["chapter-id"]
@@ -392,14 +417,15 @@ export async function writeChapterPov(
 	const bookId = entry?.bookId ?? mintId(bookFolderName, collectAllBookIds(app));
 	const bookTitle = entry?.bookTitle ?? bookFolderName;
 	const position = getSeriesOrderPosition(app, bookFolderName);
-	await modifyBackstageFrontmatter(
+	await modifyBackstageFrontmatter<RawBookFrontmatter>(
 		app,
 		app.vault,
 		path,
 		defaultBookContent(bookId, bookTitle, position),
 		(fm) => {
-			const chapters = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
-			const existing = chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
+			const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
+			const existing: RawChapterEntry =
+				chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
 			chapters[filename] = { ...existing, "pov-path": povPath, "pov-name": povName };
 			fm.chapters = chapters;
 		},
@@ -419,14 +445,15 @@ export async function writeChapterLocation(
 	const bookId = entry?.bookId ?? mintId(bookFolderName, collectAllBookIds(app));
 	const bookTitle = entry?.bookTitle ?? bookFolderName;
 	const position = getSeriesOrderPosition(app, bookFolderName);
-	await modifyBackstageFrontmatter(
+	await modifyBackstageFrontmatter<RawBookFrontmatter>(
 		app,
 		app.vault,
 		path,
 		defaultBookContent(bookId, bookTitle, position),
 		(fm) => {
-			const chapters = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
-			const existing = chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
+			const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
+			const existing: RawChapterEntry =
+				chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
 			chapters[filename] = { ...existing, "location-path": locationPath, "location-name": locationName };
 			fm.chapters = chapters;
 		},
@@ -440,10 +467,9 @@ export async function rekeyChapterPovReferences(app: App, oldPath: string, newPa
 		if (!fm) continue;
 		const hasMatch = Object.values(fm.chapters).some((entry) => entry.povPath === oldPath);
 		if (!hasMatch) continue;
-		await modifyBackstageFrontmatter(app, app.vault, bookFilePath(folder.name), `---\norder:\n---\n`, (bfm) => {
-			const chapters = bfm.chapters && typeof bfm.chapters === "object" ? bfm.chapters : {};
-			for (const [filename, raw] of Object.entries(chapters)) {
-				const entry = raw as Record<string, unknown>;
+		await modifyBackstageFrontmatter<RawBookFrontmatter>(app, app.vault, bookFilePath(folder.name), `---\norder:\n---\n`, (bfm) => {
+			const chapters: Record<string, RawChapterEntry> = bfm.chapters && typeof bfm.chapters === "object" ? bfm.chapters : {};
+			for (const [filename, entry] of Object.entries(chapters)) {
 				if (entry["pov-path"] === oldPath) {
 					chapters[filename] = { ...entry, "pov-path": newPath, "pov-name": newPath ? entry["pov-name"] : null };
 				}
@@ -460,10 +486,9 @@ export async function rekeyChapterLocationReferences(app: App, oldPath: string, 
 		if (!fm) continue;
 		const hasMatch = Object.values(fm.chapters).some((entry) => entry.locationPath === oldPath);
 		if (!hasMatch) continue;
-		await modifyBackstageFrontmatter(app, app.vault, bookFilePath(folder.name), `---\norder:\n---\n`, (bfm) => {
-			const chapters = bfm.chapters && typeof bfm.chapters === "object" ? bfm.chapters : {};
-			for (const [filename, raw] of Object.entries(chapters)) {
-				const entry = raw as Record<string, unknown>;
+		await modifyBackstageFrontmatter<RawBookFrontmatter>(app, app.vault, bookFilePath(folder.name), `---\norder:\n---\n`, (bfm) => {
+			const chapters: Record<string, RawChapterEntry> = bfm.chapters && typeof bfm.chapters === "object" ? bfm.chapters : {};
+			for (const [filename, entry] of Object.entries(chapters)) {
 				if (entry["location-path"] === oldPath) {
 					chapters[filename] = {
 						...entry,
@@ -485,8 +510,8 @@ export async function renameChapterEntry(
 	newFilename: string,
 ): Promise<void> {
 	const path = bookFilePath(bookFolderName);
-	await modifyBackstageFrontmatter(app, app.vault, path, `---\norder:\n---\n`, (fm) => {
-		const chapters = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
+	await modifyBackstageFrontmatter<RawBookFrontmatter>(app, app.vault, path, `---\norder:\n---\n`, (fm) => {
+		const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
 		if (Object.prototype.hasOwnProperty.call(chapters, oldFilename)) {
 			chapters[newFilename] = chapters[oldFilename];
 			delete chapters[oldFilename];

@@ -34,7 +34,7 @@ export interface TopPanelOptions {
 	onOpenChapter: (bookFolderName: string, filename: string) => void;
 	onOpenSeriesModal: () => void;
 	onOpenBookSynopsisModal: (bookFolderName: string) => void;
-	onArchiveChapter?: () => void;
+	onArchiveChapter?: () => void | Promise<void>;
 	onOpenArchive?: () => void;
 }
 
@@ -272,7 +272,7 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 	const numbered = applyHashNumbering(rawTitles);
 
 	const mainList = bodyEl.createDiv({ cls: "sf-top-list" });
-	(ordered as TFile[]).forEach((file, i) => {
+	ordered.forEach((file, i) => {
 		const row = createRow(mainList, file.name);
 		const label = renderRowTitle(row, numbered[i]);
 		if (options.highlightActiveChapter && options.activeChapterFilename === file.name) {
@@ -287,7 +287,7 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 			onClick: async () => {
 				await archiveChapter(app, bookFolderName, file.name);
 				renderTopPanel(app, container, options);
-				options.onArchiveChapter?.();
+				void options.onArchiveChapter?.();
 			},
 		};
 		attachInlineRename({
@@ -317,7 +317,7 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 	const zones: DragZone[] = [{ key: "ordered", container: mainList }];
 	if (!unplacedHidden) {
 		const unplacedList = unplacedZone.createDiv({ cls: "sf-top-list sf-unplaced-list" });
-		(unplaced as TFile[]).forEach((file, i) => {
+		unplaced.forEach((file, i) => {
 			const row = createRow(unplacedList, file.name);
 			const label = renderRowTitle(row, numbered[ordered.length + i]);
 			if (options.highlightActiveChapter && options.activeChapterFilename === file.name) {
@@ -332,7 +332,7 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 				onClick: async () => {
 					await archiveChapter(app, bookFolderName, file.name);
 					renderTopPanel(app, container, options);
-					options.onArchiveChapter?.();
+					void options.onArchiveChapter?.();
 				},
 			};
 			attachInlineRename({

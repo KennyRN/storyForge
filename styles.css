@@ -54,6 +54,10 @@
 	font-variant: normal;
 }
 
+.sf-small-caps-label {
+	font-variant: small-caps;
+}
+
 .sf-book-line {
 	display: grid;
 	grid-template-columns: auto 1fr;

@@ -13,8 +13,8 @@ export class CodexEntryPickerModal extends Modal {
 		private emptyMessage: string,
 		private entries: CodexPickerEntry[],
 		private hasValue: boolean,
-		private onPick: (entry: CodexPickerEntry) => void,
-		private onClear: () => void,
+		private onPick: (entry: CodexPickerEntry) => void | Promise<void>,
+		private onClear: () => void | Promise<void>,
 	) {
 		super(app);
 	}
@@ -30,7 +30,7 @@ export class CodexEntryPickerModal extends Modal {
 			const clearRow = list.createDiv({ cls: "sf-row sf-palette-row sf-picker-clear-row" });
 			clearRow.createSpan({ text: "— Clear —" });
 			clearRow.addEventListener("click", () => {
-				this.onClear();
+				void this.onClear();
 				this.close();
 			});
 		}
@@ -43,7 +43,7 @@ export class CodexEntryPickerModal extends Modal {
 			const row = list.createDiv({ cls: "sf-row sf-palette-row" });
 			row.createSpan({ text: entry.name });
 			row.addEventListener("click", () => {
-				this.onPick(entry);
+				void this.onPick(entry);
 				this.close();
 			});
 		}

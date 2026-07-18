@@ -434,7 +434,7 @@ export default class StoryForgePlugin extends Plugin {
 
 		this.addCommand({
 			id: "open-storyforge-view",
-			name: "Open storyForge panel",
+			name: "Open panel",
 			callback: () => void this.activateView(),
 		});
 
@@ -566,8 +566,13 @@ export default class StoryForgePlugin extends Plugin {
 	}
 
 	onunload(): void {
-		// Detaching first runs ToolsView.onClose(), which restores the ribbon to its native parent.
-		this.app.workspace.detachLeavesOfType(TOOLS_VIEW_TYPE);
+		// Restores the native ribbon directly (without detaching the leaf, which would reset
+		// its position on next load) by running the same DOM restoration ToolsView.onClose() does.
+		for (const leaf of this.app.workspace.getLeavesOfType(TOOLS_VIEW_TYPE)) {
+			if (leaf.view instanceof ToolsView) {
+				leaf.view.restoreRibbon();
+			}
+		}
 		document.body.classList.remove("sf-use-tools-panel", "sf-tools-open");
 		for (const perDoc of this.styleEls.values()) {
 			for (const el of perDoc.values()) el.remove();
@@ -577,7 +582,7 @@ export default class StoryForgePlugin extends Plugin {
 	}
 
 	async loadSettings(): Promise<void> {
-		const data = await this.loadData();
+		const data: unknown = await this.loadData();
 		this.pluginSettings = Object.assign({}, DEFAULT_SETTINGS, data);
 		migrateRemovedCaroniFont(this.pluginSettings);
 	}
@@ -624,6 +629,7 @@ export default class StoryForgePlugin extends Plugin {
 		}
 		let el = perDoc.get(doc);
 		if (!el) {
+			// eslint-disable-next-line obsidianmd/prefer-create-el -- doc may be a pop-out window's plain Document, which has no createEl extension
 			el = doc.createElement("style");
 			el.id = id;
 			doc.head.appendChild(el);
@@ -1161,7 +1167,7 @@ export default class StoryForgePlugin extends Plugin {
 			leaf = workspace.getLeftLeaf(false);
 			await leaf?.setViewState({ type: STORYFORGE_VIEW_TYPE, active: true });
 		}
-		if (leaf) workspace.revealLeaf(leaf);
+		if (leaf) await workspace.revealLeaf(leaf);
 	}
 
 	async activateToolsView(): Promise<void> {
@@ -1171,7 +1177,7 @@ export default class StoryForgePlugin extends Plugin {
 			leaf = workspace.getLeftLeaf(false);
 			await leaf?.setViewState({ type: TOOLS_VIEW_TYPE, active: true });
 		}
-		if (leaf) workspace.revealLeaf(leaf);
+		if (leaf) await workspace.revealLeaf(leaf);
 	}
 
 	/** True if the StoryForge leaf is visited before the Tools leaf when walking the workspace's layout tree (i.e. sits earlier among tabs in a shared group). If either is absent, there's nothing to enforce. */
