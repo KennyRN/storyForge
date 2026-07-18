@@ -17,10 +17,9 @@ import { extractFingerprint } from "./fingerprint";
 import { updateChapterFingerprint } from "./chapterSidecar";
 import { debounce } from "./debounce";
 import { registerCustomIcons } from "./icons";
-import { buildCustomFontFaceCSS, buildCustomFontFamilyDeclaration, CUSTOM_FONTS, CustomFontEntry } from "./fonts";
+import { registerCustomFontFaces, resolveCustomFontFamilyParts, CUSTOM_FONTS, CustomFontEntry } from "./fonts";
 import { refreshTabTitles, registerTabTitleOverrides } from "./tabTitles";
 import { PaletteColor, PaletteMode, PaletteName } from "./colorPalettes";
-import { OBSIDIAN_CSS_VARS, OBSIDIAN_SELECTORS } from "./obsidianInternals";
 import { runContentBackup } from "./backup";
 
 export type CodexFolderIndicatorThickness = "none" | "thin" | "medium" | "thick";
@@ -398,10 +397,10 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 export default class StoryForgePlugin extends Plugin {
 	private recomputeDebouncers = new Map<string, () => void>();
 	private pluginSettings: StoryForgePluginSettings = DEFAULT_SETTINGS;
-	/** One `<style>` element per (style-id, document) pair, so injected styling also applies inside pop-out windows. */
-	private styleEls = new Map<string, Map<Document, HTMLStyleElement>>();
 	/** Documents of currently open pop-out windows, kept in sync via the "window-open"/"window-close" workspace events. */
 	private extraDocs = new Set<Document>();
+	/** Tracks which documents already have the embedded custom fonts registered (CUSTOM_FONTS is fixed, so this only ever needs doing once per doc). */
+	private fontFacesRegisteredFor = new Set<Document>();
 	/**
 	 * Mutable extensions array registered once via `registerEditorExtension` - Obsidian rebuilds new
 	 * `EditorState`s (e.g. when switching chapters) from this array's *current* contents, so mutating
@@ -419,9 +418,9 @@ export default class StoryForgePlugin extends Plugin {
 		// to resolve, so StoryForgeView.onOpen() must never risk reading pre-load default settings.
 		await this.loadSettings();
 
-		// Defensively remove any style tags a previous (e.g. hot-reloaded) instance of this
-		// plugin left behind - onunload() prevents this going forward, but existing sessions
-		// may already have stale duplicates injected before that existed.
+		// Defensively remove any style tags a previous plugin version (before dynamic <style>
+		// injection was replaced with CSS custom properties) left behind - both from a stale
+		// hot-reloaded instance, and from upgrading from an older release of this plugin.
 		document
 			.querySelectorAll(
 				"#storyforge-visibility-styles, #storyforge-header-styles, #storyforge-highlight-styles, #storyforge-library-header-styles, #storyforge-codex-folder-styles, #storyforge-codex-note-label-styles, #storyforge-heading1-link-styles, #storyforge-text-style-overrides, #storyforge-custom-fonts, #storyforge-cycling-guide-styles",
@@ -453,7 +452,7 @@ export default class StoryForgePlugin extends Plugin {
 		this.applyCodexNoteLabelStyle();
 		this.applyHeading1LinkStyle();
 		this.applyTextStyleOverrides();
-		this.applyCustomFontFaces();
+		this.registerCustomFontFacesForAllDocs();
 		this.applyCyclingGuideStyle();
 		if (this.pluginSettings.cyclingGuideEnabled) this.rebuildCyclingGuideExtension();
 		this.registerEditorExtension(this.cyclingGuideExtensions);
@@ -469,7 +468,7 @@ export default class StoryForgePlugin extends Plugin {
 			}),
 		);
 
-		// Injected <style> tags only exist in the document they were appended to, so a pane
+		// CSS custom properties are only set on the document they were applied to, so a pane
 		// detached into its own OS window (a WorkspaceWindow, with its own `doc`) starts out
 		// with none of this plugin's styling. Track it and re-apply everything into it.
 		this.registerEvent(
@@ -483,14 +482,14 @@ export default class StoryForgePlugin extends Plugin {
 				this.applyCodexNoteLabelStyle();
 				this.applyHeading1LinkStyle();
 				this.applyTextStyleOverrides();
-				this.applyCustomFontFaces();
+				this.registerCustomFontFacesForAllDocs();
 				this.applyCyclingGuideStyle();
 			}),
 		);
 		this.registerEvent(
 			this.app.workspace.on("window-close", (win) => {
 				this.extraDocs.delete(win.doc);
-				for (const perDoc of this.styleEls.values()) perDoc.delete(win.doc);
+				this.fontFacesRegisteredFor.delete(win.doc);
 			}),
 		);
 
@@ -574,11 +573,20 @@ export default class StoryForgePlugin extends Plugin {
 			}
 		}
 		document.body.classList.remove("sf-use-tools-panel", "sf-tools-open");
-		for (const perDoc of this.styleEls.values()) {
-			for (const el of perDoc.values()) el.remove();
-		}
-		this.styleEls.clear();
+		this.clearStyleVars(document);
+		for (const doc of this.extraDocs) this.clearStyleVars(doc);
 		this.extraDocs.clear();
+		this.fontFacesRegisteredFor.clear();
+	}
+
+	/** Removes every `--sf-*` custom property this plugin has set on `doc.body`, so disabling/unloading leaves no styling behind. */
+	private clearStyleVars(doc: Document): void {
+		const names: string[] = [];
+		for (let i = 0; i < doc.body.style.length; i++) {
+			const name = doc.body.style.item(i);
+			if (name.startsWith("--sf-")) names.push(name);
+		}
+		for (const name of names) doc.body.style.removeProperty(name);
 	}
 
 	async loadSettings(): Promise<void> {
@@ -614,98 +622,70 @@ export default class StoryForgePlugin extends Plugin {
 		this.applyCodexNoteLabelStyle();
 		this.applyHeading1LinkStyle();
 		this.applyTextStyleOverrides();
-		this.applyCustomFontFaces();
+		this.registerCustomFontFacesForAllDocs();
 		this.applyCyclingGuideStyle();
 		this.setCyclingGuideEnabled(this.pluginSettings.cyclingGuideEnabled);
 		this.refreshStoryForgeViews();
 	}
 
-	/** Injects/updates a named `<style>` element with `css` in `doc`, creating it if needed. */
-	private injectStyle(id: string, css: string, doc: Document): void {
-		let perDoc = this.styleEls.get(id);
-		if (!perDoc) {
-			perDoc = new Map();
-			this.styleEls.set(id, perDoc);
+	/** Sets (or, for a `null` value, clears) each named CSS custom property on `doc.body`. */
+	private setStyleVars(doc: Document, vars: Record<string, string | null>): void {
+		for (const [name, value] of Object.entries(vars)) {
+			if (value === null) doc.body.style.removeProperty(name);
+			else doc.body.style.setProperty(name, value);
 		}
-		let el = perDoc.get(doc);
-		if (!el) {
-			el = doc.head.createEl("style", { attr: { id } });
-			perDoc.set(doc, el);
-		}
-		el.textContent = css;
 	}
 
-	/** Applies `css` under `id` to the main document and every open pop-out window. */
-	private applyStyleToAllDocs(id: string, css: string): void {
-		this.injectStyle(id, css, document);
+	/** Applies `vars` to the main document and every open pop-out window. */
+	private applyStyleVarsToAllDocs(vars: Record<string, string | null>): void {
+		this.setStyleVars(document, vars);
 		for (const doc of this.extraDocs) {
-			this.injectStyle(id, css, doc);
+			this.setStyleVars(doc, vars);
+		}
+	}
+
+	/** Registers the embedded custom fonts into the main document and every open pop-out window (idempotent - see `fontFacesRegisteredFor`). */
+	private registerCustomFontFacesForAllDocs(): void {
+		if (!this.fontFacesRegisteredFor.has(document)) {
+			this.fontFacesRegisteredFor.add(document);
+			registerCustomFontFaces(document);
+		}
+		for (const doc of this.extraDocs) {
+			if (this.fontFacesRegisteredFor.has(doc)) continue;
+			this.fontFacesRegisteredFor.add(doc);
+			registerCustomFontFaces(doc);
 		}
 	}
 
 	applyVisibilityStyles(): void {
-		const rules: string[] = [];
+		const s = this.pluginSettings;
+		// Static rules for all of these live in styles.css, gated by --sf-*-display custom
+		// properties defaulting to `revert` (i.e. "no override") when unset. See that file's
+		// "Dynamic Styling" section for the corresponding selectors.
+		this.applyStyleVarsToAllDocs({
+			// Hides the Help button's own clickable wrapper (not just the icon glyph) when on, so
+			// no empty ghost button is left behind; when off, force-shows the row it lives in
+			// instead (Obsidian only reveals it on hover otherwise) - "off" should mean "shown".
+			"--sf-help-display": s.hideHelp ? "none" : null,
+			"--sf-vault-actions-display": s.hideHelp ? null : "flex",
+			"--sf-search-display": s.hideSearch ? "none" : null,
+			"--sf-bookmarks-display": s.hideBookmarks ? "none" : null,
+			"--sf-files-display": s.hideFiles ? "none" : null,
+			"--sf-sidebar-left-display": s.hideLeftPanel ? "none" : null,
+			"--sf-sidebar-right-display": s.hideRightPanel ? "none" : null,
+			"--sf-filename-bar-display": s.hideFileNameBar ? "none" : null,
+			"--sf-nav-row-display": s.hideNavRow ? "none" : null,
+			"--sf-statusbar-hidden-display": s.statusBarView === "hidden" ? "none" : null,
+			"--sf-statusbar-nonsync-display": s.statusBarView === "sync-only" ? "none" : null,
+		});
 
-		if (this.pluginSettings.hideHelp) {
-			// Hides the Help button's own clickable wrapper (not just the icon glyph), so no empty
-			// ghost button is left behind. Scoped to the vault-actions row so it doesn't affect
-			// any other ".help"-classed element elsewhere.
-			rules.push(`${OBSIDIAN_SELECTORS.helpButton} { display: none !important; }`);
-		} else {
-			// Obsidian only reveals this row (Help + Settings icons) on hover of the vault-name area
-			// (display: var(--vault-profile-actions-display)); force it permanently visible so "off"
-			// genuinely means "shown", not "hover to reveal". Settings gear icon becomes always-visible
-			// too, since it shares this same container - confirmed acceptable.
-			rules.push(`${OBSIDIAN_SELECTORS.vaultActions} { display: flex !important; }`);
-		}
-		if (this.pluginSettings.hideSearch) {
-			rules.push(`${OBSIDIAN_SELECTORS.searchNav} { display: none !important; }`);
-		}
-		if (this.pluginSettings.hideBookmarks) {
-			rules.push(`${OBSIDIAN_SELECTORS.bookmarksNav} { display: none !important; }`);
-		}
-		if (this.pluginSettings.hideFiles) {
-			rules.push(`${OBSIDIAN_SELECTORS.filesNav} { display: none !important; }`);
-		}
-		if (this.pluginSettings.hideLeftPanel) {
-			rules.push(`${OBSIDIAN_SELECTORS.sidebarToggleLeft} { display: none !important; }`);
-		}
-		if (this.pluginSettings.hideRightPanel) {
-			rules.push(`${OBSIDIAN_SELECTORS.sidebarToggleRight} { display: none !important; }`);
-		}
-		if (this.pluginSettings.hideFileNameBar) {
-			rules.push(`${OBSIDIAN_SELECTORS.inlineTitle} { display: none !important; }`);
-		}
-		if (this.pluginSettings.hideNavRow) {
-			rules.push(`${OBSIDIAN_SELECTORS.viewHeader} { display: none !important; }`);
-		}
-		if (this.pluginSettings.statusBarView === "hidden") {
-			rules.push(`${OBSIDIAN_SELECTORS.statusBar} { display: none !important; }`);
-		} else if (this.pluginSettings.statusBarView === "sync-only") {
-			rules.push(`${OBSIDIAN_SELECTORS.statusBarNonSyncItem} { display: none !important; }`);
-		}
-		if (this.pluginSettings.useToolsPanel) {
+		// The ribbon-relocation rules (ribbon-width var, ribbon hide/show, tab-header padding) are
+		// static in styles.css, scoped entirely by this class - no custom properties needed.
+		if (s.useToolsPanel) {
 			document.body.classList.add("sf-use-tools-panel");
-			// Match Obsidian's own ribbon-width accounting (see its `show-ribbon` class) so the
-			// macOS traffic-light spacing math (--frame-left-space) recalculates correctly.
-			rules.push(`body.sf-use-tools-panel { ${OBSIDIAN_CSS_VARS.ribbonWidth}: 0px; }`);
-			// The native ribbon is hidden everywhere except while it's physically parented
-			// inside the open Tools pane (see ToolsView.mountRibbon).
-			rules.push(`body.sf-use-tools-panel ${OBSIDIAN_SELECTORS.workspaceRibbon} { display: none !important; }`);
-			// Must be at least as specific as the hide rule above (both use !important) - a plain
-			// ".sf-tools-view .workspace-ribbon" selector is weaker (no `body` element selector) and
-			// silently loses to it regardless of source order, leaving the ribbon `display: none`.
-			rules.push(
-				`body.sf-use-tools-panel .sf-tools-view ${OBSIDIAN_SELECTORS.workspaceRibbon} { display: flex !important; }`,
-			);
-			rules.push(
-				`body.sf-use-tools-panel ${OBSIDIAN_SELECTORS.tabHeaderContainer} { padding-left: calc(var(--size-4-2) + var(${OBSIDIAN_CSS_VARS.frameLeftSpace})) !important; }`,
-			);
 		} else {
 			document.body.classList.remove("sf-use-tools-panel");
 		}
-
-		this.applyStyleToAllDocs("storyforge-visibility-styles", rules.join("\n"));
 	}
 
 	applyHeaderStyles(): void {
@@ -720,20 +700,18 @@ export default class StoryForgePlugin extends Plugin {
 		} else {
 			unplacedItemsColor = s.unplacedItemsColor;
 		}
-		const rules: string[] = [
-			`.sf-header-unplaced { color: ${unplacedColor}; font-variant: ${s.unplacedSmallCaps ? "small-caps" : "normal"}; font-size: ${s.unplacedFontSize}em; font-weight: ${s.unplacedFontWeight}; }`,
-			`.sf-unplaced-header > .sf-icon { color: ${unplacedColor}; font-size: ${s.unplacedFontSize}em; }`,
-			`.sf-unplaced-header > .sf-icon svg { width: 1em; height: 1em; }`,
-			`.sf-unplaced-list { font-size: ${s.unplacedItemsFontSize}em; color: ${unplacedItemsColor}; }`,
-			`.sf-unplaced-new-file:hover, .sf-unplaced-archive-btn:hover { color: ${unplacedColor}; }`,
-			`.sf-header-codex { color: ${codexColor}; font-variant: ${s.codexSmallCaps ? "small-caps" : "normal"}; font-size: ${s.codexFontSize}em; font-weight: ${s.codexFontWeight}; }`,
-			`.sf-bottom-header > .sf-icon { font-size: ${s.codexFontSize}em; }`,
-			`.sf-bottom-header > .sf-icon svg { width: 1em; height: 1em; }`,
-			`.sf-bottom-header:not(.sf-codex-hidden) > .sf-icon { color: ${codexColor}; }`,
-			`.sf-codex-new-file-btn:hover, .sf-codex-new-folder-btn:hover, .sf-codex-archive-btn:hover { color: ${codexColor}; }`,
-		];
-
-		this.applyStyleToAllDocs("storyforge-header-styles", rules.join("\n"));
+		this.applyStyleVarsToAllDocs({
+			"--sf-unplaced-color": unplacedColor,
+			"--sf-unplaced-variant": s.unplacedSmallCaps ? "small-caps" : "normal",
+			"--sf-unplaced-size": `${s.unplacedFontSize}em`,
+			"--sf-unplaced-weight": s.unplacedFontWeight,
+			"--sf-unplaced-items-size": `${s.unplacedItemsFontSize}em`,
+			"--sf-unplaced-items-color": unplacedItemsColor,
+			"--sf-codex-color": codexColor,
+			"--sf-codex-variant": s.codexSmallCaps ? "small-caps" : "normal",
+			"--sf-codex-size": `${s.codexFontSize}em`,
+			"--sf-codex-weight": s.codexFontWeight,
+		});
 	}
 
 	/** Resolves the codex folder colour, respecting `codexUseHeaderColorForAll`'s override of the folder colour picker. */
@@ -762,13 +740,14 @@ export default class StoryForgePlugin extends Plugin {
 				? "var(--text-muted)"
 				: s.codexColor
 			: s.codexHighlightColor;
-		const rules: string[] = [
-			`.sf-top-list:not(.sf-unplaced-list) .sf-row.sf-row-selected { background: ${s.highlightColor}; color: ${s.highlightTextColor}; }`,
-			`.sf-unplaced-list .sf-row.sf-row-selected { background: ${unplacedHighlightColor}; color: ${s.unplacedHighlightTextColor}; }`,
-			`.sf-codex-file.sf-row-selected { background: ${this.codexSelectedBackground(codexHighlightColor)}; color: ${s.codexHighlightTextColor}; }`,
-		];
-
-		this.applyStyleToAllDocs("storyforge-highlight-styles", rules.join("\n"));
+		this.applyStyleVarsToAllDocs({
+			"--sf-highlight-bg": s.highlightColor,
+			"--sf-highlight-text": s.highlightTextColor,
+			"--sf-unplaced-highlight-bg": unplacedHighlightColor,
+			"--sf-unplaced-highlight-text": s.unplacedHighlightTextColor,
+			"--sf-codex-highlight-bg": this.codexSelectedBackground(codexHighlightColor),
+			"--sf-codex-highlight-text": s.codexHighlightTextColor,
+		});
 	}
 
 	/** Restyles the "Cycling guide" floating divider (thickness/colour only - the CM6 extension itself is toggled by `setCyclingGuideEnabled`). */
@@ -780,17 +759,16 @@ export default class StoryForgePlugin extends Plugin {
 		const baseFlagEm = 0.75;
 		const badgePx = Math.round(baseBadgePx * flagSizeEm / baseFlagEm);
 		const borderRadius = s.cyclingGuideRoundedLines ? "3px 3px 0 3px" : "0";
-		const rules: string[] = [
-			`.sf-cycling-guide-line { position: relative; }`,
-			`.sf-cycling-guide-line::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: ${px}px; background-color: ${s.cyclingGuideColor}; pointer-events: none; border-radius: ${borderRadius}; }`,
-			// Box = the divider's own colour; the icon inside it is coloured with the editor's
-			// background so it reads as "knocked out" of the coloured box, per the icon's design.
-			`.sf-cycling-guide-badge { position: absolute; top: calc(100% + ${px}px); right: 0; width: ${badgePx}px; height: ${badgePx - 3}px; display: flex; align-items: flex-start; justify-content: center; background-color: ${s.cyclingGuideColor}; border-bottom-left-radius: 3px; border-bottom-right-radius: 3px; pointer-events: none; }`,
-			`.sf-cycling-guide-badge-icon { position: absolute; top: -1px; left: 0; right: 0; color: var(--background-primary); font-size: ${flagSizeEm}em; line-height: 0; text-align: center; }`,
-			`.sf-cycling-guide-badge-icon svg { width: 1em; height: 1em; }`,
-		];
-
-		this.applyStyleToAllDocs("storyforge-cycling-guide-styles", rules.join("\n"));
+		// Box = the divider's own colour; the icon inside it is coloured with the editor's
+		// background so it reads as "knocked out" of the coloured box, per the icon's design (see styles.css).
+		this.applyStyleVarsToAllDocs({
+			"--sf-cg-height": `${px}px`,
+			"--sf-cg-color": s.cyclingGuideColor,
+			"--sf-cg-radius": borderRadius,
+			"--sf-cg-badge-size": `${badgePx}px`,
+			"--sf-cg-badge-inner-height": `${badgePx - 3}px`,
+			"--sf-cg-flag-size": `${flagSizeEm}em`,
+		});
 	}
 
 	/** Rebuilds the cycling guide CM6 extension with the current interval setting. */
@@ -811,33 +789,32 @@ export default class StoryForgePlugin extends Plugin {
 
 	applyLibraryHeaderStyles(): void {
 		const s = this.pluginSettings;
-		const rules: string[] = [
-			`.sf-series-line .sf-header-text { font-size: ${s.librarySeriesTitleFontSize}em; font-weight: ${s.librarySeriesTitleFontWeight}; color: ${s.librarySeriesTitleColor}; font-variant: ${s.librarySeriesTitleSmallCaps ? "small-caps" : "normal"}; }`,
-			`.sf-series-line .sf-icon { color: ${s.librarySeriesTitleColor}; font-size: ${s.librarySeriesTitleFontSize}em; }`,
-			`.sf-series-line .sf-icon svg { width: 1em; height: 1em; }`,
-			`.sf-series-filter-btn:hover { color: ${s.librarySeriesTitleColor}; }`,
-			`.sf-book-line .sf-header-text { font-size: ${s.libraryBookTitleFontSize}em; font-weight: ${s.libraryBookTitleFontWeight}; color: ${s.libraryBookTitleColor}; font-variant: ${s.libraryBookTitleSmallCaps ? "small-caps" : "normal"}; line-height: 1; }`,
-			`.sf-book-line .sf-icon { color: ${s.libraryBookTitleColor}; font-size: ${s.libraryBookTitleFontSize}em; }`,
-			`.sf-book-line .sf-icon svg { width: 1em; height: 1em; }`,
-			`.sf-book-filter-btn:hover { color: ${s.libraryBookTitleColor}; }`,
-			`.sf-book-line .sf-book-subtitle-text { font-size: ${s.libraryBookSubtitleFontSize}em; font-weight: ${s.libraryBookSubtitleFontWeight}; color: ${s.libraryBookTitleColor}; font-variant: ${s.libraryBookSubtitleSmallCaps ? "small-caps" : "normal"}; }`,
-			`.sf-top-header { border-bottom: ${s.libraryHeaderDividerBelow ? "1px solid var(--background-modifier-border)" : "none"}; }`,
-		];
-
-		this.applyStyleToAllDocs("storyforge-library-header-styles", rules.join("\n"));
+		this.applyStyleVarsToAllDocs({
+			"--sf-lib-series-size": `${s.librarySeriesTitleFontSize}em`,
+			"--sf-lib-series-weight": s.librarySeriesTitleFontWeight,
+			"--sf-lib-series-color": s.librarySeriesTitleColor,
+			"--sf-lib-series-variant": s.librarySeriesTitleSmallCaps ? "small-caps" : "normal",
+			"--sf-lib-book-size": `${s.libraryBookTitleFontSize}em`,
+			"--sf-lib-book-weight": s.libraryBookTitleFontWeight,
+			"--sf-lib-book-color": s.libraryBookTitleColor,
+			"--sf-lib-book-variant": s.libraryBookTitleSmallCaps ? "small-caps" : "normal",
+			"--sf-lib-subtitle-size": `${s.libraryBookSubtitleFontSize}em`,
+			"--sf-lib-subtitle-weight": s.libraryBookSubtitleFontWeight,
+			"--sf-lib-subtitle-variant": s.libraryBookSubtitleSmallCaps ? "small-caps" : "normal",
+			"--sf-lib-header-divider": s.libraryHeaderDividerBelow ? "1px solid var(--background-modifier-border)" : "none",
+		});
 	}
 
 	applyCodexFolderStyle(): void {
 		const s = this.pluginSettings;
 		const indicatorWidth = CODEX_FOLDER_INDICATOR_WIDTH_PX[s.codexFolderIndicatorThickness];
 		const folderColor = this.resolveCodexFolderColor();
-		const rules: string[] = [
-			`.sf-codex-folder-name, .sf-codex-folder-name.sf-styled-heading { color: ${folderColor}; font-size: ${s.codexFolderFontSize}em; font-weight: ${s.codexFolderFontWeight}; }`,
-			`.sf-codex-chevron { color: ${folderColor}; font-size: ${s.codexFolderFontSize}em; }`,
-			`.sf-codex-folder-indicator { width: ${indicatorWidth}px; background: ${folderColor}; }`,
-		];
-
-		this.applyStyleToAllDocs("storyforge-codex-folder-styles", rules.join("\n"));
+		this.applyStyleVarsToAllDocs({
+			"--sf-codex-folder-color": folderColor,
+			"--sf-codex-folder-size": `${s.codexFolderFontSize}em`,
+			"--sf-codex-folder-weight": s.codexFolderFontWeight,
+			"--sf-codex-folder-indicator-width": `${indicatorWidth}px`,
+		});
 	}
 
 	applyCodexNoteLabelStyle(): void {
@@ -852,45 +829,41 @@ export default class StoryForgePlugin extends Plugin {
 		} else {
 			color = s.codexNoteLabelColor;
 		}
-		const rules: string[] = [
-			`.sf-codex-file { color: ${color}; font-size: ${s.codexNoteLabelFontSize}em; font-weight: ${s.codexNoteLabelFontWeight}; }`,
-		];
-
-		this.applyStyleToAllDocs("storyforge-codex-note-label-styles", rules.join("\n"));
+		this.applyStyleVarsToAllDocs({
+			"--sf-codex-note-color": color,
+			"--sf-codex-note-size": `${s.codexNoteLabelFontSize}em`,
+			"--sf-codex-note-weight": s.codexNoteLabelFontWeight,
+		});
 	}
 
 	applyHeading1LinkStyle(): void {
-		const rules: string[] = this.pluginSettings.hideHeading1Links
-			? [`${OBSIDIAN_SELECTORS.h1Links} { color: inherit !important; text-decoration: inherit !important; }`]
-			: [];
-
-		this.applyStyleToAllDocs("storyforge-heading1-link-styles", rules.join("\n"));
-	}
-
-	/** Registers the `@font-face` rules for every embedded custom font. Not settings-dependent, so this just needs re-running per pop-out window, like the other apply*Styles methods. */
-	applyCustomFontFaces(): void {
-		this.applyStyleToAllDocs("storyforge-custom-fonts", buildCustomFontFaceCSS());
+		const on = this.pluginSettings.hideHeading1Links;
+		this.applyStyleVarsToAllDocs({
+			"--sf-h1-link-color": on ? "inherit" : null,
+			"--sf-h1-link-decoration": on ? "inherit" : null,
+		});
 	}
 
 	/**
-	 * CSS for switching `selector` to a custom embedded font at the given weight, when one is
-	 * picked. Returns the matched font alongside the rule so callers can adjust other rules that
-	 * depend on whether a custom font (rather than the theme's own) is active for that selector.
+	 * The `--sf-*-family`/`--sf-*-variation` custom-property values for switching a text-style
+	 * target to a custom embedded font at the given weight, when one is picked. Returns the
+	 * matched font alongside the values so callers can adjust other properties that depend on
+	 * whether a custom font (rather than the theme's own) is active for that target.
 	 */
-	private buildCustomFontFamilyRule(
+	private resolveCustomFontVars(
 		overrideFont: boolean,
 		fontFamily: CustomFontFamily,
 		fontWeight: FontWeight,
-		selector: string,
-	): { rule: string | null; font: CustomFontEntry | null } {
-		if (!overrideFont) return { rule: null, font: null };
+	): { family: string | null; variation: string | null; font: CustomFontEntry | null } {
+		if (!overrideFont) return { family: null, variation: null, font: null };
 		const font = CUSTOM_FONTS.find((f) => f.id === fontFamily);
-		if (!font) return { rule: null, font: null };
-		return { rule: `${selector} { ${buildCustomFontFamilyDeclaration(font, Number(fontWeight))} }`, font };
+		if (!font) return { family: null, variation: null, font: null };
+		const { family, variation } = resolveCustomFontFamilyParts(font, Number(fontWeight));
+		return { family, variation, font };
 	}
 
-	/** Builds the size/colour/weight/small-caps/divider CSS rules for one heading level, across reading view and Live Preview. */
-	private buildHeadingRules(
+	/** Resolves the size/colour/weight/small-caps/divider custom-property values for one heading level. */
+	private buildHeadingVars(
 		level: 1 | 2 | 3 | 4 | 5 | 6,
 		overrideSize: boolean,
 		size: number,
@@ -904,187 +877,179 @@ export default class StoryForgePlugin extends Plugin {
 		dividerAboveThickness: HeadingDividerThickness,
 		dividerBelow: boolean,
 		dividerBelowThickness: HeadingDividerThickness,
-	): string[] {
-		const reading = OBSIDIAN_SELECTORS.headingReading[level];
-		const line = OBSIDIAN_SELECTORS.headingLivePreviewLine[level];
-		const text = OBSIDIAN_SELECTORS.headingLivePreviewText[level];
-		const rules: string[] = [];
-		if (overrideSize) rules.push(`${reading}, ${line} { font-size: ${size}em; }`);
-		if (overrideColor) {
-			// !important alone isn't enough - some themes (e.g. Minimal's "colourful headings")
-			// set heading colour with !important too, and equal-importance ties still go to
-			// specificity before source order. `:not(#id-that-never-exists)` is a standard trick
-			// for adding ID-level specificity without needing a real ID, so this wins regardless
-			// of what selector/!important combination the active theme throws at heading colour.
-			const boost = ":not(#storyforge-specificity-boost)";
-			rules.push(`${reading}${boost}, ${text}${boost} { color: ${color} !important; }`);
-		}
-		// Skipped when a custom font is active: buildCustomFontFamilyRule already handles weight for
-		// that case (real interpolation for a variable font, a no-op for a fixed one) - applying this
-		// literal font-weight on top would force the browser to synthesize a weight a fixed-weight
-		// embedded font doesn't have, reintroducing fake bold.
-		if (overrideFont && !usingCustomFont) rules.push(`${reading}, ${line} { font-weight: ${fontWeight}; }`);
-		if (overrideFont) {
-			// Forced either way (small-caps or normal), not just "on" - otherwise turning the
-			// toggle off leaves whatever font-variant was already cascading in place (from the
-			// theme, or a stale value), which read as the toggle being "stuck" on. !important plus
-			// the specificity boost make this authoritative over the underwritten theme/editor CSS,
-			// same technique as the colour override above.
-			const boost = ":not(#storyforge-specificity-boost)";
-			rules.push(`${reading}${boost}, ${line}${boost}, ${text}${boost} { font-variant: ${smallCaps ? "small-caps" : "normal"} !important; }`);
-		}
-		if (dividerAbove) {
-			const thicknessPx = HEADING_DIVIDER_WIDTH_PX[dividerAboveThickness];
-			rules.push(`${reading}, ${line} { border-top: ${thicknessPx}px solid ${overrideColor ? color : "currentColor"}; }`);
-		}
-		if (dividerBelow) {
-			const thicknessPx = HEADING_DIVIDER_WIDTH_PX[dividerBelowThickness];
-			rules.push(`${reading}, ${line} { border-bottom: ${thicknessPx}px solid ${overrideColor ? color : "currentColor"}; }`);
-		}
-		return rules;
+	): Record<string, string | null> {
+		const p = `--sf-h${level}`;
+		return {
+			[`${p}-size`]: overrideSize ? `${size}em` : null,
+			// The specificity-boost trick (`:not(#storyforge-specificity-boost)`, needed because some
+			// themes set heading colour with !important too, and equal-importance ties go to
+			// specificity before source order) lives in styles.css's static selectors - only the
+			// value is dynamic here.
+			[`${p}-color`]: overrideColor ? color : null,
+			// Skipped when a custom font is active: the family/variation vars already handle weight
+			// for that case (real interpolation for a variable font, a no-op for a fixed one) -
+			// applying this literal font-weight on top would force the browser to synthesize a
+			// weight a fixed-weight embedded font doesn't have, reintroducing fake bold.
+			[`${p}-weight`]: overrideFont && !usingCustomFont ? fontWeight : null,
+			// Forced either way (small-caps or normal) whenever the font override is on, not just
+			// when the toggle is "on" - otherwise turning it off would leave whatever font-variant
+			// was already cascading in place (from the theme, or a stale value), reading as stuck on.
+			[`${p}-variant`]: overrideFont ? (smallCaps ? "small-caps" : "normal") : null,
+			[`${p}-border-top`]: dividerAbove
+				? `${HEADING_DIVIDER_WIDTH_PX[dividerAboveThickness]}px solid ${overrideColor ? color : "currentColor"}`
+				: null,
+			[`${p}-border-bottom`]: dividerBelow
+				? `${HEADING_DIVIDER_WIDTH_PX[dividerBelowThickness]}px solid ${overrideColor ? color : "currentColor"}`
+				: null,
+		};
 	}
 
 	applyTextStyleOverrides(): void {
 		const s = this.pluginSettings;
-		const rules: string[] = [];
-		const bodySelector = `${OBSIDIAN_SELECTORS.bodyTextReading}, ${OBSIDIAN_SELECTORS.bodyTextLivePreview}`;
-		if (s.bodyTextOverrideSize) {
-			rules.push(`${bodySelector} { font-size: ${s.bodyTextSize}em; }`);
-		}
-		if (s.bodyTextOverrideColor) {
-			rules.push(`${bodySelector} { color: ${s.bodyTextColor}; }`);
-		}
-		if (s.bodyTextOverrideEmphasisColor) {
-			const boost = ":not(#storyforge-specificity-boost)";
-			rules.push(
-				`${OBSIDIAN_SELECTORS.bodyTextBoldReading}${boost}, ${OBSIDIAN_SELECTORS.bodyTextBoldLivePreview}${boost} { color: ${s.bodyTextBoldColor} !important; }`,
+		const vars: Record<string, string | null> = {};
+
+		vars["--sf-body-size"] = s.bodyTextOverrideSize ? `${s.bodyTextSize}em` : null;
+		vars["--sf-body-color"] = s.bodyTextOverrideColor ? s.bodyTextColor : null;
+		vars["--sf-body-bold-color"] = s.bodyTextOverrideEmphasisColor ? s.bodyTextBoldColor : null;
+		vars["--sf-body-italic-color"] = s.bodyTextOverrideEmphasisColor ? s.bodyTextItalicColor : null;
+
+		const bodyFont = this.resolveCustomFontVars(s.bodyTextOverrideFont, s.bodyTextFontFamily, s.bodyTextFontWeight);
+		vars["--sf-body-weight"] = s.bodyTextOverrideFont && !bodyFont.font ? s.bodyTextFontWeight : null;
+		vars["--sf-body-family"] = bodyFont.family;
+		vars["--sf-body-variation"] = bodyFont.variation;
+
+		const headingConfigs: {
+			level: 1 | 2 | 3 | 4 | 5 | 6;
+			overrideSize: boolean;
+			size: number;
+			overrideColor: boolean;
+			color: string;
+			overrideFont: boolean;
+			fontWeight: FontWeight;
+			fontFamily: CustomFontFamily;
+			smallCaps: boolean;
+			dividerAbove: boolean;
+			dividerAboveThickness: HeadingDividerThickness;
+			dividerBelow: boolean;
+			dividerBelowThickness: HeadingDividerThickness;
+		}[] = [
+			{
+				level: 1,
+				overrideSize: s.heading1OverrideSize,
+				size: s.heading1Size,
+				overrideColor: s.heading1OverrideColor,
+				color: s.heading1Color,
+				overrideFont: s.heading1OverrideFont,
+				fontWeight: s.heading1FontWeight,
+				fontFamily: s.heading1FontFamily,
+				smallCaps: s.heading1SmallCaps,
+				dividerAbove: s.heading1DividerAbove,
+				dividerAboveThickness: s.heading1DividerAboveThickness,
+				dividerBelow: s.heading1DividerBelow,
+				dividerBelowThickness: s.heading1DividerBelowThickness,
+			},
+			{
+				level: 2,
+				overrideSize: s.heading2OverrideSize,
+				size: s.heading2Size,
+				overrideColor: s.heading2OverrideColor,
+				color: s.heading2Color,
+				overrideFont: s.heading2OverrideFont,
+				fontWeight: s.heading2FontWeight,
+				fontFamily: s.heading2FontFamily,
+				smallCaps: s.heading2SmallCaps,
+				dividerAbove: s.heading2DividerAbove,
+				dividerAboveThickness: s.heading2DividerAboveThickness,
+				dividerBelow: s.heading2DividerBelow,
+				dividerBelowThickness: s.heading2DividerBelowThickness,
+			},
+			{
+				level: 3,
+				overrideSize: s.heading3OverrideSize,
+				size: s.heading3Size,
+				overrideColor: s.heading3OverrideColor,
+				color: s.heading3Color,
+				overrideFont: s.heading3OverrideFont,
+				fontWeight: s.heading3FontWeight,
+				fontFamily: s.heading3FontFamily,
+				smallCaps: s.heading3SmallCaps,
+				dividerAbove: s.heading3DividerAbove,
+				dividerAboveThickness: s.heading3DividerAboveThickness,
+				dividerBelow: s.heading3DividerBelow,
+				dividerBelowThickness: s.heading3DividerBelowThickness,
+			},
+			{
+				level: 4,
+				overrideSize: s.heading4OverrideSize,
+				size: s.heading4Size,
+				overrideColor: s.heading4OverrideColor,
+				color: s.heading4Color,
+				overrideFont: s.heading4OverrideFont,
+				fontWeight: s.heading4FontWeight,
+				fontFamily: s.heading4FontFamily,
+				smallCaps: s.heading4SmallCaps,
+				dividerAbove: s.heading4DividerAbove,
+				dividerAboveThickness: s.heading4DividerAboveThickness,
+				dividerBelow: s.heading4DividerBelow,
+				dividerBelowThickness: s.heading4DividerBelowThickness,
+			},
+			{
+				level: 5,
+				overrideSize: s.heading5OverrideSize,
+				size: s.heading5Size,
+				overrideColor: s.heading5OverrideColor,
+				color: s.heading5Color,
+				overrideFont: s.heading5OverrideFont,
+				fontWeight: s.heading5FontWeight,
+				fontFamily: s.heading5FontFamily,
+				smallCaps: s.heading5SmallCaps,
+				dividerAbove: s.heading5DividerAbove,
+				dividerAboveThickness: s.heading5DividerAboveThickness,
+				dividerBelow: s.heading5DividerBelow,
+				dividerBelowThickness: s.heading5DividerBelowThickness,
+			},
+			{
+				level: 6,
+				overrideSize: s.heading6OverrideSize,
+				size: s.heading6Size,
+				overrideColor: s.heading6OverrideColor,
+				color: s.heading6Color,
+				overrideFont: s.heading6OverrideFont,
+				fontWeight: s.heading6FontWeight,
+				fontFamily: s.heading6FontFamily,
+				smallCaps: s.heading6SmallCaps,
+				dividerAbove: s.heading6DividerAbove,
+				dividerAboveThickness: s.heading6DividerAboveThickness,
+				dividerBelow: s.heading6DividerBelow,
+				dividerBelowThickness: s.heading6DividerBelowThickness,
+			},
+		];
+
+		for (const h of headingConfigs) {
+			const font = this.resolveCustomFontVars(h.overrideFont, h.fontFamily, h.fontWeight);
+			Object.assign(
+				vars,
+				this.buildHeadingVars(
+					h.level,
+					h.overrideSize,
+					h.size,
+					h.overrideColor,
+					h.color,
+					h.overrideFont,
+					h.fontWeight,
+					Boolean(font.font),
+					h.smallCaps,
+					h.dividerAbove,
+					h.dividerAboveThickness,
+					h.dividerBelow,
+					h.dividerBelowThickness,
+				),
 			);
-			rules.push(
-				`${OBSIDIAN_SELECTORS.bodyTextItalicReading}${boost}, ${OBSIDIAN_SELECTORS.bodyTextItalicLivePreview}${boost} { color: ${s.bodyTextItalicColor} !important; }`,
-			);
+			vars[`--sf-h${h.level}-family`] = font.family;
+			vars[`--sf-h${h.level}-variation`] = font.variation;
 		}
-		const { rule: bodyFontFamilyRule, font: bodyCustomFont } = this.buildCustomFontFamilyRule(
-			s.bodyTextOverrideFont,
-			s.bodyTextFontFamily,
-			s.bodyTextFontWeight,
-			bodySelector,
-		);
-		if (s.bodyTextOverrideFont && !bodyCustomFont) rules.push(`${bodySelector} { font-weight: ${s.bodyTextFontWeight}; }`);
-		if (bodyFontFamilyRule) rules.push(bodyFontFamilyRule);
 
-		const heading1Selector = `${OBSIDIAN_SELECTORS.headingReading[1]}, ${OBSIDIAN_SELECTORS.headingLivePreviewLine[1]}`;
-		const heading1Font = this.buildCustomFontFamilyRule(s.heading1OverrideFont, s.heading1FontFamily, s.heading1FontWeight, heading1Selector);
-		const heading2Selector = `${OBSIDIAN_SELECTORS.headingReading[2]}, ${OBSIDIAN_SELECTORS.headingLivePreviewLine[2]}`;
-		const heading2Font = this.buildCustomFontFamilyRule(s.heading2OverrideFont, s.heading2FontFamily, s.heading2FontWeight, heading2Selector);
-		const heading3Selector = `${OBSIDIAN_SELECTORS.headingReading[3]}, ${OBSIDIAN_SELECTORS.headingLivePreviewLine[3]}`;
-		const heading3Font = this.buildCustomFontFamilyRule(s.heading3OverrideFont, s.heading3FontFamily, s.heading3FontWeight, heading3Selector);
-		const heading4Selector = `${OBSIDIAN_SELECTORS.headingReading[4]}, ${OBSIDIAN_SELECTORS.headingLivePreviewLine[4]}`;
-		const heading4Font = this.buildCustomFontFamilyRule(s.heading4OverrideFont, s.heading4FontFamily, s.heading4FontWeight, heading4Selector);
-		const heading5Selector = `${OBSIDIAN_SELECTORS.headingReading[5]}, ${OBSIDIAN_SELECTORS.headingLivePreviewLine[5]}`;
-		const heading5Font = this.buildCustomFontFamilyRule(s.heading5OverrideFont, s.heading5FontFamily, s.heading5FontWeight, heading5Selector);
-		const heading6Selector = `${OBSIDIAN_SELECTORS.headingReading[6]}, ${OBSIDIAN_SELECTORS.headingLivePreviewLine[6]}`;
-		const heading6Font = this.buildCustomFontFamilyRule(s.heading6OverrideFont, s.heading6FontFamily, s.heading6FontWeight, heading6Selector);
-
-		rules.push(
-			...this.buildHeadingRules(
-				1,
-				s.heading1OverrideSize,
-				s.heading1Size,
-				s.heading1OverrideColor,
-				s.heading1Color,
-				s.heading1OverrideFont,
-				s.heading1FontWeight,
-				Boolean(heading1Font.font),
-				s.heading1SmallCaps,
-				s.heading1DividerAbove,
-				s.heading1DividerAboveThickness,
-				s.heading1DividerBelow,
-				s.heading1DividerBelowThickness,
-			),
-			...(heading1Font.rule ? [heading1Font.rule] : []),
-			...this.buildHeadingRules(
-				2,
-				s.heading2OverrideSize,
-				s.heading2Size,
-				s.heading2OverrideColor,
-				s.heading2Color,
-				s.heading2OverrideFont,
-				s.heading2FontWeight,
-				Boolean(heading2Font.font),
-				s.heading2SmallCaps,
-				s.heading2DividerAbove,
-				s.heading2DividerAboveThickness,
-				s.heading2DividerBelow,
-				s.heading2DividerBelowThickness,
-			),
-			...(heading2Font.rule ? [heading2Font.rule] : []),
-			...this.buildHeadingRules(
-				3,
-				s.heading3OverrideSize,
-				s.heading3Size,
-				s.heading3OverrideColor,
-				s.heading3Color,
-				s.heading3OverrideFont,
-				s.heading3FontWeight,
-				Boolean(heading3Font.font),
-				s.heading3SmallCaps,
-				s.heading3DividerAbove,
-				s.heading3DividerAboveThickness,
-				s.heading3DividerBelow,
-				s.heading3DividerBelowThickness,
-			),
-			...(heading3Font.rule ? [heading3Font.rule] : []),
-			...this.buildHeadingRules(
-				4,
-				s.heading4OverrideSize,
-				s.heading4Size,
-				s.heading4OverrideColor,
-				s.heading4Color,
-				s.heading4OverrideFont,
-				s.heading4FontWeight,
-				Boolean(heading4Font.font),
-				s.heading4SmallCaps,
-				s.heading4DividerAbove,
-				s.heading4DividerAboveThickness,
-				s.heading4DividerBelow,
-				s.heading4DividerBelowThickness,
-			),
-			...(heading4Font.rule ? [heading4Font.rule] : []),
-			...this.buildHeadingRules(
-				5,
-				s.heading5OverrideSize,
-				s.heading5Size,
-				s.heading5OverrideColor,
-				s.heading5Color,
-				s.heading5OverrideFont,
-				s.heading5FontWeight,
-				Boolean(heading5Font.font),
-				s.heading5SmallCaps,
-				s.heading5DividerAbove,
-				s.heading5DividerAboveThickness,
-				s.heading5DividerBelow,
-				s.heading5DividerBelowThickness,
-			),
-			...(heading5Font.rule ? [heading5Font.rule] : []),
-			...this.buildHeadingRules(
-				6,
-				s.heading6OverrideSize,
-				s.heading6Size,
-				s.heading6OverrideColor,
-				s.heading6Color,
-				s.heading6OverrideFont,
-				s.heading6FontWeight,
-				Boolean(heading6Font.font),
-				s.heading6SmallCaps,
-				s.heading6DividerAbove,
-				s.heading6DividerAboveThickness,
-				s.heading6DividerBelow,
-				s.heading6DividerBelowThickness,
-			),
-			...(heading6Font.rule ? [heading6Font.rule] : []),
-		);
-
-		this.applyStyleToAllDocs("storyforge-text-style-overrides", rules.join("\n"));
+		this.applyStyleVarsToAllDocs(vars);
 	}
 
 	/** Eagerly creates the story library and Codex root folders (mirrors the already-eager _sf-backstage
