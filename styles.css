@@ -5,13 +5,13 @@
 	padding: 0;
 }
 
-.storyforge-view {
+.storyforge-view:not(#storyforge-specificity-boost) {
 	box-sizing: border-box;
-	display: grid !important;
+	display: grid;
 	grid-template-rows: 3fr 2fr auto;
 	height: 100%;
 	min-height: 0;
-	padding: 0 !important;
+	padding: 0;
 }
 
 .sf-top-panel,
@@ -783,8 +783,8 @@
 	display: none;
 }
 
-.sf-settings-hidden {
-	display: none !important;
+.sf-settings-hidden:not(#storyforge-specificity-boost) {
+	display: none;
 }
 
 .sf-settings-section-h4 {
@@ -1177,38 +1177,38 @@
  * properties fall back to `revert`, which defers to Obsidian's/the active theme's own value for
  * that property - i.e. "unset" here means "this override has no effect", not "hidden"/"zero". */
 
-.workspace-drawer-vault-actions .clickable-icon:has(.help) { display: var(--sf-help-display, revert) !important; }
-.workspace-drawer-vault-actions { display: var(--sf-vault-actions-display, revert) !important; }
-div[aria-label="Search"] { display: var(--sf-search-display, revert) !important; }
-div[aria-label="Bookmarks"] { display: var(--sf-bookmarks-display, revert) !important; }
-div[aria-label="Files"] { display: var(--sf-files-display, revert) !important; }
-.sidebar-toggle-button.mod-left { display: var(--sf-sidebar-left-display, revert) !important; }
-.sidebar-toggle-button.mod-right { display: var(--sf-sidebar-right-display, revert) !important; }
-.inline-title { display: var(--sf-filename-bar-display, revert) !important; }
-.view-header { display: var(--sf-nav-row-display, revert) !important; }
-.status-bar { display: var(--sf-statusbar-hidden-display, revert) !important; }
-.status-bar-item:not(.plugin-sync) { display: var(--sf-statusbar-nonsync-display, revert) !important; }
+.workspace-drawer-vault-actions .clickable-icon:has(.help):not(#storyforge-specificity-boost) { display: var(--sf-help-display, revert); }
+.workspace-drawer-vault-actions:not(#storyforge-specificity-boost) { display: var(--sf-vault-actions-display, revert); }
+div[aria-label="Search"]:not(#storyforge-specificity-boost) { display: var(--sf-search-display, revert); }
+div[aria-label="Bookmarks"]:not(#storyforge-specificity-boost) { display: var(--sf-bookmarks-display, revert); }
+div[aria-label="Files"]:not(#storyforge-specificity-boost) { display: var(--sf-files-display, revert); }
+.sidebar-toggle-button.mod-left:not(#storyforge-specificity-boost) { display: var(--sf-sidebar-left-display, revert); }
+.sidebar-toggle-button.mod-right:not(#storyforge-specificity-boost) { display: var(--sf-sidebar-right-display, revert); }
+.inline-title:not(#storyforge-specificity-boost) { display: var(--sf-filename-bar-display, revert); }
+.view-header:not(#storyforge-specificity-boost) { display: var(--sf-nav-row-display, revert); }
+.status-bar:not(#storyforge-specificity-boost) { display: var(--sf-statusbar-hidden-display, revert); }
+.status-bar-item:not(.plugin-sync):not(#storyforge-specificity-boost) { display: var(--sf-statusbar-nonsync-display, revert); }
 
 body.sf-use-tools-panel {
 	--ribbon-width: 0px;
 }
-body.sf-use-tools-panel .workspace-ribbon {
-	display: none !important;
+body.sf-use-tools-panel .workspace-ribbon:not(#storyforge-specificity-boost) {
+	display: none;
 }
-body.sf-use-tools-panel .sf-tools-view .workspace-ribbon {
-	display: flex !important;
+body.sf-use-tools-panel .sf-tools-view .workspace-ribbon:not(#storyforge-specificity-boost) {
+	display: flex;
 }
-body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container {
-	padding-left: calc(var(--size-4-2) + var(--frame-left-space)) !important;
+body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container:not(#storyforge-specificity-boost) {
+	padding-left: calc(var(--size-4-2) + var(--frame-left-space));
 }
 
-.markdown-reading-view h1 a,
-.cm-header-1.cm-hmd-internal-link,
-.cm-header-1.cm-link,
-.cm-header-1.cm-hmd-internal-link .cm-underline,
-.cm-header-1.cm-link .cm-underline {
-	color: var(--sf-h1-link-color, revert) !important;
-	text-decoration: var(--sf-h1-link-decoration, revert) !important;
+.markdown-reading-view h1 a:not(#storyforge-specificity-boost),
+.cm-header-1.cm-hmd-internal-link:not(#storyforge-specificity-boost),
+.cm-header-1.cm-link:not(#storyforge-specificity-boost),
+.cm-header-1.cm-hmd-internal-link .cm-underline:not(#storyforge-specificity-boost),
+.cm-header-1.cm-link .cm-underline:not(#storyforge-specificity-boost) {
+	color: var(--sf-h1-link-color, revert);
+	text-decoration: var(--sf-h1-link-decoration, revert);
 }
 
 .sf-header-unplaced { color: var(--sf-unplaced-color); font-variant: var(--sf-unplaced-variant, normal); font-size: var(--sf-unplaced-size, 1em); font-weight: var(--sf-unplaced-weight, 400); }
@@ -1290,11 +1290,11 @@ body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container {
 }
 .markdown-reading-view strong:not(#storyforge-specificity-boost),
 .cm-strong:not(#storyforge-specificity-boost) {
-	color: var(--sf-body-bold-color, revert) !important;
+	color: var(--sf-body-bold-color, revert);
 }
 .markdown-reading-view em:not(#storyforge-specificity-boost),
 .cm-em:not(#storyforge-specificity-boost) {
-	color: var(--sf-body-italic-color, revert) !important;
+	color: var(--sf-body-italic-color, revert);
 }
 
 .markdown-reading-view h1, .HyperMD-header-1 {
@@ -1307,12 +1307,12 @@ body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container {
 }
 .markdown-reading-view h1:not(#storyforge-specificity-boost),
 .cm-header-1:not(#storyforge-specificity-boost) {
-	color: var(--sf-h1-color, revert) !important;
+	color: var(--sf-h1-color, revert);
 }
 .markdown-reading-view h1:not(#storyforge-specificity-boost),
 .HyperMD-header-1:not(#storyforge-specificity-boost),
 .cm-header-1:not(#storyforge-specificity-boost) {
-	font-variant: var(--sf-h1-variant, revert) !important;
+	font-variant: var(--sf-h1-variant, revert);
 }
 
 .markdown-reading-view h2, .HyperMD-header-2 {
@@ -1325,12 +1325,12 @@ body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container {
 }
 .markdown-reading-view h2:not(#storyforge-specificity-boost),
 .cm-header-2:not(#storyforge-specificity-boost) {
-	color: var(--sf-h2-color, revert) !important;
+	color: var(--sf-h2-color, revert);
 }
 .markdown-reading-view h2:not(#storyforge-specificity-boost),
 .HyperMD-header-2:not(#storyforge-specificity-boost),
 .cm-header-2:not(#storyforge-specificity-boost) {
-	font-variant: var(--sf-h2-variant, revert) !important;
+	font-variant: var(--sf-h2-variant, revert);
 }
 
 .markdown-reading-view h3, .HyperMD-header-3 {
@@ -1343,12 +1343,12 @@ body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container {
 }
 .markdown-reading-view h3:not(#storyforge-specificity-boost),
 .cm-header-3:not(#storyforge-specificity-boost) {
-	color: var(--sf-h3-color, revert) !important;
+	color: var(--sf-h3-color, revert);
 }
 .markdown-reading-view h3:not(#storyforge-specificity-boost),
 .HyperMD-header-3:not(#storyforge-specificity-boost),
 .cm-header-3:not(#storyforge-specificity-boost) {
-	font-variant: var(--sf-h3-variant, revert) !important;
+	font-variant: var(--sf-h3-variant, revert);
 }
 
 .markdown-reading-view h4, .HyperMD-header-4 {
@@ -1361,12 +1361,12 @@ body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container {
 }
 .markdown-reading-view h4:not(#storyforge-specificity-boost),
 .cm-header-4:not(#storyforge-specificity-boost) {
-	color: var(--sf-h4-color, revert) !important;
+	color: var(--sf-h4-color, revert);
 }
 .markdown-reading-view h4:not(#storyforge-specificity-boost),
 .HyperMD-header-4:not(#storyforge-specificity-boost),
 .cm-header-4:not(#storyforge-specificity-boost) {
-	font-variant: var(--sf-h4-variant, revert) !important;
+	font-variant: var(--sf-h4-variant, revert);
 }
 
 .markdown-reading-view h5, .HyperMD-header-5 {
@@ -1379,12 +1379,12 @@ body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container {
 }
 .markdown-reading-view h5:not(#storyforge-specificity-boost),
 .cm-header-5:not(#storyforge-specificity-boost) {
-	color: var(--sf-h5-color, revert) !important;
+	color: var(--sf-h5-color, revert);
 }
 .markdown-reading-view h5:not(#storyforge-specificity-boost),
 .HyperMD-header-5:not(#storyforge-specificity-boost),
 .cm-header-5:not(#storyforge-specificity-boost) {
-	font-variant: var(--sf-h5-variant, revert) !important;
+	font-variant: var(--sf-h5-variant, revert);
 }
 
 .markdown-reading-view h6, .HyperMD-header-6 {
@@ -1397,10 +1397,10 @@ body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container {
 }
 .markdown-reading-view h6:not(#storyforge-specificity-boost),
 .cm-header-6:not(#storyforge-specificity-boost) {
-	color: var(--sf-h6-color, revert) !important;
+	color: var(--sf-h6-color, revert);
 }
 .markdown-reading-view h6:not(#storyforge-specificity-boost),
 .HyperMD-header-6:not(#storyforge-specificity-boost),
 .cm-header-6:not(#storyforge-specificity-boost) {
-	font-variant: var(--sf-h6-variant, revert) !important;
+	font-variant: var(--sf-h6-variant, revert);
 }
