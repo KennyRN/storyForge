@@ -40,10 +40,41 @@ This project uses icons from the following third-party, open-source icon sets. A
 
 ## Siemens Industrial Experience Icons (ix)
 
-- **Icon used:** `cycle-alt`
 - **Author:** Siemens AG
 - **Source:** https://github.com/siemens/ix-icons
 - **Licence:** MIT License — *see [MIT License](#mit-license) below*
+
+---
+
+## Material Symbols
+
+- **Author:** Google
+- **Source:** https://github.com/google/material-design-icons
+- **Licence:** Apache License 2.0 — *see [Apache License 2.0](#) below*
+
+---
+
+## Tabler Icons
+
+- **Author:** Tabler (Paweł Kuna)
+- **Source:** https://github.com/tabler/tabler-icons
+- **Licence:** MIT License — *see [MIT License](#) below*
+
+---
+
+## Framework7 Icons
+
+- **Author:** Vladimir Kharlampidi
+- **Source:** https://github.com/framework7io/framework7-icons
+- **Licence:** MIT License — *see [MIT License](#) below*
+
+---
+
+## Bootstrap Icons
+
+- **Author:** The Bootstrap Authors
+- **Source:** https://github.com/twbs/icons
+- **Licence:** MIT License — *see [MIT License](#) below*
 
 ---
 ---
