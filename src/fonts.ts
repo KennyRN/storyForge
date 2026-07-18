@@ -72,18 +72,23 @@ export const CUSTOM_FONTS: CustomFontEntry[] = [
 	},
 ];
 
-/** One `@font-face` rule per face of every registered custom font, to be injected via `applyStyleToAllDocs`. */
-export function buildCustomFontFaceCSS(): string {
-	const rules: string[] = [];
+/**
+ * Registers every embedded custom font's faces into `doc.fonts` via the CSS Font Loading API
+ * (`FontFace`), using `doc`'s own window realm's constructor (a pop-out window is a distinct
+ * global scope from the main window). Obsidian plugins may not create/attach `<style>` elements,
+ * so this replaces what used to be a dynamically injected `@font-face` stylesheet. `CUSTOM_FONTS`
+ * is a small, fixed, build-time-known set, so callers only need to call this once per `doc`.
+ */
+export function registerCustomFontFaces(doc: Document): void {
+	const FontFaceCtor = doc.defaultView?.FontFace ?? FontFace;
 	for (const font of CUSTOM_FONTS) {
 		const weightDescriptor = font.weightMin === font.weightMax ? `${font.weightMin}` : `${font.weightMin} ${font.weightMax}`;
 		for (const face of font.faces) {
-			rules.push(
-				`@font-face { font-family: "${font.cssFontFamily}"; src: url(data:font/${face.format};base64,${face.base64}) format("${face.format}"); font-weight: ${weightDescriptor}; font-style: ${face.style}; font-display: swap; }`,
-			);
+			const source = `url(data:font/${face.format};base64,${face.base64}) format("${face.format}")`;
+			const fontFace = new FontFaceCtor(font.cssFontFamily, source, { weight: weightDescriptor, style: face.style });
+			doc.fonts.add(fontFace);
 		}
 	}
-	return rules.join("\n");
 }
 
 /**
@@ -95,12 +100,23 @@ export function buildCustomFontFaceCSS(): string {
  * fonts have no real bold face — only the weight-picker-driven fake bolding is removed here.
  */
 export function buildCustomFontFamilyDeclaration(font: CustomFontEntry, requestedWeight: number): string {
+	const { family, variation } = resolveCustomFontFamilyParts(font, requestedWeight);
+	return variation ? `font-family: ${family}; font-variation-settings: ${variation};` : `font-family: ${family};`;
+}
+
+/**
+ * The `font-family`/`font-variation-settings` *values* (not full declarations) for switching to a
+ * custom embedded font at a given requested weight: real interpolation for a variable font whose
+ * weightMin/weightMax range covers it (e.g. IBM Plex Sans Var); no variation axis for a
+ * static/single-weight font (weightMin === weightMax). Split out from
+ * `buildCustomFontFamilyDeclaration` so callers that need the values individually (e.g. to set as
+ * separate CSS custom properties, rather than inline rule text) don't have to re-derive them.
+ */
+export function resolveCustomFontFamilyParts(font: CustomFontEntry, requestedWeight: number): { family: string; variation: string | null } {
+	const family = `"${font.cssFontFamily}", var(--font-text)`;
 	if (font.weightMin === font.weightMax) {
-		return `font-family: "${font.cssFontFamily}", var(--font-text);`;
+		return { family, variation: null };
 	}
-	// Explicit font-variation-settings, not just font-weight - relying solely on the browser's
-	// implicit font-weight-range matching to drive a variable font's "wght" axis has proven
-	// unreliable; being explicit here is what actually makes the weight change visible.
 	const nativeWeight = Math.min(requestedWeight, font.weightMax);
-	return `font-family: "${font.cssFontFamily}", var(--font-text); font-variation-settings: "wght" ${nativeWeight};`;
+	return { family, variation: `"wght" ${nativeWeight}` };
 }

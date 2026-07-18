@@ -240,20 +240,21 @@ export class BookSynopsisModal extends Modal {
 				new Notice("storyForge: please choose an image file for the cover.");
 				return;
 			}
-			void (async () => {
-				try {
-					const data = await file.arrayBuffer();
-					const dotIndex = file.name.lastIndexOf(".");
-					const extension =
-						dotIndex !== -1 ? file.name.slice(dotIndex + 1).toLowerCase() : file.type.split("/")[1] || "png";
-					await writeBookCoverImage(this.app, this.bookFolderName, data, extension);
-					this.renderCover(cover);
-				} catch (err) {
-					new Notice(`storyForge: could not set cover image — ${(err as Error).message}`);
-				}
-			})();
+			void this.setCoverImage(file, cover);
 		});
 		input.click();
+	}
+
+	private async setCoverImage(file: File, cover: HTMLElement): Promise<void> {
+		try {
+			const data = await file.arrayBuffer();
+			const dotIndex = file.name.lastIndexOf(".");
+			const extension = dotIndex !== -1 ? file.name.slice(dotIndex + 1).toLowerCase() : file.type.split("/")[1] || "png";
+			await writeBookCoverImage(this.app, this.bookFolderName, data, extension);
+			this.renderCover(cover);
+		} catch (err) {
+			new Notice(`storyForge: could not set cover image — ${err instanceof Error ? err.message : String(err)}`);
+		}
 	}
 
 	private async commit(value: string): Promise<void> {

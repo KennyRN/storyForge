@@ -13,7 +13,9 @@ class CycleBadgeWidget extends WidgetType {
 	}
 
 	toDOM(): HTMLElement {
-		const badge = createEl("span", { cls: "sf-cycling-guide-badge" });
+		const scratch = createDiv();
+		const badge = scratch.createEl("span", { cls: "sf-cycling-guide-badge" });
+		badge.detach();
 		const icon = badge.createSpan({ cls: "sf-cycling-guide-badge-icon" });
 		setIcon(icon, ICON_CYCLE_ALT);
 		return badge;

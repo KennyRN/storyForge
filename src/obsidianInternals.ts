@@ -1,8 +1,13 @@
 /**
  * Undocumented Obsidian DOM selectors and CSS custom properties this plugin relies on to hide
  * native chrome and relocate the ribbon. None of these are part of Obsidian's public API/theming
- * contract - a future Obsidian release could rename or restructure any of them. Centralized here
- * so a breaking Obsidian update only requires touching this one file.
+ * contract - a future Obsidian release could rename or restructure any of them.
+ *
+ * Reference/documentation only - not imported by any code. Obsidian plugins may not create or
+ * attach `<style>` elements, so these selectors are hardcoded directly as static rules in
+ * styles.css's "Dynamic Styling" section instead of being assembled into CSS text at runtime.
+ * If Obsidian renames/restructures any of these, update the matching selector in BOTH this file
+ * (documentation) and styles.css (the actual rule).
  */
 export const OBSIDIAN_SELECTORS = {
 	vaultActions: ".workspace-drawer-vault-actions",
