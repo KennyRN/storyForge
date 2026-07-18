@@ -2,6 +2,7 @@ import { App, TFile, TFolder } from "obsidian";
 import { bookFilePath, seriesFilePath, codexFilePath, CODEX_ROOT } from "./paths";
 import { modifyBackstageFrontmatter } from "./writeGuard";
 import { getLibraryBookFolders, getSeriesBookEntry, upsertSeriesBookEntry } from "./series";
+import { type RawBookFrontmatter } from "./book";
 import { mintId } from "./slug";
 import { mintFolderId, type CodexFolders } from "./codexTree";
 
@@ -149,7 +150,7 @@ async function migrateChapterOrderField(app: App, folderName: string): Promise<v
 	const hasNewOrder = Array.isArray(fm?.["chapter-order"]);
 	if (!hasLegacyOrder || hasNewOrder) return;
 
-	await modifyBackstageFrontmatter(app, app.vault, path, `---\norder:\n---\n`, (bookFm) => {
+	await modifyBackstageFrontmatter<RawBookFrontmatter>(app, app.vault, path, `---\norder:\n---\n`, (bookFm) => {
 		bookFm["chapter-order"] = bookFm.order;
 		delete bookFm.order;
 	});

@@ -11,7 +11,7 @@ export class PalettePickerModal extends Modal {
 		private paletteName: PaletteName,
 		private mode: PaletteMode,
 		private customPaletteColors: PaletteColor[],
-		private onPick: (hex: string) => void,
+		private onPick: (hex: string) => void | Promise<void>,
 	) {
 		super(app);
 	}
@@ -44,7 +44,7 @@ export class PalettePickerModal extends Modal {
 			row.createSpan({ cls: "sf-palette-name", text: color.name });
 			row.createSpan({ cls: "sf-palette-hex", text: color.hex.toUpperCase() });
 			row.addEventListener("click", () => {
-				this.onPick(color.hex);
+				void this.onPick(color.hex);
 				this.close();
 			});
 		}

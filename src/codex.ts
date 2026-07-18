@@ -134,7 +134,7 @@ export function collectCodexNotes(app: App): CodexNote[] {
 		if (!(child instanceof TFile) || child.extension !== "md") continue;
 		if (archivedPaths.has(child.path)) continue;
 		const fm = app.metadataCache.getCache(child.path)?.frontmatter;
-		const raw = fm?.book;
+		const raw: unknown = fm?.book;
 		const bookIds = Array.isArray(raw)
 			? raw.filter((v): v is string => typeof v === "string")
 			: typeof raw === "string"

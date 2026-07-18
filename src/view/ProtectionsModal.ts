@@ -3,8 +3,7 @@ import type StoryForgePlugin from "../main";
 import type { AutomaticBackupFrequency, StoryForgePluginSettings } from "../main";
 import { runFullBackup } from "../backup";
 import { ensureWelcomeNote } from "../welcomeNote";
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { dialog } = require("@electron/remote");
+import { dialog } from "@electron/remote";
 
 export class ProtectionsModal extends Modal {
 	private plugin: StoryForgePlugin;
@@ -87,6 +86,7 @@ export class ProtectionsModal extends Modal {
 						const json = JSON.stringify(this.plugin.getSettings(), null, 2);
 						const blob = new Blob([json], { type: "application/json" });
 						const url = URL.createObjectURL(blob);
+						// eslint-disable-next-line obsidianmd/prefer-create-el -- detached download-trigger anchor, never appended to the DOM
 						const a = document.createElement("a");
 						a.href = url;
 						a.download = "storyforge-settings.json";
@@ -103,6 +103,7 @@ export class ProtectionsModal extends Modal {
 				.setDesc("Restores storyForge settings from a previously exported JSON file. This overwrites your current settings.")
 				.addButton((button) =>
 					button.setButtonText("Import").onClick(() => {
+						// eslint-disable-next-line obsidianmd/prefer-create-el -- detached file-picker input, never appended to the DOM
 						const input = document.createElement("input");
 						input.type = "file";
 						input.accept = "application/json";
@@ -141,9 +142,11 @@ export class ProtectionsModal extends Modal {
 				.setName("Automatic backup")
 				.setDesc("Automatically zip your vault's notes and attachments on a schedule.")
 				.addToggle((toggle) =>
-					toggle.setValue(settings.automaticBackupEnabled).onChange(async (value) => {
-						await this.plugin.updateSetting("automaticBackupEnabled", value);
-						frequencyRow.settingEl.toggleClass("sf-settings-hidden", !value);
+					toggle.setValue(settings.automaticBackupEnabled).onChange((value) => {
+						void (async () => {
+							await this.plugin.updateSetting("automaticBackupEnabled", value);
+							frequencyRow.settingEl.toggleClass("sf-settings-hidden", !value);
+						})();
 					}),
 				),
 		);
@@ -156,28 +159,32 @@ export class ProtectionsModal extends Modal {
 					text
 						.setPlaceholder("/Users/you/Backups/storyForge")
 						.setValue(settings.automaticBackupFolder)
-						.onChange(async (value) => {
-							folderValue = value;
-							await this.plugin.updateSetting("automaticBackupFolder", value);
+						.onChange((value) => {
+							void (async () => {
+								folderValue = value;
+								await this.plugin.updateSetting("automaticBackupFolder", value);
+							})();
 						}),
 				)
 				.addButton((button) =>
 					button
 						.setButtonText("Browse")
-						.onClick(async () => {
-							try {
-								const result = await dialog.showOpenDialog({
-									properties: ["openDirectory"],
-								});
-								if (!result.canceled && result.filePaths.length > 0) {
-									const selectedPath = result.filePaths[0];
-									folderValue = selectedPath;
-									await this.plugin.updateSetting("automaticBackupFolder", selectedPath);
-									this.render();
+						.onClick(() => {
+							void (async () => {
+								try {
+									const result = await dialog.showOpenDialog({
+										properties: ["openDirectory"],
+									});
+									if (!result.canceled && result.filePaths.length > 0) {
+										const selectedPath = result.filePaths[0];
+										folderValue = selectedPath;
+										await this.plugin.updateSetting("automaticBackupFolder", selectedPath);
+										this.render();
+									}
+								} catch (err) {
+									new Notice(`storyForge: could not open folder picker — ${(err as Error).message}`);
 								}
-							} catch (err) {
-								new Notice(`storyForge: could not open folder picker — ${(err as Error).message}`);
-							}
+							})();
 						}),
 				),
 		);
@@ -189,8 +196,10 @@ export class ProtectionsModal extends Modal {
 					.addOption("daily", "Once daily")
 					.addOption("weekly", "Once weekly")
 					.setValue(settings.automaticBackupFrequency)
-					.onChange(async (value) => {
-						await this.plugin.updateSetting("automaticBackupFrequency", value as AutomaticBackupFrequency);
+					.onChange((value) => {
+						void (async () => {
+							await this.plugin.updateSetting("automaticBackupFrequency", value as AutomaticBackupFrequency);
+						})();
 					}),
 			);
 			frequencyRow.settingEl.toggleClass("sf-settings-hidden", !settings.automaticBackupEnabled);
@@ -224,13 +233,15 @@ export class ProtectionsModal extends Modal {
 				.setName("Recreate welcome note")
 				.setDesc("Restores storyForge Welcome.md in your Codex if you've deleted it. If it still exists, this just opens it.")
 				.addButton((button) =>
-					button.setButtonText("Recreate welcome note").onClick(async () => {
-						try {
-							const file = await ensureWelcomeNote(this.app);
-							await this.app.workspace.getLeaf(false).openFile(file);
-						} catch (err) {
-							new Notice(`storyForge: could not recreate welcome note — ${(err as Error).message}`);
-						}
+					button.setButtonText("Recreate welcome note").onClick(() => {
+						void (async () => {
+							try {
+								const file = await ensureWelcomeNote(this.app);
+								await this.app.workspace.getLeaf(false).openFile(file);
+							} catch (err) {
+								new Notice(`storyForge: could not recreate welcome note — ${(err as Error).message}`);
+							}
+						})();
 					}),
 				),
 		);

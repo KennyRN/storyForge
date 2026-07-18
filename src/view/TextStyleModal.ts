@@ -1,4 +1,4 @@
-import { App, Modal, Notice, Platform, Setting, SettingGroup, ToggleComponent, setIcon } from "obsidian";
+import { App, Modal, Setting, SettingGroup, ToggleComponent } from "obsidian";
 import type StoryForgePlugin from "../main";
 import type { StoryForgePluginSettings } from "../main";
 import { CUSTOM_FONTS } from "../fonts";
@@ -97,9 +97,11 @@ export class TextStyleModal extends Modal {
 										"When on, links inside a note's H1 heading render as plain text — no link colour or underline — so the title looks like a normal heading.",
 									)
 									.addToggle((toggle) =>
-										toggle.setValue(settings.hideHeading1Links).onChange(async (value) => {
-											await this.plugin.updateSetting("hideHeading1Links", value);
-											this.plugin.applyHeading1LinkStyle();
+										toggle.setValue(settings.hideHeading1Links).onChange((value) => {
+											void (async () => {
+												await this.plugin.updateSetting("hideHeading1Links", value);
+												this.plugin.applyHeading1LinkStyle();
+											})();
 										}),
 									),
 							),
@@ -291,13 +293,15 @@ export class TextStyleModal extends Modal {
 			buttonEl.style.backgroundColor = hex;
 		};
 		paint(initialHex);
-		buttonEl.addEventListener("click", async () => {
-			const s = this.plugin.getSettings();
-			const { PalettePickerModal } = await import("./PalettePickerModal");
-			new PalettePickerModal(this.app, s.colorPaletteName, s.colorPaletteMode, s.customPaletteColors, async (hex) => {
-				paint(hex);
-				await onPick(hex);
-			}).open();
+		buttonEl.addEventListener("click", () => {
+			void (async () => {
+				const s = this.plugin.getSettings();
+				const { PalettePickerModal } = await import("./PalettePickerModal");
+				new PalettePickerModal(this.app, s.colorPaletteName, s.colorPaletteMode, s.customPaletteColors, async (hex) => {
+					paint(hex);
+					await onPick(hex);
+				}).open();
+			})();
 		});
 	}
 
@@ -313,9 +317,11 @@ export class TextStyleModal extends Modal {
 			};
 			dropdown.setValue(value);
 			applySelectedWeight(value);
-			dropdown.onChange(async (v) => {
-				await onChange(v);
-				applySelectedWeight(v);
+			dropdown.onChange((v) => {
+				void (async () => {
+					await onChange(v);
+					applySelectedWeight(v);
+				})();
 			});
 		});
 	}
@@ -326,19 +332,23 @@ export class TextStyleModal extends Modal {
 		persistA: (value: boolean) => Promise<void>,
 		persistB: (value: boolean) => Promise<void>,
 	): void {
-		toggleA.onChange(async (value) => {
-			if (value && toggleB.getValue()) {
-				toggleB.setValue(false);
-				await persistB(false);
-			}
-			await persistA(value);
+		toggleA.onChange((value) => {
+			void (async () => {
+				if (value && toggleB.getValue()) {
+					toggleB.setValue(false);
+					await persistB(false);
+				}
+				await persistA(value);
+			})();
 		});
-		toggleB.onChange(async (value) => {
-			if (value && toggleA.getValue()) {
-				toggleA.setValue(false);
-				await persistA(false);
-			}
-			await persistB(value);
+		toggleB.onChange((value) => {
+			void (async () => {
+				if (value && toggleA.getValue()) {
+					toggleA.setValue(false);
+					await persistA(false);
+				}
+				await persistB(value);
+			})();
 		});
 	}
 
@@ -367,10 +377,12 @@ export class TextStyleModal extends Modal {
 
 	private wireCardToggle(toggle: ToggleComponent, card: Setting, persist: (value: boolean) => Promise<void>, restyle: () => void): void {
 		const applyVisibility = (hidden: boolean) => card.settingEl.toggleClass("sf-settings-hidden", hidden);
-		toggle.onChange(async (value) => {
-			await persist(value);
-			applyVisibility(!value);
-			restyle();
+		toggle.onChange((value) => {
+			void (async () => {
+				await persist(value);
+				applyVisibility(!value);
+				restyle();
+			})();
 		});
 		applyVisibility(!toggle.getValue());
 	}
@@ -400,9 +412,11 @@ export class TextStyleModal extends Modal {
 						slider
 							.setLimits(min, max, 0.25)
 							.setValue(settings[sizeKey] as number)
-							.onChange(async (value) => {
-								await this.plugin.updateSetting(sizeKey, value);
-								restyle();
+							.onChange((value) => {
+								void (async () => {
+									await this.plugin.updateSetting(sizeKey, value);
+									restyle();
+								})();
 							}),
 					);
 				});
@@ -487,10 +501,12 @@ export class TextStyleModal extends Modal {
 			boldColorSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 			italicColorSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 		};
-		toggle.onChange(async (value) => {
-			await this.plugin.updateSetting("bodyTextOverrideEmphasisColor", value);
-			applyVisibility(!value);
-			restyle();
+		toggle.onChange((value) => {
+			void (async () => {
+				await this.plugin.updateSetting("bodyTextOverrideEmphasisColor", value);
+				applyVisibility(!value);
+				restyle();
+			})();
 		});
 		applyVisibility(!toggle.getValue());
 
@@ -535,12 +551,14 @@ export class TextStyleModal extends Modal {
 				};
 				dropdown.setValue(settings[fontFamilyKey] as string);
 				applySelectedFont(settings[fontFamilyKey] as string);
-				dropdown.onChange(async (value) => {
-					await this.plugin.updateSetting(fontFamilyKey, value as string);
-					applySelectedFont(value);
-					selectedFontFamily = value;
-					applyVisibility(!overrideToggle.getValue());
-					restyle();
+				dropdown.onChange((value) => {
+					void (async () => {
+						await this.plugin.updateSetting(fontFamilyKey, value);
+						applySelectedFont(value);
+						selectedFontFamily = value;
+						applyVisibility(!overrideToggle.getValue());
+						restyle();
+					})();
 				});
 			});
 		});
@@ -560,12 +578,14 @@ export class TextStyleModal extends Modal {
 			card.addSetting((setting) => {
 				smallCapsSetting = setting;
 				setting.setName("Small caps").addToggle((toggle) =>
-					toggle.setValue(settings[smallCapsKey] as boolean).onChange(async (value) => {
-						await this.plugin.updateSetting(smallCapsKey, value);
-						restyle();
+					toggle.setValue(settings[smallCapsKey] as boolean).onChange((value) => {
+						void (async () => {
+							await this.plugin.updateSetting(smallCapsKey, value);
+							restyle();
+						})();
 					}),
 				);
-				setting.nameEl.style.fontVariant = "small-caps";
+				setting.nameEl.addClass("sf-small-caps-label");
 			});
 		}
 
@@ -579,10 +599,12 @@ export class TextStyleModal extends Modal {
 			smallCapsSetting?.settingEl.toggleClass("sf-settings-hidden", overrideOff);
 			fontWeightSetting.settingEl.toggleClass("sf-settings-hidden", overrideOff || !isSelectedFontVariable());
 		};
-		overrideToggle.onChange(async (value) => {
-			await this.plugin.updateSetting(overrideFontKey, value);
-			applyVisibility(!value);
-			restyle();
+		overrideToggle.onChange((value) => {
+			void (async () => {
+				await this.plugin.updateSetting(overrideFontKey, value);
+				applyVisibility(!value);
+				restyle();
+			})();
 		});
 		applyVisibility(!overrideToggle.getValue());
 	}
@@ -614,9 +636,11 @@ export class TextStyleModal extends Modal {
 					.addOption("medium", "Medium")
 					.addOption("thick", "Thick")
 					.setValue(settings[aboveThicknessKey] as string)
-					.onChange(async (value) => {
-						await this.plugin.updateSetting(aboveThicknessKey, value as string);
-						restyle();
+					.onChange((value) => {
+						void (async () => {
+							await this.plugin.updateSetting(aboveThicknessKey, value);
+							restyle();
+						})();
 					}),
 			);
 		});
@@ -638,9 +662,11 @@ export class TextStyleModal extends Modal {
 					.addOption("medium", "Medium")
 					.addOption("thick", "Thick")
 					.setValue(settings[belowThicknessKey] as string)
-					.onChange(async (value) => {
-						await this.plugin.updateSetting(belowThicknessKey, value as string);
-						restyle();
+					.onChange((value) => {
+						void (async () => {
+							await this.plugin.updateSetting(belowThicknessKey, value);
+							restyle();
+						})();
 					}),
 			);
 		});

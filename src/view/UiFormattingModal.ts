@@ -1,4 +1,4 @@
-import { App, Modal, Setting, SettingGroup, ToggleComponent, setIcon } from "obsidian";
+import { App, Modal, Setting, SettingGroup, ToggleComponent } from "obsidian";
 import type StoryForgePlugin from "../main";
 import type { CodexFolderIndicatorThickness, CyclingGuideInterval, FontWeight, HeadingDividerThickness, StoryForgePluginSettings } from "../main";
 import { CUSTOM_FONTS } from "../fonts";
@@ -76,9 +76,11 @@ export class UiFormattingModal extends Modal {
 							.setName("Divider below title")
 							.setDesc("Adds a border below the series/book title, matching the border between storyForge's panes.")
 							.addToggle((toggle) =>
-								toggle.setValue(settings.libraryHeaderDividerBelow).onChange(async (value) => {
+								toggle.setValue(settings.libraryHeaderDividerBelow).onChange((value) => {
+									void (async () => {
 									await this.plugin.updateSetting("libraryHeaderDividerBelow", value);
 									this.plugin.applyLibraryHeaderStyles();
+																	})();
 								}),
 							),
 					);
@@ -138,13 +140,15 @@ export class UiFormattingModal extends Modal {
 			buttonEl.style.backgroundColor = hex;
 		};
 		paint(initialHex);
-		buttonEl.addEventListener("click", async () => {
-			const s = this.plugin.getSettings();
-			const { PalettePickerModal } = await import("./PalettePickerModal");
-			new PalettePickerModal(this.app, s.colorPaletteName, s.colorPaletteMode, s.customPaletteColors, async (hex) => {
-				paint(hex);
-				await onPick(hex);
-			}).open();
+		buttonEl.addEventListener("click", () => {
+			void (async () => {
+				const s = this.plugin.getSettings();
+				const { PalettePickerModal } = await import("./PalettePickerModal");
+				new PalettePickerModal(this.app, s.colorPaletteName, s.colorPaletteMode, s.customPaletteColors, async (hex) => {
+					paint(hex);
+					await onPick(hex);
+				}).open();
+			})();
 		});
 	}
 
@@ -160,9 +164,11 @@ export class UiFormattingModal extends Modal {
 			};
 			dropdown.setValue(value);
 			applySelectedWeight(value);
-			dropdown.onChange(async (v) => {
+			dropdown.onChange((v) => {
+				void (async () => {
 				await onChange(v as FontWeight);
 				applySelectedWeight(v as FontWeight);
+							})();
 			});
 		});
 	}
@@ -173,19 +179,23 @@ export class UiFormattingModal extends Modal {
 		persistA: (value: boolean) => Promise<void>,
 		persistB: (value: boolean) => Promise<void>,
 	): void {
-		toggleA.onChange(async (value) => {
+		toggleA.onChange((value) => {
+			void (async () => {
 			if (value && toggleB.getValue()) {
 				toggleB.setValue(false);
 				await persistB(false);
 			}
 			await persistA(value);
+					})();
 		});
-		toggleB.onChange(async (value) => {
+		toggleB.onChange((value) => {
+			void (async () => {
 			if (value && toggleA.getValue()) {
 				toggleA.setValue(false);
 				await persistA(false);
 			}
 			await persistB(value);
+					})();
 		});
 	}
 
@@ -214,10 +224,12 @@ export class UiFormattingModal extends Modal {
 
 	private wireCardToggle(toggle: ToggleComponent, card: Setting, persist: (value: boolean) => Promise<void>, restyle: () => void): void {
 		const applyVisibility = (hidden: boolean) => card.settingEl.toggleClass("sf-settings-hidden", hidden);
-		toggle.onChange(async (value) => {
+		toggle.onChange((value) => {
+			void (async () => {
 			await persist(value);
 			applyVisibility(!value);
 			restyle();
+					})();
 		});
 		applyVisibility(!toggle.getValue());
 	}
@@ -247,9 +259,11 @@ export class UiFormattingModal extends Modal {
 						slider
 							.setLimits(min, max, 0.25)
 							.setValue(settings[sizeKey] as number)
-							.onChange(async (value) => {
+							.onChange((value) => {
+								void (async () => {
 								await this.plugin.updateSetting(sizeKey, value);
 								restyle();
+															})();
 							}),
 					);
 				});
@@ -334,10 +348,12 @@ export class UiFormattingModal extends Modal {
 			boldColorSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 			italicColorSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 		};
-		toggle.onChange(async (value) => {
+		toggle.onChange((value) => {
+			void (async () => {
 			await this.plugin.updateSetting("bodyTextOverrideEmphasisColor", value);
 			applyVisibility(!value);
 			restyle();
+					})();
 		});
 		applyVisibility(!toggle.getValue());
 
@@ -382,12 +398,14 @@ export class UiFormattingModal extends Modal {
 				};
 				dropdown.setValue(settings[fontFamilyKey] as string);
 				applySelectedFont(settings[fontFamilyKey] as string);
-				dropdown.onChange(async (value) => {
-					await this.plugin.updateSetting(fontFamilyKey, value as string);
+				dropdown.onChange((value) => {
+					void (async () => {
+					await this.plugin.updateSetting(fontFamilyKey, value);
 					applySelectedFont(value);
 					selectedFontFamily = value;
 					applyVisibility(!overrideToggle.getValue());
 					restyle();
+									})();
 				});
 			});
 		});
@@ -407,12 +425,14 @@ export class UiFormattingModal extends Modal {
 			card.addSetting((setting) => {
 				smallCapsSetting = setting;
 				setting.setName("Small caps").addToggle((toggle) =>
-					toggle.setValue(settings[smallCapsKey] as boolean).onChange(async (value) => {
+					toggle.setValue(settings[smallCapsKey] as boolean).onChange((value) => {
+						void (async () => {
 						await this.plugin.updateSetting(smallCapsKey, value);
 						restyle();
+											})();
 					}),
 				);
-				setting.nameEl.style.fontVariant = "small-caps";
+				setting.nameEl.addClass("sf-small-caps-label");
 			});
 		}
 
@@ -426,10 +446,12 @@ export class UiFormattingModal extends Modal {
 			smallCapsSetting?.settingEl.toggleClass("sf-settings-hidden", overrideOff);
 			fontWeightSetting.settingEl.toggleClass("sf-settings-hidden", overrideOff || !isSelectedFontVariable());
 		};
-		overrideToggle.onChange(async (value) => {
+		overrideToggle.onChange((value) => {
+			void (async () => {
 			await this.plugin.updateSetting(overrideFontKey, value);
 			applyVisibility(!value);
 			restyle();
+					})();
 		});
 		applyVisibility(!overrideToggle.getValue());
 	}
@@ -461,9 +483,11 @@ export class UiFormattingModal extends Modal {
 					.addOption("medium", "Medium")
 					.addOption("thick", "Thick")
 					.setValue(settings[aboveThicknessKey] as string)
-					.onChange(async (value) => {
-						await this.plugin.updateSetting(aboveThicknessKey, value as string);
+					.onChange((value) => {
+						void (async () => {
+						await this.plugin.updateSetting(aboveThicknessKey, value);
 						restyle();
+											})();
 					}),
 			);
 		});
@@ -485,9 +509,11 @@ export class UiFormattingModal extends Modal {
 					.addOption("medium", "Medium")
 					.addOption("thick", "Thick")
 					.setValue(settings[belowThicknessKey] as string)
-					.onChange(async (value) => {
-						await this.plugin.updateSetting(belowThicknessKey, value as string);
+					.onChange((value) => {
+						void (async () => {
+						await this.plugin.updateSetting(belowThicknessKey, value);
 						restyle();
+											})();
 					}),
 			);
 		});
@@ -518,9 +544,11 @@ export class UiFormattingModal extends Modal {
 						slider
 							.setLimits(0.5, 1.5, 0.25)
 							.setValue(settings[config.sizeKey])
-							.onChange(async (value) => {
+							.onChange((value) => {
+								void (async () => {
 								await this.plugin.updateSetting(config.sizeKey, value);
 								config.restyle();
+															})();
 							}),
 					),
 			)
@@ -555,9 +583,11 @@ export class UiFormattingModal extends Modal {
 					.setName("Muted")
 					.setDesc("override header colour with muted colour")
 					.addToggle((toggle) =>
-						toggle.setValue(settings[config.mutedKey] as boolean).onChange(async (value) => {
+						toggle.setValue(settings[config.mutedKey] as boolean).onChange((value) => {
+							void (async () => {
 							await this.plugin.updateSetting(config.mutedKey, value);
 							config.restyle();
+													})();
 						}),
 					),
 			)
@@ -565,12 +595,14 @@ export class UiFormattingModal extends Modal {
 				setting
 					.setName("Small caps")
 					.addToggle((toggle) =>
-						toggle.setValue(settings[config.smallCapsKey] as boolean).onChange(async (value) => {
+						toggle.setValue(settings[config.smallCapsKey] as boolean).onChange((value) => {
+							void (async () => {
 							await this.plugin.updateSetting(config.smallCapsKey, value);
 							config.restyle();
+													})();
 						}),
 					);
-				setting.nameEl.style.fontVariant = "small-caps";
+				setting.nameEl.addClass("sf-small-caps-label");
 			});
 		return useHeaderColorForAllToggle;
 	}
@@ -584,9 +616,11 @@ export class UiFormattingModal extends Modal {
 					"highlights the currently selected chapter, or item, in the storyForge panel",
 				)
 				.addToggle((toggle) =>
-					toggle.setValue(settings.highlightActiveChapter).onChange(async (value) => {
+					toggle.setValue(settings.highlightActiveChapter).onChange((value) => {
+						void (async () => {
 						await this.plugin.updateSetting("highlightActiveChapter", value);
 						this.plugin.refreshStoryForgeViews();
+											})();
 					}),
 				),
 		);
@@ -615,10 +649,12 @@ export class UiFormattingModal extends Modal {
 					.addOption("medium", "Medium")
 					.addOption("thick", "Thick")
 					.addOption("extra-thick", "Extra thick")
-					.setValue(settings.cyclingGuideThickness as HeadingDividerThickness)
-					.onChange(async (value) => {
+					.setValue(settings.cyclingGuideThickness)
+					.onChange((value) => {
+						void (async () => {
 						await this.plugin.updateSetting("cyclingGuideThickness", value as HeadingDividerThickness);
 						this.plugin.applyCyclingGuideStyle();
+											})();
 					}),
 			);
 		});
@@ -631,10 +667,12 @@ export class UiFormattingModal extends Modal {
 					.addOption("small", "Small")
 					.addOption("medium", "Medium")
 					.addOption("large", "Large")
-					.setValue(settings.cyclingGuideFlagSize as "small" | "medium" | "large")
-					.onChange(async (value) => {
+					.setValue(settings.cyclingGuideFlagSize)
+					.onChange((value) => {
+						void (async () => {
 						await this.plugin.updateSetting("cyclingGuideFlagSize", value as "small" | "medium" | "large");
 						this.plugin.applyCyclingGuideStyle();
+											})();
 					}),
 			);
 		});
@@ -646,9 +684,11 @@ export class UiFormattingModal extends Modal {
 				.setName("Rounded lines")
 				.setDesc("Rounds the corners of the divider line, except the bottom-right where the flag sits.")
 				.addToggle((toggle) =>
-					toggle.setValue(settings.cyclingGuideRoundedLines).onChange(async (value) => {
+					toggle.setValue(settings.cyclingGuideRoundedLines).onChange((value) => {
+						void (async () => {
 						await this.plugin.updateSetting("cyclingGuideRoundedLines", value);
 						this.plugin.applyCyclingGuideStyle();
+											})();
 					}),
 				);
 		});
@@ -661,10 +701,12 @@ export class UiFormattingModal extends Modal {
 					.addOption("short", "Short")
 					.addOption("medium", "Medium")
 					.addOption("large", "Long")
-					.setValue(settings.cyclingGuideInterval as CyclingGuideInterval)
-					.onChange(async (value) => {
+					.setValue(settings.cyclingGuideInterval)
+					.onChange((value) => {
+						void (async () => {
 						await this.plugin.updateSetting("cyclingGuideInterval", value as CyclingGuideInterval);
 						this.plugin.rebuildCyclingGuideExtension();
+											})();
 					}),
 			);
 		});
@@ -687,10 +729,12 @@ export class UiFormattingModal extends Modal {
 			cyclingGuideIntervalSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 			cyclingGuideColorSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 		};
-		cyclingGuideToggle.onChange(async (value) => {
+		cyclingGuideToggle.onChange((value) => {
+			void (async () => {
 			await this.plugin.updateSetting("cyclingGuideEnabled", value);
 			this.plugin.setCyclingGuideEnabled(value);
 			applyCyclingGuideVisibility(!value);
+					})();
 		});
 		applyCyclingGuideVisibility(!cyclingGuideToggle.getValue());
 	}
@@ -716,9 +760,11 @@ export class UiFormattingModal extends Modal {
 						slider
 							.setLimits(0.5, 2, 0.25)
 							.setValue(settings[config.sizeKey])
-							.onChange(async (value) => {
+							.onChange((value) => {
+								void (async () => {
 								await this.plugin.updateSetting(config.sizeKey, value);
 								this.plugin.applyLibraryHeaderStyles();
+															})();
 							}),
 					),
 			)
@@ -743,12 +789,14 @@ export class UiFormattingModal extends Modal {
 				setting
 					.setName(`${config.labelPrefix} small caps`)
 					.addToggle((toggle) =>
-						toggle.setValue(settings[config.smallCapsKey] as boolean).onChange(async (value) => {
+						toggle.setValue(settings[config.smallCapsKey] as boolean).onChange((value) => {
+							void (async () => {
 							await this.plugin.updateSetting(config.smallCapsKey, value);
 							this.plugin.applyLibraryHeaderStyles();
+													})();
 						}),
 					);
-				setting.nameEl.style.fontVariant = "small-caps";
+				setting.nameEl.addClass("sf-small-caps-label");
 			});
 	}
 
@@ -763,9 +811,11 @@ export class UiFormattingModal extends Modal {
 						slider
 							.setLimits(0.5, 2, 0.25)
 							.setValue(settings.libraryBookSubtitleFontSize)
-							.onChange(async (value) => {
+							.onChange((value) => {
+								void (async () => {
 								await this.plugin.updateSetting("libraryBookSubtitleFontSize", value);
 								this.plugin.applyLibraryHeaderStyles();
+															})();
 							}),
 					),
 			)
@@ -780,12 +830,14 @@ export class UiFormattingModal extends Modal {
 				setting
 					.setName("Subtitle small caps")
 					.addToggle((toggle) =>
-						toggle.setValue(settings.libraryBookSubtitleSmallCaps as boolean).onChange(async (value) => {
+						toggle.setValue(settings.libraryBookSubtitleSmallCaps as boolean).onChange((value) => {
+							void (async () => {
 							await this.plugin.updateSetting("libraryBookSubtitleSmallCaps", value);
 							this.plugin.applyLibraryHeaderStyles();
+													})();
 						}),
 					);
-				setting.nameEl.style.fontVariant = "small-caps";
+				setting.nameEl.addClass("sf-small-caps-label");
 			});
 	}
 
@@ -838,9 +890,11 @@ export class UiFormattingModal extends Modal {
 						slider
 							.setLimits(0.5, 1.5, 0.25)
 							.setValue(settings.unplacedItemsFontSize)
-							.onChange(async (value) => {
+							.onChange((value) => {
+								void (async () => {
 								await this.plugin.updateSetting("unplacedItemsFontSize", value);
 								this.plugin.applyHeaderStyles();
+															})();
 							}),
 					),
 			)
@@ -861,9 +915,11 @@ export class UiFormattingModal extends Modal {
 					.setName("Muted")
 					.setDesc("override colour with muted colour")
 					.addToggle((toggle) =>
-						toggle.setValue(settings.unplacedItemsMuted as boolean).onChange(async (value) => {
+						toggle.setValue(settings.unplacedItemsMuted as boolean).onChange((value) => {
+							void (async () => {
 							await this.plugin.updateSetting("unplacedItemsMuted", value);
 							this.plugin.applyHeaderStyles();
+													})();
 						}),
 					),
 			);
@@ -900,11 +956,13 @@ export class UiFormattingModal extends Modal {
 			itemsColourSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 			highlightColourSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 		};
-		useHeaderColorToggle.onChange(async (value) => {
+		useHeaderColorToggle.onChange((value) => {
+			void (async () => {
 			await this.plugin.updateSetting("unplacedUseHeaderColorForAll", value);
 			applyUseHeaderColorVisibility(value);
 			this.plugin.applyHeaderStyles();
 			this.plugin.applyHighlightStyle();
+					})();
 		});
 		applyUseHeaderColorVisibility(settings.unplacedUseHeaderColorForAll);
 	}
@@ -931,9 +989,11 @@ export class UiFormattingModal extends Modal {
 						slider
 							.setLimits(0.5, 1.5, 0.25)
 							.setValue(settings.codexFolderFontSize)
-							.onChange(async (value) => {
+							.onChange((value) => {
+								void (async () => {
 								await this.plugin.updateSetting("codexFolderFontSize", value);
 								this.plugin.applyCodexFolderStyle();
+															})();
 							}),
 					),
 			)
@@ -966,11 +1026,13 @@ export class UiFormattingModal extends Modal {
 							.addOption("thin", "Thin")
 							.addOption("medium", "Medium")
 							.addOption("thick", "Thick")
-							.setValue(settings.codexFolderIndicatorThickness as CodexFolderIndicatorThickness)
-							.onChange(async (value) => {
+							.setValue(settings.codexFolderIndicatorThickness)
+							.onChange((value) => {
+								void (async () => {
 								await this.plugin.updateSetting("codexFolderIndicatorThickness", value as CodexFolderIndicatorThickness);
 								this.plugin.applyCodexFolderStyle();
 								this.plugin.applyHighlightStyle();
+															})();
 							}),
 					),
 			);
@@ -990,9 +1052,11 @@ export class UiFormattingModal extends Modal {
 						slider
 							.setLimits(0.5, 1.5, 0.25)
 							.setValue(settings.codexNoteLabelFontSize)
-							.onChange(async (value) => {
+							.onChange((value) => {
+								void (async () => {
 								await this.plugin.updateSetting("codexNoteLabelFontSize", value);
 								this.plugin.applyCodexNoteLabelStyle();
+															})();
 							}),
 					),
 			)
@@ -1083,13 +1147,15 @@ export class UiFormattingModal extends Modal {
 			folderColourToggleSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 			codexHighlightColourSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 		};
-		useHeaderColorToggle.onChange(async (value) => {
+		useHeaderColorToggle.onChange((value) => {
+			void (async () => {
 			await this.plugin.updateSetting("codexUseHeaderColorForAll", value);
 			applyUseHeaderColorVisibility(value);
 			this.plugin.applyHeaderStyles();
 			this.plugin.applyHighlightStyle();
 			this.plugin.applyCodexFolderStyle();
 			this.plugin.applyCodexNoteLabelStyle();
+					})();
 		});
 		applyUseHeaderColorVisibility(settings.codexUseHeaderColorForAll);
 	}
@@ -1102,9 +1168,11 @@ export class UiFormattingModal extends Modal {
 					.setName("Hide series pane")
 					.setDesc("Hides the series header and locks storyForge to book view — for standalone/non-series projects. Your series data isn't deleted; toggle this off anytime to bring it back.")
 					.addToggle((toggle) =>
-						toggle.setValue(settings.hideSeriesPane).onChange(async (value) => {
+						toggle.setValue(settings.hideSeriesPane).onChange((value) => {
+							void (async () => {
 							await this.plugin.updateSetting("hideSeriesPane", value);
 							this.plugin.refreshStoryForgeViews();
+													})();
 						}),
 					),
 			);

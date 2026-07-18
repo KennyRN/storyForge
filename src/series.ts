@@ -1,4 +1,4 @@
-import { App, TFolder } from "obsidian";
+import { App, TFolder, type FrontMatterCache } from "obsidian";
 import { LIBRARY_ROOT, seriesFilePath } from "./paths";
 import { resolveOrder, type OrderResult } from "./ordering";
 import { modifyBackstageFrontmatter } from "./writeGuard";
@@ -15,6 +15,18 @@ export interface SeriesFrontmatter {
 	seriesTitle: string;
 	order: string[];
 	books: Record<string, SeriesBookEntry>;
+}
+
+/** The raw, dash-cased on-disk shape of a `books` map entry, before `parseBooksMap` sanitizes it. */
+export interface RawSeriesBookEntry {
+	"book-id"?: unknown;
+	"book-title"?: unknown;
+}
+
+/** The raw, dash-cased on-disk shape of series.md's frontmatter, as read/written through `modifyBackstageFrontmatter`. */
+export interface RawSeriesFrontmatter extends FrontMatterCache {
+	books?: Record<string, RawSeriesBookEntry>;
+	order?: unknown[];
 }
 
 const DEFAULT_SERIES_CONTENT = `---\nseries-title: Untitled Series\norder:\nbooks:\n---\n`;
@@ -114,12 +126,12 @@ export async function upsertSeriesBookEntry(
 	bookTitle: string,
 	options: { appendToOrder?: boolean } = {},
 ): Promise<void> {
-	await modifyBackstageFrontmatter(app, app.vault, seriesFilePath(), DEFAULT_SERIES_CONTENT, (fm) => {
-		const books = fm.books && typeof fm.books === "object" ? fm.books : {};
+	await modifyBackstageFrontmatter<RawSeriesFrontmatter>(app, app.vault, seriesFilePath(), DEFAULT_SERIES_CONTENT, (fm) => {
+		const books: Record<string, RawSeriesBookEntry> = fm.books && typeof fm.books === "object" ? fm.books : {};
 		books[folderName] = { "book-id": bookId, "book-title": bookTitle };
 		fm.books = books;
 		if (options.appendToOrder) {
-			const order: string[] = Array.isArray(fm.order) ? fm.order : [];
+			const order: unknown[] = Array.isArray(fm.order) ? fm.order : [];
 			if (!order.includes(folderName)) order.push(folderName);
 			fm.order = order;
 		}
@@ -135,9 +147,10 @@ export async function upsertSeriesBookEntry(
  */
 export async function writeSeriesBookTitle(app: App, folderName: string, newTitle: string): Promise<{ bookId: string }> {
 	let resolvedId = "";
-	await modifyBackstageFrontmatter(app, app.vault, seriesFilePath(), DEFAULT_SERIES_CONTENT, (fm) => {
-		const books = fm.books && typeof fm.books === "object" ? fm.books : {};
-		const existing = books[folderName] && typeof books[folderName] === "object" ? books[folderName] : {};
+	await modifyBackstageFrontmatter<RawSeriesFrontmatter>(app, app.vault, seriesFilePath(), DEFAULT_SERIES_CONTENT, (fm) => {
+		const books: Record<string, RawSeriesBookEntry> = fm.books && typeof fm.books === "object" ? fm.books : {};
+		const existing: RawSeriesBookEntry =
+			books[folderName] && typeof books[folderName] === "object" ? books[folderName] : {};
 		const bookId: string =
 			typeof existing["book-id"] === "string" ? existing["book-id"] : mintId(folderName, collectAllBookIds(app));
 		resolvedId = bookId;
@@ -149,15 +162,15 @@ export async function writeSeriesBookTitle(app: App, folderName: string, newTitl
 
 /** Rekeys a book's `books`/`order` entries when its library folder is renamed outside the plugin. No-op if `oldFolderName` isn't present. */
 export async function renameSeriesBookEntry(app: App, oldFolderName: string, newFolderName: string): Promise<void> {
-	await modifyBackstageFrontmatter(app, app.vault, seriesFilePath(), DEFAULT_SERIES_CONTENT, (fm) => {
-		const books = fm.books && typeof fm.books === "object" ? fm.books : {};
+	await modifyBackstageFrontmatter<RawSeriesFrontmatter>(app, app.vault, seriesFilePath(), DEFAULT_SERIES_CONTENT, (fm) => {
+		const books: Record<string, RawSeriesBookEntry> = fm.books && typeof fm.books === "object" ? fm.books : {};
 		if (Object.prototype.hasOwnProperty.call(books, oldFolderName)) {
 			books[newFolderName] = books[oldFolderName];
 			delete books[oldFolderName];
 			fm.books = books;
 		}
 		if (Array.isArray(fm.order)) {
-			fm.order = fm.order.map((entry: string) => (entry === oldFolderName ? newFolderName : entry));
+			fm.order = fm.order.map((entry) => (entry === oldFolderName ? newFolderName : entry));
 		}
 	});
 }

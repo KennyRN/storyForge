@@ -1,13 +1,10 @@
-import { App, ButtonComponent, Notice, Platform, PluginSettingTab, Setting, SettingGroup, ToggleComponent, setIcon } from "obsidian";
+import { App, ButtonComponent, PluginSettingTab, Setting, SettingGroup, ToggleComponent, setIcon } from "obsidian";
 import type StoryForgePlugin from "../main";
-import type { AutomaticBackupFrequency, CodexFolderIndicatorThickness, CustomFontFamily, FontWeight, HeadingDividerThickness, StatusBarView, StoryForgePluginSettings } from "../main";
+import type { CodexFolderIndicatorThickness, CustomFontFamily, FontWeight, HeadingDividerThickness, StoryForgePluginSettings } from "../main";
 import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
 import { PALETTE_NAMES, PaletteMode, PaletteName } from "../colorPalettes";
 import { PalettePickerModal } from "./PalettePickerModal";
 import { CUSTOM_FONTS } from "../fonts";
-import { runFullBackup } from "../backup";
-import { ensureWelcomeNote } from "../welcomeNote";
-import { ConvertToSeriesModal } from "./ConvertToSeriesModal";
 import { TextStyleModal } from "./TextStyleModal";
 import { UiFormattingModal } from "./UiFormattingModal";
 import { HideUiModal } from "./HideUiModal";
@@ -100,9 +97,11 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			};
 			dropdown.setValue(value);
 			applySelectedWeight(value);
-			dropdown.onChange(async (v) => {
+			dropdown.onChange((v) => {
+				void (async () => {
 				await onChange(v as FontWeight);
 				applySelectedWeight(v as FontWeight);
+							})();
 			});
 		});
 	}
@@ -114,19 +113,23 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		persistA: (value: boolean) => Promise<void>,
 		persistB: (value: boolean) => Promise<void>,
 	): void {
-		toggleA.onChange(async (value) => {
+		toggleA.onChange((value) => {
+			void (async () => {
 			if (value && toggleB.getValue()) {
 				toggleB.setValue(false);
 				await persistB(false);
 			}
 			await persistA(value);
+					})();
 		});
-		toggleB.onChange(async (value) => {
+		toggleB.onChange((value) => {
+			void (async () => {
 			if (value && toggleA.getValue()) {
 				toggleA.setValue(false);
 				await persistA(false);
 			}
 			await persistB(value);
+					})();
 		});
 	}
 
@@ -155,9 +158,11 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 						slider
 							.setLimits(0.5, 1.5, 0.25)
 							.setValue(settings[config.sizeKey])
-							.onChange(async (value) => {
+							.onChange((value) => {
+								void (async () => {
 								await this.plugin.updateSetting(config.sizeKey, value);
 								config.restyle();
+															})();
 							}),
 					),
 			)
@@ -192,9 +197,11 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					.setName("Muted")
 					.setDesc("override header colour with muted colour")
 					.addToggle((toggle) =>
-						toggle.setValue(settings[config.mutedKey]).onChange(async (value) => {
+						toggle.setValue(settings[config.mutedKey]).onChange((value) => {
+							void (async () => {
 							await this.plugin.updateSetting(config.mutedKey, value);
 							config.restyle();
+													})();
 						}),
 					),
 			)
@@ -202,12 +209,14 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				setting
 					.setName("Small caps")
 					.addToggle((toggle) =>
-						toggle.setValue(settings[config.smallCapsKey]).onChange(async (value) => {
+						toggle.setValue(settings[config.smallCapsKey]).onChange((value) => {
+							void (async () => {
 							await this.plugin.updateSetting(config.smallCapsKey, value);
 							config.restyle();
+													})();
 						}),
 					);
-				setting.nameEl.style.fontVariant = "small-caps";
+				setting.nameEl.addClass("sf-small-caps-label");
 			});
 		return useHeaderColorForAllToggle;
 	}
@@ -230,7 +239,8 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				.setName("Tools panel")
 				.setDesc("ribbon is hidden and the ribbon icons can be found within the tools panel")
 				.addToggle((toggle) =>
-					toggle.setValue(settings.useToolsPanel).onChange(async (value) => {
+					toggle.setValue(settings.useToolsPanel).onChange((value) => {
+						void (async () => {
 						await this.plugin.updateSetting("useToolsPanel", value);
 						this.plugin.applyVisibilityStyles();
 						if (value) {
@@ -238,6 +248,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 						} else {
 							this.app.workspace.detachLeavesOfType(TOOLS_VIEW_TYPE);
 						}
+											})();
 					}),
 				)
 				.addButton((button) =>
@@ -257,9 +268,11 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				.setDesc("Palette used when picking colours for storyForge's UI elements below.")
 				.addDropdown((dropdown) => {
 					for (const name of PALETTE_NAMES) dropdown.addOption(name, name);
-					dropdown.setValue(settings.colorPaletteName).onChange(async (value) => {
+					dropdown.setValue(settings.colorPaletteName).onChange((value) => {
+						void (async () => {
 						await this.plugin.updateSetting("colorPaletteName", value as PaletteName);
 						this.display();
+											})();
 					});
 				}),
 		);
@@ -273,8 +286,10 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 							.addOption("light", "Light")
 							.addOption("dark", "Dark")
 							.setValue(settings.colorPaletteMode)
-							.onChange(async (value) => {
+							.onChange((value) => {
+								void (async () => {
 								await this.plugin.updateSetting("colorPaletteMode", value as PaletteMode);
+															})();
 							}),
 					),
 			);
@@ -287,19 +302,23 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					setting
 						.setName(`Custom colour ${i + 1}`)
 						.addText((text) =>
-							text.setValue(entry.name).setPlaceholder("Name").onChange(async (value) => {
+							text.setValue(entry.name).setPlaceholder("Name").onChange((value) => {
+								void (async () => {
 								const colors = settings.customPaletteColors.slice();
 								colors[i] = { ...colors[i], name: value };
 								await this.plugin.updateSetting("customPaletteColors", colors);
+															})();
 							}),
 						)
 						.addText((text) => {
 							text.setValue(entry.hex);
 							text.inputEl.type = "color";
-							text.onChange(async (value) => {
+							text.onChange((value) => {
+								void (async () => {
 								const colors = settings.customPaletteColors.slice();
 								colors[i] = { ...colors[i], hex: value };
 								await this.plugin.updateSetting("customPaletteColors", colors);
+															})();
 							});
 						}),
 				);
@@ -310,10 +329,12 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 	/** Wires a toggle to persist `key`, hide/show `card` accordingly, and restyle - the shared pattern behind every conditional card in this file. */
 	private wireCardToggle(toggle: ToggleComponent, card: Setting, persist: (value: boolean) => Promise<void>, restyle: () => void): void {
 		const applyVisibility = (hidden: boolean) => card.settingEl.toggleClass("sf-settings-hidden", hidden);
-		toggle.onChange(async (value) => {
+		toggle.onChange((value) => {
+			void (async () => {
 			await persist(value);
 			applyVisibility(!value);
 			restyle();
+					})();
 		});
 		applyVisibility(!toggle.getValue());
 	}
@@ -379,9 +400,11 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 						slider
 							.setLimits(min, max, 0.25)
 							.setValue(settings[sizeKey])
-							.onChange(async (value) => {
+							.onChange((value) => {
+								void (async () => {
 								await this.plugin.updateSetting(sizeKey, value);
 								restyle();
+															})();
 							}),
 					);
 				});
@@ -482,10 +505,12 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			boldColorSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 			italicColorSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 		};
-		toggle.onChange(async (value) => {
+		toggle.onChange((value) => {
+			void (async () => {
 			await this.plugin.updateSetting("bodyTextOverrideEmphasisColor", value);
 			applyVisibility(!value);
 			restyle();
+					})();
 		});
 		applyVisibility(!toggle.getValue());
 
@@ -556,12 +581,14 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				};
 				dropdown.setValue(settings[fontFamilyKey]);
 				applySelectedFont(settings[fontFamilyKey]);
-				dropdown.onChange(async (value) => {
+				dropdown.onChange((value) => {
+					void (async () => {
 					await this.plugin.updateSetting(fontFamilyKey, value as CustomFontFamily);
 					applySelectedFont(value as CustomFontFamily);
 					selectedFontFamily = value as CustomFontFamily;
 					applyVisibility(!overrideToggle.getValue());
 					restyle();
+									})();
 				});
 			});
 		});
@@ -581,12 +608,14 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			card.addSetting((setting) => {
 				smallCapsSetting = setting;
 				setting.setName("Small caps").addToggle((toggle) =>
-					toggle.setValue(settings[smallCapsKey]).onChange(async (value) => {
+					toggle.setValue(settings[smallCapsKey]).onChange((value) => {
+						void (async () => {
 						await this.plugin.updateSetting(smallCapsKey, value);
 						restyle();
+											})();
 					}),
 				);
-				setting.nameEl.style.fontVariant = "small-caps";
+				setting.nameEl.addClass("sf-small-caps-label");
 			});
 		}
 
@@ -604,10 +633,12 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			smallCapsSetting?.settingEl.toggleClass("sf-settings-hidden", overrideOff);
 			fontWeightSetting.settingEl.toggleClass("sf-settings-hidden", overrideOff || !isSelectedFontVariable());
 		};
-		overrideToggle.onChange(async (value) => {
+		overrideToggle.onChange((value) => {
+			void (async () => {
 			await this.plugin.updateSetting(overrideFontKey, value);
 			applyVisibility(!value);
 			restyle();
+					})();
 		});
 		applyVisibility(!overrideToggle.getValue());
 	}
@@ -652,9 +683,11 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					.addOption("medium", "Medium")
 					.addOption("thick", "Thick")
 					.setValue(settings[aboveThicknessKey])
-					.onChange(async (value) => {
+					.onChange((value) => {
+						void (async () => {
 						await this.plugin.updateSetting(aboveThicknessKey, value as HeadingDividerThickness);
 						restyle();
+											})();
 					}),
 			);
 		});
@@ -676,9 +709,11 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					.addOption("medium", "Medium")
 					.addOption("thick", "Thick")
 					.setValue(settings[belowThicknessKey])
-					.onChange(async (value) => {
+					.onChange((value) => {
+						void (async () => {
 						await this.plugin.updateSetting(belowThicknessKey, value as HeadingDividerThickness);
 						restyle();
+											})();
 					}),
 			);
 		});
@@ -689,7 +724,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		const buttonEl = containerEl.createDiv({ cls: "sf-settings-button" });
 		const iconEl = buttonEl.createSpan({ cls: "sf-settings-button-icon" });
 		setIcon(iconEl, ICON_TEXT_STYLE);
-		const labelEl = buttonEl.createSpan({ cls: "sf-settings-button-label", text: "Text styling" });
+		buttonEl.createSpan({ cls: "sf-settings-button-label", text: "Text styling" });
 		buttonEl.addEventListener("click", () => {
 			new TextStyleModal(this.app, this.plugin).open();
 		});
@@ -699,7 +734,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		const buttonEl = containerEl.createDiv({ cls: "sf-settings-button" });
 		const iconEl = buttonEl.createSpan({ cls: "sf-settings-button-icon" });
 		setIcon(iconEl, ICON_UI_FORMATTING);
-		const labelEl = buttonEl.createSpan({ cls: "sf-settings-button-label", text: "storyForge interface" });
+		buttonEl.createSpan({ cls: "sf-settings-button-label", text: "storyForge interface" });
 		buttonEl.addEventListener("click", () => {
 			new UiFormattingModal(this.app, this.plugin).open();
 		});
@@ -709,7 +744,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		const buttonEl = containerEl.createDiv({ cls: "sf-settings-button" });
 		const iconEl = buttonEl.createSpan({ cls: "sf-settings-button-icon" });
 		setIcon(iconEl, ICON_HIDE_UI);
-		const labelEl = buttonEl.createSpan({ cls: "sf-settings-button-label", text: "Hide Obsidian interface elements" });
+		buttonEl.createSpan({ cls: "sf-settings-button-label", text: "Hide Obsidian interface elements" });
 		buttonEl.addEventListener("click", () => {
 			new HideUiModal(this.app, this.plugin).open();
 		});
@@ -719,7 +754,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		const buttonEl = containerEl.createDiv({ cls: "sf-settings-button" });
 		const iconEl = buttonEl.createSpan({ cls: "sf-settings-button-icon" });
 		setIcon(iconEl, ICON_PROTECTIONS);
-		const labelEl = buttonEl.createSpan({ cls: "sf-settings-button-label", text: "Protections" });
+		buttonEl.createSpan({ cls: "sf-settings-button-label", text: "Protections" });
 		buttonEl.addEventListener("click", () => {
 			new ProtectionsModal(this.app, this.plugin).open();
 		});
@@ -742,9 +777,11 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					"highlights the currently selected chapter, or item, in the storyForge panel",
 				)
 				.addToggle((toggle) =>
-					toggle.setValue(settings.highlightActiveChapter).onChange(async (value) => {
+					toggle.setValue(settings.highlightActiveChapter).onChange((value) => {
+						void (async () => {
 						await this.plugin.updateSetting("highlightActiveChapter", value);
 						this.plugin.refreshStoryForgeViews();
+											})();
 					}),
 				),
 		);
@@ -774,9 +811,11 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					.addOption("thick", "Thick")
 					.addOption("extra-thick", "Extra thick")
 					.setValue(settings.cyclingGuideThickness)
-					.onChange(async (value) => {
+					.onChange((value) => {
+						void (async () => {
 						await this.plugin.updateSetting("cyclingGuideThickness", value as HeadingDividerThickness);
 						this.plugin.applyCyclingGuideStyle();
+											})();
 					}),
 			);
 		});
@@ -790,9 +829,11 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					.addOption("medium", "Medium")
 					.addOption("large", "Large")
 					.setValue(settings.cyclingGuideFlagSize)
-					.onChange(async (value) => {
+					.onChange((value) => {
+						void (async () => {
 						await this.plugin.updateSetting("cyclingGuideFlagSize", value as "small" | "medium" | "large");
 						this.plugin.applyCyclingGuideStyle();
+											})();
 					}),
 			);
 		});
@@ -804,9 +845,11 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				.setName("Rounded lines")
 				.setDesc("Rounds the corners of the divider line, except the bottom-right where the flag sits.")
 				.addToggle((toggle) =>
-					toggle.setValue(settings.cyclingGuideRoundedLines).onChange(async (value) => {
+					toggle.setValue(settings.cyclingGuideRoundedLines).onChange((value) => {
+						void (async () => {
 						await this.plugin.updateSetting("cyclingGuideRoundedLines", value);
 						this.plugin.applyCyclingGuideStyle();
+											})();
 					}),
 				);
 		});
@@ -820,9 +863,11 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					.addOption("medium", "Medium")
 					.addOption("large", "Long")
 					.setValue(settings.cyclingGuideInterval)
-					.onChange(async (value) => {
+					.onChange((value) => {
+						void (async () => {
 						await this.plugin.updateSetting("cyclingGuideInterval", value as "short" | "medium" | "large");
 						this.plugin.rebuildCyclingGuideExtension();
+											})();
 					}),
 			);
 		});
@@ -845,10 +890,12 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			cyclingGuideIntervalSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 			cyclingGuideColorSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 		};
-		cyclingGuideToggle.onChange(async (value) => {
+		cyclingGuideToggle.onChange((value) => {
+			void (async () => {
 			await this.plugin.updateSetting("cyclingGuideEnabled", value);
 			this.plugin.setCyclingGuideEnabled(value);
 			applyCyclingGuideVisibility(!value);
+					})();
 		});
 		applyCyclingGuideVisibility(!cyclingGuideToggle.getValue());
 	}
@@ -903,9 +950,11 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 						slider
 							.setLimits(0.5, 2, 0.25)
 							.setValue(settings[config.sizeKey])
-							.onChange(async (value) => {
+							.onChange((value) => {
+								void (async () => {
 								await this.plugin.updateSetting(config.sizeKey, value);
 								this.plugin.applyLibraryHeaderStyles();
+															})();
 							}),
 					),
 			)
@@ -930,12 +979,14 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				setting
 					.setName(`${config.labelPrefix} small caps`)
 					.addToggle((toggle) =>
-						toggle.setValue(settings[config.smallCapsKey]).onChange(async (value) => {
+						toggle.setValue(settings[config.smallCapsKey]).onChange((value) => {
+							void (async () => {
 							await this.plugin.updateSetting(config.smallCapsKey, value);
 							this.plugin.applyLibraryHeaderStyles();
+													})();
 						}),
 					);
-				setting.nameEl.style.fontVariant = "small-caps";
+				setting.nameEl.addClass("sf-small-caps-label");
 			});
 	}
 
@@ -951,9 +1002,11 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 						slider
 							.setLimits(0.5, 2, 0.25)
 							.setValue(settings.libraryBookSubtitleFontSize)
-							.onChange(async (value) => {
+							.onChange((value) => {
+								void (async () => {
 								await this.plugin.updateSetting("libraryBookSubtitleFontSize", value);
 								this.plugin.applyLibraryHeaderStyles();
+															})();
 							}),
 					),
 			)
@@ -968,12 +1021,14 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				setting
 					.setName("Subtitle small caps")
 					.addToggle((toggle) =>
-						toggle.setValue(settings.libraryBookSubtitleSmallCaps).onChange(async (value) => {
+						toggle.setValue(settings.libraryBookSubtitleSmallCaps).onChange((value) => {
+							void (async () => {
 							await this.plugin.updateSetting("libraryBookSubtitleSmallCaps", value);
 							this.plugin.applyLibraryHeaderStyles();
+													})();
 						}),
 					);
-				setting.nameEl.style.fontVariant = "small-caps";
+				setting.nameEl.addClass("sf-small-caps-label");
 			});
 	}
 
@@ -1000,9 +1055,11 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 							slider
 								.setLimits(0.5, 1.5, 0.25)
 								.setValue(settings.unplacedItemsFontSize)
-								.onChange(async (value) => {
+								.onChange((value) => {
+									void (async () => {
 									await this.plugin.updateSetting("unplacedItemsFontSize", value);
 									this.plugin.applyHeaderStyles();
+																	})();
 								}),
 						),
 				)
@@ -1023,9 +1080,11 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 						.setName("Muted")
 						.setDesc("override colour with muted colour")
 						.addToggle((toggle) =>
-							toggle.setValue(settings.unplacedItemsMuted).onChange(async (value) => {
+							toggle.setValue(settings.unplacedItemsMuted).onChange((value) => {
+								void (async () => {
 								await this.plugin.updateSetting("unplacedItemsMuted", value);
 								this.plugin.applyHeaderStyles();
+															})();
 							}),
 						),
 				);
@@ -1062,11 +1121,13 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				itemsColourSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 				highlightColourSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 			};
-			useHeaderColorToggle.onChange(async (value) => {
+			useHeaderColorToggle.onChange((value) => {
+				void (async () => {
 				await this.plugin.updateSetting("unplacedUseHeaderColorForAll", value);
 				applyUseHeaderColorVisibility(value);
 				this.plugin.applyHeaderStyles();
 				this.plugin.applyHighlightStyle();
+							})();
 			});
 			applyUseHeaderColorVisibility(settings.unplacedUseHeaderColorForAll);
 		});
@@ -1095,9 +1156,11 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 							slider
 								.setLimits(0.5, 1.5, 0.25)
 								.setValue(settings.codexFolderFontSize)
-								.onChange(async (value) => {
+								.onChange((value) => {
+									void (async () => {
 									await this.plugin.updateSetting("codexFolderFontSize", value);
 									this.plugin.applyCodexFolderStyle();
+																	})();
 								}),
 						),
 				)
@@ -1131,10 +1194,12 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 								.addOption("medium", "Medium")
 								.addOption("thick", "Thick")
 								.setValue(settings.codexFolderIndicatorThickness)
-								.onChange(async (value) => {
+								.onChange((value) => {
+									void (async () => {
 									await this.plugin.updateSetting("codexFolderIndicatorThickness", value as CodexFolderIndicatorThickness);
 									this.plugin.applyCodexFolderStyle();
 									this.plugin.applyHighlightStyle();
+																	})();
 								}),
 						),
 				);
@@ -1154,9 +1219,11 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 							slider
 								.setLimits(0.5, 1.5, 0.25)
 								.setValue(settings.codexNoteLabelFontSize)
-								.onChange(async (value) => {
+								.onChange((value) => {
+									void (async () => {
 									await this.plugin.updateSetting("codexNoteLabelFontSize", value);
 									this.plugin.applyCodexNoteLabelStyle();
+																	})();
 								}),
 						),
 				)
@@ -1247,13 +1314,15 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				folderColourToggleSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 				codexHighlightColourSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 			};
-			useHeaderColorToggle.onChange(async (value) => {
+			useHeaderColorToggle.onChange((value) => {
+				void (async () => {
 				await this.plugin.updateSetting("codexUseHeaderColorForAll", value);
 				applyUseHeaderColorVisibility(value);
 				this.plugin.applyHeaderStyles();
 				this.plugin.applyHighlightStyle();
 				this.plugin.applyCodexFolderStyle();
 				this.plugin.applyCodexNoteLabelStyle();
+							})();
 			});
 			applyUseHeaderColorVisibility(settings.codexUseHeaderColorForAll);
 		});
