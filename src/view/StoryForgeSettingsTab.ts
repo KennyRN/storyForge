@@ -103,7 +103,11 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 
 	private async persistColorPaletteName(value: PaletteName): Promise<void> {
 		await this.plugin.updateSetting("colorPaletteName", value);
-		this.display();
+		if (typeof this.update === "function") {
+			this.update();
+		} else {
+			this.display();
+		}
 	}
 
 	private async persistCustomPaletteColor(settings: StoryForgePluginSettings, index: number, field: "name" | "hex", value: string): Promise<void> {
