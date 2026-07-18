@@ -1,5 +1,7 @@
 import type { App } from "obsidian";
 import JSZip from "jszip";
+import * as fs from "fs";
+import * as path from "path";
 
 const ILLEGAL_FILENAME_CHARS = /[\\/:*?"<>|]/g;
 
@@ -23,17 +25,7 @@ export function formatFullBackupFilename(vaultName: string, when: Date): string 
 	return `${datePart}-${timePart} - ${safeVaultName} - full.zip`;
 }
 
-/** Lazily requires Node's `fs`/`path` - never imported at module top-level so this file stays safe to load on mobile. */
-function getNodeFsPath(): { fs: typeof import("fs"); path: typeof import("path") } {
-	// eslint-disable-next-line @typescript-eslint/no-var-requires -- lazy require keeps this module loadable on mobile, where fs doesn't exist
-	const fs = require("fs") as typeof import("fs");
-	// eslint-disable-next-line @typescript-eslint/no-var-requires -- lazy require keeps this module loadable on mobile, where path doesn't exist
-	const path = require("path") as typeof import("path");
-	return { fs, path };
-}
-
 async function writeZipToFolder(destFolder: string, filename: string, buffer: Uint8Array): Promise<string> {
-	const { fs, path } = getNodeFsPath();
 	await fs.promises.mkdir(destFolder, { recursive: true });
 	const fullPath = path.join(destFolder, filename);
 	await fs.promises.writeFile(fullPath, buffer);
@@ -62,7 +54,6 @@ async function listAllFilesRecursive(app: App, folder: string, skipFolder: strin
 
 /** Full backup used by the manual "Back up now" button: every file in the vault, including `.obsidian`. */
 export async function runFullBackup(app: App, destFolder: string, now: Date = new Date()): Promise<string> {
-	const { path } = getNodeFsPath();
 	const normalizedDest = path.resolve(destFolder);
 	const basePath = "getBasePath" in app.vault.adapter ? (app.vault.adapter as { getBasePath(): string }).getBasePath() : null;
 	const skipFolder = basePath && normalizedDest.startsWith(basePath) ? path.relative(basePath, normalizedDest) : null;

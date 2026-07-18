@@ -1,8 +1,9 @@
 import { App, TFile, TFolder } from "obsidian";
 import { bookFilePath, seriesFilePath, codexFilePath, CODEX_ROOT } from "./paths";
 import { modifyBackstageFrontmatter } from "./writeGuard";
-import { getLibraryBookFolders, getSeriesBookEntry, upsertSeriesBookEntry } from "./series";
+import { getLibraryBookFolders, getSeriesBookEntry, upsertSeriesBookEntry, type RawSeriesFrontmatter } from "./series";
 import { type RawBookFrontmatter } from "./book";
+import { type RawCodexFrontmatter } from "./codex";
 import { mintId } from "./slug";
 import { mintFolderId, type CodexFolders } from "./codexTree";
 
@@ -30,7 +31,7 @@ export async function migrateVaultSchema(app: App): Promise<void> {
 }
 
 async function migrateSeriesTitleField(app: App): Promise<void> {
-	await modifyBackstageFrontmatter(app, app.vault, seriesFilePath(), DEFAULT_SERIES_CONTENT, (fm) => {
+	await modifyBackstageFrontmatter<RawSeriesFrontmatter>(app, app.vault, seriesFilePath(), DEFAULT_SERIES_CONTENT, (fm) => {
 		if (typeof fm.title === "string" && typeof fm["series-title"] !== "string") {
 			fm["series-title"] = fm.title;
 		}
@@ -47,7 +48,7 @@ async function migrateSeriesTitleField(app: App): Promise<void> {
  * finds `series-id` already set and no-ops.
  */
 async function migrateSeriesIdField(app: App): Promise<void> {
-	await modifyBackstageFrontmatter(app, app.vault, seriesFilePath(), DEFAULT_SERIES_CONTENT, (fm) => {
+	await modifyBackstageFrontmatter<RawSeriesFrontmatter>(app, app.vault, seriesFilePath(), DEFAULT_SERIES_CONTENT, (fm) => {
 		const hasId = typeof fm["series-id"] === "string" && fm["series-id"].trim() !== "";
 		if (!hasId) {
 			fm["series-id"] = mintId(app.vault.getName(), []);
@@ -75,7 +76,7 @@ async function migrateCodexSchema(app: App): Promise<void> {
 
 	const root = app.vault.getAbstractFileByPath(CODEX_ROOT);
 	if (!(root instanceof TFolder)) {
-		await modifyBackstageFrontmatter(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, () => {
+		await modifyBackstageFrontmatter<RawCodexFrontmatter>(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, () => {
 			/* nothing to seed — Codex/ doesn't exist yet */
 		});
 		return;
@@ -111,7 +112,7 @@ async function migrateCodexSchema(app: App): Promise<void> {
 
 	await walk(root, rootOrder);
 
-	await modifyBackstageFrontmatter(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
+	await modifyBackstageFrontmatter<RawCodexFrontmatter>(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
 		fm.folders = folders;
 		fm.order = rootOrder;
 		fm.archive = [];
@@ -131,7 +132,7 @@ async function migrateLegacyBookEntry(app: App, folderName: string): Promise<voi
 		await upsertSeriesBookEntry(app, folderName, legacyId, legacyTitle ?? folderName, { appendToOrder: false });
 	}
 
-	await modifyBackstageFrontmatter(app, app.vault, path, `---\norder:\n---\n`, (bookFm) => {
+	await modifyBackstageFrontmatter<RawBookFrontmatter>(app, app.vault, path, `---\norder:\n---\n`, (bookFm) => {
 		delete bookFm.id;
 		delete bookFm.title;
 	});

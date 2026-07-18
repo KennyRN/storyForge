@@ -27,6 +27,10 @@ export interface RawSeriesBookEntry {
 export interface RawSeriesFrontmatter extends FrontMatterCache {
 	books?: Record<string, RawSeriesBookEntry>;
 	order?: unknown[];
+	"series-title"?: unknown;
+	"series-id"?: unknown;
+	/** Legacy pre-migration key, migrated to "series-title" by migrateSeriesTitleField. */
+	title?: unknown;
 }
 
 const DEFAULT_SERIES_CONTENT = `---\nseries-title: Untitled Series\norder:\nbooks:\n---\n`;
@@ -107,13 +111,13 @@ export function getSeriesOrderPosition(app: App, folderName: string): number | n
 }
 
 export async function writeSeriesTitle(app: App, newTitle: string): Promise<void> {
-	await modifyBackstageFrontmatter(app, app.vault, seriesFilePath(), DEFAULT_SERIES_CONTENT, (fm) => {
+	await modifyBackstageFrontmatter<RawSeriesFrontmatter>(app, app.vault, seriesFilePath(), DEFAULT_SERIES_CONTENT, (fm) => {
 		fm["series-title"] = newTitle;
 	});
 }
 
 export async function writeSeriesOrder(app: App, newOrder: string[]): Promise<void> {
-	await modifyBackstageFrontmatter(app, app.vault, seriesFilePath(), DEFAULT_SERIES_CONTENT, (fm) => {
+	await modifyBackstageFrontmatter<RawSeriesFrontmatter>(app, app.vault, seriesFilePath(), DEFAULT_SERIES_CONTENT, (fm) => {
 		fm.order = newOrder;
 	});
 }

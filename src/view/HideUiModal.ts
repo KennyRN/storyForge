@@ -11,6 +11,7 @@ export class HideUiModal extends Modal {
 	}
 
 	onOpen(): void {
+		this.modalEl.addClass("sf-hide-ui-modal");
 		this.titleEl.remove();
 		this.render();
 	}

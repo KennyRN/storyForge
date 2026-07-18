@@ -61,7 +61,7 @@
 .sf-book-line {
 	display: grid;
 	grid-template-columns: auto 1fr;
-	column-gap: 6px;
+	gap: 6px;
 }
 
 .sf-book-line > .sf-icon {
@@ -1084,10 +1084,10 @@
 
 /* ── Text Style Modal (tabbed) ── */
 
-.modal:has(.sf-text-style-modal),
-.modal:has(.sf-ui-formatting-modal),
-.modal:has(.sf-hide-ui-modal),
-.modal:has(.sf-protections-modal) {
+.modal.sf-text-style-modal,
+.modal.sf-ui-formatting-modal,
+.modal.sf-hide-ui-modal,
+.modal.sf-protections-modal {
 	width: 560px;
 	height: 760px;
 	display: flex;

@@ -433,7 +433,7 @@ export default class StoryForgePlugin extends Plugin {
 		this.registerView(TOOLS_VIEW_TYPE, (leaf) => new ToolsView(leaf));
 
 		this.addCommand({
-			id: "open-storyforge-view",
+			id: "open-view",
 			name: "Open panel",
 			callback: () => void this.activateView(),
 		});
@@ -629,10 +629,7 @@ export default class StoryForgePlugin extends Plugin {
 		}
 		let el = perDoc.get(doc);
 		if (!el) {
-			// eslint-disable-next-line obsidianmd/prefer-create-el -- doc may be a pop-out window's plain Document, which has no createEl extension
-			el = doc.createElement("style");
-			el.id = id;
-			doc.head.appendChild(el);
+			el = doc.head.createEl("style", { attr: { id } });
 			perDoc.set(doc, el);
 		}
 		el.textContent = css;

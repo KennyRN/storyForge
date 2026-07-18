@@ -70,6 +70,9 @@ export interface RawBookFrontmatter extends FrontMatterCache {
 	"book-id-reference"?: unknown;
 	"book-title-reference"?: unknown;
 	"series-order-reference"?: unknown;
+	/** Legacy pre-migration keys, deleted by migrateLegacyBookEntry. */
+	id?: unknown;
+	title?: unknown;
 }
 
 function defaultBookContent(bookId: string, bookTitle: string, seriesOrderReference: number | null): string {
@@ -519,7 +522,7 @@ export async function renameChapterEntry(
 		}
 		const rekeyList = (list: unknown): string[] => {
 			if (!Array.isArray(list)) return [];
-			return list.map((v) => (v === oldFilename ? newFilename : v));
+			return list.filter((v): v is string => typeof v === "string").map((v) => (v === oldFilename ? newFilename : v));
 		};
 		fm["chapter-order"] = rekeyList(fm["chapter-order"]);
 		fm.unplaced = rekeyList(fm.unplaced);

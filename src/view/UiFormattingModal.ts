@@ -24,6 +24,7 @@ export class UiFormattingModal extends Modal {
 	}
 
 	onOpen(): void {
+		this.modalEl.addClass("sf-ui-formatting-modal");
 		this.titleEl.remove();
 		this.render();
 	}
@@ -554,7 +555,7 @@ export class UiFormattingModal extends Modal {
 			)
 			.addSetting((setting) => {
 				setting.setName("Header weight").setDesc("weight of header label");
-				this.bindFontWeightDropdown(setting, settings[config.fontWeightKey] as FontWeight, async (value) => {
+				this.bindFontWeightDropdown(setting, settings[config.fontWeightKey], async (value) => {
 					await this.plugin.updateSetting(config.fontWeightKey, value);
 					config.restyle();
 				});
@@ -563,7 +564,7 @@ export class UiFormattingModal extends Modal {
 				setting
 					.setName("Header colour")
 					.addButton((button) =>
-						this.bindColorSwatchButton(button.buttonEl, settings[config.colorKey] as string, async (hex) => {
+						this.bindColorSwatchButton(button.buttonEl, settings[config.colorKey], async (hex) => {
 							await this.plugin.updateSetting(config.colorKey, hex);
 							config.restyle();
 						}),
@@ -583,7 +584,7 @@ export class UiFormattingModal extends Modal {
 					.setName("Muted")
 					.setDesc("override header colour with muted colour")
 					.addToggle((toggle) =>
-						toggle.setValue(settings[config.mutedKey] as boolean).onChange((value) => {
+						toggle.setValue(settings[config.mutedKey]).onChange((value) => {
 							void (async () => {
 							await this.plugin.updateSetting(config.mutedKey, value);
 							config.restyle();
@@ -595,7 +596,7 @@ export class UiFormattingModal extends Modal {
 				setting
 					.setName("Small caps")
 					.addToggle((toggle) =>
-						toggle.setValue(settings[config.smallCapsKey] as boolean).onChange((value) => {
+						toggle.setValue(settings[config.smallCapsKey]).onChange((value) => {
 							void (async () => {
 							await this.plugin.updateSetting(config.smallCapsKey, value);
 							config.restyle();
@@ -770,7 +771,7 @@ export class UiFormattingModal extends Modal {
 			)
 			.addSetting((setting) => {
 				setting.setName(`${config.labelPrefix} weight`);
-				this.bindFontWeightDropdown(setting, settings[config.fontWeightKey] as FontWeight, async (value) => {
+				this.bindFontWeightDropdown(setting, settings[config.fontWeightKey], async (value) => {
 					await this.plugin.updateSetting(config.fontWeightKey, value);
 					this.plugin.applyLibraryHeaderStyles();
 				});
@@ -779,7 +780,7 @@ export class UiFormattingModal extends Modal {
 				setting
 					.setName(`${config.labelPrefix} colour`)
 					.addButton((button) =>
-						this.bindColorSwatchButton(button.buttonEl, settings[config.colorKey] as string, async (hex) => {
+						this.bindColorSwatchButton(button.buttonEl, settings[config.colorKey], async (hex) => {
 							await this.plugin.updateSetting(config.colorKey, hex);
 							this.plugin.applyLibraryHeaderStyles();
 						}),
@@ -789,7 +790,7 @@ export class UiFormattingModal extends Modal {
 				setting
 					.setName(`${config.labelPrefix} small caps`)
 					.addToggle((toggle) =>
-						toggle.setValue(settings[config.smallCapsKey] as boolean).onChange((value) => {
+						toggle.setValue(settings[config.smallCapsKey]).onChange((value) => {
 							void (async () => {
 							await this.plugin.updateSetting(config.smallCapsKey, value);
 							this.plugin.applyLibraryHeaderStyles();
@@ -821,7 +822,7 @@ export class UiFormattingModal extends Modal {
 			)
 			.addSetting((setting) => {
 				setting.setName("Subtitle weight");
-				this.bindFontWeightDropdown(setting, settings.libraryBookSubtitleFontWeight as FontWeight, async (value) => {
+				this.bindFontWeightDropdown(setting, settings.libraryBookSubtitleFontWeight, async (value) => {
 					await this.plugin.updateSetting("libraryBookSubtitleFontWeight", value);
 					this.plugin.applyLibraryHeaderStyles();
 				});
@@ -830,7 +831,7 @@ export class UiFormattingModal extends Modal {
 				setting
 					.setName("Subtitle small caps")
 					.addToggle((toggle) =>
-						toggle.setValue(settings.libraryBookSubtitleSmallCaps as boolean).onChange((value) => {
+						toggle.setValue(settings.libraryBookSubtitleSmallCaps).onChange((value) => {
 							void (async () => {
 							await this.plugin.updateSetting("libraryBookSubtitleSmallCaps", value);
 							this.plugin.applyLibraryHeaderStyles();
@@ -915,7 +916,7 @@ export class UiFormattingModal extends Modal {
 					.setName("Muted")
 					.setDesc("override colour with muted colour")
 					.addToggle((toggle) =>
-						toggle.setValue(settings.unplacedItemsMuted as boolean).onChange((value) => {
+						toggle.setValue(settings.unplacedItemsMuted).onChange((value) => {
 							void (async () => {
 							await this.plugin.updateSetting("unplacedItemsMuted", value);
 							this.plugin.applyHeaderStyles();
@@ -999,7 +1000,7 @@ export class UiFormattingModal extends Modal {
 			)
 			.addSetting((setting) => {
 				setting.setName("Folder weight").setDesc("Font weight of the codex folder names.");
-				this.bindFontWeightDropdown(setting, settings.codexFolderFontWeight as FontWeight, async (value) => {
+				this.bindFontWeightDropdown(setting, settings.codexFolderFontWeight, async (value) => {
 					await this.plugin.updateSetting("codexFolderFontWeight", value);
 					this.plugin.applyCodexFolderStyle();
 				});
@@ -1062,7 +1063,7 @@ export class UiFormattingModal extends Modal {
 			)
 			.addSetting((setting) => {
 				setting.setName("Codex note label weight").setDesc("Font weight of the codex note (file) labels.");
-				this.bindFontWeightDropdown(setting, settings.codexNoteLabelFontWeight as FontWeight, async (value) => {
+				this.bindFontWeightDropdown(setting, settings.codexNoteLabelFontWeight, async (value) => {
 					await this.plugin.updateSetting("codexNoteLabelFontWeight", value);
 					this.plugin.applyCodexNoteLabelStyle();
 				});
