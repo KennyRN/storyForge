@@ -114,12 +114,12 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		id: "chevron-right",
 		label: "Collapsed section",
 		source: "lucide",
-		usedIn: ["StoryForgeSettingsTab.ts — foldable section header", "BottomPanel.ts — Codex folder collapse chevron"],
+		usedIn: ["BottomPanel.ts — Codex folder collapse chevron"],
 	},
 	{
 		id: "chevron-down",
 		label: "Expanded section",
 		source: "lucide",
-		usedIn: ["StoryForgeSettingsTab.ts — foldable section header", "BottomPanel.ts — Codex folder collapse chevron"],
+		usedIn: ["BottomPanel.ts — Codex folder collapse chevron"],
 	},
 ];

@@ -23,6 +23,7 @@ export class TextStyleModal extends Modal {
 	}
 
 	onOpen(): void {
+		this.modalEl.addClass("sf-text-style-modal");
 		this.titleEl.remove();
 		this.render();
 	}

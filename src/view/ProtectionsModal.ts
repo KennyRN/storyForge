@@ -14,6 +14,7 @@ export class ProtectionsModal extends Modal {
 	}
 
 	onOpen(): void {
+		this.modalEl.addClass("sf-protections-modal");
 		this.titleEl.remove();
 		this.render();
 	}
@@ -86,10 +87,7 @@ export class ProtectionsModal extends Modal {
 						const json = JSON.stringify(this.plugin.getSettings(), null, 2);
 						const blob = new Blob([json], { type: "application/json" });
 						const url = URL.createObjectURL(blob);
-						// eslint-disable-next-line obsidianmd/prefer-create-el -- detached download-trigger anchor, never appended to the DOM
-						const a = document.createElement("a");
-						a.href = url;
-						a.download = "storyforge-settings.json";
+						const a = createEl("a", { attr: { href: url, download: "storyforge-settings.json" } });
 						a.click();
 						URL.revokeObjectURL(url);
 					}),
@@ -103,21 +101,18 @@ export class ProtectionsModal extends Modal {
 				.setDesc("Restores storyForge settings from a previously exported JSON file. This overwrites your current settings.")
 				.addButton((button) =>
 					button.setButtonText("Import").onClick(() => {
-						// eslint-disable-next-line obsidianmd/prefer-create-el -- detached file-picker input, never appended to the DOM
-						const input = document.createElement("input");
-						input.type = "file";
-						input.accept = "application/json";
+						const input = createEl("input", { type: "file", attr: { accept: "application/json" } });
 						input.addEventListener("change", () => {
 							const file = input.files?.[0];
 							if (!file) return;
 							void (async () => {
 								try {
 									const text = await file.text();
-									const parsed = JSON.parse(text);
+									const parsed: unknown = JSON.parse(text);
 									await this.plugin.importSettings(parsed);
 									this.render();
 								} catch (err) {
-									new Notice(`storyForge: could not import settings — ${(err as Error).message}`);
+									new Notice(`storyForge: could not import settings — ${err instanceof Error ? err.message : String(err)}`);
 								}
 							})();
 						});
@@ -182,7 +177,7 @@ export class ProtectionsModal extends Modal {
 										this.render();
 									}
 								} catch (err) {
-									new Notice(`storyForge: could not open folder picker — ${(err as Error).message}`);
+									new Notice(`storyForge: could not open folder picker — ${err instanceof Error ? err.message : String(err)}`);
 								}
 							})();
 						}),
@@ -208,7 +203,7 @@ export class ProtectionsModal extends Modal {
 		card.addSetting((setting) =>
 			setting
 				.setName("Back up now")
-				.setDesc("Creates a full backup zip immediately, including your .obsidian settings folder — saved to the backup folder above.")
+				.setDesc(`Creates a full backup zip immediately, including your ${this.app.vault.configDir} settings folder — saved to the backup folder above.`)
 				.addButton((button) =>
 					button.setButtonText("Back up now").onClick(() => {
 						if (!folderValue) {
@@ -220,7 +215,7 @@ export class ProtectionsModal extends Modal {
 								const path = await runFullBackup(this.app, folderValue);
 								new Notice(`storyForge: backup saved to ${path}`);
 							} catch (err) {
-								new Notice(`storyForge: backup failed — ${(err as Error).message}`);
+								new Notice(`storyForge: backup failed — ${err instanceof Error ? err.message : String(err)}`);
 							}
 						})();
 					}),
@@ -239,7 +234,7 @@ export class ProtectionsModal extends Modal {
 								const file = await ensureWelcomeNote(this.app);
 								await this.app.workspace.getLeaf(false).openFile(file);
 							} catch (err) {
-								new Notice(`storyForge: could not recreate welcome note — ${(err as Error).message}`);
+								new Notice(`storyForge: could not recreate welcome note — ${err instanceof Error ? err.message : String(err)}`);
 							}
 						})();
 					}),

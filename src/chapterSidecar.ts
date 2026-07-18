@@ -1,7 +1,12 @@
-import { App, parseYaml, stringifyYaml, TFile } from "obsidian";
+import { App, parseYaml, stringifyYaml, TFile, type FrontMatterCache } from "obsidian";
 import { chapterSidecarFolderPath, chapterSidecarPath } from "./paths";
 import { ensureBackstageFolder, modifyBackstageFrontmatter, renameBackstagePath, writeBackstageFile } from "./writeGuard";
 import type { Fingerprint } from "./fingerprint";
+
+/** The raw on-disk shape of a chapter sidecar file's frontmatter, as read/written through `modifyBackstageFrontmatter`. */
+interface RawSidecarFrontmatter extends FrontMatterCache {
+	chapter?: unknown;
+}
 
 const AUTO_MARKER = "<!-- AUTO-MAINTAINED BELOW — do not edit, the plugin overwrites it -->";
 
@@ -62,7 +67,7 @@ export async function renameChapterSidecar(
 	const file = app.vault.getAbstractFileByPath(oldPath);
 	if (!(file instanceof TFile)) return;
 	await renameBackstagePath(app.vault, oldPath, newPath);
-	await modifyBackstageFrontmatter(app, app.vault, newPath, buildSidecarContent({ chapter: newFilename }, { opening: "", closing: "" }), (fm) => {
+	await modifyBackstageFrontmatter<RawSidecarFrontmatter>(app, app.vault, newPath, buildSidecarContent({ chapter: newFilename }, { opening: "", closing: "" }), (fm) => {
 		fm.chapter = newFilename;
 	});
 }

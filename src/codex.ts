@@ -1,4 +1,4 @@
-import { App, TFile, TFolder } from "obsidian";
+import { App, TFile, TFolder, type FrontMatterCache } from "obsidian";
 import { ICON_MAP_PIN, ICON_PERSON_FILL } from "./icons";
 import { CODEX_ROOT, codexFilePath } from "./paths";
 import { partitionCodexNotes, findUnknownScopedNotes, type CodexNote } from "./codexPartition";
@@ -32,6 +32,14 @@ export interface CodexFrontmatterShape {
 	order: string[];
 	archive: string[];
 	types: Record<string, string>;
+}
+
+/** The raw, unsanitized on-disk shape of codex.md's frontmatter, as read/written through `modifyBackstageFrontmatter`. */
+export interface RawCodexFrontmatter extends FrontMatterCache {
+	folders?: unknown;
+	order?: unknown;
+	archive?: unknown;
+	types?: unknown;
 }
 
 export interface CodexTypeOption {
@@ -104,7 +112,7 @@ export function getCodexEntryType(app: App, path: string): string | null {
 }
 
 export async function setCodexEntryType(app: App, path: string, type: string): Promise<void> {
-	await modifyBackstageFrontmatter(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
+	await modifyBackstageFrontmatter<RawCodexFrontmatter>(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
 		const types = parseTypes(fm.types);
 		types[path] = type;
 		fm.types = types;
@@ -173,7 +181,7 @@ function uniqueChildPath(app: App, parentPath: string, baseName: string, extensi
 /** Mints a new virtual folder and registers it into `parentFolderId`'s order (or the root's, if null). Returns the new folder id. */
 export async function createCodexFolder(app: App, parentFolderId: string | null): Promise<string> {
 	let newId = "";
-	await modifyBackstageFrontmatter(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
+	await modifyBackstageFrontmatter<RawCodexFrontmatter>(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
 		const folders = parseFolders(fm.folders);
 		const order = parseStringArray(fm.order);
 		newId = mintFolderId("New Folder", folders);
@@ -199,7 +207,7 @@ export async function createCodexNote(
 	if (!app.vault.getAbstractFileByPath(CODEX_ROOT)) await app.vault.createFolder(CODEX_ROOT);
 	const path = options.filename ? `${CODEX_ROOT}/${options.filename}` : uniqueChildPath(app, CODEX_ROOT, "New Note", ".md");
 	const file = await app.vault.create(path, options.content ?? "");
-	await modifyBackstageFrontmatter(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
+	await modifyBackstageFrontmatter<RawCodexFrontmatter>(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
 		const folders = parseFolders(fm.folders);
 		const order = parseStringArray(fm.order);
 		insertIntoContainer(folders, order, parentFolderId, path, Number.MAX_SAFE_INTEGER);
@@ -226,7 +234,7 @@ export async function renameCodexNoteFile(app: App, file: TFile, newBasename: st
 export async function renameCodexFolder(app: App, folderId: string, newName: string): Promise<void> {
 	const trimmed = newName.trim();
 	if (!trimmed) return;
-	await modifyBackstageFrontmatter(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
+	await modifyBackstageFrontmatter<RawCodexFrontmatter>(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
 		const folders = parseFolders(fm.folders);
 		if (!folders[folderId]) return;
 		folders[folderId] = { ...folders[folderId], name: trimmed };
@@ -236,7 +244,7 @@ export async function renameCodexFolder(app: App, folderId: string, newName: str
 
 /** Archives a file or an entire folder (as a unit — a folder's own nested `order` is left completely intact, only its key moves into `archive`). */
 export async function archiveCodexItem(app: App, key: string): Promise<void> {
-	await modifyBackstageFrontmatter(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
+	await modifyBackstageFrontmatter<RawCodexFrontmatter>(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
 		const folders = parseFolders(fm.folders);
 		const order = parseStringArray(fm.order);
 		const archive = parseStringArray(fm.archive);
@@ -250,7 +258,7 @@ export async function archiveCodexItem(app: App, key: string): Promise<void> {
 
 /** Restores a file or folder to the Codex root — a restored folder's previous nested contents come back intact since its `order` was never touched while archived. */
 export async function unarchiveCodexItem(app: App, key: string): Promise<void> {
-	await modifyBackstageFrontmatter(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
+	await modifyBackstageFrontmatter<RawCodexFrontmatter>(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
 		const order = parseStringArray(fm.order);
 		const archive = parseStringArray(fm.archive).filter((k) => k !== key);
 		if (!order.includes(key)) order.push(key);
@@ -261,7 +269,7 @@ export async function unarchiveCodexItem(app: App, key: string): Promise<void> {
 
 /** "Remove Folder and Keep Items": deletes the folder's own entry and splices its direct children into its former position in its former parent (or root) — not recursive, nested subfolders keep their own identity. */
 export async function removeCodexFolder(app: App, folderId: string): Promise<void> {
-	await modifyBackstageFrontmatter(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
+	await modifyBackstageFrontmatter<RawCodexFrontmatter>(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
 		const folders = parseFolders(fm.folders);
 		const order = parseStringArray(fm.order);
 		const entry = folders[folderId];
@@ -298,7 +306,7 @@ export function getArchivedCodexItems(app: App): ArchivedCodexItem[] {
  */
 export async function rekeyCodexNotePath(app: App, oldPath: string, newPath: string | null): Promise<void> {
 	if (!app.vault.getAbstractFileByPath(codexFilePath())) return;
-	await modifyBackstageFrontmatter(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
+	await modifyBackstageFrontmatter<RawCodexFrontmatter>(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
 		const folders = parseFolders(fm.folders);
 		const order = parseStringArray(fm.order);
 		const archive = parseStringArray(fm.archive);
@@ -334,7 +342,7 @@ export async function moveCodexItem(
 	targetParentId: string | null,
 	beforeKey: string | null,
 ): Promise<void> {
-	await modifyBackstageFrontmatter(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
+	await modifyBackstageFrontmatter<RawCodexFrontmatter>(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
 		const folders = parseFolders(fm.folders);
 		const order = parseStringArray(fm.order);
 		if (type === "folder" && targetParentId !== null && isDescendantFolder(folders, key, targetParentId)) {
