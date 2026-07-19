@@ -1,7 +1,7 @@
 {
 	"id": "storyforge",
 	"name": "storyForge",
-	"version": "0.8.1",
+	"version": "0.8.2",
 	"minAppVersion": "1.13.0",
 	"description": "A minimalist novel-writing workspace: series/book ordering, word-count history, and a scoped codex, built on plain markdown you already own.",
 	"author": "volcanicMole",
