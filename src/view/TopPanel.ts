@@ -104,7 +104,7 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 	const bodyEl = container.createDiv({ cls: "sf-top-body" });
 
 	if (options.mode === "series") {
-		renderSeriesList(app, bodyEl, series.ordered, series.unplaced, options);
+		renderSeriesList(app, bodyEl, series.ordered, series.unplaced, options, container);
 	} else if (options.currentBookFolderName) {
 		renderBookList(app, bodyEl, options.currentBookFolderName, options, container);
 	} else {
@@ -206,6 +206,7 @@ function renderSeriesList(
 	ordered: TFolder[],
 	unplaced: TFolder[],
 	options: TopPanelOptions,
+	container: HTMLElement,
 ): void {
 	const rawTitles = [...ordered, ...unplaced].map((folder) => bookDisplayTitle(app, folder.name));
 	const numbered = applyHashNumbering(rawTitles);
@@ -261,7 +262,14 @@ function renderSeriesList(
 	}
 
 	makeReorderable(zones, ".sf-row", ".sf-drag-handle", (zoneRowKeys) => {
-		void reorderSeriesBooks(app, (zoneRowKeys.ordered ?? []).filter(Boolean));
+		void (async () => {
+			try {
+				await reorderSeriesBooks(app, (zoneRowKeys.ordered ?? []).filter(Boolean));
+			} catch (err) {
+				new Notice(`storyForge: could not save the new order — ${(err as Error).message}`);
+				renderTopPanel(app, container, options);
+			}
+		})();
 	});
 }
 
@@ -347,6 +355,13 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 	}
 
 	makeReorderable(zones, ".sf-row", ".sf-drag-handle", (zoneRowKeys) => {
-		void writeBookChapterOrder(app, bookFolderName, (zoneRowKeys.ordered ?? []).filter(Boolean));
+		void (async () => {
+			try {
+				await writeBookChapterOrder(app, bookFolderName, (zoneRowKeys.ordered ?? []).filter(Boolean));
+			} catch (err) {
+				new Notice(`storyForge: could not save the new order — ${(err as Error).message}`);
+				renderTopPanel(app, container, options);
+			}
+		})();
 	});
 }

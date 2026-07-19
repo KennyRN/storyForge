@@ -112,7 +112,12 @@ export class SeriesModal extends Modal {
 	}
 
 	private async handleReorder(newOrder: string[]): Promise<void> {
-		await reorderSeriesBooks(this.app, newOrder);
-		this.onChange();
+		try {
+			await reorderSeriesBooks(this.app, newOrder);
+			this.onChange();
+		} catch (err) {
+			new Notice(`storyForge: could not save the new order — ${(err as Error).message}`);
+			this.render();
+		}
 	}
 }

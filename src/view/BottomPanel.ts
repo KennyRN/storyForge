@@ -1,4 +1,4 @@
-import { App, TFile, setIcon } from "obsidian";
+import { App, Notice, TFile, setIcon } from "obsidian";
 import {
 	archiveCodexItem,
 	codexTypeIcon,
@@ -99,7 +99,14 @@ export function renderBottomPanel(app: App, container: HTMLElement, options: Bot
 		rowInfo,
 		(ancestorId, candidateId) => isDescendantFolder(folders, ancestorId, candidateId),
 		(dragged, target) => {
-			void moveCodexItem(app, dragged.key, dragged.type, target.parentId, target.beforeKey);
+			void (async () => {
+				try {
+					await moveCodexItem(app, dragged.key, dragged.type, target.parentId, target.beforeKey);
+				} catch (err) {
+					new Notice(`storyForge: could not save the new order — ${(err as Error).message}`);
+					renderBottomPanel(app, container, options);
+				}
+			})();
 		},
 	);
 }
