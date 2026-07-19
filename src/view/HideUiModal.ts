@@ -11,7 +11,7 @@ export class HideUiModal extends Modal {
 	}
 
 	private persistVisibility<K extends keyof StoryForgePluginSettings>(key: K, value: StoryForgePluginSettings[K]): void {
-		this.plugin.updateSetting(key, value).then(() => this.plugin.applyVisibilityStyles());
+		void this.plugin.updateSetting(key, value).then(() => this.plugin.applyVisibilityStyles());
 	}
 
 	onOpen(): void {

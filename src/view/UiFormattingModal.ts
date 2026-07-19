@@ -28,7 +28,7 @@ export class UiFormattingModal extends Modal {
 		value: StoryForgePluginSettings[K],
 		restyle: () => void,
 	): void {
-		this.plugin.updateSetting(key, value).then(() => restyle());
+		void this.plugin.updateSetting(key, value).then(() => restyle());
 	}
 
 	onOpen(): void {
@@ -151,7 +151,7 @@ export class UiFormattingModal extends Modal {
 
 	private openColorSwatchPicker(paint: (hex: string) => void, onPick: (hex: string) => void): void {
 		const s = this.plugin.getSettings();
-		import("./PalettePickerModal").then(({ PalettePickerModal }) => {
+		void import("./PalettePickerModal").then(({ PalettePickerModal }) => {
 			new PalettePickerModal(this.app, s.colorPaletteName, s.colorPaletteMode, s.customPaletteColors, (hex) =>
 				this.applyColorPick(hex, paint, onPick),
 			).open();
@@ -267,7 +267,7 @@ export class UiFormattingModal extends Modal {
 			body,
 			label,
 			settings[overrideKey] as boolean,
-			async (value) => { await this.plugin.updateSetting(overrideKey, value); },
+			(value) => { void this.plugin.updateSetting(overrideKey, value); },
 			(card) => {
 				let sliderSetting!: Setting;
 				card.addSetting((setting) => {
@@ -300,18 +300,16 @@ export class UiFormattingModal extends Modal {
 			body,
 			label,
 			settings[overrideKey] as boolean,
-			async (value) => {
-				await this.plugin.updateSetting(overrideKey, value);
-				onToggle?.(value);
+			(value) => {
+				void this.plugin.updateSetting(overrideKey, value).then(() => onToggle?.(value));
 			},
 			(card) => {
 				let colorSetting!: Setting;
 				card.addSetting((setting) => {
 					colorSetting = setting;
 					setting.setName(swatchLabel).addButton((button) =>
-						this.bindColorSwatchButton(button.buttonEl, settings[colorKey] as string, async (hex) => {
-							await this.plugin.updateSetting(colorKey, hex);
-							restyle();
+						this.bindColorSwatchButton(button.buttonEl, settings[colorKey] as string, (hex) => {
+							void this.plugin.updateSetting(colorKey, hex).then(() => restyle());
 						}),
 					);
 				});
@@ -338,9 +336,8 @@ export class UiFormattingModal extends Modal {
 		card.addSetting((setting) => {
 			boldColorSetting = setting;
 			setting.setName("Bold colour").addButton((button) =>
-				this.bindColorSwatchButton(button.buttonEl, settings.bodyTextBoldColor, async (hex) => {
-					await this.plugin.updateSetting("bodyTextBoldColor", hex);
-					restyle();
+				this.bindColorSwatchButton(button.buttonEl, settings.bodyTextBoldColor, (hex) => {
+					void this.plugin.updateSetting("bodyTextBoldColor", hex).then(() => restyle());
 				}),
 			);
 		});
@@ -349,9 +346,8 @@ export class UiFormattingModal extends Modal {
 		card.addSetting((setting) => {
 			italicColorSetting = setting;
 			setting.setName("Italic colour").addButton((button) =>
-				this.bindColorSwatchButton(button.buttonEl, settings.bodyTextItalicColor, async (hex) => {
-					await this.plugin.updateSetting("bodyTextItalicColor", hex);
-					restyle();
+				this.bindColorSwatchButton(button.buttonEl, settings.bodyTextItalicColor, (hex) => {
+					void this.plugin.updateSetting("bodyTextItalicColor", hex).then(() => restyle());
 				}),
 			);
 		});
@@ -367,7 +363,7 @@ export class UiFormattingModal extends Modal {
 	}
 
 	private applyEmphasisColorToggle(value: boolean, applyVisibility: (hidden: boolean) => void, restyle: () => void): void {
-		this.plugin.updateSetting("bodyTextOverrideEmphasisColor", value).then(() => {
+		void this.plugin.updateSetting("bodyTextOverrideEmphasisColor", value).then(() => {
 			applyVisibility(!value);
 			restyle();
 		});
@@ -421,9 +417,8 @@ export class UiFormattingModal extends Modal {
 		card.addSetting((setting) => {
 			fontWeightSetting = setting;
 			setting.setName("Font weight");
-			this.bindFontWeightDropdown(setting, settings[fontWeightKey] as FontWeight, async (value) => {
-				await this.plugin.updateSetting(fontWeightKey, value);
-				restyle();
+			this.bindFontWeightDropdown(setting, settings[fontWeightKey] as FontWeight, (value) => {
+				void this.plugin.updateSetting(fontWeightKey, value).then(() => restyle());
 			});
 		});
 
@@ -458,7 +453,7 @@ export class UiFormattingModal extends Modal {
 		applyVisibility: (overrideOff: boolean) => void,
 		restyle: () => void,
 	): void {
-		this.plugin.updateSetting(overrideFontKey, value).then(() => {
+		void this.plugin.updateSetting(overrideFontKey, value).then(() => {
 			applyVisibility(!value);
 			restyle();
 		});
@@ -472,7 +467,7 @@ export class UiFormattingModal extends Modal {
 		applyOverrideVisibility: () => void,
 		restyle: () => void,
 	): void {
-		this.plugin.updateSetting(fontFamilyKey, value).then(() => {
+		void this.plugin.updateSetting(fontFamilyKey, value).then(() => {
 			applySelectedFont(value);
 			setSelectedFontFamily(value);
 			applyOverrideVisibility();
@@ -563,18 +558,16 @@ export class UiFormattingModal extends Modal {
 			)
 			.addSetting((setting) => {
 				setting.setName("Header weight").setDesc("weight of header label");
-				this.bindFontWeightDropdown(setting, settings[config.fontWeightKey], async (value) => {
-					await this.plugin.updateSetting(config.fontWeightKey, value);
-					config.restyle();
+				this.bindFontWeightDropdown(setting, settings[config.fontWeightKey], (value) => {
+					void this.plugin.updateSetting(config.fontWeightKey, value).then(() => config.restyle());
 				});
 			})
 			.addSetting((setting) =>
 				setting
 					.setName("Header colour")
 					.addButton((button) =>
-						this.bindColorSwatchButton(button.buttonEl, settings[config.colorKey], async (hex) => {
-							await this.plugin.updateSetting(config.colorKey, hex);
-							config.restyle();
+						this.bindColorSwatchButton(button.buttonEl, settings[config.colorKey], (hex) => {
+							void this.plugin.updateSetting(config.colorKey, hex).then(() => config.restyle());
 						}),
 					),
 			)
@@ -699,9 +692,8 @@ export class UiFormattingModal extends Modal {
 		cyclingGuideGroup.addSetting((setting) => {
 			cyclingGuideColorSetting = setting;
 			setting.setName("Line colour").addButton((button) =>
-				this.bindColorSwatchButton(button.buttonEl, settings.cyclingGuideColor, async (hex) => {
-					await this.plugin.updateSetting("cyclingGuideColor", hex);
-					this.plugin.applyCyclingGuideStyle();
+				this.bindColorSwatchButton(button.buttonEl, settings.cyclingGuideColor, (hex) => {
+					void this.plugin.updateSetting("cyclingGuideColor", hex).then(() => this.plugin.applyCyclingGuideStyle());
 				}),
 			);
 		});
@@ -718,7 +710,7 @@ export class UiFormattingModal extends Modal {
 	}
 
 	private applyCyclingGuideToggle(value: boolean, applyCyclingGuideVisibility: (hidden: boolean) => void): void {
-		this.plugin.updateSetting("cyclingGuideEnabled", value).then(() => {
+		void this.plugin.updateSetting("cyclingGuideEnabled", value).then(() => {
 			this.plugin.setCyclingGuideEnabled(value);
 			applyCyclingGuideVisibility(!value);
 		});
@@ -750,18 +742,16 @@ export class UiFormattingModal extends Modal {
 			)
 			.addSetting((setting) => {
 				setting.setName(`${config.labelPrefix} weight`);
-				this.bindFontWeightDropdown(setting, settings[config.fontWeightKey], async (value) => {
-					await this.plugin.updateSetting(config.fontWeightKey, value);
-					this.plugin.applyLibraryHeaderStyles();
+				this.bindFontWeightDropdown(setting, settings[config.fontWeightKey], (value) => {
+					void this.plugin.updateSetting(config.fontWeightKey, value).then(() => this.plugin.applyLibraryHeaderStyles());
 				});
 			})
 			.addSetting((setting) =>
 				setting
 					.setName(`${config.labelPrefix} colour`)
 					.addButton((button) =>
-						this.bindColorSwatchButton(button.buttonEl, settings[config.colorKey], async (hex) => {
-							await this.plugin.updateSetting(config.colorKey, hex);
-							this.plugin.applyLibraryHeaderStyles();
+						this.bindColorSwatchButton(button.buttonEl, settings[config.colorKey], (hex) => {
+							void this.plugin.updateSetting(config.colorKey, hex).then(() => this.plugin.applyLibraryHeaderStyles());
 						}),
 					),
 			)
@@ -793,9 +783,8 @@ export class UiFormattingModal extends Modal {
 			)
 			.addSetting((setting) => {
 				setting.setName("Subtitle weight");
-				this.bindFontWeightDropdown(setting, settings.libraryBookSubtitleFontWeight, async (value) => {
-					await this.plugin.updateSetting("libraryBookSubtitleFontWeight", value);
-					this.plugin.applyLibraryHeaderStyles();
+				this.bindFontWeightDropdown(setting, settings.libraryBookSubtitleFontWeight, (value) => {
+					void this.plugin.updateSetting("libraryBookSubtitleFontWeight", value).then(() => this.plugin.applyLibraryHeaderStyles());
 				});
 			})
 			.addSetting((setting) => {
@@ -818,9 +807,8 @@ export class UiFormattingModal extends Modal {
 					.setName("Highlight colour for library items")
 					.setDesc("The colour used for the active chapter/item highlight.")
 					.addButton((button) =>
-						this.bindColorSwatchButton(button.buttonEl, settings.highlightColor, async (hex) => {
-							await this.plugin.updateSetting("highlightColor", hex);
-							this.plugin.applyHighlightStyle();
+						this.bindColorSwatchButton(button.buttonEl, settings.highlightColor, (hex) => {
+							void this.plugin.updateSetting("highlightColor", hex).then(() => this.plugin.applyHighlightStyle());
 						}),
 					),
 			)
@@ -829,9 +817,8 @@ export class UiFormattingModal extends Modal {
 					.setName("Highlight text colour for library items")
 					.setDesc("colour used for the active chapter/item highlight text")
 					.addButton((button) =>
-						this.bindColorSwatchButton(button.buttonEl, settings.highlightTextColor, async (hex) => {
-							await this.plugin.updateSetting("highlightTextColor", hex);
-							this.plugin.applyHighlightStyle();
+						this.bindColorSwatchButton(button.buttonEl, settings.highlightTextColor, (hex) => {
+							void this.plugin.updateSetting("highlightTextColor", hex).then(() => this.plugin.applyHighlightStyle());
 						}),
 					),
 			);
@@ -868,9 +855,8 @@ export class UiFormattingModal extends Modal {
 					.setName("Unplaced items colour")
 					.setDesc("colour of unplaced items")
 					.addButton((button) =>
-						this.bindColorSwatchButton(button.buttonEl, settings.unplacedItemsColor, async (hex) => {
-							await this.plugin.updateSetting("unplacedItemsColor", hex);
-							this.plugin.applyHeaderStyles();
+						this.bindColorSwatchButton(button.buttonEl, settings.unplacedItemsColor, (hex) => {
+							void this.plugin.updateSetting("unplacedItemsColor", hex).then(() => this.plugin.applyHeaderStyles());
 						}),
 					);
 			})
@@ -896,9 +882,8 @@ export class UiFormattingModal extends Modal {
 						"highlights the currently selected chapter in the storyForge panel, only active if per panel highlighting is selected",
 					)
 					.addButton((button) =>
-						this.bindColorSwatchButton(button.buttonEl, settings.unplacedHighlightColor, async (hex) => {
-							await this.plugin.updateSetting("unplacedHighlightColor", hex);
-							this.plugin.applyHighlightStyle();
+						this.bindColorSwatchButton(button.buttonEl, settings.unplacedHighlightColor, (hex) => {
+							void this.plugin.updateSetting("unplacedHighlightColor", hex).then(() => this.plugin.applyHighlightStyle());
 						}),
 					);
 			})
@@ -906,9 +891,8 @@ export class UiFormattingModal extends Modal {
 				setting
 					.setName("Highlight text colour")
 					.addButton((button) =>
-						this.bindColorSwatchButton(button.buttonEl, settings.unplacedHighlightTextColor, async (hex) => {
-							await this.plugin.updateSetting("unplacedHighlightTextColor", hex);
-							this.plugin.applyHighlightStyle();
+						this.bindColorSwatchButton(button.buttonEl, settings.unplacedHighlightTextColor, (hex) => {
+							void this.plugin.updateSetting("unplacedHighlightTextColor", hex).then(() => this.plugin.applyHighlightStyle());
 						}),
 					),
 			);
@@ -922,7 +906,7 @@ export class UiFormattingModal extends Modal {
 	}
 
 	private applyUnplacedUseHeaderColorToggle(value: boolean, applyUseHeaderColorVisibility: (hidden: boolean) => void): void {
-		this.plugin.updateSetting("unplacedUseHeaderColorForAll", value).then(() => {
+		void this.plugin.updateSetting("unplacedUseHeaderColorForAll", value).then(() => {
 			applyUseHeaderColorVisibility(value);
 			this.plugin.applyHeaderStyles();
 			this.plugin.applyHighlightStyle();
@@ -956,9 +940,8 @@ export class UiFormattingModal extends Modal {
 			)
 			.addSetting((setting) => {
 				setting.setName("Folder weight").setDesc("Font weight of the codex folder names.");
-				this.bindFontWeightDropdown(setting, settings.codexFolderFontWeight, async (value) => {
-					await this.plugin.updateSetting("codexFolderFontWeight", value);
-					this.plugin.applyCodexFolderStyle();
+				this.bindFontWeightDropdown(setting, settings.codexFolderFontWeight, (value) => {
+					void this.plugin.updateSetting("codexFolderFontWeight", value).then(() => this.plugin.applyCodexFolderStyle());
 				});
 			})
 			.addSetting((setting) => {
@@ -967,9 +950,8 @@ export class UiFormattingModal extends Modal {
 					.setName("Folder colour")
 					.setDesc("Colour of the codex folder names and chevrons.")
 					.addButton((button) =>
-						this.bindColorSwatchButton(button.buttonEl, settings.codexFolderColor, async (hex) => {
-							await this.plugin.updateSetting("codexFolderColor", hex);
-							this.plugin.applyCodexFolderStyle();
+						this.bindColorSwatchButton(button.buttonEl, settings.codexFolderColor, (hex) => {
+							void this.plugin.updateSetting("codexFolderColor", hex).then(() => this.plugin.applyCodexFolderStyle());
 						}),
 					);
 			})
@@ -1008,9 +990,8 @@ export class UiFormattingModal extends Modal {
 			)
 			.addSetting((setting) => {
 				setting.setName("Codex note label weight").setDesc("Font weight of the codex note (file) labels.");
-				this.bindFontWeightDropdown(setting, settings.codexNoteLabelFontWeight, async (value) => {
-					await this.plugin.updateSetting("codexNoteLabelFontWeight", value);
-					this.plugin.applyCodexNoteLabelStyle();
+				this.bindFontWeightDropdown(setting, settings.codexNoteLabelFontWeight, (value) => {
+					void this.plugin.updateSetting("codexNoteLabelFontWeight", value).then(() => this.plugin.applyCodexNoteLabelStyle());
 				});
 			})
 			.addSetting((setting) => {
@@ -1019,9 +1000,8 @@ export class UiFormattingModal extends Modal {
 					.setName("Codex note label colour")
 					.setDesc("Colour of the codex note (file) labels.")
 					.addButton((button) =>
-						this.bindColorSwatchButton(button.buttonEl, settings.codexNoteLabelColor, async (hex) => {
-							await this.plugin.updateSetting("codexNoteLabelColor", hex);
-							this.plugin.applyCodexNoteLabelStyle();
+						this.bindColorSwatchButton(button.buttonEl, settings.codexNoteLabelColor, (hex) => {
+							void this.plugin.updateSetting("codexNoteLabelColor", hex).then(() => this.plugin.applyCodexNoteLabelStyle());
 						}),
 					);
 			})
@@ -1048,13 +1028,11 @@ export class UiFormattingModal extends Modal {
 		this.bindExclusivePair(
 			defaultToggle,
 			folderToggle,
-			async (value) => {
-				await this.plugin.updateSetting("codexNoteLabelUseDefaultColor", value);
-				this.plugin.applyCodexNoteLabelStyle();
+			(value) => {
+				void this.plugin.updateSetting("codexNoteLabelUseDefaultColor", value).then(() => this.plugin.applyCodexNoteLabelStyle());
 			},
-			async (value) => {
-				await this.plugin.updateSetting("codexNoteLabelUseFolderColor", value);
-				this.plugin.applyCodexNoteLabelStyle();
+			(value) => {
+				void this.plugin.updateSetting("codexNoteLabelUseFolderColor", value).then(() => this.plugin.applyCodexNoteLabelStyle());
 			},
 		);
 
@@ -1069,9 +1047,8 @@ export class UiFormattingModal extends Modal {
 						"highlights the currently selected note in the codex panel, only active if per panel highlighting is selected",
 					)
 					.addButton((button) =>
-						this.bindColorSwatchButton(button.buttonEl, settings.codexHighlightColor, async (hex) => {
-							await this.plugin.updateSetting("codexHighlightColor", hex);
-							this.plugin.applyHighlightStyle();
+						this.bindColorSwatchButton(button.buttonEl, settings.codexHighlightColor, (hex) => {
+							void this.plugin.updateSetting("codexHighlightColor", hex).then(() => this.plugin.applyHighlightStyle());
 						}),
 					);
 			})
@@ -1079,9 +1056,8 @@ export class UiFormattingModal extends Modal {
 				setting
 					.setName("Highlight text colour")
 					.addButton((button) =>
-						this.bindColorSwatchButton(button.buttonEl, settings.codexHighlightTextColor, async (hex) => {
-							await this.plugin.updateSetting("codexHighlightTextColor", hex);
-							this.plugin.applyHighlightStyle();
+						this.bindColorSwatchButton(button.buttonEl, settings.codexHighlightTextColor, (hex) => {
+							void this.plugin.updateSetting("codexHighlightTextColor", hex).then(() => this.plugin.applyHighlightStyle());
 						}),
 					),
 			);
@@ -1098,7 +1074,7 @@ export class UiFormattingModal extends Modal {
 	}
 
 	private applyCodexUseHeaderColorToggle(value: boolean, applyUseHeaderColorVisibility: (hidden: boolean) => void): void {
-		this.plugin.updateSetting("codexUseHeaderColorForAll", value).then(() => {
+		void this.plugin.updateSetting("codexUseHeaderColorForAll", value).then(() => {
 			applyUseHeaderColorVisibility(value);
 			this.plugin.applyHeaderStyles();
 			this.plugin.applyHighlightStyle();
@@ -1108,7 +1084,7 @@ export class UiFormattingModal extends Modal {
 	}
 
 	private applyCodexFolderIndicatorThickness(value: CodexFolderIndicatorThickness): void {
-		this.plugin.updateSetting("codexFolderIndicatorThickness", value).then(() => {
+		void this.plugin.updateSetting("codexFolderIndicatorThickness", value).then(() => {
 			this.plugin.applyCodexFolderStyle();
 			this.plugin.applyHighlightStyle();
 		});

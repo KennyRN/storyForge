@@ -12,8 +12,8 @@ class CycleBadgeWidget extends WidgetType {
 		return other instanceof CycleBadgeWidget;
 	}
 
-	toDOM(): HTMLElement {
-		const badge = document.body.createEl("span", { cls: "sf-cycling-guide-badge" });
+	toDOM(view: EditorView): HTMLElement {
+		const badge = view.dom.ownerDocument.body.createEl("span", { cls: "sf-cycling-guide-badge" });
 		badge.detach();
 		const icon = badge.createSpan({ cls: "sf-cycling-guide-badge-icon" });
 		setIcon(icon, ICON_CYCLE_ALT);
