@@ -78,7 +78,7 @@ export class ProtectionsModal extends Modal {
 
 	private renderImportExportContent(body: HTMLElement): void {
 		const exportCard = new SettingGroup(body);
-		exportCard.addSetting((setting) =>
+		exportCard.addSetting((setting) => {
 			setting
 				.setName("Export settings")
 				.setDesc("Saves all storyForge settings to a JSON file.")
@@ -91,11 +91,11 @@ export class ProtectionsModal extends Modal {
 						a.click();
 						URL.revokeObjectURL(url);
 					}),
-				),
-		);
+				);
+		});
 
 		const importCard = new SettingGroup(body);
-		importCard.addSetting((setting) =>
+		importCard.addSetting((setting) => {
 			setting
 				.setName("Import settings")
 				.setDesc("Restores storyForge settings from a previously exported JSON file. This overwrites your current settings.")
@@ -109,8 +109,8 @@ export class ProtectionsModal extends Modal {
 						});
 						input.click();
 					}),
-				),
-		);
+				);
+		});
 	}
 
 	private handleImportFile(file: File): void {
@@ -136,16 +136,16 @@ export class ProtectionsModal extends Modal {
 		let folderValue = settings.automaticBackupFolder;
 		let frequencyRow!: Setting;
 
-		card.addSetting((setting) =>
+		card.addSetting((setting) => {
 			setting
 				.setName("Automatic backup")
 				.setDesc("Automatically zip your vault's notes and attachments on a schedule.")
 				.addToggle((toggle) =>
 					toggle.setValue(settings.automaticBackupEnabled).onChange((value) => this.persistAutoBackupEnabled(value, frequencyRow)),
-				),
-		);
+				);
+		});
 
-		card.addSetting((setting) =>
+		card.addSetting((setting) => {
 			setting
 				.setName("Backup folder")
 				.setDesc("Absolute folder path on this computer where backup zip files are saved. Required for both automatic and manual backups.")
@@ -162,8 +162,8 @@ export class ProtectionsModal extends Modal {
 					button
 						.setButtonText("Browse")
 						.onClick(() => this.browseForBackupFolder((path) => (folderValue = path))),
-				),
-		);
+				);
+		});
 
 		card.addSetting((setting) => {
 			frequencyRow = setting.setName("Backup frequency").addDropdown((dropdown) =>
@@ -177,7 +177,7 @@ export class ProtectionsModal extends Modal {
 			frequencyRow.settingEl.toggleClass("sf-settings-hidden", !settings.automaticBackupEnabled);
 		});
 
-		card.addSetting((setting) =>
+		card.addSetting((setting) => {
 			setting
 				.setName("Back up now")
 				.setDesc(`Creates a full backup zip immediately, including your ${this.app.vault.configDir} settings folder — saved to the backup folder above.`)
@@ -189,16 +189,16 @@ export class ProtectionsModal extends Modal {
 						}
 						this.runManualBackup(folderValue);
 					}),
-				),
-		);
+				);
+		});
 
 		const welcomeNoteCard = new SettingGroup(body);
-		welcomeNoteCard.addSetting((setting) =>
+		welcomeNoteCard.addSetting((setting) => {
 			setting
 				.setName("Recreate welcome note")
 				.setDesc("Restores storyForge Welcome.md in your Codex if you've deleted it. If it still exists, this just opens it.")
-				.addButton((button) => button.setButtonText("Recreate welcome note").onClick(() => this.recreateWelcomeNote())),
-		);
+				.addButton((button) => button.setButtonText("Recreate welcome note").onClick(() => this.recreateWelcomeNote()));
+		});
 	}
 
 	private persistBackupFolder(value: string): void {
