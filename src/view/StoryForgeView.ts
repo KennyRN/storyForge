@@ -49,6 +49,7 @@ export class StoryForgeView extends ItemView {
 	}
 
 	private readonly debouncedRender = debounce(() => this.render(), 400);
+	private closed = false;
 
 	async onOpen(): Promise<void> {
 		const settings = this.plugin.getSettings();
@@ -63,6 +64,11 @@ export class StoryForgeView extends ItemView {
 		this.registerEvent(this.app.vault.on("modify", (file) => { if (!isBackstageBookkeepingPath(file.path)) this.debouncedRender(); }));
 		this.registerEvent(this.app.metadataCache.on("changed", () => this.debouncedRender()));
 		this.followActiveFile();
+	}
+
+	async onClose(): Promise<void> {
+		this.closed = true;
+		this.debouncedRender.cancel();
 	}
 
 	private followActiveFile(): void {
@@ -95,6 +101,7 @@ export class StoryForgeView extends ItemView {
 	}
 
 	render(): void {
+		if (this.closed) return;
 		const container = this.contentEl;
 		container.empty();
 		container.addClass("storyforge-view");
@@ -137,6 +144,7 @@ export class StoryForgeView extends ItemView {
 			onArchiveChapter: async () => {
 				if (this.currentBookFolderName) {
 					await recomputeBookTotal(this.app, this.currentBookFolderName);
+					if (this.closed) return;
 					await this.refreshStats();
 				}
 			},
@@ -188,6 +196,7 @@ export class StoryForgeView extends ItemView {
 			activeFile && isLibraryChapterPath(activeFile.path)
 				? countWords(await this.app.vault.cachedRead(activeFile))
 				: 0;
+		if (this.closed) return;
 
 		let daily = 0;
 		let weekly = 0;
@@ -203,6 +212,7 @@ export class StoryForgeView extends ItemView {
 			// "daily"/"weekly" are deltas against history, not the running total. Splice in
 			// today's live total in case the debounced background persist hasn't flushed yet.
 			const { totals } = await readHistory(this.app, this.currentBookFolderName);
+			if (this.closed) return;
 			const todayISO = todayISOInEngland();
 			const totalsWithLive = { ...totals, [todayISO]: story };
 			daily = wordsToday(totalsWithLive, todayISO);
