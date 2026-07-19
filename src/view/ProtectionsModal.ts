@@ -3,7 +3,23 @@ import type StoryForgePlugin from "../main";
 import type { AutomaticBackupFrequency, StoryForgePluginSettings } from "../main";
 import { runFullBackup } from "../backup";
 import { ensureWelcomeNote } from "../welcomeNote";
-import { dialog } from "@electron/remote";
+
+interface RemoteDialog {
+	showOpenDialog(options: {
+		properties: Array<"openFile" | "openDirectory" | "multiSelections">;
+	}): Promise<{ canceled: boolean; filePaths: string[] }>;
+}
+
+function getRemoteDialog(): RemoteDialog | null {
+	try {
+		const req = (window as unknown as { require?: (m: string) => unknown }).require;
+		if (!req) return null;
+		const remote = req("@electron/remote") as { dialog?: RemoteDialog };
+		return remote.dialog ?? null;
+	} catch {
+		return null;
+	}
+}
 
 export class ProtectionsModal extends Modal {
 	private plugin: StoryForgePlugin;
@@ -220,6 +236,11 @@ export class ProtectionsModal extends Modal {
 	}
 
 	private browseForBackupFolder(setFolderValue: (path: string) => void): void {
+		const dialog = getRemoteDialog();
+		if (!dialog) {
+			new Notice("storyForge: native folder picker unavailable — paste the folder path into the field instead.");
+			return;
+		}
 		dialog
 			.showOpenDialog({ properties: ["openDirectory"] })
 			.then((result) => {
