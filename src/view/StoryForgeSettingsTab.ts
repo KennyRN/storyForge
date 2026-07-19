@@ -220,17 +220,4 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			},
 		];
 	}
-
-	/** Imperative fallback for Obsidian < 1.13.0 (this plugin's minAppVersion). Not called on newer hosts, since getSettingDefinitions() returns a non-empty array there. */
-	display(): void {
-		const { containerEl } = this;
-		containerEl.empty();
-		containerEl.addClass("sf-settings-tab");
-
-		const settings = this.plugin.getSettings();
-
-		this.renderTopActions(containerEl, settings);
-		this.renderPaletteSection(containerEl, settings);
-		this.renderButtonRow(containerEl);
-	}
 }
