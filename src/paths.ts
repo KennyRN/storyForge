@@ -68,3 +68,13 @@ export function chapterFilenameFromPath(path: string): string | null {
 	const segments = path.split("/");
 	return segments[segments.length - 1];
 }
+
+/** True for backstage paths whose churn shouldn't trigger a view re-render —
+ * wordcount.md is rewritten on every keystroke's debounce tick, and chapter
+ * sidecars are rewritten on every fingerprint check, so re-rendering on these
+ * would defeat the point of debouncing in the first place. */
+export function isBackstageBookkeepingPath(path: string): boolean {
+	if (!path.startsWith(`${BACKSTAGE_ROOT}/`)) return false;
+	if (path === wordCountFilePath()) return true;
+	return path.includes("/chapters/");
+}

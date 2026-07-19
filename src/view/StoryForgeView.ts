@@ -1,6 +1,6 @@
 import { ItemView, Notice, TFile, WorkspaceLeaf } from "obsidian";
 import type StoryForgePlugin from "../main";
-import { bookFolderNameFromChapterPath, isLibraryChapterPath, libraryChapterPath } from "../paths";
+import { bookFolderNameFromChapterPath, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath } from "../paths";
 import { getBookId } from "../series";
 import { getBookChapterFiles, readBookFrontmatter } from "../book";
 import { renderTopPanel, type UnplacedViewMode } from "./TopPanel";
@@ -58,9 +58,9 @@ export class StoryForgeView extends ItemView {
 		this.collapsedCodexFolders = new Set(settings.collapsedCodexFolderIds);
 		this.registerEvent(this.app.workspace.on("active-leaf-change", () => this.followActiveFile()));
 		this.registerEvent(this.app.workspace.on("file-open", () => this.followActiveFile()));
-		this.registerEvent(this.app.vault.on("rename", () => this.debouncedRender()));
-		this.registerEvent(this.app.vault.on("create", () => this.debouncedRender()));
-		this.registerEvent(this.app.vault.on("modify", () => this.debouncedRender()));
+		this.registerEvent(this.app.vault.on("rename", (file) => { if (!isBackstageBookkeepingPath(file.path)) this.debouncedRender(); }));
+		this.registerEvent(this.app.vault.on("create", (file) => { if (!isBackstageBookkeepingPath(file.path)) this.debouncedRender(); }));
+		this.registerEvent(this.app.vault.on("modify", (file) => { if (!isBackstageBookkeepingPath(file.path)) this.debouncedRender(); }));
 		this.registerEvent(this.app.metadataCache.on("changed", () => this.debouncedRender()));
 		this.followActiveFile();
 	}
@@ -186,7 +186,7 @@ export class StoryForgeView extends ItemView {
 		const activeFile = this.app.workspace.getActiveFile();
 		const chapter =
 			activeFile && isLibraryChapterPath(activeFile.path)
-				? countWords(await this.app.vault.read(activeFile))
+				? countWords(await this.app.vault.cachedRead(activeFile))
 				: 0;
 
 		let daily = 0;
@@ -197,7 +197,7 @@ export class StoryForgeView extends ItemView {
 			const chapterFiles = getBookChapterFiles(this.app, this.currentBookFolderName);
 			const archived = new Set(readBookFrontmatter(this.app, this.currentBookFolderName)?.archive ?? []);
 			const liveFiles = chapterFiles.filter((f) => !archived.has(f.name));
-			const contents = await Promise.all(liveFiles.map((f) => this.app.vault.read(f)));
+			const contents = await Promise.all(liveFiles.map((f) => this.app.vault.cachedRead(f)));
 			story = sumWordCounts(contents);
 
 			// "daily"/"weekly" are deltas against history, not the running total. Splice in

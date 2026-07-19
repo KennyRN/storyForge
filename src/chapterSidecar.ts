@@ -50,6 +50,12 @@ export async function updateChapterFingerprint(
 	if (file instanceof TFile) {
 		const raw = await app.vault.read(file);
 		frontmatter = { ...parseFrontmatterBlock(raw), chapter: chapterFilename };
+		const content = buildSidecarContent(frontmatter, fingerprint);
+		// Typing pauses fire this on every debounce tick; skip the write when the
+		// fingerprint hasn't actually changed, so idle re-checks don't touch disk.
+		if (content === raw) return;
+		await writeBackstageFile(app.vault, path, content);
+		return;
 	}
 	const content = buildSidecarContent(frontmatter, fingerprint);
 	await writeBackstageFile(app.vault, path, content);
