@@ -10,9 +10,8 @@ export class HideUiModal extends Modal {
 		this.plugin = plugin;
 	}
 
-	private async persistVisibility<K extends keyof StoryForgePluginSettings>(key: K, value: StoryForgePluginSettings[K]): Promise<void> {
-		await this.plugin.updateSetting(key, value);
-		this.plugin.applyVisibilityStyles();
+	private persistVisibility<K extends keyof StoryForgePluginSettings>(key: K, value: StoryForgePluginSettings[K]): void {
+		this.plugin.updateSetting(key, value).then(() => this.plugin.applyVisibilityStyles());
 	}
 
 	onOpen(): void {
@@ -38,7 +37,7 @@ export class HideUiModal extends Modal {
 				.setName("Hide help button")
 				.setDesc("Hides the help (?) button next to the vault picker.")
 				.addToggle((toggle) =>
-					toggle.setValue(settings.hideHelp).onChange((value) => void this.persistVisibility("hideHelp", value)),
+					toggle.setValue(settings.hideHelp).onChange((value) => this.persistVisibility("hideHelp", value)),
 				),
 		);
 
@@ -49,7 +48,7 @@ export class HideUiModal extends Modal {
 					.setName("Hide search panel")
 					.setDesc("Hides the Search button at the top of the left sidebar.")
 					.addToggle((toggle) =>
-						toggle.setValue(settings.hideSearch).onChange((value) => void this.persistVisibility("hideSearch", value)),
+						toggle.setValue(settings.hideSearch).onChange((value) => this.persistVisibility("hideSearch", value)),
 					),
 			)
 			.addSetting((setting) =>
@@ -57,7 +56,7 @@ export class HideUiModal extends Modal {
 					.setName("Hide bookmarks panel")
 					.setDesc("Hides the Bookmarks button at the top of the left sidebar.")
 					.addToggle((toggle) =>
-						toggle.setValue(settings.hideBookmarks).onChange((value) => void this.persistVisibility("hideBookmarks", value)),
+						toggle.setValue(settings.hideBookmarks).onChange((value) => this.persistVisibility("hideBookmarks", value)),
 					),
 			)
 			.addSetting((setting) =>
@@ -65,7 +64,7 @@ export class HideUiModal extends Modal {
 					.setName("Hide files panel")
 					.setDesc("Hides the Files button at the top of the left sidebar.")
 					.addToggle((toggle) =>
-						toggle.setValue(settings.hideFiles).onChange((value) => void this.persistVisibility("hideFiles", value)),
+						toggle.setValue(settings.hideFiles).onChange((value) => this.persistVisibility("hideFiles", value)),
 					),
 			);
 
@@ -76,7 +75,7 @@ export class HideUiModal extends Modal {
 					.setName("Hide left panel button")
 					.setDesc("Hides the left sidebar collapse/expand button.")
 					.addToggle((toggle) =>
-						toggle.setValue(settings.hideLeftPanel).onChange((value) => void this.persistVisibility("hideLeftPanel", value)),
+						toggle.setValue(settings.hideLeftPanel).onChange((value) => this.persistVisibility("hideLeftPanel", value)),
 					),
 			)
 			.addSetting((setting) =>
@@ -84,7 +83,7 @@ export class HideUiModal extends Modal {
 					.setName("Hide right panel button")
 					.setDesc("Hides the right sidebar collapse/expand button.")
 					.addToggle((toggle) =>
-						toggle.setValue(settings.hideRightPanel).onChange((value) => void this.persistVisibility("hideRightPanel", value)),
+						toggle.setValue(settings.hideRightPanel).onChange((value) => this.persistVisibility("hideRightPanel", value)),
 					),
 			);
 
@@ -95,7 +94,7 @@ export class HideUiModal extends Modal {
 					.setName("Hide file name bar")
 					.setDesc("Hides the large file name displayed at the top of the note content.")
 					.addToggle((toggle) =>
-						toggle.setValue(settings.hideFileNameBar).onChange((value) => void this.persistVisibility("hideFileNameBar", value)),
+						toggle.setValue(settings.hideFileNameBar).onChange((value) => this.persistVisibility("hideFileNameBar", value)),
 					),
 			)
 			.addSetting((setting) =>
@@ -103,7 +102,7 @@ export class HideUiModal extends Modal {
 					.setName("Hide navigation row")
 					.setDesc("Hides the bar beneath the tab that shows the navigation buttons, three-dot menu, and reader/edit view toggle.")
 					.addToggle((toggle) =>
-						toggle.setValue(settings.hideNavRow).onChange((value) => void this.persistVisibility("hideNavRow", value)),
+						toggle.setValue(settings.hideNavRow).onChange((value) => this.persistVisibility("hideNavRow", value)),
 					),
 			)
 			.addSetting((setting) =>
@@ -116,7 +115,7 @@ export class HideUiModal extends Modal {
 							.addOption("sync-only", "Show only the Obsidian Sync icon")
 							.addOption("all", "Show all of the status bar")
 							.setValue(settings.statusBarView)
-							.onChange((value) => void this.persistVisibility("statusBarView", value as StatusBarView)),
+							.onChange((value) => this.persistVisibility("statusBarView", value as StatusBarView)),
 					),
 			);
 	}

@@ -27,7 +27,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					button
 						.setButtonText("Reopen panel")
 						.setCta()
-						.onClick(() => void this.plugin.activateView()),
+						.onClick(() => this.openStoryForgePanel()),
 				),
 		);
 		panelGroup.addSetting((setting) =>
@@ -35,25 +35,34 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				.setName("Tools panel")
 				.setDesc("ribbon is hidden and the ribbon icons can be found within the tools panel")
 				.addToggle((toggle) =>
-					toggle.setValue(settings.useToolsPanel).onChange((value) => void this.persistUseToolsPanel(value)),
+					toggle.setValue(settings.useToolsPanel).onChange((value) => this.persistUseToolsPanel(value)),
 				)
 				.addButton((button) =>
 					button
 						.setButtonText("Reopen Tools Panel")
 						.setCta()
-						.onClick(() => void this.plugin.activateToolsView()),
+						.onClick(() => this.openToolsPanel()),
 				),
 		);
 	}
 
-	private async persistUseToolsPanel(value: boolean): Promise<void> {
-		await this.plugin.updateSetting("useToolsPanel", value);
-		this.plugin.applyVisibilityStyles();
-		if (value) {
-			await this.plugin.activateToolsView();
-		} else {
-			this.app.workspace.detachLeavesOfType(TOOLS_VIEW_TYPE);
-		}
+	private openStoryForgePanel(): void {
+		void this.plugin.activateView();
+	}
+
+	private openToolsPanel(): void {
+		void this.plugin.activateToolsView();
+	}
+
+	private persistUseToolsPanel(value: boolean): void {
+		this.plugin.updateSetting("useToolsPanel", value).then(() => {
+			this.plugin.applyVisibilityStyles();
+			if (value) {
+				void this.plugin.activateToolsView();
+			} else {
+				this.app.workspace.detachLeavesOfType(TOOLS_VIEW_TYPE);
+			}
+		});
 	}
 
 	private renderPaletteSection(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
@@ -64,7 +73,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				.setDesc("Palette used when picking colours for storyForge's UI elements below.")
 				.addDropdown((dropdown) => {
 					for (const name of PALETTE_NAMES) dropdown.addOption(name, name);
-					dropdown.setValue(settings.colorPaletteName).onChange((value) => void this.persistColorPaletteName(value as PaletteName));
+					dropdown.setValue(settings.colorPaletteName).onChange((value) => this.persistColorPaletteName(value as PaletteName));
 				}),
 		);
 		if (settings.colorPaletteName !== "Custom") {
@@ -77,7 +86,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 							.addOption("light", "Light")
 							.addOption("dark", "Dark")
 							.setValue(settings.colorPaletteMode)
-							.onChange((value) => void this.plugin.updateSetting("colorPaletteMode", value as PaletteMode)),
+							.onChange((value) => this.persistColorPaletteMode(value as PaletteMode)),
 					),
 			);
 		}
@@ -89,31 +98,36 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					setting
 						.setName(`Custom colour ${i + 1}`)
 						.addText((text) =>
-							text.setValue(entry.name).setPlaceholder("Name").onChange((value) => void this.persistCustomPaletteColor(settings, i, "name", value)),
+							text.setValue(entry.name).setPlaceholder("Name").onChange((value) => this.persistCustomPaletteColor(settings, i, "name", value)),
 						)
 						.addText((text) => {
 							text.setValue(entry.hex);
 							text.inputEl.type = "color";
-							text.onChange((value) => void this.persistCustomPaletteColor(settings, i, "hex", value));
+							text.onChange((value) => this.persistCustomPaletteColor(settings, i, "hex", value));
 						}),
 				);
 			});
 		}
 	}
 
-	private async persistColorPaletteName(value: PaletteName): Promise<void> {
-		await this.plugin.updateSetting("colorPaletteName", value);
-		if (typeof this.update === "function") {
-			this.update();
-		} else {
-			this.display();
-		}
+	private persistColorPaletteMode(value: PaletteMode): void {
+		void this.plugin.updateSetting("colorPaletteMode", value);
 	}
 
-	private async persistCustomPaletteColor(settings: StoryForgePluginSettings, index: number, field: "name" | "hex", value: string): Promise<void> {
+	private persistColorPaletteName(value: PaletteName): void {
+		this.plugin.updateSetting("colorPaletteName", value).then(() => {
+			if (typeof this.update === "function") {
+				this.update();
+			} else {
+				this.display();
+			}
+		});
+	}
+
+	private persistCustomPaletteColor(settings: StoryForgePluginSettings, index: number, field: "name" | "hex", value: string): void {
 		const colors = settings.customPaletteColors.slice();
 		colors[index] = { ...colors[index], [field]: value };
-		await this.plugin.updateSetting("customPaletteColors", colors);
+		void this.plugin.updateSetting("customPaletteColors", colors);
 	}
 
 	private renderTextStyleButton(containerEl: HTMLElement): void {
