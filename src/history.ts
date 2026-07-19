@@ -2,6 +2,8 @@ import { App, parseYaml, stringifyYaml, TFile } from "obsidian";
 import { wordCountFilePath } from "./paths";
 import { writeBackstageFile } from "./writeGuard";
 import { todayISOInEngland, wordsThisWeek, wordsToday } from "./historyMath";
+import { getBookChapterFiles, readBookFrontmatter } from "./book";
+import { sumWordCounts } from "./wordCount";
 
 export { todayISOInEngland, wordsThisWeek, wordsToday };
 
@@ -52,4 +54,16 @@ export async function upsertTodayTotal(
 	// via the returned `run` promise.
 	writeQueue = run.catch(() => undefined);
 	return run;
+}
+
+/** Single home for "sum live chapters, stamp today's total" — used after any
+ * edit that can change a book's word count (chapter save, archive/unarchive). */
+export async function recomputeBookTotal(app: App, bookFolderName: string): Promise<number> {
+	const chapterFiles = getBookChapterFiles(app, bookFolderName);
+	const archived = new Set(readBookFrontmatter(app, bookFolderName)?.archive ?? []);
+	const liveFiles = chapterFiles.filter((f) => !archived.has(f.name));
+	const contents = await Promise.all(liveFiles.map((f) => app.vault.cachedRead(f)));
+	const total = sumWordCounts(contents);
+	await upsertTodayTotal(app, bookFolderName, total);
+	return total;
 }
