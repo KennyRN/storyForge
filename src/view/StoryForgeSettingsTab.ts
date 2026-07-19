@@ -174,8 +174,8 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 
 	/**
 	 * Declarative path (Obsidian >= 1.13.0). Each row is rendered via the `render` escape hatch,
-	 * delegating straight into the same containerEl-based helpers `display()` uses below, so there
-	 * is exactly one implementation of each row's behaviour regardless of which path runs it.
+	 * delegating straight into the same containerEl-based helpers shared by every definition's
+	 * render callback, so there is exactly one implementation of each row's behaviour.
 	 */
 	getSettingDefinitions(): SettingDefinitionItem[] {
 		const settings = this.plugin.getSettings();
@@ -219,18 +219,5 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				],
 			},
 		];
-	}
-
-	/** Imperative fallback for Obsidian < 1.13.0 (this plugin's minAppVersion). Not called on newer hosts, since getSettingDefinitions() returns a non-empty array there. */
-	display(): void {
-		const { containerEl } = this;
-		containerEl.empty();
-		containerEl.addClass("sf-settings-tab");
-
-		const settings = this.plugin.getSettings();
-
-		this.renderTopActions(containerEl, settings);
-		this.renderPaletteSection(containerEl, settings);
-		this.renderButtonRow(containerEl);
 	}
 }
