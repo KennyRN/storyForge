@@ -214,7 +214,7 @@ export class ProtectionsModal extends Modal {
 	}
 
 	private persistAutoBackupEnabled(value: boolean, frequencyRow: Setting): void {
-		this.plugin.updateSetting("automaticBackupEnabled", value).then(() => {
+		void this.plugin.updateSetting("automaticBackupEnabled", value).then(() => {
 			frequencyRow.settingEl.toggleClass("sf-settings-hidden", !value);
 		});
 	}

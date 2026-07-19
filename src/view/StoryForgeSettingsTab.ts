@@ -55,7 +55,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 	}
 
 	private persistUseToolsPanel(value: boolean): void {
-		this.plugin.updateSetting("useToolsPanel", value).then(() => {
+		void this.plugin.updateSetting("useToolsPanel", value).then(() => {
 			this.plugin.applyVisibilityStyles();
 			if (value) {
 				void this.plugin.activateToolsView();
@@ -115,13 +115,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 	}
 
 	private persistColorPaletteName(value: PaletteName): void {
-		this.plugin.updateSetting("colorPaletteName", value).then(() => {
-			if (typeof this.update === "function") {
-				this.update();
-			} else {
-				this.display();
-			}
-		});
+		void this.plugin.updateSetting("colorPaletteName", value).then(() => this.update());
 	}
 
 	private persistCustomPaletteColor(settings: StoryForgePluginSettings, index: number, field: "name" | "hex", value: string): void {

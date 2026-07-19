@@ -294,7 +294,7 @@ export class TextStyleModal extends Modal {
 
 	private openColorSwatchPicker(paint: (hex: string) => void, onPick: (hex: string) => void): void {
 		const s = this.plugin.getSettings();
-		import("./PalettePickerModal").then(({ PalettePickerModal }) => {
+		void import("./PalettePickerModal").then(({ PalettePickerModal }) => {
 			new PalettePickerModal(this.app, s.colorPaletteName, s.colorPaletteMode, s.customPaletteColors, (hex) =>
 				this.applyColorPick(hex, paint, onPick),
 			).open();
@@ -406,7 +406,7 @@ export class TextStyleModal extends Modal {
 			body,
 			label,
 			settings[overrideKey] as boolean,
-			async (value) => { await this.plugin.updateSetting(overrideKey, value); },
+			(value) => { void this.plugin.updateSetting(overrideKey, value); },
 			(card) => {
 				let sliderSetting!: Setting;
 				card.addSetting((setting) => {
@@ -430,11 +430,11 @@ export class TextStyleModal extends Modal {
 		value: StoryForgePluginSettings[K],
 		restyle: () => void,
 	): void {
-		this.plugin.updateSetting(key, value).then(() => restyle());
+		void this.plugin.updateSetting(key, value).then(() => restyle());
 	}
 
 	private persistHideHeading1Links(value: boolean): void {
-		this.plugin.updateSetting("hideHeading1Links", value).then(() => this.plugin.applyHeading1LinkStyle());
+		void this.plugin.updateSetting("hideHeading1Links", value).then(() => this.plugin.applyHeading1LinkStyle());
 	}
 
 	private renderColorOverrideCard(
@@ -451,18 +451,16 @@ export class TextStyleModal extends Modal {
 			body,
 			label,
 			settings[overrideKey] as boolean,
-			async (value) => {
-				await this.plugin.updateSetting(overrideKey, value);
-				onToggle?.(value);
+			(value) => {
+				void this.plugin.updateSetting(overrideKey, value).then(() => onToggle?.(value));
 			},
 			(card) => {
 				let colorSetting!: Setting;
 				card.addSetting((setting) => {
 					colorSetting = setting;
 					setting.setName(swatchLabel).addButton((button) =>
-						this.bindColorSwatchButton(button.buttonEl, settings[colorKey] as string, async (hex) => {
-							await this.plugin.updateSetting(colorKey, hex);
-							restyle();
+						this.bindColorSwatchButton(button.buttonEl, settings[colorKey] as string, (hex) => {
+							void this.plugin.updateSetting(colorKey, hex).then(() => restyle());
 						}),
 					);
 				});
@@ -489,9 +487,8 @@ export class TextStyleModal extends Modal {
 		card.addSetting((setting) => {
 			boldColorSetting = setting;
 			setting.setName("Bold colour").addButton((button) =>
-				this.bindColorSwatchButton(button.buttonEl, settings.bodyTextBoldColor, async (hex) => {
-					await this.plugin.updateSetting("bodyTextBoldColor", hex);
-					restyle();
+				this.bindColorSwatchButton(button.buttonEl, settings.bodyTextBoldColor, (hex) => {
+					void this.plugin.updateSetting("bodyTextBoldColor", hex).then(() => restyle());
 				}),
 			);
 		});
@@ -500,9 +497,8 @@ export class TextStyleModal extends Modal {
 		card.addSetting((setting) => {
 			italicColorSetting = setting;
 			setting.setName("Italic colour").addButton((button) =>
-				this.bindColorSwatchButton(button.buttonEl, settings.bodyTextItalicColor, async (hex) => {
-					await this.plugin.updateSetting("bodyTextItalicColor", hex);
-					restyle();
+				this.bindColorSwatchButton(button.buttonEl, settings.bodyTextItalicColor, (hex) => {
+					void this.plugin.updateSetting("bodyTextItalicColor", hex).then(() => restyle());
 				}),
 			);
 		});
@@ -518,7 +514,7 @@ export class TextStyleModal extends Modal {
 	}
 
 	private applyEmphasisColorToggle(value: boolean, applyVisibility: (hidden: boolean) => void, restyle: () => void): void {
-		this.plugin.updateSetting("bodyTextOverrideEmphasisColor", value).then(() => {
+		void this.plugin.updateSetting("bodyTextOverrideEmphasisColor", value).then(() => {
 			applyVisibility(!value);
 			restyle();
 		});
@@ -572,9 +568,8 @@ export class TextStyleModal extends Modal {
 		card.addSetting((setting) => {
 			fontWeightSetting = setting;
 			setting.setName("Font weight");
-			this.bindFontWeightDropdown(setting, settings[fontWeightKey] as string, async (value) => {
-				await this.plugin.updateSetting(fontWeightKey, value);
-				restyle();
+			this.bindFontWeightDropdown(setting, settings[fontWeightKey] as string, (value) => {
+				void this.plugin.updateSetting(fontWeightKey, value).then(() => restyle());
 			});
 		});
 
@@ -609,7 +604,7 @@ export class TextStyleModal extends Modal {
 		applyVisibility: (overrideOff: boolean) => void,
 		restyle: () => void,
 	): void {
-		this.plugin.updateSetting(overrideFontKey, value).then(() => {
+		void this.plugin.updateSetting(overrideFontKey, value).then(() => {
 			applyVisibility(!value);
 			restyle();
 		});
@@ -623,7 +618,7 @@ export class TextStyleModal extends Modal {
 		applyOverrideVisibility: () => void,
 		restyle: () => void,
 	): void {
-		this.plugin.updateSetting(fontFamilyKey, value).then(() => {
+		void this.plugin.updateSetting(fontFamilyKey, value).then(() => {
 			applySelectedFont(value);
 			setSelectedFontFamily(value);
 			applyOverrideVisibility();
