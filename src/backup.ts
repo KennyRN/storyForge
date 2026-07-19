@@ -42,6 +42,8 @@ async function writeZipToFolder(destFolder: string, filename: string, buffer: Ui
 	return fullPath;
 }
 
+// This module is intentionally the only place in the plugin that enumerates the vault (see README's
+// "Privacy and vault access"). Any future enumeration elsewhere should be a design decision, not a convenience.
 /** Content-only backup used by the automatic schedule: every file Obsidian indexes (notes + attachments). */
 export async function runContentBackup(app: App, destFolder: string, includeTime: boolean, now: Date = new Date()): Promise<string> {
 	const entries: Zippable = {};
@@ -54,15 +56,16 @@ export async function runContentBackup(app: App, destFolder: string, includeTime
 	return writeZipToFolder(destFolder, filename, buffer);
 }
 
-/** Recursively lists every path under the vault root, including hidden folders like `.obsidian`. */
-async function listAllFilesRecursive(app: App, folder: string, skipFolder: string | null): Promise<string[]> {
+/** Recursively lists every path under the vault root, including hidden folders like `.obsidian` (but not `.trash`). */
+export async function listAllFilesRecursive(app: App, folder: string, skipFolder: string | null): Promise<string[]> {
+	if (folder === ".trash" || folder.startsWith(".trash/")) return [];
 	if (skipFolder && (folder === skipFolder || folder.startsWith(`${skipFolder}/`))) return [];
 	const { files, folders } = await app.vault.adapter.list(folder);
 	const nested = await Promise.all(folders.map((sub) => listAllFilesRecursive(app, sub, skipFolder)));
 	return [...files, ...nested.flat()];
 }
 
-/** Full backup used by the manual "Back up now" button: every file in the vault, including `.obsidian`. */
+/** Full backup used by the manual "Back up now" button: every file in the vault, including `.obsidian`, excluding `.trash`. */
 export async function runFullBackup(app: App, destFolder: string, now: Date = new Date()): Promise<string> {
 	const normalizedDest = path.resolve(destFolder);
 	const basePath = "getBasePath" in app.vault.adapter ? (app.vault.adapter as { getBasePath(): string }).getBasePath() : null;

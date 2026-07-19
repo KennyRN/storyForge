@@ -34,4 +34,10 @@ This plugin does access files outside the vault for backup purposes (both the li
 
 If you're running an automated security/behavior scan against storyForge, here's what it'll likely flag and why:
 - **Node `fs` access** and **full vault enumeration**: both come from the same disclosed backup feature above — writing a zip file to a folder outside the vault requires Node's `fs`, and building that zip requires reading every file in the vault via Obsidian's own `vault.getFiles()`/`vault.adapter.list()` APIs. Neither is used anywhere else in the plugin.
-- **Dynamic code execution (`eval`/`new Function`)**: not storyForge's own code — storyForge itself contains no `eval`/`new Function` calls. The one instance a scan of the built bundle will find comes from the `setimmediate` polyfill, pulled in transitively by `jszip` (the library storyForge uses to build those same zip backups), not from anything storyForge invokes directly.
+
+## Privacy and vault access
+storyForge writes only inside its own `_sf-backstage` folder — there's no code path anywhere in the plugin that writes to your prose, codex, or any other vault content.
+
+The backup feature is the one exception to that otherwise scoped read access. When a backup runs — whether you start it manually or via the schedule you've enabled — it reads every file in the vault in order to zip it up. That's the sole reason the plugin enumerates vault files, and it happens only in `src/backup.ts`.
+
+Backups are written to a local folder you choose. Nothing leaves your machine, and storyForge makes no network requests.
