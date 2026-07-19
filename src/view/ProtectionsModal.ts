@@ -105,7 +105,7 @@ export class ProtectionsModal extends Modal {
 						input.addEventListener("change", () => {
 							const file = input.files?.[0];
 							if (!file) return;
-							void this.handleImportFile(file);
+							this.handleImportFile(file);
 						});
 						input.click();
 					}),
@@ -113,15 +113,17 @@ export class ProtectionsModal extends Modal {
 		);
 	}
 
-	private async handleImportFile(file: File): Promise<void> {
-		try {
-			const text = await file.text();
-			const parsed: unknown = JSON.parse(text);
-			await this.plugin.importSettings(parsed);
-			this.render();
-		} catch (err) {
-			new Notice(`storyForge: could not import settings — ${err instanceof Error ? err.message : String(err)}`);
-		}
+	private handleImportFile(file: File): void {
+		file
+			.text()
+			.then((text) => {
+				const parsed: unknown = JSON.parse(text);
+				return this.plugin.importSettings(parsed);
+			})
+			.then(() => this.render())
+			.catch((err: unknown) => {
+				new Notice(`storyForge: could not import settings — ${err instanceof Error ? err.message : String(err)}`);
+			});
 	}
 
 	private renderBackupContent(body: HTMLElement, settings: StoryForgePluginSettings): void {
@@ -139,7 +141,7 @@ export class ProtectionsModal extends Modal {
 				.setName("Automatic backup")
 				.setDesc("Automatically zip your vault's notes and attachments on a schedule.")
 				.addToggle((toggle) =>
-					toggle.setValue(settings.automaticBackupEnabled).onChange((value) => void this.persistAutoBackupEnabled(value, frequencyRow)),
+					toggle.setValue(settings.automaticBackupEnabled).onChange((value) => this.persistAutoBackupEnabled(value, frequencyRow)),
 				),
 		);
 
@@ -153,13 +155,13 @@ export class ProtectionsModal extends Modal {
 						.setValue(settings.automaticBackupFolder)
 						.onChange((value) => {
 							folderValue = value;
-							void this.plugin.updateSetting("automaticBackupFolder", value);
+							this.persistBackupFolder(value);
 						}),
 				)
 				.addButton((button) =>
 					button
 						.setButtonText("Browse")
-						.onClick(() => void this.browseForBackupFolder((path) => (folderValue = path))),
+						.onClick(() => this.browseForBackupFolder((path) => (folderValue = path))),
 				),
 		);
 
@@ -170,7 +172,7 @@ export class ProtectionsModal extends Modal {
 					.addOption("daily", "Once daily")
 					.addOption("weekly", "Once weekly")
 					.setValue(settings.automaticBackupFrequency)
-					.onChange((value) => void this.plugin.updateSetting("automaticBackupFrequency", value as AutomaticBackupFrequency)),
+					.onChange((value) => this.persistBackupFrequency(value as AutomaticBackupFrequency)),
 			);
 			frequencyRow.settingEl.toggleClass("sf-settings-hidden", !settings.automaticBackupEnabled);
 		});
@@ -185,7 +187,7 @@ export class ProtectionsModal extends Modal {
 							new Notice("storyForge: set a backup folder before backing up.");
 							return;
 						}
-						void this.runManualBackup(folderValue);
+						this.runManualBackup(folderValue);
 					}),
 				),
 		);
@@ -195,44 +197,58 @@ export class ProtectionsModal extends Modal {
 			setting
 				.setName("Recreate welcome note")
 				.setDesc("Restores storyForge Welcome.md in your Codex if you've deleted it. If it still exists, this just opens it.")
-				.addButton((button) => button.setButtonText("Recreate welcome note").onClick(() => void this.recreateWelcomeNote())),
+				.addButton((button) => button.setButtonText("Recreate welcome note").onClick(() => this.recreateWelcomeNote())),
 		);
 	}
 
-	private async persistAutoBackupEnabled(value: boolean, frequencyRow: Setting): Promise<void> {
-		await this.plugin.updateSetting("automaticBackupEnabled", value);
-		frequencyRow.settingEl.toggleClass("sf-settings-hidden", !value);
+	private persistBackupFolder(value: string): void {
+		this.plugin.updateSetting("automaticBackupFolder", value).catch((err: unknown) => {
+			new Notice(`storyForge: could not save backup folder — ${err instanceof Error ? err.message : String(err)}`);
+		});
 	}
 
-	private async browseForBackupFolder(setFolderValue: (path: string) => void): Promise<void> {
-		try {
-			const result = await dialog.showOpenDialog({ properties: ["openDirectory"] });
-			if (!result.canceled && result.filePaths.length > 0) {
-				const selectedPath = result.filePaths[0];
-				setFolderValue(selectedPath);
-				await this.plugin.updateSetting("automaticBackupFolder", selectedPath);
-				this.render();
-			}
-		} catch (err) {
-			new Notice(`storyForge: could not open folder picker — ${err instanceof Error ? err.message : String(err)}`);
-		}
+	private persistBackupFrequency(value: AutomaticBackupFrequency): void {
+		this.plugin.updateSetting("automaticBackupFrequency", value).catch((err: unknown) => {
+			new Notice(`storyForge: could not save backup frequency — ${err instanceof Error ? err.message : String(err)}`);
+		});
 	}
 
-	private async runManualBackup(folder: string): Promise<void> {
-		try {
-			const path = await runFullBackup(this.app, folder);
-			new Notice(`storyForge: backup saved to ${path}`);
-		} catch (err) {
-			new Notice(`storyForge: backup failed — ${err instanceof Error ? err.message : String(err)}`);
-		}
+	private persistAutoBackupEnabled(value: boolean, frequencyRow: Setting): void {
+		this.plugin.updateSetting("automaticBackupEnabled", value).then(() => {
+			frequencyRow.settingEl.toggleClass("sf-settings-hidden", !value);
+		});
 	}
 
-	private async recreateWelcomeNote(): Promise<void> {
-		try {
-			const file = await ensureWelcomeNote(this.app);
-			await this.app.workspace.getLeaf(false).openFile(file);
-		} catch (err) {
-			new Notice(`storyForge: could not recreate welcome note — ${err instanceof Error ? err.message : String(err)}`);
-		}
+	private browseForBackupFolder(setFolderValue: (path: string) => void): void {
+		dialog
+			.showOpenDialog({ properties: ["openDirectory"] })
+			.then((result) => {
+				if (!result.canceled && result.filePaths.length > 0) {
+					const selectedPath = result.filePaths[0];
+					setFolderValue(selectedPath);
+					return this.plugin.updateSetting("automaticBackupFolder", selectedPath).then(() => this.render());
+				}
+			})
+			.catch((err: unknown) => {
+				new Notice(`storyForge: could not open folder picker — ${err instanceof Error ? err.message : String(err)}`);
+			});
+	}
+
+	private runManualBackup(folder: string): void {
+		runFullBackup(this.app, folder)
+			.then((path) => {
+				new Notice(`storyForge: backup saved to ${path}`);
+			})
+			.catch((err: unknown) => {
+				new Notice(`storyForge: backup failed — ${err instanceof Error ? err.message : String(err)}`);
+			});
+	}
+
+	private recreateWelcomeNote(): void {
+		ensureWelcomeNote(this.app)
+			.then((file) => this.app.workspace.getLeaf(false).openFile(file))
+			.catch((err: unknown) => {
+				new Notice(`storyForge: could not recreate welcome note — ${err instanceof Error ? err.message : String(err)}`);
+			});
 	}
 }

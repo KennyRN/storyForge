@@ -98,7 +98,7 @@ export class TextStyleModal extends Modal {
 										"When on, links inside a note's H1 heading render as plain text — no link colour or underline — so the title looks like a normal heading.",
 									)
 									.addToggle((toggle) =>
-										toggle.setValue(settings.hideHeading1Links).onChange((value) => void this.persistHideHeading1Links(value)),
+										toggle.setValue(settings.hideHeading1Links).onChange((value) => this.persistHideHeading1Links(value)),
 									),
 							),
 					);
@@ -281,7 +281,7 @@ export class TextStyleModal extends Modal {
 	private bindColorSwatchButton(
 		buttonEl: HTMLElement,
 		initialHex: string,
-		onPick: (hex: string) => Promise<void>,
+		onPick: (hex: string) => void,
 	): void {
 		buttonEl.addClass("sf-color-swatch-btn");
 		buttonEl.setAttr("aria-label", "Choose colour");
@@ -289,23 +289,24 @@ export class TextStyleModal extends Modal {
 			buttonEl.style.backgroundColor = hex;
 		};
 		paint(initialHex);
-		buttonEl.addEventListener("click", () => void this.openColorSwatchPicker(paint, onPick));
+		buttonEl.addEventListener("click", () => this.openColorSwatchPicker(paint, onPick));
 	}
 
-	private async openColorSwatchPicker(paint: (hex: string) => void, onPick: (hex: string) => Promise<void>): Promise<void> {
+	private openColorSwatchPicker(paint: (hex: string) => void, onPick: (hex: string) => void): void {
 		const s = this.plugin.getSettings();
-		const { PalettePickerModal } = await import("./PalettePickerModal");
-		new PalettePickerModal(this.app, s.colorPaletteName, s.colorPaletteMode, s.customPaletteColors, (hex) =>
-			void this.applyColorPick(hex, paint, onPick),
-		).open();
+		import("./PalettePickerModal").then(({ PalettePickerModal }) => {
+			new PalettePickerModal(this.app, s.colorPaletteName, s.colorPaletteMode, s.customPaletteColors, (hex) =>
+				this.applyColorPick(hex, paint, onPick),
+			).open();
+		});
 	}
 
-	private async applyColorPick(hex: string, paint: (hex: string) => void, onPick: (hex: string) => Promise<void>): Promise<void> {
+	private applyColorPick(hex: string, paint: (hex: string) => void, onPick: (hex: string) => void): void {
 		paint(hex);
-		await onPick(hex);
+		onPick(hex);
 	}
 
-	private bindFontWeightDropdown(setting: Setting, value: string, onChange: (value: string) => Promise<void>): void {
+	private bindFontWeightDropdown(setting: Setting, value: string, onChange: (value: string) => void): void {
 		setting.addDropdown((dropdown) => {
 			for (const [val, label] of FONT_WEIGHT_OPTIONS) {
 				dropdown.addOption(val, label);
@@ -317,43 +318,43 @@ export class TextStyleModal extends Modal {
 			};
 			dropdown.setValue(value);
 			applySelectedWeight(value);
-			dropdown.onChange((v) => void this.applyFontWeightChange(v, applySelectedWeight, onChange));
+			dropdown.onChange((v) => this.applyFontWeightChange(v, applySelectedWeight, onChange));
 		});
 	}
 
-	private async applyFontWeightChange(v: string, applySelectedWeight: (v: string) => void, onChange: (value: string) => Promise<void>): Promise<void> {
-		await onChange(v);
+	private applyFontWeightChange(v: string, applySelectedWeight: (v: string) => void, onChange: (value: string) => void): void {
+		onChange(v);
 		applySelectedWeight(v);
 	}
 
 	private bindExclusivePair(
 		toggleA: ToggleComponent,
 		toggleB: ToggleComponent,
-		persistA: (value: boolean) => Promise<void>,
-		persistB: (value: boolean) => Promise<void>,
+		persistA: (value: boolean) => void,
+		persistB: (value: boolean) => void,
 	): void {
-		toggleA.onChange((value) => void this.applyExclusiveToggle(value, toggleB, persistA, persistB));
-		toggleB.onChange((value) => void this.applyExclusiveToggle(value, toggleA, persistB, persistA));
+		toggleA.onChange((value) => this.applyExclusiveToggle(value, toggleB, persistA, persistB));
+		toggleB.onChange((value) => this.applyExclusiveToggle(value, toggleA, persistB, persistA));
 	}
 
-	private async applyExclusiveToggle(
+	private applyExclusiveToggle(
 		value: boolean,
 		other: ToggleComponent,
-		persistSelf: (value: boolean) => Promise<void>,
-		persistOther: (value: boolean) => Promise<void>,
-	): Promise<void> {
+		persistSelf: (value: boolean) => void,
+		persistOther: (value: boolean) => void,
+	): void {
 		if (value && other.getValue()) {
 			other.setValue(false);
-			await persistOther(false);
+			persistOther(false);
 		}
-		await persistSelf(value);
+		persistSelf(value);
 	}
 
 	private renderToggleWithRevealCard(
 		body: HTMLElement,
 		toggleLabel: string,
 		initialValue: boolean,
-		persist: (value: boolean) => Promise<void>,
+		persist: (value: boolean) => void,
 		buildRevealRow: (card: SettingGroup) => Setting,
 		restyle: () => void,
 		extraRowBefore?: (card: SettingGroup) => void,
@@ -372,19 +373,19 @@ export class TextStyleModal extends Modal {
 		return { toggle, card };
 	}
 
-	private wireCardToggle(toggle: ToggleComponent, card: Setting, persist: (value: boolean) => Promise<void>, restyle: () => void): void {
+	private wireCardToggle(toggle: ToggleComponent, card: Setting, persist: (value: boolean) => void, restyle: () => void): void {
 		const applyVisibility = (hidden: boolean) => card.settingEl.toggleClass("sf-settings-hidden", hidden);
-		toggle.onChange((value) => void this.applyCardToggle(value, persist, applyVisibility, restyle));
+		toggle.onChange((value) => this.applyCardToggle(value, persist, applyVisibility, restyle));
 		applyVisibility(!toggle.getValue());
 	}
 
-	private async applyCardToggle(
+	private applyCardToggle(
 		value: boolean,
-		persist: (value: boolean) => Promise<void>,
+		persist: (value: boolean) => void,
 		applyVisibility: (hidden: boolean) => void,
 		restyle: () => void,
-	): Promise<void> {
-		await persist(value);
+	): void {
+		persist(value);
 		applyVisibility(!value);
 		restyle();
 	}
@@ -414,7 +415,7 @@ export class TextStyleModal extends Modal {
 						slider
 							.setLimits(min, max, 0.25)
 							.setValue(settings[sizeKey] as number)
-							.onChange((value) => void this.persistAndRestyle(sizeKey, value, restyle)),
+							.onChange((value) => this.persistAndRestyle(sizeKey, value, restyle)),
 					);
 				});
 				return sliderSetting;
@@ -424,18 +425,16 @@ export class TextStyleModal extends Modal {
 		);
 	}
 
-	private async persistAndRestyle<K extends keyof StoryForgePluginSettings>(
+	private persistAndRestyle<K extends keyof StoryForgePluginSettings>(
 		key: K,
 		value: StoryForgePluginSettings[K],
 		restyle: () => void,
-	): Promise<void> {
-		await this.plugin.updateSetting(key, value);
-		restyle();
+	): void {
+		this.plugin.updateSetting(key, value).then(() => restyle());
 	}
 
-	private async persistHideHeading1Links(value: boolean): Promise<void> {
-		await this.plugin.updateSetting("hideHeading1Links", value);
-		this.plugin.applyHeading1LinkStyle();
+	private persistHideHeading1Links(value: boolean): void {
+		this.plugin.updateSetting("hideHeading1Links", value).then(() => this.plugin.applyHeading1LinkStyle());
 	}
 
 	private renderColorOverrideCard(
@@ -512,16 +511,17 @@ export class TextStyleModal extends Modal {
 			boldColorSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 			italicColorSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 		};
-		toggle.onChange((value) => void this.applyEmphasisColorToggle(value, applyVisibility, restyle));
+		toggle.onChange((value) => this.applyEmphasisColorToggle(value, applyVisibility, restyle));
 		applyVisibility(!toggle.getValue());
 
 		return toggleSetting;
 	}
 
-	private async applyEmphasisColorToggle(value: boolean, applyVisibility: (hidden: boolean) => void, restyle: () => void): Promise<void> {
-		await this.plugin.updateSetting("bodyTextOverrideEmphasisColor", value);
-		applyVisibility(!value);
-		restyle();
+	private applyEmphasisColorToggle(value: boolean, applyVisibility: (hidden: boolean) => void, restyle: () => void): void {
+		this.plugin.updateSetting("bodyTextOverrideEmphasisColor", value).then(() => {
+			applyVisibility(!value);
+			restyle();
+		});
 	}
 
 	private renderFontCard(
@@ -563,7 +563,7 @@ export class TextStyleModal extends Modal {
 				dropdown.setValue(settings[fontFamilyKey] as string);
 				applySelectedFont(settings[fontFamilyKey] as string);
 				dropdown.onChange((value) =>
-					void this.applyFontFamilyPick(fontFamilyKey, value, applySelectedFont, (v) => (selectedFontFamily = v), () => applyVisibility(!overrideToggle.getValue()), restyle),
+					this.applyFontFamilyPick(fontFamilyKey, value, applySelectedFont, (v) => (selectedFontFamily = v), () => applyVisibility(!overrideToggle.getValue()), restyle),
 				);
 			});
 		});
@@ -583,7 +583,7 @@ export class TextStyleModal extends Modal {
 			card.addSetting((setting) => {
 				smallCapsSetting = setting;
 				setting.setName("Small caps").addToggle((toggle) =>
-					toggle.setValue(settings[smallCapsKey] as boolean).onChange((value) => void this.persistAndRestyle(smallCapsKey, value, restyle)),
+					toggle.setValue(settings[smallCapsKey] as boolean).onChange((value) => this.persistAndRestyle(smallCapsKey, value, restyle)),
 				);
 				setting.nameEl.addClass("sf-small-caps-label");
 			});
@@ -599,34 +599,36 @@ export class TextStyleModal extends Modal {
 			smallCapsSetting?.settingEl.toggleClass("sf-settings-hidden", overrideOff);
 			fontWeightSetting.settingEl.toggleClass("sf-settings-hidden", overrideOff || !isSelectedFontVariable());
 		};
-		overrideToggle.onChange((value) => void this.applyFontOverrideToggle(overrideFontKey, value, applyVisibility, restyle));
+		overrideToggle.onChange((value) => this.applyFontOverrideToggle(overrideFontKey, value, applyVisibility, restyle));
 		applyVisibility(!overrideToggle.getValue());
 	}
 
-	private async applyFontOverrideToggle(
+	private applyFontOverrideToggle(
 		overrideFontKey: keyof StoryForgePluginSettings,
 		value: boolean,
 		applyVisibility: (overrideOff: boolean) => void,
 		restyle: () => void,
-	): Promise<void> {
-		await this.plugin.updateSetting(overrideFontKey, value);
-		applyVisibility(!value);
-		restyle();
+	): void {
+		this.plugin.updateSetting(overrideFontKey, value).then(() => {
+			applyVisibility(!value);
+			restyle();
+		});
 	}
 
-	private async applyFontFamilyPick(
+	private applyFontFamilyPick(
 		fontFamilyKey: keyof StoryForgePluginSettings,
 		value: string,
 		applySelectedFont: (value: string) => void,
 		setSelectedFontFamily: (value: string) => void,
 		applyOverrideVisibility: () => void,
 		restyle: () => void,
-	): Promise<void> {
-		await this.plugin.updateSetting(fontFamilyKey, value);
-		applySelectedFont(value);
-		setSelectedFontFamily(value);
-		applyOverrideVisibility();
-		restyle();
+	): void {
+		this.plugin.updateSetting(fontFamilyKey, value).then(() => {
+			applySelectedFont(value);
+			setSelectedFontFamily(value);
+			applyOverrideVisibility();
+			restyle();
+		});
 	}
 
 	private renderDividerCard(
@@ -656,7 +658,7 @@ export class TextStyleModal extends Modal {
 					.addOption("medium", "Medium")
 					.addOption("thick", "Thick")
 					.setValue(settings[aboveThicknessKey] as string)
-					.onChange((value) => void this.persistAndRestyle(aboveThicknessKey, value, restyle)),
+					.onChange((value) => this.persistAndRestyle(aboveThicknessKey, value, restyle)),
 			);
 		});
 		this.wireCardToggle(aboveToggle, aboveThicknessSetting, (value) => this.plugin.updateSetting(aboveKey, value), restyle);
@@ -677,7 +679,7 @@ export class TextStyleModal extends Modal {
 					.addOption("medium", "Medium")
 					.addOption("thick", "Thick")
 					.setValue(settings[belowThicknessKey] as string)
-					.onChange((value) => void this.persistAndRestyle(belowThicknessKey, value, restyle)),
+					.onChange((value) => this.persistAndRestyle(belowThicknessKey, value, restyle)),
 			);
 		});
 		this.wireCardToggle(belowToggle, belowThicknessSetting, (value) => this.plugin.updateSetting(belowKey, value), restyle);
