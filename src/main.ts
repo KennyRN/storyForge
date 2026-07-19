@@ -644,6 +644,15 @@ export default class StoryForgePlugin extends Plugin {
 		}
 	}
 
+	/**
+	 * Tags the vault-drawer help button's `.clickable-icon` wrapper with `sf-vault-help` so styles.css
+	 * can target it without `:has()` - the wrapper carries no attribute of its own, only its inner
+	 * `.help` icon does. Idempotent; no-ops if the drawer/button isn't in `doc` yet.
+	 */
+	private tagVaultHelpButton(doc: Document): void {
+		doc.body.querySelector(".workspace-drawer-vault-actions .help")?.closest(".clickable-icon")?.addClass("sf-vault-help");
+	}
+
 	/** Registers the embedded custom fonts into the main document and every open pop-out window (idempotent - see `fontFacesRegisteredFor`). */
 	private registerCustomFontFacesForAllDocs(): void {
 		if (!this.fontFacesRegisteredFor.has(document)) {
@@ -678,6 +687,9 @@ export default class StoryForgePlugin extends Plugin {
 			"--sf-statusbar-hidden-display": s.statusBarView === "hidden" ? "none" : null,
 			"--sf-statusbar-nonsync-display": s.statusBarView === "sync-only" ? "none" : null,
 		});
+
+		this.tagVaultHelpButton(document);
+		for (const doc of this.extraDocs) this.tagVaultHelpButton(doc);
 
 		// The ribbon-relocation rules (ribbon-width var, ribbon hide/show, tab-header padding) are
 		// static in styles.css, scoped entirely by this class - no custom properties needed.

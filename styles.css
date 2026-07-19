@@ -1177,7 +1177,7 @@
  * properties fall back to `revert`, which defers to Obsidian's/the active theme's own value for
  * that property - i.e. "unset" here means "this override has no effect", not "hidden"/"zero". */
 
-.workspace-drawer-vault-actions .clickable-icon:has(.help):not(#storyforge-specificity-boost) { display: var(--sf-help-display, revert); }
+.workspace-drawer-vault-actions .clickable-icon.sf-vault-help:not(#storyforge-specificity-boost) { display: var(--sf-help-display, revert); }
 .workspace-drawer-vault-actions:not(#storyforge-specificity-boost) { display: var(--sf-vault-actions-display, revert); }
 div[aria-label="Search"]:not(#storyforge-specificity-boost) { display: var(--sf-search-display, revert); }
 div[aria-label="Bookmarks"]:not(#storyforge-specificity-boost) { display: var(--sf-bookmarks-display, revert); }
