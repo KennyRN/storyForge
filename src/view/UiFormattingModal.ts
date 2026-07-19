@@ -80,7 +80,7 @@ export class UiFormattingModal extends Modal {
 					});
 					this.renderSubtitleStyleGroup(body, settings);
 					this.renderLibraryHighlightRows(body, settings);
-					new SettingGroup(body).addSetting((setting) =>
+					new SettingGroup(body).addSetting((setting) => {
 						setting
 							.setName("Divider below title")
 							.setDesc("Adds a border below the series/book title, matching the border between storyForge's panes.")
@@ -88,8 +88,8 @@ export class UiFormattingModal extends Modal {
 								toggle
 									.setValue(settings.libraryHeaderDividerBelow)
 									.onChange((value) => this.persistAndRestyle("libraryHeaderDividerBelow", value, () => this.plugin.applyLibraryHeaderStyles())),
-							),
-					);
+							);
+					});
 					this.renderSeriesPaneContent(body, settings);
 				},
 			},
@@ -223,12 +223,12 @@ export class UiFormattingModal extends Modal {
 		const card = new SettingGroup(body);
 		if (extraRowBefore) extraRowBefore(card);
 		let toggle!: ToggleComponent;
-		card.addSetting((setting) =>
+		card.addSetting((setting) => {
 			setting.setName(toggleLabel).addToggle((t) => {
 				toggle = t;
 				t.setValue(initialValue);
-			}),
-		);
+			});
+		});
 		const revealRow = buildRevealRow(card);
 		this.wireCardToggle(toggle, revealRow, persist, restyle);
 		return { toggle, card };
@@ -381,12 +381,12 @@ export class UiFormattingModal extends Modal {
 		const card = new SettingGroup(body);
 
 		let overrideToggle!: ToggleComponent;
-		card.addSetting((setting) =>
+		card.addSetting((setting) => {
 			setting.setName("Override theme's default font").addToggle((toggle) => {
 				overrideToggle = toggle;
 				toggle.setValue(settings[overrideFontKey] as boolean);
-			}),
-		);
+			});
+		});
 
 		let selectedFontFamily: string | undefined = fontFamilyKey ? (settings[fontFamilyKey] as string) : undefined;
 
@@ -487,12 +487,12 @@ export class UiFormattingModal extends Modal {
 		const card = new SettingGroup(body);
 
 		let aboveToggle!: ToggleComponent;
-		card.addSetting((setting) =>
+		card.addSetting((setting) => {
 			setting.setName("Divider line above header").addToggle((toggle) => {
 				aboveToggle = toggle;
 				toggle.setValue(settings[aboveKey] as boolean);
-			}),
-		);
+			});
+		});
 		let aboveThicknessSetting!: Setting;
 		card.addSetting((setting) => {
 			aboveThicknessSetting = setting;
@@ -505,15 +505,15 @@ export class UiFormattingModal extends Modal {
 					.onChange((value) => this.persistAndRestyle(aboveThicknessKey, value, restyle)),
 			);
 		});
-		this.wireCardToggle(aboveToggle, aboveThicknessSetting, (value) => this.plugin.updateSetting(aboveKey, value), restyle);
+		this.wireCardToggle(aboveToggle, aboveThicknessSetting, (value) => { void this.plugin.updateSetting(aboveKey, value); }, restyle);
 
 		let belowToggle!: ToggleComponent;
-		card.addSetting((setting) =>
+		card.addSetting((setting) => {
 			setting.setName("Divider line below header").addToggle((toggle) => {
 				belowToggle = toggle;
 				toggle.setValue(settings[belowKey] as boolean);
-			}),
-		);
+			});
+		});
 		let belowThicknessSetting!: Setting;
 		card.addSetting((setting) => {
 			belowThicknessSetting = setting;
@@ -526,7 +526,7 @@ export class UiFormattingModal extends Modal {
 					.onChange((value) => this.persistAndRestyle(belowThicknessKey, value, restyle)),
 			);
 		});
-		this.wireCardToggle(belowToggle, belowThicknessSetting, (value) => this.plugin.updateSetting(belowKey, value), restyle);
+		this.wireCardToggle(belowToggle, belowThicknessSetting, (value) => { void this.plugin.updateSetting(belowKey, value); }, restyle);
 	}
 
 	private renderHeaderStyleGroup(
@@ -545,7 +545,7 @@ export class UiFormattingModal extends Modal {
 		const group = new SettingGroup(body);
 		let useHeaderColorForAllToggle!: ToggleComponent;
 		group
-			.addSetting((setting) =>
+			.addSetting((setting) => {
 				setting
 					.setName("Header size")
 					.setDesc("size of header label and icon")
@@ -554,40 +554,40 @@ export class UiFormattingModal extends Modal {
 							.setLimits(0.5, 1.5, 0.25)
 							.setValue(settings[config.sizeKey])
 							.onChange((value) => this.persistAndRestyle(config.sizeKey, value, config.restyle)),
-					),
-			)
+					);
+			})
 			.addSetting((setting) => {
 				setting.setName("Header weight").setDesc("weight of header label");
 				this.bindFontWeightDropdown(setting, settings[config.fontWeightKey], (value) => {
 					void this.plugin.updateSetting(config.fontWeightKey, value).then(() => config.restyle());
 				});
 			})
-			.addSetting((setting) =>
+			.addSetting((setting) => {
 				setting
 					.setName("Header colour")
 					.addButton((button) =>
 						this.bindColorSwatchButton(button.buttonEl, settings[config.colorKey], (hex) => {
 							void this.plugin.updateSetting(config.colorKey, hex).then(() => config.restyle());
 						}),
-					),
-			)
-			.addSetting((setting) =>
+					);
+			})
+			.addSetting((setting) => {
 				setting
 					.setName("Use header colour for all colour options")
 					.setDesc("Use the header colour everywhere below instead of picking separate colours.")
 					.addToggle((toggle) => {
 						useHeaderColorForAllToggle = toggle;
 						toggle.setValue(settings[config.useHeaderColorForAllKey]);
-					}),
-			)
-			.addSetting((setting) =>
+					});
+			})
+			.addSetting((setting) => {
 				setting
 					.setName("Muted")
 					.setDesc("override header colour with muted colour")
 					.addToggle((toggle) =>
 						toggle.setValue(settings[config.mutedKey]).onChange((value) => this.persistAndRestyle(config.mutedKey, value, config.restyle)),
-					),
-			)
+					);
+			})
 			.addSetting((setting) => {
 				setting
 					.setName("Small caps")
@@ -601,7 +601,7 @@ export class UiFormattingModal extends Modal {
 
 	private renderHighlightGroup(body: HTMLElement, settings: StoryForgePluginSettings): void {
 		const highlightGroup = new SettingGroup(body);
-		highlightGroup.addSetting((setting) =>
+		highlightGroup.addSetting((setting) => {
 			setting
 				.setName("Highlight active chapter/item")
 				.setDesc(
@@ -611,23 +611,23 @@ export class UiFormattingModal extends Modal {
 					toggle
 						.setValue(settings.highlightActiveChapter)
 						.onChange((value) => this.persistAndRestyle("highlightActiveChapter", value, () => this.plugin.refreshStoryForgeViews())),
-				),
-		);
+				);
+		});
 	}
 
 	private renderCyclingGuideCard(body: HTMLElement, settings: StoryForgePluginSettings): void {
 		const cyclingGuideGroup = new SettingGroup(body);
 
 		let cyclingGuideToggle!: ToggleComponent;
-		cyclingGuideGroup.addSetting((setting) =>
+		cyclingGuideGroup.addSetting((setting) => {
 			setting
 				.setName("Cycling guide")
 				.setDesc("draws a floating guideline")
 				.addToggle((toggle) => {
 					cyclingGuideToggle = toggle;
 					toggle.setValue(settings.cyclingGuideEnabled);
-				}),
-		);
+				});
+		});
 
 		let cyclingGuideThicknessSetting!: Setting;
 		cyclingGuideGroup.addSetting((setting) => {
@@ -729,7 +729,7 @@ export class UiFormattingModal extends Modal {
 	): void {
 		const group = new SettingGroup(body);
 		group
-			.addSetting((setting) =>
+			.addSetting((setting) => {
 				setting
 					.setName(`${config.labelPrefix} size`)
 					.setDesc("Text size, from 0.5em to 2em.")
@@ -738,23 +738,23 @@ export class UiFormattingModal extends Modal {
 							.setLimits(0.5, 2, 0.25)
 							.setValue(settings[config.sizeKey])
 							.onChange((value) => this.persistAndRestyle(config.sizeKey, value, () => this.plugin.applyLibraryHeaderStyles())),
-					),
-			)
+					);
+			})
 			.addSetting((setting) => {
 				setting.setName(`${config.labelPrefix} weight`);
 				this.bindFontWeightDropdown(setting, settings[config.fontWeightKey], (value) => {
 					void this.plugin.updateSetting(config.fontWeightKey, value).then(() => this.plugin.applyLibraryHeaderStyles());
 				});
 			})
-			.addSetting((setting) =>
+			.addSetting((setting) => {
 				setting
 					.setName(`${config.labelPrefix} colour`)
 					.addButton((button) =>
 						this.bindColorSwatchButton(button.buttonEl, settings[config.colorKey], (hex) => {
 							void this.plugin.updateSetting(config.colorKey, hex).then(() => this.plugin.applyLibraryHeaderStyles());
 						}),
-					),
-			)
+					);
+			})
 			.addSetting((setting) => {
 				setting
 					.setName(`${config.labelPrefix} small caps`)
@@ -770,7 +770,7 @@ export class UiFormattingModal extends Modal {
 	private renderSubtitleStyleGroup(body: HTMLElement, settings: StoryForgePluginSettings): void {
 		const group = new SettingGroup(body);
 		group
-			.addSetting((setting) =>
+			.addSetting((setting) => {
 				setting
 					.setName("Subtitle size")
 					.setDesc("Text size, from 0.5em to 2em.")
@@ -779,8 +779,8 @@ export class UiFormattingModal extends Modal {
 							.setLimits(0.5, 2, 0.25)
 							.setValue(settings.libraryBookSubtitleFontSize)
 							.onChange((value) => this.persistAndRestyle("libraryBookSubtitleFontSize", value, () => this.plugin.applyLibraryHeaderStyles())),
-					),
-			)
+					);
+			})
 			.addSetting((setting) => {
 				setting.setName("Subtitle weight");
 				this.bindFontWeightDropdown(setting, settings.libraryBookSubtitleFontWeight, (value) => {
@@ -802,7 +802,7 @@ export class UiFormattingModal extends Modal {
 	private renderLibraryHighlightRows(body: HTMLElement, settings: StoryForgePluginSettings): void {
 		const libraryHighlightGroup = new SettingGroup(body);
 		libraryHighlightGroup
-			.addSetting((setting) =>
+			.addSetting((setting) => {
 				setting
 					.setName("Highlight colour for library items")
 					.setDesc("The colour used for the active chapter/item highlight.")
@@ -810,9 +810,9 @@ export class UiFormattingModal extends Modal {
 						this.bindColorSwatchButton(button.buttonEl, settings.highlightColor, (hex) => {
 							void this.plugin.updateSetting("highlightColor", hex).then(() => this.plugin.applyHighlightStyle());
 						}),
-					),
-			)
-			.addSetting((setting) =>
+					);
+			})
+			.addSetting((setting) => {
 				setting
 					.setName("Highlight text colour for library items")
 					.setDesc("colour used for the active chapter/item highlight text")
@@ -820,8 +820,8 @@ export class UiFormattingModal extends Modal {
 						this.bindColorSwatchButton(button.buttonEl, settings.highlightTextColor, (hex) => {
 							void this.plugin.updateSetting("highlightTextColor", hex).then(() => this.plugin.applyHighlightStyle());
 						}),
-					),
-			);
+					);
+			});
 	}
 
 	private renderUnplacedPanelContent(body: HTMLElement, settings: StoryForgePluginSettings): void {
@@ -838,7 +838,7 @@ export class UiFormattingModal extends Modal {
 		const unplacedItemsGroup = new SettingGroup(body);
 		let itemsColourSetting!: Setting;
 		unplacedItemsGroup
-			.addSetting((setting) =>
+			.addSetting((setting) => {
 				setting
 					.setName("Unplaced items")
 					.setDesc("Text size of the items in the Unplaced pane, from 0.5em to 1.5em.")
@@ -847,8 +847,8 @@ export class UiFormattingModal extends Modal {
 							.setLimits(0.5, 1.5, 0.25)
 							.setValue(settings.unplacedItemsFontSize)
 							.onChange((value) => this.persistAndRestyle("unplacedItemsFontSize", value, () => this.plugin.applyHeaderStyles())),
-					),
-			)
+					);
+			})
 			.addSetting((setting) => {
 				itemsColourSetting = setting;
 				setting
@@ -860,7 +860,7 @@ export class UiFormattingModal extends Modal {
 						}),
 					);
 			})
-			.addSetting((setting) =>
+			.addSetting((setting) => {
 				setting
 					.setName("Muted")
 					.setDesc("override colour with muted colour")
@@ -868,8 +868,8 @@ export class UiFormattingModal extends Modal {
 						toggle
 							.setValue(settings.unplacedItemsMuted)
 							.onChange((value) => this.persistAndRestyle("unplacedItemsMuted", value, () => this.plugin.applyHeaderStyles())),
-					),
-			);
+					);
+			});
 
 		const unplacedHighlightGroup = new SettingGroup(body);
 		let highlightColourSetting!: Setting;
@@ -887,15 +887,15 @@ export class UiFormattingModal extends Modal {
 						}),
 					);
 			})
-			.addSetting((setting) =>
+			.addSetting((setting) => {
 				setting
 					.setName("Highlight text colour")
 					.addButton((button) =>
 						this.bindColorSwatchButton(button.buttonEl, settings.unplacedHighlightTextColor, (hex) => {
 							void this.plugin.updateSetting("unplacedHighlightTextColor", hex).then(() => this.plugin.applyHighlightStyle());
 						}),
-					),
-			);
+					);
+			});
 
 		const applyUseHeaderColorVisibility = (hidden: boolean) => {
 			itemsColourSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
@@ -927,7 +927,7 @@ export class UiFormattingModal extends Modal {
 		const codexFolderGroup = new SettingGroup(body);
 		let folderColourSetting!: Setting;
 		codexFolderGroup
-			.addSetting((setting) =>
+			.addSetting((setting) => {
 				setting
 					.setName("Folder size")
 					.setDesc("Font size of the codex folder names and chevrons, from 0.5em to 1.5em.")
@@ -936,8 +936,8 @@ export class UiFormattingModal extends Modal {
 							.setLimits(0.5, 1.5, 0.25)
 							.setValue(settings.codexFolderFontSize)
 							.onChange((value) => this.persistAndRestyle("codexFolderFontSize", value, () => this.plugin.applyCodexFolderStyle())),
-					),
-			)
+					);
+			})
 			.addSetting((setting) => {
 				setting.setName("Folder weight").setDesc("Font weight of the codex folder names.");
 				this.bindFontWeightDropdown(setting, settings.codexFolderFontWeight, (value) => {
@@ -955,7 +955,7 @@ export class UiFormattingModal extends Modal {
 						}),
 					);
 			})
-			.addSetting((setting) =>
+			.addSetting((setting) => {
 				setting
 					.setName("Folder indicator line")
 					.setDesc("Vertical guide line showing what's nested inside a folder, coloured to match the folder colour.")
@@ -967,8 +967,8 @@ export class UiFormattingModal extends Modal {
 							.addOption("thick", "Thick")
 							.setValue(settings.codexFolderIndicatorThickness)
 							.onChange((value) => this.applyCodexFolderIndicatorThickness(value as CodexFolderIndicatorThickness)),
-					),
-			);
+					);
+			});
 
 		const codexNoteLabelGroup = new SettingGroup(body);
 		let defaultToggle!: ToggleComponent;
@@ -977,7 +977,7 @@ export class UiFormattingModal extends Modal {
 		let defaultColourToggleSetting!: Setting;
 		let folderColourToggleSetting!: Setting;
 		codexNoteLabelGroup
-			.addSetting((setting) =>
+			.addSetting((setting) => {
 				setting
 					.setName("Codex note label size")
 					.setDesc("Font size of the codex note (file) labels, from 0.5em to 1.5em.")
@@ -986,8 +986,8 @@ export class UiFormattingModal extends Modal {
 							.setLimits(0.5, 1.5, 0.25)
 							.setValue(settings.codexNoteLabelFontSize)
 							.onChange((value) => this.persistAndRestyle("codexNoteLabelFontSize", value, () => this.plugin.applyCodexNoteLabelStyle())),
-					),
-			)
+					);
+			})
 			.addSetting((setting) => {
 				setting.setName("Codex note label weight").setDesc("Font weight of the codex note (file) labels.");
 				this.bindFontWeightDropdown(setting, settings.codexNoteLabelFontWeight, (value) => {
@@ -1052,15 +1052,15 @@ export class UiFormattingModal extends Modal {
 						}),
 					);
 			})
-			.addSetting((setting) =>
+			.addSetting((setting) => {
 				setting
 					.setName("Highlight text colour")
 					.addButton((button) =>
 						this.bindColorSwatchButton(button.buttonEl, settings.codexHighlightTextColor, (hex) => {
 							void this.plugin.updateSetting("codexHighlightTextColor", hex).then(() => this.plugin.applyHighlightStyle());
 						}),
-					),
-			);
+					);
+			});
 
 		const applyUseHeaderColorVisibility = (hidden: boolean) => {
 			folderColourSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
@@ -1093,7 +1093,7 @@ export class UiFormattingModal extends Modal {
 	private renderSeriesPaneContent(body: HTMLElement, settings: StoryForgePluginSettings): void {
 		const seriesGroup = new SettingGroup(body);
 		seriesGroup
-			.addSetting((setting) =>
+			.addSetting((setting) => {
 				setting
 					.setName("Hide series pane")
 					.setDesc("Hides the series header and locks storyForge to book view — for standalone/non-series projects. Your series data isn't deleted; toggle this off anytime to bring it back.")
@@ -1101,8 +1101,8 @@ export class UiFormattingModal extends Modal {
 						toggle
 							.setValue(settings.hideSeriesPane)
 							.onChange((value) => this.persistAndRestyle("hideSeriesPane", value, () => this.plugin.refreshStoryForgeViews())),
-					),
-			);
+					);
+			});
 
 		if (settings.hideSeriesPane) {
 			new Setting(body)

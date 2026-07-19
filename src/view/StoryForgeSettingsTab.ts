@@ -19,7 +19,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 
 	private renderTopActions(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
 		const panelGroup = new SettingGroup(containerEl);
-		panelGroup.addSetting((setting) =>
+		panelGroup.addSetting((setting) => {
 			setting
 				.setName("storyForge panel")
 				.setDesc("If you've closed the storyForge panel, click this button to bring it back.")
@@ -28,9 +28,9 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 						.setButtonText("Reopen panel")
 						.setCta()
 						.onClick(() => this.openStoryForgePanel()),
-				),
-		);
-		panelGroup.addSetting((setting) =>
+				);
+		});
+		panelGroup.addSetting((setting) => {
 			setting
 				.setName("Tools panel")
 				.setDesc("ribbon is hidden and the ribbon icons can be found within the tools panel")
@@ -42,8 +42,8 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 						.setButtonText("Reopen Tools Panel")
 						.setCta()
 						.onClick(() => this.openToolsPanel()),
-				),
-		);
+				);
+		});
 	}
 
 	private openStoryForgePanel(): void {
@@ -67,17 +67,17 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 
 	private renderPaletteSection(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
 		const paletteGroup = new SettingGroup(containerEl);
-		paletteGroup.addSetting((setting) =>
+		paletteGroup.addSetting((setting) => {
 			setting
 				.setName("Colour palette")
 				.setDesc("Palette used when picking colours for storyForge's UI elements below.")
 				.addDropdown((dropdown) => {
 					for (const name of PALETTE_NAMES) dropdown.addOption(name, name);
 					dropdown.setValue(settings.colorPaletteName).onChange((value) => this.persistColorPaletteName(value as PaletteName));
-				}),
-		);
+				});
+		});
 		if (settings.colorPaletteName !== "Custom") {
-			paletteGroup.addSetting((setting) =>
+			paletteGroup.addSetting((setting) => {
 				setting
 					.setName("Palette mode")
 					.setDesc("Light or dark variant of the selected palette.")
@@ -87,14 +87,14 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 							.addOption("dark", "Dark")
 							.setValue(settings.colorPaletteMode)
 							.onChange((value) => this.persistColorPaletteMode(value as PaletteMode)),
-					),
-			);
+					);
+			});
 		}
 
 		if (settings.colorPaletteName === "Custom") {
 			const customGroup = new SettingGroup(containerEl);
 			settings.customPaletteColors.forEach((entry, i) => {
-				customGroup.addSetting((setting) =>
+				customGroup.addSetting((setting) => {
 					setting
 						.setName(`Custom colour ${i + 1}`)
 						.addText((text) =>
@@ -104,8 +104,8 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 							text.setValue(entry.hex);
 							text.inputEl.type = "color";
 							text.onChange((value) => this.persistCustomPaletteColor(settings, i, "hex", value));
-						}),
-				);
+						});
+				});
 			});
 		}
 	}

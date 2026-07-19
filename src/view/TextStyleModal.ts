@@ -70,7 +70,9 @@ export class TextStyleModal extends Modal {
 						"bodyTextOverrideColor",
 						"bodyTextColor",
 						restyle,
-						() => emphasisLabelSetting?.setName(emphasisLabel()),
+						() => {
+							emphasisLabelSetting?.setName(emphasisLabel());
+						},
 					);
 					this.renderFontCard(body, settings, "bodyTextOverrideFont", "bodyTextFontWeight", "bodyTextFontFamily");
 					emphasisLabelSetting = this.renderEmphasisColorOverrideCard(body, settings, emphasisLabel(), restyle);
@@ -91,7 +93,7 @@ export class TextStyleModal extends Modal {
 						2.5,
 						restyle,
 						(card) =>
-							card.addSetting((setting) =>
+							card.addSetting((setting) => {
 								setting
 									.setName("Hide Heading 1 Links")
 									.setDesc(
@@ -99,8 +101,8 @@ export class TextStyleModal extends Modal {
 									)
 									.addToggle((toggle) =>
 										toggle.setValue(settings.hideHeading1Links).onChange((value) => this.persistHideHeading1Links(value)),
-									),
-							),
+									);
+							}),
 					);
 					this.renderColorOverrideCard(
 						body,
@@ -187,7 +189,7 @@ export class TextStyleModal extends Modal {
 							for (const el of els) el.toggleClass("sf-settings-hidden", hidden);
 						}
 					};
-					levelGroup.addSetting((setting) =>
+					levelGroup.addSetting((setting) => {
 						setting.setName("Choose heading level").addDropdown((dropdown) =>
 							dropdown
 								.addOption("4", "Heading 4")
@@ -198,8 +200,8 @@ export class TextStyleModal extends Modal {
 									this.selectedOtherHeadingLevel = Number(value) as 4 | 5 | 6;
 									applySelectedLevel(this.selectedOtherHeadingLevel);
 								}),
-						),
-					);
+						);
+					});
 
 					const before4 = body.children.length;
 					this.renderSizeCard(body, settings, "Override theme's default header size", "Header size", "heading4OverrideSize", "heading4Size", 0.75, 1.75, restyle);
@@ -362,12 +364,12 @@ export class TextStyleModal extends Modal {
 		const card = new SettingGroup(body);
 		if (extraRowBefore) extraRowBefore(card);
 		let toggle!: ToggleComponent;
-		card.addSetting((setting) =>
+		card.addSetting((setting) => {
 			setting.setName(toggleLabel).addToggle((t) => {
 				toggle = t;
 				t.setValue(initialValue);
-			}),
-		);
+			});
+		});
 		const revealRow = buildRevealRow(card);
 		this.wireCardToggle(toggle, revealRow, persist, restyle);
 		return { toggle, card };
@@ -532,12 +534,12 @@ export class TextStyleModal extends Modal {
 		const card = new SettingGroup(body);
 
 		let overrideToggle!: ToggleComponent;
-		card.addSetting((setting) =>
+		card.addSetting((setting) => {
 			setting.setName("Override theme's default font").addToggle((toggle) => {
 				overrideToggle = toggle;
 				toggle.setValue(settings[overrideFontKey] as boolean);
-			}),
-		);
+			});
+		});
 
 		let selectedFontFamily: string | undefined = fontFamilyKey ? (settings[fontFamilyKey] as string) : undefined;
 
@@ -638,12 +640,12 @@ export class TextStyleModal extends Modal {
 		const card = new SettingGroup(body);
 
 		let aboveToggle!: ToggleComponent;
-		card.addSetting((setting) =>
+		card.addSetting((setting) => {
 			setting.setName("Divider line above header").addToggle((toggle) => {
 				aboveToggle = toggle;
 				toggle.setValue(settings[aboveKey] as boolean);
-			}),
-		);
+			});
+		});
 		let aboveThicknessSetting!: Setting;
 		card.addSetting((setting) => {
 			aboveThicknessSetting = setting;
@@ -656,15 +658,15 @@ export class TextStyleModal extends Modal {
 					.onChange((value) => this.persistAndRestyle(aboveThicknessKey, value, restyle)),
 			);
 		});
-		this.wireCardToggle(aboveToggle, aboveThicknessSetting, (value) => this.plugin.updateSetting(aboveKey, value), restyle);
+		this.wireCardToggle(aboveToggle, aboveThicknessSetting, (value) => { void this.plugin.updateSetting(aboveKey, value); }, restyle);
 
 		let belowToggle!: ToggleComponent;
-		card.addSetting((setting) =>
+		card.addSetting((setting) => {
 			setting.setName("Divider line below header").addToggle((toggle) => {
 				belowToggle = toggle;
 				toggle.setValue(settings[belowKey] as boolean);
-			}),
-		);
+			});
+		});
 		let belowThicknessSetting!: Setting;
 		card.addSetting((setting) => {
 			belowThicknessSetting = setting;
@@ -677,6 +679,6 @@ export class TextStyleModal extends Modal {
 					.onChange((value) => this.persistAndRestyle(belowThicknessKey, value, restyle)),
 			);
 		});
-		this.wireCardToggle(belowToggle, belowThicknessSetting, (value) => this.plugin.updateSetting(belowKey, value), restyle);
+		this.wireCardToggle(belowToggle, belowThicknessSetting, (value) => { void this.plugin.updateSetting(belowKey, value); }, restyle);
 	}
 }
