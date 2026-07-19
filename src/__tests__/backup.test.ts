@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { zipSync, unzipSync, type Zippable } from "fflate";
-import { formatBackupFilename, formatFullBackupFilename } from "../backup";
+import type { App } from "obsidian";
+import { formatBackupFilename, formatFullBackupFilename, listAllFilesRecursive } from "../backup";
 
 describe("formatBackupFilename", () => {
 	it("formats a date-only filename when includeTime is false", () => {
@@ -28,6 +29,32 @@ describe("formatFullBackupFilename", () => {
 	it("sanitizes filesystem-illegal characters in the vault name", () => {
 		const when = new Date(2026, 0, 5, 8, 3, 9);
 		expect(formatFullBackupFilename('My/Novel:"Draft"', when)).toBe("20260105-080309 - My-Novel--Draft- - full.zip");
+	});
+});
+
+describe("listAllFilesRecursive", () => {
+	function makeFakeApp(structure: Record<string, { files: string[]; folders: string[] }>): App {
+		return {
+			vault: {
+				adapter: {
+					list: async (folder: string) => structure[folder] ?? { files: [], folders: [] },
+				},
+			},
+		} as unknown as App;
+	}
+
+	it("excludes paths under .trash from the full-backup file list", async () => {
+		const app = makeFakeApp({
+			"": { files: ["Welcome.md"], folders: [".trash", "Books"] },
+			".trash": { files: [".trash/deleted-note.md"], folders: [] },
+			Books: { files: ["Books/My Novel.md"], folders: [] },
+		});
+
+		const result = await listAllFilesRecursive(app, "", null);
+
+		expect(result).toContain("Welcome.md");
+		expect(result).toContain("Books/My Novel.md");
+		expect(result.some((p) => p.startsWith(".trash/"))).toBe(false);
 	});
 });
 

@@ -130,3 +130,4 @@ Given the plugin's core promise is non-destructive editing of an existing vault,
 
 - `manifest.json` — `id`, `name`, `minAppVersion` (1.11.0, matches `versions.json`), and `isDesktopOnly: false` are all correct and consistent with what the code actually does.
 - `package.json` — dependencies are minimal and reasonable (no runtime dependencies at all, consistent with the plugin's plain-markdown philosophy). No `lint` script or CI workflow (see §7). No `test:coverage` script, which would help quantify the gaps in §8.
+- **Plugin-review scanner: "Vault Enumeration"** — `vault.getFiles()`/`adapter.list()` in `backup.ts` is intentional, scoped to that one file, and documented in README.md's "Privacy and vault access" section.
