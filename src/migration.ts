@@ -132,6 +132,10 @@ async function migrateLegacyBookEntry(app: App, folderName: string): Promise<voi
 		await upsertSeriesBookEntry(app, folderName, legacyId, legacyTitle ?? folderName, { appendToOrder: false });
 	}
 
+	// Literal default is safe here only because the existence check above
+	// guarantees this branch never actually seeds a new file — kept local
+	// rather than routed through book.ts's modifyBookFrontmatter to avoid a
+	// migration.ts -> book.ts dependency for this legacy-only path.
 	await modifyBackstageFrontmatter<RawBookFrontmatter>(app, app.vault, path, `---\norder:\n---\n`, (bookFm) => {
 		delete bookFm.id;
 		delete bookFm.title;
@@ -151,6 +155,10 @@ async function migrateChapterOrderField(app: App, folderName: string): Promise<v
 	const hasNewOrder = Array.isArray(fm?.["chapter-order"]);
 	if (!hasLegacyOrder || hasNewOrder) return;
 
+	// Literal default is safe here only because the existence check above
+	// guarantees this branch never actually seeds a new file — kept local
+	// rather than routed through book.ts's modifyBookFrontmatter to avoid a
+	// migration.ts -> book.ts dependency for this legacy-only path.
 	await modifyBackstageFrontmatter<RawBookFrontmatter>(app, app.vault, path, `---\norder:\n---\n`, (bookFm) => {
 		bookFm["chapter-order"] = bookFm.order;
 		delete bookFm.order;
