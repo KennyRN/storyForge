@@ -5,14 +5,13 @@ import { StoryForgeView, STORYFORGE_VIEW_TYPE } from "./view/StoryForgeView";
 import { ToolsView, TOOLS_VIEW_TYPE } from "./view/ToolsPanel";
 import { StoryForgeSettingsTab } from "./view/StoryForgeSettingsTab";
 import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders } from "./series";
-import { ensureAllChapterEntries, getBookChapterFiles, readBookFrontmatter, syncAllBookReferenceFields } from "./book";
+import { ensureAllChapterEntries, syncAllBookReferenceFields } from "./book";
 import { migrateVaultSchema } from "./migration";
 import { registerReconciliationEvents } from "./reconciliation";
 import { isLibraryChapterPath, bookFolderNameFromChapterPath, seriesFilePath, LIBRARY_ROOT, CODEX_ROOT } from "./paths";
 import { SeriesOnboardingModal } from "./view/SeriesOnboardingModal";
 import { ensureWelcomeNote } from "./welcomeNote";
-import { sumWordCounts } from "./wordCount";
-import { upsertTodayTotal } from "./history";
+import { recomputeBookTotal } from "./history";
 import { extractFingerprint } from "./fingerprint";
 import { updateChapterFingerprint } from "./chapterSidecar";
 import { debounce } from "./debounce";
@@ -1125,13 +1124,7 @@ export default class StoryForgePlugin extends Plugin {
 		const raw = await this.app.vault.read(file);
 		const fingerprint = extractFingerprint(raw);
 		await updateChapterFingerprint(this.app, bookFolderName, file.name, fingerprint);
-
-		const chapterFiles = getBookChapterFiles(this.app, bookFolderName);
-		const archived = new Set(readBookFrontmatter(this.app, bookFolderName)?.archive ?? []);
-		const liveFiles = chapterFiles.filter((f) => !archived.has(f.name));
-		const contents = await Promise.all(liveFiles.map((f) => this.app.vault.read(f)));
-		const total = sumWordCounts(contents);
-		await upsertTodayTotal(this.app, bookFolderName, total);
+		await recomputeBookTotal(this.app, bookFolderName);
 	}
 
 	async activateView(): Promise<void> {

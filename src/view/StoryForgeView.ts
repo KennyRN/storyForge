@@ -14,7 +14,7 @@ import { createCodexFolder, createCodexNote, readCodexFrontmatter, type CodexVie
 import { debounce } from "../debounce";
 import { ICON_SERIES } from "../icons";
 import { countWords, sumWordCounts } from "../wordCount";
-import { readHistory, todayISOInEngland, upsertTodayTotal, wordsThisWeek, wordsToday } from "../history";
+import { readHistory, recomputeBookTotal, todayISOInEngland, wordsThisWeek, wordsToday } from "../history";
 
 export const STORYFORGE_VIEW_TYPE = "storyforge-view";
 
@@ -136,7 +136,7 @@ export class StoryForgeView extends ItemView {
 			},
 			onArchiveChapter: async () => {
 				if (this.currentBookFolderName) {
-					await this.recomputeWordCount(this.currentBookFolderName);
+					await recomputeBookTotal(this.app, this.currentBookFolderName);
 					await this.refreshStats();
 				}
 			},
@@ -220,16 +220,6 @@ export class StoryForgeView extends ItemView {
 			this.statsCounts = next;
 			this.render();
 		}
-	}
-
-	/** Re-computes the book's total wordcount (excluding archived chapters) and persists it to wordcount.md. */
-	private async recomputeWordCount(bookFolderName: string): Promise<void> {
-		const chapterFiles = getBookChapterFiles(this.app, bookFolderName);
-		const archived = new Set(readBookFrontmatter(this.app, bookFolderName)?.archive ?? []);
-		const liveFiles = chapterFiles.filter((f) => !archived.has(f.name));
-		const contents = await Promise.all(liveFiles.map((f) => this.app.vault.read(f)));
-		const total = sumWordCounts(contents);
-		await upsertTodayTotal(this.app, bookFolderName, total);
 	}
 
 	private codexTargetFolderId(): string | null {
