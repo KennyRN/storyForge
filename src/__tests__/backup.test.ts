@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { zipSync, unzipSync, type Zippable } from "fflate";
 import { formatBackupFilename, formatFullBackupFilename } from "../backup";
 
 describe("formatBackupFilename", () => {
@@ -27,5 +28,20 @@ describe("formatFullBackupFilename", () => {
 	it("sanitizes filesystem-illegal characters in the vault name", () => {
 		const when = new Date(2026, 0, 5, 8, 3, 9);
 		expect(formatFullBackupFilename('My/Novel:"Draft"', when)).toBe("20260105-080309 - My-Novel--Draft- - full.zip");
+	});
+});
+
+describe("fflate zip round trip", () => {
+	it("zips and reads back in-memory entries with matching content", () => {
+		const entries: Zippable = {
+			"notes/hello.md": [new TextEncoder().encode("Hello, storyForge!"), { level: 6 }],
+			"assets/cover.png": [new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]), { level: 0 }],
+		};
+
+		const buffer = zipSync(entries);
+		const unzipped = unzipSync(buffer);
+
+		expect(new TextDecoder().decode(unzipped["notes/hello.md"])).toBe("Hello, storyForge!");
+		expect(Array.from(unzipped["assets/cover.png"])).toEqual([137, 80, 78, 71, 13, 10, 26, 10]);
 	});
 });
