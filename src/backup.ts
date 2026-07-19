@@ -1,9 +1,19 @@
 import type { App } from "obsidian";
-import JSZip from "jszip";
+import { zipSync, type Zippable } from "fflate";
 import * as fs from "fs";
 import * as path from "path";
 
 const ILLEGAL_FILENAME_CHARS = /[\\/:*?"<>|]/g;
+
+/** Extensions that are already compressed and gain nothing from deflate; stored instead of deflated. */
+const PRE_COMPRESSED_EXTENSIONS = new Set([
+	"png", "jpg", "jpeg", "gif", "webp", "avif", "mp3", "m4a", "ogg", "mp4", "webm", "woff", "woff2", "zip", "7z", "gz",
+]);
+
+function isPreCompressed(filePath: string): boolean {
+	const ext = filePath.slice(filePath.lastIndexOf(".") + 1).toLowerCase();
+	return PRE_COMPRESSED_EXTENSIONS.has(ext);
+}
 
 function pad(n: number, width = 2): string {
 	return String(n).padStart(width, "0");
@@ -34,12 +44,12 @@ async function writeZipToFolder(destFolder: string, filename: string, buffer: Ui
 
 /** Content-only backup used by the automatic schedule: every file Obsidian indexes (notes + attachments). */
 export async function runContentBackup(app: App, destFolder: string, includeTime: boolean, now: Date = new Date()): Promise<string> {
-	const zip = new JSZip();
+	const entries: Zippable = {};
 	for (const file of app.vault.getFiles()) {
 		const data = await app.vault.readBinary(file);
-		zip.file(file.path, data);
+		entries[file.path] = [new Uint8Array(data), { level: isPreCompressed(file.path) ? 0 : 6 }];
 	}
-	const buffer = await zip.generateAsync({ type: "nodebuffer" });
+	const buffer = zipSync(entries);
 	const filename = formatBackupFilename(app.vault.getName(), now, includeTime);
 	return writeZipToFolder(destFolder, filename, buffer);
 }
@@ -59,12 +69,12 @@ export async function runFullBackup(app: App, destFolder: string, now: Date = ne
 	const skipFolder = basePath && normalizedDest.startsWith(basePath) ? path.relative(basePath, normalizedDest) : null;
 
 	const allPaths = await listAllFilesRecursive(app, "", skipFolder);
-	const zip = new JSZip();
+	const entries: Zippable = {};
 	for (const filePath of allPaths) {
 		const data = await app.vault.adapter.readBinary(filePath);
-		zip.file(filePath, data);
+		entries[filePath] = [new Uint8Array(data), { level: isPreCompressed(filePath) ? 0 : 6 }];
 	}
-	const buffer = await zip.generateAsync({ type: "nodebuffer" });
+	const buffer = zipSync(entries);
 	const filename = formatFullBackupFilename(app.vault.getName(), now);
 	return writeZipToFolder(destFolder, filename, buffer);
 }
