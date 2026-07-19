@@ -59,7 +59,7 @@ export class ArchiveModal extends Modal {
 	private async attachExcerptTooltip(el: HTMLElement, bookFolderName: string, filename: string): Promise<void> {
 		const file = this.app.vault.getAbstractFileByPath(libraryChapterPath(bookFolderName, filename));
 		if (!(file instanceof TFile)) return;
-		const excerpt = chapterExcerpt(await this.app.vault.read(file));
+		const excerpt = chapterExcerpt(await this.app.vault.cachedRead(file));
 		if (excerpt) setTooltip(el, excerpt);
 	}
 

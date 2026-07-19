@@ -41,7 +41,7 @@ export class CodexArchiveModal extends Modal {
 	private async attachExcerptTooltip(el: HTMLElement, path: string): Promise<void> {
 		const file = this.app.vault.getAbstractFileByPath(path);
 		if (!(file instanceof TFile)) return;
-		const excerpt = noteExcerpt(await this.app.vault.read(file));
+		const excerpt = noteExcerpt(await this.app.vault.cachedRead(file));
 		if (excerpt) setTooltip(el, excerpt);
 	}
 
