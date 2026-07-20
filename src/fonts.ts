@@ -92,25 +92,13 @@ export function registerCustomFontFaces(doc: Document): void {
 }
 
 /**
- * CSS for switching to a custom font at a given requested weight: real interpolation for a
- * variable font whose weightMin/weightMax range covers it (e.g. IBM Plex Sans Var); a no-op
- * weight declaration for a static/single-weight font (weightMin === weightMax), since it has no "wght" axis.
- * Font-synthesis is deliberately left at its default (on) in both cases, so genuine <strong>/<b>
- * text typed in the editor still renders bold via the browser's synthetic bold, even though these
- * fonts have no real bold face — only the weight-picker-driven fake bolding is removed here.
- */
-export function buildCustomFontFamilyDeclaration(font: CustomFontEntry, requestedWeight: number): string {
-	const { family, variation } = resolveCustomFontFamilyParts(font, requestedWeight);
-	return variation ? `font-family: ${family}; font-variation-settings: ${variation};` : `font-family: ${family};`;
-}
-
-/**
- * The `font-family`/`font-variation-settings` *values* (not full declarations) for switching to a
- * custom embedded font at a given requested weight: real interpolation for a variable font whose
- * weightMin/weightMax range covers it (e.g. IBM Plex Sans Var); no variation axis for a
- * static/single-weight font (weightMin === weightMax). Split out from
- * `buildCustomFontFamilyDeclaration` so callers that need the values individually (e.g. to set as
- * separate CSS custom properties, rather than inline rule text) don't have to re-derive them.
+ * The `font-family`/`font-variation-settings` *values* for switching to a custom embedded font at
+ * a given requested weight: real interpolation for a variable font whose weightMin/weightMax range
+ * covers it (e.g. IBM Plex Sans Var); no variation axis for a static/single-weight font
+ * (weightMin === weightMax), since it has no "wght" axis. Font-synthesis is deliberately left at
+ * its default (on) in both cases, so genuine <strong>/<b> text typed in the editor still renders
+ * bold via the browser's synthetic bold, even though these fonts have no real bold face — only the
+ * weight-picker-driven fake bolding is removed here.
  */
 export function resolveCustomFontFamilyParts(font: CustomFontEntry, requestedWeight: number): { family: string; variation: string | null } {
 	const family = `"${font.cssFontFamily}", var(--font-text)`;
