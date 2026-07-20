@@ -3,6 +3,7 @@ import type StoryForgePlugin from "../main";
 import type { AutomaticBackupFrequency, StoryForgePluginSettings } from "../main";
 import { runFullBackup } from "../backup";
 import { ensureWelcomeNote } from "../welcomeNote";
+import { renderTabbedBody, type StyleModalTab } from "./styleModalHelpers";
 
 interface RemoteDialog {
 	showOpenDialog(options: {
@@ -46,10 +47,7 @@ export class ProtectionsModal extends Modal {
 
 		const settings = this.plugin.getSettings();
 
-		const tabBar = contentEl.createDiv({ cls: "sf-text-style-tab-bar" });
-		const tabBodyWrapper = contentEl.createDiv({ cls: "sf-text-style-tab-body-wrapper" });
-
-		const tabs: { id: string; label: string; render: (body: HTMLElement) => void }[] = [
+		const tabs: StyleModalTab[] = [
 			{
 				id: "import-export",
 				label: "Import & export",
@@ -66,30 +64,7 @@ export class ProtectionsModal extends Modal {
 			},
 		];
 
-		const tabBodies: HTMLElement[] = [];
-		let activeTabId = tabs[0].id;
-
-		tabs.forEach((tab) => {
-			const tabBtn = tabBar.createEl("button", { cls: "sf-text-style-tab-btn", text: tab.label });
-			if (tab.id === activeTabId) {
-				tabBtn.addClass("is-active");
-			}
-			tabBtn.addEventListener("click", () => {
-				activeTabId = tab.id;
-				tabBar.querySelectorAll(".sf-text-style-tab-btn").forEach((btn) => btn.removeClass("is-active"));
-				tabBtn.addClass("is-active");
-				tabBodies.forEach((body, i) => {
-					body.toggleClass("sf-settings-hidden", tabs[i].id !== activeTabId);
-				});
-			});
-
-			const bodyEl = tabBodyWrapper.createDiv({ cls: "sf-text-style-tab-body" });
-			if (tab.id !== activeTabId) {
-				bodyEl.addClass("sf-settings-hidden");
-			}
-			tab.render(bodyEl);
-			tabBodies.push(bodyEl);
-		});
+		renderTabbedBody(contentEl, tabs);
 	}
 
 	private renderImportExportContent(body: HTMLElement): void {

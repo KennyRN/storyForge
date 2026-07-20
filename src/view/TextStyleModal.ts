@@ -2,16 +2,7 @@ import { App, Modal, Setting, SettingGroup, ToggleComponent } from "obsidian";
 import type StoryForgePlugin from "../main";
 import type { StoryForgePluginSettings } from "../main";
 import { CUSTOM_FONTS } from "../fonts";
-
-const FONT_WEIGHT_OPTIONS: [string, string][] = [
-	["300", "Light"],
-	["400", "Normal"],
-	["500", "Medium"],
-	["600", "Semi Bold"],
-	["700", "Bold"],
-	["800", "Extra Bold"],
-	["900", "Black"],
-];
+import { bindColorSwatchButton, bindFontWeightDropdown, persistAndRestyle, renderTabbedBody, renderToggleWithRevealCard, wireCardToggle, type StyleModalTab } from "./styleModalHelpers";
 
 export class TextStyleModal extends Modal {
 	private plugin: StoryForgePlugin;
@@ -40,10 +31,7 @@ export class TextStyleModal extends Modal {
 		const settings = this.plugin.getSettings();
 		const restyle = () => this.plugin.applyTextStyleOverrides();
 
-		const tabBar = contentEl.createDiv({ cls: "sf-text-style-tab-bar" });
-		const tabBodyWrapper = contentEl.createDiv({ cls: "sf-text-style-tab-body-wrapper" });
-
-		const tabs: { id: string; label: string; render: (body: HTMLElement) => void }[] = [
+		const tabs: StyleModalTab[] = [
 			{
 				id: "body",
 				label: "Body",
@@ -253,143 +241,7 @@ export class TextStyleModal extends Modal {
 			},
 		];
 
-		const tabBodies: HTMLElement[] = [];
-		let activeTabId = tabs[0].id;
-
-		tabs.forEach((tab, index) => {
-			const tabBtn = tabBar.createEl("button", { cls: "sf-text-style-tab-btn", text: tab.label });
-			if (tab.id === activeTabId) {
-				tabBtn.addClass("is-active");
-			}
-			tabBtn.addEventListener("click", () => {
-				activeTabId = tab.id;
-				tabBar.querySelectorAll(".sf-text-style-tab-btn").forEach((btn) => btn.removeClass("is-active"));
-				tabBtn.addClass("is-active");
-				tabBodies.forEach((body, i) => {
-					body.toggleClass("sf-settings-hidden", tabs[i].id !== activeTabId);
-				});
-			});
-
-			const bodyEl = tabBodyWrapper.createDiv({ cls: "sf-text-style-tab-body" });
-			if (tab.id !== activeTabId) {
-				bodyEl.addClass("sf-settings-hidden");
-			}
-			tab.render(bodyEl);
-			tabBodies.push(bodyEl);
-		});
-	}
-
-
-	private bindColorSwatchButton(
-		buttonEl: HTMLElement,
-		initialHex: string,
-		onPick: (hex: string) => void,
-	): void {
-		buttonEl.addClass("sf-color-swatch-btn");
-		buttonEl.setAttr("aria-label", "Choose colour");
-		const paint = (hex: string) => {
-			buttonEl.style.backgroundColor = hex;
-		};
-		paint(initialHex);
-		buttonEl.addEventListener("click", () => this.openColorSwatchPicker(paint, onPick));
-	}
-
-	private openColorSwatchPicker(paint: (hex: string) => void, onPick: (hex: string) => void): void {
-		const s = this.plugin.getSettings();
-		void import("./PalettePickerModal").then(({ PalettePickerModal }) => {
-			new PalettePickerModal(this.app, s.colorPaletteName, s.colorPaletteMode, s.customPaletteColors, (hex) =>
-				this.applyColorPick(hex, paint, onPick),
-			).open();
-		});
-	}
-
-	private applyColorPick(hex: string, paint: (hex: string) => void, onPick: (hex: string) => void): void {
-		paint(hex);
-		onPick(hex);
-	}
-
-	private bindFontWeightDropdown(setting: Setting, value: string, onChange: (value: string) => void): void {
-		setting.addDropdown((dropdown) => {
-			for (const [val, label] of FONT_WEIGHT_OPTIONS) {
-				dropdown.addOption(val, label);
-				const opt = dropdown.selectEl.options[dropdown.selectEl.options.length - 1];
-				opt.style.fontWeight = val;
-			}
-			const applySelectedWeight = (v: string) => {
-				dropdown.selectEl.style.fontWeight = v;
-			};
-			dropdown.setValue(value);
-			applySelectedWeight(value);
-			dropdown.onChange((v) => this.applyFontWeightChange(v, applySelectedWeight, onChange));
-		});
-	}
-
-	private applyFontWeightChange(v: string, applySelectedWeight: (v: string) => void, onChange: (value: string) => void): void {
-		onChange(v);
-		applySelectedWeight(v);
-	}
-
-	private bindExclusivePair(
-		toggleA: ToggleComponent,
-		toggleB: ToggleComponent,
-		persistA: (value: boolean) => void,
-		persistB: (value: boolean) => void,
-	): void {
-		toggleA.onChange((value) => this.applyExclusiveToggle(value, toggleB, persistA, persistB));
-		toggleB.onChange((value) => this.applyExclusiveToggle(value, toggleA, persistB, persistA));
-	}
-
-	private applyExclusiveToggle(
-		value: boolean,
-		other: ToggleComponent,
-		persistSelf: (value: boolean) => void,
-		persistOther: (value: boolean) => void,
-	): void {
-		if (value && other.getValue()) {
-			other.setValue(false);
-			persistOther(false);
-		}
-		persistSelf(value);
-	}
-
-	private renderToggleWithRevealCard(
-		body: HTMLElement,
-		toggleLabel: string,
-		initialValue: boolean,
-		persist: (value: boolean) => void,
-		buildRevealRow: (card: SettingGroup) => Setting,
-		restyle: () => void,
-		extraRowBefore?: (card: SettingGroup) => void,
-	): { toggle: ToggleComponent; card: SettingGroup } {
-		const card = new SettingGroup(body);
-		if (extraRowBefore) extraRowBefore(card);
-		let toggle!: ToggleComponent;
-		card.addSetting((setting) => {
-			setting.setName(toggleLabel).addToggle((t) => {
-				toggle = t;
-				t.setValue(initialValue);
-			});
-		});
-		const revealRow = buildRevealRow(card);
-		this.wireCardToggle(toggle, revealRow, persist, restyle);
-		return { toggle, card };
-	}
-
-	private wireCardToggle(toggle: ToggleComponent, card: Setting, persist: (value: boolean) => void, restyle: () => void): void {
-		const applyVisibility = (hidden: boolean) => card.settingEl.toggleClass("sf-settings-hidden", hidden);
-		toggle.onChange((value) => this.applyCardToggle(value, persist, applyVisibility, restyle));
-		applyVisibility(!toggle.getValue());
-	}
-
-	private applyCardToggle(
-		value: boolean,
-		persist: (value: boolean) => void,
-		applyVisibility: (hidden: boolean) => void,
-		restyle: () => void,
-	): void {
-		persist(value);
-		applyVisibility(!value);
-		restyle();
+		renderTabbedBody(contentEl, tabs);
 	}
 
 	private renderSizeCard(
@@ -404,7 +256,7 @@ export class TextStyleModal extends Modal {
 		restyle: () => void,
 		extraRowBefore?: (card: SettingGroup) => void,
 	): void {
-		this.renderToggleWithRevealCard(
+		renderToggleWithRevealCard(
 			body,
 			label,
 			settings[overrideKey] as boolean,
@@ -417,7 +269,7 @@ export class TextStyleModal extends Modal {
 						slider
 							.setLimits(min, max, 0.25)
 							.setValue(settings[sizeKey] as number)
-							.onChange((value) => this.persistAndRestyle(sizeKey, value, restyle)),
+							.onChange((value) => persistAndRestyle(this.plugin, sizeKey, value, restyle)),
 					);
 				});
 				return sliderSetting;
@@ -425,14 +277,6 @@ export class TextStyleModal extends Modal {
 			restyle,
 			extraRowBefore,
 		);
-	}
-
-	private persistAndRestyle<K extends keyof StoryForgePluginSettings>(
-		key: K,
-		value: StoryForgePluginSettings[K],
-		restyle: () => void,
-	): void {
-		void this.plugin.updateSetting(key, value).then(() => restyle());
 	}
 
 	private persistHideHeading1Links(value: boolean): void {
@@ -449,7 +293,7 @@ export class TextStyleModal extends Modal {
 		restyle: () => void,
 		onToggle?: (value: boolean) => void,
 	): void {
-		this.renderToggleWithRevealCard(
+		renderToggleWithRevealCard(
 			body,
 			label,
 			settings[overrideKey] as boolean,
@@ -461,7 +305,7 @@ export class TextStyleModal extends Modal {
 				card.addSetting((setting) => {
 					colorSetting = setting;
 					setting.setName(swatchLabel).addButton((button) =>
-						this.bindColorSwatchButton(button.buttonEl, settings[colorKey] as string, (hex) => {
+						bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings[colorKey] as string, (hex) => {
 							void this.plugin.updateSetting(colorKey, hex).then(() => restyle());
 						}),
 					);
@@ -489,7 +333,7 @@ export class TextStyleModal extends Modal {
 		card.addSetting((setting) => {
 			boldColorSetting = setting;
 			setting.setName("Bold colour").addButton((button) =>
-				this.bindColorSwatchButton(button.buttonEl, settings.bodyTextBoldColor, (hex) => {
+				bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings.bodyTextBoldColor, (hex) => {
 					void this.plugin.updateSetting("bodyTextBoldColor", hex).then(() => restyle());
 				}),
 			);
@@ -499,7 +343,7 @@ export class TextStyleModal extends Modal {
 		card.addSetting((setting) => {
 			italicColorSetting = setting;
 			setting.setName("Italic colour").addButton((button) =>
-				this.bindColorSwatchButton(button.buttonEl, settings.bodyTextItalicColor, (hex) => {
+				bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings.bodyTextItalicColor, (hex) => {
 					void this.plugin.updateSetting("bodyTextItalicColor", hex).then(() => restyle());
 				}),
 			);
@@ -570,7 +414,7 @@ export class TextStyleModal extends Modal {
 		card.addSetting((setting) => {
 			fontWeightSetting = setting;
 			setting.setName("Font weight");
-			this.bindFontWeightDropdown(setting, settings[fontWeightKey] as string, (value) => {
+			bindFontWeightDropdown(setting, settings[fontWeightKey] as string, (value) => {
 				void this.plugin.updateSetting(fontWeightKey, value).then(() => restyle());
 			});
 		});
@@ -580,7 +424,7 @@ export class TextStyleModal extends Modal {
 			card.addSetting((setting) => {
 				smallCapsSetting = setting;
 				setting.setName("Small caps").addToggle((toggle) =>
-					toggle.setValue(settings[smallCapsKey] as boolean).onChange((value) => this.persistAndRestyle(smallCapsKey, value, restyle)),
+					toggle.setValue(settings[smallCapsKey] as boolean).onChange((value) => persistAndRestyle(this.plugin, smallCapsKey, value, restyle)),
 				);
 				setting.nameEl.addClass("sf-small-caps-label");
 			});
@@ -655,10 +499,10 @@ export class TextStyleModal extends Modal {
 					.addOption("medium", "Medium")
 					.addOption("thick", "Thick")
 					.setValue(settings[aboveThicknessKey] as string)
-					.onChange((value) => this.persistAndRestyle(aboveThicknessKey, value, restyle)),
+					.onChange((value) => persistAndRestyle(this.plugin, aboveThicknessKey, value, restyle)),
 			);
 		});
-		this.wireCardToggle(aboveToggle, aboveThicknessSetting, (value) => { void this.plugin.updateSetting(aboveKey, value); }, restyle);
+		wireCardToggle(aboveToggle, aboveThicknessSetting, (value) => { void this.plugin.updateSetting(aboveKey, value); }, restyle);
 
 		let belowToggle!: ToggleComponent;
 		card.addSetting((setting) => {
@@ -676,9 +520,9 @@ export class TextStyleModal extends Modal {
 					.addOption("medium", "Medium")
 					.addOption("thick", "Thick")
 					.setValue(settings[belowThicknessKey] as string)
-					.onChange((value) => this.persistAndRestyle(belowThicknessKey, value, restyle)),
+					.onChange((value) => persistAndRestyle(this.plugin, belowThicknessKey, value, restyle)),
 			);
 		});
-		this.wireCardToggle(belowToggle, belowThicknessSetting, (value) => { void this.plugin.updateSetting(belowKey, value); }, restyle);
+		wireCardToggle(belowToggle, belowThicknessSetting, (value) => { void this.plugin.updateSetting(belowKey, value); }, restyle);
 	}
 }
