@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countWords, stripForCounting, sumWordCounts } from "../wordCount";
+import { countWords, excerpt, stripForCounting, sumWordCounts } from "../wordCount";
 
 describe("stripForCounting", () => {
 	it("strips a leading YAML frontmatter block", () => {
@@ -41,5 +41,28 @@ describe("countWords", () => {
 describe("sumWordCounts", () => {
 	it("sums counts across chapters", () => {
 		expect(sumWordCounts(["one two", "three four five", ""])).toBe(5);
+	});
+});
+
+describe("excerpt", () => {
+	it("returns short text unchanged", () => {
+		expect(excerpt("The rain came sideways.")).toBe("The rain came sideways.");
+	});
+
+	it("truncates text over maxLength with a trailing ellipsis and no dangling whitespace", () => {
+		const long = "word ".repeat(100).trim();
+		const result = excerpt(long);
+		expect(result.endsWith("…")).toBe(true);
+		expect(result.length).toBe(200);
+		expect(result[result.length - 2]).not.toBe(" ");
+	});
+
+	it("returns an empty string for empty or whitespace-only input", () => {
+		expect(excerpt("")).toBe("");
+		expect(excerpt("   \n\t  ")).toBe("");
+	});
+
+	it("respects a custom maxLength", () => {
+		expect(excerpt("one two three four five", 8)).toBe("one two…");
 	});
 });

@@ -33,3 +33,10 @@ export function countWords(raw: string): number {
 export function sumWordCounts(chapterContents: string[]): number {
 	return chapterContents.reduce((total, content) => total + countWords(content), 0);
 }
+
+/** Collapses raw markdown into a short, single-line preview for a row tooltip — shared by the chapter and codex archive modals. */
+export function excerpt(raw: string, maxLength = 200): string {
+	const collapsed = stripForCounting(raw).trim().replace(/\s+/g, " ");
+	if (!collapsed) return "";
+	return collapsed.length > maxLength ? `${collapsed.slice(0, maxLength).trimEnd()}…` : collapsed;
+}

@@ -1,5 +1,5 @@
 import { App, Notice, TFile, TFolder, setIcon } from "obsidian";
-import { bookDisplayTitle, getSeriesBooks } from "../series";
+import { bookDisplayTitle, getSeriesBooks, numberedBookTitle } from "../series";
 import {
 	archiveChapter,
 	chapterDisplayTitle,
@@ -78,7 +78,7 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 		}
 		const titleRow = bookLine.createDiv({ cls: "sf-header-line sf-book-title-row" });
 		const rawBookTitle = options.currentBookFolderName
-			? numberedBookTitle(app, series.ordered, series.unplaced, options.currentBookFolderName)
+			? numberedBookTitle(app, options.currentBookFolderName, { ordered: series.ordered, unplaced: series.unplaced })
 			: "—";
 		const { title, subtitle } = splitTitleSubtitle(rawBookTitle);
 		const textWrap = titleRow.createDiv({ cls: "sf-book-text-wrap" });
@@ -110,15 +110,6 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 	} else {
 		bodyEl.createDiv({ cls: "sf-empty", text: "Open a chapter to get started." });
 	}
-}
-
-/** The current book's title, with "#" resolved to its number among the series' "#"-titled books (same counter `renderSeriesList`'s rows use). */
-function numberedBookTitle(app: App, ordered: TFolder[], unplaced: TFolder[], bookFolderName: string): string {
-	const sequence = [...ordered, ...unplaced];
-	const idx = sequence.findIndex((folder) => folder.name === bookFolderName);
-	if (idx === -1) return bookDisplayTitle(app, bookFolderName);
-	const numbered = applyHashNumbering(sequence.map((folder) => bookDisplayTitle(app, folder.name)));
-	return numbered[idx];
 }
 
 function createRow(list: HTMLElement, key: string): HTMLElement {
