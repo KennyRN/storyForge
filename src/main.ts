@@ -443,16 +443,7 @@ export default class StoryForgePlugin extends Plugin {
 		});
 
 		this.addSettingTab(new StoryForgeSettingsTab(this.app, this));
-		this.applyVisibilityStyles();
-		this.applyHeaderStyles();
-		this.applyHighlightStyle();
-		this.applyLibraryHeaderStyles();
-		this.applyCodexFolderStyle();
-		this.applyCodexNoteLabelStyle();
-		this.applyHeading1LinkStyle();
-		this.applyTextStyleOverrides();
-		this.registerCustomFontFacesForAllDocs();
-		this.applyCyclingGuideStyle();
+		this.applyAllStyles();
 		if (this.pluginSettings.cyclingGuideEnabled) this.rebuildCyclingGuideExtension();
 		this.registerEditorExtension(this.cyclingGuideExtensions);
 		registerTabTitleOverrides(this.app, (eventRef) => this.registerEvent(eventRef));
@@ -473,16 +464,7 @@ export default class StoryForgePlugin extends Plugin {
 		this.registerEvent(
 			this.app.workspace.on("window-open", (win) => {
 				this.extraDocs.add(win.doc);
-				this.applyVisibilityStyles();
-				this.applyHeaderStyles();
-				this.applyHighlightStyle();
-				this.applyLibraryHeaderStyles();
-				this.applyCodexFolderStyle();
-				this.applyCodexNoteLabelStyle();
-				this.applyHeading1LinkStyle();
-				this.applyTextStyleOverrides();
-				this.registerCustomFontFacesForAllDocs();
-				this.applyCyclingGuideStyle();
+				this.applyAllStyles();
 			}),
 		);
 		this.registerEvent(
@@ -613,16 +595,7 @@ export default class StoryForgePlugin extends Plugin {
 		migrateRemovedCaroniFont(this.pluginSettings);
 		await this.saveSettings();
 
-		this.applyVisibilityStyles();
-		this.applyHeaderStyles();
-		this.applyHighlightStyle();
-		this.applyLibraryHeaderStyles();
-		this.applyCodexFolderStyle();
-		this.applyCodexNoteLabelStyle();
-		this.applyHeading1LinkStyle();
-		this.applyTextStyleOverrides();
-		this.registerCustomFontFacesForAllDocs();
-		this.applyCyclingGuideStyle();
+		this.applyAllStyles();
 		this.setCyclingGuideEnabled(this.pluginSettings.cyclingGuideEnabled);
 		this.refreshStoryForgeViews();
 	}
@@ -663,6 +636,22 @@ export default class StoryForgePlugin extends Plugin {
 			this.fontFacesRegisteredFor.add(doc);
 			registerCustomFontFaces(doc);
 		}
+	}
+
+	/** The full "recompute every derived CSS/DOM styling surface" sequence, shared by initial
+	 * load, new-window setup, and settings import — anywhere the plugin needs every style
+	 * category rebuilt from current settings. */
+	private applyAllStyles(): void {
+		this.applyVisibilityStyles();
+		this.applyHeaderStyles();
+		this.applyHighlightStyle();
+		this.applyLibraryHeaderStyles();
+		this.applyCodexFolderStyle();
+		this.applyCodexNoteLabelStyle();
+		this.applyHeading1LinkStyle();
+		this.applyTextStyleOverrides();
+		this.registerCustomFontFacesForAllDocs();
+		this.applyCyclingGuideStyle();
 	}
 
 	applyVisibilityStyles(): void {
