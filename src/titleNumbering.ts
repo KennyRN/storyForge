@@ -41,5 +41,5 @@ export function splitTitleSubtitle(raw: string): SplitTitle {
  */
 export function formatSingleLine(raw: string): string {
 	const { title, subtitle } = splitTitleSubtitle(raw);
-	return subtitle ? `${title}: ${subtitle}` : title;
+	return subtitle ? (title ? `${title}: ${subtitle}` : subtitle) : title;
 }

@@ -2,16 +2,7 @@ import { App, Modal, setIcon, setTooltip, TFile } from "obsidian";
 import { getArchivedCodexItems, unarchiveCodexItem, type ArchivedCodexItem } from "../codex";
 import { ICON_ARCHIVE, ICON_UNARCHIVE } from "../icons";
 import { makeAccessibleActivatable } from "./a11y";
-import { stripForCounting } from "../wordCount";
-
-const EXCERPT_LENGTH = 200;
-
-/** Collapses a note's raw markdown into a short, single-line preview for the row tooltip. */
-function noteExcerpt(raw: string): string {
-	const collapsed = stripForCounting(raw).trim().replace(/\s+/g, " ");
-	if (!collapsed) return "";
-	return collapsed.length > EXCERPT_LENGTH ? `${collapsed.slice(0, EXCERPT_LENGTH).trimEnd()}…` : collapsed;
-}
+import { excerpt } from "../wordCount";
 
 /**
  * Modal listing archived Codex items — global, not scoped to any book (unlike the book-pane
@@ -41,8 +32,8 @@ export class CodexArchiveModal extends Modal {
 	private async attachExcerptTooltip(el: HTMLElement, path: string): Promise<void> {
 		const file = this.app.vault.getAbstractFileByPath(path);
 		if (!(file instanceof TFile)) return;
-		const excerpt = noteExcerpt(await this.app.vault.cachedRead(file));
-		if (excerpt) setTooltip(el, excerpt);
+		const preview = excerpt(await this.app.vault.cachedRead(file));
+		if (preview) setTooltip(el, preview);
 	}
 
 	private render(): void {

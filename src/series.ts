@@ -33,7 +33,7 @@ export interface RawSeriesFrontmatter extends FrontMatterCache {
 	title?: unknown;
 }
 
-const DEFAULT_SERIES_CONTENT = `---\nseries-title: Untitled Series\norder:\nbooks:\n---\n`;
+export const DEFAULT_SERIES_CONTENT = `---\nseries-title: Untitled Series\norder:\nbooks:\n---\n`;
 
 export function getLibraryBookFolders(app: App): TFolder[] {
 	const root = app.vault.getAbstractFileByPath(LIBRARY_ROOT);
@@ -88,9 +88,15 @@ export function bookDisplayTitle(app: App, folderName: string): string {
 	return getSeriesBookEntry(app, folderName)?.bookTitle ?? folderName;
 }
 
-/** The book's title, with "#" resolved to its number among the series' "#"-titled books (same counter TopPanel's row rendering uses). */
-export function numberedBookTitle(app: App, bookFolderName: string): string {
-	const { ordered, unplaced } = getSeriesBooks(app);
+/** The book's title, with "#" resolved to its number among the series' "#"-titled books (same counter TopPanel's row rendering uses).
+ * Pass `prefetched` when the caller already has `getSeriesBooks`'s result on hand (e.g. TopPanel's
+ * header, rendered right after its own `getSeriesBooks` call), to avoid a redundant re-read. */
+export function numberedBookTitle(
+	app: App,
+	bookFolderName: string,
+	prefetched?: { ordered: TFolder[]; unplaced: TFolder[] },
+): string {
+	const { ordered, unplaced } = prefetched ?? getSeriesBooks(app);
 	const sequence = [...ordered, ...unplaced];
 	const idx = sequence.findIndex((folder) => folder.name === bookFolderName);
 	if (idx === -1) return bookDisplayTitle(app, bookFolderName);

@@ -1,19 +1,10 @@
 import { App, Modal, setIcon, setTooltip, TFile } from "obsidian";
 import { getArchivedChapters, unarchiveChapter, chapterDisplayTitle } from "../book";
-import { splitTitleSubtitle } from "../titleNumbering";
+import { formatSingleLine } from "../titleNumbering";
 import { ICON_ARCHIVE, ICON_UNARCHIVE } from "../icons";
 import { makeAccessibleActivatable } from "./a11y";
 import { libraryChapterPath } from "../paths";
-import { stripForCounting } from "../wordCount";
-
-const EXCERPT_LENGTH = 200;
-
-/** Collapses a chapter's raw markdown into a short, single-line preview for the row tooltip. */
-function chapterExcerpt(raw: string): string {
-	const collapsed = stripForCounting(raw).trim().replace(/\s+/g, " ");
-	if (!collapsed) return "";
-	return collapsed.length > EXCERPT_LENGTH ? `${collapsed.slice(0, EXCERPT_LENGTH).trimEnd()}…` : collapsed;
-}
+import { excerpt } from "../wordCount";
 
 /**
  * Modal listing the archived chapters for a single book.
@@ -49,18 +40,11 @@ export class ArchiveModal extends Modal {
 		this.contentEl.empty();
 	}
 
-	/** Returns a display-ready chapter title with "//" → ":". */
-	private displayChapterTitle(bookFolderName: string, filename: string): string {
-		const raw = chapterDisplayTitle(this.app, bookFolderName, filename);
-		const { title, subtitle } = splitTitleSubtitle(raw);
-		return subtitle ? `${title}: ${subtitle}` : title;
-	}
-
 	private async attachExcerptTooltip(el: HTMLElement, bookFolderName: string, filename: string): Promise<void> {
 		const file = this.app.vault.getAbstractFileByPath(libraryChapterPath(bookFolderName, filename));
 		if (!(file instanceof TFile)) return;
-		const excerpt = chapterExcerpt(await this.app.vault.cachedRead(file));
-		if (excerpt) setTooltip(el, excerpt);
+		const preview = excerpt(await this.app.vault.cachedRead(file));
+		if (preview) setTooltip(el, preview);
 	}
 
 	private render(): void {
@@ -80,7 +64,7 @@ export class ArchiveModal extends Modal {
 		const list = contentEl.createDiv({ cls: "sf-archive-list" });
 		for (const entry of this.archived) {
 			const row = list.createDiv({ cls: "sf-row" });
-			const chapterLabel = this.displayChapterTitle(entry.bookFolderName, entry.filename);
+			const chapterLabel = formatSingleLine(chapterDisplayTitle(this.app, entry.bookFolderName, entry.filename));
 			row.createSpan({
 				cls: "sf-archive-label",
 				text: chapterLabel,

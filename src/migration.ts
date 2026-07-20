@@ -1,14 +1,11 @@
 import { App, TFile, TFolder } from "obsidian";
 import { bookFilePath, seriesFilePath, codexFilePath, CODEX_ROOT } from "./paths";
 import { modifyBackstageFrontmatter } from "./writeGuard";
-import { getLibraryBookFolders, getSeriesBookEntry, upsertSeriesBookEntry, type RawSeriesFrontmatter } from "./series";
+import { DEFAULT_SERIES_CONTENT, getLibraryBookFolders, getSeriesBookEntry, upsertSeriesBookEntry, type RawSeriesFrontmatter } from "./series";
 import { type RawBookFrontmatter } from "./book";
-import { type RawCodexFrontmatter } from "./codex";
+import { DEFAULT_CODEX_CONTENT, type RawCodexFrontmatter } from "./codex";
 import { mintId } from "./slug";
 import { mintFolderId, type CodexFolders } from "./codexTree";
-
-const DEFAULT_SERIES_CONTENT = `---\nseries-title: Untitled Series\norder:\nbooks:\n---\n`;
-const DEFAULT_CODEX_CONTENT = `---\nfolders:\norder:\narchive:\n---\n`;
 
 /**
  * Migrates the old plain `title`/`id` schema (series.md's `title`, each

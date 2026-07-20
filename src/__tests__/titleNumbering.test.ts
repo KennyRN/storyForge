@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
+import { applyHashNumbering, formatSingleLine, splitTitleSubtitle } from "../titleNumbering";
 
 describe("applyHashNumbering", () => {
 	it("passes through titles with no '#' unchanged", () => {
@@ -55,5 +55,19 @@ describe("splitTitleSubtitle", () => {
 
 	it("folds a second '//' into the subtitle text", () => {
 		expect(splitTitleSubtitle("My Book // Sub // Extra")).toEqual({ title: "My Book", subtitle: "Sub // Extra" });
+	});
+});
+
+describe("formatSingleLine", () => {
+	it("joins title and subtitle with a colon", () => {
+		expect(formatSingleLine("My Book // A Subtitle")).toBe("My Book: A Subtitle");
+	});
+
+	it("returns just the title when there is no subtitle", () => {
+		expect(formatSingleLine("My Book")).toBe("My Book");
+	});
+
+	it("returns the subtitle alone when the title is empty", () => {
+		expect(formatSingleLine("// Subtitle only")).toBe("Subtitle only");
 	});
 });

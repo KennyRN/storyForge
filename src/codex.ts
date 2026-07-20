@@ -66,7 +66,7 @@ export interface ArchivedCodexItem {
 	childCount?: number;
 }
 
-const DEFAULT_CODEX_CONTENT = `---\nfolders:\norder:\narchive:\ntypes:\n---\n`;
+export const DEFAULT_CODEX_CONTENT = `---\nfolders:\norder:\narchive:\ntypes:\n---\n`;
 
 function parseFolders(raw: unknown): CodexFolders {
 	if (!raw || typeof raw !== "object") return {};
