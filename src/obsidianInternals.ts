@@ -1,13 +1,13 @@
 /**
- * Undocumented Obsidian DOM selectors and CSS custom properties this plugin relies on to hide
- * native chrome and relocate the ribbon. None of these are part of Obsidian's public API/theming
- * contract - a future Obsidian release could rename or restructure any of them.
+ * Undocumented Obsidian DOM selectors this plugin relies on to hide native chrome and relocate
+ * the ribbon. None of these are part of Obsidian's public API/theming contract - a future
+ * Obsidian release could rename or restructure any of them.
  *
- * Reference/documentation only - not imported by any code. Obsidian plugins may not create or
- * attach `<style>` elements, so these selectors are hardcoded directly as static rules in
- * styles.css's "Dynamic Styling" section instead of being assembled into CSS text at runtime.
- * If Obsidian renames/restructures any of these, update the matching selector in BOTH this file
- * (documentation) and styles.css (the actual rule).
+ * Most of these are also hardcoded directly as static rules in styles.css's "Dynamic Styling"
+ * section (Obsidian plugins may not create or attach `<style>` elements, so that duplication is
+ * unavoidable) - the two aren't structurally linked, so if Obsidian renames/restructures a
+ * selector, update it in BOTH this file and styles.css. `workspaceRibbon`/`ribbonAction` are
+ * additionally used live at runtime, by ToolsPanel.ts, to relocate the ribbon into the Tools pane.
  */
 export const OBSIDIAN_SELECTORS = {
 	vaultActions: ".workspace-drawer-vault-actions",
@@ -77,9 +77,4 @@ export const OBSIDIAN_SELECTORS = {
 	bodyTextBoldLivePreview: ".cm-strong",
 	bodyTextItalicReading: ".markdown-reading-view em",
 	bodyTextItalicLivePreview: ".cm-em",
-} as const;
-
-export const OBSIDIAN_CSS_VARS = {
-	ribbonWidth: "--ribbon-width",
-	frameLeftSpace: "--frame-left-space",
 } as const;
