@@ -1,4 +1,4 @@
-import { ItemView, Notice, TFile, WorkspaceLeaf, setIcon } from "obsidian";
+import { ConfirmationModal, ItemView, Notice, TFile, WorkspaceLeaf, setIcon } from "obsidian";
 import type StoryForgePlugin from "../main";
 import {
 	getBookChapters,
@@ -399,12 +399,30 @@ export class RecommendationView extends ItemView {
 
 	private async sendSynopsis(): Promise<void> {
 		if (!this.bookFolderName || !this.chapterFilename) return;
-		const existing = await readChapterPlot(this.app, this.bookFolderName, this.chapterFilename);
-		if (existing.trim() && existing.trim() !== this.synopsisDraft.trim()) {
-			const ok = window.confirm("Replace the existing chapter plot notes with this synopsis?");
-			if (!ok) return;
+		const bookFolderName = this.bookFolderName;
+		const chapterFilename = this.chapterFilename;
+		const draft = this.synopsisDraft;
+		const existing = await readChapterPlot(this.app, bookFolderName, chapterFilename);
+		if (existing.trim() && existing.trim() !== draft.trim()) {
+			const modal = new ConfirmationModal(this.app);
+			modal.setTitle("Replace chapter plot?");
+			modal.contentEl.createEl("p", {
+				text: "Replace the existing chapter plot notes with this synopsis?",
+			});
+			modal.addButton((btn) =>
+				btn
+					.setButtonText("Replace")
+					.setCta()
+					.onClick(async () => {
+						await writeChapterPlot(this.app, bookFolderName, chapterFilename, draft);
+						new Notice("storyForge: synopsis sent to chapter plot");
+					}),
+			);
+			modal.addCancelButton();
+			modal.open();
+			return;
 		}
-		await writeChapterPlot(this.app, this.bookFolderName, this.chapterFilename, this.synopsisDraft);
+		await writeChapterPlot(this.app, bookFolderName, chapterFilename, draft);
 		new Notice("storyForge: synopsis sent to chapter plot");
 	}
 

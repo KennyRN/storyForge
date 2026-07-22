@@ -5,10 +5,10 @@ import {
 	getBookWordStats,
 	getChapterDaily,
 	migrateWordCountV1ToV2,
-	readHistory,
 	recordChapterArchive,
 	recordChapterEdit,
 	recordChapterUnarchive,
+	totalsFromDailyNets,
 } from "../history";
 import { bookWordCountFilePath, LIBRARY_ROOT, wordCountFilePath } from "../paths";
 
@@ -291,7 +291,7 @@ describe("migrateWordCountV1ToV2", () => {
 		expect(stats.daily["2026-07-18"]?.net).toBe(100);
 		expect(stats.daily["2026-07-19"]?.net).toBe(50);
 
-		const { totals } = await readHistory(app, "BookA");
+		const totals = totalsFromDailyNets(stats.daily);
 		expect(totals["2026-07-18"]).toBe(100);
 		expect(totals["2026-07-19"]).toBe(150);
 	});
