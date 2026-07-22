@@ -1,44 +1,25 @@
-import { App, PluginSettingTab, type SettingDefinitionItem } from "obsidian";
+import { App, PluginSettingTab, SettingGroup, setIcon, type SettingDefinitionItem } from "obsidian";
 import type StoryForgePlugin from "../main";
+import type { StoryForgePluginSettings } from "../main";
 import { CODEX_TYPES } from "../codex";
 import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
-import { PALETTE_NAMES } from "../colorPalettes";
+import { PALETTE_NAMES, PaletteMode, PaletteName } from "../colorPalettes";
 import { TextStyleModal } from "./TextStyleModal";
 import { UiFormattingModal } from "./UiFormattingModal";
 import { HideUiModal } from "./HideUiModal";
 import { ProtectionsModal } from "./ProtectionsModal";
-
-function getPath(obj: Record<string, unknown>, path: string): unknown {
-	let cursor: unknown = obj;
-	for (const part of path.split(".")) {
-		if (cursor === null || typeof cursor !== "object") return undefined;
-		cursor = (cursor as Record<string, unknown>)[part];
-	}
-	return cursor;
-}
-
-function setPath(obj: Record<string, unknown>, path: string, value: unknown): void {
-	const parts = path.split(".");
-	const last = parts.pop();
-	if (!last) return;
-	let cursor: Record<string, unknown> = obj;
-	for (let i = 0; i < parts.length; i++) {
-		const part = parts[i];
-		let next = cursor[part];
-		if (next === null || typeof next !== "object") {
-			const childKey = parts[i + 1] ?? last;
-			next = /^\d+$/.test(childKey) ? [] : {};
-			cursor[part] = next;
-		}
-		cursor = next as Record<string, unknown>;
-	}
-	cursor[last] = value;
-}
+import { ICON_TEXT_STYLE, ICON_UI_FORMATTING, ICON_HIDE_UI, ICON_PROTECTIONS } from "../icons";
 
 /**
- * Declarative settings for Obsidian 1.13+.
- * Uses only `control` / `action` / `group` — no `render` and no `display()`.
- * Custom `render` hooks have left this tab blank on current Obsidian builds.
+ * WORKING FALLBACK (blank-tab investigation in progress)
+ *
+ * Obsidian 1.13 warns against display(), but every getSettingDefinitions()
+ * attempt so far has painted a blank tab in this vault:
+ * - render-heavy definitions → blank
+ * - control/action-only definitions (no render, no display) → still blank
+ *
+ * Returning [] keeps Obsidian on display() so settings remain usable.
+ * See docs/settings-tab-blank-handoff.md for the other-engine brief.
  */
 export class StoryForgeSettingsTab extends PluginSettingTab {
 	private plugin: StoryForgePlugin;
@@ -48,164 +29,217 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
-	getControlValue(key: string): unknown {
-		if (key.includes(".")) {
-			return getPath(this.plugin.getSettings() as unknown as Record<string, unknown>, key);
-		}
-		return super.getControlValue(key);
+	getSettingDefinitions(): SettingDefinitionItem[] {
+		return [];
 	}
 
-	async setControlValue(key: string, value: unknown): Promise<void> {
-		if (key.startsWith("codexFactSectionByType.")) {
-			const type = key.slice("codexFactSectionByType.".length);
-			const heading = typeof value === "string" && value.trim() ? value.trim() : "Facts";
-			await this.plugin.updateSetting("codexFactSectionByType", {
-				...this.plugin.getSettings().codexFactSectionByType,
-				[type]: heading,
-			});
-			return;
-		}
+	display(): void {
+		const { containerEl } = this;
+		containerEl.empty();
+		containerEl.addClass("sf-settings-tab");
 
-		if (key.includes(".")) {
-			const settings = this.plugin.getSettings() as unknown as Record<string, unknown>;
-			setPath(settings, key, value);
-			await this.plugin.saveSettings();
-			return;
-		}
+		const settings = this.plugin.getSettings();
 
-		if (key === "useToolsPanel") {
-			await this.plugin.updateSetting("useToolsPanel", Boolean(value));
+		this.renderTopActions(containerEl, settings);
+		this.renderPaletteSection(containerEl, settings);
+		this.renderRecommendationsSection(containerEl, settings);
+		this.renderButtonRow(containerEl);
+	}
+
+	private renderTopActions(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
+		const panelGroup = new SettingGroup(containerEl);
+		panelGroup.addSetting((setting) => {
+			setting
+				.setName("storyForge panel")
+				.setDesc("If you've closed the storyForge panel, click this button to bring it back.")
+				.addButton((button) =>
+					button
+						.setButtonText("Reopen panel")
+						.setCta()
+						.onClick(() => this.openStoryForgePanel()),
+				);
+		});
+		panelGroup.addSetting((setting) => {
+			setting
+				.setName("Tools panel")
+				.setDesc("ribbon is hidden and the ribbon icons can be found within the tools panel")
+				.addToggle((toggle) =>
+					toggle.setValue(settings.useToolsPanel).onChange((value) => this.persistUseToolsPanel(value)),
+				)
+				.addButton((button) =>
+					button
+						.setButtonText("Reopen Tools Panel")
+						.setCta()
+						.onClick(() => this.openToolsPanel()),
+				);
+		});
+	}
+
+	private openStoryForgePanel(): void {
+		void this.plugin.activateView();
+	}
+
+	private openToolsPanel(): void {
+		void this.plugin.activateToolsView();
+	}
+
+	private persistUseToolsPanel(value: boolean): void {
+		void this.plugin.updateSetting("useToolsPanel", value).then(() => {
 			this.plugin.applyVisibilityStyles();
 			if (value) {
 				void this.plugin.activateToolsView();
 			} else {
 				this.app.workspace.detachLeavesOfType(TOOLS_VIEW_TYPE);
 			}
-			return;
+		});
+	}
+
+	private renderPaletteSection(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
+		const paletteGroup = new SettingGroup(containerEl);
+		paletteGroup.addSetting((setting) => {
+			setting
+				.setName("Colour palette")
+				.setDesc("Palette used when picking colours for storyForge's UI elements below.")
+				.addDropdown((dropdown) => {
+					for (const name of PALETTE_NAMES) dropdown.addOption(name, name);
+					dropdown.setValue(settings.colorPaletteName).onChange((value) => this.persistColorPaletteName(value as PaletteName));
+				});
+		});
+		if (settings.colorPaletteName !== "Custom") {
+			paletteGroup.addSetting((setting) => {
+				setting
+					.setName("Palette mode")
+					.setDesc("Light or dark variant of the selected palette.")
+					.addDropdown((dropdown) =>
+						dropdown
+							.addOption("light", "Light")
+							.addOption("dark", "Dark")
+							.setValue(settings.colorPaletteMode)
+							.onChange((value) => this.persistColorPaletteMode(value as PaletteMode)),
+					);
+			});
 		}
 
-		await super.setControlValue(key, value);
-		if (key === "colorPaletteName") {
-			this.refreshDomState();
+		if (settings.colorPaletteName === "Custom") {
+			const customGroup = new SettingGroup(containerEl);
+			settings.customPaletteColors.forEach((entry, i) => {
+				customGroup.addSetting((setting) => {
+					setting
+						.setName(`Custom colour ${i + 1}`)
+						.addText((text) =>
+							text
+								.setValue(entry.name)
+								.setPlaceholder("Name")
+								.onChange((value) => this.persistCustomPaletteColor(settings, i, "name", value)),
+						)
+						.addText((text) => {
+							text.setValue(entry.hex);
+							text.inputEl.type = "color";
+							text.onChange((value) => this.persistCustomPaletteColor(settings, i, "hex", value));
+						});
+				});
+			});
 		}
 	}
 
-	getSettingDefinitions(): SettingDefinitionItem[] {
-		const paletteOptions = Object.fromEntries(PALETTE_NAMES.map((name) => [name, name]));
-		const colorCount = this.plugin.getSettings().customPaletteColors.length;
+	private persistColorPaletteMode(value: PaletteMode): void {
+		void this.plugin.updateSetting("colorPaletteMode", value);
+	}
 
-		return [
-			{
-				name: "storyForge panel",
-				desc: "If you've closed the storyForge panel, click this to bring it back.",
-				action: () => {
-					void this.plugin.activateView();
-				},
-			},
-			{
-				name: "Tools panel",
-				desc: "Hide the ribbon; ribbon icons are available in the tools panel.",
-				control: {
-					type: "toggle",
-					key: "useToolsPanel",
-				},
-			},
-			{
-				name: "Reopen tools panel",
-				desc: "Open the tools panel if it was closed.",
-				action: () => {
-					void this.plugin.activateToolsView();
-				},
-			},
-			{
-				name: "Colour palette",
-				desc: "Palette used when picking colours for storyForge UI elements.",
-				control: {
-					type: "dropdown",
-					key: "colorPaletteName",
-					options: paletteOptions,
-				},
-			},
-			{
-				name: "Palette mode",
-				desc: "Light or dark variant of the selected palette.",
-				visible: () => this.plugin.getSettings().colorPaletteName !== "Custom",
-				control: {
-					type: "dropdown",
-					key: "colorPaletteMode",
-					options: { light: "Light", dark: "Dark" },
-				},
-			},
-			...Array.from({ length: colorCount }, (_, i) => [
-				{
-					name: `Custom colour ${i + 1} name`,
-					visible: () => this.plugin.getSettings().colorPaletteName === "Custom",
-					control: {
-						type: "text" as const,
-						key: `customPaletteColors.${i}.name`,
-						placeholder: "Name",
-					},
-				},
-				{
-					name: `Custom colour ${i + 1}`,
-					visible: () => this.plugin.getSettings().colorPaletteName === "Custom",
-					control: {
-						type: "color" as const,
-						key: `customPaletteColors.${i}.hex`,
-					},
-				},
-			]).flat(),
-			{
-				type: "group",
-				heading: "Story Context",
-				items: [
-					{
-						name: "Unknown name suggestions",
-						desc: "List proper names found in the chapter that are not in the Codex.",
-						control: {
-							type: "toggle",
-							key: "recommendIncludeUnknownNames",
-						},
-					},
-					...CODEX_TYPES.map((opt) => ({
-						name: `${opt.label} facts heading`,
-						desc: `H2 section title in ${opt.label.toLowerCase()} Codex notes (e.g. Facts).`,
-						control: {
-							type: "text" as const,
-							key: `codexFactSectionByType.${opt.type}`,
-							placeholder: "Facts",
-						},
-					})),
-				],
-			},
-			{
-				name: "Text styling",
-				desc: "Open the text styling modal.",
-				action: () => {
-					new TextStyleModal(this.app, this.plugin).open();
-				},
-			},
-			{
-				name: "storyForge interface",
-				desc: "Open interface formatting options.",
-				action: () => {
-					new UiFormattingModal(this.app, this.plugin).open();
-				},
-			},
-			{
-				name: "Hide Obsidian interface elements",
-				desc: "Choose which Obsidian UI chrome to hide.",
-				action: () => {
-					new HideUiModal(this.app, this.plugin).open();
-				},
-			},
-			{
-				name: "Protections",
-				desc: "Backup and protection options.",
-				action: () => {
-					new ProtectionsModal(this.app, this.plugin).open();
-				},
-			},
-		];
+	private persistColorPaletteName(value: PaletteName): void {
+		void this.plugin.updateSetting("colorPaletteName", value).then(() => this.display());
+	}
+
+	private persistCustomPaletteColor(
+		settings: StoryForgePluginSettings,
+		index: number,
+		field: "name" | "hex",
+		value: string,
+	): void {
+		const colors = settings.customPaletteColors.slice();
+		colors[index] = { ...colors[index], [field]: value };
+		void this.plugin.updateSetting("customPaletteColors", colors);
+	}
+
+	private renderTextStyleButton(containerEl: HTMLElement): void {
+		const buttonEl = containerEl.createDiv({ cls: "sf-settings-button" });
+		const iconEl = buttonEl.createSpan({ cls: "sf-settings-button-icon" });
+		setIcon(iconEl, ICON_TEXT_STYLE);
+		buttonEl.createSpan({ cls: "sf-settings-button-label", text: "Text styling" });
+		buttonEl.addEventListener("click", () => {
+			new TextStyleModal(this.app, this.plugin).open();
+		});
+	}
+
+	private renderUiFormattingButton(containerEl: HTMLElement): void {
+		const buttonEl = containerEl.createDiv({ cls: "sf-settings-button" });
+		const iconEl = buttonEl.createSpan({ cls: "sf-settings-button-icon" });
+		setIcon(iconEl, ICON_UI_FORMATTING);
+		buttonEl.createSpan({ cls: "sf-settings-button-label", text: "storyForge interface" });
+		buttonEl.addEventListener("click", () => {
+			new UiFormattingModal(this.app, this.plugin).open();
+		});
+	}
+
+	private renderHideUiButton(containerEl: HTMLElement): void {
+		const buttonEl = containerEl.createDiv({ cls: "sf-settings-button" });
+		const iconEl = buttonEl.createSpan({ cls: "sf-settings-button-icon" });
+		setIcon(iconEl, ICON_HIDE_UI);
+		buttonEl.createSpan({ cls: "sf-settings-button-label", text: "Hide Obsidian interface elements" });
+		buttonEl.addEventListener("click", () => {
+			new HideUiModal(this.app, this.plugin).open();
+		});
+	}
+
+	private renderProtectionsButton(containerEl: HTMLElement): void {
+		const buttonEl = containerEl.createDiv({ cls: "sf-settings-button" });
+		const iconEl = buttonEl.createSpan({ cls: "sf-settings-button-icon" });
+		setIcon(iconEl, ICON_PROTECTIONS);
+		buttonEl.createSpan({ cls: "sf-settings-button-label", text: "Protections" });
+		buttonEl.addEventListener("click", () => {
+			new ProtectionsModal(this.app, this.plugin).open();
+		});
+	}
+
+	private renderButtonRow(containerEl: HTMLElement): void {
+		const row = containerEl.createDiv({ cls: "sf-settings-button-row" });
+		this.renderTextStyleButton(row);
+		this.renderUiFormattingButton(row);
+		this.renderHideUiButton(row);
+		this.renderProtectionsButton(row);
+	}
+
+	private renderRecommendationsSection(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
+		const group = new SettingGroup(containerEl);
+		group.setHeading("Story Context");
+		group.addSetting((setting) => {
+			setting
+				.setName("Unknown name suggestions")
+				.setDesc("List proper names found in the chapter that are not in the Codex.")
+				.addToggle((toggle) =>
+					toggle.setValue(settings.recommendIncludeUnknownNames).onChange((value) => {
+						void this.plugin.updateSetting("recommendIncludeUnknownNames", value);
+					}),
+				);
+		});
+		for (const opt of CODEX_TYPES) {
+			group.addSetting((setting) => {
+				setting
+					.setName(`${opt.label} facts heading`)
+					.setDesc(`H2 section title in ${opt.label.toLowerCase()} Codex notes (e.g. Facts).`)
+					.addText((text) =>
+						text
+							.setPlaceholder("Facts")
+							.setValue(settings.codexFactSectionByType[opt.type] ?? "Facts")
+							.onChange((value) => {
+								const next = {
+									...this.plugin.getSettings().codexFactSectionByType,
+									[opt.type]: value.trim() || "Facts",
+								};
+								void this.plugin.updateSetting("codexFactSectionByType", next);
+							}),
+					);
+			});
+		}
 	}
 }
