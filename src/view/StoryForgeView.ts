@@ -2,19 +2,17 @@ import { ItemView, Notice, TFile, WorkspaceLeaf } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { bookFolderNameFromChapterPath, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath } from "../paths";
 import { getBookId } from "../series";
-import { getBookChapterFiles, readBookFrontmatter } from "../book";
 import { renderTopPanel, type UnplacedViewMode } from "./TopPanel";
 import { renderBottomPanel } from "./BottomPanel";
 import { renderStatsPanel, nextStatsMode, type StatsMode } from "./StatsPanel";
 import { SeriesModal } from "./SeriesModal";
 import { BookSynopsisModal } from "./BookSynopsisModal";
-import { ArchiveModal } from "./ArchiveModal";
-import { CodexArchiveModal } from "./CodexArchiveModal";
 import { createCodexFolder, createCodexNote, readCodexFrontmatter, type CodexViewMode } from "../codex";
 import { debounce } from "../debounce";
 import { ICON_SERIES } from "../icons";
-import { countWords, sumWordCounts } from "../wordCount";
-import { readHistory, recomputeBookTotal, todayISOInEngland, wordsThisWeek, wordsToday } from "../history";
+import { countWords } from "../wordCount";
+import { getBookWordStats } from "../history";
+import { WordCountModal } from "./WordCountModal";
 
 export const STORYFORGE_VIEW_TYPE = "storyforge-view";
 
@@ -136,17 +134,9 @@ export class StoryForgeView extends ItemView {
 			onOpenChapter: (bookName, filename) => void this.openChapter(bookName, filename),
 			onOpenSeriesModal: () => new SeriesModal(this.app, () => this.render()).open(),
 			onOpenBookSynopsisModal: (bookFolderName) => new BookSynopsisModal(this.app, bookFolderName, () => this.render()).open(),
-			onOpenArchive: () => {
-				if (this.currentBookFolderName) {
-					new ArchiveModal(this.app, this.currentBookFolderName, () => this.render()).open();
-				}
-			},
 			onArchiveChapter: async () => {
-				if (this.currentBookFolderName) {
-					await recomputeBookTotal(this.app, this.currentBookFolderName);
-					if (this.closed) return;
-					await this.refreshStats();
-				}
+				if (this.closed) return;
+				await this.refreshStats();
 			},
 		});
 
@@ -176,7 +166,6 @@ export class StoryForgeView extends ItemView {
 			highlightActiveChapter: this.plugin.getSettings().highlightActiveChapter,
 			onCreateFolder: () => void this.handleCreateCodexFolder(),
 			onCreateFile: () => void this.handleCreateCodexFile(),
-			onOpenArchive: () => new CodexArchiveModal(this.app, () => this.render()).open(),
 		});
 
 		renderStatsPanel(statsEl, {
@@ -185,6 +174,11 @@ export class StoryForgeView extends ItemView {
 			onToggleMode: () => {
 				this.statsMode = nextStatsMode(this.statsMode);
 				this.render();
+			},
+			onOpenHistory: () => {
+				if (this.currentBookFolderName) {
+					new WordCountModal(this.app, this.currentBookFolderName).open();
+				}
 			},
 		});
 		void this.refreshStats();
@@ -202,21 +196,11 @@ export class StoryForgeView extends ItemView {
 		let weekly = 0;
 		let story = 0;
 		if (this.currentBookFolderName) {
-			// All stats are computed from live (non-archived) chapter files.
-			const chapterFiles = getBookChapterFiles(this.app, this.currentBookFolderName);
-			const archived = new Set(readBookFrontmatter(this.app, this.currentBookFolderName)?.archive ?? []);
-			const liveFiles = chapterFiles.filter((f) => !archived.has(f.name));
-			const contents = await Promise.all(liveFiles.map((f) => this.app.vault.cachedRead(f)));
-			story = sumWordCounts(contents);
-
-			// "daily"/"weekly" are deltas against history, not the running total. Splice in
-			// today's live total in case the debounced background persist hasn't flushed yet.
-			const { totals } = await readHistory(this.app, this.currentBookFolderName);
+			const stats = await getBookWordStats(this.app, this.currentBookFolderName);
 			if (this.closed) return;
-			const todayISO = todayISOInEngland();
-			const totalsWithLive = { ...totals, [todayISO]: story };
-			daily = wordsToday(totalsWithLive, todayISO);
-			weekly = wordsThisWeek(totalsWithLive, todayISO);
+			daily = stats.todayNet;
+			weekly = stats.weekNet;
+			story = stats.current;
 		}
 
 		const next: Record<StatsMode, number> = { daily, weekly, chapter, story };

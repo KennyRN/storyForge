@@ -151,7 +151,7 @@ export async function upsertSeriesBookEntry(
 /**
  * Edits a book's title, returning the `book-id` used (existing, or freshly
  * minted if this folder somehow had no entry yet) so callers can update
- * book.md's reference mirror without a stale re-read of series.md's cache
+ * novel.md's reference mirror without a stale re-read of series.md's cache
  * right after this write (Obsidian's metadataCache doesn't update
  * synchronously with `processFrontMatter`).
  */

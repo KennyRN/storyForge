@@ -3,18 +3,31 @@ import type { Extension } from "@codemirror/state";
 import { createCyclingGuideViewPlugin } from "./cyclingGuide";
 import { StoryForgeView, STORYFORGE_VIEW_TYPE } from "./view/StoryForgeView";
 import { ToolsView, TOOLS_VIEW_TYPE } from "./view/ToolsPanel";
+import { RecommendationView, RECOMMEND_VIEW_TYPE, activateRecommendView } from "./view/RecommendationView";
+import { ArchiveView, ARCHIVE_VIEW_TYPE, activateArchiveView } from "./view/ArchiveView";
+import { SpacerView, SPACER_VIEW_TYPE } from "./view/SpacerView";
+import { recomputeChapterRecommend } from "./recommend/recompute";
+import { CODEX_TYPES } from "./codex";
 import { StoryForgeSettingsTab } from "./view/StoryForgeSettingsTab";
-import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders } from "./series";
+import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders, getBookId } from "./series";
 import { ensureAllChapterEntries, syncAllBookReferenceFields } from "./book";
 import { migrateVaultSchema } from "./migration";
 import { registerReconciliationEvents } from "./reconciliation";
-import { isLibraryChapterPath, bookFolderNameFromChapterPath, seriesFilePath, LIBRARY_ROOT, CODEX_ROOT } from "./paths";
+import {
+	isLibraryChapterPath,
+	bookFolderNameFromChapterPath,
+	chapterFilenameFromPath,
+	seriesFilePath,
+	LIBRARY_ROOT,
+	CODEX_ROOT,
+} from "./paths";
 import { SeriesOnboardingModal } from "./view/SeriesOnboardingModal";
 import { ensureWelcomeNote } from "./welcomeNote";
-import { recomputeBookTotal } from "./history";
+import { recordChapterEdit } from "./history";
 import { extractFingerprint } from "./fingerprint";
 import { updateChapterFingerprint } from "./chapterSidecar";
 import { debounce } from "./debounce";
+import { countWords } from "./wordCount";
 import { registerCustomIcons } from "./icons";
 import { registerCustomFontFaces, resolveCustomFontFamilyParts, CUSTOM_FONTS, CustomFontEntry } from "./fonts";
 import { refreshTabTitles, registerTabTitleOverrides } from "./tabTitles";
@@ -31,6 +44,7 @@ const CODEX_FOLDER_INDICATOR_WIDTH_PX: Record<CodexFolderIndicatorThickness, num
 };
 
 export type HeadingDividerThickness = "thin" | "medium" | "thick" | "extra-thick";
+export type EditorScrollbarThickness = "thin" | "medium" | "thick";
 
 export type CustomFontFamily = "ibm-plex-sans-var" | "nunito" | "caveat" | "playpen-sans";
 
@@ -55,6 +69,13 @@ const HEADING_DIVIDER_WIDTH_PX: Record<HeadingDividerThickness, number> = {
 	"extra-thick": 6,
 };
 
+/** Editor scrollbar widths: thick ≈ roomy; thin = practical minimum; medium midway. */
+const EDITOR_SCROLLBAR_WIDTH_PX: Record<EditorScrollbarThickness, number> = {
+	thin: 6,
+	medium: 12,
+	thick: 20,
+};
+
 export interface StoryForgePluginSettings {
 	hideHelp: boolean;
 	hideSearch: boolean;
@@ -62,6 +83,21 @@ export interface StoryForgePluginSettings {
 	hideFiles: boolean;
 	hideLeftPanel: boolean;
 	hideRightPanel: boolean;
+	/** Hide Obsidian's Backlinks tab in the right sidebar. */
+	hideBacklinks: boolean;
+	/** Hide Obsidian's Outgoing links tab in the right sidebar. */
+	hideOutgoingLinks: boolean;
+	/** Hide Obsidian's Tags tab in the right sidebar. */
+	hideTags: boolean;
+	/** Hide Obsidian's Outline tab in the right sidebar. */
+	hideOutline: boolean;
+	/** Hide Obsidian's All properties tab in the right sidebar. */
+	hideAllProperties: boolean;
+	/**
+	 * One-time Story Context rail defaults (unhide right toggle; hide native right tabs).
+	 * Set after migration runs so re-loads don't re-force user choices.
+	 */
+	storyContextShellApplied: boolean;
 	hideFileNameBar: boolean;
 	hideNavRow: boolean;
 	hideSeriesPane: boolean;
@@ -211,6 +247,16 @@ export interface StoryForgePluginSettings {
 	automaticBackupFrequency: AutomaticBackupFrequency;
 	automaticBackupFolder: string;
 	lastAutomaticBackupAt: number;
+	/** Per Codex type id → H2 heading label used for structured Facts in notes. */
+	codexFactSectionByType: Record<string, string>;
+	/** When true, the recommendation engine lists proper-name candidates not in Codex. */
+	recommendIncludeUnknownNames: boolean;
+	/** Thumb (foreground) colour of the manuscript editor scrollbar. */
+	editorScrollbarThumbColor: string;
+	/** Track (rail) colour of the manuscript editor scrollbar. */
+	editorScrollbarTrackColor: string;
+	/** Width of the manuscript editor scrollbar. */
+	editorScrollbarThickness: EditorScrollbarThickness;
 }
 
 const FONT_FAMILY_SETTING_KEYS: (
@@ -230,13 +276,36 @@ function migrateRemovedCaroniFont(settings: StoryForgePluginSettings): void {
 	}
 }
 
+/**
+ * One-time: unhide the right sidebar toggle and hide Obsidian's native right tabs so the
+ * Story Context rail can own that side. Skipped once `storyContextShellApplied` is set.
+ */
+function migrateStoryContextShell(settings: StoryForgePluginSettings, data: unknown): boolean {
+	const raw = data && typeof data === "object" ? (data as Record<string, unknown>) : null;
+	if (raw && raw.storyContextShellApplied === true) return false;
+	settings.hideRightPanel = false;
+	settings.hideBacklinks = true;
+	settings.hideOutgoingLinks = true;
+	settings.hideTags = true;
+	settings.hideOutline = true;
+	settings.hideAllProperties = true;
+	settings.storyContextShellApplied = true;
+	return true;
+}
+
 export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	hideHelp: true,
 	hideSearch: true,
 	hideBookmarks: true,
 	hideFiles: true,
 	hideLeftPanel: false,
-	hideRightPanel: true,
+	hideRightPanel: false,
+	hideBacklinks: true,
+	hideOutgoingLinks: true,
+	hideTags: true,
+	hideOutline: true,
+	hideAllProperties: true,
+	storyContextShellApplied: true,
 	hideFileNameBar: true,
 	hideNavRow: true,
 	hideSeriesPane: false,
@@ -391,6 +460,14 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	automaticBackupFrequency: "daily",
 	automaticBackupFolder: "",
 	lastAutomaticBackupAt: 0,
+	codexFactSectionByType: {
+		person: "Facts",
+		place: "Facts",
+	},
+	recommendIncludeUnknownNames: true,
+	editorScrollbarThumbColor: "#6b7280",
+	editorScrollbarTrackColor: "#00000020",
+	editorScrollbarThickness: "thick",
 };
 
 export default class StoryForgePlugin extends Plugin {
@@ -429,6 +506,21 @@ export default class StoryForgePlugin extends Plugin {
 		registerCustomIcons();
 		this.registerView(STORYFORGE_VIEW_TYPE, (leaf) => new StoryForgeView(leaf, this));
 		this.registerView(TOOLS_VIEW_TYPE, (leaf) => new ToolsView(leaf));
+		this.registerView(RECOMMEND_VIEW_TYPE, (leaf) => new RecommendationView(leaf, this));
+		this.registerView(ARCHIVE_VIEW_TYPE, (leaf) => new ArchiveView(leaf, this));
+		this.registerView(SPACER_VIEW_TYPE, (leaf) => new SpacerView(leaf));
+
+		this.addCommand({
+			id: "open-recommendations",
+			name: "Open Story Context",
+			callback: () => void this.activateRecommendView(),
+		});
+
+		this.addCommand({
+			id: "open-archive",
+			name: "Open Archive",
+			callback: () => void this.activateArchiveView("codex"),
+		});
 
 		this.addCommand({
 			id: "open-view",
@@ -476,18 +568,21 @@ export default class StoryForgePlugin extends Plugin {
 
 		this.app.workspace.onLayoutReady(() => {
 			void this.initializeVaultState();
-			if (this.app.workspace.getLeavesOfType(STORYFORGE_VIEW_TYPE).length === 0) {
-				void this.activateView();
-			}
-			if (this.pluginSettings.useToolsPanel && this.app.workspace.getLeavesOfType(TOOLS_VIEW_TYPE).length === 0) {
-				void this.activateToolsView();
-			}
-			void this.enforcePanelOrder();
+			void this.ensureSidePanels();
 			this.registerPanelOrderWatcher();
 			this.refreshCustomIcons();
 			refreshTabTitles(this.app);
+			this.applyEditorScrollbarStyles();
+			this.syncSpacerActiveClass();
 			void this.maybeRunScheduledBackup("vault-open");
 		});
+
+		this.registerEvent(
+			this.app.workspace.on("active-leaf-change", () => this.syncSpacerActiveClass()),
+		);
+		this.registerEvent(
+			this.app.workspace.on("layout-change", () => this.syncSpacerActiveClass()),
+		);
 
 		if (Platform.isDesktopApp) {
 			this.registerInterval(window.setInterval(() => void this.maybeRunScheduledBackup("interval"), 30 * 60 * 1000));
@@ -531,7 +626,7 @@ export default class StoryForgePlugin extends Plugin {
 	 * the tab header. Re-applying each leaf's own view state forces Obsidian to redraw it.
 	 */
 	private refreshCustomIcons(): void {
-		for (const type of [STORYFORGE_VIEW_TYPE, TOOLS_VIEW_TYPE]) {
+		for (const type of [STORYFORGE_VIEW_TYPE, TOOLS_VIEW_TYPE, RECOMMEND_VIEW_TYPE, ARCHIVE_VIEW_TYPE, SPACER_VIEW_TYPE]) {
 			for (const leaf of this.app.workspace.getLeavesOfType(type)) {
 				void leaf.setViewState(leaf.getViewState());
 			}
@@ -553,7 +648,15 @@ export default class StoryForgePlugin extends Plugin {
 				leaf.view.restoreRibbon();
 			}
 		}
-		document.body.classList.remove("sf-use-tools-panel", "sf-tools-open");
+		document.body.classList.remove(
+			"sf-use-tools-panel",
+			"sf-tools-open",
+			"sf-editor-scrollbar",
+			"sf-sb-thin",
+			"sf-sb-medium",
+			"sf-sb-thick",
+			"sf-spacer-active",
+		);
 		this.clearStyleVars(document);
 		for (const doc of this.extraDocs) this.clearStyleVars(doc);
 		this.extraDocs.clear();
@@ -574,14 +677,31 @@ export default class StoryForgePlugin extends Plugin {
 		const data: unknown = await this.loadData();
 		this.pluginSettings = Object.assign({}, DEFAULT_SETTINGS, data);
 		migrateRemovedCaroniFont(this.pluginSettings);
+		const shellMigrated = migrateStoryContextShell(this.pluginSettings, data);
+		const sections = { ...DEFAULT_SETTINGS.codexFactSectionByType, ...this.pluginSettings.codexFactSectionByType };
+		for (const opt of CODEX_TYPES) {
+			if (!sections[opt.type]) sections[opt.type] = "Facts";
+		}
+		this.pluginSettings.codexFactSectionByType = sections;
+		this.syncObsidianSettingsRef();
+		if (shellMigrated) await this.saveSettings();
 	}
 
 	async saveSettings(): Promise<void> {
+		this.syncObsidianSettingsRef();
 		await this.saveData(this.pluginSettings);
 	}
 
 	getSettings(): StoryForgePluginSettings {
 		return this.pluginSettings;
+	}
+
+	/**
+	 * Obsidian 1.13+ settings UI reads `plugin.settings`. Keep that mirror in sync with
+	 * our real store so the settings tab (and search) never render against `undefined`.
+	 */
+	private syncObsidianSettingsRef(): void {
+		this.settings = this.pluginSettings;
 	}
 
 	async updateSetting<K extends keyof StoryForgePluginSettings>(key: K, value: StoryForgePluginSettings[K]): Promise<void> {
@@ -593,6 +713,11 @@ export default class StoryForgePlugin extends Plugin {
 	async importSettings(data: unknown): Promise<void> {
 		this.pluginSettings = Object.assign({}, DEFAULT_SETTINGS, data);
 		migrateRemovedCaroniFont(this.pluginSettings);
+		const sections = { ...DEFAULT_SETTINGS.codexFactSectionByType, ...this.pluginSettings.codexFactSectionByType };
+		for (const opt of CODEX_TYPES) {
+			if (!sections[opt.type]) sections[opt.type] = "Facts";
+		}
+		this.pluginSettings.codexFactSectionByType = sections;
 		await this.saveSettings();
 
 		this.applyAllStyles();
@@ -652,6 +777,7 @@ export default class StoryForgePlugin extends Plugin {
 		this.applyTextStyleOverrides();
 		this.registerCustomFontFacesForAllDocs();
 		this.applyCyclingGuideStyle();
+		this.applyEditorScrollbarStyles();
 	}
 
 	applyVisibilityStyles(): void {
@@ -668,6 +794,11 @@ export default class StoryForgePlugin extends Plugin {
 			"--sf-search-display": s.hideSearch ? "none" : null,
 			"--sf-bookmarks-display": s.hideBookmarks ? "none" : null,
 			"--sf-files-display": s.hideFiles ? "none" : null,
+			"--sf-backlinks-display": s.hideBacklinks ? "none" : null,
+			"--sf-outgoing-links-display": s.hideOutgoingLinks ? "none" : null,
+			"--sf-tags-display": s.hideTags ? "none" : null,
+			"--sf-outline-display": s.hideOutline ? "none" : null,
+			"--sf-all-properties-display": s.hideAllProperties ? "none" : null,
 			"--sf-sidebar-left-display": s.hideLeftPanel ? "none" : null,
 			"--sf-sidebar-right-display": s.hideRightPanel ? "none" : null,
 			"--sf-filename-bar-display": s.hideFileNameBar ? "none" : null,
@@ -769,6 +900,25 @@ export default class StoryForgePlugin extends Plugin {
 			"--sf-cg-badge-inner-height": `${badgePx - 3}px`,
 			"--sf-cg-flag-size": `${flagSizeEm}em`,
 		});
+	}
+
+	/** Manuscript editor scrollbar thumb/track colours and width. */
+	applyEditorScrollbarStyles(): void {
+		const s = this.pluginSettings;
+		const width = EDITOR_SCROLLBAR_WIDTH_PX[s.editorScrollbarThickness];
+		this.applyStyleVarsToAllDocs({
+			"--sf-editor-scrollbar-width": `${width}px`,
+			"--sf-editor-scrollbar-thumb": s.editorScrollbarThumbColor,
+			"--sf-editor-scrollbar-track": s.editorScrollbarTrackColor,
+		});
+		this.applyEditorScrollbarBodyClass(document.body, s.editorScrollbarThickness);
+		for (const doc of this.extraDocs) this.applyEditorScrollbarBodyClass(doc.body, s.editorScrollbarThickness);
+	}
+
+	private applyEditorScrollbarBodyClass(body: HTMLElement, thickness: EditorScrollbarThickness): void {
+		body.classList.add("sf-editor-scrollbar");
+		body.classList.remove("sf-sb-thin", "sf-sb-medium", "sf-sb-thick");
+		body.classList.add(`sf-sb-${thickness}`);
 	}
 
 	/** Rebuilds the cycling guide CM6 extension with the current interval setting. */
@@ -1113,27 +1263,117 @@ export default class StoryForgePlugin extends Plugin {
 		const raw = await this.app.vault.read(file);
 		const fingerprint = extractFingerprint(raw);
 		await updateChapterFingerprint(this.app, bookFolderName, file.name, fingerprint);
-		await recomputeBookTotal(this.app, bookFolderName);
+		await recordChapterEdit(this.app, bookFolderName, file.name, countWords(raw));
+
+		const chapterFilename = chapterFilenameFromPath(chapterPath) ?? file.name;
+		const bookId = getBookId(this.app, bookFolderName);
+		await recomputeChapterRecommend(this.app, bookFolderName, chapterFilename, bookId, {
+			codexFactSectionByType: this.pluginSettings.codexFactSectionByType,
+			recommendIncludeUnknownNames: this.pluginSettings.recommendIncludeUnknownNames,
+		});
+	}
+
+	async activateRecommendView(): Promise<void> {
+		await activateRecommendView(this);
+	}
+
+	async activateArchiveView(tab: "codex" | "novel" = "codex"): Promise<void> {
+		await activateArchiveView(this, tab);
 	}
 
 	async activateView(): Promise<void> {
-		const { workspace } = this.app;
-		let leaf: WorkspaceLeaf | null = workspace.getLeavesOfType(STORYFORGE_VIEW_TYPE)[0] ?? null;
-		if (!leaf) {
-			leaf = workspace.getLeftLeaf(false);
-			await leaf?.setViewState({ type: STORYFORGE_VIEW_TYPE, active: true });
-		}
-		if (leaf) await workspace.revealLeaf(leaf);
+		const leaf = await this.ensureLeaf(STORYFORGE_VIEW_TYPE, "left", true);
+		if (leaf) await this.app.workspace.revealLeaf(leaf);
 	}
 
 	async activateToolsView(): Promise<void> {
-		const { workspace } = this.app;
-		let leaf: WorkspaceLeaf | null = workspace.getLeavesOfType(TOOLS_VIEW_TYPE)[0] ?? null;
-		if (!leaf) {
-			leaf = workspace.getLeftLeaf(false);
-			await leaf?.setViewState({ type: TOOLS_VIEW_TYPE, active: true });
+		const leaf = await this.ensureLeaf(TOOLS_VIEW_TYPE, "left", true);
+		if (leaf) await this.app.workspace.revealLeaf(leaf);
+	}
+
+	/**
+	 * Creates missing storyForge / Tools / right-rail leaves and focuses storyForge on the
+	 * left (Tools stays as a sibling tab, not the active one). Expands the right rail so Spacer,
+	 * Story Context, and Archive are ready the same way the left panels are.
+	 */
+	private async ensureSidePanels(): Promise<void> {
+		await this.ensureLeaf(STORYFORGE_VIEW_TYPE, "left", true);
+		if (this.pluginSettings.useToolsPanel) {
+			await this.ensureLeaf(TOOLS_VIEW_TYPE, "left", false);
 		}
-		if (leaf) await workspace.revealLeaf(leaf);
+		await this.ensureRightRailPanels();
+		await this.enforcePanelOrder();
+
+		const sfLeaf = this.app.workspace.getLeavesOfType(STORYFORGE_VIEW_TYPE)[0] ?? null;
+		if (sfLeaf) await this.app.workspace.revealLeaf(sfLeaf);
+
+		const right = this.app.workspace.rightSplit;
+		if (typeof right.expand === "function") right.expand();
+		const contextLeaf = this.app.workspace.getLeavesOfType(RECOMMEND_VIEW_TYPE)[0] ?? null;
+		if (contextLeaf) {
+			await contextLeaf.setViewState({ type: RECOMMEND_VIEW_TYPE, active: true });
+		}
+		this.syncSpacerActiveClass();
+	}
+
+	/** Ensure Spacer → Story Context → Archive exist in that order on the right. */
+	private async ensureRightRailPanels(): Promise<void> {
+		const types = [SPACER_VIEW_TYPE, RECOMMEND_VIEW_TYPE, ARCHIVE_VIEW_TYPE];
+		if (!this.isRightRailOrderCanonical()) {
+			for (const type of types) this.app.workspace.detachLeavesOfType(type);
+			for (let i = 0; i < types.length; i++) {
+				await this.ensureLeaf(types[i], "right", types[i] === RECOMMEND_VIEW_TYPE);
+			}
+			return;
+		}
+		for (const type of types) {
+			await this.ensureLeaf(type, "right", type === RECOMMEND_VIEW_TYPE);
+		}
+	}
+
+	/** True when right-rail storyForge tabs appear in Spacer → Story Context → Archive order (missing tabs are OK). */
+	private isRightRailOrderCanonical(): boolean {
+		const expected = [SPACER_VIEW_TYPE, RECOMMEND_VIEW_TYPE, ARCHIVE_VIEW_TYPE];
+		const order: string[] = [];
+		this.app.workspace.iterateAllLeaves((leaf) => {
+			const type = leaf.view.getViewType();
+			if (expected.includes(type)) order.push(type);
+		});
+		const present = expected.filter((t) => order.includes(t));
+		const actual = order.filter((t) => expected.includes(t));
+		return actual.join("\0") === present.join("\0");
+	}
+
+	/**
+	 * When the Spacer tab is the visible leaf in the right rail, drop the divider between the
+	 * editor and the sidebar so the empty spacer blends into the writing surface.
+	 */
+	private syncSpacerActiveClass(): void {
+		const spacerShowing = !!document.querySelector(
+			'.mod-right-split .workspace-leaf.mod-active .workspace-leaf-content[data-type="storyforge-spacer-view"]',
+		);
+		document.body.classList.toggle("sf-spacer-active", spacerShowing);
+		for (const doc of this.extraDocs) {
+			const showing = !!doc.querySelector(
+				'.mod-right-split .workspace-leaf.mod-active .workspace-leaf-content[data-type="storyforge-spacer-view"]',
+			);
+			doc.body.classList.toggle("sf-spacer-active", showing);
+		}
+	}
+
+	/** Ensure a leaf of `type` exists in the left or right sidebar. Does not reveal/focus. */
+	private async ensureLeaf(
+		type: string,
+		side: "left" | "right",
+		active: boolean,
+	): Promise<WorkspaceLeaf | null> {
+		const { workspace } = this.app;
+		let leaf: WorkspaceLeaf | null = workspace.getLeavesOfType(type)[0] ?? null;
+		if (!leaf) {
+			leaf = side === "left" ? workspace.getLeftLeaf(false) : workspace.getRightLeaf(false);
+			await leaf?.setViewState({ type, active });
+		}
+		return leaf ?? null;
 	}
 
 	/** True if the StoryForge leaf is visited before the Tools leaf when walking the workspace's layout tree (i.e. sits earlier among tabs in a shared group). If either is absent, there's nothing to enforce. */
@@ -1154,9 +1394,9 @@ export default class StoryForgePlugin extends Plugin {
 	 * Corrects StoryForge/Tools tab order back to canonical (SF before Tools) when it's drifted -
 	 * e.g. an upgraded vault where Tools had previously been created first. Obsidian exposes no
 	 * public API to reorder two existing tabs in place, so this detaches and recreates both leaves
-	 * via the same public activateView()/activateToolsView() used elsewhere, guarded so the
-	 * layout-change watcher below never mistakes this self-correction for a user drag. No-ops once
-	 * the user has deliberately reordered the tabs (panelOrderMode === "user").
+	 * via ensureLeaf(), guarded so the layout-change watcher below never mistakes this
+	 * self-correction for a user drag. No-ops once the user has deliberately reordered the tabs
+	 * (panelOrderMode === "user"). Does not touch Story Context on the right.
 	 */
 	private async enforcePanelOrder(): Promise<void> {
 		if (this.pluginSettings.panelOrderMode !== "canonical") return;
@@ -1165,8 +1405,8 @@ export default class StoryForgePlugin extends Plugin {
 		try {
 			this.app.workspace.detachLeavesOfType(STORYFORGE_VIEW_TYPE);
 			this.app.workspace.detachLeavesOfType(TOOLS_VIEW_TYPE);
-			await this.activateView();
-			if (this.pluginSettings.useToolsPanel) await this.activateToolsView();
+			await this.ensureLeaf(STORYFORGE_VIEW_TYPE, "left", true);
+			if (this.pluginSettings.useToolsPanel) await this.ensureLeaf(TOOLS_VIEW_TYPE, "left", false);
 		} finally {
 			this.isAdjustingPanelOrder = false;
 		}

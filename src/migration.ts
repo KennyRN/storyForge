@@ -1,30 +1,48 @@
 import { App, TFile, TFolder } from "obsidian";
-import { bookFilePath, seriesFilePath, codexFilePath, CODEX_ROOT } from "./paths";
+import { bookBackstagePath, bookFilePath, seriesFilePath, codexFilePath, CODEX_ROOT } from "./paths";
 import { modifyBackstageFrontmatter } from "./writeGuard";
 import { DEFAULT_SERIES_CONTENT, getLibraryBookFolders, getSeriesBookEntry, upsertSeriesBookEntry, type RawSeriesFrontmatter } from "./series";
 import { type RawBookFrontmatter } from "./book";
 import { DEFAULT_CODEX_CONTENT, type RawCodexFrontmatter } from "./codex";
 import { mintId } from "./slug";
 import { mintFolderId, type CodexFolders } from "./codexTree";
+import { migrateWordCountV1ToV2 } from "./history";
 
 /**
  * Migrates the old plain `title`/`id` schema (series.md's `title`, each
- * book.md's `id`/`title`) to the series-centralized schema. Also renames
- * legacy `order` to `chapter-order` in each book.md. Every step only acts
- * when the legacy field is still present, so this is safe to run
- * unconditionally on every load — a second run is a true no-op — and it
- * never re-mints an id for a folder that already had one.
+ * novel.md's `id`/`title`) to the series-centralized schema. Also renames
+ * legacy `book.md` → `novel.md` and legacy `order` → `chapter-order` in each
+ * novel.md. Every step only acts when the legacy field/file is still present,
+ * so this is safe to run unconditionally on every load — a second run is a
+ * true no-op — and it never re-mints an id for a folder that already had one.
  */
 export async function migrateVaultSchema(app: App): Promise<void> {
 	await migrateSeriesTitleField(app);
 	await migrateSeriesIdField(app);
 	await migrateCodexSchema(app);
 	for (const folder of getLibraryBookFolders(app)) {
+		await migrateBookFileToNovelFile(app, folder.name);
+	}
+	for (const folder of getLibraryBookFolders(app)) {
 		await migrateLegacyBookEntry(app, folder.name);
 	}
 	for (const folder of getLibraryBookFolders(app)) {
 		await migrateChapterOrderField(app, folder.name);
 	}
+	await migrateWordCountV1ToV2(app);
+}
+
+/**
+ * Renames legacy `_sf-backstage/<folder>/book.md` to `novel.md` when the
+ * destination does not already exist. Safe no-op on re-run.
+ */
+async function migrateBookFileToNovelFile(app: App, folderName: string): Promise<void> {
+	const legacyPath = `${bookBackstagePath(folderName)}/book.md`;
+	const nextPath = bookFilePath(folderName);
+	if (app.vault.getAbstractFileByPath(nextPath)) return;
+	const legacy = app.vault.getAbstractFileByPath(legacyPath);
+	if (!(legacy instanceof TFile)) return;
+	await app.fileManager.renameFile(legacy, nextPath);
 }
 
 async function migrateSeriesTitleField(app: App): Promise<void> {

@@ -23,11 +23,17 @@ export function bookBackstagePath(bookFolderName: string): string {
 }
 
 export function bookFilePath(bookFolderName: string): string {
-	return `${bookBackstagePath(bookFolderName)}/book.md`;
+	return `${bookBackstagePath(bookFolderName)}/novel.md`;
 }
 
+/** Legacy v1 shared wordcount file (all books). Migrated into per-book files. */
 export function wordCountFilePath(): string {
 	return `${BACKSTAGE_ROOT}/wordcount.md`;
+}
+
+/** Per-book v2 wordcount YAML. */
+export function bookWordCountFilePath(bookFolderName: string): string {
+	return `${bookBackstagePath(bookFolderName)}/wordcount.md`;
 }
 
 export function chapterSidecarFolderPath(bookFolderName: string): string {
@@ -36,6 +42,14 @@ export function chapterSidecarFolderPath(bookFolderName: string): string {
 
 export function chapterSidecarPath(bookFolderName: string, chapterFilename: string): string {
 	return `${chapterSidecarFolderPath(bookFolderName)}/${chapterFilename}`;
+}
+
+export function recommendSidecarFolderPath(bookFolderName: string): string {
+	return `${bookBackstagePath(bookFolderName)}/recommend`;
+}
+
+export function recommendSidecarPath(bookFolderName: string, chapterFilename: string): string {
+	return `${recommendSidecarFolderPath(bookFolderName)}/${chapterFilename}`;
 }
 
 export function libraryBookPath(bookFolderName: string): string {
@@ -76,5 +90,7 @@ export function chapterFilenameFromPath(path: string): string | null {
 export function isBackstageBookkeepingPath(path: string): boolean {
 	if (!path.startsWith(`${BACKSTAGE_ROOT}/`)) return false;
 	if (path === wordCountFilePath()) return true;
-	return path.includes("/chapters/");
+	if (path.endsWith("/wordcount.md")) return true;
+	if (path.includes("/chapters/")) return true;
+	return path.includes("/recommend/");
 }

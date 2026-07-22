@@ -15,6 +15,17 @@ export const OBSIDIAN_SELECTORS = {
 	searchNav: "div[aria-label='Search']",
 	bookmarksNav: "div[aria-label='Bookmarks']",
 	filesNav: "div[aria-label='Files']",
+	/** Right-sidebar native tabs — keep in sync with styles.css Dynamic Styling rules. */
+	backlinksNav:
+		'.mod-right-split .workspace-tab-header[data-type="backlink"], .mod-right-split div[aria-label="Backlinks"], .mod-right-split div[aria-label*="Backlinks for"]',
+	outgoingLinksNav:
+		'.mod-right-split .workspace-tab-header[data-type="outgoing-link"], .mod-right-split div[aria-label="Outgoing links"], .mod-right-split div[aria-label*="Outgoing links from"]',
+	tagsNav:
+		'.mod-right-split .workspace-tab-header[data-type="tag"], .mod-right-split .workspace-tab-header[data-type="tags"], .mod-right-split div[aria-label="Tags"], .mod-right-split div[aria-label="Tag pane"]',
+	outlineNav:
+		'.mod-right-split .workspace-tab-header[data-type="outline"], .mod-right-split div[aria-label="Outline"], .mod-right-split div[aria-label*="Outline of"]',
+	allPropertiesNav:
+		'.mod-right-split .workspace-tab-header[data-type="all-properties"], .mod-right-split div[aria-label="All properties"]',
 	sidebarToggleLeft: ".sidebar-toggle-button.mod-left",
 	sidebarToggleRight: ".sidebar-toggle-button.mod-right",
 	inlineTitle: ".inline-title",

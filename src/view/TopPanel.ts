@@ -17,7 +17,8 @@ import { makeReorderable, type DragZone } from "./dragReorder";
 import { makeAccessibleActivatable } from "./a11y";
 import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
-import { ICON_ARCHIVE, ICON_BOOK, ICON_BOOK_PLUS, ICON_FILTER, ICON_PLUS_SQUARE, ICON_SERIES, ICON_TIMELINE, ICON_UNPLACED } from "../icons";
+import { ICON_BOOK, ICON_BOOK_PLUS, ICON_FILTER, ICON_PLUS_SQUARE, ICON_SERIES, ICON_TIMELINE, ICON_UNPLACED } from "../icons";
+import { recordChapterArchive, readChapterWordCount } from "../history";
 
 export type UnplacedViewMode = "unplaced" | "unplacedHidden";
 
@@ -35,7 +36,6 @@ export interface TopPanelOptions {
 	onOpenSeriesModal: () => void;
 	onOpenBookSynopsisModal: (bookFolderName: string) => void;
 	onArchiveChapter?: () => void | Promise<void>;
-	onOpenArchive?: () => void;
 }
 
 export function renderTopPanel(app: App, container: HTMLElement, options: TopPanelOptions): void {
@@ -138,7 +138,6 @@ function renderUnplacedHeader(
 	onToggleMode: () => void,
 	onCreateFile?: () => void,
 	createIcon: string = ICON_PLUS_SQUARE,
-	onOpenArchive?: () => void,
 ): void {
 	const header = zone.createDiv({ cls: "sf-unplaced-header" });
 	if (isHidden) header.addClass("sf-unplaced-hidden");
@@ -160,18 +159,6 @@ function renderUnplacedHeader(
 			onCreateFile();
 		});
 		makeAccessibleActivatable(newFileBtn, () => onCreateFile());
-	}
-	if (onOpenArchive) {
-		const archiveBtn = header.createSpan({
-			cls: "sf-unplaced-archive-btn",
-			attr: { "aria-label": "Archived chapters" },
-		});
-		setIcon(archiveBtn, ICON_ARCHIVE);
-		archiveBtn.addEventListener("click", (e) => {
-			e.stopPropagation();
-			onOpenArchive();
-		});
-		makeAccessibleActivatable(archiveBtn, () => onOpenArchive());
 	}
 }
 
@@ -284,7 +271,9 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 		const archiveItem: ExtraMenuItem = {
 			title: "Archive",
 			onClick: async () => {
+				const words = await readChapterWordCount(app, bookFolderName, file.name);
 				await archiveChapter(app, bookFolderName, file.name);
+				await recordChapterArchive(app, bookFolderName, file.name, words);
 				renderTopPanel(app, container, options);
 				void options.onArchiveChapter?.();
 			},
@@ -310,7 +299,6 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 		options.onToggleUnplacedMode,
 		() => void handleCreateChapter(app, bookFolderName),
 		ICON_PLUS_SQUARE,
-		options.onOpenArchive,
 	);
 
 	const zones: DragZone[] = [{ key: "ordered", container: mainList }];
@@ -329,7 +317,9 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 			const archiveItem: ExtraMenuItem = {
 				title: "Archive",
 				onClick: async () => {
+					const words = await readChapterWordCount(app, bookFolderName, file.name);
 					await archiveChapter(app, bookFolderName, file.name);
+					await recordChapterArchive(app, bookFolderName, file.name, words);
 					renderTopPanel(app, container, options);
 					void options.onArchiveChapter?.();
 				},

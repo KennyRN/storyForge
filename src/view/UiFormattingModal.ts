@@ -1,8 +1,17 @@
 import { App, Modal, Setting, SettingGroup, ToggleComponent } from "obsidian";
 import type StoryForgePlugin from "../main";
-import type { CodexFolderIndicatorThickness, CyclingGuideInterval, HeadingDividerThickness, StoryForgePluginSettings } from "../main";
+import type {
+	CodexFolderIndicatorThickness,
+	CyclingGuideInterval,
+	EditorScrollbarThickness,
+	HeadingDividerThickness,
+	StoryForgePluginSettings,
+} from "../main";
 import { ConvertToSeriesModal } from "./ConvertToSeriesModal";
 import { bindColorSwatchButton, bindExclusivePair, bindFontWeightDropdown, persistAndRestyle, renderTabbedBody, type StyleModalTab } from "./styleModalHelpers";
+
+const EDITOR_SCROLLBAR_THICKNESS_ORDER: EditorScrollbarThickness[] = ["thin", "medium", "thick"];
+const EDITOR_SCROLLBAR_THICKNESS_LABELS = ["Thin", "Medium", "Thick"];
 
 export class UiFormattingModal extends Modal {
 	private plugin: StoryForgePlugin;
@@ -86,9 +95,66 @@ export class UiFormattingModal extends Modal {
 					this.renderCodexPanelContent(body, settings);
 				},
 			},
+			{
+				id: "editor",
+				label: "Editor",
+				render: (body) => {
+					this.renderEditorScrollbarGroup(body, settings);
+				},
+			},
 		];
 
 		renderTabbedBody(contentEl, tabs);
+	}
+
+	private renderEditorScrollbarGroup(body: HTMLElement, settings: StoryForgePluginSettings): void {
+		const group = new SettingGroup(body);
+		group.setHeading("Scrollbar");
+
+		group.addSetting((setting) => {
+			setting
+				.setName("Scrollbar")
+				.setDesc("Colour of the scrollbar thumb in the manuscript editor.")
+				.addButton((button) => {
+					bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings.editorScrollbarThumbColor, (hex) => {
+						persistAndRestyle(this.plugin, "editorScrollbarThumbColor", hex, () => this.plugin.applyEditorScrollbarStyles());
+					});
+				});
+		});
+
+		group.addSetting((setting) => {
+			setting
+				.setName("Scrollbar track")
+				.setDesc("Colour of the scrollbar rail behind the thumb.")
+				.addButton((button) => {
+					bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings.editorScrollbarTrackColor, (hex) => {
+						persistAndRestyle(this.plugin, "editorScrollbarTrackColor", hex, () => this.plugin.applyEditorScrollbarStyles());
+					});
+				});
+		});
+
+		const thicknessIdx = Math.max(0, EDITOR_SCROLLBAR_THICKNESS_ORDER.indexOf(settings.editorScrollbarThickness));
+		group.addSetting((setting) => {
+			setting
+				.setName("Thickness")
+				.setDesc(`${EDITOR_SCROLLBAR_THICKNESS_LABELS[thicknessIdx]} — thin · medium · thick. Hover the editor to see the scrollbar.`)
+				.addSlider((slider) =>
+					slider
+						.setLimits(0, 2, 1)
+						.setValue(thicknessIdx)
+						.setDynamicTooltip()
+						.onChange((value) => {
+							const idx = Math.round(value);
+							const thickness = EDITOR_SCROLLBAR_THICKNESS_ORDER[idx] ?? "thick";
+							setting.setDesc(
+								`${EDITOR_SCROLLBAR_THICKNESS_LABELS[idx] ?? "Thick"} — thin · medium · thick. Hover the editor to see the scrollbar.`,
+							);
+							persistAndRestyle(this.plugin, "editorScrollbarThickness", thickness, () =>
+								this.plugin.applyEditorScrollbarStyles(),
+							);
+						}),
+				);
+		});
 	}
 
 	private renderHeaderStyleGroup(
