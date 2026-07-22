@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, SettingGroup, setIcon } from "obsidian";
+import { App, PluginSettingTab, SettingGroup, setIcon, type SettingDefinitionItem } from "obsidian";
 import type StoryForgePlugin from "../main";
 import type { StoryForgePluginSettings } from "../main";
 import { CODEX_TYPES } from "../codex";
@@ -10,12 +10,22 @@ import { HideUiModal } from "./HideUiModal";
 import { ProtectionsModal } from "./ProtectionsModal";
 import { ICON_TEXT_STYLE, ICON_UI_FORMATTING, ICON_HIDE_UI, ICON_PROTECTIONS } from "../icons";
 
+/**
+ * Primary UI is still display(): Obsidian skips display() when
+ * getSettingDefinitions() returns a non-empty array, and custom `render`
+ * hooks often never paint (blank tab). We return [] so display() runs.
+ * getSettingDefinitions() is present for API compatibility / future search migration.
+ */
 export class StoryForgeSettingsTab extends PluginSettingTab {
 	private plugin: StoryForgePlugin;
 
 	constructor(app: App, plugin: StoryForgePlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
+	}
+
+	getSettingDefinitions(): SettingDefinitionItem[] {
+		return [];
 	}
 
 	display(): void {
@@ -112,7 +122,10 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					setting
 						.setName(`Custom colour ${i + 1}`)
 						.addText((text) =>
-							text.setValue(entry.name).setPlaceholder("Name").onChange((value) => this.persistCustomPaletteColor(settings, i, "name", value)),
+							text
+								.setValue(entry.name)
+								.setPlaceholder("Name")
+								.onChange((value) => this.persistCustomPaletteColor(settings, i, "name", value)),
 						)
 						.addText((text) => {
 							text.setValue(entry.hex);
@@ -132,7 +145,12 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		void this.plugin.updateSetting("colorPaletteName", value).then(() => this.display());
 	}
 
-	private persistCustomPaletteColor(settings: StoryForgePluginSettings, index: number, field: "name" | "hex", value: string): void {
+	private persistCustomPaletteColor(
+		settings: StoryForgePluginSettings,
+		index: number,
+		field: "name" | "hex",
+		value: string,
+	): void {
 		const colors = settings.customPaletteColors.slice();
 		colors[index] = { ...colors[index], [field]: value };
 		void this.plugin.updateSetting("customPaletteColors", colors);

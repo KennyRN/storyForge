@@ -64,11 +64,6 @@ export interface ProjectWordStats {
 	lifetimeRemoved: number;
 }
 
-/** @deprecated Prefer getBookWordStats — kept for migration/tests that need date→cumulative totals. */
-export interface History {
-	totals: Record<string, number>;
-}
-
 function emptyBookData(): BookWordCountData {
 	return {
 		version: 2,
@@ -369,12 +364,6 @@ export async function recomputeBookCurrent(app: App, bookFolderName: string): Pr
  */
 export async function recomputeBookTotal(app: App, bookFolderName: string): Promise<number> {
 	return recomputeBookCurrent(app, bookFolderName);
-}
-
-/** @deprecated Use getBookWordStats. */
-export async function readHistory(app: App, bookFolderName: string): Promise<History> {
-	const data = await readBookFile(app, bookFolderName);
-	return { totals: totalsFromDailyNets(data.daily) };
 }
 
 /**

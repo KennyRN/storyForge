@@ -142,7 +142,7 @@ export class UiFormattingModal extends Modal {
 					slider
 						.setLimits(0, 2, 1)
 						.setValue(thicknessIdx)
-						.setDynamicTooltip()
+						.setDisplayFormat((value) => EDITOR_SCROLLBAR_THICKNESS_LABELS[Math.round(value)] ?? "Thick")
 						.onChange((value) => {
 							const idx = Math.round(value);
 							const thickness = EDITOR_SCROLLBAR_THICKNESS_ORDER[idx] ?? "thick";

@@ -24,7 +24,7 @@ export async function loadHydratedCodexInventory(
 			const raw = await app.vault.cachedRead(file);
 			facts = parseFactsFromNote(raw, heading);
 			const cache = app.metadataCache.getCache(note.path);
-			const aliasesRaw = cache?.frontmatter?.aliases;
+			const aliasesRaw: unknown = cache?.frontmatter?.aliases;
 			aliases = Array.isArray(aliasesRaw)
 				? aliasesRaw.filter((v): v is string => typeof v === "string")
 				: typeof aliasesRaw === "string"
