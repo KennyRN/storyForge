@@ -13,7 +13,7 @@ import {
 	type CodexTreeItem,
 	type CodexViewMode,
 } from "../codex";
-import { ICON_ARCHIVE, ICON_CODEX, ICON_FOLDER_PLUS, ICON_PLUS_SQUARE } from "../icons";
+import { ICON_CODEX, ICON_FOLDER_PLUS, ICON_PLUS_SQUARE } from "../icons";
 import { makeAccessibleActivatable } from "./a11y";
 import { attachInlineRename } from "./inlineRename";
 import { attachCodexDragReorder, type CodexDragRowInfo } from "./dragReorderTree";
@@ -29,7 +29,6 @@ export interface BottomPanelOptions {
 	highlightActiveChapter: boolean;
 	onCreateFolder: () => void;
 	onCreateFile: () => void;
-	onOpenArchive: () => void;
 }
 
 export function renderBottomPanel(app: App, container: HTMLElement, options: BottomPanelOptions): void {
@@ -61,14 +60,6 @@ export function renderBottomPanel(app: App, container: HTMLElement, options: Bot
 			options.onCreateFolder();
 		});
 		makeAccessibleActivatable(newFolderBtn, () => options.onCreateFolder());
-
-		const archiveBtn = header.createSpan({ cls: "sf-codex-archive-btn", attr: { "aria-label": "Codex archive" } });
-		setIcon(archiveBtn, ICON_ARCHIVE);
-		archiveBtn.addEventListener("click", (e) => {
-			e.stopPropagation();
-			options.onOpenArchive();
-		});
-		makeAccessibleActivatable(archiveBtn, () => options.onOpenArchive());
 	}
 
 	if (isCodexHidden) return;

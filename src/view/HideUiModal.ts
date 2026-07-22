@@ -29,9 +29,14 @@ export class HideUiModal extends Modal {
 		contentEl.empty();
 		contentEl.addClass("sf-hide-ui-modal");
 
+		// Same scroll shell as the other style modals — without it, the fixed-height
+		// modal clips content (and with enough rows can look completely empty).
+		const scroll = contentEl.createDiv({ cls: "sf-text-style-tab-body-wrapper" });
+		const body = scroll.createDiv({ cls: "sf-text-style-tab-body" });
+
 		const settings = this.plugin.getSettings();
 
-		const helpGroup = new SettingGroup(contentEl);
+		const helpGroup = new SettingGroup(body);
 		helpGroup.addSetting((setting) => {
 			setting
 				.setName("Hide help button")
@@ -41,7 +46,7 @@ export class HideUiModal extends Modal {
 				);
 		});
 
-		const hideSidebarGroup = new SettingGroup(contentEl);
+		const hideSidebarGroup = new SettingGroup(body);
 		hideSidebarGroup
 			.addSetting((setting) => {
 				setting
@@ -68,7 +73,54 @@ export class HideUiModal extends Modal {
 					);
 			});
 
-		const hidePanelsGroup = new SettingGroup(contentEl);
+		const hideRightNativeGroup = new SettingGroup(body);
+		hideRightNativeGroup
+			.addSetting((setting) => {
+				setting
+					.setName("Hide backlinks panel")
+					.setDesc("Hides Obsidian's Backlinks tab in the right sidebar.")
+					.addToggle((toggle) =>
+						toggle.setValue(settings.hideBacklinks).onChange((value) => this.persistVisibility("hideBacklinks", value)),
+					);
+			})
+			.addSetting((setting) => {
+				setting
+					.setName("Hide outgoing links panel")
+					.setDesc("Hides Obsidian's Outgoing links tab in the right sidebar.")
+					.addToggle((toggle) =>
+						toggle
+							.setValue(settings.hideOutgoingLinks)
+							.onChange((value) => this.persistVisibility("hideOutgoingLinks", value)),
+					);
+			})
+			.addSetting((setting) => {
+				setting
+					.setName("Hide tags panel")
+					.setDesc("Hides Obsidian's Tags tab in the right sidebar.")
+					.addToggle((toggle) =>
+						toggle.setValue(settings.hideTags).onChange((value) => this.persistVisibility("hideTags", value)),
+					);
+			})
+			.addSetting((setting) => {
+				setting
+					.setName("Hide outline panel")
+					.setDesc("Hides Obsidian's Outline tab in the right sidebar.")
+					.addToggle((toggle) =>
+						toggle.setValue(settings.hideOutline).onChange((value) => this.persistVisibility("hideOutline", value)),
+					);
+			})
+			.addSetting((setting) => {
+				setting
+					.setName("Hide all properties panel")
+					.setDesc("Hides Obsidian's All properties tab in the right sidebar.")
+					.addToggle((toggle) =>
+						toggle
+							.setValue(settings.hideAllProperties)
+							.onChange((value) => this.persistVisibility("hideAllProperties", value)),
+					);
+			});
+
+		const hidePanelsGroup = new SettingGroup(body);
 		hidePanelsGroup
 			.addSetting((setting) => {
 				setting
@@ -81,13 +133,13 @@ export class HideUiModal extends Modal {
 			.addSetting((setting) => {
 				setting
 					.setName("Hide right panel button")
-					.setDesc("Hides the right sidebar collapse/expand button.")
+					.setDesc("Hides the right sidebar collapse/expand button. Story Context still opens from the Codex button or command.")
 					.addToggle((toggle) =>
 						toggle.setValue(settings.hideRightPanel).onChange((value) => this.persistVisibility("hideRightPanel", value)),
 					);
 			});
 
-		const hideMiscGroup = new SettingGroup(contentEl);
+		const hideMiscGroup = new SettingGroup(body);
 		hideMiscGroup
 			.addSetting((setting) => {
 				setting

@@ -43,6 +43,38 @@ Notes on conventions used below:
 | bottomPanel.codex.newFolderBtn.ariaLabel | New folder | 54 |
 | bottomPanel.codex.archiveBtn.ariaLabel | Codex archive | 62 |
 | bottomPanel.codex.emptyText | Nothing here yet. | 76 |
+
+## src/view/RecommendationView.ts
+
+| ID | Current text | Line |
+|---|---|---|
+| recommendView.displayText | Story Context | — |
+| recommendView.tab.chapter | Chapter | — |
+| recommendView.tab.continuity | Continuity | — |
+| recommendView.refresh.ariaLabel | Refresh story context | — |
+| recommendView.empty.noChapter | Open a chapter to see story context. | — |
+| recommendView.section.synopsis | Synopsis | — |
+| recommendView.sendPlot | Send to chapter plot | — |
+| recommendView.section.characters | Characters in chapter | — |
+| recommendView.section.unknown | Named but not in Codex | — |
+| recommendView.stubBtn | Create in Codex | — |
+| recommendView.section.other | Other Codex references | — |
+| recommendView.section.descriptions | Descriptions | — |
+| recommendView.section.facts | Fact warnings | — |
+| recommendView.section.continuity | Book continuity | — |
+| recommendView.building | Building… | — |
+| notice.recommend.synopsisSent | storyForge: synopsis sent to chapter plot | — |
+| notice.recommend.factUpdated | storyForge: Codex fact updated | — |
+| notice.recommend.factAck | storyForge: fact change acknowledged | — |
+
+## src/view/StoryForgeSettingsTab.ts (recommendations)
+
+| ID | Current text | Line |
+|---|---|---|
+| settings.recommendations.unknownNames.name | Unknown name suggestions | — |
+| settings.recommendations.unknownNames.desc | List proper names found in the chapter that are not in the Codex. | — |
+| settings.recommendations.factsHeading.name | ${label} facts heading (template) | — |
+| settings.recommendations.factsHeading.desc | H2 section title in ${label} Codex notes (e.g. Facts). (template) | — |
 | bottomPanel.codex.folderRow.archiveFolderMenuItem | Archive Entire Folder | 142 |
 | bottomPanel.codex.folderRow.removeFolderMenuItem | Remove Folder and Keep Items | 143 |
 | bottomPanel.codex.fileRow.archiveMenuItem | Archive | 191 |
@@ -57,6 +89,17 @@ Notes on conventions used below:
 | statsPanel.modeLabels.story | story wordcount | 13 |
 | statsPanel.header.title | Stats | 31 |
 | statsPanel.exchangeBtn.ariaLabel | switch wordcount | 42 |
+| statsPanel.calendarBtn.ariaLabel | wordcount history | 50 |
+
+## src/view/WordCountModal.ts
+
+| ID | Current text | Line |
+|---|---|---|
+| modal.wordcount.title | Wordcount History | — |
+| modal.wordcount.rollupLabel | All novels | — |
+| modal.wordcount.daysTitle | Days | — |
+| modal.wordcount.weeksTitle | Weeks | — |
+| modal.wordcount.emptyDay | No chapter activity this day. | — |
 
 ## src/view/SeriesModal.ts
 
@@ -362,10 +405,20 @@ Notes on conventions used below:
 | settings.hideUi.hideBookmarks.desc | Hides the Bookmarks button at the top of the left sidebar. | 1459 |
 | settings.hideUi.hideFiles.name | Hide files panel | 1469 |
 | settings.hideUi.hideFiles.desc | Hides the Files button at the top of the left sidebar. | 1470 |
+| settings.hideUi.hideBacklinks.name | Hide backlinks panel | — |
+| settings.hideUi.hideBacklinks.desc | Hides Obsidian's Backlinks tab in the right sidebar. | — |
+| settings.hideUi.hideOutgoingLinks.name | Hide outgoing links panel | — |
+| settings.hideUi.hideOutgoingLinks.desc | Hides Obsidian's Outgoing links tab in the right sidebar. | — |
+| settings.hideUi.hideTags.name | Hide tags panel | — |
+| settings.hideUi.hideTags.desc | Hides Obsidian's Tags tab in the right sidebar. | — |
+| settings.hideUi.hideOutline.name | Hide outline panel | — |
+| settings.hideUi.hideOutline.desc | Hides Obsidian's Outline tab in the right sidebar. | — |
+| settings.hideUi.hideAllProperties.name | Hide all properties panel | — |
+| settings.hideUi.hideAllProperties.desc | Hides Obsidian's All properties tab in the right sidebar. | — |
 | settings.hideUi.hideLeftPanel.name | Hide left panel button | 1483 |
 | settings.hideUi.hideLeftPanel.desc | Hides the left sidebar collapse/expand button. | 1484 |
 | settings.hideUi.hideRightPanel.name | Hide right panel button | 1494 |
-| settings.hideUi.hideRightPanel.desc | Hides the right sidebar collapse/expand button. | 1495 |
+| settings.hideUi.hideRightPanel.desc | Hides the right sidebar collapse/expand button. Story Context still opens from the Codex button or command. | — |
 | settings.hideUi.hideFileNameBar.name | Hide file name bar | 1508 |
 | settings.hideUi.hideFileNameBar.desc | Hides the large file name displayed at the top of the note content. | 1509 |
 | settings.hideUi.hideNavRow.name | Hide navigation row | 1519 |
@@ -449,7 +502,8 @@ Notes on conventions used below:
 | src/view/StoryForgeView.ts | 3 |
 | src/view/TopPanel.ts | 13 |
 | src/view/BottomPanel.ts | 9 |
-| src/view/StatsPanel.ts | 6 |
+| src/view/StatsPanel.ts | 7 |
+| src/view/WordCountModal.ts | 5 |
 | src/view/SeriesModal.ts | 6 |
 | src/view/BookSynopsisModal.ts | 1 |
 | src/view/ArchiveModal.ts | 3 |
@@ -461,4 +515,4 @@ Notes on conventions used below:
 | src/view/PalettePickerModal.ts | 2 |
 | src/view/IconAuditModal.ts | 4 |
 | src/main.ts | 3 |
-| **Total** | **277** |
+| **Total** | **283** |

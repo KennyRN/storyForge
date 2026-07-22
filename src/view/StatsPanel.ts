@@ -21,6 +21,7 @@ export interface StatsPanelOptions {
 	mode: StatsMode;
 	counts: Record<StatsMode, number>;
 	onToggleMode: () => void;
+	onOpenHistory?: () => void;
 }
 
 export function renderStatsPanel(container: HTMLElement, options: StatsPanelOptions): void {
@@ -45,5 +46,13 @@ export function renderStatsPanel(container: HTMLElement, options: StatsPanelOpti
 	exchangeBtn.addEventListener("click", () => options.onToggleMode());
 	makeAccessibleActivatable(exchangeBtn, () => options.onToggleMode());
 
-	setIcon(actions.createSpan({ cls: "sf-icon sf-stats-calendar" }), ICON_CALENDAR);
+	const calendarBtn = actions.createSpan({
+		cls: "sf-icon sf-stats-calendar",
+		attr: { "aria-label": "wordcount history" },
+	});
+	setIcon(calendarBtn, ICON_CALENDAR);
+	if (options.onOpenHistory) {
+		calendarBtn.addEventListener("click", () => options.onOpenHistory?.());
+		makeAccessibleActivatable(calendarBtn, () => options.onOpenHistory?.());
+	}
 }

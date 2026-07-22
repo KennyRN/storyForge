@@ -1,6 +1,7 @@
-import { App, PluginSettingTab, SettingGroup, setIcon, type SettingDefinitionItem } from "obsidian";
+import { App, PluginSettingTab, SettingGroup, setIcon } from "obsidian";
 import type StoryForgePlugin from "../main";
 import type { StoryForgePluginSettings } from "../main";
+import { CODEX_TYPES } from "../codex";
 import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
 import { PALETTE_NAMES, PaletteMode, PaletteName } from "../colorPalettes";
 import { TextStyleModal } from "./TextStyleModal";
@@ -15,6 +16,19 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 	constructor(app: App, plugin: StoryForgePlugin) {
 		super(app, plugin);
 		this.plugin = plugin;
+	}
+
+	display(): void {
+		const { containerEl } = this;
+		containerEl.empty();
+		containerEl.addClass("sf-settings-tab");
+
+		const settings = this.plugin.getSettings();
+
+		this.renderTopActions(containerEl, settings);
+		this.renderPaletteSection(containerEl, settings);
+		this.renderRecommendationsSection(containerEl, settings);
+		this.renderButtonRow(containerEl);
 	}
 
 	private renderTopActions(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
@@ -115,7 +129,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 	}
 
 	private persistColorPaletteName(value: PaletteName): void {
-		void this.plugin.updateSetting("colorPaletteName", value).then(() => this.update());
+		void this.plugin.updateSetting("colorPaletteName", value).then(() => this.display());
 	}
 
 	private persistCustomPaletteColor(settings: StoryForgePluginSettings, index: number, field: "name" | "hex", value: string): void {
@@ -172,52 +186,37 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		this.renderProtectionsButton(row);
 	}
 
-	/**
-	 * Declarative path (Obsidian >= 1.13.0). Each row is rendered via the `render` escape hatch,
-	 * delegating straight into the same containerEl-based helpers shared by every definition's
-	 * render callback, so there is exactly one implementation of each row's behaviour.
-	 */
-	getSettingDefinitions(): SettingDefinitionItem[] {
-		const settings = this.plugin.getSettings();
-		return [
-			{
-				type: "group",
-				items: [
-					{
-						name: "storyForge panel",
-						render: (setting, group) => {
-							setting.settingEl.remove();
-							this.renderTopActions(group.listEl, settings);
-						},
-					},
-				],
-			},
-			{
-				type: "group",
-				items: [
-					{
-						name: "Colour palette",
-						desc: "Palette used when picking colours for storyForge's UI elements below.",
-						render: (setting, group) => {
-							setting.settingEl.remove();
-							this.renderPaletteSection(group.listEl, settings);
-						},
-					},
-				],
-			},
-			{
-				type: "group",
-				items: [
-					{
-						name: "storyForge modals",
-						desc: "Text styling, interface formatting, hiding Obsidian UI elements, and protections.",
-						render: (setting, group) => {
-							setting.settingEl.remove();
-							this.renderButtonRow(group.listEl);
-						},
-					},
-				],
-			},
-		];
+	private renderRecommendationsSection(containerEl: HTMLElement, settings: StoryForgePluginSettings): void {
+		const group = new SettingGroup(containerEl);
+		group.setHeading("Story Context");
+		group.addSetting((setting) => {
+			setting
+				.setName("Unknown name suggestions")
+				.setDesc("List proper names found in the chapter that are not in the Codex.")
+				.addToggle((toggle) =>
+					toggle.setValue(settings.recommendIncludeUnknownNames).onChange((value) => {
+						void this.plugin.updateSetting("recommendIncludeUnknownNames", value);
+					}),
+				);
+		});
+		for (const opt of CODEX_TYPES) {
+			group.addSetting((setting) => {
+				setting
+					.setName(`${opt.label} facts heading`)
+					.setDesc(`H2 section title in ${opt.label.toLowerCase()} Codex notes (e.g. Facts).`)
+					.addText((text) =>
+						text
+							.setPlaceholder("Facts")
+							.setValue(settings.codexFactSectionByType[opt.type] ?? "Facts")
+							.onChange((value) => {
+								const next = {
+									...this.plugin.getSettings().codexFactSectionByType,
+									[opt.type]: value.trim() || "Facts",
+								};
+								void this.plugin.updateSetting("codexFactSectionByType", next);
+							}),
+					);
+			});
+		}
 	}
 }

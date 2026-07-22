@@ -43,17 +43,14 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		label: "Archive",
 		source: "custom",
 		usedIn: [
-			"TopPanel.ts — archive button (chapters' Unplaced header)",
-			"BottomPanel.ts — Codex archive button",
-			"ArchiveModal.ts — modal header",
-			"CodexArchiveModal.ts — modal header",
+			"ArchiveView.ts — Archive view tab icon and header",
 		],
 	},
 	{
 		id: ICON_UNARCHIVE,
 		label: "Unarchive",
 		source: "custom",
-		usedIn: ["ArchiveModal.ts — unarchive row button", "CodexArchiveModal.ts — unarchive row button"],
+		usedIn: ["ArchiveView.ts — unarchive row button"],
 	},
 	{ id: ICON_CODEX, label: "Codex", source: "custom", usedIn: ["BottomPanel.ts — Codex panel header"] },
 	{ id: ICON_SERIES, label: "Series", source: "custom", usedIn: ["TopPanel.ts — series header line", "StoryForgeView.ts — view tab icon"] },
@@ -63,7 +60,10 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		id: ICON_TIMELINE,
 		label: "Synopsis and plot",
 		source: "custom",
-		usedIn: ["TopPanel.ts — book synopsis/plot settings button"],
+		usedIn: [
+			"TopPanel.ts — book synopsis/plot settings button",
+			"RecommendationView.ts — Story Context view tab icon",
+		],
 	},
 	{
 		id: ICON_BOOK_PLUS,
