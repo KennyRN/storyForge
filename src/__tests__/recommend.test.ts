@@ -60,7 +60,7 @@ describe("analyzeChapter", () => {
 	const alexandra = person("Codex/Alexandra.md", "Alexandra", "", ["Alex"]);
 
 	it("matches longer names first and lists characters", () => {
-		const prose = "Jane walked into the room. Mary Ann waved.\n\n## Plot\nOld plot\n";
+		const prose = "Jane walked into the room. Mary Ann waved.";
 		const maryAnn = person("Codex/Mary Ann.md", "Mary Ann", "");
 		const mary = person("Codex/Mary.md", "Mary", "");
 		const report = analyzeChapter(prose, [jane, maryAnn, mary], {

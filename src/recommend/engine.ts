@@ -104,7 +104,7 @@ const ATTR_PATTERNS: Array<{ key: string; re: RegExp }> = [
 
 export interface AnalyzeOptions {
 	chapterFilename: string;
-	/** Existing ## Plot text; preferred for synopsis when non-empty. */
+	/** Existing chapter plot notes from novel.md; preferred for synopsis when non-empty. */
 	existingPlot: string;
 	includeUnknownNames: boolean;
 }
@@ -391,16 +391,15 @@ function checkFacts(
 
 /**
  * Pure chapter analysis against a Codex inventory. `prose` should already be
- * manuscript text (frontmatter stripped); plot heading body is passed separately.
+ * manuscript text (frontmatter stripped). Plot notes are passed separately via
+ * `options.existingPlot` (from novel.md).
  */
 export function analyzeChapter(
 	rawChapter: string,
 	entries: CodexEntryInput[],
 	options: AnalyzeOptions,
 ): ChapterRecommendReport {
-	const prose = stripForCounting(rawChapter)
-		.replace(/^##\s+Plot\b[\s\S]*?(?=\n##\s+|$)/gim, "")
-		.trim();
+	const prose = stripForCounting(rawChapter).trim();
 	const matched = findMatches(prose, entries);
 	const matchedSurfaces = new Set(matched.flatMap((m) => m.matchedAs));
 	const descriptions = collectDescriptions(prose, matched, entries);
