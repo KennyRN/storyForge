@@ -5,6 +5,11 @@ import { BACKSTAGE_ROOT, CODEX_ROOT, LIBRARY_ROOT } from "./paths";
  * The one narrow module every plugin write funnels through. It physically
  * refuses any path inside the story library or codex, so the non-destructive
  * guarantee holds even if the rest of the code is wrong.
+ *
+ * Every write that targets a markdown file under `_sf-storylibrary/` or `Codex/`
+ * must go through this module (which will refuse it). Library manuscripts are
+ * prose-only; Codex notes are user-owned (create/rename for wikilinks are the
+ * only intentional disk exceptions elsewhere, and must not grow into content edits).
  */
 
 export class ForbiddenWriteError extends Error {

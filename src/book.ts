@@ -33,6 +33,8 @@ export interface ChapterEntry {
 	povName: string | null;
 	locationPath: string | null;
 	locationName: string | null;
+	/** Per-chapter plot notes (backstage metadata; never written into the library manuscript). */
+	plot: string;
 }
 
 export interface BookFrontmatter {
@@ -56,6 +58,7 @@ export interface RawChapterEntry {
 	"pov-name"?: unknown;
 	"location-path"?: unknown;
 	"location-name"?: unknown;
+	plot?: unknown;
 }
 
 /** The raw, dash-cased on-disk shape of novel.md's frontmatter, as read/written through `modifyBackstageFrontmatter`. */
@@ -120,7 +123,8 @@ function parseChaptersMap(raw: unknown): Record<string, ChapterEntry> {
 		const povName = typeof entry["pov-name"] === "string" ? entry["pov-name"] : null;
 		const locationPath = typeof entry["location-path"] === "string" ? entry["location-path"] : null;
 		const locationName = typeof entry["location-name"] === "string" ? entry["location-name"] : null;
-		result[filename] = { chapterId, chapterTitle, povPath, povName, locationPath, locationName };
+		const plot = typeof entry.plot === "string" ? entry.plot : "";
+		result[filename] = { chapterId, chapterTitle, povPath, povName, locationPath, locationName, plot };
 	}
 	return result;
 }
@@ -340,7 +344,9 @@ export async function upsertChapterEntry(
 ): Promise<void> {
 	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
 		const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
-		chapters[filename] = { "chapter-id": chapterId, "chapter-title": chapterTitle };
+		const existing: RawChapterEntry =
+			chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
+		chapters[filename] = { ...existing, "chapter-id": chapterId, "chapter-title": chapterTitle };
 		fm.chapters = chapters;
 	});
 }
@@ -482,7 +488,15 @@ export async function ensureAllChapterEntries(app: App, bookFolderName: string):
 		const chapterId = nextChapterCode(bookId, knownIds);
 		knownIds.add(chapterId);
 		const chapterTitle = file.basename;
-		merged[file.name] = { chapterId, chapterTitle, povPath: null, povName: null, locationPath: null, locationName: null };
+		merged[file.name] = {
+			chapterId,
+			chapterTitle,
+			povPath: null,
+			povName: null,
+			locationPath: null,
+			locationName: null,
+			plot: "",
+		};
 		await upsertChapterEntry(app, bookFolderName, file.name, chapterId, chapterTitle);
 	}
 	return merged;
@@ -541,8 +555,9 @@ export async function createBook(app: App, initialTitle?: string): Promise<{ fol
  * Creates a new chapter: a file named `<chapter-id>.md` (lowercase, e.g.
  * "knna_chapter-aaa.md") directly in the book's story-library folder,
  * registered in novel.md's `chapters` map with a default "Untitled" title,
- * then opened. This — along with `createBook`'s folder creation — is one of
- * the only two plugin-initiated writes inside `_sf-storylibrary`.
+ * then opened. Creating the empty manuscript file (and `createBook`'s folder
+ * creation) are intentional library exceptions — the plugin never modifies
+ * chapter prose after that.
  */
 export async function createChapter(app: App, bookFolderName: string): Promise<{ filename: string; chapterId: string }> {
 	const entry = getSeriesBookEntry(app, bookFolderName);
@@ -559,7 +574,6 @@ export async function createChapter(app: App, bookFolderName: string): Promise<{
 }
 
 const SYNOPSIS_HEADER = "## Synopsis";
-const PLOT_HEADER = "## Plot";
 
 /** Splits raw file content into its frontmatter fence (verbatim, incl. trailing newline) and body. */
 function splitFrontmatterAndBody(raw: string): { frontmatterBlock: string; body: string } {
@@ -617,19 +631,32 @@ export async function writeBookSynopsis(app: App, bookFolderName: string, synops
 	await writeBackstageFile(app.vault, path, frontmatterBlock + upsertSection(body, SYNOPSIS_HEADER, synopsis));
 }
 
-/** Reads a chapter's plot notes from its own file body, under a `## Plot` heading. Empty string if none exists yet. */
+/** Reads a chapter's plot notes from novel.md's `chapters` map. Empty string if none exists yet. */
 export async function readChapterPlot(app: App, bookFolderName: string, filename: string): Promise<string> {
-	const file = app.vault.getAbstractFileByPath(libraryChapterPath(bookFolderName, filename));
-	if (!(file instanceof TFile)) return "";
-	const { body } = splitFrontmatterAndBody(await app.vault.read(file));
-	return extractSection(body, PLOT_HEADER);
+	return getChapterEntry(app, bookFolderName, filename)?.plot ?? "";
 }
 
-/** Writes a chapter's plot notes into its own file body under a `## Plot` heading, leaving frontmatter and the chapter's manuscript prose untouched. Chapter files live in the story library, so this writes directly via vault.modify rather than through the backstage guard (which physically refuses library writes). */
+/**
+ * Writes a chapter's plot notes into novel.md's `chapters.<file>.plot` field (backstage
+ * metadata). Empty plot clears the field so the YAML stays easy to read by hand.
+ */
 export async function writeChapterPlot(app: App, bookFolderName: string, filename: string, plot: string): Promise<void> {
-	const path = libraryChapterPath(bookFolderName, filename);
-	const file = app.vault.getAbstractFileByPath(path);
-	if (!(file instanceof TFile)) return;
-	const { frontmatterBlock, body } = splitFrontmatterAndBody(await app.vault.read(file));
-	await app.vault.modify(file, frontmatterBlock + upsertSection(body, PLOT_HEADER, plot));
+	const trimmed = plot.trim();
+	const { bookId } = resolveBookIdentity(app, bookFolderName);
+	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
+		const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
+		const existing: RawChapterEntry =
+			chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
+		const chapterId: string =
+			typeof existing["chapter-id"] === "string"
+				? existing["chapter-id"]
+				: nextChapterCode(bookId, collectAllChapterIds(app, bookFolderName));
+		const chapterTitle: string =
+			typeof existing["chapter-title"] === "string" ? existing["chapter-title"] : filename.replace(/\.md$/i, "");
+		const next: RawChapterEntry = { ...existing, "chapter-id": chapterId, "chapter-title": chapterTitle };
+		if (trimmed) next.plot = trimmed;
+		else delete next.plot;
+		chapters[filename] = next;
+		fm.chapters = chapters;
+	});
 }
