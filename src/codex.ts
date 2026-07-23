@@ -1,5 +1,5 @@
 import { App, TFile, TFolder, type FrontMatterCache } from "obsidian";
-import { ICON_MAP_PIN, ICON_PERSON_FILL } from "./icons";
+import { ICON_MAP_PIN, ICON_PERSON_2_FILL, ICON_PERSON_FILL } from "./icons";
 import { CODEX_ROOT, codexFilePath } from "./paths";
 import { partitionCodexNotes, findUnknownScopedNotes, type CodexNote } from "./codexPartition";
 import { modifyBackstageFrontmatter } from "./writeGuard";
@@ -52,6 +52,7 @@ export interface CodexTypeOption {
 export const CODEX_TYPES: CodexTypeOption[] = [
 	{ type: "person", label: "Person", icon: ICON_PERSON_FILL },
 	{ type: "place", label: "Place", icon: ICON_MAP_PIN },
+	{ type: "populace", label: "Populace", icon: ICON_PERSON_2_FILL },
 ];
 
 export function codexTypeIcon(type: string): string | null {

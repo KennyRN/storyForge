@@ -11,6 +11,7 @@ import {
 	ICON_FOLDER_PLUS,
 	ICON_MAP_PIN,
 	ICON_MAP_PIN_PLUS,
+	ICON_PERSON_2_FILL,
 	ICON_PERSON_FILL,
 	ICON_PERSON_FILL_ADD,
 	ICON_PLUS_SQUARE,
@@ -83,6 +84,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		source: "custom",
 		usedIn: ["BookSynopsisModal.ts — chapter PoV add button"],
 	},
+	{ id: ICON_PERSON_2_FILL, label: "Populace", source: "custom", usedIn: ["codex.ts — Codex \"Populace\" type icon"] },
 	{ id: ICON_MAP_PIN, label: "Place", source: "custom", usedIn: ["codex.ts — Codex \"Place\" type icon", "BookSynopsisModal.ts — chapter location filled badge"] },
 	{
 		id: ICON_MAP_PIN_PLUS,
