@@ -228,6 +228,8 @@ export function registerCustomFontFaces(doc: Document): void {
 			const source = `url(data:font/${face.format};base64,${face.base64}) format("${face.format}")`;
 			const fontFace = new FontFaceCtor(font.cssFontFamily, source, { weight: weightDescriptor, style: face.style });
 			doc.fonts.add(fontFace);
+			// Decode in the background so faces are ready when first applied to the UI/editor.
+			void fontFace.load();
 		}
 	}
 }

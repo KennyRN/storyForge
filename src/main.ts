@@ -1099,8 +1099,7 @@ export default class StoryForgePlugin extends Plugin {
 
 	/**
 	 * Writes `--{prefix}-family` / `-variation` / `-weight` for storyForge panel chrome.
-	 * When a custom variable font is active, weight is left unset (variation carries wght);
-	 * otherwise the weight setting is applied as `font-weight`.
+	 * Weight only applies when override is on; variable fonts use variation instead of font-weight.
 	 */
 	private assignUiFontVars(
 		vars: Record<string, string | null>,
@@ -1112,7 +1111,13 @@ export default class StoryForgePlugin extends Plugin {
 		const resolved = this.resolveCustomFontVars(overrideFont, fontFamily, fontWeight);
 		vars[`${prefix}-family`] = resolved.family;
 		vars[`${prefix}-variation`] = resolved.variation;
-		vars[`${prefix}-weight`] = overrideFont && resolved.font && resolved.variation != null ? null : fontWeight;
+		if (!overrideFont) {
+			vars[`${prefix}-weight`] = null;
+		} else if (resolved.font && resolved.variation != null) {
+			vars[`${prefix}-weight`] = null;
+		} else {
+			vars[`${prefix}-weight`] = fontWeight;
+		}
 	}
 
 	/**
