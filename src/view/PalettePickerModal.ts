@@ -1,15 +1,20 @@
 import { App, Modal } from "obsidian";
-import { PaletteColor, PaletteMode, PaletteName, resolvePaletteColors } from "../colorPalettes";
+import {
+	PaletteColor,
+	PaletteName,
+	resolvePaletteColors,
+	resolvePaletteVariant,
+} from "../colorPalettes";
 
 /**
- * Lists every colour in the given palette/mode (official name + swatch, top to bottom,
- * canonical ANSI order). Clicking a row picks that colour and closes the modal.
+ * Lists every colour in the given palette/variant (official name + swatch, top to bottom).
+ * Clicking a row picks that colour and closes the modal.
  */
 export class PalettePickerModal extends Modal {
 	constructor(
 		app: App,
 		private paletteName: PaletteName,
-		private mode: PaletteMode,
+		private variantName: string,
 		private customPaletteColors: PaletteColor[],
 		private onPick: (hex: string) => void | Promise<void>,
 	) {
@@ -29,13 +34,16 @@ export class PalettePickerModal extends Modal {
 		contentEl.empty();
 		contentEl.addClass("sf-palette-picker-modal");
 
+		const resolved = resolvePaletteVariant(this.paletteName, this.variantName);
 		const title =
 			this.paletteName === "Custom"
 				? "Custom"
-				: `${this.paletteName} — ${this.mode === "light" ? "Light" : "Dark"}`;
+				: resolved
+					? `${this.paletteName} — ${resolved.name}`
+					: this.paletteName;
 		contentEl.createEl("h2", { text: title });
 
-		const colors = resolvePaletteColors(this.paletteName, this.mode, this.customPaletteColors);
+		const colors = resolvePaletteColors(this.paletteName, this.variantName, this.customPaletteColors);
 		const list = contentEl.createDiv({ cls: "sf-palette-list" });
 		for (const color of colors) {
 			const row = list.createDiv({ cls: "sf-row sf-palette-row" });

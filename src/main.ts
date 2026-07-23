@@ -31,7 +31,7 @@ import { countWords } from "./wordCount";
 import { registerCustomIcons } from "./icons";
 import { registerCustomFontFaces, resolveCustomFontFamilyParts, CUSTOM_FONTS, CustomFontEntry } from "./fonts";
 import { refreshTabTitles, registerTabTitleOverrides } from "./tabTitles";
-import { PaletteColor, PaletteMode, PaletteName } from "./colorPalettes";
+import { PaletteColor, PaletteName } from "./colorPalettes";
 import { runContentBackup } from "./backup";
 
 export type CodexFolderIndicatorThickness = "none" | "thin" | "medium" | "thick";
@@ -46,7 +46,19 @@ const CODEX_FOLDER_INDICATOR_WIDTH_PX: Record<CodexFolderIndicatorThickness, num
 export type HeadingDividerThickness = "thin" | "medium" | "thick" | "extra-thick";
 export type EditorScrollbarThickness = "thin" | "medium" | "thick";
 
-export type CustomFontFamily = "ibm-plex-sans-var" | "nunito" | "caveat" | "playpen-sans";
+export type CustomFontFamily =
+	| "alan-sans"
+	| "caveat"
+	| "courier-prime"
+	| "exo-2"
+	| "fredoka"
+	| "grenze"
+	| "ibm-plex-sans-var"
+	| "libre-baskerville"
+	| "nunito"
+	| "playpen-sans"
+	| "roboto-flex"
+	| "sn-pro";
 
 export type FontWeight = "300" | "400" | "500" | "600" | "700" | "800" | "900";
 
@@ -106,18 +118,27 @@ export interface StoryForgePluginSettings {
 	highlightColor: string;
 	highlightTextColor: string;
 	librarySeriesTitleFontSize: number;
+	librarySeriesTitleOverrideFont: boolean;
+	librarySeriesTitleFontFamily: CustomFontFamily;
 	librarySeriesTitleFontWeight: FontWeight;
 	librarySeriesTitleColor: string;
 	librarySeriesTitleSmallCaps: boolean;
 	libraryBookTitleFontSize: number;
+	libraryBookTitleOverrideFont: boolean;
+	libraryBookTitleFontFamily: CustomFontFamily;
 	libraryBookTitleFontWeight: FontWeight;
 	libraryBookTitleColor: string;
 	libraryBookTitleSmallCaps: boolean;
 	libraryBookSubtitleFontSize: number;
+	libraryBookSubtitleOverrideFont: boolean;
+	libraryBookSubtitleFontFamily: CustomFontFamily;
 	libraryBookSubtitleFontWeight: FontWeight;
 	libraryBookSubtitleSmallCaps: boolean;
 	libraryHeaderDividerBelow: boolean;
 	libraryItemsFontSize: number;
+	libraryItemsOverrideFont: boolean;
+	libraryItemsFontFamily: CustomFontFamily;
+	libraryItemsFontWeight: FontWeight;
 	libraryItemsColor: string;
 	libraryItemsMuted: boolean;
 	unplacedHighlightColor: string;
@@ -128,8 +149,13 @@ export interface StoryForgePluginSettings {
 	unplacedSmallCaps: boolean;
 	unplacedColor: string;
 	unplacedFontSize: number;
+	unplacedOverrideFont: boolean;
+	unplacedFontFamily: CustomFontFamily;
 	unplacedFontWeight: FontWeight;
 	unplacedItemsFontSize: number;
+	unplacedItemsOverrideFont: boolean;
+	unplacedItemsFontFamily: CustomFontFamily;
+	unplacedItemsFontWeight: FontWeight;
 	unplacedItemsColor: string;
 	unplacedItemsMuted: boolean;
 	unplacedUseHeaderColorForAll: boolean;
@@ -137,12 +163,18 @@ export interface StoryForgePluginSettings {
 	codexSmallCaps: boolean;
 	codexColor: string;
 	codexFontSize: number;
+	codexOverrideFont: boolean;
+	codexFontFamily: CustomFontFamily;
 	codexFontWeight: FontWeight;
 	codexFolderFontSize: number;
+	codexFolderOverrideFont: boolean;
+	codexFolderFontFamily: CustomFontFamily;
 	codexFolderFontWeight: FontWeight;
 	codexFolderColor: string;
 	codexFolderIndicatorThickness: CodexFolderIndicatorThickness;
 	codexNoteLabelFontSize: number;
+	codexNoteLabelOverrideFont: boolean;
+	codexNoteLabelFontFamily: CustomFontFamily;
 	codexNoteLabelFontWeight: FontWeight;
 	codexNoteLabelColor: string;
 	codexNoteLabelUseDefaultColor: boolean;
@@ -235,7 +267,7 @@ export interface StoryForgePluginSettings {
 	/** "canonical" enforces SF-before-Tools tab order on open; flips to "user" (permanently) the first time the user drags Tools ahead of SF. */
 	panelOrderMode: "canonical" | "user";
 	colorPaletteName: PaletteName;
-	colorPaletteMode: PaletteMode;
+	colorPaletteVariant: string;
 	customPaletteColors: PaletteColor[];
 	selectedNovel: string | null;
 	selectedObject: string | null;
@@ -262,7 +294,7 @@ export interface StoryForgePluginSettings {
 	editorScrollbarThickness: EditorScrollbarThickness;
 }
 
-const FONT_FAMILY_SETTING_KEYS: (
+type FontFamilySettingKey =
 	| "bodyTextFontFamily"
 	| "heading1FontFamily"
 	| "heading2FontFamily"
@@ -270,7 +302,34 @@ const FONT_FAMILY_SETTING_KEYS: (
 	| "heading4FontFamily"
 	| "heading5FontFamily"
 	| "heading6FontFamily"
-)[] = ["bodyTextFontFamily", "heading1FontFamily", "heading2FontFamily", "heading3FontFamily", "heading4FontFamily", "heading5FontFamily", "heading6FontFamily"];
+	| "librarySeriesTitleFontFamily"
+	| "libraryBookTitleFontFamily"
+	| "libraryBookSubtitleFontFamily"
+	| "libraryItemsFontFamily"
+	| "unplacedFontFamily"
+	| "unplacedItemsFontFamily"
+	| "codexFontFamily"
+	| "codexFolderFontFamily"
+	| "codexNoteLabelFontFamily";
+
+const FONT_FAMILY_SETTING_KEYS: FontFamilySettingKey[] = [
+	"bodyTextFontFamily",
+	"heading1FontFamily",
+	"heading2FontFamily",
+	"heading3FontFamily",
+	"heading4FontFamily",
+	"heading5FontFamily",
+	"heading6FontFamily",
+	"librarySeriesTitleFontFamily",
+	"libraryBookTitleFontFamily",
+	"libraryBookSubtitleFontFamily",
+	"libraryItemsFontFamily",
+	"unplacedFontFamily",
+	"unplacedItemsFontFamily",
+	"codexFontFamily",
+	"codexFolderFontFamily",
+	"codexNoteLabelFontFamily",
+];
 
 /** Caroni was removed as a font choice; any settings still carrying its id (from before the removal) fall back to the current default font. */
 function migrateRemovedCaroniFont(settings: StoryForgePluginSettings): void {
@@ -317,18 +376,27 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	highlightColor: "#fef3c7",
 	highlightTextColor: "#1f2937",
 	librarySeriesTitleFontSize: 1,
+	librarySeriesTitleOverrideFont: false,
+	librarySeriesTitleFontFamily: "ibm-plex-sans-var",
 	librarySeriesTitleFontWeight: "600",
 	librarySeriesTitleColor: "#dcdcdc",
 	librarySeriesTitleSmallCaps: false,
 	libraryBookTitleFontSize: 1,
+	libraryBookTitleOverrideFont: false,
+	libraryBookTitleFontFamily: "ibm-plex-sans-var",
 	libraryBookTitleFontWeight: "400",
 	libraryBookTitleColor: "#9a9a9a",
 	libraryBookTitleSmallCaps: false,
 	libraryBookSubtitleFontSize: 0.5,
+	libraryBookSubtitleOverrideFont: false,
+	libraryBookSubtitleFontFamily: "ibm-plex-sans-var",
 	libraryBookSubtitleFontWeight: "400",
 	libraryBookSubtitleSmallCaps: false,
 	libraryHeaderDividerBelow: false,
 	libraryItemsFontSize: 1,
+	libraryItemsOverrideFont: false,
+	libraryItemsFontFamily: "ibm-plex-sans-var",
+	libraryItemsFontWeight: "400",
 	libraryItemsColor: "#c8c8c8",
 	libraryItemsMuted: false,
 	unplacedHighlightColor: "#fef3c7",
@@ -339,8 +407,13 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	unplacedSmallCaps: true,
 	unplacedColor: "var(--text-accent)",
 	unplacedFontSize: 1,
+	unplacedOverrideFont: false,
+	unplacedFontFamily: "ibm-plex-sans-var",
 	unplacedFontWeight: "400",
 	unplacedItemsFontSize: 1,
+	unplacedItemsOverrideFont: false,
+	unplacedItemsFontFamily: "ibm-plex-sans-var",
+	unplacedItemsFontWeight: "400",
 	unplacedItemsColor: "#c8c8c8",
 	unplacedItemsMuted: false,
 	unplacedUseHeaderColorForAll: false,
@@ -348,12 +421,18 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	codexSmallCaps: true,
 	codexColor: "var(--text-accent)",
 	codexFontSize: 1,
+	codexOverrideFont: false,
+	codexFontFamily: "ibm-plex-sans-var",
 	codexFontWeight: "400",
 	codexFolderFontSize: 1,
+	codexFolderOverrideFont: false,
+	codexFolderFontFamily: "ibm-plex-sans-var",
 	codexFolderFontWeight: "400",
 	codexFolderColor: "#4ade80",
 	codexFolderIndicatorThickness: "medium",
 	codexNoteLabelFontSize: 1,
+	codexNoteLabelOverrideFont: false,
+	codexNoteLabelFontFamily: "ibm-plex-sans-var",
 	codexNoteLabelFontWeight: "400",
 	codexNoteLabelColor: "#c8c8c8",
 	codexNoteLabelUseDefaultColor: false,
@@ -444,14 +523,14 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	heading6DividerBelowThickness: "medium",
 	useToolsPanel: true,
 	panelOrderMode: "canonical",
-	colorPaletteName: "Nord",
-	colorPaletteMode: "dark",
+	colorPaletteName: "Custom",
+	colorPaletteVariant: "",
 	customPaletteColors: [
-		{ name: "Custom 1", hex: "#ff6b6b" },
-		{ name: "Custom 2", hex: "#ffd93d" },
-		{ name: "Custom 3", hex: "#6bcb77" },
-		{ name: "Custom 4", hex: "#4d96ff" },
-		{ name: "Custom 5", hex: "#9d4edd" },
+		{ name: "Ink", hex: "#232427" },
+		{ name: "Paper", hex: "#F4F4F1" },
+		{ name: "Rose", hex: "#E08C8C" },
+		{ name: "Sage", hex: "#8FBF9A" },
+		{ name: "Sky", hex: "#8FB0DE" },
 	],
 	selectedNovel: null,
 	selectedObject: null,
@@ -838,18 +917,20 @@ export default class StoryForgePlugin extends Plugin {
 		} else {
 			unplacedItemsColor = s.unplacedItemsColor;
 		}
-		this.applyStyleVarsToAllDocs({
+		const vars: Record<string, string | null> = {
 			"--sf-unplaced-color": unplacedColor,
 			"--sf-unplaced-variant": s.unplacedSmallCaps ? "small-caps" : "normal",
 			"--sf-unplaced-size": `${s.unplacedFontSize}em`,
-			"--sf-unplaced-weight": s.unplacedFontWeight,
 			"--sf-unplaced-items-size": `${s.unplacedItemsFontSize}em`,
 			"--sf-unplaced-items-color": unplacedItemsColor,
 			"--sf-codex-color": codexColor,
 			"--sf-codex-variant": s.codexSmallCaps ? "small-caps" : "normal",
 			"--sf-codex-size": `${s.codexFontSize}em`,
-			"--sf-codex-weight": s.codexFontWeight,
-		});
+		};
+		this.assignUiFontVars(vars, "--sf-unplaced", s.unplacedOverrideFont, s.unplacedFontFamily, s.unplacedFontWeight);
+		this.assignUiFontVars(vars, "--sf-unplaced-items", s.unplacedItemsOverrideFont, s.unplacedItemsFontFamily, s.unplacedItemsFontWeight);
+		this.assignUiFontVars(vars, "--sf-codex", s.codexOverrideFont, s.codexFontFamily, s.codexFontWeight);
+		this.applyStyleVarsToAllDocs(vars);
 	}
 
 	/** Resolves the codex folder colour, respecting `codexUseHeaderColorForAll`'s override of the folder colour picker. */
@@ -948,34 +1029,37 @@ export default class StoryForgePlugin extends Plugin {
 	applyLibraryHeaderStyles(): void {
 		const s = this.pluginSettings;
 		const itemsColor = s.libraryItemsMuted ? "var(--text-muted)" : s.libraryItemsColor;
-		this.applyStyleVarsToAllDocs({
+		const vars: Record<string, string | null> = {
 			"--sf-lib-series-size": `${s.librarySeriesTitleFontSize}em`,
-			"--sf-lib-series-weight": s.librarySeriesTitleFontWeight,
 			"--sf-lib-series-color": s.librarySeriesTitleColor,
 			"--sf-lib-series-variant": s.librarySeriesTitleSmallCaps ? "small-caps" : "normal",
 			"--sf-lib-book-size": `${s.libraryBookTitleFontSize}em`,
-			"--sf-lib-book-weight": s.libraryBookTitleFontWeight,
 			"--sf-lib-book-color": s.libraryBookTitleColor,
 			"--sf-lib-book-variant": s.libraryBookTitleSmallCaps ? "small-caps" : "normal",
 			"--sf-lib-subtitle-size": `${s.libraryBookSubtitleFontSize}em`,
-			"--sf-lib-subtitle-weight": s.libraryBookSubtitleFontWeight,
 			"--sf-lib-subtitle-variant": s.libraryBookSubtitleSmallCaps ? "small-caps" : "normal",
 			"--sf-lib-header-divider": s.libraryHeaderDividerBelow ? "1px solid var(--background-modifier-border)" : "none",
 			"--sf-lib-items-size": `${s.libraryItemsFontSize}em`,
 			"--sf-lib-items-color": itemsColor,
-		});
+		};
+		this.assignUiFontVars(vars, "--sf-lib-series", s.librarySeriesTitleOverrideFont, s.librarySeriesTitleFontFamily, s.librarySeriesTitleFontWeight);
+		this.assignUiFontVars(vars, "--sf-lib-book", s.libraryBookTitleOverrideFont, s.libraryBookTitleFontFamily, s.libraryBookTitleFontWeight);
+		this.assignUiFontVars(vars, "--sf-lib-subtitle", s.libraryBookSubtitleOverrideFont, s.libraryBookSubtitleFontFamily, s.libraryBookSubtitleFontWeight);
+		this.assignUiFontVars(vars, "--sf-lib-items", s.libraryItemsOverrideFont, s.libraryItemsFontFamily, s.libraryItemsFontWeight);
+		this.applyStyleVarsToAllDocs(vars);
 	}
 
 	applyCodexFolderStyle(): void {
 		const s = this.pluginSettings;
 		const indicatorWidth = CODEX_FOLDER_INDICATOR_WIDTH_PX[s.codexFolderIndicatorThickness];
 		const folderColor = this.resolveCodexFolderColor();
-		this.applyStyleVarsToAllDocs({
+		const vars: Record<string, string | null> = {
 			"--sf-codex-folder-color": folderColor,
 			"--sf-codex-folder-size": `${s.codexFolderFontSize}em`,
-			"--sf-codex-folder-weight": s.codexFolderFontWeight,
 			"--sf-codex-folder-indicator-width": `${indicatorWidth}px`,
-		});
+		};
+		this.assignUiFontVars(vars, "--sf-codex-folder", s.codexFolderOverrideFont, s.codexFolderFontFamily, s.codexFolderFontWeight);
+		this.applyStyleVarsToAllDocs(vars);
 		this.applyCodexIndentBodyClass(document.body, s.codexFolderIndicatorThickness);
 		for (const doc of this.extraDocs) this.applyCodexIndentBodyClass(doc.body, s.codexFolderIndicatorThickness);
 	}
@@ -997,11 +1081,12 @@ export default class StoryForgePlugin extends Plugin {
 		} else {
 			color = s.codexNoteLabelColor;
 		}
-		this.applyStyleVarsToAllDocs({
+		const vars: Record<string, string | null> = {
 			"--sf-codex-note-color": color,
 			"--sf-codex-note-size": `${s.codexNoteLabelFontSize}em`,
-			"--sf-codex-note-weight": s.codexNoteLabelFontWeight,
-		});
+		};
+		this.assignUiFontVars(vars, "--sf-codex-note", s.codexNoteLabelOverrideFont, s.codexNoteLabelFontFamily, s.codexNoteLabelFontWeight);
+		this.applyStyleVarsToAllDocs(vars);
 	}
 
 	applyHeading1LinkStyle(): void {
@@ -1010,6 +1095,24 @@ export default class StoryForgePlugin extends Plugin {
 			"--sf-h1-link-color": on ? "inherit" : null,
 			"--sf-h1-link-decoration": on ? "inherit" : null,
 		});
+	}
+
+	/**
+	 * Writes `--{prefix}-family` / `-variation` / `-weight` for storyForge panel chrome.
+	 * When a custom variable font is active, weight is left unset (variation carries wght);
+	 * otherwise the weight setting is applied as `font-weight`.
+	 */
+	private assignUiFontVars(
+		vars: Record<string, string | null>,
+		prefix: string,
+		overrideFont: boolean,
+		fontFamily: CustomFontFamily,
+		fontWeight: FontWeight,
+	): void {
+		const resolved = this.resolveCustomFontVars(overrideFont, fontFamily, fontWeight);
+		vars[`${prefix}-family`] = resolved.family;
+		vars[`${prefix}-variation`] = resolved.variation;
+		vars[`${prefix}-weight`] = overrideFont && resolved.font && resolved.variation != null ? null : fontWeight;
 	}
 
 	/**
