@@ -1,8 +1,15 @@
 import { App, Modal, Setting, SettingGroup, ToggleComponent } from "obsidian";
 import type StoryForgePlugin from "../main";
 import type { StoryForgePluginSettings } from "../main";
-import { CUSTOM_FONTS } from "../fonts";
-import { bindColorSwatchButton, bindFontWeightDropdown, persistAndRestyle, renderTabbedBody, renderToggleWithRevealCard, wireCardToggle, type StyleModalTab } from "./styleModalHelpers";
+import {
+	bindColorSwatchButton,
+	persistAndRestyle,
+	renderCustomFontCard,
+	renderTabbedBody,
+	renderToggleWithRevealCard,
+	wireCardToggle,
+	type StyleModalTab,
+} from "./styleModalHelpers";
 
 export class TextStyleModal extends Modal {
 	private plugin: StoryForgePlugin;
@@ -374,101 +381,16 @@ export class TextStyleModal extends Modal {
 		fontFamilyKey?: keyof StoryForgePluginSettings,
 		smallCapsKey?: keyof StoryForgePluginSettings,
 	): void {
-		const restyle = () => this.plugin.applyTextStyleOverrides();
-		const card = new SettingGroup(body);
-
-		let overrideToggle!: ToggleComponent;
-		card.addSetting((setting) => {
-			setting.setName("Override theme's default font").addToggle((toggle) => {
-				overrideToggle = toggle;
-				toggle.setValue(settings[overrideFontKey] as boolean);
-			});
-		});
-
-		let selectedFontFamily: string | undefined = fontFamilyKey ? (settings[fontFamilyKey] as string) : undefined;
-
-		let pickFontSetting!: Setting;
-		card.addSetting((setting) => {
-			pickFontSetting = setting;
-			setting.setName("Pick font");
-			if (!fontFamilyKey) return;
-			setting.addDropdown((dropdown) => {
-				for (const font of CUSTOM_FONTS) dropdown.addOption(font.id, font.label);
-				for (const opt of Array.from(dropdown.selectEl.options)) {
-					const font = CUSTOM_FONTS.find((f) => f.id === opt.value);
-					opt.style.fontFamily = font ? font.cssFontFamily : "";
-				}
-				const applySelectedFont = (value: string) => {
-					const font = CUSTOM_FONTS.find((f) => f.id === value);
-					dropdown.selectEl.style.fontFamily = font ? font.cssFontFamily : "";
-				};
-				dropdown.setValue(settings[fontFamilyKey] as string);
-				applySelectedFont(settings[fontFamilyKey] as string);
-				dropdown.onChange((value) =>
-					this.applyFontFamilyPick(fontFamilyKey, value, applySelectedFont, (v) => (selectedFontFamily = v), () => applyVisibility(!overrideToggle.getValue()), restyle),
-				);
-			});
-		});
-
-		let fontWeightSetting!: Setting;
-		card.addSetting((setting) => {
-			fontWeightSetting = setting;
-			setting.setName("Font weight");
-			bindFontWeightDropdown(setting, settings[fontWeightKey] as string, (value) => {
-				void this.plugin.updateSetting(fontWeightKey, value).then(() => restyle());
-			});
-		});
-
-		let smallCapsSetting: Setting | undefined;
-		if (smallCapsKey) {
-			card.addSetting((setting) => {
-				smallCapsSetting = setting;
-				setting.setName("Small caps").addToggle((toggle) =>
-					toggle.setValue(settings[smallCapsKey] as boolean).onChange((value) => persistAndRestyle(this.plugin, smallCapsKey, value, restyle)),
-				);
-				setting.nameEl.addClass("sf-small-caps-label");
-			});
-		}
-
-		const isSelectedFontVariable = (): boolean => {
-			if (!fontFamilyKey) return true;
-			const font = CUSTOM_FONTS.find((f) => f.id === selectedFontFamily);
-			return font ? font.weightMin !== font.weightMax : true;
-		};
-		const applyVisibility = (overrideOff: boolean) => {
-			pickFontSetting.settingEl.toggleClass("sf-settings-hidden", overrideOff);
-			smallCapsSetting?.settingEl.toggleClass("sf-settings-hidden", overrideOff);
-			fontWeightSetting.settingEl.toggleClass("sf-settings-hidden", overrideOff || !isSelectedFontVariable());
-		};
-		overrideToggle.onChange((value) => this.applyFontOverrideToggle(overrideFontKey, value, applyVisibility, restyle));
-		applyVisibility(!overrideToggle.getValue());
-	}
-
-	private applyFontOverrideToggle(
-		overrideFontKey: keyof StoryForgePluginSettings,
-		value: boolean,
-		applyVisibility: (overrideOff: boolean) => void,
-		restyle: () => void,
-	): void {
-		void this.plugin.updateSetting(overrideFontKey, value).then(() => {
-			applyVisibility(!value);
-			restyle();
-		});
-	}
-
-	private applyFontFamilyPick(
-		fontFamilyKey: keyof StoryForgePluginSettings,
-		value: string,
-		applySelectedFont: (value: string) => void,
-		setSelectedFontFamily: (value: string) => void,
-		applyOverrideVisibility: () => void,
-		restyle: () => void,
-	): void {
-		void this.plugin.updateSetting(fontFamilyKey, value).then(() => {
-			applySelectedFont(value);
-			setSelectedFontFamily(value);
-			applyOverrideVisibility();
-			restyle();
+		if (!fontFamilyKey) return;
+		renderCustomFontCard({
+			plugin: this.plugin,
+			body,
+			settings,
+			overrideFontKey,
+			fontWeightKey,
+			fontFamilyKey,
+			smallCapsKey,
+			restyle: () => this.plugin.applyTextStyleOverrides(),
 		});
 	}
 

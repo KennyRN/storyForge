@@ -1404,12 +1404,32 @@ body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container:not(#sto
 	text-decoration: var(--sf-h1-link-decoration, revert);
 }
 
-.sf-header-unplaced { color: var(--sf-unplaced-color); font-variant: var(--sf-unplaced-variant, normal); font-size: var(--sf-unplaced-size, 1em); font-weight: var(--sf-unplaced-weight, 400); }
+.sf-header-unplaced {
+	color: var(--sf-unplaced-color);
+	font-variant: var(--sf-unplaced-variant, normal);
+	font-size: var(--sf-unplaced-size, 1em);
+	font-weight: var(--sf-unplaced-weight, 400);
+	font-family: var(--sf-unplaced-family, inherit);
+	font-variation-settings: var(--sf-unplaced-variation, normal);
+}
 .sf-unplaced-header > .sf-icon { color: var(--sf-unplaced-color); font-size: var(--sf-unplaced-size, 1em); }
 .sf-unplaced-header > .sf-icon svg { width: 1em; height: 1em; }
-.sf-unplaced-list { font-size: var(--sf-unplaced-items-size, 1em); color: var(--sf-unplaced-items-color); }
+.sf-unplaced-list {
+	font-size: var(--sf-unplaced-items-size, 1em);
+	color: var(--sf-unplaced-items-color);
+	font-weight: var(--sf-unplaced-items-weight, 400);
+	font-family: var(--sf-unplaced-items-family, inherit);
+	font-variation-settings: var(--sf-unplaced-items-variation, normal);
+}
 .sf-unplaced-new-file:hover { color: var(--sf-unplaced-color); }
-.sf-header-codex { color: var(--sf-codex-color); font-variant: var(--sf-codex-variant, normal); font-size: var(--sf-codex-size, 1em); font-weight: var(--sf-codex-weight, 400); }
+.sf-header-codex {
+	color: var(--sf-codex-color);
+	font-variant: var(--sf-codex-variant, normal);
+	font-size: var(--sf-codex-size, 1em);
+	font-weight: var(--sf-codex-weight, 400);
+	font-family: var(--sf-codex-family, inherit);
+	font-variation-settings: var(--sf-codex-variation, normal);
+}
 .sf-bottom-header > .sf-icon { font-size: var(--sf-codex-size, 1em); }
 .sf-bottom-header > .sf-icon svg { width: 1em; height: 1em; }
 .sf-bottom-header:not(.sf-codex-hidden) > .sf-icon { color: var(--sf-codex-color); }
@@ -1417,6 +1437,9 @@ body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container:not(#sto
 
 .sf-top-list:not(.sf-unplaced-list) {
 	font-size: var(--sf-lib-items-size, 1em);
+	font-weight: var(--sf-lib-items-weight, 400);
+	font-family: var(--sf-lib-items-family, inherit);
+	font-variation-settings: var(--sf-lib-items-variation, normal);
 }
 .sf-top-list:not(.sf-unplaced-list) .sf-row,
 .sf-top-list:not(.sf-unplaced-list) .sf-row .sf-row-text {
@@ -1481,22 +1504,56 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 }
 .sf-cycling-guide-badge-icon svg { width: 1em; height: 1em; }
 
-.sf-series-line .sf-header-text { font-size: var(--sf-lib-series-size, 1em); font-weight: var(--sf-lib-series-weight, 600); color: var(--sf-lib-series-color); font-variant: var(--sf-lib-series-variant, normal); }
+.sf-series-line .sf-header-text {
+	font-size: var(--sf-lib-series-size, 1em);
+	font-weight: var(--sf-lib-series-weight, 600);
+	color: var(--sf-lib-series-color);
+	font-variant: var(--sf-lib-series-variant, normal);
+	font-family: var(--sf-lib-series-family, inherit);
+	font-variation-settings: var(--sf-lib-series-variation, normal);
+}
 .sf-series-line .sf-icon { color: var(--sf-lib-series-color); font-size: var(--sf-lib-series-size, 1em); }
 .sf-series-line .sf-icon svg { width: 1em; height: 1em; }
 .sf-series-filter-btn:hover { color: var(--sf-lib-series-color); }
-.sf-book-line .sf-header-text { font-size: var(--sf-lib-book-size, 1em); font-weight: var(--sf-lib-book-weight, 400); color: var(--sf-lib-book-color); font-variant: var(--sf-lib-book-variant, normal); line-height: 1; }
+.sf-book-line .sf-header-text {
+	font-size: var(--sf-lib-book-size, 1em);
+	font-weight: var(--sf-lib-book-weight, 400);
+	color: var(--sf-lib-book-color);
+	font-variant: var(--sf-lib-book-variant, normal);
+	font-family: var(--sf-lib-book-family, inherit);
+	font-variation-settings: var(--sf-lib-book-variation, normal);
+	line-height: 1;
+}
 .sf-book-line .sf-icon { color: var(--sf-lib-book-color); font-size: var(--sf-lib-book-size, 1em); }
 .sf-book-line .sf-icon svg { width: 1em; height: 1em; }
 .sf-book-filter-btn:hover { color: var(--sf-lib-book-color); }
-.sf-book-line .sf-book-subtitle-text { font-size: var(--sf-lib-subtitle-size, 0.5em); font-weight: var(--sf-lib-subtitle-weight, 400); color: var(--sf-lib-book-color); font-variant: var(--sf-lib-subtitle-variant, normal); }
+.sf-book-line .sf-book-subtitle-text {
+	font-size: var(--sf-lib-subtitle-size, 0.5em);
+	font-weight: var(--sf-lib-subtitle-weight, 400);
+	color: var(--sf-lib-book-color);
+	font-variant: var(--sf-lib-subtitle-variant, normal);
+	font-family: var(--sf-lib-subtitle-family, inherit);
+	font-variation-settings: var(--sf-lib-subtitle-variation, normal);
+}
 .sf-top-header { border-bottom: var(--sf-lib-header-divider, none); }
 
-.sf-codex-folder-name, .sf-codex-folder-name.sf-styled-heading { color: var(--sf-codex-folder-color); font-size: var(--sf-codex-folder-size, 1em); font-weight: var(--sf-codex-folder-weight, 400); }
+.sf-codex-folder-name, .sf-codex-folder-name.sf-styled-heading {
+	color: var(--sf-codex-folder-color);
+	font-size: var(--sf-codex-folder-size, 1em);
+	font-weight: var(--sf-codex-folder-weight, 400);
+	font-family: var(--sf-codex-folder-family, inherit);
+	font-variation-settings: var(--sf-codex-folder-variation, normal);
+}
 .sf-codex-chevron { color: var(--sf-codex-folder-color); font-size: var(--sf-codex-folder-size, 1em); }
 .sf-codex-folder-indicator { width: var(--sf-codex-folder-indicator-width, 2px); background: var(--sf-codex-folder-color); }
 
-.sf-codex-file { color: var(--sf-codex-note-color); font-size: var(--sf-codex-note-size, 1em); font-weight: var(--sf-codex-note-weight, 400); }
+.sf-codex-file {
+	color: var(--sf-codex-note-color);
+	font-size: var(--sf-codex-note-size, 1em);
+	font-weight: var(--sf-codex-note-weight, 400);
+	font-family: var(--sf-codex-note-family, inherit);
+	font-variation-settings: var(--sf-codex-note-variation, normal);
+}
 
 .markdown-reading-view p, .cm-line:not(.HyperMD-header) {
 	font-size: var(--sf-body-size, revert);
