@@ -2,11 +2,15 @@ import { App, PluginSettingTab, type SettingDefinitionItem } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { CODEX_TYPES } from "../codex";
 import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
-import { PALETTE_NAMES } from "../colorPalettes";
+import { COLOR_PALETTES, defaultVariantName, PALETTE_NAMES, type PresetPaletteName } from "../colorPalettes";
 import { TextStyleModal } from "./TextStyleModal";
 import { UiFormattingModal } from "./UiFormattingModal";
 import { HideUiModal } from "./HideUiModal";
 import { ProtectionsModal } from "./ProtectionsModal";
+
+function isPresetPaletteName(name: string): name is PresetPaletteName {
+	return name in COLOR_PALETTES;
+}
 
 function getPath(obj: Record<string, unknown>, path: string): unknown {
 	let cursor: unknown = obj;
@@ -85,13 +89,27 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 
 		await super.setControlValue(key, value);
 		if (key === "colorPaletteName") {
+			const name = String(value);
+			if (isPresetPaletteName(name)) {
+				const appearance = document.body.classList.contains("theme-dark") ? "dark" : "light";
+				await this.plugin.updateSetting(
+					"colorPaletteVariant",
+					defaultVariantName(COLOR_PALETTES[name], appearance),
+				);
+			}
 			this.refreshDomState();
 		}
 	}
 
 	getSettingDefinitions(): SettingDefinitionItem[] {
 		const paletteOptions = Object.fromEntries(PALETTE_NAMES.map((name) => [name, name]));
-		const colorCount = this.plugin.getSettings().customPaletteColors.length;
+		const settings = this.plugin.getSettings();
+		const colorCount = settings.customPaletteColors.length;
+		const selectedName = settings.colorPaletteName;
+		const variantOptions =
+			isPresetPaletteName(selectedName)
+				? Object.fromEntries(COLOR_PALETTES[selectedName].map((v) => [v.name, v.name]))
+				: {};
 
 		return [
 			{
@@ -126,13 +144,16 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				},
 			},
 			{
-				name: "Palette mode",
-				desc: "Light or dark variant of the selected palette.",
-				visible: () => this.plugin.getSettings().colorPaletteName !== "Custom",
+				name: "Palette variant",
+				desc: "Named variant of the selected palette.",
+				visible: () => {
+					const name = this.plugin.getSettings().colorPaletteName;
+					return isPresetPaletteName(name) && COLOR_PALETTES[name].length > 1;
+				},
 				control: {
 					type: "dropdown",
-					key: "colorPaletteMode",
-					options: { light: "Light", dark: "Dark" },
+					key: "colorPaletteVariant",
+					options: variantOptions,
 				},
 			},
 			...Array.from({ length: colorCount }, (_, i) => [
