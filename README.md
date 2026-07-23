@@ -1,5 +1,6 @@
 # storyForge
 Storytelling plugin by volcanicMole
+(updated to 0.9.0, see What's New after What can storyForge do?)
 
 ## Why storyForge?
 I got fed up of having storytelling apps which were pretty but functionally useless, or functionally powerful, but ugly.
@@ -19,6 +20,13 @@ There's a welcome note built into the plugin which gives a more detailed breakdo
 Basically the idea is: Obsidian + storyForge + a theme = fully functional storytelling app
 
 One which can be enhanced by using other plugins found within the Obsidian ecosystem!
+
+## What's New in 0.9.0
+I've added functionality to the right sidebar. There's 3 panels there. First is the 'dash' or 'blank' panel. This is an empty panel to give you a minimal writing space, whilst keeping the editor centred and access to the left sidebar.
+
+Second panel is the Story Context panel, this is a major change (and the first one which comes up when you open storyForge), in it you've got text analysis from your chapter shown in your sidebar. This sidebar remains visible if you leave the chapter so you can change things in your codex without losing this information.
+
+Third panel is the Archive panel, I've removed the access to archive from the storyForge panel and moved them here. I'm in two minds wether this should be always on, toggle off, or toggle on...
 
 ## Starting with storyForge
 After installing, turn the plugin on, and a welcome screen pops up which asks to give the name of your series (or if you're telling a standalone novel, there's an option there to set that too).
