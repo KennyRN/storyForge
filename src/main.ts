@@ -889,7 +889,14 @@ export default class StoryForgePlugin extends Plugin {
 		const flagSizeEm = s.cyclingGuideFlagSize === "large" ? 1 : s.cyclingGuideFlagSize === "small" ? 0.6 : 0.75;
 		const baseBadgePx = 18;
 		const baseFlagEm = 0.75;
-		const badgePx = Math.round(baseBadgePx * flagSizeEm / baseFlagEm);
+		const basePad = 3;
+		const pad = basePad * 0.9; // equal L/R/B margin, reduced 10% from base
+		const baseIconPx = baseBadgePx - 2 * basePad; // 12
+		const iconPx = baseIconPx * flagSizeEm / baseFlagEm;
+		// Badge is right-aligned, so shrinking width trims the left margin only.
+		const badgeW = Math.round(iconPx + 2 * pad) - 1;
+		// Keep existing top: -1px; compensate so visible bottom == pad, then trim bottom further.
+		const badgeH = Math.round(iconPx + pad - 1) - 3;
 		const borderRadius = s.cyclingGuideRoundedLines ? "3px 3px 0 3px" : "0";
 		// Box = the divider's own colour; the icon inside it is coloured with the editor's
 		// background so it reads as "knocked out" of the coloured box, per the icon's design (see styles.css).
@@ -897,8 +904,8 @@ export default class StoryForgePlugin extends Plugin {
 			"--sf-cg-height": `${px}px`,
 			"--sf-cg-color": s.cyclingGuideColor,
 			"--sf-cg-radius": borderRadius,
-			"--sf-cg-badge-size": `${badgePx}px`,
-			"--sf-cg-badge-inner-height": `${badgePx - 3}px`,
+			"--sf-cg-badge-size": `${badgeW}px`,
+			"--sf-cg-badge-inner-height": `${badgeH}px`,
 			"--sf-cg-flag-size": `${flagSizeEm}em`,
 		});
 	}
