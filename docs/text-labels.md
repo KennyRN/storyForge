@@ -168,34 +168,33 @@ Notes on conventions used below:
 | settings.fontWeightOptions.extraBold | Extra Bold (shared, see above) | 19 |
 | settings.fontWeightOptions.black | Black (shared, see above) | 20 |
 
-### Shared helpers (`bindColorSwatchButton`, `renderHeaderStyleGroup`, `renderFontCard`, `renderDividerCard`)
+### Shared helpers (`bindColorSwatchButton`, `renderHeaderStyleGroup`, `renderCustomFontCard`, `renderDividerCard`)
 
 | ID | Current text | Line |
 |---|---|---|
 | settings.colorSwatchButton.ariaLabel | Choose colour (shared aria-label on every colour-swatch button in this file, ~20 call sites) | 72 |
-| settings.headerStyleGroup.headerSize.name | Header size (shared) — renders in both Unplaced pane (call at line 1112) and Codex pane (call at line 1207) | 148 |
-| settings.headerStyleGroup.headerSize.desc | size of header label and icon (shared, see above) | 149 |
-| settings.headerStyleGroup.headerWeight.name | Header weight (shared, see above) | 161 |
-| settings.headerStyleGroup.headerColour.name | Header colour (shared, see above) | 169 |
-| settings.headerStyleGroup.useHeaderColourForAll.name | Use header colour for all colour options (shared, see above) | 179 |
-| settings.headerStyleGroup.useHeaderColourForAll.desc | Use the header colour everywhere below instead of picking separate colours. (shared, see above) | 180 |
-| settings.headerStyleGroup.muted.name | Muted (shared, see above) | 188 |
-| settings.headerStyleGroup.muted.desc | override header colour with muted colour (shared, see above) | 189 |
-| settings.headerStyleGroup.smallCaps.name | Small caps (shared, see above) | 199 |
-| settings.fontCard.overrideToggle.name | Override theme's default font (shared) — renders once per Body text + Heading 1-6 sub-section (7 call sites: lines 751, 789, 811, 833, 873, 888, 903) | 569 |
-| settings.fontCard.pickFont.name | Pick font (shared, see above) | 580 |
-| settings.fontCard.fontWeight.name | Font weight (shared, see above) | 607 |
-| settings.fontCard.smallCaps.name | Small caps (shared, see above; only rendered when a smallCapsKey is passed, i.e. Heading 1-6, not Body text) | 618 |
-| settings.dividerCard.above.name | Divider line above header (shared) — renders once per Heading 1-6 sub-section (6 call sites: lines 790, 812, 834, 874, 889, 904) | 676 |
-| settings.dividerCard.above.thickness.name | Thickness (shared, see above) | 684 |
-| settings.dividerCard.above.thickness.option.thin | Thin (shared, see above) | 686 |
-| settings.dividerCard.above.thickness.option.medium | Medium (shared, see above) | 687 |
-| settings.dividerCard.above.thickness.option.thick | Thick (shared, see above) | 688 |
-| settings.dividerCard.below.name | Divider line below header (shared, see above) | 700 |
-| settings.dividerCard.below.thickness.name | Thickness (shared, see above) | 708 |
-| settings.dividerCard.below.thickness.option.thin | Thin (shared, see above) | 710 |
-| settings.dividerCard.below.thickness.option.medium | Medium (shared, see above) | 711 |
-| settings.dividerCard.below.thickness.option.thick | Thick (shared, see above) | 712 |
+| settings.headerStyleGroup.headerSize.name | Header size (shared) — renders in both Unplaced pane and Codex pane | — |
+| settings.headerStyleGroup.headerSize.desc | size of header label and icon (shared, see above) | — |
+| settings.headerStyleGroup.headerColour.name | Header colour (shared, see above) | — |
+| settings.headerStyleGroup.useHeaderColourForAll.name | Use header colour for all colour options (shared, see above) | — |
+| settings.headerStyleGroup.useHeaderColourForAll.desc | Use the header colour everywhere below instead of picking separate colours. (shared, see above) | — |
+| settings.headerStyleGroup.muted.name | Muted (shared, see above) | — |
+| settings.headerStyleGroup.muted.desc | override header colour with muted colour (shared, see above) | — |
+| settings.headerStyleGroup.smallCaps.name | Small caps (shared, see above) | — |
+| settings.fontCard.overrideToggle.name | Override theme's default font (shared `renderCustomFontCard`) — Text Style body/H1–H6 and UI Formatting library/unplaced/codex typography | — |
+| settings.fontCard.pickFont.name | Pick font (shared, see above) | — |
+| settings.fontCard.fontWeight.name | Font weight (shared, see above) | — |
+| settings.fontCard.smallCaps.name | Small caps (shared, see above; only when a smallCapsKey is passed — Text Style headings) | — |
+| settings.dividerCard.above.name | Divider line above header (shared) — renders once per Heading 1-6 sub-section | — |
+| settings.dividerCard.above.thickness.name | Thickness (shared, see above) | — |
+| settings.dividerCard.above.thickness.option.thin | Thin (shared, see above) | — |
+| settings.dividerCard.above.thickness.option.medium | Medium (shared, see above) | — |
+| settings.dividerCard.above.thickness.option.thick | Thick (shared, see above) | — |
+| settings.dividerCard.below.name | Divider line below header (shared, see above) | — |
+| settings.dividerCard.below.thickness.name | Thickness (shared, see above) | — |
+| settings.dividerCard.below.thickness.option.thin | Thin (shared, see above) | — |
+| settings.dividerCard.below.thickness.option.medium | Medium (shared, see above) | — |
+| settings.dividerCard.below.thickness.option.thick | Thick (shared, see above) | — |
 
 ### `renderTopActions`
 
@@ -320,31 +319,32 @@ Notes on conventions used below:
 
 | ID | Current text | Line |
 |---|---|---|
-| settings.uiFormatting.libraryPane.titleStyleGroup.size.name | ${labelPrefix} size (template) — renders "Series title size" (call at line 1397) and "Book title size" (call at line 1404) | 1030 |
-| settings.uiFormatting.libraryPane.titleStyleGroup.size.desc | Text size, from 0.5em to 2em. (shared, both calls) | 1031 |
-| settings.uiFormatting.libraryPane.titleStyleGroup.weight.name | ${labelPrefix} weight (template) — "Series title weight" / "Book title weight" | 1043 |
-| settings.uiFormatting.libraryPane.titleStyleGroup.colour.name | ${labelPrefix} colour (template) — "Series title colour" / "Book title colour" | 1051 |
-| settings.uiFormatting.libraryPane.titleStyleGroup.smallCaps.name | ${labelPrefix} small caps (template) — "Series title small caps" / "Book title small caps" | 1061 |
-| settings.uiFormatting.libraryPane.seriesTitle.labelPrefix | Series title (call-site literal feeding the template above) | 1397 |
-| settings.uiFormatting.libraryPane.bookTitle.labelPrefix | Book title (call-site literal feeding the template above) | 1404 |
+| settings.uiFormatting.libraryPane.titleStyleGroup.size.name | ${labelPrefix} size (template) — renders "Series title size" and "Book title size" | — |
+| settings.uiFormatting.libraryPane.titleStyleGroup.size.desc | Text size, from 0.5em to 2em. (shared, both calls) | — |
+| settings.uiFormatting.libraryPane.titleStyleGroup.fontCard | Override theme's default font / Pick font / Font weight via shared `renderCustomFontCard` | — |
+| settings.uiFormatting.libraryPane.titleStyleGroup.colour.name | ${labelPrefix} colour (template) — "Series title colour" / "Book title colour" | — |
+| settings.uiFormatting.libraryPane.titleStyleGroup.smallCaps.name | ${labelPrefix} small caps (template) — "Series title small caps" / "Book title small caps" | — |
+| settings.uiFormatting.libraryPane.seriesTitle.labelPrefix | Series title (call-site literal feeding the template above) | — |
+| settings.uiFormatting.libraryPane.bookTitle.labelPrefix | Book title (call-site literal feeding the template above) | — |
 
 ### `renderSubtitleStyleGroup`
 
 | ID | Current text | Line |
 |---|---|---|
-| settings.uiFormatting.libraryPane.subtitle.size.name | Subtitle size | 1078 |
-| settings.uiFormatting.libraryPane.subtitle.size.desc | Text size, from 0.5em to 2em. | 1079 |
-| settings.uiFormatting.libraryPane.subtitle.weight.name | Subtitle weight | 1091 |
-| settings.uiFormatting.libraryPane.subtitle.smallCaps.name | Subtitle small caps | 1099 |
+| settings.uiFormatting.libraryPane.subtitle.size.name | Subtitle size | — |
+| settings.uiFormatting.libraryPane.subtitle.size.desc | Text size, from 0.5em to 2em. | — |
+| settings.uiFormatting.libraryPane.subtitle.fontCard | Override theme's default font / Pick font / Font weight via shared `renderCustomFontCard` | — |
+| settings.uiFormatting.libraryPane.subtitle.smallCaps.name | Subtitle small caps | — |
 
 ### `renderLibraryItemsGroup`
 
 | ID | Current text | Line |
 |---|---|---|
 | settings.uiFormatting.libraryPane.items.size.name | Library items | — |
-| settings.uiFormatting.libraryPane.items.size.desc | Text size of books and chapters in the Library pane, from 0.5em to 1.5em. | — |
+| settings.uiFormatting.libraryPane.items.size.desc | Text size of books and chapters in the Library list, from 0.5em to 1.5em. | — |
+| settings.uiFormatting.libraryPane.items.fontCard | Override theme's default font / Pick font / Font weight via shared `renderCustomFontCard` | — |
 | settings.uiFormatting.libraryPane.items.colour.name | Library items colour | — |
-| settings.uiFormatting.libraryPane.items.colour.desc | Colour of books and chapters in the Library pane. | — |
+| settings.uiFormatting.libraryPane.items.colour.desc | Normal text colour of books and chapters in the Library list (not the header titles). | — |
 | settings.uiFormatting.libraryPane.items.muted.name | Muted | — |
 | settings.uiFormatting.libraryPane.items.muted.desc | override colour with muted colour | — |
 
@@ -361,47 +361,46 @@ Notes on conventions used below:
 
 | ID | Current text | Line |
 |---|---|---|
-| settings.unplacedPanel.sectionHeader | Unplaced pane | 1111 |
-| settings.unplacedPanel.itemsSize.name | Unplaced items | 1127 |
-| settings.unplacedPanel.itemsSize.desc | Text size of the items in the Unplaced pane, from 0.5em to 1.5em. | 1128 |
-| settings.unplacedPanel.itemsColour.name | Unplaced items colour | 1142 |
-| settings.unplacedPanel.itemsColour.desc | colour of unplaced items | 1143 |
-| settings.unplacedPanel.itemsMuted.name | Muted | 1153 |
-| settings.unplacedPanel.itemsMuted.desc | override colour with muted colour | 1154 |
-| settings.unplacedPanel.highlightColour.name | Highlight colour | 1169 |
-| settings.unplacedPanel.highlightColour.desc | highlights the currently selected chapter in the storyForge panel, only active if per panel highlighting is selected | 1171 |
-| settings.unplacedPanel.highlightTextColour.name | Highlight text colour | 1182 |
+| settings.unplacedPanel.sectionHeader | Unplaced pane | — |
+| settings.unplacedPanel.itemsSize.name | Unplaced items | — |
+| settings.unplacedPanel.itemsSize.desc | Text size of the items in the Unplaced pane, from 0.5em to 1.5em. | — |
+| settings.unplacedPanel.items.fontCard | Override theme's default font / Pick font / Font weight via shared `renderCustomFontCard` | — |
+| settings.unplacedPanel.itemsColour.name | Unplaced items colour | — |
+| settings.unplacedPanel.itemsColour.desc | colour of unplaced items | — |
+| settings.unplacedPanel.itemsMuted.name | Muted | — |
+| settings.unplacedPanel.itemsMuted.desc | override colour with muted colour | — |
+| settings.unplacedPanel.highlightColour.name | Highlight colour | — |
+| settings.unplacedPanel.highlightColour.desc | highlights the currently selected chapter in the storyForge panel, only active if per panel highlighting is selected | — |
+| settings.unplacedPanel.highlightTextColour.name | Highlight text colour | — |
 
 ### `renderCodexPanel`
 
 | ID | Current text | Line |
 |---|---|---|
-| settings.codexPanel.sectionHeader | Codex pane | 1206 |
-| settings.codexPanel.folderSize.name | Folder size | 1222 |
-| settings.codexPanel.folderSize.desc | Font size of the codex folder names and chevrons, from 0.5em to 1.5em. | 1223 |
-| settings.codexPanel.folderWeight.name | Folder weight | 1235 |
-| settings.codexPanel.folderWeight.desc | Font weight of the codex folder names. | 1235 |
-| settings.codexPanel.folderColour.name | Folder colour | 1244 |
-| settings.codexPanel.folderColour.desc | Colour of the codex folder names and chevrons. | 1245 |
-| settings.codexPanel.folderIndicator.name | Folder indicator line | 1255 |
-| settings.codexPanel.folderIndicator.desc | Vertical guide line showing what's nested inside a folder, coloured to match the folder colour. | 1256 |
-| settings.codexPanel.folderIndicator.option.none | None | 1259 |
-| settings.codexPanel.folderIndicator.option.thin | Thin | 1260 |
-| settings.codexPanel.folderIndicator.option.medium | Medium | 1261 |
-| settings.codexPanel.folderIndicator.option.thick | Thick | 1262 |
-| settings.codexPanel.noteLabelSize.name | Codex note label size | 1281 |
-| settings.codexPanel.noteLabelSize.desc | Font size of the codex note (file) labels, from 0.5em to 1.5em. | 1282 |
-| settings.codexPanel.noteLabelWeight.name | Codex note label weight | 1294 |
-| settings.codexPanel.noteLabelWeight.desc | Font weight of the codex note (file) labels. | 1294 |
-| settings.codexPanel.noteLabelColour.name | Codex note label colour | 1303 |
-| settings.codexPanel.noteLabelColour.desc | Colour of the codex note (file) labels. | 1304 |
-| settings.codexPanel.useDefaultColour.name | Use default colour for Codex note label | 1315 |
-| settings.codexPanel.useDefaultColour.desc | overrides the note colour and sets it the same as the body text | 1316 |
-| settings.codexPanel.useFolderColour.name | Use folder colour for Codex notes | 1325 |
-| settings.codexPanel.useFolderColour.desc | overrides the note colour and sets it the same as the codex folder colour | 1326 |
-| settings.codexPanel.highlightColour.name | Highlight colour | 1351 |
-| settings.codexPanel.highlightColour.desc | highlights the currently selected note in the codex panel, only active if per panel highlighting is selected | 1353 |
-| settings.codexPanel.highlightTextColour.name | Highlight text colour | 1364 |
+| settings.codexPanel.sectionHeader | Codex pane | — |
+| settings.codexPanel.folderSize.name | Folder size | — |
+| settings.codexPanel.folderSize.desc | Font size of the codex folder names and chevrons, from 0.5em to 1.5em. | — |
+| settings.codexPanel.folder.fontCard | Override theme's default font / Pick font / Font weight via shared `renderCustomFontCard` | — |
+| settings.codexPanel.folderColour.name | Folder colour | — |
+| settings.codexPanel.folderColour.desc | Colour of the codex folder names and chevrons. | — |
+| settings.codexPanel.folderIndicator.name | Folder indicator line | — |
+| settings.codexPanel.folderIndicator.desc | Vertical guide line showing what's nested inside a folder, coloured to match the folder colour. | — |
+| settings.codexPanel.folderIndicator.option.none | None | — |
+| settings.codexPanel.folderIndicator.option.thin | Thin | — |
+| settings.codexPanel.folderIndicator.option.medium | Medium | — |
+| settings.codexPanel.folderIndicator.option.thick | Thick | — |
+| settings.codexPanel.noteLabelSize.name | Codex note label size | — |
+| settings.codexPanel.noteLabelSize.desc | Font size of the codex note (file) labels, from 0.5em to 1.5em. | — |
+| settings.codexPanel.noteLabel.fontCard | Override theme's default font / Pick font / Font weight via shared `renderCustomFontCard` | — |
+| settings.codexPanel.noteLabelColour.name | Codex note label colour | — |
+| settings.codexPanel.noteLabelColour.desc | Colour of the codex note (file) labels. | — |
+| settings.codexPanel.useDefaultColour.name | Use default colour for Codex note label | — |
+| settings.codexPanel.useDefaultColour.desc | overrides the note colour and sets it the same as the body text | — |
+| settings.codexPanel.useFolderColour.name | Use folder colour for Codex notes | — |
+| settings.codexPanel.useFolderColour.desc | overrides the note colour and sets it the same as the codex folder colour | — |
+| settings.codexPanel.highlightColour.name | Highlight colour | — |
+| settings.codexPanel.highlightColour.desc | highlights the currently selected note in the codex panel, only active if per panel highlighting is selected | — |
+| settings.codexPanel.highlightTextColour.name | Highlight text colour | — |
 
 ### `renderHideUiSection`
 

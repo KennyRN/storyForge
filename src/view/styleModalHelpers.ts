@@ -1,6 +1,7 @@
-import { App, Setting, SettingGroup, ToggleComponent } from "obsidian";
+import { App, DropdownComponent, Setting, SettingGroup, ToggleComponent } from "obsidian";
 import type StoryForgePlugin from "../main";
 import type { StoryForgePluginSettings } from "../main";
+import { CUSTOM_FONTS } from "../fonts";
 
 /** Shared building blocks for TextStyleModal, UiFormattingModal, and
  * ProtectionsModal — free functions rather than a base class, matching the
@@ -17,6 +18,30 @@ export const FONT_WEIGHT_OPTIONS: [string, string][] = [
 	["900", "Black"],
 ];
 
+/** Weight dropdown choices that fall within a custom font's native weightMin–weightMax range. */
+export function fontWeightOptionsFor(weightMin: number, weightMax: number): [string, string][] {
+	return FONT_WEIGHT_OPTIONS.filter(([val]) => {
+		const n = Number(val);
+		return n >= weightMin && n <= weightMax;
+	});
+}
+
+/** Nearest allowed weight option for `weight`, or `weight` unchanged when already allowed / options empty. */
+export function clampFontWeightToOptions(weight: string, options: [string, string][]): string {
+	if (options.length === 0 || options.some(([val]) => val === weight)) return weight;
+	const n = Number(weight);
+	let best = options[0][0];
+	let bestDist = Infinity;
+	for (const [val] of options) {
+		const d = Math.abs(Number(val) - n);
+		if (d < bestDist) {
+			bestDist = d;
+			best = val;
+		}
+	}
+	return best;
+}
+
 export function applyColorPick(hex: string, paint: (hex: string) => void, onPick: (hex: string) => void): void {
 	paint(hex);
 	onPick(hex);
@@ -30,7 +55,7 @@ export function openColorSwatchPicker(
 ): void {
 	const s = plugin.getSettings();
 	void import("./PalettePickerModal").then(({ PalettePickerModal }) => {
-		new PalettePickerModal(app, s.colorPaletteName, s.colorPaletteMode, s.customPaletteColors, (hex) =>
+		new PalettePickerModal(app, s.colorPaletteName, s.colorPaletteVariant, s.customPaletteColors, (hex) =>
 			applyColorPick(hex, paint, onPick),
 		).open();
 	});
@@ -61,20 +86,169 @@ export function applyFontWeightChange<W extends string>(
 	applySelectedWeight(v);
 }
 
-export function bindFontWeightDropdown<W extends string>(setting: Setting, value: W, onChange: (value: W) => void): void {
+/** Clears and repopulates weight `<option>`s; does not (re)bind onChange. */
+export function fillFontWeightOptions(
+	dropdown: { selectEl: HTMLSelectElement; addOption: (value: string, display: string) => unknown; setValue: (value: string) => unknown },
+	value: string,
+	options: [string, string][] = FONT_WEIGHT_OPTIONS,
+): void {
+	dropdown.selectEl.replaceChildren();
+	for (const [val, label] of options) {
+		dropdown.addOption(val, label);
+		const opt = dropdown.selectEl.options[dropdown.selectEl.options.length - 1];
+		opt.style.fontWeight = val;
+	}
+	dropdown.setValue(value);
+	dropdown.selectEl.style.fontWeight = value;
+}
+
+export function populateFontWeightDropdown<W extends string>(
+	dropdown: {
+		selectEl: HTMLSelectElement;
+		addOption: (value: string, display: string) => unknown;
+		setValue: (value: string) => unknown;
+		onChange: (cb: (value: string) => void) => unknown;
+	},
+	value: W,
+	onChange: (value: W) => void,
+	options: [string, string][] = FONT_WEIGHT_OPTIONS,
+): void {
+	fillFontWeightOptions(dropdown, value, options);
+	const applySelectedWeight = (v: W) => {
+		dropdown.selectEl.style.fontWeight = v;
+	};
+	dropdown.onChange((v) => applyFontWeightChange(v as W, applySelectedWeight, onChange));
+}
+
+export function bindFontWeightDropdown<W extends string>(
+	setting: Setting,
+	value: W,
+	onChange: (value: W) => void,
+	options: [string, string][] = FONT_WEIGHT_OPTIONS,
+): void {
 	setting.addDropdown((dropdown) => {
-		for (const [val, label] of FONT_WEIGHT_OPTIONS) {
-			dropdown.addOption(val, label);
-			const opt = dropdown.selectEl.options[dropdown.selectEl.options.length - 1];
-			opt.style.fontWeight = val;
-		}
-		const applySelectedWeight = (v: W) => {
-			dropdown.selectEl.style.fontWeight = v;
-		};
-		dropdown.setValue(value);
-		applySelectedWeight(value);
-		dropdown.onChange((v) => applyFontWeightChange(v as W, applySelectedWeight, onChange));
+		populateFontWeightDropdown(dropdown, value, onChange, options);
 	});
+}
+
+export interface RenderCustomFontCardOptions {
+	plugin: StoryForgePlugin;
+	settings: StoryForgePluginSettings;
+	overrideFontKey: keyof StoryForgePluginSettings;
+	fontWeightKey: keyof StoryForgePluginSettings;
+	fontFamilyKey: keyof StoryForgePluginSettings;
+	smallCapsKey?: keyof StoryForgePluginSettings;
+	restyle: () => void;
+	/** Append into this group; otherwise a new SettingGroup is created on `body`. */
+	group?: SettingGroup;
+	body?: HTMLElement;
+}
+
+/** Override + Pick font + Font weight (+ optional Small caps), shared by Text Style and UI Formatting. */
+export function renderCustomFontCard(opts: RenderCustomFontCardOptions): SettingGroup {
+	const {
+		plugin,
+		settings,
+		overrideFontKey,
+		fontWeightKey,
+		fontFamilyKey,
+		smallCapsKey,
+		restyle,
+	} = opts;
+	const card = opts.group ?? new SettingGroup(opts.body!);
+
+	let overrideToggle!: ToggleComponent;
+	card.addSetting((setting) => {
+		setting.setName("Override theme's default font").addToggle((toggle) => {
+			overrideToggle = toggle;
+			toggle.setValue(settings[overrideFontKey] as boolean);
+		});
+	});
+
+	let selectedFontFamily: string = settings[fontFamilyKey] as string;
+	const fontsByLabel = [...CUSTOM_FONTS].sort((a, b) => a.label.localeCompare(b.label));
+
+	let pickFontSetting!: Setting;
+	card.addSetting((setting) => {
+		pickFontSetting = setting;
+		setting.setName("Pick font");
+		setting.addDropdown((dropdown) => {
+			for (const font of fontsByLabel) {
+				dropdown.addOption(font.id, font.label);
+			}
+			dropdown.setValue(settings[fontFamilyKey] as string);
+			selectedFontFamily = settings[fontFamilyKey] as string;
+			dropdown.onChange((value) => {
+				void plugin.updateSetting(fontFamilyKey, value).then(async () => {
+					selectedFontFamily = value;
+					const clampedWeight = syncWeightDropdown();
+					const currentWeight = plugin.getSettings()[fontWeightKey] as string;
+					if (clampedWeight !== currentWeight) {
+						await plugin.updateSetting(fontWeightKey, clampedWeight);
+					}
+					applyVisibility(!overrideToggle.getValue());
+					restyle();
+				});
+			});
+		});
+	});
+
+	let fontWeightSetting!: Setting;
+	let weightDropdown!: DropdownComponent;
+	const weightOptionsForSelected = (): [string, string][] => {
+		const font = CUSTOM_FONTS.find((f) => f.id === selectedFontFamily);
+		return font ? fontWeightOptionsFor(font.weightMin, font.weightMax) : FONT_WEIGHT_OPTIONS;
+	};
+	const onWeightChange = (value: string) => {
+		void plugin.updateSetting(fontWeightKey, value).then(() => restyle());
+	};
+	const syncWeightDropdown = (): string => {
+		const options = weightOptionsForSelected();
+		const current = plugin.getSettings()[fontWeightKey] as string;
+		const clamped = clampFontWeightToOptions(current, options);
+		fillFontWeightOptions(weightDropdown, clamped, options);
+		return clamped;
+	};
+	card.addSetting((setting) => {
+		fontWeightSetting = setting;
+		setting.setName("Font weight");
+		setting.addDropdown((dropdown) => {
+			weightDropdown = dropdown;
+			const options = weightOptionsForSelected();
+			const initial = clampFontWeightToOptions(settings[fontWeightKey] as string, options);
+			populateFontWeightDropdown(dropdown, initial, onWeightChange, options);
+		});
+	});
+
+	let smallCapsSetting: Setting | undefined;
+	if (smallCapsKey) {
+		card.addSetting((setting) => {
+			smallCapsSetting = setting;
+			setting.setName("Small caps").addToggle((toggle) =>
+				toggle.setValue(settings[smallCapsKey] as boolean).onChange((value) => persistAndRestyle(plugin, smallCapsKey, value, restyle)),
+			);
+			setting.nameEl.addClass("sf-small-caps-label");
+		});
+	}
+
+	const isSelectedFontVariable = (): boolean => {
+		const font = CUSTOM_FONTS.find((f) => f.id === selectedFontFamily);
+		return font ? font.weightMin !== font.weightMax : true;
+	};
+	const applyVisibility = (overrideOff: boolean) => {
+		pickFontSetting.settingEl.toggleClass("sf-settings-hidden", overrideOff);
+		smallCapsSetting?.settingEl.toggleClass("sf-settings-hidden", overrideOff);
+		fontWeightSetting.settingEl.toggleClass("sf-settings-hidden", overrideOff || !isSelectedFontVariable());
+		if (!overrideOff && isSelectedFontVariable()) syncWeightDropdown();
+	};
+	overrideToggle.onChange((value) => {
+		void plugin.updateSetting(overrideFontKey, value).then(() => {
+			applyVisibility(!value);
+			restyle();
+		});
+	});
+	applyVisibility(!(settings[overrideFontKey] as boolean));
+	return card;
 }
 
 export function applyExclusiveToggle(

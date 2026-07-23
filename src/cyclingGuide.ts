@@ -1,8 +1,9 @@
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from "@codemirror/view";
 import { RangeSetBuilder } from "@codemirror/state";
-import { setIcon } from "obsidian";
+import { editorInfoField, setIcon } from "obsidian";
 import { countWordsInLine } from "./wordCount";
 import { ICON_CYCLE_ALT } from "./icons";
+import { isLibraryChapterPath } from "./paths";
 
 const cyclingGuideLineDeco = Decoration.line({ attributes: { class: "sf-cycling-guide-line" } });
 
@@ -27,8 +28,16 @@ class CycleBadgeWidget extends WidgetType {
 
 const cyclingGuideBadgeDeco = Decoration.widget({ widget: new CycleBadgeWidget(), side: 1 });
 
+/** True when this editor is a library chapter (not Codex or other notes). */
+function isChapterEditor(view: EditorView): boolean {
+	const path = view.state.field(editorInfoField, false)?.file?.path;
+	return !!path && isLibraryChapterPath(path);
+}
+
 /** Marks every line where the document's running word count (from the top of the file) crosses a new multiple of `intervalWords`. */
 function buildCyclingGuideDecorations(view: EditorView, intervalWords: number): DecorationSet {
+	if (!isChapterEditor(view)) return Decoration.none;
+
 	const builder = new RangeSetBuilder<Decoration>();
 	const doc = view.state.doc;
 	let cumulative = 0;
