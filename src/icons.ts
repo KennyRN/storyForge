@@ -22,6 +22,7 @@ export const ICON_HIDE_UI = "sf-hide-ui";
 export const ICON_PROTECTIONS = "sf-protections";
 export const ICON_PERSON_FILL = "sf-person-fill";
 export const ICON_PERSON_FILL_ADD = "sf-person-fill-add";
+export const ICON_PERSON_2_FILL = "sf-person-2-fill";
 export const ICON_MAP_PIN = "sf-map-pin";
 export const ICON_MAP_PIN_PLUS = "sf-map-pin-plus";
 
@@ -52,6 +53,8 @@ const LIST_ROUNDED_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2
 const PERSON_FILL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56"><path d="M0 0h56v56H0z" fill="none"/><path fill="currentColor" d="M28.012 27.367c5.039 0 9.375-4.5 9.375-10.36c0-5.788-4.36-10.077-9.375-10.077c-5.016 0-9.375 4.383-9.375 10.125c0 5.812 4.36 10.312 9.375 10.312M13.293 49.07h29.438c3.68 0 4.992-1.054 4.992-3.117c0-6.047-7.57-14.39-19.711-14.39c-12.164 0-19.735 8.343-19.735 14.39c0 2.063 1.313 3.117 5.016 3.117"/></svg>`;
 
 const PERSON_FILL_ADD_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M0 0h16v16H0z" fill="none"/><g fill="currentColor"><path d="M12.5 16a3.5 3.5 0 1 0 0-7a3.5 3.5 0 0 0 0 7m.5-5v1h1a.5.5 0 0 1 0 1h-1v1a.5.5 0 0 1-1 0v-1h-1a.5.5 0 0 1 0-1h1v-1a.5.5 0 0 1 1 0m-2-6a3 3 0 1 1-6 0a3 3 0 0 1 6 0"/><path d="M2 13c0 1 1 1 1 1h5.256A4.5 4.5 0 0 1 8 12.5a4.5 4.5 0 0 1 1.544-3.393Q8.844 9.002 8 9c-5 0-6 3-6 4"/></g></svg>`;
+
+const PERSON_2_FILL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56"><path d="M0 0h56v56H0z" fill="none"/><path fill="currentColor" d="M38.723 28.549c4.417 0 8.217-3.944 8.217-9.08c0-5.074-3.82-8.833-8.217-8.833c-4.396 0-8.217 3.841-8.217 8.874c0 5.095 3.8 9.039 8.217 9.039m-23.645.473c3.821 0 7.15-3.452 7.15-7.91c0-4.416-3.35-7.683-7.15-7.683c-3.82 0-7.19 3.349-7.169 7.725c0 4.416 3.328 7.868 7.17 7.868M3.616 47.572h15.612c-2.136-3.102.473-9.347 4.89-12.757c-2.28-1.52-5.219-2.65-9.06-2.65C5.793 32.164 0 39.004 0 44.695c0 1.85 1.027 2.877 3.616 2.877m22.186 0h25.822c3.225 0 4.376-.925 4.376-2.733c0-5.3-6.636-12.613-17.297-12.613c-10.641 0-17.277 7.313-17.277 12.614c0 1.807 1.15 2.732 4.376 2.732"/></svg>`;
 
 const MAP_PIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0-6 0"/><path d="M17.657 16.657L13.414 20.9a2 2 0 0 1-2.827 0l-4.244-4.243a8 8 0 1 1 11.314 0"/></g></svg>`;
 
@@ -97,6 +100,7 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_PROTECTIONS, PROTECTIONS_SVG);
 	addIcon(ICON_PERSON_FILL, PERSON_FILL_SVG);
 	addIcon(ICON_PERSON_FILL_ADD, PERSON_FILL_ADD_SVG);
+	addIcon(ICON_PERSON_2_FILL, PERSON_2_FILL_SVG);
 	addIcon(ICON_MAP_PIN, MAP_PIN_SVG);
 	addIcon(ICON_MAP_PIN_PLUS, MAP_PIN_PLUS_SVG);
 }

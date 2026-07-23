@@ -469,6 +469,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	codexFactSectionByType: {
 		person: "Facts",
 		place: "Facts",
+		populace: "Facts",
 	},
 	recommendIncludeUnknownNames: true,
 	editorScrollbarThumbColor: "#6b7280",
