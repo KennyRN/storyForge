@@ -185,7 +185,7 @@ export class UiFormattingModal extends Modal {
 				.setDesc("size of header label and icon")
 				.addSlider((slider) =>
 					slider
-						.setLimits(0.5, 1.5, 0.25)
+						.setLimits(0.5, 1.5, 0.1)
 						.setValue(settings[config.sizeKey])
 						.onChange((value) => persistAndRestyle(this.plugin, config.sizeKey, value, config.restyle)),
 				);
@@ -198,7 +198,6 @@ export class UiFormattingModal extends Modal {
 			fontFamilyKey: config.fontFamilyKey,
 			fontWeightKey: config.fontWeightKey,
 			restyle: config.restyle,
-			keepWeightVisibleWhenOverrideOff: true,
 		});
 		group
 			.addSetting((setting) => {
@@ -376,7 +375,7 @@ export class UiFormattingModal extends Modal {
 				.setDesc("Text size, from 0.5em to 2em.")
 				.addSlider((slider) =>
 					slider
-						.setLimits(0.5, 2, 0.25)
+						.setLimits(0.5, 2, 0.1)
 						.setValue(settings[config.sizeKey])
 						.onChange((value) => persistAndRestyle(this.plugin, config.sizeKey, value, restyle)),
 				);
@@ -389,7 +388,6 @@ export class UiFormattingModal extends Modal {
 			fontFamilyKey: config.fontFamilyKey,
 			fontWeightKey: config.fontWeightKey,
 			restyle,
-			keepWeightVisibleWhenOverrideOff: true,
 		});
 		group
 			.addSetting((setting) => {
@@ -422,7 +420,7 @@ export class UiFormattingModal extends Modal {
 				.setDesc("Text size, from 0.5em to 2em.")
 				.addSlider((slider) =>
 					slider
-						.setLimits(0.5, 2, 0.25)
+						.setLimits(0.5, 2, 0.1)
 						.setValue(settings.libraryBookSubtitleFontSize)
 						.onChange((value) => persistAndRestyle(this.plugin, "libraryBookSubtitleFontSize", value, restyle)),
 				);
@@ -435,7 +433,6 @@ export class UiFormattingModal extends Modal {
 			fontFamilyKey: "libraryBookSubtitleFontFamily",
 			fontWeightKey: "libraryBookSubtitleFontWeight",
 			restyle,
-			keepWeightVisibleWhenOverrideOff: true,
 		});
 		group.addSetting((setting) => {
 			setting
@@ -459,7 +456,7 @@ export class UiFormattingModal extends Modal {
 				.setDesc("Text size of books and chapters in the Library list, from 0.5em to 1.5em.")
 				.addSlider((slider) =>
 					slider
-						.setLimits(0.5, 1.5, 0.25)
+						.setLimits(0.5, 1.5, 0.1)
 						.setValue(settings.libraryItemsFontSize)
 						.onChange((value) => persistAndRestyle(this.plugin, "libraryItemsFontSize", value, restyle)),
 				);
@@ -472,7 +469,6 @@ export class UiFormattingModal extends Modal {
 			fontFamilyKey: "libraryItemsFontFamily",
 			fontWeightKey: "libraryItemsFontWeight",
 			restyle,
-			keepWeightVisibleWhenOverrideOff: true,
 		});
 		group
 			.addSetting((setting) => {
@@ -547,7 +543,7 @@ export class UiFormattingModal extends Modal {
 				.setDesc("Text size of the items in the Unplaced pane, from 0.5em to 1.5em.")
 				.addSlider((slider) =>
 					slider
-						.setLimits(0.5, 1.5, 0.25)
+						.setLimits(0.5, 1.5, 0.1)
 						.setValue(settings.unplacedItemsFontSize)
 						.onChange((value) => persistAndRestyle(this.plugin, "unplacedItemsFontSize", value, itemsRestyle)),
 				);
@@ -560,7 +556,6 @@ export class UiFormattingModal extends Modal {
 			fontFamilyKey: "unplacedItemsFontFamily",
 			fontWeightKey: "unplacedItemsFontWeight",
 			restyle: itemsRestyle,
-			keepWeightVisibleWhenOverrideOff: true,
 		});
 		unplacedItemsGroup
 			.addSetting((setting) => {
@@ -653,7 +648,7 @@ export class UiFormattingModal extends Modal {
 				.setDesc("Font size of the codex folder names and chevrons, from 0.5em to 1.5em.")
 				.addSlider((slider) =>
 					slider
-						.setLimits(0.5, 1.5, 0.25)
+						.setLimits(0.5, 1.5, 0.1)
 						.setValue(settings.codexFolderFontSize)
 						.onChange((value) => persistAndRestyle(this.plugin, "codexFolderFontSize", value, () => this.plugin.applyCodexFolderStyle())),
 				);
@@ -666,7 +661,6 @@ export class UiFormattingModal extends Modal {
 			fontFamilyKey: "codexFolderFontFamily",
 			fontWeightKey: "codexFolderFontWeight",
 			restyle: () => this.plugin.applyCodexFolderStyle(),
-			keepWeightVisibleWhenOverrideOff: true,
 		});
 		codexFolderGroup
 			.addSetting((setting) => {
@@ -707,7 +701,7 @@ export class UiFormattingModal extends Modal {
 				.setDesc("Font size of the codex note (file) labels, from 0.5em to 1.5em.")
 				.addSlider((slider) =>
 					slider
-						.setLimits(0.5, 1.5, 0.25)
+						.setLimits(0.5, 1.5, 0.1)
 						.setValue(settings.codexNoteLabelFontSize)
 						.onChange((value) => persistAndRestyle(this.plugin, "codexNoteLabelFontSize", value, () => this.plugin.applyCodexNoteLabelStyle())),
 				);
@@ -720,7 +714,6 @@ export class UiFormattingModal extends Modal {
 			fontFamilyKey: "codexNoteLabelFontFamily",
 			fontWeightKey: "codexNoteLabelFontWeight",
 			restyle: () => this.plugin.applyCodexNoteLabelStyle(),
-			keepWeightVisibleWhenOverrideOff: true,
 		});
 		codexNoteLabelGroup
 			.addSetting((setting) => {

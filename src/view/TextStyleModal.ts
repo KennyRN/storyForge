@@ -50,8 +50,8 @@ export class TextStyleModal extends Modal {
 						"Font size",
 						"bodyTextOverrideSize",
 						"bodyTextSize",
-						0.75,
-						1.75,
+						0.7,
+						1.8,
 						restyle,
 					);
 					let emphasisLabelSetting: Setting | undefined;
@@ -199,7 +199,7 @@ export class TextStyleModal extends Modal {
 					});
 
 					const before4 = body.children.length;
-					this.renderSizeCard(body, settings, "Override theme's default header size", "Header size", "heading4OverrideSize", "heading4Size", 0.75, 1.75, restyle);
+					this.renderSizeCard(body, settings, "Override theme's default header size", "Header size", "heading4OverrideSize", "heading4Size", 0.7, 1.8, restyle);
 					this.renderColorOverrideCard(body, settings, "Override theme's default header colour", "Header colour", "heading4OverrideColor", "heading4Color", restyle);
 					this.renderFontCard(body, settings, "heading4OverrideFont", "heading4FontWeight", "heading4FontFamily", "heading4SmallCaps");
 					this.renderDividerCard(
@@ -214,7 +214,7 @@ export class TextStyleModal extends Modal {
 					levelElements[4] = Array.from(body.children).slice(before4) as HTMLElement[];
 
 					const before5 = body.children.length;
-					this.renderSizeCard(body, settings, "Override theme's default header size", "Header size", "heading5OverrideSize", "heading5Size", 0.75, 1.75, restyle);
+					this.renderSizeCard(body, settings, "Override theme's default header size", "Header size", "heading5OverrideSize", "heading5Size", 0.7, 1.8, restyle);
 					this.renderColorOverrideCard(body, settings, "Override theme's default header colour", "Header colour", "heading5OverrideColor", "heading5Color", restyle);
 					this.renderFontCard(body, settings, "heading5OverrideFont", "heading5FontWeight", "heading5FontFamily", "heading5SmallCaps");
 					this.renderDividerCard(
@@ -229,7 +229,7 @@ export class TextStyleModal extends Modal {
 					levelElements[5] = Array.from(body.children).slice(before5) as HTMLElement[];
 
 					const before6 = body.children.length;
-					this.renderSizeCard(body, settings, "Override theme's default header size", "Header size", "heading6OverrideSize", "heading6Size", 0.75, 1.75, restyle);
+					this.renderSizeCard(body, settings, "Override theme's default header size", "Header size", "heading6OverrideSize", "heading6Size", 0.7, 1.8, restyle);
 					this.renderColorOverrideCard(body, settings, "Override theme's default header colour", "Header colour", "heading6OverrideColor", "heading6Color", restyle);
 					this.renderFontCard(body, settings, "heading6OverrideFont", "heading6FontWeight", "heading6FontFamily", "heading6SmallCaps");
 					this.renderDividerCard(
@@ -274,7 +274,7 @@ export class TextStyleModal extends Modal {
 					sliderSetting = setting;
 					setting.setName(sliderLabel).addSlider((slider) =>
 						slider
-							.setLimits(min, max, 0.25)
+							.setLimits(min, max, 0.1)
 							.setValue(settings[sizeKey] as number)
 							.onChange((value) => persistAndRestyle(this.plugin, sizeKey, value, restyle)),
 					);

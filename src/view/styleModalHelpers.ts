@@ -142,11 +142,6 @@ export interface RenderCustomFontCardOptions {
 	/** Append into this group; otherwise a new SettingGroup is created on `body`. */
 	group?: SettingGroup;
 	body?: HTMLElement;
-	/**
-	 * When true (UI chrome), Font weight stays visible even if override is off.
-	 * Text Style leaves this false so weight is gated with Pick font.
-	 */
-	keepWeightVisibleWhenOverrideOff?: boolean;
 }
 
 /** Override + Pick font + Font weight (+ optional Small caps), shared by Text Style and UI Formatting. */
@@ -159,7 +154,6 @@ export function renderCustomFontCard(opts: RenderCustomFontCardOptions): Setting
 		fontFamilyKey,
 		smallCapsKey,
 		restyle,
-		keepWeightVisibleWhenOverrideOff = false,
 	} = opts;
 	const card = opts.group ?? new SettingGroup(opts.body!);
 
@@ -179,20 +173,13 @@ export function renderCustomFontCard(opts: RenderCustomFontCardOptions): Setting
 		pickFontSetting = setting;
 		setting.setName("Pick font");
 		setting.addDropdown((dropdown) => {
-			for (const font of fontsByLabel) dropdown.addOption(font.id, font.label);
-			for (const opt of Array.from(dropdown.selectEl.options)) {
-				const font = CUSTOM_FONTS.find((f) => f.id === opt.value);
-				opt.style.fontFamily = font ? font.cssFontFamily : "";
+			for (const font of fontsByLabel) {
+				dropdown.addOption(font.id, font.label);
 			}
-			const applySelectedFont = (value: string) => {
-				const font = CUSTOM_FONTS.find((f) => f.id === value);
-				dropdown.selectEl.style.fontFamily = font ? font.cssFontFamily : "";
-			};
 			dropdown.setValue(settings[fontFamilyKey] as string);
-			applySelectedFont(settings[fontFamilyKey] as string);
+			selectedFontFamily = settings[fontFamilyKey] as string;
 			dropdown.onChange((value) => {
 				void plugin.updateSetting(fontFamilyKey, value).then(async () => {
-					applySelectedFont(value);
 					selectedFontFamily = value;
 					const clampedWeight = syncWeightDropdown();
 					const currentWeight = plugin.getSettings()[fontWeightKey] as string;
@@ -208,8 +195,7 @@ export function renderCustomFontCard(opts: RenderCustomFontCardOptions): Setting
 
 	let fontWeightSetting!: Setting;
 	let weightDropdown!: DropdownComponent;
-	const weightOptionsForSelected = (overrideOn: boolean): [string, string][] => {
-		if (!overrideOn) return FONT_WEIGHT_OPTIONS;
+	const weightOptionsForSelected = (): [string, string][] => {
 		const font = CUSTOM_FONTS.find((f) => f.id === selectedFontFamily);
 		return font ? fontWeightOptionsFor(font.weightMin, font.weightMax) : FONT_WEIGHT_OPTIONS;
 	};
@@ -217,8 +203,7 @@ export function renderCustomFontCard(opts: RenderCustomFontCardOptions): Setting
 		void plugin.updateSetting(fontWeightKey, value).then(() => restyle());
 	};
 	const syncWeightDropdown = (): string => {
-		const overrideOn = overrideToggle.getValue();
-		const options = weightOptionsForSelected(overrideOn);
+		const options = weightOptionsForSelected();
 		const current = plugin.getSettings()[fontWeightKey] as string;
 		const clamped = clampFontWeightToOptions(current, options);
 		fillFontWeightOptions(weightDropdown, clamped, options);
@@ -229,8 +214,7 @@ export function renderCustomFontCard(opts: RenderCustomFontCardOptions): Setting
 		setting.setName("Font weight");
 		setting.addDropdown((dropdown) => {
 			weightDropdown = dropdown;
-			const overrideOn = settings[overrideFontKey] as boolean;
-			const options = weightOptionsForSelected(overrideOn);
+			const options = weightOptionsForSelected();
 			const initial = clampFontWeightToOptions(settings[fontWeightKey] as string, options);
 			populateFontWeightDropdown(dropdown, initial, onWeightChange, options);
 		});
@@ -254,11 +238,8 @@ export function renderCustomFontCard(opts: RenderCustomFontCardOptions): Setting
 	const applyVisibility = (overrideOff: boolean) => {
 		pickFontSetting.settingEl.toggleClass("sf-settings-hidden", overrideOff);
 		smallCapsSetting?.settingEl.toggleClass("sf-settings-hidden", overrideOff);
-		const hideWeight = overrideOff
-			? !keepWeightVisibleWhenOverrideOff
-			: !isSelectedFontVariable();
-		fontWeightSetting.settingEl.toggleClass("sf-settings-hidden", hideWeight);
-		if (!hideWeight) syncWeightDropdown();
+		fontWeightSetting.settingEl.toggleClass("sf-settings-hidden", overrideOff || !isSelectedFontVariable());
+		if (!overrideOff && isSelectedFontVariable()) syncWeightDropdown();
 	};
 	overrideToggle.onChange((value) => {
 		void plugin.updateSetting(overrideFontKey, value).then(() => {
