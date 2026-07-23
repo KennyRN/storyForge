@@ -117,6 +117,9 @@ export interface StoryForgePluginSettings {
 	libraryBookSubtitleFontWeight: FontWeight;
 	libraryBookSubtitleSmallCaps: boolean;
 	libraryHeaderDividerBelow: boolean;
+	libraryItemsFontSize: number;
+	libraryItemsColor: string;
+	libraryItemsMuted: boolean;
 	unplacedHighlightColor: string;
 	unplacedHighlightTextColor: string;
 	codexHighlightColor: string;
@@ -325,6 +328,9 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	libraryBookSubtitleFontWeight: "400",
 	libraryBookSubtitleSmallCaps: false,
 	libraryHeaderDividerBelow: false,
+	libraryItemsFontSize: 1,
+	libraryItemsColor: "#c8c8c8",
+	libraryItemsMuted: false,
 	unplacedHighlightColor: "#fef3c7",
 	unplacedHighlightTextColor: "#1f2937",
 	codexHighlightColor: "#fef3c7",
@@ -851,14 +857,6 @@ export default class StoryForgePlugin extends Plugin {
 		return s.codexUseHeaderColorForAll ? (s.codexMuted ? "var(--text-muted)" : s.codexColor) : s.codexFolderColor;
 	}
 
-	/** Flat highlight with a hard edge starting at the folder's indent guide line, so it appears to expand out of the line. */
-	private codexSelectedBackground(flatColor: string): string {
-		const s = this.pluginSettings;
-		if (s.codexFolderIndicatorThickness === "none") return flatColor;
-		const x = "calc(var(--sf-codex-indent-guide-x, 0px) - var(--sf-codex-child-indent, 0px))";
-		return `linear-gradient(to right, transparent 0, transparent ${x}, ${flatColor} ${x})`;
-	}
-
 	applyHighlightStyle(): void {
 		const s = this.pluginSettings;
 		const unplacedHighlightColor = s.unplacedUseHeaderColorForAll
@@ -871,12 +869,14 @@ export default class StoryForgePlugin extends Plugin {
 				? "var(--text-muted)"
 				: s.codexColor
 			: s.codexHighlightColor;
+		// Flat colour only — the indent-guide truncate gradient lives in styles.css so folder
+		// indent vars resolve on the selected file, not on body.
 		this.applyStyleVarsToAllDocs({
 			"--sf-highlight-bg": s.highlightColor,
 			"--sf-highlight-text": s.highlightTextColor,
 			"--sf-unplaced-highlight-bg": unplacedHighlightColor,
 			"--sf-unplaced-highlight-text": s.unplacedHighlightTextColor,
-			"--sf-codex-highlight-bg": this.codexSelectedBackground(codexHighlightColor),
+			"--sf-codex-highlight-bg": codexHighlightColor,
 			"--sf-codex-highlight-text": s.codexHighlightTextColor,
 		});
 	}
@@ -939,6 +939,7 @@ export default class StoryForgePlugin extends Plugin {
 
 	applyLibraryHeaderStyles(): void {
 		const s = this.pluginSettings;
+		const itemsColor = s.libraryItemsMuted ? "var(--text-muted)" : s.libraryItemsColor;
 		this.applyStyleVarsToAllDocs({
 			"--sf-lib-series-size": `${s.librarySeriesTitleFontSize}em`,
 			"--sf-lib-series-weight": s.librarySeriesTitleFontWeight,
@@ -952,6 +953,8 @@ export default class StoryForgePlugin extends Plugin {
 			"--sf-lib-subtitle-weight": s.libraryBookSubtitleFontWeight,
 			"--sf-lib-subtitle-variant": s.libraryBookSubtitleSmallCaps ? "small-caps" : "normal",
 			"--sf-lib-header-divider": s.libraryHeaderDividerBelow ? "1px solid var(--background-modifier-border)" : "none",
+			"--sf-lib-items-size": `${s.libraryItemsFontSize}em`,
+			"--sf-lib-items-color": itemsColor,
 		});
 	}
 
@@ -965,6 +968,13 @@ export default class StoryForgePlugin extends Plugin {
 			"--sf-codex-folder-weight": s.codexFolderFontWeight,
 			"--sf-codex-folder-indicator-width": `${indicatorWidth}px`,
 		});
+		this.applyCodexIndentBodyClass(document.body, s.codexFolderIndicatorThickness);
+		for (const doc of this.extraDocs) this.applyCodexIndentBodyClass(doc.body, s.codexFolderIndicatorThickness);
+	}
+
+	/** When the folder indicator is off, selected Codex files use a flat highlight (no truncate-to-guide). */
+	private applyCodexIndentBodyClass(body: HTMLElement, thickness: CodexFolderIndicatorThickness): void {
+		body.classList.toggle("sf-codex-indent-none", thickness === "none");
 	}
 
 	applyCodexNoteLabelStyle(): void {

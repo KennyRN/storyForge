@@ -67,6 +67,7 @@ export class UiFormattingModal extends Modal {
 						smallCapsKey: "libraryBookTitleSmallCaps",
 					});
 					this.renderSubtitleStyleGroup(body, settings);
+					this.renderLibraryItemsGroup(body, settings);
 					this.renderLibraryHighlightRows(body, settings);
 					new SettingGroup(body).addSetting((setting) => {
 						setting
@@ -427,6 +428,43 @@ export class UiFormattingModal extends Modal {
 			});
 	}
 
+	private renderLibraryItemsGroup(body: HTMLElement, settings: StoryForgePluginSettings): void {
+		const group = new SettingGroup(body);
+		group.setHeading("Books & chapters");
+		group
+			.addSetting((setting) => {
+				setting
+					.setName("Library items")
+					.setDesc("Text size of books and chapters in the Library list, from 0.5em to 1.5em.")
+					.addSlider((slider) =>
+						slider
+							.setLimits(0.5, 1.5, 0.25)
+							.setValue(settings.libraryItemsFontSize)
+							.onChange((value) => persistAndRestyle(this.plugin, "libraryItemsFontSize", value, () => this.plugin.applyLibraryHeaderStyles())),
+					);
+			})
+			.addSetting((setting) => {
+				setting
+					.setName("Library items colour")
+					.setDesc("Normal text colour of books and chapters in the Library list (not the header titles).")
+					.addButton((button) =>
+						bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings.libraryItemsColor, (hex) => {
+							void this.plugin.updateSetting("libraryItemsColor", hex).then(() => this.plugin.applyLibraryHeaderStyles());
+						}),
+					);
+			})
+			.addSetting((setting) => {
+				setting
+					.setName("Muted")
+					.setDesc("override colour with muted colour")
+					.addToggle((toggle) =>
+						toggle
+							.setValue(settings.libraryItemsMuted)
+							.onChange((value) => persistAndRestyle(this.plugin, "libraryItemsMuted", value, () => this.plugin.applyLibraryHeaderStyles())),
+					);
+			});
+	}
+
 	private renderLibraryHighlightRows(body: HTMLElement, settings: StoryForgePluginSettings): void {
 		const libraryHighlightGroup = new SettingGroup(body);
 		libraryHighlightGroup
@@ -460,7 +498,10 @@ export class UiFormattingModal extends Modal {
 			mutedKey: "unplacedMuted",
 			smallCapsKey: "unplacedSmallCaps",
 			useHeaderColorForAllKey: "unplacedUseHeaderColorForAll",
-			restyle: () => this.plugin.applyHeaderStyles(),
+			restyle: () => {
+				this.plugin.applyHeaderStyles();
+				this.plugin.applyHighlightStyle();
+			},
 		});
 
 		const unplacedItemsGroup = new SettingGroup(body);
@@ -549,7 +590,12 @@ export class UiFormattingModal extends Modal {
 			mutedKey: "codexMuted",
 			smallCapsKey: "codexSmallCaps",
 			useHeaderColorForAllKey: "codexUseHeaderColorForAll",
-			restyle: () => this.plugin.applyHeaderStyles(),
+			restyle: () => {
+				this.plugin.applyHeaderStyles();
+				this.plugin.applyCodexFolderStyle();
+				this.plugin.applyCodexNoteLabelStyle();
+				this.plugin.applyHighlightStyle();
+			},
 		});
 
 		const codexFolderGroup = new SettingGroup(body);
