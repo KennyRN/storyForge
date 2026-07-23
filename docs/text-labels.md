@@ -337,6 +337,17 @@ Notes on conventions used below:
 | settings.uiFormatting.libraryPane.subtitle.weight.name | Subtitle weight | 1091 |
 | settings.uiFormatting.libraryPane.subtitle.smallCaps.name | Subtitle small caps | 1099 |
 
+### `renderLibraryItemsGroup`
+
+| ID | Current text | Line |
+|---|---|---|
+| settings.uiFormatting.libraryPane.items.size.name | Library items | — |
+| settings.uiFormatting.libraryPane.items.size.desc | Text size of books and chapters in the Library pane, from 0.5em to 1.5em. | — |
+| settings.uiFormatting.libraryPane.items.colour.name | Library items colour | — |
+| settings.uiFormatting.libraryPane.items.colour.desc | Colour of books and chapters in the Library pane. | — |
+| settings.uiFormatting.libraryPane.items.muted.name | Muted | — |
+| settings.uiFormatting.libraryPane.items.muted.desc | override colour with muted colour | — |
+
 ### `renderUiFormattingSection` (own literals — divider + section/foldable headers)
 
 | ID | Current text | Line |

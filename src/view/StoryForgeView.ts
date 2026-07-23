@@ -78,6 +78,10 @@ export class StoryForgeView extends ItemView {
 				this.topMode = "book";
 				this.activeChapterFilename = file.name;
 				void this.persistSelection();
+			} else if (this.activeChapterFilename !== null) {
+				// Codex (or any non-chapter) is open — clear library row highlight so only the editor file is selected.
+				this.activeChapterFilename = null;
+				void this.persistSelection();
 			}
 		}
 		if (!this.currentBookFolderName) {

@@ -1415,9 +1415,33 @@ body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container:not(#sto
 .sf-bottom-header:not(.sf-codex-hidden) > .sf-icon { color: var(--sf-codex-color); }
 .sf-codex-new-file-btn:hover, .sf-codex-new-folder-btn:hover { color: var(--sf-codex-color); }
 
-.sf-top-list:not(.sf-unplaced-list) .sf-row.sf-row-selected { background: var(--sf-highlight-bg); color: var(--sf-highlight-text); }
+.sf-top-list:not(.sf-unplaced-list) {
+	font-size: var(--sf-lib-items-size, 1em);
+}
+.sf-top-list:not(.sf-unplaced-list) .sf-row,
+.sf-top-list:not(.sf-unplaced-list) .sf-row .sf-row-text {
+	color: var(--sf-lib-items-color, var(--text-normal));
+}
+.sf-top-list:not(.sf-unplaced-list) .sf-row.sf-row-selected {
+	background: var(--sf-highlight-bg);
+	color: var(--sf-highlight-text);
+}
+.sf-top-list:not(.sf-unplaced-list) .sf-row.sf-row-selected .sf-row-text {
+	color: var(--sf-highlight-text);
+}
 .sf-unplaced-list .sf-row.sf-row-selected { background: var(--sf-unplaced-highlight-bg); color: var(--sf-unplaced-highlight-text); }
 .sf-codex-file.sf-row-selected { background: var(--sf-codex-highlight-bg); color: var(--sf-codex-highlight-text); }
+/* Truncate selected-file highlight at the indent guide so it reads as expanding out of the line.
+   Indent vars live on .sf-codex-folder — keep the gradient here (not on body) so they resolve correctly. */
+body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected {
+	--sf-codex-highlight-trim: calc(var(--sf-codex-indent-guide-x, 0px) - var(--sf-codex-child-indent, 0px));
+	background: linear-gradient(
+		to right,
+		transparent 0,
+		transparent var(--sf-codex-highlight-trim),
+		var(--sf-codex-highlight-bg) var(--sf-codex-highlight-trim)
+	);
+}
 
 .sf-cycling-guide-line { position: relative; }
 .sf-cycling-guide-line::after {
