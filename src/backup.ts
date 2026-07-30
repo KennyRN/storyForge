@@ -65,11 +65,25 @@ export async function listAllFilesRecursive(app: App, folder: string, skipFolder
 	return [...files, ...nested.flat()];
 }
 
+/**
+ * True when `dest` is the vault root or a path inside it. Uses a trailing-sep
+ * check so `/home/vault-backups` is not treated as inside `/home/vault`.
+ * Exported for unit tests.
+ */
+export function isPathInsideVault(vaultBasePath: string, destFolder: string): boolean {
+	const base = path.resolve(vaultBasePath);
+	const dest = path.resolve(destFolder);
+	if (dest === base) return true;
+	const prefix = base.endsWith(path.sep) ? base : base + path.sep;
+	return dest.startsWith(prefix);
+}
+
 /** Full backup used by the manual "Back up now" button: every file in the vault, including `.obsidian`, excluding `.trash`. */
 export async function runFullBackup(app: App, destFolder: string, now: Date = new Date()): Promise<string> {
 	const normalizedDest = path.resolve(destFolder);
 	const basePath = "getBasePath" in app.vault.adapter ? (app.vault.adapter as { getBasePath(): string }).getBasePath() : null;
-	const skipFolder = basePath && normalizedDest.startsWith(basePath) ? path.relative(basePath, normalizedDest) : null;
+	const skipFolder =
+		basePath && isPathInsideVault(basePath, normalizedDest) ? path.relative(basePath, normalizedDest) : null;
 
 	const allPaths = await listAllFilesRecursive(app, "", skipFolder);
 	const entries: Zippable = {};

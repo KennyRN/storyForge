@@ -797,7 +797,16 @@ export default class StoryForgePlugin extends Plugin {
 
 	/** Replaces all settings with `data` (merged over defaults, same as `loadSettings`), persists, and re-applies every style/extension so the change takes effect immediately. */
 	async importSettings(data: unknown): Promise<void> {
-		this.pluginSettings = Object.assign({}, DEFAULT_SETTINGS, data);
+		if (!data || typeof data !== "object" || Array.isArray(data)) {
+			throw new Error("Settings import must be a JSON object");
+		}
+		const incoming = data as Record<string, unknown>;
+		const merged = { ...DEFAULT_SETTINGS } as StoryForgePluginSettings;
+		for (const key of Object.keys(DEFAULT_SETTINGS) as Array<keyof StoryForgePluginSettings>) {
+			if (!Object.prototype.hasOwnProperty.call(incoming, key)) continue;
+			(merged as unknown as Record<string, unknown>)[key as string] = incoming[key as string];
+		}
+		this.pluginSettings = merged;
 		migrateRemovedCaroniFont(this.pluginSettings);
 		const sections = { ...DEFAULT_SETTINGS.codexFactSectionByType, ...this.pluginSettings.codexFactSectionByType };
 		for (const opt of CODEX_TYPES) {
