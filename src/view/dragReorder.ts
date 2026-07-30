@@ -1,3 +1,5 @@
+import { beginDrag, endDrag } from "./dragLock";
+
 export interface DragZone {
 	key: string;
 	container: HTMLElement;
@@ -87,6 +89,7 @@ export function makeReorderable(
 			const pointerId = downEvent.pointerId;
 			handle.setPointerCapture(pointerId);
 			row.classList.add("sf-dragging");
+			beginDrag();
 
 			let startY = downEvent.clientY;
 			let startRect = row.getBoundingClientRect();
@@ -136,6 +139,7 @@ export function makeReorderable(
 				} catch {
 					/* already released */
 				}
+				endDrag();
 				commitOrder();
 			};
 
