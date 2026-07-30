@@ -1,3 +1,5 @@
+import { beginDrag, endDrag } from "./dragLock";
+
 export interface CodexDragRowInfo {
 	key: string;
 	type: "file" | "folder";
@@ -104,6 +106,7 @@ export function attachCodexDragReorder(
 			const pointerId = downEvent.pointerId;
 			handle.setPointerCapture(pointerId);
 			rowEl.classList.add("sf-dragging");
+			beginDrag();
 
 			let hoveredEl: HTMLElement | null = null;
 			let pendingTarget: CodexDropTarget | null = null;
@@ -166,6 +169,7 @@ export function attachCodexDragReorder(
 				} catch {
 					/* already released */
 				}
+				endDrag();
 				if (pendingTarget) {
 					onDrop({ key: draggedKey, type: draggedType }, pendingTarget);
 				}

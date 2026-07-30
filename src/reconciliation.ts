@@ -4,23 +4,28 @@ import {
 	bookBackstagePath,
 	bookFolderNameFromChapterPath,
 	chapterFilenameFromPath,
+	chapterSidecarPath,
 	isCodexNotePath,
 	isLibraryChapterPath,
+	recommendSidecarPath,
 } from "./paths";
 import {
+	getChapterEntry,
+	insertChapterEntry,
 	readBookFrontmatter,
 	writeBookChapterOrder,
 	renameChapterEntry,
+	removeChapterEntry,
 	rekeyChapterPovReferences,
 	rekeyChapterLocationReferences,
 } from "./book";
 import { renameSeriesBookEntry } from "./series";
 import { rekeyCodexNotePath } from "./codex";
-import { renameChapterSidecar } from "./chapterSidecar";
-import { renameRecommendSidecar } from "./recommend/cache";
-import { renameBackstagePath } from "./writeGuard";
+import { deleteChapterSidecar, renameChapterSidecar } from "./chapterSidecar";
+import { deleteRecommendCache, renameRecommendSidecar } from "./recommend/cache";
+import { modifyBackstageFrontmatter, renameBackstagePath } from "./writeGuard";
 
-/** Live rename handling: chapters and book folders. Registered once at plugin load. */
+/** Live rename/delete handling: chapters and book folders. Registered once at plugin load. */
 export function registerReconciliationEvents(app: App, plugin: Plugin): void {
 	plugin.registerEvent(
 		app.vault.on("rename", async (file, oldPath) => {
@@ -35,6 +40,12 @@ export function registerReconciliationEvents(app: App, plugin: Plugin): void {
 			if (file instanceof TFolder) {
 				await handleBookFolderRename(app, oldPath, file.path);
 			}
+		}),
+	);
+	plugin.registerEvent(
+		app.vault.on("delete", async (file) => {
+			if (!(file instanceof TFile) || !isLibraryChapterPath(file.path)) return;
+			await handleChapterDelete(app, file.path);
 		}),
 	);
 }
@@ -52,7 +63,12 @@ async function handleChapterRename(app: App, oldPath: string, newPath: string): 
 	const newBook = bookFolderNameFromChapterPath(newPath);
 	const oldFilename = chapterFilenameFromPath(oldPath);
 	const newFilename = chapterFilenameFromPath(newPath);
-	if (!oldBook || !newBook || oldBook !== newBook || !oldFilename || !newFilename) return;
+	if (!oldBook || !newBook || !oldFilename || !newFilename) return;
+
+	if (oldBook !== newBook) {
+		await handleChapterCrossBookMove(app, oldBook, newBook, oldFilename, newFilename);
+		return;
+	}
 
 	const fm = readBookFrontmatter(app, oldBook);
 	if (fm) {
@@ -62,6 +78,47 @@ async function handleChapterRename(app: App, oldPath: string, newPath: string): 
 	await renameChapterEntry(app, oldBook, oldFilename, newFilename);
 	await renameChapterSidecar(app, oldBook, oldFilename, newFilename);
 	await renameRecommendSidecar(app, oldBook, oldFilename, newFilename);
+}
+
+async function handleChapterCrossBookMove(
+	app: App,
+	oldBook: string,
+	newBook: string,
+	oldFilename: string,
+	newFilename: string,
+): Promise<void> {
+	const entry = getChapterEntry(app, oldBook, oldFilename);
+	await removeChapterEntry(app, oldBook, oldFilename);
+	if (entry) {
+		await insertChapterEntry(app, newBook, newFilename, {
+			...entry,
+			chapterTitle: entry.chapterTitle,
+		});
+	}
+
+	const oldFp = chapterSidecarPath(oldBook, oldFilename);
+	const newFp = chapterSidecarPath(newBook, newFilename);
+	if (app.vault.getAbstractFileByPath(oldFp)) {
+		await renameBackstagePath(app.vault, oldFp, newFp);
+		await modifyBackstageFrontmatter(app, app.vault, newFp, "---\n---\n", (fm) => {
+			fm.chapter = newFilename;
+		});
+	}
+
+	const oldRec = recommendSidecarPath(oldBook, oldFilename);
+	const newRec = recommendSidecarPath(newBook, newFilename);
+	if (app.vault.getAbstractFileByPath(oldRec)) {
+		await renameBackstagePath(app.vault, oldRec, newRec);
+	}
+}
+
+async function handleChapterDelete(app: App, path: string): Promise<void> {
+	const book = bookFolderNameFromChapterPath(path);
+	const filename = chapterFilenameFromPath(path);
+	if (!book || !filename) return;
+	await removeChapterEntry(app, book, filename);
+	await deleteChapterSidecar(app, book, filename);
+	await deleteRecommendCache(app, book, filename);
 }
 
 async function handleBookFolderRename(app: App, oldPath: string, newPath: string): Promise<void> {

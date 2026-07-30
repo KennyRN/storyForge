@@ -157,6 +157,23 @@ export async function deleteBackstagePath(app: App, path: string): Promise<void>
 	}
 }
 
+/** Per-normalized-path write queue so concurrent RMW on the same backstage file cannot clobber each other. */
+const pathQueues = new Map<string, Promise<void>>();
+
+export function enqueueBackstageWrite<T>(path: string, task: () => Promise<T>): Promise<T> {
+	const key = normalizeVaultPath(path);
+	const prev = pathQueues.get(key) ?? Promise.resolve();
+	const run = prev.then(task, task);
+	pathQueues.set(
+		key,
+		run.then(
+			() => undefined,
+			() => undefined,
+		),
+	);
+	return run;
+}
+
 export async function modifyBackstageFrontmatter<T extends FrontMatterCache = FrontMatterCache>(
 	app: { fileManager: { processFrontMatter: (file: TFile, fn: (fm: T) => void) => Promise<void> } },
 	vault: Vault,
@@ -165,17 +182,19 @@ export async function modifyBackstageFrontmatter<T extends FrontMatterCache = Fr
 	mutate: (frontmatter: T) => void,
 ): Promise<TFile> {
 	assertBackstagePath(path);
-	const normalized = normalizeVaultPath(path);
-	const existing = vault.getAbstractFileByPath(normalized);
-	let resolvedFile: TFile;
-	if (existing instanceof TFile) {
-		resolvedFile = existing;
-	} else {
-		await ensureParentFolder(vault, normalized);
-		resolvedFile = await vault.create(normalized, defaultContent);
-	}
-	await app.fileManager.processFrontMatter(resolvedFile, mutate);
-	return resolvedFile;
+	return enqueueBackstageWrite(path, async () => {
+		const normalized = normalizeVaultPath(path);
+		const existing = vault.getAbstractFileByPath(normalized);
+		let resolvedFile: TFile;
+		if (existing instanceof TFile) {
+			resolvedFile = existing;
+		} else {
+			await ensureParentFolder(vault, normalized);
+			resolvedFile = await vault.create(normalized, defaultContent);
+		}
+		await app.fileManager.processFrontMatter(resolvedFile, mutate);
+		return resolvedFile;
+	});
 }
 
 export async function renameBackstagePath(vault: Vault, oldPath: string, newPath: string): Promise<void> {

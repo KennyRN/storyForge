@@ -1,6 +1,6 @@
 import { App, parseYaml, stringifyYaml, TFile, type FrontMatterCache } from "obsidian";
 import { chapterSidecarFolderPath, chapterSidecarPath } from "./paths";
-import { ensureBackstageFolder, modifyBackstageFrontmatter, renameBackstagePath, writeBackstageFile } from "./writeGuard";
+import { ensureBackstageFolder, deleteBackstagePath, modifyBackstageFrontmatter, renameBackstagePath, writeBackstageFile } from "./writeGuard";
 import type { Fingerprint } from "./fingerprint";
 
 /** The raw on-disk shape of a chapter sidecar file's frontmatter, as read/written through `modifyBackstageFrontmatter`. */
@@ -76,4 +76,9 @@ export async function renameChapterSidecar(
 	await modifyBackstageFrontmatter<RawSidecarFrontmatter>(app, app.vault, newPath, buildSidecarContent({ chapter: newFilename }, { opening: "", closing: "" }), (fm) => {
 		fm.chapter = newFilename;
 	});
+}
+
+/** Deletes the fingerprint sidecar for a chapter (e.g. after the chapter file is deleted). */
+export async function deleteChapterSidecar(app: App, bookFolderName: string, chapterFilename: string): Promise<void> {
+	await deleteBackstagePath(app, chapterSidecarPath(bookFolderName, chapterFilename));
 }
