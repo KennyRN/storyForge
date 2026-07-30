@@ -10,6 +10,9 @@ import { BACKSTAGE_ROOT, CODEX_ROOT, LIBRARY_ROOT } from "./paths";
  * must go through this module (which will refuse it). Library manuscripts are
  * prose-only; Codex notes are user-owned (create/rename for wikilinks are the
  * only intentional disk exceptions elsewhere, and must not grow into content edits).
+ *
+ * Note: Story Context fact updates intentionally bypass this module via
+ * `recommend/factWrites.ts` (path-checked to Codex notes only) — see AUDIT.md.
  */
 
 export class ForbiddenWriteError extends Error {
@@ -19,9 +22,38 @@ export class ForbiddenWriteError extends Error {
 	}
 }
 
-function assertBackstagePath(path: string): void {
-	const forbidden = path.startsWith(`${LIBRARY_ROOT}/`) || path.startsWith(`${CODEX_ROOT}/`);
-	const allowed = path === BACKSTAGE_ROOT || path.startsWith(`${BACKSTAGE_ROOT}/`);
+/**
+ * Collapses `.` / `..` segments so a prefix check cannot be fooled by paths
+ * like `_sf-backstage/../Codex/x.md`. Rejects absolute paths and null bytes.
+ * Exported for unit tests.
+ */
+export function normalizeVaultPath(path: string): string {
+	if (path.startsWith("/") || path.includes("\0")) {
+		throw new ForbiddenWriteError(path);
+	}
+	const out: string[] = [];
+	for (const segment of path.split("/")) {
+		if (segment === "" || segment === ".") continue;
+		if (segment === "..") {
+			if (out.length === 0) throw new ForbiddenWriteError(path);
+			out.pop();
+			continue;
+		}
+		out.push(segment);
+	}
+	if (out.length === 0) throw new ForbiddenWriteError(path);
+	return out.join("/");
+}
+
+/** Throws ForbiddenWriteError unless `path` resolves strictly under `_sf-backstage/`. Exported for tests. */
+export function assertBackstagePath(path: string): void {
+	const normalized = normalizeVaultPath(path);
+	const forbidden =
+		normalized === LIBRARY_ROOT ||
+		normalized.startsWith(`${LIBRARY_ROOT}/`) ||
+		normalized === CODEX_ROOT ||
+		normalized.startsWith(`${CODEX_ROOT}/`);
+	const allowed = normalized === BACKSTAGE_ROOT || normalized.startsWith(`${BACKSTAGE_ROOT}/`);
 	if (forbidden || !allowed) {
 		throw new ForbiddenWriteError(path);
 	}
@@ -30,7 +62,8 @@ function assertBackstagePath(path: string): void {
 /** Creates `path` and every missing ancestor folder above it (vault.createFolder does not vivify parents on its own). */
 export async function ensureBackstageFolder(vault: Vault, path: string): Promise<void> {
 	assertBackstagePath(path);
-	const segments = path.split("/");
+	const normalized = normalizeVaultPath(path);
+	const segments = normalized.split("/");
 	let current = "";
 	for (const segment of segments) {
 		current = current ? `${current}/${segment}` : segment;
@@ -41,36 +74,40 @@ export async function ensureBackstageFolder(vault: Vault, path: string): Promise
 }
 
 async function ensureParentFolder(vault: Vault, path: string): Promise<void> {
-	const lastSlash = path.lastIndexOf("/");
+	const normalized = normalizeVaultPath(path);
+	const lastSlash = normalized.lastIndexOf("/");
 	if (lastSlash === -1) return;
-	await ensureBackstageFolder(vault, path.slice(0, lastSlash));
+	await ensureBackstageFolder(vault, normalized.slice(0, lastSlash));
 }
 
 export async function writeBackstageFile(vault: Vault, path: string, content: string): Promise<TFile> {
 	assertBackstagePath(path);
-	const existing = vault.getAbstractFileByPath(path);
+	const normalized = normalizeVaultPath(path);
+	const existing = vault.getAbstractFileByPath(normalized);
 	if (existing instanceof TFile) {
 		await vault.modify(existing, content);
 		return existing;
 	}
-	await ensureParentFolder(vault, path);
-	return vault.create(path, content);
+	await ensureParentFolder(vault, normalized);
+	return vault.create(normalized, content);
 }
 
 export async function writeBackstageBinary(vault: Vault, path: string, data: ArrayBuffer): Promise<TFile> {
 	assertBackstagePath(path);
-	const existing = vault.getAbstractFileByPath(path);
+	const normalized = normalizeVaultPath(path);
+	const existing = vault.getAbstractFileByPath(normalized);
 	if (existing instanceof TFile) {
 		await vault.modifyBinary(existing, data);
 		return existing;
 	}
-	await ensureParentFolder(vault, path);
-	return vault.createBinary(path, data);
+	await ensureParentFolder(vault, normalized);
+	return vault.createBinary(normalized, data);
 }
 
 export async function deleteBackstagePath(app: App, path: string): Promise<void> {
 	assertBackstagePath(path);
-	const file = app.vault.getAbstractFileByPath(path);
+	const normalized = normalizeVaultPath(path);
+	const file = app.vault.getAbstractFileByPath(normalized);
 	if (file) {
 		await app.fileManager.trashFile(file);
 	}
@@ -84,13 +121,14 @@ export async function modifyBackstageFrontmatter<T extends FrontMatterCache = Fr
 	mutate: (frontmatter: T) => void,
 ): Promise<TFile> {
 	assertBackstagePath(path);
-	const existing = vault.getAbstractFileByPath(path);
+	const normalized = normalizeVaultPath(path);
+	const existing = vault.getAbstractFileByPath(normalized);
 	let resolvedFile: TFile;
 	if (existing instanceof TFile) {
 		resolvedFile = existing;
 	} else {
-		await ensureParentFolder(vault, path);
-		resolvedFile = await vault.create(path, defaultContent);
+		await ensureParentFolder(vault, normalized);
+		resolvedFile = await vault.create(normalized, defaultContent);
 	}
 	await app.fileManager.processFrontMatter(resolvedFile, mutate);
 	return resolvedFile;
@@ -99,8 +137,10 @@ export async function modifyBackstageFrontmatter<T extends FrontMatterCache = Fr
 export async function renameBackstagePath(vault: Vault, oldPath: string, newPath: string): Promise<void> {
 	assertBackstagePath(oldPath);
 	assertBackstagePath(newPath);
-	const file = vault.getAbstractFileByPath(oldPath);
+	const oldNormalized = normalizeVaultPath(oldPath);
+	const newNormalized = normalizeVaultPath(newPath);
+	const file = vault.getAbstractFileByPath(oldNormalized);
 	if (file) {
-		await vault.rename(file, newPath);
+		await vault.rename(file, newNormalized);
 	}
 }
