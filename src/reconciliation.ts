@@ -17,6 +17,7 @@ import {
 import { renameSeriesBookEntry } from "./series";
 import { rekeyCodexNotePath } from "./codex";
 import { renameChapterSidecar } from "./chapterSidecar";
+import { renameRecommendSidecar } from "./recommend/cache";
 import { renameBackstagePath } from "./writeGuard";
 
 /** Live rename handling: chapters and book folders. Registered once at plugin load. */
@@ -60,6 +61,7 @@ async function handleChapterRename(app: App, oldPath: string, newPath: string): 
 	}
 	await renameChapterEntry(app, oldBook, oldFilename, newFilename);
 	await renameChapterSidecar(app, oldBook, oldFilename, newFilename);
+	await renameRecommendSidecar(app, oldBook, oldFilename, newFilename);
 }
 
 async function handleBookFolderRename(app: App, oldPath: string, newPath: string): Promise<void> {
