@@ -25,7 +25,13 @@ import { deleteChapterSidecar, renameChapterSidecar } from "./chapterSidecar";
 import { deleteRecommendCache, renameRecommendSidecar } from "./recommend/cache";
 import { modifyBackstageFrontmatter, renameBackstagePath } from "./writeGuard";
 
-/** Live rename/delete handling: chapters and book folders. Registered once at plugin load. */
+/** Live rename/delete handling for chapters and book folders. Registered once at plugin load.
+ *
+ * Cross-book chapter moves and chapter deletes are intentionally behind-the-scenes: the
+ * library pane is scoped to a single novel, so users trigger these via Obsidian's file
+ * explorer (or other vault tools). We listen to vault `rename` / `delete` and keep
+ * novel.md + sidecars in sync without any library-pane UI for those operations.
+ */
 export function registerReconciliationEvents(app: App, plugin: Plugin): void {
 	plugin.registerEvent(
 		app.vault.on("rename", async (file, oldPath) => {
@@ -80,6 +86,11 @@ async function handleChapterRename(app: App, oldPath: string, newPath: string): 
 	await renameRecommendSidecar(app, oldBook, oldFilename, newFilename);
 }
 
+/**
+ * Chapter file moved between library book folders (e.g. via file explorer — not the
+ * single-novel library pane). Transfers the novel.md entry to the destination as
+ * unplaced and moves fingerprint/recommend sidecars with it.
+ */
 async function handleChapterCrossBookMove(
 	app: App,
 	oldBook: string,
