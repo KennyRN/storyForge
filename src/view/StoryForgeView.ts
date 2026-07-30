@@ -13,6 +13,7 @@ import { ICON_SERIES } from "../icons";
 import { countWords } from "../wordCount";
 import { getBookWordStats } from "../history";
 import { WordCountModal } from "./WordCountModal";
+import { isDragInProgress } from "./dragLock";
 
 export const STORYFORGE_VIEW_TYPE = "storyforge-view";
 
@@ -46,7 +47,9 @@ export class StoryForgeView extends ItemView {
 		return ICON_SERIES;
 	}
 
-	private readonly debouncedRender = debounce(() => this.render(), 400);
+	private readonly debouncedRender = debounce(() => {
+		if (!isDragInProgress()) this.render();
+	}, 400);
 	private closed = false;
 
 	async onOpen(): Promise<void> {
@@ -104,6 +107,7 @@ export class StoryForgeView extends ItemView {
 
 	render(): void {
 		if (this.closed) return;
+		if (isDragInProgress()) return;
 		const container = this.contentEl;
 		container.empty();
 		container.addClass("storyforge-view");

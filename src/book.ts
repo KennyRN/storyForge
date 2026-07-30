@@ -2,7 +2,7 @@ import { App, TFile, TFolder, type FrontMatterCache } from "obsidian";
 import { bookBackstagePath, bookFilePath, libraryBookPath, libraryChapterPath, LIBRARY_ROOT } from "./paths";
 import { resolveOrder, type OrderResult } from "./ordering";
 import { mintId } from "./slug";
-import { deleteBackstagePath, modifyBackstageFrontmatter, writeBackstageBinary, writeBackstageFile } from "./writeGuard";
+import { deleteBackstagePath, enqueueBackstageWrite, modifyBackstageFrontmatter, writeBackstageBinary, writeBackstageFile } from "./writeGuard";
 import {
 	collectAllBookIds,
 	getLibraryBookFolders,
@@ -472,6 +472,52 @@ export async function renameChapterEntry(
 	});
 }
 
+/** Removes a chapter from novel.md's chapters map and order/unplaced/archive lists. */
+export async function removeChapterEntry(app: App, bookFolderName: string, filename: string): Promise<void> {
+	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
+		const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
+		delete chapters[filename];
+		fm.chapters = chapters;
+		const strip = (list: unknown): string[] =>
+			Array.isArray(list) ? list.filter((v): v is string => typeof v === "string" && v !== filename) : [];
+		fm["chapter-order"] = strip(fm["chapter-order"]);
+		fm.unplaced = strip(fm.unplaced);
+		fm.archive = strip(fm.archive);
+	});
+}
+
+/**
+ * Inserts a full chapter entry into the destination book (as unplaced). Used when a chapter
+ * file is moved between library book folders outside the plugin.
+ */
+export async function insertChapterEntry(
+	app: App,
+	bookFolderName: string,
+	filename: string,
+	entry: ChapterEntry,
+): Promise<void> {
+	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
+		const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
+		chapters[filename] = {
+			"chapter-id": entry.chapterId,
+			"chapter-title": entry.chapterTitle,
+			"pov-path": entry.povPath,
+			"pov-name": entry.povName,
+			"location-path": entry.locationPath,
+			"location-name": entry.locationName,
+			plot: entry.plot || undefined,
+		};
+		fm.chapters = chapters;
+		const strip = (list: unknown): string[] =>
+			Array.isArray(list) ? list.filter((v): v is string => typeof v === "string" && v !== filename) : [];
+		fm["chapter-order"] = strip(fm["chapter-order"]);
+		fm.archive = strip(fm.archive);
+		const unplaced = strip(fm.unplaced);
+		unplaced.push(filename);
+		fm.unplaced = unplaced;
+	});
+}
+
 /** Mints a `chapters` entry for every chapter file missing one. Never renames an existing id, never touches `order`. */
 export async function ensureAllChapterEntries(app: App, bookFolderName: string): Promise<Record<string, ChapterEntry>> {
 	const files = getBookChapterFiles(app, bookFolderName);
@@ -619,16 +665,18 @@ export async function readBookSynopsis(app: App, bookFolderName: string): Promis
 /** Writes the book's synopsis into novel.md's body under a `## Synopsis` heading, leaving the frontmatter and any other body content untouched. */
 export async function writeBookSynopsis(app: App, bookFolderName: string, synopsis: string): Promise<void> {
 	const path = bookFilePath(bookFolderName);
-	const file = app.vault.getAbstractFileByPath(path);
-	let raw: string;
-	if (file instanceof TFile) {
-		raw = await app.vault.read(file);
-	} else {
-		const { bookId, bookTitle, position } = resolveBookIdentity(app, bookFolderName);
-		raw = defaultBookContent(bookId, bookTitle, position);
-	}
-	const { frontmatterBlock, body } = splitFrontmatterAndBody(raw);
-	await writeBackstageFile(app.vault, path, frontmatterBlock + upsertSection(body, SYNOPSIS_HEADER, synopsis));
+	await enqueueBackstageWrite(path, async () => {
+		const file = app.vault.getAbstractFileByPath(path);
+		let raw: string;
+		if (file instanceof TFile) {
+			raw = await app.vault.read(file);
+		} else {
+			const { bookId, bookTitle, position } = resolveBookIdentity(app, bookFolderName);
+			raw = defaultBookContent(bookId, bookTitle, position);
+		}
+		const { frontmatterBlock, body } = splitFrontmatterAndBody(raw);
+		await writeBackstageFile(app.vault, path, frontmatterBlock + upsertSection(body, SYNOPSIS_HEADER, synopsis));
+	});
 }
 
 /** Reads a chapter's plot notes from novel.md's `chapters` map. Empty string if none exists yet. */
