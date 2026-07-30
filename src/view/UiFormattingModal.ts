@@ -15,7 +15,6 @@ const EDITOR_SCROLLBAR_THICKNESS_LABELS = ["Thin", "Medium", "Thick"];
 
 export class UiFormattingModal extends Modal {
 	private plugin: StoryForgePlugin;
-	private selectedOtherHeadingLevel: 4 | 5 | 6 = 4;
 
 	constructor(app: App, plugin: StoryForgePlugin) {
 		super(app);

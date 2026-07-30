@@ -19,7 +19,7 @@ export const FONT_WEIGHT_OPTIONS: [string, string][] = [
 ];
 
 /** Weight dropdown choices that fall within a custom font's native weightMin–weightMax range. */
-export function fontWeightOptionsFor(weightMin: number, weightMax: number): [string, string][] {
+function fontWeightOptionsFor(weightMin: number, weightMax: number): [string, string][] {
 	return FONT_WEIGHT_OPTIONS.filter(([val]) => {
 		const n = Number(val);
 		return n >= weightMin && n <= weightMax;
@@ -27,7 +27,7 @@ export function fontWeightOptionsFor(weightMin: number, weightMax: number): [str
 }
 
 /** Nearest allowed weight option for `weight`, or `weight` unchanged when already allowed / options empty. */
-export function clampFontWeightToOptions(weight: string, options: [string, string][]): string {
+function clampFontWeightToOptions(weight: string, options: [string, string][]): string {
 	if (options.length === 0 || options.some(([val]) => val === weight)) return weight;
 	const n = Number(weight);
 	let best = options[0][0];
@@ -42,12 +42,12 @@ export function clampFontWeightToOptions(weight: string, options: [string, strin
 	return best;
 }
 
-export function applyColorPick(hex: string, paint: (hex: string) => void, onPick: (hex: string) => void): void {
+function applyColorPick(hex: string, paint: (hex: string) => void, onPick: (hex: string) => void): void {
 	paint(hex);
 	onPick(hex);
 }
 
-export function openColorSwatchPicker(
+function openColorSwatchPicker(
 	app: App,
 	plugin: StoryForgePlugin,
 	paint: (hex: string) => void,
@@ -77,7 +77,7 @@ export function bindColorSwatchButton(
 	buttonEl.addEventListener("click", () => openColorSwatchPicker(app, plugin, paint, onPick));
 }
 
-export function applyFontWeightChange<W extends string>(
+function applyFontWeightChange<W extends string>(
 	v: W,
 	applySelectedWeight: (v: W) => void,
 	onChange: (value: W) => void,
@@ -87,7 +87,7 @@ export function applyFontWeightChange<W extends string>(
 }
 
 /** Clears and repopulates weight `<option>`s; does not (re)bind onChange. */
-export function fillFontWeightOptions(
+function fillFontWeightOptions(
 	dropdown: { selectEl: HTMLSelectElement; addOption: (value: string, display: string) => unknown; setValue: (value: string) => unknown },
 	value: string,
 	options: [string, string][] = FONT_WEIGHT_OPTIONS,
@@ -240,7 +240,7 @@ export function renderCustomFontCard(opts: RenderCustomFontCardOptions): Setting
 	return card;
 }
 
-export function applyExclusiveToggle(
+function applyExclusiveToggle(
 	value: boolean,
 	other: ToggleComponent,
 	persistSelf: (value: boolean) => void,
@@ -263,7 +263,7 @@ export function bindExclusivePair(
 	toggleB.onChange((value) => applyExclusiveToggle(value, toggleA, persistB, persistA));
 }
 
-export function applyCardToggle(
+function applyCardToggle(
 	value: boolean,
 	persist: (value: boolean) => void,
 	applyVisibility: (hidden: boolean) => void,

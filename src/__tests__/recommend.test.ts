@@ -1,15 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { analyzeChapter } from "../recommend/engine";
 import {
-	acknowledgeFactChange,
 	normalizeFactKey,
 	parseFactsFromNote,
 	parseFactsFromSection,
 	serializeFactsSection,
 	setFactValue,
-	writeFactsIntoNote,
 	emptyFacts,
 } from "../recommend/facts";
+import { splitFrontmatterAndBody, upsertSection } from "../markdownSections";
 import { buildRecommendSidecarContent, parseRecommendSidecar } from "../recommend/cache";
 import { buildContinuityTimelines, formatContinuityLine } from "../recommend/continuity";
 import type { ChapterRecommendReport, CodexEntryInput } from "../recommend/types";
@@ -37,17 +36,18 @@ describe("facts parse/upsert", () => {
 		const raw = "---\naliases: [Bob]\n---\n\nLore about Bob.\n";
 		let facts = emptyFacts("Traits");
 		facts = setFactValue(facts, "eye colour", "green", false);
-		const written = writeFactsIntoNote(raw, facts);
+		const { frontmatterBlock, body } = splitFrontmatterAndBody(raw);
+		const written = frontmatterBlock + upsertSection(body, "## Traits", serializeFactsSection(facts));
 		expect(written).toContain("## Traits");
 		expect(written).toContain("eye colour: green");
 		const parsed = parseFactsFromNote(written, "Traits");
 		expect(parsed.entries["eye colour"]?.value).toBe("green");
 	});
 
-	it("acknowledge pushes previous value into was", () => {
+	it("pushWas records previous value into was", () => {
 		let facts = emptyFacts("Facts");
 		facts = setFactValue(facts, "eye colour", "green", false);
-		facts = acknowledgeFactChange(facts, "eye colour", "amber");
+		facts = setFactValue(facts, "eye colour", "amber", true);
 		expect(facts.entries["eye colour"]?.value).toBe("amber");
 		expect(facts.entries["eye colour"]?.was).toEqual(["green"]);
 		expect(serializeFactsSection(facts)).toContain("eye colour (was): green");

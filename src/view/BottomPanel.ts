@@ -17,7 +17,7 @@ import { ICON_CODEX, ICON_FOLDER_PLUS, ICON_PLUS_SQUARE } from "../icons";
 import { makeAccessibleActivatable } from "./a11y";
 import { attachInlineRename } from "./inlineRename";
 import { attachCodexDragReorder, type CodexDragRowInfo } from "./dragReorderTree";
-import { CodexSetTypeModal } from "./CodexSetTypeModal";
+import { CodexTypePickerModal } from "./CodexTypePickerModal";
 
 export interface BottomPanelOptions {
 	currentBookId: string | null;
@@ -196,7 +196,7 @@ function renderTreeChildren(
 				},
 				extraMenuItems: [
 					{ title: "Archive", onClick: () => archiveCodexItem(app, item.path) },
-					{ title: "Set as...", onClick: () => new CodexSetTypeModal(app, item.path).open() },
+					{ title: "Set as...", onClick: () => new CodexTypePickerModal(app, "Set as...", { kind: "set", path: item.path }).open() },
 				],
 			});
 		}

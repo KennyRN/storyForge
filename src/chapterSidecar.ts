@@ -15,7 +15,7 @@ function parseSidecarFrontmatter(raw: string): Record<string, unknown> {
 	return parseFrontmatterBlock(raw, parseYaml);
 }
 
-export function buildSidecarContent(frontmatter: Record<string, unknown>, fingerprint: Fingerprint): string {
+function buildSidecarContent(frontmatter: Record<string, unknown>, fingerprint: Fingerprint): string {
 	const yaml = stringifyYaml(frontmatter).trimEnd();
 	const body = [
 		"",

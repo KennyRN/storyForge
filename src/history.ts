@@ -126,18 +126,6 @@ function dailyNetsMap(daily: Record<string, DailyEntry>): Record<string, number>
 	return out;
 }
 
-/** Rebuild cumulative date→total map from daily nets (for legacy helpers / migration checks). */
-export function totalsFromDailyNets(daily: Record<string, DailyEntry>): Record<string, number> {
-	const dates = Object.keys(daily).sort();
-	const totals: Record<string, number> = {};
-	let running = 0;
-	for (const date of dates) {
-		running += daily[date]?.net ?? 0;
-		totals[date] = running;
-	}
-	return totals;
-}
-
 let writeQueue: Promise<void> = Promise.resolve();
 
 function enqueueWrite<T>(task: () => Promise<T>): Promise<T> {
@@ -228,17 +216,6 @@ export async function getBookWordStats(
 	const { total } = await sumLiveChapterWords(app, bookFolderName);
 	stats.current = total;
 	return stats;
-}
-
-export async function getChapterDaily(
-	app: App,
-	bookFolderName: string,
-	chapterFilename: string,
-	dateISO?: string,
-): Promise<number> {
-	const data = await readBookFile(app, bookFolderName);
-	const day = dateISO ?? todayISOInEngland();
-	return data.daily[day]?.chapters[chapterFilename] ?? 0;
 }
 
 export async function getProjectWordStats(app: App): Promise<ProjectWordStats> {
@@ -401,11 +378,6 @@ export async function migrateWordCountV1ToV2(app: App): Promise<void> {
 /** Heatmap helper: day nets for an inclusive ISO range from book stats. */
 export function dayNetsFromStats(stats: BookWordStats, fromISO: string, toISO: string): DayNet[] {
 	return dailyNetsForRange(dailyNetsMap(stats.daily), fromISO, toISO);
-}
-
-/** Heatmap helper: week nets from a day-net list. */
-export function weekNetsFromDayNets(dayNets: DayNet[]): WeekNet[] {
-	return weeklyNetsFromDaily(dayNets);
 }
 
 /** Default heatmap window: 16 weeks ending on `todayISO`. */

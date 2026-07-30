@@ -3,7 +3,7 @@ import { LIBRARY_ROOT, seriesFilePath } from "./paths";
 import { resolveOrder, type OrderResult } from "./ordering";
 import { modifyBackstageFrontmatter } from "./writeGuard";
 import { mintId } from "./slug";
-import { applyHashNumbering } from "./titleNumbering";
+import { numberedTitleInSequence } from "./titleNumbering";
 
 export interface SeriesBookEntry {
 	bookId: string;
@@ -97,11 +97,13 @@ export function numberedBookTitle(
 	prefetched?: { ordered: TFolder[]; unplaced: TFolder[] },
 ): string {
 	const { ordered, unplaced } = prefetched ?? getSeriesBooks(app);
-	const sequence = [...ordered, ...unplaced];
-	const idx = sequence.findIndex((folder) => folder.name === bookFolderName);
-	if (idx === -1) return bookDisplayTitle(app, bookFolderName);
-	const numbered = applyHashNumbering(sequence.map((folder) => bookDisplayTitle(app, folder.name)));
-	return numbered[idx];
+	const sequence = [...ordered, ...unplaced].map((folder) => folder.name);
+	return numberedTitleInSequence(
+		sequence,
+		bookFolderName,
+		(key) => bookDisplayTitle(app, key),
+		bookDisplayTitle(app, bookFolderName),
+	);
 }
 
 export function collectAllBookIds(app: App): string[] {

@@ -1,6 +1,6 @@
 import { App, TFile, TFolder, type FrontMatterCache } from "obsidian";
 import { ICON_MAP_PIN, ICON_PERSON_2_FILL, ICON_PERSON_FILL } from "./icons";
-import { CODEX_ROOT, codexFilePath } from "./paths";
+import { CODEX_ROOT, codexFilePath, uniqueDisambiguatedName } from "./paths";
 import { partitionCodexNotes, type CodexNote } from "./codexPartition";
 import { modifyBackstageFrontmatter } from "./writeGuard";
 import {
@@ -143,18 +143,13 @@ export function collectCodexNotes(app: App): CodexNote[] {
 		if (!(child instanceof TFile) || child.extension !== "md") continue;
 		if (archivedPaths.has(child.path)) continue;
 		const fm = app.metadataCache.getCache(child.path)?.frontmatter;
-		const raw: unknown = fm?.book;
-		const bookIds = Array.isArray(raw)
-			? raw.filter((v): v is string => typeof v === "string")
-			: typeof raw === "string"
-				? [raw]
-				: [];
+		const bookIds = coerceStringList(fm?.book);
 		notes.push({ path: child.path, bookIds });
 	}
 	return notes;
 }
 
-export function buildCodexTree(app: App, visiblePaths: ReadonlySet<string>): CodexTreeFolder | null {
+function buildCodexTree(app: App, visiblePaths: ReadonlySet<string>): CodexTreeFolder | null {
 	const root = app.vault.getAbstractFileByPath(CODEX_ROOT);
 	if (!(root instanceof TFolder)) return null;
 	const { folders, order } = readCodexFrontmatter(app);
@@ -171,12 +166,19 @@ export function getCodexView(app: App, currentBookId: string | null, mode: Codex
 	return buildCodexTree(app, new Set(codex.map((n) => n.path)));
 }
 
+/** Coerce YAML `string | string[] | unknown` into a string list. */
+export function coerceStringList(raw: unknown): string[] {
+	if (Array.isArray(raw)) return raw.filter((v): v is string => typeof v === "string");
+	if (typeof raw === "string") return [raw];
+	return [];
+}
+
 function uniqueChildPath(app: App, parentPath: string, baseName: string, extension = ""): string {
-	let candidate = `${parentPath}/${baseName}${extension}`;
-	if (!app.vault.getAbstractFileByPath(candidate)) return candidate;
-	let n = 2;
-	while (app.vault.getAbstractFileByPath(`${parentPath}/${baseName} ${n}${extension}`)) n++;
-	return `${parentPath}/${baseName} ${n}${extension}`;
+	const name = uniqueDisambiguatedName(
+		baseName,
+		(candidate) => !!app.vault.getAbstractFileByPath(`${parentPath}/${candidate}${extension}`),
+	);
+	return `${parentPath}/${name}${extension}`;
 }
 
 /** Mints a new virtual folder and registers it into `parentFolderId`'s order (or the root's, if null). Returns the new folder id. */

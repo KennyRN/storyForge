@@ -1,5 +1,5 @@
 import type { FactValue, ParsedFacts } from "./types";
-import { extractSection, splitFrontmatterAndBody, upsertSection } from "../markdownSections";
+import { extractSection, splitFrontmatterAndBody } from "../markdownSections";
 
 const SPELLING_ALIASES: Record<string, string> = {
 	color: "colour",
@@ -79,13 +79,6 @@ export function serializeFactsSection(facts: ParsedFacts): string {
 	return lines.join("\n");
 }
 
-/** Returns full note content with the Facts section upserted. */
-export function writeFactsIntoNote(raw: string, facts: ParsedFacts): string {
-	const { frontmatterBlock, body } = splitFrontmatterAndBody(raw);
-	const header = `## ${facts.heading}`;
-	return frontmatterBlock + upsertSection(body, header, serializeFactsSection(facts));
-}
-
 /** Sets the current value for a key, optionally pushing the previous value into `was`. */
 export function setFactValue(facts: ParsedFacts, key: string, newValue: string, pushWas: boolean): ParsedFacts {
 	const norm = normalizeFactKey(key);
@@ -102,11 +95,6 @@ export function setFactValue(facts: ParsedFacts, key: string, newValue: string, 
 	}
 	next.entries[norm] = { value: newValue.trim(), was };
 	return next;
-}
-
-/** Acknowledges a chapter-observed value: keeps Codex current value, records chapter value as intentional revision via was + new current. */
-export function acknowledgeFactChange(facts: ParsedFacts, key: string, chapterValue: string): ParsedFacts {
-	return setFactValue(facts, key, chapterValue, true);
 }
 
 export function emptyFacts(heading: string): ParsedFacts {

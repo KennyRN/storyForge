@@ -13,6 +13,22 @@ export function applyHashNumbering(titles: string[]): string[] {
 	});
 }
 
+/**
+ * Looks up `targetKey` in a display sequence and returns its hash-numbered title.
+ * `displayOf` supplies the raw title for each key; `fallback` is used when the
+ * target is missing from the sequence.
+ */
+export function numberedTitleInSequence(
+	sequenceKeys: string[],
+	targetKey: string,
+	displayOf: (key: string) => string,
+	fallback: string,
+): string {
+	const idx = sequenceKeys.indexOf(targetKey);
+	if (idx === -1) return fallback;
+	return applyHashNumbering(sequenceKeys.map(displayOf))[idx];
+}
+
 export interface SplitTitle {
 	title: string;
 	subtitle: string | null;

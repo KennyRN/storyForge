@@ -20,7 +20,8 @@ import { loadOrRecomputeChapterRecommend, recomputeChapterRecommend } from "../r
 import { createCodexStub } from "../recommend/stubs";
 import type { ChapterRecommendReport, ContinuityTimeline, FactCheckRow } from "../recommend/types";
 import { makeAccessibleActivatable } from "./a11y";
-import { CodexStubTypeModal } from "./CodexStubTypeModal";
+import { activateRightRailView } from "./activateRightRailView";
+import { CodexTypePickerModal } from "./CodexTypePickerModal";
 
 export const RECOMMEND_VIEW_TYPE = "storyforge-recommend-view";
 
@@ -413,9 +414,12 @@ export class RecommendationView extends ItemView {
 	}
 
 	private async createStub(name: string): Promise<void> {
-		new CodexStubTypeModal(this.app, (type) => {
-			if (!type) return;
-			void this.finishStub(name, type);
+		new CodexTypePickerModal(this.app, "Create as...", {
+			kind: "stub",
+			onPick: (type) => {
+				if (!type) return;
+				void this.finishStub(name, type);
+			},
 		}).open();
 	}
 
@@ -459,17 +463,8 @@ export class RecommendationView extends ItemView {
 }
 
 export async function activateRecommendView(plugin: StoryForgePlugin): Promise<void> {
-	const { workspace } = plugin.app;
-	let leaf: WorkspaceLeaf | null = workspace.getLeavesOfType(RECOMMEND_VIEW_TYPE)[0] ?? null;
-	if (!leaf) {
-		leaf = workspace.getRightLeaf(false);
-		await leaf?.setViewState({ type: RECOMMEND_VIEW_TYPE, active: true });
-	}
-	if (leaf) {
-		const split = workspace.rightSplit;
-		if (typeof split.expand === "function") split.expand();
+	await activateRightRailView(plugin, RECOMMEND_VIEW_TYPE, (leaf) => {
 		const view = leaf.view;
 		if (view instanceof RecommendationView) view.syncFromPluginSelection();
-		await workspace.revealLeaf(leaf);
-	}
+	});
 }

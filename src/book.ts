@@ -1,5 +1,5 @@
 import { App, TFile, TFolder, type FrontMatterCache } from "obsidian";
-import { bookBackstagePath, bookFilePath, libraryBookPath, libraryChapterPath, LIBRARY_ROOT } from "./paths";
+import { bookBackstagePath, bookFilePath, libraryBookPath, libraryChapterPath, LIBRARY_ROOT, uniqueDisambiguatedName } from "./paths";
 import { resolveOrder, type OrderResult } from "./ordering";
 import { mintId } from "./slug";
 import { deleteBackstagePath, enqueueBackstageWrite, modifyBackstageFrontmatter, writeBackstageBinary, writeBackstageFile } from "./writeGuard";
@@ -17,7 +17,7 @@ import {
 } from "./series";
 import { nextBookFolderCode } from "./bookCode";
 import { nextChapterCode } from "./chapterCode";
-import { applyHashNumbering } from "./titleNumbering";
+import { numberedTitleInSequence } from "./titleNumbering";
 import { extractSection, splitFrontmatterAndBody, upsertSection } from "./markdownSections";
 
 export interface ChapterEntry {
@@ -193,11 +193,13 @@ export function chapterDisplayTitle(app: App, bookFolderName: string, filename: 
 /** The chapter's title, with "#" resolved to its number among the book's "#"-titled chapters (same counter the chapter list's rows use). */
 export function numberedChapterTitle(app: App, bookFolderName: string, filename: string): string {
 	const { ordered, unplaced } = getBookChapters(app, bookFolderName);
-	const sequence = [...ordered, ...unplaced];
-	const idx = sequence.findIndex((file) => file.name === filename);
-	if (idx === -1) return chapterDisplayTitle(app, bookFolderName, filename);
-	const numbered = applyHashNumbering(sequence.map((file) => chapterDisplayTitle(app, bookFolderName, file.name)));
-	return numbered[idx];
+	const sequence = [...ordered, ...unplaced].map((file) => file.name);
+	return numberedTitleInSequence(
+		sequence,
+		filename,
+		(key) => chapterDisplayTitle(app, bookFolderName, key),
+		chapterDisplayTitle(app, bookFolderName, filename),
+	);
 }
 
 export function collectAllChapterIds(app: App, bookFolderName: string): string[] {
@@ -333,9 +335,8 @@ export async function upsertChapterEntry(
 	chapterTitle: string,
 ): Promise<void> {
 	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
-		const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
-		const existing: RawChapterEntry =
-			chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
+		const chapters = ensureChaptersMap(fm);
+		const existing = existingChapterEntry(chapters, filename);
 		chapters[filename] = { ...existing, "chapter-id": chapterId, "chapter-title": chapterTitle };
 		fm.chapters = chapters;
 	});
@@ -350,13 +351,9 @@ export async function renameChapterTitle(
 ): Promise<void> {
 	const { bookId } = resolveBookIdentity(app, bookFolderName);
 	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
-		const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
-		const existing: RawChapterEntry =
-			chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
-		const chapterId: string =
-			typeof existing["chapter-id"] === "string"
-				? existing["chapter-id"]
-				: nextChapterCode(bookId, collectAllChapterIds(app, bookFolderName));
+		const chapters = ensureChaptersMap(fm);
+		const existing = existingChapterEntry(chapters, filename);
+		const { chapterId } = ensureChapterIdentity(app, bookFolderName, filename, existing, bookId);
 		chapters[filename] = { ...existing, "chapter-id": chapterId, "chapter-title": newTitle };
 		fm.chapters = chapters;
 	});
@@ -395,8 +392,7 @@ async function patchChapterFields(
 ): Promise<void> {
 	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
 		const chapters = ensureChaptersMap(fm);
-		const existing: RawChapterEntry =
-			chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
+		const existing = existingChapterEntry(chapters, filename);
 		chapters[filename] = { ...existing, ...fields };
 		fm.chapters = chapters;
 	});
@@ -404,6 +400,27 @@ async function patchChapterFields(
 
 function ensureChaptersMap(fm: RawBookFrontmatter): Record<string, RawChapterEntry> {
 	return fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
+}
+
+function existingChapterEntry(chapters: Record<string, RawChapterEntry>, filename: string): RawChapterEntry {
+	const entry = chapters[filename];
+	return entry && typeof entry === "object" ? entry : {};
+}
+
+function ensureChapterIdentity(
+	app: App,
+	bookFolderName: string,
+	filename: string,
+	existing: RawChapterEntry,
+	bookId: string,
+): { chapterId: string; chapterTitle: string } {
+	const chapterId =
+		typeof existing["chapter-id"] === "string"
+			? existing["chapter-id"]
+			: nextChapterCode(bookId, collectAllChapterIds(app, bookFolderName));
+	const chapterTitle =
+		typeof existing["chapter-title"] === "string" ? existing["chapter-title"] : filename.replace(/\.md$/i, "");
+	return { chapterId, chapterTitle };
 }
 
 function chapterTypedPath(entry: ChapterEntry, kind: "pov" | "location"): string | null {
@@ -457,7 +474,7 @@ export async function renameChapterEntry(
 	newFilename: string,
 ): Promise<void> {
 	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
-		const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
+		const chapters = ensureChaptersMap(fm);
 		if (Object.prototype.hasOwnProperty.call(chapters, oldFilename)) {
 			chapters[newFilename] = chapters[oldFilename];
 			delete chapters[oldFilename];
@@ -476,7 +493,7 @@ export async function renameChapterEntry(
 /** Removes a chapter from novel.md's chapters map and order/unplaced/archive lists. */
 export async function removeChapterEntry(app: App, bookFolderName: string, filename: string): Promise<void> {
 	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
-		const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
+		const chapters = ensureChaptersMap(fm);
 		delete chapters[filename];
 		fm.chapters = chapters;
 		const strip = (list: unknown): string[] =>
@@ -498,7 +515,7 @@ export async function insertChapterEntry(
 	entry: ChapterEntry,
 ): Promise<void> {
 	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
-		const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
+		const chapters = ensureChaptersMap(fm);
 		chapters[filename] = {
 			"chapter-id": entry.chapterId,
 			"chapter-title": entry.chapterTitle,
@@ -525,8 +542,7 @@ export async function ensureAllChapterEntries(app: App, bookFolderName: string):
 	const fm = readBookFrontmatter(app, bookFolderName);
 	const chapters = fm?.chapters ?? {};
 	const merged: Record<string, ChapterEntry> = { ...chapters };
-	const entry = getSeriesBookEntry(app, bookFolderName);
-	const bookId = entry?.bookId ?? mintId(bookFolderName, collectAllBookIds(app));
+	const { bookId } = resolveBookIdentity(app, bookFolderName);
 	const knownIds = new Set(Object.values(chapters).map((e) => e.chapterId));
 	const archived = new Set(fm?.archive ?? []);
 	for (const file of files) {
@@ -561,15 +577,6 @@ async function ensureLibraryBookFolder(app: App, folderName: string): Promise<vo
 
 const DEFAULT_BOOK_TITLE = "Untitled Novel";
 
-/** "Untitled Novel" / "Untitled Novel 2" / ... — same base+number disambiguation idiom as codex's uniqueChildPath. */
-function uniqueBookTitle(base: string, existingTitles: Iterable<string>): string {
-	const taken = new Set(existingTitles);
-	if (!taken.has(base)) return base;
-	let n = 2;
-	while (taken.has(`${base} ${n}`)) n++;
-	return `${base} ${n}`;
-}
-
 /**
  * Creates a new book: a folder named with a 4-letter code (3 letters from the
  * series title + a sequential guide letter) in both the story library and
@@ -584,8 +591,9 @@ export async function createBook(app: App, initialTitle?: string): Promise<{ fol
 	]);
 	const folderName = nextBookFolderCode(seriesTitle, candidateSpace);
 	const bookId = mintId(folderName, collectAllBookIds(app));
+	const existingTitles = new Set(Object.values(books).map((entry) => entry.bookTitle));
 	const bookTitle =
-		initialTitle?.trim() || uniqueBookTitle(DEFAULT_BOOK_TITLE, Object.values(books).map((entry) => entry.bookTitle));
+		initialTitle?.trim() || uniqueDisambiguatedName(DEFAULT_BOOK_TITLE, (name) => existingTitles.has(name));
 	// Appended to the end of `order`, so its display position is right after
 	// every book already placed (read before writing — no stale-cache risk).
 	const { ordered } = getSeriesBooks(app);
@@ -660,15 +668,9 @@ export async function writeChapterPlot(app: App, bookFolderName: string, filenam
 	const trimmed = plot.trim();
 	const { bookId } = resolveBookIdentity(app, bookFolderName);
 	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
-		const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
-		const existing: RawChapterEntry =
-			chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
-		const chapterId: string =
-			typeof existing["chapter-id"] === "string"
-				? existing["chapter-id"]
-				: nextChapterCode(bookId, collectAllChapterIds(app, bookFolderName));
-		const chapterTitle: string =
-			typeof existing["chapter-title"] === "string" ? existing["chapter-title"] : filename.replace(/\.md$/i, "");
+		const chapters = ensureChaptersMap(fm);
+		const existing = existingChapterEntry(chapters, filename);
+		const { chapterId, chapterTitle } = ensureChapterIdentity(app, bookFolderName, filename, existing, bookId);
 		const next: RawChapterEntry = { ...existing, "chapter-id": chapterId, "chapter-title": chapterTitle };
 		if (trimmed) next.plot = trimmed;
 		else delete next.plot;

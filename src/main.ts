@@ -1203,112 +1203,21 @@ export default class StoryForgePlugin extends Plugin {
 		vars["--sf-body-family"] = bodyFont.family;
 		vars["--sf-body-variation"] = bodyFont.variation;
 
-		const headingConfigs: {
-			level: 1 | 2 | 3 | 4 | 5 | 6;
-			overrideSize: boolean;
-			size: number;
-			overrideColor: boolean;
-			color: string;
-			overrideFont: boolean;
-			fontWeight: FontWeight;
-			fontFamily: CustomFontFamily;
-			smallCaps: boolean;
-			dividerAbove: boolean;
-			dividerAboveThickness: HeadingDividerThickness;
-			dividerBelow: boolean;
-			dividerBelowThickness: HeadingDividerThickness;
-		}[] = [
-			{
-				level: 1,
-				overrideSize: s.heading1OverrideSize,
-				size: s.heading1Size,
-				overrideColor: s.heading1OverrideColor,
-				color: s.heading1Color,
-				overrideFont: s.heading1OverrideFont,
-				fontWeight: s.heading1FontWeight,
-				fontFamily: s.heading1FontFamily,
-				smallCaps: s.heading1SmallCaps,
-				dividerAbove: s.heading1DividerAbove,
-				dividerAboveThickness: s.heading1DividerAboveThickness,
-				dividerBelow: s.heading1DividerBelow,
-				dividerBelowThickness: s.heading1DividerBelowThickness,
-			},
-			{
-				level: 2,
-				overrideSize: s.heading2OverrideSize,
-				size: s.heading2Size,
-				overrideColor: s.heading2OverrideColor,
-				color: s.heading2Color,
-				overrideFont: s.heading2OverrideFont,
-				fontWeight: s.heading2FontWeight,
-				fontFamily: s.heading2FontFamily,
-				smallCaps: s.heading2SmallCaps,
-				dividerAbove: s.heading2DividerAbove,
-				dividerAboveThickness: s.heading2DividerAboveThickness,
-				dividerBelow: s.heading2DividerBelow,
-				dividerBelowThickness: s.heading2DividerBelowThickness,
-			},
-			{
-				level: 3,
-				overrideSize: s.heading3OverrideSize,
-				size: s.heading3Size,
-				overrideColor: s.heading3OverrideColor,
-				color: s.heading3Color,
-				overrideFont: s.heading3OverrideFont,
-				fontWeight: s.heading3FontWeight,
-				fontFamily: s.heading3FontFamily,
-				smallCaps: s.heading3SmallCaps,
-				dividerAbove: s.heading3DividerAbove,
-				dividerAboveThickness: s.heading3DividerAboveThickness,
-				dividerBelow: s.heading3DividerBelow,
-				dividerBelowThickness: s.heading3DividerBelowThickness,
-			},
-			{
-				level: 4,
-				overrideSize: s.heading4OverrideSize,
-				size: s.heading4Size,
-				overrideColor: s.heading4OverrideColor,
-				color: s.heading4Color,
-				overrideFont: s.heading4OverrideFont,
-				fontWeight: s.heading4FontWeight,
-				fontFamily: s.heading4FontFamily,
-				smallCaps: s.heading4SmallCaps,
-				dividerAbove: s.heading4DividerAbove,
-				dividerAboveThickness: s.heading4DividerAboveThickness,
-				dividerBelow: s.heading4DividerBelow,
-				dividerBelowThickness: s.heading4DividerBelowThickness,
-			},
-			{
-				level: 5,
-				overrideSize: s.heading5OverrideSize,
-				size: s.heading5Size,
-				overrideColor: s.heading5OverrideColor,
-				color: s.heading5Color,
-				overrideFont: s.heading5OverrideFont,
-				fontWeight: s.heading5FontWeight,
-				fontFamily: s.heading5FontFamily,
-				smallCaps: s.heading5SmallCaps,
-				dividerAbove: s.heading5DividerAbove,
-				dividerAboveThickness: s.heading5DividerAboveThickness,
-				dividerBelow: s.heading5DividerBelow,
-				dividerBelowThickness: s.heading5DividerBelowThickness,
-			},
-			{
-				level: 6,
-				overrideSize: s.heading6OverrideSize,
-				size: s.heading6Size,
-				overrideColor: s.heading6OverrideColor,
-				color: s.heading6Color,
-				overrideFont: s.heading6OverrideFont,
-				fontWeight: s.heading6FontWeight,
-				fontFamily: s.heading6FontFamily,
-				smallCaps: s.heading6SmallCaps,
-				dividerAbove: s.heading6DividerAbove,
-				dividerAboveThickness: s.heading6DividerAboveThickness,
-				dividerBelow: s.heading6DividerBelow,
-				dividerBelowThickness: s.heading6DividerBelowThickness,
-			},
-		];
+		const headingConfigs = ([1, 2, 3, 4, 5, 6] as const).map((level) => ({
+			level,
+			overrideSize: s[`heading${level}OverrideSize` as const],
+			size: s[`heading${level}Size` as const],
+			overrideColor: s[`heading${level}OverrideColor` as const],
+			color: s[`heading${level}Color` as const],
+			overrideFont: s[`heading${level}OverrideFont` as const],
+			fontWeight: s[`heading${level}FontWeight` as const],
+			fontFamily: s[`heading${level}FontFamily` as const],
+			smallCaps: s[`heading${level}SmallCaps` as const],
+			dividerAbove: s[`heading${level}DividerAbove` as const],
+			dividerAboveThickness: s[`heading${level}DividerAboveThickness` as const],
+			dividerBelow: s[`heading${level}DividerBelow` as const],
+			dividerBelowThickness: s[`heading${level}DividerBelowThickness` as const],
+		}));
 
 		for (const h of headingConfigs) {
 			const font = this.resolveCustomFontVars(h.overrideFont, h.fontFamily, h.fontWeight);

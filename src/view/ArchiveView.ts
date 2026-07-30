@@ -8,6 +8,7 @@ import { bookFolderNameFromChapterPath, libraryChapterPath } from "../paths";
 import { formatSingleLine } from "../titleNumbering";
 import { excerpt } from "../wordCount";
 import { makeAccessibleActivatable } from "./a11y";
+import { activateRightRailView } from "./activateRightRailView";
 
 export const ARCHIVE_VIEW_TYPE = "storyforge-archive-view";
 
@@ -142,24 +143,11 @@ export class ArchiveView extends ItemView {
 		const label =
 			entry.type === "folder" ? `${entry.name} (folder with ${entry.childCount ?? 0} children)` : entry.name;
 		row.createSpan({ cls: "sf-archive-label", text: label });
-		if (entry.type === "file") void this.attachCodexExcerpt(row, entry.key);
+		if (entry.type === "file") void this.attachExcerpt(row, entry.key);
 
-		const unarchiveBtn = row.createSpan({ cls: "sf-archive-unarchive-btn", attr: { "aria-label": "Unarchive" } });
-		setIcon(unarchiveBtn, ICON_UNARCHIVE);
-		const handle = async () => {
-			try {
-				await unarchiveCodexItem(this.app, entry.key);
-				this.plugin.refreshStoryForgeViews();
-				this.render();
-			} catch (err) {
-				new Notice(`storyForge: could not unarchive — ${err instanceof Error ? err.message : String(err)}`);
-			}
-		};
-		unarchiveBtn.addEventListener("click", (e) => {
-			e.stopPropagation();
-			void handle();
+		this.wireUnarchiveButton(row, async () => {
+			await unarchiveCodexItem(this.app, entry.key);
 		});
-		makeAccessibleActivatable(unarchiveBtn, () => void handle());
 	}
 
 	private renderNovel(el: HTMLElement): void {
@@ -182,14 +170,20 @@ export class ArchiveView extends ItemView {
 		const row = list.createDiv({ cls: "sf-row" });
 		const chapterLabel = formatSingleLine(chapterDisplayTitle(this.app, bookFolderName, filename));
 		row.createSpan({ cls: "sf-archive-label", text: chapterLabel });
-		void this.attachChapterExcerpt(row, bookFolderName, filename);
+		void this.attachExcerpt(row, libraryChapterPath(bookFolderName, filename));
 
+		this.wireUnarchiveButton(row, async () => {
+			await unarchiveChapter(this.app, bookFolderName, filename);
+			await recordChapterUnarchive(this.app, bookFolderName, filename);
+		});
+	}
+
+	private wireUnarchiveButton(row: HTMLElement, action: () => Promise<void>): void {
 		const unarchiveBtn = row.createSpan({ cls: "sf-archive-unarchive-btn", attr: { "aria-label": "Unarchive" } });
 		setIcon(unarchiveBtn, ICON_UNARCHIVE);
 		const handle = async () => {
 			try {
-				await unarchiveChapter(this.app, bookFolderName, filename);
-				await recordChapterUnarchive(this.app, bookFolderName, filename);
+				await action();
 				this.plugin.refreshStoryForgeViews();
 				this.render();
 			} catch (err) {
@@ -203,15 +197,8 @@ export class ArchiveView extends ItemView {
 		makeAccessibleActivatable(unarchiveBtn, () => void handle());
 	}
 
-	private async attachCodexExcerpt(el: HTMLElement, path: string): Promise<void> {
+	private async attachExcerpt(el: HTMLElement, path: string): Promise<void> {
 		const file = this.app.vault.getAbstractFileByPath(path);
-		if (!(file instanceof TFile)) return;
-		const preview = excerpt(await this.app.vault.cachedRead(file));
-		if (preview) setTooltip(el, preview);
-	}
-
-	private async attachChapterExcerpt(el: HTMLElement, bookFolderName: string, filename: string): Promise<void> {
-		const file = this.app.vault.getAbstractFileByPath(libraryChapterPath(bookFolderName, filename));
 		if (!(file instanceof TFile)) return;
 		const preview = excerpt(await this.app.vault.cachedRead(file));
 		if (preview) setTooltip(el, preview);
@@ -222,20 +209,10 @@ export async function activateArchiveView(
 	plugin: StoryForgePlugin,
 	tab: ArchiveMode = "codex",
 ): Promise<void> {
-	const { workspace } = plugin.app;
-	let leaf: WorkspaceLeaf | null = workspace.getLeavesOfType(ARCHIVE_VIEW_TYPE)[0] ?? null;
-	if (!leaf) {
-		leaf = workspace.getRightLeaf(false);
-		await leaf?.setViewState({ type: ARCHIVE_VIEW_TYPE, active: true });
-	}
-	if (leaf) {
-		const split = workspace.rightSplit;
-		if (typeof split.expand === "function") split.expand();
+	await activateRightRailView(plugin, ARCHIVE_VIEW_TYPE, (leaf) => {
 		const view = leaf.view;
-		if (view instanceof ArchiveView) {
-			if (tab === "novel") view.openOnNovelTab();
-			else view.openOnCodexTab();
-		}
-		await workspace.revealLeaf(leaf);
-	}
+		if (!(view instanceof ArchiveView)) return;
+		if (tab === "novel") view.openOnNovelTab();
+		else view.openOnCodexTab();
+	});
 }

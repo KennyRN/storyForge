@@ -1,5 +1,5 @@
 import { App, TFile } from "obsidian";
-import { collectCodexNotes, partitionCodexNotes, readCodexFrontmatter } from "../codex";
+import { coerceStringList, collectCodexNotes, partitionCodexNotes, readCodexFrontmatter } from "../codex";
 import { codexBasename } from "../codexTree";
 import { emptyFacts, parseFactsFromNote } from "./facts";
 import type { CodexEntryInput } from "./types";
@@ -24,12 +24,7 @@ export async function loadHydratedCodexInventory(
 			const raw = await app.vault.cachedRead(file);
 			facts = parseFactsFromNote(raw, heading);
 			const cache = app.metadataCache.getCache(note.path);
-			const aliasesRaw: unknown = cache?.frontmatter?.aliases;
-			aliases = Array.isArray(aliasesRaw)
-				? aliasesRaw.filter((v): v is string => typeof v === "string")
-				: typeof aliasesRaw === "string"
-					? [aliasesRaw]
-					: [];
+			aliases = coerceStringList(cache?.frontmatter?.aliases);
 		}
 		entries.push({
 			path: note.path,

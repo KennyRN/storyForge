@@ -100,9 +100,9 @@ export class BookSynopsisModal extends Modal {
 			const titleRow = block.createDiv({ cls: "sf-plot-chapter-title" });
 			titleRow.createSpan({ text: numberedChapterTitle(this.app, this.bookFolderName, file.name) });
 			const povWrap = titleRow.createSpan({ cls: "sf-plot-chapter-pov" });
-			this.paintPovBadge(povWrap, file.name);
+			this.paintLinkBadge(povWrap, file.name, "pov");
 			const locWrap = titleRow.createSpan({ cls: "sf-plot-chapter-location" });
-			this.paintLocationBadge(locWrap, file.name);
+			this.paintLinkBadge(locWrap, file.name, "location");
 
 			const textarea = block.createEl("textarea", { cls: "sf-modal-textarea sf-plot-chapter-textarea" });
 			textarea.value = await readChapterPlot(this.app, this.bookFolderName, file.name);
@@ -111,108 +111,76 @@ export class BookSynopsisModal extends Modal {
 		}
 	}
 
-	private paintPovBadge(povWrap: HTMLElement, filename: string): void {
+	private paintLinkBadge(wrap: HTMLElement, filename: string, kind: "pov" | "location"): void {
 		const entry = getChapterEntry(this.app, this.bookFolderName, filename);
-		this.renderPovBadgeContent(povWrap, filename, entry?.povPath ?? null, entry?.povName ?? null);
+		const path = kind === "pov" ? entry?.povPath ?? null : entry?.locationPath ?? null;
+		const name = kind === "pov" ? entry?.povName ?? null : entry?.locationName ?? null;
+		this.renderLinkBadgeContent(wrap, filename, kind, path, name);
 	}
 
-	private renderPovBadgeContent(
-		povWrap: HTMLElement,
+	private renderLinkBadgeContent(
+		wrap: HTMLElement,
 		filename: string,
-		povPath: string | null,
-		povName: string | null,
+		kind: "pov" | "location",
+		path: string | null,
+		name: string | null,
 	): void {
-		povWrap.empty();
-		povWrap.createSpan({ text: "(PoV: " });
-		if (povPath) {
-			const nameBtn = povWrap.createSpan({ cls: "sf-plot-chapter-badge-value", text: povName ?? povPath });
-			nameBtn.addEventListener("click", (e) => {
+		wrap.empty();
+		if (kind === "pov") wrap.createSpan({ text: "(PoV: " });
+
+		if (path) {
+			const value =
+				kind === "location"
+					? (() => {
+							const badge = wrap.createSpan({ cls: "sf-plot-chapter-badge-value" });
+							setIcon(badge.createSpan({ cls: "sf-icon" }), ICON_MAP_PIN);
+							badge.createSpan({ text: name ?? path });
+							return badge;
+						})()
+					: wrap.createSpan({ cls: "sf-plot-chapter-badge-value", text: name ?? path });
+			value.addEventListener("click", (e) => {
 				e.stopPropagation();
-				void this.openPovPicker(filename, povWrap, true);
+				void this.openLinkPicker(filename, wrap, kind, true);
 			});
 		} else {
-			const addBtn = povWrap.createSpan({
+			const addBtn = wrap.createSpan({
 				cls: "sf-book-filter-btn sf-plot-chapter-pov-btn",
-				attr: { "aria-label": "Set PoV" },
+				attr: { "aria-label": kind === "pov" ? "Set PoV" : "Set location" },
 			});
-			setIcon(addBtn, ICON_PERSON_FILL_ADD);
+			setIcon(addBtn, kind === "pov" ? ICON_PERSON_FILL_ADD : ICON_MAP_PIN_PLUS);
 			addBtn.addEventListener("click", (e) => {
 				e.stopPropagation();
-				void this.openPovPicker(filename, povWrap, false);
+				void this.openLinkPicker(filename, wrap, kind, false);
 			});
 		}
-		povWrap.createSpan({ text: ")" });
+
+		if (kind === "pov") wrap.createSpan({ text: ")" });
 	}
 
-	private async openPovPicker(filename: string, povWrap: HTMLElement, hasValue: boolean): Promise<void> {
+	private async openLinkPicker(
+		filename: string,
+		wrap: HTMLElement,
+		kind: "pov" | "location",
+		hasValue: boolean,
+	): Promise<void> {
 		const bookId = getBookId(this.app, this.bookFolderName);
-		const entries = getCodexEntriesByType(this.app, "person", bookId);
+		const codexType = kind === "pov" ? "person" : "place";
+		const entries = getCodexEntriesByType(this.app, codexType, bookId);
 		new CodexEntryPickerModal(
 			this.app,
-			"Set PoV",
-			"No person entries in the Codex yet.",
+			kind === "pov" ? "Set PoV" : "Set location",
+			kind === "pov" ? "No person entries in the Codex yet." : "No place entries in the Codex yet.",
 			entries,
 			hasValue,
 			async (entry) => {
-				await writeChapterPov(this.app, this.bookFolderName, filename, entry.path, entry.name);
-				this.renderPovBadgeContent(povWrap, filename, entry.path, entry.name);
+				if (kind === "pov") await writeChapterPov(this.app, this.bookFolderName, filename, entry.path, entry.name);
+				else await writeChapterLocation(this.app, this.bookFolderName, filename, entry.path, entry.name);
+				this.renderLinkBadgeContent(wrap, filename, kind, entry.path, entry.name);
 			},
 			async () => {
-				await writeChapterPov(this.app, this.bookFolderName, filename, null, null);
-				this.renderPovBadgeContent(povWrap, filename, null, null);
-			},
-		).open();
-	}
-
-	private paintLocationBadge(locWrap: HTMLElement, filename: string): void {
-		const entry = getChapterEntry(this.app, this.bookFolderName, filename);
-		this.renderLocationBadgeContent(locWrap, filename, entry?.locationPath ?? null, entry?.locationName ?? null);
-	}
-
-	private renderLocationBadgeContent(
-		locWrap: HTMLElement,
-		filename: string,
-		locationPath: string | null,
-		locationName: string | null,
-	): void {
-		locWrap.empty();
-		if (locationPath) {
-			const badge = locWrap.createSpan({ cls: "sf-plot-chapter-badge-value" });
-			setIcon(badge.createSpan({ cls: "sf-icon" }), ICON_MAP_PIN);
-			badge.createSpan({ text: locationName ?? locationPath });
-			badge.addEventListener("click", (e) => {
-				e.stopPropagation();
-				void this.openLocationPicker(filename, locWrap, true);
-			});
-		} else {
-			const addBtn = locWrap.createSpan({
-				cls: "sf-book-filter-btn sf-plot-chapter-pov-btn",
-				attr: { "aria-label": "Set location" },
-			});
-			setIcon(addBtn, ICON_MAP_PIN_PLUS);
-			addBtn.addEventListener("click", (e) => {
-				e.stopPropagation();
-				void this.openLocationPicker(filename, locWrap, false);
-			});
-		}
-	}
-
-	private async openLocationPicker(filename: string, locWrap: HTMLElement, hasValue: boolean): Promise<void> {
-		const bookId = getBookId(this.app, this.bookFolderName);
-		const entries = getCodexEntriesByType(this.app, "place", bookId);
-		new CodexEntryPickerModal(
-			this.app,
-			"Set location",
-			"No place entries in the Codex yet.",
-			entries,
-			hasValue,
-			async (entry) => {
-				await writeChapterLocation(this.app, this.bookFolderName, filename, entry.path, entry.name);
-				this.renderLocationBadgeContent(locWrap, filename, entry.path, entry.name);
-			},
-			async () => {
-				await writeChapterLocation(this.app, this.bookFolderName, filename, null, null);
-				this.renderLocationBadgeContent(locWrap, filename, null, null);
+				if (kind === "pov") await writeChapterPov(this.app, this.bookFolderName, filename, null, null);
+				else await writeChapterLocation(this.app, this.bookFolderName, filename, null, null);
+				this.renderLinkBadgeContent(wrap, filename, kind, null, null);
 			},
 		).open();
 	}

@@ -12,7 +12,7 @@ import {
 	getProjectWordStats,
 	mostRecentMondayISO,
 	todayISOInEngland,
-	weekNetsFromDayNets,
+	weeklyNetsFromDaily,
 	type BookWordStats,
 	type DayNet,
 	type ProjectWordStats,
@@ -101,7 +101,7 @@ export class WordCountModal extends Modal {
 		const today = todayISOInEngland();
 		const { fromISO, toISO } = defaultHeatmapRange(today);
 		const dayNets = dayNetsFromStats(stats, fromISO, toISO);
-		const weekNets = weekNetsFromDayNets(dayNets);
+		const weekNets = weeklyNetsFromDaily(dayNets);
 		const maxAbs = Math.max(1, ...dayNets.map((d) => Math.abs(d.net)), ...weekNets.map((w) => Math.abs(w.net)));
 
 		const section = parent.createDiv({ cls: "sf-wordcount-section" });

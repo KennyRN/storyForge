@@ -3,12 +3,10 @@ import { type App } from "obsidian";
 import { makeTFile, makeTFolder } from "./obsidianStub";
 import {
 	getBookWordStats,
-	getChapterDaily,
 	migrateWordCountV1ToV2,
 	recordChapterArchive,
 	recordChapterEdit,
 	recordChapterUnarchive,
-	totalsFromDailyNets,
 } from "../history";
 import { bookWordCountFilePath, LIBRARY_ROOT, wordCountFilePath } from "../paths";
 
@@ -126,14 +124,14 @@ describe("recordChapterEdit", () => {
 		expect(stats.lifetimeWritten).toBe(2);
 		expect(stats.current).toBe(2);
 		expect(stats.todayNet).toBe(2);
-		expect(await getChapterDaily(app, "BookA", "ch1.md", "2026-07-19")).toBe(2);
+		expect(stats.daily["2026-07-19"]?.chapters["ch1.md"]).toBe(2);
 
 		// Grow the chapter.
 		await recordChapterEdit(app, "BookA", "ch1.md", 5, now);
 		stats = await getBookWordStats(app, "BookA", now);
 		expect(stats.lifetimeWritten).toBe(5);
 		expect(stats.todayNet).toBe(5);
-		expect(await getChapterDaily(app, "BookA", "ch1.md", "2026-07-19")).toBe(5);
+		expect(stats.daily["2026-07-19"]?.chapters["ch1.md"]).toBe(5);
 	});
 
 	it("does not change lifetimeRemoved on negative mid-edit delta", async () => {
@@ -290,9 +288,6 @@ describe("migrateWordCountV1ToV2", () => {
 		expect(stats.lifetimeWritten).toBe(150);
 		expect(stats.daily["2026-07-18"]?.net).toBe(100);
 		expect(stats.daily["2026-07-19"]?.net).toBe(50);
-
-		const totals = totalsFromDailyNets(stats.daily);
-		expect(totals["2026-07-18"]).toBe(100);
-		expect(totals["2026-07-19"]).toBe(150);
+		expect(stats.daily["2026-07-18"]!.net + stats.daily["2026-07-19"]!.net).toBe(150);
 	});
 });

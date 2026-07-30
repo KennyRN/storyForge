@@ -61,10 +61,6 @@ export async function readRecommendCache(
 	return parseRecommendSidecar(await app.vault.read(file));
 }
 
-export function isRecommendCacheFresh(cached: ChapterRecommendReport, contentHash: string): boolean {
-	return cached.contentHash === contentHash;
-}
-
 /** Follows a chapter rename: moves the recommend cache sidecar to the new chapter filename. */
 export async function renameRecommendSidecar(
 	app: App,

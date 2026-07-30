@@ -94,3 +94,11 @@ export function isBackstageBookkeepingPath(path: string): boolean {
 	if (path.includes("/chapters/")) return true;
 	return path.includes("/recommend/");
 }
+
+/** "Name" / "Name 2" / "Name 3"… — shared base+number disambiguation for titles and paths. */
+export function uniqueDisambiguatedName(base: string, isTaken: (candidate: string) => boolean): string {
+	if (!isTaken(base)) return base;
+	let n = 2;
+	while (isTaken(`${base} ${n}`)) n++;
+	return `${base} ${n}`;
+}
