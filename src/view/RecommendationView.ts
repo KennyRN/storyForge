@@ -17,7 +17,6 @@ import {
 import { getBookId } from "../series";
 import { buildContinuityTimelines, formatContinuityLine } from "../recommend/continuity";
 import { acknowledgeCodexFactChange, updateCodexFact } from "../recommend/factWrites";
-import { readRecommendCache } from "../recommend/cache";
 import { loadOrRecomputeChapterRecommend, recomputeChapterRecommend } from "../recommend/recompute";
 import { createCodexStub } from "../recommend/stubs";
 import type { ChapterRecommendReport, ContinuityTimeline, FactCheckRow } from "../recommend/types";
@@ -161,16 +160,13 @@ export class RecommendationView extends ItemView {
 		}));
 		const reports = new Map<string, ChapterRecommendReport>();
 		for (const ch of ordered) {
-			let cached = await readRecommendCache(this.app, this.bookFolderName, ch.filename);
-			if (!cached) {
-				cached = await recomputeChapterRecommend(
-					this.app,
-					this.bookFolderName,
-					ch.filename,
-					bookId,
-					this.recommendSettings(),
-				);
-			}
+			const cached = await loadOrRecomputeChapterRecommend(
+				this.app,
+				this.bookFolderName,
+				ch.filename,
+				bookId,
+				this.recommendSettings(),
+			);
 			if (cached) reports.set(ch.filename, cached);
 		}
 		this.continuity = buildContinuityTimelines(ordered, reports);
