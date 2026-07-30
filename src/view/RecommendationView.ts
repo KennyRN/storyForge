@@ -16,7 +16,6 @@ import {
 } from "../paths";
 import { getBookId } from "../series";
 import { buildContinuityTimelines, formatContinuityLine } from "../recommend/continuity";
-import { acknowledgeCodexFactChange, updateCodexFact } from "../recommend/factWrites";
 import { loadOrRecomputeChapterRecommend, recomputeChapterRecommend } from "../recommend/recompute";
 import { createCodexStub } from "../recommend/stubs";
 import type { ChapterRecommendReport, ContinuityTimeline, FactCheckRow } from "../recommend/types";
@@ -345,17 +344,8 @@ export class RecommendationView extends ItemView {
 						? `${row.name} · ${row.displayKey}: “${row.chapterValue}” (acknowledged)`
 						: `${row.name} · ${row.displayKey}: chapter “${row.chapterValue}” (not in Codex)`;
 			line.createDiv({ cls: "sf-recommend-fact-text", text: summary });
-			if (row.status === "conflict") {
-				const actions = line.createDiv({ cls: "sf-recommend-fact-actions" });
-				const updateBtn = actions.createEl("button", { text: "Update Codex" });
-				updateBtn.addEventListener("click", () => void this.handleUpdateFact(row));
-				const ackBtn = actions.createEl("button", { text: "Acknowledge change" });
-				ackBtn.addEventListener("click", () => void this.handleAcknowledgeFact(row));
-			} else if (row.status === "unknown") {
-				const actions = line.createDiv({ cls: "sf-recommend-fact-actions" });
-				const addBtn = actions.createEl("button", { text: "Add to Codex" });
-				addBtn.addEventListener("click", () => void this.handleUpdateFact(row));
-			}
+			// Display-only: the user copies/places facts into Codex themselves.
+			// Existing Codex notes are never modified from this pane.
 		}
 	}
 
@@ -420,32 +410,6 @@ export class RecommendationView extends ItemView {
 		}
 		await writeChapterPlot(this.app, bookFolderName, chapterFilename, draft);
 		new Notice("storyForge: synopsis sent to chapter plot");
-	}
-
-	private factHeadingForPath(path: string): string {
-		const types = this.plugin.getSettings().codexFactSectionByType;
-		// Resolve type from matched report or default
-		const matched = this.report?.matched.find((m) => m.path === path);
-		const type = matched?.type ?? "person";
-		return types[type] ?? "Facts";
-	}
-
-	private async handleUpdateFact(row: FactCheckRow): Promise<void> {
-		await updateCodexFact(this.app, row.path, this.factHeadingForPath(row.path), row.key, row.chapterValue);
-		new Notice("storyForge: Codex fact updated");
-		await this.forceRefresh();
-	}
-
-	private async handleAcknowledgeFact(row: FactCheckRow): Promise<void> {
-		await acknowledgeCodexFactChange(
-			this.app,
-			row.path,
-			this.factHeadingForPath(row.path),
-			row.key,
-			row.chapterValue,
-		);
-		new Notice("storyForge: fact change acknowledged");
-		await this.forceRefresh();
 	}
 
 	private async createStub(name: string): Promise<void> {

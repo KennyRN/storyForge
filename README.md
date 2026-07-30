@@ -44,8 +44,8 @@ If you're running an automated security/behavior scan against storyForge, here's
 - **Node `fs` access** and **full vault enumeration**: both come from the same disclosed backup feature above — writing a zip file to a folder outside the vault requires Node's `fs`, and building that zip requires reading every file in the vault via Obsidian's own `vault.getFiles()`/`vault.adapter.list()` APIs. Neither is used anywhere else in the plugin.
 
 ## Privacy and vault access
-storyForge writes only inside its own `_sf-backstage` folder — there's no code path anywhere in the plugin that writes to your prose, codex, or any other vault content.
+storyForge writes only inside its own `_sf-backstage` folder for plugin metadata. Manuscript prose under `_sf-storylibrary/` is never modified after a chapter file is created empty. Codex notes under `Codex/` are created (including Story Context “Create in Codex” stubs) and renamed for wikilinks — existing Codex note content is never edited by the plugin. Story Context fact warnings are display-only so you can place details where you want them.
 
-The backup feature is the one exception to that otherwise scoped read access. When a backup runs — whether you start it manually or via the schedule you've enabled — it reads every file in the vault in order to zip it up. That's the sole reason the plugin enumerates vault files, and it happens only in `src/backup.ts`.
+The backup feature is the one exception to otherwise scoped *read* access. When a backup runs — whether you start it manually or via the schedule you've enabled — it reads every file in the vault in order to zip it up. That's the sole reason the plugin enumerates vault files, and it happens only in `src/backup.ts`.
 
 Backups are written to a local folder you choose. Nothing leaves your machine, and storyForge makes no network requests.
