@@ -18,13 +18,7 @@ import {
 import { nextBookFolderCode } from "./bookCode";
 import { nextChapterCode } from "./chapterCode";
 import { applyHashNumbering } from "./titleNumbering";
-
-export interface CompileSettings {
-	format?: string;
-	chapter_heading?: string;
-	separator?: string;
-	output?: string;
-}
+import { extractSection, splitFrontmatterAndBody, upsertSection } from "./markdownSections";
 
 export interface ChapterEntry {
 	chapterId: string;
@@ -38,11 +32,9 @@ export interface ChapterEntry {
 }
 
 export interface BookFrontmatter {
-	goalDaily: number | null;
 	chapterOrder: string[];
 	unplaced: string[];
 	archive: string[];
-	compile: CompileSettings | null;
 	bookIdReference: string;
 	bookTitleReference: string;
 	seriesOrderReference: number | null;
@@ -155,11 +147,9 @@ export function readBookFrontmatter(app: App, bookFolderName: string): BookFront
 				typeof fm?.["book-title-reference"] === "string" ? fm["book-title-reference"] : bookFolderName,
 			seriesOrderReference: typeof fm?.["series-order-reference"] === "number" ? fm["series-order-reference"] : null,
 			coverImage: typeof fm?.["cover-image"] === "string" && fm["cover-image"] ? fm["cover-image"] : null,
-			goalDaily: typeof fm?.goal_daily === "number" ? fm.goal_daily : null,
 			chapterOrder,
 			unplaced,
 			archive,
-			compile: fm?.compile && typeof fm.compile === "object" ? (fm.compile as CompileSettings) : null,
 			chapters: parseChaptersMap(fm?.chapters),
 		};
 }
@@ -380,13 +370,7 @@ export async function writeChapterPov(
 	povPath: string | null,
 	povName: string | null,
 ): Promise<void> {
-	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
-		const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
-		const existing: RawChapterEntry =
-			chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
-		chapters[filename] = { ...existing, "pov-path": povPath, "pov-name": povName };
-		fm.chapters = chapters;
-	});
+	await patchChapterFields(app, bookFolderName, filename, { "pov-path": povPath, "pov-name": povName });
 }
 
 /** Sets (or, when both are null, clears) a chapter's location reference, preserving its existing id/title. */
@@ -397,49 +381,66 @@ export async function writeChapterLocation(
 	locationPath: string | null,
 	locationName: string | null,
 ): Promise<void> {
+	await patchChapterFields(app, bookFolderName, filename, {
+		"location-path": locationPath,
+		"location-name": locationName,
+	});
+}
+
+async function patchChapterFields(
+	app: App,
+	bookFolderName: string,
+	filename: string,
+	fields: Partial<RawChapterEntry>,
+): Promise<void> {
 	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
-		const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
+		const chapters = ensureChaptersMap(fm);
 		const existing: RawChapterEntry =
 			chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
-		chapters[filename] = { ...existing, "location-path": locationPath, "location-name": locationName };
+		chapters[filename] = { ...existing, ...fields };
 		fm.chapters = chapters;
 	});
 }
 
+function ensureChaptersMap(fm: RawBookFrontmatter): Record<string, RawChapterEntry> {
+	return fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
+}
+
+function chapterTypedPath(entry: ChapterEntry, kind: "pov" | "location"): string | null {
+	return kind === "pov" ? entry.povPath : entry.locationPath;
+}
+
 /** Rewrites any chapter's PoV reference matching `oldPath` to `newPath` (or clears it if `newPath` is null), across every book — called when a Codex person note is renamed/moved. */
 export async function rekeyChapterPovReferences(app: App, oldPath: string, newPath: string | null): Promise<void> {
-	for (const folder of getLibraryBookFolders(app)) {
-		const fm = readBookFrontmatter(app, folder.name);
-		if (!fm) continue;
-		const hasMatch = Object.values(fm.chapters).some((entry) => entry.povPath === oldPath);
-		if (!hasMatch) continue;
-		await modifyBookFrontmatter(app, folder.name, (bfm) => {
-			const chapters: Record<string, RawChapterEntry> = bfm.chapters && typeof bfm.chapters === "object" ? bfm.chapters : {};
-			for (const [filename, entry] of Object.entries(chapters)) {
-				if (entry["pov-path"] === oldPath) {
-					chapters[filename] = { ...entry, "pov-path": newPath, "pov-name": newPath ? entry["pov-name"] : null };
-				}
-			}
-			bfm.chapters = chapters;
-		});
-	}
+	await rekeyChapterLinkReferences(app, oldPath, newPath, "pov");
 }
 
 /** Rewrites any chapter's location reference matching `oldPath` to `newPath` (or clears it if `newPath` is null), across every book — called when a Codex place note is renamed/moved. */
 export async function rekeyChapterLocationReferences(app: App, oldPath: string, newPath: string | null): Promise<void> {
+	await rekeyChapterLinkReferences(app, oldPath, newPath, "location");
+}
+
+async function rekeyChapterLinkReferences(
+	app: App,
+	oldPath: string,
+	newPath: string | null,
+	kind: "pov" | "location",
+): Promise<void> {
+	const pathKey = kind === "pov" ? "pov-path" : "location-path";
+	const nameKey = kind === "pov" ? "pov-name" : "location-name";
 	for (const folder of getLibraryBookFolders(app)) {
 		const fm = readBookFrontmatter(app, folder.name);
 		if (!fm) continue;
-		const hasMatch = Object.values(fm.chapters).some((entry) => entry.locationPath === oldPath);
+		const hasMatch = Object.values(fm.chapters).some((entry) => chapterTypedPath(entry, kind) === oldPath);
 		if (!hasMatch) continue;
 		await modifyBookFrontmatter(app, folder.name, (bfm) => {
-			const chapters: Record<string, RawChapterEntry> = bfm.chapters && typeof bfm.chapters === "object" ? bfm.chapters : {};
+			const chapters = ensureChaptersMap(bfm);
 			for (const [filename, entry] of Object.entries(chapters)) {
-				if (entry["location-path"] === oldPath) {
+				if (entry[pathKey] === oldPath) {
 					chapters[filename] = {
 						...entry,
-						"location-path": newPath,
-						"location-name": newPath ? entry["location-name"] : null,
+						[pathKey]: newPath,
+						[nameKey]: newPath ? entry[nameKey] : null,
 					};
 				}
 			}
@@ -620,39 +621,6 @@ export async function createChapter(app: App, bookFolderName: string): Promise<{
 }
 
 const SYNOPSIS_HEADER = "## Synopsis";
-
-/** Splits raw file content into its frontmatter fence (verbatim, incl. trailing newline) and body. */
-function splitFrontmatterAndBody(raw: string): { frontmatterBlock: string; body: string } {
-	if (!raw.startsWith("---")) return { frontmatterBlock: "", body: raw };
-	const end = raw.indexOf("\n---", 3);
-	if (end === -1) return { frontmatterBlock: "", body: raw };
-	let fenceEnd = end + 4;
-	if (raw[fenceEnd] === "\n") fenceEnd += 1;
-	return { frontmatterBlock: raw.slice(0, fenceEnd), body: raw.slice(fenceEnd) };
-}
-
-function extractSection(body: string, header: string): string {
-	const idx = body.indexOf(header);
-	if (idx === -1) return "";
-	const start = idx + header.length;
-	const nextHeaderIdx = body.indexOf("\n## ", start);
-	return (nextHeaderIdx === -1 ? body.slice(start) : body.slice(start, nextHeaderIdx)).trim();
-}
-
-/** Replaces (or appends) the given `## `-prefixed section, leaving any other body content untouched. */
-function upsertSection(body: string, header: string, content: string): string {
-	const newSection = `${header}\n${content.trim()}\n`;
-	const idx = body.indexOf(header);
-	if (idx === -1) {
-		const sep = body.trim().length === 0 ? "" : "\n";
-		return `${body.trimEnd()}${sep}\n${newSection}`;
-	}
-	const start = idx + header.length;
-	const nextHeaderIdx = body.indexOf("\n## ", start);
-	const before = body.slice(0, idx);
-	const after = nextHeaderIdx === -1 ? "" : body.slice(nextHeaderIdx + 1);
-	return `${before}${newSection}${after}`;
-}
 
 /** Reads the book's synopsis from novel.md's body, under a `## Synopsis` heading. Empty string if none exists yet. */
 export async function readBookSynopsis(app: App, bookFolderName: string): Promise<string> {

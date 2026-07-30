@@ -101,10 +101,7 @@ async function handleChapterCrossBookMove(
 	const entry = getChapterEntry(app, oldBook, oldFilename);
 	await removeChapterEntry(app, oldBook, oldFilename);
 	if (entry) {
-		await insertChapterEntry(app, newBook, newFilename, {
-			...entry,
-			chapterTitle: entry.chapterTitle,
-		});
+		await insertChapterEntry(app, newBook, newFilename, entry);
 	}
 
 	const oldFp = chapterSidecarPath(oldBook, oldFilename);

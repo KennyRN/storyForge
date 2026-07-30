@@ -1,4 +1,5 @@
 import type { FactValue, ParsedFacts } from "./types";
+import { extractSection, splitFrontmatterAndBody, upsertSection } from "../markdownSections";
 
 const SPELLING_ALIASES: Record<string, string> = {
 	color: "colour",
@@ -20,37 +21,6 @@ export function normalizeFactKey(raw: string): string {
 
 export function normalizeFactValue(raw: string): string {
 	return raw.trim().replace(/\s+/g, " ").toLowerCase();
-}
-
-function splitFrontmatterAndBody(raw: string): { frontmatterBlock: string; body: string } {
-	if (!raw.startsWith("---")) return { frontmatterBlock: "", body: raw };
-	const end = raw.indexOf("\n---", 3);
-	if (end === -1) return { frontmatterBlock: "", body: raw };
-	let fenceEnd = end + 4;
-	if (raw[fenceEnd] === "\n") fenceEnd += 1;
-	return { frontmatterBlock: raw.slice(0, fenceEnd), body: raw.slice(fenceEnd) };
-}
-
-function extractSection(body: string, header: string): string {
-	const idx = body.indexOf(header);
-	if (idx === -1) return "";
-	const start = idx + header.length;
-	const nextHeaderIdx = body.indexOf("\n## ", start);
-	return (nextHeaderIdx === -1 ? body.slice(start) : body.slice(start, nextHeaderIdx)).trim();
-}
-
-function upsertSection(body: string, header: string, content: string): string {
-	const newSection = `${header}\n${content.trim()}\n`;
-	const idx = body.indexOf(header);
-	if (idx === -1) {
-		const sep = body.trim().length === 0 ? "" : "\n";
-		return `${body.trimEnd()}${sep}\n${newSection}`;
-	}
-	const start = idx + header.length;
-	const nextHeaderIdx = body.indexOf("\n## ", start);
-	const before = body.slice(0, idx);
-	const after = nextHeaderIdx === -1 ? "" : body.slice(nextHeaderIdx + 1);
-	return `${before}${newSection}${after}`;
 }
 
 const WAS_SUFFIX = /\s*\(was\)\s*$/i;

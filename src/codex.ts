@@ -1,7 +1,7 @@
 import { App, TFile, TFolder, type FrontMatterCache } from "obsidian";
 import { ICON_MAP_PIN, ICON_PERSON_2_FILL, ICON_PERSON_FILL } from "./icons";
 import { CODEX_ROOT, codexFilePath } from "./paths";
-import { partitionCodexNotes, findUnknownScopedNotes, type CodexNote } from "./codexPartition";
+import { partitionCodexNotes, type CodexNote } from "./codexPartition";
 import { modifyBackstageFrontmatter } from "./writeGuard";
 import {
 	codexBasename,
@@ -21,7 +21,7 @@ import {
 	type CodexTreeItem,
 } from "./codexTree";
 
-export { partitionCodexNotes, findUnknownScopedNotes, type CodexNote };
+export { partitionCodexNotes, type CodexNote };
 export { isDescendantFolder, countFilesInFolder, type CodexFolders, type CodexFolderEntry };
 export type { CodexTreeFile, CodexTreeFolder, CodexTreeItem };
 
@@ -222,12 +222,9 @@ export async function createCodexNote(
 export async function renameCodexNoteFile(app: App, file: TFile, newBasename: string): Promise<void> {
 	const trimmed = newBasename.trim();
 	if (!trimmed || trimmed === file.basename) return;
-	let candidate = `${CODEX_ROOT}/${trimmed}.md`;
-	if (candidate !== file.path && app.vault.getAbstractFileByPath(candidate)) {
-		let n = 2;
-		while (app.vault.getAbstractFileByPath(`${CODEX_ROOT}/${trimmed} ${n}.md`)) n++;
-		candidate = `${CODEX_ROOT}/${trimmed} ${n}.md`;
-	}
+	const desired = `${CODEX_ROOT}/${trimmed}.md`;
+	const candidate = desired === file.path ? desired : uniqueChildPath(app, CODEX_ROOT, trimmed, ".md");
+	if (candidate === file.path) return;
 	await app.fileManager.renameFile(file, candidate);
 }
 

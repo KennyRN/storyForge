@@ -120,17 +120,6 @@ export function populateFontWeightDropdown<W extends string>(
 	dropdown.onChange((v) => applyFontWeightChange(v as W, applySelectedWeight, onChange));
 }
 
-export function bindFontWeightDropdown<W extends string>(
-	setting: Setting,
-	value: W,
-	onChange: (value: W) => void,
-	options: [string, string][] = FONT_WEIGHT_OPTIONS,
-): void {
-	setting.addDropdown((dropdown) => {
-		populateFontWeightDropdown(dropdown, value, onChange, options);
-	});
-}
-
 export interface RenderCustomFontCardOptions {
 	plugin: StoryForgePlugin;
 	settings: StoryForgePluginSettings;

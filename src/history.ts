@@ -8,8 +8,6 @@ import {
 	sumNetsThisWeek,
 	todayISOInEngland,
 	weeklyNetsFromDaily,
-	wordsThisWeek,
-	wordsToday,
 	type DayNet,
 	type WeekNet,
 } from "./historyMath";
@@ -19,8 +17,6 @@ import { getLibraryBookFolders } from "./series";
 
 export {
 	todayISOInEngland,
-	wordsThisWeek,
-	wordsToday,
 	dailyNetsForRange,
 	weeklyNetsFromDaily,
 	sumNetsThisWeek,
@@ -356,14 +352,6 @@ export async function recomputeBookCurrent(app: App, bookFolderName: string): Pr
 		}
 	});
 	return data.current;
-}
-
-/**
- * Legacy helper: stamp today's cumulative total. Prefer recordChapterEdit.
- * Kept so existing call sites can migrate gradually; writes v2 daily net from delta vs prior current.
- */
-export async function recomputeBookTotal(app: App, bookFolderName: string): Promise<number> {
-	return recomputeBookCurrent(app, bookFolderName);
 }
 
 /**

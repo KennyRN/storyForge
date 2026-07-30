@@ -180,7 +180,6 @@ function findMatches(prose: string, entries: CodexEntryInput[]): MatchedCodexEnt
 		while ((m = re.exec(prose)) !== null) {
 			const start = m.index;
 			const end = start + m[0].length;
-			const spanKey = `${start}-${end}`;
 			let overlaps = false;
 			for (let i = start; i < end; i++) {
 				if (claimed.has(`c${i}`)) {
@@ -190,7 +189,6 @@ function findMatches(prose: string, entries: CodexEntryInput[]): MatchedCodexEnt
 			}
 			if (overlaps) continue;
 			for (let i = start; i < end; i++) claimed.add(`c${i}`);
-			void spanKey;
 
 			for (const path of key.paths) {
 				let bucket = matchedSurfaces.get(path);
@@ -270,8 +268,7 @@ function extractAttributes(window: string): Array<{ key: string; value: string }
 	return attrs;
 }
 
-function collectDescriptions(prose: string, matched: MatchedCodexEntry[], entries: CodexEntryInput[]): DescriptionHit[] {
-	const byPath = new Map(entries.map((e) => [e.path, e]));
+function collectDescriptions(prose: string, matched: MatchedCodexEntry[]): DescriptionHit[] {
 	const hits: DescriptionHit[] = [];
 	const seen = new Set<string>();
 
@@ -295,7 +292,6 @@ function collectDescriptions(prose: string, matched: MatchedCodexEntry[], entrie
 				});
 			}
 		}
-		void byPath;
 	}
 	return hits;
 }
@@ -402,7 +398,7 @@ export function analyzeChapter(
 	const prose = stripForCounting(rawChapter).trim();
 	const matched = findMatches(prose, entries);
 	const matchedSurfaces = new Set(matched.flatMap((m) => m.matchedAs));
-	const descriptions = collectDescriptions(prose, matched, entries);
+	const descriptions = collectDescriptions(prose, matched);
 	const unknownNames = options.includeUnknownNames ? findUnknownNames(prose, matchedSurfaces) : [];
 	const factChecks = checkFacts(matched, descriptions, entries);
 	const synopsisHeuristic = extractSynopsis(prose, options.existingPlot);
@@ -417,8 +413,4 @@ export function analyzeChapter(
 		descriptions,
 		factChecks,
 	};
-}
-
-export function entryFactsFingerprint(entries: CodexEntryInput[]): string {
-	return entries.map((e) => `${e.path}:${factsFingerprint(e.facts)}`).join("|");
 }

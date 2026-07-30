@@ -1,18 +1,13 @@
 import { App, parseYaml, stringifyYaml, TFile } from "obsidian";
 import { recommendSidecarFolderPath, recommendSidecarPath } from "../paths";
 import { ensureBackstageFolder, deleteBackstagePath, renameBackstagePath, writeBackstageFile } from "../writeGuard";
+import { parseFrontmatterBlock } from "../markdownSections";
 import type { ChapterRecommendReport } from "./types";
 
 const AUTO_MARKER = "<!-- AUTO-MAINTAINED — do not edit, the plugin overwrites it -->";
 
-function parseFrontmatterBlock(raw: string): Record<string, unknown> {
-	if (!raw.startsWith("---")) return {};
-	const end = raw.indexOf("\n---", 3);
-	if (end === -1) return {};
-	const yamlText = raw.slice(3, end).trim();
-	if (yamlText.length === 0) return {};
-	const parsed = parseYaml(yamlText) as Record<string, unknown> | null;
-	return parsed ?? {};
+function parseRecommendFrontmatter(raw: string): Record<string, unknown> {
+	return parseFrontmatterBlock(raw, parseYaml);
 }
 
 export function buildRecommendSidecarContent(report: ChapterRecommendReport): string {
@@ -26,7 +21,7 @@ export function buildRecommendSidecarContent(report: ChapterRecommendReport): st
 }
 
 export function parseRecommendSidecar(raw: string): ChapterRecommendReport | null {
-	const fm = parseFrontmatterBlock(raw);
+	const fm = parseRecommendFrontmatter(raw);
 	const jsonMatch = raw.match(/```json\s*([\s\S]*?)```/);
 	if (!jsonMatch) return null;
 	try {

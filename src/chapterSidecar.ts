@@ -2,6 +2,7 @@ import { App, parseYaml, stringifyYaml, TFile, type FrontMatterCache } from "obs
 import { chapterSidecarFolderPath, chapterSidecarPath } from "./paths";
 import { ensureBackstageFolder, deleteBackstagePath, modifyBackstageFrontmatter, renameBackstagePath, writeBackstageFile } from "./writeGuard";
 import type { Fingerprint } from "./fingerprint";
+import { parseFrontmatterBlock } from "./markdownSections";
 
 /** The raw on-disk shape of a chapter sidecar file's frontmatter, as read/written through `modifyBackstageFrontmatter`. */
 interface RawSidecarFrontmatter extends FrontMatterCache {
@@ -10,14 +11,8 @@ interface RawSidecarFrontmatter extends FrontMatterCache {
 
 const AUTO_MARKER = "<!-- AUTO-MAINTAINED BELOW — do not edit, the plugin overwrites it -->";
 
-function parseFrontmatterBlock(raw: string): Record<string, unknown> {
-	if (!raw.startsWith("---")) return {};
-	const end = raw.indexOf("\n---", 3);
-	if (end === -1) return {};
-	const yamlText = raw.slice(3, end).trim();
-	if (yamlText.length === 0) return {};
-	const parsed = parseYaml(yamlText) as Record<string, unknown> | null;
-	return parsed ?? {};
+function parseSidecarFrontmatter(raw: string): Record<string, unknown> {
+	return parseFrontmatterBlock(raw, parseYaml);
 }
 
 export function buildSidecarContent(frontmatter: Record<string, unknown>, fingerprint: Fingerprint): string {
@@ -49,7 +44,7 @@ export async function updateChapterFingerprint(
 	let frontmatter: Record<string, unknown> = { chapter: chapterFilename };
 	if (file instanceof TFile) {
 		const raw = await app.vault.read(file);
-		frontmatter = { ...parseFrontmatterBlock(raw), chapter: chapterFilename };
+		frontmatter = { ...parseSidecarFrontmatter(raw), chapter: chapterFilename };
 		const content = buildSidecarContent(frontmatter, fingerprint);
 		// Typing pauses fire this on every debounce tick; skip the write when the
 		// fingerprint hasn't actually changed, so idle re-checks don't touch disk.
