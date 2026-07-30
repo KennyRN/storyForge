@@ -11,6 +11,12 @@ import {
 	type StyleModalTab,
 } from "./styleModalHelpers";
 
+type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
+
+function headingKey(level: HeadingLevel, suffix: string): keyof StoryForgePluginSettings {
+	return `heading${level}${suffix}` as keyof StoryForgePluginSettings;
+}
+
 export class TextStyleModal extends Modal {
 	private plugin: StoryForgePlugin;
 	private selectedOtherHeadingLevel: 4 | 5 | 6 = 4;
@@ -56,7 +62,9 @@ export class TextStyleModal extends Modal {
 					);
 					let emphasisLabelSetting: Setting | undefined;
 					const emphasisLabel = () =>
-						settings.bodyTextOverrideColor ? "Override body text's standard italic/bold colour" : "Override theme's default italic/bold colour";
+						settings.bodyTextOverrideColor
+							? "Override body text's standard italic/bold colour"
+							: "Override theme's default italic/bold colour";
 					this.renderColorOverrideCard(
 						body,
 						settings,
@@ -76,101 +84,29 @@ export class TextStyleModal extends Modal {
 			{
 				id: "h1",
 				label: "H1",
-				render: (body) => {
-					this.renderSizeCard(
-						body,
-						settings,
-						"Override theme's default header size",
-						"Header size",
-						"heading1OverrideSize",
-						"heading1Size",
-						1,
-						2.5,
-						restyle,
-						(card) =>
-							card.addSetting((setting) => {
-								setting
-									.setName("Hide Heading 1 Links")
-									.setDesc(
-										"When on, links inside a note's H1 heading render as plain text — no link colour or underline — so the title looks like a normal heading.",
-									)
-									.addToggle((toggle) =>
-										toggle.setValue(settings.hideHeading1Links).onChange((value) => this.persistHideHeading1Links(value)),
-									);
-							}),
-					);
-					this.renderColorOverrideCard(
-						body,
-						settings,
-						"Override theme's default header colour",
-						"Header colour",
-						"heading1OverrideColor",
-						"heading1Color",
-						restyle,
-					);
-					this.renderFontCard(body, settings, "heading1OverrideFont", "heading1FontWeight", "heading1FontFamily", "heading1SmallCaps");
-					this.renderDividerCard(
-						body,
-						settings,
-						"heading1DividerAbove",
-						"heading1DividerAboveThickness",
-						"heading1DividerBelow",
-						"heading1DividerBelowThickness",
-						restyle,
-					);
-				},
+				render: (body) =>
+					this.renderHeadingLevel(body, settings, 1, restyle, (card) =>
+						card.addSetting((setting) => {
+							setting
+								.setName("Hide Heading 1 Links")
+								.setDesc(
+									"When on, links inside a note's H1 heading render as plain text — no link colour or underline — so the title looks like a normal heading.",
+								)
+								.addToggle((toggle) =>
+									toggle.setValue(settings.hideHeading1Links).onChange((value) => this.persistHideHeading1Links(value)),
+								);
+						}),
+					),
 			},
 			{
 				id: "h2",
 				label: "H2",
-				render: (body) => {
-					this.renderSizeCard(body, settings, "Override theme's default header size", "Header size", "heading2OverrideSize", "heading2Size", 1, 2.5, restyle);
-					this.renderColorOverrideCard(
-						body,
-						settings,
-						"Override theme's default header colour",
-						"Header colour",
-						"heading2OverrideColor",
-						"heading2Color",
-						restyle,
-					);
-					this.renderFontCard(body, settings, "heading2OverrideFont", "heading2FontWeight", "heading2FontFamily", "heading2SmallCaps");
-					this.renderDividerCard(
-						body,
-						settings,
-						"heading2DividerAbove",
-						"heading2DividerAboveThickness",
-						"heading2DividerBelow",
-						"heading2DividerBelowThickness",
-						restyle,
-					);
-				},
+				render: (body) => this.renderHeadingLevel(body, settings, 2, restyle),
 			},
 			{
 				id: "h3",
 				label: "H3",
-				render: (body) => {
-					this.renderSizeCard(body, settings, "Override theme's default header size", "Header size", "heading3OverrideSize", "heading3Size", 1, 2.5, restyle);
-					this.renderColorOverrideCard(
-						body,
-						settings,
-						"Override theme's default header colour",
-						"Header colour",
-						"heading3OverrideColor",
-						"heading3Color",
-						restyle,
-					);
-					this.renderFontCard(body, settings, "heading3OverrideFont", "heading3FontWeight", "heading3FontFamily", "heading3SmallCaps");
-					this.renderDividerCard(
-						body,
-						settings,
-						"heading3DividerAbove",
-						"heading3DividerAboveThickness",
-						"heading3DividerBelow",
-						"heading3DividerBelowThickness",
-						restyle,
-					);
-				},
+				render: (body) => this.renderHeadingLevel(body, settings, 3, restyle),
 			},
 			{
 				id: "other",
@@ -198,57 +134,67 @@ export class TextStyleModal extends Modal {
 						);
 					});
 
-					const before4 = body.children.length;
-					this.renderSizeCard(body, settings, "Override theme's default header size", "Header size", "heading4OverrideSize", "heading4Size", 0.7, 1.8, restyle);
-					this.renderColorOverrideCard(body, settings, "Override theme's default header colour", "Header colour", "heading4OverrideColor", "heading4Color", restyle);
-					this.renderFontCard(body, settings, "heading4OverrideFont", "heading4FontWeight", "heading4FontFamily", "heading4SmallCaps");
-					this.renderDividerCard(
-						body,
-						settings,
-						"heading4DividerAbove",
-						"heading4DividerAboveThickness",
-						"heading4DividerBelow",
-						"heading4DividerBelowThickness",
-						restyle,
-					);
-					levelElements[4] = Array.from(body.children).slice(before4) as HTMLElement[];
-
-					const before5 = body.children.length;
-					this.renderSizeCard(body, settings, "Override theme's default header size", "Header size", "heading5OverrideSize", "heading5Size", 0.7, 1.8, restyle);
-					this.renderColorOverrideCard(body, settings, "Override theme's default header colour", "Header colour", "heading5OverrideColor", "heading5Color", restyle);
-					this.renderFontCard(body, settings, "heading5OverrideFont", "heading5FontWeight", "heading5FontFamily", "heading5SmallCaps");
-					this.renderDividerCard(
-						body,
-						settings,
-						"heading5DividerAbove",
-						"heading5DividerAboveThickness",
-						"heading5DividerBelow",
-						"heading5DividerBelowThickness",
-						restyle,
-					);
-					levelElements[5] = Array.from(body.children).slice(before5) as HTMLElement[];
-
-					const before6 = body.children.length;
-					this.renderSizeCard(body, settings, "Override theme's default header size", "Header size", "heading6OverrideSize", "heading6Size", 0.7, 1.8, restyle);
-					this.renderColorOverrideCard(body, settings, "Override theme's default header colour", "Header colour", "heading6OverrideColor", "heading6Color", restyle);
-					this.renderFontCard(body, settings, "heading6OverrideFont", "heading6FontWeight", "heading6FontFamily", "heading6SmallCaps");
-					this.renderDividerCard(
-						body,
-						settings,
-						"heading6DividerAbove",
-						"heading6DividerAboveThickness",
-						"heading6DividerBelow",
-						"heading6DividerBelowThickness",
-						restyle,
-					);
-					levelElements[6] = Array.from(body.children).slice(before6) as HTMLElement[];
-
+					for (const level of [4, 5, 6] as const) {
+						const before = body.children.length;
+						this.renderHeadingLevel(body, settings, level, restyle);
+						levelElements[level] = Array.from(body.children).slice(before) as HTMLElement[];
+					}
 					applySelectedLevel(this.selectedOtherHeadingLevel);
 				},
 			},
 		];
 
 		renderTabbedBody(contentEl, tabs);
+	}
+
+	/** Size → colour → font → dividers for one heading level. H1–3 use a larger size range. */
+	private renderHeadingLevel(
+		body: HTMLElement,
+		settings: StoryForgePluginSettings,
+		level: HeadingLevel,
+		restyle: () => void,
+		extraSizeRow?: (card: SettingGroup) => void,
+	): void {
+		const sizeMin = level <= 3 ? 1 : 0.7;
+		const sizeMax = level <= 3 ? 2.5 : 1.8;
+		this.renderSizeCard(
+			body,
+			settings,
+			"Override theme's default header size",
+			"Header size",
+			headingKey(level, "OverrideSize"),
+			headingKey(level, "Size"),
+			sizeMin,
+			sizeMax,
+			restyle,
+			extraSizeRow,
+		);
+		this.renderColorOverrideCard(
+			body,
+			settings,
+			"Override theme's default header colour",
+			"Header colour",
+			headingKey(level, "OverrideColor"),
+			headingKey(level, "Color"),
+			restyle,
+		);
+		this.renderFontCard(
+			body,
+			settings,
+			headingKey(level, "OverrideFont"),
+			headingKey(level, "FontWeight"),
+			headingKey(level, "FontFamily"),
+			headingKey(level, "SmallCaps"),
+		);
+		this.renderDividerCard(
+			body,
+			settings,
+			headingKey(level, "DividerAbove"),
+			headingKey(level, "DividerAboveThickness"),
+			headingKey(level, "DividerBelow"),
+			headingKey(level, "DividerBelowThickness"),
+			restyle,
+		);
 	}
 
 	private renderSizeCard(
@@ -267,7 +213,9 @@ export class TextStyleModal extends Modal {
 			body,
 			label,
 			settings[overrideKey] as boolean,
-			(value) => { void this.plugin.updateSetting(overrideKey, value); },
+			(value) => {
+				void this.plugin.updateSetting(overrideKey, value);
+			},
 			(card) => {
 				let sliderSetting!: Setting;
 				card.addSetting((setting) => {
@@ -424,7 +372,9 @@ export class TextStyleModal extends Modal {
 					.onChange((value) => persistAndRestyle(this.plugin, aboveThicknessKey, value, restyle)),
 			);
 		});
-		wireCardToggle(aboveToggle, aboveThicknessSetting, (value) => { void this.plugin.updateSetting(aboveKey, value); }, restyle);
+		wireCardToggle(aboveToggle, aboveThicknessSetting, (value) => {
+			void this.plugin.updateSetting(aboveKey, value);
+		}, restyle);
 
 		let belowToggle!: ToggleComponent;
 		card.addSetting((setting) => {
@@ -445,6 +395,8 @@ export class TextStyleModal extends Modal {
 					.onChange((value) => persistAndRestyle(this.plugin, belowThicknessKey, value, restyle)),
 			);
 		});
-		wireCardToggle(belowToggle, belowThicknessSetting, (value) => { void this.plugin.updateSetting(belowKey, value); }, restyle);
+		wireCardToggle(belowToggle, belowThicknessSetting, (value) => {
+			void this.plugin.updateSetting(belowKey, value);
+		}, restyle);
 	}
 }
