@@ -6,7 +6,7 @@
 import { factsFingerprint, normalizeFactKey } from "./facts";
 import { applyLenses, buildLensRegistry, type LensDef, type TokenInfo } from "./lenses";
 import { defaultLexicons } from "./lexicons";
-import { ensureNlp, getIts, type WinkNlp } from "./nlp";
+import { ensureNlp, getIts, type WinkIts, type WinkNlp } from "./nlp";
 import type {
 	AttributionDecision,
 	CastMember,
@@ -22,6 +22,11 @@ import type { ItemEntity, ItemSentence, ItemToken } from "wink-nlp";
 export const COREF_WINDOW = 3;
 const MAX_SYNOPSIS_WORDS = 120;
 const MAX_SYNOPSIS_SENTENCES = 3;
+
+/** winkNLP `its.*` helpers are pure asHelpers (no `this`); typed so unbound-method stays quiet. */
+function asHelper<T extends WinkIts[keyof WinkIts]>(helper: T): T & { (this: void): unknown } {
+	return helper as T & { (this: void): unknown };
+}
 
 const PRONOUNS = new Set([
 	"he",
@@ -98,7 +103,7 @@ export function stripMarkdownMapped(raw: string): StripResult {
 
 	const pushSlice = (start: number, end: number) => {
 		for (let p = start; p < end; p++) {
-			out.push(raw[p]!);
+			out.push(raw[p]);
 			rawOffsets.push(p);
 		}
 	};
@@ -136,7 +141,7 @@ export function stripMarkdownMapped(raw: string): StripResult {
 		toRaw: (strippedOffset: number) => {
 			if (rawOffsets.length === 0) return strippedOffset;
 			const clamped = Math.max(0, Math.min(strippedOffset, rawOffsets.length - 1));
-			return rawOffsets[clamped]!;
+			return rawOffsets[clamped];
 		},
 	};
 }
@@ -186,6 +191,8 @@ function splitSentences(
 
 function tokensForSentence(nlp: WinkNlp, sentence: string): TokenInfo[] {
 	const its = getIts(nlp);
+	const pos = asHelper(its.pos);
+	const negationFlag = asHelper(its.negationFlag);
 	const doc = nlp.readDoc(sentence);
 	const tokens: TokenInfo[] = [];
 	let index = 0;
@@ -194,8 +201,8 @@ function tokensForSentence(nlp: WinkNlp, sentence: string): TokenInfo[] {
 		tokens.push({
 			text,
 			lower: text.toLowerCase(),
-			pos: String(t.out(its.pos)),
-			negated: Boolean(t.out(its.negationFlag)),
+			pos: String(t.out(pos)),
+			negated: Boolean(t.out(negationFlag)),
 			index: index++,
 		});
 	});
@@ -348,37 +355,39 @@ function collectMatched(
 /** Merge adjacent PROPN tokens into multi-word names ("Cult of the Snake" is harder; take adjacent runs). */
 function extractProperNames(nlp: WinkNlp, prose: string): Array<{ name: string; nerType?: string }> {
 	const its = getIts(nlp);
+	const pos = asHelper(its.pos);
+	const type = asHelper(its.type);
 	const doc = nlp.readDoc(prose);
 	const names: Array<{ name: string; nerType?: string }> = [];
 	const seen = new Set<string>();
 
 	const tokens: Array<{ text: string; pos: string }> = [];
 	doc.tokens().each((t: ItemToken) => {
-		tokens.push({ text: t.out(), pos: String(t.out(its.pos)) });
+		tokens.push({ text: t.out(), pos: String(t.out(pos)) });
 	});
 
 	let i = 0;
 	while (i < tokens.length) {
-		if (tokens[i]!.pos !== "PROPN") {
+		if (tokens[i].pos !== "PROPN") {
 			i++;
 			continue;
 		}
-		const parts = [tokens[i]!.text];
+		const parts = [tokens[i].text];
 		i++;
-		while (i < tokens.length && tokens[i]!.pos === "PROPN") {
-			parts.push(tokens[i]!.text);
+		while (i < tokens.length && tokens[i].pos === "PROPN") {
+			parts.push(tokens[i].text);
 			i++;
 		}
 		// Allow "of" / "the" bridges between PROPNs: Cult of the Snake
 		while (
 			i + 1 < tokens.length &&
-			/^(of|the|de|von|van)$/i.test(tokens[i]!.text) &&
+			/^(of|the|de|von|van)$/i.test(tokens[i].text) &&
 			tokens[i + 1]?.pos === "PROPN"
 		) {
-			parts.push(tokens[i]!.text);
+			parts.push(tokens[i].text);
 			i++;
-			while (i < tokens.length && tokens[i]!.pos === "PROPN") {
-				parts.push(tokens[i]!.text);
+			while (i < tokens.length && tokens[i].pos === "PROPN") {
+				parts.push(tokens[i].text);
 				i++;
 			}
 		}
@@ -392,10 +401,10 @@ function extractProperNames(nlp: WinkNlp, prose: string): Array<{ name: string; 
 
 	doc.entities().each((e: ItemEntity) => {
 		const text = e.out();
-		const type = String(e.out(its.type) ?? "");
+		const nerType = String(e.out(type) ?? "");
 		const key = text.toLowerCase();
 		const existing = names.find((n) => n.name.toLowerCase() === key);
-		if (existing && type) existing.nerType = type;
+		if (existing && nerType) existing.nerType = nerType;
 	});
 
 	return names;
@@ -432,12 +441,12 @@ export function scanFile(
 	const namesBySentence = sentences.map((s) => namesInSentence(s.text, keys));
 
 	for (let si = 0; si < sentences.length; si++) {
-		const s = sentences[si]!;
+		const s = sentences[si];
 		const tokens = tokensForSentence(nlp, s.text);
 		const lensHits = applyLenses(s.text, tokens, lenses);
 		if (lensHits.length === 0) continue;
 
-		const named = namesBySentence[si]!;
+		const named = namesBySentence[si];
 		const namedPaths = new Map<string, string>(); // path → display name
 		for (const nk of named) {
 			for (const path of nk.paths) {
@@ -462,7 +471,7 @@ export function scanFile(
 			// Look back COREF_WINDOW for nearest preceding names
 			const windowNames = new Map<string, string>();
 			for (let back = si - 1; back >= 0 && back >= si - COREF_WINDOW; back--) {
-				for (const nk of namesBySentence[back]!) {
+				for (const nk of namesBySentence[back]) {
 					for (const path of nk.paths) {
 						const entry = byPath.get(path);
 						if (entry && !windowNames.has(path)) windowNames.set(path, entry.name);
@@ -470,11 +479,11 @@ export function scanFile(
 				}
 			}
 			if (windowNames.size === 1) {
-				const [path, name] = [...windowNames.entries()][0]!;
+				const [path, name] = [...windowNames.entries()][0];
 				candidates.push({ path, name, tier: "grey", competing: [] });
 			} else if (windowNames.size > 1) {
 				const entries = [...windowNames.entries()];
-				const [path, name] = entries[0]!;
+				const [path, name] = entries[0];
 				candidates.push({
 					path,
 					name,

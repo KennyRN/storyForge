@@ -1,6 +1,13 @@
 export const LIBRARY_ROOT = "_sf-storylibrary";
 export const CODEX_ROOT = "Codex";
 export const BACKSTAGE_ROOT = "_sf-backstage";
+/** Vault-root folder where backup zip files are written (Obsidian vault API only — no Node `fs`). Always excluded from backup zips. */
+export const BACKUPS_FOLDER = "_sf-backup";
+
+/** True if `path` is the backup folder or anything inside it. */
+export function isBackupFolderPath(path: string): boolean {
+	return path === BACKUPS_FOLDER || path.startsWith(`${BACKUPS_FOLDER}/`);
+}
 
 export function seriesFilePath(): string {
 	return `${BACKSTAGE_ROOT}/series.md`;

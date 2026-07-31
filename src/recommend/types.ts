@@ -1,8 +1,14 @@
 /** Coreference confidence for a located sentence. */
 export type CorefTier = "solid" | "grey" | "ambiguous";
 
-/** Built-in lens ids. The registry is data-driven; custom ids are allowed later. */
-export type LensId = "description" | "whereabouts" | "relationships" | "dialogue" | "emotion" | string;
+/** Built-in lens ids, or any custom id registered later. */
+export type LensId =
+	| "description"
+	| "whereabouts"
+	| "relationships"
+	| "dialogue"
+	| "emotion"
+	| (string & {});
 
 export interface CodexEntryInput {
 	path: string;

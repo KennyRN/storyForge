@@ -1,5 +1,5 @@
 import { App, TFile, Vault, type FrontMatterCache } from "obsidian";
-import { BACKSTAGE_ROOT, CODEX_ROOT, LIBRARY_ROOT } from "./paths";
+import { BACKSTAGE_ROOT, BACKUPS_FOLDER, CODEX_ROOT, LIBRARY_ROOT } from "./paths";
 
 /**
  * The one narrow module every plugin write funnels through. It physically
@@ -11,6 +11,7 @@ import { BACKSTAGE_ROOT, CODEX_ROOT, LIBRARY_ROOT } from "./paths";
  * prose-only; Codex notes are user-owned (create/rename for wikilinks are the
  * only intentional disk exceptions elsewhere, and must not grow into content edits).
  * Story Context never edits Codex note bodies — its write footprint is `_sf-backstage/` only.
+ * Backup zips are the other allowed write root: `_sf-backup/` only.
  *
  * Host API / xForge siblings:
  * - Codex note *frontmatter* create/edit is only for plugins that called
@@ -24,7 +25,7 @@ import { BACKSTAGE_ROOT, CODEX_ROOT, LIBRARY_ROOT } from "./paths";
 
 export class ForbiddenWriteError extends Error {
 	constructor(path: string) {
-		super(`storyForge refused to write to "${path}": outside ${BACKSTAGE_ROOT}/`);
+		super(`storyForge refused to write to "${path}": outside ${BACKSTAGE_ROOT}/ or ${BACKUPS_FOLDER}/`);
 		this.name = "ForbiddenWriteError";
 	}
 }
@@ -37,9 +38,28 @@ function assertBackstagePath(path: string): void {
 	}
 }
 
+function assertBackupPath(path: string): void {
+	const allowed = path === BACKUPS_FOLDER || path.startsWith(`${BACKUPS_FOLDER}/`);
+	if (!allowed) {
+		throw new ForbiddenWriteError(path);
+	}
+}
+
 /** Creates `path` and every missing ancestor folder above it (vault.createFolder does not vivify parents on its own). */
 export async function ensureBackstageFolder(vault: Vault, path: string): Promise<void> {
 	assertBackstagePath(path);
+	const segments = path.split("/");
+	let current = "";
+	for (const segment of segments) {
+		current = current ? `${current}/${segment}` : segment;
+		if (!vault.getAbstractFileByPath(current)) {
+			await vault.createFolder(current);
+		}
+	}
+}
+
+async function ensureFolderTree(vault: Vault, path: string, assertPath: (p: string) => void): Promise<void> {
+	assertPath(path);
 	const segments = path.split("/");
 	let current = "";
 	for (const segment of segments) {
@@ -75,6 +95,21 @@ export async function writeBackstageBinary(vault: Vault, path: string, data: Arr
 		return existing;
 	}
 	await ensureParentFolder(vault, path);
+	return vault.createBinary(path, data);
+}
+
+/** Writes a backup zip (or other binary) under `_sf-backup/` only. */
+export async function writeBackupBinary(vault: Vault, path: string, data: ArrayBuffer): Promise<TFile> {
+	assertBackupPath(path);
+	const existing = vault.getAbstractFileByPath(path);
+	if (existing instanceof TFile) {
+		await vault.modifyBinary(existing, data);
+		return existing;
+	}
+	const lastSlash = path.lastIndexOf("/");
+	if (lastSlash !== -1) {
+		await ensureFolderTree(vault, path.slice(0, lastSlash), assertBackupPath);
+	}
 	return vault.createBinary(path, data);
 }
 

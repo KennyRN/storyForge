@@ -56,6 +56,48 @@ describe("listAllFilesRecursive", () => {
 		expect(result).toContain("Books/My Novel.md");
 		expect(result.some((p) => p.startsWith(".trash/"))).toBe(false);
 	});
+
+	it("always excludes _sf-backup even without an explicit skipFolder", async () => {
+		const app = makeFakeApp({
+			"": { files: ["Welcome.md"], folders: ["_sf-backup", "Books"] },
+			"_sf-backup": { files: ["_sf-backup/old.zip"], folders: [] },
+			Books: { files: ["Books/My Novel.md"], folders: [] },
+		});
+
+		const result = await listAllFilesRecursive(app, "");
+
+		expect(result).toContain("Welcome.md");
+		expect(result).toContain("Books/My Novel.md");
+		expect(result.some((p) => p === "_sf-backup" || p.startsWith("_sf-backup/"))).toBe(false);
+	});
+
+	it("skips an additional folder when skipFolder is set", async () => {
+		const app = makeFakeApp({
+			"": { files: ["Welcome.md"], folders: ["_sf-backstage"] },
+			"_sf-backstage": { files: ["_sf-backstage/series.md"], folders: ["_sf-backstage/tmp"] },
+			"_sf-backstage/tmp": { files: ["_sf-backstage/tmp/scratch.md"], folders: [] },
+		});
+
+		const result = await listAllFilesRecursive(app, "", "_sf-backstage/tmp");
+
+		expect(result).toContain("Welcome.md");
+		expect(result).toContain("_sf-backstage/series.md");
+		expect(result.some((p) => p.startsWith("_sf-backstage/tmp"))).toBe(false);
+	});
+
+	it("skips hidden folders when skipHiddenFolders is true", async () => {
+		const app = makeFakeApp({
+			"": { files: ["Welcome.md"], folders: [".obsidian", "Books"] },
+			".obsidian": { files: [".obsidian/app.json"], folders: [] },
+			Books: { files: ["Books/My Novel.md"], folders: [] },
+		});
+
+		const result = await listAllFilesRecursive(app, "", null, { skipHiddenFolders: true });
+
+		expect(result).toContain("Welcome.md");
+		expect(result).toContain("Books/My Novel.md");
+		expect(result.some((p) => p.startsWith(".obsidian"))).toBe(false);
+	});
 });
 
 describe("fflate zip round trip", () => {

@@ -458,28 +458,21 @@ Notes on conventions used below:
 | settings.importExport.importSettings.buttonText | Import | 1569 |
 | notice.importSettings.error | storyForge: could not import settings — ${...} (template) | 1583 |
 
-### `renderAutomaticBackupSection`
+### `renderBackupContent` (ProtectionsModal)
 
 | ID | Current text | Line |
 |---|---|---|
-| settings.automaticBackup.sectionHeader | Automatic backup | 1594 |
-| settings.automaticBackup.desktopOnly.name | Automatic backup (mobile fallback row, shown only when `Platform.isDesktopApp` is false) | 1596 |
-| settings.automaticBackup.desktopOnly.desc | Automatic backup is only available on desktop. | 1596 |
-| settings.automaticBackup.enabled.name | Automatic backup | 1606 |
-| settings.automaticBackup.enabled.desc | Automatically zip your vault's notes and attachments on a schedule. | 1607 |
-| settings.automaticBackup.folder.name | Backup folder | 1618 |
-| settings.automaticBackup.folder.desc | Absolute folder path on this computer where backup zip files are saved. Required for both automatic and manual backups. | 1619 |
-| settings.automaticBackup.folder.placeholder | /Users/you/Backups/storyForge | 1622 |
-| settings.automaticBackup.frequency.name | Backup frequency | 1632 |
-| settings.automaticBackup.frequency.option.everyOpen | Every time vault is opened | 1634 |
-| settings.automaticBackup.frequency.option.daily | Once daily | 1635 |
-| settings.automaticBackup.frequency.option.weekly | Once weekly | 1636 |
-| settings.automaticBackup.backupNow.name | Back up now | 1647 |
-| settings.automaticBackup.backupNow.desc | Creates a full backup zip immediately, including your .obsidian settings folder — saved to the backup folder above. | 1648 |
-| settings.automaticBackup.backupNow.buttonText | Back up now | 1650 |
-| notice.backupNow.missingFolder | storyForge: set a backup folder before backing up. | 1652 |
-| notice.backupNow.success | storyForge: backup saved to ${path} (template) | 1658 |
-| notice.backupNow.error | storyForge: backup failed — ${...} (template) | 1660 |
+| settings.automaticBackup.enabled.name | Automatic backup | — |
+| settings.automaticBackup.enabled.desc | Automatically zip your vault's notes and attachments on a schedule. Zips are saved to `_sf-backup/`. | — |
+| settings.automaticBackup.frequency.name | Backup frequency | — |
+| settings.automaticBackup.frequency.option.everyOpen | Every time vault is opened | — |
+| settings.automaticBackup.frequency.option.daily | Once daily | — |
+| settings.automaticBackup.frequency.option.weekly | Once weekly | — |
+| settings.automaticBackup.backupNow.name | Back up now | — |
+| settings.automaticBackup.backupNow.desc | Creates a full backup zip immediately, including your .obsidian settings folder — saved to `_sf-backup/`. | — |
+| settings.automaticBackup.backupNow.buttonText | Back up now | — |
+| notice.backupNow.success | storyForge: backup saved to ${path} (template) | — |
+| notice.backupNow.error | storyForge: backup failed — ${...} (template) | — |
 
 ## src/view/ToolsPanel.ts
 
