@@ -131,6 +131,33 @@ function renderRowTitle(row: HTMLElement, displayTitle: string): HTMLElement {
 	return wrap;
 }
 
+/** One Library row: drag handle, titled label, click-to-activate, inline rename (+ optional menu). */
+function renderTitledRow(opts: {
+	list: HTMLElement;
+	key: string;
+	displayTitle: string;
+	selected?: boolean;
+	onActivate: () => void;
+	getCurrentTitle: () => string;
+	onCommit: (newTitle: string) => Promise<void>;
+	extraMenuItems?: ExtraMenuItem[];
+}): void {
+	const row = createRow(opts.list, opts.key);
+	const label = renderRowTitle(row, opts.displayTitle);
+	if (opts.selected) row.addClass("sf-row-selected");
+	row.addEventListener("click", (e) => {
+		if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
+		opts.onActivate();
+	});
+	attachInlineRename({
+		row,
+		label,
+		getCurrentTitle: opts.getCurrentTitle,
+		onCommit: opts.onCommit,
+		extraMenuItems: opts.extraMenuItems,
+	});
+}
+
 function renderUnplacedHeader(
 	zone: HTMLElement,
 	label: string,
@@ -162,6 +189,65 @@ function renderUnplacedHeader(
 	}
 }
 
+/**
+ * Shared Library body: numbered ordered list + unplaced zone, with drag-reorder
+ * across both. Callers only supply how to title/wire each item and how to persist order.
+ */
+function renderOrderedUnplacedLists<T>(config: {
+	bodyEl: HTMLElement;
+	ordered: T[];
+	unplaced: T[];
+	titleOf: (item: T) => string;
+	emptyOrderedHint: string;
+	unplacedHeaderLabel: string;
+	unplacedHidden: boolean;
+	onToggleUnplaced: () => void;
+	onCreate?: () => void;
+	createIcon?: string;
+	wireRow: (list: HTMLElement, item: T, numberedTitle: string) => void;
+	persistOrderedKeys: (keys: string[]) => Promise<void>;
+	refresh: () => void;
+}): void {
+	const sequence = [...config.ordered, ...config.unplaced];
+	const numbered = applyHashNumbering(sequence.map(config.titleOf));
+
+	const mainList = config.bodyEl.createDiv({ cls: "sf-top-list" });
+	config.ordered.forEach((item, i) => config.wireRow(mainList, item, numbered[i]));
+	if (config.ordered.length === 0) {
+		mainList.createDiv({ cls: "sf-empty sf-empty-inline", text: config.emptyOrderedHint });
+	}
+
+	const unplacedZone = config.bodyEl.createDiv({ cls: "sf-unplaced-zone" });
+	renderUnplacedHeader(
+		unplacedZone,
+		config.unplacedHeaderLabel,
+		config.unplacedHidden,
+		config.onToggleUnplaced,
+		config.onCreate,
+		config.createIcon,
+	);
+
+	const zones: DragZone[] = [{ key: "ordered", container: mainList }];
+	if (!config.unplacedHidden) {
+		const unplacedList = unplacedZone.createDiv({ cls: "sf-top-list sf-unplaced-list" });
+		config.unplaced.forEach((item, i) =>
+			config.wireRow(unplacedList, item, numbered[config.ordered.length + i]),
+		);
+		zones.push({ key: "unplaced", container: unplacedList });
+	}
+
+	makeReorderable(zones, ".sf-row", ".sf-drag-handle", (zoneRowKeys) => {
+		void (async () => {
+			try {
+				await config.persistOrderedKeys((zoneRowKeys.ordered ?? []).filter(Boolean));
+			} catch (err) {
+				new Notice(`storyForge: could not save the new order — ${(err as Error).message}`);
+				config.refresh();
+			}
+		})();
+	});
+}
+
 async function handleCreateChapter(app: App, bookFolderName: string): Promise<void> {
 	try {
 		await createChapter(app, bookFolderName);
@@ -186,163 +272,76 @@ function renderSeriesList(
 	options: TopPanelOptions,
 	container: HTMLElement,
 ): void {
-	const rawTitles = [...ordered, ...unplaced].map((folder) => bookDisplayTitle(app, folder.name));
-	const numbered = applyHashNumbering(rawTitles);
-
-	const mainList = bodyEl.createDiv({ cls: "sf-top-list" });
-	ordered.forEach((folder, i) => {
-		const row = createRow(mainList, folder.name);
-		const label = renderRowTitle(row, numbered[i]);
-		row.addEventListener("click", (e) => {
-			if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
-			options.onSelectBook(folder.name);
-		});
-		attachInlineRename({
-			row,
-			label,
-			getCurrentTitle: () => bookDisplayTitle(app, folder.name),
-			onCommit: (newTitle) => renameBookTitle(app, folder.name, newTitle),
-		});
-	});
-	if (ordered.length === 0) {
-		mainList.createDiv({ cls: "sf-empty sf-empty-inline", text: "Drag a book here to sequence it." });
-	}
-
-	const unplacedZone = bodyEl.createDiv({ cls: "sf-unplaced-zone" });
-	const unplacedHidden = options.unplacedMode === "unplacedHidden";
-	renderUnplacedHeader(
-		unplacedZone,
-		"Unplaced Novels",
-		unplacedHidden,
-		options.onToggleUnplacedMode,
-		() => void handleCreateBook(app),
-		ICON_BOOK_PLUS,
-	);
-
-	const zones: DragZone[] = [{ key: "ordered", container: mainList }];
-	if (!unplacedHidden) {
-		const unplacedList = unplacedZone.createDiv({ cls: "sf-top-list sf-unplaced-list" });
-		unplaced.forEach((folder, i) => {
-			const row = createRow(unplacedList, folder.name);
-			const label = renderRowTitle(row, numbered[ordered.length + i]);
-			row.addEventListener("click", (e) => {
-				if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
-				options.onSelectBook(folder.name);
-			});
-			attachInlineRename({
-				row,
-				label,
+	renderOrderedUnplacedLists({
+		bodyEl,
+		ordered,
+		unplaced,
+		titleOf: (folder) => bookDisplayTitle(app, folder.name),
+		emptyOrderedHint: "Drag a book here to sequence it.",
+		unplacedHeaderLabel: "Unplaced Novels",
+		unplacedHidden: options.unplacedMode === "unplacedHidden",
+		onToggleUnplaced: options.onToggleUnplacedMode,
+		onCreate: () => void handleCreateBook(app),
+		createIcon: ICON_BOOK_PLUS,
+		wireRow: (list, folder, numberedTitle) => {
+			renderTitledRow({
+				list,
+				key: folder.name,
+				displayTitle: numberedTitle,
+				onActivate: () => options.onSelectBook(folder.name),
 				getCurrentTitle: () => bookDisplayTitle(app, folder.name),
 				onCommit: (newTitle) => renameBookTitle(app, folder.name, newTitle),
 			});
-		});
-		zones.push({ key: "unplaced", container: unplacedList });
-	}
-
-	makeReorderable(zones, ".sf-row", ".sf-drag-handle", (zoneRowKeys) => {
-		void (async () => {
-			try {
-				await reorderSeriesBooks(app, (zoneRowKeys.ordered ?? []).filter(Boolean));
-			} catch (err) {
-				new Notice(`storyForge: could not save the new order — ${(err as Error).message}`);
-				renderTopPanel(app, container, options);
-			}
-		})();
+		},
+		persistOrderedKeys: (keys) => reorderSeriesBooks(app, keys),
+		refresh: () => renderTopPanel(app, container, options),
 	});
 }
 
-function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, options: TopPanelOptions, container: HTMLElement): void {
+function renderBookList(
+	app: App,
+	bodyEl: HTMLElement,
+	bookFolderName: string,
+	options: TopPanelOptions,
+	container: HTMLElement,
+): void {
 	const { ordered, unplaced } = getBookChapters(app, bookFolderName);
+	const refresh = () => renderTopPanel(app, container, options);
 
-	const rawTitles = [...ordered, ...unplaced].map((file) => chapterDisplayTitle(app, bookFolderName, file.name));
-	const numbered = applyHashNumbering(rawTitles);
-
-	const mainList = bodyEl.createDiv({ cls: "sf-top-list" });
-	ordered.forEach((file, i) => {
-		const row = createRow(mainList, file.name);
-		const label = renderRowTitle(row, numbered[i]);
-		if (options.highlightActiveChapter && options.activeChapterFilename === file.name) {
-			row.addClass("sf-row-selected");
-		}
-		row.addEventListener("click", (e) => {
-			if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
-			options.onOpenChapter(bookFolderName, file.name);
-		});
-		const archiveItem: ExtraMenuItem = {
-			title: "Archive",
-			onClick: async () => {
-				const words = await readChapterWordCount(app, bookFolderName, file.name);
-				await archiveChapter(app, bookFolderName, file.name);
-				await recordChapterArchive(app, bookFolderName, file.name, words);
-				renderTopPanel(app, container, options);
-				void options.onArchiveChapter?.();
-			},
-		};
-		attachInlineRename({
-			row,
-			label,
-			getCurrentTitle: () => chapterDisplayTitle(app, bookFolderName, file.name),
-			onCommit: (newTitle) => renameChapterTitle(app, bookFolderName, file.name, newTitle),
-			extraMenuItems: [archiveItem],
-		});
-	});
-	if (ordered.length === 0) {
-		mainList.createDiv({ cls: "sf-empty sf-empty-inline", text: "Drag a chapter here to sequence it." });
-	}
-
-	const unplacedZone = bodyEl.createDiv({ cls: "sf-unplaced-zone" });
-	const unplacedHidden = options.unplacedMode === "unplacedHidden";
-	renderUnplacedHeader(
-		unplacedZone,
-		"Unplaced Chapters",
-		unplacedHidden,
-		options.onToggleUnplacedMode,
-		() => void handleCreateChapter(app, bookFolderName),
-		ICON_PLUS_SQUARE,
-	);
-
-	const zones: DragZone[] = [{ key: "ordered", container: mainList }];
-	if (!unplacedHidden) {
-		const unplacedList = unplacedZone.createDiv({ cls: "sf-top-list sf-unplaced-list" });
-		unplaced.forEach((file, i) => {
-			const row = createRow(unplacedList, file.name);
-			const label = renderRowTitle(row, numbered[ordered.length + i]);
-			if (options.highlightActiveChapter && options.activeChapterFilename === file.name) {
-				row.addClass("sf-row-selected");
-			}
-			row.addEventListener("click", (e) => {
-				if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
-				options.onOpenChapter(bookFolderName, file.name);
-			});
+	renderOrderedUnplacedLists({
+		bodyEl,
+		ordered,
+		unplaced,
+		titleOf: (file) => chapterDisplayTitle(app, bookFolderName, file.name),
+		emptyOrderedHint: "Drag a chapter here to sequence it.",
+		unplacedHeaderLabel: "Unplaced Chapters",
+		unplacedHidden: options.unplacedMode === "unplacedHidden",
+		onToggleUnplaced: options.onToggleUnplacedMode,
+		onCreate: () => void handleCreateChapter(app, bookFolderName),
+		createIcon: ICON_PLUS_SQUARE,
+		wireRow: (list, file, numberedTitle) => {
 			const archiveItem: ExtraMenuItem = {
 				title: "Archive",
 				onClick: async () => {
 					const words = await readChapterWordCount(app, bookFolderName, file.name);
 					await archiveChapter(app, bookFolderName, file.name);
 					await recordChapterArchive(app, bookFolderName, file.name, words);
-					renderTopPanel(app, container, options);
+					refresh();
 					void options.onArchiveChapter?.();
 				},
 			};
-			attachInlineRename({
-				row,
-				label,
+			renderTitledRow({
+				list,
+				key: file.name,
+				displayTitle: numberedTitle,
+				selected: Boolean(options.highlightActiveChapter && options.activeChapterFilename === file.name),
+				onActivate: () => options.onOpenChapter(bookFolderName, file.name),
 				getCurrentTitle: () => chapterDisplayTitle(app, bookFolderName, file.name),
 				onCommit: (newTitle) => renameChapterTitle(app, bookFolderName, file.name, newTitle),
 				extraMenuItems: [archiveItem],
 			});
-		});
-		zones.push({ key: "unplaced", container: unplacedList });
-	}
-
-	makeReorderable(zones, ".sf-row", ".sf-drag-handle", (zoneRowKeys) => {
-		void (async () => {
-			try {
-				await writeBookChapterOrder(app, bookFolderName, (zoneRowKeys.ordered ?? []).filter(Boolean));
-			} catch (err) {
-				new Notice(`storyForge: could not save the new order — ${(err as Error).message}`);
-				renderTopPanel(app, container, options);
-			}
-		})();
+		},
+		persistOrderedKeys: (keys) => writeBookChapterOrder(app, bookFolderName, keys),
+		refresh,
 	});
 }
