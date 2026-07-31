@@ -39,25 +39,12 @@ function extractSection(body: string, header: string): string {
 	return (nextHeaderIdx === -1 ? body.slice(start) : body.slice(start, nextHeaderIdx)).trim();
 }
 
-function upsertSection(body: string, header: string, content: string): string {
-	const newSection = `${header}\n${content.trim()}\n`;
-	const idx = body.indexOf(header);
-	if (idx === -1) {
-		const sep = body.trim().length === 0 ? "" : "\n";
-		return `${body.trimEnd()}${sep}\n${newSection}`;
-	}
-	const start = idx + header.length;
-	const nextHeaderIdx = body.indexOf("\n## ", start);
-	const before = body.slice(0, idx);
-	const after = nextHeaderIdx === -1 ? "" : body.slice(nextHeaderIdx + 1);
-	return `${before}${newSection}${after}`;
-}
-
 const WAS_SUFFIX = /\s*\(was\)\s*$/i;
 
 /**
  * Parses a Facts-style section from a note body.
  * Lines: `key: value` for current facts; `key (was): old` for history (oldest first by line order).
+ * `(was)` history is user-authored — the plugin honours it on read, never writes it.
  */
 export function parseFactsFromSection(sectionBody: string, heading: string): ParsedFacts {
 	const entries: Record<string, FactValue> = {};
@@ -96,7 +83,7 @@ export function parseFactsFromNote(raw: string, heading: string): ParsedFacts {
 	return parseFactsFromSection(section, heading);
 }
 
-/** Serializes facts back to section body lines. */
+/** Serializes facts to section body lines (used when seeding a new Codex stub). */
 export function serializeFactsSection(facts: ParsedFacts): string {
 	const lines: string[] = [];
 	for (const [norm, entry] of Object.entries(facts.entries)) {
@@ -109,14 +96,7 @@ export function serializeFactsSection(facts: ParsedFacts): string {
 	return lines.join("\n");
 }
 
-/** Returns full note content with the Facts section upserted. */
-export function writeFactsIntoNote(raw: string, facts: ParsedFacts): string {
-	const { frontmatterBlock, body } = splitFrontmatterAndBody(raw);
-	const header = `## ${facts.heading}`;
-	return frontmatterBlock + upsertSection(body, header, serializeFactsSection(facts));
-}
-
-/** Sets the current value for a key, optionally pushing the previous value into `was`. */
+/** Sets the current value for a key (stub seeding only — never writes into an existing Codex body). */
 export function setFactValue(facts: ParsedFacts, key: string, newValue: string, pushWas: boolean): ParsedFacts {
 	const norm = normalizeFactKey(key);
 	const next: ParsedFacts = {
@@ -132,11 +112,6 @@ export function setFactValue(facts: ParsedFacts, key: string, newValue: string, 
 	}
 	next.entries[norm] = { value: newValue.trim(), was };
 	return next;
-}
-
-/** Acknowledges a chapter-observed value: keeps Codex current value, records chapter value as intentional revision via was + new current. */
-export function acknowledgeFactChange(facts: ParsedFacts, key: string, chapterValue: string): ParsedFacts {
-	return setFactValue(facts, key, chapterValue, true);
 }
 
 export function emptyFacts(heading: string): ParsedFacts {

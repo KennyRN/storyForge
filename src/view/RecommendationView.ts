@@ -1,4 +1,12 @@
-import { ConfirmationModal, ItemView, Notice, TFile, WorkspaceLeaf, setIcon } from "obsidian";
+import {
+	ConfirmationModal,
+	ItemView,
+	MarkdownView,
+	Notice,
+	TFile,
+	WorkspaceLeaf,
+	setIcon,
+} from "obsidian";
 import type StoryForgePlugin from "../main";
 import {
 	getBookChapters,
@@ -11,32 +19,47 @@ import { debounce } from "../debounce";
 import { ICON_TIMELINE } from "../icons";
 import {
 	bookFolderNameFromChapterPath,
+	CODEX_ROOT,
 	isLibraryChapterPath,
 	libraryChapterPath,
 } from "../paths";
 import { getBookId } from "../series";
-import { buildContinuityTimelines, formatContinuityLine } from "../recommend/continuity";
-import { acknowledgeCodexFactChange, updateCodexFact } from "../recommend/factWrites";
-import { readRecommendCache } from "../recommend/cache";
+import { groupHitsByChapter, lensLabel } from "../recommend/continuity";
+import {
+	markResolved,
+	readAttributionStore,
+	upsertAttributionDecision,
+} from "../recommend/decisions";
+import { ensureNlp } from "../recommend/nlp";
 import { loadOrRecomputeChapterRecommend, recomputeChapterRecommend } from "../recommend/recompute";
+import { scanEntityAcrossChapters } from "../recommend/engine";
+import { loadHydratedCodexInventory } from "../recommend/inventory";
 import { createCodexStub } from "../recommend/stubs";
-import type { ChapterRecommendReport, ContinuityTimeline, FactCheckRow } from "../recommend/types";
+import type { CastMember, ChapterRecommendReport, DetailHit, UnknownNameHint } from "../recommend/types";
 import { makeAccessibleActivatable } from "./a11y";
+import { activateRightRailView } from "./activateRightRailView";
 import { CodexStubTypeModal } from "./CodexStubTypeModal";
 
 export const RECOMMEND_VIEW_TYPE = "storyforge-recommend-view";
 
-type RecommendMode = "chapter" | "continuity";
+type RecommendMode = "chapter" | "dossier";
 
 export class RecommendationView extends ItemView {
 	private bookFolderName: string | null = null;
 	private chapterFilename: string | null = null;
 	private mode: RecommendMode = "chapter";
 	private report: ChapterRecommendReport | null = null;
-	private continuity: ContinuityTimeline[] = [];
-	private continuityBuilding = false;
 	private synopsisDraft = "";
 	private closed = false;
+	private nlpReady = false;
+	private loading = false;
+
+	/** Dossier tab state */
+	private dossierQuery = "";
+	private dossierEntity: CastMember | null = null;
+	private dossierHits: DetailHit[] = [];
+	private dossierBuilding = false;
+	private castCache: CastMember[] = [];
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -66,7 +89,12 @@ export class RecommendationView extends ItemView {
 		this.registerEvent(this.app.workspace.on("file-open", () => this.followActiveFile()));
 		this.registerEvent(
 			this.app.vault.on("modify", (file) => {
-				if (isLibraryChapterPath(file.path) || file.path.startsWith("Codex/") || file.path.endsWith("codex.md")) {
+				const codexPrefix = `${CODEX_ROOT}/`;
+				if (
+					isLibraryChapterPath(file.path) ||
+					file.path.startsWith(codexPrefix) ||
+					file.path.endsWith("codex.md")
+				) {
 					this.debouncedReload();
 				}
 			}),
@@ -107,10 +135,23 @@ export class RecommendationView extends ItemView {
 		};
 	}
 
+	/** First panel open loads winkNLP; subsequent opens are free. */
+	private async ensureEngine(): Promise<void> {
+		if (this.nlpReady) return;
+		this.loading = true;
+		this.render();
+		await ensureNlp();
+		this.nlpReady = true;
+		this.loading = false;
+	}
+
 	private async reload(): Promise<void> {
 		if (this.closed) return;
-		if (this.mode === "continuity") {
-			await this.loadContinuity();
+		await this.ensureEngine();
+		if (this.closed) return;
+
+		if (this.mode === "dossier") {
+			await this.refreshCast();
 			this.render();
 			return;
 		}
@@ -132,6 +173,7 @@ export class RecommendationView extends ItemView {
 	}
 
 	private async forceRefresh(): Promise<void> {
+		await this.ensureEngine();
 		if (!this.bookFolderName || !this.chapterFilename) return;
 		const bookId = getBookId(this.app, this.bookFolderName);
 		this.report = await recomputeChapterRecommend(
@@ -142,39 +184,23 @@ export class RecommendationView extends ItemView {
 			this.recommendSettings(),
 		);
 		if (this.report) this.synopsisDraft = this.report.synopsisHeuristic;
-		if (this.mode === "continuity") await this.loadContinuity();
+		if (this.mode === "dossier" && this.dossierEntity) {
+			await this.runDossierSearch(this.dossierEntity);
+		}
 		this.render();
 	}
 
-	private async loadContinuity(): Promise<void> {
+	private async refreshCast(): Promise<void> {
 		if (!this.bookFolderName) {
-			this.continuity = [];
+			this.castCache = [];
 			return;
 		}
-		this.continuityBuilding = true;
-		this.render();
 		const bookId = getBookId(this.app, this.bookFolderName);
-		const chapters = getBookChapters(this.app, this.bookFolderName);
-		const ordered = chapters.ordered.map((f) => ({
-			filename: f.name,
-			label: numberedChapterTitle(this.app, this.bookFolderName!, f.name),
-		}));
-		const reports = new Map<string, ChapterRecommendReport>();
-		for (const ch of ordered) {
-			let cached = await readRecommendCache(this.app, this.bookFolderName, ch.filename);
-			if (!cached) {
-				cached = await recomputeChapterRecommend(
-					this.app,
-					this.bookFolderName,
-					ch.filename,
-					bookId,
-					this.recommendSettings(),
-				);
-			}
-			if (cached) reports.set(ch.filename, cached);
-		}
-		this.continuity = buildContinuityTimelines(ordered, reports);
-		this.continuityBuilding = false;
+		this.castCache = await loadHydratedCodexInventory(
+			this.app,
+			bookId,
+			this.recommendSettings().codexFactSectionByType,
+		);
 	}
 
 	private render(): void {
@@ -192,23 +218,33 @@ export class RecommendationView extends ItemView {
 		const chapterTab = tabs.createSpan({
 			cls: `sf-recommend-tab${this.mode === "chapter" ? " is-active" : ""}`,
 			text: "Chapter",
+			attr: { role: "tab", tabindex: "0", "aria-selected": String(this.mode === "chapter") },
 		});
-		const continuityTab = tabs.createSpan({
-			cls: `sf-recommend-tab${this.mode === "continuity" ? " is-active" : ""}`,
-			text: "Continuity",
+		const dossierTab = tabs.createSpan({
+			cls: `sf-recommend-tab${this.mode === "dossier" ? " is-active" : ""}`,
+			text: "Dossier",
+			attr: { role: "tab", tabindex: "0", "aria-selected": String(this.mode === "dossier") },
 		});
 		chapterTab.addEventListener("click", () => {
 			this.mode = "chapter";
 			void this.reload();
 		});
-		continuityTab.addEventListener("click", () => {
-			this.mode = "continuity";
+		dossierTab.addEventListener("click", () => {
+			this.mode = "dossier";
+			void this.reload();
+		});
+		makeAccessibleActivatable(chapterTab, () => {
+			this.mode = "chapter";
+			void this.reload();
+		});
+		makeAccessibleActivatable(dossierTab, () => {
+			this.mode = "dossier";
 			void this.reload();
 		});
 
 		const refreshBtn = header.createSpan({
 			cls: "sf-recommend-refresh",
-			attr: { "aria-label": "Refresh story context" },
+			attr: { "aria-label": "Refresh story context", tabindex: "0", role: "button" },
 		});
 		setIcon(refreshBtn, "refresh-cw");
 		refreshBtn.addEventListener("click", (e) => {
@@ -217,8 +253,13 @@ export class RecommendationView extends ItemView {
 		});
 		makeAccessibleActivatable(refreshBtn, () => void this.forceRefresh());
 
-		if (this.mode === "continuity") {
-			this.renderContinuity(el);
+		if (this.loading) {
+			el.createDiv({ cls: "sf-empty", text: "Loading language model…" });
+			return;
+		}
+
+		if (this.mode === "dossier") {
+			this.renderDossier(el);
 			return;
 		}
 		this.renderChapter(el);
@@ -237,7 +278,6 @@ export class RecommendationView extends ItemView {
 		const title = numberedChapterTitle(this.app, this.bookFolderName, this.chapterFilename);
 		el.createDiv({ cls: "sf-recommend-chapter-title", text: title });
 
-		// Synopsis
 		const synSection = el.createDiv({ cls: "sf-recommend-section" });
 		synSection.createDiv({ cls: "sf-recommend-section-title", text: "Synopsis" });
 		const textarea = synSection.createEl("textarea", { cls: "sf-recommend-synopsis" });
@@ -258,10 +298,9 @@ export class RecommendationView extends ItemView {
 		const others = report.matched.filter((m) => m.type !== "person");
 
 		this.renderMatchList(el, "Characters in chapter", persons);
-		this.renderUnknownList(el, report.unknownNames);
+		this.renderUnknownList(el, report);
 		this.renderMatchList(el, "Other Codex references", others);
-		this.renderDescriptions(el, report);
-		this.renderFactWarnings(el, report.factChecks);
+		this.renderDetailHits(el, report);
 	}
 
 	private renderMatchList(
@@ -294,107 +333,367 @@ export class RecommendationView extends ItemView {
 		}
 	}
 
-	private renderUnknownList(el: HTMLElement, names: string[]): void {
+	private renderUnknownList(el: HTMLElement, report: ChapterRecommendReport): void {
 		const section = el.createDiv({ cls: "sf-recommend-section" });
 		section.createDiv({ cls: "sf-recommend-section-title", text: "Named but not in Codex" });
-		if (names.length === 0) {
+		const hints: UnknownNameHint[] =
+			report.unknownNameHints.length > 0
+				? report.unknownNameHints
+				: report.unknownNames.map((name) => ({ name }));
+		if (hints.length === 0) {
 			section.createDiv({ cls: "sf-empty", text: "None found." });
 			return;
 		}
-		for (const name of names) {
+		for (const hint of hints) {
 			const row = section.createDiv({ cls: "sf-recommend-row" });
-			row.createSpan({ cls: "sf-recommend-row-label", text: name });
+			const label = hint.nerType ? `${hint.name} (${hint.nerType})` : hint.name;
+			row.createSpan({ cls: "sf-recommend-row-label", text: label });
 			const btn = row.createEl("button", {
 				cls: "sf-recommend-stub-btn",
 				text: "Create in Codex",
 			});
-			btn.addEventListener("click", () => void this.createStub(name));
+			btn.addEventListener("click", () => void this.createStub(hint.name, hint.nerType));
 		}
 	}
 
-	private renderDescriptions(el: HTMLElement, report: ChapterRecommendReport): void {
+	private renderDetailHits(el: HTMLElement, report: ChapterRecommendReport): void {
+		const open = report.hits.filter((h) => !h.resolved && h.tier !== "ambiguous");
+		const holding = report.hits.filter((h) => !h.resolved && h.tier === "ambiguous");
+		const done = report.hits.filter((h) => h.resolved);
+
+		this.renderHitSection(el, "Details to capture", open, { showResolve: true });
+		this.renderHitSection(el, "Holding area", holding, { showResolve: true, holding: true });
+		if (done.length > 0) {
+			this.renderHitSection(el, "Resolved", done, { showResolve: false });
+		}
+	}
+
+	private renderHitSection(
+		el: HTMLElement,
+		title: string,
+		hits: DetailHit[],
+		opts: { showResolve: boolean; holding?: boolean },
+	): void {
 		const section = el.createDiv({ cls: "sf-recommend-section" });
-		section.createDiv({ cls: "sf-recommend-section-title", text: "Descriptions" });
-		if (report.descriptions.length === 0) {
-			section.createDiv({ cls: "sf-empty", text: "None found." });
+		section.createDiv({ cls: "sf-recommend-section-title", text: title });
+		if (hits.length === 0) {
+			section.createDiv({ cls: "sf-empty", text: "None." });
 			return;
 		}
-		for (const desc of report.descriptions) {
-			const row = section.createDiv({ cls: "sf-recommend-desc" });
-			const nameText = desc.ambiguous ? `${desc.names.join(" / ")} ?` : desc.names.join(", ");
-			row.createDiv({ cls: "sf-recommend-desc-names", text: nameText });
-			row.createDiv({ cls: "sf-recommend-desc-text", text: desc.text });
-			if (desc.path) {
-				row.addEventListener("click", () => void this.openPath(desc.path!));
+
+		// Group by entity
+		const byEntity = new Map<string, DetailHit[]>();
+		for (const hit of hits) {
+			const key = hit.entityPath ?? hit.entityName;
+			let list = byEntity.get(key);
+			if (!list) {
+				list = [];
+				byEntity.set(key, list);
 			}
+			list.push(hit);
 		}
-	}
 
-	private renderFactWarnings(el: HTMLElement, rows: FactCheckRow[]): void {
-		const section = el.createDiv({ cls: "sf-recommend-section" });
-		section.createDiv({ cls: "sf-recommend-section-title", text: "Fact warnings" });
-		const interesting = rows.filter((r) => r.status === "conflict" || r.status === "unknown" || r.status === "acknowledged");
-		if (interesting.length === 0) {
-			section.createDiv({ cls: "sf-empty", text: "No warnings." });
-			return;
-		}
-		for (const row of interesting) {
-			const line = section.createDiv({
-				cls: `sf-recommend-fact sf-recommend-fact-${row.status}`,
+		for (const [, entityHits] of byEntity) {
+			const first = entityHits[0]!;
+			const entityHeader = section.createDiv({ cls: "sf-recommend-entity-header" });
+			entityHeader.createSpan({
+				cls: "sf-recommend-entity-name",
+				text: first.entityName,
 			});
-			const summary =
-				row.status === "conflict"
-					? `${row.name} · ${row.displayKey}: Codex “${row.codexValue}” vs chapter “${row.chapterValue}”`
-					: row.status === "acknowledged"
-						? `${row.name} · ${row.displayKey}: “${row.chapterValue}” (acknowledged)`
-						: `${row.name} · ${row.displayKey}: chapter “${row.chapterValue}” (not in Codex)`;
-			line.createDiv({ cls: "sf-recommend-fact-text", text: summary });
-			if (row.status === "conflict") {
-				const actions = line.createDiv({ cls: "sf-recommend-fact-actions" });
-				const updateBtn = actions.createEl("button", { text: "Update Codex" });
-				updateBtn.addEventListener("click", () => void this.handleUpdateFact(row));
-				const ackBtn = actions.createEl("button", { text: "Acknowledge change" });
-				ackBtn.addEventListener("click", () => void this.handleAcknowledgeFact(row));
-			} else if (row.status === "unknown") {
-				const actions = line.createDiv({ cls: "sf-recommend-fact-actions" });
-				const addBtn = actions.createEl("button", { text: "Add to Codex" });
-				addBtn.addEventListener("click", () => void this.handleUpdateFact(row));
+			if (first.entityPath) {
+				entityHeader.addEventListener("click", () => void this.openPath(first.entityPath!));
+				makeAccessibleActivatable(entityHeader, () => void this.openPath(first.entityPath!));
+			}
+
+			for (const hit of entityHits) {
+				this.renderHitCard(section, hit, opts);
 			}
 		}
 	}
 
-	private renderContinuity(el: HTMLElement): void {
+	private renderHitCard(
+		parent: HTMLElement,
+		hit: DetailHit,
+		opts: { showResolve: boolean; holding?: boolean },
+	): void {
+		const card = parent.createDiv({
+			cls: `sf-recommend-hit sf-recommend-hit-${hit.tier}${hit.resolved ? " is-resolved" : ""}${hit.negated ? " is-negated" : ""}`,
+		});
+
+		const meta = card.createDiv({ cls: "sf-recommend-hit-meta" });
+		meta.createSpan({
+			cls: `sf-recommend-tier sf-recommend-tier-${hit.tier}`,
+			text: hit.tier,
+		});
+		meta.createSpan({ cls: "sf-recommend-lens", text: lensLabel(hit.lens) });
+		if (hit.trait) {
+			meta.createSpan({ cls: "sf-recommend-trait", text: hit.trait });
+		}
+		if (hit.negated) {
+			meta.createSpan({ cls: "sf-recommend-negated", text: "negated" });
+		}
+
+		const spanEl = card.createDiv({ cls: "sf-recommend-hit-span", text: hit.sentence });
+		spanEl.addEventListener("click", () => void this.jumpToHit(hit));
+		makeAccessibleActivatable(spanEl, () => void this.jumpToHit(hit));
+
+		if (hit.currentCodexFact) {
+			card.createDiv({
+				cls: "sf-recommend-codex-fact",
+				text: `Codex · ${hit.currentCodexFact.key}: ${hit.currentCodexFact.value}`,
+			});
+		} else {
+			card.createDiv({
+				cls: "sf-recommend-codex-fact is-missing",
+				text: "Codex · (no matching fact yet)",
+			});
+		}
+
+		if (opts.holding && hit.competingNames.length > 0) {
+			card.createDiv({
+				cls: "sf-recommend-competing",
+				text: `Could be: ${hit.competingNames.join(", ")}`,
+			});
+		}
+
+		if (!opts.showResolve || hit.resolved) return;
+
+		const actions = card.createDiv({ cls: "sf-recommend-hit-actions" });
+
+		if (hit.tier === "solid") {
+			const doneBtn = actions.createEl("button", { text: "Done" });
+			doneBtn.addEventListener("click", () => void this.resolveHit(hit));
+			const openBtn = actions.createEl("button", { text: "Open Codex" });
+			openBtn.addEventListener("click", () => {
+				if (hit.entityPath) void this.openPath(hit.entityPath);
+			});
+		} else if (hit.tier === "grey") {
+			const confirmBtn = actions.createEl("button", { text: "Confirm" });
+			confirmBtn.addEventListener("click", () => void this.confirmAndResolve(hit));
+			const rejectBtn = actions.createEl("button", { text: "Not this entity" });
+			rejectBtn.addEventListener("click", () => void this.rejectHit(hit));
+		} else if (hit.tier === "ambiguous") {
+			for (const name of hit.competingNames) {
+				const btn = actions.createEl("button", { text: name });
+				btn.addEventListener("click", () => void this.assignAmbiguous(hit, name));
+			}
+		}
+	}
+
+	private renderDossier(el: HTMLElement): void {
 		if (!this.bookFolderName) {
 			el.createDiv({ cls: "sf-empty", text: "Open a chapter to see story context." });
 			return;
 		}
-		if (this.continuityBuilding) {
-			el.createDiv({ cls: "sf-empty", text: "Building…" });
-			return;
-		}
-		if (this.continuity.length === 0) {
-			el.createDiv({ cls: "sf-empty", text: "No continuity signals yet." });
-			return;
-		}
+
 		const section = el.createDiv({ cls: "sf-recommend-section" });
-		section.createDiv({ cls: "sf-recommend-section-title", text: "Book continuity" });
-		for (const timeline of this.continuity) {
-			const row = section.createDiv({
-				cls: `sf-recommend-continuity${timeline.hasConflict ? " has-conflict" : ""}`,
+		section.createDiv({ cls: "sf-recommend-section-title", text: "Search Codex entity" });
+		const input = section.createEl("input", {
+			cls: "sf-recommend-dossier-search",
+			attr: {
+				type: "search",
+				placeholder: "Character, place, or other Codex name…",
+				value: this.dossierQuery,
+			},
+		});
+		input.value = this.dossierQuery;
+		input.addEventListener("input", () => {
+			this.dossierQuery = input.value;
+			this.renderDossierSuggestions(suggestBox);
+		});
+		input.addEventListener("pointerdown", (e) => e.stopPropagation());
+
+		const suggestBox = section.createDiv({ cls: "sf-recommend-dossier-suggest" });
+		this.renderDossierSuggestions(suggestBox);
+
+		if (this.dossierBuilding) {
+			el.createDiv({ cls: "sf-empty", text: "Scanning book…" });
+			return;
+		}
+
+		if (!this.dossierEntity) {
+			el.createDiv({
+				cls: "sf-empty",
+				text: "Pick a Codex entity to read everything the book says about them, in chapter order.",
 			});
-			row.createDiv({ cls: "sf-recommend-continuity-line", text: formatContinuityLine(timeline) });
-			const steps = row.createDiv({ cls: "sf-recommend-continuity-steps" });
-			for (const step of timeline.steps) {
-				const chip = steps.createSpan({
-					cls: `sf-recommend-step sf-recommend-step-${step.status}`,
-					text: step.chapterLabel,
-				});
-				chip.addEventListener("click", () => {
-					if (!this.bookFolderName) return;
-					void this.openChapter(this.bookFolderName, step.chapterFilename);
-				});
+			return;
+		}
+
+		const heading = el.createDiv({ cls: "sf-recommend-chapter-title" });
+		heading.setText(this.dossierEntity.name);
+		if (this.dossierEntity.path) {
+			heading.addEventListener("click", () => void this.openPath(this.dossierEntity!.path));
+			makeAccessibleActivatable(heading, () => void this.openPath(this.dossierEntity!.path));
+		}
+
+		if (this.dossierHits.length === 0) {
+			el.createDiv({ cls: "sf-empty", text: "No located details for this entity yet." });
+			return;
+		}
+
+		const chapters = getBookChapters(this.app, this.bookFolderName);
+		const ordered = chapters.ordered.map((f) => ({
+			filename: f.name,
+			label: numberedChapterTitle(this.app, this.bookFolderName!, f.name),
+		}));
+		const groups = groupHitsByChapter(ordered, this.dossierHits);
+
+		for (const group of groups) {
+			const chSection = el.createDiv({ cls: "sf-recommend-section" });
+			const chTitle = chSection.createDiv({
+				cls: "sf-recommend-section-title",
+				text: group.chapter.label,
+			});
+			chTitle.addEventListener("click", () => {
+				if (!this.bookFolderName) return;
+				void this.openChapter(this.bookFolderName, group.chapter.filename);
+			});
+			makeAccessibleActivatable(chTitle, () => {
+				if (!this.bookFolderName) return;
+				void this.openChapter(this.bookFolderName!, group.chapter.filename);
+			});
+
+			for (const hit of group.hits) {
+				this.renderHitCard(chSection, { ...hit, resolved: false }, { showResolve: false });
 			}
 		}
+	}
+
+	private renderDossierSuggestions(box: HTMLElement): void {
+		box.empty();
+		const q = this.dossierQuery.trim().toLowerCase();
+		if (!q) return;
+		const matches = this.castCache
+			.filter(
+				(c) =>
+					c.name.toLowerCase().includes(q) ||
+					c.aliases.some((a) => a.toLowerCase().includes(q)),
+			)
+			.slice(0, 12);
+		for (const m of matches) {
+			const row = box.createDiv({ cls: "sf-recommend-row" });
+			const iconId = codexTypeIcon(m.type);
+			if (iconId) setIcon(row.createSpan({ cls: "sf-icon" }), iconId);
+			const label = row.createSpan({ cls: "sf-recommend-row-label", text: m.name });
+			label.addEventListener("click", () => void this.selectDossierEntity(m));
+			makeAccessibleActivatable(label, () => void this.selectDossierEntity(m));
+		}
+	}
+
+	private async selectDossierEntity(entity: CastMember): Promise<void> {
+		this.dossierEntity = entity;
+		this.dossierQuery = entity.name;
+		await this.runDossierSearch(entity);
+		this.render();
+	}
+
+	private async runDossierSearch(entity: CastMember): Promise<void> {
+		if (!this.bookFolderName) return;
+		this.dossierBuilding = true;
+		this.render();
+		await this.refreshCast();
+		const attribution = await readAttributionStore(this.app, this.bookFolderName);
+		const chapters = getBookChapters(this.app, this.bookFolderName);
+		const files: Array<{ filename: string; raw: string }> = [];
+		for (const f of chapters.ordered) {
+			const path = libraryChapterPath(this.bookFolderName, f.name);
+			const file = this.app.vault.getAbstractFileByPath(path);
+			if (file instanceof TFile) {
+				files.push({ filename: f.name, raw: await this.app.vault.cachedRead(file) });
+			}
+		}
+		this.dossierHits = await scanEntityAcrossChapters(
+			files,
+			entity,
+			this.castCache,
+			attribution.decisions,
+		);
+		this.dossierBuilding = false;
+	}
+
+	private async resolveHit(hit: DetailHit): Promise<void> {
+		if (!this.bookFolderName || !this.chapterFilename) return;
+		await markResolved(this.app, this.bookFolderName, this.chapterFilename, hit.id);
+		hit.resolved = true;
+		this.render();
+	}
+
+	private async confirmAndResolve(hit: DetailHit): Promise<void> {
+		if (!this.bookFolderName || !this.chapterFilename || !hit.entityPath) return;
+		await upsertAttributionDecision(this.app, this.bookFolderName, {
+			entityPath: hit.entityPath,
+			sentence: hit.sentence,
+			action: "confirmed",
+		});
+		await markResolved(this.app, this.bookFolderName, this.chapterFilename, hit.id);
+		hit.attribution = "confirmed";
+		hit.tier = "solid";
+		hit.resolved = true;
+		this.render();
+	}
+
+	private async rejectHit(hit: DetailHit): Promise<void> {
+		if (!this.bookFolderName || !hit.entityPath) return;
+		await upsertAttributionDecision(this.app, this.bookFolderName, {
+			entityPath: hit.entityPath,
+			sentence: hit.sentence,
+			action: "rejected",
+		});
+		await this.forceRefresh();
+	}
+
+	private async assignAmbiguous(hit: DetailHit, chosenName: string): Promise<void> {
+		if (!this.bookFolderName || !this.chapterFilename) return;
+		const chosen = (this.report?.matched.find((m) => m.name === chosenName) ?? null);
+		const cast = await loadHydratedCodexInventory(
+			this.app,
+			getBookId(this.app, this.bookFolderName),
+			this.recommendSettings().codexFactSectionByType,
+		);
+		const entry = cast.find((c) => c.name === chosenName) ?? null;
+		const path = chosen?.path ?? entry?.path;
+		if (!path) return;
+
+		// Confirm for chosen; reject prior guess if different
+		if (hit.entityPath && hit.entityPath !== path) {
+			await upsertAttributionDecision(this.app, this.bookFolderName, {
+				entityPath: hit.entityPath,
+				sentence: hit.sentence,
+				action: "rejected",
+				reroutePath: path,
+			});
+		}
+		await upsertAttributionDecision(this.app, this.bookFolderName, {
+			entityPath: path,
+			sentence: hit.sentence,
+			action: "confirmed",
+		});
+		await markResolved(this.app, this.bookFolderName, this.chapterFilename, hit.id);
+		await this.forceRefresh();
+	}
+
+	/**
+	 * Transient reveal: scroll to and flash-select the source line(s).
+	 * Not an editor decoration — respects "nothing shown in the editor window."
+	 */
+	private async jumpToHit(hit: DetailHit): Promise<void> {
+		if (!this.bookFolderName) return;
+		const path = libraryChapterPath(this.bookFolderName, hit.chapterFilename);
+		const file = this.app.vault.getAbstractFileByPath(path);
+		if (!(file instanceof TFile)) return;
+		const leaf = this.app.workspace.getLeaf(false);
+		await leaf.openFile(file);
+		const view = leaf.view;
+		if (!(view instanceof MarkdownView)) return;
+		const editor = view.editor;
+		const line = Math.max(0, hit.line - 1);
+		const lineText = editor.getLine(line) ?? "";
+		editor.setSelection({ line, ch: 0 }, { line, ch: lineText.length });
+		editor.scrollIntoView({ from: { line, ch: 0 }, to: { line, ch: lineText.length } }, true);
+		window.setTimeout(() => {
+			const cursor = editor.getCursor();
+			editor.setSelection(cursor, cursor);
+		}, 1200);
 	}
 
 	private async sendSynopsis(): Promise<void> {
@@ -426,52 +725,21 @@ export class RecommendationView extends ItemView {
 		new Notice("storyForge: synopsis sent to chapter plot");
 	}
 
-	private factHeadingForPath(path: string): string {
-		const types = this.plugin.getSettings().codexFactSectionByType;
-		// Resolve type from matched report or default
-		const matched = this.report?.matched.find((m) => m.path === path);
-		const type = matched?.type ?? "person";
-		return types[type] ?? "Facts";
-	}
-
-	private async handleUpdateFact(row: FactCheckRow): Promise<void> {
-		await updateCodexFact(this.app, row.path, this.factHeadingForPath(row.path), row.key, row.chapterValue);
-		new Notice("storyForge: Codex fact updated");
-		await this.forceRefresh();
-	}
-
-	private async handleAcknowledgeFact(row: FactCheckRow): Promise<void> {
-		await acknowledgeCodexFactChange(
-			this.app,
-			row.path,
-			this.factHeadingForPath(row.path),
-			row.key,
-			row.chapterValue,
-		);
-		new Notice("storyForge: fact change acknowledged");
-		await this.forceRefresh();
-	}
-
-	private async createStub(name: string): Promise<void> {
+	private async createStub(name: string, nerType?: string): Promise<void> {
 		new CodexStubTypeModal(this.app, (type) => {
 			if (!type) return;
 			void this.finishStub(name, type);
-		}).open();
+		}, nerTypeHintToCodexType(nerType)).open();
 	}
 
 	private async finishStub(name: string, type: string): Promise<void> {
 		const heading = this.plugin.getSettings().codexFactSectionByType[type] ?? "Facts";
-		const seeds =
-			this.report?.descriptions
-				.filter((d) => d.names.some((n) => n.toLowerCase() === name.toLowerCase()) || d.text.includes(name))
-				.flatMap((d) => d.attributes) ?? [];
 		const bookId = this.bookFolderName ? getBookId(this.app, this.bookFolderName) : null;
 		try {
 			const file = await createCodexStub(this.app, {
 				name,
 				type,
 				factsHeading: heading,
-				factSeeds: seeds,
 				bookId,
 			});
 			await this.app.workspace.getLeaf(false).openFile(file);
@@ -498,18 +766,18 @@ export class RecommendationView extends ItemView {
 	}
 }
 
+/** Opportunistic NER → Codex type pre-fill; never required. */
+function nerTypeHintToCodexType(nerType?: string): string | undefined {
+	if (!nerType) return undefined;
+	const t = nerType.toUpperCase();
+	if (t.includes("PERSON") || t === "PER") return "person";
+	if (t.includes("LOC") || t.includes("GPE") || t.includes("PLACE")) return "place";
+	return undefined;
+}
+
 export async function activateRecommendView(plugin: StoryForgePlugin): Promise<void> {
-	const { workspace } = plugin.app;
-	let leaf: WorkspaceLeaf | null = workspace.getLeavesOfType(RECOMMEND_VIEW_TYPE)[0] ?? null;
-	if (!leaf) {
-		leaf = workspace.getRightLeaf(false);
-		await leaf?.setViewState({ type: RECOMMEND_VIEW_TYPE, active: true });
-	}
-	if (leaf) {
-		const split = workspace.rightSplit;
-		if (typeof split.expand === "function") split.expand();
+	await activateRightRailView(plugin, RECOMMEND_VIEW_TYPE, (leaf) => {
 		const view = leaf.view;
 		if (view instanceof RecommendationView) view.syncFromPluginSelection();
-		await workspace.revealLeaf(leaf);
-	}
+	});
 }

@@ -1,115 +1,69 @@
-import { stripForCounting } from "../wordCount";
-import {
-	factsFingerprint,
-	normalizeFactKey,
-	normalizeFactValue,
-} from "./facts";
-import type {
-	ChapterRecommendReport,
-	CodexEntryInput,
-	DescriptionHit,
-	FactCheckRow,
-	FactCheckStatus,
-	MatchedCodexEntry,
-} from "./types";
+/**
+ * Dossier engine — sentence scan → lens match → coreference tiering.
+ * Locate-and-show: surfaces author sentences, never extracted values.
+ */
 
+import { factsFingerprint, normalizeFactKey } from "./facts";
+import { applyLenses, buildLensRegistry, type LensDef, type TokenInfo } from "./lenses";
+import { defaultLexicons } from "./lexicons";
+import { ensureNlp, getIts, type WinkNlp } from "./nlp";
+import type {
+	AttributionDecision,
+	CastMember,
+	ChapterRecommendReport,
+	CorefTier,
+	DetailHit,
+	MatchedCodexEntry,
+	ScanContext,
+	UnknownNameHint,
+} from "./types";
+import type { ItemEntity, ItemSentence, ItemToken } from "wink-nlp";
+
+export const COREF_WINDOW = 3;
 const MAX_SYNOPSIS_WORDS = 120;
 const MAX_SYNOPSIS_SENTENCES = 3;
-const DESC_WINDOW = 90;
 
-const COMMON_DENY = new Set(
-	[
-		"the",
-		"a",
-		"an",
-		"and",
-		"but",
-		"or",
-		"so",
-		"then",
-		"when",
-		"where",
-		"what",
-		"who",
-		"how",
-		"why",
-		"this",
-		"that",
-		"these",
-		"those",
-		"he",
-		"she",
-		"they",
-		"it",
-		"we",
-		"you",
-		"i",
-		"my",
-		"his",
-		"her",
-		"their",
-		"our",
-		"your",
-		"in",
-		"on",
-		"at",
-		"to",
-		"for",
-		"of",
-		"with",
-		"from",
-		"by",
-		"as",
-		"if",
-		"into",
-		"after",
-		"before",
-		"while",
-		"during",
-		"chapter",
-		"plot",
-		"monday",
-		"tuesday",
-		"wednesday",
-		"thursday",
-		"friday",
-		"saturday",
-		"sunday",
-		"january",
-		"february",
-		"march",
-		"april",
-		"may",
-		"june",
-		"july",
-		"august",
-		"september",
-		"october",
-		"november",
-		"december",
-	].map((w) => w.toLowerCase()),
-);
-
-const ATTR_PATTERNS: Array<{ key: string; re: RegExp }> = [
-	{
-		key: "eye colour",
-		re: /\b(?:eyes?|eye\s+colou?r)\s+(?:were\s+|was\s+|are\s+|is\s+|of\s+)?([a-z]+(?:-[a-z]+)?)/i,
-	},
-	{
-		key: "hair",
-		re: /\bhair\s+(?:was\s+|were\s+|is\s+|are\s+)?([a-z]+(?:\s+[a-z]+)?)/i,
-	},
-	{ key: "height", re: /\b(?:tall|short|height)\b[^.!?]{0,40}/i },
-];
+const PRONOUNS = new Set([
+	"he",
+	"she",
+	"they",
+	"him",
+	"her",
+	"them",
+	"his",
+	"hers",
+	"their",
+	"theirs",
+	"himself",
+	"herself",
+	"themselves",
+]);
 
 export interface AnalyzeOptions {
 	chapterFilename: string;
-	/** Existing chapter plot notes from novel.md; preferred for synopsis when non-empty. */
 	existingPlot: string;
 	includeUnknownNames: boolean;
+	attributions?: AttributionDecision[];
+	resolvedIds?: string[];
+	lexicons?: ReturnType<typeof defaultLexicons>;
 }
 
-/** Simple stable hash for staleness checks. */
+interface MappedSentence {
+	text: string;
+	/** Normalised (collapsed whitespace) form used for keys. */
+	normalised: string;
+	rawOffset: number;
+	rawEnd: number;
+	line: number;
+}
+
+interface StripResult {
+	text: string;
+	/** Maps stripped offset → raw offset. */
+	toRaw: (strippedOffset: number) => number;
+}
+
+/** Stable FNV-1a style hash for cache keys. */
 export function contentHash(parts: string[]): string {
 	const s = parts.join("\n");
 	let h = 2166136261;
@@ -120,13 +74,132 @@ export function contentHash(parts: string[]): string {
 	return (h >>> 0).toString(16);
 }
 
+/** Decision / hit id: entity path + normalised sentence. */
+export function hashId(entityKey: string, normalisedSentence: string): string {
+	return contentHash([entityKey, normalisedSentence]);
+}
+
 function escapeRegExp(s: string): string {
 	return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function wordBoundaryPattern(name: string): RegExp {
-	// Allow possessive/genitive forms (Jane's) after the name.
 	return new RegExp(`(?<![A-Za-z0-9'])${escapeRegExp(name)}(?:'s)?(?![A-Za-z0-9'])`, "gi");
+}
+
+/**
+ * Strip frontmatter and fenced code while building a strip→raw offset map,
+ * so jump-to-source line numbers stay correct against the raw file.
+ */
+export function stripMarkdownMapped(raw: string): StripResult {
+	const rawOffsets: number[] = [];
+	let i = 0;
+	const out: string[] = [];
+
+	const pushSlice = (start: number, end: number) => {
+		for (let p = start; p < end; p++) {
+			out.push(raw[p]!);
+			rawOffsets.push(p);
+		}
+	};
+
+	// Frontmatter
+	if (raw.startsWith("---")) {
+		const end = raw.indexOf("\n---", 3);
+		if (end !== -1) {
+			let fenceEnd = end + 4;
+			if (raw[fenceEnd] === "\n") fenceEnd += 1;
+			i = fenceEnd;
+		}
+	}
+
+	while (i < raw.length) {
+		// Fenced code block
+		if (raw.startsWith("```", i) || raw.startsWith("~~~", i)) {
+			const fence = raw.slice(i, i + 3);
+			const close = raw.indexOf("\n" + fence, i + 3);
+			if (close === -1) {
+				i = raw.length;
+				break;
+			}
+			i = close + 1 + fence.length;
+			if (raw[i] === "\n") i += 1;
+			continue;
+		}
+		pushSlice(i, i + 1);
+		i += 1;
+	}
+
+	const text = out.join("");
+	return {
+		text,
+		toRaw: (strippedOffset: number) => {
+			if (rawOffsets.length === 0) return strippedOffset;
+			const clamped = Math.max(0, Math.min(strippedOffset, rawOffsets.length - 1));
+			return rawOffsets[clamped]!;
+		},
+	};
+}
+
+function lineOf(raw: string, offset: number): number {
+	let line = 1;
+	const end = Math.min(offset, raw.length);
+	for (let i = 0; i < end; i++) {
+		if (raw[i] === "\n") line++;
+	}
+	return line;
+}
+
+function splitSentences(
+	raw: string,
+	stripped: StripResult,
+	nlp: WinkNlp,
+): MappedSentence[] {
+	const doc = nlp.readDoc(stripped.text);
+	const sentences: MappedSentence[] = [];
+	// its.span is token indices, not char offsets — locate via sequential search.
+	let cursor = 0;
+	doc.sentences().each((s: ItemSentence) => {
+		const original = s.out();
+		const normalised = original.replace(/\s+/g, " ").trim();
+		if (!normalised) return;
+		let stripStart = stripped.text.indexOf(original, cursor);
+		if (stripStart < 0) {
+			// Fallback: search normalised form if wink collapsed whitespace oddly
+			stripStart = stripped.text.indexOf(normalised, cursor);
+		}
+		if (stripStart < 0) stripStart = cursor;
+		const stripEnd = stripStart + (stripStart >= 0 ? original.length : normalised.length);
+		cursor = Math.max(cursor, stripEnd);
+		const rawOffset = stripped.toRaw(stripStart);
+		const rawEnd = stripped.toRaw(Math.max(stripStart, stripEnd - 1)) + 1;
+		sentences.push({
+			text: normalised,
+			normalised,
+			rawOffset,
+			rawEnd,
+			line: lineOf(raw, rawOffset),
+		});
+	});
+	return sentences;
+}
+
+function tokensForSentence(nlp: WinkNlp, sentence: string): TokenInfo[] {
+	const its = getIts(nlp);
+	const doc = nlp.readDoc(sentence);
+	const tokens: TokenInfo[] = [];
+	let index = 0;
+	doc.tokens().each((t: ItemToken) => {
+		const text = t.out();
+		tokens.push({
+			text,
+			lower: text.toLowerCase(),
+			pos: String(t.out(its.pos)),
+			negated: Boolean(t.out(its.negationFlag)),
+			index: index++,
+		});
+	});
+	return tokens;
 }
 
 interface MatchKey {
@@ -134,11 +207,10 @@ interface MatchKey {
 	paths: string[];
 }
 
-function buildMatchKeys(entries: CodexEntryInput[]): MatchKey[] {
+function buildMatchKeys(cast: CastMember[]): MatchKey[] {
 	const bySurface = new Map<string, Set<string>>();
-	for (const entry of entries) {
-		const surfaces = [entry.name, ...entry.aliases].map((s) => s.trim()).filter(Boolean);
-		for (const surface of surfaces) {
+	for (const entry of cast) {
+		for (const surface of [entry.name, ...entry.aliases].map((s) => s.trim()).filter(Boolean)) {
 			const key = surface.toLowerCase();
 			let set = bySurface.get(key);
 			if (!set) {
@@ -150,9 +222,8 @@ function buildMatchKeys(entries: CodexEntryInput[]): MatchKey[] {
 	}
 	const keys: MatchKey[] = [];
 	for (const [lower, paths] of bySurface) {
-		// Recover original casing from first matching entry name/alias
 		let surface = lower;
-		for (const entry of entries) {
+		for (const entry of cast) {
 			const found = [entry.name, ...entry.aliases].find((s) => s.trim().toLowerCase() === lower);
 			if (found) {
 				surface = found.trim();
@@ -161,37 +232,85 @@ function buildMatchKeys(entries: CodexEntryInput[]): MatchKey[] {
 		}
 		keys.push({ surface, paths: Array.from(paths) });
 	}
-	// Longer names first so "Mary Ann" wins over "Mary"
 	keys.sort((a, b) => b.surface.length - a.surface.length);
 	return keys;
 }
 
-function findMatches(prose: string, entries: CodexEntryInput[]): MatchedCodexEntry[] {
-	const keys = buildMatchKeys(entries);
-	const byPath = new Map<string, CodexEntryInput>();
-	for (const e of entries) byPath.set(e.path, e);
-
-	const claimed = new Set<string>(); // "start-end" spans claimed by longer matches
-	const matchedSurfaces = new Map<string, { surfaces: Set<string>; ambiguous: Set<string> }>();
-
+function namesInSentence(sentence: string, keys: MatchKey[]): MatchKey[] {
+	const found: MatchKey[] = [];
+	const claimed = new Set<number>();
 	for (const key of keys) {
 		const re = wordBoundaryPattern(key.surface);
 		let m: RegExpExecArray | null;
-		while ((m = re.exec(prose)) !== null) {
+		while ((m = re.exec(sentence)) !== null) {
 			const start = m.index;
 			const end = start + m[0].length;
-			const spanKey = `${start}-${end}`;
-			let overlaps = false;
+			let overlap = false;
 			for (let i = start; i < end; i++) {
-				if (claimed.has(`c${i}`)) {
-					overlaps = true;
+				if (claimed.has(i)) {
+					overlap = true;
 					break;
 				}
 			}
-			if (overlaps) continue;
-			for (let i = start; i < end; i++) claimed.add(`c${i}`);
-			void spanKey;
+			if (overlap) continue;
+			for (let i = start; i < end; i++) claimed.add(i);
+			found.push(key);
+		}
+	}
+	return found;
+}
 
+function hasPronoun(tokens: TokenInfo[]): boolean {
+	return tokens.some((t) => t.pos === "PRON" && PRONOUNS.has(t.lower));
+}
+
+function lookupCodexFact(
+	entry: CastMember | undefined,
+	trait: string | null,
+): { key: string; value: string } | null {
+	if (!entry || !trait) return null;
+	const norm = normalizeFactKey(trait);
+	const direct = entry.facts.entries[norm];
+	if (direct?.value) {
+		return { key: entry.facts.displayKeys[norm] ?? norm, value: direct.value };
+	}
+	// Soft match: trait noun contained in a fact key (eyes → eye colour)
+	for (const [key, fact] of Object.entries(entry.facts.entries)) {
+		if (!fact.value) continue;
+		if (key.includes(norm) || norm.includes(key.split(" ")[0] ?? "")) {
+			return { key: entry.facts.displayKeys[key] ?? key, value: fact.value };
+		}
+	}
+	return null;
+}
+
+function extractSynopsis(prose: string, existingPlot: string): string {
+	if (existingPlot.trim()) return existingPlot.trim();
+	const cleaned = prose.replace(/\s+/g, " ").trim();
+	if (!cleaned) return "";
+	const sentences = cleaned.match(/[^.!?]+[.!?]+|[^.!?]+$/g) ?? [cleaned];
+	const picked: string[] = [];
+	let words = 0;
+	for (const s of sentences) {
+		const t = s.trim();
+		if (!t) continue;
+		picked.push(t);
+		words += t.split(/\s+/).filter(Boolean).length;
+		if (picked.length >= MAX_SYNOPSIS_SENTENCES || words >= MAX_SYNOPSIS_WORDS) break;
+	}
+	return picked.join(" ").trim();
+}
+
+function collectMatched(
+	sentences: MappedSentence[],
+	cast: CastMember[],
+	keys: MatchKey[],
+): MatchedCodexEntry[] {
+	const byPath = new Map(cast.map((e) => [e.path, e]));
+	const matchedSurfaces = new Map<string, { surfaces: Set<string>; ambiguous: Set<string> }>();
+
+	for (const s of sentences) {
+		for (const key of namesInSentence(s.text, keys)) {
 			for (const path of key.paths) {
 				let bucket = matchedSurfaces.get(path);
 				if (!bucket) {
@@ -226,185 +345,271 @@ function findMatches(prose: string, entries: CodexEntryInput[]): MatchedCodexEnt
 	return result;
 }
 
-function extractSynopsis(prose: string, existingPlot: string): string {
-	if (existingPlot.trim()) return existingPlot.trim();
-	const cleaned = prose.replace(/\s+/g, " ").trim();
-	if (!cleaned) return "";
-	const sentences = cleaned.match(/[^.!?]+[.!?]+|[^.!?]+$/g) ?? [cleaned];
-	const picked: string[] = [];
-	let words = 0;
-	for (const s of sentences) {
-		const t = s.trim();
-		if (!t) continue;
-		picked.push(t);
-		words += t.split(/\s+/).filter(Boolean).length;
-		if (picked.length >= MAX_SYNOPSIS_SENTENCES || words >= MAX_SYNOPSIS_WORDS) break;
-	}
-	return picked.join(" ").trim();
-}
-
-function windowAround(prose: string, index: number, length: number): string {
-	const start = Math.max(0, index - DESC_WINDOW);
-	const end = Math.min(prose.length, index + length + DESC_WINDOW);
-	return prose.slice(start, end).replace(/\s+/g, " ").trim();
-}
-
-function extractAttributes(window: string): Array<{ key: string; value: string }> {
-	const attrs: Array<{ key: string; value: string }> = [];
-	for (const { key, re } of ATTR_PATTERNS) {
-		const m = window.match(re);
-		if (!m) continue;
-		const value = (m[1] ?? m[0]).trim().replace(/^[^a-zA-Z]+|[^a-zA-Z]+$/g, "");
-		if (value && value.length < 40) attrs.push({ key, value });
-	}
-	// Generic "X was/had ADJ" near start of window after name
-	const wasHad = window.match(
-		/\b(?:was|were|is|are|had|has)\s+((?:a|an|the)\s+)?([a-z][a-z\s-]{1,30}?)(?:[,.]|\s+and\b|\s+with\b|$)/i,
-	);
-	if (wasHad) {
-		const value = (wasHad[2] ?? "").trim();
-		if (value && !attrs.some((a) => normalizeFactValue(a.value) === normalizeFactValue(value))) {
-			attrs.push({ key: "description", value });
-		}
-	}
-	return attrs;
-}
-
-function collectDescriptions(prose: string, matched: MatchedCodexEntry[], entries: CodexEntryInput[]): DescriptionHit[] {
-	const byPath = new Map(entries.map((e) => [e.path, e]));
-	const hits: DescriptionHit[] = [];
+/** Merge adjacent PROPN tokens into multi-word names ("Cult of the Snake" is harder; take adjacent runs). */
+function extractProperNames(nlp: WinkNlp, prose: string): Array<{ name: string; nerType?: string }> {
+	const its = getIts(nlp);
+	const doc = nlp.readDoc(prose);
+	const names: Array<{ name: string; nerType?: string }> = [];
 	const seen = new Set<string>();
 
-	for (const m of matched) {
-		for (const surface of m.matchedAs) {
-			const re = wordBoundaryPattern(surface);
-			let match: RegExpExecArray | null;
-			while ((match = re.exec(prose)) !== null) {
-				const win = windowAround(prose, match.index, match[0].length);
-				const key = `${m.path}:${win}`;
-				if (seen.has(key)) continue;
-				seen.add(key);
-				const ambiguous = m.ambiguousWith.length > 0;
-				const names = ambiguous ? [m.name, ...m.ambiguousWith] : [m.name];
-				hits.push({
-					path: ambiguous ? null : m.path,
-					names,
-					ambiguous,
-					text: win,
-					attributes: extractAttributes(win),
-				});
+	const tokens: Array<{ text: string; pos: string }> = [];
+	doc.tokens().each((t: ItemToken) => {
+		tokens.push({ text: t.out(), pos: String(t.out(its.pos)) });
+	});
+
+	let i = 0;
+	while (i < tokens.length) {
+		if (tokens[i]!.pos !== "PROPN") {
+			i++;
+			continue;
+		}
+		const parts = [tokens[i]!.text];
+		i++;
+		while (i < tokens.length && tokens[i]!.pos === "PROPN") {
+			parts.push(tokens[i]!.text);
+			i++;
+		}
+		// Allow "of" / "the" bridges between PROPNs: Cult of the Snake
+		while (
+			i + 1 < tokens.length &&
+			/^(of|the|de|von|van)$/i.test(tokens[i]!.text) &&
+			tokens[i + 1]?.pos === "PROPN"
+		) {
+			parts.push(tokens[i]!.text);
+			i++;
+			while (i < tokens.length && tokens[i]!.pos === "PROPN") {
+				parts.push(tokens[i]!.text);
+				i++;
 			}
 		}
-		void byPath;
+		const name = parts.join(" ");
+		const key = name.toLowerCase();
+		if (!seen.has(key) && name.length >= 2) {
+			seen.add(key);
+			names.push({ name });
+		}
 	}
-	return hits;
+
+	doc.entities().each((e: ItemEntity) => {
+		const text = e.out();
+		const type = String(e.out(its.type) ?? "");
+		const key = text.toLowerCase();
+		const existing = names.find((n) => n.name.toLowerCase() === key);
+		if (existing && type) existing.nerType = type;
+	});
+
+	return names;
 }
 
-function findUnknownNames(prose: string, matchedSurfaces: Set<string>): string[] {
-	const found = new Set<string>();
-	// Capitalized word sequences (2+ letters), optionally multi-word Proper Names
-	const re = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/g;
-	let m: RegExpExecArray | null;
-	while ((m = re.exec(prose)) !== null) {
-		const name = m[1];
-		const lower = name.toLowerCase();
-		if (COMMON_DENY.has(lower)) continue;
-		const first = name.split(/\s+/)[0]?.toLowerCase() ?? "";
-		if (COMMON_DENY.has(first) && !name.includes(" ")) continue;
-		let known = false;
-		for (const surface of matchedSurfaces) {
-			if (surface.toLowerCase() === lower) {
-				known = true;
-				break;
-			}
-			if (lower.includes(surface.toLowerCase()) || surface.toLowerCase().includes(lower)) {
-				// substring of a known match — skip singles that are parts of matched longer names
-				if (surface.toLowerCase().includes(lower)) known = true;
-			}
-		}
-		if (known) continue;
-		found.add(name);
-	}
-	return Array.from(found).sort((a, b) => a.localeCompare(b));
-}
-
-function checkFacts(
-	matched: MatchedCodexEntry[],
-	descriptions: DescriptionHit[],
-	entries: CodexEntryInput[],
-): FactCheckRow[] {
-	const byPath = new Map(entries.map((e) => [e.path, e]));
-	const chapterAttrs = new Map<string, Map<string, string>>(); // path -> key -> value
-
-	for (const desc of descriptions) {
-		const paths = desc.path
-			? [desc.path]
-			: entries.filter((e) => desc.names.includes(e.name)).map((e) => e.path);
-		for (const path of paths) {
-			let map = chapterAttrs.get(path);
-			if (!map) {
-				map = new Map();
-				chapterAttrs.set(path, map);
-			}
-			for (const attr of desc.attributes) {
-				map.set(normalizeFactKey(attr.key), attr.value);
-			}
-		}
-	}
-
-	const rows: FactCheckRow[] = [];
-	for (const m of matched) {
-		const entry = byPath.get(m.path);
-		if (!entry) continue;
-		const chapterMap = chapterAttrs.get(m.path);
-		if (!chapterMap) continue;
-		for (const [normKey, chapterValue] of chapterMap) {
-			const fact = entry.facts.entries[normKey];
-			const displayKey = entry.facts.displayKeys[normKey] ?? normKey;
-			let status: FactCheckStatus = "unknown";
-			let codexValue: string | null = null;
-			if (fact?.value) {
-				codexValue = fact.value;
-				if (normalizeFactValue(fact.value) === normalizeFactValue(chapterValue)) {
-					status = "ok";
-				} else if (fact.was.some((w) => normalizeFactValue(w) === normalizeFactValue(chapterValue))) {
-					status = "acknowledged";
-				} else {
-					status = "conflict";
-				}
-			} else {
-				status = "unknown";
-			}
-			rows.push({
-				path: m.path,
-				name: m.name,
-				key: normKey,
-				displayKey,
-				codexValue,
-				chapterValue,
-				status,
-			});
-		}
-	}
-	return rows;
+function attributionFor(
+	entityPath: string,
+	sentence: string,
+	decisions: AttributionDecision[],
+): AttributionDecision | undefined {
+	return decisions.find(
+		(d) => d.entityPath === entityPath && d.sentence === sentence,
+	);
 }
 
 /**
- * Pure chapter analysis against a Codex inventory. `prose` should already be
- * manuscript text (frontmatter stripped). Plot notes are passed separately via
- * `options.existingPlot` (from novel.md).
+ * Scan raw manuscript text against a cast. Requires winkNLP (call ensureNlp first).
  */
-export function analyzeChapter(
+export function scanFile(
+	raw: string,
+	ctx: ScanContext,
+	nlp: WinkNlp,
+	lenses: LensDef[] = buildLensRegistry(),
+): DetailHit[] {
+	const stripped = stripMarkdownMapped(raw);
+	const sentences = splitSentences(raw, stripped, nlp);
+	const keys = buildMatchKeys(ctx.cast);
+	const byPath = new Map(ctx.cast.map((c) => [c.path, c]));
+	const attributions = ctx.attributions ?? [];
+	const hits: DetailHit[] = [];
+	const seen = new Set<string>();
+
+	// Preceding-name index for coref: for each sentence index, names found
+	const namesBySentence = sentences.map((s) => namesInSentence(s.text, keys));
+
+	for (let si = 0; si < sentences.length; si++) {
+		const s = sentences[si]!;
+		const tokens = tokensForSentence(nlp, s.text);
+		const lensHits = applyLenses(s.text, tokens, lenses);
+		if (lensHits.length === 0) continue;
+
+		const named = namesBySentence[si]!;
+		const namedPaths = new Map<string, string>(); // path → display name
+		for (const nk of named) {
+			for (const path of nk.paths) {
+				const entry = byPath.get(path);
+				if (entry) namedPaths.set(path, entry.name);
+			}
+		}
+
+		type Candidate = {
+			path: string | null;
+			name: string;
+			tier: CorefTier;
+			competing: string[];
+		};
+		const candidates: Candidate[] = [];
+
+		if (namedPaths.size > 0) {
+			for (const [path, name] of namedPaths) {
+				candidates.push({ path, name, tier: "solid", competing: [] });
+			}
+		} else if (hasPronoun(tokens)) {
+			// Look back COREF_WINDOW for nearest preceding names
+			const windowNames = new Map<string, string>();
+			for (let back = si - 1; back >= 0 && back >= si - COREF_WINDOW; back--) {
+				for (const nk of namesBySentence[back]!) {
+					for (const path of nk.paths) {
+						const entry = byPath.get(path);
+						if (entry && !windowNames.has(path)) windowNames.set(path, entry.name);
+					}
+				}
+			}
+			if (windowNames.size === 1) {
+				const [path, name] = [...windowNames.entries()][0]!;
+				candidates.push({ path, name, tier: "grey", competing: [] });
+			} else if (windowNames.size > 1) {
+				const entries = [...windowNames.entries()];
+				const [path, name] = entries[0]!;
+				candidates.push({
+					path,
+					name,
+					tier: "ambiguous",
+					competing: entries.map(([, n]) => n),
+				});
+			}
+		}
+
+		if (candidates.length === 0) continue;
+
+		for (const lens of lensHits) {
+			for (const cand of candidates) {
+				let path = cand.path;
+				let name = cand.name;
+				let tier = cand.tier;
+				let competing = cand.competing;
+
+				if (path) {
+					const decision = attributionFor(path, s.normalised, attributions);
+					if (decision?.action === "rejected") {
+						if (decision.reroutePath) {
+							const reroute = byPath.get(decision.reroutePath);
+							path = decision.reroutePath;
+							name = reroute?.name ?? name;
+							tier = "solid";
+							competing = [];
+						} else {
+							continue;
+						}
+					} else if (decision?.action === "confirmed") {
+						tier = "solid";
+					}
+				}
+
+				const id = hashId(path ?? name, s.normalised);
+				const dedupe = `${id}:${lens.lens}`;
+				if (seen.has(dedupe)) continue;
+				seen.add(dedupe);
+
+				const entry = path ? byPath.get(path) : undefined;
+				hits.push({
+					id,
+					sentence: s.text,
+					chapterFilename: ctx.chapterFilename,
+					rawOffset: s.rawOffset,
+					rawEnd: s.rawEnd,
+					line: s.line,
+					tier,
+					entityPath: path,
+					entityName: name,
+					competingNames: competing,
+					lens: lens.lens,
+					trait: lens.trait,
+					negated: lens.negated,
+					currentCodexFact: lookupCodexFact(entry, lens.trait),
+					resolved: false,
+					attribution: path
+						? attributionFor(path, s.normalised, attributions)?.action ?? null
+						: null,
+				});
+			}
+		}
+	}
+
+	return hits;
+}
+
+function findUnknownNames(
+	nlp: WinkNlp,
+	prose: string,
+	cast: CastMember[],
+): UnknownNameHint[] {
+	const gazetteer = new Set<string>();
+	for (const c of cast) {
+		gazetteer.add(c.name.toLowerCase());
+		for (const a of c.aliases) gazetteer.add(a.toLowerCase());
+	}
+	const propns = extractProperNames(nlp, prose);
+	const out: UnknownNameHint[] = [];
+	for (const p of propns) {
+		if (gazetteer.has(p.name.toLowerCase())) continue;
+		// Skip if name is a subset of a known longer cast name
+		let knownPart = false;
+		for (const g of gazetteer) {
+			if (g.includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(g)) {
+				if (g === p.name.toLowerCase()) knownPart = true;
+				else if (g.includes(p.name.toLowerCase()) && p.name.split(" ").length === 1) {
+					// single token that is part of a multi-word cast name — still unknown as standalone? keep
+				}
+			}
+		}
+		if (gazetteer.has(p.name.toLowerCase()) || knownPart) continue;
+		out.push(p);
+	}
+	out.sort((a, b) => a.name.localeCompare(b.name));
+	return out;
+}
+
+/**
+ * Full chapter analysis. Call only after `ensureNlp()` — winkNLP must be ready.
+ */
+export async function analyzeChapter(
 	rawChapter: string,
-	entries: CodexEntryInput[],
+	entries: CastMember[],
 	options: AnalyzeOptions,
-): ChapterRecommendReport {
-	const prose = stripForCounting(rawChapter).trim();
-	const matched = findMatches(prose, entries);
-	const matchedSurfaces = new Set(matched.flatMap((m) => m.matchedAs));
-	const descriptions = collectDescriptions(prose, matched, entries);
-	const unknownNames = options.includeUnknownNames ? findUnknownNames(prose, matchedSurfaces) : [];
-	const factChecks = checkFacts(matched, descriptions, entries);
+): Promise<ChapterRecommendReport> {
+	const nlp = await ensureNlp();
+	const lexicons = options.lexicons ?? defaultLexicons();
+	const lenses = buildLensRegistry(lexicons);
+	const stripped = stripMarkdownMapped(rawChapter);
+	const prose = stripped.text.trim();
+	const sentences = splitSentences(rawChapter, stripped, nlp);
+	const keys = buildMatchKeys(entries);
+
+	const matched = collectMatched(sentences, entries, keys);
+	const hits = scanFile(
+		rawChapter,
+		{
+			cast: entries,
+			chapterFilename: options.chapterFilename,
+			attributions: options.attributions,
+		},
+		nlp,
+		lenses,
+	);
+
+	const resolvedSet = new Set(options.resolvedIds ?? []);
+	for (const hit of hits) {
+		if (resolvedSet.has(hit.id)) hit.resolved = true;
+	}
+
+	const unknownHints = options.includeUnknownNames
+		? findUnknownNames(nlp, prose, entries)
+		: [];
 	const synopsisHeuristic = extractSynopsis(prose, options.existingPlot);
 	const factsFp = entries.map((e) => `${e.path}:${factsFingerprint(e.facts)}`).join("|");
 
@@ -413,12 +618,43 @@ export function analyzeChapter(
 		contentHash: contentHash([prose, factsFp, synopsisHeuristic]),
 		synopsisHeuristic,
 		matched,
-		unknownNames,
-		descriptions,
-		factChecks,
+		unknownNames: unknownHints.map((u) => u.name),
+		unknownNameHints: unknownHints,
+		hits,
+		sentenceKeys: sentences.map((s) => s.normalised),
 	};
 }
 
-export function entryFactsFingerprint(entries: CodexEntryInput[]): string {
+export function entryFactsFingerprint(entries: CastMember[]): string {
 	return entries.map((e) => `${e.path}:${factsFingerprint(e.facts)}`).join("|");
+}
+
+/**
+ * Dossier pull: scan one entity across many chapter files (caller supplies
+ * ordered chapters). Returns hits already filtered to that entity.
+ */
+export async function scanEntityAcrossChapters(
+	chapters: Array<{ filename: string; raw: string }>,
+	entity: CastMember,
+	cast: CastMember[],
+	attributions?: AttributionDecision[],
+): Promise<DetailHit[]> {
+	const nlp = await ensureNlp();
+	const lenses = buildLensRegistry();
+	const all: DetailHit[] = [];
+	for (const ch of chapters) {
+		const hits = scanFile(
+			ch.raw,
+			{ cast, chapterFilename: ch.filename, attributions },
+			nlp,
+			lenses,
+		);
+		for (const hit of hits) {
+			if (hit.entityPath === entity.path || hit.entityName === entity.name) {
+				all.push(hit);
+			}
+			// Also include solid/grey hits for this entity after attribution
+		}
+	}
+	return all;
 }

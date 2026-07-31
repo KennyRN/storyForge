@@ -52,6 +52,11 @@ export function recommendSidecarPath(bookFolderName: string, chapterFilename: st
 	return `${recommendSidecarFolderPath(bookFolderName)}/${chapterFilename}`;
 }
 
+/** Book-scoped attribution decisions (confirm/reject coref) for Story Context. */
+export function recommendAttributionPath(bookFolderName: string): string {
+	return `${recommendSidecarFolderPath(bookFolderName)}/attribution.md`;
+}
+
 export function libraryBookPath(bookFolderName: string): string {
 	return `${LIBRARY_ROOT}/${bookFolderName}`;
 }

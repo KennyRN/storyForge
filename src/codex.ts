@@ -48,12 +48,38 @@ export interface CodexTypeOption {
 	icon: string;
 }
 
-/** Every assignable Codex entry type ("Set as..."), in menu order. Add new types here only. */
-export const CODEX_TYPES: CodexTypeOption[] = [
+/** Built-in Codex types. Hosted siblings add more via `registerCodexType`. */
+export const BUILTIN_CODEX_TYPES: readonly CodexTypeOption[] = [
 	{ type: "person", label: "Person", icon: ICON_PERSON_FILL },
 	{ type: "place", label: "Place", icon: ICON_MAP_PIN },
 	{ type: "populace", label: "Populace", icon: ICON_PERSON_2_FILL },
 ];
+
+/**
+ * Live assignable Codex entry types ("Set as..."), in menu order.
+ * Seeded with builtins; mutated by `registerCodexType` for xForge siblings.
+ */
+export const CODEX_TYPES: CodexTypeOption[] = BUILTIN_CODEX_TYPES.map((t) => ({ ...t }));
+
+export function getCodexTypes(): readonly CodexTypeOption[] {
+	return CODEX_TYPES;
+}
+
+/** Idempotent: updates label/icon if `type` already registered. */
+export function registerCodexType(opt: CodexTypeOption): void {
+	const type = opt.type.trim();
+	if (!type) throw new Error("registerCodexType: type is required");
+	const label = opt.label.trim() || type;
+	const icon = opt.icon.trim();
+	if (!icon) throw new Error("registerCodexType: icon is required");
+	const existing = CODEX_TYPES.find((t) => t.type === type);
+	if (existing) {
+		existing.label = label;
+		existing.icon = icon;
+		return;
+	}
+	CODEX_TYPES.push({ type, label, icon });
+}
 
 export function codexTypeIcon(type: string): string | null {
 	return CODEX_TYPES.find((t) => t.type === type)?.icon ?? null;
@@ -192,6 +218,39 @@ export async function createCodexFolder(app: App, parentFolderId: string | null)
 		fm.order = order;
 	});
 	return newId;
+}
+
+/**
+ * Idempotent virtual folder ensure by stable id (e.g. `xf-timeline`).
+ * Does not create a real filesystem folder under `Codex/`.
+ * If the id already exists, updates `name` when provided and returns the id.
+ */
+export async function ensureVirtualFolder(
+	app: App,
+	opts: { id: string; name: string; parentId?: string | null },
+): Promise<string> {
+	const id = opts.id.trim();
+	if (!id || id.includes("/") || id.toLowerCase().endsWith(".md")) {
+		throw new Error(`ensureVirtualFolder: invalid folder id "${opts.id}"`);
+	}
+	const name = opts.name.trim() || id;
+	const parentId = opts.parentId ?? null;
+
+	await modifyBackstageFrontmatter<RawCodexFrontmatter>(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
+		const folders = parseFolders(fm.folders);
+		const order = parseStringArray(fm.order);
+		if (isFolderKey(folders, id)) {
+			folders[id] = { name, order: folders[id].order };
+			fm.folders = folders;
+			fm.order = order;
+			return;
+		}
+		folders[id] = { name, order: [] };
+		insertIntoContainer(folders, order, parentId, id, Number.MAX_SAFE_INTEGER);
+		fm.folders = folders;
+		fm.order = order;
+	});
+	return id;
 }
 
 export interface CreateCodexNoteOptions {

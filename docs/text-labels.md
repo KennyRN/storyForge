@@ -50,22 +50,28 @@ Notes on conventions used below:
 |---|---|---|
 | recommendView.displayText | Story Context | — |
 | recommendView.tab.chapter | Chapter | — |
-| recommendView.tab.continuity | Continuity | — |
+| recommendView.tab.dossier | Dossier | — |
 | recommendView.refresh.ariaLabel | Refresh story context | — |
 | recommendView.empty.noChapter | Open a chapter to see story context. | — |
+| recommendView.loadingModel | Loading language model… | — |
 | recommendView.section.synopsis | Synopsis | — |
 | recommendView.sendPlot | Send to chapter plot | — |
 | recommendView.section.characters | Characters in chapter | — |
 | recommendView.section.unknown | Named but not in Codex | — |
 | recommendView.stubBtn | Create in Codex | — |
 | recommendView.section.other | Other Codex references | — |
-| recommendView.section.descriptions | Descriptions | — |
-| recommendView.section.facts | Fact warnings | — |
-| recommendView.section.continuity | Book continuity | — |
-| recommendView.building | Building… | — |
+| recommendView.section.details | Details to capture | — |
+| recommendView.section.holding | Holding area | — |
+| recommendView.section.resolved | Resolved | — |
+| recommendView.dossier.searchTitle | Search Codex entity | — |
+| recommendView.dossier.searchPlaceholder | Character, place, or other Codex name… | — |
+| recommendView.dossier.emptyPick | Pick a Codex entity to read everything the book says about them, in chapter order. | — |
+| recommendView.dossier.scanning | Scanning book… | — |
+| recommendView.hit.done | Done | — |
+| recommendView.hit.openCodex | Open Codex | — |
+| recommendView.hit.confirm | Confirm | — |
+| recommendView.hit.reject | Not this entity | — |
 | notice.recommend.synopsisSent | storyForge: synopsis sent to chapter plot | — |
-| notice.recommend.factUpdated | storyForge: Codex fact updated | — |
-| notice.recommend.factAck | storyForge: fact change acknowledged | — |
 
 ## src/view/StoryForgeSettingsTab.ts (recommendations)
 

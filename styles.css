@@ -1860,7 +1860,7 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 
 .sf-recommend-send-btn,
 .sf-recommend-stub-btn,
-.sf-recommend-fact-actions button {
+.sf-recommend-hit-actions button {
 	font-size: 0.85em;
 }
 
@@ -1886,66 +1886,116 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 	color: var(--text-faint);
 }
 
-.sf-recommend-desc {
-	padding: 4px 0 8px;
+.sf-recommend-entity-header {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 8px 0 4px;
+	cursor: pointer;
+}
+
+.sf-recommend-entity-name {
+	font-weight: 600;
+	font-size: 0.95em;
+	color: var(--text-normal);
+}
+
+.sf-recommend-hit {
+	padding: 8px 0;
 	border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.sf-recommend-desc-names {
-	font-weight: 600;
-	font-size: 0.9em;
-	margin-bottom: 2px;
+.sf-recommend-hit.is-resolved {
+	opacity: 0.55;
 }
 
-.sf-recommend-desc-text {
-	font-size: 0.85em;
+.sf-recommend-hit-meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	align-items: center;
+	margin-bottom: 4px;
+	font-size: 0.75em;
+	color: var(--text-muted);
+	text-transform: lowercase;
+}
+
+.sf-recommend-tier-solid {
+	color: var(--text-normal);
+}
+
+.sf-recommend-tier-grey {
 	color: var(--text-muted);
 }
 
-.sf-recommend-fact {
-	padding: 6px 0;
-	border-bottom: 1px solid var(--background-modifier-border);
+.sf-recommend-tier-ambiguous {
+	color: var(--text-warning, var(--text-accent));
 }
 
-.sf-recommend-fact-conflict .sf-recommend-fact-text {
-	color: var(--text-error, var(--text-normal));
+.sf-recommend-negated {
+	color: var(--text-error, var(--text-muted));
 }
 
-.sf-recommend-fact-actions {
-	display: flex;
-	gap: 6px;
+.sf-recommend-hit-span {
+	font-size: 0.9em;
+	color: var(--text-normal);
+	cursor: pointer;
+	line-height: 1.35;
+}
+
+.sf-recommend-hit-span:hover {
+	text-decoration: underline;
+}
+
+.sf-recommend-hit-span:focus-visible,
+.sf-recommend-tab:focus-visible,
+.sf-recommend-refresh:focus-visible,
+.sf-recommend-row-label:focus-visible,
+.sf-recommend-entity-header:focus-visible {
+	outline: 2px solid var(--text-accent);
+	outline-offset: 2px;
+}
+
+.sf-recommend-codex-fact {
+	font-size: 0.8em;
+	color: var(--text-muted);
 	margin-top: 4px;
 }
 
-.sf-recommend-continuity {
-	padding: 6px 0;
-	border-bottom: 1px solid var(--background-modifier-border);
+.sf-recommend-codex-fact.is-missing {
+	font-style: italic;
 }
 
-.sf-recommend-continuity.has-conflict .sf-recommend-continuity-line {
-	color: var(--text-error, var(--text-normal));
+.sf-recommend-competing {
+	font-size: 0.8em;
+	color: var(--text-faint);
+	margin-top: 4px;
 }
 
-.sf-recommend-continuity-line {
-	font-size: 0.9em;
-	margin-bottom: 4px;
-}
-
-.sf-recommend-continuity-steps {
+.sf-recommend-hit-actions {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 4px;
+	gap: 6px;
+	margin-top: 6px;
 }
 
-.sf-recommend-step {
-	font-size: 0.75em;
-	padding: 1px 6px;
-	border-radius: 4px;
-	background: var(--background-modifier-hover);
-	cursor: pointer;
-	color: var(--text-muted);
+.sf-recommend-dossier-search {
+	width: 100%;
+	box-sizing: border-box;
+	margin-bottom: 6px;
 }
 
-.sf-recommend-step-conflict {
-	color: var(--text-error, var(--text-normal));
+.sf-recommend-dossier-suggest {
+	margin-bottom: 8px;
 }
+
+/*
+ * Match right-rail chrome to the left panel so the centre editor reads as the
+ * writing surface and side panels feel like one shell (xForge Timeline polish).
+ */
+.workspace .mod-right-split .workspace-tabs,
+.workspace .mod-right-split .workspace-tab-header-container,
+.workspace .mod-right-split .workspace-leaf-content {
+	background-color: var(--background-secondary);
+}
+

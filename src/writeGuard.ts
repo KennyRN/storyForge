@@ -10,6 +10,16 @@ import { BACKSTAGE_ROOT, CODEX_ROOT, LIBRARY_ROOT } from "./paths";
  * must go through this module (which will refuse it). Library manuscripts are
  * prose-only; Codex notes are user-owned (create/rename for wikilinks are the
  * only intentional disk exceptions elsewhere, and must not grow into content edits).
+ * Story Context never edits Codex note bodies — its write footprint is `_sf-backstage/` only.
+ *
+ * Host API / xForge siblings:
+ * - Codex note *frontmatter* create/edit is only for plugins that called
+ *   `registerCodexWriteException`, and only for essential owned fields.
+ * - `allowBody` defaults false; hosted timelineForge must not edit note bodies.
+ * - nameForge should not register. languageForge: deferred — do not pre-grant.
+ * - Never Library prose. Never raw `_sf-backstage/codex.md` from siblings
+ *   (use `ensureVirtualFolder` / `createNote` / `setType` host facades).
+ * See docs/xforge-sibling-writes.md and docs/xforge-timelineforge-host-audit.md.
  */
 
 export class ForbiddenWriteError extends Error {
