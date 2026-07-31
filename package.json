@@ -1,6 +1,6 @@
 {
 	"name": "storyforge",
-	"version": "0.9.1",
+	"version": "0.10.0",
 	"description": "A minimalist novel-writing workspace for Obsidian.",
 	"main": "main.js",
 	"scripts": {
@@ -20,6 +20,8 @@
 	"dependencies": {
 		"@codemirror/state": "^6.5.0",
 		"@codemirror/view": "^6.38.6",
-		"fflate": "^0.8.3"
+		"fflate": "^0.8.3",
+		"wink-eng-lite-web-model": "^1.8.1",
+		"wink-nlp": "^2.4.0"
 	}
 }

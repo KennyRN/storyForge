@@ -8,6 +8,7 @@ import { bookFolderNameFromChapterPath, libraryChapterPath } from "../paths";
 import { formatSingleLine } from "../titleNumbering";
 import { excerpt } from "../wordCount";
 import { makeAccessibleActivatable } from "./a11y";
+import { activateRightRailView } from "./activateRightRailView";
 
 export const ARCHIVE_VIEW_TYPE = "storyforge-archive-view";
 
@@ -222,20 +223,11 @@ export async function activateArchiveView(
 	plugin: StoryForgePlugin,
 	tab: ArchiveMode = "codex",
 ): Promise<void> {
-	const { workspace } = plugin.app;
-	let leaf: WorkspaceLeaf | null = workspace.getLeavesOfType(ARCHIVE_VIEW_TYPE)[0] ?? null;
-	if (!leaf) {
-		leaf = workspace.getRightLeaf(false);
-		await leaf?.setViewState({ type: ARCHIVE_VIEW_TYPE, active: true });
-	}
-	if (leaf) {
-		const split = workspace.rightSplit;
-		if (typeof split.expand === "function") split.expand();
+	await activateRightRailView(plugin, ARCHIVE_VIEW_TYPE, (leaf) => {
 		const view = leaf.view;
 		if (view instanceof ArchiveView) {
 			if (tab === "novel") view.openOnNovelTab();
 			else view.openOnCodexTab();
 		}
-		await workspace.revealLeaf(leaf);
-	}
+	});
 }

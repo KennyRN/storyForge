@@ -15,13 +15,18 @@ function parseFrontmatterBlock(raw: string): Record<string, unknown> {
 	return parsed ?? {};
 }
 
-export function buildRecommendSidecarContent(report: ChapterRecommendReport): string {
+export function buildRecommendSidecarContent(
+	report: ChapterRecommendReport,
+	resolvedIds: string[] = [],
+): string {
 	const frontmatter = {
 		chapter: report.chapterFilename,
 		contentHash: report.contentHash,
+		resolvedIds,
 	};
 	const yaml = stringifyYaml(frontmatter).trimEnd();
-	const body = ["", AUTO_MARKER, "", "```json", JSON.stringify(report), "```", ""].join("\n");
+	const payload = { ...report, resolvedIds };
+	const body = ["", AUTO_MARKER, "", "```json", JSON.stringify(payload), "```", ""].join("\n");
 	return `---\n${yaml}\n---\n${body}`;
 }
 
@@ -33,6 +38,19 @@ export function parseRecommendSidecar(raw: string): ChapterRecommendReport | nul
 		const report = JSON.parse(jsonMatch[1].trim()) as ChapterRecommendReport;
 		if (typeof report.chapterFilename !== "string") return null;
 		if (typeof fm.contentHash === "string") report.contentHash = fm.contentHash;
+		if (!Array.isArray(report.hits)) report.hits = [];
+		if (!Array.isArray(report.unknownNameHints)) report.unknownNameHints = [];
+		if (!Array.isArray(report.sentenceKeys)) report.sentenceKeys = [];
+		const resolvedIds = Array.isArray(fm.resolvedIds)
+			? fm.resolvedIds.filter((x): x is string => typeof x === "string")
+			: Array.isArray((report as unknown as { resolvedIds?: string[] }).resolvedIds)
+				? ((report as unknown as { resolvedIds: string[] }).resolvedIds)
+				: [];
+		const live = new Set(report.hits.map((h) => h.id));
+		const swept = resolvedIds.filter((id) => live.has(id));
+		for (const hit of report.hits) {
+			hit.resolved = swept.includes(hit.id);
+		}
 		return report;
 	} catch {
 		return null;
@@ -43,10 +61,17 @@ export async function writeRecommendCache(
 	app: App,
 	bookFolderName: string,
 	report: ChapterRecommendReport,
+	resolvedIds?: string[],
 ): Promise<void> {
 	await ensureBackstageFolder(app.vault, recommendSidecarFolderPath(bookFolderName));
 	const path = recommendSidecarPath(bookFolderName, report.chapterFilename);
-	const content = buildRecommendSidecarContent(report);
+	const ids =
+		resolvedIds ??
+		report.hits.filter((h) => h.resolved).map((h) => h.id);
+	// Sweep orphans against current hit ids
+	const live = new Set(report.hits.map((h) => h.id));
+	const swept = ids.filter((id) => live.has(id));
+	const content = buildRecommendSidecarContent(report, swept);
 	const file = app.vault.getAbstractFileByPath(path);
 	if (file instanceof TFile) {
 		const existing = await app.vault.read(file);
@@ -63,7 +88,7 @@ export async function readRecommendCache(
 	const path = recommendSidecarPath(bookFolderName, chapterFilename);
 	const file = app.vault.getAbstractFileByPath(path);
 	if (!(file instanceof TFile)) return null;
-	return parseRecommendSidecar(await app.vault.read(file));
+	return parseRecommendSidecar(await app.vault.cachedRead(file));
 }
 
 export function isRecommendCacheFresh(cached: ChapterRecommendReport, contentHash: string): boolean {

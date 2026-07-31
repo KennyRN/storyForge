@@ -1,5 +1,8 @@
-/** Status of a fact check against a Codex Facts section. */
-export type FactCheckStatus = "ok" | "conflict" | "unknown" | "acknowledged";
+/** Coreference confidence for a located sentence. */
+export type CorefTier = "solid" | "grey" | "ambiguous";
+
+/** Built-in lens ids. The registry is data-driven; custom ids are allowed later. */
+export type LensId = "description" | "whereabouts" | "relationships" | "dialogue" | "emotion" | string;
 
 export interface CodexEntryInput {
 	path: string;
@@ -12,12 +15,12 @@ export interface CodexEntryInput {
 
 export interface FactValue {
 	value: string;
-	/** Prior values from acknowledge/update history (oldest first). */
+	/** Prior values from user-authored (was) history (oldest first). */
 	was: string[];
 }
 
 export interface ParsedFacts {
-	/** Display heading used when serializing back (e.g. "Facts"). */
+	/** Display heading used when serializing (e.g. "Facts"). */
 	heading: string;
 	/** Normalized key → value. */
 	entries: Record<string, FactValue>;
@@ -34,24 +37,49 @@ export interface MatchedCodexEntry {
 	ambiguousWith: string[];
 }
 
-export interface DescriptionHit {
-	path: string | null;
-	/** Display names when ambiguous. */
-	names: string[];
-	ambiguous: boolean;
-	text: string;
-	/** Attribute-like extractions near the mention (key/value guesses). */
-	attributes: Array<{ key: string; value: string }>;
+/**
+ * Display payload shaped for a future LLM interpreter:
+ * `{ span, entity, trait/lens, currentCodexFact }`.
+ */
+export interface LocateShowPayload {
+	span: string;
+	entity: { path: string; name: string } | null;
+	lens: LensId;
+	trait: string | null;
+	currentCodexFact: { key: string; value: string } | null;
+	negated: boolean;
 }
 
-export interface FactCheckRow {
-	path: string;
+export interface DetailHit {
+	/** Stable key: entityPath + normalised sentence (via hashId). */
+	id: string;
+	sentence: string;
+	chapterFilename: string;
+	/** 0-based start offset in the raw (unstripped) file. */
+	rawOffset: number;
+	/** 0-based end offset in the raw file. */
+	rawEnd: number;
+	/** 1-based line in the raw file. */
+	line: number;
+	tier: CorefTier;
+	entityPath: string | null;
+	entityName: string;
+	/** Competing cast names when tier is ambiguous. */
+	competingNames: string[];
+	lens: LensId;
+	trait: string | null;
+	negated: boolean;
+	currentCodexFact: { key: string; value: string } | null;
+	/** Chapter-tab only: detail has been handled (done or ignore). */
+	resolved: boolean;
+	/** Attribution decision for grey/ambiguous hits. */
+	attribution: "confirmed" | "rejected" | null;
+}
+
+export interface UnknownNameHint {
 	name: string;
-	key: string;
-	displayKey: string;
-	codexValue: string | null;
-	chapterValue: string;
-	status: FactCheckStatus;
+	/** Opportunistic NER type when the model fires; never required. */
+	nerType?: string;
 }
 
 export interface ChapterRecommendReport {
@@ -60,22 +88,35 @@ export interface ChapterRecommendReport {
 	synopsisHeuristic: string;
 	matched: MatchedCodexEntry[];
 	unknownNames: string[];
-	descriptions: DescriptionHit[];
-	factChecks: FactCheckRow[];
+	unknownNameHints: UnknownNameHint[];
+	hits: DetailHit[];
+	/** Normalised sentences present in the scan (for orphan sweep). */
+	sentenceKeys: string[];
 }
 
-export interface ContinuityStep {
-	chapterFilename: string;
-	chapterLabel: string;
-	value: string;
-	status: FactCheckStatus;
+/** Attribution: is this pronoun sentence really this entity? Shared across tabs. */
+export type AttributionAction = "confirmed" | "rejected";
+
+export interface AttributionDecision {
+	entityPath: string;
+	sentence: string;
+	action: AttributionAction;
+	/** Optional reroute target when rejecting. */
+	reroutePath?: string;
 }
 
-export interface ContinuityTimeline {
+/** Cast member supplied to the scanner (from Codex inventory). */
+export interface CastMember {
 	path: string;
 	name: string;
-	key: string;
-	displayKey: string;
-	steps: ContinuityStep[];
-	hasConflict: boolean;
+	aliases: string[];
+	type: string;
+	facts: ParsedFacts;
+}
+
+export interface ScanContext {
+	cast: CastMember[];
+	chapterFilename: string;
+	/** Attribution decisions already known (applied during scan). */
+	attributions?: AttributionDecision[];
 }

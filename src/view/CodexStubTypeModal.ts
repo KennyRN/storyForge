@@ -8,6 +8,8 @@ export class CodexStubTypeModal extends Modal {
 	constructor(
 		app: App,
 		private onPick: (type: string | null) => void,
+		/** Opportunistic NER pre-fill — shown first when it matches a Codex type. */
+		private preferredType?: string,
 	) {
 		super(app);
 	}
@@ -18,8 +20,18 @@ export class CodexStubTypeModal extends Modal {
 		contentEl.createEl("h2", { text: "Create as..." });
 
 		const list = contentEl.createDiv({ cls: "sf-palette-list" });
-		for (const option of CODEX_TYPES) {
-			const row = list.createDiv({ cls: "sf-row sf-palette-row" });
+		const ordered = [...CODEX_TYPES].sort((a, b) => {
+			if (this.preferredType && a.type === this.preferredType) return -1;
+			if (this.preferredType && b.type === this.preferredType) return 1;
+			return 0;
+		});
+		for (const option of ordered) {
+			const row = list.createDiv({
+				cls:
+					option.type === this.preferredType
+						? "sf-row sf-palette-row is-preferred"
+						: "sf-row sf-palette-row",
+			});
 			setIcon(row.createSpan({ cls: "sf-icon" }), option.icon);
 			row.createSpan({ text: option.label });
 			row.addEventListener("click", () => {

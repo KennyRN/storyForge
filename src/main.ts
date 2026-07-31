@@ -7,7 +7,10 @@ import { RecommendationView, RECOMMEND_VIEW_TYPE, activateRecommendView } from "
 import { ArchiveView, ARCHIVE_VIEW_TYPE, activateArchiveView } from "./view/ArchiveView";
 import { SpacerView, SPACER_VIEW_TYPE } from "./view/SpacerView";
 import { recomputeChapterRecommend } from "./recommend/recompute";
+import { isNlpReady } from "./recommend/nlp";
 import { CODEX_TYPES } from "./codex";
+import { buildRightRailTypeOrder } from "./rightRailOrder";
+import { createHostApi, type RightRailRegistration, type StoryForgeHostApi } from "./hostApi";
 import { StoryForgeSettingsTab } from "./view/StoryForgeSettingsTab";
 import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders, getBookId } from "./series";
 import { ensureAllChapterEntries, syncAllBookReferenceFields } from "./book";
@@ -557,6 +560,10 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 };
 
 export default class StoryForgePlugin extends Plugin {
+	/** Versioned host API for xForge siblings (`app.plugins.getPlugin("storyforge")?.api`). */
+	api!: StoryForgeHostApi;
+	private rightRailRegistry: RightRailRegistration[] = [];
+	private activeBookListeners = new Set<(book: { folderName: string; bookId: string } | null) => void>();
 	private recomputeDebouncers = new Map<string, () => void>();
 	private pluginSettings: StoryForgePluginSettings = DEFAULT_SETTINGS;
 	/** Documents of currently open pop-out windows, kept in sync via the "window-open"/"window-close" workspace events. */
@@ -670,6 +677,8 @@ export default class StoryForgePlugin extends Plugin {
 			this.app.workspace.on("layout-change", () => this.syncSpacerActiveClass()),
 		);
 
+		this.api = createHostApi(this);
+
 		if (Platform.isDesktopApp) {
 			this.registerInterval(window.setInterval(() => void this.maybeRunScheduledBackup("interval"), 30 * 60 * 1000));
 		}
@@ -712,7 +721,15 @@ export default class StoryForgePlugin extends Plugin {
 	 * the tab header. Re-applying each leaf's own view state forces Obsidian to redraw it.
 	 */
 	private refreshCustomIcons(): void {
-		for (const type of [STORYFORGE_VIEW_TYPE, TOOLS_VIEW_TYPE, RECOMMEND_VIEW_TYPE, ARCHIVE_VIEW_TYPE, SPACER_VIEW_TYPE]) {
+		const types = [
+			STORYFORGE_VIEW_TYPE,
+			TOOLS_VIEW_TYPE,
+			RECOMMEND_VIEW_TYPE,
+			ARCHIVE_VIEW_TYPE,
+			SPACER_VIEW_TYPE,
+			...this.rightRailRegistry.map((r) => r.viewType),
+		];
+		for (const type of types) {
 			for (const leaf of this.app.workspace.getLeavesOfType(type)) {
 				void leaf.setViewState(leaf.getViewState());
 			}
@@ -791,8 +808,49 @@ export default class StoryForgePlugin extends Plugin {
 	}
 
 	async updateSetting<K extends keyof StoryForgePluginSettings>(key: K, value: StoryForgePluginSettings[K]): Promise<void> {
+		const prevNovel = this.pluginSettings.selectedNovel;
 		this.pluginSettings[key] = value;
 		await this.saveSettings();
+		if (key === "selectedNovel" && prevNovel !== value) {
+			this.notifyActiveBookListeners();
+		}
+	}
+
+	/** Hosted siblings: register a right-rail tab between Story Context and Archive (by orderHint). */
+	registerHostedRightRailView(reg: RightRailRegistration): void {
+		const existing = this.rightRailRegistry.findIndex((r) => r.viewType === reg.viewType);
+		if (existing >= 0) this.rightRailRegistry[existing] = reg;
+		else this.rightRailRegistry.push(reg);
+		if (this.app.workspace.layoutReady) {
+			void this.ensureRightRailPanels();
+			this.refreshCustomIcons();
+		}
+	}
+
+	addActiveBookListener(cb: (book: { folderName: string; bookId: string } | null) => void): () => void {
+		this.activeBookListeners.add(cb);
+		return () => this.activeBookListeners.delete(cb);
+	}
+
+	private notifyActiveBookListeners(): void {
+		const book = this.api?.getActiveBook() ?? null;
+		for (const cb of this.activeBookListeners) {
+			try {
+				cb(book);
+			} catch {
+				/* sibling listener errors must not break SF */
+			}
+		}
+	}
+
+	/** Canonical right-rail types: Spacer → Story Context → registered (orderHint) → Archive. */
+	private rightRailTypes(): string[] {
+		return buildRightRailTypeOrder(
+			SPACER_VIEW_TYPE,
+			RECOMMEND_VIEW_TYPE,
+			ARCHIVE_VIEW_TYPE,
+			this.rightRailRegistry,
+		);
 	}
 
 	/** Replaces all settings with `data` (merged over defaults, same as `loadSettings`), persists, and re-applies every style/extension so the change takes effect immediately. */
@@ -1393,10 +1451,14 @@ export default class StoryForgePlugin extends Plugin {
 
 		const chapterFilename = chapterFilenameFromPath(chapterPath) ?? file.name;
 		const bookId = getBookId(this.app, bookFolderName);
-		await recomputeChapterRecommend(this.app, bookFolderName, chapterFilename, bookId, {
-			codexFactSectionByType: this.pluginSettings.codexFactSectionByType,
-			recommendIncludeUnknownNames: this.pluginSettings.recommendIncludeUnknownNames,
-		});
+		// Story Context NLP is lazy: only refresh the recommend cache once the
+		// panel has loaded winkNLP this session (first open pays the cost).
+		if (isNlpReady()) {
+			await recomputeChapterRecommend(this.app, bookFolderName, chapterFilename, bookId, {
+				codexFactSectionByType: this.pluginSettings.codexFactSectionByType,
+				recommendIncludeUnknownNames: this.pluginSettings.recommendIncludeUnknownNames,
+			});
+		}
 	}
 
 	async activateRecommendView(): Promise<void> {
@@ -1442,9 +1504,9 @@ export default class StoryForgePlugin extends Plugin {
 		this.syncSpacerActiveClass();
 	}
 
-	/** Ensure Spacer → Story Context → Archive exist in that order on the right. */
+	/** Ensure Spacer → Story Context → [hosted] → Archive exist in that order on the right. */
 	private async ensureRightRailPanels(): Promise<void> {
-		const types = [SPACER_VIEW_TYPE, RECOMMEND_VIEW_TYPE, ARCHIVE_VIEW_TYPE];
+		const types = this.rightRailTypes();
 		if (!this.isRightRailOrderCanonical()) {
 			for (const type of types) this.app.workspace.detachLeavesOfType(type);
 			for (let i = 0; i < types.length; i++) {
@@ -1457,9 +1519,9 @@ export default class StoryForgePlugin extends Plugin {
 		}
 	}
 
-	/** True when right-rail storyForge tabs appear in Spacer → Story Context → Archive order (missing tabs are OK). */
+	/** True when right-rail tabs appear in canonical order (missing tabs are OK). */
 	private isRightRailOrderCanonical(): boolean {
-		const expected = [SPACER_VIEW_TYPE, RECOMMEND_VIEW_TYPE, ARCHIVE_VIEW_TYPE];
+		const expected = this.rightRailTypes();
 		const order: string[] = [];
 		this.app.workspace.iterateAllLeaves((leaf) => {
 			const type = leaf.view.getViewType();

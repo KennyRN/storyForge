@@ -1,20 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { analyzeChapter } from "../recommend/engine";
+import { analyzeChapter, contentHash, hashId, stripMarkdownMapped } from "../recommend/engine";
 import {
-	acknowledgeFactChange,
 	normalizeFactKey,
 	parseFactsFromNote,
 	parseFactsFromSection,
 	serializeFactsSection,
 	setFactValue,
-	writeFactsIntoNote,
 	emptyFacts,
 } from "../recommend/facts";
 import { buildRecommendSidecarContent, parseRecommendSidecar } from "../recommend/cache";
-import { buildContinuityTimelines, formatContinuityLine } from "../recommend/continuity";
-import type { ChapterRecommendReport, CodexEntryInput } from "../recommend/types";
+import { groupHitsByChapter, lensLabel } from "../recommend/continuity";
+import { buildLensRegistry } from "../recommend/lenses";
+import { ensureNlp } from "../recommend/nlp";
+import type { CastMember, ChapterRecommendReport } from "../recommend/types";
 
-function person(path: string, name: string, factsBody: string, aliases: string[] = []): CodexEntryInput {
+function person(path: string, name: string, factsBody: string, aliases: string[] = []): CastMember {
 	const facts = parseFactsFromSection(factsBody, "Facts");
 	return { path, name, aliases, type: "person", facts };
 }
@@ -25,7 +25,7 @@ describe("normalizeFactKey", () => {
 	});
 });
 
-describe("facts parse/upsert", () => {
+describe("facts parse", () => {
 	it("parses current and was lines", () => {
 		const facts = parseFactsFromSection("eye colour (was): green\neye colour: amber\nhair: dark\n", "Facts");
 		expect(facts.entries["eye colour"]?.value).toBe("amber");
@@ -33,37 +33,38 @@ describe("facts parse/upsert", () => {
 		expect(facts.entries.hair?.value).toBe("dark");
 	});
 
-	it("round-trips through note body with custom heading", () => {
-		const raw = "---\naliases: [Bob]\n---\n\nLore about Bob.\n";
+	it("serializes for stub seeding without writing into notes", () => {
 		let facts = emptyFacts("Traits");
 		facts = setFactValue(facts, "eye colour", "green", false);
-		const written = writeFactsIntoNote(raw, facts);
-		expect(written).toContain("## Traits");
-		expect(written).toContain("eye colour: green");
-		const parsed = parseFactsFromNote(written, "Traits");
+		const body = serializeFactsSection(facts);
+		expect(body).toContain("eye colour: green");
+		const note = `---\naliases: [Bob]\n---\n\n## Traits\n${body}\n`;
+		const parsed = parseFactsFromNote(note, "Traits");
 		expect(parsed.entries["eye colour"]?.value).toBe("green");
-	});
-
-	it("acknowledge pushes previous value into was", () => {
-		let facts = emptyFacts("Facts");
-		facts = setFactValue(facts, "eye colour", "green", false);
-		facts = acknowledgeFactChange(facts, "eye colour", "amber");
-		expect(facts.entries["eye colour"]?.value).toBe("amber");
-		expect(facts.entries["eye colour"]?.was).toEqual(["green"]);
-		expect(serializeFactsSection(facts)).toContain("eye colour (was): green");
 	});
 });
 
-describe("analyzeChapter", () => {
-	const jane = person("Codex/Jane.md", "Jane", "eye colour: green\n");
-	const alexA = person("Codex/Alex.md", "Alex", "", ["Alex"]);
-	const alexandra = person("Codex/Alexandra.md", "Alexandra", "", ["Alex"]);
+describe("stripMarkdownMapped", () => {
+	it("maps offsets past frontmatter to raw lines", () => {
+		const raw = "---\ntitle: x\n---\n\nAldric rose.\n";
+		const stripped = stripMarkdownMapped(raw);
+		expect(stripped.text).toContain("Aldric rose.");
+		const idx = stripped.text.indexOf("Aldric");
+		const rawIdx = stripped.toRaw(idx);
+		expect(raw.slice(rawIdx, rawIdx + 6)).toBe("Aldric");
+		expect(rawIdx).toBeGreaterThan(10);
+	});
+});
 
-	it("matches longer names first and lists characters", () => {
+describe("analyzeChapter (dossier engine)", () => {
+	const jane = person("Codex/Jane.md", "Jane", "eye colour: green\n");
+
+	it("matches longer names first and lists characters", async () => {
+		await ensureNlp();
 		const prose = "Jane walked into the room. Mary Ann waved.";
 		const maryAnn = person("Codex/Mary Ann.md", "Mary Ann", "");
 		const mary = person("Codex/Mary.md", "Mary", "");
-		const report = analyzeChapter(prose, [jane, maryAnn, mary], {
+		const report = await analyzeChapter(prose, [jane, maryAnn, mary], {
 			chapterFilename: "ch1.md",
 			existingPlot: "",
 			includeUnknownNames: true,
@@ -72,20 +73,26 @@ describe("analyzeChapter", () => {
 		expect(report.matched.find((m) => m.name === "Mary")).toBeUndefined();
 	});
 
-	it("marks ambiguous shared aliases", () => {
+	it("marks ambiguous shared aliases", async () => {
+		await ensureNlp();
+		const alexA = person("Codex/Alex.md", "Alex", "", ["Alex"]);
+		const alexandra = person("Codex/Alexandra.md", "Alexandra", "", ["Alex"]);
 		const prose = "Alex opened the door.";
-		const report = analyzeChapter(prose, [alexA, alexandra], {
+		const report = await analyzeChapter(prose, [alexA, alexandra], {
 			chapterFilename: "ch1.md",
 			existingPlot: "",
 			includeUnknownNames: false,
 		});
-		const hits = report.matched.filter((m) => m.matchedAs.includes("Alex") || m.name === "Alex" || m.name === "Alexandra");
+		const hits = report.matched.filter(
+			(m) => m.matchedAs.includes("Alex") || m.name === "Alex" || m.name === "Alexandra",
+		);
 		expect(hits.length).toBe(2);
 		expect(hits.every((h) => h.ambiguousWith.length > 0)).toBe(true);
 	});
 
-	it("prefers existing plot for synopsis", () => {
-		const report = analyzeChapter("First sentence. Second sentence.", [jane], {
+	it("prefers existing plot for synopsis", async () => {
+		await ensureNlp();
+		const report = await analyzeChapter("First sentence. Second sentence.", [jane], {
 			chapterFilename: "ch1.md",
 			existingPlot: "Custom plot notes",
 			includeUnknownNames: false,
@@ -93,40 +100,71 @@ describe("analyzeChapter", () => {
 		expect(report.synopsisHeuristic).toBe("Custom plot notes");
 	});
 
-	it("detects eye colour conflict", () => {
+	it("surfaces description sentences without value-conflict scoring", async () => {
+		await ensureNlp();
 		const prose = "Jane's eyes were amber in the light.";
-		const report = analyzeChapter(prose, [jane], {
+		const report = await analyzeChapter(prose, [jane], {
 			chapterFilename: "ch1.md",
 			existingPlot: "",
 			includeUnknownNames: false,
 		});
-		const conflict = report.factChecks.find((r) => r.key === "eye colour");
-		expect(conflict?.status).toBe("conflict");
-		expect(conflict?.codexValue).toBe("green");
-		expect(conflict?.chapterValue.toLowerCase()).toContain("amber");
+		const hit = report.hits.find((h) => h.lens === "description" && h.entityName === "Jane");
+		expect(hit).toBeTruthy();
+		expect(hit!.tier).toBe("solid");
+		expect(hit!.sentence.toLowerCase()).toContain("amber");
+		expect(hit!.currentCodexFact?.value).toBe("green");
+		expect(hit!.negated).toBe(false);
 	});
 
-	it("treats was-history as acknowledged", () => {
-		const janeHist = person("Codex/Jane.md", "Jane", "eye colour (was): green\neye colour: amber\n");
-		const prose = "Jane's eyes were green that morning.";
-		const report = analyzeChapter(prose, [janeHist], {
+	it("keeps negation visible on description hits", async () => {
+		await ensureNlp();
+		const prose = "Jane's eyes were not green.";
+		const report = await analyzeChapter(prose, [jane], {
 			chapterFilename: "ch1.md",
 			existingPlot: "",
 			includeUnknownNames: false,
 		});
-		const row = report.factChecks.find((r) => r.key === "eye colour");
-		expect(row?.status).toBe("acknowledged");
+		const hit = report.hits.find((h) => h.lens === "description");
+		expect(hit).toBeTruthy();
+		expect(hit!.negated).toBe(true);
 	});
 
-	it("lists unknown proper names", () => {
-		const prose = "Zelda met Jane at the harbour.";
-		const report = analyzeChapter(prose, [jane], {
+	it("tiers pronoun sentences as grey when one prior name is in window", async () => {
+		await ensureNlp();
+		const prose = "Jane entered the hall. Her luminous eyes flashed.";
+		const report = await analyzeChapter(prose, [jane], {
+			chapterFilename: "ch1.md",
+			existingPlot: "",
+			includeUnknownNames: false,
+		});
+		const grey = report.hits.find((h) => h.tier === "grey" && h.sentence.toLowerCase().includes("luminous"));
+		expect(grey).toBeTruthy();
+		expect(grey!.entityName).toBe("Jane");
+	});
+
+	it("detects unknown proper nouns including sentence-initial invented names", async () => {
+		await ensureNlp();
+		const prose = "Aldric met Jane at the harbour.";
+		const report = await analyzeChapter(prose, [jane], {
 			chapterFilename: "ch1.md",
 			existingPlot: "",
 			includeUnknownNames: true,
 		});
-		expect(report.unknownNames).toContain("Zelda");
+		expect(report.unknownNames).toContain("Aldric");
 		expect(report.unknownNames).not.toContain("Jane");
+	});
+});
+
+describe("lenses registry", () => {
+	it("ships five extensible lenses", () => {
+		const lenses = buildLensRegistry();
+		expect(lenses.map((l) => l.id)).toEqual([
+			"description",
+			"whereabouts",
+			"relationships",
+			"dialogue",
+			"emotion",
+		]);
 	});
 });
 
@@ -138,10 +176,11 @@ describe("recommend cache", () => {
 			synopsisHeuristic: "Once upon a time",
 			matched: [],
 			unknownNames: ["Zelda"],
-			descriptions: [],
-			factChecks: [],
+			unknownNameHints: [{ name: "Zelda" }],
+			hits: [],
+			sentenceKeys: [],
 		};
-		const raw = buildRecommendSidecarContent(report);
+		const raw = buildRecommendSidecarContent(report, []);
 		const parsed = parseRecommendSidecar(raw);
 		expect(parsed?.chapterFilename).toBe("ch1.md");
 		expect(parsed?.unknownNames).toEqual(["Zelda"]);
@@ -149,43 +188,63 @@ describe("recommend cache", () => {
 	});
 });
 
-describe("continuity", () => {
-	it("aggregates fact drift across chapters", () => {
-		const mk = (filename: string, value: string, status: "ok" | "conflict" | "acknowledged"): ChapterRecommendReport => ({
-			chapterFilename: filename,
-			contentHash: filename,
-			synopsisHeuristic: "",
-			matched: [],
-			unknownNames: [],
-			descriptions: [],
-			factChecks: [
-				{
-					path: "Codex/Jane.md",
-					name: "Jane",
-					key: "eye colour",
-					displayKey: "eye colour",
-					codexValue: "green",
-					chapterValue: value,
-					status,
-				},
-			],
-		});
-		const timelines = buildContinuityTimelines(
+describe("dossier grouping", () => {
+	it("groups hits in chapter order", () => {
+		const groups = groupHitsByChapter(
 			[
 				{ filename: "a.md", label: "Ch 1" },
 				{ filename: "b.md", label: "Ch 2" },
-				{ filename: "c.md", label: "Ch 3" },
 			],
-			new Map([
-				["a.md", mk("a.md", "green", "ok")],
-				["b.md", mk("b.md", "amber", "conflict")],
-				["c.md", mk("c.md", "amber", "acknowledged")],
-			]),
+			[
+				{
+					id: "1",
+					sentence: "Later.",
+					chapterFilename: "b.md",
+					rawOffset: 0,
+					rawEnd: 1,
+					line: 1,
+					tier: "solid",
+					entityPath: "Codex/Jane.md",
+					entityName: "Jane",
+					competingNames: [],
+					lens: "emotion",
+					trait: "glad",
+					negated: false,
+					currentCodexFact: null,
+					resolved: false,
+					attribution: null,
+				},
+				{
+					id: "2",
+					sentence: "First.",
+					chapterFilename: "a.md",
+					rawOffset: 0,
+					rawEnd: 1,
+					line: 1,
+					tier: "solid",
+					entityPath: "Codex/Jane.md",
+					entityName: "Jane",
+					competingNames: [],
+					lens: "description",
+					trait: "eyes",
+					negated: false,
+					currentCodexFact: null,
+					resolved: false,
+					attribution: null,
+				},
+			],
 		);
-		expect(timelines).toHaveLength(1);
-		expect(timelines[0].hasConflict).toBe(true);
-		expect(timelines[0].steps.map((s) => s.value)).toEqual(["green", "amber", "amber"]);
-		expect(formatContinuityLine(timelines[0])).toContain("eye colour");
-		expect(formatContinuityLine(timelines[0])).toContain("[!]");
+		expect(groups.map((g) => g.chapter.filename)).toEqual(["a.md", "b.md"]);
+		expect(lensLabel("description")).toBe("Description");
+	});
+});
+
+describe("hashId", () => {
+	it("is stable for the same entity+sentence", () => {
+		expect(hashId("Codex/Jane.md", "Her eyes were green.")).toBe(
+			hashId("Codex/Jane.md", "Her eyes were green."),
+		);
+		expect(hashId("Codex/Jane.md", "A")).not.toBe(hashId("Codex/Jane.md", "B"));
+		expect(contentHash(["a"])).toBe(contentHash(["a"]));
 	});
 });
