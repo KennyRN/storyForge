@@ -6,7 +6,7 @@
 import { factsFingerprint, normalizeFactKey } from "./facts";
 import { applyLenses, buildLensRegistry, type LensDef, type TokenInfo } from "./lenses";
 import { defaultLexicons } from "./lexicons";
-import { ensureNlp, getIts, type WinkIts, type WinkNlp } from "./nlp";
+import { ensureNlp, getIts, type WinkNlp } from "./nlp";
 import type {
 	AttributionDecision,
 	CastMember,
@@ -22,11 +22,6 @@ import type { ItemEntity, ItemSentence, ItemToken } from "wink-nlp";
 export const COREF_WINDOW = 3;
 const MAX_SYNOPSIS_WORDS = 120;
 const MAX_SYNOPSIS_SENTENCES = 3;
-
-/** winkNLP `its.*` helpers are pure asHelpers (no `this`); typed so unbound-method stays quiet. */
-function asHelper<T extends WinkIts[keyof WinkIts]>(helper: T): T & { (this: void): unknown } {
-	return helper as T & { (this: void): unknown };
-}
 
 const PRONOUNS = new Set([
 	"he",
@@ -191,8 +186,6 @@ function splitSentences(
 
 function tokensForSentence(nlp: WinkNlp, sentence: string): TokenInfo[] {
 	const its = getIts(nlp);
-	const pos = asHelper(its.pos);
-	const negationFlag = asHelper(its.negationFlag);
 	const doc = nlp.readDoc(sentence);
 	const tokens: TokenInfo[] = [];
 	let index = 0;
@@ -201,8 +194,8 @@ function tokensForSentence(nlp: WinkNlp, sentence: string): TokenInfo[] {
 		tokens.push({
 			text,
 			lower: text.toLowerCase(),
-			pos: String(t.out(pos)),
-			negated: Boolean(t.out(negationFlag)),
+			pos: String(t.out(its.pos)),
+			negated: Boolean(t.out(its.negationFlag)),
 			index: index++,
 		});
 	});
@@ -355,15 +348,13 @@ function collectMatched(
 /** Merge adjacent PROPN tokens into multi-word names ("Cult of the Snake" is harder; take adjacent runs). */
 function extractProperNames(nlp: WinkNlp, prose: string): Array<{ name: string; nerType?: string }> {
 	const its = getIts(nlp);
-	const pos = asHelper(its.pos);
-	const type = asHelper(its.type);
 	const doc = nlp.readDoc(prose);
 	const names: Array<{ name: string; nerType?: string }> = [];
 	const seen = new Set<string>();
 
 	const tokens: Array<{ text: string; pos: string }> = [];
 	doc.tokens().each((t: ItemToken) => {
-		tokens.push({ text: t.out(), pos: String(t.out(pos)) });
+		tokens.push({ text: t.out(), pos: String(t.out(its.pos)) });
 	});
 
 	let i = 0;
@@ -401,7 +392,7 @@ function extractProperNames(nlp: WinkNlp, prose: string): Array<{ name: string; 
 
 	doc.entities().each((e: ItemEntity) => {
 		const text = e.out();
-		const nerType = String(e.out(type) ?? "");
+		const nerType = String(e.out(its.type) ?? "");
 		const key = text.toLowerCase();
 		const existing = names.find((n) => n.name.toLowerCase() === key);
 		if (existing && nerType) existing.nerType = nerType;
