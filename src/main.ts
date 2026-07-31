@@ -1,4 +1,4 @@
-import { Notice, Platform, Plugin, TFile, WorkspaceLeaf } from "obsidian";
+import { Notice, Plugin, TFile, WorkspaceLeaf } from "obsidian";
 import type { Extension } from "@codemirror/state";
 import { createCyclingGuideViewPlugin } from "./cyclingGuide";
 import { StoryForgeView, STORYFORGE_VIEW_TYPE } from "./view/StoryForgeView";
@@ -283,7 +283,6 @@ export interface StoryForgePluginSettings {
 	cyclingGuideInterval: CyclingGuideInterval;
 	automaticBackupEnabled: boolean;
 	automaticBackupFrequency: AutomaticBackupFrequency;
-	automaticBackupFolder: string;
 	lastAutomaticBackupAt: number;
 	/** Per Codex type id → H2 heading label used for structured Facts in notes. */
 	codexFactSectionByType: Record<string, string>;
@@ -546,7 +545,6 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	cyclingGuideInterval: "medium",
 	automaticBackupEnabled: false,
 	automaticBackupFrequency: "daily",
-	automaticBackupFolder: "",
 	lastAutomaticBackupAt: 0,
 	codexFactSectionByType: {
 		person: "Facts",
@@ -679,9 +677,7 @@ export default class StoryForgePlugin extends Plugin {
 
 		this.api = createHostApi(this);
 
-		if (Platform.isDesktopApp) {
-			this.registerInterval(window.setInterval(() => void this.maybeRunScheduledBackup("interval"), 30 * 60 * 1000));
-		}
+		this.registerInterval(window.setInterval(() => void this.maybeRunScheduledBackup("interval"), 30 * 60 * 1000));
 	}
 
 	/**
@@ -690,9 +686,9 @@ export default class StoryForgePlugin extends Plugin {
 	 * daily/weekly backups becoming due while Obsidian is left open across multiple days.
 	 */
 	private async maybeRunScheduledBackup(trigger: "vault-open" | "interval"): Promise<void> {
-		if (!Platform.isDesktopApp || this.backupInProgress) return;
-		const { automaticBackupEnabled, automaticBackupFrequency, automaticBackupFolder, lastAutomaticBackupAt } = this.pluginSettings;
-		if (!automaticBackupEnabled || !automaticBackupFolder) return;
+		if (this.backupInProgress) return;
+		const { automaticBackupEnabled, automaticBackupFrequency, lastAutomaticBackupAt } = this.pluginSettings;
+		if (!automaticBackupEnabled) return;
 
 		const now = Date.now();
 		let includeTime = false;
@@ -706,7 +702,7 @@ export default class StoryForgePlugin extends Plugin {
 
 		this.backupInProgress = true;
 		try {
-			await runContentBackup(this.app, automaticBackupFolder, includeTime);
+			await runContentBackup(this.app, includeTime);
 			await this.updateSetting("lastAutomaticBackupAt", now);
 		} catch (err) {
 			new Notice(`storyForge: automatic backup failed — ${(err as Error).message}`);

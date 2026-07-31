@@ -1,26 +1,10 @@
-import { App, Modal, Notice, Platform, Setting, SettingGroup } from "obsidian";
+import { App, Modal, Notice, Setting, SettingGroup } from "obsidian";
 import type StoryForgePlugin from "../main";
 import type { AutomaticBackupFrequency, StoryForgePluginSettings } from "../main";
 import { runFullBackup } from "../backup";
+import { BACKUPS_FOLDER } from "../paths";
 import { ensureWelcomeNote } from "../welcomeNote";
 import { renderTabbedBody, type StyleModalTab } from "./styleModalHelpers";
-
-interface RemoteDialog {
-	showOpenDialog(options: {
-		properties: Array<"openFile" | "openDirectory" | "multiSelections">;
-	}): Promise<{ canceled: boolean; filePaths: string[] }>;
-}
-
-function getRemoteDialog(): RemoteDialog | null {
-	try {
-		const req = (window as unknown as { require?: (m: string) => unknown }).require;
-		if (!req) return null;
-		const remote = req("@electron/remote") as { dialog?: RemoteDialog };
-		return remote.dialog ?? null;
-	} catch {
-		return null;
-	}
-}
 
 export class ProtectionsModal extends Modal {
 	private plugin: StoryForgePlugin;
@@ -118,41 +102,15 @@ export class ProtectionsModal extends Modal {
 	}
 
 	private renderBackupContent(body: HTMLElement, settings: StoryForgePluginSettings): void {
-		if (!Platform.isDesktopApp) {
-			new Setting(body).setName("Automatic backup").setDesc("Automatic backup is only available on desktop.");
-			return;
-		}
-
 		const card = new SettingGroup(body);
-		let folderValue = settings.automaticBackupFolder;
 		let frequencyRow!: Setting;
 
 		card.addSetting((setting) => {
 			setting
 				.setName("Automatic backup")
-				.setDesc("Automatically zip your vault's notes and attachments on a schedule.")
+				.setDesc(`Automatically zip your vault's notes and attachments on a schedule. Zips are saved to ${BACKUPS_FOLDER}/.`)
 				.addToggle((toggle) =>
 					toggle.setValue(settings.automaticBackupEnabled).onChange((value) => this.persistAutoBackupEnabled(value, frequencyRow)),
-				);
-		});
-
-		card.addSetting((setting) => {
-			setting
-				.setName("Backup folder")
-				.setDesc("Absolute folder path on this computer where backup zip files are saved. Required for both automatic and manual backups.")
-				.addText((text) =>
-					text
-						.setPlaceholder("/Users/you/Backups/storyForge")
-						.setValue(settings.automaticBackupFolder)
-						.onChange((value) => {
-							folderValue = value;
-							this.persistBackupFolder(value);
-						}),
-				)
-				.addButton((button) =>
-					button
-						.setButtonText("Browse")
-						.onClick(() => this.browseForBackupFolder((path) => (folderValue = path))),
 				);
 		});
 
@@ -171,14 +129,10 @@ export class ProtectionsModal extends Modal {
 		card.addSetting((setting) => {
 			setting
 				.setName("Back up now")
-				.setDesc(`Creates a full backup zip immediately, including your ${this.app.vault.configDir} settings folder — saved to the backup folder above.`)
+				.setDesc(`Creates a full backup zip immediately, including your ${this.app.vault.configDir} settings folder — saved to ${BACKUPS_FOLDER}/.`)
 				.addButton((button) =>
 					button.setButtonText("Back up now").onClick(() => {
-						if (!folderValue) {
-							new Notice("storyForge: set a backup folder before backing up.");
-							return;
-						}
-						this.runManualBackup(folderValue);
+						this.runManualBackup();
 					}),
 				);
 		});
@@ -189,12 +143,6 @@ export class ProtectionsModal extends Modal {
 				.setName("Recreate welcome note")
 				.setDesc("Restores storyForge Welcome.md in your Codex if you've deleted it. If it still exists, this just opens it.")
 				.addButton((button) => button.setButtonText("Recreate welcome note").onClick(() => this.recreateWelcomeNote()));
-		});
-	}
-
-	private persistBackupFolder(value: string): void {
-		this.plugin.updateSetting("automaticBackupFolder", value).catch((err: unknown) => {
-			new Notice(`storyForge: could not save backup folder — ${err instanceof Error ? err.message : String(err)}`);
 		});
 	}
 
@@ -210,28 +158,8 @@ export class ProtectionsModal extends Modal {
 		});
 	}
 
-	private browseForBackupFolder(setFolderValue: (path: string) => void): void {
-		const dialog = getRemoteDialog();
-		if (!dialog) {
-			new Notice("storyForge: native folder picker unavailable — paste the folder path into the field instead.");
-			return;
-		}
-		dialog
-			.showOpenDialog({ properties: ["openDirectory"] })
-			.then((result) => {
-				if (!result.canceled && result.filePaths.length > 0) {
-					const selectedPath = result.filePaths[0];
-					setFolderValue(selectedPath);
-					return this.plugin.updateSetting("automaticBackupFolder", selectedPath).then(() => this.render());
-				}
-			})
-			.catch((err: unknown) => {
-				new Notice(`storyForge: could not open folder picker — ${err instanceof Error ? err.message : String(err)}`);
-			});
-	}
-
-	private runManualBackup(folder: string): void {
-		runFullBackup(this.app, folder)
+	private runManualBackup(): void {
+		runFullBackup(this.app)
 			.then((path) => {
 				new Notice(`storyForge: backup saved to ${path}`);
 			})

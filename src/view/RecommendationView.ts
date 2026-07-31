@@ -394,7 +394,7 @@ export class RecommendationView extends ItemView {
 		}
 
 		for (const [, entityHits] of byEntity) {
-			const first = entityHits[0]!;
+			const first = entityHits[0];
 			const entityHeader = section.createDiv({ cls: "sf-recommend-entity-header" });
 			entityHeader.createSpan({
 				cls: "sf-recommend-entity-name",
@@ -550,7 +550,7 @@ export class RecommendationView extends ItemView {
 			});
 			makeAccessibleActivatable(chTitle, () => {
 				if (!this.bookFolderName) return;
-				void this.openChapter(this.bookFolderName!, group.chapter.filename);
+				void this.openChapter(this.bookFolderName, group.chapter.filename);
 			});
 
 			for (const hit of group.hits) {
