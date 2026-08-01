@@ -47,5 +47,5 @@ export async function ensureNlp(): Promise<WinkNlp> {
 }
 
 export function getIts(instance: WinkNlp = nlp!): WinkItsSafe {
-	return instance.its as WinkItsSafe;
+	return instance.its;
 }

@@ -112,7 +112,7 @@ async function handleChapterCrossBookMove(
 	if (app.vault.getAbstractFileByPath(oldFp)) {
 		await renameBackstagePath(app.vault, oldFp, newFp);
 		await modifyBackstageFrontmatter(app, app.vault, newFp, "---\n---\n", (fm) => {
-			fm.chapter = newFilename;
+			Object.assign(fm, { chapter: newFilename });
 		});
 	}
 
