@@ -1,4 +1,5 @@
 ***⚠️ WARNING: this plugin no longer creates an external backup!***
+
 Instead it creates a folder within the vault and backs the vault up in there. The change was due to Obsidian's automated warning that the vault allows external access of your computer and my frustration that I had to mentally ignore the warning time and time again.
 
 This change does mean that it should now be able to work on mobile devices.
