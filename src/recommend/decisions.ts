@@ -200,7 +200,7 @@ export async function writeResolvedIdsOntoCache(
 	}
 	const payload =
 		reportJson && typeof reportJson === "object"
-			? { ...(reportJson as object), resolvedIds }
+			? { ...reportJson, resolvedIds }
 			: { resolvedIds };
 	await writeBackstageFile(app.vault, path, buildJsonSidecar(fm, payload));
 }

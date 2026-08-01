@@ -98,7 +98,7 @@ export function stripMarkdownMapped(raw: string): StripResult {
 
 	const pushSlice = (start: number, end: number) => {
 		for (let p = start; p < end; p++) {
-			out.push(raw[p]!);
+			out.push(raw[p]);
 			rawOffsets.push(p);
 		}
 	};
@@ -136,7 +136,7 @@ export function stripMarkdownMapped(raw: string): StripResult {
 		toRaw: (strippedOffset: number) => {
 			if (rawOffsets.length === 0) return strippedOffset;
 			const clamped = Math.max(0, Math.min(strippedOffset, rawOffsets.length - 1));
-			return rawOffsets[clamped]!;
+			return rawOffsets[clamped];
 		},
 	};
 }
@@ -359,26 +359,26 @@ function extractProperNames(nlp: WinkNlp, prose: string): Array<{ name: string; 
 
 	let i = 0;
 	while (i < tokens.length) {
-		if (tokens[i]!.pos !== "PROPN") {
+		if (tokens[i].pos !== "PROPN") {
 			i++;
 			continue;
 		}
-		const parts = [tokens[i]!.text];
+		const parts = [tokens[i].text];
 		i++;
-		while (i < tokens.length && tokens[i]!.pos === "PROPN") {
-			parts.push(tokens[i]!.text);
+		while (i < tokens.length && tokens[i].pos === "PROPN") {
+			parts.push(tokens[i].text);
 			i++;
 		}
 		// Allow "of" / "the" bridges between PROPNs: Cult of the Snake
 		while (
 			i + 1 < tokens.length &&
-			/^(of|the|de|von|van)$/i.test(tokens[i]!.text) &&
+			/^(of|the|de|von|van)$/i.test(tokens[i].text) &&
 			tokens[i + 1]?.pos === "PROPN"
 		) {
-			parts.push(tokens[i]!.text);
+			parts.push(tokens[i].text);
 			i++;
-			while (i < tokens.length && tokens[i]!.pos === "PROPN") {
-				parts.push(tokens[i]!.text);
+			while (i < tokens.length && tokens[i].pos === "PROPN") {
+				parts.push(tokens[i].text);
 				i++;
 			}
 		}
@@ -392,10 +392,10 @@ function extractProperNames(nlp: WinkNlp, prose: string): Array<{ name: string; 
 
 	doc.entities().each((e: ItemEntity) => {
 		const text = e.out();
-		const type = String(e.out(its.type) ?? "");
+		const nerType = String(e.out(its.type) ?? "");
 		const key = text.toLowerCase();
 		const existing = names.find((n) => n.name.toLowerCase() === key);
-		if (existing && type) existing.nerType = type;
+		if (existing && nerType) existing.nerType = nerType;
 	});
 
 	return names;
@@ -432,12 +432,12 @@ export function scanFile(
 	const namesBySentence = sentences.map((s) => namesInSentence(s.text, keys));
 
 	for (let si = 0; si < sentences.length; si++) {
-		const s = sentences[si]!;
+		const s = sentences[si];
 		const tokens = tokensForSentence(nlp, s.text);
 		const lensHits = applyLenses(s.text, tokens, lenses);
 		if (lensHits.length === 0) continue;
 
-		const named = namesBySentence[si]!;
+		const named = namesBySentence[si];
 		const namedPaths = new Map<string, string>(); // path → display name
 		for (const nk of named) {
 			for (const path of nk.paths) {
@@ -462,7 +462,7 @@ export function scanFile(
 			// Look back COREF_WINDOW for nearest preceding names
 			const windowNames = new Map<string, string>();
 			for (let back = si - 1; back >= 0 && back >= si - COREF_WINDOW; back--) {
-				for (const nk of namesBySentence[back]!) {
+				for (const nk of namesBySentence[back]) {
 					for (const path of nk.paths) {
 						const entry = byPath.get(path);
 						if (entry && !windowNames.has(path)) windowNames.set(path, entry.name);
@@ -470,11 +470,11 @@ export function scanFile(
 				}
 			}
 			if (windowNames.size === 1) {
-				const [path, name] = [...windowNames.entries()][0]!;
+				const [path, name] = [...windowNames.entries()][0];
 				candidates.push({ path, name, tier: "grey", competing: [] });
 			} else if (windowNames.size > 1) {
 				const entries = [...windowNames.entries()];
-				const [path, name] = entries[0]!;
+				const [path, name] = entries[0];
 				candidates.push({
 					path,
 					name,

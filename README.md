@@ -37,15 +37,12 @@ To add a novel / chapter look for the add icon on the Unplaced pane's header row
 
 The other panel is the Tools panel. A fancy way of saying this is Obsidian's ribbon given a slight bit of fancying up (adding the titles of the buttons of the ribbon), so anything you can do in the ribbon you can do here.
 
-## External Vault Access Disclosure
-This plugin does access files outside the vault for backup purposes (both the library and your plugin settings), to import plugin settings, and to add novel covers to your books.
+## Privacy and vault access
+storyForge writes only inside `_sf-backstage/` (plugin state) and `_sf-backup/` (backup zips) — there's no code path anywhere in the plugin that writes to your prose, codex, or any other vault content.
 
 If you're running an automated security/behavior scan against storyForge, here's what it'll likely flag and why:
-- **Node `fs` access** and **full vault enumeration**: both come from the same disclosed backup feature above — writing a zip file to a folder outside the vault requires Node's `fs`, and building that zip requires reading every file in the vault via Obsidian's own `vault.getFiles()`/`vault.adapter.list()` APIs. Neither is used anywhere else in the plugin.
+- **Vault enumeration** (recommendation): building a backup zip requires walking vault folders via Obsidian's `vault.adapter.list()` API. That happens only in `src/backup.ts`, only when a backup runs, and never uploads anything. The plugin does **not** use Node's `fs` module or write outside the vault.
 
-## Privacy and vault access
-storyForge writes only inside its own `_sf-backstage` folder — there's no code path anywhere in the plugin that writes to your prose, codex, or any other vault content.
+The backup feature is the one exception to otherwise scoped read access. When a backup runs — whether you start it manually or via the schedule you've enabled — it reads vault files in order to zip them into `_sf-backup/`. The `_sf-backup/` folder itself is always excluded so zips never nest previous backups. That's the sole reason the plugin walks vault folders.
 
-The backup feature is the one exception to that otherwise scoped read access. When a backup runs — whether you start it manually or via the schedule you've enabled — it reads every file in the vault in order to zip it up. That's the sole reason the plugin enumerates vault files, and it happens only in `src/backup.ts`.
-
-Backups are written to a local folder you choose. Nothing leaves your machine, and storyForge makes no network requests.
+Backups stay inside your vault (so they sync with Obsidian Sync / your chosen sync tool if you use one). Nothing leaves your machine via storyForge, and storyForge makes no network requests.

@@ -1,0 +1,14 @@
+---
+description: Feature branches are short-lived; close them once the work is done
+alwaysApply: true
+---
+
+# Short-lived branches
+
+Branches are temporary delivery vehicles, not permanent homes for features.
+
+- Open a branch for active work only.
+- Once the feature is completed, reviewed, and built/merged (or deliberately abandoned), **close the PR and delete the branch** on remote and locally.
+- Do not leave long-lived feature branches sitting open “just in case.”
+- Prefer one active feature branch at a time when practical; clean up stale branches before starting the next large effort.
+- `main` is the durable line. Everything else should earn its keep by being in progress.

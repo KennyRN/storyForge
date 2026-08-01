@@ -4,6 +4,7 @@ import { createBook, renameBookTitle, reorderSeriesBooks } from "../book";
 import { makeReorderable, type DragZone } from "./dragReorder";
 import { makeAccessibleActivatable } from "./a11y";
 import { ICON_BOOK_PLUS } from "../icons";
+import { isDragInProgress } from "./dragLock";
 
 /** Editable series-settings modal: series title, per-book titles, reordering, and creating new books. */
 export class SeriesModal extends Modal {
@@ -23,6 +24,7 @@ export class SeriesModal extends Modal {
 	}
 
 	private render(): void {
+		if (isDragInProgress()) return;
 		const { contentEl } = this;
 		contentEl.empty();
 		contentEl.addClass("sf-series-modal");
