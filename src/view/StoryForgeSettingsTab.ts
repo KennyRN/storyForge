@@ -51,6 +51,10 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
+	private isFormatCompanionActive(): boolean {
+		return this.plugin.getFormatCompanion() != null || this.plugin.api?.formatting?.isCompanionActive() === true;
+	}
+
 	getControlValue(key: string): unknown {
 		if (key.includes(".")) {
 			return getPath(this.plugin.getSettings() as unknown as Record<string, unknown>, key);
@@ -110,6 +114,8 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			isPresetPaletteName(selectedName)
 				? Object.fromEntries(COLOR_PALETTES[selectedName].map((v) => [v.name, v.name]))
 				: {};
+		const companionActive = () => this.isFormatCompanionActive();
+		const companionInactive = () => !this.isFormatCompanionActive();
 
 		return [
 			{
@@ -137,6 +143,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			{
 				name: "Colour palette",
 				desc: "Palette used when picking colours for storyForge UI elements.",
+				visible: companionInactive,
 				control: {
 					type: "dropdown",
 					key: "colorPaletteName",
@@ -147,6 +154,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				name: "Palette variant",
 				desc: "Named variant of the selected palette.",
 				visible: () => {
+					if (this.isFormatCompanionActive()) return false;
 					const name = this.plugin.getSettings().colorPaletteName;
 					return isPresetPaletteName(name) && COLOR_PALETTES[name].length > 1;
 				},
@@ -159,7 +167,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			...Array.from({ length: colorCount }, (_, i) => [
 				{
 					name: `Custom colour ${i + 1} name`,
-					visible: () => this.plugin.getSettings().colorPaletteName === "Custom",
+					visible: () => companionInactive() && this.plugin.getSettings().colorPaletteName === "Custom",
 					control: {
 						type: "text" as const,
 						key: `customPaletteColors.${i}.name`,
@@ -168,13 +176,21 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				},
 				{
 					name: `Custom colour ${i + 1}`,
-					visible: () => this.plugin.getSettings().colorPaletteName === "Custom",
+					visible: () => companionInactive() && this.plugin.getSettings().colorPaletteName === "Custom",
 					control: {
 						type: "color" as const,
 						key: `customPaletteColors.${i}.hex`,
 					},
 				},
 			]).flat(),
+			{
+				name: "Formatting (formatForge)",
+				desc: "Text styling, colours, fonts, and the colour palette are managed by formatForge while it is enabled.",
+				visible: companionActive,
+				action: () => {
+					this.plugin.getFormatCompanion()?.openSettings?.();
+				},
+			},
 			{
 				type: "group",
 				heading: "Story Context",
@@ -200,7 +216,8 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			},
 			{
 				name: "Text styling",
-				desc: "Open the text styling modal.",
+				desc: "Open the text styling modal (editor size overrides).",
+				visible: companionInactive,
 				action: () => {
 					new TextStyleModal(this.app, this.plugin).open();
 				},
@@ -208,6 +225,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			{
 				name: "storyForge interface",
 				desc: "Open interface formatting options.",
+				visible: companionInactive,
 				action: () => {
 					new UiFormattingModal(this.app, this.plugin).open();
 				},
