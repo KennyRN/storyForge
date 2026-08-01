@@ -60,7 +60,6 @@ export type CustomFontFamily =
 	| "libre-baskerville"
 	| "nunito"
 	| "playpen-sans"
-	| "roboto-flex"
 	| "sn-pro";
 
 export type FontWeight = "300" | "400" | "500" | "600" | "700" | "800" | "900";
@@ -333,10 +332,12 @@ const FONT_FAMILY_SETTING_KEYS: FontFamilySettingKey[] = [
 	"codexNoteLabelFontFamily",
 ];
 
-/** Caroni was removed as a font choice; any settings still carrying its id (from before the removal) fall back to the current default font. */
-function migrateRemovedCaroniFont(settings: StoryForgePluginSettings): void {
+/** Fonts removed as choices; any settings still carrying those ids fall back to the current default font. */
+const REMOVED_FONT_IDS = new Set(["caroni", "roboto-flex"]);
+
+function migrateRemovedFonts(settings: StoryForgePluginSettings): void {
 	for (const key of FONT_FAMILY_SETTING_KEYS) {
-		if ((settings[key] as string) === "caroni") settings[key] = "ibm-plex-sans-var";
+		if (REMOVED_FONT_IDS.has(settings[key] as string)) settings[key] = "ibm-plex-sans-var";
 	}
 }
 
@@ -775,7 +776,7 @@ export default class StoryForgePlugin extends Plugin {
 	async loadSettings(): Promise<void> {
 		const data: unknown = await this.loadData();
 		this.pluginSettings = Object.assign({}, DEFAULT_SETTINGS, data);
-		migrateRemovedCaroniFont(this.pluginSettings);
+		migrateRemovedFonts(this.pluginSettings);
 		const shellMigrated = migrateStoryContextShell(this.pluginSettings, data);
 		const sections = { ...DEFAULT_SETTINGS.codexFactSectionByType, ...this.pluginSettings.codexFactSectionByType };
 		for (const opt of CODEX_TYPES) {
@@ -861,7 +862,7 @@ export default class StoryForgePlugin extends Plugin {
 			(merged as unknown as Record<string, unknown>)[key as string] = incoming[key as string];
 		}
 		this.pluginSettings = merged;
-		migrateRemovedCaroniFont(this.pluginSettings);
+		migrateRemovedFonts(this.pluginSettings);
 		const sections = { ...DEFAULT_SETTINGS.codexFactSectionByType, ...this.pluginSettings.codexFactSectionByType };
 		for (const opt of CODEX_TYPES) {
 			if (!sections[opt.type]) sections[opt.type] = "Facts";
