@@ -7,6 +7,69 @@
  * Constructors take 0 args to match obsidian.d.ts; tests assign `path` afterwards.
  */
 
+/** Enough of the Obsidian UI surface for modules that `extends Modal` / `Plugin` under vitest. */
+export class App {}
+export class Plugin {
+	app: App;
+	manifest: Record<string, unknown>;
+	constructor(app?: App, manifest?: Record<string, unknown>) {
+		this.app = app ?? new App();
+		this.manifest = manifest ?? {};
+	}
+	async loadData(): Promise<unknown> {
+		return null;
+	}
+	async saveData(_data: unknown): Promise<void> {}
+	registerView() {}
+	registerEvent() {}
+	registerEditorExtension() {}
+	addCommand() {}
+	addSettingTab() {}
+	addRibbonIcon() {}
+}
+export class Modal {
+	app: App;
+	modalEl: HTMLElement;
+	contentEl: HTMLElement;
+	titleEl: HTMLElement;
+	constructor(app: App) {
+		this.app = app;
+		this.modalEl = { addClass() {}, removeClass() {} } as unknown as HTMLElement;
+		this.contentEl = { empty() {}, addClass() {}, createDiv() { return this; }, createEl() { return this; } } as unknown as HTMLElement;
+		this.titleEl = { remove() {}, setText() {} } as unknown as HTMLElement;
+	}
+	open() {}
+	close() {}
+	onOpen() {}
+	onClose() {}
+}
+export class PluginSettingTab {
+	app: App;
+	plugin: Plugin;
+	constructor(app: App, plugin: Plugin) {
+		this.app = app;
+		this.plugin = plugin;
+	}
+}
+export class Setting {
+	setName() { return this; }
+	setDesc() { return this; }
+	addText() { return this; }
+	addToggle() { return this; }
+	addDropdown() { return this; }
+	addButton() { return this; }
+	addSlider() { return this; }
+	addExtraButton() { return this; }
+	settingEl = { toggleClass() {} };
+}
+export class SettingGroup {
+	setHeading() { return this; }
+	addSetting(cb: (s: Setting) => void) { cb(new Setting()); return this; }
+}
+export class Notice {
+	constructor(_message?: string) {}
+}
+export class WorkspaceLeaf {}
 export class TFile {
 	path = "";
 	name = "";
