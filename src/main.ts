@@ -855,7 +855,7 @@ export default class StoryForgePlugin extends Plugin {
 			throw new Error("Settings import must be a JSON object");
 		}
 		const incoming = data as Record<string, unknown>;
-		const merged = { ...DEFAULT_SETTINGS } as StoryForgePluginSettings;
+		const merged = { ...DEFAULT_SETTINGS };
 		for (const key of Object.keys(DEFAULT_SETTINGS) as Array<keyof StoryForgePluginSettings>) {
 			if (!Object.prototype.hasOwnProperty.call(incoming, key)) continue;
 			(merged as unknown as Record<string, unknown>)[key as string] = incoming[key as string];
