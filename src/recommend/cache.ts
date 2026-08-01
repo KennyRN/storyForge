@@ -1,6 +1,6 @@
 import { App, parseYaml, stringifyYaml, TFile } from "obsidian";
 import { recommendSidecarFolderPath, recommendSidecarPath } from "../paths";
-import { ensureBackstageFolder, writeBackstageFile } from "../writeGuard";
+import { ensureBackstageFolder, deleteBackstagePath, renameBackstagePath, writeBackstageFile } from "../writeGuard";
 import type { ChapterRecommendReport } from "./types";
 
 const AUTO_MARKER = "<!-- AUTO-MAINTAINED — do not edit, the plugin overwrites it -->";
@@ -93,4 +93,23 @@ export async function readRecommendCache(
 
 export function isRecommendCacheFresh(cached: ChapterRecommendReport, contentHash: string): boolean {
 	return cached.contentHash === contentHash;
+}
+
+/** Follows a chapter rename: moves the recommend cache sidecar to the new chapter filename. */
+export async function renameRecommendSidecar(
+	app: App,
+	bookFolderName: string,
+	oldFilename: string,
+	newFilename: string,
+): Promise<void> {
+	const oldPath = recommendSidecarPath(bookFolderName, oldFilename);
+	const newPath = recommendSidecarPath(bookFolderName, newFilename);
+	const file = app.vault.getAbstractFileByPath(oldPath);
+	if (!(file instanceof TFile)) return;
+	await renameBackstagePath(app.vault, oldPath, newPath);
+}
+
+/** Deletes the recommend cache sidecar for a chapter (e.g. after the chapter file is deleted). */
+export async function deleteRecommendCache(app: App, bookFolderName: string, chapterFilename: string): Promise<void> {
+	await deleteBackstagePath(app, recommendSidecarPath(bookFolderName, chapterFilename));
 }

@@ -10,6 +10,10 @@ export type WinkNlp = WinkMethods;
 export type WinkIts = WinkMethods["its"];
 export type WinkDoc = ReturnType<WinkMethods["readDoc"]>;
 
+/** winkNLP `its.*` helpers are pure asHelpers (no `this`). Typed so unbound-method stays quiet. */
+type WithVoidThis<T> = T extends (...args: infer A) => infer R ? { (this: void, ...args: A): R } : T;
+export type WinkItsSafe = { [K in keyof WinkIts]: WithVoidThis<WinkIts[K]> };
+
 let nlp: WinkNlp | null = null;
 let loadPromise: Promise<WinkNlp> | null = null;
 
@@ -27,9 +31,9 @@ export async function ensureNlp(): Promise<WinkNlp> {
 	if (nlp) return nlp;
 	if (loadPromise) return loadPromise;
 	loadPromise = Promise.resolve().then(() => {
-		// eslint-disable-next-line @typescript-eslint/no-require-imports
+		// eslint-disable-next-line @typescript-eslint/no-require-imports -- deferred require keeps winkNLP out of the cold module graph until Story Context opens
 		const winkNLP = require("wink-nlp") as (model: Model) => WinkNlp;
-		// eslint-disable-next-line @typescript-eslint/no-require-imports
+		// eslint-disable-next-line @typescript-eslint/no-require-imports -- same deferred-load reason as wink-nlp above; model stays bundled, not fetched
 		const model = require("wink-eng-lite-web-model") as Model;
 		nlp = winkNLP(model);
 		return nlp;
@@ -42,6 +46,6 @@ export async function ensureNlp(): Promise<WinkNlp> {
 	}
 }
 
-export function getIts(instance: WinkNlp = nlp!): WinkIts {
-	return instance.its;
+export function getIts(instance: WinkNlp = nlp!): WinkItsSafe {
+	return instance.its as WinkItsSafe;
 }
