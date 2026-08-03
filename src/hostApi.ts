@@ -31,6 +31,7 @@ import {
 	type StoryForgeFormattingApi,
 } from "./formattingApi";
 import type { PaletteColor, PaletteName } from "./colorPalettes";
+import { PALETTE_NAMES } from "./colorPalettes";
 
 /** Bumped to 2 when `formatting` was added for formatForge. */
 export const STORYFORGE_API_VERSION = 2 as const;
@@ -115,6 +116,146 @@ function uniqueCodexFilename(app: App, baseName: string): string {
 	while (app.vault.getAbstractFileByPath(`${CODEX_ROOT}/${stem} ${n}.md`)) n++;
 	return `${stem} ${n}.md`;
 }
+
+type ValuePredicate = (value: unknown) => boolean;
+
+/** Non-empty string (colours, incl. `var(--…)` and hex forms). */
+function isColorString(value: unknown): boolean {
+	return typeof value === "string" && value.length > 0;
+}
+
+function isFiniteNumber(value: unknown): boolean {
+	return typeof value === "number" && Number.isFinite(value);
+}
+
+function isBoolean(value: unknown): boolean {
+	return typeof value === "boolean";
+}
+
+/** Free-form strings (palette variant, companion font ids). */
+function isString(value: unknown): boolean {
+	return typeof value === "string";
+}
+
+function isOneOf(...allowed: readonly string[]): ValuePredicate {
+	const set = new Set(allowed);
+	return (value) => typeof value === "string" && set.has(value);
+}
+
+function isPaletteColorArray(value: unknown): boolean {
+	if (!Array.isArray(value)) return false;
+	return value.every(
+		(el) =>
+			el !== null &&
+			typeof el === "object" &&
+			typeof (el as PaletteColor).name === "string" &&
+			typeof (el as PaletteColor).hex === "string",
+	);
+}
+
+/** Allowed sets mirror the unions/maps on StoryForgePluginSettings — do not invent values. */
+const FONT_WEIGHTS = ["300", "400", "500", "600", "700", "800", "900"] as const;
+const CODEX_FOLDER_INDICATOR_THICKNESSES = ["none", "thin", "medium", "thick"] as const;
+const HEADING_DIVIDER_THICKNESSES = ["thin", "medium", "thick", "extra-thick"] as const;
+const EDITOR_SCROLLBAR_THICKNESSES = ["thin", "medium", "thick"] as const;
+const CYCLING_GUIDE_FLAG_SIZES = ["small", "medium", "large"] as const;
+const CYCLING_GUIDE_INTERVALS = ["short", "medium", "large"] as const;
+
+const LINKED_SETTING_VALIDATORS: Record<SfLinkedFormattingKey, ValuePredicate> = {
+	colorPaletteName: isOneOf(...PALETTE_NAMES),
+	colorPaletteVariant: isString,
+	customPaletteColors: isPaletteColorArray,
+	highlightActiveChapter: isBoolean,
+	highlightColor: isColorString,
+	highlightTextColor: isColorString,
+	librarySeriesTitleFontSize: isFiniteNumber,
+	librarySeriesTitleOverrideFont: isBoolean,
+	librarySeriesTitleFontFamily: isString,
+	librarySeriesTitleFontWeight: isOneOf(...FONT_WEIGHTS),
+	librarySeriesTitleColor: isColorString,
+	librarySeriesTitleSmallCaps: isBoolean,
+	libraryBookTitleFontSize: isFiniteNumber,
+	libraryBookTitleOverrideFont: isBoolean,
+	libraryBookTitleFontFamily: isString,
+	libraryBookTitleFontWeight: isOneOf(...FONT_WEIGHTS),
+	libraryBookTitleColor: isColorString,
+	libraryBookTitleSmallCaps: isBoolean,
+	libraryBookSubtitleFontSize: isFiniteNumber,
+	libraryBookSubtitleOverrideFont: isBoolean,
+	libraryBookSubtitleFontFamily: isString,
+	libraryBookSubtitleFontWeight: isOneOf(...FONT_WEIGHTS),
+	libraryBookSubtitleSmallCaps: isBoolean,
+	libraryHeaderDividerBelow: isBoolean,
+	libraryItemsFontSize: isFiniteNumber,
+	libraryItemsOverrideFont: isBoolean,
+	libraryItemsFontFamily: isString,
+	libraryItemsFontWeight: isOneOf(...FONT_WEIGHTS),
+	libraryItemsColor: isColorString,
+	libraryItemsMuted: isBoolean,
+	unplacedHighlightColor: isColorString,
+	unplacedHighlightTextColor: isColorString,
+	codexHighlightColor: isColorString,
+	codexHighlightTextColor: isColorString,
+	unplacedMuted: isBoolean,
+	unplacedSmallCaps: isBoolean,
+	unplacedColor: isColorString,
+	unplacedFontSize: isFiniteNumber,
+	unplacedOverrideFont: isBoolean,
+	unplacedFontFamily: isString,
+	unplacedFontWeight: isOneOf(...FONT_WEIGHTS),
+	unplacedItemsFontSize: isFiniteNumber,
+	unplacedItemsOverrideFont: isBoolean,
+	unplacedItemsFontFamily: isString,
+	unplacedItemsFontWeight: isOneOf(...FONT_WEIGHTS),
+	unplacedItemsColor: isColorString,
+	unplacedItemsMuted: isBoolean,
+	unplacedUseHeaderColorForAll: isBoolean,
+	codexMuted: isBoolean,
+	codexSmallCaps: isBoolean,
+	codexColor: isColorString,
+	codexFontSize: isFiniteNumber,
+	codexOverrideFont: isBoolean,
+	codexFontFamily: isString,
+	codexFontWeight: isOneOf(...FONT_WEIGHTS),
+	codexFolderFontSize: isFiniteNumber,
+	codexFolderOverrideFont: isBoolean,
+	codexFolderFontFamily: isString,
+	codexFolderFontWeight: isOneOf(...FONT_WEIGHTS),
+	codexFolderColor: isColorString,
+	codexFolderIndicatorThickness: isOneOf(...CODEX_FOLDER_INDICATOR_THICKNESSES),
+	codexNoteLabelFontSize: isFiniteNumber,
+	codexNoteLabelOverrideFont: isBoolean,
+	codexNoteLabelFontFamily: isString,
+	codexNoteLabelFontWeight: isOneOf(...FONT_WEIGHTS),
+	codexNoteLabelColor: isColorString,
+	codexNoteLabelUseDefaultColor: isBoolean,
+	codexNoteLabelUseFolderColor: isBoolean,
+	codexUseHeaderColorForAll: isBoolean,
+	hideSeriesPane: isBoolean,
+	bodyTextOverrideSize: isBoolean,
+	bodyTextSize: isFiniteNumber,
+	heading1OverrideSize: isBoolean,
+	heading1Size: isFiniteNumber,
+	heading2OverrideSize: isBoolean,
+	heading2Size: isFiniteNumber,
+	heading3OverrideSize: isBoolean,
+	heading3Size: isFiniteNumber,
+	heading4OverrideSize: isBoolean,
+	heading4Size: isFiniteNumber,
+	heading5OverrideSize: isBoolean,
+	heading5Size: isFiniteNumber,
+	heading6OverrideSize: isBoolean,
+	heading6Size: isFiniteNumber,
+	cyclingGuideEnabled: isBoolean,
+	cyclingGuideThickness: isOneOf(...HEADING_DIVIDER_THICKNESSES),
+	cyclingGuideColor: isColorString,
+	cyclingGuideFlagSize: isOneOf(...CYCLING_GUIDE_FLAG_SIZES),
+	cyclingGuideRoundedLines: isBoolean,
+	cyclingGuideInterval: isOneOf(...CYCLING_GUIDE_INTERVALS),
+	editorScrollbarThumbColor: isColorString,
+	editorScrollbarTrackColor: isColorString,
+	editorScrollbarThickness: isOneOf(...EDITOR_SCROLLBAR_THICKNESSES),
+};
 
 const LINKED_FORMATTING_KEYS: SfLinkedFormattingKey[] = [
 	"colorPaletteName",
@@ -246,6 +387,9 @@ export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 		async updateLinkedSetting(key, value) {
 			if (!LINKED_FORMATTING_KEYS.includes(key)) {
 				throw new Error(`updateLinkedSetting: ${key} is not an SF-linked formatting key`);
+			}
+			if (!LINKED_SETTING_VALIDATORS[key](value)) {
+				throw new Error(`updateLinkedSetting: invalid value for ${key}`);
 			}
 			await plugin.updateSetting(key as keyof ReturnType<StoryForgePlugin["getSettings"]>, value as never);
 			plugin.applyLinkedFormattingStyles();
