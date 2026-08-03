@@ -1,4 +1,5 @@
 export const LIBRARY_ROOT = "_sf-storylibrary";
+/** Intentionally un-prefixed (unlike the `_sf-` library/backstage roots) — the user-facing folder of wikilink-target notes the writer reads and edits directly, so it presents as an ordinary vault folder rather than plugin plumbing. */
 export const CODEX_ROOT = "Codex";
 export const BACKSTAGE_ROOT = "_sf-backstage";
 /** Vault-root folder where backup zip files are written (Obsidian vault API only — no Node `fs`). Always excluded from backup zips. */
