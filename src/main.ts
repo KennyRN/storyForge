@@ -10,7 +10,7 @@ import { recomputeChapterRecommend } from "./recommend/recompute";
 import { isNlpReady } from "./recommend/nlp";
 import { CODEX_TYPES } from "./codex";
 import { buildRightRailTypeOrder } from "./rightRailOrder";
-import { createHostApi, type RightRailRegistration, type StoryForgeHostApi } from "./hostApi";
+import { createHostApi, type RightRailRegistration, type StoryForgeHostApi, type StoryForgeViewContribution } from "./hostApi";
 import { StoryForgeSettingsTab } from "./view/StoryForgeSettingsTab";
 import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders, getBookId } from "./series";
 import { ensureAllChapterEntries, syncAllBookReferenceFields } from "./book";
@@ -32,7 +32,7 @@ import { updateChapterFingerprint } from "./chapterSidecar";
 import { debounce } from "./debounce";
 import { countWords } from "./wordCount";
 import { registerCustomIcons } from "./icons";
-import { registerCustomFontFaces, resolveCustomFontFamilyParts, CUSTOM_FONTS, CustomFontEntry } from "./fonts";
+import type { FormatCompanionRegistration } from "./formattingApi";
 import { refreshTabTitles, registerTabTitleOverrides } from "./tabTitles";
 import { PaletteColor, PaletteName } from "./colorPalettes";
 import { runContentBackup } from "./backup";
@@ -49,19 +49,8 @@ const CODEX_FOLDER_INDICATOR_WIDTH_PX: Record<CodexFolderIndicatorThickness, num
 export type HeadingDividerThickness = "thin" | "medium" | "thick" | "extra-thick";
 export type EditorScrollbarThickness = "thin" | "medium" | "thick";
 
-export type CustomFontFamily =
-	| "alan-sans"
-	| "caveat"
-	| "courier-prime"
-	| "exo-2"
-	| "fredoka"
-	| "grenze"
-	| "ibm-plex-sans-var"
-	| "libre-baskerville"
-	| "nunito"
-	| "playpen-sans"
-	| "roboto-flex"
-	| "sn-pro";
+/** Font catalog lives in formatForge; SF only stores the companion's font id string. */
+export type CustomFontFamily = string;
 
 export type FontWeight = "300" | "400" | "500" | "600" | "700" | "800" | "900";
 
@@ -183,89 +172,20 @@ export interface StoryForgePluginSettings {
 	codexNoteLabelUseDefaultColor: boolean;
 	codexNoteLabelUseFolderColor: boolean;
 	codexUseHeaderColorForAll: boolean;
-	hideHeading1Links: boolean;
 	bodyTextOverrideSize: boolean;
-	bodyTextOverrideColor: boolean;
 	bodyTextSize: number;
-	bodyTextColor: string;
-	bodyTextOverrideEmphasisColor: boolean;
-	bodyTextBoldColor: string;
-	bodyTextItalicColor: string;
-	bodyTextOverrideFont: boolean;
-	bodyTextFontWeight: FontWeight;
-	bodyTextFontFamily: CustomFontFamily;
 	heading1OverrideSize: boolean;
-	heading1OverrideColor: boolean;
 	heading1Size: number;
-	heading1Color: string;
-	heading1OverrideFont: boolean;
-	heading1FontWeight: FontWeight;
-	heading1FontFamily: CustomFontFamily;
-	heading1SmallCaps: boolean;
-	heading1DividerAbove: boolean;
-	heading1DividerAboveThickness: HeadingDividerThickness;
-	heading1DividerBelow: boolean;
-	heading1DividerBelowThickness: HeadingDividerThickness;
 	heading2OverrideSize: boolean;
-	heading2OverrideColor: boolean;
 	heading2Size: number;
-	heading2Color: string;
-	heading2OverrideFont: boolean;
-	heading2FontWeight: FontWeight;
-	heading2FontFamily: CustomFontFamily;
-	heading2SmallCaps: boolean;
-	heading2DividerAbove: boolean;
-	heading2DividerAboveThickness: HeadingDividerThickness;
-	heading2DividerBelow: boolean;
-	heading2DividerBelowThickness: HeadingDividerThickness;
 	heading3OverrideSize: boolean;
-	heading3OverrideColor: boolean;
 	heading3Size: number;
-	heading3Color: string;
-	heading3OverrideFont: boolean;
-	heading3FontWeight: FontWeight;
-	heading3FontFamily: CustomFontFamily;
-	heading3SmallCaps: boolean;
-	heading3DividerAbove: boolean;
-	heading3DividerAboveThickness: HeadingDividerThickness;
-	heading3DividerBelow: boolean;
-	heading3DividerBelowThickness: HeadingDividerThickness;
 	heading4OverrideSize: boolean;
-	heading4OverrideColor: boolean;
 	heading4Size: number;
-	heading4Color: string;
-	heading4OverrideFont: boolean;
-	heading4FontWeight: FontWeight;
-	heading4FontFamily: CustomFontFamily;
-	heading4SmallCaps: boolean;
-	heading4DividerAbove: boolean;
-	heading4DividerAboveThickness: HeadingDividerThickness;
-	heading4DividerBelow: boolean;
-	heading4DividerBelowThickness: HeadingDividerThickness;
 	heading5OverrideSize: boolean;
-	heading5OverrideColor: boolean;
 	heading5Size: number;
-	heading5Color: string;
-	heading5OverrideFont: boolean;
-	heading5FontWeight: FontWeight;
-	heading5FontFamily: CustomFontFamily;
-	heading5SmallCaps: boolean;
-	heading5DividerAbove: boolean;
-	heading5DividerAboveThickness: HeadingDividerThickness;
-	heading5DividerBelow: boolean;
-	heading5DividerBelowThickness: HeadingDividerThickness;
 	heading6OverrideSize: boolean;
-	heading6OverrideColor: boolean;
 	heading6Size: number;
-	heading6Color: string;
-	heading6OverrideFont: boolean;
-	heading6FontWeight: FontWeight;
-	heading6FontFamily: CustomFontFamily;
-	heading6SmallCaps: boolean;
-	heading6DividerAbove: boolean;
-	heading6DividerAboveThickness: HeadingDividerThickness;
-	heading6DividerBelow: boolean;
-	heading6DividerBelowThickness: HeadingDividerThickness;
 	useToolsPanel: boolean;
 	/** "canonical" enforces SF-before-Tools tab order on open; flips to "user" (permanently) the first time the user drags Tools ahead of SF. */
 	panelOrderMode: "canonical" | "user";
@@ -297,13 +217,6 @@ export interface StoryForgePluginSettings {
 }
 
 type FontFamilySettingKey =
-	| "bodyTextFontFamily"
-	| "heading1FontFamily"
-	| "heading2FontFamily"
-	| "heading3FontFamily"
-	| "heading4FontFamily"
-	| "heading5FontFamily"
-	| "heading6FontFamily"
 	| "librarySeriesTitleFontFamily"
 	| "libraryBookTitleFontFamily"
 	| "libraryBookSubtitleFontFamily"
@@ -315,13 +228,6 @@ type FontFamilySettingKey =
 	| "codexNoteLabelFontFamily";
 
 const FONT_FAMILY_SETTING_KEYS: FontFamilySettingKey[] = [
-	"bodyTextFontFamily",
-	"heading1FontFamily",
-	"heading2FontFamily",
-	"heading3FontFamily",
-	"heading4FontFamily",
-	"heading5FontFamily",
-	"heading6FontFamily",
 	"librarySeriesTitleFontFamily",
 	"libraryBookTitleFontFamily",
 	"libraryBookSubtitleFontFamily",
@@ -333,10 +239,12 @@ const FONT_FAMILY_SETTING_KEYS: FontFamilySettingKey[] = [
 	"codexNoteLabelFontFamily",
 ];
 
-/** Caroni was removed as a font choice; any settings still carrying its id (from before the removal) fall back to the current default font. */
-function migrateRemovedCaroniFont(settings: StoryForgePluginSettings): void {
+/** Fonts removed as choices; any settings still carrying those ids fall back to the current default font. */
+const REMOVED_FONT_IDS = new Set(["caroni", "roboto-flex"]);
+
+function migrateRemovedFonts(settings: StoryForgePluginSettings): void {
 	for (const key of FONT_FAMILY_SETTING_KEYS) {
-		if ((settings[key] as string) === "caroni") settings[key] = "ibm-plex-sans-var";
+		if (REMOVED_FONT_IDS.has(settings[key] as string)) settings[key] = "ibm-plex-sans-var";
 	}
 }
 
@@ -440,89 +348,20 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	codexNoteLabelUseDefaultColor: false,
 	codexNoteLabelUseFolderColor: false,
 	codexUseHeaderColorForAll: false,
-	hideHeading1Links: true,
 	bodyTextOverrideSize: false,
-	bodyTextOverrideColor: false,
 	bodyTextSize: 1,
-	bodyTextColor: "#c8c8c8",
-	bodyTextOverrideEmphasisColor: false,
-	bodyTextBoldColor: "#c8c8c8",
-	bodyTextItalicColor: "#c8c8c8",
-	bodyTextOverrideFont: false,
-	bodyTextFontWeight: "400",
-	bodyTextFontFamily: "ibm-plex-sans-var",
 	heading1OverrideSize: false,
-	heading1OverrideColor: false,
 	heading1Size: 1,
-	heading1Color: "#c8c8c8",
-	heading1OverrideFont: false,
-	heading1FontWeight: "400",
-	heading1FontFamily: "ibm-plex-sans-var",
-	heading1SmallCaps: false,
-	heading1DividerAbove: false,
-	heading1DividerAboveThickness: "medium",
-	heading1DividerBelow: false,
-	heading1DividerBelowThickness: "medium",
 	heading2OverrideSize: false,
-	heading2OverrideColor: false,
 	heading2Size: 1,
-	heading2Color: "#c8c8c8",
-	heading2OverrideFont: false,
-	heading2FontWeight: "400",
-	heading2FontFamily: "ibm-plex-sans-var",
-	heading2SmallCaps: false,
-	heading2DividerAbove: false,
-	heading2DividerAboveThickness: "medium",
-	heading2DividerBelow: false,
-	heading2DividerBelowThickness: "medium",
 	heading3OverrideSize: false,
-	heading3OverrideColor: false,
 	heading3Size: 1,
-	heading3Color: "#c8c8c8",
-	heading3OverrideFont: false,
-	heading3FontWeight: "400",
-	heading3FontFamily: "ibm-plex-sans-var",
-	heading3SmallCaps: false,
-	heading3DividerAbove: false,
-	heading3DividerAboveThickness: "medium",
-	heading3DividerBelow: false,
-	heading3DividerBelowThickness: "medium",
 	heading4OverrideSize: false,
-	heading4OverrideColor: false,
 	heading4Size: 1,
-	heading4Color: "#c8c8c8",
-	heading4OverrideFont: false,
-	heading4FontWeight: "400",
-	heading4FontFamily: "ibm-plex-sans-var",
-	heading4SmallCaps: false,
-	heading4DividerAbove: false,
-	heading4DividerAboveThickness: "medium",
-	heading4DividerBelow: false,
-	heading4DividerBelowThickness: "medium",
 	heading5OverrideSize: false,
-	heading5OverrideColor: false,
 	heading5Size: 1,
-	heading5Color: "#c8c8c8",
-	heading5OverrideFont: false,
-	heading5FontWeight: "400",
-	heading5FontFamily: "ibm-plex-sans-var",
-	heading5SmallCaps: false,
-	heading5DividerAbove: false,
-	heading5DividerAboveThickness: "medium",
-	heading5DividerBelow: false,
-	heading5DividerBelowThickness: "medium",
 	heading6OverrideSize: false,
-	heading6OverrideColor: false,
 	heading6Size: 1,
-	heading6Color: "#c8c8c8",
-	heading6OverrideFont: false,
-	heading6FontWeight: "400",
-	heading6FontFamily: "ibm-plex-sans-var",
-	heading6SmallCaps: false,
-	heading6DividerAbove: false,
-	heading6DividerAboveThickness: "medium",
-	heading6DividerBelow: false,
-	heading6DividerBelowThickness: "medium",
 	useToolsPanel: true,
 	panelOrderMode: "canonical",
 	colorPaletteName: "Custom",
@@ -566,8 +405,12 @@ export default class StoryForgePlugin extends Plugin {
 	private pluginSettings: StoryForgePluginSettings = DEFAULT_SETTINGS;
 	/** Documents of currently open pop-out windows, kept in sync via the "window-open"/"window-close" workspace events. */
 	private extraDocs = new Set<Document>();
-	/** Tracks which documents already have the embedded custom fonts registered (CUSTOM_FONTS is fixed, so this only ever needs doing once per doc). */
+	/** Tracks which documents already had companion FontFace registration (idempotent per doc). */
 	private fontFacesRegisteredFor = new Set<Document>();
+	/** Active formatForge (or future typography) companion, if registered. */
+	private formatCompanion: FormatCompanionRegistration | null = null;
+	/** Contributions into storyForge panel / future slots. */
+	private viewContributions: StoryForgeViewContribution[] = [];
 	/**
 	 * Mutable extensions array registered once via `registerEditorExtension` - Obsidian rebuilds new
 	 * `EditorState`s (e.g. when switching chapters) from this array's *current* contents, so mutating
@@ -775,7 +618,7 @@ export default class StoryForgePlugin extends Plugin {
 	async loadSettings(): Promise<void> {
 		const data: unknown = await this.loadData();
 		this.pluginSettings = Object.assign({}, DEFAULT_SETTINGS, data);
-		migrateRemovedCaroniFont(this.pluginSettings);
+		migrateRemovedFonts(this.pluginSettings);
 		const shellMigrated = migrateStoryContextShell(this.pluginSettings, data);
 		const sections = { ...DEFAULT_SETTINGS.codexFactSectionByType, ...this.pluginSettings.codexFactSectionByType };
 		for (const opt of CODEX_TYPES) {
@@ -861,7 +704,7 @@ export default class StoryForgePlugin extends Plugin {
 			(merged as unknown as Record<string, unknown>)[key as string] = incoming[key as string];
 		}
 		this.pluginSettings = merged;
-		migrateRemovedCaroniFont(this.pluginSettings);
+		migrateRemovedFonts(this.pluginSettings);
 		const sections = { ...DEFAULT_SETTINGS.codexFactSectionByType, ...this.pluginSettings.codexFactSectionByType };
 		for (const opt of CODEX_TYPES) {
 			if (!sections[opt.type]) sections[opt.type] = "Facts";
@@ -899,34 +742,88 @@ export default class StoryForgePlugin extends Plugin {
 		doc.body.querySelector(".workspace-drawer-vault-actions .help")?.closest(".clickable-icon")?.addClass("sf-vault-help");
 	}
 
-	/** Registers the embedded custom fonts into the main document and every open pop-out window (idempotent - see `fontFacesRegisteredFor`). */
+	/** Asks the format companion to register faces into the main document and every open pop-out. */
 	private registerCustomFontFacesForAllDocs(): void {
-		if (!this.fontFacesRegisteredFor.has(document)) {
-			this.fontFacesRegisteredFor.add(document);
-			registerCustomFontFaces(document);
-		}
-		for (const doc of this.extraDocs) {
+		const register = this.formatCompanion?.registerFacesForDocument;
+		if (!register) return;
+		for (const doc of this.getStyleDocuments()) {
 			if (this.fontFacesRegisteredFor.has(doc)) continue;
 			this.fontFacesRegisteredFor.add(doc);
-			registerCustomFontFaces(doc);
+			register(doc);
 		}
 	}
 
-	/** The full "recompute every derived CSS/DOM styling surface" sequence, shared by initial
-	 * load, new-window setup, and settings import — anywhere the plugin needs every style
-	 * category rebuilt from current settings. */
-	private applyAllStyles(): void {
+	/** Notify companion after host restyles so it can refresh editor typography / font vars. */
+	private notifyFormatCompanionStylesApplied(): void {
+		try {
+			this.formatCompanion?.onHostStylesApplied?.();
+		} catch {
+			/* companion errors must not break SF */
+		}
+	}
+
+	getFormatCompanion(): FormatCompanionRegistration | null {
+		return this.formatCompanion;
+	}
+
+	registerFormatCompanion(reg: FormatCompanionRegistration): () => void {
+		this.formatCompanion = reg;
+		this.fontFacesRegisteredFor.clear();
+		this.applyLinkedFormattingStyles();
+		return () => {
+			if (this.formatCompanion === reg) {
+				this.formatCompanion = null;
+				this.fontFacesRegisteredFor.clear();
+				this.applyLinkedFormattingStyles();
+			}
+		};
+	}
+
+	registerViewContribution(opt: StoryForgeViewContribution): () => void {
+		this.viewContributions.push(opt);
+		this.viewContributions.sort((a, b) => a.orderHint - b.orderHint);
+		return () => {
+			this.viewContributions = this.viewContributions.filter((c) => c !== opt);
+		};
+	}
+
+	getViewContributions(slot: string): StoryForgeViewContribution[] {
+		return this.viewContributions.filter((c) => c.slot === slot);
+	}
+
+	/** Main document plus open pop-out windows. */
+	getStyleDocuments(): Document[] {
+		return [document, ...this.extraDocs];
+	}
+
+	/** Public for host API: apply CSS vars across all style documents. */
+	applyHostStyleVars(vars: Record<string, string | null>): void {
+		this.applyStyleVarsToAllDocs(vars);
+	}
+
+	/**
+	 * Re-apply SF-owned formatting (chrome, sizes, guides, scrollbar) and notify formatForge.
+	 * Editor colour/font/divider vars are owned by the companion when present.
+	 */
+	applyLinkedFormattingStyles(): void {
 		this.applyVisibilityStyles();
 		this.applyHeaderStyles();
 		this.applyHighlightStyle();
 		this.applyLibraryHeaderStyles();
 		this.applyCodexFolderStyle();
 		this.applyCodexNoteLabelStyle();
-		this.applyHeading1LinkStyle();
 		this.applyTextStyleOverrides();
 		this.registerCustomFontFacesForAllDocs();
 		this.applyCyclingGuideStyle();
 		this.applyEditorScrollbarStyles();
+		this.notifyFormatCompanionStylesApplied();
+	}
+
+	/** The full "recompute every derived CSS/DOM styling surface" sequence, shared by initial
+	 * load, new-window setup, and settings import — anywhere the plugin needs every style
+	 * category rebuilt from current settings. */
+	private applyAllStyles(): void {
+		this.applyLinkedFormattingStyles();
 	}
 
 	applyVisibilityStyles(): void {
@@ -1152,17 +1049,9 @@ export default class StoryForgePlugin extends Plugin {
 		this.applyStyleVarsToAllDocs(vars);
 	}
 
-	applyHeading1LinkStyle(): void {
-		const on = this.pluginSettings.hideHeading1Links;
-		this.applyStyleVarsToAllDocs({
-			"--sf-h1-link-color": on ? "inherit" : null,
-			"--sf-h1-link-decoration": on ? "inherit" : null,
-		});
-	}
-
 	/**
 	 * Writes `--{prefix}-family` / `-variation` / `-weight` for storyForge panel chrome.
-	 * Weight only applies when override is on; variable fonts use variation instead of font-weight.
+	 * Font faces come from formatForge via the registered companion; without it, overrides no-op.
 	 */
 	private assignUiFontVars(
 		vars: Record<string, string | null>,
@@ -1176,218 +1065,41 @@ export default class StoryForgePlugin extends Plugin {
 		vars[`${prefix}-variation`] = resolved.variation;
 		if (!overrideFont) {
 			vars[`${prefix}-weight`] = null;
-		} else if (resolved.font && resolved.variation != null) {
+		} else if (resolved.resolved && resolved.variation != null) {
 			vars[`${prefix}-weight`] = null;
-		} else {
+		} else if (resolved.resolved) {
 			vars[`${prefix}-weight`] = fontWeight;
+		} else {
+			vars[`${prefix}-weight`] = null;
 		}
 	}
 
-	/**
-	 * The `--sf-*-family`/`--sf-*-variation` custom-property values for switching a text-style
-	 * target to a custom embedded font at the given weight, when one is picked. Returns the
-	 * matched font alongside the values so callers can adjust other properties that depend on
-	 * whether a custom font (rather than the theme's own) is active for that target.
-	 */
 	private resolveCustomFontVars(
 		overrideFont: boolean,
 		fontFamily: CustomFontFamily,
 		fontWeight: FontWeight,
-	): { family: string | null; variation: string | null; font: CustomFontEntry | null } {
-		if (!overrideFont) return { family: null, variation: null, font: null };
-		const font = CUSTOM_FONTS.find((f) => f.id === fontFamily);
-		if (!font) return { family: null, variation: null, font: null };
-		const { family, variation } = resolveCustomFontFamilyParts(font, Number(fontWeight));
-		return { family, variation, font };
+	): { family: string | null; variation: string | null; resolved: boolean } {
+		if (!overrideFont) return { family: null, variation: null, resolved: false };
+		const result = this.formatCompanion?.resolveFont?.(fontFamily, Number(fontWeight));
+		if (!result) return { family: null, variation: null, resolved: false };
+		return { family: result.family, variation: result.variation, resolved: true };
 	}
 
-	/** Resolves the size/colour/weight/small-caps/divider custom-property values for one heading level. */
-	private buildHeadingVars(
-		level: 1 | 2 | 3 | 4 | 5 | 6,
-		overrideSize: boolean,
-		size: number,
-		overrideColor: boolean,
-		color: string,
-		overrideFont: boolean,
-		fontWeight: FontWeight,
-		usingCustomFont: boolean,
-		smallCaps: boolean,
-		dividerAbove: boolean,
-		dividerAboveThickness: HeadingDividerThickness,
-		dividerBelow: boolean,
-		dividerBelowThickness: HeadingDividerThickness,
-	): Record<string, string | null> {
-		const p = `--sf-h${level}`;
-		return {
-			[`${p}-size`]: overrideSize ? `${size}em` : null,
-			// The specificity-boost trick (`:not(#storyforge-specificity-boost)`, needed because some
-			// themes set heading colour with !important too, and equal-importance ties go to
-			// specificity before source order) lives in styles.css's static selectors - only the
-			// value is dynamic here.
-			[`${p}-color`]: overrideColor ? color : null,
-			// Skipped when a custom font is active: the family/variation vars already handle weight
-			// for that case (real interpolation for a variable font, a no-op for a fixed one) -
-			// applying this literal font-weight on top would force the browser to synthesize a
-			// weight a fixed-weight embedded font doesn't have, reintroducing fake bold.
-			[`${p}-weight`]: overrideFont && !usingCustomFont ? fontWeight : null,
-			// Forced either way (small-caps or normal) whenever the font override is on, not just
-			// when the toggle is "on" - otherwise turning it off would leave whatever font-variant
-			// was already cascading in place (from the theme, or a stale value), reading as stuck on.
-			[`${p}-variant`]: overrideFont ? (smallCaps ? "small-caps" : "normal") : null,
-			[`${p}-border-top`]: dividerAbove
-				? `${HEADING_DIVIDER_WIDTH_PX[dividerAboveThickness]}px solid ${overrideColor ? color : "currentColor"}`
-				: null,
-			[`${p}-border-bottom`]: dividerBelow
-				? `${HEADING_DIVIDER_WIDTH_PX[dividerBelowThickness]}px solid ${overrideColor ? color : "currentColor"}`
-				: null,
-		};
-	}
-
+	/**
+	 * Editor body/heading *sizes* only. Colour, font, small-caps, and dividers are owned by
+	 * formatForge when present (applied via `formatting.setStyleVars`).
+	 */
 	applyTextStyleOverrides(): void {
 		const s = this.pluginSettings;
-		const vars: Record<string, string | null> = {};
-
-		vars["--sf-body-size"] = s.bodyTextOverrideSize ? `${s.bodyTextSize}em` : null;
-		vars["--sf-body-color"] = s.bodyTextOverrideColor ? s.bodyTextColor : null;
-		vars["--sf-body-bold-color"] = s.bodyTextOverrideEmphasisColor ? s.bodyTextBoldColor : null;
-		vars["--sf-body-italic-color"] = s.bodyTextOverrideEmphasisColor ? s.bodyTextItalicColor : null;
-
-		const bodyFont = this.resolveCustomFontVars(s.bodyTextOverrideFont, s.bodyTextFontFamily, s.bodyTextFontWeight);
-		vars["--sf-body-weight"] = s.bodyTextOverrideFont && !bodyFont.font ? s.bodyTextFontWeight : null;
-		vars["--sf-body-family"] = bodyFont.family;
-		vars["--sf-body-variation"] = bodyFont.variation;
-
-		const headingConfigs: {
-			level: 1 | 2 | 3 | 4 | 5 | 6;
-			overrideSize: boolean;
-			size: number;
-			overrideColor: boolean;
-			color: string;
-			overrideFont: boolean;
-			fontWeight: FontWeight;
-			fontFamily: CustomFontFamily;
-			smallCaps: boolean;
-			dividerAbove: boolean;
-			dividerAboveThickness: HeadingDividerThickness;
-			dividerBelow: boolean;
-			dividerBelowThickness: HeadingDividerThickness;
-		}[] = [
-			{
-				level: 1,
-				overrideSize: s.heading1OverrideSize,
-				size: s.heading1Size,
-				overrideColor: s.heading1OverrideColor,
-				color: s.heading1Color,
-				overrideFont: s.heading1OverrideFont,
-				fontWeight: s.heading1FontWeight,
-				fontFamily: s.heading1FontFamily,
-				smallCaps: s.heading1SmallCaps,
-				dividerAbove: s.heading1DividerAbove,
-				dividerAboveThickness: s.heading1DividerAboveThickness,
-				dividerBelow: s.heading1DividerBelow,
-				dividerBelowThickness: s.heading1DividerBelowThickness,
-			},
-			{
-				level: 2,
-				overrideSize: s.heading2OverrideSize,
-				size: s.heading2Size,
-				overrideColor: s.heading2OverrideColor,
-				color: s.heading2Color,
-				overrideFont: s.heading2OverrideFont,
-				fontWeight: s.heading2FontWeight,
-				fontFamily: s.heading2FontFamily,
-				smallCaps: s.heading2SmallCaps,
-				dividerAbove: s.heading2DividerAbove,
-				dividerAboveThickness: s.heading2DividerAboveThickness,
-				dividerBelow: s.heading2DividerBelow,
-				dividerBelowThickness: s.heading2DividerBelowThickness,
-			},
-			{
-				level: 3,
-				overrideSize: s.heading3OverrideSize,
-				size: s.heading3Size,
-				overrideColor: s.heading3OverrideColor,
-				color: s.heading3Color,
-				overrideFont: s.heading3OverrideFont,
-				fontWeight: s.heading3FontWeight,
-				fontFamily: s.heading3FontFamily,
-				smallCaps: s.heading3SmallCaps,
-				dividerAbove: s.heading3DividerAbove,
-				dividerAboveThickness: s.heading3DividerAboveThickness,
-				dividerBelow: s.heading3DividerBelow,
-				dividerBelowThickness: s.heading3DividerBelowThickness,
-			},
-			{
-				level: 4,
-				overrideSize: s.heading4OverrideSize,
-				size: s.heading4Size,
-				overrideColor: s.heading4OverrideColor,
-				color: s.heading4Color,
-				overrideFont: s.heading4OverrideFont,
-				fontWeight: s.heading4FontWeight,
-				fontFamily: s.heading4FontFamily,
-				smallCaps: s.heading4SmallCaps,
-				dividerAbove: s.heading4DividerAbove,
-				dividerAboveThickness: s.heading4DividerAboveThickness,
-				dividerBelow: s.heading4DividerBelow,
-				dividerBelowThickness: s.heading4DividerBelowThickness,
-			},
-			{
-				level: 5,
-				overrideSize: s.heading5OverrideSize,
-				size: s.heading5Size,
-				overrideColor: s.heading5OverrideColor,
-				color: s.heading5Color,
-				overrideFont: s.heading5OverrideFont,
-				fontWeight: s.heading5FontWeight,
-				fontFamily: s.heading5FontFamily,
-				smallCaps: s.heading5SmallCaps,
-				dividerAbove: s.heading5DividerAbove,
-				dividerAboveThickness: s.heading5DividerAboveThickness,
-				dividerBelow: s.heading5DividerBelow,
-				dividerBelowThickness: s.heading5DividerBelowThickness,
-			},
-			{
-				level: 6,
-				overrideSize: s.heading6OverrideSize,
-				size: s.heading6Size,
-				overrideColor: s.heading6OverrideColor,
-				color: s.heading6Color,
-				overrideFont: s.heading6OverrideFont,
-				fontWeight: s.heading6FontWeight,
-				fontFamily: s.heading6FontFamily,
-				smallCaps: s.heading6SmallCaps,
-				dividerAbove: s.heading6DividerAbove,
-				dividerAboveThickness: s.heading6DividerAboveThickness,
-				dividerBelow: s.heading6DividerBelow,
-				dividerBelowThickness: s.heading6DividerBelowThickness,
-			},
-		];
-
-		for (const h of headingConfigs) {
-			const font = this.resolveCustomFontVars(h.overrideFont, h.fontFamily, h.fontWeight);
-			Object.assign(
-				vars,
-				this.buildHeadingVars(
-					h.level,
-					h.overrideSize,
-					h.size,
-					h.overrideColor,
-					h.color,
-					h.overrideFont,
-					h.fontWeight,
-					Boolean(font.font),
-					h.smallCaps,
-					h.dividerAbove,
-					h.dividerAboveThickness,
-					h.dividerBelow,
-					h.dividerBelowThickness,
-				),
-			);
-			vars[`--sf-h${h.level}-family`] = font.family;
-			vars[`--sf-h${h.level}-variation`] = font.variation;
-		}
-
+		const vars: Record<string, string | null> = {
+			"--sf-body-size": s.bodyTextOverrideSize ? `${s.bodyTextSize}em` : null,
+			"--sf-h1-size": s.heading1OverrideSize ? `${s.heading1Size}em` : null,
+			"--sf-h2-size": s.heading2OverrideSize ? `${s.heading2Size}em` : null,
+			"--sf-h3-size": s.heading3OverrideSize ? `${s.heading3Size}em` : null,
+			"--sf-h4-size": s.heading4OverrideSize ? `${s.heading4Size}em` : null,
+			"--sf-h5-size": s.heading5OverrideSize ? `${s.heading5Size}em` : null,
+			"--sf-h6-size": s.heading6OverrideSize ? `${s.heading6Size}em` : null,
+		};
 		this.applyStyleVarsToAllDocs(vars);
 	}
 
