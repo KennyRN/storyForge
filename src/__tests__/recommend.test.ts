@@ -9,7 +9,7 @@ import {
 	emptyFacts,
 } from "../recommend/facts";
 import { buildRecommendSidecarContent, parseRecommendSidecar } from "../recommend/cache";
-import { groupHitsByChapter, lensLabel } from "../recommend/continuity";
+import { groupHitsByChapter, lensLabel } from "../recommend/hitGrouping";
 import { buildLensRegistry } from "../recommend/lenses";
 import { ensureNlp } from "../recommend/nlp";
 import type { CastMember, ChapterRecommendReport } from "../recommend/types";

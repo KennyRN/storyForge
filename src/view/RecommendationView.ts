@@ -24,7 +24,7 @@ import {
 	libraryChapterPath,
 } from "../paths";
 import { getBookId } from "../series";
-import { groupHitsByChapter, lensLabel } from "../recommend/continuity";
+import { groupHitsByChapter, lensLabel } from "../recommend/hitGrouping";
 import {
 	markResolved,
 	readAttributionStore,
