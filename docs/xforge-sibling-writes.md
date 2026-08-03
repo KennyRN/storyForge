@@ -30,6 +30,7 @@ This document is the write policy for xForge siblings that soft-depend on `story
 | timelineForge | Yes — type `event`, essential date/extent/title/description keys only |
 | nameForge | **No** — keep own-folder pattern |
 | languageForge | **Deferred** — decide in a later LF↔SF API pass; do not pre-grant |
+| formatForge | **No** Codex writes — uses `api.formatting` (version ≥ 2) only; see `docs/formatforge-host-api.md` |
 
 ## Access
 

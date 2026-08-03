@@ -4,11 +4,11 @@ Instead it creates a folder within the vault and backs the vault up in there. Th
 
 This change does mean that it should now be able to work on mobile devices.
 
-But right now, the size of the plugin is too large for Obsidian Sync (due to increasing the number of built-in fonts). That's on my next fixes to be fixed.
+Embedded custom fonts (and full manuscript typography) now live in the optional **formatForge** companion plugin, which talks to storyForge over host API v2 (`api.formatting`). That keeps storyForge’s bundle smaller for Obsidian Sync.
 
 # storyForge
 Storytelling plugin by volcanicMole
-(updated to 0.9.0, see What's New after What can storyForge do?)
+(updated to 0.11.0, see What's New after What can storyForge do?)
 
 ## Why storyForge?
 I got fed up of having storytelling apps which were pretty but functionally useless, or functionally powerful, but ugly.
@@ -20,7 +20,7 @@ So I delved into Obsidian again and vibe coded storyForge to turn obsidian into 
 ## What can storyForge do?
 There's a welcome note built into the plugin which gives a more detailed breakdown, but here is a short description of what you get within:
 1. standard Obsidian elements hidden so that it becomes a minimalist app (these can be easily turned on again).
-2. formatting options such as size, colours, and fonts built in to make it easier to adjust things to your liking (but you'll need a theme as the options are for smaller elements only).
+2. formatting options for storyForge’s own chrome (sizes, colours). Optional **formatForge** adds manuscript fonts/colours/dividers and hosts the shared formatting UI while enabled.
 3. library panel where you can switch between series and novel views.
 4. codex panel to hold all your story lore notes
 5. data security features: import and export of settings, backup your story automatically, full manual backup of entire vault and plugins, and _no matter what_ storyForge only views your manuscript (after it creates it) and for your lore files it can only rename them (and create them, of course, but renaming is only done so you can use wikilinks).

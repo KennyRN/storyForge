@@ -8,7 +8,7 @@ import type {
 	StoryForgePluginSettings,
 } from "../main";
 import { ConvertToSeriesModal } from "./ConvertToSeriesModal";
-import { bindColorSwatchButton, bindExclusivePair, persistAndRestyle, renderCustomFontCard, renderTabbedBody, type StyleModalTab } from "./styleModalHelpers";
+import { bindColorSwatchButton, bindExclusivePair, persistAndRestyle, renderTabbedBody, type StyleModalTab } from "./styleModalHelpers";
 
 const EDITOR_SCROLLBAR_THICKNESS_ORDER: EditorScrollbarThickness[] = ["thin", "medium", "thick"];
 const EDITOR_SCROLLBAR_THICKNESS_LABELS = ["Thin", "Medium", "Thick"];
@@ -55,18 +55,12 @@ export class UiFormattingModal extends Modal {
 					this.renderTitleStyleGroup(body, settings, {
 						labelPrefix: "Series title",
 						sizeKey: "librarySeriesTitleFontSize",
-						overrideFontKey: "librarySeriesTitleOverrideFont",
-						fontFamilyKey: "librarySeriesTitleFontFamily",
-						fontWeightKey: "librarySeriesTitleFontWeight",
 						colorKey: "librarySeriesTitleColor",
 						smallCapsKey: "librarySeriesTitleSmallCaps",
 					});
 					this.renderTitleStyleGroup(body, settings, {
 						labelPrefix: "Book title",
 						sizeKey: "libraryBookTitleFontSize",
-						overrideFontKey: "libraryBookTitleOverrideFont",
-						fontFamilyKey: "libraryBookTitleFontFamily",
-						fontWeightKey: "libraryBookTitleFontWeight",
 						colorKey: "libraryBookTitleColor",
 						smallCapsKey: "libraryBookTitleSmallCaps",
 					});
@@ -167,9 +161,6 @@ export class UiFormattingModal extends Modal {
 		settings: StoryForgePluginSettings,
 		config: {
 			sizeKey: "unplacedFontSize" | "codexFontSize";
-			overrideFontKey: "unplacedOverrideFont" | "codexOverrideFont";
-			fontFamilyKey: "unplacedFontFamily" | "codexFontFamily";
-			fontWeightKey: "unplacedFontWeight" | "codexFontWeight";
 			colorKey: "unplacedColor" | "codexColor";
 			mutedKey: "unplacedMuted" | "codexMuted";
 			smallCapsKey: "unplacedSmallCaps" | "codexSmallCaps";
@@ -179,27 +170,18 @@ export class UiFormattingModal extends Modal {
 	): ToggleComponent {
 		const group = new SettingGroup(body);
 		let useHeaderColorForAllToggle!: ToggleComponent;
-		group.addSetting((setting) => {
-			setting
-				.setName("Header size")
-				.setDesc("size of header label and icon")
-				.addSlider((slider) =>
-					slider
-						.setLimits(0.5, 1.5, 0.1)
-						.setValue(settings[config.sizeKey])
-						.onChange((value) => persistAndRestyle(this.plugin, config.sizeKey, value, config.restyle)),
-				);
-		});
-		renderCustomFontCard({
-			plugin: this.plugin,
-			settings,
-			group,
-			overrideFontKey: config.overrideFontKey,
-			fontFamilyKey: config.fontFamilyKey,
-			fontWeightKey: config.fontWeightKey,
-			restyle: config.restyle,
-		});
 		group
+			.addSetting((setting) => {
+				setting
+					.setName("Header size")
+					.setDesc("size of header label and icon")
+					.addSlider((slider) =>
+						slider
+							.setLimits(0.5, 1.5, 0.1)
+							.setValue(settings[config.sizeKey])
+							.onChange((value) => persistAndRestyle(this.plugin, config.sizeKey, value, config.restyle)),
+					);
+			})
 			.addSetting((setting) => {
 				setting
 					.setName("Header colour")
@@ -360,36 +342,24 @@ export class UiFormattingModal extends Modal {
 		config: {
 			labelPrefix: string;
 			sizeKey: "librarySeriesTitleFontSize" | "libraryBookTitleFontSize";
-			overrideFontKey: "librarySeriesTitleOverrideFont" | "libraryBookTitleOverrideFont";
-			fontFamilyKey: "librarySeriesTitleFontFamily" | "libraryBookTitleFontFamily";
-			fontWeightKey: "librarySeriesTitleFontWeight" | "libraryBookTitleFontWeight";
 			colorKey: "librarySeriesTitleColor" | "libraryBookTitleColor";
 			smallCapsKey: "librarySeriesTitleSmallCaps" | "libraryBookTitleSmallCaps";
 		},
 	): void {
 		const group = new SettingGroup(body);
 		const restyle = () => this.plugin.applyLibraryHeaderStyles();
-		group.addSetting((setting) => {
-			setting
-				.setName(`${config.labelPrefix} size`)
-				.setDesc("Text size, from 0.5em to 2em.")
-				.addSlider((slider) =>
-					slider
-						.setLimits(0.5, 2, 0.1)
-						.setValue(settings[config.sizeKey])
-						.onChange((value) => persistAndRestyle(this.plugin, config.sizeKey, value, restyle)),
-				);
-		});
-		renderCustomFontCard({
-			plugin: this.plugin,
-			settings,
-			group,
-			overrideFontKey: config.overrideFontKey,
-			fontFamilyKey: config.fontFamilyKey,
-			fontWeightKey: config.fontWeightKey,
-			restyle,
-		});
 		group
+			.addSetting((setting) => {
+				setting
+					.setName(`${config.labelPrefix} size`)
+					.setDesc("Text size, from 0.5em to 2em.")
+					.addSlider((slider) =>
+						slider
+							.setLimits(0.5, 2, 0.1)
+							.setValue(settings[config.sizeKey])
+							.onChange((value) => persistAndRestyle(this.plugin, config.sizeKey, value, restyle)),
+					);
+			})
 			.addSetting((setting) => {
 				setting
 					.setName(`${config.labelPrefix} colour`)
@@ -414,63 +384,46 @@ export class UiFormattingModal extends Modal {
 	private renderSubtitleStyleGroup(body: HTMLElement, settings: StoryForgePluginSettings): void {
 		const group = new SettingGroup(body);
 		const restyle = () => this.plugin.applyLibraryHeaderStyles();
-		group.addSetting((setting) => {
-			setting
-				.setName("Subtitle size")
-				.setDesc("Text size, from 0.5em to 2em.")
-				.addSlider((slider) =>
-					slider
-						.setLimits(0.5, 2, 0.1)
-						.setValue(settings.libraryBookSubtitleFontSize)
-						.onChange((value) => persistAndRestyle(this.plugin, "libraryBookSubtitleFontSize", value, restyle)),
-				);
-		});
-		renderCustomFontCard({
-			plugin: this.plugin,
-			settings,
-			group,
-			overrideFontKey: "libraryBookSubtitleOverrideFont",
-			fontFamilyKey: "libraryBookSubtitleFontFamily",
-			fontWeightKey: "libraryBookSubtitleFontWeight",
-			restyle,
-		});
-		group.addSetting((setting) => {
-			setting
-				.setName("Subtitle small caps")
-				.addToggle((toggle) =>
-					toggle
-						.setValue(settings.libraryBookSubtitleSmallCaps)
-						.onChange((value) => persistAndRestyle(this.plugin, "libraryBookSubtitleSmallCaps", value, restyle)),
-				);
-			setting.nameEl.addClass("sf-small-caps-label");
-		});
+		group
+			.addSetting((setting) => {
+				setting
+					.setName("Subtitle size")
+					.setDesc("Text size, from 0.5em to 2em.")
+					.addSlider((slider) =>
+						slider
+							.setLimits(0.5, 2, 0.1)
+							.setValue(settings.libraryBookSubtitleFontSize)
+							.onChange((value) => persistAndRestyle(this.plugin, "libraryBookSubtitleFontSize", value, restyle)),
+					);
+			})
+			.addSetting((setting) => {
+				setting
+					.setName("Subtitle small caps")
+					.addToggle((toggle) =>
+						toggle
+							.setValue(settings.libraryBookSubtitleSmallCaps)
+							.onChange((value) => persistAndRestyle(this.plugin, "libraryBookSubtitleSmallCaps", value, restyle)),
+					);
+				setting.nameEl.addClass("sf-small-caps-label");
+			});
 	}
 
 	private renderLibraryItemsGroup(body: HTMLElement, settings: StoryForgePluginSettings): void {
 		const group = new SettingGroup(body);
 		group.setHeading("Books & chapters");
 		const restyle = () => this.plugin.applyLibraryHeaderStyles();
-		group.addSetting((setting) => {
-			setting
-				.setName("Library items")
-				.setDesc("Text size of books and chapters in the Library list, from 0.5em to 1.5em.")
-				.addSlider((slider) =>
-					slider
-						.setLimits(0.5, 1.5, 0.1)
-						.setValue(settings.libraryItemsFontSize)
-						.onChange((value) => persistAndRestyle(this.plugin, "libraryItemsFontSize", value, restyle)),
-				);
-		});
-		renderCustomFontCard({
-			plugin: this.plugin,
-			settings,
-			group,
-			overrideFontKey: "libraryItemsOverrideFont",
-			fontFamilyKey: "libraryItemsFontFamily",
-			fontWeightKey: "libraryItemsFontWeight",
-			restyle,
-		});
 		group
+			.addSetting((setting) => {
+				setting
+					.setName("Library items")
+					.setDesc("Text size of books and chapters in the Library list, from 0.5em to 1.5em.")
+					.addSlider((slider) =>
+						slider
+							.setLimits(0.5, 1.5, 0.1)
+							.setValue(settings.libraryItemsFontSize)
+							.onChange((value) => persistAndRestyle(this.plugin, "libraryItemsFontSize", value, restyle)),
+					);
+			})
 			.addSetting((setting) => {
 				setting
 					.setName("Library items colour")
@@ -521,9 +474,6 @@ export class UiFormattingModal extends Modal {
 	private renderUnplacedPanelContent(body: HTMLElement, settings: StoryForgePluginSettings): void {
 		const useHeaderColorToggle = this.renderHeaderStyleGroup(body, settings, {
 			sizeKey: "unplacedFontSize",
-			overrideFontKey: "unplacedOverrideFont",
-			fontFamilyKey: "unplacedFontFamily",
-			fontWeightKey: "unplacedFontWeight",
 			colorKey: "unplacedColor",
 			mutedKey: "unplacedMuted",
 			smallCapsKey: "unplacedSmallCaps",
@@ -537,27 +487,18 @@ export class UiFormattingModal extends Modal {
 		const unplacedItemsGroup = new SettingGroup(body);
 		let itemsColourSetting!: Setting;
 		const itemsRestyle = () => this.plugin.applyHeaderStyles();
-		unplacedItemsGroup.addSetting((setting) => {
-			setting
-				.setName("Unplaced items")
-				.setDesc("Text size of the items in the Unplaced pane, from 0.5em to 1.5em.")
-				.addSlider((slider) =>
-					slider
-						.setLimits(0.5, 1.5, 0.1)
-						.setValue(settings.unplacedItemsFontSize)
-						.onChange((value) => persistAndRestyle(this.plugin, "unplacedItemsFontSize", value, itemsRestyle)),
-				);
-		});
-		renderCustomFontCard({
-			plugin: this.plugin,
-			settings,
-			group: unplacedItemsGroup,
-			overrideFontKey: "unplacedItemsOverrideFont",
-			fontFamilyKey: "unplacedItemsFontFamily",
-			fontWeightKey: "unplacedItemsFontWeight",
-			restyle: itemsRestyle,
-		});
 		unplacedItemsGroup
+			.addSetting((setting) => {
+				setting
+					.setName("Unplaced items")
+					.setDesc("Text size of the items in the Unplaced pane, from 0.5em to 1.5em.")
+					.addSlider((slider) =>
+						slider
+							.setLimits(0.5, 1.5, 0.1)
+							.setValue(settings.unplacedItemsFontSize)
+							.onChange((value) => persistAndRestyle(this.plugin, "unplacedItemsFontSize", value, itemsRestyle)),
+					);
+			})
 			.addSetting((setting) => {
 				itemsColourSetting = setting;
 				setting
@@ -625,9 +566,6 @@ export class UiFormattingModal extends Modal {
 	private renderCodexPanelContent(body: HTMLElement, settings: StoryForgePluginSettings): void {
 		const useHeaderColorToggle = this.renderHeaderStyleGroup(body, settings, {
 			sizeKey: "codexFontSize",
-			overrideFontKey: "codexOverrideFont",
-			fontFamilyKey: "codexFontFamily",
-			fontWeightKey: "codexFontWeight",
 			colorKey: "codexColor",
 			mutedKey: "codexMuted",
 			smallCapsKey: "codexSmallCaps",
@@ -642,27 +580,18 @@ export class UiFormattingModal extends Modal {
 
 		const codexFolderGroup = new SettingGroup(body);
 		let folderColourSetting!: Setting;
-		codexFolderGroup.addSetting((setting) => {
-			setting
-				.setName("Folder size")
-				.setDesc("Font size of the codex folder names and chevrons, from 0.5em to 1.5em.")
-				.addSlider((slider) =>
-					slider
-						.setLimits(0.5, 1.5, 0.1)
-						.setValue(settings.codexFolderFontSize)
-						.onChange((value) => persistAndRestyle(this.plugin, "codexFolderFontSize", value, () => this.plugin.applyCodexFolderStyle())),
-				);
-		});
-		renderCustomFontCard({
-			plugin: this.plugin,
-			settings,
-			group: codexFolderGroup,
-			overrideFontKey: "codexFolderOverrideFont",
-			fontFamilyKey: "codexFolderFontFamily",
-			fontWeightKey: "codexFolderFontWeight",
-			restyle: () => this.plugin.applyCodexFolderStyle(),
-		});
 		codexFolderGroup
+			.addSetting((setting) => {
+				setting
+					.setName("Folder size")
+					.setDesc("Font size of the codex folder names and chevrons, from 0.5em to 1.5em.")
+					.addSlider((slider) =>
+						slider
+							.setLimits(0.5, 1.5, 0.1)
+							.setValue(settings.codexFolderFontSize)
+							.onChange((value) => persistAndRestyle(this.plugin, "codexFolderFontSize", value, () => this.plugin.applyCodexFolderStyle())),
+					);
+			})
 			.addSetting((setting) => {
 				folderColourSetting = setting;
 				setting
@@ -695,27 +624,18 @@ export class UiFormattingModal extends Modal {
 		let noteLabelColourSetting!: Setting;
 		let defaultColourToggleSetting!: Setting;
 		let folderColourToggleSetting!: Setting;
-		codexNoteLabelGroup.addSetting((setting) => {
-			setting
-				.setName("Codex note label size")
-				.setDesc("Font size of the codex note (file) labels, from 0.5em to 1.5em.")
-				.addSlider((slider) =>
-					slider
-						.setLimits(0.5, 1.5, 0.1)
-						.setValue(settings.codexNoteLabelFontSize)
-						.onChange((value) => persistAndRestyle(this.plugin, "codexNoteLabelFontSize", value, () => this.plugin.applyCodexNoteLabelStyle())),
-				);
-		});
-		renderCustomFontCard({
-			plugin: this.plugin,
-			settings,
-			group: codexNoteLabelGroup,
-			overrideFontKey: "codexNoteLabelOverrideFont",
-			fontFamilyKey: "codexNoteLabelFontFamily",
-			fontWeightKey: "codexNoteLabelFontWeight",
-			restyle: () => this.plugin.applyCodexNoteLabelStyle(),
-		});
 		codexNoteLabelGroup
+			.addSetting((setting) => {
+				setting
+					.setName("Codex note label size")
+					.setDesc("Font size of the codex note (file) labels, from 0.5em to 1.5em.")
+					.addSlider((slider) =>
+						slider
+							.setLimits(0.5, 1.5, 0.1)
+							.setValue(settings.codexNoteLabelFontSize)
+							.onChange((value) => persistAndRestyle(this.plugin, "codexNoteLabelFontSize", value, () => this.plugin.applyCodexNoteLabelStyle())),
+					);
+			})
 			.addSetting((setting) => {
 				noteLabelColourSetting = setting;
 				setting
