@@ -612,6 +612,7 @@ export async function createChapter(app: App, bookFolderName: string): Promise<{
 	const filename = `${chapterId}.md`;
 	const path = libraryChapterPath(bookFolderName, filename);
 
+	await ensureLibraryBookFolder(app, bookFolderName);
 	const file = await app.vault.create(path, "");
 	await upsertChapterEntry(app, bookFolderName, filename, chapterId, "Untitled");
 	await app.workspace.getLeaf(false).openFile(file);
