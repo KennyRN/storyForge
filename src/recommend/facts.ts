@@ -83,7 +83,7 @@ export function parseFactsFromNote(raw: string, heading: string): ParsedFacts {
 	return parseFactsFromSection(section, heading);
 }
 
-/** Serializes facts to section body lines (used when seeding a new Codex stub). */
+/** Serializes facts to section body lines (used when seeding a new Codex lore entry). */
 export function serializeFactsSection(facts: ParsedFacts): string {
 	const lines: string[] = [];
 	for (const [norm, entry] of Object.entries(facts.entries)) {
@@ -96,7 +96,7 @@ export function serializeFactsSection(facts: ParsedFacts): string {
 	return lines.join("\n");
 }
 
-/** Sets the current value for a key (stub seeding only — never writes into an existing Codex body). */
+/** Sets the current value for a key (lore-entry seeding only — never writes into an existing Codex body). */
 export function setFactValue(facts: ParsedFacts, key: string, newValue: string, pushWas: boolean): ParsedFacts {
 	const norm = normalizeFactKey(key);
 	const next: ParsedFacts = {

@@ -33,7 +33,7 @@ describe("facts parse", () => {
 		expect(facts.entries.hair?.value).toBe("dark");
 	});
 
-	it("serializes for stub seeding without writing into notes", () => {
+	it("serializes for lore-entry seeding without writing into notes", () => {
 		let facts = emptyFacts("Traits");
 		facts = setFactValue(facts, "eye colour", "green", false);
 		const body = serializeFactsSection(facts);

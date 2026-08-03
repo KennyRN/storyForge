@@ -34,11 +34,11 @@ import { ensureNlp } from "../recommend/nlp";
 import { loadOrRecomputeChapterRecommend, recomputeChapterRecommend } from "../recommend/recompute";
 import { scanEntityAcrossChapters } from "../recommend/engine";
 import { loadHydratedCodexInventory } from "../recommend/inventory";
-import { createCodexStub } from "../recommend/stubs";
+import { createCodexLore } from "../recommend/lore";
 import type { CastMember, ChapterRecommendReport, DetailHit, UnknownNameHint } from "../recommend/types";
 import { makeAccessibleActivatable } from "./a11y";
 import { activateRightRailView } from "./activateRightRailView";
-import { CodexStubTypeModal } from "./CodexStubTypeModal";
+import { CodexLoreTypeModal } from "./CodexLoreTypeModal";
 
 export const RECOMMEND_VIEW_TYPE = "storyforge-recommend-view";
 
@@ -349,7 +349,7 @@ export class RecommendationView extends ItemView {
 			const label = hint.nerType ? `${hint.name} (${hint.nerType})` : hint.name;
 			row.createSpan({ cls: "sf-recommend-row-label", text: label });
 			const btn = row.createEl("button", {
-				cls: "sf-recommend-stub-btn",
+				cls: "sf-recommend-lore-btn",
 				text: "Create in Codex",
 			});
 			btn.addEventListener("click", () => void this.createStub(hint.name, hint.nerType));
@@ -726,17 +726,17 @@ export class RecommendationView extends ItemView {
 	}
 
 	private async createStub(name: string, nerType?: string): Promise<void> {
-		new CodexStubTypeModal(this.app, (type) => {
+		new CodexLoreTypeModal(this.app, (type) => {
 			if (!type) return;
-			void this.finishStub(name, type);
+			void this.finishLore(name, type);
 		}, nerTypeHintToCodexType(nerType)).open();
 	}
 
-	private async finishStub(name: string, type: string): Promise<void> {
+	private async finishLore(name: string, type: string): Promise<void> {
 		const heading = this.plugin.getSettings().codexFactSectionByType[type] ?? "Facts";
 		const bookId = this.bookFolderName ? getBookId(this.app, this.bookFolderName) : null;
 		try {
-			const file = await createCodexStub(this.app, {
+			const file = await createCodexLore(this.app, {
 				name,
 				type,
 				factsHeading: heading,
