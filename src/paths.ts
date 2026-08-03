@@ -65,6 +65,11 @@ export function recommendAttributionPath(bookFolderName: string): string {
 	return `${recommendSidecarFolderPath(bookFolderName)}/attribution.md`;
 }
 
+/** Book-scoped ignored unknown names for Story Context (“Named but not in Codex”). */
+export function recommendIgnoredNamesPath(bookFolderName: string): string {
+	return `${recommendSidecarFolderPath(bookFolderName)}/ignored-names.md`;
+}
+
 export function libraryBookPath(bookFolderName: string): string {
 	return `${LIBRARY_ROOT}/${bookFolderName}`;
 }

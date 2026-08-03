@@ -50,6 +50,11 @@ export class PluginSettingTab {
 		this.app = app;
 		this.plugin = plugin;
 	}
+	refreshDomState(): void {}
+	getControlValue(_key: string): unknown {
+		return undefined;
+	}
+	async setControlValue(_key: string, _value: unknown): Promise<void> {}
 }
 export class Setting {
 	setName() { return this; }

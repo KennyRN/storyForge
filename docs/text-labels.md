@@ -58,7 +58,8 @@ Notes on conventions used below:
 | recommendView.sendPlot | Send to chapter plot | — |
 | recommendView.section.characters | Characters in chapter | — |
 | recommendView.section.unknown | Named but not in Codex | — |
-| recommendView.stubBtn | Create in Codex | — |
+| recommendView.stubBtn.ariaLabel | create in codex | — |
+| recommendView.ignoreUnknown.ariaLabel | ignore | — |
 | recommendView.section.other | Other Codex references | — |
 | recommendView.section.details | Details to capture | — |
 | recommendView.section.holding | Holding area | — |
@@ -67,10 +68,9 @@ Notes on conventions used below:
 | recommendView.dossier.searchPlaceholder | Character, place, or other Codex name… | — |
 | recommendView.dossier.emptyPick | Pick a Codex entity to read everything the book says about them, in chapter order. | — |
 | recommendView.dossier.scanning | Scanning book… | — |
-| recommendView.hit.done | Done | — |
-| recommendView.hit.openCodex | Open Codex | — |
-| recommendView.hit.confirm | Confirm | — |
-| recommendView.hit.reject | Not this entity | — |
+| recommendView.hit.done.ariaLabel | done | — |
+| recommendView.hit.confirm.ariaLabel | confirm | — |
+| recommendView.hit.reject.ariaLabel | ignore | — |
 | notice.recommend.synopsisSent | storyForge: synopsis sent to chapter plot | — |
 
 ## src/view/StoryForgeSettingsTab.ts (recommendations)

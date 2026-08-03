@@ -8,7 +8,7 @@ Embedded custom fonts (and full manuscript typography) now live in the optional 
 
 # storyForge
 Storytelling plugin by volcanicMole
-(updated to 0.11.0, see What's New after What can storyForge do?)
+(updated to 0.12.0, see What's New after What can storyForge do?)
 
 ## Why storyForge?
 I got fed up of having storytelling apps which were pretty but functionally useless, or functionally powerful, but ugly.
@@ -28,6 +28,11 @@ There's a welcome note built into the plugin which gives a more detailed breakdo
 Basically the idea is: Obsidian + storyForge + a theme = fully functional storytelling app
 
 One which can be enhanced by using other plugins found within the Obsidian ecosystem!
+
+## What's New in 0.12.0
+Story Context’s “named but not in Codex” list is quieter and more useful: hyphenated names stay together, title-style bridges like “Cult of the Snake” are kept, and common English words / contraction junk are filtered out. From the list you can create a Codex entry (+) or ignore a suggestion (−); ignores persist per book. In the details pane, confirm with the check icon or ignore with minus.
+
+Optional **formatForge** companion support (host API v2) landed in 0.11.0 on the way here — manuscript fonts and typography live in that plugin when enabled.
 
 ## What's New in 0.9.0
 I've added functionality to the right sidebar. There's 3 panels there. First is the 'dash' or 'blank' panel. This is an empty panel to give you a minimal writing space, whilst keeping the editor centred and access to the left sidebar.

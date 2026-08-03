@@ -3,6 +3,7 @@
  * Locate-and-show: surfaces author sentences, never extracted values.
  */
 
+import { isCommonEnglishWord } from "./commonEnglishWords";
 import { factsFingerprint, normalizeFactKey } from "./facts";
 import { applyLenses, buildLensRegistry, type LensDef, type TokenInfo } from "./lenses";
 import { defaultLexicons } from "./lexicons";
@@ -345,6 +346,142 @@ function collectMatched(
 	return result;
 }
 
+const HYPHEN_RE = /^[-–—]$/;
+/** Particles allowed between PROPN runs: Cult of the Snake / Ludwig van Beethoven. */
+const NAME_BRIDGE_RE = /^(of|the|de|von|van)$/i;
+/** Closed-class left sides of English contractions (not honorifics like O'Brien). */
+const CONTRACTION_LEFT = new Set([
+	"i",
+	"you",
+	"he",
+	"she",
+	"we",
+	"they",
+	"it",
+	"who",
+	"what",
+	"that",
+	"there",
+	"here",
+	"let",
+	"do",
+	"does",
+	"did",
+	"is",
+	"are",
+	"was",
+	"were",
+	"have",
+	"has",
+	"had",
+	"would",
+	"could",
+	"should",
+	"can",
+	"will",
+	"shall",
+	"must",
+	"might",
+	"need",
+	"dare",
+	"ought",
+	"don",
+	"isn",
+	"aren",
+	"wasn",
+	"weren",
+	"haven",
+	"hasn",
+	"hadn",
+	"wouldn",
+	"couldn",
+	"shouldn",
+	"won",
+	"can",
+	"mustn",
+	"needn",
+	"daren",
+	"mightn",
+	"oughtn",
+]);
+
+function normalizeApostrophes(text: string): string {
+	return text.replace(/[\u2019\u2018]/g, "'");
+}
+
+/** Pronoun/aux contractions like I'm / Don't — not O'Brien / D'Artagnan. */
+function isContractionJunk(text: string): boolean {
+	const m = normalizeApostrophes(text).match(/^([A-Za-z]+)'([A-Za-z]+)$/);
+	if (!m) return false;
+	return CONTRACTION_LEFT.has(m[1].toLowerCase());
+}
+
+function nameHasContractionPart(name: string): boolean {
+	return name.split(/\s+/).some((part) => isContractionJunk(part));
+}
+
+function isHyphenToken(text: string): boolean {
+	return HYPHEN_RE.test(text);
+}
+
+function isNameBridge(text: string): boolean {
+	return NAME_BRIDGE_RE.test(text);
+}
+
+/** Join PROPN parts, keeping hyphens tight (Demi-Human) and spaces elsewhere. */
+function joinNameParts(parts: string[]): string {
+	let out = "";
+	for (const p of parts) {
+		if (!out) {
+			out = p;
+		} else if (isHyphenToken(p) || isHyphenToken(out.charAt(out.length - 1))) {
+			out += p;
+		} else {
+			out += ` ${p}`;
+		}
+	}
+	return out;
+}
+
+/** Consume a PROPN run (incl. contraction tokens), bridging internal hyphens. Advances past the run. */
+function consumePropnRun(
+	tokens: Array<{ text: string; pos: string }>,
+	start: number,
+	parts: string[],
+): number {
+	let i = start;
+	while (i < tokens.length) {
+		if (tokens[i].pos === "PROPN") {
+			parts.push(tokens[i].text);
+			i++;
+			continue;
+		}
+		if (
+			isHyphenToken(tokens[i].text) &&
+			i + 1 < tokens.length &&
+			tokens[i + 1].pos === "PROPN"
+		) {
+			parts.push(tokens[i].text);
+			parts.push(tokens[i + 1].text);
+			i += 2;
+			continue;
+		}
+		break;
+	}
+	return i;
+}
+
+/**
+ * True when every PROPN content token is a common English lemma.
+ * Bridged titles (Cult of the Snake) are exempt — callers pass `usedBridge`.
+ * Unbridged runs like Anger / Sudden Anger are dropped; invented tokens (Aldric, Demi) keep the candidate.
+ */
+function isCommonEnglishNameNoise(contentParts: string[], usedBridge: boolean): boolean {
+	if (contentParts.length === 0) return true;
+	if (!contentParts.every((p) => isCommonEnglishWord(p))) return false;
+	return !usedBridge;
+}
+
 /** Merge adjacent PROPN tokens into multi-word names ("Cult of the Snake" is harder; take adjacent runs). */
 function extractProperNames(nlp: WinkNlp, prose: string): Array<{ name: string; nerType?: string }> {
 	const its = getIts(nlp);
@@ -363,28 +500,34 @@ function extractProperNames(nlp: WinkNlp, prose: string): Array<{ name: string; 
 			i++;
 			continue;
 		}
-		const parts = [tokens[i].text];
-		i++;
-		while (i < tokens.length && tokens[i].pos === "PROPN") {
-			parts.push(tokens[i].text);
-			i++;
-		}
-		// Allow "of" / "the" bridges between PROPNs: Cult of the Snake
-		while (
-			i + 1 < tokens.length &&
-			/^(of|the|de|von|van)$/i.test(tokens[i].text) &&
-			tokens[i + 1]?.pos === "PROPN"
-		) {
-			parts.push(tokens[i].text);
-			i++;
-			while (i < tokens.length && tokens[i].pos === "PROPN") {
-				parts.push(tokens[i].text);
-				i++;
+		const parts: string[] = [];
+		let usedBridge = false;
+		i = consumePropnRun(tokens, i, parts);
+		// Allow of/the/de/von/van bridges (incl. "of the"): Cult of the Snake
+		while (i < tokens.length) {
+			let j = i;
+			const bridges: string[] = [];
+			while (j < tokens.length && isNameBridge(tokens[j].text)) {
+				bridges.push(tokens[j].text);
+				j++;
 			}
+			if (bridges.length === 0 || j >= tokens.length || tokens[j].pos !== "PROPN") {
+				break;
+			}
+			usedBridge = true;
+			parts.push(...bridges);
+			i = consumePropnRun(tokens, j, parts);
 		}
-		const name = parts.join(" ");
+		const name = joinNameParts(parts);
+		if (name.length < 2) continue;
+		// Drop I'm / Don't / "I'm Safe" (contraction glued to following PROPN)
+		if (nameHasContractionPart(name)) continue;
+
+		const contentParts = parts.filter((p) => !isHyphenToken(p) && !isNameBridge(p));
+		if (isCommonEnglishNameNoise(contentParts, usedBridge)) continue;
+
 		const key = name.toLowerCase();
-		if (!seen.has(key) && name.length >= 2) {
+		if (!seen.has(key)) {
 			seen.add(key);
 			names.push({ name });
 		}

@@ -27,6 +27,9 @@ const CODEX_FOLDER_INDICATOR_WIDTH_PX: Record<CodexFolderIndicatorThickness, num
 	thick: 4,
 };
 
+/** Injected last into document.head so it wins over theme CSS (plugins load before themes). */
+const RIGHT_RAIL_CHROME_STYLE_ID = "sf-right-rail-chrome";
+
 const HEADING_DIVIDER_WIDTH_PX: Record<HeadingDividerThickness, number> = {
 	thin: 1,
 	medium: 2,
@@ -55,6 +58,7 @@ export class StyleController {
 		this.applyTextStyleOverrides();
 		this.applyCyclingGuideStyle();
 		this.applyEditorScrollbarStyles();
+		this.applyRightRailChrome();
 	}
 
 	/** Public entry for host-API style-var writes across all style documents. */
@@ -81,6 +85,7 @@ export class StyleController {
 				"sf-sb-thick",
 				"sf-use-tools-panel",
 			);
+			doc.getElementById(RIGHT_RAIL_CHROME_STYLE_ID)?.remove();
 		}
 	}
 
@@ -213,6 +218,60 @@ export class StyleController {
 		});
 		for (const doc of this.host.getStyleDocuments()) {
 			this.applyEditorScrollbarBodyClass(doc.body, s.editorScrollbarThickness);
+		}
+	}
+
+	/**
+	 * Force the right sidedock to match the left sidedock’s painted background.
+	 *
+	 * Plugin `styles.css` loads before community themes, so stylesheet rules alone lose to
+	 * Minimal (right rail tracks --background-primary / editor colour). Injecting a <style>
+	 * at the end of <head> after layout, using the left leaf’s computed colour, wins the cascade.
+	 */
+	applyRightRailChrome(): void {
+		for (const doc of this.host.getStyleDocuments()) {
+			const left =
+				(doc.querySelector(".mod-left-split .workspace-leaf-content") as HTMLElement | null) ??
+				(doc.querySelector(".mod-left-split") as HTMLElement | null);
+			let bg = "var(--background-secondary)";
+			const win = doc.defaultView;
+			if (left && win) {
+				const painted = win.getComputedStyle(left).backgroundColor;
+				if (painted && painted !== "rgba(0, 0, 0, 0)" && painted !== "transparent") {
+					bg = painted;
+				}
+			}
+
+			let styleEl = doc.getElementById(RIGHT_RAIL_CHROME_STYLE_ID) as HTMLStyleElement | null;
+			if (!styleEl) {
+				styleEl = doc.createElement("style");
+				styleEl.id = RIGHT_RAIL_CHROME_STYLE_ID;
+			}
+			styleEl.textContent = `
+.mod-right-split {
+	--background-primary: var(--background-secondary) !important;
+	--background-primary-alt: var(--background-secondary-alt, var(--background-secondary)) !important;
+	--tab-container-background: ${bg} !important;
+	background-color: ${bg} !important;
+}
+.mod-right-split .view-content,
+.mod-right-split .workspace-leaf-content,
+.mod-right-split .workspace-leaf,
+.mod-right-split .workspace-tabs,
+.mod-right-split .workspace-tab-header-container,
+.mod-right-split .workspace-tab-header-container-inner,
+.mod-right-split .workspace-tabs.mod-top,
+.mod-right-split .view-header,
+.workspace-tabs.mod-top-right-space .workspace-tab-header-container {
+	--tab-container-background: ${bg} !important;
+	background-color: ${bg} !important;
+}
+.mod-right-split .workspace-tab-header {
+	background-color: transparent !important;
+}
+`.trim();
+			// Re-append so this sheet is last among siblings and beats theme stylesheets.
+			doc.head.appendChild(styleEl);
 		}
 	}
 

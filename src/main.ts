@@ -391,6 +391,8 @@ export default class StoryForgePlugin extends Plugin {
 	private fontFacesRegisteredFor = new Set<Document>();
 	/** Active formatForge (or future typography) companion, if registered. */
 	private formatCompanion: FormatCompanionRegistration | null = null;
+	/** Settings tab — refreshed when format companion registers/unregisters. */
+	private settingsTab: StoryForgeSettingsTab | null = null;
 	/** Contributions into storyForge panel / future slots. */
 	private viewContributions: StoryForgeViewContribution[] = [];
 	/**
@@ -451,7 +453,8 @@ export default class StoryForgePlugin extends Plugin {
 			callback: () => void this.activateToolsView(),
 		});
 
-		this.addSettingTab(new StoryForgeSettingsTab(this.app, this));
+		this.settingsTab = new StoryForgeSettingsTab(this.app, this);
+		this.addSettingTab(this.settingsTab);
 		this.applyAllStyles();
 		if (this.pluginSettings.cyclingGuideEnabled) this.rebuildCyclingGuideExtension();
 		this.registerEditorExtension(this.cyclingGuideExtensions);
@@ -490,6 +493,7 @@ export default class StoryForgePlugin extends Plugin {
 			this.refreshCustomIcons();
 			refreshTabTitles(this.app);
 			this.applyEditorScrollbarStyles();
+			this.style.applyRightRailChrome();
 			this.syncSpacerActiveClass();
 			void this.maybeRunScheduledBackup("vault-open");
 		});
@@ -497,9 +501,14 @@ export default class StoryForgePlugin extends Plugin {
 		this.registerEvent(
 			this.app.workspace.on("active-leaf-change", () => this.syncSpacerActiveClass()),
 		);
+		const refreshRightRailChrome = debounce(() => this.style.applyRightRailChrome(), 50);
 		this.registerEvent(
-			this.app.workspace.on("layout-change", () => this.syncSpacerActiveClass()),
+			this.app.workspace.on("layout-change", () => {
+				this.syncSpacerActiveClass();
+				refreshRightRailChrome();
+			}),
 		);
+		this.register(() => refreshRightRailChrome.cancel());
 
 		this.api = createHostApi(this);
 
@@ -709,11 +718,13 @@ export default class StoryForgePlugin extends Plugin {
 		this.formatCompanion = reg;
 		this.fontFacesRegisteredFor.clear();
 		this.applyLinkedFormattingStyles();
+		this.settingsTab?.refreshDomState();
 		return () => {
 			if (this.formatCompanion === reg) {
 				this.formatCompanion = null;
 				this.fontFacesRegisteredFor.clear();
 				this.applyLinkedFormattingStyles();
+				this.settingsTab?.refreshDomState();
 			}
 		};
 	}
@@ -755,6 +766,7 @@ export default class StoryForgePlugin extends Plugin {
 		this.registerCustomFontFacesForAllDocs();
 		this.applyCyclingGuideStyle();
 		this.applyEditorScrollbarStyles();
+		this.style.applyRightRailChrome();
 		this.notifyFormatCompanionStylesApplied();
 	}
 

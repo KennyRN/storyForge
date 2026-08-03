@@ -15,6 +15,8 @@ import {
 	ICON_PERSON_FILL,
 	ICON_PERSON_FILL_ADD,
 	ICON_PLUS_SQUARE,
+	ICON_MINUS_SQUARE,
+	ICON_CHECK_SQUARE,
 	ICON_SERIES,
 	ICON_TIMELINE,
 	ICON_TOOLS,
@@ -96,7 +98,29 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		id: ICON_PLUS_SQUARE,
 		label: "New file",
 		source: "custom",
-		usedIn: ["TopPanel.ts — new chapter button (default)", "BottomPanel.ts — new Codex note button"],
+		usedIn: [
+			"TopPanel.ts — new chapter button (default)",
+			"BottomPanel.ts — new Codex note button",
+			"RecommendationView.ts — create in Codex (unknown name)",
+		],
+	},
+	{
+		id: ICON_MINUS_SQUARE,
+		label: "Ignore",
+		source: "custom",
+		usedIn: [
+			"RecommendationView.ts — ignore unknown name",
+			"RecommendationView.ts — ignore detail attribution (grey)",
+		],
+	},
+	{
+		id: ICON_CHECK_SQUARE,
+		label: "Done / confirm",
+		source: "custom",
+		usedIn: [
+			"RecommendationView.ts — mark detail done",
+			"RecommendationView.ts — confirm grey attribution",
+		],
 	},
 	{
 		id: ICON_CYCLE_ALT,
