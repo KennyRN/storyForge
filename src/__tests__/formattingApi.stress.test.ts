@@ -6,8 +6,41 @@ import { describe, expect, it, vi } from "vitest";
 import { createHostApi, STORYFORGE_API_VERSION } from "../hostApi";
 import type { FormatCompanionRegistration, SfLinkedFormattingKey } from "../formattingApi";
 import type StoryForgePlugin from "../main";
+import { PALETTE_NAMES } from "../colorPalettes";
 
 type SettingsBag = Record<string, unknown>;
+
+/** Enum-typed linked keys: cycle within the allowed set (not free-form string mutation). */
+const LINKED_ENUM_CYCLES: Partial<Record<SfLinkedFormattingKey, readonly string[]>> = {
+	colorPaletteName: PALETTE_NAMES,
+	librarySeriesTitleFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
+	libraryBookTitleFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
+	libraryBookSubtitleFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
+	libraryItemsFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
+	unplacedFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
+	unplacedItemsFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
+	codexFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
+	codexFolderFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
+	codexNoteLabelFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
+	codexFolderIndicatorThickness: ["none", "thin", "medium", "thick"],
+	cyclingGuideThickness: ["thin", "medium", "thick", "extra-thick"],
+	cyclingGuideFlagSize: ["small", "medium", "large"],
+	cyclingGuideInterval: ["short", "medium", "large"],
+	editorScrollbarThickness: ["thin", "medium", "thick"],
+};
+
+function nextLinkedValue(key: SfLinkedFormattingKey, current: unknown, round: number): unknown {
+	const cycle = LINKED_ENUM_CYCLES[key];
+	if (cycle) {
+		const i = typeof current === "string" ? cycle.indexOf(current) : -1;
+		return cycle[(Math.max(i, 0) + 1) % cycle.length];
+	}
+	if (typeof current === "boolean") return !current;
+	if (typeof current === "number") return current + 0.1;
+	if (typeof current === "string") return `${current}-x${round}`;
+	if (Array.isArray(current)) return [...current];
+	return current;
+}
 
 /** Minimal linked-settings bag covering every SfLinkedFormattingKey. */
 function makeLinkedDefaults(): SettingsBag {
@@ -244,11 +277,7 @@ describe("formatting API stress", () => {
 		for (let round = 0; round < 5; round++) {
 			for (const key of keys) {
 				const current = api.formatting.getLinkedSetting(key);
-				let next: unknown = current;
-				if (typeof current === "boolean") next = !current;
-				else if (typeof current === "number") next = current + 0.1;
-				else if (typeof current === "string") next = `${current}-x${round}`;
-				else if (Array.isArray(current)) next = [...current];
+				const next = nextLinkedValue(key, current, round);
 				await api.formatting.updateLinkedSetting(key, next);
 				expect(api.formatting.getLinkedSetting(key)).toEqual(next);
 			}
