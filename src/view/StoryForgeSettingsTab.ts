@@ -1,6 +1,7 @@
 import { App, PluginSettingTab, type SettingDefinitionItem } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { CODEX_TYPES } from "../codex";
+import { FORMATFORGE_PLUGIN_ID, isFormatCompanionActiveForSettings } from "../formatCompanionActive";
 import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
 import { COLOR_PALETTES, defaultVariantName, PALETTE_NAMES, type PresetPaletteName } from "../colorPalettes";
 import { TextStyleModal } from "./TextStyleModal";
@@ -52,7 +53,22 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 	}
 
 	private isFormatCompanionActive(): boolean {
-		return this.plugin.getFormatCompanion() != null || this.plugin.api?.formatting?.isCompanionActive() === true;
+		return isFormatCompanionActiveForSettings(
+			this.plugin.getFormatCompanion(),
+			this.plugin.api?.formatting?.isCompanionActive() === true,
+			this.app,
+		);
+	}
+
+	private openFormatForgeSettings(): void {
+		const open = this.plugin.getFormatCompanion()?.openSettings;
+		if (open) {
+			open();
+			return;
+		}
+		const settingApp = (this.app as unknown as { setting?: { open(): void; openTabById(id: string): void } }).setting;
+		settingApp?.open();
+		settingApp?.openTabById(FORMATFORGE_PLUGIN_ID);
 	}
 
 	getControlValue(key: string): unknown {
@@ -119,81 +135,39 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 
 		return [
 			{
-				name: "storyForge panel",
-				desc: "If you've closed the storyForge panel, click this to bring it back.",
-				action: () => {
-					void this.plugin.activateView();
-				},
-			},
-			{
-				name: "Tools panel",
-				desc: "Hide the ribbon; ribbon icons are available in the tools panel.",
-				control: {
-					type: "toggle",
-					key: "useToolsPanel",
-				},
-			},
-			{
-				name: "Reopen tools panel",
-				desc: "Open the tools panel if it was closed.",
-				action: () => {
-					void this.plugin.activateToolsView();
-				},
-			},
-			{
-				name: "Colour palette",
-				desc: "Palette used when picking colours for storyForge UI elements.",
-				visible: companionInactive,
-				control: {
-					type: "dropdown",
-					key: "colorPaletteName",
-					options: paletteOptions,
-				},
-			},
-			{
-				name: "Palette variant",
-				desc: "Named variant of the selected palette.",
-				visible: () => {
-					if (this.isFormatCompanionActive()) return false;
-					const name = this.plugin.getSettings().colorPaletteName;
-					return isPresetPaletteName(name) && COLOR_PALETTES[name].length > 1;
-				},
-				control: {
-					type: "dropdown",
-					key: "colorPaletteVariant",
-					options: variantOptions,
-				},
-			},
-			...Array.from({ length: colorCount }, (_, i) => [
-				{
-					name: `Custom colour ${i + 1} name`,
-					visible: () => companionInactive() && this.plugin.getSettings().colorPaletteName === "Custom",
-					control: {
-						type: "text" as const,
-						key: `customPaletteColors.${i}.name`,
-						placeholder: "Name",
+				type: "group",
+				items: [
+					{
+						name: "storyForge panel",
+						desc: "If you've closed the storyForge panel, click this to bring it back.",
+						action: () => {
+							void this.plugin.activateView();
+						},
 					},
-				},
-				{
-					name: `Custom colour ${i + 1}`,
-					visible: () => companionInactive() && this.plugin.getSettings().colorPaletteName === "Custom",
-					control: {
-						type: "color" as const,
-						key: `customPaletteColors.${i}.hex`,
-					},
-				},
-			]).flat(),
-			{
-				name: "Formatting (formatForge)",
-				desc: "Text styling, colours, fonts, and the colour palette are managed by formatForge while it is enabled.",
-				visible: companionActive,
-				action: () => {
-					this.plugin.getFormatCompanion()?.openSettings?.();
-				},
+				],
 			},
 			{
 				type: "group",
-				heading: "Story Context",
+				items: [
+					{
+						name: "Tools panel",
+						desc: "Hide the ribbon; ribbon icons are available in the tools panel.",
+						control: {
+							type: "toggle",
+							key: "useToolsPanel",
+						},
+					},
+					{
+						name: "Reopen tools panel",
+						desc: "Open the tools panel if it was closed.",
+						action: () => {
+							void this.plugin.activateToolsView();
+						},
+					},
+				],
+			},
+			{
+				type: "group",
 				items: [
 					{
 						name: "Unknown name suggestions",
@@ -215,34 +189,93 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				],
 			},
 			{
-				name: "Text styling",
-				desc: "Open the text styling modal (editor size overrides).",
-				visible: companionInactive,
-				action: () => {
-					new TextStyleModal(this.app, this.plugin).open();
-				},
+				type: "group",
+				items: [
+					{
+						name: "Colour palette",
+						desc: "Palette used when picking colours for storyForge UI elements.",
+						visible: companionInactive,
+						control: {
+							type: "dropdown",
+							key: "colorPaletteName",
+							options: paletteOptions,
+						},
+					},
+					{
+						name: "Palette variant",
+						desc: "Named variant of the selected palette.",
+						visible: () => {
+							if (this.isFormatCompanionActive()) return false;
+							const name = this.plugin.getSettings().colorPaletteName;
+							return isPresetPaletteName(name) && COLOR_PALETTES[name].length > 1;
+						},
+						control: {
+							type: "dropdown",
+							key: "colorPaletteVariant",
+							options: variantOptions,
+						},
+					},
+					...Array.from({ length: colorCount }, (_, i) => [
+						{
+							name: `Custom colour ${i + 1} name`,
+							visible: () => companionInactive() && this.plugin.getSettings().colorPaletteName === "Custom",
+							control: {
+								type: "text" as const,
+								key: `customPaletteColors.${i}.name`,
+								placeholder: "Name",
+							},
+						},
+						{
+							name: `Custom colour ${i + 1}`,
+							visible: () => companionInactive() && this.plugin.getSettings().colorPaletteName === "Custom",
+							control: {
+								type: "color" as const,
+								key: `customPaletteColors.${i}.hex`,
+							},
+						},
+					]).flat(),
+					{
+						name: "Formatting (formatForge)",
+						desc: "Text styling, colours, fonts, interface chrome, and the colour palette are managed by formatForge while it is enabled.",
+						visible: companionActive,
+						action: () => this.openFormatForgeSettings(),
+					},
+					{
+						name: "Text styling",
+						desc: "Open the text styling modal (editor size overrides).",
+						visible: companionInactive,
+						action: () => {
+							new TextStyleModal(this.app, this.plugin).open();
+						},
+					},
+					{
+						name: "storyForge interface",
+						desc: "Open interface formatting options.",
+						visible: companionInactive,
+						action: () => {
+							new UiFormattingModal(this.app, this.plugin).open();
+						},
+					},
+					{
+						name: "Hide Obsidian interface elements",
+						desc: "Choose which Obsidian UI chrome to hide.",
+						action: () => {
+							new HideUiModal(this.app, this.plugin).open();
+						},
+					},
+				],
 			},
 			{
-				name: "storyForge interface",
-				desc: "Open interface formatting options.",
-				visible: companionInactive,
-				action: () => {
-					new UiFormattingModal(this.app, this.plugin).open();
-				},
-			},
-			{
-				name: "Hide Obsidian interface elements",
-				desc: "Choose which Obsidian UI chrome to hide.",
-				action: () => {
-					new HideUiModal(this.app, this.plugin).open();
-				},
-			},
-			{
-				name: "Protections",
-				desc: "Backup and protection options.",
-				action: () => {
-					new ProtectionsModal(this.app, this.plugin).open();
-				},
+				type: "group",
+				items: [
+					{
+						name: "Protections",
+						desc: "Backup and protection options.",
+						action: () => {
+							new ProtectionsModal(this.app, this.plugin).open();
+						},
+					},
+				],
 			},
 		];
 	}

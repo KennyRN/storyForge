@@ -1,14 +1,17 @@
 /**
- * Two decision stores in `_sf-backstage/`:
+ * Decision stores in `_sf-backstage/`:
  * 1. Attribution (shared, cross-tab) — confirm / reject-and-reroute for grey hits.
  * 2. Resolved (chapter tab only) — detail was handled (done and ignore are one state).
+ * 3. Ignored unknown names (book-scoped) — dismissed “Named but not in Codex” surfaces.
  *
- * Both key on normalised sentence; orphans whose sentence no longer exists are swept.
+ * Attribution and resolved key on normalised sentence; orphans whose sentence no longer
+ * exists are swept. Ignored names persist for the book until manually cleared.
  */
 
 import { App, parseYaml, stringifyYaml, TFile } from "obsidian";
 import {
 	recommendAttributionPath,
+	recommendIgnoredNamesPath,
 	recommendSidecarFolderPath,
 	recommendSidecarPath,
 } from "../paths";
@@ -203,4 +206,59 @@ export async function writeResolvedIdsOntoCache(
 			? { ...reportJson, resolvedIds }
 			: { resolvedIds };
 	await writeBackstageFile(app.vault, path, buildJsonSidecar(fm, payload));
+}
+
+export interface IgnoredNamesStore {
+	/** Lowercased unknown-name surfaces the author dismissed for this book. */
+	names: string[];
+}
+
+export async function readIgnoredNamesStore(
+	app: App,
+	bookFolderName: string,
+): Promise<IgnoredNamesStore> {
+	const path = recommendIgnoredNamesPath(bookFolderName);
+	const file = app.vault.getAbstractFileByPath(path);
+	if (!(file instanceof TFile)) return { names: [] };
+	const parsed = parseJsonSidecar<IgnoredNamesStore>(await app.vault.cachedRead(file));
+	if (!parsed || !Array.isArray(parsed.names)) return { names: [] };
+	return {
+		names: parsed.names
+			.filter((x): x is string => typeof x === "string")
+			.map((n) => n.toLowerCase()),
+	};
+}
+
+export async function addIgnoredName(
+	app: App,
+	bookFolderName: string,
+	name: string,
+): Promise<IgnoredNamesStore> {
+	const key = name.trim().toLowerCase();
+	if (!key) return readIgnoredNamesStore(app, bookFolderName);
+	const current = await readIgnoredNamesStore(app, bookFolderName);
+	if (current.names.includes(key)) return current;
+	const next: IgnoredNamesStore = { names: [...current.names, key] };
+	await ensureBackstageFolder(app.vault, recommendSidecarFolderPath(bookFolderName));
+	await writeBackstageFile(
+		app.vault,
+		recommendIgnoredNamesPath(bookFolderName),
+		buildJsonSidecar({ kind: "ignored-names" }, next),
+	);
+	return next;
+}
+
+/** Strip dismissed unknown names from a report (mutates). */
+export function applyIgnoredNames(
+	report: { unknownNames: string[]; unknownNameHints: Array<{ name: string }> },
+	ignored: Iterable<string>,
+): void {
+	const banned = new Set(
+		[...ignored].map((n) => n.toLowerCase()).filter(Boolean),
+	);
+	if (banned.size === 0) return;
+	report.unknownNameHints = report.unknownNameHints.filter(
+		(h) => !banned.has(h.name.toLowerCase()),
+	);
+	report.unknownNames = report.unknownNames.filter((n) => !banned.has(n.toLowerCase()));
 }

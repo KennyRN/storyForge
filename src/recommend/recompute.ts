@@ -3,7 +3,9 @@ import { readChapterPlot } from "../book";
 import { libraryChapterPath } from "../paths";
 import { writeRecommendCache, readRecommendCache, isRecommendCacheFresh } from "./cache";
 import {
+	applyIgnoredNames,
 	readAttributionStore,
+	readIgnoredNamesStore,
 	readResolvedStore,
 	sweepAttributionOrphans,
 	writeAttributionStore,
@@ -15,6 +17,16 @@ import type { ChapterRecommendReport } from "./types";
 export interface RecommendSettingsSlice {
 	codexFactSectionByType: Record<string, string>;
 	recommendIncludeUnknownNames: boolean;
+}
+
+async function withIgnoredNames(
+	app: App,
+	bookFolderName: string,
+	report: ChapterRecommendReport,
+): Promise<ChapterRecommendReport> {
+	const ignored = await readIgnoredNamesStore(app, bookFolderName);
+	applyIgnoredNames(report, ignored.names);
+	return report;
 }
 
 /** Recomputes and caches a chapter recommend report. */
@@ -42,6 +54,7 @@ export async function recomputeChapterRecommend(
 		attributions: attribution.decisions,
 		resolvedIds: resolved.resolvedIds,
 	});
+	await withIgnoredNames(app, bookFolderName, report);
 
 	const liveSentences = new Set(report.sentenceKeys);
 	const sweptAttr = sweepAttributionOrphans(attribution, liveSentences);
@@ -78,6 +91,7 @@ export async function loadOrRecomputeChapterRecommend(
 		attributions: attribution.decisions,
 		resolvedIds: resolved.resolvedIds,
 	});
+	await withIgnoredNames(app, bookFolderName, fresh);
 
 	const cached = await readRecommendCache(app, bookFolderName, chapterFilename);
 	if (cached && isRecommendCacheFresh(cached, fresh.contentHash)) {
@@ -86,6 +100,7 @@ export async function loadOrRecomputeChapterRecommend(
 		for (const hit of cached.hits) {
 			hit.resolved = resolvedSet.has(hit.id);
 		}
+		await withIgnoredNames(app, bookFolderName, cached);
 		return cached;
 	}
 

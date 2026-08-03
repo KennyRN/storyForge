@@ -1859,7 +1859,6 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 }
 
 .sf-recommend-send-btn,
-.sf-recommend-lore-btn,
 .sf-recommend-hit-actions button {
 	font-size: 0.85em;
 }
@@ -1870,6 +1869,34 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 	gap: 6px;
 	padding: 3px 0;
 	flex-wrap: wrap;
+}
+
+.sf-recommend-row-actions {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	margin-left: auto;
+}
+
+.sf-recommend-icon-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 2px;
+	cursor: pointer;
+	color: var(--text-muted);
+	background: transparent;
+	border-radius: 0;
+}
+
+.sf-recommend-icon-btn:hover {
+	color: var(--text-accent);
+	background: transparent;
+}
+
+.sf-recommend-icon-btn svg {
+	width: 18px;
+	height: 18px;
 }
 
 .sf-recommend-row-label {
@@ -1951,6 +1978,7 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 .sf-recommend-tab:focus-visible,
 .sf-recommend-refresh:focus-visible,
 .sf-recommend-row-label:focus-visible,
+.sf-recommend-icon-btn:focus-visible,
 .sf-recommend-entity-header:focus-visible {
 	outline: 2px solid var(--text-accent);
 	outline-offset: 2px;
@@ -1975,6 +2003,7 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 .sf-recommend-hit-actions {
 	display: flex;
 	flex-wrap: wrap;
+	align-items: center;
 	gap: 6px;
 	margin-top: 6px;
 }
@@ -1990,12 +2019,39 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 }
 
 /*
- * Match right-rail chrome to the left panel so the centre editor reads as the
- * writing surface and side panels feel like one shell (xForge Timeline polish).
+ * Unify right-rail background with the left sidebar.
+ *
+ * Why earlier attempts failed (Minimal / Obsidian 1.13):
+ * - Left sidedock uses --background-secondary (--bg2 in Minimal).
+ * - Right sidedock tracks --background-primary (--bg1), same as the editor.
+ * - Remapping variables alone is overridden by theme/core background-color rules.
+ * Forum-proven fix: paint .view-content / .workspace-leaf-content / tab headers
+ * with !important, and force --tab-container-background on the right tab strip
+ * (incl. .mod-top-right-space under frameless windows).
+ * Refs: forum.obsidian.md/t/50709, forum.obsidian.md/t/113534, forum.obsidian.md/t/102005
  */
-.workspace .mod-right-split .workspace-tabs,
-.workspace .mod-right-split .workspace-tab-header-container,
-.workspace .mod-right-split .workspace-leaf-content {
-	background-color: var(--background-secondary);
+.mod-right-split:not(#storyforge-specificity-boost) {
+	--background-primary: var(--background-secondary);
+	--background-primary-alt: var(--background-secondary-alt, var(--background-secondary));
+	--tab-container-background: var(--background-secondary);
+	background-color: var(--background-secondary) !important;
+}
+
+.mod-right-split .view-content:not(#storyforge-specificity-boost),
+.mod-right-split .workspace-leaf-content:not(#storyforge-specificity-boost),
+.mod-right-split .workspace-leaf:not(#storyforge-specificity-boost),
+.mod-right-split .workspace-tabs:not(#storyforge-specificity-boost),
+.mod-right-split .workspace-tab-header-container:not(#storyforge-specificity-boost),
+.mod-right-split .workspace-tab-header-container-inner:not(#storyforge-specificity-boost),
+.mod-right-split .workspace-tabs.mod-top:not(#storyforge-specificity-boost),
+.mod-right-split .workspace-tabs.mod-top-right-space .workspace-tab-header-container:not(#storyforge-specificity-boost),
+.mod-right-split .view-header:not(#storyforge-specificity-boost),
+.workspace-tabs.mod-top-right-space .workspace-tab-header-container:not(#storyforge-specificity-boost) {
+	--tab-container-background: var(--background-secondary);
+	background-color: var(--background-secondary) !important;
+}
+
+.mod-right-split .workspace-tab-header:not(#storyforge-specificity-boost) {
+	background-color: transparent !important;
 }
 

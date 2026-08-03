@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { analyzeChapter, contentHash, hashId, stripMarkdownMapped } from "../recommend/engine";
+import { applyIgnoredNames } from "../recommend/decisions";
 import {
 	normalizeFactKey,
 	parseFactsFromNote,
@@ -18,6 +19,18 @@ function person(path: string, name: string, factsBody: string, aliases: string[]
 	const facts = parseFactsFromSection(factsBody, "Facts");
 	return { path, name, aliases, type: "person", facts };
 }
+
+describe("applyIgnoredNames", () => {
+	it("removes dismissed unknowns case-insensitively", () => {
+		const report = {
+			unknownNames: ["Aldric", "Zelda"],
+			unknownNameHints: [{ name: "Aldric" }, { name: "Zelda" }],
+		};
+		applyIgnoredNames(report, ["aldric"]);
+		expect(report.unknownNames).toEqual(["Zelda"]);
+		expect(report.unknownNameHints.map((h) => h.name)).toEqual(["Zelda"]);
+	});
+});
 
 describe("normalizeFactKey", () => {
 	it("prefers British spelling", () => {
@@ -152,6 +165,83 @@ describe("analyzeChapter (dossier engine)", () => {
 		});
 		expect(report.unknownNames).toContain("Aldric");
 		expect(report.unknownNames).not.toContain("Jane");
+	});
+
+	it("drops sentence-initial common English words from unknown names", async () => {
+		await ensureNlp();
+		const prose =
+			'Anger filled the room. Rescue arrived too late. Words failed him. Worse came later. "Rescue the girl," he said.';
+		const report = await analyzeChapter(prose, [jane], {
+			chapterFilename: "ch1.md",
+			existingPlot: "",
+			includeUnknownNames: true,
+		});
+		expect(report.unknownNames).not.toContain("Anger");
+		expect(report.unknownNames).not.toContain("Rescue");
+		expect(report.unknownNames).not.toContain("Words");
+		expect(report.unknownNames).not.toContain("Worse");
+	});
+
+	it("drops common English PROPNs mid-sentence and unbridged common runs", async () => {
+		await ensureNlp();
+		const prose =
+			"But Anger remained. The Anger rose. Her Anger was clear. — Anger flared. Sudden Anger took her.";
+		const report = await analyzeChapter(prose, [jane], {
+			chapterFilename: "ch1.md",
+			existingPlot: "",
+			includeUnknownNames: true,
+		});
+		expect(report.unknownNames).not.toContain("Anger");
+		expect(report.unknownNames).not.toContain("Sudden Anger");
+		expect(report.unknownNames.some((n) => /anger/i.test(n))).toBe(false);
+	});
+
+	it("keeps bridged multi-word titles even when parts are common English", async () => {
+		await ensureNlp();
+		const prose = "They joined the Cult of the Snake.";
+		const report = await analyzeChapter(prose, [jane], {
+			chapterFilename: "ch1.md",
+			existingPlot: "",
+			includeUnknownNames: true,
+		});
+		expect(report.unknownNames).toContain("Cult of the Snake");
+	});
+
+	it("keeps mid-sentence invented names that wink tags as PROPN", async () => {
+		await ensureNlp();
+		const prose = "Then Aldric walked in.";
+		const report = await analyzeChapter(prose, [jane], {
+			chapterFilename: "ch1.md",
+			existingPlot: "",
+			includeUnknownNames: true,
+		});
+		expect(report.unknownNames).toContain("Aldric");
+	});
+
+	it("joins hyphenated proper names into one unknown candidate", async () => {
+		await ensureNlp();
+		const prose = "The Demi-Human fled.";
+		const report = await analyzeChapter(prose, [jane], {
+			chapterFilename: "ch1.md",
+			existingPlot: "",
+			includeUnknownNames: true,
+		});
+		expect(report.unknownNames).toContain("Demi-Human");
+		expect(report.unknownNames).not.toContain("Demi");
+		expect(report.unknownNames).not.toContain("Human");
+	});
+
+	it("drops pronoun contractions from unknown names", async () => {
+		await ensureNlp();
+		const prose = "I'm Safe now. I'm fine.";
+		const report = await analyzeChapter(prose, [jane], {
+			chapterFilename: "ch1.md",
+			existingPlot: "",
+			includeUnknownNames: true,
+		});
+		expect(report.unknownNames.some((n) => /I'm/i.test(n))).toBe(false);
+		expect(report.unknownNames).not.toContain("I'm Safe");
+		expect(report.unknownNames).not.toContain("I'm");
 	});
 });
 

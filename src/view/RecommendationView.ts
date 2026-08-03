@@ -16,7 +16,7 @@ import {
 } from "../book";
 import { CODEX_TYPES, codexTypeIcon } from "../codex";
 import { debounce } from "../debounce";
-import { ICON_TIMELINE } from "../icons";
+import { ICON_CHECK_SQUARE, ICON_MINUS_SQUARE, ICON_PLUS_SQUARE, ICON_TIMELINE } from "../icons";
 import {
 	bookFolderNameFromChapterPath,
 	CODEX_ROOT,
@@ -25,7 +25,10 @@ import {
 } from "../paths";
 import { getBookId } from "../series";
 import { groupHitsByChapter, lensLabel } from "../recommend/hitGrouping";
+import { writeRecommendCache } from "../recommend/cache";
 import {
+	addIgnoredName,
+	applyIgnoredNames,
 	markResolved,
 	readAttributionStore,
 	upsertAttributionDecision,
@@ -350,11 +353,13 @@ export class RecommendationView extends ItemView {
 			const row = section.createDiv({ cls: "sf-recommend-row" });
 			const label = hint.nerType ? `${hint.name} (${hint.nerType})` : hint.name;
 			row.createSpan({ cls: "sf-recommend-row-label", text: label });
-			const btn = row.createEl("button", {
-				cls: "sf-recommend-lore-btn",
-				text: "Create in Codex",
-			});
-			btn.addEventListener("click", () => void this.createStub(hint.name, hint.nerType));
+			const actions = row.createDiv({ cls: "sf-recommend-row-actions" });
+			this.iconAction(actions, ICON_PLUS_SQUARE, "create in codex", () =>
+				void this.createStub(hint.name, hint.nerType),
+			);
+			this.iconAction(actions, ICON_MINUS_SQUARE, "ignore", () =>
+				void this.ignoreUnknownName(hint.name),
+			);
 		}
 	}
 
@@ -463,23 +468,36 @@ export class RecommendationView extends ItemView {
 		const actions = card.createDiv({ cls: "sf-recommend-hit-actions" });
 
 		if (hit.tier === "solid") {
-			const doneBtn = actions.createEl("button", { text: "Done" });
-			doneBtn.addEventListener("click", () => void this.resolveHit(hit));
-			const openBtn = actions.createEl("button", { text: "Open Codex" });
-			openBtn.addEventListener("click", () => {
-				if (hit.entityPath) void this.openPath(hit.entityPath);
-			});
+			this.iconAction(actions, ICON_CHECK_SQUARE, "done", () => void this.resolveHit(hit));
 		} else if (hit.tier === "grey") {
-			const confirmBtn = actions.createEl("button", { text: "Confirm" });
-			confirmBtn.addEventListener("click", () => void this.confirmAndResolve(hit));
-			const rejectBtn = actions.createEl("button", { text: "Not this entity" });
-			rejectBtn.addEventListener("click", () => void this.rejectHit(hit));
+			this.iconAction(actions, ICON_CHECK_SQUARE, "confirm", () => void this.confirmAndResolve(hit));
+			this.iconAction(actions, ICON_MINUS_SQUARE, "ignore", () => void this.rejectHit(hit));
 		} else if (hit.tier === "ambiguous") {
 			for (const name of hit.competingNames) {
 				const btn = actions.createEl("button", { text: name });
 				btn.addEventListener("click", () => void this.assignAmbiguous(hit, name));
 			}
 		}
+	}
+
+	/** Icon-only action control; aria-label drives Obsidian’s tooltip (no native `title`). */
+	private iconAction(
+		parent: HTMLElement,
+		iconId: string,
+		label: string,
+		onActivate: () => void,
+	): HTMLElement {
+		const btn = parent.createSpan({
+			cls: "sf-recommend-icon-btn",
+			attr: { "aria-label": label, tabindex: "0", role: "button" },
+		});
+		setIcon(btn, iconId);
+		btn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			onActivate();
+		});
+		makeAccessibleActivatable(btn, onActivate);
+		return btn;
 	}
 
 	private renderDossier(el: HTMLElement): void {
@@ -732,6 +750,14 @@ export class RecommendationView extends ItemView {
 			if (!type) return;
 			void this.finishLore(name, type);
 		}, nerTypeHintToCodexType(nerType)).open();
+	}
+
+	private async ignoreUnknownName(name: string): Promise<void> {
+		if (!this.bookFolderName || !this.report) return;
+		const ignored = await addIgnoredName(this.app, this.bookFolderName, name);
+		applyIgnoredNames(this.report, ignored.names);
+		await writeRecommendCache(this.app, this.bookFolderName, this.report);
+		this.render();
 	}
 
 	private async finishLore(name: string, type: string): Promise<void> {
