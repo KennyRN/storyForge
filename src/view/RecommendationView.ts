@@ -242,16 +242,18 @@ export class RecommendationView extends ItemView {
 			void this.reload();
 		});
 
-		const refreshBtn = header.createSpan({
-			cls: "sf-recommend-refresh",
-			attr: { "aria-label": "Refresh story context", tabindex: "0", role: "button" },
-		});
-		setIcon(refreshBtn, "refresh-cw");
-		refreshBtn.addEventListener("click", (e) => {
-			e.stopPropagation();
-			void this.forceRefresh();
-		});
-		makeAccessibleActivatable(refreshBtn, () => void this.forceRefresh());
+		if (this.bookFolderName && this.chapterFilename) {
+			const refreshBtn = header.createSpan({
+				cls: "sf-recommend-refresh",
+				attr: { "aria-label": "Refresh story context", tabindex: "0", role: "button" },
+			});
+			setIcon(refreshBtn, "refresh-cw");
+			refreshBtn.addEventListener("click", (e) => {
+				e.stopPropagation();
+				void this.forceRefresh();
+			});
+			makeAccessibleActivatable(refreshBtn, () => void this.forceRefresh());
+		}
 
 		if (this.loading) {
 			el.createDiv({ cls: "sf-empty", text: "Loading language model…" });
