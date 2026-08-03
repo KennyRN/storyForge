@@ -1,8 +1,8 @@
 import { App, Modal, setIcon } from "obsidian";
 import { CODEX_TYPES } from "../codex";
 
-/** Picks a Codex type for a new stub; resolves with the type id or null if cancelled. */
-export class CodexStubTypeModal extends Modal {
+/** Picks a Codex type for a new lore entry; resolves with the type id or null if cancelled. */
+export class CodexLoreTypeModal extends Modal {
 	private resolved = false;
 
 	constructor(

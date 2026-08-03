@@ -1859,7 +1859,7 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 }
 
 .sf-recommend-send-btn,
-.sf-recommend-stub-btn,
+.sf-recommend-lore-btn,
 .sf-recommend-hit-actions button {
 	font-size: 0.85em;
 }

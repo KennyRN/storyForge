@@ -4,7 +4,7 @@ import { CODEX_ROOT } from "../paths";
 import { emptyFacts, serializeFactsSection, setFactValue } from "./facts";
 import type { ParsedFacts } from "./types";
 
-export interface CreateStubOptions {
+export interface CreateLoreOptions {
 	name: string;
 	type: string;
 	/** Facts section heading for this type. */
@@ -23,8 +23,8 @@ function uniqueCodexFilename(app: App, baseName: string): string {
 	return `${baseName} ${n}.md`;
 }
 
-/** Creates a typed Codex note stub and optionally seeds its Facts section. */
-export async function createCodexStub(app: App, options: CreateStubOptions): Promise<TFile> {
+/** Creates a typed Codex lore entry and optionally seeds its Facts section. */
+export async function createCodexLore(app: App, options: CreateLoreOptions): Promise<TFile> {
 	const safeName = options.name.trim().replace(/[/\\?%*:|"<>]/g, "").replace(/\s+/g, " ");
 	if (!safeName) throw new Error("Name is empty");
 
