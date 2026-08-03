@@ -4,7 +4,7 @@ Instead it creates a folder within the vault and backs the vault up in there. Th
 
 This change does mean that it should now be able to work on mobile devices.
 
-Embedded custom fonts (and full manuscript typography) now live in the optional **formatForge** companion plugin, which talks to storyForge over host API v2 (`api.formatting`). That keeps storyForge’s bundle smaller for Obsidian Sync.
+Embedded custom fonts (and full manuscript typography) now live in the optional **formatForge** companion plugin, which talks to storyForge over host API v2 (`api.formatting`). That keeps storyForge’s bundle smaller for Obsidian Sync. (Sadly this means it's no longer a one-stop-shop but it's close enough with the advantage that formatForge can now work on other vaults for a simple-to-use theme formatting alteration plugin.)
 
 # storyForge
 Storytelling plugin by volcanicMole
