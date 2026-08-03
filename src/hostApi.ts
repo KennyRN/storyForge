@@ -25,6 +25,7 @@ import {
 import { BACKSTAGE_ROOT, CODEX_ROOT, LIBRARY_ROOT, isCodexNotePath, isLibraryChapterPath } from "./paths";
 import { getBookId } from "./series";
 import type StoryForgePlugin from "./main";
+import type { StoryForgePluginSettings } from "./main";
 import {
 	type FormatCompanionRegistration,
 	type SfLinkedFormattingKey,
@@ -257,7 +258,7 @@ const LINKED_SETTING_VALIDATORS: Record<SfLinkedFormattingKey, ValuePredicate> =
 	editorScrollbarThickness: isOneOf(...EDITOR_SCROLLBAR_THICKNESSES),
 };
 
-const LINKED_FORMATTING_KEYS: SfLinkedFormattingKey[] = [
+const LINKED_FORMATTING_KEYS = [
 	"colorPaletteName",
 	"colorPaletteVariant",
 	"customPaletteColors",
@@ -351,7 +352,19 @@ const LINKED_FORMATTING_KEYS: SfLinkedFormattingKey[] = [
 	"editorScrollbarThumbColor",
 	"editorScrollbarTrackColor",
 	"editorScrollbarThickness",
-];
+] as const;
+
+// Drift guards: fail `tsc` if the array, SfLinkedFormattingKey union, or settings keys diverge.
+type _LinkedKeysAreSettings = (typeof LINKED_FORMATTING_KEYS)[number] extends keyof StoryForgePluginSettings
+	? true
+	: never;
+const _a1: _LinkedKeysAreSettings = true;
+type _LinkedKeysMatchUnion = SfLinkedFormattingKey extends (typeof LINKED_FORMATTING_KEYS)[number]
+	? (typeof LINKED_FORMATTING_KEYS)[number] extends SfLinkedFormattingKey
+		? true
+		: never
+	: never;
+const _a2: _LinkedKeysMatchUnion = true;
 
 export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 	const writeExceptions: CodexWriteException[] = [];
