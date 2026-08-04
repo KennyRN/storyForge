@@ -161,11 +161,13 @@ export interface StoryForgeFormattingApi {
 		customColors?: PaletteColor[];
 	}): Promise<void>;
 	/**
-	 * Contribute UI into the storyForge left panel (and later other right-rail tabs).
-	 * `slot` is a stable id; `render` mounts into the provided container; return a disposer.
+	 * Contribute UI into a storyForge view slot. `render` mounts into the provided
+	 * container and must return a disposer. Known slots: `"spacer"` (blank right-rail
+	 * tab bottom dock), `"storyforge-panel"` (left panel; reserved).
+	 * Prefer the top-level `api.registerViewContribution` for new callers.
 	 */
 	registerViewContribution(opt: {
-		/** Stable slot id (e.g. `"storyforge-panel"`). */
+		/** Stable slot id (e.g. `"spacer"`, `"storyforge-panel"`). */
 		slot: string;
 		orderHint?: number;
 		render: (containerEl: HTMLElement) => () => void;

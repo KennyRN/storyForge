@@ -1,5 +1,5 @@
 /**
- * Versioned host API for xForge siblings (timelineForge, formatForge, …).
+ * Versioned host API for xForge siblings (timelineForge, formatForge, nameForge, …).
  * Access: `app.plugins.getPlugin("storyforge")?.api` — guard `version >= N`.
  *
  * Codex frontmatter create/edit is only for plugins that call
@@ -8,6 +8,11 @@
  * See docs/xforge-sibling-writes.md.
  *
  * Formatting handoff (version >= 2): see `formattingApi.ts` / `api.formatting`.
+ *
+ * View contributions — `api.registerViewContribution({ slot, orderHint?, render })`
+ * (also mirrored on `api.formatting`). Known slots:
+ * - `"spacer"` — blank right-rail Spacer tab (bottom dock for sibling icons)
+ * - `"storyforge-panel"` — storyForge left panel (reserved / future)
  */
 
 import type { App, ViewCreator } from "obsidian";
@@ -106,6 +111,16 @@ export interface StoryForgeHostApi {
 		displayName: string;
 		icon: string;
 	}): void;
+	/**
+	 * Contribute UI into a storyForge view slot. `render` mounts into the provided
+	 * container and must return a disposer. Known slots: `"spacer"` (blank right-rail
+	 * tab bottom dock), `"storyforge-panel"` (left panel; reserved).
+	 */
+	registerViewContribution(opt: {
+		slot: string;
+		orderHint?: number;
+		render: (containerEl: HTMLElement) => () => void;
+	}): () => void;
 }
 
 function uniqueCodexFilename(app: App, baseName: string): string {
@@ -558,6 +573,14 @@ export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 				displayName: opt.displayName,
 				icon: opt.icon,
 				factory: opt.factory,
+			});
+		},
+
+		registerViewContribution(opt) {
+			return plugin.registerViewContribution({
+				slot: opt.slot,
+				orderHint: opt.orderHint ?? 100,
+				render: opt.render,
 			});
 		},
 	};

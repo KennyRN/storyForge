@@ -1728,11 +1728,37 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 }
 
 .sf-spacer-view {
+	position: relative;
 	height: 100%;
 	box-sizing: border-box;
 	/* Match the editor surface so the empty spacer reads as continuous space. */
 	background: var(--background-primary);
 	padding: 0;
+}
+
+/* Sibling icon dock — bottom of Spacer, right-aligned (screen edge). Host provides
+   placement only; siblings own their icon markup (no button chrome here). */
+.sf-spacer-view__dock {
+	position: absolute;
+	right: 0;
+	bottom: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	padding: 8px;
+	pointer-events: none;
+	z-index: 1;
+}
+
+.sf-spacer-view__dock-slot {
+	pointer-events: auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	/* Ribbon-sized placement target; siblings size their own icon. */
+	width: var(--ribbon-width, 44px);
+	min-height: var(--ribbon-width, 44px);
 }
 
 /* Drop the editor ↔ right-sidebar divider while Spacer is the visible right tab. */
