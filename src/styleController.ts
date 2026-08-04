@@ -27,9 +27,6 @@ const CODEX_FOLDER_INDICATOR_WIDTH_PX: Record<CodexFolderIndicatorThickness, num
 	thick: 4,
 };
 
-/** Injected last into document.head so it wins over theme CSS (plugins load before themes). */
-const RIGHT_RAIL_CHROME_STYLE_ID = "sf-right-rail-chrome";
-
 const HEADING_DIVIDER_WIDTH_PX: Record<HeadingDividerThickness, number> = {
 	thin: 1,
 	medium: 2,
@@ -85,7 +82,6 @@ export class StyleController {
 				"sf-sb-thick",
 				"sf-use-tools-panel",
 			);
-			doc.getElementById(RIGHT_RAIL_CHROME_STYLE_ID)?.remove();
 		}
 	}
 
@@ -222,11 +218,11 @@ export class StyleController {
 	}
 
 	/**
-	 * Force the right sidedock to match the left sidedock’s painted background.
+	 * Align right-rail chrome with the left sidedock’s painted background.
 	 *
-	 * Plugin `styles.css` loads before community themes, so stylesheet rules alone lose to
-	 * Minimal (right rail tracks --background-primary / editor colour). Injecting a <style>
-	 * at the end of <head> after layout, using the left leaf’s computed colour, wins the cascade.
+	 * Sets `--sf-right-rail-bg` on each style document’s body (consumed by styles.css).
+	 * Prefer the left leaf’s computed colour when available so themes like Minimal match;
+	 * otherwise fall back to `--background-secondary`.
 	 */
 	applyRightRailChrome(): void {
 		for (const doc of this.host.getStyleDocuments()) {
@@ -241,37 +237,7 @@ export class StyleController {
 					bg = painted;
 				}
 			}
-
-			let styleEl = doc.getElementById(RIGHT_RAIL_CHROME_STYLE_ID) as HTMLStyleElement | null;
-			if (!styleEl) {
-				styleEl = doc.head.createEl("style");
-				styleEl.id = RIGHT_RAIL_CHROME_STYLE_ID;
-			}
-			styleEl.textContent = `
-.mod-right-split {
-	--background-primary: var(--background-secondary) !important;
-	--background-primary-alt: var(--background-secondary-alt, var(--background-secondary)) !important;
-	--tab-container-background: ${bg} !important;
-	background-color: ${bg} !important;
-}
-.mod-right-split .view-content,
-.mod-right-split .workspace-leaf-content,
-.mod-right-split .workspace-leaf,
-.mod-right-split .workspace-tabs,
-.mod-right-split .workspace-tab-header-container,
-.mod-right-split .workspace-tab-header-container-inner,
-.mod-right-split .workspace-tabs.mod-top,
-.mod-right-split .view-header,
-.workspace-tabs.mod-top-right-space .workspace-tab-header-container {
-	--tab-container-background: ${bg} !important;
-	background-color: ${bg} !important;
-}
-.mod-right-split .workspace-tab-header {
-	background-color: transparent !important;
-}
-`.trim();
-			// Re-append so this sheet is last among siblings and beats theme stylesheets.
-			doc.head.appendChild(styleEl);
+			doc.body.style.setProperty("--sf-right-rail-bg", bg);
 		}
 	}
 
