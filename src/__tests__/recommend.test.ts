@@ -13,6 +13,7 @@ import { buildRecommendSidecarContent, parseRecommendSidecar } from "../recommen
 import { groupHitsByChapter, lensLabel } from "../recommend/hitGrouping";
 import { buildLensRegistry } from "../recommend/lenses";
 import { ensureNlp } from "../recommend/nlp";
+import { hasFirstPersonInNarration } from "../recommend/quoteSpans";
 import type { CastMember, ChapterRecommendReport } from "../recommend/types";
 
 function person(path: string, name: string, factsBody: string, aliases: string[] = []): CastMember {
@@ -242,6 +243,121 @@ describe("analyzeChapter (dossier engine)", () => {
 		expect(report.unknownNames.some((n) => /I'm/i.test(n))).toBe(false);
 		expect(report.unknownNames).not.toContain("I'm Safe");
 		expect(report.unknownNames).not.toContain("I'm");
+	});
+});
+
+describe("first-person narrator attribution", () => {
+	const narrator = person("Codex/Alex.md", "Alex", "");
+	const other = person("Codex/Jane.md", "Jane", "eye colour: green\n");
+	const narratorOpt = { path: narrator.path, name: narrator.name };
+
+	it("binds I ran towards London to the narrator at solid tier", async () => {
+		await ensureNlp();
+		// Whereabouts needs motion + prep + capitalised place ("for the harbour" does not fire a lens).
+		const prose = "I ran towards London.";
+		const report = await analyzeChapter(prose, [narrator, other], {
+			chapterFilename: "ch1.md",
+			existingPlot: "",
+			includeUnknownNames: false,
+			narrator: narratorOpt,
+			dialogueQuotes: "double",
+		});
+		const hit = report.hits.find((h) => h.entityPath === narrator.path);
+		expect(hit).toBeTruthy();
+		expect(hit!.tier).toBe("solid");
+		expect(hit!.sentence).toContain("I ran towards London");
+	});
+
+	it("does not bind quoted I won't; binds narration I flinched", async () => {
+		await ensureNlp();
+		const prose = `"I won't," she said, and I flinched.`;
+		const report = await analyzeChapter(prose, [narrator, other], {
+			chapterFilename: "ch1.md",
+			existingPlot: "",
+			includeUnknownNames: false,
+			narrator: narratorOpt,
+			dialogueQuotes: "double",
+		});
+		const narratorHits = report.hits.filter((h) => h.entityPath === narrator.path);
+		expect(narratorHits.length).toBeGreaterThan(0);
+		expect(narratorHits.every((h) => h.tier === "solid")).toBe(true);
+		expect(narratorHits.some((h) => /flinched/i.test(h.sentence))).toBe(true);
+		// Quoted first-person alone must not invent a hit without narration binding.
+		expect(narratorHits.every((h) => hasFirstPersonInNarration(h.sentence, "double"))).toBe(true);
+	});
+
+	it("binds narration tag in Run I shouted", async () => {
+		await ensureNlp();
+		// Avoid `!` inside quotes — wink may split before the speech tag.
+		const prose = `"Run," I shouted.`;
+		const report = await analyzeChapter(prose, [narrator], {
+			chapterFilename: "ch1.md",
+			existingPlot: "",
+			includeUnknownNames: false,
+			narrator: narratorOpt,
+			dialogueQuotes: "double",
+		});
+		const hit = report.hits.find((h) => h.entityPath === narrator.path && h.lens === "dialogue");
+		expect(hit).toBeTruthy();
+		expect(hit!.tier).toBe("solid");
+	});
+
+	it("binds I said tag while quoted I'm routes via speaker tag", async () => {
+		await ensureNlp();
+		const prose = `"I'm leaving," I said.`;
+		const report = await analyzeChapter(prose, [narrator], {
+			chapterFilename: "ch1.md",
+			existingPlot: "",
+			includeUnknownNames: false,
+			narrator: narratorOpt,
+			dialogueQuotes: "double",
+		});
+		const hit = report.hits.find((h) => h.entityPath === narrator.path && h.lens === "dialogue");
+		expect(hit).toBeTruthy();
+		expect(hit!.tier).toBe("solid");
+	});
+
+	it("keeps single-quote possessive guards with narrator binding intact", async () => {
+		await ensureNlp();
+		const prose = `I picked up the coat, 'this is James' coat.' I flinched.`;
+		const report = await analyzeChapter(prose, [narrator], {
+			chapterFilename: "ch1.md",
+			existingPlot: "",
+			includeUnknownNames: false,
+			narrator: narratorOpt,
+			dialogueQuotes: "single",
+		});
+		const hit = report.hits.find((h) => h.entityPath === narrator.path && /flinched/i.test(h.sentence));
+		expect(hit).toBeTruthy();
+		expect(hit!.tier).toBe("solid");
+	});
+
+	it("still tiers she-only sentences via existing third-person coref", async () => {
+		await ensureNlp();
+		const prose = "Jane entered the hall. Her luminous eyes flashed.";
+		const report = await analyzeChapter(prose, [other], {
+			chapterFilename: "ch1.md",
+			existingPlot: "",
+			includeUnknownNames: false,
+			narrator: narratorOpt,
+			dialogueQuotes: "double",
+		});
+		const grey = report.hits.find((h) => h.tier === "grey" && h.sentence.toLowerCase().includes("luminous"));
+		expect(grey).toBeTruthy();
+		expect(grey!.entityName).toBe("Jane");
+	});
+
+	it("is inert when narrator is unset", async () => {
+		await ensureNlp();
+		const prose = "I ran towards London.";
+		const report = await analyzeChapter(prose, [narrator], {
+			chapterFilename: "ch1.md",
+			existingPlot: "",
+			includeUnknownNames: false,
+			narrator: null,
+			dialogueQuotes: "double",
+		});
+		expect(report.hits.filter((h) => h.entityPath === narrator.path)).toHaveLength(0);
 	});
 });
 

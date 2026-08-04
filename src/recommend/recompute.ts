@@ -1,5 +1,5 @@
 import { App, TFile } from "obsidian";
-import { readChapterPlot } from "../book";
+import { readBookFrontmatter, readChapterPlot } from "../book";
 import { libraryChapterPath } from "../paths";
 import { writeRecommendCache, readRecommendCache, isRecommendCacheFresh } from "./cache";
 import {
@@ -12,6 +12,8 @@ import {
 } from "./decisions";
 import { analyzeChapter } from "./engine";
 import { loadHydratedCodexInventory } from "./inventory";
+import { resolveChapterNarrator } from "./narrator";
+import type { DialogueQuoteStyle } from "./quoteSpans";
 import type { ChapterRecommendReport } from "./types";
 
 export interface RecommendSettingsSlice {
@@ -27,6 +29,21 @@ async function withIgnoredNames(
 	const ignored = await readIgnoredNamesStore(app, bookFolderName);
 	applyIgnoredNames(report, ignored.names);
 	return report;
+}
+
+function bookScanExtras(
+	app: App,
+	bookFolderName: string,
+	chapterFilename: string,
+	entries: Awaited<ReturnType<typeof loadHydratedCodexInventory>>,
+): {
+	narrator: { path: string; name: string } | null;
+	dialogueQuotes: DialogueQuoteStyle;
+} {
+	return {
+		narrator: resolveChapterNarrator(app, bookFolderName, chapterFilename, entries),
+		dialogueQuotes: readBookFrontmatter(app, bookFolderName)?.dialogueQuotes ?? "double",
+	};
 }
 
 /** Recomputes and caches a chapter recommend report. */
@@ -46,6 +63,7 @@ export async function recomputeChapterRecommend(
 	const entries = await loadHydratedCodexInventory(app, bookId, settings.codexFactSectionByType);
 	const attribution = await readAttributionStore(app, bookFolderName);
 	const resolved = await readResolvedStore(app, bookFolderName, chapterFilename);
+	const extras = bookScanExtras(app, bookFolderName, chapterFilename, entries);
 
 	const report = await analyzeChapter(raw, entries, {
 		chapterFilename,
@@ -53,6 +71,8 @@ export async function recomputeChapterRecommend(
 		includeUnknownNames: settings.recommendIncludeUnknownNames,
 		attributions: attribution.decisions,
 		resolvedIds: resolved.resolvedIds,
+		narrator: extras.narrator,
+		dialogueQuotes: extras.dialogueQuotes,
 	});
 	await withIgnoredNames(app, bookFolderName, report);
 
@@ -83,6 +103,7 @@ export async function loadOrRecomputeChapterRecommend(
 	const entries = await loadHydratedCodexInventory(app, bookId, settings.codexFactSectionByType);
 	const attribution = await readAttributionStore(app, bookFolderName);
 	const resolved = await readResolvedStore(app, bookFolderName, chapterFilename);
+	const extras = bookScanExtras(app, bookFolderName, chapterFilename, entries);
 
 	const fresh = await analyzeChapter(raw, entries, {
 		chapterFilename,
@@ -90,6 +111,8 @@ export async function loadOrRecomputeChapterRecommend(
 		includeUnknownNames: settings.recommendIncludeUnknownNames,
 		attributions: attribution.decisions,
 		resolvedIds: resolved.resolvedIds,
+		narrator: extras.narrator,
+		dialogueQuotes: extras.dialogueQuotes,
 	});
 	await withIgnoredNames(app, bookFolderName, fresh);
 
@@ -99,6 +122,14 @@ export async function loadOrRecomputeChapterRecommend(
 		const resolvedSet = new Set(resolved.resolvedIds);
 		for (const hit of cached.hits) {
 			hit.resolved = resolvedSet.has(hit.id);
+		}
+		// Overlay live Codex metadata (type/name) so pane edits show without waiting on hash drift.
+		const byPath = new Map(entries.map((e) => [e.path, e]));
+		for (const m of cached.matched) {
+			const live = byPath.get(m.path);
+			if (!live) continue;
+			m.type = live.type;
+			m.name = live.name;
 		}
 		await withIgnoredNames(app, bookFolderName, cached);
 		return cached;
