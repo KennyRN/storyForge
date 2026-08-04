@@ -1,7 +1,11 @@
 /* Obsidian's default .view-content padding is only zeroed for its own known view types
-   (e.g. markdown) - do the same for this plugin's views so they aren't inset. */
+   (e.g. markdown) - do the same for this plugin's views so they aren't inset.
+   Story Context / Archive keep view-content padding: their contentEl *is* the
+   padded .sf-recommend-view / .sf-archive-view surface. */
 .workspace-leaf-content[data-type="storyforge-view"] .view-content,
-.workspace-leaf-content[data-type="storyforge-tools-view"] .view-content {
+.workspace-leaf-content[data-type="storyforge-tools-view"] .view-content,
+.workspace-leaf-content[data-type="storyforge-spacer-view"] .view-content,
+.workspace-leaf-content[data-type="storyforge-forge-view"] .view-content {
 	padding: 0;
 }
 
@@ -1262,6 +1266,11 @@
 	padding: 0;
 }
 
+.modal.sf-ui-formatting-modal {
+	width: min(96vw, 1100px);
+	height: min(90vh, 780px);
+}
+
 .sf-text-style-modal,
 .sf-ui-formatting-modal,
 .sf-hide-ui-modal,
@@ -1320,11 +1329,105 @@
 	box-sizing: border-box;
 }
 
+/* Nested tabs (e.g. storyForge panel → Guides): let the outer wrapper scroll */
+.sf-text-style-tab-body > .sf-text-style-tab-body-wrapper {
+	height: auto;
+	overflow: visible;
+	flex: none;
+}
+
 .sf-text-style-tab-body {
 	display: flex;
 	flex-direction: column;
 	gap: var(--size-4-6);
 	box-sizing: border-box;
+}
+
+/* storyForge interface: controls | live preview */
+.sf-ui-format-layout {
+	flex: 1;
+	display: flex;
+	flex-direction: row;
+	gap: 12px;
+	min-height: 0;
+	min-width: 0;
+}
+
+.sf-ui-format-controls {
+	flex: 1 1 0;
+	min-width: 0;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.sf-ui-format-preview-pane {
+	flex: 0 0 clamp(280px, 38%, 400px);
+	width: clamp(280px, 38%, 400px);
+	min-width: 260px;
+	max-width: 44%;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	overflow: hidden;
+	background: var(--background-primary);
+}
+
+.sf-ui-format-preview-label {
+	flex-shrink: 0;
+	padding: 8px 12px;
+	font-size: var(--font-ui-smaller);
+	font-weight: var(--font-medium);
+	color: var(--text-muted);
+	border-bottom: 1px solid var(--background-modifier-border);
+	background: var(--background-secondary);
+}
+
+.sf-ui-format-preview {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+	padding: 0;
+	background: var(--background-primary);
+}
+
+.sf-ui-format-preview .sf-ui-preview-host.storyforge-view {
+	display: grid;
+	grid-template-rows: 3fr 2fr;
+	height: 100%;
+	min-height: 100%;
+	pointer-events: none;
+	user-select: none;
+}
+
+.sf-ui-format-preview .sf-right-rail-preview {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	padding: 12px;
+	pointer-events: none;
+	user-select: none;
+}
+
+.sf-ui-format-preview .sf-right-rail-preview .sf-forge-view {
+	min-height: 0;
+	height: auto;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	padding: 8px;
+}
+
+.sf-ui-format-preview .sf-right-rail-preview .sf-forge-view__panel {
+	display: none;
+}
+
+.sf-ui-format-preview .sf-right-rail-preview .sf-recommend-view,
+.sf-ui-format-preview .sf-right-rail-preview .sf-archive-view {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	padding: 10px;
 }
 
 .sf-text-style-tab-body > .setting-item,
@@ -1680,18 +1783,66 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 }
 
 
-/* Story Context (recommendations) view */
+/* Story Context (recommendations) view.
+ * contentEl is .view-content.sf-recommend-view — set padding here so Obsidian's
+ * default .view-content inset is overridden evenly on both sides.
+ * Column layout: header/tabs (+ chapter fixed block) stay put; lower lists scroll. */
+.workspace-leaf-content[data-type="storyforge-recommend-view"] .view-content.sf-recommend-view,
 .sf-recommend-view {
+	display: flex;
+	flex-direction: column;
 	padding: 8px 10px 16px;
-	overflow: auto;
+	overflow: hidden;
 	height: 100%;
 	box-sizing: border-box;
 }
 
+.sf-recommend-header,
+.sf-recommend-tabs {
+	flex-shrink: 0;
+}
+
+.sf-recommend-body {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.sf-recommend-body.sf-recommend-body--scroll {
+	overflow-x: hidden;
+	overflow-y: auto;
+}
+
+.sf-recommend-fixed {
+	flex-shrink: 0;
+}
+
+.sf-recommend-scroll {
+	flex: 1;
+	min-height: 0;
+	overflow-x: hidden;
+	overflow-y: auto;
+}
+
+/* Sticky section headers within chapter/dossier scroll panes:
+ * each title pins to the top until the next section's title pushes it off. */
+.sf-recommend-scroll .sf-recommend-section-title {
+	position: sticky;
+	top: 0;
+	z-index: 2;
+	margin-bottom: 0;
+	padding: 4px 0 6px;
+	background-color: var(--sf-right-rail-bg, var(--background-secondary));
+}
+
 /* Archive rail view — shares list row styles with the old archive modals */
+.workspace-leaf-content[data-type="storyforge-archive-view"] .view-content.sf-archive-view,
 .sf-archive-view {
 	padding: 8px 10px 16px;
-	overflow: auto;
+	overflow-x: hidden;
+	overflow-y: auto;
 	height: 100%;
 	box-sizing: border-box;
 }
@@ -1702,10 +1853,29 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 	gap: 8px;
 	flex-wrap: wrap;
 	margin-bottom: 10px;
+	color: var(--sf-archive-header-color, var(--text-normal));
+	font-size: var(--sf-archive-header-size, 1em);
+	font-variant: var(--sf-archive-header-variant, normal);
+	font-weight: var(--sf-archive-header-weight, 600);
+	font-family: var(--sf-archive-header-family, inherit);
+	font-variation-settings: var(--sf-archive-header-variation, normal);
 }
 
 .sf-archive-view-title {
-	font-weight: var(--font-medium);
+	font-weight: inherit;
+	color: inherit;
+	font-variant: inherit;
+	font-family: inherit;
+	font-variation-settings: inherit;
+}
+
+.sf-archive-view-header > .sf-icon {
+	color: inherit;
+	font-size: 1em;
+}
+.sf-archive-view-header > .sf-icon svg {
+	width: 1em;
+	height: 1em;
 }
 
 .sf-archive-view-tabs {
@@ -1714,21 +1884,70 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 	margin-left: auto;
 }
 
+.sf-archive-embedded {
+	padding: 0;
+	height: auto;
+	overflow: visible;
+}
+
+.sf-archive-embedded-header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin: 4px 0 10px;
+	color: var(--sf-archive-header-color, var(--text-normal));
+	font-size: var(--sf-archive-header-size, 1em);
+	font-variant: var(--sf-archive-header-variant, normal);
+	font-weight: var(--sf-archive-header-weight, 600);
+	font-family: var(--sf-archive-header-family, inherit);
+	font-variation-settings: var(--sf-archive-header-variation, normal);
+}
+
+.sf-archive-embedded-header > .sf-icon {
+	color: inherit;
+	font-size: 1em;
+}
+.sf-archive-embedded-header > .sf-icon svg {
+	width: 1em;
+	height: 1em;
+}
+
+.sf-archive-embedded-tabs {
+	margin-left: 0;
+	margin-bottom: 10px;
+}
+
 .sf-archive-view-tab {
 	cursor: pointer;
-	color: var(--text-muted);
+	color: var(--sf-archive-items-color, var(--text-muted));
 	font-size: var(--font-ui-small);
 	padding: 2px 6px;
 	border-radius: 4px;
 }
 
 .sf-archive-view-tab.is-active {
-	color: var(--text-normal);
+	color: var(--sf-archive-header-color, var(--text-normal));
 	background: var(--background-modifier-hover);
+}
+
+.sf-archive-list .sf-row {
+	color: var(--sf-archive-items-color, var(--text-normal));
+	font-size: var(--sf-archive-items-size, 1em);
+	font-weight: var(--sf-archive-items-weight, 400);
+	font-family: var(--sf-archive-items-family, inherit);
+	font-variation-settings: var(--sf-archive-items-variation, normal);
+}
+
+.sf-archive-list .sf-row.sf-row-selected,
+.sf-archive-list .sf-row.is-selected {
+	background-color: var(--sf-archive-highlight-bg, var(--background-modifier-hover));
+	color: var(--sf-archive-highlight-text, var(--text-normal));
 }
 
 .sf-spacer-view {
 	position: relative;
+	display: flex;
+	flex-direction: column;
 	height: 100%;
 	box-sizing: border-box;
 	/* Match the editor surface so the empty spacer reads as continuous space. */
@@ -1737,11 +1956,12 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 }
 
 /* Sibling icon dock — bottom of Spacer, right-aligned (screen edge). Host provides
-   placement only; siblings own their icon markup (no button chrome here). */
+   placement only; siblings own their icon markup (no button chrome here).
+   Flex + margin-top:auto (not absolute) so the dock stays visible even when the
+   view has no in-flow children. */
 .sf-spacer-view__dock {
-	position: absolute;
-	right: 0;
-	bottom: 0;
+	margin-top: auto;
+	align-self: flex-end;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -1756,9 +1976,74 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	/* Ribbon-sized placement target; siblings size their own icon. */
-	width: var(--ribbon-width, 44px);
-	min-height: var(--ribbon-width, 44px);
+	/* Literal 44px — do NOT use --ribbon-width; tools-panel mode sets it to 0. */
+	width: 44px;
+	min-height: 44px;
+}
+
+/* ── Forge view (companion hub) ── */
+
+.sf-forge-view {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	box-sizing: border-box;
+	padding: 0;
+	min-height: 0;
+}
+
+.sf-forge-view__companions {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px;
+	padding: 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	flex-shrink: 0;
+}
+
+.sf-forge-view__companion {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	/* Invisible padding border — expands hit target without button chrome */
+	border: 4px solid transparent;
+	box-sizing: border-box;
+	padding: 0;
+	color: var(--sf-forge-companion-color, var(--text-muted));
+	opacity: 0.72;
+	cursor: pointer;
+	background: transparent;
+	border-radius: 0;
+}
+
+.sf-forge-view__companion:hover,
+.sf-forge-view__companion:focus-visible {
+	color: var(--sf-forge-companion-color, var(--text-normal));
+	opacity: 1;
+	background: transparent;
+	outline: none;
+	filter: brightness(1.2);
+}
+
+.sf-forge-view__companion.is-active {
+	color: var(--sf-forge-companion-color, var(--text-normal));
+	opacity: 1;
+	background: transparent;
+}
+
+.sf-forge-view__companion svg {
+	width: 30px;
+	height: 30px;
+}
+
+.sf-forge-view__panel {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+	padding: 8px;
+	box-sizing: border-box;
 }
 
 /* Drop the editor ↔ right-sidebar divider while Spacer is the visible right tab. */
@@ -1819,49 +2104,131 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	margin-bottom: 10px;
-	flex-wrap: wrap;
+	margin-bottom: 8px;
+	color: var(--sf-recommend-header-color, var(--text-normal));
+	font-size: var(--sf-recommend-header-size, 1em);
+	font-variant: var(--sf-recommend-header-variant, normal);
+	font-weight: var(--sf-recommend-header-weight, 600);
+	font-family: var(--sf-recommend-header-family, inherit);
+	font-variation-settings: var(--sf-recommend-header-variation, normal);
+}
+
+.sf-recommend-header-main {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+	flex: 1;
+}
+
+.sf-recommend-header-main > .sf-icon {
+	color: inherit;
+	font-size: 1em;
+}
+.sf-recommend-header-main > .sf-icon svg {
+	width: 1em;
+	height: 1em;
+}
+
+.sf-recommend-header-actions {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-left: auto;
+	flex-shrink: 0;
 }
 
 .sf-recommend-title {
-	font-weight: 600;
-	color: var(--text-normal);
+	font-weight: inherit;
+	color: inherit;
+	font-variant: inherit;
+	font-family: inherit;
+	font-variation-settings: inherit;
 }
 
 .sf-recommend-tabs {
 	display: flex;
 	gap: 6px;
-	margin-left: auto;
+	margin-bottom: 10px;
 }
 
 .sf-recommend-tab {
-	font-size: 0.85em;
-	color: var(--text-muted);
+	font-size: var(--sf-recommend-tabs-size, 0.85em);
+	color: var(--sf-recommend-tabs-color, var(--text-muted));
 	cursor: pointer;
 	padding: 2px 6px;
 	border-radius: 4px;
+	font-family: var(--sf-recommend-tabs-family, inherit);
+	font-variation-settings: var(--sf-recommend-tabs-variation, normal);
+	font-weight: var(--sf-recommend-tabs-weight, 400);
 }
 
 .sf-recommend-tab.is-active {
-	color: var(--text-normal);
+	color: var(--sf-recommend-tabs-active-color, var(--text-accent));
 	background: var(--background-modifier-hover);
 }
 
-.sf-recommend-refresh {
+.sf-recommend-refresh,
+.sf-recommend-archive-btn {
 	display: flex;
 	align-items: center;
 	color: var(--text-muted);
 	cursor: pointer;
+	flex-shrink: 0;
 }
 
-.sf-recommend-refresh:hover {
-	color: var(--text-normal);
+.sf-recommend-refresh:hover,
+.sf-recommend-archive-btn:hover,
+.sf-recommend-archive-btn.is-active {
+	color: var(--sf-recommend-header-color, var(--text-normal));
+}
+
+.sf-recommend-chapter-title-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+.sf-recommend-chapter-title-row .sf-recommend-chapter-title {
+	margin-bottom: 0;
+	min-width: 0;
+	flex: 1;
+}
+
+.sf-recommend-chapter-title-row .sf-recommend-refresh {
+	margin-left: auto;
+}
+
+.sf-recommend-narrating {
+	margin-bottom: 8px;
+}
+
+.sf-recommend-narrating-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	cursor: pointer;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+}
+
+.sf-recommend-narrating-btn:hover {
+	color: var(--text-accent);
+}
+
+.sf-recommend-narrating-label {
+	color: inherit;
 }
 
 .sf-recommend-chapter-title {
-	font-weight: 600;
 	margin-bottom: 8px;
-	color: var(--text-normal);
+	color: var(--sf-recommend-chapter-color, var(--text-accent));
+	font-size: var(--sf-recommend-chapter-size, 1em);
+	font-variant: var(--sf-recommend-chapter-variant, normal);
+	font-family: var(--sf-recommend-chapter-family, inherit);
+	font-variation-settings: var(--sf-recommend-chapter-variation, normal);
+	font-weight: var(--sf-recommend-chapter-weight, 600);
 }
 
 .sf-recommend-section {
@@ -1869,11 +2236,14 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 }
 
 .sf-recommend-section-title {
-	font-size: 0.85em;
-	font-weight: 600;
-	color: var(--text-muted);
+	font-size: var(--sf-recommend-section-size, 0.85em);
+	font-weight: var(--sf-recommend-section-weight, 600);
+	color: var(--sf-recommend-section-color, var(--text-muted));
+	font-variant: var(--sf-recommend-section-variant, normal);
 	text-transform: lowercase;
 	margin-bottom: 6px;
+	font-family: var(--sf-recommend-section-family, inherit);
+	font-variation-settings: var(--sf-recommend-section-variation, normal);
 }
 
 .sf-recommend-synopsis {
@@ -1882,9 +2252,21 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 	resize: vertical;
 	box-sizing: border-box;
 	margin-bottom: 6px;
+	font-size: var(--sf-recommend-synopsis-size, 1em);
+	color: var(--sf-recommend-synopsis-color, var(--text-normal));
+	font-family: var(--sf-recommend-synopsis-family, inherit);
+	font-variation-settings: var(--sf-recommend-synopsis-variation, normal);
+	font-weight: var(--sf-recommend-synopsis-weight, 400);
 }
 
-.sf-recommend-send-btn,
+.sf-recommend-synopsis-actions {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 2px;
+	margin-bottom: 8px;
+}
+
 .sf-recommend-hit-actions button {
 	font-size: 0.85em;
 }
@@ -1895,6 +2277,11 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 	gap: 6px;
 	padding: 3px 0;
 	flex-wrap: wrap;
+	color: var(--sf-recommend-items-color, var(--text-normal));
+	font-size: var(--sf-recommend-items-size, 1em);
+	font-weight: var(--sf-recommend-items-weight, 400);
+	font-family: var(--sf-recommend-items-family, inherit);
+	font-variation-settings: var(--sf-recommend-items-variation, normal);
 }
 
 .sf-recommend-row-actions {
@@ -1927,7 +2314,7 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 
 .sf-recommend-row-label {
 	cursor: pointer;
-	color: var(--text-normal);
+	color: inherit;
 }
 
 .sf-recommend-row-label:hover {
@@ -1948,14 +2335,22 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 }
 
 .sf-recommend-entity-name {
-	font-weight: 600;
-	font-size: 0.95em;
-	color: var(--text-normal);
+	font-weight: var(--sf-recommend-section-weight, 600);
+	font-size: var(--sf-recommend-section-size, 0.95em);
+	color: var(--sf-recommend-section-color, var(--text-muted));
+	font-variant: var(--sf-recommend-section-variant, normal);
+	font-family: var(--sf-recommend-section-family, inherit);
+	font-variation-settings: var(--sf-recommend-section-variation, normal);
 }
 
 .sf-recommend-hit {
 	padding: 8px 0;
 	border-bottom: 1px solid var(--background-modifier-border);
+	font-size: var(--sf-recommend-details-size, 0.9em);
+	color: var(--sf-recommend-details-color, var(--text-normal));
+	font-family: var(--sf-recommend-details-family, inherit);
+	font-variation-settings: var(--sf-recommend-details-variation, normal);
+	font-weight: var(--sf-recommend-details-weight, 400);
 }
 
 .sf-recommend-hit.is-resolved {
@@ -1968,8 +2363,8 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 	gap: 6px;
 	align-items: center;
 	margin-bottom: 4px;
-	font-size: 0.75em;
-	color: var(--text-muted);
+	font-size: 0.85em;
+	color: var(--sf-recommend-details-color, var(--text-muted));
 	text-transform: lowercase;
 }
 
@@ -1990,8 +2385,7 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 }
 
 .sf-recommend-hit-span {
-	font-size: 0.9em;
-	color: var(--text-normal);
+	color: var(--sf-recommend-details-color, var(--text-normal));
 	cursor: pointer;
 	line-height: 1.35;
 }
@@ -2003,6 +2397,7 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 .sf-recommend-hit-span:focus-visible,
 .sf-recommend-tab:focus-visible,
 .sf-recommend-refresh:focus-visible,
+.sf-recommend-archive-btn:focus-visible,
 .sf-recommend-row-label:focus-visible,
 .sf-recommend-icon-btn:focus-visible,
 .sf-recommend-entity-header:focus-visible {
@@ -2011,19 +2406,20 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 }
 
 .sf-recommend-codex-fact {
-	font-size: 0.8em;
-	color: var(--text-muted);
+	font-size: 0.9em;
+	color: var(--sf-recommend-details-color, var(--text-muted));
 	margin-top: 4px;
-}
-
-.sf-recommend-codex-fact.is-missing {
-	font-style: italic;
 }
 
 .sf-recommend-competing {
-	font-size: 0.8em;
-	color: var(--text-faint);
+	font-size: 0.9em;
+	color: var(--sf-recommend-details-color, var(--text-faint));
 	margin-top: 4px;
+}
+
+.sf-recommend-lens,
+.sf-recommend-trait {
+	color: inherit;
 }
 
 .sf-recommend-hit-actions {
@@ -2034,33 +2430,85 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 	margin-top: 6px;
 }
 
-.sf-recommend-dossier-search {
-	width: 100%;
-	box-sizing: border-box;
-	margin-bottom: 6px;
+.sf-recommend-dossier-combo {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin-bottom: 10px;
 }
 
-.sf-recommend-dossier-suggest {
-	margin-bottom: 8px;
+.sf-recommend-dossier-search {
+	flex: 1;
+	min-width: 0;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 2px 0;
+	border: none;
+	border-radius: 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+	background: transparent;
+	box-shadow: none;
+	font-size: var(--sf-recommend-dossier-size, 1.15em);
+	font-weight: var(--sf-recommend-dossier-weight, 600);
+	color: var(--sf-recommend-dossier-color, var(--text-accent));
+	font-variant: var(--sf-recommend-dossier-variant, normal);
+	font-family: var(--sf-recommend-dossier-family, inherit);
+	font-variation-settings: var(--sf-recommend-dossier-variation, normal);
+	line-height: 1.3;
+}
+
+.sf-recommend-dossier-search:focus,
+.sf-recommend-dossier-search:focus-visible {
+	box-shadow: none;
+	outline: none;
+	border-bottom-color: var(--text-accent);
+}
+
+.sf-recommend-dossier-search::placeholder {
+	color: var(--text-muted);
+	opacity: 0.85;
+	font-weight: 500;
+}
+
+.sf-recommend-dossier-drop {
+	flex-shrink: 0;
+}
+
+.sf-recommend-dossier-suggest-item {
+	display: flex;
+	align-items: center;
+	gap: 6px;
 }
 
 /*
- * Unify right-rail background with the left sidebar.
+ * Unify shell chrome: left sidebar, right sidebar, and top tab strips share one
+ * background so the centre editor reads as the distinct writing surface.
  *
  * Why earlier attempts failed (Minimal / Obsidian 1.13):
  * - Left sidedock uses --background-secondary (--bg2 in Minimal).
- * - Right sidedock tracks --background-primary (--bg1), same as the editor.
+ * - Right sidedock / frameless top tabs track --background-primary / titlebar
+ *   (--bg1), same as the editor.
  * - Remapping variables alone is overridden by theme/core background-color rules.
- * Paint leaf / tab chrome via higher-specificity selectors, using --sf-right-rail-bg
- * (set by StyleController.applyRightRailChrome from the left leaf’s computed colour,
- * falling back to --background-secondary). Incl. .mod-top-right-space under frameless windows.
+ * Paint via higher-specificity selectors using --sf-right-rail-bg (set by
+ * StyleController.applyRightRailChrome from the left leaf’s computed colour,
+ * falling back to --background-secondary).
  * Refs: forum.obsidian.md/t/50709, forum.obsidian.md/t/113534, forum.obsidian.md/t/102005
+ *
+ * macOS frameless: .sidebar-toggle-button.mod-right is position:fixed and paints
+ * with --tab-container-background ← --titlebar-background ← --background-primary.
+ * Pin toggles + all .mod-top tab strips to the same shell colour.
  */
 .mod-right-split:not(#storyforge-specificity-boost) {
 	--background-primary: var(--background-secondary);
 	--background-primary-alt: var(--background-secondary-alt, var(--background-secondary));
 	--tab-container-background: var(--sf-right-rail-bg, var(--background-secondary));
 	background-color: var(--sf-right-rail-bg, var(--background-secondary));
+}
+
+.workspace-tabs.mod-top:not(#storyforge-specificity-boost) {
+	--tab-container-background: var(--sf-right-rail-bg, var(--background-secondary));
+	--titlebar-background: var(--sf-right-rail-bg, var(--background-secondary));
+	--titlebar-background-focused: var(--sf-right-rail-bg, var(--background-secondary));
 }
 
 .mod-right-split .view-content:not(#storyforge-specificity-boost),
@@ -2070,8 +2518,11 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 .mod-right-split .workspace-tab-header-container:not(#storyforge-specificity-boost),
 .mod-right-split .workspace-tab-header-container-inner:not(#storyforge-specificity-boost),
 .mod-right-split .workspace-tabs.mod-top:not(#storyforge-specificity-boost),
-.mod-right-split .workspace-tabs.mod-top-right-space .workspace-tab-header-container:not(#storyforge-specificity-boost),
 .mod-right-split .view-header:not(#storyforge-specificity-boost),
+.mod-left-split .workspace-tab-header-container:not(#storyforge-specificity-boost),
+.mod-root .workspace-tab-header-container:not(#storyforge-specificity-boost),
+.workspace-tabs.mod-top .workspace-tab-header-container:not(#storyforge-specificity-boost),
+.workspace-tabs.mod-top-left-space .workspace-tab-header-container:not(#storyforge-specificity-boost),
 .workspace-tabs.mod-top-right-space .workspace-tab-header-container:not(#storyforge-specificity-boost) {
 	--tab-container-background: var(--sf-right-rail-bg, var(--background-secondary));
 	background-color: var(--sf-right-rail-bg, var(--background-secondary));
@@ -2079,5 +2530,11 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 
 .mod-right-split .workspace-tab-header:not(#storyforge-specificity-boost) {
 	background-color: transparent;
+}
+
+.sidebar-toggle-button.mod-left:not(#storyforge-specificity-boost),
+.sidebar-toggle-button.mod-right:not(#storyforge-specificity-boost) {
+	--tab-container-background: var(--sf-right-rail-bg, var(--background-secondary));
+	background-color: var(--sf-right-rail-bg, var(--background-secondary));
 }
 
