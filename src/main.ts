@@ -224,7 +224,7 @@ const REMOVED_FONT_IDS = new Set(["caroni", "roboto-flex"]);
 
 function migrateRemovedFonts(settings: StoryForgePluginSettings): void {
 	for (const key of FONT_FAMILY_SETTING_KEYS) {
-		if (REMOVED_FONT_IDS.has(settings[key] as string)) settings[key] = "ibm-plex-sans-var";
+		if (REMOVED_FONT_IDS.has(settings[key])) settings[key] = "ibm-plex-sans-var";
 	}
 }
 

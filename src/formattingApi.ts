@@ -165,7 +165,8 @@ export interface StoryForgeFormattingApi {
 	 * `slot` is a stable id; `render` mounts into the provided container; return a disposer.
 	 */
 	registerViewContribution(opt: {
-		slot: "storyforge-panel" | string;
+		/** Stable slot id (e.g. `"storyforge-panel"`). */
+		slot: string;
 		orderHint?: number;
 		render: (containerEl: HTMLElement) => () => void;
 	}): () => void;

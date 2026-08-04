@@ -2026,15 +2026,17 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
  * - Right sidedock tracks --background-primary (--bg1), same as the editor.
  * - Remapping variables alone is overridden by theme/core background-color rules.
  * Forum-proven fix: paint .view-content / .workspace-leaf-content / tab headers
- * with !important, and force --tab-container-background on the right tab strip
- * (incl. .mod-top-right-space under frameless windows).
+ * via higher-specificity selectors (:not(#storyforge-specificity-boost)), and
+ * force --tab-container-background on the right tab strip (incl. .mod-top-right-space
+ * under frameless windows). Runtime injection in StyleController.applyRightRailChrome
+ * still wins against themes that load after plugin CSS.
  * Refs: forum.obsidian.md/t/50709, forum.obsidian.md/t/113534, forum.obsidian.md/t/102005
  */
 .mod-right-split:not(#storyforge-specificity-boost) {
 	--background-primary: var(--background-secondary);
 	--background-primary-alt: var(--background-secondary-alt, var(--background-secondary));
 	--tab-container-background: var(--background-secondary);
-	background-color: var(--background-secondary) !important;
+	background-color: var(--background-secondary);
 }
 
 .mod-right-split .view-content:not(#storyforge-specificity-boost),
@@ -2048,10 +2050,10 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 .mod-right-split .view-header:not(#storyforge-specificity-boost),
 .workspace-tabs.mod-top-right-space .workspace-tab-header-container:not(#storyforge-specificity-boost) {
 	--tab-container-background: var(--background-secondary);
-	background-color: var(--background-secondary) !important;
+	background-color: var(--background-secondary);
 }
 
 .mod-right-split .workspace-tab-header:not(#storyforge-specificity-boost) {
-	background-color: transparent !important;
+	background-color: transparent;
 }
 

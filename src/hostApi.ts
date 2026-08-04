@@ -31,7 +31,7 @@ import {
 	type SfLinkedFormattingKey,
 	type StoryForgeFormattingApi,
 } from "./formattingApi";
-import type { PaletteColor, PaletteName } from "./colorPalettes";
+import type { PaletteColor } from "./colorPalettes";
 import { PALETTE_NAMES } from "./colorPalettes";
 
 /** Bumped to 2 when `formatting` was added for formatForge. */
@@ -358,13 +358,13 @@ const LINKED_FORMATTING_KEYS = [
 type _LinkedKeysAreSettings = (typeof LINKED_FORMATTING_KEYS)[number] extends keyof StoryForgePluginSettings
 	? true
 	: never;
-const _a1: _LinkedKeysAreSettings = true;
+true satisfies _LinkedKeysAreSettings;
 type _LinkedKeysMatchUnion = SfLinkedFormattingKey extends (typeof LINKED_FORMATTING_KEYS)[number]
 	? (typeof LINKED_FORMATTING_KEYS)[number] extends SfLinkedFormattingKey
 		? true
 		: never
 	: never;
-const _a2: _LinkedKeysMatchUnion = true;
+true satisfies _LinkedKeysMatchUnion;
 
 export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 	const writeExceptions: CodexWriteException[] = [];
@@ -404,7 +404,7 @@ export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 			if (!LINKED_SETTING_VALIDATORS[key](value)) {
 				throw new Error(`updateLinkedSetting: invalid value for ${key}`);
 			}
-			await plugin.updateSetting(key as keyof ReturnType<StoryForgePlugin["getSettings"]>, value as never);
+			await plugin.updateSetting(key, value as never);
 			plugin.applyLinkedFormattingStyles();
 		},
 
@@ -431,13 +431,13 @@ export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 
 		async updatePalette(partial) {
 			if (partial.name !== undefined) {
-				await plugin.updateSetting("colorPaletteName", partial.name as PaletteName);
+				await plugin.updateSetting("colorPaletteName", partial.name);
 			}
 			if (partial.variant !== undefined) {
 				await plugin.updateSetting("colorPaletteVariant", partial.variant);
 			}
 			if (partial.customColors !== undefined) {
-				await plugin.updateSetting("customPaletteColors", partial.customColors as PaletteColor[]);
+				await plugin.updateSetting("customPaletteColors", partial.customColors);
 			}
 		},
 

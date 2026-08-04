@@ -231,8 +231,8 @@ export class StyleController {
 	applyRightRailChrome(): void {
 		for (const doc of this.host.getStyleDocuments()) {
 			const left =
-				(doc.querySelector(".mod-left-split .workspace-leaf-content") as HTMLElement | null) ??
-				(doc.querySelector(".mod-left-split") as HTMLElement | null);
+				doc.querySelector<HTMLElement>(".mod-left-split .workspace-leaf-content") ??
+				doc.querySelector<HTMLElement>(".mod-left-split");
 			let bg = "var(--background-secondary)";
 			const win = doc.defaultView;
 			if (left && win) {
@@ -244,7 +244,7 @@ export class StyleController {
 
 			let styleEl = doc.getElementById(RIGHT_RAIL_CHROME_STYLE_ID) as HTMLStyleElement | null;
 			if (!styleEl) {
-				styleEl = doc.createElement("style");
+				styleEl = doc.head.createEl("style");
 				styleEl.id = RIGHT_RAIL_CHROME_STYLE_ID;
 			}
 			styleEl.textContent = `
