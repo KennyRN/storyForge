@@ -2025,18 +2025,16 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
  * - Left sidedock uses --background-secondary (--bg2 in Minimal).
  * - Right sidedock tracks --background-primary (--bg1), same as the editor.
  * - Remapping variables alone is overridden by theme/core background-color rules.
- * Forum-proven fix: paint .view-content / .workspace-leaf-content / tab headers
- * via higher-specificity selectors (:not(#storyforge-specificity-boost)), and
- * force --tab-container-background on the right tab strip (incl. .mod-top-right-space
- * under frameless windows). Runtime injection in StyleController.applyRightRailChrome
- * still wins against themes that load after plugin CSS.
+ * Paint leaf / tab chrome via higher-specificity selectors, using --sf-right-rail-bg
+ * (set by StyleController.applyRightRailChrome from the left leaf’s computed colour,
+ * falling back to --background-secondary). Incl. .mod-top-right-space under frameless windows.
  * Refs: forum.obsidian.md/t/50709, forum.obsidian.md/t/113534, forum.obsidian.md/t/102005
  */
 .mod-right-split:not(#storyforge-specificity-boost) {
 	--background-primary: var(--background-secondary);
 	--background-primary-alt: var(--background-secondary-alt, var(--background-secondary));
-	--tab-container-background: var(--background-secondary);
-	background-color: var(--background-secondary);
+	--tab-container-background: var(--sf-right-rail-bg, var(--background-secondary));
+	background-color: var(--sf-right-rail-bg, var(--background-secondary));
 }
 
 .mod-right-split .view-content:not(#storyforge-specificity-boost),
@@ -2049,8 +2047,8 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 .mod-right-split .workspace-tabs.mod-top-right-space .workspace-tab-header-container:not(#storyforge-specificity-boost),
 .mod-right-split .view-header:not(#storyforge-specificity-boost),
 .workspace-tabs.mod-top-right-space .workspace-tab-header-container:not(#storyforge-specificity-boost) {
-	--tab-container-background: var(--background-secondary);
-	background-color: var(--background-secondary);
+	--tab-container-background: var(--sf-right-rail-bg, var(--background-secondary));
+	background-color: var(--sf-right-rail-bg, var(--background-secondary));
 }
 
 .mod-right-split .workspace-tab-header:not(#storyforge-specificity-boost) {
