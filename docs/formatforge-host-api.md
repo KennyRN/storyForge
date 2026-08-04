@@ -40,6 +40,6 @@ const unregister = api.formatting.registerCompanion({
 - `applyLinkedStyles()` — rebuild SF chrome + size vars
 - `setStyleVars(vars)` — write `--sf-*` on main + pop-out docs (editor typography)
 - `getPalette()` / `updatePalette(...)` — shared colour palette (stored in SF)
-- `registerViewContribution({ slot: "storyforge-panel", render })` — inject UI into SF panel
+- `registerViewContribution({ slot, render })` — inject UI into a view slot (also on top-level `api.registerViewContribution`). Slots: `"spacer"` (blank right-rail tab), `"storyforge-panel"` (left panel; reserved)
 
 See also `src/formattingApi.ts` and formatForge’s `docs/storyforge-formatting-api.md`.

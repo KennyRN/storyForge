@@ -427,7 +427,7 @@ export default class StoryForgePlugin extends Plugin {
 		this.registerView(TOOLS_VIEW_TYPE, (leaf) => new ToolsView(leaf));
 		this.registerView(RECOMMEND_VIEW_TYPE, (leaf) => new RecommendationView(leaf, this));
 		this.registerView(ARCHIVE_VIEW_TYPE, (leaf) => new ArchiveView(leaf, this));
-		this.registerView(SPACER_VIEW_TYPE, (leaf) => new SpacerView(leaf));
+		this.registerView(SPACER_VIEW_TYPE, (leaf) => new SpacerView(leaf, this));
 
 		this.addCommand({
 			id: "open-recommendations",
@@ -732,13 +732,23 @@ export default class StoryForgePlugin extends Plugin {
 	registerViewContribution(opt: StoryForgeViewContribution): () => void {
 		this.viewContributions.push(opt);
 		this.viewContributions.sort((a, b) => a.orderHint - b.orderHint);
+		this.refreshSpacerContributions();
 		return () => {
 			this.viewContributions = this.viewContributions.filter((c) => c !== opt);
+			this.refreshSpacerContributions();
 		};
 	}
 
 	getViewContributions(slot: string): StoryForgeViewContribution[] {
 		return this.viewContributions.filter((c) => c.slot === slot);
+	}
+
+	/** Re-mount spacer-slot contributions on any open Spacer leaves. */
+	private refreshSpacerContributions(): void {
+		for (const leaf of this.app.workspace.getLeavesOfType(SPACER_VIEW_TYPE)) {
+			const view = leaf.view;
+			if (view instanceof SpacerView) view.renderContributions();
+		}
 	}
 
 	/** Main document plus open pop-out windows. */
