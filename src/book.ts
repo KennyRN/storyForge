@@ -18,6 +18,10 @@ import {
 import { nextBookFolderCode } from "./bookCode";
 import { nextChapterCode } from "./chapterCode";
 import { applyHashNumbering } from "./titleNumbering";
+import {
+	normalizeDialogueQuoteStyle,
+	type DialogueQuoteStyle,
+} from "./recommend/quoteSpans";
 
 export interface CompileSettings {
 	format?: string;
@@ -47,6 +51,8 @@ export interface BookFrontmatter {
 	bookTitleReference: string;
 	seriesOrderReference: number | null;
 	coverImage: string | null;
+	/** Declared dialogue quote style for narrator span scoping. */
+	dialogueQuotes: DialogueQuoteStyle;
 	chapters: Record<string, ChapterEntry>;
 }
 
@@ -73,6 +79,7 @@ export interface RawBookFrontmatter extends FrontMatterCache {
 	"book-id-reference"?: unknown;
 	"book-title-reference"?: unknown;
 	"series-order-reference"?: unknown;
+	"dialogue-quotes"?: unknown;
 	/** Legacy pre-migration keys, deleted by migrateLegacyBookEntry. */
 	id?: unknown;
 	title?: unknown;
@@ -160,6 +167,7 @@ export function readBookFrontmatter(app: App, bookFolderName: string): BookFront
 			unplaced,
 			archive,
 			compile: fm?.compile && typeof fm.compile === "object" ? (fm.compile as CompileSettings) : null,
+			dialogueQuotes: normalizeDialogueQuoteStyle(fm?.["dialogue-quotes"]),
 			chapters: parseChaptersMap(fm?.chapters),
 		};
 }
@@ -369,6 +377,17 @@ export async function renameChapterTitle(
 				: nextChapterCode(bookId, collectAllChapterIds(app, bookFolderName));
 		chapters[filename] = { ...existing, "chapter-id": chapterId, "chapter-title": newTitle };
 		fm.chapters = chapters;
+	});
+}
+
+/** Declared dialogue quote style for narrator span scoping (`double` default). */
+export async function writeDialogueQuotes(
+	app: App,
+	bookFolderName: string,
+	style: DialogueQuoteStyle,
+): Promise<void> {
+	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
+		fm["dialogue-quotes"] = style;
 	});
 }
 
