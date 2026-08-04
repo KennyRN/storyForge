@@ -12,12 +12,13 @@ import {
 	writeChapterLocation,
 	writeChapterPlot,
 	writeChapterPov,
+	writeDefaultPov,
 } from "../book";
 import { getCodexEntriesByType } from "../codex";
 import { bookBackstagePath } from "../paths";
 import { bookDisplayTitle, getBookId, numberedBookTitle } from "../series";
 import { splitTitleSubtitle } from "../titleNumbering";
-import { ICON_MAP_PIN, ICON_MAP_PIN_PLUS, ICON_PERSON_FILL_ADD, ICON_TIMELINE } from "../icons";
+import { ICON_MAP_PIN, ICON_MAP_PIN_PLUS, ICON_PERSON_FILL, ICON_PERSON_FILL_ADD, ICON_TIMELINE } from "../icons";
 import { attachInlineRename } from "./inlineRename";
 import { CodexEntryPickerModal } from "./CodexEntryPickerModal";
 
@@ -48,6 +49,9 @@ export class BookSynopsisModal extends Modal {
 		textarea.addEventListener("blur", () => void this.commit(textarea.value));
 		textarea.addEventListener("pointerdown", (e) => e.stopPropagation());
 
+		const defaultPovRow = contentEl.createDiv({ cls: "sf-synopsis-default-pov" });
+		this.renderDefaultPov(defaultPovRow);
+
 		const plotLine = contentEl.createDiv({ cls: "sf-book-line sf-synopsis-plot-title" });
 		setIcon(plotLine.createSpan({ cls: "sf-icon" }), ICON_TIMELINE);
 		const plotTitleRow = plotLine.createDiv({ cls: "sf-header-line sf-book-title-row" });
@@ -56,6 +60,55 @@ export class BookSynopsisModal extends Modal {
 
 		const plotPane = contentEl.createDiv({ cls: "sf-synopsis-plot-pane" });
 		await this.renderPlotPane(plotPane);
+	}
+
+	private renderDefaultPov(row: HTMLElement): void {
+		row.empty();
+		const fm = readBookFrontmatter(this.app, this.bookFolderName);
+		const path = fm?.defaultPovPath ?? null;
+		const name = fm?.defaultPovName ?? null;
+		row.createSpan({ cls: "sf-synopsis-default-pov-label", text: "Default PoV" });
+		if (path) {
+			const badge = row.createSpan({ cls: "sf-plot-chapter-badge-value" });
+			setIcon(badge.createSpan({ cls: "sf-icon" }), ICON_PERSON_FILL);
+			badge.createSpan({ text: name ?? path });
+			badge.addEventListener("click", (e) => {
+				e.stopPropagation();
+				void this.openDefaultPovPicker(row, true);
+			});
+		} else {
+			const addBtn = row.createSpan({
+				cls: "sf-book-filter-btn sf-plot-chapter-pov-btn",
+				attr: { "aria-label": "Set default PoV" },
+			});
+			setIcon(addBtn, ICON_PERSON_FILL_ADD);
+			addBtn.addEventListener("click", (e) => {
+				e.stopPropagation();
+				void this.openDefaultPovPicker(row, false);
+			});
+		}
+	}
+
+	private async openDefaultPovPicker(row: HTMLElement, hasValue: boolean): Promise<void> {
+		const bookId = getBookId(this.app, this.bookFolderName);
+		const entries = getCodexEntriesByType(this.app, "person", bookId);
+		new CodexEntryPickerModal(
+			this.app,
+			"Set default PoV",
+			"No person entries in the Codex yet.",
+			entries,
+			hasValue,
+			async (entry) => {
+				await writeDefaultPov(this.app, this.bookFolderName, entry.path, entry.name);
+				this.renderDefaultPov(row);
+				this.onChange();
+			},
+			async () => {
+				await writeDefaultPov(this.app, this.bookFolderName, null, null);
+				this.renderDefaultPov(row);
+				this.onChange();
+			},
+		).open();
 	}
 
 	private renderTitleBlock(bookLine: HTMLElement): void {

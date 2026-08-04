@@ -493,6 +493,19 @@
 	margin-top: 16px;
 }
 
+.sf-synopsis-default-pov {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-top: 12px;
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+}
+
+.sf-synopsis-default-pov-label {
+	flex-shrink: 0;
+}
+
 .sf-synopsis-body {
 	display: flex;
 	flex-direction: row;

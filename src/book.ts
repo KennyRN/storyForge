@@ -53,6 +53,9 @@ export interface BookFrontmatter {
 	coverImage: string | null;
 	/** Declared dialogue quote style for narrator span scoping. */
 	dialogueQuotes: DialogueQuoteStyle;
+	/** Book-level default PoV when a chapter has none set. */
+	defaultPovPath: string | null;
+	defaultPovName: string | null;
 	chapters: Record<string, ChapterEntry>;
 }
 
@@ -80,6 +83,8 @@ export interface RawBookFrontmatter extends FrontMatterCache {
 	"book-title-reference"?: unknown;
 	"series-order-reference"?: unknown;
 	"dialogue-quotes"?: unknown;
+	"default-pov-path"?: unknown;
+	"default-pov-name"?: unknown;
 	/** Legacy pre-migration keys, deleted by migrateLegacyBookEntry. */
 	id?: unknown;
 	title?: unknown;
@@ -168,6 +173,8 @@ export function readBookFrontmatter(app: App, bookFolderName: string): BookFront
 			archive,
 			compile: fm?.compile && typeof fm.compile === "object" ? (fm.compile as CompileSettings) : null,
 			dialogueQuotes: normalizeDialogueQuoteStyle(fm?.["dialogue-quotes"]),
+			defaultPovPath: typeof fm?.["default-pov-path"] === "string" ? fm["default-pov-path"] : null,
+			defaultPovName: typeof fm?.["default-pov-name"] === "string" ? fm["default-pov-name"] : null,
 			chapters: parseChaptersMap(fm?.chapters),
 		};
 }
@@ -391,6 +398,19 @@ export async function writeDialogueQuotes(
 	});
 }
 
+/** Sets (or clears) the book-level default PoV used when a chapter has none. */
+export async function writeDefaultPov(
+	app: App,
+	bookFolderName: string,
+	povPath: string | null,
+	povName: string | null,
+): Promise<void> {
+	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
+		fm["default-pov-path"] = povPath;
+		fm["default-pov-name"] = povName;
+	});
+}
+
 /** Sets (or, when both are null, clears) a chapter's PoV reference, preserving its existing id/title. */
 export async function writeChapterPov(
 	app: App,
@@ -430,9 +450,14 @@ export async function rekeyChapterPovReferences(app: App, oldPath: string, newPa
 	for (const folder of getLibraryBookFolders(app)) {
 		const fm = readBookFrontmatter(app, folder.name);
 		if (!fm) continue;
-		const hasMatch = Object.values(fm.chapters).some((entry) => entry.povPath === oldPath);
-		if (!hasMatch) continue;
+		const hasChapterMatch = Object.values(fm.chapters).some((entry) => entry.povPath === oldPath);
+		const hasDefaultMatch = fm.defaultPovPath === oldPath;
+		if (!hasChapterMatch && !hasDefaultMatch) continue;
 		await modifyBookFrontmatter(app, folder.name, (bfm) => {
+			if (bfm["default-pov-path"] === oldPath) {
+				bfm["default-pov-path"] = newPath;
+				bfm["default-pov-name"] = newPath ? bfm["default-pov-name"] : null;
+			}
 			const chapters: Record<string, RawChapterEntry> = bfm.chapters && typeof bfm.chapters === "object" ? bfm.chapters : {};
 			for (const [filename, entry] of Object.entries(chapters)) {
 				if (entry["pov-path"] === oldPath) {

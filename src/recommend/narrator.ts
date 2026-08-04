@@ -1,5 +1,5 @@
 import type { App } from "obsidian";
-import { getChapterEntry } from "../book";
+import { getChapterEntry, readBookFrontmatter } from "../book";
 import type { CastMember } from "./types";
 
 export interface ResolvedNarrator {
@@ -8,9 +8,9 @@ export interface ResolvedNarrator {
 }
 
 /**
- * Resolve the chapter narrator for attribution from per-chapter PoV.
+ * Resolve the chapter narrator for attribution.
+ * Order: per-chapter PoV → book-level default PoV → unset.
  * When `cast` is supplied, the path must resolve to a Codex person entry.
- * (Book-level default PoV is layered on in a later step.)
  */
 export function resolveChapterNarrator(
 	app: App,
@@ -19,8 +19,13 @@ export function resolveChapterNarrator(
 	cast?: CastMember[],
 ): ResolvedNarrator | null {
 	const chapter = getChapterEntry(app, bookFolderName, chapterFilename);
-	const path = chapter?.povPath ?? null;
+	const book = readBookFrontmatter(app, bookFolderName);
+
+	const path = chapter?.povPath ?? book?.defaultPovPath ?? null;
 	if (!path) return null;
+
+	const fromChapter = !!chapter?.povPath;
+	const fallbackName = fromChapter ? chapter?.povName : book?.defaultPovName;
 
 	if (cast) {
 		const member = cast.find((c) => c.path === path && c.type === "person");
@@ -28,5 +33,5 @@ export function resolveChapterNarrator(
 		return { path: member.path, name: member.name };
 	}
 
-	return { path, name: chapter?.povName?.trim() || path };
+	return { path, name: fallbackName?.trim() || path };
 }
