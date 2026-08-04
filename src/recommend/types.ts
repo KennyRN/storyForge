@@ -1,3 +1,5 @@
+import type { DialogueQuoteStyle } from "./quoteSpans";
+
 /** Coreference confidence for a located sentence. */
 export type CorefTier = "solid" | "grey" | "ambiguous";
 
@@ -125,4 +127,12 @@ export interface ScanContext {
 	chapterFilename: string;
 	/** Attribution decisions already known (applied during scan). */
 	attributions?: AttributionDecision[];
+	/**
+	 * Resolved chapter narrator (PoV person). When set, first-person forms in
+	 * narration spans bind to this entity at solid tier.
+	 */
+	narrator?: { path: string; name: string } | null;
+	/** Declared book dialogue quote style for span scoping. */
+	dialogueQuotes?: DialogueQuoteStyle;
 }
+

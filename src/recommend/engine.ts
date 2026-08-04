@@ -8,6 +8,7 @@ import { factsFingerprint, normalizeFactKey } from "./facts";
 import { applyLenses, buildLensRegistry, type LensDef, type TokenInfo } from "./lenses";
 import { defaultLexicons } from "./lexicons";
 import { ensureNlp, getIts, type WinkNlp } from "./nlp";
+import { hasFirstPersonInNarration, type DialogueQuoteStyle } from "./quoteSpans";
 import type {
 	AttributionDecision,
 	CastMember,
@@ -24,6 +25,7 @@ export const COREF_WINDOW = 3;
 const MAX_SYNOPSIS_WORDS = 120;
 const MAX_SYNOPSIS_SENTENCES = 3;
 
+/** Third-person forms only — drives COREF_WINDOW grey/ambiguous look-back. */
 const PRONOUNS = new Set([
 	"he",
 	"she",
@@ -40,6 +42,12 @@ const PRONOUNS = new Set([
 	"themselves",
 ]);
 
+/**
+ * First-person narration forms. Kept separate from PRONOUNS: binding is solid
+ * to the chapter narrator with no window look-back (we / us / our deferred).
+ */
+const FIRST_PERSON = new Set(["i", "me", "my", "mine", "myself"]);
+
 export interface AnalyzeOptions {
 	chapterFilename: string;
 	existingPlot: string;
@@ -47,6 +55,10 @@ export interface AnalyzeOptions {
 	attributions?: AttributionDecision[];
 	resolvedIds?: string[];
 	lexicons?: ReturnType<typeof defaultLexicons>;
+	/** Resolved chapter narrator (PoV). Null/omitted → first-person binding inert. */
+	narrator?: { path: string; name: string } | null;
+	/** Declared book dialogue quote style (default double). */
+	dialogueQuotes?: DialogueQuoteStyle;
 }
 
 interface MappedSentence {
@@ -263,6 +275,10 @@ function namesInSentence(sentence: string, keys: MatchKey[]): MatchKey[] {
 
 function hasPronoun(tokens: TokenInfo[]): boolean {
 	return tokens.some((t) => t.pos === "PRON" && PRONOUNS.has(t.lower));
+}
+
+function hasFirstPersonToken(tokens: TokenInfo[]): boolean {
+	return tokens.some((t) => FIRST_PERSON.has(t.lower));
 }
 
 function lookupCodexFact(
@@ -601,6 +617,18 @@ export function scanFile(
 			for (const [path, name] of namedPaths) {
 				candidates.push({ path, name, tier: "solid", competing: [] });
 			}
+		} else if (
+			ctx.narrator &&
+			hasFirstPersonToken(tokens) &&
+			hasFirstPersonInNarration(s.text, ctx.dialogueQuotes ?? "double")
+		) {
+			// First-person narration → solid bind to chapter narrator (no window).
+			candidates.push({
+				path: ctx.narrator.path,
+				name: ctx.narrator.name,
+				tier: "solid",
+				competing: [],
+			});
 		} else if (hasPronoun(tokens)) {
 			// Look back COREF_WINDOW for nearest preceding names
 			const windowNames = new Map<string, string>();
@@ -740,6 +768,8 @@ export async function analyzeChapter(
 			cast: entries,
 			chapterFilename: options.chapterFilename,
 			attributions: options.attributions,
+			narrator: options.narrator ?? null,
+			dialogueQuotes: options.dialogueQuotes ?? "double",
 		},
 		nlp,
 		lenses,
@@ -754,11 +784,13 @@ export async function analyzeChapter(
 		? findUnknownNames(nlp, prose, entries)
 		: [];
 	const synopsisHeuristic = extractSynopsis(prose, options.existingPlot);
-	const factsFp = entries.map((e) => `${e.path}:${factsFingerprint(e.facts)}`).join("|");
+	const inventoryFp = entryFactsFingerprint(entries);
+	const narratorKey = options.narrator?.path ?? "";
+	const quotesKey = options.dialogueQuotes ?? "double";
 
 	return {
 		chapterFilename: options.chapterFilename,
-		contentHash: contentHash([prose, factsFp, synopsisHeuristic]),
+		contentHash: contentHash([prose, inventoryFp, synopsisHeuristic, narratorKey, quotesKey]),
 		synopsisHeuristic,
 		matched,
 		unknownNames: unknownHints.map((u) => u.name),
@@ -768,8 +800,14 @@ export async function analyzeChapter(
 	};
 }
 
+/** Inventory fingerprint — path, type, name, aliases, and facts (type changes must invalidate cache). */
 export function entryFactsFingerprint(entries: CastMember[]): string {
-	return entries.map((e) => `${e.path}:${factsFingerprint(e.facts)}`).join("|");
+	return entries
+		.map((e) => {
+			const aliases = [...(e.aliases ?? [])].sort().join(",");
+			return `${e.path}:${e.type}:${e.name}:${aliases}:${factsFingerprint(e.facts)}`;
+		})
+		.join("|");
 }
 
 /**
@@ -781,14 +819,25 @@ export async function scanEntityAcrossChapters(
 	entity: CastMember,
 	cast: CastMember[],
 	attributions?: AttributionDecision[],
+	opts?: {
+		narratorByChapter?: Record<string, { path: string; name: string } | null>;
+		dialogueQuotes?: DialogueQuoteStyle;
+	},
 ): Promise<DetailHit[]> {
 	const nlp = await ensureNlp();
 	const lenses = buildLensRegistry();
 	const all: DetailHit[] = [];
+	const dialogueQuotes = opts?.dialogueQuotes ?? "double";
 	for (const ch of chapters) {
 		const hits = scanFile(
 			ch.raw,
-			{ cast, chapterFilename: ch.filename, attributions },
+			{
+				cast,
+				chapterFilename: ch.filename,
+				attributions,
+				narrator: opts?.narratorByChapter?.[ch.filename] ?? null,
+				dialogueQuotes,
+			},
 			nlp,
 			lenses,
 		);
@@ -796,7 +845,6 @@ export async function scanEntityAcrossChapters(
 			if (hit.entityPath === entity.path || hit.entityName === entity.name) {
 				all.push(hit);
 			}
-			// Also include solid/grey hits for this entity after attribution
 		}
 	}
 	return all;
