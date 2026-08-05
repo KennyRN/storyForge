@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { zipSync, unzipSync, type Zippable } from "fflate";
 import type { App } from "obsidian";
-import { formatBackupFilename, formatFullBackupFilename, listAllFilesRecursive } from "../backup";
+import {
+	formatBackupFilename,
+	formatFormattingExportFilename,
+	formatFullBackupFilename,
+	formatStoryForgeSettingsExportFilename,
+	listSettingsExportsInBackups,
+	listAllFilesRecursive,
+	readSettingsExportFromBackups,
+} from "../backup";
 
 describe("formatBackupFilename", () => {
 	it("formats a date-only filename when includeTime is false", () => {
@@ -29,6 +37,69 @@ describe("formatFullBackupFilename", () => {
 	it("sanitizes filesystem-illegal characters in the vault name", () => {
 		const when = new Date(2026, 0, 5, 8, 3, 9);
 		expect(formatFullBackupFilename('My/Novel:"Draft"', when)).toBe("20260105-080309 - My-Novel--Draft- - full.zip");
+	});
+});
+
+describe("formatFormattingExportFilename", () => {
+	it("formats a timestamped formatForge JSON filename", () => {
+		const when = new Date(2026, 7, 5, 11, 22, 9);
+		expect(formatFormattingExportFilename(when)).toBe(
+			"20260805-112209 - formatForge settings.json",
+		);
+		expect(formatStoryForgeSettingsExportFilename(when)).toBe(
+			"20260805-112209 - storyForge settings.json",
+		);
+	});
+});
+
+describe("settings exports in backup folder", () => {
+	it("lists only settings JSON files, newest first, and reads a selected file", async () => {
+		const files = [
+			"_sf-backup/20260804-120000 - storyForge settings.json",
+			"_sf-backup/20260805-120000 - formatForge settings.json",
+			"_sf-backup/full.zip",
+		];
+		const app = {
+			vault: {
+				adapter: {
+					exists: async () => true,
+					list: async () => ({ files, folders: [] }),
+					read: async (path: string) => `contents:${path}`,
+				},
+			},
+		} as unknown as App;
+
+		expect(await listSettingsExportsInBackups(app)).toEqual([
+			{
+				path: "_sf-backup/20260805-120000 - formatForge settings.json",
+				name: "20260805-120000 - formatForge settings.json",
+			},
+			{
+				path: "_sf-backup/20260804-120000 - storyForge settings.json",
+				name: "20260804-120000 - storyForge settings.json",
+			},
+		]);
+		await expect(
+			readSettingsExportFromBackups(
+				app,
+				"_sf-backup/20260805-120000 - formatForge settings.json",
+			),
+		).resolves.toContain("formatForge settings.json");
+		await expect(
+			readSettingsExportFromBackups(app, "Codex/settings.json"),
+		).rejects.toThrow("backup folder");
+		await expect(
+			readSettingsExportFromBackups(
+				app,
+				"_sf-backup/../Codex/secret settings.json",
+			),
+		).rejects.toThrow("backup folder");
+		await expect(
+			readSettingsExportFromBackups(
+				app,
+				"_sf-backup/nested/20260805-120000 - formatForge settings.json",
+			),
+		).rejects.toThrow("backup folder");
 	});
 });
 

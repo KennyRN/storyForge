@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, type SettingDefinitionItem } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { CODEX_TYPES } from "../codex";
-import { FORMATFORGE_PLUGIN_ID, isFormatCompanionActiveForSettings } from "../formatCompanionActive";
+import { FORMATFORGE_PLUGIN_ID, formatCompanionState } from "../formatCompanionActive";
 import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
 import { COLOR_PALETTES, defaultVariantName, PALETTE_NAMES, type PresetPaletteName } from "../colorPalettes";
 import { TextStyleModal } from "./TextStyleModal";
@@ -52,11 +52,18 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
+	/**
+	 * Only a live companion takes the formatting UI over. When formatForge is enabled but
+	 * has not registered, storyForge keeps its own entries so a failed companion load does
+	 * not leave the user with no formatting controls at all.
+	 */
 	private isFormatCompanionActive(): boolean {
-		return isFormatCompanionActiveForSettings(
-			this.plugin.getFormatCompanion(),
-			this.plugin.api?.formatting?.isCompanionActive() === true,
-			this.app,
+		return (
+			formatCompanionState(
+				this.plugin.getFormatCompanion(),
+				this.plugin.api?.formatting?.isCompanionActive() === true,
+				this.app,
+			) === "connected"
 		);
 	}
 

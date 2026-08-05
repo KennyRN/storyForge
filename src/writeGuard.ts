@@ -148,6 +148,22 @@ export async function writeBackupBinary(vault: Vault, path: string, data: ArrayB
 	return vault.createBinary(normalized, data);
 }
 
+/** Writes a text export under `_sf-backup/` only. */
+export async function writeBackupText(vault: Vault, path: string, content: string): Promise<TFile> {
+	assertBackupPath(path);
+	const normalized = normalizeVaultPath(path);
+	const existing = vault.getAbstractFileByPath(normalized);
+	if (existing instanceof TFile) {
+		await vault.modify(existing, content);
+		return existing;
+	}
+	const lastSlash = normalized.lastIndexOf("/");
+	if (lastSlash !== -1) {
+		await ensureFolderTree(vault, normalized.slice(0, lastSlash), assertBackupPath);
+	}
+	return vault.create(normalized, content);
+}
+
 export async function deleteBackstagePath(app: App, path: string): Promise<void> {
 	assertBackstagePath(path);
 	const normalized = normalizeVaultPath(path);
@@ -157,20 +173,21 @@ export async function deleteBackstagePath(app: App, path: string): Promise<void>
 	}
 }
 
-/** Per-normalized-path write queue so concurrent RMW on the same backstage file cannot clobber each other. */
+/** Per-normalized-path queue so concurrent guarded writes cannot clobber each other. */
 const pathQueues = new Map<string, Promise<void>>();
 
 export function enqueueBackstageWrite<T>(path: string, task: () => Promise<T>): Promise<T> {
 	const key = normalizeVaultPath(path);
 	const prev = pathQueues.get(key) ?? Promise.resolve();
 	const run = prev.then(task, task);
-	pathQueues.set(
-		key,
-		run.then(
-			() => undefined,
-			() => undefined,
-		),
+	const settled = run.then(
+		() => undefined,
+		() => undefined,
 	);
+	pathQueues.set(key, settled);
+	void settled.then(() => {
+		if (pathQueues.get(key) === settled) pathQueues.delete(key);
+	});
 	return run;
 }
 

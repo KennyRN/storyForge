@@ -1,7 +1,12 @@
 import { normalizePath, type App } from "obsidian";
 import { zipSync, type Zippable } from "fflate";
 import { BACKUPS_FOLDER, isBackupFolderPath } from "./paths";
-import { writeBackupBinary } from "./writeGuard";
+import {
+	enqueueBackstageWrite,
+	normalizeVaultPath,
+	writeBackupBinary,
+	writeBackupText,
+} from "./writeGuard";
 
 const ILLEGAL_FILENAME_CHARS = /[\\/:*?"<>|]/g;
 
@@ -39,6 +44,114 @@ export function formatFullBackupFilename(vaultName: string, when: Date): string 
 	const timePart = `${pad(when.getHours())}${pad(when.getMinutes())}${pad(when.getSeconds())}`;
 	const safeVaultName = vaultName.replace(ILLEGAL_FILENAME_CHARS, "-");
 	return `${datePart}-${timePart} - ${safeVaultName} - full.zip`;
+}
+
+/** Builds the timestamped JSON filename used for formatForge settings exports. */
+export function formatFormattingExportFilename(when: Date): string {
+	const datePart = `${when.getFullYear()}${pad(when.getMonth() + 1)}${pad(when.getDate())}`;
+	const timePart = `${pad(when.getHours())}${pad(when.getMinutes())}${pad(when.getSeconds())}`;
+	return `${datePart}-${timePart} - formatForge settings.json`;
+}
+
+export function formatStoryForgeSettingsExportFilename(when: Date): string {
+	const datePart = `${when.getFullYear()}${pad(when.getMonth() + 1)}${pad(when.getDate())}`;
+	const timePart = `${pad(when.getHours())}${pad(when.getMinutes())}${pad(when.getSeconds())}`;
+	return `${datePart}-${timePart} - storyForge settings.json`;
+}
+
+/**
+ * Never written to disk — a synthetic key so every settings export shares one
+ * `enqueueBackstageWrite` serialization lane. That's what stops two concurrent exports
+ * from both probing the same "does this filename exist yet" state and picking the same
+ * unique suffix. Do not point this at (or expect it to name) a real file under `${BACKUPS_FOLDER}/`.
+ */
+const SETTINGS_EXPORT_UNIQUENESS_LOCK_KEY = `${BACKUPS_FOLDER}/.settings-export-uniqueness-lock`;
+
+async function writeUniqueSettingsExport(
+	app: App,
+	filename: string,
+	content: string,
+): Promise<string> {
+	return enqueueBackstageWrite(SETTINGS_EXPORT_UNIQUENESS_LOCK_KEY, async () => {
+		const separator = " - ";
+		const splitAt = filename.indexOf(separator);
+		const timestamp = filename.slice(0, splitAt);
+		const label = filename.slice(splitAt);
+		let attempt = 0;
+		let vaultPath = "";
+		do {
+			const suffix = attempt === 0 ? "" : `-${pad(attempt, 3)}`;
+			vaultPath = normalizePath(`${BACKUPS_FOLDER}/${timestamp}${suffix}${label}`);
+			attempt++;
+		} while (app.vault.getAbstractFileByPath(vaultPath));
+		await writeBackupText(app.vault, vaultPath, content);
+		return vaultPath;
+	});
+}
+
+/** Saves a formatForge settings document inside storyForge's vault-local backup folder. */
+export async function writeFormattingExportToBackups(
+	app: App,
+	content: string,
+	when: Date = new Date(),
+): Promise<string> {
+	return writeUniqueSettingsExport(
+		app,
+		formatFormattingExportFilename(when),
+		content,
+	);
+}
+
+/** Saves a complete storyForge settings document beside other vault-local backups. */
+export async function writeStoryForgeSettingsExportToBackups(
+	app: App,
+	content: string,
+	when: Date = new Date(),
+): Promise<string> {
+	return writeUniqueSettingsExport(
+		app,
+		formatStoryForgeSettingsExportFilename(when),
+		content,
+	);
+}
+
+export interface SettingsExportFile {
+	path: string;
+	name: string;
+}
+
+/** Lists JSON settings exports in `_sf-backup/`, newest filename first. */
+export async function listSettingsExportsInBackups(app: App): Promise<SettingsExportFile[]> {
+	if (!(await app.vault.adapter.exists(BACKUPS_FOLDER))) return [];
+	const listing = await app.vault.adapter.list(BACKUPS_FOLDER);
+	return listing.files
+		.filter((path) => path.toLowerCase().endsWith(" settings.json"))
+		.sort((a, b) => b.localeCompare(a))
+		.map((path) => ({
+			path,
+			name: path.slice(path.lastIndexOf("/") + 1),
+		}));
+}
+
+/** Reads one JSON settings export after constraining it to `_sf-backup/`. */
+export async function readSettingsExportFromBackups(app: App, path: string): Promise<string> {
+	// Collapse `.` / `..` before the folder prefix check so callers cannot escape
+	// `_sf-backup/` through Obsidian's lighter normalizePath.
+	let normalized: string;
+	try {
+		normalized = normalizeVaultPath(path);
+	} catch {
+		throw new Error("Settings export must be a JSON file inside the storyForge backup folder");
+	}
+	if (
+		!isBackupFolderPath(normalized) ||
+		normalized === BACKUPS_FOLDER ||
+		!normalized.toLowerCase().endsWith(" settings.json") ||
+		normalized.slice(BACKUPS_FOLDER.length + 1).includes("/")
+	) {
+		throw new Error("Settings export must be a JSON file inside the storyForge backup folder");
+	}
+	return app.vault.adapter.read(normalized);
 }
 
 async function writeZipToBackups(app: App, filename: string, buffer: Uint8Array): Promise<string> {

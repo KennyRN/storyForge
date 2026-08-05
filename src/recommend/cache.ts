@@ -1,6 +1,12 @@
 import { App, parseYaml, stringifyYaml, TFile } from "obsidian";
 import { recommendSidecarFolderPath, recommendSidecarPath } from "../paths";
-import { ensureBackstageFolder, deleteBackstagePath, renameBackstagePath, writeBackstageFile } from "../writeGuard";
+import {
+	deleteBackstagePath,
+	ensureBackstageFolder,
+	enqueueBackstageWrite,
+	renameBackstagePath,
+	writeBackstageFile,
+} from "../writeGuard";
 import type { ChapterRecommendReport } from "./types";
 
 const AUTO_MARKER = "<!-- AUTO-MAINTAINED — do not edit, the plugin overwrites it -->";
@@ -63,21 +69,25 @@ export async function writeRecommendCache(
 	report: ChapterRecommendReport,
 	resolvedIds?: string[],
 ): Promise<void> {
-	await ensureBackstageFolder(app.vault, recommendSidecarFolderPath(bookFolderName));
 	const path = recommendSidecarPath(bookFolderName, report.chapterFilename);
-	const ids =
-		resolvedIds ??
-		report.hits.filter((h) => h.resolved).map((h) => h.id);
-	// Sweep orphans against current hit ids
-	const live = new Set(report.hits.map((h) => h.id));
-	const swept = ids.filter((id) => live.has(id));
-	const content = buildRecommendSidecarContent(report, swept);
-	const file = app.vault.getAbstractFileByPath(path);
-	if (file instanceof TFile) {
-		const existing = await app.vault.read(file);
-		if (existing === content) return;
-	}
-	await writeBackstageFile(app.vault, path, content);
+	// Shares the sidecar path with the resolved/decision writers, so the compare-then-write
+	// has to run inside the same queue to avoid clobbering a concurrent resolve.
+	await enqueueBackstageWrite(path, async () => {
+		await ensureBackstageFolder(app.vault, recommendSidecarFolderPath(bookFolderName));
+		const ids =
+			resolvedIds ??
+			report.hits.filter((h) => h.resolved).map((h) => h.id);
+		// Sweep orphans against current hit ids
+		const live = new Set(report.hits.map((h) => h.id));
+		const swept = ids.filter((id) => live.has(id));
+		const content = buildRecommendSidecarContent(report, swept);
+		const file = app.vault.getAbstractFileByPath(path);
+		if (file instanceof TFile) {
+			const existing = await app.vault.read(file);
+			if (existing === content) return;
+		}
+		await writeBackstageFile(app.vault, path, content);
+	});
 }
 
 export async function readRecommendCache(

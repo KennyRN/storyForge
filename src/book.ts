@@ -149,6 +149,26 @@ export function getBookChapterFiles(app: App, bookFolderName: string): TFile[] {
 	);
 }
 
+/**
+ * Cover files live directly in the book's own backstage folder, so a cover name is
+ * only ever a bare filename. Anything carrying a separator, a `..`, or a null byte
+ * is rejected rather than normalised — a hand-edited `cover-image` must not be able
+ * to name a file outside its book folder.
+ */
+export function safeCoverFilename(name: unknown): string | null {
+	if (typeof name !== "string") return null;
+	const trimmed = name.trim();
+	if (!trimmed || trimmed === "." || trimmed === "..") return null;
+	if (/[/\\\0]/.test(trimmed)) return null;
+	return trimmed;
+}
+
+/** Cover extensions come from a picked file's name, so restrict them to a plain alphanumeric suffix. */
+function safeCoverExtension(extension: string): string {
+	const normalized = extension.trim().toLowerCase();
+	return /^[a-z0-9]{1,8}$/.test(normalized) ? normalized : "png";
+}
+
 export function readBookFrontmatter(app: App, bookFolderName: string): BookFrontmatter | null {
 	const path = bookFilePath(bookFolderName);
 	const file = app.vault.getAbstractFileByPath(path);
@@ -166,7 +186,7 @@ export function readBookFrontmatter(app: App, bookFolderName: string): BookFront
 			bookTitleReference:
 				typeof fm?.["book-title-reference"] === "string" ? fm["book-title-reference"] : bookFolderName,
 			seriesOrderReference: typeof fm?.["series-order-reference"] === "number" ? fm["series-order-reference"] : null,
-			coverImage: typeof fm?.["cover-image"] === "string" && fm["cover-image"] ? fm["cover-image"] : null,
+			coverImage: safeCoverFilename(fm?.["cover-image"]),
 			goalDaily: typeof fm?.goal_daily === "number" ? fm.goal_daily : null,
 			chapterOrder,
 			unplaced,
@@ -243,7 +263,7 @@ export async function writeBookCoverImage(
 	extension: string,
 ): Promise<string> {
 	const previous = readBookFrontmatter(app, bookFolderName)?.coverImage ?? null;
-	const filename = `cover.${extension}`;
+	const filename = `cover.${safeCoverExtension(extension)}`;
 	const folder = bookBackstagePath(bookFolderName);
 	const path = `${folder}/${filename}`;
 	if (previous && previous !== filename) {

@@ -11,206 +11,9 @@
 
 import type { PaletteColor, PaletteName } from "./colorPalettes";
 
-/** Keys formatForge may read/write on storyForge (stored in SF `data.json`). */
+/** Keys formatForge may read/write on storyForge (stored in SF data.json). */
 export type SfLinkedFormattingKey =
-	| "colorPaletteName"
-	| "colorPaletteVariant"
-	| "customPaletteColors"
-	| "highlightActiveChapter"
-	| "highlightColor"
-	| "highlightTextColor"
-	| "librarySeriesTitleFontSize"
-	| "librarySeriesTitleOverrideFont"
-	| "librarySeriesTitleFontFamily"
-	| "librarySeriesTitleFontWeight"
-	| "librarySeriesTitleColor"
-	| "librarySeriesTitleSmallCaps"
-	| "libraryBookTitleFontSize"
-	| "libraryBookTitleOverrideFont"
-	| "libraryBookTitleFontFamily"
-	| "libraryBookTitleFontWeight"
-	| "libraryBookTitleColor"
-	| "libraryBookTitleSmallCaps"
-	| "libraryBookSubtitleFontSize"
-	| "libraryBookSubtitleOverrideFont"
-	| "libraryBookSubtitleFontFamily"
-	| "libraryBookSubtitleFontWeight"
-	| "libraryBookSubtitleSmallCaps"
-	| "libraryHeaderDividerBelow"
-	| "libraryItemsFontSize"
-	| "libraryItemsOverrideFont"
-	| "libraryItemsFontFamily"
-	| "libraryItemsFontWeight"
-	| "libraryItemsColor"
-	| "libraryItemsMuted"
-	| "unplacedHighlightColor"
-	| "unplacedHighlightTextColor"
-	| "codexHighlightColor"
-	| "codexHighlightTextColor"
-	| "unplacedMuted"
-	| "unplacedSmallCaps"
-	| "unplacedColor"
-	| "unplacedFontSize"
-	| "unplacedOverrideFont"
-	| "unplacedFontFamily"
-	| "unplacedFontWeight"
-	| "unplacedItemsFontSize"
-	| "unplacedItemsOverrideFont"
-	| "unplacedItemsFontFamily"
-	| "unplacedItemsFontWeight"
-	| "unplacedItemsColor"
-	| "unplacedItemsMuted"
-	| "unplacedUseHeaderColorForAll"
-	| "codexMuted"
-	| "codexSmallCaps"
-	| "codexColor"
-	| "codexFontSize"
-	| "codexOverrideFont"
-	| "codexFontFamily"
-	| "codexFontWeight"
-	| "codexFolderFontSize"
-	| "codexFolderOverrideFont"
-	| "codexFolderFontFamily"
-	| "codexFolderFontWeight"
-	| "codexFolderColor"
-	| "codexFolderIndicatorThickness"
-	| "codexNoteLabelFontSize"
-	| "codexNoteLabelOverrideFont"
-	| "codexNoteLabelFontFamily"
-	| "codexNoteLabelFontWeight"
-	| "codexNoteLabelColor"
-	| "codexNoteLabelUseDefaultColor"
-	| "codexNoteLabelUseFolderColor"
-	| "codexUseHeaderColorForAll"
-	| "hideSeriesPane"
-	| "bodyTextOverrideSize"
-	| "bodyTextSize"
-	| "heading1OverrideSize"
-	| "heading1Size"
-	| "heading2OverrideSize"
-	| "heading2Size"
-	| "heading3OverrideSize"
-	| "heading3Size"
-	| "heading4OverrideSize"
-	| "heading4Size"
-	| "heading5OverrideSize"
-	| "heading5Size"
-	| "heading6OverrideSize"
-	| "heading6Size"
-	| "cyclingGuideEnabled"
-	| "cyclingGuideThickness"
-	| "cyclingGuideColor"
-	| "cyclingGuideFlagSize"
-	| "cyclingGuideRoundedLines"
-	| "cyclingGuideInterval"
-	| "editorScrollbarThumbColor"
-	| "editorScrollbarTrackColor"
-	| "editorScrollbarThickness"
-	| "forgeCompanionIconColor"
-	| "recommendHeaderFontSize"
-	| "recommendHeaderOverrideFont"
-	| "recommendHeaderFontFamily"
-	| "recommendHeaderFontWeight"
-	| "recommendHeaderColor"
-	| "recommendHeaderMuted"
-	| "recommendHeaderSmallCaps"
-	| "recommendTabsFontSize"
-	| "recommendTabsOverrideFont"
-	| "recommendTabsFontFamily"
-	| "recommendTabsFontWeight"
-	| "recommendTabsColor"
-	| "recommendTabsActiveColor"
-	| "recommendChapterTitleFontSize"
-	| "recommendChapterTitleOverrideFont"
-	| "recommendChapterTitleFontFamily"
-	| "recommendChapterTitleFontWeight"
-	| "recommendChapterTitleColor"
-	| "recommendChapterTitleMuted"
-	| "recommendChapterTitleSmallCaps"
-	| "recommendDossierHeaderFontSize"
-	| "recommendDossierHeaderOverrideFont"
-	| "recommendDossierHeaderFontFamily"
-	| "recommendDossierHeaderFontWeight"
-	| "recommendDossierHeaderColor"
-	| "recommendDossierHeaderMuted"
-	| "recommendDossierHeaderSmallCaps"
-	| "recommendNovelTitleFontSize"
-	| "recommendNovelTitleOverrideFont"
-	| "recommendNovelTitleFontFamily"
-	| "recommendNovelTitleFontWeight"
-	| "recommendNovelTitleColor"
-	| "recommendNovelTitleMuted"
-	| "recommendNovelTitleSmallCaps"
-	| "recommendNovelSubtitleFontSize"
-	| "recommendNovelSubtitleOverrideFont"
-	| "recommendNovelSubtitleFontFamily"
-	| "recommendNovelSubtitleFontWeight"
-	| "recommendNovelSubtitleColor"
-	| "recommendNovelSubtitleMuted"
-	| "recommendNovelSubtitleSmallCaps"
-	| "recommendPlotChapterFontSize"
-	| "recommendPlotChapterOverrideFont"
-	| "recommendPlotChapterFontFamily"
-	| "recommendPlotChapterFontWeight"
-	| "recommendPlotChapterColor"
-	| "recommendPlotChapterMuted"
-	| "recommendPlotChapterSmallCaps"
-	| "recommendSectionTitleFontSize"
-	| "recommendSectionTitleOverrideFont"
-	| "recommendSectionTitleFontFamily"
-	| "recommendSectionTitleFontWeight"
-	| "recommendSectionTitleColor"
-	| "recommendSectionTitleMuted"
-	| "recommendSectionTitleSmallCaps"
-	| "recommendItemsFontSize"
-	| "recommendItemsOverrideFont"
-	| "recommendItemsFontFamily"
-	| "recommendItemsFontWeight"
-	| "recommendItemsColor"
-	| "recommendItemsMuted"
-	| "recommendDetailsFontSize"
-	| "recommendDetailsOverrideFont"
-	| "recommendDetailsFontFamily"
-	| "recommendDetailsFontWeight"
-	| "recommendDetailsColor"
-	| "recommendDetailsMuted"
-	| "recommendMetaLabelFontSize"
-	| "recommendMetaLabelOverrideFont"
-	| "recommendMetaLabelFontFamily"
-	| "recommendMetaLabelFontWeight"
-	| "recommendMetaLabelColor"
-	| "recommendMetaLabelMuted"
-	| "recommendMetaLabelSmallCaps"
-	| "recommendMetaControlFontSize"
-	| "recommendMetaControlOverrideFont"
-	| "recommendMetaControlFontFamily"
-	| "recommendMetaControlFontWeight"
-	| "recommendMetaControlColor"
-	| "recommendMetaControlMuted"
-	| "recommendSynopsisFontSize"
-	| "recommendSynopsisOverrideFont"
-	| "recommendSynopsisFontFamily"
-	| "recommendSynopsisFontWeight"
-	| "recommendSynopsisColor"
-	| "recommendHighlightColor"
-	| "recommendHighlightTextColor"
-	| "recommendUseHeaderColorForAll"
-	| "archiveHeaderFontSize"
-	| "archiveHeaderOverrideFont"
-	| "archiveHeaderFontFamily"
-	| "archiveHeaderFontWeight"
-	| "archiveHeaderColor"
-	| "archiveHeaderMuted"
-	| "archiveHeaderSmallCaps"
-	| "archiveItemsFontSize"
-	| "archiveItemsOverrideFont"
-	| "archiveItemsFontFamily"
-	| "archiveItemsFontWeight"
-	| "archiveItemsColor"
-	| "archiveItemsMuted"
-	| "archiveHighlightColor"
-	| "archiveHighlightTextColor"
-	| "archiveUseHeaderColorForAll";
+	(typeof import("./hostApi").LINKED_FORMATTING_KEYS)[number];
 
 export type FontResolveResult = {
 	family: string;
@@ -249,6 +52,13 @@ export interface StoryForgeFormattingApi {
 	getLinkedSettings(): Record<SfLinkedFormattingKey, unknown>;
 	getLinkedSetting<K extends SfLinkedFormattingKey>(key: K): unknown;
 	updateLinkedSetting(key: SfLinkedFormattingKey, value: unknown): Promise<void>;
+	/**
+	 * API v8: validate the complete patch before writing, persist once, then
+	 * restyle once. This is the preferred path for theme imports.
+	 */
+	updateLinkedSettings(
+		partial: Partial<Record<SfLinkedFormattingKey, unknown>>,
+	): Promise<void>;
 	/** Re-apply storyForge chrome + size CSS vars (not companion-owned editor typography). */
 	applyLinkedStyles(): void;
 	/** Apply CSS custom properties on the main doc and every open pop-out. */
@@ -265,6 +75,23 @@ export interface StoryForgeFormattingApi {
 		variant?: string;
 		customColors?: PaletteColor[];
 	}): Promise<void>;
+	/**
+	 * Save a complete formatForge settings document into storyForge's vault-local
+	 * `_sf-backup/` folder. The host owns the path and filename.
+	 */
+	saveFormattingExport(content: string): Promise<string>;
+	/** Discover settings JSON files already stored in `_sf-backup/`. */
+	listSettingsExports(): Promise<Array<{ path: string; name: string }>>;
+	/** Read a discovered settings JSON file from `_sf-backup/`. */
+	readSettingsExport(path: string): Promise<string>;
+	/** Create/update a user-named formatForge preset in storyForge backstage. */
+	saveFormattingPreset(name: string, content: string, overwrite?: boolean): Promise<{ path: string; name: string }>;
+	/** List user-named formatForge presets from storyForge backstage. */
+	listFormattingPresets(): Promise<Array<{ path: string; name: string }>>;
+	/** Read one discovered formatForge preset. */
+	readFormattingPreset(path: string): Promise<string>;
+	renameFormattingPreset(path: string, newName: string, overwrite?: boolean): Promise<{ path: string; name: string }>;
+	deleteFormattingPreset(path: string): Promise<void>;
 	/**
 	 * Contribute UI into a storyForge view slot. `render` mounts into the provided
 	 * container and must return a disposer. Known slots: `"spacer"` (blank right-rail

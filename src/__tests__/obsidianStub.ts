@@ -117,3 +117,7 @@ export function parseYaml(raw: string): unknown {
 export function stringifyYaml(data: unknown): string {
 	return JSON.stringify(data);
 }
+
+export function normalizePath(path: string): string {
+	return path.replace(/\\/g, "/").replace(/\/+/g, "/").replace(/^\.\//, "").replace(/\/$/, "");
+}

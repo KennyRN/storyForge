@@ -1,45 +1,107 @@
-# formatForge ↔ storyForge formatting API
+# formatForge ↔ storyForge formatting API (v8)
 
-storyForge host API **version 2** adds `api.formatting` for the formatForge companion.
+storyForge exposes `plugin.api.formatting` as the host contract for formatForge.
+Version 2 is the minimum formatting baseline; version 8 is current.
 
-## Access
+## Version matrix
 
-```ts
-const sf = app.plugins.getPlugin("storyforge");
-const api = sf?.api;
-if (!api || api.version < 2 || !api.formatting) {
-  // storyForge too old / missing
-}
+| Host API | Addition |
+|---|---|
+| v2 | Companion registration, linked settings, palette and style variables |
+| v3 | Top-level companion panels |
+| v4 | `saveFormattingExport` |
+| v5 | `listSettingsExports` / `readSettingsExport` |
+| v6 | Save/list/read named formatting presets |
+| v7 | Rename/delete presets and overwrite flags |
+| v8 | `updateLinkedSettings` batch validation/persistence |
+
+Callers should require v2, then detect later methods by presence.
+
+## Shared linked-key source
+
+The canonical key list is:
+
+`src/hostApi.ts` → `LINKED_FORMATTING_KEYS`
+
+`src/formattingApi.ts` derives `SfLinkedFormattingKey` directly from this array.
+The sync script generates formatForge's compile-time copy:
+
+```sh
+npm run sync:formatting-contract
+npm run check:formatting-contract
 ```
+
+The generated formatForge file must be committed whenever the canonical list
+changes. The current contract contains 197 keys.
 
 ## Persistence split
 
-| Owner | What |
-|-------|------|
-| **storyForge** (`data.json`) | Palette, SF chrome (library / unplaced / codex), highlights, cycling guide, scrollbar, editor **sizes** |
-| **formatForge** (`data.json`) | Editor colours, fonts, small caps, heading dividers, hide H1 links |
+| Owner | Data |
+|---|---|
+| storyForge `data.json` | Palette, storyForge chrome, highlights, guides, scrollbar and editor sizes |
+| formatForge `data.json` | Editor colours, fonts, small caps, dividers and H1 link styling |
+| storyForge backstage | Named formatForge themes |
+| storyForge backup folder | Dated formatting JSON archives |
 
-While formatForge is registered, storyForge hides its formatting settings UI and shows a pointer to formatForge. Linked values still live in storyForge so they survive if formatForge is disabled.
-
-## Companion registration
+## Companion lifecycle
 
 ```ts
 const unregister = api.formatting.registerCompanion({
   pluginId: "formatforge",
   version: 1,
-  openSettings: () => { /* open FF settings */ },
-  onHostStylesApplied: () => { /* re-apply editor CSS vars */ },
+  openSettings: () => {},
+  onHostStylesApplied: () => {},
   resolveFont: (familyId, weight) => ({ family, variation }),
-  registerFacesForDocument: (doc) => { /* FontFace */ },
+  registerFacesForDocument: (doc) => {},
 });
 ```
 
-## Key methods
+Only one companion is active. Registration returns an identity-safe disposer.
 
-- `updateLinkedSetting(key, value)` / `getLinkedSettings()` — SF-persisted formatting knobs
-- `applyLinkedStyles()` — rebuild SF chrome + size vars
-- `setStyleVars(vars)` — write `--sf-*` on main + pop-out docs (editor typography)
-- `getPalette()` / `updatePalette(...)` — shared colour palette (stored in SF)
-- `registerViewContribution({ slot, render })` — inject UI into a view slot (also on top-level `api.registerViewContribution`). Slots: `"spacer"` (blank right-rail tab), `"storyforge-panel"` (left panel; reserved)
+## Linked updates
 
-See also `src/formattingApi.ts` and formatForge’s `docs/storyforge-formatting-api.md`.
+Use `updateLinkedSetting` for one live control:
+
+```ts
+await api.formatting.updateLinkedSetting("bodyTextSize", 1.1);
+```
+
+Use the v8 batch method for themes and imports:
+
+```ts
+await api.formatting.updateLinkedSettings({
+  bodyTextSize: 1.1,
+  editorScrollbarThumbColor: "#112233",
+  recommendHeaderColor: "#abcdef",
+});
+```
+
+The batch validates every key/value before mutation, saves once and restyles
+once. Invalid patches do not partially update settings.
+
+`updatePalette` uses this same batch path at v8.
+
+## Theme storage
+
+storyForge owns and guards every theme path:
+
+- `_sf-backstage/settings-presets/formatForge/` for named themes
+- `_sf-backup/` for dated archives
+
+The API supports save/list/read/rename/delete and explicit overwrite. formatForge
+never writes these vault paths itself.
+
+## UI ownership
+
+When formatForge is enabled, removal of storyForge's formatting transfer UI is
+intentional. storyForge displays an **Open formatForge** pointer instead.
+When formatForge is absent, storyForge retains its standalone Themes fallback.
+
+## Related files
+
+- `src/hostApi.ts`
+- `src/formattingApi.ts`
+- `sync-formatting-contract.mjs`
+- `src/settingsPresets.ts`
+- `src/backup.ts`
+- formatForge `docs/storyforge-formatting-api.md`

@@ -151,7 +151,6 @@ function makeLinkedDefaults(): SettingsBag {
 		cyclingGuideRoundedLines: false,
 		cyclingGuideInterval: "medium",
 		editorScrollbarThumbColor: "#6b7280",
-		editorScrollbarTrackColor: "#00000020",
 		editorScrollbarThickness: "thick",
 		forgeCompanionIconColor: "#7c3aed",
 		recommendHeaderFontSize: 1,
@@ -301,6 +300,9 @@ function makeFakePlugin() {
 		async updateSetting(key: string, value: unknown) {
 			settings[key] = value;
 		},
+		async updateSettings(partial: Record<string, unknown>) {
+			Object.assign(settings, partial);
+		},
 		applyLinkedFormattingStyles() {
 			applyLinkedCalls++;
 			companion?.onHostStylesApplied?.();
@@ -353,14 +355,23 @@ function makeFakePlugin() {
 }
 
 describe("formatting API stress", () => {
-	it("exposes API version 3 with formatting surface", () => {
+	it("exposes API version 8 with managed presets and batched updates", () => {
 		const plugin = makeFakePlugin();
 		const api = createHostApi(plugin);
-		expect(STORYFORGE_API_VERSION).toBe(3);
-		expect(api.version).toBe(3);
+		expect(STORYFORGE_API_VERSION).toBe(8);
+		expect(api.version).toBe(8);
 		expect(api.formatting).toBeDefined();
-		expect(api.formatting.version).toBe(3);
+		expect(api.formatting.version).toBe(8);
 		expect(api.formatting.isCompanionActive()).toBe(false);
+		expect(api.formatting.updateLinkedSettings).toBeTypeOf("function");
+		expect(api.formatting.saveFormattingExport).toBeTypeOf("function");
+		expect(api.formatting.listSettingsExports).toBeTypeOf("function");
+		expect(api.formatting.readSettingsExport).toBeTypeOf("function");
+		expect(api.formatting.saveFormattingPreset).toBeTypeOf("function");
+		expect(api.formatting.listFormattingPresets).toBeTypeOf("function");
+		expect(api.formatting.readFormattingPreset).toBeTypeOf("function");
+		expect(api.formatting.renameFormattingPreset).toBeTypeOf("function");
+		expect(api.formatting.deleteFormattingPreset).toBeTypeOf("function");
 	});
 
 	it("registers / replaces / unregisters companions under thrash", () => {
@@ -405,6 +416,33 @@ describe("formatting API stress", () => {
 		expect(plugin._debug.applyLinkedCalls).toBe(keys.length * 5);
 	});
 
+	it("validates a linked batch before one persist and one restyle", async () => {
+		const plugin = makeFakePlugin();
+		const api = createHostApi(plugin);
+		const beforeCalls = plugin._debug.applyLinkedCalls;
+
+		await api.formatting.updateLinkedSettings({
+			bodyTextOverrideSize: true,
+			bodyTextSize: 1.35,
+			recommendHeaderColor: "#abcdef",
+			editorScrollbarThumbColor: "#112233",
+		});
+		expect(api.formatting.getLinkedSetting("bodyTextSize")).toBe(1.35);
+		expect(api.formatting.getLinkedSetting("recommendHeaderColor")).toBe("#abcdef");
+		expect(api.formatting.getLinkedSetting("editorScrollbarThumbColor")).toBe("#112233");
+		expect(plugin._debug.applyLinkedCalls).toBe(beforeCalls + 1);
+
+		const snapshot = api.formatting.getLinkedSettings();
+		await expect(
+			api.formatting.updateLinkedSettings({
+				bodyTextSize: 1.7,
+				recommendHeaderFontWeight: "invalid",
+			}),
+		).rejects.toThrow("recommendHeaderFontWeight");
+		expect(api.formatting.getLinkedSettings()).toEqual(snapshot);
+		expect(plugin._debug.applyLinkedCalls).toBe(beforeCalls + 1);
+	});
+
 	it("rejects unknown linked keys", async () => {
 		const plugin = makeFakePlugin();
 		const api = createHostApi(plugin);
@@ -445,6 +483,19 @@ describe("formatting API stress", () => {
 		expect(palette.name).toBe("Custom");
 		expect(palette.customColors).toHaveLength(2);
 		expect(palette.customColors[0].hex).toBe("#111111");
+	});
+
+	it("rejects invalid palette updates", async () => {
+		const plugin = makeFakePlugin();
+		const api = createHostApi(plugin);
+		await expect(
+			api.formatting.updatePalette({ name: "NotARealPalette" as never }),
+		).rejects.toThrow("colorPaletteName");
+		await expect(
+			api.formatting.updatePalette({
+				customColors: [{ name: "Ink", hex: 12 as never }],
+			}),
+		).rejects.toThrow("customPaletteColors");
 	});
 
 	it("view contributions accumulate and dispose cleanly", () => {
