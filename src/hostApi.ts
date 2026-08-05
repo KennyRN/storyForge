@@ -702,9 +702,7 @@ export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 				}
 				patch[key] = value;
 			}
-			await plugin.updateSettings(
-				patch as Partial<StoryForgePluginSettings>,
-			);
+			await plugin.updateSettings(patch);
 			plugin.applyLinkedFormattingStyles();
 		},
 

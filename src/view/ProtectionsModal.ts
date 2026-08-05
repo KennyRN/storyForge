@@ -55,7 +55,11 @@ class ConfirmationModal extends Modal {
 		new Setting(this.contentEl)
 			.addButton((button) => button.setButtonText("Cancel").onClick(() => this.finish(false)))
 			.addButton((button) =>
-				button.setButtonText(this.confirmLabel).setWarning().onClick(() => this.finish(true)),
+				button
+					.setButtonText(this.confirmLabel)
+					.setDestructive()
+					.setCta()
+					.onClick(() => this.finish(true)),
 			);
 	}
 
@@ -486,7 +490,7 @@ export class ProtectionsModal extends Modal {
 					button.setButtonText("Rename").onClick(() => void this.renameTheme()),
 				)
 				.addButton((button) =>
-					button.setButtonText("Delete").setWarning().onClick(() => void this.deleteTheme()),
+					button.setButtonText("Delete").setDestructive().onClick(() => void this.deleteTheme()),
 				);
 		}
 	}
