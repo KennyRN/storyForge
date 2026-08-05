@@ -6,27 +6,29 @@ import {
 	TFile,
 	WorkspaceLeaf,
 	setIcon,
+	setTooltip,
 } from "obsidian";
 import type StoryForgePlugin from "../main";
 import {
 	getBookChapters,
+	getChapterEntry,
 	numberedChapterTitle,
 	readBookFrontmatter,
+	readBookSynopsis,
 	readChapterPlot,
+	writeBookCoverImage,
+	writeBookSynopsis,
+	writeChapterLocation,
 	writeChapterPlot,
 	writeChapterPov,
+	writeDefaultPov,
 } from "../book";
 import { CODEX_TYPES, codexTypeIcon, getCodexEntriesByType } from "../codex";
 import { debounce } from "../debounce";
-import { ICON_ARCHIVE, ICON_CHECK_SQUARE, ICON_EYE, ICON_FILE_PLUS, ICON_MINUS_SQUARE, ICON_MULTIPLY_SQUARE, ICON_PERSON_FILL, ICON_PERSON_FILL_ADD, ICON_PLUS_SQUARE, ICON_TIMELINE } from "../icons";
-import {
-	bookFolderNameFromChapterPath,
-	CODEX_ROOT,
-	isBackstageBookkeepingPath,
-	isLibraryChapterPath,
-	libraryChapterPath,
-} from "../paths";
-import { getBookId } from "../series";
+import { ICON_ARCHIVE, ICON_CHECK_SQUARE, ICON_EYE, ICON_FILE_PLUS, ICON_MAP_PIN, ICON_MAP_PIN_PLUS, ICON_MINUS_SQUARE, ICON_MULTIPLY_SQUARE, ICON_PERSON_FILL, ICON_PERSON_FILL_ADD, ICON_PLUS_SQUARE, ICON_TIMELINE } from "../icons";
+import { bookBackstagePath, bookFolderNameFromChapterPath, CODEX_ROOT, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath } from "../paths";
+import { getBookId, numberedBookTitle } from "../series";
+import { splitTitleSubtitle } from "../titleNumbering";
 import { groupHitsByChapter, lensLabel } from "../recommend/hitGrouping";
 import { writeRecommendCache } from "../recommend/cache";
 import {
@@ -52,7 +54,7 @@ import { DossierEntitySuggest } from "./DossierEntitySuggest";
 
 export const RECOMMEND_VIEW_TYPE = "storyforge-recommend-view";
 
-type RecommendMode = "chapter" | "dossier";
+type RecommendMode = "novel" | "chapter" | "dossier";
 
 export class RecommendationView extends ItemView {
 	private bookFolderName: string | null = null;
@@ -184,6 +186,10 @@ export class RecommendationView extends ItemView {
 	private async reload(): Promise<void> {
 		if (this.closed) return;
 		try {
+			if (this.mode === "novel") {
+				this.render();
+				return;
+			}
 			await this.ensureEngine();
 			if (this.closed) return;
 
@@ -283,6 +289,15 @@ export class RecommendationView extends ItemView {
 		});
 
 		const tabs = el.createDiv({ cls: "sf-recommend-tabs" });
+		const novelTab = tabs.createSpan({
+			cls: `sf-recommend-tab${!this.showingArchive && this.mode === "novel" ? " is-active" : ""}`,
+			text: "Novel",
+			attr: {
+				role: "tab",
+				tabindex: "0",
+				"aria-selected": String(!this.showingArchive && this.mode === "novel"),
+			},
+		});
 		const chapterTab = tabs.createSpan({
 			cls: `sf-recommend-tab${!this.showingArchive && this.mode === "chapter" ? " is-active" : ""}`,
 			text: "Chapter",
@@ -306,8 +321,10 @@ export class RecommendationView extends ItemView {
 			this.mode = mode;
 			void this.reload();
 		};
+		novelTab.addEventListener("click", () => selectMode("novel"));
 		chapterTab.addEventListener("click", () => selectMode("chapter"));
 		dossierTab.addEventListener("click", () => selectMode("dossier"));
+		makeAccessibleActivatable(novelTab, () => selectMode("novel"));
 		makeAccessibleActivatable(chapterTab, () => selectMode("chapter"));
 		makeAccessibleActivatable(dossierTab, () => selectMode("dossier"));
 
@@ -330,6 +347,11 @@ export class RecommendationView extends ItemView {
 			return;
 		}
 
+		if (this.mode === "novel") {
+			this.renderNovel(el);
+			return;
+		}
+
 		if (this.loading) {
 			const body = el.createDiv({ cls: "sf-recommend-body sf-recommend-body--scroll" });
 			body.createDiv({ cls: "sf-empty", text: "Loading language model…" });
@@ -341,6 +363,251 @@ export class RecommendationView extends ItemView {
 			return;
 		}
 		this.renderChapter(el);
+	}
+
+	private renderNovel(el: HTMLElement): void {
+		const body = el.createDiv({ cls: "sf-recommend-body" });
+
+		if (!this.bookFolderName) {
+			body.addClass("sf-recommend-body--scroll");
+			body.createDiv({ cls: "sf-empty", text: "Select a novel to see its synopsis and plot." });
+			return;
+		}
+
+		const bookFolderName = this.bookFolderName;
+		const fixed = body.createDiv({ cls: "sf-recommend-fixed sf-recommend-novel-fixed" });
+
+		const cover = fixed.createDiv({ cls: "sf-synopsis-cover sf-recommend-novel-cover" });
+		this.renderNovelCover(cover, bookFolderName);
+		cover.addEventListener("click", () => this.pickNovelCover(cover, bookFolderName));
+
+		const numberedTitle = numberedBookTitle(this.app, bookFolderName);
+		const { title, subtitle } = splitTitleSubtitle(numberedTitle);
+		fixed.createDiv({ cls: "sf-recommend-novel-title", text: title });
+		if (subtitle) {
+			fixed.createDiv({ cls: "sf-recommend-novel-subtitle", text: subtitle });
+		}
+
+		const synopsis = fixed.createEl("textarea", {
+			cls: "sf-recommend-synopsis sf-recommend-novel-synopsis",
+			attr: { "aria-label": "Novel synopsis" },
+		});
+		synopsis.addEventListener("pointerdown", (e) => e.stopPropagation());
+		synopsis.addEventListener("blur", () => {
+			void writeBookSynopsis(this.app, bookFolderName, synopsis.value);
+		});
+		void readBookSynopsis(this.app, bookFolderName).then((value) => {
+			if (this.closed || this.mode !== "novel") return;
+			synopsis.value = value;
+		});
+
+		const defaultPovSection = fixed.createDiv({ cls: "sf-recommend-section" });
+		this.renderDefaultPovRow(defaultPovSection, bookFolderName);
+
+		const plotLine = fixed.createDiv({ cls: "sf-book-line sf-synopsis-plot-title" });
+		setIcon(plotLine.createSpan({ cls: "sf-icon" }), ICON_TIMELINE);
+		const plotTitleRow = plotLine.createDiv({ cls: "sf-header-line sf-book-title-row" });
+		const plotTextWrap = plotTitleRow.createDiv({ cls: "sf-book-text-wrap" });
+		plotTextWrap.createSpan({ cls: "sf-header-text", text: "Plot" });
+
+		const scroll = body.createDiv({ cls: "sf-recommend-scroll" });
+		void this.renderNovelPlot(scroll, bookFolderName);
+	}
+
+	private renderNovelCover(cover: HTMLElement, bookFolderName: string): void {
+		cover.empty();
+		const coverImage = readBookFrontmatter(this.app, bookFolderName)?.coverImage ?? null;
+		const file = coverImage
+			? this.app.vault.getAbstractFileByPath(`${bookBackstagePath(bookFolderName)}/${coverImage}`)
+			: null;
+		if (file instanceof TFile) {
+			cover.addClass("has-image");
+			cover.createEl("img", { attr: { src: this.app.vault.getResourcePath(file) } });
+		} else {
+			cover.removeClass("has-image");
+		}
+	}
+
+	private pickNovelCover(cover: HTMLElement, bookFolderName: string): void {
+		const input = createEl("input", { type: "file", attr: { accept: "image/*" } });
+		input.addEventListener("change", () => {
+			const file = input.files?.[0];
+			if (!file) return;
+			if (!file.type.startsWith("image/")) {
+				new Notice("storyForge: please choose an image file for the cover.");
+				return;
+			}
+			void (async () => {
+				try {
+					const data = await file.arrayBuffer();
+					const dotIndex = file.name.lastIndexOf(".");
+					const extension =
+						dotIndex !== -1 ? file.name.slice(dotIndex + 1).toLowerCase() : file.type.split("/")[1] || "png";
+					await writeBookCoverImage(this.app, bookFolderName, data, extension);
+					this.renderNovelCover(cover, bookFolderName);
+				} catch (err) {
+					new Notice(`storyForge: could not set cover image — ${err instanceof Error ? err.message : String(err)}`);
+				}
+			})();
+		});
+		input.click();
+	}
+
+	private renderDefaultPovRow(parent: HTMLElement, bookFolderName: string): void {
+		const fm = readBookFrontmatter(this.app, bookFolderName);
+		const path = fm?.defaultPovPath ?? null;
+		const name = fm?.defaultPovName ?? null;
+		const meta = parent.createDiv({ cls: "sf-recommend-meta" });
+		const row = meta.createDiv({ cls: "sf-recommend-meta-row" });
+		row.createSpan({ cls: "sf-recommend-meta-label", text: "Default PoV:" });
+		this.renderMetaControl(row, {
+			iconId: path ? ICON_PERSON_FILL : ICON_PERSON_FILL_ADD,
+			value: path ? (name ?? path) : null,
+			tooltip: path ? "change pov character" : "set pov character",
+			onOpen: () => void this.openDefaultPovPicker(bookFolderName, !!path),
+		});
+	}
+
+	private async openDefaultPovPicker(bookFolderName: string, hasValue: boolean): Promise<void> {
+		const bookId = getBookId(this.app, bookFolderName);
+		const entries = getCodexEntriesByType(this.app, "person", bookId);
+		new CodexEntryPickerModal(
+			this.app,
+			"Set PoV",
+			"No person entries in the Codex yet.",
+			entries,
+			hasValue,
+			async (entry) => {
+				await writeDefaultPov(this.app, bookFolderName, entry.path, entry.name);
+				this.render();
+			},
+			async () => {
+				await writeDefaultPov(this.app, bookFolderName, null, null);
+				this.render();
+			},
+		).open();
+	}
+
+	private async renderNovelPlot(scroll: HTMLElement, bookFolderName: string): Promise<void> {
+		scroll.empty();
+		const { ordered } = getBookChapters(this.app, bookFolderName);
+		if (ordered.length === 0) {
+			scroll.createDiv({ cls: "sf-empty", text: "No placed chapters yet." });
+			return;
+		}
+		for (const file of ordered) {
+			const block = scroll.createDiv({ cls: "sf-recommend-plot-block" });
+			block.createDiv({
+				cls: "sf-recommend-plot-chapter-name",
+				text: numberedChapterTitle(this.app, bookFolderName, file.name),
+			});
+
+			const entry = getChapterEntry(this.app, bookFolderName, file.name);
+			const narrator = resolveChapterNarrator(
+				this.app,
+				bookFolderName,
+				file.name,
+				this.castCache.length > 0 ? this.castCache : undefined,
+			);
+			const meta = block.createDiv({ cls: "sf-recommend-meta" });
+			this.renderPlotMetaRow(
+				meta,
+				"PoV:",
+				narrator ? ICON_PERSON_FILL : ICON_PERSON_FILL_ADD,
+				narrator?.name ?? null,
+				!!narrator,
+				() => void this.openNovelChapterPovPicker(bookFolderName, file.name, !!narrator),
+				narrator ? "change pov character" : "set pov character",
+			);
+			this.renderPlotMetaRow(
+				meta,
+				"Location:",
+				entry?.locationPath ? ICON_MAP_PIN : ICON_MAP_PIN_PLUS,
+				entry?.locationName ?? entry?.locationPath ?? null,
+				!!entry?.locationPath,
+				() => void this.openNovelChapterLocationPicker(bookFolderName, file.name, !!entry?.locationPath),
+				entry?.locationPath ? "change location" : "set location",
+			);
+
+			const textarea = block.createEl("textarea", {
+				cls: "sf-recommend-synopsis sf-recommend-plot-textarea",
+				attr: { "aria-label": `Plot notes for ${file.name}` },
+			});
+			textarea.addEventListener("pointerdown", (e) => e.stopPropagation());
+			textarea.addEventListener("blur", () => {
+				void writeChapterPlot(this.app, bookFolderName, file.name, textarea.value);
+			});
+			const plot = await readChapterPlot(this.app, bookFolderName, file.name);
+			if (this.closed || this.mode !== "novel") return;
+			textarea.value = plot;
+		}
+	}
+
+	private renderPlotMetaRow(
+		parent: HTMLElement,
+		label: string,
+		iconId: string,
+		value: string | null,
+		hasValue: boolean,
+		onOpen: () => void,
+		tooltip: string,
+	): void {
+		const row = parent.createDiv({ cls: "sf-recommend-meta-row" });
+		row.createSpan({ cls: "sf-recommend-meta-label", text: label });
+		this.renderMetaControl(row, {
+			iconId,
+			value: hasValue ? value : null,
+			tooltip,
+			onOpen,
+		});
+	}
+
+	private async openNovelChapterPovPicker(
+		bookFolderName: string,
+		filename: string,
+		hasValue: boolean,
+	): Promise<void> {
+		const bookId = getBookId(this.app, bookFolderName);
+		const entries = getCodexEntriesByType(this.app, "person", bookId);
+		new CodexEntryPickerModal(
+			this.app,
+			"Set PoV",
+			"No person entries in the Codex yet.",
+			entries,
+			hasValue,
+			async (entry) => {
+				await writeChapterPov(this.app, bookFolderName, filename, entry.path, entry.name);
+				this.render();
+			},
+			async () => {
+				await writeChapterPov(this.app, bookFolderName, filename, null, null);
+				this.render();
+			},
+		).open();
+	}
+
+	private async openNovelChapterLocationPicker(
+		bookFolderName: string,
+		filename: string,
+		hasValue: boolean,
+	): Promise<void> {
+		const bookId = getBookId(this.app, bookFolderName);
+		const entries = getCodexEntriesByType(this.app, "place", bookId);
+		new CodexEntryPickerModal(
+			this.app,
+			"Set location",
+			"No place entries in the Codex yet.",
+			entries,
+			hasValue,
+			async (entry) => {
+				await writeChapterLocation(this.app, bookFolderName, filename, entry.path, entry.name);
+				this.render();
+			},
+			async () => {
+				await writeChapterLocation(this.app, bookFolderName, filename, null, null);
+				this.render();
+			},
+		).open();
 	}
 
 	private renderChapter(el: HTMLElement): void {
@@ -367,16 +634,15 @@ export class RecommendationView extends ItemView {
 		});
 		makeAccessibleActivatable(refreshBtn, () => void this.forceRefresh());
 
-		this.renderNarratingLabel(fixed);
-
 		if (!this.report) {
+			this.renderNarratingLabel(fixed);
 			body.addClass("sf-recommend-body--scroll");
 			body.createDiv({ cls: "sf-empty", text: "Nothing here yet." });
 			return;
 		}
 
 		const synSection = fixed.createDiv({ cls: "sf-recommend-section" });
-		synSection.createDiv({ cls: "sf-recommend-section-title", text: "Synopsis" });
+		synSection.createDiv({ cls: "sf-recommend-section-title", text: "Chapter summary" });
 		const textarea = synSection.createEl("textarea", { cls: "sf-recommend-synopsis" });
 		textarea.value = this.synopsisDraft;
 		textarea.addEventListener("input", () => {
@@ -395,12 +661,10 @@ export class RecommendationView extends ItemView {
 		const persons = report.matched.filter((m) => m.type === "person");
 		const others = report.matched.filter((m) => m.type !== "person");
 
-		const viewpointSection = fixed.createDiv({ cls: "sf-recommend-section" });
-		viewpointSection.createDiv({ cls: "sf-recommend-section-title", text: "Viewpoint character" });
-
-		this.renderMatchList(fixed, "Characters in chapter", persons);
+		this.renderNarratingLabel(synSection);
 
 		const scroll = body.createDiv({ cls: "sf-recommend-scroll" });
+		this.renderMatchList(scroll, "Characters in chapter", persons);
 		this.renderMatchList(scroll, "Other Codex references", others);
 		this.renderUnknownList(scroll, report);
 		this.renderDetailHits(scroll, report);
@@ -604,7 +868,6 @@ export class RecommendationView extends ItemView {
 		}
 
 		const fixed = body.createDiv({ cls: "sf-recommend-fixed" });
-		this.renderNarratingLabel(fixed);
 		const combo = fixed.createDiv({ cls: "sf-recommend-dossier-combo" });
 		const input = combo.createEl("input", {
 			cls: "sf-recommend-dossier-search",
@@ -754,35 +1017,64 @@ export class RecommendationView extends ItemView {
 		this.dossierBuilding = false;
 	}
 
-	/** Persistent narrator label — one tap opens the existing Set PoV picker. */
+	/**
+	 * Chapter PoV + Location rows — plain `Label: [icon] Name`.
+	 * Icon and name are one control (shared hover / click / tooltip).
+	 */
 	private renderNarratingLabel(parent: HTMLElement): void {
 		if (!this.bookFolderName || !this.chapterFilename) return;
+		const bookFolderName = this.bookFolderName;
+		const chapterFilename = this.chapterFilename;
 		const narrator = resolveChapterNarrator(
 			this.app,
-			this.bookFolderName,
-			this.chapterFilename,
+			bookFolderName,
+			chapterFilename,
 			this.castCache.length > 0 ? this.castCache : undefined,
 		);
-		const row = parent.createDiv({ cls: "sf-recommend-narrating" });
-		const btn = row.createSpan({
-			cls: "sf-recommend-narrating-btn",
-			attr: {
-				role: "button",
-				tabindex: "0",
-				"aria-label": narrator ? `Narrating: ${narrator.name}. Change PoV` : "Set narrator PoV",
-			},
+		const chapter = getChapterEntry(this.app, bookFolderName, chapterFilename);
+		const locationPath = chapter?.locationPath ?? null;
+		const locationName = chapter?.locationName ?? null;
+
+		const meta = parent.createDiv({ cls: "sf-recommend-meta" });
+
+		const povRow = meta.createDiv({ cls: "sf-recommend-meta-row" });
+		povRow.createSpan({ cls: "sf-recommend-meta-label", text: "PoV:" });
+		this.renderMetaControl(povRow, {
+			iconId: narrator ? ICON_PERSON_FILL : ICON_PERSON_FILL_ADD,
+			value: narrator?.name ?? null,
+			tooltip: narrator ? "change pov character" : "set pov character",
+			onOpen: () => void this.openNarratorPicker(!!narrator),
 		});
-		setIcon(btn.createSpan({ cls: "sf-icon" }), narrator ? ICON_PERSON_FILL : ICON_PERSON_FILL_ADD);
-		btn.createSpan({
-			cls: "sf-recommend-narrating-label",
-			text: narrator ? `Narrating: ${narrator.name}` : "Narrating: unset",
+
+		const locRow = meta.createDiv({ cls: "sf-recommend-meta-row" });
+		locRow.createSpan({ cls: "sf-recommend-meta-label", text: "Location:" });
+		this.renderMetaControl(locRow, {
+			iconId: locationPath ? ICON_MAP_PIN : ICON_MAP_PIN_PLUS,
+			value: locationPath ? (locationName ?? locationPath) : null,
+			tooltip: locationPath ? "change location" : "set location",
+			onOpen: () => void this.openLocationPicker(!!locationPath),
 		});
-		const openPicker = () => void this.openNarratorPicker(!!narrator);
-		btn.addEventListener("click", (e) => {
+	}
+
+	/** Icon (+ optional name) as a single interactive control. */
+	private renderMetaControl(
+		row: HTMLElement,
+		opts: { iconId: string; value: string | null; tooltip: string; onOpen: () => void },
+	): void {
+		const control = row.createSpan({
+			cls: "sf-recommend-meta-control",
+			attr: { role: "button", tabindex: "0", "aria-label": opts.tooltip },
+		});
+		setTooltip(control, opts.tooltip);
+		setIcon(control.createSpan({ cls: "sf-recommend-meta-icon" }), opts.iconId);
+		if (opts.value) {
+			control.createSpan({ cls: "sf-recommend-meta-value", text: opts.value });
+		}
+		control.addEventListener("click", (e) => {
 			e.stopPropagation();
-			openPicker();
+			opts.onOpen();
 		});
-		makeAccessibleActivatable(btn, openPicker);
+		makeAccessibleActivatable(control, opts.onOpen);
 	}
 
 	private async openNarratorPicker(hasValue: boolean): Promise<void> {
@@ -803,6 +1095,29 @@ export class RecommendationView extends ItemView {
 			},
 			async () => {
 				await writeChapterPov(this.app, bookFolderName, chapterFilename, null, null);
+				await this.forceRefresh();
+			},
+		).open();
+	}
+
+	private async openLocationPicker(hasValue: boolean): Promise<void> {
+		if (!this.bookFolderName || !this.chapterFilename) return;
+		const bookFolderName = this.bookFolderName;
+		const chapterFilename = this.chapterFilename;
+		const bookId = getBookId(this.app, bookFolderName);
+		const entries = getCodexEntriesByType(this.app, "place", bookId);
+		new CodexEntryPickerModal(
+			this.app,
+			"Set location",
+			"No place entries in the Codex yet.",
+			entries,
+			hasValue,
+			async (entry) => {
+				await writeChapterLocation(this.app, bookFolderName, chapterFilename, entry.path, entry.name);
+				await this.forceRefresh();
+			},
+			async () => {
+				await writeChapterLocation(this.app, bookFolderName, chapterFilename, null, null);
 				await this.forceRefresh();
 			},
 		).open();

@@ -10,11 +10,15 @@ export async function activateRightRailView(
 	afterReveal?: (leaf: WorkspaceLeaf) => void | Promise<void>,
 ): Promise<WorkspaceLeaf | null> {
 	const { workspace } = plugin.app;
-	let leaf: WorkspaceLeaf | null = workspace.getLeavesOfType(viewType)[0] ?? null;
-	if (!leaf) {
-		leaf = workspace.getRightLeaf(false);
-		await leaf?.setViewState({ type: viewType, active: true });
-	}
+	// Drop extras first — getRightLeaf(false) always inserts a new tab.
+	const existing = workspace.getLeavesOfType(viewType);
+	for (let i = 1; i < existing.length; i++) existing[i].detach();
+
+	const leaf = await workspace.ensureSideLeaf(viewType, "right", {
+		active: true,
+		reveal: false,
+		split: false,
+	});
 	if (!leaf) return null;
 
 	const split = workspace.rightSplit;

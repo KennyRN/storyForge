@@ -27,6 +27,10 @@ export const ICON_PERSON_FILL_ADD = "sf-person-fill-add";
 export const ICON_PERSON_2_FILL = "sf-person-2-fill";
 export const ICON_MAP_PIN = "sf-map-pin";
 export const ICON_MAP_PIN_PLUS = "sf-map-pin-plus";
+export const ICON_FORGE = "sf-hammer-anvil";
+export const ICON_FILE_PLUS = "sf-file-plus";
+export const ICON_EYE = "sf-eye";
+export const ICON_MULTIPLY_SQUARE = "sf-multiply-square";
 
 const INBOX_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><g fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.75 12H6a2 2 0 0 1 2 2a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2a2 2 0 0 1 2-2h3.25" /><path d="M15.25 2.75h-6.5a6 6 0 0 0-6 6v6.5a6 6 0 0 0 6 6h6.5a6 6 0 0 0 6-6v-6.5a6 6 0 0 0-6-6Z" /></g></svg>`;
 
@@ -82,6 +86,18 @@ const HIDE_UI_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
 
 const PROTECTIONS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 2l7 4v5c0 5.5-3.8 10-7 12-3.2-2-7-6.5-7-12V6l7-4z"/></svg>`;
 
+/** IconPark two-tone Hammer And Anvil — fill tone via opacity, stroke via currentColor. */
+const HAMMER_ANVIL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><g fill="currentColor" fill-opacity="0.25" stroke="none"><path d="M6 14C6 4 14 4 14 4v20H6z"/><rect width="28" height="6" x="14" y="10"/><path d="M6 30h36s0 8-6 8h-7l2 6H13l2-6H6z"/></g><path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="4" d="M6 14C6 4 14 4 14 4v20H6zm8-4h28v6H14zM6 30h36s0 8-6 8h-7l2 6H13l2-6H6z"/></svg>`;
+
+/** Mage Icons — file with plus (add synopsis to chapter plot). */
+const FILE_PLUS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path stroke-linejoin="round" d="M14.186 2.753v3.596c0 .487.194.955.54 1.3a1.85 1.85 0 0 0 1.306.539h4.125"/><path stroke-linejoin="round" d="M20.25 8.568v8.568a4.25 4.25 0 0 1-1.362 2.97a4.28 4.28 0 0 1-3.072 1.14h-7.59a4.3 4.3 0 0 1-3.1-1.124a4.26 4.26 0 0 1-1.376-2.986V6.862a4.25 4.25 0 0 1 1.362-2.97a4.28 4.28 0 0 1 3.072-1.14h5.714a3.5 3.5 0 0 1 2.361.905l2.96 2.722a2.97 2.97 0 0 1 1.031 2.189"/><path stroke-miterlimit="10" d="M11.57 10.424v7.116m-3.55-3.55h7.117"/></g></svg>`;
+
+/** Mono Icons — eye (open chapter in editor). */
+const EYE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><g fill="currentColor"><path d="M15 12a3 3 0 1 1-6 0a3 3 0 0 1 6 0"/><path d="M21.894 11.553C19.736 7.236 15.904 5 12 5s-7.736 2.236-9.894 6.553a1 1 0 0 0 0 .894C4.264 16.764 8.096 19 12 19s7.736-2.236 9.894-6.553a1 1 0 0 0 0-.894M12 17c-2.969 0-6.002-1.62-7.87-5C5.998 8.62 9.03 7 12 7s6.002 1.62 7.87 5c-1.868 3.38-4.901 5-7.87 5"/></g></svg>`;
+
+/** Mage Icons — multiply in rounded square (clear dossier entity). */
+const MULTIPLY_SQUARE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><g fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="m15.854 8.146l-7.708 7.708m7.708 0L8.146 8.146"/><rect width="18.5" height="18.5" x="2.75" y="2.75" rx="6"/></g></svg>`;
+
 /** Registers storyForge's custom Lucide-style icons so `setIcon` can address them by id. */
 export function registerCustomIcons(): void {
 	addIcon(ICON_UNPLACED, INBOX_SVG);
@@ -111,4 +127,8 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_PERSON_2_FILL, PERSON_2_FILL_SVG);
 	addIcon(ICON_MAP_PIN, MAP_PIN_SVG);
 	addIcon(ICON_MAP_PIN_PLUS, MAP_PIN_PLUS_SVG);
+	addIcon(ICON_FORGE, HAMMER_ANVIL_SVG);
+	addIcon(ICON_FILE_PLUS, FILE_PLUS_SVG);
+	addIcon(ICON_EYE, EYE_SVG);
+	addIcon(ICON_MULTIPLY_SQUARE, MULTIPLY_SQUARE_SVG);
 }

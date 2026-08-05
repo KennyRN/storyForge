@@ -7,17 +7,17 @@ export interface RightRailOrderEntry {
 	orderHint: number;
 }
 
-/** Spacer → Story Context → registered (by orderHint) → Archive. */
+/** Spacer → Story Context → Forge → registered (by orderHint). Archive lives inside Story Context. */
 export function buildRightRailTypeOrder(
 	spacer: string,
 	storyContext: string,
-	archive: string,
+	forge: string,
 	registered: RightRailOrderEntry[],
 ): string[] {
 	const mid = [...registered]
 		.sort((a, b) => a.orderHint - b.orderHint || a.viewType.localeCompare(b.viewType))
 		.map((r) => r.viewType);
-	return [spacer, storyContext, ...mid, archive];
+	return [spacer, storyContext, forge, ...mid];
 }
 
 /** Missing tabs OK; relative order of present expected types must match. */

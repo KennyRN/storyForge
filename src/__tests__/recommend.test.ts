@@ -359,6 +359,24 @@ describe("first-person narrator attribution", () => {
 		});
 		expect(report.hits.filter((h) => h.entityPath === narrator.path)).toHaveLength(0);
 	});
+
+	it("lists the PoV in matched even when their name never appears", async () => {
+		await ensureNlp();
+		const prose = "I ran towards London.";
+		const report = await analyzeChapter(prose, [narrator, other], {
+			chapterFilename: "ch1.md",
+			existingPlot: "",
+			includeUnknownNames: false,
+			narrator: narratorOpt,
+			dialogueQuotes: "double",
+		});
+		expect(report.matched.find((m) => m.path === narrator.path)).toMatchObject({
+			name: "Alex",
+			type: "person",
+			matchedAs: ["PoV"],
+		});
+		expect(report.matched.find((m) => m.path === other.path)).toBeUndefined();
+	});
 });
 
 describe("lenses registry", () => {

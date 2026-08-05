@@ -123,26 +123,37 @@ export interface StyleModalTab {
 /** Builds the tab bar + body-visibility wiring shared by TextStyleModal,
  * UiFormattingModal, and ProtectionsModal — identical in all three before
  * this extraction. */
-export function renderTabbedBody(contentEl: HTMLElement, tabs: StyleModalTab[]): void {
+export function renderTabbedBody(
+	contentEl: HTMLElement,
+	tabs: StyleModalTab[],
+	options?: { onActivate?: (id: string) => void },
+): void {
 	const tabBar = contentEl.createDiv({ cls: "sf-text-style-tab-bar" });
 	const tabBodyWrapper = contentEl.createDiv({ cls: "sf-text-style-tab-body-wrapper" });
 
 	const tabBodies: HTMLElement[] = [];
 	let activeTabId = tabs[0].id;
 
+	const activate = (id: string) => {
+		activeTabId = id;
+		tabBar.querySelectorAll(".sf-text-style-tab-btn").forEach((btn) => btn.removeClass("is-active"));
+		tabBodies.forEach((body, i) => {
+			const isActive = tabs[i].id === activeTabId;
+			body.toggleClass("sf-settings-hidden", !isActive);
+			if (isActive) {
+				const btn = tabBar.children[i] as HTMLElement | undefined;
+				btn?.addClass("is-active");
+			}
+		});
+		options?.onActivate?.(id);
+	};
+
 	tabs.forEach((tab) => {
 		const tabBtn = tabBar.createEl("button", { cls: "sf-text-style-tab-btn", text: tab.label });
 		if (tab.id === activeTabId) {
 			tabBtn.addClass("is-active");
 		}
-		tabBtn.addEventListener("click", () => {
-			activeTabId = tab.id;
-			tabBar.querySelectorAll(".sf-text-style-tab-btn").forEach((btn) => btn.removeClass("is-active"));
-			tabBtn.addClass("is-active");
-			tabBodies.forEach((body, i) => {
-				body.toggleClass("sf-settings-hidden", tabs[i].id !== activeTabId);
-			});
-		});
+		tabBtn.addEventListener("click", () => activate(tab.id));
 
 		const bodyEl = tabBodyWrapper.createDiv({ cls: "sf-text-style-tab-body" });
 		if (tab.id !== activeTabId) {
@@ -151,4 +162,6 @@ export function renderTabbedBody(contentEl: HTMLElement, tabs: StyleModalTab[]):
 		tab.render(bodyEl);
 		tabBodies.push(bodyEl);
 	});
+
+	options?.onActivate?.(activeTabId);
 }

@@ -9,6 +9,7 @@ import type {
 } from "../main";
 import { ConvertToSeriesModal } from "./ConvertToSeriesModal";
 import { bindColorSwatchButton, bindExclusivePair, persistAndRestyle, renderTabbedBody, type StyleModalTab } from "./styleModalHelpers";
+import { mountRightSidebarPreviewSample, mountUiStylePreviewSample } from "./uiStylePreviewSample";
 
 const EDITOR_SCROLLBAR_THICKNESS_ORDER: EditorScrollbarThickness[] = ["thin", "medium", "thick"];
 const EDITOR_SCROLLBAR_THICKNESS_LABELS = ["Thin", "Medium", "Thick"];
@@ -39,7 +40,17 @@ export class UiFormattingModal extends Modal {
 
 		const settings = this.plugin.getSettings();
 
-		const tabs: StyleModalTab[] = [
+		const layout = contentEl.createDiv({ cls: "sf-ui-format-layout" });
+		const controls = layout.createDiv({ cls: "sf-ui-format-controls" });
+		const previewPane = layout.createDiv({ cls: "sf-ui-format-preview-pane" });
+		previewPane.createDiv({ cls: "sf-ui-format-preview-label", text: "Preview" });
+		const preview = previewPane.createDiv({ cls: "sf-ui-format-preview" });
+		const leftPreview = preview.createDiv();
+		const rightPreview = preview.createDiv({ cls: "sf-settings-hidden" });
+		mountUiStylePreviewSample(leftPreview);
+		mountRightSidebarPreviewSample(rightPreview);
+
+		const panelTabs: StyleModalTab[] = [
 			{
 				id: "guides",
 				label: "Guides",
@@ -103,7 +114,43 @@ export class UiFormattingModal extends Modal {
 			},
 		];
 
-		renderTabbedBody(contentEl, tabs);
+		const rightTabs: StyleModalTab[] = [
+			{
+				id: "forge",
+				label: "Forge",
+				render: (body) => this.renderForgePanelContent(body, settings),
+			},
+			{
+				id: "story-context",
+				label: "Story Context",
+				render: (body) => this.renderRightRailPanelContent(body, settings, "recommend"),
+			},
+			{
+				id: "archive",
+				label: "Archive",
+				render: (body) => this.renderRightRailPanelContent(body, settings, "archive"),
+			},
+		];
+
+		const outerTabs: StyleModalTab[] = [
+			{
+				id: "storyforge-panel",
+				label: "storyForge panel",
+				render: (body) => renderTabbedBody(body, panelTabs),
+			},
+			{
+				id: "right-sidebar",
+				label: "Right sidebar",
+				render: (body) => renderTabbedBody(body, rightTabs),
+			},
+		];
+
+		renderTabbedBody(controls, outerTabs, {
+			onActivate: (id) => {
+				leftPreview.toggleClass("sf-settings-hidden", id !== "storyforge-panel");
+				rightPreview.toggleClass("sf-settings-hidden", id !== "right-sidebar");
+			},
+		});
 	}
 
 	private renderEditorScrollbarGroup(body: HTMLElement, settings: StoryForgePluginSettings): void {
@@ -160,11 +207,15 @@ export class UiFormattingModal extends Modal {
 		body: HTMLElement,
 		settings: StoryForgePluginSettings,
 		config: {
-			sizeKey: "unplacedFontSize" | "codexFontSize";
-			colorKey: "unplacedColor" | "codexColor";
-			mutedKey: "unplacedMuted" | "codexMuted";
-			smallCapsKey: "unplacedSmallCaps" | "codexSmallCaps";
-			useHeaderColorForAllKey: "unplacedUseHeaderColorForAll" | "codexUseHeaderColorForAll";
+			sizeKey: "unplacedFontSize" | "codexFontSize" | "recommendHeaderFontSize" | "archiveHeaderFontSize";
+			colorKey: "unplacedColor" | "codexColor" | "recommendHeaderColor" | "archiveHeaderColor";
+			mutedKey: "unplacedMuted" | "codexMuted" | "recommendHeaderMuted" | "archiveHeaderMuted";
+			smallCapsKey: "unplacedSmallCaps" | "codexSmallCaps" | "recommendHeaderSmallCaps" | "archiveHeaderSmallCaps";
+			useHeaderColorForAllKey:
+				| "unplacedUseHeaderColorForAll"
+				| "codexUseHeaderColorForAll"
+				| "recommendUseHeaderColorForAll"
+				| "archiveUseHeaderColorForAll";
 			restyle: () => void;
 		},
 	): ToggleComponent {
@@ -730,6 +781,209 @@ export class UiFormattingModal extends Modal {
 			this.plugin.applyCodexFolderStyle();
 			this.plugin.applyHighlightStyle();
 		});
+	}
+
+	private renderForgePanelContent(body: HTMLElement, settings: StoryForgePluginSettings): void {
+		const group = new SettingGroup(body);
+		group.addSetting((setting) => {
+			setting
+				.setName("Companion icon colour")
+				.setDesc("Colour of companion icons in the Forge sidebar tab.")
+				.addButton((button) => {
+					bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings.forgeCompanionIconColor, (hex) => {
+						persistAndRestyle(this.plugin, "forgeCompanionIconColor", hex, () => this.plugin.applyRightRailPanelStyles());
+					});
+				});
+		});
+	}
+
+	private renderRightRailPanelContent(
+		body: HTMLElement,
+		settings: StoryForgePluginSettings,
+		panel: "recommend" | "archive",
+	): void {
+		const restyle = () => this.plugin.applyRightRailPanelStyles();
+		const keys =
+			panel === "recommend"
+				? {
+						sizeKey: "recommendHeaderFontSize" as const,
+						colorKey: "recommendHeaderColor" as const,
+						mutedKey: "recommendHeaderMuted" as const,
+						smallCapsKey: "recommendHeaderSmallCaps" as const,
+						useHeaderColorForAllKey: "recommendUseHeaderColorForAll" as const,
+						itemsSizeKey: "recommendItemsFontSize" as const,
+						itemsColorKey: "recommendItemsColor" as const,
+						itemsMutedKey: "recommendItemsMuted" as const,
+						highlightColorKey: "recommendHighlightColor" as const,
+						highlightTextColorKey: "recommendHighlightTextColor" as const,
+						itemsLabel: "Story Context items",
+					}
+				: {
+						sizeKey: "archiveHeaderFontSize" as const,
+						colorKey: "archiveHeaderColor" as const,
+						mutedKey: "archiveHeaderMuted" as const,
+						smallCapsKey: "archiveHeaderSmallCaps" as const,
+						useHeaderColorForAllKey: "archiveUseHeaderColorForAll" as const,
+						itemsSizeKey: "archiveItemsFontSize" as const,
+						itemsColorKey: "archiveItemsColor" as const,
+						itemsMutedKey: "archiveItemsMuted" as const,
+						highlightColorKey: "archiveHighlightColor" as const,
+						highlightTextColorKey: "archiveHighlightTextColor" as const,
+						itemsLabel: "Archive items",
+					};
+
+		const useHeaderColorToggle = this.renderHeaderStyleGroup(body, settings, {
+			sizeKey: keys.sizeKey,
+			colorKey: keys.colorKey,
+			mutedKey: keys.mutedKey,
+			smallCapsKey: keys.smallCapsKey,
+			useHeaderColorForAllKey: keys.useHeaderColorForAllKey,
+			restyle,
+		});
+
+		if (panel === "recommend") {
+			const headingGroup = new SettingGroup(body);
+			headingGroup
+				.addSetting((setting) => {
+					setting
+						.setName("Tabs size")
+						.setDesc("Size of the Chapter / Dossier tab labels.")
+						.addSlider((slider) =>
+							slider
+								.setLimits(0.5, 1.5, 0.1)
+								.setValue(settings.recommendTabsFontSize)
+								.onChange((value) => persistAndRestyle(this.plugin, "recommendTabsFontSize", value, restyle)),
+						);
+				})
+				.addSetting((setting) => {
+					setting
+						.setName("Chapter title size")
+						.setDesc("Size of the chapter heading under the panel header.")
+						.addSlider((slider) =>
+							slider
+								.setLimits(0.5, 1.5, 0.1)
+								.setValue(settings.recommendChapterTitleFontSize)
+								.onChange((value) => persistAndRestyle(this.plugin, "recommendChapterTitleFontSize", value, restyle)),
+						);
+				})
+				.addSetting((setting) => {
+					setting
+						.setName("Dossier search size")
+						.setDesc("Size of the Dossier search field (styled as a header).")
+						.addSlider((slider) =>
+							slider
+								.setLimits(0.5, 2, 0.1)
+								.setValue(settings.recommendDossierHeaderFontSize)
+								.onChange((value) => persistAndRestyle(this.plugin, "recommendDossierHeaderFontSize", value, restyle)),
+						);
+				})
+				.addSetting((setting) => {
+					setting
+						.setName("Section title size")
+						.setDesc("Size of section labels (Synopsis, Cast, entity group names, …).")
+						.addSlider((slider) =>
+							slider
+								.setLimits(0.5, 1.5, 0.1)
+								.setValue(settings.recommendSectionTitleFontSize)
+								.onChange((value) => persistAndRestyle(this.plugin, "recommendSectionTitleFontSize", value, restyle)),
+						);
+				})
+				.addSetting((setting) => {
+					setting
+						.setName("Details size")
+						.setDesc("Size of hit cards and detail text.")
+						.addSlider((slider) =>
+							slider
+								.setLimits(0.5, 1.5, 0.1)
+								.setValue(settings.recommendDetailsFontSize)
+								.onChange((value) => persistAndRestyle(this.plugin, "recommendDetailsFontSize", value, restyle)),
+						);
+				})
+				.addSetting((setting) => {
+					setting
+						.setName("Synopsis size")
+						.setDesc("Size of the synopsis textarea.")
+						.addSlider((slider) =>
+							slider
+								.setLimits(0.5, 1.5, 0.1)
+								.setValue(settings.recommendSynopsisFontSize)
+								.onChange((value) => persistAndRestyle(this.plugin, "recommendSynopsisFontSize", value, restyle)),
+						);
+				});
+		}
+
+		const itemsGroup = new SettingGroup(body);
+		let itemsColourSetting!: Setting;
+		itemsGroup
+			.addSetting((setting) => {
+				setting
+					.setName(keys.itemsLabel)
+					.setDesc("Text size of list items, from 0.5em to 1.5em.")
+					.addSlider((slider) =>
+						slider
+							.setLimits(0.5, 1.5, 0.1)
+							.setValue(settings[keys.itemsSizeKey])
+							.onChange((value) => persistAndRestyle(this.plugin, keys.itemsSizeKey, value, restyle)),
+					);
+			})
+			.addSetting((setting) => {
+				itemsColourSetting = setting;
+				setting
+					.setName(`${keys.itemsLabel} colour`)
+					.addButton((button) =>
+						bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings[keys.itemsColorKey], (hex) => {
+							void this.plugin.updateSetting(keys.itemsColorKey, hex).then(() => restyle());
+						}),
+					);
+			})
+			.addSetting((setting) => {
+				setting
+					.setName("Muted")
+					.setDesc("override colour with muted colour")
+					.addToggle((toggle) =>
+						toggle
+							.setValue(settings[keys.itemsMutedKey])
+							.onChange((value) => persistAndRestyle(this.plugin, keys.itemsMutedKey, value, restyle)),
+					);
+			});
+
+		let highlightColourSetting: Setting | null = null;
+		if (panel === "archive") {
+			const highlightGroup = new SettingGroup(body);
+			highlightGroup
+				.addSetting((setting) => {
+					highlightColourSetting = setting;
+					setting
+						.setName("Highlight colour")
+						.setDesc("Background colour for the selected item.")
+						.addButton((button) =>
+							bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings[keys.highlightColorKey], (hex) => {
+								void this.plugin.updateSetting(keys.highlightColorKey, hex).then(() => restyle());
+							}),
+						);
+				})
+				.addSetting((setting) => {
+					setting
+						.setName("Highlight text colour")
+						.addButton((button) =>
+							bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings[keys.highlightTextColorKey], (hex) => {
+								void this.plugin.updateSetting(keys.highlightTextColorKey, hex).then(() => restyle());
+							}),
+						);
+				});
+		}
+
+		const applyUseHeaderColorVisibility = (hidden: boolean) => {
+			itemsColourSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+			highlightColourSetting?.settingEl.toggleClass("sf-settings-hidden", hidden);
+		};
+		useHeaderColorToggle.onChange((value) => {
+			void this.plugin.updateSetting(keys.useHeaderColorForAllKey, value).then(() => {
+				applyUseHeaderColorVisibility(value);
+				restyle();
+			});
+		});
+		applyUseHeaderColorVisibility(settings[keys.useHeaderColorForAllKey]);
 	}
 
 	private renderSeriesPaneContent(body: HTMLElement, settings: StoryForgePluginSettings): void {

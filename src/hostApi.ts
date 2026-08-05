@@ -13,6 +13,10 @@
  * (also mirrored on `api.formatting`). Known slots:
  * - `"spacer"` — blank right-rail Spacer tab (bottom dock for sibling icons)
  * - `"storyforge-panel"` — storyForge left panel (reserved / future)
+ *
+ * Companion panels (version >= 3): `api.registerCompanionPanel({ id, icon, label, renderPanel })`
+ * mounts into the Forge right-rail tab (hammer-and-anvil). Prefer this over Spacer for
+ * modal-style sibling UIs (e.g. nameForge).
  */
 
 import type { App, ViewCreator } from "obsidian";
@@ -39,8 +43,8 @@ import {
 import type { PaletteColor } from "./colorPalettes";
 import { PALETTE_NAMES } from "./colorPalettes";
 
-/** Bumped to 2 when `formatting` was added for formatForge. */
-export const STORYFORGE_API_VERSION = 2 as const;
+/** Bumped to 3 when Forge companion panels (`registerCompanionPanel`) were added. */
+export const STORYFORGE_API_VERSION = 3 as const;
 
 export interface CodexWriteException {
 	pluginId: string;
@@ -62,6 +66,15 @@ export interface StoryForgeViewContribution {
 	slot: string;
 	orderHint: number;
 	render: (containerEl: HTMLElement) => () => void;
+}
+
+/** Sibling panel hosted in the Forge right-rail tab. */
+export interface StoryForgeCompanionPanel {
+	id: string;
+	orderHint: number;
+	icon: string;
+	label: string;
+	renderPanel: (containerEl: HTMLElement) => () => void;
 }
 
 export interface StoryForgeHostApi {
@@ -120,6 +133,18 @@ export interface StoryForgeHostApi {
 		slot: string;
 		orderHint?: number;
 		render: (containerEl: HTMLElement) => () => void;
+	}): () => void;
+	/**
+	 * Register a companion panel on the Forge right-rail tab (version >= 3).
+	 * `icon` is an Obsidian icon id the sibling has already registered; `renderPanel`
+	 * mounts sidebar UI (no Modal chrome) and must return a disposer.
+	 */
+	registerCompanionPanel(opt: {
+		id: string;
+		orderHint?: number;
+		icon: string;
+		label: string;
+		renderPanel: (containerEl: HTMLElement) => () => void;
 	}): () => void;
 }
 
@@ -271,6 +296,77 @@ const LINKED_SETTING_VALIDATORS: Record<SfLinkedFormattingKey, ValuePredicate> =
 	editorScrollbarThumbColor: isColorString,
 	editorScrollbarTrackColor: isColorString,
 	editorScrollbarThickness: isOneOf(...EDITOR_SCROLLBAR_THICKNESSES),
+	forgeCompanionIconColor: isColorString,
+	recommendHeaderFontSize: isFiniteNumber,
+	recommendHeaderOverrideFont: isBoolean,
+	recommendHeaderFontFamily: isString,
+	recommendHeaderFontWeight: isOneOf(...FONT_WEIGHTS),
+	recommendHeaderColor: isColorString,
+	recommendHeaderMuted: isBoolean,
+	recommendHeaderSmallCaps: isBoolean,
+	recommendTabsFontSize: isFiniteNumber,
+	recommendTabsOverrideFont: isBoolean,
+	recommendTabsFontFamily: isString,
+	recommendTabsFontWeight: isOneOf(...FONT_WEIGHTS),
+	recommendTabsColor: isColorString,
+	recommendTabsActiveColor: isColorString,
+	recommendChapterTitleFontSize: isFiniteNumber,
+	recommendChapterTitleOverrideFont: isBoolean,
+	recommendChapterTitleFontFamily: isString,
+	recommendChapterTitleFontWeight: isOneOf(...FONT_WEIGHTS),
+	recommendChapterTitleColor: isColorString,
+	recommendChapterTitleMuted: isBoolean,
+	recommendChapterTitleSmallCaps: isBoolean,
+	recommendDossierHeaderFontSize: isFiniteNumber,
+	recommendDossierHeaderOverrideFont: isBoolean,
+	recommendDossierHeaderFontFamily: isString,
+	recommendDossierHeaderFontWeight: isOneOf(...FONT_WEIGHTS),
+	recommendDossierHeaderColor: isColorString,
+	recommendDossierHeaderMuted: isBoolean,
+	recommendDossierHeaderSmallCaps: isBoolean,
+	recommendSectionTitleFontSize: isFiniteNumber,
+	recommendSectionTitleOverrideFont: isBoolean,
+	recommendSectionTitleFontFamily: isString,
+	recommendSectionTitleFontWeight: isOneOf(...FONT_WEIGHTS),
+	recommendSectionTitleColor: isColorString,
+	recommendSectionTitleMuted: isBoolean,
+	recommendSectionTitleSmallCaps: isBoolean,
+	recommendItemsFontSize: isFiniteNumber,
+	recommendItemsOverrideFont: isBoolean,
+	recommendItemsFontFamily: isString,
+	recommendItemsFontWeight: isOneOf(...FONT_WEIGHTS),
+	recommendItemsColor: isColorString,
+	recommendItemsMuted: isBoolean,
+	recommendDetailsFontSize: isFiniteNumber,
+	recommendDetailsOverrideFont: isBoolean,
+	recommendDetailsFontFamily: isString,
+	recommendDetailsFontWeight: isOneOf(...FONT_WEIGHTS),
+	recommendDetailsColor: isColorString,
+	recommendDetailsMuted: isBoolean,
+	recommendSynopsisFontSize: isFiniteNumber,
+	recommendSynopsisOverrideFont: isBoolean,
+	recommendSynopsisFontFamily: isString,
+	recommendSynopsisFontWeight: isOneOf(...FONT_WEIGHTS),
+	recommendSynopsisColor: isColorString,
+	recommendHighlightColor: isColorString,
+	recommendHighlightTextColor: isColorString,
+	recommendUseHeaderColorForAll: isBoolean,
+	archiveHeaderFontSize: isFiniteNumber,
+	archiveHeaderOverrideFont: isBoolean,
+	archiveHeaderFontFamily: isString,
+	archiveHeaderFontWeight: isOneOf(...FONT_WEIGHTS),
+	archiveHeaderColor: isColorString,
+	archiveHeaderMuted: isBoolean,
+	archiveHeaderSmallCaps: isBoolean,
+	archiveItemsFontSize: isFiniteNumber,
+	archiveItemsOverrideFont: isBoolean,
+	archiveItemsFontFamily: isString,
+	archiveItemsFontWeight: isOneOf(...FONT_WEIGHTS),
+	archiveItemsColor: isColorString,
+	archiveItemsMuted: isBoolean,
+	archiveHighlightColor: isColorString,
+	archiveHighlightTextColor: isColorString,
+	archiveUseHeaderColorForAll: isBoolean,
 };
 
 const LINKED_FORMATTING_KEYS = [
@@ -367,6 +463,77 @@ const LINKED_FORMATTING_KEYS = [
 	"editorScrollbarThumbColor",
 	"editorScrollbarTrackColor",
 	"editorScrollbarThickness",
+	"forgeCompanionIconColor",
+	"recommendHeaderFontSize",
+	"recommendHeaderOverrideFont",
+	"recommendHeaderFontFamily",
+	"recommendHeaderFontWeight",
+	"recommendHeaderColor",
+	"recommendHeaderMuted",
+	"recommendHeaderSmallCaps",
+	"recommendTabsFontSize",
+	"recommendTabsOverrideFont",
+	"recommendTabsFontFamily",
+	"recommendTabsFontWeight",
+	"recommendTabsColor",
+	"recommendTabsActiveColor",
+	"recommendChapterTitleFontSize",
+	"recommendChapterTitleOverrideFont",
+	"recommendChapterTitleFontFamily",
+	"recommendChapterTitleFontWeight",
+	"recommendChapterTitleColor",
+	"recommendChapterTitleMuted",
+	"recommendChapterTitleSmallCaps",
+	"recommendDossierHeaderFontSize",
+	"recommendDossierHeaderOverrideFont",
+	"recommendDossierHeaderFontFamily",
+	"recommendDossierHeaderFontWeight",
+	"recommendDossierHeaderColor",
+	"recommendDossierHeaderMuted",
+	"recommendDossierHeaderSmallCaps",
+	"recommendSectionTitleFontSize",
+	"recommendSectionTitleOverrideFont",
+	"recommendSectionTitleFontFamily",
+	"recommendSectionTitleFontWeight",
+	"recommendSectionTitleColor",
+	"recommendSectionTitleMuted",
+	"recommendSectionTitleSmallCaps",
+	"recommendItemsFontSize",
+	"recommendItemsOverrideFont",
+	"recommendItemsFontFamily",
+	"recommendItemsFontWeight",
+	"recommendItemsColor",
+	"recommendItemsMuted",
+	"recommendDetailsFontSize",
+	"recommendDetailsOverrideFont",
+	"recommendDetailsFontFamily",
+	"recommendDetailsFontWeight",
+	"recommendDetailsColor",
+	"recommendDetailsMuted",
+	"recommendSynopsisFontSize",
+	"recommendSynopsisOverrideFont",
+	"recommendSynopsisFontFamily",
+	"recommendSynopsisFontWeight",
+	"recommendSynopsisColor",
+	"recommendHighlightColor",
+	"recommendHighlightTextColor",
+	"recommendUseHeaderColorForAll",
+	"archiveHeaderFontSize",
+	"archiveHeaderOverrideFont",
+	"archiveHeaderFontFamily",
+	"archiveHeaderFontWeight",
+	"archiveHeaderColor",
+	"archiveHeaderMuted",
+	"archiveHeaderSmallCaps",
+	"archiveItemsFontSize",
+	"archiveItemsOverrideFont",
+	"archiveItemsFontFamily",
+	"archiveItemsFontWeight",
+	"archiveItemsColor",
+	"archiveItemsMuted",
+	"archiveHighlightColor",
+	"archiveHighlightTextColor",
+	"archiveUseHeaderColorForAll",
 ] as const;
 
 // Drift guards: fail `tsc` if the array, SfLinkedFormattingKey union, or settings keys diverge.
@@ -581,6 +748,22 @@ export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 				slot: opt.slot,
 				orderHint: opt.orderHint ?? 100,
 				render: opt.render,
+			});
+		},
+
+		registerCompanionPanel(opt) {
+			const id = opt.id.trim();
+			if (!id) throw new Error("registerCompanionPanel: id is required");
+			const icon = opt.icon.trim();
+			if (!icon) throw new Error("registerCompanionPanel: icon is required");
+			const label = opt.label.trim();
+			if (!label) throw new Error("registerCompanionPanel: label is required");
+			return plugin.registerCompanionPanel({
+				id,
+				orderHint: opt.orderHint ?? 100,
+				icon,
+				label,
+				renderPanel: opt.renderPanel,
 			});
 		},
 	};
