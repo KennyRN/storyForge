@@ -4,11 +4,10 @@ Instead it creates a folder within the vault and backs the vault up in there. Th
 
 This change does mean that it should now be able to work on mobile devices.
 
-Embedded custom fonts (and full manuscript typography) now live in the optional **formatForge** companion plugin, which talks to storyForge over host API v2 (`api.formatting`). That keeps storyForge’s bundle smaller for Obsidian Sync. (Sadly this means it's no longer a one-stop-shop but it's close enough with the advantage that formatForge can now work on other vaults for a simple-to-use theme formatting alteration plugin.)
+Embedded custom fonts (and full manuscript typography) now live in the optional **formatForge** companion plugin. The split keeps storyForge’s bundle smaller for Obsidian Sync. (Sadly this means it's no longer a one-stop-shop but it's close enough with the advantage that formatForge can now work on other vaults for a simple-to-use theme formatting alteration plugin.)
 
 # storyForge
 Storytelling plugin by volcanicMole
-(updated to 0.12.1, see What's New after What can storyForge do?)
 
 ## Why storyForge?
 I got fed up of having storytelling apps which were pretty but functionally useless, or functionally powerful, but ugly.
@@ -25,24 +24,9 @@ There's a welcome note built into the plugin which gives a more detailed breakdo
 4. codex panel to hold all your story lore notes
 5. data security features: import and export of settings, backup your story automatically, full manual backup of entire vault and plugins, and _no matter what_ storyForge only views your manuscript (after it creates it) and for your lore files it can only rename them (and create them, of course, but renaming is only done so you can use wikilinks).
 
-Basically the idea is: Obsidian + storyForge + a theme = fully functional storytelling app
+Basically the idea is: Obsidian + storyForge + (formatForge) + a theme = fully functional storytelling app
 
-One which can be enhanced by using other plugins found within the Obsidian ecosystem!
-
-## What's New in 0.12.1
-Obsidian community-plugin checker cleanup: drop forbidden injected `<style>` elements for right-rail chrome (use CSS variables + `styles.css` instead), remove unnecessary TypeScript assertions, and clear related CSS lint warnings.
-
-## What's New in 0.12.0
-Story Context’s “named but not in Codex” list is quieter and more useful: hyphenated names stay together, title-style bridges like “Cult of the Snake” are kept, and common English words / contraction junk are filtered out. From the list you can create a Codex entry (+) or ignore a suggestion (−); ignores persist per book. In the details pane, confirm with the check icon or ignore with minus.
-
-Optional **formatForge** companion support (host API v2) landed in 0.11.0 on the way here — manuscript fonts and typography live in that plugin when enabled.
-
-## What's New in 0.9.0
-I've added functionality to the right sidebar. There's 3 panels there. First is the 'dash' or 'blank' panel. This is an empty panel to give you a minimal writing space, whilst keeping the editor centred and access to the left sidebar.
-
-Second panel is the Story Context panel, this is a major change (and the first one which comes up when you open storyForge), in it you've got text analysis from your chapter shown in your sidebar. This sidebar remains visible if you leave the chapter so you can change things in your codex without losing this information.
-
-Third panel is the Archive panel, I've removed the access to archive from the storyForge panel and moved them here. I'm in two minds wether this should be always on, toggle off, or toggle on...
+One which can be enhanced by using other plugins found within the Obsidian ecosystem: especially the Forge Family of plugins!
 
 ## Starting with storyForge
 After installing, turn the plugin on, and a welcome screen pops up which asks to give the name of your series (or if you're telling a standalone novel, there's an option there to set that too).
@@ -52,6 +36,10 @@ Once you give the series name to storyForge you're brought into Obsidian proper 
 To add a novel / chapter look for the add icon on the Unplaced pane's header row.
 
 The other panel is the Tools panel. A fancy way of saying this is Obsidian's ribbon given a slight bit of fancying up (adding the titles of the buttons of the ribbon), so anything you can do in the ribbon you can do here.
+
+On the right there's more options. There's a blank tab to hide things on the right to have a more focused screen. There's also a Story Context tab which uses local dumb-code to help you with understanding what's going on within a scene or chapter. This dumb-code also produces a dossier about a codex item so you can see most, if not all, of the comments brought up about them during the story so far. There's also a novel overview with space for the cover, a synopsis, and a place to see where the chapter takes place, who is the PoV character, and what happens.
+
+Also over here, there's the Archive section. As storyForge cannot delete files within your codex or library, this is where you can have them hidden, unseen unless one day you want to go back to them. (To add files to the archive, right click on the chapter or codex lore item and select archive.)
 
 ## Privacy and vault access
 storyForge writes only inside `_sf-backstage/` (plugin state) and `_sf-backup/` (backup zips) — there's no code path anywhere in the plugin that writes to your prose, codex, or any other vault content.
