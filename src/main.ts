@@ -873,7 +873,7 @@ export default class StoryForgePlugin extends Plugin {
 	}
 
 	async updateSetting<K extends keyof StoryForgePluginSettings>(key: K, value: StoryForgePluginSettings[K]): Promise<void> {
-		await this.updateSettings({ [key]: value } as Partial<StoryForgePluginSettings>);
+		await this.updateSettings({ [key]: value });
 	}
 
 	/** Persist a validated settings patch in one save, rolling memory back on failure. */
