@@ -27,6 +27,12 @@ export interface ArchivePanelHost {
 
 /** Renders Codex / Novel tabs + archive list into `el` (no panel chrome header). */
 export function renderArchivePanel(el: HTMLElement, host: ArchivePanelHost): void {
+	renderArchiveTabs(el, host);
+	renderArchiveList(el, host);
+}
+
+/** Tab strip only — mount in a non-scrolling region so tabs stay put. */
+export function renderArchiveTabs(el: HTMLElement, host: ArchivePanelHost): void {
 	const tabs = el.createDiv({ cls: "sf-archive-view-tabs sf-archive-embedded-tabs" });
 	const codexTab = tabs.createSpan({
 		cls: `sf-archive-view-tab${host.mode === "codex" ? " is-active" : ""}`,
@@ -54,7 +60,10 @@ export function renderArchivePanel(el: HTMLElement, host: ArchivePanelHost): voi
 		host.setMode("novel");
 		host.refresh();
 	});
+}
 
+/** List for the active tab — mount in the scrolling region. */
+export function renderArchiveList(el: HTMLElement, host: ArchivePanelHost): void {
 	if (host.mode === "codex") renderCodex(el, host);
 	else renderNovel(el, host);
 }

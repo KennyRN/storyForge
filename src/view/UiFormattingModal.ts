@@ -847,7 +847,7 @@ export class UiFormattingModal extends Modal {
 				.addSetting((setting) => {
 					setting
 						.setName("Tabs size")
-						.setDesc("Size of the Chapter / Dossier tab labels.")
+						.setDesc("Size of the Novel / Chapter / Dossier tab labels.")
 						.addSlider((slider) =>
 							slider
 								.setLimits(0.5, 1.5, 0.1)
@@ -864,6 +864,39 @@ export class UiFormattingModal extends Modal {
 								.setLimits(0.5, 1.5, 0.1)
 								.setValue(settings.recommendChapterTitleFontSize)
 								.onChange((value) => persistAndRestyle(this.plugin, "recommendChapterTitleFontSize", value, restyle)),
+						);
+				})
+				.addSetting((setting) => {
+					setting
+						.setName("Novel title size")
+						.setDesc("Size of the novel title on the Novel tab.")
+						.addSlider((slider) =>
+							slider
+								.setLimits(0.5, 2, 0.1)
+								.setValue(settings.recommendNovelTitleFontSize)
+								.onChange((value) => persistAndRestyle(this.plugin, "recommendNovelTitleFontSize", value, restyle)),
+						);
+				})
+				.addSetting((setting) => {
+					setting
+						.setName("Novel subtitle size")
+						.setDesc("Size of the novel subtitle on the Novel tab.")
+						.addSlider((slider) =>
+							slider
+								.setLimits(0.5, 1.5, 0.1)
+								.setValue(settings.recommendNovelSubtitleFontSize)
+								.onChange((value) => persistAndRestyle(this.plugin, "recommendNovelSubtitleFontSize", value, restyle)),
+						);
+				})
+				.addSetting((setting) => {
+					setting
+						.setName("Plot chapter name size")
+						.setDesc("Size of chapter names in the Novel tab's plot list.")
+						.addSlider((slider) =>
+							slider
+								.setLimits(0.5, 1.5, 0.1)
+								.setValue(settings.recommendPlotChapterFontSize)
+								.onChange((value) => persistAndRestyle(this.plugin, "recommendPlotChapterFontSize", value, restyle)),
 						);
 				})
 				.addSetting((setting) => {

@@ -262,6 +262,21 @@ export class StyleController {
 			: s.recommendDossierHeaderMuted
 				? "var(--text-muted)"
 				: s.recommendDossierHeaderColor;
+		const recommendNovelTitleColor = s.recommendUseHeaderColorForAll
+			? recommendHeaderColor
+			: s.recommendNovelTitleMuted
+				? "var(--text-muted)"
+				: s.recommendNovelTitleColor;
+		const recommendNovelSubtitleColor = s.recommendUseHeaderColorForAll
+			? recommendHeaderColor
+			: s.recommendNovelSubtitleMuted
+				? "var(--text-muted)"
+				: s.recommendNovelSubtitleColor;
+		const recommendPlotChapterColor = s.recommendUseHeaderColorForAll
+			? recommendHeaderColor
+			: s.recommendPlotChapterMuted
+				? "var(--text-muted)"
+				: s.recommendPlotChapterColor;
 		const recommendSectionColor = s.recommendUseHeaderColorForAll
 			? recommendHeaderColor
 			: s.recommendSectionTitleMuted
@@ -272,6 +287,16 @@ export class StyleController {
 			: s.recommendDetailsMuted
 				? "var(--text-muted)"
 				: s.recommendDetailsColor;
+		const recommendMetaLabelColor = s.recommendUseHeaderColorForAll
+			? recommendHeaderColor
+			: s.recommendMetaLabelMuted
+				? "var(--text-muted)"
+				: s.recommendMetaLabelColor;
+		const recommendMetaControlColor = s.recommendUseHeaderColorForAll
+			? recommendHeaderColor
+			: s.recommendMetaControlMuted
+				? "var(--text-muted)"
+				: s.recommendMetaControlColor;
 		const recommendSynopsisColor = s.recommendUseHeaderColorForAll
 			? recommendHeaderColor
 			: s.recommendSynopsisColor;
@@ -304,6 +329,15 @@ export class StyleController {
 			"--sf-recommend-dossier-size": `${s.recommendDossierHeaderFontSize}em`,
 			"--sf-recommend-dossier-color": recommendDossierHeaderColor,
 			"--sf-recommend-dossier-variant": s.recommendDossierHeaderSmallCaps ? "small-caps" : "normal",
+			"--sf-recommend-novel-title-size": `${s.recommendNovelTitleFontSize}em`,
+			"--sf-recommend-novel-title-color": recommendNovelTitleColor,
+			"--sf-recommend-novel-title-variant": s.recommendNovelTitleSmallCaps ? "small-caps" : "normal",
+			"--sf-recommend-novel-subtitle-size": `${s.recommendNovelSubtitleFontSize}em`,
+			"--sf-recommend-novel-subtitle-color": recommendNovelSubtitleColor,
+			"--sf-recommend-novel-subtitle-variant": s.recommendNovelSubtitleSmallCaps ? "small-caps" : "normal",
+			"--sf-recommend-plot-chapter-size": `${s.recommendPlotChapterFontSize}em`,
+			"--sf-recommend-plot-chapter-color": recommendPlotChapterColor,
+			"--sf-recommend-plot-chapter-variant": s.recommendPlotChapterSmallCaps ? "small-caps" : "normal",
 			"--sf-recommend-section-size": `${s.recommendSectionTitleFontSize}em`,
 			"--sf-recommend-section-color": recommendSectionColor,
 			"--sf-recommend-section-variant": s.recommendSectionTitleSmallCaps ? "small-caps" : "normal",
@@ -311,6 +345,11 @@ export class StyleController {
 			"--sf-recommend-items-size": `${s.recommendItemsFontSize}em`,
 			"--sf-recommend-details-size": `${s.recommendDetailsFontSize}em`,
 			"--sf-recommend-details-color": recommendDetailsColor,
+			"--sf-recommend-meta-label-size": `${s.recommendMetaLabelFontSize}em`,
+			"--sf-recommend-meta-label-color": recommendMetaLabelColor,
+			"--sf-recommend-meta-label-variant": s.recommendMetaLabelSmallCaps ? "small-caps" : "normal",
+			"--sf-recommend-meta-control-size": `${s.recommendMetaControlFontSize}em`,
+			"--sf-recommend-meta-control-color": recommendMetaControlColor,
 			"--sf-recommend-synopsis-size": `${s.recommendSynopsisFontSize}em`,
 			"--sf-recommend-synopsis-color": recommendSynopsisColor,
 			"--sf-recommend-highlight-bg": recommendHighlightBg,
@@ -327,9 +366,14 @@ export class StyleController {
 		this.assignUiFontVars(vars, "--sf-recommend-tabs", s.recommendTabsOverrideFont, s.recommendTabsFontFamily, s.recommendTabsFontWeight);
 		this.assignUiFontVars(vars, "--sf-recommend-chapter", s.recommendChapterTitleOverrideFont, s.recommendChapterTitleFontFamily, s.recommendChapterTitleFontWeight);
 		this.assignUiFontVars(vars, "--sf-recommend-dossier", s.recommendDossierHeaderOverrideFont, s.recommendDossierHeaderFontFamily, s.recommendDossierHeaderFontWeight);
+		this.assignUiFontVars(vars, "--sf-recommend-novel-title", s.recommendNovelTitleOverrideFont, s.recommendNovelTitleFontFamily, s.recommendNovelTitleFontWeight);
+		this.assignUiFontVars(vars, "--sf-recommend-novel-subtitle", s.recommendNovelSubtitleOverrideFont, s.recommendNovelSubtitleFontFamily, s.recommendNovelSubtitleFontWeight);
+		this.assignUiFontVars(vars, "--sf-recommend-plot-chapter", s.recommendPlotChapterOverrideFont, s.recommendPlotChapterFontFamily, s.recommendPlotChapterFontWeight);
 		this.assignUiFontVars(vars, "--sf-recommend-section", s.recommendSectionTitleOverrideFont, s.recommendSectionTitleFontFamily, s.recommendSectionTitleFontWeight);
 		this.assignUiFontVars(vars, "--sf-recommend-items", s.recommendItemsOverrideFont, s.recommendItemsFontFamily, s.recommendItemsFontWeight);
 		this.assignUiFontVars(vars, "--sf-recommend-details", s.recommendDetailsOverrideFont, s.recommendDetailsFontFamily, s.recommendDetailsFontWeight);
+		this.assignUiFontVars(vars, "--sf-recommend-meta-label", s.recommendMetaLabelOverrideFont, s.recommendMetaLabelFontFamily, s.recommendMetaLabelFontWeight);
+		this.assignUiFontVars(vars, "--sf-recommend-meta-control", s.recommendMetaControlOverrideFont, s.recommendMetaControlFontFamily, s.recommendMetaControlFontWeight);
 		this.assignUiFontVars(vars, "--sf-recommend-synopsis", s.recommendSynopsisOverrideFont, s.recommendSynopsisFontFamily, s.recommendSynopsisFontWeight);
 		this.assignUiFontVars(vars, "--sf-archive-header", s.archiveHeaderOverrideFont, s.archiveHeaderFontFamily, s.archiveHeaderFontWeight);
 		this.assignUiFontVars(vars, "--sf-archive-items", s.archiveItemsOverrideFont, s.archiveItemsFontFamily, s.archiveItemsFontWeight);

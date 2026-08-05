@@ -1899,8 +1899,11 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 
 .sf-archive-embedded {
 	padding: 0;
-	height: auto;
-	overflow: visible;
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
 }
 
 .sf-archive-embedded-header {
@@ -2219,8 +2222,6 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 	gap: 4px;
 	margin-top: 2px;
 	margin-bottom: 0;
-	color: var(--sf-recommend-items-color, var(--text-normal));
-	font-size: var(--sf-recommend-items-size, 1em);
 }
 
 .sf-recommend-meta-row {
@@ -2232,6 +2233,12 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 
 .sf-recommend-meta-label {
 	flex-shrink: 0;
+	font-size: var(--sf-recommend-meta-label-size, 0.9em);
+	font-weight: var(--sf-recommend-meta-label-weight, 500);
+	color: var(--sf-recommend-meta-label-color, var(--text-muted));
+	font-variant: var(--sf-recommend-meta-label-variant, normal);
+	font-family: var(--sf-recommend-meta-label-family, inherit);
+	font-variation-settings: var(--sf-recommend-meta-label-variation, normal);
 }
 
 .sf-recommend-meta-control {
@@ -2239,8 +2246,12 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 	align-items: center;
 	gap: 4px;
 	cursor: pointer;
-	color: inherit;
 	line-height: 1;
+	font-size: var(--sf-recommend-meta-control-size, 1em);
+	font-weight: var(--sf-recommend-meta-control-weight, 400);
+	color: var(--sf-recommend-meta-control-color, var(--text-normal));
+	font-family: var(--sf-recommend-meta-control-family, inherit);
+	font-variation-settings: var(--sf-recommend-meta-control-variation, normal);
 }
 
 .sf-recommend-meta-control:hover {
@@ -2279,17 +2290,24 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 
 .sf-recommend-novel-title {
 	text-align: center;
-	font-weight: 600;
-	color: var(--sf-recommend-header-color, var(--text-normal));
-	font-size: var(--sf-recommend-header-size, 1.1em);
 	margin-bottom: 4px;
+	color: var(--sf-recommend-novel-title-color, var(--text-normal));
+	font-size: var(--sf-recommend-novel-title-size, 1.1em);
+	font-weight: var(--sf-recommend-novel-title-weight, 600);
+	font-variant: var(--sf-recommend-novel-title-variant, normal);
+	font-family: var(--sf-recommend-novel-title-family, inherit);
+	font-variation-settings: var(--sf-recommend-novel-title-variation, normal);
 }
 
 .sf-recommend-novel-subtitle {
 	text-align: center;
-	color: var(--sf-recommend-items-color, var(--text-muted));
-	font-size: 0.9em;
 	margin-bottom: 10px;
+	color: var(--sf-recommend-novel-subtitle-color, var(--text-muted));
+	font-size: var(--sf-recommend-novel-subtitle-size, 0.9em);
+	font-weight: var(--sf-recommend-novel-subtitle-weight, 400);
+	font-variant: var(--sf-recommend-novel-subtitle-variant, normal);
+	font-family: var(--sf-recommend-novel-subtitle-family, inherit);
+	font-variation-settings: var(--sf-recommend-novel-subtitle-variation, normal);
 }
 
 .sf-recommend-novel-synopsis {
@@ -2309,9 +2327,13 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 }
 
 .sf-recommend-plot-chapter-name {
-	font-weight: 600;
 	margin-bottom: 6px;
-	color: var(--sf-recommend-header-color, var(--text-normal));
+	color: var(--sf-recommend-plot-chapter-color, var(--text-normal));
+	font-size: var(--sf-recommend-plot-chapter-size, 1em);
+	font-weight: var(--sf-recommend-plot-chapter-weight, 600);
+	font-variant: var(--sf-recommend-plot-chapter-variant, normal);
+	font-family: var(--sf-recommend-plot-chapter-family, inherit);
+	font-variation-settings: var(--sf-recommend-plot-chapter-variation, normal);
 }
 
 .sf-recommend-plot-textarea {
