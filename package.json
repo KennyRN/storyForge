@@ -1,6 +1,6 @@
 {
 	"name": "storyforge",
-	"version": "0.12.1",
+	"version": "0.12.2",
 	"description": "A minimalist novel-writing workspace for Obsidian.",
 	"main": "main.js",
 	"scripts": {
