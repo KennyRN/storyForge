@@ -42,7 +42,7 @@ On the right there's more options. There's a blank tab to hide things on the rig
 Also over here, there's the Archive section. As storyForge cannot delete files within your codex or library, this is where you can have them hidden, unseen unless one day you want to go back to them. (To add files to the archive, right click on the chapter or codex lore item and select archive.)
 
 ## Privacy and vault access
-storyForge writes only inside `_sf-backstage/` (plugin state) and `_sf-backup/` (backup zips) — there's no code path anywhere in the plugin that writes to your prose, codex, or any other vault content.
+storyForge writes only inside `_sf-backstage/` (plugin state) and `_sf-backup/` (backup zips) — there's no code path anywhere in the plugin that writes to your existing prose, codex, or any other vault content: the only writes are for creating new files, renaming codex files (for wikilink purposes) and in the backstage and backup folders.
 
 If you're running an automated security/behavior scan against storyForge, here's what it'll likely flag and why:
 - **Vault enumeration** (recommendation): building a backup zip requires walking vault folders via Obsidian's `vault.adapter.list()` API. That happens only in `src/backup.ts`, only when a backup runs, and never uploads anything. The plugin does **not** use Node's `fs` module or write outside the vault.
