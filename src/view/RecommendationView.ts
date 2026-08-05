@@ -47,7 +47,7 @@ import { createCodexLore } from "../recommend/lore";
 import type { CastMember, ChapterRecommendReport, DetailHit, UnknownNameHint } from "../recommend/types";
 import { makeAccessibleActivatable } from "./a11y";
 import { activateRightRailView } from "./activateRightRailView";
-import { renderArchivePanel, type ArchiveMode } from "./archivePanel";
+import { renderArchiveList, renderArchiveTabs, type ArchiveMode } from "./archivePanel";
 import { CodexEntryPickerModal } from "./CodexEntryPickerModal";
 import { CodexLoreTypeModal } from "./CodexLoreTypeModal";
 import { DossierEntitySuggest } from "./DossierEntitySuggest";
@@ -329,21 +329,24 @@ export class RecommendationView extends ItemView {
 		makeAccessibleActivatable(dossierTab, () => selectMode("dossier"));
 
 		if (this.showingArchive) {
-			const body = el.createDiv({ cls: "sf-recommend-body sf-recommend-body--scroll" });
-			const archiveBody = body.createDiv({ cls: "sf-archive-view sf-archive-embedded" });
-			const archiveHeader = archiveBody.createDiv({ cls: "sf-archive-embedded-header" });
-			setIcon(archiveHeader.createSpan({ cls: "sf-icon" }), ICON_ARCHIVE);
-			archiveHeader.createSpan({ cls: "sf-archive-view-title", text: "Archive" });
-			renderArchivePanel(archiveBody, {
+			const body = el.createDiv({ cls: "sf-recommend-body" });
+			const archiveBody = body.createDiv({ cls: "sf-archive-embedded" });
+			const host = {
 				app: this.app,
 				plugin: this.plugin,
 				bookFolderName: this.bookFolderName,
 				mode: this.archiveMode,
-				setMode: (mode) => {
+				setMode: (mode: ArchiveMode) => {
 					this.archiveMode = mode;
 				},
 				refresh: () => this.render(),
-			});
+			};
+			const fixed = archiveBody.createDiv({ cls: "sf-recommend-fixed" });
+			const archiveHeader = fixed.createDiv({ cls: "sf-archive-embedded-header" });
+			setIcon(archiveHeader.createSpan({ cls: "sf-icon" }), ICON_ARCHIVE);
+			archiveHeader.createSpan({ cls: "sf-archive-view-title", text: "Archive" });
+			renderArchiveTabs(fixed, host);
+			renderArchiveList(archiveBody.createDiv({ cls: "sf-recommend-scroll" }), host);
 			return;
 		}
 

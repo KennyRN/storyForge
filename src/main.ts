@@ -230,6 +230,27 @@ export interface StoryForgePluginSettings {
 	recommendDossierHeaderColor: string;
 	recommendDossierHeaderMuted: boolean;
 	recommendDossierHeaderSmallCaps: boolean;
+	recommendNovelTitleFontSize: number;
+	recommendNovelTitleOverrideFont: boolean;
+	recommendNovelTitleFontFamily: CustomFontFamily;
+	recommendNovelTitleFontWeight: FontWeight;
+	recommendNovelTitleColor: string;
+	recommendNovelTitleMuted: boolean;
+	recommendNovelTitleSmallCaps: boolean;
+	recommendNovelSubtitleFontSize: number;
+	recommendNovelSubtitleOverrideFont: boolean;
+	recommendNovelSubtitleFontFamily: CustomFontFamily;
+	recommendNovelSubtitleFontWeight: FontWeight;
+	recommendNovelSubtitleColor: string;
+	recommendNovelSubtitleMuted: boolean;
+	recommendNovelSubtitleSmallCaps: boolean;
+	recommendPlotChapterFontSize: number;
+	recommendPlotChapterOverrideFont: boolean;
+	recommendPlotChapterFontFamily: CustomFontFamily;
+	recommendPlotChapterFontWeight: FontWeight;
+	recommendPlotChapterColor: string;
+	recommendPlotChapterMuted: boolean;
+	recommendPlotChapterSmallCaps: boolean;
 	recommendSectionTitleFontSize: number;
 	recommendSectionTitleOverrideFont: boolean;
 	recommendSectionTitleFontFamily: CustomFontFamily;
@@ -249,6 +270,19 @@ export interface StoryForgePluginSettings {
 	recommendDetailsFontWeight: FontWeight;
 	recommendDetailsColor: string;
 	recommendDetailsMuted: boolean;
+	recommendMetaLabelFontSize: number;
+	recommendMetaLabelOverrideFont: boolean;
+	recommendMetaLabelFontFamily: CustomFontFamily;
+	recommendMetaLabelFontWeight: FontWeight;
+	recommendMetaLabelColor: string;
+	recommendMetaLabelMuted: boolean;
+	recommendMetaLabelSmallCaps: boolean;
+	recommendMetaControlFontSize: number;
+	recommendMetaControlOverrideFont: boolean;
+	recommendMetaControlFontFamily: CustomFontFamily;
+	recommendMetaControlFontWeight: FontWeight;
+	recommendMetaControlColor: string;
+	recommendMetaControlMuted: boolean;
 	recommendSynopsisFontSize: number;
 	recommendSynopsisOverrideFont: boolean;
 	recommendSynopsisFontFamily: CustomFontFamily;
@@ -292,6 +326,8 @@ type FontFamilySettingKey =
 	| "recommendSectionTitleFontFamily"
 	| "recommendItemsFontFamily"
 	| "recommendDetailsFontFamily"
+	| "recommendMetaLabelFontFamily"
+	| "recommendMetaControlFontFamily"
 	| "recommendSynopsisFontFamily"
 	| "archiveHeaderFontFamily"
 	| "archiveItemsFontFamily";
@@ -313,6 +349,8 @@ const FONT_FAMILY_SETTING_KEYS: FontFamilySettingKey[] = [
 	"recommendSectionTitleFontFamily",
 	"recommendItemsFontFamily",
 	"recommendDetailsFontFamily",
+	"recommendMetaLabelFontFamily",
+	"recommendMetaControlFontFamily",
 	"recommendSynopsisFontFamily",
 	"archiveHeaderFontFamily",
 	"archiveItemsFontFamily",
@@ -501,6 +539,27 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	recommendDossierHeaderColor: "var(--text-accent)",
 	recommendDossierHeaderMuted: false,
 	recommendDossierHeaderSmallCaps: false,
+	recommendNovelTitleFontSize: 1.1,
+	recommendNovelTitleOverrideFont: false,
+	recommendNovelTitleFontFamily: "ibm-plex-sans-var",
+	recommendNovelTitleFontWeight: "600",
+	recommendNovelTitleColor: "var(--text-normal)",
+	recommendNovelTitleMuted: false,
+	recommendNovelTitleSmallCaps: false,
+	recommendNovelSubtitleFontSize: 0.9,
+	recommendNovelSubtitleOverrideFont: false,
+	recommendNovelSubtitleFontFamily: "ibm-plex-sans-var",
+	recommendNovelSubtitleFontWeight: "400",
+	recommendNovelSubtitleColor: "var(--text-muted)",
+	recommendNovelSubtitleMuted: false,
+	recommendNovelSubtitleSmallCaps: false,
+	recommendPlotChapterFontSize: 1,
+	recommendPlotChapterOverrideFont: false,
+	recommendPlotChapterFontFamily: "ibm-plex-sans-var",
+	recommendPlotChapterFontWeight: "600",
+	recommendPlotChapterColor: "var(--text-normal)",
+	recommendPlotChapterMuted: false,
+	recommendPlotChapterSmallCaps: false,
 	recommendSectionTitleFontSize: 0.85,
 	recommendSectionTitleOverrideFont: false,
 	recommendSectionTitleFontFamily: "ibm-plex-sans-var",
@@ -520,6 +579,19 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	recommendDetailsFontWeight: "400",
 	recommendDetailsColor: "var(--text-normal)",
 	recommendDetailsMuted: false,
+	recommendMetaLabelFontSize: 0.9,
+	recommendMetaLabelOverrideFont: false,
+	recommendMetaLabelFontFamily: "ibm-plex-sans-var",
+	recommendMetaLabelFontWeight: "500",
+	recommendMetaLabelColor: "var(--text-muted)",
+	recommendMetaLabelMuted: false,
+	recommendMetaLabelSmallCaps: false,
+	recommendMetaControlFontSize: 1,
+	recommendMetaControlOverrideFont: false,
+	recommendMetaControlFontFamily: "ibm-plex-sans-var",
+	recommendMetaControlFontWeight: "400",
+	recommendMetaControlColor: "var(--text-normal)",
+	recommendMetaControlMuted: false,
 	recommendSynopsisFontSize: 1,
 	recommendSynopsisOverrideFont: false,
 	recommendSynopsisFontFamily: "ibm-plex-sans-var",
