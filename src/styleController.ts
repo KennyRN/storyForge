@@ -117,10 +117,10 @@ export class StyleController {
 
 		// The ribbon-relocation rules (ribbon-width var, ribbon hide/show, tab-header padding) are
 		// static in styles.css, scoped entirely by this class - no custom properties needed.
-		if (s.useToolsPanel) {
-			document.body.classList.add("sf-use-tools-panel");
-		} else {
-			document.body.classList.remove("sf-use-tools-panel");
+		// Applied per style document so pop-out windows match the main window (clearAll also
+		// removes it from every document).
+		for (const doc of this.host.getStyleDocuments()) {
+			doc.body.classList.toggle("sf-use-tools-panel", s.useToolsPanel);
 		}
 	}
 
@@ -204,14 +204,14 @@ export class StyleController {
 		});
 	}
 
-	/** Manuscript editor scrollbar thumb/track colours and width. */
+	/** Manuscript editor scrollbar thumb colour and width. The track stays transparent so the document background shows through. */
 	applyEditorScrollbarStyles(): void {
 		const s = this.host.getSettings();
 		const width = EDITOR_SCROLLBAR_WIDTH_PX[s.editorScrollbarThickness];
 		this.applyStyleVarsToAllDocs({
 			"--sf-editor-scrollbar-width": `${width}px`,
 			"--sf-editor-scrollbar-thumb": s.editorScrollbarThumbColor,
-			"--sf-editor-scrollbar-track": s.editorScrollbarTrackColor,
+			"--sf-editor-scrollbar-track": null,
 		});
 		for (const doc of this.host.getStyleDocuments()) {
 			this.applyEditorScrollbarBodyClass(doc.body, s.editorScrollbarThickness);

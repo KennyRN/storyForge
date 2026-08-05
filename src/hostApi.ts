@@ -21,6 +21,11 @@
 
 import type { App, ViewCreator } from "obsidian";
 import {
+	listSettingsExportsInBackups,
+	readSettingsExportFromBackups,
+	writeFormattingExportToBackups,
+} from "./backup";
+import {
 	collectCodexNotes,
 	createCodexNote,
 	ensureVirtualFolder,
@@ -42,9 +47,16 @@ import {
 } from "./formattingApi";
 import type { PaletteColor } from "./colorPalettes";
 import { PALETTE_NAMES } from "./colorPalettes";
+import {
+	deleteSettingsPreset,
+	listSettingsPresets,
+	readSettingsPreset,
+	renameSettingsPreset,
+	saveSettingsPreset,
+} from "./settingsPresets";
 
-/** Bumped to 3 when Forge companion panels (`registerCompanionPanel`) were added. */
-export const STORYFORGE_API_VERSION = 3 as const;
+/** Bumped to 8 for validated, single-save batched linked-setting updates. */
+export const STORYFORGE_API_VERSION = 8 as const;
 
 export interface CodexWriteException {
 	pluginId: string;
@@ -294,7 +306,6 @@ const LINKED_SETTING_VALIDATORS: Record<SfLinkedFormattingKey, ValuePredicate> =
 	cyclingGuideRoundedLines: isBoolean,
 	cyclingGuideInterval: isOneOf(...CYCLING_GUIDE_INTERVALS),
 	editorScrollbarThumbColor: isColorString,
-	editorScrollbarTrackColor: isColorString,
 	editorScrollbarThickness: isOneOf(...EDITOR_SCROLLBAR_THICKNESSES),
 	forgeCompanionIconColor: isColorString,
 	recommendHeaderFontSize: isFiniteNumber,
@@ -403,7 +414,7 @@ const LINKED_SETTING_VALIDATORS: Record<SfLinkedFormattingKey, ValuePredicate> =
 	archiveUseHeaderColorForAll: isBoolean,
 };
 
-const LINKED_FORMATTING_KEYS = [
+export const LINKED_FORMATTING_KEYS = [
 	"colorPaletteName",
 	"colorPaletteVariant",
 	"customPaletteColors",
@@ -495,7 +506,6 @@ const LINKED_FORMATTING_KEYS = [
 	"cyclingGuideRoundedLines",
 	"cyclingGuideInterval",
 	"editorScrollbarThumbColor",
-	"editorScrollbarTrackColor",
 	"editorScrollbarThickness",
 	"forgeCompanionIconColor",
 	"recommendHeaderFontSize",
@@ -616,6 +626,30 @@ type _LinkedKeysMatchUnion = SfLinkedFormattingKey extends (typeof LINKED_FORMAT
 	: never;
 true satisfies _LinkedKeysMatchUnion;
 
+export function isLinkedFormattingKey(key: string): key is SfLinkedFormattingKey {
+	return (LINKED_FORMATTING_KEYS as readonly string[]).includes(key);
+}
+
+/**
+ * Same value contract the host API enforces. Exported so settings paths that do not
+ * go through `updateLinkedSettings` (the standalone Themes import) cannot persist a
+ * value that would break the CSS variable maps.
+ */
+export function isValidLinkedSettingValue(key: SfLinkedFormattingKey, value: unknown): boolean {
+	return LINKED_SETTING_VALIDATORS[key](value);
+}
+
+/** Returns the linked keys in `incoming` whose values fail the host contract. */
+export function findInvalidLinkedSettings(incoming: Record<string, unknown>): string[] {
+	const invalid: string[] = [];
+	for (const [key, value] of Object.entries(incoming)) {
+		if (isLinkedFormattingKey(key) && !isValidLinkedSettingValue(key, value)) {
+			invalid.push(key);
+		}
+	}
+	return invalid;
+}
+
 export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 	const writeExceptions: CodexWriteException[] = [];
 
@@ -648,13 +682,29 @@ export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 		},
 
 		async updateLinkedSetting(key, value) {
-			if (!LINKED_FORMATTING_KEYS.includes(key)) {
-				throw new Error(`updateLinkedSetting: ${key} is not an SF-linked formatting key`);
+			await formatting.updateLinkedSettings({ [key]: value });
+		},
+
+		async updateLinkedSettings(partial) {
+			const entries = Object.entries(partial) as Array<
+				[SfLinkedFormattingKey, unknown]
+			>;
+			if (entries.length === 0) return;
+			const patch: Record<string, unknown> = {};
+			for (const [key, value] of entries) {
+				if (!isLinkedFormattingKey(key)) {
+					throw new Error(
+						`updateLinkedSettings: ${key} is not an SF-linked formatting key`,
+					);
+				}
+				if (!isValidLinkedSettingValue(key, value)) {
+					throw new Error(`updateLinkedSettings: invalid value for ${key}`);
+				}
+				patch[key] = value;
 			}
-			if (!LINKED_SETTING_VALIDATORS[key](value)) {
-				throw new Error(`updateLinkedSetting: invalid value for ${key}`);
-			}
-			await plugin.updateSetting(key, value as never);
+			await plugin.updateSettings(
+				patch as Partial<StoryForgePluginSettings>,
+			);
 			plugin.applyLinkedFormattingStyles();
 		},
 
@@ -680,15 +730,45 @@ export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 		},
 
 		async updatePalette(partial) {
-			if (partial.name !== undefined) {
-				await plugin.updateSetting("colorPaletteName", partial.name);
-			}
-			if (partial.variant !== undefined) {
-				await plugin.updateSetting("colorPaletteVariant", partial.variant);
-			}
+			const patch: Partial<Record<SfLinkedFormattingKey, unknown>> = {};
+			if (partial.name !== undefined) patch.colorPaletteName = partial.name;
+			if (partial.variant !== undefined) patch.colorPaletteVariant = partial.variant;
 			if (partial.customColors !== undefined) {
-				await plugin.updateSetting("customPaletteColors", partial.customColors);
+				patch.customPaletteColors = partial.customColors;
 			}
+			await formatting.updateLinkedSettings(patch);
+		},
+
+		saveFormattingExport(content) {
+			return writeFormattingExportToBackups(plugin.app, content);
+		},
+
+		listSettingsExports() {
+			return listSettingsExportsInBackups(plugin.app);
+		},
+
+		readSettingsExport(path) {
+			return readSettingsExportFromBackups(plugin.app, path);
+		},
+
+		saveFormattingPreset(name, content, overwrite) {
+			return saveSettingsPreset(plugin.app, "formatForge", name, content, overwrite);
+		},
+
+		listFormattingPresets() {
+			return listSettingsPresets(plugin.app, "formatForge");
+		},
+
+		readFormattingPreset(path) {
+			return readSettingsPreset(plugin.app, "formatForge", path);
+		},
+
+		renameFormattingPreset(path, newName, overwrite) {
+			return renameSettingsPreset(plugin.app, "formatForge", path, newName, overwrite);
+		},
+
+		deleteFormattingPreset(path) {
+			return deleteSettingsPreset(plugin.app, "formatForge", path);
 		},
 
 		registerViewContribution(opt) {

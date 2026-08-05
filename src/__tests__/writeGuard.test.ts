@@ -4,6 +4,7 @@ import {
 	assertBackstagePath,
 	normalizeVaultPath,
 	writeBackstageFile,
+	writeBackupText,
 } from "../writeGuard";
 import { makeTFile } from "./obsidianStub";
 import type { Vault } from "obsidian";
@@ -72,5 +73,30 @@ describe("writeBackstageFile — refuses library/codex before touching vault", (
 			writeBackstageFile(vault, "_sf-backstage/../_sf-storylibrary/BOOK/ch.md", "stolen"),
 		).rejects.toBeInstanceOf(ForbiddenWriteError);
 		expect(calls).toEqual([]);
+	});
+});
+
+describe("writeBackupText", () => {
+	it("creates text exports only under the backup folder", async () => {
+		const created: string[] = [];
+		const folders = new Set<string>();
+		const vault = {
+			getAbstractFileByPath: (path: string) => (folders.has(path) ? { path } : null),
+			create: async (path: string) => {
+				created.push(path);
+				return makeTFile(path);
+			},
+			modify: async () => undefined,
+			createFolder: async (path: string) => {
+				folders.add(path);
+			},
+		} as unknown as Vault;
+
+		await writeBackupText(vault, "_sf-backup/formatForge settings.json", "{}");
+		expect(created).toEqual(["_sf-backup/formatForge settings.json"]);
+
+		await expect(
+			writeBackupText(vault, "_sf-backup/../Codex/settings.json", "{}"),
+		).rejects.toBeInstanceOf(ForbiddenWriteError);
 	});
 });

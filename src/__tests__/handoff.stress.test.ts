@@ -119,7 +119,6 @@ function makeHost() {
 		cyclingGuideRoundedLines: false,
 		cyclingGuideInterval: "medium",
 		editorScrollbarThumbColor: "#6b7280",
-		editorScrollbarTrackColor: "#00000020",
 		editorScrollbarThickness: "thick",
 	};
 
@@ -130,6 +129,9 @@ function makeHost() {
 		getSettings: () => settings,
 		async updateSetting(k: string, v: unknown) {
 			settings[k] = v;
+		},
+		async updateSettings(partial: Record<string, unknown>) {
+			Object.assign(settings, partial);
 		},
 		applyLinkedFormattingStyles() {
 			companion?.onHostStylesApplied?.();

@@ -1356,6 +1356,39 @@
 	box-sizing: border-box;
 }
 
+.sf-settings-transfer-text {
+	display: block;
+	width: 100%;
+	min-height: 180px;
+	resize: vertical;
+	padding: var(--size-4-3);
+	box-sizing: border-box;
+	font-family: var(--font-monospace);
+	font-size: var(--font-ui-smaller);
+	line-height: 1.45;
+	white-space: pre;
+	tab-size: 2;
+}
+
+.sf-settings-transfer-labels,
+.sf-settings-import-meta {
+	color: var(--text-muted);
+	font-size: var(--font-ui-smaller);
+	margin: 0 0 var(--size-4-3);
+}
+
+.sf-settings-import-preview {
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m);
+	background: var(--background-secondary);
+	padding: var(--size-4-3);
+	margin: var(--size-4-3) 0;
+}
+
+.sf-settings-import-preview.is-empty {
+	color: var(--text-muted);
+}
+
 /* storyForge interface: controls | live preview */
 .sf-ui-format-layout {
 	flex: 1;
@@ -2110,10 +2143,6 @@ body.sf-editor-scrollbar .markdown-source-view .cm-scroller:active::-webkit-scro
 body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-thumb:not(#storyforge-specificity-boost),
 body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:not(#storyforge-specificity-boost) {
 	background-color: var(--sf-editor-scrollbar-thumb, #6b7280);
-}
-body.sf-editor-scrollbar .markdown-source-view .cm-scroller:hover::-webkit-scrollbar-track:not(#storyforge-specificity-boost),
-body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:not(#storyforge-specificity-boost) {
-	background-color: var(--sf-editor-scrollbar-track, transparent);
 }
 
 .sf-recommend-header {

@@ -168,17 +168,6 @@ export class UiFormattingModal extends Modal {
 				});
 		});
 
-		group.addSetting((setting) => {
-			setting
-				.setName("Scrollbar track")
-				.setDesc("Colour of the scrollbar rail behind the thumb.")
-				.addButton((button) => {
-					bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings.editorScrollbarTrackColor, (hex) => {
-						persistAndRestyle(this.plugin, "editorScrollbarTrackColor", hex, () => this.plugin.applyEditorScrollbarStyles());
-					});
-				});
-		});
-
 		const thicknessIdx = Math.max(0, EDITOR_SCROLLBAR_THICKNESS_ORDER.indexOf(settings.editorScrollbarThickness));
 		group.addSetting((setting) => {
 			setting

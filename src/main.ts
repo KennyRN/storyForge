@@ -13,6 +13,7 @@ import { CODEX_TYPES } from "./codex";
 import { buildRightRailTypeOrder } from "./rightRailOrder";
 import {
 	createHostApi,
+	findInvalidLinkedSettings,
 	type RightRailRegistration,
 	type StoryForgeCompanionPanel,
 	type StoryForgeHostApi,
@@ -197,8 +198,6 @@ export interface StoryForgePluginSettings {
 	recommendIncludeUnknownNames: boolean;
 	/** Thumb (foreground) colour of the manuscript editor scrollbar. */
 	editorScrollbarThumbColor: string;
-	/** Track (rail) colour of the manuscript editor scrollbar. */
-	editorScrollbarTrackColor: string;
 	/** Width of the manuscript editor scrollbar. */
 	editorScrollbarThickness: EditorScrollbarThickness;
 	/** Colour of companion icons in the Forge right-rail secondary header. */
@@ -509,7 +508,6 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	},
 	recommendIncludeUnknownNames: true,
 	editorScrollbarThumbColor: "#6b7280",
-	editorScrollbarTrackColor: "#00000020",
 	editorScrollbarThickness: "thick",
 	forgeCompanionIconColor: "var(--text-accent)",
 	recommendHeaderFontSize: 1,
@@ -875,10 +873,25 @@ export default class StoryForgePlugin extends Plugin {
 	}
 
 	async updateSetting<K extends keyof StoryForgePluginSettings>(key: K, value: StoryForgePluginSettings[K]): Promise<void> {
+		await this.updateSettings({ [key]: value } as Partial<StoryForgePluginSettings>);
+	}
+
+	/** Persist a validated settings patch in one save, rolling memory back on failure. */
+	async updateSettings(partial: Partial<StoryForgePluginSettings>): Promise<void> {
+		const previous = { ...this.pluginSettings };
 		const prevNovel = this.pluginSettings.selectedNovel;
-		this.pluginSettings[key] = value;
-		await this.saveSettings();
-		if (key === "selectedNovel" && prevNovel !== value) {
+		Object.assign(this.pluginSettings, partial);
+		try {
+			await this.saveSettings();
+		} catch (error) {
+			this.pluginSettings = previous;
+			this.syncObsidianSettingsRef();
+			throw error;
+		}
+		if (
+			Object.prototype.hasOwnProperty.call(partial, "selectedNovel") &&
+			prevNovel !== this.pluginSettings.selectedNovel
+		) {
 			this.notifyActiveBookListeners();
 		}
 	}
@@ -928,7 +941,15 @@ export default class StoryForgePlugin extends Plugin {
 			throw new Error("Settings import must be a JSON object");
 		}
 		const incoming = data as Record<string, unknown>;
-		const merged = { ...DEFAULT_SETTINGS };
+		// Formatting values must clear the same contract `updateLinkedSettings` enforces,
+		// otherwise a hand-edited theme can persist an enum the CSS variable maps cannot resolve.
+		const invalid = findInvalidLinkedSettings(incoming);
+		if (invalid.length > 0) {
+			const shown = invalid.slice(0, 5).join(", ");
+			const rest = invalid.length > 5 ? `, and ${invalid.length - 5} more` : "";
+			throw new Error(`Invalid formatting value for ${shown}${rest}`);
+		}
+		const merged = { ...this.pluginSettings };
 		for (const key of Object.keys(DEFAULT_SETTINGS) as Array<keyof StoryForgePluginSettings>) {
 			if (!Object.prototype.hasOwnProperty.call(incoming, key)) continue;
 			(merged as unknown as Record<string, unknown>)[key as string] = incoming[key as string];

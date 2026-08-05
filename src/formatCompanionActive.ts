@@ -28,3 +28,21 @@ export function isFormatCompanionActiveForSettings(
 ): boolean {
 	return companion != null || apiReportsActive || isFormatForgePluginEnabled(app);
 }
+
+/**
+ * `connected` — formatForge registered (or the API reports it): hand formatting over.
+ * `enabled-not-connected` — formatForge is enabled but has not registered. Either it is
+ *   still loading or it failed; keep a storyForge fallback so the user is never stranded
+ *   without any way to save or apply formatting.
+ * `absent` — formatForge is not in play at all.
+ */
+export type FormatCompanionState = "connected" | "enabled-not-connected" | "absent";
+
+export function formatCompanionState(
+	companion: { pluginId?: string } | null | undefined,
+	apiReportsActive: boolean,
+	app: App,
+): FormatCompanionState {
+	if (companion != null || apiReportsActive) return "connected";
+	return isFormatForgePluginEnabled(app) ? "enabled-not-connected" : "absent";
+}

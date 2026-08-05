@@ -15,7 +15,7 @@ import {
 	recommendSidecarFolderPath,
 	recommendSidecarPath,
 } from "../paths";
-import { ensureBackstageFolder, writeBackstageFile } from "../writeGuard";
+import { ensureBackstageFolder, enqueueBackstageWrite, writeBackstageFile } from "../writeGuard";
 import type { AttributionDecision } from "./types";
 
 const AUTO_MARKER = "<!-- AUTO-MAINTAINED — do not edit, the plugin overwrites it -->";
@@ -83,27 +83,32 @@ export async function readAttributionStore(app: App, bookFolderName: string): Pr
 /**
  * Merge-save attribution decisions. Replaces the decision for the same
  * (entityPath, sentence) key; never clobbers unrelated entries.
+ *
+ * Read and write are serialized on the sidecar path: two tabs confirming different
+ * sentences at once would otherwise both write from the same stale snapshot.
  */
 export async function upsertAttributionDecision(
 	app: App,
 	bookFolderName: string,
 	decision: AttributionDecision,
 ): Promise<AttributionStore> {
-	const current = await readAttributionStore(app, bookFolderName);
-	const next: AttributionStore = {
-		decisions: current.decisions.filter(
-			(d) => !(d.entityPath === decision.entityPath && d.sentence === decision.sentence),
-		),
-	};
-	next.decisions.push(decision);
-	await ensureBackstageFolder(app.vault, recommendSidecarFolderPath(bookFolderName));
 	const path = recommendAttributionPath(bookFolderName);
-	await writeBackstageFile(
-		app.vault,
-		path,
-		buildJsonSidecar({ kind: "attribution" }, next),
-	);
-	return next;
+	return enqueueBackstageWrite(path, async () => {
+		const current = await readAttributionStore(app, bookFolderName);
+		const next: AttributionStore = {
+			decisions: current.decisions.filter(
+				(d) => !(d.entityPath === decision.entityPath && d.sentence === decision.sentence),
+			),
+		};
+		next.decisions.push(decision);
+		await ensureBackstageFolder(app.vault, recommendSidecarFolderPath(bookFolderName));
+		await writeBackstageFile(
+			app.vault,
+			path,
+			buildJsonSidecar({ kind: "attribution" }, next),
+		);
+		return next;
+	});
 }
 
 export async function writeAttributionStore(
@@ -111,12 +116,11 @@ export async function writeAttributionStore(
 	bookFolderName: string,
 	store: AttributionStore,
 ): Promise<void> {
-	await ensureBackstageFolder(app.vault, recommendSidecarFolderPath(bookFolderName));
-	await writeBackstageFile(
-		app.vault,
-		recommendAttributionPath(bookFolderName),
-		buildJsonSidecar({ kind: "attribution" }, store),
-	);
+	const path = recommendAttributionPath(bookFolderName);
+	await enqueueBackstageWrite(path, async () => {
+		await ensureBackstageFolder(app.vault, recommendSidecarFolderPath(bookFolderName));
+		await writeBackstageFile(app.vault, path, buildJsonSidecar({ kind: "attribution" }, store));
+	});
 }
 
 /**
@@ -147,11 +151,15 @@ export async function markResolved(
 	chapterFilename: string,
 	hitId: string,
 ): Promise<ResolvedStore> {
-	const current = await readResolvedStore(app, bookFolderName, chapterFilename);
-	if (current.resolvedIds.includes(hitId)) return current;
-	const next: ResolvedStore = { resolvedIds: [...current.resolvedIds, hitId] };
-	await persistResolvedIds(app, bookFolderName, chapterFilename, next.resolvedIds);
-	return next;
+	// Queued as one unit so a concurrent recompute cannot drop a just-resolved id.
+	// The inner helper must stay unqueued: nesting on the same key would deadlock.
+	return enqueueBackstageWrite(recommendSidecarPath(bookFolderName, chapterFilename), async () => {
+		const current = await readResolvedStore(app, bookFolderName, chapterFilename);
+		if (current.resolvedIds.includes(hitId)) return current;
+		const next: ResolvedStore = { resolvedIds: [...current.resolvedIds, hitId] };
+		await persistResolvedIds(app, bookFolderName, chapterFilename, next.resolvedIds);
+		return next;
+	});
 }
 
 async function persistResolvedIds(
@@ -192,20 +200,22 @@ export async function writeResolvedIdsOntoCache(
 	resolvedIds: string[],
 	reportJson: unknown,
 ): Promise<void> {
-	await ensureBackstageFolder(app.vault, recommendSidecarFolderPath(bookFolderName));
 	const path = recommendSidecarPath(bookFolderName, chapterFilename);
-	const fm: Record<string, unknown> = {
-		chapter: chapterFilename,
-		resolvedIds,
-	};
-	if (reportJson && typeof reportJson === "object" && "contentHash" in reportJson) {
-		fm.contentHash = (reportJson as { contentHash: string }).contentHash;
-	}
-	const payload =
-		reportJson && typeof reportJson === "object"
-			? { ...reportJson, resolvedIds }
-			: { resolvedIds };
-	await writeBackstageFile(app.vault, path, buildJsonSidecar(fm, payload));
+	await enqueueBackstageWrite(path, async () => {
+		await ensureBackstageFolder(app.vault, recommendSidecarFolderPath(bookFolderName));
+		const fm: Record<string, unknown> = {
+			chapter: chapterFilename,
+			resolvedIds,
+		};
+		if (reportJson && typeof reportJson === "object" && "contentHash" in reportJson) {
+			fm.contentHash = (reportJson as { contentHash: string }).contentHash;
+		}
+		const payload =
+			reportJson && typeof reportJson === "object"
+				? { ...reportJson, resolvedIds }
+				: { resolvedIds };
+		await writeBackstageFile(app.vault, path, buildJsonSidecar(fm, payload));
+	});
 }
 
 export interface IgnoredNamesStore {
@@ -236,16 +246,19 @@ export async function addIgnoredName(
 ): Promise<IgnoredNamesStore> {
 	const key = name.trim().toLowerCase();
 	if (!key) return readIgnoredNamesStore(app, bookFolderName);
-	const current = await readIgnoredNamesStore(app, bookFolderName);
-	if (current.names.includes(key)) return current;
-	const next: IgnoredNamesStore = { names: [...current.names, key] };
-	await ensureBackstageFolder(app.vault, recommendSidecarFolderPath(bookFolderName));
-	await writeBackstageFile(
-		app.vault,
-		recommendIgnoredNamesPath(bookFolderName),
-		buildJsonSidecar({ kind: "ignored-names" }, next),
-	);
-	return next;
+	const path = recommendIgnoredNamesPath(bookFolderName);
+	return enqueueBackstageWrite(path, async () => {
+		const current = await readIgnoredNamesStore(app, bookFolderName);
+		if (current.names.includes(key)) return current;
+		const next: IgnoredNamesStore = { names: [...current.names, key] };
+		await ensureBackstageFolder(app.vault, recommendSidecarFolderPath(bookFolderName));
+		await writeBackstageFile(
+			app.vault,
+			path,
+			buildJsonSidecar({ kind: "ignored-names" }, next),
+		);
+		return next;
+	});
 }
 
 /** Strip dismissed unknown names from a report (mutates). */

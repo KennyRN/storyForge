@@ -22,7 +22,7 @@
 | Display name | timelineForge |
 | Version | `0.1.0` (`manifest.json`, `package.json`) |
 | `minAppVersion` | `1.13.0` (matches storyForge) |
-| `isDesktopOnly` | **`false`** (storyForge is `true`) |
+| `isDesktopOnly` | **`false`** (matches storyForge) |
 | Author | KennyRN |
 | Install dir | `<vault>/.obsidian/plugins/timelineforge/` |
 
@@ -139,7 +139,7 @@ npm install && npm run build && npm test && npm run lint
 | **Book scoping** | None | Optional `book:` like person/place | Wire to series `book-id` via host `getActiveBook` |
 | **Naming / icons** | Product “timeline”; icons `tf-calendar-*` | Distinct from Story Context `sf-timeline` / “Synopsis and plot” | Prefer tab label **“Timeline”** + TF icons; never reuse `sf-timeline` |
 | **Host API** | None | Versioned `plugin.api` | Must build; no safe import of SF internals |
-| **Desktop** | Mobile-capable | SF desktop-only | Soft-depend: standalone stays mobile; hosted path inherits SF desktop |
+| **Platform** | Mobile-capable | SF mobile-capable | Keep standalone and hosted paths free of desktop-only APIs |
 | **`minAppVersion`** | `1.13.0` | Same | Aligned |
 | **Multi-timeline** | One registry / vault | Book-scoped event lists possible; multi-rail later | Defer multi-timeline registry |
 | **languageForge / nameForge** | Own folders/configs | Codex for events (not their pattern) | Do not copy LF/NF storage; Codex is intentional for events |
@@ -360,7 +360,7 @@ See § D.1. Event on-disk contract unchanged: flat `Codex/<Title>.md`, type `eve
 2. **Right-rail thrash:** SF currently detaches only its three types when order is wrong; adding siblings without updating `isRightRailOrderCanonical` / ensure list will break UX.
 3. **Write-policy drift:** Without `registerCodexWriteException`, TF frontmatter/body edits look like a SF invariant violation.
 4. **Flat Codex collisions:** Folder-nested event titles today may collide when flattened.
-5. **Desktop mismatch:** Document that full xForge shell is desktop-only via SF.
+5. **Mobile verification:** Smoke-test the full hosted xForge shell on a real mobile device before release.
 6. **Icon/name confusion:** Story Context still uses `sf-timeline` internally.
 7. **Bounds re-key:** Hosted mode cannot keep `_tf-backstage/folders/<fs-path>.md` as the primary key (Codex is flat).
 
