@@ -17,7 +17,7 @@ import { makeReorderable, type DragZone } from "./dragReorder";
 import { makeAccessibleActivatable } from "./a11y";
 import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
-import { ICON_BOOK, ICON_BOOK_PLUS, ICON_FILTER, ICON_PLUS_SQUARE, ICON_SERIES, ICON_TIMELINE, ICON_UNPLACED } from "../icons";
+import { ICON_BOOK, ICON_BOOK_PLUS, ICON_FILTER, ICON_PLUS_SQUARE, ICON_SERIES, ICON_UNPLACED } from "../icons";
 import { recordChapterArchive, readChapterWordCount } from "../history";
 
 export type UnplacedViewMode = "unplaced" | "unplacedHidden";
@@ -34,7 +34,6 @@ export interface TopPanelOptions {
 	onSelectBook: (bookFolderName: string) => void;
 	onOpenChapter: (bookFolderName: string, filename: string) => void;
 	onOpenSeriesModal: () => void;
-	onOpenBookSynopsisModal: (bookFolderName: string) => void;
 	onArchiveChapter?: () => void | Promise<void>;
 }
 
@@ -83,19 +82,6 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 		const { title, subtitle } = splitTitleSubtitle(rawBookTitle);
 		const textWrap = titleRow.createDiv({ cls: "sf-book-text-wrap" });
 		textWrap.createSpan({ cls: "sf-header-text", text: title });
-		if (options.currentBookFolderName) {
-			const bookSettingsBtn = titleRow.createSpan({
-				cls: "sf-book-filter-btn",
-				attr: { "aria-label": "Synopsis and plot" },
-			});
-			setIcon(bookSettingsBtn, ICON_TIMELINE);
-			const bookFolderName = options.currentBookFolderName;
-			bookSettingsBtn.addEventListener("click", (e) => {
-				e.stopPropagation();
-				options.onOpenBookSynopsisModal(bookFolderName);
-			});
-			makeAccessibleActivatable(bookSettingsBtn, () => options.onOpenBookSynopsisModal(bookFolderName));
-		}
 		if (subtitle) {
 			bookLine.createDiv({ cls: "sf-book-subtitle-text", text: subtitle });
 		}

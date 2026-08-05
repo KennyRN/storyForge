@@ -6,7 +6,6 @@ import { renderTopPanel, type UnplacedViewMode } from "./TopPanel";
 import { renderBottomPanel } from "./BottomPanel";
 import { renderStatsPanel, nextStatsMode, type StatsMode } from "./StatsPanel";
 import { SeriesModal } from "./SeriesModal";
-import { BookSynopsisModal } from "./BookSynopsisModal";
 import { createCodexFolder, createCodexNote, readCodexFrontmatter, type CodexViewMode } from "../codex";
 import { debounce } from "../debounce";
 import { ICON_SERIES } from "../icons";
@@ -141,7 +140,6 @@ export class StoryForgeView extends ItemView {
 			},
 			onOpenChapter: (bookName, filename) => void this.openChapter(bookName, filename),
 			onOpenSeriesModal: () => new SeriesModal(this.app, () => this.render()).open(),
-			onOpenBookSynopsisModal: (bookFolderName) => new BookSynopsisModal(this.app, bookFolderName, () => this.render()).open(),
 			onArchiveChapter: async () => {
 				if (this.closed) return;
 				await this.refreshStats();

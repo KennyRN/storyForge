@@ -23,29 +23,29 @@ describe("registerCodexType", () => {
 });
 
 describe("buildRightRailTypeOrder", () => {
-	it("places registered views between Story Context and Archive", () => {
+	it("places Forge then registered views after Story Context", () => {
 		expect(
-			buildRightRailTypeOrder("spacer", "context", "archive", [
+			buildRightRailTypeOrder("spacer", "context", "forge", [
 				{ viewType: "timeline", orderHint: 50 },
 			]),
-		).toEqual(["spacer", "context", "timeline", "archive"]);
+		).toEqual(["spacer", "context", "forge", "timeline"]);
 	});
 
 	it("sorts multiple registrations by orderHint", () => {
 		expect(
-			buildRightRailTypeOrder("spacer", "context", "archive", [
+			buildRightRailTypeOrder("spacer", "context", "forge", [
 				{ viewType: "b", orderHint: 80 },
 				{ viewType: "a", orderHint: 40 },
 			]),
-		).toEqual(["spacer", "context", "a", "b", "archive"]);
+		).toEqual(["spacer", "context", "forge", "a", "b"]);
 	});
 });
 
 describe("isCanonicalTypeOrder", () => {
 	it("allows missing tabs but rejects wrong relative order", () => {
-		const expected = ["spacer", "context", "timeline", "archive"];
-		expect(isCanonicalTypeOrder(expected, ["spacer", "context", "archive"])).toBe(true);
-		expect(isCanonicalTypeOrder(expected, ["spacer", "archive", "context"])).toBe(false);
-		expect(isCanonicalTypeOrder(expected, ["spacer", "context", "timeline", "archive"])).toBe(true);
+		const expected = ["spacer", "context", "forge", "timeline"];
+		expect(isCanonicalTypeOrder(expected, ["spacer", "context", "timeline"])).toBe(true);
+		expect(isCanonicalTypeOrder(expected, ["spacer", "timeline", "context"])).toBe(false);
+		expect(isCanonicalTypeOrder(expected, ["spacer", "context", "forge", "timeline"])).toBe(true);
 	});
 });

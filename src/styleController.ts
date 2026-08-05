@@ -55,6 +55,7 @@ export class StyleController {
 		this.applyTextStyleOverrides();
 		this.applyCyclingGuideStyle();
 		this.applyEditorScrollbarStyles();
+		this.applyRightRailPanelStyles();
 		this.applyRightRailChrome();
 	}
 
@@ -239,6 +240,100 @@ export class StyleController {
 			}
 			doc.body.style.setProperty("--sf-right-rail-bg", bg);
 		}
+	}
+
+	/** Forge companion icons + Story Context / Archive panel chrome. */
+	applyRightRailPanelStyles(): void {
+		const s = this.host.getSettings();
+
+		const recommendHeaderColor = s.recommendHeaderMuted ? "var(--text-muted)" : s.recommendHeaderColor;
+		const recommendItemsColor = s.recommendUseHeaderColorForAll
+			? recommendHeaderColor
+			: s.recommendItemsMuted
+				? "var(--text-muted)"
+				: s.recommendItemsColor;
+		const recommendChapterColor = s.recommendUseHeaderColorForAll
+			? recommendHeaderColor
+			: s.recommendChapterTitleMuted
+				? "var(--text-muted)"
+				: s.recommendChapterTitleColor;
+		const recommendDossierHeaderColor = s.recommendUseHeaderColorForAll
+			? recommendHeaderColor
+			: s.recommendDossierHeaderMuted
+				? "var(--text-muted)"
+				: s.recommendDossierHeaderColor;
+		const recommendSectionColor = s.recommendUseHeaderColorForAll
+			? recommendHeaderColor
+			: s.recommendSectionTitleMuted
+				? "var(--text-muted)"
+				: s.recommendSectionTitleColor;
+		const recommendDetailsColor = s.recommendUseHeaderColorForAll
+			? recommendHeaderColor
+			: s.recommendDetailsMuted
+				? "var(--text-muted)"
+				: s.recommendDetailsColor;
+		const recommendSynopsisColor = s.recommendUseHeaderColorForAll
+			? recommendHeaderColor
+			: s.recommendSynopsisColor;
+		const recommendTabsActiveColor = s.recommendUseHeaderColorForAll
+			? recommendHeaderColor
+			: s.recommendTabsActiveColor;
+		const recommendHighlightBg = s.recommendUseHeaderColorForAll
+			? recommendHeaderColor
+			: s.recommendHighlightColor;
+
+		const archiveHeaderColor = s.archiveHeaderMuted ? "var(--text-muted)" : s.archiveHeaderColor;
+		const archiveItemsColor = s.archiveUseHeaderColorForAll
+			? archiveHeaderColor
+			: s.archiveItemsMuted
+				? "var(--text-muted)"
+				: s.archiveItemsColor;
+		const archiveHighlightBg = s.archiveUseHeaderColorForAll ? archiveHeaderColor : s.archiveHighlightColor;
+
+		const vars: Record<string, string | null> = {
+			"--sf-forge-companion-color": s.forgeCompanionIconColor,
+			"--sf-recommend-header-color": recommendHeaderColor,
+			"--sf-recommend-header-size": `${s.recommendHeaderFontSize}em`,
+			"--sf-recommend-header-variant": s.recommendHeaderSmallCaps ? "small-caps" : "normal",
+			"--sf-recommend-tabs-size": `${s.recommendTabsFontSize}em`,
+			"--sf-recommend-tabs-color": s.recommendTabsColor,
+			"--sf-recommend-tabs-active-color": recommendTabsActiveColor,
+			"--sf-recommend-chapter-size": `${s.recommendChapterTitleFontSize}em`,
+			"--sf-recommend-chapter-color": recommendChapterColor,
+			"--sf-recommend-chapter-variant": s.recommendChapterTitleSmallCaps ? "small-caps" : "normal",
+			"--sf-recommend-dossier-size": `${s.recommendDossierHeaderFontSize}em`,
+			"--sf-recommend-dossier-color": recommendDossierHeaderColor,
+			"--sf-recommend-dossier-variant": s.recommendDossierHeaderSmallCaps ? "small-caps" : "normal",
+			"--sf-recommend-section-size": `${s.recommendSectionTitleFontSize}em`,
+			"--sf-recommend-section-color": recommendSectionColor,
+			"--sf-recommend-section-variant": s.recommendSectionTitleSmallCaps ? "small-caps" : "normal",
+			"--sf-recommend-items-color": recommendItemsColor,
+			"--sf-recommend-items-size": `${s.recommendItemsFontSize}em`,
+			"--sf-recommend-details-size": `${s.recommendDetailsFontSize}em`,
+			"--sf-recommend-details-color": recommendDetailsColor,
+			"--sf-recommend-synopsis-size": `${s.recommendSynopsisFontSize}em`,
+			"--sf-recommend-synopsis-color": recommendSynopsisColor,
+			"--sf-recommend-highlight-bg": recommendHighlightBg,
+			"--sf-recommend-highlight-text": s.recommendHighlightTextColor,
+			"--sf-archive-header-color": archiveHeaderColor,
+			"--sf-archive-header-size": `${s.archiveHeaderFontSize}em`,
+			"--sf-archive-header-variant": s.archiveHeaderSmallCaps ? "small-caps" : "normal",
+			"--sf-archive-items-color": archiveItemsColor,
+			"--sf-archive-items-size": `${s.archiveItemsFontSize}em`,
+			"--sf-archive-highlight-bg": archiveHighlightBg,
+			"--sf-archive-highlight-text": s.archiveHighlightTextColor,
+		};
+		this.assignUiFontVars(vars, "--sf-recommend-header", s.recommendHeaderOverrideFont, s.recommendHeaderFontFamily, s.recommendHeaderFontWeight);
+		this.assignUiFontVars(vars, "--sf-recommend-tabs", s.recommendTabsOverrideFont, s.recommendTabsFontFamily, s.recommendTabsFontWeight);
+		this.assignUiFontVars(vars, "--sf-recommend-chapter", s.recommendChapterTitleOverrideFont, s.recommendChapterTitleFontFamily, s.recommendChapterTitleFontWeight);
+		this.assignUiFontVars(vars, "--sf-recommend-dossier", s.recommendDossierHeaderOverrideFont, s.recommendDossierHeaderFontFamily, s.recommendDossierHeaderFontWeight);
+		this.assignUiFontVars(vars, "--sf-recommend-section", s.recommendSectionTitleOverrideFont, s.recommendSectionTitleFontFamily, s.recommendSectionTitleFontWeight);
+		this.assignUiFontVars(vars, "--sf-recommend-items", s.recommendItemsOverrideFont, s.recommendItemsFontFamily, s.recommendItemsFontWeight);
+		this.assignUiFontVars(vars, "--sf-recommend-details", s.recommendDetailsOverrideFont, s.recommendDetailsFontFamily, s.recommendDetailsFontWeight);
+		this.assignUiFontVars(vars, "--sf-recommend-synopsis", s.recommendSynopsisOverrideFont, s.recommendSynopsisFontFamily, s.recommendSynopsisFontWeight);
+		this.assignUiFontVars(vars, "--sf-archive-header", s.archiveHeaderOverrideFont, s.archiveHeaderFontFamily, s.archiveHeaderFontWeight);
+		this.assignUiFontVars(vars, "--sf-archive-items", s.archiveItemsOverrideFont, s.archiveItemsFontFamily, s.archiveItemsFontWeight);
+		this.applyStyleVarsToAllDocs(vars);
 	}
 
 	applyLibraryHeaderStyles(): void {

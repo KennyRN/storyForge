@@ -18,7 +18,7 @@ import { getCodexEntriesByType } from "../codex";
 import { bookBackstagePath } from "../paths";
 import { bookDisplayTitle, getBookId, numberedBookTitle } from "../series";
 import { splitTitleSubtitle } from "../titleNumbering";
-import { ICON_MAP_PIN, ICON_MAP_PIN_PLUS, ICON_PERSON_FILL, ICON_PERSON_FILL_ADD, ICON_TIMELINE } from "../icons";
+import { ICON_MAP_PIN, ICON_MAP_PIN_PLUS, ICON_PERSON_FILL_ADD, ICON_TIMELINE } from "../icons";
 import { attachInlineRename } from "./inlineRename";
 import { CodexEntryPickerModal } from "./CodexEntryPickerModal";
 
@@ -67,12 +67,10 @@ export class BookSynopsisModal extends Modal {
 		const fm = readBookFrontmatter(this.app, this.bookFolderName);
 		const path = fm?.defaultPovPath ?? null;
 		const name = fm?.defaultPovName ?? null;
-		row.createSpan({ cls: "sf-synopsis-default-pov-label", text: "Default PoV" });
+		row.createSpan({ text: "Default PoV: " });
 		if (path) {
-			const badge = row.createSpan({ cls: "sf-plot-chapter-badge-value" });
-			setIcon(badge.createSpan({ cls: "sf-icon" }), ICON_PERSON_FILL);
-			badge.createSpan({ text: name ?? path });
-			badge.addEventListener("click", (e) => {
+			const nameBtn = row.createSpan({ cls: "sf-plot-chapter-badge-value", text: name ?? path });
+			nameBtn.addEventListener("click", (e) => {
 				e.stopPropagation();
 				void this.openDefaultPovPicker(row, true);
 			});
@@ -94,7 +92,7 @@ export class BookSynopsisModal extends Modal {
 		const entries = getCodexEntriesByType(this.app, "person", bookId);
 		new CodexEntryPickerModal(
 			this.app,
-			"Set default PoV",
+			"Set PoV",
 			"No person entries in the Codex yet.",
 			entries,
 			hasValue,

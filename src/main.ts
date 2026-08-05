@@ -6,11 +6,18 @@ import { ToolsView, TOOLS_VIEW_TYPE } from "./view/ToolsPanel";
 import { RecommendationView, RECOMMEND_VIEW_TYPE, activateRecommendView } from "./view/RecommendationView";
 import { ArchiveView, ARCHIVE_VIEW_TYPE, activateArchiveView } from "./view/ArchiveView";
 import { SpacerView, SPACER_VIEW_TYPE } from "./view/SpacerView";
+import { ForgeView, FORGE_VIEW_TYPE } from "./view/ForgeView";
 import { recomputeChapterRecommend } from "./recommend/recompute";
 import { isNlpReady } from "./recommend/nlp";
 import { CODEX_TYPES } from "./codex";
 import { buildRightRailTypeOrder } from "./rightRailOrder";
-import { createHostApi, type RightRailRegistration, type StoryForgeHostApi, type StoryForgeViewContribution } from "./hostApi";
+import {
+	createHostApi,
+	type RightRailRegistration,
+	type StoryForgeCompanionPanel,
+	type StoryForgeHostApi,
+	type StoryForgeViewContribution,
+} from "./hostApi";
 import { StyleController } from "./styleController";
 import { StoryForgeSettingsTab } from "./view/StoryForgeSettingsTab";
 import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders, getBookId } from "./series";
@@ -194,6 +201,78 @@ export interface StoryForgePluginSettings {
 	editorScrollbarTrackColor: string;
 	/** Width of the manuscript editor scrollbar. */
 	editorScrollbarThickness: EditorScrollbarThickness;
+	/** Colour of companion icons in the Forge right-rail secondary header. */
+	forgeCompanionIconColor: string;
+	recommendHeaderFontSize: number;
+	recommendHeaderOverrideFont: boolean;
+	recommendHeaderFontFamily: CustomFontFamily;
+	recommendHeaderFontWeight: FontWeight;
+	recommendHeaderColor: string;
+	recommendHeaderMuted: boolean;
+	recommendHeaderSmallCaps: boolean;
+	recommendTabsFontSize: number;
+	recommendTabsOverrideFont: boolean;
+	recommendTabsFontFamily: CustomFontFamily;
+	recommendTabsFontWeight: FontWeight;
+	recommendTabsColor: string;
+	recommendTabsActiveColor: string;
+	recommendChapterTitleFontSize: number;
+	recommendChapterTitleOverrideFont: boolean;
+	recommendChapterTitleFontFamily: CustomFontFamily;
+	recommendChapterTitleFontWeight: FontWeight;
+	recommendChapterTitleColor: string;
+	recommendChapterTitleMuted: boolean;
+	recommendChapterTitleSmallCaps: boolean;
+	recommendDossierHeaderFontSize: number;
+	recommendDossierHeaderOverrideFont: boolean;
+	recommendDossierHeaderFontFamily: CustomFontFamily;
+	recommendDossierHeaderFontWeight: FontWeight;
+	recommendDossierHeaderColor: string;
+	recommendDossierHeaderMuted: boolean;
+	recommendDossierHeaderSmallCaps: boolean;
+	recommendSectionTitleFontSize: number;
+	recommendSectionTitleOverrideFont: boolean;
+	recommendSectionTitleFontFamily: CustomFontFamily;
+	recommendSectionTitleFontWeight: FontWeight;
+	recommendSectionTitleColor: string;
+	recommendSectionTitleMuted: boolean;
+	recommendSectionTitleSmallCaps: boolean;
+	recommendItemsFontSize: number;
+	recommendItemsOverrideFont: boolean;
+	recommendItemsFontFamily: CustomFontFamily;
+	recommendItemsFontWeight: FontWeight;
+	recommendItemsColor: string;
+	recommendItemsMuted: boolean;
+	recommendDetailsFontSize: number;
+	recommendDetailsOverrideFont: boolean;
+	recommendDetailsFontFamily: CustomFontFamily;
+	recommendDetailsFontWeight: FontWeight;
+	recommendDetailsColor: string;
+	recommendDetailsMuted: boolean;
+	recommendSynopsisFontSize: number;
+	recommendSynopsisOverrideFont: boolean;
+	recommendSynopsisFontFamily: CustomFontFamily;
+	recommendSynopsisFontWeight: FontWeight;
+	recommendSynopsisColor: string;
+	recommendHighlightColor: string;
+	recommendHighlightTextColor: string;
+	recommendUseHeaderColorForAll: boolean;
+	archiveHeaderFontSize: number;
+	archiveHeaderOverrideFont: boolean;
+	archiveHeaderFontFamily: CustomFontFamily;
+	archiveHeaderFontWeight: FontWeight;
+	archiveHeaderColor: string;
+	archiveHeaderMuted: boolean;
+	archiveHeaderSmallCaps: boolean;
+	archiveItemsFontSize: number;
+	archiveItemsOverrideFont: boolean;
+	archiveItemsFontFamily: CustomFontFamily;
+	archiveItemsFontWeight: FontWeight;
+	archiveItemsColor: string;
+	archiveItemsMuted: boolean;
+	archiveHighlightColor: string;
+	archiveHighlightTextColor: string;
+	archiveUseHeaderColorForAll: boolean;
 }
 
 type FontFamilySettingKey =
@@ -205,7 +284,17 @@ type FontFamilySettingKey =
 	| "unplacedItemsFontFamily"
 	| "codexFontFamily"
 	| "codexFolderFontFamily"
-	| "codexNoteLabelFontFamily";
+	| "codexNoteLabelFontFamily"
+	| "recommendHeaderFontFamily"
+	| "recommendTabsFontFamily"
+	| "recommendChapterTitleFontFamily"
+	| "recommendDossierHeaderFontFamily"
+	| "recommendSectionTitleFontFamily"
+	| "recommendItemsFontFamily"
+	| "recommendDetailsFontFamily"
+	| "recommendSynopsisFontFamily"
+	| "archiveHeaderFontFamily"
+	| "archiveItemsFontFamily";
 
 const FONT_FAMILY_SETTING_KEYS: FontFamilySettingKey[] = [
 	"librarySeriesTitleFontFamily",
@@ -217,6 +306,16 @@ const FONT_FAMILY_SETTING_KEYS: FontFamilySettingKey[] = [
 	"codexFontFamily",
 	"codexFolderFontFamily",
 	"codexNoteLabelFontFamily",
+	"recommendHeaderFontFamily",
+	"recommendTabsFontFamily",
+	"recommendChapterTitleFontFamily",
+	"recommendDossierHeaderFontFamily",
+	"recommendSectionTitleFontFamily",
+	"recommendItemsFontFamily",
+	"recommendDetailsFontFamily",
+	"recommendSynopsisFontFamily",
+	"archiveHeaderFontFamily",
+	"archiveItemsFontFamily",
 ];
 
 /** Fonts removed as choices; any settings still carrying those ids fall back to the current default font. */
@@ -374,6 +473,77 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	editorScrollbarThumbColor: "#6b7280",
 	editorScrollbarTrackColor: "#00000020",
 	editorScrollbarThickness: "thick",
+	forgeCompanionIconColor: "var(--text-accent)",
+	recommendHeaderFontSize: 1,
+	recommendHeaderOverrideFont: false,
+	recommendHeaderFontFamily: "ibm-plex-sans-var",
+	recommendHeaderFontWeight: "600",
+	recommendHeaderColor: "var(--text-accent)",
+	recommendHeaderMuted: false,
+	recommendHeaderSmallCaps: true,
+	recommendTabsFontSize: 0.85,
+	recommendTabsOverrideFont: false,
+	recommendTabsFontFamily: "ibm-plex-sans-var",
+	recommendTabsFontWeight: "400",
+	recommendTabsColor: "var(--text-muted)",
+	recommendTabsActiveColor: "var(--text-accent)",
+	recommendChapterTitleFontSize: 1,
+	recommendChapterTitleOverrideFont: false,
+	recommendChapterTitleFontFamily: "ibm-plex-sans-var",
+	recommendChapterTitleFontWeight: "600",
+	recommendChapterTitleColor: "var(--text-accent)",
+	recommendChapterTitleMuted: false,
+	recommendChapterTitleSmallCaps: false,
+	recommendDossierHeaderFontSize: 1.15,
+	recommendDossierHeaderOverrideFont: false,
+	recommendDossierHeaderFontFamily: "ibm-plex-sans-var",
+	recommendDossierHeaderFontWeight: "600",
+	recommendDossierHeaderColor: "var(--text-accent)",
+	recommendDossierHeaderMuted: false,
+	recommendDossierHeaderSmallCaps: false,
+	recommendSectionTitleFontSize: 0.85,
+	recommendSectionTitleOverrideFont: false,
+	recommendSectionTitleFontFamily: "ibm-plex-sans-var",
+	recommendSectionTitleFontWeight: "600",
+	recommendSectionTitleColor: "var(--text-muted)",
+	recommendSectionTitleMuted: false,
+	recommendSectionTitleSmallCaps: false,
+	recommendItemsFontSize: 1,
+	recommendItemsOverrideFont: false,
+	recommendItemsFontFamily: "ibm-plex-sans-var",
+	recommendItemsFontWeight: "400",
+	recommendItemsColor: "#c8c8c8",
+	recommendItemsMuted: false,
+	recommendDetailsFontSize: 0.9,
+	recommendDetailsOverrideFont: false,
+	recommendDetailsFontFamily: "ibm-plex-sans-var",
+	recommendDetailsFontWeight: "400",
+	recommendDetailsColor: "var(--text-normal)",
+	recommendDetailsMuted: false,
+	recommendSynopsisFontSize: 1,
+	recommendSynopsisOverrideFont: false,
+	recommendSynopsisFontFamily: "ibm-plex-sans-var",
+	recommendSynopsisFontWeight: "400",
+	recommendSynopsisColor: "var(--text-normal)",
+	recommendHighlightColor: "#fef3c7",
+	recommendHighlightTextColor: "#1f2937",
+	recommendUseHeaderColorForAll: false,
+	archiveHeaderFontSize: 1,
+	archiveHeaderOverrideFont: false,
+	archiveHeaderFontFamily: "ibm-plex-sans-var",
+	archiveHeaderFontWeight: "600",
+	archiveHeaderColor: "var(--text-accent)",
+	archiveHeaderMuted: false,
+	archiveHeaderSmallCaps: true,
+	archiveItemsFontSize: 1,
+	archiveItemsOverrideFont: false,
+	archiveItemsFontFamily: "ibm-plex-sans-var",
+	archiveItemsFontWeight: "400",
+	archiveItemsColor: "#c8c8c8",
+	archiveItemsMuted: false,
+	archiveHighlightColor: "#fef3c7",
+	archiveHighlightTextColor: "#1f2937",
+	archiveUseHeaderColorForAll: false,
 };
 
 export default class StoryForgePlugin extends Plugin {
@@ -395,6 +565,8 @@ export default class StoryForgePlugin extends Plugin {
 	private settingsTab: StoryForgeSettingsTab | null = null;
 	/** Contributions into storyForge panel / future slots. */
 	private viewContributions: StoryForgeViewContribution[] = [];
+	/** Companion panels for the Forge right-rail tab (nameForge, …). */
+	private companionPanels: StoryForgeCompanionPanel[] = [];
 	/**
 	 * Mutable extensions array registered once via `registerEditorExtension` - Obsidian rebuilds new
 	 * `EditorState`s (e.g. when switching chapters) from this array's *current* contents, so mutating
@@ -405,6 +577,8 @@ export default class StoryForgePlugin extends Plugin {
 	private backupInProgress = false;
 	/** Guards enforcePanelOrder()'s own detach/recreate against being mistaken for a user tab drag by the layout-change watcher. */
 	private isAdjustingPanelOrder = false;
+	/** Serialises ensureSidePanels / ensureRightRailPanels so overlapping calls cannot create duplicate tabs. */
+	private ensurePanelsChain: Promise<void> = Promise.resolve();
 
 	async onload(): Promise<void> {
 		// Loaded first, before registerView() below - Obsidian can start restoring a previously-open
@@ -412,6 +586,9 @@ export default class StoryForgePlugin extends Plugin {
 		// to resolve, so StoryForgeView.onOpen() must never risk reading pre-load default settings.
 		await this.loadSettings();
 		this.style = new StyleController(this);
+		// Expose host API as early as possible so siblings (nameForge, …) can soft-connect
+		// during the rest of onload / immediately after a hot-reload.
+		this.api = createHostApi(this);
 
 		// Defensively remove any style tags a previous plugin version (before dynamic <style>
 		// injection was replaced with CSS custom properties) left behind - both from a stale
@@ -428,6 +605,7 @@ export default class StoryForgePlugin extends Plugin {
 		this.registerView(RECOMMEND_VIEW_TYPE, (leaf) => new RecommendationView(leaf, this));
 		this.registerView(ARCHIVE_VIEW_TYPE, (leaf) => new ArchiveView(leaf, this));
 		this.registerView(SPACER_VIEW_TYPE, (leaf) => new SpacerView(leaf, this));
+		this.registerView(FORGE_VIEW_TYPE, (leaf) => new ForgeView(leaf, this));
 
 		this.addCommand({
 			id: "open-recommendations",
@@ -488,9 +666,11 @@ export default class StoryForgePlugin extends Plugin {
 
 		this.app.workspace.onLayoutReady(() => {
 			void this.initializeVaultState();
-			void this.ensureSidePanels();
+			void this.enqueueEnsurePanels(async () => {
+				await this.ensureSidePanelsUnlocked();
+				await this.refreshCustomIcons();
+			});
 			this.registerPanelOrderWatcher();
-			this.refreshCustomIcons();
 			refreshTabTitles(this.app);
 			this.applyEditorScrollbarStyles();
 			this.style.applyRightRailChrome();
@@ -509,8 +689,6 @@ export default class StoryForgePlugin extends Plugin {
 			}),
 		);
 		this.register(() => refreshRightRailChrome.cancel());
-
-		this.api = createHostApi(this);
 
 		this.registerInterval(window.setInterval(() => void this.maybeRunScheduledBackup("interval"), 30 * 60 * 1000));
 	}
@@ -547,22 +725,27 @@ export default class StoryForgePlugin extends Plugin {
 	}
 
 	/**
-	 * Leaves restored from a saved workspace layout can draw their tab icon before this
-	 * plugin's custom icons finish registering, leaving Obsidian's fallback icon stuck in
-	 * the tab header. Re-applying each leaf's own view state forces Obsidian to redraw it.
+	 * Inactive sidebar tabs often restore as DeferredView with a persisted fallback icon
+	 * (`lucide-ghost`) and the raw view-type string as the title. Round-tripping
+	 * `setViewState(getViewState())` re-applies that stale chrome. Load deferred leaves,
+	 * drop duplicates, then rebuild so tab headers pick up registered custom icons.
 	 */
-	private refreshCustomIcons(): void {
+	private async refreshCustomIcons(): Promise<void> {
 		const types = [
 			STORYFORGE_VIEW_TYPE,
 			TOOLS_VIEW_TYPE,
 			RECOMMEND_VIEW_TYPE,
 			ARCHIVE_VIEW_TYPE,
 			SPACER_VIEW_TYPE,
+			FORGE_VIEW_TYPE,
 			...this.rightRailRegistry.map((r) => r.viewType),
 		];
 		for (const type of types) {
+			this.dedupeLeavesOfType(type);
 			for (const leaf of this.app.workspace.getLeavesOfType(type)) {
-				void leaf.setViewState(leaf.getViewState());
+				await leaf.loadIfDeferred();
+				// rebuildView is runtime-public on WorkspaceLeaf but not in the published typings.
+				await (leaf as WorkspaceLeaf & { rebuildView(): Promise<void> }).rebuildView();
 			}
 		}
 	}
@@ -628,14 +811,16 @@ export default class StoryForgePlugin extends Plugin {
 		}
 	}
 
-	/** Hosted siblings: register a right-rail tab between Story Context and Archive (by orderHint). */
+	/** Hosted siblings: register a right-rail tab after Forge (by orderHint). */
 	registerHostedRightRailView(reg: RightRailRegistration): void {
 		const existing = this.rightRailRegistry.findIndex((r) => r.viewType === reg.viewType);
 		if (existing >= 0) this.rightRailRegistry[existing] = reg;
 		else this.rightRailRegistry.push(reg);
 		if (this.app.workspace.layoutReady) {
-			void this.ensureRightRailPanels();
-			this.refreshCustomIcons();
+			void this.enqueueEnsurePanels(async () => {
+				await this.ensureRightRailPanelsUnlocked();
+				await this.refreshCustomIcons();
+			});
 		}
 	}
 
@@ -655,12 +840,12 @@ export default class StoryForgePlugin extends Plugin {
 		}
 	}
 
-	/** Canonical right-rail types: Spacer → Story Context → registered (orderHint) → Archive. */
+	/** Canonical right-rail types: Spacer → Story Context → Forge → registered (orderHint). */
 	private rightRailTypes(): string[] {
 		return buildRightRailTypeOrder(
 			SPACER_VIEW_TYPE,
 			RECOMMEND_VIEW_TYPE,
-			ARCHIVE_VIEW_TYPE,
+			FORGE_VIEW_TYPE,
 			this.rightRailRegistry,
 		);
 	}
@@ -746,8 +931,33 @@ export default class StoryForgePlugin extends Plugin {
 	/** Re-mount spacer-slot contributions on any open Spacer leaves. */
 	private refreshSpacerContributions(): void {
 		for (const leaf of this.app.workspace.getLeavesOfType(SPACER_VIEW_TYPE)) {
-			const view = leaf.view;
-			if (view instanceof SpacerView) view.renderContributions();
+			const view = leaf.view as { renderContributions?: () => void };
+			// Duck-type: `instanceof SpacerView` fails across hot-reload module identities.
+			if (typeof view.renderContributions === "function") view.renderContributions();
+		}
+	}
+
+	registerCompanionPanel(opt: StoryForgeCompanionPanel): () => void {
+		const existing = this.companionPanels.findIndex((p) => p.id === opt.id);
+		if (existing >= 0) this.companionPanels[existing] = opt;
+		else this.companionPanels.push(opt);
+		this.companionPanels.sort((a, b) => a.orderHint - b.orderHint || a.id.localeCompare(b.id));
+		this.refreshForgeCompanions();
+		return () => {
+			this.companionPanels = this.companionPanels.filter((p) => p !== opt);
+			this.refreshForgeCompanions();
+		};
+	}
+
+	getCompanionPanels(): StoryForgeCompanionPanel[] {
+		return this.companionPanels.slice();
+	}
+
+	/** Re-mount companion headers/panels on any open Forge leaves. */
+	private refreshForgeCompanions(): void {
+		for (const leaf of this.app.workspace.getLeavesOfType(FORGE_VIEW_TYPE)) {
+			const view = leaf.view as { renderCompanions?: () => void };
+			if (typeof view.renderCompanions === "function") view.renderCompanions();
 		}
 	}
 
@@ -776,6 +986,7 @@ export default class StoryForgePlugin extends Plugin {
 		this.registerCustomFontFacesForAllDocs();
 		this.applyCyclingGuideStyle();
 		this.applyEditorScrollbarStyles();
+		this.applyRightRailPanelStyles();
 		this.style.applyRightRailChrome();
 		this.notifyFormatCompanionStylesApplied();
 	}
@@ -807,6 +1018,10 @@ export default class StoryForgePlugin extends Plugin {
 	/** Manuscript editor scrollbar thumb/track colours and width. */
 	applyEditorScrollbarStyles(): void {
 		this.style.applyEditorScrollbarStyles();
+	}
+
+	applyRightRailPanelStyles(): void {
+		this.style.applyRightRailPanelStyles();
 	}
 
 	/** Rebuilds the cycling guide CM6 extension with the current interval setting. */
@@ -938,17 +1153,46 @@ export default class StoryForgePlugin extends Plugin {
 		if (leaf) await this.app.workspace.revealLeaf(leaf);
 	}
 
+	/** Runs panel-ensure work one-at-a-time (layout-ready + hosted registrations can overlap). */
+	private enqueueEnsurePanels(work: () => Promise<void>): Promise<void> {
+		const run = this.ensurePanelsChain.then(work, work);
+		this.ensurePanelsChain = run.then(
+			() => undefined,
+			() => undefined,
+		);
+		return run;
+	}
+
 	/**
 	 * Creates missing storyForge / Tools / right-rail leaves and focuses storyForge on the
-	 * left (Tools stays as a sibling tab, not the active one). Expands the right rail so Spacer,
-	 * Story Context, and Archive are ready the same way the left panels are.
+	 * left (Tools stays as a sibling tab, not the active one). Expands the right rail so Spacer
+	 * and Story Context are ready the same way the left panels are.
 	 */
 	private async ensureSidePanels(): Promise<void> {
+		return this.enqueueEnsurePanels(() => this.ensureSidePanelsUnlocked());
+	}
+
+	private async ensureSidePanelsUnlocked(): Promise<void> {
+		// Strip stacked copies from prior hot-reloads / raced ensures before creating anything.
+		for (const type of [
+			STORYFORGE_VIEW_TYPE,
+			TOOLS_VIEW_TYPE,
+			SPACER_VIEW_TYPE,
+			RECOMMEND_VIEW_TYPE,
+			FORGE_VIEW_TYPE,
+			ARCHIVE_VIEW_TYPE,
+			...this.rightRailRegistry.map((r) => r.viewType),
+		]) {
+			this.dedupeLeavesOfType(type);
+		}
+
 		await this.ensureLeaf(STORYFORGE_VIEW_TYPE, "left", true);
 		if (this.pluginSettings.useToolsPanel) {
 			await this.ensureLeaf(TOOLS_VIEW_TYPE, "left", false);
+		} else {
+			this.dedupeLeavesOfType(TOOLS_VIEW_TYPE);
 		}
-		await this.ensureRightRailPanels();
+		await this.ensureRightRailPanelsUnlocked();
 		await this.enforcePanelOrder();
 
 		const sfLeaf = this.app.workspace.getLeavesOfType(STORYFORGE_VIEW_TYPE)[0] ?? null;
@@ -963,19 +1207,46 @@ export default class StoryForgePlugin extends Plugin {
 		this.syncSpacerActiveClass();
 	}
 
-	/** Ensure Spacer → Story Context → [hosted] → Archive exist in that order on the right. */
+	/** Ensure Spacer → Story Context → Forge → [hosted] exist in that order on the right. */
 	private async ensureRightRailPanels(): Promise<void> {
+		return this.enqueueEnsurePanels(() => this.ensureRightRailPanelsUnlocked());
+	}
+
+	private async ensureRightRailPanelsUnlocked(): Promise<void> {
+		// Prefer Story Context before dropping legacy Archive tabs so the right split
+		// doesn't collapse when Archive was the active leaf.
+		const existingContext = this.app.workspace.getLeavesOfType(RECOMMEND_VIEW_TYPE)[0];
+		if (existingContext) {
+			await this.app.workspace.revealLeaf(existingContext);
+		}
+		this.app.workspace.detachLeavesOfType(ARCHIVE_VIEW_TYPE);
+
 		const types = this.rightRailTypes();
+		for (const type of types) this.dedupeLeavesOfType(type);
 		if (!this.isRightRailOrderCanonical()) {
 			for (const type of types) this.app.workspace.detachLeavesOfType(type);
-			for (let i = 0; i < types.length; i++) {
-				await this.ensureLeaf(types[i], "right", types[i] === RECOMMEND_VIEW_TYPE);
+			for (const type of types) {
+				await this.ensureLeaf(type, "right", type === RECOMMEND_VIEW_TYPE);
 			}
-			return;
+		} else {
+			for (const type of types) {
+				await this.ensureLeaf(type, "right", type === RECOMMEND_VIEW_TYPE);
+			}
 		}
-		for (const type of types) {
-			await this.ensureLeaf(type, "right", type === RECOMMEND_VIEW_TYPE);
+
+		const right = this.app.workspace.rightSplit;
+		if (typeof right.expand === "function") right.expand();
+		const contextLeaf = this.app.workspace.getLeavesOfType(RECOMMEND_VIEW_TYPE)[0] ?? null;
+		if (contextLeaf) {
+			await contextLeaf.setViewState({ type: RECOMMEND_VIEW_TYPE, active: true });
+			await this.app.workspace.revealLeaf(contextLeaf);
 		}
+	}
+
+	/** Keeps the first leaf of `type` and detaches any extras (duplicate tab icons). */
+	private dedupeLeavesOfType(type: string): void {
+		const leaves = this.app.workspace.getLeavesOfType(type);
+		for (let i = 1; i < leaves.length; i++) leaves[i].detach();
 	}
 
 	/** True when right-rail tabs appear in canonical order (missing tabs are OK). */
@@ -1008,19 +1279,22 @@ export default class StoryForgePlugin extends Plugin {
 		}
 	}
 
-	/** Ensure a leaf of `type` exists in the left or right sidebar. Does not reveal/focus. */
+	/**
+	 * Ensure a leaf of `type` exists in the left or right sidebar. Does not reveal/focus.
+	 * Uses Obsidian's `ensureSideLeaf` (reuses an existing leaf) and strips duplicates first —
+	 * `getLeftLeaf`/`getRightLeaf` always insert a new tab, which previously stacked copies.
+	 */
 	private async ensureLeaf(
 		type: string,
 		side: "left" | "right",
 		active: boolean,
 	): Promise<WorkspaceLeaf | null> {
-		const { workspace } = this.app;
-		let leaf: WorkspaceLeaf | null = workspace.getLeavesOfType(type)[0] ?? null;
-		if (!leaf) {
-			leaf = side === "left" ? workspace.getLeftLeaf(false) : workspace.getRightLeaf(false);
-			await leaf?.setViewState({ type, active });
-		}
-		return leaf ?? null;
+		this.dedupeLeavesOfType(type);
+		return this.app.workspace.ensureSideLeaf(type, side, {
+			active,
+			reveal: false,
+			split: false,
+		});
 	}
 
 	/** True if the StoryForge leaf is visited before the Tools leaf when walking the workspace's layout tree (i.e. sits earlier among tabs in a shared group). If either is absent, there's nothing to enforce. */

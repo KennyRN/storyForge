@@ -1,18 +1,16 @@
-import { ItemView, Notice, TFile, WorkspaceLeaf, setIcon, setTooltip } from "obsidian";
+import { ItemView, WorkspaceLeaf, setIcon } from "obsidian";
 import type StoryForgePlugin from "../main";
-import { getArchivedChapters, unarchiveChapter, chapterDisplayTitle } from "../book";
-import { getArchivedCodexItems, unarchiveCodexItem, type ArchivedCodexItem } from "../codex";
-import { recordChapterUnarchive } from "../history";
-import { ICON_ARCHIVE, ICON_UNARCHIVE } from "../icons";
-import { bookFolderNameFromChapterPath, libraryChapterPath } from "../paths";
-import { formatSingleLine } from "../titleNumbering";
-import { excerpt } from "../wordCount";
-import { makeAccessibleActivatable } from "./a11y";
+import { ICON_ARCHIVE } from "../icons";
+import { bookFolderNameFromChapterPath } from "../paths";
 import { activateRightRailView } from "./activateRightRailView";
+import { renderArchivePanel, type ArchiveMode } from "./archivePanel";
+import { RecommendationView, RECOMMEND_VIEW_TYPE } from "./RecommendationView";
 
+/**
+ * Legacy ItemView kept registered so old workspaces that still restore an Archive leaf
+ * do not crash. New UX embeds Archive inside Story Context — prefer `activateArchiveView`.
+ */
 export const ARCHIVE_VIEW_TYPE = "storyforge-archive-view";
-
-type ArchiveMode = "codex" | "novel";
 
 export class ArchiveView extends ItemView {
 	private mode: ArchiveMode = "codex";
@@ -64,13 +62,11 @@ export class ArchiveView extends ItemView {
 		this.contentEl.empty();
 	}
 
-	/** Seed book from storyForge selection. */
 	syncFromPluginSelection(): void {
 		const settings = this.plugin.getSettings();
 		if (settings.selectedNovel) this.bookFolderName = settings.selectedNovel;
 	}
 
-	/** Prefer opening on the Novel tab when launched from the chapter archive button. */
 	openOnNovelTab(): void {
 		this.mode = "novel";
 		this.syncFromPluginSelection();
@@ -78,7 +74,6 @@ export class ArchiveView extends ItemView {
 		this.render();
 	}
 
-	/** Prefer opening on the Codex tab when launched from the Codex archive button. */
 	openOnCodexTab(): void {
 		this.mode = "codex";
 		this.render();
@@ -104,130 +99,28 @@ export class ArchiveView extends ItemView {
 		setIcon(header.createSpan({ cls: "sf-icon" }), ICON_ARCHIVE);
 		header.createSpan({ cls: "sf-archive-view-title", text: "Archive" });
 
-		const tabs = header.createDiv({ cls: "sf-archive-view-tabs" });
-		const codexTab = tabs.createSpan({
-			cls: `sf-archive-view-tab${this.mode === "codex" ? " is-active" : ""}`,
-			text: "Codex",
+		renderArchivePanel(el, {
+			app: this.app,
+			plugin: this.plugin,
+			bookFolderName: this.bookFolderName,
+			mode: this.mode,
+			setMode: (mode) => {
+				this.mode = mode;
+			},
+			refresh: () => this.render(),
 		});
-		const novelTab = tabs.createSpan({
-			cls: `sf-archive-view-tab${this.mode === "novel" ? " is-active" : ""}`,
-			text: "Novel",
-		});
-		codexTab.addEventListener("click", () => {
-			this.mode = "codex";
-			this.render();
-		});
-		novelTab.addEventListener("click", () => {
-			this.mode = "novel";
-			this.render();
-		});
-
-		if (this.mode === "codex") this.renderCodex(el);
-		else this.renderNovel(el);
-	}
-
-	private renderCodex(el: HTMLElement): void {
-		const archived = getArchivedCodexItems(this.app);
-		if (archived.length === 0) {
-			el.createDiv({ cls: "sf-empty", text: "No archived codex items." });
-			return;
-		}
-		const list = el.createDiv({ cls: "sf-archive-list" });
-		for (const entry of archived) {
-			this.renderCodexRow(list, entry);
-		}
-	}
-
-	private renderCodexRow(list: HTMLElement, entry: ArchivedCodexItem): void {
-		const row = list.createDiv({ cls: "sf-row" });
-		const label =
-			entry.type === "folder" ? `${entry.name} (folder with ${entry.childCount ?? 0} children)` : entry.name;
-		row.createSpan({ cls: "sf-archive-label", text: label });
-		if (entry.type === "file") void this.attachCodexExcerpt(row, entry.key);
-
-		const unarchiveBtn = row.createSpan({ cls: "sf-archive-unarchive-btn", attr: { "aria-label": "Unarchive" } });
-		setIcon(unarchiveBtn, ICON_UNARCHIVE);
-		const handle = async () => {
-			try {
-				await unarchiveCodexItem(this.app, entry.key);
-				this.plugin.refreshStoryForgeViews();
-				this.render();
-			} catch (err) {
-				new Notice(`storyForge: could not unarchive — ${err instanceof Error ? err.message : String(err)}`);
-			}
-		};
-		unarchiveBtn.addEventListener("click", (e) => {
-			e.stopPropagation();
-			void handle();
-		});
-		makeAccessibleActivatable(unarchiveBtn, () => void handle());
-	}
-
-	private renderNovel(el: HTMLElement): void {
-		if (!this.bookFolderName) {
-			el.createDiv({ cls: "sf-empty", text: "Open a chapter to see this novel's archive." });
-			return;
-		}
-		const archived = getArchivedChapters(this.app, this.bookFolderName);
-		if (archived.length === 0) {
-			el.createDiv({ cls: "sf-empty", text: "No archived chapters." });
-			return;
-		}
-		const list = el.createDiv({ cls: "sf-archive-list" });
-		for (const entry of archived) {
-			this.renderNovelRow(list, entry.bookFolderName, entry.filename);
-		}
-	}
-
-	private renderNovelRow(list: HTMLElement, bookFolderName: string, filename: string): void {
-		const row = list.createDiv({ cls: "sf-row" });
-		const chapterLabel = formatSingleLine(chapterDisplayTitle(this.app, bookFolderName, filename));
-		row.createSpan({ cls: "sf-archive-label", text: chapterLabel });
-		void this.attachChapterExcerpt(row, bookFolderName, filename);
-
-		const unarchiveBtn = row.createSpan({ cls: "sf-archive-unarchive-btn", attr: { "aria-label": "Unarchive" } });
-		setIcon(unarchiveBtn, ICON_UNARCHIVE);
-		const handle = async () => {
-			try {
-				await unarchiveChapter(this.app, bookFolderName, filename);
-				await recordChapterUnarchive(this.app, bookFolderName, filename);
-				this.plugin.refreshStoryForgeViews();
-				this.render();
-			} catch (err) {
-				new Notice(`storyForge: could not unarchive — ${err instanceof Error ? err.message : String(err)}`);
-			}
-		};
-		unarchiveBtn.addEventListener("click", (e) => {
-			e.stopPropagation();
-			void handle();
-		});
-		makeAccessibleActivatable(unarchiveBtn, () => void handle());
-	}
-
-	private async attachCodexExcerpt(el: HTMLElement, path: string): Promise<void> {
-		const file = this.app.vault.getAbstractFileByPath(path);
-		if (!(file instanceof TFile)) return;
-		const preview = excerpt(await this.app.vault.cachedRead(file));
-		if (preview) setTooltip(el, preview);
-	}
-
-	private async attachChapterExcerpt(el: HTMLElement, bookFolderName: string, filename: string): Promise<void> {
-		const file = this.app.vault.getAbstractFileByPath(libraryChapterPath(bookFolderName, filename));
-		if (!(file instanceof TFile)) return;
-		const preview = excerpt(await this.app.vault.cachedRead(file));
-		if (preview) setTooltip(el, preview);
 	}
 }
 
+/** Opens Archive inside Story Context (right-rail Story Context tab). */
 export async function activateArchiveView(
 	plugin: StoryForgePlugin,
 	tab: ArchiveMode = "codex",
 ): Promise<void> {
-	await activateRightRailView(plugin, ARCHIVE_VIEW_TYPE, (leaf) => {
+	await activateRightRailView(plugin, RECOMMEND_VIEW_TYPE, (leaf) => {
 		const view = leaf.view;
-		if (view instanceof ArchiveView) {
-			if (tab === "novel") view.openOnNovelTab();
-			else view.openOnCodexTab();
+		if (view instanceof RecommendationView) {
+			view.openArchive(tab);
 		}
 	});
 }

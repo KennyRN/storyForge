@@ -362,6 +362,29 @@ function collectMatched(
 	return result;
 }
 
+/** Ensure the chapter PoV appears in Characters even when only referred to as "I". */
+function ensureNarratorMatched(
+	matched: MatchedCodexEntry[],
+	narrator: { path: string; name: string } | null,
+	cast: CastMember[],
+): MatchedCodexEntry[] {
+	if (!narrator) return matched;
+	if (matched.some((m) => m.path === narrator.path)) return matched;
+	const entry = cast.find((c) => c.path === narrator.path);
+	const next = [
+		...matched,
+		{
+			path: narrator.path,
+			name: entry?.name ?? narrator.name,
+			type: entry?.type ?? "person",
+			matchedAs: ["PoV"],
+			ambiguousWith: [],
+		},
+	];
+	next.sort((a, b) => a.name.localeCompare(b.name));
+	return next;
+}
+
 const HYPHEN_RE = /^[-–—]$/;
 /** Particles allowed between PROPN runs: Cult of the Snake / Ludwig van Beethoven. */
 const NAME_BRIDGE_RE = /^(of|the|de|von|van)$/i;
@@ -761,7 +784,11 @@ export async function analyzeChapter(
 	const sentences = splitSentences(rawChapter, stripped, nlp);
 	const keys = buildMatchKeys(entries);
 
-	const matched = collectMatched(sentences, entries, keys);
+	const matched = ensureNarratorMatched(
+		collectMatched(sentences, entries, keys),
+		options.narrator ?? null,
+		entries,
+	);
 	const hits = scanFile(
 		rawChapter,
 		{

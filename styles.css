@@ -496,14 +496,14 @@
 .sf-synopsis-default-pov {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: 2px;
 	margin-top: 12px;
-	font-size: var(--font-ui-small);
-	color: var(--text-muted);
+	font-weight: 400;
+	color: var(--text-normal);
 }
 
-.sf-synopsis-default-pov-label {
-	flex-shrink: 0;
+.sf-synopsis-default-pov .sf-book-filter-btn {
+	margin-left: 0;
 }
 
 .sf-synopsis-body {
@@ -2213,25 +2213,112 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 	margin-left: auto;
 }
 
-.sf-recommend-narrating {
-	margin-bottom: 8px;
+.sf-recommend-meta {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-top: 2px;
+	margin-bottom: 0;
+	color: var(--sf-recommend-items-color, var(--text-normal));
+	font-size: var(--sf-recommend-items-size, 1em);
 }
 
-.sf-recommend-narrating-btn {
+.sf-recommend-meta-row {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	flex-wrap: wrap;
+}
+
+.sf-recommend-meta-label {
+	flex-shrink: 0;
+}
+
+.sf-recommend-meta-control {
 	display: inline-flex;
 	align-items: center;
-	gap: 6px;
+	gap: 4px;
 	cursor: pointer;
-	color: var(--text-muted);
-	font-size: var(--font-ui-small);
+	color: inherit;
+	line-height: 1;
 }
 
-.sf-recommend-narrating-btn:hover {
+.sf-recommend-meta-control:hover {
 	color: var(--text-accent);
 }
 
-.sf-recommend-narrating-label {
+.sf-recommend-meta-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
 	color: inherit;
+	line-height: 1;
+}
+
+.sf-recommend-meta-icon svg {
+	width: 1em;
+	height: 1em;
+}
+
+.sf-recommend-meta-value {
+	color: inherit;
+}
+
+.sf-recommend-novel-fixed .sf-synopsis-plot-title {
+	margin-top: 12px;
+	margin-bottom: 4px;
+}
+
+.sf-recommend-novel-cover {
+	width: 120px;
+	height: 180px;
+	margin: 0 auto 12px;
+	align-self: center;
+}
+
+.sf-recommend-novel-title {
+	text-align: center;
+	font-weight: 600;
+	color: var(--sf-recommend-header-color, var(--text-normal));
+	font-size: var(--sf-recommend-header-size, 1.1em);
+	margin-bottom: 4px;
+}
+
+.sf-recommend-novel-subtitle {
+	text-align: center;
+	color: var(--sf-recommend-items-color, var(--text-muted));
+	font-size: 0.9em;
+	margin-bottom: 10px;
+}
+
+.sf-recommend-novel-synopsis {
+	width: 100%;
+	min-height: 88px;
+	margin-bottom: 10px;
+	box-sizing: border-box;
+}
+
+.sf-recommend-plot-block {
+	padding: 12px 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.sf-recommend-plot-block:last-child {
+	border-bottom: none;
+}
+
+.sf-recommend-plot-chapter-name {
+	font-weight: 600;
+	margin-bottom: 6px;
+	color: var(--sf-recommend-header-color, var(--text-normal));
+}
+
+.sf-recommend-plot-textarea {
+	width: 100%;
+	min-height: 72px;
+	margin-top: 8px;
+	box-sizing: border-box;
 }
 
 .sf-recommend-chapter-title {
@@ -2277,7 +2364,7 @@ body.sf-editor-scrollbar .markdown-preview-view:hover::-webkit-scrollbar-track:n
 	align-items: center;
 	justify-content: flex-end;
 	gap: 2px;
-	margin-bottom: 8px;
+	margin-bottom: 2px;
 }
 
 .sf-recommend-hit-actions button {

@@ -12,6 +12,14 @@ This project uses icons from the following third-party, open-source icon sets. A
 
 ---
 
+## Mono Icons
+
+- **Author:** Mono Company BV
+- **Source:** https://github.com/mono-company/mono-icons
+- **Licence:** MIT License — *see [MIT License](#mit-license) below*
+
+---
+
 ## Famicons
 
 - **Author:** Family (familyjs)
@@ -268,12 +276,12 @@ This project uses icons from the following third-party, open-source icon sets. A
 
 ## MIT License
 
-*Applies to: Famicons, Mynaui Icons, Siemens Industrial Experience Icons (ix)*
+*Applies to: Famicons, Mynaui Icons, Siemens Industrial Experience Icons (ix), Mono Icons*
 
 ```
 MIT License
 
-Copyright (c) respective icon set authors (Famicons — Family; Mynaui Icons — Myna UI; Siemens Industrial Experience Icons — Siemens AG)
+Copyright (c) respective icon set authors (Famicons — Family; Mynaui Icons — Myna UI; Siemens Industrial Experience Icons — Siemens AG; Mono Icons — Mono Company BV)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
