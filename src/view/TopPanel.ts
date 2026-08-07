@@ -136,6 +136,7 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 		renderCodexFocusNavigator(app, bodyEl, {
 			currentBookFolderName: options.currentBookFolderName,
 			activeChapterFilename: options.activeChapterFilename,
+			highlightActiveChapter: options.highlightActiveChapter,
 			onOpenChapter: options.onOpenChapter,
 			onCreateContinuing: options.onCreateContinuingChapter,
 		});

@@ -3,13 +3,15 @@ import { chapterDisplayTitle, getBookChapters } from "../book";
 import { computeSpineWindow, type NavigatorSlot, type SpineWindow } from "../spineWindow";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
 import { makeAccessibleActivatable } from "./a11y";
-import { ICON_PLUS_SQUARE, TRANSPORT_ICON_SETS } from "../icons";
+import { ICON_PLUS_SQUARE, ICON_TRANSPORT_NEXT, ICON_TRANSPORT_PREVIOUS, ICON_TRANSPORT_TO_END, ICON_TRANSPORT_TO_START } from "../icons";
 
 export interface CodexFocusNavigatorOptions {
 	currentBookFolderName: string | null;
 	/** The chapter currently open in the editor, if any — need not be on the spine (an idea
 	 * chapter may be open); computeSpineWindow falls back to the first placed chapter then. */
 	activeChapterFilename: string | null;
+	/** Mirrors Hybrid's own toggle — the current-chapter highlight only shows while this is on. */
+	highlightActiveChapter: boolean;
 	onOpenChapter: (bookFolderName: string, filename: string) => void;
 	/** Forward-only: create a chapter, append it to the end of chapter-order, and open it. */
 	onCreateContinuing: (bookFolderName: string) => void;
@@ -23,10 +25,8 @@ export interface CodexFocusNavigatorOptions {
  * is needed to show it (see spineWindow.ts). At the tail end, the slot after the last placed
  * chapter is `[+]` (continue the story) instead of a gap.
  *
- * TEMPORARY (hand-off brief H1): the transport row renders all three candidate icon sets side by
- * side, each fully wired, so Kenny can compare them live before picking one. Once chosen, collapse
- * this to a single row using TRANSPORT_ICON_SETS[chosen] and delete the other two sets from
- * icons.ts.
+ * Chapter tiles look like Hybrid's chapter rows (plain, centred text, no card/border chrome),
+ * highlighted the same way Hybrid highlights its active row — same colours, same toggle.
  */
 export function renderCodexFocusNavigator(app: App, container: HTMLElement, options: CodexFocusNavigatorOptions): void {
 	container.empty();
@@ -51,13 +51,18 @@ export function renderCodexFocusNavigator(app: App, container: HTMLElement, opti
 
 	const windowEl = wrap.createDiv({ cls: "sf-navigator-window" });
 	for (const slot of win.slots) {
-		renderSlot(windowEl, slot, titleFor, bookFolderName, options.onOpenChapter, () => options.onCreateContinuing(bookFolderName));
+		renderSlot(
+			windowEl,
+			slot,
+			titleFor,
+			bookFolderName,
+			options.highlightActiveChapter,
+			options.onOpenChapter,
+			() => options.onCreateContinuing(bookFolderName),
+		);
 	}
 
-	const transportZone = wrap.createDiv({ cls: "sf-navigator-transport-zone" });
-	for (const [setName, icons] of Object.entries(TRANSPORT_ICON_SETS)) {
-		renderTransportRow(transportZone, setName, icons, ordered, win, bookFolderName, options.onOpenChapter);
-	}
+	renderTransportRow(wrap, ordered, win, bookFolderName, options.onOpenChapter);
 }
 
 function renderSlot(
@@ -65,6 +70,7 @@ function renderSlot(
 	slot: NavigatorSlot<TFile>,
 	titleFor: (file: TFile) => string,
 	bookFolderName: string,
+	highlightActiveChapter: boolean,
 	onOpenChapter: (bookFolderName: string, filename: string) => void,
 	onCreate: () => void,
 ): void {
@@ -79,7 +85,7 @@ function renderSlot(
 		return;
 	}
 	const file = slot.file as TFile;
-	if (slot.isCurrent) tile.addClass("sf-navigator-tile-current");
+	if (slot.isCurrent && highlightActiveChapter) tile.addClass("sf-navigator-tile-current");
 	const { title } = splitTitleSubtitle(titleFor(file));
 	tile.createDiv({ cls: "sf-navigator-tile-title", text: title });
 	tile.addEventListener("click", () => onOpenChapter(bookFolderName, file.name));
@@ -98,8 +104,6 @@ function renderCreateTile(container: HTMLElement, onCreate: () => void): void {
 
 function renderTransportRow(
 	container: HTMLElement,
-	setName: string,
-	icons: { toStart: string; previous: string; next: string; toEnd: string },
 	ordered: TFile[],
 	win: SpineWindow<TFile>,
 	bookFolderName: string,
@@ -110,24 +114,21 @@ function renderTransportRow(
 	const atStart = currentIndex <= 0;
 	const atEnd = currentIndex >= ordered.length - 1;
 
-	const row = container.createDiv({ cls: "sf-navigator-transport-row" });
-	row.createSpan({ cls: "sf-navigator-transport-label", text: setName });
+	const buttons = container.createDiv({ cls: "sf-navigator-transport-buttons" });
 
-	const buttons = row.createDiv({ cls: "sf-navigator-transport-buttons" });
-
-	addTransportButton(buttons, icons.toStart, "To start", !atStart, () => {
+	addTransportButton(buttons, ICON_TRANSPORT_TO_START, "To start", !atStart, () => {
 		const first = ordered[0];
 		if (first) onOpenChapter(bookFolderName, first.name);
 	});
-	addTransportButton(buttons, icons.previous, "Previous chapter", !atStart, () => {
+	addTransportButton(buttons, ICON_TRANSPORT_PREVIOUS, "Previous chapter", !atStart, () => {
 		const previous = ordered[currentIndex - 1];
 		if (previous) onOpenChapter(bookFolderName, previous.name);
 	});
-	addTransportButton(buttons, icons.next, "Next chapter", !atEnd, () => {
+	addTransportButton(buttons, ICON_TRANSPORT_NEXT, "Next chapter", !atEnd, () => {
 		const next = ordered[currentIndex + 1];
 		if (next) onOpenChapter(bookFolderName, next.name);
 	});
-	addTransportButton(buttons, icons.toEnd, "To end", !atEnd, () => {
+	addTransportButton(buttons, ICON_TRANSPORT_TO_END, "To end", !atEnd, () => {
 		const last = ordered[ordered.length - 1];
 		if (last) onOpenChapter(bookFolderName, last.name);
 	});
