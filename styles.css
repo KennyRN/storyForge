@@ -2807,14 +2807,9 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	opacity: 0.4;
 }
 
-/* Continuous mode's fifth control (continuous-mode hand-off brief §2) — a divider either side
- * sets it apart from the four transport buttons so it never reads as a fifth step among them. */
-.sf-navigator-transport-toggle {
-	margin: 0 4px;
-	padding: 0 10px;
-	border-left: 1px solid var(--background-modifier-border);
-	border-right: 1px solid var(--background-modifier-border);
-}
+/* Continuous mode's fifth control (continuous-mode hand-off brief §2) sits in the centre slot
+ * among the five and uses its own glyph — that's distinct enough on its own; no divider or extra
+ * spacing, so it stays exactly the same size as the other four and the row stays evenly gapped. */
 
 /* The live position indicator (continuous mode's read-only stand-in for the window) sits directly
  * above the manuscript scroll — no extra gap needed beyond .sf-navigator's own row gap. */
