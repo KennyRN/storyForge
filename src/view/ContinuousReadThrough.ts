@@ -1,7 +1,11 @@
 import { App, Component, MarkdownRenderer, TFile } from "obsidian";
+import { chapterDisplayTitle, renameChapterTitle } from "../book";
 import { pickCurrentChapter } from "../continuousMode";
+import { attachInlineRename } from "./inlineRename";
+import { isLinkClick, resolveClickedSourceOffset } from "./clickToEditDom";
 
 export interface ContinuousReadThroughOptions {
+	bookFolderName: string;
 	/** The placed spine only (book.ts's getBookChapters()'s `ordered`) — idea/unplaced chapters
 	 * never appear in the read-through. */
 	ordered: TFile[];
@@ -14,6 +18,14 @@ export interface ContinuousReadThroughOptions {
 	entryFilename: string;
 	/** Fires whenever the live-tracked "current" chapter changes as the reader scrolls. */
 	onPositionChange: (filename: string) => void;
+	/** A deliberate click on a chapter's body (hand-off brief §2.6/§2.8) — since there's no public
+	 * way to mount a real editor inline (Editor/MarkdownView have no public standalone constructor),
+	 * this commits to editing by handing off to a real single-chapter editor elsewhere, with the
+	 * caret landing at `sourceOffset`, same accuracy bar as the brief asks for. */
+	onEditChapter: (file: TFile, sourceOffset: number) => void;
+	/** A chapter's title changed via the header's right-click rename — numbering and the tree may
+	 * both need to catch up, so the caller re-renders fully rather than this patching itself in place. */
+	onChapterRenamed: () => void;
 }
 
 export interface ContinuousReadThroughHandle {
@@ -32,17 +44,27 @@ interface ChapterSection {
 	wrapper: HTMLElement;
 	body: HTMLElement;
 	mounted: boolean;
+	/** The last content painted into `body` — click-to-edit maps against this, not a fresh read,
+	 * so the clicked DOM and the source text used for mapping are always the same snapshot. */
+	content: string | null;
 }
 
 /**
  * Codex-focus's continuous read-and-write mode read-through (continuous-mode hand-off brief §2.1
  * onwards). Renders the placed spine into one scroll container, one chapter per section, virtualising
  * mount/unmount so the DOM cost tracks what's on screen rather than the whole book (§2.2). Reading
- * is strictly read-only here — `cachedRead` + `MarkdownRenderer.render` — click-to-edit is CM-2.
+ * itself is strictly read-only — `cachedRead` + `MarkdownRenderer.render`; no chapter body is ever
+ * written by this module.
  *
  * A single IntersectionObserver pair drives both concerns described in §2.2/§2.3: a wide-margin
  * observer decides what's mounted, a viewport-true observer feeds `pickCurrentChapter` for the live
  * position indicator and for "whichever chapter they scrolled to" on exit.
+ *
+ * Click-to-edit (§2.6/§2.8): a click on rendered prose maps back to its exact source offset (see
+ * clickToCaret.ts/clickToEditDom.ts) and hands off to a real editor there; a click on a rendered
+ * link navigates instead (Obsidian's own rendered output already wires that up — this module just
+ * steps out of the way); the chapter header is inert to left-click and renamed only via right-click
+ * through the existing rename path (§2.7).
  */
 export function renderContinuousReadThrough(
 	app: App,
@@ -63,15 +85,37 @@ export function renderContinuousReadThrough(
 	for (const file of options.ordered) {
 		const wrapper = scrollEl.createDiv({ cls: "sf-continuous-chapter" });
 		wrapper.dataset.filename = file.name;
-		wrapper.createDiv({ cls: "sf-continuous-header", text: options.titleFor(file) });
+
+		const header = wrapper.createDiv({ cls: "sf-continuous-header" });
+		const headerLabel = header.createSpan({ text: options.titleFor(file) });
+		// Header is inert to left-click by construction — no click listener here at all — and
+		// renamed only via this right-click menu, through the same path the chapter tree uses.
+		attachInlineRename({
+			row: header,
+			label: headerLabel,
+			getCurrentTitle: () => chapterDisplayTitle(app, options.bookFolderName, file.name),
+			onCommit: async (newTitle) => {
+				await renameChapterTitle(app, options.bookFolderName, file.name, newTitle);
+				options.onChapterRenamed();
+			},
+		});
+
 		// markdown-rendered picks up Obsidian's own reading-view styling (headings, lists, etc.).
 		const body = wrapper.createDiv({ cls: "sf-continuous-body markdown-rendered" });
-		sections.set(file.name, { file, wrapper, body, mounted: false });
+		const section: ChapterSection = { file, wrapper, body, mounted: false, content: null };
+		body.addEventListener("click", (e) => {
+			if (!section.mounted || section.content === null) return;
+			if (isLinkClick(e.target)) return; // let Obsidian's own link navigation handle it
+			const offset = resolveClickedSourceOffset(body, section.content, e.clientX, e.clientY);
+			if (offset !== null) options.onEditChapter(file, offset);
+		});
+		sections.set(file.name, section);
 	}
 
 	const paint = (section: ChapterSection): void => {
 		void app.vault.cachedRead(section.file).then((content) => {
 			if (!section.mounted) return; // scrolled away again (or refreshed away) before this resolved
+			section.content = content;
 			section.body.empty();
 			void MarkdownRenderer.render(app, content, section.body, section.file.path, component);
 		});
@@ -89,6 +133,7 @@ export function renderContinuousReadThrough(
 		const section = sections.get(filename);
 		if (!section || !section.mounted) return;
 		section.mounted = false;
+		section.content = null;
 		// Hold the section's last measured height so unmounting its content doesn't shrink the
 		// scroll container and yank chapters below it up underneath the reader.
 		const height = section.wrapper.getBoundingClientRect().height;

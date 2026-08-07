@@ -2846,9 +2846,17 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 }
 
 .sf-continuous-header {
+	display: flex;
+	align-items: center;
 	font-weight: 600;
 	margin-bottom: 8px;
 	color: var(--sf-lib-items-color, var(--text-normal));
+}
+
+/* Right-click rename (hand-off brief §2.7) swaps the label span for an <input> here — flex:1
+ * on .sf-rename-input needs a flex parent to actually fill the header's width. */
+.sf-continuous-header .sf-rename-input {
+	font-weight: 600;
 }
 
 .sf-continuous-body {
