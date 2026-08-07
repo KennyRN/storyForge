@@ -5,6 +5,8 @@ import {
 	ICON_BOOK_PLUS,
 	ICON_CALENDAR,
 	ICON_CODEX,
+	ICON_CONTINUOUS_MODE,
+	ICON_CONTINUOUS_MODE_EXIT,
 	ICON_CYCLE_ALT,
 	ICON_DASHBOARD_CHART,
 	ICON_EXCHANGE,
@@ -103,6 +105,18 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 	{ id: ICON_TRANSPORT_TO_END, label: "Transport: to end", source: "custom", usedIn: ["CodexFocusNavigator.ts — transport row"] },
 	{ id: ICON_ADD_CIRCLE, label: "Add (circle, duotone)", source: "custom", usedIn: ["CodexFocusNavigator.ts — 'continue the story' tile"] },
 	{ id: ICON_LAYOUT_SELECTOR, label: "Choose layout", source: "custom", usedIn: ["TopPanel.ts — layout selector button (Series browse / Novel browse / Codex focus / Hybrid)"] },
+	{
+		id: ICON_CONTINUOUS_MODE,
+		label: "Continuous mode (off — click to enter)",
+		source: "custom",
+		usedIn: ["CodexFocusNavigator.ts — transport row's fifth control"],
+	},
+	{
+		id: ICON_CONTINUOUS_MODE_EXIT,
+		label: "Continuous mode (on — click to exit)",
+		source: "custom",
+		usedIn: ["CodexFocusNavigator.ts — transport row's fifth control, while continuous mode is active"],
+	},
 	{
 		id: ICON_FORGE,
 		label: "Forge",
