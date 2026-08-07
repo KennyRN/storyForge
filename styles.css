@@ -469,15 +469,22 @@
 	cursor: pointer;
 }
 
-/* Series-mode-only settings icon, sat right after the layout selector button — fixed gap, not
-   another auto margin, so it doesn't fight the selector for the row's leftover space. */
+/* Series-mode-only settings icon, sat right before the layout selector button so that button stays
+ * the rightmost icon on this line in every view, not just the ones without a settings icon. This
+ * one gets the auto margin instead of .sf-series-filter-btn — pushing the pair of them to the row's
+ * right edge — with the layout button right after it at a fixed gap (below), not another auto
+ * margin, so the two don't fight each other for the row's leftover space. */
 .sf-series-settings-btn {
 	display: flex;
 	align-items: center;
 	flex-shrink: 0;
-	margin-left: 6px;
+	margin-left: auto;
 	color: var(--text-muted);
 	cursor: pointer;
+}
+
+.sf-series-settings-btn + .sf-series-filter-btn {
+	margin-left: 6px;
 }
 
 .sf-series-modal {
@@ -2793,8 +2800,11 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 }
 
 .sf-navigator-transport-btn svg {
-	width: 2em;
-	height: 2em;
+	/* Kept in sync with navigatorControls.ts's forceIconSize(), which sets this inline (and wins) —
+	 * the toggle's custom icon and the four transport icons come from different source sets, and
+	 * em-based sizing alone left them visibly mismatched in height. */
+	width: 25px;
+	height: 25px;
 }
 
 .sf-navigator-transport-btn:hover {

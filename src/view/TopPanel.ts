@@ -84,6 +84,19 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 		setIcon(seriesLine.createSpan({ cls: "sf-icon" }), ICON_SERIES);
 		seriesLine.createSpan({ cls: "sf-header-text", text: series.seriesTitle });
 
+		// Series settings live here and nowhere else — relevant only while browsing the series list
+		// itself — and render before the layout button so that button stays the rightmost icon on
+		// this line in every layout, not just the ones without a settings icon competing for the spot.
+		if (options.layout === "seriesBrowse") {
+			const settingsBtn = seriesLine.createSpan({ cls: "sf-series-settings-btn", attr: { "aria-label": "Series settings" } });
+			setIcon(settingsBtn, ICON_FILTER);
+			settingsBtn.addEventListener("click", (e) => {
+				e.stopPropagation();
+				options.onOpenSeriesModal();
+			});
+			makeAccessibleActivatable(settingsBtn, () => options.onOpenSeriesModal());
+		}
+
 		const layoutBtn = seriesLine.createSpan({ cls: "sf-series-filter-btn", attr: { "aria-label": "Choose layout" } });
 		setIcon(layoutBtn, ICON_LAYOUT_SELECTOR);
 		layoutBtn.addEventListener("click", (e) => {
@@ -94,17 +107,6 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 			const rect = layoutBtn.getBoundingClientRect();
 			buildLayoutMenu(options.layout, options.onSelectLayout).showAtPosition({ x: rect.left, y: rect.bottom });
 		});
-
-		// Series settings live here and nowhere else — relevant only while browsing the series list itself.
-		if (options.layout === "seriesBrowse") {
-			const settingsBtn = seriesLine.createSpan({ cls: "sf-series-settings-btn", attr: { "aria-label": "Series settings" } });
-			setIcon(settingsBtn, ICON_FILTER);
-			settingsBtn.addEventListener("click", (e) => {
-				e.stopPropagation();
-				options.onOpenSeriesModal();
-			});
-			makeAccessibleActivatable(settingsBtn, () => options.onOpenSeriesModal());
-		}
 	}
 
 	if (options.mode !== "series") {

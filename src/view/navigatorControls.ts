@@ -35,8 +35,8 @@ export interface ContinuousToggle {
 /**
  * The four transport buttons — shared between the sidebar (open-file) and the continuous read
  * view (scroll-to); only what each button *does* differs. The optional fifth control is
- * continuous mode's launcher/exit, deliberately set apart from the four transport buttons with
- * its own divider rather than reading as a fifth step among them.
+ * continuous mode's launcher/exit, sitting in the centre slot with its own glyph — distinct
+ * enough on its own, and deliberately the same size as the other four (see forceIconSize below).
  */
 export function renderTransportRow(
 	container: HTMLElement,
@@ -59,6 +59,7 @@ export function renderTransportRow(
 			attr: { "aria-label": label },
 		});
 		setIcon(btn, toggle.active ? ICON_CONTINUOUS_MODE_EXIT : ICON_CONTINUOUS_MODE);
+		forceIconSize(btn);
 		btn.addEventListener("click", toggle.onToggle);
 		makeAccessibleActivatable(btn, toggle.onToggle);
 	}
@@ -70,10 +71,22 @@ function addTransportButton(container: HTMLElement, iconId: string, label: strin
 	const btn = container.createSpan({ cls: "sf-navigator-transport-btn", attr: { "aria-label": label } });
 	if (!enabled) btn.addClass("sf-navigator-transport-btn-disabled");
 	setIcon(btn, iconId);
+	forceIconSize(btn);
 	if (enabled) {
 		btn.addEventListener("click", onClick);
 		makeAccessibleActivatable(btn, onClick);
 	}
+}
+
+/** Pins the rendered `<svg>` to an exact pixel size via an inline style, set after `setIcon()` so
+ * it wins over whatever size `setIcon()` itself applies — the five transport-row icons come from
+ * two different source sets (Kenny's custom SVGs for the toggle, mingcute-style paths for the
+ * other four) and em-based CSS sizing alone left the toggle visibly taller than its siblings. */
+function forceIconSize(btn: HTMLElement, sizePx = 25): void {
+	const svg = btn.querySelector("svg");
+	if (!svg) return;
+	svg.style.width = `${sizePx}px`;
+	svg.style.height = `${sizePx}px`;
 }
 
 /** The continuous read view's read-only equivalent of the sidebar's draggable chapter tile — no
