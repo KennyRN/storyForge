@@ -5,7 +5,8 @@ import { canEnterContinuousMode } from "../continuousMode";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
 import { makeAccessibleActivatable } from "./a11y";
 import { makeReorderable, type DragZone } from "./dragReorder";
-import { renderTransportRow } from "./navigatorControls";
+import { renderIndicatorSlot, renderTransportRow } from "./navigatorControls";
+import { onContinuousMode } from "./continuousEvents";
 import { ICON_ADD_CIRCLE } from "../icons";
 
 export interface CodexFocusNavigatorOptions {
@@ -18,10 +19,23 @@ export interface CodexFocusNavigatorOptions {
 	onOpenChapter: (bookFolderName: string, filename: string) => void;
 	/** Forward-only: create a chapter, append it to the end of chapter-order, and open it. */
 	onCreateContinuing: (bookFolderName: string) => void;
-	/** Continuous read-and-write mode's launcher (continuous-mode hand-off brief §2, corrected):
-	 * the sidebar is menus only, so this just opens the continuous read view in the main editor
-	 * pane — it carries no mode state of its own. */
+	/** Non-null while the continuous read view (main editor pane) is open on this book — the
+	 * chapter it's currently centred on. The sidebar renders the live position indicator and the
+	 * scroll-to transport instead of the normal window while this is set (continuous-mode hand-off
+	 * brief §2, corrected: the manuscript lives in the main pane, but the navigation around it is
+	 * still this sidebar's job, same as everywhere else in the app). */
+	continuousActiveFilename: string | null;
+	/** Opens the continuous read view in the main editor pane. */
 	onOpenContinuousRead: (bookFolderName: string) => void;
+	/** Exits continuous mode: replaces the read view's leaf with a real single-chapter editor on
+	 * whichever chapter it's currently centred on. */
+	onExitContinuousRead: (bookFolderName: string) => void;
+	/** Commands the read view to scroll to a chapter — the live indicator's tiles and the
+	 * transport row's four buttons while continuous mode is active. */
+	onContinuousScrollTo: (bookFolderName: string, filename: string) => void;
+	/** Registers the live position indicator's event-listener teardown — must run before the next
+	 * render discards this DOM (see StoryForgeView.render()). */
+	registerContinuousCleanup: (dispose: () => void) => void;
 }
 
 /**
@@ -40,9 +54,9 @@ export interface CodexFocusNavigatorOptions {
  * list, just constrained to whichever chapters are currently in view.
  *
  * A fifth control on the transport row (continuous-mode hand-off brief §2) opens the continuous
- * read-and-write view in the main editor pane — this sidebar stays menus-only throughout; the
- * manuscript itself, the live position indicator and the scroll-to transport all live in
- * ContinuousReadView.ts instead.
+ * read view in the main editor pane. While that view is open, this sidebar swaps its own window
+ * for a read-only live position indicator and turns the transport into scroll-to commands — the
+ * manuscript itself never renders here, only the navigation around it.
  */
 export function renderCodexFocusNavigator(app: App, container: HTMLElement, options: CodexFocusNavigatorOptions): void {
 	container.empty();
@@ -63,6 +77,25 @@ export function renderCodexFocusNavigator(app: App, container: HTMLElement, opti
 
 	const numbered = applyHashNumbering(ordered.map((file) => chapterDisplayTitle(app, bookFolderName, file.name)));
 	const titleFor = (file: TFile) => numbered[ordered.indexOf(file)];
+	const canGoContinuous = canEnterContinuousMode(ordered.length);
+
+	if (options.continuousActiveFilename && canGoContinuous) {
+		renderContinuousIndicator(app, wrap, ordered, bookFolderName, titleFor, options);
+	} else {
+		renderWindowBody(app, wrap, container, ordered, bookFolderName, titleFor, canGoContinuous, options);
+	}
+}
+
+function renderWindowBody(
+	app: App,
+	wrap: HTMLElement,
+	container: HTMLElement,
+	ordered: TFile[],
+	bookFolderName: string,
+	titleFor: (file: TFile) => string,
+	canGoContinuous: boolean,
+	options: CodexFocusNavigatorOptions,
+): void {
 	const win = computeSpineWindow(ordered, options.activeChapterFilename, (file) => file.name);
 
 	const windowEl = wrap.createDiv({ cls: "sf-top-list sf-navigator-window" });
@@ -101,7 +134,6 @@ export function renderCodexFocusNavigator(app: App, container: HTMLElement, opti
 
 	const currentSlot = win.slots.find((slot) => slot.isCurrent) ?? null;
 	const currentIndex = currentSlot?.file ? ordered.indexOf(currentSlot.file) : 0;
-	const canGoContinuous = canEnterContinuousMode(ordered.length);
 
 	renderTransportRow(
 		wrap,
@@ -127,6 +159,67 @@ export function renderCodexFocusNavigator(app: App, container: HTMLElement, opti
 		},
 		canGoContinuous ? { active: false, onToggle: () => options.onOpenContinuousRead(bookFolderName) } : null,
 	);
+}
+
+/**
+ * The sidebar's half of continuous mode (continuous-mode hand-off brief §2, corrected): a
+ * read-only live position indicator standing in for the window, and a transport row whose four
+ * buttons scroll the main-pane read view instead of opening files. Painted immediately from
+ * `options.continuousActiveFilename` (a synchronous read of the read view's own state — see
+ * StoryForgeView.render()), then kept live via the position-change event for as long as this DOM
+ * survives, independent of the sidebar's own re-render cycle.
+ */
+function renderContinuousIndicator(
+	app: App,
+	wrap: HTMLElement,
+	ordered: TFile[],
+	bookFolderName: string,
+	titleFor: (file: TFile) => string,
+	options: CodexFocusNavigatorOptions,
+): void {
+	const indicatorEl = wrap.createDiv({ cls: "sf-top-list sf-navigator-window sf-navigator-indicator" });
+	const transportEl = wrap.createDiv({ cls: "sf-continuous-transport" });
+
+	const paint = (currentFilename: string): void => {
+		indicatorEl.empty();
+		const win = computeSpineWindow(ordered, currentFilename, (file) => file.name);
+		for (const slot of win.slots) {
+			renderIndicatorSlot(indicatorEl, slot, titleFor, options.highlightActiveChapter, (filename) =>
+				options.onContinuousScrollTo(bookFolderName, filename),
+			);
+		}
+
+		transportEl.empty();
+		const currentIndex = Math.max(
+			0,
+			ordered.findIndex((file) => file.name === currentFilename),
+		);
+		renderTransportRow(
+			transportEl,
+			currentIndex,
+			ordered.length - 1,
+			{
+				toStart: () => options.onContinuousScrollTo(bookFolderName, ordered[0].name),
+				previous: () => {
+					const previous = ordered[currentIndex - 1];
+					if (previous) options.onContinuousScrollTo(bookFolderName, previous.name);
+				},
+				next: () => {
+					const next = ordered[currentIndex + 1];
+					if (next) options.onContinuousScrollTo(bookFolderName, next.name);
+				},
+				toEnd: () => options.onContinuousScrollTo(bookFolderName, ordered[ordered.length - 1].name),
+			},
+			{ active: true, onToggle: () => options.onExitContinuousRead(bookFolderName) },
+		);
+	};
+
+	paint(options.continuousActiveFilename as string);
+
+	const ref = onContinuousMode(app, (payload) => {
+		if (payload.active && payload.bookFolderName === bookFolderName) paint(payload.filename);
+	});
+	options.registerContinuousCleanup(() => app.workspace.offref(ref));
 }
 
 function renderSlot(

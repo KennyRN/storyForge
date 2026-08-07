@@ -2869,10 +2869,8 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 }
 
 /* A comfortable reading column, centred in the (now much wider) main pane rather than stretched
- * edge to edge. */
-.sf-continuous-view .sf-continuous-scroll,
-.sf-continuous-view .sf-navigator-window,
-.sf-continuous-view .sf-continuous-transport {
+ * edge to edge — this view holds only the manuscript, no controls (see CodexFocusNavigator.ts). */
+.sf-continuous-view .sf-continuous-scroll {
 	width: 100%;
 	max-width: 46em;
 	margin: 0 auto;

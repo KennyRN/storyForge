@@ -49,7 +49,10 @@ export function renderContinuousReadThrough(
 	container: HTMLElement,
 	options: ContinuousReadThroughOptions,
 ): ContinuousReadThroughHandle {
-	const scrollEl = container.createDiv({ cls: "sf-continuous-scroll" });
+	// markdown-reading-view: storyForge's own chapter typography (headings, dialogue, emphasis —
+	// see styles.css) is scoped under that class, the same as Obsidian's real reading view, so it
+	// has to be present here too or chapters render in generic, unstyled type.
+	const scrollEl = container.createDiv({ cls: "sf-continuous-scroll markdown-reading-view" });
 	const component = new Component();
 	component.load();
 
