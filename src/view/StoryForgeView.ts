@@ -15,6 +15,9 @@ import { WordCountModal } from "./WordCountModal";
 import { isDragInProgress } from "./dragLock";
 import { layoutConfig, type SfLayout } from "../layout";
 import { createContinuingChapter } from "../chapterCreation";
+import { getBookChapters } from "../book";
+import { canEnterContinuousMode, resolveEntryChapter } from "../continuousMode";
+import { STORYFORGE_CONTINUOUS_VIEW_TYPE } from "./ContinuousReadView";
 
 export const STORYFORGE_VIEW_TYPE = "storyforge-view";
 
@@ -22,15 +25,6 @@ export class StoryForgeView extends ItemView {
 	private currentBookFolderName: string | null = null;
 	private activeChapterFilename: string | null = null;
 	private layout: SfLayout = "hybrid";
-	/** Codex-focus navigator's continuous read-and-write mode (continuous-mode hand-off brief §2).
-	 * Not persisted — like unplacedMode/codexMode/statsMode, it resets on a fresh session. */
-	private continuousMode = false;
-	/** Wherever the reader last scrolled to while in continuous mode, so an incidental re-render
-	 * lands back where they were rather than at the top. */
-	private continuousCurrentFilename: string | null = null;
-	/** Tears down the continuous read-through's observers and vault listener — must run before the
-	 * next render discards its DOM, since render() rebuilds the whole panel from scratch. */
-	private continuousCleanup: (() => void) | null = null;
 	private unplacedMode: UnplacedViewMode = "unplaced";
 	private codexMode: CodexViewMode = "codex";
 	private collapsedCodexFolders = new Set<string>();
@@ -72,10 +66,7 @@ export class StoryForgeView extends ItemView {
 		this.registerEvent(this.app.workspace.on("file-open", () => this.followActiveFile()));
 		this.registerEvent(this.app.vault.on("rename", (file) => { if (!isBackstageBookkeepingPath(file.path)) this.debouncedRender(); }));
 		this.registerEvent(this.app.vault.on("create", (file) => { if (!isBackstageBookkeepingPath(file.path)) this.debouncedRender(); }));
-		// While reading continuously, ContinuousReadThrough refreshes its own mounted chapters on
-		// modify (continuous-mode hand-off brief §2.5) — a full panel rebuild here would otherwise
-		// reset the reader's scroll position on every edit made elsewhere.
-		this.registerEvent(this.app.vault.on("modify", (file) => { if (!isBackstageBookkeepingPath(file.path) && !this.continuousMode) this.debouncedRender(); }));
+		this.registerEvent(this.app.vault.on("modify", (file) => { if (!isBackstageBookkeepingPath(file.path)) this.debouncedRender(); }));
 		this.registerEvent(this.app.metadataCache.on("changed", () => this.debouncedRender()));
 		this.followActiveFile();
 	}
@@ -83,7 +74,6 @@ export class StoryForgeView extends ItemView {
 	async onClose(): Promise<void> {
 		this.closed = true;
 		this.debouncedRender.cancel();
-		this.continuousCleanup?.();
 	}
 
 	private followActiveFile(): void {
@@ -91,12 +81,6 @@ export class StoryForgeView extends ItemView {
 		if (file) {
 			const bookName = bookFolderNameFromChapterPath(file.path);
 			if (bookName) {
-				// A different book opened while reading continuously — that continuous session no
-				// longer refers to anything on screen, so drop out of it rather than carry it over.
-				if (this.continuousMode && bookName !== this.currentBookFolderName) {
-					this.continuousMode = false;
-					this.continuousCurrentFilename = null;
-				}
 				this.currentBookFolderName = bookName;
 				this.activeChapterFilename = file.name;
 				void this.persistSelection();
@@ -126,11 +110,6 @@ export class StoryForgeView extends ItemView {
 	render(): void {
 		if (this.closed) return;
 		if (isDragInProgress()) return;
-		// Tear down the previous render's continuous read-through (if any) before its DOM goes away
-		// — the observers and vault listener it registered would otherwise keep firing against
-		// detached nodes.
-		this.continuousCleanup?.();
-		this.continuousCleanup = null;
 		const container = this.contentEl;
 		container.empty();
 		container.addClass("storyforge-view");
@@ -138,10 +117,7 @@ export class StoryForgeView extends ItemView {
 		const config = layoutConfig(this.layout);
 		// Codex focus's navigator is short and fixed-height, unlike the full chapter tree the
 		// shared grid rows are tuned for — let its row size to content so Codex sits right below it.
-		// Continuous mode is the exception: its manuscript scroll needs real height, so it gets its
-		// own grid row split (see styles.css's [data-top-pane="continuous"] rule).
-		const inContinuousMode = this.continuousMode && config.topPane === "navigator";
-		container.dataset.topPane = inContinuousMode ? "continuous" : config.topPane;
+		container.dataset.topPane = config.topPane;
 
 		const topEl = container.createDiv({ cls: "sf-top-panel" });
 
@@ -156,8 +132,6 @@ export class StoryForgeView extends ItemView {
 			unplacedMode: this.unplacedMode,
 			onSelectLayout: (layout) => {
 				this.layout = layout;
-				this.continuousMode = false;
-				this.continuousCurrentFilename = null;
 				void this.plugin.updateSetting("layout", layout);
 				this.render();
 			},
@@ -168,8 +142,6 @@ export class StoryForgeView extends ItemView {
 			onSelectBook: (name) => {
 				this.currentBookFolderName = name;
 				this.activeChapterFilename = null;
-				this.continuousMode = false;
-				this.continuousCurrentFilename = null;
 				void this.persistSelection();
 				this.render();
 			},
@@ -180,24 +152,7 @@ export class StoryForgeView extends ItemView {
 				if (this.closed) return;
 				await this.refreshStats();
 			},
-			continuousMode: inContinuousMode,
-			continuousCurrentFilename: this.continuousCurrentFilename,
-			onToggleContinuousMode: () => {
-				this.continuousMode = !this.continuousMode;
-				this.continuousCurrentFilename = this.continuousMode ? this.activeChapterFilename : null;
-				this.render();
-			},
-			onExitContinuousMode: (bookFolderName, filename) => {
-				this.continuousMode = false;
-				this.continuousCurrentFilename = null;
-				void this.openChapter(bookFolderName, filename);
-			},
-			onContinuousPositionChange: (filename) => {
-				this.continuousCurrentFilename = filename;
-			},
-			registerContinuousCleanup: (dispose) => {
-				this.continuousCleanup = dispose;
-			},
+			onOpenContinuousRead: (bookFolderName) => void this.openContinuousRead(bookFolderName),
 		});
 
 		if (config.showCodex) {
@@ -322,5 +277,21 @@ export class StoryForgeView extends ItemView {
 		if (file instanceof TFile) {
 			await this.app.workspace.getLeaf(false).openFile(file);
 		}
+	}
+
+	/** The navigator's continuous-mode launcher (continuous-mode hand-off brief §2, corrected): the
+	 * sidebar is menus only, so this opens the reading surface in the main editor pane instead of
+	 * rendering it here — landing on the reader's current chapter, same as the brief's entry rule. */
+	private async openContinuousRead(bookFolderName: string): Promise<void> {
+		const { ordered } = getBookChapters(this.app, bookFolderName);
+		if (!canEnterContinuousMode(ordered.length)) return;
+		const entryFilename = resolveEntryChapter(
+			ordered.map((file) => file.name),
+			this.activeChapterFilename,
+		);
+		if (!entryFilename) return;
+		const leaf = this.app.workspace.getLeaf(false);
+		await leaf.setViewState({ type: STORYFORGE_CONTINUOUS_VIEW_TYPE, active: true, state: { bookFolderName, entryFilename } });
+		this.app.workspace.revealLeaf(leaf);
 	}
 }
