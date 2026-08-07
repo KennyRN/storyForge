@@ -2701,3 +2701,109 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	background-color: var(--sf-right-rail-bg, var(--background-secondary));
 }
 
+
+.sf-navigator {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	padding: 8px;
+	gap: 10px;
+}
+
+.sf-navigator-window {
+	display: flex;
+	align-items: stretch;
+	gap: 6px;
+}
+
+.sf-navigator-tile {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	padding: 10px 8px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 6px;
+	cursor: pointer;
+}
+
+.sf-navigator-tile:hover {
+	background: var(--background-modifier-hover);
+}
+
+.sf-navigator-tile-title {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.sf-navigator-tile-current {
+	border-color: var(--interactive-accent);
+	font-weight: 600;
+}
+
+.sf-navigator-tile-empty {
+	cursor: default;
+	color: var(--text-faint);
+	border-style: dashed;
+}
+
+.sf-navigator-tile-empty:hover {
+	background: transparent;
+}
+
+.sf-navigator-tile-create {
+	flex-direction: column;
+	gap: 4px;
+	border-style: dashed;
+	color: var(--text-accent);
+}
+
+/* Temporary while comparing the three H1 candidate icon sets side by side — collapses to a single
+ * row once one is chosen (see CodexFocusNavigator.ts's doc comment). */
+.sf-navigator-transport-zone {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.sf-navigator-transport-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.sf-navigator-transport-label {
+	width: 48px;
+	flex-shrink: 0;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	text-transform: capitalize;
+}
+
+.sf-navigator-transport-buttons {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 1;
+	gap: 14px;
+}
+
+.sf-navigator-transport-btn {
+	display: flex;
+	align-items: center;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.sf-navigator-transport-btn:hover {
+	color: var(--text-normal);
+}
+
+.sf-navigator-transport-btn-disabled {
+	color: var(--text-faint);
+	cursor: default;
+	opacity: 0.4;
+}
