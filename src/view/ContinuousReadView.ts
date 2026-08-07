@@ -1,4 +1,4 @@
-import { ItemView, TFile, WorkspaceLeaf, type ViewStateResult } from "obsidian";
+import { ItemView, MarkdownView, TFile, WorkspaceLeaf, type ViewStateResult } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { chapterDisplayTitle, getBookChapters } from "../book";
 import { canEnterContinuousMode, resolveEntryChapter } from "../continuousMode";
@@ -21,8 +21,16 @@ interface ContinuousReadViewState {
  * the sidebar is menus only, so this view holds the manuscript and nothing else — no indicator, no
  * transport row. Those live back in CodexFocusNavigator.ts (they're navigation, not story), talking
  * to this view via continuousEvents.ts's pair of custom workspace events rather than a direct
- * reference. Reading is strictly read-only (`cachedRead` + `MarkdownRenderer`, see
- * ContinuousReadThrough.ts); click-to-edit is CM-2.
+ * reference. Reading itself is strictly read-only (`cachedRead` + `MarkdownRenderer`).
+ *
+ * Click-to-edit (§2.6): Obsidian has no public API for mounting a real editor inline (Editor and
+ * MarkdownView have no public standalone constructor, and createLeafInParent only accepts
+ * Obsidian's own layout tree, not an arbitrary element) — so a deliberate click on a chapter's body
+ * hands off to a real single-chapter editor by replacing this leaf, the same mechanism the
+ * sidebar's own exit control uses, landing the caret at the exact clicked position via
+ * clickToCaret.ts's source-offset mapping. This trades "stays inline in the scroll" for "always a
+ * real, fully-featured Obsidian editor" — deliberately, given the alternative is either no public
+ * API or guessing at undocumented internals.
  *
  * The sidebar's "exit" action replaces this same leaf with a real single-chapter editor on
  * whichever chapter the reader last scrolled to — symmetric with how entering lands them back at
@@ -129,12 +137,27 @@ export class ContinuousReadView extends ItemView {
 
 		const scrollHost = container.createDiv({ cls: "sf-continuous-view" });
 		this.readThrough = renderContinuousReadThrough(this.app, scrollHost, {
+			bookFolderName,
 			ordered,
 			titleFor,
 			entryFilename,
 			onPositionChange: (filename) => emitContinuousMode(this.app, { active: true, bookFolderName, filename }),
+			onEditChapter: (file, sourceOffset) => void this.editChapter(file, sourceOffset),
+			onChapterRenamed: () => this.render(),
 		});
 
 		emitContinuousMode(this.app, { active: true, bookFolderName, filename: entryFilename });
+	}
+
+	/** Click-to-edit's hand-off (hand-off brief §2.6, adapted — see the class doc comment): opens a
+	 * real editor on `file` in this same leaf, caret landing exactly where the reader clicked. */
+	private async editChapter(file: TFile, sourceOffset: number): Promise<void> {
+		await this.leaf.openFile(file, { active: true });
+		this.app.workspace.setActiveLeaf(this.leaf, { focus: true });
+		const view = this.leaf.view;
+		if (view instanceof MarkdownView) {
+			view.editor.setCursor(view.editor.offsetToPos(sourceOffset));
+			view.editor.focus();
+		}
 	}
 }
