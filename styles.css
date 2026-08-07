@@ -2717,15 +2717,16 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	gap: 6px;
 }
 
+/* Chapter tiles look like Hybrid's chapter rows — plain, no card/border chrome — just centred
+ * rather than left-aligned, since there's no drag handle or title-numbering column here. */
 .sf-navigator-tile {
 	min-width: 0;
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	text-align: center;
-	padding: 10px 8px;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 6px;
+	padding: 6px 8px;
+	border-radius: 4px;
 	cursor: pointer;
 }
 
@@ -2739,15 +2740,22 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	white-space: nowrap;
 }
 
+/* Same highlight Hybrid uses for its active chapter row (--sf-highlight-bg/-text), and the same
+ * 'Highlight active chapter' setting gates it — see CodexFocusNavigator.ts. */
 .sf-navigator-tile-current {
-	border-color: var(--interactive-accent);
-	font-weight: 600;
+	background: var(--sf-highlight-bg);
+	color: var(--sf-highlight-text);
+}
+
+.sf-navigator-tile-current:hover {
+	background: var(--sf-highlight-bg);
+	color: var(--sf-highlight-text);
 }
 
 .sf-navigator-tile-empty {
 	cursor: default;
 	color: var(--text-faint);
-	border-style: dashed;
+	border: 1px dashed var(--background-modifier-border);
 }
 
 .sf-navigator-tile-empty:hover {
@@ -2757,37 +2765,16 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 .sf-navigator-tile-create {
 	flex-direction: column;
 	gap: 4px;
-	border-style: dashed;
+	padding: 10px 8px;
+	border: 1px dashed var(--background-modifier-border);
+	border-radius: 6px;
 	color: var(--text-accent);
-}
-
-/* Temporary while comparing the three H1 candidate icon sets side by side — collapses to a single
- * row once one is chosen (see CodexFocusNavigator.ts's doc comment). */
-.sf-navigator-transport-zone {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-}
-
-.sf-navigator-transport-row {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-}
-
-.sf-navigator-transport-label {
-	width: 48px;
-	flex-shrink: 0;
-	font-size: var(--font-ui-smaller);
-	color: var(--text-faint);
-	text-transform: capitalize;
 }
 
 .sf-navigator-transport-buttons {
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	flex: 1;
 	gap: 14px;
 }
 

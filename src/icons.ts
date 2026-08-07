@@ -32,59 +32,16 @@ export const ICON_FILE_PLUS = "sf-file-plus";
 export const ICON_EYE = "sf-eye";
 export const ICON_MULTIPLY_SQUARE = "sf-multiply-square";
 
-export const ICON_TRANSPORT_SKIP_BACK_PLAIN = "sf-transport-skip-back-plain";
-export const ICON_TRANSPORT_CARET_BACK_PLAIN = "sf-transport-caret-back-plain";
-export const ICON_TRANSPORT_CARET_FORWARD_PLAIN = "sf-transport-caret-forward-plain";
-export const ICON_TRANSPORT_SKIP_FORWARD_PLAIN = "sf-transport-skip-forward-plain";
-export const ICON_TRANSPORT_SKIP_BACK_FILLED = "sf-transport-skip-back-filled";
-export const ICON_TRANSPORT_CARET_BACK_FILLED = "sf-transport-caret-back-filled";
-export const ICON_TRANSPORT_CARET_FORWARD_FILLED = "sf-transport-caret-forward-filled";
-export const ICON_TRANSPORT_SKIP_FORWARD_FILLED = "sf-transport-skip-forward-filled";
-export const ICON_TRANSPORT_SKIP_BACK_OUTLINE = "sf-transport-skip-back-outline";
-export const ICON_TRANSPORT_CARET_BACK_OUTLINE = "sf-transport-caret-back-outline";
-export const ICON_TRANSPORT_CARET_FORWARD_OUTLINE = "sf-transport-caret-forward-outline";
-export const ICON_TRANSPORT_SKIP_FORWARD_OUTLINE = "sf-transport-skip-forward-outline";
+/** Codex-focus navigator's transport row (hand-off brief H1 — outline set chosen). */
+export const ICON_TRANSPORT_TO_START = "sf-transport-to-start";
+export const ICON_TRANSPORT_PREVIOUS = "sf-transport-previous";
+export const ICON_TRANSPORT_NEXT = "sf-transport-next";
+export const ICON_TRANSPORT_TO_END = "sf-transport-to-end";
 
-/**
- * Three candidate icon sets for the codex-focus navigator's transport row (to-start | previous |
- * next | to-end), all wired in side by side (hand-off brief H1) so Kenny can compare them live in
- * the running plugin before picking one. TEMPORARY — once a set is chosen, delete the other two
- * here and in registerCustomIcons(), and collapse TRANSPORT_ICON_SETS back down to the plain
- * icon-id constants the transport row actually needs.
- */
-export const TRANSPORT_ICON_SETS: Record<string, { toStart: string; previous: string; next: string; toEnd: string }> = {
-	plain: {
-		toStart: ICON_TRANSPORT_SKIP_BACK_PLAIN,
-		previous: ICON_TRANSPORT_CARET_BACK_PLAIN,
-		next: ICON_TRANSPORT_CARET_FORWARD_PLAIN,
-		toEnd: ICON_TRANSPORT_SKIP_FORWARD_PLAIN,
-	},
-	filled: {
-		toStart: ICON_TRANSPORT_SKIP_BACK_FILLED,
-		previous: ICON_TRANSPORT_CARET_BACK_FILLED,
-		next: ICON_TRANSPORT_CARET_FORWARD_FILLED,
-		toEnd: ICON_TRANSPORT_SKIP_FORWARD_FILLED,
-	},
-	outline: {
-		toStart: ICON_TRANSPORT_SKIP_BACK_OUTLINE,
-		previous: ICON_TRANSPORT_CARET_BACK_OUTLINE,
-		next: ICON_TRANSPORT_CARET_FORWARD_OUTLINE,
-		toEnd: ICON_TRANSPORT_SKIP_FORWARD_OUTLINE,
-	},
-};
-
-const TRANSPORT_SKIP_BACK_PLAIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="currentColor" d="M112 64a16 16 0 0 1 16 16v136.43L360.77 77.11a35.13 35.13 0 0 1 35.77-.44c12 6.8 19.46 20 19.46 34.33v290c0 14.37-7.46 27.53-19.46 34.33a35.14 35.14 0 0 1-35.77-.45L128 295.57V432a16 16 0 0 1-32 0V80a16 16 0 0 1 16-16" /></svg>`;
-const TRANSPORT_CARET_BACK_PLAIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="currentColor" d="M321.94 98L158.82 237.78a24 24 0 0 0 0 36.44L321.94 414c15.57 13.34 39.62 2.28 39.62-18.22v-279.6c0-20.5-24.05-31.56-39.62-18.18" /></svg>`;
-const TRANSPORT_CARET_FORWARD_PLAIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="currentColor" d="m190.06 414l163.12-139.78a24 24 0 0 0 0-36.44L190.06 98c-15.57-13.34-39.62-2.28-39.62 18.22v279.6c0 20.5 24.05 31.56 39.62 18.18" /></svg>`;
-const TRANSPORT_SKIP_FORWARD_PLAIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="currentColor" d="M400 64a16 16 0 0 0-16 16v136.43L151.23 77.11a35.13 35.13 0 0 0-35.77-.44C103.46 83.47 96 96.63 96 111v290c0 14.37 7.46 27.53 19.46 34.33a35.14 35.14 0 0 0 35.77-.45L384 295.57V432a16 16 0 0 0 32 0V80a16 16 0 0 0-16-16" /></svg>`;
-const TRANSPORT_SKIP_BACK_FILLED_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="currentColor" d="M48 256c0 114.69 93.31 208 208 208s208-93.31 208-208S370.69 48 256 48S48 141.31 48 256m128-64a16 16 0 0 1 32 0v53l111.68-67.46a10.78 10.78 0 0 1 16.32 9.33v138.26a10.78 10.78 0 0 1-16.32 9.31L208 267v53a16 16 0 0 1-32 0Z" /></svg>`;
-const TRANSPORT_CARET_BACK_FILLED_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="currentColor" d="M48 256c0 114.87 93.13 208 208 208s208-93.13 208-208S370.87 48 256 48S48 141.13 48 256m252-74.14v148.28a16 16 0 0 1-26.23 12.29l-89.09-74.13a16 16 0 0 1 0-24.6l89.09-74.13A16 16 0 0 1 300 181.86" /></svg>`;
-const TRANSPORT_CARET_FORWARD_FILLED_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="currentColor" d="M464 256c0-114.87-93.13-208-208-208S48 141.13 48 256s93.13 208 208 208s208-93.13 208-208m-252 74.14V181.86a16 16 0 0 1 26.23-12.29l89.09 74.13a16 16 0 0 1 0 24.6l-89.09 74.13A16 16 0 0 1 212 330.14" /></svg>`;
-const TRANSPORT_SKIP_FORWARD_FILLED_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="currentColor" d="M256 48C141.31 48 48 141.31 48 256s93.31 208 208 208s208-93.31 208-208S370.69 48 256 48m80 272a16 16 0 0 1-32 0v-53l-111.68 67.44a10.78 10.78 0 0 1-16.32-9.31V186.87a10.78 10.78 0 0 1 16.32-9.31L304 245v-53a16 16 0 0 1 32 0Z" /></svg>`;
-const TRANSPORT_SKIP_BACK_OUTLINE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M256 448c106 0 192-86 192-192S362 64 256 64S64 150 64 256s86 192 192 192Z" /><path fill="currentColor" d="M192 176a16 16 0 0 1 16 16v53l111.68-67.46a10.78 10.78 0 0 1 16.32 9.33v138.26a10.78 10.78 0 0 1-16.32 9.31L208 267v53a16 16 0 0 1-32 0V192a16 16 0 0 1 16-16" /></svg>`;
-const TRANSPORT_CARET_BACK_OUTLINE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="currentColor" d="m273.77 169.57l-89.09 74.13a16 16 0 0 0 0 24.6l89.09 74.13A16 16 0 0 0 300 330.14V181.86a16 16 0 0 0-26.23-12.29" /><path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M448 256c0-106-86-192-192-192S64 150 64 256s86 192 192 192s192-86 192-192Z" /></svg>`;
-const TRANSPORT_CARET_FORWARD_OUTLINE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="currentColor" d="m238.23 342.43l89.09-74.13a16 16 0 0 0 0-24.6l-89.09-74.13A16 16 0 0 0 212 181.86v148.28a16 16 0 0 0 26.23 12.29" /><path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M448 256c0-106-86-192-192-192S64 150 64 256s86 192 192 192s192-86 192-192Z" /></svg>`;
-const TRANSPORT_SKIP_FORWARD_OUTLINE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M448 256c0-106-86-192-192-192S64 150 64 256s86 192 192 192s192-86 192-192Z" /><path fill="currentColor" d="M320 176a16 16 0 0 0-16 16v53l-111.68-67.44a10.78 10.78 0 0 0-16.32 9.31v138.26a10.78 10.78 0 0 0 16.32 9.31L304 267v53a16 16 0 0 0 32 0V192a16 16 0 0 0-16-16" /></svg>`;
+const TRANSPORT_TO_START_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M256 448c106 0 192-86 192-192S362 64 256 64S64 150 64 256s86 192 192 192Z" /><path fill="currentColor" d="M192 176a16 16 0 0 1 16 16v53l111.68-67.46a10.78 10.78 0 0 1 16.32 9.33v138.26a10.78 10.78 0 0 1-16.32 9.31L208 267v53a16 16 0 0 1-32 0V192a16 16 0 0 1 16-16" /></svg>`;
+const TRANSPORT_PREVIOUS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="currentColor" d="m273.77 169.57l-89.09 74.13a16 16 0 0 0 0 24.6l89.09 74.13A16 16 0 0 0 300 330.14V181.86a16 16 0 0 0-26.23-12.29" /><path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M448 256c0-106-86-192-192-192S64 150 64 256s86 192 192 192s192-86 192-192Z" /></svg>`;
+const TRANSPORT_NEXT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="currentColor" d="m238.23 342.43l89.09-74.13a16 16 0 0 0 0-24.6l-89.09-74.13A16 16 0 0 0 212 181.86v148.28a16 16 0 0 0 26.23 12.29" /><path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M448 256c0-106-86-192-192-192S64 150 64 256s86 192 192 192s192-86 192-192Z" /></svg>`;
+const TRANSPORT_TO_END_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M448 256c0-106-86-192-192-192S64 150 64 256s86 192 192 192s192-86 192-192Z" /><path fill="currentColor" d="M320 176a16 16 0 0 0-16 16v53l-111.68-67.44a10.78 10.78 0 0 0-16.32 9.31v138.26a10.78 10.78 0 0 0 16.32 9.31L304 267v53a16 16 0 0 0 32 0V192a16 16 0 0 0-16-16" /></svg>`;
 
 const INBOX_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><g fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.75 12H6a2 2 0 0 1 2 2a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2a2 2 0 0 1 2-2h3.25" /><path d="M15.25 2.75h-6.5a6 6 0 0 0-6 6v6.5a6 6 0 0 0 6 6h6.5a6 6 0 0 0 6-6v-6.5a6 6 0 0 0-6-6Z" /></g></svg>`;
 
@@ -185,16 +142,8 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_FILE_PLUS, FILE_PLUS_SVG);
 	addIcon(ICON_EYE, EYE_SVG);
 	addIcon(ICON_MULTIPLY_SQUARE, MULTIPLY_SQUARE_SVG);
-	addIcon(ICON_TRANSPORT_SKIP_BACK_PLAIN, TRANSPORT_SKIP_BACK_PLAIN_SVG);
-	addIcon(ICON_TRANSPORT_CARET_BACK_PLAIN, TRANSPORT_CARET_BACK_PLAIN_SVG);
-	addIcon(ICON_TRANSPORT_CARET_FORWARD_PLAIN, TRANSPORT_CARET_FORWARD_PLAIN_SVG);
-	addIcon(ICON_TRANSPORT_SKIP_FORWARD_PLAIN, TRANSPORT_SKIP_FORWARD_PLAIN_SVG);
-	addIcon(ICON_TRANSPORT_SKIP_BACK_FILLED, TRANSPORT_SKIP_BACK_FILLED_SVG);
-	addIcon(ICON_TRANSPORT_CARET_BACK_FILLED, TRANSPORT_CARET_BACK_FILLED_SVG);
-	addIcon(ICON_TRANSPORT_CARET_FORWARD_FILLED, TRANSPORT_CARET_FORWARD_FILLED_SVG);
-	addIcon(ICON_TRANSPORT_SKIP_FORWARD_FILLED, TRANSPORT_SKIP_FORWARD_FILLED_SVG);
-	addIcon(ICON_TRANSPORT_SKIP_BACK_OUTLINE, TRANSPORT_SKIP_BACK_OUTLINE_SVG);
-	addIcon(ICON_TRANSPORT_CARET_BACK_OUTLINE, TRANSPORT_CARET_BACK_OUTLINE_SVG);
-	addIcon(ICON_TRANSPORT_CARET_FORWARD_OUTLINE, TRANSPORT_CARET_FORWARD_OUTLINE_SVG);
-	addIcon(ICON_TRANSPORT_SKIP_FORWARD_OUTLINE, TRANSPORT_SKIP_FORWARD_OUTLINE_SVG);
+	addIcon(ICON_TRANSPORT_TO_START, TRANSPORT_TO_START_SVG);
+	addIcon(ICON_TRANSPORT_PREVIOUS, TRANSPORT_PREVIOUS_SVG);
+	addIcon(ICON_TRANSPORT_NEXT, TRANSPORT_NEXT_SVG);
+	addIcon(ICON_TRANSPORT_TO_END, TRANSPORT_TO_END_SVG);
 }

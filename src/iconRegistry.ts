@@ -24,6 +24,10 @@ import {
 	ICON_SERIES,
 	ICON_TIMELINE,
 	ICON_TOOLS,
+	ICON_TRANSPORT_NEXT,
+	ICON_TRANSPORT_PREVIOUS,
+	ICON_TRANSPORT_TO_END,
+	ICON_TRANSPORT_TO_START,
 	ICON_UNARCHIVE,
 	ICON_UNPLACED,
 } from "./icons";
@@ -91,6 +95,10 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 	{ id: ICON_EXCHANGE, label: "Cycle stats mode", source: "custom", usedIn: ["StatsPanel.ts — mode switch button"] },
 	{ id: ICON_CALENDAR, label: "History", source: "custom", usedIn: ["StatsPanel.ts — history button"] },
 	{ id: ICON_TOOLS, label: "Tools panel", source: "custom", usedIn: ["ToolsPanel.ts — view tab icon"] },
+	{ id: ICON_TRANSPORT_TO_START, label: "Transport: to start", source: "custom", usedIn: ["CodexFocusNavigator.ts — transport row"] },
+	{ id: ICON_TRANSPORT_PREVIOUS, label: "Transport: previous chapter", source: "custom", usedIn: ["CodexFocusNavigator.ts — transport row"] },
+	{ id: ICON_TRANSPORT_NEXT, label: "Transport: next chapter", source: "custom", usedIn: ["CodexFocusNavigator.ts — transport row"] },
+	{ id: ICON_TRANSPORT_TO_END, label: "Transport: to end", source: "custom", usedIn: ["CodexFocusNavigator.ts — transport row"] },
 	{
 		id: ICON_FORGE,
 		label: "Forge",
