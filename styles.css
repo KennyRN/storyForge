@@ -2717,9 +2717,10 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	gap: 10px;
 }
 
-/* Chapter tiles are Hybrid's own .sf-row / .sf-row-text / .sf-row-selected, unmodified apart from
- * centred text (no drag handle or numbering column here) — every bit of Hybrid's chapter-row
- * styling (font, colour, highlight, hover) applies identically by construction, not by copying it. */
+/* Chapter tiles are Hybrid's own .sf-row / .sf-row-text / .sf-row-selected (drag handle included),
+ * unmodified apart from centred text (no title-numbering column here) — every bit of Hybrid's
+ * chapter-row styling (font, colour, highlight, hover, drag-to-reorder) applies identically by
+ * construction, not by copying it. */
 .sf-navigator-window {
 	display: flex;
 	flex-direction: column;
@@ -2750,9 +2751,7 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 }
 
 .sf-navigator-tile-create {
-	flex-direction: column;
-	gap: 4px;
-	padding: 10px 8px;
+	padding: 8px;
 	border: 1px dashed var(--background-modifier-border);
 	border-radius: 6px;
 	color: var(--text-accent);
@@ -2761,6 +2760,11 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 
 .sf-navigator-tile-create:hover {
 	background: var(--background-modifier-hover);
+}
+
+.sf-navigator-tile-create svg {
+	width: 1.6em;
+	height: 1.6em;
 }
 
 .sf-navigator-transport-buttons {

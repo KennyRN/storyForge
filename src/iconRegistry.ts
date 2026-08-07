@@ -1,4 +1,5 @@
 import {
+	ICON_ADD_CIRCLE,
 	ICON_ARCHIVE,
 	ICON_BOOK,
 	ICON_BOOK_PLUS,
@@ -12,6 +13,7 @@ import {
 	ICON_FILTER,
 	ICON_FOLDER_PLUS,
 	ICON_FORGE,
+	ICON_LAYOUT_SELECTOR,
 	ICON_MAP_PIN,
 	ICON_MAP_PIN_PLUS,
 	ICON_MULTIPLY_SQUARE,
@@ -99,6 +101,8 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 	{ id: ICON_TRANSPORT_PREVIOUS, label: "Transport: previous chapter", source: "custom", usedIn: ["CodexFocusNavigator.ts — transport row"] },
 	{ id: ICON_TRANSPORT_NEXT, label: "Transport: next chapter", source: "custom", usedIn: ["CodexFocusNavigator.ts — transport row"] },
 	{ id: ICON_TRANSPORT_TO_END, label: "Transport: to end", source: "custom", usedIn: ["CodexFocusNavigator.ts — transport row"] },
+	{ id: ICON_ADD_CIRCLE, label: "Add (circle, duotone)", source: "custom", usedIn: ["CodexFocusNavigator.ts — 'continue the story' tile"] },
+	{ id: ICON_LAYOUT_SELECTOR, label: "Choose layout", source: "custom", usedIn: ["TopPanel.ts — layout selector button (Series browse / Novel browse / Codex focus / Hybrid)"] },
 	{
 		id: ICON_FORGE,
 		label: "Forge",
@@ -193,11 +197,5 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		label: "Expanded section",
 		source: "lucide",
 		usedIn: ["BottomPanel.ts — Codex folder collapse chevron"],
-	},
-	{
-		id: "layout-grid",
-		label: "Choose layout",
-		source: "lucide",
-		usedIn: ["TopPanel.ts — layout selector button (Series browse / Novel browse / Codex focus / Hybrid)"],
 	},
 ];

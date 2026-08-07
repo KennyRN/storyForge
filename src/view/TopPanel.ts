@@ -19,7 +19,7 @@ import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
 import { ChapterIdeaCaptureModal } from "./ChapterIdeaCaptureModal";
 import { renderCodexFocusNavigator } from "./CodexFocusNavigator";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
-import { ICON_BOOK, ICON_BOOK_PLUS, ICON_FILTER, ICON_PLUS_SQUARE, ICON_SERIES, ICON_UNPLACED } from "../icons";
+import { ICON_BOOK, ICON_BOOK_PLUS, ICON_FILTER, ICON_LAYOUT_SELECTOR, ICON_PLUS_SQUARE, ICON_SERIES, ICON_UNPLACED } from "../icons";
 import { recordChapterArchive, readChapterWordCount } from "../history";
 import { SF_LAYOUTS, SF_LAYOUT_LABELS, type SfLayout } from "../layout";
 
@@ -77,7 +77,7 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 		seriesLine.createSpan({ cls: "sf-header-text", text: series.seriesTitle });
 
 		const layoutBtn = seriesLine.createSpan({ cls: "sf-series-filter-btn", attr: { "aria-label": "Choose layout" } });
-		setIcon(layoutBtn, "layout-grid");
+		setIcon(layoutBtn, ICON_LAYOUT_SELECTOR);
 		layoutBtn.addEventListener("click", (e) => {
 			e.stopPropagation();
 			buildLayoutMenu(options.layout, options.onSelectLayout).showAtMouseEvent(e);
