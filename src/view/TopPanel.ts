@@ -4,7 +4,6 @@ import {
 	archiveChapter,
 	chapterDisplayTitle,
 	createBook,
-	createChapter,
 	getBookChapters,
 	readBookFrontmatter,
 	renameBookTitle,
@@ -12,10 +11,12 @@ import {
 	reorderSeriesBooks,
 	writeBookChapterOrder,
 } from "../book";
+import { createContinuingChapter, createIdeaChapter } from "../chapterCreation";
 import { bookBackstagePath } from "../paths";
 import { makeReorderable, type DragZone } from "./dragReorder";
 import { makeAccessibleActivatable } from "./a11y";
 import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
+import { ChapterIdeaCaptureModal } from "./ChapterIdeaCaptureModal";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
 import { ICON_BOOK, ICON_BOOK_PLUS, ICON_FILTER, ICON_PLUS_SQUARE, ICON_SERIES, ICON_UNPLACED } from "../icons";
 import { recordChapterArchive, readChapterWordCount } from "../history";
@@ -156,7 +157,7 @@ function renderUnplacedHeader(
 	label: string,
 	isHidden: boolean,
 	onToggleMode: () => void,
-	onCreateFile?: () => void,
+	onCreateFile?: (anchorEl: HTMLElement, e: MouseEvent | null) => void,
 	createIcon: string = ICON_PLUS_SQUARE,
 ): void {
 	const header = zone.createDiv({ cls: "sf-unplaced-header" });
@@ -176,17 +177,54 @@ function renderUnplacedHeader(
 		setIcon(newFileBtn, createIcon);
 		newFileBtn.addEventListener("click", (e) => {
 			e.stopPropagation();
-			onCreateFile();
+			onCreateFile(newFileBtn, e);
 		});
-		makeAccessibleActivatable(newFileBtn, () => onCreateFile());
+		makeAccessibleActivatable(newFileBtn, () => onCreateFile(newFileBtn, null));
 	}
 }
 
-async function handleCreateChapter(app: App, bookFolderName: string): Promise<void> {
-	try {
-		await createChapter(app, bookFolderName);
-	} catch (err) {
-		new Notice(`storyForge: could not create chapter — ${(err as Error).message}`);
+/** Builds the hybrid "New" button's intent menu (hand-off brief §5.4). A continuing chapter is
+ * created and appended to the spine immediately; an idea chapter is captured lightly (H2) and
+ * left unplaced, never opened, so editor focus isn't disturbed. */
+function showChapterCreationMenu(
+	app: App,
+	bookFolderName: string,
+	anchorEl: HTMLElement,
+	event: MouseEvent | null,
+	rerender: () => void,
+): void {
+	const menu = new Menu();
+	menu.addItem((item) =>
+		item.setTitle("Add continuing chapter").onClick(() => {
+			void (async () => {
+				try {
+					await createContinuingChapter(app, bookFolderName, null);
+					rerender();
+				} catch (err) {
+					new Notice(`storyForge: could not create chapter — ${(err as Error).message}`);
+				}
+			})();
+		}),
+	);
+	menu.addItem((item) =>
+		item.setTitle("Add chapter idea").onClick(() => {
+			new ChapterIdeaCaptureModal(app, (title) => {
+				void (async () => {
+					try {
+						await createIdeaChapter(app, bookFolderName, title);
+						rerender();
+					} catch (err) {
+						new Notice(`storyForge: could not create chapter — ${(err as Error).message}`);
+					}
+				})();
+			}).open();
+		}),
+	);
+	if (event) {
+		menu.showAtMouseEvent(event);
+	} else {
+		const rect = anchorEl.getBoundingClientRect();
+		menu.showAtPosition({ x: rect.left, y: rect.bottom });
 	}
 }
 
@@ -321,7 +359,7 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 			"Unplaced Chapters",
 			unplacedHidden,
 			options.onToggleUnplacedMode,
-			() => void handleCreateChapter(app, bookFolderName),
+			(anchorEl, e) => showChapterCreationMenu(app, bookFolderName, anchorEl, e, () => renderTopPanel(app, container, options)),
 			ICON_PLUS_SQUARE,
 		);
 
