@@ -34,6 +34,7 @@ import {
 	CODEX_ROOT,
 } from "./paths";
 import { SeriesOnboardingModal } from "./view/SeriesOnboardingModal";
+import type { SfLayout } from "./layout";
 import { ensureWelcomeNote } from "./welcomeNote";
 import { recordChapterEdit } from "./history";
 import { extractFingerprint } from "./fingerprint";
@@ -93,6 +94,8 @@ export interface StoryForgePluginSettings {
 	hideFileNameBar: boolean;
 	hideNavRow: boolean;
 	hideSeriesPane: boolean;
+	/** The panel layout chosen from the layout selector menu (hand-off brief §2/§5.1). Persists across reloads. */
+	layout: SfLayout;
 	statusBarView: StatusBarView;
 	highlightActiveChapter: boolean;
 	highlightColor: string;
@@ -397,6 +400,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	hideFileNameBar: true,
 	hideNavRow: true,
 	hideSeriesPane: false,
+	layout: "hybrid",
 	statusBarView: "all",
 	highlightActiveChapter: true,
 	highlightColor: "#fef3c7",
