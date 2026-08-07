@@ -43,6 +43,15 @@ const TRANSPORT_PREVIOUS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox=
 const TRANSPORT_NEXT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="currentColor" d="m238.23 342.43l89.09-74.13a16 16 0 0 0 0-24.6l-89.09-74.13A16 16 0 0 0 212 181.86v148.28a16 16 0 0 0 26.23 12.29" /><path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M448 256c0-106-86-192-192-192S64 150 64 256s86 192 192 192s192-86 192-192Z" /></svg>`;
 const TRANSPORT_TO_END_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M448 256c0-106-86-192-192-192S64 150 64 256s86 192 192 192s192-86 192-192Z" /><path fill="currentColor" d="M320 176a16 16 0 0 0-16 16v53l-111.68-67.44a10.78 10.78 0 0 0-16.32 9.31v138.26a10.78 10.78 0 0 0 16.32 9.31L304 267v53a16 16 0 0 0 32 0V192a16 16 0 0 0-16-16" /></svg>`;
 
+/** Codex-focus navigator's "continue the story" tile — duotone circle so it reads as an
+ * affordance rather than a chapter row, coloured via currentColor from the tile's own text colour. */
+export const ICON_ADD_CIRCLE = "sf-add-circle";
+const ADD_CIRCLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2" opacity=".3" /><path fill="currentColor" d="M12 7a1 1 0 0 0-.993.883L11 8v3H8a1 1 0 0 0-.117 1.993L8 13h3v3a1 1 0 0 0 1.993.117L13 16v-3h3a1 1 0 0 0 .117-1.993L16 11h-3V8a1 1 0 0 0-1-1" /></svg>`;
+
+/** The layout selector button's glyph (TopPanel.ts) — replaces the generic lucide "layout-grid". */
+export const ICON_LAYOUT_SELECTOR = "sf-layout-selector";
+const LAYOUT_SELECTOR_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M11 21H5a2 2 0 0 1-2-2v-3h8zm0-18v5H3V5a2 2 0 0 1 2-2zm0 11H3v-4h8zm8-11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6V3z" /></svg>`;
+
 const INBOX_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><g fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.75 12H6a2 2 0 0 1 2 2a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2a2 2 0 0 1 2-2h3.25" /><path d="M15.25 2.75h-6.5a6 6 0 0 0-6 6v6.5a6 6 0 0 0 6 6h6.5a6 6 0 0 0 6-6v-6.5a6 6 0 0 0-6-6Z" /></g></svg>`;
 
 const BOX_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.382 8.813v8.5c0 .845.344 1.656.957 2.253a3.3 3.3 0 0 0 2.308.934h8.706c.866 0 1.696-.336 2.308-.934a3.15 3.15 0 0 0 .957-2.253v-8.5m0-5.313H4.382c-.901 0-1.632.714-1.632 1.594v2.125c0 .88.73 1.593 1.632 1.593h15.236c.901 0 1.632-.713 1.632-1.593V5.094c0-.88-.73-1.594-1.632-1.594" /></svg>`;
@@ -146,4 +155,6 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_TRANSPORT_PREVIOUS, TRANSPORT_PREVIOUS_SVG);
 	addIcon(ICON_TRANSPORT_NEXT, TRANSPORT_NEXT_SVG);
 	addIcon(ICON_TRANSPORT_TO_END, TRANSPORT_TO_END_SVG);
+	addIcon(ICON_ADD_CIRCLE, ADD_CIRCLE_SVG);
+	addIcon(ICON_LAYOUT_SELECTOR, LAYOUT_SELECTOR_SVG);
 }

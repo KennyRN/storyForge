@@ -1,9 +1,10 @@
-import { App, TFile, setIcon } from "obsidian";
-import { chapterDisplayTitle, getBookChapters } from "../book";
+import { App, Notice, TFile, setIcon } from "obsidian";
+import { chapterDisplayTitle, getBookChapters, writeBookChapterOrder } from "../book";
 import { computeSpineWindow, type NavigatorSlot, type SpineWindow } from "../spineWindow";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
 import { makeAccessibleActivatable } from "./a11y";
-import { ICON_PLUS_SQUARE, ICON_TRANSPORT_NEXT, ICON_TRANSPORT_PREVIOUS, ICON_TRANSPORT_TO_END, ICON_TRANSPORT_TO_START } from "../icons";
+import { makeReorderable, type DragZone } from "./dragReorder";
+import { ICON_ADD_CIRCLE, ICON_TRANSPORT_NEXT, ICON_TRANSPORT_PREVIOUS, ICON_TRANSPORT_TO_END, ICON_TRANSPORT_TO_START } from "../icons";
 
 export interface CodexFocusNavigatorOptions {
 	currentBookFolderName: string | null;
@@ -28,7 +29,9 @@ export interface CodexFocusNavigatorOptions {
  * Chapter tiles reuse Hybrid's own row classes (sf-top-list/sf-row/sf-row-text/sf-row-selected)
  * outright, so every bit of Hybrid's chapter-row styling — font, colour, highlight, hover — is
  * identical here by construction rather than approximated. The only override is centred text
- * instead of left-aligned, since there's no drag handle or numbering column in this view.
+ * instead of left-aligned, since there's no numbering column in this view. The drag handle carries
+ * over too: the visible window's real chapter rows are drag-reorderable exactly like Hybrid's
+ * list, just constrained to whichever chapters are currently in view.
  */
 export function renderCodexFocusNavigator(app: App, container: HTMLElement, options: CodexFocusNavigatorOptions): void {
 	container.empty();
@@ -64,6 +67,27 @@ export function renderCodexFocusNavigator(app: App, container: HTMLElement, opti
 		);
 	}
 
+	// Real chapter rows only — the create/empty placeholders carry no .sf-row class, so they're
+	// naturally excluded from the drag zone. The window's leading real row is always ordered[startIndex]
+	// (see spineWindow.ts: non-chapter slots only ever trail, never lead), which is all that's needed
+	// to splice a reordered window back into the full chapter-order array.
+	const startIndex = win.slots[0].file ? ordered.indexOf(win.slots[0].file) : 0;
+	const zones: DragZone[] = [{ key: "window", container: windowEl }];
+	makeReorderable(zones, ".sf-row", ".sf-drag-handle", (zoneRowKeys) => {
+		void (async () => {
+			try {
+				const nextOrder = ordered.map((file) => file.name);
+				const windowKeys = (zoneRowKeys.window ?? []).filter(Boolean);
+				nextOrder.splice(startIndex, windowKeys.length, ...windowKeys);
+				await writeBookChapterOrder(app, bookFolderName, nextOrder);
+				renderCodexFocusNavigator(app, container, options);
+			} catch (err) {
+				new Notice(`storyForge: could not save the new order — ${(err as Error).message}`);
+				renderCodexFocusNavigator(app, container, options);
+			}
+		})();
+	});
+
 	renderTransportRow(wrap, ordered, win, bookFolderName, options.onOpenChapter);
 }
 
@@ -87,19 +111,24 @@ function renderSlot(
 	}
 	const file = slot.file as TFile;
 	const tile = container.createDiv({ cls: "sf-row" });
+	tile.dataset.key = file.name;
 	if (slot.isCurrent && highlightActiveChapter) tile.addClass("sf-row-selected");
+	const handle = tile.createSpan({ cls: "sf-drag-handle" });
+	setIcon(handle, "grip-vertical");
 	const { title } = splitTitleSubtitle(titleFor(file));
 	tile.createDiv({ cls: "sf-row-text", text: title });
-	tile.addEventListener("click", () => onOpenChapter(bookFolderName, file.name));
+	tile.addEventListener("click", (e) => {
+		if (tile.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
+		onOpenChapter(bookFolderName, file.name);
+	});
 	makeAccessibleActivatable(tile, () => onOpenChapter(bookFolderName, file.name));
 }
 
 /** The self-gating "continue the story" affordance — only ever shown in the slot immediately
  * after the last placed chapter. */
 function renderCreateTile(container: HTMLElement, onCreate: () => void): void {
-	const tile = container.createDiv({ cls: "sf-navigator-tile sf-navigator-tile-create" });
-	setIcon(tile.createSpan({ cls: "sf-icon" }), ICON_PLUS_SQUARE);
-	tile.createSpan({ text: "Continue the story" });
+	const tile = container.createDiv({ cls: "sf-navigator-tile sf-navigator-tile-create", attr: { "aria-label": "Continue the story" } });
+	setIcon(tile.createSpan({ cls: "sf-icon" }), ICON_ADD_CIRCLE);
 	tile.addEventListener("click", () => onCreate());
 	makeAccessibleActivatable(tile, () => onCreate());
 }
