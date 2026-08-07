@@ -18,6 +18,13 @@
 	padding: 0;
 }
 
+/* Codex focus's navigator (previous/current/next + transport row) is short and fixed-height,
+ * unlike the full chapter tree the 3fr/2fr split above is tuned for — size its row to content so
+ * Codex sits right below it instead of a gap where the tree would otherwise have scrolled. */
+.storyforge-view[data-top-pane="navigator"]:not(#storyforge-specificity-boost) {
+	grid-template-rows: auto 1fr auto;
+}
+
 .sf-top-panel,
 .sf-bottom-panel {
 	display: flex;
@@ -2710,6 +2717,9 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	gap: 10px;
 }
 
+/* Chapter tiles are Hybrid's own .sf-row / .sf-row-text / .sf-row-selected, unmodified apart from
+ * centred text (no drag handle or numbering column here) — every bit of Hybrid's chapter-row
+ * styling (font, colour, highlight, hover) applies identically by construction, not by copying it. */
 .sf-navigator-window {
 	display: flex;
 	flex-direction: column;
@@ -2717,8 +2727,12 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	gap: 6px;
 }
 
-/* Chapter tiles look like Hybrid's chapter rows — plain, no card/border chrome — just centred
- * rather than left-aligned, since there's no drag handle or title-numbering column here. */
+.sf-navigator-window .sf-row-text {
+	text-align: center;
+}
+
+/* Non-chapter placeholder tiles (empty gap / create affordance) — deliberately distinct from a
+ * real chapter row, since they aren't chapters. */
 .sf-navigator-tile {
 	min-width: 0;
 	display: flex;
@@ -2727,39 +2741,12 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	text-align: center;
 	padding: 6px 8px;
 	border-radius: 4px;
-	cursor: pointer;
-}
-
-.sf-navigator-tile:hover {
-	background: var(--background-modifier-hover);
-}
-
-.sf-navigator-tile-title {
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-/* Same highlight Hybrid uses for its active chapter row (--sf-highlight-bg/-text), and the same
- * 'Highlight active chapter' setting gates it — see CodexFocusNavigator.ts. */
-.sf-navigator-tile-current {
-	background: var(--sf-highlight-bg);
-	color: var(--sf-highlight-text);
-}
-
-.sf-navigator-tile-current:hover {
-	background: var(--sf-highlight-bg);
-	color: var(--sf-highlight-text);
 }
 
 .sf-navigator-tile-empty {
 	cursor: default;
 	color: var(--text-faint);
 	border: 1px dashed var(--background-modifier-border);
-}
-
-.sf-navigator-tile-empty:hover {
-	background: transparent;
 }
 
 .sf-navigator-tile-create {
@@ -2769,6 +2756,11 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	border: 1px dashed var(--background-modifier-border);
 	border-radius: 6px;
 	color: var(--text-accent);
+	cursor: pointer;
+}
+
+.sf-navigator-tile-create:hover {
+	background: var(--background-modifier-hover);
 }
 
 .sf-navigator-transport-buttons {
