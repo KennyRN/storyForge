@@ -25,6 +25,9 @@ export type UnplacedViewMode = "unplaced" | "unplacedHidden";
 export interface TopPanelOptions {
 	mode: "book" | "series";
 	hideSeriesPane: boolean;
+	/** Layout-level gate for the whole unplaced section (hand-off brief §2) — distinct from `unplacedMode`,
+	 * which is the user's own collapse/expand toggle within a layout that shows the section at all. */
+	showUnplacedSection: boolean;
 	currentBookFolderName: string | null;
 	activeChapterFilename: string | null;
 	highlightActiveChapter: boolean;
@@ -194,35 +197,37 @@ function renderSeriesList(
 		mainList.createDiv({ cls: "sf-empty sf-empty-inline", text: "Drag a book here to sequence it." });
 	}
 
-	const unplacedZone = bodyEl.createDiv({ cls: "sf-unplaced-zone" });
-	const unplacedHidden = options.unplacedMode === "unplacedHidden";
-	renderUnplacedHeader(
-		unplacedZone,
-		"Unplaced Novels",
-		unplacedHidden,
-		options.onToggleUnplacedMode,
-		() => void handleCreateBook(app),
-		ICON_BOOK_PLUS,
-	);
-
 	const zones: DragZone[] = [{ key: "ordered", container: mainList }];
-	if (!unplacedHidden) {
-		const unplacedList = unplacedZone.createDiv({ cls: "sf-top-list sf-unplaced-list" });
-		unplaced.forEach((folder, i) => {
-			const row = createRow(unplacedList, folder.name);
-			const label = renderRowTitle(row, numbered[ordered.length + i]);
-			row.addEventListener("click", (e) => {
-				if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
-				options.onSelectBook(folder.name);
+	if (options.showUnplacedSection) {
+		const unplacedZone = bodyEl.createDiv({ cls: "sf-unplaced-zone" });
+		const unplacedHidden = options.unplacedMode === "unplacedHidden";
+		renderUnplacedHeader(
+			unplacedZone,
+			"Unplaced Novels",
+			unplacedHidden,
+			options.onToggleUnplacedMode,
+			() => void handleCreateBook(app),
+			ICON_BOOK_PLUS,
+		);
+
+		if (!unplacedHidden) {
+			const unplacedList = unplacedZone.createDiv({ cls: "sf-top-list sf-unplaced-list" });
+			unplaced.forEach((folder, i) => {
+				const row = createRow(unplacedList, folder.name);
+				const label = renderRowTitle(row, numbered[ordered.length + i]);
+				row.addEventListener("click", (e) => {
+					if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
+					options.onSelectBook(folder.name);
+				});
+				attachInlineRename({
+					row,
+					label,
+					getCurrentTitle: () => bookDisplayTitle(app, folder.name),
+					onCommit: (newTitle) => renameBookTitle(app, folder.name, newTitle),
+				});
 			});
-			attachInlineRename({
-				row,
-				label,
-				getCurrentTitle: () => bookDisplayTitle(app, folder.name),
-				onCommit: (newTitle) => renameBookTitle(app, folder.name, newTitle),
-			});
-		});
-		zones.push({ key: "unplaced", container: unplacedList });
+			zones.push({ key: "unplaced", container: unplacedList });
+		}
 	}
 
 	makeReorderable(zones, ".sf-row", ".sf-drag-handle", (zoneRowKeys) => {
@@ -276,49 +281,51 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 		mainList.createDiv({ cls: "sf-empty sf-empty-inline", text: "Drag a chapter here to sequence it." });
 	}
 
-	const unplacedZone = bodyEl.createDiv({ cls: "sf-unplaced-zone" });
-	const unplacedHidden = options.unplacedMode === "unplacedHidden";
-	renderUnplacedHeader(
-		unplacedZone,
-		"Unplaced Chapters",
-		unplacedHidden,
-		options.onToggleUnplacedMode,
-		() => void handleCreateChapter(app, bookFolderName),
-		ICON_PLUS_SQUARE,
-	);
-
 	const zones: DragZone[] = [{ key: "ordered", container: mainList }];
-	if (!unplacedHidden) {
-		const unplacedList = unplacedZone.createDiv({ cls: "sf-top-list sf-unplaced-list" });
-		unplaced.forEach((file, i) => {
-			const row = createRow(unplacedList, file.name);
-			const label = renderRowTitle(row, numbered[ordered.length + i]);
-			if (options.highlightActiveChapter && options.activeChapterFilename === file.name) {
-				row.addClass("sf-row-selected");
-			}
-			row.addEventListener("click", (e) => {
-				if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
-				options.onOpenChapter(bookFolderName, file.name);
+	if (options.showUnplacedSection) {
+		const unplacedZone = bodyEl.createDiv({ cls: "sf-unplaced-zone" });
+		const unplacedHidden = options.unplacedMode === "unplacedHidden";
+		renderUnplacedHeader(
+			unplacedZone,
+			"Unplaced Chapters",
+			unplacedHidden,
+			options.onToggleUnplacedMode,
+			() => void handleCreateChapter(app, bookFolderName),
+			ICON_PLUS_SQUARE,
+		);
+
+		if (!unplacedHidden) {
+			const unplacedList = unplacedZone.createDiv({ cls: "sf-top-list sf-unplaced-list" });
+			unplaced.forEach((file, i) => {
+				const row = createRow(unplacedList, file.name);
+				const label = renderRowTitle(row, numbered[ordered.length + i]);
+				if (options.highlightActiveChapter && options.activeChapterFilename === file.name) {
+					row.addClass("sf-row-selected");
+				}
+				row.addEventListener("click", (e) => {
+					if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
+					options.onOpenChapter(bookFolderName, file.name);
+				});
+				const archiveItem: ExtraMenuItem = {
+					title: "Archive",
+					onClick: async () => {
+						const words = await readChapterWordCount(app, bookFolderName, file.name);
+						await archiveChapter(app, bookFolderName, file.name);
+						await recordChapterArchive(app, bookFolderName, file.name, words);
+						renderTopPanel(app, container, options);
+						void options.onArchiveChapter?.();
+					},
+				};
+				attachInlineRename({
+					row,
+					label,
+					getCurrentTitle: () => chapterDisplayTitle(app, bookFolderName, file.name),
+					onCommit: (newTitle) => renameChapterTitle(app, bookFolderName, file.name, newTitle),
+					extraMenuItems: [archiveItem],
+				});
 			});
-			const archiveItem: ExtraMenuItem = {
-				title: "Archive",
-				onClick: async () => {
-					const words = await readChapterWordCount(app, bookFolderName, file.name);
-					await archiveChapter(app, bookFolderName, file.name);
-					await recordChapterArchive(app, bookFolderName, file.name, words);
-					renderTopPanel(app, container, options);
-					void options.onArchiveChapter?.();
-				},
-			};
-			attachInlineRename({
-				row,
-				label,
-				getCurrentTitle: () => chapterDisplayTitle(app, bookFolderName, file.name),
-				onCommit: (newTitle) => renameChapterTitle(app, bookFolderName, file.name, newTitle),
-				extraMenuItems: [archiveItem],
-			});
-		});
-		zones.push({ key: "unplaced", container: unplacedList });
+			zones.push({ key: "unplaced", container: unplacedList });
+		}
 	}
 
 	makeReorderable(zones, ".sf-row", ".sf-drag-handle", (zoneRowKeys) => {

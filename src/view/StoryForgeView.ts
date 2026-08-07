@@ -13,13 +13,14 @@ import { countWords } from "../wordCount";
 import { getBookWordStats } from "../history";
 import { WordCountModal } from "./WordCountModal";
 import { isDragInProgress } from "./dragLock";
+import { layoutConfig, type SfLayout } from "../layout";
 
 export const STORYFORGE_VIEW_TYPE = "storyforge-view";
 
 export class StoryForgeView extends ItemView {
 	private currentBookFolderName: string | null = null;
 	private activeChapterFilename: string | null = null;
-	private topMode: "book" | "series" = "series";
+	private layout: SfLayout = "hybrid";
 	private unplacedMode: UnplacedViewMode = "unplaced";
 	private codexMode: CodexViewMode = "codex";
 	private collapsedCodexFolders = new Set<string>();
@@ -55,7 +56,7 @@ export class StoryForgeView extends ItemView {
 		const settings = this.plugin.getSettings();
 		this.currentBookFolderName = settings.selectedNovel;
 		this.activeChapterFilename = settings.selectedObject;
-		this.topMode = this.currentBookFolderName ? "book" : "series";
+		this.layout = settings.layout;
 		this.collapsedCodexFolders = new Set(settings.collapsedCodexFolderIds);
 		this.registerEvent(this.app.workspace.on("active-leaf-change", () => this.followActiveFile()));
 		this.registerEvent(this.app.workspace.on("file-open", () => this.followActiveFile()));
@@ -77,7 +78,6 @@ export class StoryForgeView extends ItemView {
 			const bookName = bookFolderNameFromChapterPath(file.path);
 			if (bookName) {
 				this.currentBookFolderName = bookName;
-				this.topMode = "book";
 				this.activeChapterFilename = file.name;
 				void this.persistSelection();
 			} else if (this.activeChapterFilename !== null) {
@@ -85,9 +85,6 @@ export class StoryForgeView extends ItemView {
 				this.activeChapterFilename = null;
 				void this.persistSelection();
 			}
-		}
-		if (!this.currentBookFolderName) {
-			this.topMode = "series";
 		}
 		this.render();
 	}
@@ -98,10 +95,13 @@ export class StoryForgeView extends ItemView {
 		await this.plugin.updateSetting("selectedObject", this.activeChapterFilename);
 	}
 
-	/** Clamps to "book" while the series pane is hidden, without discarding the user's underlying
-	 * topMode intent - so re-enabling the pane later in Settings restores a sane view. */
-	private effectiveTopMode(): "book" | "series" {
-		return this.plugin.getSettings().hideSeriesPane ? "book" : this.topMode;
+	/** Which top pane the declared layout selects, clamped to "novel" while the series pane is hidden
+	 * entirely, without discarding the user's chosen layout - so re-enabling the pane later in Settings
+	 * restores it. "navigator" (Codex focus) temporarily renders the novel tree until the real
+	 * three-chapter navigator lands. */
+	private effectiveTopPane(): "book" | "series" {
+		if (this.plugin.getSettings().hideSeriesPane) return "book";
+		return layoutConfig(this.layout).topPane === "series" ? "series" : "book";
 	}
 
 	render(): void {
@@ -111,21 +111,20 @@ export class StoryForgeView extends ItemView {
 		container.empty();
 		container.addClass("storyforge-view");
 
+		const config = layoutConfig(this.layout);
+
 		const topEl = container.createDiv({ cls: "sf-top-panel" });
-		const bottomEl = container.createDiv({ cls: "sf-bottom-panel" });
-		const statsEl = container.createDiv({ cls: "sf-stats-panel" });
 
 		renderTopPanel(this.app, topEl, {
-			mode: this.effectiveTopMode(),
+			mode: this.effectiveTopPane(),
 			hideSeriesPane: this.plugin.getSettings().hideSeriesPane,
+			showUnplacedSection: config.showUnplaced,
 			currentBookFolderName: this.currentBookFolderName,
 			activeChapterFilename: this.activeChapterFilename,
 			highlightActiveChapter: this.plugin.getSettings().highlightActiveChapter,
 			unplacedMode: this.unplacedMode,
 			onToggleMode: () => {
-				if (this.plugin.getSettings().hideSeriesPane) return;
-				this.topMode = this.topMode === "book" ? "series" : this.currentBookFolderName ? "book" : "series";
-				this.render();
+				// Retired in favour of the layout selector menu (Commit 3) — the declared layout now owns top-pane choice.
 			},
 			onToggleUnplacedMode: () => {
 				this.unplacedMode = this.unplacedMode === "unplaced" ? "unplacedHidden" : "unplaced";
@@ -133,7 +132,6 @@ export class StoryForgeView extends ItemView {
 			},
 			onSelectBook: (name) => {
 				this.currentBookFolderName = name;
-				this.topMode = "book";
 				this.activeChapterFilename = null;
 				void this.persistSelection();
 				this.render();
@@ -146,47 +144,53 @@ export class StoryForgeView extends ItemView {
 			},
 		});
 
-		const currentBookId = this.currentBookFolderName ? getBookId(this.app, this.currentBookFolderName) : null;
-		const activeFile = this.app.workspace.getActiveFile();
-		const activeFilePath = activeFile?.path ?? null;
+		if (config.showCodex) {
+			const currentBookId = this.currentBookFolderName ? getBookId(this.app, this.currentBookFolderName) : null;
+			const activeFile = this.app.workspace.getActiveFile();
+			const activeFilePath = activeFile?.path ?? null;
 
-		renderBottomPanel(this.app, bottomEl, {
-			currentBookId,
-			mode: this.codexMode,
-			onToggleMode: () => {
-				this.codexMode = this.codexMode === "codex" ? "codexHidden" : "codex";
-				this.render();
-			},
-			collapsedPaths: this.collapsedCodexFolders,
-			onToggleFolder: (folderId) => {
-				if (this.collapsedCodexFolders.has(folderId)) {
-					this.collapsedCodexFolders.delete(folderId);
-				} else {
-					this.collapsedCodexFolders.add(folderId);
-				}
-				this.activeCodexFolderId = folderId;
-				void this.plugin.updateSetting("collapsedCodexFolderIds", Array.from(this.collapsedCodexFolders));
-				this.render();
-			},
-			activeFilePath,
-			highlightActiveChapter: this.plugin.getSettings().highlightActiveChapter,
-			onCreateFolder: () => void this.handleCreateCodexFolder(),
-			onCreateFile: () => void this.handleCreateCodexFile(),
-		});
+			const bottomEl = container.createDiv({ cls: "sf-bottom-panel" });
+			renderBottomPanel(this.app, bottomEl, {
+				currentBookId,
+				mode: this.codexMode,
+				onToggleMode: () => {
+					this.codexMode = this.codexMode === "codex" ? "codexHidden" : "codex";
+					this.render();
+				},
+				collapsedPaths: this.collapsedCodexFolders,
+				onToggleFolder: (folderId) => {
+					if (this.collapsedCodexFolders.has(folderId)) {
+						this.collapsedCodexFolders.delete(folderId);
+					} else {
+						this.collapsedCodexFolders.add(folderId);
+					}
+					this.activeCodexFolderId = folderId;
+					void this.plugin.updateSetting("collapsedCodexFolderIds", Array.from(this.collapsedCodexFolders));
+					this.render();
+				},
+				activeFilePath,
+				highlightActiveChapter: this.plugin.getSettings().highlightActiveChapter,
+				onCreateFolder: () => void this.handleCreateCodexFolder(),
+				onCreateFile: () => void this.handleCreateCodexFile(),
+			});
+		}
 
-		renderStatsPanel(statsEl, {
-			mode: this.statsMode,
-			counts: this.statsCounts,
-			onToggleMode: () => {
-				this.statsMode = nextStatsMode(this.statsMode);
-				this.render();
-			},
-			onOpenHistory: () => {
-				if (this.currentBookFolderName) {
-					new WordCountModal(this.app, this.currentBookFolderName).open();
-				}
-			},
-		});
+		if (config.showStats) {
+			const statsEl = container.createDiv({ cls: "sf-stats-panel" });
+			renderStatsPanel(statsEl, {
+				mode: this.statsMode,
+				counts: this.statsCounts,
+				onToggleMode: () => {
+					this.statsMode = nextStatsMode(this.statsMode);
+					this.render();
+				},
+				onOpenHistory: () => {
+					if (this.currentBookFolderName) {
+						new WordCountModal(this.app, this.currentBookFolderName).open();
+					}
+				},
+			});
+		}
 		void this.refreshStats();
 	}
 
