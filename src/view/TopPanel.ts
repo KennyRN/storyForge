@@ -1,4 +1,4 @@
-import { App, Notice, TFile, TFolder, setIcon } from "obsidian";
+import { App, Menu, Notice, TFile, TFolder, setIcon } from "obsidian";
 import { bookDisplayTitle, getSeriesBooks, numberedBookTitle } from "../series";
 import {
 	archiveChapter,
@@ -19,6 +19,7 @@ import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
 import { ICON_BOOK, ICON_BOOK_PLUS, ICON_FILTER, ICON_PLUS_SQUARE, ICON_SERIES, ICON_UNPLACED } from "../icons";
 import { recordChapterArchive, readChapterWordCount } from "../history";
+import { SF_LAYOUTS, SF_LAYOUT_LABELS, type SfLayout } from "../layout";
 
 export type UnplacedViewMode = "unplaced" | "unplacedHidden";
 
@@ -28,16 +29,32 @@ export interface TopPanelOptions {
 	/** Layout-level gate for the whole unplaced section (hand-off brief §2) — distinct from `unplacedMode`,
 	 * which is the user's own collapse/expand toggle within a layout that shows the section at all. */
 	showUnplacedSection: boolean;
+	/** The active layout, so the selector menu can tick it and the series-mode settings icon can gate itself. */
+	layout: SfLayout;
 	currentBookFolderName: string | null;
 	activeChapterFilename: string | null;
 	highlightActiveChapter: boolean;
 	unplacedMode: UnplacedViewMode;
-	onToggleMode: () => void;
+	onSelectLayout: (layout: SfLayout) => void;
 	onToggleUnplacedMode: () => void;
 	onSelectBook: (bookFolderName: string) => void;
 	onOpenChapter: (bookFolderName: string, filename: string) => void;
 	onOpenSeriesModal: () => void;
 	onArchiveChapter?: () => void | Promise<void>;
+}
+
+/** Builds the four-layout selector menu, ticking whichever is currently active. */
+function buildLayoutMenu(current: SfLayout, onSelect: (layout: SfLayout) => void): Menu {
+	const menu = new Menu();
+	for (const layout of SF_LAYOUTS) {
+		menu.addItem((item) =>
+			item
+				.setTitle(SF_LAYOUT_LABELS[layout])
+				.setChecked(layout === current)
+				.onClick(() => onSelect(layout)),
+		);
+	}
+	return menu;
 }
 
 export function renderTopPanel(app: App, container: HTMLElement, options: TopPanelOptions): void {
@@ -51,14 +68,28 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 		const seriesLine = header.createDiv({ cls: "sf-header-line sf-series-line" });
 		setIcon(seriesLine.createSpan({ cls: "sf-icon" }), ICON_SERIES);
 		seriesLine.createSpan({ cls: "sf-header-text", text: series.seriesTitle });
-		const filterBtn = seriesLine.createSpan({ cls: "sf-series-filter-btn", attr: { "aria-label": "Series settings" } });
-		setIcon(filterBtn, ICON_FILTER);
-		filterBtn.addEventListener("click", (e) => {
+
+		const layoutBtn = seriesLine.createSpan({ cls: "sf-series-filter-btn", attr: { "aria-label": "Choose layout" } });
+		setIcon(layoutBtn, "layout-grid");
+		layoutBtn.addEventListener("click", (e) => {
 			e.stopPropagation();
-			options.onOpenSeriesModal();
+			buildLayoutMenu(options.layout, options.onSelectLayout).showAtMouseEvent(e);
 		});
-		makeAccessibleActivatable(filterBtn, () => options.onOpenSeriesModal());
-		seriesLine.addEventListener("click", () => options.onToggleMode());
+		makeAccessibleActivatable(layoutBtn, () => {
+			const rect = layoutBtn.getBoundingClientRect();
+			buildLayoutMenu(options.layout, options.onSelectLayout).showAtPosition({ x: rect.left, y: rect.bottom });
+		});
+
+		// Series settings live here and nowhere else — relevant only while browsing the series list itself.
+		if (options.layout === "seriesBrowse") {
+			const settingsBtn = seriesLine.createSpan({ cls: "sf-series-settings-btn", attr: { "aria-label": "Series settings" } });
+			setIcon(settingsBtn, ICON_FILTER);
+			settingsBtn.addEventListener("click", (e) => {
+				e.stopPropagation();
+				options.onOpenSeriesModal();
+			});
+			makeAccessibleActivatable(settingsBtn, () => options.onOpenSeriesModal());
+		}
 	}
 
 	if (options.mode === "book") {

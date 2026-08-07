@@ -63,7 +63,15 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 	{ id: ICON_CODEX, label: "Codex", source: "custom", usedIn: ["BottomPanel.ts — Codex panel header"] },
 	{ id: ICON_SERIES, label: "Series", source: "custom", usedIn: ["TopPanel.ts — series header line", "StoryForgeView.ts — view tab icon"] },
 	{ id: ICON_BOOK, label: "Book", source: "custom", usedIn: ["TopPanel.ts — book header line"] },
-	{ id: ICON_FILTER, label: "Settings", source: "custom", usedIn: ["TopPanel.ts — series settings button"] },
+	{
+		id: ICON_FILTER,
+		label: "Settings",
+		source: "custom",
+		usedIn: [
+			"TopPanel.ts — series-mode settings button (opens SeriesModal; Series browse layout only)",
+			"uiStylePreviewSample.ts — settings-tab live style preview mockup",
+		],
+	},
 	{
 		id: ICON_TIMELINE,
 		label: "Synopsis and plot",
@@ -177,5 +185,11 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		label: "Expanded section",
 		source: "lucide",
 		usedIn: ["BottomPanel.ts — Codex folder collapse chevron"],
+	},
+	{
+		id: "layout-grid",
+		label: "Choose layout",
+		source: "lucide",
+		usedIn: ["TopPanel.ts — layout selector button (Series browse / Novel browse / Codex focus / Hybrid)"],
 	},
 ];

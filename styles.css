@@ -462,6 +462,17 @@
 	cursor: pointer;
 }
 
+/* Series-mode-only settings icon, sat right after the layout selector button — fixed gap, not
+   another auto margin, so it doesn't fight the selector for the row's leftover space. */
+.sf-series-settings-btn {
+	display: flex;
+	align-items: center;
+	flex-shrink: 0;
+	margin-left: 6px;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
 .sf-series-modal {
 	padding: 16px;
 }
@@ -1664,6 +1675,7 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 .sf-series-line .sf-icon { color: var(--sf-lib-series-color); font-size: var(--sf-lib-series-size, 1em); }
 .sf-series-line .sf-icon svg { width: 1em; height: 1em; }
 .sf-series-filter-btn:hover { color: var(--sf-lib-series-color); }
+.sf-series-settings-btn:hover { color: var(--sf-lib-series-color); }
 .sf-book-line .sf-header-text {
 	font-size: var(--sf-lib-book-size, 1em);
 	font-weight: var(--sf-lib-book-weight, 400);

@@ -119,12 +119,15 @@ export class StoryForgeView extends ItemView {
 			mode: this.effectiveTopPane(),
 			hideSeriesPane: this.plugin.getSettings().hideSeriesPane,
 			showUnplacedSection: config.showUnplaced,
+			layout: this.layout,
 			currentBookFolderName: this.currentBookFolderName,
 			activeChapterFilename: this.activeChapterFilename,
 			highlightActiveChapter: this.plugin.getSettings().highlightActiveChapter,
 			unplacedMode: this.unplacedMode,
-			onToggleMode: () => {
-				// Retired in favour of the layout selector menu (Commit 3) — the declared layout now owns top-pane choice.
+			onSelectLayout: (layout) => {
+				this.layout = layout;
+				void this.plugin.updateSetting("layout", layout);
+				this.render();
 			},
 			onToggleUnplacedMode: () => {
 				this.unplacedMode = this.unplacedMode === "unplaced" ? "unplacedHidden" : "unplaced";
