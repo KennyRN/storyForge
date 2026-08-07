@@ -17,7 +17,8 @@ import { layoutConfig, type SfLayout } from "../layout";
 import { createContinuingChapter } from "../chapterCreation";
 import { getBookChapters } from "../book";
 import { canEnterContinuousMode, resolveEntryChapter } from "../continuousMode";
-import { STORYFORGE_CONTINUOUS_VIEW_TYPE } from "./ContinuousReadView";
+import { STORYFORGE_CONTINUOUS_VIEW_TYPE, type ContinuousReadView } from "./ContinuousReadView";
+import { emitContinuousScrollTo } from "./continuousEvents";
 
 export const STORYFORGE_VIEW_TYPE = "storyforge-view";
 
@@ -31,6 +32,9 @@ export class StoryForgeView extends ItemView {
 	private activeCodexFolderId: string | null = null;
 	private statsMode: StatsMode = "daily";
 	private statsCounts: Record<StatsMode, number> = { daily: 0, weekly: 0, chapter: 0, story: 0 };
+	/** Tears down the live position indicator's event-listener — must run before the next render
+	 * discards its DOM (see render()). */
+	private continuousCleanup: (() => void) | null = null;
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -74,6 +78,17 @@ export class StoryForgeView extends ItemView {
 	async onClose(): Promise<void> {
 		this.closed = true;
 		this.debouncedRender.cancel();
+		this.continuousCleanup?.();
+	}
+
+	/** The read view's leaf open on `bookFolderName`, if any — used both to know whether continuous
+	 * mode is active for the currently-selected book and to read its live chapter synchronously,
+	 * or to replace it with a real editor on exit. */
+	private findContinuousReadLeaf(bookFolderName: string): WorkspaceLeaf | null {
+		for (const leaf of this.app.workspace.getLeavesOfType(STORYFORGE_CONTINUOUS_VIEW_TYPE)) {
+			if ((leaf.view as ContinuousReadView).getBookFolderName() === bookFolderName) return leaf;
+		}
+		return null;
 	}
 
 	private followActiveFile(): void {
@@ -110,6 +125,10 @@ export class StoryForgeView extends ItemView {
 	render(): void {
 		if (this.closed) return;
 		if (isDragInProgress()) return;
+		// Tear down the previous render's live position indicator (if any) before its DOM goes away
+		// — its event listener would otherwise keep firing against a detached element.
+		this.continuousCleanup?.();
+		this.continuousCleanup = null;
 		const container = this.contentEl;
 		container.empty();
 		container.addClass("storyforge-view");
@@ -118,6 +137,11 @@ export class StoryForgeView extends ItemView {
 		// Codex focus's navigator is short and fixed-height, unlike the full chapter tree the
 		// shared grid rows are tuned for — let its row size to content so Codex sits right below it.
 		container.dataset.topPane = config.topPane;
+
+		// Synchronous read of the read view's own state (a direct method call, not an event) — always
+		// fresh, so a book switch or the read view closing is reflected the moment this re-renders.
+		const continuousReadLeaf = this.currentBookFolderName ? this.findContinuousReadLeaf(this.currentBookFolderName) : null;
+		const continuousActiveFilename = continuousReadLeaf ? (continuousReadLeaf.view as ContinuousReadView).getCurrentFilename() : null;
 
 		const topEl = container.createDiv({ cls: "sf-top-panel" });
 
@@ -152,7 +176,13 @@ export class StoryForgeView extends ItemView {
 				if (this.closed) return;
 				await this.refreshStats();
 			},
+			continuousActiveFilename,
 			onOpenContinuousRead: (bookFolderName) => void this.openContinuousRead(bookFolderName),
+			onExitContinuousRead: (bookFolderName) => this.exitContinuousRead(bookFolderName),
+			onContinuousScrollTo: (bookFolderName, filename) => emitContinuousScrollTo(this.app, { bookFolderName, filename }),
+			registerContinuousCleanup: (dispose) => {
+				this.continuousCleanup = dispose;
+			},
 		});
 
 		if (config.showCodex) {
@@ -293,5 +323,16 @@ export class StoryForgeView extends ItemView {
 		const leaf = this.app.workspace.getLeaf(false);
 		await leaf.setViewState({ type: STORYFORGE_CONTINUOUS_VIEW_TYPE, active: true, state: { bookFolderName, entryFilename } });
 		this.app.workspace.revealLeaf(leaf);
+	}
+
+	/** The sidebar's "exit continuous mode" control: replaces the read view's own leaf with a real
+	 * single-chapter editor on whichever chapter it's currently centred on (hand-off brief §2.4). */
+	private exitContinuousRead(bookFolderName: string): void {
+		const leaf = this.findContinuousReadLeaf(bookFolderName);
+		const filename = leaf ? (leaf.view as ContinuousReadView).getCurrentFilename() : null;
+		if (!leaf || !filename) return;
+		const path = libraryChapterPath(bookFolderName, filename);
+		const file = this.app.vault.getAbstractFileByPath(path);
+		if (file instanceof TFile) void leaf.openFile(file);
 	}
 }

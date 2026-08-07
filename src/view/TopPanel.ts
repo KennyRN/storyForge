@@ -48,9 +48,14 @@ export interface TopPanelOptions {
 	/** Codex focus's forward-only `[+]`: create a chapter, append it to the end of chapter-order, open it. */
 	onCreateContinuingChapter: (bookFolderName: string) => void;
 	onArchiveChapter?: () => void | Promise<void>;
-	/** Codex-focus navigator's continuous read-and-write mode launcher (continuous-mode hand-off
-	 * brief §2) — opens the reading surface in the main editor pane; the sidebar stays menus only. */
+	/** Codex-focus navigator's continuous read-and-write mode (continuous-mode hand-off brief §2,
+	 * corrected): the manuscript lives in a separate main-pane view; this sidebar only ever shows
+	 * navigation around it. See CodexFocusNavigatorOptions for what each of these does. */
+	continuousActiveFilename: string | null;
 	onOpenContinuousRead: (bookFolderName: string) => void;
+	onExitContinuousRead: (bookFolderName: string) => void;
+	onContinuousScrollTo: (bookFolderName: string, filename: string) => void;
+	registerContinuousCleanup: (dispose: () => void) => void;
 }
 
 /** Builds the four-layout selector menu, ticking whichever is currently active. */
@@ -142,7 +147,11 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 			highlightActiveChapter: options.highlightActiveChapter,
 			onOpenChapter: options.onOpenChapter,
 			onCreateContinuing: options.onCreateContinuingChapter,
+			continuousActiveFilename: options.continuousActiveFilename,
 			onOpenContinuousRead: options.onOpenContinuousRead,
+			onExitContinuousRead: options.onExitContinuousRead,
+			onContinuousScrollTo: options.onContinuousScrollTo,
+			registerContinuousCleanup: options.registerContinuousCleanup,
 		});
 	} else if (options.currentBookFolderName) {
 		renderBookList(app, bodyEl, options.currentBookFolderName, options, container);
