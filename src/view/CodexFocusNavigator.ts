@@ -25,8 +25,10 @@ export interface CodexFocusNavigatorOptions {
  * is needed to show it (see spineWindow.ts). At the tail end, the slot after the last placed
  * chapter is `[+]` (continue the story) instead of a gap.
  *
- * Chapter tiles look like Hybrid's chapter rows (plain, centred text, no card/border chrome),
- * highlighted the same way Hybrid highlights its active row — same colours, same toggle.
+ * Chapter tiles reuse Hybrid's own row classes (sf-top-list/sf-row/sf-row-text/sf-row-selected)
+ * outright, so every bit of Hybrid's chapter-row styling — font, colour, highlight, hover — is
+ * identical here by construction rather than approximated. The only override is centred text
+ * instead of left-aligned, since there's no drag handle or numbering column in this view.
  */
 export function renderCodexFocusNavigator(app: App, container: HTMLElement, options: CodexFocusNavigatorOptions): void {
 	container.empty();
@@ -49,7 +51,7 @@ export function renderCodexFocusNavigator(app: App, container: HTMLElement, opti
 	const numbered = applyHashNumbering(ordered.map((file) => chapterDisplayTitle(app, bookFolderName, file.name)));
 	const titleFor = (file: TFile) => numbered[ordered.indexOf(file)];
 
-	const windowEl = wrap.createDiv({ cls: "sf-navigator-window" });
+	const windowEl = wrap.createDiv({ cls: "sf-top-list sf-navigator-window" });
 	for (const slot of win.slots) {
 		renderSlot(
 			windowEl,
@@ -78,16 +80,16 @@ function renderSlot(
 		renderCreateTile(container, onCreate);
 		return;
 	}
-	const tile = container.createDiv({ cls: "sf-navigator-tile" });
 	if (slot.kind === "empty") {
-		tile.addClass("sf-navigator-tile-empty");
+		const tile = container.createDiv({ cls: "sf-navigator-tile sf-navigator-tile-empty" });
 		tile.createDiv({ cls: "sf-empty sf-empty-inline", text: "—" });
 		return;
 	}
 	const file = slot.file as TFile;
-	if (slot.isCurrent && highlightActiveChapter) tile.addClass("sf-navigator-tile-current");
+	const tile = container.createDiv({ cls: "sf-row" });
+	if (slot.isCurrent && highlightActiveChapter) tile.addClass("sf-row-selected");
 	const { title } = splitTitleSubtitle(titleFor(file));
-	tile.createDiv({ cls: "sf-navigator-tile-title", text: title });
+	tile.createDiv({ cls: "sf-row-text", text: title });
 	tile.addEventListener("click", () => onOpenChapter(bookFolderName, file.name));
 	makeAccessibleActivatable(tile, () => onOpenChapter(bookFolderName, file.name));
 }

@@ -112,6 +112,9 @@ export class StoryForgeView extends ItemView {
 		container.addClass("storyforge-view");
 
 		const config = layoutConfig(this.layout);
+		// Codex focus's navigator is short and fixed-height, unlike the full chapter tree the
+		// shared grid rows are tuned for — let its row size to content so Codex sits right below it.
+		container.dataset.topPane = config.topPane;
 
 		const topEl = container.createDiv({ cls: "sf-top-panel" });
 
