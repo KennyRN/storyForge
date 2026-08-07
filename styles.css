@@ -2732,6 +2732,15 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	text-align: center;
 }
 
+/* Fixed, shared height for every slot — chapter row or placeholder — so the create tile's border
+ * and larger icon, and the empty tile's dashed border, don't make it taller than a real chapter
+ * row above it. box-sizing: border-box keeps the border inside that height rather than adding to it. */
+.sf-navigator-window .sf-row,
+.sf-navigator-tile {
+	box-sizing: border-box;
+	height: 32px;
+}
+
 /* Non-chapter placeholder tiles (empty gap / create affordance) — deliberately distinct from a
  * real chapter row, since they aren't chapters. */
 .sf-navigator-tile {
@@ -2751,7 +2760,7 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 }
 
 .sf-navigator-tile-create {
-	padding: 8px;
+	padding: 4px 8px;
 	border: 1px dashed var(--background-modifier-border);
 	border-radius: 6px;
 	/* Same colour as the chapter rows above it (--sf-lib-items-color), not Obsidian's generic
@@ -2765,8 +2774,8 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 }
 
 .sf-navigator-tile-create svg {
-	width: 1.6em;
-	height: 1.6em;
+	width: 1.4em;
+	height: 1.4em;
 }
 
 .sf-navigator-transport-buttons {
