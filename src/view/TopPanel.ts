@@ -17,6 +17,7 @@ import { makeReorderable, type DragZone } from "./dragReorder";
 import { makeAccessibleActivatable } from "./a11y";
 import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
 import { ChapterIdeaCaptureModal } from "./ChapterIdeaCaptureModal";
+import { renderCodexFocusNavigator } from "./CodexFocusNavigator";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
 import { ICON_BOOK, ICON_BOOK_PLUS, ICON_FILTER, ICON_PLUS_SQUARE, ICON_SERIES, ICON_UNPLACED } from "../icons";
 import { recordChapterArchive, readChapterWordCount } from "../history";
@@ -25,7 +26,10 @@ import { SF_LAYOUTS, SF_LAYOUT_LABELS, type SfLayout } from "../layout";
 export type UnplacedViewMode = "unplaced" | "unplacedHidden";
 
 export interface TopPanelOptions {
-	mode: "book" | "series";
+	/** "navigator" is Codex focus's compact three-chapter navigator (renderCodexFocusNavigator),
+	 * not the full chapter tree — everything else about the header (book-line, layout selector)
+	 * behaves exactly as it does for "novel". */
+	mode: "series" | "novel" | "navigator";
 	hideSeriesPane: boolean;
 	/** Layout-level gate for the whole unplaced section (hand-off brief §2) — distinct from `unplacedMode`,
 	 * which is the user's own collapse/expand toggle within a layout that shows the section at all. */
@@ -41,6 +45,8 @@ export interface TopPanelOptions {
 	onSelectBook: (bookFolderName: string) => void;
 	onOpenChapter: (bookFolderName: string, filename: string) => void;
 	onOpenSeriesModal: () => void;
+	/** Codex focus's forward-only `[+]`: create a chapter, append it to the end of chapter-order, open it. */
+	onCreateContinuingChapter: (bookFolderName: string) => void;
 	onArchiveChapter?: () => void | Promise<void>;
 }
 
@@ -93,7 +99,7 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 		}
 	}
 
-	if (options.mode === "book") {
+	if (options.mode !== "series") {
 		const bookLine = header.createDiv({ cls: "sf-book-line" });
 		const coverImage = options.currentBookFolderName
 			? readBookFrontmatter(app, options.currentBookFolderName)?.coverImage ?? null
@@ -126,6 +132,13 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 
 	if (options.mode === "series") {
 		renderSeriesList(app, bodyEl, series.ordered, series.unplaced, options, container);
+	} else if (options.mode === "navigator" && options.currentBookFolderName) {
+		renderCodexFocusNavigator(app, bodyEl, {
+			currentBookFolderName: options.currentBookFolderName,
+			activeChapterFilename: options.activeChapterFilename,
+			onOpenChapter: options.onOpenChapter,
+			onCreateContinuing: options.onCreateContinuingChapter,
+		});
 	} else if (options.currentBookFolderName) {
 		renderBookList(app, bodyEl, options.currentBookFolderName, options, container);
 	} else {

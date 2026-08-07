@@ -14,6 +14,7 @@ import { getBookWordStats } from "../history";
 import { WordCountModal } from "./WordCountModal";
 import { isDragInProgress } from "./dragLock";
 import { layoutConfig, type SfLayout } from "../layout";
+import { createContinuingChapter } from "../chapterCreation";
 
 export const STORYFORGE_VIEW_TYPE = "storyforge-view";
 
@@ -97,11 +98,10 @@ export class StoryForgeView extends ItemView {
 
 	/** Which top pane the declared layout selects, clamped to "novel" while the series pane is hidden
 	 * entirely, without discarding the user's chosen layout - so re-enabling the pane later in Settings
-	 * restores it. "navigator" (Codex focus) temporarily renders the novel tree until the real
-	 * three-chapter navigator lands. */
-	private effectiveTopPane(): "book" | "series" {
-		if (this.plugin.getSettings().hideSeriesPane) return "book";
-		return layoutConfig(this.layout).topPane === "series" ? "series" : "book";
+	 * restores it. */
+	private effectiveTopPane(): "series" | "novel" | "navigator" {
+		if (this.plugin.getSettings().hideSeriesPane) return "novel";
+		return layoutConfig(this.layout).topPane;
 	}
 
 	render(): void {
@@ -141,6 +141,7 @@ export class StoryForgeView extends ItemView {
 			},
 			onOpenChapter: (bookName, filename) => void this.openChapter(bookName, filename),
 			onOpenSeriesModal: () => new SeriesModal(this.app, () => this.render()).open(),
+			onCreateContinuingChapter: (bookFolderName) => void this.handleCreateContinuingChapter(bookFolderName),
 			onArchiveChapter: async () => {
 				if (this.closed) return;
 				await this.refreshStats();
@@ -232,6 +233,18 @@ export class StoryForgeView extends ItemView {
 	private codexTargetFolderId(): string | null {
 		const id = this.activeCodexFolderId;
 		return id && readCodexFrontmatter(this.app).folders[id] ? id : null;
+	}
+
+	/** Codex focus's forward-only `[+]` (hand-off brief §5.2): create a chapter, append it to the
+	 * end of chapter-order, and open it — createContinuingChapter already opens the file. */
+	private async handleCreateContinuingChapter(bookFolderName: string): Promise<void> {
+		try {
+			await createContinuingChapter(this.app, bookFolderName, null);
+			if (this.closed) return;
+			this.render();
+		} catch (err) {
+			new Notice(`storyForge: could not create chapter — ${(err as Error).message}`);
+		}
 	}
 
 	private async handleCreateCodexFolder(): Promise<void> {
