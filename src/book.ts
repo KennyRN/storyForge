@@ -665,11 +665,16 @@ export async function createBook(app: App, initialTitle?: string): Promise<{ fol
  * Creates a new chapter: a file named `<chapter-id>.md` (lowercase, e.g.
  * "knna_chapter-aaa.md") directly in the book's story-library folder,
  * registered in novel.md's `chapters` map with a default "Untitled" title,
- * then opened. Creating the empty manuscript file (and `createBook`'s folder
- * creation) are intentional library exceptions — the plugin never modifies
- * chapter prose after that.
+ * then opened (unless `openFile: false` — the idea-chapter creation path
+ * deliberately doesn't steal editor focus). Creating the empty manuscript
+ * file (and `createBook`'s folder creation) are intentional library
+ * exceptions — the plugin never modifies chapter prose after that.
  */
-export async function createChapter(app: App, bookFolderName: string): Promise<{ filename: string; chapterId: string }> {
+export async function createChapter(
+	app: App,
+	bookFolderName: string,
+	options?: { openFile?: boolean },
+): Promise<{ filename: string; chapterId: string }> {
 	const entry = getSeriesBookEntry(app, bookFolderName);
 	const bookId = entry?.bookId ?? mintId(bookFolderName, collectAllBookIds(app));
 	const chapterId = nextChapterCode(bookId, collectAllChapterIds(app, bookFolderName));
@@ -679,7 +684,9 @@ export async function createChapter(app: App, bookFolderName: string): Promise<{
 	await ensureLibraryBookFolder(app, bookFolderName);
 	const file = await app.vault.create(path, "");
 	await upsertChapterEntry(app, bookFolderName, filename, chapterId, "Untitled");
-	await app.workspace.getLeaf(false).openFile(file);
+	if (options?.openFile !== false) {
+		await app.workspace.getLeaf(false).openFile(file);
+	}
 
 	return { filename, chapterId };
 }
