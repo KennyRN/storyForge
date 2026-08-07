@@ -2,6 +2,7 @@ import { Notice, Plugin, TFile, WorkspaceLeaf } from "obsidian";
 import type { Extension } from "@codemirror/state";
 import { createCyclingGuideViewPlugin } from "./cyclingGuide";
 import { StoryForgeView, STORYFORGE_VIEW_TYPE } from "./view/StoryForgeView";
+import { ContinuousReadView, STORYFORGE_CONTINUOUS_VIEW_TYPE } from "./view/ContinuousReadView";
 import { ToolsView, TOOLS_VIEW_TYPE } from "./view/ToolsPanel";
 import { RecommendationView, RECOMMEND_VIEW_TYPE, activateRecommendView } from "./view/RecommendationView";
 import { ArchiveView, ARCHIVE_VIEW_TYPE, activateArchiveView } from "./view/ArchiveView";
@@ -675,6 +676,7 @@ export default class StoryForgePlugin extends Plugin {
 
 		registerCustomIcons();
 		this.registerView(STORYFORGE_VIEW_TYPE, (leaf) => new StoryForgeView(leaf, this));
+		this.registerView(STORYFORGE_CONTINUOUS_VIEW_TYPE, (leaf) => new ContinuousReadView(leaf, this));
 		this.registerView(TOOLS_VIEW_TYPE, (leaf) => new ToolsView(leaf));
 		this.registerView(RECOMMEND_VIEW_TYPE, (leaf) => new RecommendationView(leaf, this));
 		this.registerView(ARCHIVE_VIEW_TYPE, (leaf) => new ArchiveView(leaf, this));
@@ -807,6 +809,7 @@ export default class StoryForgePlugin extends Plugin {
 	private async refreshCustomIcons(): Promise<void> {
 		const types = [
 			STORYFORGE_VIEW_TYPE,
+			STORYFORGE_CONTINUOUS_VIEW_TYPE,
 			TOOLS_VIEW_TYPE,
 			RECOMMEND_VIEW_TYPE,
 			ARCHIVE_VIEW_TYPE,
