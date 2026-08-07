@@ -343,7 +343,11 @@ export class StoryForgeView extends ItemView {
 		const path = libraryChapterPath(bookFolderName, filename);
 		const file = this.app.vault.getAbstractFileByPath(path);
 		if (!(file instanceof TFile)) return;
-		await leaf.openFile(file);
+		await leaf.openFile(file, { active: true });
+		// Force-select the editor leaf itself (not just open the file into it) — without this the
+		// workspace can still consider the sidebar (or nothing) active, which is what was behind
+		// the stale toggle/indicator: active-leaf-change never fired the way a normal file-open would.
+		this.app.workspace.setActiveLeaf(leaf, { focus: true });
 		// Same reasoning as openContinuousRead(): re-render immediately rather than wait for events,
 		// so the toggle reverts to its normal icon and the window becomes clickable again straight away.
 		if (!this.closed) this.render();
