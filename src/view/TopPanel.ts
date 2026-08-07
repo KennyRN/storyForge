@@ -48,6 +48,14 @@ export interface TopPanelOptions {
 	/** Codex focus's forward-only `[+]`: create a chapter, append it to the end of chapter-order, open it. */
 	onCreateContinuingChapter: (bookFolderName: string) => void;
 	onArchiveChapter?: () => void | Promise<void>;
+	/** Codex-focus navigator's continuous read-and-write mode (continuous-mode hand-off brief §2) —
+	 * meaningless outside "navigator" mode but always threaded through so StoryForgeView owns the state. */
+	continuousMode: boolean;
+	continuousCurrentFilename: string | null;
+	onToggleContinuousMode: () => void;
+	onExitContinuousMode: (bookFolderName: string, filename: string) => void;
+	onContinuousPositionChange: (filename: string) => void;
+	registerContinuousCleanup: (dispose: () => void) => void;
 }
 
 /** Builds the four-layout selector menu, ticking whichever is currently active. */
@@ -139,6 +147,12 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 			highlightActiveChapter: options.highlightActiveChapter,
 			onOpenChapter: options.onOpenChapter,
 			onCreateContinuing: options.onCreateContinuingChapter,
+			continuousMode: options.continuousMode,
+			continuousCurrentFilename: options.continuousCurrentFilename,
+			onToggleContinuousMode: options.onToggleContinuousMode,
+			onExitContinuousMode: options.onExitContinuousMode,
+			onContinuousPositionChange: options.onContinuousPositionChange,
+			registerContinuousCleanup: options.registerContinuousCleanup,
 		});
 	} else if (options.currentBookFolderName) {
 		renderBookList(app, bodyEl, options.currentBookFolderName, options, container);

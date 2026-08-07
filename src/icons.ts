@@ -52,6 +52,17 @@ const ADD_CIRCLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 
 export const ICON_LAYOUT_SELECTOR = "sf-layout-selector";
 const LAYOUT_SELECTOR_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M11 21H5a2 2 0 0 1-2-2v-3h8zm0-18v5H3V5a2 2 0 0 1 2-2zm0 11H3v-4h8zm8-11a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6V3z" /></svg>`;
 
+/** Codex-focus navigator's fifth control — the continuous read-and-write mode toggle (hand-off
+ * brief §4 hold point, resolved). Shown while the mode is off, set apart from the four transport
+ * buttons rather than reading as a fifth step among them. */
+export const ICON_CONTINUOUS_MODE = "sf-continuous-mode";
+const CONTINUOUS_MODE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 26 26"><path d="M0 0h26v26H0z" fill="none" /><g fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"><path d="M5 11a1 1 0 0 1 1-1h10.308a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0-4a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0 8a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0 4a1 1 0 0 1 1-1h10.308a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1" /><path d="M13 24c6.075 0 11-4.925 11-11S19.075 2 13 2S2 6.925 2 13s4.925 11 11 11m0 2c7.18 0 13-5.82 13-13S20.18 0 13 0S0 5.82 0 13s5.82 13 13 13" /></g></svg>`;
+
+/** The same toggle, shown once continuous mode is active — clicking it is the "cancel" action
+ * that drops the reader back into the single-chapter editor (hand-off brief §2.4). */
+export const ICON_CONTINUOUS_MODE_EXIT = "sf-continuous-mode-exit";
+const CONTINUOUS_MODE_EXIT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 26 26"><path d="M0 0h26v26H0z" fill="none" /><g fill="currentColor"><path fill-rule="evenodd" d="M5 11a1 1 0 0 1 1-1h10.308a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0-4a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0 8a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0 4a1 1 0 0 1 1-1h10.308a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1" clip-rule="evenodd" /><path d="M4.293 5.707a1 1 0 0 1 1.414-1.414l16 16a1 1 0 0 1-1.414 1.414z" /><path fill-rule="evenodd" d="M13 24c6.075 0 11-4.925 11-11S19.075 2 13 2S2 6.925 2 13s4.925 11 11 11m0 2c7.18 0 13-5.82 13-13S20.18 0 13 0S0 5.82 0 13s5.82 13 13 13" clip-rule="evenodd" /></g></svg>`;
+
 const INBOX_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><g fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.75 12H6a2 2 0 0 1 2 2a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2a2 2 0 0 1 2-2h3.25" /><path d="M15.25 2.75h-6.5a6 6 0 0 0-6 6v6.5a6 6 0 0 0 6 6h6.5a6 6 0 0 0 6-6v-6.5a6 6 0 0 0-6-6Z" /></g></svg>`;
 
 const BOX_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.382 8.813v8.5c0 .845.344 1.656.957 2.253a3.3 3.3 0 0 0 2.308.934h8.706c.866 0 1.696-.336 2.308-.934a3.15 3.15 0 0 0 .957-2.253v-8.5m0-5.313H4.382c-.901 0-1.632.714-1.632 1.594v2.125c0 .88.73 1.593 1.632 1.593h15.236c.901 0 1.632-.713 1.632-1.593V5.094c0-.88-.73-1.594-1.632-1.594" /></svg>`;
@@ -157,4 +168,6 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_TRANSPORT_TO_END, TRANSPORT_TO_END_SVG);
 	addIcon(ICON_ADD_CIRCLE, ADD_CIRCLE_SVG);
 	addIcon(ICON_LAYOUT_SELECTOR, LAYOUT_SELECTOR_SVG);
+	addIcon(ICON_CONTINUOUS_MODE, CONTINUOUS_MODE_SVG);
+	addIcon(ICON_CONTINUOUS_MODE_EXIT, CONTINUOUS_MODE_EXIT_SVG);
 }

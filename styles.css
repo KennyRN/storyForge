@@ -25,6 +25,13 @@
 	grid-template-rows: auto 1fr auto;
 }
 
+/* Continuous mode's manuscript scroll is the primary reading surface, so the top panel needs real
+ * height here instead of sizing to the (now much shorter) live position indicator — Codex stays a
+ * visible reference underneath rather than the equal partner it is in Hybrid. */
+.storyforge-view[data-top-pane="continuous"]:not(#storyforge-specificity-boost) {
+	grid-template-rows: 2fr 1fr auto;
+}
+
 .sf-top-panel,
 .sf-bottom-panel {
 	display: flex;
@@ -2805,4 +2812,47 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	color: var(--text-faint);
 	cursor: default;
 	opacity: 0.4;
+}
+
+/* Continuous mode's fifth control (continuous-mode hand-off brief §2) — a divider either side
+ * sets it apart from the four transport buttons so it never reads as a fifth step among them. */
+.sf-navigator-transport-toggle {
+	margin: 0 4px;
+	padding: 0 10px;
+	border-left: 1px solid var(--background-modifier-border);
+	border-right: 1px solid var(--background-modifier-border);
+}
+
+/* The live position indicator (continuous mode's read-only stand-in for the window) sits directly
+ * above the manuscript scroll — no extra gap needed beyond .sf-navigator's own row gap. */
+.sf-navigator-indicator .sf-row {
+	cursor: pointer;
+}
+
+.sf-navigator-continuous-host {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+}
+
+.sf-continuous-scroll {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	padding-right: 4px;
+}
+
+.sf-continuous-chapter {
+	margin-bottom: 28px;
+}
+
+.sf-continuous-header {
+	font-weight: 600;
+	margin-bottom: 8px;
+	color: var(--sf-lib-items-color, var(--text-normal));
+}
+
+.sf-continuous-body {
+	min-height: 1.5em;
 }
