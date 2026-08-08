@@ -67,6 +67,14 @@ export async function graftEditor(
 		split.getRoot = () => realRoot;
 		split.getContainer = () => realContainer;
 
+		// Obsidian's own workspace chrome (.workspace-split/.workspace-leaf/.cm-scroller, …) is built
+		// on a chain of height:100%/flex-fill rules that only resolves because the real workspace is
+		// absolutely positioned to fill the window. Grafted into an ordinary content-flow <div> with
+		// no defined height, that chain resolves against nothing and collapses to zero — this class is
+		// the CSS hook (styles.css) that forces the whole chain to auto-height and drops the internal
+		// CM6 scrollbar, since this editor has to grow with the rest of the continuous scroll instead
+		// of scrolling internally.
+		split.containerEl.addClass("sf-grafted-editor");
 		container.appendChild(split.containerEl);
 
 		const leaf = app.workspace.createLeafInParent(split, 0);

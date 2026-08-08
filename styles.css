@@ -2863,6 +2863,45 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	min-height: 1.5em;
 }
 
+/* Click-to-edit's grafted inline editor (graftedEditor.ts) — a real WorkspaceLeaf/MarkdownView
+ * spliced into an ordinary content-flow <div>, not Obsidian's own absolutely-positioned workspace
+ * chrome. Obsidian's own CSS for all of these relies on a chain of height:100%/flex-fill rules
+ * that only resolves because the real workspace fills the window — grafted here, that chain
+ * resolves against an undefined ancestor height and collapses to nothing without this override.
+ * Also drops the editor's own internal scrollbar in favour of auto-height, since it has to grow
+ * with the rest of the continuous scroll rather than scroll on its own. */
+.sf-grafted-editor,
+.sf-grafted-editor .workspace-tabs,
+.sf-grafted-editor .workspace-tab-container,
+.sf-grafted-editor .workspace-leaf,
+.sf-grafted-editor .workspace-leaf-content,
+.sf-grafted-editor .view-content,
+.sf-grafted-editor .markdown-source-view,
+.sf-grafted-editor .cm-editor,
+.sf-grafted-editor .cm-scroller,
+.sf-grafted-editor .cm-sizer {
+	height: auto;
+	min-height: 0;
+	max-height: none;
+	overflow: visible;
+	position: static;
+	display: block;
+	contain: none;
+}
+
+/* A single-tab grafted leaf has nothing worth a tab bar for — hide it rather than show a tab strip
+ * with one tab inside the continuous scroll. */
+.sf-grafted-editor .workspace-tab-header-container {
+	display: none;
+}
+
+/* A visible floor while the editor's real height is still settling (or in case the override above
+ * ever misses a wrapper this Obsidian version renders differently) — better than a chapter that
+ * silently vanishes to zero height. */
+.sf-grafted-editor {
+	min-height: 4em;
+}
+
 /* Continuous mode's own view (ContinuousReadView.ts) — the manuscript belongs in the main editor
  * pane, not the sidebar, so this fills its leaf the way a normal file editor would. */
 .storyforge-continuous-view {
