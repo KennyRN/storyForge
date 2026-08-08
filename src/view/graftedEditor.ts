@@ -111,6 +111,11 @@ export async function graftEditor(
 		// state key; a wrong value just degrades to source mode rather than failing, so it needs no
 		// guard of its own.
 		await leaf.openFile(file, { active: true, state: { mode: "source", source: false } });
+		// A grafted leaf isn't part of the workspace's normal visible-tab tracking, so it's a
+		// plausible candidate for Obsidian treating it as background/inactive and handing back a
+		// lightweight DeferredView instead of a fully-initialised MarkdownView — this forces the real
+		// one. Harmless no-op if it was never deferred to begin with.
+		await leaf.loadIfDeferred();
 
 		const view = leaf.view;
 		if (!(view instanceof MarkdownView)) {
