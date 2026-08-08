@@ -136,7 +136,7 @@ export class ContinuousReadView extends ItemView {
 			) ?? ordered[0].name;
 
 		const scrollHost = container.createDiv({ cls: "sf-continuous-view" });
-		this.readThrough = renderContinuousReadThrough(this.app, scrollHost, {
+		this.readThrough = renderContinuousReadThrough(this.app, scrollHost, this, {
 			bookFolderName,
 			ordered,
 			titleFor,

@@ -1,6 +1,7 @@
 import { App, Component, MarkdownRenderer, TFile } from "obsidian";
 import { chapterDisplayTitle, renameChapterTitle } from "../book";
 import { pickCurrentChapter } from "../continuousMode";
+import { bookFolderNameFromChapterPath } from "../paths";
 import { attachInlineRename } from "./inlineRename";
 import { isLinkClick, resolveClickedSourceOffset } from "./clickToEditDom";
 
@@ -34,7 +35,7 @@ export interface ContinuousReadThroughHandle {
 	scrollTo: (filename: string) => void;
 	/** Whichever chapter is currently tracked as "centred" — used to hand off to the editor on exit. */
 	getCurrentFilename: () => string | null;
-	/** Disconnects both observers and unregisters the vault listener. Must be called before the
+	/** Disconnects both observers and unloads the render Component tree. Must be called before the
 	 * container is torn down, since the observers otherwise keep firing against detached nodes. */
 	dispose: () => void;
 }
@@ -47,6 +48,12 @@ interface ChapterSection {
 	/** The last content painted into `body` — click-to-edit maps against this, not a fresh read,
 	 * so the clicked DOM and the source text used for mapping are always the same snapshot. */
 	content: string | null;
+	/** Bumped on every mount/unmount so a `paint()` still in flight from a superseded mount can tell
+	 * it's been overtaken and bail out, rather than write into a section that's moved on. */
+	paintToken: number;
+	/** Owns this mount's `MarkdownRenderer` children — created fresh per mount, unloaded (not just
+	 * emptied) on unmount, so renderer children don't quietly accumulate across a long session. */
+	renderComponent: Component | null;
 }
 
 /**
@@ -63,24 +70,28 @@ interface ChapterSection {
  * Click-to-edit (§2.6/§2.8): a click on rendered prose maps back to its exact source offset (see
  * clickToCaret.ts/clickToEditDom.ts) and hands off to a real editor there; a click on a rendered
  * link navigates instead (Obsidian's own rendered output already wires that up — this module just
- * steps out of the way); the chapter header is inert to left-click and renamed only via right-click
- * through the existing rename path (§2.7).
+ * steps out of the way); a drag-to-select doesn't trigger an edit either; the chapter header is
+ * inert to left-click and renamed only via right-click through the existing rename path (§2.7).
  */
 export function renderContinuousReadThrough(
 	app: App,
 	container: HTMLElement,
+	parentComponent: Component,
 	options: ContinuousReadThroughOptions,
 ): ContinuousReadThroughHandle {
 	// markdown-reading-view: storyForge's own chapter typography (headings, dialogue, emphasis —
 	// see styles.css) is scoped under that class, the same as Obsidian's real reading view, so it
 	// has to be present here too or chapters render in generic, unstyled type.
 	const scrollEl = container.createDiv({ cls: "sf-continuous-scroll markdown-reading-view" });
-	const component = new Component();
-	component.load();
+	// A child of the caller's own Component (ContinuousReadView), not a free-standing instance —
+	// Obsidian's own lifecycle then releases every render child under it even if dispose() is
+	// somehow missed.
+	const component = parentComponent.addChild(new Component());
 
 	const sections = new Map<string, ChapterSection>();
 	const visibility = new Map<string, number>();
 	let currentFilename: string | null = options.entryFilename;
+	let hasScrolledToEntry = false;
 
 	for (const file of options.ordered) {
 		const wrapper = scrollEl.createDiv({ cls: "sf-continuous-chapter" });
@@ -102,9 +113,21 @@ export function renderContinuousReadThrough(
 
 		// markdown-rendered picks up Obsidian's own reading-view styling (headings, lists, etc.).
 		const body = wrapper.createDiv({ cls: "sf-continuous-body markdown-rendered" });
-		const section: ChapterSection = { file, wrapper, body, mounted: false, content: null };
+		const section: ChapterSection = {
+			file,
+			wrapper,
+			body,
+			mounted: false,
+			content: null,
+			paintToken: 0,
+			renderComponent: null,
+		};
 		body.addEventListener("click", (e) => {
 			if (!section.mounted || section.content === null) return;
+			// A drag-to-select still fires a click when the mouse comes up — without this guard,
+			// selecting a sentence to copy it destroys the selection by jumping into edit mode instead.
+			const selection = body.ownerDocument.getSelection();
+			if (selection && !selection.isCollapsed) return;
 			if (isLinkClick(e.target)) return; // let Obsidian's own link navigation handle it
 			const offset = resolveClickedSourceOffset(body, section.content, e.clientX, e.clientY);
 			if (offset !== null) options.onEditChapter(file, offset);
@@ -112,12 +135,19 @@ export function renderContinuousReadThrough(
 		sections.set(file.name, section);
 	}
 
-	const paint = (section: ChapterSection): void => {
-		void app.vault.cachedRead(section.file).then((content) => {
-			if (!section.mounted) return; // scrolled away again (or refreshed away) before this resolved
+	/** Reads, renders, and — only once content is actually about to replace the held placeholder —
+	 * clears the section's `minHeight`. Returns the render promise so the entry scroll can wait on
+	 * it rather than firing before anything has real height. */
+	const paint = (section: ChapterSection): Promise<void> => {
+		const token = section.paintToken;
+		return app.vault.cachedRead(section.file).then((content) => {
+			// Superseded by an unmount (or a newer mount) while the read was in flight — bail out
+			// rather than write stale content into a section that's since moved on.
+			if (!section.mounted || section.paintToken !== token || !section.renderComponent) return;
 			section.content = content;
+			section.wrapper.style.minHeight = "";
 			section.body.empty();
-			void MarkdownRenderer.render(app, content, section.body, section.file.path, component);
+			return MarkdownRenderer.render(app, content, section.body, section.file.path, section.renderComponent);
 		});
 	};
 
@@ -125,15 +155,21 @@ export function renderContinuousReadThrough(
 		const section = sections.get(filename);
 		if (!section || section.mounted) return;
 		section.mounted = true;
-		section.wrapper.style.minHeight = "";
-		paint(section);
+		section.paintToken++;
+		section.renderComponent = component.addChild(new Component());
+		void paint(section);
 	};
 
 	const unmount = (filename: string): void => {
 		const section = sections.get(filename);
 		if (!section || !section.mounted) return;
 		section.mounted = false;
+		section.paintToken++;
 		section.content = null;
+		if (section.renderComponent) {
+			component.removeChild(section.renderComponent); // unloads it, releasing renderer children
+			section.renderComponent = null;
+		}
 		// Hold the section's last measured height so unmounting its content doesn't shrink the
 		// scroll container and yank chapters below it up underneath the reader.
 		const height = section.wrapper.getBoundingClientRect().height;
@@ -177,18 +213,35 @@ export function renderContinuousReadThrough(
 		positionObserver.observe(section.wrapper);
 	}
 
+	// Force-paint the entry chapter and land on it only once it actually has height. Scrolling
+	// before anything is painted has nothing to land on — every wrapper is still just its header's
+	// height at that point, since the observers haven't fired yet against the unscrolled viewport.
+	const entrySection = sections.get(options.entryFilename);
+	if (entrySection) {
+		entrySection.mounted = true;
+		entrySection.paintToken++;
+		entrySection.renderComponent = component.addChild(new Component());
+		void paint(entrySection).then(() => {
+			if (hasScrolledToEntry) return;
+			hasScrolledToEntry = true;
+			entrySection.wrapper.scrollIntoView({ block: "start" });
+		});
+	}
+
 	// Freshness (§2.5): a chapter edited elsewhere while mounted here must not silently drift.
-	// Matched by path, not filename — filenames are only unique within one book's folder.
+	// bookFolderNameFromChapterPath rejects the vast majority of vault-wide writes (codex notes,
+	// other books, backstage frontmatter) in O(1) before touching `sections` at all.
 	component.registerEvent(
 		app.vault.on("modify", (file) => {
 			if (!(file instanceof TFile)) return;
-			const section = options.ordered.find((f) => f.path === file.path) && sections.get(file.name);
-			if (section?.mounted) paint(section);
+			if (bookFolderNameFromChapterPath(file.path) !== options.bookFolderName) return;
+			// `sections`'s keys are file.name captured once at construction — if this chapter was
+			// renamed since, that key is stale, so fall back to matching the live TFile reference
+			// itself (Obsidian mutates a TFile's path/name in place on rename rather than replacing it).
+			const section = sections.get(file.name) ?? Array.from(sections.values()).find((s) => s.file === file);
+			if (section?.mounted) void paint(section);
 		}),
 	);
-
-	const entrySection = sections.get(options.entryFilename);
-	entrySection?.wrapper.scrollIntoView({ block: "start" });
 
 	return {
 		scrollTo: (filename) => {
@@ -198,7 +251,7 @@ export function renderContinuousReadThrough(
 		dispose: () => {
 			mountObserver.disconnect();
 			positionObserver.disconnect();
-			component.unload();
+			parentComponent.removeChild(component); // cascades to every section's renderComponent
 		},
 	};
 }
