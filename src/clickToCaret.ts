@@ -149,25 +149,54 @@ export interface SourceBlock {
 	start: number;
 }
 
+/** An ATX heading (`#` through `######`) always starts a new block in CommonMark, blank line
+ * before it or not — unlike a plain paragraph line, which only starts a new block after one. */
+const HEADING_LINE_RE = /^#{1,6}\s/;
+
 /**
  * Splits a chapter's source text into the same block units Obsidian's own renderer produces one
  * top-level rendered element per — paragraphs, headings, and runs of consecutive list/blockquote
  * lines (no blank line between them counts as one block, matching how a `<ul>` holds every `<li>`
  * of a list as a single top-level element). Used to line up a click on a *rendered* top-level
  * element with the exact source text it came from.
+ *
+ * A heading is always split off as its own single-line block even without a blank line around it
+ * (`## Title\nFirst line of prose.` is two rendered elements from adjacent source lines) — the most
+ * common way a naive blank-line-only split desyncs from the actual rendered DOM. Other structural
+ * mismatches this can't see coming (a fenced code block spanning a blank line splits in two here
+ * but renders as one `<pre>`; YAML frontmatter source-splits into blocks that don't render as body
+ * content at all) are why block resolution also matches by content, not index alone — see
+ * `resolveBlockByContent` below.
  */
 export function splitIntoBlocks(source: string): SourceBlock[] {
 	const blocks: SourceBlock[] = [];
-	const separatorRe = /\n[ \t]*\n+/g;
-	let lastEnd = 0;
-	let match: RegExpExecArray | null;
-	while ((match = separatorRe.exec(source))) {
-		const text = source.slice(lastEnd, match.index);
-		if (text.trim().length > 0) blocks.push({ text, start: lastEnd });
-		lastEnd = match.index + match[0].length;
+	const lines = source.split("\n");
+	let cursor = 0;
+	let blockStart = -1;
+	let blockLines: string[] = [];
+
+	const flush = (): void => {
+		if (blockStart !== -1 && blockLines.length > 0) {
+			const text = blockLines.join("\n");
+			if (text.trim().length > 0) blocks.push({ text, start: blockStart });
+		}
+		blockStart = -1;
+		blockLines = [];
+	};
+
+	for (const line of lines) {
+		if (line.trim().length === 0) {
+			flush();
+		} else if (HEADING_LINE_RE.test(line)) {
+			flush(); // a heading always starts its own block, blank line or not
+			blocks.push({ text: line, start: cursor }); // and is always exactly one line
+		} else {
+			if (blockStart === -1) blockStart = cursor;
+			blockLines.push(line);
+		}
+		cursor += line.length + 1; // +1 for the '\n' split() consumed
 	}
-	const tail = source.slice(lastEnd);
-	if (tail.trim().length > 0) blocks.push({ text: tail, start: lastEnd });
+	flush();
 	return blocks;
 }
 
@@ -207,6 +236,59 @@ export function splitListBlockIntoItems(blockText: string): SourceBlock[] {
 	}
 	flush();
 	return items;
+}
+
+/**
+ * A block's overall rendered plain text, for matching against a rendered element's own
+ * `textContent` (§6.8) — not just for the block-splitter's assumed one-marker-at-offset-zero shape.
+ * A list block strips each item's own marker and concatenates them (matching how a `<ul>`'s
+ * `textContent` concatenates every `<li>` with nothing between them); a blockquote strips each
+ * line's own `>` the same way; anything else is a single unit handed straight to
+ * `buildRenderedMapping` (right for a paragraph, since a soft line break inside one carries no
+ * marker to strip — though see splitIntoBlocks's doc comment for the cases this still can't see).
+ */
+function blockRenderedText(blockText: string): string {
+	const items = splitListBlockIntoItems(blockText);
+	if (items.length > 0) return items.map((item) => buildRenderedMapping(item.text).renderedText).join("");
+
+	const lines = blockText.split("\n");
+	const isBlockquote = lines.some((line) => line.trim().length > 0) && lines.every((line) => line.trim() === "" || /^[ \t]*>/.test(line));
+	if (isBlockquote) {
+		return lines.map((line) => buildRenderedMapping(line.replace(/^[ \t]*>\s?/, "")).renderedText).join("");
+	}
+
+	return buildRenderedMapping(blockText).renderedText;
+}
+
+/**
+ * Matches a rendered element's own `textContent` against the chapter's source blocks (§6.8) —
+ * needed because "the Nth rendered child is the Nth source block" desyncs in cases a writer will
+ * plausibly hit even with `splitIntoBlocks`'s heading handling: a fenced code block spanning a
+ * blank line, or YAML frontmatter (added via Obsidian's own Properties UI, not by storyForge) that
+ * source-splits into blocks with no rendered body counterpart at all, shifting every index after it.
+ *
+ * Exact match first; then, since the clicked element might cover only part of a multi-line block
+ * (or a whole block might be one of several sibling elements a single click-target spans), a
+ * unique overlap match — the clicked text contains a candidate's rendered text or vice versa. Falls
+ * back to `fallbackIndex` (the naive positional guess) only when genuinely ambiguous — several
+ * identical candidates — or nothing matches at all, since positional alignment is right far more
+ * often than it's wrong and is a better default than refusing to resolve anything.
+ */
+export function resolveBlockByContent(blocks: SourceBlock[], renderedElementText: string, fallbackIndex: number): SourceBlock | null {
+	if (blocks.length === 0) return null;
+	const candidates = blocks.map((block) => ({ block, renderedText: blockRenderedText(block.text) }));
+
+	const exact = candidates.filter((c) => c.renderedText === renderedElementText);
+	if (exact.length === 1) return exact[0].block;
+
+	if (exact.length === 0 && renderedElementText.length > 0) {
+		const overlapping = candidates.filter(
+			(c) => c.renderedText.length > 0 && (c.renderedText.includes(renderedElementText) || renderedElementText.includes(c.renderedText)),
+		);
+		if (overlapping.length === 1) return overlapping[0].block;
+	}
+
+	return blocks[fallbackIndex] ?? null;
 }
 
 /**

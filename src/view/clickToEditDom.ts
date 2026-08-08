@@ -1,22 +1,44 @@
-import { renderedOffsetToSourceOffset, splitIntoBlocks, splitListBlockIntoItems } from "../clickToCaret";
+import {
+	renderedOffsetToSourceOffset,
+	resolveBlockByContent,
+	splitIntoBlocks,
+	splitListBlockIntoItems,
+	type SourceBlock,
+} from "../clickToCaret";
 
 /**
- * Maps a mouse click inside a chapter's rendered body back to the exact source offset it landed on
- * (continuous-mode hand-off brief §2.6). DOM-dependent, so unlike clickToCaret.ts (which this
- * builds on and which carries the unit tests) this can only really be exercised live in Obsidian.
- *
- * Works by positional alignment: MarkdownRenderer renders one top-level DOM element per source
- * block — paragraph, heading, list, blockquote — in source order (see clickToCaret.ts's
- * splitIntoBlocks), so the Nth rendered child of `bodyEl` corresponds to the Nth source block. A
- * clicked `<li>` is aligned the same way against that list block's own per-item split, since a
- * whole list is one top-level rendered element (a `<ul>`/`<ol>`) holding every item as a sibling,
- * not a block-level element of its own.
- *
- * Returns null when the click can't be resolved (no text under the point, click landed outside
- * `bodyEl`, or the rendered structure and the source split disagree on block count) — callers
- * should treat that as "don't edit" rather than guess.
+ * The result of resolving a click to a block (and, within a list, a specific item) — everything
+ * needed either to ship the block-level caret position outright, or to attempt the optional,
+ * harder character-level refinement within it. DOM-dependent, so unlike clickToCaret.ts (which
+ * this builds on and which carries the unit tests) this can only really be exercised live in
+ * Obsidian.
  */
-export function resolveClickedSourceOffset(bodyEl: HTMLElement, source: string, clickX: number, clickY: number): number | null {
+export interface ClickedBlockResult {
+	block: SourceBlock;
+	/** The element the character-level refinement (if attempted) should walk — the whole block's
+	 * top-level element, or a specific `<li>` within it for a list. */
+	scopeEl: Element;
+	/** `scopeEl`'s own source text — `block.text` for most blocks, one item's text within a list. */
+	scopeText: string;
+	/** `scopeText`'s start offset in the whole chapter's source text. */
+	scopeStart: number;
+	/** The DOM range the click resolved to — only needed for character-level refinement. */
+	range: Range;
+}
+
+/**
+ * Resolves a mouse click inside a chapter's rendered body to the source block it landed in (and,
+ * within a list, the specific item), matching the clicked top-level element's own `textContent`
+ * against the chapter's source blocks rather than assuming "the Nth rendered child is the Nth
+ * source block" (§6.8) — a heading directly followed by a paragraph with no blank line, a fenced
+ * code block spanning a blank line, or user-added YAML frontmatter can all desync a naive index
+ * match; see clickToCaret.ts's `splitIntoBlocks`/`resolveBlockByContent` for the specifics.
+ *
+ * Returns null when the click can't be resolved at all (no text under the point, click landed
+ * outside `bodyEl`, or there are no source blocks) — callers should treat that as "don't edit"
+ * rather than guess blindly.
+ */
+export function resolveClickedBlock(bodyEl: HTMLElement, source: string, clickX: number, clickY: number): ClickedBlockResult | null {
 	const doc = bodyEl.ownerDocument;
 	const caretRangeFromPoint = (doc as Document & { caretRangeFromPoint?: (x: number, y: number) => Range | null })
 		.caretRangeFromPoint;
@@ -35,8 +57,8 @@ export function resolveClickedSourceOffset(bodyEl: HTMLElement, source: string, 
 
 	const blockIndex = Array.from(bodyEl.children).indexOf(topEl);
 	const blocks = splitIntoBlocks(source);
-	if (blockIndex < 0 || blockIndex >= blocks.length) return null;
-	const block = blocks[blockIndex];
+	const block = resolveBlockByContent(blocks, topEl.textContent ?? "", blockIndex);
+	if (!block) return null;
 
 	let scopeEl: Element = topEl;
 	let scopeText = block.text;
@@ -55,8 +77,34 @@ export function resolveClickedSourceOffset(bodyEl: HTMLElement, source: string, 
 		}
 	}
 
-	const renderedOffset = renderedOffsetWithinElement(scopeEl, range);
-	return scopeStart + renderedOffsetToSourceOffset(scopeText, renderedOffset);
+	return { block, scopeEl, scopeText, scopeStart, range };
+}
+
+/**
+ * The shipped click-to-edit entry point (hand-off brief §2.6/§3.6): resolves to the *block* the
+ * reader clicked and lands the caret at its start. "Which paragraph" is robust and fully
+ * unit-tested underneath (clickToCaret.ts); "which character within it" is the fragile half —
+ * `caretRangeFromPoint`'s two-legged browser support, a `TreeWalker` over rendered text nodes,
+ * markdown-marker stripping for every inline case — and is deliberately not attempted here. A
+ * writer who taps a paragraph to edit it will usually move the cursor regardless, so this is
+ * honest about what it promises: tap a paragraph, edit that paragraph. See
+ * `refineToCharacterOffset` for the deferred other half, kept available but unused for now.
+ */
+export function resolveClickedSourceOffset(bodyEl: HTMLElement, source: string, clickX: number, clickY: number): number | null {
+	const result = resolveClickedBlock(bodyEl, source, clickX, clickY);
+	return result?.scopeStart ?? null;
+}
+
+/**
+ * The deferred, character-level half (§3.6) — not called from the shipped path above. Refines a
+ * resolved block/item down to the exact character the click landed on, by walking `scopeEl`'s
+ * rendered text nodes and mapping the position back through `clickToCaret.ts`'s marker-stripping.
+ * Kept as a separate, independently callable function precisely so it can be switched on (or back
+ * off) without touching `resolveClickedSourceOffset` or its callers.
+ */
+export function refineToCharacterOffset(result: ClickedBlockResult): number {
+	const renderedOffset = renderedOffsetWithinElement(result.scopeEl, result.range);
+	return result.scopeStart + renderedOffsetToSourceOffset(result.scopeText, renderedOffset);
 }
 
 /** Counts how many rendered characters precede `range`'s start position within `scopeEl`. */
