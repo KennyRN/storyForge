@@ -19,11 +19,14 @@ export interface ContinuousReadThroughOptions {
 	entryFilename: string;
 	/** Fires whenever the live-tracked "current" chapter changes as the reader scrolls. */
 	onPositionChange: (filename: string) => void;
-	/** A deliberate click on a chapter's body (hand-off brief §2.6/§2.8) — since there's no public
-	 * way to mount a real editor inline (Editor/MarkdownView have no public standalone constructor),
-	 * this commits to editing by handing off to a real single-chapter editor elsewhere, with the
-	 * caret landing at `sourceOffset`, same accuracy bar as the brief asks for. */
+	/** A deliberate click on a chapter's body (hand-off brief §2.6/§2.8) — the caller owns the one
+	 * live editor (inline-editor research brief §3.3: this module must not own it), so this just
+	 * reports the click; the caller locks the section (see `lockSectionForEditing`) and mounts. */
 	onEditChapter: (file: TFile, sourceOffset: number) => void;
+	/** The section currently locked for editing (see `lockSectionForEditing`) has scrolled fully out
+	 * of the true viewport — the signal to commit the live editor and unlock (inline-editor research
+	 * brief §3.4). */
+	onEditedSectionScrolledAway: (filename: string) => void;
 	/** A chapter's title changed via the header's right-click rename — numbering and the tree may
 	 * both need to catch up, so the caller re-renders fully rather than this patching itself in place. */
 	onChapterRenamed: () => void;
@@ -35,6 +38,20 @@ export interface ContinuousReadThroughHandle {
 	scrollTo: (filename: string) => void;
 	/** Whichever chapter is currently tracked as "centred" — used to hand off to the editor on exit. */
 	getCurrentFilename: () => string | null;
+	/** The outer scroll container — callers preserve its `scrollTop` around mounting a live editor,
+	 * since the editor's own focus/open behaviour can otherwise scroll it (inline-editor research
+	 * brief §3.1). */
+	getScrollElement: () => HTMLElement;
+	/**
+	 * Locks a section against virtualisation unmount, clears its rendered content, and returns the
+	 * now-empty container to graft a live editor into. The caller (the one place that may hold a
+	 * live editor) is responsible for calling `unlockSection` once that editor commits — this module
+	 * never mounts, owns, or tears down an editor itself.
+	 */
+	lockSectionForEditing: (filename: string) => HTMLElement | null;
+	/** Reverts a locked section back to normal virtualised rendering (re-painting it if it's still
+	 * within the mount window). Call after the live editor mounted via `lockSectionForEditing` commits. */
+	unlockSection: (filename: string) => void;
 	/** Disconnects both observers and unloads the render Component tree. Must be called before the
 	 * container is torn down, since the observers otherwise keep firing against detached nodes. */
 	dispose: () => void;
@@ -45,11 +62,14 @@ interface ChapterSection {
 	wrapper: HTMLElement;
 	body: HTMLElement;
 	mounted: boolean;
+	/** True while a live editor occupies `body` in place of rendered markup — the mount observer's
+	 * unmount must refuse to touch a locked section outright, not just skip repainting it. */
+	locked: boolean;
 	/** The last content painted into `body` — click-to-edit maps against this, not a fresh read,
 	 * so the clicked DOM and the source text used for mapping are always the same snapshot. */
 	content: string | null;
-	/** Bumped on every mount/unmount so a `paint()` still in flight from a superseded mount can tell
-	 * it's been overtaken and bail out, rather than write into a section that's moved on. */
+	/** Bumped on every mount/unmount/lock so a `paint()` still in flight from a superseded mount can
+	 * tell it's been overtaken and bail out, rather than write into a section that's moved on. */
 	paintToken: number;
 	/** Owns this mount's `MarkdownRenderer` children — created fresh per mount, unloaded (not just
 	 * emptied) on unmount, so renderer children don't quietly accumulate across a long session. */
@@ -61,17 +81,21 @@ interface ChapterSection {
  * onwards). Renders the placed spine into one scroll container, one chapter per section, virtualising
  * mount/unmount so the DOM cost tracks what's on screen rather than the whole book (§2.2). Reading
  * itself is strictly read-only — `cachedRead` + `MarkdownRenderer.render`; no chapter body is ever
- * written by this module.
+ * written by this module. A section under a live editor (see `lockSectionForEditing`) is the one
+ * exception to virtualisation: it's held mounted regardless of scroll position until unlocked.
  *
  * A single IntersectionObserver pair drives both concerns described in §2.2/§2.3: a wide-margin
- * observer decides what's mounted, a viewport-true observer feeds `pickCurrentChapter` for the live
- * position indicator and for "whichever chapter they scrolled to" on exit.
+ * observer decides what's mounted (with a short unload hysteresis — inline-editor research brief
+ * §5.2 — so a fast scroll or an on-screen keyboard resize doesn't thrash mount/unmount), a
+ * viewport-true observer feeds `pickCurrentChapter` for the live position indicator, "whichever
+ * chapter they scrolled to" on exit, and the locked section's scroll-away commit signal (§3.4).
  *
  * Click-to-edit (§2.6/§2.8): a click on rendered prose maps back to its exact source offset (see
- * clickToCaret.ts/clickToEditDom.ts) and hands off to a real editor there; a click on a rendered
- * link navigates instead (Obsidian's own rendered output already wires that up — this module just
- * steps out of the way); a drag-to-select doesn't trigger an edit either; the chapter header is
- * inert to left-click and renamed only via right-click through the existing rename path (§2.7).
+ * clickToCaret.ts/clickToEditDom.ts) and reports it via `onEditChapter` — the caller owns the actual
+ * editor (inline-editor research brief §3.3); a click on a rendered link navigates instead
+ * (Obsidian's own rendered output already wires that up — this module just steps out of the way); a
+ * drag-to-select doesn't trigger an edit either; the chapter header is inert to left-click and
+ * renamed only via right-click through the existing rename path (§2.7).
  */
 export function renderContinuousReadThrough(
 	app: App,
@@ -90,7 +114,9 @@ export function renderContinuousReadThrough(
 
 	const sections = new Map<string, ChapterSection>();
 	const visibility = new Map<string, number>();
+	const unmountTimers = new Map<string, number>();
 	let currentFilename: string | null = options.entryFilename;
+	let lockedFilename: string | null = null;
 	let hasScrolledToEntry = false;
 
 	for (const file of options.ordered) {
@@ -118,12 +144,13 @@ export function renderContinuousReadThrough(
 			wrapper,
 			body,
 			mounted: false,
+			locked: false,
 			content: null,
 			paintToken: 0,
 			renderComponent: null,
 		};
 		body.addEventListener("click", (e) => {
-			if (!section.mounted || section.content === null) return;
+			if (!section.mounted || section.locked || section.content === null) return;
 			// A drag-to-select still fires a click when the mouse comes up — without this guard,
 			// selecting a sentence to copy it destroys the selection by jumping into edit mode instead.
 			const selection = body.ownerDocument.getSelection();
@@ -141,9 +168,9 @@ export function renderContinuousReadThrough(
 	const paint = (section: ChapterSection): Promise<void> => {
 		const token = section.paintToken;
 		return app.vault.cachedRead(section.file).then((content) => {
-			// Superseded by an unmount (or a newer mount) while the read was in flight — bail out
-			// rather than write stale content into a section that's since moved on.
-			if (!section.mounted || section.paintToken !== token || !section.renderComponent) return;
+			// Superseded by an unmount, a lock, or a newer mount while the read was in flight — bail
+			// out rather than write stale content into a section that's since moved on.
+			if (!section.mounted || section.locked || section.paintToken !== token || !section.renderComponent) return;
 			section.content = content;
 			section.wrapper.style.minHeight = "";
 			section.body.empty();
@@ -162,7 +189,9 @@ export function renderContinuousReadThrough(
 
 	const unmount = (filename: string): void => {
 		const section = sections.get(filename);
-		if (!section || !section.mounted) return;
+		// A locked section is under a live editor — virtualisation must leave it alone entirely
+		// until it's unlocked (inline-editor research brief §3.4).
+		if (!section || !section.mounted || section.locked) return;
 		section.mounted = false;
 		section.paintToken++;
 		section.content = null;
@@ -182,13 +211,34 @@ export function renderContinuousReadThrough(
 			for (const entry of entries) {
 				const filename = (entry.target as HTMLElement).dataset.filename;
 				if (!filename) continue;
-				if (entry.isIntersecting) mount(filename);
-				else unmount(filename);
+				const pendingUnmount = unmountTimers.get(filename);
+				if (entry.isIntersecting) {
+					if (pendingUnmount !== undefined) {
+						window.clearTimeout(pendingUnmount);
+						unmountTimers.delete(filename);
+					}
+					mount(filename);
+				} else if (pendingUnmount === undefined) {
+					// A short unload hysteresis (inline-editor research brief §5.2) so a fast scroll
+					// past a chapter, or a virtual keyboard briefly resizing the viewport, doesn't
+					// thrash mount/unmount — the section only actually unmounts if it's still out of
+					// range a second later.
+					unmountTimers.set(
+						filename,
+						window.setTimeout(() => {
+							unmountTimers.delete(filename);
+							unmount(filename);
+						}, 1000),
+					);
+				}
 			}
 		},
 		// A generous margin either side of the visible area so scrolling stays smooth — content is
-		// already mounted by the time it comes on screen, rather than popping in.
-		{ root: scrollEl, rootMargin: "150% 0px 150% 0px", threshold: 0 },
+		// already mounted by the time it comes on screen, rather than popping in. Kept tighter than a
+		// "just render everything nearby" instinct would suggest: this project runs rendered markup
+		// here, not full editors, so there's less to gain from a wider margin than there would be if
+		// every mounted section were as heavy as the one under a live editor.
+		{ root: scrollEl, rootMargin: "80% 0px 80% 0px", threshold: 0 },
 	);
 
 	const positionObserver = new IntersectionObserver(
@@ -202,6 +252,11 @@ export function renderContinuousReadThrough(
 			if (next && next !== currentFilename) {
 				currentFilename = next;
 				options.onPositionChange(next);
+			}
+			// The locked section (if any) has genuinely scrolled out of the true viewport — this is
+			// the commit signal, distinct from the mount observer's much wider margin (§3.4).
+			if (lockedFilename && (visibility.get(lockedFilename) ?? 0) === 0) {
+				options.onEditedSectionScrolledAway(lockedFilename);
 			}
 		},
 		// No expanded margin here — this one tracks what's actually on screen, not what's mounted.
@@ -239,7 +294,7 @@ export function renderContinuousReadThrough(
 			// renamed since, that key is stale, so fall back to matching the live TFile reference
 			// itself (Obsidian mutates a TFile's path/name in place on rename rather than replacing it).
 			const section = sections.get(file.name) ?? Array.from(sections.values()).find((s) => s.file === file);
-			if (section?.mounted) void paint(section);
+			if (section?.mounted && !section.locked) void paint(section);
 		}),
 	);
 
@@ -248,9 +303,38 @@ export function renderContinuousReadThrough(
 			sections.get(filename)?.wrapper.scrollIntoView({ block: "start", behavior: "smooth" });
 		},
 		getCurrentFilename: () => currentFilename,
+		getScrollElement: () => scrollEl,
+		lockSectionForEditing: (filename) => {
+			const section = sections.get(filename);
+			if (!section) return null;
+			section.locked = true;
+			lockedFilename = filename;
+			section.paintToken++;
+			section.content = null;
+			if (section.renderComponent) {
+				component.removeChild(section.renderComponent);
+				section.renderComponent = null;
+			}
+			section.wrapper.style.minHeight = ""; // let the editor determine its own height
+			section.body.empty();
+			return section.body;
+		},
+		unlockSection: (filename) => {
+			const section = sections.get(filename);
+			if (!section) return;
+			section.locked = false;
+			if (lockedFilename === filename) lockedFilename = null;
+			if (section.mounted) {
+				section.paintToken++;
+				section.renderComponent = component.addChild(new Component());
+				void paint(section);
+			}
+		},
 		dispose: () => {
 			mountObserver.disconnect();
 			positionObserver.disconnect();
+			for (const timer of unmountTimers.values()) window.clearTimeout(timer);
+			unmountTimers.clear();
 			parentComponent.removeChild(component); // cascades to every section's renderComponent
 		},
 	};
