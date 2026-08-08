@@ -2800,9 +2800,9 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 }
 
 .sf-navigator-transport-btn svg {
-	/* Kept in sync with navigatorControls.ts's forceIconSize(), which sets this inline (and wins) —
-	 * the toggle's custom icon and the four transport icons come from different source sets, and
-	 * em-based sizing alone left them visibly mismatched in height. */
+	/* This alone is enough to make all five read as the same size — the toggle's custom icon and
+	 * the four transport icons are painted to the same fraction of their own viewBox (see icons.ts's
+	 * CONTINUOUS_MODE_SVG and iconRegistry.ts's standing rule), so equal box sizing here is sufficient. */
 	width: 25px;
 	height: 25px;
 }

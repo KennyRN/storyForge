@@ -56,12 +56,18 @@ const LAYOUT_SELECTOR_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 
  * brief §4 hold point, resolved). Shown while the mode is off, set apart from the four transport
  * buttons rather than reading as a fifth step among them. */
 export const ICON_CONTINUOUS_MODE = "sf-continuous-mode";
-const CONTINUOUS_MODE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 26 26"><path d="M0 0h26v26H0z" fill="none" /><g fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"><path d="M5 11a1 1 0 0 1 1-1h10.308a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0-4a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0 8a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0 4a1 1 0 0 1 1-1h10.308a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1" /><path d="M13 24c6.075 0 11-4.925 11-11S19.075 2 13 2S2 6.925 2 13s4.925 11 11 11m0 2c7.18 0 13-5.82 13-13S20.18 0 13 0S0 5.82 0 13s5.82 13 13 13" /></g></svg>`;
+// viewBox is -3 -3 32 32, not the artwork's own 0 0 26 26 — this ring runs edge-to-edge in its
+// native box (touches all four sides), unlike the four transport icons' rings, which are inset by
+// design (r=192 of a 256 box). Padding the box to 32 so the 26-unit artwork occupies 81.25% of it
+// matches the transport set's 208/256 = 81.25% painted fraction exactly, so all five read as the
+// same size at the shared CSS box size — see iconRegistry.ts's standing rule on painted fraction.
+const CONTINUOUS_MODE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-3 -3 32 32"><path d="M-3 -3h32v32H-3z" fill="none" /><g fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"><path d="M5 11a1 1 0 0 1 1-1h10.308a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0-4a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0 8a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0 4a1 1 0 0 1 1-1h10.308a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1" /><path d="M13 24c6.075 0 11-4.925 11-11S19.075 2 13 2S2 6.925 2 13s4.925 11 11 11m0 2c7.18 0 13-5.82 13-13S20.18 0 13 0S0 5.82 0 13s5.82 13 13 13" /></g></svg>`;
 
 /** The same toggle, shown once continuous mode is active — clicking it is the "cancel" action
- * that drops the reader back into the single-chapter editor (hand-off brief §2.4). */
+ * that drops the reader back into the single-chapter editor (hand-off brief §2.4). Same padded
+ * viewBox as ICON_CONTINUOUS_MODE, same reason. */
 export const ICON_CONTINUOUS_MODE_EXIT = "sf-continuous-mode-exit";
-const CONTINUOUS_MODE_EXIT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 26 26"><path d="M0 0h26v26H0z" fill="none" /><g fill="currentColor"><path fill-rule="evenodd" d="M5 11a1 1 0 0 1 1-1h10.308a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0-4a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0 8a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0 4a1 1 0 0 1 1-1h10.308a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1" clip-rule="evenodd" /><path d="M4.293 5.707a1 1 0 0 1 1.414-1.414l16 16a1 1 0 0 1-1.414 1.414z" /><path fill-rule="evenodd" d="M13 24c6.075 0 11-4.925 11-11S19.075 2 13 2S2 6.925 2 13s4.925 11 11 11m0 2c7.18 0 13-5.82 13-13S20.18 0 13 0S0 5.82 0 13s5.82 13 13 13" clip-rule="evenodd" /></g></svg>`;
+const CONTINUOUS_MODE_EXIT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-3 -3 32 32"><path d="M-3 -3h32v32H-3z" fill="none" /><g fill="currentColor"><path fill-rule="evenodd" d="M5 11a1 1 0 0 1 1-1h10.308a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0-4a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0 8a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0 4a1 1 0 0 1 1-1h10.308a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1" clip-rule="evenodd" /><path d="M4.293 5.707a1 1 0 0 1 1.414-1.414l16 16a1 1 0 0 1-1.414 1.414z" /><path fill-rule="evenodd" d="M13 24c6.075 0 11-4.925 11-11S19.075 2 13 2S2 6.925 2 13s4.925 11 11 11m0 2c7.18 0 13-5.82 13-13S20.18 0 13 0S0 5.82 0 13s5.82 13 13 13" clip-rule="evenodd" /></g></svg>`;
 
 const INBOX_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><g fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.75 12H6a2 2 0 0 1 2 2a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2a2 2 0 0 1 2-2h3.25" /><path d="M15.25 2.75h-6.5a6 6 0 0 0-6 6v6.5a6 6 0 0 0 6 6h6.5a6 6 0 0 0 6-6v-6.5a6 6 0 0 0-6-6Z" /></g></svg>`;
 

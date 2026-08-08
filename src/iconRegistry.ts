@@ -45,6 +45,18 @@ export interface IconRegistryEntry {
 }
 
 /**
+ * Standing rule for any icon shown alongside others at a shared, uniform CSS box size (a transport
+ * row, an icon-picker grid, anything with a "these should all look the same size" expectation):
+ * match the *painted fraction of the viewBox*, not the viewBox's own size. Two icons can share an
+ * identical `width`/`height` box and still read as mismatched if one artwork is inset within its
+ * own viewBox (a ring with a gap to the edge) and the other runs edge-to-edge — the continuous-mode
+ * toggle icons hit exactly this (their 26-unit artwork touched all four sides of its own viewBox,
+ * while the transport icons' rings are inset by design), and padding the box in icons.ts's
+ * CONTINUOUS_MODE_SVG/CONTINUOUS_MODE_EXIT_SVG to match the transport set's painted fraction was
+ * the actual fix — not a per-button forced pixel size in JS, which is what papered over it before.
+ */
+
+/**
  * Hand-maintained inventory of every icon storyForge renders, custom or stock.
  * There's no way to determine "used or not" by inspecting the compiled plugin
  * at runtime, so this list is the source of truth — update it whenever an
