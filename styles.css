@@ -2865,41 +2865,27 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 
 /* Click-to-edit's grafted inline editor (graftedEditor.ts) — a real WorkspaceLeaf/MarkdownView
  * spliced into an ordinary content-flow <div>, not Obsidian's own absolutely-positioned workspace
- * chrome. Obsidian's own CSS for all of these relies on a chain of height:100%/flex-fill rules
- * that only resolves because the real workspace fills the window — grafted here, that chain
- * resolves against an undefined ancestor height and collapses to nothing without this override.
- * Also drops the editor's own internal scrollbar in favour of auto-height, since it has to grow
- * with the rest of the continuous scroll rather than scroll on its own. */
-.sf-grafted-editor,
-.sf-grafted-editor .workspace-tabs,
-.sf-grafted-editor .workspace-tab-container,
-.sf-grafted-editor .workspace-leaf,
-.sf-grafted-editor .workspace-leaf-content,
-.sf-grafted-editor .view-content,
-.sf-grafted-editor .markdown-source-view,
-.sf-grafted-editor .cm-editor,
-.sf-grafted-editor .cm-scroller,
-.sf-grafted-editor .cm-sizer {
-	height: auto;
-	min-height: 0;
-	max-height: none;
-	overflow: visible;
-	position: static;
-	display: block;
-	contain: none;
+ * chrome. Obsidian's own CSS for everything under it (.workspace-leaf, .cm-scroller, …) is a chain
+ * of height:100% rules that only resolves because the real workspace fills the window — grafted
+ * here, that chain has nothing to resolve against unless *something* in it has a real height. This
+ * is that one anchor: giving .sf-grafted-editor itself a defined height lets Obsidian's own stock
+ * CSS cascade correctly from there, with no further overrides needed.
+ *
+ * Deliberately a bounded height with the editor's normal internal scrollbar, not an auto-growing
+ * box (tried first, reverted): CodeMirror decides what's worth rendering by checking what's really
+ * on screen, not by a container's declared height, so inflating the height to coax it into
+ * rendering an entire long chapter at once doesn't work — it just pushes the real content outside
+ * the visible area while leaving empty virtualised space where the reader is actually looking.
+ * Editing a long chapter inline scrolls within this box instead. */
+.sf-grafted-editor {
+	height: 70vh;
 }
 
-/* A single-tab grafted leaf has nothing worth a tab bar for — hide it rather than show a tab strip
- * with one tab inside the continuous scroll. */
+/* Both redundant inside the continuous scroll: the chapter's own header (ContinuousReadThrough.ts)
+ * already shows its title, and a single-tab grafted leaf has nothing worth a tab strip for. */
+.sf-grafted-editor .view-header,
 .sf-grafted-editor .workspace-tab-header-container {
 	display: none;
-}
-
-/* A visible floor while the editor's real height is still settling (or in case the override above
- * ever misses a wrapper this Obsidian version renders differently) — better than a chapter that
- * silently vanishes to zero height. */
-.sf-grafted-editor {
-	min-height: 4em;
 }
 
 /* Continuous mode's own view (ContinuousReadView.ts) — the manuscript belongs in the main editor
