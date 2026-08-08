@@ -41,34 +41,6 @@ export interface GraftedEditorHandle {
 }
 
 /**
- * Makes the grafted editor grow with its content instead of scrolling internally — CodeMirror 6
- * decides which lines are worth actually rendering based on its scroller's *measured* viewport, so
- * an honest `height: auto` in CSS isn't sufficient on its own: a scroller that starts at zero
- * height gives CM6 nothing to measure, and it may render nothing at all rather than the whole
- * chapter (this was the "editor box appears but stays empty" failure — the `.sf-grafted-editor`
- * CSS's `min-height: 4em` floor was the only thing giving the box any size at all).
- *
- * Forces a generously oversized starting height so CM6 has room to render the whole chapter at
- * least once, then a `ResizeObserver` on the rendered content snaps the scroller down to its real
- * height and keeps it in sync as the reader types.
- */
-function makeAutoHeight(containerEl: HTMLElement): () => void {
-	const scroller = containerEl.querySelector<HTMLElement>(".cm-scroller");
-	const content = containerEl.querySelector<HTMLElement>(".cm-content");
-	if (!scroller || !content) return () => {};
-
-	scroller.style.height = "20000px";
-
-	const sync = (): void => {
-		if (content.scrollHeight > 0) scroller.style.height = `${content.scrollHeight + 24}px`;
-	};
-	const resizeObserver = new ResizeObserver(sync);
-	resizeObserver.observe(content);
-
-	return () => resizeObserver.disconnect();
-}
-
-/**
  * Mounts `file` into `container` as a real, editable `MarkdownView` in Live Preview, caret placed
  * at `cursorOffset`. Returns null (logging the cause) on any failure — callers must fall back to
  * opening the file in a real tab rather than leaving `container` half-mounted.
@@ -98,10 +70,12 @@ export async function graftEditor(
 		// Obsidian's own workspace chrome (.workspace-split/.workspace-leaf/.cm-scroller, …) is built
 		// on a chain of height:100%/flex-fill rules that only resolves because the real workspace is
 		// absolutely positioned to fill the window. Grafted into an ordinary content-flow <div> with
-		// no defined height, that chain resolves against nothing and collapses to zero — this class is
-		// the CSS hook (styles.css) that forces the whole chain to auto-height and drops the internal
-		// CM6 scrollbar, since this editor has to grow with the rest of the continuous scroll instead
-		// of scrolling internally.
+		// no defined height, that chain resolves against nothing — this class (styles.css) gives the
+		// chain a real, bounded height to resolve against, so the editor gets a genuine viewport with
+		// its own scrollbar rather than trying to convince CodeMirror to render an unbounded document
+		// at once (CodeMirror decides what's worth rendering by checking real on-screen visibility,
+		// not a container's declared height, so inflating the height doesn't work — it was tried and
+		// just pushed the real content out of view instead).
 		split.containerEl.addClass("sf-grafted-editor");
 		container.appendChild(split.containerEl);
 
@@ -129,12 +103,10 @@ export async function graftEditor(
 		view.editor.focus();
 
 		const containerEl = split.containerEl;
-		const stopAutoHeight = makeAutoHeight(containerEl);
 		return {
 			leaf,
 			view,
 			destroy: () => {
-				stopAutoHeight();
 				leaf.detach();
 				containerEl.remove();
 			},
