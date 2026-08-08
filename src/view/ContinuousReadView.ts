@@ -6,6 +6,7 @@ import { numberedBookTitle } from "../series";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
 import { renderContinuousReadThrough, type ContinuousReadThroughHandle } from "./ContinuousReadThrough";
 import { emitContinuousMode, onContinuousScrollTo } from "./continuousEvents";
+import { graftEditor, type GraftedEditorHandle } from "./graftedEditor";
 import { ICON_CONTINUOUS_MODE } from "../icons";
 
 export const STORYFORGE_CONTINUOUS_VIEW_TYPE = "storyforge-continuous-view";
@@ -16,6 +17,13 @@ interface ContinuousReadViewState {
 	entryFilename: string;
 }
 
+/** Cached across every ContinuousReadView instance for the life of the plugin session, not
+ * per-view — the graft technique either works on this Obsidian build or it doesn't, so there's no
+ * point re-attempting (and re-logging the failure) on every single click (inline-editor research
+ * brief §3.5: "detect once per session at first use and cache the result"). Undefined means
+ * "not yet attempted"; a real attempt sets it to true or false. */
+let graftingSupported: boolean | undefined;
+
 /**
  * Continuous read-and-write mode's own view (continuous-mode hand-off brief §2, corrected twice):
  * the sidebar is menus only, so this view holds the manuscript and nothing else — no indicator, no
@@ -23,14 +31,15 @@ interface ContinuousReadViewState {
  * to this view via continuousEvents.ts's pair of custom workspace events rather than a direct
  * reference. Reading itself is strictly read-only (`cachedRead` + `MarkdownRenderer`).
  *
- * Click-to-edit (§2.6): Obsidian has no public API for mounting a real editor inline (Editor and
- * MarkdownView have no public standalone constructor, and createLeafInParent only accepts
- * Obsidian's own layout tree, not an arbitrary element) — so a deliberate click on a chapter's body
- * hands off to a real single-chapter editor by replacing this leaf, the same mechanism the
- * sidebar's own exit control uses, landing the caret at the exact clicked position via
- * clickToCaret.ts's source-offset mapping. This trades "stays inline in the scroll" for "always a
- * real, fully-featured Obsidian editor" — deliberately, given the alternative is either no public
- * API or guessing at undocumented internals.
+ * Click-to-edit (§2.6, resolved via the inline-editor research brief): a deliberate click on a
+ * chapter's body grafts a real, live, auto-saving `MarkdownView` directly into that chapter's
+ * rendered slot (graftedEditor.ts) — reading and light editing stay in the same continuous scroll,
+ * "touch-edit here, touch-edit there", rather than leaving to a separate tab. Only one editor is
+ * ever live at a time (`activeEdit` below); it commits (and reverts to rendered markup) when the
+ * reader scrolls it out of view, clicks a different chapter, presses Escape, or the view itself
+ * closes. If grafting isn't available on this Obsidian build, this falls back to the previous
+ * behaviour — opening a real editor in this same leaf, leaving the continuous scroll — rather than
+ * leaving the chapter half-mounted.
  *
  * The sidebar's "exit" action replaces this same leaf with a real single-chapter editor on
  * whichever chapter the reader last scrolled to — symmetric with how entering lands them back at
@@ -40,6 +49,7 @@ export class ContinuousReadView extends ItemView {
 	private bookFolderName: string | null = null;
 	private entryFilename: string | null = null;
 	private readThrough: ContinuousReadThroughHandle | null = null;
+	private activeEdit: { filename: string; handle: GraftedEditorHandle; onKeydown: (e: KeyboardEvent) => void } | null = null;
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -100,12 +110,14 @@ export class ContinuousReadView extends ItemView {
 	}
 
 	async onClose(): Promise<void> {
+		this.commitActiveEdit();
 		this.readThrough?.dispose();
 		this.readThrough = null;
 		emitContinuousMode(this.app, { active: false });
 	}
 
 	private render(): void {
+		this.commitActiveEdit();
 		this.readThrough?.dispose();
 		this.readThrough = null;
 		const container = this.contentEl;
@@ -143,15 +155,72 @@ export class ContinuousReadView extends ItemView {
 			entryFilename,
 			onPositionChange: (filename) => emitContinuousMode(this.app, { active: true, bookFolderName, filename }),
 			onEditChapter: (file, sourceOffset) => void this.editChapter(file, sourceOffset),
+			onEditedSectionScrolledAway: (filename) => {
+				if (this.activeEdit?.filename === filename) this.commitActiveEdit();
+			},
 			onChapterRenamed: () => this.render(),
 		});
 
 		emitContinuousMode(this.app, { active: true, bookFolderName, filename: entryFilename });
 	}
 
-	/** Click-to-edit's hand-off (hand-off brief §2.6, adapted — see the class doc comment): opens a
-	 * real editor on `file` in this same leaf, caret landing exactly where the reader clicked. */
+	/**
+	 * Click-to-edit (inline-editor research brief §2–§5): grafts a real editor into the clicked
+	 * chapter's own slot in the scroll, caret landing exactly where the reader clicked. Falls back
+	 * to opening a real editor in this leaf — leaving the continuous scroll — only if grafting isn't
+	 * available on this Obsidian build.
+	 */
 	private async editChapter(file: TFile, sourceOffset: number): Promise<void> {
+		if (this.activeEdit?.filename === file.name) return; // already live — nothing to do
+		this.commitActiveEdit();
+		if (!this.readThrough) return;
+
+		if (graftingSupported === false) {
+			await this.openInMainPaneFallback(file, sourceOffset);
+			return;
+		}
+
+		const container = this.readThrough.lockSectionForEditing(file.name);
+		if (!container) return;
+
+		// The graft's own openFile/focus can otherwise scroll the outer container — hold it steady
+		// around the mount (inline-editor research brief §3.1).
+		const scrollEl = this.readThrough.getScrollElement();
+		const savedScrollTop = scrollEl.scrollTop;
+		const handle = await graftEditor(this.app, container, file, sourceOffset);
+		scrollEl.scrollTop = savedScrollTop;
+
+		if (!handle) {
+			graftingSupported = false;
+			this.readThrough.unlockSection(file.name);
+			await this.openInMainPaneFallback(file, sourceOffset);
+			return;
+		}
+		graftingSupported = true;
+
+		const onKeydown = (e: KeyboardEvent): void => {
+			if (e.key === "Escape") this.commitActiveEdit();
+		};
+		handle.view.containerEl.addEventListener("keydown", onKeydown);
+		this.activeEdit = { filename: file.name, handle, onKeydown };
+	}
+
+	/** Commits and tears down the one live grafted editor, if any, reverting its chapter back to
+	 * normal virtualised rendering. Idempotent — safe to call whether or not one is currently live. */
+	private commitActiveEdit(): void {
+		if (!this.activeEdit) return;
+		const { filename, handle, onKeydown } = this.activeEdit;
+		this.activeEdit = null;
+		handle.view.containerEl.removeEventListener("keydown", onKeydown);
+		handle.destroy();
+		this.readThrough?.unlockSection(filename);
+	}
+
+	/** The pre-graft behaviour, kept as the fallback when grafting isn't available: opens a real
+	 * editor in this same leaf, caret at the exact clicked position — this does leave the continuous
+	 * scroll, unlike the grafted path, but is still a real, fully-featured Obsidian editor rather
+	 * than nothing at all. */
+	private async openInMainPaneFallback(file: TFile, sourceOffset: number): Promise<void> {
 		await this.leaf.openFile(file, { active: true });
 		this.app.workspace.setActiveLeaf(this.leaf, { focus: true });
 		const view = this.leaf.view;
