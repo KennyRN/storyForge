@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { buildRenderedMapping, renderedOffsetToSourceOffset, splitIntoBlocks, splitListBlockIntoItems } from "../clickToCaret";
+import {
+	buildRenderedMapping,
+	renderedOffsetToSourceOffset,
+	resolveBlockByContent,
+	splitIntoBlocks,
+	splitListBlockIntoItems,
+} from "../clickToCaret";
 
 describe("buildRenderedMapping — plain text", () => {
 	it("maps a plain sentence 1:1", () => {
@@ -116,6 +122,75 @@ describe("buildRenderedMapping — leading block markers", () => {
 		const source = "> a quoted line";
 		const { renderedText, sourceOffsets } = buildRenderedMapping(source);
 		expect(renderedText).toBe("a quoted line");
+	});
+});
+
+describe("splitIntoBlocks — headings always start a new block (§6.8)", () => {
+	it("splits a heading from the very next line even with no blank line between them", () => {
+		const source = "## Chapter title\nThe first line of prose starts right away.";
+		const blocks = splitIntoBlocks(source);
+		expect(blocks.map((b) => b.text)).toEqual(["## Chapter title", "The first line of prose starts right away."]);
+		expect(blocks[1].start).toBe(source.indexOf("The first line"));
+	});
+
+	it("splits a heading away from a preceding paragraph with no blank line either", () => {
+		const source = "Some prose.\n## A heading\nMore prose.";
+		const blocks = splitIntoBlocks(source);
+		expect(blocks.map((b) => b.text)).toEqual(["Some prose.", "## A heading", "More prose."]);
+	});
+});
+
+describe("resolveBlockByContent (§6.8)", () => {
+	it("matches a block by its exact rendered text", () => {
+		const blocks = splitIntoBlocks("First paragraph.\n\nSecond paragraph.");
+		const result = resolveBlockByContent(blocks, "Second paragraph.", 0);
+		expect(result?.text).toBe("Second paragraph.");
+	});
+
+	it("finds the right block by content even when a naive positional guess would be wrong (e.g. YAML frontmatter shifting every index)", () => {
+		const blocks = [
+			{ text: "---\ntitle: x\n---", start: 0 },
+			{ text: "Real first paragraph.", start: 20 },
+			{ text: "Real second paragraph.", start: 50 },
+		];
+		// A naive index-aligned caller would guess index 0 (the DOM's first real child) for a click on
+		// the second real paragraph, having no idea the frontmatter ate an index.
+		const result = resolveBlockByContent(blocks, "Real second paragraph.", 0);
+		expect(result?.text).toBe("Real second paragraph.");
+	});
+
+	it("falls back to the positional index when several blocks render identically", () => {
+		const blocks = [
+			{ text: "Repeated line.", start: 0 },
+			{ text: "Repeated line.", start: 20 },
+		];
+		const result = resolveBlockByContent(blocks, "Repeated line.", 1);
+		expect(result?.start).toBe(20);
+	});
+
+	it("falls back to the positional index when nothing matches at all", () => {
+		const blocks = [
+			{ text: "First.", start: 0 },
+			{ text: "Second.", start: 10 },
+		];
+		const result = resolveBlockByContent(blocks, "Text that appears nowhere.", 1);
+		expect(result?.start).toBe(10);
+	});
+
+	it("returns null for an empty block list", () => {
+		expect(resolveBlockByContent([], "anything", 0)).toBeNull();
+	});
+
+	it("matches a list block's concatenated item text (no separators, like a <ul>'s textContent)", () => {
+		const blocks = splitIntoBlocks("- one\n- two\n- three");
+		const result = resolveBlockByContent(blocks, "onetwothree", 0);
+		expect(result?.text).toBe("- one\n- two\n- three");
+	});
+
+	it("matches a multi-line blockquote's concatenated per-line text", () => {
+		const blocks = splitIntoBlocks("> line one\n> line two");
+		const result = resolveBlockByContent(blocks, "line oneline two", 0);
+		expect(result?.text).toBe("> line one\n> line two");
 	});
 });
 
