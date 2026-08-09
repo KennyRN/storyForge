@@ -40,7 +40,15 @@ export class TagRegistryModal extends Modal {
 		this.contentEl.empty();
 	}
 
-	private render(): void {
+	/**
+	 * `fresh`, when passed, is the just-written result of a mutation this modal itself just made —
+	 * used in place of a readTagRegistry() re-read for whichever list it names. Necessary because
+	 * `app.metadataCache` doesn't update synchronously with `processFrontMatter` in real Obsidian
+	 * (see tagRegistry.ts's mutateTagList doc comment): re-reading immediately after an add/set-icon/
+	 * delete can still see the pre-mutation frontmatter, which is exactly what made newly-added Codex
+	 * types (and their icon/delete edits) silently fail to show up until the modal was reopened.
+	 */
+	private render(fresh?: { list: TagListKind; entries: TagDefinition[] }): void {
 		// No isDragInProgress() guard here (unlike StoryForgeView, a long-lived panel that gets
 		// re-rendered by unrelated external vault events mid-drag): nothing outside this modal ever
 		// calls render() on it, and every internal caller (onOpen, and each action handler below)
@@ -57,14 +65,18 @@ export class TagRegistryModal extends Modal {
 			TABS.map((tab) => ({
 				id: tab.id,
 				label: tab.label,
-				render: (body: HTMLElement) => (tab.id === "codexTypes" ? this.renderCodexTypesList(body) : this.renderList(body, tab.id, tab.addPlaceholder)),
+				render: (body: HTMLElement) =>
+					tab.id === "codexTypes"
+						? this.renderCodexTypesList(body, fresh?.list === "codexTypes" ? fresh.entries : undefined)
+						: this.renderList(body, tab.id, tab.addPlaceholder, fresh?.list === tab.id ? fresh.entries : undefined),
 			})),
 		);
 	}
 
-	/** Flat renderer — chapterTags/novelTags, which never nest. */
-	private renderList(body: HTMLElement, list: TagListKind, addPlaceholder: string): void {
-		const entries = readTagRegistry(this.app)[list];
+	/** Flat renderer — chapterTags/novelTags, which never nest. `freshEntries` overrides the
+	 * readTagRegistry() lookup — see render()'s doc comment. */
+	private renderList(body: HTMLElement, list: TagListKind, addPlaceholder: string, freshEntries?: TagDefinition[]): void {
+		const entries = freshEntries ?? readTagRegistry(this.app)[list];
 
 		const rowsEl = body.createDiv({ cls: "sf-modal-book-list sf-tag-registry-list" });
 		if (entries.length === 0) {
@@ -91,8 +103,8 @@ export class TagRegistryModal extends Modal {
 	 * just DOM nesting. Person/Place always get a (possibly empty) indented children block ending
 	 * in their own blank "add nested type" row, even before they have any children yet.
 	 */
-	private renderCodexTypesList(body: HTMLElement): void {
-		const entries = readTagRegistry(this.app).codexTypes;
+	private renderCodexTypesList(body: HTMLElement, freshEntries?: TagDefinition[]): void {
+		const entries = freshEntries ?? readTagRegistry(this.app).codexTypes;
 		const topLevel = entries.filter((e) => !e.parentId);
 		const childrenByParent = new Map<string, TagDefinition[]>();
 		for (const e of entries) {
@@ -135,8 +147,14 @@ export class TagRegistryModal extends Modal {
 		// Own drag zone, scoped to just this parent's children — reordering here never crosses
 		// into another parent's children or back out to the top tier (reparenting by drag isn't
 		// offered; only within-parent reordering and whole-group top-tier reordering are).
+		// Selector excludes the trailing add-row: unlike the flat lists' add-row (a sibling of their
+		// reorder container, not a child of it), this one lives *inside* childrenEl so the blank "add
+		// nested type" box can sit beneath the last child. Matching it as a draggable row would fall
+		// back to treating the whole row as its own drag handle (no `.sf-drag-handle` of its own —
+		// see dragReorder.ts's bindRow), which swallows the pointerdown its input/icon-picker/add
+		// button need to gain focus or fire a click at all.
 		const childZones: DragZone[] = [{ key: "order", container: childrenEl }];
-		makeReorderable(childZones, ".sf-row", ".sf-drag-handle", (zoneRowKeys) => {
+		makeReorderable(childZones, ".sf-row:not(.sf-tag-registry-add-row)", ".sf-drag-handle", (zoneRowKeys) => {
 			void this.handleReorder("codexTypes", (zoneRowKeys.order ?? []).filter(Boolean));
 		});
 	}
@@ -212,9 +230,9 @@ export class TagRegistryModal extends Modal {
 			const label = input.value.trim();
 			if (!label) return;
 			void addTagDefinition(this.app, list, label, pendingIconAlias, parentId)
-				.then(() => {
+				.then(({ entries }) => {
 					this.onChange();
-					this.render();
+					this.render({ list, entries });
 				})
 				.catch((err: Error) => new Notice(`storyForge: could not add "${label}" — ${err.message}`));
 		};
@@ -268,9 +286,9 @@ export class TagRegistryModal extends Modal {
 
 	private async handleSetIcon(list: TagListKind, id: string, iconAlias: string): Promise<void> {
 		try {
-			await setTagDefinitionIcon(this.app, list, id, iconAlias);
+			const { entries } = await setTagDefinitionIcon(this.app, list, id, iconAlias);
 			this.onChange();
-			this.render();
+			this.render({ list, entries });
 		} catch (err) {
 			new Notice(`storyForge: could not set icon — ${(err as Error).message}`);
 		}
@@ -280,9 +298,9 @@ export class TagRegistryModal extends Modal {
 		const confirmed = await confirmDelete(this.app, entry.label);
 		if (!confirmed) return;
 		try {
-			await deleteTagDefinition(this.app, list, entry.id);
+			const { entries } = await deleteTagDefinition(this.app, list, entry.id);
 			this.onChange();
-			this.render();
+			this.render({ list, entries });
 		} catch (err) {
 			new Notice(`storyForge: could not delete — ${(err as Error).message}`);
 		}

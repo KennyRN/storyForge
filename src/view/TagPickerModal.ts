@@ -1,5 +1,5 @@
 import { App, Modal, Notice, setIcon } from "obsidian";
-import { addTagDefinition, deleteTagDefinition, readTagRegistry, resolveIconAlias, type TagListKind } from "../tagRegistry";
+import { addTagDefinition, deleteTagDefinition, readTagRegistry, resolveIconAlias, type TagDefinition, type TagListKind } from "../tagRegistry";
 import { makeAccessibleActivatable } from "./a11y";
 import { ICON_CHECK_SQUARE, ICON_MINUS_SQUARE, ICON_PLUS_SQUARE, ICON_TAG } from "../icons";
 import { confirmDelete } from "./confirmDeleteModal";
@@ -38,14 +38,19 @@ export class TagPickerModal extends Modal {
 		this.contentEl.empty();
 	}
 
-	private render(): void {
+	/** `freshEntries`, when passed, is the just-written result of a mutation this modal itself just
+	 * made — used in place of a readTagRegistry() re-read. Necessary because `app.metadataCache`
+	 * doesn't update synchronously with `processFrontMatter` in real Obsidian (see tagRegistry.ts's
+	 * mutateTagList doc comment): re-reading immediately after add/delete can still see the
+	 * pre-mutation frontmatter, which would silently drop a just-added tag from this list. */
+	private render(freshEntries?: TagDefinition[]): void {
 		this.modalEl.addClass("sf-tag-picker-modal");
 		const { contentEl } = this;
 		contentEl.empty();
 		contentEl.addClass("sf-tag-picker-modal");
 
 		const scroll = contentEl.createDiv({ cls: "sf-tag-picker-scroll" });
-		const { [this.list]: entries } = readTagRegistry(this.app);
+		const entries = freshEntries ?? readTagRegistry(this.app)[this.list];
 		const list = scroll.createDiv({ cls: "sf-palette-list" });
 		if (entries.length === 0) {
 			list.createDiv({
@@ -108,8 +113,8 @@ export class TagPickerModal extends Modal {
 		if (!confirmed) return;
 		try {
 			this.selected.delete(id);
-			await deleteTagDefinition(this.app, this.list, id);
-			this.render();
+			const { entries } = await deleteTagDefinition(this.app, this.list, id);
+			this.render(entries);
 		} catch (err) {
 			new Notice(`storyForge: could not delete "${label}" — ${(err as Error).message}`);
 		}
@@ -142,9 +147,9 @@ export class TagPickerModal extends Modal {
 		const commitAdd = () => {
 			const label = input.value.trim();
 			if (!label) return;
-			void addTagDefinition(this.app, this.list, label, pendingIconAlias).then((newId) => {
-				this.selected.add(newId);
-				this.render();
+			void addTagDefinition(this.app, this.list, label, pendingIconAlias).then(({ id, entries }) => {
+				this.selected.add(id);
+				this.render(entries);
 			});
 		};
 		// Invisible — matches the width of the tag rows' checkmark slot, so the "+" below lands in

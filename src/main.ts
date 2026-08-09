@@ -137,9 +137,10 @@ export interface StoryForgePluginSettings {
 	libraryItemsMuted: boolean;
 	/**
 	 * storyTelling panel's own chapter-item styling (UiFormattingModal's "storyTelling" tab) —
-	 * independent of the storyLibrary panel's "Library items" settings above, except for colour,
-	 * which `storytellingLinkItemsColorToLibrary` can keep mirrored to `libraryItemsColor` instead
-	 * (on by default, so upgrading users see no visual change until they explicitly opt out).
+	 * independent of the storyLibrary panel's "Library items" settings above, except for colour and
+	 * highlight colour, which `storytellingLinkItemsColorToLibrary` can keep mirrored to
+	 * `libraryItemsColor`/`highlightColor`/`highlightTextColor` instead (on by default, so
+	 * upgrading users see no visual change until they explicitly opt out).
 	 */
 	storytellingItemsFontSize: number;
 	storytellingItemsOverrideFont: boolean;

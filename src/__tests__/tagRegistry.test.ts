@@ -96,14 +96,15 @@ describe("readTagRegistry", () => {
 describe("tag definition CRUD (chapterTags)", () => {
 	it("mints a slug id from the label and appends it", async () => {
 		const { app, frontmatter } = makeFakeApp(true, { "chapter-tags": [] });
-		const id = await addTagDefinition(app, "chapterTags", "2nd Pass", "pencil");
+		const { id, entries } = await addTagDefinition(app, "chapterTags", "2nd Pass", "pencil");
 		expect(id).toBe("2nd-pass");
 		expect(frontmatter["chapter-tags"]).toEqual([{ id: "2nd-pass", label: "2nd Pass", "icon-alias": "pencil" }]);
+		expect(entries).toEqual([{ id: "2nd-pass", label: "2nd Pass", iconAlias: "pencil" }]);
 	});
 
 	it("de-duplicates a slug that's already taken", async () => {
 		const { app } = makeFakeApp(true, { "chapter-tags": [{ id: "pass", label: "Pass", "icon-alias": "pencil" }] });
-		const id = await addTagDefinition(app, "chapterTags", "Pass", "pencil");
+		const { id } = await addTagDefinition(app, "chapterTags", "Pass", "pencil");
 		expect(id).toBe("pass-2");
 	});
 
@@ -176,7 +177,7 @@ describe("tag definition CRUD (chapterTags)", () => {
 		const { app, frontmatter } = makeFakeApp(true, {
 			"codex-types": [{ id: "person", label: "Person", "icon-alias": "person-fill" }],
 		});
-		const id = await addTagDefinition(app, "codexTypes", "Hero", "crown", "person");
+		const { id } = await addTagDefinition(app, "codexTypes", "Hero", "crown", "person");
 		expect(id).toBe("hero");
 		expect(frontmatter["codex-types"]).toEqual([
 			{ id: "person", label: "Person", "icon-alias": "person-fill" },

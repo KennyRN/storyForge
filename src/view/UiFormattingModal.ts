@@ -61,6 +61,10 @@ export class UiFormattingModal extends Modal {
 				id: "library",
 				label: "Library",
 				render: (body) => {
+					// Highlight (active chapter/item) sits at the very top of Library — it's the first
+					// thing you look for when styling the panel you're actually looking at, and Library
+					// is the panel most storyForge users spend most of their time in.
+					this.renderHighlightGroup(body, settings);
 					this.renderTitleStyleGroup(body, settings, {
 						labelPrefix: "Series title",
 						sizeKey: "librarySeriesTitleFontSize",
@@ -153,9 +157,13 @@ export class UiFormattingModal extends Modal {
 				id: "editor",
 				label: "Editor",
 				render: (body) => {
-					this.renderHighlightGroup(body, settings);
-					this.renderCyclingGuideCard(body, settings);
-					this.renderEditorScrollbarGroup(body, settings);
+					// Own scrollable body (mirrors the two-tier tabs' inner .sf-text-style-tab-body-wrapper
+					// — see that class's doc comment) so Editor's content can grow past the modal's fixed
+					// height without the outer Left sidebar / Editor / Right sidebar tab row scrolling
+					// away with it; that row is a sibling of this wrapper, not inside it, so it stays put.
+					const scroll = body.createDiv({ cls: "sf-ui-format-editor-scroll" });
+					this.renderCyclingGuideCard(scroll, settings);
+					this.renderEditorScrollbarGroup(scroll, settings);
 				},
 			},
 			{
@@ -178,27 +186,29 @@ export class UiFormattingModal extends Modal {
 		const group = new SettingGroup(body);
 		group.setHeading("Scrollbar");
 
+		const restyleScrollbar = () => this.plugin.applyEditorScrollbarStyles();
 		group.addSetting((setting) => {
 			setting
 				.setName("Scrollbar")
-				.setDesc("Colour of the scrollbar thumb in the manuscript editor.")
+				.setDesc('Colour of the scrollbar thumb in the manuscript editor. Pick "Theme default" in the palette to use the current theme\'s own scrollbar colour instead.')
 				.addButton((button) => {
-					bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings.editorScrollbarThumbColor, (hex) => {
-						persistAndRestyle(this.plugin, "editorScrollbarThumbColor", hex, () => this.plugin.applyEditorScrollbarStyles());
-					});
+					bindColorSwatchButton(
+						this.app,
+						this.plugin,
+						button.buttonEl,
+						settings.editorScrollbarThumbColor,
+						(hex) => {
+							void this.plugin.updateSetting("editorScrollbarUseThemeColor", false).then(async () => {
+								await this.plugin.updateSetting("editorScrollbarThumbColor", hex);
+								restyleScrollbar();
+							});
+						},
+						{
+							isActive: settings.editorScrollbarUseThemeColor,
+							onSelect: () => persistAndRestyle(this.plugin, "editorScrollbarUseThemeColor", true, restyleScrollbar),
+						},
+					);
 				});
-		});
-		group.addSetting((setting) => {
-			setting
-				.setName("Theme default")
-				.setDesc("Use the current theme's own scrollbar colour instead of the custom one above.")
-				.addToggle((toggle) =>
-					toggle
-						.setValue(settings.editorScrollbarUseThemeColor)
-						.onChange((value) =>
-							persistAndRestyle(this.plugin, "editorScrollbarUseThemeColor", value, () => this.plugin.applyEditorScrollbarStyles()),
-						),
-				);
 		});
 
 		const thicknessIdx = Math.max(0, EDITOR_SCROLLBAR_THICKNESS_ORDER.indexOf(settings.editorScrollbarThickness));
@@ -276,7 +286,7 @@ export class UiFormattingModal extends Modal {
 			renderCustomFontCard(
 				body,
 				this.plugin,
-				"Override theme's default header font",
+				"Header font",
 				overrideFontKey,
 				fontFamilyKey,
 				fontWeightKey,
@@ -471,7 +481,7 @@ export class UiFormattingModal extends Modal {
 		renderCustomFontCard(
 			body,
 			this.plugin,
-			`Override theme's default font — ${config.labelPrefix}`,
+			`${config.labelPrefix} font`,
 			config.overrideFontKey,
 			config.fontFamilyKey,
 			config.fontWeightKey,
@@ -517,7 +527,7 @@ export class UiFormattingModal extends Modal {
 		renderCustomFontCard(
 			body,
 			this.plugin,
-			"Override theme's default font — Subtitle",
+			"Subtitle font",
 			"libraryBookSubtitleOverrideFont",
 			"libraryBookSubtitleFontFamily",
 			"libraryBookSubtitleFontWeight",
@@ -555,7 +565,7 @@ export class UiFormattingModal extends Modal {
 		renderCustomFontCard(
 			body,
 			this.plugin,
-			"Override theme's default font — Library items",
+			"Library items font",
 			"libraryItemsOverrideFont",
 			"libraryItemsFontFamily",
 			"libraryItemsFontWeight",
@@ -612,9 +622,10 @@ export class UiFormattingModal extends Modal {
 
 	/**
 	 * storyTelling panel's own chapter items — the same shape as renderLibraryItemsGroup +
-	 * renderLibraryHighlightRows above (size, font, colour, muted, highlight), except colour gets
-	 * an extra "Link with Novel Library chapter colour" toggle (on by default) that hides the
-	 * colour/muted pair and mirrors `libraryItemsColor` instead — see
+	 * renderLibraryHighlightRows above (size, font, colour, muted, highlight), except colour AND
+	 * highlight colour both get an extra "Link with Novel Library chapter colour" toggle (on by
+	 * default) that hides all four pickers (items colour/muted, highlight colour/text) and mirrors
+	 * `libraryItemsColor`/`highlightColor`/`highlightTextColor` instead — see
 	 * StoryForgePluginSettings.storytellingItemsFontSize's doc comment. Codex isn't included here;
 	 * it already has its own dedicated tab and stays shared between both panels.
 	 */
@@ -636,7 +647,7 @@ export class UiFormattingModal extends Modal {
 		renderCustomFontCard(
 			body,
 			this.plugin,
-			"Override theme's default font — storyTelling items",
+			"storyTelling items font",
 			"storytellingItemsOverrideFont",
 			"storytellingItemsFontFamily",
 			"storytellingItemsFontWeight",
@@ -650,12 +661,15 @@ export class UiFormattingModal extends Modal {
 			.addSetting((setting) => {
 				setting
 					.setName("Link with Novel Library chapter colour")
-					.setDesc('Use the storyLibrary panel\'s own "Library items colour" instead of picking a separate one here.')
+					.setDesc(
+						'Use the storyLibrary panel\'s own "Library items colour" and highlight colours instead of picking separate ones here.',
+					)
 					.addToggle((toggle) =>
 						toggle.setValue(settings.storytellingLinkItemsColorToLibrary).onChange((value) => {
 							void this.plugin.updateSetting("storytellingLinkItemsColorToLibrary", value).then(() => {
 								applyLinkVisibility(value);
 								restyle();
+								this.plugin.applyHighlightStyle();
 							});
 						}),
 					);
@@ -683,15 +697,12 @@ export class UiFormattingModal extends Modal {
 					);
 			});
 
-		const applyLinkVisibility = (linked: boolean) => {
-			colourSetting.settingEl.toggleClass("sf-settings-hidden", linked);
-			mutedSetting.settingEl.toggleClass("sf-settings-hidden", linked);
-		};
-		applyLinkVisibility(settings.storytellingLinkItemsColorToLibrary);
-
 		const highlightGroup = new SettingGroup(body);
+		let highlightColourSetting!: Setting;
+		let highlightTextColourSetting!: Setting;
 		highlightGroup
 			.addSetting((setting) => {
+				highlightColourSetting = setting;
 				setting
 					.setName("Highlight colour for storyTelling items")
 					.setDesc("The colour used for the active chapter highlight in the storyTelling panel.")
@@ -702,6 +713,7 @@ export class UiFormattingModal extends Modal {
 					);
 			})
 			.addSetting((setting) => {
+				highlightTextColourSetting = setting;
 				setting
 					.setName("Highlight text colour for storyTelling items")
 					.setDesc("colour used for the active chapter highlight text in the storyTelling panel")
@@ -711,6 +723,14 @@ export class UiFormattingModal extends Modal {
 						}),
 					);
 			});
+
+		const applyLinkVisibility = (linked: boolean) => {
+			colourSetting.settingEl.toggleClass("sf-settings-hidden", linked);
+			mutedSetting.settingEl.toggleClass("sf-settings-hidden", linked);
+			highlightColourSetting.settingEl.toggleClass("sf-settings-hidden", linked);
+			highlightTextColourSetting.settingEl.toggleClass("sf-settings-hidden", linked);
+		};
+		applyLinkVisibility(settings.storytellingLinkItemsColorToLibrary);
 	}
 
 	private renderUnplacedPanelContent(body: HTMLElement, settings: StoryForgePluginSettings): void {
@@ -748,7 +768,7 @@ export class UiFormattingModal extends Modal {
 		renderCustomFontCard(
 			body,
 			this.plugin,
-			"Override theme's default font — Unplaced items",
+			"Unplaced items font",
 			"unplacedItemsOverrideFont",
 			"unplacedItemsFontFamily",
 			"unplacedItemsFontWeight",
@@ -857,7 +877,7 @@ export class UiFormattingModal extends Modal {
 		renderCustomFontCard(
 			body,
 			this.plugin,
-			"Override theme's default font — Folder",
+			"Folder font",
 			"codexFolderOverrideFont",
 			"codexFolderFontFamily",
 			"codexFolderFontWeight",
@@ -912,7 +932,7 @@ export class UiFormattingModal extends Modal {
 		renderCustomFontCard(
 			body,
 			this.plugin,
-			"Override theme's default font — Codex note label",
+			"Codex note label font",
 			"codexNoteLabelOverrideFont",
 			"codexNoteLabelFontFamily",
 			"codexNoteLabelFontWeight",
@@ -1215,7 +1235,7 @@ export class UiFormattingModal extends Modal {
 				renderCustomFontCard(
 					body,
 					this.plugin,
-					`Override theme's default font — ${field.name.replace(/ size$/, "")}`,
+					`${field.name.replace(/ size$/, "")} font`,
 					field.overrideFontKey,
 					field.fontFamilyKey,
 					field.fontWeightKey,
@@ -1241,7 +1261,7 @@ export class UiFormattingModal extends Modal {
 		renderCustomFontCard(
 			body,
 			this.plugin,
-			`Override theme's default font — ${keys.itemsLabel}`,
+			`${keys.itemsLabel} font`,
 			keys.itemsOverrideFontKey,
 			keys.itemsFontFamilyKey,
 			keys.itemsFontWeightKey,
@@ -1270,31 +1290,34 @@ export class UiFormattingModal extends Modal {
 					);
 			});
 
+		// Highlight colour pair — same shape as Library/Unplaced/Codex/storyTelling — for both
+		// Story Context and Archive; used to only render for Archive, leaving Story Context with no
+		// way to set its highlighted-item text colour despite recommendHighlightColor/
+		// recommendHighlightTextColor already existing in settings and already being applied by
+		// applyRightRailPanelStyles().
 		let highlightColourSetting: Setting | null = null;
-		if (panel === "archive") {
-			const highlightGroup = new SettingGroup(body);
-			highlightGroup
-				.addSetting((setting) => {
-					highlightColourSetting = setting;
-					setting
-						.setName("Highlight colour")
-						.setDesc("Background colour for the selected item.")
-						.addButton((button) =>
-							bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings[keys.highlightColorKey], (hex) => {
-								void this.plugin.updateSetting(keys.highlightColorKey, hex).then(() => restyle());
-							}),
-						);
-				})
-				.addSetting((setting) => {
-					setting
-						.setName("Highlight text colour")
-						.addButton((button) =>
-							bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings[keys.highlightTextColorKey], (hex) => {
-								void this.plugin.updateSetting(keys.highlightTextColorKey, hex).then(() => restyle());
-							}),
-						);
-				});
-		}
+		const highlightGroup = new SettingGroup(body);
+		highlightGroup
+			.addSetting((setting) => {
+				highlightColourSetting = setting;
+				setting
+					.setName("Highlight colour")
+					.setDesc("Background colour for the selected item.")
+					.addButton((button) =>
+						bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings[keys.highlightColorKey], (hex) => {
+							void this.plugin.updateSetting(keys.highlightColorKey, hex).then(() => restyle());
+						}),
+					);
+			})
+			.addSetting((setting) => {
+				setting
+					.setName("Highlight text colour")
+					.addButton((button) =>
+						bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings[keys.highlightTextColorKey], (hex) => {
+							void this.plugin.updateSetting(keys.highlightTextColorKey, hex).then(() => restyle());
+						}),
+					);
+			});
 
 		const applyUseHeaderColorVisibility = (hidden: boolean) => {
 			itemsColourSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
