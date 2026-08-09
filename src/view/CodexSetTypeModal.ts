@@ -1,5 +1,5 @@
 import { App, Modal, Notice, setIcon } from "obsidian";
-import { CODEX_TYPES, setCodexEntryType } from "../codex";
+import { CODEX_TYPES, setCodexEntryType, type CodexTypeOption } from "../codex";
 import { addTagDefinition, deleteTagDefinition, PROTECTED_CODEX_TYPE_IDS, resolveIconAlias } from "../tagRegistry";
 import { makeAccessibleActivatable } from "./a11y";
 import { ICON_MINUS_SQUARE, ICON_PLUS_SQUARE, ICON_TAG } from "../icons";
@@ -41,36 +41,49 @@ export class CodexSetTypeModal extends Modal {
 
 		const scroll = contentEl.createDiv({ cls: "sf-tag-picker-scroll" });
 		const list = scroll.createDiv({ cls: "sf-palette-list" });
-		for (const option of CODEX_TYPES) {
-			const row = list.createDiv({ cls: "sf-row sf-palette-row sf-tag-picker-row" });
-			setIcon(row.createSpan({ cls: "sf-icon" }), option.icon);
-			row.createSpan({ cls: "sf-tag-picker-label", text: option.label });
-			const pick = () => {
-				void setCodexEntryType(this.app, this.path, option.type);
-				this.close();
-			};
-			row.addEventListener("click", pick);
-
-			// Only visible on row hover/focus — deletes the type definition from the registry, not
-			// just this assignment; the raw type id survives on anything already tagged with it
-			// (same non-destructive delete as TagRegistryModal/TagPickerModal). Person/Place are
-			// protected — no delete affordance at all, since too much of the app assumes they exist
-			// (still renameable/re-iconable via TagRegistryModal).
-			if (PROTECTED_CODEX_TYPE_IDS.has(option.type)) continue;
-			const deleteBtn = row.createSpan({
-				cls: "sf-icon-action sf-tag-picker-row-delete",
-				attr: { "aria-label": `Delete ${option.label}`, title: `Delete ${option.label}`, tabindex: "0" },
-			});
-			setIcon(deleteBtn, ICON_MINUS_SQUARE);
-			const requestDelete = () => void this.handleDelete(option.type, option.label);
-			deleteBtn.addEventListener("click", (e) => {
-				e.stopPropagation();
-				requestDelete();
-			});
-			makeAccessibleActivatable(deleteBtn, requestDelete);
+		// Nested types (person/place children — see codex.ts's CodexTypeOption.parentId) render
+		// indented directly beneath their parent, same grouping as TagRegistryModal's Codex types
+		// tab, so a specific nested type is just as pickable here as any top-level one.
+		const topLevel = CODEX_TYPES.filter((t) => !t.parentId);
+		for (const option of topLevel) {
+			this.renderTypeRow(list, option);
+			if (!PROTECTED_CODEX_TYPE_IDS.has(option.type)) continue;
+			const children = CODEX_TYPES.filter((t) => t.parentId === option.type);
+			if (children.length === 0) continue;
+			const childrenEl = list.createDiv({ cls: "sf-tag-registry-children" });
+			for (const child of children) this.renderTypeRow(childrenEl, child);
 		}
 
 		this.renderAddRow(scroll);
+	}
+
+	private renderTypeRow(container: HTMLElement, option: CodexTypeOption): void {
+		const row = container.createDiv({ cls: "sf-row sf-palette-row sf-tag-picker-row" });
+		setIcon(row.createSpan({ cls: "sf-icon" }), option.icon);
+		row.createSpan({ cls: "sf-tag-picker-label", text: option.label });
+		const pick = () => {
+			void setCodexEntryType(this.app, this.path, option.type);
+			this.close();
+		};
+		row.addEventListener("click", pick);
+
+		// Only visible on row hover/focus — deletes the type definition from the registry, not
+		// just this assignment; the raw type id survives on anything already tagged with it
+		// (same non-destructive delete as TagRegistryModal/TagPickerModal). Person/Place are
+		// protected — no delete affordance at all, since too much of the app assumes they exist
+		// (still renameable/re-iconable via TagRegistryModal). Their children are never protected.
+		if (PROTECTED_CODEX_TYPE_IDS.has(option.type)) return;
+		const deleteBtn = row.createSpan({
+			cls: "sf-icon-action sf-tag-picker-row-delete",
+			attr: { "aria-label": `Delete ${option.label}`, title: `Delete ${option.label}`, tabindex: "0" },
+		});
+		setIcon(deleteBtn, ICON_MINUS_SQUARE);
+		const requestDelete = () => void this.handleDelete(option.type, option.label);
+		deleteBtn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			requestDelete();
+		});
+		makeAccessibleActivatable(deleteBtn, requestDelete);
 	}
 
 	private async handleDelete(type: string, label: string): Promise<void> {

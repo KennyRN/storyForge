@@ -102,6 +102,8 @@ export interface StoryForgePluginSettings {
 	storyContextShellApplied: boolean;
 	hideFileNameBar: boolean;
 	hideNavRow: boolean;
+	/** Hides Obsidian's tab bar in the main editor window (left/storyLibrary/right sidebars keep their own). */
+	hideEditorTabs: boolean;
 	hideSeriesPane: boolean;
 	/** The panel layout chosen from the layout selector menu (hand-off brief §2/§5.1). Persists across reloads. */
 	layout: SfLayout;
@@ -133,6 +135,21 @@ export interface StoryForgePluginSettings {
 	libraryItemsFontWeight: FontWeight;
 	libraryItemsColor: string;
 	libraryItemsMuted: boolean;
+	/**
+	 * storyTelling panel's own chapter-item styling (UiFormattingModal's "storyTelling" tab) —
+	 * independent of the storyLibrary panel's "Library items" settings above, except for colour,
+	 * which `storytellingLinkItemsColorToLibrary` can keep mirrored to `libraryItemsColor` instead
+	 * (on by default, so upgrading users see no visual change until they explicitly opt out).
+	 */
+	storytellingItemsFontSize: number;
+	storytellingItemsOverrideFont: boolean;
+	storytellingItemsFontFamily: CustomFontFamily;
+	storytellingItemsFontWeight: FontWeight;
+	storytellingItemsColor: string;
+	storytellingItemsMuted: boolean;
+	storytellingLinkItemsColorToLibrary: boolean;
+	storytellingHighlightColor: string;
+	storytellingHighlightTextColor: string;
 	unplacedHighlightColor: string;
 	unplacedHighlightTextColor: string;
 	codexHighlightColor: string;
@@ -174,18 +191,39 @@ export interface StoryForgePluginSettings {
 	codexUseHeaderColorForAll: boolean;
 	bodyTextOverrideSize: boolean;
 	bodyTextSize: number;
+	/**
+	 * Manuscript body/heading text colour, native to storyForge (built on its own colour
+	 * palette — see colorPalettes.ts) so it never depends on formatForge. Only reachable while
+	 * formatForge is disconnected — TextStyleModal's one entry point is gated the same way the
+	 * rest of that modal already is, so there's no risk of both plugins writing the same
+	 * --sf-body-color/--sf-h#-color vars at once.
+	 */
+	bodyTextOverrideColor: boolean;
+	bodyTextColor: string;
 	heading1OverrideSize: boolean;
 	heading1Size: number;
+	heading1OverrideColor: boolean;
+	heading1Color: string;
 	heading2OverrideSize: boolean;
 	heading2Size: number;
+	heading2OverrideColor: boolean;
+	heading2Color: string;
 	heading3OverrideSize: boolean;
 	heading3Size: number;
+	heading3OverrideColor: boolean;
+	heading3Color: string;
 	heading4OverrideSize: boolean;
 	heading4Size: number;
+	heading4OverrideColor: boolean;
+	heading4Color: string;
 	heading5OverrideSize: boolean;
 	heading5Size: number;
+	heading5OverrideColor: boolean;
+	heading5Color: string;
 	heading6OverrideSize: boolean;
 	heading6Size: number;
+	heading6OverrideColor: boolean;
+	heading6Color: string;
 	useToolsPanel: boolean;
 	/** "canonical" enforces SF-before-Tools tab order on open; flips to "user" (permanently) the first time the user drags Tools ahead of SF. */
 	panelOrderMode: "canonical" | "user";
@@ -210,6 +248,8 @@ export interface StoryForgePluginSettings {
 	recommendIncludeUnknownNames: boolean;
 	/** Thumb (foreground) colour of the manuscript editor scrollbar. */
 	editorScrollbarThumbColor: string;
+	/** When true, the thumb uses the active theme's own scrollbar colour instead of `editorScrollbarThumbColor`. */
+	editorScrollbarUseThemeColor: boolean;
 	/** Width of the manuscript editor scrollbar. */
 	editorScrollbarThickness: EditorScrollbarThickness;
 	/** Colour of companion icons in the Forge right-rail secondary header. */
@@ -418,6 +458,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	storyContextShellApplied: true,
 	hideFileNameBar: true,
 	hideNavRow: true,
+	hideEditorTabs: true,
 	hideSeriesPane: false,
 	layout: "hybrid",
 	statusBarView: "all",
@@ -448,6 +489,15 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	libraryItemsFontWeight: "400",
 	libraryItemsColor: "#c8c8c8",
 	libraryItemsMuted: false,
+	storytellingItemsFontSize: 1,
+	storytellingItemsOverrideFont: false,
+	storytellingItemsFontFamily: "ibm-plex-sans-var",
+	storytellingItemsFontWeight: "400",
+	storytellingItemsColor: "#c8c8c8",
+	storytellingItemsMuted: false,
+	storytellingLinkItemsColorToLibrary: true,
+	storytellingHighlightColor: "#fef3c7",
+	storytellingHighlightTextColor: "#1f2937",
 	unplacedHighlightColor: "#fef3c7",
 	unplacedHighlightTextColor: "#1f2937",
 	codexHighlightColor: "#fef3c7",
@@ -489,18 +539,32 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	codexUseHeaderColorForAll: false,
 	bodyTextOverrideSize: false,
 	bodyTextSize: 1,
+	bodyTextOverrideColor: false,
+	bodyTextColor: "var(--text-normal)",
 	heading1OverrideSize: false,
 	heading1Size: 1,
+	heading1OverrideColor: false,
+	heading1Color: "var(--text-normal)",
 	heading2OverrideSize: false,
 	heading2Size: 1,
+	heading2OverrideColor: false,
+	heading2Color: "var(--text-normal)",
 	heading3OverrideSize: false,
 	heading3Size: 1,
+	heading3OverrideColor: false,
+	heading3Color: "var(--text-normal)",
 	heading4OverrideSize: false,
 	heading4Size: 1,
+	heading4OverrideColor: false,
+	heading4Color: "var(--text-normal)",
 	heading5OverrideSize: false,
 	heading5Size: 1,
+	heading5OverrideColor: false,
+	heading5Color: "var(--text-normal)",
 	heading6OverrideSize: false,
 	heading6Size: 1,
+	heading6OverrideColor: false,
+	heading6Color: "var(--text-normal)",
 	useToolsPanel: true,
 	panelOrderMode: "canonical",
 	colorPaletteName: "Custom",
@@ -531,6 +595,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	},
 	recommendIncludeUnknownNames: true,
 	editorScrollbarThumbColor: "#6b7280",
+	editorScrollbarUseThemeColor: false,
 	editorScrollbarThickness: "thick",
 	forgeCompanionIconColor: "var(--text-accent)",
 	recommendHeaderColor: "var(--text-accent)",
@@ -651,7 +716,7 @@ export default class StoryForgePlugin extends Plugin {
 	private formatCompanion: FormatCompanionRegistration | null = null;
 	/** Settings tab — refreshed when format companion registers/unregisters. */
 	private settingsTab: StoryForgeSettingsTab | null = null;
-	/** Contributions into storyForge panel / future slots. */
+	/** Contributions into storyLibrary panel / future slots. */
 	private viewContributions: StoryForgeViewContribution[] = [];
 	/** Companion panels for the Forge right-rail tab (nameForge, …). */
 	private companionPanels: StoryForgeCompanionPanel[] = [];
@@ -717,7 +782,7 @@ export default class StoryForgePlugin extends Plugin {
 
 		this.addCommand({
 			id: "open-view",
-			name: "Open panel",
+			name: "Open storyLibrary panel",
 			callback: () => void this.activateView(),
 		});
 
@@ -735,7 +800,7 @@ export default class StoryForgePlugin extends Plugin {
 
 		// Hidden behind the "Use tools panel" setting like every other ribbon icon (ToolsPanel.ts
 		// relocates the whole native ribbon into the Tools panel); this one reuses the "choose
-		// layout" icon now that its original job (the storyForge panel's layout dropdown) has
+		// layout" icon now that its original job (the storyLibrary panel's layout dropdown) has
 		// moved to a tab row instead.
 		this.addRibbonIcon(ICON_LAYOUT_SELECTOR, "Open storyForge interface", () => this.openStoryForgeInterface());
 		this.addRibbonIcon(ICON_TAG_EDIT, "Open Tags & Codex types", () => this.openTagRegistry());
@@ -1242,6 +1307,7 @@ export default class StoryForgePlugin extends Plugin {
 		this.applyHeaderStyles();
 		this.applyHighlightStyle();
 		this.applyLibraryHeaderStyles();
+		this.applyStorytellingItemsStyle();
 		this.applyCodexFolderStyle();
 		this.applyCodexNoteLabelStyle();
 		this.applyTextStyleOverrides();
@@ -1304,6 +1370,11 @@ export default class StoryForgePlugin extends Plugin {
 
 	applyLibraryHeaderStyles(): void {
 		this.style.applyLibraryHeaderStyles();
+	}
+
+	/** storyTelling panel's own chapter-item styling — see StoryForgePluginSettings.storytellingItemsFontSize's doc comment. */
+	applyStorytellingItemsStyle(): void {
+		this.style.applyStorytellingItemsStyle();
 	}
 
 	applyCodexFolderStyle(): void {
@@ -1462,13 +1533,15 @@ export default class StoryForgePlugin extends Plugin {
 		} else {
 			this.dedupeLeavesOfType(TOOLS_VIEW_TYPE);
 		}
-		await this.ensureLeaf(STORYFORGE_VIEW_TYPE, "left", true);
-		await this.ensureLeaf(STORYTELLING_VIEW_TYPE, "left", false);
+		// storyTelling opens active by default (rather than storyLibrary) — it's the always-available
+		// navigator+codex+stats panel, the more useful landing spot on a fresh reload/first open.
+		await this.ensureLeaf(STORYFORGE_VIEW_TYPE, "left", false);
+		await this.ensureLeaf(STORYTELLING_VIEW_TYPE, "left", true);
 		await this.ensureRightRailPanelsUnlocked();
 		await this.enforcePanelOrder();
 
-		const sfLeaf = this.app.workspace.getLeavesOfType(STORYFORGE_VIEW_TYPE)[0] ?? null;
-		if (sfLeaf) await this.app.workspace.revealLeaf(sfLeaf);
+		const storytellingLeaf = this.app.workspace.getLeavesOfType(STORYTELLING_VIEW_TYPE)[0] ?? null;
+		if (storytellingLeaf) await this.app.workspace.revealLeaf(storytellingLeaf);
 
 		const right = this.app.workspace.rightSplit;
 		if (typeof right.expand === "function") right.expand();
@@ -1604,8 +1677,8 @@ export default class StoryForgePlugin extends Plugin {
 			this.app.workspace.detachLeavesOfType(STORYFORGE_VIEW_TYPE);
 			this.app.workspace.detachLeavesOfType(STORYTELLING_VIEW_TYPE);
 			if (this.pluginSettings.useToolsPanel) await this.ensureLeaf(TOOLS_VIEW_TYPE, "left", false);
-			await this.ensureLeaf(STORYFORGE_VIEW_TYPE, "left", true);
-			await this.ensureLeaf(STORYTELLING_VIEW_TYPE, "left", false);
+			await this.ensureLeaf(STORYFORGE_VIEW_TYPE, "left", false);
+			await this.ensureLeaf(STORYTELLING_VIEW_TYPE, "left", true);
 		} finally {
 			this.isAdjustingPanelOrder = false;
 		}

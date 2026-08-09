@@ -20,9 +20,30 @@ export type FontResolveResult = {
 	variation: string | null;
 };
 
+/** One entry in formatForge's font catalog, as exposed to a host via `listFonts`. */
+export interface FontCatalogEntry {
+	id: string;
+	label: string;
+	weightMin: number;
+	weightMax: number;
+}
+
+export interface OpenFontPickerOptions {
+	currentFamilyId: string;
+	previewFontSizeEm: number;
+	onPick: (familyId: string) => void;
+}
+
 /**
  * formatForge registers once on load. storyForge uses this to hide local formatting UI,
  * resolve font CSS vars, register faces into pop-out windows, and notify on restyle.
+ *
+ * `listFonts`/`openFontPicker` mirror the same two methods formatForge already exposes to
+ * timelineForge (see formatForge's timelineForgeBridge.ts) — storyForge's own UI Formatting modal
+ * uses them the same way: list font labels for a "Font" row, delegate the actual picker UI to
+ * formatForge's own FontPickerModal via `openFontPicker` rather than duplicating a font catalog
+ * or picker UI locally. Both are optional so storyForge's font cards simply don't render against
+ * an older formatForge that predates them.
  */
 export interface FormatCompanionRegistration {
 	pluginId: string;
@@ -35,6 +56,10 @@ export interface FormatCompanionRegistration {
 	resolveFont?: (familyId: string, weight: number) => FontResolveResult | null;
 	/** Register embedded @font-face / FontFace entries into `doc` (idempotent). */
 	registerFacesForDocument?: (doc: Document) => void;
+	/** List formatForge's font catalog so a host can render its own "Font" picker row. */
+	listFonts?: () => FontCatalogEntry[];
+	/** Open formatForge's own font-picker modal, scoped to one host field. */
+	openFontPicker?: (opts: OpenFontPickerOptions) => void;
 }
 
 export interface StoryForgeFormattingApi {

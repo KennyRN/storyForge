@@ -26,7 +26,7 @@ import {
 } from "../book";
 import { CODEX_TYPES, codexTypeIcon, getCodexEntriesByType } from "../codex";
 import { debounce } from "../debounce";
-import { ICON_ARCHIVE, ICON_CHECK_SQUARE, ICON_EYE, ICON_FILE_PLUS, ICON_MAP_PIN, ICON_MAP_PIN_PLUS, ICON_MINUS_SQUARE, ICON_MULTIPLY_SQUARE, ICON_NOTEBOOK, ICON_PERSON_FILL, ICON_PERSON_FILL_ADD, ICON_PLUS_SQUARE, ICON_TIMELINE } from "../icons";
+import { ICON_ADD_SQUARE, ICON_ARCHIVE, ICON_CHECK_SQUARE, ICON_LOCATION_TARGET_SQUARE, ICON_MAP_PIN, ICON_MAP_PIN_PLUS, ICON_MINUS_SQUARE, ICON_MULTIPLY_SQUARE, ICON_NOTEBOOK, ICON_PERSON_FILL, ICON_PERSON_FILL_ADD, ICON_PLUS_SQUARE, ICON_REFRESH_SQUARE, ICON_TIMELINE } from "../icons";
 import { bookBackstagePath, bookFolderNameFromChapterPath, CODEX_ROOT, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath } from "../paths";
 import { getBookId, numberedBookTitle } from "../series";
 import { splitTitleSubtitle } from "../titleNumbering";
@@ -663,30 +663,20 @@ export class RecommendationView extends ItemView {
 			}
 		});
 		titleInput.addEventListener("blur", commitTitle);
-		const eyeBtn = titleRow.createSpan({
+		const goToChapterBtn = titleRow.createSpan({
 			cls: "sf-recommend-refresh",
-			attr: { "aria-label": "View chapter", tabindex: "0", role: "button" },
+			attr: { "aria-label": "go to chapter", tabindex: "0", role: "button" },
 		});
-		setIcon(eyeBtn, ICON_EYE);
+		setIcon(goToChapterBtn, ICON_LOCATION_TARGET_SQUARE);
 		const viewChapter = () => {
 			if (!this.bookFolderName || !this.chapterFilename) return;
 			void this.openChapter(this.bookFolderName, this.chapterFilename);
 		};
-		eyeBtn.addEventListener("click", (e) => {
+		goToChapterBtn.addEventListener("click", (e) => {
 			e.stopPropagation();
 			viewChapter();
 		});
-		makeAccessibleActivatable(eyeBtn, viewChapter);
-		const refreshBtn = titleRow.createSpan({
-			cls: "sf-recommend-refresh",
-			attr: { "aria-label": "Refresh story context", tabindex: "0", role: "button" },
-		});
-		setIcon(refreshBtn, "refresh-cw");
-		refreshBtn.addEventListener("click", (e) => {
-			e.stopPropagation();
-			void this.forceRefresh();
-		});
-		makeAccessibleActivatable(refreshBtn, () => void this.forceRefresh());
+		makeAccessibleActivatable(goToChapterBtn, viewChapter);
 
 		if (!this.report) {
 			this.renderNarratingLabel(fixed);
@@ -704,7 +694,12 @@ export class RecommendationView extends ItemView {
 		});
 		textarea.addEventListener("pointerdown", (e) => e.stopPropagation());
 
-		this.iconAction(synopsisRow, ICON_FILE_PLUS, "add to chapter", () => void this.sendSynopsis());
+		// Stacked so the top icon aligns with the summary box's own top and the bottom icon with
+		// its bottom (`.sf-recommend-synopsis-actions` stretches to the row's full height and
+		// space-betweens its two children) — see styles.css.
+		const synopsisActions = synopsisRow.createDiv({ cls: "sf-recommend-synopsis-actions" });
+		this.iconAction(synopsisActions, ICON_REFRESH_SQUARE, "refresh story context", () => void this.forceRefresh());
+		this.iconAction(synopsisActions, ICON_ADD_SQUARE, "add chapter summary to chapter details", () => void this.sendSynopsis());
 
 		const report = this.report;
 		const persons = report.matched.filter((m) => m.type === "person");

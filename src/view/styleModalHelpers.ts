@@ -1,6 +1,7 @@
-import { App, Setting, SettingGroup, ToggleComponent } from "obsidian";
+import { App, DropdownComponent, Setting, SettingGroup, ToggleComponent } from "obsidian";
 import type StoryForgePlugin from "../main";
 import type { StoryForgePluginSettings } from "../main";
+import type { FontCatalogEntry } from "../formattingApi";
 
 /** Shared building blocks for TextStyleModal, UiFormattingModal, and
  * ProtectionsModal — free functions rather than a base class, matching the
@@ -112,6 +113,131 @@ export function persistAndRestyle<K extends keyof StoryForgePluginSettings>(
 	restyle: () => void,
 ): void {
 	void plugin.updateSetting(key, value).then(() => restyle());
+}
+
+const FONT_WEIGHT_OPTIONS: [string, string][] = [
+	["300", "Light"],
+	["400", "Normal"],
+	["500", "Medium"],
+	["600", "Semi Bold"],
+	["700", "Bold"],
+	["800", "Extra Bold"],
+	["900", "Black"],
+];
+
+/** Weight dropdown choices that fall within a custom font's native weightMin–weightMax range. */
+function fontWeightOptionsFor(weightMin: number, weightMax: number): [string, string][] {
+	const options = FONT_WEIGHT_OPTIONS.filter(([val]) => {
+		const n = Number(val);
+		return n >= weightMin && n <= weightMax;
+	});
+	return options.length > 0 ? options : FONT_WEIGHT_OPTIONS;
+}
+
+/** Nearest allowed weight option for `weight`, or `weight` unchanged when already allowed. */
+function clampFontWeightToOptions(weight: string, options: [string, string][]): string {
+	if (options.some(([val]) => val === weight)) return weight;
+	const n = Number(weight);
+	let best = options[0][0];
+	let bestDist = Infinity;
+	for (const [val] of options) {
+		const d = Math.abs(Number(val) - n);
+		if (d < bestDist) {
+			bestDist = d;
+			best = val;
+		}
+	}
+	return best;
+}
+
+/** Clears and repopulates weight `<option>`s. */
+function fillFontWeightOptions(dropdown: DropdownComponent, value: string, options: [string, string][]): void {
+	dropdown.selectEl.replaceChildren();
+	for (const [val, label] of options) {
+		dropdown.addOption(val, label);
+		dropdown.selectEl.options[dropdown.selectEl.options.length - 1].setCssStyles({ fontWeight: val });
+	}
+	dropdown.setValue(value);
+	dropdown.selectEl.setCssStyles({ fontWeight: value });
+}
+
+/**
+ * "Override theme's default font" toggle + a "Font" row (pick-font button delegating to
+ * formatForge's own FontPickerModal via the companion bridge, plus a weight dropdown clamped to
+ * that font's own weightMin–weightMax). Silently renders nothing when the companion is absent or
+ * predates `listFonts`/`openFontPicker` — see FormatCompanionRegistration's doc comment.
+ */
+export function renderCustomFontCard(
+	body: HTMLElement,
+	plugin: StoryForgePlugin,
+	label: string,
+	overrideFontKey: keyof StoryForgePluginSettings,
+	fontFamilyKey: keyof StoryForgePluginSettings,
+	fontWeightKey: keyof StoryForgePluginSettings,
+	restyle: () => void,
+	previewFontSizeEm: number | (() => number) = 1,
+): void {
+	const companion = plugin.getFormatCompanion();
+	if (!companion?.listFonts || !companion.openFontPicker) return;
+	const listFonts = companion.listFonts;
+	const openFontPicker = companion.openFontPicker;
+
+	const currentFont = (): FontCatalogEntry | undefined => {
+		const id = plugin.getSettings()[fontFamilyKey] as string;
+		return listFonts().find((f) => f.id === id);
+	};
+
+	renderToggleWithRevealCard(
+		body,
+		label,
+		plugin.getSettings()[overrideFontKey] as boolean,
+		(value) => void plugin.updateSetting(overrideFontKey, value),
+		(card) => {
+			let fontSetting!: Setting;
+			let pickButtonEl!: HTMLElement;
+			let weightDropdown!: DropdownComponent;
+			const syncPickLabel = () => pickButtonEl.setText(currentFont()?.label ?? "Pick font");
+			const syncWeightDropdown = (): string => {
+				const font = currentFont();
+				const options = font ? fontWeightOptionsFor(font.weightMin, font.weightMax) : FONT_WEIGHT_OPTIONS;
+				const current = plugin.getSettings()[fontWeightKey] as string;
+				const clamped = clampFontWeightToOptions(current, options);
+				fillFontWeightOptions(weightDropdown, clamped, options);
+				return clamped;
+			};
+			card.addSetting((setting) => {
+				fontSetting = setting;
+				setting.setName("Font");
+				setting.addButton((button) => {
+					pickButtonEl = button.buttonEl;
+					syncPickLabel();
+					button.onClick(() => {
+						openFontPicker({
+							currentFamilyId: plugin.getSettings()[fontFamilyKey] as string,
+							previewFontSizeEm: typeof previewFontSizeEm === "function" ? previewFontSizeEm() : previewFontSizeEm,
+							onPick: (id) => {
+								void plugin.updateSetting(fontFamilyKey, id).then(async () => {
+									syncPickLabel();
+									const clamped = syncWeightDropdown();
+									if (clamped !== plugin.getSettings()[fontWeightKey]) {
+										await plugin.updateSetting(fontWeightKey, clamped);
+									}
+									restyle();
+								});
+							},
+						});
+					});
+				});
+				setting.addDropdown((dropdown) => {
+					weightDropdown = dropdown;
+					syncWeightDropdown();
+					dropdown.onChange((value) => void plugin.updateSetting(fontWeightKey, value).then(() => restyle()));
+				});
+			});
+			return fontSetting;
+		},
+		restyle,
+	);
 }
 
 export interface StyleModalTab {

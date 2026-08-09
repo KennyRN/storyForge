@@ -25,7 +25,6 @@ import { renderCodexFocusNavigator } from "./CodexFocusNavigator";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
 import { ICON_BOOK_OPEN, ICON_BOOK_PLUS, ICON_FILTER, ICON_PLUS_SQUARE, ICON_UNPLACED } from "../icons";
 import { recordChapterArchive, readChapterWordCount } from "../history";
-import type { SfLayout } from "../layout";
 
 export type UnplacedViewMode = "unplaced" | "unplacedHidden";
 
@@ -38,8 +37,6 @@ export interface TopPanelOptions {
 	/** Layout-level gate for the whole unplaced section (hand-off brief §2) — distinct from `unplacedMode`,
 	 * which is the user's own collapse/expand toggle within a layout that shows the section at all. */
 	showUnplacedSection: boolean;
-	/** The active layout, so the series-mode settings icon can gate itself. */
-	layout: SfLayout;
 	currentBookFolderName: string | null;
 	activeChapterFilename: string | null;
 	highlightActiveChapter: boolean;
@@ -72,8 +69,12 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 		const seriesLine = header.createDiv({ cls: "sf-header-line sf-series-line" });
 		seriesLine.createSpan({ cls: "sf-header-text", text: series.seriesTitle });
 
-		// Series settings live here and nowhere else — relevant only while browsing the series list itself.
-		if (options.layout === "seriesBrowse") {
+		// Series settings live here and nowhere else — relevant only while actually browsing the
+		// series list (mode === "series"), not merely whenever the storyLibrary panel's own layout
+		// happens to be set to "Series" — the storyTelling panel reads that same global layout
+		// setting for its book-line but never runs in "series" mode itself, so gating on `layout`
+		// used to leak this icon into the storyTelling panel's series header too.
+		if (options.mode === "series") {
 			const settingsBtn = seriesLine.createSpan({ cls: "sf-series-settings-btn", attr: { "aria-label": "Series settings" } });
 			setIcon(settingsBtn, ICON_FILTER);
 			settingsBtn.addEventListener("click", (e) => {
@@ -146,18 +147,18 @@ function createRow(list: HTMLElement, key: string): HTMLElement {
 /**
  * Renders a title, splitting off a "// subtitle" onto its own muted line if present. Returns the
  * wrapper to pass to `attachInlineRename`. `showOpenIcon` marks the currently-open novel in the
- * Series tab's book list (renderSeriesList) — the icon sits inline before the title text and,
- * having no colour of its own, simply inherits whatever colour the row's text is already using
- * (normal or highlighted).
+ * Series tab's book list (renderSeriesList) — the icon sits inline after the title text (same
+ * placement as a Codex row's type icon) and, having no colour of its own, simply inherits
+ * whatever colour the row's text is already using (normal or highlighted).
  */
 function renderRowTitle(row: HTMLElement, displayTitle: string, showOpenIcon = false): HTMLElement {
 	const { title, subtitle } = splitTitleSubtitle(displayTitle);
 	const wrap = row.createDiv({ cls: "sf-row-title-wrap" });
 	const titleLine = wrap.createDiv({ cls: "sf-row-title-line" });
+	titleLine.createSpan({ cls: "sf-row-text", text: title });
 	if (showOpenIcon) {
 		setIcon(titleLine.createSpan({ cls: "sf-row-open-icon", attr: { "aria-label": "Open" } }), ICON_BOOK_OPEN);
 	}
-	titleLine.createSpan({ cls: "sf-row-text", text: title });
 	if (subtitle) {
 		wrap.createDiv({ cls: "sf-row-subtitle", text: subtitle });
 	}

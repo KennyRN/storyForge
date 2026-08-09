@@ -285,7 +285,7 @@
 	overflow: hidden;
 }
 
-/* Holds the title text and, when present, the leading "book is open" icon (Series View only) on
+/* Holds the title text and, when present, the trailing "book is open" icon (Series View only) on
    one line — the subtitle (below, a sibling in .sf-row-title-wrap) stays on its own line. */
 .sf-row-title-line {
 	display: flex;
@@ -429,7 +429,7 @@
 }
 
 .sf-codex-filter-btn.is-active {
-	color: var(--text-accent);
+	color: var(--sf-codex-color);
 }
 
 .sf-codex-hidden .sf-icon,
@@ -509,11 +509,19 @@
 
 .sf-codex-folder-name,
 .sf-codex-file-name {
-	color: var(--text-muted);
 	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+/* Unstyled-tree fallback — overridden the moment .sf-styled-heading lands (always, for folders;
+   see below) or by inheriting --sf-codex-note-color from .sf-codex-file (file names have no
+   .sf-styled-heading of their own, so they fall through to the ancestor's colour, same as the
+   file row's type icon already does — both need to track the note colour, and in the highlighted
+   state, the highlight text colour, identically). */
+.sf-codex-folder-name {
+	color: var(--text-muted);
 }
 
 .sf-codex-folder-name.sf-styled-heading {
@@ -535,6 +543,8 @@
 	transform: translateX(-50%);
 	pointer-events: none;
 	z-index: 1;
+	/* Slightly rounded foot rather than a hard-cut end. */
+	border-radius: 0 0 calc(var(--sf-codex-folder-indicator-width, 2px) / 2) calc(var(--sf-codex-folder-indicator-width, 2px) / 2);
 }
 
 .sf-codex-folder-header.sf-dragging,
@@ -1670,6 +1680,9 @@ div[aria-label="Files"]:not(#storyforge-specificity-boost) { display: var(--sf-f
 .sidebar-toggle-button.mod-right:not(#storyforge-specificity-boost) { display: var(--sf-sidebar-right-display, revert); }
 .inline-title:not(#storyforge-specificity-boost) { display: var(--sf-filename-bar-display, revert); }
 .view-header:not(#storyforge-specificity-boost) { display: var(--sf-nav-row-display, revert); }
+/* Main editor window only — .mod-root, so the left/right sidebar tab strips (which have their own
+ * hide toggles above) are never touched by this one. */
+.mod-root .workspace-tab-header-container:not(#storyforge-specificity-boost) { display: var(--sf-editor-tabs-display, revert); }
 .status-bar:not(#storyforge-specificity-boost) { display: var(--sf-statusbar-hidden-display, revert); }
 .status-bar-item:not(.plugin-sync):not(#storyforge-specificity-boost) { display: var(--sf-statusbar-nonsync-display, revert); }
 
@@ -1742,6 +1755,30 @@ body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container:not(#sto
 }
 .sf-top-list:not(.sf-unplaced-list) .sf-row.sf-row-selected .sf-row-text {
 	color: var(--sf-highlight-text);
+}
+/* storyTelling panel's own chapter-item styling (UiFormattingModal's "storyTelling" tab) — this
+ * panel renders the exact same .sf-top-list/.sf-row markup as the storyLibrary panel's own
+ * chapter list (both go through TopPanel.ts's renderTopPanel), so the only way to style them
+ * independently is by out-specificity-ing the shared rules above via this ancestor class, which
+ * StorytellingView.ts's render() sets on its own root. Falls back to the shared vars above when
+ * unset, so an untouched install (storytellingLinkItemsColorToLibrary defaults true, and the size/
+ * font vars are simply never populated) looks identical to before this split existed. */
+.storyforge-storytelling-view .sf-top-list:not(.sf-unplaced-list) {
+	font-size: var(--sf-storytelling-items-size, var(--sf-lib-items-size, 1em));
+	font-weight: var(--sf-storytelling-items-weight, var(--sf-lib-items-weight, 400));
+	font-family: var(--sf-storytelling-items-family, var(--sf-lib-items-family, inherit));
+	font-variation-settings: var(--sf-storytelling-items-variation, var(--sf-lib-items-variation, normal));
+}
+.storyforge-storytelling-view .sf-top-list:not(.sf-unplaced-list) .sf-row,
+.storyforge-storytelling-view .sf-top-list:not(.sf-unplaced-list) .sf-row .sf-row-text {
+	color: var(--sf-storytelling-items-color, var(--sf-lib-items-color, var(--text-normal)));
+}
+.storyforge-storytelling-view .sf-top-list:not(.sf-unplaced-list) .sf-row.sf-row-selected {
+	background: var(--sf-storytelling-highlight-bg, var(--sf-highlight-bg));
+	color: var(--sf-storytelling-highlight-text, var(--sf-highlight-text));
+}
+.storyforge-storytelling-view .sf-top-list:not(.sf-unplaced-list) .sf-row.sf-row-selected .sf-row-text {
+	color: var(--sf-storytelling-highlight-text, var(--sf-highlight-text));
 }
 .sf-unplaced-list .sf-row.sf-row-selected { background: var(--sf-unplaced-highlight-bg); color: var(--sf-unplaced-highlight-text); }
 .sf-codex-file.sf-row-selected { background: var(--sf-codex-highlight-bg); color: var(--sf-codex-highlight-text); }
@@ -2320,13 +2357,26 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	height: 1em;
 }
 
-/* Shared by the chapter title row's view-chapter (eye) and refresh icon buttons. */
+/* Chapter title row's "go to chapter" button. Padding + SVG size deliberately match the synopsis
+ * row's own actions-column icons below (both 22.5px — 18px's usual .sf-recommend-icon-btn size,
+ * bumped 25% for these three Chapter-tab icons only; deliberately not touching the shared
+ * .sf-recommend-icon-btn rule everyone else uses) — that's what the title row and the synopsis
+ * row's actions column (same gap, same icon box) both give up out of their available width, which
+ * is what keeps the chapter title input and the summary textarea the same rendered width as each
+ * other below. */
 .sf-recommend-refresh {
 	display: flex;
 	align-items: center;
+	justify-content: center;
+	padding: 2px;
 	color: var(--text-muted);
 	cursor: pointer;
 	flex-shrink: 0;
+}
+
+.sf-recommend-refresh svg {
+	width: 22.5px;
+	height: 22.5px;
 }
 
 .sf-recommend-refresh:hover {
@@ -2340,7 +2390,13 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	margin-bottom: 8px;
 }
 
-.sf-recommend-chapter-title-row .sf-recommend-chapter-title {
+/* input.…[type="text"] so this actually outranks input.sf-recommend-chapter-title[type="text"]'s
+ * own margin-bottom below (same class + attribute, but that rule also matches the bare element,
+ * so a plain two-class selector here used to lose the specificity tie and never actually zeroed
+ * it) — without that, the input carried a phantom 8px of margin into this row's flex cross-axis
+ * centering, which is what threw the "go to chapter" icon's centering off from the input's real
+ * (visible) box. */
+.sf-recommend-chapter-title-row input.sf-recommend-chapter-title[type="text"] {
 	margin-bottom: 0;
 	min-width: 0;
 	flex: 1;
@@ -2517,19 +2573,24 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	font-variation-settings: var(--sf-recommend-section-variation, normal);
 }
 
-/* Add-to-chapter sits outside the box, on its lower-right corner. */
+/* Refresh (top) and add-to-chapter (bottom) sit outside the box, on its right edge — see
+ * .sf-recommend-synopsis-actions below for how each aligns to its respective corner. Same 8px gap
+ * as .sf-recommend-chapter-title-row, so the title input and the summary box render the same
+ * width (each row gives up one icon-box-width + one gap out of the same available width). */
 .sf-recommend-synopsis-row {
 	display: flex;
-	align-items: flex-end;
-	gap: 6px;
+	align-items: stretch;
+	gap: 8px;
 	margin-bottom: 6px;
 }
 
 .sf-recommend-synopsis {
 	flex: 1;
 	min-width: 0;
-	min-height: 80px;
-	resize: vertical;
+	height: 120px;
+	resize: none;
+	overflow-x: hidden;
+	overflow-y: auto;
 	box-sizing: border-box;
 	margin-bottom: 0;
 	font-size: var(--sf-recommend-synopsis-size, 1em);
@@ -2539,9 +2600,23 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	font-weight: var(--sf-recommend-synopsis-weight, 400);
 }
 
-.sf-recommend-synopsis-row .sf-recommend-icon-btn {
+/* Refresh (top) and add-to-chapter (bottom) — stretched to the row's full height (matching the
+ * summary box, the tallest/only other row item) and space-betweened so the first button's top
+ * lands flush with the box's top and the second's bottom lands flush with the box's bottom. */
+.sf-recommend-synopsis-actions {
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
 	flex-shrink: 0;
-	margin-bottom: 4px;
+}
+
+/* 25% bigger than the shared .sf-recommend-icon-btn svg{width/height:18px} default — scoped to
+ * just these two Chapter-tab icons (matching .sf-recommend-refresh's own bump above), not the
+ * icon-btn class generally, which plenty of other, differently-scaled buttons across Story
+ * Context (row actions, dossier dropdown, archive, …) still use unchanged. */
+.sf-recommend-synopsis-actions .sf-recommend-icon-btn svg {
+	width: 22.5px;
+	height: 22.5px;
 }
 
 .sf-recommend-hit-actions button {
@@ -2843,6 +2918,22 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 
 .sf-tag-registry-list {
 	margin-bottom: 6px;
+}
+
+/* Codex types only (TagRegistryModal, CodexSetTypeModal) — a top-level type's own draggable unit.
+ * No layout of its own beyond stacking its row above its children block; block, not flex, so the
+ * two stack vertically rather than competing for one flex line. */
+.sf-tag-registry-top-row {
+	display: block;
+}
+
+/* Nested types (person/place children) — indented to read as "inside" their parent, ending in
+ * their own blank add-new row (always present, even with zero children yet). Left border gives a
+ * faint "hangs off the parent" guide without needing the Codex tree's own indicator-line machinery. */
+.sf-tag-registry-children {
+	margin-left: 22px;
+	padding-left: 8px;
+	border-left: 2px solid var(--background-modifier-border);
 }
 
 .sf-tag-registry-add-row {

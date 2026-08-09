@@ -108,8 +108,8 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				type: "group",
 				items: [
 					{
-						name: "storyForge panel",
-						desc: "If you've closed the storyForge panel, click this to bring it back.",
+						name: "storyLibrary panel",
+						desc: "If you've closed the storyLibrary panel, click this to bring it back.",
 						action: () => {
 							void this.plugin.activateView();
 						},

@@ -8,7 +8,7 @@ import { renderStatsPanel, nextStatsMode, type StatsMode } from "./StatsPanel";
 import { SeriesModal } from "./SeriesModal";
 import { createCodexFolder, createCodexNote, readCodexFrontmatter, type CodexViewMode } from "../codex";
 import { debounce } from "../debounce";
-import { ICON_BOOK_OPEN, ICON_BOOK_SPINE, ICON_SERIES } from "../icons";
+import { ICON_BOOK_OPEN, ICON_SERIES, ICON_STORYTELLING } from "../icons";
 import { countWords } from "../wordCount";
 import { getBookWordStats } from "../history";
 import { WordCountModal } from "./WordCountModal";
@@ -25,12 +25,13 @@ import { STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE } from "./SeriesOverviewView";
 export const STORYFORGE_VIEW_TYPE = "storyforge-view";
 
 /** Leading icon for each layout tab (render()'s .sf-layout-tabs row) — the storyForge view's own
- * "Series" icon for the Series tab (it's the same list this panel's own tab icon represents), a
- * single book for the Novel tab, and the open-book used to mark an open novel elsewhere for the
- * Detailed tab (the layout with the codex embedded — a novel opened all the way up). */
+ * "Series" icon for the Series tab (it's the same list this panel's own tab icon represents), the
+ * storyTelling panel's own icon for the Novel tab, and the open-book used to mark an open novel
+ * elsewhere for the Detailed tab (the layout with the codex embedded — a novel opened all the way
+ * up). */
 const SF_LAYOUT_TAB_ICONS: Record<SfLayout, string> = {
 	seriesBrowse: ICON_SERIES,
-	novelBrowse: ICON_BOOK_SPINE,
+	novelBrowse: ICON_STORYTELLING,
 	hybrid: ICON_BOOK_OPEN,
 };
 
@@ -62,7 +63,7 @@ export class StoryForgeView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return "storyForge";
+		return "storyLibrary";
 	}
 
 	getIcon(): string {
@@ -198,7 +199,6 @@ export class StoryForgeView extends ItemView {
 			mode: this.effectiveTopPane(),
 			hideSeriesPane: this.plugin.getSettings().hideSeriesPane,
 			showUnplacedSection: config.showUnplaced,
-			layout: this.layout,
 			currentBookFolderName: this.currentBookFolderName,
 			activeChapterFilename: this.activeChapterFilename,
 			highlightActiveChapter: this.plugin.getSettings().highlightActiveChapter,

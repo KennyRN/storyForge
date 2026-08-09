@@ -171,6 +171,22 @@ describe("tag definition CRUD (chapterTags)", () => {
 		await deleteTagDefinition(app, "chapterTags", "person");
 		expect(readTagRegistry(app).chapterTags).toEqual([]);
 	});
+
+	it("persists a nested codexTypes entry's parentId, and omits parent-id for a root entry", async () => {
+		const { app, frontmatter } = makeFakeApp(true, {
+			"codex-types": [{ id: "person", label: "Person", "icon-alias": "person-fill" }],
+		});
+		const id = await addTagDefinition(app, "codexTypes", "Hero", "crown", "person");
+		expect(id).toBe("hero");
+		expect(frontmatter["codex-types"]).toEqual([
+			{ id: "person", label: "Person", "icon-alias": "person-fill" },
+			{ id: "hero", label: "Hero", "icon-alias": "crown", "parent-id": "person" },
+		]);
+		expect(readTagRegistry(app).codexTypes).toEqual([
+			{ id: "person", label: "Person", iconAlias: "person-fill" },
+			{ id: "hero", label: "Hero", iconAlias: "crown", parentId: "person" },
+		]);
+	});
 });
 
 describe("resolveIconAlias", () => {

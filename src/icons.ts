@@ -77,6 +77,44 @@ export const ICON_HEART_FILL = "sf-heart-fill";
 export const ICON_CHECK_CIRCLE_FILL = "sf-check-circle-fill";
 export const ICON_MESSAGE = "sf-message";
 export const ICON_TAG = "sf-tag";
+export const ICON_TRUCK = "sf-truck";
+export const ICON_ROCKETSHIP = "sf-rocketship";
+export const ICON_PLANE = "sf-plane";
+export const ICON_SHIP = "sf-ship";
+export const ICON_ROAD = "sf-road";
+export const ICON_MOUNTAIN = "sf-mountain";
+export const ICON_TOWER_BLOCK = "sf-tower-block";
+export const ICON_TOWER_SLIM = "sf-tower-slim";
+export const ICON_TOWER_FORTRESS = "sf-tower-fortress";
+export const ICON_SHIELD = "sf-shield";
+export const ICON_GEARS = "sf-gears";
+export const ICON_EXPLOSION = "sf-explosion";
+export const ICON_SWORDS_CROSSED = "sf-swords-crossed";
+export const ICON_SWORD = "sf-sword";
+export const ICON_AXE = "sf-axe";
+export const ICON_MAGIC_WAND = "sf-magic-wand";
+export const ICON_SUN_FILL = "sf-sun-fill";
+export const ICON_THUNDERSTORM = "sf-thunderstorm";
+export const ICON_SNOW = "sf-snow";
+export const ICON_RAIN = "sf-rain";
+export const ICON_RIVER = "sf-river";
+export const ICON_DEAD_TREE = "sf-dead-tree";
+export const ICON_PINE_TREE = "sf-pine-tree";
+export const ICON_TREE = "sf-tree";
+export const ICON_BOWL_RICE = "sf-bowl-rice";
+export const ICON_BOWL = "sf-bowl";
+export const ICON_EGG = "sf-egg";
+export const ICON_DRAGON = "sf-dragon";
+export const ICON_UNICORN = "sf-unicorn";
+export const ICON_FISH = "sf-fish";
+export const ICON_PAW = "sf-paw";
+export const ICON_SKULL = "sf-skull";
+export const ICON_MUSIC_NOTE = "sf-music-note";
+export const ICON_SPEECH_BUBBLE = "sf-speech-bubble";
+export const ICON_SCROLL = "sf-scroll";
+export const ICON_LOCATION_TARGET_SQUARE = "sf-location-target-square";
+export const ICON_REFRESH_SQUARE = "sf-refresh-square";
+export const ICON_ADD_SQUARE = "sf-add-square";
 
 /** Codex-focus navigator's transport row (hand-off brief H1 — outline set chosen). */
 export const ICON_TRANSPORT_TO_START = "sf-transport-to-start";
@@ -324,6 +362,120 @@ const VERIFIED_CHECK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0
 /** Mage Icons — verified check (filled). */
 const VERIFIED_CHECK_FILL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M22.02 11.164a1.84 1.84 0 0 0-.57-.67l-1.33-1a.35.35 0 0 1-.14-.2a.36.36 0 0 1 0-.25l.55-1.63a2 2 0 0 0 .06-.9a1.8 1.8 0 0 0-.36-.84a1.86 1.86 0 0 0-.7-.57a1.75 1.75 0 0 0-.85-.17h-1.5a.41.41 0 0 1-.39-.3l-.43-1.5a1.9 1.9 0 0 0-.46-.81a2 2 0 0 0-.78-.49a2 2 0 0 0-.92-.06a1.9 1.9 0 0 0-.83.39l-1.14.9a.35.35 0 0 1-.23.09a.36.36 0 0 1-.22-.05l-1.13-.9a1.85 1.85 0 0 0-.8-.38a1.9 1.9 0 0 0-.88 0a1.9 1.9 0 0 0-.78.43a2.1 2.1 0 0 0-.51.79l-.43 1.51a.38.38 0 0 1-.15.22a.4.4 0 0 1-.27.07H5.41a1.9 1.9 0 0 0-.89.18a1.8 1.8 0 0 0-.71.57a1.9 1.9 0 0 0-.36.83c-.05.293-.03.595.06.88L4 8.993a.41.41 0 0 1-.14.45l-1.33 1c-.242.18-.44.412-.58.68a1.93 1.93 0 0 0 0 1.71a2 2 0 0 0 .58.68l1.33 1a.41.41 0 0 1 .14.45l-.55 1.63a2 2 0 0 0-.07.91c.05.298.174.58.36.82c.183.25.428.45.71.58c.265.126.557.184.85.17h1.49a.38.38 0 0 1 .25.08a.34.34 0 0 1 .14.21l.43 1.51a2 2 0 0 0 .46.8a1.89 1.89 0 0 0 2.54.17l1.15-.91a.39.39 0 0 1 .49 0l1.13.9c.24.202.53.337.84.39q.17.015.34 0a1.9 1.9 0 0 0 .58-.09a1.87 1.87 0 0 0 1.24-1.28l.44-1.52a.34.34 0 0 1 .14-.21a.4.4 0 0 1 .27-.08h1.43a2 2 0 0 0 .89-.17a1.91 1.91 0 0 0 1.06-1.4a1.9 1.9 0 0 0-.07-.92l-.54-1.62a.36.36 0 0 1 0-.25a.35.35 0 0 1 .14-.2l1.33-1a1.9 1.9 0 0 0 .57-.68a1.8 1.8 0 0 0 .21-.86a1.9 1.9 0 0 0-.23-.78m-5.44-.76l-4.42 4.42a2 2 0 0 1-.59.4c-.222.09-.46.138-.7.14a1.7 1.7 0 0 1-.71-.15a1.9 1.9 0 0 1-.6-.4l-2.18-2.19a1 1 0 0 1 1.41-1.41l2.08 2.08l4.3-4.31a1 1 0 0 1 1.41 0a1 1 0 0 1 0 1.46z" /></svg>`;
 
+/** Feather Icon (fe) — truck. */
+const TRUCK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" fill-rule="evenodd" d="M10 18a3 3 0 0 1-6 0a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h11.001C16.105 4 17 4.895 17 5.999L20 6c2 0 2 2.896 2 4v6a2 2 0 0 1-2 2h-1a3 3 0 0 1-6 0zM4 6v9h11V6zm13 2v4h3V8zm-1 11a1 1 0 1 0 0-2a1 1 0 0 0 0 2m-9 0a1 1 0 1 0 0-2a1 1 0 0 0 0 2" clip-rule="evenodd" /></svg>`;
+
+/** @icons (at-icons) — rocketship. */
+const ROCKETSHIP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M0 0h16v16H0z" fill="none" /><g fill="currentColor"><path d="M3 11c1.236-.412 2.412.764 2 2a1.58 1.58 0 0 1-1 1l-3 1l1-3a1.58 1.58 0 0 1 1-1" /><path d="M14 1a1 1 0 0 1 1 1v.513a9 9 0 0 1-6.134 8.53c.32.744.092 1.652-.63 2.134L7 14H6v-2l-2-2H2V9l.823-1.235a1.74 1.74 0 0 1 2.132-.632A9 9 0 0 1 13.487 1zm-3 2a2 2 0 1 0 0 4a2 2 0 0 0 0-4" /></g></svg>`;
+
+/** Myna UI (praveenjuge) — plane (solid). */
+const PLANE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M20.935 3.065a2.783 2.783 0 0 0-3.935 0l-3.112 3.112l-8.75-1.758c-.554-.111-1.076.083-1.462.333a3.1 3.1 0 0 0-.979 1.027c-.23.393-.406.905-.321 1.431c.093.586.484 1.044 1.091 1.28l5.834 2.274L6.866 13.2c-.83-.067-1.541-.103-2.199.059c-.797.196-1.442.655-2.197 1.41a.75.75 0 0 0 .144 1.174L6.08 17.92l2.08 3.465a.75.75 0 0 0 1.173.144c.755-.755 1.214-1.4 1.41-2.197c.162-.658.126-1.368.059-2.199l2.435-2.435l2.274 5.835c.236.607.695.998 1.28 1.09c.527.085 1.038-.09 1.432-.321a3.1 3.1 0 0 0 1.026-.979c.25-.386.444-.908.333-1.461l-1.758-8.75L20.935 7a2.78 2.78 0 0 0 0-3.935" /></svg>`;
+
+/** Boxicons — ship. */
+const SHIP_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M18.08 15.01H18c-.19 0-.34.01-.48.03c-.93.08-1.51.34-1.97.57s-.79.39-1.56.39s-1.09-.17-1.55-.39c-.54-.27-1.21-.61-2.45-.61s-1.91.34-2.45.61c-.46.23-.79.39-1.55.39s-1.09-.17-1.55-.39C3.9 15.34 3.23 15 1.99 15v2c.76 0 1.09.17 1.55.39c.54.27 1.21.61 2.45.61s1.91-.34 2.45-.61c.46-.23.79-.39 1.55-.39s1.09.17 1.55.39c.54.27 1.21.61 2.45.61s1.91-.34 2.45-.61c.46-.23.79-.39 1.56-.39s1.1.17 1.56.39c.54.27 1.21.61 2.45.61v-2c-.77 0-1.1-.17-1.56-.39c-.53-.26-1.19-.58-2.37-.6M18 19c-1.24 0-1.91.34-2.45.61c-.46.23-.79.39-1.56.39s-1.09-.17-1.55-.39c-.54-.27-1.21-.61-2.45-.61s-1.91.34-2.45.61c-.46.23-.79.39-1.55.39s-1.09-.17-1.55-.39C3.9 19.34 3.23 19 1.99 19v2c.76 0 1.09.17 1.55.39c.54.27 1.21.61 2.45.61s1.91-.34 2.45-.61c.46-.23.79-.39 1.55-.39s1.09.17 1.55.39c.54.27 1.21.61 2.45.61s1.91-.34 2.45-.61c.46-.23.79-.39 1.56-.39s1.1.17 1.56.39c.54.27 1.21.61 2.45.61v-2c-.77 0-1.1-.17-1.56-.39c-.54-.27-1.21-.61-2.45-.61M5.51 13.97c.14.02.3.03.49.03c.75 0 1.08-.16 1.53-.38L6.32 10.6l5.69-2.03l5.69 2.03l-1.03 2.58c.36-.1.79-.17 1.34-.17c.32 0 .6.02.86.06l1.08-2.69c.1-.25.09-.54-.02-.78s-.32-.44-.58-.53l-1.34-.48V4.01c0-.55-.45-1-1-1h-4v-1h-2v1h-4c-.55 0-1 .45-1 1v4.58l-1.34.48c-.26.09-.46.28-.58.53s-.12.53-.02.78l1.44 3.6ZM8 5h8v2.87l-3.66-1.31a.97.97 0 0 0-.67 0L8.01 7.87V5Z" /></svg>`;
+
+/** Tabler (Paweł Kuna) — road. */
+const ROAD_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 19L8 5m8 0l4 14M12 8V6m0 7v-2m0 7v-2" /></svg>`;
+
+/** MingCute Icon — mountain (filled, two peaks). */
+const MOUNTAIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" fill-rule="evenodd" d="M8.701 5.75c.577-1 2.02-1 2.598 0l3.5 6.062l.902-1.562c.577-1 2.02-1 2.598 0l4.33 7.5A1.5 1.5 0 0 1 21.33 20H17v-.002l-.072.002H3.072a1.5 1.5 0 0 1-1.3-2.25zm-.91 5.576l.709.472l.945-.63a1 1 0 0 1 1.11 0l.945.63l.709-.472L10 7.5z" clip-rule="evenodd" /></svg>`;
+
+/** IconPark Solid (ByteDance) — tower, blocky/pagoda silhouette. */
+const TOWER_BLOCK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M0 0h48v48H0z" fill="none" /><g fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="4"><path fill="currentColor" d="M17 31h14v13H17zm2-14h10v14H19zm2-13h6v13h-6z" /><path stroke-linecap="round" d="M4 44h40" /></g></svg>`;
+
+/** Röntgen (Sergey Vartanov) — tower, slim monument silhouette. */
+const TOWER_SLIM_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M0 0h16v16H0z" fill="none" /><path fill="currentColor" d="M6.5 2c-.277 0-.5.223-.5.5v1c0 .277.223.5.5.5H7v8h-.5c-.277 0-.5.223-.5.5v.5H4.5a.499.499 0 1 0 0 1h7a.499.499 0 1 0 0-1H10v-.5c0-.277-.223-.5-.5-.5H9V4h.5c.277 0 .5-.223.5-.5v-1c0-.277-.223-.5-.5-.5z" /></svg>`;
+
+/** Tabler (Paweł Kuna) — tower, outlined fortress/watchtower. */
+const TOWER_FORTRESS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M5 3h1a1 1 0 0 1 1 1v2h3V4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v2h3V4a1 1 0 0 1 1-1h1a1 1 0 0 1 1 1v4.394a2 2 0 0 1-.336 1.11l-1.328 1.992a2 2 0 0 0-.336 1.11V20a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1v-7.394a2 2 0 0 0-.336-1.11L4.336 9.504A2 2 0 0 1 4 8.394V4a1 1 0 0 1 1-1" /><path d="M10 21v-5a2 2 0 1 1 4 0v5" /></g></svg>`;
+
+/** Material Symbols (Google) — shield, outline. */
+const SHIELD_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M11.675 21.875q-.15-.025-.3-.075Q8 20.675 6 17.637T4 11.1V6.375q0-.625.363-1.125t.937-.725l6-2.25q.35-.125.7-.125t.7.125l6 2.25q.575.225.938.725T20 6.375V11.1q0 3.5-2 6.538T12.625 21.8q-.15.05-.3.075T12 21.9t-.325-.025M12 19.9q2.6-.825 4.3-3.3t1.7-5.5V6.375l-6-2.25l-6 2.25V11.1q0 3.025 1.7 5.5t4.3 3.3m0-7.9" /></svg>`;
+
+/** Font Awesome 6 Solid (Fonticons) — gears (two interlocking). */
+const GEARS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><path d="M0 0h640v512H0z" fill="none" /><path fill="currentColor" d="M308.5 135.3c7.1-6.3 9.9-16.2 6.2-25c-2.3-5.3-4.8-10.5-7.6-15.5l-3.1-5.4c-3-5-6.3-9.9-9.8-14.6c-5.7-7.6-15.7-10.1-24.7-7.1L241.3 77c-10.7-8.8-23-16-36.2-20.9l-6.1-29c-1.9-9.3-9.1-16.7-18.5-17.8c-6.6-.9-13.3-1.3-20.1-1.3h-.7q-10.2 0-20.1 1.2c-9.4 1.1-16.6 8.6-18.5 17.8L115 56.1c-13.3 5-25.5 12.1-36.2 20.9l-28.3-9.2c-9-3-19-.5-24.7 7.1c-3.5 4.7-6.8 9.6-9.9 14.6l-3 5.3c-2.8 5-5.3 10.2-7.6 15.6c-3.7 8.7-.9 18.6 6.2 25l22.2 19.8c-1.1 6.7-1.7 13.7-1.7 20.8s.6 14.1 1.7 20.9l-22.2 19.8c-7.1 6.3-9.9 16.2-6.2 25c2.3 5.3 4.8 10.5 7.6 15.6l3 5.2c3 5.1 6.3 9.9 9.9 14.6c5.7 7.6 15.7 10.1 24.7 7.1l28.2-9.3c10.7 8.8 23 16 36.2 20.9l6.1 29.1c1.9 9.3 9.1 16.7 18.5 17.8q10.05 1.2 20.4 1.2c10.35 0 13.7-.4 20.4-1.2c9.4-1.1 16.6-8.6 18.5-17.8l6.1-29.1c13.3-5 25.5-12.1 36.2-20.9l28.2 9.3c9 3 19 .5 24.7-7.1c3.5-4.7 6.8-9.5 9.8-14.6l3.1-5.4c2.8-5 5.3-10.2 7.6-15.5c3.7-8.7.9-18.6-6.2-25l-22.2-19.8c1.1-6.8 1.7-13.8 1.7-20.9s-.6-14.1-1.7-20.9l22.2-19.8zM112 176a48 48 0 1 1 96 0a48 48 0 1 1-96 0m392.7 324.5c6.3 7.1 16.2 9.9 25 6.2c5.3-2.3 10.5-4.8 15.5-7.6l5.4-3.1c5-3 9.9-6.3 14.6-9.8c7.6-5.7 10.1-15.7 7.1-24.7l-9.3-28.2c8.8-10.7 16-23 20.9-36.2L613 391c9.3-1.9 16.7-9.1 17.8-18.5q1.2-10.05 1.2-20.4c0-10.35-.4-13.7-1.2-20.4c-1.1-9.4-8.6-16.6-17.8-18.5l-29.1-6.2c-5-13.3-12.1-25.5-20.9-36.2l9.3-28.2c3-9 .5-19-7.1-24.7c-4.7-3.5-9.6-6.8-14.6-9.9l-5.3-3c-5-2.8-10.2-5.3-15.6-7.6c-8.7-3.7-18.6-.9-25 6.2l-19.8 22.2c-6.8-1.1-13.8-1.7-20.9-1.7s-14.1.6-20.9 1.7l-19.8-22.2c-6.3-7.1-16.2-9.9-25-6.2c-5.3 2.3-10.5 4.8-15.6 7.6l-5.2 3c-5.1 3-9.9 6.3-14.6 9.9c-7.6 5.7-10.1 15.7-7.1 24.7l9.3 28.2c-8.8 10.7-16 23-20.9 36.2l-29.1 6c-9.3 1.9-16.7 9.1-17.8 18.5q-1.2 10.05-1.2 20.4c0 10.35.4 13.7 1.2 20.4c1.1 9.4 8.6 16.6 17.8 18.5l29.1 6.1c5 13.3 12.1 25.5 20.9 36.2l-9.3 28.2c-3 9-.5 19 7.1 24.7c4.7 3.5 9.5 6.8 14.6 9.8l5.4 3.1c5 2.8 10.2 5.3 15.5 7.6c8.7 3.7 18.6.9 25-6.2l19.8-22.2c6.8 1.1 13.8 1.7 20.9 1.7s14.1-.6 20.9-1.7l19.8 22.2zM464 304a48 48 0 1 1 0 96a48 48 0 1 1 0-96" /></svg>`;
+
+/** Boxicons — explosion. */
+const EXPLOSION_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M22 11.96c-.02-.39-.26-.74-.63-.89L17.44 9.5l3.43-6a1 1 0 0 0-.16-1.2a1 1 0 0 0-1.2-.16l-6.34 3.62L9.71 2.3c-.29-.29-.72-.37-1.09-.22S8 2.6 8 3v3.82l-4.84-.81a.99.99 0 0 0-1.05.53c-.2.39-.13.86.18 1.17l4.4 4.4l-4.51 6.31a.99.99 0 0 0 .04 1.21c.28.35.76.47 1.17.29l5.87-2.51l.76 3.79c.08.41.4.72.81.79c.06 0 .11.01.17.01c.35 0 .67-.18.86-.49l2.5-4.16l6.15 3.51a1.005 1.005 0 0 0 1.33-1.43l-3.37-5.06l2.99-1.49a1 1 0 0 0 .55-.94Zm-5.45 1.15c-.26.13-.45.36-.52.64s-.02.57.13.81l1.65 2.48l-3.32-1.9a1 1 0 0 0-1.35.35l-1.67 2.78l-.49-2.46c-.06-.29-.25-.55-.52-.69a1 1 0 0 0-.86-.04l-3.71 1.59l2.92-4.09c.28-.4.24-.94-.11-1.29L5.91 8.5l2.92.49c.29.05.59-.03.81-.22s.35-.47.35-.76V5.42l2.29 2.29c.32.32.81.39 1.2.16l3.82-2.18l-2.18 3.82c-.14.25-.17.55-.08.83s.3.49.57.6l2.93 1.17l-2.01 1Z" /></svg>`;
+
+/** Hugeicons — swords (crossed, style 03). */
+const SWORDS_CROSSED_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m7.987 9.491l-2.31-1.978C4.154 6.203 4.15 4.301 3.987 3.02c1.666.079 2.956.23 4.08 1.179l1.176 1.336l1.273 1.429m8.941 11.454l-2.965-3m-2.47 3c.022-.272.2-.978 1.019-1.734c.734-.679 2.327-2.305 3.042-3.01c.406-.4 1.07-.68 1.374-.679m-3.889-.187l1.337 1.479m-3.229.15l1.495 1.313m5.29 2.23c.831.002 1.54.615 1.539 1.445s-.708 1.558-1.538 1.556s-1.471-.732-1.47-1.562c.054-.825.665-1.328 1.47-1.439m-15.866.413l2.958-2.892m-2.992-2.514c.272.022 1.032.204 1.712 1.054c.625.78 2.31 2.29 3.017 3.003c.4.405.68 1.045.68 1.349M7.265 14.23l8.239-9.566c1.34-1.496 3.214-1.529 4.5-1.666c-.112 1.663-.289 2.95-1.26 4.055L8.55 15.926M5.006 19.5A1.503 1.503 0 1 1 2 19.498a1.503 1.503 0 0 1 3.006 0" /></svg>`;
+
+/** Akar Icons (Arturo Wibawa) — sword. */
+const SWORD_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m18 3l4-1l-1 4l-10 10l-2.5-.5L8 13zM2 20l2 2m1-8l1 4l4 1m-4-1l-3 3" /></svg>`;
+
+/** MingCute Icon — axe (line). */
+const AXE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="2" d="M15 10v11h-3V10M7 3S6 4.688 6 7.5S7 12 7 12c2.74-1.826 7.278-2.075 10.972-2.022A1.01 1.01 0 0 0 19 8.97V6.03a1.01 1.01 0 0 0-1.028-1.007C14.278 5.075 9.74 4.826 7 3Z" /></svg>`;
+
+/** MingCute Icon — magic wand (line). */
+const MAGIC_WAND_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m6.044 6.05l2.122 2.122M10.994 11l9.192 9.192M15.944 6.05l-2.122 2.122m-5.656 5.656L6.044 15.95M17.994 11h-3m-8 0h-3m7 7v-3m0-8V4" /></svg>`;
+
+/** Mage Icons — sun (filled). */
+const SUN_FILL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M17.891 12a5.94 5.94 0 0 1-3.68 5.499a5.97 5.97 0 0 1-6.496-1.295A5.948 5.948 0 0 1 11.943 6.05a5.96 5.96 0 0 1 4.21 1.743A5.94 5.94 0 0 1 17.89 12M3.203 13.048H2.05A1.05 1.05 0 0 1 1 12a1.047 1.047 0 0 1 1.05-1.048h1.153A1.05 1.05 0 0 1 4.253 12a1.047 1.047 0 0 1-1.05 1.048m18.747 0h-1.143A1.05 1.05 0 0 1 19.758 12a1.047 1.047 0 0 1 1.05-1.048h1.143A1.05 1.05 0 0 1 23 12a1.047 1.047 0 0 1-1.05 1.048m-9.965-8.8a1.05 1.05 0 0 1-1.05-1.048V2.048A1.047 1.047 0 0 1 11.986 1a1.05 1.05 0 0 1 1.049 1.048V3.2a1.047 1.047 0 0 1-1.05 1.048m0 18.752a1.05 1.05 0 0 1-1.05-1.047V20.8a1.047 1.047 0 0 1 1.05-1.048a1.05 1.05 0 0 1 1.049 1.048v1.152A1.047 1.047 0 0 1 11.984 23M5.753 6.825a1.05 1.05 0 0 1-.745-.314l-.819-.807a1.051 1.051 0 0 1 .745-1.796c.28 0 .548.111.745.308l.819.817a1.047 1.047 0 0 1 0 1.478a1.05 1.05 0 0 1-.745.314m13.271 13.221a1.05 1.05 0 0 1-.735-.304l-.818-.817a1.047 1.047 0 0 1 1.14-1.739q.196.096.34.262l.818.817a1.047 1.047 0 0 1 0 1.477a1.05 1.05 0 0 1-.745.304m-.808-13.221a1.05 1.05 0 0 1-1.034-1.254c.04-.204.142-.391.29-.538l.818-.817a1.05 1.05 0 0 1 1.48 1.488l-.82.807a1.05 1.05 0 0 1-.734.314M4.934 20.046a1.05 1.05 0 0 1-.745-.304a1.046 1.046 0 0 1 0-1.477l.819-.817a1.05 1.05 0 0 1 1.49 0a1.047 1.047 0 0 1 0 1.477l-.819.817a1.05 1.05 0 0 1-.745.304" /></svg>`;
+
+/** MingCute Icon — thunderstorm (line). */
+const THUNDERSTORM_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.535 15a4.002 4.002 0 0 1 2.5-5.883a5.5 5.5 0 0 1 10.777-2.052A5 5 0 0 1 19.999 15m-3-.104l-.259.965m-.776 2.898l-.26.966M7.22 14.896l-.259.966m-.776 2.898l-.26.966M12 13.5L10 17h3l-2 3.5" /></svg>`;
+
+/** MingCute Icon — heavy snow (line). */
+const SNOW_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.535 15a4.002 4.002 0 0 1 2.5-5.883a5.5 5.5 0 0 1 10.777-2.052A5 5 0 0 1 20 15.001M16 17v2m0 0v2m0-2l-1.732-1M16 19l1.732 1M16 19l-1.732 1M16 19l1.732-1M12 11v2m0 0v2m0-2l-1.732-1M12 13l1.732 1M12 13l-1.732 1M12 13l1.732-1M8 17v2m0 0v2m0-2l-1.732-1M8 19l1.732 1M8 19l-1.732 1M8 19l1.732-1" /></svg>`;
+
+/** MingCute Icon — rain (line). */
+const RAIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 16v1m0 3v1m3-7v1m-6-1v1m6 3v1m-6-1v1m-4-2.535a4.002 4.002 0 0 1 1.034-7.348a5.5 5.5 0 0 1 10.777-2.052A5.001 5.001 0 0 1 19.001 16" /></svg>`;
+
+/** Fluent UI System Icons (Microsoft) — stream/river (filled). */
+const RIVER_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M9 11a7 7 0 0 1 7-7h1.5a1 1 0 1 0 0-2H16a9 9 0 0 0-9 9a1 1 0 0 1-1 1H3a1 1 0 1 0 0 2h3a3 3 0 0 0 3-3m8-3a4 4 0 0 0-4 4a6 6 0 0 1-6 6H3a1 1 0 1 1 0-2h4a4 4 0 0 0 4-4a6 6 0 0 1 6-6h4a1 1 0 1 1 0 2zm1 4a1 1 0 0 0-1 1a9 9 0 0 1-9 9H6a1 1 0 1 1 0-2h2a7 7 0 0 0 7-7a3 3 0 0 1 3-3h3a1 1 0 1 1 0 2z" /></svg>`;
+
+/** Röntgen (Sergey Vartanov) — dead tree. */
+const DEAD_TREE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M0 0h16v16H0z" fill="none" /><path fill="currentColor" d="M9.5 1a.5.5 0 0 0-.5.5v2.885l-.754-.672a.5.5 0 0 0-.705.04a.5.5 0 0 0 .041.706L9 5.723v1.592c-.485.486-.99 1.003-1.371 1.607L6 7.293V4.5a.5.5 0 0 0-1 0v1.795l-.125-.125l-.047-.047l-1.975-1.977a.5.5 0 1 0-.707.708l1.51 1.51l-1.379.689a.5.5 0 0 0 .446.894l1.677-.84l.743.743l.004.004l.004.004C6.607 9.315 7 10.085 7 12v2.5a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-3c0-1.472.125-2.268.393-2.855c.267-.588.71-1.041 1.46-1.791l.747-.747l1.677.84a.5.5 0 0 0 .446-.894l-1.38-.69l1.51-1.51a.5.5 0 0 0-.707-.707l-1.974 1.977l-.047.047l-.979.976l-.146.147V3.707l1.854-1.853a.5.5 0 0 0-.707-.707L10 2.293V1.5a.5.5 0 0 0-.5-.5" /></svg>`;
+
+/** Streamline (Flex free icons) — pine tree, "remix" style. */
+const PINE_TREE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 14 14"><path d="M0 0h14v14H0z" fill="none" /><path fill="currentColor" fill-rule="evenodd" d="M6.876 1.292a.2.2 0 0 1 .248 0c1.002.748 2.495 2.223 3.29 3.861c.03.061.025.114.007.154a.18.18 0 0 1-.122.098l-.2.054a.625.625 0 0 0-.3 1.031c.753.808 1.447 1.722 1.925 2.67c.033.066.03.125.008.172a.21.21 0 0 1-.141.114c-1.002.278-2.632.588-4.591.588s-3.589-.31-4.591-.588a.21.21 0 0 1-.141-.114a.2.2 0 0 1 .008-.172c.478-.948 1.172-1.862 1.926-2.67A.625.625 0 0 0 3.9 5.46l-.2-.054a.18.18 0 0 1-.122-.098a.18.18 0 0 1 .007-.154c.796-1.638 2.289-3.113 3.29-3.86M7.872.29a1.45 1.45 0 0 0-1.743 0c-1.103.824-2.757 2.443-3.667 4.317a1.42 1.42 0 0 0 .28 1.645c-.603.716-1.16 1.508-1.582 2.345c-.42.834.03 1.808.915 2.054c.94.26 2.355.54 4.054.614v1.86a.875.875 0 0 0 1.75 0V11.29l-.001-.024a18.5 18.5 0 0 0 4.047-.614a1.445 1.445 0 0 0 .915-2.054c-.422-.836-.979-1.629-1.582-2.344a1.42 1.42 0 0 0 .28-1.646C10.629 2.733 8.976 1.114 7.873.29" clip-rule="evenodd" /></svg>`;
+
+/** Streamline — tree, "remix" style. */
+const TREE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 14 14"><path d="M0 0h14v14H0z" fill="none" /><path fill="currentColor" fill-rule="evenodd" d="M4.138 3.85a2.875 2.875 0 0 1 5.724 0a.63.63 0 0 0 .417.53A2.376 2.376 0 0 1 9.5 9h-5a2.375 2.375 0 0 1-.78-4.62a.63.63 0 0 0 .418-.53M7 0a4.126 4.126 0 0 0-4.052 3.348A3.625 3.625 0 0 0 4.5 10.25h1.625v2.875a.875.875 0 1 0 1.75 0V10.25H9.5a3.625 3.625 0 0 0 1.552-6.902A4.126 4.126 0 0 0 7 0" clip-rule="evenodd" /></svg>`;
+
+/** Boxicons — bowl of rice. */
+const BOWL_RICE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M21 10a3.6 3.6 0 0 0-1.8-3a3.66 3.66 0 0 0-3.63-3.13c-.34 0-.68.05-1.01.14C13.88 3.36 12.98 3 12.01 3s-1.87.37-2.55 1.01c-.33-.09-.67-.14-1.01-.14h-.07C6.56 3.91 5.06 5.26 4.82 7a3.58 3.58 0 0 0-1.8 3c-.55 0-1 .45-1 1c0 3.61 1.9 6.87 5 8.66V21c0 .55.45 1 1 1h8c.55 0 1-.45 1-1v-1.34c3.1-1.78 5-5.05 5-8.66c0-.55-.45-1-1-1ZM6.11 8.61l.81-.26l-.14-.84c0-.88.73-1.6 1.63-1.62c.95.02 1.72.79 1.72 1.75h2c0-.93-.35-1.77-.92-2.43c.24-.13.51-.2.79-.2c.57 0 1.1.28 1.41.76l.51.77l.81-.44c.25-.14.53-.21.82-.21c.92 0 1.67.73 1.67 1.62l-.14.84l.81.27c.62.21 1.03.76 1.09 1.39H5.02c.05-.63.47-1.19 1.09-1.39Zm9.45 9.56c-.34.17-.56.52-.56.9v.94H9v-.94c0-.38-.21-.73-.56-.9a7.93 7.93 0 0 1-4.38-6.16h15.88a7.94 7.94 0 0 1-4.38 6.16" /></svg>`;
+
+/** MingCute Icon — bowl (line). */
+const BOWL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 3.5a1.245 1.245 0 0 1 .662 1.84l-.824 1.32A1.245 1.245 0 0 0 16.5 8.5m-4.5-5a1.245 1.245 0 0 1 .662 1.84l-.824 1.32A1.245 1.245 0 0 0 12.5 8.5M8 3.5a1.245 1.245 0 0 1 .662 1.84l-.824 1.32A1.245 1.245 0 0 0 8.5 8.5M20 11H4v1a7 7 0 0 0 5 6.71c.952.283.524.623.217 1.321c-.223.506.23.969.783.969h4c.552 0 1.006-.463.783-.969c-.307-.698-.735-1.038.217-1.32c2.892-.861 5-3.54 5-6.711z" /></svg>`;
+
+/** Material Symbols (Google) — egg, outline. */
+const EGG_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M7.038 18.963Q5 16.925 5 14q0-1.925.638-3.875t1.65-3.537T9.55 4T12 3q1.225 0 2.463 1t2.25 2.588t1.65 3.537T19 14q0 2.925-2.037 4.963T12 21t-4.962-2.037m8.5-1.426Q17 16.075 17 14q0-1.425-.488-3t-1.225-2.912t-1.612-2.213T12.013 5t-1.675.875t-1.625 2.213T7.488 11T7 14q0 2.075 1.463 3.538T12 19t3.538-1.463M13 18q.425 0 .713-.288T14 17t-.288-.712T13 16q-1.25 0-2.125-.875T10 13q0-.425-.288-.712T9 12t-.712.288T8 13q0 2.075 1.463 3.538T13 18m-1-6" /></svg>`;
+
+/** Font Awesome Solid Icons (Fonticons) — dragon. */
+const DRAGON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path d="M0 0h640v640H0z" fill="none" /><path fill="currentColor" d="m352 188.5l-51.9-13c-6.5-1.6-11.3-7.1-12-13.8s2.8-13.1 8.7-16.1l40.8-20.4l-43.3-32.5c-5.5-4.1-7.8-11.3-5.6-17.9S297.1 64 304 64h160c30.2 0 58.7 14.2 76.8 38.4l57.6 76.8c6.2 8.3 9.6 18.4 9.6 28.8c0 26.5-21.5 48-48 48h-21.5c-17 0-33.3-6.7-45.3-18.7L479.9 224h-32v21.5c0 24.8 12.8 47.9 33.8 61.1l106.6 66.6c32.1 20.1 51.6 55.2 51.6 93.1c0 60.6-49.1 109.8-109.8 109.8L32.3 576c-3.3 0-6.6-.4-9.6-1.4C13.5 571.8 6 565 2.3 556C1 552.7.1 549.1 0 545.3c-.2-3.7.3-7.3 1.3-10.7c2.8-9.2 9.6-16.7 18.6-20.4c3-1.2 6.2-2 9.5-2.2l403.9-36c8.3-.7 14.7-7.7 14.7-16.1c0-4.3-1.7-8.4-4.7-11.4l-44.4-44.4c-30-30-46.9-70.7-46.9-113.1zm160-52.2v-.6zm-1.3 7.4l-46.4-11.6q-.3 1.95-.3 3.9c0 13.3 10.7 24 24 24c10.6 0 19.5-6.8 22.7-16.3m-379.8 36.8c16.3-14.5 40.4-16.2 58.5-4.1l130.6 87v27.5c0 32.8 8.4 64.8 24 93H112c-6.7 0-12.7-4.2-15-10.4s-.5-13.3 4.6-17.7l69.4-59.5l-152.6 23.5c-7 1.1-13.9-2.6-16.9-9s-1.4-14 3.9-18.8z" /></svg>`;
+
+/** Pinhead Map Icons (Quincy Morgan) — unicorn head. */
+const UNICORN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 15 15"><path d="M0 0h15v15H0z" fill="none" /><path fill="currentColor" d="M13.66 0c.09.01.14.08.11.31l-.76 1c-.87 1.16-2.17 2.98-2.16 3.4c.3.23.31.32.38.65c.12.29.9 1.44 1.24 1.72l.22.18c.33.3.36.41.27.81l-.09.36c-.05.18-.1.29-.18.33s-.3.01-.39.02c-.1 0 .06.35-.15.33c-.5-.06-.68-.16-1.08-.32c-.89-.38-1.4.22-2.19-.78c-1.77 1.37-.89 3.02-.41 4.27c.28.95-.52 1.67-.65 2.6c-6.38 1.02-2.18-5.01-6.74-4.94c.17-.52 1.3-.98.08-1.73C.2 7.62 4 7.73 2.2 6.83c-.92-.45 2.51-.35 1.7-1l-.09-.07c-.53-.34 1.08-.42 1.45-1.12c.24-.22 1.73-.61 2.28-.73L8 3.82c.41-.08.4-.14.61-.78l.08-.23c.25-.6.48-.46.81.42l.1.3c.04.09.07.17.11.24l.06.11c.05.09-.02.04.08.13c.46-.16 3.57-3.98 3.57-3.98l.15-.02c.03-.01.07-.01.09-.01" /></svg>`;
+
+/** Pinhead Map Icons (Quincy Morgan) — fish head. */
+const FISH_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 15 15"><path d="M0 0h15v15H0z" fill="none" /><path fill="currentColor" d="M14.21 5.41v.78c0 .1-1.37.66-4.12 1.67c-.17.17-.17.17-.17.34c0 .16.17.33.34.33H15v.78C10.75 12.59 6.89 13.84 0 14V1.5c10.04.27 14.21 3.91 14.21 3.91M7.89 7.82c.96 0 1.58-.64 1.58-1.58c0-.95-.62-1.58-1.58-1.58c-.94 0-1.57.63-1.57 1.58c0 .94.63 1.58 1.57 1.58" /></svg>`;
+
+/** Material Design Icons / Pictogrammers — paw, outline. */
+const PAW_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M22.83 8.25c-.27-.75-.78-1.29-1.43-1.57c-1.17-.5-2.59-.08-3.7.98q.165-.435.3-.93c.25-1.35.03-2.7-.62-3.61c-.43-.62-1.05-1.01-1.74-1.12c-1.54-.22-3.07 1.08-3.71 3c-.64-1.95-2.19-3.24-3.74-3c-.69.12-1.31.53-1.74 1.16c-.64.93-.84 2.23-.56 3.58c.05.26.11.5.2.73C5 6.56 3.7 6.2 2.6 6.68c-.66.29-1.16.85-1.43 1.59c-.376 1.04-.25 2.31.33 3.5c.84 1.63 2.32 2.64 3.71 2.64c.36 0 .72-.07 1.06-.21c.66-.29 1.17-.85 1.44-1.57c.32-.84.29-1.86-.07-2.87c.55.43 1.17.69 1.81.69c.12 0 .25-.01.37-.03c.68-.1 1.3-.5 1.73-1.12c.15-.22.28-.46.38-.72c.1.26.22.5.37.71c.43.62 1.05 1.02 1.74 1.13c.12.02.25.03.37.03c.72 0 1.42-.33 2.02-.88c-.43 1.07-.47 2.16-.14 3.06c.27.73.78 1.28 1.44 1.57c.34.14.7.21 1.07.21c1.38 0 2.86-1.01 3.7-2.64c.58-1.19.71-2.47.33-3.52M5.84 11.93c-.12.33-.31.41-.37.43c-.55.24-1.59-.36-2.17-1.49c-.4-.81-.39-1.52-.25-1.93c.08-.21.2-.36.35-.44c.1 0 .18-.04.28-.04c.58 0 1.42.57 1.92 1.54c.33.68.43 1.43.24 1.93m4.07-3.77c-.12.16-.25.26-.41.28c-.5.06-1.36-.71-1.65-2.1c-.2-.96 0-1.68.25-2.05c.12-.17.26-.29.4-.29c.5-.09 1.38.69 1.66 2.1c.2.97 0 1.7-.25 2.06M16 6.33c-.28 1.4-1.17 2.17-1.66 2.11c-.06-.01-.22-.03-.4-.29c-.25-.36-.44-1.08-.24-2.05c.27-1.34 1.1-2.1 1.59-2.1h.07c.14 0 .27.11.39.27c.32.46.43 1.27.25 2.06m4.7 4.54c-.58 1.13-1.62 1.73-2.17 1.49c-.06-.02-.25-.1-.37-.43c-.16-.5-.09-1.25.23-1.93c.51-.96 1.36-1.53 1.94-1.53c.1 0 .17.03.27.03h.01c.15.08.26.22.34.44c.15.4.16 1.12-.25 1.93m-4.4 3.63c-1.35-1.45-2.41-4.06-4.41-4.06c-2.01 0-3.01 2.65-4.42 4.06c-1.06 1.09-2.85 1.89-3.03 3.38c-.13 1.08.56 2.38 1.56 2.87c.35.18.72.25 1.1.25c1.51 0 3.2-1.13 4.79-1.13c1.61 0 3.29 1.1 4.82 1.1c.37 0 .73-.06 1.08-.22c.86-.39 1.58-1.43 1.54-2.37c-.07-1.63-1.92-2.66-3.03-3.88m.66 4.43a.6.6 0 0 1-.25.04c-.42 0-1.08-.22-1.71-.43c-.92-.31-1.97-.67-3.11-.67s-2.19.37-3.11.69c-.63.21-1.28.44-1.68.44c-.13 0-.18 0-.22-.05c-.22-.11-.48-.58-.45-.83c.07-.23.8-.81 1.16-1.12c.44-.32.91-.67 1.3-1.09c.55-.55 1-1.18 1.44-1.79c.45-.62 1.2-1.68 1.56-1.68c.4 0 1.19 1.12 1.67 1.78c.39.56.8 1.13 1.26 1.63c.39.42.8.79 1.18 1.15c.54.45 1.32 1.14 1.33 1.44c-.01.14-.21.42-.37.49" /></svg>`;
+
+/** Phosphor Icons — skull. */
+const SKULL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M0 0h256v256H0z" fill="none" /><path fill="currentColor" d="M92 104a28 28 0 1 0 28 28a28 28 0 0 0-28-28m0 40a12 12 0 1 1 12-12a12 12 0 0 1-12 12m72-40a28 28 0 1 0 28 28a28 28 0 0 0-28-28m0 40a12 12 0 1 1 12-12a12 12 0 0 1-12 12M128 16C70.65 16 24 60.86 24 116c0 34.1 18.27 66 48 84.28V216a16 16 0 0 0 16 16h80a16 16 0 0 0 16-16v-15.72C213.73 182 232 150.1 232 116c0-55.14-46.65-100-104-100m44.12 172.69a8 8 0 0 0-4.12 7V216h-16v-24a8 8 0 0 0-16 0v24h-16v-24a8 8 0 0 0-16 0v24H88v-20.31a8 8 0 0 0-4.12-7C56.81 173.69 40 145.84 40 116c0-46.32 39.48-84 88-84s88 37.68 88 84c0 29.83-16.81 57.69-43.88 72.69" /></svg>`;
+
+/** Material Symbols Light (Google) — music note (rounded, two-note variant). */
+const MUSIC_NOTE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M3.877 18.93Q3 18.055 3 16.809q0-1.247.877-2.124q.877-.876 2.123-.876q.575 0 1.091.204q.517.205.909.615V6.869q0-.298.19-.528q.189-.23.481-.28l9.443-1.688q.373-.056.658.174t.286.609v9.652q0 1.246-.877 2.123t-2.123.877t-2.123-.877t-.877-2.123t.877-2.123t2.123-.877q.575 0 1.091.205q.517.204.909.614V8.098L9 9.808v7q0 1.246-.877 2.123T6 19.808t-2.123-.877" /></svg>`;
+
+/** Simple Line Icons — speech bubble (distinct from ICON_MESSAGE's Mynaui glyph). */
+const SPEECH_BUBBLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><path d="M0 0h1024v1024H0z" fill="none" /><path fill="currentColor" d="M512 128c247.024 0 448 143.553 448 320.001c0 176.432-200.976 320-448 320l-26.512.096c-17.584 0-29.088-.464-47.072-3.153l-35.856-5.12l-23.008 27.84c-10.576 12.784-64.544 57.12-124.112 85.664c12.112-32.032 21.04-67.008 21.84-101.6l.32-1.904V725.2l-34.864-17.808C129.136 649.28 64 554.752 64 448c0-176.448 200.976-320 448-320m0-63.999C229.2 64.001 0 235.936 0 448c0 132.064 78.256 247.152 213.584 316.336c0 .816-.256 1.408-.256 2.32c0 57.376-32.16 120.464-51.008 152.944h.048c-1.488 3.49-2.368 7.313-2.368 11.41c0 16.08 12.96 28.992 29.008 28.992c2.416 0 6.256-.496 7.664-.496c.336 0 .528 0 .496.095c100-16.336 209.952-104.688 231.824-131.344c22.48 3.344 37.664 3.84 56.48 3.84c7.936 0 16.496-.096 26.528-.096c282.752 0 512-171.904 512-384c0-212.064-229.248-384-512-383.999z" /></svg>`;
+
+/** Majesticons (Gerrit Halfmann) — scroll (line). */
+const SCROLL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 20c-3.2 0-4-2.667-4-4H3v2a2 2 0 0 0 2 2zm0 0a3 3 0 0 0 3-3v-7m0-6H7a2 2 0 0 0-2 2v10M18 4h1a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-1m0-6v6" /></svg>`;
+
+/** Fluent UI System Icons (Microsoft) — location target in a square (Story Context's "go to chapter" action). */
+const LOCATION_TARGET_SQUARE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M6.25 3A3.25 3.25 0 0 0 3 6.25v11.5A3.25 3.25 0 0 0 6.25 21h11.5A3.25 3.25 0 0 0 21 17.75V6.25A3.25 3.25 0 0 0 17.75 3zM4.5 6.25c0-.966.784-1.75 1.75-1.75h11.5c.966 0 1.75.784 1.75 1.75v11.5a1.75 1.75 0 0 1-1.75 1.75H6.25a1.75 1.75 0 0 1-1.75-1.75zM9 12a3 3 0 1 1 6 0a3 3 0 0 1-6 0m-1.438-.75H6.75a.75.75 0 0 0 0 1.5h.812a4.5 4.5 0 0 0 3.688 3.688v.812a.75.75 0 0 0 1.5 0v-.812a4.5 4.5 0 0 0 3.688-3.688h.812a.75.75 0 0 0 0-1.5h-.812a4.5 4.5 0 0 0-3.688-3.688V6.75a.75.75 0 0 0-1.5 0v.812a4.5 4.5 0 0 0-3.688 3.688M13.5 12a1.5 1.5 0 1 1-3 0a1.5 1.5 0 0 1 3 0" /></svg>`;
+
+/** Fluent UI System Icons (Microsoft) — square with text lines and a repeat arrow (Story Context's "refresh story context" action). */
+const REFRESH_SQUARE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="m20.956 14.858l.044-.022V6.25A3.25 3.25 0 0 0 17.75 3H6.25A3.25 3.25 0 0 0 3 6.25v11.5A3.25 3.25 0 0 0 6.25 21h5.974a1.8 1.8 0 0 1-.405-.41a4.5 4.5 0 0 1-.562-1.09H6.25a1.75 1.75 0 0 1-1.75-1.75V6.25c0-.966.784-1.75 1.75-1.75h11.5c.966 0 1.75.784 1.75 1.75v6.775l.987.988c.242.24.398.535.469.845M11.112 17c.123-.544.345-1.05.646-1.5H7.75l-.102.007A.75.75 0 0 0 7.75 17zm5.4-4.487q.212-.21.467-.334a.752.752 0 0 0-.729-.929h-8.5l-.102.007a.75.75 0 0 0 .102 1.493h8.5l.067-.005q.085-.123.196-.232M17 7.75a.75.75 0 0 1-.648.743l-.102.007h-8.5a.75.75 0 0 1-.102-1.493L7.75 7h8.5a.75.75 0 0 1 .75.75m2.78 6.97l-1.5-1.5a.75.75 0 1 0-1.06 1.06l.22.22H15.5a3.5 3.5 0 0 0-2.863 5.513a.75.75 0 0 0 1.226-.863A2 2 0 0 1 15.5 16h1.94l-.22.22a.75.75 0 1 0 1.06 1.06l1.5-1.5a.75.75 0 0 0 0-1.06m2.582 1.266a.75.75 0 1 0-1.226.864A2 2 0 0 1 19.5 20h-1.94l.22-.22a.75.75 0 1 0-1.06-1.06l-1.5 1.5a.75.75 0 0 0 0 1.06l1.5 1.5a.75.75 0 1 0 1.06-1.06l-.22-.22h1.94a3.5 3.5 0 0 0 2.862-5.514" /></svg>`;
+
+/** Fluent UI System Icons (Microsoft) — add (plus) in a square (Story Context's "add chapter summary to chapter details" action). */
+const ADD_SQUARE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M12 7a.75.75 0 0 1 .75.75v3.5h3.5a.75.75 0 0 1 0 1.5h-3.5v3.5a.75.75 0 0 1-1.5 0v-3.5h-3.5a.75.75 0 0 1 0-1.5h3.5v-3.5A.75.75 0 0 1 12 7m-9-.75A3.25 3.25 0 0 1 6.25 3h11.5A3.25 3.25 0 0 1 21 6.25v11.5A3.25 3.25 0 0 1 17.75 21H6.25A3.25 3.25 0 0 1 3 17.75zM6.25 4.5A1.75 1.75 0 0 0 4.5 6.25v11.5c0 .966.784 1.75 1.75 1.75h11.5a1.75 1.75 0 0 0 1.75-1.75V6.25a1.75 1.75 0 0 0-1.75-1.75z" /></svg>`;
+
 /** Registers storyForge's custom Lucide-style icons so `setIcon` can address them by id. */
 export function registerCustomIcons(): void {
 	addIcon(ICON_UNPLACED, INBOX_SVG);
@@ -399,6 +551,44 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_CHECK_CIRCLE_FILL, CHECK_CIRCLE_FILL_SVG);
 	addIcon(ICON_MESSAGE, MESSAGE_SVG);
 	addIcon(ICON_TAG, TAG_SVG);
+	addIcon(ICON_TRUCK, TRUCK_SVG);
+	addIcon(ICON_ROCKETSHIP, ROCKETSHIP_SVG);
+	addIcon(ICON_PLANE, PLANE_SVG);
+	addIcon(ICON_SHIP, SHIP_SVG);
+	addIcon(ICON_ROAD, ROAD_SVG);
+	addIcon(ICON_MOUNTAIN, MOUNTAIN_SVG);
+	addIcon(ICON_TOWER_BLOCK, TOWER_BLOCK_SVG);
+	addIcon(ICON_TOWER_SLIM, TOWER_SLIM_SVG);
+	addIcon(ICON_TOWER_FORTRESS, TOWER_FORTRESS_SVG);
+	addIcon(ICON_SHIELD, SHIELD_SVG);
+	addIcon(ICON_GEARS, GEARS_SVG);
+	addIcon(ICON_EXPLOSION, EXPLOSION_SVG);
+	addIcon(ICON_SWORDS_CROSSED, SWORDS_CROSSED_SVG);
+	addIcon(ICON_SWORD, SWORD_SVG);
+	addIcon(ICON_AXE, AXE_SVG);
+	addIcon(ICON_MAGIC_WAND, MAGIC_WAND_SVG);
+	addIcon(ICON_SUN_FILL, SUN_FILL_SVG);
+	addIcon(ICON_THUNDERSTORM, THUNDERSTORM_SVG);
+	addIcon(ICON_SNOW, SNOW_SVG);
+	addIcon(ICON_RAIN, RAIN_SVG);
+	addIcon(ICON_RIVER, RIVER_SVG);
+	addIcon(ICON_DEAD_TREE, DEAD_TREE_SVG);
+	addIcon(ICON_PINE_TREE, PINE_TREE_SVG);
+	addIcon(ICON_TREE, TREE_SVG);
+	addIcon(ICON_BOWL_RICE, BOWL_RICE_SVG);
+	addIcon(ICON_BOWL, BOWL_SVG);
+	addIcon(ICON_EGG, EGG_SVG);
+	addIcon(ICON_DRAGON, DRAGON_SVG);
+	addIcon(ICON_UNICORN, UNICORN_SVG);
+	addIcon(ICON_FISH, FISH_SVG);
+	addIcon(ICON_PAW, PAW_SVG);
+	addIcon(ICON_SKULL, SKULL_SVG);
+	addIcon(ICON_MUSIC_NOTE, MUSIC_NOTE_SVG);
+	addIcon(ICON_SPEECH_BUBBLE, SPEECH_BUBBLE_SVG);
+	addIcon(ICON_SCROLL, SCROLL_SVG);
+	addIcon(ICON_LOCATION_TARGET_SQUARE, LOCATION_TARGET_SQUARE_SVG);
+	addIcon(ICON_REFRESH_SQUARE, REFRESH_SQUARE_SVG);
+	addIcon(ICON_ADD_SQUARE, ADD_SQUARE_SVG);
 	addIcon(ICON_TRANSPORT_TO_START, TRANSPORT_TO_START_SVG);
 	addIcon(ICON_TRANSPORT_PREVIOUS, TRANSPORT_PREVIOUS_SVG);
 	addIcon(ICON_TRANSPORT_NEXT, TRANSPORT_NEXT_SVG);

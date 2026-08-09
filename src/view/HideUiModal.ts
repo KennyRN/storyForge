@@ -159,6 +159,16 @@ export class HideUiModal extends Modal {
 			})
 			.addSetting((setting) => {
 				setting
+					.setName("Hide tabs in editor window")
+					.setDesc("Hides Obsidian's tab bar at the top of the main editor window.")
+					.addToggle((toggle) =>
+						toggle
+							.setValue(settings.hideEditorTabs)
+							.onChange((value) => this.persistVisibility("hideEditorTabs", value)),
+					);
+			})
+			.addSetting((setting) => {
+				setting
 					.setName("Status bar view")
 					.setDesc("Controls what's shown in Obsidian's bottom status bar.")
 					.addDropdown((dropdown) =>

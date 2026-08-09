@@ -60,6 +60,8 @@ This project uses icons from the following third-party, open-source icon sets. A
 - **Source:** https://github.com/google/material-design-icons
 - **Licence:** Apache License 2.0 — *see [Apache License 2.0](#) below*
 
+> **Note:** covers both the regular and "Light" weight variants of Material Symbols.
+
 ---
 
 ## Tabler Icons
@@ -85,13 +87,159 @@ This project uses icons from the following third-party, open-source icon sets. A
 - **Licence:** MIT License — *see [MIT License](#) below*
 
 ---
+
+## Feather Icon (fe)
+
+- **Author:** Megumi Hano
+- **Source:** https://github.com/feathericon/feathericon
+- **Licence:** MIT License — *see [MIT License](#mit-license) below*
+
+> **Note:** distinct from the better-known "Feather Icons" project by Cole Bemis — this is a separate, similarly-named set distributed under the Iconify "fe" prefix.
+
+---
+
+## @icons (at-icons)
+
+- **Author:** Valentin Fossati
+- **Source:** https://github.com/Voxybuns/at-icons
+- **Licence:** MIT License — *see [MIT License](#mit-license) below*
+
+---
+
+## MingCute Icon
+
+- **Author:** MingCute Design
+- **Source:** https://github.com/Richard9394/MingCute
+- **Licence:** Apache License 2.0 — *see [Apache License 2.0](#apache-license-20) below*
+
+---
+
+## IconPark Solid
+
+- **Author:** ByteDance
+- **Source:** https://github.com/bytedance/IconPark
+- **Licence:** Apache License 2.0 — *see [Apache License 2.0](#apache-license-20) below*
+
+---
+
+## Röntgen
+
+- **Author:** Sergey Vartanov
+- **Source:** https://github.com/enzet/Roentgen
+- **Licence:** Creative Commons Attribution 4.0 International (CC BY 4.0) — *see [CC BY 4.0](#creative-commons-attribution-40-international-cc-by-40) below*
+
+> **Note:** licensed under CC BY 4.0, which requires attribution. The attribution above (name, source link, licence) satisfies this requirement.
+
+---
+
+## Font Awesome Solid Icons
+
+- **Author:** Fonticons, Inc.
+- **Source:** https://github.com/FortAwesome/Font-Awesome
+- **Licence:** Creative Commons Attribution 4.0 International (CC BY 4.0) — *see [CC BY 4.0](#creative-commons-attribution-40-international-cc-by-40) below*
+
+> **Note:** Font Awesome Free is multi-licensed; this project only uses the SVG icons (from both the Font Awesome 6 and 7 solid sets), which are licensed under CC BY 4.0 and require attribution. The attribution above (name, source link, licence) satisfies this requirement.
+
+---
+
+## Huge Icons
+
+- **Author:** Hugeicons
+- **Source:** https://github.com/hugeicons/hugeicons
+- **Licence:** MIT License — *see [MIT License](#mit-license) below*
+
+---
+
+## Akar Icons
+
+- **Author:** Arturo Wibawa
+- **Source:** https://github.com/artcoholic/akar-icons
+- **Licence:** MIT License — *see [MIT License](#mit-license) below*
+
+---
+
+## Fluent UI System Icons
+
+- **Author:** Microsoft Corporation
+- **Source:** https://github.com/microsoft/fluentui-system-icons
+- **Licence:** MIT License — *see [MIT License](#mit-license) below*
+
+---
+
+## Streamline
+
+- **Author:** Streamline (Webalys)
+- **Source:** https://github.com/webalys-hq/streamline-vectors
+- **Licence:** Creative Commons Attribution 4.0 International (CC BY 4.0) — *see [CC BY 4.0](#creative-commons-attribution-40-international-cc-by-40) below*
+
+> **Note:** covers both the regular Streamline set and "Streamline Flex". Licensed under CC BY 4.0, which requires attribution. The attribution above (name, source link, licence) satisfies this requirement.
+
+---
+
+## Material Design Icons (MDI)
+
+- **Author:** Pictogrammers
+- **Source:** https://github.com/Templarian/MaterialDesign
+- **Licence:** Apache License 2.0 — *see [Apache License 2.0](#apache-license-20) below*
+
+---
+
+## Phosphor Icons
+
+- **Author:** Phosphor Icons
+- **Source:** https://github.com/phosphor-icons/core
+- **Licence:** MIT License — *see [MIT License](#mit-license) below*
+
+---
+
+## Majesticons
+
+- **Author:** Gerrit Halfmann
+- **Source:** https://github.com/halfmage/majesticons
+- **Licence:** MIT License — *see [MIT License](#mit-license) below*
+
+---
+
+## Pinhead Map Icons
+
+- **Author:** Quincy Morgan
+- **Source:** https://github.com/waysidemapping/pinhead
+- **Licence:** CC0 1.0 Universal (Public Domain Dedication) — *see [CC0 1.0 Universal](#cc0-10-universal) below*
+
+---
+
+## Simple Line Icons
+
+- **Author:** Sabbir Ahmed & contributors
+- **Source:** https://github.com/thesabbir/simple-line-icons
+- **Licence:** MIT License — *see [MIT License](#mit-license) below*
+
+---
+
+## Ionicons
+
+- **Author:** Ionic (ionic-team)
+- **Source:** https://github.com/ionic-team/ionicons
+- **Licence:** MIT License — *see [MIT License](#mit-license) below*
+
+---
+
+## Solar Icons
+
+- **Author:** 480 Design
+- **Source:** https://www.figma.com/community/file/1166831539721848736
+- **Licence:** Creative Commons Attribution 4.0 International (CC BY 4.0) — *see [CC BY 4.0](#creative-commons-attribution-40-international-cc-by-40) below*
+
+> **Note:** licensed under CC BY 4.0, which requires attribution. The attribution above (name, source link, licence) satisfies this requirement.
+
+---
 ---
 
 # Licence Texts
 
 ## Apache License 2.0
 
-*Applies to: Mage Icons*
+*Applies to: Mage Icons, Material Symbols, MingCute Icon, IconPark Solid, Material Design Icons (MDI)*
 
 ```
                                  Apache License
@@ -276,12 +424,12 @@ This project uses icons from the following third-party, open-source icon sets. A
 
 ## MIT License
 
-*Applies to: Famicons, Mynaui Icons, Siemens Industrial Experience Icons (ix), Mono Icons*
+*Applies to: Famicons, Mynaui Icons, Siemens Industrial Experience Icons (ix), Mono Icons, Tabler Icons, Framework7 Icons, Bootstrap Icons, Feather Icon (fe), @icons (at-icons), Huge Icons, Akar Icons, Fluent UI System Icons, Phosphor Icons, Majesticons, Simple Line Icons, Ionicons*
 
 ```
 MIT License
 
-Copyright (c) respective icon set authors (Famicons — Family; Mynaui Icons — Myna UI; Siemens Industrial Experience Icons — Siemens AG; Mono Icons — Mono Company BV)
+Copyright (c) respective icon set authors (Famicons — Family; Mynaui Icons — Myna UI; Siemens Industrial Experience Icons — Siemens AG; Mono Icons — Mono Company BV; Tabler Icons — Tabler (Paweł Kuna); Framework7 Icons — Vladimir Kharlampidi; Bootstrap Icons — The Bootstrap Authors; Feather Icon (fe) — Megumi Hano; @icons (at-icons) — Valentin Fossati; Huge Icons — Hugeicons; Akar Icons — Arturo Wibawa; Fluent UI System Icons — Microsoft Corporation; Phosphor Icons — Phosphor Icons; Majesticons — Gerrit Halfmann; Simple Line Icons — Sabbir Ahmed & contributors; Ionicons — Ionic (ionic-team))
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -306,9 +454,20 @@ SOFTWARE.
 
 ## Creative Commons Attribution 4.0 International (CC BY 4.0)
 
-*Applies to: Boxicons*
+*Applies to: Boxicons, Röntgen, Font Awesome Solid Icons, Streamline, Solar Icons*
 
-Boxicons icons are licensed under CC BY 4.0. Under this licence you are free to use, copy, modify and redistribute the icons, including commercially, provided you give appropriate credit. The required attribution for this project is provided in the Boxicons section above (name, source link, licence).
+These icons are licensed under CC BY 4.0. Under this licence you are free to use, copy, modify and redistribute the icons, including commercially, provided you give appropriate credit. The required attribution for this project is provided in each set's own section above (name, source link, licence).
 
 Full legal text: https://creativecommons.org/licenses/by/4.0/legalcode
 Human-readable summary: https://creativecommons.org/licenses/by/4.0/
+
+---
+
+## CC0 1.0 Universal
+
+*Applies to: Pinhead Map Icons*
+
+CC0 dedicates a work to the public domain. No attribution is legally required, but this project credits the author anyway (see the Pinhead Map Icons section above) as a courtesy.
+
+Full legal text: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+Human-readable summary: https://creativecommons.org/publicdomain/zero/1.0/
