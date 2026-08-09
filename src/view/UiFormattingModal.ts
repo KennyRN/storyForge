@@ -192,39 +192,50 @@ export class UiFormattingModal extends Modal {
 		});
 	}
 
+	/**
+	 * Shared by Unplaced/Codex/Archive (which have a visible header to size and small-cap) and
+	 * Story Context (which doesn't — its "header colour" survives only as the base colour the
+	 * "use for all" toggle spreads to every other Story Context colour, so `sizeKey`/
+	 * `smallCapsKey` are omitted there and the labels swap to `colorLabel`/`useForAllLabel`).
+	 */
 	private renderHeaderStyleGroup(
 		body: HTMLElement,
 		settings: StoryForgePluginSettings,
 		config: {
-			sizeKey: "unplacedFontSize" | "codexFontSize" | "recommendHeaderFontSize" | "archiveHeaderFontSize";
+			sizeKey?: "unplacedFontSize" | "codexFontSize" | "archiveHeaderFontSize";
 			colorKey: "unplacedColor" | "codexColor" | "recommendHeaderColor" | "archiveHeaderColor";
 			mutedKey: "unplacedMuted" | "codexMuted" | "recommendHeaderMuted" | "archiveHeaderMuted";
-			smallCapsKey: "unplacedSmallCaps" | "codexSmallCaps" | "recommendHeaderSmallCaps" | "archiveHeaderSmallCaps";
+			smallCapsKey?: "unplacedSmallCaps" | "codexSmallCaps" | "archiveHeaderSmallCaps";
 			useHeaderColorForAllKey:
 				| "unplacedUseHeaderColorForAll"
 				| "codexUseHeaderColorForAll"
 				| "recommendUseHeaderColorForAll"
 				| "archiveUseHeaderColorForAll";
+			colorLabel?: string;
+			useForAllLabel?: string;
 			restyle: () => void;
 		},
 	): ToggleComponent {
 		const group = new SettingGroup(body);
 		let useHeaderColorForAllToggle!: ToggleComponent;
-		group
-			.addSetting((setting) => {
+		if (config.sizeKey) {
+			const sizeKey = config.sizeKey;
+			group.addSetting((setting) => {
 				setting
 					.setName("Header size")
 					.setDesc("size of header label and icon")
 					.addSlider((slider) =>
 						slider
 							.setLimits(0.5, 1.5, 0.1)
-							.setValue(settings[config.sizeKey])
-							.onChange((value) => persistAndRestyle(this.plugin, config.sizeKey, value, config.restyle)),
+							.setValue(settings[sizeKey])
+							.onChange((value) => persistAndRestyle(this.plugin, sizeKey, value, config.restyle)),
 					);
-			})
+			});
+		}
+		group
 			.addSetting((setting) => {
 				setting
-					.setName("Header colour")
+					.setName(config.colorLabel ?? "Header colour")
 					.addButton((button) =>
 						bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings[config.colorKey], (hex) => {
 							void this.plugin.updateSetting(config.colorKey, hex).then(() => config.restyle());
@@ -233,8 +244,8 @@ export class UiFormattingModal extends Modal {
 			})
 			.addSetting((setting) => {
 				setting
-					.setName("Use header colour for all colour options")
-					.setDesc("Use the header colour everywhere below instead of picking separate colours.")
+					.setName(config.useForAllLabel ?? "Use header colour for all colour options")
+					.setDesc(`Use the ${(config.colorLabel ?? "header colour").toLowerCase()} everywhere below instead of picking separate colours.`)
 					.addToggle((toggle) => {
 						useHeaderColorForAllToggle = toggle;
 						toggle.setValue(settings[config.useHeaderColorForAllKey]);
@@ -243,19 +254,22 @@ export class UiFormattingModal extends Modal {
 			.addSetting((setting) => {
 				setting
 					.setName("Muted")
-					.setDesc("override header colour with muted colour")
+					.setDesc(`override ${(config.colorLabel ?? "header colour").toLowerCase()} with muted colour`)
 					.addToggle((toggle) =>
 						toggle.setValue(settings[config.mutedKey]).onChange((value) => persistAndRestyle(this.plugin, config.mutedKey, value, config.restyle)),
 					);
-			})
-			.addSetting((setting) => {
+			});
+		if (config.smallCapsKey) {
+			const smallCapsKey = config.smallCapsKey;
+			group.addSetting((setting) => {
 				setting
 					.setName("Small caps")
 					.addToggle((toggle) =>
-						toggle.setValue(settings[config.smallCapsKey]).onChange((value) => persistAndRestyle(this.plugin, config.smallCapsKey, value, config.restyle)),
+						toggle.setValue(settings[smallCapsKey]).onChange((value) => persistAndRestyle(this.plugin, smallCapsKey, value, config.restyle)),
 					);
 				setting.nameEl.addClass("sf-small-caps-label");
 			});
+		}
 		return useHeaderColorForAllToggle;
 	}
 
@@ -795,11 +809,13 @@ export class UiFormattingModal extends Modal {
 		const keys =
 			panel === "recommend"
 				? {
-						sizeKey: "recommendHeaderFontSize" as const,
+						sizeKey: undefined,
 						colorKey: "recommendHeaderColor" as const,
 						mutedKey: "recommendHeaderMuted" as const,
-						smallCapsKey: "recommendHeaderSmallCaps" as const,
+						smallCapsKey: undefined,
 						useHeaderColorForAllKey: "recommendUseHeaderColorForAll" as const,
+						colorLabel: "Base colour",
+						useForAllLabel: "Use base colour for all colour options",
 						itemsSizeKey: "recommendItemsFontSize" as const,
 						itemsColorKey: "recommendItemsColor" as const,
 						itemsMutedKey: "recommendItemsMuted" as const,
@@ -813,6 +829,8 @@ export class UiFormattingModal extends Modal {
 						mutedKey: "archiveHeaderMuted" as const,
 						smallCapsKey: "archiveHeaderSmallCaps" as const,
 						useHeaderColorForAllKey: "archiveUseHeaderColorForAll" as const,
+						colorLabel: undefined,
+						useForAllLabel: undefined,
 						itemsSizeKey: "archiveItemsFontSize" as const,
 						itemsColorKey: "archiveItemsColor" as const,
 						itemsMutedKey: "archiveItemsMuted" as const,
@@ -827,6 +845,8 @@ export class UiFormattingModal extends Modal {
 			mutedKey: keys.mutedKey,
 			smallCapsKey: keys.smallCapsKey,
 			useHeaderColorForAllKey: keys.useHeaderColorForAllKey,
+			colorLabel: keys.colorLabel,
+			useForAllLabel: keys.useForAllLabel,
 			restyle,
 		});
 

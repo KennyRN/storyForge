@@ -61,7 +61,7 @@ export function renderTransportRow(
 			attr: { "aria-label": label },
 		});
 		setIcon(btn, toggle.active ? ICON_CONTINUOUS_MODE_EXIT : ICON_CONTINUOUS_MODE);
-		btn.addEventListener("click", toggle.onToggle);
+		btn.addEventListener("pointerdown", toggle.onToggle);
 		makeAccessibleActivatable(btn, toggle.onToggle);
 	}
 	addTransportButton(buttons, ICON_TRANSPORT_NEXT, "Next chapter", !atEnd, actions.next);
@@ -73,7 +73,11 @@ function addTransportButton(container: HTMLElement, iconId: string, label: strin
 	if (!enabled) btn.addClass("sf-navigator-transport-btn-disabled");
 	setIcon(btn, iconId);
 	if (enabled) {
-		btn.addEventListener("click", onClick);
+		// pointerdown, not click: this sidebar pane isn't always the focused/active one (the editor
+		// usually is), and a plain "click" listener's first firing there was getting eaten by
+		// Obsidian's own click-to-focus-the-pane handling — the button needed a second click before
+		// it visibly did anything. pointerdown fires regardless, so one click is enough.
+		btn.addEventListener("pointerdown", onClick);
 		makeAccessibleActivatable(btn, onClick);
 	}
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { type App } from "obsidian";
 import { makeTFile, makeTFolder } from "./obsidianStub";
-import { readBookFrontmatter, safeCoverFilename, writeBookCoverImage } from "../book";
+import { readBookFrontmatter, safeCoverFilename, writeBookCoverImage, writeChapterTags, writeNovelTags } from "../book";
 import { BACKSTAGE_ROOT, LIBRARY_ROOT } from "../paths";
 
 describe("safeCoverFilename", () => {
@@ -121,5 +121,71 @@ describe("writeBookCoverImage", () => {
 		const { app, trashedPaths } = makeFakeApp({ "cover-image": ".." });
 		await writeBookCoverImage(app, "BookA", new ArrayBuffer(4), "png");
 		expect(trashedPaths).toEqual([]);
+	});
+});
+
+describe("writeChapterTags", () => {
+	it("sets a chapter's tags while preserving its other fields", async () => {
+		const { app, frontmatter } = makeFakeApp({
+			chapters: { "ch1.md": { "chapter-id": "c1", "chapter-title": "Chapter One", plot: "stuff happens" } },
+		});
+		await writeChapterTags(app, "BookA", "ch1.md", ["draft", "needs-review"]);
+		const chapters = frontmatter.chapters as Record<string, Record<string, unknown>>;
+		expect(chapters["ch1.md"]).toEqual({
+			"chapter-id": "c1",
+			"chapter-title": "Chapter One",
+			plot: "stuff happens",
+			tags: ["draft", "needs-review"],
+		});
+	});
+
+	it("clears tags entirely (omits the key) when given an empty array", async () => {
+		const { app, frontmatter } = makeFakeApp({
+			chapters: { "ch1.md": { "chapter-id": "c1", "chapter-title": "Chapter One", tags: ["draft"] } },
+		});
+		await writeChapterTags(app, "BookA", "ch1.md", []);
+		const chapters = frontmatter.chapters as Record<string, Record<string, unknown>>;
+		expect(chapters["ch1.md"].tags).toBeUndefined();
+	});
+
+	it("round-trips through readBookFrontmatter's parseChaptersMap", async () => {
+		const { app } = makeFakeApp({
+			chapters: { "ch1.md": { "chapter-id": "c1", "chapter-title": "Chapter One" } },
+		});
+		await writeChapterTags(app, "BookA", "ch1.md", ["draft"]);
+		expect(readBookFrontmatter(app, "BookA")?.chapters["ch1.md"].tags).toEqual(["draft"]);
+	});
+
+	it("defaults to an empty array for a chapter with no tags key at all", () => {
+		const { app } = makeFakeApp({
+			chapters: { "ch1.md": { "chapter-id": "c1", "chapter-title": "Chapter One" } },
+		});
+		expect(readBookFrontmatter(app, "BookA")?.chapters["ch1.md"].tags).toEqual([]);
+	});
+});
+
+describe("writeNovelTags", () => {
+	it("sets novel-tags (not the bare 'tags' key, to avoid colliding with Obsidian's native tag frontmatter)", async () => {
+		const { app, frontmatter } = makeFakeApp();
+		await writeNovelTags(app, "BookA", ["needs-cover", "on-hold"]);
+		expect(frontmatter["novel-tags"]).toEqual(["needs-cover", "on-hold"]);
+		expect(frontmatter.tags).toBeUndefined();
+	});
+
+	it("clears novel-tags when given an empty array", async () => {
+		const { app, frontmatter } = makeFakeApp({ "novel-tags": ["on-hold"] });
+		await writeNovelTags(app, "BookA", []);
+		expect(frontmatter["novel-tags"]).toBeUndefined();
+	});
+
+	it("round-trips through readBookFrontmatter", async () => {
+		const { app } = makeFakeApp();
+		await writeNovelTags(app, "BookA", ["needs-cover"]);
+		expect(readBookFrontmatter(app, "BookA")?.novelTags).toEqual(["needs-cover"]);
+	});
+
+	it("defaults to an empty array when unset", () => {
+		const { app } = makeFakeApp();
+		expect(readBookFrontmatter(app, "BookA")?.novelTags).toEqual([]);
 	});
 });

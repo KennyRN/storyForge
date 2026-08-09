@@ -3,6 +3,13 @@ import { mintId } from "./slug";
 export interface CodexFolderEntry {
 	name: string;
 	order: string[];
+	/**
+	 * Set when this folder is also a real Codex note (a "Lore Entry" — e.g. a group — that other
+	 * entries, e.g. its members, can be filed inside). The folder still has its own minted id,
+	 * completely separate from this path — `linkedNotePath` is the only link between the two, so
+	 * nothing that assumes "folder ids never look like file paths" (see isFolderKey) breaks.
+	 */
+	linkedNotePath?: string;
 }
 
 /** Flat map of virtual folder id -> entry. Folders never nest structurally here — nesting exists only via cross-references inside `order` arrays. */
@@ -19,6 +26,10 @@ export interface CodexTreeFolder {
 	id: string;
 	name: string;
 	children: CodexTreeItem[];
+	/** Set (to the same value as CodexFolderEntry.linkedNotePath) when this folder is also a real,
+	 * still-existing Codex note — clicking the row itself (not the chevron) opens it, same as a
+	 * plain file row. */
+	path?: string;
 }
 
 export type CodexTreeItem = CodexTreeFile | CodexTreeFolder;
@@ -38,13 +49,17 @@ export function codexBasename(path: string): string {
 	return filename.replace(/\.md$/i, "");
 }
 
-/** Recursively collects every file-path leaf referenced anywhere under `order` (root or nested folders). */
+/** Recursively collects every file-path leaf referenced anywhere under `order` (root or nested
+ * folders) — including each folder's own `linkedNotePath`, if it has one, so a Lore Entry folder's
+ * underlying note counts as "referenced" and doesn't also show up as a duplicate unplaced file. */
 export function collectReferencedPaths(folders: CodexFolders, order: string[]): Set<string> {
 	const result = new Set<string>();
 	const walk = (entries: string[]) => {
 		for (const key of entries) {
 			if (isFolderKey(folders, key)) {
-				walk(folders[key].order);
+				const entry = folders[key];
+				if (entry.linkedNotePath) result.add(entry.linkedNotePath);
+				walk(entry.order);
 			} else {
 				result.add(key);
 			}
@@ -88,7 +103,18 @@ export function resolveCodexTree(
 				const childItems = buildChildren(entry.order);
 				const hasRealContent = [...collectReferencedPaths(folders, entry.order)].some((p) => realPaths.has(p));
 				if (childItems.length === 0 && hasRealContent) continue;
-				children.push({ type: "folder", id: key, name: entry.name, children: childItems });
+				// A Lore Entry folder's display name always tracks its linked note's own current
+				// basename (not a separately stored folder name) — one source of truth, so renaming
+				// the note can never leave the folder's label stale. Falls back to the stored `name`
+				// if the linked note no longer exists (degrades to a plain organisational folder).
+				const linked = entry.linkedNotePath && realPaths.has(entry.linkedNotePath) ? entry.linkedNotePath : undefined;
+				children.push({
+					type: "folder",
+					id: key,
+					name: linked ? codexBasename(linked) : entry.name,
+					children: childItems,
+					path: linked,
+				});
 			} else if (visiblePaths.has(key)) {
 				children.push({ type: "file", name: codexBasename(key), path: key });
 			}

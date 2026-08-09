@@ -22,7 +22,6 @@ const LINKED_ENUM_CYCLES: Partial<Record<SfLinkedFormattingKey, readonly string[
 	codexFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
 	codexFolderFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
 	codexNoteLabelFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
-	recommendHeaderFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
 	recommendTabsFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
 	recommendChapterTitleFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
 	recommendDossierHeaderFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
@@ -153,13 +152,8 @@ function makeLinkedDefaults(): SettingsBag {
 		editorScrollbarThumbColor: "#6b7280",
 		editorScrollbarThickness: "thick",
 		forgeCompanionIconColor: "#7c3aed",
-		recommendHeaderFontSize: 1,
-		recommendHeaderOverrideFont: false,
-		recommendHeaderFontFamily: "ibm-plex-sans-var",
-		recommendHeaderFontWeight: "600",
 		recommendHeaderColor: "#7c3aed",
 		recommendHeaderMuted: false,
-		recommendHeaderSmallCaps: true,
 		recommendTabsFontSize: 0.85,
 		recommendTabsOverrideFont: false,
 		recommendTabsFontFamily: "ibm-plex-sans-var",
@@ -436,9 +430,9 @@ describe("formatting API stress", () => {
 		await expect(
 			api.formatting.updateLinkedSettings({
 				bodyTextSize: 1.7,
-				recommendHeaderFontWeight: "invalid",
+				recommendTabsFontWeight: "invalid",
 			}),
-		).rejects.toThrow("recommendHeaderFontWeight");
+		).rejects.toThrow("recommendTabsFontWeight");
 		expect(api.formatting.getLinkedSettings()).toEqual(snapshot);
 		expect(plugin._debug.applyLinkedCalls).toBe(beforeCalls + 1);
 	});

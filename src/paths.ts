@@ -18,6 +18,11 @@ export function codexFilePath(): string {
 	return `${BACKSTAGE_ROOT}/codex.md`;
 }
 
+/** Vault-wide registry of user-editable Codex types, chapter tags, novel tags, and the icon catalog they draw from. */
+export function tagRegistryFilePath(): string {
+	return `${BACKSTAGE_ROOT}/tag-registry.md`;
+}
+
 /** True if `path` is a flat `.md` note directly inside `Codex/` (no nested segments — Codex folders are virtual, not real). */
 export function isCodexNotePath(path: string): boolean {
 	const prefix = `${CODEX_ROOT}/`;

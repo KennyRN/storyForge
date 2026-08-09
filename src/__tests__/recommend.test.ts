@@ -168,6 +168,18 @@ describe("analyzeChapter (dossier engine)", () => {
 		expect(report.unknownNames).not.toContain("Jane");
 	});
 
+	it("keeps a capitalised generic noun tail on an invented name (Winster River)", async () => {
+		await ensureNlp();
+		const prose = "Finally, we came out upon the banks of the Winster River.";
+		const report = await analyzeChapter(prose, [jane], {
+			chapterFilename: "ch1.md",
+			existingPlot: "",
+			includeUnknownNames: true,
+		});
+		expect(report.unknownNames).toContain("Winster River");
+		expect(report.unknownNames).not.toContain("Winster");
+	});
+
 	it("drops sentence-initial common English words from unknown names", async () => {
 		await ensureNlp();
 		const prose =
@@ -183,8 +195,13 @@ describe("analyzeChapter (dossier engine)", () => {
 		expect(report.unknownNames).not.toContain("Worse");
 	});
 
-	it("drops common English PROPNs mid-sentence and unbridged common runs", async () => {
+	it("drops a lone common English word but keeps a multi-word run of them", async () => {
 		await ensureNlp();
+		// Standalone "Anger" (capitalised emphasis on an ordinary word) is noise
+		// on its own and dropped. "Sudden Anger" is a two-word unbridged run —
+		// per the broadened filter, multi-word common-word runs stand as
+		// candidates (same shape as a real name like "Three Bridge"), so it
+		// surfaces and the writer dismisses it if it isn't one.
 		const prose =
 			"But Anger remained. The Anger rose. Her Anger was clear. — Anger flared. Sudden Anger took her.";
 		const report = await analyzeChapter(prose, [jane], {
@@ -193,8 +210,18 @@ describe("analyzeChapter (dossier engine)", () => {
 			includeUnknownNames: true,
 		});
 		expect(report.unknownNames).not.toContain("Anger");
-		expect(report.unknownNames).not.toContain("Sudden Anger");
-		expect(report.unknownNames.some((n) => /anger/i.test(n))).toBe(false);
+		expect(report.unknownNames).toContain("Sudden Anger");
+	});
+
+	it("keeps a numeral-qualified place name (Three Bridge)", async () => {
+		await ensureNlp();
+		const prose = "Not that you could tell this far from the main streets through Three Bridge.";
+		const report = await analyzeChapter(prose, [jane], {
+			chapterFilename: "ch1.md",
+			existingPlot: "",
+			includeUnknownNames: true,
+		});
+		expect(report.unknownNames).toContain("Three Bridge");
 	});
 
 	it("keeps bridged multi-word titles even when parts are common English", async () => {

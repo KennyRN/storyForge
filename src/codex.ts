@@ -32,6 +32,11 @@ export interface CodexFrontmatterShape {
 	order: string[];
 	archive: string[];
 	types: Record<string, string>;
+	/** Codex-entry-path -> assigned codexTags ids (tagRegistry.ts). Independent of `types` — an
+	 * entry's type is singular and drives its icon and the tree's type filter
+	 * (filterVisiblePathsByType); tags are multi-valued, freeform, and not yet wired to any
+	 * filtering of their own (assignable via BottomPanel.ts's "Tags..." menu item). */
+	tags: Record<string, string[]>;
 }
 
 /** The raw, unsanitized on-disk shape of codex.md's frontmatter, as read/written through `modifyBackstageFrontmatter`. */
@@ -40,6 +45,7 @@ export interface RawCodexFrontmatter extends FrontMatterCache {
 	order?: unknown;
 	archive?: unknown;
 	types?: unknown;
+	tags?: unknown;
 }
 
 export interface CodexTypeOption {
@@ -65,6 +71,15 @@ export function getCodexTypes(): readonly CodexTypeOption[] {
 	return CODEX_TYPES;
 }
 
+/**
+ * Types registered by hosted sibling plugins via `registerCodexType`, tracked separately from the
+ * user-persisted registry (tagRegistry.ts). This is deliberately not inferred by diffing against
+ * CODEX_TYPES's current contents — a type present in CODEX_TYPES but absent from the newly
+ * resolved persisted list is far more often "the user just deleted this" than "this is a sibling
+ * registration", and conflating the two would resurrect a deleted type on the next codexTypes edit.
+ */
+const SIBLING_REGISTERED_TYPES = new Map<string, CodexTypeOption>();
+
 /** Idempotent: updates label/icon if `type` already registered. */
 export function registerCodexType(opt: CodexTypeOption): void {
 	const type = opt.type.trim();
@@ -72,6 +87,7 @@ export function registerCodexType(opt: CodexTypeOption): void {
 	const label = opt.label.trim() || type;
 	const icon = opt.icon.trim();
 	if (!icon) throw new Error("registerCodexType: icon is required");
+	SIBLING_REGISTERED_TYPES.set(type, { type, label, icon });
 	const existing = CODEX_TYPES.find((t) => t.type === type);
 	if (existing) {
 		existing.label = label;
@@ -83,6 +99,22 @@ export function registerCodexType(opt: CodexTypeOption): void {
 
 export function codexTypeIcon(type: string): string | null {
 	return CODEX_TYPES.find((t) => t.type === type)?.icon ?? null;
+}
+
+/**
+ * Replaces CODEX_TYPES's contents with `resolved` (the persisted, user-editable registry from
+ * tagRegistry.ts, already resolved to real icon ids), re-adding any type a sibling plugin
+ * registered via `registerCodexType` that isn't present in `resolved` — sibling registrations are
+ * never persisted, so they'd otherwise be lost on this replace. Called by tagRegistry.ts only;
+ * kept here (rather than tagRegistry.ts importing and mutating CODEX_TYPES directly) so this
+ * module's only import direction is outward to tagRegistry.ts, never the reverse.
+ */
+export function loadCodexTypesFromRegistry(resolved: readonly CodexTypeOption[]): void {
+	const siblingOnly = Array.from(SIBLING_REGISTERED_TYPES.values()).filter(
+		(s) => !resolved.some((r) => r.type === s.type),
+	);
+	CODEX_TYPES.length = 0;
+	CODEX_TYPES.push(...resolved.map((t) => ({ ...t })), ...siblingOnly.map((t) => ({ ...t })));
 }
 
 export interface ArchivedCodexItem {
@@ -103,7 +135,8 @@ function parseFolders(raw: unknown): CodexFolders {
 		const entry = value as Record<string, unknown>;
 		const name = typeof entry.name === "string" ? entry.name : id;
 		const order = Array.isArray(entry.order) ? entry.order.filter((v): v is string => typeof v === "string") : [];
-		result[id] = { name, order };
+		const linkedNotePath = typeof entry.linkedNotePath === "string" ? entry.linkedNotePath : undefined;
+		result[id] = linkedNotePath ? { name, order, linkedNotePath } : { name, order };
 	}
 	return result;
 }
@@ -121,9 +154,19 @@ function parseTypes(raw: unknown): Record<string, string> {
 	return result;
 }
 
+function parseTagsMap(raw: unknown): Record<string, string[]> {
+	if (!raw || typeof raw !== "object") return {};
+	const result: Record<string, string[]> = {};
+	for (const [path, value] of Object.entries(raw as Record<string, unknown>)) {
+		const ids = parseStringArray(value);
+		if (ids.length > 0) result[path] = ids;
+	}
+	return result;
+}
+
 export function readCodexFrontmatter(app: App): CodexFrontmatterShape {
 	const file = app.vault.getAbstractFileByPath(codexFilePath());
-	if (!file) return { folders: {}, order: [], archive: [], types: {} };
+	if (!file) return { folders: {}, order: [], archive: [], types: {}, tags: {} };
 	const cache = app.metadataCache.getCache(codexFilePath());
 	const fm = cache?.frontmatter;
 	return {
@@ -131,6 +174,7 @@ export function readCodexFrontmatter(app: App): CodexFrontmatterShape {
 		order: parseStringArray(fm?.order),
 		archive: parseStringArray(fm?.archive),
 		types: parseTypes(fm?.types),
+		tags: parseTagsMap(fm?.tags),
 	};
 }
 
@@ -144,6 +188,65 @@ export async function setCodexEntryType(app: App, path: string, type: string): P
 		types[path] = type;
 		fm.types = types;
 	});
+}
+
+/** A Codex entry's assigned codexTags ids (tagRegistry.ts) — empty if untagged. */
+export function getCodexEntryTags(app: App, path: string): string[] {
+	return readCodexFrontmatter(app).tags[path] ?? [];
+}
+
+/** Overwrites a Codex entry's full codexTags set. An empty array clears tags entirely (removes the entry from the map rather than storing `[]`). */
+export async function writeCodexEntryTags(app: App, path: string, tagIds: string[]): Promise<void> {
+	await modifyBackstageFrontmatter<RawCodexFrontmatter>(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
+		const tags = parseTagsMap(fm.tags);
+		if (tagIds.length > 0) tags[path] = tagIds;
+		else delete tags[path];
+		fm.tags = tags;
+	});
+}
+
+/**
+ * Restricts `visiblePaths` to those carrying at least one of `tagIds` (OR semantics — selecting
+ * several tags shows anything matching any of them, i.e. "a group of tags"). Returns `visiblePaths`
+ * unchanged when `tagIds` is empty — no filter selected means show everything, same as today.
+ * Folders are handled downstream by resolveCodexTree's own declutter logic (a folder with no
+ * currently-visible descendant collapses out of the tree on its own).
+ */
+export function filterVisiblePathsByTags(
+	app: App,
+	visiblePaths: ReadonlySet<string>,
+	tagIds: ReadonlySet<string>,
+): ReadonlySet<string> {
+	if (tagIds.size === 0) return visiblePaths;
+	const { tags } = readCodexFrontmatter(app);
+	const result = new Set<string>();
+	for (const path of visiblePaths) {
+		const entryTags = tags[path];
+		if (entryTags?.some((id) => tagIds.has(id))) result.add(path);
+	}
+	return result;
+}
+
+/**
+ * Restricts `visiblePaths` to those whose assigned type is in `typeIds` (OR semantics — selecting
+ * several types shows anything matching any of them, i.e. "a group of types"). Returns
+ * `visiblePaths` unchanged when `typeIds` is empty — no filter selected means show everything.
+ * Folders are handled downstream by resolveCodexTree's own declutter logic (a folder with no
+ * currently-visible descendant collapses out of the tree on its own).
+ */
+export function filterVisiblePathsByType(
+	app: App,
+	visiblePaths: ReadonlySet<string>,
+	typeIds: ReadonlySet<string>,
+): ReadonlySet<string> {
+	if (typeIds.size === 0) return visiblePaths;
+	const { types } = readCodexFrontmatter(app);
+	const result = new Set<string>();
+	for (const path of visiblePaths) {
+		const type = types[path];
+		if (type && typeIds.has(type)) result.add(path);
+	}
+	return result;
 }
 
 /** Codex entries of the given type, scoped like the Codex pane itself (universal + this book's own, excluding archived). */
@@ -190,11 +293,17 @@ export function buildCodexTree(app: App, visiblePaths: ReadonlySet<string>): Cod
 	return resolveCodexTree(folders, order, realPaths, visiblePaths);
 }
 
-export function getCodexView(app: App, currentBookId: string | null, mode: CodexViewMode): CodexTreeFolder | null {
+export function getCodexView(
+	app: App,
+	currentBookId: string | null,
+	mode: CodexViewMode,
+	typeFilter?: ReadonlySet<string>,
+): CodexTreeFolder | null {
 	if (mode === "codexHidden") return null;
 	const notes = collectCodexNotes(app);
 	const { codex } = partitionCodexNotes(notes, currentBookId);
-	return buildCodexTree(app, new Set(codex.map((n) => n.path)));
+	const visiblePaths = new Set(codex.map((n) => n.path));
+	return buildCodexTree(app, typeFilter ? filterVisiblePathsByType(app, visiblePaths, typeFilter) : visiblePaths);
 }
 
 function uniqueChildPath(app: App, parentPath: string, baseName: string, extension = ""): string {
@@ -327,7 +436,13 @@ export async function unarchiveCodexItem(app: App, key: string): Promise<void> {
 	});
 }
 
-/** "Remove Folder and Keep Items": deletes the folder's own entry and splices its direct children into its former position in its former parent (or root) — not recursive, nested subfolders keep their own identity. */
+/**
+ * "Remove Folder and Keep Items": deletes the folder's own entry and splices its direct children
+ * into its former position in its former parent (or root) — not recursive, nested subfolders keep
+ * their own identity. For a Lore Entry folder (has `linkedNotePath`), the underlying note is
+ * spliced back in ahead of those children, restoring it as a plain file in the same slot rather
+ * than losing its place in the tree — the note itself was never touched either way.
+ */
 export async function removeCodexFolder(app: App, folderId: string): Promise<void> {
 	await modifyBackstageFrontmatter<RawCodexFrontmatter>(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
 		const folders = parseFolders(fm.folders);
@@ -336,13 +451,40 @@ export async function removeCodexFolder(app: App, folderId: string): Promise<voi
 		if (!entry) return;
 		const container = findContainer(folders, order, folderId);
 		delete folders[folderId];
+		const replacement = entry.linkedNotePath ? [entry.linkedNotePath, ...entry.order] : entry.order;
 		if (container) {
 			const idx = container.order.indexOf(folderId);
-			if (idx !== -1) container.order.splice(idx, 1, ...entry.order);
+			if (idx !== -1) container.order.splice(idx, 1, ...replacement);
 		}
 		fm.folders = folders;
 		fm.order = order;
 	});
+}
+
+/**
+ * Turns an existing Codex note into a Lore Entry folder in place — mints a new, ordinary folder id
+ * (never the note's own path — see CodexFolderEntry.linkedNotePath's doc comment for why),
+ * replaces the note's own `order` reference with that id, and links the two via
+ * `linkedNotePath`. The note keeps its place in the tree; other entries can now be filed inside it
+ * (e.g. a group's members) the same way as any other folder. Returns the new folder id.
+ */
+export async function convertCodexNoteToFolder(app: App, path: string): Promise<string> {
+	let newId = "";
+	await modifyBackstageFrontmatter<RawCodexFrontmatter>(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
+		const folders = parseFolders(fm.folders);
+		const order = parseStringArray(fm.order);
+		const container = findContainer(folders, order, path);
+		const displayName = codexBasename(path);
+		newId = mintFolderId(displayName, folders);
+		folders[newId] = { name: displayName, order: [], linkedNotePath: path };
+		const targetArr = container ? container.order : order;
+		const idx = targetArr.indexOf(path);
+		if (idx !== -1) targetArr.splice(idx, 1, newId);
+		else targetArr.push(newId);
+		fm.folders = folders;
+		fm.order = order;
+	});
+	return newId;
 }
 
 export function getArchivedCodexItems(app: App): ArchivedCodexItem[] {
@@ -371,20 +513,35 @@ export async function rekeyCodexNotePath(app: App, oldPath: string, newPath: str
 		const order = parseStringArray(fm.order);
 		const archive = parseStringArray(fm.archive);
 		const types = parseTypes(fm.types);
+		const tags = parseTagsMap(fm.tags);
 		const rekey = (arr: string[]): string[] =>
 			newPath ? arr.map((k) => (k === oldPath ? newPath : k)) : arr.filter((k) => k !== oldPath);
 		for (const id of Object.keys(folders)) {
-			folders[id] = { ...folders[id], order: rekey(folders[id].order) };
+			const entry = folders[id];
+			const next: CodexFolderEntry = { name: entry.name, order: rekey(entry.order) };
+			// A Lore Entry folder's linkedNotePath isn't a plain order-array entry, so `rekey` above
+			// never touches it — handled separately here. Clearing it (newPath === null, the note
+			// was deleted or moved out of Codex/) degrades the folder to a plain organisational one
+			// rather than leaving it pointing at a path that no longer exists.
+			if (entry.linkedNotePath && entry.linkedNotePath !== oldPath) next.linkedNotePath = entry.linkedNotePath;
+			else if (entry.linkedNotePath === oldPath && newPath) next.linkedNotePath = newPath;
+			folders[id] = next;
 		}
 		if (oldPath in types) {
 			const value = types[oldPath];
 			delete types[oldPath];
 			if (newPath) types[newPath] = value;
 		}
+		if (oldPath in tags) {
+			const value = tags[oldPath];
+			delete tags[oldPath];
+			if (newPath) tags[newPath] = value;
+		}
 		fm.folders = folders;
 		fm.order = rekey(order);
 		fm.archive = rekey(archive);
 		fm.types = types;
+		fm.tags = tags;
 	});
 }
 

@@ -1,4 +1,4 @@
-import { ItemView, Notice, TFile, WorkspaceLeaf } from "obsidian";
+import { ItemView, Notice, setIcon, TFile, WorkspaceLeaf } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { bookFolderNameFromChapterPath, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath } from "../paths";
 import { getBookId } from "../series";
@@ -8,19 +8,31 @@ import { renderStatsPanel, nextStatsMode, type StatsMode } from "./StatsPanel";
 import { SeriesModal } from "./SeriesModal";
 import { createCodexFolder, createCodexNote, readCodexFrontmatter, type CodexViewMode } from "../codex";
 import { debounce } from "../debounce";
-import { ICON_SERIES } from "../icons";
+import { ICON_BOOK_OPEN, ICON_BOOK_SPINE, ICON_SERIES } from "../icons";
 import { countWords } from "../wordCount";
 import { getBookWordStats } from "../history";
 import { WordCountModal } from "./WordCountModal";
 import { isDragInProgress } from "./dragLock";
-import { layoutConfig, type SfLayout } from "../layout";
+import { makeAccessibleActivatable } from "./a11y";
+import { layoutConfig, SF_LAYOUTS, SF_LAYOUT_LABELS, type SfLayout } from "../layout";
 import { createContinuingChapter } from "../chapterCreation";
 import { getBookChapters } from "../book";
 import { canEnterContinuousMode, resolveEntryChapter } from "../continuousMode";
 import { STORYFORGE_CONTINUOUS_VIEW_TYPE, type ContinuousReadView } from "./ContinuousReadView";
 import { emitContinuousScrollTo, onContinuousMode } from "./continuousEvents";
+import { STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE } from "./SeriesOverviewView";
 
 export const STORYFORGE_VIEW_TYPE = "storyforge-view";
+
+/** Leading icon for each layout tab (render()'s .sf-layout-tabs row) — the storyForge view's own
+ * "Series" icon for the Series tab (it's the same list this panel's own tab icon represents), a
+ * single book for the Novel tab, and the open-book used to mark an open novel elsewhere for the
+ * Detailed tab (the layout with the codex embedded — a novel opened all the way up). */
+const SF_LAYOUT_TAB_ICONS: Record<SfLayout, string> = {
+	seriesBrowse: ICON_SERIES,
+	novelBrowse: ICON_BOOK_SPINE,
+	hybrid: ICON_BOOK_OPEN,
+};
 
 export class StoryForgeView extends ItemView {
 	private currentBookFolderName: string | null = null;
@@ -30,6 +42,8 @@ export class StoryForgeView extends ItemView {
 	private codexMode: CodexViewMode = "codex";
 	private collapsedCodexFolders = new Set<string>();
 	private activeCodexFolderId: string | null = null;
+	/** codexTypes ids currently filtering the Codex tree — session-only, like codexMode/unplacedMode. */
+	private codexTypeFilter = new Set<string>();
 	private statsMode: StatsMode = "daily";
 	private statsCounts: Record<StatsMode, number> = { daily: 0, weekly: 0, chapter: 0, story: 0 };
 	/** Tears down the live position indicator's event-listener — must run before the next render
@@ -118,12 +132,15 @@ export class StoryForgeView extends ItemView {
 	private async persistSelection(): Promise<void> {
 		await this.plugin.updateSetting("selectedNovel", this.currentBookFolderName);
 		await this.plugin.updateSetting("selectedObject", this.activeChapterFilename);
+		// The Series overview page (if open) reads selectedNovel straight from settings — nudge it
+		// to re-render so picking a different book here is reflected there too.
+		this.plugin.refreshSeriesOverviewView();
 	}
 
 	/** Which top pane the declared layout selects, clamped to "novel" while the series pane is hidden
 	 * entirely, without discarding the user's chosen layout - so re-enabling the pane later in Settings
 	 * restores it. */
-	private effectiveTopPane(): "series" | "novel" | "navigator" {
+	private effectiveTopPane(): "series" | "novel" {
 		if (this.plugin.getSettings().hideSeriesPane) return "novel";
 		return layoutConfig(this.layout).topPane;
 	}
@@ -140,9 +157,35 @@ export class StoryForgeView extends ItemView {
 		container.addClass("storyforge-view");
 
 		const config = layoutConfig(this.layout);
-		// Codex focus's navigator is short and fixed-height, unlike the full chapter tree the
-		// shared grid rows are tuned for — let its row size to content so Codex sits right below it.
-		container.dataset.topPane = config.topPane;
+
+		// Replaces the old "choose layout" dropdown icon — one tab per layout, sitting above
+		// everything else in the panel (same idea as Story Context's Novel/Chapter/Dossier row).
+		// Always created (left empty while the series pane is hidden, same as that dropdown used
+		// to be — there's nowhere else in this panel layout selection lives) so the grid's row
+		// count stays constant; an empty "auto" row just collapses to nothing.
+		const tabsEl = container.createDiv({ cls: "sf-layout-tabs" });
+		if (!this.plugin.getSettings().hideSeriesPane) {
+			for (const layout of SF_LAYOUTS) {
+				const tab = tabsEl.createSpan({
+					cls: `sf-layout-tab${layout === this.layout ? " is-active" : ""}`,
+					attr: { role: "tab", tabindex: "0", "aria-selected": String(layout === this.layout) },
+				});
+				setIcon(tab.createSpan({ cls: "sf-layout-tab-icon" }), SF_LAYOUT_TAB_ICONS[layout]);
+				tab.createSpan({ text: SF_LAYOUT_LABELS[layout] });
+				const selectLayout = () => {
+					this.layout = layout;
+					void this.plugin.updateSetting("layout", layout);
+					if (layout === "seriesBrowse") {
+						void this.openSeriesOverview();
+					} else {
+						this.plugin.leaveSeriesOverviewIfShowing();
+					}
+					this.render();
+				};
+				tab.addEventListener("click", selectLayout);
+				makeAccessibleActivatable(tab, selectLayout);
+			}
+		}
 
 		// Synchronous read of the read view's own state (a direct method call, not an event) — always
 		// fresh, so a book switch or the read view closing is reflected the moment this re-renders.
@@ -160,11 +203,6 @@ export class StoryForgeView extends ItemView {
 			activeChapterFilename: this.activeChapterFilename,
 			highlightActiveChapter: this.plugin.getSettings().highlightActiveChapter,
 			unplacedMode: this.unplacedMode,
-			onSelectLayout: (layout) => {
-				this.layout = layout;
-				void this.plugin.updateSetting("layout", layout);
-				this.render();
-			},
 			onToggleUnplacedMode: () => {
 				this.unplacedMode = this.unplacedMode === "unplaced" ? "unplacedHidden" : "unplaced";
 				this.render();
@@ -219,6 +257,12 @@ export class StoryForgeView extends ItemView {
 				highlightActiveChapter: this.plugin.getSettings().highlightActiveChapter,
 				onCreateFolder: () => void this.handleCreateCodexFolder(),
 				onCreateFile: () => void this.handleCreateCodexFile(),
+				typeFilter: this.codexTypeFilter,
+				onChangeTypeFilter: (next: string[]) => {
+					this.codexTypeFilter = new Set(next);
+					this.render();
+				},
+				onOpenFile: (path) => void this.openCodexFile(path),
 			});
 		}
 
@@ -301,7 +345,7 @@ export class StoryForgeView extends ItemView {
 	private async handleCreateCodexFile(): Promise<void> {
 		try {
 			const file = await createCodexNote(this.app, this.codexTargetFolderId());
-			await this.app.workspace.getLeaf(false).openFile(file);
+			await this.openInMainContentLeaf(file);
 		} catch (err) {
 			new Notice(`storyForge: could not create file — ${(err as Error).message}`);
 		}
@@ -311,8 +355,39 @@ export class StoryForgeView extends ItemView {
 		const path = libraryChapterPath(bookFolderName, filename);
 		const file = this.app.vault.getAbstractFileByPath(path);
 		if (file instanceof TFile) {
-			await this.app.workspace.getLeaf(false).openFile(file);
+			await this.openInMainContentLeaf(file);
 		}
+	}
+
+	/** BottomPanel.ts's onOpenFile — a Codex note click, same "force it active" treatment as
+	 * openChapter() needs, and for the same reason (see openInMainContentLeaf's doc comment):
+	 * without it, clicking off a chapter and onto a Codex entry left the chapter's row still
+	 * highlighted, since followActiveFile() never got the active-leaf-change to run on. */
+	private async openCodexFile(path: string): Promise<void> {
+		const file = this.app.vault.getAbstractFileByPath(path);
+		if (file instanceof TFile) {
+			await this.openInMainContentLeaf(file);
+		}
+	}
+
+	/** `leaf.openFile()` alone doesn't reliably flip the workspace's own idea of "the active leaf"
+	 * when the click originated in a sidebar view — active-leaf-change then never fires, so
+	 * followActiveFile() never runs and the highlighted row goes stale even though the editor
+	 * itself did switch chapters. Same fix exitContinuousRead() already needed for the same reason. */
+	private async openInMainContentLeaf(file: TFile): Promise<void> {
+		const leaf = this.plugin.getMainContentLeaf();
+		await leaf.openFile(file, { active: true });
+		this.app.workspace.setActiveLeaf(leaf, { focus: true });
+	}
+
+	/** The Series tab's launcher: swaps the special series-overview page into the main editor pane
+	 * in place of whatever was open there, same mechanism as openContinuousRead() below. Fires on
+	 * every click of the tab (not just switching layout into it), so retriggering it after opening
+	 * a chapter elsewhere brings the page straight back. */
+	private async openSeriesOverview(): Promise<void> {
+		const leaf = this.plugin.getMainContentLeaf();
+		await leaf.setViewState({ type: STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE, active: true });
+		this.app.workspace.revealLeaf(leaf);
 	}
 
 	/** The navigator's continuous-mode launcher (continuous-mode hand-off brief §2, corrected): the
@@ -326,7 +401,7 @@ export class StoryForgeView extends ItemView {
 			this.activeChapterFilename,
 		);
 		if (!entryFilename) return;
-		const leaf = this.app.workspace.getLeaf(false);
+		const leaf = this.plugin.getMainContentLeaf();
 		await leaf.setViewState({ type: STORYFORGE_CONTINUOUS_VIEW_TYPE, active: true, state: { bookFolderName, entryFilename } });
 		this.app.workspace.revealLeaf(leaf);
 		// Don't wait on active-leaf-change/file-open to notice — a custom view has no TFile of its

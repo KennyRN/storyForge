@@ -1,4 +1,5 @@
 import { ItemView, MarkdownView, TFile, WorkspaceLeaf, type ViewStateResult } from "obsidian";
+import { EditorView } from "@codemirror/view";
 import type StoryForgePlugin from "../main";
 import { chapterDisplayTitle, getBookChapters } from "../book";
 import { canEnterContinuousMode, resolveEntryChapter } from "../continuousMode";
@@ -154,7 +155,7 @@ export class ContinuousReadView extends ItemView {
 			titleFor,
 			entryFilename,
 			onPositionChange: (filename) => emitContinuousMode(this.app, { active: true, bookFolderName, filename }),
-			onEditChapter: (file, sourceOffset) => void this.editChapter(file, sourceOffset),
+			onEditChapter: (file, sourceOffset, clickedTop) => void this.editChapter(file, sourceOffset, clickedTop),
 			onEditedSectionScrolledAway: (filename) => {
 				if (this.activeEdit?.filename === filename) this.commitActiveEdit();
 			},
@@ -170,7 +171,7 @@ export class ContinuousReadView extends ItemView {
 	 * to opening a real editor in this leaf — leaving the continuous scroll — only if grafting isn't
 	 * available on this Obsidian build.
 	 */
-	private async editChapter(file: TFile, sourceOffset: number): Promise<void> {
+	private async editChapter(file: TFile, sourceOffset: number, clickedTop: number): Promise<void> {
 		if (this.activeEdit?.filename === file.name) return; // already live — nothing to do
 		this.commitActiveEdit();
 		if (!this.readThrough) return;
@@ -183,8 +184,8 @@ export class ContinuousReadView extends ItemView {
 		const container = this.readThrough.lockSectionForEditing(file.name);
 		if (!container) return;
 
-		// The graft's own openFile/focus can otherwise scroll the outer container — hold it steady
-		// around the mount (inline-editor research brief §3.1).
+		// The graft's own openFile can otherwise scroll the outer container — hold it steady around
+		// the mount (inline-editor research brief §3.1) before the more precise correction below.
 		const scrollEl = this.readThrough.getScrollElement();
 		const savedScrollTop = scrollEl.scrollTop;
 		const handle = await graftEditor(this.app, container, file, sourceOffset);
@@ -197,6 +198,27 @@ export class ContinuousReadView extends ItemView {
 			return;
 		}
 		graftingSupported = true;
+
+		// Anchor the clicked paragraph back to where the reader's eye already was (research brief
+		// §7): the grafted editor's own chrome (Live Preview markers, line padding) rarely lands the
+		// caret at exactly `clickedTop`, so measure the actual gap and correct the outer scroll for
+		// it — then focus, so the editor's own scroll-into-view doesn't fight this correction (see
+		// graftEditor's doc comment for why focus is deferred to here).
+		await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+		const cmContent = handle.view.containerEl.querySelector(".cm-content");
+		const cmView = cmContent instanceof HTMLElement ? EditorView.findFromDOM(cmContent) : null;
+		const coords = cmView?.coordsAtPos(sourceOffset);
+		if (coords) {
+			const delta = coords.top - clickedTop;
+			// A correction this large means `coordsAtPos` measured against a layout that hadn't
+			// actually settled yet (one `requestAnimationFrame` isn't a hard guarantee CM6's own
+			// measure pass has run) rather than a genuine small offset from the editor's own chrome —
+			// applying it anyway would scroll the (perfectly fine) editor off-screen, which looks
+			// exactly like the chapter having vanished. Skipping a wild delta is safer than a wrong
+			// scroll; the reader just keeps their original scroll position instead.
+			if (Math.abs(delta) < scrollEl.clientHeight) scrollEl.scrollTop += delta;
+		}
+		handle.view.editor.focus();
 
 		const onKeydown = (e: KeyboardEvent): void => {
 			if (e.key === "Escape") this.commitActiveEdit();

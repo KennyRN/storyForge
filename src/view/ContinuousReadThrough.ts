@@ -3,7 +3,7 @@ import { chapterDisplayTitle, renameChapterTitle } from "../book";
 import { pickCurrentChapter } from "../continuousMode";
 import { bookFolderNameFromChapterPath } from "../paths";
 import { attachInlineRename } from "./inlineRename";
-import { isLinkClick, resolveClickedSourceOffset } from "./clickToEditDom";
+import { isLinkClick, resolveClickedBlock } from "./clickToEditDom";
 
 export interface ContinuousReadThroughOptions {
 	bookFolderName: string;
@@ -22,7 +22,11 @@ export interface ContinuousReadThroughOptions {
 	/** A deliberate click on a chapter's body (hand-off brief §2.6/§2.8) — the caller owns the one
 	 * live editor (inline-editor research brief §3.3: this module must not own it), so this just
 	 * reports the click; the caller locks the section (see `lockSectionForEditing`) and mounts. */
-	onEditChapter: (file: TFile, sourceOffset: number) => void;
+	/** `clickedTop` is the clicked block's own `getBoundingClientRect().top` at click time, before
+	 * anything is torn down for editing — the caller needs it to correct the outer scroll position
+	 * once the grafted editor's caret lands somewhere slightly different on screen (research brief
+	 * §7). */
+	onEditChapter: (file: TFile, sourceOffset: number, clickedTop: number) => void;
 	/** The section currently locked for editing (see `lockSectionForEditing`) has scrolled fully out
 	 * of the true viewport — the signal to commit the live editor and unlock (inline-editor research
 	 * brief §3.4). */
@@ -149,16 +153,38 @@ export function renderContinuousReadThrough(
 			paintToken: 0,
 			renderComponent: null,
 		};
-		body.addEventListener("click", (e) => {
-			if (!section.mounted || section.locked || section.content === null) return;
-			// A drag-to-select still fires a click when the mouse comes up — without this guard,
-			// selecting a sentence to copy it destroys the selection by jumping into edit mode instead.
-			const selection = body.ownerDocument.getSelection();
-			if (selection && !selection.isCollapsed) return;
-			if (isLinkClick(e.target)) return; // let Obsidian's own link navigation handle it
-			const offset = resolveClickedSourceOffset(body, section.content, e.clientX, e.clientY);
-			if (offset !== null) options.onEditChapter(file, offset);
-		});
+		// Click-to-edit is DISABLED as of 2026-08-09 — continuous mode is read-through only for now.
+		// The grafted inline editor (src/view/graftedEditor.ts) worked in isolation, but never
+		// reliably rendered/scrolled as part of this continuous scroll: the chapter would go blank on
+		// click in live testing, across four separate confirmed-and-fixed bugs in a row (a 0-height
+		// collapse, a CSS overflow-blockification bug, an `all: unset`-caused width collapse, and
+		// Obsidian's own `contain: strict` on `.workspace-leaf` defeating all content-based sizing) —
+		// and it was *still* broken after all four fixes, with at least one more uncaught factor never
+		// isolated. Rather than keep debugging live indefinitely, Kenny asked for this to be parked.
+		//
+		// Full audit trail — both research hand-off prompts and both responses in full, plus this
+		// session's live debugging blow-by-blow and exactly what's confirmed vs. still open — is in
+		// `docs/continuous-mode-inline-editor-postmortem.md`. Read that before touching this again.
+		//
+		// FLAG FOR FUTURE CODE AUDITS: this is a known, deliberately-parked gap, not an oversight —
+		// but it's still an unfinished feature sitting dormant in the codebase and deserves a look
+		// next time this area of the code is reviewed. Don't let it go silently stale.
+		//
+		// Nothing below this comment was deleted — `graftEditor`, `ContinuousReadView.editChapter`/
+		// `commitActiveEdit`, and `resolveClickedBlock` are all intact and functional. Re-enabling is
+		// restoring the two lines below (see the postmortem's §9 for the recommended first step before
+		// doing so — re-run the live diagnostic that was never finished).
+		//
+		// body.addEventListener("click", (e) => {
+		// 	if (!section.mounted || section.locked || section.content === null) return;
+		// 	// A drag-to-select still fires a click when the mouse comes up — without this guard,
+		// 	// selecting a sentence to copy it destroys the selection by jumping into edit mode instead.
+		// 	const selection = body.ownerDocument.getSelection();
+		// 	if (selection && !selection.isCollapsed) return;
+		// 	if (isLinkClick(e.target)) return; // let Obsidian's own link navigation handle it
+		// 	const result = resolveClickedBlock(body, section.content, e.clientX, e.clientY);
+		// 	if (result) options.onEditChapter(file, result.scopeStart, result.scopeEl.getBoundingClientRect().top);
+		// });
 		sections.set(file.name, section);
 	}
 

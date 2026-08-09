@@ -81,14 +81,19 @@ export function resolveClickedBlock(bodyEl: HTMLElement, source: string, clickX:
 }
 
 /**
- * The shipped click-to-edit entry point (hand-off brief §2.6/§3.6): resolves to the *block* the
- * reader clicked and lands the caret at its start. "Which paragraph" is robust and fully
- * unit-tested underneath (clickToCaret.ts); "which character within it" is the fragile half —
- * `caretRangeFromPoint`'s two-legged browser support, a `TreeWalker` over rendered text nodes,
- * markdown-marker stripping for every inline case — and is deliberately not attempted here. A
- * writer who taps a paragraph to edit it will usually move the cursor regardless, so this is
- * honest about what it promises: tap a paragraph, edit that paragraph. See
- * `refineToCharacterOffset` for the deferred other half, kept available but unused for now.
+ * A convenience wrapper around `resolveClickedBlock` for callers that only need the offset, not
+ * the clicked element itself — the live continuous-mode path (`ContinuousReadThrough.ts`) calls
+ * `resolveClickedBlock` directly instead, since it also needs `scopeEl`'s on-screen position for
+ * the grafted editor's entry-scroll correction (inline-editor research brief §7).
+ *
+ * Resolves to the *block* the reader clicked and lands the caret at its start (hand-off brief
+ * §2.6/§3.6). "Which paragraph" is robust and fully unit-tested underneath (clickToCaret.ts);
+ * "which character within it" is the fragile half — `caretRangeFromPoint`'s two-legged browser
+ * support, a `TreeWalker` over rendered text nodes, markdown-marker stripping for every inline
+ * case — and is deliberately not attempted here. A writer who taps a paragraph to edit it will
+ * usually move the cursor regardless, so this is honest about what it promises: tap a paragraph,
+ * edit that paragraph. See `refineToCharacterOffset` for the deferred other half, kept available
+ * but unused for now.
  */
 export function resolveClickedSourceOffset(bodyEl: HTMLElement, source: string, clickX: number, clickY: number): number | null {
 	const result = resolveClickedBlock(bodyEl, source, clickX, clickY);

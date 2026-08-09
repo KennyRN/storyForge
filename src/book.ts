@@ -39,6 +39,8 @@ export interface ChapterEntry {
 	locationName: string | null;
 	/** Per-chapter plot notes (backstage metadata; never written into the library manuscript). */
 	plot: string;
+	/** Ids into tagRegistry.ts's chapterTags list. Empty when untagged. */
+	tags: string[];
 }
 
 export interface BookFrontmatter {
@@ -57,6 +59,8 @@ export interface BookFrontmatter {
 	defaultPovPath: string | null;
 	defaultPovName: string | null;
 	chapters: Record<string, ChapterEntry>;
+	/** Ids into tagRegistry.ts's novelTags list. */
+	novelTags: string[];
 }
 
 /** The raw, dash-cased on-disk shape of a `chapters` map entry, before `parseChaptersMap` sanitizes it. */
@@ -68,6 +72,7 @@ export interface RawChapterEntry {
 	"location-path"?: unknown;
 	"location-name"?: unknown;
 	plot?: unknown;
+	tags?: unknown;
 }
 
 /** The raw, dash-cased on-disk shape of novel.md's frontmatter, as read/written through `modifyBackstageFrontmatter`. */
@@ -85,6 +90,8 @@ export interface RawBookFrontmatter extends FrontMatterCache {
 	"dialogue-quotes"?: unknown;
 	"default-pov-path"?: unknown;
 	"default-pov-name"?: unknown;
+	/** Deliberately not the bare key "tags" — that collides with Obsidian's own native tag-pane frontmatter key. */
+	"novel-tags"?: unknown;
 	/** Legacy pre-migration keys, deleted by migrateLegacyBookEntry. */
 	id?: unknown;
 	title?: unknown;
@@ -136,7 +143,8 @@ function parseChaptersMap(raw: unknown): Record<string, ChapterEntry> {
 		const locationPath = typeof entry["location-path"] === "string" ? entry["location-path"] : null;
 		const locationName = typeof entry["location-name"] === "string" ? entry["location-name"] : null;
 		const plot = typeof entry.plot === "string" ? entry.plot : "";
-		result[filename] = { chapterId, chapterTitle, povPath, povName, locationPath, locationName, plot };
+		const tags = Array.isArray(entry.tags) ? entry.tags.filter((v): v is string => typeof v === "string") : [];
+		result[filename] = { chapterId, chapterTitle, povPath, povName, locationPath, locationName, plot, tags };
 	}
 	return result;
 }
@@ -196,6 +204,9 @@ export function readBookFrontmatter(app: App, bookFolderName: string): BookFront
 			defaultPovPath: typeof fm?.["default-pov-path"] === "string" ? fm["default-pov-path"] : null,
 			defaultPovName: typeof fm?.["default-pov-name"] === "string" ? fm["default-pov-name"] : null,
 			chapters: parseChaptersMap(fm?.chapters),
+			novelTags: Array.isArray(fm?.["novel-tags"])
+				? fm["novel-tags"].filter((v: unknown): v is string => typeof v === "string")
+				: [],
 		};
 }
 
@@ -465,6 +476,24 @@ export async function writeChapterLocation(
 	});
 }
 
+/** Overwrites a chapter's full tag set (ids into tagRegistry.ts's chapterTags list), preserving every other field. An empty array clears tags entirely. */
+export async function writeChapterTags(app: App, bookFolderName: string, filename: string, tagIds: string[]): Promise<void> {
+	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
+		const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
+		const existing: RawChapterEntry =
+			chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
+		chapters[filename] = { ...existing, tags: tagIds.length > 0 ? tagIds : undefined };
+		fm.chapters = chapters;
+	});
+}
+
+/** Overwrites the novel's full tag set (ids into tagRegistry.ts's novelTags list). An empty array clears the field entirely. */
+export async function writeNovelTags(app: App, bookFolderName: string, tagIds: string[]): Promise<void> {
+	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
+		fm["novel-tags"] = tagIds.length > 0 ? tagIds : undefined;
+	});
+}
+
 /** Rewrites any chapter's PoV reference matching `oldPath` to `newPath` (or clears it if `newPath` is null), across every book — called when a Codex person note is renamed/moved. */
 export async function rekeyChapterPovReferences(app: App, oldPath: string, newPath: string | null): Promise<void> {
 	for (const folder of getLibraryBookFolders(app)) {
@@ -570,6 +599,7 @@ export async function insertChapterEntry(
 			"location-path": entry.locationPath,
 			"location-name": entry.locationName,
 			plot: entry.plot || undefined,
+			tags: entry.tags.length > 0 ? entry.tags : undefined,
 		};
 		fm.chapters = chapters;
 		const strip = (list: unknown): string[] =>
@@ -606,6 +636,7 @@ export async function ensureAllChapterEntries(app: App, bookFolderName: string):
 			locationPath: null,
 			locationName: null,
 			plot: "",
+			tags: [],
 		};
 		await upsertChapterEntry(app, bookFolderName, file.name, chapterId, chapterTitle);
 	}
