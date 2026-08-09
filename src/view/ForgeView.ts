@@ -1,6 +1,6 @@
 import { ItemView, WorkspaceLeaf, setIcon, setTooltip } from "obsidian";
 import type StoryForgePlugin from "../main";
-import { ICON_FORGE } from "../icons";
+import { ICON_BOOKSHELF, ICON_CARDS, ICON_FORGE } from "../icons";
 import { makeAccessibleActivatable } from "./a11y";
 
 export const FORGE_VIEW_TYPE = "storyforge-forge-view";
@@ -61,12 +61,15 @@ export class ForgeView extends ItemView {
 		if (panels.length === 0) {
 			this.disposePanel();
 			this.panelEl.empty();
+			this.panelEl.addClass("sf-forge-view__panel--empty");
 			this.panelEl.createDiv({
 				cls: "sf-empty",
 				text: "No companion plugins registered yet.",
 			});
+			this.renderEmptyStateDecoration(this.panelEl);
 			return;
 		}
+		this.panelEl.removeClass("sf-forge-view__panel--empty");
 
 		for (const panel of panels) {
 			const btn = this.companionsEl.createSpan({
@@ -84,6 +87,21 @@ export class ForgeView extends ItemView {
 		}
 
 		this.renderActivePanel();
+	}
+
+	/**
+	 * Pure decoration for the "no companion plugins registered" empty state — cards (left) and
+	 * bookshelf (right, in the corner) sit bottom-right of the panel. No click handler and no
+	 * tabindex/role: unlike the companion tabs above, these don't do anything yet.
+	 */
+	private renderEmptyStateDecoration(container: HTMLElement): void {
+		const deco = container.createDiv({ cls: "sf-forge-view__empty-decoration" });
+		const cards = deco.createSpan({ cls: "sf-forge-view__empty-icon" });
+		setIcon(cards, ICON_CARDS);
+		setTooltip(cards, "idea generation");
+		const shelf = deco.createSpan({ cls: "sf-forge-view__empty-icon" });
+		setIcon(shelf, ICON_BOOKSHELF);
+		setTooltip(shelf, "idea shelf");
 	}
 
 	async onClose(): Promise<void> {
