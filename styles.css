@@ -557,10 +557,13 @@
 /* Forces the "grabbing" hand everywhere for as long as a Codex row is actually being dragged
  * (past the hold-and-move threshold — see dragReorderTree.ts) — the pointer spends most of the
  * gesture hovering *other* rows, not the one with .sf-dragging on it, so the cursor needs to be
- * pinned at the document level rather than on that one row alone. */
-body.sf-codex-drag-active,
-body.sf-codex-drag-active * {
-	cursor: grabbing !important;
+ * pinned at the document level rather than on that one row alone. Needs to reliably beat whatever
+ * cursor rule any hovered element (theme or core Obsidian chrome, `:hover` states included) brings
+ * of its own — the same `:not(#storyforge-specificity-boost)` ID-level specificity boost used
+ * throughout this file, instead of `!important`. */
+body.sf-codex-drag-active:not(#storyforge-specificity-boost),
+body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
+	cursor: grabbing;
 }
 
 .sf-codex-drop-above {

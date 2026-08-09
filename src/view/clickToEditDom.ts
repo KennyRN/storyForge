@@ -78,26 +78,22 @@ export function resolveClickedBlock(bodyEl: HTMLElement, source: string, clickX:
 }
 
 /**
- * `caretPositionFromPoint` is the standardized replacement for the older `caretRangeFromPoint`
- * (deprecated — WebKit/Blink-only, never standardized), normalized here into the same collapsed
- * `Range` shape the rest of this module already works with. Falls back to the deprecated method
- * only for an Electron/Chromium build old enough not to have the replacement yet — both are
- * feature-detected at runtime since a DOM lib declaring the method doesn't guarantee it's actually
- * present in whatever's running the plugin.
+ * `caretPositionFromPoint` is the standardized replacement for the older, deprecated (WebKit/
+ * Blink-only, never standardized) `caretRangeFromPoint` — normalized here into the same collapsed
+ * `Range` shape the rest of this module already works with. Feature-detected rather than assumed:
+ * a DOM lib declaring the method doesn't guarantee it's actually present at runtime. No fallback to
+ * the deprecated method — Obsidian's Electron/Chromium has had this since well before any currently
+ * supported release, and Obsidian's own automated checker flags any reference to the deprecated one
+ * even when it's only a guarded fallback.
  */
 function resolveCaretRangeAtPoint(doc: Document, x: number, y: number): Range | null {
-	if (typeof doc.caretPositionFromPoint === "function") {
-		const pos = doc.caretPositionFromPoint(x, y);
-		if (!pos) return null;
-		const range = doc.createRange();
-		range.setStart(pos.offsetNode, pos.offset);
-		range.collapse(true);
-		return range;
-	}
-	if (typeof doc.caretRangeFromPoint === "function") {
-		return doc.caretRangeFromPoint(x, y);
-	}
-	return null;
+	if (typeof doc.caretPositionFromPoint !== "function") return null;
+	const pos = doc.caretPositionFromPoint(x, y);
+	if (!pos) return null;
+	const range = doc.createRange();
+	range.setStart(pos.offsetNode, pos.offset);
+	range.collapse(true);
+	return range;
 }
 
 /**
