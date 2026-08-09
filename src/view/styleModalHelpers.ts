@@ -8,7 +8,13 @@ import type { FontCatalogEntry } from "../formattingApi";
  * codebase's existing preference, taking whatever app/plugin state they need
  * explicitly. */
 
-export function applyColorPick(hex: string, paint: (hex: string) => void, onPick: (hex: string) => void): void {
+/** A swatch button/picker with this wired in gets a "Theme default" choice alongside its real colours. */
+export interface ColorSwatchThemeDefaultOption {
+	isActive: boolean;
+	onSelect: () => void | Promise<void>;
+}
+
+export function applyColorPick(hex: string, paint: (hex: string | null) => void, onPick: (hex: string) => void): void {
 	paint(hex);
 	onPick(hex);
 }
@@ -16,31 +22,51 @@ export function applyColorPick(hex: string, paint: (hex: string) => void, onPick
 export function openColorSwatchPicker(
 	app: App,
 	plugin: StoryForgePlugin,
-	paint: (hex: string) => void,
+	paint: (hex: string | null) => void,
 	onPick: (hex: string) => void,
+	themeDefault?: ColorSwatchThemeDefaultOption,
 ): void {
 	const s = plugin.getSettings();
 	void import("./PalettePickerModal").then(({ PalettePickerModal }) => {
-		new PalettePickerModal(app, s.colorPaletteName, s.colorPaletteVariant, s.customPaletteColors, (hex) =>
-			applyColorPick(hex, paint, onPick),
+		new PalettePickerModal(
+			app,
+			s.colorPaletteName,
+			s.colorPaletteVariant,
+			s.customPaletteColors,
+			(hex) => applyColorPick(hex, paint, onPick),
+			themeDefault && {
+				isActive: themeDefault.isActive,
+				onSelect: () => {
+					paint(null);
+					return themeDefault.onSelect();
+				},
+			},
 		).open();
 	});
 }
 
+/**
+ * Binds a colour swatch button to open the palette picker on click. When `themeDefault` is
+ * passed, the picker's list gets a "Theme default" entry after every real colour (replacing a
+ * separate "Theme default" toggle next to the swatch), and the button itself paints a dashed
+ * placeholder instead of a hex while that option is active.
+ */
 export function bindColorSwatchButton(
 	app: App,
 	plugin: StoryForgePlugin,
 	buttonEl: HTMLElement,
 	initialHex: string,
 	onPick: (hex: string) => void,
+	themeDefault?: ColorSwatchThemeDefaultOption,
 ): void {
 	buttonEl.addClass("sf-color-swatch-btn");
 	buttonEl.setAttr("aria-label", "Choose colour");
-	const paint = (hex: string) => {
-		buttonEl.style.backgroundColor = hex;
+	const paint = (hex: string | null) => {
+		buttonEl.toggleClass("sf-color-swatch-btn--theme-default", hex === null);
+		buttonEl.style.backgroundColor = hex ?? "";
 	};
-	paint(initialHex);
-	buttonEl.addEventListener("click", () => openColorSwatchPicker(app, plugin, paint, onPick));
+	paint(themeDefault?.isActive ? null : initialHex);
+	buttonEl.addEventListener("click", () => openColorSwatchPicker(app, plugin, paint, onPick, themeDefault));
 }
 
 export function applyExclusiveToggle(
@@ -162,10 +188,16 @@ function fillFontWeightOptions(dropdown: DropdownComponent, value: string, optio
 }
 
 /**
- * "Override theme's default font" toggle + a "Font" row (pick-font button delegating to
- * formatForge's own FontPickerModal via the companion bridge, plus a weight dropdown clamped to
- * that font's own weightMin–weightMax). Silently renders nothing when the companion is absent or
- * predates `listFonts`/`openFontPicker` — see FormatCompanionRegistration's doc comment.
+ * "Font" row (pick-font button delegating to formatForge's own FontPickerModal via the companion
+ * bridge) + a weight dropdown clamped to that font's own weightMin–weightMax, hidden while at
+ * theme default. `label` becomes this card's heading, so a field keeps its own identity when
+ * several of these stack in one tab.
+ *
+ * No separate "Override theme's default font" toggle — current formatForge exposes a "Theme
+ * default" row directly inside its own font picker (see `OpenFontPickerOptions.isThemeDefault`/
+ * `onPickThemeDefault`); the on/off control lives there now instead of duplicating it here.
+ * Silently renders nothing when the companion is absent or predates `listFonts`/`openFontPicker`
+ * — see FormatCompanionRegistration's doc comment.
  */
 export function renderCustomFontCard(
 	body: HTMLElement,
@@ -182,62 +214,76 @@ export function renderCustomFontCard(
 	const listFonts = companion.listFonts;
 	const openFontPicker = companion.openFontPicker;
 
+	let isOverriding = plugin.getSettings()[overrideFontKey] as boolean;
 	const currentFont = (): FontCatalogEntry | undefined => {
 		const id = plugin.getSettings()[fontFamilyKey] as string;
 		return listFonts().find((f) => f.id === id);
 	};
 
-	renderToggleWithRevealCard(
-		body,
-		label,
-		plugin.getSettings()[overrideFontKey] as boolean,
-		(value) => void plugin.updateSetting(overrideFontKey, value),
-		(card) => {
-			let fontSetting!: Setting;
-			let pickButtonEl!: HTMLElement;
-			let weightDropdown!: DropdownComponent;
-			const syncPickLabel = () => pickButtonEl.setText(currentFont()?.label ?? "Pick font");
-			const syncWeightDropdown = (): string => {
-				const font = currentFont();
-				const options = font ? fontWeightOptionsFor(font.weightMin, font.weightMax) : FONT_WEIGHT_OPTIONS;
-				const current = plugin.getSettings()[fontWeightKey] as string;
-				const clamped = clampFontWeightToOptions(current, options);
-				fillFontWeightOptions(weightDropdown, clamped, options);
-				return clamped;
-			};
-			card.addSetting((setting) => {
-				fontSetting = setting;
-				setting.setName("Font");
-				setting.addButton((button) => {
-					pickButtonEl = button.buttonEl;
-					syncPickLabel();
-					button.onClick(() => {
-						openFontPicker({
-							currentFamilyId: plugin.getSettings()[fontFamilyKey] as string,
-							previewFontSizeEm: typeof previewFontSizeEm === "function" ? previewFontSizeEm() : previewFontSizeEm,
-							onPick: (id) => {
-								void plugin.updateSetting(fontFamilyKey, id).then(async () => {
-									syncPickLabel();
-									const clamped = syncWeightDropdown();
-									if (clamped !== plugin.getSettings()[fontWeightKey]) {
-										await plugin.updateSetting(fontWeightKey, clamped);
-									}
-									restyle();
-								});
-							},
-						});
-					});
-				});
-				setting.addDropdown((dropdown) => {
-					weightDropdown = dropdown;
-					syncWeightDropdown();
-					dropdown.onChange((value) => void plugin.updateSetting(fontWeightKey, value).then(() => restyle()));
+	const card = new SettingGroup(body);
+	card.setHeading(label);
+
+	let pickButtonEl!: HTMLElement;
+	const syncPickLabel = () => pickButtonEl.setText(isOverriding ? (currentFont()?.label ?? "Pick font") : "Theme default");
+
+	let fontWeightSetting!: Setting;
+	let weightDropdown!: DropdownComponent;
+	const syncWeightDropdown = (): string => {
+		const font = currentFont();
+		const options = font ? fontWeightOptionsFor(font.weightMin, font.weightMax) : FONT_WEIGHT_OPTIONS;
+		const current = plugin.getSettings()[fontWeightKey] as string;
+		const clamped = clampFontWeightToOptions(current, options);
+		fillFontWeightOptions(weightDropdown, clamped, options);
+		return clamped;
+	};
+	const applyVisibility = () => fontWeightSetting.settingEl.toggleClass("sf-settings-hidden", !isOverriding);
+
+	const applySelectedFont = async (id: string) => {
+		isOverriding = true;
+		await plugin.updateSetting(overrideFontKey, true);
+		await plugin.updateSetting(fontFamilyKey, id);
+		syncPickLabel();
+		const clamped = syncWeightDropdown();
+		if (clamped !== plugin.getSettings()[fontWeightKey]) {
+			await plugin.updateSetting(fontWeightKey, clamped);
+		}
+		applyVisibility();
+		restyle();
+	};
+	const applyThemeDefault = async () => {
+		isOverriding = false;
+		await plugin.updateSetting(overrideFontKey, false);
+		syncPickLabel();
+		applyVisibility();
+		restyle();
+	};
+
+	card.addSetting((setting) => {
+		setting.setName("Font");
+		setting.addButton((button) => {
+			pickButtonEl = button.buttonEl;
+			syncPickLabel();
+			button.onClick(() => {
+				openFontPicker({
+					currentFamilyId: plugin.getSettings()[fontFamilyKey] as string,
+					previewFontSizeEm: typeof previewFontSizeEm === "function" ? previewFontSizeEm() : previewFontSizeEm,
+					onPick: (id) => void applySelectedFont(id),
+					isThemeDefault: !isOverriding,
+					onPickThemeDefault: () => void applyThemeDefault(),
 				});
 			});
-			return fontSetting;
-		},
-		restyle,
-	);
+		});
+	});
+	card.addSetting((setting) => {
+		fontWeightSetting = setting;
+		setting.setName("Font weight");
+		setting.addDropdown((dropdown) => {
+			weightDropdown = dropdown;
+			syncWeightDropdown();
+			dropdown.onChange((value) => void plugin.updateSetting(fontWeightKey, value).then(() => restyle()));
+		});
+	});
+	applyVisibility();
 }
 
 export interface StyleModalTab {

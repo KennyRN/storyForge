@@ -124,8 +124,8 @@ export class CodexSetTypeModal extends Modal {
 		const commitAdd = () => {
 			const label = input.value.trim();
 			if (!label) return;
-			void addTagDefinition(this.app, "codexTypes", label, pendingIconAlias).then((newId) => {
-				void setCodexEntryType(this.app, this.path, newId);
+			void addTagDefinition(this.app, "codexTypes", label, pendingIconAlias).then(({ id }) => {
+				void setCodexEntryType(this.app, this.path, id);
 				this.close();
 			});
 		};

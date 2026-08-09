@@ -175,10 +175,11 @@ export class StyleController {
 			"--sf-unplaced-highlight-text": s.unplacedHighlightTextColor,
 			"--sf-codex-highlight-bg": codexHighlightColor,
 			"--sf-codex-highlight-text": codexHighlightTextColor,
-			// storyTelling's highlight is always its own — unlike items colour, there's no "link to
-			// Library" toggle for it (see StoryForgePluginSettings.storytellingHighlightColor).
-			"--sf-storytelling-highlight-bg": s.storytellingHighlightColor,
-			"--sf-storytelling-highlight-text": s.storytellingHighlightTextColor,
+			// storyTelling's highlight follows the same "link with Novel Library" toggle as its items
+			// colour (storytellingLinkItemsColorToLibrary) — when linked, mirrors the Library's own
+			// highlight pair instead of storyTelling's own.
+			"--sf-storytelling-highlight-bg": s.storytellingLinkItemsColorToLibrary ? s.highlightColor : s.storytellingHighlightColor,
+			"--sf-storytelling-highlight-text": s.storytellingLinkItemsColorToLibrary ? s.highlightTextColor : s.storytellingHighlightTextColor,
 		});
 	}
 

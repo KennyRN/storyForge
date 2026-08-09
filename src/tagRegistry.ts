@@ -176,16 +176,27 @@ export function loadCodexTypesIntoRegistry(app: App, prefetched?: TagRegistrySha
 	loadCodexTypesFromRegistry(resolved);
 }
 
+/**
+ * Returns the freshly-written `list` entries (the same array used to build the frontmatter) rather
+ * than void — callers that need to reflect the mutation back into their own UI immediately
+ * (TagRegistryModal, CodexSetTypeModal, TagPickerModal) should use this return value instead of
+ * turning around and calling readTagRegistry() again: `app.metadataCache` doesn't update
+ * synchronously with `processFrontMatter` in real Obsidian (see ensureTagRegistryFile's doc
+ * comment), so an immediate re-read after await can still see the pre-mutation frontmatter —
+ * exactly the "added type doesn't show up until the modal is reopened" class of bug this avoids.
+ */
 async function mutateTagList(
 	app: App,
 	list: TagListKind,
 	mutate: (entries: TagDefinition[]) => TagDefinition[],
-): Promise<void> {
+): Promise<TagDefinition[]> {
 	const path = tagRegistryFilePath();
 	const key = RAW_KEY[list];
+	let result: TagDefinition[] = [];
 	await modifyBackstageFrontmatter<RawTagRegistryFrontmatter>(app, app.vault, path, DEFAULT_TAG_REGISTRY_CONTENT, (fm) => {
 		const current = parseTagDefinitions(fm[key]);
 		const next = mutate(current);
+		result = next;
 		fm[key] = next.map((e) =>
 			e.parentId
 				? { id: e.id, label: e.label, "icon-alias": e.iconAlias, "parent-id": e.parentId }
@@ -204,12 +215,21 @@ async function mutateTagList(
 			loadCodexTypesFromRegistry(resolved);
 		}
 	});
+	return result;
+}
+
+/** Return shape for mutators whose callers need to reflect the change back into their own UI
+ * immediately (see mutateTagList's doc comment) — `entries` is the fresh, post-mutation list for
+ * the `list` that was touched; safe to render from directly instead of calling readTagRegistry(). */
+export interface TagDefinitionMutationResult {
+	entries: TagDefinition[];
 }
 
 /**
- * Mints a new id from `label`, appends it to `list`, and returns the new id. `parentId` nests the
- * new entry under an existing id in the same list — only ever passed for `codexTypes`, and only
- * for a child of the built-in "person"/"place" types (see TagDefinition.parentId).
+ * Mints a new id from `label`, appends it to `list`, and returns the new id plus the list's fresh
+ * post-add entries. `parentId` nests the new entry under an existing id in the same list — only
+ * ever passed for `codexTypes`, and only for a child of the built-in "person"/"place" types (see
+ * TagDefinition.parentId).
  */
 export async function addTagDefinition(
 	app: App,
@@ -217,39 +237,42 @@ export async function addTagDefinition(
 	label: string,
 	iconAlias: string,
 	parentId?: string | null,
-): Promise<string> {
+): Promise<{ id: string } & TagDefinitionMutationResult> {
 	const trimmed = label.trim();
 	if (!trimmed) throw new Error("addTagDefinition: label is required");
 	let newId = "";
-	await mutateTagList(app, list, (entries) => {
-		newId = mintId(trimmed, entries.map((e) => e.id));
-		return [...entries, parentId ? { id: newId, label: trimmed, iconAlias, parentId } : { id: newId, label: trimmed, iconAlias }];
+	const entries = await mutateTagList(app, list, (current) => {
+		newId = mintId(trimmed, current.map((e) => e.id));
+		return [...current, parentId ? { id: newId, label: trimmed, iconAlias, parentId } : { id: newId, label: trimmed, iconAlias }];
 	});
-	return newId;
+	return { id: newId, entries };
 }
 
-export async function renameTagDefinition(app: App, list: TagListKind, id: string, newLabel: string): Promise<void> {
+export async function renameTagDefinition(app: App, list: TagListKind, id: string, newLabel: string): Promise<TagDefinitionMutationResult> {
 	const trimmed = newLabel.trim();
 	if (!trimmed) throw new Error("renameTagDefinition: label is required");
-	await mutateTagList(app, list, (entries) => entries.map((e) => (e.id === id ? { ...e, label: trimmed } : e)));
+	const entries = await mutateTagList(app, list, (current) => current.map((e) => (e.id === id ? { ...e, label: trimmed } : e)));
+	return { entries };
 }
 
-export async function setTagDefinitionIcon(app: App, list: TagListKind, id: string, iconAlias: string): Promise<void> {
-	await mutateTagList(app, list, (entries) => entries.map((e) => (e.id === id ? { ...e, iconAlias } : e)));
+export async function setTagDefinitionIcon(app: App, list: TagListKind, id: string, iconAlias: string): Promise<TagDefinitionMutationResult> {
+	const entries = await mutateTagList(app, list, (current) => current.map((e) => (e.id === id ? { ...e, iconAlias } : e)));
+	return { entries };
 }
 
 /** Removes `id` from the registry list only — any chapter/novel/note still referencing it keeps the raw id untouched (non-destructive).
  * No-ops for a protected Codex type id (see PROTECTED_CODEX_TYPE_IDS) — UI surfaces should already
  * hide the delete affordance for these, this is just the backstop. */
-export async function deleteTagDefinition(app: App, list: TagListKind, id: string): Promise<void> {
-	if (list === "codexTypes" && PROTECTED_CODEX_TYPE_IDS.has(id)) return;
-	await mutateTagList(app, list, (entries) => entries.filter((e) => e.id !== id));
+export async function deleteTagDefinition(app: App, list: TagListKind, id: string): Promise<TagDefinitionMutationResult> {
+	if (list === "codexTypes" && PROTECTED_CODEX_TYPE_IDS.has(id)) return { entries: readTagRegistry(app)[list] };
+	const entries = await mutateTagList(app, list, (current) => current.filter((e) => e.id !== id));
+	return { entries };
 }
 
 /** Reorders `list` to match `newIdOrder`. Any existing id missing from `newIdOrder` is appended at the end, preserving its relative order, so a stale/partial order can't silently drop entries. */
-export async function reorderTagDefinitions(app: App, list: TagListKind, newIdOrder: string[]): Promise<void> {
-	await mutateTagList(app, list, (entries) => {
-		const byId = new Map(entries.map((e) => [e.id, e]));
+export async function reorderTagDefinitions(app: App, list: TagListKind, newIdOrder: string[]): Promise<TagDefinitionMutationResult> {
+	const entries = await mutateTagList(app, list, (current) => {
+		const byId = new Map(current.map((e) => [e.id, e]));
 		const reordered: TagDefinition[] = [];
 		for (const id of newIdOrder) {
 			const entry = byId.get(id);
@@ -258,9 +281,10 @@ export async function reorderTagDefinitions(app: App, list: TagListKind, newIdOr
 				byId.delete(id);
 			}
 		}
-		for (const entry of entries) {
+		for (const entry of current) {
 			if (byId.has(entry.id)) reordered.push(entry);
 		}
 		return reordered;
 	});
+	return { entries };
 }

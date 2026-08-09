@@ -6,9 +6,17 @@ import {
 	resolvePaletteVariant,
 } from "../colorPalettes";
 
+/** Appends a "Theme default" choice after every palette colour, for callers with an override concept. */
+export interface PalettePickerThemeDefaultOption {
+	isActive: boolean;
+	onSelect: () => void | Promise<void>;
+}
+
 /**
  * Lists every colour in the given palette/variant (official name + swatch, top to bottom).
- * Clicking a row picks that colour and closes the modal.
+ * Clicking a row picks that colour and closes the modal. When `themeDefault` is supplied, a
+ * "Theme default" row is appended at the very bottom, after every palette colour — replacing the
+ * older pattern of a separate "Theme default" toggle next to the swatch (see bindColorSwatchButton).
  */
 export class PalettePickerModal extends Modal {
 	constructor(
@@ -17,6 +25,7 @@ export class PalettePickerModal extends Modal {
 		private variantName: string,
 		private customPaletteColors: PaletteColor[],
 		private onPick: (hex: string) => void | Promise<void>,
+		private themeDefault?: PalettePickerThemeDefaultOption,
 	) {
 		super(app);
 	}
@@ -53,6 +62,18 @@ export class PalettePickerModal extends Modal {
 			row.createSpan({ cls: "sf-palette-hex", text: color.hex.toUpperCase() });
 			row.addEventListener("click", () => {
 				void this.onPick(color.hex);
+				this.close();
+			});
+		}
+
+		if (this.themeDefault) {
+			const themeDefault = this.themeDefault;
+			const row = list.createDiv({ cls: "sf-row sf-palette-row sf-palette-theme-default" });
+			if (themeDefault.isActive) row.addClass("is-selected");
+			row.createDiv({ cls: "sf-palette-swatch is-theme-default" });
+			row.createSpan({ cls: "sf-palette-name", text: "Theme default" });
+			row.addEventListener("click", () => {
+				void themeDefault.onSelect();
 				this.close();
 			});
 		}

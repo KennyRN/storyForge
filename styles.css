@@ -876,6 +876,13 @@ body.sf-codex-drag-active * {
 	border: 1px solid var(--background-modifier-border);
 }
 
+/* Sitting at "Theme default" — no fixed hex to show, so a dashed placeholder instead of a fill. */
+.sf-color-swatch-btn--theme-default {
+	border-style: dashed;
+	background-image: linear-gradient(45deg, var(--background-modifier-border) 25%, transparent 25%, transparent 50%, var(--background-modifier-border) 50%, var(--background-modifier-border) 75%, transparent 75%, transparent);
+	background-size: 6px 6px;
+}
+
 .sf-settings-tab > .setting-item + .setting-group,
 .sf-settings-tab > .setting-item + .setting-item {
 	margin-top: var(--size-4-6);
@@ -1200,6 +1207,28 @@ body.sf-codex-drag-active * {
 	color: var(--text-faint);
 }
 
+/* Always the last row — a divider sets it apart from the real palette colours above it. */
+.sf-palette-row.sf-palette-theme-default {
+	margin-top: 4px;
+	padding-top: 6px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.sf-palette-row.sf-palette-theme-default .sf-palette-name {
+	color: var(--text-muted);
+	font-style: italic;
+}
+
+.sf-palette-row.sf-palette-theme-default.is-selected {
+	background: var(--background-modifier-hover);
+}
+
+/* No fixed hex to show — a diagonal "empty" pattern instead of a solid fill. */
+.sf-palette-swatch.is-theme-default {
+	background-image: linear-gradient(45deg, var(--background-modifier-border) 25%, transparent 25%, transparent 50%, var(--background-modifier-border) 50%, var(--background-modifier-border) 75%, transparent 75%, transparent);
+	background-size: 6px 6px;
+}
+
 .sf-codex-type-picker-modal,
 .sf-codex-entry-picker-modal {
 	padding: 16px;
@@ -1482,13 +1511,14 @@ body.sf-codex-drag-active * {
 }
 
 /*
- * storyForge interface has two tab tiers: "storyForge panel" / "Right sidebar" at the top, then
- * Guides/Library/… (or Forge/Story Context/Archive) nested inside each. The outer wrapper must
- * not scroll itself, or the second tier's tab bar — which lives inside the outer wrapper's
- * visible body, right alongside the settings beneath it — would scroll away with them. Instead
- * the outer wrapper sizes its single visible body to fill the remaining height, and that body's
- * own nested tab bar + wrapper (the second tier) does the actual scrolling, keeping its tab bar
- * pinned above it.
+ * storyForge interface has two tab tiers: "Left sidebar" / "Editor" / "Right sidebar" at the top,
+ * then Library/Unplaced/… (or Forge/Story Context/Archive) nested inside Left/Right sidebar. The
+ * outer wrapper must not scroll itself, or the second tier's tab bar — which lives inside the
+ * outer wrapper's visible body, right alongside the settings beneath it — would scroll away with
+ * them. Instead the outer wrapper sizes its single visible body to fill the remaining height, and
+ * that body's own nested tab bar + wrapper (the second tier) does the actual scrolling, keeping
+ * its tab bar pinned above it. Editor has no second tier of its own, so it gets the same
+ * treatment via its own dedicated `.sf-ui-format-editor-scroll` wrapper instead (see below).
  */
 .sf-ui-format-controls > .sf-text-style-tab-body-wrapper {
 	display: flex;
@@ -1502,6 +1532,18 @@ body.sf-codex-drag-active * {
 }
 
 .sf-text-style-tab-body {
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-6);
+	box-sizing: border-box;
+}
+
+/* Editor tab's own scrollable body — see the two-tab-tiers comment above. */
+.sf-ui-format-editor-scroll {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
 	display: flex;
 	flex-direction: column;
 	gap: var(--size-4-6);

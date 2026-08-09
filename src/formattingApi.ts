@@ -32,6 +32,16 @@ export interface OpenFontPickerOptions {
 	currentFamilyId: string;
 	previewFontSizeEm: number;
 	onPick: (familyId: string) => void;
+	/**
+	 * Present when the caller has an "override vs theme default" concept for this field — appends
+	 * a "Theme default" row to formatForge's picker (current formatForge behaviour, replacing the
+	 * older separate "Override theme's default font" toggle). `isThemeDefault` marks that row
+	 * selected when the field isn't currently overriding; picking it calls `onPickThemeDefault`
+	 * instead of `onPick`. Both optional so an older formatForge (which ignores unknown option
+	 * fields) still opens a plain picker with no theme-default row.
+	 */
+	isThemeDefault?: boolean;
+	onPickThemeDefault?: () => void;
 }
 
 /**
