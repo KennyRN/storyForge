@@ -3,7 +3,6 @@ import {
 	archiveCodexItem,
 	codexTypeIcon,
 	convertCodexNoteToFolder,
-	getCodexEntryTags,
 	getCodexEntryType,
 	getCodexView,
 	isDescendantFolder,
@@ -12,7 +11,6 @@ import {
 	removeCodexFolder,
 	renameCodexFolder,
 	renameCodexNoteFile,
-	writeCodexEntryTags,
 	type CodexTreeItem,
 	type CodexViewMode,
 } from "../codex";
@@ -199,17 +197,7 @@ function renderTreeChildren(
 				{ title: "Remove Folder and Keep Items", onClick: () => removeCodexFolder(app, item.id) },
 			];
 			if (linkedPath) {
-				folderMenuItems.push(
-					{ title: "Set as...", onClick: () => new CodexSetTypeModal(app, linkedPath).open() },
-					{
-						title: "Tags...",
-						onClick: () => {
-							new TagPickerModal(app, "codexTags", getCodexEntryTags(app, linkedPath), (nextIds) =>
-								writeCodexEntryTags(app, linkedPath, nextIds),
-							).open();
-						},
-					},
-				);
+				folderMenuItems.push({ title: "Set as...", onClick: () => new CodexSetTypeModal(app, linkedPath).open() });
 			}
 			attachInlineRename({
 				row: headerEl,
@@ -231,7 +219,11 @@ function renderTreeChildren(
 
 			if (!collapsed) {
 				const childrenEl = folderEl.createDiv({ cls: "sf-codex-folder-children" });
-				childrenEl.createDiv({ cls: "sf-codex-folder-indicator" });
+				// Only draw the guide line when there's something under it — an empty folder just
+				// shows its (expanded) chevron with nothing hanging off it.
+				if (item.children.length > 0) {
+					childrenEl.createDiv({ cls: "sf-codex-folder-indicator" });
+				}
 				renderTreeChildren(
 					app,
 					childrenEl,
@@ -266,14 +258,6 @@ function renderTreeChildren(
 				setIcon(typeIcon, codexTypeIcon(entryType) ?? "circle-help");
 			}
 
-			const tagsMenuItem: ExtraMenuItem = {
-				title: "Tags...",
-				onClick: () => {
-					new TagPickerModal(app, "codexTags", getCodexEntryTags(app, item.path), (nextIds) =>
-						writeCodexEntryTags(app, item.path, nextIds),
-					).open();
-				},
-			};
 			// Turns this note into a Lore Entry folder in place (e.g. a group other entries — its
 			// members — can be filed inside) — see convertCodexNoteToFolder's own doc comment.
 			const convertMenuItem: ExtraMenuItem = {
@@ -291,7 +275,6 @@ function renderTreeChildren(
 				extraMenuItems: [
 					{ title: "Archive", onClick: () => archiveCodexItem(app, item.path) },
 					{ title: "Set as...", onClick: () => new CodexSetTypeModal(app, item.path).open() },
-					tagsMenuItem,
 					convertMenuItem,
 				],
 			});

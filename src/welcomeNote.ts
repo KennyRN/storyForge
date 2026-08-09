@@ -9,7 +9,7 @@ export const WELCOME_NOTE_CONTENT = `# [[Welcome to storyForge]]!
 I created storyForge as a one-stop-shop plugin for storytelling: to turn Obsidian into a dedicated storytelling app. All the advantages of Obsidian and all the advantages of a storytelling app. (With hopefully few of the disadvantages of either. 😂)
 
 ## 🪟 The storyForge Window
-This text is in the editor, and to the left (or right if you move the panel) is the storyForge panel. There's 4 panes of the window:
+This text is in the editor, and to the left (or right if you move the panel) is the storyLibrary panel. There's 4 panes of the window:
 1. Library pane
 2. Unplaced pane
 3. Codex pane
@@ -29,12 +29,12 @@ Within the novel library pane there's a plot button. Click on it and up pops the
 ### 🚧 Unplaced pane
 This is a holding pen, a staging area, for your novels or chapters (depending upon what library pane you're in). All new chapters and novels get placed here, and remain here, until you decide to move them into the series / novel proper.
 
-Also here you'll find the Archive. This removes the archived files or novels from view, but allows you to hunt for them again if you ever want to find those nuggets of treasure within them. (As for deleting files, there shouldn't be a way within the storyForge panel for that to occur: your words are precious, and even if you don't want them they deserve to be celebrated in their own way.)
+Also here you'll find the Archive. This removes the archived files or novels from view, but allows you to hunt for them again if you ever want to find those nuggets of treasure within them. (As for deleting files, there shouldn't be a way within the storyLibrary panel for that to occur: your words are precious, and even if you don't want them they deserve to be celebrated in their own way.)
 
 ### 🌍 Codex pane
 A dedicated area with virtual folders to organise all your story lore. This is completely freeform so go wild within here!
 
-Archiving rather than deleting, as mentioned above within the storyForge panel, because there is no method of deleting files.
+Archiving rather than deleting, as mentioned above within the storyLibrary panel, because there is no method of deleting files.
 
 This is a folder within the Obsidian vault called *Codex/*  If you put your files in here then they'll appear within storyForge, so it's easy to move your markdown worldbuilding files into storyForge. Just be aware that codex houses a virtual folder, so all the files need to kept in the base folder location, otherwise they might not be seen.
 
@@ -46,14 +46,14 @@ Tucked right at the very bottom, there if you want it, not obvious if you don't 
 There's also a wordcount log which keeps track of your progress over time.
 
 ## 🧭 Focus & Navigation
-The storyForge panel has a highlight feature which shows what chapter or codex item you currently have open.
+The storyLibrary panel has a highlight feature which shows what chapter or codex item you currently have open.
 
 ### 🎨 Customisation
 As I wanted this a one-stop-plugin there's lots of features behind the scenes which mirror other Obsidian plugins:
 - **Tools panel:** this deserves a mention. As standard I've hidden Obsidian's ribbon, but it can be useful when you use plugins, so instead of hiding the ribbon completely I've had it moved into the Tools panel. What you see is Obsidian's ribbon with the names associated with the tools and plugins formatted to make it look better within a panel rather than just being a narrow strip along the edge.
 - **Colour palette and mode:** these give you common colour schemes and their standard colours for you to pick colours from. If you don't use any of those themes, or just want to have your own colour options, there's a custom option which allows you to define 5 colours to use within storyForge and Obsidian.
 - **Text style:** this contains overrides for your theme's default text styles in things like fonts (there's a number built into storyForge), colours, size, font weight, font decorations. (In Heading 1 there's an extra feature of Hiding the links for Heading 1: this is a me-thing. A tip from me to you, set up a Heading 1 link and when you rename the file the header name changes too! Yes, Obsidian does show file names in the editor windows now, but I've turned that off as standard so chapters are just nice and simple text. This also allows you to have your note header formatted how you like!) (And, yes, I've linked this Heading 1, so feel free and rename this file and see the title change...)
-- **storyForge interface:** this is where you find the options to customise the foreground appearance of the storyForge panel.
+- **storyForge interface:** this is where you find the options to customise the foreground appearance of the storyLibrary panel.
 - **Hide Obsidian interface elements:** maybe, unlike me, you'd prefer a busier writing platform. If so, that's okay, and that's why every Obsidian element I've had turned off can be found in here and can be turned on again. The exception to this is the ribbon which is hidden by the *Use tools panel* setting. This can be found at the top of the settings page.
 
 ### 🛤️ Storytelling aids
@@ -65,7 +65,7 @@ As I wanted this a one-stop-plugin there's lots of features behind the scenes wh
 - There's also a setting to export and import your storyForge settings. So you can craft things perfectly to your liking and then export them so future storyForge plugins can be styled exactly the same. (I mean, if you're like me, you have far more ideas and half-started stories than you know what to do with...)
 - And this file, though you can't delete it natively within storyForge, can be archived. But if you did delete and want it back, well, just pop into settings and ask for it to be recreated again!
 - This leads to one final thing to note: storyForge, other than creating files (including Story Context “Create in Codex” entries for new people/places) and renaming files in the codex pane (and codex pane only), cannot touch the files which are held within the library and codex folders. Fact warnings in Story Context are display-only — you place details into Codex yourself. And storyForge doesn't have any delete function in its code. I set this up like this to make sure your masterpiece is kept as safe as I can make it, especially if you use the automatic backup and follow proper backup procedures (321 backup is a good place to start).
-	- And how storyForge saves how your marvellous masterpiece manuscript is structured in a markdown file in YAML code. Which is to say easy to read if you open that file (which is hidden from view in storyForge panel as you don't need it). So if you ever decide to take your story into another app or plugin or some other kind of future method then it's all there for you to easily move over.
+	- And how storyForge saves how your marvellous masterpiece manuscript is structured in a markdown file in YAML code. Which is to say easy to read if you open that file (which is hidden from view in storyLibrary panel as you don't need it). So if you ever decide to take your story into another app or plugin or some other kind of future method then it's all there for you to easily move over.
 `;
 
 /**

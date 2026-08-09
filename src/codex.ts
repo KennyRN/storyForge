@@ -32,11 +32,6 @@ export interface CodexFrontmatterShape {
 	order: string[];
 	archive: string[];
 	types: Record<string, string>;
-	/** Codex-entry-path -> assigned codexTags ids (tagRegistry.ts). Independent of `types` — an
-	 * entry's type is singular and drives its icon and the tree's type filter
-	 * (filterVisiblePathsByType); tags are multi-valued, freeform, and not yet wired to any
-	 * filtering of their own (assignable via BottomPanel.ts's "Tags..." menu item). */
-	tags: Record<string, string[]>;
 }
 
 /** The raw, unsanitized on-disk shape of codex.md's frontmatter, as read/written through `modifyBackstageFrontmatter`. */
@@ -45,13 +40,16 @@ export interface RawCodexFrontmatter extends FrontMatterCache {
 	order?: unknown;
 	archive?: unknown;
 	types?: unknown;
-	tags?: unknown;
 }
 
 export interface CodexTypeOption {
 	type: string;
 	label: string;
 	icon: string;
+	/** Nesting parent — another type's id, or null/undefined at the root. Only ever set for a
+	 * child of the built-in "person"/"place" types (see tagRegistry.ts's TagDefinition.parentId,
+	 * which this mirrors once resolved). */
+	parentId?: string | null;
 }
 
 /** Built-in Codex types. Hosted siblings add more via `registerCodexType`. */
@@ -94,11 +92,30 @@ export function registerCodexType(opt: CodexTypeOption): void {
 		existing.icon = icon;
 		return;
 	}
+	// Sibling registrations never nest — parentId is a codexTypes-registry-only concept.
 	CODEX_TYPES.push({ type, label, icon });
 }
 
 export function codexTypeIcon(type: string): string | null {
 	return CODEX_TYPES.find((t) => t.type === type)?.icon ?? null;
+}
+
+/**
+ * True when `type` *is* `ancestorType`, or is nested under it (directly or, in principle,
+ * transitively — today nesting only ever goes one level deep, under "person"/"place", but this
+ * walks the chain generically rather than assuming that depth). This is the "soft tag" behind
+ * nested Codex types: an entry typed with a specific nested type (e.g. "Hero" under "Person")
+ * still counts as its ancestor type ("Person") everywhere the app checks entry type — the type
+ * filter, and PoV/location pickers (`getCodexEntriesByType`). Guards against a corrupt/cyclic
+ * parentId chain by capping the walk at CODEX_TYPES's own size.
+ */
+export function codexTypeMatchesOrDescendsFrom(type: string, ancestorType: string): boolean {
+	let current: string | null = type;
+	for (let i = 0; i < CODEX_TYPES.length && current; i++) {
+		if (current === ancestorType) return true;
+		current = CODEX_TYPES.find((t) => t.type === current)?.parentId ?? null;
+	}
+	return false;
 }
 
 /**
@@ -154,19 +171,9 @@ function parseTypes(raw: unknown): Record<string, string> {
 	return result;
 }
 
-function parseTagsMap(raw: unknown): Record<string, string[]> {
-	if (!raw || typeof raw !== "object") return {};
-	const result: Record<string, string[]> = {};
-	for (const [path, value] of Object.entries(raw as Record<string, unknown>)) {
-		const ids = parseStringArray(value);
-		if (ids.length > 0) result[path] = ids;
-	}
-	return result;
-}
-
 export function readCodexFrontmatter(app: App): CodexFrontmatterShape {
 	const file = app.vault.getAbstractFileByPath(codexFilePath());
-	if (!file) return { folders: {}, order: [], archive: [], types: {}, tags: {} };
+	if (!file) return { folders: {}, order: [], archive: [], types: {} };
 	const cache = app.metadataCache.getCache(codexFilePath());
 	const fm = cache?.frontmatter;
 	return {
@@ -174,7 +181,6 @@ export function readCodexFrontmatter(app: App): CodexFrontmatterShape {
 		order: parseStringArray(fm?.order),
 		archive: parseStringArray(fm?.archive),
 		types: parseTypes(fm?.types),
-		tags: parseTagsMap(fm?.tags),
 	};
 }
 
@@ -190,49 +196,14 @@ export async function setCodexEntryType(app: App, path: string, type: string): P
 	});
 }
 
-/** A Codex entry's assigned codexTags ids (tagRegistry.ts) — empty if untagged. */
-export function getCodexEntryTags(app: App, path: string): string[] {
-	return readCodexFrontmatter(app).tags[path] ?? [];
-}
-
-/** Overwrites a Codex entry's full codexTags set. An empty array clears tags entirely (removes the entry from the map rather than storing `[]`). */
-export async function writeCodexEntryTags(app: App, path: string, tagIds: string[]): Promise<void> {
-	await modifyBackstageFrontmatter<RawCodexFrontmatter>(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
-		const tags = parseTagsMap(fm.tags);
-		if (tagIds.length > 0) tags[path] = tagIds;
-		else delete tags[path];
-		fm.tags = tags;
-	});
-}
-
 /**
- * Restricts `visiblePaths` to those carrying at least one of `tagIds` (OR semantics — selecting
- * several tags shows anything matching any of them, i.e. "a group of tags"). Returns `visiblePaths`
- * unchanged when `tagIds` is empty — no filter selected means show everything, same as today.
- * Folders are handled downstream by resolveCodexTree's own declutter logic (a folder with no
- * currently-visible descendant collapses out of the tree on its own).
- */
-export function filterVisiblePathsByTags(
-	app: App,
-	visiblePaths: ReadonlySet<string>,
-	tagIds: ReadonlySet<string>,
-): ReadonlySet<string> {
-	if (tagIds.size === 0) return visiblePaths;
-	const { tags } = readCodexFrontmatter(app);
-	const result = new Set<string>();
-	for (const path of visiblePaths) {
-		const entryTags = tags[path];
-		if (entryTags?.some((id) => tagIds.has(id))) result.add(path);
-	}
-	return result;
-}
-
-/**
- * Restricts `visiblePaths` to those whose assigned type is in `typeIds` (OR semantics — selecting
- * several types shows anything matching any of them, i.e. "a group of types"). Returns
- * `visiblePaths` unchanged when `typeIds` is empty — no filter selected means show everything.
- * Folders are handled downstream by resolveCodexTree's own declutter logic (a folder with no
- * currently-visible descendant collapses out of the tree on its own).
+ * Restricts `visiblePaths` to those whose assigned type is in `typeIds`, or descends from one of
+ * them (OR semantics — selecting several types shows anything matching any of them, i.e. "a group
+ * of types"; a nested type's entries stay included when its ancestor is selected — the "soft tag"
+ * behind nested Codex types, see codexTypeMatchesOrDescendsFrom). Returns `visiblePaths` unchanged
+ * when `typeIds` is empty — no filter selected means show everything. Folders are handled
+ * downstream by resolveCodexTree's own declutter logic (a folder with no currently-visible
+ * descendant collapses out of the tree on its own).
  */
 export function filterVisiblePathsByType(
 	app: App,
@@ -244,12 +215,13 @@ export function filterVisiblePathsByType(
 	const result = new Set<string>();
 	for (const path of visiblePaths) {
 		const type = types[path];
-		if (type && typeIds.has(type)) result.add(path);
+		if (type && Array.from(typeIds).some((typeId) => codexTypeMatchesOrDescendsFrom(type, typeId))) result.add(path);
 	}
 	return result;
 }
 
-/** Codex entries of the given type, scoped like the Codex pane itself (universal + this book's own, excluding archived). */
+/** Codex entries of the given type (or a type nested under it — see codexTypeMatchesOrDescendsFrom),
+ * scoped like the Codex pane itself (universal + this book's own, excluding archived). */
 export function getCodexEntriesByType(
 	app: App,
 	type: string,
@@ -257,7 +229,12 @@ export function getCodexEntriesByType(
 ): { path: string; name: string }[] {
 	const { types } = readCodexFrontmatter(app);
 	const { codex } = partitionCodexNotes(collectCodexNotes(app), currentBookId);
-	return codex.filter((note) => types[note.path] === type).map((note) => ({ path: note.path, name: codexBasename(note.path) }));
+	return codex
+		.filter((note) => {
+			const entryType = types[note.path];
+			return entryType != null && codexTypeMatchesOrDescendsFrom(entryType, type);
+		})
+		.map((note) => ({ path: note.path, name: codexBasename(note.path) }));
 }
 
 /** Flat, single-pass scan — Codex notes always live directly under `Codex/` now (folders are virtual). Archived paths (direct or nested inside an archived folder) are excluded. */
@@ -513,7 +490,6 @@ export async function rekeyCodexNotePath(app: App, oldPath: string, newPath: str
 		const order = parseStringArray(fm.order);
 		const archive = parseStringArray(fm.archive);
 		const types = parseTypes(fm.types);
-		const tags = parseTagsMap(fm.tags);
 		const rekey = (arr: string[]): string[] =>
 			newPath ? arr.map((k) => (k === oldPath ? newPath : k)) : arr.filter((k) => k !== oldPath);
 		for (const id of Object.keys(folders)) {
@@ -532,16 +508,10 @@ export async function rekeyCodexNotePath(app: App, oldPath: string, newPath: str
 			delete types[oldPath];
 			if (newPath) types[newPath] = value;
 		}
-		if (oldPath in tags) {
-			const value = tags[oldPath];
-			delete tags[oldPath];
-			if (newPath) tags[newPath] = value;
-		}
 		fm.folders = folders;
 		fm.order = rekey(order);
 		fm.archive = rekey(archive);
 		fm.types = types;
-		fm.tags = tags;
 	});
 }
 

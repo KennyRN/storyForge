@@ -2,13 +2,20 @@ import { App, Modal, Setting, SettingGroup } from "obsidian";
 import type StoryForgePlugin from "../main";
 import type { StoryForgePluginSettings } from "../main";
 import {
+	bindColorSwatchButton,
 	persistAndRestyle,
 	renderTabbedBody,
 	renderToggleWithRevealCard,
 	type StyleModalTab,
 } from "./styleModalHelpers";
 
-/** Editor body/heading *size* overrides only — colours, fonts, and dividers live in formatForge. */
+/**
+ * Editor body/heading *size* and *colour* overrides — colour here is storyForge-native (its own
+ * palette, see colorPalettes.ts), never formatForge's. Font, small-caps, and dividers still live
+ * in formatForge only. This modal's one entry point (StoryForgeSettingsTab.ts) is reachable only
+ * while formatForge is disconnected, so these colour controls never contend with formatForge's
+ * own colour vars — no separate gating needed here.
+ */
 export class TextStyleModal extends Modal {
 	private plugin: StoryForgePlugin;
 	private selectedOtherHeadingLevel: 4 | 5 | 6 = 4;
@@ -52,6 +59,15 @@ export class TextStyleModal extends Modal {
 						1.8,
 						restyle,
 					);
+					this.renderColorCard(
+						body,
+						settings,
+						"Override theme's default text colour",
+						"Text colour",
+						"bodyTextOverrideColor",
+						"bodyTextColor",
+						restyle,
+					);
 				},
 			},
 			{
@@ -67,6 +83,15 @@ export class TextStyleModal extends Modal {
 						"heading1Size",
 						1,
 						2.5,
+						restyle,
+					);
+					this.renderColorCard(
+						body,
+						settings,
+						"Override theme's default header colour",
+						"Header colour",
+						"heading1OverrideColor",
+						"heading1Color",
 						restyle,
 					);
 				},
@@ -86,6 +111,15 @@ export class TextStyleModal extends Modal {
 						2.5,
 						restyle,
 					);
+					this.renderColorCard(
+						body,
+						settings,
+						"Override theme's default header colour",
+						"Header colour",
+						"heading2OverrideColor",
+						"heading2Color",
+						restyle,
+					);
 				},
 			},
 			{
@@ -101,6 +135,15 @@ export class TextStyleModal extends Modal {
 						"heading3Size",
 						1,
 						2.5,
+						restyle,
+					);
+					this.renderColorCard(
+						body,
+						settings,
+						"Override theme's default header colour",
+						"Header colour",
+						"heading3OverrideColor",
+						"heading3Color",
 						restyle,
 					);
 				},
@@ -143,6 +186,15 @@ export class TextStyleModal extends Modal {
 						1.8,
 						restyle,
 					);
+					this.renderColorCard(
+						body,
+						settings,
+						"Override theme's default header colour",
+						"Header colour",
+						"heading4OverrideColor",
+						"heading4Color",
+						restyle,
+					);
 					levelElements[4] = Array.from(body.children).slice(before4) as HTMLElement[];
 
 					const before5 = body.children.length;
@@ -157,6 +209,15 @@ export class TextStyleModal extends Modal {
 						1.8,
 						restyle,
 					);
+					this.renderColorCard(
+						body,
+						settings,
+						"Override theme's default header colour",
+						"Header colour",
+						"heading5OverrideColor",
+						"heading5Color",
+						restyle,
+					);
 					levelElements[5] = Array.from(body.children).slice(before5) as HTMLElement[];
 
 					const before6 = body.children.length;
@@ -169,6 +230,15 @@ export class TextStyleModal extends Modal {
 						"heading6Size",
 						0.7,
 						1.8,
+						restyle,
+					);
+					this.renderColorCard(
+						body,
+						settings,
+						"Override theme's default header colour",
+						"Header colour",
+						"heading6OverrideColor",
+						"heading6Color",
 						restyle,
 					);
 					levelElements[6] = Array.from(body.children).slice(before6) as HTMLElement[];
@@ -211,6 +281,39 @@ export class TextStyleModal extends Modal {
 					);
 				});
 				return sliderSetting;
+			},
+			restyle,
+		);
+	}
+
+	/** Same shape as renderSizeCard, but for a colour swatch — storyForge's own palette (see this file's header comment), not formatForge's. */
+	private renderColorCard(
+		body: HTMLElement,
+		settings: StoryForgePluginSettings,
+		label: string,
+		swatchLabel: string,
+		overrideKey: keyof StoryForgePluginSettings,
+		colorKey: keyof StoryForgePluginSettings,
+		restyle: () => void,
+	): void {
+		renderToggleWithRevealCard(
+			body,
+			label,
+			settings[overrideKey] as boolean,
+			(value) => {
+				void this.plugin.updateSetting(overrideKey, value);
+			},
+			(card) => {
+				let colorSetting!: Setting;
+				card.addSetting((setting) => {
+					colorSetting = setting;
+					setting.setName(swatchLabel).addButton((button) =>
+						bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings[colorKey] as string, (hex) =>
+							persistAndRestyle(this.plugin, colorKey, hex, restyle),
+						),
+					);
+				});
+				return colorSetting;
 			},
 			restyle,
 		);

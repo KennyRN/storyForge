@@ -6,7 +6,7 @@ import { ICON_TAG } from "./icons";
 import { CODEX_ICON_CATALOG, TAG_ICON_CATALOG } from "./iconRegistry";
 import { loadCodexTypesFromRegistry, type CodexTypeOption } from "./codex";
 
-/** One entry in an editable type/tag list (Codex types, chapter tags, novel tags, or Codex tags). */
+/** One entry in an editable type/tag list (Codex types, chapter tags, or novel tags). */
 export interface TagDefinition {
 	/** Slug id, minted from `label` when created. Stable once created — this is what per-chapter/per-novel/per-note assignments store. */
 	id: string;
@@ -14,23 +14,20 @@ export interface TagDefinition {
 	/** References an alias in the fixed icon catalog for this list's kind (see resolveIconAlias) — never a raw icon id. */
 	iconAlias: string;
 	/**
-	 * Nested-tag parent — another id in the same list, or null/undefined at the root. Scaffolding
-	 * only: only `codexTags` is meant to ever set this, and nothing reads it yet (no ancestor
-	 * auto-selection when a leaf tag is picked, no indent in TagPickerModal/TagRegistryModal).
-	 * That's a deliberately deferred feature; this field just gives it somewhere to persist once
-	 * it exists, so the eventual UI work doesn't also need a data-migration. codexTypes/
-	 * chapterTags/novelTags never set it.
+	 * Nested-type parent — another id in the same list, or null/undefined at the root. Only
+	 * `codexTypes` ever sets this, and only as a child of the built-in "person" or "place" types
+	 * (nesting is deliberately not offered anywhere else — see TagRegistryModal's Codex types tab
+	 * and CodexSetTypeModal). chapterTags/novelTags never set it.
 	 */
 	parentId?: string | null;
 }
 
-export type TagListKind = "codexTypes" | "chapterTags" | "novelTags" | "codexTags";
+export type TagListKind = "codexTypes" | "chapterTags" | "novelTags";
 
 export interface TagRegistryShape {
 	codexTypes: TagDefinition[];
 	chapterTags: TagDefinition[];
 	novelTags: TagDefinition[];
-	codexTags: TagDefinition[];
 }
 
 interface RawTagDefinition {
@@ -45,14 +42,12 @@ export interface RawTagRegistryFrontmatter extends FrontMatterCache {
 	"codex-types"?: unknown;
 	"chapter-tags"?: unknown;
 	"novel-tags"?: unknown;
-	"codex-tags"?: unknown;
 }
 
-const RAW_KEY: Record<TagListKind, "codex-types" | "chapter-tags" | "novel-tags" | "codex-tags"> = {
+const RAW_KEY: Record<TagListKind, "codex-types" | "chapter-tags" | "novel-tags"> = {
 	codexTypes: "codex-types",
 	chapterTags: "chapter-tags",
 	novelTags: "novel-tags",
-	codexTags: "codex-tags",
 };
 
 /** Used when a tag/type's `iconAlias` no longer resolves (a stale alias from an older catalog). */
@@ -91,11 +86,6 @@ const SEED_NOVEL_TAGS: readonly TagDefinition[] = [
 	{ id: "favourite", label: "Favourite", iconAlias: "bookmark-fill" },
 ];
 
-/** Codex tags — unlike the three lists above, starts empty: this is a new, opt-in way to tag
- * individual Codex entries (for the Codex tree's tag filter), not a status/workflow list with an
- * obvious universal starter set. */
-const SEED_CODEX_TAGS: readonly TagDefinition[] = [];
-
 function tagDefinitionsYaml(entries: readonly TagDefinition[]): string {
 	return entries
 		.map((e) => {
@@ -105,7 +95,7 @@ function tagDefinitionsYaml(entries: readonly TagDefinition[]): string {
 		.join("\n");
 }
 
-export const DEFAULT_TAG_REGISTRY_CONTENT = `---\ncodex-types:\n${tagDefinitionsYaml(SEED_CODEX_TYPES)}\nchapter-tags:\n${tagDefinitionsYaml(SEED_CHAPTER_TAGS)}\nnovel-tags:\n${tagDefinitionsYaml(SEED_NOVEL_TAGS)}\ncodex-tags:\n${tagDefinitionsYaml(SEED_CODEX_TAGS)}\n---\n`;
+export const DEFAULT_TAG_REGISTRY_CONTENT = `---\ncodex-types:\n${tagDefinitionsYaml(SEED_CODEX_TYPES)}\nchapter-tags:\n${tagDefinitionsYaml(SEED_CHAPTER_TAGS)}\nnovel-tags:\n${tagDefinitionsYaml(SEED_NOVEL_TAGS)}\n---\n`;
 
 function parseTagDefinitions(raw: unknown): TagDefinition[] {
 	if (!Array.isArray(raw)) return [];
@@ -131,7 +121,6 @@ export function readTagRegistry(app: App): TagRegistryShape {
 			codexTypes: SEED_CODEX_TYPES.map((e) => ({ ...e })),
 			chapterTags: SEED_CHAPTER_TAGS.map((e) => ({ ...e })),
 			novelTags: SEED_NOVEL_TAGS.map((e) => ({ ...e })),
-			codexTags: SEED_CODEX_TAGS.map((e) => ({ ...e })),
 		};
 	}
 	const cache = app.metadataCache.getCache(path);
@@ -140,7 +129,6 @@ export function readTagRegistry(app: App): TagRegistryShape {
 		codexTypes: parseTagDefinitions(fm?.["codex-types"]),
 		chapterTags: parseTagDefinitions(fm?.["chapter-tags"]),
 		novelTags: parseTagDefinitions(fm?.["novel-tags"]),
-		codexTags: parseTagDefinitions(fm?.["codex-tags"]),
 	};
 }
 
@@ -154,11 +142,10 @@ export function resolveIconAlias(list: TagListKind, alias: string): string {
 }
 
 /** Idempotent: creates tag-registry.md, pre-seeded with today's 3 Codex types and a handful of
- * starter chapter/novel tags (Codex tags start empty — see SEED_CODEX_TAGS), if it doesn't exist
- * yet. Returns the file's resulting contents — computed directly from the seed on first creation
- * rather than read back from `app.metadataCache`, which doesn't update synchronously with
- * `processFrontMatter` in real Obsidian (same hazard `series.ts`'s `ensureAllSeriesBookEntries`
- * documents and avoids). */
+ * starter chapter/novel tags, if it doesn't exist yet. Returns the file's resulting contents —
+ * computed directly from the seed on first creation rather than read back from
+ * `app.metadataCache`, which doesn't update synchronously with `processFrontMatter` in real
+ * Obsidian (same hazard `series.ts`'s `ensureAllSeriesBookEntries` documents and avoids). */
 export async function ensureTagRegistryFile(app: App): Promise<TagRegistryShape> {
 	const path = tagRegistryFilePath();
 	if (!app.vault.getAbstractFileByPath(path)) {
@@ -169,7 +156,6 @@ export async function ensureTagRegistryFile(app: App): Promise<TagRegistryShape>
 			codexTypes: SEED_CODEX_TYPES.map((e) => ({ ...e })),
 			chapterTags: SEED_CHAPTER_TAGS.map((e) => ({ ...e })),
 			novelTags: SEED_NOVEL_TAGS.map((e) => ({ ...e })),
-			codexTags: SEED_CODEX_TAGS.map((e) => ({ ...e })),
 		};
 	}
 	return readTagRegistry(app);
@@ -185,6 +171,7 @@ export function loadCodexTypesIntoRegistry(app: App, prefetched?: TagRegistrySha
 		type: t.id,
 		label: t.label,
 		icon: resolveIconAlias("codexTypes", t.iconAlias),
+		parentId: t.parentId ?? null,
 	}));
 	loadCodexTypesFromRegistry(resolved);
 }
@@ -212,20 +199,31 @@ async function mutateTagList(
 				type: t.id,
 				label: t.label,
 				icon: resolveIconAlias("codexTypes", t.iconAlias),
+				parentId: t.parentId ?? null,
 			}));
 			loadCodexTypesFromRegistry(resolved);
 		}
 	});
 }
 
-/** Mints a new id from `label`, appends it to `list`, and returns the new id. */
-export async function addTagDefinition(app: App, list: TagListKind, label: string, iconAlias: string): Promise<string> {
+/**
+ * Mints a new id from `label`, appends it to `list`, and returns the new id. `parentId` nests the
+ * new entry under an existing id in the same list — only ever passed for `codexTypes`, and only
+ * for a child of the built-in "person"/"place" types (see TagDefinition.parentId).
+ */
+export async function addTagDefinition(
+	app: App,
+	list: TagListKind,
+	label: string,
+	iconAlias: string,
+	parentId?: string | null,
+): Promise<string> {
 	const trimmed = label.trim();
 	if (!trimmed) throw new Error("addTagDefinition: label is required");
 	let newId = "";
 	await mutateTagList(app, list, (entries) => {
 		newId = mintId(trimmed, entries.map((e) => e.id));
-		return [...entries, { id: newId, label: trimmed, iconAlias }];
+		return [...entries, parentId ? { id: newId, label: trimmed, iconAlias, parentId } : { id: newId, label: trimmed, iconAlias }];
 	});
 	return newId;
 }

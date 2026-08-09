@@ -21,10 +21,9 @@ const TABS: { id: TagListKind; label: string; addPlaceholder: string }[] = [
 	{ id: "codexTypes", label: "Codex types", addPlaceholder: 'New type name (e.g. "Faction")' },
 	{ id: "chapterTags", label: "Chapter tags", addPlaceholder: 'New chapter tag (e.g. "2nd pass")' },
 	{ id: "novelTags", label: "Novel tags", addPlaceholder: 'New novel tag (e.g. "Needs cover")' },
-	{ id: "codexTags", label: "Codex tags", addPlaceholder: 'New codex tag (e.g. "Capital City")' },
 ];
 
-/** Manage the four user-editable lists (Codex types, chapter tags, novel tags, Codex tags): add, rename, re-icon, reorder, delete. */
+/** Manage the three user-editable lists (Codex types, chapter tags, novel tags): add, rename, re-icon, reorder, delete. Codex types additionally nests — see renderCodexTypesList. */
 export class TagRegistryModal extends Modal {
 	constructor(
 		app: App,
@@ -58,11 +57,12 @@ export class TagRegistryModal extends Modal {
 			TABS.map((tab) => ({
 				id: tab.id,
 				label: tab.label,
-				render: (body: HTMLElement) => this.renderList(body, tab.id, tab.addPlaceholder),
+				render: (body: HTMLElement) => (tab.id === "codexTypes" ? this.renderCodexTypesList(body) : this.renderList(body, tab.id, tab.addPlaceholder)),
 			})),
 		);
 	}
 
+	/** Flat renderer — chapterTags/novelTags, which never nest. */
 	private renderList(body: HTMLElement, list: TagListKind, addPlaceholder: string): void {
 		const entries = readTagRegistry(this.app)[list];
 
@@ -80,6 +80,65 @@ export class TagRegistryModal extends Modal {
 		});
 
 		this.renderAddRow(body, list, addPlaceholder);
+	}
+
+	/**
+	 * Codex types nest, but only one level deep and only under the built-in "person"/"place"
+	 * types (TagDefinition.parentId) — heroes/villains under Person, star systems/cities under
+	 * Place, say. Each top-level type is its own draggable unit (`.sf-tag-registry-top-row`,
+	 * dragged as a whole via makeReorderable below) that physically *contains* its children block,
+	 * so dragging it carries its nested types along for free — no special-cased drag logic needed,
+	 * just DOM nesting. Person/Place always get a (possibly empty) indented children block ending
+	 * in their own blank "add nested type" row, even before they have any children yet.
+	 */
+	private renderCodexTypesList(body: HTMLElement): void {
+		const entries = readTagRegistry(this.app).codexTypes;
+		const topLevel = entries.filter((e) => !e.parentId);
+		const childrenByParent = new Map<string, TagDefinition[]>();
+		for (const e of entries) {
+			if (!e.parentId) continue;
+			const siblings = childrenByParent.get(e.parentId);
+			if (siblings) siblings.push(e);
+			else childrenByParent.set(e.parentId, [e]);
+		}
+
+		const rowsEl = body.createDiv({ cls: "sf-modal-book-list sf-tag-registry-list" });
+		if (topLevel.length === 0) {
+			rowsEl.createDiv({ cls: "sf-empty sf-empty-inline", text: "Nothing here yet — add one below." });
+		}
+		for (const entry of topLevel) {
+			this.renderCodexTypeGroup(rowsEl, entry, childrenByParent.get(entry.id) ?? []);
+		}
+
+		const topZones: DragZone[] = [{ key: "order", container: rowsEl }];
+		makeReorderable(topZones, ".sf-tag-registry-top-row", ".sf-drag-handle", (zoneRowKeys) => {
+			void this.handleReorder("codexTypes", (zoneRowKeys.order ?? []).filter(Boolean));
+		});
+
+		this.renderAddRow(body, "codexTypes", 'New type name (e.g. "Faction")');
+	}
+
+	/** One top-level type, its own row plus (Person/Place only) an indented children block. */
+	private renderCodexTypeGroup(rowsEl: HTMLElement, entry: TagDefinition, children: TagDefinition[]): void {
+		const wrap = rowsEl.createDiv({ cls: "sf-tag-registry-top-row" });
+		wrap.dataset.key = entry.id;
+		this.renderRow(wrap, "codexTypes", entry);
+
+		if (!PROTECTED_CODEX_TYPE_IDS.has(entry.id)) return;
+
+		const childrenEl = wrap.createDiv({ cls: "sf-tag-registry-children" });
+		for (const child of children) {
+			this.renderRow(childrenEl, "codexTypes", child);
+		}
+		this.renderAddRow(childrenEl, "codexTypes", `New ${entry.label.toLowerCase()} type`, entry.id);
+
+		// Own drag zone, scoped to just this parent's children — reordering here never crosses
+		// into another parent's children or back out to the top tier (reparenting by drag isn't
+		// offered; only within-parent reordering and whole-group top-tier reordering are).
+		const childZones: DragZone[] = [{ key: "order", container: childrenEl }];
+		makeReorderable(childZones, ".sf-row", ".sf-drag-handle", (zoneRowKeys) => {
+			void this.handleReorder("codexTypes", (zoneRowKeys.order ?? []).filter(Boolean));
+		});
 	}
 
 	private renderRow(rowsEl: HTMLElement, list: TagListKind, entry: TagDefinition): void {
@@ -121,7 +180,7 @@ export class TagRegistryModal extends Modal {
 		makeAccessibleActivatable(deleteBtn, requestDelete);
 	}
 
-	private renderAddRow(body: HTMLElement, list: TagListKind, placeholder: string): void {
+	private renderAddRow(body: HTMLElement, list: TagListKind, placeholder: string, parentId?: string): void {
 		const addRow = body.createDiv({ cls: "sf-row sf-tag-registry-add-row" });
 		// Invisible — matches .sf-drag-handle's width, so this row has no handle of its own (it's
 		// not draggable) but its icon still starts in the same column as the rows' icons above,
@@ -152,7 +211,7 @@ export class TagRegistryModal extends Modal {
 		const commitAdd = () => {
 			const label = input.value.trim();
 			if (!label) return;
-			void addTagDefinition(this.app, list, label, pendingIconAlias)
+			void addTagDefinition(this.app, list, label, pendingIconAlias, parentId)
 				.then(() => {
 					this.onChange();
 					this.render();

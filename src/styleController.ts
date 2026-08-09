@@ -109,6 +109,7 @@ export class StyleController {
 			"--sf-sidebar-right-display": s.hideRightPanel ? "none" : null,
 			"--sf-filename-bar-display": s.hideFileNameBar ? "none" : null,
 			"--sf-nav-row-display": s.hideNavRow ? "none" : null,
+			"--sf-editor-tabs-display": s.hideEditorTabs ? "none" : null,
 			"--sf-statusbar-hidden-display": s.statusBarView === "hidden" ? "none" : null,
 			"--sf-statusbar-nonsync-display": s.statusBarView === "sync-only" ? "none" : null,
 		});
@@ -160,10 +161,11 @@ export class StyleController {
 				: s.unplacedColor
 			: s.unplacedHighlightColor;
 		const codexHighlightColor = s.codexUseHeaderColorForAll
-			? s.codexMuted
-				? "var(--text-muted)"
-				: s.codexColor
+			? this.resolveCodexHeaderColorForAll()
 			: s.codexHighlightColor;
+		const codexHighlightTextColor = s.codexUseHeaderColorForAll
+			? this.resolveCodexHeaderColorForAll()
+			: s.codexHighlightTextColor;
 		// Flat colour only — the indent-guide truncate gradient lives in styles.css so folder
 		// indent vars resolve on the selected file, not on body.
 		this.applyStyleVarsToAllDocs({
@@ -172,8 +174,31 @@ export class StyleController {
 			"--sf-unplaced-highlight-bg": unplacedHighlightColor,
 			"--sf-unplaced-highlight-text": s.unplacedHighlightTextColor,
 			"--sf-codex-highlight-bg": codexHighlightColor,
-			"--sf-codex-highlight-text": s.codexHighlightTextColor,
+			"--sf-codex-highlight-text": codexHighlightTextColor,
+			// storyTelling's highlight is always its own — unlike items colour, there's no "link to
+			// Library" toggle for it (see StoryForgePluginSettings.storytellingHighlightColor).
+			"--sf-storytelling-highlight-bg": s.storytellingHighlightColor,
+			"--sf-storytelling-highlight-text": s.storytellingHighlightTextColor,
 		});
+	}
+
+	/**
+	 * storyTelling panel's own chapter-item styling. Colour respects
+	 * `storytellingLinkItemsColorToLibrary` — when linked, mirrors the storyLibrary panel's own
+	 * "Library items" colour (its own Muted toggle included) instead of storyTelling's own colour
+	 * picker, so the two panels' chapter lists read as one consistent style until a user
+	 * deliberately splits them apart.
+	 */
+	applyStorytellingItemsStyle(): void {
+		const s = this.host.getSettings();
+		const linkedColor = s.libraryItemsMuted ? "var(--text-muted)" : s.libraryItemsColor;
+		const ownColor = s.storytellingItemsMuted ? "var(--text-muted)" : s.storytellingItemsColor;
+		const vars: Record<string, string | null> = {
+			"--sf-storytelling-items-size": `${s.storytellingItemsFontSize}em`,
+			"--sf-storytelling-items-color": s.storytellingLinkItemsColorToLibrary ? linkedColor : ownColor,
+		};
+		this.assignUiFontVars(vars, "--sf-storytelling-items", s.storytellingItemsOverrideFont, s.storytellingItemsFontFamily, s.storytellingItemsFontWeight);
+		this.applyStyleVarsToAllDocs(vars);
 	}
 
 	/** Restyles the "Cycling guide" floating divider (thickness/colour only - the CM6 extension itself is toggled by `setCyclingGuideEnabled`). */
@@ -208,9 +233,12 @@ export class StyleController {
 	applyEditorScrollbarStyles(): void {
 		const s = this.host.getSettings();
 		const width = EDITOR_SCROLLBAR_WIDTH_PX[s.editorScrollbarThickness];
+		// "Theme default" hands the thumb back to the same var Obsidian's own native scrollbars
+		// (sidebar, etc.) already use, rather than the plugin's own fixed custom colour.
+		const thumbColor = s.editorScrollbarUseThemeColor ? "var(--scrollbar-thumb-bg)" : s.editorScrollbarThumbColor;
 		this.applyStyleVarsToAllDocs({
 			"--sf-editor-scrollbar-width": `${width}px`,
-			"--sf-editor-scrollbar-thumb": s.editorScrollbarThumbColor,
+			"--sf-editor-scrollbar-thumb": thumbColor,
 			"--sf-editor-scrollbar-track": null,
 		});
 		for (const doc of this.host.getStyleDocuments()) {
@@ -420,7 +448,7 @@ export class StyleController {
 		const s = this.host.getSettings();
 		let color: string;
 		if (s.codexUseHeaderColorForAll) {
-			color = s.codexMuted ? "var(--text-muted)" : s.codexColor;
+			color = this.resolveCodexHeaderColorForAll();
 		} else if (s.codexNoteLabelUseFolderColor) {
 			color = s.codexFolderColor;
 		} else if (s.codexNoteLabelUseDefaultColor) {
@@ -437,19 +465,29 @@ export class StyleController {
 	}
 
 	/**
-	 * Editor body/heading *sizes* only. Colour, font, small-caps, and dividers are owned by
-	 * formatForge when present (applied via `formatting.setStyleVars`).
+	 * Editor body/heading sizes, plus storyForge's own native colour overrides (built on its own
+	 * colour palette, not formatForge's — see the settings' own doc comment on
+	 * `bodyTextOverrideColor`). Font, small-caps, and dividers stay formatForge-only (applied via
+	 * `formatting.setStyleVars`) since those need real font-face resolution this plugin doesn't
+	 * carry on its own.
 	 */
 	applyTextStyleOverrides(): void {
 		const s = this.host.getSettings();
 		const vars: Record<string, string | null> = {
 			"--sf-body-size": s.bodyTextOverrideSize ? `${s.bodyTextSize}em` : null,
+			"--sf-body-color": s.bodyTextOverrideColor ? s.bodyTextColor : null,
 			"--sf-h1-size": s.heading1OverrideSize ? `${s.heading1Size}em` : null,
+			"--sf-h1-color": s.heading1OverrideColor ? s.heading1Color : null,
 			"--sf-h2-size": s.heading2OverrideSize ? `${s.heading2Size}em` : null,
+			"--sf-h2-color": s.heading2OverrideColor ? s.heading2Color : null,
 			"--sf-h3-size": s.heading3OverrideSize ? `${s.heading3Size}em` : null,
+			"--sf-h3-color": s.heading3OverrideColor ? s.heading3Color : null,
 			"--sf-h4-size": s.heading4OverrideSize ? `${s.heading4Size}em` : null,
+			"--sf-h4-color": s.heading4OverrideColor ? s.heading4Color : null,
 			"--sf-h5-size": s.heading5OverrideSize ? `${s.heading5Size}em` : null,
+			"--sf-h5-color": s.heading5OverrideColor ? s.heading5Color : null,
 			"--sf-h6-size": s.heading6OverrideSize ? `${s.heading6Size}em` : null,
+			"--sf-h6-color": s.heading6OverrideColor ? s.heading6Color : null,
 		};
 		this.applyStyleVarsToAllDocs(vars);
 	}
@@ -481,7 +519,17 @@ export class StyleController {
 	/** Resolves the codex folder colour, respecting `codexUseHeaderColorForAll`'s override of the folder colour picker. */
 	private resolveCodexFolderColor(): string {
 		const s = this.host.getSettings();
-		return s.codexUseHeaderColorForAll ? (s.codexMuted ? "var(--text-muted)" : s.codexColor) : s.codexFolderColor;
+		return s.codexUseHeaderColorForAll ? this.resolveCodexHeaderColorForAll() : s.codexFolderColor;
+	}
+
+	/**
+	 * The Codex header colour (respecting "Muted"), shared by every Codex font-colour option that
+	 * `codexUseHeaderColorForAll` links to it — folder colour, note label colour, and both halves
+	 * of the highlight colour (background and text).
+	 */
+	private resolveCodexHeaderColorForAll(): string {
+		const s = this.host.getSettings();
+		return s.codexMuted ? "var(--text-muted)" : s.codexColor;
 	}
 
 	private applyEditorScrollbarBodyClass(body: HTMLElement, thickness: EditorScrollbarThickness): void {
@@ -496,7 +544,7 @@ export class StyleController {
 	}
 
 	/**
-	 * Writes `--{prefix}-family` / `-variation` / `-weight` for storyForge panel chrome.
+	 * Writes `--{prefix}-family` / `-variation` / `-weight` for storyLibrary panel chrome.
 	 * Font faces come from formatForge via the registered companion; without it, overrides no-op.
 	 */
 	private assignUiFontVars(
