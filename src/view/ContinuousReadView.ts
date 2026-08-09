@@ -204,7 +204,7 @@ export class ContinuousReadView extends ItemView {
 		// caret at exactly `clickedTop`, so measure the actual gap and correct the outer scroll for
 		// it — then focus, so the editor's own scroll-into-view doesn't fight this correction (see
 		// graftEditor's doc comment for why focus is deferred to here).
-		await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+		await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
 		const cmContent = handle.view.containerEl.querySelector(".cm-content");
 		const cmView = cmContent instanceof HTMLElement ? EditorView.findFromDOM(cmContent) : null;
 		const coords = cmView?.coordsAtPos(sourceOffset);

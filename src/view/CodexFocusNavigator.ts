@@ -218,7 +218,11 @@ function renderSlot(
 		tile.createDiv({ cls: "sf-empty sf-empty-inline", text: "—" });
 		return;
 	}
-	const file = slot.file as TFile;
+	// slot.file is typed T | null regardless of kind (NavigatorSlot isn't a discriminated union) —
+	// only actually null for "create"/"empty" slots, both already returned above, so this is a
+	// narrowing guard rather than a real "can this happen" check.
+	const { file } = slot;
+	if (!(file instanceof TFile)) return;
 	const tile = container.createDiv({ cls: "sf-row" });
 	tile.dataset.key = file.name;
 	// Deliberately not slot.isCurrent — that's true even when computeSpineWindow fell back to

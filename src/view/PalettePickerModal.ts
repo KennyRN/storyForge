@@ -57,7 +57,7 @@ export class PalettePickerModal extends Modal {
 		for (const color of colors) {
 			const row = list.createDiv({ cls: "sf-row sf-palette-row" });
 			const swatch = row.createDiv({ cls: "sf-palette-swatch" });
-			swatch.style.backgroundColor = color.hex;
+			swatch.setCssStyles({ backgroundColor: color.hex });
 			row.createSpan({ cls: "sf-palette-name", text: color.name });
 			row.createSpan({ cls: "sf-palette-hex", text: color.hex.toUpperCase() });
 			row.addEventListener("click", () => {

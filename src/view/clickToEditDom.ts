@@ -40,10 +40,7 @@ export interface ClickedBlockResult {
  */
 export function resolveClickedBlock(bodyEl: HTMLElement, source: string, clickX: number, clickY: number): ClickedBlockResult | null {
 	const doc = bodyEl.ownerDocument;
-	const caretRangeFromPoint = (doc as Document & { caretRangeFromPoint?: (x: number, y: number) => Range | null })
-		.caretRangeFromPoint;
-	if (!caretRangeFromPoint) return null;
-	const range = caretRangeFromPoint.call(doc, clickX, clickY);
+	const range = resolveCaretRangeAtPoint(doc, clickX, clickY);
 	if (!range) return null;
 
 	const startNode = range.startContainer;
@@ -78,6 +75,29 @@ export function resolveClickedBlock(bodyEl: HTMLElement, source: string, clickX:
 	}
 
 	return { block, scopeEl, scopeText, scopeStart, range };
+}
+
+/**
+ * `caretPositionFromPoint` is the standardized replacement for the older `caretRangeFromPoint`
+ * (deprecated — WebKit/Blink-only, never standardized), normalized here into the same collapsed
+ * `Range` shape the rest of this module already works with. Falls back to the deprecated method
+ * only for an Electron/Chromium build old enough not to have the replacement yet — both are
+ * feature-detected at runtime since a DOM lib declaring the method doesn't guarantee it's actually
+ * present in whatever's running the plugin.
+ */
+function resolveCaretRangeAtPoint(doc: Document, x: number, y: number): Range | null {
+	if (typeof doc.caretPositionFromPoint === "function") {
+		const pos = doc.caretPositionFromPoint(x, y);
+		if (!pos) return null;
+		const range = doc.createRange();
+		range.setStart(pos.offsetNode, pos.offset);
+		range.collapse(true);
+		return range;
+	}
+	if (typeof doc.caretRangeFromPoint === "function") {
+		return doc.caretRangeFromPoint(x, y);
+	}
+	return null;
 }
 
 /**

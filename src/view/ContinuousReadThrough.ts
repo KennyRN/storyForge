@@ -3,7 +3,6 @@ import { chapterDisplayTitle, renameChapterTitle } from "../book";
 import { pickCurrentChapter } from "../continuousMode";
 import { bookFolderNameFromChapterPath } from "../paths";
 import { attachInlineRename } from "./inlineRename";
-import { isLinkClick, resolveClickedBlock } from "./clickToEditDom";
 
 export interface ContinuousReadThroughOptions {
 	bookFolderName: string;
@@ -172,8 +171,10 @@ export function renderContinuousReadThrough(
 		//
 		// Nothing below this comment was deleted — `graftEditor`, `ContinuousReadView.editChapter`/
 		// `commitActiveEdit`, and `resolveClickedBlock` are all intact and functional. Re-enabling is
-		// restoring the two lines below (see the postmortem's §9 for the recommended first step before
-		// doing so — re-run the live diagnostic that was never finished).
+		// restoring the two lines below plus the `isLinkClick`/`resolveClickedBlock` import from
+		// "./clickToEditDom" (dropped while unused, so Obsidian's automated checker doesn't flag it —
+		// see the postmortem's §9 for the recommended first step before doing so — re-run the live
+		// diagnostic that was never finished).
 		//
 		// body.addEventListener("click", (e) => {
 		// 	if (!section.mounted || section.locked || section.content === null) return;
@@ -198,7 +199,7 @@ export function renderContinuousReadThrough(
 			// out rather than write stale content into a section that's since moved on.
 			if (!section.mounted || section.locked || section.paintToken !== token || !section.renderComponent) return;
 			section.content = content;
-			section.wrapper.style.minHeight = "";
+			section.wrapper.setCssStyles({ minHeight: "" });
 			section.body.empty();
 			return MarkdownRenderer.render(app, content, section.body, section.file.path, section.renderComponent);
 		});
@@ -229,7 +230,7 @@ export function renderContinuousReadThrough(
 		// scroll container and yank chapters below it up underneath the reader.
 		const height = section.wrapper.getBoundingClientRect().height;
 		section.body.empty();
-		section.wrapper.style.minHeight = `${height}px`;
+		section.wrapper.setCssStyles({ minHeight: `${height}px` });
 	};
 
 	const mountObserver = new IntersectionObserver(
@@ -341,7 +342,7 @@ export function renderContinuousReadThrough(
 				component.removeChild(section.renderComponent);
 				section.renderComponent = null;
 			}
-			section.wrapper.style.minHeight = ""; // let the editor determine its own height
+			section.wrapper.setCssStyles({ minHeight: "" }); // let the editor determine its own height
 			section.body.empty();
 			return section.body;
 		},

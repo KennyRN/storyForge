@@ -331,7 +331,7 @@ export class StorytellingView extends ItemView {
 		if (!entryFilename) return;
 		const leaf = this.plugin.getMainContentLeaf();
 		await leaf.setViewState({ type: STORYFORGE_CONTINUOUS_VIEW_TYPE, active: true, state: { bookFolderName, entryFilename } });
-		this.app.workspace.revealLeaf(leaf);
+		await this.app.workspace.revealLeaf(leaf);
 		if (!this.closed) this.render();
 	}
 
