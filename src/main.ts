@@ -2,7 +2,10 @@ import { Notice, Plugin, TFile, WorkspaceLeaf } from "obsidian";
 import type { Extension } from "@codemirror/state";
 import { createCyclingGuideViewPlugin } from "./cyclingGuide";
 import { StoryForgeView, STORYFORGE_VIEW_TYPE } from "./view/StoryForgeView";
+import { StorytellingView, STORYTELLING_VIEW_TYPE } from "./view/StorytellingView";
 import { ContinuousReadView, STORYFORGE_CONTINUOUS_VIEW_TYPE } from "./view/ContinuousReadView";
+import { SeriesOverviewView, STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE } from "./view/SeriesOverviewView";
+import { NewChapterView, STORYFORGE_NEW_CHAPTER_VIEW_TYPE } from "./view/NewChapterView";
 import { ToolsView, TOOLS_VIEW_TYPE } from "./view/ToolsPanel";
 import { RecommendationView, RECOMMEND_VIEW_TYPE, activateRecommendView } from "./view/RecommendationView";
 import { ArchiveView, ARCHIVE_VIEW_TYPE, activateArchiveView } from "./view/ArchiveView";
@@ -11,7 +14,7 @@ import { ForgeView, FORGE_VIEW_TYPE } from "./view/ForgeView";
 import { recomputeChapterRecommend } from "./recommend/recompute";
 import { isNlpReady } from "./recommend/nlp";
 import { CODEX_TYPES } from "./codex";
-import { buildRightRailTypeOrder } from "./rightRailOrder";
+import { buildRightRailTypeOrder, isCanonicalTypeOrder } from "./rightRailOrder";
 import {
 	createHostApi,
 	findInvalidLinkedSettings,
@@ -22,7 +25,11 @@ import {
 } from "./hostApi";
 import { StyleController } from "./styleController";
 import { StoryForgeSettingsTab } from "./view/StoryForgeSettingsTab";
+import { UiFormattingModal } from "./view/UiFormattingModal";
+import { TagRegistryModal } from "./view/TagRegistryModal";
+import { FORMATFORGE_PLUGIN_ID, formatCompanionState } from "./formatCompanionActive";
 import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders, getBookId } from "./series";
+import { ensureTagRegistryFile, loadCodexTypesIntoRegistry } from "./tagRegistry";
 import { ensureAllChapterEntries, syncAllBookReferenceFields } from "./book";
 import { migrateVaultSchema } from "./migration";
 import { registerReconciliationEvents } from "./reconciliation";
@@ -30,6 +37,7 @@ import {
 	isLibraryChapterPath,
 	bookFolderNameFromChapterPath,
 	chapterFilenameFromPath,
+	libraryChapterPath,
 	seriesFilePath,
 	LIBRARY_ROOT,
 	CODEX_ROOT,
@@ -42,7 +50,7 @@ import { extractFingerprint } from "./fingerprint";
 import { updateChapterFingerprint } from "./chapterSidecar";
 import { debounce } from "./debounce";
 import { countWords } from "./wordCount";
-import { registerCustomIcons } from "./icons";
+import { registerCustomIcons, ICON_LAYOUT_SELECTOR, ICON_TAG_EDIT } from "./icons";
 import type { FormatCompanionRegistration } from "./formattingApi";
 import { refreshTabTitles, registerTabTitleOverrides } from "./tabTitles";
 import { PaletteColor, PaletteName } from "./colorPalettes";
@@ -206,13 +214,9 @@ export interface StoryForgePluginSettings {
 	editorScrollbarThickness: EditorScrollbarThickness;
 	/** Colour of companion icons in the Forge right-rail secondary header. */
 	forgeCompanionIconColor: string;
-	recommendHeaderFontSize: number;
-	recommendHeaderOverrideFont: boolean;
-	recommendHeaderFontFamily: CustomFontFamily;
-	recommendHeaderFontWeight: FontWeight;
+	/** Base colour for the Story Context panel; also its fallback when "use for all" is on. Labeled "Base colour" in settings — no visible header remains to name it after. */
 	recommendHeaderColor: string;
 	recommendHeaderMuted: boolean;
-	recommendHeaderSmallCaps: boolean;
 	recommendTabsFontSize: number;
 	recommendTabsOverrideFont: boolean;
 	recommendTabsFontFamily: CustomFontFamily;
@@ -322,7 +326,6 @@ type FontFamilySettingKey =
 	| "codexFontFamily"
 	| "codexFolderFontFamily"
 	| "codexNoteLabelFontFamily"
-	| "recommendHeaderFontFamily"
 	| "recommendTabsFontFamily"
 	| "recommendChapterTitleFontFamily"
 	| "recommendDossierHeaderFontFamily"
@@ -345,7 +348,6 @@ const FONT_FAMILY_SETTING_KEYS: FontFamilySettingKey[] = [
 	"codexFontFamily",
 	"codexFolderFontFamily",
 	"codexNoteLabelFontFamily",
-	"recommendHeaderFontFamily",
 	"recommendTabsFontFamily",
 	"recommendChapterTitleFontFamily",
 	"recommendDossierHeaderFontFamily",
@@ -369,10 +371,26 @@ function migrateRemovedFonts(settings: StoryForgePluginSettings): void {
 }
 
 /**
+ * "Codex focus" was retired as a storyForge-panel layout (its navigator + codex + stats
+ * composition moved out into its own always-available Storytelling panel — see layout.ts).
+ * A saved `layout: "codexFocus"` from before that change is no longer a valid `SfLayout`, so
+ * `layoutConfig()`'s switch would return `undefined` for it; migrate straight to "hybrid",
+ * the remaining layout closest to what a "Codex focus" user was after (codex still visible).
+ */
+function migrateCodexFocusLayout(settings: StoryForgePluginSettings): void {
+	if ((settings.layout as string) === "codexFocus") settings.layout = "hybrid";
+}
+
+/**
  * One-time: unhide the right sidebar toggle and hide Obsidian's native right tabs so the
- * Story Context rail can own that side. Skipped once `storyContextShellApplied` is set.
+ * Story Context rail can own that side. Skipped once `storyContextShellApplied` is set, and
+ * on a genuinely fresh install (no prior data.json at all) - there DEFAULT_SETTINGS already
+ * applies, and this migration would otherwise stomp its `hideRightPanel` default back to
+ * false (it can't tell "never saved" from "saved before this flag existed" once `data` is
+ * merged into `settings`, so it must inspect the raw save file instead).
  */
 function migrateStoryContextShell(settings: StoryForgePluginSettings, data: unknown): boolean {
+	if (data == null) return false;
 	const raw = data && typeof data === "object" ? (data as Record<string, unknown>) : null;
 	if (raw && raw.storyContextShellApplied === true) return false;
 	settings.hideRightPanel = false;
@@ -390,8 +408,8 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	hideSearch: true,
 	hideBookmarks: true,
 	hideFiles: true,
-	hideLeftPanel: false,
-	hideRightPanel: false,
+	hideLeftPanel: true,
+	hideRightPanel: true,
 	hideBacklinks: true,
 	hideOutgoingLinks: true,
 	hideTags: true,
@@ -515,13 +533,8 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	editorScrollbarThumbColor: "#6b7280",
 	editorScrollbarThickness: "thick",
 	forgeCompanionIconColor: "var(--text-accent)",
-	recommendHeaderFontSize: 1,
-	recommendHeaderOverrideFont: false,
-	recommendHeaderFontFamily: "ibm-plex-sans-var",
-	recommendHeaderFontWeight: "600",
 	recommendHeaderColor: "var(--text-accent)",
 	recommendHeaderMuted: false,
-	recommendHeaderSmallCaps: true,
 	recommendTabsFontSize: 0.85,
 	recommendTabsOverrideFont: false,
 	recommendTabsFontFamily: "ibm-plex-sans-var",
@@ -654,6 +667,10 @@ export default class StoryForgePlugin extends Plugin {
 	private isAdjustingPanelOrder = false;
 	/** Serialises ensureSidePanels / ensureRightRailPanels so overlapping calls cannot create duplicate tabs. */
 	private ensurePanelsChain: Promise<void> = Promise.resolve();
+	/** The one main-area tab storyForge's own navigation (Series overview, continuous read, chapter
+	 * opens, the new-chapter page, …) always reuses — see getMainContentLeaf(). Not persisted:
+	 * starts fresh (null) every session, adopting whatever leaf the first such navigation touches. */
+	private mainContentLeafId: string | null = null;
 
 	async onload(): Promise<void> {
 		// Loaded first, before registerView() below - Obsidian can start restoring a previously-open
@@ -676,7 +693,10 @@ export default class StoryForgePlugin extends Plugin {
 
 		registerCustomIcons();
 		this.registerView(STORYFORGE_VIEW_TYPE, (leaf) => new StoryForgeView(leaf, this));
+		this.registerView(STORYTELLING_VIEW_TYPE, (leaf) => new StorytellingView(leaf, this));
 		this.registerView(STORYFORGE_CONTINUOUS_VIEW_TYPE, (leaf) => new ContinuousReadView(leaf, this));
+		this.registerView(STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE, (leaf) => new SeriesOverviewView(leaf, this));
+		this.registerView(STORYFORGE_NEW_CHAPTER_VIEW_TYPE, (leaf) => new NewChapterView(leaf, this));
 		this.registerView(TOOLS_VIEW_TYPE, (leaf) => new ToolsView(leaf));
 		this.registerView(RECOMMEND_VIEW_TYPE, (leaf) => new RecommendationView(leaf, this));
 		this.registerView(ARCHIVE_VIEW_TYPE, (leaf) => new ArchiveView(leaf, this));
@@ -706,6 +726,19 @@ export default class StoryForgePlugin extends Plugin {
 			name: "Open Tools panel",
 			callback: () => void this.activateToolsView(),
 		});
+
+		this.addCommand({
+			id: "open-storytelling-view",
+			name: "Open storyTelling panel",
+			callback: () => void this.activateStorytellingView(),
+		});
+
+		// Hidden behind the "Use tools panel" setting like every other ribbon icon (ToolsPanel.ts
+		// relocates the whole native ribbon into the Tools panel); this one reuses the "choose
+		// layout" icon now that its original job (the storyForge panel's layout dropdown) has
+		// moved to a tab row instead.
+		this.addRibbonIcon(ICON_LAYOUT_SELECTOR, "Open storyForge interface", () => this.openStoryForgeInterface());
+		this.addRibbonIcon(ICON_TAG_EDIT, "Open Tags & Codex types", () => this.openTagRegistry());
 
 		this.settingsTab = new StoryForgeSettingsTab(this.app, this);
 		this.addSettingTab(this.settingsTab);
@@ -756,6 +789,15 @@ export default class StoryForgePlugin extends Plugin {
 
 		this.registerEvent(
 			this.app.workspace.on("active-leaf-change", () => this.syncSpacerActiveClass()),
+		);
+		// Switching to the storyTelling panel is a leaf activation like any other (it's a sidebar
+		// tab) rather than something StoryForgeView's own layout-tab click handler can see, so this
+		// is a separate, plugin-level listener rather than living next to the Novel/Detailed
+		// handling in StoryForgeView.ts's selectLayout().
+		this.registerEvent(
+			this.app.workspace.on("active-leaf-change", (leaf) => {
+				if (leaf?.view instanceof StorytellingView) this.leaveSeriesOverviewIfShowing();
+			}),
 		);
 		const refreshRightRailChrome = debounce(() => this.style.applyRightRailChrome(), 50);
 		this.registerEvent(
@@ -810,6 +852,8 @@ export default class StoryForgePlugin extends Plugin {
 		const types = [
 			STORYFORGE_VIEW_TYPE,
 			STORYFORGE_CONTINUOUS_VIEW_TYPE,
+			STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE,
+			STORYFORGE_NEW_CHAPTER_VIEW_TYPE,
 			TOOLS_VIEW_TYPE,
 			RECOMMEND_VIEW_TYPE,
 			ARCHIVE_VIEW_TYPE,
@@ -827,10 +871,76 @@ export default class StoryForgePlugin extends Plugin {
 		}
 	}
 
-	/** Forces any open storyForge view(s) to re-render, e.g. after a settings change with no other trigger. */
+	/**
+	 * Forces any open storyForge view(s) to re-render, e.g. after a settings change with no other
+	 * trigger. Inactive sidebar tabs restore as DeferredView (see refreshCustomIcons()'s doc
+	 * comment) and have no `render()` of their own, so the `instanceof` checks double as a guard
+	 * against that rather than being redundant type narrowing.
+	 */
 	refreshStoryForgeViews(): void {
 		for (const leaf of this.app.workspace.getLeavesOfType(STORYFORGE_VIEW_TYPE)) {
-			(leaf.view as StoryForgeView).render();
+			if (leaf.view instanceof StoryForgeView) leaf.view.render();
+		}
+		for (const leaf of this.app.workspace.getLeavesOfType(STORYTELLING_VIEW_TYPE)) {
+			if (leaf.view instanceof StorytellingView) leaf.view.render();
+		}
+	}
+
+	/** The Series overview page (main-pane view) always reads its selected novel straight from
+	 * settings rather than holding its own copy — this is the one nudge it needs to notice a book
+	 * picked elsewhere (StoryForgeView.ts's onSelectBook/followActiveFile). A no-op if it isn't
+	 * currently open anywhere. */
+	refreshSeriesOverviewView(): void {
+		for (const leaf of this.app.workspace.getLeavesOfType(STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE)) {
+			if (leaf.view instanceof SeriesOverviewView) leaf.view.render();
+		}
+	}
+
+	/** The tracked leaf if it still exists (hasn't been closed by the user) — null rather than
+	 * creating one, for callers that only want to act on it if it's already open. */
+	private getMainContentLeafIfExists(): WorkspaceLeaf | null {
+		if (!this.mainContentLeafId) return null;
+		return this.app.workspace.getLeafById(this.mainContentLeafId);
+	}
+
+	/**
+	 * The one main-area tab all of storyForge's own navigation shares — Series overview, continuous
+	 * read, chapter opens from the storyForge/storyTelling panels, the new-chapter page. Reusing a
+	 * leaf by its own id (rather than `workspace.getLeaf(false)`'s "whatever's currently active")
+	 * guarantees these transitions land on the *same* tab every time regardless of what else the
+	 * user has since clicked into, so switching between Series/Novel/Detailed/storyTelling never
+	 * piles up extra tabs of our own making.
+	 */
+	getMainContentLeaf(): WorkspaceLeaf {
+		const existing = this.getMainContentLeafIfExists();
+		if (existing) return existing;
+		const leaf = this.app.workspace.getLeaf(false);
+		// `id` is runtime-public on WorkspaceLeaf but not in the published typings (same situation
+		// as rebuildView() elsewhere in this file).
+		this.mainContentLeafId = (leaf as WorkspaceLeaf & { id: string }).id;
+		return leaf;
+	}
+
+	/**
+	 * Called whenever the user leaves the Series tab for Novel/Detailed (StoryForgeView.ts) or
+	 * switches to the storyTelling panel (this plugin's own active-leaf-change listener, below) —
+	 * a no-op unless the tracked main-content tab is actually showing the Series overview page.
+	 * When it is, quietly swaps in whichever chapter was previously selected, or the blank
+	 * "create new chapter" page if there's none (or it's since been deleted).
+	 */
+	leaveSeriesOverviewIfShowing(): void {
+		const leaf = this.getMainContentLeafIfExists();
+		if (!leaf || !(leaf.view instanceof SeriesOverviewView)) return;
+		const bookFolderName = this.getSettings().selectedNovel;
+		if (!bookFolderName) return;
+		const chapterFilename = this.getSettings().selectedObject;
+		const file = chapterFilename
+			? this.app.vault.getAbstractFileByPath(libraryChapterPath(bookFolderName, chapterFilename))
+			: null;
+		if (file instanceof TFile) {
+			void leaf.openFile(file);
+		} else {
+			void leaf.setViewState({ type: STORYFORGE_NEW_CHAPTER_VIEW_TYPE, active: true, state: { bookFolderName } });
 		}
 	}
 
@@ -852,6 +962,7 @@ export default class StoryForgePlugin extends Plugin {
 		const data: unknown = await this.loadData();
 		this.pluginSettings = Object.assign({}, DEFAULT_SETTINGS, data);
 		migrateRemovedFonts(this.pluginSettings);
+		migrateCodexFocusLayout(this.pluginSettings);
 		const shellMigrated = migrateStoryContextShell(this.pluginSettings, data);
 		const sections = { ...DEFAULT_SETTINGS.codexFactSectionByType, ...this.pluginSettings.codexFactSectionByType };
 		for (const opt of CODEX_TYPES) {
@@ -932,14 +1043,20 @@ export default class StoryForgePlugin extends Plugin {
 		}
 	}
 
-	/** Canonical right-rail types: Spacer → Story Context → Forge → registered (orderHint). */
+	/**
+	 * Canonical right-rail types: Spacer → Story Context → Forge → registered (orderHint).
+	 * Forge is dropped unless a companion panel is actually registered — formatForge never
+	 * registers one (it integrates directly, not through the Forge hub), so any registrant
+	 * here is, by construction, some other Forge-family plugin (nameForge, …).
+	 */
 	private rightRailTypes(): string[] {
-		return buildRightRailTypeOrder(
+		const order = buildRightRailTypeOrder(
 			SPACER_VIEW_TYPE,
 			RECOMMEND_VIEW_TYPE,
 			FORGE_VIEW_TYPE,
 			this.rightRailRegistry,
 		);
+		return this.companionPanels.length > 0 ? order : order.filter((type) => type !== FORGE_VIEW_TYPE);
 	}
 
 	/** Replaces all settings with `data` (merged over defaults, same as `loadSettings`), persists, and re-applies every style/extension so the change takes effect immediately. */
@@ -963,6 +1080,7 @@ export default class StoryForgePlugin extends Plugin {
 		}
 		this.pluginSettings = merged;
 		migrateRemovedFonts(this.pluginSettings);
+		migrateCodexFocusLayout(this.pluginSettings);
 		const sections = { ...DEFAULT_SETTINGS.codexFactSectionByType, ...this.pluginSettings.codexFactSectionByType };
 		for (const opt of CODEX_TYPES) {
 			if (!sections[opt.type]) sections[opt.type] = "Facts";
@@ -997,6 +1115,45 @@ export default class StoryForgePlugin extends Plugin {
 
 	getFormatCompanion(): FormatCompanionRegistration | null {
 		return this.formatCompanion;
+	}
+
+	/**
+	 * Only a live companion takes the formatting UI over. When formatForge is enabled but
+	 * has not registered, storyForge keeps its own entries so a failed companion load does
+	 * not leave the user with no formatting controls at all.
+	 */
+	isFormatCompanionActive(): boolean {
+		return (
+			formatCompanionState(
+				this.getFormatCompanion(),
+				this.api?.formatting?.isCompanionActive() === true,
+				this.app,
+			) === "connected"
+		);
+	}
+
+	openFormatForgeSettings(): void {
+		const open = this.getFormatCompanion()?.openSettings;
+		if (open) {
+			open();
+			return;
+		}
+		const settingApp = (this.app as unknown as { setting?: { open(): void; openTabById(id: string): void } }).setting;
+		settingApp?.open();
+		settingApp?.openTabById(FORMATFORGE_PLUGIN_ID);
+	}
+
+	/** Ribbon/command entry point for "Open storyForge interface" — always opens the modal itself.
+	 * Unlike the settings tab's "Formatting (formatForge)" action, this doesn't redirect to
+	 * formatForge's own settings while it's the live companion: this is a dedicated ribbon icon
+	 * for this modal, so it should open it, not a different plugin's settings page. */
+	openStoryForgeInterface(): void {
+		new UiFormattingModal(this.app, this).open();
+	}
+
+	/** Ribbon/command entry point for "Tags & Codex types". */
+	openTagRegistry(): void {
+		new TagRegistryModal(this.app, () => this.refreshStoryForgeViews()).open();
 	}
 
 	registerFormatCompanion(reg: FormatCompanionRegistration): () => void {
@@ -1043,9 +1200,14 @@ export default class StoryForgePlugin extends Plugin {
 		else this.companionPanels.push(opt);
 		this.companionPanels.sort((a, b) => a.orderHint - b.orderHint || a.id.localeCompare(b.id));
 		this.refreshForgeCompanions();
+		// The Forge tab itself is conditional on companionPanels.length — reconcile so it
+		// appears the moment the first sibling registers.
+		void this.ensureRightRailPanels();
 		return () => {
 			this.companionPanels = this.companionPanels.filter((p) => p !== opt);
 			this.refreshForgeCompanions();
+			// …and disappears once the last one unregisters.
+			void this.ensureRightRailPanels();
 		};
 	}
 
@@ -1195,6 +1357,8 @@ export default class StoryForgePlugin extends Plugin {
 			}
 		}
 		await ensureSeriesFile(this.app);
+		const tagRegistry = await ensureTagRegistryFile(this.app);
+		loadCodexTypesIntoRegistry(this.app, tagRegistry);
 		await migrateVaultSchema(this.app);
 		const books = await ensureAllSeriesBookEntries(this.app);
 		await syncAllBookReferenceFields(this.app, books);
@@ -1253,6 +1417,11 @@ export default class StoryForgePlugin extends Plugin {
 		if (leaf) await this.app.workspace.revealLeaf(leaf);
 	}
 
+	async activateStorytellingView(): Promise<void> {
+		const leaf = await this.ensureLeaf(STORYTELLING_VIEW_TYPE, "left", true);
+		if (leaf) await this.app.workspace.revealLeaf(leaf);
+	}
+
 	/** Runs panel-ensure work one-at-a-time (layout-ready + hosted registrations can overlap). */
 	private enqueueEnsurePanels(work: () => Promise<void>): Promise<void> {
 		const run = this.ensurePanelsChain.then(work, work);
@@ -1276,6 +1445,7 @@ export default class StoryForgePlugin extends Plugin {
 		// Strip stacked copies from prior hot-reloads / raced ensures before creating anything.
 		for (const type of [
 			STORYFORGE_VIEW_TYPE,
+			STORYTELLING_VIEW_TYPE,
 			TOOLS_VIEW_TYPE,
 			SPACER_VIEW_TYPE,
 			RECOMMEND_VIEW_TYPE,
@@ -1286,12 +1456,14 @@ export default class StoryForgePlugin extends Plugin {
 			this.dedupeLeavesOfType(type);
 		}
 
-		await this.ensureLeaf(STORYFORGE_VIEW_TYPE, "left", true);
+		// Canonical left order: Tools, storyForge, Storytelling.
 		if (this.pluginSettings.useToolsPanel) {
 			await this.ensureLeaf(TOOLS_VIEW_TYPE, "left", false);
 		} else {
 			this.dedupeLeavesOfType(TOOLS_VIEW_TYPE);
 		}
+		await this.ensureLeaf(STORYFORGE_VIEW_TYPE, "left", true);
+		await this.ensureLeaf(STORYTELLING_VIEW_TYPE, "left", false);
 		await this.ensureRightRailPanelsUnlocked();
 		await this.enforcePanelOrder();
 
@@ -1322,6 +1494,9 @@ export default class StoryForgePlugin extends Plugin {
 		this.app.workspace.detachLeavesOfType(ARCHIVE_VIEW_TYPE);
 
 		const types = this.rightRailTypes();
+		// Forge is conditional (see rightRailTypes) — drop a stale leaf left over from the
+		// last companion disconnecting, same as the legacy Archive tab above.
+		if (!types.includes(FORGE_VIEW_TYPE)) this.app.workspace.detachLeavesOfType(FORGE_VIEW_TYPE);
 		for (const type of types) this.dedupeLeavesOfType(type);
 		if (!this.isRightRailOrderCanonical()) {
 			for (const type of types) this.app.workspace.detachLeavesOfType(type);
@@ -1397,49 +1572,52 @@ export default class StoryForgePlugin extends Plugin {
 		});
 	}
 
-	/** True if the StoryForge leaf is visited before the Tools leaf when walking the workspace's layout tree (i.e. sits earlier among tabs in a shared group). If either is absent, there's nothing to enforce. */
-	private isSfBeforeTools(): boolean {
+	/** Canonical left-rail order: Tools, storyForge, Storytelling. */
+	private readonly LEFT_RAIL_ORDER = [TOOLS_VIEW_TYPE, STORYFORGE_VIEW_TYPE, STORYTELLING_VIEW_TYPE];
+
+	/** True if the present left-rail leaves (Tools/storyForge/Storytelling) appear in canonical
+	 * order when walking the workspace's layout tree. Missing tabs are fine — only the relative
+	 * order of whichever are actually present is checked. */
+	private isCanonicalLeftOrder(): boolean {
 		const order: string[] = [];
 		this.app.workspace.iterateAllLeaves((leaf) => {
 			const type = leaf.view.getViewType();
-			if (type === STORYFORGE_VIEW_TYPE) order.push("sf");
-			else if (type === TOOLS_VIEW_TYPE) order.push("tools");
+			if (this.LEFT_RAIL_ORDER.includes(type)) order.push(type);
 		});
-		const sfIndex = order.indexOf("sf");
-		const toolsIndex = order.indexOf("tools");
-		if (sfIndex === -1 || toolsIndex === -1) return true;
-		return sfIndex < toolsIndex;
+		return isCanonicalTypeOrder(this.LEFT_RAIL_ORDER, order);
 	}
 
 	/**
-	 * Corrects StoryForge/Tools tab order back to canonical (SF before Tools) when it's drifted -
-	 * e.g. an upgraded vault where Tools had previously been created first. Obsidian exposes no
-	 * public API to reorder two existing tabs in place, so this detaches and recreates both leaves
-	 * via ensureLeaf(), guarded so the layout-change watcher below never mistakes this
-	 * self-correction for a user drag. No-ops once the user has deliberately reordered the tabs
-	 * (panelOrderMode === "user"). Does not touch Story Context on the right.
+	 * Corrects the Tools/storyForge/Storytelling tab order back to canonical when it's drifted -
+	 * e.g. an upgraded vault where Tools or Storytelling had previously been created out of order.
+	 * Obsidian exposes no public API to reorder existing tabs in place, so this detaches and
+	 * recreates all three leaves via ensureLeaf(), guarded so the layout-change watcher below never
+	 * mistakes this self-correction for a user drag. No-ops once the user has deliberately reordered
+	 * the tabs (panelOrderMode === "user"). Does not touch Story Context on the right.
 	 */
 	private async enforcePanelOrder(): Promise<void> {
 		if (this.pluginSettings.panelOrderMode !== "canonical") return;
-		if (this.isSfBeforeTools()) return;
+		if (this.isCanonicalLeftOrder()) return;
 		this.isAdjustingPanelOrder = true;
 		try {
-			this.app.workspace.detachLeavesOfType(STORYFORGE_VIEW_TYPE);
 			this.app.workspace.detachLeavesOfType(TOOLS_VIEW_TYPE);
-			await this.ensureLeaf(STORYFORGE_VIEW_TYPE, "left", true);
+			this.app.workspace.detachLeavesOfType(STORYFORGE_VIEW_TYPE);
+			this.app.workspace.detachLeavesOfType(STORYTELLING_VIEW_TYPE);
 			if (this.pluginSettings.useToolsPanel) await this.ensureLeaf(TOOLS_VIEW_TYPE, "left", false);
+			await this.ensureLeaf(STORYFORGE_VIEW_TYPE, "left", true);
+			await this.ensureLeaf(STORYTELLING_VIEW_TYPE, "left", false);
 		} finally {
 			this.isAdjustingPanelOrder = false;
 		}
 	}
 
-	/** Detects a deliberate user drag of Tools ahead of StoryForge and switches to "user" mode permanently - after which Obsidian's own layout persistence carries the user's order across reopens with no further enforcement. */
+	/** Detects a deliberate user drag out of Tools/storyForge/Storytelling order and switches to "user" mode permanently - after which Obsidian's own layout persistence carries the user's order across reopens with no further enforcement. */
 	private registerPanelOrderWatcher(): void {
 		this.registerEvent(
 			this.app.workspace.on("layout-change", () => {
 				if (this.isAdjustingPanelOrder) return;
 				if (this.pluginSettings.panelOrderMode !== "canonical") return;
-				if (!this.isSfBeforeTools()) {
+				if (!this.isCanonicalLeftOrder()) {
 					void this.updateSetting("panelOrderMode", "user");
 				}
 			}),

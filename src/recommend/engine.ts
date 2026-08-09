@@ -482,6 +482,27 @@ function joinNameParts(parts: string[]): string {
 	return out;
 }
 
+/**
+ * A capitalised common noun immediately after a proper-noun run is usually the
+ * run's generic tail (Winster River, Baker Street) — wink's tagger often
+ * under-weighs capitalisation for frequent lexicon words like "river"/"street",
+ * tagging them NOUN even mid-run. Never starts a run by itself (`parts.length`
+ * gate in the caller) — only extends one already anchored by a PROPN token.
+ */
+function isCapitalizedNounTail(token: { text: string; pos: string }): boolean {
+	return token.pos === "NOUN" && /^[A-Z]/.test(token.text);
+}
+
+/**
+ * A capitalised number directly before a proper-noun run is usually a name's
+ * numeral qualifier (Three Bridge, Four Oaks) rather than an actual count —
+ * spelled-out numbers tag NUM regardless of case, so the run-starting scan
+ * (which only seeds on PROPN) would otherwise skip straight past it.
+ */
+function isCapitalizedNumberPrefix(token: { text: string; pos: string } | undefined): boolean {
+	return !!token && token.pos === "NUM" && /^[A-Z]/.test(token.text);
+}
+
 /** Consume a PROPN run (incl. contraction tokens), bridging internal hyphens. Advances past the run. */
 function consumePropnRun(
 	tokens: Array<{ text: string; pos: string }>,
@@ -490,7 +511,7 @@ function consumePropnRun(
 ): number {
 	let i = start;
 	while (i < tokens.length) {
-		if (tokens[i].pos === "PROPN") {
+		if (tokens[i].pos === "PROPN" || (parts.length > 0 && isCapitalizedNounTail(tokens[i]))) {
 			parts.push(tokens[i].text);
 			i++;
 			continue;
@@ -511,12 +532,19 @@ function consumePropnRun(
 }
 
 /**
- * True when every PROPN content token is a common English lemma.
- * Bridged titles (Cult of the Snake) are exempt — callers pass `usedBridge`.
- * Unbridged runs like Anger / Sudden Anger are dropped; invented tokens (Aldric, Demi) keep the candidate.
+ * True when a candidate is noise rather than a name. Only a single common
+ * English lemma standing alone is dropped (Anger, Rescue, Worse) — capitalised
+ * emphasis on an ordinary word reads as noise on its own. A multi-word run
+ * (Sudden Anger, Three Bridge) stands as a candidate even when every word is
+ * common: English place names are routinely built from ordinary words
+ * (Three Bridges, Long Eaton), and there is no cheap way to tell those apart
+ * from emphatic multi-word capitalisation — so both surface, and the writer
+ * dismisses the ones that aren't names. Bridged titles (Cult of the Snake)
+ * are exempt regardless — callers pass `usedBridge`.
  */
 function isCommonEnglishNameNoise(contentParts: string[], usedBridge: boolean): boolean {
 	if (contentParts.length === 0) return true;
+	if (contentParts.length > 1) return false;
 	if (!contentParts.every((p) => isCommonEnglishWord(p))) return false;
 	return !usedBridge;
 }
@@ -541,6 +569,9 @@ function extractProperNames(nlp: WinkNlp, prose: string): Array<{ name: string; 
 		}
 		const parts: string[] = [];
 		let usedBridge = false;
+		if (isCapitalizedNumberPrefix(tokens[i - 1])) {
+			parts.push(tokens[i - 1].text);
+		}
 		i = consumePropnRun(tokens, i, parts);
 		// Allow of/the/de/von/van bridges (incl. "of the"): Cult of the Snake
 		while (i < tokens.length) {

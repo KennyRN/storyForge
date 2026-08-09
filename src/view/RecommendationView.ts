@@ -16,6 +16,7 @@ import {
 	readBookFrontmatter,
 	readBookSynopsis,
 	readChapterPlot,
+	renameChapterTitle,
 	writeBookCoverImage,
 	writeBookSynopsis,
 	writeChapterLocation,
@@ -25,7 +26,7 @@ import {
 } from "../book";
 import { CODEX_TYPES, codexTypeIcon, getCodexEntriesByType } from "../codex";
 import { debounce } from "../debounce";
-import { ICON_ARCHIVE, ICON_CHECK_SQUARE, ICON_EYE, ICON_FILE_PLUS, ICON_MAP_PIN, ICON_MAP_PIN_PLUS, ICON_MINUS_SQUARE, ICON_MULTIPLY_SQUARE, ICON_PERSON_FILL, ICON_PERSON_FILL_ADD, ICON_PLUS_SQUARE, ICON_TIMELINE } from "../icons";
+import { ICON_ARCHIVE, ICON_CHECK_SQUARE, ICON_EYE, ICON_FILE_PLUS, ICON_MAP_PIN, ICON_MAP_PIN_PLUS, ICON_MINUS_SQUARE, ICON_MULTIPLY_SQUARE, ICON_NOTEBOOK, ICON_PERSON_FILL, ICON_PERSON_FILL_ADD, ICON_PLUS_SQUARE, ICON_TIMELINE } from "../icons";
 import { bookBackstagePath, bookFolderNameFromChapterPath, CODEX_ROOT, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath } from "../paths";
 import { getBookId, numberedBookTitle } from "../series";
 import { splitTitleSubtitle } from "../titleNumbering";
@@ -54,7 +55,7 @@ import { DossierEntitySuggest } from "./DossierEntitySuggest";
 
 export const RECOMMEND_VIEW_TYPE = "storyforge-recommend-view";
 
-type RecommendMode = "novel" | "chapter" | "dossier";
+type RecommendMode = "novel" | "chapter" | "details" | "dossier";
 
 export class RecommendationView extends ItemView {
 	private bookFolderName: string | null = null;
@@ -92,7 +93,7 @@ export class RecommendationView extends ItemView {
 	}
 
 	getIcon(): string {
-		return ICON_TIMELINE;
+		return ICON_NOTEBOOK;
 	}
 
 	private readonly debouncedReload = debounce(() => void this.reload(), 500);
@@ -262,32 +263,6 @@ export class RecommendationView extends ItemView {
 		el.addClass("sf-recommend-view");
 		el.addClass("sf-context-view");
 
-		const header = el.createDiv({ cls: "sf-recommend-header" });
-		const headerMain = header.createDiv({ cls: "sf-recommend-header-main" });
-		setIcon(headerMain.createSpan({ cls: "sf-icon" }), ICON_TIMELINE);
-		headerMain.createSpan({ cls: "sf-recommend-title", text: "Story Context" });
-
-		const actions = header.createDiv({ cls: "sf-recommend-header-actions" });
-		const archiveBtn = actions.createSpan({
-			cls: `sf-recommend-archive-btn${this.showingArchive ? " is-active" : ""}`,
-			attr: {
-				"aria-label": this.showingArchive ? "Close archive" : "Open archive",
-				tabindex: "0",
-				role: "button",
-				"aria-pressed": String(this.showingArchive),
-			},
-		});
-		setIcon(archiveBtn, ICON_ARCHIVE);
-		archiveBtn.addEventListener("click", (e) => {
-			e.stopPropagation();
-			this.showingArchive = !this.showingArchive;
-			this.render();
-		});
-		makeAccessibleActivatable(archiveBtn, () => {
-			this.showingArchive = !this.showingArchive;
-			this.render();
-		});
-
 		const tabs = el.createDiv({ cls: "sf-recommend-tabs" });
 		const novelTab = tabs.createSpan({
 			cls: `sf-recommend-tab${!this.showingArchive && this.mode === "novel" ? " is-active" : ""}`,
@@ -307,6 +282,15 @@ export class RecommendationView extends ItemView {
 				"aria-selected": String(!this.showingArchive && this.mode === "chapter"),
 			},
 		});
+		const detailsTab = tabs.createSpan({
+			cls: `sf-recommend-tab${!this.showingArchive && this.mode === "details" ? " is-active" : ""}`,
+			text: "Details",
+			attr: {
+				role: "tab",
+				tabindex: "0",
+				"aria-selected": String(!this.showingArchive && this.mode === "details"),
+			},
+		});
 		const dossierTab = tabs.createSpan({
 			cls: `sf-recommend-tab${!this.showingArchive && this.mode === "dossier" ? " is-active" : ""}`,
 			text: "Dossier",
@@ -323,10 +307,32 @@ export class RecommendationView extends ItemView {
 		};
 		novelTab.addEventListener("click", () => selectMode("novel"));
 		chapterTab.addEventListener("click", () => selectMode("chapter"));
+		detailsTab.addEventListener("click", () => selectMode("details"));
 		dossierTab.addEventListener("click", () => selectMode("dossier"));
 		makeAccessibleActivatable(novelTab, () => selectMode("novel"));
 		makeAccessibleActivatable(chapterTab, () => selectMode("chapter"));
+		makeAccessibleActivatable(detailsTab, () => selectMode("details"));
 		makeAccessibleActivatable(dossierTab, () => selectMode("dossier"));
+
+		const archiveTab = tabs.createSpan({
+			cls: `sf-recommend-tab sf-recommend-tab--archive${this.showingArchive ? " is-active" : ""}`,
+			attr: {
+				role: "tab",
+				tabindex: "0",
+				"aria-label": "Archive",
+				"aria-selected": String(this.showingArchive),
+			},
+		});
+		setIcon(archiveTab, ICON_ARCHIVE);
+		const toggleArchive = () => {
+			this.showingArchive = !this.showingArchive;
+			this.render();
+		};
+		archiveTab.addEventListener("click", (e) => {
+			e.stopPropagation();
+			toggleArchive();
+		});
+		makeAccessibleActivatable(archiveTab, toggleArchive);
 
 		if (this.showingArchive) {
 			const body = el.createDiv({ cls: "sf-recommend-body" });
@@ -363,6 +369,10 @@ export class RecommendationView extends ItemView {
 
 		if (this.mode === "dossier") {
 			this.renderDossier(el);
+			return;
+		}
+		if (this.mode === "details") {
+			this.renderDetails(el);
 			return;
 		}
 		this.renderChapter(el);
@@ -623,9 +633,50 @@ export class RecommendationView extends ItemView {
 		}
 
 		const fixed = body.createDiv({ cls: "sf-recommend-fixed" });
-		const title = numberedChapterTitle(this.app, this.bookFolderName, this.chapterFilename);
+		const bookFolderName = this.bookFolderName;
+		const chapterFilename = this.chapterFilename;
+		const title = numberedChapterTitle(this.app, bookFolderName, chapterFilename);
 		const titleRow = fixed.createDiv({ cls: "sf-recommend-chapter-title-row" });
-		titleRow.createDiv({ cls: "sf-recommend-chapter-title", text: title });
+		const titleInput = titleRow.createEl("input", {
+			cls: "sf-recommend-chapter-title",
+			attr: { type: "text", "aria-label": "Chapter title" },
+		});
+		titleInput.value = title;
+		titleInput.addEventListener("pointerdown", (e) => e.stopPropagation());
+		titleInput.addEventListener("click", (e) => e.stopPropagation());
+		const commitTitle = () => {
+			const value = titleInput.value.trim();
+			if (!value || value === title) {
+				titleInput.value = title;
+				return;
+			}
+			void renameChapterTitle(this.app, bookFolderName, chapterFilename, value).then(() => this.reload());
+		};
+		titleInput.addEventListener("keydown", (e) => {
+			if (e.key === "Enter") {
+				e.preventDefault();
+				titleInput.blur();
+			} else if (e.key === "Escape") {
+				e.preventDefault();
+				titleInput.value = title;
+				titleInput.blur();
+			}
+		});
+		titleInput.addEventListener("blur", commitTitle);
+		const eyeBtn = titleRow.createSpan({
+			cls: "sf-recommend-refresh",
+			attr: { "aria-label": "View chapter", tabindex: "0", role: "button" },
+		});
+		setIcon(eyeBtn, ICON_EYE);
+		const viewChapter = () => {
+			if (!this.bookFolderName || !this.chapterFilename) return;
+			void this.openChapter(this.bookFolderName, this.chapterFilename);
+		};
+		eyeBtn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			viewChapter();
+		});
+		makeAccessibleActivatable(eyeBtn, viewChapter);
 		const refreshBtn = titleRow.createSpan({
 			cls: "sf-recommend-refresh",
 			attr: { "aria-label": "Refresh story context", tabindex: "0", role: "button" },
@@ -645,20 +696,15 @@ export class RecommendationView extends ItemView {
 		}
 
 		const synSection = fixed.createDiv({ cls: "sf-recommend-section" });
-		synSection.createDiv({ cls: "sf-recommend-section-title", text: "Chapter summary" });
-		const textarea = synSection.createEl("textarea", { cls: "sf-recommend-synopsis" });
+		const synopsisRow = synSection.createDiv({ cls: "sf-recommend-synopsis-row" });
+		const textarea = synopsisRow.createEl("textarea", { cls: "sf-recommend-synopsis" });
 		textarea.value = this.synopsisDraft;
 		textarea.addEventListener("input", () => {
 			this.synopsisDraft = textarea.value;
 		});
 		textarea.addEventListener("pointerdown", (e) => e.stopPropagation());
 
-		const synActions = synSection.createDiv({ cls: "sf-recommend-synopsis-actions" });
-		this.iconAction(synActions, ICON_EYE, "view chapter", () => {
-			if (!this.bookFolderName || !this.chapterFilename) return;
-			void this.openChapter(this.bookFolderName, this.chapterFilename);
-		});
-		this.iconAction(synActions, ICON_FILE_PLUS, "add to chapter", () => void this.sendSynopsis());
+		this.iconAction(synopsisRow, ICON_FILE_PLUS, "add to chapter", () => void this.sendSynopsis());
 
 		const report = this.report;
 		const persons = report.matched.filter((m) => m.type === "person");
@@ -670,7 +716,26 @@ export class RecommendationView extends ItemView {
 		this.renderMatchList(scroll, "Characters in chapter", persons);
 		this.renderMatchList(scroll, "Other Codex references", others);
 		this.renderUnknownList(scroll, report);
-		this.renderDetailHits(scroll, report);
+	}
+
+	/** Details tab: single-chapter "Details to capture" / "Holding area" / "Resolved" review. */
+	private renderDetails(el: HTMLElement): void {
+		const body = el.createDiv({ cls: "sf-recommend-body" });
+
+		if (!this.bookFolderName || !this.chapterFilename) {
+			body.addClass("sf-recommend-body--scroll");
+			body.createDiv({ cls: "sf-empty", text: "Open a chapter to see details to capture." });
+			return;
+		}
+
+		if (!this.report) {
+			body.addClass("sf-recommend-body--scroll");
+			body.createDiv({ cls: "sf-empty", text: "Nothing here yet." });
+			return;
+		}
+
+		const scroll = body.createDiv({ cls: "sf-recommend-scroll" });
+		this.renderDetailHits(scroll, this.report);
 	}
 
 	private renderMatchList(
@@ -719,7 +784,7 @@ export class RecommendationView extends ItemView {
 			const label = hint.nerType ? `${hint.name} (${hint.nerType})` : hint.name;
 			row.createSpan({ cls: "sf-recommend-row-label", text: label });
 			const actions = row.createDiv({ cls: "sf-recommend-row-actions" });
-			this.iconAction(actions, ICON_PLUS_SQUARE, "create in codex", () =>
+			this.iconAction(actions, ICON_PLUS_SQUARE, "add to codex", () =>
 				void this.createStub(hint.name, hint.nerType),
 			);
 			this.iconAction(actions, ICON_MINUS_SQUARE, "ignore", () =>
@@ -828,11 +893,11 @@ export class RecommendationView extends ItemView {
 		const actions = card.createDiv({ cls: "sf-recommend-hit-actions" });
 
 		if (hit.tier === "solid") {
-			this.iconAction(actions, ICON_CHECK_SQUARE, "done", () => void this.resolveHit(hit));
-			this.iconAction(actions, ICON_MINUS_SQUARE, "ignore", () => void this.resolveHit(hit));
+			this.iconAction(actions, ICON_CHECK_SQUARE, "detail added/accepted", () => void this.resolveHit(hit));
+			this.iconAction(actions, ICON_MINUS_SQUARE, "ignore this detail", () => void this.resolveHit(hit));
 		} else if (hit.tier === "grey") {
-			this.iconAction(actions, ICON_CHECK_SQUARE, "confirm", () => void this.confirmAndResolve(hit));
-			this.iconAction(actions, ICON_MINUS_SQUARE, "ignore", () => void this.rejectHit(hit));
+			this.iconAction(actions, ICON_CHECK_SQUARE, "detail added/accepted", () => void this.confirmAndResolve(hit));
+			this.iconAction(actions, ICON_MINUS_SQUARE, "ignore this detail", () => void this.rejectHit(hit));
 		} else if (hit.tier === "ambiguous") {
 			for (const name of hit.competingNames) {
 				const btn = actions.createEl("button", { text: name });
@@ -1256,13 +1321,11 @@ export class RecommendationView extends ItemView {
 	}
 
 	private async finishLore(name: string, type: string): Promise<void> {
-		const heading = this.plugin.getSettings().codexFactSectionByType[type] ?? "Facts";
 		const bookId = this.bookFolderName ? getBookId(this.app, this.bookFolderName) : null;
 		try {
 			await createCodexLore(this.app, {
 				name,
 				type,
-				factsHeading: heading,
 				bookId,
 			});
 			new Notice(`storyForge: created Codex ${CODEX_TYPES.find((t) => t.type === type)?.label ?? type}`);

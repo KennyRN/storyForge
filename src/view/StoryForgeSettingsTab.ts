@@ -1,13 +1,12 @@
 import { App, PluginSettingTab, type SettingDefinitionItem } from "obsidian";
 import type StoryForgePlugin from "../main";
-import { CODEX_TYPES } from "../codex";
-import { FORMATFORGE_PLUGIN_ID, formatCompanionState } from "../formatCompanionActive";
 import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
 import { COLOR_PALETTES, defaultVariantName, PALETTE_NAMES, type PresetPaletteName } from "../colorPalettes";
 import { TextStyleModal } from "./TextStyleModal";
 import { UiFormattingModal } from "./UiFormattingModal";
 import { HideUiModal } from "./HideUiModal";
 import { ProtectionsModal } from "./ProtectionsModal";
+import { TagRegistryModal } from "./TagRegistryModal";
 
 function isPresetPaletteName(name: string): name is PresetPaletteName {
 	return name in COLOR_PALETTES;
@@ -52,32 +51,6 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
-	/**
-	 * Only a live companion takes the formatting UI over. When formatForge is enabled but
-	 * has not registered, storyForge keeps its own entries so a failed companion load does
-	 * not leave the user with no formatting controls at all.
-	 */
-	private isFormatCompanionActive(): boolean {
-		return (
-			formatCompanionState(
-				this.plugin.getFormatCompanion(),
-				this.plugin.api?.formatting?.isCompanionActive() === true,
-				this.app,
-			) === "connected"
-		);
-	}
-
-	private openFormatForgeSettings(): void {
-		const open = this.plugin.getFormatCompanion()?.openSettings;
-		if (open) {
-			open();
-			return;
-		}
-		const settingApp = (this.app as unknown as { setting?: { open(): void; openTabById(id: string): void } }).setting;
-		settingApp?.open();
-		settingApp?.openTabById(FORMATFORGE_PLUGIN_ID);
-	}
-
 	getControlValue(key: string): unknown {
 		if (key.includes(".")) {
 			return getPath(this.plugin.getSettings() as unknown as Record<string, unknown>, key);
@@ -86,16 +59,6 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 	}
 
 	async setControlValue(key: string, value: unknown): Promise<void> {
-		if (key.startsWith("codexFactSectionByType.")) {
-			const type = key.slice("codexFactSectionByType.".length);
-			const heading = typeof value === "string" && value.trim() ? value.trim() : "Facts";
-			await this.plugin.updateSetting("codexFactSectionByType", {
-				...this.plugin.getSettings().codexFactSectionByType,
-				[type]: heading,
-			});
-			return;
-		}
-
 		if (key.includes(".")) {
 			const settings = this.plugin.getSettings() as unknown as Record<string, unknown>;
 			setPath(settings, key, value);
@@ -137,8 +100,8 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			isPresetPaletteName(selectedName)
 				? Object.fromEntries(COLOR_PALETTES[selectedName].map((v) => [v.name, v.name]))
 				: {};
-		const companionActive = () => this.isFormatCompanionActive();
-		const companionInactive = () => !this.isFormatCompanionActive();
+		const companionActive = () => this.plugin.isFormatCompanionActive();
+		const companionInactive = () => !this.plugin.isFormatCompanionActive();
 
 		return [
 			{
@@ -149,6 +112,13 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 						desc: "If you've closed the storyForge panel, click this to bring it back.",
 						action: () => {
 							void this.plugin.activateView();
+						},
+					},
+					{
+						name: "storyTelling panel",
+						desc: "If you've closed the storyTelling (Codex) panel, click this to bring it back.",
+						action: () => {
+							void this.plugin.activateStorytellingView();
 						},
 					},
 				],
@@ -184,15 +154,6 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 							key: "recommendIncludeUnknownNames",
 						},
 					},
-					...CODEX_TYPES.map((opt) => ({
-						name: `${opt.label} facts heading`,
-						desc: `H2 section title in ${opt.label.toLowerCase()} Codex notes (e.g. Facts).`,
-						control: {
-							type: "text" as const,
-							key: `codexFactSectionByType.${opt.type}`,
-							placeholder: "Facts",
-						},
-					})),
 				],
 			},
 			{
@@ -212,7 +173,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 						name: "Palette variant",
 						desc: "Named variant of the selected palette.",
 						visible: () => {
-							if (this.isFormatCompanionActive()) return false;
+							if (this.plugin.isFormatCompanionActive()) return false;
 							const name = this.plugin.getSettings().colorPaletteName;
 							return isPresetPaletteName(name) && COLOR_PALETTES[name].length > 1;
 						},
@@ -245,7 +206,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 						name: "Formatting (formatForge)",
 						desc: "Text styling, colours, fonts, interface chrome, and the colour palette are managed by formatForge while it is enabled.",
 						visible: companionActive,
-						action: () => this.openFormatForgeSettings(),
+						action: () => this.plugin.openFormatForgeSettings(),
 					},
 					{
 						name: "Text styling",
@@ -268,6 +229,18 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 						desc: "Choose which Obsidian UI chrome to hide.",
 						action: () => {
 							new HideUiModal(this.app, this.plugin).open();
+						},
+					},
+				],
+			},
+			{
+				type: "group",
+				items: [
+					{
+						name: "Tags & Codex types",
+						desc: "Manage Codex entry types, chapter tags, novel tags, and the icons they draw from.",
+						action: () => {
+							new TagRegistryModal(this.app, () => this.refreshDomState()).open();
 						},
 					},
 				],

@@ -44,6 +44,13 @@ export interface GraftedEditorHandle {
  * Mounts `file` into `container` as a real, editable `MarkdownView` in Live Preview, caret placed
  * at `cursorOffset`. Returns null (logging the cause) on any failure — callers must fall back to
  * opening the file in a real tab rather than leaving `container` half-mounted.
+ *
+ * Deliberately does not focus the editor itself — focusing scrolls the caret into view, and the
+ * caller (`ContinuousReadView.editChapter`) needs a chance to correct the outer continuous scroll's
+ * position first (research brief §7: anchoring the clicked paragraph back to where the reader's eye
+ * already was). Focusing before that correction lands would mean two scroll adjustments fighting
+ * each other instead of one clean one — callers must call `handle.view.editor.focus()` themselves
+ * once any correction is done.
  */
 export async function graftEditor(
 	app: App,
@@ -67,15 +74,10 @@ export async function graftEditor(
 		split.getRoot = () => realRoot;
 		split.getContainer = () => realContainer;
 
-		// Obsidian's own workspace chrome (.workspace-split/.workspace-leaf/.cm-scroller, …) is built
-		// on a chain of height:100%/flex-fill rules that only resolves because the real workspace is
-		// absolutely positioned to fill the window. Grafted into an ordinary content-flow <div> with
-		// no defined height, that chain resolves against nothing — this class (styles.css) gives the
-		// chain a real, bounded height to resolve against, so the editor gets a genuine viewport with
-		// its own scrollbar rather than trying to convince CodeMirror to render an unbounded document
-		// at once (CodeMirror decides what's worth rendering by checking real on-screen visibility,
-		// not a container's declared height, so inflating the height doesn't work — it was tried and
-		// just pushed the real content out of view instead).
+		// styles.css strips this graft's whole height/overflow chain down to content-sized, so
+		// CodeMirror finds no clipping ancestor closer than the outer continuous scroll and treats
+		// that as its effective viewport instead — see the .sf-grafted-editor block comment there
+		// for the full mechanism (research brief §1, §6).
 		split.containerEl.addClass("sf-grafted-editor");
 		container.appendChild(split.containerEl);
 
@@ -100,7 +102,6 @@ export async function graftEditor(
 		// target file, silently replacing the chapter being edited.
 		leaf.setPinned(true);
 		view.editor.setCursor(view.editor.offsetToPos(cursorOffset));
-		view.editor.focus();
 
 		const containerEl = split.containerEl;
 		return {

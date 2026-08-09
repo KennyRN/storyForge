@@ -2,6 +2,8 @@ import { App, Notice, TFile, setIcon } from "obsidian";
 import {
 	archiveCodexItem,
 	codexTypeIcon,
+	convertCodexNoteToFolder,
+	getCodexEntryTags,
 	getCodexEntryType,
 	getCodexView,
 	isDescendantFolder,
@@ -10,14 +12,16 @@ import {
 	removeCodexFolder,
 	renameCodexFolder,
 	renameCodexNoteFile,
+	writeCodexEntryTags,
 	type CodexTreeItem,
 	type CodexViewMode,
 } from "../codex";
-import { ICON_CODEX, ICON_FOLDER_PLUS, ICON_PLUS_SQUARE } from "../icons";
+import { ICON_CODEX, ICON_FILTER_LIST, ICON_FOLDER_PLUS, ICON_PLUS_SQUARE } from "../icons";
 import { makeAccessibleActivatable } from "./a11y";
-import { attachInlineRename } from "./inlineRename";
+import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
 import { attachCodexDragReorder, type CodexDragRowInfo } from "./dragReorderTree";
 import { CodexSetTypeModal } from "./CodexSetTypeModal";
+import { TagPickerModal } from "./TagPickerModal";
 
 export interface BottomPanelOptions {
 	currentBookId: string | null;
@@ -29,6 +33,13 @@ export interface BottomPanelOptions {
 	highlightActiveChapter: boolean;
 	onCreateFolder: () => void;
 	onCreateFile: () => void;
+	/** codexTypes ids currently filtering the tree — empty shows everything. */
+	typeFilter: ReadonlySet<string>;
+	onChangeTypeFilter: (next: string[]) => void;
+	/** Opens a Codex file's own note (distinct from onCreateFile) — the caller's own
+	 * "one tab, and the active-leaf highlight actually follows the click" helper, same as
+	 * onOpenChapter elsewhere, rather than this file reaching into app.workspace directly. */
+	onOpenFile: (path: string) => void;
 }
 
 export function renderBottomPanel(app: App, container: HTMLElement, options: BottomPanelOptions): void {
@@ -45,6 +56,26 @@ export function renderBottomPanel(app: App, container: HTMLElement, options: Bot
 	header.addEventListener("click", () => options.onToggleMode());
 
 	if (!isCodexHidden) {
+		const filterBtn = header.createSpan({
+			cls: `sf-codex-filter-btn${options.typeFilter.size > 0 ? " is-active" : ""}`,
+			attr: { "aria-label": "Filter by type" },
+		});
+		setIcon(filterBtn, ICON_FILTER_LIST);
+		const openFilter = () => {
+			new TagPickerModal(
+				app,
+				"codexTypes",
+				Array.from(options.typeFilter),
+				(nextIds) => options.onChangeTypeFilter(nextIds),
+				false,
+			).open();
+		};
+		filterBtn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			openFilter();
+		});
+		makeAccessibleActivatable(filterBtn, openFilter);
+
 		const newFileBtn = header.createSpan({ cls: "sf-codex-new-file-btn", attr: { "aria-label": "New file" } });
 		setIcon(newFileBtn, ICON_PLUS_SQUARE);
 		newFileBtn.addEventListener("click", (e) => {
@@ -65,7 +96,7 @@ export function renderBottomPanel(app: App, container: HTMLElement, options: Bot
 	if (isCodexHidden) return;
 
 	const treeEl = container.createDiv({ cls: "sf-codex-tree" });
-	const tree = getCodexView(app, options.currentBookId, options.mode);
+	const tree = getCodexView(app, options.currentBookId, options.mode, options.typeFilter);
 	if (!tree) {
 		treeEl.createDiv({ cls: "sf-empty", text: "Nothing here yet." });
 		return;
@@ -80,8 +111,10 @@ export function renderBottomPanel(app: App, container: HTMLElement, options: Bot
 		options.onToggleFolder,
 		options.activeFilePath,
 		options.highlightActiveChapter,
+		options.onOpenFile,
 		null,
 		rowInfo,
+		0,
 	);
 
 	const { folders } = readCodexFrontmatter(app);
@@ -110,39 +143,90 @@ function renderTreeChildren(
 	onToggleFolder: (folderId: string) => void,
 	activeFilePath: string | null,
 	highlightActiveChapter: boolean,
+	onOpenFile: (path: string) => void,
 	parentKey: string | null,
 	rowInfo: CodexDragRowInfo[],
+	depth: number,
 ): void {
 	for (const item of items) {
 		if (item.type === "folder") {
+			const linkedPath = item.path;
 			const folderEl = container.createDiv({ cls: "sf-codex-folder" });
+			// Read by both this folder's own row (for its content's indent) and its children
+			// wrapper (for the guide line's X) — set once here, on their common ancestor, rather
+			// than on the header alone, since CSS custom properties only inherit to descendants.
+			folderEl.style.setProperty("--sf-codex-depth", String(depth));
 			const headerEl = folderEl.createDiv({ cls: "sf-codex-folder-header" });
 			headerEl.dataset.key = item.id;
 			headerEl.dataset.type = "folder";
-			rowInfo.push({ key: item.id, type: "folder", parentKey });
 
-			const handle = headerEl.createSpan({ cls: "sf-drag-handle" });
-			setIcon(handle, "grip-vertical");
-
+			const contentEl = headerEl.createDiv({ cls: "sf-codex-row-content" });
 			const collapsed = collapsedPaths.has(item.id);
-			const chevron = headerEl.createSpan({ cls: "sf-codex-chevron" });
+			const chevron = contentEl.createSpan({ cls: "sf-codex-chevron" });
 			chevron.toggleClass("sf-codex-chevron-collapsed", collapsed);
-			const folderNameEl = headerEl.createSpan({ cls: "sf-codex-folder-name", text: item.name });
+			const folderNameEl = contentEl.createSpan({ cls: "sf-codex-folder-name", text: item.name });
 			folderNameEl.addClass("sf-styled-heading");
-			headerEl.addEventListener("click", (e) => {
-				if (headerEl.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
-				onToggleFolder(item.id);
+			// A Lore Entry folder (linkedPath set) is also a real note — its own type icon shows
+			// the same way a file row's would, so it still reads as "a Person/Place/…" at a glance.
+			if (linkedPath) {
+				const entryType = getCodexEntryType(app, linkedPath);
+				if (entryType) {
+					const typeIcon = contentEl.createSpan({ cls: "sf-icon sf-codex-type-icon" });
+					setIcon(typeIcon, codexTypeIcon(entryType) ?? "circle-help");
+				}
+			}
+			// Routed through attachCodexDragReorder's own pointerdown/pointerup gesture (via
+			// onClick below) rather than a `click` listener here — see that file's doc comment for
+			// why: a plain `click`'s first firing in an unfocused sidebar gets swallowed by
+			// Obsidian's own click-to-focus handling. Only the chevron toggles collapse on a Lore
+			// Entry folder — everywhere else on the row opens its note, same as clicking a plain
+			// file. Plain (non-linked) folders keep toggling on any click, same as always.
+			rowInfo.push({
+				key: item.id,
+				type: "folder",
+				parentKey,
+				onClick: (target) => {
+					if (linkedPath && !chevron.contains(target as Node)) {
+						onOpenFile(linkedPath);
+						return;
+					}
+					onToggleFolder(item.id);
+				},
 			});
 
+			const folderMenuItems: ExtraMenuItem[] = [
+				{ title: "Archive Entire Folder", onClick: () => archiveCodexItem(app, item.id) },
+				{ title: "Remove Folder and Keep Items", onClick: () => removeCodexFolder(app, item.id) },
+			];
+			if (linkedPath) {
+				folderMenuItems.push(
+					{ title: "Set as...", onClick: () => new CodexSetTypeModal(app, linkedPath).open() },
+					{
+						title: "Tags...",
+						onClick: () => {
+							new TagPickerModal(app, "codexTags", getCodexEntryTags(app, linkedPath), (nextIds) =>
+								writeCodexEntryTags(app, linkedPath, nextIds),
+							).open();
+						},
+					},
+				);
+			}
 			attachInlineRename({
 				row: headerEl,
 				label: folderNameEl,
 				getCurrentTitle: () => item.name,
-				onCommit: (name) => renameCodexFolder(app, item.id, name),
-				extraMenuItems: [
-					{ title: "Archive Entire Folder", onClick: () => archiveCodexItem(app, item.id) },
-					{ title: "Remove Folder and Keep Items", onClick: () => removeCodexFolder(app, item.id) },
-				],
+				// A Lore Entry folder's name is always its note's own basename (see
+				// resolveCodexTree's doc comment) — renaming here renames the note itself, not a
+				// separate stored folder name, so the two can never drift apart.
+				onCommit: async (name) => {
+					if (linkedPath) {
+						const file = app.vault.getAbstractFileByPath(linkedPath);
+						if (file instanceof TFile) await renameCodexNoteFile(app, file, name);
+						return;
+					}
+					await renameCodexFolder(app, item.id, name);
+				},
+				extraMenuItems: folderMenuItems,
 			});
 
 			if (!collapsed) {
@@ -156,36 +240,46 @@ function renderTreeChildren(
 					onToggleFolder,
 					activeFilePath,
 					highlightActiveChapter,
+					onOpenFile,
 					item.id,
 					rowInfo,
+					depth + 1,
 				);
 			}
 		} else {
 			const fileEl = container.createDiv({ cls: "sf-codex-file" });
+			fileEl.style.setProperty("--sf-codex-depth", String(depth));
 			fileEl.dataset.key = item.path;
 			fileEl.dataset.type = "file";
-			rowInfo.push({ key: item.path, type: "file", parentKey });
-
-			const handle = fileEl.createSpan({ cls: "sf-drag-handle" });
-			setIcon(handle, "grip-vertical");
+			// See the folder branch's own rowInfo.push comment — routed through
+			// attachCodexDragReorder's pointerdown/pointerup gesture, not a separate `click` listener.
+			rowInfo.push({ key: item.path, type: "file", parentKey, onClick: () => onOpenFile(item.path) });
 
 			if (highlightActiveChapter && activeFilePath === item.path) {
 				fileEl.addClass("sf-row-selected");
 			}
-			const label = fileEl.createSpan({ text: item.name });
+			const contentEl = fileEl.createDiv({ cls: "sf-codex-row-content sf-codex-row-content--file" });
+			const label = contentEl.createSpan({ cls: "sf-codex-file-name", text: item.name });
 			const entryType = getCodexEntryType(app, item.path);
 			if (entryType) {
-				const typeIcon = fileEl.createSpan({ cls: "sf-icon sf-codex-type-icon" });
+				const typeIcon = contentEl.createSpan({ cls: "sf-icon sf-codex-type-icon" });
 				setIcon(typeIcon, codexTypeIcon(entryType) ?? "circle-help");
 			}
-			fileEl.addEventListener("click", (e) => {
-				if (fileEl.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
-				const file = app.vault.getAbstractFileByPath(item.path);
-				if (file instanceof TFile) {
-					void app.workspace.getLeaf(false).openFile(file);
-				}
-			});
 
+			const tagsMenuItem: ExtraMenuItem = {
+				title: "Tags...",
+				onClick: () => {
+					new TagPickerModal(app, "codexTags", getCodexEntryTags(app, item.path), (nextIds) =>
+						writeCodexEntryTags(app, item.path, nextIds),
+					).open();
+				},
+			};
+			// Turns this note into a Lore Entry folder in place (e.g. a group other entries — its
+			// members — can be filed inside) — see convertCodexNoteToFolder's own doc comment.
+			const convertMenuItem: ExtraMenuItem = {
+				title: "Convert to folder",
+				onClick: () => void convertCodexNoteToFolder(app, item.path),
+			};
 			attachInlineRename({
 				row: fileEl,
 				label,
@@ -197,6 +291,8 @@ function renderTreeChildren(
 				extraMenuItems: [
 					{ title: "Archive", onClick: () => archiveCodexItem(app, item.path) },
 					{ title: "Set as...", onClick: () => new CodexSetTypeModal(app, item.path).open() },
+					tagsMenuItem,
+					convertMenuItem,
 				],
 			});
 		}

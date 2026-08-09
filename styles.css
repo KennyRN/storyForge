@@ -3,6 +3,7 @@
    Story Context / Archive keep view-content padding: their contentEl *is* the
    padded .sf-recommend-view / .sf-archive-view surface. */
 .workspace-leaf-content[data-type="storyforge-view"] .view-content,
+.workspace-leaf-content[data-type="storyforge-storytelling-view"] .view-content,
 .workspace-leaf-content[data-type="storyforge-tools-view"] .view-content,
 .workspace-leaf-content[data-type="storyforge-spacer-view"] .view-content,
 .workspace-leaf-content[data-type="storyforge-forge-view"] .view-content {
@@ -12,17 +13,78 @@
 .storyforge-view:not(#storyforge-specificity-boost) {
 	box-sizing: border-box;
 	display: grid;
-	grid-template-rows: 3fr 2fr auto;
+	/* layout tabs, library, codex, stats — the tabs row is always in the DOM (see
+	 * StoryForgeView.render()) so this row count stays constant even when it's left empty. */
+	grid-template-rows: auto 3fr 2fr auto;
 	height: 100%;
 	min-height: 0;
 	padding: 0;
 }
 
-/* Codex focus's navigator (previous/current/next + transport row) is short and fixed-height,
- * unlike the full chapter tree the 3fr/2fr split above is tuned for — size its row to content so
- * Codex sits right below it instead of a gap where the tree would otherwise have scrolled. */
-.storyforge-view[data-top-pane="navigator"]:not(#storyforge-specificity-boost) {
+/* Replaces the old "choose layout" dropdown icon — one tab per layout (Series browse / Novel
+ * browse / Hybrid), sitting above everything else in the panel. Deliberately its own styling
+ * rather than reusing Story Context's .sf-recommend-tab* — that class's colours are wired to
+ * Story Context's own formatting settings, unrelated to this panel. */
+.sf-layout-tabs {
+	display: flex;
+	gap: 4px;
+	padding: 8px 10px;
+}
+
+/* flex: 1 so the three tabs always split the panel's full width evenly, rather than sizing to
+ * their own text — "fill up the entire panel" per the hand-off note. Font size is bumped up from
+ * the small tab-label size elsewhere in the app since these tabs are the panel's primary
+ * navigation, not an auxiliary control; the icon (1em-sized) scales with it automatically. */
+.sf-layout-tab {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	flex: 1;
+	font-size: var(--font-ui-medium);
+	color: var(--text-muted);
+	cursor: pointer;
+	padding: 8px 10px;
+	border-radius: 4px;
+}
+
+/* Each tab's leading icon — no colour of its own, so it matches the tab's own (currentColor). */
+.sf-layout-tab-icon {
+	display: flex;
+	align-items: center;
+	flex-shrink: 0;
+}
+.sf-layout-tab-icon svg {
+	width: 1em;
+	height: 1em;
+}
+
+.sf-layout-tab:hover {
+	background: var(--background-modifier-hover);
+}
+
+.sf-layout-tab.is-active {
+	color: var(--text-accent);
+	background: var(--background-modifier-hover);
+}
+
+.sf-layout-tab:focus-visible {
+	outline: 2px solid var(--text-accent);
+	outline-offset: 2px;
+}
+
+/* Storytelling: the old "Codex focus" composition (compact navigator + codex + stats), now its
+ * own always-available left-rail panel instead of a storyForge-panel layout. The navigator is
+ * short and fixed-height, unlike the full chapter tree the storyForge panel's 3fr/2fr split is
+ * tuned for — size its row to content so Codex sits right below it instead of a gap where the
+ * tree would otherwise have scrolled. */
+.storyforge-storytelling-view:not(#storyforge-specificity-boost) {
+	box-sizing: border-box;
+	display: grid;
 	grid-template-rows: auto 1fr auto;
+	height: 100%;
+	min-height: 0;
+	padding: 0;
 }
 
 .sf-top-panel,
@@ -75,10 +137,6 @@
 	gap: 6px;
 }
 
-.sf-book-line > .sf-icon {
-	align-self: end;
-}
-
 .sf-book-cover-thumb {
 	grid-column: 1;
 	grid-row: 1 / span 2;
@@ -92,6 +150,10 @@
 }
 
 .sf-book-title-row {
+	/* Explicit placement (rather than relying on auto-flow after the cover thumb) — the thumb
+	 * is now optional (no fallback icon takes its column-1 slot when there's no cover). */
+	grid-column: 2;
+	grid-row: 1;
 	align-items: flex-end;
 	cursor: default;
 }
@@ -209,6 +271,7 @@
 
 .sf-row-text {
 	flex: 1;
+	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -220,6 +283,27 @@
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
+}
+
+/* Holds the title text and, when present, the leading "book is open" icon (Series View only) on
+   one line — the subtitle (below, a sibling in .sf-row-title-wrap) stays on its own line. */
+.sf-row-title-line {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	min-width: 0;
+}
+
+/* The open-book icon has no colour of its own — it inherits .sf-row/.sf-row-text's colour via
+   currentColor, so it always matches the title whether the row is highlighted or not. */
+.sf-row-open-icon {
+	display: flex;
+	align-items: center;
+	flex-shrink: 0;
+}
+.sf-row-open-icon svg {
+	width: 1em;
+	height: 1em;
 }
 
 .sf-row-subtitle {
@@ -334,6 +418,7 @@
 	gap: 6px;
 }
 
+.sf-codex-filter-btn,
 .sf-codex-new-file-btn,
 .sf-codex-new-folder-btn {
 	display: flex;
@@ -343,14 +428,21 @@
 	cursor: pointer;
 }
 
+.sf-codex-filter-btn.is-active {
+	color: var(--text-accent);
+}
+
 .sf-codex-hidden .sf-icon,
 .sf-codex-hidden .sf-header-codex {
 	color: var(--text-faint);
 }
 
-.sf-codex-folder-header {
+.sf-codex-folder-header,
+.sf-codex-file {
 	display: flex;
 	align-items: center;
+	/* Fixed gap between the handle and the content wrapper — never depth-dependent. All indenting
+	 * happens inside .sf-codex-row-content instead, so the handle stays put (see below). */
 	gap: 4px;
 	padding: 4px 6px;
 	border-radius: 4px;
@@ -359,14 +451,36 @@
 	z-index: 2;
 }
 
-.sf-codex-folder-header:hover {
+.sf-codex-folder-header:hover,
+.sf-codex-file:hover {
 	background: var(--background-modifier-hover);
 }
 
-.sf-codex-folder {
-	/* header's 6px left padding + 16px drag handle + 4px gap + half the chevron's fixed 16px width */
-	--sf-codex-indent-guide-x: 34px;
-	--sf-codex-child-indent: 10px;
+.sf-codex-tree {
+	/* How far each nesting level shifts a row's content (chevron/name) right. There's no grip
+	 * handle anymore (the whole row is the drag target — see dragReorderTree.ts), so this is the
+	 * only indentation happening in the tree at all. */
+	--sf-codex-level-indent: 20px;
+}
+
+/* Every row's content — chevron (folders only) + name, or just name (files) — indents by depth
+ * here. --sf-codex-depth is set inline per row/folder by BottomPanel.ts. */
+.sf-codex-row-content {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	padding-left: calc(var(--sf-codex-depth, 0) * var(--sf-codex-level-indent, 20px));
+}
+
+/* Files have no chevron to occupy that space, so their content is pushed one further level-indent
+ * than their own depth would otherwise give them — landing their name at the exact X a sibling
+ * folder's name has at the same depth (chevron width + its own gap happen to add up to one full
+ * level-indent, by design — see the shared 20px default above). */
+.sf-codex-row-content--file {
+	padding-left: calc((var(--sf-codex-depth, 0) + 1) * var(--sf-codex-level-indent, 20px));
 }
 
 .sf-codex-chevron {
@@ -393,8 +507,10 @@
 	transform: rotate(0deg); /* collapsed: pointing right */
 }
 
-.sf-codex-folder-name {
+.sf-codex-folder-name,
+.sf-codex-file-name {
 	color: var(--text-muted);
+	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
@@ -407,14 +523,15 @@
 
 .sf-codex-folder-children {
 	position: relative;
-	padding-left: var(--sf-codex-child-indent);
 }
 
+/* This folder's own children's guide line, positioned under this folder's own chevron centre:
+ * 6px row padding + this folder's own depth indent + half the chevron's 16px width. */
 .sf-codex-folder-indicator {
 	position: absolute;
 	top: -18px;
 	bottom: 0;
-	left: var(--sf-codex-indent-guide-x);
+	left: calc(14px + var(--sf-codex-depth, 0) * var(--sf-codex-level-indent, 20px));
 	transform: translateX(-50%);
 	pointer-events: none;
 	z-index: 1;
@@ -424,6 +541,16 @@
 .sf-codex-file.sf-dragging {
 	background: var(--background-modifier-hover);
 	opacity: 0.85;
+	cursor: grabbing;
+}
+
+/* Forces the "grabbing" hand everywhere for as long as a Codex row is actually being dragged
+ * (past the hold-and-move threshold — see dragReorderTree.ts) — the pointer spends most of the
+ * gesture hovering *other* rows, not the one with .sf-dragging on it, so the cursor needs to be
+ * pinned at the document level rather than on that one row alone. */
+body.sf-codex-drag-active,
+body.sf-codex-drag-active * {
+	cursor: grabbing !important;
 }
 
 .sf-codex-drop-above {
@@ -439,27 +566,9 @@
 	outline-offset: -2px;
 }
 
-.sf-codex-file {
-	display: flex;
-	align-items: center;
-	/* no chevron here, so bridge the gap a folder's chevron + 4px gap would take up, flush-aligning this label with its parent folder's name */
-	gap: 14px;
-	padding: 4px 6px;
-	border-radius: 4px;
-	cursor: pointer;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.sf-codex-file:hover {
-	background: var(--background-modifier-hover);
-}
-
 .sf-codex-file.sf-row-selected {
 }
 
-.sf-series-filter-btn,
 .sf-book-filter-btn {
 	display: flex;
 	align-items: center;
@@ -469,11 +578,8 @@
 	cursor: pointer;
 }
 
-/* Series-mode-only settings icon, sat right before the layout selector button so that button stays
- * the rightmost icon on this line in every view, not just the ones without a settings icon. This
- * one gets the auto margin instead of .sf-series-filter-btn — pushing the pair of them to the row's
- * right edge — with the layout button right after it at a fixed gap (below), not another auto
- * margin, so the two don't fight each other for the row's leftover space. */
+/* Series-mode-only settings icon — the rightmost thing on this line now that the layout
+ * selector (which used to sit after it) has moved to its own tab row above the whole panel. */
 .sf-series-settings-btn {
 	display: flex;
 	align-items: center;
@@ -481,10 +587,6 @@
 	margin-left: auto;
 	color: var(--text-muted);
 	cursor: pointer;
-}
-
-.sf-series-settings-btn + .sf-series-filter-btn {
-	margin-left: 6px;
 }
 
 .sf-series-modal {
@@ -1296,7 +1398,8 @@
 .modal.sf-text-style-modal,
 .modal.sf-ui-formatting-modal,
 .modal.sf-hide-ui-modal,
-.modal.sf-protections-modal {
+.modal.sf-protections-modal,
+.modal.sf-tag-registry-modal {
 	width: 560px;
 	height: 760px;
 	display: flex;
@@ -1312,7 +1415,8 @@
 .sf-text-style-modal,
 .sf-ui-formatting-modal,
 .sf-hide-ui-modal,
-.sf-protections-modal {
+.sf-protections-modal,
+.sf-tag-registry-modal {
 	flex: 1;
 	display: flex;
 	flex-direction: column;
@@ -1367,11 +1471,24 @@
 	box-sizing: border-box;
 }
 
-/* Nested tabs (e.g. storyForge panel → Guides): let the outer wrapper scroll */
-.sf-text-style-tab-body > .sf-text-style-tab-body-wrapper {
-	height: auto;
+/*
+ * storyForge interface has two tab tiers: "storyForge panel" / "Right sidebar" at the top, then
+ * Guides/Library/… (or Forge/Story Context/Archive) nested inside each. The outer wrapper must
+ * not scroll itself, or the second tier's tab bar — which lives inside the outer wrapper's
+ * visible body, right alongside the settings beneath it — would scroll away with them. Instead
+ * the outer wrapper sizes its single visible body to fill the remaining height, and that body's
+ * own nested tab bar + wrapper (the second tier) does the actual scrolling, keeping its tab bar
+ * pinned above it.
+ */
+.sf-ui-format-controls > .sf-text-style-tab-body-wrapper {
+	display: flex;
+	flex-direction: column;
 	overflow: visible;
-	flex: none;
+}
+
+.sf-ui-format-controls > .sf-text-style-tab-body-wrapper > .sf-text-style-tab-body {
+	flex: 1;
+	min-height: 0;
 }
 
 .sf-text-style-tab-body {
@@ -1607,7 +1724,7 @@ body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container:not(#sto
 .sf-bottom-header > .sf-icon { font-size: var(--sf-codex-size, 1em); }
 .sf-bottom-header > .sf-icon svg { width: 1em; height: 1em; }
 .sf-bottom-header:not(.sf-codex-hidden) > .sf-icon { color: var(--sf-codex-color); }
-.sf-codex-new-file-btn:hover, .sf-codex-new-folder-btn:hover { color: var(--sf-codex-color); }
+.sf-codex-filter-btn:hover, .sf-codex-new-file-btn:hover, .sf-codex-new-folder-btn:hover { color: var(--sf-codex-color); }
 
 .sf-top-list:not(.sf-unplaced-list) {
 	font-size: var(--sf-lib-items-size, 1em);
@@ -1628,10 +1745,12 @@ body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container:not(#sto
 }
 .sf-unplaced-list .sf-row.sf-row-selected { background: var(--sf-unplaced-highlight-bg); color: var(--sf-unplaced-highlight-text); }
 .sf-codex-file.sf-row-selected { background: var(--sf-codex-highlight-bg); color: var(--sf-codex-highlight-text); }
-/* Truncate selected-file highlight at the indent guide so it reads as expanding out of the line.
-   Indent vars live on .sf-codex-folder — keep the gradient here (not on body) so they resolve correctly. */
+/* Truncate selected-file highlight at its enclosing folder's guide line so it reads as expanding
+   out of the line, rather than starting flush at the row's own left edge.
+   --sf-codex-depth is the file's own depth, so its immediate parent folder's guide sits one
+   level-indent step further left — same formula as .sf-codex-folder-indicator's own `left`. */
 body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected {
-	--sf-codex-highlight-trim: calc(var(--sf-codex-indent-guide-x, 0px) - var(--sf-codex-child-indent, 0px));
+	--sf-codex-highlight-trim: calc(14px + (var(--sf-codex-depth, 1) - 1) * var(--sf-codex-level-indent, 20px));
 	background: linear-gradient(
 		to right,
 		transparent 0,
@@ -1686,9 +1805,6 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 	font-family: var(--sf-lib-series-family, inherit);
 	font-variation-settings: var(--sf-lib-series-variation, normal);
 }
-.sf-series-line .sf-icon { color: var(--sf-lib-series-color); font-size: var(--sf-lib-series-size, 1em); }
-.sf-series-line .sf-icon svg { width: 1em; height: 1em; }
-.sf-series-filter-btn:hover { color: var(--sf-lib-series-color); }
 .sf-series-settings-btn:hover { color: var(--sf-lib-series-color); }
 .sf-book-line .sf-header-text {
 	font-size: var(--sf-lib-book-size, 1em);
@@ -1699,8 +1815,6 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 	font-variation-settings: var(--sf-lib-book-variation, normal);
 	line-height: 1;
 }
-.sf-book-line .sf-icon { color: var(--sf-lib-book-color); font-size: var(--sf-lib-book-size, 1em); }
-.sf-book-line .sf-icon svg { width: 1em; height: 1em; }
 .sf-book-filter-btn:hover { color: var(--sf-lib-book-color); }
 .sf-book-line .sf-book-subtitle-text {
 	font-size: var(--sf-lib-subtitle-size, 0.5em);
@@ -2171,52 +2285,6 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	background-color: var(--sf-editor-scrollbar-thumb, #6b7280);
 }
 
-.sf-recommend-header {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	margin-bottom: 8px;
-	color: var(--sf-recommend-header-color, var(--text-normal));
-	font-size: var(--sf-recommend-header-size, 1em);
-	font-variant: var(--sf-recommend-header-variant, normal);
-	font-weight: var(--sf-recommend-header-weight, 600);
-	font-family: var(--sf-recommend-header-family, inherit);
-	font-variation-settings: var(--sf-recommend-header-variation, normal);
-}
-
-.sf-recommend-header-main {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	min-width: 0;
-	flex: 1;
-}
-
-.sf-recommend-header-main > .sf-icon {
-	color: inherit;
-	font-size: 1em;
-}
-.sf-recommend-header-main > .sf-icon svg {
-	width: 1em;
-	height: 1em;
-}
-
-.sf-recommend-header-actions {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	margin-left: auto;
-	flex-shrink: 0;
-}
-
-.sf-recommend-title {
-	font-weight: inherit;
-	color: inherit;
-	font-variant: inherit;
-	font-family: inherit;
-	font-variation-settings: inherit;
-}
-
 .sf-recommend-tabs {
 	display: flex;
 	gap: 6px;
@@ -2239,8 +2307,21 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	background: var(--background-modifier-hover);
 }
 
-.sf-recommend-refresh,
-.sf-recommend-archive-btn {
+/* Archive lives in the same row as Novel/Chapter/Details/Dossier but sits apart from them,
+ * and shows only its icon rather than a text label. */
+.sf-recommend-tab--archive {
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+}
+
+.sf-recommend-tab--archive svg {
+	width: 1em;
+	height: 1em;
+}
+
+/* Shared by the chapter title row's view-chapter (eye) and refresh icon buttons. */
+.sf-recommend-refresh {
 	display: flex;
 	align-items: center;
 	color: var(--text-muted);
@@ -2248,9 +2329,7 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	flex-shrink: 0;
 }
 
-.sf-recommend-refresh:hover,
-.sf-recommend-archive-btn:hover,
-.sf-recommend-archive-btn.is-active {
+.sf-recommend-refresh:hover {
 	color: var(--sf-recommend-header-color, var(--text-normal));
 }
 
@@ -2265,10 +2344,6 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	margin-bottom: 0;
 	min-width: 0;
 	flex: 1;
-}
-
-.sf-recommend-chapter-title-row .sf-recommend-refresh {
-	margin-left: auto;
 }
 
 .sf-recommend-meta {
@@ -2398,14 +2473,33 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	box-sizing: border-box;
 }
 
-.sf-recommend-chapter-title {
-	margin-bottom: 8px;
+/* An actual <input> — editing it renames the chapter. Styled as a filled text box: background
+ * matches the sidebar, border follows the text colour; resets Obsidian's own input chrome so
+ * only those two win. */
+/* input[type="text"] specificity (element + attribute) so Obsidian's own default text-input
+ * chrome (background/border from the active theme) can't outrank this box's look. */
+input.sf-recommend-chapter-title[type="text"] {
+	appearance: none;
+	width: 100%;
+	margin: 0 0 8px;
 	color: var(--sf-recommend-chapter-color, var(--text-accent));
 	font-size: var(--sf-recommend-chapter-size, 1em);
 	font-variant: var(--sf-recommend-chapter-variant, normal);
 	font-family: var(--sf-recommend-chapter-family, inherit);
 	font-variation-settings: var(--sf-recommend-chapter-variation, normal);
 	font-weight: var(--sf-recommend-chapter-weight, 600);
+	background-color: var(--sf-right-rail-bg, var(--background-secondary));
+	border: 1px solid currentColor;
+	border-radius: 4px;
+	padding: 4px 8px;
+	box-sizing: border-box;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+input.sf-recommend-chapter-title[type="text"]:focus {
+	box-shadow: none;
 }
 
 .sf-recommend-section {
@@ -2423,12 +2517,21 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	font-variation-settings: var(--sf-recommend-section-variation, normal);
 }
 
+/* Add-to-chapter sits outside the box, on its lower-right corner. */
+.sf-recommend-synopsis-row {
+	display: flex;
+	align-items: flex-end;
+	gap: 6px;
+	margin-bottom: 6px;
+}
+
 .sf-recommend-synopsis {
-	width: 100%;
+	flex: 1;
+	min-width: 0;
 	min-height: 80px;
 	resize: vertical;
 	box-sizing: border-box;
-	margin-bottom: 6px;
+	margin-bottom: 0;
 	font-size: var(--sf-recommend-synopsis-size, 1em);
 	color: var(--sf-recommend-synopsis-color, var(--text-normal));
 	font-family: var(--sf-recommend-synopsis-family, inherit);
@@ -2436,12 +2539,9 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	font-weight: var(--sf-recommend-synopsis-weight, 400);
 }
 
-.sf-recommend-synopsis-actions {
-	display: flex;
-	align-items: center;
-	justify-content: flex-end;
-	gap: 2px;
-	margin-bottom: 2px;
+.sf-recommend-synopsis-row .sf-recommend-icon-btn {
+	flex-shrink: 0;
+	margin-bottom: 4px;
 }
 
 .sf-recommend-hit-actions button {
@@ -2574,7 +2674,6 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 .sf-recommend-hit-span:focus-visible,
 .sf-recommend-tab:focus-visible,
 .sf-recommend-refresh:focus-visible,
-.sf-recommend-archive-btn:focus-visible,
 .sf-recommend-row-label:focus-visible,
 .sf-recommend-icon-btn:focus-visible,
 .sf-recommend-entity-header:focus-visible {
@@ -2715,6 +2814,296 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	background-color: var(--sf-right-rail-bg, var(--background-secondary));
 }
 
+/* ---------------------------------------------------------------------------
+ * Editable Codex types / chapter tags / novel tags, and the icon catalog
+ * they draw from (TopPanel badges, RecommendationView chips, TagRegistryModal,
+ * IconPickerModal, TagPickerModal).
+ * ------------------------------------------------------------------------- */
+
+.sf-row-tag-badges {
+	display: flex;
+	align-items: center;
+	gap: 3px;
+	flex-shrink: 0;
+	color: var(--text-muted);
+}
+
+.sf-tag-badge {
+	display: flex;
+	align-items: center;
+	line-height: 1;
+}
+
+.sf-tag-badge svg {
+	width: 0.9em;
+	height: 0.9em;
+}
+
+/* TagRegistryModal (Settings → Tags & Codex types) */
+
+.sf-tag-registry-list {
+	margin-bottom: 6px;
+}
+
+.sf-tag-registry-add-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 6px;
+}
+
+/* Same width as .sf-drag-handle — TagRegistryModal's add-row has no handle of its own (nothing to
+ * drag), but without a same-width placeholder its icon button starts 16px+gap further left than
+ * the handled rows' icon buttons above it. */
+.sf-tag-registry-handle-spacer {
+	display: inline-block;
+	width: 16px;
+	flex-shrink: 0;
+}
+
+/* Explicit flex:1 (relying on the input's own width:100% to "win" the remaining space is not
+ * guaranteed) — this is what pushes the trailing .sf-icon-action flush to the row's right edge,
+ * matching .sf-tag-picker-label's flex:1 in the rows above exactly, so the "+"/add-type icon here
+ * and the "[-]" delete icon revealed on those rows share the same right edge — and, being equal
+ * fixed-width boxes, the same centre-line — regardless of which row it's in. */
+.sf-tag-registry-add-row .sf-modal-input {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+/* Hover-coloured, not boxed — a plain colour change in place, same philosophy as .sf-icon-action.
+ * No fixed width/height (unlike .sf-icon-action) — sized to its icon's own natural width instead,
+ * matching plain .sf-icon exactly, so this button's icon lines up flush-left with the icons in
+ * TagPickerModal's tag rows above it (both are the first flex child of an .sf-row with the same
+ * padding/gap) rather than sitting centred in a wider box and reading as shifted right. */
+.sf-tag-registry-icon-btn {
+	display: flex;
+	align-items: center;
+	flex-shrink: 0;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.sf-tag-registry-icon-btn:hover,
+.sf-tag-registry-icon-btn:focus-visible {
+	color: var(--text-accent);
+	outline: none;
+}
+
+.sf-tag-registry-delete-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 1.8em;
+	height: 1.8em;
+	border-radius: 4px;
+	color: var(--text-faint);
+	cursor: pointer;
+}
+
+.sf-tag-registry-delete-btn:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-error);
+}
+
+/* IconPickerModal — icon-only grid over a fixed, programmer-curated catalog per TagListKind.
+ * Sized on `.modal.sf-icon-picker-modal` (the actual floating dialog, modalEl) — sizing only the
+ * contentEl class leaves the real dialog at Obsidian's much wider default and the grid floats
+ * inside it surrounded by dead space. */
+
+.modal.sf-icon-picker-modal {
+	width: 300px;
+}
+
+.sf-icon-picker-modal {
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.sf-icon-picker-grid {
+	display: grid;
+	grid-template-columns: repeat(8, 1fr);
+	gap: 4px;
+}
+
+.sf-icon-picker-cell {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	aspect-ratio: 1;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+/* Hover/keyboard-focus highlight only — a plain colour change, no rounded box/border so it never
+ * reads as a button tile, just an icon lighting up. */
+.sf-icon-picker-cell:hover,
+.sf-icon-picker-cell:focus-visible {
+	color: var(--text-accent);
+	outline: none;
+}
+
+.sf-icon-picker-cell svg {
+	width: 1.5em;
+	height: 1.5em;
+}
+
+/* TagPickerModal (multi-select "add tag" flow). Fixed dialog size — width AND height — on
+ * `.modal.sf-tag-picker-modal` (the actual floating window, modalEl), padding:0 there so the
+ * inner contentEl-class rule below supplies one even border on all sides instead of stacking
+ * Obsidian's own default modal padding on top of ours. The tag list + add row scroll internally
+ * (`.sf-tag-picker-scroll`); the Done button stays pinned below the scroll area. This way the
+ * window itself never grows/shrinks as tags are added, removed, or the list gets long. */
+
+.modal.sf-tag-picker-modal {
+	width: 320px;
+	height: 420px;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.sf-tag-picker-modal {
+	width: 100%;
+	height: 100%;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	padding: 16px;
+	min-height: 0;
+}
+
+.sf-tag-picker-scroll {
+	flex: 1;
+	overflow-y: auto;
+	min-height: 0;
+}
+
+/* .sf-palette-list carries its own max-height/overflow generically (for pickers that use it
+ * standalone) — left in place, that's a second, independently-scrolling box nested inside this
+ * one. Its own scrollbar (when content overflows) insets its rows' width without insetting the
+ * add-row sitting outside it, throwing off the "+"/"[-]" alignment between them. Neutralise it
+ * here so .sf-tag-picker-scroll is the only thing that actually scrolls. */
+.sf-tag-picker-scroll .sf-palette-list {
+	max-height: none;
+	overflow: visible;
+}
+
+.sf-tag-picker-row {
+	justify-content: flex-start;
+}
+
+.sf-tag-picker-label {
+	flex: 1;
+}
+
+/* Fixed-width box (matching .sf-icon-action's) — the tag row has a checkmark slot between the
+ * label and the delete icon that the add-row's [icon-btn][input][+] has no equivalent for; without
+ * matching that slot's width in the add-row (via .sf-tag-picker-check-spacer below), the two rows'
+ * trailing icons land in different columns and don't actually share a centre-line, no matter how
+ * precisely the flex-fill behaves in between. */
+.sf-tag-picker-check {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 2.6em;
+	opacity: 0;
+	/* Matches the row's own text/icon colour (inherited) rather than a separate accent colour. */
+	color: inherit;
+}
+
+.sf-tag-picker-row.is-selected .sf-tag-picker-check {
+	opacity: 1;
+}
+
+/* Invisible placeholder in the add-row, same width as .sf-tag-picker-check, so the add-row's
+ * trailing "+" lands in the same column as the tag rows' trailing "[-]" — see comment above. */
+.sf-tag-picker-check-spacer {
+	display: inline-block;
+	flex-shrink: 0;
+	width: 2.6em;
+}
+
+/* Delete only reveals on row hover/focus — deliberately not always visible, so the row reads as
+ * "pick a tag" first and "manage the list" second. */
+.sf-tag-picker-row-delete {
+	opacity: 0;
+}
+
+.sf-tag-picker-row:hover .sf-tag-picker-row-delete,
+.sf-tag-picker-row-delete:focus-visible {
+	opacity: 1;
+}
+
+/* Centred on the modal window as a whole, not tied to any row above it. */
+.sf-tag-picker-footer {
+	display: flex;
+	justify-content: center;
+	flex-shrink: 0;
+	margin-top: 10px;
+}
+
+/* Hover-coloured icon-only action (TagPickerModal's "+ new tag" add button and "Done" footer
+ * button) — same philosophy as IconPickerModal's cells: a plain colour change in place, no
+ * rounded box/background, so it never reads as a button tile. */
+.sf-icon-action {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 2.6em;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.sf-icon-action:hover,
+.sf-icon-action:focus-visible {
+	color: var(--text-accent);
+	outline: none;
+}
+
+.sf-icon-action svg {
+	width: 1.2em;
+	height: 1.2em;
+}
+
+/* Done button — twice the icon size of the ordinary .sf-icon-action default. */
+.sf-tag-picker-done-btn svg {
+	width: 2.4em;
+	height: 2.4em;
+}
+
+/* CodexSetTypeModal ("Set as...") — same fixed-size/scrollable/hover-delete treatment as
+ * TagPickerModal (reuses .sf-tag-picker-scroll and .sf-tag-picker-row-delete), but keeps its own
+ * header and has no Done button — Codex types are single-select, so clicking a row (or adding a
+ * new one) assigns and closes immediately. Its own class, not `.sf-codex-type-picker-modal`, so
+ * this sizing doesn't affect CodexLoreTypeModal/CodexEntryPickerModal, which still share that
+ * class. */
+.modal.sf-codex-set-type-modal {
+	width: 280px;
+	height: 360px;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.sf-codex-set-type-modal {
+	width: 100%;
+	height: 100%;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	padding: 16px;
+	min-height: 0;
+}
+
+.sf-codex-set-type-modal h2 {
+	margin: 0 0 12px;
+	flex-shrink: 0;
+}
+
 
 .sf-navigator {
 	display: flex;
@@ -2724,15 +3113,17 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	gap: 10px;
 }
 
-/* Chapter tiles are Hybrid's own .sf-row / .sf-row-text / .sf-row-selected (drag handle included),
- * unmodified apart from centred text (no title-numbering column here) — every bit of Hybrid's
- * chapter-row styling (font, colour, highlight, hover, drag-to-reorder) applies identically by
- * construction, not by copying it. */
+/* Chapter tiles are Hybrid's own .sf-row / .sf-row-text / .sf-row-selected, unmodified apart from
+ * centred text (no title-numbering column here) and no drag handle (see CodexFocusNavigator.ts) —
+ * every bit of Hybrid's chapter-row styling (font, colour, highlight, hover) applies identically
+ * by construction, not by copying it. */
+/* No inter-row gap — .sf-top-list's own rows (the novel pages' chapter list) stack flush with
+ * none of their own, and matching that snug spacing is what makes this compact rather than
+ * reading as three separately spaced tiles. */
 .sf-navigator-window {
 	display: flex;
 	flex-direction: column;
 	align-items: stretch;
-	gap: 6px;
 }
 
 .sf-navigator-window .sf-row-text {
@@ -2795,7 +3186,7 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 .sf-navigator-transport-btn {
 	display: flex;
 	align-items: center;
-	color: var(--text-muted);
+	color: var(--text-normal);
 	cursor: pointer;
 }
 
@@ -2807,8 +3198,13 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	height: 25px;
 }
 
+/* Only enabled buttons get this — .sf-navigator-transport-btn-disabled comes after this in the
+ * stylesheet and shares its specificity, so it always wins over :hover regardless of order here,
+ * but the intent (only clickable buttons highlight) holds either way. Same colour used to
+ * highlight the current chapter tile, so hovering a usable control reads as "this connects to the
+ * chapter selector" rather than a generic hover tint. */
 .sf-navigator-transport-btn:hover {
-	color: var(--text-normal);
+	color: var(--sf-highlight-bg);
 }
 
 .sf-navigator-transport-btn-disabled {
@@ -2865,27 +3261,99 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 
 /* Click-to-edit's grafted inline editor (graftedEditor.ts) — a real WorkspaceLeaf/MarkdownView
  * spliced into an ordinary content-flow <div>, not Obsidian's own absolutely-positioned workspace
- * chrome. Obsidian's own CSS for everything under it (.workspace-leaf, .cm-scroller, …) is a chain
- * of height:100% rules that only resolves because the real workspace fills the window — grafted
- * here, that chain has nothing to resolve against unless *something* in it has a real height. This
- * is that one anchor: giving .sf-grafted-editor itself a defined height lets Obsidian's own stock
- * CSS cascade correctly from there, with no further overrides needed.
+ * chrome.
  *
- * Deliberately a bounded height with the editor's normal internal scrollbar, not an auto-growing
- * box (tried first, reverted): CodeMirror decides what's worth rendering by checking what's really
- * on screen, not by a container's declared height, so inflating the height to coax it into
- * rendering an entire long chapter at once doesn't work — it just pushes the real content outside
- * the visible area while leaving empty virtualised space where the reader is actually looking.
- * Editing a long chapter inline scrolls within this box instead. */
-.sf-grafted-editor {
-	height: 70vh;
+ * Content-sized, not a bounded box with its own scrollbar (tried first, reverted for feeling like
+ * a foreign nested pane — position jump on entry, mismatched typography, and the outer continuous
+ * scroll refusing to move until the box's own scroll was exhausted). CodeMirror 6 decides what to
+ * render by intersecting with the nearest ancestor that is *actually overflowing* and whose
+ * computed `overflow` isn't `visible` (its own `visiblePixelRange`) — it already walks up past this
+ * graft to `.sf-continuous-scroll` and attaches a native scroll listener there, so no bridging code
+ * is needed to make it treat the outer scroll as its viewport. The only thing stopping it were two
+ * clippers this stylesheet itself was creating: `.sf-grafted-editor`'s own declared height, and
+ * Obsidian's stock `.cm-scroller { overflow-x: auto }` rule (the CSS Overflow spec blockifies a
+ * paired `overflow-y: visible` into `auto`, so `overflow: visible` alone never actually removed it).
+ * Every rule below removes one such clipper so the graft renders content-sized and lets the outer
+ * scroll do the work, the same way Obsidian's own single-file editor uses the window as its
+ * viewport. */
+.sf-grafted-editor .workspace-leaf {
+	/* `all: unset` here (tried, reverted) also wiped Obsidian's own `flex: 1 0 0px` — the rule that
+	 * gives every leaf its *width*, by ignoring its own content size (`flex-basis: 0px`) and filling
+	 * whatever `flex-grow: 1` hands it from the row-direction split. With that gone, nothing below
+	 * had a real width to resolve CM6's own percentage flex-bases against, and the whole chapter
+	 * collapsed to an ~11px sliver instead of the zero-height box from before — same failure, the
+	 * other axis. Leaving `flex` alone and overriding `min-height` fixed width without breaking it.
+	 *
+	 * That min-height alone still wasn't enough, though — confirmed live via getComputedStyle:
+	 * Obsidian sets `contain: strict` on every `.workspace-leaf` (size + layout + style + paint
+	 * containment, almost certainly a performance guard for the many-tabs case). Size containment
+	 * makes the browser compute intrinsic sizes — `auto`, `min-content`, `max-content` — as if the
+	 * element had *no content at all*, no matter what's actually inside, so `min-height: min-content`
+	 * was measuring against a phantom empty box the whole time. This is also, in hindsight, exactly
+	 * why the very first bounded-height fix (`height: 70vh`) ever worked at all: `vh` resolves to a
+	 * concrete pixel value, never touching intrinsic sizing, so it was the one value in this whole
+	 * saga that `contain: strict` couldn't quietly defeat. Dropping just the `size` component here
+	 * (keeping layout/style/paint, whatever they're for) lets height be computed from content again
+	 * — scoped to this one synthetic leaf, so none of Obsidian's real tabs lose the optimisation. */
+	contain: layout style paint;
+	min-height: min-content;
+}
+.sf-grafted-editor .workspace-leaf-content,
+.sf-grafted-editor .view-content,
+.sf-grafted-editor .markdown-source-view,
+.sf-grafted-editor .cm-editor,
+.sf-grafted-editor .cm-scroller {
+	height: auto;
+}
+.sf-grafted-editor .workspace-leaf-content,
+.sf-grafted-editor .view-content,
+.sf-grafted-editor .markdown-source-view {
+	/* Obsidian's stock CSS clips these (delegating scrolling entirely to `.cm-scroller`) for the
+	 * normal window-filling case. Grafted with no definite height above, that non-`visible` overflow
+	 * trips a second, unrelated collapse: a flex item's *automatic* minimum size — the floor it gets
+	 * when no author `min-height` is set — resolves to 0 instead of its content size whenever the
+	 * item's own overflow isn't `visible` (CSS Flexbox §4.5's "automatic minimum size"). `overflow:
+	 * visible` (the shorthand, both axes, same blockification reason as `.cm-scroller` below) removes
+	 * the trigger; `min-height: min-content` is belt-and-braces against the same rule for whichever
+	 * of these three turns out to actually be the flex item. */
+	overflow: visible;
+	min-height: min-content;
+}
+.sf-grafted-editor .cm-editor {
+	/* Obsidian's stock CSS sets `min-height: 100%` here for the normal, window-filling case. */
+	min-height: auto;
+}
+.sf-grafted-editor .cm-scroller {
+	/* The shorthand, not `overflow-y: clip` alone — see the block comment above: a lone `clip` axis
+	 * paired with a still-scrolling one gets blockified right back into a scroll container. */
+	overflow: clip;
+	/* `clip` is itself a non-`visible` value, so without this the same automatic-minimum-size-is-0
+	 * flex rule described above now hits the scroller *because of the very change that stops it
+	 * clipping* — this is the fix for the chapter going blank again once `overflow: clip` landed. */
+	min-height: min-content;
+}
+.sf-grafted-editor .view-content {
+	/* Otherwise reads as a distinct panel now that the box no longer has its own bounded height to
+	 * visually justify one (research brief §8). */
+	background: none;
 }
 
-/* Both redundant inside the continuous scroll: the chapter's own header (ContinuousReadThrough.ts)
- * already shows its title, and a single-tab grafted leaf has nothing worth a tab strip for. */
+/* Redundant chrome inside the continuous scroll: the chapter's own header (ContinuousReadThrough.ts)
+ * already shows its title, and a single-tab grafted leaf has nothing worth a tab strip, inline
+ * title, or metadata block for. */
 .sf-grafted-editor .view-header,
-.sf-grafted-editor .workspace-tab-header-container {
+.sf-grafted-editor .workspace-tab-header-container,
+.sf-grafted-editor .inline-title,
+.sf-grafted-editor .metadata-container {
 	display: none;
+}
+/* Obsidian's own click-to-append affordance below the last line — no purpose mid-scroll, and
+ * otherwise reads as a large gap before the next chapter. Deliberately not touching `.cm-content`'s
+ * own padding-bottom: CM6 writes that one as an inline style to reserve space for virtualised lines
+ * still below the viewport, and any author rule fighting it there (worse, an `!important` one)
+ * breaks the scroll math the moment a chapter is too long to render in full. */
+.sf-grafted-editor .cm-sizer {
+	padding-bottom: 0;
 }
 
 /* Continuous mode's own view (ContinuousReadView.ts) — the manuscript belongs in the main editor
@@ -2912,4 +3380,194 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	width: 100%;
 	max-width: 46em;
 	margin: 0 auto;
+}
+
+/* ── Series overview (SeriesOverviewView.ts) ──
+ * The Series tab's main-pane page. Independent of Story Context's own .sf-recommend-* styling —
+ * none of these classes read Story Context's formatting settings, by design (see the view's own
+ * doc comment). */
+
+.sf-series-overview-view {
+	max-width: 60em;
+	margin: 0 auto;
+	padding: 24px 32px 48px;
+}
+
+.sf-series-overview-settings {
+	padding-bottom: 20px;
+	margin-bottom: 20px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.sf-series-overview-top {
+	display: flex;
+	align-items: flex-start;
+	gap: 20px;
+}
+
+.sf-series-overview-cover {
+	width: 180px;
+	height: 270px;
+}
+
+.sf-series-overview-details {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.sf-series-overview-title {
+	font-size: 1.6em;
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.sf-series-overview-subtitle {
+	font-size: 1.05em;
+	color: var(--text-muted);
+	margin-bottom: 8px;
+}
+
+.sf-series-overview-synopsis {
+	width: 100%;
+	min-height: 130px;
+	box-sizing: border-box;
+	margin: 8px 0;
+	font: inherit;
+}
+
+.sf-series-overview-meta-row {
+	display: flex;
+	align-items: center;
+	margin-top: 4px;
+}
+
+.sf-series-overview-meta-inline {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: 20px;
+	margin: 6px 0 10px;
+}
+
+.sf-series-overview-meta-item {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.sf-series-overview-meta-label {
+	font-size: 0.9em;
+	color: var(--text-muted);
+}
+
+.sf-series-overview-meta-control {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	color: var(--text-normal);
+	cursor: pointer;
+	border-radius: 4px;
+	padding: 1px 4px;
+}
+
+.sf-series-overview-meta-control:hover {
+	background: var(--background-modifier-hover);
+}
+
+.sf-series-overview-meta-icon {
+	display: flex;
+	align-items: center;
+}
+.sf-series-overview-meta-icon svg {
+	width: 1em;
+	height: 1em;
+}
+
+.sf-series-overview-section-title {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 20px 0 8px;
+	padding-bottom: 6px;
+	font-size: 1.15em;
+	font-weight: 600;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+.sf-series-overview-section-title svg {
+	width: 1em;
+	height: 1em;
+}
+
+.sf-series-overview-plot-block {
+	padding: 14px 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+.sf-series-overview-plot-block:last-child {
+	border-bottom: none;
+}
+
+/* Theme heading styles (e.g. Minimal) apply their own margins globally — reset so this block's
+ * own spacing is the only spacing. */
+.sf-series-overview-chapter-name {
+	margin: 0;
+	font-size: 1.1em;
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.sf-series-overview-summary {
+	width: 100%;
+	min-height: 90px;
+	box-sizing: border-box;
+	margin-top: 8px;
+	font: inherit;
+}
+
+/* ── New chapter (NewChapterView.ts) ──
+ * Blank landing page for the main pane — one big centred [+], same glyph as the storyTelling
+ * panel's own "continue the story" tile (CodexFocusNavigator.ts), just full-page. */
+.sf-new-chapter-view {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 100%;
+}
+
+.sf-new-chapter-center {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10px;
+	color: var(--text-muted);
+	cursor: pointer;
+	border-radius: var(--radius-l, 8px);
+	padding: 24px 32px;
+}
+
+.sf-new-chapter-center:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+}
+
+.sf-new-chapter-center:focus-visible {
+	outline: 2px solid var(--text-accent);
+	outline-offset: 4px;
+}
+
+.sf-new-chapter-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 3em;
+}
+.sf-new-chapter-icon svg {
+	width: 1em;
+	height: 1em;
+}
+
+.sf-new-chapter-label {
+	font-size: 1.1em;
+	font-weight: 500;
 }

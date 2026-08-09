@@ -1,10 +1,9 @@
-import { App, Notice, TFile, setIcon } from "obsidian";
-import { chapterDisplayTitle, getBookChapters, writeBookChapterOrder } from "../book";
+import { App, TFile, setIcon } from "obsidian";
+import { chapterDisplayTitle, getBookChapters } from "../book";
 import { computeSpineWindow, type NavigatorSlot } from "../spineWindow";
 import { canEnterContinuousMode } from "../continuousMode";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
 import { makeAccessibleActivatable } from "./a11y";
-import { makeReorderable, type DragZone } from "./dragReorder";
 import { renderIndicatorSlot, renderTransportRow } from "./navigatorControls";
 import { onContinuousMode } from "./continuousEvents";
 import { ICON_ADD_CIRCLE } from "../icons";
@@ -49,9 +48,9 @@ export interface CodexFocusNavigatorOptions {
  * Chapter tiles reuse Hybrid's own row classes (sf-top-list/sf-row/sf-row-text/sf-row-selected)
  * outright, so every bit of Hybrid's chapter-row styling — font, colour, highlight, hover — is
  * identical here by construction rather than approximated. The only override is centred text
- * instead of left-aligned, since there's no numbering column in this view. The drag handle carries
- * over too: the visible window's real chapter rows are drag-reorderable exactly like Hybrid's
- * list, just constrained to whichever chapters are currently in view.
+ * instead of left-aligned, since there's no numbering column in this view. Unlike Hybrid's list,
+ * these tiles are not drag-reorderable — the visible window is too small and shifts underneath
+ * the cursor as the current chapter changes, so dragging never had a stable target here.
  *
  * A fifth control on the transport row (continuous-mode hand-off brief §2) opens the continuous
  * read view in the main editor pane. While that view is open, this sidebar swaps its own window
@@ -82,14 +81,12 @@ export function renderCodexFocusNavigator(app: App, container: HTMLElement, opti
 	if (options.continuousActiveFilename && canGoContinuous) {
 		renderContinuousIndicator(app, wrap, ordered, bookFolderName, titleFor, options);
 	} else {
-		renderWindowBody(app, wrap, container, ordered, bookFolderName, titleFor, canGoContinuous, options);
+		renderWindowBody(wrap, ordered, bookFolderName, titleFor, canGoContinuous, options);
 	}
 }
 
 function renderWindowBody(
-	app: App,
 	wrap: HTMLElement,
-	container: HTMLElement,
 	ordered: TFile[],
 	bookFolderName: string,
 	titleFor: (file: TFile) => string,
@@ -106,31 +103,11 @@ function renderWindowBody(
 			titleFor,
 			bookFolderName,
 			options.highlightActiveChapter,
+			options.activeChapterFilename,
 			options.onOpenChapter,
 			() => options.onCreateContinuing(bookFolderName),
 		);
 	}
-
-	// Real chapter rows only — the create/empty placeholders carry no .sf-row class, so they're
-	// naturally excluded from the drag zone. The window's leading real row is always ordered[startIndex]
-	// (see spineWindow.ts: non-chapter slots only ever trail, never lead), which is all that's needed
-	// to splice a reordered window back into the full chapter-order array.
-	const startIndex = win.slots[0].file ? ordered.indexOf(win.slots[0].file) : 0;
-	const zones: DragZone[] = [{ key: "window", container: windowEl }];
-	makeReorderable(zones, ".sf-row", ".sf-drag-handle", (zoneRowKeys) => {
-		void (async () => {
-			try {
-				const nextOrder = ordered.map((file) => file.name);
-				const windowKeys = (zoneRowKeys.window ?? []).filter(Boolean);
-				nextOrder.splice(startIndex, windowKeys.length, ...windowKeys);
-				await writeBookChapterOrder(app, bookFolderName, nextOrder);
-				renderCodexFocusNavigator(app, container, options);
-			} catch (err) {
-				new Notice(`storyForge: could not save the new order — ${(err as Error).message}`);
-				renderCodexFocusNavigator(app, container, options);
-			}
-		})();
-	});
 
 	const currentSlot = win.slots.find((slot) => slot.isCurrent) ?? null;
 	const currentIndex = currentSlot?.file ? ordered.indexOf(currentSlot.file) : 0;
@@ -228,6 +205,7 @@ function renderSlot(
 	titleFor: (file: TFile) => string,
 	bookFolderName: string,
 	highlightActiveChapter: boolean,
+	activeChapterFilename: string | null,
 	onOpenChapter: (bookFolderName: string, filename: string) => void,
 	onCreate: () => void,
 ): void {
@@ -243,15 +221,17 @@ function renderSlot(
 	const file = slot.file as TFile;
 	const tile = container.createDiv({ cls: "sf-row" });
 	tile.dataset.key = file.name;
-	if (slot.isCurrent && highlightActiveChapter) tile.addClass("sf-row-selected");
-	const handle = tile.createSpan({ cls: "sf-drag-handle" });
-	setIcon(handle, "grip-vertical");
+	// Deliberately not slot.isCurrent — that's true even when computeSpineWindow fell back to
+	// centring on the first chapter because nothing is really active (no chapter open at all, or
+	// a Codex/idea note is). Highlighting that fallback made the window look like it was still
+	// pointing at a chapter after you'd clicked off to something else. Comparing the real active
+	// filename directly only lights up a slot when a chapter genuinely is the active file.
+	if (highlightActiveChapter && activeChapterFilename !== null && file.name === activeChapterFilename) {
+		tile.addClass("sf-row-selected");
+	}
 	const { title } = splitTitleSubtitle(titleFor(file));
 	tile.createDiv({ cls: "sf-row-text", text: title });
-	tile.addEventListener("click", (e) => {
-		if (tile.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
-		onOpenChapter(bookFolderName, file.name);
-	});
+	tile.addEventListener("click", () => onOpenChapter(bookFolderName, file.name));
 	makeAccessibleActivatable(tile, () => onOpenChapter(bookFolderName, file.name));
 }
 

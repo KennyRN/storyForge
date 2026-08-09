@@ -5,9 +5,7 @@
 import { setIcon } from "obsidian";
 import { ICON_FORGE } from "../icons";
 
-const ICON_SERIES = "sf-library";
 const ICON_FILTER = "sf-filter";
-const ICON_BOOK = "sf-book";
 const ICON_TIMELINE = "sf-timeline";
 const ICON_UNPLACED = "sf-archive-drawer";
 const ICON_PLUS_SQUARE = "sf-plus-square";
@@ -38,16 +36,14 @@ export function mountUiStylePreviewSample(container: HTMLElement): void {
 	const header = top.createDiv({ cls: "sf-top-header" });
 
 	const seriesLine = header.createDiv({ cls: "sf-header-line sf-series-line" });
-	setIcon(seriesLine.createSpan({ cls: "sf-icon" }), ICON_SERIES);
 	seriesLine.createSpan({ cls: "sf-header-text", text: "Lorem Series" });
 	const seriesFilter = seriesLine.createSpan({
-		cls: "sf-series-filter-btn",
+		cls: "sf-series-settings-btn",
 		attr: { "aria-label": "Series settings" },
 	});
 	setIcon(seriesFilter, ICON_FILTER);
 
 	const bookLine = header.createDiv({ cls: "sf-book-line" });
-	setIcon(bookLine.createSpan({ cls: "sf-icon" }), ICON_BOOK);
 	const titleRow = bookLine.createDiv({ cls: "sf-header-line sf-book-title-row" });
 	const textWrap = titleRow.createDiv({ cls: "sf-book-text-wrap" });
 	textWrap.createSpan({ cls: "sf-header-text", text: "Ipsum Liber" });
@@ -94,29 +90,32 @@ export function mountUiStylePreviewSample(container: HTMLElement): void {
 
 	const tree = bottom.createDiv({ cls: "sf-codex-tree" });
 	const folder = tree.createDiv({ cls: "sf-codex-folder" });
+	folder.style.setProperty("--sf-codex-depth", "0");
 	const folderHeader = folder.createDiv({ cls: "sf-codex-folder-header" });
-	const folderHandle = folderHeader.createSpan({ cls: "sf-drag-handle" });
-	setIcon(folderHandle, "grip-vertical");
-	folderHeader.createSpan({ cls: "sf-codex-chevron" });
-	folderHeader.createSpan({ cls: "sf-codex-folder-name sf-styled-heading", text: "Magna Aliqua" });
+	const folderContent = folderHeader.createDiv({ cls: "sf-codex-row-content" });
+	folderContent.createSpan({ cls: "sf-codex-chevron" });
+	folderContent.createSpan({ cls: "sf-codex-folder-name sf-styled-heading", text: "Magna Aliqua" });
 
 	const children = folder.createDiv({ cls: "sf-codex-folder-children" });
 	children.createDiv({ cls: "sf-codex-folder-indicator" });
 
 	const noteA = children.createDiv({ cls: "sf-codex-file" });
-	setIcon(noteA.createSpan({ cls: "sf-drag-handle" }), "grip-vertical");
-	noteA.createSpan({ text: "Ut Enim Ad Minim" });
-	setIcon(noteA.createSpan({ cls: "sf-icon sf-codex-type-icon" }), ICON_PERSON);
+	noteA.style.setProperty("--sf-codex-depth", "1");
+	const noteAContent = noteA.createDiv({ cls: "sf-codex-row-content sf-codex-row-content--file" });
+	noteAContent.createSpan({ cls: "sf-codex-file-name", text: "Ut Enim Ad Minim" });
+	setIcon(noteAContent.createSpan({ cls: "sf-icon sf-codex-type-icon" }), ICON_PERSON);
 
 	const noteB = children.createDiv({ cls: "sf-codex-file sf-row-selected" });
-	setIcon(noteB.createSpan({ cls: "sf-drag-handle" }), "grip-vertical");
-	noteB.createSpan({ text: "Veniam Quis" });
-	setIcon(noteB.createSpan({ cls: "sf-icon sf-codex-type-icon" }), ICON_MAP_PIN);
+	noteB.style.setProperty("--sf-codex-depth", "1");
+	const noteBContent = noteB.createDiv({ cls: "sf-codex-row-content sf-codex-row-content--file" });
+	noteBContent.createSpan({ cls: "sf-codex-file-name", text: "Veniam Quis" });
+	setIcon(noteBContent.createSpan({ cls: "sf-icon sf-codex-type-icon" }), ICON_MAP_PIN);
 
 	const noteC = children.createDiv({ cls: "sf-codex-file" });
-	setIcon(noteC.createSpan({ cls: "sf-drag-handle" }), "grip-vertical");
-	noteC.createSpan({ text: "Nostrud Exercitation" });
-	setIcon(noteC.createSpan({ cls: "sf-icon sf-codex-type-icon" }), "circle-help");
+	noteC.style.setProperty("--sf-codex-depth", "1");
+	const noteCContent = noteC.createDiv({ cls: "sf-codex-row-content sf-codex-row-content--file" });
+	noteCContent.createSpan({ cls: "sf-codex-file-name", text: "Nostrud Exercitation" });
+	setIcon(noteCContent.createSpan({ cls: "sf-icon sf-codex-type-icon" }), "circle-help");
 }
 
 /** Mounts Forge / Story Context / Archive chrome samples for the right-sidebar tab. */
@@ -140,15 +139,11 @@ export function mountRightSidebarPreviewSample(container: HTMLElement): void {
 	forge.createDiv({ cls: "sf-forge-view__panel" });
 
 	const recommend = rail.createDiv({ cls: "sf-recommend-view" });
-	const recHeader = recommend.createDiv({ cls: "sf-recommend-header" });
-	const recHeaderMain = recHeader.createDiv({ cls: "sf-recommend-header-main" });
-	setIcon(recHeaderMain.createSpan({ cls: "sf-icon" }), ICON_TIMELINE);
-	recHeaderMain.createSpan({ cls: "sf-recommend-title", text: "Story Context" });
-	const recActions = recHeader.createDiv({ cls: "sf-recommend-header-actions" });
-	setIcon(recActions.createSpan({ cls: "sf-recommend-archive-btn is-active", attr: { "aria-label": "Archive" } }), ICON_ARCHIVE);
 	const recTabs = recommend.createDiv({ cls: "sf-recommend-tabs" });
-	recTabs.createSpan({ cls: "sf-recommend-tab", text: "Chapter" });
+	recTabs.createSpan({ cls: "sf-recommend-tab is-active", text: "Chapter" });
+	recTabs.createSpan({ cls: "sf-recommend-tab", text: "Details" });
 	recTabs.createSpan({ cls: "sf-recommend-tab", text: "Dossier" });
+	recTabs.createSpan({ cls: "sf-recommend-tab sf-recommend-tab--archive", text: "Archive" });
 	const archive = recommend.createDiv({ cls: "sf-archive-view sf-archive-embedded" });
 	const archHeader = archive.createDiv({ cls: "sf-archive-embedded-header" });
 	setIcon(archHeader.createSpan({ cls: "sf-icon" }), ICON_ARCHIVE);

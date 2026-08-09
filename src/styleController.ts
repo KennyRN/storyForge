@@ -318,8 +318,6 @@ export class StyleController {
 		const vars: Record<string, string | null> = {
 			"--sf-forge-companion-color": s.forgeCompanionIconColor,
 			"--sf-recommend-header-color": recommendHeaderColor,
-			"--sf-recommend-header-size": `${s.recommendHeaderFontSize}em`,
-			"--sf-recommend-header-variant": s.recommendHeaderSmallCaps ? "small-caps" : "normal",
 			"--sf-recommend-tabs-size": `${s.recommendTabsFontSize}em`,
 			"--sf-recommend-tabs-color": s.recommendTabsColor,
 			"--sf-recommend-tabs-active-color": recommendTabsActiveColor,
@@ -362,7 +360,6 @@ export class StyleController {
 			"--sf-archive-highlight-bg": archiveHighlightBg,
 			"--sf-archive-highlight-text": s.archiveHighlightTextColor,
 		};
-		this.assignUiFontVars(vars, "--sf-recommend-header", s.recommendHeaderOverrideFont, s.recommendHeaderFontFamily, s.recommendHeaderFontWeight);
 		this.assignUiFontVars(vars, "--sf-recommend-tabs", s.recommendTabsOverrideFont, s.recommendTabsFontFamily, s.recommendTabsFontWeight);
 		this.assignUiFontVars(vars, "--sf-recommend-chapter", s.recommendChapterTitleOverrideFont, s.recommendChapterTitleFontFamily, s.recommendChapterTitleFontWeight);
 		this.assignUiFontVars(vars, "--sf-recommend-dossier", s.recommendDossierHeaderOverrideFont, s.recommendDossierHeaderFontFamily, s.recommendDossierHeaderFontWeight);

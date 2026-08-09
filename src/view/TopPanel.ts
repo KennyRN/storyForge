@@ -5,13 +5,17 @@ import {
 	chapterDisplayTitle,
 	createBook,
 	getBookChapters,
+	getChapterEntry,
 	readBookFrontmatter,
 	renameBookTitle,
 	renameChapterTitle,
 	reorderSeriesBooks,
 	writeBookChapterOrder,
+	writeChapterTags,
+	writeNovelTags,
 } from "../book";
 import { createContinuingChapter, createIdeaChapter } from "../chapterCreation";
+import { readTagRegistry, resolveIconAlias } from "../tagRegistry";
 import { bookBackstagePath } from "../paths";
 import { makeReorderable, type DragZone } from "./dragReorder";
 import { makeAccessibleActivatable } from "./a11y";
@@ -19,9 +23,9 @@ import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
 import { ChapterIdeaCaptureModal } from "./ChapterIdeaCaptureModal";
 import { renderCodexFocusNavigator } from "./CodexFocusNavigator";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
-import { ICON_BOOK, ICON_BOOK_PLUS, ICON_FILTER, ICON_LAYOUT_SELECTOR, ICON_PLUS_SQUARE, ICON_SERIES, ICON_UNPLACED } from "../icons";
+import { ICON_BOOK_OPEN, ICON_BOOK_PLUS, ICON_FILTER, ICON_PLUS_SQUARE, ICON_UNPLACED } from "../icons";
 import { recordChapterArchive, readChapterWordCount } from "../history";
-import { SF_LAYOUTS, SF_LAYOUT_LABELS, type SfLayout } from "../layout";
+import type { SfLayout } from "../layout";
 
 export type UnplacedViewMode = "unplaced" | "unplacedHidden";
 
@@ -34,13 +38,12 @@ export interface TopPanelOptions {
 	/** Layout-level gate for the whole unplaced section (hand-off brief §2) — distinct from `unplacedMode`,
 	 * which is the user's own collapse/expand toggle within a layout that shows the section at all. */
 	showUnplacedSection: boolean;
-	/** The active layout, so the selector menu can tick it and the series-mode settings icon can gate itself. */
+	/** The active layout, so the series-mode settings icon can gate itself. */
 	layout: SfLayout;
 	currentBookFolderName: string | null;
 	activeChapterFilename: string | null;
 	highlightActiveChapter: boolean;
 	unplacedMode: UnplacedViewMode;
-	onSelectLayout: (layout: SfLayout) => void;
 	onToggleUnplacedMode: () => void;
 	onSelectBook: (bookFolderName: string) => void;
 	onOpenChapter: (bookFolderName: string, filename: string) => void;
@@ -58,20 +61,6 @@ export interface TopPanelOptions {
 	registerContinuousCleanup: (dispose: () => void) => void;
 }
 
-/** Builds the four-layout selector menu, ticking whichever is currently active. */
-function buildLayoutMenu(current: SfLayout, onSelect: (layout: SfLayout) => void): Menu {
-	const menu = new Menu();
-	for (const layout of SF_LAYOUTS) {
-		menu.addItem((item) =>
-			item
-				.setTitle(SF_LAYOUT_LABELS[layout])
-				.setChecked(layout === current)
-				.onClick(() => onSelect(layout)),
-		);
-	}
-	return menu;
-}
-
 export function renderTopPanel(app: App, container: HTMLElement, options: TopPanelOptions): void {
 	container.empty();
 
@@ -81,12 +70,9 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 
 	if (!options.hideSeriesPane) {
 		const seriesLine = header.createDiv({ cls: "sf-header-line sf-series-line" });
-		setIcon(seriesLine.createSpan({ cls: "sf-icon" }), ICON_SERIES);
 		seriesLine.createSpan({ cls: "sf-header-text", text: series.seriesTitle });
 
-		// Series settings live here and nowhere else — relevant only while browsing the series list
-		// itself — and render before the layout button so that button stays the rightmost icon on
-		// this line in every layout, not just the ones without a settings icon competing for the spot.
+		// Series settings live here and nowhere else — relevant only while browsing the series list itself.
 		if (options.layout === "seriesBrowse") {
 			const settingsBtn = seriesLine.createSpan({ cls: "sf-series-settings-btn", attr: { "aria-label": "Series settings" } });
 			setIcon(settingsBtn, ICON_FILTER);
@@ -96,17 +82,6 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 			});
 			makeAccessibleActivatable(settingsBtn, () => options.onOpenSeriesModal());
 		}
-
-		const layoutBtn = seriesLine.createSpan({ cls: "sf-series-filter-btn", attr: { "aria-label": "Choose layout" } });
-		setIcon(layoutBtn, ICON_LAYOUT_SELECTOR);
-		layoutBtn.addEventListener("click", (e) => {
-			e.stopPropagation();
-			buildLayoutMenu(options.layout, options.onSelectLayout).showAtMouseEvent(e);
-		});
-		makeAccessibleActivatable(layoutBtn, () => {
-			const rect = layoutBtn.getBoundingClientRect();
-			buildLayoutMenu(options.layout, options.onSelectLayout).showAtPosition({ x: rect.left, y: rect.bottom });
-		});
 	}
 
 	if (options.mode !== "series") {
@@ -123,8 +98,6 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 				cls: "sf-book-cover-thumb",
 				attr: { src: app.vault.getResourcePath(coverFile) },
 			});
-		} else {
-			setIcon(bookLine.createSpan({ cls: "sf-icon" }), ICON_BOOK);
 		}
 		const titleRow = bookLine.createDiv({ cls: "sf-header-line sf-book-title-row" });
 		const rawBookTitle = options.currentBookFolderName
@@ -170,15 +143,57 @@ function createRow(list: HTMLElement, key: string): HTMLElement {
 	return row;
 }
 
-/** Renders a title, splitting off a "// subtitle" onto its own muted line if present. Returns the wrapper to pass to `attachInlineRename`. */
-function renderRowTitle(row: HTMLElement, displayTitle: string): HTMLElement {
+/**
+ * Renders a title, splitting off a "// subtitle" onto its own muted line if present. Returns the
+ * wrapper to pass to `attachInlineRename`. `showOpenIcon` marks the currently-open novel in the
+ * Series tab's book list (renderSeriesList) — the icon sits inline before the title text and,
+ * having no colour of its own, simply inherits whatever colour the row's text is already using
+ * (normal or highlighted).
+ */
+function renderRowTitle(row: HTMLElement, displayTitle: string, showOpenIcon = false): HTMLElement {
 	const { title, subtitle } = splitTitleSubtitle(displayTitle);
 	const wrap = row.createDiv({ cls: "sf-row-title-wrap" });
-	wrap.createSpan({ cls: "sf-row-text", text: title });
+	const titleLine = wrap.createDiv({ cls: "sf-row-title-line" });
+	if (showOpenIcon) {
+		setIcon(titleLine.createSpan({ cls: "sf-row-open-icon", attr: { "aria-label": "Open" } }), ICON_BOOK_OPEN);
+	}
+	titleLine.createSpan({ cls: "sf-row-text", text: title });
 	if (subtitle) {
 		wrap.createDiv({ cls: "sf-row-subtitle", text: subtitle });
 	}
 	return wrap;
+}
+
+/** One small icon per tag id on the chapter, resolved against the shared chapter-tags registry. Unknown/orphaned ids are skipped rather than shown broken. */
+function renderChapterTagBadges(row: HTMLElement, app: App, bookFolderName: string, filename: string): void {
+	const entry = getChapterEntry(app, bookFolderName, filename);
+	if (!entry || entry.tags.length === 0) return;
+	const { chapterTags } = readTagRegistry(app);
+	const badgeRow = row.createDiv({ cls: "sf-row-tag-badges" });
+	for (const tagId of entry.tags) {
+		const def = chapterTags.find((t) => t.id === tagId);
+		if (!def) continue;
+		const badge = badgeRow.createSpan({ cls: "sf-tag-badge", attr: { "aria-label": def.label, title: def.label } });
+		setIcon(badge, resolveIconAlias("chapterTags", def.iconAlias));
+	}
+}
+
+/** Right-click "Tags..." menu item: opens the multi-select TagPickerModal for `list`, writing the full replacement id array via `write` and re-rendering the panel on success. */
+function tagsMenuItem(
+	app: App,
+	list: "chapterTags" | "novelTags",
+	currentIds: string[],
+	write: (nextIds: string[]) => Promise<void>,
+	rerender: () => void,
+): ExtraMenuItem {
+	return {
+		title: "Tags...",
+		onClick: () => {
+			void import("./TagPickerModal").then(({ TagPickerModal }) => {
+				new TagPickerModal(app, list, currentIds, (nextIds) => write(nextIds).then(rerender)).open();
+			});
+		},
+	};
 }
 
 function renderUnplacedHeader(
@@ -279,7 +294,9 @@ function renderSeriesList(
 	const mainList = bodyEl.createDiv({ cls: "sf-top-list" });
 	ordered.forEach((folder, i) => {
 		const row = createRow(mainList, folder.name);
-		const label = renderRowTitle(row, numbered[i]);
+		const isOpen = options.highlightActiveChapter && options.currentBookFolderName === folder.name;
+		if (isOpen) row.addClass("sf-row-selected");
+		const label = renderRowTitle(row, numbered[i], isOpen);
 		row.addEventListener("click", (e) => {
 			if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
 			options.onSelectBook(folder.name);
@@ -289,6 +306,15 @@ function renderSeriesList(
 			label,
 			getCurrentTitle: () => bookDisplayTitle(app, folder.name),
 			onCommit: (newTitle) => renameBookTitle(app, folder.name, newTitle),
+			extraMenuItems: [
+				tagsMenuItem(
+					app,
+					"novelTags",
+					readBookFrontmatter(app, folder.name)?.novelTags ?? [],
+					(nextIds) => writeNovelTags(app, folder.name, nextIds),
+					() => renderTopPanel(app, container, options),
+				),
+			],
 		});
 	});
 	if (ordered.length === 0) {
@@ -312,7 +338,9 @@ function renderSeriesList(
 			const unplacedList = unplacedZone.createDiv({ cls: "sf-top-list sf-unplaced-list" });
 			unplaced.forEach((folder, i) => {
 				const row = createRow(unplacedList, folder.name);
-				const label = renderRowTitle(row, numbered[ordered.length + i]);
+				const isOpen = options.highlightActiveChapter && options.currentBookFolderName === folder.name;
+				if (isOpen) row.addClass("sf-row-selected");
+				const label = renderRowTitle(row, numbered[ordered.length + i], isOpen);
 				row.addEventListener("click", (e) => {
 					if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
 					options.onSelectBook(folder.name);
@@ -322,6 +350,15 @@ function renderSeriesList(
 					label,
 					getCurrentTitle: () => bookDisplayTitle(app, folder.name),
 					onCommit: (newTitle) => renameBookTitle(app, folder.name, newTitle),
+					extraMenuItems: [
+						tagsMenuItem(
+							app,
+							"novelTags",
+							readBookFrontmatter(app, folder.name)?.novelTags ?? [],
+							(nextIds) => writeNovelTags(app, folder.name, nextIds),
+							() => renderTopPanel(app, container, options),
+						),
+					],
 				});
 			});
 			zones.push({ key: "unplaced", container: unplacedList });
@@ -350,6 +387,7 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 	ordered.forEach((file, i) => {
 		const row = createRow(mainList, file.name);
 		const label = renderRowTitle(row, numbered[i]);
+		renderChapterTagBadges(row, app, bookFolderName, file.name);
 		if (options.highlightActiveChapter && options.activeChapterFilename === file.name) {
 			row.addClass("sf-row-selected");
 		}
@@ -372,7 +410,16 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 			label,
 			getCurrentTitle: () => chapterDisplayTitle(app, bookFolderName, file.name),
 			onCommit: (newTitle) => renameChapterTitle(app, bookFolderName, file.name, newTitle),
-			extraMenuItems: [archiveItem],
+			extraMenuItems: [
+				tagsMenuItem(
+					app,
+					"chapterTags",
+					getChapterEntry(app, bookFolderName, file.name)?.tags ?? [],
+					(nextIds) => writeChapterTags(app, bookFolderName, file.name, nextIds),
+					() => renderTopPanel(app, container, options),
+				),
+				archiveItem,
+			],
 		});
 	});
 	if (ordered.length === 0) {
@@ -397,6 +444,7 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 			unplaced.forEach((file, i) => {
 				const row = createRow(unplacedList, file.name);
 				const label = renderRowTitle(row, numbered[ordered.length + i]);
+				renderChapterTagBadges(row, app, bookFolderName, file.name);
 				if (options.highlightActiveChapter && options.activeChapterFilename === file.name) {
 					row.addClass("sf-row-selected");
 				}
@@ -419,7 +467,16 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 					label,
 					getCurrentTitle: () => chapterDisplayTitle(app, bookFolderName, file.name),
 					onCommit: (newTitle) => renameChapterTitle(app, bookFolderName, file.name, newTitle),
-					extraMenuItems: [archiveItem],
+					extraMenuItems: [
+						tagsMenuItem(
+							app,
+							"chapterTags",
+							getChapterEntry(app, bookFolderName, file.name)?.tags ?? [],
+							(nextIds) => writeChapterTags(app, bookFolderName, file.name, nextIds),
+							() => renderTopPanel(app, container, options),
+						),
+						archiveItem,
+					],
 				});
 			});
 			zones.push({ key: "unplaced", container: unplacedList });
