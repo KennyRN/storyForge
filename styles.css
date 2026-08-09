@@ -1905,6 +1905,14 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 }
 .sf-top-header { border-bottom: var(--sf-lib-header-divider, none); }
 
+/* Set on the shared row ancestor (not just the name span) so a Lore Entry folder's type icon —
+ * .sf-codex-type-icon, a sibling of .sf-codex-folder-name rather than its descendant — inherits
+ * the same colour via currentColor instead of falling through to some unrelated ancestor's colour.
+ * Mirrors .sf-codex-file's own rule below, which the plain-file type icon already relies on the
+ * same way. */
+.sf-codex-folder-header {
+	color: var(--sf-codex-folder-color);
+}
 .sf-codex-folder-name, .sf-codex-folder-name.sf-styled-heading {
 	color: var(--sf-codex-folder-color);
 	font-size: var(--sf-codex-folder-size, 1em);
@@ -2314,6 +2322,31 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 	box-sizing: border-box;
 }
 
+.sf-forge-view__panel--empty {
+	position: relative;
+}
+
+/* Cards (left) then bookshelf (right, in the corner) — purely decorative, not wired to any
+ * action yet (see ForgeView.ts's renderEmptyStateDecoration). */
+.sf-forge-view__empty-decoration {
+	position: absolute;
+	right: 12px;
+	bottom: 12px;
+	display: flex;
+	align-items: flex-end;
+	gap: 10px;
+}
+
+.sf-forge-view__empty-icon {
+	display: flex;
+	color: var(--text-muted);
+}
+
+.sf-forge-view__empty-icon svg {
+	width: 48px;
+	height: 48px;
+}
+
 /* Drop the editor ↔ right-sidebar divider while Spacer is the visible right tab. */
 body.sf-spacer-active .workspace-split.mod-right-split:not(#storyforge-specificity-boost) {
 	border-left-color: transparent;
@@ -2554,8 +2587,17 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	border-bottom: none;
 }
 
-.sf-recommend-plot-chapter-name {
+.sf-recommend-plot-header-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
 	margin-bottom: 6px;
+}
+
+.sf-recommend-plot-chapter-name {
+	flex: 1;
+	min-width: 0;
 	color: var(--sf-recommend-plot-chapter-color, var(--text-normal));
 	font-size: var(--sf-recommend-plot-chapter-size, 1em);
 	font-weight: var(--sf-recommend-plot-chapter-weight, 600);

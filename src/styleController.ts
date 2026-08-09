@@ -163,9 +163,11 @@ export class StyleController {
 		const codexHighlightColor = s.codexUseHeaderColorForAll
 			? this.resolveCodexHeaderColorForAll()
 			: s.codexHighlightColor;
-		const codexHighlightTextColor = s.codexUseHeaderColorForAll
-			? this.resolveCodexHeaderColorForAll()
-			: s.codexHighlightTextColor;
+		// Text colour never follows "use header colour for all" — only the background does (same as
+		// unplacedHighlightColor above, and archive/recommend's own highlight pairs). Swapping the
+		// text too would make it equal the background it sits on top of, making the highlighted
+		// entry's own text unreadable.
+		const codexHighlightTextColor = s.codexHighlightTextColor;
 		// Flat colour only — the indent-guide truncate gradient lives in styles.css so folder
 		// indent vars resolve on the selected file, not on body.
 		this.applyStyleVarsToAllDocs({

@@ -984,7 +984,6 @@ export class UiFormattingModal extends Modal {
 
 		const codexHighlightGroup = new SettingGroup(body);
 		let codexHighlightColourSetting!: Setting;
-		let codexHighlightTextColourSetting!: Setting;
 		codexHighlightGroup
 			.addSetting((setting) => {
 				codexHighlightColourSetting = setting;
@@ -999,8 +998,9 @@ export class UiFormattingModal extends Modal {
 						}),
 					);
 			})
+			// Text colour has no useHeaderColorForAll interaction to gate on, so unlike the row above
+			// it never needs its Setting captured for applyUseHeaderColorVisibility below.
 			.addSetting((setting) => {
-				codexHighlightTextColourSetting = setting;
 				setting
 					.setName("Highlight text colour")
 					.addButton((button) =>
@@ -1016,7 +1016,9 @@ export class UiFormattingModal extends Modal {
 			defaultColourToggleSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 			folderColourToggleSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
 			codexHighlightColourSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
-			codexHighlightTextColourSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+			// Highlight *text* colour stays visible regardless — it never follows "use header colour
+			// for all" (see applyHighlightStyle's codexHighlightTextColor comment), so hiding it here
+			// would leave no way to adjust the one colour that still needs picking.
 		};
 		useHeaderColorToggle.onChange((value) => this.applyCodexUseHeaderColorToggle(value, applyUseHeaderColorVisibility));
 		applyUseHeaderColorVisibility(settings.codexUseHeaderColorForAll);

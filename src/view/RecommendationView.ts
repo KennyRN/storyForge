@@ -510,10 +510,14 @@ export class RecommendationView extends ItemView {
 		}
 		for (const file of ordered) {
 			const block = scroll.createDiv({ cls: "sf-recommend-plot-block" });
-			block.createDiv({
+			const headerRow = block.createDiv({ cls: "sf-recommend-plot-header-row" });
+			headerRow.createDiv({
 				cls: "sf-recommend-plot-chapter-name",
 				text: numberedChapterTitle(this.app, bookFolderName, file.name),
 			});
+			// Same icon/tooltip/behaviour as the Chapter tab's "go to chapter" control — this is the
+			// Novel tab's own per-chapter way to jump straight to a specific chapter from the plot list.
+			this.iconAction(headerRow, ICON_LOCATION_TARGET_SQUARE, "go to chapter", () => void this.openChapter(bookFolderName, file.name));
 
 			const entry = getChapterEntry(this.app, bookFolderName, file.name);
 			const narrator = resolveChapterNarrator(
