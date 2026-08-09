@@ -43,7 +43,7 @@ function mountCodexTreeSample(bottom: HTMLElement): void {
 
 	const tree = bottom.createDiv({ cls: "sf-codex-tree" });
 	const folder = tree.createDiv({ cls: "sf-codex-folder" });
-	folder.style.setProperty("--sf-codex-depth", "0");
+	folder.setCssProps({ "--sf-codex-depth": "0" });
 	const folderHeader = folder.createDiv({ cls: "sf-codex-folder-header" });
 	const folderContent = folderHeader.createDiv({ cls: "sf-codex-row-content" });
 	folderContent.createSpan({ cls: "sf-codex-chevron" });
@@ -53,19 +53,19 @@ function mountCodexTreeSample(bottom: HTMLElement): void {
 	children.createDiv({ cls: "sf-codex-folder-indicator" });
 
 	const noteA = children.createDiv({ cls: "sf-codex-file" });
-	noteA.style.setProperty("--sf-codex-depth", "1");
+	noteA.setCssProps({ "--sf-codex-depth": "1" });
 	const noteAContent = noteA.createDiv({ cls: "sf-codex-row-content sf-codex-row-content--file" });
 	noteAContent.createSpan({ cls: "sf-codex-file-name", text: "Ut Enim Ad Minim" });
 	setIcon(noteAContent.createSpan({ cls: "sf-icon sf-codex-type-icon" }), ICON_PERSON);
 
 	const noteB = children.createDiv({ cls: "sf-codex-file sf-row-selected" });
-	noteB.style.setProperty("--sf-codex-depth", "1");
+	noteB.setCssProps({ "--sf-codex-depth": "1" });
 	const noteBContent = noteB.createDiv({ cls: "sf-codex-row-content sf-codex-row-content--file" });
 	noteBContent.createSpan({ cls: "sf-codex-file-name", text: "Veniam Quis" });
 	setIcon(noteBContent.createSpan({ cls: "sf-icon sf-codex-type-icon" }), ICON_MAP_PIN);
 
 	const noteC = children.createDiv({ cls: "sf-codex-file" });
-	noteC.style.setProperty("--sf-codex-depth", "1");
+	noteC.setCssProps({ "--sf-codex-depth": "1" });
 	const noteCContent = noteC.createDiv({ cls: "sf-codex-row-content sf-codex-row-content--file" });
 	noteCContent.createSpan({ cls: "sf-codex-file-name", text: "Nostrud Exercitation" });
 	setIcon(noteCContent.createSpan({ cls: "sf-icon sf-codex-type-icon" }), "circle-help");

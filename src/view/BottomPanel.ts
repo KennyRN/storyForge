@@ -153,7 +153,7 @@ function renderTreeChildren(
 			// Read by both this folder's own row (for its content's indent) and its children
 			// wrapper (for the guide line's X) — set once here, on their common ancestor, rather
 			// than on the header alone, since CSS custom properties only inherit to descendants.
-			folderEl.style.setProperty("--sf-codex-depth", String(depth));
+			folderEl.setCssProps({ "--sf-codex-depth": String(depth) });
 			const headerEl = folderEl.createDiv({ cls: "sf-codex-folder-header" });
 			headerEl.dataset.key = item.id;
 			headerEl.dataset.type = "folder";
@@ -240,7 +240,7 @@ function renderTreeChildren(
 			}
 		} else {
 			const fileEl = container.createDiv({ cls: "sf-codex-file" });
-			fileEl.style.setProperty("--sf-codex-depth", String(depth));
+			fileEl.setCssProps({ "--sf-codex-depth": String(depth) });
 			fileEl.dataset.key = item.path;
 			fileEl.dataset.type = "file";
 			// See the folder branch's own rowInfo.push comment — routed through

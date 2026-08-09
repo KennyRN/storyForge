@@ -269,7 +269,7 @@ export class StyleController {
 					bg = painted;
 				}
 			}
-			doc.body.style.setProperty("--sf-right-rail-bg", bg);
+			doc.body.setCssProps({ "--sf-right-rail-bg": bg });
 		}
 	}
 
@@ -495,11 +495,13 @@ export class StyleController {
 		this.applyStyleVarsToAllDocs(vars);
 	}
 
-	/** Sets (or, for a `null` value, clears) each named CSS custom property on `doc.body`. */
+	/** Sets (or, for a `null` value, clears) each named CSS custom property on `doc.body`. Obsidian's
+	 * `setCssProps` has no removal counterpart, so clearing still goes through the raw `style`
+	 * object — everything else routes through it instead of a direct assignment. */
 	private setStyleVars(doc: Document, vars: Record<string, string | null>): void {
 		for (const [name, value] of Object.entries(vars)) {
 			if (value === null) doc.body.style.removeProperty(name);
-			else doc.body.style.setProperty(name, value);
+			else doc.body.setCssProps({ [name]: value });
 		}
 	}
 

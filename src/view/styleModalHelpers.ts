@@ -63,7 +63,7 @@ export function bindColorSwatchButton(
 	buttonEl.setAttr("aria-label", "Choose colour");
 	const paint = (hex: string | null) => {
 		buttonEl.toggleClass("sf-color-swatch-btn--theme-default", hex === null);
-		buttonEl.style.backgroundColor = hex ?? "";
+		buttonEl.setCssStyles({ backgroundColor: hex ?? "" });
 	};
 	paint(themeDefault?.isActive ? null : initialHex);
 	buttonEl.addEventListener("click", () => openColorSwatchPicker(app, plugin, paint, onPick, themeDefault));

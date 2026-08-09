@@ -387,7 +387,7 @@ export class StoryForgeView extends ItemView {
 	private async openSeriesOverview(): Promise<void> {
 		const leaf = this.plugin.getMainContentLeaf();
 		await leaf.setViewState({ type: STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE, active: true });
-		this.app.workspace.revealLeaf(leaf);
+		await this.app.workspace.revealLeaf(leaf);
 	}
 
 	/** The navigator's continuous-mode launcher (continuous-mode hand-off brief §2, corrected): the
@@ -403,7 +403,7 @@ export class StoryForgeView extends ItemView {
 		if (!entryFilename) return;
 		const leaf = this.plugin.getMainContentLeaf();
 		await leaf.setViewState({ type: STORYFORGE_CONTINUOUS_VIEW_TYPE, active: true, state: { bookFolderName, entryFilename } });
-		this.app.workspace.revealLeaf(leaf);
+		await this.app.workspace.revealLeaf(leaf);
 		// Don't wait on active-leaf-change/file-open to notice — a custom view has no TFile of its
 		// own for followActiveFile() to key off, so re-render explicitly rather than rely on timing.
 		if (!this.closed) this.render();
