@@ -2,6 +2,15 @@ import { describe, expect, it } from "vitest";
 import { layoutConfig, SF_LAYOUTS } from "../layout";
 
 describe("layoutConfig", () => {
+	it("Codex: no top pane, codex only, no stats, no unplaced", () => {
+		expect(layoutConfig("codex")).toEqual({
+			topPane: "none",
+			showCodex: true,
+			showStats: false,
+			showUnplaced: false,
+		});
+	});
+
 	it("Series: series top, no codex, no stats, unplaced visible", () => {
 		expect(layoutConfig("seriesBrowse")).toEqual({
 			topPane: "series",

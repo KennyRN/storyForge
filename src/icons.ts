@@ -12,6 +12,7 @@ export const ICON_EXCHANGE = "sf-exchange-b";
 export const ICON_CALENDAR = "sf-calendar-2";
 export const ICON_TOOLS = "sf-list-rounded";
 export const ICON_FOLDER_PLUS = "sf-folder-plus";
+export const ICON_FOLDER = "sf-folder-fill";
 export const ICON_PLUS_SQUARE = "sf-plus-square";
 export const ICON_MINUS_SQUARE = "sf-minus-square";
 export const ICON_CHECK_SQUARE = "sf-check-square";
@@ -112,6 +113,20 @@ export const ICON_SKULL = "sf-skull";
 export const ICON_MUSIC_NOTE = "sf-music-note";
 export const ICON_SPEECH_BUBBLE = "sf-speech-bubble";
 export const ICON_SCROLL = "sf-scroll";
+export const ICON_SPARKLES = "sf-sparkles";
+export const ICON_STARS_TRIO = "sf-stars-trio";
+export const ICON_PERSON_3_FILL = "sf-person-3-fill";
+export const ICON_PAW_ROUNDED = "sf-paw-rounded";
+export const ICON_CITY = "sf-city";
+export const ICON_FIREWORKS = "sf-fireworks";
+export const ICON_GALAXY_OUTLINE = "sf-galaxy-outline";
+export const ICON_GALAXY_FILL = "sf-galaxy-fill";
+export const ICON_FOREST = "sf-forest";
+export const ICON_CASTLE = "sf-castle";
+export const ICON_PLANET = "sf-planet";
+export const ICON_TEMPLE = "sf-temple";
+export const ICON_LIGHTNING = "sf-lightning-fill";
+export const ICON_BUILDING_C = "sf-building-c";
 export const ICON_LOCATION_TARGET_SQUARE = "sf-location-target-square";
 export const ICON_REFRESH_SQUARE = "sf-refresh-square";
 export const ICON_ADD_SQUARE = "sf-add-square";
@@ -218,7 +233,13 @@ const MAP_PIN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
 
 const MAP_PIN_PLUS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0-6 0"/><path d="M12.794 21.322a2 2 0 0 1-2.207-.422l-4.244-4.243a8 8 0 1 1 13.59-4.616M16 19h6m-3-3v6"/></g></svg>`;
 
+/** Mage Icons — folder, outline, with a plus (the outline/stroke sibling of FOLDER_FILL_SVG below —
+ * same folder-body shape and proportions, just the stroke-inset outline variant). */
 const FOLDER_PLUS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path stroke-miterlimit="10" d="M11.993 10.307v6.874m-3.43-3.437h6.874" /><path stroke-linejoin="round" d="M21.25 9.883v7.698a3.083 3.083 0 0 1-3.083 3.083H5.833a3.083 3.083 0 0 1-3.083-3.083V6.419a3.083 3.083 0 0 1 3.083-3.083h3.084a3.08 3.08 0 0 1 2.57 1.377l.873 1.326a1.75 1.75 0 0 0 1.449.77h4.358a3.084 3.084 0 0 1 3.083 3.074" /></g></svg>`;
+
+/** Mage Icons — folder, filled. A plain (non-Lore-Entry) Codex folder's own icon (BottomPanel.ts),
+ * distinguishing it at a glance from an element folder, which shows its entry type icon instead. */
+const FOLDER_FILL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M22 9.885v7.7a3.85 3.85 0 0 1-2.373 3.542a3.8 3.8 0 0 1-1.467.288H5.83A3.82 3.82 0 0 1 2 17.585V6.425a3.82 3.82 0 0 1 3.83-3.84h3.08a3.87 3.87 0 0 1 3.2 1.71l.87 1.33a1 1 0 0 0 .36.32a.94.94 0 0 0 .47.12h4.35a3.8 3.8 0 0 1 2.71 1.11A3.85 3.85 0 0 1 22 9.885" /></svg>`;
 
 const PLUS_SQUARE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.861V17.14M17.14 12H6.86" /><rect width="18.5" height="18.5" x="2.75" y="2.75" rx="6" /></g></svg>`;
 
@@ -487,6 +508,61 @@ const REFRESH_SQUARE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0
 /** Fluent UI System Icons (Microsoft) — add (plus) in a square (Story Context's "add chapter summary to chapter details" action). */
 const ADD_SQUARE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M12 7a.75.75 0 0 1 .75.75v3.5h3.5a.75.75 0 0 1 0 1.5h-3.5v3.5a.75.75 0 0 1-1.5 0v-3.5h-3.5a.75.75 0 0 1 0-1.5h3.5v-3.5A.75.75 0 0 1 12 7m-9-.75A3.25 3.25 0 0 1 6.25 3h11.5A3.25 3.25 0 0 1 21 6.25v11.5A3.25 3.25 0 0 1 17.75 21H6.25A3.25 3.25 0 0 1 3 17.75zM6.25 4.5A1.75 1.75 0 0 0 4.5 6.25v11.5c0 .966.784 1.75 1.75 1.75h11.5a1.75 1.75 0 0 0 1.75-1.75V6.25a1.75 1.75 0 0 0-1.75-1.75z" /></svg>`;
 
+// --- Codex type icon catalog additions (CODEX_ICON_CATALOG) ---
+
+/** @icons (at-icons) — stars (a two-star, three-dot sparkle field). */
+const SPARKLES_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M0 0h16v16H0z" fill="none" /><path fill="currentColor" d="M6.5 8.75L9 10l-2.5 1.25L5 15l-1.5-3.75L1 10l2.5-1.25L5 5zM10 12a1 1 0 1 1 0 2a1 1 0 0 1 0-2m3-3a1 1 0 1 1 0 2a1 1 0 0 1 0-2m.269-5.692L15 4l-1.731.691L12.5 7l-.77-2.309L10 4l1.73-.692L12.5 1zM3 2a1 1 0 1 1 0 2a1 1 0 0 1 0-2" /></svg>`;
+
+/** Bootstrap Icons — stars (three nested sparkle bursts). Distinct sparkle-cluster style from
+ * ICON_STARS_FILL and SPARKLES_SVG above. */
+const STARS_TRIO_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M0 0h16v16H0z" fill="none" /><path fill="currentColor" d="M7.657 6.247c.11-.33.576-.33.686 0l.645 1.937a2.89 2.89 0 0 0 1.829 1.828l1.936.645c.33.11.33.576 0 .686l-1.937.645a2.89 2.89 0 0 0-1.828 1.829l-.645 1.936a.361.361 0 0 1-.686 0l-.645-1.937a2.89 2.89 0 0 0-1.828-1.828l-1.937-.645a.361.361 0 0 1 0-.686l1.937-.645a2.89 2.89 0 0 0 1.828-1.828zM3.794 1.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387A1.73 1.73 0 0 0 4.593 5.69l-.387 1.162a.217.217 0 0 1-.412 0L3.407 5.69A1.73 1.73 0 0 0 2.31 4.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387A1.73 1.73 0 0 0 3.407 2.31zM10.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.16 1.16 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.16 1.16 0 0 0-.732-.732L9.1 2.137a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732z" /></svg>`;
+
+/** Framework7 Icons — three people filled (the "person-2-fill"/"person-fill" sibling one size up). */
+const PERSON_3_FILL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56"><path d="M0 0h56v56H0z" fill="none" /><path fill="currentColor" d="M28 27.126c3.194 0 5.941-2.852 5.941-6.566c0-3.669-2.762-6.387-5.941-6.387s-5.942 2.778-5.942 6.417c0 3.684 2.748 6.536 5.942 6.536m-17.097.341c2.763 0 5.17-2.495 5.17-5.718c0-3.194-2.422-5.556-5.17-5.556c-2.763 0-5.199 2.421-5.184 5.585c0 3.194 2.406 5.69 5.184 5.69m34.194 0c2.778 0 5.184-2.495 5.184-5.689c0-3.164-2.421-5.585-5.184-5.585c-2.748 0-5.17 2.362-5.17 5.555c0 3.224 2.407 5.72 5.17 5.72M2.614 40.881h11.29c-1.545-2.243.341-6.759 3.535-9.225c-1.65-1.099-3.773-1.916-6.55-1.916C4.188 29.74 0 34.686 0 38.801c0 1.337.743 2.08 2.614 2.08m50.772 0c1.886 0 2.614-.743 2.614-2.08c0-4.115-4.189-9.061-10.888-9.061c-2.778 0-4.902.817-6.55 1.916c3.193 2.466 5.08 6.982 3.535 9.225Zm-34.73 0h18.672c2.332 0 3.164-.669 3.164-1.976c0-3.832-4.798-9.12-12.507-9.12c-7.694 0-12.492 5.288-12.492 9.12c0 1.307.832 1.976 3.164 1.976" /></svg>`;
+
+/** Fluent UI System Icons (Microsoft) — animal paw print, filled. A rounder, simpler style than
+ * PAW_SVG's own paw print further below — kept as a separate catalog choice rather than a
+ * replacement. */
+const PAW_ROUNDED_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M6.25 5.25c0-1.422 1.028-2.75 2.5-2.75s2.5 1.328 2.5 2.75S10.222 8 8.75 8s-2.5-1.328-2.5-2.75M1 8.75C1 7.328 2.028 6 3.5 6S6 7.328 6 8.75S4.972 11.5 3.5 11.5S1 10.172 1 8.75M12 10a7 7 0 0 0-7 7c0 1.36.72 2.388 1.7 3.044c.963.645 2.198.956 3.378.956h3.844c1.18 0 2.415-.311 3.377-.956C18.28 19.388 19 18.361 19 17a7 7 0 0 0-7-7m.75-4.75c0-1.422 1.028-2.75 2.5-2.75s2.5 1.328 2.5 2.75S16.722 8 15.25 8s-2.5-1.328-2.5-2.75M18 8.75C18 7.328 19.028 6 20.5 6S23 7.328 23 8.75s-1.028 2.75-2.5 2.75S18 10.172 18 8.75" /></svg>`;
+
+/** Huge Icons (Hugeicons) — a city, two buildings side by side. Distinct from BUILDING_A_SVG/
+ * BUILDING_B_SVG (a single building each) — this one reads as a skyline, not one structure. */
+const CITY_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="1.5"><path d="M14 8h-4c-2.482 0-3 .518-3 3v11h10V11c0-2.482-.518-3-3-3Z" /><path stroke-linecap="round" d="M11 12h2m-2 3h2m-2 3h2m8 4V8.186c0-1.229 0-1.843-.299-2.336c-.298-.494-.836-.769-1.912-1.318l-4.342-2.217C13.287 1.723 13 1.932 13 3.23v4.474M3 22v-9c0-.827.173-1 1-1h3m15 10H2" /></g></svg>`;
+
+/** Huge Icons (Hugeicons) — fireworks. */
+const FIREWORKS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M19 18c-1.5-5.5-7-7-7-7s-4 3.5-4 10" /><path d="M2 10.025c1.333-1.01 5.2-2.223 10 1.01c1.167-1.685 4.8-4.65 10-3.032" /><path d="M15 5c-1 .667-3 2.8-3 6c-.333-1.667-2-5.4-6-7m0 10c.987-1 3.552-3 5.92-3c.986 1.167 1.887 3 1.48 7M3.15 3.1H3.1m.1 0a.1.1 0 1 1-.2 0a.1.1 0 0 1 .2 0m13.75 0h-.05m.1 0a.1.1 0 1 1-.2 0a.1.1 0 0 1 .2 0m3.55 9.401h-.05m.1 0a.1.1 0 1 1-.2 0a.1.1 0 0 1 .2 0M13.035 20.9h-.05m.1 0a.1.1 0 1 1-.2 0a.1.1 0 0 1 .2 0m-8.935-5H4.1m.1 0a.1.1 0 1 1-.2 0a.1.1 0 0 1 .2 0m13.75-4.8h-.05m.1 0a.1.1 0 1 1-.2 0a.1.1 0 0 1 .2 0m-6.95-7H11m.1 0a.1.1 0 1 1-.2 0a.1.1 0 0 1 .2 0" /></g></svg>`;
+
+/** Huge Icons (Hugeicons) — galaxy, outline (spiral arms + core). The stroke sibling of
+ * GALAXY_FILL_SVG below — different pack, same concept, kept as both per the filled/line pairing. */
+const GALAXY_OUTLINE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path d="M17.734 17.734c4.524-4.524 5.624-10.759 2.458-13.926C17.627 1.244 13.05 1.478 9 4.062m-5.192 16.13c2.478 2.478 6.835 2.343 10.78 0M6.266 6.266C2.98 9.552 1.5 13.74 2.15 17" /><path d="M16.915 7.085c-1.9-1.9-5.641-1.24-8.355 1.475s-3.375 6.455-1.475 8.355s5.641 1.24 8.356-1.474C17.09 13.79 17.98 11.764 18 10" /><path d="M13.638 10.362c.634.633.414 1.88-.491 2.785s-2.152 1.125-2.785.491c-.634-.633-.414-1.88.491-2.785s2.152-1.125 2.785-.491Z" /></g></svg>`;
+
+/** Material Symbols — forest, rounded (three overlapping tree canopies). */
+const FOREST_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M13 21v-2h4v2q0 .425-.288.713T16 22h-2q-.425 0-.712-.288T13 21m-6 0v-3H1.825q-.6 0-.875-.525T1 16.45L3.85 12q-.575 0-.862-.512t.062-1.013l5.125-7.3q.15-.2.375-.312T9 2.75t.45.113t.375.312l5.125 7.3q.35.5.063 1.013T14.15 12l2.875 4.45q.325.5.05 1.025T16.2 18H11v3q0 .425-.288.713T10 22H8q-.425 0-.712-.288T7 21m12.25-3L16 13q.6 0 .888-.537t-.063-1.038l-4.2-6l1.55-2.25q.15-.2.375-.312T15 2.75t.45.113t.375.312l5.125 7.3q.35.5.063 1.013T20.15 12L23 16.45q.325.5.05 1.025t-.875.525z" /></svg>`;
+
+/** Material Symbols (light) — castle, rounded (crenellated silhouette with two towers). */
+const CASTLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M1.5 19.5V10q0-.213.144-.356t.357-.144t.356.144T2.5 10v1.5h3V4q0-.213.144-.356t.357-.144t.356.144T6.5 4v1.5h3V4q0-.213.144-.356t.357-.144t.356.144T10.5 4v1.5h3V4q0-.213.144-.356t.357-.144t.356.144T14.5 4v1.5h3V4q0-.213.144-.356t.357-.144t.356.144T18.5 4v7.5h3V10q0-.213.144-.356t.357-.144t.356.144t.143.356v9.5q0 .402-.299.701t-.701.299h-6.192q-.344 0-.576-.232t-.232-.576V18q0-1.056-.722-1.778T12 15.5t-1.778.722T9.5 18v1.683q0 .357-.232.587t-.576.23H2.5q-.402 0-.701-.299T1.5 19.5m8.212-8h.596q.096 0 .144-.062q.048-.063.048-.15v-1.48q0-.213-.144-.356t-.357-.144t-.356.144t-.143.356v1.48q0 .087.062.15t.15.062m4 0h.596q.096 0 .144-.062q.048-.063.048-.15v-1.48q0-.213-.144-.356t-.357-.144t-.356.144t-.143.356v1.48q0 .087.062.15t.15.062" /></svg>`;
+
+/** Material Symbols (light) — planet, outline (ringed circle with two moons). Distinct from
+ * ICON_CODEX's filled globe (a continents-on-a-sphere glyph) — this one reads as an abstract
+ * planet-with-orbit rather than "the world". */
+const PLANET_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M11.978 10.025q.305-.307.305-.753q0-.445-.308-.75q-.307-.305-.753-.305q-.445 0-.75.308q-.305.307-.305.753q0 .445.308.75q.307.305.753.305q.445 0 .75-.308m8.514 11.225q-.723 0-2.392-.933t-3.579-2.336q-.59.26-1.231.39q-.642.129-1.315.129q-2.715 0-4.595-1.88T5.5 12.025q0-.673.133-1.327q.132-.654.392-1.244q-1.379-1.89-2.286-3.528t-.906-2.342q0-.328.182-.533q.183-.205.468-.205q.401 0 1.47.508Q6.021 3.86 7.408 4.7q.176.104.222.305t-.056.376q-.1.175-.301.232q-.202.056-.379-.048q-.763-.448-1.492-.83q-.729-.383-1.46-.724q.546 1.181 1.193 2.293q.648 1.111 1.396 2.198q.873-1.35 2.29-2.164q1.418-.813 3.154-.813q2.716 0 4.608 1.892t1.892 4.608q0 1.737-.816 3.164q-.817 1.427-2.167 2.3q1.106.767 2.24 1.427q1.134.659 2.334 1.219q-.335-.725-.72-1.454q-.387-.729-.835-1.492q-.103-.177-.047-.39q.057-.211.232-.314q.175-.102.387-.046t.313.23q.831 1.385 1.333 2.451t.502 1.469q0 .302-.204.481t-.535.18m-6.247-6.704q.21-.21.21-.52t-.21-.521q-.209-.21-.52-.21t-.52.21q-.21.209-.21.52t.21.52q.209.21.52.21t.52-.21m1.229-3.306q.193-.19.193-.48t-.19-.483t-.48-.193t-.482.19q-.194.189-.194.48q0 .29.19.482q.19.194.48.194t.483-.19m-1.985 5.948q-1.93-1.466-3.576-3.131t-3.105-3.594q-.154.404-.231.779t-.077.817q.011 1.084.444 2.095q.433 1.01 1.179 1.747t1.725 1.16t2.063.434q.385 0 .789-.077t.788-.23m1.095-.353q1.296-.701 2.094-1.984t.798-2.85q0-2.283-1.609-3.88t-3.891-1.595q-1.567 0-2.837.789q-1.27.788-1.972 2.084q1.559 2.13 3.423 3.994t3.994 3.443m-2.27-5.168" /></svg>`;
+
+/** Material Design Icons / MDI (Pictogrammers) — a temple building (columned roofline, torii-like). */
+const TEMPLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M6 8v13h4v-5c0-1.1.9-2 2-2s2 .9 2 2v5h4V8l-6-5zm7.5 2c0 .8-.7 1.5-1.5 1.5s-1.5-.7-1.5-1.5s.7-1.5 1.5-1.5s1.5.7 1.5 1.5M3 5c-1.1 0-2 .9-2 2v1h4V7c0-1.1-.9-2-2-2M1 9h4v12H1zm20-4c-1.1 0-2 .9-2 2v1h4V7c0-1.1-.9-2-2-2m-2 4h4v12h-4z" /></svg>`;
+
+/** MingCute Icon — lightning bolt, filled. (The source export's decorative corner mark — present
+ * across MingCute's fill set, invisible since it carries no fill of its own — is dropped here as
+ * dead weight; only the visible bolt glyph remains.) */
+const LIGHTNING_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M8.084 2.6c.162-.365.523-.6.923-.6h7.977c.75 0 1.239.79.903 1.462L15.618 8h3.358c.9 0 1.35 1.088.714 1.724L7.737 21.677c-.754.754-2.01-.022-1.672-1.033L8.613 13H5.015a1.01 1.01 0 0 1-.923-1.42z" /></svg>`;
+
+/** Streamline — galaxy, solid (spiral arms + core, filled). The solid sibling of GALAXY_OUTLINE_SVG
+ * above — see that constant's comment. */
+const GALAXY_FILL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path d="M0 0h48v48H0z" fill="none" /><path fill="currentColor" fill-rule="evenodd" d="M31.85 1.466C32.22.97 32.894.675 33.61.99c9.6 4.23 14.948 14.94 12.149 25.387c-2.925 10.917-14.124 17.407-25.042 14.533c-7.525-2.641-10.687-9.47-9.883-15.538c.41-3.099 1.852-5.958 4.245-7.964c2.378-1.993 5.798-3.23 10.338-2.911a1.5 1.5 0 1 0 .21-2.993c-5.222-.366-9.434 1.055-12.476 3.605c-3.027 2.538-4.793 6.109-5.29 9.869c-.759 5.72 1.408 11.975 6.614 15.958a27 27 0 0 0 1.783 3.763c.364.63.255 1.35-.107 1.835c-.37.498-1.044.792-1.758.478c-9.6-4.23-14.949-14.94-12.15-25.387c2.926-10.92 14.13-17.41 25.05-14.53c7.52 2.642 10.679 9.467 9.875 15.534c-.41 3.099-1.852 5.958-4.245 7.964c-2.378 1.993-5.798 3.23-10.337 2.911a1.5 1.5 0 0 0-.21 2.993c5.22.366 9.433-1.055 12.475-3.605c3.027-2.538 4.793-6.109 5.29-9.869c.759-5.72-1.408-11.975-6.614-15.958a27 27 0 0 0-1.782-3.762a1.67 1.67 0 0 1 .106-1.836M24 29a5 5 0 1 0 0-10a5 5 0 0 0 0 10" clip-rule="evenodd" /></svg>`;
+
+/** Tabler (Paweł Kuna) — building, outline (a simple windowed silhouette). A third, plainer
+ * building style alongside BUILDING_A_SVG/BUILDING_B_SVG's more detailed Mage-style pair. */
+const BUILDING_C_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18M9 8h1m-1 4h1m-1 4h1m4-8h1m-1 4h1m-1 4h1M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16" /></svg>`;
+
 /** Registers storyForge's custom Lucide-style icons so `setIcon` can address them by id. */
 export function registerCustomIcons(): void {
 	addIcon(ICON_UNPLACED, INBOX_SVG);
@@ -501,6 +577,7 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_CALENDAR, CALENDAR_2_SVG);
 	addIcon(ICON_TOOLS, LIST_ROUNDED_SVG);
 	addIcon(ICON_FOLDER_PLUS, FOLDER_PLUS_SVG);
+	addIcon(ICON_FOLDER, FOLDER_FILL_SVG);
 	addIcon(ICON_PLUS_SQUARE, PLUS_SQUARE_SVG);
 	addIcon(ICON_MINUS_SQUARE, MINUS_SQUARE_SVG);
 	addIcon(ICON_CHECK_SQUARE, CHECK_SQUARE_SVG);
@@ -597,6 +674,20 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_MUSIC_NOTE, MUSIC_NOTE_SVG);
 	addIcon(ICON_SPEECH_BUBBLE, SPEECH_BUBBLE_SVG);
 	addIcon(ICON_SCROLL, SCROLL_SVG);
+	addIcon(ICON_SPARKLES, SPARKLES_SVG);
+	addIcon(ICON_STARS_TRIO, STARS_TRIO_SVG);
+	addIcon(ICON_PERSON_3_FILL, PERSON_3_FILL_SVG);
+	addIcon(ICON_PAW_ROUNDED, PAW_ROUNDED_SVG);
+	addIcon(ICON_CITY, CITY_SVG);
+	addIcon(ICON_FIREWORKS, FIREWORKS_SVG);
+	addIcon(ICON_GALAXY_OUTLINE, GALAXY_OUTLINE_SVG);
+	addIcon(ICON_GALAXY_FILL, GALAXY_FILL_SVG);
+	addIcon(ICON_FOREST, FOREST_SVG);
+	addIcon(ICON_CASTLE, CASTLE_SVG);
+	addIcon(ICON_PLANET, PLANET_SVG);
+	addIcon(ICON_TEMPLE, TEMPLE_SVG);
+	addIcon(ICON_LIGHTNING, LIGHTNING_SVG);
+	addIcon(ICON_BUILDING_C, BUILDING_C_SVG);
 	addIcon(ICON_LOCATION_TARGET_SQUARE, LOCATION_TARGET_SQUARE_SVG);
 	addIcon(ICON_REFRESH_SQUARE, REFRESH_SQUARE_SVG);
 	addIcon(ICON_ADD_SQUARE, ADD_SQUARE_SVG);

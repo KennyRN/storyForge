@@ -21,34 +21,44 @@
 	padding: 0;
 }
 
-/* Replaces the old "choose layout" dropdown icon — one tab per layout (Series browse / Novel
- * browse / Hybrid), sitting above everything else in the panel. Deliberately its own styling
- * rather than reusing Story Context's .sf-recommend-tab* — that class's colours are wired to
- * Story Context's own formatting settings, unrelated to this panel. */
+/* The Codex tab (layoutConfig's topPane: "none") renders only the tabs row and the codex pane —
+ * no library row, no stats row — so it gets its own two-row split instead of leaving the base
+ * grid's unused 2fr/auto row tracks reserving dead space below the codex tree (empty explicit
+ * `fr` tracks don't collapse the way an empty `auto` track does). Set by StoryForgeView.render(). */
+.storyforge-view.sf-layout-codex-only {
+	grid-template-rows: auto 1fr;
+}
+
+/* Replaces the old "choose layout" dropdown icon — one tab per layout (Codex / Series browse /
+ * Novel browse / Hybrid), sitting above everything else in the panel. Deliberately its own
+ * styling rather than reusing Story Context's .sf-recommend-tab* — that class's colours are
+ * wired to Story Context's own formatting settings, unrelated to this panel. */
 .sf-layout-tabs {
 	display: flex;
 	gap: 4px;
 	padding: 8px 10px;
 }
 
-/* flex: 1 so the three tabs always split the panel's full width evenly, rather than sizing to
- * their own text — "fill up the entire panel" per the hand-off note. Font size is bumped up from
+/* flex: 1 so the tabs always split the panel's full width evenly, rather than sizing to their own
+ * content — "fill up the entire panel" per the hand-off note. Icon-only (no label — see
+ * .sf-layout-tab-icon): padding is kept small so the icon (sized off font-size, bumped well past
  * the small tab-label size elsewhere in the app since these tabs are the panel's primary
- * navigation, not an auxiliary control; the icon (1em-sized) scales with it automatically. */
+ * navigation) reads as large within a tab whose overall footprint still matches the old
+ * icon+label version. */
 .sf-layout-tab {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	gap: 6px;
 	flex: 1;
-	font-size: var(--font-ui-medium);
+	font-size: calc(var(--font-ui-medium) * 1.4);
 	color: var(--text-muted);
 	cursor: pointer;
-	padding: 8px 10px;
+	padding: 5px 6px;
 	border-radius: 4px;
 }
 
-/* Each tab's leading icon — no colour of its own, so it matches the tab's own (currentColor). */
+/* Each tab's leading (and now only) icon — no colour of its own, so it matches the tab's own
+ * (currentColor). */
 .sf-layout-tab-icon {
 	display: flex;
 	align-items: center;
@@ -59,13 +69,14 @@
 	height: 1em;
 }
 
+/* Plain icon-nav treatment, not a button: hover/selected are colour changes only, no background
+ * chip. */
 .sf-layout-tab:hover {
-	background: var(--background-modifier-hover);
+	color: var(--text-normal);
 }
 
 .sf-layout-tab.is-active {
 	color: var(--text-accent);
-	background: var(--background-modifier-hover);
 }
 
 .sf-layout-tab:focus-visible {
