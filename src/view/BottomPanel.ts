@@ -14,7 +14,7 @@ import {
 	type CodexTreeItem,
 	type CodexViewMode,
 } from "../codex";
-import { ICON_CODEX, ICON_FILTER_LIST, ICON_FOLDER_PLUS, ICON_PLUS_SQUARE } from "../icons";
+import { ICON_CODEX, ICON_FILTER_LIST, ICON_FOLDER, ICON_FOLDER_PLUS, ICON_PLUS_SQUARE } from "../icons";
 import { makeAccessibleActivatable } from "./a11y";
 import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
 import { attachCodexDragReorder, type CodexDragRowInfo } from "./dragReorderTree";
@@ -166,12 +166,17 @@ function renderTreeChildren(
 			folderNameEl.addClass("sf-styled-heading");
 			// A Lore Entry folder (linkedPath set) is also a real note — its own type icon shows
 			// the same way a file row's would, so it still reads as "a Person/Place/…" at a glance.
+			// A plain folder gets a generic folder icon instead, in the same slot, so the two read
+			// as visibly different kinds of row rather than an element folder just missing its icon.
 			if (linkedPath) {
 				const entryType = getCodexEntryType(app, linkedPath);
 				if (entryType) {
 					const typeIcon = contentEl.createSpan({ cls: "sf-icon sf-codex-type-icon" });
 					setIcon(typeIcon, codexTypeIcon(entryType) ?? "circle-help");
 				}
+			} else {
+				const folderIcon = contentEl.createSpan({ cls: "sf-icon sf-codex-type-icon" });
+				setIcon(folderIcon, ICON_FOLDER);
 			}
 			// Routed through attachCodexDragReorder's own pointerdown/pointerup gesture (via
 			// onClick below) rather than a `click` listener here — see that file's doc comment for

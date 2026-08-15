@@ -8,7 +8,7 @@ import { renderStatsPanel, nextStatsMode, type StatsMode } from "./StatsPanel";
 import { SeriesModal } from "./SeriesModal";
 import { createCodexFolder, createCodexNote, readCodexFrontmatter, type CodexViewMode } from "../codex";
 import { debounce } from "../debounce";
-import { ICON_BOOK_OPEN, ICON_SERIES, ICON_STORYTELLING } from "../icons";
+import { ICON_BOOK_OPEN, ICON_CODEX, ICON_SERIES, ICON_STORYTELLING } from "../icons";
 import { countWords } from "../wordCount";
 import { getBookWordStats } from "../history";
 import { WordCountModal } from "./WordCountModal";
@@ -24,12 +24,13 @@ import { STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE } from "./SeriesOverviewView";
 
 export const STORYFORGE_VIEW_TYPE = "storyforge-view";
 
-/** Leading icon for each layout tab (render()'s .sf-layout-tabs row) — the storyForge view's own
- * "Series" icon for the Series tab (it's the same list this panel's own tab icon represents), the
- * storyTelling panel's own icon for the Novel tab, and the open-book used to mark an open novel
- * elsewhere for the Detailed tab (the layout with the codex embedded — a novel opened all the way
- * up). */
+/** Leading icon for each layout tab (render()'s .sf-layout-tabs row) — the Codex's own globe icon
+ * for the Codex tab, the storyForge view's own "Series" icon for the Series tab (it's the same
+ * list this panel's own tab icon represents), the storyTelling panel's own icon for the Novel
+ * tab, and the open-book used to mark an open novel elsewhere for the Detailed tab (the layout
+ * with the codex embedded — a novel opened all the way up). */
 const SF_LAYOUT_TAB_ICONS: Record<SfLayout, string> = {
+	codex: ICON_CODEX,
 	seriesBrowse: ICON_SERIES,
 	novelBrowse: ICON_STORYTELLING,
 	hybrid: ICON_BOOK_OPEN,
@@ -138,12 +139,15 @@ export class StoryForgeView extends ItemView {
 		this.plugin.refreshSeriesOverviewView();
 	}
 
-	/** Which top pane the declared layout selects, clamped to "novel" while the series pane is hidden
-	 * entirely, without discarding the user's chosen layout - so re-enabling the pane later in Settings
-	 * restores it. */
-	private effectiveTopPane(): "series" | "novel" {
+	/** Which top pane the declared layout selects — "none" for the Codex tab, which has no top pane
+	 * at all, regardless of hideSeriesPane. Otherwise clamped to "novel" while the series pane is
+	 * hidden entirely, without discarding the user's chosen layout - so re-enabling the pane later
+	 * in Settings restores it. */
+	private effectiveTopPane(): "series" | "novel" | "none" {
+		const topPane = layoutConfig(this.layout).topPane;
+		if (topPane === "none") return "none";
 		if (this.plugin.getSettings().hideSeriesPane) return "novel";
-		return layoutConfig(this.layout).topPane;
+		return topPane;
 	}
 
 	render(): void {
@@ -158,6 +162,10 @@ export class StoryForgeView extends ItemView {
 		container.addClass("storyforge-view");
 
 		const config = layoutConfig(this.layout);
+		// The Codex tab is the codex pane alone — no top pane, no stats — so it needs a different
+		// row split from the tabs/library/codex/stats four-row grid the other layouts share (see
+		// .sf-layout-codex-only in styles.css).
+		container.toggleClass("sf-layout-codex-only", config.topPane === "none");
 
 		// Replaces the old "choose layout" dropdown icon — one tab per layout, sitting above
 		// everything else in the panel (same idea as Story Context's Novel/Chapter/Dossier row).
@@ -169,10 +177,15 @@ export class StoryForgeView extends ItemView {
 			for (const layout of SF_LAYOUTS) {
 				const tab = tabsEl.createSpan({
 					cls: `sf-layout-tab${layout === this.layout ? " is-active" : ""}`,
-					attr: { role: "tab", tabindex: "0", "aria-selected": String(layout === this.layout) },
+					attr: {
+						role: "tab",
+						tabindex: "0",
+						"aria-selected": String(layout === this.layout),
+						"aria-label": SF_LAYOUT_LABELS[layout],
+						title: SF_LAYOUT_LABELS[layout],
+					},
 				});
 				setIcon(tab.createSpan({ cls: "sf-layout-tab-icon" }), SF_LAYOUT_TAB_ICONS[layout]);
-				tab.createSpan({ text: SF_LAYOUT_LABELS[layout] });
 				const selectLayout = () => {
 					this.layout = layout;
 					void this.plugin.updateSetting("layout", layout);
@@ -183,7 +196,12 @@ export class StoryForgeView extends ItemView {
 					}
 					this.render();
 				};
-				tab.addEventListener("click", selectLayout);
+				// pointerdown, not click: this sidebar pane isn't always the focused/active one (the
+				// editor usually is), and a plain "click" listener's first firing there was getting
+				// eaten by Obsidian's own click-to-focus-the-pane handling — the tab needed a second
+				// click before it visibly did anything (same issue navigatorControls.ts's transport
+				// buttons had). pointerdown fires regardless, so one click is enough.
+				tab.addEventListener("pointerdown", selectLayout);
 				makeAccessibleActivatable(tab, selectLayout);
 			}
 		}
@@ -193,41 +211,46 @@ export class StoryForgeView extends ItemView {
 		const continuousReadLeaf = this.currentBookFolderName ? this.findContinuousReadLeaf(this.currentBookFolderName) : null;
 		const continuousActiveFilename = continuousReadLeaf ? (continuousReadLeaf.view as ContinuousReadView).getCurrentFilename() : null;
 
-		const topEl = container.createDiv({ cls: "sf-top-panel" });
+		// The Codex tab has no top pane at all — skip creating .sf-top-panel entirely rather than
+		// rendering it empty, so the codex-only grid (.sf-layout-codex-only) has just tabs + codex.
+		const topPane = this.effectiveTopPane();
+		if (topPane !== "none") {
+			const topEl = container.createDiv({ cls: "sf-top-panel" });
 
-		renderTopPanel(this.app, topEl, {
-			mode: this.effectiveTopPane(),
-			hideSeriesPane: this.plugin.getSettings().hideSeriesPane,
-			showUnplacedSection: config.showUnplaced,
-			currentBookFolderName: this.currentBookFolderName,
-			activeChapterFilename: this.activeChapterFilename,
-			highlightActiveChapter: this.plugin.getSettings().highlightActiveChapter,
-			unplacedMode: this.unplacedMode,
-			onToggleUnplacedMode: () => {
-				this.unplacedMode = this.unplacedMode === "unplaced" ? "unplacedHidden" : "unplaced";
-				this.render();
-			},
-			onSelectBook: (name) => {
-				this.currentBookFolderName = name;
-				this.activeChapterFilename = null;
-				void this.persistSelection();
-				this.render();
-			},
-			onOpenChapter: (bookName, filename) => void this.openChapter(bookName, filename),
-			onOpenSeriesModal: () => new SeriesModal(this.app, () => this.render()).open(),
-			onCreateContinuingChapter: (bookFolderName) => void this.handleCreateContinuingChapter(bookFolderName),
-			onArchiveChapter: async () => {
-				if (this.closed) return;
-				await this.refreshStats();
-			},
-			continuousActiveFilename,
-			onOpenContinuousRead: (bookFolderName) => void this.openContinuousRead(bookFolderName),
-			onExitContinuousRead: (bookFolderName) => void this.exitContinuousRead(bookFolderName),
-			onContinuousScrollTo: (bookFolderName, filename) => emitContinuousScrollTo(this.app, { bookFolderName, filename }),
-			registerContinuousCleanup: (dispose) => {
-				this.continuousCleanup = dispose;
-			},
-		});
+			renderTopPanel(this.app, topEl, {
+				mode: topPane,
+				hideSeriesPane: this.plugin.getSettings().hideSeriesPane,
+				showUnplacedSection: config.showUnplaced,
+				currentBookFolderName: this.currentBookFolderName,
+				activeChapterFilename: this.activeChapterFilename,
+				highlightActiveChapter: this.plugin.getSettings().highlightActiveChapter,
+				unplacedMode: this.unplacedMode,
+				onToggleUnplacedMode: () => {
+					this.unplacedMode = this.unplacedMode === "unplaced" ? "unplacedHidden" : "unplaced";
+					this.render();
+				},
+				onSelectBook: (name) => {
+					this.currentBookFolderName = name;
+					this.activeChapterFilename = null;
+					void this.persistSelection();
+					this.render();
+				},
+				onOpenChapter: (bookName, filename) => void this.openChapter(bookName, filename),
+				onOpenSeriesModal: () => new SeriesModal(this.app, () => this.render()).open(),
+				onCreateContinuingChapter: (bookFolderName) => void this.handleCreateContinuingChapter(bookFolderName),
+				onArchiveChapter: async () => {
+					if (this.closed) return;
+					await this.refreshStats();
+				},
+				continuousActiveFilename,
+				onOpenContinuousRead: (bookFolderName) => void this.openContinuousRead(bookFolderName),
+				onExitContinuousRead: (bookFolderName) => void this.exitContinuousRead(bookFolderName),
+				onContinuousScrollTo: (bookFolderName, filename) => emitContinuousScrollTo(this.app, { bookFolderName, filename }),
+				registerContinuousCleanup: (dispose) => {
+					this.continuousCleanup = dispose;
+				},
+			});
+		}
 
 		if (config.showCodex) {
 			const currentBookId = this.currentBookFolderName ? getBookId(this.app, this.currentBookFolderName) : null;
