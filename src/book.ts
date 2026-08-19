@@ -15,7 +15,7 @@ import {
 	writeSeriesOrder,
 	type SeriesBookEntry,
 } from "./series";
-import { nextBookFolderCode } from "./bookCode";
+import { nextNovelCode } from "./novelCode";
 import { nextChapterCode } from "./chapterCode";
 import { applyHashNumbering } from "./titleNumbering";
 import {
@@ -266,7 +266,7 @@ export async function writeBookChapterOrder(app: App, bookFolderName: string, ne
 	});
 }
 
-/** Writes/replaces the book's cover image (`_sf-backstage/<book>/cover.<ext>`) and records its filename in novel.md's frontmatter. Removes the previous cover file first if its extension differs. Returns the new cover's vault path. */
+/** Writes/replaces the book's cover image (`_backstage/storyforge/<book>/cover.<ext>`) and records its filename in novel-<code>.md's frontmatter. Removes the previous cover file first if its extension differs. Returns the new cover's vault path. */
 export async function writeBookCoverImage(
 	app: App,
 	bookFolderName: string,
@@ -665,18 +665,19 @@ function uniqueBookTitle(base: string, existingTitles: Iterable<string>): string
 }
 
 /**
- * Creates a new book: a folder named with a 4-letter code (3 letters from the
- * series title + a sequential guide letter) in both the story library and
- * backstage, registered in series.md and appended to the series order.
+ * Creates a new book: a folder named with a gap-free sequential letter code
+ * (aaa, aab, ... — the same scheme chapter codes use) in both the story
+ * library and backstage, registered in series.md and appended to the series
+ * order.
  */
 export async function createBook(app: App, initialTitle?: string): Promise<{ folderName: string; bookId: string }> {
-	const { seriesTitle, order, books } = readSeriesFrontmatter(app);
+	const { order, books } = readSeriesFrontmatter(app);
 	const candidateSpace = new Set<string>([
 		...getLibraryBookFolders(app).map((f) => f.name),
 		...Object.keys(books),
 		...order,
 	]);
-	const folderName = nextBookFolderCode(seriesTitle, candidateSpace);
+	const folderName = nextNovelCode(candidateSpace);
 	const bookId = mintId(folderName, collectAllBookIds(app));
 	const bookTitle =
 		initialTitle?.trim() || uniqueBookTitle(DEFAULT_BOOK_TITLE, Object.values(books).map((entry) => entry.bookTitle));
@@ -695,7 +696,7 @@ export async function createBook(app: App, initialTitle?: string): Promise<{ fol
 /**
  * Creates a new chapter: a file named `<chapter-id>.md` (lowercase, e.g.
  * "knna_chapter-aaa.md") directly in the book's story-library folder,
- * registered in novel.md's `chapters` map with a default "Untitled" title,
+ * registered in novel-<code>.md's `chapters` map with a default "Untitled" title,
  * then opened (unless `openFile: false` — the idea-chapter creation path
  * deliberately doesn't steal editor focus). Creating the empty manuscript
  * file (and `createBook`'s folder creation) are intentional library

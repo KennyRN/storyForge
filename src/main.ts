@@ -31,7 +31,7 @@ import { FORMATFORGE_PLUGIN_ID, formatCompanionState } from "./formatCompanionAc
 import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders, getBookId } from "./series";
 import { ensureTagRegistryFile, loadCodexTypesIntoRegistry } from "./tagRegistry";
 import { ensureAllChapterEntries, syncAllBookReferenceFields } from "./book";
-import { migrateVaultSchema } from "./migration";
+import { migrateStructuralLayout, migrateVaultSchema } from "./migration";
 import { registerReconciliationEvents } from "./reconciliation";
 import {
 	isLibraryChapterPath,
@@ -55,6 +55,7 @@ import type { FormatCompanionRegistration } from "./formattingApi";
 import { refreshTabTitles, registerTabTitleOverrides } from "./tabTitles";
 import { PaletteColor, PaletteName } from "./colorPalettes";
 import { runContentBackup } from "./backup";
+import { TitleForgeController } from "./titleforge/TitleForgeController";
 
 export type CodexFolderIndicatorThickness = "none" | "thin" | "medium" | "thick";
 
@@ -737,6 +738,12 @@ export default class StoryForgePlugin extends Plugin {
 	 * opens, the new-chapter page, …) always reuses — see getMainContentLeaf(). Not persisted:
 	 * starts fresh (null) every session, adopting whatever leaf the first such navigation touches. */
 	private mainContentLeafId: string | null = null;
+	/**
+	 * titleForge — an in-tree, extraction-ready subplugin (see src/titleforge/README.md), not a
+	 * storyForge feature. This is storyForge's whole touch point: construct it, await onload(),
+	 * call onunload(). Not private — StoryForgeSettingsTab.ts opens TitleForgeSettingsModal with it.
+	 */
+	titleForge!: TitleForgeController;
 
 	async onload(): Promise<void> {
 		// Loaded first, before registerView() below - Obsidian can start restoring a previously-open
@@ -747,6 +754,9 @@ export default class StoryForgePlugin extends Plugin {
 		// Expose host API as early as possible so siblings (nameForge, …) can soft-connect
 		// during the rest of onload / immediately after a hot-reload.
 		this.api = createHostApi(this);
+
+		this.titleForge = new TitleForgeController(this);
+		await this.titleForge.onload();
 
 		// Defensively remove any style tags a previous plugin version (before dynamic <style>
 		// injection was replaced with CSS custom properties) left behind - both from a stale
@@ -805,6 +815,8 @@ export default class StoryForgePlugin extends Plugin {
 		// moved to a tab row instead.
 		this.addRibbonIcon(ICON_LAYOUT_SELECTOR, "Open storyForge interface", () => this.openStoryForgeInterface());
 		this.addRibbonIcon(ICON_TAG_EDIT, "Open Tags & Codex types", () => this.openTagRegistry());
+		// TEMP: replays the first-run onboarding flow on demand for iterating on it. Remove before shipping.
+		this.addRibbonIcon("flask-conical", "TEMP: Replay onboarding", () => void this.replayOnboarding());
 
 		this.settingsTab = new StoryForgeSettingsTab(this.app, this);
 		this.addSettingTab(this.settingsTab);
@@ -1011,6 +1023,7 @@ export default class StoryForgePlugin extends Plugin {
 	}
 
 	onunload(): void {
+		this.titleForge?.onunload();
 		// Restores the native ribbon directly (without detaching the leaf, which would reset
 		// its position on next load) by running the same DOM restoration ToolsView.onClose() does.
 		for (const leaf of this.app.workspace.getLeavesOfType(TOOLS_VIEW_TYPE)) {
@@ -1394,7 +1407,7 @@ export default class StoryForgePlugin extends Plugin {
 		this.style.applyTextStyleOverrides();
 	}
 
-	/** Eagerly creates the story library and Codex root folders (mirrors the already-eager _sf-backstage
+	/** Eagerly creates the story library and Codex root folders (mirrors the already-eager _backstage/storyforge
 	 * creation that modifyBackstageFrontmatter performs), so a fresh vault immediately has a place to drop
 	 * in existing notes. Each check is independent and idempotent - a no-op on every load after the first.
 	 * Bypasses writeGuard: LIBRARY_ROOT/CODEX_ROOT are paths its assertBackstagePath() forbids outright,
@@ -1416,7 +1429,24 @@ export default class StoryForgePlugin extends Plugin {
 		});
 	}
 
+	/** TEMP: re-runs the same first-run modal + welcome-note steps as initializeVaultState(), on demand,
+	 * regardless of whether series.md already exists - for iterating on the onboarding UX. Remove this
+	 * along with its ribbon icon once onboarding is settled. */
+	private async replayOnboarding(): Promise<void> {
+		await this.showFirstRunModal();
+		try {
+			const welcomeFile = await ensureWelcomeNote(this.app);
+			await this.app.workspace.getLeaf(false).openFile(welcomeFile);
+		} catch (err) {
+			console.error("storyForge: failed to create welcome note", err);
+		}
+	}
+
 	private async initializeVaultState(): Promise<void> {
+		// Must run before anything below resolves seriesFilePath()/bookFilePath()
+		// (including ensureEagerFolders's isFirstRun-adjacent checks) — see
+		// migrateStructuralLayout's doc comment in migration.ts.
+		await migrateStructuralLayout(this.app);
 		await this.ensureEagerFolders();
 		const isFirstRun = !this.app.vault.getAbstractFileByPath(seriesFilePath());
 		if (isFirstRun) {

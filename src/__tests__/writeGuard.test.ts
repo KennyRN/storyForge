@@ -6,45 +6,56 @@ import {
 	writeBackstageFile,
 	writeBackupText,
 } from "../writeGuard";
+import { BACKSTAGE_ROOT, LIBRARY_ROOT, bookFilePath, libraryChapterPath, seriesFilePath } from "../paths";
 import { makeTFile } from "./obsidianStub";
 import type { Vault } from "obsidian";
 
 describe("normalizeVaultPath", () => {
 	it("collapses . segments and trailing slashes", () => {
-		expect(normalizeVaultPath("_sf-backstage/./series.md")).toBe("_sf-backstage/series.md");
-		expect(normalizeVaultPath("_sf-backstage/")).toBe("_sf-backstage");
+		expect(normalizeVaultPath(`${BACKSTAGE_ROOT}/./series.md`)).toBe(`${BACKSTAGE_ROOT}/series.md`);
+		expect(normalizeVaultPath(`${BACKSTAGE_ROOT}/`)).toBe(BACKSTAGE_ROOT);
 	});
 
 	it("rejects absolute paths and null bytes", () => {
-		expect(() => normalizeVaultPath("/_sf-backstage/series.md")).toThrow(ForbiddenWriteError);
-		expect(() => normalizeVaultPath("_sf-backstage/series.md\0.md")).toThrow(ForbiddenWriteError);
+		expect(() => normalizeVaultPath(`/${BACKSTAGE_ROOT}/series.md`)).toThrow(ForbiddenWriteError);
+		expect(() => normalizeVaultPath(`${BACKSTAGE_ROOT}/series.md\0.md`)).toThrow(ForbiddenWriteError);
 	});
 
 	it("rejects escape-above-root via ..", () => {
 		expect(() => normalizeVaultPath("..")).toThrow(ForbiddenWriteError);
-		expect(() => normalizeVaultPath("_sf-backstage/../../etc/passwd")).toThrow(ForbiddenWriteError);
+		// BACKSTAGE_ROOT is two segments deep now, so it takes three ".." to run past an empty root.
+		expect(() => normalizeVaultPath(`${BACKSTAGE_ROOT}/../../../etc/passwd`)).toThrow(ForbiddenWriteError);
 	});
 });
 
 describe("assertBackstagePath — adversarial", () => {
 	const allowed = [
-		"_sf-backstage",
-		"_sf-backstage/series.md",
-		"_sf-backstage/TECa/novel.md",
-		"_sf-backstage/TECa/chapters/ch1.md",
-		"_sf-backstage/TECa/recommend/ch1.md",
+		BACKSTAGE_ROOT,
+		`${BACKSTAGE_ROOT}/settings-presets/x.json`,
+		`${BACKSTAGE_ROOT}/TECa/cover.png`,
+		`${BACKSTAGE_ROOT}/TECa/chapters/ch1.md`,
+		`${BACKSTAGE_ROOT}/TECa/recommend/ch1.md`,
+		// The narrow library-root exception: series.md and novel-<code>.md describe
+		// the manuscripts without being manuscript prose themselves.
+		seriesFilePath(),
+		bookFilePath("TECa"),
 	];
 	const forbidden = [
-		"_sf-storylibrary/TECa/ch1.md",
+		`${LIBRARY_ROOT}/TECa/ch1.md`,
+		libraryChapterPath("TECa", "ch1.md"),
 		"Codex/Jane.md",
-		"_sf-storylibrary",
+		LIBRARY_ROOT,
 		"Codex",
-		"_sf-backstage/../_sf-storylibrary/TECa/ch1.md",
-		"_sf-backstage/foo/../../Codex/Jane.md",
-		"_sf-backstage/../Codex/Jane.md",
-		"_sf-backstage_evil/x.md",
-		"foo/_sf-backstage/x.md",
-		"_SF-backstage/series.md",
+		// Not a real novel-<code>.md — a chapter file, or a folder merely named like one, still forbidden.
+		`${LIBRARY_ROOT}/not-a-novel.md`,
+		`${LIBRARY_ROOT}/novel-TECa`,
+		// Traversal that genuinely clears BACKSTAGE_ROOT's two segments and lands in the library.
+		`${BACKSTAGE_ROOT}/../../${LIBRARY_ROOT}/TECa/ch1.md`,
+		`${BACKSTAGE_ROOT}/foo/../../../Codex/Jane.md`,
+		`${BACKSTAGE_ROOT}/../../Codex/Jane.md`,
+		`${BACKSTAGE_ROOT}_evil/x.md`,
+		`foo/${BACKSTAGE_ROOT}/x.md`,
+		`${BACKSTAGE_ROOT.toUpperCase()}/series.md`,
 	];
 
 	it.each(allowed)("allows %s", (path) => {
@@ -70,7 +81,7 @@ describe("writeBackstageFile — refuses library/codex before touching vault", (
 		} as unknown as Vault;
 
 		await expect(
-			writeBackstageFile(vault, "_sf-backstage/../_sf-storylibrary/BOOK/ch.md", "stolen"),
+			writeBackstageFile(vault, `${BACKSTAGE_ROOT}/../../${LIBRARY_ROOT}/BOOK/ch.md`, "stolen"),
 		).rejects.toBeInstanceOf(ForbiddenWriteError);
 		expect(calls).toEqual([]);
 	});

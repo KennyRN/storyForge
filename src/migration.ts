@@ -1,12 +1,155 @@
 import { App, TFile, TFolder } from "obsidian";
-import { bookBackstagePath, bookFilePath, seriesFilePath, codexFilePath, CODEX_ROOT } from "./paths";
-import { modifyBackstageFrontmatter } from "./writeGuard";
-import { DEFAULT_SERIES_CONTENT, getLibraryBookFolders, getSeriesBookEntry, upsertSeriesBookEntry, type RawSeriesFrontmatter } from "./series";
+import { BACKSTAGE_ROOT, LIBRARY_ROOT, bookBackstagePath, bookFilePath, libraryBookPath, seriesFilePath, codexFilePath, CODEX_ROOT } from "./paths";
+import { modifyBackstageFrontmatter, renameBackstagePath } from "./writeGuard";
+import {
+	DEFAULT_SERIES_CONTENT,
+	getLibraryBookFolders,
+	getSeriesBookEntry,
+	readSeriesFrontmatter,
+	renameSeriesBookEntry,
+	upsertSeriesBookEntry,
+	type RawSeriesFrontmatter,
+} from "./series";
 import { type RawBookFrontmatter } from "./book";
+import { nextNovelCode } from "./novelCode";
 import { DEFAULT_CODEX_CONTENT, type RawCodexFrontmatter } from "./codex";
 import { mintId } from "./slug";
 import { mintFolderId, type CodexFolders } from "./codexTree";
 import { migrateWordCountV1ToV2 } from "./history";
+
+/** Pre-0.14 flat backstage root, superseded by the nested `BACKSTAGE_ROOT` (`_backstage/storyforge`). */
+const LEGACY_BACKSTAGE_ROOT = "_sf-backstage";
+/** Pre-0.14 story-library root, superseded by `LIBRARY_ROOT` (`_story-library`). */
+const LEGACY_LIBRARY_ROOT = "_sf-storylibrary";
+
+/**
+ * Pre-0.14 → 0.14 structural migration: renames the flat `_sf-storylibrary`
+ * root to `_story-library` and the flat `_sf-backstage` root to the nested
+ * `_backstage/storyforge/` location, then promotes `series.md` and each
+ * book's `novel.md` out of backstage bookkeeping into the story-library root
+ * (`novel.md` renamed `novel-<code>.md` and given a plain sequential code,
+ * replacing the old title-derived one). Every step only acts when the legacy
+ * shape is still present, so a second run is a true no-op.
+ *
+ * Must run before anything else resolves `seriesFilePath()`/`bookFilePath()`/
+ * `getLibraryBookFolders()` — all three already point at their new locations
+ * — so this is called at the very start of `initializeVaultState`, ahead of
+ * `ensureEagerFolders`, `ensureSeriesFile`, and `migrateVaultSchema` below.
+ * Calling `seriesFilePath()` against a vault whose real series.md hasn't been
+ * relocated yet would create a fresh empty one at the new location and
+ * silently orphan the real data; querying `LIBRARY_ROOT` before the library
+ * folder itself is renamed would find nothing and silently skip every book.
+ */
+export async function migrateStructuralLayout(app: App): Promise<void> {
+	await migrateLibraryRootRename(app);
+	await migrateBackstageRootRename(app);
+	await migrateSeriesFileLocation(app);
+	await migrateNovelCodesAndLocations(app);
+}
+
+/** Renames the old flat `_sf-storylibrary` folder — and every book's chapters inside it — to `_story-library`. No-ops once the legacy root is gone (or the new one already exists). */
+async function migrateLibraryRootRename(app: App): Promise<void> {
+	if (app.vault.getAbstractFileByPath(LIBRARY_ROOT)) return;
+	const legacy = app.vault.getAbstractFileByPath(LEGACY_LIBRARY_ROOT);
+	if (!(legacy instanceof TFolder)) return;
+	await app.fileManager.renameFile(legacy, LIBRARY_ROOT);
+}
+
+/**
+ * Moves the old flat `_sf-backstage` folder — and everything inside it, every
+ * book's bookkeeping, codex.md, settings-presets, Title Forge — to the new
+ * `_backstage/storyforge/` location in one folder move. No-ops once the
+ * legacy root is gone (or the new one already exists).
+ */
+async function migrateBackstageRootRename(app: App): Promise<void> {
+	if (app.vault.getAbstractFileByPath(BACKSTAGE_ROOT)) return;
+	const legacy = app.vault.getAbstractFileByPath(LEGACY_BACKSTAGE_ROOT);
+	if (!(legacy instanceof TFolder)) return;
+	const backstageParent = BACKSTAGE_ROOT.slice(0, BACKSTAGE_ROOT.lastIndexOf("/"));
+	if (backstageParent && !app.vault.getAbstractFileByPath(backstageParent)) {
+		await app.vault.createFolder(backstageParent);
+	}
+	await app.fileManager.renameFile(legacy, BACKSTAGE_ROOT);
+}
+
+/**
+ * Moves `series.md` from its legacy backstage location to the story-library
+ * root. Must happen before any code calls `readSeriesFrontmatter`/
+ * `renameSeriesBookEntry` (which resolve against the new location) — see
+ * `migrateStructuralLayout`'s doc comment. No-ops once series.md is already
+ * at the new location, or if there's no legacy file to move.
+ */
+async function migrateSeriesFileLocation(app: App): Promise<void> {
+	if (app.vault.getAbstractFileByPath(seriesFilePath())) return;
+	const legacy = app.vault.getAbstractFileByPath(`${BACKSTAGE_ROOT}/series.md`);
+	if (!(legacy instanceof TFile)) return;
+	await app.fileManager.renameFile(legacy, seriesFilePath());
+}
+
+/**
+ * For each existing library book folder that still has a legacy backstage
+ * `novel.md` (the "not yet migrated" signal — a freshly created 0.14+ book
+ * never has one, since `bookFilePath` already points straight at the library
+ * root), mints the next plain sequential code and renames both the library
+ * folder and its matching backstage folder to it, rekeying series.md's book
+ * entry to match — done explicitly here (mirroring what
+ * reconciliation.ts's `handleBookFolderRename` does for a live user rename)
+ * rather than relying on that listener's async event timing during startup
+ * migration. Then moves `novel.md` to the library root as `novel-<code>.md`.
+ * Iterates in series.md's existing `order` array for a stable, human-sensible
+ * code assignment, with any library folders not listed there appended after.
+ */
+async function migrateNovelCodesAndLocations(app: App): Promise<void> {
+	const folders = getLibraryBookFolders(app);
+	if (folders.length === 0) return;
+
+	const { order } = readSeriesFrontmatter(app);
+	const byName = new Map(folders.map((f) => [f.name, f] as const));
+	const sequence = [...order.filter((name) => byName.has(name)), ...folders.map((f) => f.name).filter((name) => !order.includes(name))];
+
+	// Starts empty rather than seeded with every existing folder name: those
+	// names are the *old* title-derived codes being replaced below, and
+	// nextNovelCode can't tell an old-scheme name from a new one — an old name
+	// that happens to decode as a valid letter sequence would wrongly consume
+	// a slot in the new one (see the regression this comment replaced). Only a
+	// folder that's *kept* (below, already on the new scheme) reserves its slot.
+	const takenCodes = new Set<string>();
+	for (const oldName of sequence) {
+		const legacyNovelPath = `${bookBackstagePath(oldName)}/novel.md`;
+		// Covers a vault old enough to still have pre-novel.md `book.md` at the
+		// legacy backstage location — folds that rename in first (in place, not
+		// via `migrateBookFileToNovelFile`, whose destination is now the final
+		// library-root path and would skip the code reassignment below) so the
+		// "has novel.md" check is a reliable "not yet migrated" signal regardless
+		// of vintage.
+		if (!app.vault.getAbstractFileByPath(legacyNovelPath)) {
+			const legacyBookMd = app.vault.getAbstractFileByPath(`${bookBackstagePath(oldName)}/book.md`);
+			if (legacyBookMd instanceof TFile) {
+				await app.fileManager.renameFile(legacyBookMd, legacyNovelPath);
+			}
+		}
+		if (!app.vault.getAbstractFileByPath(legacyNovelPath)) {
+			// Already on the new scheme (or has no novel.md at all) — not reassigned, but its name still occupies a slot.
+			takenCodes.add(oldName);
+			continue;
+		}
+
+		const newCode = nextNovelCode(takenCodes);
+		takenCodes.add(newCode);
+
+		if (newCode !== oldName) {
+			const folder = byName.get(oldName);
+			if (folder) await app.fileManager.renameFile(folder, libraryBookPath(newCode));
+			await renameBackstagePath(app.vault, bookBackstagePath(oldName), bookBackstagePath(newCode));
+			await renameSeriesBookEntry(app, oldName, newCode);
+		}
+
+		const novelFile = app.vault.getAbstractFileByPath(`${bookBackstagePath(newCode)}/novel.md`);
+		if (novelFile instanceof TFile) {
+			await app.fileManager.renameFile(novelFile, bookFilePath(newCode));
+		}
+	}
+}
 
 /**
  * Migrates the old plain `title`/`id` schema (series.md's `title`, each
@@ -33,8 +176,13 @@ export async function migrateVaultSchema(app: App): Promise<void> {
 }
 
 /**
- * Renames legacy `_sf-backstage/<folder>/book.md` to `novel.md` when the
- * destination does not already exist. Safe no-op on re-run.
+ * Renames a lingering legacy `book.md` straight to `bookFilePath`'s current
+ * (post-`migrateStructuralLayout`) destination, `novel-<code>.md` at the
+ * library root, when the destination doesn't already exist. In practice
+ * `migrateStructuralLayout` already folds every book's `book.md`/`novel.md`
+ * into that location before this runs, so this is a defensive no-op for
+ * everything but a folder `migrateStructuralLayout` didn't see. Safe no-op on
+ * re-run.
  */
 async function migrateBookFileToNovelFile(app: App, folderName: string): Promise<void> {
 	const legacyPath = `${bookBackstagePath(folderName)}/book.md`;
@@ -81,7 +229,7 @@ function uniqueFlatCodexPath(baseName: string, taken: ReadonlySet<string>): stri
 
 /**
  * One-time: flattens any real nested Codex folders into the new virtual-folder
- * scheme (`_sf-backstage/codex.md`). Real files that were nested get moved up to
+ * scheme (`codex.md`, at `codexFilePath()`). Real files that were nested get moved up to
  * sit flat directly under `Codex/` via the link-safe rename API (preserving
  * existing wikilinks); files already flat are registered in place, no rename.
  * Guarded on `codex.md` not existing yet, so this only ever runs once per vault.

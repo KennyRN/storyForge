@@ -617,15 +617,229 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	padding: 16px;
 }
 
+.sf-onboarding-modal-el {
+	width: 460px;
+	max-width: 90vw;
+	height: 400px;
+	max-height: 85vh;
+}
+
 .sf-onboarding-modal {
+	padding: 0 16px 16px;
+	height: 100%;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+}
+
+.sf-onboarding-modal > h2 {
+	margin-top: 0;
+	flex-shrink: 0;
+}
+
+.sf-onboarding-tab-bar {
+	display: flex;
+	flex-direction: row;
+	width: 100%;
+	gap: 0;
+	margin-top: 12px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	flex-shrink: 0;
+}
+
+.sf-onboarding-tab-btn {
+	appearance: none;
+	border: none;
+	background: transparent;
+	flex: 1 1 0;
+	padding: var(--size-4-3) var(--size-4-2);
+	font-size: var(--font-ui-small);
+	font-weight: var(--font-medium);
+	color: var(--text-muted);
+	cursor: pointer;
+	text-align: center;
+	text-transform: lowercase;
+	border-bottom: 2px solid transparent;
+	margin-bottom: -1px;
+	transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.sf-onboarding-tab-btn:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+}
+
+.sf-onboarding-tab-btn.is-active {
+	color: var(--text-accent);
+	border-bottom-color: var(--interactive-accent);
+}
+
+.sf-onboarding-tab-panels {
+	margin-top: 16px;
+	flex: 1;
+	min-height: 0;
+}
+
+.sf-onboarding-tab-panel {
+	display: none;
+	flex-direction: column;
+	gap: 12px;
+}
+
+.sf-onboarding-tab-panel.is-active {
+	display: flex;
+}
+
+.sf-onboarding-field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.sf-onboarding-field label {
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	text-transform: lowercase;
+}
+
+.sf-onboarding-input-row {
+	display: flex;
+	align-items: stretch;
+	gap: 4px;
+}
+
+.sf-onboarding-input-row .sf-modal-input {
+	flex: 1;
+	min-width: 0;
+}
+
+/* Hover icons, not buttons - same idiom as .sf-series-settings-btn/.sf-book-filter-btn: no border or
+   background of their own, just a colour change on hover. Square, matching the input's own height via
+   the row's `align-items: stretch`. */
+.sf-onboarding-icon-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	aspect-ratio: 1;
+	flex-shrink: 0;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.sf-onboarding-icon-btn:hover {
+	color: var(--text-normal);
+}
+
+/* Fixed size regardless of tab/pane content - both .sf-title-gen-genre-list and
+   .sf-title-gen-history-list scroll independently within it instead of resizing the modal. */
+.sf-title-gen-settings-modal-el {
+	width: 420px;
+	height: 480px;
+	max-width: 90vw;
+	max-height: 85vh;
+}
+
+.sf-title-gen-settings-modal {
+	height: 100%;
+	box-sizing: border-box;
 	padding: 16px;
+	display: flex;
+	flex-direction: column;
+}
+
+.sf-title-gen-settings-modal h3 {
+	margin: 12px 0 6px;
+	flex-shrink: 0;
+	font-size: var(--font-ui-small);
+	text-transform: lowercase;
+}
+
+.sf-title-gen-genre-list {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+}
+
+.sf-title-gen-genre-item {
+	padding: 6px 10px;
+	cursor: pointer;
+	color: var(--text-normal);
+	flex-shrink: 0;
+}
+
+.sf-title-gen-genre-item:hover {
+	background: var(--background-modifier-hover);
+}
+
+.sf-title-gen-genre-item.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.sf-title-gen-history-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+}
+
+.sf-title-gen-history-item {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 6px 4px 10px;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
+	flex-shrink: 0;
+}
+
+.sf-title-gen-history-title {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.sf-title-gen-history-empty {
+	padding: 4px 10px;
+	color: var(--text-faint);
+	font-size: var(--font-ui-small);
+	font-style: italic;
+}
+
+/* Headerless, standalone twin of .sf-title-gen-settings-modal's history pane (see
+   TitleHistoryModal) - same fixed-size + flex-column treatment so the reused
+   .sf-title-gen-history-list still gets a definite height to scroll within. */
+.sf-title-history-modal-el {
+	width: 360px;
+	height: 360px;
+	max-width: 90vw;
+	max-height: 80vh;
+}
+
+.sf-title-history-modal {
+	height: 100%;
+	box-sizing: border-box;
+	padding: 16px;
+	display: flex;
+	flex-direction: column;
 }
 
 .sf-onboarding-actions {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
-	margin-top: 12px;
+	margin-top: 16px;
+	flex-shrink: 0;
 }
 
 .sf-synopsis-book-title {
@@ -3759,4 +3973,194 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 .sf-new-chapter-label {
 	font-size: 1.1em;
 	font-weight: 500;
+}
+
+/* ── titleForge (src/titleforge/) ──
+ * An in-tree, extraction-ready subplugin — see src/titleforge/README.md. Every rule below is
+ * scoped under .titleforge-*, so this whole block is what an extraction would cut and paste
+ * into a standalone plugin's own styles.css unchanged. */
+
+.titleforge-view {
+	padding: var(--size-4-4, 16px);
+	max-width: 900px;
+	margin: 0 auto;
+}
+
+.titleforge-blurb {
+	color: var(--text-muted);
+	margin-bottom: var(--size-4-3, 12px);
+}
+
+.titleforge-row {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: var(--size-4-3, 12px);
+	margin-bottom: var(--size-4-3, 12px);
+}
+
+.titleforge-field {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	font-size: 0.85em;
+	color: var(--text-muted);
+}
+
+.titleforge-field select,
+.titleforge-field input {
+	font: inherit;
+	color: var(--text-normal);
+}
+
+.titleforge-series-toggle {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 0.9em;
+	color: var(--text-normal);
+	cursor: pointer;
+}
+
+.titleforge-actions {
+	margin-bottom: var(--size-4-4, 16px);
+}
+
+.titleforge-empty {
+	color: var(--text-muted);
+	font-style: italic;
+	padding: var(--size-4-2, 8px) 0;
+}
+
+.titleforge-result {
+	background: var(--background-secondary);
+	border-radius: var(--radius-l, 8px);
+	padding: var(--size-4-4, 16px);
+	margin-bottom: var(--size-4-4, 16px);
+}
+
+.titleforge-series-label {
+	font-size: 0.8em;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	color: var(--text-muted);
+	margin-bottom: var(--size-4-2, 8px);
+}
+
+.titleforge-card {
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m, 6px);
+	padding: var(--size-4-3, 12px);
+	margin-bottom: var(--size-4-3, 12px);
+}
+
+.titleforge-card-label {
+	font-size: 0.75em;
+	color: var(--text-faint);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	margin-bottom: 4px;
+}
+
+.titleforge-title {
+	font-size: 1.3em;
+	font-weight: 600;
+	color: var(--text-normal);
+	margin-bottom: 6px;
+}
+
+.titleforge-warning {
+	color: var(--text-warning, var(--text-error));
+	font-size: 0.85em;
+	margin-bottom: 6px;
+}
+
+.titleforge-why summary {
+	cursor: pointer;
+	color: var(--text-accent);
+	font-size: 0.85em;
+}
+
+.titleforge-why p {
+	color: var(--text-muted);
+	font-size: 0.9em;
+	margin: 6px 0 0;
+}
+
+.titleforge-exemplar {
+	font-style: italic;
+}
+
+.titleforge-keep-button {
+	margin-top: 8px;
+}
+
+.titleforge-volumes-list {
+	margin-top: var(--size-4-2, 8px);
+}
+
+.titleforge-anchor-note {
+	font-size: 0.85em;
+	color: var(--text-muted);
+	margin-top: 4px;
+}
+
+.titleforge-history h3 {
+	margin-bottom: var(--size-4-2, 8px);
+}
+
+.titleforge-history-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.titleforge-history-item {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2, 8px);
+	padding: 6px 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.titleforge-history-title {
+	flex: 1;
+	color: var(--text-normal);
+}
+
+.titleforge-history-kept {
+	color: var(--text-accent);
+}
+
+.titleforge-history-replay {
+	font-size: 0.8em;
+}
+
+/* ── titleForge settings modal (TitleForgeSettingsModal.ts) ── */
+
+.titleforge-settings-modal .titleforge-settings-path {
+	margin-bottom: var(--size-4-3, 12px);
+	color: var(--text-muted);
+}
+
+.titleforge-settings-list {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	margin-top: var(--size-4-2, 8px);
+}
+
+.titleforge-settings-row {
+	display: flex;
+	align-items: center;
+	gap: var(--size-4-2, 8px);
+	padding: 6px 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.titleforge-settings-row-name {
+	flex: 1;
+	font-weight: 500;
+	color: var(--text-normal);
 }
