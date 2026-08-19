@@ -1,39 +1,44 @@
 import { App, TFile, Vault, type FrontMatterCache } from "obsidian";
-import { BACKSTAGE_ROOT, BACKUPS_FOLDER, CODEX_ROOT, LIBRARY_ROOT } from "./paths";
+import { BACKSTAGE_ROOT, BACKUPS_FOLDER, CODEX_ROOT, LIBRARY_ROOT, isLibraryNovelPath, seriesFilePath } from "./paths";
 
 /**
  * The one narrow module every plugin write funnels through. It physically
- * refuses any path inside the story library or codex, so the non-destructive
- * guarantee holds even if the rest of the code is wrong.
+ * refuses any path inside the story library or codex — except the two flat
+ * metadata files at the library root (`series.md`, `novel-<code>.md`), which
+ * describe the manuscripts without being manuscript prose themselves — so the
+ * non-destructive guarantee holds even if the rest of the code is wrong.
  *
- * Every write that targets a markdown file under `_sf-storylibrary/` or `Codex/`
- * must go through this module (which will refuse it). Library manuscripts are
- * prose-only; Codex notes are user-owned (create/rename for wikilinks are the
- * only intentional disk exceptions elsewhere, and must not grow into content edits).
- * Story Context never edits Codex note bodies — its write footprint is `_sf-backstage/` only.
- * Backup zips are the other allowed write root: `_sf-backup/` only.
+ * Every write that targets a chapter file under `_story-library/<code>/` or a
+ * note under `Codex/` must go through this module (which will refuse it).
+ * Library manuscripts are prose-only; Codex notes are user-owned (create/rename
+ * for wikilinks are the only intentional disk exceptions elsewhere, and must
+ * not grow into content edits). Story Context never edits Codex note bodies —
+ * its write footprint is `_backstage/storyforge/` only (plus the two library-root
+ * metadata files above). Backup zips are the other allowed write root: `_sf-backup/` only.
  *
  * Host API / xForge siblings:
  * - Codex note *frontmatter* create/edit is only for plugins that called
  *   `registerCodexWriteException`, and only for essential owned fields.
  * - `allowBody` defaults false; hosted timelineForge must not edit note bodies.
  * - nameForge should not register. languageForge: deferred — do not pre-grant.
- * - Never Library prose. Never raw `_sf-backstage/codex.md` from siblings
+ * - Never Library prose. Never raw `_backstage/storyforge/codex.md` from siblings
  *   (use `ensureVirtualFolder` / `createNote` / `setType` host facades).
  * See docs/xforge-sibling-writes.md and docs/xforge-timelineforge-host-audit.md.
  */
 
 export class ForbiddenWriteError extends Error {
 	constructor(path: string) {
-		super(`storyForge refused to write to "${path}": outside ${BACKSTAGE_ROOT}/ or ${BACKUPS_FOLDER}/`);
+		super(
+			`storyForge refused to write to "${path}": outside ${BACKSTAGE_ROOT}/, ${BACKUPS_FOLDER}/, or ${LIBRARY_ROOT}/series.md and novel-<code>.md`,
+		);
 		this.name = "ForbiddenWriteError";
 	}
 }
 
 /**
  * Collapses `.` / `..` segments so a prefix check cannot be fooled by paths
- * like `_sf-backstage/../Codex/x.md`. Rejects absolute paths and null bytes.
- * Exported for unit tests.
+ * like `_backstage/storyforge/../Codex/x.md`. Rejects absolute paths and null
+ * bytes. Exported for unit tests.
  */
 export function normalizeVaultPath(path: string): string {
 	if (path.startsWith("/") || path.includes("\0")) {
@@ -53,9 +58,19 @@ export function normalizeVaultPath(path: string): string {
 	return out.join("/");
 }
 
-/** Throws ForbiddenWriteError unless `path` resolves strictly under `_sf-backstage/`. Exported for tests. */
+/**
+ * Throws ForbiddenWriteError unless `path` resolves strictly under
+ * `_backstage/storyforge/` — with a narrow exception for `series.md` and
+ * `novel-<code>.md`, which live flat at the library root but are still
+ * plugin-managed metadata, not prose. Everything else under the library root
+ * (the actual chapter files, one segment deeper) stays forbidden below.
+ * Exported for tests.
+ */
 export function assertBackstagePath(path: string): void {
 	const normalized = normalizeVaultPath(path);
+	if (normalized === seriesFilePath() || isLibraryNovelPath(normalized)) {
+		return;
+	}
 	const forbidden =
 		normalized === LIBRARY_ROOT ||
 		normalized.startsWith(`${LIBRARY_ROOT}/`) ||

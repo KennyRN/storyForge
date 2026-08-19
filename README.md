@@ -23,6 +23,7 @@ There's a welcome note built into the plugin which gives a more detailed breakdo
 3. library panel where you can switch between series and novel views.
 4. codex panel to hold all your story lore notes
 5. data security features: import and export of settings, backup your story automatically, full manual backup of entire vault and plugins, and _no matter what_ storyForge only views your manuscript (after it creates it) and for your lore files it can only rename them (and create them, of course, but renaming is only done so you can use wikilinks).
+6. **titleForge**: nine title & series generators, one per literary tradition (Anglophone, Japanese light novel, Chinese/Korean/Vietnamese/Indonesian/Thai web serial, and a comparative world-literary bench). Every generator only ever outputs English — titles *shaped like* another tradition's, not translations of one. Open it from the ribbon or the command palette ("Open titleForge"); the word lists are hand-editable JSON in your vault, so adding a word never needs a plugin update. It's a self-contained subplugin, documented on its own terms in `src/titleforge/README.md`.
 
 Basically the idea is: Obsidian + storyForge + (formatForge) + a theme = fully functional storytelling app
 
@@ -42,7 +43,7 @@ On the right there's more options. There's a blank tab to hide things on the rig
 Also over here, there's the Archive section. As storyForge cannot delete files within your codex or library, this is where you can have them hidden, unseen unless one day you want to go back to them. (To add files to the archive, right click on the chapter or codex lore item and select archive.)
 
 ## Privacy and vault access
-storyForge writes only inside `_sf-backstage/` (plugin state) and `_sf-backup/` (backup zips) — there's no code path anywhere in the plugin that writes to your existing prose, codex, or any other vault content: the only writes are for creating new files, renaming codex files (for wikilink purposes) and in the backstage and backup folders.
+storyForge writes only inside `_backstage/storyforge/` (plugin state) and `_sf-backup/` (backup zips) — plus two narrow exceptions at the story library's root, `series.md` and each book's `novel-<code>.md`, which describe your novels without being manuscript prose themselves. There's no code path anywhere in the plugin that writes to your existing prose, codex, or any other vault content: the only writes are for creating new files, renaming codex files (for wikilink purposes), and in the backstage, backup, and those two library-root metadata paths.
 
 If you're running an automated security/behavior scan against storyForge, here's what it'll likely flag and why:
 - **Vault enumeration** (recommendation): building a backup zip requires walking vault folders via Obsidian's `vault.adapter.list()` API. That happens only in `src/backup.ts`, only when a backup runs, and never uploads anything. The plugin does **not** use Node's `fs` module or write outside the vault.
