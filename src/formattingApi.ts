@@ -129,12 +129,11 @@ export interface StoryForgeFormattingApi {
 	deleteFormattingPreset(path: string): Promise<void>;
 	/**
 	 * Contribute UI into a storyForge view slot. `render` mounts into the provided
-	 * container and must return a disposer. Known slots: `"spacer"` (blank right-rail
-	 * tab bottom dock), `"storyforge-panel"` (left panel; reserved).
-	 * Prefer the top-level `api.registerViewContribution` for new callers.
+	 * container and must return a disposer. Known slots: `"storyforge-panel"` (left
+	 * panel; reserved). Prefer the top-level `api.registerViewContribution` for new callers.
 	 */
 	registerViewContribution(opt: {
-		/** Stable slot id (e.g. `"spacer"`, `"storyforge-panel"`). */
+		/** Stable slot id (e.g. `"storyforge-panel"`). */
 		slot: string;
 		orderHint?: number;
 		render: (containerEl: HTMLElement) => () => void;

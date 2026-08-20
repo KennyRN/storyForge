@@ -653,41 +653,40 @@ async function ensureLibraryBookFolder(app: App, folderName: string): Promise<vo
 	}
 }
 
-const DEFAULT_BOOK_TITLE = "Untitled Novel";
-
-/** "Untitled Novel" / "Untitled Novel 2" / ... — same base+number disambiguation idiom as codex's uniqueChildPath. */
-function uniqueBookTitle(base: string, existingTitles: Iterable<string>): string {
-	const taken = new Set(existingTitles);
-	if (!taken.has(base)) return base;
-	let n = 2;
-	while (taken.has(`${base} ${n}`)) n++;
-	return `${base} ${n}`;
-}
+/** Contains "#" deliberately — applyHashNumbering resolves it to each book's series position at
+ * display time (see numberedBookTitle), so every auto-titled book is distinct ("Novel 1", "Novel 2",
+ * ...) without needing its own disambiguation pass the way a flat default title once did. */
+const DEFAULT_BOOK_TITLE = "Novel #";
 
 /**
  * Creates a new book: a folder named with a gap-free sequential letter code
  * (aaa, aab, ... — the same scheme chapter codes use) in both the story
- * library and backstage, registered in series.md and appended to the series
- * order.
+ * library and backstage, registered in series.md. Only the very first book
+ * in an empty vault is appended to the series order (so a brand-new vault
+ * isn't left with an empty-looking series pane) — every book after that
+ * lands in Unplaced instead, same as a new chapter does, so the writer
+ * decides where it belongs in the sequence.
  */
 export async function createBook(app: App, initialTitle?: string): Promise<{ folderName: string; bookId: string }> {
 	const { order, books } = readSeriesFrontmatter(app);
+	const existingFolders = getLibraryBookFolders(app);
 	const candidateSpace = new Set<string>([
-		...getLibraryBookFolders(app).map((f) => f.name),
+		...existingFolders.map((f) => f.name),
 		...Object.keys(books),
 		...order,
 	]);
 	const folderName = nextNovelCode(candidateSpace);
 	const bookId = mintId(folderName, collectAllBookIds(app));
-	const bookTitle =
-		initialTitle?.trim() || uniqueBookTitle(DEFAULT_BOOK_TITLE, Object.values(books).map((entry) => entry.bookTitle));
-	// Appended to the end of `order`, so its display position is right after
-	// every book already placed (read before writing — no stale-cache risk).
-	const { ordered } = getSeriesBooks(app);
-	const position = ordered.length + 1;
+	const bookTitle = initialTitle?.trim() || DEFAULT_BOOK_TITLE;
+	const isFirstBook = existingFolders.length === 0;
+	// Read before writing — no stale-cache risk. Position is this book's spot in the display
+	// sequence (ordered, then unplaced): right after every already-placed book when it's placed
+	// itself, or after every already-unplaced book too when it's landing in Unplaced instead.
+	const { ordered, unplaced } = getSeriesBooks(app);
+	const position = isFirstBook ? ordered.length + 1 : ordered.length + unplaced.length + 1;
 
 	await ensureLibraryBookFolder(app, folderName);
-	await upsertSeriesBookEntry(app, folderName, bookId, bookTitle, { appendToOrder: true });
+	await upsertSeriesBookEntry(app, folderName, bookId, bookTitle, { appendToOrder: isFirstBook });
 	await writeBookReferenceFields(app, folderName, bookId, bookTitle, position);
 
 	return { folderName, bookId };
@@ -696,11 +695,12 @@ export async function createBook(app: App, initialTitle?: string): Promise<{ fol
 /**
  * Creates a new chapter: a file named `<chapter-id>.md` (lowercase, e.g.
  * "knna_chapter-aaa.md") directly in the book's story-library folder,
- * registered in novel-<code>.md's `chapters` map with a default "Untitled" title,
- * then opened (unless `openFile: false` — the idea-chapter creation path
- * deliberately doesn't steal editor focus). Creating the empty manuscript
- * file (and `createBook`'s folder creation) are intentional library
- * exceptions — the plugin never modifies chapter prose after that.
+ * registered in novel-<code>.md's `chapters` map with a default "Chapter #" title
+ * (contains "#" deliberately — applyHashNumbering resolves it to the chapter's position at
+ * display time, same idiom as `DEFAULT_BOOK_TITLE`), then opened (unless `openFile: false` —
+ * the idea-chapter creation path deliberately doesn't steal editor focus). Creating the empty
+ * manuscript file (and `createBook`'s folder creation) are intentional library exceptions —
+ * the plugin never modifies chapter prose after that.
  */
 export async function createChapter(
 	app: App,
@@ -715,7 +715,7 @@ export async function createChapter(
 
 	await ensureLibraryBookFolder(app, bookFolderName);
 	const file = await app.vault.create(path, "");
-	await upsertChapterEntry(app, bookFolderName, filename, chapterId, "Untitled");
+	await upsertChapterEntry(app, bookFolderName, filename, chapterId, "Chapter #");
 	if (options?.openFile !== false) {
 		await app.workspace.getLeaf(false).openFile(file);
 	}

@@ -3,6 +3,8 @@ export const LIBRARY_ROOT = "_story-library";
 export const CODEX_ROOT = "Codex";
 /** Nested under a shared `_backstage/` parent — room for sibling xForge plugins to keep their own non-content state alongside storyForge's, each in its own subfolder, rather than each plugin claiming a vault-root name for itself. */
 export const BACKSTAGE_ROOT = "_backstage/storyforge";
+/** titleForge's own sibling region under the shared `_backstage/` parent — deliberately not nested under `BACKSTAGE_ROOT`, since titleForge is an extraction-ready subplugin (see `src/titleforge/README.md`), not storyForge bookkeeping. */
+export const TITLEFORGE_BACKSTAGE_ROOT = "_backstage/titleforge";
 /** Vault-root folder where backup zip files are written (Obsidian vault API only — no Node `fs`). Always excluded from backup zips. */
 export const BACKUPS_FOLDER = "_sf-backup";
 
@@ -95,12 +97,24 @@ export function isLibraryChapterPath(path: string): boolean {
 	return segments.length === 2 && segments[1].toLowerCase().endsWith(".md");
 }
 
-/** True if `path` is a `novel-<code>.md` metadata file directly at the library root — the write-guard exception alongside `series.md`, distinct from a chapter (which sits one segment deeper, inside a `<code>/` folder). */
-export function isLibraryNovelPath(path: string): boolean {
+/**
+ * True if `path` is any flat file directly at the library root (no nested
+ * segments) — the write-guard allowance covering `series.md`,
+ * `novel-<code>.md`, and any other library-root bookkeeping file, distinct
+ * from a chapter (which sits one segment deeper, inside a `<code>/` folder)
+ * or anything else nested inside a book folder.
+ *
+ * Requires a `.` in the remainder so a bare book-code folder itself (e.g.
+ * `_story-library/TECa`, one segment, no extension — book codes from
+ * `nextNovelCode` are plain letter sequences, never containing a `.`) is
+ * never mistaken for an allowed root file: that folder, and everything in
+ * it, must stay write-guard protected.
+ */
+export function isLibraryRootFilePath(path: string): boolean {
 	const prefix = `${LIBRARY_ROOT}/`;
 	if (!path.startsWith(prefix)) return false;
 	const rest = path.slice(prefix.length);
-	return rest.length > 0 && !rest.includes("/") && /^novel-.+\.md$/i.test(rest);
+	return rest.length > 0 && !rest.includes("/") && rest.includes(".");
 }
 
 /** Extracts the book folder name from a library chapter path, or null if not a chapter path. */

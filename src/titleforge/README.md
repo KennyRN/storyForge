@@ -20,8 +20,10 @@ corrupted every non-Latin-script character (`ACCURACY.md` has the full story).
 
 titleForge is a **subplugin**: it lives inside storyForge's repo and bundle
 today, but every module is prefixed (`TitleForge*` classes, `titleforge-*`
-view type and CSS classes, `_sf-backstage/titleforge/` vault root) and the
-whole folder is architecturally self-contained, so that pulling it out into
+view type and CSS classes, `_backstage/titleforge/` vault root — its own
+sibling region under the shared `_backstage/` parent, not nested under
+storyForge's own `_backstage/storyforge/`) and the whole folder is
+architecturally self-contained, so that pulling it out into
 its **own** standalone Obsidian plugin later is small, mechanical work rather
 than a rewrite. See "Extraction checklist" below.
 
@@ -108,9 +110,9 @@ A slot used more than once in one template must be indexed —
 ## Storage
 
 `storage.ts` is the *only* file that imports `obsidian`-vault-adjacent
-storyForge modules (`../paths.js` for `BACKSTAGE_ROOT`, `../writeGuard.js` for
-guarded writes). Everything titleForge writes lives under
-`_sf-backstage/titleforge/`:
+storyForge modules (`../paths.js` for `TITLEFORGE_BACKSTAGE_ROOT`,
+`../writeGuard.js` for guarded writes). Everything titleForge writes lives
+under `_backstage/titleforge/`:
 
 - `lexicons/*.json` — seeded from the bundled `.ts` defaults on first load,
   as **real, hand-editable JSON**. A vault copy always wins over the bundled
@@ -130,9 +132,9 @@ guarded writes). Everything titleForge writes lives under
 If this ever becomes its own installed plugin:
 
 1. Copy `src/titleforge/` into the new plugin's `src/`.
-2. `storage.ts`: change `TITLEFORGE_ROOT`'s meaning — point `root()` at the new
-   plugin's own vault-root constant instead of storyForge's `BACKSTAGE_ROOT`,
-   and replace the two `writeGuard.ts` calls with plain
+2. `storage.ts`: change `root()` to point at the new plugin's own vault-root
+   constant instead of storyForge's `TITLEFORGE_BACKSTAGE_ROOT`, and replace
+   the two `writeGuard.ts` calls with plain
    `vault.create`/`vault.modify` (writeGuard's only job was confining writes
    inside storyForge's folder, which a standalone plugin doesn't need).
 3. `TitleForgeController.ts`: swap the `ICON_NOTEBOOK` import for an owned SVG
@@ -148,7 +150,7 @@ If this ever becomes its own installed plugin:
 ## Extending it
 
 Adding a word or a whole tradition is data work, not code work, once seeded:
-edit the JSON under `_sf-backstage/titleforge/lexicons/` directly in the vault
+edit the JSON under `_backstage/titleforge/lexicons/` directly in the vault
 (or edit the bundled `.ts` module and re-copy it out via the settings modal's
 "Reset lexicon to bundled default"). The compact string form —
 `"gloss #tag *weight ^stem"` — is `gloss`, then `#tag`/`*weight` in any order,

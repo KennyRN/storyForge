@@ -14,6 +14,12 @@ export interface SeriesFrontmatter {
 	seriesId: string;
 	seriesTitle: string;
 	order: string[];
+	/** A separate, independently-persisted sequence for books *not* in `order` — unplaced books have
+	 * no position of their own in `order` (that's what "unplaced" means, see resolveOrder), so
+	 * reordering them needs a field of their own rather than borrowing `order`, which would place
+	 * them the moment they were written into it. Any unplaced folder missing from this list simply
+	 * falls back to natural order, trailing after the ones it does list (see getSeriesBooks). */
+	unplacedOrder: string[];
 	books: Record<string, SeriesBookEntry>;
 }
 
@@ -27,13 +33,14 @@ export interface RawSeriesBookEntry {
 export interface RawSeriesFrontmatter extends FrontMatterCache {
 	books?: Record<string, RawSeriesBookEntry>;
 	order?: unknown[];
+	"unplaced-order"?: unknown[];
 	"series-title"?: unknown;
 	"series-id"?: unknown;
 	/** Legacy pre-migration key, migrated to "series-title" by migrateSeriesTitleField. */
 	title?: unknown;
 }
 
-export const DEFAULT_SERIES_CONTENT = `---\nseries-title: Untitled Series\norder:\nbooks:\n---\n`;
+export const DEFAULT_SERIES_CONTENT = `---\nseries-title: Series\norder:\nbooks:\n---\n`;
 
 export function getLibraryBookFolders(app: App): TFolder[] {
 	const root = app.vault.getAbstractFileByPath(LIBRARY_ROOT);
@@ -58,22 +65,29 @@ function parseBooksMap(raw: unknown): Record<string, SeriesBookEntry> {
 export function readSeriesFrontmatter(app: App): SeriesFrontmatter {
 	const file = app.vault.getAbstractFileByPath(seriesFilePath());
 	if (!file) {
-		return { seriesId: "", seriesTitle: "Untitled Series", order: [], books: {} };
+		return { seriesId: "", seriesTitle: "Series", order: [], unplacedOrder: [], books: {} };
 	}
 	const cache = app.metadataCache.getCache(seriesFilePath());
 	const fm = cache?.frontmatter;
 	const order = Array.isArray(fm?.order) ? fm.order.filter((v: unknown) => typeof v === "string") : [];
+	const unplacedOrder = Array.isArray(fm?.["unplaced-order"])
+		? fm["unplaced-order"].filter((v: unknown) => typeof v === "string")
+		: [];
 	const seriesId = typeof fm?.["series-id"] === "string" ? fm["series-id"] : "";
-	const seriesTitle = typeof fm?.["series-title"] === "string" ? fm["series-title"] : "Untitled Series";
+	const seriesTitle = typeof fm?.["series-title"] === "string" ? fm["series-title"] : "Series";
 	const books = parseBooksMap(fm?.books);
-	return { seriesId, seriesTitle, order, books };
+	return { seriesId, seriesTitle, order, unplacedOrder, books };
 }
 
 export function getSeriesBooks(app: App): OrderResult<TFolder> & { seriesTitle: string } {
 	const folders = getLibraryBookFolders(app);
-	const { seriesTitle, order } = readSeriesFrontmatter(app);
-	const result = resolveOrder(folders, order, (folder) => folder.name);
-	return { seriesTitle, ...result };
+	const { seriesTitle, order, unplacedOrder } = readSeriesFrontmatter(app);
+	const { ordered, unplaced } = resolveOrder(folders, order, (folder) => folder.name);
+	// Unplaced books have no slot in `order` (that's what makes them unplaced) — sort them by their
+	// own separately-persisted sequence instead, via the same resolveOrder primitive: anything not
+	// yet in unplacedOrder (e.g. a freshly created book) just trails after in natural order.
+	const { ordered: unplacedSorted, unplaced: unplacedRest } = resolveOrder(unplaced, unplacedOrder, (folder) => folder.name);
+	return { seriesTitle, ordered, unplaced: [...unplacedSorted, ...unplacedRest] };
 }
 
 export function getSeriesBookEntry(app: App, folderName: string): SeriesBookEntry | null {
@@ -125,6 +139,14 @@ export async function writeSeriesTitle(app: App, newTitle: string): Promise<void
 export async function writeSeriesOrder(app: App, newOrder: string[]): Promise<void> {
 	await modifyBackstageFrontmatter<RawSeriesFrontmatter>(app, app.vault, seriesFilePath(), DEFAULT_SERIES_CONTENT, (fm) => {
 		fm.order = newOrder;
+	});
+}
+
+/** Persists a drag-reorder of the *unplaced* books among themselves — see SeriesFrontmatter's
+ * `unplacedOrder` doc comment for why this is a separate field from `order` rather than reusing it. */
+export async function writeUnplacedOrder(app: App, newOrder: string[]): Promise<void> {
+	await modifyBackstageFrontmatter<RawSeriesFrontmatter>(app, app.vault, seriesFilePath(), DEFAULT_SERIES_CONTENT, (fm) => {
+		fm["unplaced-order"] = newOrder;
 	});
 }
 
@@ -181,6 +203,9 @@ export async function renameSeriesBookEntry(app: App, oldFolderName: string, new
 		}
 		if (Array.isArray(fm.order)) {
 			fm.order = fm.order.map((entry) => (entry === oldFolderName ? newFolderName : entry));
+		}
+		if (Array.isArray(fm["unplaced-order"])) {
+			fm["unplaced-order"] = fm["unplaced-order"].map((entry) => (entry === oldFolderName ? newFolderName : entry));
 		}
 	});
 }

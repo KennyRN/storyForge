@@ -9,27 +9,24 @@ import {
 	setTooltip,
 } from "obsidian";
 import type StoryForgePlugin from "../main";
+import type { StoryForgeCompanionPanel } from "../hostApi";
 import {
 	getBookChapters,
 	getChapterEntry,
 	numberedChapterTitle,
 	readBookFrontmatter,
-	readBookSynopsis,
 	readChapterPlot,
 	renameChapterTitle,
-	writeBookCoverImage,
-	writeBookSynopsis,
 	writeChapterLocation,
 	writeChapterPlot,
 	writeChapterPov,
-	writeDefaultPov,
 } from "../book";
 import { CODEX_TYPES, codexTypeIcon, getCodexEntriesByType } from "../codex";
 import { debounce } from "../debounce";
-import { ICON_ADD_SQUARE, ICON_ARCHIVE, ICON_CHECK_SQUARE, ICON_LOCATION_TARGET_SQUARE, ICON_MAP_PIN, ICON_MAP_PIN_PLUS, ICON_MINUS_SQUARE, ICON_MULTIPLY_SQUARE, ICON_NOTEBOOK, ICON_PERSON_FILL, ICON_PERSON_FILL_ADD, ICON_PLUS_SQUARE, ICON_REFRESH_SQUARE, ICON_TIMELINE } from "../icons";
-import { bookBackstagePath, bookFolderNameFromChapterPath, CODEX_ROOT, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath } from "../paths";
-import { getBookId, numberedBookTitle } from "../series";
-import { splitTitleSubtitle } from "../titleNumbering";
+import { ICON_ADD_SQUARE, ICON_ARCHIVE_FILLED, ICON_BOOK_DUOTONE, ICON_BOOK_OPEN_FILLED, ICON_CHECK_SQUARE, ICON_CLIPBOARD_LIST_DUOTONE, ICON_FOCUS_OFF, ICON_FOCUS_ON, ICON_FORGE, ICON_LOCATION_TARGET_SQUARE, ICON_MAP_PIN, ICON_MAP_PIN_PLUS, ICON_MINUS_SQUARE, ICON_MULTIPLY_SQUARE, ICON_NOTEBOOK_DUOTONE, ICON_PERSON_FILL, ICON_PERSON_FILL_ADD, ICON_PLUS_SQUARE, ICON_REFRESH_SQUARE } from "../icons";
+import { bookFolderNameFromChapterPath, CODEX_ROOT, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath, seriesFilePath } from "../paths";
+import { OBSIDIAN_SELECTORS } from "../obsidianInternals";
+import { getBookId } from "../series";
 import { groupHitsByChapter, lensLabel } from "../recommend/hitGrouping";
 import { writeRecommendCache } from "../recommend/cache";
 import {
@@ -52,6 +49,7 @@ import { renderArchiveList, renderArchiveTabs, type ArchiveMode } from "./archiv
 import { CodexEntryPickerModal } from "./CodexEntryPickerModal";
 import { CodexLoreTypeModal } from "./CodexLoreTypeModal";
 import { DossierEntitySuggest } from "./DossierEntitySuggest";
+import { iconAction, renderMetaControl, renderNovelPanel } from "./NovelPanel";
 
 export const RECOMMEND_VIEW_TYPE = "storyforge-recommend-view";
 
@@ -69,6 +67,20 @@ export class RecommendationView extends ItemView {
 	private closed = false;
 	private nlpReady = false;
 	private loading = false;
+	/** Focus Mode: blanks this panel down to just its own tab-header icon (toggled by clicking
+	 * that icon, see registerTabHeaderFocusToggle()). Session-only, like mode/showingArchive above
+	 * - the plugin has no settings field for this, so nothing is persisted across restarts. Single
+	 * instance only: main.ts's ensureRightRailPanelsUnlocked()/dedupeLeavesOfType() already keep
+	 * RecommendationView to one leaf, so per-instance state here is effectively global. */
+	private focusMode = false;
+	/** Forge family: whether the member-icon row is showing, which member (if any) has its panel
+	 * embedded, and that panel's disposer. One shared piece of state rendered in two places - the
+	 * "Forge family" tab in .sf-recommend-tabs (normal view) and the trigger in the blank Focus
+	 * Mode panel (renderFocusModeContent()) - so an open companion window survives toggling Focus
+	 * Mode, just relocated into whichever chrome is showing. */
+	private forgeFamilyExpanded = false;
+	private forgeFamilyActiveId: string | null = null;
+	private forgeFamilyPanelDisposer: (() => void) | null = null;
 
 	/** Dossier tab state */
 	private dossierQuery = "";
@@ -89,11 +101,16 @@ export class RecommendationView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return "Story Context";
+		// Doubles as this tab's accessible label/tooltip (Obsidian's own tab-header mechanism) -
+		// carries the Focus state so assistive tech gets it without any redundant DOM of our own.
+		return this.focusMode ? "Story Context — Focus Mode: On" : "Story Context — Focus Mode: Off";
 	}
 
 	getIcon(): string {
-		return ICON_NOTEBOOK;
+		// The tab-header icon IS the Focus toggle (see registerTabHeaderFocusToggle()) - it no
+		// longer identifies this as "the notebook/Story Context view" the way it used to, since
+		// this is the only plugin-view tab in the right rail meant to carry that control.
+		return this.focusMode ? ICON_FOCUS_ON : ICON_FOCUS_OFF;
 	}
 
 	private readonly debouncedReload = debounce(() => void this.reload(), 500);
@@ -101,6 +118,7 @@ export class RecommendationView extends ItemView {
 	async onOpen(): Promise<void> {
 		this.contentEl.addClass("sf-recommend-view");
 		this.contentEl.addClass("sf-context-view");
+		this.registerTabHeaderFocusToggle();
 		this.registerEvent(this.app.workspace.on("active-leaf-change", () => this.followActiveFile()));
 		this.registerEvent(this.app.workspace.on("file-open", () => this.followActiveFile()));
 		this.registerEvent(
@@ -112,7 +130,11 @@ export class RecommendationView extends ItemView {
 					isLibraryChapterPath(file.path) ||
 					file.path.startsWith(codexPrefix) ||
 					file.path.endsWith("codex.md") ||
-					file.path.endsWith("novel.md")
+					file.path.endsWith("novel.md") ||
+					// series.md's order/unplaced-order/title changes affect this panel's own numbered
+					// title (numberedBookTitle) on the Novel tab — without this, dragging a book's
+					// position elsewhere (or renaming the series) left this panel silently stale.
+					file.path === seriesFilePath()
 				) {
 					if (this.showingArchive) this.render();
 					else this.debouncedReload();
@@ -127,6 +149,56 @@ export class RecommendationView extends ItemView {
 	async onClose(): Promise<void> {
 		this.closed = true;
 		this.debouncedReload.cancel();
+		this.disposeForgeFamilyPanel();
+	}
+
+	/** main.ts's registerCompanionPanel() nudge: a companion panel just registered/unregistered
+	 * elsewhere, so the Forge-family tab's availability (and its row's contents) may be stale. */
+	refreshForgeFamily(): void {
+		this.render();
+	}
+
+	/** Obsidian has no public event for "the tab-header icon was clicked" - only
+	 * `active-leaf-change`, which fires for the whole tab (including switching to it from
+	 * elsewhere) and carries no click-target information. `leaf.tabHeaderEl` isn't public API
+	 * either, but it's the one DOM node Obsidian gives every leaf for its own header row, and
+	 * changing it has been stable across recent Obsidian releases; if a future release removes it
+	 * the toggle just becomes unreachable from the header (checked defensively below) rather than
+	 * throwing. Registered via registerDomEvent so it's torn down automatically on view unload.
+	 * Skips the header's own close ("×") button so closing the tab doesn't also flip Focus on the
+	 * way out, and doesn't call preventDefault/stopPropagation so Obsidian's own tab-activation
+	 * click handling still runs underneath it. */
+	private registerTabHeaderFocusToggle(): void {
+		const headerEl = (this.leaf as unknown as { tabHeaderEl?: HTMLElement }).tabHeaderEl;
+		if (!headerEl) return;
+		this.registerDomEvent(headerEl, "click", (evt) => {
+			if ((evt.target as HTMLElement).closest(".workspace-tab-header-inner-close-button")) return;
+			this.toggleFocusMode();
+		});
+	}
+
+	private toggleFocusMode(): void {
+		this.focusMode = !this.focusMode;
+		// A live Forge-family companion window (forgeFamilyActiveId/forgeFamilyPanelDisposer)
+		// isn't reset here - it's the same window shown in both layouts (renderFocusModeContent()
+		// below re-mounts it into the blank panel's own chrome), just relocated, not dismissed.
+		this.render(true);
+		this.syncTabHeader();
+	}
+
+	/** Repaints this leaf's own tab icon + tooltip from the current getIcon()/getDisplayText() in
+	 * place, without recreating the leaf/view - no public API does that for an already-open
+	 * ItemView. Reaches into the same undocumented header node registerTabHeaderFocusToggle()
+	 * uses, isolated here for the same reason. */
+	private syncTabHeader(): void {
+		const headerEl = (this.leaf as unknown as { tabHeaderEl?: HTMLElement }).tabHeaderEl;
+		if (!headerEl) return;
+		const iconEl = headerEl.querySelector<HTMLElement>(OBSIDIAN_SELECTORS.tabHeaderInnerIcon);
+		if (iconEl) {
+			iconEl.empty();
+			setIcon(iconEl, this.getIcon());
+		}
+		setTooltip(headerEl, this.getDisplayText());
 	}
 
 	/** Called when opened from Codex — seed from storyForge selection. */
@@ -134,6 +206,35 @@ export class RecommendationView extends ItemView {
 		const settings = this.plugin.getSettings();
 		if (settings.selectedNovel) this.bookFolderName = settings.selectedNovel;
 		if (settings.selectedObject) this.chapterFilename = settings.selectedObject;
+	}
+
+	/** Series panel (left sidebar) selected a novel — jump this panel to its Novel tab and show it,
+	 * mirroring selectMode("novel")'s own tab-switch reset. Takes the book folder name directly
+	 * (rather than re-reading settings, as syncFromPluginSelection does) to avoid a race with
+	 * StoryForgeView's own async persistSelection() write. */
+	focusNovel(bookFolderName: string): void {
+		this.showingArchive = false;
+		this.mode = "novel";
+		this.forgeFamilyExpanded = false;
+		this.forgeFamilyActiveId = null;
+		this.disposeForgeFamilyPanel();
+		this.bookFolderName = bookFolderName;
+		void this.reload();
+	}
+
+	/** storyLibrary panel's Novel-layout entry (StoryForgeView.ts's openNovelOverview) — jump this
+	 * panel to its Chapter tab and show the given chapter, mirroring focusNovel()'s own tab-switch
+	 * reset. Takes both book and chapter directly (rather than re-reading settings) for the same
+	 * race-avoidance reason focusNovel() does. */
+	focusChapter(bookFolderName: string, filename: string): void {
+		this.showingArchive = false;
+		this.mode = "chapter";
+		this.forgeFamilyExpanded = false;
+		this.forgeFamilyActiveId = null;
+		this.disposeForgeFamilyPanel();
+		this.bookFolderName = bookFolderName;
+		this.chapterFilename = filename;
+		void this.reload();
 	}
 
 	/** Open Archive under Story Context (Codex or Novel tab). */
@@ -256,53 +357,90 @@ export class RecommendationView extends ItemView {
 		);
 	}
 
-	private render(): void {
+	/**
+	 * `force` is for the toggles that change what's embedded below .sf-recommend-tabs
+	 * (toggleFocusMode/toggleForgeFamilyExpanded/toggleForgeFamilyPanel) only - every other caller
+	 * (reload(), file/vault watchers, …) should leave it false. While a Forge-family companion
+	 * panel is embedded (forgeFamilyPanelDisposer set) an unforced call is a no-op: without this,
+	 * an unrelated background event (a file saved elsewhere, a metadata-cache update, …) calling
+	 * render() would tear down and re-mount that sibling's live panel - discarding whatever
+	 * internal state (scroll position, an open input, …) it was holding - for no reason of its
+	 * own. The panel is still rebuilt correctly on every state change that actually concerns it,
+	 * since those all go through render(true).
+	 */
+	private render(force = false): void {
 		if (this.closed) return;
+		if (!force && this.forgeFamilyPanelDisposer) return;
 		const el = this.contentEl;
 		el.empty();
 		el.addClass("sf-recommend-view");
 		el.addClass("sf-context-view");
+		// Focus Mode (toggled from this view's own tab-header icon, see registerTabHeaderFocusToggle
+		// above): blank the panel entirely rather than simplify it - left sidebar and every other
+		// right-rail tab are untouched, this only ever touches this view's own contentEl.
+		if (this.focusMode) {
+			this.renderFocusModeContent(el);
+			return;
+		}
 
+		// Icon-only, matching the left sidebar's storyLibrary panel (StoryForgeView.ts's own
+		// .sf-layout-tab layout-select row) both in icon size (styles.css) and in treatment - a
+		// plain colour highlight for hover/active, no background chip.
 		const tabs = el.createDiv({ cls: "sf-recommend-tabs" });
 		const novelTab = tabs.createSpan({
 			cls: `sf-recommend-tab${!this.showingArchive && this.mode === "novel" ? " is-active" : ""}`,
-			text: "Novel",
 			attr: {
 				role: "tab",
 				tabindex: "0",
+				"aria-label": "Novel",
 				"aria-selected": String(!this.showingArchive && this.mode === "novel"),
 			},
 		});
+		setIcon(novelTab, ICON_BOOK_DUOTONE);
+		setTooltip(novelTab, "Novel");
 		const chapterTab = tabs.createSpan({
 			cls: `sf-recommend-tab${!this.showingArchive && this.mode === "chapter" ? " is-active" : ""}`,
-			text: "Chapter",
 			attr: {
 				role: "tab",
 				tabindex: "0",
+				"aria-label": "Chapter",
 				"aria-selected": String(!this.showingArchive && this.mode === "chapter"),
 			},
 		});
+		setIcon(chapterTab, ICON_BOOK_OPEN_FILLED);
+		setTooltip(chapterTab, "Chapter");
 		const detailsTab = tabs.createSpan({
 			cls: `sf-recommend-tab${!this.showingArchive && this.mode === "details" ? " is-active" : ""}`,
-			text: "Details",
 			attr: {
 				role: "tab",
 				tabindex: "0",
+				"aria-label": "Details",
 				"aria-selected": String(!this.showingArchive && this.mode === "details"),
 			},
 		});
+		setIcon(detailsTab, ICON_CLIPBOARD_LIST_DUOTONE);
+		setTooltip(detailsTab, "Details");
+		// The old Story Context tab-header icon (see getIcon()'s comment), freed up once that icon
+		// became the Focus Mode toggle.
 		const dossierTab = tabs.createSpan({
 			cls: `sf-recommend-tab${!this.showingArchive && this.mode === "dossier" ? " is-active" : ""}`,
-			text: "Dossier",
 			attr: {
 				role: "tab",
 				tabindex: "0",
+				"aria-label": "Dossier",
 				"aria-selected": String(!this.showingArchive && this.mode === "dossier"),
 			},
 		});
+		setIcon(dossierTab, ICON_NOTEBOOK_DUOTONE);
+		setTooltip(dossierTab, "Dossier");
 		const selectMode = (mode: RecommendMode) => {
 			this.showingArchive = false;
 			this.mode = mode;
+			// Novel/Chapter/Details/Dossier aren't part of the Forge-family window's pane - "when
+			// click on other tabs all forge family icons should go".
+			this.forgeFamilyExpanded = false;
+			this.forgeFamilyActiveId = null;
+			this.disposeForgeFamilyPanel();
 			void this.reload();
 		};
 		novelTab.addEventListener("click", () => selectMode("novel"));
@@ -314,6 +452,36 @@ export class RecommendationView extends ItemView {
 		makeAccessibleActivatable(detailsTab, () => selectMode("details"));
 		makeAccessibleActivatable(dossierTab, () => selectMode("dossier"));
 
+		// Forge family sits between Dossier and Archive - only when at least one companion panel
+		// is registered (plugin.getCompanionPanels()); this tab doesn't exist at all otherwise.
+		// A tab, not a toggle: clicking it always shows the member-icon row (selectForgeFamily()
+		// below), same as clicking Novel/Chapter/Details/Dossier always shows that mode - it never
+		// self-collapses, only picking a different tab (selectMode()/toggleArchive() above/below)
+		// hides it again.
+		const forgeFamily = this.plugin.getCompanionPanels();
+		if (this.forgeFamilyActiveId && !forgeFamily.some((p) => p.id === this.forgeFamilyActiveId)) {
+			this.forgeFamilyActiveId = null;
+		}
+		if (forgeFamily.length > 0) {
+			const forgeTab = tabs.createSpan({
+				cls: `sf-recommend-tab sf-recommend-tab--forge-family${this.forgeFamilyExpanded ? " is-active" : ""}`,
+				attr: {
+					role: "tab",
+					tabindex: "0",
+					"aria-label": "Forge family",
+					"aria-selected": String(this.forgeFamilyExpanded),
+				},
+			});
+			setIcon(forgeTab, ICON_FORGE);
+			setTooltip(forgeTab, "Forge family");
+			const selectForgeFamily = () => this.selectForgeFamily();
+			forgeTab.addEventListener("click", (e) => {
+				e.stopPropagation();
+				selectForgeFamily();
+			});
+			makeAccessibleActivatable(forgeTab, selectForgeFamily);
+		}
+
 		const archiveTab = tabs.createSpan({
 			cls: `sf-recommend-tab sf-recommend-tab--archive${this.showingArchive ? " is-active" : ""}`,
 			attr: {
@@ -323,9 +491,13 @@ export class RecommendationView extends ItemView {
 				"aria-selected": String(this.showingArchive),
 			},
 		});
-		setIcon(archiveTab, ICON_ARCHIVE);
+		setIcon(archiveTab, ICON_ARCHIVE_FILLED);
 		const toggleArchive = () => {
 			this.showingArchive = !this.showingArchive;
+			// Same reasoning as selectMode() above - Archive isn't the Forge-family window's pane.
+			this.forgeFamilyExpanded = false;
+			this.forgeFamilyActiveId = null;
+			this.disposeForgeFamilyPanel();
 			this.render();
 		};
 		archiveTab.addEventListener("click", (e) => {
@@ -333,6 +505,15 @@ export class RecommendationView extends ItemView {
 			toggleArchive();
 		});
 		makeAccessibleActivatable(archiveTab, toggleArchive);
+
+		// Forge-family member-icon row, directly under the tabs, right-aligned under the tab
+		// above - then, if a member is open, its embedded panel takes over the rest of the panel
+		// (tabs + row stay visible so it can be switched or closed), same precedence Archive has.
+		if (forgeFamily.length > 0 && this.forgeFamilyExpanded) {
+			const row = el.createDiv({ cls: "sf-recommend-view__forge-row" });
+			this.renderForgeFamilyIcons(row, forgeFamily);
+		}
+		if (this.mountActiveForgeFamilyPanel(el, forgeFamily)) return;
 
 		if (this.showingArchive) {
 			const body = el.createDiv({ cls: "sf-recommend-body" });
@@ -349,7 +530,7 @@ export class RecommendationView extends ItemView {
 			};
 			const fixed = archiveBody.createDiv({ cls: "sf-recommend-fixed" });
 			const archiveHeader = fixed.createDiv({ cls: "sf-archive-embedded-header" });
-			setIcon(archiveHeader.createSpan({ cls: "sf-icon" }), ICON_ARCHIVE);
+			setIcon(archiveHeader.createSpan({ cls: "sf-icon" }), ICON_ARCHIVE_FILLED);
 			archiveHeader.createSpan({ cls: "sf-archive-view-title", text: "Archive" });
 			renderArchiveTabs(fixed, host);
 			renderArchiveList(archiveBody.createDiv({ cls: "sf-recommend-scroll" }), host);
@@ -378,253 +559,131 @@ export class RecommendationView extends ItemView {
 		this.renderChapter(el);
 	}
 
+	/**
+	 * Focus Mode's entire panel body: nothing but the Forge-family control, since everything else
+	 * this panel would normally show is hidden (the Focus toggle's own design keeps the
+	 * tab-header row itself to just the one icon too - this all lives in the panel content, which
+	 * is ours to use). Same shared forgeFamily* state as the normal tabs-region rendering above,
+	 * so a window already open there stays open when Focus Mode turns on, just relocated into this
+	 * chrome; renders nothing at all when no companion panel is registered.
+	 */
+	private renderFocusModeContent(el: HTMLElement): void {
+		const family = this.plugin.getCompanionPanels();
+		if (family.length === 0) return;
+		if (this.forgeFamilyActiveId && !family.some((p) => p.id === this.forgeFamilyActiveId)) {
+			this.forgeFamilyActiveId = null;
+		}
+
+		this.mountActiveForgeFamilyPanel(el, family);
+
+		// Bottom-right row (--focus modifier: margin-top: auto pushes it to the bottom of this flex
+		// column whether or not the panel above is present - a lone flex child isn't otherwise
+		// pushed down by an empty container). Member icons (if expanded) then the trigger
+		// last/rightmost - "shown … from right to left" - matching justify-content: flex-end.
+		const row = el.createDiv({ cls: "sf-recommend-view__forge-row sf-recommend-view__forge-row--focus" });
+		if (this.forgeFamilyExpanded) {
+			this.renderForgeFamilyIcons(row, family);
+		}
+		const trigger = row.createSpan({
+			cls: `sf-recommend-view__forge-family${this.forgeFamilyExpanded ? " is-active" : ""}`,
+			attr: { role: "button", tabindex: "0", "aria-label": "Forge family" },
+		});
+		setIcon(trigger, ICON_FORGE);
+		setTooltip(trigger, "Forge family");
+		const toggle = () => this.toggleForgeFamilyExpanded();
+		trigger.addEventListener("click", toggle);
+		makeAccessibleActivatable(trigger, toggle);
+	}
+
+	/** The tabs-region Forge-family tab: always shows the member-icon row (never toggles itself
+	 * off - "when click on other tabs all forge family icons should go" is what hides it, handled
+	 * by selectMode()/toggleArchive() above). Also drops out of Archive, the same way selecting
+	 * Novel/Chapter/Details/Dossier does. */
+	private selectForgeFamily(): void {
+		this.showingArchive = false;
+		this.forgeFamilyExpanded = true;
+		this.render(true);
+	}
+
+	/** Focus Mode's own trigger: a true toggle, since - unlike the tabs-region version above -
+	 * there's no other tab to click to dismiss it here. Collapsing also hides whatever member
+	 * panel was showing - "clicking on the forge family icon hides all the forge family plugin
+	 * icons and any displayed plugin panels." */
+	private toggleForgeFamilyExpanded(): void {
+		this.forgeFamilyExpanded = !this.forgeFamilyExpanded;
+		if (!this.forgeFamilyExpanded) {
+			this.forgeFamilyActiveId = null;
+			this.disposeForgeFamilyPanel();
+		}
+		this.render(true);
+	}
+
+	/** A family member's own icon (in either row): opens its panel, or - "clicking on the
+	 * plugin's icon hides the plugin view" - closes it again if it's the one already showing. The
+	 * row itself stays expanded either way. */
+	private toggleForgeFamilyPanel(pluginId: string): void {
+		this.forgeFamilyActiveId = this.forgeFamilyActiveId === pluginId ? null : pluginId;
+		this.render(true);
+	}
+
+	/** Shared by both forgeFamily rows (tabs-region and Focus Mode). */
+	private renderForgeFamilyIcons(row: HTMLElement, family: StoryForgeCompanionPanel[]): void {
+		for (const plugin of family) {
+			const btn = row.createSpan({
+				cls: `sf-recommend-view__forge-icon${plugin.id === this.forgeFamilyActiveId ? " is-active" : ""}`,
+				attr: { role: "button", tabindex: "0", "aria-label": plugin.label },
+			});
+			setIcon(btn, plugin.icon);
+			setTooltip(btn, plugin.label);
+			const toggle = () => this.toggleForgeFamilyPanel(plugin.id);
+			btn.addEventListener("click", toggle);
+			makeAccessibleActivatable(btn, toggle);
+		}
+	}
+
+	/** Mounts the active Forge-family companion's panel (if any) into `container`, disposing
+	 * whatever was mounted before - same disposer contract a Forge hub tab would use, since
+	 * removing the DOM alone doesn't clean up whatever listeners/timers the sibling set up.
+	 * Shared by both rendering paths (tabs-region and Focus Mode). Returns whether something is
+	 * now mounted, so the tabs-region caller knows to skip its own normal body/Archive below. */
+	private mountActiveForgeFamilyPanel(container: HTMLElement, family: StoryForgeCompanionPanel[]): boolean {
+		this.disposeForgeFamilyPanel();
+		const active = family.find((p) => p.id === this.forgeFamilyActiveId) ?? null;
+		if (!active) return false;
+		const panelEl = container.createDiv({ cls: "sf-recommend-view__forge-panel" });
+		this.forgeFamilyPanelDisposer = active.renderPanel(panelEl);
+		return true;
+	}
+
+	private disposeForgeFamilyPanel(): void {
+		if (!this.forgeFamilyPanelDisposer) return;
+		try {
+			this.forgeFamilyPanelDisposer();
+		} catch {
+			/* sibling disposer must not break the host */
+		}
+		this.forgeFamilyPanelDisposer = null;
+	}
+
+	/** Cover/synopsis/Default PoV/per-chapter plot — delegates to NovelPanel.ts's shared render
+	 * function, also used by the storyLibrary panel's Novel-layout main-pane page
+	 * (NovelOverviewView.ts) so the two stay identical rather than drifting apart. */
 	private renderNovel(el: HTMLElement): void {
-		const body = el.createDiv({ cls: "sf-recommend-body" });
-
-		if (!this.bookFolderName) {
-			body.addClass("sf-recommend-body--scroll");
-			body.createDiv({ cls: "sf-empty", text: "Select a novel to see its synopsis and plot." });
-			return;
-		}
-
-		const bookFolderName = this.bookFolderName;
-		const fixed = body.createDiv({ cls: "sf-recommend-fixed sf-recommend-novel-fixed" });
-
-		const cover = fixed.createDiv({ cls: "sf-synopsis-cover sf-recommend-novel-cover" });
-		this.renderNovelCover(cover, bookFolderName);
-		cover.addEventListener("click", () => this.pickNovelCover(cover, bookFolderName));
-
-		const numberedTitle = numberedBookTitle(this.app, bookFolderName);
-		const { title, subtitle } = splitTitleSubtitle(numberedTitle);
-		fixed.createDiv({ cls: "sf-recommend-novel-title", text: title });
-		if (subtitle) {
-			fixed.createDiv({ cls: "sf-recommend-novel-subtitle", text: subtitle });
-		}
-
-		const synopsis = fixed.createEl("textarea", {
-			cls: "sf-recommend-synopsis sf-recommend-novel-synopsis",
-			attr: { "aria-label": "Novel synopsis" },
+		// renderNovelPanel() unconditionally empties whatever container it's given (correct for
+		// NovelOverviewView.ts, which owns its whole page) — `el` here already has the tabs row
+		// built into it above, so it can't be passed directly or that row would be wiped out the
+		// instant this runs. A dedicated `display: contents` host isolates renderNovelPanel's own
+		// `.empty()` to just its own children while still laying its content out as if it were a
+		// direct flex child of `el` (its fixed/scroll split needs that to size correctly).
+		const host = el.createDiv({ cls: "sf-recommend-novel-host" });
+		renderNovelPanel(this.app, host, {
+			bookFolderName: this.bookFolderName,
+			emptyText: "Select a novel to see its synopsis and plot.",
+			castCache: this.castCache,
+			onOpenChapter: (bookFolderName, filename) => void this.openChapter(bookFolderName, filename),
+			onChanged: () => this.render(),
+			isStale: () => this.closed || this.mode !== "novel",
 		});
-		synopsis.addEventListener("pointerdown", (e) => e.stopPropagation());
-		synopsis.addEventListener("blur", () => {
-			void writeBookSynopsis(this.app, bookFolderName, synopsis.value);
-		});
-		void readBookSynopsis(this.app, bookFolderName).then((value) => {
-			if (this.closed || this.mode !== "novel") return;
-			synopsis.value = value;
-		});
-
-		const defaultPovSection = fixed.createDiv({ cls: "sf-recommend-section" });
-		this.renderDefaultPovRow(defaultPovSection, bookFolderName);
-
-		const plotLine = fixed.createDiv({ cls: "sf-book-line sf-synopsis-plot-title" });
-		setIcon(plotLine.createSpan({ cls: "sf-icon" }), ICON_TIMELINE);
-		const plotTitleRow = plotLine.createDiv({ cls: "sf-header-line sf-book-title-row" });
-		const plotTextWrap = plotTitleRow.createDiv({ cls: "sf-book-text-wrap" });
-		plotTextWrap.createSpan({ cls: "sf-header-text", text: "Plot" });
-
-		const scroll = body.createDiv({ cls: "sf-recommend-scroll" });
-		void this.renderNovelPlot(scroll, bookFolderName);
-	}
-
-	private renderNovelCover(cover: HTMLElement, bookFolderName: string): void {
-		cover.empty();
-		const coverImage = readBookFrontmatter(this.app, bookFolderName)?.coverImage ?? null;
-		const file = coverImage
-			? this.app.vault.getAbstractFileByPath(`${bookBackstagePath(bookFolderName)}/${coverImage}`)
-			: null;
-		if (file instanceof TFile) {
-			cover.addClass("has-image");
-			cover.createEl("img", { attr: { src: this.app.vault.getResourcePath(file) } });
-		} else {
-			cover.removeClass("has-image");
-		}
-	}
-
-	private pickNovelCover(cover: HTMLElement, bookFolderName: string): void {
-		const input = createEl("input", { type: "file", attr: { accept: "image/*" } });
-		input.addEventListener("change", () => {
-			const file = input.files?.[0];
-			if (!file) return;
-			if (!file.type.startsWith("image/")) {
-				new Notice("storyForge: please choose an image file for the cover.");
-				return;
-			}
-			void (async () => {
-				try {
-					const data = await file.arrayBuffer();
-					const dotIndex = file.name.lastIndexOf(".");
-					const extension =
-						dotIndex !== -1 ? file.name.slice(dotIndex + 1).toLowerCase() : file.type.split("/")[1] || "png";
-					await writeBookCoverImage(this.app, bookFolderName, data, extension);
-					this.renderNovelCover(cover, bookFolderName);
-				} catch (err) {
-					new Notice(`storyForge: could not set cover image — ${err instanceof Error ? err.message : String(err)}`);
-				}
-			})();
-		});
-		input.click();
-	}
-
-	private renderDefaultPovRow(parent: HTMLElement, bookFolderName: string): void {
-		const fm = readBookFrontmatter(this.app, bookFolderName);
-		const path = fm?.defaultPovPath ?? null;
-		const name = fm?.defaultPovName ?? null;
-		const meta = parent.createDiv({ cls: "sf-recommend-meta" });
-		const row = meta.createDiv({ cls: "sf-recommend-meta-row" });
-		row.createSpan({ cls: "sf-recommend-meta-label", text: "Default PoV:" });
-		this.renderMetaControl(row, {
-			iconId: path ? ICON_PERSON_FILL : ICON_PERSON_FILL_ADD,
-			value: path ? (name ?? path) : null,
-			tooltip: path ? "change pov character" : "set pov character",
-			onOpen: () => void this.openDefaultPovPicker(bookFolderName, !!path),
-		});
-	}
-
-	private async openDefaultPovPicker(bookFolderName: string, hasValue: boolean): Promise<void> {
-		const bookId = getBookId(this.app, bookFolderName);
-		const entries = getCodexEntriesByType(this.app, "person", bookId);
-		new CodexEntryPickerModal(
-			this.app,
-			"Set PoV",
-			"No person entries in the Codex yet.",
-			entries,
-			hasValue,
-			async (entry) => {
-				await writeDefaultPov(this.app, bookFolderName, entry.path, entry.name);
-				this.render();
-			},
-			async () => {
-				await writeDefaultPov(this.app, bookFolderName, null, null);
-				this.render();
-			},
-		).open();
-	}
-
-	private async renderNovelPlot(scroll: HTMLElement, bookFolderName: string): Promise<void> {
-		scroll.empty();
-		const { ordered } = getBookChapters(this.app, bookFolderName);
-		if (ordered.length === 0) {
-			scroll.createDiv({ cls: "sf-empty", text: "No placed chapters yet." });
-			return;
-		}
-		for (const file of ordered) {
-			const block = scroll.createDiv({ cls: "sf-recommend-plot-block" });
-			const headerRow = block.createDiv({ cls: "sf-recommend-plot-header-row" });
-			headerRow.createDiv({
-				cls: "sf-recommend-plot-chapter-name",
-				text: numberedChapterTitle(this.app, bookFolderName, file.name),
-			});
-			// Same icon/tooltip/behaviour as the Chapter tab's "go to chapter" control — this is the
-			// Novel tab's own per-chapter way to jump straight to a specific chapter from the plot list.
-			this.iconAction(headerRow, ICON_LOCATION_TARGET_SQUARE, "go to chapter", () => void this.openChapter(bookFolderName, file.name));
-
-			const entry = getChapterEntry(this.app, bookFolderName, file.name);
-			const narrator = resolveChapterNarrator(
-				this.app,
-				bookFolderName,
-				file.name,
-				this.castCache.length > 0 ? this.castCache : undefined,
-			);
-			const meta = block.createDiv({ cls: "sf-recommend-meta" });
-			this.renderPlotMetaRow(
-				meta,
-				"PoV:",
-				narrator ? ICON_PERSON_FILL : ICON_PERSON_FILL_ADD,
-				narrator?.name ?? null,
-				!!narrator,
-				() => void this.openNovelChapterPovPicker(bookFolderName, file.name, !!narrator),
-				narrator ? "change pov character" : "set pov character",
-			);
-			this.renderPlotMetaRow(
-				meta,
-				"Location:",
-				entry?.locationPath ? ICON_MAP_PIN : ICON_MAP_PIN_PLUS,
-				entry?.locationName ?? entry?.locationPath ?? null,
-				!!entry?.locationPath,
-				() => void this.openNovelChapterLocationPicker(bookFolderName, file.name, !!entry?.locationPath),
-				entry?.locationPath ? "change location" : "set location",
-			);
-
-			const textarea = block.createEl("textarea", {
-				cls: "sf-recommend-synopsis sf-recommend-plot-textarea",
-				attr: { "aria-label": `Plot notes for ${file.name}` },
-			});
-			textarea.addEventListener("pointerdown", (e) => e.stopPropagation());
-			textarea.addEventListener("blur", () => {
-				void writeChapterPlot(this.app, bookFolderName, file.name, textarea.value);
-			});
-			const plot = await readChapterPlot(this.app, bookFolderName, file.name);
-			if (this.closed || this.mode !== "novel") return;
-			textarea.value = plot;
-		}
-	}
-
-	private renderPlotMetaRow(
-		parent: HTMLElement,
-		label: string,
-		iconId: string,
-		value: string | null,
-		hasValue: boolean,
-		onOpen: () => void,
-		tooltip: string,
-	): void {
-		const row = parent.createDiv({ cls: "sf-recommend-meta-row" });
-		row.createSpan({ cls: "sf-recommend-meta-label", text: label });
-		this.renderMetaControl(row, {
-			iconId,
-			value: hasValue ? value : null,
-			tooltip,
-			onOpen,
-		});
-	}
-
-	private async openNovelChapterPovPicker(
-		bookFolderName: string,
-		filename: string,
-		hasValue: boolean,
-	): Promise<void> {
-		const bookId = getBookId(this.app, bookFolderName);
-		const entries = getCodexEntriesByType(this.app, "person", bookId);
-		new CodexEntryPickerModal(
-			this.app,
-			"Set PoV",
-			"No person entries in the Codex yet.",
-			entries,
-			hasValue,
-			async (entry) => {
-				await writeChapterPov(this.app, bookFolderName, filename, entry.path, entry.name);
-				this.render();
-			},
-			async () => {
-				await writeChapterPov(this.app, bookFolderName, filename, null, null);
-				this.render();
-			},
-		).open();
-	}
-
-	private async openNovelChapterLocationPicker(
-		bookFolderName: string,
-		filename: string,
-		hasValue: boolean,
-	): Promise<void> {
-		const bookId = getBookId(this.app, bookFolderName);
-		const entries = getCodexEntriesByType(this.app, "place", bookId);
-		new CodexEntryPickerModal(
-			this.app,
-			"Set location",
-			"No place entries in the Codex yet.",
-			entries,
-			hasValue,
-			async (entry) => {
-				await writeChapterLocation(this.app, bookFolderName, filename, entry.path, entry.name);
-				this.render();
-			},
-			async () => {
-				await writeChapterLocation(this.app, bookFolderName, filename, null, null);
-				this.render();
-			},
-		).open();
 	}
 
 	private renderChapter(el: HTMLElement): void {
@@ -702,8 +761,8 @@ export class RecommendationView extends ItemView {
 		// its bottom (`.sf-recommend-synopsis-actions` stretches to the row's full height and
 		// space-betweens its two children) — see styles.css.
 		const synopsisActions = synopsisRow.createDiv({ cls: "sf-recommend-synopsis-actions" });
-		this.iconAction(synopsisActions, ICON_REFRESH_SQUARE, "refresh story context", () => void this.forceRefresh());
-		this.iconAction(synopsisActions, ICON_ADD_SQUARE, "add chapter summary to chapter details", () => void this.sendSynopsis());
+		iconAction(synopsisActions, ICON_REFRESH_SQUARE, "refresh story context", () => void this.forceRefresh());
+		iconAction(synopsisActions, ICON_ADD_SQUARE, "add chapter summary to chapter details", () => void this.sendSynopsis());
 
 		const report = this.report;
 		const persons = report.matched.filter((m) => m.type === "person");
@@ -783,10 +842,10 @@ export class RecommendationView extends ItemView {
 			const label = hint.nerType ? `${hint.name} (${hint.nerType})` : hint.name;
 			row.createSpan({ cls: "sf-recommend-row-label", text: label });
 			const actions = row.createDiv({ cls: "sf-recommend-row-actions" });
-			this.iconAction(actions, ICON_PLUS_SQUARE, "add to codex", () =>
+			iconAction(actions, ICON_PLUS_SQUARE, "add to codex", () =>
 				void this.createStub(hint.name, hint.nerType),
 			);
-			this.iconAction(actions, ICON_MINUS_SQUARE, "ignore", () =>
+			iconAction(actions, ICON_MINUS_SQUARE, "ignore", () =>
 				void this.ignoreUnknownName(hint.name),
 			);
 		}
@@ -892,37 +951,17 @@ export class RecommendationView extends ItemView {
 		const actions = card.createDiv({ cls: "sf-recommend-hit-actions" });
 
 		if (hit.tier === "solid") {
-			this.iconAction(actions, ICON_CHECK_SQUARE, "detail added/accepted", () => void this.resolveHit(hit));
-			this.iconAction(actions, ICON_MINUS_SQUARE, "ignore this detail", () => void this.resolveHit(hit));
+			iconAction(actions, ICON_CHECK_SQUARE, "detail added/accepted", () => void this.resolveHit(hit));
+			iconAction(actions, ICON_MINUS_SQUARE, "ignore this detail", () => void this.resolveHit(hit));
 		} else if (hit.tier === "grey") {
-			this.iconAction(actions, ICON_CHECK_SQUARE, "detail added/accepted", () => void this.confirmAndResolve(hit));
-			this.iconAction(actions, ICON_MINUS_SQUARE, "ignore this detail", () => void this.rejectHit(hit));
+			iconAction(actions, ICON_CHECK_SQUARE, "detail added/accepted", () => void this.confirmAndResolve(hit));
+			iconAction(actions, ICON_MINUS_SQUARE, "ignore this detail", () => void this.rejectHit(hit));
 		} else if (hit.tier === "ambiguous") {
 			for (const name of hit.competingNames) {
 				const btn = actions.createEl("button", { text: name });
 				btn.addEventListener("click", () => void this.assignAmbiguous(hit, name));
 			}
 		}
-	}
-
-	/** Icon-only action control; aria-label drives Obsidian’s tooltip (no native `title`). */
-	private iconAction(
-		parent: HTMLElement,
-		iconId: string,
-		label: string,
-		onActivate: () => void,
-	): HTMLElement {
-		const btn = parent.createSpan({
-			cls: "sf-recommend-icon-btn",
-			attr: { "aria-label": label, tabindex: "0", role: "button" },
-		});
-		setIcon(btn, iconId);
-		btn.addEventListener("click", (e) => {
-			e.stopPropagation();
-			onActivate();
-		});
-		makeAccessibleActivatable(btn, onActivate);
-		return btn;
 	}
 
 	private renderDossier(el: HTMLElement): void {
@@ -1106,7 +1145,7 @@ export class RecommendationView extends ItemView {
 
 		const povRow = meta.createDiv({ cls: "sf-recommend-meta-row" });
 		povRow.createSpan({ cls: "sf-recommend-meta-label", text: "PoV:" });
-		this.renderMetaControl(povRow, {
+		renderMetaControl(povRow, {
 			iconId: narrator ? ICON_PERSON_FILL : ICON_PERSON_FILL_ADD,
 			value: narrator?.name ?? null,
 			tooltip: narrator ? "change pov character" : "set pov character",
@@ -1115,33 +1154,12 @@ export class RecommendationView extends ItemView {
 
 		const locRow = meta.createDiv({ cls: "sf-recommend-meta-row" });
 		locRow.createSpan({ cls: "sf-recommend-meta-label", text: "Location:" });
-		this.renderMetaControl(locRow, {
+		renderMetaControl(locRow, {
 			iconId: locationPath ? ICON_MAP_PIN : ICON_MAP_PIN_PLUS,
 			value: locationPath ? (locationName ?? locationPath) : null,
 			tooltip: locationPath ? "change location" : "set location",
 			onOpen: () => void this.openLocationPicker(!!locationPath),
 		});
-	}
-
-	/** Icon (+ optional name) as a single interactive control. */
-	private renderMetaControl(
-		row: HTMLElement,
-		opts: { iconId: string; value: string | null; tooltip: string; onOpen: () => void },
-	): void {
-		const control = row.createSpan({
-			cls: "sf-recommend-meta-control",
-			attr: { role: "button", tabindex: "0", "aria-label": opts.tooltip },
-		});
-		setTooltip(control, opts.tooltip);
-		setIcon(control.createSpan({ cls: "sf-recommend-meta-icon" }), opts.iconId);
-		if (opts.value) {
-			control.createSpan({ cls: "sf-recommend-meta-value", text: opts.value });
-		}
-		control.addEventListener("click", (e) => {
-			e.stopPropagation();
-			opts.onOpen();
-		});
-		makeAccessibleActivatable(control, opts.onOpen);
 	}
 
 	private async openNarratorPicker(hasValue: boolean): Promise<void> {

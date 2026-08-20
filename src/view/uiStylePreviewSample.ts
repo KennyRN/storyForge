@@ -3,7 +3,6 @@
  * Uses the same `sf-*` classes as the live panels so stylesheet + `--sf-*` vars apply.
  */
 import { setIcon } from "obsidian";
-import { ICON_FORGE } from "../icons";
 
 const ICON_FILTER = "sf-filter";
 const ICON_TIMELINE = "sf-timeline";
@@ -13,7 +12,11 @@ const ICON_CODEX = "sf-earth-fill";
 const ICON_FOLDER_PLUS = "sf-folder-plus";
 const ICON_PERSON = "sf-person-fill";
 const ICON_MAP_PIN = "sf-map-pin";
-const ICON_ARCHIVE = "sf-archive-drawer";
+const ICON_ARCHIVE = "sf-archive-filled";
+const ICON_BOOK_DUOTONE = "sf-book-duotone";
+const ICON_BOOK_OPEN_FILLED = "sf-book-open-filled";
+const ICON_CLIPBOARD_LIST_DUOTONE = "sf-clipboard-list-duotone";
+const ICON_NOTEBOOK_DUOTONE = "sf-notebook-duotone";
 
 function listRow(list: HTMLElement, title: string, selected = false, subtitle?: string): HTMLElement {
 	const row = list.createDiv({ cls: selected ? "sf-row sf-row-selected" : "sf-row" });
@@ -224,29 +227,16 @@ const RECOMMEND_TAB_BODIES: Record<RecommendTabId, (body: HTMLElement) => void> 
 };
 
 /**
- * Mounts Forge / Story Context / Archive chrome samples for the right-sidebar tab. Story
- * Context's own tab row is clickable, same as the real panel, so every settings group in that
- * tab (Novel/Chapter/Details/Dossier sizes, colours, fonts) has an actual live preview to check
- * against — not just the tab bar itself.
+ * Mounts Story Context / Archive chrome samples for the right-sidebar tab. Story Context's own
+ * tab row is clickable, same as the real panel, so every settings group in that tab
+ * (Novel/Chapter/Details/Dossier sizes, colours, fonts) has an actual live preview to check
+ * against — not just the tab bar itself. (Forge-family companion panels no longer get their own
+ * right-rail tab to mock here - they're embedded in Story Context's own tab instead.)
  */
 export function mountRightSidebarPreviewSample(container: HTMLElement): void {
 	container.empty();
 
 	const rail = container.createDiv({ cls: "sf-right-rail-preview" });
-
-	const forge = rail.createDiv({ cls: "sf-forge-view" });
-	const companions = forge.createDiv({ cls: "sf-forge-view__companions" });
-	const companionA = companions.createSpan({
-		cls: "sf-forge-view__companion is-active",
-		attr: { "aria-label": "nameForge" },
-	});
-	setIcon(companionA, ICON_PERSON);
-	const companionB = companions.createSpan({
-		cls: "sf-forge-view__companion",
-		attr: { "aria-label": "Forge" },
-	});
-	setIcon(companionB, ICON_FORGE);
-	forge.createDiv({ cls: "sf-forge-view__panel" });
 
 	const recommend = rail.createDiv({ cls: "sf-recommend-view" });
 	const recTabs = recommend.createDiv({ cls: "sf-recommend-tabs" });
@@ -270,19 +260,20 @@ export function mountRightSidebarPreviewSample(container: HTMLElement): void {
 		archive.removeClass("sf-settings-hidden");
 	};
 
-	(
-		[
-			["novel", "Novel"],
-			["chapter", "Chapter"],
-			["details", "Details"],
-			["dossier", "Dossier"],
-		] as [RecommendTabId, string][]
-	).forEach(([id, label]) => {
-		const btn = recTabs.createSpan({ cls: "sf-recommend-tab", text: label });
+	const tabIcons: Record<RecommendTabId, string> = {
+		novel: ICON_BOOK_DUOTONE,
+		chapter: ICON_BOOK_OPEN_FILLED,
+		details: ICON_CLIPBOARD_LIST_DUOTONE,
+		dossier: ICON_NOTEBOOK_DUOTONE,
+	};
+	(["novel", "chapter", "details", "dossier"] as RecommendTabId[]).forEach((id) => {
+		const btn = recTabs.createSpan({ cls: "sf-recommend-tab" });
+		setIcon(btn, tabIcons[id]);
 		tabButtons[id] = btn;
 		btn.addEventListener("click", () => showRecommendTab(id));
 	});
-	archiveBtn = recTabs.createSpan({ cls: "sf-recommend-tab sf-recommend-tab--archive", text: "Archive" });
+	archiveBtn = recTabs.createSpan({ cls: "sf-recommend-tab sf-recommend-tab--archive" });
+	setIcon(archiveBtn, ICON_ARCHIVE);
 	archiveBtn.addEventListener("click", () => showArchiveTab());
 
 	const archHeader = archive.createDiv({ cls: "sf-archive-embedded-header" });

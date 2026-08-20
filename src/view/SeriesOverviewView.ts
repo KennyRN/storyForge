@@ -1,46 +1,29 @@
-import { ItemView, Notice, setIcon, TFile, WorkspaceLeaf } from "obsidian";
+import { ItemView, Notice, setIcon, TFolder, WorkspaceLeaf } from "obsidian";
 import type StoryForgePlugin from "../main";
-import { renderSeriesSettingsBody } from "./SeriesModal";
-import {
-	getBookChapters,
-	getChapterEntry,
-	numberedChapterTitle,
-	readBookFrontmatter,
-	readBookSynopsis,
-	readChapterPlot,
-	writeBookCoverImage,
-	writeBookSynopsis,
-	writeChapterLocation,
-	writeChapterPlot,
-	writeChapterPov,
-	writeDefaultPov,
-} from "../book";
-import { getCodexEntriesByType } from "../codex";
-import { bookBackstagePath } from "../paths";
-import { getBookId, numberedBookTitle } from "../series";
-import { splitTitleSubtitle } from "../titleNumbering";
-import { resolveChapterNarrator } from "../recommend/narrator";
-import { CodexEntryPickerModal } from "./CodexEntryPickerModal";
+import { bindTextCommit } from "./SeriesModal";
+import { createBook, reorderSeriesBooks, renameBookTitle, readBookSynopsis, writeBookSynopsis } from "../book";
+import { getSeriesBooks, readSeriesFrontmatter, writeSeriesTitle, writeUnplacedOrder } from "../series";
+import { seriesFilePath } from "../paths";
+import { makeReorderable, type DragZone } from "./dragReorder";
 import { makeAccessibleActivatable } from "./a11y";
-import { ICON_MAP_PIN, ICON_MAP_PIN_PLUS, ICON_PERSON_FILL, ICON_PERSON_FILL_ADD, ICON_SERIES, ICON_TIMELINE } from "../icons";
+import { isDragInProgress } from "./dragLock";
+import { debounce } from "../debounce";
+import { ICON_BOOK_PLUS, ICON_SERIES } from "../icons";
 
 export const STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE = "storyforge-series-overview-view";
 
 /**
  * The Series tab's own full-page view, opened in the main editor area in place of a normal editor
  * — StoryForgeView.ts's layout-tab click handler swaps it into the active leaf, the same way
- * continuous read mode replaces it (see ContinuousReadView.ts). Two sections, stacked:
+ * continuous read mode replaces it (see ContinuousReadView.ts). A fixed header (series title,
+ * "Novels" list header, hint text, add-novel icon) over an independently scrolling novel list —
+ * each row its own title + synopsis, filtered to placed-only or unplaced-only to match whichever
+ * novel is currently selected (both show when nothing is selected).
  *
- *  1. The series settings (title, book list, reorder, add book) — SeriesModal.ts's own body,
- *     reused via its exported `renderSeriesSettingsBody()` so there's one source of truth for
- *     that content, not a second copy that can drift from the modal.
- *  2. The selected novel's details (cover, title, synopsis, Default PoV, plot-by-chapter). The
- *     *elements* Story Context's Novel tab shows are mirrored here — same underlying read/write
- *     calls (writeBookSynopsis, writeDefaultPov, writeChapterPov, …) — but laid out differently
- *     (a full page, not a narrow sidebar) and rendered entirely by this file's own code. Story
- *     Context itself (RecommendationView.ts) is neither read from nor written to here — the two
- *     stay independent by design, so nothing about Story Context's own settings or styling
- *     affects this page or vice versa.
+ * The per-novel detail block this page used to show below the list (cover, Default PoV,
+ * chapter-by-chapter plot) was removed — Story Context's Novel tab in the right sidebar shows the
+ * same thing and, since a StoryForgeView.ts change made it auto-open there whenever a novel is
+ * selected here, keeping a second copy on this page was pure duplication.
  *
  * The selected novel always follows the `selectedNovel` setting — the same one the storyForge
  * panel's Series tab highlights (TopPanel.ts's open-book marker) — rather than being passed in as
@@ -69,252 +52,157 @@ export class SeriesOverviewView extends ItemView {
 		return ICON_SERIES;
 	}
 
+	// series.md is this page's whole data source (title, order, unplaced-order, per-book titles) —
+	// without this, a reorder or rename made elsewhere (the left sidebar's Series panel, the popup
+	// Series settings modal) left this page stale until something else happened to trigger a
+	// re-render. Debounced and, crucially, also triggered by metadataCache's own "changed" event
+	// (not just vault's "modify") for the same reason StoryForgeView.ts's equivalent listener is:
+	// "modify" fires the instant the file is written, before Obsidian has finished re-parsing its
+	// frontmatter — reading getSeriesBooks() synchronously off that raw event renders the *previous*
+	// frontmatter, one write behind, which is exactly what "central section only catches up right
+	// before the next change" looks like. "changed" fires once the parsed cache is actually ready.
+	private readonly debouncedRender = debounce(() => {
+		if (!this.closed && !isDragInProgress()) this.render();
+	}, 400);
+
 	async onOpen(): Promise<void> {
+		this.registerEvent(
+			this.app.vault.on("modify", (file) => {
+				if (file.path === seriesFilePath()) this.debouncedRender();
+			}),
+		);
+		this.registerEvent(this.app.metadataCache.on("changed", (file) => {
+			if (file.path === seriesFilePath()) this.debouncedRender();
+		}));
 		this.render();
 	}
 
 	async onClose(): Promise<void> {
 		this.closed = true;
+		this.debouncedRender.cancel();
 		this.contentEl.empty();
 	}
 
 	render(): void {
+		if (isDragInProgress()) return;
 		const { contentEl } = this;
 		contentEl.empty();
 		contentEl.addClass("sf-series-overview-view");
 
-		const settingsSection = contentEl.createDiv({ cls: "sf-series-overview-settings" });
-		renderSeriesSettingsBody(settingsSection, this.app, () => this.render());
+		const fixed = contentEl.createDiv({ cls: "sf-series-overview-fixed" });
+		this.renderTitleField(fixed);
 
-		const bookFolderName = this.plugin.getSettings().selectedNovel;
-		const novelSection = contentEl.createDiv({ cls: "sf-series-overview-novel" });
-		if (!bookFolderName) {
-			novelSection.createDiv({ cls: "sf-empty", text: "Select a novel above to see its details." });
-			return;
-		}
-		this.renderNovel(novelSection, bookFolderName);
-	}
+		fixed.createDiv({ cls: "sf-modal-list-header" }).createEl("h3", { text: "Novels" });
 
-	private renderNovel(container: HTMLElement, bookFolderName: string): void {
-		const top = container.createDiv({ cls: "sf-series-overview-top" });
-
-		const cover = top.createDiv({ cls: "sf-synopsis-cover sf-series-overview-cover" });
-		this.renderCover(cover, bookFolderName);
-		cover.addEventListener("click", () => this.pickCover(cover, bookFolderName));
-
-		const details = top.createDiv({ cls: "sf-series-overview-details" });
-		const { title, subtitle } = splitTitleSubtitle(numberedBookTitle(this.app, bookFolderName));
-		details.createDiv({ cls: "sf-series-overview-title", text: title });
-		if (subtitle) {
-			details.createDiv({ cls: "sf-series-overview-subtitle", text: subtitle });
-		}
-
-		const synopsis = details.createEl("textarea", {
-			cls: "sf-series-overview-synopsis",
-			attr: { "aria-label": "Novel synopsis" },
+		const hintRow = fixed.createDiv({ cls: "sf-modal-hint-row" });
+		hintRow.createDiv({
+			cls: "sf-modal-hint",
+			text: "# inserts a counted number\n// breaks title into title and subtitle",
 		});
-		synopsis.addEventListener("pointerdown", (e) => e.stopPropagation());
-		synopsis.addEventListener("blur", () => {
-			void writeBookSynopsis(this.app, bookFolderName, synopsis.value);
-		});
-		void readBookSynopsis(this.app, bookFolderName).then((value) => {
-			if (this.closed || this.plugin.getSettings().selectedNovel !== bookFolderName) return;
-			synopsis.value = value;
-		});
-
-		this.renderDefaultPovRow(details, bookFolderName);
-
-		const plotTitle = container.createDiv({ cls: "sf-series-overview-section-title" });
-		setIcon(plotTitle.createSpan({ cls: "sf-icon" }), ICON_TIMELINE);
-		plotTitle.createSpan({ text: "Plot" });
-
-		const plot = container.createDiv({ cls: "sf-series-overview-plot" });
-		this.renderPlot(plot, bookFolderName);
-	}
-
-	private renderCover(cover: HTMLElement, bookFolderName: string): void {
-		cover.empty();
-		const coverImage = readBookFrontmatter(this.app, bookFolderName)?.coverImage ?? null;
-		const file = coverImage
-			? this.app.vault.getAbstractFileByPath(`${bookBackstagePath(bookFolderName)}/${coverImage}`)
-			: null;
-		if (file instanceof TFile) {
-			cover.addClass("has-image");
-			cover.createEl("img", { attr: { src: this.app.vault.getResourcePath(file) } });
-		} else {
-			cover.removeClass("has-image");
-		}
-	}
-
-	private pickCover(cover: HTMLElement, bookFolderName: string): void {
-		const input = createEl("input", { type: "file", attr: { accept: "image/*" } });
-		input.addEventListener("change", () => {
-			const file = input.files?.[0];
-			if (!file) return;
-			if (!file.type.startsWith("image/")) {
-				new Notice("storyForge: please choose an image file for the cover.");
-				return;
+		const addBookBtn = hintRow.createSpan({ cls: "sf-modal-add-book", attr: { "aria-label": "New book" } });
+		setIcon(addBookBtn, ICON_BOOK_PLUS);
+		const handleCreateBook = async () => {
+			try {
+				await createBook(this.app);
+				if (!this.closed) this.render();
+			} catch (err) {
+				new Notice(`storyForge: could not create book — ${(err as Error).message}`);
 			}
+		};
+		addBookBtn.addEventListener("click", () => void handleCreateBook());
+		makeAccessibleActivatable(addBookBtn, () => void handleCreateBook());
+
+		const scroll = contentEl.createDiv({ cls: "sf-series-overview-scroll" });
+		this.renderNovelsList(scroll);
+	}
+
+	private renderTitleField(container: HTMLElement): void {
+		const titleRow = container.createDiv({ cls: "sf-modal-title-row sf-series-title-row" });
+		const titleWrap = titleRow.createDiv({ cls: "sf-series-title-wrap" });
+		const titleInput = titleWrap.createEl("input", {
+			cls: "sf-modal-input sf-modal-title-input sf-series-title-input",
+			type: "text",
+			attr: { placeholder: "Series Name" },
+		});
+		titleInput.value = readSeriesFrontmatter(this.app).seriesTitle;
+		bindTextCommit(titleInput, async (value) => {
+			await writeSeriesTitle(this.app, value);
+			if (!this.closed) this.render();
+		});
+		titleWrap.createDiv({ cls: "sf-series-title-label", text: "series name" });
+	}
+
+	/** Filtered to match the currently selected novel — placed-only if it's in the series order,
+	 * unplaced-only if it isn't, or everything when nothing is selected. Reordering persists to
+	 * whichever single list is actually on screen: the placed set via reorderSeriesBooks (which
+	 * replaces the whole `order` array — see resolveOrder in ordering.ts), or the unplaced set via
+	 * its own separate writeUnplacedOrder (see SeriesFrontmatter's unplacedOrder doc comment for why
+	 * that's a distinct field rather than reusing `order`, which would place them). With both lists
+	 * showing at once (nothing selected) there's no single field a combined drag could write back
+	 * to without corrupting the other category, so dragging is display-only there. */
+	private renderNovelsList(container: HTMLElement): void {
+		container.empty();
+		const { ordered, unplaced } = getSeriesBooks(this.app);
+		const selected = this.plugin.getSettings().selectedNovel;
+		const selectedIsUnplaced = selected !== null && unplaced.some((f) => f.name === selected);
+		const showOrdered = !selected || !selectedIsUnplaced;
+		const showUnplaced = !selected || selectedIsUnplaced;
+		const reorderable = showOrdered !== showUnplaced;
+
+		const list = container.createDiv({ cls: "sf-top-list" });
+		if (showOrdered) for (const folder of ordered) this.renderNovelRow(list, folder);
+		if (showUnplaced) for (const folder of unplaced) this.renderNovelRow(list, folder);
+		if (ordered.length === 0 && unplaced.length === 0) {
+			list.createDiv({ cls: "sf-empty sf-empty-inline", text: "No books yet." });
+		}
+
+		if (!reorderable) return;
+		const zones: DragZone[] = [{ key: "order", container: list }];
+		makeReorderable(zones, ".sf-row", ".sf-drag-handle", (zoneRowKeys) => {
 			void (async () => {
+				const newOrder = (zoneRowKeys.order ?? []).filter(Boolean);
 				try {
-					const data = await file.arrayBuffer();
-					const dotIndex = file.name.lastIndexOf(".");
-					const extension =
-						dotIndex !== -1 ? file.name.slice(dotIndex + 1).toLowerCase() : file.type.split("/")[1] || "png";
-					await writeBookCoverImage(this.app, bookFolderName, data, extension);
-					if (this.closed) return;
-					this.renderCover(cover, bookFolderName);
+					if (showOrdered) {
+						await reorderSeriesBooks(this.app, newOrder);
+					} else {
+						await writeUnplacedOrder(this.app, newOrder);
+					}
 				} catch (err) {
-					new Notice(`storyForge: could not set cover image — ${err instanceof Error ? err.message : String(err)}`);
+					new Notice(`storyForge: could not save the new order — ${(err as Error).message}`);
+					if (!this.closed) this.render();
 				}
 			})();
 		});
-		input.click();
 	}
 
-	private renderDefaultPovRow(parent: HTMLElement, bookFolderName: string): void {
-		const fm = readBookFrontmatter(this.app, bookFolderName);
-		const path = fm?.defaultPovPath ?? null;
-		const name = fm?.defaultPovName ?? null;
-		const row = parent.createDiv({ cls: "sf-series-overview-meta-row" });
-		this.renderMetaItem(
-			row,
-			"Default PoV:",
-			path ? ICON_PERSON_FILL : ICON_PERSON_FILL_ADD,
-			path ? (name ?? path) : null,
-			!!path,
-			() => void this.openDefaultPovPicker(bookFolderName, !!path),
-			path ? "change pov character" : "set pov character",
-		);
-	}
+	/** One novel's row: a title line (drag handle + title input) with a synopsis textarea beneath
+	 * it. The handle sits centred on the title line only, not the taller row it's actually part of
+	 * — dragging it still moves title + synopsis together, since both live under the one draggable
+	 * `.sf-row`. */
+	private renderNovelRow(list: HTMLElement, folder: TFolder): void {
+		const row = list.createDiv({ cls: "sf-row sf-series-overview-row" });
+		row.dataset.key = folder.name;
 
-	/** One chapter's record in the plot list: name as a header, PoV + Location on one row beneath
-	 * it, then the chapter summary box. */
-	private renderPlot(container: HTMLElement, bookFolderName: string): void {
-		container.empty();
-		const { ordered } = getBookChapters(this.app, bookFolderName);
-		if (ordered.length === 0) return;
+		const titleLine = row.createDiv({ cls: "sf-series-overview-row-title-line" });
+		setIcon(titleLine.createSpan({ cls: "sf-drag-handle" }), "grip-vertical");
+		const input = titleLine.createEl("input", { cls: "sf-modal-input sf-modal-book-input", type: "text" });
+		input.value = readSeriesFrontmatter(this.app).books[folder.name]?.bookTitle ?? folder.name;
+		bindTextCommit(input, async (value) => {
+			await renameBookTitle(this.app, folder.name, value);
+			if (!this.closed) this.render();
+		});
 
-		for (const file of ordered) {
-			const block = container.createDiv({ cls: "sf-series-overview-plot-block" });
-			block.createEl("h3", {
-				cls: "sf-series-overview-chapter-name",
-				text: numberedChapterTitle(this.app, bookFolderName, file.name),
-			});
-
-			const entry = getChapterEntry(this.app, bookFolderName, file.name);
-			const narrator = resolveChapterNarrator(this.app, bookFolderName, file.name);
-
-			const metaRow = block.createDiv({ cls: "sf-series-overview-meta-inline" });
-			this.renderMetaItem(
-				metaRow,
-				"PoV:",
-				narrator ? ICON_PERSON_FILL : ICON_PERSON_FILL_ADD,
-				narrator?.name ?? null,
-				!!narrator,
-				() => void this.openChapterPovPicker(bookFolderName, file.name, !!narrator),
-				narrator ? "change pov character" : "set pov character",
-			);
-			this.renderMetaItem(
-				metaRow,
-				"Location:",
-				entry?.locationPath ? ICON_MAP_PIN : ICON_MAP_PIN_PLUS,
-				entry?.locationName ?? entry?.locationPath ?? null,
-				!!entry?.locationPath,
-				() => void this.openChapterLocationPicker(bookFolderName, file.name, !!entry?.locationPath),
-				entry?.locationPath ? "change location" : "set location",
-			);
-
-			const summary = block.createEl("textarea", {
-				cls: "sf-series-overview-summary",
-				attr: { "aria-label": `Chapter summary for ${file.name}` },
-			});
-			summary.addEventListener("pointerdown", (e) => e.stopPropagation());
-			summary.addEventListener("blur", () => {
-				void writeChapterPlot(this.app, bookFolderName, file.name, summary.value);
-			});
-			void readChapterPlot(this.app, bookFolderName, file.name).then((value) => {
-				if (this.closed || this.plugin.getSettings().selectedNovel !== bookFolderName) return;
-				summary.value = value;
-			});
-		}
-	}
-
-	private renderMetaItem(
-		parent: HTMLElement,
-		label: string,
-		iconId: string,
-		value: string | null,
-		hasValue: boolean,
-		onOpen: () => void,
-		tooltip: string,
-	): void {
-		const item = parent.createDiv({ cls: "sf-series-overview-meta-item" });
-		item.createSpan({ cls: "sf-series-overview-meta-label", text: label });
-		const control = item.createSpan({ cls: "sf-series-overview-meta-control", attr: { "aria-label": tooltip } });
-		setIcon(control.createSpan({ cls: "sf-series-overview-meta-icon" }), iconId);
-		control.createSpan({ cls: "sf-series-overview-meta-value", text: hasValue ? (value ?? "—") : "—" });
-		control.addEventListener("click", onOpen);
-		makeAccessibleActivatable(control, onOpen);
-	}
-
-	private async openDefaultPovPicker(bookFolderName: string, hasValue: boolean): Promise<void> {
-		const bookId = getBookId(this.app, bookFolderName);
-		const entries = getCodexEntriesByType(this.app, "person", bookId);
-		new CodexEntryPickerModal(
-			this.app,
-			"Set PoV",
-			"No person entries in the Codex yet.",
-			entries,
-			hasValue,
-			async (entry) => {
-				await writeDefaultPov(this.app, bookFolderName, entry.path, entry.name);
-				if (!this.closed) this.render();
-			},
-			async () => {
-				await writeDefaultPov(this.app, bookFolderName, null, null);
-				if (!this.closed) this.render();
-			},
-		).open();
-	}
-
-	private async openChapterPovPicker(bookFolderName: string, filename: string, hasValue: boolean): Promise<void> {
-		const bookId = getBookId(this.app, bookFolderName);
-		const entries = getCodexEntriesByType(this.app, "person", bookId);
-		new CodexEntryPickerModal(
-			this.app,
-			"Set PoV",
-			"No person entries in the Codex yet.",
-			entries,
-			hasValue,
-			async (entry) => {
-				await writeChapterPov(this.app, bookFolderName, filename, entry.path, entry.name);
-				if (!this.closed) this.render();
-			},
-			async () => {
-				await writeChapterPov(this.app, bookFolderName, filename, null, null);
-				if (!this.closed) this.render();
-			},
-		).open();
-	}
-
-	private async openChapterLocationPicker(bookFolderName: string, filename: string, hasValue: boolean): Promise<void> {
-		const bookId = getBookId(this.app, bookFolderName);
-		const entries = getCodexEntriesByType(this.app, "place", bookId);
-		new CodexEntryPickerModal(
-			this.app,
-			"Set location",
-			"No place entries in the Codex yet.",
-			entries,
-			hasValue,
-			async (entry) => {
-				await writeChapterLocation(this.app, bookFolderName, filename, entry.path, entry.name);
-				if (!this.closed) this.render();
-			},
-			async () => {
-				await writeChapterLocation(this.app, bookFolderName, filename, null, null);
-				if (!this.closed) this.render();
-			},
-		).open();
+		const synopsis = row.createEl("textarea", {
+			cls: "sf-modal-input sf-series-overview-row-synopsis",
+			attr: { "aria-label": `Synopsis for ${folder.name}` },
+		});
+		synopsis.addEventListener("pointerdown", (e) => e.stopPropagation());
+		synopsis.addEventListener("blur", () => {
+			void writeBookSynopsis(this.app, folder.name, synopsis.value);
+		});
+		void readBookSynopsis(this.app, folder.name).then((value) => {
+			if (this.closed) return;
+			synopsis.value = value;
+		});
 	}
 }
