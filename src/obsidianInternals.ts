@@ -36,6 +36,12 @@ export const OBSIDIAN_SELECTORS = {
 	ribbonAction: ".side-dock-ribbon-action",
 	tabHeaderContainer: ".mod-left-split .workspace-tab-header-container",
 	/**
+	 * The icon child within a `.workspace-tab-header`'s inner row. RecommendationView.ts's Focus
+	 * toggle uses this to repaint its own tab's icon in place after getIcon() changes - no public
+	 * API refreshes an already-open leaf's tab icon without recreating the view.
+	 */
+	tabHeaderInnerIcon: ".workspace-tab-header-inner-icon",
+	/**
 	 * Links inside a note's rendered H1: real `<a>` tags in reading view, but CM6 live-preview/edit
 	 * mode renders no `<a>` at all - links are `.cm-hmd-internal-link`/`.cm-link` spans (co-classed
 	 * with `.cm-header-1`) wrapping a `.cm-underline` span that carries the actual underline.

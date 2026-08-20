@@ -1,20 +1,29 @@
 import { App, TFile, Vault, type FrontMatterCache } from "obsidian";
-import { BACKSTAGE_ROOT, BACKUPS_FOLDER, CODEX_ROOT, LIBRARY_ROOT, isLibraryNovelPath, seriesFilePath } from "./paths";
+import {
+	BACKSTAGE_ROOT,
+	BACKUPS_FOLDER,
+	CODEX_ROOT,
+	LIBRARY_ROOT,
+	TITLEFORGE_BACKSTAGE_ROOT,
+	isLibraryRootFilePath,
+} from "./paths";
 
 /**
  * The one narrow module every plugin write funnels through. It physically
- * refuses any path inside the story library or codex — except the two flat
- * metadata files at the library root (`series.md`, `novel-<code>.md`), which
- * describe the manuscripts without being manuscript prose themselves — so the
- * non-destructive guarantee holds even if the rest of the code is wrong.
+ * refuses any path inside the story library or codex — except any flat file
+ * directly at the library root (`series.md`, `novel-<code>.md`, and any other
+ * library-root bookkeeping file), which describes the manuscripts without
+ * being manuscript prose themselves — so the non-destructive guarantee holds
+ * even if the rest of the code is wrong.
  *
  * Every write that targets a chapter file under `_story-library/<code>/` or a
  * note under `Codex/` must go through this module (which will refuse it).
  * Library manuscripts are prose-only; Codex notes are user-owned (create/rename
  * for wikilinks are the only intentional disk exceptions elsewhere, and must
  * not grow into content edits). Story Context never edits Codex note bodies —
- * its write footprint is `_backstage/storyforge/` only (plus the two library-root
- * metadata files above). Backup zips are the other allowed write root: `_sf-backup/` only.
+ * its write footprint is `_backstage/storyforge/` (plus flat library-root
+ * files above) and `_backstage/titleforge/` (titleForge's own sibling region).
+ * Backup zips are the other allowed write root: `_sf-backup/` only.
  *
  * Host API / xForge siblings:
  * - Codex note *frontmatter* create/edit is only for plugins that called
@@ -29,7 +38,7 @@ import { BACKSTAGE_ROOT, BACKUPS_FOLDER, CODEX_ROOT, LIBRARY_ROOT, isLibraryNove
 export class ForbiddenWriteError extends Error {
 	constructor(path: string) {
 		super(
-			`storyForge refused to write to "${path}": outside ${BACKSTAGE_ROOT}/, ${BACKUPS_FOLDER}/, or ${LIBRARY_ROOT}/series.md and novel-<code>.md`,
+			`storyForge refused to write to "${path}": outside ${BACKSTAGE_ROOT}/, ${TITLEFORGE_BACKSTAGE_ROOT}/, ${BACKUPS_FOLDER}/, or a flat file directly at ${LIBRARY_ROOT}/`,
 		);
 		this.name = "ForbiddenWriteError";
 	}
@@ -60,15 +69,17 @@ export function normalizeVaultPath(path: string): string {
 
 /**
  * Throws ForbiddenWriteError unless `path` resolves strictly under
- * `_backstage/storyforge/` — with a narrow exception for `series.md` and
- * `novel-<code>.md`, which live flat at the library root but are still
- * plugin-managed metadata, not prose. Everything else under the library root
- * (the actual chapter files, one segment deeper) stays forbidden below.
+ * `_backstage/storyforge/` or `_backstage/titleforge/` — with a narrow
+ * exception for any flat file directly at the library root (`series.md`,
+ * `novel-<code>.md`, and any other library-root bookkeeping file), which
+ * lives alongside the manuscripts but is still plugin-managed metadata, not
+ * prose. Everything else under the library root (the actual chapter files
+ * and anything else nested inside a `<code>/` folder) stays forbidden below.
  * Exported for tests.
  */
 export function assertBackstagePath(path: string): void {
 	const normalized = normalizeVaultPath(path);
-	if (normalized === seriesFilePath() || isLibraryNovelPath(normalized)) {
+	if (isLibraryRootFilePath(normalized)) {
 		return;
 	}
 	const forbidden =
@@ -76,7 +87,11 @@ export function assertBackstagePath(path: string): void {
 		normalized.startsWith(`${LIBRARY_ROOT}/`) ||
 		normalized === CODEX_ROOT ||
 		normalized.startsWith(`${CODEX_ROOT}/`);
-	const allowed = normalized === BACKSTAGE_ROOT || normalized.startsWith(`${BACKSTAGE_ROOT}/`);
+	const allowed =
+		normalized === BACKSTAGE_ROOT ||
+		normalized.startsWith(`${BACKSTAGE_ROOT}/`) ||
+		normalized === TITLEFORGE_BACKSTAGE_ROOT ||
+		normalized.startsWith(`${TITLEFORGE_BACKSTAGE_ROOT}/`);
 	if (forbidden || !allowed) {
 		throw new ForbiddenWriteError(path);
 	}
@@ -116,11 +131,22 @@ async function ensureFolderTree(vault: Vault, path: string, assertPath: (p: stri
 	}
 }
 
+/**
+ * `path` has already passed `assertBackstagePath` in the caller by this point, so a parent of
+ * exactly `LIBRARY_ROOT` only ever arises for the flat-library-root-file exception (series.md,
+ * novel-<code>.md, ...) — never a nested library path, which stayed forbidden back there. That
+ * folder is guaranteed to already exist (ensureEagerFolders, at plugin load) and, being the
+ * library root itself rather than a backstage path, would fail `ensureBackstageFolder`'s own
+ * backstage-only assertion below if we still routed it through there. Nothing to ensure in that
+ * case; every other parent is a genuine backstage path and takes the normal ensure-folder path.
+ */
 async function ensureParentFolder(vault: Vault, path: string): Promise<void> {
 	const normalized = normalizeVaultPath(path);
 	const lastSlash = normalized.lastIndexOf("/");
 	if (lastSlash === -1) return;
-	await ensureBackstageFolder(vault, normalized.slice(0, lastSlash));
+	const parent = normalized.slice(0, lastSlash);
+	if (parent === LIBRARY_ROOT) return;
+	await ensureBackstageFolder(vault, parent);
 }
 
 export async function writeBackstageFile(vault: Vault, path: string, content: string): Promise<TFile> {

@@ -1,14 +1,14 @@
 import { ItemView, Notice, setIcon, TFile, WorkspaceLeaf } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { bookFolderNameFromChapterPath, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath } from "../paths";
-import { getBookId } from "../series";
+import { getBookId, getSeriesBooks } from "../series";
 import { renderTopPanel, type UnplacedViewMode } from "./TopPanel";
 import { renderBottomPanel } from "./BottomPanel";
 import { renderStatsPanel, nextStatsMode, type StatsMode } from "./StatsPanel";
 import { SeriesModal } from "./SeriesModal";
 import { createCodexFolder, createCodexNote, readCodexFrontmatter, type CodexViewMode } from "../codex";
 import { debounce } from "../debounce";
-import { ICON_BOOK_OPEN, ICON_CODEX, ICON_SERIES, ICON_STORYTELLING } from "../icons";
+import { ICON_BOOK_DUOTONE, ICON_BOOK_OPEN_FILLED, ICON_CODEX, ICON_SERIES } from "../icons";
 import { countWords } from "../wordCount";
 import { getBookWordStats } from "../history";
 import { WordCountModal } from "./WordCountModal";
@@ -21,19 +21,22 @@ import { canEnterContinuousMode, resolveEntryChapter } from "../continuousMode";
 import { STORYFORGE_CONTINUOUS_VIEW_TYPE, type ContinuousReadView } from "./ContinuousReadView";
 import { emitContinuousScrollTo, onContinuousMode } from "./continuousEvents";
 import { STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE } from "./SeriesOverviewView";
+import { STORYFORGE_NOVEL_OVERVIEW_VIEW_TYPE } from "./NovelOverviewView";
 
 export const STORYFORGE_VIEW_TYPE = "storyforge-view";
 
 /** Leading icon for each layout tab (render()'s .sf-layout-tabs row) — the Codex's own globe icon
  * for the Codex tab, the storyForge view's own "Series" icon for the Series tab (it's the same
- * list this panel's own tab icon represents), the storyTelling panel's own icon for the Novel
- * tab, and the open-book used to mark an open novel elsewhere for the Detailed tab (the layout
- * with the codex embedded — a novel opened all the way up). */
+ * list this panel's own tab icon represents), Story Context's own Novel-tab icon for this panel's
+ * Novel tab (they show the same content — see NovelOverviewView.ts), and Story Context's own
+ * Chapter-tab icon for the Chapter tab (the layout with the codex embedded — a novel opened all
+ * the way up, and the pane whose selection this panel keeps Story Context's own Chapter tab in
+ * sync with — see focusChapterPaneForBook() below). */
 const SF_LAYOUT_TAB_ICONS: Record<SfLayout, string> = {
 	codex: ICON_CODEX,
 	seriesBrowse: ICON_SERIES,
-	novelBrowse: ICON_STORYTELLING,
-	hybrid: ICON_BOOK_OPEN,
+	novelBrowse: ICON_BOOK_DUOTONE,
+	hybrid: ICON_BOOK_OPEN_FILLED,
 };
 
 export class StoryForgeView extends ItemView {
@@ -95,6 +98,9 @@ export class StoryForgeView extends ItemView {
 		// far more cheaply than a full render (see CodexFocusNavigator.ts's renderContinuousIndicator).
 		this.registerEvent(onContinuousMode(this.app, (payload) => { if (!payload.active) this.render(); }));
 		this.followActiveFile();
+		// Reopening straight onto the Chapter tab (persisted layout): Story Context should already be
+		// showing the right chapter, same as switching onto that tab live does (selectLayout() above).
+		if (this.layout === "hybrid" && this.currentBookFolderName) this.focusChapterPaneForBook(this.currentBookFolderName);
 	}
 
 	async onClose(): Promise<void> {
@@ -134,9 +140,10 @@ export class StoryForgeView extends ItemView {
 	private async persistSelection(): Promise<void> {
 		await this.plugin.updateSetting("selectedNovel", this.currentBookFolderName);
 		await this.plugin.updateSetting("selectedObject", this.activeChapterFilename);
-		// The Series overview page (if open) reads selectedNovel straight from settings — nudge it
-		// to re-render so picking a different book here is reflected there too.
+		// The Series/Novel overview pages (if open) read selectedNovel straight from settings —
+		// nudge them to re-render so picking a different book here is reflected there too.
 		this.plugin.refreshSeriesOverviewView();
+		this.plugin.refreshNovelOverviewView();
 	}
 
 	/** Which top pane the declared layout selects — "none" for the Codex tab, which has no top pane
@@ -191,8 +198,15 @@ export class StoryForgeView extends ItemView {
 					void this.plugin.updateSetting("layout", layout);
 					if (layout === "seriesBrowse") {
 						void this.openSeriesOverview();
+					} else if (layout === "novelBrowse") {
+						void this.openNovelOverview();
 					} else {
 						this.plugin.leaveSeriesOverviewIfShowing();
+						this.plugin.leaveNovelOverviewIfShowing();
+						// Switching onto the Chapter tab itself: jump Story Context to whichever chapter
+						// is already selected here, or its book's first chapter if none is (see
+						// focusChapterPaneForBook()'s own doc comment).
+						if (layout === "hybrid" && this.currentBookFolderName) this.focusChapterPaneForBook(this.currentBookFolderName);
 					}
 					this.render();
 				};
@@ -233,9 +247,25 @@ export class StoryForgeView extends ItemView {
 					this.currentBookFolderName = name;
 					this.activeChapterFilename = null;
 					void this.persistSelection();
+					this.plugin.focusRecommendationOnNovel(name);
 					this.render();
 				},
-				onOpenChapter: (bookName, filename) => void this.openChapter(bookName, filename),
+				onOpenChapter: (bookName, filename) => {
+					if (this.layout === "novelBrowse") {
+						// 1a/1b: on the Novel tab, clicking a chapter selects it (highlights it here,
+						// jumps Story Context to its Chapter tab) rather than opening it — the central
+						// region stays on the Novel overview page. Chapter/Codex still open for real,
+						// below.
+						this.selectChapter(bookName, filename);
+						this.plugin.focusRecommendationOnChapter(bookName, filename);
+					} else {
+						// The Chapter tab: opens the chapter for real (unlike the Novel tab above) and
+						// still jumps Story Context to its own Chapter tab for it, so the right sidebar
+						// always mirrors whichever chapter is selected here.
+						void this.openChapter(bookName, filename);
+						this.plugin.focusRecommendationOnChapter(bookName, filename);
+					}
+				},
 				onOpenSeriesModal: () => new SeriesModal(this.app, () => this.render()).open(),
 				onCreateContinuingChapter: (bookFolderName) => void this.handleCreateContinuingChapter(bookFolderName),
 				onArchiveChapter: async () => {
@@ -382,6 +412,18 @@ export class StoryForgeView extends ItemView {
 		}
 	}
 
+	/** Selects (without opening) a chapter — the Novel tab's own chapter click above, and the
+	 * Novel overview page's own chapter-title click (NovelOverviewView.ts, via
+	 * plugin.focusStoryLibraryOnChapter), both funnel through here so this panel's own highlight
+	 * and persisted selection agree with whichever chapter was clicked either way. Public: called
+	 * cross-instance from main.ts. */
+	selectChapter(bookFolderName: string, filename: string): void {
+		this.currentBookFolderName = bookFolderName;
+		this.activeChapterFilename = filename;
+		void this.persistSelection();
+		this.render();
+	}
+
 	/** BottomPanel.ts's onOpenFile — a Codex note click, same "force it active" treatment as
 	 * openChapter() needs, and for the same reason (see openInMainContentLeaf's doc comment):
 	 * without it, clicking off a chapter and onto a Codex entry left the chapter's row still
@@ -406,11 +448,69 @@ export class StoryForgeView extends ItemView {
 	/** The Series tab's launcher: swaps the special series-overview page into the main editor pane
 	 * in place of whatever was open there, same mechanism as openContinuousRead() below. Fires on
 	 * every click of the tab (not just switching layout into it), so retriggering it after opening
-	 * a chapter elsewhere brings the page straight back. */
+	 * a chapter elsewhere brings the page straight back. Also nudges Story Context (right sidebar)
+	 * onto its own Novel tab for whichever book is currently being worked on — see
+	 * ensureBookSelectedForSeriesOverview() for what "currently being worked on" falls back to when
+	 * nothing is selected yet. */
 	private async openSeriesOverview(): Promise<void> {
 		const leaf = this.plugin.getMainContentLeaf();
 		await leaf.setViewState({ type: STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE, active: true });
 		await this.app.workspace.revealLeaf(leaf);
+		await this.ensureBookSelectedForSeriesOverview();
+	}
+
+	/** If no book is currently selected when the Series tab opens, falls back to the first placed
+	 * novel or — absent one — the first unplaced novel, and makes it the *real* selection (not just
+	 * a transient right-sidebar peek): persisted the same way clicking a book row would be, so the
+	 * left sidebar's own highlight and the central Series page's placed/unplaced filtering agree
+	 * with the right sidebar too. With no books at all there's nothing to fall back to, and the
+	 * right sidebar is simply left on its own "select a novel" empty state. */
+	private async ensureBookSelectedForSeriesOverview(): Promise<void> {
+		if (!this.currentBookFolderName) {
+			const { ordered, unplaced } = getSeriesBooks(this.app);
+			const fallback = ordered[0]?.name ?? unplaced[0]?.name ?? null;
+			if (fallback) {
+				this.currentBookFolderName = fallback;
+				this.activeChapterFilename = null;
+				await this.persistSelection();
+			}
+		}
+		if (this.currentBookFolderName) {
+			this.plugin.focusRecommendationOnNovel(this.currentBookFolderName);
+		}
+	}
+
+	/** The Novel tab's own launcher: swaps the Novel overview page (NovelOverviewView.ts — the same
+	 * cover/synopsis/plot content as Story Context's Novel tab) into the main editor pane, same
+	 * mechanism as openSeriesOverview() above. Also nudges Story Context (right sidebar) to its own
+	 * Chapter tab on the same book, landing on whichever chapter is already selected here or, absent
+	 * one (or it's since been unplaced), the first chapter in the book's ordered spine
+	 * (resolveEntryChapter — same fallback openContinuousRead() below uses to pick a landing
+	 * chapter). When there wasn't already a selection, that fallback becomes the *real* selection
+	 * here too (via selectChapter, same as clicking the row would) — not just a right-sidebar peek —
+	 * so it persists and this panel's own highlight agrees with it as well. */
+	private async openNovelOverview(): Promise<void> {
+		const leaf = this.plugin.getMainContentLeaf();
+		await leaf.setViewState({ type: STORYFORGE_NOVEL_OVERVIEW_VIEW_TYPE, active: true });
+		await this.app.workspace.revealLeaf(leaf);
+		if (!this.currentBookFolderName) return;
+		this.focusChapterPaneForBook(this.currentBookFolderName);
+	}
+
+	/** Shared by openNovelOverview() above and the Chapter tab (selectLayout()'s own click handler
+	 * and onOpen(), for landing straight on it): nudges Story Context (right sidebar) to its own
+	 * Chapter tab on the given book, landing on whichever chapter is already selected here or,
+	 * absent one (or it's since been unplaced), the first chapter in the book's ordered spine
+	 * (resolveEntryChapter — same fallback openContinuousRead() below uses to pick a landing
+	 * chapter). When there wasn't already a selection, that fallback becomes the *real* selection
+	 * here too (via selectChapter, same as clicking a chapter row would) — not just a right-sidebar
+	 * peek — so it persists and this panel's own highlight agrees with it as well. */
+	private focusChapterPaneForBook(bookFolderName: string): void {
+		const { ordered } = getBookChapters(this.app, bookFolderName);
+		const chapterFilename = resolveEntryChapter(ordered.map((file) => file.name), this.activeChapterFilename);
+		if (!chapterFilename) return;
+		if (chapterFilename !== this.activeChapterFilename) this.selectChapter(bookFolderName, chapterFilename);
+		this.plugin.focusRecommendationOnChapter(bookFolderName, chapterFilename);
 	}
 
 	/** The navigator's continuous-mode launcher (continuous-mode hand-off brief §2, corrected): the

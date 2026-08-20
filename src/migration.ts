@@ -1,5 +1,5 @@
 import { App, TFile, TFolder } from "obsidian";
-import { BACKSTAGE_ROOT, LIBRARY_ROOT, bookBackstagePath, bookFilePath, libraryBookPath, seriesFilePath, codexFilePath, CODEX_ROOT } from "./paths";
+import { BACKSTAGE_ROOT, LIBRARY_ROOT, TITLEFORGE_BACKSTAGE_ROOT, bookBackstagePath, bookFilePath, libraryBookPath, seriesFilePath, codexFilePath, CODEX_ROOT } from "./paths";
 import { modifyBackstageFrontmatter, renameBackstagePath } from "./writeGuard";
 import {
 	DEFAULT_SERIES_CONTENT,
@@ -47,29 +47,101 @@ export async function migrateStructuralLayout(app: App): Promise<void> {
 	await migrateNovelCodesAndLocations(app);
 }
 
-/** Renames the old flat `_sf-storylibrary` folder — and every book's chapters inside it — to `_story-library`. No-ops once the legacy root is gone (or the new one already exists). */
+/**
+ * Moves `legacy`'s entire subtree into `dest`, file by file, rather than one
+ * top-level `renameFile` — so a `dest` that already partially exists (e.g. a
+ * lazy backstage write, like a recommend-cache sidecar, beat the structural
+ * migration to creating the new root on some earlier run — this happened for
+ * real, see the regression test) still gets every remaining legacy file
+ * merged in, instead of a naive "does dest exist" check silently skipping the
+ * whole move and stranding real data under the legacy root forever. Never
+ * overwrites a file already present at its destination path — the
+ * new-location copy wins as presumably-newer/authoritative; any such
+ * unresolved conflict is left in place under `legacy` rather than guessed
+ * at, so it stays visible (as vault clutter) instead of being silently
+ * discarded. Trashes `legacy` once merging has left it empty; leaves it
+ * (harmless, re-checked next run) if any conflicts remain inside it.
+ */
+async function mergeFolderInto(app: App, legacyPath: string, destPath: string): Promise<void> {
+	const legacy = app.vault.getAbstractFileByPath(legacyPath);
+	if (!(legacy instanceof TFolder)) return;
+	if (!app.vault.getAbstractFileByPath(destPath)) {
+		await app.vault.createFolder(destPath);
+	}
+	for (const child of [...legacy.children]) {
+		const destChildPath = `${destPath}/${child.name}`;
+		if (child instanceof TFolder) {
+			await mergeFolderInto(app, child.path, destChildPath);
+		} else if (!app.vault.getAbstractFileByPath(destChildPath)) {
+			await app.fileManager.renameFile(child, destChildPath);
+		}
+	}
+	const remaining = app.vault.getAbstractFileByPath(legacyPath);
+	if (remaining instanceof TFolder && remaining.children.length === 0) {
+		await app.fileManager.trashFile(remaining);
+	}
+}
+
+/** Renames the old flat `_sf-storylibrary` folder — and every book's chapters inside it — to `_story-library`. No-ops once the legacy root is gone. Merges (see `mergeFolderInto`) rather than skipping outright if the new root already partially exists. */
 async function migrateLibraryRootRename(app: App): Promise<void> {
-	if (app.vault.getAbstractFileByPath(LIBRARY_ROOT)) return;
 	const legacy = app.vault.getAbstractFileByPath(LEGACY_LIBRARY_ROOT);
 	if (!(legacy instanceof TFolder)) return;
-	await app.fileManager.renameFile(legacy, LIBRARY_ROOT);
+	if (!app.vault.getAbstractFileByPath(LIBRARY_ROOT)) {
+		await app.fileManager.renameFile(legacy, LIBRARY_ROOT);
+		return;
+	}
+	await mergeFolderInto(app, LEGACY_LIBRARY_ROOT, LIBRARY_ROOT);
 }
 
 /**
  * Moves the old flat `_sf-backstage` folder — and everything inside it, every
  * book's bookkeeping, codex.md, settings-presets, Title Forge — to the new
- * `_backstage/storyforge/` location in one folder move. No-ops once the
- * legacy root is gone (or the new one already exists).
+ * `_backstage/storyforge/` location. No-ops once the legacy root is gone.
+ * Merges (see `mergeFolderInto`) rather than skipping outright if the new
+ * root already partially exists.
  */
 async function migrateBackstageRootRename(app: App): Promise<void> {
-	if (app.vault.getAbstractFileByPath(BACKSTAGE_ROOT)) return;
 	const legacy = app.vault.getAbstractFileByPath(LEGACY_BACKSTAGE_ROOT);
 	if (!(legacy instanceof TFolder)) return;
 	const backstageParent = BACKSTAGE_ROOT.slice(0, BACKSTAGE_ROOT.lastIndexOf("/"));
 	if (backstageParent && !app.vault.getAbstractFileByPath(backstageParent)) {
 		await app.vault.createFolder(backstageParent);
 	}
-	await app.fileManager.renameFile(legacy, BACKSTAGE_ROOT);
+	if (!app.vault.getAbstractFileByPath(BACKSTAGE_ROOT)) {
+		await app.fileManager.renameFile(legacy, BACKSTAGE_ROOT);
+		return;
+	}
+	await mergeFolderInto(app, LEGACY_BACKSTAGE_ROOT, BACKSTAGE_ROOT);
+}
+
+/** Pre-1a titleForge location, nested under storyForge's own backstage root, superseded by `TITLEFORGE_BACKSTAGE_ROOT` (`_backstage/titleforge`), titleForge's own sibling region. */
+const LEGACY_TITLEFORGE_ROOT = `${BACKSTAGE_ROOT}/titleforge`;
+
+/**
+ * Moves titleForge's vault data (lexicons, settings.json, history) out from
+ * under storyForge's own backstage root to its own sibling region,
+ * `_backstage/titleforge/`. No-ops once the legacy folder is gone. Merges
+ * (see `mergeFolderInto`) rather than skipping outright if the new root
+ * already partially exists — `ensureLexiconsSeeded` seeds bundled defaults
+ * the moment `TitleForgeController.onload()` runs, so a vault that's ever
+ * loaded even one build in between can already have a partial new-location
+ * folder before this migration gets a chance to run.
+ *
+ * Deliberately **not** folded into `migrateStructuralLayout` / called from
+ * `initializeVaultState` — `TitleForgeController.onload()` runs earlier in
+ * `main.ts`'s own `onload()` (before `initializeVaultState` is even invoked)
+ * and touches this folder immediately (`ensureLexiconsSeeded`, `loadSettings`).
+ * This must run before that call, so `main.ts` calls it directly, right
+ * before constructing `TitleForgeController`.
+ */
+export async function migrateTitleforgeLocation(app: App): Promise<void> {
+	const legacy = app.vault.getAbstractFileByPath(LEGACY_TITLEFORGE_ROOT);
+	if (!(legacy instanceof TFolder)) return;
+	if (!app.vault.getAbstractFileByPath(TITLEFORGE_BACKSTAGE_ROOT)) {
+		await app.fileManager.renameFile(legacy, TITLEFORGE_BACKSTAGE_ROOT);
+		return;
+	}
+	await mergeFolderInto(app, LEGACY_TITLEFORGE_ROOT, TITLEFORGE_BACKSTAGE_ROOT);
 }
 
 /**

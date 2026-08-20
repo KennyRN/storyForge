@@ -29,7 +29,7 @@ describe("layoutConfig", () => {
 		});
 	});
 
-	it("Detailed: novel top, codex + stats + unplaced all visible", () => {
+	it("Chapter: novel top, codex + stats + unplaced all visible", () => {
 		expect(layoutConfig("hybrid")).toEqual({
 			topPane: "novel",
 			showCodex: true,
@@ -42,7 +42,7 @@ describe("layoutConfig", () => {
 		expect(layoutConfig("seriesBrowse").showCodex).toBe(false);
 	});
 
-	it("stats are shown only in Detailed", () => {
+	it("stats are shown only in Chapter", () => {
 		for (const layout of SF_LAYOUTS) {
 			expect(layoutConfig(layout).showStats).toBe(layout === "hybrid");
 		}

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { type App } from "obsidian";
 import { makeTFile, makeTFolder } from "./obsidianStub";
-import { migrateStructuralLayout } from "../migration";
-import { LIBRARY_ROOT, BACKSTAGE_ROOT, bookFilePath, seriesFilePath } from "../paths";
+import { migrateStructuralLayout, migrateTitleforgeLocation } from "../migration";
+import { LIBRARY_ROOT, BACKSTAGE_ROOT, TITLEFORGE_BACKSTAGE_ROOT, bookFilePath, seriesFilePath } from "../paths";
 
 /**
  * Minimal in-memory vault: a flat map of path -> "file" | "folder", plus
@@ -39,6 +39,16 @@ function makeFakeVaultApp() {
 			return folder;
 		}
 		return null;
+	}
+
+	async function trashFile(file: { path: string }): Promise<void> {
+		const path = file.path;
+		const toRemove = [...kinds.keys()].filter((p) => p === path || p.startsWith(`${path}/`));
+		for (const p of toRemove) {
+			kinds.delete(p);
+			content.delete(p);
+			frontmatter.delete(p);
+		}
 	}
 
 	async function rename(file: { path: string }, newPath: string): Promise<void> {
@@ -82,6 +92,7 @@ function makeFakeVaultApp() {
 		},
 		fileManager: {
 			renameFile: rename,
+			trashFile,
 			processFrontMatter: async (file: { path: string }, mutate: (fm: Record<string, unknown>) => void) => {
 				const fm = frontmatter.get(file.path) ?? {};
 				mutate(fm);
@@ -219,6 +230,33 @@ describe("migrateStructuralLayout", () => {
 		expect(kinds.size).toBe(0);
 	});
 
+	it("merges into an already-partially-existing new backstage root instead of skipping the whole move — regression for a lazy write (e.g. a recommend-cache sidecar) beating the structural migration to creating _backstage/storyforge/ on some earlier run", async () => {
+		const { app, kinds, content, frontmatter } = seedLegacyVault();
+
+		// Simulate the real-world corruption: a lazy write already created part
+		// of the new backstage root before the structural migration ran.
+		kinds.set(BACKSTAGE_ROOT, "folder");
+		kinds.set(`${BACKSTAGE_ROOT}/utta`, "folder");
+		kinds.set(`${BACKSTAGE_ROOT}/utta/recommend`, "folder");
+		kinds.set(`${BACKSTAGE_ROOT}/utta/recommend/attribution.md`, "file");
+		content.set(`${BACKSTAGE_ROOT}/utta/recommend/attribution.md`, "new-location cache");
+
+		await migrateStructuralLayout(app);
+
+		// Previously this pre-existing partial folder made migrateBackstageRootRename
+		// bail out entirely, stranding series.md/novel.md/chapters under _sf-backstage
+		// forever. Now everything still ends up in the right place.
+		expect(kinds.has("_sf-backstage")).toBe(false);
+		expect(kinds.get(seriesFilePath())).toBe("file");
+		expect(frontmatter.get(seriesFilePath())?.order).toEqual(["aaa", "aab"]);
+		expect(kinds.get(bookFilePath("aaa"))).toBe("file");
+		expect(content.get(`${BACKSTAGE_ROOT}/aaa/cover.png`)).toBe("cover-bytes");
+		expect(kinds.get(`${BACKSTAGE_ROOT}/aaa/chapters/utta_chapter-aaa.md`)).toBe("file");
+
+		// The non-conflicting pre-existing file merged in alongside the legacy content.
+		expect(content.get(`${BACKSTAGE_ROOT}/aaa/recommend/attribution.md`)).toBe("new-location cache");
+	});
+
 	it("doesn't let an old title-derived folder name skew the new sequence — a fresh 'aaa' isn't handed out twice", async () => {
 		// One book already on the new scheme (as if a book was created post-upgrade,
 		// or a previous partial migration run got this far), one still legacy.
@@ -264,5 +302,57 @@ describe("migrateStructuralLayout", () => {
 		expect(content.get(`${LIBRARY_ROOT}/aab/uttb_chapter-aaa.md`)).toBe("legacy prose");
 		expect(kinds.get(bookFilePath("aab"))).toBe("file");
 		expect(frontmatter.get(bookFilePath("aab"))?.["book-id-reference"]).toBe("uttb");
+	});
+});
+
+describe("migrateTitleforgeLocation", () => {
+	it("renames the legacy nested folder to titleForge's own sibling region, contents intact", async () => {
+		const { app, kinds, content, seedFolder, seedFile } = makeFakeVaultApp();
+
+		seedFolder(`${BACKSTAGE_ROOT}/titleforge`);
+		seedFolder(`${BACKSTAGE_ROOT}/titleforge/lexicons`);
+		seedFile(`${BACKSTAGE_ROOT}/titleforge/lexicons/title-composer.json`, '{"id":"title-composer"}');
+		seedFile(`${BACKSTAGE_ROOT}/titleforge/settings.json`, "{}");
+		seedFolder(`${BACKSTAGE_ROOT}/titleforge/history`);
+		seedFile(`${BACKSTAGE_ROOT}/titleforge/history/title-composer.jsonl`, "");
+
+		await migrateTitleforgeLocation(app);
+
+		expect(kinds.has(`${BACKSTAGE_ROOT}/titleforge`)).toBe(false);
+		expect(kinds.get(TITLEFORGE_BACKSTAGE_ROOT)).toBe("folder");
+		expect(content.get(`${TITLEFORGE_BACKSTAGE_ROOT}/lexicons/title-composer.json`)).toBe('{"id":"title-composer"}');
+		expect(content.get(`${TITLEFORGE_BACKSTAGE_ROOT}/settings.json`)).toBe("{}");
+		expect(kinds.get(`${TITLEFORGE_BACKSTAGE_ROOT}/history/title-composer.jsonl`)).toBe("file");
+	});
+
+	it("is a true no-op on a second run", async () => {
+		const { app, kinds, seedFolder, seedFile } = makeFakeVaultApp();
+		seedFolder(`${BACKSTAGE_ROOT}/titleforge`);
+		seedFile(`${BACKSTAGE_ROOT}/titleforge/settings.json`, "{}");
+
+		await migrateTitleforgeLocation(app);
+		const snapshot = new Map(kinds);
+		await migrateTitleforgeLocation(app);
+
+		expect(kinds).toEqual(snapshot);
+	});
+
+	it("no-ops on a vault with no legacy titleforge folder", async () => {
+		const { app, kinds } = makeFakeVaultApp();
+		await expect(migrateTitleforgeLocation(app)).resolves.toBeUndefined();
+		expect(kinds.size).toBe(0);
+	});
+
+	it("does not clobber an already-migrated new-location folder", async () => {
+		const { app, kinds, content, seedFolder, seedFile } = makeFakeVaultApp();
+		seedFolder(`${BACKSTAGE_ROOT}/titleforge`);
+		seedFile(`${BACKSTAGE_ROOT}/titleforge/settings.json`, "stale");
+		seedFolder(TITLEFORGE_BACKSTAGE_ROOT);
+		seedFile(`${TITLEFORGE_BACKSTAGE_ROOT}/settings.json`, "current");
+
+		await migrateTitleforgeLocation(app);
+
+		expect(kinds.get(`${BACKSTAGE_ROOT}/titleforge`)).toBe("folder");
+		expect(content.get(`${TITLEFORGE_BACKSTAGE_ROOT}/settings.json`)).toBe("current");
 	});
 });

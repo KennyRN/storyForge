@@ -1,5 +1,5 @@
 import { Notice, TFile, type App } from "obsidian";
-import { BACKSTAGE_ROOT } from "../paths.js";
+import { TITLEFORGE_BACKSTAGE_ROOT } from "../paths.js";
 import { enqueueBackstageWrite, writeBackstageFile } from "../writeGuard.js";
 import { parseEntries, serialiseEntries } from "./engine/history.js";
 import type { GeneratorSpec, HistoryEntry } from "./engine/types.js";
@@ -12,17 +12,18 @@ import { DEFAULT_TITLEFORGE_SETTINGS, type TitleForgeSettings } from "./settings
  * means rewriting this file's guts (which vault, which write helper) and
  * nothing else in the folder.
  *
- * `BACKSTAGE_ROOT` and `writeGuard.ts` are storyForge's — reused here rather
- * than reinvented, same as the shared icon in `view/TitleForgeView.ts`. On
- * extraction, swap `TITLEFORGE_ROOT` below for the new plugin's own vault root
- * and replace the two writeGuard calls with a plain `vault.create`/`modify`
- * (writeGuard's only job is confining writes to storyForge's backstage folder,
- * which a standalone plugin wouldn't need).
+ * `TITLEFORGE_BACKSTAGE_ROOT` and `writeGuard.ts` are storyForge's — reused
+ * here rather than reinvented, same as the shared icon in
+ * `view/TitleForgeView.ts`. `TITLEFORGE_BACKSTAGE_ROOT` (`_backstage/titleforge`)
+ * is already titleForge's own sibling region under the shared `_backstage/`
+ * parent, not nested under storyForge's own `_backstage/storyforge/`. On
+ * extraction, swap `root()` below for the new plugin's own vault root and
+ * replace the two writeGuard calls with a plain `vault.create`/`modify`
+ * (writeGuard's only job is confining writes to storyForge's/titleForge's
+ * shared `_backstage/` regions, which a standalone plugin wouldn't need).
  */
-export const TITLEFORGE_ROOT = "titleforge";
-
 function root(): string {
-	return `${BACKSTAGE_ROOT}/${TITLEFORGE_ROOT}`;
+	return TITLEFORGE_BACKSTAGE_ROOT;
 }
 function lexiconPath(id: string): string {
 	return `${root()}/lexicons/${id}.json`;

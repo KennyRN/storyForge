@@ -4,9 +4,7 @@
    padded .sf-recommend-view / .sf-archive-view surface. */
 .workspace-leaf-content[data-type="storyforge-view"] .view-content,
 .workspace-leaf-content[data-type="storyforge-storytelling-view"] .view-content,
-.workspace-leaf-content[data-type="storyforge-tools-view"] .view-content,
-.workspace-leaf-content[data-type="storyforge-spacer-view"] .view-content,
-.workspace-leaf-content[data-type="storyforge-forge-view"] .view-content {
+.workspace-leaf-content[data-type="storyforge-tools-view"] .view-content {
 	padding: 0;
 }
 
@@ -286,6 +284,14 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+
+/* Inside a title+open-icon line specifically, the title must not stretch to fill the row — that
+   would drag the trailing icon out to the row's far edge instead of sitting right after the text,
+   the way a Codex row's type icon sits right after its name. Grow disabled, shrink still enabled
+   (via the base rule above), so long titles still truncate correctly. */
+.sf-row-title-line .sf-row-text {
+	flex: initial;
 }
 
 .sf-row-title-wrap {
@@ -617,13 +623,6 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	padding: 16px;
 }
 
-.sf-onboarding-modal-el {
-	width: 460px;
-	max-width: 90vw;
-	height: 400px;
-	max-height: 85vh;
-}
-
 .sf-onboarding-modal {
 	padding: 0 16px 16px;
 	height: 100%;
@@ -635,203 +634,6 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 .sf-onboarding-modal > h2 {
 	margin-top: 0;
 	flex-shrink: 0;
-}
-
-.sf-onboarding-tab-bar {
-	display: flex;
-	flex-direction: row;
-	width: 100%;
-	gap: 0;
-	margin-top: 12px;
-	border-bottom: 1px solid var(--background-modifier-border);
-	flex-shrink: 0;
-}
-
-.sf-onboarding-tab-btn {
-	appearance: none;
-	border: none;
-	background: transparent;
-	flex: 1 1 0;
-	padding: var(--size-4-3) var(--size-4-2);
-	font-size: var(--font-ui-small);
-	font-weight: var(--font-medium);
-	color: var(--text-muted);
-	cursor: pointer;
-	text-align: center;
-	text-transform: lowercase;
-	border-bottom: 2px solid transparent;
-	margin-bottom: -1px;
-	transition: color 0.15s ease, border-color 0.15s ease;
-}
-
-.sf-onboarding-tab-btn:hover {
-	color: var(--text-normal);
-	background: var(--background-modifier-hover);
-}
-
-.sf-onboarding-tab-btn.is-active {
-	color: var(--text-accent);
-	border-bottom-color: var(--interactive-accent);
-}
-
-.sf-onboarding-tab-panels {
-	margin-top: 16px;
-	flex: 1;
-	min-height: 0;
-}
-
-.sf-onboarding-tab-panel {
-	display: none;
-	flex-direction: column;
-	gap: 12px;
-}
-
-.sf-onboarding-tab-panel.is-active {
-	display: flex;
-}
-
-.sf-onboarding-field {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-}
-
-.sf-onboarding-field label {
-	font-size: var(--font-ui-smaller);
-	color: var(--text-muted);
-	text-transform: lowercase;
-}
-
-.sf-onboarding-input-row {
-	display: flex;
-	align-items: stretch;
-	gap: 4px;
-}
-
-.sf-onboarding-input-row .sf-modal-input {
-	flex: 1;
-	min-width: 0;
-}
-
-/* Hover icons, not buttons - same idiom as .sf-series-settings-btn/.sf-book-filter-btn: no border or
-   background of their own, just a colour change on hover. Square, matching the input's own height via
-   the row's `align-items: stretch`. */
-.sf-onboarding-icon-btn {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	aspect-ratio: 1;
-	flex-shrink: 0;
-	color: var(--text-muted);
-	cursor: pointer;
-}
-
-.sf-onboarding-icon-btn:hover {
-	color: var(--text-normal);
-}
-
-/* Fixed size regardless of tab/pane content - both .sf-title-gen-genre-list and
-   .sf-title-gen-history-list scroll independently within it instead of resizing the modal. */
-.sf-title-gen-settings-modal-el {
-	width: 420px;
-	height: 480px;
-	max-width: 90vw;
-	max-height: 85vh;
-}
-
-.sf-title-gen-settings-modal {
-	height: 100%;
-	box-sizing: border-box;
-	padding: 16px;
-	display: flex;
-	flex-direction: column;
-}
-
-.sf-title-gen-settings-modal h3 {
-	margin: 12px 0 6px;
-	flex-shrink: 0;
-	font-size: var(--font-ui-small);
-	text-transform: lowercase;
-}
-
-.sf-title-gen-genre-list {
-	display: flex;
-	flex-direction: column;
-	flex: 1;
-	min-height: 0;
-	overflow-y: auto;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 4px;
-}
-
-.sf-title-gen-genre-item {
-	padding: 6px 10px;
-	cursor: pointer;
-	color: var(--text-normal);
-	flex-shrink: 0;
-}
-
-.sf-title-gen-genre-item:hover {
-	background: var(--background-modifier-hover);
-}
-
-.sf-title-gen-genre-item.is-active {
-	background: var(--interactive-accent);
-	color: var(--text-on-accent);
-}
-
-.sf-title-gen-history-list {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-	flex: 1;
-	min-height: 0;
-	overflow-y: auto;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 4px;
-}
-
-.sf-title-gen-history-item {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	padding: 4px 6px 4px 10px;
-	color: var(--text-muted);
-	font-size: var(--font-ui-small);
-	flex-shrink: 0;
-}
-
-.sf-title-gen-history-title {
-	flex: 1;
-	min-width: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-.sf-title-gen-history-empty {
-	padding: 4px 10px;
-	color: var(--text-faint);
-	font-size: var(--font-ui-small);
-	font-style: italic;
-}
-
-/* Headerless, standalone twin of .sf-title-gen-settings-modal's history pane (see
-   TitleHistoryModal) - same fixed-size + flex-column treatment so the reused
-   .sf-title-gen-history-list still gets a definite height to scroll within. */
-.sf-title-history-modal-el {
-	width: 360px;
-	height: 360px;
-	max-width: 90vw;
-	max-height: 80vh;
-}
-
-.sf-title-history-modal {
-	height: 100%;
-	box-sizing: border-box;
-	padding: 16px;
-	display: flex;
-	flex-direction: column;
 }
 
 .sf-onboarding-actions {
@@ -1036,6 +838,33 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 .sf-modal-title-input {
 	font-size: 1.3em;
 	font-weight: 600;
+}
+
+/* Series title text box (SeriesOverviewView.ts's renderTitleField) — styled as an h1 while staying
+   an editable input, with a small lowercase "series name" caption tucked under its bottom-left
+   corner. */
+.sf-series-title-wrap {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	flex: 1;
+	min-width: 0;
+}
+
+/* input[type="text"] specificity (element + attribute) so Obsidian's own default text-input font
+ * sizing can't outrank this — same reason input.sf-recommend-chapter-title[type="text"] above
+ * needs it: a bare single-class selector loses that fight and silently renders as a normal input. */
+input.sf-series-title-input[type="text"] {
+	width: 100%;
+	font-size: var(--h1-size, 1.802em);
+	font-weight: var(--h1-weight, 700);
+	line-height: var(--h1-line-height, 1.1);
+}
+
+.sf-series-title-label {
+	margin-top: 2px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
 }
 
 .sf-modal-list-header {
@@ -1879,18 +1708,6 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	user-select: none;
 }
 
-.sf-ui-format-preview .sf-right-rail-preview .sf-forge-view {
-	min-height: 0;
-	height: auto;
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 6px;
-	padding: 8px;
-}
-
-.sf-ui-format-preview .sf-right-rail-preview .sf-forge-view__panel {
-	display: none;
-}
-
 .sf-ui-format-preview .sf-right-rail-preview .sf-recommend-view,
 .sf-ui-format-preview .sf-right-rail-preview .sf-archive-view {
 	border: 1px solid var(--background-modifier-border);
@@ -2284,6 +2101,16 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 }
 
 
+/* Story Context's own tab-header icon doubles as the Focus Mode toggle (RecommendationView.ts) -
+ * left-align it within its own tab's header box (flex-start is the browser default, but declared
+ * explicitly so this stays correct even if Obsidian's own default ever changes). Scoped to this
+ * one view's data-type only, so no other right-rail tab, left-sidebar tab, or editor tab is
+ * affected; deliberately targets .workspace-tab-header-inner *scoped by data-type* rather than
+ * that class bare, which would hit every sidebar tab in the workspace. */
+.mod-right-split .workspace-tab-header[data-type="storyforge-recommend-view"] .workspace-tab-header-inner {
+	justify-content: flex-start;
+}
+
 /* Story Context (recommendations) view.
  * contentEl is .view-content.sf-recommend-view — set padding here so Obsidian's
  * default .view-content inset is overridden evenly on both sides.
@@ -2301,6 +2128,87 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 .sf-recommend-header,
 .sf-recommend-tabs {
 	flex-shrink: 0;
+}
+
+/* A Forge-family companion's renderPanel() mounts here, filling whatever space is left in either
+ * of its two homes: below .sf-recommend-tabs in the normal view, or straight into Focus Mode's
+ * otherwise-blank panel (RecommendationView.ts's mountActiveForgeFamilyPanel()). */
+.sf-recommend-view__forge-panel {
+	flex: 1;
+	min-height: 0;
+	overflow: auto;
+	padding: 8px;
+	box-sizing: border-box;
+}
+
+/* Forge-family member-icon row: two homes share this class. Directly under .sf-recommend-tabs in
+ * the normal view (margin-bottom pairs it with whatever body/panel comes below); pinned to the
+ * bottom of Focus Mode's otherwise-empty panel via the --focus modifier's margin-top: auto (a
+ * lone flex child isn't otherwise pushed down by an empty flex column). Icons right-aligned
+ * either way - "shown … from right to left" as more appear. */
+.sf-recommend-view__forge-row {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 4px;
+	margin-bottom: 10px;
+}
+
+.sf-recommend-view__forge-row--focus {
+	margin-top: auto;
+	margin-bottom: 0;
+}
+
+/* A family member's own icon (in either row's .sf-recommend-view__forge-icon) and Focus Mode's
+ * standalone trigger (.sf-recommend-view__forge-family) share one visual language: invisible
+ * padding border for hit-target size, opacity-based active state, no background/border-radius
+ * chrome. The tabs-region trigger is a real .sf-recommend-tab instead (styled with the other tabs
+ * above), since it sits in that row rather than standing alone. */
+.sf-recommend-view__forge-family,
+.sf-recommend-view__forge-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: 4px solid transparent;
+	box-sizing: border-box;
+	padding: 0;
+	color: var(--sf-forge-companion-color, var(--text-muted));
+	opacity: 0.72;
+	cursor: pointer;
+	background: transparent;
+	flex-shrink: 0;
+}
+
+.sf-recommend-view__forge-family:hover,
+.sf-recommend-view__forge-family:focus-visible,
+.sf-recommend-view__forge-icon:hover,
+.sf-recommend-view__forge-icon:focus-visible {
+	color: var(--sf-forge-companion-color, var(--text-normal));
+	opacity: 1;
+	outline: none;
+	filter: brightness(1.2);
+}
+
+.sf-recommend-view__forge-family.is-active,
+.sf-recommend-view__forge-icon.is-active {
+	color: var(--sf-forge-companion-color, var(--text-normal));
+	opacity: 1;
+}
+
+.sf-recommend-view__forge-family svg,
+.sf-recommend-view__forge-icon svg {
+	width: 22px;
+	height: 22px;
+}
+
+/* RecommendationView.ts's renderNovel() host — see its own doc comment: exists only so
+ * renderNovelPanel()'s unconditional container.empty() can't wipe out the tabs row built into its
+ * parent right before it. `display: contents` removes this element from layout entirely, so the
+ * .sf-recommend-body renderNovelPanel builds inside it still behaves as a direct flex child of
+ * .sf-recommend-view for the fixed/scroll split's sizing to work. */
+.sf-recommend-novel-host {
+	display: contents;
 }
 
 .sf-recommend-body {
@@ -2448,145 +2356,6 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 	color: var(--sf-archive-highlight-text, var(--text-normal));
 }
 
-.sf-spacer-view {
-	position: relative;
-	display: flex;
-	flex-direction: column;
-	height: 100%;
-	box-sizing: border-box;
-	/* Match the editor surface so the empty spacer reads as continuous space. */
-	background: var(--background-primary);
-	padding: 0;
-}
-
-/* Sibling icon dock — bottom of Spacer, right-aligned (screen edge). Host provides
-   placement only; siblings own their icon markup (no button chrome here).
-   Flex + margin-top:auto (not absolute) so the dock stays visible even when the
-   view has no in-flow children. */
-.sf-spacer-view__dock {
-	margin-top: auto;
-	align-self: flex-end;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 4px;
-	padding: 8px;
-	pointer-events: none;
-	z-index: 1;
-}
-
-.sf-spacer-view__dock-slot {
-	pointer-events: auto;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	/* Literal 44px — do NOT use --ribbon-width; tools-panel mode sets it to 0. */
-	width: 44px;
-	min-height: 44px;
-}
-
-/* ── Forge view (companion hub) ── */
-
-.sf-forge-view {
-	display: flex;
-	flex-direction: column;
-	height: 100%;
-	box-sizing: border-box;
-	padding: 0;
-	min-height: 0;
-}
-
-.sf-forge-view__companions {
-	display: flex;
-	flex-direction: row;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 4px;
-	padding: 8px;
-	border-bottom: 1px solid var(--background-modifier-border);
-	flex-shrink: 0;
-}
-
-.sf-forge-view__companion {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	/* Invisible padding border — expands hit target without button chrome */
-	border: 4px solid transparent;
-	box-sizing: border-box;
-	padding: 0;
-	color: var(--sf-forge-companion-color, var(--text-muted));
-	opacity: 0.72;
-	cursor: pointer;
-	background: transparent;
-	border-radius: 0;
-}
-
-.sf-forge-view__companion:hover,
-.sf-forge-view__companion:focus-visible {
-	color: var(--sf-forge-companion-color, var(--text-normal));
-	opacity: 1;
-	background: transparent;
-	outline: none;
-	filter: brightness(1.2);
-}
-
-.sf-forge-view__companion.is-active {
-	color: var(--sf-forge-companion-color, var(--text-normal));
-	opacity: 1;
-	background: transparent;
-}
-
-.sf-forge-view__companion svg {
-	width: 30px;
-	height: 30px;
-}
-
-.sf-forge-view__panel {
-	flex: 1;
-	min-height: 0;
-	overflow: auto;
-	padding: 8px;
-	box-sizing: border-box;
-}
-
-.sf-forge-view__panel--empty {
-	position: relative;
-}
-
-/* Cards (left) then bookshelf (right, in the corner) — purely decorative, not wired to any
- * action yet (see ForgeView.ts's renderEmptyStateDecoration). */
-.sf-forge-view__empty-decoration {
-	position: absolute;
-	right: 12px;
-	bottom: 12px;
-	display: flex;
-	align-items: flex-end;
-	gap: 10px;
-}
-
-.sf-forge-view__empty-icon {
-	display: flex;
-	color: var(--text-muted);
-}
-
-.sf-forge-view__empty-icon svg {
-	width: 48px;
-	height: 48px;
-}
-
-/* Drop the editor ↔ right-sidebar divider while Spacer is the visible right tab. */
-body.sf-spacer-active .workspace-split.mod-right-split:not(#storyforge-specificity-boost) {
-	border-left-color: transparent;
-	border-left-width: 0;
-	box-shadow: none;
-}
-body.sf-spacer-active .workspace-split.mod-right-split > .workspace-leaf-resize-handle:not(#storyforge-specificity-boost) {
-	background-color: transparent;
-	border-color: transparent;
-	opacity: 0;
-}
-
 /* Manuscript editor scrollbars.
  * Thickness uses body.sf-sb-* classes with literal px — Chromium often ignores
  * width: var(...) on ::-webkit-scrollbar. Thumb is transparent until hover so bars
@@ -2627,37 +2396,39 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 
 .sf-recommend-tabs {
 	display: flex;
-	gap: 6px;
+	align-items: center;
+	justify-content: space-evenly;
 	margin-bottom: 10px;
 }
 
+/* Icon-only, sized and treated the same as the left sidebar's storyLibrary panel's own
+ * layout-select tabs (.sf-layout-tab in StoryForgeView.ts, styles.css line ~46): the icon's size
+ * comes from the tab's own font-size rather than a fixed pixel value, and hover/active are a
+ * plain colour change - no background chip ("highlighted icons, not tab buttons"). Colours stay
+ * on their own --sf-recommend-tabs-* variables (Story Context's own formatting settings still
+ * apply); only the .sf-layout-tab sizing/treatment is shared, not those settings. */
 .sf-recommend-tab {
-	font-size: var(--sf-recommend-tabs-size, 0.85em);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: calc(var(--font-ui-medium) * 1.4);
 	color: var(--sf-recommend-tabs-color, var(--text-muted));
 	cursor: pointer;
-	padding: 2px 6px;
+	padding: 5px 6px;
 	border-radius: 4px;
-	font-family: var(--sf-recommend-tabs-family, inherit);
-	font-variation-settings: var(--sf-recommend-tabs-variation, normal);
-	font-weight: var(--sf-recommend-tabs-weight, 400);
+}
+
+.sf-recommend-tab svg {
+	width: 1em;
+	height: 1em;
+}
+
+.sf-recommend-tab:hover {
+	color: var(--text-normal);
 }
 
 .sf-recommend-tab.is-active {
 	color: var(--sf-recommend-tabs-active-color, var(--text-accent));
-	background: var(--background-modifier-hover);
-}
-
-/* Archive lives in the same row as Novel/Chapter/Details/Dossier but sits apart from them,
- * and shows only its icon rather than a text label. */
-.sf-recommend-tab--archive {
-	margin-left: auto;
-	display: flex;
-	align-items: center;
-}
-
-.sf-recommend-tab--archive svg {
-	width: 1em;
-	height: 1em;
 }
 
 /* Chapter title row's "go to chapter" button. Padding + SVG size deliberately match the synopsis
@@ -3788,144 +3559,120 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 /* ── Series overview (SeriesOverviewView.ts) ──
  * The Series tab's main-pane page. Independent of Story Context's own .sf-recommend-* styling —
  * none of these classes read Story Context's formatting settings, by design (see the view's own
- * doc comment). */
-
+ * doc comment). Column layout mirroring .sf-recommend-view's own fixed-header/scrolling-body
+ * split (styles.css's Story Context section): series title + "Novels" header + hint/add-novel row
+ * stay put in .sf-series-overview-fixed; the novel list is the only part that scrolls. */
+.workspace-leaf-content[data-type="storyforge-series-overview-view"] .view-content.sf-series-overview-view,
 .sf-series-overview-view {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	overflow: hidden;
+	box-sizing: border-box;
 	max-width: 60em;
 	margin: 0 auto;
-	padding: 24px 32px 48px;
+	padding: 24px 32px 0;
 }
 
-.sf-series-overview-settings {
-	padding-bottom: 20px;
-	margin-bottom: 20px;
-	border-bottom: 1px solid var(--background-modifier-border);
+.sf-series-overview-fixed {
+	flex-shrink: 0;
 }
 
-.sf-series-overview-top {
+.sf-series-overview-scroll {
+	flex: 1;
+	min-height: 0;
+	overflow-x: hidden;
+	overflow-y: auto;
+	padding-bottom: 48px;
+}
+
+/* One novel row: a title line (drag handle + title input) with a synopsis textarea beneath it.
+ * .sf-row's own base (display/align-items/gap/padding/cursor) is a horizontal single-line layout —
+ * override just direction/alignment here so title-line and synopsis stack within the same
+ * draggable row, keeping the handle's own centring scoped to the title line alone (see
+ * .sf-series-overview-row-title-line below) rather than the taller combined row. */
+.sf-series-overview-row {
+	flex-direction: column;
+	align-items: stretch;
+	gap: 4px;
+}
+
+.sf-series-overview-row-title-line {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.sf-series-overview-row-synopsis {
+	/* .sf-modal-input sets width: 100% — inset by the handle's own rendered width (16px, same
+	   value .sf-tag-registry-handle-spacer above uses to match it) + the title line's gap, so the
+	   box lines up under the title text without overflowing the row. */
+	margin-left: calc(16px + 6px);
+	width: calc(100% - 16px - 6px);
+	min-height: 80px;
+	box-sizing: border-box;
+	font: inherit;
+}
+
+/* ── Novel overview (NovelOverviewView.ts) ──
+ * The Novel tab's own main-pane page. Unlike Series overview above, this page deliberately DOES
+ * reuse Story Context's own .sf-recommend-* classes (NovelPanel.ts) rather than inventing
+ * independent styling — the whole point of this page is that it mirrors that tab, formatting
+ * settings included. This wrapper just supplies the flex column/height:100% shell that content's
+ * fixed/scroll split (cover+synopsis+Default PoV stay put; the plot list scrolls) needs to work
+ * the same way it does inside the right sidebar's own .sf-recommend-view. */
+.workspace-leaf-content[data-type="storyforge-novel-overview-view"] .view-content.sf-novel-overview-view,
+.sf-novel-overview-view {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	overflow: hidden;
+	box-sizing: border-box;
+	max-width: 60em;
+	margin: 0 auto;
+	padding: 24px 32px 0;
+}
+
+.sf-novel-overview-view .sf-recommend-scroll {
+	padding-bottom: 48px;
+}
+
+/* NovelPanel.ts's "wide" layout (this page only — Story Context's own Novel tab keeps its
+ * stacked/centred "sidebar" layout unchanged): cover left, synopsis + Default PoV beside it. */
+.sf-recommend-novel-cover-row {
 	display: flex;
 	align-items: flex-start;
 	gap: 20px;
+	margin-bottom: 12px;
 }
 
-.sf-series-overview-cover {
-	width: 180px;
-	height: 270px;
-}
-
-.sf-series-overview-details {
+.sf-recommend-novel-text-col {
 	flex: 1;
 	min-width: 0;
-	display: flex;
-	flex-direction: column;
+	padding-top: 4px;
 }
 
-.sf-series-overview-title {
-	font-size: 1.6em;
-	font-weight: 600;
-	color: var(--text-normal);
+/* Bigger, left-aligned cover — overrides the sidebar's centred 120×180 (.sf-recommend-novel-cover
+ * above), same 2:3 aspect ratio. */
+.sf-novel-overview-view .sf-recommend-novel-cover {
+	width: 220px;
+	height: 330px;
+	margin: 0;
+	align-self: flex-start;
 }
 
-.sf-series-overview-subtitle {
-	font-size: 1.05em;
-	color: var(--text-muted);
-	margin-bottom: 8px;
+.sf-novel-overview-view .sf-recommend-novel-text-col .sf-recommend-novel-synopsis {
+	min-height: 140px;
 }
 
-.sf-series-overview-synopsis {
-	width: 100%;
-	min-height: 130px;
-	box-sizing: border-box;
-	margin: 8px 0;
-	font: inherit;
-}
-
-.sf-series-overview-meta-row {
-	display: flex;
-	align-items: center;
-	margin-top: 4px;
-}
-
-.sf-series-overview-meta-inline {
-	display: flex;
-	align-items: center;
-	flex-wrap: wrap;
-	gap: 20px;
-	margin: 6px 0 10px;
-}
-
-.sf-series-overview-meta-item {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-}
-
-.sf-series-overview-meta-label {
-	font-size: 0.9em;
-	color: var(--text-muted);
-}
-
-.sf-series-overview-meta-control {
-	display: inline-flex;
-	align-items: center;
-	gap: 4px;
-	color: var(--text-normal);
-	cursor: pointer;
-	border-radius: 4px;
-	padding: 1px 4px;
-}
-
-.sf-series-overview-meta-control:hover {
-	background: var(--background-modifier-hover);
-}
-
-.sf-series-overview-meta-icon {
-	display: flex;
-	align-items: center;
-}
-.sf-series-overview-meta-icon svg {
-	width: 1em;
-	height: 1em;
-}
-
-.sf-series-overview-section-title {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	margin: 20px 0 8px;
-	padding-bottom: 6px;
-	font-size: 1.15em;
-	font-weight: 600;
-	border-bottom: 1px solid var(--background-modifier-border);
-}
-.sf-series-overview-section-title svg {
-	width: 1em;
-	height: 1em;
-}
-
-.sf-series-overview-plot-block {
-	padding: 14px 0;
-	border-bottom: 1px solid var(--background-modifier-border);
-}
-.sf-series-overview-plot-block:last-child {
+/* Plainer plot list: no dividing line between chapters, no per-chapter jump icon — the whole
+ * chapter-name row opens it instead (renderNovelPlot's `wide` branch). */
+.sf-recommend-plot-block--plain {
 	border-bottom: none;
 }
 
-/* Theme heading styles (e.g. Minimal) apply their own margins globally — reset so this block's
- * own spacing is the only spacing. */
-.sf-series-overview-chapter-name {
-	margin: 0;
-	font-size: 1.1em;
-	font-weight: 600;
-	color: var(--text-normal);
-}
-
-.sf-series-overview-summary {
-	width: 100%;
-	min-height: 90px;
-	box-sizing: border-box;
-	margin-top: 8px;
-	font: inherit;
+.sf-recommend-plot-header-row--clickable {
+	cursor: pointer;
 }
 
 /* ── New chapter (NewChapterView.ts) ──

@@ -5,12 +5,11 @@ import { StoryForgeView, STORYFORGE_VIEW_TYPE } from "./view/StoryForgeView";
 import { StorytellingView, STORYTELLING_VIEW_TYPE } from "./view/StorytellingView";
 import { ContinuousReadView, STORYFORGE_CONTINUOUS_VIEW_TYPE } from "./view/ContinuousReadView";
 import { SeriesOverviewView, STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE } from "./view/SeriesOverviewView";
+import { NovelOverviewView, STORYFORGE_NOVEL_OVERVIEW_VIEW_TYPE } from "./view/NovelOverviewView";
 import { NewChapterView, STORYFORGE_NEW_CHAPTER_VIEW_TYPE } from "./view/NewChapterView";
 import { ToolsView, TOOLS_VIEW_TYPE } from "./view/ToolsPanel";
 import { RecommendationView, RECOMMEND_VIEW_TYPE, activateRecommendView } from "./view/RecommendationView";
 import { ArchiveView, ARCHIVE_VIEW_TYPE, activateArchiveView } from "./view/ArchiveView";
-import { SpacerView, SPACER_VIEW_TYPE } from "./view/SpacerView";
-import { ForgeView, FORGE_VIEW_TYPE } from "./view/ForgeView";
 import { recomputeChapterRecommend } from "./recommend/recompute";
 import { isNlpReady } from "./recommend/nlp";
 import { CODEX_TYPES } from "./codex";
@@ -30,8 +29,8 @@ import { TagRegistryModal } from "./view/TagRegistryModal";
 import { FORMATFORGE_PLUGIN_ID, formatCompanionState } from "./formatCompanionActive";
 import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders, getBookId } from "./series";
 import { ensureTagRegistryFile, loadCodexTypesIntoRegistry } from "./tagRegistry";
-import { ensureAllChapterEntries, syncAllBookReferenceFields } from "./book";
-import { migrateStructuralLayout, migrateVaultSchema } from "./migration";
+import { createBook, createChapter, ensureAllChapterEntries, syncAllBookReferenceFields, writeBookChapterOrder } from "./book";
+import { migrateStructuralLayout, migrateTitleforgeLocation, migrateVaultSchema } from "./migration";
 import { registerReconciliationEvents } from "./reconciliation";
 import {
 	isLibraryChapterPath,
@@ -42,7 +41,6 @@ import {
 	LIBRARY_ROOT,
 	CODEX_ROOT,
 } from "./paths";
-import { SeriesOnboardingModal } from "./view/SeriesOnboardingModal";
 import type { SfLayout } from "./layout";
 import { ensureWelcomeNote } from "./welcomeNote";
 import { recordChapterEdit } from "./history";
@@ -755,6 +753,14 @@ export default class StoryForgePlugin extends Plugin {
 		// during the rest of onload / immediately after a hot-reload.
 		this.api = createHostApi(this);
 
+		// Must run before TitleForgeController.onload() below, which touches
+		// _backstage/titleforge/ immediately (ensureLexiconsSeeded, loadSettings)
+		// — running this later inside initializeVaultState() (as the other
+		// structural migrations do) would let titleForge seed fresh defaults at
+		// the new path first, then find "the new path already exists" and skip,
+		// orphaning the real data at the legacy path. See migrateTitleforgeLocation's
+		// doc comment in migration.ts.
+		await migrateTitleforgeLocation(this.app);
 		this.titleForge = new TitleForgeController(this);
 		await this.titleForge.onload();
 
@@ -772,12 +778,11 @@ export default class StoryForgePlugin extends Plugin {
 		this.registerView(STORYTELLING_VIEW_TYPE, (leaf) => new StorytellingView(leaf, this));
 		this.registerView(STORYFORGE_CONTINUOUS_VIEW_TYPE, (leaf) => new ContinuousReadView(leaf, this));
 		this.registerView(STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE, (leaf) => new SeriesOverviewView(leaf, this));
+		this.registerView(STORYFORGE_NOVEL_OVERVIEW_VIEW_TYPE, (leaf) => new NovelOverviewView(leaf, this));
 		this.registerView(STORYFORGE_NEW_CHAPTER_VIEW_TYPE, (leaf) => new NewChapterView(leaf, this));
 		this.registerView(TOOLS_VIEW_TYPE, (leaf) => new ToolsView(leaf));
 		this.registerView(RECOMMEND_VIEW_TYPE, (leaf) => new RecommendationView(leaf, this));
 		this.registerView(ARCHIVE_VIEW_TYPE, (leaf) => new ArchiveView(leaf, this));
-		this.registerView(SPACER_VIEW_TYPE, (leaf) => new SpacerView(leaf, this));
-		this.registerView(FORGE_VIEW_TYPE, (leaf) => new ForgeView(leaf, this));
 
 		this.addCommand({
 			id: "open-recommendations",
@@ -815,8 +820,6 @@ export default class StoryForgePlugin extends Plugin {
 		// moved to a tab row instead.
 		this.addRibbonIcon(ICON_LAYOUT_SELECTOR, "Open storyForge interface", () => this.openStoryForgeInterface());
 		this.addRibbonIcon(ICON_TAG_EDIT, "Open Tags & Codex types", () => this.openTagRegistry());
-		// TEMP: replays the first-run onboarding flow on demand for iterating on it. Remove before shipping.
-		this.addRibbonIcon("flask-conical", "TEMP: Replay onboarding", () => void this.replayOnboarding());
 
 		this.settingsTab = new StoryForgeSettingsTab(this.app, this);
 		this.addSettingTab(this.settingsTab);
@@ -861,29 +864,23 @@ export default class StoryForgePlugin extends Plugin {
 			refreshTabTitles(this.app);
 			this.applyEditorScrollbarStyles();
 			this.style.applyRightRailChrome();
-			this.syncSpacerActiveClass();
 			void this.maybeRunScheduledBackup("vault-open");
 		});
 
-		this.registerEvent(
-			this.app.workspace.on("active-leaf-change", () => this.syncSpacerActiveClass()),
-		);
 		// Switching to the storyTelling panel is a leaf activation like any other (it's a sidebar
 		// tab) rather than something StoryForgeView's own layout-tab click handler can see, so this
-		// is a separate, plugin-level listener rather than living next to the Novel/Detailed
+		// is a separate, plugin-level listener rather than living next to the Novel/Chapter
 		// handling in StoryForgeView.ts's selectLayout().
 		this.registerEvent(
 			this.app.workspace.on("active-leaf-change", (leaf) => {
-				if (leaf?.view instanceof StorytellingView) this.leaveSeriesOverviewIfShowing();
+				if (leaf?.view instanceof StorytellingView) {
+					this.leaveSeriesOverviewIfShowing();
+					this.leaveNovelOverviewIfShowing();
+				}
 			}),
 		);
 		const refreshRightRailChrome = debounce(() => this.style.applyRightRailChrome(), 50);
-		this.registerEvent(
-			this.app.workspace.on("layout-change", () => {
-				this.syncSpacerActiveClass();
-				refreshRightRailChrome();
-			}),
-		);
+		this.registerEvent(this.app.workspace.on("layout-change", () => refreshRightRailChrome()));
 		this.register(() => refreshRightRailChrome.cancel());
 
 		this.registerInterval(window.setInterval(() => void this.maybeRunScheduledBackup("interval"), 30 * 60 * 1000));
@@ -931,12 +928,11 @@ export default class StoryForgePlugin extends Plugin {
 			STORYFORGE_VIEW_TYPE,
 			STORYFORGE_CONTINUOUS_VIEW_TYPE,
 			STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE,
+			STORYFORGE_NOVEL_OVERVIEW_VIEW_TYPE,
 			STORYFORGE_NEW_CHAPTER_VIEW_TYPE,
 			TOOLS_VIEW_TYPE,
 			RECOMMEND_VIEW_TYPE,
 			ARCHIVE_VIEW_TYPE,
-			SPACER_VIEW_TYPE,
-			FORGE_VIEW_TYPE,
 			...this.rightRailRegistry.map((r) => r.viewType),
 		];
 		for (const type of types) {
@@ -974,6 +970,46 @@ export default class StoryForgePlugin extends Plugin {
 		}
 	}
 
+	/** The Novel overview page (main-pane view) always reads its selected novel straight from
+	 * settings too (NovelOverviewView.ts) — same nudge as refreshSeriesOverviewView() above, for the
+	 * storyLibrary panel's Novel layout instead of its Series one. A no-op if it isn't currently
+	 * open anywhere. */
+	refreshNovelOverviewView(): void {
+		for (const leaf of this.app.workspace.getLeavesOfType(STORYFORGE_NOVEL_OVERVIEW_VIEW_TYPE)) {
+			if (leaf.view instanceof NovelOverviewView) leaf.view.render();
+		}
+	}
+
+	/** Series panel's onSelectBook nudge (StoryForgeView.ts) — an already-open Story Context panel
+	 * (right sidebar) should jump to its Novel tab and show the newly-picked book. A no-op if it
+	 * isn't currently open anywhere. */
+	focusRecommendationOnNovel(bookFolderName: string): void {
+		for (const leaf of this.app.workspace.getLeavesOfType(RECOMMEND_VIEW_TYPE)) {
+			if (leaf.view instanceof RecommendationView) leaf.view.focusNovel(bookFolderName);
+		}
+	}
+
+	/** Novel panel's own entry nudge (StoryForgeView.ts's openNovelOverview), also fired from the
+	 * storyLibrary panel's own Chapter layout tab whenever a chapter there is selected or opened
+	 * (or that tab itself is switched into) — an already-open Story Context panel (right sidebar)
+	 * should jump to its own Chapter tab and show the given chapter. A no-op if it isn't currently
+	 * open anywhere. */
+	focusRecommendationOnChapter(bookFolderName: string, filename: string): void {
+		for (const leaf of this.app.workspace.getLeavesOfType(RECOMMEND_VIEW_TYPE)) {
+			if (leaf.view instanceof RecommendationView) leaf.view.focusChapter(bookFolderName, filename);
+		}
+	}
+
+	/** Novel overview page's own chapter-title click (NovelOverviewView.ts) — an already-open
+	 * storyLibrary panel should select (not open) the same chapter, so its own Novel-pane list
+	 * agrees with whichever chapter was clicked without leaving the Novel overview page. A no-op if
+	 * the storyLibrary panel isn't currently open anywhere. */
+	focusStoryLibraryOnChapter(bookFolderName: string, filename: string): void {
+		for (const leaf of this.app.workspace.getLeavesOfType(STORYFORGE_VIEW_TYPE)) {
+			if (leaf.view instanceof StoryForgeView) leaf.view.selectChapter(bookFolderName, filename);
+		}
+	}
+
 	/** The tracked leaf if it still exists (hasn't been closed by the user) — null rather than
 	 * creating one, for callers that only want to act on it if it's already open. */
 	private getMainContentLeafIfExists(): WorkspaceLeaf | null {
@@ -986,7 +1022,7 @@ export default class StoryForgePlugin extends Plugin {
 	 * read, chapter opens from the storyForge/storyTelling panels, the new-chapter page. Reusing a
 	 * leaf by its own id (rather than `workspace.getLeaf(false)`'s "whatever's currently active")
 	 * guarantees these transitions land on the *same* tab every time regardless of what else the
-	 * user has since clicked into, so switching between Series/Novel/Detailed/storyTelling never
+	 * user has since clicked into, so switching between Series/Novel/Chapter/storyTelling never
 	 * piles up extra tabs of our own making.
 	 */
 	getMainContentLeaf(): WorkspaceLeaf {
@@ -999,16 +1035,11 @@ export default class StoryForgePlugin extends Plugin {
 		return leaf;
 	}
 
-	/**
-	 * Called whenever the user leaves the Series tab for Novel/Detailed (StoryForgeView.ts) or
-	 * switches to the storyTelling panel (this plugin's own active-leaf-change listener, below) —
-	 * a no-op unless the tracked main-content tab is actually showing the Series overview page.
-	 * When it is, quietly swaps in whichever chapter was previously selected, or the blank
-	 * "create new chapter" page if there's none (or it's since been deleted).
-	 */
-	leaveSeriesOverviewIfShowing(): void {
-		const leaf = this.getMainContentLeafIfExists();
-		if (!leaf || !(leaf.view instanceof SeriesOverviewView)) return;
+	/** Shared body of leaveSeriesOverviewIfShowing()/leaveNovelOverviewIfShowing() below, once the
+	 * caller has already confirmed the tracked main-content leaf is showing the overview page it
+	 * cares about: quietly swaps in whichever chapter was previously selected, or the blank
+	 * "create new chapter" page if there's none (or it's since been deleted). */
+	private replaceOverviewLeafWithEditor(leaf: WorkspaceLeaf): void {
 		const bookFolderName = this.getSettings().selectedNovel;
 		if (!bookFolderName) return;
 		const chapterFilename = this.getSettings().selectedObject;
@@ -1022,6 +1053,26 @@ export default class StoryForgePlugin extends Plugin {
 		}
 	}
 
+	/**
+	 * Called whenever the user leaves the Series tab for Novel/Chapter (StoryForgeView.ts) or
+	 * switches to the storyTelling panel (this plugin's own active-leaf-change listener, above) —
+	 * a no-op unless the tracked main-content tab is actually showing the Series overview page.
+	 */
+	leaveSeriesOverviewIfShowing(): void {
+		const leaf = this.getMainContentLeafIfExists();
+		if (!leaf || !(leaf.view instanceof SeriesOverviewView)) return;
+		this.replaceOverviewLeafWithEditor(leaf);
+	}
+
+	/** Same as leaveSeriesOverviewIfShowing() above, for the Novel layout's own overview page
+	 * (NovelOverviewView.ts) — called whenever the user leaves the Novel tab for Codex/Chapter
+	 * (StoryForgeView.ts) or switches to the storyTelling panel. */
+	leaveNovelOverviewIfShowing(): void {
+		const leaf = this.getMainContentLeafIfExists();
+		if (!leaf || !(leaf.view instanceof NovelOverviewView)) return;
+		this.replaceOverviewLeafWithEditor(leaf);
+	}
+
 	onunload(): void {
 		this.titleForge?.onunload();
 		// Restores the native ribbon directly (without detaching the leaf, which would reset
@@ -1031,7 +1082,7 @@ export default class StoryForgePlugin extends Plugin {
 				leaf.view.restoreRibbon();
 			}
 		}
-		document.body.classList.remove("sf-tools-open", "sf-spacer-active");
+		document.body.classList.remove("sf-tools-open");
 		this.style.clearAll();
 		this.extraDocs.clear();
 		this.fontFacesRegisteredFor.clear();
@@ -1123,19 +1174,12 @@ export default class StoryForgePlugin extends Plugin {
 	}
 
 	/**
-	 * Canonical right-rail types: Spacer → Story Context → Forge → registered (orderHint).
-	 * Forge is dropped unless a companion panel is actually registered — formatForge never
-	 * registers one (it integrates directly, not through the Forge hub), so any registrant
-	 * here is, by construction, some other Forge-family plugin (nameForge, …).
+	 * Canonical right-rail types: Story Context → registered (orderHint). Forge-family companion
+	 * panels (registerCompanionPanel) no longer get their own right-rail tab - they're embedded in
+	 * Story Context's own "Forge family" tab instead (RecommendationView.ts).
 	 */
 	private rightRailTypes(): string[] {
-		const order = buildRightRailTypeOrder(
-			SPACER_VIEW_TYPE,
-			RECOMMEND_VIEW_TYPE,
-			FORGE_VIEW_TYPE,
-			this.rightRailRegistry,
-		);
-		return this.companionPanels.length > 0 ? order : order.filter((type) => type !== FORGE_VIEW_TYPE);
+		return buildRightRailTypeOrder(RECOMMEND_VIEW_TYPE, this.rightRailRegistry);
 	}
 
 	/** Replaces all settings with `data` (merged over defaults, same as `loadSettings`), persists, and re-applies every style/extension so the change takes effect immediately. */
@@ -1253,10 +1297,8 @@ export default class StoryForgePlugin extends Plugin {
 	registerViewContribution(opt: StoryForgeViewContribution): () => void {
 		this.viewContributions.push(opt);
 		this.viewContributions.sort((a, b) => a.orderHint - b.orderHint);
-		this.refreshSpacerContributions();
 		return () => {
 			this.viewContributions = this.viewContributions.filter((c) => c !== opt);
-			this.refreshSpacerContributions();
 		};
 	}
 
@@ -1264,29 +1306,15 @@ export default class StoryForgePlugin extends Plugin {
 		return this.viewContributions.filter((c) => c.slot === slot);
 	}
 
-	/** Re-mount spacer-slot contributions on any open Spacer leaves. */
-	private refreshSpacerContributions(): void {
-		for (const leaf of this.app.workspace.getLeavesOfType(SPACER_VIEW_TYPE)) {
-			const view = leaf.view as { renderContributions?: () => void };
-			// Duck-type: `instanceof SpacerView` fails across hot-reload module identities.
-			if (typeof view.renderContributions === "function") view.renderContributions();
-		}
-	}
-
 	registerCompanionPanel(opt: StoryForgeCompanionPanel): () => void {
 		const existing = this.companionPanels.findIndex((p) => p.id === opt.id);
 		if (existing >= 0) this.companionPanels[existing] = opt;
 		else this.companionPanels.push(opt);
 		this.companionPanels.sort((a, b) => a.orderHint - b.orderHint || a.id.localeCompare(b.id));
-		this.refreshForgeCompanions();
-		// The Forge tab itself is conditional on companionPanels.length — reconcile so it
-		// appears the moment the first sibling registers.
-		void this.ensureRightRailPanels();
+		this.refreshForgeFamilyPanels();
 		return () => {
 			this.companionPanels = this.companionPanels.filter((p) => p !== opt);
-			this.refreshForgeCompanions();
-			// …and disappears once the last one unregisters.
-			void this.ensureRightRailPanels();
+			this.refreshForgeFamilyPanels();
 		};
 	}
 
@@ -1294,11 +1322,14 @@ export default class StoryForgePlugin extends Plugin {
 		return this.companionPanels.slice();
 	}
 
-	/** Re-mount companion headers/panels on any open Forge leaves. */
-	private refreshForgeCompanions(): void {
-		for (const leaf of this.app.workspace.getLeavesOfType(FORGE_VIEW_TYPE)) {
-			const view = leaf.view as { renderCompanions?: () => void };
-			if (typeof view.renderCompanions === "function") view.renderCompanions();
+	/** Re-render any open Story Context leaf so its "Forge family" tab (RecommendationView.ts)
+	 * picks up a companion panel registering/unregistering - that tab reads getCompanionPanels()
+	 * fresh on every render, so this is just a nudge to re-render now rather than on the next
+	 * unrelated event. */
+	private refreshForgeFamilyPanels(): void {
+		for (const leaf of this.app.workspace.getLeavesOfType(RECOMMEND_VIEW_TYPE)) {
+			const view = leaf.view as { refreshForgeFamily?: () => void };
+			if (typeof view.refreshForgeFamily === "function") view.refreshForgeFamily();
 		}
 	}
 
@@ -1421,25 +1452,15 @@ export default class StoryForgePlugin extends Plugin {
 		}
 	}
 
-	/** Shown only on true first run (series.md doesn't exist yet), before ensureSeriesFile() would
-	 * otherwise silently seed it with "Untitled Series". Resolves once the modal closes by any path. */
-	private showFirstRunModal(): Promise<void> {
-		return new Promise((resolve) => {
-			new SeriesOnboardingModal(this.app, this, resolve).open();
-		});
-	}
-
-	/** TEMP: re-runs the same first-run modal + welcome-note steps as initializeVaultState(), on demand,
-	 * regardless of whether series.md already exists - for iterating on the onboarding UX. Remove this
-	 * along with its ribbon icon once onboarding is settled. */
-	private async replayOnboarding(): Promise<void> {
-		await this.showFirstRunModal();
-		try {
-			const welcomeFile = await ensureWelcomeNote(this.app);
-			await this.app.workspace.getLeaf(false).openFile(welcomeFile);
-		} catch (err) {
-			console.error("storyForge: failed to create welcome note", err);
-		}
+	/** True first run only (see initializeVaultState's isFirstRun): seeds one book and one chapter,
+	 * both placed (in series order / chapter-order, not left unplaced), so a brand-new vault opens
+	 * with something in the library rather than an empty shelf. Both pick up their "#"-numbered
+	 * defaults ("Novel #" / "Chapter #") from createBook/createChapter — no title passed here.
+	 * The chapter is deliberately not opened, so it doesn't steal focus from the welcome note. */
+	private async createFirstRunBookAndChapter(): Promise<void> {
+		const { folderName } = await createBook(this.app);
+		const { filename } = await createChapter(this.app, folderName, { openFile: false });
+		await writeBookChapterOrder(this.app, folderName, [filename]);
 	}
 
 	private async initializeVaultState(): Promise<void> {
@@ -1450,7 +1471,6 @@ export default class StoryForgePlugin extends Plugin {
 		await this.ensureEagerFolders();
 		const isFirstRun = !this.app.vault.getAbstractFileByPath(seriesFilePath());
 		if (isFirstRun) {
-			await this.showFirstRunModal();
 			try {
 				const welcomeFile = await ensureWelcomeNote(this.app);
 				await this.app.workspace.getLeaf(false).openFile(welcomeFile);
@@ -1459,6 +1479,7 @@ export default class StoryForgePlugin extends Plugin {
 			}
 		}
 		await ensureSeriesFile(this.app);
+		if (isFirstRun) await this.createFirstRunBookAndChapter();
 		const tagRegistry = await ensureTagRegistryFile(this.app);
 		loadCodexTypesIntoRegistry(this.app, tagRegistry);
 		await migrateVaultSchema(this.app);
@@ -1536,8 +1557,8 @@ export default class StoryForgePlugin extends Plugin {
 
 	/**
 	 * Creates missing storyForge / Tools / right-rail leaves and focuses storyForge on the
-	 * left (Tools stays as a sibling tab, not the active one). Expands the right rail so Spacer
-	 * and Story Context are ready the same way the left panels are.
+	 * left (Tools stays as a sibling tab, not the active one). Expands the right rail so
+	 * Story Context is ready the same way the left panels are.
 	 */
 	private async ensureSidePanels(): Promise<void> {
 		return this.enqueueEnsurePanels(() => this.ensureSidePanelsUnlocked());
@@ -1549,9 +1570,7 @@ export default class StoryForgePlugin extends Plugin {
 			STORYFORGE_VIEW_TYPE,
 			STORYTELLING_VIEW_TYPE,
 			TOOLS_VIEW_TYPE,
-			SPACER_VIEW_TYPE,
 			RECOMMEND_VIEW_TYPE,
-			FORGE_VIEW_TYPE,
 			ARCHIVE_VIEW_TYPE,
 			...this.rightRailRegistry.map((r) => r.viewType),
 		]) {
@@ -1580,10 +1599,9 @@ export default class StoryForgePlugin extends Plugin {
 		if (contextLeaf) {
 			await contextLeaf.setViewState({ type: RECOMMEND_VIEW_TYPE, active: true });
 		}
-		this.syncSpacerActiveClass();
 	}
 
-	/** Ensure Spacer → Story Context → Forge → [hosted] exist in that order on the right. */
+	/** Ensure Story Context → [hosted] exist in that order on the right. */
 	private async ensureRightRailPanels(): Promise<void> {
 		return this.enqueueEnsurePanels(() => this.ensureRightRailPanelsUnlocked());
 	}
@@ -1596,11 +1614,13 @@ export default class StoryForgePlugin extends Plugin {
 			await this.app.workspace.revealLeaf(existingContext);
 		}
 		this.app.workspace.detachLeavesOfType(ARCHIVE_VIEW_TYPE);
+		// The dedicated Forge tab is retired - Forge-family companions are embedded in Story
+		// Context's own tab instead (RecommendationView.ts). Detach any leftover leaf from a
+		// previous version's saved workspace layout, same as the legacy Archive tab above.
+		// Referenced by its old literal type id, not an import - view/ForgeView.ts is gone.
+		this.app.workspace.detachLeavesOfType("storyforge-forge-view");
 
 		const types = this.rightRailTypes();
-		// Forge is conditional (see rightRailTypes) — drop a stale leaf left over from the
-		// last companion disconnecting, same as the legacy Archive tab above.
-		if (!types.includes(FORGE_VIEW_TYPE)) this.app.workspace.detachLeavesOfType(FORGE_VIEW_TYPE);
 		for (const type of types) this.dedupeLeavesOfType(type);
 		if (!this.isRightRailOrderCanonical()) {
 			for (const type of types) this.app.workspace.detachLeavesOfType(type);
@@ -1639,23 +1659,6 @@ export default class StoryForgePlugin extends Plugin {
 		const present = expected.filter((t) => order.includes(t));
 		const actual = order.filter((t) => expected.includes(t));
 		return actual.join("\0") === present.join("\0");
-	}
-
-	/**
-	 * When the Spacer tab is the visible leaf in the right rail, drop the divider between the
-	 * editor and the sidebar so the empty spacer blends into the writing surface.
-	 */
-	private syncSpacerActiveClass(): void {
-		const spacerShowing = !!document.querySelector(
-			'.mod-right-split .workspace-leaf.mod-active .workspace-leaf-content[data-type="storyforge-spacer-view"]',
-		);
-		document.body.classList.toggle("sf-spacer-active", spacerShowing);
-		for (const doc of this.extraDocs) {
-			const showing = !!doc.querySelector(
-				'.mod-right-split .workspace-leaf.mod-active .workspace-leaf-content[data-type="storyforge-spacer-view"]',
-			);
-			doc.body.classList.toggle("sf-spacer-active", showing);
-		}
 	}
 
 	/**
