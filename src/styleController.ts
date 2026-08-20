@@ -66,7 +66,7 @@ export class StyleController {
 
 	/**
 	 * Removes every `--sf-*` property from each style document and the styling-owned body classes
-	 * this controller sets. Does not remove `sf-tools-open` or `sf-spacer-active`.
+	 * this controller sets. Does not remove `sf-tools-open`.
 	 */
 	clearAll(): void {
 		for (const doc of this.host.getStyleDocuments()) {

@@ -158,15 +158,14 @@ export const ICON_FILTER_LIST = "sf-filter-list";
 const FILTER_LIST_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M11 18q-.425 0-.712-.288T10 17t.288-.712T11 16h2q.425 0 .713.288T14 17t-.288.713T13 18zm-4-5q-.425 0-.712-.288T6 12t.288-.712T7 11h10q.425 0 .713.288T18 12t-.288.713T17 13zM4 8q-.425 0-.712-.288T3 7t.288-.712T4 6h16q.425 0 .713.288T21 7t-.288.713T20 8z" /></svg>`;
 
 /** "pinhead--open-book" — marks the currently open/selected novel in the Series tab's book list,
- * and prefixes the "Detailed" layout tab's label (both places where an open novel with its
- * full chapter breakdown is what the icon is standing in for). Coloured via currentColor so it
- * always matches whatever text colour it sits beside. */
+ * and doubles as the storyTelling panel's own view-tab icon (StorytellingView.ts). Coloured via
+ * currentColor so it always matches whatever text colour it sits beside. */
 export const ICON_BOOK_OPEN = "sf-book-open";
 const BOOK_OPEN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 15 15"><path d="M0 0h15v15H0z" fill="none" /><path fill="currentColor" d="M.09 10.16c-.1-.08-.09-.22-.09-.22l.61-7.17s.01-.08.05-.11q.015-.06.09-.09c.61-.24 3.92-2.03 5.6-.37c.27.32.57.79.57 1.15v6.06s.01.13-.11.21c-.03.02-.14.07-.28 0c-2.57-1.27-5.43.17-6.16.56c-.14.07-.25-.01-.28-.02m14.54.02c-.73-.38-3.59-1.83-6.16-.56c-.14.07-.25.01-.28 0c-.12-.08-.11-.21-.11-.21V3.35c0-.36.3-.83.57-1.15c1.68-1.66 4.97.13 5.58.37c.05.02.08.05.1.08c.04.04.05.12.05.12L15 9.94s.01.14-.09.22c-.03.01-.14.09-.28.02m-5.56 3.13c.05-.01.11-.04.14-.09c.02-.04.04-.07.04-.13c.06-1.07 1.87-2.07 5.37-.03c.09.05.2.05.28-.02c.1-.07.1-.19.1-.19v-.63s0-.09-.03-.13a.6.6 0 0 0-.11-.11c-2.34-1.5-5.29-2.18-6.79-.18c-.03.04-.05.07-.09.1c-.05.05-.13.05-.13.05h-.68s-.09 0-.15-.05c-.05-.03-.06-.06-.09-.1c-1.5-2-4.45-1.35-6.79.15c-.05.02-.08.06-.11.1c-.03.05-.03.14-.03.14v.63s0 .13.09.19c.09.07.2.07.28.03c3.48-2.04 5.31-1.01 5.36.07c0 .05.03.08.05.12s.09.08.14.09c.84.2 2.05.28 3.15-.01" /></svg>`;
 
 /** "glyphs--book-spine-bold" — a single closed book viewed from the spine (front/back cover +
  * spine outline), the Novel tab's leading tab icon — a single book, as distinct from the Series
- * tab's shelf-of-books ICON_SERIES and the Detailed tab's open-book ICON_BOOK_OPEN. */
+ * tab's shelf-of-books ICON_SERIES and the Chapter tab's open-book ICON_BOOK_OPEN_FILLED. */
 export const ICON_BOOK_SPINE = "sf-book-spine";
 const BOOK_SPINE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><path d="M0 0h80v80H0z" fill="none" /><g fill="none"><path fill="currentColor" d="M33 13a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3.998H33zm0 9.998h14v34H33zm0 40V67a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4.002z" /><path stroke="currentColor" stroke-linejoin="round" stroke-width="3" d="M33 13a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3.998H33zm0 9.998h14v34H33zm0 40V67a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4.002z" /></g></svg>`;
 
@@ -200,6 +199,44 @@ const BOOKSHELF_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 2
  * any action. */
 export const ICON_CARDS = "sf-cards";
 const CARDS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M11.19 2.25c-.26 0-.52.06-.77.15L3.06 5.45a1.994 1.994 0 0 0-1.09 2.6L6.93 20a2 2 0 0 0 1.81 1.25c.26 0 .53-.03.79-.15l7.37-3.05a2.02 2.02 0 0 0 1.23-1.8c.01-.25-.04-.54-.13-.8L13 3.5a1.95 1.95 0 0 0-1.81-1.25m3.48 0l3.45 8.35V4.25a2 2 0 0 0-2-2m4.01 1.54v9.03l2.43-5.86a1.99 1.99 0 0 0-1.09-2.6m-10.28-.14l4.98 12.02l-7.39 3.06L3.8 7.29" /></svg>`;
+
+/** "ix--circle-dot" — Story Context's tab-header Focus toggle, shown while Focus mode is off
+ * (the panel is showing its normal content). Paired with ICON_FOCUS_ON below; see
+ * RecommendationView.ts's getIcon() and its tab-header click handler. */
+export const ICON_FOCUS_OFF = "sf-focus-off";
+const FOCUS_OFF_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="currentColor" fill-rule="evenodd" d="M256 42.667c117.821 0 213.334 95.513 213.334 213.333c0 117.821-95.513 213.334-213.334 213.334c-117.82 0-213.333-95.513-213.333-213.334C42.667 138.18 138.18 42.667 256 42.667m0 42.667c-94.256 0-170.666 76.41-170.666 170.666c0 94.257 76.41 170.667 170.666 170.667c94.257 0 170.667-76.41 170.667-170.667c0-94.256-76.41-170.666-170.667-170.666m0 64c58.91 0 106.667 47.756 106.667 106.666S314.911 362.667 256 362.667c-58.91 0-106.666-47.756-106.666-106.667c0-58.91 47.756-106.666 106.666-106.666" /></svg>`;
+
+/** "ix--circle-filled" — the same toggle, shown while Focus mode is on (the panel is hidden down
+ * to just this control). Same viewBox/paint style as ICON_FOCUS_OFF so the two read as one
+ * control's two states rather than two different icons. */
+export const ICON_FOCUS_ON = "sf-focus-on";
+const FOCUS_ON_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="currentColor" fill-rule="evenodd" d="M256 42.667c117.821 0 213.334 95.513 213.334 213.333c0 117.821-95.513 213.334-213.334 213.334c-117.82 0-213.333-95.513-213.333-213.334C42.667 138.18 138.18 42.667 256 42.667" /></svg>`;
+
+/** "reicon--book-duotone" — Story Context's Novel tab icon (RecommendationView.ts's tabs row). */
+export const ICON_BOOK_DUOTONE = "sf-book-duotone";
+const BOOK_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M7.426 18H20c-.003.93-.022 1.623-.113 2.17c-.11.653-.31.998-.616 1.244c-.307.246-.737.407-1.55.494c-.837.09-1.946.092-3.536.092h-4.43c-1.59 0-2.7-.001-3.536-.092c-.813-.087-1.243-.248-1.55-.494s-.506-.591-.616-1.243l-.022-.151c-.04-.291-.06-.437.066-.78c.127-.344.181-.397.291-.505a2.6 2.6 0 0 1 1.285-.667c.29-.062.67-.068 1.753-.068" /><path d="M4.727 2.733c.306-.308.734-.508 1.544-.618C7.105 2.002 8.209 2 9.793 2h4.414c1.584 0 2.688.002 3.522.115c.81.11 1.238.31 1.544.618c.305.308.504.74.613 1.557c.112.84.114 1.955.114 3.552V18H7.426c-1.084 0-1.462.006-1.753.068c-.513.11-.96.347-1.285.667c-.11.108-.164.161-.291.505A1.3 1.3 0 0 0 4 19.7V7.842c0-1.597.002-2.711.114-3.552c.109-.816.308-1.249.613-1.557" opacity=".5" /><path d="M7.25 7A.75.75 0 0 1 8 6.25h8a.75.75 0 0 1 0 1.5H8A.75.75 0 0 1 7.25 7M8 9.75a.75.75 0 0 0 0 1.5h5a.75.75 0 0 0 0-1.5z" /></g></svg>`;
+
+/** "reicon--book-open-filled" — Story Context's Chapter tab icon, also reused as storyLibrary's
+ * own Chapter layout tab icon (StoryForgeView.ts) so the two read as the same "open chapter"
+ * glyph. Distinct from ICON_BOOK_OPEN ("pinhead--open-book", the Series tab's "currently open
+ * novel" marker and the storyTelling panel's own view-tab icon elsewhere). */
+export const ICON_BOOK_OPEN_FILLED = "sf-book-open-filled";
+const BOOK_OPEN_FILLED_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M11.25 4.178a.24.24 0 0 0-.092-.192A5.75 5.75 0 0 0 7.596 2.75c-1.84 0-3.64.545-5.172 1.566l-.297.198a1.97 1.97 0 0 0-.877 1.638v13.124a1.405 1.405 0 0 0 2.185 1.169A7.1 7.1 0 0 1 7.38 19.25h.468c.899 0 1.77.306 2.471.867l.768.613a.1.1 0 0 0 .162-.078zm1.663 16.552a.1.1 0 0 1-.163-.078V4.178c0-.075.033-.146.092-.192a5.75 5.75 0 0 1 3.562-1.236c1.84 0 3.64.545 5.172 1.566l.297.198c.548.365.877.98.877 1.638v13.124a1.405 1.405 0 0 1-2.185 1.169a7.1 7.1 0 0 0-3.946-1.195h-.468c-.899 0-1.77.306-2.471.867z" /></svg>`;
+
+/** "reicon--clipboard-list-duotone" — Story Context's Details tab icon. */
+export const ICON_CLIPBOARD_LIST_DUOTONE = "sf-clipboard-list-duotone";
+const CLIPBOARD_LIST_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M21 15.998v-6c0-2.828 0-4.242-.879-5.121C19.353 4.109 18.175 4.012 16 4H8c-2.175.012-3.353.109-4.121.877C3 5.756 3 7.17 3 9.998v6c0 2.829 0 4.243.879 5.122c.878.878 2.293.878 5.121.878h6c2.828 0 4.243 0 5.121-.878c.879-.88.879-2.293.879-5.122" opacity=".5" /><path d="M8 3.5A1.5 1.5 0 0 1 9.5 2h5A1.5 1.5 0 0 1 16 3.5v1A1.5 1.5 0 0 1 14.5 6h-5A1.5 1.5 0 0 1 8 4.5z" /><path fill-rule="evenodd" d="M6.25 10.5A.75.75 0 0 1 7 9.75h.5a.75.75 0 0 1 0 1.5H7a.75.75 0 0 1-.75-.75m3.5 0a.75.75 0 0 1 .75-.75H17a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1-.75-.75M6.25 14a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 0 1.5H7a.75.75 0 0 1-.75-.75m3.5 0a.75.75 0 0 1 .75-.75H17a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1-.75-.75m-3.5 3.5a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 0 1.5H7a.75.75 0 0 1-.75-.75m3.5 0a.75.75 0 0 1 .75-.75H17a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1-.75-.75" clip-rule="evenodd" /></g></svg>`;
+
+/** "reicon--notebook-duotone" — Story Context's Dossier tab icon. Distinct from ICON_NOTEBOOK
+ * ("sf-notebook", titleForge's own ribbon/tab icon - unrelated feature, must stay untouched). */
+export const ICON_NOTEBOOK_DUOTONE = "sf-notebook-duotone";
+const NOTEBOOK_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M3 8c0-2.828 0-4.243.879-5.121C4.757 2 6.172 2 9 2h6c2.828 0 4.243 0 5.121.879C21 3.757 21 5.172 21 8v8c0 2.828 0 4.243-.879 5.121C19.243 22 17.828 22 15 22H9c-2.828 0-4.243 0-5.121-.879C3 20.243 3 18.828 3 16z" opacity=".5" /><path fill-rule="evenodd" d="M8.75 2.012v20h-1.5v-20zM1.25 8A.75.75 0 0 1 2 7.25h2a.75.75 0 0 1 0 1.5H2A.75.75 0 0 1 1.25 8m0 4a.75.75 0 0 1 .75-.75h2a.75.75 0 0 1 0 1.5H2a.75.75 0 0 1-.75-.75m0 4a.75.75 0 0 1 .75-.75h2a.75.75 0 0 1 0 1.5H2a.75.75 0 0 1-.75-.75" clip-rule="evenodd" /><path d="M10.75 6.5a.75.75 0 0 1 .75-.75h5a.75.75 0 0 1 0 1.5h-5a.75.75 0 0 1-.75-.75m0 3.5a.75.75 0 0 1 .75-.75h5a.75.75 0 0 1 0 1.5h-5a.75.75 0 0 1-.75-.75" /></g></svg>`;
+
+/** "reicon--archive" — Story Context's Archive tab (and its embedded archive-body header) icon.
+ * Distinct from ICON_ARCHIVE ("sf-box", ArchiveView.ts's own separate right-rail leaf, not
+ * touched by this - see RecommendationView.ts's use of this constant for both spots). */
+export const ICON_ARCHIVE_FILLED = "sf-archive-filled";
+const ARCHIVE_FILLED_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" fill-rule="evenodd" d="M3.955 2.25h16.09c.433 0 .83 0 1.152.043c.356.048.731.16 1.04.47s.422.684.47 1.04c.043.323.043.72.043 1.152v.09c0 .433 0 .83-.043 1.152c-.048.356-.16.731-.47 1.04c-.293.294-.647.41-.987.462v5.357c0 1.838 0 3.294-.153 4.433c-.158 1.172-.49 2.121-1.238 2.87c-.749.748-1.698 1.08-2.87 1.238c-1.14.153-2.595.153-4.433.153h-1.112c-1.838 0-3.294 0-4.433-.153c-1.172-.158-2.121-.49-2.87-1.238c-.748-.749-1.08-1.698-1.238-2.87c-.153-1.14-.153-2.595-.153-4.433V7.7c-.34-.052-.694-.168-.987-.462c-.31-.309-.422-.684-.47-1.04c-.043-.323-.043-.72-.043-1.152v-.09c0-.433 0-.83.043-1.152c.048-.356.16-.731.47-1.04s.684-.422 1.04-.47c.323-.043.72-.043 1.152-.043m.295 5.5V13c0 1.907.002 3.262.14 4.29c.135 1.005.389 1.585.812 2.008s1.003.677 2.009.812c1.028.138 2.382.14 4.289.14h1c1.907 0 3.262-.002 4.29-.14c1.005-.135 1.585-.389 2.008-.812s.677-1.003.812-2.009c.138-1.027.14-2.382.14-4.289V7.75zM2.823 3.823l.003-.001l.01-.005a.7.7 0 0 1 .167-.037c.21-.028.504-.03.997-.03h16c.493 0 .787.002.997.03a.7.7 0 0 1 .177.042l.003.001l.001.003l.005.01c.009.022.024.07.037.167c.028.21.03.504.03.997s-.002.787-.03.997a.7.7 0 0 1-.042.177l-.001.003l-.003.001l-.01.005a.7.7 0 0 1-.167.037c-.21.028-.504.03-.997.03H4c-.493 0-.787-.002-.997-.03a.7.7 0 0 1-.177-.042l-.003-.001l-.001-.003l-.005-.01a.7.7 0 0 1-.037-.167c-.028-.21-.03-.504-.03-.997s.002-.787.03-.997a.7.7 0 0 1 .042-.177zm7.655 5.927h3.044c.214 0 .41 0 .576.011c.178.012.373.04.572.122c.428.178.77.519.947.947c.082.199.11.394.122.572c.011.165.011.362.011.576v.044c0 .214 0 .41-.011.576c-.012.178-.04.373-.122.572a1.75 1.75 0 0 1-.947.947c-.199.082-.394.11-.572.122c-.165.011-.362.011-.576.011h-3.044c-.214 0-.41 0-.576-.011a1.8 1.8 0 0 1-.572-.122a1.75 1.75 0 0 1-.947-.947a1.8 1.8 0 0 1-.122-.572a9 9 0 0 1-.011-.576v-.044c0-.214 0-.41.011-.576c.012-.178.04-.373.122-.572a1.75 1.75 0 0 1 .947-.947c.199-.082.394-.11.572-.122c.165-.011.362-.011.576-.011m-.577 1.52a.25.25 0 0 0-.13.131a1 1 0 0 0-.013.103A8 8 0 0 0 9.75 12c0 .243 0 .388.008.496c.004.067.01.095.012.103a.25.25 0 0 0 .131.13a1 1 0 0 0 .103.013c.108.008.253.008.496.008h3c.243 0 .388 0 .496-.008a1 1 0 0 0 .103-.012a.25.25 0 0 0 .13-.131a1 1 0 0 0 .013-.103c.008-.108.008-.253.008-.496s0-.388-.008-.496a1 1 0 0 0-.012-.103a.25.25 0 0 0-.131-.13a1 1 0 0 0-.103-.013a8 8 0 0 0-.496-.008h-3c-.243 0-.388 0-.496.008a1 1 0 0 0-.103.012" clip-rule="evenodd" /></svg>`;
 
 const INBOX_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><g fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.75 12H6a2 2 0 0 1 2 2a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2a2 2 0 0 1 2-2h3.25" /><path d="M15.25 2.75h-6.5a6 6 0 0 0-6 6v6.5a6 6 0 0 0 6 6h6.5a6 6 0 0 0 6-6v-6.5a6 6 0 0 0-6-6Z" /></g></svg>`;
 
@@ -705,4 +742,11 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_CONTINUOUS_MODE_EXIT, CONTINUOUS_MODE_EXIT_SVG);
 	addIcon(ICON_BOOKSHELF, BOOKSHELF_SVG);
 	addIcon(ICON_CARDS, CARDS_SVG);
+	addIcon(ICON_FOCUS_OFF, FOCUS_OFF_SVG);
+	addIcon(ICON_FOCUS_ON, FOCUS_ON_SVG);
+	addIcon(ICON_BOOK_DUOTONE, BOOK_DUOTONE_SVG);
+	addIcon(ICON_BOOK_OPEN_FILLED, BOOK_OPEN_FILLED_SVG);
+	addIcon(ICON_CLIPBOARD_LIST_DUOTONE, CLIPBOARD_LIST_DUOTONE_SVG);
+	addIcon(ICON_NOTEBOOK_DUOTONE, NOTEBOOK_DUOTONE_SVG);
+	addIcon(ICON_ARCHIVE_FILLED, ARCHIVE_FILLED_SVG);
 }

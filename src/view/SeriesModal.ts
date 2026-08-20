@@ -7,10 +7,10 @@ import { ICON_BOOK_PLUS } from "../icons";
 
 /**
  * Builds the series-settings body (title, book list, reorder, add book) into `container`, clearing
- * it first. Extracted from SeriesModal so the same editable settings can also open at the top of
- * the Series overview page (SeriesOverviewView.ts) — that page mirrors this content rather than
- * embedding the modal itself, but both call this one function so there's a single source of truth
- * for what "the series settings" actually renders.
+ * it first. This is SeriesModal's own popup-dialog content only — the Series overview page
+ * (SeriesOverviewView.ts) used to mirror this same function, but now has its own bespoke rendering
+ * (fixed header + scrollable, filtered, synopsis-per-row list) that doesn't belong in a compact
+ * popup, so the two have deliberately diverged. `bindTextCommit` below is still shared by both.
  */
 export function renderSeriesSettingsBody(container: HTMLElement, app: App, onChange: () => void): void {
 	container.empty();
@@ -82,7 +82,9 @@ function renderBookRow(bookList: HTMLElement, app: App, folder: TFolder, onChang
 	});
 }
 
-function bindTextCommit(input: HTMLInputElement, onCommit: (value: string) => Promise<void>): void {
+/** Shared by SeriesModal.ts's own rows and SeriesOverviewView.ts's title/book-title fields — commits
+ * the trimmed value on blur or Enter, once only per focus. */
+export function bindTextCommit(input: HTMLInputElement, onCommit: (value: string) => Promise<void>): void {
 	let settled = false;
 	const commit = async () => {
 		if (settled) return;

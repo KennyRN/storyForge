@@ -1,9 +1,8 @@
 import { App, Menu, Notice, TFile, TFolder, setIcon } from "obsidian";
-import { bookDisplayTitle, getSeriesBooks, numberedBookTitle } from "../series";
+import { bookDisplayTitle, getSeriesBooks, numberedBookTitle, writeUnplacedOrder } from "../series";
 import {
 	archiveChapter,
 	chapterDisplayTitle,
-	createBook,
 	getBookChapters,
 	getChapterEntry,
 	readBookFrontmatter,
@@ -23,7 +22,7 @@ import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
 import { ChapterIdeaCaptureModal } from "./ChapterIdeaCaptureModal";
 import { renderCodexFocusNavigator } from "./CodexFocusNavigator";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
-import { ICON_BOOK_OPEN, ICON_BOOK_PLUS, ICON_FILTER, ICON_PLUS_SQUARE, ICON_UNPLACED } from "../icons";
+import { ICON_BOOK_DUOTONE, ICON_PLUS_SQUARE, ICON_SETTINGS_GEAR, ICON_UNPLACED } from "../icons";
 import { recordChapterArchive, readChapterWordCount } from "../history";
 
 export type UnplacedViewMode = "unplaced" | "unplacedHidden";
@@ -76,7 +75,7 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 		// used to leak this icon into the storyTelling panel's series header too.
 		if (options.mode === "series") {
 			const settingsBtn = seriesLine.createSpan({ cls: "sf-series-settings-btn", attr: { "aria-label": "Series settings" } });
-			setIcon(settingsBtn, ICON_FILTER);
+			setIcon(settingsBtn, ICON_SETTINGS_GEAR);
 			settingsBtn.addEventListener("click", (e) => {
 				e.stopPropagation();
 				options.onOpenSeriesModal();
@@ -146,10 +145,14 @@ function createRow(list: HTMLElement, key: string): HTMLElement {
 
 /**
  * Renders a title, splitting off a "// subtitle" onto its own muted line if present. Returns the
- * wrapper to pass to `attachInlineRename`. `showOpenIcon` marks the currently-open novel in the
- * Series tab's book list (renderSeriesList) — the icon sits inline after the title text (same
- * placement as a Codex row's type icon) and, having no colour of its own, simply inherits
- * whatever colour the row's text is already using (normal or highlighted).
+ * wrapper to pass to `attachInlineRename`. `showOpenIcon` marks the currently-selected novel in the
+ * Series tab's book list (renderSeriesList) — shown only while "highlight active chapter" is off,
+ * since that setting's own row background already carries the same meaning when it's on. The icon
+ * sits inline right after the title text, offset from it by the same gap Codex row type icons sit
+ * at from their names (see .sf-row-title-line .sf-row-text in styles.css), and reuses Story
+ * Context's own Novel-tab icon (ICON_BOOK_DUOTONE) so the same glyph marks "this is the selected
+ * novel" in both the left and right sidebars. Having no colour of its own, it simply inherits
+ * whatever colour the row's text is already using.
  */
 function renderRowTitle(row: HTMLElement, displayTitle: string, showOpenIcon = false): HTMLElement {
 	const { title, subtitle } = splitTitleSubtitle(displayTitle);
@@ -157,7 +160,7 @@ function renderRowTitle(row: HTMLElement, displayTitle: string, showOpenIcon = f
 	const titleLine = wrap.createDiv({ cls: "sf-row-title-line" });
 	titleLine.createSpan({ cls: "sf-row-text", text: title });
 	if (showOpenIcon) {
-		setIcon(titleLine.createSpan({ cls: "sf-row-open-icon", attr: { "aria-label": "Open" } }), ICON_BOOK_OPEN);
+		setIcon(titleLine.createSpan({ cls: "sf-row-open-icon", attr: { "aria-label": "Open" } }), ICON_BOOK_DUOTONE);
 	}
 	if (subtitle) {
 		wrap.createDiv({ cls: "sf-row-subtitle", text: subtitle });
@@ -273,14 +276,6 @@ function showChapterCreationMenu(
 	}
 }
 
-async function handleCreateBook(app: App): Promise<void> {
-	try {
-		await createBook(app);
-	} catch (err) {
-		new Notice(`storyForge: could not create book — ${(err as Error).message}`);
-	}
-}
-
 function renderSeriesList(
 	app: App,
 	bodyEl: HTMLElement,
@@ -295,9 +290,10 @@ function renderSeriesList(
 	const mainList = bodyEl.createDiv({ cls: "sf-top-list" });
 	ordered.forEach((folder, i) => {
 		const row = createRow(mainList, folder.name);
-		const isOpen = options.highlightActiveChapter && options.currentBookFolderName === folder.name;
-		if (isOpen) row.addClass("sf-row-selected");
-		const label = renderRowTitle(row, numbered[i], isOpen);
+		const isSelectedBook = options.currentBookFolderName === folder.name;
+		const isHighlighted = options.highlightActiveChapter && isSelectedBook;
+		if (isHighlighted) row.addClass("sf-row-selected");
+		const label = renderRowTitle(row, numbered[i], isSelectedBook && !options.highlightActiveChapter);
 		row.addEventListener("click", (e) => {
 			if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
 			options.onSelectBook(folder.name);
@@ -326,22 +322,16 @@ function renderSeriesList(
 	if (options.showUnplacedSection) {
 		const unplacedZone = bodyEl.createDiv({ cls: "sf-unplaced-zone" });
 		const unplacedHidden = options.unplacedMode === "unplacedHidden";
-		renderUnplacedHeader(
-			unplacedZone,
-			"Unplaced Novels",
-			unplacedHidden,
-			options.onToggleUnplacedMode,
-			() => void handleCreateBook(app),
-			ICON_BOOK_PLUS,
-		);
+		renderUnplacedHeader(unplacedZone, "Unplaced Novels", unplacedHidden, options.onToggleUnplacedMode);
 
 		if (!unplacedHidden) {
 			const unplacedList = unplacedZone.createDiv({ cls: "sf-top-list sf-unplaced-list" });
 			unplaced.forEach((folder, i) => {
 				const row = createRow(unplacedList, folder.name);
-				const isOpen = options.highlightActiveChapter && options.currentBookFolderName === folder.name;
-				if (isOpen) row.addClass("sf-row-selected");
-				const label = renderRowTitle(row, numbered[ordered.length + i], isOpen);
+				const isSelectedBook = options.currentBookFolderName === folder.name;
+				const isHighlighted = options.highlightActiveChapter && isSelectedBook;
+				if (isHighlighted) row.addClass("sf-row-selected");
+				const label = renderRowTitle(row, numbered[ordered.length + i], isSelectedBook && !options.highlightActiveChapter);
 				row.addEventListener("click", (e) => {
 					if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
 					options.onSelectBook(folder.name);
@@ -370,6 +360,13 @@ function renderSeriesList(
 		void (async () => {
 			try {
 				await reorderSeriesBooks(app, (zoneRowKeys.ordered ?? []).filter(Boolean));
+				// The unplaced zone is its own drag target (dragging within it, not just into the
+				// ordered zone, is a normal outcome) — without persisting its own resulting sequence
+				// too via its separate field, that reorder silently vanished on the next render (see
+				// SeriesFrontmatter's unplacedOrder doc comment for why it's a field of its own).
+				if (zoneRowKeys.unplaced) {
+					await writeUnplacedOrder(app, zoneRowKeys.unplaced.filter(Boolean));
+				}
 			} catch (err) {
 				new Notice(`storyForge: could not save the new order — ${(err as Error).message}`);
 				renderTopPanel(app, container, options);

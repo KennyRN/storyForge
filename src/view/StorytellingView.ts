@@ -25,7 +25,7 @@ export const STORYTELLING_VIEW_TYPE = "storyforge-storytelling-view";
  * "Codex focus" (compact chapter navigator + Codex + stats, no unplaced section), moved out of
  * the storyLibrary panel's own layout selector into its own always-available left-rail panel —
  * see layout.ts's header comment. Codex still embeds in the storyLibrary panel too, under the
- * "Hybrid" layout; this view and StoryForgeView duplicate a fair amount of plumbing (continuous
+ * "Chapter" layout; this view and StoryForgeView duplicate a fair amount of plumbing (continuous
  * mode tracking, stats, chapter/codex creation) because each owns a fully independent leaf.
  */
 export class StorytellingView extends ItemView {
@@ -59,8 +59,6 @@ export class StorytellingView extends ItemView {
 	}
 
 	getIcon(): string {
-		// Same open-book icon as storyLibrary's Detailed layout tab — this panel is effectively
-		// that layout's always-available sibling (see the class doc comment above).
 		return ICON_BOOK_OPEN;
 	}
 

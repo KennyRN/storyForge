@@ -4,7 +4,7 @@ import { App, Modal } from "obsidian";
  * Light inline capture for a new idea chapter (hand-off brief §5.3/H2): a single one-line
  * title/beat, so the idea shelf preview shows something meaningful later. Unlike
  * ConvertToSeriesModal, an empty submit is not a no-op — the chapter is created either way (it
- * simply stays "Untitled" until the writer names it), since the point is a low-friction jot, not
+ * simply stays "Chapter #" until the writer names it), since the point is a low-friction jot, not
  * a mandatory field. This modal itself may take keyboard focus as normal; it's the manuscript
  * editor that must not be disturbed, and the chapter file it creates is never opened.
  */

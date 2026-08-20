@@ -13,7 +13,7 @@ interface NewChapterViewState {
 /**
  * A blank landing page for the main editor area, opened in place of the Series overview page when
  * there's no previously-selected chapter to fall back to (plugin.leaveSeriesOverviewIfShowing(),
- * triggered from StoryForgeView.ts's Novel/Detailed tabs and this plugin's own storyTelling-panel
+ * triggered from StoryForgeView.ts's Novel/Chapter tabs and this plugin's own storyTelling-panel
  * active-leaf-change listener).
  *
  * Its one control mirrors the storyTelling panel's own forward-only "continue the story" tile
