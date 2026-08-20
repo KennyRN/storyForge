@@ -85,7 +85,7 @@ once. Invalid patches do not partially update settings.
 
 storyForge owns and guards every theme path:
 
-- `_sf-backstage/settings-presets/formatForge/` for named themes
+- `_backstage/storyforge/settings-presets/formatForge/` for named themes
 - `_sf-backup/` for dated archives
 
 The API supports save/list/read/rename/delete and explicit overwrite. formatForge

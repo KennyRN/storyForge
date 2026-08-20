@@ -1,7 +1,7 @@
 import { ItemView, WorkspaceLeaf, setIcon } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { ICON_ARCHIVE } from "../icons";
-import { bookFolderNameFromChapterPath } from "../paths";
+import { BACKSTAGE_ROOT, bookFolderNameFromChapterPath, isLibraryRootFilePath } from "../paths";
 import { activateRightRailView } from "./activateRightRailView";
 import { renderArchivePanel, type ArchiveMode } from "./archivePanel";
 import { RecommendationView, RECOMMEND_VIEW_TYPE } from "./RecommendationView";
@@ -43,10 +43,10 @@ export class ArchiveView extends ItemView {
 		this.registerEvent(
 			this.app.vault.on("modify", (file) => {
 				if (
-					file.path.endsWith("novel.md") ||
+					isLibraryRootFilePath(file.path) ||
 					file.path.endsWith("codex.md") ||
 					file.path.startsWith("Codex/") ||
-					file.path.includes("/_sf-backstage/")
+					file.path.startsWith(`${BACKSTAGE_ROOT}/`)
 				) {
 					this.render();
 				}

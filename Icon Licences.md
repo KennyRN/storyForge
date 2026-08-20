@@ -233,6 +233,14 @@ This project uses icons from the following third-party, open-source icon sets. A
 > **Note:** licensed under CC BY 4.0, which requires attribution. The attribution above (name, source link, licence) satisfies this requirement.
 
 ---
+
+## Reicon
+
+- **Author:** Dev Chauhan
+- **Source:** https://github.com/dqev/reicon
+- **Licence:** MIT License — *see [MIT License](#mit-license) below*
+
+---
 ---
 
 # Licence Texts

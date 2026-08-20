@@ -23,3 +23,28 @@ export function fromBijectiveBase26(code: string): number | null {
 	}
 	return n;
 }
+
+/** Bijective base-26 value of the first 3-letter code ("aaa"), so index 0 maps to "aaa" and index 17575 maps to "zzz". */
+const FIRST_TRIPLE_N = 26 + 26 ** 2 + 1;
+
+/**
+ * Next `<prefix><xxx>` code in a gap-free letter sequence starting at "aaa"
+ * (aaa, aab, ... zzz, aaaa, aaab, ...) that never reuses a code already seen
+ * in `existingIds` for this prefix — even if that entry was since deleted.
+ * The code grows past "zzz" indefinitely, so there's no ceiling. `existingIds`
+ * may contain ids with other prefixes too; anything not starting with `prefix`
+ * is ignored. Pass `prefix: ""` for a bare sequential code with no grouping
+ * prefix. Shared by chapterCode.ts and novelCode.ts.
+ */
+export function nextGapFreeCode(prefix: string, existingIds: Iterable<string>): string {
+	let maxIndex = -1;
+	for (const id of existingIds) {
+		if (!id.startsWith(prefix)) continue;
+		const n = fromBijectiveBase26(id.slice(prefix.length));
+		if (n === null) continue;
+		const idx = n - FIRST_TRIPLE_N;
+		if (idx >= 0 && idx > maxIndex) maxIndex = idx;
+	}
+	const nextIdx = maxIndex + 1;
+	return `${prefix}${toBijectiveBase26(nextIdx + FIRST_TRIPLE_N)}`;
+}

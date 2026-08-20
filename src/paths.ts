@@ -1,7 +1,10 @@
-export const LIBRARY_ROOT = "_sf-storylibrary";
-/** Intentionally un-prefixed (unlike the `_sf-` library/backstage roots) — the user-facing folder of wikilink-target notes the writer reads and edits directly, so it presents as an ordinary vault folder rather than plugin plumbing. */
+export const LIBRARY_ROOT = "_story-library";
+/** Intentionally un-prefixed (unlike the `_sf-`/`_story-`/`_backstage` roots) — the user-facing folder of wikilink-target notes the writer reads and edits directly, so it presents as an ordinary vault folder rather than plugin plumbing. */
 export const CODEX_ROOT = "Codex";
-export const BACKSTAGE_ROOT = "_sf-backstage";
+/** Nested under a shared `_backstage/` parent — room for sibling xForge plugins to keep their own non-content state alongside storyForge's, each in its own subfolder, rather than each plugin claiming a vault-root name for itself. */
+export const BACKSTAGE_ROOT = "_backstage/storyforge";
+/** titleForge's own sibling region under the shared `_backstage/` parent — deliberately not nested under `BACKSTAGE_ROOT`, since titleForge is an extraction-ready subplugin (see `src/titleforge/README.md`), not storyForge bookkeeping. */
+export const TITLEFORGE_BACKSTAGE_ROOT = "_backstage/titleforge";
 /** Vault-root folder where backup zip files are written (Obsidian vault API only — no Node `fs`). Always excluded from backup zips. */
 export const BACKUPS_FOLDER = "_sf-backup";
 
@@ -10,8 +13,9 @@ export function isBackupFolderPath(path: string): boolean {
 	return path === BACKUPS_FOLDER || path.startsWith(`${BACKUPS_FOLDER}/`);
 }
 
+/** `series.md` lives at the story-library root, alongside the `novel-<code>.md` files — a deliberate exception to "library root is prose-only", carved out narrowly in writeGuard.ts. */
 export function seriesFilePath(): string {
-	return `${BACKSTAGE_ROOT}/series.md`;
+	return `${LIBRARY_ROOT}/series.md`;
 }
 
 export function codexFilePath(): string {
@@ -35,8 +39,9 @@ export function bookBackstagePath(bookFolderName: string): string {
 	return `${BACKSTAGE_ROOT}/${bookFolderName}`;
 }
 
+/** `novel-<code>.md` lives flat at the story-library root — a sibling of the book's `<code>/` chapter folder, not inside it, so that folder holds only user-created manuscript files. */
 export function bookFilePath(bookFolderName: string): string {
-	return `${bookBackstagePath(bookFolderName)}/novel.md`;
+	return `${LIBRARY_ROOT}/novel-${bookFolderName}.md`;
 }
 
 /** Legacy v1 shared wordcount file (all books). Migrated into per-book files. */
@@ -90,6 +95,26 @@ export function isLibraryChapterPath(path: string): boolean {
 	const rest = path.slice(prefix.length);
 	const segments = rest.split("/");
 	return segments.length === 2 && segments[1].toLowerCase().endsWith(".md");
+}
+
+/**
+ * True if `path` is any flat file directly at the library root (no nested
+ * segments) — the write-guard allowance covering `series.md`,
+ * `novel-<code>.md`, and any other library-root bookkeeping file, distinct
+ * from a chapter (which sits one segment deeper, inside a `<code>/` folder)
+ * or anything else nested inside a book folder.
+ *
+ * Requires a `.` in the remainder so a bare book-code folder itself (e.g.
+ * `_story-library/TECa`, one segment, no extension — book codes from
+ * `nextNovelCode` are plain letter sequences, never containing a `.`) is
+ * never mistaken for an allowed root file: that folder, and everything in
+ * it, must stay write-guard protected.
+ */
+export function isLibraryRootFilePath(path: string): boolean {
+	const prefix = `${LIBRARY_ROOT}/`;
+	if (!path.startsWith(prefix)) return false;
+	const rest = path.slice(prefix.length);
+	return rest.length > 0 && !rest.includes("/") && rest.includes(".");
 }
 
 /** Extracts the book folder name from a library chapter path, or null if not a chapter path. */

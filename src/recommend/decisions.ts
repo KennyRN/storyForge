@@ -1,5 +1,5 @@
 /**
- * Decision stores in `_sf-backstage/`:
+ * Decision stores in `_backstage/storyforge/`:
  * 1. Attribution (shared, cross-tab) — confirm / reject-and-reroute for grey hits.
  * 2. Resolved (chapter tab only) — detail was handled (done and ignore are one state).
  * 3. Ignored unknown names (book-scoped) — dismissed “Named but not in Codex” surfaces.

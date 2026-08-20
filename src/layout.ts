@@ -8,7 +8,7 @@
  * unplaced). It's since moved out into its own always-available "Storytelling" panel
  * (StorytellingView.ts) rather than being a mode you switch the storyLibrary panel into — that
  * panel reuses `renderTopPanel`'s "navigator" mode directly, bypassing this layout selector
- * entirely. Codex still embeds here too, under "Detailed" — and, full-pane and alone, under
+ * entirely. Codex still embeds here too, under "Chapter" — and, full-pane and alone, under
  * "codex" below.
  */
 export type SfLayout = "codex" | "seriesBrowse" | "novelBrowse" | "hybrid";
@@ -20,7 +20,7 @@ export const SF_LAYOUT_LABELS: Record<SfLayout, string> = {
 	codex: "Codex",
 	seriesBrowse: "Series",
 	novelBrowse: "Novel",
-	hybrid: "Detailed",
+	hybrid: "Chapter",
 };
 
 /** Which top pane a layout shows ("none" for a layout with no top pane at all), and whether the
@@ -35,7 +35,7 @@ export interface LayoutConfig {
 /**
  * Maps a layout to its pane composition (hand-off brief §2 table). Series level is pure
  * navigation (no writing metrics, no codex); Novel is also navigation-only (no stats); stats
- * and the codex only appear together in Detailed. The codex is a within-a-novel companion,
+ * and the codex only appear together in Chapter. The codex is a within-a-novel companion,
  * so it never pairs with the series list. "codex" is the odd one out: the Codex pane and
  * nothing else — no top pane, no stats, no unplaced section.
  */

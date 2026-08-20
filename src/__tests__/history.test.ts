@@ -10,7 +10,7 @@ import {
 	recordChapterUnarchive,
 	totalsFromDailyNets,
 } from "../history";
-import { bookWordCountFilePath, LIBRARY_ROOT, wordCountFilePath } from "../paths";
+import { BACKSTAGE_ROOT, bookFilePath, bookWordCountFilePath, LIBRARY_ROOT, wordCountFilePath } from "../paths";
 
 type Store = Map<string, string>;
 
@@ -54,12 +54,12 @@ function makeFakeApp(opts?: {
 }): { app: App; store: Store; folders: Set<string>; setArchive: (names: string[]) => void } {
 	const book = "BookA";
 	const store: Store = new Map();
-	const folders = new Set<string>([LIBRARY_ROOT, `${LIBRARY_ROOT}/${book}`, `_sf-backstage`, `_sf-backstage/${book}`]);
+	const folders = new Set<string>([LIBRARY_ROOT, `${LIBRARY_ROOT}/${book}`, BACKSTAGE_ROOT, `${BACKSTAGE_ROOT}/${book}`]);
 	const chapters = opts?.chapters ?? { "ch1.md": "one two three" };
 	for (const [name, content] of Object.entries(chapters)) {
 		store.set(`${LIBRARY_ROOT}/${book}/${name}`, content);
 	}
-	store.set(`_sf-backstage/${book}/novel.md`, "---\n---\n");
+	store.set(bookFilePath(book), "---\n---\n");
 
 	let archive = opts?.archive ?? [];
 	const frontmatter: Record<string, unknown> = {
@@ -91,7 +91,7 @@ function makeFakeApp(opts?: {
 		},
 		metadataCache: {
 			getCache: (path: string) => {
-				if (path === `_sf-backstage/${book}/novel.md`) {
+				if (path === bookFilePath(book)) {
 					return { frontmatter };
 				}
 				return null;
@@ -183,14 +183,14 @@ describe("concurrent writes", () => {
 			LIBRARY_ROOT,
 			`${LIBRARY_ROOT}/BookA`,
 			`${LIBRARY_ROOT}/BookB`,
-			`_sf-backstage`,
-			`_sf-backstage/BookA`,
-			`_sf-backstage/BookB`,
+			BACKSTAGE_ROOT,
+			`${BACKSTAGE_ROOT}/BookA`,
+			`${BACKSTAGE_ROOT}/BookB`,
 		]);
 		store.set(`${LIBRARY_ROOT}/BookA/a.md`, "one");
 		store.set(`${LIBRARY_ROOT}/BookB/b.md`, "one two");
-		store.set(`_sf-backstage/BookA/novel.md`, "---\n---\n");
-		store.set(`_sf-backstage/BookB/novel.md`, "---\n---\n");
+		store.set(bookFilePath("BookA"), "---\n---\n");
+		store.set(bookFilePath("BookB"), "---\n---\n");
 
 		const frontmatterByBook: Record<string, Record<string, unknown>> = {
 			BookA: { archive: [], "chapter-order": ["a.md"] },
@@ -218,8 +218,8 @@ describe("concurrent writes", () => {
 			},
 			metadataCache: {
 				getCache: (path: string) => {
-					if (path === `_sf-backstage/BookA/novel.md`) return { frontmatter: frontmatterByBook.BookA };
-					if (path === `_sf-backstage/BookB/novel.md`) return { frontmatter: frontmatterByBook.BookB };
+					if (path === bookFilePath("BookA")) return { frontmatter: frontmatterByBook.BookA };
+					if (path === bookFilePath("BookB")) return { frontmatter: frontmatterByBook.BookB };
 					return null;
 				},
 			},
@@ -244,7 +244,7 @@ describe("concurrent writes", () => {
 describe("migrateWordCountV1ToV2", () => {
 	it("converts legacy shared wordcount.md into per-book v2 files and removes the legacy file", async () => {
 		const store: Store = new Map();
-		const folders = new Set<string>([`_sf-backstage`, `_sf-backstage/BookA`]);
+		const folders = new Set<string>([BACKSTAGE_ROOT, `${BACKSTAGE_ROOT}/BookA`]);
 		store.set(
 			wordCountFilePath(),
 			JSON.stringify({

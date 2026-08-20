@@ -142,6 +142,27 @@ export function makeReorderable(
 				}
 			};
 
+			// Reparenting `row` above (insertBefore/appendChild, moving it past a sibling) can make
+			// Chromium drop `handle`'s pointer capture as a side effect, even though the handle never
+			// actually left the document — observably: drag one row past its neighbour, and the drag
+			// ends right there instead of continuing to track the pointer. `lostpointercapture` fires
+			// either way, so the only way to tell "really gone" (modal closed mid-drag, row torn out
+			// of the document) from "just reparented" is `handle.isConnected`: still connected means
+			// reacquire and keep the same gesture going; actually disconnected means fall through to
+			// the real end-of-drag cleanup below.
+			const onLostCapture = () => {
+				if (cleaned) return;
+				if (handle.isConnected) {
+					try {
+						handle.setPointerCapture(pointerId);
+						return;
+					} catch {
+						// No live pointer to recapture (e.g. it already lifted) — end the drag for real.
+					}
+				}
+				onUp();
+			};
+
 			// Cleanup must run on "pointercancel" too, not just "pointerup" — the browser cancels
 			// (rather than ends) a captured pointer sequence in some fairly common situations, e.g.
 			// a drag that crosses a scrollable ancestor's edge, which this modal's rows now sit
@@ -167,7 +188,7 @@ export function makeReorderable(
 				window.removeEventListener("pointermove", onMove);
 				window.removeEventListener("pointerup", onUp);
 				window.removeEventListener("pointercancel", onUp);
-				handle.removeEventListener("lostpointercapture", onUp);
+				handle.removeEventListener("lostpointercapture", onLostCapture);
 				row.classList.remove("sf-dragging");
 				row.setCssStyles({ transform: "" });
 				try {
@@ -182,7 +203,7 @@ export function makeReorderable(
 			window.addEventListener("pointermove", onMove);
 			window.addEventListener("pointerup", onUp);
 			window.addEventListener("pointercancel", onUp);
-			handle.addEventListener("lostpointercapture", onUp);
+			handle.addEventListener("lostpointercapture", onLostCapture);
 		});
 	}
 

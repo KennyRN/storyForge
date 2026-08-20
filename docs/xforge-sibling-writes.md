@@ -5,9 +5,9 @@ This document is the write policy for xForge siblings that soft-depend on `story
 
 ## Hard rules
 
-1. **Never** write manuscript prose under `_sf-storylibrary/`.
-2. **Never** rewrite `_sf-backstage/codex.md` directly while storyForge is loaded — use host API facades (`ensureVirtualFolder`, `createNote`, `setType`, …).
-3. storyForge’s own `writeGuard` only allows `_sf-backstage/**`. Codex create/rename remain intentional exceptions inside storyForge; they must not grow into body edits by storyForge itself.
+1. **Never** write manuscript prose under `_story-library/` (nor any flat file at its root, e.g. `series.md`/`novel-<code>.md` — those are storyForge-owned metadata, not sibling-writable).
+2. **Never** rewrite `_backstage/storyforge/codex.md` directly while storyForge is loaded — use host API facades (`ensureVirtualFolder`, `createNote`, `setType`, …).
+3. storyForge’s own `writeGuard` only allows `_backstage/storyforge/**` and `_backstage/titleforge/**` (plus its own narrow library-root-file exception). Codex create/rename remain intentional exceptions inside storyForge; they must not grow into body edits by storyForge itself.
 4. Sibling Codex **frontmatter** create/edit is allowed **only** when the sibling has called:
 
    ```ts
@@ -21,7 +21,7 @@ This document is the write policy for xForge siblings that soft-depend on `story
 
    and only for **essential fields that plugin owns**.
 5. **`allowBody` defaults to false.** Hosted timelineForge must not edit Codex note bodies; put display text in frontmatter (`description`, etc.).
-6. Own plugin config stays in that plugin’s backstage (e.g. timelineForge `_tf-backstage/`), not in `_sf-backstage/` unless a future host API says otherwise.
+6. Own plugin config stays in that plugin’s backstage (e.g. timelineForge `_tf-backstage/`), not in `_backstage/storyforge/` unless a future host API says otherwise — though note storyForge itself now nests under a shared `_backstage/` parent, which siblings may eventually be invited to share too. titleForge (`_backstage/titleforge/`, in-tree today but architected for extraction — see `src/titleforge/README.md`) is the first real example of this pattern: its own sibling-style subfolder under `_backstage/`, distinct from storyForge’s own `_backstage/storyforge/`, and explicitly allow-listed in `writeGuard.ts` alongside it.
 
 ## Who may register
 

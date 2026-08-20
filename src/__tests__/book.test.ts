@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { type App } from "obsidian";
 import { makeTFile, makeTFolder } from "./obsidianStub";
 import { readBookFrontmatter, safeCoverFilename, writeBookCoverImage, writeChapterTags, writeNovelTags } from "../book";
-import { BACKSTAGE_ROOT, LIBRARY_ROOT } from "../paths";
+import { BACKSTAGE_ROOT, LIBRARY_ROOT, bookFilePath } from "../paths";
 
 describe("safeCoverFilename", () => {
 	it("accepts a plain basename", () => {
@@ -40,7 +40,7 @@ function makeFakeApp(initialFrontmatter: Record<string, unknown> = {}): {
 	binaryFiles: Set<string>;
 } {
 	const book = "BookA";
-	const novelPath = `${BACKSTAGE_ROOT}/${book}/novel.md`;
+	const novelPath = bookFilePath(book);
 	const frontmatter: Record<string, unknown> = { ...initialFrontmatter };
 	const folders = new Set<string>([LIBRARY_ROOT, `${LIBRARY_ROOT}/${book}`, BACKSTAGE_ROOT, `${BACKSTAGE_ROOT}/${book}`]);
 	const binaryFiles = new Set<string>();
@@ -109,7 +109,7 @@ describe("writeBookCoverImage", () => {
 	});
 
 	it("never deletes outside the book's own backstage folder even with a hand-edited traversal cover-image", async () => {
-		const { app, trashedPaths } = makeFakeApp({ "cover-image": "../../_sf-backstage/BookB/novel.md" });
+		const { app, trashedPaths } = makeFakeApp({ "cover-image": "../../_backstage/storyforge/BookB/novel.md" });
 		// A malicious cover-image must not survive the read...
 		expect(readBookFrontmatter(app, "BookA")?.coverImage).toBeNull();
 		// ...so replacing the cover must not attempt to delete anything at all.

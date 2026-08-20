@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { TFile, type App } from "obsidian";
 import {
+	SETTINGS_PRESETS_ROOT,
 	deleteSettingsPreset,
 	listSettingsPresets,
 	readSettingsPreset,
@@ -83,7 +84,7 @@ describe("settings presets", () => {
 		expect(sanitizeSettingsPresetName("Today's Theme")).toBe("Today's Theme");
 		expect(sanitizeSettingsPresetName(" Book/Series: 1 ")).toBe("Book-Series- 1");
 		expect(settingsPresetPath("formatForge", "I Love This")).toBe(
-			"_sf-backstage/settings-presets/formatForge/I Love This.json",
+			`${SETTINGS_PRESETS_ROOT}/formatForge/I Love This.json`,
 		);
 	});
 
@@ -99,7 +100,7 @@ describe("settings presets", () => {
 	});
 
 	it("lists owner-scoped presets and rejects cross-owner reads", async () => {
-		const folder = "_sf-backstage/settings-presets/formatForge";
+		const folder = `${SETTINGS_PRESETS_ROOT}/formatForge`;
 		const app = {
 			vault: {
 				adapter: {
@@ -122,7 +123,7 @@ describe("settings presets", () => {
 			readSettingsPreset(
 				app,
 				"formatForge",
-				"_sf-backstage/settings-presets/storyForge/Nord.json",
+				`${SETTINGS_PRESETS_ROOT}/storyForge/Nord.json`,
 			),
 		).rejects.toThrow("formatForge");
 	});
@@ -133,7 +134,7 @@ describe("settings presets", () => {
 			renameSettingsPreset(
 				app,
 				"formatForge",
-				"_sf-backstage/settings-presets/storyForge/Nord.json",
+				`${SETTINGS_PRESETS_ROOT}/storyForge/Nord.json`,
 				"New Nord",
 			),
 		).rejects.toThrow("formatForge");
@@ -141,7 +142,7 @@ describe("settings presets", () => {
 			deleteSettingsPreset(
 				app,
 				"storyForge",
-				"_sf-backstage/settings-presets/formatForge/Nord.json",
+				`${SETTINGS_PRESETS_ROOT}/formatForge/Nord.json`,
 			),
 		).rejects.toThrow("storyForge");
 	});
@@ -245,7 +246,7 @@ describe("settings presets", () => {
 		);
 		expect(renamed).toEqual({
 			name: "nord",
-			path: "_sf-backstage/settings-presets/formatForge/nord.json",
+			path: `${SETTINGS_PRESETS_ROOT}/formatForge/nord.json`,
 		});
 		await expect(readSettingsPreset(app, "formatForge", renamed.path)).resolves.toBe(
 			"case-safe",

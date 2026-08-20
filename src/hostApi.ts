@@ -11,12 +11,11 @@
  *
  * View contributions — `api.registerViewContribution({ slot, orderHint?, render })`
  * (also mirrored on `api.formatting`). Known slots:
- * - `"spacer"` — blank right-rail Spacer tab (bottom dock for sibling icons)
  * - `"storyforge-panel"` — storyForge left panel (reserved / future)
  *
  * Companion panels (version >= 3): `api.registerCompanionPanel({ id, icon, label, renderPanel })`
- * mounts into the Forge right-rail tab (hammer-and-anvil). Prefer this over Spacer for
- * modal-style sibling UIs (e.g. nameForge).
+ * mounts into the Forge right-rail tab (hammer-and-anvil) — the preferred way to add
+ * modal-style sibling UIs (e.g. nameForge) to the right rail.
  */
 
 import type { App, ViewCreator } from "obsidian";
@@ -138,8 +137,8 @@ export interface StoryForgeHostApi {
 	}): void;
 	/**
 	 * Contribute UI into a storyForge view slot. `render` mounts into the provided
-	 * container and must return a disposer. Known slots: `"spacer"` (blank right-rail
-	 * tab bottom dock), `"storyforge-panel"` (left panel; reserved).
+	 * container and must return a disposer. Known slots: `"storyforge-panel"` (left
+	 * panel; reserved).
 	 */
 	registerViewContribution(opt: {
 		slot: string;
