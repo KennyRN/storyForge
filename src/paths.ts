@@ -39,6 +39,12 @@ export function bookBackstagePath(bookFolderName: string): string {
 	return `${BACKSTAGE_ROOT}/${bookFolderName}`;
 }
 
+/** Where the series' own cover image lives — `_series`, distinct from any book folder name (those
+ * are always plain lowercase letter codes from nextNovelCode, never leading with `_`). */
+export function seriesBackstagePath(): string {
+	return `${BACKSTAGE_ROOT}/_series`;
+}
+
 /** `novel-<code>.md` lives flat at the story-library root — a sibling of the book's `<code>/` chapter folder, not inside it, so that folder holds only user-created manuscript files. */
 export function bookFilePath(bookFolderName: string): string {
 	return `${LIBRARY_ROOT}/novel-${bookFolderName}.md`;

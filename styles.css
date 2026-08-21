@@ -619,8 +619,95 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	cursor: pointer;
 }
 
+/* Fixed size regardless of which tab is active or how many rows it holds — same
+ * .modal.sf-xxx-modal + inner-scroll-body split as .sf-tag-registry-modal below. */
+.modal.sf-series-modal {
+	width: 560px;
+	height: 600px;
+	display: flex;
+	flex-direction: column;
+	padding: 0;
+}
+
 .sf-series-modal {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
 	padding: 16px;
+	min-height: 0;
+}
+
+/* Tab bar for SeriesModal's settings tabs (types & tags / interface / formatting / obsidian
+ * elements) — text-labelled, unlike .sf-layout-tab's icon-only treatment, since these need to be
+ * legible by name. Same interaction language otherwise: plain colour change on hover/active, no
+ * background chip. Never shrinks or scrolls away — only .sf-series-modal-tab-body below does. */
+.sf-series-modal-tabs {
+	display: flex;
+	gap: 4px;
+	margin-bottom: 12px;
+	flex-shrink: 0;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* The active tab's content — scrolls independently so the tab bar above stays put regardless of
+ * how tall a given tab's rows are relative to the modal's fixed height. */
+.sf-series-modal-tab-body {
+	flex: 1;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+.sf-series-modal-tab {
+	padding: 6px 10px;
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	cursor: pointer;
+	border-bottom: 2px solid transparent;
+}
+
+.sf-series-modal-tab:hover {
+	color: var(--text-normal);
+}
+
+.sf-series-modal-tab.is-active {
+	color: var(--text-accent);
+	border-bottom-color: var(--text-accent);
+}
+
+.sf-series-modal-tab:focus-visible {
+	outline: 2px solid var(--text-accent);
+	outline-offset: 2px;
+}
+
+/* The "access obsidian's setting window" cog and "hide, or show, obsidian's interface elements"
+ * eye — plain hover-highlight icons, same treatment as .sf-modal-add-book, not buttons. Sized 10px
+ * over Obsidian's usual 16px icon default (26px), and given a fixed width matching Obsidian's own
+ * toggle-switch width (best-effort figure, unverified live) so they centre under/over the toggle
+ * rows' controls elsewhere in this box rather than sitting at whatever width their own icon size
+ * would otherwise claim. */
+.sf-series-modal-settings-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 36px;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.sf-series-modal-settings-icon svg {
+	width: 26px;
+	height: 26px;
+}
+
+.sf-series-modal-settings-icon:hover {
+	color: var(--text-normal);
+}
+
+.sf-series-modal-settings-icon:focus-visible {
+	outline: 2px solid var(--text-accent);
+	outline-offset: 2px;
 }
 
 .sf-onboarding-modal {
@@ -840,9 +927,14 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	font-weight: 600;
 }
 
-/* Series title text box (SeriesOverviewView.ts's renderTitleField) — styled as an h1 while staying
-   an editable input, with a small lowercase "series name" caption tucked under its bottom-left
-   corner. */
+/* Series title (SeriesOverviewView.ts's renderTitleField) — styled as an h1. Plain clickable text
+   now, not an input (renaming moved into SeriesTitleModal, opened on click) — so unlike the input
+   version this replaced, no input[type="text"]-beating specificity trick is needed here any more.
+   Same --sf-h1-* variables formatForge's own reading-view h1 rule reads (styles.css's "Editor
+   typography" section over in formatForge) — set on document.body while formatForge is enabled, so
+   this element is styled as an actual h1 rather than inheriting generic div text. formatForge's own
+   .ff-style-preview h1 rule (also a non-h1 element rendered as one) is the closest analogue, hence
+   the matching fallback values for when formatForge is absent or hasn't overridden a given field. */
 .sf-series-title-wrap {
 	display: flex;
 	flex-direction: column;
@@ -851,20 +943,55 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	min-width: 0;
 }
 
-/* input[type="text"] specificity (element + attribute) so Obsidian's own default text-input font
- * sizing can't outrank this — same reason input.sf-recommend-chapter-title[type="text"] above
- * needs it: a bare single-class selector loses that fight and silently renders as a normal input. */
-input.sf-series-title-input[type="text"] {
+.sf-series-title-input {
 	width: 100%;
-	font-size: var(--h1-size, 1.802em);
-	font-weight: var(--h1-weight, 700);
-	line-height: var(--h1-line-height, 1.1);
+	font-size: var(--sf-h1-size, 1.802em);
+	font-weight: var(--sf-h1-weight, 700);
+	line-height: 1.1;
+	font-family: var(--sf-h1-family, inherit);
+	font-variation-settings: var(--sf-h1-variation, normal);
+	color: var(--sf-h1-color, var(--text-normal));
+	font-variant: var(--sf-h1-variant, normal);
+	border-top: var(--sf-h1-border-top, none);
+	border-bottom: var(--sf-h1-border-bottom, none);
 }
 
-.sf-series-title-label {
-	margin-top: 2px;
-	font-size: var(--font-ui-smaller);
-	color: var(--text-faint);
+.sf-series-title-clickable {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+.sf-series-title-clickable:hover {
+	background: var(--background-modifier-hover);
+}
+
+/* Cover + description row beneath the series title (SeriesOverviewView.ts's
+ * renderCoverDescriptionRow), replacing the plain hint text that used to sit there. Cover fixed at
+ * 200px high, same 2:3 ratio every other cover box in the plugin uses (~133 wide × 200 tall); the
+ * description textarea fills the remaining width and matches the cover's height exactly. */
+.sf-series-overview-cover-row {
+	display: flex;
+	align-items: flex-start;
+	gap: 16px;
+	margin: 12px 0 20px;
+}
+
+.sf-series-overview-cover {
+	width: 133px;
+	height: 200px;
+	flex-shrink: 0;
+}
+
+.sf-series-overview-description {
+	flex: 1;
+	min-width: 0;
+	height: 200px;
+	box-sizing: border-box;
+	font: inherit;
+	resize: none;
 }
 
 .sf-modal-list-header {
@@ -1284,6 +1411,35 @@ input.sf-series-title-input[type="text"] {
 .sf-palette-swatch.is-theme-default {
 	background-image: linear-gradient(45deg, var(--background-modifier-border) 25%, transparent 25%, transparent 50%, var(--background-modifier-border) 50%, var(--background-modifier-border) 75%, transparent 75%, transparent);
 	background-size: 6px 6px;
+}
+
+/* Live theme preview in SeriesModal.ts's formatting tab (renderPaletteSwatchPreview) — border is
+ * the resolved foreground colour (a plain 2px border, inherently centred on the box's own edge),
+ * fill is the resolved background colour. Set inline per-render, not here (they're per-palette).
+ * width: fit-content shrink-wraps the panel to however many patches it holds; margin: 2px auto
+ * (top + centred sides) leaves a fixed 2px gap above. The bottom gap is a real spacer element
+ * instead (see .sf-palette-swatch-panel-spacer below), not a margin here. */
+.sf-palette-swatch-panel {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	padding: 10px;
+	width: fit-content;
+	margin: 2px auto 0;
+	border: 2px solid transparent;
+	border-radius: 4px;
+}
+
+/* Reuses .sf-palette-swatch's own square-patch look (20px, rounded corners, thin border) as-is. */
+.sf-palette-swatch-preview {
+	cursor: default;
+}
+
+/* A real occupied box rather than the panel's own margin-bottom — as the boundary box's last
+ * child, a plain margin there collapses through the (border/padding-less) listEl and vanishes
+ * instead of showing as a gap above the box's own bottom edge. */
+.sf-palette-swatch-panel-spacer {
+	height: 2px;
 }
 
 .sf-codex-type-picker-modal,
@@ -1737,6 +1893,11 @@ input.sf-series-title-input[type="text"] {
 div[aria-label="Search"]:not(#storyforge-specificity-boost) { display: var(--sf-search-display, revert); }
 div[aria-label="Bookmarks"]:not(#storyforge-specificity-boost) { display: var(--sf-bookmarks-display, revert); }
 div[aria-label="Files"]:not(#storyforge-specificity-boost) { display: var(--sf-files-display, revert); }
+/* JS-tagged by styleController.ts's tagObsidianSettingsButton — see OBSIDIAN_SELECTORS.settingsButton. */
+.clickable-icon.sf-vault-settings:not(#storyforge-specificity-boost) { display: var(--sf-settings-icon-display, revert); }
+/* storyForge's own Tools panel view's tab icon in the left sidebar's tab header row. TOOLS_VIEW_TYPE
+ * (ToolsPanel.ts) hardcoded here since static CSS can't reference the TS constant. */
+.mod-left-split .workspace-tab-header[data-type="storyforge-tools-view"] .workspace-tab-header-inner-icon:not(#storyforge-specificity-boost) { display: var(--sf-tools-panel-icon-display, revert); }
 /* Right-rail core tabs. data-type is stable; aria-label*= covers note-scoped labels ("Backlinks for …"). */
 .mod-right-split .workspace-tab-header[data-type="backlink"]:not(#storyforge-specificity-boost),
 .mod-right-split div[aria-label="Backlinks"]:not(#storyforge-specificity-boost),
@@ -1920,6 +2081,31 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 	text-align: center;
 }
 .sf-cycling-guide-badge-icon svg { width: 1em; height: 1em; }
+
+/* Cycling guide sample in SeriesModal's general tab — a short manuscript-page fragment showing
+   the divider at a real paragraph break, styled with the editor's own prose font/size. */
+.sf-cg-preview {
+	margin: 10px 4px 4px;
+	padding: 8px 10px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	font-family: var(--font-text);
+	font-size: var(--font-text-size, 16px);
+	line-height: 1.5;
+	color: var(--text-normal);
+}
+.sf-cg-preview p { margin: 0; }
+.sf-cg-preview-strip {
+	position: relative;
+	margin: 0.35em 0 1.2em;
+	min-height: 1.1em;
+}
+.sf-cg-preview-strip-spacer {
+	opacity: 0;
+	font-size: var(--font-ui-smaller);
+	line-height: 1.2;
+	pointer-events: none;
+}
 
 .sf-series-line .sf-header-text {
 	font-size: var(--sf-lib-series-size, 1em);
@@ -3586,32 +3772,134 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	padding-bottom: 48px;
 }
 
-/* One novel row: a title line (drag handle + title input) with a synopsis textarea beneath it.
- * .sf-row's own base (display/align-items/gap/padding/cursor) is a horizontal single-line layout —
- * override just direction/alignment here so title-line and synopsis stack within the same
- * draggable row, keeping the handle's own centring scoped to the title line alone (see
- * .sf-series-overview-row-title-line below) rather than the taller combined row. */
+/* One novel row: a drag handle, then a "card" holding everything else (cover image, then a title
+ * input over a synopsis textarea). The handle sits outside the card, on the row/page's own
+ * background, so the row itself only needs a plain flex split between the two; .sf-row's own base
+ * (display/align-items/gap/padding/cursor) already gives a horizontal layout — align-items is
+ * overridden to stretch here so the card fills the row's full height, and the handle re-centres
+ * itself with align-self since it no longer inherits centring from align-items. */
 .sf-series-overview-row {
-	flex-direction: column;
 	align-items: stretch;
-	gap: 4px;
+}
+
+/* .sf-row's own :hover paints the whole row (handle included) with the hover tint — not wanted
+ * here now that the card is its own visually distinct block; cancel it on the row and apply the
+ * same tint to the card alone instead, so hovering anywhere in the row still highlights the card
+ * (the row has no visible chrome of its own to highlight) without lighting up the handle's gutter. */
+.sf-series-overview-row:hover {
+	background: transparent;
+}
+
+.sf-series-overview-row:hover .sf-series-overview-card {
+	background: var(--background-modifier-hover);
+}
+
+.sf-series-overview-row > .sf-drag-handle {
+	align-self: center;
+}
+
+/* The card: only the cover and the title/synopsis text sections live inside it — the drag handle
+ * is a sibling, outside — with the sidebar's own background colour (--background-secondary) so
+ * each novel reads as a distinct card floating over the page's own background, and a 4px margin
+ * on every side separating the card's border from the row's previous bounds (where .sf-row's
+ * inherited padding used to let the cover/title/synopsis sit flush). Internally it's the same
+ * 2-column x 2-row grid the row itself used to be, so the cover can still cleanly span both rows
+ * (grid-row: 1 / 3) to match the title+synopsis column's *combined* height exactly, while the
+ * handle (now outside the card entirely) stays confined to the title line's own height. */
+.sf-series-overview-card {
+	flex: 1;
+	min-width: 0;
+	display: grid;
+	grid-template-columns: auto 1fr;
+	grid-template-rows: auto auto;
+	column-gap: 6px;
+	row-gap: 4px;
+	margin: 4px;
+	padding: 4px 6px;
+	background: var(--background-secondary);
+	border-radius: 4px;
+}
+
+/* Book-cover ratio (2:3, same as the old single-book detail block's .sf-series-overview-cover
+ * this replaces) computed from the card's own resolved height via aspect-ratio, rather than a
+ * fixed pixel size — reuses .sf-synopsis-cover's placeholder/has-image/rounded-corner styling
+ * (NovelPanel.ts's cover elsewhere already share it) so this cover looks and behaves exactly the
+ * same as every other cover box in the plugin, including the 4px radius the text boxes use. */
+.sf-series-overview-row-cover {
+	grid-column: 1;
+	grid-row: 1 / 3;
+	width: auto;
+	height: 100%;
+	aspect-ratio: 2 / 3;
 }
 
 .sf-series-overview-row-title-line {
+	grid-column: 2;
+	grid-row: 1;
 	display: flex;
 	align-items: center;
-	gap: 6px;
+}
+
+/* The title is a plain clickable text region now, not an input (renaming moved into
+ * NovelTitleModal) — numbered ("Volume #" → "Volume 1") with its subtitle in parentheses, all on
+ * one line (ellipsis rather than wrapping for anything too long to fit). Padding matches
+ * .sf-modal-input's own so the row's height doesn't visibly shift now that the box/border chrome
+ * is gone; the hover tint is the same affordance .sf-row itself uses. */
+.sf-series-overview-row-title {
+	width: 100%;
+	padding: 4px 8px;
+	border-radius: 4px;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	cursor: pointer;
+}
+
+.sf-series-overview-row-title:hover {
+	background: var(--background-modifier-hover);
+}
+
+/* "Novels" header + add-novel icon on one line (moved off the hint row, which no longer exists on
+ * this page — its text now lives in NovelTitleModal instead, see that file's own doc comment). */
+.sf-series-overview-list-header {
+	display: flex;
+	align-items: center;
+	gap: 8px;
 }
 
 .sf-series-overview-row-synopsis {
-	/* .sf-modal-input sets width: 100% — inset by the handle's own rendered width (16px, same
-	   value .sf-tag-registry-handle-spacer above uses to match it) + the title line's gap, so the
-	   box lines up under the title text without overflowing the row. */
-	margin-left: calc(16px + 6px);
-	width: calc(100% - 16px - 6px);
-	min-height: 80px;
+	grid-column: 2;
+	grid-row: 2;
+	width: 100%;
 	box-sizing: border-box;
 	font: inherit;
+	/* Fixed at its current size — no drag-resize handle — with scrolling for overflow instead of
+	   growing, per item 3. */
+	height: 80px;
+	resize: none;
+	overflow-y: auto;
+}
+
+/* NovelTitleModal.ts / SeriesTitleModal.ts — icon-only dice button that opens titleForge (as its
+ * own modal window, TitleForgeModal.ts, sized like Obsidian's stock default modal — see the
+ * titleForge block below), same treatment as .sf-modal-add-book's icon (muted, brightens on
+ * hover, no background chip) since both are "one small icon action under some explanatory
+ * text/input". */
+.sf-titleforge-dice {
+	display: inline-flex;
+	align-items: center;
+	margin-top: 8px;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.sf-titleforge-dice:hover {
+	color: var(--text-normal);
+}
+
+.sf-titleforge-dice svg.svg-icon {
+	width: calc(var(--font-ui-medium) * 1.6);
+	height: calc(var(--font-ui-medium) * 1.6);
 }
 
 /* ── Novel overview (NovelOverviewView.ts) ──
@@ -3727,15 +4015,44 @@ input.sf-recommend-chapter-title[type="text"]:focus {
  * scoped under .titleforge-*, so this whole block is what an extraction would cut and paste
  * into a standalone plugin's own styles.css unchanged. */
 
-.titleforge-view {
-	padding: var(--size-4-4, 16px);
-	max-width: 900px;
-	margin: 0 auto;
+/* titleForge only ever opens as a modal (TitleForgeModal.ts — see TitleForgeController.ts's class
+ * doc for why there's no main-area workspace view). Fixed-size, like nameForge's own generator
+ * modal: nameForge gets there by keeping every element inside it a bounded height (its own
+ * results list is a fixed 260px box, never an auto-growing one), so the modal itself never needs
+ * to resize as you use it. Generating writes straight into the history list — there's no separate
+ * "just generated" region to bound — so the only genuinely variable-length parts left
+ * (.titleforge-history/-kept, further below) scroll inside their own share of the modal's own
+ * fixed box (width below, on .sf-titleforge-modal; height on .titleforge-view) instead of pushing
+ * its size around. */
+.sf-titleforge-modal {
+	width: min(760px, 90vw);
 }
 
-.titleforge-blurb {
-	color: var(--text-muted);
-	margin-bottom: var(--size-4-3, 12px);
+.titleforge-view {
+	display: flex;
+	flex-direction: column;
+	height: min(640px, 80vh);
+	padding: 20px;
+	box-sizing: border-box;
+	overflow: hidden;
+}
+
+.titleforge-view > .titleforge-tabs,
+.titleforge-view > .titleforge-row,
+.titleforge-view > .titleforge-quantity-toggle,
+.titleforge-view > .titleforge-actions {
+	flex: 0 0 auto;
+}
+
+/* The two list tabs — history and kept titles — take whatever's left and scroll internally
+ * rather than grow the modal; see .titleforge-history-list / .titleforge-kept-list below for the
+ * part that actually scrolls. */
+.titleforge-view > .titleforge-history,
+.titleforge-view > .titleforge-kept {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
 }
 
 .titleforge-row {
@@ -3779,91 +4096,30 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	padding: var(--size-4-2, 8px) 0;
 }
 
-.titleforge-result {
-	background: var(--background-secondary);
-	border-radius: var(--radius-l, 8px);
-	padding: var(--size-4-4, 16px);
-	margin-bottom: var(--size-4-4, 16px);
-}
-
-.titleforge-series-label {
-	font-size: 0.8em;
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
-	color: var(--text-muted);
-	margin-bottom: var(--size-4-2, 8px);
-}
-
-.titleforge-card {
-	background: var(--background-primary);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: var(--radius-m, 6px);
-	padding: var(--size-4-3, 12px);
-	margin-bottom: var(--size-4-3, 12px);
-}
-
-.titleforge-card-label {
-	font-size: 0.75em;
-	color: var(--text-faint);
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
-	margin-bottom: 4px;
-}
-
-.titleforge-title {
-	font-size: 1.3em;
-	font-weight: 600;
-	color: var(--text-normal);
-	margin-bottom: 6px;
-}
-
-.titleforge-warning {
-	color: var(--text-warning, var(--text-error));
-	font-size: 0.85em;
-	margin-bottom: 6px;
-}
-
-.titleforge-why summary {
-	cursor: pointer;
-	color: var(--text-accent);
-	font-size: 0.85em;
-}
-
-.titleforge-why p {
-	color: var(--text-muted);
-	font-size: 0.9em;
-	margin: 6px 0 0;
-}
-
-.titleforge-exemplar {
-	font-style: italic;
-}
-
-.titleforge-keep-button {
-	margin-top: 8px;
-}
-
-.titleforge-volumes-list {
-	margin-top: var(--size-4-2, 8px);
-}
-
-.titleforge-anchor-note {
-	font-size: 0.85em;
-	color: var(--text-muted);
-	margin-top: 4px;
-}
-
 .titleforge-history h3 {
+	flex: 0 0 auto;
 	margin-bottom: var(--size-4-2, 8px);
 }
 
+/* Boxed like nameForge's own results list, but filling whatever's left of the modal's fixed
+ * height (set on .titleforge-view, above) rather than a size of its own — .titleforge-kept-list
+ * (in the "kept titles" tab, below) matches it exactly. */
 .titleforge-history-list {
+	flex: 1 1 auto;
+	min-height: 0;
 	list-style: none;
 	margin: 0;
-	padding: 0;
+	padding: 8px 10px;
+	overflow-y: auto;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m, 6px);
+	background-color: var(--background-secondary);
+	box-sizing: border-box;
 }
 
-.titleforge-history-item {
+/* One row — shared by .titleforge-history-list and .titleforge-kept-list alike (TitleForgePanel.ts's
+ * renderTitleRow renders both from the same code). */
+.titleforge-row-item {
 	display: flex;
 	align-items: center;
 	gap: var(--size-4-2, 8px);
@@ -3871,17 +4127,164 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.titleforge-history-title {
+.titleforge-row-title {
 	flex: 1;
 	color: var(--text-normal);
 }
 
-.titleforge-history-kept {
+.titleforge-row-actions {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	flex: 0 0 auto;
+}
+
+.titleforge-row-icon-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: transparent;
+	border: none;
+	border-radius: var(--radius-s, 4px);
+	padding: 4px;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.titleforge-row-icon-button:hover {
+	color: var(--text-normal);
+	background: var(--background-modifier-hover);
+}
+
+.titleforge-row-icon-button.is-kept {
 	color: var(--text-accent);
 }
 
-.titleforge-history-replay {
-	font-size: 0.8em;
+.titleforge-row-icon-button svg.svg-icon {
+	width: 16px;
+	height: 16px;
+}
+
+.titleforge-tabs {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--size-4-2, 8px);
+	margin-bottom: var(--size-4-3, 12px);
+}
+
+/* Equal-width, spread across the modal's full width, rather than sized to each tab's own text. */
+.titleforge-tab {
+	flex: 1 1 0;
+	text-align: center;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m, 6px);
+	padding: 4px 10px;
+	font-size: 0.85em;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.titleforge-tab:hover {
+	color: var(--text-normal);
+}
+
+.titleforge-tab.is-active {
+	background: var(--interactive-accent);
+	border-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+/* How many titles one click of Generate produces — a pill toggle modelled on nameForge's own
+ * quantity selector (nameForge/styles.css's .nameforge-modal__toggle-panel/__toggle-button),
+ * reimplemented under titleForge's own class names. */
+.titleforge-quantity-toggle {
+	display: flex;
+	gap: 4px;
+	padding: 4px;
+	margin-bottom: var(--size-4-2, 8px);
+	background: var(--background-secondary);
+	border-radius: var(--radius-m, 8px);
+}
+
+.titleforge-quantity-button {
+	flex: 1 1 0;
+	border: none;
+	border-radius: var(--radius-s, 6px);
+	background: transparent;
+	padding: 6px 12px;
+	font: inherit;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.titleforge-quantity-button.is-active {
+	background: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+/* The generate button — icon-only, full-width, accent-coloured, modelled on nameForge's own
+ * generate button (nameForge/styles.css's .nameforge-modal__generate-button). */
+.titleforge-generate-button {
+	width: 100%;
+	height: 48px;
+	padding: 0;
+	border: none;
+	border-radius: var(--radius-m, 6px);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+	cursor: pointer;
+}
+
+.titleforge-generate-button:hover {
+	background-color: var(--interactive-accent);
+	filter: brightness(1.1);
+}
+
+.titleforge-generate-button svg.svg-icon {
+	width: 32px;
+	height: 32px;
+}
+
+/* ── titleForge "kept titles" tab ── */
+
+/* Same treatment as .titleforge-history-list, above — fills whatever's left of the modal's fixed
+ * height rather than a size of its own. */
+.titleforge-kept-list {
+	flex: 1 1 auto;
+	min-height: 0;
+	list-style: none;
+	margin: 0;
+	padding: 8px 10px;
+	overflow-y: auto;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-m, 6px);
+	background-color: var(--background-secondary);
+	box-sizing: border-box;
+}
+
+/* The one thing a kept row shows that a plain history row doesn't — history is already scoped to
+ * one generator, kept titles are pooled across a whole scope's worth of them. */
+.titleforge-row-tradition {
+	font-size: 0.75em;
+	color: var(--text-faint);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+/* ── titleForge "why this shape" info popup (TitleShapeInfoModal.ts) ── */
+
+.titleforge-shape-info-tradition {
+	color: var(--text-muted);
+	margin-bottom: var(--size-4-3, 12px);
+}
+
+.titleforge-shape-info-exemplar {
+	font-style: italic;
+	color: var(--text-muted);
 }
 
 /* ── titleForge settings modal (TitleForgeSettingsModal.ts) ── */

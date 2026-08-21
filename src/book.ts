@@ -3,6 +3,8 @@ import { bookBackstagePath, bookFilePath, libraryBookPath, libraryChapterPath, L
 import { resolveOrder, type OrderResult } from "./ordering";
 import { mintId } from "./slug";
 import { deleteBackstagePath, enqueueBackstageWrite, modifyBackstageFrontmatter, writeBackstageBinary, writeBackstageFile } from "./writeGuard";
+import { safeCoverExtension, safeCoverFilename } from "./coverImage";
+import { extractSection, splitFrontmatterAndBody, upsertSection } from "./sectionBody";
 import {
 	collectAllBookIds,
 	getLibraryBookFolders,
@@ -155,26 +157,6 @@ export function getBookChapterFiles(app: App, bookFolderName: string): TFile[] {
 	return folder.children.filter(
 		(child): child is TFile => child instanceof TFile && child.extension === "md",
 	);
-}
-
-/**
- * Cover files live directly in the book's own backstage folder, so a cover name is
- * only ever a bare filename. Anything carrying a separator, a `..`, or a null byte
- * is rejected rather than normalised — a hand-edited `cover-image` must not be able
- * to name a file outside its book folder.
- */
-export function safeCoverFilename(name: unknown): string | null {
-	if (typeof name !== "string") return null;
-	const trimmed = name.trim();
-	if (!trimmed || trimmed === "." || trimmed === "..") return null;
-	if (/[/\\\0]/.test(trimmed)) return null;
-	return trimmed;
-}
-
-/** Cover extensions come from a picked file's name, so restrict them to a plain alphanumeric suffix. */
-function safeCoverExtension(extension: string): string {
-	const normalized = extension.trim().toLowerCase();
-	return /^[a-z0-9]{1,8}$/.test(normalized) ? normalized : "png";
 }
 
 export function readBookFrontmatter(app: App, bookFolderName: string): BookFrontmatter | null {
@@ -724,39 +706,6 @@ export async function createChapter(
 }
 
 const SYNOPSIS_HEADER = "## Synopsis";
-
-/** Splits raw file content into its frontmatter fence (verbatim, incl. trailing newline) and body. */
-function splitFrontmatterAndBody(raw: string): { frontmatterBlock: string; body: string } {
-	if (!raw.startsWith("---")) return { frontmatterBlock: "", body: raw };
-	const end = raw.indexOf("\n---", 3);
-	if (end === -1) return { frontmatterBlock: "", body: raw };
-	let fenceEnd = end + 4;
-	if (raw[fenceEnd] === "\n") fenceEnd += 1;
-	return { frontmatterBlock: raw.slice(0, fenceEnd), body: raw.slice(fenceEnd) };
-}
-
-function extractSection(body: string, header: string): string {
-	const idx = body.indexOf(header);
-	if (idx === -1) return "";
-	const start = idx + header.length;
-	const nextHeaderIdx = body.indexOf("\n## ", start);
-	return (nextHeaderIdx === -1 ? body.slice(start) : body.slice(start, nextHeaderIdx)).trim();
-}
-
-/** Replaces (or appends) the given `## `-prefixed section, leaving any other body content untouched. */
-function upsertSection(body: string, header: string, content: string): string {
-	const newSection = `${header}\n${content.trim()}\n`;
-	const idx = body.indexOf(header);
-	if (idx === -1) {
-		const sep = body.trim().length === 0 ? "" : "\n";
-		return `${body.trimEnd()}${sep}\n${newSection}`;
-	}
-	const start = idx + header.length;
-	const nextHeaderIdx = body.indexOf("\n## ", start);
-	const before = body.slice(0, idx);
-	const after = nextHeaderIdx === -1 ? "" : body.slice(nextHeaderIdx + 1);
-	return `${before}${newSection}${after}`;
-}
 
 /** Reads the book's synopsis from novel.md's body, under a `## Synopsis` heading. Empty string if none exists yet. */
 export async function readBookSynopsis(app: App, bookFolderName: string): Promise<string> {

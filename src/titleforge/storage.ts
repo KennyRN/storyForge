@@ -13,8 +13,8 @@ import { DEFAULT_TITLEFORGE_SETTINGS, type TitleForgeSettings } from "./settings
  * nothing else in the folder.
  *
  * `TITLEFORGE_BACKSTAGE_ROOT` and `writeGuard.ts` are storyForge's — reused
- * here rather than reinvented, same as the shared icon in
- * `view/TitleForgeView.ts`. `TITLEFORGE_BACKSTAGE_ROOT` (`_backstage/titleforge`)
+ * here rather than reinvented, same as the shared ribbon icon in
+ * `TitleForgeController.ts`. `TITLEFORGE_BACKSTAGE_ROOT` (`_backstage/titleforge`)
  * is already titleForge's own sibling region under the shared `_backstage/`
  * parent, not nested under storyForge's own `_backstage/storyforge/`. On
  * extraction, swap `root()` below for the new plugin's own vault root and

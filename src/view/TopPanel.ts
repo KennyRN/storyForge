@@ -22,7 +22,7 @@ import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
 import { ChapterIdeaCaptureModal } from "./ChapterIdeaCaptureModal";
 import { renderCodexFocusNavigator } from "./CodexFocusNavigator";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
-import { ICON_BOOK_DUOTONE, ICON_PLUS_SQUARE, ICON_SETTINGS_GEAR, ICON_UNPLACED } from "../icons";
+import { ICON_BOOK_DUOTONE, ICON_PLUS_SQUARE, ICON_SETTINGS_ALT, ICON_UNPLACED } from "../icons";
 import { recordChapterArchive, readChapterWordCount } from "../history";
 
 export type UnplacedViewMode = "unplaced" | "unplacedHidden";
@@ -75,7 +75,7 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 		// used to leak this icon into the storyTelling panel's series header too.
 		if (options.mode === "series") {
 			const settingsBtn = seriesLine.createSpan({ cls: "sf-series-settings-btn", attr: { "aria-label": "Series settings" } });
-			setIcon(settingsBtn, ICON_SETTINGS_GEAR);
+			setIcon(settingsBtn, ICON_SETTINGS_ALT);
 			settingsBtn.addEventListener("click", (e) => {
 				e.stopPropagation();
 				options.onOpenSeriesModal();

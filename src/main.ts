@@ -82,6 +82,12 @@ export interface StoryForgePluginSettings {
 	hideSearch: boolean;
 	hideBookmarks: boolean;
 	hideFiles: boolean;
+	/** Hide Obsidian's own Settings-cog icon in the vault-actions row. Defaults off (unhidden) —
+	 * unlike the other hide-* flags above, which default to hidden. */
+	hideObsidianSettingsIcon: boolean;
+	/** Hide storyForge's own Tools panel view's tab icon in the left sidebar's tab header row.
+	 * Only meaningful while useToolsPanel is on. Defaults off (unhidden). */
+	hideToolsPanelIcon: boolean;
 	hideLeftPanel: boolean;
 	hideRightPanel: boolean;
 	/** Hide Obsidian's Backlinks tab in the right sidebar. */
@@ -448,6 +454,8 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	hideSearch: true,
 	hideBookmarks: true,
 	hideFiles: true,
+	hideObsidianSettingsIcon: false,
+	hideToolsPanelIcon: false,
 	hideLeftPanel: true,
 	hideRightPanel: true,
 	hideBacklinks: true,
@@ -716,6 +724,15 @@ export default class StoryForgePlugin extends Plugin {
 	private formatCompanion: FormatCompanionRegistration | null = null;
 	/** Settings tab — refreshed when format companion registers/unregisters. */
 	private settingsTab: StoryForgeSettingsTab | null = null;
+	/**
+	 * Re-render callback(s) for any currently-open SeriesModal — same idea as settingsTab above, but
+	 * SeriesModal is a plain Modal (no Obsidian-managed refreshDomState hook), so it self-registers
+	 * one of these in onOpen()/deregisters in onClose(). Without this, a formatForge companion that
+	 * registers *after* the modal's formatting tab has already rendered (a load-order race - see
+	 * registerFormatCompanion() below) leaves that tab stuck showing the "install formatForge" nudge
+	 * until the user manually switches tabs to force a re-render.
+	 */
+	private openSeriesModalRefreshers = new Set<() => void>();
 	/** Contributions into storyLibrary panel / future slots. */
 	private viewContributions: StoryForgeViewContribution[] = [];
 	/** Companion panels for the Forge right-rail tab (nameForge, …). */
@@ -1255,15 +1272,71 @@ export default class StoryForgePlugin extends Plugin {
 		);
 	}
 
+	/**
+	 * Opens Obsidian's own Settings window (`app.setting`), optionally scrolled to a specific tab
+	 * id. `app.setting` is undocumented/internal — no public API exposes it — so this asserts only
+	 * the minimal shape actually used rather than casting to `any`.
+	 */
+	openObsidianSettings(tabId?: string): void {
+		const settingApp = (this.app as unknown as { setting?: { open(): void; openTabById(id: string): void } }).setting;
+		settingApp?.open();
+		if (tabId) settingApp?.openTabById(tabId);
+	}
+
 	openFormatForgeSettings(): void {
 		const open = this.getFormatCompanion()?.openSettings;
 		if (open) {
 			open();
 			return;
 		}
-		const settingApp = (this.app as unknown as { setting?: { open(): void; openTabById(id: string): void } }).setting;
-		settingApp?.open();
-		settingApp?.openTabById(FORMATFORGE_PLUGIN_ID);
+		this.openObsidianSettings(FORMATFORGE_PLUGIN_ID);
+	}
+
+	/** Open formatForge's storyForge-linked panel-chrome modal directly. Falls back to
+	 * openFormatForgeSettings() (the Obsidian Settings window) on an older formatForge that hasn't
+	 * registered this hook yet. */
+	openFormatForgeInterfaceModal(): void {
+		const open = this.getFormatCompanion()?.openInterfaceModal;
+		if (open) {
+			open();
+			return;
+		}
+		this.openFormatForgeSettings();
+	}
+
+	/** Open formatForge's combined settings modal (Text styling + Formatting themes + Palette)
+	 * directly. Falls back to openFormatForgeSettings() (the Obsidian Settings window) on an older
+	 * formatForge that hasn't registered this hook yet. */
+	openFormatForgeFormattingModal(): void {
+		const open = this.getFormatCompanion()?.openFormattingModal;
+		if (open) {
+			open();
+			return;
+		}
+		this.openFormatForgeSettings();
+	}
+
+	/** Open formatForge's own Text styling modal directly. Falls back to openFormatForgeSettings()
+	 * (the Obsidian Settings window) on an older formatForge that hasn't registered this hook yet. */
+	openFormatForgeTextStyleModal(): void {
+		const open = this.getFormatCompanion()?.openTextStyleModal;
+		if (open) {
+			open();
+			return;
+		}
+		this.openFormatForgeSettings();
+	}
+
+	/** Open formatForge's own Formatting themes modal directly. Falls back to
+	 * openFormatForgeSettings() (the Obsidian Settings window) on an older formatForge that hasn't
+	 * registered this hook yet. */
+	openFormatForgeThemesModal(): void {
+		const open = this.getFormatCompanion()?.openThemesModal;
+		if (open) {
+			open();
+			return;
+		}
+		this.openFormatForgeSettings();
 	}
 
 	/** Ribbon/command entry point for "Open storyForge interface" — always opens the modal itself.
@@ -1279,17 +1352,26 @@ export default class StoryForgePlugin extends Plugin {
 		new TagRegistryModal(this.app, () => this.refreshStoryForgeViews()).open();
 	}
 
+	/** SeriesModal calls this in onOpen()/onClose() so its formatting tab can be told to re-render
+	 * when the format companion registers/unregisters while it's open. */
+	registerSeriesModalRefresh(refresh: () => void): () => void {
+		this.openSeriesModalRefreshers.add(refresh);
+		return () => this.openSeriesModalRefreshers.delete(refresh);
+	}
+
 	registerFormatCompanion(reg: FormatCompanionRegistration): () => void {
 		this.formatCompanion = reg;
 		this.fontFacesRegisteredFor.clear();
 		this.applyLinkedFormattingStyles();
 		this.settingsTab?.refreshDomState();
+		this.openSeriesModalRefreshers.forEach((refresh) => refresh());
 		return () => {
 			if (this.formatCompanion === reg) {
 				this.formatCompanion = null;
 				this.fontFacesRegisteredFor.clear();
 				this.applyLinkedFormattingStyles();
 				this.settingsTab?.refreshDomState();
+				this.openSeriesModalRefreshers.forEach((refresh) => refresh());
 			}
 		};
 	}

@@ -1,7 +1,8 @@
-import { App, DropdownComponent, Setting, SettingGroup, ToggleComponent } from "obsidian";
+import { App, DropdownComponent, Setting, SettingGroup, setIcon, ToggleComponent } from "obsidian";
 import type StoryForgePlugin from "../main";
-import type { StoryForgePluginSettings } from "../main";
+import type { CyclingGuideInterval, HeadingDividerThickness, StoryForgePluginSettings } from "../main";
 import type { FontCatalogEntry } from "../formattingApi";
+import { ICON_CYCLE_ALT } from "../icons";
 
 /** Shared building blocks for TextStyleModal, UiFormattingModal, and
  * ProtectionsModal — free functions rather than a base class, matching the
@@ -336,4 +337,142 @@ export function renderTabbedBody(
 	});
 
 	options?.onActivate?.(activeTabId);
+}
+
+/**
+ * "Cycling guide" toggle plus its five dependent options (Thickness, Flag size, Rounded lines,
+ * Cycle length, Line colour), all in one boundary box. Shared between UiFormattingModal's Editor
+ * tab and SeriesModal's general tab — a free function (not a method) since it only ever needs
+ * app/plugin/settings, matching this file's existing pattern.
+ */
+/**
+ * Fragment of a manuscript page (same classic Lorem Ipsum used by formatForge's own editor-page
+ * preview) — the tail two lines of one paragraph, then the lead two lines of the next, with the
+ * cycling-guide divider sitting between them exactly as it would land at a real paragraph break.
+ * Reuses storyForge's own `.sf-cycling-guide-line`/`.sf-cycling-guide-badge*` classes, so it picks
+ * up the live `--sf-cg-*` vars `applyCyclingGuideStyle()` already writes to the document body —
+ * no separate wiring needed for Thickness/Flag size/Rounded lines/Line colour to show up here.
+ */
+function mountCyclingGuidePreview(container: HTMLElement): HTMLElement {
+	const preview = container.createDiv({ cls: "sf-cg-preview" });
+	preview.createEl("p", {
+		text: "…ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.",
+	});
+	const strip = preview.createDiv({ cls: "sf-cg-preview-strip sf-cycling-guide-line" });
+	strip.createDiv({ cls: "sf-cg-preview-strip-spacer", text: " " });
+	const badge = strip.createDiv({ cls: "sf-cycling-guide-badge" });
+	const badgeIcon = badge.createSpan({ cls: "sf-cycling-guide-badge-icon" });
+	setIcon(badgeIcon, ICON_CYCLE_ALT);
+	preview.createEl("p", {
+		text: "Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium…",
+	});
+	return preview;
+}
+
+export function renderCyclingGuideCard(
+	app: App,
+	plugin: StoryForgePlugin,
+	body: HTMLElement,
+	settings: StoryForgePluginSettings,
+	showPreview = false,
+): void {
+	const cyclingGuideGroup = new SettingGroup(body);
+
+	let cyclingGuideToggle!: ToggleComponent;
+	cyclingGuideGroup.addSetting((setting) => {
+		setting
+			.setName("Cycling guide")
+			.setDesc("draws a floating guideline")
+			.addToggle((toggle) => {
+				cyclingGuideToggle = toggle;
+				toggle.setValue(settings.cyclingGuideEnabled);
+			});
+	});
+
+	let cyclingGuideThicknessSetting!: Setting;
+	cyclingGuideGroup.addSetting((setting) => {
+		cyclingGuideThicknessSetting = setting;
+		setting.setName("Thickness").addDropdown((dropdown) =>
+			dropdown
+				.addOption("thin", "Thin")
+				.addOption("medium", "Medium")
+				.addOption("thick", "Thick")
+				.addOption("extra-thick", "Extra thick")
+				.setValue(settings.cyclingGuideThickness)
+				.onChange((value) =>
+					persistAndRestyle(plugin, "cyclingGuideThickness", value as HeadingDividerThickness, () => plugin.applyCyclingGuideStyle()),
+				),
+		);
+	});
+
+	let cyclingGuideFlagSizeSetting!: Setting;
+	cyclingGuideGroup.addSetting((setting) => {
+		cyclingGuideFlagSizeSetting = setting;
+		setting.setName("Flag size").addDropdown((dropdown) =>
+			dropdown
+				.addOption("small", "Small")
+				.addOption("medium", "Medium")
+				.addOption("large", "Large")
+				.setValue(settings.cyclingGuideFlagSize)
+				.onChange((value) =>
+					persistAndRestyle(plugin, "cyclingGuideFlagSize", value as "small" | "medium" | "large", () => plugin.applyCyclingGuideStyle()),
+				),
+		);
+	});
+
+	let cyclingGuideRoundedLinesSetting!: Setting;
+	cyclingGuideGroup.addSetting((setting) => {
+		cyclingGuideRoundedLinesSetting = setting;
+		setting
+			.setName("Rounded lines")
+			.setDesc("Rounds the corners of the divider line, except the bottom-right where the flag sits.")
+			.addToggle((toggle) =>
+				toggle
+					.setValue(settings.cyclingGuideRoundedLines)
+					.onChange((value) => persistAndRestyle(plugin, "cyclingGuideRoundedLines", value, () => plugin.applyCyclingGuideStyle())),
+			);
+	});
+
+	let cyclingGuideIntervalSetting!: Setting;
+	cyclingGuideGroup.addSetting((setting) => {
+		cyclingGuideIntervalSetting = setting;
+		setting.setName("Cycle length").addDropdown((dropdown) =>
+			dropdown
+				.addOption("short", "Short")
+				.addOption("medium", "Medium")
+				.addOption("large", "Long")
+				.setValue(settings.cyclingGuideInterval)
+				.onChange((value) =>
+					persistAndRestyle(plugin, "cyclingGuideInterval", value as CyclingGuideInterval, () => plugin.rebuildCyclingGuideExtension()),
+				),
+		);
+	});
+
+	let cyclingGuideColorSetting!: Setting;
+	cyclingGuideGroup.addSetting((setting) => {
+		cyclingGuideColorSetting = setting;
+		setting.setName("Line colour").addButton((button) =>
+			bindColorSwatchButton(app, plugin, button.buttonEl, settings.cyclingGuideColor, (hex) => {
+				void plugin.updateSetting("cyclingGuideColor", hex).then(() => plugin.applyCyclingGuideStyle());
+			}),
+		);
+	});
+
+	const cyclingGuidePreviewEl = showPreview ? mountCyclingGuidePreview(cyclingGuideGroup.listEl) : undefined;
+
+	const applyCyclingGuideVisibility = (hidden: boolean) => {
+		cyclingGuideThicknessSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+		cyclingGuideFlagSizeSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+		cyclingGuideRoundedLinesSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+		cyclingGuideIntervalSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+		cyclingGuideColorSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+		cyclingGuidePreviewEl?.toggleClass("sf-settings-hidden", hidden);
+	};
+	cyclingGuideToggle.onChange((value) => {
+		void plugin.updateSetting("cyclingGuideEnabled", value).then(() => {
+			plugin.setCyclingGuideEnabled(value);
+			applyCyclingGuideVisibility(!value);
+		});
+	});
+	applyCyclingGuideVisibility(!cyclingGuideToggle.getValue());
 }

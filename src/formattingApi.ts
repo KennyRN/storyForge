@@ -58,8 +58,22 @@ export interface OpenFontPickerOptions {
 export interface FormatCompanionRegistration {
 	pluginId: string;
 	version: number;
-	/** Open formatForge's settings / main formatting UI. */
+	/** Open formatForge's settings / main formatting UI (the Obsidian Settings window, scrolled to
+	 * formatForge's tab). Prefer `openInterfaceModal`/`openFormattingModal` below when a specific
+	 * modal is wanted directly — this is the catch-all fallback for an older formatForge that
+	 * doesn't register those. */
 	openSettings?: () => void;
+	/** Open formatForge's storyForge-linked panel-chrome modal (its own UiFormattingModal) directly,
+	 * bypassing the Obsidian Settings window. */
+	openInterfaceModal?: () => void;
+	/** Open formatForge's combined settings modal (Text styling + Formatting themes + Palette)
+	 * directly, bypassing the Obsidian Settings window. */
+	openFormattingModal?: () => void;
+	/** Open formatForge's own Text styling modal directly, bypassing the Obsidian Settings window. */
+	openTextStyleModal?: () => void;
+	/** Open formatForge's own Formatting themes modal directly, bypassing the Obsidian Settings
+	 * window. */
+	openThemesModal?: () => void;
 	/** After storyForge reapplies linked styles (so companion can refresh editor/font vars). */
 	onHostStylesApplied?: () => void;
 	/** Resolve a font id + weight into CSS font-family / font-variation-settings values. */

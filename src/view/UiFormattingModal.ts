@@ -1,18 +1,13 @@
 import { App, Modal, Setting, SettingGroup, ToggleComponent } from "obsidian";
 import type StoryForgePlugin from "../main";
-import type {
-	CodexFolderIndicatorThickness,
-	CyclingGuideInterval,
-	EditorScrollbarThickness,
-	HeadingDividerThickness,
-	StoryForgePluginSettings,
-} from "../main";
+import type { CodexFolderIndicatorThickness, EditorScrollbarThickness, StoryForgePluginSettings } from "../main";
 import { ConvertToSeriesModal } from "./ConvertToSeriesModal";
 import {
 	bindColorSwatchButton,
 	bindExclusivePair,
 	persistAndRestyle,
 	renderCustomFontCard,
+	renderCyclingGuideCard,
 	renderTabbedBody,
 	type StyleModalTab,
 } from "./styleModalHelpers";
@@ -162,7 +157,7 @@ export class UiFormattingModal extends Modal {
 					// height without the outer Left sidebar / Editor / Right sidebar tab row scrolling
 					// away with it; that row is a sibling of this wrapper, not inside it, so it stays put.
 					const scroll = body.createDiv({ cls: "sf-ui-format-editor-scroll" });
-					this.renderCyclingGuideCard(scroll, settings);
+					renderCyclingGuideCard(this.app, this.plugin, scroll, settings);
 					this.renderEditorScrollbarGroup(scroll, settings);
 				},
 			},
@@ -348,107 +343,6 @@ export class UiFormattingModal extends Modal {
 						.setValue(settings.highlightActiveChapter)
 						.onChange((value) => persistAndRestyle(this.plugin, "highlightActiveChapter", value, () => this.plugin.refreshStoryForgeViews())),
 				);
-		});
-	}
-
-	private renderCyclingGuideCard(body: HTMLElement, settings: StoryForgePluginSettings): void {
-		const cyclingGuideGroup = new SettingGroup(body);
-
-		let cyclingGuideToggle!: ToggleComponent;
-		cyclingGuideGroup.addSetting((setting) => {
-			setting
-				.setName("Cycling guide")
-				.setDesc("draws a floating guideline")
-				.addToggle((toggle) => {
-					cyclingGuideToggle = toggle;
-					toggle.setValue(settings.cyclingGuideEnabled);
-				});
-		});
-
-		let cyclingGuideThicknessSetting!: Setting;
-		cyclingGuideGroup.addSetting((setting) => {
-			cyclingGuideThicknessSetting = setting;
-			setting.setName("Thickness").addDropdown((dropdown) =>
-				dropdown
-					.addOption("thin", "Thin")
-					.addOption("medium", "Medium")
-					.addOption("thick", "Thick")
-					.addOption("extra-thick", "Extra thick")
-					.setValue(settings.cyclingGuideThickness)
-					.onChange((value) =>
-						persistAndRestyle(this.plugin, "cyclingGuideThickness", value as HeadingDividerThickness, () => this.plugin.applyCyclingGuideStyle()),
-					),
-			);
-		});
-
-		let cyclingGuideFlagSizeSetting!: Setting;
-		cyclingGuideGroup.addSetting((setting) => {
-			cyclingGuideFlagSizeSetting = setting;
-			setting.setName("Flag size").addDropdown((dropdown) =>
-				dropdown
-					.addOption("small", "Small")
-					.addOption("medium", "Medium")
-					.addOption("large", "Large")
-					.setValue(settings.cyclingGuideFlagSize)
-					.onChange((value) =>
-						persistAndRestyle(this.plugin, "cyclingGuideFlagSize", value as "small" | "medium" | "large", () => this.plugin.applyCyclingGuideStyle()),
-					),
-			);
-		});
-
-		let cyclingGuideRoundedLinesSetting!: Setting;
-		cyclingGuideGroup.addSetting((setting) => {
-			cyclingGuideRoundedLinesSetting = setting;
-			setting
-				.setName("Rounded lines")
-				.setDesc("Rounds the corners of the divider line, except the bottom-right where the flag sits.")
-				.addToggle((toggle) =>
-					toggle
-						.setValue(settings.cyclingGuideRoundedLines)
-						.onChange((value) => persistAndRestyle(this.plugin, "cyclingGuideRoundedLines", value, () => this.plugin.applyCyclingGuideStyle())),
-				);
-		});
-
-		let cyclingGuideIntervalSetting!: Setting;
-		cyclingGuideGroup.addSetting((setting) => {
-			cyclingGuideIntervalSetting = setting;
-			setting.setName("Cycle length").addDropdown((dropdown) =>
-				dropdown
-					.addOption("short", "Short")
-					.addOption("medium", "Medium")
-					.addOption("large", "Long")
-					.setValue(settings.cyclingGuideInterval)
-					.onChange((value) =>
-						persistAndRestyle(this.plugin, "cyclingGuideInterval", value as CyclingGuideInterval, () => this.plugin.rebuildCyclingGuideExtension()),
-					),
-			);
-		});
-
-		let cyclingGuideColorSetting!: Setting;
-		cyclingGuideGroup.addSetting((setting) => {
-			cyclingGuideColorSetting = setting;
-			setting.setName("Line colour").addButton((button) =>
-				bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings.cyclingGuideColor, (hex) => {
-					void this.plugin.updateSetting("cyclingGuideColor", hex).then(() => this.plugin.applyCyclingGuideStyle());
-				}),
-			);
-		});
-
-		const applyCyclingGuideVisibility = (hidden: boolean) => {
-			cyclingGuideThicknessSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
-			cyclingGuideFlagSizeSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
-			cyclingGuideRoundedLinesSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
-			cyclingGuideIntervalSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
-			cyclingGuideColorSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
-		};
-		cyclingGuideToggle.onChange((value) => this.applyCyclingGuideToggle(value, applyCyclingGuideVisibility));
-		applyCyclingGuideVisibility(!cyclingGuideToggle.getValue());
-	}
-
-	private applyCyclingGuideToggle(value: boolean, applyCyclingGuideVisibility: (hidden: boolean) => void): void {
-		void this.plugin.updateSetting("cyclingGuideEnabled", value).then(() => {
-			this.plugin.setCyclingGuideEnabled(value);
-			applyCyclingGuideVisibility(!value);
 		});
 	}
 

@@ -100,6 +100,8 @@ export class StyleController {
 			"--sf-search-display": s.hideSearch ? "none" : null,
 			"--sf-bookmarks-display": s.hideBookmarks ? "none" : null,
 			"--sf-files-display": s.hideFiles ? "none" : null,
+			"--sf-settings-icon-display": s.hideObsidianSettingsIcon ? "none" : null,
+			"--sf-tools-panel-icon-display": s.hideToolsPanelIcon ? "none" : null,
 			"--sf-backlinks-display": s.hideBacklinks ? "none" : null,
 			"--sf-outgoing-links-display": s.hideOutgoingLinks ? "none" : null,
 			"--sf-tags-display": s.hideTags ? "none" : null,
@@ -114,7 +116,10 @@ export class StyleController {
 			"--sf-statusbar-nonsync-display": s.statusBarView === "sync-only" ? "none" : null,
 		});
 
-		for (const doc of this.host.getStyleDocuments()) this.tagVaultHelpButton(doc);
+		for (const doc of this.host.getStyleDocuments()) {
+			this.tagVaultHelpButton(doc);
+			this.tagObsidianSettingsButton(doc);
+		}
 
 		// The ribbon-relocation rules (ribbon-width var, ribbon hide/show, tab-header padding) are
 		// static in styles.css, scoped entirely by this class - no custom properties needed.
@@ -519,6 +524,24 @@ export class StyleController {
 	 */
 	private tagVaultHelpButton(doc: Document): void {
 		doc.body.querySelector(".workspace-drawer-vault-actions .help")?.closest(".clickable-icon")?.addClass("sf-vault-help");
+	}
+
+	/**
+	 * Tags the vault-actions row's Settings button with `sf-vault-settings` so styles.css can
+	 * target it without pinning down its exact structure in advance. Tries a direct `aria-label`
+	 * match first (Search/Bookmarks/Files all carry their own `aria-label`, so this is the likely
+	 * shape), falling back to matching by the inner icon the same way tagVaultHelpButton does for
+	 * Help above, in case Settings turns out to lack its own `aria-label` too. Idempotent; no-ops
+	 * if the drawer/button isn't in `doc` yet.
+	 */
+	private tagObsidianSettingsButton(doc: Document): void {
+		const container = doc.body.querySelector(".workspace-drawer-vault-actions");
+		if (!container) return;
+		const button =
+			container.querySelector<HTMLElement>('.clickable-icon[aria-label="Settings"]') ??
+			container.querySelector<HTMLElement>(".clickable-icon:has(.lucide-settings)") ??
+			container.querySelector<HTMLElement>(".clickable-icon:has(.gear)");
+		button?.addClass("sf-vault-settings");
 	}
 
 	/** Resolves the codex folder colour, respecting `codexUseHeaderColorForAll`'s override of the folder colour picker. */

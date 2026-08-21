@@ -987,3 +987,41 @@ export function resolvePaletteColors(
 	const variant = resolvePaletteVariant(paletteName, variantName);
 	return variant ? variant.colors : [];
 }
+
+/** Simple perceived-brightness figure (ITU-R BT.601 luma) for ranking colours brightest-to-darkest
+ * — not full WCAG relative luminance (no gamma correction), which is unnecessary for that purpose. */
+function luma(hex: string): number {
+	const clean = hex.replace("#", "");
+	const r = parseInt(clean.slice(0, 2), 16);
+	const g = parseInt(clean.slice(2, 4), 16);
+	const b = parseInt(clean.slice(4, 6), 16);
+	return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+
+/**
+ * Picks the foreground/background pair out of a resolved colour list, for a swatch preview.
+ * Prefers colours literally named "Background"/"Foreground" (case-insensitive, exact) when the
+ * list has exactly one of each — several presets use this naming (Atom, …), so it's unambiguous
+ * there; others don't (Ayu's "Editor Background"/"UI Background", Solarized's "base0"-"base3", …),
+ * so this only fires when it's genuinely clear. Otherwise falls back to the brightest/darkest
+ * colour in the list, assigning them to foreground/background by `appearance`: a light theme's
+ * background is its brightest colour and foreground its darkest (dark text on a light background);
+ * a dark theme is the reverse.
+ */
+export function resolveForegroundBackground(
+	colors: PaletteColor[],
+	appearance: PaletteMode,
+): { foreground: PaletteColor; background: PaletteColor } | null {
+	if (colors.length === 0) return null;
+	const namedBackground = colors.find((c) => c.name.toLowerCase() === "background");
+	const namedForeground = colors.find((c) => c.name.toLowerCase() === "foreground");
+	if (namedBackground && namedForeground) {
+		return { foreground: namedForeground, background: namedBackground };
+	}
+	const sorted = [...colors].sort((a, b) => luma(a.hex) - luma(b.hex));
+	const darkest = sorted[0];
+	const brightest = sorted[sorted.length - 1];
+	return appearance === "light"
+		? { foreground: darkest, background: brightest }
+		: { foreground: brightest, background: darkest };
+}
