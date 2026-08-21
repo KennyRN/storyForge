@@ -157,7 +157,7 @@ export class StorytellingView extends ItemView {
 				this.render();
 			},
 			onOpenChapter: (bookName, filename) => void this.openChapter(bookName, filename),
-			onOpenSeriesModal: () => new SeriesModal(this.app, () => this.render()).open(),
+			onOpenSeriesModal: () => new SeriesModal(this.app, this.plugin, () => this.render()).open(),
 			onCreateContinuingChapter: (bookFolderName) => void this.handleCreateContinuingChapter(bookFolderName),
 			onArchiveChapter: async () => {
 				if (this.closed) return;

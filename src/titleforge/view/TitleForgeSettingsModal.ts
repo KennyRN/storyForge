@@ -42,8 +42,8 @@ export class TitleForgeSettingsModal extends Modal {
 
 		const openButton = contentEl.createEl("button", { text: "Open titleForge", cls: "mod-cta" });
 		openButton.addEventListener("click", () => {
-			void this.controller.activateView();
 			this.close();
+			this.controller.openModal();
 		});
 
 		contentEl.createEl("h3", { text: "Traditions" });

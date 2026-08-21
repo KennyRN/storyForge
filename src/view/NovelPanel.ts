@@ -126,7 +126,9 @@ export function renderNovelPanel(app: App, container: HTMLElement, options: Nove
 	void renderNovelPlot(app, scroll, bookFolderName, options, wide);
 }
 
-function renderNovelCover(app: App, cover: HTMLElement, bookFolderName: string): void {
+/** Exported for SeriesOverviewView.ts's per-row cover box — same cover, same click-to-set
+ * behaviour, reused rather than re-implemented a third time (see this file's own doc comment). */
+export function renderNovelCover(app: App, cover: HTMLElement, bookFolderName: string): void {
 	cover.empty();
 	const coverImage = readBookFrontmatter(app, bookFolderName)?.coverImage ?? null;
 	const file = coverImage
@@ -140,7 +142,7 @@ function renderNovelCover(app: App, cover: HTMLElement, bookFolderName: string):
 	}
 }
 
-function pickNovelCover(app: App, cover: HTMLElement, bookFolderName: string): void {
+export function pickNovelCover(app: App, cover: HTMLElement, bookFolderName: string): void {
 	const input = createEl("input", { type: "file", attr: { accept: "image/*" } });
 	input.addEventListener("change", () => {
 		const file = input.files?.[0];

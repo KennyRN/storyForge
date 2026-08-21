@@ -46,9 +46,10 @@ src/titleforge/
   storage.ts           the only file touching app.vault — see "Storage" below
   settings.ts          TitleForgeSettings type + defaults
   TitleForgeController.ts   bootstrap: owns settings/storage/registry, self-registers
-                            its view/command/ribbon via the Plugin reference it's handed
+                            its command/ribbon via the Plugin reference it's handed
   view/
-    TitleForgeView.ts          main-area workbench (ItemView)
+    TitleForgeModal.ts         the only surface — a modal window, no main-area workspace view
+    TitleForgePanel.ts         the actual UI/state, rendered into the modal's contentEl
     TitleForgeSettingsModal.ts opened from storyForge's own settings tab
   __tests__/            vitest — engine unit tests + a structural sweep over all nine
                         bundled lexicons (validateSpec, checkArticleAgreement, every

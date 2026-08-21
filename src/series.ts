@@ -1,9 +1,11 @@
-import { App, TFolder, type FrontMatterCache } from "obsidian";
-import { LIBRARY_ROOT, seriesFilePath } from "./paths";
+import { App, TFile, TFolder, type FrontMatterCache } from "obsidian";
+import { LIBRARY_ROOT, seriesBackstagePath, seriesFilePath } from "./paths";
 import { resolveOrder, type OrderResult } from "./ordering";
-import { modifyBackstageFrontmatter } from "./writeGuard";
+import { deleteBackstagePath, enqueueBackstageWrite, modifyBackstageFrontmatter, writeBackstageBinary, writeBackstageFile } from "./writeGuard";
 import { mintId } from "./slug";
 import { applyHashNumbering } from "./titleNumbering";
+import { safeCoverExtension, safeCoverFilename } from "./coverImage";
+import { extractSection, splitFrontmatterAndBody, upsertSection } from "./sectionBody";
 
 export interface SeriesBookEntry {
 	bookId: string;
@@ -21,6 +23,8 @@ export interface SeriesFrontmatter {
 	 * falls back to natural order, trailing after the ones it does list (see getSeriesBooks). */
 	unplacedOrder: string[];
 	books: Record<string, SeriesBookEntry>;
+	/** Bare filename of the series' own cover image under `seriesBackstagePath()`, or null if unset. */
+	coverImage: string | null;
 }
 
 /** The raw, dash-cased on-disk shape of a `books` map entry, before `parseBooksMap` sanitizes it. */
@@ -36,6 +40,7 @@ export interface RawSeriesFrontmatter extends FrontMatterCache {
 	"unplaced-order"?: unknown[];
 	"series-title"?: unknown;
 	"series-id"?: unknown;
+	"cover-image"?: unknown;
 	/** Legacy pre-migration key, migrated to "series-title" by migrateSeriesTitleField. */
 	title?: unknown;
 }
@@ -65,7 +70,7 @@ function parseBooksMap(raw: unknown): Record<string, SeriesBookEntry> {
 export function readSeriesFrontmatter(app: App): SeriesFrontmatter {
 	const file = app.vault.getAbstractFileByPath(seriesFilePath());
 	if (!file) {
-		return { seriesId: "", seriesTitle: "Series", order: [], unplacedOrder: [], books: {} };
+		return { seriesId: "", seriesTitle: "Series", order: [], unplacedOrder: [], books: {}, coverImage: null };
 	}
 	const cache = app.metadataCache.getCache(seriesFilePath());
 	const fm = cache?.frontmatter;
@@ -76,7 +81,8 @@ export function readSeriesFrontmatter(app: App): SeriesFrontmatter {
 	const seriesId = typeof fm?.["series-id"] === "string" ? fm["series-id"] : "";
 	const seriesTitle = typeof fm?.["series-title"] === "string" ? fm["series-title"] : "Series";
 	const books = parseBooksMap(fm?.books);
-	return { seriesId, seriesTitle, order, unplacedOrder, books };
+	const coverImage = safeCoverFilename(fm?.["cover-image"]);
+	return { seriesId, seriesTitle, order, unplacedOrder, books, coverImage };
 }
 
 export function getSeriesBooks(app: App): OrderResult<TFolder> & { seriesTitle: string } {
@@ -133,6 +139,47 @@ export function getSeriesOrderPosition(app: App, folderName: string): number | n
 export async function writeSeriesTitle(app: App, newTitle: string): Promise<void> {
 	await modifyBackstageFrontmatter<RawSeriesFrontmatter>(app, app.vault, seriesFilePath(), DEFAULT_SERIES_CONTENT, (fm) => {
 		fm["series-title"] = newTitle;
+	});
+}
+
+/** Writes/replaces the series' own cover image (`_backstage/storyforge/_series/cover.<ext>`) and
+ * records its filename in series.md's frontmatter — same pattern as writeBookCoverImage in book.ts,
+ * just rooted at seriesBackstagePath() instead of a per-book folder. Removes the previous cover
+ * file first if its extension differs. */
+export async function writeSeriesCoverImage(app: App, data: ArrayBuffer, extension: string): Promise<string> {
+	const previous = readSeriesFrontmatter(app).coverImage;
+	const filename = `cover.${safeCoverExtension(extension)}`;
+	const folder = seriesBackstagePath();
+	const path = `${folder}/${filename}`;
+	if (previous && previous !== filename) {
+		await deleteBackstagePath(app, `${folder}/${previous}`);
+	}
+	await writeBackstageBinary(app.vault, path, data);
+
+	await modifyBackstageFrontmatter<RawSeriesFrontmatter>(app, app.vault, seriesFilePath(), DEFAULT_SERIES_CONTENT, (fm) => {
+		fm["cover-image"] = filename;
+	});
+	return path;
+}
+
+const DESCRIPTION_HEADER = "## Description";
+
+/** Reads the series' description from series.md's body, under a `## Description` heading. Empty string if none exists yet. */
+export async function readSeriesDescription(app: App): Promise<string> {
+	const file = app.vault.getAbstractFileByPath(seriesFilePath());
+	if (!(file instanceof TFile)) return "";
+	const { body } = splitFrontmatterAndBody(await app.vault.read(file));
+	return extractSection(body, DESCRIPTION_HEADER);
+}
+
+/** Writes the series' description into series.md's body under a `## Description` heading, leaving the frontmatter and any other body content untouched. */
+export async function writeSeriesDescription(app: App, description: string): Promise<void> {
+	const path = seriesFilePath();
+	await enqueueBackstageWrite(path, async () => {
+		const file = app.vault.getAbstractFileByPath(path);
+		const raw = file instanceof TFile ? await app.vault.read(file) : DEFAULT_SERIES_CONTENT;
+		const { frontmatterBlock, body } = splitFrontmatterAndBody(raw);
+		await writeBackstageFile(app.vault, path, frontmatterBlock + upsertSection(body, DESCRIPTION_HEADER, description));
 	});
 }
 

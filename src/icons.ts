@@ -228,7 +228,7 @@ export const ICON_CLIPBOARD_LIST_DUOTONE = "sf-clipboard-list-duotone";
 const CLIPBOARD_LIST_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M21 15.998v-6c0-2.828 0-4.242-.879-5.121C19.353 4.109 18.175 4.012 16 4H8c-2.175.012-3.353.109-4.121.877C3 5.756 3 7.17 3 9.998v6c0 2.829 0 4.243.879 5.122c.878.878 2.293.878 5.121.878h6c2.828 0 4.243 0 5.121-.878c.879-.88.879-2.293.879-5.122" opacity=".5" /><path d="M8 3.5A1.5 1.5 0 0 1 9.5 2h5A1.5 1.5 0 0 1 16 3.5v1A1.5 1.5 0 0 1 14.5 6h-5A1.5 1.5 0 0 1 8 4.5z" /><path fill-rule="evenodd" d="M6.25 10.5A.75.75 0 0 1 7 9.75h.5a.75.75 0 0 1 0 1.5H7a.75.75 0 0 1-.75-.75m3.5 0a.75.75 0 0 1 .75-.75H17a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1-.75-.75M6.25 14a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 0 1.5H7a.75.75 0 0 1-.75-.75m3.5 0a.75.75 0 0 1 .75-.75H17a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1-.75-.75m-3.5 3.5a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 0 1.5H7a.75.75 0 0 1-.75-.75m3.5 0a.75.75 0 0 1 .75-.75H17a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1-.75-.75" clip-rule="evenodd" /></g></svg>`;
 
 /** "reicon--notebook-duotone" — Story Context's Dossier tab icon. Distinct from ICON_NOTEBOOK
- * ("sf-notebook", titleForge's own ribbon/tab icon - unrelated feature, must stay untouched). */
+ * ("sf-notebook", titleForge's own ribbon icon - unrelated feature, must stay untouched). */
 export const ICON_NOTEBOOK_DUOTONE = "sf-notebook-duotone";
 const NOTEBOOK_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M3 8c0-2.828 0-4.243.879-5.121C4.757 2 6.172 2 9 2h6c2.828 0 4.243 0 5.121.879C21 3.757 21 5.172 21 8v8c0 2.828 0 4.243-.879 5.121C19.243 22 17.828 22 15 22H9c-2.828 0-4.243 0-5.121-.879C3 20.243 3 18.828 3 16z" opacity=".5" /><path fill-rule="evenodd" d="M8.75 2.012v20h-1.5v-20zM1.25 8A.75.75 0 0 1 2 7.25h2a.75.75 0 0 1 0 1.5H2A.75.75 0 0 1 1.25 8m0 4a.75.75 0 0 1 .75-.75h2a.75.75 0 0 1 0 1.5H2a.75.75 0 0 1-.75-.75m0 4a.75.75 0 0 1 .75-.75h2a.75.75 0 0 1 0 1.5H2a.75.75 0 0 1-.75-.75" clip-rule="evenodd" /><path d="M10.75 6.5a.75.75 0 0 1 .75-.75h5a.75.75 0 0 1 0 1.5h-5a.75.75 0 0 1-.75-.75m0 3.5a.75.75 0 0 1 .75-.75h5a.75.75 0 0 1 0 1.5h-5a.75.75 0 0 1-.75-.75" /></g></svg>`;
 
@@ -600,6 +600,52 @@ const GALAXY_FILL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48
  * building style alongside BUILDING_A_SVG/BUILDING_B_SVG's more detailed Mage-style pair. */
 const BUILDING_C_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18M9 8h1m-1 4h1m-1 4h1m4-8h1m-1 4h1m-1 4h1M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16" /></svg>`;
 
+/** Hand-authored (no source pack — this project's own) — two overlapping dice, one showing 2 pips,
+ * the other 5. SeriesOverviewView.ts's "open titleForge" trigger, standing in for "generate a
+ * title" the way a dice roll would. */
+export const ICON_DICE_DUAL = "sf-dice-dual";
+const DICE_DUAL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect x="2.5" y="8.5" width="10" height="10" rx="2" /><rect x="11.5" y="3.5" width="10" height="10" rx="2" /></g><g fill="currentColor"><circle cx="5.5" cy="11.5" r="0.85" /><circle cx="9.5" cy="15.5" r="0.85" /><circle cx="14.5" cy="6.5" r="0.85" /><circle cx="18.5" cy="6.5" r="0.85" /><circle cx="16.5" cy="8.5" r="0.85" /><circle cx="14.5" cy="10.5" r="0.85" /><circle cx="18.5" cy="10.5" r="0.85" /></g></svg>`;
+
+/** Pinhead Map Icons (Quincy Morgan) — dice. titleForge's own "Generate" button (TitleForgePanel.ts)
+ * — distinct from ICON_DICE_DUAL above, which is the "open titleForge" trigger icon used elsewhere
+ * (NovelTitleModal.ts, SeriesTitleModal.ts) and stays a separate, two-dice glyph. */
+export const ICON_DICE = "sf-dice";
+const DICE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 15 15"><path d="M0 0h15v15H0z" fill="none" /><path fill="currentColor" d="M4.14 1.14c-.68.05-1.33.43-1.7 1.07L.29 5.93c-.59 1.03-.26 2.32.77 2.91l3.72 2.14c.15.09.31.19.47.24V7.47c0-1.76 1.45-3.22 3.21-3.22h1.31c-.18-.26-.41-.5-.7-.67L5.35 1.44c-.39-.22-.8-.33-1.21-.3m.33.76c.6 0 1.12.41 1.28.99c.19.72-.23 1.45-.95 1.64c-.71.19-1.44-.23-1.64-.94c-.19-.72.24-1.45.95-1.64c.12-.04.24-.05.36-.05M2.2 5.84c.6 0 1.12.41 1.28.99c.19.71-.24 1.45-.95 1.64S1.08 8.23.89 7.52s.23-1.45.95-1.64c.11-.03.24-.05.36-.04m6.26-.52c-1.18 0-2.14.96-2.14 2.15v4.28c0 1.19.96 2.15 2.14 2.15h4.29c1.19 0 2.14-.96 2.14-2.15V7.47c0-1.19-.95-2.15-2.14-2.15zm4.29.81c.35 0 .69.14.95.39a1.34 1.34 0 0 1 0 1.89c-.26.26-.6.4-.95.4a1.34 1.34 0 0 1 0-2.68m-4.29 4.28c.36 0 .7.14.95.4c.25.25.39.59.39.94a1.34 1.34 0 0 1-2.68 0c0-.35.14-.69.4-.94c.25-.26.59-.4.94-.4" /></svg>`;
+
+/** Hand-authored (no source pack — this project's own) — an arrow feeding into a bracketed field.
+ * TitleForgePanel.ts's per-row "use this title" action, shown only when titleForge was opened from
+ * a field that can receive a title back (a Novel's or Series' rename modal), never in its
+ * general-purpose ribbon/command open. */
+export const ICON_ARROW_INSERT = "sf-arrow-insert";
+const ARROW_INSERT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M3 6v12" /><path d="M8 12h11.5" /><path d="M15.5 7.5L20 12l-4.5 4.5" /></g></svg>`;
+
+/** User-provided (reicon--setting2.svg) — cog, distinct from ICON_SETTINGS_GEAR's Mage Icons
+ * glyph. Used for SeriesModal.ts's "access obsidian's setting window" icon (obsidian elements tab)
+ * and TopPanel.ts's series-settings button that opens that same modal. */
+export const ICON_SETTINGS_ALT = "sf-settings-alt";
+const SETTINGS_ALT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="1.5"><path d="M12 15a3 3 0 1 0 0-6a3 3 0 0 0 0 6" /><path d="M2 12.88v-1.76c0-1.04.85-1.9 1.9-1.9c1.81 0 2.55-1.28 1.64-2.85c-.52-.9-.21-2.07.7-2.59l1.73-.99c.79-.47 1.81-.19 2.28.6l.11.19c.9 1.57 2.38 1.57 3.29 0l.11-.19c.47-.79 1.49-1.07 2.28-.6l1.73.99c.91.52 1.22 1.69.7 2.59c-.91 1.57-.17 2.85 1.64 2.85c1.04 0 1.9.85 1.9 1.9v1.76c0 1.04-.85 1.9-1.9 1.9c-1.81 0-2.55 1.28-1.64 2.85c.52.91.21 2.07-.7 2.59l-1.73.99c-.79.47-1.81.19-2.28-.6l-.11-.19c-.9-1.57-2.38-1.57-3.29 0l-.11.19c-.47.79-1.49 1.07-2.28.6l-1.73-.99a1.9 1.9 0 0 1-.7-2.59c.91-1.57.17-2.85-1.64-2.85c-1.05 0-1.9-.86-1.9-1.9" /></g></svg>`;
+
+/** User-provided (reicon--eye-duotone.svg) — eye, duotone via opacity, distinct from ICON_EYE's
+ * Mono Icons glyph and ICON_EYE_OUTLINE's Tabler outline. Used for SeriesModal.ts's "hide, or
+ * show, obsidian's interface elements" icon (obsidian elements tab). */
+export const ICON_EYE_DUOTONE = "sf-eye-duotone";
+const EYE_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M2 12c0 1.64.425 2.191 1.275 3.296C4.972 17.5 7.818 20 12 20s7.028-2.5 8.725-4.704C21.575 14.192 22 13.639 22 12c0-1.64-.425-2.191-1.275-3.296C19.028 6.5 16.182 4 12 4S4.972 6.5 3.275 8.704C2.425 9.81 2 10.361 2 12" opacity=".5" /><path fill-rule="evenodd" d="M8.25 12a3.75 3.75 0 1 1 7.5 0a3.75 3.75 0 0 1-7.5 0m1.5 0a2.25 2.25 0 1 1 4.5 0a2.25 2.25 0 0 1-4.5 0" clip-rule="evenodd" /></g></svg>`;
+
+/** User-provided (reicon--floppy-duotone.svg) — floppy disk, duotone via opacity. Used for
+ * SeriesModal.ts's "Formatting themes" icon (formatting tab). */
+export const ICON_FLOPPY_DUOTONE = "sf-floppy-duotone";
+const FLOPPY_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M20.536 20.536C22 19.07 22 16.714 22 12c0-.341 0-.512-.015-.686a4.04 4.04 0 0 0-.921-2.224a8 8 0 0 0-.483-.504l-5.167-5.167a9 9 0 0 0-.504-.483a4.04 4.04 0 0 0-2.224-.92C12.512 2 12.342 2 12 2C7.286 2 4.929 2 3.464 3.464C2 4.93 2 7.286 2 12s0 7.071 1.464 8.535c.685.685 1.563 1.05 2.786 1.243l1.5.153C8.906 22 10.3 22 12 22s3.094 0 4.25-.069l1.5-.153c1.223-.194 2.102-.558 2.785-1.242" opacity=".5" /><path d="M7 7.25a.75.75 0 0 0 0 1.5h6a.75.75 0 0 0 0-1.5zm6.052 9c.899 0 1.648 0 2.242.08c.628.084 1.195.27 1.65.726c.456.455.642 1.022.726 1.65c.08.594.08 1.343.08 2.242v.833l-1.5.14V21c0-.964-.002-1.612-.067-2.095c-.062-.461-.169-.659-.3-.789s-.327-.237-.788-.3c-.483-.064-1.131-.066-2.095-.066h-2c-.964 0-1.612.002-2.095.067c-.461.062-.659.169-.789.3s-.237.327-.3.788c-.064.483-.066 1.131-.066 2.095v.926l-1.5-.149v-.829c0-.899 0-1.648.08-2.242c.084-.628.27-1.195.725-1.65c.456-.456 1.023-.642 1.65-.726c.595-.08 1.345-.08 2.243-.08z" /></g></svg>`;
+
+/** User-provided (reicon--text-input-duotone.svg) — text-input field, duotone via opacity. Used
+ * for SeriesModal.ts's "Text styling" icon (formatting tab). */
+export const ICON_TEXT_INPUT_DUOTONE = "sf-text-input-duotone";
+const TEXT_INPUT_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M3.172 5.172C2 6.343 2 8.229 2 12s0 5.657 1.172 6.828S6.229 20 10 20h4c3.771 0 5.657 0 6.828-1.172S22 15.771 22 12s0-5.657-1.172-6.828S17.771 4 14 4h-4C6.229 4 4.343 4 3.172 5.172" opacity=".5" /><path d="M6.818 7.787c.3-.037.666-.037 1.066-.037h2.232c.4 0 .766 0 1.066.037c.329.041.68.137.98.405q.078.068.146.146c.268.3.364.651.405.98c.037.3.037.666.037 1.066v.041a.75.75 0 0 1-1.5 0c0-.455-.001-.726-.026-.922c-.024-.195-.228-.227-.228-.227c-.195-.025-.466-.026-.921-.026H9.75v5.5H11a.75.75 0 0 1 0 1.5H7a.75.75 0 0 1 0-1.5h1.25v-5.5h-.325c-.455 0-.726.001-.922.026c0 0-.203.032-.227.227c-.025.196-.026.467-.026.922a.75.75 0 0 1-1.5 0v-.041c0-.4 0-.766.037-1.066c.041-.329.137-.68.405-.98q.069-.078.146-.146c.3-.268.651-.364.98-.405" /></g></svg>`;
+
+/** User-provided (reicon--element2-filled.svg) — three stacked panels/elements, filled. Used for
+ * SeriesModal.ts's "storyForge interface" icon (formatting tab). */
+export const ICON_ELEMENT2_FILLED = "sf-element2-filled";
+const ELEMENT2_FILLED_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M11 19.9V4.1C11 2.6 10.36 2 8.77 2H4.73C3.14 2 2.5 2.6 2.5 4.1v15.8c0 1.5.64 2.1 2.23 2.1h4.04c1.59 0 2.23-.6 2.23-2.1m10.5-9V4.1c0-1.5-.64-2.1-2.23-2.1h-4.04C13.64 2 13 2.6 13 4.1v6.8c0 1.5.64 2.1 2.23 2.1h4.04c1.59 0 2.23-.6 2.23-2.1m0 9v-2.8c0-1.5-.64-2.1-2.23-2.1h-4.04c-1.59 0-2.23.6-2.23 2.1v2.8c0 1.5.64 2.1 2.23 2.1h4.04c1.59 0 2.23-.6 2.23-2.1" /></svg>`;
+
 /** Registers storyForge's custom Lucide-style icons so `setIcon` can address them by id. */
 export function registerCustomIcons(): void {
 	addIcon(ICON_UNPLACED, INBOX_SVG);
@@ -749,4 +795,12 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_CLIPBOARD_LIST_DUOTONE, CLIPBOARD_LIST_DUOTONE_SVG);
 	addIcon(ICON_NOTEBOOK_DUOTONE, NOTEBOOK_DUOTONE_SVG);
 	addIcon(ICON_ARCHIVE_FILLED, ARCHIVE_FILLED_SVG);
+	addIcon(ICON_DICE_DUAL, DICE_DUAL_SVG);
+	addIcon(ICON_DICE, DICE_SVG);
+	addIcon(ICON_ARROW_INSERT, ARROW_INSERT_SVG);
+	addIcon(ICON_SETTINGS_ALT, SETTINGS_ALT_SVG);
+	addIcon(ICON_EYE_DUOTONE, EYE_DUOTONE_SVG);
+	addIcon(ICON_FLOPPY_DUOTONE, FLOPPY_DUOTONE_SVG);
+	addIcon(ICON_TEXT_INPUT_DUOTONE, TEXT_INPUT_DUOTONE_SVG);
+	addIcon(ICON_ELEMENT2_FILLED, ELEMENT2_FILLED_SVG);
 }

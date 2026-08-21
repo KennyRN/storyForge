@@ -12,6 +12,11 @@
 export const OBSIDIAN_SELECTORS = {
 	vaultActions: ".workspace-drawer-vault-actions",
 	helpButton: ".workspace-drawer-vault-actions .clickable-icon:has(.help)",
+	/** JS-tagged at runtime (styleController.ts's tagObsidianSettingsButton) rather than matched by
+	 * a fixed selector here — its exact DOM shape (own `aria-label` vs. Help-style inner-icon-only)
+	 * wasn't confirmed against live Obsidian, so the tagging function tries both. Once tagged, this
+	 * class is what styles.css's Dynamic Styling rule actually targets. */
+	settingsButton: ".sf-vault-settings",
 	searchNav: "div[aria-label='Search']",
 	bookmarksNav: "div[aria-label='Bookmarks']",
 	filesNav: "div[aria-label='Files']",

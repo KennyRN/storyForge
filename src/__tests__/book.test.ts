@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { type App } from "obsidian";
 import { makeTFile, makeTFolder } from "./obsidianStub";
-import { readBookFrontmatter, safeCoverFilename, writeBookCoverImage, writeChapterTags, writeNovelTags } from "../book";
+import { readBookFrontmatter, writeBookCoverImage, writeChapterTags, writeNovelTags } from "../book";
+import { safeCoverFilename } from "../coverImage";
 import { BACKSTAGE_ROOT, LIBRARY_ROOT, bookFilePath } from "../paths";
 
 describe("safeCoverFilename", () => {

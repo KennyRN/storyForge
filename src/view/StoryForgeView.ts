@@ -98,9 +98,23 @@ export class StoryForgeView extends ItemView {
 		// far more cheaply than a full render (see CodexFocusNavigator.ts's renderContinuousIndicator).
 		this.registerEvent(onContinuousMode(this.app, (payload) => { if (!payload.active) this.render(); }));
 		this.followActiveFile();
-		// Reopening straight onto the Chapter tab (persisted layout): Story Context should already be
-		// showing the right chapter, same as switching onto that tab live does (selectLayout() above).
-		if (this.layout === "hybrid" && this.currentBookFolderName) this.focusChapterPaneForBook(this.currentBookFolderName);
+		// Reopening straight onto the Series/Novel/Chapter tab (persisted layout) must land the main
+		// editor pane on the matching page immediately, same as clicking that tab live does
+		// (selectLayout() above) — without this, the sidebar shows e.g. the Series tab as active but
+		// the main pane keeps showing whatever was last open there until the tab is clicked again.
+		// Gated on this tab actually being the one on screen, though: main.ts's refreshCustomIcons()
+		// rebuilds every storyLibrary leaf on each reload/hot-reload (to fix stale deferred-view
+		// chrome), including ones left sitting inactive in the background — without this check, a
+		// backgrounded Novel/Series tab would hijack the main pane out from under whatever tab (e.g.
+		// storyTelling) the user actually left active.
+		if (!this.containerEl.isShown()) return;
+		if (this.layout === "seriesBrowse") {
+			void this.openSeriesOverview();
+		} else if (this.layout === "novelBrowse") {
+			void this.openNovelOverview();
+		} else if (this.layout === "hybrid" && this.currentBookFolderName) {
+			this.focusChapterPaneForBook(this.currentBookFolderName);
+		}
 	}
 
 	async onClose(): Promise<void> {
@@ -266,7 +280,7 @@ export class StoryForgeView extends ItemView {
 						this.plugin.focusRecommendationOnChapter(bookName, filename);
 					}
 				},
-				onOpenSeriesModal: () => new SeriesModal(this.app, () => this.render()).open(),
+				onOpenSeriesModal: () => new SeriesModal(this.app, this.plugin, () => this.render()).open(),
 				onCreateContinuingChapter: (bookFolderName) => void this.handleCreateContinuingChapter(bookFolderName),
 				onArchiveChapter: async () => {
 					if (this.closed) return;

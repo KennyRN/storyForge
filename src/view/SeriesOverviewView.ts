@@ -1,14 +1,25 @@
-import { ItemView, Notice, setIcon, TFolder, WorkspaceLeaf } from "obsidian";
+import { App, ItemView, Notice, setIcon, setTooltip, TFile, TFolder, WorkspaceLeaf } from "obsidian";
 import type StoryForgePlugin from "../main";
-import { bindTextCommit } from "./SeriesModal";
-import { createBook, reorderSeriesBooks, renameBookTitle, readBookSynopsis, writeBookSynopsis } from "../book";
-import { getSeriesBooks, readSeriesFrontmatter, writeSeriesTitle, writeUnplacedOrder } from "../series";
-import { seriesFilePath } from "../paths";
+import { createBook, reorderSeriesBooks, readBookSynopsis, writeBookSynopsis } from "../book";
+import {
+	getSeriesBooks,
+	numberedBookTitle,
+	readSeriesDescription,
+	readSeriesFrontmatter,
+	writeSeriesCoverImage,
+	writeSeriesDescription,
+	writeUnplacedOrder,
+} from "../series";
+import { seriesBackstagePath, seriesFilePath } from "../paths";
+import { splitTitleSubtitle } from "../titleNumbering";
 import { makeReorderable, type DragZone } from "./dragReorder";
 import { makeAccessibleActivatable } from "./a11y";
 import { isDragInProgress } from "./dragLock";
 import { debounce } from "../debounce";
 import { ICON_BOOK_PLUS, ICON_SERIES } from "../icons";
+import { renderNovelCover, pickNovelCover } from "./NovelPanel";
+import { NovelTitleModal } from "./NovelTitleModal";
+import { SeriesTitleModal } from "./SeriesTitleModal";
 
 export const STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE = "storyforge-series-overview-view";
 
@@ -91,15 +102,15 @@ export class SeriesOverviewView extends ItemView {
 
 		const fixed = contentEl.createDiv({ cls: "sf-series-overview-fixed" });
 		this.renderTitleField(fixed);
+		this.renderCoverDescriptionRow(fixed);
 
-		fixed.createDiv({ cls: "sf-modal-list-header" }).createEl("h3", { text: "Novels" });
-
-		const hintRow = fixed.createDiv({ cls: "sf-modal-hint-row" });
-		hintRow.createDiv({
-			cls: "sf-modal-hint",
-			text: "# inserts a counted number\n// breaks title into title and subtitle",
-		});
-		const addBookBtn = hintRow.createSpan({ cls: "sf-modal-add-book", attr: { "aria-label": "New book" } });
+		// "Novels" heading and the add-novel icon share one line — the "#"/"//" hint text that used
+		// to sit beneath them moved into NovelTitleModal (opened from a row's own title, below),
+		// since it's about how a *title* is written, not something this page's header needs to
+		// explain up front.
+		const listHeader = fixed.createDiv({ cls: "sf-modal-list-header sf-series-overview-list-header" });
+		listHeader.createEl("h3", { text: "Novels" });
+		const addBookBtn = listHeader.createSpan({ cls: "sf-modal-add-book", attr: { "aria-label": "New book" } });
 		setIcon(addBookBtn, ICON_BOOK_PLUS);
 		const handleCreateBook = async () => {
 			try {
@@ -116,20 +127,52 @@ export class SeriesOverviewView extends ItemView {
 		this.renderNovelsList(scroll);
 	}
 
+	/** Plain clickable h1 text, not an input — mirrors the novel row title's own move
+	 * (renderNovelRow, below): clicking opens SeriesTitleModal, where renaming (and titleForge's
+	 * generator) now live. */
 	private renderTitleField(container: HTMLElement): void {
 		const titleRow = container.createDiv({ cls: "sf-modal-title-row sf-series-title-row" });
 		const titleWrap = titleRow.createDiv({ cls: "sf-series-title-wrap" });
-		const titleInput = titleWrap.createEl("input", {
-			cls: "sf-modal-input sf-modal-title-input sf-series-title-input",
-			type: "text",
-			attr: { placeholder: "Series Name" },
+		const seriesTitle = readSeriesFrontmatter(this.app).seriesTitle;
+		const titleEl = titleWrap.createDiv({
+			cls: "sf-series-title-input sf-series-title-clickable",
+			text: seriesTitle,
+			attr: { role: "button", tabindex: "0", "aria-label": "series title" },
 		});
-		titleInput.value = readSeriesFrontmatter(this.app).seriesTitle;
-		bindTextCommit(titleInput, async (value) => {
-			await writeSeriesTitle(this.app, value);
-			if (!this.closed) this.render();
+		setTooltip(titleEl, "series title");
+		const openTitleModal = () =>
+			new SeriesTitleModal(this.app, this.plugin, () => {
+				if (!this.closed) this.render();
+			}).open();
+		titleEl.addEventListener("click", openTitleModal);
+		makeAccessibleActivatable(titleEl, openTitleModal);
+	}
+
+	/** Beneath the title: the series' own cover (left, click to set — same cover box NovelPanel.ts's
+	 * per-book cover uses, just backed by the series' own writeSeriesCoverImage instead of a book's)
+	 * and its description (right, a plain textarea sized to match the cover's height). Replaces the
+	 * plain hint text that used to sit here. */
+	private renderCoverDescriptionRow(container: HTMLElement): void {
+		const row = container.createDiv({ cls: "sf-series-overview-cover-row" });
+
+		const cover = row.createDiv({ cls: "sf-synopsis-cover sf-series-overview-cover", attr: { "aria-label": "series cover" } });
+		setTooltip(cover, "series cover");
+		renderSeriesCover(this.app, cover);
+		cover.addEventListener("click", () => pickSeriesCover(this.app, cover));
+
+		const description = row.createEl("textarea", {
+			cls: "sf-modal-input sf-series-overview-description",
+			attr: { "aria-label": "series description" },
 		});
-		titleWrap.createDiv({ cls: "sf-series-title-label", text: "series name" });
+		setTooltip(description, "series description");
+		description.addEventListener("pointerdown", (e) => e.stopPropagation());
+		description.addEventListener("blur", () => {
+			void writeSeriesDescription(this.app, description.value);
+		});
+		void readSeriesDescription(this.app).then((value) => {
+			if (this.closed) return;
+			description.value = value;
+		});
 	}
 
 	/** Filtered to match the currently selected novel — placed-only if it's in the series order,
@@ -150,8 +193,8 @@ export class SeriesOverviewView extends ItemView {
 		const reorderable = showOrdered !== showUnplaced;
 
 		const list = container.createDiv({ cls: "sf-top-list" });
-		if (showOrdered) for (const folder of ordered) this.renderNovelRow(list, folder);
-		if (showUnplaced) for (const folder of unplaced) this.renderNovelRow(list, folder);
+		if (showOrdered) for (const folder of ordered) this.renderNovelRow(list, folder, { ordered, unplaced });
+		if (showUnplaced) for (const folder of unplaced) this.renderNovelRow(list, folder, { ordered, unplaced });
 		if (ordered.length === 0 && unplaced.length === 0) {
 			list.createDiv({ cls: "sf-empty sf-empty-inline", text: "No books yet." });
 		}
@@ -175,27 +218,58 @@ export class SeriesOverviewView extends ItemView {
 		});
 	}
 
-	/** One novel's row: a title line (drag handle + title input) with a synopsis textarea beneath
-	 * it. The handle sits centred on the title line only, not the taller row it's actually part of
-	 * — dragging it still moves title + synopsis together, since both live under the one draggable
-	 * `.sf-row`. */
-	private renderNovelRow(list: HTMLElement, folder: TFolder): void {
+	/** One novel's row: a drag handle sitting outside a "card" (cover image, then a title input over
+	 * a synopsis textarea — a grid, see .sf-series-overview-card in styles.css, so the cover can
+	 * span the title+synopsis column's combined height while the handle stays confined to just the
+	 * title line's own row, unaffected by either). The card is the only part styled with the
+	 * sidebar's own background colour — the handle stays outside it, on the page's own background —
+	 * so each novel reads as a distinct card floating in the list. Dragging the handle still moves
+	 * the whole row (card included) together, since both live under the one draggable `.sf-row`.
+	 *
+	 * The title itself is plain clickable text, not an input — "Volume #//Outside the Walls"
+	 * renders as "Volume 1 (Outside the Walls)" (numberedBookTitle resolves the "#", splitTitleSubtitle
+	 * pulls the "// subtitle" off, shown in parentheses on the same line rather than TopPanel's own
+	 * convention of a second muted line — there's no room for two lines here). Clicking it opens
+	 * NovelTitleModal, which is where renaming (and titleForge's generators) now live. `prefetched`
+	 * is this render pass's one getSeriesBooks() result, reused across every row's numbering instead
+	 * of each row re-querying it (see numberedBookTitle's own doc comment). */
+	private renderNovelRow(
+		list: HTMLElement,
+		folder: TFolder,
+		prefetched: { ordered: TFolder[]; unplaced: TFolder[] },
+	): void {
 		const row = list.createDiv({ cls: "sf-row sf-series-overview-row" });
 		row.dataset.key = folder.name;
 
-		const titleLine = row.createDiv({ cls: "sf-series-overview-row-title-line" });
-		setIcon(titleLine.createSpan({ cls: "sf-drag-handle" }), "grip-vertical");
-		const input = titleLine.createEl("input", { cls: "sf-modal-input sf-modal-book-input", type: "text" });
-		input.value = readSeriesFrontmatter(this.app).books[folder.name]?.bookTitle ?? folder.name;
-		bindTextCommit(input, async (value) => {
-			await renameBookTitle(this.app, folder.name, value);
-			if (!this.closed) this.render();
-		});
+		setIcon(row.createSpan({ cls: "sf-drag-handle" }), "grip-vertical");
 
-		const synopsis = row.createEl("textarea", {
-			cls: "sf-modal-input sf-series-overview-row-synopsis",
-			attr: { "aria-label": `Synopsis for ${folder.name}` },
+		const card = row.createDiv({ cls: "sf-series-overview-card" });
+
+		const cover = card.createDiv({ cls: "sf-synopsis-cover sf-series-overview-row-cover", attr: { "aria-label": "cover" } });
+		setTooltip(cover, "cover");
+		renderNovelCover(this.app, cover, folder.name);
+		cover.addEventListener("click", () => pickNovelCover(this.app, cover, folder.name));
+
+		const titleLine = card.createDiv({ cls: "sf-series-overview-row-title-line" });
+		const { title, subtitle } = splitTitleSubtitle(numberedBookTitle(this.app, folder.name, prefetched));
+		const titleEl = titleLine.createDiv({
+			cls: "sf-series-overview-row-title",
+			text: subtitle ? `${title} (${subtitle})` : title,
+			attr: { role: "button", tabindex: "0", "aria-label": "title" },
 		});
+		setTooltip(titleEl, "title");
+		const openTitleModal = () =>
+			new NovelTitleModal(this.app, this.plugin, folder.name, () => {
+				if (!this.closed) this.render();
+			}).open();
+		titleEl.addEventListener("click", openTitleModal);
+		makeAccessibleActivatable(titleEl, openTitleModal);
+
+		const synopsis = card.createEl("textarea", {
+			cls: "sf-modal-input sf-series-overview-row-synopsis",
+			attr: { "aria-label": "synopsis" },
+		});
+		setTooltip(synopsis, "synopsis");
 		synopsis.addEventListener("pointerdown", (e) => e.stopPropagation());
 		synopsis.addEventListener("blur", () => {
 			void writeBookSynopsis(this.app, folder.name, synopsis.value);
@@ -205,4 +279,44 @@ export class SeriesOverviewView extends ItemView {
 			synopsis.value = value;
 		});
 	}
+}
+
+/** The series' own cover box — same has-image/placeholder rendering as NovelPanel.ts's per-book
+ * renderNovelCover, just reading/writing the series' own cover (seriesBackstagePath()) instead of a
+ * book's. Kept here rather than in NovelPanel.ts since nothing else needs a series-level cover. */
+function renderSeriesCover(app: App, cover: HTMLElement): void {
+	cover.empty();
+	const coverImage = readSeriesFrontmatter(app).coverImage;
+	const file = coverImage ? app.vault.getAbstractFileByPath(`${seriesBackstagePath()}/${coverImage}`) : null;
+	if (file instanceof TFile) {
+		cover.addClass("has-image");
+		cover.createEl("img", { attr: { src: app.vault.getResourcePath(file) } });
+	} else {
+		cover.removeClass("has-image");
+	}
+}
+
+function pickSeriesCover(app: App, cover: HTMLElement): void {
+	const input = createEl("input", { type: "file", attr: { accept: "image/*" } });
+	input.addEventListener("change", () => {
+		const file = input.files?.[0];
+		if (!file) return;
+		if (!file.type.startsWith("image/")) {
+			new Notice("storyForge: please choose an image file for the cover.");
+			return;
+		}
+		void (async () => {
+			try {
+				const data = await file.arrayBuffer();
+				const dotIndex = file.name.lastIndexOf(".");
+				const extension =
+					dotIndex !== -1 ? file.name.slice(dotIndex + 1).toLowerCase() : file.type.split("/")[1] || "png";
+				await writeSeriesCoverImage(app, data, extension);
+				renderSeriesCover(app, cover);
+			} catch (err) {
+				new Notice(`storyForge: could not set cover image — ${err instanceof Error ? err.message : String(err)}`);
+			}
+		})();
+	});
+	input.click();
 }
