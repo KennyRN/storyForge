@@ -65,7 +65,9 @@ export class ContinuousReadView extends ItemView {
 
 	getDisplayText(): string {
 		if (!this.bookFolderName) return "Continuous read";
-		const { title } = splitTitleSubtitle(numberedBookTitle(this.app, this.bookFolderName));
+		const { title } = splitTitleSubtitle(
+			numberedBookTitle(this.app, this.bookFolderName, undefined, this.plugin.getSettings().seriesNumberingStyle),
+		);
 		return `Reading — ${title}`;
 	}
 
@@ -138,7 +140,10 @@ export class ContinuousReadView extends ItemView {
 			return;
 		}
 
-		const numbered = applyHashNumbering(ordered.map((file) => chapterDisplayTitle(this.app, bookFolderName, file.name)));
+		const numbered = applyHashNumbering(
+			ordered.map((file) => chapterDisplayTitle(this.app, bookFolderName, file.name)),
+			this.plugin.getSettings().chapterNumberingStyle,
+		);
 		const titleFor = (file: TFile) => numbered[ordered.indexOf(file)];
 		// canEnterContinuousMode above guarantees ordered isn't empty, so this can only be null in
 		// principle — the ordered[0] fallback is just belt-and-braces, never actually reached.

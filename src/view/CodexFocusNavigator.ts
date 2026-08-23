@@ -3,6 +3,7 @@ import { chapterDisplayTitle, getBookChapters } from "../book";
 import { computeSpineWindow, type NavigatorSlot } from "../spineWindow";
 import { canEnterContinuousMode } from "../continuousMode";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
+import type { NumberingStyle } from "../numberingStyle";
 import { makeAccessibleActivatable } from "./a11y";
 import { renderIndicatorSlot, renderTransportRow } from "./navigatorControls";
 import { onContinuousMode } from "./continuousEvents";
@@ -15,6 +16,7 @@ export interface CodexFocusNavigatorOptions {
 	activeChapterFilename: string | null;
 	/** Mirrors Hybrid's own toggle — the current-chapter highlight only shows while this is on. */
 	highlightActiveChapter: boolean;
+	chapterNumberingStyle: NumberingStyle;
 	onOpenChapter: (bookFolderName: string, filename: string) => void;
 	/** Forward-only: create a chapter, append it to the end of chapter-order, and open it. */
 	onCreateContinuing: (bookFolderName: string) => void;
@@ -74,7 +76,10 @@ export function renderCodexFocusNavigator(app: App, container: HTMLElement, opti
 		return;
 	}
 
-	const numbered = applyHashNumbering(ordered.map((file) => chapterDisplayTitle(app, bookFolderName, file.name)));
+	const numbered = applyHashNumbering(
+		ordered.map((file) => chapterDisplayTitle(app, bookFolderName, file.name)),
+		options.chapterNumberingStyle,
+	);
 	const titleFor = (file: TFile) => numbered[ordered.indexOf(file)];
 	const canGoContinuous = canEnterContinuousMode(ordered.length);
 

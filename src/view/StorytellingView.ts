@@ -5,7 +5,6 @@ import { getBookId } from "../series";
 import { renderTopPanel } from "./TopPanel";
 import { renderBottomPanel } from "./BottomPanel";
 import { renderStatsPanel, nextStatsMode, type StatsMode } from "./StatsPanel";
-import { SeriesModal } from "./SeriesModal";
 import { createCodexFolder, createCodexNote, readCodexFrontmatter, type CodexViewMode } from "../codex";
 import { debounce } from "../debounce";
 import { ICON_BOOK_OPEN } from "../icons";
@@ -142,6 +141,8 @@ export class StorytellingView extends ItemView {
 		renderTopPanel(this.app, topEl, {
 			mode,
 			hideSeriesPane: this.plugin.getSettings().hideSeriesPane,
+			seriesNumberingStyle: this.plugin.getSettings().seriesNumberingStyle,
+			chapterNumberingStyle: this.plugin.getSettings().chapterNumberingStyle,
 			showUnplacedSection: false,
 			currentBookFolderName: this.currentBookFolderName,
 			activeChapterFilename: this.activeChapterFilename,
@@ -157,7 +158,6 @@ export class StorytellingView extends ItemView {
 				this.render();
 			},
 			onOpenChapter: (bookName, filename) => void this.openChapter(bookName, filename),
-			onOpenSeriesModal: () => new SeriesModal(this.app, this.plugin, () => this.render()).open(),
 			onCreateContinuingChapter: (bookFolderName) => void this.handleCreateContinuingChapter(bookFolderName),
 			onArchiveChapter: async () => {
 				if (this.closed) return;

@@ -340,27 +340,24 @@ export function renderTabbedBody(
 }
 
 /**
- * "Cycling guide" toggle plus its five dependent options (Thickness, Flag size, Rounded lines,
- * Cycle length, Line colour), all in one boundary box. Shared between UiFormattingModal's Editor
- * tab and SeriesModal's general tab — a free function (not a method) since it only ever needs
- * app/plugin/settings, matching this file's existing pattern.
- */
-/**
  * Fragment of a manuscript page (same classic Lorem Ipsum used by formatForge's own editor-page
  * preview) — the tail two lines of one paragraph, then the lead two lines of the next, with the
  * cycling-guide divider sitting between them exactly as it would land at a real paragraph break.
  * Reuses storyForge's own `.sf-cycling-guide-line`/`.sf-cycling-guide-badge*` classes, so it picks
  * up the live `--sf-cg-*` vars `applyCyclingGuideStyle()` already writes to the document body —
  * no separate wiring needed for Thickness/Flag size/Rounded lines/Line colour to show up here.
+ * The guide classes/badge are applied directly to the first `<p>` itself (matching the real CM6
+ * behaviour in cyclingGuide.ts, where `sf-cycling-guide-line` lands on the actual `.cm-line` and
+ * the badge is a widget inserted inline at that line's end) so the divider sits flush against the
+ * paragraph's own last line, not floating below it with an artificial gap.
  */
 function mountCyclingGuidePreview(container: HTMLElement): HTMLElement {
 	const preview = container.createDiv({ cls: "sf-cg-preview" });
-	preview.createEl("p", {
-		text: "…ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.",
-	});
-	const strip = preview.createDiv({ cls: "sf-cg-preview-strip sf-cycling-guide-line" });
-	strip.createDiv({ cls: "sf-cg-preview-strip-spacer", text: " " });
-	const badge = strip.createDiv({ cls: "sf-cycling-guide-badge" });
+	const paragraphEnd = preview.createEl("p", { cls: "sf-cg-preview-strip sf-cycling-guide-line" });
+	paragraphEnd.appendText(
+		"…ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.",
+	);
+	const badge = paragraphEnd.createSpan({ cls: "sf-cycling-guide-badge" });
 	const badgeIcon = badge.createSpan({ cls: "sf-cycling-guide-badge-icon" });
 	setIcon(badgeIcon, ICON_CYCLE_ALT);
 	preview.createEl("p", {
@@ -368,6 +365,13 @@ function mountCyclingGuidePreview(container: HTMLElement): HTMLElement {
 	});
 	return preview;
 }
+
+/**
+ * "Cycling guide" toggle plus its five dependent options (Cycle length, Line colour, Thickness,
+ * Flag size, Rounded lines), all in one boundary box. Shared between UiFormattingModal's Editor
+ * tab and SeriesModal's general tab — a free function (not a method) since it only ever needs
+ * app/plugin/settings, matching this file's existing pattern.
+ */
 
 export function renderCyclingGuideCard(
 	app: App,
@@ -381,7 +385,7 @@ export function renderCyclingGuideCard(
 	let cyclingGuideToggle!: ToggleComponent;
 	cyclingGuideGroup.addSetting((setting) => {
 		setting
-			.setName("Cycling guide")
+			.setName("cycling guide")
 			.setDesc("draws a floating guideline")
 			.addToggle((toggle) => {
 				cyclingGuideToggle = toggle;
@@ -389,15 +393,40 @@ export function renderCyclingGuideCard(
 			});
 	});
 
+	let cyclingGuideIntervalSetting!: Setting;
+	cyclingGuideGroup.addSetting((setting) => {
+		cyclingGuideIntervalSetting = setting;
+		setting.setName("cycle length").addDropdown((dropdown) =>
+			dropdown
+				.addOption("short", "short")
+				.addOption("medium", "medium")
+				.addOption("large", "long")
+				.setValue(settings.cyclingGuideInterval)
+				.onChange((value) =>
+					persistAndRestyle(plugin, "cyclingGuideInterval", value as CyclingGuideInterval, () => plugin.rebuildCyclingGuideExtension()),
+				),
+		);
+	});
+
+	let cyclingGuideColorSetting!: Setting;
+	cyclingGuideGroup.addSetting((setting) => {
+		cyclingGuideColorSetting = setting;
+		setting.setName("line colour").addButton((button) =>
+			bindColorSwatchButton(app, plugin, button.buttonEl, settings.cyclingGuideColor, (hex) => {
+				void plugin.updateSetting("cyclingGuideColor", hex).then(() => plugin.applyCyclingGuideStyle());
+			}),
+		);
+	});
+
 	let cyclingGuideThicknessSetting!: Setting;
 	cyclingGuideGroup.addSetting((setting) => {
 		cyclingGuideThicknessSetting = setting;
-		setting.setName("Thickness").addDropdown((dropdown) =>
+		setting.setName("thickness").addDropdown((dropdown) =>
 			dropdown
-				.addOption("thin", "Thin")
-				.addOption("medium", "Medium")
-				.addOption("thick", "Thick")
-				.addOption("extra-thick", "Extra thick")
+				.addOption("thin", "thin")
+				.addOption("medium", "medium")
+				.addOption("thick", "thick")
+				.addOption("extra-thick", "extra thick")
 				.setValue(settings.cyclingGuideThickness)
 				.onChange((value) =>
 					persistAndRestyle(plugin, "cyclingGuideThickness", value as HeadingDividerThickness, () => plugin.applyCyclingGuideStyle()),
@@ -408,11 +437,11 @@ export function renderCyclingGuideCard(
 	let cyclingGuideFlagSizeSetting!: Setting;
 	cyclingGuideGroup.addSetting((setting) => {
 		cyclingGuideFlagSizeSetting = setting;
-		setting.setName("Flag size").addDropdown((dropdown) =>
+		setting.setName("flag size").addDropdown((dropdown) =>
 			dropdown
-				.addOption("small", "Small")
-				.addOption("medium", "Medium")
-				.addOption("large", "Large")
+				.addOption("small", "small")
+				.addOption("medium", "medium")
+				.addOption("large", "large")
 				.setValue(settings.cyclingGuideFlagSize)
 				.onChange((value) =>
 					persistAndRestyle(plugin, "cyclingGuideFlagSize", value as "small" | "medium" | "large", () => plugin.applyCyclingGuideStyle()),
@@ -424,38 +453,12 @@ export function renderCyclingGuideCard(
 	cyclingGuideGroup.addSetting((setting) => {
 		cyclingGuideRoundedLinesSetting = setting;
 		setting
-			.setName("Rounded lines")
-			.setDesc("Rounds the corners of the divider line, except the bottom-right where the flag sits.")
+			.setName("rounded lines")
 			.addToggle((toggle) =>
 				toggle
 					.setValue(settings.cyclingGuideRoundedLines)
 					.onChange((value) => persistAndRestyle(plugin, "cyclingGuideRoundedLines", value, () => plugin.applyCyclingGuideStyle())),
 			);
-	});
-
-	let cyclingGuideIntervalSetting!: Setting;
-	cyclingGuideGroup.addSetting((setting) => {
-		cyclingGuideIntervalSetting = setting;
-		setting.setName("Cycle length").addDropdown((dropdown) =>
-			dropdown
-				.addOption("short", "Short")
-				.addOption("medium", "Medium")
-				.addOption("large", "Long")
-				.setValue(settings.cyclingGuideInterval)
-				.onChange((value) =>
-					persistAndRestyle(plugin, "cyclingGuideInterval", value as CyclingGuideInterval, () => plugin.rebuildCyclingGuideExtension()),
-				),
-		);
-	});
-
-	let cyclingGuideColorSetting!: Setting;
-	cyclingGuideGroup.addSetting((setting) => {
-		cyclingGuideColorSetting = setting;
-		setting.setName("Line colour").addButton((button) =>
-			bindColorSwatchButton(app, plugin, button.buttonEl, settings.cyclingGuideColor, (hex) => {
-				void plugin.updateSetting("cyclingGuideColor", hex).then(() => plugin.applyCyclingGuideStyle());
-			}),
-		);
 	});
 
 	const cyclingGuidePreviewEl = showPreview ? mountCyclingGuidePreview(cyclingGuideGroup.listEl) : undefined;

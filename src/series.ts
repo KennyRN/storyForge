@@ -4,12 +4,16 @@ import { resolveOrder, type OrderResult } from "./ordering";
 import { deleteBackstagePath, enqueueBackstageWrite, modifyBackstageFrontmatter, writeBackstageBinary, writeBackstageFile } from "./writeGuard";
 import { mintId } from "./slug";
 import { applyHashNumbering } from "./titleNumbering";
+import type { NumberingStyle } from "./numberingStyle";
 import { safeCoverExtension, safeCoverFilename } from "./coverImage";
 import { extractSection, splitFrontmatterAndBody, upsertSection } from "./sectionBody";
 
 export interface SeriesBookEntry {
 	bookId: string;
 	bookTitle: string;
+	/** Row-accent override picked via NovelTitleModal's colour option, or null when none has been
+	 * assigned yet (resolveNovelRowColor then auto-assigns and persists a random one). */
+	color: string | null;
 }
 
 export interface SeriesFrontmatter {
@@ -31,7 +35,10 @@ export interface SeriesFrontmatter {
 export interface RawSeriesBookEntry {
 	"book-id"?: unknown;
 	"book-title"?: unknown;
+	"book-color"?: unknown;
 }
+
+const HEX_COLOR_RE = /^#[0-9a-f]{6}$/i;
 
 /** The raw, dash-cased on-disk shape of series.md's frontmatter, as read/written through `modifyBackstageFrontmatter`. */
 export interface RawSeriesFrontmatter extends FrontMatterCache {
@@ -62,7 +69,8 @@ function parseBooksMap(raw: unknown): Record<string, SeriesBookEntry> {
 		const bookId = typeof entry["book-id"] === "string" ? entry["book-id"] : null;
 		if (!bookId) continue;
 		const bookTitle = typeof entry["book-title"] === "string" ? entry["book-title"] : folderName;
-		result[folderName] = { bookId, bookTitle };
+		const color = typeof entry["book-color"] === "string" && HEX_COLOR_RE.test(entry["book-color"]) ? entry["book-color"] : null;
+		result[folderName] = { bookId, bookTitle, color };
 	}
 	return result;
 }
@@ -115,12 +123,13 @@ export function numberedBookTitle(
 	app: App,
 	bookFolderName: string,
 	prefetched?: { ordered: TFolder[]; unplaced: TFolder[] },
+	style: NumberingStyle = "arabic",
 ): string {
 	const { ordered, unplaced } = prefetched ?? getSeriesBooks(app);
 	const sequence = [...ordered, ...unplaced];
 	const idx = sequence.findIndex((folder) => folder.name === bookFolderName);
 	if (idx === -1) return bookDisplayTitle(app, bookFolderName);
-	const numbered = applyHashNumbering(sequence.map((folder) => bookDisplayTitle(app, folder.name)));
+	const numbered = applyHashNumbering(sequence.map((folder) => bookDisplayTitle(app, folder.name)), style);
 	return numbered[idx];
 }
 
@@ -233,10 +242,25 @@ export async function writeSeriesBookTitle(app: App, folderName: string, newTitl
 		const bookId: string =
 			typeof existing["book-id"] === "string" ? existing["book-id"] : mintId(folderName, collectAllBookIds(app));
 		resolvedId = bookId;
-		books[folderName] = { "book-id": bookId, "book-title": newTitle };
+		books[folderName] = { ...existing, "book-id": bookId, "book-title": newTitle };
 		fm.books = books;
 	});
 	return { bookId: resolvedId };
+}
+
+/** Overwrites (or clears, passing null) one book's row-colour override — see NovelTitleModal's
+ * colour option and resolveNovelRowColor. Preserves the entry's other fields (id, title, …) via a
+ * spread, unlike writeSeriesBookTitle's own whole-entry replace. */
+export async function writeSeriesBookColor(app: App, folderName: string, hex: string | null): Promise<void> {
+	await modifyBackstageFrontmatter<RawSeriesFrontmatter>(app, app.vault, seriesFilePath(), DEFAULT_SERIES_CONTENT, (fm) => {
+		const books: Record<string, RawSeriesBookEntry> = fm.books && typeof fm.books === "object" ? fm.books : {};
+		const existing: RawSeriesBookEntry = books[folderName] && typeof books[folderName] === "object" ? books[folderName] : {};
+		const next: RawSeriesBookEntry = { ...existing };
+		if (hex) next["book-color"] = hex;
+		else delete next["book-color"];
+		books[folderName] = next;
+		fm.books = books;
+	});
 }
 
 /** Rekeys a book's `books`/`order` entries when its library folder is renamed outside the plugin. No-op if `oldFolderName` isn't present. */
@@ -264,18 +288,32 @@ export async function renameSeriesBookEntry(app: App, oldFolderName: string, new
  * load sequence in main.ts — can pass it straight into
  * `syncAllBookReferenceFields` without a stale `metadataCache` re-read right
  * after these writes.
+ *
+ * A folder with no `books` entry isn't only "a brand-new book nobody's registered yet" — it's also
+ * exactly what a *dropped* entry looks like: parseBooksMap discards any entry without a valid
+ * `book-id` outright, so any bug that ever blanks that one field (however briefly) makes this
+ * function treat an existing, titled book as new and reset it to its raw folder code. `recoverReference`,
+ * when supplied, is consulted before minting/falling back — each book's own novel-<code>.md mirrors
+ * series.md's id/title in `book-id-reference`/`book-title-reference` (see book.ts's
+ * writeBookReferenceFields), untouched by whatever corrupted the `books` map itself, so a still-intact
+ * mirror restores the real book instead of silently renaming it.
  */
-export async function ensureAllSeriesBookEntries(app: App): Promise<Record<string, SeriesBookEntry>> {
+export async function ensureAllSeriesBookEntries(
+	app: App,
+	recoverReference?: (folderName: string) => { bookId: string; bookTitle: string } | null,
+): Promise<Record<string, SeriesBookEntry>> {
 	const folders = getLibraryBookFolders(app);
 	const { books } = readSeriesFrontmatter(app);
 	const merged: Record<string, SeriesBookEntry> = { ...books };
 	const knownIds = new Set(Object.values(books).map((entry) => entry.bookId));
 	for (const folder of folders) {
 		if (merged[folder.name]) continue;
-		const id = mintId(folder.name, knownIds);
+		const recovered = recoverReference?.(folder.name) ?? null;
+		const id = recovered && !knownIds.has(recovered.bookId) ? recovered.bookId : mintId(folder.name, knownIds);
+		const title = recovered?.bookTitle || folder.name;
 		knownIds.add(id);
-		merged[folder.name] = { bookId: id, bookTitle: folder.name };
-		await upsertSeriesBookEntry(app, folder.name, id, folder.name, { appendToOrder: false });
+		merged[folder.name] = { bookId: id, bookTitle: title, color: null };
+		await upsertSeriesBookEntry(app, folder.name, id, title, { appendToOrder: false });
 	}
 	return merged;
 }

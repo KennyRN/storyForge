@@ -125,7 +125,7 @@ export class UiFormattingModal extends Modal {
 			},
 			{
 				id: "story-context",
-				label: "Story Context",
+				label: "Context panel",
 				render: (body) => this.renderRightRailPanelContent(body, settings, "recommend"),
 			},
 			{
@@ -974,7 +974,7 @@ export class UiFormattingModal extends Modal {
 						itemsFontWeightKey: "recommendItemsFontWeight" as const,
 						highlightColorKey: "recommendHighlightColor" as const,
 						highlightTextColorKey: "recommendHighlightTextColor" as const,
-						itemsLabel: "Story Context items",
+						itemsLabel: "Context panel items",
 					}
 				: {
 						sizeKey: "archiveHeaderFontSize" as const,

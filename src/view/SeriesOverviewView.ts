@@ -20,6 +20,7 @@ import { ICON_BOOK_PLUS, ICON_SERIES } from "../icons";
 import { renderNovelCover, pickNovelCover } from "./NovelPanel";
 import { NovelTitleModal } from "./NovelTitleModal";
 import { SeriesTitleModal } from "./SeriesTitleModal";
+import { resolveNovelRowColor } from "./novelColor";
 
 export const STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE = "storyforge-series-overview-view";
 
@@ -232,7 +233,14 @@ export class SeriesOverviewView extends ItemView {
 	 * convention of a second muted line — there's no room for two lines here). Clicking it opens
 	 * NovelTitleModal, which is where renaming (and titleForge's generators) now live. `prefetched`
 	 * is this render pass's one getSeriesBooks() result, reused across every row's numbering instead
-	 * of each row re-querying it (see numberedBookTitle's own doc comment). */
+	 * of each row re-querying it (see numberedBookTitle's own doc comment).
+	 *
+	 * The title chip's own background/text colour comes from resolveNovelRowColor (novelColor.ts) —
+	 * the same accent NovelTitleModal's colour option sets, or that function's own random-looking
+	 * per-novel default when nothing's been picked yet — applied only to the title line itself, not
+	 * the whole card (cover stays on the card's own background). The synopsis box picks up that same
+	 * colour too, but only as a 2px outline on its right/bottom edges (border-right-width/
+	 * border-bottom-width in styles.css, coloured here) — its own background stays plain. */
 	private renderNovelRow(
 		list: HTMLElement,
 		folder: TFolder,
@@ -251,12 +259,16 @@ export class SeriesOverviewView extends ItemView {
 		cover.addEventListener("click", () => pickNovelCover(this.app, cover, folder.name));
 
 		const titleLine = card.createDiv({ cls: "sf-series-overview-row-title-line" });
-		const { title, subtitle } = splitTitleSubtitle(numberedBookTitle(this.app, folder.name, prefetched));
+		const { title, subtitle } = splitTitleSubtitle(
+			numberedBookTitle(this.app, folder.name, prefetched, this.plugin.getSettings().seriesNumberingStyle),
+		);
 		const titleEl = titleLine.createDiv({
 			cls: "sf-series-overview-row-title",
 			text: subtitle ? `${title} (${subtitle})` : title,
 			attr: { role: "button", tabindex: "0", "aria-label": "title" },
 		});
+		const rowColor = resolveNovelRowColor(this.app, folder.name, this.plugin.getSettings());
+		if (rowColor) titleEl.setCssStyles({ backgroundColor: rowColor.background, color: rowColor.text });
 		setTooltip(titleEl, "title");
 		const openTitleModal = () =>
 			new NovelTitleModal(this.app, this.plugin, folder.name, () => {
@@ -269,6 +281,7 @@ export class SeriesOverviewView extends ItemView {
 			cls: "sf-modal-input sf-series-overview-row-synopsis",
 			attr: { "aria-label": "synopsis" },
 		});
+		if (rowColor) synopsis.setCssStyles({ borderRightColor: rowColor.background, borderBottomColor: rowColor.background });
 		setTooltip(synopsis, "synopsis");
 		synopsis.addEventListener("pointerdown", (e) => e.stopPropagation());
 		synopsis.addEventListener("blur", () => {

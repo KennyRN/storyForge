@@ -84,6 +84,7 @@ export class NovelOverviewView extends ItemView {
 		const bookFolderName = this.plugin.getSettings().selectedNovel;
 		renderNovelPanel(this.app, contentEl, {
 			bookFolderName,
+			plugin: this.plugin,
 			emptyText: "Select a novel to see its synopsis and plot.",
 			onOpenChapter: (bookFolderName, filename) => this.selectChapter(bookFolderName, filename),
 			onChanged: () => this.render(),

@@ -1,15 +1,20 @@
+import { formatNumber, type NumberingStyle } from "./numberingStyle";
+
 /**
  * Replaces every literal "#" in each title with a sequential number, where
  * the counter only advances for titles that contain at least one "#" —
  * titles without one are passed through unchanged and do not consume a
  * number. Purely a display-layer transform; never mutates stored titles.
+ * `style` picks how the counter renders (arabic, roman, spelled out, …) —
+ * see numberingStyle.ts. Defaults to plain arabic numerals.
  */
-export function applyHashNumbering(titles: string[]): string[] {
+export function applyHashNumbering(titles: string[], style: NumberingStyle = "arabic"): string[] {
+	const total = titles.filter((title) => title.includes("#")).length;
 	let counter = 0;
 	return titles.map((title) => {
 		if (!title.includes("#")) return title;
 		counter += 1;
-		return title.split("#").join(String(counter));
+		return title.split("#").join(formatNumber(counter, style, total));
 	});
 }
 

@@ -133,7 +133,7 @@ export class HideUiModal extends Modal {
 			.addSetting((setting) => {
 				setting
 					.setName("Hide right panel button")
-					.setDesc("Hides the right sidebar collapse/expand button. Story Context still opens from the Codex button or command.")
+					.setDesc("Hides the right sidebar collapse/expand button. Context panel still opens from the Codex button or command.")
 					.addToggle((toggle) =>
 						toggle.setValue(settings.hideRightPanel).onChange((value) => this.persistVisibility("hideRightPanel", value)),
 					);

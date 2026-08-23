@@ -999,6 +999,22 @@ function luma(hex: string): number {
 }
 
 /**
+ * Appearance to resolve a preset palette's variant against, or `fallback` for Custom (which has no
+ * light/dark variants of its own — callers pass the current Obsidian theme's appearance for that
+ * case, same as the settings UI's own swatch preview does). Factored out of that swatch-preview
+ * lookup so novelColor.ts's row-colour resolution can share it.
+ */
+export function resolvePaletteAppearance(
+	paletteName: PaletteName,
+	variantName: string | undefined,
+	fallback: PaletteMode,
+): PaletteMode {
+	if (paletteName === "Custom") return fallback;
+	const variant = resolvePaletteVariant(paletteName, variantName);
+	return variant?.appearance ?? fallback;
+}
+
+/**
  * Picks the foreground/background pair out of a resolved colour list, for a swatch preview.
  * Prefers colours literally named "Background"/"Foreground" (case-insensitive, exact) when the
  * list has exactly one of each — several presets use this naming (Atom, …), so it's unambiguous
@@ -1024,4 +1040,86 @@ export function resolveForegroundBackground(
 	return appearance === "light"
 		? { foreground: darkest, background: brightest }
 		: { foreground: brightest, background: darkest };
+}
+
+/** Cheap 32-bit string hash (FNV-1a) — deterministic, so the same seed always lands on the same
+ * pool index; not cryptographic, just needs to scatter well enough for a "looks random" default. */
+function hashString(seed: string): number {
+	let hash = 0x811c9dc5;
+	for (let i = 0; i < seed.length; i++) {
+		hash ^= seed.charCodeAt(i);
+		hash = Math.imul(hash, 0x01000193);
+	}
+	return hash >>> 0;
+}
+
+/**
+ * Picks a novel's default row accent for when none has been chosen yet (hand-off item 4) —
+ * deterministic per `seed` (a novel's stable folder name) rather than freshly random on every
+ * call, so the same novel keeps the same "first colour" across reloads and re-renders without
+ * needing to persist anything until the user actually opens NovelTitleModal's colour picker and
+ * confirms a choice (see resolveNovelRowColor, which is what makes that call and is the only
+ * thing writing `book-color`). Excludes the resolved foreground/background pair so a fresh accent
+ * never lands on the palette's own neutral extremes; falls back to the full list when excluding
+ * them would leave nothing to pick from (a two-colour palette).
+ */
+export function pickDefaultAccentColor(
+	colors: PaletteColor[],
+	background: PaletteColor,
+	foreground: PaletteColor,
+	seed: string,
+): PaletteColor | null {
+	if (colors.length === 0) return null;
+	const candidates = colors.filter((c) => c.hex !== background.hex && c.hex !== foreground.hex);
+	const pool = candidates.length > 0 ? candidates : colors;
+	return pool[hashString(seed) % pool.length];
+}
+
+function srgbChannelToLinear(channel255: number): number {
+	const c = channel255 / 255;
+	return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+}
+
+/** WCAG relative luminance (gamma-corrected) — distinct from `luma` above, which is a cheap
+ * perceived-brightness approximation good enough for sorting but not for a real contrast ratio. */
+function relativeLuminance(hex: string): number {
+	const clean = hex.replace("#", "");
+	const r = parseInt(clean.slice(0, 2), 16);
+	const g = parseInt(clean.slice(2, 4), 16);
+	const b = parseInt(clean.slice(4, 6), 16);
+	return 0.2126 * srgbChannelToLinear(r) + 0.7152 * srgbChannelToLinear(g) + 0.0722 * srgbChannelToLinear(b);
+}
+
+/** WCAG contrast ratio between two colours: 1 (identical) to 21 (black on white). */
+export function contrastRatio(hexA: string, hexB: string): number {
+	const a = relativeLuminance(hexA);
+	const b = relativeLuminance(hexB);
+	const lighter = Math.max(a, b);
+	const darker = Math.min(a, b);
+	return (lighter + 0.05) / (darker + 0.05);
+}
+
+/** WCAG AA's normal-text threshold — the bar `resolveRowTextColor` holds its default to. */
+const MIN_READABLE_CONTRAST = 4.5;
+
+/**
+ * Resolves the text colour to draw over an accent background — a novel row coloured via
+ * NovelTitleModal's colour option (hand-off item 3a). Defaults to the palette's own resolved
+ * background swatch (see resolveForegroundBackground), which reads cleanly against most accent
+ * tones; falls back to whichever colour in the full palette contrasts most with the accent when
+ * that default doesn't clear WCAG AA's 4.5:1 threshold — e.g. the chosen accent IS that background
+ * swatch. Ties go to whichever colour sorts first in `colors` (the palette's own listed order).
+ */
+export function resolveRowTextColor(colors: PaletteColor[], background: PaletteColor, accentHex: string): string {
+	if (contrastRatio(background.hex, accentHex) >= MIN_READABLE_CONTRAST) return background.hex;
+	let best = background;
+	let bestRatio = -1;
+	for (const color of colors) {
+		const ratio = contrastRatio(color.hex, accentHex);
+		if (ratio > bestRatio) {
+			bestRatio = ratio;
+			best = color;
+		}
+	}
+	return best.hex;
 }

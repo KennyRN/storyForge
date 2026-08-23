@@ -17,6 +17,9 @@
 	height: 100%;
 	min-height: 0;
 	padding: 0;
+	/* Positioning context for .sf-series-settings-btn, pinned to this pane's own bottom-left
+	 * corner rather than scrolling away inside .sf-top-panel/.sf-bottom-panel. */
+	position: relative;
 }
 
 /* The Codex tab (layoutConfig's topPane: "none") renders only the tabs row and the codex pane —
@@ -608,16 +611,21 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	cursor: pointer;
 }
 
-/* Series-mode-only settings icon — the rightmost thing on this line now that the layout
- * selector (which used to sit after it) has moved to its own tab row above the whole panel. */
+/* Series-mode-only settings icon — pinned to the bottom-left corner of the whole pane (see
+ * renderSeriesSettingsButton's doc comment), not part of any row's flex flow any more.
+ * Sized 50% bigger than this codebase's default icon size (16px -> 24px). */
 .sf-series-settings-btn {
+	position: absolute;
+	left: 8px;
+	bottom: 8px;
 	display: flex;
 	align-items: center;
-	flex-shrink: 0;
-	margin-left: auto;
+	justify-content: center;
 	color: var(--text-muted);
 	cursor: pointer;
+	z-index: 1;
 }
+.sf-series-settings-btn svg { width: 24px; height: 24px; }
 
 /* Fixed size regardless of which tab is active or how many rows it holds — same
  * .modal.sf-xxx-modal + inner-scroll-body split as .sf-tag-registry-modal below. */
@@ -638,10 +646,11 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	min-height: 0;
 }
 
-/* Tab bar for SeriesModal's settings tabs (types & tags / interface / formatting / obsidian
- * elements) — text-labelled, unlike .sf-layout-tab's icon-only treatment, since these need to be
- * legible by name. Same interaction language otherwise: plain colour change on hover/active, no
- * background chip. Never shrinks or scrolls away — only .sf-series-modal-tab-body below does. */
+/* Tab bar for SeriesModal's settings tabs (types & tags / general / formatting / obsidian
+ * elements / import & export settings) — text-labelled, unlike .sf-layout-tab's icon-only
+ * treatment, since these need to be legible by name. Same interaction language otherwise: plain
+ * colour change on hover/active, no background chip. Never shrinks or scrolls away — only
+ * .sf-series-modal-tab-body below does. */
 .sf-series-modal-tabs {
 	display: flex;
 	gap: 4px;
@@ -2083,29 +2092,32 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 .sf-cycling-guide-badge-icon svg { width: 1em; height: 1em; }
 
 /* Cycling guide sample in SeriesModal's general tab — a short manuscript-page fragment showing
-   the divider at a real paragraph break, styled with the editor's own prose font/size. */
+   the divider at a real paragraph break. Background and text mirror the real editor pane: the
+   background is the theme's own --background-primary (storyForge never overrides the manuscript
+   pane's background), and the paragraph text uses the exact same --sf-body-* vars/fallbacks as
+   the real .cm-line rule below, so a live Text styling override shows up here too. */
 .sf-cg-preview {
 	margin: 10px 4px 4px;
 	padding: 8px 10px;
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 4px;
-	font-family: var(--font-text);
-	font-size: var(--font-text-size, 16px);
+	background: var(--background-primary);
 	line-height: 1.5;
-	color: var(--text-normal);
 }
-.sf-cg-preview p { margin: 0; }
-.sf-cg-preview-strip {
-	position: relative;
-	margin: 0.35em 0 1.2em;
-	min-height: 1.1em;
+.sf-cg-preview p {
+	margin: 0;
+	font-size: var(--sf-body-size, revert);
+	color: var(--sf-body-color, revert);
+	font-weight: var(--sf-body-weight, revert);
+	font-family: var(--sf-body-family, revert);
+	font-variation-settings: var(--sf-body-variation, revert);
 }
-.sf-cg-preview-strip-spacer {
-	opacity: 0;
-	font-size: var(--font-ui-smaller);
-	line-height: 1.2;
-	pointer-events: none;
-}
+/* Ordinary paragraph-to-paragraph spacing (the blank-line gap real manuscript paragraphs get). */
+.sf-cg-preview p + p { margin-top: 1em; }
+/* The guide classes/badge live on the first <p> itself (see mountCyclingGuidePreview) so the
+   divider sits flush under that paragraph's own last line — this reserves extra room below it,
+   on top of the normal paragraph gap above, so the badge clears before the second paragraph starts. */
+.sf-cg-preview p.sf-cg-preview-strip { margin-bottom: 1.2em; }
 
 .sf-series-line .sf-header-text {
 	font-size: var(--sf-lib-series-size, 1em);
@@ -3800,37 +3812,68 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 
 /* The card: only the cover and the title/synopsis text sections live inside it — the drag handle
  * is a sibling, outside — with the sidebar's own background colour (--background-secondary) so
- * each novel reads as a distinct card floating over the page's own background, and a 4px margin
- * on every side separating the card's border from the row's previous bounds (where .sf-row's
- * inherited padding used to let the cover/title/synopsis sit flush). Internally it's the same
- * 2-column x 2-row grid the row itself used to be, so the cover can still cleanly span both rows
- * (grid-row: 1 / 3) to match the title+synopsis column's *combined* height exactly, while the
- * handle (now outside the card entirely) stays confined to the title line's own height. */
+ * each novel reads as a distinct card floating over the page's own background, and a 4px `margin`
+ * on every side separating the card's own border from the *row's* bounds (i.e. from neighbouring
+ * cards) — unrelated to the card's own interior, which has no padding/gap of its own at all: the
+ * cover sits flush against the card's top/left/bottom edges, and the title row's own colour
+ * (NovelTitleModal's colour option, applied to .sf-series-overview-row-title) fills edge-to-edge —
+ * cover's right edge to the card's own right edge, with nothing in between. `border-radius` is
+ * explicit per corner (`0 10px 0 0`) rather than a uniform value relying on the other three
+ * happening to look square — only the top-right is actually rounded (10px), matching where the
+ * coloured title row meets the card's edge; the other three stay 0. `overflow: hidden` clips the
+ * cover/title/synopsis children to that shape rather than needing to hand-match border-radius on
+ * each of them individually. Internally it's the same 2-column x 2-row grid the row
+ * itself used to be, so the cover can still cleanly span both rows (grid-row: 1 / 3), while the
+ * handle (outside the card entirely) stays confined to the title line's own height. */
 .sf-series-overview-card {
 	flex: 1;
 	min-width: 0;
 	display: grid;
 	grid-template-columns: auto 1fr;
 	grid-template-rows: auto auto;
-	column-gap: 6px;
-	row-gap: 4px;
+	column-gap: 0;
+	row-gap: 0;
 	margin: 4px;
-	padding: 4px 6px;
+	padding: 0;
 	background: var(--background-secondary);
-	border-radius: 4px;
+	border-radius: 0 10px 0 0;
+	overflow: hidden;
 }
 
-/* Book-cover ratio (2:3, same as the old single-book detail block's .sf-series-overview-cover
- * this replaces) computed from the card's own resolved height via aspect-ratio, rather than a
- * fixed pixel size — reuses .sf-synopsis-cover's placeholder/has-image/rounded-corner styling
- * (NovelPanel.ts's cover elsewhere already share it) so this cover looks and behaves exactly the
- * same as every other cover box in the plugin, including the 4px radius the text boxes use. */
+/* Book-cover ratio (2:3, same as every other cover box in the plugin — .sf-series-overview-cover,
+ * .sf-recommend-novel-cover, …) — reuses .sf-synopsis-cover's placeholder/has-image/rounded-corner
+ * styling (NovelPanel.ts's cover elsewhere already shares it) so this cover looks and behaves the
+ * same everywhere.
+ *
+ * Fixed width, but height left to `align-self: stretch` (grid's own default) rather than a fixed
+ * number: it needs to fill exactly the title+synopsis column's *actual* combined height — flush
+ * against the card's top/left/bottom, and no gap on its right either (the title row's colour needs
+ * to reach all the way from the cover's own edge to the card's, with nothing uncoloured between
+ * them) — and that combined height varies with the user's own title/heading font-size settings, so
+ * a hardcoded number would drift out of sync and reopen a gap on one side.
+ * `min-height: 0` overrides a grid item's default content-based floor so this box can't be forced
+ * taller than that even if something inside it wanted to be (the placeholder tint has no content of
+ * its own to do that, but the rule stays defensive). The image itself is positioned absolutely
+ * (below) rather than sized via width/height: 100% of this box — a spanning grid item's percentage
+ * height can't resolve without depending on its own content first, and since the image is that
+ * content, a large source image fed back into growing this box (and the whole row) instead of being
+ * cropped to fit it; taking the image out of flow removes it from that calculation entirely, so its
+ * pixel dimensions can no longer affect this box's size at all, only what gets cropped inside it. */
 .sf-series-overview-row-cover {
 	grid-column: 1;
 	grid-row: 1 / 3;
-	width: auto;
-	height: 100%;
-	aspect-ratio: 2 / 3;
+	position: relative;
+	width: 80px;
+	min-height: 0;
+	/* Overrides .sf-synopsis-cover's own 4px — that rounding is this element's *own* paint, so the
+	   card's overflow: hidden (which only clips at the card's own boundary) doesn't touch it; left
+	   square so the card's explicit per-corner radius is the only curve anywhere in this card. */
+	border-radius: 0;
+}
+
+.sf-series-overview-row-cover img {
+	position: absolute;
+	inset: 0;
 }
 
 .sf-series-overview-row-title-line {
@@ -3844,11 +3887,19 @@ input.sf-recommend-chapter-title[type="text"]:focus {
  * NovelTitleModal) — numbered ("Volume #" → "Volume 1") with its subtitle in parentheses, all on
  * one line (ellipsis rather than wrapping for anything too long to fit). Padding matches
  * .sf-modal-input's own so the row's height doesn't visibly shift now that the box/border chrome
- * is gone; the hover tint is the same affordance .sf-row itself uses. */
+ * is gone; the hover tint is the same affordance .sf-row itself uses.
+ *
+ * Square (not the box's usual 4px): this element's own colour fill IS the "coloured header row"
+ * (NovelTitleModal's colour option), flush to the card's top/right edges with no gap — an
+ * independent radius here would round its own corners regardless of what the card underneath asks
+ * for, leaving a small card-background notch cut into the colour exactly where the card wants a
+ * sharp corner (bottom edge, where it meets the synopsis row) or a *different* curve (top-right,
+ * 10px on the card) than this element's own 4px would draw. Left square, the card's own
+ * border-radius + overflow: hidden does 100% of the rounding for this card, at every corner. */
 .sf-series-overview-row-title {
 	width: 100%;
 	padding: 4px 8px;
-	border-radius: 4px;
+	border-radius: 0;
 	overflow: hidden;
 	white-space: nowrap;
 	text-overflow: ellipsis;
@@ -3873,11 +3924,48 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	width: 100%;
 	box-sizing: border-box;
 	font: inherit;
+	/* Square except the bottom-right, which echoes the card's own top-right (10px) — its own
+	   deliberate curve now, not .sf-modal-input's inherited 4px. */
+	border-radius: 0 0 10px 0;
 	/* Fixed at its current size — no drag-resize handle — with scrolling for overflow instead of
 	   growing, per item 3. */
 	height: 80px;
 	resize: none;
 	overflow-y: auto;
+	/* Right/bottom edges only, thickened to carry the row's own accent colour (set inline —
+	   renderNovelRow's own resolveNovelRowColor result, same colour as the title bar) as an
+	   outline for the synopsis box; left stays .sf-modal-input's plain 1px border. Top has none at
+	   all (rather than that same plain 1px): sitting flush under the title bar with zero row-gap,
+	   any border colour there — even the theme's own muted one — reads as a stray seam splitting
+	   the coloured title from the synopsis box right where they're meant to read as one card. */
+	border-top: none;
+	border-right-width: 2px;
+	border-bottom-width: 2px;
+}
+
+/* NovelTitleModal.ts — the row's own colour: "novel colour" label plus the palette swatch button,
+ * on one line under the "#"/"//" hint. Standard (not muted) text — see .sf-novel-title-modal
+ * .sf-modal-hint below, which also covers the hint text above it. */
+.sf-novel-title-color-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 8px;
+}
+
+/* NovelTitleModal.ts's own hint text and "novel colour" label read as standard body text here, not
+ * .sf-modal-hint's usual muted treatment (every other user of that shared class — ChapterIdeaCaptureModal,
+ * ConvertToSeriesModal, SeriesModal's book-list hint — keeps the muted look, so this is scoped to
+ * just this modal rather than changing the shared class itself). */
+.sf-novel-title-modal .sf-modal-hint {
+	color: var(--text-normal);
+}
+
+/* ChapterTitleModal.ts — same "not muted" treatment as .sf-novel-title-modal's own hint/colour-row
+ * text above (its "chapter colour" label included), for the same reason: this modal's hint/label
+ * text is the primary content of the dialog, not secondary chrome. */
+.sf-chapter-title-modal .sf-modal-hint {
+	color: var(--text-normal);
 }
 
 /* NovelTitleModal.ts / SeriesTitleModal.ts — icon-only dice button that opens titleForge (as its
@@ -3900,6 +3988,20 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 .sf-titleforge-dice svg.svg-icon {
 	width: calc(var(--font-ui-medium) * 1.6);
 	height: calc(var(--font-ui-medium) * 1.6);
+}
+
+/* NovelTitleModal.ts only: the dice sits inline at the end of the title box itself instead of
+ * below it — no top margin, and shrink-proof so a long title doesn't squeeze it out. The input
+ * beside it (.sf-novel-title-row's own .sf-modal-input) gets flex: 1 to give up exactly the room
+ * this needs rather than both fighting over the row's width. */
+.sf-titleforge-dice--inline {
+	margin-top: 0;
+	flex-shrink: 0;
+}
+
+.sf-novel-title-row .sf-modal-input {
+	flex: 1;
+	width: auto;
 }
 
 /* ── Novel overview (NovelOverviewView.ts) ──
@@ -3953,14 +4055,186 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	min-height: 140px;
 }
 
-/* Plainer plot list: no dividing line between chapters, no per-chapter jump icon — the whole
- * chapter-name row opens it instead (renderNovelPlot's `wide` branch). */
-.sf-recommend-plot-block--plain {
-	border-bottom: none;
+/* renderNovelPanel's own "Plot" header (wide layout only) — sits in .sf-book-line's grid column 1,
+ * where the plain timeline icon used to (that icon is dropped entirely for "wide"; the narrow
+ * sidebar keeps it, unaffected). Its own width is set inline per book (renderNovelPanel) — 10px
+ * minimum (a plain circle when there's only a single colour-line) plus room for every further line
+ * in the gutter below. position: relative purely so its two children (the pill, and the line-stub
+ * beneath it) can be positioned against ITS box rather than .sf-book-line's whole grid row — it has
+ * no visible box of its own. Both children are positioned absolutely (rather than being sized/laid
+ * out in normal flow) specifically so the stub's own height can be "whatever's left below the pill
+ * down to the row's bottom edge" (top + bottom set, no explicit height) without knowing that
+ * distance ahead of time — the row's actual height depends on the user's own "Plot" heading font
+ * size, which this can't see. */
+.sf-recommend-plot-pill-col {
+	position: relative;
 }
 
-.sf-recommend-plot-header-row--clickable {
+/* Centred within .sf-recommend-plot-pill-col's own stretched height (that column has no in-flow
+ * content of its own — see above — so grid's default align-items: stretch sizes it to the row's
+ * full height regardless; centring here reproduces the plain vertical centring the pill had before
+ * this element existed). Its own fill is the leftmost (first) line's colour, so it reads as a
+ * rounded cap the lines beneath it emerge from. */
+.sf-recommend-plot-pill {
+	position: absolute;
+	top: 50%;
+	left: 0;
+	transform: translateY(-50%);
+	width: 100%;
+	height: 10px;
+	border-radius: 5px;
+}
+
+/* The line-stub — a sliver of the same lines the scroll pane's own full-height background paints
+ * (buildGutterLineBackground, same colours/x-offsets both places), rendered here in the *static*
+ * header itself rather than only starting once the scroll pane begins below it, so the lines read
+ * as genuinely emerging out of the pill rather than merely lining up with it. Starts at the pill's
+ * own bottom edge (50% + half its 10px height) and runs to this column's own bottom edge — flush
+ * with the scroll pane's own top once .sf-synopsis-plot-title's bottom margin is zeroed for "wide"
+ * below, so nothing breaks the run of colour between the header and the scrollable list. */
+.sf-recommend-plot-pill-stub {
+	position: absolute;
+	top: calc(50% + 5px);
+	bottom: 0;
+	left: 0;
+	width: 100%;
+}
+
+/* Closes the gap .sf-recommend-novel-fixed .sf-synopsis-plot-title's own margin-bottom (above)
+ * leaves under the "Plot" header for every other host of this shared block — needed here
+ * specifically so the pill-stub's coloured lines (immediately above) run straight into the scroll
+ * pane's own lines below with no dead space breaking the two apart. Three classes deep so it beats
+ * that rule's own specificity regardless of source order (same fix as the last-card border-bottom
+ * issue elsewhere in this file). */
+.sf-novel-overview-view .sf-recommend-novel-fixed .sf-synopsis-plot-title {
+	margin-bottom: 0;
+}
+
+/* Each chapter reads as its own card on the central Novel overview page (renderNovelPlot's `wide`
+ * branch — the narrow sidebar list this same block styling also serves keeps its plain divider,
+ * .sf-recommend-plot-block's own border-bottom, untouched). 10px (top-right/bottom-left/bottom-
+ * right — top-left stays square, see below) to match .sf-series-overview-card's own radius (the
+ * Series tab's novel cards) — same numeric size, not that card's own per-corner asymmetry, since
+ * this card's own asymmetry has a different reason (below). box-shadow colour is overridden inline
+ * per card to the chapter's own resolved colour (resolveChapterRowColor) — this bare colour is just
+ * the fallback for when that resolves to nothing (e.g. an empty custom palette). No bottom padding:
+ * the plot textarea below now bleeds all the way to the card's own bottom edge (see its own rule
+ * further down) rather than sitting inset like the header/meta rows above it.
+ *
+ * An inset box-shadow instead of a real `border` — deliberately: a real border sits in its own
+ * box-model layer, pushing the content box (and everything measured against it — the header/
+ * textarea's own bleed math, renderNovelPlot's line-centring margin-left) inward by its own width,
+ * so every one of those had to separately compensate for it. box-shadow: inset paints the same 2px
+ * outline as a pure visual layer with no box-model footprint at all — the content box reaches
+ * exactly to the card's true outer edge, and the header (painted on top, same colour) simply covers
+ * the inset shadow wherever the two overlap. That's also what keeps the "banner" region (the
+ * header) looking borderless: there's no separate border layer there left to poke out from behind
+ * it once the header's own edges are flush with the card's true ones. It also sidesteps the last
+ * card's border-bottom entirely (see the removed workaround this replaced, previously needed
+ * because .sf-recommend-plot-block:last-child sets border-bottom: none, which box-shadow was never
+ * subject to in the first place). border-radius still clips it to the same rounded shape as
+ * everything else, same as it would a real border. */
+.sf-recommend-plot-block--plain {
+	box-shadow: inset 0 0 0 2px var(--background-modifier-border);
+	border-radius: 0 10px 10px 10px;
+	padding: 0 16px 0;
+	margin-bottom: 12px;
+}
+
+/* The header band spans the card's full width/top and beyond — its own explicit top-right radius
+ * (matching the card's) rounds that corner now that the card's own overflow: hidden no longer does
+ * it for free; top-left stays square, same reason the card's is (see above). Background set inline
+ * per card from the same resolveChapterRowColor result as the card's own inset box-shadow, so the
+ * band and the shadow always read as one accent — and since the header sits flush with the card's
+ * true top/right edges (the shadow, unlike a real border, doesn't push the content box in from
+ * them), the header simply paints over that shadow everywhere the two overlap: the "banner" region
+ * never shows a border of its own at all, just the header's solid fill (the name text gets that
+ * result's matching text colour too, set inline on it directly — see renderNovelPlot's own comment
+ * on why that can't just be inherited from here). margin-right is the fixed -16px bleed back out to
+ * the card's own right edge, against
+ * the padding above; margin-left defaults to that same -16px (a plain flush-left band) but
+ * renderNovelPlot overrides it inline per card with a bigger negative value whenever the chapter's
+ * own colour matches one of the gutter's lines — reaching further left, past the card's own edge,
+ * until the band is centred on that specific line (so the line reads as running straight into the
+ * card, not stopping short of it). Vertical padding kept tight (4px, matching
+ * .sf-series-overview-row-title's own vertical rhythm) rather than the rest of the card's more
+ * generous spacing — this band reads as a title bar, not a content row. */
+.sf-recommend-plot-block--plain .sf-recommend-plot-header-row {
+	margin-top: 0;
+	margin-right: -16px;
+	margin-bottom: 6px;
+	margin-left: -16px;
+	padding: 4px 16px;
+	border-radius: 0 10px 0 0;
+}
+
+/* Breathing room between the PoV/location rows and the plot textarea's own top border below,
+ * now that the card's own bottom padding (above) no longer supplies it. */
+.sf-recommend-plot-block--plain .sf-recommend-meta {
+	margin-bottom: 10px;
+}
+
+/* The divider between the meta rows and the plot textarea — a plain line living in the card's
+ * ordinary padded content area (no bleed of its own), so it can't cross the card's own inset
+ * outline the way the textarea's own border-top used to (see the textarea's own rule below). */
+.sf-recommend-plot-block--plain .sf-recommend-plot-textarea-divider {
+	height: 1px;
+	background: var(--background-modifier-border);
+}
+
+/* The plot textarea fills the entire bottom of the card rather than sitting as a discrete boxed
+ * input like every other textarea in the plugin: negative side margins bleed it out to the card's
+ * own left/right/bottom edges, its own explicit bottom corner radii round to match the card's now
+ * that the card's own overflow: hidden no longer does it for free (see the card's own rule above).
+ * No border of its own at all (the divider above does that job instead) — an earlier version used
+ * this element's own border-top for that, but that line spanned the same bled-out width as the
+ * outline itself, so the two crossed at the card's left/right edges and left a visible mark right
+ * there.
+ *
+ * min-height: 0 (overriding the base .sf-recommend-plot-textarea rule's fixed 72px) plus height:
+ * auto is what lets it start at a single line — renderNovelPlot's own resize-to-scrollHeight, run
+ * once on an empty textarea before the real plot text loads in, is what actually measures and sets
+ * that starting height; this is just what stops the 72px floor from overriding it. overflow-y:
+ * hidden (rather than the base rule's auto) is required for that scrollHeight measurement to track
+ * the content's true height rather than clamping to whatever's currently visible; resize: none
+ * removes the manual drag handle a plain <textarea> would otherwise have. */
+.sf-recommend-plot-block--plain .sf-recommend-plot-textarea {
+	margin: 0 -16px 0;
+	/* Not width: auto — a block-level <textarea> isn't guaranteed to fill available width the way a
+	 * plain <div> (e.g. the header row above) does, so the bleed is computed explicitly: 100% of the
+	 * card's own content width (already inset by its 16px side padding) plus that same 32px back,
+	 * to reach exactly the card's own inner edges the negative margins just pulled it out to. */
+	width: calc(100% + 32px);
+	min-height: 0;
+	height: auto;
+	overflow-y: hidden;
+	resize: none;
+	border: none;
+	border-radius: 0 0 10px 10px;
+	background: transparent;
+	padding: 10px 16px;
+	box-sizing: border-box;
+}
+
+/* Obsidian's own base textarea styling paints an opaque background on hover/focus — harmless for a
+ * plain boxed textarea, but this one is meant to stay fully transparent (its "box" is just the
+ * card it already sits inside), so hovering or focusing it would otherwise paint over the card's
+ * own inset outline for its entire height. Explicitly reasserted here since the base rule above
+ * only covers the resting state. */
+.sf-recommend-plot-block--plain .sf-recommend-plot-textarea:hover,
+.sf-recommend-plot-block--plain .sf-recommend-plot-textarea:focus {
+	background: transparent;
+	box-shadow: none;
+}
+
+/* The chapter name is what opens ChapterTitleModal here (unlike the narrow sidebar list, which has
+ * no such modal) — same hover affordance as any other clickable text in the plugin. */
+.sf-recommend-plot-chapter-name--clickable {
 	cursor: pointer;
+}
+
+.sf-recommend-plot-chapter-name--clickable:hover {
+	text-decoration: underline;
 }
 
 /* ── New chapter (NewChapterView.ts) ──

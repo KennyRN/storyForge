@@ -103,7 +103,7 @@ export class RecommendationView extends ItemView {
 	getDisplayText(): string {
 		// Doubles as this tab's accessible label/tooltip (Obsidian's own tab-header mechanism) -
 		// carries the Focus state so assistive tech gets it without any redundant DOM of our own.
-		return this.focusMode ? "Story Context — Focus Mode: On" : "Story Context — Focus Mode: Off";
+		return this.focusMode ? "Context panel — Focus Mode: On" : "Context panel — Focus Mode: Off";
 	}
 
 	getIcon(): string {
@@ -678,6 +678,7 @@ export class RecommendationView extends ItemView {
 		const host = el.createDiv({ cls: "sf-recommend-novel-host" });
 		renderNovelPanel(this.app, host, {
 			bookFolderName: this.bookFolderName,
+			plugin: this.plugin,
 			emptyText: "Select a novel to see its synopsis and plot.",
 			castCache: this.castCache,
 			onOpenChapter: (bookFolderName, filename) => void this.openChapter(bookFolderName, filename),
@@ -698,7 +699,7 @@ export class RecommendationView extends ItemView {
 		const fixed = body.createDiv({ cls: "sf-recommend-fixed" });
 		const bookFolderName = this.bookFolderName;
 		const chapterFilename = this.chapterFilename;
-		const title = numberedChapterTitle(this.app, bookFolderName, chapterFilename);
+		const title = numberedChapterTitle(this.app, bookFolderName, chapterFilename, this.plugin.getSettings().chapterNumberingStyle);
 		const titleRow = fixed.createDiv({ cls: "sf-recommend-chapter-title-row" });
 		const titleInput = titleRow.createEl("input", {
 			cls: "sf-recommend-chapter-title",
@@ -1058,7 +1059,7 @@ export class RecommendationView extends ItemView {
 		const chapters = getBookChapters(this.app, this.bookFolderName);
 		const ordered = chapters.ordered.map((f) => ({
 			filename: f.name,
-			label: numberedChapterTitle(this.app, this.bookFolderName!, f.name),
+			label: numberedChapterTitle(this.app, this.bookFolderName!, f.name, this.plugin.getSettings().chapterNumberingStyle),
 		}));
 		const groups = groupHitsByChapter(ordered, this.dossierHits);
 

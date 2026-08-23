@@ -20,6 +20,7 @@ import {
 import { nextNovelCode } from "./novelCode";
 import { nextChapterCode } from "./chapterCode";
 import { applyHashNumbering } from "./titleNumbering";
+import type { NumberingStyle } from "./numberingStyle";
 import {
 	normalizeDialogueQuoteStyle,
 	type DialogueQuoteStyle,
@@ -43,6 +44,9 @@ export interface ChapterEntry {
 	plot: string;
 	/** Ids into tagRegistry.ts's chapterTags list. Empty when untagged. */
 	tags: string[];
+	/** Card-colour override picked via ChapterTitleModal's colour option, or null when the chapter
+	 * just follows its book's own colour (resolveChapterRowColor's default). */
+	color: string | null;
 }
 
 export interface BookFrontmatter {
@@ -75,7 +79,10 @@ export interface RawChapterEntry {
 	"location-name"?: unknown;
 	plot?: unknown;
 	tags?: unknown;
+	"chapter-color"?: unknown;
 }
+
+const HEX_COLOR_RE = /^#[0-9a-f]{6}$/i;
 
 /** The raw, dash-cased on-disk shape of novel.md's frontmatter, as read/written through `modifyBackstageFrontmatter`. */
 export interface RawBookFrontmatter extends FrontMatterCache {
@@ -146,7 +153,11 @@ function parseChaptersMap(raw: unknown): Record<string, ChapterEntry> {
 		const locationName = typeof entry["location-name"] === "string" ? entry["location-name"] : null;
 		const plot = typeof entry.plot === "string" ? entry.plot : "";
 		const tags = Array.isArray(entry.tags) ? entry.tags.filter((v): v is string => typeof v === "string") : [];
-		result[filename] = { chapterId, chapterTitle, povPath, povName, locationPath, locationName, plot, tags };
+		const color =
+			typeof entry["chapter-color"] === "string" && HEX_COLOR_RE.test(entry["chapter-color"])
+				? entry["chapter-color"]
+				: null;
+		result[filename] = { chapterId, chapterTitle, povPath, povName, locationPath, locationName, plot, tags, color };
 	}
 	return result;
 }
@@ -229,12 +240,17 @@ export function chapterDisplayTitle(app: App, bookFolderName: string, filename: 
 }
 
 /** The chapter's title, with "#" resolved to its number among the book's "#"-titled chapters (same counter the chapter list's rows use). */
-export function numberedChapterTitle(app: App, bookFolderName: string, filename: string): string {
+export function numberedChapterTitle(
+	app: App,
+	bookFolderName: string,
+	filename: string,
+	style: NumberingStyle = "arabic",
+): string {
 	const { ordered, unplaced } = getBookChapters(app, bookFolderName);
 	const sequence = [...ordered, ...unplaced];
 	const idx = sequence.findIndex((file) => file.name === filename);
 	if (idx === -1) return chapterDisplayTitle(app, bookFolderName, filename);
-	const numbered = applyHashNumbering(sequence.map((file) => chapterDisplayTitle(app, bookFolderName, file.name)));
+	const numbered = applyHashNumbering(sequence.map((file) => chapterDisplayTitle(app, bookFolderName, file.name)), style);
 	return numbered[idx];
 }
 
@@ -469,6 +485,22 @@ export async function writeChapterTags(app: App, bookFolderName: string, filenam
 	});
 }
 
+/** Overwrites (or clears, passing null) one chapter's colour override — see ChapterTitleModal's
+ * colour option and resolveChapterRowColor. Preserves the entry's other fields (id, title, …) via
+ * a spread, same pattern as writeSeriesBookColor. */
+export async function writeChapterColor(app: App, bookFolderName: string, filename: string, hex: string | null): Promise<void> {
+	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
+		const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
+		const existing: RawChapterEntry =
+			chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
+		const next: RawChapterEntry = { ...existing };
+		if (hex) next["chapter-color"] = hex;
+		else delete next["chapter-color"];
+		chapters[filename] = next;
+		fm.chapters = chapters;
+	});
+}
+
 /** Overwrites the novel's full tag set (ids into tagRegistry.ts's novelTags list). An empty array clears the field entirely. */
 export async function writeNovelTags(app: App, bookFolderName: string, tagIds: string[]): Promise<void> {
 	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
@@ -582,6 +614,7 @@ export async function insertChapterEntry(
 			"location-name": entry.locationName,
 			plot: entry.plot || undefined,
 			tags: entry.tags.length > 0 ? entry.tags : undefined,
+			"chapter-color": entry.color || undefined,
 		};
 		fm.chapters = chapters;
 		const strip = (list: unknown): string[] =>
@@ -619,6 +652,7 @@ export async function ensureAllChapterEntries(app: App, bookFolderName: string):
 			locationName: null,
 			plot: "",
 			tags: [],
+			color: null,
 		};
 		await upsertChapterEntry(app, bookFolderName, file.name, chapterId, chapterTitle);
 	}

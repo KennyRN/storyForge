@@ -31,6 +31,8 @@ import { ProtectionsController } from "./protectionsController";
 import { formatCompanionState } from "../formatCompanionActive";
 import { TagRegistryModal } from "./TagRegistryModal";
 import { TitleForgeSettingsModal } from "../titleforge/view/TitleForgeSettingsModal";
+import { NUMBERING_STYLE_OPTIONS, type NumberingStyle } from "../numberingStyle";
+import { refreshTabTitles } from "../tabTitles";
 
 function isPresetPaletteName(name: string): name is PresetPaletteName {
 	return name in COLOR_PALETTES;
@@ -143,13 +145,15 @@ async function handleReorder(app: App, newOrder: string[], onChange: () => void,
 	}
 }
 
-type SettingsTabId = "typesAndTags" | "general" | "formatting" | "obsidianElements";
+type SettingsTabId = "typesAndTags" | "general" | "formatting" | "obsidianElements" | "importExport" | "backup";
 
 const SETTINGS_TABS: { id: SettingsTabId; label: string }[] = [
 	{ id: "typesAndTags", label: "types, tags, & titles" },
 	{ id: "general", label: "general" },
 	{ id: "formatting", label: "formatting" },
 	{ id: "obsidianElements", label: "obsidian elements" },
+	{ id: "importExport", label: "import & export settings" },
+	{ id: "backup", label: "backup" },
 ];
 
 /**
@@ -228,6 +232,12 @@ export class SeriesModal extends Modal {
 			case "obsidianElements":
 				this.renderObsidianElementsTab(body);
 				break;
+			case "importExport":
+				this.renderImportExportTab(body);
+				break;
+			case "backup":
+				this.renderBackupTab(body);
+				break;
 		}
 	}
 
@@ -252,22 +262,54 @@ export class SeriesModal extends Modal {
 
 	/**
 	 * Everything that doesn't belong to types/tags/titles, formatting, or Obsidian's own chrome —
-	 * plus everything formerly behind the "Protections" button (ProtectionsModal), now rendered
-	 * inline via the shared ProtectionsController: a Themes/import-export box (only when formatForge
-	 * isn't the live companion — formatForge owns formatting themes while it's connected) and a
-	 * Backup box, in that order.
+	 * plus the Themes/import-export box formerly behind the "Protections" button (ProtectionsModal),
+	 * now rendered inline via the shared ProtectionsController, only when formatForge isn't the live
+	 * companion (formatForge owns formatting themes while it's connected). The Backup box (also
+	 * formerly on "Protections") has its own tab now — see renderBackupTab(). Series/chapter
+	 * numbering style (see ../numberingStyle.ts) sits in its own boundary box at the top.
 	 */
 	private renderGeneralTab(contentEl: HTMLElement): void {
 		const plugin = this.plugin;
 		const settings = plugin.getSettings();
 
+		const numberingGroup = new SettingGroup(contentEl);
+		numberingGroup.addSetting((setting) => {
+			setting.setName("series numbering").addDropdown((dd) =>
+				dd
+					.addOptions(NUMBERING_STYLE_OPTIONS)
+					.setValue(settings.seriesNumberingStyle)
+					.onChange((value) => {
+						void plugin.updateSetting("seriesNumberingStyle", value as NumberingStyle).then(() => {
+							plugin.refreshStoryForgeViews();
+							plugin.refreshSeriesOverviewView();
+							plugin.refreshNovelOverviewView();
+						});
+					}),
+			);
+		});
+		numberingGroup.addSetting((setting) => {
+			setting.setName("chapter numbering").addDropdown((dd) =>
+				dd
+					.addOptions(NUMBERING_STYLE_OPTIONS)
+					.setValue(settings.chapterNumberingStyle)
+					.onChange((value) => {
+						void plugin.updateSetting("chapterNumberingStyle", value as NumberingStyle).then(() => {
+							plugin.refreshStoryForgeViews();
+							plugin.refreshNovelOverviewView();
+							refreshTabTitles(this.app, value as NumberingStyle);
+						});
+					}),
+			);
+		});
+
 		renderCyclingGuideCard(this.app, plugin, contentEl, settings, true);
 
 		const nameSuggestionsGroup = new SettingGroup(contentEl);
+		nameSuggestionsGroup.setHeading("context panel");
 		nameSuggestionsGroup.addSetting((setting) => {
 			setting
-				.setName("Unknown name suggestions")
-				.setDesc("List proper names found in the chapter that are not in the Codex.")
+				.setName("suggest unlisted, or unknown, names")
+				.setDesc("list names found in the chapter which aren't in the codex")
 				.addToggle((toggle) =>
 					toggle
 						.setValue(settings.recommendIncludeUnknownNames)
@@ -285,20 +327,17 @@ export class SeriesModal extends Modal {
 			const themesGroup = new SettingGroup(contentEl);
 			this.protectionsController.renderThemesSection(themesGroup.listEl, companionState);
 		}
-
-		this.protectionsController.renderBackupSection(contentEl, companionState);
 	}
 
 	/**
-	 * Three boxes, top to bottom: Palette, then Text styling + storyForge interface together, then
-	 * Formatting themes. The palette box renders identically regardless of whether formatForge is
-	 * installed — those fields live in storyForge's own settings either way (formatForge just
-	 * proxies reads/writes through the companion API to these same fields when linked), so there's
-	 * a single live copy, not two. Text styling / storyForge interface / Formatting themes open
-	 * formatForge's own modals directly (via the companion bridge, not Obsidian's Settings window)
-	 * when formatForge is active; Text styling / storyForge interface fall back to storyForge's own
-	 * local modals when it isn't, and Formatting themes has no local equivalent so that box becomes
-	 * an install nudge instead.
+	 * Two boxes, top to bottom: Palette, then Text styling + storyForge interface together. The
+	 * palette box renders identically regardless of whether formatForge is installed — those fields
+	 * live in storyForge's own settings either way (formatForge just proxies reads/writes through
+	 * the companion API to these same fields when linked), so there's a single live copy, not two.
+	 * Text styling / storyForge interface open formatForge's own modals directly (via the companion
+	 * bridge, not Obsidian's Settings window) when formatForge is active, falling back to
+	 * storyForge's own local modals when it isn't. Formatting themes (no local storyForge
+	 * equivalent) lives in the import & export settings tab instead — see renderImportExportTab().
 	 */
 	private renderFormattingTab(contentEl: HTMLElement): void {
 		const plugin = this.plugin;
@@ -309,8 +348,8 @@ export class SeriesModal extends Modal {
 		const paletteOptions = Object.fromEntries(PALETTE_NAMES.map((name) => [name, name]));
 		paletteGroup.addSetting((setting) => {
 			setting
-				.setName("Colour palette")
-				.setDesc("Palette used when picking colours for storyForge UI elements.")
+				.setName("colour palette")
+				.setDesc("palette used when picking colours for storyforge ui elements")
 				.addDropdown((dd) =>
 					dd
 						.addOptions(paletteOptions)
@@ -334,8 +373,8 @@ export class SeriesModal extends Modal {
 			const variantOptions = Object.fromEntries(COLOR_PALETTES[selectedName].map((v) => [v.name, v.name]));
 			paletteGroup.addSetting((setting) => {
 				setting
-					.setName("Palette variant")
-					.setDesc("Named variant of the selected palette.")
+					.setName("palette variant")
+					.setDesc("named variant of the selected palette")
 					.addDropdown((dd) =>
 						dd
 							.addOptions(variantOptions)
@@ -361,7 +400,7 @@ export class SeriesModal extends Modal {
 		if (selectedName === "Custom") {
 			settings.customPaletteColors.forEach((color, i) => {
 				paletteGroup.addSetting((setting) => {
-					setting.setName(`Custom colour ${i + 1} name`).addText((text) =>
+					setting.setName(`custom colour ${i + 1} name`).addText((text) =>
 						text.setPlaceholder("Name").setValue(color.name).onChange((value) => {
 							const colors = settings.customPaletteColors.map((c) => ({ ...c }));
 							colors[i] = { ...colors[i], name: value };
@@ -370,7 +409,7 @@ export class SeriesModal extends Modal {
 					);
 				});
 				paletteGroup.addSetting((setting) => {
-					setting.setName(`Custom colour ${i + 1}`).addColorPicker((picker) =>
+					setting.setName(`custom colour ${i + 1}`).addColorPicker((picker) =>
 						picker.setValue(color.hex).onChange((value) => {
 							const colors = settings.customPaletteColors.map((c) => ({ ...c }));
 							colors[i] = { ...colors[i], hex: value };
@@ -384,41 +423,17 @@ export class SeriesModal extends Modal {
 
 		const stylingGroup = new SettingGroup(contentEl);
 		stylingGroup.addSetting((setting) => {
-			setting.setName("Text styling").setDesc(
-				companionActive
-					? "Editor body and heading colours, fonts, sizes, dividers, and manuscript scrollbar."
-					: "Open the text styling modal (editor size overrides).",
-			);
+			setting.setName("text styling").setDesc("editor body text and heading font and colour options");
 			this.renderHoverIcon(setting, ICON_TEXT_INPUT_DUOTONE, "Open text styling", () =>
 				companionActive ? plugin.openFormatForgeTextStyleModal() : new TextStyleModal(this.app, plugin).open(),
 			);
 		});
 		stylingGroup.addSetting((setting) => {
-			setting.setName("storyForge interface").setDesc(
-				companionActive
-					? "Panel chrome for storyForge library, unplaced, codex, and cycling guide."
-					: "Open interface formatting options.",
-			);
+			setting.setName("storyforge interface").setDesc("interface and interface text colour, size, and font options");
 			this.renderHoverIcon(setting, ICON_ELEMENT2_FILLED, "Open storyForge interface", () =>
 				companionActive ? plugin.openFormatForgeInterfaceModal() : new UiFormattingModal(this.app, plugin).open(),
 			);
 		});
-
-		// Theme export/import is a formatForge-specific concept with no local storyForge
-		// equivalent, so this box becomes an install nudge instead when formatForge isn't active.
-		if (companionActive) {
-			const themesGroup = new SettingGroup(contentEl);
-			themesGroup.addSetting((setting) => {
-				setting.setName("Formatting themes").setDesc("Save, preview, and apply named themes, or share formatting as JSON.");
-				this.renderHoverIcon(setting, ICON_FLOPPY_DUOTONE, "Open formatting themes", () =>
-					plugin.openFormatForgeThemesModal(),
-				);
-			});
-		} else {
-			new Setting(contentEl)
-				.setName("Formatting themes (formatForge)")
-				.setDesc("Install and enable formatForge to save, preview, and apply named themes, or share formatting as JSON.");
-		}
 	}
 
 	/**
@@ -562,5 +577,39 @@ export class SeriesModal extends Modal {
 		});
 
 		this.protectionsController.renderWelcomeNoteSection(contentEl);
+	}
+
+	/** "Formatting themes" — moved out of the formatting tab so it lives alongside the rest of
+	 * storyForge's own import/export surfaces. Same install-nudge fallback as before when
+	 * formatForge isn't the live companion (theme export/import is a formatForge-specific concept
+	 * with no local storyForge equivalent). */
+	private renderImportExportTab(contentEl: HTMLElement): void {
+		const plugin = this.plugin;
+		const companionActive = plugin.isFormatCompanionActive();
+
+		if (companionActive) {
+			const themesGroup = new SettingGroup(contentEl);
+			themesGroup.addSetting((setting) => {
+				setting.setName("formatting themes").setDesc("save, preview, and apply named themes, or share formatting as json");
+				this.renderHoverIcon(setting, ICON_FLOPPY_DUOTONE, "Open formatting themes", () =>
+					plugin.openFormatForgeThemesModal(),
+				);
+			});
+		} else {
+			new Setting(contentEl)
+				.setName("formatting themes (formatforge)")
+				.setDesc("install and enable formatforge to save, preview, and apply named themes, or share formatting as json");
+		}
+	}
+
+	/** Backup box formerly on the general tab (and, before that, behind the "Protections" button) —
+	 * now its own tab, after import & export settings. */
+	private renderBackupTab(contentEl: HTMLElement): void {
+		const companionState = formatCompanionState(
+			this.plugin.getFormatCompanion(),
+			this.plugin.api?.formatting?.isCompanionActive() === true,
+			this.app,
+		);
+		this.protectionsController.renderBackupSection(contentEl, companionState);
 	}
 }
