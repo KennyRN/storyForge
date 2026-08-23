@@ -29,7 +29,8 @@ import { TagRegistryModal } from "./view/TagRegistryModal";
 import { FORMATFORGE_PLUGIN_ID, formatCompanionState } from "./formatCompanionActive";
 import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders, getBookId } from "./series";
 import { ensureTagRegistryFile, loadCodexTypesIntoRegistry } from "./tagRegistry";
-import { createBook, createChapter, ensureAllChapterEntries, syncAllBookReferenceFields, writeBookChapterOrder } from "./book";
+import { createBook, createChapter, ensureAllChapterEntries, readBookFrontmatter, syncAllBookReferenceFields, writeBookChapterOrder } from "./book";
+import type { NumberingStyle } from "./numberingStyle";
 import { migrateStructuralLayout, migrateTitleforgeLocation, migrateVaultSchema } from "./migration";
 import { registerReconciliationEvents } from "./reconciliation";
 import {
@@ -252,6 +253,10 @@ export interface StoryForgePluginSettings {
 	codexFactSectionByType: Record<string, string>;
 	/** When true, the recommendation engine lists proper-name candidates not in Codex. */
 	recommendIncludeUnknownNames: boolean;
+	/** How "#" resolves in book titles within a series (numberedBookTitle). */
+	seriesNumberingStyle: NumberingStyle;
+	/** How "#" resolves in chapter titles within a book (numberedChapterTitle). */
+	chapterNumberingStyle: NumberingStyle;
 	/** Thumb (foreground) colour of the manuscript editor scrollbar. */
 	editorScrollbarThumbColor: string;
 	/** When true, the thumb uses the active theme's own scrollbar colour instead of `editorScrollbarThumbColor`. */
@@ -602,6 +607,8 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 		populace: "Facts",
 	},
 	recommendIncludeUnknownNames: true,
+	seriesNumberingStyle: "arabic",
+	chapterNumberingStyle: "arabic",
 	editorScrollbarThumbColor: "#6b7280",
 	editorScrollbarUseThemeColor: false,
 	editorScrollbarThickness: "thick",
@@ -803,7 +810,7 @@ export default class StoryForgePlugin extends Plugin {
 
 		this.addCommand({
 			id: "open-recommendations",
-			name: "Open Story Context",
+			name: "Open Context panel",
 			callback: () => void this.activateRecommendView(),
 		});
 
@@ -843,7 +850,11 @@ export default class StoryForgePlugin extends Plugin {
 		this.applyAllStyles();
 		if (this.pluginSettings.cyclingGuideEnabled) this.rebuildCyclingGuideExtension();
 		this.registerEditorExtension(this.cyclingGuideExtensions);
-		registerTabTitleOverrides(this.app, (eventRef) => this.registerEvent(eventRef));
+		registerTabTitleOverrides(
+			this.app,
+			(eventRef) => this.registerEvent(eventRef),
+			() => this.pluginSettings.chapterNumberingStyle,
+		);
 
 		registerReconciliationEvents(this.app, this);
 
@@ -878,7 +889,7 @@ export default class StoryForgePlugin extends Plugin {
 				await this.refreshCustomIcons();
 			});
 			this.registerPanelOrderWatcher();
-			refreshTabTitles(this.app);
+			refreshTabTitles(this.app, this.pluginSettings.chapterNumberingStyle);
 			this.applyEditorScrollbarStyles();
 			this.style.applyRightRailChrome();
 			void this.maybeRunScheduledBackup("vault-open");
@@ -1565,7 +1576,11 @@ export default class StoryForgePlugin extends Plugin {
 		const tagRegistry = await ensureTagRegistryFile(this.app);
 		loadCodexTypesIntoRegistry(this.app, tagRegistry);
 		await migrateVaultSchema(this.app);
-		const books = await ensureAllSeriesBookEntries(this.app);
+		const books = await ensureAllSeriesBookEntries(this.app, (folderName) => {
+			const fm = readBookFrontmatter(this.app, folderName);
+			if (!fm?.bookIdReference) return null;
+			return { bookId: fm.bookIdReference, bookTitle: fm.bookTitleReference || folderName };
+		});
 		await syncAllBookReferenceFields(this.app, books);
 		for (const folder of getLibraryBookFolders(this.app)) {
 			await ensureAllChapterEntries(this.app, folder.name);

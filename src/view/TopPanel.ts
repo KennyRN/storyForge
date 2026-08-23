@@ -22,6 +22,7 @@ import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
 import { ChapterIdeaCaptureModal } from "./ChapterIdeaCaptureModal";
 import { renderCodexFocusNavigator } from "./CodexFocusNavigator";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
+import type { NumberingStyle } from "../numberingStyle";
 import { ICON_BOOK_DUOTONE, ICON_PLUS_SQUARE, ICON_SETTINGS_ALT, ICON_UNPLACED } from "../icons";
 import { recordChapterArchive, readChapterWordCount } from "../history";
 
@@ -33,6 +34,8 @@ export interface TopPanelOptions {
 	 * behaves exactly as it does for "novel". */
 	mode: "series" | "novel" | "navigator";
 	hideSeriesPane: boolean;
+	seriesNumberingStyle: NumberingStyle;
+	chapterNumberingStyle: NumberingStyle;
 	/** Layout-level gate for the whole unplaced section (hand-off brief §2) — distinct from `unplacedMode`,
 	 * which is the user's own collapse/expand toggle within a layout that shows the section at all. */
 	showUnplacedSection: boolean;
@@ -43,7 +46,6 @@ export interface TopPanelOptions {
 	onToggleUnplacedMode: () => void;
 	onSelectBook: (bookFolderName: string) => void;
 	onOpenChapter: (bookFolderName: string, filename: string) => void;
-	onOpenSeriesModal: () => void;
 	/** Codex focus's forward-only `[+]`: create a chapter, append it to the end of chapter-order, open it. */
 	onCreateContinuingChapter: (bookFolderName: string) => void;
 	onArchiveChapter?: () => void | Promise<void>;
@@ -57,6 +59,26 @@ export interface TopPanelOptions {
 	registerContinuousCleanup: (dispose: () => void) => void;
 }
 
+/**
+ * Series-mode-only settings icon — pinned to the bottom-left corner of the whole pane, not the
+ * top header, so it reads as a persistent panel-level control. Rendered directly onto the pane's
+ * own root element (StoryForgeView's `container`/`contentEl`, which has `position: relative` in
+ * styles.css), not into renderTopPanel()'s own DOM — .sf-top-panel/.sf-bottom-panel both scroll
+ * (`overflow-y: auto`), which would clip an absolutely-positioned descendant that's meant to sit
+ * outside their own box, so this needs a container the overflow-clipping rows aren't ancestors of.
+ * Relevant only while actually browsing the series list (topPane === "series") — call-site gated,
+ * same condition renderTopPanel() used to gate this on internally.
+ */
+export function renderSeriesSettingsButton(container: HTMLElement, onOpenSeriesModal: () => void): void {
+	const settingsBtn = container.createSpan({ cls: "sf-series-settings-btn", attr: { "aria-label": "Series settings" } });
+	setIcon(settingsBtn, ICON_SETTINGS_ALT);
+	settingsBtn.addEventListener("click", (e) => {
+		e.stopPropagation();
+		onOpenSeriesModal();
+	});
+	makeAccessibleActivatable(settingsBtn, onOpenSeriesModal);
+}
+
 export function renderTopPanel(app: App, container: HTMLElement, options: TopPanelOptions): void {
 	container.empty();
 
@@ -67,21 +89,6 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 	if (!options.hideSeriesPane) {
 		const seriesLine = header.createDiv({ cls: "sf-header-line sf-series-line" });
 		seriesLine.createSpan({ cls: "sf-header-text", text: series.seriesTitle });
-
-		// Series settings live here and nowhere else — relevant only while actually browsing the
-		// series list (mode === "series"), not merely whenever the storyLibrary panel's own layout
-		// happens to be set to "Series" — the storyTelling panel reads that same global layout
-		// setting for its book-line but never runs in "series" mode itself, so gating on `layout`
-		// used to leak this icon into the storyTelling panel's series header too.
-		if (options.mode === "series") {
-			const settingsBtn = seriesLine.createSpan({ cls: "sf-series-settings-btn", attr: { "aria-label": "Series settings" } });
-			setIcon(settingsBtn, ICON_SETTINGS_ALT);
-			settingsBtn.addEventListener("click", (e) => {
-				e.stopPropagation();
-				options.onOpenSeriesModal();
-			});
-			makeAccessibleActivatable(settingsBtn, () => options.onOpenSeriesModal());
-		}
 	}
 
 	if (options.mode !== "series") {
@@ -101,7 +108,12 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 		}
 		const titleRow = bookLine.createDiv({ cls: "sf-header-line sf-book-title-row" });
 		const rawBookTitle = options.currentBookFolderName
-			? numberedBookTitle(app, options.currentBookFolderName, { ordered: series.ordered, unplaced: series.unplaced })
+			? numberedBookTitle(
+					app,
+					options.currentBookFolderName,
+					{ ordered: series.ordered, unplaced: series.unplaced },
+					options.seriesNumberingStyle,
+				)
 			: "—";
 		const { title, subtitle } = splitTitleSubtitle(rawBookTitle);
 		const textWrap = titleRow.createDiv({ cls: "sf-book-text-wrap" });
@@ -120,6 +132,7 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 			currentBookFolderName: options.currentBookFolderName,
 			activeChapterFilename: options.activeChapterFilename,
 			highlightActiveChapter: options.highlightActiveChapter,
+			chapterNumberingStyle: options.chapterNumberingStyle,
 			onOpenChapter: options.onOpenChapter,
 			onCreateContinuing: options.onCreateContinuingChapter,
 			continuousActiveFilename: options.continuousActiveFilename,
@@ -285,7 +298,7 @@ function renderSeriesList(
 	container: HTMLElement,
 ): void {
 	const rawTitles = [...ordered, ...unplaced].map((folder) => bookDisplayTitle(app, folder.name));
-	const numbered = applyHashNumbering(rawTitles);
+	const numbered = applyHashNumbering(rawTitles, options.seriesNumberingStyle);
 
 	const mainList = bodyEl.createDiv({ cls: "sf-top-list" });
 	ordered.forEach((folder, i) => {
@@ -379,7 +392,7 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 	const { ordered, unplaced } = getBookChapters(app, bookFolderName);
 
 	const rawTitles = [...ordered, ...unplaced].map((file) => chapterDisplayTitle(app, bookFolderName, file.name));
-	const numbered = applyHashNumbering(rawTitles);
+	const numbered = applyHashNumbering(rawTitles, options.chapterNumberingStyle);
 
 	const mainList = bodyEl.createDiv({ cls: "sf-top-list" });
 	ordered.forEach((file, i) => {

@@ -607,7 +607,6 @@ export class ProtectionsController {
 	renderBackupSection(body: HTMLElement, companionState: FormatCompanionState): void {
 		const settings = this.plugin.getSettings();
 		const card = new SettingGroup(body);
-		card.setHeading("backup");
 		let frequencyRow!: Setting;
 
 		card.addSetting((setting) => {

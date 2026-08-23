@@ -2,7 +2,7 @@ import { ItemView, Notice, setIcon, TFile, WorkspaceLeaf } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { bookFolderNameFromChapterPath, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath } from "../paths";
 import { getBookId, getSeriesBooks } from "../series";
-import { renderTopPanel, type UnplacedViewMode } from "./TopPanel";
+import { renderSeriesSettingsButton, renderTopPanel, type UnplacedViewMode } from "./TopPanel";
 import { renderBottomPanel } from "./BottomPanel";
 import { renderStatsPanel, nextStatsMode, type StatsMode } from "./StatsPanel";
 import { SeriesModal } from "./SeriesModal";
@@ -248,6 +248,8 @@ export class StoryForgeView extends ItemView {
 			renderTopPanel(this.app, topEl, {
 				mode: topPane,
 				hideSeriesPane: this.plugin.getSettings().hideSeriesPane,
+				seriesNumberingStyle: this.plugin.getSettings().seriesNumberingStyle,
+				chapterNumberingStyle: this.plugin.getSettings().chapterNumberingStyle,
 				showUnplacedSection: config.showUnplaced,
 				currentBookFolderName: this.currentBookFolderName,
 				activeChapterFilename: this.activeChapterFilename,
@@ -280,7 +282,6 @@ export class StoryForgeView extends ItemView {
 						this.plugin.focusRecommendationOnChapter(bookName, filename);
 					}
 				},
-				onOpenSeriesModal: () => new SeriesModal(this.app, this.plugin, () => this.render()).open(),
 				onCreateContinuingChapter: (bookFolderName) => void this.handleCreateContinuingChapter(bookFolderName),
 				onArchiveChapter: async () => {
 					if (this.closed) return;
@@ -294,6 +295,13 @@ export class StoryForgeView extends ItemView {
 					this.continuousCleanup = dispose;
 				},
 			});
+
+			// Pinned to the pane's own bottom-left corner (see renderSeriesSettingsButton's doc
+			// comment) — rendered straight onto `container` (the pane root), not into `topEl` above,
+			// since .sf-top-panel scrolls and would clip it.
+			if (topPane === "series") {
+				renderSeriesSettingsButton(container, () => new SeriesModal(this.app, this.plugin, () => this.render()).open());
+			}
 		}
 
 		if (config.showCodex) {
