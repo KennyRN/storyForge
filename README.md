@@ -1,8 +1,8 @@
+## 0.14.0 Update
+- I've streamlined the options for storyForge's interface, so hopefully it'll be easier and quicker to make storyForge fit in with your chosen theme
+- I've also introduced plot thread lines. There's not much about them right now, just that they're there.
+
 ***⚠️ WARNING: this plugin no longer creates an external backup!***
-
-Instead it creates a folder within the vault and backs the vault up in there. The change was due to Obsidian's automated warning that the vault allows external access of your computer and my frustration that I had to mentally ignore the warning time and time again.
-
-This change does mean that it should now be able to work on mobile devices.
 
 Embedded custom fonts (and full manuscript typography) now live in the optional **formatForge** companion plugin. The split keeps storyForge’s bundle smaller for Obsidian Sync. (Sadly this means it's no longer a one-stop-shop but it's close enough with the advantage that formatForge can now work on other vaults for a simple-to-use theme formatting alteration plugin.)
 
