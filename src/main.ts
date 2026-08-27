@@ -1,4 +1,5 @@
-import { Notice, Plugin, TFile, WorkspaceLeaf } from "obsidian";
+import { MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf, type PaneType } from "obsidian";
+import { existingMainContentLeaf, resolveMainContentLeaf, type MainContentWorkspace } from "./mainContentLeaf";
 import type { Extension } from "@codemirror/state";
 import { createCyclingGuideViewPlugin } from "./cyclingGuide";
 import { StoryForgeView, STORYFORGE_VIEW_TYPE } from "./view/StoryForgeView";
@@ -16,6 +17,7 @@ import { CODEX_TYPES } from "./codex";
 import { buildRightRailTypeOrder, isCanonicalTypeOrder } from "./rightRailOrder";
 import {
 	createHostApi,
+	findInvalidEnumSettings,
 	findInvalidLinkedSettings,
 	type RightRailRegistration,
 	type StoryForgeCompanionPanel,
@@ -29,7 +31,11 @@ import { TagRegistryModal } from "./view/TagRegistryModal";
 import { FORMATFORGE_PLUGIN_ID, formatCompanionState } from "./formatCompanionActive";
 import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders, getBookId } from "./series";
 import { ensureTagRegistryFile, loadCodexTypesIntoRegistry } from "./tagRegistry";
-import { createBook, createChapter, ensureAllChapterEntries, readBookFrontmatter, syncAllBookReferenceFields, writeBookChapterOrder } from "./book";
+import { ensurePlotThreadsFile } from "./plotThreads";
+import { defaultSeriesPlotThreadColor } from "./view/novelColor";
+import { resolveThemeBackgroundColor } from "./view/PalettePickerModal";
+import { createBook, createChapter, ensureAllChapterEntries, getBookChapters, readBookFrontmatter, syncAllBookReferenceFields, writeBookChapterOrder } from "./book";
+import { resolveStorytellingCenterPath } from "./storytellingCenter";
 import type { NumberingStyle } from "./numberingStyle";
 import { migrateStructuralLayout, migrateTitleforgeLocation, migrateVaultSchema } from "./migration";
 import { registerReconciliationEvents } from "./reconciliation";
@@ -49,12 +55,13 @@ import { extractFingerprint } from "./fingerprint";
 import { updateChapterFingerprint } from "./chapterSidecar";
 import { debounce } from "./debounce";
 import { countWords } from "./wordCount";
-import { registerCustomIcons, ICON_LAYOUT_SELECTOR, ICON_TAG_EDIT } from "./icons";
+import { registerCustomIcons } from "./icons";
 import type { FormatCompanionRegistration } from "./formattingApi";
 import { refreshTabTitles, registerTabTitleOverrides } from "./tabTitles";
 import { PaletteColor, PaletteName } from "./colorPalettes";
 import { runContentBackup } from "./backup";
 import { TitleForgeController } from "./titleforge/TitleForgeController";
+import { viewTypeFromLeafChrome, isGoneAwayPlaceholder } from "./goneAwayView";
 
 export type CodexFolderIndicatorThickness = "none" | "thin" | "medium" | "thick";
 
@@ -142,11 +149,11 @@ export interface StoryForgePluginSettings {
 	libraryItemsColor: string;
 	libraryItemsMuted: boolean;
 	/**
-	 * storyTelling panel's own chapter-item styling (UiFormattingModal's "storyTelling" tab) —
-	 * independent of the storyLibrary panel's "Library items" settings above, except for colour and
-	 * highlight colour, which `storytellingLinkItemsColorToLibrary` can keep mirrored to
-	 * `libraryItemsColor`/`highlightColor`/`highlightTextColor` instead (on by default, so
-	 * upgrading users see no visual change until they explicitly opt out).
+	 * storyTelling panel's own chapter-item styling (UiFormattingModal's "storytelling" tab) —
+	 * independent of the storyLibrary panel's "Library items" settings above, except that the
+	 * palette picker's "Chapter colour" option (`storytellingLinkItemsColorToLibrary`) mirrors
+	 * `libraryItemsColor` and `highlightTextColor`. Highlight background always uses the items
+	 * colour. Default is on, so upgrading users see no visual change until they pick another colour.
 	 */
 	storytellingItemsFontSize: number;
 	storytellingItemsOverrideFont: boolean;
@@ -240,6 +247,9 @@ export interface StoryForgePluginSettings {
 	selectedNovel: string | null;
 	selectedObject: string | null;
 	collapsedCodexFolderIds: string[];
+	/** Chapter plot cards the user has collapsed on the story library novel pane
+	 * (`${bookFolderName}/${filename}`). Sidebar Novel tab is unaffected. */
+	collapsedPlotChapterKeys: string[];
 	cyclingGuideEnabled: boolean;
 	cyclingGuideThickness: HeadingDividerThickness;
 	cyclingGuideColor: string;
@@ -265,7 +275,7 @@ export interface StoryForgePluginSettings {
 	editorScrollbarThickness: EditorScrollbarThickness;
 	/** Colour of companion icons in the Forge right-rail secondary header. */
 	forgeCompanionIconColor: string;
-	/** Base colour for the Story Context panel; also its fallback when "use for all" is on. Labeled "Base colour" in settings — no visible header remains to name it after. */
+	/** Kept for settings compatibility; Navigation no longer exposes a base colour. */
 	recommendHeaderColor: string;
 	recommendHeaderMuted: boolean;
 	recommendTabsFontSize: number;
@@ -273,7 +283,9 @@ export interface StoryForgePluginSettings {
 	recommendTabsFontFamily: CustomFontFamily;
 	recommendTabsFontWeight: FontWeight;
 	recommendTabsColor: string;
+	recommendTabsMuted: boolean;
 	recommendTabsActiveColor: string;
+	recommendFocusModeIconColor: string;
 	recommendChapterTitleFontSize: number;
 	recommendChapterTitleOverrideFont: boolean;
 	recommendChapterTitleFontFamily: CustomFontFamily;
@@ -328,6 +340,22 @@ export interface StoryForgePluginSettings {
 	recommendDetailsFontWeight: FontWeight;
 	recommendDetailsColor: string;
 	recommendDetailsMuted: boolean;
+	recommendUnknownColor: string;
+	recommendUnknownMuted: boolean;
+	recommendUnknownHeaderColor: string;
+	recommendUnknownHeaderMuted: boolean;
+	recommendCaptureColor: string;
+	recommendCaptureMuted: boolean;
+	recommendCaptureHeaderColor: string;
+	recommendCaptureHeaderMuted: boolean;
+	recommendHoldingColor: string;
+	recommendHoldingMuted: boolean;
+	recommendHoldingHeaderColor: string;
+	recommendHoldingHeaderMuted: boolean;
+	recommendResolvedColor: string;
+	recommendResolvedMuted: boolean;
+	recommendResolvedHeaderColor: string;
+	recommendResolvedHeaderMuted: boolean;
 	recommendMetaLabelFontSize: number;
 	recommendMetaLabelOverrideFont: boolean;
 	recommendMetaLabelFontFamily: CustomFontFamily;
@@ -592,6 +620,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	selectedNovel: null,
 	selectedObject: null,
 	collapsedCodexFolderIds: [],
+	collapsedPlotChapterKeys: [],
 	cyclingGuideEnabled: false,
 	cyclingGuideThickness: "thin",
 	cyclingGuideColor: "#f59e0b",
@@ -620,7 +649,9 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	recommendTabsFontFamily: "ibm-plex-sans-var",
 	recommendTabsFontWeight: "400",
 	recommendTabsColor: "var(--text-muted)",
+	recommendTabsMuted: false,
 	recommendTabsActiveColor: "var(--text-accent)",
+	recommendFocusModeIconColor: "var(--text-muted)",
 	recommendChapterTitleFontSize: 1,
 	recommendChapterTitleOverrideFont: false,
 	recommendChapterTitleFontFamily: "ibm-plex-sans-var",
@@ -675,6 +706,22 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	recommendDetailsFontWeight: "400",
 	recommendDetailsColor: "var(--text-normal)",
 	recommendDetailsMuted: false,
+	recommendUnknownColor: "var(--text-muted)",
+	recommendUnknownMuted: true,
+	recommendUnknownHeaderColor: "var(--background-primary)",
+	recommendUnknownHeaderMuted: false,
+	recommendCaptureColor: "var(--interactive-accent)",
+	recommendCaptureMuted: false,
+	recommendCaptureHeaderColor: "var(--text-on-accent)",
+	recommendCaptureHeaderMuted: false,
+	recommendHoldingColor: "var(--text-warning)",
+	recommendHoldingMuted: false,
+	recommendHoldingHeaderColor: "var(--background-primary)",
+	recommendHoldingHeaderMuted: false,
+	recommendResolvedColor: "var(--text-muted)",
+	recommendResolvedMuted: true,
+	recommendResolvedHeaderColor: "var(--background-primary)",
+	recommendResolvedHeaderMuted: false,
 	recommendMetaLabelFontSize: 0.9,
 	recommendMetaLabelOverrideFont: false,
 	recommendMetaLabelFontFamily: "ibm-plex-sans-var",
@@ -762,41 +809,21 @@ export default class StoryForgePlugin extends Plugin {
 	private mainContentLeafId: string | null = null;
 	/**
 	 * titleForge — an in-tree, extraction-ready subplugin (see src/titleforge/README.md), not a
-	 * storyForge feature. This is storyForge's whole touch point: construct it, await onload(),
-	 * call onunload(). Not private — StoryForgeSettingsTab.ts opens TitleForgeSettingsModal with it.
+	 * storyForge feature. Constructed during onload; `onload()` itself waits for layout-ready
+	 * so vault I/O cannot fail the plugin before views are registered. `onunload()` on disable.
+	 * Not private — StoryForgeSettingsTab.ts opens TitleForgeSettingsModal with it.
 	 */
 	titleForge!: TitleForgeController;
 
 	async onload(): Promise<void> {
-		// Loaded first, before registerView() below - Obsidian can start restoring a previously-open
-		// leaf of our view type as soon as it's registered, without waiting for the rest of onload()
-		// to resolve, so StoryForgeView.onOpen() must never risk reading pre-load default settings.
-		await this.loadSettings();
+		// Nothing that awaits may run before registerView(). Workspace restore races plugin
+		// onload; if our types are missing (or Plugin.registerView unregisters them first),
+		// saved tabs become EmptyView ("plugin has gone away"). Settings/API/icons are all
+		// synchronous here so nameForge can touch `plugin.api` the moment those tabs restore.
+		this.syncObsidianSettingsRef();
 		this.style = new StyleController(this);
-		// Expose host API as early as possible so siblings (nameForge, …) can soft-connect
-		// during the rest of onload / immediately after a hot-reload.
 		this.api = createHostApi(this);
-
-		// Must run before TitleForgeController.onload() below, which touches
-		// _backstage/titleforge/ immediately (ensureLexiconsSeeded, loadSettings)
-		// — running this later inside initializeVaultState() (as the other
-		// structural migrations do) would let titleForge seed fresh defaults at
-		// the new path first, then find "the new path already exists" and skip,
-		// orphaning the real data at the legacy path. See migrateTitleforgeLocation's
-		// doc comment in migration.ts.
-		await migrateTitleforgeLocation(this.app);
 		this.titleForge = new TitleForgeController(this);
-		await this.titleForge.onload();
-
-		// Defensively remove any style tags a previous plugin version (before dynamic <style>
-		// injection was replaced with CSS custom properties) left behind - both from a stale
-		// hot-reloaded instance, and from upgrading from an older release of this plugin.
-		document
-			.querySelectorAll(
-				"#storyforge-visibility-styles, #storyforge-header-styles, #storyforge-highlight-styles, #storyforge-library-header-styles, #storyforge-codex-folder-styles, #storyforge-codex-note-label-styles, #storyforge-heading1-link-styles, #storyforge-text-style-overrides, #storyforge-custom-fonts, #storyforge-cycling-guide-styles",
-			)
-			.forEach((el) => el.remove());
-
 		registerCustomIcons();
 		this.registerView(STORYFORGE_VIEW_TYPE, (leaf) => new StoryForgeView(leaf, this));
 		this.registerView(STORYTELLING_VIEW_TYPE, (leaf) => new StorytellingView(leaf, this));
@@ -807,6 +834,13 @@ export default class StoryForgePlugin extends Plugin {
 		this.registerView(TOOLS_VIEW_TYPE, (leaf) => new ToolsView(leaf));
 		this.registerView(RECOMMEND_VIEW_TYPE, (leaf) => new RecommendationView(leaf, this));
 		this.registerView(ARCHIVE_VIEW_TYPE, (leaf) => new ArchiveView(leaf, this));
+
+		await this.loadSettings();
+		document
+			.querySelectorAll(
+				"#storyforge-visibility-styles, #storyforge-header-styles, #storyforge-highlight-styles, #storyforge-library-header-styles, #storyforge-codex-folder-styles, #storyforge-codex-note-label-styles, #storyforge-heading1-link-styles, #storyforge-text-style-overrides, #storyforge-custom-fonts, #storyforge-cycling-guide-styles",
+			)
+			.forEach((el) => el.remove());
 
 		this.addCommand({
 			id: "open-recommendations",
@@ -838,17 +872,18 @@ export default class StoryForgePlugin extends Plugin {
 			callback: () => void this.activateStorytellingView(),
 		});
 
-		// Hidden behind the "Use tools panel" setting like every other ribbon icon (ToolsPanel.ts
-		// relocates the whole native ribbon into the Tools panel); this one reuses the "choose
-		// layout" icon now that its original job (the storyLibrary panel's layout dropdown) has
-		// moved to a tab row instead.
-		this.addRibbonIcon(ICON_LAYOUT_SELECTOR, "Open storyForge interface", () => this.openStoryForgeInterface());
-		this.addRibbonIcon(ICON_TAG_EDIT, "Open Tags & Codex types", () => this.openTagRegistry());
-
 		this.settingsTab = new StoryForgeSettingsTab(this.app, this);
 		this.addSettingTab(this.settingsTab);
-		this.applyAllStyles();
-		if (this.pluginSettings.cyclingGuideEnabled) this.rebuildCyclingGuideExtension();
+		try {
+			this.applyAllStyles();
+		} catch (err) {
+			console.error("storyForge: applyAllStyles failed", err);
+		}
+		try {
+			if (this.pluginSettings.cyclingGuideEnabled) this.rebuildCyclingGuideExtension();
+		} catch (err) {
+			console.error("storyForge: cycling guide failed", err);
+		}
 		this.registerEditorExtension(this.cyclingGuideExtensions);
 		registerTabTitleOverrides(
 			this.app,
@@ -883,16 +918,7 @@ export default class StoryForgePlugin extends Plugin {
 		);
 
 		this.app.workspace.onLayoutReady(() => {
-			void this.initializeVaultState();
-			void this.enqueueEnsurePanels(async () => {
-				await this.ensureSidePanelsUnlocked();
-				await this.refreshCustomIcons();
-			});
-			this.registerPanelOrderWatcher();
-			refreshTabTitles(this.app, this.pluginSettings.chapterNumberingStyle);
-			this.applyEditorScrollbarStyles();
-			this.style.applyRightRailChrome();
-			void this.maybeRunScheduledBackup("vault-open");
+			void this.onWorkspaceLayoutReady();
 		});
 
 		// Switching to the storyTelling panel is a leaf activation like any other (it's a sidebar
@@ -902,8 +928,7 @@ export default class StoryForgePlugin extends Plugin {
 		this.registerEvent(
 			this.app.workspace.on("active-leaf-change", (leaf) => {
 				if (leaf?.view instanceof StorytellingView) {
-					this.leaveSeriesOverviewIfShowing();
-					this.leaveNovelOverviewIfShowing();
+					void this.restoreStorytellingCenterEditor(false);
 				}
 			}),
 		);
@@ -946,14 +971,51 @@ export default class StoryForgePlugin extends Plugin {
 	}
 
 	/**
-	 * Inactive sidebar tabs often restore as DeferredView with a persisted fallback icon
-	 * (`lucide-ghost`) and the raw view-type string as the title. Round-tripping
-	 * `setViewState(getViewState())` re-applies that stale chrome. Load deferred leaves,
-	 * drop duplicates, then rebuild so tab headers pick up registered custom icons.
+	 * Vault I/O and leaf recovery wait for layout-ready: the in-memory vault index is not
+	 * guaranteed during onload, and titleForge seeds files the moment it starts. Running that
+	 * before initializeVaultState keeps migrateTitleforgeLocation ahead of the seed (see
+	 * migration.ts). A throw here must not unload the plugin — that is what turns restored
+	 * leaves into "plugin has gone away".
 	 */
-	private async refreshCustomIcons(): Promise<void> {
-		const types = [
+	private async onWorkspaceLayoutReady(): Promise<void> {
+		void (async () => {
+			try {
+				await migrateTitleforgeLocation(this.app);
+				await this.titleForge.onload();
+			} catch (err) {
+				console.error("storyForge: titleForge failed to load", err);
+			}
+			try {
+				await this.initializeVaultState();
+			} catch (err) {
+				console.error("storyForge: vault initialization failed", err);
+			}
+		})();
+		void this.enqueueEnsurePanels(async () => {
+			await this.recoverGoneAwayLeaves();
+			this.detachGoneAwayPlaceholders();
+			await this.ensureSidePanelsUnlocked();
+			await this.hydratePluginViews();
+			// storyTelling is the left-rail landing after ensure; the center must show the
+			// related chapter editor on its own (reload restores whatever was in the root
+			// split, which is often not that editor).
+			await this.restoreStorytellingCenterEditor(true);
+		});
+		this.registerPanelOrderWatcher();
+		refreshTabTitles(this.app, this.pluginSettings.chapterNumberingStyle);
+		try {
+			this.applyEditorScrollbarStyles();
+			this.style.applyRightRailChrome();
+		} catch (err) {
+			console.error("storyForge: layout-ready styles failed", err);
+		}
+		void this.maybeRunScheduledBackup("vault-open");
+	}
+
+	private allPluginViewTypes(): string[] {
+		return [
 			STORYFORGE_VIEW_TYPE,
+			STORYTELLING_VIEW_TYPE,
 			STORYFORGE_CONTINUOUS_VIEW_TYPE,
 			STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE,
 			STORYFORGE_NOVEL_OVERVIEW_VIEW_TYPE,
@@ -963,21 +1025,84 @@ export default class StoryForgePlugin extends Plugin {
 			ARCHIVE_VIEW_TYPE,
 			...this.rightRailRegistry.map((r) => r.viewType),
 		];
-		for (const type of types) {
+	}
+
+	/**
+	 * Workspace leaves that restored as EmptyView because our type was not yet registered.
+	 * getLeavesOfType() will not find them — EmptyView's type is "empty" — so walk every
+	 * leaf and put the original type back. Leftovers are detached in detachGoneAwayPlaceholders().
+	 */
+	private async recoverGoneAwayLeaves(): Promise<void> {
+		const types = this.allPluginViewTypes();
+		const typeSet = new Set(types);
+		const leaves: WorkspaceLeaf[] = [];
+		this.app.workspace.iterateAllLeaves((leaf) => leaves.push(leaf));
+		for (const leaf of leaves) {
+			if (!leaf.view) continue;
+			const viewType = leaf.view.getViewType();
+			if (viewType !== "empty") continue;
+			const state = leaf.getViewState();
+			const restoreType =
+				(typeSet.has(state.type) ? state.type : null) ??
+				viewTypeFromLeafChrome(this.leafChromeText(leaf), types);
+			if (!restoreType) continue;
+			try {
+				await leaf.setViewState({ ...state, type: restoreType });
+			} catch (err) {
+				console.error(`storyForge: failed to recover ${restoreType} leaf`, err);
+				leaf.detach();
+			}
+		}
+	}
+
+	/** Drop EmptyView tabs that still show the gone-away placeholder after recovery. */
+	private detachGoneAwayPlaceholders(): void {
+		const gone: WorkspaceLeaf[] = [];
+		this.app.workspace.iterateAllLeaves((leaf) => {
+			if (!leaf.view || leaf.view.getViewType() !== "empty") return;
+			if (isGoneAwayPlaceholder(this.leafChromeText(leaf))) gone.push(leaf);
+		});
+		for (const leaf of gone) leaf.detach();
+	}
+
+	private leafChromeText(leaf: WorkspaceLeaf): string {
+		const view = leaf.view;
+		const header = leaf as WorkspaceLeaf & {
+			tabHeaderInnerTitleEl?: HTMLElement;
+			tabHeaderEl?: HTMLElement;
+		};
+		return [
+			view?.getViewType() ?? "",
+			leaf.getViewState()?.type ?? "",
+			view?.getDisplayText() ?? "",
+			view?.containerEl?.textContent ?? "",
+			header.tabHeaderInnerTitleEl?.textContent ?? "",
+			header.tabHeaderEl?.textContent ?? "",
+		].join("\n");
+	}
+
+	/**
+	 * Inactive sidebar tabs often restore as DeferredView. Load them so tab headers pick up
+	 * registered custom icons. Do not rebuildView() here: that round-trips through EmptyView
+	 * and is what turns a healthy restore into "plugin has gone away" on quit/reopen.
+	 */
+	private async hydratePluginViews(): Promise<void> {
+		for (const type of this.allPluginViewTypes()) {
 			this.dedupeLeavesOfType(type);
 			for (const leaf of this.app.workspace.getLeavesOfType(type)) {
-				await leaf.loadIfDeferred();
-				// rebuildView is runtime-public on WorkspaceLeaf but not in the published typings.
-				await (leaf as WorkspaceLeaf & { rebuildView(): Promise<void> }).rebuildView();
+				try {
+					await leaf.loadIfDeferred();
+				} catch (err) {
+					console.error(`storyForge: loadIfDeferred failed for ${type}`, err);
+				}
+				if (leaf.view instanceof ToolsView) leaf.view.restoreRibbon();
 			}
 		}
 	}
 
 	/**
 	 * Forces any open storyForge view(s) to re-render, e.g. after a settings change with no other
-	 * trigger. Inactive sidebar tabs restore as DeferredView (see refreshCustomIcons()'s doc
-	 * comment) and have no `render()` of their own, so the `instanceof` checks double as a guard
-	 * against that rather than being redundant type narrowing.
+	 * trigger. Inactive sidebar tabs restore as DeferredView and have no `render()` of their own,
 	 */
 	refreshStoryForgeViews(): void {
 		for (const leaf of this.app.workspace.getLeavesOfType(STORYFORGE_VIEW_TYPE)) {
@@ -1038,11 +1163,23 @@ export default class StoryForgePlugin extends Plugin {
 		}
 	}
 
-	/** The tracked leaf if it still exists (hasn't been closed by the user) — null rather than
-	 * creating one, for callers that only want to act on it if it's already open. */
+	/** Workspace adapter for {@link resolveMainContentLeaf}: never asks `getLeaf(false)`, which
+	 * returns the active sidebar after storyTelling / Story Context is focused. */
+	private mainContentWorkspace(): MainContentWorkspace<WorkspaceLeaf> {
+		const ws = this.app.workspace;
+		return {
+			rootSplit: ws.rootSplit,
+			getLeafById: (id) => ws.getLeafById(id),
+			getMostRecentLeaf: (root) => ws.getMostRecentLeaf(root as typeof ws.rootSplit),
+			getLeaf: (newLeaf) => ws.getLeaf(newLeaf as PaneType | boolean),
+		};
+	}
+
+	/** The tracked leaf if it still exists in the center pane — null rather than creating one, for
+	 * callers that only want to act on it if it's already open. A sidebar leaf that was adopted by
+	 * an older getLeaf(false) is treated as gone so the next open self-heals into the root split. */
 	private getMainContentLeafIfExists(): WorkspaceLeaf | null {
-		if (!this.mainContentLeafId) return null;
-		return this.app.workspace.getLeafById(this.mainContentLeafId);
+		return existingMainContentLeaf(this.mainContentWorkspace(), this.mainContentLeafId);
 	}
 
 	/**
@@ -1051,16 +1188,50 @@ export default class StoryForgePlugin extends Plugin {
 	 * leaf by its own id (rather than `workspace.getLeaf(false)`'s "whatever's currently active")
 	 * guarantees these transitions land on the *same* tab every time regardless of what else the
 	 * user has since clicked into, so switching between Series/Novel/Chapter/storyTelling never
-	 * piles up extra tabs of our own making.
+	 * piles up extra tabs of our own making. Adoption is restricted to the root split so a click
+	 * from the storyTelling sidebar cannot replace that sidebar with the editor.
 	 */
 	getMainContentLeaf(): WorkspaceLeaf {
-		const existing = this.getMainContentLeafIfExists();
-		if (existing) return existing;
-		const leaf = this.app.workspace.getLeaf(false);
+		const leaf = resolveMainContentLeaf(this.mainContentWorkspace(), this.mainContentLeafId);
 		// `id` is runtime-public on WorkspaceLeaf but not in the published typings (same situation
 		// as rebuildView() elsewhere in this file).
 		this.mainContentLeafId = (leaf as WorkspaceLeaf & { id: string }).id;
 		return leaf;
+	}
+
+	/**
+	 * Puts the chapter the storyTelling sidebar is pointing at into the center editor, without
+	 * waiting for a row click. `force` is for layout-ready (plugin reload / vault open): replace
+	 * whatever the workspace restored in the root split. Without `force` (switching onto the
+	 * storyTelling tab), an already-open markdown file is left alone so a Codex note the user just
+	 * opened isn't yanked back to the chapter.
+	 */
+	async restoreStorytellingCenterEditor(force = false): Promise<void> {
+		if (!force) {
+			const existing = this.getMainContentLeafIfExists();
+			if (existing?.view instanceof MarkdownView && existing.view.file) return;
+		}
+		const file = this.resolveStorytellingCenterFile();
+		if (file) {
+			const leaf = this.getMainContentLeaf();
+			await leaf.openFile(file, { active: true });
+			await this.app.workspace.revealLeaf(leaf);
+			this.app.workspace.setActiveLeaf(leaf, { focus: true });
+			return;
+		}
+		this.leaveSeriesOverviewIfShowing();
+		this.leaveNovelOverviewIfShowing();
+	}
+
+	private resolveStorytellingCenterFile(): TFile | null {
+		const { selectedNovel, selectedObject } = this.getSettings();
+		const firstOrdered = selectedNovel ? (getBookChapters(this.app, selectedNovel).ordered[0]?.name ?? null) : null;
+		const path = resolveStorytellingCenterPath(selectedNovel, selectedObject, (p) => {
+			return this.app.vault.getAbstractFileByPath(p) instanceof TFile;
+		}, firstOrdered);
+		if (!path) return null;
+		const file = this.app.vault.getAbstractFileByPath(path);
+		return file instanceof TFile ? file : null;
 	}
 
 	/** Shared body of leaveSeriesOverviewIfShowing()/leaveNovelOverviewIfShowing() below, once the
@@ -1180,7 +1351,7 @@ export default class StoryForgePlugin extends Plugin {
 		if (this.app.workspace.layoutReady) {
 			void this.enqueueEnsurePanels(async () => {
 				await this.ensureRightRailPanelsUnlocked();
-				await this.refreshCustomIcons();
+				await this.hydratePluginViews();
 			});
 		}
 	}
@@ -1216,14 +1387,16 @@ export default class StoryForgePlugin extends Plugin {
 			throw new Error("Settings import must be a JSON object");
 		}
 		const incoming = data as Record<string, unknown>;
-		// Formatting values must clear the same contract `updateLinkedSettings` enforces,
-		// otherwise a hand-edited theme can persist an enum the CSS variable maps cannot resolve.
-		const invalid = findInvalidLinkedSettings(incoming);
+		const invalid = [
+			...findInvalidLinkedSettings(incoming),
+			...findInvalidEnumSettings(incoming),
+		];
 		if (invalid.length > 0) {
 			const shown = invalid.slice(0, 5).join(", ");
 			const rest = invalid.length > 5 ? `, and ${invalid.length - 5} more` : "";
-			throw new Error(`Invalid formatting value for ${shown}${rest}`);
+			throw new Error(`Invalid settings value for ${shown}${rest}`);
 		}
+		const previous = { ...this.pluginSettings };
 		const merged = { ...this.pluginSettings };
 		for (const key of Object.keys(DEFAULT_SETTINGS) as Array<keyof StoryForgePluginSettings>) {
 			if (!Object.prototype.hasOwnProperty.call(incoming, key)) continue;
@@ -1237,7 +1410,13 @@ export default class StoryForgePlugin extends Plugin {
 			if (!sections[opt.type]) sections[opt.type] = "Facts";
 		}
 		this.pluginSettings.codexFactSectionByType = sections;
-		await this.saveSettings();
+		try {
+			await this.saveSettings();
+		} catch (error) {
+			this.pluginSettings = previous;
+			this.syncObsidianSettingsRef();
+			throw error;
+		}
 
 		this.applyAllStyles();
 		this.setCyclingGuideEnabled(this.pluginSettings.cyclingGuideEnabled);
@@ -1303,18 +1482,6 @@ export default class StoryForgePlugin extends Plugin {
 		this.openObsidianSettings(FORMATFORGE_PLUGIN_ID);
 	}
 
-	/** Open formatForge's storyForge-linked panel-chrome modal directly. Falls back to
-	 * openFormatForgeSettings() (the Obsidian Settings window) on an older formatForge that hasn't
-	 * registered this hook yet. */
-	openFormatForgeInterfaceModal(): void {
-		const open = this.getFormatCompanion()?.openInterfaceModal;
-		if (open) {
-			open();
-			return;
-		}
-		this.openFormatForgeSettings();
-	}
-
 	/** Open formatForge's combined settings modal (Text styling + Formatting themes + Palette)
 	 * directly. Falls back to openFormatForgeSettings() (the Obsidian Settings window) on an older
 	 * formatForge that hasn't registered this hook yet. */
@@ -1350,17 +1517,15 @@ export default class StoryForgePlugin extends Plugin {
 		this.openFormatForgeSettings();
 	}
 
-	/** Ribbon/command entry point for "Open storyForge interface" — always opens the modal itself.
-	 * Unlike the settings tab's "Formatting (formatForge)" action, this doesn't redirect to
-	 * formatForge's own settings while it's the live companion: this is a dedicated ribbon icon
-	 * for this modal, so it should open it, not a different plugin's settings page. */
+	/** Opens the storyForge interface modal. formatForge adds font pickers to this same modal
+	 * when registered; it does not replace it. */
 	openStoryForgeInterface(): void {
 		new UiFormattingModal(this.app, this).open();
 	}
 
-	/** Ribbon/command entry point for "Tags & Codex types". */
-	openTagRegistry(): void {
-		new TagRegistryModal(this.app, () => this.refreshStoryForgeViews()).open();
+	/** Opens the Codex types or chapter/novel tags registry. */
+	openTagRegistry(scope: "codexTypes" | "tags"): void {
+		new TagRegistryModal(this.app, () => this.refreshStoryForgeViews(), scope).open();
 	}
 
 	/** SeriesModal calls this in onOpen()/onClose() so its formatting tab can be told to re-render
@@ -1575,6 +1740,11 @@ export default class StoryForgePlugin extends Plugin {
 		if (isFirstRun) await this.createFirstRunBookAndChapter();
 		const tagRegistry = await ensureTagRegistryFile(this.app);
 		loadCodexTypesIntoRegistry(this.app, tagRegistry);
+		await ensurePlotThreadsFile(
+			this.app,
+			defaultSeriesPlotThreadColor(this.pluginSettings) ?? undefined,
+			resolveThemeBackgroundColor(),
+		);
 		await migrateVaultSchema(this.app);
 		const books = await ensureAllSeriesBookEntries(this.app, (folderName) => {
 			const fm = readBookFrontmatter(this.app, folderName);

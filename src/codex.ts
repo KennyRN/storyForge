@@ -283,12 +283,32 @@ export function getCodexView(
 	return buildCodexTree(app, typeFilter ? filterVisiblePathsByType(app, visiblePaths, typeFilter) : visiblePaths);
 }
 
-function uniqueChildPath(app: App, parentPath: string, baseName: string, extension = ""): string {
-	let candidate = `${parentPath}/${baseName}${extension}`;
-	if (!app.vault.getAbstractFileByPath(candidate)) return candidate;
+/** Filename characters that would leave `Codex/` or break the filesystem. Mirrors uniqueCodexFilename. */
+const CODEX_BASENAME_UNSAFE = /[/\\?%*:|"<>]/g;
+
+/**
+ * Strips path separators and illegal filename characters so a Codex note always
+ * stays a single segment under `CODEX_ROOT`. Empty, `.`, and `..` collapse to "".
+ */
+export function sanitizeCodexBasename(raw: string): string {
+	const trimmed = raw.trim().replace(/\.md$/i, "");
+	const stripped = trimmed
+		.replace(CODEX_BASENAME_UNSAFE, "")
+		.replace(/\s+/g, " ")
+		.trim()
+		.replace(/^\.+/, "");
+	if (!stripped) return "";
+	return stripped;
+}
+
+/** Collision-unique `stem.md` under `CODEX_ROOT`, using a sanitized stem. */
+export function uniqueCodexFilename(app: App, baseName: string): string {
+	const stem = sanitizeCodexBasename(baseName) || "New Note";
+	let candidate = `${stem}.md`;
+	if (!app.vault.getAbstractFileByPath(`${CODEX_ROOT}/${candidate}`)) return candidate;
 	let n = 2;
-	while (app.vault.getAbstractFileByPath(`${parentPath}/${baseName} ${n}${extension}`)) n++;
-	return `${parentPath}/${baseName} ${n}${extension}`;
+	while (app.vault.getAbstractFileByPath(`${CODEX_ROOT}/${stem} ${n}.md`)) n++;
+	return `${stem} ${n}.md`;
 }
 
 /** Mints a new virtual folder and registers it into `parentFolderId`'s order (or the root's, if null). Returns the new folder id. */
@@ -351,7 +371,8 @@ export async function createCodexNote(
 	options: CreateCodexNoteOptions = {},
 ): Promise<TFile> {
 	if (!app.vault.getAbstractFileByPath(CODEX_ROOT)) await app.vault.createFolder(CODEX_ROOT);
-	const path = options.filename ? `${CODEX_ROOT}/${options.filename}` : uniqueChildPath(app, CODEX_ROOT, "New Note", ".md");
+	const filename = uniqueCodexFilename(app, options.filename ?? "New Note");
+	const path = `${CODEX_ROOT}/${filename}`;
 	const file = await app.vault.create(path, options.content ?? "");
 	await modifyBackstageFrontmatter<RawCodexFrontmatter>(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
 		const folders = parseFolders(fm.folders);
@@ -365,13 +386,13 @@ export async function createCodexNote(
 
 /** Renames the real file (link-safe — updates wikilinks vault-wide) so it stays in sync with wherever it's referenced; `codex.md` itself is rekeyed by the vault-rename reconciliation handler, not here. */
 export async function renameCodexNoteFile(app: App, file: TFile, newBasename: string): Promise<void> {
-	const trimmed = newBasename.trim();
-	if (!trimmed || trimmed === file.basename) return;
-	let candidate = `${CODEX_ROOT}/${trimmed}.md`;
+	const stem = sanitizeCodexBasename(newBasename);
+	if (!stem || stem === file.basename) return;
+	let candidate = `${CODEX_ROOT}/${stem}.md`;
 	if (candidate !== file.path && app.vault.getAbstractFileByPath(candidate)) {
 		let n = 2;
-		while (app.vault.getAbstractFileByPath(`${CODEX_ROOT}/${trimmed} ${n}.md`)) n++;
-		candidate = `${CODEX_ROOT}/${trimmed} ${n}.md`;
+		while (app.vault.getAbstractFileByPath(`${CODEX_ROOT}/${stem} ${n}.md`)) n++;
+		candidate = `${CODEX_ROOT}/${stem} ${n}.md`;
 	}
 	await app.fileManager.renameFile(file, candidate);
 }

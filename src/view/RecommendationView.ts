@@ -16,13 +16,13 @@ import {
 	numberedChapterTitle,
 	readBookFrontmatter,
 	readChapterPlot,
-	renameChapterTitle,
 	writeChapterLocation,
 	writeChapterPlot,
 	writeChapterPov,
 } from "../book";
 import { CODEX_TYPES, codexTypeIcon, getCodexEntriesByType } from "../codex";
 import { debounce } from "../debounce";
+import { splitTitleSubtitle } from "../titleNumbering";
 import { ICON_ADD_SQUARE, ICON_ARCHIVE_FILLED, ICON_BOOK_DUOTONE, ICON_BOOK_OPEN_FILLED, ICON_CHECK_SQUARE, ICON_CLIPBOARD_LIST_DUOTONE, ICON_FOCUS_OFF, ICON_FOCUS_ON, ICON_FORGE, ICON_LOCATION_TARGET_SQUARE, ICON_MAP_PIN, ICON_MAP_PIN_PLUS, ICON_MINUS_SQUARE, ICON_MULTIPLY_SQUARE, ICON_NOTEBOOK_DUOTONE, ICON_PERSON_FILL, ICON_PERSON_FILL_ADD, ICON_PLUS_SQUARE, ICON_REFRESH_SQUARE } from "../icons";
 import { bookFolderNameFromChapterPath, CODEX_ROOT, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath, seriesFilePath } from "../paths";
 import { OBSIDIAN_SELECTORS } from "../obsidianInternals";
@@ -49,7 +49,10 @@ import { renderArchiveList, renderArchiveTabs, type ArchiveMode } from "./archiv
 import { CodexEntryPickerModal } from "./CodexEntryPickerModal";
 import { CodexLoreTypeModal } from "./CodexLoreTypeModal";
 import { DossierEntitySuggest } from "./DossierEntitySuggest";
+import { ChapterTitleModal } from "./ChapterTitleModal";
 import { iconAction, renderMetaControl, renderNovelPanel } from "./NovelPanel";
+import { resolveMainThreadRowColor } from "./novelColor";
+import { isRecommendTabActive, type RecommendTab } from "./recommendTabActive";
 
 export const RECOMMEND_VIEW_TYPE = "storyforge-recommend-view";
 
@@ -241,6 +244,9 @@ export class RecommendationView extends ItemView {
 	openArchive(tab: ArchiveMode = "codex"): void {
 		this.showingArchive = true;
 		this.archiveMode = tab;
+		this.forgeFamilyExpanded = false;
+		this.forgeFamilyActiveId = null;
+		this.disposeForgeFamilyPanel();
 		this.syncFromPluginSelection();
 		this.followActiveFileQuiet();
 		this.render();
@@ -388,34 +394,34 @@ export class RecommendationView extends ItemView {
 		// plain colour highlight for hover/active, no background chip.
 		const tabs = el.createDiv({ cls: "sf-recommend-tabs" });
 		const novelTab = tabs.createSpan({
-			cls: `sf-recommend-tab${!this.showingArchive && this.mode === "novel" ? " is-active" : ""}`,
+			cls: `sf-recommend-tab${this.tabIsActive("novel") ? " is-active" : ""}`,
 			attr: {
 				role: "tab",
 				tabindex: "0",
 				"aria-label": "Novel",
-				"aria-selected": String(!this.showingArchive && this.mode === "novel"),
+				"aria-selected": String(this.tabIsActive("novel")),
 			},
 		});
 		setIcon(novelTab, ICON_BOOK_DUOTONE);
 		setTooltip(novelTab, "Novel");
 		const chapterTab = tabs.createSpan({
-			cls: `sf-recommend-tab${!this.showingArchive && this.mode === "chapter" ? " is-active" : ""}`,
+			cls: `sf-recommend-tab${this.tabIsActive("chapter") ? " is-active" : ""}`,
 			attr: {
 				role: "tab",
 				tabindex: "0",
 				"aria-label": "Chapter",
-				"aria-selected": String(!this.showingArchive && this.mode === "chapter"),
+				"aria-selected": String(this.tabIsActive("chapter")),
 			},
 		});
 		setIcon(chapterTab, ICON_BOOK_OPEN_FILLED);
 		setTooltip(chapterTab, "Chapter");
 		const detailsTab = tabs.createSpan({
-			cls: `sf-recommend-tab${!this.showingArchive && this.mode === "details" ? " is-active" : ""}`,
+			cls: `sf-recommend-tab${this.tabIsActive("details") ? " is-active" : ""}`,
 			attr: {
 				role: "tab",
 				tabindex: "0",
 				"aria-label": "Details",
-				"aria-selected": String(!this.showingArchive && this.mode === "details"),
+				"aria-selected": String(this.tabIsActive("details")),
 			},
 		});
 		setIcon(detailsTab, ICON_CLIPBOARD_LIST_DUOTONE);
@@ -423,12 +429,12 @@ export class RecommendationView extends ItemView {
 		// The old Story Context tab-header icon (see getIcon()'s comment), freed up once that icon
 		// became the Focus Mode toggle.
 		const dossierTab = tabs.createSpan({
-			cls: `sf-recommend-tab${!this.showingArchive && this.mode === "dossier" ? " is-active" : ""}`,
+			cls: `sf-recommend-tab${this.tabIsActive("dossier") ? " is-active" : ""}`,
 			attr: {
 				role: "tab",
 				tabindex: "0",
 				"aria-label": "Dossier",
-				"aria-selected": String(!this.showingArchive && this.mode === "dossier"),
+				"aria-selected": String(this.tabIsActive("dossier")),
 			},
 		});
 		setIcon(dossierTab, ICON_NOTEBOOK_DUOTONE);
@@ -464,12 +470,12 @@ export class RecommendationView extends ItemView {
 		}
 		if (forgeFamily.length > 0) {
 			const forgeTab = tabs.createSpan({
-				cls: `sf-recommend-tab sf-recommend-tab--forge-family${this.forgeFamilyExpanded ? " is-active" : ""}`,
+				cls: `sf-recommend-tab sf-recommend-tab--forge-family${this.tabIsActive("forge") ? " is-active" : ""}`,
 				attr: {
 					role: "tab",
 					tabindex: "0",
 					"aria-label": "Forge family",
-					"aria-selected": String(this.forgeFamilyExpanded),
+					"aria-selected": String(this.tabIsActive("forge")),
 				},
 			});
 			setIcon(forgeTab, ICON_FORGE);
@@ -483,12 +489,12 @@ export class RecommendationView extends ItemView {
 		}
 
 		const archiveTab = tabs.createSpan({
-			cls: `sf-recommend-tab sf-recommend-tab--archive${this.showingArchive ? " is-active" : ""}`,
+			cls: `sf-recommend-tab sf-recommend-tab--archive${this.tabIsActive("archive") ? " is-active" : ""}`,
 			attr: {
 				role: "tab",
 				tabindex: "0",
 				"aria-label": "Archive",
-				"aria-selected": String(this.showingArchive),
+				"aria-selected": String(this.tabIsActive("archive")),
 			},
 		});
 		setIcon(archiveTab, ICON_ARCHIVE_FILLED);
@@ -514,6 +520,9 @@ export class RecommendationView extends ItemView {
 			this.renderForgeFamilyIcons(row, forgeFamily);
 		}
 		if (this.mountActiveForgeFamilyPanel(el, forgeFamily)) return;
+		// Forge-family tab owns the pane even before a member is chosen: show the icon row
+		// and leave the body empty rather than falling through to Novel/Chapter/Details/Dossier.
+		if (this.forgeFamilyExpanded) return;
 
 		if (this.showingArchive) {
 			const body = el.createDiv({ cls: "sf-recommend-body" });
@@ -530,7 +539,6 @@ export class RecommendationView extends ItemView {
 			};
 			const fixed = archiveBody.createDiv({ cls: "sf-recommend-fixed" });
 			const archiveHeader = fixed.createDiv({ cls: "sf-archive-embedded-header" });
-			setIcon(archiveHeader.createSpan({ cls: "sf-icon" }), ICON_ARCHIVE_FILLED);
 			archiveHeader.createSpan({ cls: "sf-archive-view-title", text: "Archive" });
 			renderArchiveTabs(fixed, host);
 			renderArchiveList(archiveBody.createDiv({ cls: "sf-recommend-scroll" }), host);
@@ -585,7 +593,7 @@ export class RecommendationView extends ItemView {
 			this.renderForgeFamilyIcons(row, family);
 		}
 		const trigger = row.createSpan({
-			cls: `sf-recommend-view__forge-family${this.forgeFamilyExpanded ? " is-active" : ""}`,
+			cls: "sf-recommend-view__forge-family",
 			attr: { role: "button", tabindex: "0", "aria-label": "Forge family" },
 		});
 		setIcon(trigger, ICON_FORGE);
@@ -593,6 +601,14 @@ export class RecommendationView extends ItemView {
 		const toggle = () => this.toggleForgeFamilyExpanded();
 		trigger.addEventListener("click", toggle);
 		makeAccessibleActivatable(trigger, toggle);
+	}
+
+	private tabIsActive(tab: RecommendTab): boolean {
+		return isRecommendTabActive(tab, {
+			forgeFamilyExpanded: this.forgeFamilyExpanded,
+			showingArchive: this.showingArchive,
+			mode: this.mode,
+		});
 	}
 
 	/** The tabs-region Forge-family tab: always shows the member-icon row (never toggles itself
@@ -681,7 +697,6 @@ export class RecommendationView extends ItemView {
 			plugin: this.plugin,
 			emptyText: "Select a novel to see its synopsis and plot.",
 			castCache: this.castCache,
-			onOpenChapter: (bookFolderName, filename) => void this.openChapter(bookFolderName, filename),
 			onChanged: () => this.render(),
 			isStale: () => this.closed || this.mode !== "novel",
 		});
@@ -696,85 +711,78 @@ export class RecommendationView extends ItemView {
 			return;
 		}
 
-		const fixed = body.createDiv({ cls: "sf-recommend-fixed" });
+		// The card now holds the description plus Characters / Other Codex lists, so it can
+		// grow taller than the pane — scroll the whole body rather than pin the card and clip
+		// the icons that sit directly under it.
+		body.addClass("sf-recommend-body--scroll");
 		const bookFolderName = this.bookFolderName;
 		const chapterFilename = this.chapterFilename;
-		const title = numberedChapterTitle(this.app, bookFolderName, chapterFilename, this.plugin.getSettings().chapterNumberingStyle);
-		const titleRow = fixed.createDiv({ cls: "sf-recommend-chapter-title-row" });
-		const titleInput = titleRow.createEl("input", {
-			cls: "sf-recommend-chapter-title",
-			attr: { type: "text", "aria-label": "Chapter title" },
+
+		const card = body.createDiv({
+			cls: "sf-recommend-plot-block sf-recommend-plot-block--plain sf-recommend-plot-block--chapter",
 		});
-		titleInput.value = title;
-		titleInput.addEventListener("pointerdown", (e) => e.stopPropagation());
-		titleInput.addEventListener("click", (e) => e.stopPropagation());
-		const commitTitle = () => {
-			const value = titleInput.value.trim();
-			if (!value || value === title) {
-				titleInput.value = title;
-				return;
-			}
-			void renameChapterTitle(this.app, bookFolderName, chapterFilename, value).then(() => this.reload());
-		};
-		titleInput.addEventListener("keydown", (e) => {
-			if (e.key === "Enter") {
-				e.preventDefault();
-				titleInput.blur();
-			} else if (e.key === "Escape") {
-				e.preventDefault();
-				titleInput.value = title;
-				titleInput.blur();
-			}
+		const headerRow = card.createDiv({ cls: "sf-recommend-plot-header-row" });
+		const { title, subtitle } = splitTitleSubtitle(
+			numberedChapterTitle(this.app, bookFolderName, chapterFilename, this.plugin.getSettings().chapterNumberingStyle),
+		);
+		const nameEl = headerRow.createDiv({
+			cls: "sf-recommend-plot-chapter-name sf-recommend-plot-chapter-name--clickable",
+			text: subtitle ? `${title} (${subtitle})` : title,
 		});
-		titleInput.addEventListener("blur", commitTitle);
-		const goToChapterBtn = titleRow.createSpan({
-			cls: "sf-recommend-refresh",
-			attr: { "aria-label": "go to chapter", tabindex: "0", role: "button" },
-		});
-		setIcon(goToChapterBtn, ICON_LOCATION_TARGET_SQUARE);
-		const viewChapter = () => {
+		const rowColor = resolveMainThreadRowColor(this.app, this.plugin.getSettings());
+		headerRow.setCssStyles({ backgroundColor: rowColor.background, color: rowColor.text });
+		card.setCssStyles({ boxShadow: `inset 0 0 0 2px ${rowColor.background}` });
+		// On the body (not only the card) so the action-icon hover below the card can
+		// use the same chapter colour as in-card highlights.
+		body.style.setProperty("--sf-plot-card-header-bg", rowColor.background);
+		body.style.setProperty("--sf-plot-card-header-fg", rowColor.text);
+		nameEl.setCssStyles({ color: rowColor.text });
+		const openTitleModal = () =>
+			new ChapterTitleModal(this.app, this.plugin, bookFolderName, chapterFilename, () => this.reload()).open();
+		nameEl.addEventListener("click", openTitleModal);
+		makeAccessibleActivatable(nameEl, openTitleModal);
+
+		this.renderNarratingLabel(card);
+
+		if (this.report) {
+			const textarea = card.createEl("textarea", {
+				cls: "sf-recommend-synopsis sf-recommend-plot-textarea",
+				attr: { "aria-label": "chapter summary", rows: "1" },
+			});
+			textarea.value = this.synopsisDraft;
+			const resizeToContent = () => {
+				textarea.style.height = "auto";
+				textarea.style.height = `${textarea.scrollHeight}px`;
+			};
+			textarea.addEventListener("input", () => {
+				this.synopsisDraft = textarea.value;
+				resizeToContent();
+			});
+			textarea.addEventListener("pointerdown", (e) => e.stopPropagation());
+			resizeToContent();
+
+			const persons = this.report.matched.filter((m) => m.type === "person");
+			const others = this.report.matched.filter((m) => m.type !== "person");
+			this.renderMatchList(card, "Characters in chapter", persons);
+			this.renderMatchList(card, "Other Codex references", others);
+		}
+
+		const actions = body.createDiv({ cls: "sf-recommend-chapter-card-actions" });
+		iconAction(actions, ICON_LOCATION_TARGET_SQUARE, "go to chapter", () => {
 			if (!this.bookFolderName || !this.chapterFilename) return;
 			void this.openChapter(this.bookFolderName, this.chapterFilename);
-		};
-		goToChapterBtn.addEventListener("click", (e) => {
-			e.stopPropagation();
-			viewChapter();
 		});
-		makeAccessibleActivatable(goToChapterBtn, viewChapter);
+		iconAction(actions, ICON_REFRESH_SQUARE, "refresh story context", () => void this.forceRefresh());
+		if (this.report) {
+			iconAction(actions, ICON_ADD_SQUARE, "add chapter summary to chapter details", () => void this.sendSynopsis());
+		}
 
 		if (!this.report) {
-			this.renderNarratingLabel(fixed);
-			body.addClass("sf-recommend-body--scroll");
 			body.createDiv({ cls: "sf-empty", text: "Nothing here yet." });
 			return;
 		}
 
-		const synSection = fixed.createDiv({ cls: "sf-recommend-section" });
-		const synopsisRow = synSection.createDiv({ cls: "sf-recommend-synopsis-row" });
-		const textarea = synopsisRow.createEl("textarea", { cls: "sf-recommend-synopsis" });
-		textarea.value = this.synopsisDraft;
-		textarea.addEventListener("input", () => {
-			this.synopsisDraft = textarea.value;
-		});
-		textarea.addEventListener("pointerdown", (e) => e.stopPropagation());
-
-		// Stacked so the top icon aligns with the summary box's own top and the bottom icon with
-		// its bottom (`.sf-recommend-synopsis-actions` stretches to the row's full height and
-		// space-betweens its two children) — see styles.css.
-		const synopsisActions = synopsisRow.createDiv({ cls: "sf-recommend-synopsis-actions" });
-		iconAction(synopsisActions, ICON_REFRESH_SQUARE, "refresh story context", () => void this.forceRefresh());
-		iconAction(synopsisActions, ICON_ADD_SQUARE, "add chapter summary to chapter details", () => void this.sendSynopsis());
-
-		const report = this.report;
-		const persons = report.matched.filter((m) => m.type === "person");
-		const others = report.matched.filter((m) => m.type !== "person");
-
-		this.renderNarratingLabel(synSection);
-
-		const scroll = body.createDiv({ cls: "sf-recommend-scroll" });
-		this.renderMatchList(scroll, "Characters in chapter", persons);
-		this.renderMatchList(scroll, "Other Codex references", others);
-		this.renderUnknownList(scroll, report);
+		this.renderUnknownList(body, this.report);
 	}
 
 	/** Details tab: single-chapter "Details to capture" / "Holding area" / "Resolved" review. */
@@ -828,7 +836,10 @@ export class RecommendationView extends ItemView {
 	}
 
 	private renderUnknownList(el: HTMLElement, report: ChapterRecommendReport): void {
-		const section = el.createDiv({ cls: "sf-recommend-section" });
+		const card = el.createDiv({
+			cls: "sf-recommend-plot-block sf-recommend-plot-block--plain sf-recommend-unknown-card",
+		});
+		const section = card.createDiv({ cls: "sf-recommend-section" });
 		section.createDiv({ cls: "sf-recommend-section-title", text: "Named but not in Codex" });
 		const hints: UnknownNameHint[] =
 			report.unknownNameHints.length > 0
@@ -857,10 +868,10 @@ export class RecommendationView extends ItemView {
 		const holding = report.hits.filter((h) => !h.resolved && h.tier === "ambiguous");
 		const done = report.hits.filter((h) => h.resolved);
 
-		this.renderHitSection(el, "Details to capture", open, { showResolve: true });
-		this.renderHitSection(el, "Holding area", holding, { showResolve: true, holding: true });
+		this.renderHitSection(el, "Details to capture", open, { showResolve: true, pill: "capture" });
+		this.renderHitSection(el, "Holding area", holding, { showResolve: true, holding: true, pill: "holding" });
 		if (done.length > 0) {
-			this.renderHitSection(el, "Resolved", done, { showResolve: false });
+			this.renderHitSection(el, "Resolved", done, { showResolve: false, pill: "resolved" });
 		}
 	}
 
@@ -868,9 +879,12 @@ export class RecommendationView extends ItemView {
 		el: HTMLElement,
 		title: string,
 		hits: DetailHit[],
-		opts: { showResolve: boolean; holding?: boolean },
+		opts: { showResolve: boolean; holding?: boolean; pill: "capture" | "holding" | "resolved" },
 	): void {
-		const section = el.createDiv({ cls: "sf-recommend-section" });
+		const card = el.createDiv({
+			cls: `sf-recommend-plot-block sf-recommend-plot-block--plain sf-recommend-pill-card sf-recommend-pill-card--${opts.pill}`,
+		});
+		const section = card.createDiv({ cls: "sf-recommend-section" });
 		section.createDiv({ cls: "sf-recommend-section-title", text: title });
 		if (hits.length === 0) {
 			section.createDiv({ cls: "sf-empty", text: "None." });
@@ -1279,8 +1293,10 @@ export class RecommendationView extends ItemView {
 		const path = libraryChapterPath(this.bookFolderName, hit.chapterFilename);
 		const file = this.app.vault.getAbstractFileByPath(path);
 		if (!(file instanceof TFile)) return;
-		const leaf = this.app.workspace.getLeaf(false);
+		const leaf = this.plugin.getMainContentLeaf();
 		await leaf.openFile(file);
+		await this.app.workspace.revealLeaf(leaf);
+		this.app.workspace.setActiveLeaf(leaf, { focus: true });
 		const view = leaf.view;
 		if (!(view instanceof MarkdownView)) return;
 		const editor = view.editor;
@@ -1353,9 +1369,16 @@ export class RecommendationView extends ItemView {
 		}
 	}
 
+	private async openInMainContentLeaf(file: TFile): Promise<void> {
+		const leaf = this.plugin.getMainContentLeaf();
+		await leaf.openFile(file, { active: true });
+		await this.app.workspace.revealLeaf(leaf);
+		this.app.workspace.setActiveLeaf(leaf, { focus: true });
+	}
+
 	private async openPath(path: string): Promise<void> {
 		const file = this.app.vault.getAbstractFileByPath(path);
-		if (file instanceof TFile) await this.app.workspace.getLeaf(false).openFile(file);
+		if (file instanceof TFile) await this.openInMainContentLeaf(file);
 	}
 
 	private async openChapter(bookFolderName: string, filename: string): Promise<void> {
@@ -1364,7 +1387,7 @@ export class RecommendationView extends ItemView {
 		if (file instanceof TFile) {
 			this.chapterFilename = filename;
 			this.bookFolderName = bookFolderName;
-			await this.app.workspace.getLeaf(false).openFile(file);
+			await this.openInMainContentLeaf(file);
 		}
 	}
 }

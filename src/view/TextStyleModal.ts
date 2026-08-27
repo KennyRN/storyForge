@@ -1,6 +1,6 @@
 import { App, Modal, Setting, SettingGroup } from "obsidian";
 import type StoryForgePlugin from "../main";
-import type { StoryForgePluginSettings } from "../main";
+import type { EditorScrollbarThickness, StoryForgePluginSettings } from "../main";
 import {
 	bindColorSwatchButton,
 	persistAndRestyle,
@@ -9,12 +9,16 @@ import {
 	type StyleModalTab,
 } from "./styleModalHelpers";
 
+const EDITOR_SCROLLBAR_THICKNESS_ORDER: EditorScrollbarThickness[] = ["thin", "medium", "thick"];
+const EDITOR_SCROLLBAR_THICKNESS_LABELS = ["Thin", "Medium", "Thick"];
+
 /**
- * Editor body/heading *size* and *colour* overrides — colour here is storyForge-native (its own
- * palette, see colorPalettes.ts), never formatForge's. Font, small-caps, and dividers still live
- * in formatForge only. This modal's one entry point (StoryForgeSettingsTab.ts) is reachable only
- * while formatForge is disconnected, so these colour controls never contend with formatForge's
- * own colour vars — no separate gating needed here.
+ * Editor body/heading *size* and *colour* overrides plus the manuscript scrollbar — colour here
+ * is storyForge-native (its own palette, see colorPalettes.ts), never formatForge's. Font,
+ * small-caps, and dividers still live in formatForge only. This modal's one entry point
+ * (StoryForgeSettingsTab.ts) is reachable only while formatForge is disconnected, so these
+ * colour controls never contend with formatForge's own colour vars — no separate gating needed
+ * here. When formatForge is connected, scrollbar lives in formatForge's Text styling Extras tab.
  */
 export class TextStyleModal extends Modal {
 	private plugin: StoryForgePlugin;
@@ -152,103 +156,106 @@ export class TextStyleModal extends Modal {
 				id: "other",
 				label: "H4–6",
 				render: (body) => {
-					const levelGroup = new SettingGroup(body);
-					const levelElements: Record<4 | 5 | 6, HTMLElement[]> = { 4: [], 5: [], 6: [] };
-					const applySelectedLevel = (level: 4 | 5 | 6) => {
-						for (const [key, els] of Object.entries(levelElements)) {
-							const hidden = Number(key) !== level;
-							for (const el of els) el.toggleClass("sf-settings-hidden", hidden);
-						}
-					};
-					levelGroup.addSetting((setting) => {
-						setting.setName("Choose heading level").addDropdown((dropdown) =>
-							dropdown
-								.addOption("4", "Heading 4")
-								.addOption("5", "Heading 5")
-								.addOption("6", "Heading 6")
-								.setValue(String(this.selectedOtherHeadingLevel))
-								.onChange((value) => {
-									this.selectedOtherHeadingLevel = Number(value) as 4 | 5 | 6;
-									applySelectedLevel(this.selectedOtherHeadingLevel);
-								}),
-						);
-					});
-
-					const before4 = body.children.length;
-					this.renderSizeCard(
+					renderTabbedBody(
 						body,
-						settings,
-						"Override theme's default header size",
-						"Header size",
-						"heading4OverrideSize",
-						"heading4Size",
-						0.7,
-						1.8,
-						restyle,
+						([4, 5, 6] as const).map((n) => ({
+							id: `h${n}`,
+							label: `H${n}`,
+							render: (levelBody) => {
+								this.renderSizeCard(
+									levelBody,
+									settings,
+									"Override theme's default header size",
+									"Header size",
+									`heading${n}OverrideSize`,
+									`heading${n}Size`,
+									0.7,
+									1.8,
+									restyle,
+								);
+								this.renderColorCard(
+									levelBody,
+									settings,
+									"Override theme's default header colour",
+									"Header colour",
+									`heading${n}OverrideColor`,
+									`heading${n}Color`,
+									restyle,
+								);
+							},
+						})),
+						{
+							initialId: `h${this.selectedOtherHeadingLevel}`,
+							onActivate: (id) => {
+								this.selectedOtherHeadingLevel = Number(id.slice(1)) as 4 | 5 | 6;
+							},
+						},
 					);
-					this.renderColorCard(
-						body,
-						settings,
-						"Override theme's default header colour",
-						"Header colour",
-						"heading4OverrideColor",
-						"heading4Color",
-						restyle,
-					);
-					levelElements[4] = Array.from(body.children).slice(before4) as HTMLElement[];
-
-					const before5 = body.children.length;
-					this.renderSizeCard(
-						body,
-						settings,
-						"Override theme's default header size",
-						"Header size",
-						"heading5OverrideSize",
-						"heading5Size",
-						0.7,
-						1.8,
-						restyle,
-					);
-					this.renderColorCard(
-						body,
-						settings,
-						"Override theme's default header colour",
-						"Header colour",
-						"heading5OverrideColor",
-						"heading5Color",
-						restyle,
-					);
-					levelElements[5] = Array.from(body.children).slice(before5) as HTMLElement[];
-
-					const before6 = body.children.length;
-					this.renderSizeCard(
-						body,
-						settings,
-						"Override theme's default header size",
-						"Header size",
-						"heading6OverrideSize",
-						"heading6Size",
-						0.7,
-						1.8,
-						restyle,
-					);
-					this.renderColorCard(
-						body,
-						settings,
-						"Override theme's default header colour",
-						"Header colour",
-						"heading6OverrideColor",
-						"heading6Color",
-						restyle,
-					);
-					levelElements[6] = Array.from(body.children).slice(before6) as HTMLElement[];
-
-					applySelectedLevel(this.selectedOtherHeadingLevel);
+				},
+			},
+			{
+				id: "extras",
+				label: "Extras",
+				render: (body) => {
+					this.renderEditorScrollbarGroup(body, settings);
 				},
 			},
 		];
 
 		renderTabbedBody(contentEl, tabs);
+	}
+
+	private renderEditorScrollbarGroup(body: HTMLElement, settings: StoryForgePluginSettings): void {
+		const group = new SettingGroup(body);
+		group.setHeading("Scrollbar");
+
+		const restyleScrollbar = () => this.plugin.applyEditorScrollbarStyles();
+		group.addSetting((setting) => {
+			setting
+				.setName("Scrollbar")
+				.setDesc('Colour of the scrollbar thumb in the manuscript editor. Pick "Theme default" in the palette to use the current theme\'s own scrollbar colour instead.')
+				.addButton((button) => {
+					bindColorSwatchButton(
+						this.app,
+						this.plugin,
+						button.buttonEl,
+						settings.editorScrollbarThumbColor,
+						(hex) => {
+							void this.plugin.updateSetting("editorScrollbarUseThemeColor", false).then(async () => {
+								await this.plugin.updateSetting("editorScrollbarThumbColor", hex);
+								restyleScrollbar();
+							});
+						},
+						{
+							isActive: settings.editorScrollbarUseThemeColor,
+							onSelect: () => persistAndRestyle(this.plugin, "editorScrollbarUseThemeColor", true, restyleScrollbar),
+						},
+					);
+				});
+		});
+
+		const thicknessIdx = Math.max(0, EDITOR_SCROLLBAR_THICKNESS_ORDER.indexOf(settings.editorScrollbarThickness));
+		group.addSetting((setting) => {
+			setting
+				.setName("Thickness")
+				.setDesc(`${EDITOR_SCROLLBAR_THICKNESS_LABELS[thicknessIdx]} — thin · medium · thick. Hover the editor to see the scrollbar.`)
+				.addSlider((slider) =>
+					slider
+						.setLimits(0, 2, 1)
+						.setValue(thicknessIdx)
+						.setDisplayFormat((value) => EDITOR_SCROLLBAR_THICKNESS_LABELS[Math.round(value)] ?? "Thick")
+						.onChange((value) => {
+							const idx = Math.round(value);
+							const thickness = EDITOR_SCROLLBAR_THICKNESS_ORDER[idx] ?? "thick";
+							setting.setDesc(
+								`${EDITOR_SCROLLBAR_THICKNESS_LABELS[idx] ?? "Thick"} — thin · medium · thick. Hover the editor to see the scrollbar.`,
+							);
+							persistAndRestyle(this.plugin, "editorScrollbarThickness", thickness, () =>
+								this.plugin.applyEditorScrollbarStyles(),
+							);
+						}),
+				);
+		});
 	}
 
 	private renderSizeCard(

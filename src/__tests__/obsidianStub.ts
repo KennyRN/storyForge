@@ -118,6 +118,8 @@ export function stringifyYaml(data: unknown): string {
 	return JSON.stringify(data);
 }
 
+export function setIcon(_el: HTMLElement, _iconId: string): void {}
+
 export function normalizePath(path: string): string {
 	return path.replace(/\\/g, "/").replace(/\/+/g, "/").replace(/^\.\//, "").replace(/\/$/, "");
 }

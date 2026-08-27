@@ -17,6 +17,7 @@ const LINKED_ENUM_CYCLES: Partial<Record<SfLinkedFormattingKey, readonly string[
 	libraryBookTitleFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
 	libraryBookSubtitleFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
 	libraryItemsFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
+	storytellingItemsFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
 	unplacedFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
 	unplacedItemsFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
 	codexFontWeight: ["300", "400", "500", "600", "700", "800", "900"],
@@ -89,6 +90,15 @@ function makeLinkedDefaults(): SettingsBag {
 		libraryItemsFontWeight: "400",
 		libraryItemsColor: "#cccccc",
 		libraryItemsMuted: false,
+		storytellingItemsFontSize: 1,
+		storytellingItemsOverrideFont: false,
+		storytellingItemsFontFamily: "ibm-plex-sans-var",
+		storytellingItemsFontWeight: "400",
+		storytellingItemsColor: "#c8c8c8",
+		storytellingItemsMuted: false,
+		storytellingLinkItemsColorToLibrary: true,
+		storytellingHighlightColor: "#fef3c7",
+		storytellingHighlightTextColor: "#1f2937",
 		unplacedHighlightColor: "#333333",
 		unplacedHighlightTextColor: "#ffffff",
 		codexHighlightColor: "#333333",
@@ -159,7 +169,9 @@ function makeLinkedDefaults(): SettingsBag {
 		recommendTabsFontFamily: "ibm-plex-sans-var",
 		recommendTabsFontWeight: "400",
 		recommendTabsColor: "var(--text-muted)",
+		recommendTabsMuted: false,
 		recommendTabsActiveColor: "var(--text-accent)",
+		recommendFocusModeIconColor: "var(--text-muted)",
 		recommendChapterTitleFontSize: 1,
 		recommendChapterTitleOverrideFont: false,
 		recommendChapterTitleFontFamily: "ibm-plex-sans-var",
@@ -214,6 +226,22 @@ function makeLinkedDefaults(): SettingsBag {
 		recommendDetailsFontWeight: "400",
 		recommendDetailsColor: "var(--text-normal)",
 		recommendDetailsMuted: false,
+		recommendUnknownColor: "var(--text-muted)",
+		recommendUnknownMuted: true,
+		recommendUnknownHeaderColor: "var(--background-primary)",
+		recommendUnknownHeaderMuted: false,
+		recommendCaptureColor: "var(--interactive-accent)",
+		recommendCaptureMuted: false,
+		recommendCaptureHeaderColor: "var(--text-on-accent)",
+		recommendCaptureHeaderMuted: false,
+		recommendHoldingColor: "var(--text-warning)",
+		recommendHoldingMuted: false,
+		recommendHoldingHeaderColor: "var(--background-primary)",
+		recommendHoldingHeaderMuted: false,
+		recommendResolvedColor: "var(--text-muted)",
+		recommendResolvedMuted: true,
+		recommendResolvedHeaderColor: "var(--background-primary)",
+		recommendResolvedHeaderMuted: false,
 		recommendMetaLabelFontSize: 0.9,
 		recommendMetaLabelOverrideFont: false,
 		recommendMetaLabelFontFamily: "ibm-plex-sans-var",
@@ -318,6 +346,7 @@ function makeFakePlugin() {
 				if (companion === reg) companion = null;
 			};
 		},
+		openStoryForgeInterface() {},
 		registerViewContribution(opt: { slot: string; orderHint: number; render: (el: HTMLElement) => () => void }) {
 			contributions.push(opt);
 			return () => {
@@ -366,6 +395,7 @@ describe("formatting API stress", () => {
 		expect(api.formatting.readFormattingPreset).toBeTypeOf("function");
 		expect(api.formatting.renameFormattingPreset).toBeTypeOf("function");
 		expect(api.formatting.deleteFormattingPreset).toBeTypeOf("function");
+		expect(api.formatting.openInterfaceModal).toBeTypeOf("function");
 	});
 
 	it("registers / replaces / unregisters companions under thrash", () => {

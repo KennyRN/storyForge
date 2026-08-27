@@ -3,20 +3,36 @@
  * Uses the same `sf-*` classes as the live panels so stylesheet + `--sf-*` vars apply.
  */
 import { setIcon } from "obsidian";
+import { MAIN_THREAD_FALLBACK_COLOR } from "../plotThreads";
 
-const ICON_FILTER = "sf-filter";
-const ICON_TIMELINE = "sf-timeline";
 const ICON_UNPLACED = "sf-archive-drawer";
 const ICON_PLUS_SQUARE = "sf-plus-square";
+const ICON_MINUS_SQUARE = "sf-minus-square";
+const ICON_CHECK_SQUARE = "sf-check-square";
+const ICON_MULTIPLY_SQUARE = "sf-multiply-square";
 const ICON_CODEX = "sf-earth-fill";
+const ICON_FILTER_LIST = "sf-filter-list";
 const ICON_FOLDER_PLUS = "sf-folder-plus";
+const ICON_TRANSPORT_TO_START = "sf-transport-to-start";
+const ICON_TRANSPORT_PREVIOUS = "sf-transport-previous";
+const ICON_TRANSPORT_NEXT = "sf-transport-next";
+const ICON_TRANSPORT_TO_END = "sf-transport-to-end";
+const ICON_CONTINUOUS_MODE = "sf-continuous-mode";
+const ICON_DASHBOARD_CHART = "sf-dashboard-chart";
+const ICON_EXCHANGE = "sf-exchange-b";
+const ICON_CALENDAR = "sf-calendar-2";
 const ICON_PERSON = "sf-person-fill";
+const ICON_MEEPLE = "nameforge-meeple";
 const ICON_MAP_PIN = "sf-map-pin";
 const ICON_ARCHIVE = "sf-archive-filled";
+const ICON_FORGE = "sf-hammer-anvil";
 const ICON_BOOK_DUOTONE = "sf-book-duotone";
 const ICON_BOOK_OPEN_FILLED = "sf-book-open-filled";
 const ICON_CLIPBOARD_LIST_DUOTONE = "sf-clipboard-list-duotone";
 const ICON_NOTEBOOK_DUOTONE = "sf-notebook-duotone";
+const ICON_LOCATION_TARGET_SQUARE = "sf-location-target-square";
+const ICON_REFRESH_SQUARE = "sf-refresh-square";
+const ICON_ADD_SQUARE = "sf-add-square";
 
 function listRow(list: HTMLElement, title: string, selected = false, subtitle?: string): HTMLElement {
 	const row = list.createDiv({ cls: selected ? "sf-row sf-row-selected" : "sf-row" });
@@ -33,6 +49,11 @@ function mountCodexTreeSample(bottom: HTMLElement): void {
 	const bottomHeader = bottom.createDiv({ cls: "sf-bottom-header" });
 	setIcon(bottomHeader.createSpan({ cls: "sf-icon" }), ICON_CODEX);
 	bottomHeader.createSpan({ cls: "sf-header-codex", text: "Codex" });
+	const filterBtn = bottomHeader.createSpan({
+		cls: "sf-codex-filter-btn",
+		attr: { "aria-label": "Filter by type" },
+	});
+	setIcon(filterBtn, ICON_FILTER_LIST);
 	const newFileBtn = bottomHeader.createSpan({
 		cls: "sf-codex-new-file-btn",
 		attr: { "aria-label": "New file" },
@@ -47,10 +68,11 @@ function mountCodexTreeSample(bottom: HTMLElement): void {
 	const tree = bottom.createDiv({ cls: "sf-codex-tree" });
 	const folder = tree.createDiv({ cls: "sf-codex-folder" });
 	folder.setCssProps({ "--sf-codex-depth": "0" });
-	const folderHeader = folder.createDiv({ cls: "sf-codex-folder-header" });
+	const folderHeader = folder.createDiv({ cls: "sf-codex-folder-header sf-codex-lore-folder sf-row-selected" });
 	const folderContent = folderHeader.createDiv({ cls: "sf-codex-row-content" });
 	folderContent.createSpan({ cls: "sf-codex-chevron" });
 	folderContent.createSpan({ cls: "sf-codex-folder-name sf-styled-heading", text: "Magna Aliqua" });
+	setIcon(folderContent.createSpan({ cls: "sf-icon sf-codex-type-icon" }), ICON_PERSON);
 
 	const children = folder.createDiv({ cls: "sf-codex-folder-children" });
 	children.createDiv({ cls: "sf-codex-folder-indicator" });
@@ -74,17 +96,18 @@ function mountCodexTreeSample(bottom: HTMLElement): void {
 	setIcon(noteCContent.createSpan({ cls: "sf-icon sf-codex-type-icon" }), "circle-help");
 }
 
-/** Shared book-line header (series/book title row) — used by both mocks; storyTelling's own book-line reads the same `--sf-lib-*` vars as storyLibrary's, since only its chapter *items* split off into their own settings (see uiStylePreviewSample.ts's header comment on the storyTelling mock). */
+/** Series title row — text only, matching TopPanel.ts (the settings cog lives on the pane corner, not here). */
+function mountSeriesLine(header: HTMLElement): void {
+	const seriesLine = header.createDiv({ cls: "sf-header-line sf-series-line" });
+	seriesLine.createSpan({ cls: "sf-header-text", text: "Lorem Series" });
+}
+
+/** Shared book-line header — used by both mocks; storyTelling's own book-line reads the same `--sf-lib-*` vars as storyLibrary's, since only its chapter *items* split off into their own settings. */
 function mountBookLine(header: HTMLElement): void {
 	const bookLine = header.createDiv({ cls: "sf-book-line" });
 	const titleRow = bookLine.createDiv({ cls: "sf-header-line sf-book-title-row" });
 	const textWrap = titleRow.createDiv({ cls: "sf-book-text-wrap" });
 	textWrap.createSpan({ cls: "sf-header-text", text: "Ipsum Liber" });
-	const bookBtn = titleRow.createSpan({
-		cls: "sf-book-filter-btn",
-		attr: { "aria-label": "Synopsis and plot" },
-	});
-	setIcon(bookBtn, ICON_TIMELINE);
 	bookLine.createDiv({ cls: "sf-book-subtitle-text", text: "Vol. I — Dolor Sit" });
 }
 
@@ -97,15 +120,7 @@ export function mountUiStylePreviewSample(container: HTMLElement): void {
 	const top = view.createDiv({ cls: "sf-top-panel" });
 
 	const header = top.createDiv({ cls: "sf-top-header" });
-
-	const seriesLine = header.createDiv({ cls: "sf-header-line sf-series-line" });
-	seriesLine.createSpan({ cls: "sf-header-text", text: "Lorem Series" });
-	const seriesFilter = seriesLine.createSpan({
-		cls: "sf-series-settings-btn",
-		attr: { "aria-label": "Series settings" },
-	});
-	setIcon(seriesFilter, ICON_FILTER);
-
+	mountSeriesLine(header);
 	mountBookLine(header);
 
 	const body = top.createDiv({ cls: "sf-top-body" });
@@ -131,12 +146,10 @@ export function mountUiStylePreviewSample(container: HTMLElement): void {
 }
 
 /**
- * Mounts a storyTelling-panel sample: same book-line header as storyLibrary (that part isn't
- * independently stylable — see StoryForgePluginSettings.storytellingItemsFontSize's doc comment),
- * but its own chapter list (no Unplaced section — storyTelling never shows one) rooted under
- * `.storyforge-storytelling-view`, the exact class StorytellingView.ts's real render() sets, so
- * the `--sf-storytelling-items-*`/`--sf-storytelling-highlight-*` overrides in styles.css apply
- * here the same way they do in the live panel.
+ * storyTelling pane mock: series + book header, compact three-chapter navigator (no Unplaced,
+ * no drag handles), Codex, and Stats — the same composition StorytellingView.ts's render()
+ * builds. Rooted under `.storyforge-storytelling-view` so the `--sf-storytelling-items-*` /
+ * `--sf-storytelling-highlight-*` overrides in styles.css apply the same way they do live.
  */
 export function mountStorytellingPreviewSample(container: HTMLElement): void {
 	container.empty();
@@ -145,25 +158,131 @@ export function mountStorytellingPreviewSample(container: HTMLElement): void {
 
 	const top = view.createDiv({ cls: "sf-top-panel" });
 	const header = top.createDiv({ cls: "sf-top-header" });
+	mountSeriesLine(header);
 	mountBookLine(header);
 
 	const body = top.createDiv({ cls: "sf-top-body" });
-	const mainList = body.createDiv({ cls: "sf-top-list" });
-	listRow(mainList, "I. Amet Consectetur");
-	listRow(mainList, "II. Adipiscing Elit", true);
-	listRow(mainList, "III. Sed Do Eiusmod");
+	mountNavigatorSample(body);
 
 	mountCodexTreeSample(view.createDiv({ cls: "sf-bottom-panel" }));
+	mountStatsSample(view);
+}
+
+/** Compact three-chapter navigator — same chrome as CodexFocusNavigator.ts / navigatorControls.ts. */
+function mountNavigatorSample(body: HTMLElement): void {
+	const wrap = body.createDiv({ cls: "sf-navigator" });
+	const navBody = wrap.createDiv({ cls: "sf-navigator-body" });
+	const leftCol = navBody.createDiv({ cls: "sf-navigator-transport-col" });
+	const windowEl = navBody.createDiv({ cls: "sf-top-list sf-navigator-window" });
+	const rightCol = navBody.createDiv({ cls: "sf-navigator-transport-col" });
+
+	const tiles: Array<{ title: string; selected?: boolean }> = [
+		{ title: "I. Amet Consectetur" },
+		{ title: "II. Adipiscing Elit", selected: true },
+		{ title: "III. Sed Do Eiusmod" },
+	];
+	for (const tile of tiles) {
+		const row = windowEl.createDiv({ cls: tile.selected ? "sf-row sf-row-selected" : "sf-row" });
+		row.createDiv({ cls: "sf-row-text", text: tile.title });
+	}
+
+	const transports: Array<{ icon: string; label: string }> = [
+		{ icon: ICON_TRANSPORT_TO_START, label: "first chapter" },
+		{ icon: ICON_TRANSPORT_PREVIOUS, label: "previous chapter" },
+		{ icon: ICON_TRANSPORT_NEXT, label: "next chapter" },
+		{ icon: ICON_TRANSPORT_TO_END, label: "last chapter" },
+	];
+	for (const transport of transports) {
+		const btn = leftCol.createSpan({
+			cls: "sf-navigator-transport-btn",
+			attr: { "aria-label": transport.label },
+		});
+		setIcon(btn, transport.icon);
+	}
+
+	const toggle = rightCol.createSpan({
+		cls: "sf-navigator-transport-btn sf-navigator-transport-toggle",
+		attr: { "aria-label": "continuous reading mode" },
+	});
+	setIcon(toggle, ICON_CONTINUOUS_MODE);
+}
+
+function mountStatsSample(container: HTMLElement): void {
+	const stats = container.createDiv({ cls: "sf-stats-panel" });
+	const header = stats.createDiv({ cls: "sf-stats-header" });
+	setIcon(header.createSpan({ cls: "sf-icon" }), ICON_DASHBOARD_CHART);
+	header.createSpan({ cls: "sf-stats-title", text: "Stats" });
+	const line = stats.createDiv({ cls: "sf-stats-line" });
+	line.createSpan({ cls: "sf-stats-value", text: "daily wordcount: 312" });
+	const actions = line.createDiv({ cls: "sf-stats-actions" });
+	setIcon(actions.createSpan({ cls: "sf-icon sf-stats-exchange", attr: { "aria-label": "switch wordcount" } }), ICON_EXCHANGE);
+	setIcon(actions.createSpan({ cls: "sf-icon sf-stats-calendar", attr: { "aria-label": "wordcount history" } }), ICON_CALENDAR);
 }
 
 /** One Story Context tab's worth of representative body content, keyed by the same ids used in `mountRightSidebarPreviewSample`'s clickable tab row. */
 type RecommendTabId = "novel" | "chapter" | "details" | "dossier";
+export type RightSidebarPreviewMode = "chrome" | "novel" | "chapter" | "box" | "details" | "dossier" | "archive";
+export type PreviewMainThread = { color: string; text: string };
 
-function mountRecommendNovelBody(body: HTMLElement): void {
+const PREVIEW_MAIN_THREAD_FALLBACK: PreviewMainThread = {
+	color: MAIN_THREAD_FALLBACK_COLOR,
+	text: "#1c1917",
+};
+
+function mountRecommendMetaRow(meta: HTMLElement, label: string, icon: string, value: string): void {
+	const row = meta.createDiv({ cls: "sf-recommend-meta-row" });
+	row.createSpan({ cls: "sf-recommend-meta-label", text: label });
+	const control = row.createSpan({ cls: "sf-recommend-meta-control" });
+	setIcon(control.createSpan({ cls: "sf-recommend-meta-icon" }), icon);
+	control.createSpan({ cls: "sf-recommend-meta-value", text: value });
+}
+
+function mountRecommendPillCard(
+	parent: HTMLElement,
+	variant: "capture" | "holding" | "resolved" | "unknown",
+	title: string,
+	fill: (section: HTMLElement) => void,
+): void {
+	const card = parent.createDiv({
+		cls: `sf-recommend-plot-block sf-recommend-plot-block--plain ${
+			variant === "unknown" ? "sf-recommend-unknown-card" : `sf-recommend-pill-card sf-recommend-pill-card--${variant}`
+		}`,
+	});
+	const section = card.createDiv({ cls: "sf-recommend-section" });
+	section.createDiv({ cls: "sf-recommend-section-title", text: title });
+	fill(section);
+}
+
+function mountRecommendBoxBody(body: HTMLElement, mainThread: PreviewMainThread): void {
+	body.addClass("sf-recommend-body--scroll");
+	mountRecommendChapterCard(body, mainThread);
+	mountRecommendPillCard(body, "capture", "Details to capture", (section) => {
+		const entity = section.createDiv({ cls: "sf-recommend-entity-header" });
+		entity.createSpan({ cls: "sf-recommend-entity-name", text: "Jane Protagonist" });
+		mountRecommendHitCard(section, "solid", "The old locket felt heavier than it looked.");
+	});
+	mountRecommendPillCard(body, "holding", "Holding area", (section) => {
+		const entity = section.createDiv({ cls: "sf-recommend-entity-header" });
+		entity.createSpan({ cls: "sf-recommend-entity-name", text: "The Harbour" });
+		mountRecommendHitCard(section, "ambiguous", "A storm was rolling in from the coast.");
+	});
+	mountRecommendPillCard(body, "resolved", "Resolved", (section) => {
+		const entity = section.createDiv({ cls: "sf-recommend-entity-header" });
+		entity.createSpan({ cls: "sf-recommend-entity-name", text: "Jane Protagonist" });
+		mountRecommendHitCard(section, "solid", "Jane paused at the doorway.");
+	});
+}
+
+function mountRecommendNovelBody(body: HTMLElement, mainThread: PreviewMainThread): void {
 	const fixed = body.createDiv({ cls: "sf-recommend-fixed sf-recommend-novel-fixed" });
+	fixed.createDiv({ cls: "sf-synopsis-cover sf-recommend-novel-cover" });
 	fixed.createDiv({ cls: "sf-recommend-novel-title", text: "Ipsum Liber" });
 	fixed.createDiv({ cls: "sf-recommend-novel-subtitle", text: "Vol. I — Dolor Sit" });
-	fixed.createDiv({ cls: "sf-recommend-synopsis sf-recommend-novel-synopsis", text: "A brief synopsis of the novel goes here." });
+	fixed.createEl("textarea", {
+		cls: "sf-recommend-synopsis sf-recommend-novel-synopsis",
+		text: "A brief synopsis of the novel goes here.",
+		attr: { readonly: "true", rows: "3" },
+	});
 	const povSection = fixed.createDiv({ cls: "sf-recommend-section" });
 	const meta = povSection.createDiv({ cls: "sf-recommend-meta" });
 	const row = meta.createDiv({ cls: "sf-recommend-meta-row" });
@@ -172,10 +291,78 @@ function mountRecommendNovelBody(body: HTMLElement): void {
 	setIcon(control.createSpan({ cls: "sf-recommend-meta-icon" }), ICON_PERSON);
 	control.createSpan({ cls: "sf-recommend-meta-value", text: "Jane Protagonist" });
 
+	const previewPlotThreads: Array<PreviewMainThread> = [
+		mainThread,
+		{ color: "#2563eb", text: "#f8fafc" },
+	];
+	const lineColors = previewPlotThreads.map((t) => t.color);
+	const pitch = 4;
+	const bundleWidth = (lineColors.length - 1) * pitch + 2;
+	const lineOffsets = lineColors.map((_, i) => 5 + i * pitch);
+	const gutter = {
+		pillWidth: 10 + bundleWidth,
+		lineOffsets,
+		cardShift: 5 + bundleWidth + 8,
+		background: {
+			backgroundImage: lineColors.map((c) => `linear-gradient(${c}, ${c})`).join(", "),
+			backgroundSize: lineColors.map(() => "2px 100%").join(", "),
+			backgroundPosition: lineOffsets.map((x) => `${x}px 0`).join(", "),
+			backgroundRepeat: "no-repeat",
+		},
+	};
+
+	const plotLine = fixed.createDiv({ cls: "sf-book-line sf-synopsis-plot-title" });
+	const pillCol = plotLine.createDiv({ cls: "sf-recommend-plot-pill-col" });
+	pillCol.setCssStyles({ width: `${gutter.pillWidth}px` });
+	pillCol.createDiv({ cls: "sf-recommend-plot-pill" }).setCssStyles({ backgroundColor: lineColors[0] });
+	pillCol.createDiv({ cls: "sf-recommend-plot-pill-stub" }).setCssStyles(gutter.background);
+	const plotTitleRow = plotLine.createDiv({ cls: "sf-header-line sf-book-title-row" });
+	plotTitleRow.createDiv({ cls: "sf-book-text-wrap" }).createSpan({ cls: "sf-header-text", text: "Plot" }).setCssStyles({
+		color: lineColors[0],
+	});
+
 	const scroll = body.createDiv({ cls: "sf-recommend-scroll" });
-	const block = scroll.createDiv({ cls: "sf-recommend-plot-block" });
-	block.createDiv({ cls: "sf-recommend-plot-chapter-name", text: "I. Amet Consectetur" });
-	block.createDiv({ cls: "sf-recommend-synopsis sf-recommend-plot-textarea", text: "Chapter summary goes here." });
+	scroll.setCssStyles({ ...gutter.background, backgroundAttachment: "local" });
+	const chapters: Array<{ title: string; place: string; summary: string; line: number }> = [
+		{ title: "I. Amet Consectetur", place: "The Harbour", summary: "Chapter summary goes here.", line: 0 },
+		{ title: "II. Adipiscing Elit", place: "The Harbour", summary: "The next chapter begins at dusk.", line: 1 },
+	];
+	for (const chapter of chapters) {
+		const thread = previewPlotThreads[chapter.line];
+		const block = scroll.createDiv({ cls: "sf-recommend-plot-block sf-recommend-plot-block--plain" });
+		const headerRow = block.createDiv({ cls: "sf-recommend-plot-header-row" });
+		const nameEl = headerRow.createDiv({ cls: "sf-recommend-plot-chapter-name", text: chapter.title });
+		headerRow.setCssStyles({ backgroundColor: thread.color, color: thread.text });
+		nameEl.setCssStyles({ color: thread.text });
+		block.style.setProperty("--sf-plot-card-header-bg", thread.color);
+		block.style.setProperty("--sf-plot-card-header-fg", thread.text);
+		const lineCenterX = gutter.lineOffsets[chapter.line] + 1;
+		const cardPad = 16;
+		const headerMarginLeft = lineCenterX - gutter.cardShift - cardPad;
+		block.setCssStyles({
+			marginLeft: `${gutter.cardShift}px`,
+			boxShadow: `inset 0 0 0 2px ${thread.color}`,
+		});
+		headerRow.setCssStyles({ marginLeft: `${headerMarginLeft}px` });
+		headerRow.style.paddingLeft = `${cardPad + Math.max(0, -cardPad - headerMarginLeft)}px`;
+		const plotMeta = block.createDiv({ cls: "sf-recommend-meta" });
+		const povRow = plotMeta.createDiv({ cls: "sf-recommend-meta-row" });
+		povRow.createSpan({ cls: "sf-recommend-meta-label", text: "PoV:" });
+		const povControl = povRow.createSpan({ cls: "sf-recommend-meta-control" });
+		setIcon(povControl.createSpan({ cls: "sf-recommend-meta-icon" }), ICON_PERSON);
+		povControl.createSpan({ cls: "sf-recommend-meta-value", text: "Jane Protagonist" });
+		const locRow = plotMeta.createDiv({ cls: "sf-recommend-meta-row" });
+		locRow.createSpan({ cls: "sf-recommend-meta-label", text: "Location:" });
+		const locControl = locRow.createSpan({ cls: "sf-recommend-meta-control" });
+		setIcon(locControl.createSpan({ cls: "sf-recommend-meta-icon" }), ICON_MAP_PIN);
+		locControl.createSpan({ cls: "sf-recommend-meta-value", text: chapter.place });
+		block.createDiv({ cls: "sf-recommend-plot-textarea-divider" });
+		block.createEl("textarea", {
+			cls: "sf-recommend-synopsis sf-recommend-plot-textarea",
+			text: chapter.summary,
+			attr: { readonly: "true", rows: "2" },
+		});
+	}
 }
 
 function mountRecommendHitCard(scroll: HTMLElement, tier: string, sentence: string): void {
@@ -184,34 +371,101 @@ function mountRecommendHitCard(scroll: HTMLElement, tier: string, sentence: stri
 	meta.createSpan({ cls: `sf-recommend-tier sf-recommend-tier-${tier}`, text: tier });
 	meta.createSpan({ cls: "sf-recommend-lens", text: "name" });
 	card.createDiv({ cls: "sf-recommend-hit-span", text: sentence });
+	const actions = card.createDiv({ cls: "sf-recommend-hit-actions" });
+	if (tier === "ambiguous") {
+		actions.createEl("button", { text: "Jane Protagonist" });
+		actions.createEl("button", { text: "The Harbour" });
+		return;
+	}
+	setIcon(actions.createSpan({ cls: "sf-recommend-icon-btn", attr: { "aria-label": "detail added/accepted" } }), ICON_CHECK_SQUARE);
+	setIcon(actions.createSpan({ cls: "sf-recommend-icon-btn", attr: { "aria-label": "ignore this detail" } }), ICON_MINUS_SQUARE);
 }
 
-function mountRecommendChapterBody(body: HTMLElement): void {
-	const fixed = body.createDiv({ cls: "sf-recommend-fixed" });
-	const titleRow = fixed.createDiv({ cls: "sf-recommend-chapter-title-row" });
-	titleRow.createSpan({ cls: "sf-recommend-chapter-title", text: "I. Amet Consectetur" });
-	const synSection = fixed.createDiv({ cls: "sf-recommend-section" });
-	synSection.createDiv({ cls: "sf-recommend-synopsis-row" }).createEl("textarea", { cls: "sf-recommend-synopsis", text: "Chapter summary goes here." });
+/** Chapter-tab card: header band, PoV/Location, synopsis, Codex rows, actions, unknown names. */
+function mountRecommendChapterCard(body: HTMLElement, mainThread: PreviewMainThread): void {
+	const card = body.createDiv({
+		cls: "sf-recommend-plot-block sf-recommend-plot-block--plain sf-recommend-plot-block--chapter",
+	});
+	body.style.setProperty("--sf-plot-card-header-bg", mainThread.color);
+	body.style.setProperty("--sf-plot-card-header-fg", mainThread.text);
+	card.style.setProperty("--sf-plot-card-header-bg", mainThread.color);
+	card.setCssStyles({ boxShadow: `inset 0 0 0 2px ${mainThread.color}` });
+	const header = card.createDiv({ cls: "sf-recommend-plot-header-row" });
+	header.setCssStyles({ backgroundColor: mainThread.color, color: mainThread.text });
+	const nameEl = header.createDiv({ cls: "sf-recommend-plot-chapter-name", text: "I. Amet Consectetur" });
+	nameEl.setCssStyles({ color: mainThread.text });
+	const meta = card.createDiv({ cls: "sf-recommend-meta" });
+	mountRecommendMetaRow(meta, "PoV:", ICON_PERSON, "Jane Protagonist");
+	mountRecommendMetaRow(meta, "Location:", ICON_MAP_PIN, "The Harbour");
+	card.createEl("textarea", {
+		cls: "sf-recommend-synopsis sf-recommend-plot-textarea",
+		text: "Chapter summary goes here.",
+		attr: { readonly: "true", rows: "2" },
+	});
 
-	const scroll = body.createDiv({ cls: "sf-recommend-scroll" });
-	const section = scroll.createDiv({ cls: "sf-recommend-section" });
-	section.createDiv({ cls: "sf-recommend-section-title", text: "Characters in chapter" });
-	mountRecommendHitCard(section, "matched", "Jane walked into the room.");
+	const chars = card.createDiv({ cls: "sf-recommend-section" });
+	chars.createDiv({ cls: "sf-recommend-section-title", text: "Characters in chapter" });
+	const charRow = chars.createDiv({ cls: "sf-recommend-row" });
+	setIcon(charRow.createSpan({ cls: "sf-icon" }), ICON_PERSON);
+	charRow.createSpan({ cls: "sf-recommend-row-label", text: "Jane Protagonist" });
+
+	const others = card.createDiv({ cls: "sf-recommend-section" });
+	others.createDiv({ cls: "sf-recommend-section-title", text: "Other Codex references" });
+	const otherRow = others.createDiv({ cls: "sf-recommend-row" });
+	setIcon(otherRow.createSpan({ cls: "sf-icon" }), ICON_MAP_PIN);
+	otherRow.createSpan({ cls: "sf-recommend-row-label", text: "The Harbour" });
+
+	const actions = body.createDiv({ cls: "sf-recommend-chapter-card-actions" });
+	setIcon(actions.createSpan({ cls: "sf-recommend-icon-btn" }), ICON_LOCATION_TARGET_SQUARE);
+	setIcon(actions.createSpan({ cls: "sf-recommend-icon-btn" }), ICON_REFRESH_SQUARE);
+	setIcon(actions.createSpan({ cls: "sf-recommend-icon-btn" }), ICON_ADD_SQUARE);
+
+	const unknown = body.createDiv({
+		cls: "sf-recommend-plot-block sf-recommend-plot-block--plain sf-recommend-unknown-card",
+	});
+	const unknownSection = unknown.createDiv({ cls: "sf-recommend-section" });
+	unknownSection.createDiv({ cls: "sf-recommend-section-title", text: "Named but not in Codex" });
+	const unknownRow = unknownSection.createDiv({ cls: "sf-recommend-row" });
+	unknownRow.createSpan({ cls: "sf-recommend-row-label", text: "Mira Quill" });
+	const unknownActions = unknownRow.createDiv({ cls: "sf-recommend-row-actions" });
+	setIcon(unknownActions.createSpan({ cls: "sf-recommend-icon-btn", attr: { "aria-label": "add to codex" } }), ICON_PLUS_SQUARE);
+	setIcon(unknownActions.createSpan({ cls: "sf-recommend-icon-btn", attr: { "aria-label": "ignore" } }), ICON_MINUS_SQUARE);
+}
+
+function mountRecommendChapterBody(body: HTMLElement, mainThread: PreviewMainThread): void {
+	body.addClass("sf-recommend-body--scroll");
+	mountRecommendChapterCard(body, mainThread);
 }
 
 function mountRecommendDetailsBody(body: HTMLElement): void {
+	body.addClass("sf-recommend-body--scroll");
 	const scroll = body.createDiv({ cls: "sf-recommend-scroll" });
-	const section = scroll.createDiv({ cls: "sf-recommend-section" });
-	section.createDiv({ cls: "sf-recommend-section-title", text: "Details to capture" });
-	mountRecommendHitCard(section, "ambiguous", "The old locket felt heavier than it looked.");
-	mountRecommendHitCard(section, "matched", "A storm was rolling in from the coast.");
+
+	mountRecommendPillCard(scroll, "capture", "Details to capture", (section) => {
+		const openEntity = section.createDiv({ cls: "sf-recommend-entity-header" });
+		openEntity.createSpan({ cls: "sf-recommend-entity-name", text: "Jane Protagonist" });
+		mountRecommendHitCard(section, "solid", "The old locket felt heavier than it looked.");
+	});
+	mountRecommendPillCard(scroll, "holding", "Holding area", (section) => {
+		const holdingEntity = section.createDiv({ cls: "sf-recommend-entity-header" });
+		holdingEntity.createSpan({ cls: "sf-recommend-entity-name", text: "The Harbour" });
+		mountRecommendHitCard(section, "ambiguous", "A storm was rolling in from the coast.");
+	});
+	mountRecommendPillCard(scroll, "resolved", "Resolved", (section) => {
+		const resolvedEntity = section.createDiv({ cls: "sf-recommend-entity-header" });
+		resolvedEntity.createSpan({ cls: "sf-recommend-entity-name", text: "Jane Protagonist" });
+		mountRecommendHitCard(section, "solid", "Jane paused at the doorway.");
+	});
 }
 
 function mountRecommendDossierBody(body: HTMLElement): void {
 	const fixed = body.createDiv({ cls: "sf-recommend-fixed" });
 	const combo = fixed.createDiv({ cls: "sf-recommend-dossier-combo" });
-	combo.createEl("input", { cls: "sf-recommend-dossier-search", attr: { placeholder: "Search Codex…", value: "Jane" } });
-	setIcon(combo.createSpan({ cls: "sf-recommend-icon-btn sf-recommend-dossier-drop" }), "chevron-down");
+	combo.createEl("input", {
+		cls: "sf-recommend-dossier-search",
+		attr: { placeholder: "Search Codex entity", value: "Jane Protagonist" },
+	});
+	setIcon(combo.createSpan({ cls: "sf-recommend-icon-btn sf-recommend-dossier-drop" }), ICON_MULTIPLY_SQUARE);
 
 	const scroll = body.createDiv({ cls: "sf-recommend-scroll" });
 	const chSection = scroll.createDiv({ cls: "sf-recommend-section" });
@@ -219,45 +473,72 @@ function mountRecommendDossierBody(body: HTMLElement): void {
 	mountRecommendHitCard(chSection, "matched", "Jane paused at the doorway.");
 }
 
-const RECOMMEND_TAB_BODIES: Record<RecommendTabId, (body: HTMLElement) => void> = {
-	novel: mountRecommendNovelBody,
-	chapter: mountRecommendChapterBody,
-	details: mountRecommendDetailsBody,
-	dossier: mountRecommendDossierBody,
-};
-
 /**
- * Mounts Story Context / Archive chrome samples for the right-sidebar tab. Story Context's own
- * tab row is clickable, same as the real panel, so every settings group in that tab
- * (Novel/Chapter/Details/Dossier sizes, colours, fonts) has an actual live preview to check
- * against — not just the tab bar itself. (Forge-family companion panels no longer get their own
- * right-rail tab to mock here - they're embedded in Story Context's own tab instead.)
+ * Mounts Story Context / Archive chrome samples for the right-sidebar tab. Navigation (`chrome`)
+ * shows the tab strip, Forge-family member row, and Focus-mode icon. Chapter (`box`) shows the
+ * chapter card (header, labels, synopsis, Codex rows) plus pill cards. Novel/Chapter/Dossier
+ * remount that tab's body. Story Context's own tab row is clickable, same as the real panel.
  */
-export function mountRightSidebarPreviewSample(container: HTMLElement): void {
+export function mountRightSidebarPreviewSample(
+	container: HTMLElement,
+	mode: RightSidebarPreviewMode = "chrome",
+	mainThread: PreviewMainThread = PREVIEW_MAIN_THREAD_FALLBACK,
+): void {
 	container.empty();
 
 	const rail = container.createDiv({ cls: "sf-right-rail-preview" });
 
 	const recommend = rail.createDiv({ cls: "sf-recommend-view" });
 	const recTabs = recommend.createDiv({ cls: "sf-recommend-tabs" });
+	const forgeRow = recommend.createDiv({ cls: "sf-recommend-view__forge-row sf-settings-hidden" });
 	const recBody = recommend.createDiv({ cls: "sf-recommend-body" });
-	const archive = recommend.createDiv({ cls: "sf-archive-view sf-archive-embedded sf-settings-hidden" });
+	const archive = recommend.createDiv({ cls: "sf-archive-embedded sf-settings-hidden" });
+	const focusRow = recommend.createDiv({
+		cls: "sf-recommend-view__forge-row sf-recommend-view__forge-row--focus sf-settings-hidden",
+	});
+
+	const member = forgeRow.createSpan({ cls: "sf-recommend-view__forge-icon is-active" });
+	setIcon(member, ICON_MEEPLE);
+	const focusIcon = focusRow.createSpan({
+		cls: "sf-recommend-view__forge-family",
+		attr: { "aria-label": "Focus mode icon" },
+	});
+	setIcon(focusIcon, ICON_FORGE);
 
 	const tabButtons: Partial<Record<RecommendTabId, HTMLElement>> = {};
 	let archiveBtn!: HTMLElement;
+	let forgeBtn!: HTMLElement;
 	const showRecommendTab = (id: RecommendTabId) => {
 		for (const [tabId, btn] of Object.entries(tabButtons)) btn?.toggleClass("is-active", tabId === id);
 		archiveBtn.removeClass("is-active");
+		forgeBtn.removeClass("is-active");
+		forgeRow.addClass("sf-settings-hidden");
+		focusRow.addClass("sf-settings-hidden");
 		recBody.toggleClass("sf-settings-hidden", false);
 		archive.addClass("sf-settings-hidden");
 		recBody.empty();
-		RECOMMEND_TAB_BODIES[id](recBody);
+		if (id === "novel") mountRecommendNovelBody(recBody, mainThread);
+		else if (id === "chapter") mountRecommendChapterBody(recBody, mainThread);
+		else if (id === "details") mountRecommendDetailsBody(recBody);
+		else mountRecommendDossierBody(recBody);
 	};
 	const showArchiveTab = () => {
 		for (const btn of Object.values(tabButtons)) btn?.removeClass("is-active");
+		forgeBtn.removeClass("is-active");
+		forgeRow.addClass("sf-settings-hidden");
+		focusRow.addClass("sf-settings-hidden");
 		archiveBtn.addClass("is-active");
 		recBody.addClass("sf-settings-hidden");
 		archive.removeClass("sf-settings-hidden");
+	};
+	const showForgeTab = () => {
+		for (const btn of Object.values(tabButtons)) btn?.removeClass("is-active");
+		archiveBtn.removeClass("is-active");
+		forgeBtn.addClass("is-active");
+		forgeRow.removeClass("sf-settings-hidden");
+		focusRow.removeClass("sf-settings-hidden");
+		recBody.addClass("sf-settings-hidden");
+		archive.addClass("sf-settings-hidden");
 	};
 
 	const tabIcons: Record<RecommendTabId, string> = {
@@ -272,20 +553,42 @@ export function mountRightSidebarPreviewSample(container: HTMLElement): void {
 		tabButtons[id] = btn;
 		btn.addEventListener("click", () => showRecommendTab(id));
 	});
+	forgeBtn = recTabs.createSpan({ cls: "sf-recommend-tab sf-recommend-tab--forge-family" });
+	setIcon(forgeBtn, ICON_FORGE);
+	forgeBtn.addEventListener("click", () => showForgeTab());
 	archiveBtn = recTabs.createSpan({ cls: "sf-recommend-tab sf-recommend-tab--archive" });
 	setIcon(archiveBtn, ICON_ARCHIVE);
 	archiveBtn.addEventListener("click", () => showArchiveTab());
 
-	const archHeader = archive.createDiv({ cls: "sf-archive-embedded-header" });
-	setIcon(archHeader.createSpan({ cls: "sf-icon" }), ICON_ARCHIVE);
+	const archFixed = archive.createDiv({ cls: "sf-recommend-fixed" });
+	const archHeader = archFixed.createDiv({ cls: "sf-archive-embedded-header" });
 	archHeader.createSpan({ cls: "sf-archive-view-title", text: "Archive" });
-	const archTabs = archive.createDiv({ cls: "sf-archive-view-tabs sf-archive-embedded-tabs" });
+	const archTabs = archFixed.createDiv({ cls: "sf-archive-view-tabs sf-archive-embedded-tabs" });
 	archTabs.createSpan({ cls: "sf-archive-view-tab is-active", text: "Codex" });
 	archTabs.createSpan({ cls: "sf-archive-view-tab", text: "Novel" });
-	const archList = archive.createDiv({ cls: "sf-archive-list" });
+	const archList = archive.createDiv({ cls: "sf-recommend-scroll" }).createDiv({ cls: "sf-archive-list" });
 	listRow(archList, "Old Draft — Book I", true);
 	listRow(archList, "Cut scenes");
 	listRow(archList, "Research scrap");
 
-	showRecommendTab("novel");
+	const showCustomBody = (mount: (el: HTMLElement) => void) => {
+		for (const btn of Object.values(tabButtons)) btn?.removeClass("is-active");
+		archiveBtn.removeClass("is-active");
+		forgeBtn.removeClass("is-active");
+		forgeRow.addClass("sf-settings-hidden");
+		focusRow.addClass("sf-settings-hidden");
+		archive.addClass("sf-settings-hidden");
+		recBody.toggleClass("sf-settings-hidden", false);
+		recBody.empty();
+		mount(recBody);
+	};
+
+	if (mode === "archive") showArchiveTab();
+	else if (mode === "chrome") showForgeTab();
+	else if (mode === "chapter" || mode === "dossier" || mode === "novel") showRecommendTab(mode);
+	else if (mode === "details") showRecommendTab("dossier");
+	else if (mode === "box") {
+		showCustomBody((el) => mountRecommendBoxBody(el, mainThread));
+		tabButtons.chapter?.addClass("is-active");
+	} else showRecommendTab("novel");
 }

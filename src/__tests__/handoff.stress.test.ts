@@ -199,7 +199,7 @@ describe("SF ↔ FF handoff stress", () => {
 				"--sf-body-family": `"storyForge Nunito", var(--font-text)`,
 				"--sf-body-variation": `"wght" ${400 + (i % 5) * 100}`,
 				"--sf-h1-color": i % 2 === 0 ? "#ffffff" : null,
-				"--sf-h1-link-color": i % 3 === 0 ? "inherit" : null,
+				"--sf-h1-link-color": i % 3 === 0 ? "var(--sf-h1-color, var(--h1-color))" : null,
 			});
 		}
 

@@ -1,5 +1,5 @@
 /**
- * Undocumented Obsidian DOM selectors this plugin relies on to hide native chrome and relocate
+ * Undocumented Obsidian DOM selectors this plugin relies on to hide native chrome and read
  * the ribbon. None of these are part of Obsidian's public API/theming contract - a future
  * Obsidian release could rename or restructure any of them.
  *
@@ -7,7 +7,8 @@
  * section (Obsidian plugins may not create or attach `<style>` elements, so that duplication is
  * unavoidable) - the two aren't structurally linked, so if Obsidian renames/restructures a
  * selector, update it in BOTH this file and styles.css. `workspaceRibbon`/`ribbonAction` are
- * additionally used live at runtime, by ToolsPanel.ts, to relocate the ribbon into the Tools pane.
+ * additionally used live at runtime, by ToolsPanel.ts, to read ribbon action buttons so the
+ * Tools pane can mirror them (the native strip stays in place and is hidden via CSS).
  */
 export const OBSIDIAN_SELECTORS = {
 	vaultActions: ".workspace-drawer-vault-actions",
@@ -48,11 +49,13 @@ export const OBSIDIAN_SELECTORS = {
 	tabHeaderInnerIcon: ".workspace-tab-header-inner-icon",
 	/**
 	 * Links inside a note's rendered H1: real `<a>` tags in reading view, but CM6 live-preview/edit
-	 * mode renders no `<a>` at all - links are `.cm-hmd-internal-link`/`.cm-link` spans (co-classed
-	 * with `.cm-header-1`) wrapping a `.cm-underline` span that carries the actual underline.
+	 * mode renders no `<a>` at all - links are `.cm-hmd-internal-link`/`.cm-link` spans. The outer
+	 * wiki-link wrapper often lacks `.cm-header-1`; inner tokens are co-classed with it and wrap a
+	 * `.cm-underline` span that carries the actual underline. `.HyperMD-header-1 …` catches that
+	 * outer wrapper so hide-link colour isn't inherited from the theme's link colour.
 	 */
 	h1Links:
-		".markdown-reading-view h1 a, .cm-header-1.cm-hmd-internal-link, .cm-header-1.cm-link, .cm-header-1.cm-hmd-internal-link .cm-underline, .cm-header-1.cm-link .cm-underline",
+		".markdown-reading-view h1 a, .HyperMD-header-1 .cm-hmd-internal-link, .HyperMD-header-1 .cm-link, .HyperMD-header-1 .cm-hmd-internal-link .cm-underline, .HyperMD-header-1 .cm-link .cm-underline, .cm-header-1.cm-hmd-internal-link, .cm-header-1.cm-link, .cm-header-1.cm-hmd-internal-link .cm-underline, .cm-header-1.cm-link .cm-underline",
 	/**
 	 * Whole-heading selectors for H1-H3, per view mode: `headingReading` matches the real `<hN>` tag
 	 * in reading view; `headingLivePreviewLine` matches the CM6 line wrapper (`.HyperMD-header-N`,

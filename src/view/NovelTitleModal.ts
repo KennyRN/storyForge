@@ -12,8 +12,8 @@ import { ICON_DICE } from "../icons";
  * Opened by clicking a novel's title in the Series overview page's novel list
  * (SeriesOverviewView.ts's renderNovelRow) — that row now shows the title as plain formatted text
  * (numbered, subtitle in parentheses) rather than an editable box, so renaming moved here: the
- * text input that used to sit inline in the row, the "#"/"//" hint that used to sit under the
- * page's own "Novels" header, and a shortcut into titleForge's real generator (the dual-dice icon,
+ * text input that used to sit inline in the row, the "#"/"//" hint that used to sit on the
+ * overview page itself, and a shortcut into titleForge's real generator (the dual-dice icon,
  * opened as its own modal window via TitleForgeController.openModal() — see TitleForgeModal.ts —
  * rather than swapping this whole modal for a main-area tab) for when a name doesn't come to mind
  * unaided.

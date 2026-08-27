@@ -1,6 +1,6 @@
 import { App, parseYaml, stringifyYaml, TFile, type FrontMatterCache } from "obsidian";
 import { chapterSidecarFolderPath, chapterSidecarPath } from "./paths";
-import { ensureBackstageFolder, deleteBackstagePath, modifyBackstageFrontmatter, renameBackstagePath, writeBackstageFile } from "./writeGuard";
+import { ensureBackstageFolder, deleteBackstagePath, enqueueBackstageWrite, modifyBackstageFrontmatter, renameBackstagePath, writeBackstageFile } from "./writeGuard";
 import type { Fingerprint } from "./fingerprint";
 
 /** The raw on-disk shape of a chapter sidecar file's frontmatter, as read/written through `modifyBackstageFrontmatter`. */
@@ -43,22 +43,22 @@ export async function updateChapterFingerprint(
 	chapterFilename: string,
 	fingerprint: Fingerprint,
 ): Promise<void> {
-	await ensureBackstageFolder(app.vault, chapterSidecarFolderPath(bookFolderName));
 	const path = chapterSidecarPath(bookFolderName, chapterFilename);
-	const file = app.vault.getAbstractFileByPath(path);
-	let frontmatter: Record<string, unknown> = { chapter: chapterFilename };
-	if (file instanceof TFile) {
-		const raw = await app.vault.read(file);
-		frontmatter = { ...parseFrontmatterBlock(raw), chapter: chapterFilename };
+	await enqueueBackstageWrite(path, async () => {
+		await ensureBackstageFolder(app.vault, chapterSidecarFolderPath(bookFolderName));
+		const file = app.vault.getAbstractFileByPath(path);
+		let frontmatter: Record<string, unknown> = { chapter: chapterFilename };
+		if (file instanceof TFile) {
+			const raw = await app.vault.read(file);
+			frontmatter = { ...parseFrontmatterBlock(raw), chapter: chapterFilename };
+			const content = buildSidecarContent(frontmatter, fingerprint);
+			if (content === raw) return;
+			await writeBackstageFile(app.vault, path, content);
+			return;
+		}
 		const content = buildSidecarContent(frontmatter, fingerprint);
-		// Typing pauses fire this on every debounce tick; skip the write when the
-		// fingerprint hasn't actually changed, so idle re-checks don't touch disk.
-		if (content === raw) return;
 		await writeBackstageFile(app.vault, path, content);
-		return;
-	}
-	const content = buildSidecarContent(frontmatter, fingerprint);
-	await writeBackstageFile(app.vault, path, content);
+	});
 }
 
 /** Follows a chapter rename: moves the sidecar file and updates its `chapter` identity key. */
@@ -72,10 +72,16 @@ export async function renameChapterSidecar(
 	const newPath = chapterSidecarPath(bookFolderName, newFilename);
 	const file = app.vault.getAbstractFileByPath(oldPath);
 	if (!(file instanceof TFile)) return;
-	await renameBackstagePath(app.vault, oldPath, newPath);
-	await modifyBackstageFrontmatter<RawSidecarFrontmatter>(app, app.vault, newPath, buildSidecarContent({ chapter: newFilename }, { opening: "", closing: "" }), (fm) => {
-		fm.chapter = newFilename;
-	});
+	await enqueueBackstageWrite(oldPath, () =>
+		enqueueBackstageWrite(newPath, async () => {
+			await renameBackstagePath(app.vault, oldPath, newPath);
+			const moved = app.vault.getAbstractFileByPath(newPath);
+			if (!(moved instanceof TFile)) return;
+			await app.fileManager.processFrontMatter(moved, (fm: RawSidecarFrontmatter) => {
+				fm.chapter = newFilename;
+			});
+		}),
+	);
 }
 
 /** Deletes the fingerprint sidecar for a chapter (e.g. after the chapter file is deleted). */

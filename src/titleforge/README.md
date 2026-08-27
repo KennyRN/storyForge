@@ -62,10 +62,10 @@ src/titleforge/
 Touch points **outside** this folder — deliberately the only three, so the
 folder itself never needs `git grep` to find what depends on it:
 
-- `src/main.ts` — three lines: construct `TitleForgeController`, `await onload()`,
-  call `onunload()`. Also reuses one storyForge icon (`ICON_NOTEBOOK` from
-  `../icons.js`) for the ribbon/view icon, by explicit instruction — the one
-  deliberate shared resource.
+- `src/main.ts` — construct `TitleForgeController` during plugin `onload()`,
+  `await onload()` on layout-ready (vault I/O is not safe during a cold-start
+  plugin `onload()`), call `onunload()`. Also reuses one storyForge icon
+  (`ICON_TITLEFORGE` from `../icons.js`) for the ribbon icon.
 - `src/view/StoryForgeSettingsTab.ts` — one settings-tab group item that opens
   `TitleForgeSettingsModal`.
 - `styles.css` — one banner-delimited, entirely `.titleforge-*`-scoped section.
@@ -138,7 +138,7 @@ If this ever becomes its own installed plugin:
    the two `writeGuard.ts` calls with plain
    `vault.create`/`vault.modify` (writeGuard's only job was confining writes
    inside storyForge's folder, which a standalone plugin doesn't need).
-3. `TitleForgeController.ts`: swap the `ICON_NOTEBOOK` import for an owned SVG
+3. `TitleForgeController.ts`: swap the `ICON_TITLEFORGE` import for an owned SVG
    registered via Obsidian's `addIcon()`.
 4. Write a thin `main.ts`: `export default class extends Plugin { onload() { this.controller = new TitleForgeController(this); return this.controller.onload(); } onunload() { this.controller.onunload(); } }`.
 5. Split the `.titleforge-*` CSS block out of storyForge's `styles.css` into

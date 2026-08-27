@@ -2,10 +2,12 @@ import { ItemView, Notice, setIcon, TFile, WorkspaceLeaf } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { bookFolderNameFromChapterPath, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath } from "../paths";
 import { getBookId, getSeriesBooks } from "../series";
-import { renderSeriesSettingsButton, renderTopPanel, type UnplacedViewMode } from "./TopPanel";
+import { renderSeriesPaneCornerButtons, renderTopPanel, type UnplacedViewMode } from "./TopPanel";
 import { renderBottomPanel } from "./BottomPanel";
 import { renderStatsPanel, nextStatsMode, type StatsMode } from "./StatsPanel";
 import { SeriesModal } from "./SeriesModal";
+import { PlotThreadRegistryModal } from "./PlotThreadRegistryModal";
+import { TagRegistryModal } from "./TagRegistryModal";
 import { createCodexFolder, createCodexNote, readCodexFrontmatter, type CodexViewMode } from "../codex";
 import { debounce } from "../debounce";
 import { ICON_BOOK_DUOTONE, ICON_BOOK_OPEN_FILLED, ICON_CODEX, ICON_SERIES } from "../icons";
@@ -83,7 +85,7 @@ export class StoryForgeView extends ItemView {
 		const settings = this.plugin.getSettings();
 		this.currentBookFolderName = settings.selectedNovel;
 		this.activeChapterFilename = settings.selectedObject;
-		this.layout = settings.layout;
+		this.layout = SF_LAYOUTS.includes(settings.layout) ? settings.layout : "hybrid";
 		this.collapsedCodexFolders = new Set(settings.collapsedCodexFolderIds);
 		this.registerEvent(this.app.workspace.on("active-leaf-change", () => this.followActiveFile()));
 		this.registerEvent(this.app.workspace.on("file-open", () => this.followActiveFile()));
@@ -97,23 +99,27 @@ export class StoryForgeView extends ItemView {
 		// active:true — that fires on every scroll tick, and the indicator already updates itself
 		// far more cheaply than a full render (see CodexFocusNavigator.ts's renderContinuousIndicator).
 		this.registerEvent(onContinuousMode(this.app, (payload) => { if (!payload.active) this.render(); }));
-		this.followActiveFile();
-		// Reopening straight onto the Series/Novel/Chapter tab (persisted layout) must land the main
-		// editor pane on the matching page immediately, same as clicking that tab live does
-		// (selectLayout() above) — without this, the sidebar shows e.g. the Series tab as active but
-		// the main pane keeps showing whatever was last open there until the tab is clicked again.
-		// Gated on this tab actually being the one on screen, though: main.ts's refreshCustomIcons()
-		// rebuilds every storyLibrary leaf on each reload/hot-reload (to fix stale deferred-view
-		// chrome), including ones left sitting inactive in the background — without this check, a
-		// backgrounded Novel/Series tab would hijack the main pane out from under whatever tab (e.g.
-		// storyTelling) the user actually left active.
-		if (!this.containerEl.isShown()) return;
-		if (this.layout === "seriesBrowse") {
-			void this.openSeriesOverview();
-		} else if (this.layout === "novelBrowse") {
-			void this.openNovelOverview();
-		} else if (this.layout === "hybrid" && this.currentBookFolderName) {
-			this.focusChapterPaneForBook(this.currentBookFolderName);
+		try {
+			this.followActiveFile();
+			// Reopening straight onto the Series/Novel/Chapter tab (persisted layout) must land the main
+			// editor pane on the matching page immediately, same as clicking that tab live does
+			// (selectLayout() above) — without this, the sidebar shows e.g. the Series tab as active but
+			// the main pane keeps showing whatever was last open there until the tab is clicked again.
+			// Gated on this tab actually being the one on screen, though: main.ts hydrates
+			// every storyLibrary leaf on each reload/hot-reload (to fix stale deferred-view
+			// chrome), including ones left sitting inactive in the background — without this check, a
+			// backgrounded Novel/Series tab would hijack the main pane out from under whatever tab (e.g.
+			// storyTelling) the user actually left active.
+			if (!this.containerEl.isShown()) return;
+			if (this.layout === "seriesBrowse") {
+				void this.openSeriesOverview();
+			} else if (this.layout === "novelBrowse") {
+				void this.openNovelOverview();
+			} else if (this.layout === "hybrid" && this.currentBookFolderName) {
+				this.focusChapterPaneForBook(this.currentBookFolderName);
+			}
+		} catch (err) {
+			console.error("storyForge: storyLibrary failed to open", err);
 		}
 	}
 
@@ -128,7 +134,8 @@ export class StoryForgeView extends ItemView {
 	 * or to replace it with a real editor on exit. */
 	private findContinuousReadLeaf(bookFolderName: string): WorkspaceLeaf | null {
 		for (const leaf of this.app.workspace.getLeavesOfType(STORYFORGE_CONTINUOUS_VIEW_TYPE)) {
-			if ((leaf.view as ContinuousReadView).getBookFolderName() === bookFolderName) return leaf;
+			const view = leaf.view as ContinuousReadView;
+			if (typeof view.getBookFolderName === "function" && view.getBookFolderName() === bookFolderName) return leaf;
 		}
 		return null;
 	}
@@ -187,6 +194,10 @@ export class StoryForgeView extends ItemView {
 		// row split from the tabs/library/codex/stats four-row grid the other layouts share (see
 		// .sf-layout-codex-only in styles.css).
 		container.toggleClass("sf-layout-codex-only", config.topPane === "none");
+		// Series / Novel tabs have no Codex or stats row — same unused-track problem as Codex-only
+		// (the base grid's 2fr/auto tracks would reserve a gap under the library, with the top
+		// pane's border-bottom reading as a stray line part-way down). See .sf-layout-library-only.
+		container.toggleClass("sf-layout-library-only", config.topPane !== "none" && !config.showCodex);
 
 		// Replaces the old "choose layout" dropdown icon — one tab per layout, sitting above
 		// everything else in the panel (same idea as Story Context's Novel/Chapter/Dossier row).
@@ -296,11 +307,23 @@ export class StoryForgeView extends ItemView {
 				},
 			});
 
-			// Pinned to the pane's own bottom-left corner (see renderSeriesSettingsButton's doc
+			// Pinned to the pane's own bottom-left corner (see renderSeriesPaneCornerButtons's doc
 			// comment) — rendered straight onto `container` (the pane root), not into `topEl` above,
-			// since .sf-top-panel scrolls and would clip it.
+			// since .sf-top-panel scrolls and would clip it. Codex types, tags, and plot-threads sit
+			// beside the settings cog.
 			if (topPane === "series") {
-				renderSeriesSettingsButton(container, () => new SeriesModal(this.app, this.plugin, () => this.render()).open());
+				const refreshAfterPlotThreads = () => {
+					this.plugin.refreshStoryForgeViews();
+					this.plugin.refreshNovelOverviewView();
+				};
+				const refreshAfterTags = () => this.plugin.refreshStoryForgeViews();
+				renderSeriesPaneCornerButtons(
+					container,
+					() => new TagRegistryModal(this.app, refreshAfterTags, "codexTypes").open(),
+					() => new TagRegistryModal(this.app, refreshAfterTags, "tags").open(),
+					() => new PlotThreadRegistryModal(this.app, this.plugin, refreshAfterPlotThreads).open(),
+					() => new SeriesModal(this.app, this.plugin, () => this.render()).open(),
+				);
 			}
 		}
 
@@ -338,6 +361,8 @@ export class StoryForgeView extends ItemView {
 					this.render();
 				},
 				onOpenFile: (path) => void this.openCodexFile(path),
+				onOpenCodexTypes: () =>
+					new TagRegistryModal(this.app, () => this.plugin.refreshStoryForgeViews(), "codexTypes").open(),
 			});
 		}
 
@@ -464,6 +489,7 @@ export class StoryForgeView extends ItemView {
 	private async openInMainContentLeaf(file: TFile): Promise<void> {
 		const leaf = this.plugin.getMainContentLeaf();
 		await leaf.openFile(file, { active: true });
+		await this.app.workspace.revealLeaf(leaf);
 		this.app.workspace.setActiveLeaf(leaf, { focus: true });
 	}
 

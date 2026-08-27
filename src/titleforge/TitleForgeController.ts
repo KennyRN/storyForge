@@ -1,5 +1,5 @@
 import type { App, Plugin } from "obsidian";
-import { ICON_NOTEBOOK } from "../icons.js";
+import { ICON_TITLEFORGE } from "../icons.js";
 import { getGenerator, register, unregister } from "./engine/registry.js";
 import type { GeneratorSpec } from "./engine/types.js";
 import { DEFAULT_TITLEFORGE_SETTINGS, type TitleForgeOpenOptions, type TitleForgeSettings } from "./settings.js";
@@ -8,11 +8,11 @@ import { TitleForgeModal } from "./view/TitleForgeModal.js";
 
 /**
  * titleForge's whole bootstrap — the module a standalone titleForge plugin's
- * own `main.ts` would be. storyForge's `main.ts` only ever does three things
- * with an instance of this: construct it, `await onload()`, and call
- * `onunload()`. Everything else — command/ribbon registration, settings,
- * storage, the live generator list — is self-contained here, which is what
- * keeps main.ts's touch point to three lines.
+ * own `main.ts` would be. storyForge's `main.ts` constructs it during plugin
+ * `onload()`, then `await onload()` on layout-ready (vault I/O is not safe
+ * during a cold-start `onload()`), and calls `onunload()` on disable.
+ * Everything else — command/ribbon registration, settings, storage, the live
+ * generator list — is self-contained here.
  *
  * There is deliberately no main-area workspace view: titleForge only ever
  * opens as a modal (`openModal()`, `TitleForgeModal.ts`) — from the ribbon
@@ -21,10 +21,10 @@ import { TitleForgeModal } from "./view/TitleForgeModal.js";
  * A tab would sit around in the workspace outliving the moment a title was
  * needed for; a modal opens for exactly that moment and closes with it.
  *
- * Reuses one storyForge resource directly, by the user's own instruction: the
- * ribbon icon (`ICON_NOTEBOOK`, from `../icons.js`). Everything else — engine,
- * lexicons, storage, view — is titleForge's own, prefixed accordingly. On
- * extraction, swap the icon import for an owned one; nothing else changes.
+ * Reuses one storyForge resource directly: the identity glyph (`ICON_TITLEFORGE`,
+ * from `../icons.js`). Everything else — engine, lexicons, storage, view — is
+ * titleForge's own, prefixed accordingly. On extraction, swap the icon import
+ * for an owned one; nothing else changes.
  */
 export class TitleForgeController {
 	readonly storage: TitleForgeStorage;
@@ -46,7 +46,7 @@ export class TitleForgeController {
 		await this.reloadGenerators();
 		this.settings = await this.storage.loadSettings();
 
-		this.plugin.addRibbonIcon(ICON_NOTEBOOK, "Open titleForge", () => this.openModal());
+		this.plugin.addRibbonIcon(ICON_TITLEFORGE, "Open titleForge", () => this.openModal());
 		this.plugin.addCommand({
 			id: "open-titleforge",
 			name: "Open titleForge",

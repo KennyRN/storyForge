@@ -128,11 +128,13 @@ const LEGACY_TITLEFORGE_ROOT = `${BACKSTAGE_ROOT}/titleforge`;
  * folder before this migration gets a chance to run.
  *
  * Deliberately **not** folded into `migrateStructuralLayout` / called from
- * `initializeVaultState` — `TitleForgeController.onload()` runs earlier in
- * `main.ts`'s own `onload()` (before `initializeVaultState` is even invoked)
- * and touches this folder immediately (`ensureLexiconsSeeded`, `loadSettings`).
- * This must run before that call, so `main.ts` calls it directly, right
- * before constructing `TitleForgeController`.
+ * `initializeVaultState` — `TitleForgeController.onload()` still touches this
+ * folder immediately (`ensureLexiconsSeeded`, `loadSettings`). `main.ts` runs
+ * this on layout-ready, immediately before that `onload()`, so a vault that's
+ * ever loaded even one build in between cannot seed the new path first and
+ * skip the move. (Both wait for layout-ready rather than plugin `onload()`,
+ * because vault I/O during `onload()` can fail a cold start and unload the
+ * plugin before custom views restore.)
  */
 export async function migrateTitleforgeLocation(app: App): Promise<void> {
 	const legacy = app.vault.getAbstractFileByPath(LEGACY_TITLEFORGE_ROOT);

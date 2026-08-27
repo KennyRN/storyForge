@@ -17,7 +17,7 @@
 	height: 100%;
 	min-height: 0;
 	padding: 0;
-	/* Positioning context for .sf-series-settings-btn, pinned to this pane's own bottom-left
+	/* Positioning context for .sf-series-pane-corner, pinned to this pane's own bottom-left
 	 * corner rather than scrolling away inside .sf-top-panel/.sf-bottom-panel. */
 	position: relative;
 }
@@ -25,9 +25,22 @@
 /* The Codex tab (layoutConfig's topPane: "none") renders only the tabs row and the codex pane —
  * no library row, no stats row — so it gets its own two-row split instead of leaving the base
  * grid's unused 2fr/auto row tracks reserving dead space below the codex tree (empty explicit
- * `fr` tracks don't collapse the way an empty `auto` track does). Set by StoryForgeView.render(). */
-.storyforge-view.sf-layout-codex-only {
-	grid-template-rows: auto 1fr;
+ * `fr` tracks don't collapse the way an empty `auto` track does). Set by StoryForgeView.render().
+ * Same `:not(#storyforge-specificity-boost)` as the base `.storyforge-view` rule so this actually
+ * wins — without it the four-row grid stays in effect and the pane stops short of the sidebar. */
+.storyforge-view.sf-layout-codex-only:not(#storyforge-specificity-boost) {
+	grid-template-rows: auto minmax(0, 1fr);
+}
+
+.storyforge-view.sf-layout-codex-only:not(#storyforge-specificity-boost) .sf-bottom-panel {
+	height: 100%;
+}
+
+/* Series / Novel tabs: tabs + library only. Same unused-track fix as Codex-only, so unplaced
+ * novels/chapters sit at the bottom of the sidebar instead of leaving a gap (and a stray border
+ * line) where Codex/stats would be. */
+.storyforge-view.sf-layout-library-only:not(#storyforge-specificity-boost) {
+	grid-template-rows: auto minmax(0, 1fr);
 }
 
 /* Replaces the old "choose layout" dropdown icon — one tab per layout (Codex / Series browse /
@@ -103,12 +116,24 @@
 .sf-bottom-panel {
 	display: flex;
 	flex-direction: column;
-	overflow-y: auto;
 	min-height: 0;
 }
 
 .sf-top-panel {
+	overflow-y: auto;
+}
+
+/* Divider only when Codex sits underneath (Chapter tab). On Series/Novel the library is the last
+ * pane, and this border was the stray line part-way down under unplaced novels/chapters. */
+.sf-top-panel:has(+ .sf-bottom-panel) {
 	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+/* Positioning context for .sf-codex-pane-corner. Overflow lives on .sf-codex-tree so the
+ * types icon stays pinned to this pane's own bottom-left instead of scrolling away. */
+.sf-bottom-panel {
+	position: relative;
+	overflow: hidden;
 }
 
 .sf-top-header {
@@ -199,8 +224,9 @@
 
 .sf-codex-tree {
 	flex: 1;
-	padding: 2px 4px;
-	min-height: 8px;
+	padding: 2px 4px 36px;
+	min-height: 0;
+	overflow-y: auto;
 }
 
 .sf-empty-inline {
@@ -211,7 +237,6 @@
 .sf-unplaced-zone {
 	flex-shrink: 0;
 	margin-top: 4px;
-	border-top: 1px solid var(--background-modifier-border);
 	background: var(--background-secondary);
 }
 
@@ -245,8 +270,13 @@
 	cursor: pointer;
 }
 
-.sf-unplaced-list {
-	min-height: 28px;
+.sf-unplaced-list,
+.sf-top-list.sf-unplaced-list {
+	min-height: 0;
+	padding: 0;
+}
+
+.sf-unplaced-list:not(:empty) {
 	padding: 2px 4px 6px;
 }
 
@@ -469,11 +499,9 @@
 	cursor: pointer;
 	position: relative;
 	z-index: 2;
-}
-
-.sf-codex-folder-header:hover,
-.sf-codex-file:hover {
-	background: var(--background-modifier-hover);
+	/* Hover and selected share this fill; nested rows clip it to the parent guide line below. */
+	--sf-codex-row-fill: transparent;
+	background: var(--sf-codex-row-fill);
 }
 
 .sf-codex-tree {
@@ -512,13 +540,22 @@
 	color: var(--text-faint);
 }
 
+/* Filled triangle with slightly rounded vertices (stroke-linejoin on the mask) so the
+ * folder-arrow isn't a hard-cut CSS border triangle. */
 .sf-codex-chevron::before {
 	content: "";
-	width: 0;
-	height: 0;
-	border-style: solid;
-	border-width: 7px 0 7px 9.8px;
-	border-color: transparent transparent transparent currentColor;
+	display: block;
+	width: 10px;
+	height: 14px;
+	background-color: currentColor;
+	-webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath fill='black' stroke='black' stroke-width='1.4' stroke-linejoin='round' d='M1.4 1.6 L8.5 7 L1.4 12.4 Z'/%3E%3C/svg%3E");
+	mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath fill='black' stroke='black' stroke-width='1.4' stroke-linejoin='round' d='M1.4 1.6 L8.5 7 L1.4 12.4 Z'/%3E%3C/svg%3E");
+	-webkit-mask-repeat: no-repeat;
+	mask-repeat: no-repeat;
+	-webkit-mask-position: center;
+	mask-position: center;
+	-webkit-mask-size: contain;
+	mask-size: contain;
 	transition: transform 0.12s ease;
 	transform: rotate(90deg); /* expanded: pointing down */
 }
@@ -569,7 +606,7 @@
 
 .sf-codex-folder-header.sf-dragging,
 .sf-codex-file.sf-dragging {
-	background: var(--background-modifier-hover);
+	--sf-codex-row-fill: var(--background-modifier-hover);
 	opacity: 0.85;
 	cursor: grabbing;
 }
@@ -611,21 +648,41 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	cursor: pointer;
 }
 
-/* Series-mode-only settings icon — pinned to the bottom-left corner of the whole pane (see
- * renderSeriesSettingsButton's doc comment), not part of any row's flex flow any more.
- * Sized 50% bigger than this codebase's default icon size (16px -> 24px). */
-.sf-series-settings-btn {
+/* Series-mode-only hover icons — pinned to the bottom-left corner of the whole pane (see
+ * renderSeriesPaneCornerButtons's doc comment), not part of any row's flex flow any more.
+ * Codex types, chapter/novel tags, and plot-threads sit beside the settings cog. Sized 50% bigger
+ * than this codebase's default icon size (16px -> 24px). */
+.sf-series-pane-corner {
 	position: absolute;
 	left: 8px;
 	bottom: 8px;
 	display: flex;
 	align-items: center;
+	gap: 8px;
+	z-index: 1;
+}
+.sf-series-settings-btn,
+.sf-codex-types-btn {
+	display: flex;
+	align-items: center;
 	justify-content: center;
 	color: var(--text-muted);
 	cursor: pointer;
+}
+.sf-series-settings-btn svg,
+.sf-codex-types-btn svg { width: 24px; height: 24px; }
+
+/* Codex pane — same hover-icon family as .sf-series-pane-corner, pinned to this pane's
+ * bottom-left (see renderCodexTypesCorner). */
+.sf-codex-pane-corner {
+	position: absolute;
+	left: 8px;
+	bottom: 8px;
+	display: flex;
+	align-items: center;
+	gap: 8px;
 	z-index: 1;
 }
-.sf-series-settings-btn svg { width: 24px; height: 24px; }
 
 /* Fixed size regardless of which tab is active or how many rows it holds — same
  * .modal.sf-xxx-modal + inner-scroll-body split as .sf-tag-registry-modal below. */
@@ -689,12 +746,12 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	outline-offset: 2px;
 }
 
-/* The "access obsidian's setting window" cog and "hide, or show, obsidian's interface elements"
- * eye — plain hover-highlight icons, same treatment as .sf-modal-add-book, not buttons. Sized 10px
- * over Obsidian's usual 16px icon default (26px), and given a fixed width matching Obsidian's own
- * toggle-switch width (best-effort figure, unverified live) so they centre under/over the toggle
- * rows' controls elsewhere in this box rather than sitting at whatever width their own icon size
- * would otherwise claim. */
+/* Hover-highlight icons on SeriesModal setting rows (cycling guide, text styling, storyForge
+ * interface, hide-UI eye, Obsidian settings cog, formatting themes) — same treatment as
+ * .sf-modal-add-book, not buttons. Sized 10px over Obsidian's usual 16px icon default (26px), and
+ * given a fixed width matching Obsidian's own toggle-switch width (best-effort figure, unverified
+ * live) so they centre under/over the toggle rows' controls elsewhere in this box rather than
+ * sitting at whatever width their own icon size would otherwise claim. */
 .sf-series-modal-settings-icon {
 	display: flex;
 	align-items: center;
@@ -754,6 +811,7 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 
 .sf-synopsis-plot-title {
 	margin-top: 16px;
+	grid-template-columns: auto 1fr;
 }
 
 .sf-synopsis-default-pov {
@@ -1130,7 +1188,154 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	display: none;
 }
 
+.sf-font-row .setting-item-control {
+	flex-wrap: nowrap;
+	gap: 8px;
+	align-items: center;
+}
+
+.sf-meta-pair-row {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 6px 0;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.sf-meta-pair-row--fonts .sf-meta-pair-half {
+	flex: 1;
+	min-width: 0;
+}
+
+.sf-meta-pair-row--fonts .sf-meta-pair-half > .setting-item {
+	border-top: none;
+	padding: 0;
+	gap: 8px;
+}
+
+.sf-meta-pair-row--fonts .sf-meta-pair-half .setting-item-info {
+	flex: 0 0 auto;
+	width: auto;
+	margin-right: 0;
+}
+
+.sf-meta-pair-row--fonts .sf-meta-pair-half .setting-item-control {
+	flex: 1 1 auto;
+	justify-content: flex-start;
+	min-width: 0;
+}
+
+.sf-meta-pair-row--fonts .sf-meta-pair-half .setting-item-control button {
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.sf-meta-pair-row--colours {
+	flex-wrap: wrap;
+}
+
+.sf-meta-pair-row--colours .sf-meta-pair-half,
+.sf-colour-plain-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.sf-colour-plain-row {
+	padding: 6px 0;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.sf-meta-pair-label {
+	flex: 0 0 auto;
+}
+
+.sf-row-preview-pair {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+}
+
+.sf-row-preview-pair-half {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	align-items: center;
+}
+
+.sf-size-row .setting-item-control {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.sf-size-row input[type="range"] {
+	width: 100%;
+	min-width: 80px;
+}
+
+.sf-ui-format-preview.is-row-aligned {
+	overflow: hidden;
+	position: relative;
+	padding: 0;
+}
+
+.sf-ui-format-preview-rows.sf-row-preview-host {
+	position: relative;
+	height: 100%;
+	overflow: hidden;
+	padding: 0;
+}
+
+.sf-row-preview-slot {
+	position: absolute;
+	left: 10px;
+	right: 10px;
+	display: flex;
+	align-items: center;
+	pointer-events: none;
+	box-sizing: border-box;
+}
+
+.sf-row-preview-sample {
+	width: 100%;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	line-height: 1.35;
+	box-sizing: border-box;
+}
+
+.sf-row-preview-pill {
+	width: 100%;
+	min-height: 1.7em;
+	padding: 4px 6px;
+	border-radius: 4px;
+	font-size: 0.95em;
+	line-height: 1.35;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	box-sizing: border-box;
+}
+
+.sf-row-preview-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: calc(var(--font-ui-medium) * 1.4);
+	line-height: 1;
+}
+
+.sf-row-preview-icon svg {
+	width: 1em;
+	height: 1em;
+}
+
 .sf-settings-section-h4 {
+	margin: 0;
 	padding-left: 10px;
 }
 
@@ -1369,6 +1574,38 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	margin: 0 0 12px;
 }
 
+.sf-plot-thread-registry-modal h2,
+.sf-tag-registry-modal h2 {
+	margin: 0 0 12px;
+	font-size: var(--font-ui-medium);
+}
+
+.sf-plot-thread-swatches {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	flex-shrink: 0;
+}
+
+.sf-color-swatch-btn--text {
+	position: relative;
+}
+
+.sf-color-swatch-btn--text::after {
+	content: "A";
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 12px;
+	font-weight: 700;
+	line-height: 1;
+	color: var(--text-on-accent, #fff);
+	mix-blend-mode: difference;
+	pointer-events: none;
+}
+
 .sf-palette-list {
 	display: flex;
 	flex-direction: column;
@@ -1416,14 +1653,31 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	background: var(--background-modifier-hover);
 }
 
+/* Always the first extra row — a small but distinct gap above the real palette colours. */
+.sf-palette-row.sf-palette-leading {
+	margin-bottom: 8px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.sf-palette-row.sf-palette-leading .sf-palette-name,
+.sf-palette-row.sf-palette-muted .sf-palette-name {
+	color: var(--text-muted);
+	font-style: italic;
+}
+
+.sf-palette-row.sf-palette-leading.is-selected,
+.sf-palette-row.sf-palette-muted.is-selected {
+	background: var(--background-modifier-hover);
+}
+
 /* No fixed hex to show — a diagonal "empty" pattern instead of a solid fill. */
 .sf-palette-swatch.is-theme-default {
 	background-image: linear-gradient(45deg, var(--background-modifier-border) 25%, transparent 25%, transparent 50%, var(--background-modifier-border) 50%, var(--background-modifier-border) 75%, transparent 75%, transparent);
 	background-size: 6px 6px;
 }
 
-/* Live theme preview in SeriesModal.ts's formatting tab (renderPaletteSwatchPreview) — border is
- * the resolved foreground colour (a plain 2px border, inherently centred on the box's own edge),
+/* Live theme preview in SeriesModal.ts's formatting tab (renderPaletteSwatchPreview) —
  * fill is the resolved background colour. Set inline per-render, not here (they're per-palette).
  * width: fit-content shrink-wraps the panel to however many patches it holds; margin: 2px auto
  * (top + centred sides) leaves a fixed 2px gap above. The bottom gap is a real spacer element
@@ -1435,7 +1689,7 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	padding: 10px;
 	width: fit-content;
 	margin: 2px auto 0;
-	border: 2px solid transparent;
+	border: none;
 	border-radius: 4px;
 }
 
@@ -1476,39 +1730,41 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 
 .sf-tools-view {
 	display: flex;
+	flex-direction: column;
 	overflow-y: auto;
 }
 
-.sf-tools-view .workspace-ribbon {
-	position: static;
-	flex: 1 1 auto;
+.sf-tools-list {
+	display: flex;
+	flex-direction: column;
 	width: 100%;
-	height: auto;
-	border-right: none;
 }
 
-/* Neutralize rules meant only for the ribbon's native top-left corner placement. */
-.sf-tools-view .workspace-ribbon.mod-left {
-	margin-top: 0;
+.sf-tools-empty {
+	padding: 12px 16px;
+	color: var(--text-muted);
+	font-size: var(--font-ui-small);
 }
 
-.sf-tools-view .workspace-ribbon.mod-left::before {
-	content: none;
-}
-
-/* Each ribbon action becomes an icon + label row, with the icon in a fixed-width first
+/* Each mirrored ribbon action is an icon + label row, with the icon in a fixed-width first
    column (matching the old ribbon width) so every label lines up in a straight column. */
-.sf-tools-view .side-dock-ribbon-action {
+.sf-tools-view .side-dock-ribbon-action:not(#storyforge-specificity-boost) {
 	display: grid;
 	grid-template-columns: 44px 1fr;
 	align-items: center;
 	width: 100%;
+	height: auto;
+	min-height: 44px;
 	margin: 0;
+	padding: 4px 8px;
+	cursor: pointer;
 }
 
 .sf-tools-view .side-dock-ribbon-action svg {
 	grid-column: 1;
 	justify-self: center;
+	width: var(--icon-size, 18px);
+	height: var(--icon-size, 18px);
 }
 
 .sf-tools-view .side-dock-ribbon-action::after {
@@ -1660,7 +1916,9 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 .modal.sf-ui-formatting-modal,
 .modal.sf-hide-ui-modal,
 .modal.sf-protections-modal,
-.modal.sf-tag-registry-modal {
+.modal.sf-tag-registry-modal,
+.modal.sf-cycling-guide-modal,
+.modal.sf-plot-thread-registry-modal {
 	width: 560px;
 	height: 760px;
 	display: flex;
@@ -1677,7 +1935,9 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 .sf-ui-formatting-modal,
 .sf-hide-ui-modal,
 .sf-protections-modal,
-.sf-tag-registry-modal {
+.sf-tag-registry-modal,
+.sf-cycling-guide-modal,
+.sf-plot-thread-registry-modal {
 	flex: 1;
 	display: flex;
 	flex-direction: column;
@@ -1732,25 +1992,78 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	box-sizing: border-box;
 }
 
+/* Nested H4–6 (and similar) sub-tabs: keep both tab strips pinned and scroll
+ * only the pane beneath them. Scoped to the text-style modal so the storyForge
+ * interface modal's own two-tier overflow rules stay untouched. */
+.modal.sf-text-style-modal .sf-text-style-tab-body-wrapper.is-tab-host {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.modal.sf-text-style-modal .sf-text-style-tab-body.is-tab-host {
+	flex: 1 1 auto;
+	min-height: 0;
+	gap: 0;
+}
+
+.modal.sf-text-style-modal .sf-text-style-tab-body > .sf-text-style-tab-body-wrapper {
+	flex: 1 1 auto;
+	min-height: 0;
+	height: auto;
+	padding-top: var(--size-4-4);
+}
+
 /*
- * storyForge interface has two tab tiers: "Left sidebar" / "Editor" / "Right sidebar" at the top,
- * then Library/Unplaced/… (or Forge/Story Context/Archive) nested inside Left/Right sidebar. The
- * outer wrapper must not scroll itself, or the second tier's tab bar — which lives inside the
- * outer wrapper's visible body, right alongside the settings beneath it — would scroll away with
- * them. Instead the outer wrapper sizes its single visible body to fill the remaining height, and
- * that body's own nested tab bar + wrapper (the second tier) does the actual scrolling, keeping
- * its tab bar pinned above it. Editor has no second tier of its own, so it gets the same
- * treatment via its own dedicated `.sf-ui-format-editor-scroll` wrapper instead (see below).
+ * storyForge interface has three tab tiers: "visual interface editing" / "list interface
+ * editing" at the top, then storyforge/storytelling/story context (or text/colours/size), then
+ * Library/Unplaced/… (or Navigation/Story Context/Archive) nested inside visual panes.
+ * Tab-host wrappers must not scroll, or the next tier's tab bar would scroll away with the
+ * settings. Leaf wrappers (and `.sf-ui-format-plain-scroll`) do the actual scrolling.
  */
 .sf-ui-format-controls > .sf-text-style-tab-body-wrapper {
 	display: flex;
 	flex-direction: column;
-	overflow: visible;
+	overflow: hidden;
 }
 
 .sf-ui-format-controls > .sf-text-style-tab-body-wrapper > .sf-text-style-tab-body {
 	flex: 1;
 	min-height: 0;
+}
+
+.modal.sf-ui-formatting-modal .sf-text-style-tab-body-wrapper.is-tab-host {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.modal.sf-ui-formatting-modal .sf-text-style-tab-body.is-tab-host {
+	flex: 1 1 auto;
+	min-height: 0;
+	gap: 0;
+}
+
+.modal.sf-ui-formatting-modal .sf-text-style-tab-body.is-tab-host > .sf-text-style-tab-body-wrapper {
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+.modal.sf-ui-formatting-modal .sf-text-style-tab-body:has(> .sf-ui-format-plain-scroll) {
+	flex: 1;
+	min-height: 0;
+	gap: 0;
+	overflow: hidden;
+}
+
+.modal.sf-ui-formatting-modal .sf-text-style-tab-body-wrapper:has(> .sf-text-style-tab-body > .sf-ui-format-plain-scroll) {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.sf-ui-format-controls > .sf-text-style-tab-bar .sf-text-style-tab-btn {
+	padding-inline: var(--size-4-2);
 }
 
 .sf-text-style-tab-body {
@@ -1760,8 +2073,7 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	box-sizing: border-box;
 }
 
-/* Editor tab's own scrollable body — see the two-tab-tiers comment above. */
-.sf-ui-format-editor-scroll {
+.sf-ui-format-plain-scroll {
 	flex: 1;
 	min-height: 0;
 	overflow-y: auto;
@@ -1855,12 +2167,28 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	background: var(--background-primary);
 }
 
+.sf-ui-format-preview-chrome {
+	height: 100%;
+	min-height: 100%;
+}
+
+.sf-ui-format-preview-chrome > div {
+	height: 100%;
+}
+
 .sf-ui-format-preview .sf-ui-preview-host.storyforge-view {
 	display: grid;
 	grid-template-rows: 3fr 2fr;
 	height: 100%;
 	min-height: 100%;
-	pointer-events: none;
+	user-select: none;
+}
+
+.sf-ui-format-preview .sf-ui-preview-host.storyforge-storytelling-view {
+	display: grid;
+	grid-template-rows: auto 1fr auto;
+	height: 100%;
+	min-height: 100%;
 	user-select: none;
 }
 
@@ -1869,7 +2197,6 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	flex-direction: column;
 	gap: 16px;
 	padding: 12px;
-	pointer-events: none;
 	user-select: none;
 }
 
@@ -1878,6 +2205,50 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 6px;
 	padding: 10px;
+	min-height: 180px;
+	display: flex;
+	flex-direction: column;
+}
+
+.sf-ui-format-preview .sf-recommend-synopsis {
+	height: 4.5em;
+}
+
+.sf-box-colour-table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 4px 0 8px;
+}
+.sf-box-colour-table th,
+.sf-box-colour-table td {
+	padding: 6px 8px;
+	vertical-align: middle;
+}
+.sf-box-colour-table thead th {
+	font-size: var(--font-ui-smaller);
+	font-weight: var(--font-medium);
+	color: var(--text-muted);
+	text-align: center;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+.sf-box-colour-table thead th:first-child {
+	text-align: left;
+}
+.sf-box-colour-table tbody th {
+	font-weight: var(--font-normal);
+	text-align: left;
+}
+.sf-box-colour-table tbody td {
+	text-align: center;
+	width: 3.5em;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+.sf-box-colour-table tbody th {
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+.sf-box-colour-table tbody tr:last-child th,
+.sf-box-colour-table tbody tr:last-child td {
+	border-bottom: none;
 }
 
 .sf-text-style-tab-body > .setting-item,
@@ -1949,14 +2320,15 @@ body.sf-use-tools-panel {
 body.sf-use-tools-panel .workspace-ribbon:not(#storyforge-specificity-boost) {
 	display: none;
 }
-body.sf-use-tools-panel .sf-tools-view .workspace-ribbon:not(#storyforge-specificity-boost) {
-	display: flex;
-}
 body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container:not(#storyforge-specificity-boost) {
 	padding-left: calc(var(--size-4-2) + var(--frame-left-space));
 }
 
 .markdown-reading-view h1 a:not(#storyforge-specificity-boost),
+.HyperMD-header-1 .cm-hmd-internal-link:not(#storyforge-specificity-boost),
+.HyperMD-header-1 .cm-link:not(#storyforge-specificity-boost),
+.HyperMD-header-1 .cm-hmd-internal-link .cm-underline:not(#storyforge-specificity-boost),
+.HyperMD-header-1 .cm-link .cm-underline:not(#storyforge-specificity-boost),
 .cm-header-1.cm-hmd-internal-link:not(#storyforge-specificity-boost),
 .cm-header-1.cm-link:not(#storyforge-specificity-boost),
 .cm-header-1.cm-hmd-internal-link .cm-underline:not(#storyforge-specificity-boost),
@@ -1975,6 +2347,12 @@ body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container:not(#sto
 }
 .sf-unplaced-header > .sf-icon { color: var(--sf-unplaced-color); font-size: var(--sf-unplaced-size, 1em); }
 .sf-unplaced-header > .sf-icon svg { width: 1em; height: 1em; }
+/* Beats `.sf-unplaced-header > .sf-icon` above — that rule was winning over the earlier
+ * `.sf-unplaced-hidden .sf-icon` mute, so the tray stayed fully coloured while collapsed. */
+.sf-unplaced-header.sf-unplaced-hidden > .sf-icon,
+.sf-unplaced-header.sf-unplaced-hidden .sf-header-unplaced {
+	color: var(--text-faint);
+}
 .sf-unplaced-list {
 	font-size: var(--sf-unplaced-items-size, 1em);
 	color: var(--sf-unplaced-items-color);
@@ -2006,11 +2384,13 @@ body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container:not(#sto
 .sf-top-list:not(.sf-unplaced-list) .sf-row .sf-row-text {
 	color: var(--sf-lib-items-color, var(--text-normal));
 }
-.sf-top-list:not(.sf-unplaced-list) .sf-row.sf-row-selected {
+.sf-top-list:not(.sf-unplaced-list) .sf-row.sf-row-selected,
+.sf-top-list:not(.sf-unplaced-list) .sf-row:hover:not(.sf-series-overview-row) {
 	background: var(--sf-highlight-bg);
 	color: var(--sf-highlight-text);
 }
-.sf-top-list:not(.sf-unplaced-list) .sf-row.sf-row-selected .sf-row-text {
+.sf-top-list:not(.sf-unplaced-list) .sf-row.sf-row-selected .sf-row-text,
+.sf-top-list:not(.sf-unplaced-list) .sf-row:hover:not(.sf-series-overview-row) .sf-row-text {
 	color: var(--sf-highlight-text);
 }
 /* storyTelling panel's own chapter-item styling (UiFormattingModal's "storyTelling" tab) — this
@@ -2030,26 +2410,40 @@ body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container:not(#sto
 .storyforge-storytelling-view .sf-top-list:not(.sf-unplaced-list) .sf-row .sf-row-text {
 	color: var(--sf-storytelling-items-color, var(--sf-lib-items-color, var(--text-normal)));
 }
-.storyforge-storytelling-view .sf-top-list:not(.sf-unplaced-list) .sf-row.sf-row-selected {
+.storyforge-storytelling-view .sf-top-list:not(.sf-unplaced-list) .sf-row.sf-row-selected,
+.storyforge-storytelling-view .sf-top-list:not(.sf-unplaced-list) .sf-row:hover {
 	background: var(--sf-storytelling-highlight-bg, var(--sf-highlight-bg));
 	color: var(--sf-storytelling-highlight-text, var(--sf-highlight-text));
 }
-.storyforge-storytelling-view .sf-top-list:not(.sf-unplaced-list) .sf-row.sf-row-selected .sf-row-text {
+.storyforge-storytelling-view .sf-top-list:not(.sf-unplaced-list) .sf-row.sf-row-selected .sf-row-text,
+.storyforge-storytelling-view .sf-top-list:not(.sf-unplaced-list) .sf-row:hover .sf-row-text {
 	color: var(--sf-storytelling-highlight-text, var(--sf-highlight-text));
 }
-.sf-unplaced-list .sf-row.sf-row-selected { background: var(--sf-unplaced-highlight-bg); color: var(--sf-unplaced-highlight-text); }
-.sf-codex-file.sf-row-selected { background: var(--sf-codex-highlight-bg); color: var(--sf-codex-highlight-text); }
-/* Truncate selected-file highlight at its enclosing folder's guide line so it reads as expanding
-   out of the line, rather than starting flush at the row's own left edge.
-   --sf-codex-depth is the file's own depth, so its immediate parent folder's guide sits one
-   level-indent step further left — same formula as .sf-codex-folder-indicator's own `left`. */
-body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected {
+.sf-unplaced-list .sf-row.sf-row-selected,
+.sf-unplaced-list .sf-row:hover {
+	background: var(--sf-unplaced-highlight-bg);
+	color: var(--sf-unplaced-highlight-text);
+}
+.sf-codex-file.sf-row-selected,
+.sf-codex-folder-header.sf-row-selected,
+.sf-codex-file:hover,
+.sf-codex-folder-header:hover {
+	--sf-codex-row-fill: var(--sf-codex-highlight-bg);
+	color: var(--sf-codex-highlight-text);
+}
+/* Nested rows (files and folder headers) clip hover and selected fill at the enclosing folder's
+   guide line so the highlight reads as expanding out of the line, rather than starting flush at
+   the row's own left edge. --sf-codex-depth is the row's own depth, so its immediate parent
+   folder's guide sits one level-indent step further left — same formula as
+   .sf-codex-folder-indicator's own `left`. Root rows keep a flat fill (no clip). */
+body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-file,
+body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-header {
 	--sf-codex-highlight-trim: calc(14px + (var(--sf-codex-depth, 1) - 1) * var(--sf-codex-level-indent, 20px));
 	background: linear-gradient(
 		to right,
 		transparent 0,
 		transparent var(--sf-codex-highlight-trim),
-		var(--sf-codex-highlight-bg) var(--sf-codex-highlight-trim)
+		var(--sf-codex-row-fill) var(--sf-codex-highlight-trim)
 	);
 }
 
@@ -2091,7 +2485,7 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 }
 .sf-cycling-guide-badge-icon svg { width: 1em; height: 1em; }
 
-/* Cycling guide sample in SeriesModal's general tab — a short manuscript-page fragment showing
+/* Cycling guide sample in CyclingGuideModal — a short manuscript-page fragment showing
    the divider at a real paragraph break. Background and text mirror the real editor pane: the
    background is the theme's own --background-primary (storyForge never overrides the manuscript
    pane's background), and the paragraph text uses the exact same --sf-body-* vars/fallbacks as
@@ -2128,6 +2522,7 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 	font-variation-settings: var(--sf-lib-series-variation, normal);
 }
 .sf-series-settings-btn:hover { color: var(--sf-lib-series-color); }
+.sf-codex-types-btn:hover { color: var(--sf-codex-color); }
 .sf-book-line .sf-header-text {
 	font-size: var(--sf-lib-book-size, 1em);
 	font-weight: var(--sf-lib-book-weight, 400);
@@ -2146,7 +2541,7 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 	font-family: var(--sf-lib-subtitle-family, inherit);
 	font-variation-settings: var(--sf-lib-subtitle-variation, normal);
 }
-.sf-top-header { border-bottom: var(--sf-lib-header-divider, none); }
+.sf-top-header { border-bottom: var(--sf-lib-header-divider, 1px solid var(--background-modifier-border)); }
 
 /* Set on the shared row ancestor (not just the name span) so a Lore Entry folder's type icon —
  * .sf-codex-type-icon, a sibling of .sf-codex-folder-name rather than its descendant — inherits
@@ -2166,6 +2561,30 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 .sf-codex-chevron { color: var(--sf-codex-folder-color); font-size: var(--sf-codex-folder-size, 1em); }
 .sf-codex-folder-indicator { width: var(--sf-codex-folder-indicator-width, 2px); background: var(--sf-codex-folder-color); }
 
+/* Hover and selected share one treatment: fill, text/icon colour, and (for a folder row) the
+ * chevron plus the guide-line stem that sits inside the highlighted header. Nested rows clip
+ * that fill at the parent guide — see the gradient rule above. */
+.sf-codex-folder-header.sf-row-selected .sf-codex-folder-name,
+.sf-codex-folder-header.sf-row-selected .sf-codex-folder-name.sf-styled-heading,
+.sf-codex-folder-header.sf-row-selected .sf-codex-chevron,
+.sf-codex-folder-header:hover .sf-codex-folder-name,
+.sf-codex-folder-header:hover .sf-codex-folder-name.sf-styled-heading,
+.sf-codex-folder-header:hover .sf-codex-chevron {
+	color: var(--sf-codex-highlight-text);
+}
+.sf-codex-folder:has(> .sf-codex-folder-children > .sf-codex-folder-indicator) > .sf-codex-folder-header.sf-row-selected::after,
+.sf-codex-folder:has(> .sf-codex-folder-children > .sf-codex-folder-indicator) > .sf-codex-folder-header:hover::after {
+	content: "";
+	position: absolute;
+	top: calc(50% + 4px);
+	bottom: 0;
+	left: calc(14px + var(--sf-codex-depth, 0) * var(--sf-codex-level-indent, 20px));
+	width: var(--sf-codex-folder-indicator-width, 2px);
+	transform: translateX(-50%);
+	background: var(--sf-codex-highlight-text);
+	pointer-events: none;
+}
+
 .sf-codex-file {
 	color: var(--sf-codex-note-color);
 	font-size: var(--sf-codex-note-size, 1em);
@@ -2181,9 +2600,14 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 	font-family: var(--sf-body-family, revert);
 	font-variation-settings: var(--sf-body-variation, revert);
 }
-.markdown-reading-view strong:not(#storyforge-specificity-boost),
-.cm-strong:not(#storyforge-specificity-boost) {
+.markdown-reading-view :is(strong, b):not(#storyforge-specificity-boost),
+.cm-line .cm-strong:not(#storyforge-specificity-boost) {
 	color: var(--sf-body-bold-color, revert);
+	font-weight: bold;
+	/* Body/quote lines pin "wght" for variable fonts; that inherits onto
+	   strong and overrides the UA font-weight: bold. Reset so bold can drive
+	   the axis (variable fonts) or select the bold face (static fonts). */
+	font-variation-settings: normal;
 }
 .markdown-reading-view em:not(#storyforge-specificity-boost),
 .cm-em:not(#storyforge-specificity-boost) {
@@ -2298,6 +2722,53 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 	font-variant: var(--sf-h6-variant, revert);
 }
 
+.markdown-reading-view :is(code, pre):not(#storyforge-specificity-boost),
+.cm-inline-code:not(#storyforge-specificity-boost),
+.HyperMD-codeblock:not(#storyforge-specificity-boost) {
+	font-size: var(--sf-code-size, revert);
+	color: var(--sf-code-color, revert);
+	font-weight: var(--sf-code-weight, revert);
+	font-family: var(--sf-code-family, revert);
+	font-variation-settings: var(--sf-code-variation, revert);
+	background-color: var(--sf-code-bg, revert);
+}
+
+.markdown-reading-view pre code:not(#storyforge-specificity-boost) {
+	background-color: transparent;
+}
+
+.markdown-reading-view blockquote:not(#storyforge-specificity-boost),
+.HyperMD-quote:not(#storyforge-specificity-boost),
+.cm-quote:not(#storyforge-specificity-boost) {
+	font-size: var(--sf-quote-size, var(--sf-body-size, revert));
+	color: var(--sf-quote-color, var(--sf-body-color, revert));
+	font-weight: var(--sf-quote-weight, var(--sf-body-weight, revert));
+	font-family: var(--sf-quote-family, var(--sf-body-family, revert));
+	font-variation-settings: var(--sf-quote-variation, var(--sf-body-variation, revert));
+}
+
+.markdown-reading-view blockquote:not(#storyforge-specificity-boost),
+.HyperMD-quote:not(#storyforge-specificity-boost) {
+	background-color: var(--sf-quote-bg, revert);
+	border-inline-start-color: var(--sf-quote-border, revert);
+	border-left-color: var(--sf-quote-border, revert);
+}
+
+.HyperMD-quote:not(#storyforge-specificity-boost)::before {
+	border-left-color: var(--sf-quote-border, revert);
+	border-inline-start-color: var(--sf-quote-border, revert);
+}
+
+.markdown-reading-view ol > li:not(#storyforge-specificity-boost)::marker,
+.cm-formatting-list-ol:not(#storyforge-specificity-boost) {
+	color: var(--sf-ol-marker, revert);
+}
+
+.markdown-reading-view ul > li:not(#storyforge-specificity-boost)::marker,
+.cm-formatting-list-ul:not(#storyforge-specificity-boost) {
+	color: var(--sf-ul-marker, revert);
+}
+
 
 /* Story Context's own tab-header icon doubles as the Focus Mode toggle (RecommendationView.ts) -
  * left-align it within its own tab's header box (flex-start is the browser default, but declared
@@ -2342,13 +2813,12 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 /* Forge-family member-icon row: two homes share this class. Directly under .sf-recommend-tabs in
  * the normal view (margin-bottom pairs it with whatever body/panel comes below); pinned to the
  * bottom of Focus Mode's otherwise-empty panel via the --focus modifier's margin-top: auto (a
- * lone flex child isn't otherwise pushed down by an empty flex column). Icons right-aligned
- * either way - "shown … from right to left" as more appear. */
+ * lone flex child isn't otherwise pushed down by an empty flex column). Icons left-aligned. */
 .sf-recommend-view__forge-row {
 	flex-shrink: 0;
 	display: flex;
 	align-items: center;
-	justify-content: flex-end;
+	justify-content: flex-start;
 	gap: 4px;
 	margin-bottom: 10px;
 }
@@ -2356,6 +2826,7 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 .sf-recommend-view__forge-row--focus {
 	margin-top: auto;
 	margin-bottom: 0;
+	justify-content: flex-end;
 }
 
 /* A family member's own icon (in either row's .sf-recommend-view__forge-icon) and Focus Mode's
@@ -2368,36 +2839,42 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	border: 4px solid transparent;
 	box-sizing: border-box;
-	padding: 0;
-	color: var(--sf-forge-companion-color, var(--text-muted));
-	opacity: 0.72;
+	padding: 5px 6px;
+	color: var(--sf-recommend-tabs-color, var(--text-muted));
+	opacity: 1;
 	cursor: pointer;
 	background: transparent;
 	flex-shrink: 0;
+	font-size: calc(var(--font-ui-medium) * 1.4);
+}
+
+.sf-recommend-view__forge-family {
+	color: var(--sf-recommend-focus-mode-icon-color, var(--text-muted));
 }
 
 .sf-recommend-view__forge-family:hover,
-.sf-recommend-view__forge-family:focus-visible,
-.sf-recommend-view__forge-icon:hover,
-.sf-recommend-view__forge-icon:focus-visible {
-	color: var(--sf-forge-companion-color, var(--text-normal));
-	opacity: 1;
+.sf-recommend-view__forge-family:focus-visible {
+	filter: brightness(1.15);
 	outline: none;
-	filter: brightness(1.2);
 }
 
-.sf-recommend-view__forge-family.is-active,
+.sf-recommend-view__forge-icon:hover,
+.sf-recommend-view__forge-icon:focus-visible {
+	color: var(--sf-recommend-tabs-active-color, var(--text-accent));
+	opacity: 1;
+	outline: none;
+}
+
 .sf-recommend-view__forge-icon.is-active {
-	color: var(--sf-forge-companion-color, var(--text-normal));
+	color: var(--sf-recommend-tabs-active-color, var(--text-accent));
 	opacity: 1;
 }
 
 .sf-recommend-view__forge-family svg,
 .sf-recommend-view__forge-icon svg {
-	width: 22px;
-	height: 22px;
+	width: 1em;
+	height: 1em;
 }
 
 /* RecommendationView.ts's renderNovel() host — see its own doc comment: exists only so
@@ -2549,8 +3026,17 @@ body:not(.sf-codex-indent-none) .sf-codex-folder .sf-codex-file.sf-row-selected 
 }
 
 .sf-archive-list .sf-row.sf-row-selected,
-.sf-archive-list .sf-row.is-selected {
+.sf-archive-list .sf-row.is-selected,
+.sf-archive-list .sf-row:hover {
 	background-color: var(--sf-archive-highlight-bg, var(--background-modifier-hover));
+	color: var(--sf-archive-highlight-text, var(--text-normal));
+}
+.sf-archive-list .sf-row.sf-row-selected .sf-row-text,
+.sf-archive-list .sf-row.sf-row-selected .sf-archive-label,
+.sf-archive-list .sf-row.is-selected .sf-row-text,
+.sf-archive-list .sf-row.is-selected .sf-archive-label,
+.sf-archive-list .sf-row:hover .sf-row-text,
+.sf-archive-list .sf-row:hover .sf-archive-label {
 	color: var(--sf-archive-highlight-text, var(--text-normal));
 }
 
@@ -2595,7 +3081,7 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 .sf-recommend-tabs {
 	display: flex;
 	align-items: center;
-	justify-content: space-evenly;
+	justify-content: space-between;
 	margin-bottom: 10px;
 }
 
@@ -2622,7 +3108,7 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 }
 
 .sf-recommend-tab:hover {
-	color: var(--text-normal);
+	color: var(--sf-recommend-tabs-active-color, var(--text-accent));
 }
 
 .sf-recommend-tab.is-active {
@@ -2652,7 +3138,7 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 }
 
 .sf-recommend-refresh:hover {
-	color: var(--sf-recommend-header-color, var(--text-normal));
+	color: var(--sf-recommend-tabs-active-color, var(--text-normal));
 }
 
 .sf-recommend-chapter-title-row {
@@ -2732,11 +3218,17 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 
 .sf-recommend-meta-value {
 	color: inherit;
+	font-family: inherit;
+	font-weight: inherit;
+	font-variation-settings: inherit;
 }
 
 .sf-recommend-novel-fixed .sf-synopsis-plot-title {
 	margin-top: 12px;
-	margin-bottom: 4px;
+	/* Zeroed so the pill-stub's coloured lines run straight into the scroll pane's own
+	 * lines below with no dead space (both Story Context's Novel tab and the central
+	 * Novel overview share the gutter). */
+	margin-bottom: 0;
 }
 
 .sf-recommend-novel-cover {
@@ -3069,7 +3561,10 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	margin-bottom: 10px;
 }
 
-.sf-recommend-dossier-search {
+/* Beat Obsidian `input` / `input[type=search]` / `.modal input` so size, weight, family,
+ * and colour actually apply (font-variant is rarely set on those, which is why small-caps
+ * was the only control that visibly changed). */
+.sf-recommend-dossier-combo input.sf-recommend-dossier-search {
 	flex: 1;
 	min-width: 0;
 	box-sizing: border-box;
@@ -3080,24 +3575,28 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	border-bottom: 1px solid var(--background-modifier-border);
 	background: transparent;
 	box-shadow: none;
+	-webkit-appearance: none;
+	appearance: none;
 	font-size: var(--sf-recommend-dossier-size, 1.15em);
 	font-weight: var(--sf-recommend-dossier-weight, 600);
 	color: var(--sf-recommend-dossier-color, var(--text-accent));
+	-webkit-text-fill-color: var(--sf-recommend-dossier-color, var(--text-accent));
 	font-variant: var(--sf-recommend-dossier-variant, normal);
 	font-family: var(--sf-recommend-dossier-family, inherit);
 	font-variation-settings: var(--sf-recommend-dossier-variation, normal);
 	line-height: 1.3;
 }
 
-.sf-recommend-dossier-search:focus,
-.sf-recommend-dossier-search:focus-visible {
+.sf-recommend-dossier-combo input.sf-recommend-dossier-search:focus,
+.sf-recommend-dossier-combo input.sf-recommend-dossier-search:focus-visible {
 	box-shadow: none;
 	outline: none;
 	border-bottom-color: var(--text-accent);
 }
 
-.sf-recommend-dossier-search::placeholder {
+.sf-recommend-dossier-combo input.sf-recommend-dossier-search::placeholder {
 	color: var(--text-muted);
+	-webkit-text-fill-color: var(--text-muted);
 	opacity: 0.85;
 	font-weight: 500;
 }
@@ -3195,7 +3694,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	height: 0.9em;
 }
 
-/* TagRegistryModal (Settings → Tags & Codex types) */
+/* TagRegistryModal (Codex types, or chapter/novel tags) */
 
 .sf-tag-registry-list {
 	margin-bottom: 6px;
@@ -3511,6 +4010,59 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	height: 32px;
 }
 
+/* Transport chevrons sit in a column either side of the chapter list, not in a row beneath it. */
+.sf-navigator-body {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 6px;
+	min-width: 0;
+}
+
+.sf-navigator-body .sf-navigator-window {
+	flex: 1;
+	min-width: 0;
+}
+
+.sf-navigator-transport-col {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	flex-shrink: 0;
+}
+
+/* Same chrome as Story Context's chapter-card action icons (.sf-recommend-icon-btn):
+ * muted rest, no fill, 22.5px glyph. Hover is the storyTelling chapter highlight colour
+ * (the selected-row fill, not the text on it), and only for a control that can fire. */
+.sf-navigator-transport-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 2px;
+	cursor: pointer;
+	color: var(--text-muted);
+	background: transparent;
+	border-radius: 0;
+}
+
+.sf-navigator-transport-btn svg {
+	width: 22.5px;
+	height: 22.5px;
+}
+
+.sf-navigator-transport-btn:not(.sf-navigator-transport-btn-disabled):hover,
+.sf-navigator-transport-btn.is-active {
+	color: var(--sf-storytelling-highlight-bg, var(--sf-highlight-bg, var(--text-accent)));
+	background: transparent;
+}
+
+.sf-navigator-transport-btn-disabled {
+	color: var(--text-muted);
+	cursor: default;
+}
+
 /* Non-chapter placeholder tiles (empty gap / create affordance) — deliberately distinct from a
  * real chapter row, since they aren't chapters. */
 .sf-navigator-tile {
@@ -3546,43 +4098,6 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 .sf-navigator-tile-create svg {
 	width: 1.4em;
 	height: 1.4em;
-}
-
-.sf-navigator-transport-buttons {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	gap: 14px;
-}
-
-.sf-navigator-transport-btn {
-	display: flex;
-	align-items: center;
-	color: var(--text-normal);
-	cursor: pointer;
-}
-
-.sf-navigator-transport-btn svg {
-	/* This alone is enough to make all five read as the same size — the toggle's custom icon and
-	 * the four transport icons are painted to the same fraction of their own viewBox (see icons.ts's
-	 * CONTINUOUS_MODE_SVG and iconRegistry.ts's standing rule), so equal box sizing here is sufficient. */
-	width: 25px;
-	height: 25px;
-}
-
-/* Only enabled buttons get this — .sf-navigator-transport-btn-disabled comes after this in the
- * stylesheet and shares its specificity, so it always wins over :hover regardless of order here,
- * but the intent (only clickable buttons highlight) holds either way. Same colour used to
- * highlight the current chapter tile, so hovering a usable control reads as "this connects to the
- * chapter selector" rather than a generic hover tint. */
-.sf-navigator-transport-btn:hover {
-	color: var(--sf-highlight-bg);
-}
-
-.sf-navigator-transport-btn-disabled {
-	color: var(--text-faint);
-	cursor: default;
-	opacity: 0.4;
 }
 
 /* Continuous mode's fifth control (continuous-mode hand-off brief §2) sits in the centre slot
@@ -3758,7 +4273,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
  * The Series tab's main-pane page. Independent of Story Context's own .sf-recommend-* styling —
  * none of these classes read Story Context's formatting settings, by design (see the view's own
  * doc comment). Column layout mirroring .sf-recommend-view's own fixed-header/scrolling-body
- * split (styles.css's Story Context section): series title + "Novels" header + hint/add-novel row
+ * split (styles.css's Story Context section): series title, hero image, and description
  * stay put in .sf-series-overview-fixed; the novel list is the only part that scrolls. */
 .workspace-leaf-content[data-type="storyforge-series-overview-view"] .view-content.sf-series-overview-view,
 .sf-series-overview-view {
@@ -3910,14 +4425,6 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	background: var(--background-modifier-hover);
 }
 
-/* "Novels" header + add-novel icon on one line (moved off the hint row, which no longer exists on
- * this page — its text now lives in NovelTitleModal instead, see that file's own doc comment). */
-.sf-series-overview-list-header {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-}
-
 .sf-series-overview-row-synopsis {
 	grid-column: 2;
 	grid-row: 2;
@@ -3962,10 +4469,67 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 }
 
 /* ChapterTitleModal.ts — same "not muted" treatment as .sf-novel-title-modal's own hint/colour-row
- * text above (its "chapter colour" label included), for the same reason: this modal's hint/label
- * text is the primary content of the dialog, not secondary chrome. */
+ * text above, for the same reason: this modal's hint/label text is the primary content of the
+ * dialog, not secondary chrome. */
 .sf-chapter-title-modal .sf-modal-hint {
 	color: var(--text-normal);
+}
+
+/* ChapterTitleModal.ts — full-bleed plot-thread picker. Padding lives on the header only so the
+ * thread rows can cover the modal's full width; each row is muted until hover, the assigned
+ * thread stays at full colour. */
+.modal.sf-chapter-title-modal {
+	width: 420px;
+	padding: 0;
+}
+
+.sf-chapter-title-modal {
+	padding: 0;
+}
+
+.sf-chapter-title-header {
+	padding: 16px 16px 8px;
+}
+
+.sf-plot-thread-list {
+	display: flex;
+	flex-direction: column;
+	max-height: 320px;
+	overflow-y: auto;
+}
+
+.sf-plot-thread-row {
+	display: flex;
+	align-items: center;
+	width: 100%;
+	box-sizing: border-box;
+	padding: 10px 16px;
+	cursor: pointer;
+	background-color: color-mix(in srgb, var(--sf-thread-bg) 40%, var(--background-primary));
+	color: color-mix(in srgb, var(--sf-thread-fg) 55%, var(--text-muted));
+}
+
+.sf-plot-thread-row:hover,
+.sf-plot-thread-row.is-selected {
+	background-color: var(--sf-thread-bg);
+	color: var(--sf-thread-fg);
+}
+
+.sf-plot-thread-row:focus-visible {
+	outline: 2px solid var(--text-accent);
+	outline-offset: -2px;
+}
+
+.sf-plot-thread-row-label {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.sf-plot-thread-add-row {
+	padding: 8px 16px 12px;
 }
 
 /* NovelTitleModal.ts / SeriesTitleModal.ts — icon-only dice button that opens titleForge (as its
@@ -4055,31 +4619,30 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	min-height: 140px;
 }
 
-/* renderNovelPanel's own "Plot" header (wide layout only) — sits in .sf-book-line's grid column 1,
- * where the plain timeline icon used to (that icon is dropped entirely for "wide"; the narrow
- * sidebar keeps it, unaffected). Its own width is set inline per book (renderNovelPanel) — 10px
- * minimum (a plain circle when there's only a single colour-line) plus room for every further line
- * in the gutter below. position: relative purely so its two children (the pill, and the line-stub
- * beneath it) can be positioned against ITS box rather than .sf-book-line's whole grid row — it has
- * no visible box of its own. Both children are positioned absolutely (rather than being sized/laid
- * out in normal flow) specifically so the stub's own height can be "whatever's left below the pill
- * down to the row's bottom edge" (top + bottom set, no explicit height) without knowing that
- * distance ahead of time — the row's actual height depends on the user's own "Plot" heading font
- * size, which this can't see. */
+/* renderNovelPanel's own "Plot" header — sits in .sf-book-line's grid column 1 (explicit, so it
+ * doesn't auto-place under .sf-book-title-row's column-2 "Plot" label). Width is set inline per
+ * book (renderNovelPanel) — 10px minimum (a plain circle when there's only a single colour-line)
+ * plus room for every further line in the gutter below.
+ *
+ * The pill itself is in-flow (flex-centred in this stretched column) so the grid's `auto` track
+ * has a real min-content size; the stub stays absolutely positioned so its height can be
+ * "whatever's left below the pill down to the row's bottom edge" without knowing the "Plot"
+ * heading's font size ahead of time. */
 .sf-recommend-plot-pill-col {
 	position: relative;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	grid-column: 1;
+	grid-row: 1;
+	min-width: 10px;
+	min-height: 10px;
 }
 
-/* Centred within .sf-recommend-plot-pill-col's own stretched height (that column has no in-flow
- * content of its own — see above — so grid's default align-items: stretch sizes it to the row's
- * full height regardless; centring here reproduces the plain vertical centring the pill had before
- * this element existed). Its own fill is the leftmost (first) line's colour, so it reads as a
- * rounded cap the lines beneath it emerge from. */
+/* Rounded cap the gutter lines emerge from — fill is the leftmost (first) line's colour, set
+ * inline. In-flow so this column's auto track doesn't collapse when the stub is out of flow. */
 .sf-recommend-plot-pill {
-	position: absolute;
-	top: 50%;
-	left: 0;
-	transform: translateY(-50%);
+	flex-shrink: 0;
 	width: 100%;
 	height: 10px;
 	border-radius: 5px;
@@ -4100,19 +4663,12 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	width: 100%;
 }
 
-/* Closes the gap .sf-recommend-novel-fixed .sf-synopsis-plot-title's own margin-bottom (above)
- * leaves under the "Plot" header for every other host of this shared block — needed here
- * specifically so the pill-stub's coloured lines (immediately above) run straight into the scroll
- * pane's own lines below with no dead space breaking the two apart. Three classes deep so it beats
- * that rule's own specificity regardless of source order (same fix as the last-card border-bottom
- * issue elsewhere in this file). */
-.sf-novel-overview-view .sf-recommend-novel-fixed .sf-synopsis-plot-title {
-	margin-bottom: 0;
-}
+/* .sf-recommend-novel-fixed .sf-synopsis-plot-title's margin-bottom is already 0 (above), so the
+ * pill-stub's coloured lines run straight into the scroll pane's own lines below. */
 
-/* Each chapter reads as its own card on the central Novel overview page (renderNovelPlot's `wide`
- * branch — the narrow sidebar list this same block styling also serves keeps its plain divider,
- * .sf-recommend-plot-block's own border-bottom, untouched). 10px (top-right/bottom-left/bottom-
+/* Each chapter reads as its own card (renderNovelPlot — Story Context's sidebar Novel tab and
+ * the central Novel overview). The narrow divider list this same block styling used to serve
+ * is gone. 10px (top-right/bottom-left/bottom-
  * right — top-left stays square, see below) to match .sf-series-overview-card's own radius (the
  * Series tab's novel cards) — same numeric size, not that card's own per-corner asymmetry, since
  * this card's own asymmetry has a different reason (below). box-shadow colour is overridden inline
@@ -4137,6 +4693,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 .sf-recommend-plot-block--plain {
 	box-shadow: inset 0 0 0 2px var(--background-modifier-border);
 	border-radius: 0 10px 10px 10px;
+	border-bottom: none;
 	padding: 0 16px 0;
 	margin-bottom: 12px;
 }
@@ -4164,8 +4721,293 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	margin-right: -16px;
 	margin-bottom: 6px;
 	margin-left: -16px;
+	position: relative;
+	/* 16px left matches the card's content inset (meta rows / description text).
+	 * renderNovelPlot increases it when this band bleeds into the gutter, so the
+	 * title stays on that same line rather than sliding left with the band. */
 	padding: 4px 16px;
+	justify-content: flex-start;
 	border-radius: 0 10px 0 0;
+}
+
+/* Charm chevron-right (collapsed) / chevron-down (expanded). Colour inherits the chapter
+ * title text (set inline on the button from resolveChapterRowColor, with the plot-chapter
+ * CSS variable as fallback). Obsidian's `.svg-icon` is fill-only, so stroke is re-enabled
+ * here — these glyphs are stroke-drawn 16×16 Charm icons. */
+
+/* Chapter tab's single card: same chrome as Novel plot cards, but every corner is rounded.
+ * Plot cards keep a square top-left so the header band can run out into the colour-line
+ * gutter; this screen has no gutter, so there is nothing to extend into. */
+.sf-recommend-plot-block--plain.sf-recommend-plot-block--chapter {
+	border-radius: 10px;
+	overflow: hidden;
+}
+
+.sf-recommend-plot-block--plain.sf-recommend-plot-block--chapter .sf-recommend-plot-header-row {
+	border-radius: 10px 10px 0 0;
+}
+
+/* Chapter-tab title follows Chapter title size/font (same source as Novel plot-card names).
+ * Colour is overridden inline per card from the series default main thread. */
+.sf-recommend-plot-block--chapter .sf-recommend-plot-chapter-name {
+	color: var(--sf-plot-card-header-fg, var(--sf-recommend-chapter-color, var(--sf-recommend-plot-chapter-color, var(--text-normal))));
+	font-size: var(--sf-recommend-chapter-size, var(--sf-recommend-plot-chapter-size, 1em));
+	font-weight: var(--sf-recommend-chapter-weight, var(--sf-recommend-plot-chapter-weight, 600));
+	font-variant: var(--sf-recommend-chapter-variant, var(--sf-recommend-plot-chapter-variant, normal));
+	font-family: var(--sf-recommend-chapter-family, var(--sf-recommend-plot-chapter-family, inherit));
+	font-variation-settings: var(--sf-recommend-chapter-variation, var(--sf-recommend-plot-chapter-variation, normal));
+}
+
+.sf-recommend-chapter-card-actions {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin: 0 0 10px;
+}
+
+.sf-recommend-chapter-card-actions .sf-recommend-icon-btn svg {
+	width: 22.5px;
+	height: 22.5px;
+}
+
+.sf-recommend-chapter-card-actions .sf-recommend-icon-btn:hover,
+.sf-recommend-unknown-card .sf-recommend-icon-btn:hover {
+	color: var(--sf-plot-card-header-bg, var(--text-accent));
+}
+
+/* Characters-in-chapter / Other Codex titles sit inside the chapter card as full-bleed
+ * bars using the same accent as the header (and the same text colour as the chapter
+ * name). --sf-plot-card-header-* are set on the chapter pane body from the series
+ * default main thread. */
+.sf-recommend-plot-block--chapter .sf-recommend-section {
+	margin-bottom: 0;
+}
+
+.sf-recommend-plot-block--chapter .sf-recommend-section-title {
+	margin: 0 -16px;
+	padding: 4px 16px;
+	background-color: var(--sf-plot-card-header-bg, transparent);
+	color: var(--sf-plot-card-header-fg, var(--sf-recommend-chapter-color, var(--text-normal)));
+}
+
+.sf-recommend-plot-block--chapter .sf-recommend-row {
+	margin-left: -16px;
+	margin-right: -16px;
+	padding: 3px 16px;
+}
+
+.sf-recommend-plot-block--chapter .sf-recommend-section-title + .sf-recommend-row {
+	padding-top: 6px;
+}
+
+.sf-recommend-plot-block--chapter .sf-recommend-row:last-child {
+	padding-bottom: 6px;
+}
+
+.sf-recommend-plot-block--chapter .sf-recommend-section:last-child .sf-recommend-row:last-child {
+	padding-bottom: 8px;
+}
+
+.sf-recommend-plot-block--chapter .sf-recommend-section-title + .sf-empty {
+	margin-left: -16px;
+	margin-right: -16px;
+	padding: 6px 16px;
+}
+
+.sf-recommend-plot-block--chapter .sf-recommend-section:last-child .sf-empty:last-child {
+	padding-bottom: 8px;
+}
+
+.sf-recommend-plot-block--chapter .sf-recommend-row:hover {
+	background-color: var(--sf-plot-card-header-bg, var(--sf-recommend-highlight-bg, var(--background-modifier-hover)));
+	color: var(--sf-plot-card-header-fg, var(--sf-recommend-highlight-text, var(--text-normal)));
+}
+
+/* Named-but-not-in-Codex: same card chrome and row highlight as the chapter card, in muted
+ * instead of the chapter's plot colour. Hover fill is the header bar; text and rest-state
+ * +/− icons pick up the header text colour. */
+.sf-recommend-plot-block--plain.sf-recommend-unknown-card {
+	border-radius: 10px;
+	overflow: hidden;
+	box-shadow: inset 0 0 0 2px var(--sf-recommend-unknown-color, var(--text-muted));
+}
+
+.sf-recommend-unknown-card .sf-recommend-section {
+	margin-bottom: 0;
+}
+
+.sf-recommend-unknown-card .sf-recommend-section-title {
+	margin: 0 -16px;
+	padding: 4px 16px;
+	background-color: var(--sf-recommend-unknown-color, var(--text-muted));
+	color: var(--sf-recommend-unknown-header-color, var(--background-primary));
+}
+
+.sf-recommend-unknown-card .sf-recommend-row {
+	margin-left: -16px;
+	margin-right: -16px;
+	padding: 3px 16px;
+}
+
+.sf-recommend-unknown-card .sf-recommend-section-title + .sf-recommend-row {
+	padding-top: 6px;
+}
+
+.sf-recommend-unknown-card .sf-recommend-section:last-child .sf-recommend-row:last-child {
+	padding-bottom: 8px;
+}
+
+.sf-recommend-unknown-card .sf-recommend-section-title + .sf-empty {
+	margin-left: -16px;
+	margin-right: -16px;
+	padding: 6px 16px;
+}
+
+.sf-recommend-unknown-card .sf-recommend-section:last-child .sf-empty:last-child {
+	padding-bottom: 8px;
+}
+
+.sf-recommend-unknown-card .sf-recommend-row:hover {
+	background-color: var(--sf-recommend-unknown-color, var(--text-muted));
+	color: var(--sf-recommend-unknown-header-color, var(--background-primary));
+}
+
+.sf-recommend-unknown-card .sf-recommend-row:hover .sf-recommend-icon-btn {
+	color: var(--sf-recommend-unknown-header-color, var(--background-primary));
+}
+
+.sf-recommend-unknown-card .sf-recommend-row:hover .sf-recommend-icon-btn:hover {
+	color: var(--sf-plot-card-header-bg, var(--text-accent));
+}
+
+/* Details to capture / Holding area / Resolved — same pill chrome as Named but not in Codex,
+ * each with its own box + header-text colours. */
+.sf-recommend-plot-block--plain.sf-recommend-pill-card {
+	border-radius: 10px;
+	overflow: hidden;
+	box-shadow: inset 0 0 0 2px var(--sf-pill-box-color, var(--text-muted));
+}
+.sf-recommend-pill-card--capture {
+	--sf-pill-box-color: var(--sf-recommend-capture-color, var(--interactive-accent));
+	--sf-pill-header-color: var(--sf-recommend-capture-header-color, var(--text-on-accent));
+}
+.sf-recommend-pill-card--holding {
+	--sf-pill-box-color: var(--sf-recommend-holding-color, var(--text-warning));
+	--sf-pill-header-color: var(--sf-recommend-holding-header-color, var(--background-primary));
+}
+.sf-recommend-pill-card--resolved {
+	--sf-pill-box-color: var(--sf-recommend-resolved-color, var(--text-muted));
+	--sf-pill-header-color: var(--sf-recommend-resolved-header-color, var(--background-primary));
+}
+.sf-recommend-pill-card .sf-recommend-section {
+	margin-bottom: 0;
+}
+.sf-recommend-pill-card .sf-recommend-section-title {
+	margin: 0 -16px;
+	padding: 4px 16px;
+	background-color: var(--sf-pill-box-color, var(--text-muted));
+	color: var(--sf-pill-header-color, var(--background-primary));
+}
+.sf-recommend-pill-card .sf-recommend-entity-header,
+.sf-recommend-pill-card .sf-recommend-hit,
+.sf-recommend-pill-card .sf-empty {
+	margin-left: -16px;
+	margin-right: -16px;
+	padding-left: 16px;
+	padding-right: 16px;
+}
+.sf-recommend-pill-card .sf-recommend-section-title + .sf-recommend-entity-header,
+.sf-recommend-pill-card .sf-recommend-section-title + .sf-empty {
+	padding-top: 6px;
+}
+.sf-recommend-pill-card .sf-recommend-section:last-child .sf-recommend-hit:last-child,
+.sf-recommend-pill-card .sf-recommend-section:last-child .sf-empty:last-child {
+	padding-bottom: 8px;
+}
+
+.sf-recommend-plot-collapse {
+	/* Centred on the 2px inset outline: `left: 1px` is the stroke's midline (flush
+	 * header); `translate(-50%, -50%)` centres the 16px glyph on that point. renderNovelPlot
+	 * overrides `left` when the header band bleeds into the gutter. Taken out of flow so
+	 * the title stays at the header's 16px padding, just after the glyph. */
+	position: absolute;
+	left: 1px;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+	padding: 0;
+	margin: 0;
+	border: none;
+	background: transparent;
+	cursor: pointer;
+	color: inherit;
+	border-radius: 0;
+	overflow: visible;
+}
+
+.sf-recommend-plot-collapse:hover {
+	opacity: 0.85;
+}
+
+.sf-recommend-plot-collapse svg {
+	display: block;
+	width: 16px;
+	height: 16px;
+	flex-shrink: 0;
+	overflow: visible;
+	fill: none;
+	stroke: currentColor;
+}
+
+.sf-recommend-plot-collapse svg path {
+	fill: none;
+	stroke: currentColor;
+	stroke-width: 1.5;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+}
+
+.sf-recommend-plot-block--plain.sf-recommend-plot-block--collapsed .sf-recommend-meta,
+.sf-recommend-plot-block--plain.sf-recommend-plot-block--collapsed .sf-recommend-plot-textarea-divider {
+	display: none;
+}
+
+.sf-recommend-plot-block--plain.sf-recommend-plot-block--collapsed .sf-recommend-plot-header-row {
+	margin-bottom: 0;
+}
+
+/* The card itself takes the header fill when collapsed — not just the textarea. The
+ * description box doesn't always reach the inset outline (Obsidian's textarea max-width,
+ * the 16px side padding, the textarea's own bottom-corner radius), and any leftover
+ * strip would otherwise show the page background between the text box and the
+ * shadow-border. Painting the card closes that gap. overflow stays visible so the
+ * header band can still bleed into the colour-line gutter. */
+.sf-recommend-plot-block--plain.sf-recommend-plot-block--collapsed {
+	background: var(--sf-plot-card-header-bg, transparent);
+}
+
+/* Collapsed description paints as a continuation of the title bar: same fill and text
+ * colour as the header band (custom properties set inline per card). Hover/focus of the
+ * transparent-textarea rules above would otherwise punch a hole in that fill. */
+.sf-recommend-plot-block--plain.sf-recommend-plot-block--collapsed .sf-recommend-plot-textarea,
+.sf-recommend-plot-block--plain.sf-recommend-plot-block--collapsed .sf-recommend-plot-textarea:hover,
+.sf-recommend-plot-block--plain.sf-recommend-plot-block--collapsed .sf-recommend-plot-textarea:focus {
+	background: var(--sf-plot-card-header-bg, transparent);
+	color: var(--sf-plot-card-header-fg, inherit);
+	box-shadow: none;
+	/* Defeat Obsidian's textarea { max-width: 100% }, which would otherwise cap the
+	 * calc(100% + 32px) bleed and leave a 16px gutter down each side of the box. */
+	max-width: none;
+}
+
+.sf-recommend-plot-block--plain.sf-recommend-plot-block--collapsed .sf-recommend-plot-textarea::placeholder {
+	color: var(--sf-plot-card-header-fg, inherit);
+	opacity: 0.55;
 }
 
 /* Breathing room between the PoV/location rows and the plot textarea's own top border below,
@@ -4203,8 +5045,11 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	/* Not width: auto — a block-level <textarea> isn't guaranteed to fill available width the way a
 	 * plain <div> (e.g. the header row above) does, so the bleed is computed explicitly: 100% of the
 	 * card's own content width (already inset by its 16px side padding) plus that same 32px back,
-	 * to reach exactly the card's own inner edges the negative margins just pulled it out to. */
+	 * to reach exactly the card's own inner edges the negative margins just pulled it out to.
+	 * max-width: none overrides Obsidian's textarea { max-width: 100% }, which would cap that
+	 * calc and leave a padded gutter down each side. */
 	width: calc(100% + 32px);
+	max-width: none;
 	min-height: 0;
 	height: auto;
 	overflow-y: hidden;
@@ -4227,8 +5072,25 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	box-shadow: none;
 }
 
-/* The chapter name is what opens ChapterTitleModal here (unlike the narrow sidebar list, which has
- * no such modal) — same hover affordance as any other clickable text in the plugin. */
+/* Chapter pane: the description is unboxed text in the card (lists follow it, so it
+ * no longer fills the card's bottom). No divider, no side-bleed, no corner radius. */
+.sf-recommend-plot-block--plain.sf-recommend-plot-block--chapter .sf-recommend-plot-textarea,
+.sf-recommend-plot-block--plain.sf-recommend-plot-block--chapter .sf-recommend-plot-textarea:hover,
+.sf-recommend-plot-block--plain.sf-recommend-plot-block--chapter .sf-recommend-plot-textarea:focus {
+	margin: 0;
+	width: 100%;
+	max-width: none;
+	border: none;
+	border-radius: 0;
+	box-shadow: none;
+	outline: none;
+	padding: 4px 0 8px;
+	background: transparent;
+	appearance: none;
+}
+
+/* The chapter name opens ChapterTitleModal (central Novel overview, and Story Context's
+ * Chapter tab). Same hover affordance as any other clickable text in the plugin. */
 .sf-recommend-plot-chapter-name--clickable {
 	cursor: pointer;
 }

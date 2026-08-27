@@ -132,22 +132,14 @@ export class StyleController {
 
 	applyHeaderStyles(): void {
 		const s = this.host.getSettings();
-		const unplacedColor = s.unplacedMuted ? "var(--text-muted)" : s.unplacedColor;
-		const codexColor = s.codexMuted ? "var(--text-muted)" : s.codexColor;
-		let unplacedItemsColor: string;
-		if (s.unplacedUseHeaderColorForAll) {
-			unplacedItemsColor = s.unplacedMuted ? "var(--text-muted)" : s.unplacedColor;
-		} else if (s.unplacedItemsMuted) {
-			unplacedItemsColor = "var(--text-muted)";
-		} else {
-			unplacedItemsColor = s.unplacedItemsColor;
-		}
+		const unplacedColor = this.resolveUnplacedColour();
+		const codexColor = this.resolveCodexHeaderColorForAll();
 		const vars: Record<string, string | null> = {
 			"--sf-unplaced-color": unplacedColor,
 			"--sf-unplaced-variant": s.unplacedSmallCaps ? "small-caps" : "normal",
 			"--sf-unplaced-size": `${s.unplacedFontSize}em`,
 			"--sf-unplaced-items-size": `${s.unplacedItemsFontSize}em`,
-			"--sf-unplaced-items-color": unplacedItemsColor,
+			"--sf-unplaced-items-color": unplacedColor,
 			"--sf-codex-color": codexColor,
 			"--sf-codex-variant": s.codexSmallCaps ? "small-caps" : "normal",
 			"--sf-codex-size": `${s.codexFontSize}em`,
@@ -160,50 +152,37 @@ export class StyleController {
 
 	applyHighlightStyle(): void {
 		const s = this.host.getSettings();
-		const unplacedHighlightColor = s.unplacedUseHeaderColorForAll
-			? s.unplacedMuted
-				? "var(--text-muted)"
-				: s.unplacedColor
-			: s.unplacedHighlightColor;
-		const codexHighlightColor = s.codexUseHeaderColorForAll
-			? this.resolveCodexHeaderColorForAll()
-			: s.codexHighlightColor;
-		// Text colour never follows "use header colour for all" — only the background does (same as
-		// unplacedHighlightColor above, and archive/recommend's own highlight pairs). Swapping the
-		// text too would make it equal the background it sits on top of, making the highlighted
-		// entry's own text unreadable.
-		const codexHighlightTextColor = s.codexHighlightTextColor;
-		// Flat colour only — the indent-guide truncate gradient lives in styles.css so folder
-		// indent vars resolve on the selected file, not on body.
+		const libraryColour = this.resolveLibraryColour();
+		const unplacedColour = this.resolveUnplacedColour();
+		const codexColour = this.resolveCodexHeaderColorForAll();
+		// Highlight *text* is the one colour that stays independent of the panel's single colour
+		// (background uses that colour; putting the same value on the text would make the selected
+		// row unreadable).
 		this.applyStyleVarsToAllDocs({
-			"--sf-highlight-bg": s.highlightColor,
+			"--sf-highlight-bg": libraryColour,
 			"--sf-highlight-text": s.highlightTextColor,
-			"--sf-unplaced-highlight-bg": unplacedHighlightColor,
+			"--sf-unplaced-highlight-bg": unplacedColour,
 			"--sf-unplaced-highlight-text": s.unplacedHighlightTextColor,
-			"--sf-codex-highlight-bg": codexHighlightColor,
-			"--sf-codex-highlight-text": codexHighlightTextColor,
-			// storyTelling's highlight follows the same "link with Novel Library" toggle as its items
-			// colour (storytellingLinkItemsColorToLibrary) — when linked, mirrors the Library's own
-			// highlight pair instead of storyTelling's own.
-			"--sf-storytelling-highlight-bg": s.storytellingLinkItemsColorToLibrary ? s.highlightColor : s.storytellingHighlightColor,
-			"--sf-storytelling-highlight-text": s.storytellingLinkItemsColorToLibrary ? s.highlightTextColor : s.storytellingHighlightTextColor,
+			"--sf-codex-highlight-bg": codexColour,
+			"--sf-codex-highlight-text": s.codexHighlightTextColor,
+			"--sf-storytelling-highlight-bg": this.resolveStorytellingItemsColour(),
+			"--sf-storytelling-highlight-text": s.storytellingLinkItemsColorToLibrary
+				? s.highlightTextColor
+				: s.storytellingHighlightTextColor,
 		});
 	}
 
 	/**
 	 * storyTelling panel's own chapter-item styling. Colour respects
-	 * `storytellingLinkItemsColorToLibrary` — when linked, mirrors the storyLibrary panel's own
-	 * "Library items" colour (its own Muted toggle included) instead of storyTelling's own colour
-	 * picker, so the two panels' chapter lists read as one consistent style until a user
-	 * deliberately splits them apart.
+	 * `storytellingLinkItemsColorToLibrary` — when that palette option is selected, mirrors the
+	 * storyLibrary panel's chapter colour (its own Muted toggle included) instead of storyTelling's
+	 * own colour picker.
 	 */
 	applyStorytellingItemsStyle(): void {
 		const s = this.host.getSettings();
-		const linkedColor = s.libraryItemsMuted ? "var(--text-muted)" : s.libraryItemsColor;
-		const ownColor = s.storytellingItemsMuted ? "var(--text-muted)" : s.storytellingItemsColor;
 		const vars: Record<string, string | null> = {
 			"--sf-storytelling-items-size": `${s.storytellingItemsFontSize}em`,
-			"--sf-storytelling-items-color": s.storytellingLinkItemsColorToLibrary ? linkedColor : ownColor,
+			"--sf-storytelling-items-color": this.resolveStorytellingItemsColour(),
 		};
 		this.assignUiFontVars(vars, "--sf-storytelling-items", s.storytellingItemsOverrideFont, s.storytellingItemsFontFamily, s.storytellingItemsFontWeight);
 		this.applyStyleVarsToAllDocs(vars);
@@ -282,81 +261,62 @@ export class StyleController {
 	applyRightRailPanelStyles(): void {
 		const s = this.host.getSettings();
 
-		const recommendHeaderColor = s.recommendHeaderMuted ? "var(--text-muted)" : s.recommendHeaderColor;
-		const recommendItemsColor = s.recommendUseHeaderColorForAll
-			? recommendHeaderColor
-			: s.recommendItemsMuted
-				? "var(--text-muted)"
-				: s.recommendItemsColor;
-		const recommendChapterColor = s.recommendUseHeaderColorForAll
-			? recommendHeaderColor
-			: s.recommendChapterTitleMuted
-				? "var(--text-muted)"
-				: s.recommendChapterTitleColor;
-		const recommendDossierHeaderColor = s.recommendUseHeaderColorForAll
-			? recommendHeaderColor
-			: s.recommendDossierHeaderMuted
-				? "var(--text-muted)"
-				: s.recommendDossierHeaderColor;
-		const recommendNovelTitleColor = s.recommendUseHeaderColorForAll
-			? recommendHeaderColor
-			: s.recommendNovelTitleMuted
-				? "var(--text-muted)"
-				: s.recommendNovelTitleColor;
-		const recommendNovelSubtitleColor = s.recommendUseHeaderColorForAll
-			? recommendHeaderColor
-			: s.recommendNovelSubtitleMuted
-				? "var(--text-muted)"
-				: s.recommendNovelSubtitleColor;
-		const recommendPlotChapterColor = s.recommendUseHeaderColorForAll
-			? recommendHeaderColor
-			: s.recommendPlotChapterMuted
-				? "var(--text-muted)"
-				: s.recommendPlotChapterColor;
-		const recommendSectionColor = s.recommendUseHeaderColorForAll
-			? recommendHeaderColor
-			: s.recommendSectionTitleMuted
-				? "var(--text-muted)"
-				: s.recommendSectionTitleColor;
-		const recommendDetailsColor = s.recommendUseHeaderColorForAll
-			? recommendHeaderColor
-			: s.recommendDetailsMuted
-				? "var(--text-muted)"
-				: s.recommendDetailsColor;
-		const recommendMetaLabelColor = s.recommendUseHeaderColorForAll
-			? recommendHeaderColor
-			: s.recommendMetaLabelMuted
-				? "var(--text-muted)"
-				: s.recommendMetaLabelColor;
-		const recommendMetaControlColor = s.recommendUseHeaderColorForAll
-			? recommendHeaderColor
-			: s.recommendMetaControlMuted
-				? "var(--text-muted)"
-				: s.recommendMetaControlColor;
-		const recommendSynopsisColor = s.recommendUseHeaderColorForAll
-			? recommendHeaderColor
-			: s.recommendSynopsisColor;
-		const recommendTabsActiveColor = s.recommendUseHeaderColorForAll
-			? recommendHeaderColor
-			: s.recommendTabsActiveColor;
-		const recommendHighlightBg = s.recommendUseHeaderColorForAll
-			? recommendHeaderColor
-			: s.recommendHighlightColor;
+		const recommendItemsColor = s.recommendItemsMuted ? "var(--text-muted)" : s.recommendItemsColor;
+		const recommendChapterColor = s.recommendChapterTitleMuted ? "var(--text-muted)" : s.recommendChapterTitleColor;
+		const recommendDossierHeaderColor = s.recommendDossierHeaderMuted
+			? "var(--text-muted)"
+			: s.recommendDossierHeaderColor;
+		const recommendNovelTitleColor = s.recommendNovelTitleMuted ? "var(--text-muted)" : s.recommendNovelTitleColor;
+		const recommendNovelSubtitleColor = s.recommendNovelSubtitleMuted
+			? "var(--text-muted)"
+			: s.recommendNovelSubtitleColor;
+		const recommendSectionColor = s.recommendSectionTitleMuted ? "var(--text-muted)" : s.recommendSectionTitleColor;
+		const recommendUnknownColor = s.recommendUnknownMuted
+			? "var(--text-muted)"
+			: s.recommendUnknownColor;
+		const recommendUnknownHeaderColor = s.recommendUnknownHeaderMuted
+			? "var(--text-muted)"
+			: s.recommendUnknownHeaderColor;
+		const recommendCaptureColor = s.recommendCaptureMuted
+			? "var(--text-muted)"
+			: s.recommendCaptureColor;
+		const recommendCaptureHeaderColor = s.recommendCaptureHeaderMuted
+			? "var(--text-muted)"
+			: s.recommendCaptureHeaderColor;
+		const recommendHoldingColor = s.recommendHoldingMuted
+			? "var(--text-muted)"
+			: s.recommendHoldingColor;
+		const recommendHoldingHeaderColor = s.recommendHoldingHeaderMuted
+			? "var(--text-muted)"
+			: s.recommendHoldingHeaderColor;
+		const recommendResolvedColor = s.recommendResolvedMuted
+			? "var(--text-muted)"
+			: s.recommendResolvedColor;
+		const recommendResolvedHeaderColor = s.recommendResolvedHeaderMuted
+			? "var(--text-muted)"
+			: s.recommendResolvedHeaderColor;
+		const recommendMetaLabelColor = s.recommendMetaLabelMuted ? "var(--text-muted)" : s.recommendMetaLabelColor;
+		const recommendMetaControlColor = s.recommendMetaControlMuted
+			? "var(--text-muted)"
+			: s.recommendMetaControlColor;
+		const recommendSynopsisColor = s.recommendSynopsisColor;
+		const recommendTabsColor = s.recommendTabsMuted
+			? "var(--text-muted)"
+			: s.recommendTabsColor;
+		const recommendTabsActiveColor = s.recommendTabsActiveColor;
+		const recommendFocusModeIconColor = s.recommendFocusModeIconColor;
+		const recommendHighlightBg = s.recommendHighlightColor;
 
 		const archiveHeaderColor = s.archiveHeaderMuted ? "var(--text-muted)" : s.archiveHeaderColor;
-		const archiveItemsColor = s.archiveUseHeaderColorForAll
-			? archiveHeaderColor
-			: s.archiveItemsMuted
-				? "var(--text-muted)"
-				: s.archiveItemsColor;
-		const archiveHighlightBg = s.archiveUseHeaderColorForAll ? archiveHeaderColor : s.archiveHighlightColor;
+		const archiveItemsColor = archiveHeaderColor;
+		const archiveHighlightBg = archiveHeaderColor;
 
 		const vars: Record<string, string | null> = {
-			"--sf-forge-companion-color": s.forgeCompanionIconColor,
-			"--sf-recommend-header-color": recommendHeaderColor,
+			"--sf-forge-companion-color": recommendTabsColor,
 			"--sf-recommend-tabs-size": `${s.recommendTabsFontSize}em`,
-			"--sf-recommend-tabs-color": s.recommendTabsColor,
+			"--sf-recommend-tabs-color": recommendTabsColor,
 			"--sf-recommend-tabs-active-color": recommendTabsActiveColor,
+			"--sf-recommend-focus-mode-icon-color": recommendFocusModeIconColor,
 			"--sf-recommend-chapter-size": `${s.recommendChapterTitleFontSize}em`,
 			"--sf-recommend-chapter-color": recommendChapterColor,
 			"--sf-recommend-chapter-variant": s.recommendChapterTitleSmallCaps ? "small-caps" : "normal",
@@ -369,20 +329,28 @@ export class StyleController {
 			"--sf-recommend-novel-subtitle-size": `${s.recommendNovelSubtitleFontSize}em`,
 			"--sf-recommend-novel-subtitle-color": recommendNovelSubtitleColor,
 			"--sf-recommend-novel-subtitle-variant": s.recommendNovelSubtitleSmallCaps ? "small-caps" : "normal",
-			"--sf-recommend-plot-chapter-size": `${s.recommendPlotChapterFontSize}em`,
-			"--sf-recommend-plot-chapter-color": recommendPlotChapterColor,
-			"--sf-recommend-plot-chapter-variant": s.recommendPlotChapterSmallCaps ? "small-caps" : "normal",
+			"--sf-recommend-plot-chapter-size": `${s.recommendChapterTitleFontSize}em`,
+			"--sf-recommend-plot-chapter-color": recommendChapterColor,
+			"--sf-recommend-plot-chapter-variant": s.recommendChapterTitleSmallCaps ? "small-caps" : "normal",
 			"--sf-recommend-section-size": `${s.recommendSectionTitleFontSize}em`,
 			"--sf-recommend-section-color": recommendSectionColor,
-			"--sf-recommend-section-variant": s.recommendSectionTitleSmallCaps ? "small-caps" : "normal",
+			"--sf-recommend-section-variant": "normal",
 			"--sf-recommend-items-color": recommendItemsColor,
 			"--sf-recommend-items-size": `${s.recommendItemsFontSize}em`,
-			"--sf-recommend-details-size": `${s.recommendDetailsFontSize}em`,
-			"--sf-recommend-details-color": recommendDetailsColor,
+			"--sf-recommend-details-size": `${s.recommendItemsFontSize}em`,
+			"--sf-recommend-details-color": recommendItemsColor,
+			"--sf-recommend-unknown-color": recommendUnknownColor,
+			"--sf-recommend-unknown-header-color": recommendUnknownHeaderColor,
+			"--sf-recommend-capture-color": recommendCaptureColor,
+			"--sf-recommend-capture-header-color": recommendCaptureHeaderColor,
+			"--sf-recommend-holding-color": recommendHoldingColor,
+			"--sf-recommend-holding-header-color": recommendHoldingHeaderColor,
+			"--sf-recommend-resolved-color": recommendResolvedColor,
+			"--sf-recommend-resolved-header-color": recommendResolvedHeaderColor,
 			"--sf-recommend-meta-label-size": `${s.recommendMetaLabelFontSize}em`,
 			"--sf-recommend-meta-label-color": recommendMetaLabelColor,
 			"--sf-recommend-meta-label-variant": s.recommendMetaLabelSmallCaps ? "small-caps" : "normal",
-			"--sf-recommend-meta-control-size": `${s.recommendMetaControlFontSize}em`,
+			"--sf-recommend-meta-control-size": `${s.recommendMetaLabelFontSize}em`,
 			"--sf-recommend-meta-control-color": recommendMetaControlColor,
 			"--sf-recommend-synopsis-size": `${s.recommendSynopsisFontSize}em`,
 			"--sf-recommend-synopsis-color": recommendSynopsisColor,
@@ -401,10 +369,10 @@ export class StyleController {
 		this.assignUiFontVars(vars, "--sf-recommend-dossier", s.recommendDossierHeaderOverrideFont, s.recommendDossierHeaderFontFamily, s.recommendDossierHeaderFontWeight);
 		this.assignUiFontVars(vars, "--sf-recommend-novel-title", s.recommendNovelTitleOverrideFont, s.recommendNovelTitleFontFamily, s.recommendNovelTitleFontWeight);
 		this.assignUiFontVars(vars, "--sf-recommend-novel-subtitle", s.recommendNovelSubtitleOverrideFont, s.recommendNovelSubtitleFontFamily, s.recommendNovelSubtitleFontWeight);
-		this.assignUiFontVars(vars, "--sf-recommend-plot-chapter", s.recommendPlotChapterOverrideFont, s.recommendPlotChapterFontFamily, s.recommendPlotChapterFontWeight);
+		this.assignUiFontVars(vars, "--sf-recommend-plot-chapter", s.recommendChapterTitleOverrideFont, s.recommendChapterTitleFontFamily, s.recommendChapterTitleFontWeight);
 		this.assignUiFontVars(vars, "--sf-recommend-section", s.recommendSectionTitleOverrideFont, s.recommendSectionTitleFontFamily, s.recommendSectionTitleFontWeight);
 		this.assignUiFontVars(vars, "--sf-recommend-items", s.recommendItemsOverrideFont, s.recommendItemsFontFamily, s.recommendItemsFontWeight);
-		this.assignUiFontVars(vars, "--sf-recommend-details", s.recommendDetailsOverrideFont, s.recommendDetailsFontFamily, s.recommendDetailsFontWeight);
+		this.assignUiFontVars(vars, "--sf-recommend-details", s.recommendItemsOverrideFont, s.recommendItemsFontFamily, s.recommendItemsFontWeight);
 		this.assignUiFontVars(vars, "--sf-recommend-meta-label", s.recommendMetaLabelOverrideFont, s.recommendMetaLabelFontFamily, s.recommendMetaLabelFontWeight);
 		this.assignUiFontVars(vars, "--sf-recommend-meta-control", s.recommendMetaControlOverrideFont, s.recommendMetaControlFontFamily, s.recommendMetaControlFontWeight);
 		this.assignUiFontVars(vars, "--sf-recommend-synopsis", s.recommendSynopsisOverrideFont, s.recommendSynopsisFontFamily, s.recommendSynopsisFontWeight);
@@ -415,17 +383,17 @@ export class StyleController {
 
 	applyLibraryHeaderStyles(): void {
 		const s = this.host.getSettings();
-		const itemsColor = s.libraryItemsMuted ? "var(--text-muted)" : s.libraryItemsColor;
+		const itemsColor = this.resolveLibraryColour();
 		const vars: Record<string, string | null> = {
 			"--sf-lib-series-size": `${s.librarySeriesTitleFontSize}em`,
 			"--sf-lib-series-color": s.librarySeriesTitleColor,
 			"--sf-lib-series-variant": s.librarySeriesTitleSmallCaps ? "small-caps" : "normal",
 			"--sf-lib-book-size": `${s.libraryBookTitleFontSize}em`,
-			"--sf-lib-book-color": s.libraryBookTitleColor,
+			"--sf-lib-book-color": itemsColor,
 			"--sf-lib-book-variant": s.libraryBookTitleSmallCaps ? "small-caps" : "normal",
 			"--sf-lib-subtitle-size": `${s.libraryBookSubtitleFontSize}em`,
 			"--sf-lib-subtitle-variant": s.libraryBookSubtitleSmallCaps ? "small-caps" : "normal",
-			"--sf-lib-header-divider": s.libraryHeaderDividerBelow ? "1px solid var(--background-modifier-border)" : "none",
+			"--sf-lib-header-divider": "1px solid var(--background-modifier-border)",
 			"--sf-lib-items-size": `${s.libraryItemsFontSize}em`,
 			"--sf-lib-items-color": itemsColor,
 		};
@@ -442,10 +410,10 @@ export class StyleController {
 		const folderColor = this.resolveCodexFolderColor();
 		const vars: Record<string, string | null> = {
 			"--sf-codex-folder-color": folderColor,
-			"--sf-codex-folder-size": `${s.codexFolderFontSize}em`,
+			"--sf-codex-folder-size": `${s.codexNoteLabelFontSize}em`,
 			"--sf-codex-folder-indicator-width": `${indicatorWidth}px`,
 		};
-		this.assignUiFontVars(vars, "--sf-codex-folder", s.codexFolderOverrideFont, s.codexFolderFontFamily, s.codexFolderFontWeight);
+		this.assignUiFontVars(vars, "--sf-codex-folder", s.codexNoteLabelOverrideFont, s.codexNoteLabelFontFamily, s.codexNoteLabelFontWeight);
 		this.applyStyleVarsToAllDocs(vars);
 		for (const doc of this.host.getStyleDocuments()) {
 			this.applyCodexIndentBodyClass(doc.body, s.codexFolderIndicatorThickness);
@@ -454,18 +422,8 @@ export class StyleController {
 
 	applyCodexNoteLabelStyle(): void {
 		const s = this.host.getSettings();
-		let color: string;
-		if (s.codexUseHeaderColorForAll) {
-			color = this.resolveCodexHeaderColorForAll();
-		} else if (s.codexNoteLabelUseFolderColor) {
-			color = s.codexFolderColor;
-		} else if (s.codexNoteLabelUseDefaultColor) {
-			color = "var(--text-normal)";
-		} else {
-			color = s.codexNoteLabelColor;
-		}
 		const vars: Record<string, string | null> = {
-			"--sf-codex-note-color": color,
+			"--sf-codex-note-color": this.resolveCodexHeaderColorForAll(),
 			"--sf-codex-note-size": `${s.codexNoteLabelFontSize}em`,
 		};
 		this.assignUiFontVars(vars, "--sf-codex-note", s.codexNoteLabelOverrideFont, s.codexNoteLabelFontFamily, s.codexNoteLabelFontWeight);
@@ -544,16 +502,32 @@ export class StyleController {
 		button?.addClass("sf-vault-settings");
 	}
 
-	/** Resolves the codex folder colour, respecting `codexUseHeaderColorForAll`'s override of the folder colour picker. */
-	private resolveCodexFolderColor(): string {
+	/** Library's single colour (book titles, items, highlight background), respecting muted. */
+	private resolveLibraryColour(): string {
 		const s = this.host.getSettings();
-		return s.codexUseHeaderColorForAll ? this.resolveCodexHeaderColorForAll() : s.codexFolderColor;
+		return s.libraryItemsMuted ? "var(--text-muted)" : s.libraryItemsColor;
+	}
+
+	private resolveStorytellingItemsColour(): string {
+		const s = this.host.getSettings();
+		if (s.storytellingLinkItemsColorToLibrary) return this.resolveLibraryColour();
+		return s.storytellingItemsMuted ? "var(--text-muted)" : s.storytellingItemsColor;
+	}
+
+	/** Unplaced's single colour (header, items, highlight background), respecting muted. */
+	private resolveUnplacedColour(): string {
+		const s = this.host.getSettings();
+		return s.unplacedMuted ? "var(--text-muted)" : s.unplacedColor;
+	}
+
+	/** Codex folder colour — the same single Codex colour as header, notes, and highlight background. */
+	private resolveCodexFolderColor(): string {
+		return this.resolveCodexHeaderColorForAll();
 	}
 
 	/**
-	 * The Codex header colour (respecting "Muted"), shared by every Codex font-colour option that
-	 * `codexUseHeaderColorForAll` links to it — folder colour, note label colour, and both halves
-	 * of the highlight colour (background and text).
+	 * Codex's single colour (header, folders, notes, highlight background), respecting muted.
+	 * Highlight *text* stays independent so the selected row remains readable.
 	 */
 	private resolveCodexHeaderColorForAll(): string {
 		const s = this.host.getSettings();

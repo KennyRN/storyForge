@@ -45,8 +45,12 @@ export interface ChapterEntry {
 	/** Ids into tagRegistry.ts's chapterTags list. Empty when untagged. */
 	tags: string[];
 	/** Card-colour override picked via ChapterTitleModal's colour option, or null when the chapter
-	 * just follows its book's own colour (resolveChapterRowColor's default). */
+	 * just follows its book's own colour (resolveChapterRowColor's default). Legacy: new picks
+	 * store `plotThreadId` instead and this stays null. */
 	color: string | null;
+	/** Id into plotThreads.ts's registry. Null when the chapter has no named thread (it then
+	 * follows `color` if set, else the book's own colour). */
+	plotThreadId: string | null;
 }
 
 export interface BookFrontmatter {
@@ -80,6 +84,7 @@ export interface RawChapterEntry {
 	plot?: unknown;
 	tags?: unknown;
 	"chapter-color"?: unknown;
+	"plot-thread"?: unknown;
 }
 
 const HEX_COLOR_RE = /^#[0-9a-f]{6}$/i;
@@ -157,7 +162,8 @@ function parseChaptersMap(raw: unknown): Record<string, ChapterEntry> {
 			typeof entry["chapter-color"] === "string" && HEX_COLOR_RE.test(entry["chapter-color"])
 				? entry["chapter-color"]
 				: null;
-		result[filename] = { chapterId, chapterTitle, povPath, povName, locationPath, locationName, plot, tags, color };
+		const plotThreadId = typeof entry["plot-thread"] === "string" ? entry["plot-thread"] : null;
+		result[filename] = { chapterId, chapterTitle, povPath, povName, locationPath, locationName, plot, tags, color, plotThreadId };
 	}
 	return result;
 }
@@ -485,9 +491,30 @@ export async function writeChapterTags(app: App, bookFolderName: string, filenam
 	});
 }
 
-/** Overwrites (or clears, passing null) one chapter's colour override — see ChapterTitleModal's
- * colour option and resolveChapterRowColor. Preserves the entry's other fields (id, title, …) via
- * a spread, same pattern as writeSeriesBookColor. */
+/** Assigns (or, passing null, clears) one chapter's plot thread — see ChapterTitleModal's thread
+ * rows and resolveChapterRowColor. Clears any leftover `chapter-color` so the named thread is the
+ * single source of truth. Preserves the entry's other fields via a spread. */
+export async function writeChapterPlotThread(
+	app: App,
+	bookFolderName: string,
+	filename: string,
+	plotThreadId: string | null,
+): Promise<void> {
+	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
+		const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
+		const existing: RawChapterEntry =
+			chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
+		const next: RawChapterEntry = { ...existing };
+		if (plotThreadId) next["plot-thread"] = plotThreadId;
+		else delete next["plot-thread"];
+		delete next["chapter-color"];
+		chapters[filename] = next;
+		fm.chapters = chapters;
+	});
+}
+
+/** Overwrites (or clears, passing null) one chapter's leftover anonymous colour override.
+ * New picks go through writeChapterPlotThread; this remains for legacy `chapter-color` values. */
 export async function writeChapterColor(app: App, bookFolderName: string, filename: string, hex: string | null): Promise<void> {
 	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
 		const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
@@ -615,6 +642,7 @@ export async function insertChapterEntry(
 			plot: entry.plot || undefined,
 			tags: entry.tags.length > 0 ? entry.tags : undefined,
 			"chapter-color": entry.color || undefined,
+			"plot-thread": entry.plotThreadId || undefined,
 		};
 		fm.chapters = chapters;
 		const strip = (list: unknown): string[] =>
@@ -653,6 +681,7 @@ export async function ensureAllChapterEntries(app: App, bookFolderName: string):
 			plot: "",
 			tags: [],
 			color: null,
+			plotThreadId: null,
 		};
 		await upsertChapterEntry(app, bookFolderName, file.name, chapterId, chapterTitle);
 	}

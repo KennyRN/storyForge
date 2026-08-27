@@ -105,6 +105,18 @@ function assertBackupPath(path: string): void {
 	}
 }
 
+/** Creates `path` unless the in-memory index already has it. Swallows "already exists" from a
+ * cold-start index that lags behind disk — `createFolder` throwing here used to abort plugin
+ * `onload()` and leave restored custom views as "plugin has gone away". */
+async function createFolderIfMissing(vault: Vault, path: string): Promise<void> {
+	if (vault.getAbstractFileByPath(path)) return;
+	try {
+		await vault.createFolder(path);
+	} catch {
+		// Folder exists on disk; the vault index has not caught up yet.
+	}
+}
+
 /** Creates `path` and every missing ancestor folder above it (vault.createFolder does not vivify parents on its own). */
 export async function ensureBackstageFolder(vault: Vault, path: string): Promise<void> {
 	assertBackstagePath(path);
@@ -113,9 +125,7 @@ export async function ensureBackstageFolder(vault: Vault, path: string): Promise
 	let current = "";
 	for (const segment of segments) {
 		current = current ? `${current}/${segment}` : segment;
-		if (!vault.getAbstractFileByPath(current)) {
-			await vault.createFolder(current);
-		}
+		await createFolderIfMissing(vault, current);
 	}
 }
 
@@ -125,9 +135,7 @@ async function ensureFolderTree(vault: Vault, path: string, assertPath: (p: stri
 	let current = "";
 	for (const segment of segments) {
 		current = current ? `${current}/${segment}` : segment;
-		if (!vault.getAbstractFileByPath(current)) {
-			await vault.createFolder(current);
-		}
+		await createFolderIfMissing(vault, current);
 	}
 }
 
@@ -158,7 +166,16 @@ export async function writeBackstageFile(vault: Vault, path: string, content: st
 		return existing;
 	}
 	await ensureParentFolder(vault, normalized);
-	return vault.create(normalized, content);
+	try {
+		return await vault.create(normalized, content);
+	} catch (err) {
+		const raced = vault.getAbstractFileByPath(normalized);
+		if (raced instanceof TFile) {
+			await vault.modify(raced, content);
+			return raced;
+		}
+		throw err;
+	}
 }
 
 export async function writeBackstageBinary(vault: Vault, path: string, data: ArrayBuffer): Promise<TFile> {
@@ -170,7 +187,16 @@ export async function writeBackstageBinary(vault: Vault, path: string, data: Arr
 		return existing;
 	}
 	await ensureParentFolder(vault, normalized);
-	return vault.createBinary(normalized, data);
+	try {
+		return await vault.createBinary(normalized, data);
+	} catch (err) {
+		const raced = vault.getAbstractFileByPath(normalized);
+		if (raced instanceof TFile) {
+			await vault.modifyBinary(raced, data);
+			return raced;
+		}
+		throw err;
+	}
 }
 
 /** Writes a backup zip (or other binary) under `_sf-backup/` only. */

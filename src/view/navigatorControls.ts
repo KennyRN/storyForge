@@ -1,10 +1,9 @@
-import { TFile, setIcon } from "obsidian";
+import { TFile, setIcon, setTooltip } from "obsidian";
 import type { NavigatorSlot } from "../spineWindow";
 import { splitTitleSubtitle } from "../titleNumbering";
 import { makeAccessibleActivatable } from "./a11y";
 import {
 	ICON_CONTINUOUS_MODE,
-	ICON_CONTINUOUS_MODE_EXIT,
 	ICON_TRANSPORT_NEXT,
 	ICON_TRANSPORT_PREVIOUS,
 	ICON_TRANSPORT_TO_END,
@@ -15,7 +14,7 @@ import {
  * Shared between the sidebar navigator (CodexFocusNavigator.ts) and the continuous read-through's
  * own view (ContinuousReadView.ts) — the sidebar is menus only (hand-off correction: the
  * manuscript itself belongs in the main editor pane, not the sidebar), so both surfaces need the
- * same transport-row and read-only-tile building blocks, just wired to different actions.
+ * same transport and read-only-tile building blocks, just wired to different actions.
  */
 
 export interface TransportActions {
@@ -26,50 +25,56 @@ export interface TransportActions {
 }
 
 export interface ContinuousToggle {
-	/** false in the sidebar (always just a launcher); true in the continuous read view (a way back
-	 * out to the single-chapter editor). Decides which of the two icons shows. */
+	/** false while the mode is off (click to enter); true while the continuous read view is open
+	 * (click to drop back into the single-chapter editor). Same icon either way; the active state
+	 * is the hover colour held until the next click. */
 	active: boolean;
 	onToggle: () => void;
 }
 
 /**
- * The four transport buttons — shared between the sidebar (open-file) and the continuous read
- * view (scroll-to); only what each button *does* differs. The optional fifth control is
- * continuous mode's launcher/exit, sitting in the centre slot with its own glyph — distinct
- * enough on its own, and the same size as the other four by construction: all five icons are
- * painted to the same fraction of their own viewBox (see iconRegistry.ts's standing rule), so the
- * shared `.sf-navigator-transport-btn svg` CSS rule alone is enough — no per-button JS sizing.
+ * Four chapter-transport chevrons in a vertical stack (double-up, up, down, double-down) plus
+ * the optional continuous-mode toggle. `leftCol` / `rightCol` sit either side of the chapter
+ * list — not underneath it — so the circled-arrow row is gone. Same chrome as Story Context's
+ * chapter-card action icons (muted rest, no fill); only an activatable control picks up hover,
+ * which is the storyTelling chapter highlight colour.
  */
-export function renderTransportRow(
-	container: HTMLElement,
+export function renderTransportChrome(
+	leftCol: HTMLElement,
+	rightCol: HTMLElement,
 	currentIndex: number,
 	lastIndex: number,
 	actions: TransportActions,
 	toggle: ContinuousToggle | null,
 ): void {
+	leftCol.empty();
+	rightCol.empty();
+
 	const atStart = currentIndex <= 0;
 	const atEnd = currentIndex >= lastIndex;
 
-	const buttons = container.createDiv({ cls: "sf-navigator-transport-buttons" });
+	addTransportButton(leftCol, ICON_TRANSPORT_TO_START, "first chapter", !atStart, actions.toStart);
+	addTransportButton(leftCol, ICON_TRANSPORT_PREVIOUS, "previous chapter", !atStart, actions.previous);
+	addTransportButton(leftCol, ICON_TRANSPORT_NEXT, "next chapter", !atEnd, actions.next);
+	addTransportButton(leftCol, ICON_TRANSPORT_TO_END, "last chapter", !atEnd, actions.toEnd);
 
-	addTransportButton(buttons, ICON_TRANSPORT_TO_START, "To start", !atStart, actions.toStart);
-	addTransportButton(buttons, ICON_TRANSPORT_PREVIOUS, "Previous chapter", !atStart, actions.previous);
 	if (toggle) {
-		const label = toggle.active ? "Exit continuous mode" : "Read continuously";
-		const btn = buttons.createSpan({
+		const label = "continuous reading mode";
+		const btn = rightCol.createSpan({
 			cls: "sf-navigator-transport-btn sf-navigator-transport-toggle",
-			attr: { "aria-label": label },
+			attr: { "aria-label": label, "aria-pressed": String(toggle.active) },
 		});
-		setIcon(btn, toggle.active ? ICON_CONTINUOUS_MODE_EXIT : ICON_CONTINUOUS_MODE);
+		if (toggle.active) btn.addClass("is-active");
+		setTooltip(btn, label);
+		setIcon(btn, ICON_CONTINUOUS_MODE);
 		btn.addEventListener("pointerdown", toggle.onToggle);
 		makeAccessibleActivatable(btn, toggle.onToggle);
 	}
-	addTransportButton(buttons, ICON_TRANSPORT_NEXT, "Next chapter", !atEnd, actions.next);
-	addTransportButton(buttons, ICON_TRANSPORT_TO_END, "To end", !atEnd, actions.toEnd);
 }
 
 function addTransportButton(container: HTMLElement, iconId: string, label: string, enabled: boolean, onClick: () => void): void {
 	const btn = container.createSpan({ cls: "sf-navigator-transport-btn", attr: { "aria-label": label } });
+	setTooltip(btn, label);
 	if (!enabled) btn.addClass("sf-navigator-transport-btn-disabled");
 	setIcon(btn, iconId);
 	if (enabled) {

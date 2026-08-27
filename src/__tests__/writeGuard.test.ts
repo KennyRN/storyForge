@@ -146,3 +146,44 @@ describe("writeBackupText", () => {
 		).rejects.toBeInstanceOf(ForbiddenWriteError);
 	});
 });
+
+describe("writeBackstageFile — cold-start index lag", () => {
+	it("treats createFolder 'already exists' as success and still writes the file", async () => {
+		const created: string[] = [];
+		const vault = {
+			getAbstractFileByPath: () => null,
+			create: async (path: string) => {
+				created.push(path);
+				return makeTFile(path);
+			},
+			modify: async () => undefined,
+			createFolder: async () => {
+				throw new Error("Folder already exists.");
+			},
+		} as unknown as Vault;
+
+		await writeBackstageFile(vault, `${TITLEFORGE_BACKSTAGE_ROOT}/lexicons/title-composer.json`, "{}");
+		expect(created).toEqual([`${TITLEFORGE_BACKSTAGE_ROOT}/lexicons/title-composer.json`]);
+	});
+
+	it("modifies when create throws because the file already exists on disk", async () => {
+		const file = makeTFile(`${TITLEFORGE_BACKSTAGE_ROOT}/settings.json`);
+		const modified: string[] = [];
+		let createCalls = 0;
+		const vault = {
+			getAbstractFileByPath: () => (createCalls > 0 ? file : null),
+			create: async () => {
+				createCalls += 1;
+				throw new Error("File already exists.");
+			},
+			modify: async () => {
+				modified.push("ok");
+			},
+			createFolder: async () => undefined,
+		} as unknown as Vault;
+
+		const result = await writeBackstageFile(vault, `${TITLEFORGE_BACKSTAGE_ROOT}/settings.json`, "{}");
+		expect(result).toBe(file);
+		expect(modified).toEqual(["ok"]);
+	});
+});

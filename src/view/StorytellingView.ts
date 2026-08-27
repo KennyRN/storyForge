@@ -78,7 +78,11 @@ export class StorytellingView extends ItemView {
 		this.registerEvent(this.app.metadataCache.on("changed", () => this.debouncedRender()));
 		// Same safety net as StoryForgeView's — see there for why active:true is ignored.
 		this.registerEvent(onContinuousMode(this.app, (payload) => { if (!payload.active) this.render(); }));
-		this.followActiveFile();
+		try {
+			this.followActiveFile();
+		} catch (err) {
+			console.error("storyForge: storyTelling failed to open", err);
+		}
 	}
 
 	async onClose(): Promise<void> {
@@ -90,12 +94,20 @@ export class StorytellingView extends ItemView {
 	/** The read view's leaf open on `bookFolderName`, if any — see StoryForgeView's twin for why. */
 	private findContinuousReadLeaf(bookFolderName: string): WorkspaceLeaf | null {
 		for (const leaf of this.app.workspace.getLeavesOfType(STORYFORGE_CONTINUOUS_VIEW_TYPE)) {
-			if ((leaf.view as ContinuousReadView).getBookFolderName() === bookFolderName) return leaf;
+			const view = leaf.view as ContinuousReadView;
+			if (typeof view.getBookFolderName === "function" && view.getBookFolderName() === bookFolderName) return leaf;
 		}
 		return null;
 	}
 
 	private followActiveFile(): void {
+		// Focusing this sidebar is not a file navigation. getActiveFile() often still reports the
+		// last markdown file (or a restored non-chapter), and treating that as a change would wipe
+		// the persisted chapter before restoreStorytellingCenterEditor() can open it.
+		if (this.app.workspace.activeLeaf === this.leaf) {
+			this.render();
+			return;
+		}
 		const file = this.app.workspace.getActiveFile();
 		if (file) {
 			const bookName = bookFolderNameFromChapterPath(file.path);
@@ -316,6 +328,7 @@ export class StorytellingView extends ItemView {
 	private async openInMainContentLeaf(file: TFile): Promise<void> {
 		const leaf = this.plugin.getMainContentLeaf();
 		await leaf.openFile(file, { active: true });
+		await this.app.workspace.revealLeaf(leaf);
 		this.app.workspace.setActiveLeaf(leaf, { focus: true });
 	}
 

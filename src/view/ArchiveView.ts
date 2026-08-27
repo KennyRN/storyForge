@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, setIcon } from "obsidian";
+import { ItemView, WorkspaceLeaf } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { ICON_ARCHIVE } from "../icons";
 import { BACKSTAGE_ROOT, bookFolderNameFromChapterPath, isLibraryRootFilePath } from "../paths";
@@ -96,7 +96,6 @@ export class ArchiveView extends ItemView {
 		el.addClass("sf-archive-view");
 
 		const header = el.createDiv({ cls: "sf-archive-view-header" });
-		setIcon(header.createSpan({ cls: "sf-icon" }), ICON_ARCHIVE);
 		header.createSpan({ cls: "sf-archive-view-title", text: "Archive" });
 
 		renderArchivePanel(el, {

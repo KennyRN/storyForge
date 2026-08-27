@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { type App } from "obsidian";
 import { makeTFile, makeTFolder } from "./obsidianStub";
-import { readBookFrontmatter, writeBookCoverImage, writeChapterTags, writeNovelTags } from "../book";
+import { readBookFrontmatter, writeBookCoverImage, writeChapterPlotThread, writeChapterTags, writeNovelTags } from "../book";
 import { safeCoverFilename } from "../coverImage";
 import { BACKSTAGE_ROOT, LIBRARY_ROOT, bookFilePath } from "../paths";
 
@@ -188,5 +188,43 @@ describe("writeNovelTags", () => {
 	it("defaults to an empty array when unset", () => {
 		const { app } = makeFakeApp();
 		expect(readBookFrontmatter(app, "BookA")?.novelTags).toEqual([]);
+	});
+});
+
+describe("writeChapterPlotThread", () => {
+	it("sets plot-thread and clears a leftover chapter-color", async () => {
+		const { app, frontmatter } = makeFakeApp({
+			chapters: {
+				"ch1.md": { "chapter-id": "c1", "chapter-title": "Chapter One", "chapter-color": "#c41e3a" },
+			},
+		});
+		await writeChapterPlotThread(app, "BookA", "ch1.md", "main-plot");
+		const chapters = frontmatter.chapters as Record<string, Record<string, unknown>>;
+		expect(chapters["ch1.md"]["plot-thread"]).toBe("main-plot");
+		expect(chapters["ch1.md"]["chapter-color"]).toBeUndefined();
+	});
+
+	it("clears plot-thread when given null", async () => {
+		const { app, frontmatter } = makeFakeApp({
+			chapters: { "ch1.md": { "chapter-id": "c1", "chapter-title": "Chapter One", "plot-thread": "main-plot" } },
+		});
+		await writeChapterPlotThread(app, "BookA", "ch1.md", null);
+		const chapters = frontmatter.chapters as Record<string, Record<string, unknown>>;
+		expect(chapters["ch1.md"]["plot-thread"]).toBeUndefined();
+	});
+
+	it("round-trips through readBookFrontmatter's parseChaptersMap", async () => {
+		const { app } = makeFakeApp({
+			chapters: { "ch1.md": { "chapter-id": "c1", "chapter-title": "Chapter One" } },
+		});
+		await writeChapterPlotThread(app, "BookA", "ch1.md", "romance");
+		expect(readBookFrontmatter(app, "BookA")?.chapters["ch1.md"].plotThreadId).toBe("romance");
+	});
+
+	it("defaults to null when unset", () => {
+		const { app } = makeFakeApp({
+			chapters: { "ch1.md": { "chapter-id": "c1", "chapter-title": "Chapter One" } },
+		});
+		expect(readBookFrontmatter(app, "BookA")?.chapters["ch1.md"].plotThreadId).toBeNull();
 	});
 });

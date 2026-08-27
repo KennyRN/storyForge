@@ -59,6 +59,9 @@ export class TitleForgeStorage {
 		for (const spec of ALL_TITLEFORGE_LEXICONS) {
 			const path = lexiconPath(spec.id);
 			if (this.app.vault.getAbstractFileByPath(path)) continue;
+			// Cold start: the in-memory vault index can lag behind disk, so a file that
+			// already exists would make writeBackstageFile's create() throw.
+			if (await this.app.vault.adapter.exists(path)) continue;
 			await this.resetLexiconToBundled(spec);
 		}
 	}

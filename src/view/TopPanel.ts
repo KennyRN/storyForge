@@ -3,6 +3,7 @@ import { bookDisplayTitle, getSeriesBooks, numberedBookTitle, writeUnplacedOrder
 import {
 	archiveChapter,
 	chapterDisplayTitle,
+	createBook,
 	getBookChapters,
 	getChapterEntry,
 	readBookFrontmatter,
@@ -23,7 +24,15 @@ import { ChapterIdeaCaptureModal } from "./ChapterIdeaCaptureModal";
 import { renderCodexFocusNavigator } from "./CodexFocusNavigator";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
 import type { NumberingStyle } from "../numberingStyle";
-import { ICON_BOOK_DUOTONE, ICON_PLUS_SQUARE, ICON_SETTINGS_ALT, ICON_UNPLACED } from "../icons";
+import {
+	ICON_BOOK_DUOTONE,
+	ICON_BOOKMARK_DUOTONE,
+	ICON_PLUS_SQUARE,
+	ICON_PLOT_THREADS,
+	ICON_SETTINGS_ALT,
+	ICON_TAG_DUOTONE,
+	ICON_UNPLACED,
+} from "../icons";
 import { recordChapterArchive, readChapterWordCount } from "../history";
 
 export type UnplacedViewMode = "unplaced" | "unplacedHidden";
@@ -60,17 +69,50 @@ export interface TopPanelOptions {
 }
 
 /**
- * Series-mode-only settings icon — pinned to the bottom-left corner of the whole pane, not the
- * top header, so it reads as a persistent panel-level control. Rendered directly onto the pane's
+ * Series-mode-only hover icons — pinned to the bottom-left corner of the whole pane, not the
+ * top header, so they read as persistent panel-level controls. Rendered directly onto the pane's
  * own root element (StoryForgeView's `container`/`contentEl`, which has `position: relative` in
  * styles.css), not into renderTopPanel()'s own DOM — .sf-top-panel/.sf-bottom-panel both scroll
  * (`overflow-y: auto`), which would clip an absolutely-positioned descendant that's meant to sit
  * outside their own box, so this needs a container the overflow-clipping rows aren't ancestors of.
- * Relevant only while actually browsing the series list (topPane === "series") — call-site gated,
- * same condition renderTopPanel() used to gate this on internally.
+ * Codex types, chapter/novel tags, and plot-threads sit beside the settings cog. Relevant only
+ * while actually browsing the series list (topPane === "series") — call-site gated, same
+ * condition renderTopPanel() used to gate this on internally.
  */
-export function renderSeriesSettingsButton(container: HTMLElement, onOpenSeriesModal: () => void): void {
-	const settingsBtn = container.createSpan({ cls: "sf-series-settings-btn", attr: { "aria-label": "Series settings" } });
+export function renderSeriesPaneCornerButtons(
+	container: HTMLElement,
+	onOpenCodexTypes: () => void,
+	onOpenTags: () => void,
+	onOpenPlotThreads: () => void,
+	onOpenSeriesModal: () => void,
+): void {
+	const corner = container.createDiv({ cls: "sf-series-pane-corner" });
+
+	const typesBtn = corner.createSpan({ cls: "sf-series-settings-btn", attr: { "aria-label": "Codex types" } });
+	setIcon(typesBtn, ICON_TAG_DUOTONE);
+	typesBtn.addEventListener("click", (e) => {
+		e.stopPropagation();
+		onOpenCodexTypes();
+	});
+	makeAccessibleActivatable(typesBtn, onOpenCodexTypes);
+
+	const tagsBtn = corner.createSpan({ cls: "sf-series-settings-btn", attr: { "aria-label": "Chapter and novel tags" } });
+	setIcon(tagsBtn, ICON_BOOKMARK_DUOTONE);
+	tagsBtn.addEventListener("click", (e) => {
+		e.stopPropagation();
+		onOpenTags();
+	});
+	makeAccessibleActivatable(tagsBtn, onOpenTags);
+
+	const plotBtn = corner.createSpan({ cls: "sf-series-settings-btn", attr: { "aria-label": "Plot threads" } });
+	setIcon(plotBtn, ICON_PLOT_THREADS);
+	plotBtn.addEventListener("click", (e) => {
+		e.stopPropagation();
+		onOpenPlotThreads();
+	});
+	makeAccessibleActivatable(plotBtn, onOpenPlotThreads);
+
+	const settingsBtn = corner.createSpan({ cls: "sf-series-settings-btn", attr: { "aria-label": "Series settings" } });
 	setIcon(settingsBtn, ICON_SETTINGS_ALT);
 	settingsBtn.addEventListener("click", (e) => {
 		e.stopPropagation();
@@ -154,6 +196,16 @@ function createRow(list: HTMLElement, key: string): HTMLElement {
 	const handle = row.createSpan({ cls: "sf-drag-handle" });
 	setIcon(handle, "grip-vertical");
 	return row;
+}
+
+/** Opens a chapter from a sidebar row on the first press. A `click` listener's first firing in an
+ * unfocused sidebar is swallowed by Obsidian focusing the pane (see navigatorControls.ts). */
+function bindChapterOpen(row: HTMLElement, open: () => void): void {
+	row.addEventListener("pointerdown", (e) => {
+		if (e.button !== 0) return;
+		if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
+		open();
+	});
 }
 
 /**
@@ -335,7 +387,23 @@ function renderSeriesList(
 	if (options.showUnplacedSection) {
 		const unplacedZone = bodyEl.createDiv({ cls: "sf-unplaced-zone" });
 		const unplacedHidden = options.unplacedMode === "unplacedHidden";
-		renderUnplacedHeader(unplacedZone, "Unplaced Novels", unplacedHidden, options.onToggleUnplacedMode);
+		renderUnplacedHeader(
+			unplacedZone,
+			"Unplaced Novels",
+			unplacedHidden,
+			options.onToggleUnplacedMode,
+			(_anchorEl, _e) => {
+				void (async () => {
+					try {
+						await createBook(app);
+						renderTopPanel(app, container, options);
+					} catch (err) {
+						new Notice(`storyForge: could not create book — ${(err as Error).message}`);
+					}
+				})();
+			},
+			ICON_PLUS_SQUARE,
+		);
 
 		if (!unplacedHidden) {
 			const unplacedList = unplacedZone.createDiv({ cls: "sf-top-list sf-unplaced-list" });
@@ -402,10 +470,7 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 		if (options.highlightActiveChapter && options.activeChapterFilename === file.name) {
 			row.addClass("sf-row-selected");
 		}
-		row.addEventListener("click", (e) => {
-			if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
-			options.onOpenChapter(bookFolderName, file.name);
-		});
+		bindChapterOpen(row, () => options.onOpenChapter(bookFolderName, file.name));
 		const archiveItem: ExtraMenuItem = {
 			title: "Archive",
 			onClick: async () => {
@@ -459,10 +524,7 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 				if (options.highlightActiveChapter && options.activeChapterFilename === file.name) {
 					row.addClass("sf-row-selected");
 				}
-				row.addEventListener("click", (e) => {
-					if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
-					options.onOpenChapter(bookFolderName, file.name);
-				});
+				bindChapterOpen(row, () => options.onOpenChapter(bookFolderName, file.name));
 				const archiveItem: ExtraMenuItem = {
 					title: "Archive",
 					onClick: async () => {

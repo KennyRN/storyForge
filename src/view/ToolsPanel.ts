@@ -1,14 +1,20 @@
 import { ItemView, WorkspaceLeaf } from "obsidian";
 import { ICON_TOOLS } from "../icons";
-import { OBSIDIAN_SELECTORS } from "../obsidianInternals";
+import { debounce } from "../debounce";
+import {
+	listVisibleRibbonActions,
+	resolveWorkspaceRibbon,
+	returnRibbonToWorkspace,
+	ribbonActionLabel,
+} from "../ribbonRelocation";
+import { makeAccessibleActivatable } from "./a11y";
 
 export const TOOLS_VIEW_TYPE = "storyforge-tools-view";
 
 export class ToolsView extends ItemView {
-	private ribbonEl: HTMLElement | null = null;
-	private ribbonOriginalParent: HTMLElement | null = null;
-	private ribbonOriginalNextSibling: Node | null = null;
-	private tooltipAttrs = new Map<HTMLElement, { position: string | null; delay: string | null }>();
+	private listEl: HTMLElement | null = null;
+	private ribbonObserver: MutationObserver | null = null;
+	private lastSignature = "";
 
 	constructor(leaf: WorkspaceLeaf) {
 		super(leaf);
@@ -29,47 +35,112 @@ export class ToolsView extends ItemView {
 	async onOpen(): Promise<void> {
 		document.body.classList.add("sf-tools-open");
 		this.contentEl.addClass("sf-tools-view");
-		this.mountRibbon();
+		this.listEl = this.contentEl.createDiv({ cls: "sf-tools-list" });
+		this.render();
+		this.registerEvent(this.app.workspace.on("layout-change", this.debouncedRender));
+		this.registerEvent(this.app.workspace.on("css-change", this.debouncedRender));
+		this.register(() => this.teardown());
 	}
 
 	async onClose(): Promise<void> {
-		document.body.classList.remove("sf-tools-open");
-		this.restoreRibbon();
+		this.teardown();
 	}
 
-	/** Moves Obsidian's native ribbon into this pane so it's the only thing shown here. */
-	private mountRibbon(): void {
-		const ribbon = document.querySelector<HTMLElement>(OBSIDIAN_SELECTORS.workspaceRibbon);
-		if (!ribbon) return;
-		this.ribbonEl = ribbon;
-		this.ribbonOriginalParent = ribbon.parentElement;
-		this.ribbonOriginalNextSibling = ribbon.nextSibling;
-		this.contentEl.appendChild(ribbon);
+	/**
+	 * Puts a previously reparented native ribbon back under `.workspace`. Kept for
+	 * onunload / rebuildView so a hot-reload from the old move-the-node Tools panel
+	 * cannot leave the strip stranded inside a dying leaf.
+	 */
+	restoreRibbon(): void {
+		returnRibbonToWorkspace(this.containerEl.ownerDocument);
+	}
 
-		// Labels are always visible in this pane, so the hover tooltips (and their delay)
-		// are redundant here - strip the trigger attributes and restore them on restoreRibbon()
-		// so the native ribbon's tooltips keep working once it's back in its native spot.
-		ribbon.querySelectorAll<HTMLElement>(OBSIDIAN_SELECTORS.ribbonAction).forEach((action) => {
-			this.tooltipAttrs.set(action, {
-				position: action.getAttribute("data-tooltip-position"),
-				delay: action.getAttribute("data-tooltip-delay"),
+	private readonly debouncedRender = debounce(() => this.render(), 50);
+
+	private render(): void {
+		if (!this.listEl) return;
+		const doc = this.containerEl.ownerDocument;
+		returnRibbonToWorkspace(doc);
+		const ribbon = resolveWorkspaceRibbon(this.app.workspace.leftRibbon as { containerEl?: HTMLElement }, doc);
+		if (!ribbon) {
+			this.replaceList("missing", () => {
+				this.listEl?.createDiv({
+					cls: "sf-tools-empty",
+					text: "Ribbon actions will appear here once Obsidian's ribbon is available.",
+				});
 			});
-			action.removeAttribute("data-tooltip-position");
-			action.removeAttribute("data-tooltip-delay");
+			return;
+		}
+		this.observeNativeRibbon(ribbon);
+		const actions = listVisibleRibbonActions(ribbon);
+		if (actions.length === 0) {
+			this.replaceList("empty", () => {
+				this.listEl?.createDiv({
+					cls: "sf-tools-empty",
+					text: "No ribbon actions to show. Right-click Obsidian's ribbon to re-enable hidden items.",
+				});
+			});
+			return;
+		}
+		const signature = actions.map((a) => `${ribbonActionLabel(a)}\0${a.querySelector("svg")?.outerHTML ?? ""}`).join("\n");
+		this.replaceList(signature, () => {
+			for (const action of actions) this.renderAction(action);
 		});
 	}
 
-	/** Restores the native ribbon to its original spot in the workspace DOM. Called from onClose() normally, and also directly from the plugin's onunload() so the ribbon comes home without needing a leaf-detach. Safe to call more than once - a no-op once already restored. */
-	restoreRibbon(): void {
-		if (!this.ribbonEl || !this.ribbonOriginalParent) return;
-		for (const [action, attrs] of this.tooltipAttrs) {
-			if (attrs.position !== null) action.setAttribute("data-tooltip-position", attrs.position);
-			if (attrs.delay !== null) action.setAttribute("data-tooltip-delay", attrs.delay);
-		}
-		this.tooltipAttrs.clear();
-		this.ribbonOriginalParent.insertBefore(this.ribbonEl, this.ribbonOriginalNextSibling);
-		this.ribbonEl = null;
-		this.ribbonOriginalParent = null;
-		this.ribbonOriginalNextSibling = null;
+	private replaceList(signature: string, paint: () => void): void {
+		if (!this.listEl) return;
+		if (signature === this.lastSignature && this.listEl.childElementCount > 0) return;
+		this.lastSignature = signature;
+		this.listEl.empty();
+		paint();
+	}
+
+	private renderAction(action: HTMLElement): void {
+		if (!this.listEl) return;
+		const label = ribbonActionLabel(action);
+		const row = this.listEl.createDiv({
+			cls: "side-dock-ribbon-action clickable-icon",
+			attr: { "aria-label": label || "Ribbon action" },
+		});
+		const svg = action.querySelector("svg");
+		if (svg) row.appendChild(svg.cloneNode(true));
+		const activate = () => action.click();
+		row.addEventListener("click", (evt) => {
+			evt.preventDefault();
+			activate();
+		});
+		row.addEventListener("contextmenu", (evt) => {
+			action.dispatchEvent(
+				new MouseEvent("contextmenu", {
+					bubbles: true,
+					cancelable: true,
+					clientX: evt.clientX,
+					clientY: evt.clientY,
+				}),
+			);
+		});
+		makeAccessibleActivatable(row, activate);
+	}
+
+	private observeNativeRibbon(ribbon: HTMLElement): void {
+		if (this.ribbonObserver) return;
+		this.ribbonObserver = new MutationObserver(() => this.debouncedRender());
+		this.ribbonObserver.observe(ribbon, {
+			childList: true,
+			subtree: true,
+			attributes: true,
+			attributeFilter: ["class", "style", "hidden", "aria-hidden", "aria-label"],
+		});
+	}
+
+	private teardown(): void {
+		this.debouncedRender.cancel();
+		this.ribbonObserver?.disconnect();
+		this.ribbonObserver = null;
+		this.lastSignature = "";
+		returnRibbonToWorkspace(this.containerEl.ownerDocument);
+		document.body.classList.remove("sf-tools-open");
+		this.listEl = null;
 	}
 }

@@ -1,6 +1,6 @@
 import { App, ItemView, Notice, setIcon, setTooltip, TFile, TFolder, WorkspaceLeaf } from "obsidian";
 import type StoryForgePlugin from "../main";
-import { createBook, reorderSeriesBooks, readBookSynopsis, writeBookSynopsis } from "../book";
+import { reorderSeriesBooks, readBookSynopsis, writeBookSynopsis } from "../book";
 import {
 	getSeriesBooks,
 	numberedBookTitle,
@@ -16,7 +16,7 @@ import { makeReorderable, type DragZone } from "./dragReorder";
 import { makeAccessibleActivatable } from "./a11y";
 import { isDragInProgress } from "./dragLock";
 import { debounce } from "../debounce";
-import { ICON_BOOK_PLUS, ICON_SERIES } from "../icons";
+import { ICON_SERIES } from "../icons";
 import { renderNovelCover, pickNovelCover } from "./NovelPanel";
 import { NovelTitleModal } from "./NovelTitleModal";
 import { SeriesTitleModal } from "./SeriesTitleModal";
@@ -28,7 +28,7 @@ export const STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE = "storyforge-series-overview-
  * The Series tab's own full-page view, opened in the main editor area in place of a normal editor
  * — StoryForgeView.ts's layout-tab click handler swaps it into the active leaf, the same way
  * continuous read mode replaces it (see ContinuousReadView.ts). A fixed header (series title,
- * "Novels" list header, hint text, add-novel icon) over an independently scrolling novel list —
+ * hero image, description) over an independently scrolling novel list —
  * each row its own title + synopsis, filtered to placed-only or unplaced-only to match whichever
  * novel is currently selected (both show when nothing is selected).
  *
@@ -105,25 +105,6 @@ export class SeriesOverviewView extends ItemView {
 		this.renderTitleField(fixed);
 		this.renderCoverDescriptionRow(fixed);
 
-		// "Novels" heading and the add-novel icon share one line — the "#"/"//" hint text that used
-		// to sit beneath them moved into NovelTitleModal (opened from a row's own title, below),
-		// since it's about how a *title* is written, not something this page's header needs to
-		// explain up front.
-		const listHeader = fixed.createDiv({ cls: "sf-modal-list-header sf-series-overview-list-header" });
-		listHeader.createEl("h3", { text: "Novels" });
-		const addBookBtn = listHeader.createSpan({ cls: "sf-modal-add-book", attr: { "aria-label": "New book" } });
-		setIcon(addBookBtn, ICON_BOOK_PLUS);
-		const handleCreateBook = async () => {
-			try {
-				await createBook(this.app);
-				if (!this.closed) this.render();
-			} catch (err) {
-				new Notice(`storyForge: could not create book — ${(err as Error).message}`);
-			}
-		};
-		addBookBtn.addEventListener("click", () => void handleCreateBook());
-		makeAccessibleActivatable(addBookBtn, () => void handleCreateBook());
-
 		const scroll = contentEl.createDiv({ cls: "sf-series-overview-scroll" });
 		this.renderNovelsList(scroll);
 	}
@@ -156,8 +137,8 @@ export class SeriesOverviewView extends ItemView {
 	private renderCoverDescriptionRow(container: HTMLElement): void {
 		const row = container.createDiv({ cls: "sf-series-overview-cover-row" });
 
-		const cover = row.createDiv({ cls: "sf-synopsis-cover sf-series-overview-cover", attr: { "aria-label": "series cover" } });
-		setTooltip(cover, "series cover");
+		const cover = row.createDiv({ cls: "sf-synopsis-cover sf-series-overview-cover", attr: { "aria-label": "series hero image" } });
+		setTooltip(cover, "series hero image");
 		renderSeriesCover(this.app, cover);
 		cover.addEventListener("click", () => pickSeriesCover(this.app, cover));
 
@@ -315,7 +296,7 @@ function pickSeriesCover(app: App, cover: HTMLElement): void {
 		const file = input.files?.[0];
 		if (!file) return;
 		if (!file.type.startsWith("image/")) {
-			new Notice("storyForge: please choose an image file for the cover.");
+			new Notice("storyForge: please choose an image file for the series hero image.");
 			return;
 		}
 		void (async () => {
@@ -327,7 +308,7 @@ function pickSeriesCover(app: App, cover: HTMLElement): void {
 				await writeSeriesCoverImage(app, data, extension);
 				renderSeriesCover(app, cover);
 			} catch (err) {
-				new Notice(`storyForge: could not set cover image — ${err instanceof Error ? err.message : String(err)}`);
+				new Notice(`storyForge: could not set series hero image — ${err instanceof Error ? err.message : String(err)}`);
 			}
 		})();
 	});
