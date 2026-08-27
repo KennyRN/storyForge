@@ -255,7 +255,7 @@ export function generateSeries(
 	// Under 'echo' and 'anchor' the whole set is held to one realisation of one
 	// shape; that fixed template is what makes the titles read as a family.
 	const templateIndex = choice.templateIndex;
-	const template = volumePattern.templates[templateIndex]!;
+	const template = volumePattern.templates[templateIndex];
 
 	let bound: Record<string, Lexeme> | undefined;
 	let anchorSlot: string | undefined;
@@ -382,7 +382,7 @@ function seriesTemplateIndex(
 
 	for (let step = 1; step < pattern.templates.length; step++) {
 		const index = (volumeIndex + step) % pattern.templates.length;
-		const template = pattern.templates[index]!;
+		const template = pattern.templates[index];
 		if (!anchor || slotsIn(template).includes(anchor)) return index;
 	}
 	return volumeIndex;
@@ -578,6 +578,6 @@ function referencedSlots(template: string): string[] {
 	const found = new Set<string>();
 	const re = /\{([a-zA-Z_][\w]*)(?::[a-zA-Z_][\w-]*)?(?:#\d+)?\^?(?:\|[a-z]+)*\}/g;
 	let match: RegExpExecArray | null;
-	while ((match = re.exec(template)) !== null) found.add(match[1]!);
+	while ((match = re.exec(template)) !== null) found.add(match[1]);
 	return [...found];
 }

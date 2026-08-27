@@ -74,6 +74,7 @@ function mountCodexTreeSample(bottom: HTMLElement): void {
 	folderContent.createSpan({ cls: "sf-codex-folder-name sf-styled-heading", text: "Magna Aliqua" });
 	setIcon(folderContent.createSpan({ cls: "sf-icon sf-codex-type-icon" }), ICON_PERSON);
 
+	folder.addClass("sf-codex-folder--with-indicator");
 	const children = folder.createDiv({ cls: "sf-codex-folder-children" });
 	children.createDiv({ cls: "sf-codex-folder-indicator" });
 
@@ -117,7 +118,7 @@ export function mountUiStylePreviewSample(container: HTMLElement): void {
 
 	const view = container.createDiv({ cls: "storyforge-view sf-ui-preview-host" });
 
-	const top = view.createDiv({ cls: "sf-top-panel" });
+	const top = view.createDiv({ cls: "sf-top-panel sf-top-panel--above-codex" });
 
 	const header = top.createDiv({ cls: "sf-top-header" });
 	mountSeriesLine(header);
@@ -156,7 +157,7 @@ export function mountStorytellingPreviewSample(container: HTMLElement): void {
 
 	const view = container.createDiv({ cls: "storyforge-storytelling-view sf-ui-preview-host" });
 
-	const top = view.createDiv({ cls: "sf-top-panel" });
+	const top = view.createDiv({ cls: "sf-top-panel sf-top-panel--above-codex" });
 	const header = top.createDiv({ cls: "sf-top-header" });
 	mountSeriesLine(header);
 	mountBookLine(header);

@@ -1,6 +1,6 @@
 import { App, parseYaml, stringifyYaml, TFile, type FrontMatterCache } from "obsidian";
 import { chapterSidecarFolderPath, chapterSidecarPath } from "./paths";
-import { ensureBackstageFolder, deleteBackstagePath, enqueueBackstageWrite, modifyBackstageFrontmatter, renameBackstagePath, writeBackstageFile } from "./writeGuard";
+import { ensureBackstageFolder, deleteBackstagePath, enqueueBackstageWrite, renameBackstagePath, writeBackstageFile } from "./writeGuard";
 import type { Fingerprint } from "./fingerprint";
 
 /** The raw on-disk shape of a chapter sidecar file's frontmatter, as read/written through `modifyBackstageFrontmatter`. */

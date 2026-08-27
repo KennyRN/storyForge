@@ -255,6 +255,7 @@ export class StoryForgeView extends ItemView {
 		const topPane = this.effectiveTopPane();
 		if (topPane !== "none") {
 			const topEl = container.createDiv({ cls: "sf-top-panel" });
+			if (config.showCodex) topEl.addClass("sf-top-panel--above-codex");
 
 			renderTopPanel(this.app, topEl, {
 				mode: topPane,

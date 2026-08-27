@@ -4,6 +4,7 @@ import type { StoryForgePluginSettings } from "../main";
 import { ICON_FORGE } from "../icons";
 import {
 	bindColorSwatchButton,
+	mountPlainScroll,
 	persistAndRestyle,
 	type ColorSwatchLeadingOption,
 	type ColorSwatchMutedOption,
@@ -19,8 +20,8 @@ function mutedSwatch(
 ): ColorSwatchMutedOption {
 	return {
 		isActive: active,
-		onSelect: () => persistAndRestyle(plugin, key, true as StoryForgePluginSettings[typeof key], restyle),
-		onClear: () => persistAndRestyle(plugin, key, false as StoryForgePluginSettings[typeof key], restyle),
+		onSelect: () => persistAndRestyle(plugin, key, true, restyle),
+		onClear: () => persistAndRestyle(plugin, key, false, restyle),
 	};
 }
 
@@ -539,7 +540,7 @@ function renderColourTable(parent: HTMLElement, plugin: StoryForgePlugin, rows: 
 
 /** Colour catalogue for the interface modal's Colours tab. */
 export function renderInterfaceColoursTab(body: HTMLElement, plugin: StoryForgePlugin): void {
-	const scroll = body.createDiv({ cls: "sf-ui-format-plain-scroll" });
+	const scroll = mountPlainScroll(body);
 	for (const section of catalog()) {
 		const group = new SettingGroup(scroll);
 		group.setHeading(section.heading);

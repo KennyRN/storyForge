@@ -339,10 +339,12 @@ async function renderNovelPlot(
 			// content edge, including the margin-left below, needs to compensate for a border's
 			// width).
 			block.setCssStyles({ boxShadow: `inset 0 0 0 2px ${rowColor.background}` });
-			block.style.setProperty("--sf-plot-card-header-bg", rowColor.background);
-			block.style.setProperty("--sf-plot-card-header-fg", rowColor.text);
+			block.setCssProps({
+				"--sf-plot-card-header-bg": rowColor.background,
+				"--sf-plot-card-header-fg": rowColor.text,
+			});
 			nameEl.setCssStyles({ color: rowColor.text });
-			collapseBtn.style.color = rowColor.text;
+			collapseBtn.setCssStyles({ color: rowColor.text });
 			// The header band reaches back out past the card's own left edge, into the gutter,
 			// until it's centred exactly on the one line that matches this chapter's own plot
 			// thread (matched by key, not hex, so two threads that share a colour still land on
@@ -370,8 +372,8 @@ async function renderNovelPlot(
 		const cardPad = 16;
 		const headerMarginLeft = headerRow.style.marginLeft ? parseFloat(headerRow.style.marginLeft) : -cardPad;
 		const extraBleed = Math.max(0, -cardPad - headerMarginLeft);
-		headerRow.style.paddingLeft = `${cardPad + extraBleed}px`;
-		collapseBtn.style.left = `${1 + extraBleed}px`;
+		headerRow.setCssStyles({ paddingLeft: `${cardPad + extraBleed}px` });
+		collapseBtn.setCssStyles({ left: `${1 + extraBleed}px` });
 
 		const chapterKey = plotChapterCollapseKey(bookFolderName, file.name);
 		const applyCollapsed = (collapsed: boolean) =>
@@ -450,8 +452,8 @@ async function renderNovelPlot(
 		// real plot text loads in (that arrives after this listener is wired, so the initial "resize
 		// to empty" call here would otherwise never see the real content's true height).
 		const resizeToContent = () => {
-			textarea.style.height = "auto";
-			textarea.style.height = `${textarea.scrollHeight}px`;
+			textarea.setCssStyles({ height: "auto" });
+			textarea.setCssStyles({ height: `${textarea.scrollHeight}px` });
 		};
 		textarea.addEventListener("input", resizeToContent);
 		// A one-shot measurement right after loading the plot text (below) isn't always enough on

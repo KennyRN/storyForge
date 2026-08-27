@@ -13,8 +13,8 @@ export function resolveWorkspaceRibbon(leftRibbon: LeftRibbonRuntime | null | un
 	const fromDom = doc.querySelector<HTMLElement>(OBSIDIAN_SELECTORS.workspaceRibbon);
 	const apiHasActions =
 		fromApi &&
-		typeof fromApi.querySelector === "function" &&
-		fromApi.querySelector(OBSIDIAN_SELECTORS.ribbonAction);
+		typeof fromApi.find === "function" &&
+		fromApi.find(OBSIDIAN_SELECTORS.ribbonAction);
 	if (apiHasActions) return fromApi;
 	if (fromDom) return fromDom;
 	return fromApi;

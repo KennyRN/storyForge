@@ -254,6 +254,7 @@ function renderTreeChildren(
 				// Only draw the guide line when there's something under it — an empty folder just
 				// shows its (expanded) chevron with nothing hanging off it.
 				if (item.children.length > 0) {
+					folderEl.addClass("sf-codex-folder--with-indicator");
 					childrenEl.createDiv({ cls: "sf-codex-folder-indicator" });
 				}
 				renderTreeChildren(

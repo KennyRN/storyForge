@@ -104,7 +104,7 @@ export class StorytellingView extends ItemView {
 		// Focusing this sidebar is not a file navigation. getActiveFile() often still reports the
 		// last markdown file (or a restored non-chapter), and treating that as a change would wipe
 		// the persisted chapter before restoreStorytellingCenterEditor() can open it.
-		if (this.app.workspace.activeLeaf === this.leaf) {
+		if (this.app.workspace.getActiveViewOfType(StorytellingView) === this) {
 			this.render();
 			return;
 		}
@@ -149,7 +149,7 @@ export class StorytellingView extends ItemView {
 		const continuousReadLeaf = this.currentBookFolderName ? this.findContinuousReadLeaf(this.currentBookFolderName) : null;
 		const continuousActiveFilename = continuousReadLeaf ? (continuousReadLeaf.view as ContinuousReadView).getCurrentFilename() : null;
 
-		const topEl = container.createDiv({ cls: "sf-top-panel" });
+		const topEl = container.createDiv({ cls: "sf-top-panel sf-top-panel--above-codex" });
 		renderTopPanel(this.app, topEl, {
 			mode,
 			hideSeriesPane: this.plugin.getSettings().hideSeriesPane,

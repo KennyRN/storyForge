@@ -30,7 +30,7 @@ export function parseEntries(text: string): ParseEntriesResult {
 	const errors: string[] = [];
 	const lines = text.split(/\r?\n/);
 	for (let i = 0; i < lines.length; i++) {
-		const line = lines[i]!.trim();
+		const line = lines[i].trim();
 		if (line === "") continue;
 		try {
 			const parsed: unknown = JSON.parse(line);

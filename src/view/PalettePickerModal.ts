@@ -41,9 +41,8 @@ export function cssColorToHex(value: string): string | null {
 		const [r, g, b] = trimmed.slice(1);
 		return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
 	}
-	const probe = document.createElement("span");
-	document.body.appendChild(probe);
-	probe.style.color = trimmed;
+	const probe = document.body.createSpan();
+	probe.setCssStyles({ color: trimmed });
 	const computed = getComputedStyle(probe).color;
 	probe.remove();
 	const match = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/.exec(computed);
