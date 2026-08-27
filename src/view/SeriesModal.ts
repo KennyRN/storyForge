@@ -6,10 +6,15 @@ import { makeReorderable, type DragZone } from "./dragReorder";
 import { makeAccessibleActivatable } from "./a11y";
 import {
 	ICON_BOOK_PLUS,
+	ICON_BOOKMARK_DUOTONE,
+	ICON_TITLEFORGE,
+	ICON_DOCUMENT_PAGE_BREAK,
 	ICON_ELEMENT2_FILLED,
 	ICON_EYE_DUOTONE,
 	ICON_FLOPPY_DUOTONE,
+	ICON_PLOT_THREADS,
 	ICON_SETTINGS_ALT,
+	ICON_TAG_DUOTONE,
 	ICON_TEXT_INPUT_DUOTONE,
 } from "../icons";
 import {
@@ -24,12 +29,13 @@ import {
 } from "../colorPalettes";
 import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
 import { TextStyleModal } from "./TextStyleModal";
-import { UiFormattingModal } from "./UiFormattingModal";
 import { HideUiModal } from "./HideUiModal";
-import { renderCyclingGuideCard } from "./styleModalHelpers";
+import { CyclingGuideModal } from "./CyclingGuideModal";
+import { ConvertToSeriesModal } from "./ConvertToSeriesModal";
 import { ProtectionsController } from "./protectionsController";
 import { formatCompanionState } from "../formatCompanionActive";
 import { TagRegistryModal } from "./TagRegistryModal";
+import { PlotThreadRegistryModal } from "./PlotThreadRegistryModal";
 import { TitleForgeSettingsModal } from "../titleforge/view/TitleForgeSettingsModal";
 import { NUMBERING_STYLE_OPTIONS, type NumberingStyle } from "../numberingStyle";
 import { refreshTabTitles } from "../tabTitles";
@@ -148,9 +154,9 @@ async function handleReorder(app: App, newOrder: string[], onChange: () => void,
 type SettingsTabId = "typesAndTags" | "general" | "formatting" | "obsidianElements" | "importExport" | "backup";
 
 const SETTINGS_TABS: { id: SettingsTabId; label: string }[] = [
-	{ id: "typesAndTags", label: "types, tags, & titles" },
+	{ id: "typesAndTags", label: "types, tags, & threads" },
 	{ id: "general", label: "general" },
-	{ id: "formatting", label: "formatting" },
+	{ id: "formatting", label: "formatting and interface" },
 	{ id: "obsidianElements", label: "obsidian elements" },
 	{ id: "importExport", label: "import & export settings" },
 	{ id: "backup", label: "backup" },
@@ -163,9 +169,9 @@ const SETTINGS_TABS: { id: SettingsTabId; label: string }[] = [
  * In its place this is a tabbed reorganisation of every top-level row from both
  * StoryForgeSettingsTab and FormatForgeSettingsTab. Rows that open a sub-modal in the original
  * settings tabs still open those same modals; formatForge's own rows (under the "formatting" tab)
- * open formatForge's real modals directly via the openInterfaceModal/openFormattingModal companion
- * hooks (see formattingApi.ts, main.ts's openFormatForgeInterfaceModal/openFormatForgeFormattingModal)
- * rather than Obsidian's Settings window.
+ * open formatForge's real modals directly via the openFormattingModal companion hook
+ * (see formattingApi.ts, main.ts's openFormatForgeFormattingModal) rather than Obsidian's
+ * Settings window. Interface chrome always opens storyForge's own modal.
  */
 export class SeriesModal extends Modal {
 	private activeTab: SettingsTabId = "typesAndTags";
@@ -241,32 +247,53 @@ export class SeriesModal extends Modal {
 		}
 	}
 
-	/** Codex/tag management plus titleForge — the title & series generator. */
+	/** Codex types, chapter/novel tags, plot threads, and cycling guide — each row its own
+	 * boundary box with a hover icon (no Open buttons, no group headings). titleForge lives on
+	 * the import & export tab now — see renderImportExportTab(). */
 	private renderTypesAndTagsTab(contentEl: HTMLElement): void {
 		const plugin = this.plugin;
 
-		new Setting(contentEl)
-			.setName("Tags & Codex types")
-			.setDesc("Manage Codex entry types, chapter tags, novel tags, and the icons they draw from.")
-			.addButton((btn) =>
-				btn.setButtonText("Open").onClick(() => new TagRegistryModal(this.app, () => this.render()).open()),
+		const typesGroup = new SettingGroup(contentEl);
+		typesGroup.addSetting((setting) => {
+			setting.setName("codex types").setDesc("manage codex types");
+			this.renderHoverIcon(setting, ICON_TAG_DUOTONE, "Open Codex types", () =>
+				new TagRegistryModal(this.app, () => this.render(), "codexTypes").open(),
 			);
+		});
 
-		new Setting(contentEl)
-			.setName("titleForge")
-			.setDesc("Title & series generator settings — nine traditions, hand-editable word lists.")
-			.addButton((btn) =>
-				btn.setButtonText("Open").onClick(() => new TitleForgeSettingsModal(this.app, plugin.titleForge).open()),
+		const tagsGroup = new SettingGroup(contentEl);
+		tagsGroup.addSetting((setting) => {
+			setting.setName("chapter and novel tags").setDesc("manage chapter and novel tags");
+			this.renderHoverIcon(setting, ICON_BOOKMARK_DUOTONE, "Open chapter and novel tags", () =>
+				new TagRegistryModal(this.app, () => this.render(), "tags").open(),
 			);
+		});
+
+		const plotThreadsGroup = new SettingGroup(contentEl);
+		plotThreadsGroup.addSetting((setting) => {
+			setting.setName("plot threads").setDesc("named plot threads and their identifying colour");
+			this.renderHoverIcon(setting, ICON_PLOT_THREADS, "Plot threads", () =>
+				new PlotThreadRegistryModal(this.app, plugin, () => {
+					this.render();
+					plugin.refreshStoryForgeViews();
+					plugin.refreshNovelOverviewView();
+				}).open(),
+			);
+		});
+
+		const cyclingGuideGroup = new SettingGroup(contentEl);
+		cyclingGuideGroup.addSetting((setting) => {
+			setting.setName("cycling guide").setDesc("draws a floating guideline");
+			this.renderHoverIcon(setting, ICON_DOCUMENT_PAGE_BREAK, "Open cycling guide", () =>
+				new CyclingGuideModal(this.app, plugin).open(),
+			);
+		});
 	}
 
 	/**
-	 * Everything that doesn't belong to types/tags/titles, formatting, or Obsidian's own chrome —
-	 * plus the Themes/import-export box formerly behind the "Protections" button (ProtectionsModal),
-	 * now rendered inline via the shared ProtectionsController, only when formatForge isn't the live
-	 * companion (formatForge owns formatting themes while it's connected). The Backup box (also
-	 * formerly on "Protections") has its own tab now — see renderBackupTab(). Series/chapter
-	 * numbering style (see ../numberingStyle.ts) sits in its own boundary box at the top.
+	 * Everything that doesn't belong to types/tags/titles, formatting, or Obsidian's own chrome.
+	 * Series/chapter numbering style (see ../numberingStyle.ts) sits in its own boundary box at
+	 * the top. Themes/save-or-share live on the import & export tab.
 	 */
 	private renderGeneralTab(contentEl: HTMLElement): void {
 		const plugin = this.plugin;
@@ -302,7 +329,47 @@ export class SeriesModal extends Modal {
 			);
 		});
 
-		renderCyclingGuideCard(this.app, plugin, contentEl, settings, true);
+		const hideSeriesGroup = new SettingGroup(contentEl);
+		hideSeriesGroup.addSetting((setting) => {
+			setting
+				.setName("hide series pane")
+				.setDesc("hides the series header and locks storyForge to book view — for standalone/non-series projects. your series data isn't deleted; toggle this off anytime to bring it back")
+				.addToggle((toggle) =>
+					toggle.setValue(settings.hideSeriesPane).onChange((value) => {
+						void plugin.updateSetting("hideSeriesPane", value).then(() => {
+							plugin.refreshStoryForgeViews();
+							this.render();
+						});
+					}),
+				);
+		});
+		if (settings.hideSeriesPane) {
+			hideSeriesGroup.addSetting((setting) => {
+				setting
+					.setName("convert to series")
+					.setDesc("turn this standalone book into the first book of a series — lets you add more books to it later")
+					.addButton((button) =>
+						button
+							.setButtonText("convert to series")
+							.setCta()
+							.onClick(() => new ConvertToSeriesModal(this.app, plugin, () => this.render()).open()),
+					);
+			});
+		}
+
+		const highlightGroup = new SettingGroup(contentEl);
+		highlightGroup.addSetting((setting) => {
+			setting
+				.setName("highlight active chapter/item")
+				.setDesc("highlights the currently selected chapter, or item, in the storyLibrary panel")
+				.addToggle((toggle) =>
+					toggle
+						.setValue(settings.highlightActiveChapter)
+						.onChange((value) =>
+							void plugin.updateSetting("highlightActiveChapter", value).then(() => plugin.refreshStoryForgeViews()),
+						),
+				);
+		});
 
 		const nameSuggestionsGroup = new SettingGroup(contentEl);
 		nameSuggestionsGroup.setHeading("context panel");
@@ -316,17 +383,6 @@ export class SeriesModal extends Modal {
 						.onChange((value) => void plugin.updateSetting("recommendIncludeUnknownNames", value)),
 				);
 		});
-
-		const companionState = formatCompanionState(
-			plugin.getFormatCompanion(),
-			plugin.api?.formatting?.isCompanionActive() === true,
-			this.app,
-		);
-
-		if (companionState !== "connected") {
-			const themesGroup = new SettingGroup(contentEl);
-			this.protectionsController.renderThemesSection(themesGroup.listEl, companionState);
-		}
 	}
 
 	/**
@@ -423,34 +479,32 @@ export class SeriesModal extends Modal {
 
 		const stylingGroup = new SettingGroup(contentEl);
 		stylingGroup.addSetting((setting) => {
-			setting.setName("text styling").setDesc("editor body text and heading font and colour options");
-			this.renderHoverIcon(setting, ICON_TEXT_INPUT_DUOTONE, "Open text styling", () =>
+			setting.setName("text formatting").setDesc("editor body text and heading font and colour options");
+			this.renderHoverIcon(setting, ICON_TEXT_INPUT_DUOTONE, "Open text formatting", () =>
 				companionActive ? plugin.openFormatForgeTextStyleModal() : new TextStyleModal(this.app, plugin).open(),
 			);
 		});
 		stylingGroup.addSetting((setting) => {
 			setting.setName("storyforge interface").setDesc("interface and interface text colour, size, and font options");
 			this.renderHoverIcon(setting, ICON_ELEMENT2_FILLED, "Open storyForge interface", () =>
-				companionActive ? plugin.openFormatForgeInterfaceModal() : new UiFormattingModal(this.app, plugin).open(),
+				plugin.openStoryForgeInterface(),
 			);
 		});
 	}
 
 	/**
-	 * Swatch preview of the currently selected palette. The panel's own border (4px, "centred on
-	 * line" — i.e. a plain CSS border, which is inherently centred on the box edge) is the resolved
-	 * foreground colour; the panel's background is the resolved background colour. Every other
-	 * colour in the palette gets its own square patch inside the panel, including the foreground
-	 * colour (given its own patch in addition to being used for the border) — the background colour
-	 * is the only one that doesn't, since it's already the panel's own fill.
+	 * Swatch preview of the currently selected palette. The panel's background is the resolved
+	 * background colour. Every other colour in the palette gets its own square patch inside the
+	 * panel, including the foreground colour — the background colour is the only one that doesn't,
+	 * since it's already the panel's own fill.
 	 */
 	private renderPaletteSwatchPreview(container: HTMLElement, colors: PaletteColor[], appearance: PaletteMode): void {
 		const resolved = resolveForegroundBackground(colors, appearance);
 		if (!resolved) return;
-		const { foreground, background } = resolved;
+		const { background } = resolved;
 
 		const panel = container.createDiv({ cls: "sf-palette-swatch-panel" });
-		panel.setCssStyles({ borderColor: foreground.hex, backgroundColor: background.hex });
+		panel.setCssStyles({ backgroundColor: background.hex });
 
 		const backgroundIndex = colors.indexOf(background);
 		colors.forEach((color, i) => {
@@ -484,9 +538,8 @@ export class SeriesModal extends Modal {
 	}
 
 	/** Obsidian's own chrome (settings-window icon, hiding Obsidian UI, tools panel) plus a second
-	 * box of storyForge's panel-reopen shortcuts. Every row here already completes its action or
-	 * opens its modal directly; none of these ever go through Obsidian's own Settings window
-	 * except the substitute cog on its own line below, which opens it deliberately. */
+	 * box of storyForge's panel-reopen shortcuts. The substitute settings-window row lives on the
+	 * hide-or-show card and only appears while the native settings icon is hidden. */
 	private renderObsidianElementsTab(contentEl: HTMLElement): void {
 		const plugin = this.plugin;
 		const settings = plugin.getSettings();
@@ -498,6 +551,14 @@ export class SeriesModal extends Modal {
 				new HideUiModal(this.app, plugin).open(),
 			);
 		});
+		if (settings.hideObsidianSettingsIcon) {
+			hideUiGroup.addSetting((setting) => {
+				setting.setName("access obsidian's setting window");
+				this.renderHoverIcon(setting, ICON_SETTINGS_ALT, "Open Obsidian's settings window", () =>
+					plugin.openObsidianSettings(),
+				);
+			});
+		}
 
 		const obsidianSettingsGroup = new SettingGroup(contentEl);
 
@@ -511,19 +572,6 @@ export class SeriesModal extends Modal {
 					}),
 				);
 		});
-
-		// Substitute way in once the native icon above is hidden — only shown while it's hidden,
-		// since otherwise the native icon is right there already. A plain hover-highlight icon
-		// (matching .sf-modal-add-book's treatment elsewhere in this file) rather than a button —
-		// addExtraButton()/addButton() both read as buttons here, which isn't the affordance wanted.
-		if (settings.hideObsidianSettingsIcon) {
-			obsidianSettingsGroup.addSetting((setting) => {
-				setting.setName("access obsidian's setting window");
-				this.renderHoverIcon(setting, ICON_SETTINGS_ALT, "Open Obsidian's settings window", () =>
-					plugin.openObsidianSettings(),
-				);
-			});
-		}
 
 		obsidianSettingsGroup.addSetting((setting) => {
 			setting
@@ -579,13 +627,20 @@ export class SeriesModal extends Modal {
 		this.protectionsController.renderWelcomeNoteSection(contentEl);
 	}
 
-	/** "Formatting themes" — moved out of the formatting tab so it lives alongside the rest of
-	 * storyForge's own import/export surfaces. Same install-nudge fallback as before when
-	 * formatForge isn't the live companion (theme export/import is a formatForge-specific concept
-	 * with no local storyForge equivalent). */
+	/** titleForge plus formatForge themes and, when formatForge isn't connected, the local
+	 * save-or-share settings export. Theme export/import is a formatForge-specific concept with
+	 * no local storyForge equivalent, so the connected path opens formatForge's modal. */
 	private renderImportExportTab(contentEl: HTMLElement): void {
 		const plugin = this.plugin;
 		const companionActive = plugin.isFormatCompanionActive();
+
+		const titleForgeGroup = new SettingGroup(contentEl);
+		titleForgeGroup.addSetting((setting) => {
+			setting.setName("titleForge").setDesc("series and title generator setting with hand-editable word lists");
+			this.renderHoverIcon(setting, ICON_TITLEFORGE, "Open titleForge", () =>
+				new TitleForgeSettingsModal(this.app, plugin.titleForge).open(),
+			);
+		});
 
 		if (companionActive) {
 			const themesGroup = new SettingGroup(contentEl);
@@ -596,9 +651,13 @@ export class SeriesModal extends Modal {
 				);
 			});
 		} else {
-			new Setting(contentEl)
-				.setName("formatting themes (formatforge)")
-				.setDesc("install and enable formatforge to save, preview, and apply named themes, or share formatting as json");
+			const companionState = formatCompanionState(
+				plugin.getFormatCompanion(),
+				plugin.api?.formatting?.isCompanionActive() === true,
+				this.app,
+			);
+			const themesGroup = new SettingGroup(contentEl);
+			this.protectionsController.renderThemesSection(themesGroup.listEl, companionState);
 		}
 	}
 

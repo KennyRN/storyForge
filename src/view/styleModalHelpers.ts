@@ -15,6 +15,26 @@ export interface ColorSwatchThemeDefaultOption {
 	onSelect: () => void | Promise<void>;
 }
 
+/** A swatch button/picker with this wired in gets a "Muted" choice above the palette colours. */
+export interface ColorSwatchMutedOption {
+	isActive: boolean | (() => boolean);
+	onSelect: () => void | Promise<void>;
+	onClear: () => void | Promise<void>;
+}
+
+/** A swatch button/picker with this wired in gets a labelled choice at the top of the palette. */
+export interface ColorSwatchLeadingOption {
+	isActive: boolean | (() => boolean);
+	label: string;
+	swatchHex: string;
+	onSelect: () => void | Promise<void>;
+	onClear: () => void | Promise<void>;
+}
+
+function flagIsActive(value: boolean | (() => boolean) | undefined): boolean {
+	return typeof value === "function" ? value() : !!value;
+}
+
 export function applyColorPick(hex: string, paint: (hex: string | null) => void, onPick: (hex: string) => void): void {
 	paint(hex);
 	onPick(hex);
@@ -26,20 +46,50 @@ export function openColorSwatchPicker(
 	paint: (hex: string | null) => void,
 	onPick: (hex: string) => void,
 	themeDefault?: ColorSwatchThemeDefaultOption,
+	muted?: ColorSwatchMutedOption,
+	leading?: ColorSwatchLeadingOption,
 ): void {
 	const s = plugin.getSettings();
-	void import("./PalettePickerModal").then(({ PalettePickerModal }) => {
+	void import("./PalettePickerModal").then(({ PalettePickerModal, resolveThemeMutedColor }) => {
 		new PalettePickerModal(
 			app,
 			s.colorPaletteName,
 			s.colorPaletteVariant,
 			s.customPaletteColors,
-			(hex) => applyColorPick(hex, paint, onPick),
+			(hex) => {
+				void (async () => {
+					await leading?.onClear();
+					await muted?.onClear();
+					applyColorPick(hex, paint, onPick);
+				})();
+			},
 			themeDefault && {
 				isActive: themeDefault.isActive,
 				onSelect: () => {
 					paint(null);
 					return themeDefault.onSelect();
+				},
+			},
+			muted && {
+				isActive: flagIsActive(muted.isActive),
+				onSelect: () => {
+					void (async () => {
+						await leading?.onClear();
+						paint(resolveThemeMutedColor());
+						await muted.onSelect();
+					})();
+				},
+			},
+			leading && {
+				isActive: flagIsActive(leading.isActive),
+				label: leading.label,
+				swatchHex: leading.swatchHex,
+				onSelect: () => {
+					void (async () => {
+						await muted?.onClear();
+						paint(leading.swatchHex);
+						await leading.onSelect();
+					})();
 				},
 			},
 		).open();
@@ -48,9 +98,10 @@ export function openColorSwatchPicker(
 
 /**
  * Binds a colour swatch button to open the palette picker on click. When `themeDefault` is
- * passed, the picker's list gets a "Theme default" entry after every real colour (replacing a
- * separate "Theme default" toggle next to the swatch), and the button itself paints a dashed
- * placeholder instead of a hex while that option is active.
+ * passed, the picker's list gets a "Theme default" entry after every real colour. When `muted`
+ * is passed, the picker's list gets a "Muted" entry above the palette colours (replacing a
+ * separate muted toggle), and the button paints the live muted colour while that option is active.
+ * When `leading` is passed, that labelled colour sits at the top of the picker, separated by a gap.
  */
 export function bindColorSwatchButton(
 	app: App,
@@ -59,6 +110,8 @@ export function bindColorSwatchButton(
 	initialHex: string,
 	onPick: (hex: string) => void,
 	themeDefault?: ColorSwatchThemeDefaultOption,
+	muted?: ColorSwatchMutedOption,
+	leading?: ColorSwatchLeadingOption,
 ): void {
 	buttonEl.addClass("sf-color-swatch-btn");
 	buttonEl.setAttr("aria-label", "Choose colour");
@@ -66,8 +119,16 @@ export function bindColorSwatchButton(
 		buttonEl.toggleClass("sf-color-swatch-btn--theme-default", hex === null);
 		buttonEl.setCssStyles({ backgroundColor: hex ?? "" });
 	};
-	paint(themeDefault?.isActive ? null : initialHex);
-	buttonEl.addEventListener("click", () => openColorSwatchPicker(app, plugin, paint, onPick, themeDefault));
+	if (flagIsActive(leading?.isActive)) {
+		paint(leading!.swatchHex);
+	} else if (flagIsActive(muted?.isActive)) {
+		void import("./PalettePickerModal").then(({ resolveThemeMutedColor }) => {
+			paint(resolveThemeMutedColor());
+		});
+	} else {
+		paint(themeDefault?.isActive ? null : initialHex);
+	}
+	buttonEl.addEventListener("click", () => openColorSwatchPicker(app, plugin, paint, onPick, themeDefault, muted, leading));
 }
 
 export function applyExclusiveToggle(
@@ -138,8 +199,8 @@ export function persistAndRestyle<K extends keyof StoryForgePluginSettings>(
 	key: K,
 	value: StoryForgePluginSettings[K],
 	restyle: () => void,
-): void {
-	void plugin.updateSetting(key, value).then(() => restyle());
+): Promise<void> {
+	return plugin.updateSetting(key, value).then(() => restyle());
 }
 
 const FONT_WEIGHT_OPTIONS: [string, string][] = [
@@ -189,17 +250,37 @@ function fillFontWeightOptions(dropdown: DropdownComponent, value: string, optio
 }
 
 /**
- * "Font" row (pick-font button delegating to formatForge's own FontPickerModal via the companion
- * bridge) + a weight dropdown clamped to that font's own weightMin–weightMax, hidden while at
- * theme default. `label` becomes this card's heading, so a field keeps its own identity when
- * several of these stack in one tab.
+ * "Font" row: pick-font button (delegating to formatForge's FontPickerModal via the companion
+ * bridge) and a weight dropdown on the same row, clamped to that font's own weightMin–weightMax.
+ * The weight control is hidden while at theme default. `label` becomes this card's heading when
+ * non-empty, so a field keeps its own identity when several of these stack in one tab. Pass `""`
+ * to omit the heading. Pass `group` to append into an existing SettingGroup instead of creating
+ * a new card.
+ *
+ * When `colour` is passed, the palette swatch sits on the same row and the row is labelled
+ * "Text". If the companion is absent, only that swatch is shown, labelled "Text colour".
  *
  * No separate "Override theme's default font" toggle — current formatForge exposes a "Theme
  * default" row directly inside its own font picker (see `OpenFontPickerOptions.isThemeDefault`/
  * `onPickThemeDefault`); the on/off control lives there now instead of duplicating it here.
  * Silently renders nothing when the companion is absent or predates `listFonts`/`openFontPicker`
- * — see FormatCompanionRegistration's doc comment.
+ * — see FormatCompanionRegistration's doc comment — unless `colour` is passed.
  */
+export interface FontCardColourOptions {
+	hex: string;
+	onPick: (hex: string) => void;
+	muted?: ColorSwatchMutedOption;
+	themeDefault?: ColorSwatchThemeDefaultOption;
+	leading?: ColorSwatchLeadingOption;
+}
+
+export interface FontCardExtras {
+	rowName?: string;
+	onSettingEl?: (settingEl: HTMLElement) => void;
+	/** Render the setting into this node instead of a SettingGroup (e.g. half of a split row). */
+	parent?: HTMLElement;
+}
+
 export function renderCustomFontCard(
 	body: HTMLElement,
 	plugin: StoryForgePlugin,
@@ -209,11 +290,56 @@ export function renderCustomFontCard(
 	fontWeightKey: keyof StoryForgePluginSettings,
 	restyle: () => void,
 	previewFontSizeEm: number | (() => number) = 1,
-): void {
+	group?: SettingGroup,
+	colour?: FontCardColourOptions,
+	extras?: FontCardExtras,
+): { colorHideEl?: HTMLElement } {
 	const companion = plugin.getFormatCompanion();
-	if (!companion?.listFonts || !companion.openFontPicker) return;
-	const listFonts = companion.listFonts;
-	const openFontPicker = companion.openFontPicker;
+	const hasFont = !!(companion?.listFonts && companion.openFontPicker);
+	if (!hasFont && !colour && !extras?.onSettingEl && !extras?.parent) return {};
+
+	const card = extras?.parent ? undefined : (group ?? new SettingGroup(body));
+	if (label && card) card.setHeading(label);
+	const rowName = extras?.rowName ?? (colour ? "Text" : "Font");
+	const addSetting = (configure: (setting: Setting) => void) => {
+		if (extras?.parent) configure(new Setting(extras.parent));
+		else card!.addSetting(configure);
+	};
+
+	const bindColour = (setting: Setting): HTMLElement => {
+		let swatchEl!: HTMLElement;
+		setting.addButton((button) => {
+			swatchEl = button.buttonEl;
+			bindColorSwatchButton(
+				plugin.app,
+				plugin,
+				button.buttonEl,
+				colour!.hex,
+				colour!.onPick,
+				colour!.themeDefault,
+				colour!.muted,
+				colour!.leading,
+			);
+			button.buttonEl.setAttr("aria-label", "Text colour");
+		});
+		return swatchEl;
+	};
+
+	if (!hasFont) {
+		let colorHideEl: HTMLElement | undefined;
+		addSetting((setting) => {
+			setting.settingEl.addClass("sf-font-row");
+			setting.setName(colour ? "Text colour" : rowName);
+			if (colour) {
+				colorHideEl = setting.settingEl;
+				bindColour(setting);
+			}
+			extras?.onSettingEl?.(setting.settingEl);
+		});
+		return { colorHideEl };
+	}
+	const listFonts = companion!.listFonts!;
+	const openFontPicker = companion!.openFontPicker!;
 
 	let isOverriding = plugin.getSettings()[overrideFontKey] as boolean;
 	const currentFont = (): FontCatalogEntry | undefined => {
@@ -221,13 +347,9 @@ export function renderCustomFontCard(
 		return listFonts().find((f) => f.id === id);
 	};
 
-	const card = new SettingGroup(body);
-	card.setHeading(label);
-
 	let pickButtonEl!: HTMLElement;
 	const syncPickLabel = () => pickButtonEl.setText(isOverriding ? (currentFont()?.label ?? "Pick font") : "Theme default");
 
-	let fontWeightSetting!: Setting;
 	let weightDropdown!: DropdownComponent;
 	const syncWeightDropdown = (): string => {
 		const font = currentFont();
@@ -237,7 +359,7 @@ export function renderCustomFontCard(
 		fillFontWeightOptions(weightDropdown, clamped, options);
 		return clamped;
 	};
-	const applyVisibility = () => fontWeightSetting.settingEl.toggleClass("sf-settings-hidden", !isOverriding);
+	const applyVisibility = () => weightDropdown.selectEl.toggleClass("sf-settings-hidden", !isOverriding);
 
 	const applySelectedFont = async (id: string) => {
 		isOverriding = true;
@@ -259,8 +381,10 @@ export function renderCustomFontCard(
 		restyle();
 	};
 
-	card.addSetting((setting) => {
-		setting.setName("Font");
+	let colorHideEl: HTMLElement | undefined;
+	addSetting((setting) => {
+		setting.settingEl.addClass("sf-font-row");
+		setting.setName(rowName);
 		setting.addButton((button) => {
 			pickButtonEl = button.buttonEl;
 			syncPickLabel();
@@ -274,17 +398,18 @@ export function renderCustomFontCard(
 				});
 			});
 		});
-	});
-	card.addSetting((setting) => {
-		fontWeightSetting = setting;
-		setting.setName("Font weight");
 		setting.addDropdown((dropdown) => {
 			weightDropdown = dropdown;
+			dropdown.selectEl.addClass("sf-font-weight-dropdown");
+			dropdown.selectEl.setAttr("aria-label", "Font weight");
 			syncWeightDropdown();
 			dropdown.onChange((value) => void plugin.updateSetting(fontWeightKey, value).then(() => restyle()));
 		});
+		if (colour) colorHideEl = bindColour(setting);
+		extras?.onSettingEl?.(setting.settingEl);
 	});
 	applyVisibility();
+	return { colorHideEl };
 }
 
 export interface StyleModalTab {
@@ -299,25 +424,29 @@ export interface StyleModalTab {
 export function renderTabbedBody(
 	contentEl: HTMLElement,
 	tabs: StyleModalTab[],
-	options?: { onActivate?: (id: string) => void },
+	options?: { onActivate?: (id: string) => void; initialId?: string },
 ): void {
 	const tabBar = contentEl.createDiv({ cls: "sf-text-style-tab-bar" });
 	const tabBodyWrapper = contentEl.createDiv({ cls: "sf-text-style-tab-body-wrapper" });
 
 	const tabBodies: HTMLElement[] = [];
-	let activeTabId = tabs[0].id;
+	const initialId = options?.initialId;
+	let activeTabId = initialId && tabs.some((tab) => tab.id === initialId) ? initialId : tabs[0].id;
 
 	const activate = (id: string) => {
 		activeTabId = id;
 		tabBar.querySelectorAll(".sf-text-style-tab-btn").forEach((btn) => btn.removeClass("is-active"));
+		let activeHostsTabs = false;
 		tabBodies.forEach((body, i) => {
 			const isActive = tabs[i].id === activeTabId;
 			body.toggleClass("sf-settings-hidden", !isActive);
 			if (isActive) {
 				const btn = tabBar.children[i] as HTMLElement | undefined;
 				btn?.addClass("is-active");
+				activeHostsTabs = body.hasClass("is-tab-host");
 			}
 		});
+		tabBodyWrapper.toggleClass("is-tab-host", activeHostsTabs);
 		options?.onActivate?.(id);
 	};
 
@@ -333,10 +462,24 @@ export function renderTabbedBody(
 			bodyEl.addClass("sf-settings-hidden");
 		}
 		tab.render(bodyEl);
+		if (bodyEl.firstElementChild?.hasClass("sf-text-style-tab-bar")) {
+			bodyEl.addClass("is-tab-host");
+		}
 		tabBodies.push(bodyEl);
 	});
 
-	options?.onActivate?.(activeTabId);
+	const empty = tabBodies.map((body) => body.childElementCount === 0);
+	empty.forEach((isEmpty, i) => {
+		if (isEmpty) (tabBar.children[i] as HTMLElement).addClass("sf-settings-hidden");
+	});
+	const activeIndex = tabs.findIndex((tab) => tab.id === activeTabId);
+	if (activeIndex < 0 || empty[activeIndex]) {
+		const fallback = tabs.find((_, i) => !empty[i]);
+		if (fallback) activate(fallback.id);
+		else activate(activeTabId);
+	} else {
+		activate(activeTabId);
+	}
 }
 
 /**
@@ -368,8 +511,8 @@ function mountCyclingGuidePreview(container: HTMLElement): HTMLElement {
 
 /**
  * "Cycling guide" toggle plus its five dependent options (Cycle length, Line colour, Thickness,
- * Flag size, Rounded lines), all in one boundary box. Shared between UiFormattingModal's Editor
- * tab and SeriesModal's general tab — a free function (not a method) since it only ever needs
+ * Flag size, Rounded lines), all in one boundary box. Used by CyclingGuideModal (opened from
+ * SeriesModal's general tab) — a free function (not a method) since it only ever needs
  * app/plugin/settings, matching this file's existing pattern.
  */
 

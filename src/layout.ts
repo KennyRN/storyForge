@@ -33,9 +33,9 @@ export interface LayoutConfig {
 }
 
 /**
- * Maps a layout to its pane composition (hand-off brief §2 table). Series level is pure
- * navigation (no writing metrics, no codex); Novel is also navigation-only (no stats); stats
- * and the codex only appear together in Chapter. The codex is a within-a-novel companion,
+ * Maps a layout to its pane composition (hand-off brief §2 table). Series and Novel are
+ * navigation-only (no writing metrics, no codex). Chapter pairs the novel list with Codex;
+ * stats live on the Storytelling panel, not here. The codex is a within-a-novel companion,
  * so it never pairs with the series list. "codex" is the odd one out: the Codex pane and
  * nothing else — no top pane, no stats, no unplaced section.
  */
@@ -48,6 +48,8 @@ export function layoutConfig(layout: SfLayout): LayoutConfig {
 		case "novelBrowse":
 			return { topPane: "novel", showCodex: false, showStats: false, showUnplaced: true };
 		case "hybrid":
-			return { topPane: "novel", showCodex: true, showStats: true, showUnplaced: true };
+			return { topPane: "novel", showCodex: true, showStats: false, showUnplaced: true };
+		default:
+			return { topPane: "novel", showCodex: true, showStats: false, showUnplaced: true };
 	}
 }

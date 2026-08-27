@@ -17,17 +17,20 @@ import { renderTabbedBody } from "./styleModalHelpers";
 import { ICON_MINUS_SQUARE, ICON_PLUS_SQUARE, ICON_TAG } from "../icons";
 import { confirmDelete } from "./confirmDeleteModal";
 
-const TABS: { id: TagListKind; label: string; addPlaceholder: string }[] = [
-	{ id: "codexTypes", label: "Codex types", addPlaceholder: 'New type name (e.g. "Faction")' },
+export type TagRegistryScope = "codexTypes" | "tags";
+
+const TAG_TABS: { id: TagListKind; label: string; addPlaceholder: string }[] = [
 	{ id: "chapterTags", label: "Chapter tags", addPlaceholder: 'New chapter tag (e.g. "2nd pass")' },
 	{ id: "novelTags", label: "Novel tags", addPlaceholder: 'New novel tag (e.g. "Needs cover")' },
 ];
 
-/** Manage the three user-editable lists (Codex types, chapter tags, novel tags): add, rename, re-icon, reorder, delete. Codex types additionally nests — see renderCodexTypesList. */
+/** Manage Codex types, or chapter/novel tags, as two separate dialogs: add, rename, re-icon,
+ * reorder, delete. Codex types additionally nests — see renderCodexTypesList. */
 export class TagRegistryModal extends Modal {
 	constructor(
 		app: App,
 		private onChange: () => void,
+		private registryScope: TagRegistryScope,
 	) {
 		super(app);
 	}
@@ -60,15 +63,21 @@ export class TagRegistryModal extends Modal {
 		contentEl.empty();
 		contentEl.addClass("sf-tag-registry-modal");
 
+		if (this.registryScope === "codexTypes") {
+			const scroll = contentEl.createDiv({ cls: "sf-text-style-tab-body-wrapper" });
+			const body = scroll.createDiv({ cls: "sf-text-style-tab-body" });
+			body.createEl("h2", { text: "Codex types" });
+			this.renderCodexTypesList(body, fresh?.list === "codexTypes" ? fresh.entries : undefined);
+			return;
+		}
+
 		renderTabbedBody(
 			contentEl,
-			TABS.map((tab) => ({
+			TAG_TABS.map((tab) => ({
 				id: tab.id,
 				label: tab.label,
 				render: (body: HTMLElement) =>
-					tab.id === "codexTypes"
-						? this.renderCodexTypesList(body, fresh?.list === "codexTypes" ? fresh.entries : undefined)
-						: this.renderList(body, tab.id, tab.addPlaceholder, fresh?.list === tab.id ? fresh.entries : undefined),
+					this.renderList(body, tab.id, tab.addPlaceholder, fresh?.list === tab.id ? fresh.entries : undefined),
 			})),
 		);
 	}

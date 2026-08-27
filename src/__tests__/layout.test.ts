@@ -29,11 +29,11 @@ describe("layoutConfig", () => {
 		});
 	});
 
-	it("Chapter: novel top, codex + stats + unplaced all visible", () => {
+	it("Chapter: novel top, codex + unplaced, no stats", () => {
 		expect(layoutConfig("hybrid")).toEqual({
 			topPane: "novel",
 			showCodex: true,
-			showStats: true,
+			showStats: false,
 			showUnplaced: true,
 		});
 	});
@@ -42,9 +42,9 @@ describe("layoutConfig", () => {
 		expect(layoutConfig("seriesBrowse").showCodex).toBe(false);
 	});
 
-	it("stats are shown only in Chapter", () => {
+	it("stats are never shown in the story library panel", () => {
 		for (const layout of SF_LAYOUTS) {
-			expect(layoutConfig(layout).showStats).toBe(layout === "hybrid");
+			expect(layoutConfig(layout).showStats).toBe(false);
 		}
 	});
 
@@ -52,5 +52,14 @@ describe("layoutConfig", () => {
 		for (const layout of SF_LAYOUTS) {
 			expect(() => layoutConfig(layout)).not.toThrow();
 		}
+	});
+
+	it("falls back to Chapter composition for an unknown persisted layout", () => {
+		expect(layoutConfig("codexFocus" as never)).toEqual({
+			topPane: "novel",
+			showCodex: true,
+			showStats: false,
+			showUnplaced: true,
+		});
 	});
 });

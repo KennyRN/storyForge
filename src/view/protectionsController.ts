@@ -128,7 +128,7 @@ export function promptForName(app: App, heading: string, initialValue: string): 
 /**
  * Backup/protection state + rendering, extracted out of ProtectionsModal so its two sections
  * (Themes/import-export, Backup) can be hosted either by ProtectionsModal's own tabbed modal or
- * rendered inline elsewhere (SeriesModal's general tab). `requestRerender` stands in for what used
+ * rendered inline elsewhere (SeriesModal's import & export tab and backup tab). `requestRerender` stands in for what used
  * to be the modal's own `this.render()` — the host supplies its own "rebuild my content" callback,
  * called after any state change that needs a visual refresh.
  */

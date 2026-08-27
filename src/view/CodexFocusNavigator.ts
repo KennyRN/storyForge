@@ -5,7 +5,7 @@ import { canEnterContinuousMode } from "../continuousMode";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
 import type { NumberingStyle } from "../numberingStyle";
 import { makeAccessibleActivatable } from "./a11y";
-import { renderIndicatorSlot, renderTransportRow } from "./navigatorControls";
+import { renderIndicatorSlot, renderTransportChrome } from "./navigatorControls";
 import { onContinuousMode } from "./continuousEvents";
 import { ICON_ADD_CIRCLE } from "../icons";
 
@@ -54,10 +54,10 @@ export interface CodexFocusNavigatorOptions {
  * these tiles are not drag-reorderable — the visible window is too small and shifts underneath
  * the cursor as the current chapter changes, so dragging never had a stable target here.
  *
- * A fifth control on the transport row (continuous-mode hand-off brief §2) opens the continuous
- * read view in the main editor pane. While that view is open, this sidebar swaps its own window
- * for a read-only live position indicator and turns the transport into scroll-to commands — the
- * manuscript itself never renders here, only the navigation around it.
+ * Transport chevrons sit to the left of the chapter list (double-up, up, down, double-down) and
+ * the continuous-mode toggle sits to the right. While that view is open, this sidebar swaps its
+ * own window for a read-only live position indicator and turns the chevrons into scroll-to
+ * commands — the manuscript itself never renders here, only the navigation around it.
  */
 export function renderCodexFocusNavigator(app: App, container: HTMLElement, options: CodexFocusNavigatorOptions): void {
 	container.empty();
@@ -100,7 +100,11 @@ function renderWindowBody(
 ): void {
 	const win = computeSpineWindow(ordered, options.activeChapterFilename, (file) => file.name);
 
-	const windowEl = wrap.createDiv({ cls: "sf-top-list sf-navigator-window" });
+	const body = wrap.createDiv({ cls: "sf-navigator-body" });
+	const leftCol = body.createDiv({ cls: "sf-navigator-transport-col" });
+	const windowEl = body.createDiv({ cls: "sf-top-list sf-navigator-window" });
+	const rightCol = body.createDiv({ cls: "sf-navigator-transport-col" });
+
 	for (const slot of win.slots) {
 		renderSlot(
 			windowEl,
@@ -117,8 +121,9 @@ function renderWindowBody(
 	const currentSlot = win.slots.find((slot) => slot.isCurrent) ?? null;
 	const currentIndex = currentSlot?.file ? ordered.indexOf(currentSlot.file) : 0;
 
-	renderTransportRow(
-		wrap,
+	renderTransportChrome(
+		leftCol,
+		rightCol,
 		currentIndex,
 		ordered.length - 1,
 		{
@@ -145,11 +150,11 @@ function renderWindowBody(
 
 /**
  * The sidebar's half of continuous mode (continuous-mode hand-off brief §2, corrected): a
- * read-only live position indicator standing in for the window, and a transport row whose four
- * buttons scroll the main-pane read view instead of opening files. Painted immediately from
- * `options.continuousActiveFilename` (a synchronous read of the read view's own state — see
- * StoryForgeView.render()), then kept live via the position-change event for as long as this DOM
- * survives, independent of the sidebar's own re-render cycle.
+ * read-only live position indicator standing in for the window, and transport chevrons beside
+ * it whose four buttons scroll the main-pane read view instead of opening files. Painted
+ * immediately from `options.continuousActiveFilename` (a synchronous read of the read view's
+ * own state — see StoryForgeView.render()), then kept live via the position-change event for as
+ * long as this DOM survives, independent of the sidebar's own re-render cycle.
  */
 function renderContinuousIndicator(
 	app: App,
@@ -159,8 +164,10 @@ function renderContinuousIndicator(
 	titleFor: (file: TFile) => string,
 	options: CodexFocusNavigatorOptions,
 ): void {
-	const indicatorEl = wrap.createDiv({ cls: "sf-top-list sf-navigator-window sf-navigator-indicator" });
-	const transportEl = wrap.createDiv({ cls: "sf-continuous-transport" });
+	const body = wrap.createDiv({ cls: "sf-navigator-body" });
+	const leftCol = body.createDiv({ cls: "sf-navigator-transport-col" });
+	const indicatorEl = body.createDiv({ cls: "sf-top-list sf-navigator-window sf-navigator-indicator" });
+	const rightCol = body.createDiv({ cls: "sf-navigator-transport-col" });
 
 	const paint = (currentFilename: string): void => {
 		indicatorEl.empty();
@@ -171,13 +178,13 @@ function renderContinuousIndicator(
 			);
 		}
 
-		transportEl.empty();
 		const currentIndex = Math.max(
 			0,
 			ordered.findIndex((file) => file.name === currentFilename),
 		);
-		renderTransportRow(
-			transportEl,
+		renderTransportChrome(
+			leftCol,
+			rightCol,
 			currentIndex,
 			ordered.length - 1,
 			{
@@ -240,7 +247,13 @@ function renderSlot(
 	}
 	const { title } = splitTitleSubtitle(titleFor(file));
 	tile.createDiv({ cls: "sf-row-text", text: title });
-	tile.addEventListener("click", () => onOpenChapter(bookFolderName, file.name));
+	// pointerdown, not click: this sidebar isn't always the focused pane (the editor usually is),
+	// and a plain click's first firing is eaten by Obsidian focusing the pane — same as the
+	// transport buttons in navigatorControls.ts.
+	tile.addEventListener("pointerdown", (e) => {
+		if (e.button !== 0) return;
+		onOpenChapter(bookFolderName, file.name);
+	});
 	makeAccessibleActivatable(tile, () => onOpenChapter(bookFolderName, file.name));
 }
 

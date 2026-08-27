@@ -6,7 +6,8 @@
  * - SF-linked keys (UI chrome, palette, editor sizes, guides, scrollbar, …) live in storyForge.
  * - Editor-only typography (colours, fonts, heading dividers, hide H1 links, …) lives in formatForge.
  *
- * When formatForge is registered, storyForge hides its formatting settings UI and defers to it.
+ * When formatForge is registered, storyForge hides editor/palette formatting UI and defers
+ * to it. Interface chrome stays in storyForge's modal; formatForge adds font pickers there.
  */
 
 import type { PaletteColor, PaletteName } from "./colorPalettes";
@@ -59,13 +60,10 @@ export interface FormatCompanionRegistration {
 	pluginId: string;
 	version: number;
 	/** Open formatForge's settings / main formatting UI (the Obsidian Settings window, scrolled to
-	 * formatForge's tab). Prefer `openInterfaceModal`/`openFormattingModal` below when a specific
-	 * modal is wanted directly — this is the catch-all fallback for an older formatForge that
-	 * doesn't register those. */
+	 * formatForge's tab). Prefer `openFormattingModal` below when a specific modal is wanted
+	 * directly — this is the catch-all fallback for an older formatForge that doesn't register
+	 * those. Interface chrome lives in storyForge's own modal (`StoryForgeFormattingApi.openInterfaceModal`). */
 	openSettings?: () => void;
-	/** Open formatForge's storyForge-linked panel-chrome modal (its own UiFormattingModal) directly,
-	 * bypassing the Obsidian Settings window. */
-	openInterfaceModal?: () => void;
 	/** Open formatForge's combined settings modal (Text styling + Formatting themes + Palette)
 	 * directly, bypassing the Obsidian Settings window. */
 	openFormattingModal?: () => void;
@@ -92,6 +90,11 @@ export interface StoryForgeFormattingApi {
 	/** True while a format companion is registered. */
 	isCompanionActive(): boolean;
 	getCompanion(): FormatCompanionRegistration | null;
+	/**
+	 * Open storyForge's interface chrome modal. This is the single interface modal; formatForge
+	 * adds font pickers to it when registered, rather than owning a second copy.
+	 */
+	openInterfaceModal(): void;
 	/**
 	 * Register formatForge (or a future typography sibling). Returns an unregister function.
 	 * Only one companion is active; a new registration replaces the previous.

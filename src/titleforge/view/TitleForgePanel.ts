@@ -1,5 +1,5 @@
 import { Notice, setIcon, setTooltip } from "obsidian";
-import { ICON_ARROW_INSERT, ICON_DICE, ICON_INFO_CIRCLE, ICON_STAR_FILL, ICON_STAR_OUTLINE } from "../../icons.js";
+import { ICON_ARROW_INSERT, ICON_DICE_DUAL, ICON_INFO_CIRCLE, ICON_STAR_FILL, ICON_STAR_OUTLINE } from "../../icons.js";
 import { generateOne, generateSeries } from "../engine/generate.js";
 import { toEntry } from "../engine/history.js";
 import type { GeneratorSpec, HistoryEntry, LabelledOption, SeriesStrategy } from "../engine/types.js";
@@ -417,7 +417,7 @@ export class TitleForgePanel {
 			cls: "titleforge-generate-button",
 			attr: { title: this.effectiveSeriesMode() ? "Generate series" : "Generate title" },
 		});
-		setIcon(generateButton, ICON_DICE);
+		setIcon(generateButton, ICON_DICE_DUAL);
 		generateButton.addEventListener("click", () => void this.handleGenerate());
 	}
 

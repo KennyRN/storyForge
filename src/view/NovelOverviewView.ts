@@ -86,20 +86,9 @@ export class NovelOverviewView extends ItemView {
 			bookFolderName,
 			plugin: this.plugin,
 			emptyText: "Select a novel to see its synopsis and plot.",
-			onOpenChapter: (bookFolderName, filename) => this.selectChapter(bookFolderName, filename),
 			onChanged: () => this.render(),
 			isStale: () => this.closed,
 			layout: "wide",
 		});
-	}
-
-	/** The plot list's chapter-title click: selects that chapter in the storyLibrary panel's own
-	 * Novel pane and Story Context's Chapter tab, but — unlike the old "go to chapter" jump this
-	 * replaced — leaves this page itself in place rather than opening the chapter's real file into
-	 * this leaf. Opening it for real still happens from wherever "select" then "edit" naturally
-	 * continues (the storyLibrary panel's Chapter tab, or the chapter itself elsewhere). */
-	private selectChapter(bookFolderName: string, filename: string): void {
-		this.plugin.focusStoryLibraryOnChapter(bookFolderName, filename);
-		this.plugin.focusRecommendationOnChapter(bookFolderName, filename);
 	}
 }

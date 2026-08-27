@@ -1075,6 +1075,47 @@ export function pickDefaultAccentColor(
 	return pool[hashString(seed) % pool.length];
 }
 
+/** Relative-luminance band treated as an "extreme" (near-black / near-white). Colours outside
+ * this window are skipped when a mid-tone alternative exists, so a default accent stays visible
+ * on both light and dark panel backgrounds. */
+const MID_TONE_EXTREME = 0.12;
+const MID_TONE_TARGET = 0.5;
+
+/**
+ * Picks a palette accent that is neither the resolved fg/bg pair nor already in `usedHexes`,
+ * preferring the colour whose WCAG relative luminance sits closest to the middle of the range.
+ * Extremes (near the palette's own paper or ink) are skipped when anything mid-tone remains.
+ * Falls back to the closest-to-mid colour in the wider pool when every mid-tone is taken, then
+ * to pickDefaultAccentColor's seeded pick if the list is empty of alternatives.
+ */
+export function pickMidToneAccentColor(
+	colors: PaletteColor[],
+	background: PaletteColor,
+	foreground: PaletteColor,
+	usedHexes: readonly string[] = [],
+): PaletteColor | null {
+	if (colors.length === 0) return null;
+	const bg = background.hex.toLowerCase();
+	const fg = foreground.hex.toLowerCase();
+	const used = new Set(usedHexes.map((h) => h.toLowerCase()));
+	const notFgBg = colors.filter((c) => c.hex.toLowerCase() !== bg && c.hex.toLowerCase() !== fg);
+	const pool = notFgBg.length > 0 ? notFgBg : colors;
+	const unused = pool.filter((c) => !used.has(c.hex.toLowerCase()));
+	const candidates = unused.length > 0 ? unused : pool;
+	const midTones = candidates.filter((c) => {
+		const L = relativeLuminance(c.hex);
+		return L >= MID_TONE_EXTREME && L <= 1 - MID_TONE_EXTREME;
+	});
+	const ranked = (midTones.length > 0 ? midTones : candidates)
+		.slice()
+		.sort(
+			(a, b) =>
+				Math.abs(relativeLuminance(a.hex) - MID_TONE_TARGET) -
+				Math.abs(relativeLuminance(b.hex) - MID_TONE_TARGET),
+		);
+	return ranked[0] ?? pickDefaultAccentColor(colors, background, foreground, "plot-thread");
+}
+
 function srgbChannelToLinear(channel255: number): number {
 	const c = channel255 / 255;
 	return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);

@@ -33,8 +33,12 @@ import {
 	readCodexFrontmatter,
 	registerCodexType as registerCodexTypeInternal,
 	setCodexEntryType,
+	uniqueCodexFilename,
 	type CodexTypeOption,
 } from "./codex";
+import { yamlQuotedScalar } from "./yamlQuote";
+import { SF_LAYOUTS } from "./layout";
+import { NUMBERING_STYLE_OPTIONS } from "./numberingStyle";
 import { BACKSTAGE_ROOT, CODEX_ROOT, LIBRARY_ROOT, isCodexNotePath, isLibraryChapterPath } from "./paths";
 import { getBookId } from "./series";
 import type StoryForgePlugin from "./main";
@@ -159,15 +163,6 @@ export interface StoryForgeHostApi {
 	}): () => void;
 }
 
-function uniqueCodexFilename(app: App, baseName: string): string {
-	const safe = baseName.trim().replace(/[/\\?%*:|"<>]/g, "").replace(/\s+/g, " ");
-	const stem = safe.length > 0 ? safe : "New Note";
-	let candidate = `${stem}.md`;
-	if (!app.vault.getAbstractFileByPath(`${CODEX_ROOT}/${candidate}`)) return candidate;
-	let n = 2;
-	while (app.vault.getAbstractFileByPath(`${CODEX_ROOT}/${stem} ${n}.md`)) n++;
-	return `${stem} ${n}.md`;
-}
 
 type ValuePredicate = (value: unknown) => boolean;
 
@@ -244,6 +239,15 @@ const LINKED_SETTING_VALIDATORS: Record<SfLinkedFormattingKey, ValuePredicate> =
 	libraryItemsFontWeight: isOneOf(...FONT_WEIGHTS),
 	libraryItemsColor: isColorString,
 	libraryItemsMuted: isBoolean,
+	storytellingItemsFontSize: isFiniteNumber,
+	storytellingItemsOverrideFont: isBoolean,
+	storytellingItemsFontFamily: isString,
+	storytellingItemsFontWeight: isOneOf(...FONT_WEIGHTS),
+	storytellingItemsColor: isColorString,
+	storytellingItemsMuted: isBoolean,
+	storytellingLinkItemsColorToLibrary: isBoolean,
+	storytellingHighlightColor: isColorString,
+	storytellingHighlightTextColor: isColorString,
 	unplacedHighlightColor: isColorString,
 	unplacedHighlightTextColor: isColorString,
 	codexHighlightColor: isColorString,
@@ -314,7 +318,9 @@ const LINKED_SETTING_VALIDATORS: Record<SfLinkedFormattingKey, ValuePredicate> =
 	recommendTabsFontFamily: isString,
 	recommendTabsFontWeight: isOneOf(...FONT_WEIGHTS),
 	recommendTabsColor: isColorString,
+	recommendTabsMuted: isBoolean,
 	recommendTabsActiveColor: isColorString,
+	recommendFocusModeIconColor: isColorString,
 	recommendChapterTitleFontSize: isFiniteNumber,
 	recommendChapterTitleOverrideFont: isBoolean,
 	recommendChapterTitleFontFamily: isString,
@@ -369,6 +375,22 @@ const LINKED_SETTING_VALIDATORS: Record<SfLinkedFormattingKey, ValuePredicate> =
 	recommendDetailsFontWeight: isOneOf(...FONT_WEIGHTS),
 	recommendDetailsColor: isColorString,
 	recommendDetailsMuted: isBoolean,
+	recommendUnknownColor: isColorString,
+	recommendUnknownMuted: isBoolean,
+	recommendUnknownHeaderColor: isColorString,
+	recommendUnknownHeaderMuted: isBoolean,
+	recommendCaptureColor: isColorString,
+	recommendCaptureMuted: isBoolean,
+	recommendCaptureHeaderColor: isColorString,
+	recommendCaptureHeaderMuted: isBoolean,
+	recommendHoldingColor: isColorString,
+	recommendHoldingMuted: isBoolean,
+	recommendHoldingHeaderColor: isColorString,
+	recommendHoldingHeaderMuted: isBoolean,
+	recommendResolvedColor: isColorString,
+	recommendResolvedMuted: isBoolean,
+	recommendResolvedHeaderColor: isColorString,
+	recommendResolvedHeaderMuted: isBoolean,
 	recommendMetaLabelFontSize: isFiniteNumber,
 	recommendMetaLabelOverrideFont: isBoolean,
 	recommendMetaLabelFontFamily: isString,
@@ -439,6 +461,15 @@ export const LINKED_FORMATTING_KEYS = [
 	"libraryItemsFontWeight",
 	"libraryItemsColor",
 	"libraryItemsMuted",
+	"storytellingItemsFontSize",
+	"storytellingItemsOverrideFont",
+	"storytellingItemsFontFamily",
+	"storytellingItemsFontWeight",
+	"storytellingItemsColor",
+	"storytellingItemsMuted",
+	"storytellingLinkItemsColorToLibrary",
+	"storytellingHighlightColor",
+	"storytellingHighlightTextColor",
 	"unplacedHighlightColor",
 	"unplacedHighlightTextColor",
 	"codexHighlightColor",
@@ -509,7 +540,9 @@ export const LINKED_FORMATTING_KEYS = [
 	"recommendTabsFontFamily",
 	"recommendTabsFontWeight",
 	"recommendTabsColor",
+	"recommendTabsMuted",
 	"recommendTabsActiveColor",
+	"recommendFocusModeIconColor",
 	"recommendChapterTitleFontSize",
 	"recommendChapterTitleOverrideFont",
 	"recommendChapterTitleFontFamily",
@@ -564,6 +597,22 @@ export const LINKED_FORMATTING_KEYS = [
 	"recommendDetailsFontWeight",
 	"recommendDetailsColor",
 	"recommendDetailsMuted",
+	"recommendUnknownColor",
+	"recommendUnknownMuted",
+	"recommendUnknownHeaderColor",
+	"recommendUnknownHeaderMuted",
+	"recommendCaptureColor",
+	"recommendCaptureMuted",
+	"recommendCaptureHeaderColor",
+	"recommendCaptureHeaderMuted",
+	"recommendHoldingColor",
+	"recommendHoldingMuted",
+	"recommendHoldingHeaderColor",
+	"recommendHoldingHeaderMuted",
+	"recommendResolvedColor",
+	"recommendResolvedMuted",
+	"recommendResolvedHeaderColor",
+	"recommendResolvedHeaderMuted",
 	"recommendMetaLabelFontSize",
 	"recommendMetaLabelOverrideFont",
 	"recommendMetaLabelFontFamily",
@@ -639,6 +688,26 @@ export function findInvalidLinkedSettings(incoming: Record<string, unknown>): st
 	return invalid;
 }
 
+const ENUM_SETTING_ALLOWED: Partial<Record<keyof StoryForgePluginSettings, readonly string[]>> = {
+	layout: SF_LAYOUTS,
+	statusBarView: ["hidden", "sync-only", "all"],
+	panelOrderMode: ["canonical", "user"],
+	automaticBackupFrequency: ["every-open", "daily", "weekly"],
+	seriesNumberingStyle: Object.keys(NUMBERING_STYLE_OPTIONS),
+	chapterNumberingStyle: Object.keys(NUMBERING_STYLE_OPTIONS),
+};
+
+/** Non-linked enum keys whose imported values are not in the allowed set. */
+export function findInvalidEnumSettings(incoming: Record<string, unknown>): string[] {
+	const invalid: string[] = [];
+	for (const [key, allowed] of Object.entries(ENUM_SETTING_ALLOWED)) {
+		if (!Object.prototype.hasOwnProperty.call(incoming, key)) continue;
+		const value = incoming[key];
+		if (typeof value !== "string" || !allowed.includes(value)) invalid.push(key);
+	}
+	return invalid;
+}
+
 export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 	const writeExceptions: CodexWriteException[] = [];
 
@@ -651,6 +720,10 @@ export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 
 		getCompanion() {
 			return plugin.getFormatCompanion();
+		},
+
+		openInterfaceModal() {
+			plugin.openStoryForgeInterface();
 		},
 
 		registerCompanion(reg: FormatCompanionRegistration) {
@@ -823,7 +896,7 @@ export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 			const filename = uniqueCodexFilename(plugin.app, opt.name);
 			let content = opt.content ?? "";
 			if (opt.bookId && !/^---\r?\n/.test(content)) {
-				content = `---\nbook: ${opt.bookId}\n---\n\n${content}`;
+				content = `---\nbook: ${yamlQuotedScalar(opt.bookId)}\n---\n\n${content}`;
 			}
 			const file = await createCodexNote(plugin.app, opt.parentFolderId ?? null, {
 				filename,

@@ -18,6 +18,9 @@ export const ICON_MINUS_SQUARE = "sf-minus-square";
 export const ICON_CHECK_SQUARE = "sf-check-square";
 export const ICON_TIMELINE = "sf-timeline";
 export const ICON_NOTEBOOK = "sf-notebook";
+/** Fluent UI (Microsoft) — slide-text-title-24-regular. titleForge's own identity glyph
+ * (ribbon, settings row). Distinct from ICON_DICE_DUAL, which stays on titleForge's generate button. */
+export const ICON_TITLEFORGE = "sf-titleforge";
 export const ICON_STORYTELLING = "sf-storytelling-book";
 export const ICON_CYCLE_ALT = "sf-cycle-alt";
 export const ICON_TEXT_STYLE = "sf-text-style";
@@ -30,6 +33,8 @@ export const ICON_PERSON_2_FILL = "sf-person-2-fill";
 export const ICON_MAP_PIN = "sf-map-pin";
 export const ICON_MAP_PIN_PLUS = "sf-map-pin-plus";
 export const ICON_FORGE = "sf-hammer-anvil";
+/** Same glyph nameForge registers as `nameforge-meeple`, so the Story Context preview can show it without nameForge loaded. */
+export const ICON_MEEPLE = "nameforge-meeple";
 export const ICON_FILE_PLUS = "sf-file-plus";
 export const ICON_EYE = "sf-eye";
 export const ICON_MULTIPLY_SQUARE = "sf-multiply-square";
@@ -131,16 +136,54 @@ export const ICON_LOCATION_TARGET_SQUARE = "sf-location-target-square";
 export const ICON_REFRESH_SQUARE = "sf-refresh-square";
 export const ICON_ADD_SQUARE = "sf-add-square";
 
-/** Codex-focus navigator's transport row (hand-off brief H1 — outline set chosen). */
+/** Charm Icons (jaynewey/charm-icons, MIT) — chevron-down / chevron-right. Collapse control on
+ * chapter plot cards (NovelPanel.ts — Story Context Novel tab and the central Novel overview). These
+ * are stroke glyphs; Obsidian's `setIcon` / `.svg-icon` is fill-only (`stroke: none`), so the plot
+ * card paints them with `setCharmChevronIcon` rather than `setIcon`. Still registered via
+ * `addIcon` so they show up in iconRegistry.ts. */
+export const ICON_CHEVRON_DOWN = "sf-chevron-down";
+export const ICON_CHEVRON_RIGHT = "sf-chevron-right";
+const CHEVRON_DOWN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none"><path d="M0 0h16v16H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m3.75 5.75 4.25 4.5 4.25-4.5"/></svg>`;
+const CHEVRON_RIGHT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none"><path d="M0 0h16v16H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m5.75 3.75 4.5 4.25-4.5 4.25"/></svg>`;
+const CHARM_CHEVRON_DOWN_D = "m3.75 5.75 4.25 4.5 4.25-4.5";
+const CHARM_CHEVRON_RIGHT_D = "m5.75 3.75 4.5 4.25-4.5 4.25";
+
+/** Paints a Charm chevron into `el` as a real stroke SVG (not via `setIcon`). `collapsed`
+ * true → chevron-right; false → chevron-down. Colour follows `currentColor`. */
+export function setCharmChevronIcon(el: HTMLElement, collapsed: boolean): void {
+	el.empty();
+	const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+	svg.setAttribute("viewBox", "0 0 16 16");
+	svg.setAttribute("width", "16");
+	svg.setAttribute("height", "16");
+	svg.setAttribute("fill", "none");
+	svg.setAttribute("aria-hidden", "true");
+	const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+	path.setAttribute("fill", "none");
+	path.setAttribute("stroke", "currentColor");
+	path.setAttribute("stroke-linecap", "round");
+	path.setAttribute("stroke-linejoin", "round");
+	path.setAttribute("stroke-width", "1.5");
+	path.setAttribute("d", collapsed ? CHARM_CHEVRON_RIGHT_D : CHARM_CHEVRON_DOWN_D);
+	svg.appendChild(path);
+	el.appendChild(svg);
+}
+
+/** Codex-focus navigator transport — ReIcon chevrons (double-up / up / down / double-down),
+ * painted beside the chapter list rather than as circled arrows underneath it. */
 export const ICON_TRANSPORT_TO_START = "sf-transport-to-start";
 export const ICON_TRANSPORT_PREVIOUS = "sf-transport-previous";
 export const ICON_TRANSPORT_NEXT = "sf-transport-next";
 export const ICON_TRANSPORT_TO_END = "sf-transport-to-end";
 
-const TRANSPORT_TO_START_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M256 448c106 0 192-86 192-192S362 64 256 64S64 150 64 256s86 192 192 192Z" /><path fill="currentColor" d="M192 176a16 16 0 0 1 16 16v53l111.68-67.46a10.78 10.78 0 0 1 16.32 9.33v138.26a10.78 10.78 0 0 1-16.32 9.31L208 267v53a16 16 0 0 1-32 0V192a16 16 0 0 1 16-16" /></svg>`;
-const TRANSPORT_PREVIOUS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="currentColor" d="m273.77 169.57l-89.09 74.13a16 16 0 0 0 0 24.6l89.09 74.13A16 16 0 0 0 300 330.14V181.86a16 16 0 0 0-26.23-12.29" /><path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M448 256c0-106-86-192-192-192S64 150 64 256s86 192 192 192s192-86 192-192Z" /></svg>`;
-const TRANSPORT_NEXT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="currentColor" d="m238.23 342.43l89.09-74.13a16 16 0 0 0 0-24.6l-89.09-74.13A16 16 0 0 0 212 181.86v148.28a16 16 0 0 0 26.23 12.29" /><path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M448 256c0-106-86-192-192-192S64 150 64 256s86 192 192 192s192-86 192-192Z" /></svg>`;
-const TRANSPORT_TO_END_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h512v512H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-miterlimit="10" stroke-width="32" d="M448 256c0-106-86-192-192-192S64 150 64 256s86 192 192 192s192-86 192-192Z" /><path fill="currentColor" d="M320 176a16 16 0 0 0-16 16v53l-111.68-67.44a10.78 10.78 0 0 0-16.32 9.31v138.26a10.78 10.78 0 0 0 16.32 9.31L304 267v53a16 16 0 0 0 32 0V192a16 16 0 0 0-16-16" /></svg>`;
+// reicon--arrows-up-duotone
+const TRANSPORT_TO_START_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M5 17.75a.75.75 0 0 1-.488-1.32l7-6a.75.75 0 0 1 .976 0l7 6A.75.75 0 0 1 19 17.75z" opacity=".5" /><path fill-rule="evenodd" d="M4.43 13.488a.75.75 0 0 0 1.058.081L12 7.988l6.512 5.581a.75.75 0 1 0 .976-1.138l-7-6a.75.75 0 0 0-.976 0l-7 6a.75.75 0 0 0-.081 1.057" clip-rule="evenodd" /></g></svg>`;
+// reicon--arrow-up2
+const TRANSPORT_PREVIOUS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="1.5" d="M19.92 15.05L13.4 8.53c-.77-.77-2.03-.77-2.8 0l-6.52 6.52" /></svg>`;
+// reicon--arrow-down5
+const TRANSPORT_NEXT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="1.5" d="m19.92 8.95l-6.52 6.52c-.77.77-2.03.77-2.8 0L4.08 8.95" /></svg>`;
+// reicon--arrows-down-duotone
+const TRANSPORT_TO_END_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M5 6.25a.75.75 0 0 0-.488 1.32l7 6c.28.24.695.24.976 0l7-6A.75.75 0 0 0 19 6.25z" opacity=".5" /><path fill-rule="evenodd" d="M4.43 10.512a.75.75 0 0 1 1.058-.081L12 16.012l6.512-5.581a.75.75 0 1 1 .976 1.139l-7 6a.75.75 0 0 1-.976 0l-7-6a.75.75 0 0 1-.081-1.058" clip-rule="evenodd" /></g></svg>`;
 
 /** Codex-focus navigator's "continue the story" tile — duotone circle so it reads as an
  * affordance rather than a chapter row, coloured via currentColor from the tile's own text colour. */
@@ -169,25 +212,17 @@ const BOOK_OPEN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 15 1
 export const ICON_BOOK_SPINE = "sf-book-spine";
 const BOOK_SPINE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><path d="M0 0h80v80H0z" fill="none" /><g fill="none"><path fill="currentColor" d="M33 13a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3.998H33zm0 9.998h14v34H33zm0 40V67a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4.002z" /><path stroke="currentColor" stroke-linejoin="round" stroke-width="3" d="M33 13a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3.998H33zm0 9.998h14v34H33zm0 40V67a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-4.002z" /></g></svg>`;
 
-// "fluent--tag-edit-24-filled" — a filled price-tag with a pencil-cut corner, ribbon icon for "Tags & Codex types".
+// "fluent--tag-edit-24-filled" — a filled price-tag with a pencil-cut corner. Catalog glyph; not used as a ribbon icon.
 const TAG_EDIT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M19.75 2A2.25 2.25 0 0 1 22 4.25v5.462c0 .362-.06.717-.175 1.053a3.286 3.286 0 0 0-4.431.197l-5.903 5.903a3.7 3.7 0 0 0-.97 1.712l-.457 1.83a2.1 2.1 0 0 0 .007 1.052a3.24 3.24 0 0 1-2.12-.945L3.489 16.06a3.25 3.25 0 0 1-.004-4.596l8.5-8.51a3.25 3.25 0 0 1 2.3-.953zM17 5.502a1.5 1.5 0 1 0 0 3a1.5 1.5 0 0 0 0-3m1.1 6.167l-5.903 5.903a2.7 2.7 0 0 0-.706 1.247l-.458 1.831a1.087 1.087 0 0 0 1.319 1.318l1.83-.457a2.7 2.7 0 0 0 1.248-.707l5.902-5.902A2.286 2.286 0 0 0 18.1 11.67" /></svg>`;
 
-/** Codex-focus navigator's fifth control — the continuous read-and-write mode toggle (hand-off
- * brief §4 hold point, resolved). Shown while the mode is off, set apart from the four transport
- * buttons rather than reading as a fifth step among them. */
+/** Codex-focus navigator's fifth control — the continuous reading mode toggle (hand-off brief
+ * §4 hold point, resolved). Same glyph on and off; the active state is the hover colour held
+ * until the next click, set apart from the four transport buttons rather than reading as a
+ * fifth step among them. */
 export const ICON_CONTINUOUS_MODE = "sf-continuous-mode";
-// viewBox is -3 -3 32 32, not the artwork's own 0 0 26 26 — this ring runs edge-to-edge in its
-// native box (touches all four sides), unlike the four transport icons' rings, which are inset by
-// design (r=192 of a 256 box). Padding the box to 32 so the 26-unit artwork occupies 81.25% of it
-// matches the transport set's 208/256 = 81.25% painted fraction exactly, so all five read as the
-// same size at the shared CSS box size — see iconRegistry.ts's standing rule on painted fraction.
-const CONTINUOUS_MODE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-3 -3 32 32"><path d="M-3 -3h32v32H-3z" fill="none" /><g fill="currentColor" fill-rule="evenodd" clip-rule="evenodd"><path d="M5 11a1 1 0 0 1 1-1h10.308a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0-4a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0 8a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0 4a1 1 0 0 1 1-1h10.308a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1" /><path d="M13 24c6.075 0 11-4.925 11-11S19.075 2 13 2S2 6.925 2 13s4.925 11 11 11m0 2c7.18 0 13-5.82 13-13S20.18 0 13 0S0 5.82 0 13s5.82 13 13 13" /></g></svg>`;
-
-/** The same toggle, shown once continuous mode is active — clicking it is the "cancel" action
- * that drops the reader back into the single-chapter editor (hand-off brief §2.4). Same padded
- * viewBox as ICON_CONTINUOUS_MODE, same reason. */
-export const ICON_CONTINUOUS_MODE_EXIT = "sf-continuous-mode-exit";
-const CONTINUOUS_MODE_EXIT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-3 -3 32 32"><path d="M-3 -3h32v32H-3z" fill="none" /><g fill="currentColor"><path fill-rule="evenodd" d="M5 11a1 1 0 0 1 1-1h10.308a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0-4a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0 8a1 1 0 0 1 1-1h14a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1m0 4a1 1 0 0 1 1-1h10.308a1 1 0 1 1 0 2H6a1 1 0 0 1-1-1" clip-rule="evenodd" /><path d="M4.293 5.707a1 1 0 0 1 1.414-1.414l16 16a1 1 0 0 1-1.414 1.414z" /><path fill-rule="evenodd" d="M13 24c6.075 0 11-4.925 11-11S19.075 2 13 2S2 6.925 2 13s4.925 11 11 11m0 2c7.18 0 13-5.82 13-13S20.18 0 13 0S0 5.82 0 13s5.82 13 13 13" clip-rule="evenodd" /></g></svg>`;
+// reicon--carousel-v-duotone — three stacked slides (centre solid, neighbours at .5), same 24×24
+// inset as the four transport chevrons so they read as one set at the shared CSS box size.
+const CONTINUOUS_MODE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M6.5 2.5h11A1.5 1.5 0 0 1 19 4v1.5A1.5 1.5 0 0 1 17.5 7h-11A1.5 1.5 0 0 1 5 5.5V4a1.5 1.5 0 0 1 1.5-1.5" opacity=".5" /><path d="M6.5 8h11A1.5 1.5 0 0 1 19 9.5v5A1.5 1.5 0 0 1 17.5 16h-11A1.5 1.5 0 0 1 5 14.5v-5A1.5 1.5 0 0 1 6.5 8" /><path d="M6.5 17h11a1.5 1.5 0 0 1 1.5 1.5V20a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 20v-1.5A1.5 1.5 0 0 1 6.5 17" opacity=".5" /></g></svg>`;
 
 /** Huge Icons (Hugeicons) — a bookshelf, three shelves of books. Forge panel's empty-state
  * decoration (tooltip "idea shelf") — purely decorative for now, not wired to any action. */
@@ -228,7 +263,7 @@ export const ICON_CLIPBOARD_LIST_DUOTONE = "sf-clipboard-list-duotone";
 const CLIPBOARD_LIST_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M21 15.998v-6c0-2.828 0-4.242-.879-5.121C19.353 4.109 18.175 4.012 16 4H8c-2.175.012-3.353.109-4.121.877C3 5.756 3 7.17 3 9.998v6c0 2.829 0 4.243.879 5.122c.878.878 2.293.878 5.121.878h6c2.828 0 4.243 0 5.121-.878c.879-.88.879-2.293.879-5.122" opacity=".5" /><path d="M8 3.5A1.5 1.5 0 0 1 9.5 2h5A1.5 1.5 0 0 1 16 3.5v1A1.5 1.5 0 0 1 14.5 6h-5A1.5 1.5 0 0 1 8 4.5z" /><path fill-rule="evenodd" d="M6.25 10.5A.75.75 0 0 1 7 9.75h.5a.75.75 0 0 1 0 1.5H7a.75.75 0 0 1-.75-.75m3.5 0a.75.75 0 0 1 .75-.75H17a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1-.75-.75M6.25 14a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 0 1.5H7a.75.75 0 0 1-.75-.75m3.5 0a.75.75 0 0 1 .75-.75H17a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1-.75-.75m-3.5 3.5a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 0 1.5H7a.75.75 0 0 1-.75-.75m3.5 0a.75.75 0 0 1 .75-.75H17a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1-.75-.75" clip-rule="evenodd" /></g></svg>`;
 
 /** "reicon--notebook-duotone" — Story Context's Dossier tab icon. Distinct from ICON_NOTEBOOK
- * ("sf-notebook", titleForge's own ribbon icon - unrelated feature, must stay untouched). */
+ * ("sf-notebook") and from ICON_TITLEFORGE (titleForge's ribbon / settings identity glyph). */
 export const ICON_NOTEBOOK_DUOTONE = "sf-notebook-duotone";
 const NOTEBOOK_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M3 8c0-2.828 0-4.243.879-5.121C4.757 2 6.172 2 9 2h6c2.828 0 4.243 0 5.121.879C21 3.757 21 5.172 21 8v8c0 2.828 0 4.243-.879 5.121C19.243 22 17.828 22 15 22H9c-2.828 0-4.243 0-5.121-.879C3 20.243 3 18.828 3 16z" opacity=".5" /><path fill-rule="evenodd" d="M8.75 2.012v20h-1.5v-20zM1.25 8A.75.75 0 0 1 2 7.25h2a.75.75 0 0 1 0 1.5H2A.75.75 0 0 1 1.25 8m0 4a.75.75 0 0 1 .75-.75h2a.75.75 0 0 1 0 1.5H2a.75.75 0 0 1-.75-.75m0 4a.75.75 0 0 1 .75-.75h2a.75.75 0 0 1 0 1.5H2a.75.75 0 0 1-.75-.75" clip-rule="evenodd" /><path d="M10.75 6.5a.75.75 0 0 1 .75-.75h5a.75.75 0 0 1 0 1.5h-5a.75.75 0 0 1-.75-.75m0 3.5a.75.75 0 0 1 .75-.75h5a.75.75 0 0 1 0 1.5h-5a.75.75 0 0 1-.75-.75" /></g></svg>`;
 
@@ -304,6 +339,8 @@ const PROTECTIONS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24
 
 /** IconPark two-tone Hammer And Anvil — fill tone via opacity, stroke via currentColor. */
 const HAMMER_ANVIL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><g fill="currentColor" fill-opacity="0.25" stroke="none"><path d="M6 14C6 4 14 4 14 4v20H6z"/><rect width="28" height="6" x="14" y="10"/><path d="M6 30h36s0 8-6 8h-7l2 6H13l2-6H6z"/></g><path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="4" d="M6 14C6 4 14 4 14 4v20H6zm8-4h28v6H14zM6 30h36s0 8-6 8h-7l2 6H13l2-6H6z"/></svg>`;
+const MEEPLE_SVG =
+	'<g transform="scale(4.16667)"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20H4a1 1 0 0 1-1-1c0-2 3.378-4.907 4-6c-1 0-4-.5-4-2c0-2 4-3.5 6-4c0-1.5.5-4 3-4s3 2.5 3 4c2 .5 6 2 6 4c0 1.5-3 2-4 2c.622 1.093 4 4 4 6a1 1 0 0 1-1 1h-5c-1 0-2-4-3-4s-2 4-3 4" /></g>';
 
 /** Mage Icons — file with plus (add synopsis to chapter plot). */
 const FILE_PLUS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path stroke-linejoin="round" d="M14.186 2.753v3.596c0 .487.194.955.54 1.3a1.85 1.85 0 0 0 1.306.539h4.125"/><path stroke-linejoin="round" d="M20.25 8.568v8.568a4.25 4.25 0 0 1-1.362 2.97a4.28 4.28 0 0 1-3.072 1.14h-7.59a4.3 4.3 0 0 1-3.1-1.124a4.26 4.26 0 0 1-1.376-2.986V6.862a4.25 4.25 0 0 1 1.362-2.97a4.28 4.28 0 0 1 3.072-1.14h5.714a3.5 3.5 0 0 1 2.361.905l2.96 2.722a2.97 2.97 0 0 1 1.031 2.189"/><path stroke-miterlimit="10" d="M11.57 10.424v7.116m-3.55-3.55h7.117"/></g></svg>`;
@@ -601,14 +638,16 @@ const GALAXY_FILL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48
 const BUILDING_C_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18M9 8h1m-1 4h1m-1 4h1m4-8h1m-1 4h1m-1 4h1M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16" /></svg>`;
 
 /** Hand-authored (no source pack — this project's own) — two overlapping dice, one showing 2 pips,
- * the other 5. SeriesOverviewView.ts's "open titleForge" trigger, standing in for "generate a
- * title" the way a dice roll would. */
+ * the other 5. TitleForgePanel.ts's generate button, and SeriesTitleModal.ts's "generate a title"
+ * shortcut into that same modal. Distinct from ICON_TITLEFORGE, the identity glyph. */
 export const ICON_DICE_DUAL = "sf-dice-dual";
 const DICE_DUAL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect x="2.5" y="8.5" width="10" height="10" rx="2" /><rect x="11.5" y="3.5" width="10" height="10" rx="2" /></g><g fill="currentColor"><circle cx="5.5" cy="11.5" r="0.85" /><circle cx="9.5" cy="15.5" r="0.85" /><circle cx="14.5" cy="6.5" r="0.85" /><circle cx="18.5" cy="6.5" r="0.85" /><circle cx="16.5" cy="8.5" r="0.85" /><circle cx="14.5" cy="10.5" r="0.85" /><circle cx="18.5" cy="10.5" r="0.85" /></g></svg>`;
 
-/** Pinhead Map Icons (Quincy Morgan) — dice. titleForge's own "Generate" button (TitleForgePanel.ts)
- * — distinct from ICON_DICE_DUAL above, which is the "open titleForge" trigger icon used elsewhere
- * (NovelTitleModal.ts, SeriesTitleModal.ts) and stays a separate, two-dice glyph. */
+/** Fluent UI (Microsoft) — slide-text-title-24-regular. titleForge's identity glyph. */
+const TITLEFORGE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M4.75 4A2.75 2.75 0 0 0 2 6.75v10.5A2.75 2.75 0 0 0 4.75 20h14.5A2.75 2.75 0 0 0 22 17.25V6.75A2.75 2.75 0 0 0 19.25 4zM3.5 6.75c0-.69.56-1.25 1.25-1.25h14.5c.69 0 1.25.56 1.25 1.25v10.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25zM7.5 8a1.5 1.5 0 1 0 0 3h9a1.5 1.5 0 0 0 0-3z" /></svg>`;
+
+/** Pinhead Map Icons (Quincy Morgan) — dice. NovelTitleModal.ts's inline generate shortcut.
+ * Distinct from ICON_DICE_DUAL (TitleForgePanel generate button / SeriesTitleModal trigger). */
 export const ICON_DICE = "sf-dice";
 const DICE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 15 15"><path d="M0 0h15v15H0z" fill="none" /><path fill="currentColor" d="M4.14 1.14c-.68.05-1.33.43-1.7 1.07L.29 5.93c-.59 1.03-.26 2.32.77 2.91l3.72 2.14c.15.09.31.19.47.24V7.47c0-1.76 1.45-3.22 3.21-3.22h1.31c-.18-.26-.41-.5-.7-.67L5.35 1.44c-.39-.22-.8-.33-1.21-.3m.33.76c.6 0 1.12.41 1.28.99c.19.72-.23 1.45-.95 1.64c-.71.19-1.44-.23-1.64-.94c-.19-.72.24-1.45.95-1.64c.12-.04.24-.05.36-.05M2.2 5.84c.6 0 1.12.41 1.28.99c.19.71-.24 1.45-.95 1.64S1.08 8.23.89 7.52s.23-1.45.95-1.64c.11-.03.24-.05.36-.04m6.26-.52c-1.18 0-2.14.96-2.14 2.15v4.28c0 1.19.96 2.15 2.14 2.15h4.29c1.19 0 2.14-.96 2.14-2.15V7.47c0-1.19-.95-2.15-2.14-2.15zm4.29.81c.35 0 .69.14.95.39a1.34 1.34 0 0 1 0 1.89c-.26.26-.6.4-.95.4a1.34 1.34 0 0 1 0-2.68m-4.29 4.28c.36 0 .7.14.95.4c.25.25.39.59.39.94a1.34 1.34 0 0 1-2.68 0c0-.35.14-.69.4-.94c.25-.26.59-.4.94-.4" /></svg>`;
 
@@ -636,6 +675,19 @@ const EYE_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24
 export const ICON_FLOPPY_DUOTONE = "sf-floppy-duotone";
 const FLOPPY_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M20.536 20.536C22 19.07 22 16.714 22 12c0-.341 0-.512-.015-.686a4.04 4.04 0 0 0-.921-2.224a8 8 0 0 0-.483-.504l-5.167-5.167a9 9 0 0 0-.504-.483a4.04 4.04 0 0 0-2.224-.92C12.512 2 12.342 2 12 2C7.286 2 4.929 2 3.464 3.464C2 4.93 2 7.286 2 12s0 7.071 1.464 8.535c.685.685 1.563 1.05 2.786 1.243l1.5.153C8.906 22 10.3 22 12 22s3.094 0 4.25-.069l1.5-.153c1.223-.194 2.102-.558 2.785-1.242" opacity=".5" /><path d="M7 7.25a.75.75 0 0 0 0 1.5h6a.75.75 0 0 0 0-1.5zm6.052 9c.899 0 1.648 0 2.242.08c.628.084 1.195.27 1.65.726c.456.455.642 1.022.726 1.65c.08.594.08 1.343.08 2.242v.833l-1.5.14V21c0-.964-.002-1.612-.067-2.095c-.062-.461-.169-.659-.3-.789s-.327-.237-.788-.3c-.483-.064-1.131-.066-2.095-.066h-2c-.964 0-1.612.002-2.095.067c-.461.062-.659.169-.789.3s-.237.327-.3.788c-.064.483-.066 1.131-.066 2.095v.926l-1.5-.149v-.829c0-.899 0-1.648.08-2.242c.084-.628.27-1.195.725-1.65c.456-.456 1.023-.642 1.65-.726c.595-.08 1.345-.08 2.243-.08z" /></g></svg>`;
 
+/** User-provided (reicon--tag-duotone) — price-tag, duotone via opacity. Distinct from ICON_TAG's
+ * outline glyph. Used for SeriesModal.ts's Codex-types hover icon (types, tags, & threads tab)
+ * and TopPanel.ts's series-pane corner button that opens the same modal. */
+export const ICON_TAG_DUOTONE = "sf-tag-duotone";
+const TAG_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M4.728 16.137c-1.545-1.546-2.318-2.318-2.605-3.321c-.288-1.003-.042-2.068.45-4.197l.283-1.228c.413-1.792.62-2.688 1.233-3.302s1.51-.82 3.302-1.233l1.228-.284c2.13-.491 3.194-.737 4.197-.45c1.003.288 1.775 1.061 3.32 2.606l1.83 1.83C20.657 9.248 22 10.592 22 12.262c0 1.671-1.344 3.015-4.033 5.704c-2.69 2.69-4.034 4.034-5.705 4.034c-1.67 0-3.015-1.344-5.704-4.033z" opacity=".5" /><path d="M10.124 7.271a2.017 2.017 0 1 1-2.853 2.852a2.017 2.017 0 0 1 2.853-2.852m8.927 4.78l-6.979 6.98a.75.75 0 1 1-1.06-1.06l6.979-6.98a.75.75 0 1 1 1.06 1.06" /></g></svg>`;
+
+/** User-provided (reicon--bookmark-duotone) — bookmark ribbon, duotone via opacity. Distinct from
+ * ICON_BOOKMARK's outline glyph. Used for SeriesModal.ts's chapter-and-novel-tags hover icon
+ * (types, tags, & threads tab) and TopPanel.ts's series-pane corner button that opens the same
+ * modal. */
+export const ICON_BOOKMARK_DUOTONE = "sf-bookmark-duotone";
+const BOOKMARK_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M21 11.098v4.993c0 3.096 0 4.645-.734 5.321c-.35.323-.792.526-1.263.58c-.987.113-2.14-.907-4.445-2.946c-1.02-.901-1.529-1.352-2.118-1.47a2.2 2.2 0 0 0-.88 0c-.59.118-1.099.569-2.118 1.47c-2.305 2.039-3.458 3.059-4.445 2.945a2.24 2.24 0 0 1-1.263-.579C3 20.736 3 19.188 3 16.091v-4.994C3 6.81 3 4.666 4.318 3.333S7.758 2 12 2s6.364 0 7.682 1.332S21 6.81 21 11.098" opacity=".5" /><path d="M9 5.25a.75.75 0 0 0 0 1.5h6a.75.75 0 0 0 0-1.5z" /></g></svg>`;
+
 /** User-provided (reicon--text-input-duotone.svg) — text-input field, duotone via opacity. Used
  * for SeriesModal.ts's "Text styling" icon (formatting tab). */
 export const ICON_TEXT_INPUT_DUOTONE = "sf-text-input-duotone";
@@ -645,6 +697,16 @@ const TEXT_INPUT_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox=
  * SeriesModal.ts's "storyForge interface" icon (formatting tab). */
 export const ICON_ELEMENT2_FILLED = "sf-element2-filled";
 const ELEMENT2_FILLED_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M11 19.9V4.1C11 2.6 10.36 2 8.77 2H4.73C3.14 2 2.5 2.6 2.5 4.1v15.8c0 1.5.64 2.1 2.23 2.1h4.04c1.59 0 2.23-.6 2.23-2.1m10.5-9V4.1c0-1.5-.64-2.1-2.23-2.1h-4.04C13.64 2 13 2.6 13 4.1v6.8c0 1.5.64 2.1 2.23 2.1h4.04c1.59 0 2.23-.6 2.23-2.1m0 9v-2.8c0-1.5-.64-2.1-2.23-2.1h-4.04c-1.59 0-2.23.6-2.23 2.1v2.8c0 1.5.64 2.1 2.23 2.1h4.04c1.59 0 2.23-.6 2.23-2.1" /></svg>`;
+
+/** User-provided (fluent--document-page-break-20-filled) — document split by a dashed break.
+ * Used for SeriesModal.ts's "cycling guide" icon (general tab), which opens CyclingGuideModal. */
+export const ICON_DOCUMENT_PAGE_BREAK = "sf-document-page-break";
+const DOCUMENT_PAGE_BREAK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M0 0h20v20H0z" fill="none" /><path fill="currentColor" d="M16 6V2.5c0-.276-.226-.5-.5-.5H4.496A.5.5 0 0 0 4 2.5V6c0 .828.667 1.5 1.488 1.5H14.5c.821 0 1.5-.672 1.5-1.5M3 9.5a.5.5 0 0 0 0 1h1.2a.5.5 0 0 0 0-1zm3.2 0a.5.5 0 0 0 0 1h1.2a.5.5 0 0 0 0-1zm2.7.5a.5.5 0 0 1 .5-.5h1.2a.5.5 0 0 1 0 1H9.4a.5.5 0 0 1-.5-.5m3.7-.5a.5.5 0 0 0 0 1h1.2a.5.5 0 0 0 0-1zm2.7.5a.5.5 0 0 1 .5-.5H17a.5.5 0 0 1 0 1h-1.2a.5.5 0 0 1-.5-.5m.7 7.5V14c0-.828-.679-1.5-1.5-1.5H5.488C4.667 12.5 4 13.172 4 14v3.5c0 .276.222.5.496.5H15.5c.274 0 .5-.224.5-.5" /></svg>`;
+
+/** User-provided (mdi--timeline) — vertical spine with event card. Series-pane hover icon that
+ * opens PlotThreadRegistryModal (beside the settings cog on the story library Series tab). */
+export const ICON_PLOT_THREADS = "sf-plot-threads";
+const PLOT_THREADS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M4 2v6H2V2h2M2 22v-6h2v6zm3-10c0 1.11-.89 2-2 2s-2-.89-2-2s.89-2 2-2s2 .89 2 2m19-6v12c0 1.11-.89 2-2 2H10c-1.1 0-2-.89-2-2v-4l-2-2l2-2V6c0-1.11.9-2 2-2h12c1.11 0 2 .89 2 2Z" /></svg>`;
 
 /** Registers storyForge's custom Lucide-style icons so `setIcon` can address them by id. */
 export function registerCustomIcons(): void {
@@ -678,6 +740,7 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_MAP_PIN, MAP_PIN_SVG);
 	addIcon(ICON_MAP_PIN_PLUS, MAP_PIN_PLUS_SVG);
 	addIcon(ICON_FORGE, HAMMER_ANVIL_SVG);
+	addIcon(ICON_MEEPLE, MEEPLE_SVG);
 	addIcon(ICON_FILE_PLUS, FILE_PLUS_SVG);
 	addIcon(ICON_EYE, EYE_SVG);
 	addIcon(ICON_MULTIPLY_SQUARE, MULTIPLY_SQUARE_SVG);
@@ -774,6 +837,8 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_LOCATION_TARGET_SQUARE, LOCATION_TARGET_SQUARE_SVG);
 	addIcon(ICON_REFRESH_SQUARE, REFRESH_SQUARE_SVG);
 	addIcon(ICON_ADD_SQUARE, ADD_SQUARE_SVG);
+	addIcon(ICON_CHEVRON_DOWN, CHEVRON_DOWN_SVG);
+	addIcon(ICON_CHEVRON_RIGHT, CHEVRON_RIGHT_SVG);
 	addIcon(ICON_TRANSPORT_TO_START, TRANSPORT_TO_START_SVG);
 	addIcon(ICON_TRANSPORT_PREVIOUS, TRANSPORT_PREVIOUS_SVG);
 	addIcon(ICON_TRANSPORT_NEXT, TRANSPORT_NEXT_SVG);
@@ -785,7 +850,6 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_BOOK_OPEN, BOOK_OPEN_SVG);
 	addIcon(ICON_BOOK_SPINE, BOOK_SPINE_SVG);
 	addIcon(ICON_CONTINUOUS_MODE, CONTINUOUS_MODE_SVG);
-	addIcon(ICON_CONTINUOUS_MODE_EXIT, CONTINUOUS_MODE_EXIT_SVG);
 	addIcon(ICON_BOOKSHELF, BOOKSHELF_SVG);
 	addIcon(ICON_CARDS, CARDS_SVG);
 	addIcon(ICON_FOCUS_OFF, FOCUS_OFF_SVG);
@@ -796,11 +860,16 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_NOTEBOOK_DUOTONE, NOTEBOOK_DUOTONE_SVG);
 	addIcon(ICON_ARCHIVE_FILLED, ARCHIVE_FILLED_SVG);
 	addIcon(ICON_DICE_DUAL, DICE_DUAL_SVG);
+	addIcon(ICON_TITLEFORGE, TITLEFORGE_SVG);
 	addIcon(ICON_DICE, DICE_SVG);
 	addIcon(ICON_ARROW_INSERT, ARROW_INSERT_SVG);
 	addIcon(ICON_SETTINGS_ALT, SETTINGS_ALT_SVG);
 	addIcon(ICON_EYE_DUOTONE, EYE_DUOTONE_SVG);
 	addIcon(ICON_FLOPPY_DUOTONE, FLOPPY_DUOTONE_SVG);
 	addIcon(ICON_TEXT_INPUT_DUOTONE, TEXT_INPUT_DUOTONE_SVG);
+	addIcon(ICON_TAG_DUOTONE, TAG_DUOTONE_SVG);
+	addIcon(ICON_BOOKMARK_DUOTONE, BOOKMARK_DUOTONE_SVG);
 	addIcon(ICON_ELEMENT2_FILLED, ELEMENT2_FILLED_SVG);
+	addIcon(ICON_DOCUMENT_PAGE_BREAK, DOCUMENT_PAGE_BREAK_SVG);
+	addIcon(ICON_PLOT_THREADS, PLOT_THREADS_SVG);
 }

@@ -14,7 +14,7 @@ import {
 	type CodexTreeItem,
 	type CodexViewMode,
 } from "../codex";
-import { ICON_CODEX, ICON_FILTER_LIST, ICON_FOLDER, ICON_FOLDER_PLUS, ICON_PLUS_SQUARE } from "../icons";
+import { ICON_CODEX, ICON_FILTER_LIST, ICON_FOLDER, ICON_FOLDER_PLUS, ICON_PLUS_SQUARE, ICON_TAG_DUOTONE } from "../icons";
 import { makeAccessibleActivatable } from "./a11y";
 import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
 import { attachCodexDragReorder, type CodexDragRowInfo } from "./dragReorderTree";
@@ -38,6 +38,9 @@ export interface BottomPanelOptions {
 	 * "one tab, and the active-leaf highlight actually follows the click" helper, same as
 	 * onOpenChapter elsewhere, rather than this file reaching into app.workspace directly. */
 	onOpenFile: (path: string) => void;
+	/** Story library only — opens the Codex types registry. Pinned to this pane's own
+	 * bottom-left corner (see renderCodexTypesCorner), not the header row. */
+	onOpenCodexTypes?: () => void;
 }
 
 export function renderBottomPanel(app: App, container: HTMLElement, options: BottomPanelOptions): void {
@@ -91,6 +94,10 @@ export function renderBottomPanel(app: App, container: HTMLElement, options: Bot
 		makeAccessibleActivatable(newFolderBtn, () => options.onCreateFolder());
 	}
 
+	if (options.onOpenCodexTypes) {
+		renderCodexTypesCorner(container, options.onOpenCodexTypes);
+	}
+
 	if (isCodexHidden) return;
 
 	const treeEl = container.createDiv({ cls: "sf-codex-tree" });
@@ -133,6 +140,22 @@ export function renderBottomPanel(app: App, container: HTMLElement, options: Bot
 	);
 }
 
+/**
+ * Codex-types hover icon — pinned to the bottom-left of the Codex pane itself (the
+ * `.sf-bottom-panel` root), not the header and not the storyLibrary view. The tree is the
+ * scroller (see `.sf-codex-tree`); this sits outside that overflow so it stays put.
+ */
+function renderCodexTypesCorner(container: HTMLElement, onOpenCodexTypes: () => void): void {
+	const corner = container.createDiv({ cls: "sf-codex-pane-corner" });
+	const typesBtn = corner.createSpan({ cls: "sf-codex-types-btn", attr: { "aria-label": "Codex types" } });
+	setIcon(typesBtn, ICON_TAG_DUOTONE);
+	typesBtn.addEventListener("click", (e) => {
+		e.stopPropagation();
+		onOpenCodexTypes();
+	});
+	makeAccessibleActivatable(typesBtn, onOpenCodexTypes);
+}
+
 function renderTreeChildren(
 	app: App,
 	container: HTMLElement,
@@ -169,6 +192,10 @@ function renderTreeChildren(
 			// A plain folder gets a generic folder icon instead, in the same slot, so the two read
 			// as visibly different kinds of row rather than an element folder just missing its icon.
 			if (linkedPath) {
+				headerEl.addClass("sf-codex-lore-folder");
+				if (highlightActiveChapter && activeFilePath === linkedPath) {
+					headerEl.addClass("sf-row-selected");
+				}
 				const entryType = getCodexEntryType(app, linkedPath);
 				if (entryType) {
 					const typeIcon = contentEl.createSpan({ cls: "sf-icon sf-codex-type-icon" });

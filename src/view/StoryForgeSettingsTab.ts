@@ -3,7 +3,6 @@ import type StoryForgePlugin from "../main";
 import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
 import { COLOR_PALETTES, defaultVariantName, PALETTE_NAMES, type PresetPaletteName } from "../colorPalettes";
 import { TextStyleModal } from "./TextStyleModal";
-import { UiFormattingModal } from "./UiFormattingModal";
 import { HideUiModal } from "./HideUiModal";
 import { ProtectionsModal } from "./ProtectionsModal";
 import { TagRegistryModal } from "./TagRegistryModal";
@@ -205,13 +204,13 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					]).flat(),
 					{
 						name: "Formatting (formatForge)",
-						desc: "Text styling, colours, fonts, interface chrome, and the colour palette are managed by formatForge while it is enabled.",
+						desc: "Text styling, colours, fonts, and the colour palette are managed by formatForge while it is enabled.",
 						visible: companionActive,
 						action: () => this.plugin.openFormatForgeSettings(),
 					},
 					{
 						name: "Text styling",
-						desc: "Open the text styling modal (editor size overrides).",
+						desc: "Open the text styling modal (editor size overrides and scrollbar).",
 						visible: companionInactive,
 						action: () => {
 							new TextStyleModal(this.app, this.plugin).open();
@@ -219,10 +218,9 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 					},
 					{
 						name: "storyForge interface",
-						desc: "Open interface formatting options.",
-						visible: companionInactive,
+						desc: "Open interface formatting options. Font pickers appear here when formatForge is enabled.",
 						action: () => {
-							new UiFormattingModal(this.app, this.plugin).open();
+							this.plugin.openStoryForgeInterface();
 						},
 					},
 					{
@@ -238,10 +236,17 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				type: "group",
 				items: [
 					{
-						name: "Tags & Codex types",
-						desc: "Manage Codex entry types, chapter tags, novel tags, and the icons they draw from.",
+						name: "Codex types",
+						desc: "Manage Codex entry types and the icons they draw from.",
 						action: () => {
-							new TagRegistryModal(this.app, () => this.refreshDomState()).open();
+							new TagRegistryModal(this.app, () => this.refreshDomState(), "codexTypes").open();
+						},
+					},
+					{
+						name: "Chapter and novel tags",
+						desc: "Manage chapter tags, novel tags, and the icons they draw from.",
+						action: () => {
+							new TagRegistryModal(this.app, () => this.refreshDomState(), "tags").open();
 						},
 					},
 				],

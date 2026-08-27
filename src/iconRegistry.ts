@@ -10,6 +10,7 @@ import {
 	ICON_BOOK_PLUS,
 	ICON_BOOK_SPINE,
 	ICON_BOOKMARK,
+	ICON_BOOKMARK_DUOTONE,
 	ICON_BOOKMARK_FILL,
 	ICON_BOOKSHELF,
 	ICON_BOWL,
@@ -23,15 +24,17 @@ import {
 	ICON_CASTLE,
 	ICON_CHECK_CIRCLE,
 	ICON_CHECK_CIRCLE_FILL,
+	ICON_CHEVRON_DOWN,
+	ICON_CHEVRON_RIGHT,
 	ICON_CITY,
 	ICON_CLIPBOARD_LIST_DUOTONE,
 	ICON_CODEX,
 	ICON_CONTINUOUS_MODE,
-	ICON_CONTINUOUS_MODE_EXIT,
 	ICON_CROWN,
 	ICON_CYCLE_ALT,
 	ICON_DASHBOARD_CHART,
 	ICON_DEAD_TREE,
+	ICON_DOCUMENT_PAGE_BREAK,
 	ICON_DRAGON,
 	ICON_EDIT_PEN,
 	ICON_EGG,
@@ -96,6 +99,7 @@ import {
 	ICON_PLUS_SQUARE,
 	ICON_MINUS_SQUARE,
 	ICON_CHECK_SQUARE,
+	ICON_PLOT_THREADS,
 	ICON_RAIN,
 	ICON_REFRESH_SQUARE,
 	ICON_RIVER,
@@ -121,6 +125,7 @@ import {
 	ICON_SWORD,
 	ICON_SWORDS_CROSSED,
 	ICON_TAG,
+	ICON_TAG_DUOTONE,
 	ICON_TAG_EDIT,
 	ICON_TEMPLE,
 	ICON_THUNDERSTORM,
@@ -287,11 +292,10 @@ export interface IconRegistryEntry {
  * row, an icon-picker grid, anything with a "these should all look the same size" expectation):
  * match the *painted fraction of the viewBox*, not the viewBox's own size. Two icons can share an
  * identical `width`/`height` box and still read as mismatched if one artwork is inset within its
- * own viewBox (a ring with a gap to the edge) and the other runs edge-to-edge — the continuous-mode
- * toggle icons hit exactly this (their 26-unit artwork touched all four sides of its own viewBox,
- * while the transport icons' rings are inset by design), and padding the box in icons.ts's
- * CONTINUOUS_MODE_SVG/CONTINUOUS_MODE_EXIT_SVG to match the transport set's painted fraction was
- * the actual fix — not a per-button forced pixel size in JS, which is what papered over it before.
+ * own viewBox (a ring with a gap to the edge) and the other runs edge-to-edge. The transport
+ * chevrons and ICON_CONTINUOUS_MODE's carousel are inset 24×24 ReIcon artwork; padding a fuller
+ * glyph's box in icons.ts to match that painted fraction is the actual fix — not a per-button
+ * forced pixel size in JS.
  */
 
 /**
@@ -349,7 +353,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		source: "custom",
 		usedIn: [
 			"TopPanel.ts — book synopsis/plot settings button",
-			"RecommendationView.ts — Story Context's Novel tab, \"Plot\" section header line",
+			"BookSynopsisModal.ts — \"Plot\" section header line",
 			"SeriesOverviewView.ts — \"Plot\" section header line",
 		],
 	},
@@ -357,7 +361,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		id: ICON_BOOK_PLUS,
 		label: "New book",
 		source: "custom",
-		usedIn: ["TopPanel.ts — new book button (Unplaced header)", "SeriesModal.ts — add book button"],
+		usedIn: ["SeriesModal.ts — add book button"],
 	},
 	{
 		id: ICON_BOOK_OPEN,
@@ -421,6 +425,18 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		],
 	},
 	{
+		id: ICON_CHEVRON_DOWN,
+		label: "Expanded section (Charm)",
+		source: "custom",
+		usedIn: ["NovelPanel.ts — chapter plot card collapse control (expanded)"],
+	},
+	{
+		id: ICON_CHEVRON_RIGHT,
+		label: "Collapsed section (Charm)",
+		source: "custom",
+		usedIn: ["NovelPanel.ts — chapter plot card collapse control (collapsed)"],
+	},
+	{
 		id: ICON_MULTIPLY_SQUARE,
 		label: "Clear",
 		source: "custom",
@@ -458,7 +474,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		label: "New file",
 		source: "custom",
 		usedIn: [
-			"TopPanel.ts — new chapter button (default)",
+			"TopPanel.ts — new chapter button (Unplaced Chapters) and new book button (Unplaced Novels)",
 			"BottomPanel.ts — new Codex note button",
 			"RecommendationView.ts — create in Codex (unknown name)",
 		],
@@ -487,6 +503,21 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		label: "Cycling guide badge",
 		source: "custom",
 		usedIn: ["cyclingGuide.ts — badge at the bottom-right of each 500-word divider line"],
+	},
+	{
+		id: ICON_DOCUMENT_PAGE_BREAK,
+		label: "Cycling guide",
+		source: "custom",
+		usedIn: ["SeriesModal.ts — general tab hover icon that opens CyclingGuideModal"],
+	},
+	{
+		id: ICON_PLOT_THREADS,
+		label: "Plot threads",
+		source: "custom",
+		usedIn: [
+			"TopPanel.ts — series-pane hover icon beside the settings cog (opens PlotThreadRegistryModal)",
+			"SeriesModal.ts — types, tags, & threads tab hover icon that opens PlotThreadRegistryModal",
+		],
 	},
 	{ id: ICON_NUMBER_CIRCLE_0, label: "Number 0", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
 	{ id: ICON_NUMBER_CIRCLE_1, label: "Number 1", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
@@ -526,10 +557,10 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"],
 	},
 	{ id: ICON_STARS_FILL, label: "Stars (filled)", source: "custom", usedIn: ["iconRegistry.ts — Codex icon catalog"] },
-	{ id: ICON_TRANSPORT_TO_START, label: "Transport: to start", source: "custom", usedIn: ["CodexFocusNavigator.ts — transport row"] },
-	{ id: ICON_TRANSPORT_PREVIOUS, label: "Transport: previous chapter", source: "custom", usedIn: ["CodexFocusNavigator.ts — transport row"] },
-	{ id: ICON_TRANSPORT_NEXT, label: "Transport: next chapter", source: "custom", usedIn: ["CodexFocusNavigator.ts — transport row"] },
-	{ id: ICON_TRANSPORT_TO_END, label: "Transport: to end", source: "custom", usedIn: ["CodexFocusNavigator.ts — transport row"] },
+	{ id: ICON_TRANSPORT_TO_START, label: "Transport: to start (double-up chevron)", source: "custom", usedIn: ["CodexFocusNavigator.ts — left of the chapter list"] },
+	{ id: ICON_TRANSPORT_PREVIOUS, label: "Transport: previous chapter (up chevron)", source: "custom", usedIn: ["CodexFocusNavigator.ts — left of the chapter list"] },
+	{ id: ICON_TRANSPORT_NEXT, label: "Transport: next chapter (down chevron)", source: "custom", usedIn: ["CodexFocusNavigator.ts — left of the chapter list"] },
+	{ id: ICON_TRANSPORT_TO_END, label: "Transport: to end (double-down chevron)", source: "custom", usedIn: ["CodexFocusNavigator.ts — left of the chapter list"] },
 	{
 		id: ICON_ADD_CIRCLE,
 		label: "Add (circle, duotone)",
@@ -538,17 +569,34 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 	},
 	{
 		id: ICON_LAYOUT_SELECTOR,
-		label: "Open storyForge interface",
+		label: "Layout selector",
 		source: "custom",
-		usedIn: [
-			"main.ts — ribbon icon (repurposed from the storyLibrary panel's old \"choose layout\" dropdown, now a tab row — see ICON_SERIES's sibling tabs in StoryForgeView.ts)",
-		],
+		usedIn: ["iconRegistry.ts — Codex icon catalog"],
 	},
 	{
 		id: ICON_TAG_EDIT,
-		label: "Open Tags & Codex types",
+		label: "Tag (edit)",
 		source: "custom",
-		usedIn: ["main.ts — ribbon icon"],
+		usedIn: ["iconRegistry.ts — Codex icon catalog"],
+	},
+	{
+		id: ICON_TAG_DUOTONE,
+		label: "Tag (duotone)",
+		source: "custom",
+		usedIn: [
+			"SeriesModal.ts — types, tags, & threads tab hover icon that opens Codex types",
+			"TopPanel.ts — series-pane hover icon that opens Codex types",
+			"BottomPanel.ts — Codex-pane hover icon that opens Codex types",
+		],
+	},
+	{
+		id: ICON_BOOKMARK_DUOTONE,
+		label: "Bookmark (duotone)",
+		source: "custom",
+		usedIn: [
+			"SeriesModal.ts — types, tags, & threads tab hover icon that opens chapter and novel tags",
+			"TopPanel.ts — series-pane hover icon that opens chapter and novel tags",
+		],
 	},
 	{
 		id: ICON_NOTEBOOK,
@@ -564,15 +612,9 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 	},
 	{
 		id: ICON_CONTINUOUS_MODE,
-		label: "Continuous mode (off — click to enter)",
+		label: "Continuous reading mode (reicon carousel-v-duotone; hover colour while active)",
 		source: "custom",
-		usedIn: ["CodexFocusNavigator.ts — transport row's fifth control"],
-	},
-	{
-		id: ICON_CONTINUOUS_MODE_EXIT,
-		label: "Continuous mode (on — click to exit)",
-		source: "custom",
-		usedIn: ["CodexFocusNavigator.ts — transport row's fifth control, while continuous mode is active"],
+		usedIn: ["CodexFocusNavigator.ts — continuous-mode toggle, right of the chapter list"],
 	},
 	{
 		id: ICON_BOOKSHELF,

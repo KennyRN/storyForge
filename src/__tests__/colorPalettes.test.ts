@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	contrastRatio,
 	pickDefaultAccentColor,
+	pickMidToneAccentColor,
 	resolvePaletteAppearance,
 	resolveRowTextColor,
 	type PaletteColor,
@@ -87,5 +88,36 @@ describe("resolvePaletteAppearance", () => {
 
 	it("resolves a preset's variant appearance regardless of the fallback", () => {
 		expect(resolvePaletteAppearance("Dracula", "Dracula", "light")).toBe("dark");
+	});
+});
+
+describe("pickMidToneAccentColor", () => {
+	const NEAR_BLACK: PaletteColor = { name: "Ink", hex: "#111111" };
+	const NEAR_WHITE: PaletteColor = { name: "Paper", hex: "#eeeeee" };
+
+	it("prefers a mid-tone over near-black and near-white accents", () => {
+		const picked = pickMidToneAccentColor(
+			[BLACK, WHITE, NEAR_BLACK, MID_GREY, NEAR_WHITE],
+			BLACK,
+			WHITE,
+		);
+		expect(picked?.hex).toBe(MID_GREY.hex);
+	});
+
+	it("skips already-used mid-tones and takes the next closest", () => {
+		const teal: PaletteColor = { name: "Teal", hex: "#2a9d8f" };
+		const picked = pickMidToneAccentColor(
+			[BLACK, WHITE, MID_GREY, teal],
+			BLACK,
+			WHITE,
+			[MID_GREY.hex],
+		);
+		expect(picked?.hex).toBe(teal.hex);
+	});
+
+	it("never returns the palette's own foreground or background", () => {
+		const picked = pickMidToneAccentColor([BLACK, WHITE, MID_GREY], BLACK, WHITE);
+		expect(picked?.hex).not.toBe(BLACK.hex);
+		expect(picked?.hex).not.toBe(WHITE.hex);
 	});
 });
