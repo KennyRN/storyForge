@@ -4,7 +4,7 @@
  * break out of the scalar and rewrite the document.
  */
 export function yamlQuotedScalar(value: string): string {
-	if (/[\r\n\u0000]/.test(value)) {
+	if (/[\r\n]/.test(value) || value.includes("\0")) {
 		throw new Error("YAML scalar cannot contain newlines or NUL");
 	}
 	return JSON.stringify(value);

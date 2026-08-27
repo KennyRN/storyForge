@@ -295,8 +295,9 @@ export function renderCustomFontCard(
 	extras?: FontCardExtras,
 ): { colorHideEl?: HTMLElement } {
 	const companion = plugin.getFormatCompanion();
-	const hasFont = !!(companion?.listFonts && companion.openFontPicker);
-	if (!hasFont && !colour && !extras?.onSettingEl && !extras?.parent) return {};
+	const listFonts = companion?.listFonts;
+	const openFontPicker = companion?.openFontPicker;
+	if ((!listFonts || !openFontPicker) && !colour && !extras?.onSettingEl && !extras?.parent) return {};
 
 	const card = extras?.parent ? undefined : (group ?? new SettingGroup(body));
 	if (label && card) card.setHeading(label);
@@ -325,7 +326,7 @@ export function renderCustomFontCard(
 		return swatchEl;
 	};
 
-	if (!hasFont) {
+	if (!listFonts || !openFontPicker) {
 		let colorHideEl: HTMLElement | undefined;
 		addSetting((setting) => {
 			setting.settingEl.addClass("sf-font-row");
@@ -338,8 +339,6 @@ export function renderCustomFontCard(
 		});
 		return { colorHideEl };
 	}
-	const listFonts = companion!.listFonts!;
-	const openFontPicker = companion!.openFontPicker!;
 
 	let isOverriding = plugin.getSettings()[overrideFontKey] as boolean;
 	const currentFont = (): FontCatalogEntry | undefined => {
@@ -410,6 +409,14 @@ export function renderCustomFontCard(
 	});
 	applyVisibility();
 	return { colorHideEl };
+}
+
+/** Leaf tab body that scrolls its own catalogue instead of hosting nested tabs.
+ * Tags the body and its wrapper so styles.css can pin the flex/overflow split without `:has()`. */
+export function mountPlainScroll(body: HTMLElement): HTMLElement {
+	body.addClass("sf-ui-format-plain-scroll-host");
+	body.parentElement?.addClass("sf-ui-format-plain-scroll-wrap");
+	return body.createDiv({ cls: "sf-ui-format-plain-scroll" });
 }
 
 export interface StyleModalTab {

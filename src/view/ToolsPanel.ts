@@ -61,7 +61,7 @@ export class ToolsView extends ItemView {
 		if (!this.listEl) return;
 		const doc = this.containerEl.ownerDocument;
 		returnRibbonToWorkspace(doc);
-		const ribbon = resolveWorkspaceRibbon(this.app.workspace.leftRibbon as { containerEl?: HTMLElement }, doc);
+		const ribbon = resolveWorkspaceRibbon(this.app.workspace.leftRibbon, doc);
 		if (!ribbon) {
 			this.replaceList("missing", () => {
 				this.listEl?.createDiv({

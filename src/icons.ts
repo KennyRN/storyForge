@@ -152,21 +152,24 @@ const CHARM_CHEVRON_RIGHT_D = "m5.75 3.75 4.5 4.25-4.5 4.25";
  * true → chevron-right; false → chevron-down. Colour follows `currentColor`. */
 export function setCharmChevronIcon(el: HTMLElement, collapsed: boolean): void {
 	el.empty();
-	const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-	svg.setAttribute("viewBox", "0 0 16 16");
-	svg.setAttribute("width", "16");
-	svg.setAttribute("height", "16");
-	svg.setAttribute("fill", "none");
-	svg.setAttribute("aria-hidden", "true");
-	const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-	path.setAttribute("fill", "none");
-	path.setAttribute("stroke", "currentColor");
-	path.setAttribute("stroke-linecap", "round");
-	path.setAttribute("stroke-linejoin", "round");
-	path.setAttribute("stroke-width", "1.5");
-	path.setAttribute("d", collapsed ? CHARM_CHEVRON_RIGHT_D : CHARM_CHEVRON_DOWN_D);
-	svg.appendChild(path);
-	el.appendChild(svg);
+	el.createSvg("svg", {
+		attr: {
+			viewBox: "0 0 16 16",
+			width: "16",
+			height: "16",
+			fill: "none",
+			"aria-hidden": "true",
+		},
+	}).createSvg("path", {
+		attr: {
+			fill: "none",
+			stroke: "currentColor",
+			"stroke-linecap": "round",
+			"stroke-linejoin": "round",
+			"stroke-width": "1.5",
+			d: collapsed ? CHARM_CHEVRON_RIGHT_D : CHARM_CHEVRON_DOWN_D,
+		},
+	});
 }
 
 /** Codex-focus navigator transport — ReIcon chevrons (double-up / up / down / double-down),

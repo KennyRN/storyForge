@@ -11,7 +11,7 @@ describe("resolveWorkspaceRibbon", () => {
 	it("prefers leftRibbon.containerEl when that node actually holds ribbon actions", () => {
 		const detached = {
 			id: "detached",
-			querySelector: () => ({ id: "action" }),
+			find: () => ({ id: "action" }),
 		} as unknown as HTMLElement;
 		const live = { id: "live" } as unknown as HTMLElement;
 		const doc = { querySelector: () => live } as unknown as Document;
@@ -21,7 +21,7 @@ describe("resolveWorkspaceRibbon", () => {
 	it("falls back to a document query when the API node has no actions", () => {
 		const emptyApi = {
 			id: "api",
-			querySelector: () => null,
+			find: () => null,
 		} as unknown as HTMLElement;
 		const live = { id: "live" } as unknown as HTMLElement;
 		const doc = { querySelector: () => live } as unknown as Document;

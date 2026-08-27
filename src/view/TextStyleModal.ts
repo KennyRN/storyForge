@@ -250,7 +250,7 @@ export class TextStyleModal extends Modal {
 							setting.setDesc(
 								`${EDITOR_SCROLLBAR_THICKNESS_LABELS[idx] ?? "Thick"} — thin · medium · thick. Hover the editor to see the scrollbar.`,
 							);
-							persistAndRestyle(this.plugin, "editorScrollbarThickness", thickness, () =>
+							void persistAndRestyle(this.plugin, "editorScrollbarThickness", thickness, () =>
 								this.plugin.applyEditorScrollbarStyles(),
 							);
 						}),
@@ -284,7 +284,7 @@ export class TextStyleModal extends Modal {
 						slider
 							.setLimits(min, max, 0.1)
 							.setValue(settings[sizeKey] as number)
-							.onChange((value) => persistAndRestyle(this.plugin, sizeKey, value, restyle)),
+							.onChange((value) => void persistAndRestyle(this.plugin, sizeKey, value, restyle)),
 					);
 				});
 				return sliderSetting;
@@ -316,7 +316,7 @@ export class TextStyleModal extends Modal {
 					colorSetting = setting;
 					setting.setName(swatchLabel).addButton((button) =>
 						bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings[colorKey] as string, (hex) =>
-							persistAndRestyle(this.plugin, colorKey, hex, restyle),
+							void persistAndRestyle(this.plugin, colorKey, hex, restyle),
 						),
 					);
 				});

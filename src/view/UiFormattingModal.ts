@@ -6,6 +6,7 @@ import {
 	persistAndRestyle,
 	renderCustomFontCard,
 	renderTabbedBody,
+	mountPlainScroll,
 	type ColorSwatchMutedOption,
 	type StyleModalTab,
 } from "./styleModalHelpers";
@@ -25,8 +26,8 @@ function mutedSwatch(
 ): ColorSwatchMutedOption {
 	return {
 		isActive: active,
-		onSelect: () => persistAndRestyle(plugin, key, true as StoryForgePluginSettings[typeof key], restyle),
-		onClear: () => persistAndRestyle(plugin, key, false as StoryForgePluginSettings[typeof key], restyle),
+		onSelect: () => persistAndRestyle(plugin, key, true, restyle),
+		onClear: () => persistAndRestyle(plugin, key, false, restyle),
 	};
 }
 
@@ -221,7 +222,7 @@ export class UiFormattingModal extends Modal {
 				id: "storytelling",
 				label: "storytelling",
 				render: (body) => {
-					const scroll = body.createDiv({ cls: "sf-ui-format-plain-scroll" });
+					const scroll = mountPlainScroll(body);
 					this.renderStorytellingPanelContent(scroll, settings);
 				},
 			},

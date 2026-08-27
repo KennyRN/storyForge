@@ -43,8 +43,10 @@ export function mountAlignedPreviewColumn(previewEl: HTMLElement, sourcesRoot: H
 		const pane = previewEl.getBoundingClientRect();
 		for (const { source, slot } of slots) {
 			const row = source.getBoundingClientRect();
-			slot.style.top = `${row.top - pane.top}px`;
-			slot.style.height = `${Math.max(row.height, 0)}px`;
+			slot.setCssStyles({
+				top: `${row.top - pane.top}px`,
+				height: `${Math.max(row.height, 0)}px`,
+			});
 			const fullyAbove = row.bottom < pane.top;
 			const fullyBelow = row.top > pane.bottom;
 			slot.toggleClass("sf-settings-hidden", fullyAbove || fullyBelow);
@@ -67,7 +69,7 @@ export function mountAlignedPreviewColumn(previewEl: HTMLElement, sourcesRoot: H
 	observer.observe(previewEl);
 	observer.observe(sourcesRoot);
 	for (const source of sources) observer.observe(source);
-	requestAnimationFrame(() => requestAnimationFrame(layout));
+	window.requestAnimationFrame(() => window.requestAnimationFrame(layout));
 
 	return () => {
 		if (activeRefresh === refresh) activeRefresh = null;

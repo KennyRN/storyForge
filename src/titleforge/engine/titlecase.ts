@@ -83,7 +83,7 @@ function capitaliseWord(word: string): string {
 			const first = segment.match(/[A-Za-z]/);
 			if (!first || first.index === undefined) return segment;
 			const i = first.index;
-			return segment.slice(0, i) + segment[i]!.toUpperCase() + segment.slice(i + 1).toLowerCase();
+			return segment.slice(0, i) + segment[i].toUpperCase() + segment.slice(i + 1).toLowerCase();
 		})
 		.join("-");
 }
@@ -133,7 +133,7 @@ function fixIndefiniteArticles(text: string): string {
 		if (wantAn === isAn) return match;
 		const capital = article[0] === "A";
 		const fixed = wantAn ? "an" : "a";
-		return `${capital ? fixed[0]!.toUpperCase() + fixed.slice(1) : fixed} ${next}`;
+		return `${capital ? fixed[0].toUpperCase() + fixed.slice(1) : fixed} ${next}`;
 	});
 }
 

@@ -101,14 +101,14 @@ export function checkArticleAgreement(spec: GeneratorSpec): string[] {
 		for (const template of pattern.templates) {
 			const tokens = tokenize(template);
 			for (let i = 0; i < tokens.length; i++) {
-				const token = tokens[i]!;
+				const token = tokens[i];
 				if (token.isSlot) continue;
 				if (stripPunctuation(token.text).toLowerCase() !== "the") continue;
 
 				let j = i + 1;
 				let steps = 0;
 				while (j < tokens.length && steps < MAX_LOOKAHEAD) {
-					const next = tokens[j]!;
+					const next = tokens[j];
 					if (next.isSlot) {
 						const cls = classes.get(next.slot!) ?? "empty";
 						if (cls === "articled" || cls === "mixed") {

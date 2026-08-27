@@ -167,7 +167,7 @@ export class TitleForgePanel {
 	 * scope, which never reaches "novels" at all). */
 	private defaultTab(): TitleForgeTab {
 		const order = this.tabOrder();
-		return order.includes("novels") ? "novels" : order[0]!;
+		return order.includes("novels") ? "novels" : order[0];
 	}
 
 	/** The effective series-mode for generation/display: forced on for the "series" tab,
@@ -474,10 +474,8 @@ export class TitleForgePanel {
 	 * generated TitleResult). */
 	private async handleGenerate(): Promise<void> {
 		const isAny = this.generatorId === ANY_TRADITION_ID;
-		const pool = isAny
-			? this.controller.generators.filter((g) => TAB_TRADITIONS[this.activeTab].includes(g.id))
-			: undefined;
-		if (isAny ? pool!.length === 0 : !this.currentSpec()) return;
+		const pool = this.controller.generators.filter((g) => TAB_TRADITIONS[this.activeTab].includes(g.id));
+		if (isAny ? pool.length === 0 : !this.currentSpec()) return;
 
 		const baseOptions = isAny
 			? { genre: "all", family: "all", platform: "all" }
@@ -486,7 +484,8 @@ export class TitleForgePanel {
 
 		try {
 			for (let i = 0; i < this.quantity; i++) {
-				const spec = isAny ? pool![Math.floor(Math.random() * pool!.length)]! : this.currentSpec()!;
+				const spec = isAny ? pool[Math.floor(Math.random() * pool.length)] : this.currentSpec();
+				if (!spec) return;
 				if (this.effectiveSeriesMode()) {
 					const result = generateSeries(spec, {
 						...baseOptions,
@@ -524,7 +523,7 @@ export class TitleForgePanel {
 		);
 		if (index === -1) return;
 		const updated = [...history];
-		updated[index] = { ...updated[index]!, kept: !updated[index]!.kept };
+		updated[index] = { ...updated[index], kept: !updated[index].kept };
 		await this.controller.storage.saveHistory(generatorId, updated);
 		if (generatorId === this.generatorId) this.history = updated;
 		if (this.activeTab === "kept") await this.loadKeptEntries();

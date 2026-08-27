@@ -124,8 +124,9 @@
 }
 
 /* Divider only when Codex sits underneath (Chapter tab). On Series/Novel the library is the last
- * pane, and this border was the stray line part-way down under unplaced novels/chapters. */
-.sf-top-panel:has(+ .sf-bottom-panel) {
+ * pane, and this border was the stray line part-way down under unplaced novels/chapters.
+ * Applied in JS when both panes exist, rather than inferring from sibling structure. */
+.sf-top-panel.sf-top-panel--above-codex {
 	border-bottom: 1px solid var(--background-modifier-border);
 }
 
@@ -2049,14 +2050,14 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	min-height: 0;
 }
 
-.modal.sf-ui-formatting-modal .sf-text-style-tab-body:has(> .sf-ui-format-plain-scroll) {
+.modal.sf-ui-formatting-modal .sf-text-style-tab-body.sf-ui-format-plain-scroll-host {
 	flex: 1;
 	min-height: 0;
 	gap: 0;
 	overflow: hidden;
 }
 
-.modal.sf-ui-formatting-modal .sf-text-style-tab-body-wrapper:has(> .sf-text-style-tab-body > .sf-ui-format-plain-scroll) {
+.modal.sf-ui-formatting-modal .sf-text-style-tab-body-wrapper.sf-ui-format-plain-scroll-wrap {
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
@@ -2572,8 +2573,8 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 .sf-codex-folder-header:hover .sf-codex-chevron {
 	color: var(--sf-codex-highlight-text);
 }
-.sf-codex-folder:has(> .sf-codex-folder-children > .sf-codex-folder-indicator) > .sf-codex-folder-header.sf-row-selected::after,
-.sf-codex-folder:has(> .sf-codex-folder-children > .sf-codex-folder-indicator) > .sf-codex-folder-header:hover::after {
+.sf-codex-folder.sf-codex-folder--with-indicator > .sf-codex-folder-header.sf-row-selected::after,
+.sf-codex-folder.sf-codex-folder--with-indicator > .sf-codex-folder-header:hover::after {
 	content: "";
 	position: absolute;
 	top: calc(50% + 4px);
@@ -2879,11 +2880,14 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 
 /* RecommendationView.ts's renderNovel() host — see its own doc comment: exists only so
  * renderNovelPanel()'s unconditional container.empty() can't wipe out the tabs row built into its
- * parent right before it. `display: contents` removes this element from layout entirely, so the
- * .sf-recommend-body renderNovelPanel builds inside it still behaves as a direct flex child of
- * .sf-recommend-view for the fixed/scroll split's sizing to work. */
+ * parent right before it. Nested flex (not `display: contents`) so this host takes the remaining
+ * column height and `.sf-recommend-body` inside it still gets the fixed/scroll split's sizing. */
 .sf-recommend-novel-host {
-	display: contents;
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
 }
 
 .sf-recommend-body {
@@ -4346,8 +4350,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	display: grid;
 	grid-template-columns: auto 1fr;
 	grid-template-rows: auto auto;
-	column-gap: 0;
-	row-gap: 0;
+	gap: 0;
 	margin: 4px;
 	padding: 0;
 	background: var(--background-secondary);

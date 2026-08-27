@@ -59,7 +59,7 @@ export function weightedPick<T>(
 	if (total <= 0) return pick(rng, items);
 	let roll = rng.next() * total;
 	for (let i = 0; i < items.length; i++) {
-		roll -= weights[i]!;
+		roll -= weights[i];
 		if (roll <= 0) return items[i];
 	}
 	return items[items.length - 1];

@@ -688,9 +688,9 @@ export class RecommendationView extends ItemView {
 		// renderNovelPanel() unconditionally empties whatever container it's given (correct for
 		// NovelOverviewView.ts, which owns its whole page) — `el` here already has the tabs row
 		// built into it above, so it can't be passed directly or that row would be wiped out the
-		// instant this runs. A dedicated `display: contents` host isolates renderNovelPanel's own
-		// `.empty()` to just its own children while still laying its content out as if it were a
-		// direct flex child of `el` (its fixed/scroll split needs that to size correctly).
+		// instant this runs. A dedicated nested-flex host isolates renderNovelPanel's own
+		// `.empty()` to just its own children while still giving its content the remaining column
+		// height (its fixed/scroll split needs that to size correctly).
 		const host = el.createDiv({ cls: "sf-recommend-novel-host" });
 		renderNovelPanel(this.app, host, {
 			bookFolderName: this.bookFolderName,
@@ -734,11 +734,13 @@ export class RecommendationView extends ItemView {
 		card.setCssStyles({ boxShadow: `inset 0 0 0 2px ${rowColor.background}` });
 		// On the body (not only the card) so the action-icon hover below the card can
 		// use the same chapter colour as in-card highlights.
-		body.style.setProperty("--sf-plot-card-header-bg", rowColor.background);
-		body.style.setProperty("--sf-plot-card-header-fg", rowColor.text);
+		body.setCssProps({
+			"--sf-plot-card-header-bg": rowColor.background,
+			"--sf-plot-card-header-fg": rowColor.text,
+		});
 		nameEl.setCssStyles({ color: rowColor.text });
 		const openTitleModal = () =>
-			new ChapterTitleModal(this.app, this.plugin, bookFolderName, chapterFilename, () => this.reload()).open();
+			new ChapterTitleModal(this.app, this.plugin, bookFolderName, chapterFilename, () => void this.reload()).open();
 		nameEl.addEventListener("click", openTitleModal);
 		makeAccessibleActivatable(nameEl, openTitleModal);
 
@@ -751,8 +753,8 @@ export class RecommendationView extends ItemView {
 			});
 			textarea.value = this.synopsisDraft;
 			const resizeToContent = () => {
-				textarea.style.height = "auto";
-				textarea.style.height = `${textarea.scrollHeight}px`;
+				textarea.setCssStyles({ height: "auto" });
+				textarea.setCssStyles({ height: `${textarea.scrollHeight}px` });
 			};
 			textarea.addEventListener("input", () => {
 				this.synopsisDraft = textarea.value;

@@ -1,6 +1,6 @@
 import { SettingGroup } from "obsidian";
 import type StoryForgePlugin from "../main";
-import { renderCustomFontCard } from "./styleModalHelpers";
+import { mountPlainScroll, renderCustomFontCard } from "./styleModalHelpers";
 import {
 	LOREM_PHRASES,
 	chromeCatalog,
@@ -44,7 +44,7 @@ function renderFontRow(
 
 /** Font-only catalogue for the interface modal's Text tab. Colours and size are previewed, not picked. */
 export function renderInterfaceFontsTab(body: HTMLElement, plugin: StoryForgePlugin): void {
-	const scroll = body.createDiv({ cls: "sf-ui-format-plain-scroll" });
+	const scroll = mountPlainScroll(body);
 	let sampleIndex = 0;
 	for (const section of chromeCatalog(plugin)) {
 		const group = new SettingGroup(scroll);

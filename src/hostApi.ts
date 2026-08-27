@@ -18,7 +18,7 @@
  * modal-style sibling UIs (e.g. nameForge) to the right rail.
  */
 
-import type { App, ViewCreator } from "obsidian";
+import type { ViewCreator } from "obsidian";
 import {
 	listSettingsExportsInBackups,
 	readSettingsExportFromBackups,

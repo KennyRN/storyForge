@@ -10,6 +10,7 @@ import {
 	type ChromeRow,
 } from "./interfaceChromeCatalog";
 import { markAlignedPreview } from "./rowAlignedPreview";
+import { mountPlainScroll } from "./styleModalHelpers";
 
 function bindSizeSlider(
 	setting: Setting,
@@ -34,7 +35,7 @@ function bindSizeSlider(
 
 /** Size-only catalogue for the interface modal's Size tab. Font and colour are previewed, not picked. */
 export function renderInterfaceSizesTab(body: HTMLElement, plugin: StoryForgePlugin): void {
-	const scroll = body.createDiv({ cls: "sf-ui-format-plain-scroll" });
+	const scroll = mountPlainScroll(body);
 	let sampleIndex = 0;
 	for (const section of chromeCatalog(plugin)) {
 		const group = new SettingGroup(scroll);
