@@ -11,9 +11,11 @@ import {
 	readPlotThreads,
 	renamePlotThread,
 	reorderPlotThreads,
+	replacePlotThreads,
 	seedMainThread,
 	setPlotThreadColor,
 	setPlotThreadTextColor,
+	setPlotThreadUse,
 } from "../plotThreads";
 import { BACKSTAGE_ROOT, plotThreadsFilePath } from "../paths";
 import { collectPlotLines, plotThreadLineKey, resolveMainThreadRowColor } from "../view/novelColor";
@@ -184,6 +186,26 @@ describe("plot thread CRUD", () => {
 		]);
 	});
 
+	it("hides a thread from used lists when use is unchecked", async () => {
+		const { app, frontmatter } = makeFakeApp(true, {
+			"plot-threads": [
+				{ id: MAIN_THREAD_ID, label: MAIN_THREAD_LABEL, color: MAIN_THREAD_FALLBACK_COLOR },
+				{ id: "romance", label: "Romance", color: "#4a90d9" },
+			],
+		});
+		await setPlotThreadUse(app, "romance", false);
+		expect(readPlotThreads(app)).toEqual([
+			{ id: MAIN_THREAD_ID, label: MAIN_THREAD_LABEL, color: MAIN_THREAD_FALLBACK_COLOR },
+			{ id: "romance", label: "Romance", color: "#4a90d9", use: false },
+		]);
+		expect(frontmatter["plot-threads"]).toEqual([
+			{ id: MAIN_THREAD_ID, label: MAIN_THREAD_LABEL, color: MAIN_THREAD_FALLBACK_COLOR },
+			{ id: "romance", label: "Romance", color: "#4a90d9", use: false },
+		]);
+		await setPlotThreadUse(app, "romance", true);
+		expect(readPlotThreads(app)[1].use).toBeUndefined();
+	});
+
 	it("keeps a stored text colour when parsing", () => {
 		const { app } = makeFakeApp(true, {
 			"plot-threads": [
@@ -265,6 +287,34 @@ describe("collectPlotLines", () => {
 			key: plotThreadLineKey(MAIN_THREAD_ID),
 			color: "#c41e3a",
 		});
+	});
+
+	it("skips unused threads as if they were not in the registry", () => {
+		const { app } = makeFakeApp(true, {
+			"plot-threads": [
+				{ id: MAIN_THREAD_ID, label: "main thread", color: "#c41e3a", use: false },
+				{ id: "romance", label: "Romance", color: "#4a90d9" },
+			],
+		});
+		expect(collectPlotLines(app, "BookA", gutterSettings)).toEqual([
+			{ key: plotThreadLineKey("romance"), color: "#4a90d9" },
+		]);
+	});
+});
+
+describe("replacePlotThreads", () => {
+	it("keeps the current main thread when the payload omits it", async () => {
+		const { app } = makeFakeApp(true, {
+			"plot-threads": [
+				{ id: MAIN_THREAD_ID, label: MAIN_THREAD_LABEL, color: "#c41e3a" },
+				{ id: "old", label: "Old", color: "#111111" },
+			],
+		});
+		const { entries } = await replacePlotThreads(app, [
+			{ id: "romance", label: "Romance", color: "#4a90d9", textColor: "#ffffff" },
+		]);
+		expect(entries.map((e) => e.id)).toEqual([MAIN_THREAD_ID, "romance"]);
+		expect(entries[0].color).toBe("#c41e3a");
 	});
 });
 

@@ -119,6 +119,52 @@ export function confirmAction(
 	});
 }
 
+class ReplaceOrAddModal extends Modal {
+	private settled = false;
+
+	constructor(
+		app: App,
+		private readonly heading: string,
+		private readonly message: string,
+		private readonly resolve: (value: "replace" | "add" | null) => void,
+	) {
+		super(app);
+	}
+
+	onOpen(): void {
+		this.titleEl.setText(this.heading);
+		this.contentEl.createEl("p", { text: this.message });
+		new Setting(this.contentEl)
+			.addButton((button) => button.setButtonText("cancel").onClick(() => this.finish(null)))
+			.addButton((button) =>
+				button.setButtonText("add afterwards").onClick(() => this.finish("add")),
+			)
+			.addButton((button) =>
+				button.setButtonText("replace").setDestructive().setCta().onClick(() => this.finish("replace")),
+			);
+	}
+
+	onClose(): void {
+		if (!this.settled) this.resolve(null);
+	}
+
+	private finish(value: "replace" | "add" | null): void {
+		this.settled = true;
+		this.resolve(value);
+		this.close();
+	}
+}
+
+export function promptReplaceOrAdd(
+	app: App,
+	heading: string,
+	message: string,
+): Promise<"replace" | "add" | null> {
+	return new Promise((resolve) => {
+		new ReplaceOrAddModal(app, heading, message, resolve).open();
+	});
+}
+
 export function promptForName(app: App, heading: string, initialValue: string): Promise<string | null> {
 	return new Promise((resolve) => {
 		new NamePromptModal(app, heading, initialValue, resolve).open();

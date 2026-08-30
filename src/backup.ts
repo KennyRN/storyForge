@@ -59,6 +59,12 @@ export function formatStoryForgeSettingsExportFilename(when: Date): string {
 	return `${datePart}-${timePart} - storyForge settings.json`;
 }
 
+export function formatTypesTagsExportFilename(when: Date): string {
+	const datePart = `${when.getFullYear()}${pad(when.getMonth() + 1)}${pad(when.getDate())}`;
+	const timePart = `${pad(when.getHours())}${pad(when.getMinutes())}${pad(when.getSeconds())}`;
+	return `${datePart}-${timePart} - types & tags settings.json`;
+}
+
 /**
  * Never written to disk — a synthetic key so every settings export shares one
  * `enqueueBackstageWrite` serialization lane. That's what stops two concurrent exports
@@ -113,6 +119,64 @@ export async function writeStoryForgeSettingsExportToBackups(
 		formatStoryForgeSettingsExportFilename(when),
 		content,
 	);
+}
+
+/** Saves a types & tags settings document beside other vault-local backups. */
+export async function writeTypesTagsExportToBackups(
+	app: App,
+	content: string,
+	when: Date = new Date(),
+): Promise<string> {
+	return writeUniqueSettingsExport(
+		app,
+		formatTypesTagsExportFilename(when),
+		content,
+	);
+}
+
+export function formatPlotThreadsExportFilename(when: Date): string {
+	const datePart = `${when.getFullYear()}${pad(when.getMonth() + 1)}${pad(when.getDate())}`;
+	const timePart = `${pad(when.getHours())}${pad(when.getMinutes())}${pad(when.getSeconds())}`;
+	return `${datePart}-${timePart} - plot threads settings.json`;
+}
+
+export function formatPreferencesExportFilename(when: Date): string {
+	const datePart = `${when.getFullYear()}${pad(when.getMonth() + 1)}${pad(when.getDate())}`;
+	const timePart = `${pad(when.getHours())}${pad(when.getMinutes())}${pad(when.getSeconds())}`;
+	return `${datePart}-${timePart} - preferences settings.json`;
+}
+
+export function formatCompleteExportFilename(when: Date): string {
+	const datePart = `${when.getFullYear()}${pad(when.getMonth() + 1)}${pad(when.getDate())}`;
+	const timePart = `${pad(when.getHours())}${pad(when.getMinutes())}${pad(when.getSeconds())}`;
+	return `${datePart}-${timePart} - complete settings.json`;
+}
+
+/** Saves a complete settings document beside other vault-local backups. */
+export async function writeCompleteExportToBackups(
+	app: App,
+	content: string,
+	when: Date = new Date(),
+): Promise<string> {
+	return writeUniqueSettingsExport(app, formatCompleteExportFilename(when), content);
+}
+
+/** Saves a preferences settings document beside other vault-local backups. */
+export async function writePreferencesExportToBackups(
+	app: App,
+	content: string,
+	when: Date = new Date(),
+): Promise<string> {
+	return writeUniqueSettingsExport(app, formatPreferencesExportFilename(when), content);
+}
+
+/** Saves a plot-threads settings document beside other vault-local backups. */
+export async function writePlotThreadsExportToBackups(
+	app: App,
+	content: string,
+	when: Date = new Date(),
+): Promise<string> {
+	return writeUniqueSettingsExport(app, formatPlotThreadsExportFilename(when), content);
 }
 
 export interface SettingsExportFile {

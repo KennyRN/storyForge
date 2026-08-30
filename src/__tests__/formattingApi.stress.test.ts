@@ -3,8 +3,8 @@
  * Uses a lightweight fake plugin host — avoids importing Plugin subclasses.
  */
 import { describe, expect, it, vi } from "vitest";
-import { createHostApi, STORYFORGE_API_VERSION } from "../hostApi";
-import type { FormatCompanionRegistration, SfLinkedFormattingKey } from "../formattingApi";
+import { createHostApi, LINKED_FORMATTING_KEYS, STORYFORGE_API_VERSION } from "../hostApi";
+import { teardownFormatCompanion, type FormatCompanionRegistration, type SfLinkedFormattingKey } from "../formattingApi";
 import type StoryForgePlugin from "../main";
 import { PALETTE_NAMES } from "../colorPalettes";
 
@@ -378,13 +378,13 @@ function makeFakePlugin() {
 }
 
 describe("formatting API stress", () => {
-	it("exposes API version 8 with managed presets and batched updates", () => {
+	it("exposes API version 9 with managed presets, batched updates, and teardown", () => {
 		const plugin = makeFakePlugin();
 		const api = createHostApi(plugin);
-		expect(STORYFORGE_API_VERSION).toBe(8);
-		expect(api.version).toBe(8);
+		expect(STORYFORGE_API_VERSION).toBe(9);
+		expect(api.version).toBe(9);
 		expect(api.formatting).toBeDefined();
-		expect(api.formatting.version).toBe(8);
+		expect(api.formatting.version).toBe(9);
 		expect(api.formatting.isCompanionActive()).toBe(false);
 		expect(api.formatting.updateLinkedSettings).toBeTypeOf("function");
 		expect(api.formatting.saveFormattingExport).toBeTypeOf("function");
@@ -427,7 +427,8 @@ describe("formatting API stress", () => {
 		const api = createHostApi(plugin);
 		const linked = api.formatting.getLinkedSettings();
 		const keys = Object.keys(linked) as SfLinkedFormattingKey[];
-		expect(keys.length).toBeGreaterThan(80);
+		expect(keys.length).toBe(LINKED_FORMATTING_KEYS.length);
+		expect(keys).toEqual([...LINKED_FORMATTING_KEYS]);
 
 		for (let round = 0; round < 5; round++) {
 			for (const key of keys) {
@@ -465,6 +466,13 @@ describe("formatting API stress", () => {
 		).rejects.toThrow("recommendTabsFontWeight");
 		expect(api.formatting.getLinkedSettings()).toEqual(snapshot);
 		expect(plugin._debug.applyLinkedCalls).toBe(beforeCalls + 1);
+
+		await expect(api.formatting.updateLinkedSetting("bodyTextSize", 0)).rejects.toThrow(
+			"bodyTextSize",
+		);
+		await expect(api.formatting.updateLinkedSetting("bodyTextSize", 11)).rejects.toThrow(
+			"bodyTextSize",
+		);
 	});
 
 	it("rejects unknown linked keys", async () => {
@@ -574,5 +582,51 @@ describe("formatting API stress", () => {
 		for (const key of Object.keys(linked)) {
 			expect(key in defaults).toBe(true);
 		}
+	});
+
+	it("types getLinkedSetting by key", () => {
+		const plugin = makeFakePlugin();
+		const api = createHostApi(plugin);
+		const size: number = api.formatting.getLinkedSetting("bodyTextSize");
+		const flag: boolean = api.formatting.getLinkedSetting("bodyTextOverrideSize");
+		const name: string = api.formatting.getLinkedSetting("colorPaletteName");
+		expect(typeof size).toBe("number");
+		expect(typeof flag).toBe("boolean");
+		expect(typeof name).toBe("string");
+	});
+
+	it("teardownFormatCompanion snapshots, strips styles, then notifies the companion", () => {
+		const plugin = makeFakePlugin();
+		const api = createHostApi(plugin);
+		const order: string[] = [];
+		const disconnect = vi.fn((linked: Record<SfLinkedFormattingKey, unknown>) => {
+			order.push("disconnect");
+			expect(linked.bodyTextSize).toBe(1);
+		});
+		const unreg = api.formatting.registerCompanion({
+			pluginId: "formatforge",
+			version: 1,
+			onHostDisconnect: disconnect,
+		});
+		expect(api.formatting.isCompanionActive()).toBe(true);
+
+		teardownFormatCompanion({
+			getCompanion: () => api.formatting.getCompanion(),
+			getLinkedSettings: () => {
+				order.push("snapshot");
+				return api.formatting.getLinkedSettings();
+			},
+			forgetCompanion: () => {
+				order.push("forget");
+				unreg();
+			},
+			clearHostStyles: () => {
+				order.push("clear");
+			},
+		});
+
+		expect(order).toEqual(["snapshot", "forget", "clear", "disconnect"]);
+		expect(disconnect).toHaveBeenCalledTimes(1);
+		expect(api.formatting.isCompanionActive()).toBe(false);
 	});
 });

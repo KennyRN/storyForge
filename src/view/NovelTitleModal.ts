@@ -13,7 +13,7 @@ import { ICON_DICE } from "../icons";
  * (SeriesOverviewView.ts's renderNovelRow) — that row now shows the title as plain formatted text
  * (numbered, subtitle in parentheses) rather than an editable box, so renaming moved here: the
  * text input that used to sit inline in the row, the "#"/"//" hint that used to sit on the
- * overview page itself, and a shortcut into titleForge's real generator (the dual-dice icon,
+ * overview page itself, and a shortcut into titleForge's real generator (the filled two-dice icon,
  * opened as its own modal window via TitleForgeController.openModal() — see TitleForgeModal.ts —
  * rather than swapping this whole modal for a main-area tab) for when a name doesn't come to mind
  * unaided.
@@ -26,8 +26,7 @@ import { ICON_DICE } from "../icons";
  * (writeSeriesBookColor) is the only thing that ever persists a colour for this novel.
  *
  * The dice icon sits inline at the end of the title box itself (not below it) — `ICON_DICE`, the
- * same glyph titleForge's own "Generate" button (TitleForgePanel.ts) uses, rather than
- * ICON_DICE_DUAL (SeriesTitleModal.ts's own trigger, unchanged). Pressing Enter in the title box
+ * filled two-dice glyph every titleForge generate control uses. Pressing Enter in the title box
  * commits the rename (bindTextCommit's own blur-triggered commit, unaffected) and then closes this
  * modal — every other bindTextCommit field (SeriesModal's book rows, SeriesOverviewView's inline
  * fields) just settles in place on Enter, so that close() is this modal's own added listener, not a

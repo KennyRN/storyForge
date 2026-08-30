@@ -1,5 +1,9 @@
 # storyForge full-codebase audit — 2026-08-05
 
+> Historical snapshot of 2026-08-05. Formatting-API status lives in
+> [`formatforge-host-api.md`](./formatforge-host-api.md). The 197-key count and
+> several P1s in this file are stale.
+
 Fresh full pass over `src/` (~28k non-test lines across ~85 modules), `styles.css`, `manifest.json`, `package.json`, `sync-formatting-contract.mjs`, and the July 9 [`AUDIT.md`](../AUDIT.md). New areas since July (settings presets/transfer, backup hardening, API v8, Protections themes, RecommendationView, pop-outs) are included.
 
 Method: live source + call-site re-verification. **229 / 229 tests passing** at audit time. Not a vault soak.

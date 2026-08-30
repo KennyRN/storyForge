@@ -30,6 +30,8 @@ export interface PlotThread {
 	color: string;
 	/** `#rrggbb` for text drawn on `color`. Omitted on older files — callers contrast-resolve. */
 	textColor?: string;
+	/** When false, the thread is hidden from pickers, the plot pill, and gutters. Omitted means used. */
+	use?: boolean;
 }
 
 export function seedMainThread(color: string = MAIN_THREAD_FALLBACK_COLOR, textColor?: string): PlotThread {
@@ -47,6 +49,7 @@ interface RawPlotThread {
 	label?: unknown;
 	color?: unknown;
 	textColor?: unknown;
+	use?: unknown;
 }
 
 /** The raw, dash-cased on-disk shape of plot-threads.md's frontmatter. */
@@ -56,17 +59,30 @@ export interface RawPlotThreadsFrontmatter extends FrontMatterCache {
 
 export const DEFAULT_PLOT_THREADS_CONTENT = `---\nplot-threads: []\n---\n`;
 
-function toRaw(entry: PlotThread): { id: string; label: string; color: string; textColor?: string } {
-	const raw: { id: string; label: string; color: string; textColor?: string } = {
+function toRaw(entry: PlotThread): {
+	id: string;
+	label: string;
+	color: string;
+	textColor?: string;
+	use?: boolean;
+} {
+	const raw: {
+		id: string;
+		label: string;
+		color: string;
+		textColor?: string;
+		use?: boolean;
+	} = {
 		id: entry.id,
 		label: entry.label,
 		color: entry.color,
 	};
 	if (entry.textColor) raw.textColor = entry.textColor;
+	if (entry.use === false) raw.use = false;
 	return raw;
 }
 
-function parsePlotThreads(raw: unknown): PlotThread[] {
+export function parsePlotThreads(raw: unknown): PlotThread[] {
 	if (!Array.isArray(raw)) return [];
 	const result: PlotThread[] = [];
 	for (const value of raw) {
@@ -78,6 +94,7 @@ function parsePlotThreads(raw: unknown): PlotThread[] {
 		const label = typeof entry.label === "string" ? entry.label : id;
 		const parsed: PlotThread = { id, label, color: entry.color };
 		if (isPlotThreadColor(entry.textColor)) parsed.textColor = entry.textColor;
+		if (entry.use === false) parsed.use = false;
 		result.push(parsed);
 	}
 	return result;
@@ -98,6 +115,27 @@ export function readPlotThreads(app: App): PlotThread[] {
 
 export function getPlotThread(app: App, id: string): PlotThread | null {
 	return readPlotThreads(app).find((t) => t.id === id) ?? null;
+}
+
+/** Omitted `use` is treated as enabled so older plot-threads.md files keep working. */
+export function isPlotThreadUsed(thread: PlotThread): boolean {
+	return thread.use !== false;
+}
+
+export function readUsedPlotThreads(app: App): PlotThread[] {
+	return readPlotThreads(app).filter(isPlotThreadUsed);
+}
+
+/** First enabled thread, preferring the default main thread. Null when every thread is unused. */
+export function getDefaultPlotThread(app: App): PlotThread | null {
+	const threads = readUsedPlotThreads(app);
+	return threads.find((thread) => thread.id === MAIN_THREAD_ID) ?? threads[0] ?? null;
+}
+
+/** Like getPlotThread, but unused threads are treated as missing. */
+export function getSelectablePlotThread(app: App, id: string): PlotThread | null {
+	const thread = getPlotThread(app, id);
+	return thread && isPlotThreadUsed(thread) ? thread : null;
 }
 
 /** Idempotent: creates plot-threads.md seeded with "main thread" if it doesn't exist yet, and
@@ -151,6 +189,7 @@ export async function addPlotThread(
 	label: string,
 	color: string,
 	textColor?: string,
+	use = true,
 ): Promise<{ id: string } & PlotThreadMutationResult> {
 	const trimmed = label.trim();
 	if (!trimmed) throw new Error("addPlotThread: label is required");
@@ -161,6 +200,7 @@ export async function addPlotThread(
 		newId = mintId(trimmed, current.map((e) => e.id));
 		const next: PlotThread = { id: newId, label: trimmed, color };
 		if (textColor) next.textColor = textColor;
+		if (!use) next.use = false;
 		return [...current, next];
 	});
 	return { id: newId, entries };
@@ -191,6 +231,19 @@ export async function setPlotThreadTextColor(app: App, id: string, textColor: st
 	return { entries };
 }
 
+export async function setPlotThreadUse(app: App, id: string, use: boolean): Promise<PlotThreadMutationResult> {
+	const entries = await mutatePlotThreads(app, (current) =>
+		current.map((e) => {
+			if (e.id !== id) return e;
+			const next = { ...e };
+			if (use) delete next.use;
+			else next.use = false;
+			return next;
+		}),
+	);
+	return { entries };
+}
+
 /** Removes `id` from the registry only — any chapter still referencing it keeps the raw id
  * untouched (non-destructive, same as deleteTagDefinition). No-ops for the default main thread
  * (see MAIN_THREAD_ID) — UI surfaces should already hide its delete affordance. */
@@ -217,6 +270,18 @@ export async function reorderPlotThreads(app: App, newIdOrder: string[]): Promis
 			if (byId.has(leftover.id)) reordered.push(leftover);
 		}
 		return reordered;
+	});
+	return { entries };
+}
+
+/** Replaces the registry with `threads`. The default main thread is kept if the payload omits it. */
+export async function replacePlotThreads(app: App, threads: PlotThread[]): Promise<PlotThreadMutationResult> {
+	const entries = await mutatePlotThreads(app, (current) => {
+		const importedMain = threads.find((entry) => entry.id === MAIN_THREAD_ID);
+		const currentMain = current.find((entry) => entry.id === MAIN_THREAD_ID);
+		const rest = threads.filter((entry) => entry.id !== MAIN_THREAD_ID);
+		const main = importedMain ?? currentMain ?? seedMainThread();
+		return [main, ...rest];
 	});
 	return { entries };
 }

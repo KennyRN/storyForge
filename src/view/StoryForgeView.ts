@@ -362,8 +362,17 @@ export class StoryForgeView extends ItemView {
 					this.render();
 				},
 				onOpenFile: (path) => void this.openCodexFile(path),
-				onOpenCodexTypes: () =>
-					new TagRegistryModal(this.app, () => this.plugin.refreshStoryForgeViews(), "codexTypes").open(),
+				// Codex-types corner lives on the dedicated Codex layout only — not the Chapter
+				// layout's Codex subpane (or any other layout that merely embeds Codex).
+				onOpenCodexTypes:
+					this.layout === "codex"
+						? () =>
+								new TagRegistryModal(
+									this.app,
+									() => this.plugin.refreshStoryForgeViews(),
+									"codexTypes",
+								).open()
+						: undefined,
 			});
 		}
 

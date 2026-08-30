@@ -16,6 +16,11 @@ import type { PaletteColor, PaletteName } from "./colorPalettes";
 export type SfLinkedFormattingKey =
 	(typeof import("./hostApi").LINKED_FORMATTING_KEYS)[number];
 
+/** Linked-key snapshot: each key is typed from `StoryForgePluginSettings`. */
+export type LinkedFormattingValues = {
+	[K in SfLinkedFormattingKey]: import("./main").StoryForgePluginSettings[K];
+};
+
 export type FontResolveResult = {
 	family: string;
 	variation: string | null;
@@ -74,6 +79,12 @@ export interface FormatCompanionRegistration {
 	openThemesModal?: () => void;
 	/** After storyForge reapplies linked styles (so companion can refresh editor/font vars). */
 	onHostStylesApplied?: () => void;
+	/**
+	 * Host API v9: storyForge is unloading. Called after `--sf-*` vars have been stripped
+	 * so the companion can restyle from its local copy. `linked` is a snapshot taken while
+	 * the host was still alive. Optional so older companions ignore it and rely on the poll.
+	 */
+	onHostDisconnect?: (linked: LinkedFormattingValues) => void;
 	/** Resolve a font id + weight into CSS font-family / font-variation-settings values. */
 	resolveFont?: (familyId: string, weight: number) => FontResolveResult | null;
 	/** Register embedded @font-face / FontFace entries into `doc` (idempotent). */
@@ -82,6 +93,44 @@ export interface FormatCompanionRegistration {
 	listFonts?: () => FontCatalogEntry[];
 	/** Open formatForge's own font-picker modal, scoped to one host field. */
 	openFontPicker?: (opts: OpenFontPickerOptions) => void;
+	/**
+	 * Snapshot of formatForge-owned settings for a complete pack. Merged into the same
+	 * `settings` object as storyForge keys; storyForge ignores keys it does not own.
+	 * Optional so an older companion is skipped and those keys are simply absent.
+	 */
+	exportLocalSettings?: () => Record<string, unknown>;
+	/**
+	 * Apply formatForge-owned keys from a complete pack. Unknown keys are ignored, so the
+	 * same settings object can be handed to storyForge and formatForge.
+	 */
+	importLocalSettings?: (data: Record<string, unknown>) => Promise<void>;
+}
+
+/**
+ * Host-unload sequence: snapshot linked settings, drop the companion pointer,
+ * strip `--sf-*` vars, then notify. formatForge restyles after the strip so
+ * editor typography does not vanish for a keepalive-poll interval.
+ */
+export function teardownFormatCompanion(opts: {
+	getCompanion: () => FormatCompanionRegistration | null;
+	getLinkedSettings: () => LinkedFormattingValues;
+	forgetCompanion: () => void;
+	clearHostStyles: () => void;
+}): void {
+	const companion = opts.getCompanion();
+	let snapshot = {} as LinkedFormattingValues;
+	try {
+		snapshot = opts.getLinkedSettings();
+	} catch {
+		/* settings already gone */
+	}
+	opts.forgetCompanion();
+	opts.clearHostStyles();
+	try {
+		companion?.onHostDisconnect?.(snapshot);
+	} catch {
+		/* companion errors must not break host unload */
+	}
 }
 
 export interface StoryForgeFormattingApi {
@@ -101,8 +150,8 @@ export interface StoryForgeFormattingApi {
 	 */
 	registerCompanion(reg: FormatCompanionRegistration): () => void;
 	/** Snapshot of SF-persisted formatting-related settings. */
-	getLinkedSettings(): Record<SfLinkedFormattingKey, unknown>;
-	getLinkedSetting<K extends SfLinkedFormattingKey>(key: K): unknown;
+	getLinkedSettings(): LinkedFormattingValues;
+	getLinkedSetting<K extends SfLinkedFormattingKey>(key: K): LinkedFormattingValues[K];
 	updateLinkedSetting(key: SfLinkedFormattingKey, value: unknown): Promise<void>;
 	/**
 	 * API v8: validate the complete patch before writing, persist once, then
@@ -143,6 +192,7 @@ export interface StoryForgeFormattingApi {
 	/** Read one discovered formatForge preset. */
 	readFormattingPreset(path: string): Promise<string>;
 	renameFormattingPreset(path: string, newName: string, overwrite?: boolean): Promise<{ path: string; name: string }>;
+	/** Move a named theme into `_backstage/storyforge/settings/archived-settings/`. */
 	deleteFormattingPreset(path: string): Promise<void>;
 	/**
 	 * Contribute UI into a storyForge view slot. `render` mounts into the provided

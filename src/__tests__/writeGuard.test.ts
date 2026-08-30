@@ -5,6 +5,7 @@ import {
 	normalizeVaultPath,
 	writeBackstageFile,
 	writeBackupText,
+	writeExportText,
 } from "../writeGuard";
 import { BACKSTAGE_ROOT, LIBRARY_ROOT, TITLEFORGE_BACKSTAGE_ROOT, bookFilePath, libraryChapterPath, seriesFilePath } from "../paths";
 import { makeTFile } from "./obsidianStub";
@@ -143,6 +144,34 @@ describe("writeBackupText", () => {
 
 		await expect(
 			writeBackupText(vault, "_sf-backup/../Codex/settings.json", "{}"),
+		).rejects.toBeInstanceOf(ForbiddenWriteError);
+	});
+});
+
+describe("writeExportText", () => {
+	it("creates text exports only under _export/", async () => {
+		const created: string[] = [];
+		const folders = new Set<string>();
+		const vault = {
+			getAbstractFileByPath: (path: string) => (folders.has(path) ? { path } : null),
+			create: async (path: string) => {
+				created.push(path);
+				return makeTFile(path);
+			},
+			modify: async () => undefined,
+			createFolder: async (path: string) => {
+				folders.add(path);
+			},
+		} as unknown as Vault;
+
+		await writeExportText(vault, "_export/2026-08-28 - Cast.json", "{}");
+		expect(created).toEqual(["_export/2026-08-28 - Cast.json"]);
+
+		await expect(
+			writeExportText(vault, "_export/nested/Cast.json", "{}"),
+		).rejects.toBeInstanceOf(ForbiddenWriteError);
+		await expect(
+			writeExportText(vault, "_export/../Codex/settings.json", "{}"),
 		).rejects.toBeInstanceOf(ForbiddenWriteError);
 	});
 });
