@@ -146,7 +146,7 @@ export class OnboardingModal extends Modal {
 			},
 		);
 		if (titleForge.inBoxHint) this.seriesTitleForgeEl = titleForgeEl;
-		field.createEl("div", { cls: "sf-onboarding-field-label", text: label });
+		field.createDiv({ cls: "sf-onboarding-field-label", text: label });
 		return field;
 	}
 

@@ -1767,7 +1767,7 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 .sf-plot-thread-swatches {
 	display: grid;
 	grid-template-columns: 36px 32px;
-	column-gap: 2px;
+	gap: 2px;
 	align-items: center;
 	justify-items: center;
 	flex-shrink: 0;
@@ -1778,7 +1778,7 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	display: grid;
 	grid-template-columns: 16px max-content minmax(0, 1fr) 56px;
 	align-items: center;
-	column-gap: 10px;
+	gap: 10px;
 	padding: 4px 6px;
 	box-sizing: border-box;
 	min-height: 40px;
