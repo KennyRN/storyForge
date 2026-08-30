@@ -201,6 +201,6 @@ describe("formatForge theme storage through storyForge API stress", () => {
 			api.readFormattingPreset(
 				"_sf-backstage/settings-presets/storyForge/Private.json",
 			),
-		).rejects.toThrow("formatForge");
+		).rejects.toThrow("settings");
 	});
 });

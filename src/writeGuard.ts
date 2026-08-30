@@ -3,6 +3,7 @@ import {
 	BACKSTAGE_ROOT,
 	BACKUPS_FOLDER,
 	CODEX_ROOT,
+	EXPORT_ROOT,
 	LIBRARY_ROOT,
 	TITLEFORGE_BACKSTAGE_ROOT,
 	isLibraryRootFilePath,
@@ -23,7 +24,8 @@ import {
  * not grow into content edits). Story Context never edits Codex note bodies —
  * its write footprint is `_backstage/storyforge/` (plus flat library-root
  * files above) and `_backstage/titleforge/` (titleForge's own sibling region).
- * Backup zips are the other allowed write root: `_sf-backup/` only.
+ * Backup zips are an allowed write root: `_sf-backup/` only. User-facing shareable
+ * JSON copies are another: `_export/` only.
  *
  * Host API / xForge siblings:
  * - Codex note *frontmatter* create/edit is only for plugins that called
@@ -38,7 +40,7 @@ import {
 export class ForbiddenWriteError extends Error {
 	constructor(path: string) {
 		super(
-			`storyForge refused to write to "${path}": outside ${BACKSTAGE_ROOT}/, ${TITLEFORGE_BACKSTAGE_ROOT}/, ${BACKUPS_FOLDER}/, or a flat file directly at ${LIBRARY_ROOT}/`,
+			`storyForge refused to write to "${path}": outside ${BACKSTAGE_ROOT}/, ${TITLEFORGE_BACKSTAGE_ROOT}/, ${BACKUPS_FOLDER}/, ${EXPORT_ROOT}/, or a flat file directly at ${LIBRARY_ROOT}/`,
 		);
 		this.name = "ForbiddenWriteError";
 	}
@@ -100,6 +102,16 @@ export function assertBackstagePath(path: string): void {
 function assertBackupPath(path: string): void {
 	const normalized = normalizeVaultPath(path);
 	const allowed = normalized === BACKUPS_FOLDER || normalized.startsWith(`${BACKUPS_FOLDER}/`);
+	if (!allowed) {
+		throw new ForbiddenWriteError(path);
+	}
+}
+
+function assertExportPath(path: string): void {
+	const normalized = normalizeVaultPath(path);
+	const allowed =
+		normalized === EXPORT_ROOT ||
+		(normalized.startsWith(`${EXPORT_ROOT}/`) && !normalized.slice(EXPORT_ROOT.length + 1).includes("/"));
 	if (!allowed) {
 		throw new ForbiddenWriteError(path);
 	}
@@ -231,6 +243,22 @@ export async function writeBackupText(vault: Vault, path: string, content: strin
 	return vault.create(normalized, content);
 }
 
+/** Writes a user-facing shareable JSON file under `_export/` only. */
+export async function writeExportText(vault: Vault, path: string, content: string): Promise<TFile> {
+	assertExportPath(path);
+	const normalized = normalizeVaultPath(path);
+	const existing = vault.getAbstractFileByPath(normalized);
+	if (existing instanceof TFile) {
+		await vault.modify(existing, content);
+		return existing;
+	}
+	const lastSlash = normalized.lastIndexOf("/");
+	if (lastSlash !== -1) {
+		await ensureFolderTree(vault, normalized.slice(0, lastSlash), assertExportPath);
+	}
+	return vault.create(normalized, content);
+}
+
 export async function deleteBackstagePath(app: App, path: string): Promise<void> {
 	assertBackstagePath(path);
 	const normalized = normalizeVaultPath(path);
@@ -286,6 +314,7 @@ export async function renameBackstagePath(vault: Vault, oldPath: string, newPath
 	assertBackstagePath(newPath);
 	const oldNormalized = normalizeVaultPath(oldPath);
 	const newNormalized = normalizeVaultPath(newPath);
+	await ensureParentFolder(vault, newNormalized);
 	const file = vault.getAbstractFileByPath(oldNormalized);
 	if (file) {
 		await vault.rename(file, newNormalized);

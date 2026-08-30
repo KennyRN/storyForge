@@ -6,6 +6,10 @@ import {
 	formatFormattingExportFilename,
 	formatFullBackupFilename,
 	formatStoryForgeSettingsExportFilename,
+	formatTypesTagsExportFilename,
+	formatPlotThreadsExportFilename,
+	formatPreferencesExportFilename,
+	formatCompleteExportFilename,
 	listSettingsExportsInBackups,
 	listAllFilesRecursive,
 	readSettingsExportFromBackups,
@@ -48,6 +52,18 @@ describe("formatFormattingExportFilename", () => {
 		);
 		expect(formatStoryForgeSettingsExportFilename(when)).toBe(
 			"20260805-112209 - storyForge settings.json",
+		);
+		expect(formatTypesTagsExportFilename(when)).toBe(
+			"20260805-112209 - types & tags settings.json",
+		);
+		expect(formatPlotThreadsExportFilename(when)).toBe(
+			"20260805-112209 - plot threads settings.json",
+		);
+		expect(formatPreferencesExportFilename(when)).toBe(
+			"20260805-112209 - preferences settings.json",
+		);
+		expect(formatCompleteExportFilename(when)).toBe(
+			"20260805-112209 - complete settings.json",
 		);
 	});
 });

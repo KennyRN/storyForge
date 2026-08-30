@@ -49,14 +49,14 @@ import {
 	CODEX_ROOT,
 } from "./paths";
 import type { SfLayout } from "./layout";
-import { ensureWelcomeNote } from "./welcomeNote";
 import { recordChapterEdit } from "./history";
 import { extractFingerprint } from "./fingerprint";
 import { updateChapterFingerprint } from "./chapterSidecar";
 import { debounce } from "./debounce";
 import { countWords } from "./wordCount";
-import { registerCustomIcons } from "./icons";
-import type { FormatCompanionRegistration } from "./formattingApi";
+import { ICON_STORYTELLING, registerCustomIcons } from "./icons";
+import { OnboardingModal } from "./view/OnboardingModal";
+import { type FormatCompanionRegistration, teardownFormatCompanion } from "./formattingApi";
 import { refreshTabTitles, registerTabTitleOverrides } from "./tabTitles";
 import { PaletteColor, PaletteName } from "./colorPalettes";
 import { runContentBackup } from "./backup";
@@ -872,6 +872,10 @@ export default class StoryForgePlugin extends Plugin {
 			callback: () => void this.activateStorytellingView(),
 		});
 
+		this.addRibbonIcon(ICON_STORYTELLING, "Open onboarding", () => {
+			new OnboardingModal(this.app, this).open();
+		});
+
 		this.settingsTab = new StoryForgeSettingsTab(this.app, this);
 		this.addSettingTab(this.settingsTab);
 		try {
@@ -1282,7 +1286,14 @@ export default class StoryForgePlugin extends Plugin {
 			}
 		}
 		document.body.classList.remove("sf-tools-open");
-		this.style.clearAll();
+		teardownFormatCompanion({
+			getCompanion: () => this.formatCompanion,
+			getLinkedSettings: () => this.api.formatting.getLinkedSettings(),
+			forgetCompanion: () => {
+				this.formatCompanion = null;
+			},
+			clearHostStyles: () => this.style.clearAll(),
+		});
 		this.extraDocs.clear();
 		this.fontFacesRegisteredFor.clear();
 	}
@@ -1714,7 +1725,7 @@ export default class StoryForgePlugin extends Plugin {
 	 * both placed (in series order / chapter-order, not left unplaced), so a brand-new vault opens
 	 * with something in the library rather than an empty shelf. Both pick up their "#"-numbered
 	 * defaults ("Novel #" / "Chapter #") from createBook/createChapter — no title passed here.
-	 * The chapter is deliberately not opened, so it doesn't steal focus from the welcome note. */
+	 * Neither is opened: onboarding chooses the first selected item (welcome note, or chapter 1). */
 	private async createFirstRunBookAndChapter(): Promise<void> {
 		const { folderName } = await createBook(this.app);
 		const { filename } = await createChapter(this.app, folderName, { openFile: false });
@@ -1728,14 +1739,6 @@ export default class StoryForgePlugin extends Plugin {
 		await migrateStructuralLayout(this.app);
 		await this.ensureEagerFolders();
 		const isFirstRun = !this.app.vault.getAbstractFileByPath(seriesFilePath());
-		if (isFirstRun) {
-			try {
-				const welcomeFile = await ensureWelcomeNote(this.app);
-				await this.app.workspace.getLeaf(false).openFile(welcomeFile);
-			} catch (err) {
-				console.error("storyForge: failed to create welcome note", err);
-			}
-		}
 		await ensureSeriesFile(this.app);
 		if (isFirstRun) await this.createFirstRunBookAndChapter();
 		const tagRegistry = await ensureTagRegistryFile(this.app);

@@ -27,9 +27,4 @@ jobs:
         run: npm run build
 
       - name: Formatting contract
-        run: |
-          if [ -d "../../../formatForge" ] || [ -n "${FORMATFORGE_ROOT:-}" ]; then
-            npm run check:formatting-contract
-          else
-            echo "formatForge sibling not present; skipping contract check"
-          fi
+        run: npm run check:formatting-contract

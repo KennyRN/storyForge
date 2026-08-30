@@ -3,12 +3,15 @@ import type StoryForgePlugin from "../main";
 import {
 	addPlotThread,
 	deletePlotThread,
+	isPlotThreadUsed,
+	MAIN_THREAD_FALLBACK_COLOR,
 	MAIN_THREAD_ID,
 	readPlotThreads,
 	renamePlotThread,
 	reorderPlotThreads,
 	setPlotThreadColor,
 	setPlotThreadTextColor,
+	setPlotThreadUse,
 	type PlotThread,
 } from "../plotThreads";
 import { makeReorderable, type DragZone } from "./dragReorder";
@@ -21,10 +24,8 @@ import { confirmDelete } from "./confirmDeleteModal";
 /**
  * Manage the vault's plot-thread list (colour + name): add, rename, recolour, reorder, delete.
  * Opened from the story library Series pane's corner hover icon, and from SeriesModal's
- * types/tags tab — same job TagRegistryModal does for types and for tags (now as two dialogs). Fixed-size dialog matching
- * `.modal.sf-tag-registry-modal`. `fresh`, when passed, is the just-written result of a mutation
- * this modal itself just made — used in place of a readPlotThreads() re-read (see plotThreads.ts's
- * mutatePlotThreads doc comment).
+ * types/tags tab. `fresh`, when passed, is the just-written result of a mutation this modal
+ * itself just made — used in place of a readPlotThreads() re-read.
  */
 export class PlotThreadRegistryModal extends Modal {
 	constructor(
@@ -50,12 +51,17 @@ export class PlotThreadRegistryModal extends Modal {
 		contentEl.empty();
 		contentEl.addClass("sf-plot-thread-registry-modal");
 
-		const scroll = contentEl.createDiv({ cls: "sf-text-style-tab-body-wrapper" });
-		const body = scroll.createDiv({ cls: "sf-text-style-tab-body" });
-		body.createEl("h2", { text: "Plot threads" });
+		const headers = contentEl.createDiv({ cls: "sf-plot-thread-col-headers" });
+		headers.createSpan({ cls: "sf-plot-thread-col-spacer" });
+		const swatchHeaders = headers.createDiv({ cls: "sf-plot-thread-swatches" });
+		swatchHeaders.createSpan({ cls: "sf-plot-thread-col-label", text: "thread" });
+		swatchHeaders.createSpan({ cls: "sf-plot-thread-col-label", text: "text" });
+		headers.createSpan({ cls: "sf-plot-thread-col-name-spacer" });
+		headers.createSpan({ cls: "sf-plot-thread-col-label sf-plot-thread-col-label--use", text: "use thread" });
 
 		const entries = freshEntries ?? readPlotThreads(this.app);
-		const rowsEl = body.createDiv({ cls: "sf-modal-book-list sf-tag-registry-list" });
+		const scroll = contentEl.createDiv({ cls: "sf-plot-thread-registry-scroll" });
+		const rowsEl = scroll.createDiv({ cls: "sf-plot-thread-registry-list" });
 		if (entries.length === 0) {
 			rowsEl.createDiv({ cls: "sf-empty sf-empty-inline", text: "Nothing here yet — add one below." });
 		}
@@ -68,91 +74,141 @@ export class PlotThreadRegistryModal extends Modal {
 			void this.handleReorder((zoneRowKeys.order ?? []).filter(Boolean));
 		});
 
-		this.renderAddRow(body, entries);
+		this.renderAddRow(contentEl, entries);
+	}
+
+	private paintNamePreview(input: HTMLElement, background: string, color: string): void {
+		input.setCssProps({ "--sf-thread-bg": background, "--sf-thread-fg": color });
+		input.setCssStyles({ backgroundColor: background, color });
+	}
+
+	private renderUseCheckbox(
+		parent: HTMLElement,
+		checked: boolean,
+		label: string,
+		onChange: (value: boolean) => void,
+	): HTMLInputElement {
+		const cell = parent.createDiv({ cls: "sf-plot-thread-use" });
+		const checkbox = cell.createEl("input", {
+			type: "checkbox",
+			attr: { "aria-label": label },
+		});
+		checkbox.checked = checked;
+		checkbox.addEventListener("pointerdown", (event) => event.stopPropagation());
+		checkbox.addEventListener("change", () => onChange(checkbox.checked));
+		return checkbox;
 	}
 
 	private renderRow(rowsEl: HTMLElement, entry: PlotThread): void {
-		const row = rowsEl.createDiv({ cls: "sf-row" });
+		const row = rowsEl.createDiv({ cls: "sf-row sf-plot-thread-registry-row" });
 		row.dataset.key = entry.id;
 		const handle = row.createSpan({ cls: "sf-drag-handle" });
 		setIcon(handle, "grip-vertical");
 
+		const settings = this.plugin.getSettings();
+		const textColor = resolvePlotThreadTextColor(settings, entry);
+
 		const swatches = row.createDiv({ cls: "sf-plot-thread-swatches" });
-		const swatch = swatches.createEl("button", { cls: "sf-color-swatch-btn", attr: { "aria-label": `${entry.label} colour` } });
-		bindColorSwatchButton(this.app, this.plugin, swatch, entry.color, (hex) => {
-			void this.handleSetColor(entry.id, hex);
+		const threadSwatch = swatches.createEl("button", {
+			cls: "sf-color-swatch-btn",
+			attr: { "aria-label": `${entry.label} thread colour` },
 		});
 		const textSwatch = swatches.createEl("button", {
-			cls: "sf-color-swatch-btn sf-color-swatch-btn--text",
+			cls: "sf-color-swatch-btn",
 			attr: { "aria-label": `${entry.label} text colour` },
 		});
-		bindColorSwatchButton(this.app, this.plugin, textSwatch, resolvePlotThreadTextColor(this.plugin.getSettings(), entry), (hex) => {
+
+		const nameGroup = row.createDiv({ cls: "sf-plot-thread-name-group" });
+		const input = nameGroup.createEl("input", {
+			cls: "sf-modal-input sf-plot-thread-name",
+			type: "text",
+		});
+		input.value = entry.label;
+		this.paintNamePreview(input, entry.color, textColor);
+		this.bindTextCommit(input, (value) => this.handleRename(entry.id, value));
+
+		bindColorSwatchButton(this.app, this.plugin, threadSwatch, entry.color, (hex) => {
+			this.paintNamePreview(input, hex, textColor);
+			void this.handleSetColor(entry.id, hex);
+		});
+		bindColorSwatchButton(this.app, this.plugin, textSwatch, textColor, (hex) => {
+			this.paintNamePreview(input, entry.color, hex);
 			void this.handleSetTextColor(entry.id, hex);
 		});
 
-		const input = row.createEl("input", { cls: "sf-modal-input sf-modal-book-input", type: "text" });
-		input.value = entry.label;
-		this.bindTextCommit(input, (value) => this.handleRename(entry.id, value));
+		if (entry.id !== MAIN_THREAD_ID) {
+			const deleteBtn = nameGroup.createSpan({
+				cls: "sf-icon-action",
+				attr: { "aria-label": `Delete ${entry.label}`, title: `Delete ${entry.label}`, tabindex: "0" },
+			});
+			setIcon(deleteBtn, ICON_MINUS_SQUARE);
+			const requestDelete = () => void this.handleDelete(entry);
+			deleteBtn.addEventListener("click", requestDelete);
+			makeAccessibleActivatable(deleteBtn, requestDelete);
+		} else {
+			nameGroup.createSpan({ cls: "sf-plot-thread-action-spacer" });
+		}
 
-		if (entry.id === MAIN_THREAD_ID) return;
-		const deleteBtn = row.createSpan({
-			cls: "sf-icon-action",
-			attr: { "aria-label": `Delete ${entry.label}`, title: `Delete ${entry.label}`, tabindex: "0" },
+		this.renderUseCheckbox(row, isPlotThreadUsed(entry), `use ${entry.label}`, (value) => {
+			void this.handleSetUse(entry.id, value);
 		});
-		setIcon(deleteBtn, ICON_MINUS_SQUARE);
-		const requestDelete = () => void this.handleDelete(entry);
-		deleteBtn.addEventListener("click", requestDelete);
-		makeAccessibleActivatable(deleteBtn, requestDelete);
 	}
 
 	private renderAddRow(body: HTMLElement, existing: PlotThread[]): void {
-		const addRow = body.createDiv({ cls: "sf-row sf-tag-registry-add-row" });
-		addRow.createSpan({ cls: "sf-tag-registry-handle-spacer" });
+		const addRow = body.createDiv({ cls: "sf-row sf-plot-thread-registry-row sf-plot-thread-registry-add-row" });
+		addRow.createSpan({ cls: "sf-plot-thread-col-spacer" });
 
-		let pendingColor = nextUnusedPlotThreadColor(
-			this.plugin.getSettings(),
-			existing.map((e) => e.color),
-		);
-		let pendingTextColor = pendingColor
-			? resolveAccentTextColor(this.plugin.getSettings(), pendingColor) ?? "#ffffff"
-			: "#ffffff";
+		let pendingColor =
+			nextUnusedPlotThreadColor(
+				this.plugin.getSettings(),
+				existing.map((e) => e.color),
+			) ?? MAIN_THREAD_FALLBACK_COLOR;
+		let pendingTextColor = resolveAccentTextColor(this.plugin.getSettings(), pendingColor) ?? "#ffffff";
+		let pendingUse = true;
 		let textColorTouched = false;
+
 		const swatches = addRow.createDiv({ cls: "sf-plot-thread-swatches" });
-		const swatch = swatches.createEl("button", { cls: "sf-color-swatch-btn", attr: { "aria-label": "plot thread colour" } });
+		const threadSwatch = swatches.createEl("button", {
+			cls: "sf-color-swatch-btn",
+			attr: { "aria-label": "plot thread colour" },
+		});
 		const textSwatch = swatches.createEl("button", {
-			cls: "sf-color-swatch-btn sf-color-swatch-btn--text",
+			cls: "sf-color-swatch-btn",
 			attr: { "aria-label": "plot thread text colour" },
 		});
-		if (pendingColor) {
-			bindColorSwatchButton(this.app, this.plugin, swatch, pendingColor, (hex) => {
-				pendingColor = hex;
-				if (!textColorTouched) {
-					pendingTextColor = resolveAccentTextColor(this.plugin.getSettings(), hex) ?? pendingTextColor;
-					textSwatch.setCssStyles({ backgroundColor: pendingTextColor });
-				}
-			});
-			bindColorSwatchButton(this.app, this.plugin, textSwatch, pendingTextColor, (hex) => {
-				textColorTouched = true;
-				pendingTextColor = hex;
-			});
-		}
-
-		const input = addRow.createEl("input", {
-			cls: "sf-modal-input sf-modal-book-input",
+		const nameGroup = addRow.createDiv({ cls: "sf-plot-thread-name-group" });
+		const input = nameGroup.createEl("input", {
+			cls: "sf-modal-input sf-plot-thread-name",
 			type: "text",
-			attr: { placeholder: 'New plot thread (e.g. "Romance")' },
+			attr: { placeholder: "new plot thread" },
 		});
+		this.paintNamePreview(input, pendingColor, pendingTextColor);
+
+		bindColorSwatchButton(this.app, this.plugin, threadSwatch, pendingColor, (hex) => {
+			pendingColor = hex;
+			if (!textColorTouched) {
+				pendingTextColor = resolveAccentTextColor(this.plugin.getSettings(), hex) ?? pendingTextColor;
+				textSwatch.setCssStyles({ backgroundColor: pendingTextColor });
+			}
+			this.paintNamePreview(input, pendingColor, pendingTextColor);
+		});
+		bindColorSwatchButton(this.app, this.plugin, textSwatch, pendingTextColor, (hex) => {
+			textColorTouched = true;
+			pendingTextColor = hex;
+			this.paintNamePreview(input, pendingColor, pendingTextColor);
+		});
+
 		const commitAdd = () => {
-			const label = input.value.trim();
-			if (!label || !pendingColor) return;
-			void addPlotThread(this.app, label, pendingColor, pendingTextColor)
+			const label = input.value.trim() || "new plot thread";
+			if (!pendingColor) return;
+			void addPlotThread(this.app, label, pendingColor, pendingTextColor, pendingUse)
 				.then(({ entries }) => {
 					this.onChange();
 					this.render(entries);
 				})
 				.catch((err: Error) => new Notice(`storyForge: could not add "${label}" — ${err.message}`));
 		};
-		const addBtn = addRow.createSpan({
+		const addBtn = nameGroup.createSpan({
 			cls: "sf-icon-action",
 			attr: { "aria-label": "Add", title: "Add", tabindex: "0" },
 		});
@@ -164,6 +220,10 @@ export class PlotThreadRegistryModal extends Modal {
 				event.preventDefault();
 				commitAdd();
 			}
+		});
+
+		this.renderUseCheckbox(addRow, pendingUse, "use thread", (value) => {
+			pendingUse = value;
 		});
 	}
 
@@ -216,6 +276,16 @@ export class PlotThreadRegistryModal extends Modal {
 			this.render(entries);
 		} catch (err) {
 			new Notice(`storyForge: could not set text colour — ${(err as Error).message}`);
+		}
+	}
+
+	private async handleSetUse(id: string, use: boolean): Promise<void> {
+		try {
+			await setPlotThreadUse(this.app, id, use);
+			this.onChange();
+		} catch (err) {
+			new Notice(`storyForge: could not update thread — ${(err as Error).message}`);
+			this.render();
 		}
 	}
 

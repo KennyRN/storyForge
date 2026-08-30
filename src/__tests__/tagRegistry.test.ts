@@ -8,6 +8,7 @@ import {
 	readTagRegistry,
 	renameTagDefinition,
 	reorderTagDefinitions,
+	replaceTagLists,
 	resolveIconAlias,
 	setTagDefinitionIcon,
 } from "../tagRegistry";
@@ -250,5 +251,33 @@ describe("codexTypes mutations refresh the live CODEX_TYPES registry", () => {
 		const types = CODEX_TYPES.map((t) => t.type);
 		expect(types).toContain("sibling-thing");
 		expect(CODEX_TYPES.find((t) => t.type === "person")?.label).toBe("Main Character");
+	});
+});
+
+describe("replaceTagLists", () => {
+	beforeEach(() => {
+		CODEX_TYPES.length = 0;
+		CODEX_TYPES.push(...BUILTIN_CODEX_TYPES.map((t) => ({ ...t })));
+	});
+
+	it("replaces selected lists and keeps missing protected Codex types", async () => {
+		const { app, frontmatter } = makeFakeApp(true, {
+			"codex-types": [
+				{ id: "person", label: "Person", "icon-alias": "person-fill" },
+				{ id: "place", label: "Place", "icon-alias": "location-pin" },
+			],
+			"chapter-tags": [{ id: "draft", label: "Draft", "icon-alias": "pencil" }],
+			"novel-tags": [{ id: "editing", label: "Editing", "icon-alias": "warning-square" }],
+		});
+		const result = await replaceTagLists(app, {
+			codexTypes: [{ id: "faction", label: "Faction", iconAlias: "crown" }],
+			chapterTags: [{ id: "done", label: "Done!", iconAlias: "done-fill" }],
+		});
+		expect(result.codexTypes.map((t) => t.id)).toEqual(["person", "place", "faction"]);
+		expect(result.chapterTags.map((t) => t.id)).toEqual(["done"]);
+		expect(result.novelTags.map((t) => t.id)).toEqual(["editing"]);
+		expect(frontmatter["chapter-tags"]).toEqual([
+			{ id: "done", label: "Done!", "icon-alias": "done-fill" },
+		]);
 	});
 });

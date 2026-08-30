@@ -19,7 +19,7 @@ export const ICON_CHECK_SQUARE = "sf-check-square";
 export const ICON_TIMELINE = "sf-timeline";
 export const ICON_NOTEBOOK = "sf-notebook";
 /** Fluent UI (Microsoft) — slide-text-title-24-regular. titleForge's own identity glyph
- * (ribbon, settings row). Distinct from ICON_DICE_DUAL, which stays on titleForge's generate button. */
+ * (ribbon, settings row). Distinct from ICON_DICE, the filled two-dice generate control. */
 export const ICON_TITLEFORGE = "sf-titleforge";
 export const ICON_STORYTELLING = "sf-storytelling-book";
 export const ICON_CYCLE_ALT = "sf-cycle-alt";
@@ -640,17 +640,16 @@ const GALAXY_FILL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48
  * building style alongside BUILDING_A_SVG/BUILDING_B_SVG's more detailed Mage-style pair. */
 const BUILDING_C_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 21h18M9 8h1m-1 4h1m-1 4h1m4-8h1m-1 4h1m-1 4h1M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16" /></svg>`;
 
-/** Hand-authored (no source pack — this project's own) — two overlapping dice, one showing 2 pips,
- * the other 5. TitleForgePanel.ts's generate button, and SeriesTitleModal.ts's "generate a title"
- * shortcut into that same modal. Distinct from ICON_TITLEFORGE, the identity glyph. */
+/** Hand-authored (no source pack — this project's own) — two overlapping dice, outline, one showing
+ * 2 pips, the other 5. Kept registered; generate controls use ICON_DICE (filled pair) instead. */
 export const ICON_DICE_DUAL = "sf-dice-dual";
 const DICE_DUAL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><rect x="2.5" y="8.5" width="10" height="10" rx="2" /><rect x="11.5" y="3.5" width="10" height="10" rx="2" /></g><g fill="currentColor"><circle cx="5.5" cy="11.5" r="0.85" /><circle cx="9.5" cy="15.5" r="0.85" /><circle cx="14.5" cy="6.5" r="0.85" /><circle cx="18.5" cy="6.5" r="0.85" /><circle cx="16.5" cy="8.5" r="0.85" /><circle cx="14.5" cy="10.5" r="0.85" /><circle cx="18.5" cy="10.5" r="0.85" /></g></svg>`;
 
 /** Fluent UI (Microsoft) — slide-text-title-24-regular. titleForge's identity glyph. */
 const TITLEFORGE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M4.75 4A2.75 2.75 0 0 0 2 6.75v10.5A2.75 2.75 0 0 0 4.75 20h14.5A2.75 2.75 0 0 0 22 17.25V6.75A2.75 2.75 0 0 0 19.25 4zM3.5 6.75c0-.69.56-1.25 1.25-1.25h14.5c.69 0 1.25.56 1.25 1.25v10.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25zM7.5 8a1.5 1.5 0 1 0 0 3h9a1.5 1.5 0 0 0 0-3z" /></svg>`;
 
-/** Pinhead Map Icons (Quincy Morgan) — dice. NovelTitleModal.ts's inline generate shortcut.
- * Distinct from ICON_DICE_DUAL (TitleForgePanel generate button / SeriesTitleModal trigger). */
+/** Pinhead Map Icons (Quincy Morgan) — two dice, filled. titleForge's generate control
+ * (TitleForgePanel, SeriesTitleModal, NovelTitleModal, OnboardingModal). */
 export const ICON_DICE = "sf-dice";
 const DICE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 15 15"><path d="M0 0h15v15H0z" fill="none" /><path fill="currentColor" d="M4.14 1.14c-.68.05-1.33.43-1.7 1.07L.29 5.93c-.59 1.03-.26 2.32.77 2.91l3.72 2.14c.15.09.31.19.47.24V7.47c0-1.76 1.45-3.22 3.21-3.22h1.31c-.18-.26-.41-.5-.7-.67L5.35 1.44c-.39-.22-.8-.33-1.21-.3m.33.76c.6 0 1.12.41 1.28.99c.19.72-.23 1.45-.95 1.64c-.71.19-1.44-.23-1.64-.94c-.19-.72.24-1.45.95-1.64c.12-.04.24-.05.36-.05M2.2 5.84c.6 0 1.12.41 1.28.99c.19.71-.24 1.45-.95 1.64S1.08 8.23.89 7.52s.23-1.45.95-1.64c.11-.03.24-.05.36-.04m6.26-.52c-1.18 0-2.14.96-2.14 2.15v4.28c0 1.19.96 2.15 2.14 2.15h4.29c1.19 0 2.14-.96 2.14-2.15V7.47c0-1.19-.95-2.15-2.14-2.15zm4.29.81c.35 0 .69.14.95.39a1.34 1.34 0 0 1 0 1.89c-.26.26-.6.4-.95.4a1.34 1.34 0 0 1 0-2.68m-4.29 4.28c.36 0 .7.14.95.4c.25.25.39.59.39.94a1.34 1.34 0 0 1-2.68 0c0-.35.14-.69.4-.94c.25-.26.59-.4.94-.4" /></svg>`;
 
@@ -674,9 +673,26 @@ export const ICON_EYE_DUOTONE = "sf-eye-duotone";
 const EYE_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M2 12c0 1.64.425 2.191 1.275 3.296C4.972 17.5 7.818 20 12 20s7.028-2.5 8.725-4.704C21.575 14.192 22 13.639 22 12c0-1.64-.425-2.191-1.275-3.296C19.028 6.5 16.182 4 12 4S4.972 6.5 3.275 8.704C2.425 9.81 2 10.361 2 12" opacity=".5" /><path fill-rule="evenodd" d="M8.25 12a3.75 3.75 0 1 1 7.5 0a3.75 3.75 0 0 1-7.5 0m1.5 0a2.25 2.25 0 1 1 4.5 0a2.25 2.25 0 0 1-4.5 0" clip-rule="evenodd" /></g></svg>`;
 
 /** User-provided (reicon--floppy-duotone.svg) — floppy disk, duotone via opacity. Used for
- * SeriesModal.ts's "Formatting themes" icon (formatting tab). */
+ * SeriesModal.ts's "themes" and "types & tags" icons (import & export tab). */
 export const ICON_FLOPPY_DUOTONE = "sf-floppy-duotone";
 const FLOPPY_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M20.536 20.536C22 19.07 22 16.714 22 12c0-.341 0-.512-.015-.686a4.04 4.04 0 0 0-.921-2.224a8 8 0 0 0-.483-.504l-5.167-5.167a9 9 0 0 0-.504-.483a4.04 4.04 0 0 0-2.224-.92C12.512 2 12.342 2 12 2C7.286 2 4.929 2 3.464 3.464C2 4.93 2 7.286 2 12s0 7.071 1.464 8.535c.685.685 1.563 1.05 2.786 1.243l1.5.153C8.906 22 10.3 22 12 22s3.094 0 4.25-.069l1.5-.153c1.223-.194 2.102-.558 2.785-1.242" opacity=".5" /><path d="M7 7.25a.75.75 0 0 0 0 1.5h6a.75.75 0 0 0 0-1.5zm6.052 9c.899 0 1.648 0 2.242.08c.628.084 1.195.27 1.65.726c.456.455.642 1.022.726 1.65c.08.594.08 1.343.08 2.242v.833l-1.5.14V21c0-.964-.002-1.612-.067-2.095c-.062-.461-.169-.659-.3-.789s-.327-.237-.788-.3c-.483-.064-1.131-.066-2.095-.066h-2c-.964 0-1.612.002-2.095.067c-.461.062-.659.169-.789.3s-.237.327-.3.788c-.064.483-.066 1.131-.066 2.095v.926l-1.5-.149v-.829c0-.899 0-1.648.08-2.242c.084-.628.27-1.195.725-1.65c.456-.456 1.023-.642 1.65-.726c.595-.08 1.345-.08 2.243-.08z" /></g></svg>`;
+
+/** User-provided (reicon:copy-duotone) — overlapping documents, front at full opacity. */
+export const ICON_COPY_DUOTONE = "sf-copy-duotone";
+const COPY_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M6.6 11.397c0-2.726 0-4.089.843-4.936c.844-.847 2.201-.847 4.917-.847h2.88c2.715 0 4.073 0 4.916.847c.844.847.844 2.21.844 4.936v4.82c0 2.726 0 4.089-.844 4.936c-.843.847-2.201.847-4.916.847h-2.88c-2.716 0-4.073 0-4.917-.847s-.843-2.21-.843-4.936z"/><path d="M4.172 3.172C3 4.343 3 6.229 3 10v2c0 3.771 0 5.657 1.172 6.828c.617.618 1.433.91 2.62 1.048c-.192-.84-.192-1.996-.192-3.66v-4.819c0-2.726 0-4.089.843-4.936c.844-.847 2.201-.847 4.917-.847h2.88c1.652 0 2.8 0 3.638.19c-.138-1.193-.43-2.012-1.05-2.632C16.657 2 14.771 2 11 2S5.343 2 4.172 3.172" opacity=".5"/></g></svg>`;
+
+/** User-provided (reicon:close-square-duotone) — rounded square at half opacity, X at full. */
+export const ICON_CLOSE_SQUARE_DUOTONE = "sf-close-square-duotone";
+const CLOSE_SQUARE_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M12 22c-4.714 0-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12s0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464C22 4.93 22 7.286 22 12s0 7.071-1.465 8.535C19.072 22 16.714 22 12 22" opacity=".5"/><path d="M8.97 8.97a.75.75 0 0 1 1.06 0L12 10.94l1.97-1.97a.75.75 0 1 1 1.06 1.06L13.06 12l1.97 1.97a.75.75 0 1 1-1.06 1.06L12 13.06l-1.97 1.97a.75.75 0 0 1-1.06-1.06L10.94 12l-1.97-1.97a.75.75 0 0 1 0-1.06"/></g></svg>`;
+
+/** User-provided (reicon:square-share-duotone) — rounded square at half opacity, share arrow at full.
+ * Used for TypesTagsExportModal.ts's export-to-`_export/` hover icon. */
+export const ICON_SHARE_SQUARE_DUOTONE = "sf-share-square-duotone";
+const SHARE_SQUARE_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M3.464 3.464C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464C22 4.93 22 7.286 22 12s0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12s0-7.071 1.464-8.536" opacity=".5"/><path fill-rule="evenodd" d="M16.47 1.47a.75.75 0 0 1 1.06 0l5 5a.75.75 0 0 1 0 1.06l-5 5a.75.75 0 1 1-1.06-1.06l3.72-3.72H14c-1.552 0-2.467.757-2.788 1.08l-.19.191l-.193.191c-.322.32-1.079 1.236-1.079 2.788v3a.75.75 0 0 1-1.5 0v-3c0-2.084 1.027-3.36 1.521-3.851l.19-.189l.188-.189C10.64 7.277 11.916 6.25 14 6.25h6.19l-3.72-3.72a.75.75 0 0 1 0-1.06" clip-rule="evenodd"/></g></svg>`;
+
+/** Same reicon download-duotone formatForge uses for JSON import. */
+export const ICON_DOWNLOAD_DUOTONE = "sf-download-duotone";
+const DOWNLOAD_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="none" stroke="none" d="M0 0h24v24H0z" /><g fill="currentColor"><path d="M22 16v-1c0-2.828 0-4.242-.879-5.12C20.242 9 18.828 9 16 9H8c-2.829 0-4.243 0-5.122.88C2 10.757 2 12.17 2 14.997V16c0 2.829 0 4.243.879 5.122C3.757 22 5.172 22 8 22h8c2.828 0 4.243 0 5.121-.878C22 20.242 22 18.829 22 16" opacity=".5"/><path fill-rule="evenodd" d="M12 1.25a.75.75 0 0 0-.75.75v10.973l-1.68-1.961a.75.75 0 1 0-1.14.976l3 3.5a.75.75 0 0 0 1.14 0l3-3.5a.75.75 0 1 0-1.14-.976l-1.68 1.96V2a.75.75 0 0 0-.75-.75" clip-rule="evenodd"/></g></svg>`;
 
 /** User-provided (reicon--tag-duotone) — price-tag, duotone via opacity. Distinct from ICON_TAG's
  * outline glyph. Used for SeriesModal.ts's Codex-types hover icon (types, tags, & threads tab)
@@ -869,6 +885,10 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_SETTINGS_ALT, SETTINGS_ALT_SVG);
 	addIcon(ICON_EYE_DUOTONE, EYE_DUOTONE_SVG);
 	addIcon(ICON_FLOPPY_DUOTONE, FLOPPY_DUOTONE_SVG);
+	addIcon(ICON_COPY_DUOTONE, COPY_DUOTONE_SVG);
+	addIcon(ICON_CLOSE_SQUARE_DUOTONE, CLOSE_SQUARE_DUOTONE_SVG);
+	addIcon(ICON_SHARE_SQUARE_DUOTONE, SHARE_SQUARE_DUOTONE_SVG);
+	addIcon(ICON_DOWNLOAD_DUOTONE, DOWNLOAD_DUOTONE_SVG);
 	addIcon(ICON_TEXT_INPUT_DUOTONE, TEXT_INPUT_DUOTONE_SVG);
 	addIcon(ICON_TAG_DUOTONE, TAG_DUOTONE_SVG);
 	addIcon(ICON_BOOKMARK_DUOTONE, BOOKMARK_DUOTONE_SVG);

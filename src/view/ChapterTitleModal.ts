@@ -2,7 +2,7 @@ import { App, Modal } from "obsidian";
 import type StoryForgePlugin from "../main";
 import type { StoryForgePluginSettings } from "../main";
 import { chapterDisplayTitle, getChapterEntry, renameChapterTitle, writeChapterPlotThread } from "../book";
-import { getPlotThread, MAIN_THREAD_ID, readPlotThreads, type PlotThread } from "../plotThreads";
+import { getDefaultPlotThread, getSelectablePlotThread, isPlotThreadUsed, MAIN_THREAD_ID, readPlotThreads, type PlotThread } from "../plotThreads";
 import { bindTextCommit } from "./SeriesModal";
 import { resolvePlotThreadTextColor } from "./novelColor";
 import { makeAccessibleActivatable } from "./a11y";
@@ -35,8 +35,12 @@ export class ChapterTitleModal extends Modal {
 
 	onOpen(): void {
 		this.modalEl.addClass("sf-chapter-title-modal");
-		this.selectedId = getChapterEntry(this.app, this.bookFolderName, this.filename)?.plotThreadId ?? MAIN_THREAD_ID;
-		if (!getPlotThread(this.app, this.selectedId)) this.selectedId = MAIN_THREAD_ID;
+		this.selectedId = getChapterEntry(this.app, this.bookFolderName, this.filename)?.plotThreadId
+			?? getDefaultPlotThread(this.app)?.id
+			?? MAIN_THREAD_ID;
+		if (!getSelectablePlotThread(this.app, this.selectedId)) {
+			this.selectedId = getDefaultPlotThread(this.app)?.id ?? null;
+		}
 		this.titleDraft = null;
 		this.render();
 	}
@@ -87,7 +91,7 @@ export class ChapterTitleModal extends Modal {
 			text: "# inserts a counted number\n// breaks title into title and subtitle",
 		});
 
-		const threads = readPlotThreads(this.app);
+		const threads = readPlotThreads(this.app).filter(isPlotThreadUsed);
 		const settings = this.plugin.getSettings();
 
 		const list = contentEl.createDiv({ cls: "sf-plot-thread-list" });
@@ -118,7 +122,7 @@ export class ChapterTitleModal extends Modal {
 			if (this.selectedId === thread.id) return;
 			this.selectedId = thread.id;
 			this.applySelection();
-			void writeChapterPlotThread(this.app, this.bookFolderName, this.filename, this.selectedId).then(() =>
+			void writeChapterPlotThread(this.app, this.bookFolderName, this.filename, thread.id).then(() =>
 				this.onChange(),
 			);
 		};

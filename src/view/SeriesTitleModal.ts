@@ -3,7 +3,7 @@ import type StoryForgePlugin from "../main";
 import { readSeriesFrontmatter, writeSeriesTitle } from "../series";
 import { bindTextCommit } from "./SeriesModal";
 import { makeAccessibleActivatable } from "./a11y";
-import { ICON_DICE_DUAL } from "../icons";
+import { ICON_DICE } from "../icons";
 
 /**
  * Opened by clicking the series title at the top of the Series overview page
@@ -48,7 +48,7 @@ export class SeriesTitleModal extends Modal {
 		});
 
 		const diceBtn = contentEl.createSpan({ cls: "sf-titleforge-dice", attr: { "aria-label": "generate a title" } });
-		setIcon(diceBtn, ICON_DICE_DUAL);
+		setIcon(diceBtn, ICON_DICE);
 		setTooltip(diceBtn, "generate a title");
 		const openTitleForge = () => {
 			this.close();

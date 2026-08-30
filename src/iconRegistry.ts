@@ -608,7 +608,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		id: ICON_STORYTELLING,
 		label: "Storytelling book",
 		source: "custom",
-		usedIn: [],
+		usedIn: ["main.ts — ribbon icon opening OnboardingModal"],
 	},
 	{
 		id: ICON_CONTINUOUS_MODE,

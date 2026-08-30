@@ -38,8 +38,9 @@ export interface BottomPanelOptions {
 	 * "one tab, and the active-leaf highlight actually follows the click" helper, same as
 	 * onOpenChapter elsewhere, rather than this file reaching into app.workspace directly. */
 	onOpenFile: (path: string) => void;
-	/** Story library only — opens the Codex types registry. Pinned to this pane's own
-	 * bottom-left corner (see renderCodexTypesCorner), not the header row. */
+	/** Opens the Codex types registry. Pinned to this pane's own bottom-left corner (see
+	 * renderCodexTypesCorner), not the header row. Only passed for the dedicated Codex layout
+	 * — not when Codex is a subpane under Chapter. */
 	onOpenCodexTypes?: () => void;
 }
 

@@ -37,6 +37,10 @@ import { formatCompanionState } from "../formatCompanionActive";
 import { TagRegistryModal } from "./TagRegistryModal";
 import { PlotThreadRegistryModal } from "./PlotThreadRegistryModal";
 import { TitleForgeSettingsModal } from "../titleforge/view/TitleForgeSettingsModal";
+import { TypesTagsExportModal } from "./TypesTagsExportModal";
+import { ThreadsExportModal } from "./ThreadsExportModal";
+import { PreferencesExportModal } from "./PreferencesExportModal";
+import { CompleteExportModal } from "./CompleteExportModal";
 import { NUMBERING_STYLE_OPTIONS, type NumberingStyle } from "../numberingStyle";
 import { refreshTabTitles } from "../tabTitles";
 
@@ -627,38 +631,53 @@ export class SeriesModal extends Modal {
 		this.protectionsController.renderWelcomeNoteSection(contentEl);
 	}
 
-	/** titleForge plus formatForge themes and, when formatForge isn't connected, the local
-	 * save-or-share settings export. Theme export/import is a formatForge-specific concept with
-	 * no local storyForge equivalent, so the connected path opens formatForge's modal. */
+	/** titleforge, then named settings (themes / types & tags / threads / preferences together,
+	 * complete on its own). Theme export/import is a formatForge-specific concept with no local
+	 * storyForge equivalent, so the row opens formatForge's modal (or its settings fallback). */
 	private renderImportExportTab(contentEl: HTMLElement): void {
 		const plugin = this.plugin;
-		const companionActive = plugin.isFormatCompanionActive();
 
 		const titleForgeGroup = new SettingGroup(contentEl);
 		titleForgeGroup.addSetting((setting) => {
-			setting.setName("titleForge").setDesc("series and title generator setting with hand-editable word lists");
-			this.renderHoverIcon(setting, ICON_TITLEFORGE, "Open titleForge", () =>
+			setting.setName("titleforge").setDesc("series and title generator setting with hand-editable word lists");
+			this.renderHoverIcon(setting, ICON_TITLEFORGE, "open titleforge", () =>
 				new TitleForgeSettingsModal(this.app, plugin.titleForge).open(),
 			);
 		});
 
-		if (companionActive) {
-			const themesGroup = new SettingGroup(contentEl);
-			themesGroup.addSetting((setting) => {
-				setting.setName("formatting themes").setDesc("save, preview, and apply named themes, or share formatting as json");
-				this.renderHoverIcon(setting, ICON_FLOPPY_DUOTONE, "Open formatting themes", () =>
-					plugin.openFormatForgeThemesModal(),
-				);
-			});
-		} else {
-			const companionState = formatCompanionState(
-				plugin.getFormatCompanion(),
-				plugin.api?.formatting?.isCompanionActive() === true,
-				this.app,
+		const namedGroup = new SettingGroup(contentEl);
+		namedGroup.addSetting((setting) => {
+			setting.setName("themes");
+			this.renderHoverIcon(setting, ICON_FLOPPY_DUOTONE, "open themes", () =>
+				plugin.openFormatForgeThemesModal(),
 			);
-			const themesGroup = new SettingGroup(contentEl);
-			this.protectionsController.renderThemesSection(themesGroup.listEl, companionState);
-		}
+		});
+		namedGroup.addSetting((setting) => {
+			setting.setName("types & tags");
+			this.renderHoverIcon(setting, ICON_FLOPPY_DUOTONE, "open types & tags", () =>
+				new TypesTagsExportModal(this.app, plugin).open(),
+			);
+		});
+		namedGroup.addSetting((setting) => {
+			setting.setName("threads");
+			this.renderHoverIcon(setting, ICON_FLOPPY_DUOTONE, "open threads", () =>
+				new ThreadsExportModal(this.app, plugin).open(),
+			);
+		});
+		namedGroup.addSetting((setting) => {
+			setting.setName("preferences");
+			this.renderHoverIcon(setting, ICON_FLOPPY_DUOTONE, "open preferences", () =>
+				new PreferencesExportModal(this.app, plugin).open(),
+			);
+		});
+
+		const completeGroup = new SettingGroup(contentEl);
+		completeGroup.addSetting((setting) => {
+			setting.setName("complete");
+			this.renderHoverIcon(setting, ICON_FLOPPY_DUOTONE, "open complete", () =>
+				new CompleteExportModal(this.app, plugin).open(),
+			);
+		});
 	}
 
 	/** Backup box formerly on the general tab (and, before that, behind the "Protections" button) —

@@ -269,6 +269,81 @@ export async function deleteTagDefinition(app: App, list: TagListKind, id: strin
 	return { entries };
 }
 
+function cloneTagDefinitions(entries: readonly TagDefinition[]): TagDefinition[] {
+	return entries
+		.filter((entry) => typeof entry.id === "string" && entry.id.length > 0)
+		.map((entry) =>
+			entry.parentId
+				? { id: entry.id, label: entry.label, iconAlias: entry.iconAlias, parentId: entry.parentId }
+				: { id: entry.id, label: entry.label, iconAlias: entry.iconAlias },
+		);
+}
+
+function withProtectedCodexTypes(
+	incoming: TagDefinition[],
+	current: TagDefinition[],
+): TagDefinition[] {
+	const ids = new Set(incoming.map((entry) => entry.id));
+	const missing = current.filter(
+		(entry) => PROTECTED_CODEX_TYPE_IDS.has(entry.id) && !ids.has(entry.id),
+	);
+	return [...missing, ...incoming];
+}
+
+function toRawTagDefinition(entry: TagDefinition): RawTagDefinition {
+	return entry.parentId
+		? { id: entry.id, label: entry.label, "icon-alias": entry.iconAlias, "parent-id": entry.parentId }
+		: { id: entry.id, label: entry.label, "icon-alias": entry.iconAlias };
+}
+
+/** Replaces selected registry lists in one write. Protected Codex types (person/place) are
+ * kept if the incoming types list omits them. */
+export async function replaceTagLists(
+	app: App,
+	patch: Partial<TagRegistryShape>,
+): Promise<TagRegistryShape> {
+	const path = tagRegistryFilePath();
+	let result: TagRegistryShape = { codexTypes: [], chapterTags: [], novelTags: [] };
+	await modifyBackstageFrontmatter<RawTagRegistryFrontmatter>(
+		app,
+		app.vault,
+		path,
+		DEFAULT_TAG_REGISTRY_CONTENT,
+		(fm) => {
+			const current: TagRegistryShape = {
+				codexTypes: parseTagDefinitions(fm["codex-types"]),
+				chapterTags: parseTagDefinitions(fm["chapter-tags"]),
+				novelTags: parseTagDefinitions(fm["novel-tags"]),
+			};
+			result = {
+				codexTypes:
+					patch.codexTypes !== undefined
+						? withProtectedCodexTypes(cloneTagDefinitions(patch.codexTypes), current.codexTypes)
+						: current.codexTypes,
+				chapterTags:
+					patch.chapterTags !== undefined
+						? cloneTagDefinitions(patch.chapterTags)
+						: current.chapterTags,
+				novelTags:
+					patch.novelTags !== undefined ? cloneTagDefinitions(patch.novelTags) : current.novelTags,
+			};
+			fm["codex-types"] = result.codexTypes.map(toRawTagDefinition);
+			fm["chapter-tags"] = result.chapterTags.map(toRawTagDefinition);
+			fm["novel-tags"] = result.novelTags.map(toRawTagDefinition);
+			if (patch.codexTypes !== undefined) {
+				const resolved: CodexTypeOption[] = result.codexTypes.map((t) => ({
+					type: t.id,
+					label: t.label,
+					icon: resolveIconAlias("codexTypes", t.iconAlias),
+					parentId: t.parentId ?? null,
+				}));
+				loadCodexTypesFromRegistry(resolved);
+			}
+		},
+	);
+	return result;
+}
+
 /** Reorders `list` to match `newIdOrder`. Any existing id missing from `newIdOrder` is appended at the end, preserving its relative order, so a stale/partial order can't silently drop entries. */
 export async function reorderTagDefinitions(app: App, list: TagListKind, newIdOrder: string[]): Promise<TagDefinitionMutationResult> {
 	const entries = await mutateTagList(app, list, (current) => {

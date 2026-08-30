@@ -7,10 +7,17 @@ export const BACKSTAGE_ROOT = "_backstage/storyforge";
 export const TITLEFORGE_BACKSTAGE_ROOT = "_backstage/titleforge";
 /** Vault-root folder where backup zip files are written (Obsidian vault API only — no Node `fs`). Always excluded from backup zips. */
 export const BACKUPS_FOLDER = "_sf-backup";
+/** Vault-root folder for user-facing shareable JSON copies (types & tags, later other settings). Distinct from `_sf-backup/` dated archives and from `_backstage/storyforge/settings/` named presets. */
+export const EXPORT_ROOT = "_export";
 
 /** True if `path` is the backup folder or anything inside it. */
 export function isBackupFolderPath(path: string): boolean {
 	return path === BACKUPS_FOLDER || path.startsWith(`${BACKUPS_FOLDER}/`);
+}
+
+/** True if `path` is the export folder or anything inside it. */
+export function isExportFolderPath(path: string): boolean {
+	return path === EXPORT_ROOT || path.startsWith(`${EXPORT_ROOT}/`);
 }
 
 /** `series.md` lives at the story-library root, alongside the `novel-<code>.md` files — a deliberate exception to "library root is prose-only", carved out narrowly in writeGuard.ts. */

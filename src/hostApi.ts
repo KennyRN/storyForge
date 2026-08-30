@@ -45,21 +45,22 @@ import type StoryForgePlugin from "./main";
 import type { StoryForgePluginSettings } from "./main";
 import {
 	type FormatCompanionRegistration,
+	type LinkedFormattingValues,
 	type SfLinkedFormattingKey,
 	type StoryForgeFormattingApi,
 } from "./formattingApi";
 import type { PaletteColor } from "./colorPalettes";
 import { PALETTE_NAMES } from "./colorPalettes";
 import {
-	deleteSettingsPreset,
+	archiveFormattingTheme,
 	listSettingsPresets,
 	readSettingsPreset,
 	renameSettingsPreset,
 	saveSettingsPreset,
 } from "./settingsPresets";
 
-/** Bumped to 8 for validated, single-save batched linked-setting updates. */
-export const STORYFORGE_API_VERSION = 8 as const;
+/** Bumped to 9 for synchronous companion teardown (`onHostDisconnect`). */
+export const STORYFORGE_API_VERSION = 9 as const;
 
 export interface CodexWriteException {
 	pluginId: string;
@@ -173,6 +174,11 @@ function isColorString(value: unknown): boolean {
 
 function isFiniteNumber(value: unknown): boolean {
 	return typeof value === "number" && Number.isFinite(value);
+}
+
+/** Shared with formatForge: editor `em` multipliers. */
+function isEditorSize(value: unknown): boolean {
+	return typeof value === "number" && Number.isFinite(value) && value > 0 && value <= 10;
 }
 
 function isBoolean(value: unknown): boolean {
@@ -289,19 +295,19 @@ const LINKED_SETTING_VALIDATORS: Record<SfLinkedFormattingKey, ValuePredicate> =
 	codexUseHeaderColorForAll: isBoolean,
 	hideSeriesPane: isBoolean,
 	bodyTextOverrideSize: isBoolean,
-	bodyTextSize: isFiniteNumber,
+	bodyTextSize: isEditorSize,
 	heading1OverrideSize: isBoolean,
-	heading1Size: isFiniteNumber,
+	heading1Size: isEditorSize,
 	heading2OverrideSize: isBoolean,
-	heading2Size: isFiniteNumber,
+	heading2Size: isEditorSize,
 	heading3OverrideSize: isBoolean,
-	heading3Size: isFiniteNumber,
+	heading3Size: isEditorSize,
 	heading4OverrideSize: isBoolean,
-	heading4Size: isFiniteNumber,
+	heading4Size: isEditorSize,
 	heading5OverrideSize: isBoolean,
-	heading5Size: isFiniteNumber,
+	heading5Size: isEditorSize,
 	heading6OverrideSize: isBoolean,
-	heading6Size: isFiniteNumber,
+	heading6Size: isEditorSize,
 	cyclingGuideEnabled: isBoolean,
 	cyclingGuideThickness: isOneOf(...HEADING_DIVIDER_THICKNESSES),
 	cyclingGuideColor: isColorString,
@@ -731,16 +737,14 @@ export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 		},
 
 		getLinkedSettings() {
-			const s = plugin.getSettings() as unknown as Record<string, unknown>;
-			const out = {} as Record<SfLinkedFormattingKey, unknown>;
-			for (const key of LINKED_FORMATTING_KEYS) {
-				out[key] = s[key];
-			}
-			return out;
+			const s = plugin.getSettings();
+			return Object.fromEntries(
+				LINKED_FORMATTING_KEYS.map((key) => [key, s[key]]),
+			) as LinkedFormattingValues;
 		},
 
 		getLinkedSetting(key) {
-			return (plugin.getSettings() as unknown as Record<string, unknown>)[key];
+			return plugin.getSettings()[key];
 		},
 
 		async updateLinkedSetting(key, value) {
@@ -828,7 +832,7 @@ export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 		},
 
 		deleteFormattingPreset(path) {
-			return deleteSettingsPreset(plugin.app, "formatForge", path);
+			return archiveFormattingTheme(plugin.app, path);
 		},
 
 		registerViewContribution(opt) {
