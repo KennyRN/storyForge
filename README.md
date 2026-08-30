@@ -1,6 +1,6 @@
-## 0.14.0 Update
-- I've streamlined the options for storyForge's interface, so hopefully it'll be easier and quicker to make storyForge fit in with your chosen theme
-- I've also introduced plot thread lines. There's not much about them right now, just that they're there.
+## 0.15.0 Update
+- First-run onboarding now sets up your series (or standalone novel), can apply a template or config from the vault, and only creates the welcome note if you ask for it. If you skip the welcome note, you land on chapter 1.
+- You can export and import a complete project pack, plus preferences, types & tags, and plot threads, so a setup can move between vaults.
 
 ***⚠️ WARNING: this plugin no longer creates an external backup!***
 
@@ -32,7 +32,7 @@ One which can be enhanced by using other plugins found within the Obsidian ecosy
 ## Starting with storyForge
 After installing, turn the plugin on, and a welcome screen pops up which asks to give the name of your series (or if you're telling a standalone novel, there's an option there to set that too).
 
-Once you give the series name to storyForge you're brought into Obsidian proper with storyForge's welcome note already populated in the Codex to explain more. But briefly there's two default panels, the storyForge panel which houses all the features of the plugin and at the top in the library pane you can add novels, then within a novel, chapters to be placed into your series / novel (at first they're unplaced, so just drag them to their proper location and all be ready for your masterpiece).
+Once you give the series name to storyForge you're brought into Obsidian proper. If you chose to create a welcome note, that's waiting in the Codex; otherwise you're on chapter 1 of your first novel. Briefly there's two default panels, the storyForge panel which houses all the features of the plugin and at the top in the library pane you can add novels, then within a novel, chapters to be placed into your series / novel (at first they're unplaced, so just drag them to their proper location and all be ready for your masterpiece).
 
 To add a novel / chapter look for the add icon on the Unplaced pane's header row.
 
