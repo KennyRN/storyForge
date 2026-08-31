@@ -27,6 +27,7 @@ import type { NumberingStyle } from "../numberingStyle";
 import {
 	ICON_BOOK_DUOTONE,
 	ICON_BOOKMARK_DUOTONE,
+	ICON_DASHBOARD_CHART,
 	ICON_PLUS_SQUARE,
 	ICON_PLOT_THREADS,
 	ICON_SETTINGS_ALT,
@@ -75,9 +76,10 @@ export interface TopPanelOptions {
  * styles.css), not into renderTopPanel()'s own DOM — .sf-top-panel/.sf-bottom-panel both scroll
  * (`overflow-y: auto`), which would clip an absolutely-positioned descendant that's meant to sit
  * outside their own box, so this needs a container the overflow-clipping rows aren't ancestors of.
- * Codex types, chapter/novel tags, and plot-threads sit beside the settings cog. Relevant only
- * while actually browsing the series list (topPane === "series") — call-site gated, same
- * condition renderTopPanel() used to gate this on internally.
+ * Settings cog is leftmost (the pane's outside edge); stats sits between it and plot-threads;
+ * Codex types and chapter/novel tags follow. Relevant only while actually browsing the series
+ * list (topPane === "series") — call-site gated, same condition renderTopPanel() used to gate
+ * this on internally.
  */
 export function renderSeriesPaneCornerButtons(
 	container: HTMLElement,
@@ -85,40 +87,24 @@ export function renderSeriesPaneCornerButtons(
 	onOpenTags: () => void,
 	onOpenPlotThreads: () => void,
 	onOpenSeriesModal: () => void,
+	onOpenStats: () => void,
 ): void {
 	const corner = container.createDiv({ cls: "sf-series-pane-corner" });
+	addSeriesCornerButton(corner, ICON_SETTINGS_ALT, "Series settings", onOpenSeriesModal);
+	addSeriesCornerButton(corner, ICON_DASHBOARD_CHART, "Stats", onOpenStats);
+	addSeriesCornerButton(corner, ICON_PLOT_THREADS, "Plot threads", onOpenPlotThreads);
+	addSeriesCornerButton(corner, ICON_TAG_DUOTONE, "Codex types", onOpenCodexTypes);
+	addSeriesCornerButton(corner, ICON_BOOKMARK_DUOTONE, "Chapter and novel tags", onOpenTags);
+}
 
-	const typesBtn = corner.createSpan({ cls: "sf-series-settings-btn", attr: { "aria-label": "Codex types" } });
-	setIcon(typesBtn, ICON_TAG_DUOTONE);
-	typesBtn.addEventListener("click", (e) => {
+function addSeriesCornerButton(corner: HTMLElement, icon: string, label: string, onClick: () => void): void {
+	const btn = corner.createSpan({ cls: "sf-series-settings-btn", attr: { "aria-label": label } });
+	setIcon(btn, icon);
+	btn.addEventListener("click", (e) => {
 		e.stopPropagation();
-		onOpenCodexTypes();
+		onClick();
 	});
-	makeAccessibleActivatable(typesBtn, onOpenCodexTypes);
-
-	const tagsBtn = corner.createSpan({ cls: "sf-series-settings-btn", attr: { "aria-label": "Chapter and novel tags" } });
-	setIcon(tagsBtn, ICON_BOOKMARK_DUOTONE);
-	tagsBtn.addEventListener("click", (e) => {
-		e.stopPropagation();
-		onOpenTags();
-	});
-	makeAccessibleActivatable(tagsBtn, onOpenTags);
-
-	const plotBtn = corner.createSpan({ cls: "sf-series-settings-btn", attr: { "aria-label": "Plot threads" } });
-	setIcon(plotBtn, ICON_PLOT_THREADS);
-	plotBtn.addEventListener("click", (e) => {
-		e.stopPropagation();
-		onOpenPlotThreads();
-	});
-	makeAccessibleActivatable(plotBtn, onOpenPlotThreads);
-
-	const settingsBtn = corner.createSpan({ cls: "sf-series-settings-btn", attr: { "aria-label": "Series settings" } });
-	setIcon(settingsBtn, ICON_SETTINGS_ALT);
-	settingsBtn.addEventListener("click", (e) => {
-		e.stopPropagation();
-		onOpenSeriesModal();
-	});
-	makeAccessibleActivatable(settingsBtn, onOpenSeriesModal);
+	makeAccessibleActivatable(btn, onClick);
 }
 
 export function renderTopPanel(app: App, container: HTMLElement, options: TopPanelOptions): void {

@@ -4,7 +4,7 @@ import { bookFolderNameFromChapterPath, isBackstageBookkeepingPath, isLibraryCha
 import { getBookId } from "../series";
 import { renderTopPanel } from "./TopPanel";
 import { renderBottomPanel } from "./BottomPanel";
-import { renderStatsPanel, nextStatsMode, type StatsMode } from "./StatsPanel";
+import { renderStatsPanel, type StatsMode } from "./StatsPanel";
 import { createCodexFolder, createCodexNote, readCodexFrontmatter, type CodexViewMode } from "../codex";
 import { debounce } from "../debounce";
 import { ICON_BOOK_OPEN } from "../icons";
@@ -217,19 +217,23 @@ export class StorytellingView extends ItemView {
 				this.render();
 			},
 			onOpenFile: (path) => void this.openCodexFile(path),
+			hideCodexTitle: true,
 		});
 
 		const statsEl = container.createDiv({ cls: "sf-stats-panel" });
 		renderStatsPanel(statsEl, {
 			mode: this.statsMode,
 			counts: this.statsCounts,
-			onToggleMode: () => {
-				this.statsMode = nextStatsMode(this.statsMode);
-				this.render();
-			},
 			onOpenHistory: () => {
 				if (this.currentBookFolderName) {
-					new WordCountModal(this.app, this.currentBookFolderName).open();
+					new WordCountModal(this.app, this.currentBookFolderName, {
+						statsMode: this.statsMode,
+						seriesNumberingStyle: this.plugin.getSettings().seriesNumberingStyle,
+						onSelectStatsMode: (mode) => {
+							this.statsMode = mode;
+							this.render();
+						},
+					}).open();
 				}
 			},
 		});

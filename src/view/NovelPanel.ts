@@ -20,7 +20,6 @@ import {
 	ICON_MAP_PIN_PLUS,
 	ICON_PERSON_FILL,
 	ICON_PERSON_FILL_ADD,
-	ICON_TIMELINE,
 	setCharmChevronIcon,
 } from "../icons";
 import { bookBackstagePath } from "../paths";
@@ -34,11 +33,13 @@ import { CodexEntryPickerModal } from "./CodexEntryPickerModal";
 import { collectPlotLines, chapterPlotLineKey, resolveChapterRowColor, type PlotLine } from "./novelColor";
 
 /**
- * A novel's cover/synopsis/Default PoV/chapter-by-chapter plot — the content Story Context's own
- * Novel tab (RecommendationView.ts) shows in the right sidebar, and the storyLibrary panel's
- * Novel-layout main-pane page (NovelOverviewView.ts) mirrors in the main editor area. One render
- * function shared by both hosts rather than two copies drifting apart (see SeriesOverviewView.ts's
- * doc comment for the duplication this project already learned not to repeat).
+ * A novel's cover/synopsis/chapter-by-chapter plot — the content Story Context's own Novel tab
+ * (RecommendationView.ts) shows in the right sidebar, and the storyLibrary panel's Novel-layout
+ * main-pane page (NovelOverviewView.ts) mirrors in the main editor area. One render function
+ * shared by both hosts rather than two copies drifting apart (see SeriesOverviewView.ts's doc
+ * comment for the duplication this project already learned not to repeat). Story Context's
+ * sidebar omits Default PoV and the "Plot" heading; the wide overview also omits the heading
+ * and runs the primary plot thread up the cover and along the top of the cover/synopsis row.
  */
 export interface NovelPanelOptions {
 	bookFolderName: string | null;
@@ -57,31 +58,30 @@ export interface NovelPanelOptions {
 	 * closed view or a since-changed selection never lands a stale value. */
 	isStale: () => boolean;
 	/** "sidebar" (default, omit to get it) is Story Context's own stacked/centred layout: cover on
-	 * top, title/subtitle beneath it, synopsis and Default PoV below that, one column throughout.
+	 * top, title/subtitle beneath it, synopsis below that, then the plot-thread cards.
 	 * "wide" is the storyLibrary panel's Novel-overview page (NovelOverviewView.ts) — a larger,
 	 * left-aligned cover with no title/subtitle, and synopsis and Default PoV beside the cover
-	 * instead of under it. Both hosts share coloured plot cards, the colour-line gutter, collapse
+	 * instead of under it. The primary plot thread runs up the cover's left and along the top
+	 * of that row. Both hosts share coloured plot cards, the colour-line gutter, collapse
 	 * chevrons, and coloured chapter titles; only "wide" opens ChapterTitleModal from a title click. */
 	layout?: "sidebar" | "wide";
 }
 
 interface ChapterLineGutterMetrics {
-	/** The "Plot" header's own pill width — 10px (its own height, so a single line's pill is a
-	 * plain circle) plus room for the full line bundle below to land exactly on its straight
-	 * segment (see lineOffsets' own doc comment). */
+	/** Cap width — 2px corner radius on each side plus room for the full line bundle, so every
+	 * strand lands on the bar's straight segment (see lineOffsets). */
 	pillWidth: number;
 	/** Each line's left x-offset within the scroll pane's background, same order as the colours
-	 * passed in. Offset by the pill's own corner radius (not from 0) so the first line starts just
-	 * past where the pill's left curve ends, and the last ends just short of where its right curve
-	 * begins — the lines read as continuing directly out from inside the pill above them, not
+	 * passed in. Offset by the cap's own corner radius (not from 0) so the first line starts just
+	 * past where the left curve ends, and the last ends just short of where its right curve
+	 * begins — the lines read as continuing directly out from inside the bar above them, not
 	 * merely lined up beside it. */
 	lineOffsets: number[];
 	/** How far every chapter card shifts right to clear the last line, plus a small gap. */
 	cardShift: number;
 }
 
-const GUTTER_RADIUS = 5; // half the pill's own 10px height — also its border-radius, and the
-// curved end's own width at each side.
+const GUTTER_CAP_RADIUS = 2;
 const GUTTER_LINE_WIDTH = 2;
 const GUTTER_LINE_GAP = 2;
 const GUTTER_CARD_GAP = 8;
@@ -93,9 +93,9 @@ function computeChapterLineGutterMetrics(lineCount: number): ChapterLineGutterMe
 	const pitch = GUTTER_LINE_WIDTH + GUTTER_LINE_GAP;
 	const bundleWidth = (lineCount - 1) * pitch + GUTTER_LINE_WIDTH;
 	return {
-		pillWidth: 2 * GUTTER_RADIUS + bundleWidth,
-		lineOffsets: Array.from({ length: lineCount }, (_, i) => GUTTER_RADIUS + i * pitch),
-		cardShift: GUTTER_RADIUS + bundleWidth + GUTTER_CARD_GAP,
+		pillWidth: 2 * GUTTER_CAP_RADIUS + bundleWidth,
+		lineOffsets: Array.from({ length: lineCount }, (_, i) => GUTTER_CAP_RADIUS + i * pitch),
+		cardShift: GUTTER_CAP_RADIUS + bundleWidth + GUTTER_CARD_GAP,
 	};
 }
 
@@ -129,8 +129,8 @@ export function renderNovelPanel(app: App, container: HTMLElement, options: Nove
 	const fixed = body.createDiv({ cls: "sf-recommend-fixed sf-recommend-novel-fixed" });
 
 	// "wide" splits into a cover-left/text-right row (cover, then synopsis + Default PoV in a
-	// column beside it) — everything else (title/subtitle, synopsis, Default PoV) still parents
-	// directly off `fixed` for "sidebar", one column top to bottom same as before.
+	// column beside it) — everything else (title/subtitle, synopsis) still parents directly off
+	// `fixed` for "sidebar", one column top to bottom same as before.
 	const coverHost = wide ? fixed.createDiv({ cls: "sf-recommend-novel-cover-row" }) : fixed;
 
 	const cover = coverHost.createDiv({ cls: "sf-synopsis-cover sf-recommend-novel-cover" });
@@ -161,46 +161,43 @@ export function renderNovelPanel(app: App, container: HTMLElement, options: Nove
 		synopsis.value = value;
 	});
 
-	const defaultPovSection = textHost.createDiv({ cls: "sf-recommend-section" });
-	renderDefaultPovRow(app, defaultPovSection, bookFolderName, options.onChanged);
+	if (wide) {
+		const defaultPovSection = textHost.createDiv({ cls: "sf-recommend-section" });
+		renderDefaultPovRow(app, defaultPovSection, bookFolderName, options.onChanged);
+	}
 
-	// Sibling of coverHost (not nested in it) so it sits below the row as a whole — with the cover
-	// enlarged for "wide", that's beneath the cover, which is taller than the text column beside it.
-	const plotLine = fixed.createDiv({ cls: "sf-book-line sf-synopsis-plot-title" });
-	// Colour-line gutter's own pill in grid column 1 — shared by both hosts. plotTitleRow
-	// (created next, explicitly column 2) sits beside it; created first so DOM/reading order
-	// matches the visual layout.
 	const plotLines = collectPlotLines(app, bookFolderName, options.plugin.getSettings());
 	const lineColors = plotLines.map((line) => line.color);
 	const gutter = computeChapterLineGutterMetrics(lineColors.length);
-	if (gutter) {
-		// pillCol is the actual grid-column-1 item (width set explicitly since its own children
-		// are positioned absolutely below, which — unlike the pill's own previous in-flow
-		// placement — wouldn't otherwise give the grid column anything to size itself against).
-		// The pill sits centred within it; the stub is a sliver of the same lines running from
-		// the pill's own bottom edge down to the row's own bottom, so the lines are already
-		// visibly present inside this static header, not just starting fresh once the scroll
-		// pane begins below it.
-		const pillCol = plotLine.createDiv({ cls: "sf-recommend-plot-pill-col" });
-		pillCol.setCssStyles({ width: `${gutter.pillWidth}px` });
-		const pill = pillCol.createDiv({ cls: "sf-recommend-plot-pill" });
-		pill.setCssStyles({ backgroundColor: lineColors[0] });
-		const stub = pillCol.createDiv({ cls: "sf-recommend-plot-pill-stub" });
-		stub.setCssStyles(buildGutterLineBackground(lineColors, gutter.lineOffsets));
-	} else {
-		// Column 1 still needs a header start when there are no colour-lines (empty palette /
-		// collectPlotLines came back empty) — same timeline icon the sidebar used before the
-		// shared gutter, so "Plot" doesn't sit in a vacant grid column.
-		setIcon(plotLine.createSpan({ cls: "sf-icon" }), ICON_TIMELINE);
-	}
-	const plotTitleRow = plotLine.createDiv({ cls: "sf-header-line sf-book-title-row" });
-	const plotTextWrap = plotTitleRow.createDiv({ cls: "sf-book-text-wrap" });
-	const plotTextEl = plotTextWrap.createSpan({ cls: "sf-header-text", text: "Plot" });
-	// Same colour as the pill beside it (lineColors[0], the default main-thread line) — .sf-header-text
-	// declares its own `color` elsewhere (it's user-configurable), so this has to be set directly
-	// rather than relying on inheriting it from some ancestor.
-	if (lineColors.length > 0) plotTextEl.setCssStyles({ color: lineColors[0] });
 
+	if (!wide && gutter && lineColors[0]) {
+		const threadLeft = gutter.lineOffsets[0];
+		const wrap = textHost.createDiv({ cls: "sf-recommend-novel-synopsis-wrap" });
+		synopsis.before(wrap);
+		const cap = wrap.createDiv({ cls: "sf-recommend-novel-synopsis-thread-cap" });
+		cap.setCssStyles({ backgroundColor: lineColors[0] });
+		wrap.append(synopsis);
+		wrap.setCssStyles({
+			marginLeft: `${threadLeft}px`,
+			width: `calc(100% - ${threadLeft}px)`,
+			backgroundColor: lineColors[0],
+		});
+		synopsis.addClass("sf-recommend-novel-synopsis--thread");
+	}
+	if (wide && gutter && lineColors[0]) {
+		const threadLeft = gutter.lineOffsets[0];
+		const wrap = fixed.createDiv({ cls: "sf-recommend-novel-cover-thread" });
+		coverHost.before(wrap);
+		const cap = wrap.createDiv({ cls: "sf-recommend-novel-synopsis-thread-cap" });
+		cap.setCssStyles({ backgroundColor: lineColors[0] });
+		wrap.append(coverHost);
+		wrap.setCssStyles({
+			marginLeft: `${threadLeft}px`,
+			width: `calc(100% - ${threadLeft}px)`,
+		});
+		wrap.style.setProperty("--sf-cover-thread-color", lineColors[0]);
+		cover.addClass("sf-recommend-novel-cover--thread");
+	}
 	const scroll = body.createDiv({ cls: "sf-recommend-scroll" });
 	void renderNovelPlot(app, scroll, bookFolderName, options, wide, plotLines);
 }

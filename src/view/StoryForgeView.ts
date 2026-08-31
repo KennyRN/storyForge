@@ -4,7 +4,7 @@ import { bookFolderNameFromChapterPath, isBackstageBookkeepingPath, isLibraryCha
 import { getBookId, getSeriesBooks } from "../series";
 import { renderSeriesPaneCornerButtons, renderTopPanel, type UnplacedViewMode } from "./TopPanel";
 import { renderBottomPanel } from "./BottomPanel";
-import { renderStatsPanel, nextStatsMode, type StatsMode } from "./StatsPanel";
+import { renderStatsPanel, type StatsMode } from "./StatsPanel";
 import { SeriesModal } from "./SeriesModal";
 import { PlotThreadRegistryModal } from "./PlotThreadRegistryModal";
 import { TagRegistryModal } from "./TagRegistryModal";
@@ -310,8 +310,8 @@ export class StoryForgeView extends ItemView {
 
 			// Pinned to the pane's own bottom-left corner (see renderSeriesPaneCornerButtons's doc
 			// comment) — rendered straight onto `container` (the pane root), not into `topEl` above,
-			// since .sf-top-panel scrolls and would clip it. Codex types, tags, and plot-threads sit
-			// beside the settings cog.
+			// since .sf-top-panel scrolls and would clip it. Settings cog is leftmost; stats sits
+			// between it and plot-threads.
 			if (topPane === "series") {
 				const refreshAfterPlotThreads = () => {
 					this.plugin.refreshStoryForgeViews();
@@ -324,6 +324,7 @@ export class StoryForgeView extends ItemView {
 					() => new TagRegistryModal(this.app, refreshAfterTags, "tags").open(),
 					() => new PlotThreadRegistryModal(this.app, this.plugin, refreshAfterPlotThreads).open(),
 					() => new SeriesModal(this.app, this.plugin, () => this.render()).open(),
+					() => this.openWordCountHistory(),
 				);
 			}
 		}
@@ -381,18 +382,25 @@ export class StoryForgeView extends ItemView {
 			renderStatsPanel(statsEl, {
 				mode: this.statsMode,
 				counts: this.statsCounts,
-				onToggleMode: () => {
-					this.statsMode = nextStatsMode(this.statsMode);
-					this.render();
-				},
-				onOpenHistory: () => {
-					if (this.currentBookFolderName) {
-						new WordCountModal(this.app, this.currentBookFolderName).open();
-					}
-				},
+				onOpenHistory: () => this.openWordCountHistory(),
 			});
 		}
 		void this.refreshStats();
+	}
+
+	private openWordCountHistory(): void {
+		const series = getSeriesBooks(this.app);
+		const bookFolderName =
+			this.currentBookFolderName ?? series.ordered[0]?.name ?? series.unplaced[0]?.name ?? null;
+		if (!bookFolderName) return;
+		new WordCountModal(this.app, bookFolderName, {
+			statsMode: this.statsMode,
+			seriesNumberingStyle: this.plugin.getSettings().seriesNumberingStyle,
+			onSelectStatsMode: (mode) => {
+				this.statsMode = mode;
+				this.render();
+			},
+		}).open();
 	}
 
 	private async refreshStats(): Promise<void> {

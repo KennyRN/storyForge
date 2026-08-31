@@ -681,9 +681,10 @@ export class RecommendationView extends ItemView {
 		this.forgeFamilyPanelDisposer = null;
 	}
 
-	/** Cover/synopsis/Default PoV/per-chapter plot — delegates to NovelPanel.ts's shared render
+	/** Cover/synopsis/per-chapter plot — delegates to NovelPanel.ts's shared render
 	 * function, also used by the storyLibrary panel's Novel-layout main-pane page
-	 * (NovelOverviewView.ts) so the two stay identical rather than drifting apart. */
+	 * (NovelOverviewView.ts). The sidebar omits Default PoV and the "Plot" heading;
+	 * the wide overview also omits the heading. */
 	private renderNovel(el: HTMLElement): void {
 		// renderNovelPanel() unconditionally empties whatever container it's given (correct for
 		// NovelOverviewView.ts, which owns its whole page) — `el` here already has the tabs row

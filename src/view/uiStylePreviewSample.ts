@@ -19,7 +19,6 @@ const ICON_TRANSPORT_NEXT = "sf-transport-next";
 const ICON_TRANSPORT_TO_END = "sf-transport-to-end";
 const ICON_CONTINUOUS_MODE = "sf-continuous-mode";
 const ICON_DASHBOARD_CHART = "sf-dashboard-chart";
-const ICON_EXCHANGE = "sf-exchange-b";
 const ICON_CALENDAR = "sf-calendar-2";
 const ICON_PERSON = "sf-person-fill";
 const ICON_MEEPLE = "nameforge-meeple";
@@ -44,34 +43,30 @@ function listRow(list: HTMLElement, title: string, selected = false, subtitle?: 
 	return row;
 }
 
-/** Shared by both the storyLibrary and storyTelling mocks — same Codex tree either way (Codex chrome is one shared, non-panel-specific tab of its own). */
-function mountCodexTreeSample(bottom: HTMLElement): void {
-	const bottomHeader = bottom.createDiv({ cls: "sf-bottom-header" });
-	setIcon(bottomHeader.createSpan({ cls: "sf-icon" }), ICON_CODEX);
-	bottomHeader.createSpan({ cls: "sf-header-codex", text: "Codex" });
-	const filterBtn = bottomHeader.createSpan({
-		cls: "sf-codex-filter-btn",
-		attr: { "aria-label": "Filter by type" },
-	});
-	setIcon(filterBtn, ICON_FILTER_LIST);
-	const newFileBtn = bottomHeader.createSpan({
-		cls: "sf-codex-new-file-btn",
-		attr: { "aria-label": "New file" },
-	});
-	setIcon(newFileBtn, ICON_PLUS_SQUARE);
-	const newFolderBtn = bottomHeader.createSpan({
-		cls: "sf-codex-new-folder-btn",
-		attr: { "aria-label": "New folder" },
-	});
-	setIcon(newFolderBtn, ICON_FOLDER_PLUS);
+/** Shared by both the storyLibrary and storyTelling mocks — same Codex tree either way (Codex chrome is one shared, non-panel-specific tab of its own). storyTelling omits the Codex title/globe. */
+function mountCodexTreeSample(bottom: HTMLElement, hideCodexTitle = false): void {
+	if (hideCodexTitle) {
+		const rail = bottom.createDiv({ cls: "sf-codex-side-actions" });
+		setIcon(rail.createSpan({ cls: "sf-codex-new-folder-btn", attr: { "aria-label": "New folder" } }), ICON_FOLDER_PLUS);
+		setIcon(rail.createSpan({ cls: "sf-codex-new-file-btn", attr: { "aria-label": "New file" } }), ICON_PLUS_SQUARE);
+		setIcon(rail.createSpan({ cls: "sf-codex-filter-btn", attr: { "aria-label": "Filter by type" } }), ICON_FILTER_LIST);
+	} else {
+		const bottomHeader = bottom.createDiv({ cls: "sf-bottom-header" });
+		setIcon(bottomHeader.createSpan({ cls: "sf-icon" }), ICON_CODEX);
+		bottomHeader.createSpan({ cls: "sf-header-codex", text: "Codex" });
+		setIcon(bottomHeader.createSpan({ cls: "sf-codex-filter-btn", attr: { "aria-label": "Filter by type" } }), ICON_FILTER_LIST);
+		setIcon(bottomHeader.createSpan({ cls: "sf-codex-new-file-btn", attr: { "aria-label": "New file" } }), ICON_PLUS_SQUARE);
+		setIcon(bottomHeader.createSpan({ cls: "sf-codex-new-folder-btn", attr: { "aria-label": "New folder" } }), ICON_FOLDER_PLUS);
+	}
 
 	const tree = bottom.createDiv({ cls: "sf-codex-tree" });
 	const folder = tree.createDiv({ cls: "sf-codex-folder" });
 	folder.setCssProps({ "--sf-codex-depth": "0" });
 	const folderHeader = folder.createDiv({ cls: "sf-codex-folder-header sf-codex-lore-folder sf-row-selected" });
 	const folderContent = folderHeader.createDiv({ cls: "sf-codex-row-content" });
-	folderContent.createSpan({ cls: "sf-codex-chevron" });
-	folderContent.createSpan({ cls: "sf-codex-folder-name sf-styled-heading", text: "Magna Aliqua" });
+	if (!hideCodexTitle) folderContent.createSpan({ cls: "sf-codex-chevron" });
+	const nameHost = hideCodexTitle ? folderContent.createSpan({ cls: "sf-codex-folder-name-wrap" }) : folderContent;
+	nameHost.createSpan({ cls: "sf-codex-folder-name sf-styled-heading", text: "Magna Aliqua" });
 	setIcon(folderContent.createSpan({ cls: "sf-icon sf-codex-type-icon" }), ICON_PERSON);
 
 	folder.addClass("sf-codex-folder--with-indicator");
@@ -165,7 +160,7 @@ export function mountStorytellingPreviewSample(container: HTMLElement): void {
 	const body = top.createDiv({ cls: "sf-top-body" });
 	mountNavigatorSample(body);
 
-	mountCodexTreeSample(view.createDiv({ cls: "sf-bottom-panel" }));
+	mountCodexTreeSample(view.createDiv({ cls: "sf-bottom-panel" }), true);
 	mountStatsSample(view);
 }
 
@@ -210,14 +205,10 @@ function mountNavigatorSample(body: HTMLElement): void {
 
 function mountStatsSample(container: HTMLElement): void {
 	const stats = container.createDiv({ cls: "sf-stats-panel" });
-	const header = stats.createDiv({ cls: "sf-stats-header" });
-	setIcon(header.createSpan({ cls: "sf-icon" }), ICON_DASHBOARD_CHART);
-	header.createSpan({ cls: "sf-stats-title", text: "Stats" });
 	const line = stats.createDiv({ cls: "sf-stats-line" });
+	setIcon(line.createSpan({ cls: "sf-icon sf-stats-chart", attr: { "aria-label": "stats" } }), ICON_DASHBOARD_CHART);
 	line.createSpan({ cls: "sf-stats-value", text: "daily wordcount: 312" });
-	const actions = line.createDiv({ cls: "sf-stats-actions" });
-	setIcon(actions.createSpan({ cls: "sf-icon sf-stats-exchange", attr: { "aria-label": "switch wordcount" } }), ICON_EXCHANGE);
-	setIcon(actions.createSpan({ cls: "sf-icon sf-stats-calendar", attr: { "aria-label": "wordcount history" } }), ICON_CALENDAR);
+	setIcon(line.createSpan({ cls: "sf-icon sf-stats-calendar", attr: { "aria-label": "wordcount history" } }), ICON_CALENDAR);
 }
 
 /** One Story Context tab's worth of representative body content, keyed by the same ids used in `mountRightSidebarPreviewSample`'s clickable tab row. */
@@ -279,18 +270,18 @@ function mountRecommendNovelBody(body: HTMLElement, mainThread: PreviewMainThrea
 	fixed.createDiv({ cls: "sf-synopsis-cover sf-recommend-novel-cover" });
 	fixed.createDiv({ cls: "sf-recommend-novel-title", text: "Ipsum Liber" });
 	fixed.createDiv({ cls: "sf-recommend-novel-subtitle", text: "Vol. I — Dolor Sit" });
-	fixed.createEl("textarea", {
-		cls: "sf-recommend-synopsis sf-recommend-novel-synopsis",
+	const wrap = fixed.createDiv({ cls: "sf-recommend-novel-synopsis-wrap" });
+	wrap.setCssStyles({
+		marginLeft: "2px",
+		width: "calc(100% - 2px)",
+		backgroundColor: mainThread.color,
+	});
+	wrap.createDiv({ cls: "sf-recommend-novel-synopsis-thread-cap" }).setCssStyles({ backgroundColor: mainThread.color });
+	wrap.createEl("textarea", {
+		cls: "sf-recommend-synopsis sf-recommend-novel-synopsis sf-recommend-novel-synopsis--thread",
 		text: "A brief synopsis of the novel goes here.",
 		attr: { readonly: "true", rows: "3" },
 	});
-	const povSection = fixed.createDiv({ cls: "sf-recommend-section" });
-	const meta = povSection.createDiv({ cls: "sf-recommend-meta" });
-	const row = meta.createDiv({ cls: "sf-recommend-meta-row" });
-	row.createSpan({ cls: "sf-recommend-meta-label", text: "Default PoV:" });
-	const control = row.createSpan({ cls: "sf-recommend-meta-control" });
-	setIcon(control.createSpan({ cls: "sf-recommend-meta-icon" }), ICON_PERSON);
-	control.createSpan({ cls: "sf-recommend-meta-value", text: "Jane Protagonist" });
 
 	const previewPlotThreads: Array<PreviewMainThread> = [
 		mainThread,
@@ -299,11 +290,10 @@ function mountRecommendNovelBody(body: HTMLElement, mainThread: PreviewMainThrea
 	const lineColors = previewPlotThreads.map((t) => t.color);
 	const pitch = 4;
 	const bundleWidth = (lineColors.length - 1) * pitch + 2;
-	const lineOffsets = lineColors.map((_, i) => 5 + i * pitch);
+	const lineOffsets = lineColors.map((_, i) => 2 + i * pitch);
 	const gutter = {
-		pillWidth: 10 + bundleWidth,
 		lineOffsets,
-		cardShift: 5 + bundleWidth + 8,
+		cardShift: 2 + bundleWidth + 8,
 		background: {
 			backgroundImage: lineColors.map((c) => `linear-gradient(${c}, ${c})`).join(", "),
 			backgroundSize: lineColors.map(() => "2px 100%").join(", "),
@@ -311,16 +301,6 @@ function mountRecommendNovelBody(body: HTMLElement, mainThread: PreviewMainThrea
 			backgroundRepeat: "no-repeat",
 		},
 	};
-
-	const plotLine = fixed.createDiv({ cls: "sf-book-line sf-synopsis-plot-title" });
-	const pillCol = plotLine.createDiv({ cls: "sf-recommend-plot-pill-col" });
-	pillCol.setCssStyles({ width: `${gutter.pillWidth}px` });
-	pillCol.createDiv({ cls: "sf-recommend-plot-pill" }).setCssStyles({ backgroundColor: lineColors[0] });
-	pillCol.createDiv({ cls: "sf-recommend-plot-pill-stub" }).setCssStyles(gutter.background);
-	const plotTitleRow = plotLine.createDiv({ cls: "sf-header-line sf-book-title-row" });
-	plotTitleRow.createDiv({ cls: "sf-book-text-wrap" }).createSpan({ cls: "sf-header-text", text: "Plot" }).setCssStyles({
-		color: lineColors[0],
-	});
 
 	const scroll = body.createDiv({ cls: "sf-recommend-scroll" });
 	scroll.setCssStyles({ ...gutter.background, backgroundAttachment: "local" });
