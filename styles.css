@@ -110,6 +110,12 @@
 	height: 100%;
 	min-height: 0;
 	padding: 0;
+	/* Navigator padding 8px + transport column (22.5px icon + 4px button pad) + body gap 6px
+	 * + .sf-top-list window pad 4px — chapter row left edge. Codex uses the same inset. */
+	--sf-storytelling-nav-transport: calc(22.5px + 4px);
+	--sf-storytelling-list-inset: calc(8px + var(--sf-storytelling-nav-transport) + 6px + 4px);
+	/* Same as .sf-navigator padding — gap above the Codex divider equals the gap below it. */
+	--sf-storytelling-divider-gap: 8px;
 }
 
 .sf-top-panel,
@@ -392,27 +398,26 @@
 
 .sf-stats-panel {
 	border-top: 1px solid var(--background-modifier-border);
-}
-
-.sf-stats-header {
 	display: flex;
-	align-items: center;
-	gap: 6px;
-	padding: 6px 10px 2px;
-	color: var(--text-muted);
-}
-
-.sf-stats-title {
-	font-size: var(--font-ui-small);
-	font-weight: 600;
-	color: var(--text-muted);
+	align-items: flex-end;
 }
 
 .sf-stats-line {
 	display: flex;
 	align-items: center;
 	gap: 6px;
-	padding: 0 10px 6px;
+	width: 100%;
+	padding: 6px 10px;
+}
+
+.sf-stats-chart {
+	color: var(--text-muted);
+	flex-shrink: 0;
+}
+
+.sf-stats-chart svg {
+	width: calc(var(--icon-size, 18px) + 5px);
+	height: calc(var(--icon-size, 18px) + 5px);
 }
 
 .sf-stats-value {
@@ -425,25 +430,10 @@
 	white-space: nowrap;
 }
 
-.sf-stats-actions {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	flex-shrink: 0;
-}
-
-.sf-stats-exchange {
-	color: var(--text-muted);
-	cursor: pointer;
-}
-
-.sf-stats-exchange:hover {
-	color: var(--text-normal);
-}
-
 .sf-stats-calendar {
 	color: var(--text-muted);
 	cursor: pointer;
+	flex-shrink: 0;
 }
 
 .sf-stats-calendar:hover {
@@ -458,6 +448,11 @@
 	border-bottom: 1px solid var(--background-modifier-border);
 	color: var(--text-muted);
 	cursor: pointer;
+}
+
+.sf-bottom-header--actions-only {
+	cursor: default;
+	justify-content: flex-end;
 }
 
 .sf-header-codex {
@@ -651,7 +646,7 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 
 /* Series-mode-only hover icons — pinned to the bottom-left corner of the whole pane (see
  * renderSeriesPaneCornerButtons's doc comment), not part of any row's flex flow any more.
- * Codex types, chapter/novel tags, and plot-threads sit beside the settings cog. Sized 50% bigger
+ * Settings cog is leftmost (outside); stats sits between it and plot-threads. Sized 50% bigger
  * than this codebase's default icon size (16px -> 24px). */
 .sf-series-pane-corner {
 	position: absolute;
@@ -1572,29 +1567,29 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 
 /* ── Wordcount History Modal ── */
 
-.sf-wordcount-modal {
-	padding: 16px;
+.modal.sf-wordcount-modal {
 	max-width: 520px;
 }
 
-.sf-wordcount-modal-header {
-	display: flex;
-	align-items: flex-end;
-	gap: 8px;
-	margin: 0 0 12px;
-}
-
-.sf-wordcount-modal-header h2 {
+.modal.sf-wordcount-modal .modal-title {
+	display: none;
 	margin: 0;
+	padding: 0;
+	height: 0;
+	overflow: hidden;
 }
 
-.sf-wordcount-modal-header > .sf-icon {
-	font-size: 2em;
+.modal.sf-wordcount-modal .modal-content {
+	padding: 16px 16px 0;
+	display: flex;
+	flex-direction: column;
+	max-height: min(90vh, 720px);
 }
 
-.sf-wordcount-modal-header > .sf-icon svg {
-	width: 1em;
-	height: 1em;
+.sf-wordcount-modal-body {
+	overflow-y: auto;
+	min-height: 0;
+	flex: 1 1 auto;
 }
 
 .sf-wordcount-rollup {
@@ -1652,7 +1647,31 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	display: flex;
 	gap: 3px;
 	overflow-x: auto;
-	padding-bottom: 4px;
+	/* Outline on the selected cell (2px + 1px offset) sits outside the box; without
+	 * padding, overflow-x: auto clips the left and top of that highlight. */
+	padding: 4px;
+}
+
+.sf-wordcount-mode-picker {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex-shrink: 0;
+	margin-top: 8px;
+	padding: 12px 0 16px;
+	border-top: 1px solid var(--background-modifier-border);
+}
+
+.sf-wordcount-mode-label {
+	flex-shrink: 0;
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	white-space: nowrap;
+}
+
+.sf-wordcount-mode-select {
+	flex: 1;
+	min-width: 0;
 }
 
 .sf-wordcount-heatmap-col {
@@ -3604,6 +3623,71 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	box-sizing: border-box;
 }
 
+/* Story Context Novel tab: synopsis sits flush above the chapter flags; the scroll pane's
+ * own gutter lines start at its top, meeting the synopsis left border. */
+.sf-recommend-view .sf-recommend-novel-synopsis {
+	margin-bottom: 0;
+}
+
+/* Story Context Novel tab: synopsis follows the primary plot thread.
+ * Wrap is filled with the thread colour. Overflow clips the outer top-left to 10px. The cap is
+ * the 4px top stroke with a rounded right end. The textarea's top-left radius is the inner
+ * curve of the L (10px outer − 2px left / 4px top). Bottom-right matches the textarea so the
+ * fill does not peek around that corner.
+ * ::after is the 2px left strand, painted above the textarea so Obsidian's focus box-shadow
+ * cannot cover it. */
+.sf-recommend-view .sf-recommend-novel-synopsis-wrap {
+	display: flex;
+	flex-direction: column;
+	position: relative;
+	margin-bottom: 0;
+	border-radius: 10px 0 10px 0;
+	overflow: hidden;
+}
+
+.sf-recommend-view .sf-recommend-novel-synopsis-wrap::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 4px;
+	bottom: 0;
+	width: 2px;
+	background-color: inherit;
+	pointer-events: none;
+}
+
+.sf-recommend-novel-synopsis-thread-cap {
+	flex-shrink: 0;
+	height: 4px;
+	border-radius: 0 2px 2px 0;
+}
+
+.sf-recommend-view textarea.sf-recommend-novel-synopsis--thread {
+	display: block;
+	width: calc(100% - 2px);
+	margin: 0 0 0 2px;
+	border-width: 0 1px 1px 0;
+	border-style: solid;
+	border-right-color: var(--background-modifier-border);
+	border-bottom-color: var(--background-modifier-border);
+	border-radius: 8px 0 10px 0 / 6px 0 10px 0;
+	background-color: var(--background-modifier-form-field);
+	box-shadow: none;
+	outline: none;
+}
+
+.sf-recommend-view textarea.sf-recommend-novel-synopsis--thread:hover,
+.sf-recommend-view textarea.sf-recommend-novel-synopsis--thread:focus,
+.sf-recommend-view textarea.sf-recommend-novel-synopsis--thread:focus-visible,
+.sf-recommend-view textarea.sf-recommend-novel-synopsis--thread:active {
+	box-shadow: none;
+	outline: none;
+	border-width: 0 1px 1px 0;
+	margin: 0 0 0 2px;
+	width: calc(100% - 2px);
+	background-color: var(--background-modifier-form-field);
+}
+
 .sf-recommend-plot-block {
 	padding: 12px 0;
 	border-bottom: 1px solid var(--background-modifier-border);
@@ -4322,9 +4406,10 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 }
 
 /* Chapter tiles are Hybrid's own .sf-row / .sf-row-text / .sf-row-selected, unmodified apart from
- * centred text (no title-numbering column here) and no drag handle (see CodexFocusNavigator.ts) —
- * every bit of Hybrid's chapter-row styling (font, colour, highlight, hover) applies identically
- * by construction, not by copying it. */
+ * centred text in the storyLibrary navigator (no title-numbering column here) and no drag handle
+ * (see CodexFocusNavigator.ts). storyTelling left-aligns the same rows. Every bit of Hybrid's
+ * chapter-row styling (font, colour, highlight, hover) applies identically by construction, not
+ * by copying it. */
 /* No inter-row gap — .sf-top-list's own rows (the novel pages' chapter list) stack flush with
  * none of their own, and matching that snug spacing is what makes this compact rather than
  * reading as three separately spaced tiles. */
@@ -4336,6 +4421,143 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 
 .sf-navigator-window .sf-row-text {
 	text-align: center;
+}
+
+/* storyTelling panel: chapter titles (and their highlight) left-align; Codex rows
+ * (text + highlight) share that same inset, leaving an empty left margin. */
+.storyforge-storytelling-view .sf-navigator-window .sf-row-text {
+	text-align: left;
+}
+
+.storyforge-storytelling-view .sf-navigator {
+	padding-bottom: var(--sf-storytelling-divider-gap);
+}
+
+.storyforge-storytelling-view .sf-codex-tree {
+	padding-top: var(--sf-storytelling-divider-gap);
+	padding-left: var(--sf-storytelling-list-inset);
+}
+
+/* storyTelling Codex chrome (temporary): no header row, actions in a left rail matching
+ * the navigator transport column, no folder triangles, guide line flush with the text margin. */
+.storyforge-storytelling-view .sf-top-panel.sf-top-panel--above-codex {
+	border-bottom-width: 3px;
+}
+
+.storyforge-storytelling-view .sf-codex-side-actions {
+	position: absolute;
+	left: 8px;
+	top: var(--sf-storytelling-divider-gap);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	z-index: 2;
+}
+
+.storyforge-storytelling-view .sf-codex-side-actions .sf-codex-filter-btn,
+.storyforge-storytelling-view .sf-codex-side-actions .sf-codex-new-file-btn,
+.storyforge-storytelling-view .sf-codex-side-actions .sf-codex-new-folder-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 2px;
+	background: transparent;
+	border-radius: 0;
+}
+
+.storyforge-storytelling-view .sf-codex-side-actions .sf-codex-filter-btn svg,
+.storyforge-storytelling-view .sf-codex-side-actions .sf-codex-new-file-btn svg,
+.storyforge-storytelling-view .sf-codex-side-actions .sf-codex-new-folder-btn svg {
+	width: 22.5px;
+	height: 22.5px;
+}
+
+.storyforge-storytelling-view .sf-codex-row-content--file {
+	padding-left: calc(var(--sf-codex-depth, 0) * var(--sf-codex-level-indent, 20px));
+}
+
+.storyforge-storytelling-view .sf-codex-folder-indicator {
+	top: 4px;
+	left: calc(6px + var(--sf-codex-depth, 0) * var(--sf-codex-level-indent, 20px));
+	transform: none;
+}
+
+/* Slight elbow where the underline meets the indent guide (expanded folders only). */
+.storyforge-storytelling-view .sf-codex-folder-indicator::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: -6px;
+	width: 6px;
+	height: 6px;
+	box-sizing: border-box;
+	border-top: var(--sf-codex-folder-indicator-width, 2px) solid var(--sf-codex-folder-color);
+	border-left: var(--sf-codex-folder-indicator-width, 2px) solid var(--sf-codex-folder-color);
+	border-radius: 6px 0 0 0;
+	pointer-events: none;
+}
+
+.storyforge-storytelling-view .sf-codex-folder--with-indicator .sf-codex-folder-name-wrap::after {
+	left: 4px;
+	width: calc(100% - 4px);
+	border-radius: 0 calc(var(--sf-codex-folder-indicator-width, 2px) / 2) calc(var(--sf-codex-folder-indicator-width, 2px) / 2) 0;
+}
+
+.storyforge-storytelling-view .sf-codex-folder--with-indicator > .sf-codex-folder-header.sf-row-selected ~ .sf-codex-folder-children > .sf-codex-folder-indicator,
+.storyforge-storytelling-view .sf-codex-folder--with-indicator > .sf-codex-folder-header:hover ~ .sf-codex-folder-children > .sf-codex-folder-indicator {
+	background: var(--sf-codex-highlight-text);
+}
+
+.storyforge-storytelling-view .sf-codex-folder--with-indicator > .sf-codex-folder-header.sf-row-selected ~ .sf-codex-folder-children > .sf-codex-folder-indicator::before,
+.storyforge-storytelling-view .sf-codex-folder--with-indicator > .sf-codex-folder-header:hover ~ .sf-codex-folder-children > .sf-codex-folder-indicator::before {
+	border-color: var(--sf-codex-highlight-text);
+}
+
+/* Keep the nested-row fill starting just to the right of the 2px guide so the line isn't
+ * covered by the row's own z-index: 2 background. */
+body:not(.sf-codex-indent-none) .storyforge-storytelling-view .sf-codex-folder-children .sf-codex-file,
+body:not(.sf-codex-indent-none) .storyforge-storytelling-view .sf-codex-folder-children .sf-codex-folder-header {
+	--sf-codex-highlight-trim: calc(6px + var(--sf-codex-folder-indicator-width, 2px) + (var(--sf-codex-depth, 1) - 1) * var(--sf-codex-level-indent, 20px));
+}
+
+.storyforge-storytelling-view .sf-codex-folder.sf-codex-folder--with-indicator > .sf-codex-folder-header.sf-row-selected::after,
+.storyforge-storytelling-view .sf-codex-folder.sf-codex-folder--with-indicator > .sf-codex-folder-header:hover::after {
+	display: none;
+}
+
+/* Text-width rounded rule along the bottom of the folder highlight — same 2px / rounded-cap
+ * chrome as the indent guide, sitting on the highlight's lower edge. */
+.storyforge-storytelling-view .sf-codex-folder-header > .sf-codex-row-content {
+	overflow: visible;
+}
+
+.storyforge-storytelling-view .sf-codex-folder-name-wrap {
+	position: relative;
+	flex: 0 1 auto;
+	min-width: 0;
+	max-width: 100%;
+	align-self: stretch;
+	display: flex;
+	align-items: center;
+}
+
+.storyforge-storytelling-view .sf-codex-folder-name-wrap::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	width: 100%;
+	height: var(--sf-codex-folder-indicator-width, 2px);
+	bottom: -4px;
+	border-radius: calc(var(--sf-codex-folder-indicator-width, 2px) / 2);
+	background: var(--sf-codex-folder-color);
+	pointer-events: none;
+	z-index: 1;
+}
+
+.storyforge-storytelling-view .sf-codex-folder-header.sf-row-selected .sf-codex-folder-name-wrap::after,
+.storyforge-storytelling-view .sf-codex-folder-header:hover .sf-codex-folder-name-wrap::after {
+	background: var(--sf-codex-highlight-text);
 }
 
 /* Fixed, shared height for every slot — chapter row or placeholder — so the create tile's border
@@ -4934,6 +5156,9 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 }
 
 .sf-novel-overview-view .sf-recommend-scroll {
+	/* 12px matches .sf-recommend-novel-cover-row's margin and the plot cards' own
+	 * spacing — same breathing room the sidebar has between synopsis and flags. */
+	padding-top: 12px;
 	padding-bottom: 48px;
 }
 
@@ -4952,6 +5177,46 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	padding-top: 4px;
 }
 
+/* Wide overview: 4px cap across cover + synopsis, 2px left strand beside the cover.
+ * Overflow clips the outer top-left to 10px. A 10px thread square at the wrap's origin
+ * fills only the inner L (visible in the cover's rounded cutout), so the line has no
+ * square notch and no overlay on the image. */
+.sf-novel-overview-view .sf-recommend-novel-cover-thread {
+	display: flex;
+	flex-direction: column;
+	position: relative;
+	margin-bottom: 0;
+	border-radius: 10px 0 0 0;
+	overflow: hidden;
+	background-image: linear-gradient(var(--sf-cover-thread-color), var(--sf-cover-thread-color));
+	background-size: 10px 10px;
+	background-repeat: no-repeat;
+	background-position: 0 0;
+}
+
+.sf-novel-overview-view .sf-recommend-novel-cover-thread::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 4px;
+	bottom: 0;
+	width: 2px;
+	background-color: var(--sf-cover-thread-color);
+	pointer-events: none;
+}
+
+.sf-novel-overview-view .sf-recommend-novel-cover-thread .sf-recommend-novel-cover-row {
+	margin-bottom: 0;
+}
+
+.sf-novel-overview-view .sf-recommend-novel-cover-thread .sf-recommend-novel-text-col {
+	padding-top: 0;
+}
+
+.sf-novel-overview-view .sf-recommend-novel-cover-thread .sf-recommend-novel-synopsis {
+	border-top-width: 0;
+}
+
 /* Bigger, left-aligned cover — overrides the sidebar's centred 120×180 (.sf-recommend-novel-cover
  * above), same 2:3 aspect ratio. */
 .sf-novel-overview-view .sf-recommend-novel-cover {
@@ -4961,18 +5226,24 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	align-self: flex-start;
 }
 
+.sf-novel-overview-view .sf-recommend-novel-cover.sf-recommend-novel-cover--thread {
+	margin-left: 2px;
+	/* Inner L: 10px outer − 2px left / 4px top. Bottom-left square against the rail. */
+	border-radius: 8px 4px 4px 0 / 6px 4px 4px 0;
+}
+
 .sf-novel-overview-view .sf-recommend-novel-text-col .sf-recommend-novel-synopsis {
 	min-height: 140px;
 }
 
-/* renderNovelPanel's own "Plot" header — sits in .sf-book-line's grid column 1 (explicit, so it
- * doesn't auto-place under .sf-book-title-row's column-2 "Plot" label). Width is set inline per
- * book (renderNovelPanel) — 10px minimum (a plain circle when there's only a single colour-line)
- * plus room for every further line in the gutter below.
+/* renderNovelPanel's own plot-thread cap — sits in .sf-book-line's grid column 1 (explicit, so it
+ * doesn't auto-place under .sf-book-title-row's column-2 "Plot" label on the wide overview). Width
+ * is set inline per book (renderNovelPanel) — 2px corner radius on each side plus room for every
+ * further line in the gutter below.
  *
- * The pill itself is in-flow (flex-centred in this stretched column) so the grid's `auto` track
+ * The bar itself is in-flow (flex-centred in this stretched column) so the grid's `auto` track
  * has a real min-content size; the stub stays absolutely positioned so its height can be
- * "whatever's left below the pill down to the row's bottom edge" without knowing the "Plot"
+ * "whatever's left below the bar down to the row's bottom edge" without knowing the "Plot"
  * heading's font size ahead of time. */
 .sf-recommend-plot-pill-col {
 	position: relative;
@@ -4981,29 +5252,29 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	justify-content: center;
 	grid-column: 1;
 	grid-row: 1;
-	min-width: 10px;
-	min-height: 10px;
+	min-width: 4px;
+	min-height: 5px;
 }
 
-/* Rounded cap the gutter lines emerge from — fill is the leftmost (first) line's colour, set
+/* Thick rounded bar the gutter lines emerge from — fill is the leftmost (first) line's colour, set
  * inline. In-flow so this column's auto track doesn't collapse when the stub is out of flow. */
 .sf-recommend-plot-pill {
 	flex-shrink: 0;
 	width: 100%;
-	height: 10px;
-	border-radius: 5px;
+	height: 5px;
+	border-radius: 2px;
 }
 
 /* The line-stub — a sliver of the same lines the scroll pane's own full-height background paints
  * (buildGutterLineBackground, same colours/x-offsets both places), rendered here in the *static*
  * header itself rather than only starting once the scroll pane begins below it, so the lines read
- * as genuinely emerging out of the pill rather than merely lining up with it. Starts at the pill's
- * own bottom edge (50% + half its 10px height) and runs to this column's own bottom edge — flush
+ * as genuinely emerging out of the bar rather than merely lining up with it. Starts at the bar's
+ * own bottom edge (50% + half its 5px height) and runs to this column's own bottom edge — flush
  * with the scroll pane's own top once .sf-synopsis-plot-title's bottom margin is zeroed for "wide"
  * below, so nothing breaks the run of colour between the header and the scrollable list. */
 .sf-recommend-plot-pill-stub {
 	position: absolute;
-	top: calc(50% + 5px);
+	top: calc(50% + 2.5px);
 	bottom: 0;
 	left: 0;
 	width: 100%;

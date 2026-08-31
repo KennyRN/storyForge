@@ -378,8 +378,16 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		source: "custom",
 		usedIn: [],
 	},
-	{ id: ICON_DASHBOARD_CHART, label: "Stats dashboard", source: "custom", usedIn: ["StatsPanel.ts — stats header"] },
-	{ id: ICON_EXCHANGE, label: "Cycle stats mode", source: "custom", usedIn: ["StatsPanel.ts — mode switch button"] },
+	{
+		id: ICON_DASHBOARD_CHART,
+		label: "Stats dashboard",
+		source: "custom",
+		usedIn: [
+			"StatsPanel.ts — stats pane icon",
+			"TopPanel.ts — series-pane hover icon between the settings cog and plot-threads (opens WordCountModal)",
+		],
+	},
+	{ id: ICON_EXCHANGE, label: "Cycle stats mode", source: "custom", usedIn: [] },
 	{ id: ICON_CALENDAR, label: "History", source: "custom", usedIn: ["StatsPanel.ts — history button", "iconRegistry.ts — Codex icon catalog (\"calendar-dotted\")"] },
 	{ id: ICON_TOOLS, label: "Tools panel", source: "custom", usedIn: ["ToolsPanel.ts — view tab icon"] },
 	{
@@ -515,7 +523,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		label: "Plot threads",
 		source: "custom",
 		usedIn: [
-			"TopPanel.ts — series-pane hover icon beside the settings cog (opens PlotThreadRegistryModal)",
+			"TopPanel.ts — series-pane hover icon to the right of stats (opens PlotThreadRegistryModal)",
 			"SeriesModal.ts — types, tags, & threads tab hover icon that opens PlotThreadRegistryModal",
 		],
 	},

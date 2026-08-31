@@ -1,9 +1,10 @@
-import { App, Modal, setIcon, setTooltip } from "obsidian";
+import { App, Modal, setTooltip } from "obsidian";
 import { chapterDisplayTitle } from "../book";
-import { bookDisplayTitle } from "../series";
-import { formatSingleLine } from "../titleNumbering";
-import { ICON_CALENDAR, ICON_DASHBOARD_CHART } from "../icons";
+import { numberedBookTitle } from "../series";
+import type { NumberingStyle } from "../numberingStyle";
+import { formatSingleLine, splitTitleSubtitle } from "../titleNumbering";
 import { makeAccessibleActivatable } from "./a11y";
+import { isStatsMode, MODE_LABELS, MODE_ORDER, type StatsMode } from "./StatsPanel";
 import {
 	addDaysISO,
 	dayNetsFromStats,
@@ -19,6 +20,12 @@ import {
 	type WeekNet,
 } from "../history";
 
+export interface WordCountModalOptions {
+	statsMode?: StatsMode;
+	seriesNumberingStyle?: NumberingStyle;
+	onSelectStatsMode?: (mode: StatsMode) => void;
+}
+
 /**
  * Wordcount history modal: series rollup, current-book summary, day + week heatmaps,
  * and per-chapter breakdown for the selected day.
@@ -29,14 +36,21 @@ export class WordCountModal extends Modal {
 	private selectedWeekStart: string | null = null;
 	private bookStats: BookWordStats | null = null;
 	private projectStats: ProjectWordStats | null = null;
+	private statsMode: StatsMode;
+	private seriesNumberingStyle: NumberingStyle;
+	private onSelectStatsMode?: (mode: StatsMode) => void;
 
-	constructor(app: App, bookFolderName: string) {
+	constructor(app: App, bookFolderName: string, options: WordCountModalOptions = {}) {
 		super(app);
 		this.bookFolderName = bookFolderName;
 		this.selectedDate = todayISOInEngland();
+		this.statsMode = options.statsMode ?? "daily";
+		this.seriesNumberingStyle = options.seriesNumberingStyle ?? "arabic";
+		this.onSelectStatsMode = options.onSelectStatsMode;
 	}
 
 	onOpen(): void {
+		this.modalEl.addClass("sf-wordcount-modal");
 		this.titleEl.remove();
 		void this.loadAndRender();
 	}
@@ -54,21 +68,18 @@ export class WordCountModal extends Modal {
 	private render(): void {
 		const { contentEl } = this;
 		contentEl.empty();
-		contentEl.addClass("sf-wordcount-modal");
-
-		const headerRow = contentEl.createDiv({ cls: "sf-wordcount-modal-header" });
-		setIcon(headerRow.createSpan({ cls: "sf-icon" }), ICON_CALENDAR);
-		headerRow.createEl("h2", { text: "Wordcount History" });
 
 		if (!this.bookStats || !this.projectStats) {
 			contentEl.createDiv({ cls: "sf-empty", text: "Loading…" });
 			return;
 		}
 
-		this.renderSeriesRollup(contentEl, this.projectStats);
-		this.renderBookSummary(contentEl, this.bookStats);
-		this.renderHeatmaps(contentEl, this.bookStats);
-		this.renderChapterBreakdown(contentEl, this.bookStats);
+		const body = contentEl.createDiv({ cls: "sf-wordcount-modal-body" });
+		this.renderSeriesRollup(body, this.projectStats);
+		this.renderBookSummary(body, this.bookStats);
+		this.renderHeatmaps(body, this.bookStats);
+		this.renderChapterBreakdown(body, this.bookStats);
+		this.renderStatsModePicker(contentEl);
 	}
 
 	private renderSeriesRollup(parent: HTMLElement, project: ProjectWordStats): void {
@@ -82,10 +93,13 @@ export class WordCountModal extends Modal {
 
 	private renderBookSummary(parent: HTMLElement, stats: BookWordStats): void {
 		const section = parent.createDiv({ cls: "sf-wordcount-section" });
-		const title = bookDisplayTitle(this.app, this.bookFolderName) || this.bookFolderName;
-		const head = section.createDiv({ cls: "sf-wordcount-section-header" });
-		setIcon(head.createSpan({ cls: "sf-icon" }), ICON_DASHBOARD_CHART);
-		head.createSpan({ cls: "sf-wordcount-section-title", text: title });
+		const { title, subtitle } = splitTitleSubtitle(
+			numberedBookTitle(this.app, this.bookFolderName, undefined, this.seriesNumberingStyle),
+		);
+		section.createDiv({
+			cls: "sf-wordcount-section-title",
+			text: subtitle ? `${title} (${subtitle})` : title,
+		});
 
 		section.createDiv({
 			cls: "sf-wordcount-summary-line",
@@ -224,6 +238,26 @@ export class WordCountModal extends Modal {
 				text: `Day net: ${entry.net >= 0 ? "+" : ""}${entry.net}`,
 			});
 		}
+	}
+
+	private renderStatsModePicker(parent: HTMLElement): void {
+		const wrap = parent.createDiv({ cls: "sf-wordcount-mode-picker" });
+		wrap.createSpan({ cls: "sf-wordcount-mode-label", text: "display in stats pane" });
+		const select = wrap.createEl("select", {
+			cls: "dropdown sf-wordcount-mode-select",
+			attr: { "aria-label": "display in stats pane" },
+		});
+		for (const mode of MODE_ORDER) {
+			const option = select.createEl("option", { text: MODE_LABELS[mode] });
+			option.value = mode;
+			if (mode === this.statsMode) option.selected = true;
+		}
+		select.addEventListener("change", () => {
+			const value = select.value;
+			if (!isStatsMode(value)) return;
+			this.statsMode = value;
+			this.onSelectStatsMode?.(value);
+		});
 	}
 }
 

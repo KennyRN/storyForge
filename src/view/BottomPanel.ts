@@ -42,57 +42,35 @@ export interface BottomPanelOptions {
 	 * renderCodexTypesCorner), not the header row. Only passed for the dedicated Codex layout
 	 * — not when Codex is a subpane under Chapter. */
 	onOpenCodexTypes?: () => void;
+	/** storyTelling panel: no Codex title/globe, no header row, and the filter / new-file /
+	 * new-folder actions sit in a left rail (temporary chrome — storyLibrary keeps the labelled,
+	 * collapsible header). */
+	hideCodexTitle?: boolean;
 }
 
 export function renderBottomPanel(app: App, container: HTMLElement, options: BottomPanelOptions): void {
 	container.empty();
 
-	const isCodexHidden = options.mode === "codexHidden";
-	const header = container.createDiv({ cls: "sf-bottom-header" });
-	if (isCodexHidden) header.addClass("sf-codex-hidden");
-	setIcon(header.createSpan({ cls: "sf-icon" }), ICON_CODEX);
-	header.createSpan({
-		cls: "sf-header-codex",
-		text: isCodexHidden ? "codex hidden" : "Codex",
-	});
-	header.addEventListener("click", () => options.onToggleMode());
+	const hideTitle = options.hideCodexTitle === true;
+	const isCodexHidden = !hideTitle && options.mode === "codexHidden";
 
-	if (!isCodexHidden) {
-		const filterBtn = header.createSpan({
-			cls: `sf-codex-filter-btn${options.typeFilter.size > 0 ? " is-active" : ""}`,
-			attr: { "aria-label": "Filter by type" },
+	if (hideTitle) {
+		if (!isCodexHidden) {
+			const rail = container.createDiv({ cls: "sf-codex-side-actions" });
+			renderCodexActionButtons(rail, app, options, ["folder", "file", "filter"]);
+		}
+	} else {
+		const header = container.createDiv({ cls: "sf-bottom-header" });
+		if (isCodexHidden) header.addClass("sf-codex-hidden");
+		setIcon(header.createSpan({ cls: "sf-icon" }), ICON_CODEX);
+		header.createSpan({
+			cls: "sf-header-codex",
+			text: isCodexHidden ? "codex hidden" : "Codex",
 		});
-		setIcon(filterBtn, ICON_FILTER_LIST);
-		const openFilter = () => {
-			new TagPickerModal(
-				app,
-				"codexTypes",
-				Array.from(options.typeFilter),
-				(nextIds) => options.onChangeTypeFilter(nextIds),
-				false,
-			).open();
-		};
-		filterBtn.addEventListener("click", (e) => {
-			e.stopPropagation();
-			openFilter();
-		});
-		makeAccessibleActivatable(filterBtn, openFilter);
-
-		const newFileBtn = header.createSpan({ cls: "sf-codex-new-file-btn", attr: { "aria-label": "New file" } });
-		setIcon(newFileBtn, ICON_PLUS_SQUARE);
-		newFileBtn.addEventListener("click", (e) => {
-			e.stopPropagation();
-			options.onCreateFile();
-		});
-		makeAccessibleActivatable(newFileBtn, () => options.onCreateFile());
-
-		const newFolderBtn = header.createSpan({ cls: "sf-codex-new-folder-btn", attr: { "aria-label": "New folder" } });
-		setIcon(newFolderBtn, ICON_FOLDER_PLUS);
-		newFolderBtn.addEventListener("click", (e) => {
-			e.stopPropagation();
-			options.onCreateFolder();
-		});
-		makeAccessibleActivatable(newFolderBtn, () => options.onCreateFolder());
+		header.addEventListener("click", () => options.onToggleMode());
+		if (!isCodexHidden) {
+			renderCodexActionButtons(header, app, options, ["filter", "file", "folder"]);
+		}
 	}
 
 	if (options.onOpenCodexTypes) {
@@ -121,6 +99,7 @@ export function renderBottomPanel(app: App, container: HTMLElement, options: Bot
 		null,
 		rowInfo,
 		0,
+		hideTitle,
 	);
 
 	const { folders } = readCodexFrontmatter(app);
@@ -139,6 +118,55 @@ export function renderBottomPanel(app: App, container: HTMLElement, options: Bot
 			})();
 		},
 	);
+}
+
+type CodexActionKind = "filter" | "file" | "folder";
+
+function renderCodexActionButtons(
+	parent: HTMLElement,
+	app: App,
+	options: BottomPanelOptions,
+	order: CodexActionKind[],
+): void {
+	for (const kind of order) {
+		if (kind === "filter") {
+			const filterBtn = parent.createSpan({
+				cls: `sf-codex-filter-btn${options.typeFilter.size > 0 ? " is-active" : ""}`,
+				attr: { "aria-label": "Filter by type" },
+			});
+			setIcon(filterBtn, ICON_FILTER_LIST);
+			const openFilter = () => {
+				new TagPickerModal(
+					app,
+					"codexTypes",
+					Array.from(options.typeFilter),
+					(nextIds) => options.onChangeTypeFilter(nextIds),
+					false,
+				).open();
+			};
+			filterBtn.addEventListener("click", (e) => {
+				e.stopPropagation();
+				openFilter();
+			});
+			makeAccessibleActivatable(filterBtn, openFilter);
+		} else if (kind === "file") {
+			const newFileBtn = parent.createSpan({ cls: "sf-codex-new-file-btn", attr: { "aria-label": "New file" } });
+			setIcon(newFileBtn, ICON_PLUS_SQUARE);
+			newFileBtn.addEventListener("click", (e) => {
+				e.stopPropagation();
+				options.onCreateFile();
+			});
+			makeAccessibleActivatable(newFileBtn, () => options.onCreateFile());
+		} else {
+			const newFolderBtn = parent.createSpan({ cls: "sf-codex-new-folder-btn", attr: { "aria-label": "New folder" } });
+			setIcon(newFolderBtn, ICON_FOLDER_PLUS);
+			newFolderBtn.addEventListener("click", (e) => {
+				e.stopPropagation();
+				options.onCreateFolder();
+			});
+			makeAccessibleActivatable(newFolderBtn, () => options.onCreateFolder());
+		}
+	}
 }
 
 /**
@@ -169,6 +197,7 @@ function renderTreeChildren(
 	parentKey: string | null,
 	rowInfo: CodexDragRowInfo[],
 	depth: number,
+	hideChevrons: boolean,
 ): void {
 	for (const item of items) {
 		if (item.type === "folder") {
@@ -184,14 +213,16 @@ function renderTreeChildren(
 
 			const contentEl = headerEl.createDiv({ cls: "sf-codex-row-content" });
 			const collapsed = collapsedPaths.has(item.id);
-			const chevron = contentEl.createSpan({ cls: "sf-codex-chevron" });
-			chevron.toggleClass("sf-codex-chevron-collapsed", collapsed);
-			const folderNameEl = contentEl.createSpan({ cls: "sf-codex-folder-name", text: item.name });
+			const chevron = hideChevrons ? null : contentEl.createSpan({ cls: "sf-codex-chevron" });
+			chevron?.toggleClass("sf-codex-chevron-collapsed", collapsed);
+			const nameHost = hideChevrons ? contentEl.createSpan({ cls: "sf-codex-folder-name-wrap" }) : contentEl;
+			const folderNameEl = nameHost.createSpan({ cls: "sf-codex-folder-name", text: item.name });
 			folderNameEl.addClass("sf-styled-heading");
 			// A Lore Entry folder (linkedPath set) is also a real note — its own type icon shows
 			// the same way a file row's would, so it still reads as "a Person/Place/…" at a glance.
 			// A plain folder gets a generic folder icon instead, in the same slot, so the two read
 			// as visibly different kinds of row rather than an element folder just missing its icon.
+			let typeIconEl: HTMLElement | null = null;
 			if (linkedPath) {
 				headerEl.addClass("sf-codex-lore-folder");
 				if (highlightActiveChapter && activeFilePath === linkedPath) {
@@ -199,8 +230,8 @@ function renderTreeChildren(
 				}
 				const entryType = getCodexEntryType(app, linkedPath);
 				if (entryType) {
-					const typeIcon = contentEl.createSpan({ cls: "sf-icon sf-codex-type-icon" });
-					setIcon(typeIcon, codexTypeIcon(entryType) ?? "circle-help");
+					typeIconEl = contentEl.createSpan({ cls: "sf-icon sf-codex-type-icon" });
+					setIcon(typeIconEl, codexTypeIcon(entryType) ?? "circle-help");
 				}
 			} else {
 				const folderIcon = contentEl.createSpan({ cls: "sf-icon sf-codex-type-icon" });
@@ -209,15 +240,24 @@ function renderTreeChildren(
 			// Routed through attachCodexDragReorder's own pointerdown/pointerup gesture (via
 			// onClick below) rather than a `click` listener here — see that file's doc comment for
 			// why: a plain `click`'s first firing in an unfocused sidebar gets swallowed by
-			// Obsidian's own click-to-focus handling. Only the chevron toggles collapse on a Lore
-			// Entry folder — everywhere else on the row opens its note, same as clicking a plain
-			// file. Plain (non-linked) folders keep toggling on any click, same as always.
+			// Obsidian's own click-to-focus handling. With a chevron, only that toggles collapse
+			// on a Lore Entry folder — everywhere else on the row opens its note. Without a
+			// chevron (storyTelling), the type icon opens the note and the rest of the row
+			// toggles. Plain (non-linked) folders keep toggling on any click.
 			rowInfo.push({
 				key: item.id,
 				type: "folder",
 				parentKey,
 				onClick: (target) => {
-					if (linkedPath && !chevron.contains(target as Node)) {
+					if (hideChevrons) {
+						if (linkedPath && typeIconEl?.contains(target as Node)) {
+							onOpenFile(linkedPath);
+							return;
+						}
+						onToggleFolder(item.id);
+						return;
+					}
+					if (linkedPath && chevron && !chevron.contains(target as Node)) {
 						onOpenFile(linkedPath);
 						return;
 					}
@@ -270,6 +310,7 @@ function renderTreeChildren(
 					item.id,
 					rowInfo,
 					depth + 1,
+					hideChevrons,
 				);
 			}
 		} else {
