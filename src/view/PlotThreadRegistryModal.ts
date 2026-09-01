@@ -125,6 +125,7 @@ export class PlotThreadRegistryModal extends Modal {
 		});
 
 		const nameGroup = row.createDiv({ cls: "sf-plot-thread-name-group" });
+		if (entry.id !== MAIN_THREAD_ID) nameGroup.addClass("sf-plot-thread-name-group--with-action");
 		const input = nameGroup.createEl("input", {
 			cls: "sf-modal-input sf-plot-thread-name",
 			type: "text",

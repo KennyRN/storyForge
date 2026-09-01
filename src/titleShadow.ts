@@ -1,7 +1,8 @@
+import "obsidian";
+
 function paintedColor(doc: Document, value: string): string {
-	const probe = doc.createElement("span");
+	const probe = doc.body.createSpan();
 	probe.style.color = value;
-	doc.body.appendChild(probe);
 	const painted = doc.defaultView?.getComputedStyle(probe).color ?? "";
 	probe.remove();
 	return painted;

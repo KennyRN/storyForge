@@ -164,13 +164,14 @@ export function cloneVaultTags(shape: VaultTagsShape): VaultTagsShape {
 /** Accepts the on-disk `{ order, tags }` object, a raw tags array, or JSON camelCase. */
 export function parseVaultTagsShape(raw: unknown): VaultTagsShape {
 	if (Array.isArray(raw)) {
-		const ids = raw.map((value) => {
+		const items: unknown[] = raw;
+		const ids = items.map((value): unknown => {
 			if (value && typeof value === "object" && "id" in value) {
 				return (value as { id?: unknown }).id;
 			}
 			return value;
 		});
-		return parseVaultTags(ids, raw);
+		return parseVaultTags(ids, items);
 	}
 	if (raw && typeof raw === "object") {
 		const value = raw as Record<string, unknown>;

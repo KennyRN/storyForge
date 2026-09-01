@@ -821,19 +821,20 @@ export class RecommendationView extends ItemView {
 			text: subtitle ? `${title} (${subtitle})` : title,
 		});
 		const rowColor = resolveMainThreadRowColor(this.app, this.plugin.getSettings());
-		headerRow.setCssStyles({ backgroundColor: rowColor.background, color: rowColor.text });
-		card.setCssStyles({ boxShadow: `inset 0 0 0 2px ${rowColor.background}` });
+		headerRow.setCssStyles({ color: rowColor.text });
 		const titleShadow = resolveTitleShadow(body.ownerDocument, rowColor.text, rowColor.background);
 		// On the body (not only the card) so the action-icon hover below the card can
 		// use the same chapter colour as in-card highlights.
 		body.setCssProps({
 			"--sf-plot-card-header-bg": rowColor.background,
 			"--sf-plot-card-header-fg": rowColor.text,
+			"--sf-plot-card-outline": rowColor.background,
 			"--sf-plot-card-title-shadow": titleShadow,
 		});
 		card.setCssProps({
 			"--sf-plot-card-header-bg": rowColor.background,
 			"--sf-plot-card-header-fg": rowColor.text,
+			"--sf-plot-card-outline": rowColor.background,
 			"--sf-plot-card-title-shadow": titleShadow,
 		});
 		nameEl.setCssStyles({ color: rowColor.text });
