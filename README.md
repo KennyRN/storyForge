@@ -1,6 +1,7 @@
-## 0.15.0 Update
-- First-run onboarding now sets up your series (or standalone novel), can apply a template or config from the vault, and only creates the welcome note if you ask for it. If you skip the welcome note, you land on chapter 1.
-- You can export and import a complete project pack, plus preferences, types & tags, and plot threads, so a setup can move between vaults.
+## 0.16.0 Update
+- redesign of some of the visual layout, not only on the main storyForge interface but also within some of the menus
+- added a new method of filtering within the Codex, using `#tags`, just add `#tags` within your normal markdown document. Then in the new codex tags window (found on the codex pane, it's the one with the `#` on it), set an icon and check the use checkbox
+  - sitting beneath the other Codex icons is the one for your tag, nice and easy, and you're not limited to just having a single type visible
 
 ***⚠️ WARNING: this plugin no longer creates an external backup!***
 
@@ -51,3 +52,10 @@ If you're running an automated security/behavior scan against storyForge, here's
 The backup feature is the one exception to otherwise scoped read access. When a backup runs — whether you start it manually or via the schedule you've enabled — it reads vault files in order to zip them into `_sf-backup/`. The `_sf-backup/` folder itself is always excluded so zips never nest previous backups. That's the sole reason the plugin walks vault folders.
 
 Backups stay inside your vault (so they sync with Obsidian Sync / your chosen sync tool if you use one). Nothing leaves your machine via storyForge, and storyForge makes no network requests.
+
+# Previous Update Notes
+## 0.15.0 Update
+- First-run onboarding now sets up your series (or standalone novel), can apply a template or config from the vault, and only creates the welcome note if you ask for it. If you skip the welcome note, you land on chapter 1.
+- You can export and import a complete project pack, plus preferences, types & tags, and plot threads, so a setup can move between vaults.
+
+***⚠️ WARNING: this plugin no longer creates an external backup!***
