@@ -31,6 +31,15 @@ export function latestTotal(totals: Record<string, number>): number {
 	return totals[dates[dates.length - 1]];
 }
 
+/** ISO-8601 week number (Monday start; week 1 contains 4 January). `dateISO` is YYYY-MM-DD. */
+export function isoWeekNumber(dateISO: string): number {
+	const date = new Date(`${dateISO}T00:00:00Z`);
+	const dayNum = date.getUTCDay() || 7;
+	date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+	const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+	return Math.ceil(((date.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
+}
+
 /** ISO date (YYYY-MM-DD) of the Monday on or before `todayISO`, treating the date as a plain calendar date (UTC arithmetic, no timezone shift). */
 export function mostRecentMondayISO(todayISO: string): string {
 	const date = new Date(`${todayISO}T00:00:00Z`);

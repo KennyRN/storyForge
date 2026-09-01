@@ -88,13 +88,24 @@ export function countFilesInFolder(folders: CodexFolders, folderId: string): num
  * flat file nodes at the end of the root's children — never persisted, computed fresh here.
  * Orphaned order entries (referencing a deleted file or folder id) are silently skipped,
  * never rendered, but the caller's stored arrays are left untouched (never auto-stripped).
+ *
+ * `tagFilterMode` (vault `#tag` views): omit empty organisational placeholders and folders whose
+ * real content is all filtered out, but keep a Lore Entry folder when its own linked note is
+ * visible even if no children match — expanding then shows nothing, matching storyTelling's
+ * empty-lore-folder click behaviour.
  */
+export interface ResolveCodexTreeOptions {
+	tagFilterMode?: boolean;
+}
+
 export function resolveCodexTree(
 	folders: CodexFolders,
 	rootOrder: string[],
 	realPaths: ReadonlySet<string>,
 	visiblePaths: ReadonlySet<string>,
+	options?: ResolveCodexTreeOptions,
 ): CodexTreeFolder {
+	const tagFilterMode = options?.tagFilterMode === true;
 	function buildChildren(order: string[]): CodexTreeItem[] {
 		const children: CodexTreeItem[] = [];
 		for (const key of order) {
@@ -102,12 +113,17 @@ export function resolveCodexTree(
 				const entry = folders[key];
 				const childItems = buildChildren(entry.order);
 				const hasRealContent = [...collectReferencedPaths(folders, entry.order)].some((p) => realPaths.has(p));
-				if (childItems.length === 0 && hasRealContent) continue;
+				const linked = entry.linkedNotePath && realPaths.has(entry.linkedNotePath) ? entry.linkedNotePath : undefined;
+				if (tagFilterMode) {
+					const linkedVisible = Boolean(linked && visiblePaths.has(linked));
+					if (childItems.length === 0 && !linkedVisible) continue;
+				} else if (childItems.length === 0 && hasRealContent) {
+					continue;
+				}
 				// A Lore Entry folder's display name always tracks its linked note's own current
 				// basename (not a separately stored folder name) — one source of truth, so renaming
 				// the note can never leave the folder's label stale. Falls back to the stored `name`
 				// if the linked note no longer exists (degrades to a plain organisational folder).
-				const linked = entry.linkedNotePath && realPaths.has(entry.linkedNotePath) ? entry.linkedNotePath : undefined;
 				children.push({
 					type: "folder",
 					id: key,

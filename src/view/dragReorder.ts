@@ -41,6 +41,7 @@ export function makeReorderable(
 		const index = rows.indexOf(row);
 		const targetIndex = index + direction;
 		if (index === -1 || targetIndex < 0 || targetIndex >= rows.length) return;
+		if (isLocked(rows[targetIndex])) return;
 		if (direction < 0) {
 			zone.container.insertBefore(row, rows[targetIndex]);
 		} else {
@@ -64,8 +65,14 @@ export function makeReorderable(
 		return best;
 	}
 
+	function isLocked(row: HTMLElement): boolean {
+		return row.dataset.dragLocked === "true";
+	}
+
 	function bindRow(row: HTMLElement): void {
-		const handle = row.querySelector<HTMLElement>(handleSelector) ?? row;
+		if (isLocked(row)) return;
+		const handle = row.querySelector<HTMLElement>(handleSelector);
+		if (!handle) return;
 
 		handle.tabIndex = 0;
 		handle.setAttribute("role", "button");
@@ -122,6 +129,9 @@ export function makeReorderable(
 						insertBefore = sibling;
 						break;
 					}
+				}
+				while (insertBefore && (isLocked(insertBefore) || insertBefore === row)) {
+					insertBefore = insertBefore.nextElementSibling as HTMLElement | null;
 				}
 
 				const alreadyInPlace =

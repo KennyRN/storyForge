@@ -257,7 +257,7 @@ describe("plot thread CRUD", () => {
 			],
 		});
 		await reorderPlotThreads(app, ["c", MAIN_THREAD_ID, "a"]);
-		expect(readPlotThreads(app).map((t) => t.id)).toEqual(["c", MAIN_THREAD_ID, "a", "b"]);
+		expect(readPlotThreads(app).map((t) => t.id)).toEqual([MAIN_THREAD_ID, "c", "a", "b"]);
 	});
 });
 

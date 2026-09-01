@@ -1,16 +1,24 @@
-import { App, Modal, setTooltip } from "obsidian";
-import { chapterDisplayTitle } from "../book";
+import { App, Modal, setIcon, setTooltip } from "obsidian";
+import { numberedChapterTitle } from "../book";
 import { numberedBookTitle } from "../series";
 import type { NumberingStyle } from "../numberingStyle";
 import { formatSingleLine, splitTitleSubtitle } from "../titleNumbering";
+import {
+	ICON_BOOK_DUOTONE,
+	ICON_BOOK_OPEN_FILLED,
+	ICON_CALENDAR_EVENT,
+	ICON_CALENDAR_WEEK,
+} from "../icons";
+import { formatWordCount } from "../wordCount";
 import { makeAccessibleActivatable } from "./a11y";
-import { isStatsMode, MODE_LABELS, MODE_ORDER, type StatsMode } from "./StatsPanel";
+import { MODE_ORDER, type StatsMode } from "./StatsPanel";
 import {
 	addDaysISO,
 	dayNetsFromStats,
 	defaultHeatmapRange,
 	getBookWordStats,
 	getProjectWordStats,
+	isoWeekNumber,
 	mostRecentMondayISO,
 	todayISOInEngland,
 	weekNetsFromDayNets,
@@ -23,6 +31,7 @@ import {
 export interface WordCountModalOptions {
 	statsMode?: StatsMode;
 	seriesNumberingStyle?: NumberingStyle;
+	chapterNumberingStyle?: NumberingStyle;
 	onSelectStatsMode?: (mode: StatsMode) => void;
 }
 
@@ -38,6 +47,7 @@ export class WordCountModal extends Modal {
 	private projectStats: ProjectWordStats | null = null;
 	private statsMode: StatsMode;
 	private seriesNumberingStyle: NumberingStyle;
+	private chapterNumberingStyle: NumberingStyle;
 	private onSelectStatsMode?: (mode: StatsMode) => void;
 
 	constructor(app: App, bookFolderName: string, options: WordCountModalOptions = {}) {
@@ -46,6 +56,7 @@ export class WordCountModal extends Modal {
 		this.selectedDate = todayISOInEngland();
 		this.statsMode = options.statsMode ?? "daily";
 		this.seriesNumberingStyle = options.seriesNumberingStyle ?? "arabic";
+		this.chapterNumberingStyle = options.chapterNumberingStyle ?? "arabic";
 		this.onSelectStatsMode = options.onSelectStatsMode;
 	}
 
@@ -75,16 +86,17 @@ export class WordCountModal extends Modal {
 		}
 
 		const body = contentEl.createDiv({ cls: "sf-wordcount-modal-body" });
-		this.renderSeriesRollup(body, this.projectStats);
 		this.renderBookSummary(body, this.bookStats);
 		this.renderHeatmaps(body, this.bookStats);
-		this.renderChapterBreakdown(body, this.bookStats);
-		this.renderStatsModePicker(contentEl);
+		const explore = body.createDiv({ cls: "sf-wordcount-explore-row" });
+		this.renderChapterBreakdown(explore, this.bookStats);
+		this.renderStatsModePicker(explore);
+		this.renderSeriesRollup(body, this.projectStats);
 	}
 
 	private renderSeriesRollup(parent: HTMLElement, project: ProjectWordStats): void {
 		const strip = parent.createDiv({ cls: "sf-wordcount-rollup" });
-		strip.createSpan({ cls: "sf-wordcount-rollup-label", text: "All novels" });
+		strip.createSpan({ cls: "sf-wordcount-rollup-label", text: "all novels" });
 		strip.createSpan({
 			cls: "sf-wordcount-rollup-values",
 			text: `current ${project.current} · written ${project.lifetimeWritten} · removed ${project.lifetimeRemoved}`,
@@ -92,22 +104,19 @@ export class WordCountModal extends Modal {
 	}
 
 	private renderBookSummary(parent: HTMLElement, stats: BookWordStats): void {
-		const section = parent.createDiv({ cls: "sf-wordcount-section" });
+		const section = parent.createDiv({ cls: "sf-wordcount-section sf-wordcount-book-summary" });
 		const { title, subtitle } = splitTitleSubtitle(
 			numberedBookTitle(this.app, this.bookFolderName, undefined, this.seriesNumberingStyle),
 		);
-		section.createDiv({
-			cls: "sf-wordcount-section-title",
-			text: subtitle ? `${title} (${subtitle})` : title,
-		});
+		const titleEl = section.createDiv({ cls: "sf-wordcount-book-title" });
+		titleEl.createSpan({ cls: "sf-wordcount-book-name", text: title });
+		if (subtitle) {
+			titleEl.createSpan({ cls: "sf-wordcount-book-subtitle", text: ` (${subtitle})` });
+		}
 
 		section.createDiv({
 			cls: "sf-wordcount-summary-line",
 			text: `current ${stats.current} · written ${stats.lifetimeWritten} · removed ${stats.lifetimeRemoved}`,
-		});
-		section.createDiv({
-			cls: "sf-wordcount-summary-line",
-			text: `today ${stats.todayNet} · this week ${stats.weekNet}`,
 		});
 	}
 
@@ -118,16 +127,19 @@ export class WordCountModal extends Modal {
 		const weekNets = weekNetsFromDayNets(dayNets);
 		const maxAbs = Math.max(1, ...dayNets.map((d) => Math.abs(d.net)), ...weekNets.map((w) => Math.abs(w.net)));
 
-		const section = parent.createDiv({ cls: "sf-wordcount-section" });
-		section.createDiv({ cls: "sf-wordcount-section-title", text: "Days" });
+		const section = parent.createDiv({ cls: "sf-wordcount-section sf-wordcount-heatmaps" });
 		this.renderDayHeatmap(section, dayNets, maxAbs);
-
-		section.createDiv({ cls: "sf-wordcount-section-title sf-wordcount-weeks-title", text: "Weeks" });
 		this.renderWeekHeatmap(section, weekNets, maxAbs);
 	}
 
 	private renderDayHeatmap(parent: HTMLElement, dayNets: DayNet[], maxAbs: number): void {
-		const grid = parent.createDiv({ cls: "sf-wordcount-heatmap sf-wordcount-heatmap-days" });
+		const box = parent.createDiv({
+			cls: "sf-wordcount-heatmap-box",
+			attr: { "aria-label": "days" },
+		});
+		const icon = box.createSpan({ cls: "sf-wordcount-heatmap-icon", attr: { "aria-hidden": "true" } });
+		setIcon(icon, ICON_CALENDAR_EVENT);
+		const grid = box.createDiv({ cls: "sf-wordcount-heatmap sf-wordcount-heatmap-days" });
 		// Column-major GitHub style: weeks as columns, Mon–Sun as rows.
 		const byDate = new Map(dayNets.map((d) => [d.date, d.net]));
 		if (dayNets.length === 0) return;
@@ -148,15 +160,16 @@ export class WordCountModal extends Modal {
 					continue;
 				}
 				const net = byDate.get(date) ?? 0;
+				const selected = this.selectedWeekStart == null && date === this.selectedDate;
 				const cell = col.createDiv({
-					cls: `sf-wordcount-heat-cell ${heatClass(net, maxAbs)}${date === this.selectedDate ? " is-selected" : ""}`,
+					cls: `sf-wordcount-heat-cell ${heatClass(net, maxAbs)}${selected ? " is-selected" : ""}`,
 					attr: {
-						"aria-label": `${date}: ${net} words`,
+						"aria-label": `${date}: ${formatSignedWordCount(net)}`,
 						role: "button",
 						tabindex: "0",
 					},
 				});
-				setTooltip(cell, `${date}: ${net >= 0 ? "+" : ""}${net}`);
+				setTooltip(cell, `${date}: ${formatSignedWordCount(net)}`);
 				const select = () => {
 					this.selectedDate = date;
 					this.selectedWeekStart = null;
@@ -169,34 +182,25 @@ export class WordCountModal extends Modal {
 	}
 
 	private renderWeekHeatmap(parent: HTMLElement, weekNets: WeekNet[], maxAbs: number): void {
-		const row = parent.createDiv({ cls: "sf-wordcount-heatmap sf-wordcount-heatmap-weeks" });
+		const box = parent.createDiv({
+			cls: "sf-wordcount-heatmap-box sf-wordcount-heatmap-box-weeks",
+			attr: { "aria-label": "weeks" },
+		});
+		const icon = box.createSpan({ cls: "sf-wordcount-heatmap-icon", attr: { "aria-hidden": "true" } });
+		setIcon(icon, ICON_CALENDAR_WEEK);
+		const row = box.createDiv({ cls: "sf-wordcount-heatmap sf-wordcount-heatmap-weeks" });
 		for (const { weekStart, net } of weekNets) {
 			const cell = row.createDiv({
 				cls: `sf-wordcount-heat-cell sf-wordcount-heat-week ${heatClass(net, maxAbs)}${this.selectedWeekStart === weekStart ? " is-selected" : ""}`,
 				attr: {
-					"aria-label": `Week of ${weekStart}: ${net} words`,
+					"aria-label": `week of ${weekStart}: ${formatSignedWordCount(net)}`,
 					role: "button",
 					tabindex: "0",
 				},
 			});
-			setTooltip(cell, `Week of ${weekStart}: ${net >= 0 ? "+" : ""}${net}`);
+			setTooltip(cell, `week of ${weekStart}: ${formatSignedWordCount(net)}`);
 			const select = () => {
 				this.selectedWeekStart = weekStart;
-				// Land on the most recent day in the week that has data, else the Monday.
-				const weekEnd = addDaysISO(weekStart, 6);
-				const today = todayISOInEngland();
-				const cappedEnd = weekEnd < today ? weekEnd : today;
-				let pick = weekStart;
-				if (this.bookStats) {
-					for (let d = cappedEnd; d >= weekStart; d = addDaysISO(d, -1)) {
-						if ((this.bookStats.daily[d]?.net ?? 0) !== 0) {
-							pick = d;
-							break;
-						}
-					}
-					if (pick === weekStart && cappedEnd >= weekStart) pick = cappedEnd;
-				}
-				this.selectedDate = pick;
 				this.render();
 			};
 			cell.addEventListener("click", select);
@@ -205,59 +209,72 @@ export class WordCountModal extends Modal {
 	}
 
 	private renderChapterBreakdown(parent: HTMLElement, stats: BookWordStats): void {
-		const section = parent.createDiv({ cls: "sf-wordcount-section" });
+		const section = parent.createDiv({ cls: "sf-wordcount-section sf-wordcount-chapters" });
+		const weekStart = this.selectedWeekStart;
 		const label =
-			this.selectedWeekStart != null
-				? `Chapters · ${this.selectedDate} (week of ${this.selectedWeekStart})`
-				: `Chapters · ${this.selectedDate}`;
-		section.createDiv({ cls: "sf-wordcount-section-title", text: label });
-
-		const entry = stats.daily[this.selectedDate];
-		const chapters = entry?.chapters ?? {};
+			weekStart != null
+				? `w/c ${weekStart} (week ${isoWeekNumber(weekStart)})`
+				: this.selectedDate;
+		const { chapters, net } =
+			weekStart != null
+				? chapterNetsForRange(stats, weekStart, addDaysISO(weekStart, 6))
+				: {
+						chapters: stats.daily[this.selectedDate]?.chapters ?? {},
+						net: stats.daily[this.selectedDate]?.net ?? 0,
+					};
+		const header = section.createDiv({ cls: "sf-wordcount-chapters-header" });
+		header.createSpan({ cls: "sf-wordcount-section-title", text: label });
+		header.createSpan({ cls: "sf-wordcount-running-total", text: formatSignedWordCount(net) });
+		const list = section.createDiv({ cls: "sf-wordcount-chapter-list" });
 		const names = Object.keys(chapters).sort();
 		if (names.length === 0) {
-			section.createDiv({ cls: "sf-empty", text: "No chapter activity this day." });
-			return;
-		}
-
-		const list = section.createDiv({ cls: "sf-wordcount-chapter-list" });
-		for (const filename of names) {
-			const row = list.createDiv({ cls: "sf-wordcount-chapter-row" });
-			const title = formatSingleLine(chapterDisplayTitle(this.app, this.bookFolderName, filename));
-			row.createSpan({ cls: "sf-wordcount-chapter-title", text: title });
-			const net = chapters[filename] ?? 0;
-			row.createSpan({
-				cls: "sf-wordcount-chapter-net",
-				text: `${net >= 0 ? "+" : ""}${net}`,
+			list.createDiv({
+				cls: "sf-empty",
+				text: weekStart != null ? "No chapter activity this week." : "No chapter activity this day.",
 			});
-		}
-
-		if (entry) {
-			section.createDiv({
-				cls: "sf-wordcount-day-total",
-				text: `Day net: ${entry.net >= 0 ? "+" : ""}${entry.net}`,
-			});
+		} else {
+			for (const filename of names) {
+				const row = list.createDiv({ cls: "sf-wordcount-chapter-row" });
+				const title = formatSingleLine(
+					numberedChapterTitle(this.app, this.bookFolderName, filename, this.chapterNumberingStyle),
+				);
+				row.createSpan({ cls: "sf-wordcount-chapter-title", text: title });
+				const chapterNet = chapters[filename] ?? 0;
+				row.createSpan({
+					cls: "sf-wordcount-chapter-net",
+					text: formatSignedWordCount(chapterNet),
+				});
+			}
 		}
 	}
 
 	private renderStatsModePicker(parent: HTMLElement): void {
 		const wrap = parent.createDiv({ cls: "sf-wordcount-mode-picker" });
-		wrap.createSpan({ cls: "sf-wordcount-mode-label", text: "display in stats pane" });
-		const select = wrap.createEl("select", {
-			cls: "dropdown sf-wordcount-mode-select",
-			attr: { "aria-label": "display in stats pane" },
-		});
+		wrap.createSpan({ cls: "sf-wordcount-section-title", text: "display" });
+		const icons = wrap.createDiv({ cls: "sf-wordcount-mode-icons" });
 		for (const mode of MODE_ORDER) {
-			const option = select.createEl("option", { text: MODE_LABELS[mode] });
-			option.value = mode;
-			if (mode === this.statsMode) option.selected = true;
+			const choice = MODE_CHOICES[mode];
+			const btn = icons.createSpan({
+				cls: `sf-wordcount-mode-btn${this.statsMode === mode ? " is-active" : ""}`,
+				attr: {
+					"aria-label": choice.tooltip,
+					"aria-pressed": this.statsMode === mode ? "true" : "false",
+				},
+			});
+			setIcon(btn, choice.icon);
+			setTooltip(btn, choice.tooltip);
+			const select = () => {
+				this.statsMode = mode;
+				this.onSelectStatsMode?.(mode);
+				for (const child of Array.from(icons.children)) {
+					const on = child === btn;
+					child.classList.toggle("is-active", on);
+					child.setAttribute("aria-pressed", on ? "true" : "false");
+				}
+			};
+			btn.addEventListener("click", select);
+			makeAccessibleActivatable(btn, select);
 		}
-		select.addEventListener("change", () => {
-			const value = select.value;
-			if (!isStatsMode(value)) return;
-			this.statsMode = value;
-			this.onSelectStatsMode?.(value);
-		});
 	}
 }
 
@@ -265,4 +282,36 @@ function heatClass(net: number, maxAbs: number): string {
 	if (net === 0) return "sf-heat-0";
 	const intensity = Math.min(4, Math.max(1, Math.ceil((Math.abs(net) / maxAbs) * 4)));
 	return net > 0 ? `sf-heat-pos-${intensity}` : `sf-heat-neg-${intensity}`;
+}
+
+const MODE_CHOICES: Record<StatsMode, { icon: string; tooltip: string }> = {
+	daily: { icon: ICON_CALENDAR_EVENT, tooltip: "daily wordcount" },
+	weekly: { icon: ICON_CALENDAR_WEEK, tooltip: "weekly wordcount" },
+	chapter: { icon: ICON_BOOK_OPEN_FILLED, tooltip: "chapter wordcount" },
+	story: { icon: ICON_BOOK_DUOTONE, tooltip: "novel wordcount" },
+};
+
+function formatSignedWordCount(n: number): string {
+	const formatted = formatWordCount(Math.abs(n));
+	if (n > 0) return `+${formatted}`;
+	if (n < 0) return `-${formatted}`;
+	return formatted;
+}
+
+function chapterNetsForRange(
+	stats: BookWordStats,
+	fromISO: string,
+	toISO: string,
+): { chapters: Record<string, number>; net: number } {
+	const chapters: Record<string, number> = {};
+	let net = 0;
+	for (let date = fromISO; date <= toISO; date = addDaysISO(date, 1)) {
+		const entry = stats.daily[date];
+		if (!entry) continue;
+		net += entry.net;
+		for (const [filename, chapterNet] of Object.entries(entry.chapters)) {
+			chapters[filename] = (chapters[filename] ?? 0) + chapterNet;
+		}
+	}
+	return { chapters, net };
 }

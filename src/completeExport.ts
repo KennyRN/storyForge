@@ -20,6 +20,7 @@ import {
 	type TypesTagsExportDocument,
 } from "./typesTagsExport";
 import { readTagRegistry, type TagDefinition, type TagRegistryShape } from "./tagRegistry";
+import { readVaultTags, type VaultTagsShape } from "./vaultTags";
 import {
 	DEFAULT_TITLEFORGE_SETTINGS,
 	type TitleForgeSettings,
@@ -39,6 +40,7 @@ export interface CompleteExportDocument {
 	template: boolean;
 	settings: Record<string, unknown>;
 	types: TagDefinition[];
+	codexTags?: VaultTagsShape;
 	chapterTags: TagDefinition[];
 	novelTags: TagDefinition[];
 	threads: PlotThread[];
@@ -118,8 +120,14 @@ function typesTagsDocumentFromComplete(
 			format: TYPES_TAGS_EXPORT_FORMAT,
 			version: 1,
 			exportedAt: document.exportedAt,
-			included: { types: true, chapterTags: true, novelTags: true },
+			included: {
+				types: true,
+				codexTags: document.codexTags != null,
+				chapterTags: true,
+				novelTags: true,
+			},
 			types: document.types,
+			codexTags: document.codexTags ?? null,
 			chapterTags: document.chapterTags,
 			novelTags: document.novelTags,
 		}),
@@ -142,6 +150,7 @@ export function buildCompleteExport(
 	input: {
 		settings: StoryForgePluginSettings;
 		registry: TagRegistryShape;
+		vaultTags?: VaultTagsShape;
 		threads: PlotThread[];
 		titleforge: TitleForgeSettings;
 		formatting?: Record<string, unknown> | null;
@@ -149,7 +158,9 @@ export function buildCompleteExport(
 	exportedAt: Date = new Date(),
 	options: { description?: string; template?: boolean } = {},
 ): CompleteExportDocument {
-	const typesTags = buildTypesTagsExport(input.registry, exportedAt);
+	const typesTags = buildTypesTagsExport(input.registry, exportedAt, {
+		vaultTags: input.vaultTags,
+	});
 	const threads = buildPlotThreadsExport(input.threads, exportedAt);
 	const description = options.description?.trim();
 	const settings = cloneJson(input.settings as unknown as Record<string, unknown>);
@@ -162,6 +173,7 @@ export function buildCompleteExport(
 		template: options.template === true,
 		settings,
 		types: typesTags.types ?? [],
+		codexTags: typesTags.codexTags ?? { order: [], tags: [] },
 		chapterTags: typesTags.chapterTags ?? [],
 		novelTags: typesTags.novelTags ?? [],
 		threads: threads.threads,
@@ -185,6 +197,7 @@ export function liveCompleteExport(
 		{
 			settings: plugin.getSettings(),
 			registry: readTagRegistry(plugin.app),
+			vaultTags: readVaultTags(plugin.app),
 			threads: readPlotThreads(plugin.app),
 			titleforge: plugin.titleForge.settings,
 			formatting,
@@ -220,8 +233,14 @@ export function parseCompleteExport(raw: string): CompleteExportDocument {
 			format: TYPES_TAGS_EXPORT_FORMAT,
 			version: 1,
 			exportedAt,
-			included: { types: true, chapterTags: true, novelTags: true },
+			included: {
+				types: true,
+				codexTags: parsed.codexTags != null,
+				chapterTags: true,
+				novelTags: true,
+			},
 			types: Array.isArray(parsed.types) ? (parsed.types as TagDefinition[]) : [],
+			codexTags: (parsed.codexTags as VaultTagsShape | null) ?? null,
 			chapterTags: Array.isArray(parsed.chapterTags) ? (parsed.chapterTags as TagDefinition[]) : [],
 			novelTags: Array.isArray(parsed.novelTags) ? (parsed.novelTags as TagDefinition[]) : [],
 		}),
@@ -243,6 +262,7 @@ export function parseCompleteExport(raw: string): CompleteExportDocument {
 		template: parsed.template === true,
 		settings: { ...parsed.settings },
 		types: typesTags.types ?? [],
+		...(typesTags.codexTags ? { codexTags: typesTags.codexTags } : {}),
 		chapterTags: typesTags.chapterTags ?? [],
 		novelTags: typesTags.novelTags ?? [],
 		threads: threads.threads,
@@ -262,6 +282,7 @@ export async function applyCompleteExport(
 	}
 	await applyTypesTagsDocument(plugin.app, typesTagsDocumentFromComplete(prepared), {
 		types: true,
+		codexTags: prepared.codexTags != null,
 		chapterTags: true,
 		novelTags: true,
 	});
@@ -278,6 +299,7 @@ export function completePreviewCounts(document: CompleteExportDocument): Array<{
 	const rows: Array<{ label: string; count: string }> = [
 		{ label: document.template ? "template" : "complete", count: `${Object.keys(document.settings).length} settings` },
 		{ label: "types", count: `${document.types.length} settings` },
+		{ label: "codex tags", count: `${document.codexTags?.tags.length ?? 0} settings` },
 		{ label: "chapter tags", count: `${document.chapterTags.length} settings` },
 		{ label: "novel tags", count: `${document.novelTags.length} settings` },
 		{ label: "threads", count: `${document.threads.length} settings` },

@@ -6,6 +6,7 @@ import {
 	TYPES_TAGS_EXPORT_FORMAT,
 } from "../typesTagsExport";
 import type { TagRegistryShape } from "../tagRegistry";
+import type { VaultTagsShape } from "../vaultTags";
 
 const registry: TagRegistryShape = {
 	codexTypes: [
@@ -17,36 +18,59 @@ const registry: TagRegistryShape = {
 	novelTags: [{ id: "editing", label: "Editing", iconAlias: "warning-square" }],
 };
 
+const vaultTags: VaultTagsShape = {
+	order: ["hero", "harbour"],
+	tags: [
+		{ id: "hero", iconAlias: "person-fill", display: true, pageOrder: ["Codex/Jane.md"] },
+		{ id: "harbour", iconAlias: "location-pin", display: false, pageOrder: [] },
+	],
+};
+
 describe("types & tags export", () => {
 	it("includes only the selected sections", () => {
 		const both = buildTypesTagsExport(registry, new Date("2026-08-28T12:00:00.000Z"), {
 			description: "roman cast",
+			vaultTags,
 		});
 		expect(both.format).toBe(TYPES_TAGS_EXPORT_FORMAT);
 		expect(both.types).toHaveLength(3);
+		expect(both.codexTags).toEqual(vaultTags);
 		expect(both.chapterTags).toEqual(registry.chapterTags);
 		expect(both.novelTags).toEqual(registry.novelTags);
 		expect(both.description).toBe("roman cast");
 
 		const typesOnly = buildTypesTagsExport(registry, new Date(), {
-			included: { types: true, chapterTags: false, novelTags: false },
+			included: { types: true, codexTags: false, chapterTags: false, novelTags: false },
+			vaultTags,
 		});
 		expect(typesOnly.types).toHaveLength(3);
+		expect(typesOnly.codexTags).toBeNull();
 		expect(typesOnly.chapterTags).toBeNull();
 		expect(typesOnly.novelTags).toBeNull();
 
 		const chapterOnly = buildTypesTagsExport(registry, new Date(), {
-			included: { types: false, chapterTags: true, novelTags: false },
+			included: { types: false, codexTags: false, chapterTags: true, novelTags: false },
 		});
 		expect(chapterOnly.types).toBeNull();
+		expect(chapterOnly.codexTags).toBeNull();
 		expect(chapterOnly.chapterTags).toEqual(registry.chapterTags);
 		expect(chapterOnly.novelTags).toBeNull();
+
+		const codexTagsOnly = buildTypesTagsExport(registry, new Date(), {
+			included: { types: false, codexTags: true, chapterTags: false, novelTags: false },
+			vaultTags,
+		});
+		expect(codexTagsOnly.types).toBeNull();
+		expect(codexTagsOnly.codexTags).toEqual(vaultTags);
+		expect(codexTagsOnly.chapterTags).toBeNull();
+		expect(codexTagsOnly.novelTags).toBeNull();
 	});
 
 	it("round-trips JSON and accepts legacy nested tags", () => {
-		const document = buildTypesTagsExport(registry, new Date("2026-08-28T12:00:00.000Z"));
+		const document = buildTypesTagsExport(registry, new Date("2026-08-28T12:00:00.000Z"), { vaultTags });
 		const parsed = parseTypesTagsExport(stringifyTypesTagsExport(document));
 		expect(parsed.types).toEqual(document.types);
+		expect(parsed.codexTags).toEqual(document.codexTags);
 		expect(parsed.chapterTags).toEqual(document.chapterTags);
 		expect(parsed.novelTags).toEqual(document.novelTags);
 
@@ -66,9 +90,54 @@ describe("types & tags export", () => {
 		expect(dashCased.types).toEqual([
 			{ id: "faction", label: "Faction", iconAlias: "crown", parentId: "person" },
 		]);
+		expect(dashCased.codexTags).toBeNull();
 		expect(dashCased.chapterTags).toEqual([{ id: "draft", label: "Draft", iconAlias: "pencil" }]);
 		expect(dashCased.novelTags).toEqual([]);
-		expect(dashCased.included).toEqual({ types: true, chapterTags: true, novelTags: true });
+		expect(dashCased.included).toEqual({
+			types: true,
+			codexTags: false,
+			chapterTags: true,
+			novelTags: true,
+		});
+	});
+
+	it("parses camelCase vault `#tag` JSON", () => {
+		const parsed = parseTypesTagsExport(
+			JSON.stringify({
+				format: TYPES_TAGS_EXPORT_FORMAT,
+				version: 1,
+				exportedAt: "2026-08-28T12:00:00.000Z",
+				included: { types: false, codexTags: true, chapterTags: false, novelTags: false },
+				codexTags: {
+					order: ["hero"],
+					tags: [{ id: "hero", iconAlias: "person-fill", display: true, pageOrder: ["Codex/Jane.md"] }],
+				},
+			}),
+		);
+		expect(parsed.codexTags).toEqual({
+			order: ["hero"],
+			tags: [{ id: "hero", iconAlias: "person-fill", display: true, pageOrder: ["Codex/Jane.md"] }],
+		});
+	});
+
+	it("parses kebab-case vault `#tag` JSON and the vaultTags alias", () => {
+		const parsed = parseTypesTagsExport(
+			JSON.stringify({
+				format: TYPES_TAGS_EXPORT_FORMAT,
+				version: 1,
+				exportedAt: "2026-08-28T12:00:00.000Z",
+				included: { types: false, vaultTags: true, chapterTags: false, novelTags: false },
+				vaultTags: {
+					order: ["hero"],
+					tags: [{ id: "hero", "icon-alias": "person-fill", display: true, "page-order": ["Codex/Jane.md"] }],
+				},
+			}),
+		);
+		expect(parsed.included.codexTags).toBe(true);
+		expect(parsed.codexTags).toEqual({
+			order: ["hero"],
+			tags: [{ id: "hero", iconAlias: "person-fill", display: true, pageOrder: ["Codex/Jane.md"] }],
+		});
 	});
 
 	it("rejects JSON that is not a types & tags export", () => {

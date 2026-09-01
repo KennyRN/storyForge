@@ -25,6 +25,7 @@ import {
 	SettingsPresetExistsError,
 } from "../settingsPresets";
 import { readTagRegistry, resolveIconAlias, type TagDefinition, type TagListKind } from "../tagRegistry";
+import { readVaultTags, resolveVaultTagIconAlias, type VaultTagEntry, type VaultTagsShape } from "../vaultTags";
 import {
 	applyTypesTagsDocument,
 	buildTypesTagsExport,
@@ -329,7 +330,7 @@ class JsonImportModal extends Modal {
 			});
 			return;
 		}
-		renderTypesTagsPreviewPanes(parent, document.types, document.chapterTags, document.novelTags);
+		renderTypesTagsPreviewPanes(parent, document.types, document.codexTags, document.chapterTags, document.novelTags);
 	}
 
 	private async listRelevantExportFiles(): Promise<Array<{ path: string; name: string }>> {
@@ -444,6 +445,38 @@ function renderTypePreview(pane: HTMLElement, types: TagDefinition[] | null): vo
 	}
 }
 
+function renderCodexTagsPreview(pane: HTMLElement, vaultTags: VaultTagsShape | null): void {
+	pane.createDiv({ cls: "sf-types-tags-preview-pane-title", text: "codex tags" });
+	if (!vaultTags) {
+		pane.createDiv({ cls: "sf-types-tags-preview-empty", text: "not included" });
+		return;
+	}
+	const byId = new Map(vaultTags.tags.map((entry) => [entry.id, entry]));
+	const seen = new Set<string>();
+	const entries: VaultTagEntry[] = [];
+	for (const id of vaultTags.order) {
+		const entry = byId.get(id);
+		if (!entry || seen.has(id)) continue;
+		seen.add(id);
+		entries.push(entry);
+	}
+	for (const entry of vaultTags.tags) {
+		if (seen.has(entry.id)) continue;
+		seen.add(entry.id);
+		entries.push(entry);
+	}
+	if (entries.length === 0) {
+		pane.createDiv({ cls: "sf-types-tags-preview-empty", text: "none" });
+		return;
+	}
+	for (const entry of entries) {
+		const row = pane.createDiv({ cls: "sf-types-tags-preview-row" });
+		const iconEl = row.createSpan({ cls: "sf-types-tags-preview-icon" });
+		setIcon(iconEl, resolveVaultTagIconAlias(entry.iconAlias));
+		row.createSpan({ cls: "sf-types-tags-preview-label", text: `#${entry.id}` });
+	}
+}
+
 function renderFlatListPreview(
 	pane: HTMLElement,
 	title: string,
@@ -465,11 +498,13 @@ function renderFlatListPreview(
 export function renderTypesTagsPreviewPanes(
 	parent: HTMLElement,
 	types: TagDefinition[] | null,
+	codexTags: VaultTagsShape | null,
 	chapterTags: TagDefinition[] | null,
 	novelTags: TagDefinition[] | null,
 ): void {
 	const row = parent.createDiv({ cls: "sf-types-tags-preview-panes" });
 	renderTypePreview(row.createDiv({ cls: "sf-types-tags-preview-pane" }), types);
+	renderCodexTagsPreview(row.createDiv({ cls: "sf-types-tags-preview-pane" }), codexTags);
 	renderFlatListPreview(
 		row.createDiv({ cls: "sf-types-tags-preview-pane" }),
 		"chapter tags",
@@ -488,11 +523,21 @@ export class TypesTagsExportModal extends Modal {
 	private readonly plugin: StoryForgePlugin;
 	private presetName = "";
 	private description = "";
-	private exportIncluded: TypesTagsExportSelection = { types: true, chapterTags: true, novelTags: true };
+	private exportIncluded: TypesTagsExportSelection = {
+		types: true,
+		codexTags: true,
+		chapterTags: true,
+		novelTags: true,
+	};
 	private archiveDatedCopy = false;
 	private selectedSource: ImportSource | null = null;
 	private importDocument: TypesTagsExportDocument | null = null;
-	private importIncluded: TypesTagsExportSelection = { types: true, chapterTags: true, novelTags: true };
+	private importIncluded: TypesTagsExportSelection = {
+		types: true,
+		codexTags: true,
+		chapterTags: true,
+		novelTags: true,
+	};
 	private activeTabId: "create" | "load" = "create";
 	private renderToken = 0;
 	private closed = false;
@@ -518,6 +563,7 @@ export class TypesTagsExportModal extends Modal {
 		return buildTypesTagsExport(readTagRegistry(this.app), new Date(), {
 			description: this.description,
 			included: this.exportIncluded,
+			vaultTags: readVaultTags(this.app),
 		});
 	}
 
@@ -558,6 +604,13 @@ export class TypesTagsExportModal extends Modal {
 				value: this.exportIncluded.types,
 				onChange: (value) => {
 					this.exportIncluded.types = value;
+					this.render();
+				},
+			},
+			codexTags: {
+				value: this.exportIncluded.codexTags,
+				onChange: (value) => {
+					this.exportIncluded.codexTags = value;
 					this.render();
 				},
 			},
@@ -612,6 +665,7 @@ export class TypesTagsExportModal extends Modal {
 		renderTypesTagsPreviewPanes(
 			previewBox,
 			document.types,
+			document.codexTags,
 			document.chapterTags,
 			document.novelTags,
 		);
@@ -646,6 +700,7 @@ export class TypesTagsExportModal extends Modal {
 		parent: HTMLElement,
 		toggles: {
 			types: { value: boolean; disabled?: boolean; onChange: (value: boolean) => void };
+			codexTags: { value: boolean; disabled?: boolean; onChange: (value: boolean) => void };
 			chapterTags: { value: boolean; disabled?: boolean; onChange: (value: boolean) => void };
 			novelTags: { value: boolean; disabled?: boolean; onChange: (value: boolean) => void };
 			archive?: { value: boolean; disabled?: boolean; onChange: (value: boolean) => void };
@@ -657,6 +712,7 @@ export class TypesTagsExportModal extends Modal {
 			spec: { value: boolean; disabled?: boolean; onChange: (value: boolean) => void };
 		}> = [
 			{ name: "types", spec: toggles.types },
+			{ name: "codex tags", spec: toggles.codexTags },
 			{ name: "chapter tags", spec: toggles.chapterTags },
 			{ name: "novel tags", spec: toggles.novelTags },
 		];
@@ -771,6 +827,14 @@ export class TypesTagsExportModal extends Modal {
 					this.render();
 				},
 			},
+			codexTags: {
+				value: this.importIncluded.codexTags,
+				disabled: document.codexTags === null,
+				onChange: (value) => {
+					this.importIncluded.codexTags = value;
+					this.render();
+				},
+			},
 			chapterTags: {
 				value: this.importIncluded.chapterTags,
 				disabled: document.chapterTags === null,
@@ -792,6 +856,7 @@ export class TypesTagsExportModal extends Modal {
 		renderTypesTagsPreviewPanes(
 			contentEl,
 			this.importIncluded.types ? document.types : null,
+			this.importIncluded.codexTags ? document.codexTags : null,
 			this.importIncluded.chapterTags ? document.chapterTags : null,
 			this.importIncluded.novelTags ? document.novelTags : null,
 		);
@@ -821,6 +886,7 @@ export class TypesTagsExportModal extends Modal {
 			};
 			this.importIncluded = {
 				types: document.types !== null,
+				codexTags: document.codexTags !== null,
 				chapterTags: document.chapterTags !== null,
 				novelTags: document.novelTags !== null,
 			};
@@ -847,7 +913,7 @@ export class TypesTagsExportModal extends Modal {
 
 	private async exportToFolder(): Promise<void> {
 		if (!hasTypesTagsSelection(this.exportIncluded)) {
-			new Notice("storyForge: choose types, chapter tags, or novel tags");
+			new Notice("storyForge: choose types, chapter tags, novel tags, or codex tags");
 			return;
 		}
 		const chosen = await promptForExportName(this.app, this.defaultExportStem());
@@ -943,7 +1009,7 @@ export class TypesTagsExportModal extends Modal {
 
 	private async savePreset(overwrite: boolean): Promise<void> {
 		if (!hasTypesTagsSelection(this.exportIncluded)) {
-			new Notice("storyForge: choose types, chapter tags, or novel tags");
+			new Notice("storyForge: choose types, chapter tags, novel tags, or codex tags");
 			return;
 		}
 		const exportText = stringifyTypesTagsExport(this.currentDocument());
@@ -1064,7 +1130,7 @@ export class TypesTagsExportModal extends Modal {
 		const document = this.importDocument;
 		if (!document) return;
 		if (!hasTypesTagsSelection(this.importIncluded)) {
-			new Notice("storyForge: choose types, chapter tags, or novel tags");
+			new Notice("storyForge: choose types, chapter tags, novel tags, or codex tags");
 			return;
 		}
 		try {

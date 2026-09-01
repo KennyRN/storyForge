@@ -5,12 +5,21 @@ import {
 	type TagDefinition,
 	type TagRegistryShape,
 } from "./tagRegistry";
+import {
+	cloneVaultTags,
+	parseVaultTagsShape,
+	replaceVaultTags,
+	type VaultTagsShape,
+} from "./vaultTags";
 
 export const TYPES_TAGS_EXPORT_FORMAT = "storyforge-types-tags" as const;
 export const TYPES_TAGS_EXPORT_VERSION = 1 as const;
 
+export const EMPTY_VAULT_TAGS_EXPORT: VaultTagsShape = { order: [], tags: [] };
+
 export interface TypesTagsExportSelection {
 	types: boolean;
+	codexTags: boolean;
 	chapterTags: boolean;
 	novelTags: boolean;
 }
@@ -22,6 +31,7 @@ export interface TypesTagsExportDocument {
 	description?: string;
 	included: TypesTagsExportSelection;
 	types: TagDefinition[] | null;
+	codexTags: VaultTagsShape | null;
 	chapterTags: TagDefinition[] | null;
 	novelTags: TagDefinition[] | null;
 }
@@ -54,6 +64,11 @@ function parseExportedTagList(raw: unknown): TagDefinition[] | null {
 	return result;
 }
 
+function parseExportedVaultTags(raw: unknown): VaultTagsShape | null {
+	if (raw == null) return null;
+	return parseVaultTagsShape(raw);
+}
+
 function includedFlag(raw: unknown, fallback: boolean): boolean {
 	if (raw === false) return false;
 	if (raw === true) return true;
@@ -61,24 +76,33 @@ function includedFlag(raw: unknown, fallback: boolean): boolean {
 }
 
 export function hasTypesTagsSelection(included: TypesTagsExportSelection): boolean {
-	return included.types || included.chapterTags || included.novelTags;
+	return included.types || included.codexTags || included.chapterTags || included.novelTags;
 }
 
-/** Builds a portable types & tags document from the live registry. */
+function resolveIncluded(
+	partial?: Partial<TypesTagsExportSelection>,
+): TypesTagsExportSelection {
+	return {
+		types: partial?.types ?? true,
+		codexTags: partial?.codexTags ?? true,
+		chapterTags: partial?.chapterTags ?? true,
+		novelTags: partial?.novelTags ?? true,
+	};
+}
+
+/** Builds a portable types & tags document from the live registry (and optional vault `#tag`s). */
 export function buildTypesTagsExport(
 	registry: TagRegistryShape,
 	exportedAt: Date = new Date(),
 	options: {
 		description?: string;
 		included?: Partial<TypesTagsExportSelection>;
+		vaultTags?: VaultTagsShape;
 	} = {},
 ): TypesTagsExportDocument {
-	const included: TypesTagsExportSelection = {
-		types: options.included?.types ?? true,
-		chapterTags: options.included?.chapterTags ?? true,
-		novelTags: options.included?.novelTags ?? true,
-	};
+	const included = resolveIncluded(options.included);
 	const description = options.description?.trim();
+	const vaultTags = options.vaultTags ?? EMPTY_VAULT_TAGS_EXPORT;
 	return {
 		format: TYPES_TAGS_EXPORT_FORMAT,
 		version: TYPES_TAGS_EXPORT_VERSION,
@@ -86,6 +110,7 @@ export function buildTypesTagsExport(
 		...(description ? { description } : {}),
 		included,
 		types: included.types ? registry.codexTypes : null,
+		codexTags: included.codexTags ? cloneVaultTags(vaultTags) : null,
 		chapterTags: included.chapterTags ? registry.chapterTags : null,
 		novelTags: included.novelTags ? registry.novelTags : null,
 	};
@@ -118,6 +143,7 @@ export function parseTypesTagsExport(raw: string): TypesTagsExportDocument {
 	const novelTags =
 		parseExportedTagList(value.novelTags) ??
 		(nestedTags ? parseExportedTagList(nestedTags.novelTags ?? nestedTags["novel-tags"]) : null);
+	const codexTags = parseExportedVaultTags(value.codexTags ?? value.vaultTags);
 	const includedRaw =
 		value.included && typeof value.included === "object"
 			? (value.included as Record<string, unknown>)
@@ -125,6 +151,7 @@ export function parseTypesTagsExport(raw: string): TypesTagsExportDocument {
 	const legacyTags = includedRaw.tags;
 	const included: TypesTagsExportSelection = {
 		types: includedFlag(includedRaw.types, types !== null),
+		codexTags: includedFlag(includedRaw.codexTags ?? includedRaw.vaultTags, codexTags !== null),
 		chapterTags: includedFlag(
 			includedRaw.chapterTags ?? legacyTags,
 			chapterTags !== null,
@@ -143,6 +170,7 @@ export function parseTypesTagsExport(raw: string): TypesTagsExportDocument {
 		...(description ? { description } : {}),
 		included,
 		types: included.types ? (types ?? []) : null,
+		codexTags: included.codexTags ? (codexTags ?? cloneVaultTags(EMPTY_VAULT_TAGS_EXPORT)) : null,
 		chapterTags: included.chapterTags ? (chapterTags ?? []) : null,
 		novelTags: included.novelTags ? (novelTags ?? []) : null,
 	};
@@ -157,8 +185,10 @@ export async function applyTypesTagsDocument(
 	if (included.types && document.types) patch.codexTypes = document.types;
 	if (included.chapterTags && document.chapterTags) patch.chapterTags = document.chapterTags;
 	if (included.novelTags && document.novelTags) patch.novelTags = document.novelTags;
-	if (Object.keys(patch).length === 0) {
-		return readTagRegistry(app);
+	const registry =
+		Object.keys(patch).length === 0 ? readTagRegistry(app) : await replaceTagLists(app, patch);
+	if (included.codexTags && document.codexTags) {
+		await replaceVaultTags(app, document.codexTags);
 	}
-	return replaceTagLists(app, patch);
+	return registry;
 }

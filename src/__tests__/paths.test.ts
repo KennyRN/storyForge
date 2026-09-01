@@ -45,6 +45,7 @@ describe("isBackstageBookkeepingPath", () => {
 
 	it("flags a recommend sidecar path", () => {
 		expect(isBackstageBookkeepingPath(recommendSidecarPath("My Novel", "Chapter 1.md"))).toBe(true);
+		expect(isBackstageBookkeepingPath("_backstage/storyforge/My Novel/recommend/Chapter 1.md")).toBe(true);
 	});
 });
 

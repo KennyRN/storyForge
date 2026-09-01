@@ -247,6 +247,30 @@ export async function migrateVaultSchema(app: App): Promise<void> {
 		await migrateChapterOrderField(app, folder.name);
 	}
 	await migrateWordCountV1ToV2(app);
+	await migrateRecommendFolderToStoryDetails(app);
+}
+
+/**
+ * Renames each book's `_backstage/storyforge/<book>/recommend/` folder to
+ * `story-details/`. Merges into a dest that already exists (same rule as
+ * `mergeFolderInto`) so a mixed vault cannot strand files under the old name.
+ * Safe no-op once every book already uses `story-details`.
+ */
+export async function migrateRecommendFolderToStoryDetails(app: App): Promise<void> {
+	const root = app.vault.getAbstractFileByPath(BACKSTAGE_ROOT);
+	if (!(root instanceof TFolder)) return;
+	for (const child of [...root.children]) {
+		if (!(child instanceof TFolder)) continue;
+		const legacyPath = `${child.path}/recommend`;
+		const destPath = `${child.path}/story-details`;
+		const legacy = app.vault.getAbstractFileByPath(legacyPath);
+		if (!(legacy instanceof TFolder)) continue;
+		if (!app.vault.getAbstractFileByPath(destPath)) {
+			await app.fileManager.renameFile(legacy, destPath);
+			continue;
+		}
+		await mergeFolderInto(app, legacyPath, destPath);
+	}
 }
 
 /**

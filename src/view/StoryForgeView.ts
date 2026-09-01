@@ -8,7 +8,9 @@ import { renderStatsPanel, type StatsMode } from "./StatsPanel";
 import { SeriesModal } from "./SeriesModal";
 import { PlotThreadRegistryModal } from "./PlotThreadRegistryModal";
 import { TagRegistryModal } from "./TagRegistryModal";
-import { createCodexFolder, createCodexNote, readCodexFrontmatter, type CodexViewMode } from "../codex";
+import { VaultTagModal } from "./VaultTagModal";
+import { createCodexFolder, createCodexNote, readCodexFrontmatter } from "../codex";
+import { displayedVaultTags } from "../vaultTags";
 import { debounce } from "../debounce";
 import { ICON_BOOK_DUOTONE, ICON_BOOK_OPEN_FILLED, ICON_CODEX, ICON_SERIES } from "../icons";
 import { countWords } from "../wordCount";
@@ -46,11 +48,12 @@ export class StoryForgeView extends ItemView {
 	private activeChapterFilename: string | null = null;
 	private layout: SfLayout = "hybrid";
 	private unplacedMode: UnplacedViewMode = "unplaced";
-	private codexMode: CodexViewMode = "codex";
 	private collapsedCodexFolders = new Set<string>();
 	private activeCodexFolderId: string | null = null;
-	/** codexTypes ids currently filtering the Codex tree — session-only, like codexMode/unplacedMode. */
+	/** codexTypes ids currently filtering the Codex tree — session-only, like unplacedMode. */
 	private codexTypeFilter = new Set<string>();
+	/** Vault `#tag` currently filtering the Codex tree — session-only, single-select. */
+	private vaultTagFilter: string | null = null;
 	private statsMode: StatsMode = "daily";
 	private statsCounts: Record<StatsMode, number> = { daily: 0, weekly: 0, chapter: 0, story: 0 };
 	/** Tears down the live position indicator's event-listener — must run before the next render
@@ -334,14 +337,14 @@ export class StoryForgeView extends ItemView {
 			const activeFile = this.app.workspace.getActiveFile();
 			const activeFilePath = activeFile?.path ?? null;
 
+			if (this.vaultTagFilter && !displayedVaultTags(this.app).some((tag) => tag.id === this.vaultTagFilter)) {
+				this.vaultTagFilter = null;
+			}
+
 			const bottomEl = container.createDiv({ cls: "sf-bottom-panel" });
 			renderBottomPanel(this.app, bottomEl, {
 				currentBookId,
-				mode: this.codexMode,
-				onToggleMode: () => {
-					this.codexMode = this.codexMode === "codex" ? "codexHidden" : "codex";
-					this.render();
-				},
+				mode: "codex",
 				collapsedPaths: this.collapsedCodexFolders,
 				onToggleFolder: (folderId) => {
 					if (this.collapsedCodexFolders.has(folderId)) {
@@ -362,18 +365,28 @@ export class StoryForgeView extends ItemView {
 					this.codexTypeFilter = new Set(next);
 					this.render();
 				},
+				tagFilter: this.vaultTagFilter,
+				onChangeTagFilter: (next) => {
+					this.vaultTagFilter = next;
+					this.render();
+				},
 				onOpenFile: (path) => void this.openCodexFile(path),
-				// Codex-types corner lives on the dedicated Codex layout only — not the Chapter
-				// layout's Codex subpane (or any other layout that merely embeds Codex).
-				onOpenCodexTypes:
-					this.layout === "codex"
-						? () =>
-								new TagRegistryModal(
-									this.app,
-									() => this.plugin.refreshStoryForgeViews(),
-									"codexTypes",
-								).open()
-						: undefined,
+				// Types/tags corner lives on the full-pane Codex tab only. Chapter layout still
+				// embeds Codex underneath the novel list, but those two icons would duplicate
+				// (and crowd) a subpane that isn't the types/tags home.
+				...(config.topPane === "none"
+					? {
+							onOpenCodexTypes: () =>
+								new TagRegistryModal(this.app, () => this.plugin.refreshStoryForgeViews(), "codexTypes").open(),
+							onOpenTags: () => {
+								try {
+									new VaultTagModal(this.app, () => this.plugin.refreshStoryForgeViews()).open();
+								} catch (err) {
+									new Notice(`storyForge: could not open vault tags — ${(err as Error).message}`);
+								}
+							},
+						}
+					: {}),
 			});
 		}
 
@@ -396,6 +409,7 @@ export class StoryForgeView extends ItemView {
 		new WordCountModal(this.app, bookFolderName, {
 			statsMode: this.statsMode,
 			seriesNumberingStyle: this.plugin.getSettings().seriesNumberingStyle,
+			chapterNumberingStyle: this.plugin.getSettings().chapterNumberingStyle,
 			onSelectStatsMode: (mode) => {
 				this.statsMode = mode;
 				this.render();

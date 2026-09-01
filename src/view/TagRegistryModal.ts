@@ -36,6 +36,10 @@ export class TagRegistryModal extends Modal {
 	}
 
 	onOpen(): void {
+		if (this.registryScope === "codexTypes") {
+			this.modalEl.addClass("sf-codex-types-modal");
+		}
+		this.titleEl.remove();
 		this.render();
 	}
 
@@ -66,7 +70,6 @@ export class TagRegistryModal extends Modal {
 		if (this.registryScope === "codexTypes") {
 			const scroll = contentEl.createDiv({ cls: "sf-text-style-tab-body-wrapper" });
 			const body = scroll.createDiv({ cls: "sf-text-style-tab-body" });
-			body.createEl("h2", { text: "Codex types" });
 			this.renderCodexTypesList(body, fresh?.list === "codexTypes" ? fresh.entries : undefined);
 			return;
 		}
@@ -193,7 +196,10 @@ export class TagRegistryModal extends Modal {
 
 		// Person/Place are protected — renameable/re-iconable above, but no delete affordance at
 		// all, since too much of the app assumes they exist.
-		if (list === "codexTypes" && PROTECTED_CODEX_TYPE_IDS.has(entry.id)) return;
+		if (list === "codexTypes" && PROTECTED_CODEX_TYPE_IDS.has(entry.id)) {
+			row.createSpan({ cls: "sf-icon-action sf-icon-action-spacer", attr: { "aria-hidden": "true" } });
+			return;
+		}
 		// Same "[-]" glyph and hover-coloured (not boxed) styling as the delete icon on
 		// CodexSetTypeModal/TagPickerModal's rows — always visible here, though (this is the
 		// management list, not a pick-one-and-close flow, so hover-reveal doesn't apply).

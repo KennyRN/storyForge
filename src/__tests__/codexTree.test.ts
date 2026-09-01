@@ -61,6 +61,31 @@ describe("resolveCodexTree", () => {
 		expect(tree.children[0]).toMatchObject({ type: "folder", id: "characters", children: [] });
 	});
 
+	it("in tagFilterMode keeps a lore folder whose linked note is visible even with no tagged children", () => {
+		const folders: CodexFolders = {
+			villains: {
+				name: "Villains",
+				order: ["Codex/Untagged.md"],
+				linkedNotePath: "Codex/Villains.md",
+			},
+		};
+		const realPaths = new Set(["Codex/Villains.md", "Codex/Untagged.md"]);
+		const visiblePaths = new Set(["Codex/Villains.md"]);
+		const tree = resolveCodexTree(folders, ["villains"], realPaths, visiblePaths, { tagFilterMode: true });
+		expect(tree.children).toHaveLength(1);
+		expect(tree.children[0]).toMatchObject({ type: "folder", id: "villains", path: "Codex/Villains.md", children: [] });
+	});
+
+	it("in tagFilterMode omits empty organisational folders and folders with only untagged content", () => {
+		const folders: CodexFolders = {
+			empty: { name: "Empty", order: [] },
+			hidden: { name: "Hidden", order: ["Codex/Untagged.md"] },
+		};
+		const realPaths = new Set(["Codex/Untagged.md"]);
+		const tree = resolveCodexTree(folders, ["empty", "hidden"], realPaths, new Set(), { tagFilterMode: true });
+		expect(tree.children).toEqual([]);
+	});
+
 	it("appends unreferenced real, visible files as unplaced at the root", () => {
 		const realPaths = new Set(["Codex/Jane.md", "Codex/Bob.md"]);
 		const tree = resolveCodexTree({}, [], realPaths, realPaths);

@@ -141,6 +141,17 @@
 .sf-bottom-panel {
 	position: relative;
 	overflow: hidden;
+	/* Rail (22.5px icon + 4px pad) at left: 8px, plus a small gap before the tree. */
+	--sf-codex-rail-inset: calc(8px + 22.5px + 4px + 6px);
+}
+
+.sf-codex-body {
+	position: relative;
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
 }
 
 .sf-top-header {
@@ -231,7 +242,7 @@
 
 .sf-codex-tree {
 	flex: 1;
-	padding: 2px 4px 36px;
+	padding: 8px 4px 36px var(--sf-codex-rail-inset, 40.5px);
 	min-height: 0;
 	overflow-y: auto;
 }
@@ -420,6 +431,16 @@
 	height: calc(var(--icon-size, 18px) + 5px);
 }
 
+.sf-stats-chart--button {
+	cursor: pointer;
+}
+
+.sf-stats-chart--button:hover,
+.sf-stats-chart--button:focus-visible {
+	color: var(--text-normal);
+	outline: none;
+}
+
 .sf-stats-value {
 	flex: 1;
 	min-width: 0;
@@ -430,16 +451,6 @@
 	white-space: nowrap;
 }
 
-.sf-stats-calendar {
-	color: var(--text-muted);
-	cursor: pointer;
-	flex-shrink: 0;
-}
-
-.sf-stats-calendar:hover {
-	color: var(--text-normal);
-}
-
 .sf-bottom-header {
 	display: flex;
 	align-items: center;
@@ -447,7 +458,7 @@
 	padding: 6px 10px;
 	border-bottom: 1px solid var(--background-modifier-border);
 	color: var(--text-muted);
-	cursor: pointer;
+	flex-shrink: 0;
 }
 
 .sf-bottom-header--actions-only {
@@ -458,7 +469,6 @@
 .sf-header-codex {
 	flex: 1;
 	font-weight: 600;
-	cursor: pointer;
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
@@ -504,7 +514,7 @@
 	/* How far each nesting level shifts a row's content (chevron/name) right. There's no grip
 	 * handle anymore (the whole row is the drag target — see dragReorderTree.ts), so this is the
 	 * only indentation happening in the tree at all. */
-	--sf-codex-level-indent: 20px;
+	--sf-codex-level-indent: 10px;
 }
 
 /* Every row's content — chevron (folders only) + name, or just name (files) — indents by depth
@@ -516,15 +526,12 @@
 	flex: 1;
 	min-width: 0;
 	overflow: hidden;
-	padding-left: calc(var(--sf-codex-depth, 0) * var(--sf-codex-level-indent, 20px));
+	padding-left: calc(var(--sf-codex-depth, 0) * var(--sf-codex-level-indent, 10px));
 }
 
-/* Files have no chevron to occupy that space, so their content is pushed one further level-indent
- * than their own depth would otherwise give them — landing their name at the exact X a sibling
- * folder's name has at the same depth (chevron width + its own gap happen to add up to one full
- * level-indent, by design — see the shared 20px default above). */
+/* Files have no chevron; indent matches a sibling folder name at the same depth. */
 .sf-codex-row-content--file {
-	padding-left: calc((var(--sf-codex-depth, 0) + 1) * var(--sf-codex-level-indent, 20px));
+	padding-left: calc(var(--sf-codex-depth, 0) * var(--sf-codex-level-indent, 10px));
 }
 
 .sf-codex-chevron {
@@ -586,16 +593,15 @@
 	position: relative;
 }
 
-/* This folder's own children's guide line, positioned under this folder's own chevron centre:
- * 6px row padding + this folder's own depth indent + half the chevron's 16px width. */
+/* This folder's own children's guide line, flush with the text margin (no chevron). */
 .sf-codex-folder-indicator {
 	position: absolute;
-	top: -18px;
+	top: 0;
 	bottom: 0;
-	left: calc(14px + var(--sf-codex-depth, 0) * var(--sf-codex-level-indent, 20px));
-	transform: translateX(-50%);
+	left: calc(6px + var(--sf-codex-depth, 0) * var(--sf-codex-level-indent, 10px));
+	transform: none;
 	pointer-events: none;
-	z-index: 1;
+	z-index: 3;
 	/* Slightly rounded foot rather than a hard-cut end. */
 	border-radius: 0 0 calc(var(--sf-codex-folder-indicator-width, 2px) / 2) calc(var(--sf-codex-folder-indicator-width, 2px) / 2);
 }
@@ -658,7 +664,8 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	z-index: 1;
 }
 .sf-series-settings-btn,
-.sf-codex-types-btn {
+.sf-codex-types-btn,
+.sf-codex-tags-btn {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -666,7 +673,8 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	cursor: pointer;
 }
 .sf-series-settings-btn svg,
-.sf-codex-types-btn svg { width: 24px; height: 24px; }
+.sf-codex-types-btn svg,
+.sf-codex-tags-btn svg { width: 24px; height: 24px; }
 
 /* Codex pane — same hover-icon family as .sf-series-pane-corner, pinned to this pane's
  * bottom-left (see renderCodexTypesCorner). */
@@ -677,7 +685,10 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	z-index: 1;
+	/* Above .sf-codex-file / .sf-codex-folder-header (z-index: 2) so the hover icons
+	 * receive the click instead of a row that paints into this corner. */
+	z-index: 6;
+	pointer-events: auto;
 }
 
 /* Fixed size regardless of which tab is active or how many rows it holds — same
@@ -1569,6 +1580,7 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 
 .modal.sf-wordcount-modal {
 	max-width: 520px;
+	max-height: min(92vh, 800px);
 }
 
 .modal.sf-wordcount-modal .modal-title {
@@ -1580,16 +1592,19 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 }
 
 .modal.sf-wordcount-modal .modal-content {
-	padding: 16px 16px 0;
+	padding: 8px 16px 0;
 	display: flex;
 	flex-direction: column;
-	max-height: min(90vh, 720px);
+	max-height: min(92vh, 800px);
 }
 
 .sf-wordcount-modal-body {
-	overflow-y: auto;
+	overflow: hidden;
+	min-width: 0;
 	min-height: 0;
 	flex: 1 1 auto;
+	display: flex;
+	flex-direction: column;
 }
 
 .sf-wordcount-rollup {
@@ -1602,6 +1617,7 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 4px;
 	background: var(--background-secondary);
+	flex-shrink: 0;
 }
 
 .sf-wordcount-rollup-label {
@@ -1616,7 +1632,8 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 }
 
 .sf-wordcount-section {
-	margin-bottom: 14px;
+	margin-bottom: 8px;
+	flex-shrink: 0;
 }
 
 .sf-wordcount-section-header {
@@ -1633,13 +1650,30 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	margin-bottom: 6px;
 }
 
-.sf-wordcount-weeks-title {
-	margin-top: 10px;
+.sf-wordcount-book-summary {
+	padding: 8px 10px;
+	margin-bottom: 12px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background: var(--background-secondary);
+	box-sizing: border-box;
+}
+
+.sf-wordcount-book-title {
+	font-size: var(--font-ui-small);
+	font-weight: 600;
+	color: var(--text-normal);
+	margin-bottom: 6px;
+}
+
+.sf-wordcount-book-subtitle {
+	font-weight: 400;
+	color: inherit;
 }
 
 .sf-wordcount-summary-line {
 	font-size: var(--font-ui-smaller);
-	color: var(--text-normal);
+	color: var(--text-muted);
 	margin-bottom: 2px;
 }
 
@@ -1652,26 +1686,124 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	padding: 4px;
 }
 
-.sf-wordcount-mode-picker {
+.sf-wordcount-heatmaps {
+	--sf-heatmap-icon-size: 24px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	overflow-x: auto;
+	min-width: 0;
+	max-width: 100%;
+	flex-shrink: 1;
+}
+
+.sf-wordcount-heatmap-box {
 	display: flex;
 	align-items: center;
 	gap: 8px;
+	width: max-content;
+	min-width: 100%;
+	box-sizing: border-box;
+	padding: 8px 10px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background: var(--background-secondary);
 	flex-shrink: 0;
-	margin-top: 8px;
-	padding: 12px 0 16px;
-	border-top: 1px solid var(--background-modifier-border);
 }
 
-.sf-wordcount-mode-label {
-	flex-shrink: 0;
-	font-size: var(--font-ui-small);
+.sf-wordcount-heatmap-icon {
+	flex: 0 0 var(--sf-heatmap-icon-size);
+	width: var(--sf-heatmap-icon-size);
+	height: var(--sf-heatmap-icon-size);
+	display: flex;
+	align-items: center;
+	justify-content: center;
 	color: var(--text-muted);
-	white-space: nowrap;
+	pointer-events: none;
 }
 
-.sf-wordcount-mode-select {
-	flex: 1;
-	min-width: 0;
+.sf-wordcount-heatmap-icon svg {
+	width: var(--sf-heatmap-icon-size);
+	height: var(--sf-heatmap-icon-size);
+}
+
+.sf-wordcount-heatmaps .sf-wordcount-heatmap {
+	overflow-x: visible;
+	flex: 0 0 auto;
+}
+
+.sf-wordcount-heat-week {
+	height: 100%;
+	min-height: 40px;
+	align-self: stretch;
+}
+
+.sf-wordcount-heatmap-box-weeks {
+	align-items: stretch;
+}
+
+.sf-wordcount-heatmap-box-weeks .sf-wordcount-heatmap-icon {
+	align-self: center;
+}
+
+.sf-wordcount-heatmap-weeks {
+	align-self: stretch;
+	align-items: stretch;
+	padding-top: 0;
+	padding-bottom: 0;
+	min-height: 40px;
+}
+
+.sf-wordcount-mode-picker {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	flex: 0 0 auto;
+	margin: 0;
+	padding: 8px 10px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background: var(--background-secondary);
+	box-sizing: border-box;
+}
+
+.sf-wordcount-mode-picker .sf-wordcount-section-title {
+	margin-bottom: 6px;
+	text-align: center;
+	font-size: var(--font-ui-small);
+	font-weight: 600;
+	color: var(--text-muted);
+}
+
+.sf-wordcount-mode-icons {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	flex-shrink: 0;
+}
+
+.sf-wordcount-mode-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.sf-wordcount-mode-btn svg {
+	width: 24px;
+	height: 24px;
+}
+
+.sf-wordcount-mode-btn.is-active,
+.sf-wordcount-mode-btn:hover,
+.sf-wordcount-mode-btn:focus-visible {
+	color: var(--interactive-accent);
+}
+
+.sf-wordcount-mode-btn:focus-visible {
+	outline: none;
 }
 
 .sf-wordcount-heatmap-col {
@@ -1686,11 +1818,6 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	border-radius: 2px;
 	cursor: pointer;
 	box-sizing: border-box;
-}
-
-.sf-wordcount-heat-week {
-	width: 14px;
-	height: 14px;
 }
 
 .sf-wordcount-heat-empty {
@@ -1733,38 +1860,89 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	background: var(--color-red);
 }
 
-.sf-wordcount-chapter-list {
+.sf-wordcount-explore-row {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: nowrap;
+	align-items: stretch;
+	gap: 8px;
+	flex-shrink: 0;
+	margin-bottom: 8px;
+	min-width: 0;
+	width: 100%;
+	max-width: 100%;
+	box-sizing: border-box;
+}
+
+.sf-wordcount-chapters {
+	flex: 1 1 0;
+	min-width: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	margin-bottom: 0;
+	box-sizing: border-box;
+	padding: 8px 10px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 4px;
+	background: var(--background-secondary);
 }
 
-.sf-wordcount-chapter-row {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	padding: 2px 0;
-	font-size: var(--font-ui-smaller);
-}
-
-.sf-wordcount-chapter-title {
-	flex: 1;
+.sf-wordcount-chapters .sf-wordcount-section-title {
+	margin-bottom: 0;
 	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-.sf-wordcount-chapter-net {
-	flex-shrink: 0;
-	color: var(--text-muted);
-	font-variant-numeric: tabular-nums;
+.sf-wordcount-chapters-header,
+.sf-wordcount-chapter-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) max-content;
+	column-gap: 12px;
+	align-items: baseline;
 }
 
-.sf-wordcount-day-total {
-	margin-top: 6px;
-	font-size: var(--font-ui-smaller);
+.sf-wordcount-chapters-header {
+	flex-shrink: 0;
+	margin-bottom: 4px;
+}
+
+.sf-wordcount-chapter-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	flex: 1 1 auto;
+	min-width: 0;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+.sf-wordcount-running-total,
+.sf-wordcount-chapter-net {
+	font-variant-numeric: tabular-nums;
 	color: var(--text-muted);
+	text-align: right;
+	white-space: nowrap;
+}
+
+.sf-wordcount-running-total {
+	font-size: var(--font-ui-small);
+	font-weight: 600;
+}
+
+.sf-wordcount-chapter-title {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	font-size: var(--font-ui-smaller);
+	padding: 2px 0;
+}
+
+.sf-wordcount-chapter-net {
+	font-size: var(--font-ui-smaller);
+	padding: 2px 0;
 }
 
 /* ── Palette Picker Modal ── */
@@ -1795,9 +1973,9 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 .sf-plot-thread-col-headers,
 .sf-row.sf-plot-thread-registry-row {
 	display: grid;
-	grid-template-columns: 16px max-content minmax(0, 1fr) 56px;
+	grid-template-columns: 16px max-content minmax(0, 1fr) 40px;
 	align-items: center;
-	gap: 10px;
+	gap: 8px;
 	padding: 4px 6px;
 	box-sizing: border-box;
 	min-height: 40px;
@@ -1825,23 +2003,27 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 }
 
 .sf-plot-thread-name-group {
+	position: relative;
 	display: flex;
 	align-items: center;
 	min-width: 0;
-	gap: 4px;
 }
 
 .sf-plot-thread-name-group .sf-plot-thread-name {
 	flex: 1 1 auto;
 }
 
-.sf-plot-thread-name-group .sf-icon-action {
-	flex-shrink: 0;
+.sf-plot-thread-name-group:has(.sf-icon-action) .sf-plot-thread-name {
+	padding-right: 2.2em;
 }
 
-.sf-plot-thread-action-spacer {
+.sf-plot-thread-name-group .sf-icon-action {
+	position: absolute;
+	right: 2px;
+	top: 50%;
+	transform: translateY(-50%);
+	z-index: 1;
 	flex-shrink: 0;
-	width: 2.6em;
 }
 
 .sf-plot-thread-col-spacer {
@@ -1888,6 +2070,15 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	box-sizing: border-box;
 	background: var(--sf-thread-bg, var(--background-primary));
 	color: var(--sf-thread-fg, var(--text-normal));
+	-webkit-text-fill-color: var(--sf-thread-fg, var(--text-normal));
+	user-select: text;
+	-webkit-user-select: text;
+}
+
+.modal.sf-plot-thread-registry-modal input.sf-plot-thread-name::placeholder {
+	color: var(--sf-thread-fg, var(--text-normal));
+	-webkit-text-fill-color: var(--sf-thread-fg, var(--text-normal));
+	opacity: 1;
 }
 
 .sf-plot-thread-name::placeholder {
@@ -1898,6 +2089,7 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 .sf-plot-thread-name::selection {
 	background-color: var(--sf-thread-fg, var(--text-normal));
 	color: var(--sf-thread-bg, var(--background-primary));
+	-webkit-text-fill-color: var(--sf-thread-bg, var(--background-primary));
 }
 
 .sf-plot-thread-registry-modal .sf-color-swatch-btn--text::after {
@@ -2234,7 +2426,6 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 .modal.sf-ui-formatting-modal,
 .modal.sf-hide-ui-modal,
 .modal.sf-protections-modal,
-.modal.sf-tag-registry-modal,
 .modal.sf-cycling-guide-modal {
 	width: 560px;
 	height: 760px;
@@ -2243,12 +2434,75 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	padding: 0;
 }
 
+/*
+ * Codex types / vault `#tag` / chapter & novel tags: lock the window in px (same pattern as
+ * `.modal.sf-plot-thread-registry-modal`). `fit-content` / `max-content` / `ch` calcs all
+ * lost to Obsidian's `--dialog-width`. Width = min = max so the size cannot stretch.
+ * Name fields flex to fill whatever remains after the handle / icon / trailing action.
+ *
+ * Width is 430 for all three. Height is half the previous 760px lock, except Codex types
+ * which is 550px so nested person/place lists still have room.
+ */
+.modal.sf-codex-types-modal:not(#storyforge-specificity-boost),
+.modal.sf-vault-tag-modal:not(#storyforge-specificity-boost),
+.modal.sf-tag-registry-modal:not(#storyforge-specificity-boost) {
+	width: 430px;
+	min-width: 430px;
+	max-width: 430px;
+	display: flex;
+	flex-direction: column;
+	padding: 0;
+	overflow: hidden;
+	box-sizing: border-box;
+}
+
+.modal.sf-vault-tag-modal:not(#storyforge-specificity-boost),
+.modal.sf-tag-registry-modal:not(.sf-codex-types-modal):not(#storyforge-specificity-boost) {
+	height: 380px;
+	min-height: 380px;
+	max-height: 380px;
+}
+
+.modal.sf-codex-types-modal:not(#storyforge-specificity-boost) {
+	height: 550px;
+	min-height: 550px;
+	max-height: 550px;
+}
+
+.modal.sf-codex-types-modal .modal-content,
+.modal.sf-vault-tag-modal .modal-content,
+.modal.sf-tag-registry-modal .modal-content {
+	padding: 0;
+	margin: 0;
+	width: 100%;
+	height: 100%;
+	min-width: 0;
+	min-height: 0;
+	box-sizing: border-box;
+}
+
+.modal.sf-vault-tag-modal .modal-title,
+.modal.sf-codex-types-modal .modal-title,
+.modal.sf-tag-registry-modal .modal-title {
+	display: none;
+	margin: 0;
+	padding: 0;
+	height: 0;
+	overflow: hidden;
+}
+
+.modal.sf-codex-types-modal .sf-empty,
+.modal.sf-vault-tag-modal .sf-empty,
+.modal.sf-tag-registry-modal .sf-empty {
+	max-width: 100%;
+}
+
 .modal.sf-plot-thread-registry-modal {
-	width: 460px;
+	width: 380px;
 	height: 420px;
-	min-width: 460px;
+	min-width: 380px;
 	min-height: 420px;
-	max-width: 460px;
+	max-width: 380px;
 	max-height: 420px;
 	display: flex;
 	flex-direction: column;
@@ -2279,6 +2533,7 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 .sf-hide-ui-modal,
 .sf-protections-modal,
 .sf-tag-registry-modal,
+.sf-vault-tag-modal,
 .sf-cycling-guide-modal {
 	flex: 1;
 	display: flex;
@@ -2725,7 +2980,7 @@ body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container:not(#sto
 .sf-bottom-header > .sf-icon { font-size: var(--sf-codex-size, 1em); }
 .sf-bottom-header > .sf-icon svg { width: 1em; height: 1em; }
 .sf-bottom-header:not(.sf-codex-hidden) > .sf-icon { color: var(--sf-codex-color); }
-.sf-codex-filter-btn:hover, .sf-codex-new-file-btn:hover, .sf-codex-new-folder-btn:hover { color: var(--sf-codex-color); }
+.sf-codex-filter-btn:hover, .sf-codex-new-file-btn:hover, .sf-codex-new-folder-btn:hover, .sf-codex-vault-tag-btn:hover { color: var(--sf-codex-color); }
 
 .sf-top-list:not(.sf-unplaced-list) {
 	font-size: var(--sf-lib-items-size, 1em);
@@ -2791,7 +3046,7 @@ body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container:not(#sto
    .sf-codex-folder-indicator's own `left`. Root rows keep a flat fill (no clip). */
 body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-file,
 body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-header {
-	--sf-codex-highlight-trim: calc(14px + (var(--sf-codex-depth, 1) - 1) * var(--sf-codex-level-indent, 20px));
+	--sf-codex-highlight-trim: calc(6px + var(--sf-codex-folder-indicator-width, 2px) + (var(--sf-codex-depth, 1) - 1) * var(--sf-codex-level-indent, 10px));
 	background: linear-gradient(
 		to right,
 		transparent 0,
@@ -2875,7 +3130,8 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	font-variation-settings: var(--sf-lib-series-variation, normal);
 }
 .sf-series-settings-btn:hover { color: var(--sf-lib-series-color); }
-.sf-codex-types-btn:hover { color: var(--sf-codex-color); }
+.sf-codex-types-btn:hover,
+.sf-codex-tags-btn:hover { color: var(--sf-codex-color); }
 .sf-book-line .sf-header-text {
 	font-size: var(--sf-lib-book-size, 1em);
 	font-weight: var(--sf-lib-book-weight, 400);
@@ -2927,15 +3183,7 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 }
 .sf-codex-folder.sf-codex-folder--with-indicator > .sf-codex-folder-header.sf-row-selected::after,
 .sf-codex-folder.sf-codex-folder--with-indicator > .sf-codex-folder-header:hover::after {
-	content: "";
-	position: absolute;
-	top: calc(50% + 4px);
-	bottom: 0;
-	left: calc(14px + var(--sf-codex-depth, 0) * var(--sf-codex-level-indent, 20px));
-	width: var(--sf-codex-folder-indicator-width, 2px);
-	transform: translateX(-50%);
-	background: var(--sf-codex-highlight-text);
-	pointer-events: none;
+	display: none;
 }
 
 .sf-codex-file {
@@ -3123,14 +3371,40 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 }
 
 
-/* Story Context's own tab-header icon doubles as the Focus Mode toggle (RecommendationView.ts) -
- * left-align it within its own tab's header box (flex-start is the browser default, but declared
- * explicitly so this stays correct even if Obsidian's own default ever changes). Scoped to this
- * one view's data-type only, so no other right-rail tab, left-sidebar tab, or editor tab is
- * affected; deliberately targets .workspace-tab-header-inner *scoped by data-type* rather than
- * that class bare, which would hit every sidebar tab in the workspace. */
-.mod-right-split .workspace-tab-header[data-type="storyforge-recommend-view"] .workspace-tab-header-inner {
-	justify-content: flex-start;
+/* Story Context tab = Focus Mode toggle. Obsidian (and some themes) grow a lone sidebar tab
+ * to the full header and center its inner, which is why margin-left: auto never reached the
+ * window edge — the icon sat in the middle of a stretched tab. Classes are applied in
+ * RecommendationView.decorateTabHeader(). :not(#storyforge-specificity-boost) matches the
+ * Dynamic Styling pattern so this outranks app.css / theme tab rules. */
+.workspace-tab-header-container.sf-context-focus-header:not(#storyforge-specificity-boost) {
+	display: flex;
+	justify-content: flex-end;
+}
+.workspace-tab-header-container.sf-context-focus-header .workspace-tab-header-container-inner:not(#storyforge-specificity-boost) {
+	display: flex;
+	justify-content: flex-end;
+	flex: 1 1 auto;
+	width: 100%;
+	max-width: none;
+	margin-inline: 0;
+}
+.workspace-tab-header.sf-context-focus-tab:not(#storyforge-specificity-boost) {
+	flex: 0 0 auto;
+	width: auto;
+	max-width: none;
+	margin-left: auto;
+	margin-right: 0;
+	margin-inline-start: auto;
+	margin-inline-end: 0;
+	order: 999;
+}
+.workspace-tab-header.sf-context-focus-tab .workspace-tab-header-inner:not(#storyforge-specificity-boost) {
+	display: flex;
+	justify-content: flex-end;
+	width: auto;
+}
+.workspace-tab-header.sf-context-focus-tab .workspace-tab-header-inner-title:not(#storyforge-specificity-boost) {
+	display: none;
 }
 
 /* Story Context (recommendations) view.
@@ -3180,6 +3454,52 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	margin-top: auto;
 	margin-bottom: 0;
 	justify-content: flex-end;
+}
+
+.sf-focus-wordcount-cluster,
+.sf-focus-chapter-icon,
+.sf-focus-wordcount {
+	display: flex;
+	align-items: center;
+	flex-shrink: 0;
+	color: var(--sf-recommend-focus-mode-icon-color, var(--text-muted));
+	pointer-events: none;
+	user-select: none;
+	cursor: default;
+}
+
+.sf-focus-wordcount-cluster {
+	gap: 3px;
+}
+
+.sf-focus-wordcount {
+	font-size: var(--font-ui-small);
+	font-variant-numeric: tabular-nums;
+	line-height: 1;
+	padding: 5px 6px 5px 0;
+}
+
+.sf-focus-chapter-icon {
+	padding: 5px 0 5px 6px;
+	font-size: calc(var(--font-ui-medium) * 1.4);
+}
+
+.sf-recommend-view__forge-members {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	overflow: hidden;
+	max-width: 0;
+	opacity: 0;
+	pointer-events: none;
+	flex-shrink: 0;
+	transition: max-width 200ms ease, opacity 160ms ease;
+}
+
+.sf-recommend-view__forge-members.is-expanded {
+	max-width: 20rem;
+	opacity: 1;
+	pointer-events: auto;
 }
 
 /* A family member's own icon (in either row's .sf-recommend-view__forge-icon) and Focus Mode's
@@ -3358,6 +3678,20 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 .sf-archive-embedded-tabs {
 	margin-left: 0;
 	margin-bottom: 10px;
+}
+
+.sf-archive-empty {
+	display: flex;
+	justify-content: center;
+	padding-top: 40px;
+	color: var(--text-faint);
+	opacity: 0.12;
+	pointer-events: none;
+	user-select: none;
+}
+.sf-archive-empty svg {
+	width: 72px;
+	height: 72px;
 }
 
 .sf-archive-view-tab {
@@ -3623,10 +3957,11 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	box-sizing: border-box;
 }
 
-/* Story Context Novel tab: synopsis sits flush above the chapter flags; the scroll pane's
- * own gutter lines start at its top, meeting the synopsis left border. */
+/* Story Context Novel tab: 4px gap between the synopsis and the chapter flags below.
+ * The gap itself is .sf-recommend-novel-thread-drop (the coloured lines keep running
+ * through it); the wrap no longer has a bottom margin of its own. */
 .sf-recommend-view .sf-recommend-novel-synopsis {
-	margin-bottom: 0;
+	margin-bottom: 4px;
 }
 
 /* Story Context Novel tab: synopsis follows the primary plot thread.
@@ -3645,6 +3980,10 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	overflow: hidden;
 }
 
+.sf-recommend-view .sf-recommend-novel-synopsis-wrap .sf-recommend-novel-synopsis {
+	margin-bottom: 0;
+}
+
 .sf-recommend-view .sf-recommend-novel-synopsis-wrap::after {
 	content: "";
 	position: absolute;
@@ -3654,6 +3993,18 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	width: 2px;
 	background-color: inherit;
 	pointer-events: none;
+}
+
+/* Continues every plot-thread line through the gap under the synopsis (sidebar) /
+ * cover row (wide overview). Secondary lines begin here — they do not wrap the box. */
+.sf-recommend-novel-thread-drop {
+	flex-shrink: 0;
+	height: 4px;
+	background-repeat: no-repeat;
+}
+
+.sf-novel-overview-view .sf-recommend-novel-thread-drop {
+	height: 12px;
 }
 
 .sf-recommend-novel-synopsis-thread-cap {
@@ -4132,6 +4483,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
  * their own blank add-new row (always present, even with zero children yet). Left border gives a
  * faint "hangs off the parent" guide without needing the Codex tree's own indicator-line machinery. */
 .sf-tag-registry-children {
+	--sf-tag-registry-nest-inset: 32px;
 	margin-left: 22px;
 	padding-left: 8px;
 	border-left: 2px solid var(--background-modifier-border);
@@ -4161,6 +4513,24 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 .sf-tag-registry-add-row .sf-modal-input {
 	flex: 1 1 auto;
 	min-width: 0;
+}
+
+/* Name fields fill the locked dialog; nested rows already sit in an indented box so
+ * flex:1 still stops at the same right edge as the parent. */
+.modal.sf-codex-types-modal .sf-modal-book-input {
+	flex: 1 1 auto;
+	width: auto;
+	min-width: 0;
+}
+
+.modal.sf-codex-types-modal .sf-icon-action {
+	width: 1.2em;
+	flex-shrink: 0;
+}
+
+.modal.sf-codex-types-modal .sf-icon-action-spacer {
+	pointer-events: none;
+	visibility: hidden;
 }
 
 /* Hover-coloured, not boxed — a plain colour change in place, same philosophy as .sf-icon-action.
@@ -4199,6 +4569,74 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	color: var(--text-error);
 }
 
+.sf-vault-tag-modal .sf-text-style-tab-body {
+	gap: 0;
+}
+
+.sf-vault-tag-modal .sf-tag-registry-list {
+	margin-bottom: 0;
+}
+
+.sf-vault-tag-header {
+	color: var(--text-muted);
+	cursor: default;
+	pointer-events: none;
+}
+
+.sf-vault-tag-header:hover {
+	background: transparent;
+}
+
+.sf-vault-tag-header .sf-drag-handle,
+.sf-vault-tag-header .sf-tag-registry-icon-btn {
+	color: var(--text-muted);
+	cursor: default;
+}
+
+.sf-vault-tag-name {
+	flex: 1 1 auto;
+	width: auto;
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+/* Trailing slot matches `.sf-icon-action` on the types modal so the `#name` field
+ * is the one that shrinks when this dialog shares that window's 430px width. */
+.sf-vault-tag-display {
+	flex: 0 0 1.2em;
+	width: 1.2em;
+	min-width: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+}
+
+.sf-vault-tag-display.is-disabled {
+	cursor: default;
+}
+
+.sf-vault-tag-display input {
+	margin: 0;
+	cursor: inherit;
+}
+
+.sf-vault-tag-display input:disabled:not(#storyforge-specificity-boost) {
+	cursor: default;
+}
+
+.sf-vault-tag-header-tick {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-muted);
+}
+
+.sf-vault-tag-header-tick svg {
+	width: 1em;
+	height: 1em;
+}
+
 /* IconPickerModal — icon-only grid over a fixed, programmer-curated catalog per TagListKind.
  * Sized on `.modal.sf-icon-picker-modal` (the actual floating dialog, modalEl) — sizing only the
  * contentEl class leaves the real dialog at Obsidian's much wider default and the grid floats
@@ -4217,6 +4655,8 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	display: grid;
 	grid-template-columns: repeat(8, 1fr);
 	gap: 4px;
+	max-height: min(70vh, 420px);
+	overflow-y: auto;
 }
 
 .sf-icon-picker-cell {
@@ -4433,21 +4873,24 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	padding-bottom: var(--sf-storytelling-divider-gap);
 }
 
+.storyforge-storytelling-view .sf-top-header {
+	border-bottom: none;
+}
+
 .storyforge-storytelling-view .sf-codex-tree {
 	padding-top: var(--sf-storytelling-divider-gap);
 	padding-left: var(--sf-storytelling-list-inset);
 }
 
-/* storyTelling Codex chrome (temporary): no header row, actions in a left rail matching
- * the navigator transport column, no folder triangles, guide line flush with the text margin. */
+/* storyTelling Codex: thicker divider under the navigator; rail sits in the tree body. */
 .storyforge-storytelling-view .sf-top-panel.sf-top-panel--above-codex {
 	border-bottom-width: 3px;
 }
 
-.storyforge-storytelling-view .sf-codex-side-actions {
+.sf-codex-side-actions {
 	position: absolute;
 	left: 8px;
-	top: var(--sf-storytelling-divider-gap);
+	top: 8px;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -4455,9 +4898,13 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	z-index: 2;
 }
 
-.storyforge-storytelling-view .sf-codex-side-actions .sf-codex-filter-btn,
-.storyforge-storytelling-view .sf-codex-side-actions .sf-codex-new-file-btn,
-.storyforge-storytelling-view .sf-codex-side-actions .sf-codex-new-folder-btn {
+.storyforge-storytelling-view .sf-codex-side-actions {
+	top: var(--sf-storytelling-divider-gap);
+}
+
+.sf-codex-side-actions .sf-codex-filter-btn,
+.sf-codex-side-actions .sf-codex-new-file-btn,
+.sf-codex-side-actions .sf-codex-new-folder-btn {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -4466,98 +4913,41 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	border-radius: 0;
 }
 
-.storyforge-storytelling-view .sf-codex-side-actions .sf-codex-filter-btn svg,
-.storyforge-storytelling-view .sf-codex-side-actions .sf-codex-new-file-btn svg,
-.storyforge-storytelling-view .sf-codex-side-actions .sf-codex-new-folder-btn svg {
+.sf-codex-side-actions .sf-codex-filter-btn svg,
+.sf-codex-side-actions .sf-codex-new-file-btn svg,
+.sf-codex-side-actions .sf-codex-new-folder-btn svg,
+.sf-codex-side-actions .sf-codex-vault-tag-btn svg {
 	width: 22.5px;
 	height: 22.5px;
 }
 
-.storyforge-storytelling-view .sf-codex-row-content--file {
-	padding-left: calc(var(--sf-codex-depth, 0) * var(--sf-codex-level-indent, 20px));
-}
-
-.storyforge-storytelling-view .sf-codex-folder-indicator {
-	top: 4px;
-	left: calc(6px + var(--sf-codex-depth, 0) * var(--sf-codex-level-indent, 20px));
-	transform: none;
-}
-
-/* Slight elbow where the underline meets the indent guide (expanded folders only). */
-.storyforge-storytelling-view .sf-codex-folder-indicator::before {
-	content: "";
-	position: absolute;
-	left: 0;
-	top: -6px;
-	width: 6px;
-	height: 6px;
-	box-sizing: border-box;
-	border-top: var(--sf-codex-folder-indicator-width, 2px) solid var(--sf-codex-folder-color);
-	border-left: var(--sf-codex-folder-indicator-width, 2px) solid var(--sf-codex-folder-color);
-	border-radius: 6px 0 0 0;
-	pointer-events: none;
-}
-
-.storyforge-storytelling-view .sf-codex-folder--with-indicator .sf-codex-folder-name-wrap::after {
-	left: 4px;
-	width: calc(100% - 4px);
-	border-radius: 0 calc(var(--sf-codex-folder-indicator-width, 2px) / 2) calc(var(--sf-codex-folder-indicator-width, 2px) / 2) 0;
-}
-
-.storyforge-storytelling-view .sf-codex-folder--with-indicator > .sf-codex-folder-header.sf-row-selected ~ .sf-codex-folder-children > .sf-codex-folder-indicator,
-.storyforge-storytelling-view .sf-codex-folder--with-indicator > .sf-codex-folder-header:hover ~ .sf-codex-folder-children > .sf-codex-folder-indicator {
-	background: var(--sf-codex-highlight-text);
-}
-
-.storyforge-storytelling-view .sf-codex-folder--with-indicator > .sf-codex-folder-header.sf-row-selected ~ .sf-codex-folder-children > .sf-codex-folder-indicator::before,
-.storyforge-storytelling-view .sf-codex-folder--with-indicator > .sf-codex-folder-header:hover ~ .sf-codex-folder-children > .sf-codex-folder-indicator::before {
-	border-color: var(--sf-codex-highlight-text);
-}
-
-/* Keep the nested-row fill starting just to the right of the 2px guide so the line isn't
- * covered by the row's own z-index: 2 background. */
-body:not(.sf-codex-indent-none) .storyforge-storytelling-view .sf-codex-folder-children .sf-codex-file,
-body:not(.sf-codex-indent-none) .storyforge-storytelling-view .sf-codex-folder-children .sf-codex-folder-header {
-	--sf-codex-highlight-trim: calc(6px + var(--sf-codex-folder-indicator-width, 2px) + (var(--sf-codex-depth, 1) - 1) * var(--sf-codex-level-indent, 20px));
-}
-
-.storyforge-storytelling-view .sf-codex-folder.sf-codex-folder--with-indicator > .sf-codex-folder-header.sf-row-selected::after,
-.storyforge-storytelling-view .sf-codex-folder.sf-codex-folder--with-indicator > .sf-codex-folder-header:hover::after {
-	display: none;
-}
-
-/* Text-width rounded rule along the bottom of the folder highlight — same 2px / rounded-cap
- * chrome as the indent guide, sitting on the highlight's lower edge. */
-.storyforge-storytelling-view .sf-codex-folder-header > .sf-codex-row-content {
-	overflow: visible;
-}
-
-.storyforge-storytelling-view .sf-codex-folder-name-wrap {
-	position: relative;
-	flex: 0 1 auto;
-	min-width: 0;
-	max-width: 100%;
-	align-self: stretch;
+.sf-codex-side-actions .sf-codex-vault-tags {
 	display: flex;
+	flex-direction: column;
 	align-items: center;
+	gap: 4px;
+	margin-top: 12px;
 }
 
-.storyforge-storytelling-view .sf-codex-folder-name-wrap::after {
-	content: "";
-	position: absolute;
-	left: 0;
-	width: 100%;
-	height: var(--sf-codex-folder-indicator-width, 2px);
-	bottom: -4px;
-	border-radius: calc(var(--sf-codex-folder-indicator-width, 2px) / 2);
-	background: var(--sf-codex-folder-color);
-	pointer-events: none;
-	z-index: 1;
+.sf-codex-side-actions .sf-codex-vault-tag-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 2px;
+	background: transparent;
+	border-radius: 0;
+	color: var(--text-muted);
+	cursor: pointer;
 }
 
-.storyforge-storytelling-view .sf-codex-folder-header.sf-row-selected .sf-codex-folder-name-wrap::after,
-.storyforge-storytelling-view .sf-codex-folder-header:hover .sf-codex-folder-name-wrap::after {
-	background: var(--sf-codex-highlight-text);
+.sf-codex-side-actions .sf-codex-vault-tag-btn.is-active,
+.sf-codex-side-actions .sf-codex-vault-tag-btn:hover {
+	color: var(--sf-codex-color);
+}
+
+/* Folder + type sit as a pair — drop the second icon's extra left margin so they only use the row gap. */
+.sf-codex-folder-toggle + .sf-codex-type-icon {
+	margin-left: 0;
 }
 
 /* Fixed, shared height for every slot — chapter row or placeholder — so the create tile's border
@@ -5156,9 +5546,9 @@ body:not(.sf-codex-indent-none) .storyforge-storytelling-view .sf-codex-folder-c
 }
 
 .sf-novel-overview-view .sf-recommend-scroll {
-	/* 12px matches .sf-recommend-novel-cover-row's margin and the plot cards' own
-	 * spacing — same breathing room the sidebar has between synopsis and flags. */
-	padding-top: 12px;
+	/* Gap between cover/synopsis and plot cards is .sf-recommend-novel-thread-drop
+	 * (the coloured lines keep running through it). */
+	padding-top: 0;
 	padding-bottom: 48px;
 }
 
@@ -5178,9 +5568,9 @@ body:not(.sf-codex-indent-none) .storyforge-storytelling-view .sf-codex-folder-c
 }
 
 /* Wide overview: 4px cap across cover + synopsis, 2px left strand beside the cover.
- * Overflow clips the outer top-left to 10px. A 10px thread square at the wrap's origin
- * fills only the inner L (visible in the cover's rounded cutout), so the line has no
- * square notch and no overlay on the image. */
+ * Outer top-left is the wrap's 10px clip. ::before fills that 10×10 so the crescent between
+ * the outer curve and the cover's 8×6 inner radius is thread colour (not a notch of page
+ * background). The cover is opaque and sits on top, so only that ring shows. */
 .sf-novel-overview-view .sf-recommend-novel-cover-thread {
 	display: flex;
 	flex-direction: column;
@@ -5188,10 +5578,17 @@ body:not(.sf-codex-indent-none) .storyforge-storytelling-view .sf-codex-folder-c
 	margin-bottom: 0;
 	border-radius: 10px 0 0 0;
 	overflow: hidden;
-	background-image: linear-gradient(var(--sf-cover-thread-color), var(--sf-cover-thread-color));
-	background-size: 10px 10px;
-	background-repeat: no-repeat;
-	background-position: 0 0;
+}
+
+.sf-novel-overview-view .sf-recommend-novel-cover-thread::before {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 10px;
+	height: 10px;
+	background-color: var(--sf-cover-thread-color);
+	pointer-events: none;
 }
 
 .sf-novel-overview-view .sf-recommend-novel-cover-thread::after {
@@ -5228,8 +5625,16 @@ body:not(.sf-codex-indent-none) .storyforge-storytelling-view .sf-codex-folder-c
 
 .sf-novel-overview-view .sf-recommend-novel-cover.sf-recommend-novel-cover--thread {
 	margin-left: 2px;
-	/* Inner L: 10px outer − 2px left / 4px top. Bottom-left square against the rail. */
+	position: relative;
+	z-index: 1;
+	/* Inner L: 10px outer − 2px left / 4px top. Other corners keep the cover's 4px. */
 	border-radius: 8px 4px 4px 0 / 6px 4px 4px 0;
+}
+
+/* Placeholder must be opaque or the 10×10 thread fill shows through as a box. */
+.sf-novel-overview-view .sf-recommend-novel-cover.sf-recommend-novel-cover--thread:not(.has-image) {
+	opacity: 1;
+	background: color-mix(in srgb, var(--text-normal) 8%, var(--background-primary) 92%);
 }
 
 .sf-novel-overview-view .sf-recommend-novel-text-col .sf-recommend-novel-synopsis {
@@ -5382,7 +5787,34 @@ body:not(.sf-codex-indent-none) .storyforge-storytelling-view .sf-codex-folder-c
 	margin: 0 0 10px;
 }
 
-.sf-recommend-chapter-card-actions .sf-recommend-icon-btn svg {
+.sf-recommend-chapter-wordcount {
+	display: flex;
+	align-items: center;
+	gap: 0;
+	margin-left: auto;
+	color: var(--text-muted);
+	pointer-events: none;
+	user-select: none;
+	cursor: default;
+}
+
+.sf-recommend-chapter-wordcount-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 2px;
+	color: inherit;
+}
+
+.sf-recommend-chapter-wordcount-value {
+	font-size: var(--font-ui-smaller);
+	line-height: 1;
+	font-variant-numeric: tabular-nums;
+	color: inherit;
+}
+
+.sf-recommend-chapter-card-actions .sf-recommend-icon-btn svg,
+.sf-recommend-chapter-wordcount-icon svg {
 	width: 22.5px;
 	height: 22.5px;
 }

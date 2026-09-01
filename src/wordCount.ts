@@ -30,6 +30,11 @@ export function countWords(raw: string): number {
 	return countWordsInLine(stripped);
 }
 
+/** Digit grouping for a displayed word count (e.g. 1234 → "1,234") — digits only, no unit word. */
+export function formatWordCount(n: number): string {
+	return Math.round(n).toLocaleString("en-US");
+}
+
 export function sumWordCounts(chapterContents: string[]): number {
 	return chapterContents.reduce((total, content) => total + countWords(content), 0);
 }

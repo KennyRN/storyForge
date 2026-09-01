@@ -1,22 +1,29 @@
 import { App, Modal, setIcon } from "obsidian";
-import { CODEX_ICON_CATALOG, TAG_ICON_CATALOG } from "../iconRegistry";
+import { CODEX_ICON_CATALOG, TAG_ICON_CATALOG, type IconCatalogEntry } from "../iconRegistry";
 import { type TagListKind } from "../tagRegistry";
 import { makeAccessibleActivatable } from "./a11y";
 
+export type IconPickerSource = TagListKind | readonly IconCatalogEntry[];
+
+function catalogFor(source: IconPickerSource): readonly IconCatalogEntry[] {
+	if (typeof source !== "string") return source;
+	return source === "codexTypes" ? CODEX_ICON_CATALOG : TAG_ICON_CATALOG;
+}
+
 /**
- * Icon-only grid of every icon in the fixed catalog for `list` (Codex types draw from
- * CODEX_ICON_CATALOG; chapter/novel tags share TAG_ICON_CATALOG, in the deliberate order defined
- * there). No header, no labels — the catalogs are small and visual enough to scan by shape alone;
- * each entry's `label` is still used for aria-label/title (hover tooltip) so it's available on
- * demand without cluttering the grid. These catalogs are programmer-curated only — there is no
- * end-user "add an icon" flow; growing one means adding an entry in src/iconRegistry.ts (plus a
- * matching custom icon in src/icons.ts). Clicking a cell picks that icon's alias and closes the
- * modal.
+ * Icon-only grid of every icon in the given catalog (Codex types draw from
+ * CODEX_ICON_CATALOG; chapter/novel tags share TAG_ICON_CATALOG; vault `#tag`s pass
+ * VAULT_TAG_ICON_CATALOG). No header, no labels — the catalogs are small and visual enough to
+ * scan by shape alone; each entry's `label` is still used for aria-label/title (hover tooltip)
+ * so it's available on demand without cluttering the grid. These catalogs are programmer-curated
+ * only — there is no end-user "add an icon" flow; growing one means adding an entry in
+ * src/iconRegistry.ts (plus a matching custom icon in src/icons.ts). Clicking a cell picks that
+ * icon's alias and closes the modal.
  */
 export class IconPickerModal extends Modal {
 	constructor(
 		app: App,
-		private list: TagListKind,
+		private source: IconPickerSource,
 		private onPick: (alias: string) => void | Promise<void>,
 	) {
 		super(app);
@@ -31,7 +38,7 @@ export class IconPickerModal extends Modal {
 		const { contentEl } = this;
 		contentEl.addClass("sf-icon-picker-modal");
 
-		const catalog = this.list === "codexTypes" ? CODEX_ICON_CATALOG : TAG_ICON_CATALOG;
+		const catalog = catalogFor(this.source);
 		const grid = contentEl.createDiv({ cls: "sf-icon-picker-grid" });
 		for (const entry of catalog) {
 			// Deliberately not role="button" — this is a hover-highlighted icon grid, not a set of

@@ -19,7 +19,9 @@ import {
 	ICON_BUILDING_B,
 	ICON_BUILDING_C,
 	ICON_CALENDAR,
+	ICON_CALENDAR_EVENT,
 	ICON_CALENDAR_PLAIN,
+	ICON_CALENDAR_WEEK,
 	ICON_CARDS,
 	ICON_CASTLE,
 	ICON_CHECK_CIRCLE,
@@ -59,6 +61,7 @@ import {
 	ICON_GALAXY_FILL,
 	ICON_GALAXY_OUTLINE,
 	ICON_GEARS,
+	ICON_HASHTAG_SQUARE_DUOTONE,
 	ICON_HEART_CIRCLE,
 	ICON_HEART_CIRCLE_FILL,
 	ICON_HEART_FILL,
@@ -145,6 +148,7 @@ import {
 	ICON_UNPLACED,
 	ICON_VERIFIED_CHECK,
 	ICON_VERIFIED_CHECK_FILL,
+	ICON_X,
 } from "./icons";
 
 /** One entry in a fixed, programmer-curated icon catalog. Not user-extensible — end users pick
@@ -279,6 +283,40 @@ export const TAG_ICON_CATALOG: IconCatalogEntry[] = [
 	{ alias: "lock", label: "Lock", iconId: ICON_LOCK },
 ];
 
+/** Tag-catalog aliases offered on vault `#tag`s in addition to every Codex type icon. `bookmark-fill`
+ * is already in CODEX_ICON_CATALOG — listed here so the picker spec stays explicit, then dropped
+ * when building VAULT_TAG_ICON_CATALOG so the grid never shows the same alias twice. */
+const VAULT_TAG_EXTRA_ALIASES: readonly string[] = [
+	"number-0",
+	"number-1",
+	"number-2",
+	"number-3",
+	"number-4",
+	"number-5",
+	"number-6",
+	"number-7",
+	"number-8",
+	"number-9",
+	"heart-fill",
+	"star-duotone",
+	"star-fill",
+	"bookmark-fill",
+	"flag-fill",
+	"warning-square-fill",
+];
+
+/** Icon choices for vault `#tag`s: the full Codex type catalog, then the status/marking extras
+ * from TAG_ICON_CATALOG that types don't already offer. Order is types-first, then extras in
+ * TAG_ICON_CATALOG's own order. */
+export const VAULT_TAG_ICON_CATALOG: IconCatalogEntry[] = [
+	...CODEX_ICON_CATALOG,
+	...TAG_ICON_CATALOG.filter(
+		(entry) =>
+			VAULT_TAG_EXTRA_ALIASES.includes(entry.alias) &&
+			!CODEX_ICON_CATALOG.some((codexEntry) => codexEntry.alias === entry.alias),
+	),
+];
+
 export interface IconRegistryEntry {
 	id: string;
 	label: string;
@@ -322,7 +360,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		source: "custom",
 		usedIn: ["archivePanel.ts — unarchive row button"],
 	},
-	{ id: ICON_CODEX, label: "Codex", source: "custom", usedIn: ["BottomPanel.ts — Codex panel header", "iconRegistry.ts — Codex icon catalog (\"earth\")"] },
+	{ id: ICON_CODEX, label: "Codex", source: "custom", usedIn: ["StoryForgeView.ts — layout tab row, leading icon on the \"Codex\" tab", "archivePanel.ts — Archive Codex-mode icon", "iconRegistry.ts — Codex icon catalog (\"earth\")"] },
 	{
 		id: ICON_SERIES,
 		label: "Series",
@@ -383,12 +421,31 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		label: "Stats dashboard",
 		source: "custom",
 		usedIn: [
-			"StatsPanel.ts — stats pane icon",
+			"StatsPanel.ts — stats pane icon (opens WordCountModal)",
+			"RecommendationView.ts — Story Context Chapter tab word-count chrome (display-only)",
 			"TopPanel.ts — series-pane hover icon between the settings cog and plot-threads (opens WordCountModal)",
 		],
 	},
 	{ id: ICON_EXCHANGE, label: "Cycle stats mode", source: "custom", usedIn: [] },
-	{ id: ICON_CALENDAR, label: "History", source: "custom", usedIn: ["StatsPanel.ts — history button", "iconRegistry.ts — Codex icon catalog (\"calendar-dotted\")"] },
+	{ id: ICON_CALENDAR, label: "History", source: "custom", usedIn: ["iconRegistry.ts — Codex icon catalog (\"calendar-dotted\")"] },
+	{
+		id: ICON_CALENDAR_EVENT,
+		label: "Calendar (event)",
+		source: "custom",
+		usedIn: [
+			"WordCountModal.ts — days heatmap label (display-only)",
+			"WordCountModal.ts — stats-pane mode picker (daily)",
+		],
+	},
+	{
+		id: ICON_CALENDAR_WEEK,
+		label: "Calendar (week)",
+		source: "custom",
+		usedIn: [
+			"WordCountModal.ts — weeks heatmap label (display-only)",
+			"WordCountModal.ts — stats-pane mode picker (weekly)",
+		],
+	},
 	{ id: ICON_TOOLS, label: "Tools panel", source: "custom", usedIn: ["ToolsPanel.ts — view tab icon"] },
 	{
 		id: ICON_FORGE,
@@ -451,7 +508,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		usedIn: ["RecommendationView.ts — clear selected dossier entity"],
 	},
 	{ id: ICON_FOLDER_PLUS, label: "New folder", source: "custom", usedIn: ["BottomPanel.ts — new Codex folder button"] },
-	{ id: ICON_FOLDER, label: "Folder", source: "custom", usedIn: ["BottomPanel.ts — plain Codex folder row icon"] },
+	{ id: ICON_FOLDER, label: "Folder", source: "custom", usedIn: ["BottomPanel.ts — Codex folder row icon (plain folders, and lore-folder expand)"] },
 	{
 		id: ICON_PERSON_FILL,
 		label: "Person",
@@ -504,6 +561,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		usedIn: [
 			"RecommendationView.ts — mark detail done",
 			"RecommendationView.ts — confirm grey attribution",
+			"VaultTagModal.ts — muted sample-row tick standing in for the display checkbox",
 		],
 	},
 	{
@@ -527,16 +585,16 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 			"SeriesModal.ts — types, tags, & threads tab hover icon that opens PlotThreadRegistryModal",
 		],
 	},
-	{ id: ICON_NUMBER_CIRCLE_0, label: "Number 0", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
-	{ id: ICON_NUMBER_CIRCLE_1, label: "Number 1", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
-	{ id: ICON_NUMBER_CIRCLE_2, label: "Number 2", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
-	{ id: ICON_NUMBER_CIRCLE_3, label: "Number 3", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
-	{ id: ICON_NUMBER_CIRCLE_4, label: "Number 4", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
-	{ id: ICON_NUMBER_CIRCLE_5, label: "Number 5", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
-	{ id: ICON_NUMBER_CIRCLE_6, label: "Number 6", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
-	{ id: ICON_NUMBER_CIRCLE_7, label: "Number 7", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
-	{ id: ICON_NUMBER_CIRCLE_8, label: "Number 8", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
-	{ id: ICON_NUMBER_CIRCLE_9, label: "Number 9", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
+	{ id: ICON_NUMBER_CIRCLE_0, label: "Number 0", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog", "iconRegistry.ts — vault tag icon catalog"] },
+	{ id: ICON_NUMBER_CIRCLE_1, label: "Number 1", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog", "iconRegistry.ts — vault tag icon catalog"] },
+	{ id: ICON_NUMBER_CIRCLE_2, label: "Number 2", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog", "iconRegistry.ts — vault tag icon catalog"] },
+	{ id: ICON_NUMBER_CIRCLE_3, label: "Number 3", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog", "iconRegistry.ts — vault tag icon catalog"] },
+	{ id: ICON_NUMBER_CIRCLE_4, label: "Number 4", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog", "iconRegistry.ts — vault tag icon catalog"] },
+	{ id: ICON_NUMBER_CIRCLE_5, label: "Number 5", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog", "iconRegistry.ts — vault tag icon catalog"] },
+	{ id: ICON_NUMBER_CIRCLE_6, label: "Number 6", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog", "iconRegistry.ts — vault tag icon catalog"] },
+	{ id: ICON_NUMBER_CIRCLE_7, label: "Number 7", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog", "iconRegistry.ts — vault tag icon catalog"] },
+	{ id: ICON_NUMBER_CIRCLE_8, label: "Number 8", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog", "iconRegistry.ts — vault tag icon catalog"] },
+	{ id: ICON_NUMBER_CIRCLE_9, label: "Number 9", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog", "iconRegistry.ts — vault tag icon catalog"] },
 	{
 		id: ICON_EYE_OUTLINE,
 		label: "Eye (outline)",
@@ -544,7 +602,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog (distinct from ICON_EYE's filled glyph, used for the \"View chapter\" action button)"],
 	},
 	{ id: ICON_EXCLAMATION_SQUARE, label: "Warning (square outline)", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
-	{ id: ICON_EXCLAMATION_SQUARE_FILL, label: "Warning (square filled)", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
+	{ id: ICON_EXCLAMATION_SQUARE_FILL, label: "Warning (square filled)", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog", "iconRegistry.ts — vault tag icon catalog"] },
 	{ id: ICON_INFO_CIRCLE, label: "Info (circle)", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
 	{
 		id: ICON_EDIT_PEN,
@@ -594,7 +652,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		usedIn: [
 			"SeriesModal.ts — types, tags, & threads tab hover icon that opens Codex types",
 			"TopPanel.ts — series-pane hover icon that opens Codex types",
-			"BottomPanel.ts — Codex-pane hover icon that opens Codex types",
+			"BottomPanel.ts — full-pane Codex tab hover icon that opens Codex types",
 		],
 	},
 	{
@@ -604,6 +662,15 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		usedIn: [
 			"SeriesModal.ts — types, tags, & threads tab hover icon that opens chapter and novel tags",
 			"TopPanel.ts — series-pane hover icon that opens chapter and novel tags",
+		],
+	},
+	{
+		id: ICON_HASHTAG_SQUARE_DUOTONE,
+		label: "Hashtag square (duotone)",
+		source: "custom",
+		usedIn: [
+			"BottomPanel.ts — full-pane Codex tab hover icon that opens the vault #tag manager",
+			"SeriesModal.ts — types, tags, & threads tab hover icon that opens Codex tags",
 		],
 	},
 	{
@@ -644,6 +711,8 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 			"RecommendationView.ts — Story Context's Novel tab icon",
 			"StoryForgeView.ts — layout tab row, leading icon on the \"Novel\" tab",
 			"NovelOverviewView.ts — main-pane Novel overview page's own tab icon",
+			"WordCountModal.ts — stats-pane mode picker (novel)",
+			"archivePanel.ts — Archive Novel-mode icon",
 		],
 	},
 	{
@@ -651,8 +720,9 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		label: "Book open (filled)",
 		source: "custom",
 		usedIn: [
-			"RecommendationView.ts — Story Context's Chapter tab icon",
+			"RecommendationView.ts — Story Context's Chapter tab icon and Focus Mode word-count chrome",
 			"StoryForgeView.ts — layout tab row, leading icon on the \"Chapter\" tab",
+			"WordCountModal.ts — stats-pane mode picker (chapter)",
 		],
 	},
 	{
@@ -671,7 +741,13 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		id: ICON_ARCHIVE_FILLED,
 		label: "Archive (filled)",
 		source: "custom",
-		usedIn: ["RecommendationView.ts — Story Context's Archive tab icon and embedded archive-body header"],
+		usedIn: ["RecommendationView.ts — Story Context's Archive tab icon"],
+	},
+	{
+		id: ICON_X,
+		label: "X",
+		source: "custom",
+		usedIn: ["archivePanel.ts — empty Archive list glyph"],
 	},
 	{
 		id: ICON_TAG,
@@ -680,6 +756,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		usedIn: [
 			"tagRegistry.ts — resolveIconAlias's fallback for a stale/unknown icon alias",
 			"TagRegistryModal.ts / TagPickerModal.ts — \"+ New tag\" row's placeholder icon before one is picked",
+			"VaultTagModal.ts — sample-row placeholder icon and the glyph before a vault #tag has one picked",
 		],
 	},
 	{ id: ICON_SHOP, label: "Shop", source: "custom", usedIn: ["iconRegistry.ts — Codex icon catalog"] },
@@ -709,7 +786,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		id: ICON_BOOKMARK_FILL,
 		label: "Bookmark (filled)",
 		source: "custom",
-		usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog", "iconRegistry.ts — Codex icon catalog"],
+		usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog", "iconRegistry.ts — Codex icon catalog", "iconRegistry.ts — vault tag icon catalog"],
 	},
 	{ id: ICON_TRUCK, label: "Truck", source: "custom", usedIn: ["iconRegistry.ts — Codex icon catalog"] },
 	{ id: ICON_ROCKETSHIP, label: "Rocketship", source: "custom", usedIn: ["iconRegistry.ts — Codex icon catalog"] },
@@ -803,15 +880,15 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		source: "custom",
 		usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog (replaced the stock \"flag\" Lucide icon formerly in that catalog)"],
 	},
-	{ id: ICON_FLAG_FILL, label: "Flag (filled)", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
+	{ id: ICON_FLAG_FILL, label: "Flag (filled)", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog", "iconRegistry.ts — vault tag icon catalog"] },
 	{
 		id: ICON_STAR_OUTLINE,
 		label: "Star (outline)",
 		source: "custom",
 		usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog (replaced the stock \"star\" Lucide icon formerly in that catalog)"],
 	},
-	{ id: ICON_STAR_FILL, label: "Star (filled)", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
-	{ id: ICON_STAR_DUOTONE, label: "Star (duotone)", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
+	{ id: ICON_STAR_FILL, label: "Star (filled)", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog", "iconRegistry.ts — vault tag icon catalog"] },
+	{ id: ICON_STAR_DUOTONE, label: "Star (duotone)", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog", "iconRegistry.ts — vault tag icon catalog"] },
 	{
 		id: ICON_LOCK,
 		label: "Lock",
@@ -821,7 +898,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 	{ id: ICON_HEART_CIRCLE, label: "Heart circle (outline)", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
 	{ id: ICON_HEART_CIRCLE_FILL, label: "Heart circle (filled)", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
 	{ id: ICON_HEART_OUTLINE, label: "Heart (outline)", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
-	{ id: ICON_HEART_FILL, label: "Heart (filled)", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
+	{ id: ICON_HEART_FILL, label: "Heart (filled)", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog", "iconRegistry.ts — vault tag icon catalog"] },
 	{ id: ICON_MESSAGE, label: "Message", source: "custom", usedIn: ["iconRegistry.ts — chapter/novel tag icon catalog"] },
 
 	// Stock (Lucide icons bundled with Obsidian, referenced by name)
@@ -833,6 +910,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 			"SeriesModal.ts — book row drag handle",
 			"TopPanel.ts — row drag handle",
 			"TagRegistryModal.ts / TagPickerModal.ts — tag row drag handle",
+			"VaultTagModal.ts — vault #tag row drag handle",
 			// BottomPanel.ts no longer has one — the Codex tree's whole row is now the drag target
 			// (dragReorderTree.ts), not a grip handle. See that file's revertable-feature-test note.
 		],

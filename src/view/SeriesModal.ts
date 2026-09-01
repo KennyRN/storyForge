@@ -14,6 +14,7 @@ import {
 	ICON_FLOPPY_DUOTONE,
 	ICON_PLOT_THREADS,
 	ICON_SETTINGS_ALT,
+	ICON_HASHTAG_SQUARE_DUOTONE,
 	ICON_TAG_DUOTONE,
 	ICON_TEXT_INPUT_DUOTONE,
 } from "../icons";
@@ -35,6 +36,7 @@ import { ConvertToSeriesModal } from "./ConvertToSeriesModal";
 import { ProtectionsController } from "./protectionsController";
 import { formatCompanionState } from "../formatCompanionActive";
 import { TagRegistryModal } from "./TagRegistryModal";
+import { VaultTagModal } from "./VaultTagModal";
 import { PlotThreadRegistryModal } from "./PlotThreadRegistryModal";
 import { TitleForgeSettingsModal } from "../titleforge/view/TitleForgeSettingsModal";
 import { TypesTagsExportModal } from "./TypesTagsExportModal";
@@ -251,9 +253,9 @@ export class SeriesModal extends Modal {
 		}
 	}
 
-	/** Codex types, chapter/novel tags, plot threads, and cycling guide — each row its own
-	 * boundary box with a hover icon (no Open buttons, no group headings). titleForge lives on
-	 * the import & export tab now — see renderImportExportTab(). */
+	/** Codex types + vault `#tag`s share one box; chapter/novel tags, plot threads, and cycling
+	 * guide each get their own. Hover icon, no Open buttons, no group headings. titleForge lives
+	 * on the import & export tab now — see renderImportExportTab(). */
 	private renderTypesAndTagsTab(contentEl: HTMLElement): void {
 		const plugin = this.plugin;
 
@@ -263,6 +265,16 @@ export class SeriesModal extends Modal {
 			this.renderHoverIcon(setting, ICON_TAG_DUOTONE, "Open Codex types", () =>
 				new TagRegistryModal(this.app, () => this.render(), "codexTypes").open(),
 			);
+		});
+		typesGroup.addSetting((setting) => {
+			setting.setName("codex tags").setDesc("create #tag filtering for codex elements");
+			this.renderHoverIcon(setting, ICON_HASHTAG_SQUARE_DUOTONE, "open codex tags", () => {
+				try {
+					new VaultTagModal(this.app, () => plugin.refreshStoryForgeViews()).open();
+				} catch (err) {
+					new Notice(`storyForge: could not open vault tags — ${(err as Error).message}`);
+				}
+			});
 		});
 
 		const tagsGroup = new SettingGroup(contentEl);

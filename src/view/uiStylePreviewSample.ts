@@ -10,22 +10,23 @@ const ICON_PLUS_SQUARE = "sf-plus-square";
 const ICON_MINUS_SQUARE = "sf-minus-square";
 const ICON_CHECK_SQUARE = "sf-check-square";
 const ICON_MULTIPLY_SQUARE = "sf-multiply-square";
-const ICON_CODEX = "sf-earth-fill";
 const ICON_FILTER_LIST = "sf-filter-list";
 const ICON_FOLDER_PLUS = "sf-folder-plus";
+const ICON_FOLDER = "sf-folder-fill";
 const ICON_TRANSPORT_TO_START = "sf-transport-to-start";
 const ICON_TRANSPORT_PREVIOUS = "sf-transport-previous";
 const ICON_TRANSPORT_NEXT = "sf-transport-next";
 const ICON_TRANSPORT_TO_END = "sf-transport-to-end";
 const ICON_CONTINUOUS_MODE = "sf-continuous-mode";
 const ICON_DASHBOARD_CHART = "sf-dashboard-chart";
-const ICON_CALENDAR = "sf-calendar-2";
 const ICON_PERSON = "sf-person-fill";
 const ICON_MEEPLE = "nameforge-meeple";
 const ICON_MAP_PIN = "sf-map-pin";
 const ICON_ARCHIVE = "sf-archive-filled";
 const ICON_FORGE = "sf-hammer-anvil";
 const ICON_BOOK_DUOTONE = "sf-book-duotone";
+const ICON_CODEX = "sf-earth-fill";
+const ICON_X = "sf-x";
 const ICON_BOOK_OPEN_FILLED = "sf-book-open-filled";
 const ICON_CLIPBOARD_LIST_DUOTONE = "sf-clipboard-list-duotone";
 const ICON_NOTEBOOK_DUOTONE = "sf-notebook-duotone";
@@ -43,30 +44,27 @@ function listRow(list: HTMLElement, title: string, selected = false, subtitle?: 
 	return row;
 }
 
-/** Shared by both the storyLibrary and storyTelling mocks — same Codex tree either way (Codex chrome is one shared, non-panel-specific tab of its own). storyTelling omits the Codex title/globe. */
-function mountCodexTreeSample(bottom: HTMLElement, hideCodexTitle = false): void {
-	if (hideCodexTitle) {
-		const rail = bottom.createDiv({ cls: "sf-codex-side-actions" });
-		setIcon(rail.createSpan({ cls: "sf-codex-new-folder-btn", attr: { "aria-label": "New folder" } }), ICON_FOLDER_PLUS);
-		setIcon(rail.createSpan({ cls: "sf-codex-new-file-btn", attr: { "aria-label": "New file" } }), ICON_PLUS_SQUARE);
-		setIcon(rail.createSpan({ cls: "sf-codex-filter-btn", attr: { "aria-label": "Filter by type" } }), ICON_FILTER_LIST);
-	} else {
-		const bottomHeader = bottom.createDiv({ cls: "sf-bottom-header" });
-		setIcon(bottomHeader.createSpan({ cls: "sf-icon" }), ICON_CODEX);
-		bottomHeader.createSpan({ cls: "sf-header-codex", text: "Codex" });
-		setIcon(bottomHeader.createSpan({ cls: "sf-codex-filter-btn", attr: { "aria-label": "Filter by type" } }), ICON_FILTER_LIST);
-		setIcon(bottomHeader.createSpan({ cls: "sf-codex-new-file-btn", attr: { "aria-label": "New file" } }), ICON_PLUS_SQUARE);
-		setIcon(bottomHeader.createSpan({ cls: "sf-codex-new-folder-btn", attr: { "aria-label": "New folder" } }), ICON_FOLDER_PLUS);
-	}
+/** Shared by both the storyLibrary Chapter-layout mock and the storyTelling mock. No Codex
+ * title/globe — the pane divider is the only chrome between library/navigator and the tree.
+ * Filter / new-file / new-folder (and vault-tag filters) sit in a left rail. The types/tags
+ * corner belongs to the full-pane Codex tab, which this preview does not mock. */
+function mountCodexTreeSample(bottom: HTMLElement): void {
+	const body = bottom.createDiv({ cls: "sf-codex-body" });
+	const rail = body.createDiv({ cls: "sf-codex-side-actions" });
+	setIcon(rail.createSpan({ cls: "sf-codex-new-folder-btn", attr: { "aria-label": "New folder" } }), ICON_FOLDER_PLUS);
+	setIcon(rail.createSpan({ cls: "sf-codex-new-file-btn", attr: { "aria-label": "New file" } }), ICON_PLUS_SQUARE);
+	setIcon(rail.createSpan({ cls: "sf-codex-filter-btn", attr: { "aria-label": "Filter by type" } }), ICON_FILTER_LIST);
+	const vaultTags = rail.createDiv({ cls: "sf-codex-vault-tags" });
+	setIcon(vaultTags.createSpan({ cls: "sf-codex-vault-tag-btn is-active", attr: { "aria-label": "Filter by #hero" } }), ICON_PERSON);
+	setIcon(vaultTags.createSpan({ cls: "sf-codex-vault-tag-btn", attr: { "aria-label": "Filter by #place" } }), ICON_MAP_PIN);
 
-	const tree = bottom.createDiv({ cls: "sf-codex-tree" });
+	const tree = body.createDiv({ cls: "sf-codex-tree" });
 	const folder = tree.createDiv({ cls: "sf-codex-folder" });
 	folder.setCssProps({ "--sf-codex-depth": "0" });
 	const folderHeader = folder.createDiv({ cls: "sf-codex-folder-header sf-codex-lore-folder sf-row-selected" });
 	const folderContent = folderHeader.createDiv({ cls: "sf-codex-row-content" });
-	if (!hideCodexTitle) folderContent.createSpan({ cls: "sf-codex-chevron" });
-	const nameHost = hideCodexTitle ? folderContent.createSpan({ cls: "sf-codex-folder-name-wrap" }) : folderContent;
-	nameHost.createSpan({ cls: "sf-codex-folder-name sf-styled-heading", text: "Magna Aliqua" });
+	folderContent.createSpan({ cls: "sf-codex-folder-name sf-styled-heading", text: "Magna Aliqua" });
+	setIcon(folderContent.createSpan({ cls: "sf-icon sf-codex-type-icon sf-codex-folder-toggle" }), ICON_FOLDER);
 	setIcon(folderContent.createSpan({ cls: "sf-icon sf-codex-type-icon" }), ICON_PERSON);
 
 	folder.addClass("sf-codex-folder--with-indicator");
@@ -160,7 +158,7 @@ export function mountStorytellingPreviewSample(container: HTMLElement): void {
 	const body = top.createDiv({ cls: "sf-top-body" });
 	mountNavigatorSample(body);
 
-	mountCodexTreeSample(view.createDiv({ cls: "sf-bottom-panel" }), true);
+	mountCodexTreeSample(view.createDiv({ cls: "sf-bottom-panel" }));
 	mountStatsSample(view);
 }
 
@@ -206,9 +204,8 @@ function mountNavigatorSample(body: HTMLElement): void {
 function mountStatsSample(container: HTMLElement): void {
 	const stats = container.createDiv({ cls: "sf-stats-panel" });
 	const line = stats.createDiv({ cls: "sf-stats-line" });
-	setIcon(line.createSpan({ cls: "sf-icon sf-stats-chart", attr: { "aria-label": "stats" } }), ICON_DASHBOARD_CHART);
-	line.createSpan({ cls: "sf-stats-value", text: "daily wordcount: 312" });
-	setIcon(line.createSpan({ cls: "sf-icon sf-stats-calendar", attr: { "aria-label": "wordcount history" } }), ICON_CALENDAR);
+	setIcon(line.createSpan({ cls: "sf-icon sf-stats-chart sf-stats-chart--button", attr: { "aria-label": "wordcount history" } }), ICON_DASHBOARD_CHART);
+	line.createSpan({ cls: "sf-stats-value", text: "daily: 312" });
 }
 
 /** One Story Context tab's worth of representative body content, keyed by the same ids used in `mountRightSidebarPreviewSample`'s clickable tab row. */
@@ -400,6 +397,9 @@ function mountRecommendChapterCard(body: HTMLElement, mainThread: PreviewMainThr
 	setIcon(actions.createSpan({ cls: "sf-recommend-icon-btn" }), ICON_LOCATION_TARGET_SQUARE);
 	setIcon(actions.createSpan({ cls: "sf-recommend-icon-btn" }), ICON_REFRESH_SQUARE);
 	setIcon(actions.createSpan({ cls: "sf-recommend-icon-btn" }), ICON_ADD_SQUARE);
+	const wordcount = actions.createDiv({ cls: "sf-recommend-chapter-wordcount" });
+	setIcon(wordcount.createSpan({ cls: "sf-icon sf-recommend-chapter-wordcount-icon" }), ICON_DASHBOARD_CHART);
+	wordcount.createSpan({ cls: "sf-recommend-chapter-wordcount-value", text: "1,234" });
 
 	const unknown = body.createDiv({
 		cls: "sf-recommend-plot-block sf-recommend-plot-block--plain sf-recommend-unknown-card",
@@ -472,6 +472,9 @@ export function mountRightSidebarPreviewSample(
 	const recommend = rail.createDiv({ cls: "sf-recommend-view" });
 	const recTabs = recommend.createDiv({ cls: "sf-recommend-tabs" });
 	const forgeRow = recommend.createDiv({ cls: "sf-recommend-view__forge-row sf-settings-hidden" });
+	const archiveModeRow = recommend.createDiv({ cls: "sf-recommend-view__forge-row sf-settings-hidden" });
+	setIcon(archiveModeRow.createSpan({ cls: "sf-recommend-view__forge-icon is-active", attr: { "aria-label": "Codex" } }), ICON_CODEX);
+	setIcon(archiveModeRow.createSpan({ cls: "sf-recommend-view__forge-icon", attr: { "aria-label": "Novel" } }), ICON_BOOK_DUOTONE);
 	const recBody = recommend.createDiv({ cls: "sf-recommend-body" });
 	const archive = recommend.createDiv({ cls: "sf-archive-embedded sf-settings-hidden" });
 	const focusRow = recommend.createDiv({
@@ -480,6 +483,11 @@ export function mountRightSidebarPreviewSample(
 
 	const member = forgeRow.createSpan({ cls: "sf-recommend-view__forge-icon is-active" });
 	setIcon(member, ICON_MEEPLE);
+	const focusCount = focusRow.createDiv({ cls: "sf-focus-wordcount-cluster" });
+	setIcon(focusCount.createSpan({ cls: "sf-icon sf-focus-chapter-icon" }), ICON_BOOK_OPEN_FILLED);
+	focusCount.createSpan({ cls: "sf-focus-wordcount", text: "1,234" });
+	const focusMembers = focusRow.createDiv({ cls: "sf-recommend-view__forge-members" });
+	setIcon(focusMembers.createSpan({ cls: "sf-recommend-view__forge-icon is-active" }), ICON_MEEPLE);
 	const focusIcon = focusRow.createSpan({
 		cls: "sf-recommend-view__forge-family",
 		attr: { "aria-label": "Focus mode icon" },
@@ -494,7 +502,9 @@ export function mountRightSidebarPreviewSample(
 		archiveBtn.removeClass("is-active");
 		forgeBtn.removeClass("is-active");
 		forgeRow.addClass("sf-settings-hidden");
+		archiveModeRow.addClass("sf-settings-hidden");
 		focusRow.addClass("sf-settings-hidden");
+		focusMembers.removeClass("is-expanded");
 		recBody.toggleClass("sf-settings-hidden", false);
 		archive.addClass("sf-settings-hidden");
 		recBody.empty();
@@ -508,7 +518,9 @@ export function mountRightSidebarPreviewSample(
 		forgeBtn.removeClass("is-active");
 		forgeRow.addClass("sf-settings-hidden");
 		focusRow.addClass("sf-settings-hidden");
+		focusMembers.removeClass("is-expanded");
 		archiveBtn.addClass("is-active");
+		archiveModeRow.removeClass("sf-settings-hidden");
 		recBody.addClass("sf-settings-hidden");
 		archive.removeClass("sf-settings-hidden");
 	};
@@ -517,7 +529,9 @@ export function mountRightSidebarPreviewSample(
 		archiveBtn.removeClass("is-active");
 		forgeBtn.addClass("is-active");
 		forgeRow.removeClass("sf-settings-hidden");
+		archiveModeRow.addClass("sf-settings-hidden");
 		focusRow.removeClass("sf-settings-hidden");
+		focusMembers.addClass("is-expanded");
 		recBody.addClass("sf-settings-hidden");
 		archive.addClass("sf-settings-hidden");
 	};
@@ -541,22 +555,15 @@ export function mountRightSidebarPreviewSample(
 	setIcon(archiveBtn, ICON_ARCHIVE);
 	archiveBtn.addEventListener("click", () => showArchiveTab());
 
-	const archFixed = archive.createDiv({ cls: "sf-recommend-fixed" });
-	const archHeader = archFixed.createDiv({ cls: "sf-archive-embedded-header" });
-	archHeader.createSpan({ cls: "sf-archive-view-title", text: "Archive" });
-	const archTabs = archFixed.createDiv({ cls: "sf-archive-view-tabs sf-archive-embedded-tabs" });
-	archTabs.createSpan({ cls: "sf-archive-view-tab is-active", text: "Codex" });
-	archTabs.createSpan({ cls: "sf-archive-view-tab", text: "Novel" });
-	const archList = archive.createDiv({ cls: "sf-recommend-scroll" }).createDiv({ cls: "sf-archive-list" });
-	listRow(archList, "Old Draft — Book I", true);
-	listRow(archList, "Cut scenes");
-	listRow(archList, "Research scrap");
+	const archEmpty = archive.createDiv({ cls: "sf-recommend-scroll" }).createDiv({ cls: "sf-archive-empty" });
+	setIcon(archEmpty, ICON_X);
 
 	const showCustomBody = (mount: (el: HTMLElement) => void) => {
 		for (const btn of Object.values(tabButtons)) btn?.removeClass("is-active");
 		archiveBtn.removeClass("is-active");
 		forgeBtn.removeClass("is-active");
 		forgeRow.addClass("sf-settings-hidden");
+		archiveModeRow.addClass("sf-settings-hidden");
 		focusRow.addClass("sf-settings-hidden");
 		archive.addClass("sf-settings-hidden");
 		recBody.toggleClass("sf-settings-hidden", false);

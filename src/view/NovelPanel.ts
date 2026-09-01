@@ -61,8 +61,9 @@ export interface NovelPanelOptions {
 	 * top, title/subtitle beneath it, synopsis below that, then the plot-thread cards.
 	 * "wide" is the storyLibrary panel's Novel-overview page (NovelOverviewView.ts) — a larger,
 	 * left-aligned cover with no title/subtitle, and synopsis and Default PoV beside the cover
-	 * instead of under it. The primary plot thread runs up the cover's left and along the top
-	 * of that row. Both hosts share coloured plot cards, the colour-line gutter, collapse
+		 * instead of under it. The primary plot thread runs up the cover's left and along the top
+		 * of that row; further threads start at the bottom of that row and run down to the right of
+		 * the primary. Both hosts share coloured plot cards, the colour-line gutter, collapse
 	 * chevrons, and coloured chapter titles; only "wide" opens ChapterTitleModal from a title click. */
 	layout?: "sidebar" | "wide";
 }
@@ -197,6 +198,10 @@ export function renderNovelPanel(app: App, container: HTMLElement, options: Nove
 		});
 		wrap.style.setProperty("--sf-cover-thread-color", lineColors[0]);
 		cover.addClass("sf-recommend-novel-cover--thread");
+	}
+	if (gutter) {
+		const drop = body.createDiv({ cls: "sf-recommend-novel-thread-drop" });
+		drop.setCssStyles(buildGutterLineBackground(lineColors, gutter.lineOffsets));
 	}
 	const scroll = body.createDiv({ cls: "sf-recommend-scroll" });
 	void renderNovelPlot(app, scroll, bookFolderName, options, wide, plotLines);

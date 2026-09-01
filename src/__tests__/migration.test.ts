@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { type App } from "obsidian";
 import { makeTFile, makeTFolder } from "./obsidianStub";
-import { migrateStructuralLayout, migrateTitleforgeLocation } from "../migration";
+import { migrateStructuralLayout, migrateTitleforgeLocation, migrateRecommendFolderToStoryDetails } from "../migration";
 import { LIBRARY_ROOT, BACKSTAGE_ROOT, TITLEFORGE_BACKSTAGE_ROOT, bookFilePath, seriesFilePath } from "../paths";
 
 /**
@@ -354,5 +354,37 @@ describe("migrateTitleforgeLocation", () => {
 
 		expect(kinds.get(`${BACKSTAGE_ROOT}/titleforge`)).toBe("folder");
 		expect(content.get(`${TITLEFORGE_BACKSTAGE_ROOT}/settings.json`)).toBe("current");
+	});
+});
+
+describe("migrateRecommendFolderToStoryDetails", () => {
+	it("renames each book's recommend folder to story-details", async () => {
+		const { app, kinds, content, seedFolder, seedFile } = makeFakeVaultApp();
+		seedFolder(BACKSTAGE_ROOT);
+		seedFolder(`${BACKSTAGE_ROOT}/aaa`);
+		seedFolder(`${BACKSTAGE_ROOT}/aaa/recommend`);
+		seedFile(`${BACKSTAGE_ROOT}/aaa/recommend/attribution.md`, "cache");
+
+		await migrateRecommendFolderToStoryDetails(app);
+
+		expect(kinds.has(`${BACKSTAGE_ROOT}/aaa/recommend`)).toBe(false);
+		expect(kinds.get(`${BACKSTAGE_ROOT}/aaa/story-details`)).toBe("folder");
+		expect(content.get(`${BACKSTAGE_ROOT}/aaa/story-details/attribution.md`)).toBe("cache");
+	});
+
+	it("merges into an already-present story-details folder", async () => {
+		const { app, kinds, content, seedFolder, seedFile } = makeFakeVaultApp();
+		seedFolder(BACKSTAGE_ROOT);
+		seedFolder(`${BACKSTAGE_ROOT}/aaa`);
+		seedFolder(`${BACKSTAGE_ROOT}/aaa/recommend`);
+		seedFile(`${BACKSTAGE_ROOT}/aaa/recommend/old.md`, "legacy");
+		seedFolder(`${BACKSTAGE_ROOT}/aaa/story-details`);
+		seedFile(`${BACKSTAGE_ROOT}/aaa/story-details/new.md`, "current");
+
+		await migrateRecommendFolderToStoryDetails(app);
+
+		expect(kinds.has(`${BACKSTAGE_ROOT}/aaa/recommend`)).toBe(false);
+		expect(content.get(`${BACKSTAGE_ROOT}/aaa/story-details/old.md`)).toBe("legacy");
+		expect(content.get(`${BACKSTAGE_ROOT}/aaa/story-details/new.md`)).toBe("current");
 	});
 });

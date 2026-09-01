@@ -35,7 +35,7 @@ describe("assertBackstagePath — adversarial", () => {
 		`${BACKSTAGE_ROOT}/settings-presets/x.json`,
 		`${BACKSTAGE_ROOT}/TECa/cover.png`,
 		`${BACKSTAGE_ROOT}/TECa/chapters/ch1.md`,
-		`${BACKSTAGE_ROOT}/TECa/recommend/ch1.md`,
+		`${BACKSTAGE_ROOT}/TECa/story-details/ch1.md`,
 		// titleForge's own sibling region under the shared _backstage/ parent.
 		TITLEFORGE_BACKSTAGE_ROOT,
 		`${TITLEFORGE_BACKSTAGE_ROOT}/settings.json`,

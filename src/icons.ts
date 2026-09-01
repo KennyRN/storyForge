@@ -685,6 +685,11 @@ const COPY_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2
 export const ICON_CLOSE_SQUARE_DUOTONE = "sf-close-square-duotone";
 const CLOSE_SQUARE_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M12 22c-4.714 0-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12s0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464C22 4.93 22 7.286 22 12s0 7.071-1.465 8.535C19.072 22 16.714 22 12 22" opacity=".5"/><path d="M8.97 8.97a.75.75 0 0 1 1.06 0L12 10.94l1.97-1.97a.75.75 0 1 1 1.06 1.06L13.06 12l1.97 1.97a.75.75 0 1 1-1.06 1.06L12 13.06l-1.97 1.97a.75.75 0 0 1-1.06-1.06L10.94 12l-1.97-1.97a.75.75 0 0 1 0-1.06"/></g></svg>`;
 
+/** "fluent-emoji-high-contrast--cross-mark" — Archive's empty-list glyph. Thick X with
+ * rounded caps; colour follows currentColor so the empty state can mute it. */
+export const ICON_X = "sf-x";
+const X_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M0 0h32v32H0z" fill="none" /><path fill="currentColor" d="M24.879 2.879A3 3 0 1 1 29.12 7.12l-8.79 8.79a.125.125 0 0 0 0 .177l8.79 8.79a3 3 0 1 1-4.242 4.243l-8.79-8.79a.125.125 0 0 0-.177 0l-8.79 8.79a3 3 0 1 1-4.243-4.242l8.79-8.79a.125.125 0 0 0 0-.177l-8.79-8.79A3 3 0 0 1 7.12 2.878l8.79 8.79a.125.125 0 0 0 .177 0z"/></svg>`;
+
 /** User-provided (reicon:square-share-duotone) — rounded square at half opacity, share arrow at full.
  * Used for TypesTagsExportModal.ts's export-to-`_export/` hover icon. */
 export const ICON_SHARE_SQUARE_DUOTONE = "sf-share-square-duotone";
@@ -706,6 +711,21 @@ const TAG_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24
  * modal. */
 export const ICON_BOOKMARK_DUOTONE = "sf-bookmark-duotone";
 const BOOKMARK_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M21 11.098v4.993c0 3.096 0 4.645-.734 5.321c-.35.323-.792.526-1.263.58c-.987.113-2.14-.907-4.445-2.946c-1.02-.901-1.529-1.352-2.118-1.47a2.2 2.2 0 0 0-.88 0c-.59.118-1.099.569-2.118 1.47c-2.305 2.039-3.458 3.059-4.445 2.945a2.24 2.24 0 0 1-1.263-.579C3 20.736 3 19.188 3 16.091v-4.994C3 6.81 3 4.666 4.318 3.333S7.758 2 12 2s6.364 0 7.682 1.332S21 6.81 21 11.098" opacity=".5" /><path d="M9 5.25a.75.75 0 0 0 0 1.5h6a.75.75 0 0 0 0-1.5z" /></g></svg>`;
+
+/** User-provided (reicon--hashtag-square-duotone) — rounded square at half opacity, # at full.
+ * Codex-pane corner button (next to types) that opens the vault `#tag` manager. */
+export const ICON_HASHTAG_SQUARE_DUOTONE = "sf-hashtag-square-duotone";
+const HASHTAG_SQUARE_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M2 12c0-4.714 0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464C22 4.93 22 7.286 22 12s0 7.071-1.465 8.535C19.072 22 16.714 22 12 22s-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12" opacity=".5"/><path fill-rule="evenodd" d="M11.718 7.215a.75.75 0 0 0-1.436-.43l-.74 2.465H7a.75.75 0 0 0 0 1.5h2.092l-.75 2.5H6a.75.75 0 1 0 0 1.5h1.892l-.61 2.034a.75.75 0 0 0 1.436.431l.74-2.465h3.434l-.61 2.034a.75.75 0 0 0 1.436.431l.74-2.465H17a.75.75 0 0 0 0-1.5h-2.092l.75-2.5H18a.75.75 0 0 0 0-1.5h-1.892l.61-2.035a.75.75 0 0 0-1.436-.43l-.74 2.465h-3.434zm2.374 3.535l-.75 2.5H9.908l.75-2.5z" clip-rule="evenodd"/></g></svg>`;
+
+/** User-provided (bi--calendar2-event-fill) — filled calendar with a single day mark. Decorative
+ * label to the left of WordCountModal.ts's days heatmap. */
+export const ICON_CALENDAR_EVENT = "sf-calendar-event";
+const CALENDAR_EVENT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M0 0h16v16H0z" fill="none" /><path fill="currentColor" d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5m9.954 3H2.545c-.3 0-.545.224-.545.5v1c0 .276.244.5.545.5h10.91c.3 0 .545-.224.545-.5v-1c0-.276-.244-.5-.546-.5M11.5 7a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5z"/></svg>`;
+
+/** User-provided (bi--calendar2-week-fill) — filled calendar with a week-row of day marks.
+ * Decorative label to the left of WordCountModal.ts's weeks heatmap. */
+export const ICON_CALENDAR_WEEK = "sf-calendar-week";
+const CALENDAR_WEEK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16"><path d="M0 0h16v16H0z" fill="none" /><path fill="currentColor" d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5m9.954 3H2.545c-.3 0-.545.224-.545.5v1c0 .276.244.5.545.5h10.91c.3 0 .545-.224.545-.5v-1c0-.276-.244-.5-.546-.5M8.5 7a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zm3 0a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zM3 10.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5m3.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5z"/></svg>`;
 
 /** User-provided (reicon--text-input-duotone.svg) — text-input field, duotone via opacity. Used
  * for SeriesModal.ts's "Text styling" icon (formatting tab). */
@@ -887,11 +907,15 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_FLOPPY_DUOTONE, FLOPPY_DUOTONE_SVG);
 	addIcon(ICON_COPY_DUOTONE, COPY_DUOTONE_SVG);
 	addIcon(ICON_CLOSE_SQUARE_DUOTONE, CLOSE_SQUARE_DUOTONE_SVG);
+	addIcon(ICON_X, X_SVG);
 	addIcon(ICON_SHARE_SQUARE_DUOTONE, SHARE_SQUARE_DUOTONE_SVG);
 	addIcon(ICON_DOWNLOAD_DUOTONE, DOWNLOAD_DUOTONE_SVG);
 	addIcon(ICON_TEXT_INPUT_DUOTONE, TEXT_INPUT_DUOTONE_SVG);
 	addIcon(ICON_TAG_DUOTONE, TAG_DUOTONE_SVG);
 	addIcon(ICON_BOOKMARK_DUOTONE, BOOKMARK_DUOTONE_SVG);
+	addIcon(ICON_HASHTAG_SQUARE_DUOTONE, HASHTAG_SQUARE_DUOTONE_SVG);
+	addIcon(ICON_CALENDAR_EVENT, CALENDAR_EVENT_SVG);
+	addIcon(ICON_CALENDAR_WEEK, CALENDAR_WEEK_SVG);
 	addIcon(ICON_ELEMENT2_FILLED, ELEMENT2_FILLED_SVG);
 	addIcon(ICON_DOCUMENT_PAGE_BREAK, DOCUMENT_PAGE_BREAK_SVG);
 	addIcon(ICON_PLOT_THREADS, PLOT_THREADS_SVG);

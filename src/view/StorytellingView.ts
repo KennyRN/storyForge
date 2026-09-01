@@ -5,7 +5,8 @@ import { getBookId } from "../series";
 import { renderTopPanel } from "./TopPanel";
 import { renderBottomPanel } from "./BottomPanel";
 import { renderStatsPanel, type StatsMode } from "./StatsPanel";
-import { createCodexFolder, createCodexNote, readCodexFrontmatter, type CodexViewMode } from "../codex";
+import { createCodexFolder, createCodexNote, readCodexFrontmatter } from "../codex";
+import { displayedVaultTags } from "../vaultTags";
 import { debounce } from "../debounce";
 import { ICON_BOOK_OPEN } from "../icons";
 import { countWords } from "../wordCount";
@@ -30,11 +31,12 @@ export const STORYTELLING_VIEW_TYPE = "storyforge-storytelling-view";
 export class StorytellingView extends ItemView {
 	private currentBookFolderName: string | null = null;
 	private activeChapterFilename: string | null = null;
-	private codexMode: CodexViewMode = "codex";
 	private collapsedCodexFolders = new Set<string>();
 	private activeCodexFolderId: string | null = null;
-	/** codexTypes ids currently filtering the Codex tree — session-only, like codexMode. */
+	/** codexTypes ids currently filtering the Codex tree — session-only. */
 	private codexTypeFilter = new Set<string>();
+	/** Vault `#tag` currently filtering the Codex tree — session-only, single-select. */
+	private vaultTagFilter: string | null = null;
 	private statsMode: StatsMode = "daily";
 	private statsCounts: Record<StatsMode, number> = { daily: 0, weekly: 0, chapter: 0, story: 0 };
 	/** Tears down the live position indicator's event-listener — must run before the next render
@@ -188,14 +190,14 @@ export class StorytellingView extends ItemView {
 		const activeFile = this.app.workspace.getActiveFile();
 		const activeFilePath = activeFile?.path ?? null;
 
+		if (this.vaultTagFilter && !displayedVaultTags(this.app).some((tag) => tag.id === this.vaultTagFilter)) {
+			this.vaultTagFilter = null;
+		}
+
 		const bottomEl = container.createDiv({ cls: "sf-bottom-panel" });
 		renderBottomPanel(this.app, bottomEl, {
 			currentBookId,
-			mode: this.codexMode,
-			onToggleMode: () => {
-				this.codexMode = this.codexMode === "codex" ? "codexHidden" : "codex";
-				this.render();
-			},
+			mode: "codex",
 			collapsedPaths: this.collapsedCodexFolders,
 			onToggleFolder: (folderId) => {
 				if (this.collapsedCodexFolders.has(folderId)) {
@@ -216,8 +218,12 @@ export class StorytellingView extends ItemView {
 				this.codexTypeFilter = new Set(next);
 				this.render();
 			},
+			tagFilter: this.vaultTagFilter,
+			onChangeTagFilter: (next) => {
+				this.vaultTagFilter = next;
+				this.render();
+			},
 			onOpenFile: (path) => void this.openCodexFile(path),
-			hideCodexTitle: true,
 		});
 
 		const statsEl = container.createDiv({ cls: "sf-stats-panel" });
@@ -229,6 +235,7 @@ export class StorytellingView extends ItemView {
 					new WordCountModal(this.app, this.currentBookFolderName, {
 						statsMode: this.statsMode,
 						seriesNumberingStyle: this.plugin.getSettings().seriesNumberingStyle,
+						chapterNumberingStyle: this.plugin.getSettings().chapterNumberingStyle,
 						onSelectStatsMode: (mode) => {
 							this.statsMode = mode;
 							this.render();

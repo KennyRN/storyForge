@@ -31,6 +31,7 @@ import { TagRegistryModal } from "./view/TagRegistryModal";
 import { FORMATFORGE_PLUGIN_ID, formatCompanionState } from "./formatCompanionActive";
 import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders, getBookId } from "./series";
 import { ensureTagRegistryFile, loadCodexTypesIntoRegistry } from "./tagRegistry";
+import { ensureVaultTagsFile } from "./vaultTags";
 import { ensurePlotThreadsFile } from "./plotThreads";
 import { defaultSeriesPlotThreadColor } from "./view/novelColor";
 import { resolveThemeBackgroundColor } from "./view/PalettePickerModal";
@@ -1743,6 +1744,7 @@ export default class StoryForgePlugin extends Plugin {
 		if (isFirstRun) await this.createFirstRunBookAndChapter();
 		const tagRegistry = await ensureTagRegistryFile(this.app);
 		loadCodexTypesIntoRegistry(this.app, tagRegistry);
+		await ensureVaultTagsFile(this.app);
 		await ensurePlotThreadsFile(
 			this.app,
 			defaultSeriesPlotThreadColor(this.pluginSettings) ?? undefined,

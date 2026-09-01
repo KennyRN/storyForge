@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	addDaysISO,
 	dailyNetsForRange,
+	isoWeekNumber,
 	latestTotal,
 	mostRecentMondayISO,
 	sumNetsThisWeek,
@@ -81,6 +82,15 @@ describe("latestTotal", () => {
 
 	it("returns 0 when there are no recorded totals", () => {
 		expect(latestTotal({})).toBe(0);
+	});
+});
+
+describe("isoWeekNumber", () => {
+	it("returns the ISO-8601 week for a Monday and a mid-week day", () => {
+		expect(isoWeekNumber("2026-08-24")).toBe(35);
+		expect(isoWeekNumber("2026-08-31")).toBe(36);
+		expect(isoWeekNumber("2026-01-01")).toBe(1);
+		expect(isoWeekNumber("2025-12-29")).toBe(1);
 	});
 });
 
