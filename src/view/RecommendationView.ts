@@ -44,6 +44,7 @@ import { loadHydratedCodexInventory } from "../recommend/inventory";
 import { createCodexLore } from "../recommend/lore";
 import type { CastMember, ChapterRecommendReport, DetailHit, UnknownNameHint } from "../recommend/types";
 import { makeAccessibleActivatable } from "./a11y";
+import { renderStampedEmptyCross } from "./stampedCross";
 import { activateRightRailView } from "./activateRightRailView";
 import { renderArchiveList, renderArchiveModeIcons, type ArchiveMode } from "./archivePanel";
 import { CodexEntryPickerModal } from "./CodexEntryPickerModal";
@@ -52,6 +53,7 @@ import { DossierEntitySuggest } from "./DossierEntitySuggest";
 import { ChapterTitleModal } from "./ChapterTitleModal";
 import { iconAction, renderMetaControl, renderNovelPanel } from "./NovelPanel";
 import { resolveMainThreadRowColor } from "./novelColor";
+import { resolveTitleShadow } from "../titleShadow";
 import { isRecommendTabActive, type RecommendTab } from "./recommendTabActive";
 import { countWords, formatWordCount } from "../wordCount";
 
@@ -821,11 +823,18 @@ export class RecommendationView extends ItemView {
 		const rowColor = resolveMainThreadRowColor(this.app, this.plugin.getSettings());
 		headerRow.setCssStyles({ backgroundColor: rowColor.background, color: rowColor.text });
 		card.setCssStyles({ boxShadow: `inset 0 0 0 2px ${rowColor.background}` });
+		const titleShadow = resolveTitleShadow(body.ownerDocument, rowColor.text, rowColor.background);
 		// On the body (not only the card) so the action-icon hover below the card can
 		// use the same chapter colour as in-card highlights.
 		body.setCssProps({
 			"--sf-plot-card-header-bg": rowColor.background,
 			"--sf-plot-card-header-fg": rowColor.text,
+			"--sf-plot-card-title-shadow": titleShadow,
+		});
+		card.setCssProps({
+			"--sf-plot-card-header-bg": rowColor.background,
+			"--sf-plot-card-header-fg": rowColor.text,
+			"--sf-plot-card-title-shadow": titleShadow,
 		});
 		nameEl.setCssStyles({ color: rowColor.text });
 		const openTitleModal = () =>
@@ -906,7 +915,7 @@ export class RecommendationView extends ItemView {
 		const section = el.createDiv({ cls: "sf-recommend-section" });
 		section.createDiv({ cls: "sf-recommend-section-title", text: title });
 		if (items.length === 0) {
-			section.createDiv({ cls: "sf-empty", text: "None found." });
+			renderStampedEmptyCross(section, "None found.");
 			return;
 		}
 		for (const item of items) {
@@ -939,7 +948,7 @@ export class RecommendationView extends ItemView {
 				? report.unknownNameHints
 				: report.unknownNames.map((name) => ({ name }));
 		if (hints.length === 0) {
-			section.createDiv({ cls: "sf-empty", text: "None found." });
+			renderStampedEmptyCross(section, "None found.");
 			return;
 		}
 		for (const hint of hints) {
@@ -980,7 +989,7 @@ export class RecommendationView extends ItemView {
 		const section = card.createDiv({ cls: "sf-recommend-section" });
 		section.createDiv({ cls: "sf-recommend-section-title", text: title });
 		if (hits.length === 0) {
-			section.createDiv({ cls: "sf-empty", text: "None." });
+			renderStampedEmptyCross(section, "None.");
 			return;
 		}
 

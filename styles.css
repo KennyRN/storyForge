@@ -382,6 +382,15 @@
 	white-space: nowrap;
 }
 
+.sf-row-subtitle--title {
+	font-size: inherit;
+	font-weight: inherit;
+	font-family: inherit;
+	font-variant: inherit;
+	font-variation-settings: inherit;
+	color: inherit;
+}
+
 .sf-rename-input {
 	flex: 1;
 	min-width: 0;
@@ -405,6 +414,19 @@
 	padding: 10px 6px;
 	color: var(--text-faint);
 	font-size: var(--font-ui-small);
+}
+
+.sf-empty-cross {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	color: var(--sf-right-rail-bg, var(--background-primary));
+	min-height: 2.75em;
+}
+.sf-empty-cross svg {
+	width: 1.75em;
+	height: 1.75em;
+	overflow: visible;
 }
 
 .sf-stats-panel {
@@ -710,8 +732,8 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	min-height: 0;
 }
 
-/* Tab bar for SeriesModal's settings tabs (types & tags / general / formatting / obsidian
- * elements / import & export settings) — text-labelled, unlike .sf-layout-tab's icon-only
+/* Tab bar for SeriesModal's settings tabs (types & tags / general / formatting /
+ * import & export settings / backup) — text-labelled, unlike .sf-layout-tab's icon-only
  * treatment, since these need to be legible by name. Same interaction language otherwise: plain
  * colour change on hover/active, no background chip. Never shrinks or scrolls away — only
  * .sf-series-modal-tab-body below does. */
@@ -754,7 +776,7 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 }
 
 /* Hover-highlight icons on SeriesModal setting rows (cycling guide, text styling, storyForge
- * interface, hide-UI eye, Obsidian settings cog, formatting themes) — same treatment as
+ * interface, obsidian elements eye, Obsidian settings cog, formatting themes) — same treatment as
  * .sf-modal-add-book, not buttons. Sized 10px over Obsidian's usual 16px icon default (26px), and
  * given a fixed width matching Obsidian's own toggle-switch width (best-effort figure, unverified
  * live) so they centre under/over the toggle rows' controls elsewhere in this box rather than
@@ -1455,14 +1477,63 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	align-items: center;
 }
 
+.sf-row-preview-split {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	min-width: 0;
+}
+
+.sf-row-preview-split-primary {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	align-items: center;
+}
+
+.sf-row-preview-split-box {
+	flex: 0 0 calc(50% - 5px);
+	width: calc(50% - 5px);
+	max-width: calc(50% - 5px);
+	min-width: 0;
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+	box-sizing: border-box;
+}
+
+.sf-size-row .setting-item-info {
+	flex: 0 0 10.5em;
+	width: 10.5em;
+	max-width: 10.5em;
+	margin-right: 8px;
+}
+
+.sf-size-row .setting-item-name {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 .sf-size-row .setting-item-control {
 	flex: 1 1 auto;
+	min-width: 0;
+	justify-content: stretch;
+	width: 100%;
+}
+
+.sf-size-row .setting-item-control > .slider {
+	display: flex;
+	flex: 1 1 auto;
+	width: 100%;
 	min-width: 0;
 }
 
 .sf-size-row input[type="range"] {
 	width: 100%;
-	min-width: 80px;
+	min-width: 0;
+	flex: 1 1 auto;
 }
 
 .sf-ui-format-preview.is-row-aligned {
@@ -1509,6 +1580,10 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	box-sizing: border-box;
+}
+
+.sf-row-preview-pill.is-header-pill {
+	border-radius: 999px;
 }
 
 .sf-row-preview-icon {
@@ -2426,7 +2501,8 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 .modal.sf-ui-formatting-modal,
 .modal.sf-hide-ui-modal,
 .modal.sf-protections-modal,
-.modal.sf-cycling-guide-modal {
+.modal.sf-cycling-guide-modal,
+.modal.sf-obsidian-elements-modal {
 	width: 560px;
 	height: 760px;
 	display: flex;
@@ -2534,7 +2610,8 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 .sf-protections-modal,
 .sf-tag-registry-modal,
 .sf-vault-tag-modal,
-.sf-cycling-guide-modal {
+.sf-cycling-guide-modal,
+.sf-obsidian-elements-modal {
 	flex: 1;
 	display: flex;
 	flex-direction: column;
@@ -2623,55 +2700,115 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 }
 
 /*
- * storyForge interface has three tab tiers: "visual interface editing" / "list interface
- * editing" at the top, then storyforge/storytelling/story context (or text/colours/size), then
- * Library/Unplaced/… (or Navigation/Story Context/Archive) nested inside visual panes.
- * Tab-host wrappers must not scroll, or the next tier's tab bar would scroll away with the
- * settings. Leaf wrappers (and `.sf-ui-format-plain-scroll`) do the actual scrolling.
+ * storyForge interface: a single icon-breadcrumb row, then a scrolling leaf body.
+ * The icon row stays pinned; `.sf-ui-format-crumb-leaf` (or its inner `.sf-ui-format-plain-scroll`)
+ * does the actual scrolling. Preview stays empty until a leaf is selected.
  */
-.sf-ui-format-controls > .sf-text-style-tab-body-wrapper {
+.sf-ui-format-crumb-row {
 	display: flex;
-	flex-direction: column;
-	overflow: hidden;
+	align-items: center;
+	flex-shrink: 0;
+	flex-wrap: wrap;
+	gap: 4px;
+	padding: 6px 2px 10px;
+	border-bottom: 1px solid var(--background-modifier-border);
+	box-sizing: border-box;
 }
 
-.sf-ui-format-controls > .sf-text-style-tab-body-wrapper > .sf-text-style-tab-body {
+.sf-ui-format-crumb-phase {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.sf-ui-format-crumb-spacer {
+	width: 1px;
+	height: 18px;
+	margin-inline: 8px;
+	background: var(--background-modifier-border);
+	flex-shrink: 0;
+}
+
+.sf-ui-format-crumb-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 28px;
+	height: 28px;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.sf-ui-format-crumb-icon svg,
+.sf-ui-format-crumb-icon svg.svg-icon {
+	width: 24px;
+	height: 24px;
+	flex-shrink: 0;
+}
+
+.sf-ui-format-crumb-icon:hover,
+.sf-ui-format-crumb-icon.is-active {
+	color: var(--text-accent);
+}
+
+.sf-ui-format-crumb-icon:focus-visible {
+	outline: 2px solid var(--text-accent);
+	outline-offset: 2px;
+}
+
+.sf-section-chrome-picker {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	padding: 0 0 4px;
+}
+
+.sf-ui-format-plain-scroll > .sf-section-chrome-picker,
+.setting-group > .sf-section-chrome-picker {
+	padding: 0 12px 4px;
+}
+
+.sf-section-chrome-picker.is-compact .sf-ui-format-crumb-icon {
+	width: 22px;
+	height: 22px;
+}
+
+.sf-section-chrome-picker.is-compact .sf-ui-format-crumb-icon svg,
+.sf-section-chrome-picker.is-compact .sf-ui-format-crumb-icon svg.svg-icon {
+	width: 18px;
+	height: 18px;
+}
+
+.sf-ui-format-crumb-body {
 	flex: 1;
 	min-height: 0;
-}
-
-.modal.sf-ui-formatting-modal .sf-text-style-tab-body-wrapper.is-tab-host {
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
 }
 
-.modal.sf-ui-formatting-modal .sf-text-style-tab-body.is-tab-host {
-	flex: 1 1 auto;
+.sf-ui-format-crumb-leaf {
+	flex: 1;
 	min-height: 0;
-	gap: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	display: flex;
+	flex-direction: column;
+	gap: var(--size-4-6);
+	box-sizing: border-box;
 }
 
-.modal.sf-ui-formatting-modal .sf-text-style-tab-body.is-tab-host > .sf-text-style-tab-body-wrapper {
-	flex: 1 1 auto;
-	min-height: 0;
-}
-
-.modal.sf-ui-formatting-modal .sf-text-style-tab-body.sf-ui-format-plain-scroll-host {
+.modal.sf-ui-formatting-modal .sf-ui-format-crumb-leaf.sf-ui-format-plain-scroll-host {
 	flex: 1;
 	min-height: 0;
 	gap: 0;
 	overflow: hidden;
 }
 
-.modal.sf-ui-formatting-modal .sf-text-style-tab-body-wrapper.sf-ui-format-plain-scroll-wrap {
+.modal.sf-ui-formatting-modal .sf-ui-format-crumb-body.sf-ui-format-plain-scroll-wrap {
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
-}
-
-.sf-ui-format-controls > .sf-text-style-tab-bar .sf-text-style-tab-btn {
-	padding-inline: var(--size-4-2);
 }
 
 .sf-text-style-tab-body {
@@ -2776,12 +2913,15 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 }
 
 .sf-ui-format-preview-chrome {
-	height: 100%;
 	min-height: 100%;
+	height: auto;
+	overflow: visible;
 }
 
 .sf-ui-format-preview-chrome > div {
-	height: 100%;
+	min-height: 0;
+	height: auto;
+	overflow: visible;
 }
 
 .sf-ui-format-preview .sf-ui-preview-host.storyforge-view {
@@ -2805,6 +2945,8 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	flex-direction: column;
 	gap: 16px;
 	padding: 12px;
+	height: auto;
+	overflow: visible;
 	user-select: none;
 }
 
@@ -2814,8 +2956,25 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	border-radius: 6px;
 	padding: 10px;
 	min-height: 180px;
+	height: auto;
+	max-height: none;
+	flex: 0 0 auto;
+	overflow: visible;
 	display: flex;
 	flex-direction: column;
+}
+
+.sf-ui-format-preview .sf-recommend-body,
+.sf-ui-format-preview .sf-recommend-body.sf-recommend-body--scroll {
+	flex: 0 0 auto;
+	height: auto;
+	max-height: none;
+	overflow: visible;
+	min-height: 0;
+}
+
+.sf-ui-format-preview .sf-recommend-plot-block {
+	flex-shrink: 0;
 }
 
 .sf-ui-format-preview .sf-recommend-synopsis {
@@ -2859,13 +3018,160 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	border-bottom: none;
 }
 
+.sf-box-font-table {
+	display: grid;
+	grid-template-columns: minmax(calc(10.5em + 20px), 1fr) max-content 26px;
+	width: 100%;
+	align-items: center;
+	margin: 0;
+	position: relative;
+}
+.sf-box-font-table > colgroup {
+	display: none;
+}
+.sf-box-font-table > thead,
+.sf-box-font-table > tbody,
+.sf-box-font-table > thead > tr,
+.sf-box-font-table > tbody > tr {
+	display: contents;
+}
+.sf-box-font-table th,
+.sf-box-font-table td {
+	display: flex;
+	align-items: center;
+	padding: 4px 8px;
+	box-sizing: border-box;
+	text-align: left;
+	min-width: 0;
+}
+.sf-box-font-table thead th {
+	height: 26px;
+	padding: 0 8px;
+	font-size: var(--font-ui-smaller);
+	font-weight: var(--font-medium);
+	color: var(--text-muted);
+	line-height: 26px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+.sf-box-font-table thead th.sf-box-font-table-caps-head {
+	position: relative;
+	padding: 0 5px;
+	overflow: visible;
+}
+.sf-box-font-table-caps-label {
+	position: absolute;
+	right: 5px;
+	top: 0;
+	height: 26px;
+	display: flex;
+	align-items: center;
+	white-space: nowrap;
+	pointer-events: none;
+}
+.sf-box-font-table td.sf-box-font-table-font {
+	padding: 4px 8px 4px 0;
+	justify-content: flex-start;
+	justify-self: start;
+}
+.sf-box-font-table td.sf-box-font-table-caps {
+	justify-content: center;
+	padding: 4px 5px;
+}
+.sf-box-font-table tbody th {
+	font-weight: var(--font-normal);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+.sf-box-font-table tbody td {
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+.sf-box-font-table tbody tr:last-child th,
+.sf-box-font-table tbody tr:last-child td {
+	border-bottom: none;
+}
+.sf-box-font-table-caps-check {
+	display: block;
+	width: 16px;
+	height: 16px;
+	margin: 0;
+	padding: 0;
+	flex-shrink: 0;
+}
+.modal.sf-ui-formatting-modal .sf-box-font-table .setting-item:not(#storyforge-specificity-boost) {
+	display: flex;
+	justify-content: flex-start;
+	width: max-content;
+	border: none;
+	padding: 0;
+	margin: 0;
+	min-height: 0;
+	background: transparent;
+	align-items: center;
+}
+.modal.sf-ui-formatting-modal .sf-box-font-table .setting-item > .setting-item-info:not(#storyforge-specificity-boost) {
+	display: none;
+}
+.modal.sf-ui-formatting-modal .sf-box-font-table .setting-item > .setting-item-control:not(#storyforge-specificity-boost) {
+	display: flex;
+	justify-content: flex-start;
+	align-items: center;
+	flex: 0 0 auto;
+	flex-wrap: nowrap;
+	gap: 8px;
+	width: max-content;
+	min-width: 0;
+	padding: 0;
+	margin-left: 0;
+}
+.modal.sf-ui-formatting-modal .sf-box-font-table .setting-item-control button {
+	flex: 0 0 calc(10em + 50px);
+	box-sizing: border-box;
+	width: calc(10em + 50px);
+	min-width: calc(10em + 50px);
+	max-width: calc(10em + 50px);
+	height: var(--input-height);
+	justify-content: flex-start;
+	text-align: left;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.modal.sf-ui-formatting-modal .sf-font-weight-dropdown {
+	flex: 0 0 10em;
+	box-sizing: border-box;
+	width: 10em;
+	min-width: 10em;
+	max-width: 10em;
+	margin-left: 0;
+	height: var(--input-height);
+}
+.modal.sf-ui-formatting-modal .sf-box-font-table .setting-item-control select {
+	flex: 0 0 10em;
+	box-sizing: border-box;
+	width: 10em;
+	min-width: 10em;
+	max-width: 10em;
+	margin-left: 0;
+	height: var(--input-height);
+}
+.modal.sf-ui-formatting-modal .sf-box-font-table .sf-font-weight-dropdown.sf-settings-hidden:not(#storyforge-specificity-boost) {
+	display: block;
+	visibility: hidden;
+	pointer-events: none;
+}
+
 .sf-text-style-tab-body > .setting-item,
-.sf-text-style-tab-body > .setting-group {
+.sf-text-style-tab-body > .setting-group,
+.sf-ui-format-crumb-leaf > .setting-item,
+.sf-ui-format-crumb-leaf > .setting-group {
 	margin-bottom: 0;
 }
 
 .sf-text-style-tab-body > .setting-item + .setting-group,
-.sf-text-style-tab-body > .setting-item + .setting-item {
+.sf-text-style-tab-body > .setting-item + .setting-item,
+.sf-ui-format-crumb-leaf > .setting-item + .setting-group,
+.sf-ui-format-crumb-leaf > .setting-item + .setting-item {
 	margin-top: var(--size-4-6);
 }
 
@@ -3684,14 +3990,14 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	display: flex;
 	justify-content: center;
 	padding-top: 40px;
-	color: var(--text-faint);
-	opacity: 0.12;
+	color: var(--sf-right-rail-bg, var(--background-primary));
 	pointer-events: none;
 	user-select: none;
 }
 .sf-archive-empty svg {
 	width: 72px;
 	height: 72px;
+	overflow: visible;
 }
 
 .sf-archive-view-tab {
@@ -3957,11 +4263,11 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	box-sizing: border-box;
 }
 
-/* Story Context Novel tab: 4px gap between the synopsis and the chapter flags below.
+/* Story Context Novel tab: 12px gap between the synopsis and the chapter flags below.
  * The gap itself is .sf-recommend-novel-thread-drop (the coloured lines keep running
  * through it); the wrap no longer has a bottom margin of its own. */
 .sf-recommend-view .sf-recommend-novel-synopsis {
-	margin-bottom: 4px;
+	margin-bottom: 0;
 }
 
 /* Story Context Novel tab: synopsis follows the primary plot thread.
@@ -3999,12 +4305,8 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
  * cover row (wide overview). Secondary lines begin here — they do not wrap the box. */
 .sf-recommend-novel-thread-drop {
 	flex-shrink: 0;
-	height: 4px;
-	background-repeat: no-repeat;
-}
-
-.sf-novel-overview-view .sf-recommend-novel-thread-drop {
 	height: 12px;
+	background-repeat: no-repeat;
 }
 
 .sf-recommend-novel-synopsis-thread-cap {
@@ -5556,7 +5858,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
  * stacked/centred "sidebar" layout unchanged): cover left, synopsis + Default PoV beside it. */
 .sf-recommend-novel-cover-row {
 	display: flex;
-	align-items: flex-start;
+	align-items: stretch;
 	gap: 20px;
 	margin-bottom: 12px;
 }
@@ -5565,6 +5867,8 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	flex: 1;
 	min-width: 0;
 	padding-top: 4px;
+	display: flex;
+	flex-direction: column;
 }
 
 /* Wide overview: 4px cap across cover + synopsis, 2px left strand beside the cover.
@@ -5638,7 +5942,14 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 }
 
 .sf-novel-overview-view .sf-recommend-novel-text-col .sf-recommend-novel-synopsis {
-	min-height: 140px;
+	flex: 1 1 0;
+	min-height: 0;
+	height: 0;
+}
+
+.sf-novel-overview-view .sf-recommend-novel-text-col .sf-recommend-section {
+	flex-shrink: 0;
+	margin: 8px 0 0;
 }
 
 /* renderNovelPanel's own plot-thread cap — sits in .sf-book-line's grid column 1 (explicit, so it
@@ -5837,6 +6148,8 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	padding: 4px 16px;
 	background-color: var(--sf-plot-card-header-bg, transparent);
 	color: var(--sf-plot-card-header-fg, var(--sf-recommend-chapter-color, var(--text-normal)));
+	overflow: visible;
+	white-space: normal;
 }
 
 .sf-recommend-plot-block--chapter .sf-recommend-row {
@@ -5855,6 +6168,12 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 
 .sf-recommend-plot-block--chapter .sf-recommend-section:last-child .sf-recommend-row:last-child {
 	padding-bottom: 8px;
+}
+
+.sf-recommend-plot-block--chapter .sf-recommend-section-title + .sf-empty,
+.sf-recommend-unknown-card .sf-recommend-section-title + .sf-empty,
+.sf-recommend-pill-card .sf-recommend-section-title + .sf-empty {
+	min-height: 3.25em;
 }
 
 .sf-recommend-plot-block--chapter .sf-recommend-section-title + .sf-empty {
@@ -5972,6 +6291,63 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 .sf-recommend-pill-card .sf-recommend-section:last-child .sf-recommend-hit:last-child,
 .sf-recommend-pill-card .sf-recommend-section:last-child .sf-empty:last-child {
 	padding-bottom: 8px;
+}
+
+body.sf-section-chrome-pill .sf-recommend-plot-block--plain.sf-recommend-unknown-card,
+body.sf-section-chrome-pill .sf-recommend-plot-block--plain.sf-recommend-pill-card,
+body.sf-section-chrome-pill .sf-recommend-plot-block--plain.sf-recommend-plot-block--chapter,
+body.sf-section-chrome-text .sf-recommend-plot-block--plain.sf-recommend-unknown-card,
+body.sf-section-chrome-text .sf-recommend-plot-block--plain.sf-recommend-pill-card,
+body.sf-section-chrome-text .sf-recommend-plot-block--plain.sf-recommend-plot-block--chapter {
+	box-shadow: none !important;
+	padding-top: 8px;
+	padding-bottom: 8px;
+}
+
+body.sf-section-chrome-pill .sf-recommend-unknown-card .sf-recommend-section-title,
+body.sf-section-chrome-pill .sf-recommend-pill-card .sf-recommend-section-title,
+body.sf-section-chrome-pill .sf-recommend-plot-block--chapter .sf-recommend-plot-header-row,
+body.sf-section-chrome-pill .sf-recommend-plot-block--chapter .sf-recommend-section-title {
+	border-radius: 10px;
+	margin-left: 0;
+	margin-right: 0;
+}
+
+body.sf-section-chrome-pill .sf-recommend-plot-block--chapter .sf-recommend-section-title {
+	margin-top: 8px;
+}
+
+body.sf-section-chrome-text .sf-recommend-unknown-card .sf-recommend-section-title {
+	background-color: transparent;
+	text-shadow: var(--sf-recommend-unknown-title-shadow, none);
+}
+
+body.sf-section-chrome-text .sf-recommend-pill-card--capture .sf-recommend-section-title {
+	background-color: transparent;
+	text-shadow: var(--sf-recommend-capture-title-shadow, none);
+}
+
+body.sf-section-chrome-text .sf-recommend-pill-card--holding .sf-recommend-section-title {
+	background-color: transparent;
+	text-shadow: var(--sf-recommend-holding-title-shadow, none);
+}
+
+body.sf-section-chrome-text .sf-recommend-pill-card--resolved .sf-recommend-section-title {
+	background-color: transparent;
+	text-shadow: var(--sf-recommend-resolved-title-shadow, none);
+}
+
+body.sf-section-chrome-text .sf-recommend-plot-block--chapter .sf-recommend-plot-header-row,
+body.sf-section-chrome-text .sf-recommend-plot-block--chapter .sf-recommend-section-title {
+	background-color: transparent !important;
+	margin-left: 0;
+	margin-right: 0;
+	color: var(--sf-plot-card-header-fg, var(--sf-recommend-chapter-color, var(--text-normal)));
+	text-shadow: var(--sf-plot-card-title-shadow, none);
+}
+
+body.sf-section-chrome-text .sf-recommend-plot-block--chapter .sf-recommend-plot-chapter-name {
+	text-shadow: var(--sf-plot-card-title-shadow, none);
 }
 
 .sf-recommend-plot-collapse {

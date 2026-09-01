@@ -10,8 +10,10 @@ import type {
 	EditorScrollbarThickness,
 	FontWeight,
 	HeadingDividerThickness,
+	RecommendSectionChrome,
 	StoryForgePluginSettings,
 } from "./main";
+import { resolveTitleShadow } from "./titleShadow";
 
 export interface StyleHost {
 	getSettings(): StoryForgePluginSettings;
@@ -82,6 +84,9 @@ export class StyleController {
 				"sf-sb-medium",
 				"sf-sb-thick",
 				"sf-use-tools-panel",
+				"sf-section-chrome-box",
+				"sf-section-chrome-pill",
+				"sf-section-chrome-text",
 			);
 		}
 	}
@@ -334,19 +339,39 @@ export class StyleController {
 			"--sf-recommend-plot-chapter-variant": s.recommendChapterTitleSmallCaps ? "small-caps" : "normal",
 			"--sf-recommend-section-size": `${s.recommendSectionTitleFontSize}em`,
 			"--sf-recommend-section-color": recommendSectionColor,
-			"--sf-recommend-section-variant": "normal",
+			"--sf-recommend-section-variant": s.recommendSectionTitleSmallCaps ? "small-caps" : "normal",
 			"--sf-recommend-items-color": recommendItemsColor,
 			"--sf-recommend-items-size": `${s.recommendItemsFontSize}em`,
 			"--sf-recommend-details-size": `${s.recommendItemsFontSize}em`,
 			"--sf-recommend-details-color": recommendItemsColor,
 			"--sf-recommend-unknown-color": recommendUnknownColor,
 			"--sf-recommend-unknown-header-color": recommendUnknownHeaderColor,
+			"--sf-recommend-unknown-title-shadow": resolveTitleShadow(
+				this.host.getStyleDocuments()[0] ?? document,
+				recommendUnknownHeaderColor,
+				recommendUnknownColor,
+			),
 			"--sf-recommend-capture-color": recommendCaptureColor,
 			"--sf-recommend-capture-header-color": recommendCaptureHeaderColor,
+			"--sf-recommend-capture-title-shadow": resolveTitleShadow(
+				this.host.getStyleDocuments()[0] ?? document,
+				recommendCaptureHeaderColor,
+				recommendCaptureColor,
+			),
 			"--sf-recommend-holding-color": recommendHoldingColor,
 			"--sf-recommend-holding-header-color": recommendHoldingHeaderColor,
+			"--sf-recommend-holding-title-shadow": resolveTitleShadow(
+				this.host.getStyleDocuments()[0] ?? document,
+				recommendHoldingHeaderColor,
+				recommendHoldingColor,
+			),
 			"--sf-recommend-resolved-color": recommendResolvedColor,
 			"--sf-recommend-resolved-header-color": recommendResolvedHeaderColor,
+			"--sf-recommend-resolved-title-shadow": resolveTitleShadow(
+				this.host.getStyleDocuments()[0] ?? document,
+				recommendResolvedHeaderColor,
+				recommendResolvedColor,
+			),
 			"--sf-recommend-meta-label-size": `${s.recommendMetaLabelFontSize}em`,
 			"--sf-recommend-meta-label-color": recommendMetaLabelColor,
 			"--sf-recommend-meta-label-variant": s.recommendMetaLabelSmallCaps ? "small-caps" : "normal",
@@ -379,6 +404,9 @@ export class StyleController {
 		this.assignUiFontVars(vars, "--sf-archive-header", s.archiveHeaderOverrideFont, s.archiveHeaderFontFamily, s.archiveHeaderFontWeight);
 		this.assignUiFontVars(vars, "--sf-archive-items", s.archiveItemsOverrideFont, s.archiveItemsFontFamily, s.archiveItemsFontWeight);
 		this.applyStyleVarsToAllDocs(vars);
+		for (const doc of this.host.getStyleDocuments()) {
+			this.applySectionChromeBodyClass(doc.body, s.recommendSectionChrome ?? "box");
+		}
 	}
 
 	applyLibraryHeaderStyles(): void {
@@ -538,6 +566,11 @@ export class StyleController {
 		body.classList.add("sf-editor-scrollbar");
 		body.classList.remove("sf-sb-thin", "sf-sb-medium", "sf-sb-thick");
 		body.classList.add(`sf-sb-${thickness}`);
+	}
+
+	private applySectionChromeBodyClass(body: HTMLElement, chrome: RecommendSectionChrome): void {
+		body.classList.remove("sf-section-chrome-box", "sf-section-chrome-pill", "sf-section-chrome-text");
+		body.classList.add(`sf-section-chrome-${chrome}`);
 	}
 
 	/** When the folder indicator is off, selected Codex files use a flat highlight (no truncate-to-guide). */

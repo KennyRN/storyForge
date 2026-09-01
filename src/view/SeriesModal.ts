@@ -10,11 +10,10 @@ import {
 	ICON_TITLEFORGE,
 	ICON_DOCUMENT_PAGE_BREAK,
 	ICON_ELEMENT2_FILLED,
-	ICON_EYE_DUOTONE,
 	ICON_FLOPPY_DUOTONE,
 	ICON_PLOT_THREADS,
-	ICON_SETTINGS_ALT,
 	ICON_HASHTAG_SQUARE_DUOTONE,
+	ICON_OBSIDIAN,
 	ICON_TAG_DUOTONE,
 	ICON_TEXT_INPUT_DUOTONE,
 } from "../icons";
@@ -28,9 +27,8 @@ import {
 	type PaletteMode,
 	type PresetPaletteName,
 } from "../colorPalettes";
-import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
 import { TextStyleModal } from "./TextStyleModal";
-import { HideUiModal } from "./HideUiModal";
+import { ObsidianElementsModal } from "./ObsidianElementsModal";
 import { CyclingGuideModal } from "./CyclingGuideModal";
 import { ConvertToSeriesModal } from "./ConvertToSeriesModal";
 import { ProtectionsController } from "./protectionsController";
@@ -157,13 +155,12 @@ async function handleReorder(app: App, newOrder: string[], onChange: () => void,
 	}
 }
 
-type SettingsTabId = "typesAndTags" | "general" | "formatting" | "obsidianElements" | "importExport" | "backup";
+type SettingsTabId = "typesAndTags" | "general" | "formatting" | "importExport" | "backup";
 
 const SETTINGS_TABS: { id: SettingsTabId; label: string }[] = [
 	{ id: "typesAndTags", label: "types, tags, & threads" },
 	{ id: "general", label: "general" },
 	{ id: "formatting", label: "formatting and interface" },
-	{ id: "obsidianElements", label: "obsidian elements" },
 	{ id: "importExport", label: "import & export settings" },
 	{ id: "backup", label: "backup" },
 ];
@@ -241,9 +238,6 @@ export class SeriesModal extends Modal {
 			case "formatting":
 				this.renderFormattingTab(body);
 				break;
-			case "obsidianElements":
-				this.renderObsidianElementsTab(body);
-				break;
 			case "importExport":
 				this.renderImportExportTab(body);
 				break;
@@ -309,7 +303,8 @@ export class SeriesModal extends Modal {
 	/**
 	 * Everything that doesn't belong to types/tags/titles, formatting, or Obsidian's own chrome.
 	 * Series/chapter numbering style (see ../numberingStyle.ts) sits in its own boundary box at
-	 * the top. Themes/save-or-share live on the import & export tab.
+	 * the top. Recreate-welcome-note sits at the bottom. Themes/save-or-share live on the import
+	 * & export tab.
 	 */
 	private renderGeneralTab(contentEl: HTMLElement): void {
 		const plugin = this.plugin;
@@ -345,11 +340,11 @@ export class SeriesModal extends Modal {
 			);
 		});
 
-		const hideSeriesGroup = new SettingGroup(contentEl);
-		hideSeriesGroup.addSetting((setting) => {
+		const togglesGroup = new SettingGroup(contentEl);
+		togglesGroup.addSetting((setting) => {
 			setting
 				.setName("hide series pane")
-				.setDesc("hides the series header and locks storyForge to book view — for standalone/non-series projects. your series data isn't deleted; toggle this off anytime to bring it back")
+				.setDesc("hides the series header, locking storyforge to standalone book view: any series data isn't deleted, toggle to bring it back")
 				.addToggle((toggle) =>
 					toggle.setValue(settings.hideSeriesPane).onChange((value) => {
 						void plugin.updateSetting("hideSeriesPane", value).then(() => {
@@ -360,7 +355,7 @@ export class SeriesModal extends Modal {
 				);
 		});
 		if (settings.hideSeriesPane) {
-			hideSeriesGroup.addSetting((setting) => {
+			togglesGroup.addSetting((setting) => {
 				setting
 					.setName("convert to series")
 					.setDesc("turn this standalone book into the first book of a series — lets you add more books to it later")
@@ -372,9 +367,7 @@ export class SeriesModal extends Modal {
 					);
 			});
 		}
-
-		const highlightGroup = new SettingGroup(contentEl);
-		highlightGroup.addSetting((setting) => {
+		togglesGroup.addSetting((setting) => {
 			setting
 				.setName("highlight active chapter/item")
 				.setDesc("highlights the currently selected chapter, or item, in the storyLibrary panel")
@@ -386,12 +379,9 @@ export class SeriesModal extends Modal {
 						),
 				);
 		});
-
-		const nameSuggestionsGroup = new SettingGroup(contentEl);
-		nameSuggestionsGroup.setHeading("context panel");
-		nameSuggestionsGroup.addSetting((setting) => {
+		togglesGroup.addSetting((setting) => {
 			setting
-				.setName("suggest unlisted, or unknown, names")
+				.setName("suggest potential unlisted, or unknown, elements in the context panel")
 				.setDesc("list names found in the chapter which aren't in the codex")
 				.addToggle((toggle) =>
 					toggle
@@ -399,10 +389,13 @@ export class SeriesModal extends Modal {
 						.onChange((value) => void plugin.updateSetting("recommendIncludeUnknownNames", value)),
 				);
 		});
+
+		this.protectionsController.renderWelcomeNoteSection(contentEl);
 	}
 
 	/**
-	 * Two boxes, top to bottom: Palette, then Text styling + storyForge interface together. The
+	 * Two boxes, then a third for obsidian elements: Palette, Text styling + storyForge interface,
+	 * then the obsidian-elements modal link. The palette box renders identically regardless of
 	 * palette box renders identically regardless of whether formatForge is installed — those fields
 	 * live in storyForge's own settings either way (formatForge just proxies reads/writes through
 	 * the companion API to these same fields when linked), so there's a single live copy, not two.
@@ -506,6 +499,16 @@ export class SeriesModal extends Modal {
 				plugin.openStoryForgeInterface(),
 			);
 		});
+
+		const obsidianGroup = new SettingGroup(contentEl);
+		obsidianGroup.addSetting((setting) => {
+			setting
+				.setName("obsidian elements")
+				.setDesc("interact with the hidden obsidian features and the storyforge-obsidian interface");
+			this.renderHoverIcon(setting, ICON_OBSIDIAN, "open obsidian elements", () =>
+				new ObsidianElementsModal(this.app, plugin).open(),
+			);
+		});
 	}
 
 	/**
@@ -551,96 +554,6 @@ export class SeriesModal extends Modal {
 		setIcon(iconEl, icon);
 		iconEl.addEventListener("click", onClick);
 		makeAccessibleActivatable(iconEl, onClick);
-	}
-
-	/** Obsidian's own chrome (settings-window icon, hiding Obsidian UI, tools panel) plus a second
-	 * box of storyForge's panel-reopen shortcuts. The substitute settings-window row lives on the
-	 * hide-or-show card and only appears while the native settings icon is hidden. */
-	private renderObsidianElementsTab(contentEl: HTMLElement): void {
-		const plugin = this.plugin;
-		const settings = plugin.getSettings();
-
-		const hideUiGroup = new SettingGroup(contentEl);
-		hideUiGroup.addSetting((setting) => {
-			setting.setName("hide, or show, obsidian's interface elements");
-			this.renderHoverIcon(setting, ICON_EYE_DUOTONE, "Choose which Obsidian UI chrome to hide", () =>
-				new HideUiModal(this.app, plugin).open(),
-			);
-		});
-		if (settings.hideObsidianSettingsIcon) {
-			hideUiGroup.addSetting((setting) => {
-				setting.setName("access obsidian's setting window");
-				this.renderHoverIcon(setting, ICON_SETTINGS_ALT, "Open Obsidian's settings window", () =>
-					plugin.openObsidianSettings(),
-				);
-			});
-		}
-
-		const obsidianSettingsGroup = new SettingGroup(contentEl);
-
-		obsidianSettingsGroup.addSetting((setting) => {
-			setting
-				.setName("hide obsidian's standard settings icon")
-				.addToggle((toggle) =>
-					toggle.setValue(settings.hideObsidianSettingsIcon).onChange((value) => {
-						void plugin.updateSetting("hideObsidianSettingsIcon", value).then(() => plugin.applyVisibilityStyles());
-						this.render();
-					}),
-				);
-		});
-
-		obsidianSettingsGroup.addSetting((setting) => {
-			setting
-				.setName("hide ribbon and use tools panel")
-				.addToggle((toggle) =>
-					toggle.setValue(settings.useToolsPanel).onChange(async (value) => {
-						await plugin.updateSetting("useToolsPanel", value);
-						plugin.applyVisibilityStyles();
-						if (value) {
-							void plugin.activateToolsView();
-						} else {
-							this.app.workspace.detachLeavesOfType(TOOLS_VIEW_TYPE);
-						}
-						this.render();
-					}),
-				);
-		});
-
-		// Only meaningful once the Tools panel is actually on — hides that view's own tab icon.
-		if (settings.useToolsPanel) {
-			obsidianSettingsGroup.addSetting((setting) => {
-				setting
-					.setName("hide the tools panel")
-					.addToggle((toggle) =>
-						toggle.setValue(settings.hideToolsPanelIcon).onChange((value) => {
-							void plugin.updateSetting("hideToolsPanelIcon", value).then(() => plugin.applyVisibilityStyles());
-						}),
-					);
-			});
-		}
-
-		const reopenPanelsGroup = new SettingGroup(contentEl);
-		reopenPanelsGroup.setHeading("reopen closed storyforge panels");
-
-		reopenPanelsGroup.addSetting((setting) => {
-			setting
-				.setName("story library panel")
-				.addButton((btn) => btn.setButtonText("reopen").onClick(() => void plugin.activateView()));
-		});
-
-		reopenPanelsGroup.addSetting((setting) => {
-			setting
-				.setName("storytelling panel")
-				.addButton((btn) => btn.setButtonText("reopen").onClick(() => void plugin.activateStorytellingView()));
-		});
-
-		reopenPanelsGroup.addSetting((setting) => {
-			setting
-				.setName("tools panel")
-				.addButton((btn) => btn.setButtonText("reopen").onClick(() => void plugin.activateToolsView()));
-		});
-
-		this.protectionsController.renderWelcomeNoteSection(contentEl);
 	}
 
 	/** titleforge, then named settings (themes / types & tags / threads / preferences together,

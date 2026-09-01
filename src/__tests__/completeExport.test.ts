@@ -23,6 +23,7 @@ const settings = {
 	collapsedPlotChapterKeys: ["book-one/ch1.md"],
 	lastAutomaticBackupAt: 123,
 	storyContextShellApplied: true,
+	welcomeNoteCreatedOnOnboarding: false,
 	automaticBackupEnabled: true,
 } as unknown as StoryForgePluginSettings;
 

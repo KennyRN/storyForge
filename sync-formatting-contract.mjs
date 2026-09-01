@@ -2,7 +2,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const CONTRACT_VERSION = 11;
+const CONTRACT_VERSION = 12;
 const root = dirname(fileURLToPath(import.meta.url));
 const hostApiPath = resolve(root, "src/hostApi.ts");
 const formattingApiPath = resolve(root, "src/formattingApi.ts");

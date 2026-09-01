@@ -9,7 +9,7 @@ These four numbers change independently. Do not smash them into “API v9”:
 | Axis | Current | Meaning |
 |---|---|---|
 | Host API `STORYFORGE_API_VERSION` | **9** | Methods on the host object |
-| Linked-key `STORYFORGE_FORMATTING_CONTRACT_VERSION` | **11** | Shape of the linked-key list |
+| Linked-key `STORYFORGE_FORMATTING_CONTRACT_VERSION` | **12** | Shape of the linked-key list |
 | Export document `FORMATTING_EXPORT_VERSION` | **3** | Portable JSON theme file (owned by formatForge) |
 | Companion `registerCompanion.version` | **1** | formatForge → storyForge callback schema |
 

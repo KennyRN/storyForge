@@ -42,6 +42,7 @@ const LINKED_ENUM_CYCLES: Partial<Record<SfLinkedFormattingKey, readonly string[
 	cyclingGuideFlagSize: ["small", "medium", "large"],
 	cyclingGuideInterval: ["short", "medium", "large"],
 	editorScrollbarThickness: ["thin", "medium", "thick"],
+	recommendSectionChrome: ["box", "pill", "text"],
 };
 
 function nextLinkedValue(key: SfLinkedFormattingKey, current: unknown, round: number): unknown {
@@ -214,6 +215,7 @@ function makeLinkedDefaults(): SettingsBag {
 		recommendSectionTitleColor: "var(--text-muted)",
 		recommendSectionTitleMuted: false,
 		recommendSectionTitleSmallCaps: false,
+		recommendSectionChrome: "box",
 		recommendItemsFontSize: 1,
 		recommendItemsOverrideFont: false,
 		recommendItemsFontFamily: "ibm-plex-sans-var",

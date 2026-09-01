@@ -5,6 +5,7 @@ import {
 	LOREM_PHRASES,
 	chromeCatalog,
 	paintChromeTextPreview,
+	paintOptionSelecteeChromePreview,
 	paintPairedChromePreview,
 	restyleForPrefix,
 	type ChromeRow,
@@ -60,7 +61,12 @@ export function renderInterfaceSizesTab(body: HTMLElement, plugin: StoryForgePlu
 			group.addSetting((setting) => {
 				setting.setName(row.name);
 				bindSizeSlider(setting, plugin, row);
-				markAlignedPreview(setting.settingEl, (slot) => paintChromeTextPreview(slot, plugin, row, sample));
+				if (row.skipPreview) return;
+				if (row.previewKind === "option-selectee") {
+					markAlignedPreview(setting.settingEl, (slot) => paintOptionSelecteeChromePreview(slot, plugin));
+				} else {
+					markAlignedPreview(setting.settingEl, (slot) => paintChromeTextPreview(slot, plugin, row, sample));
+				}
 			});
 		}
 	}

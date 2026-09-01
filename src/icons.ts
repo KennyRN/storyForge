@@ -661,16 +661,26 @@ export const ICON_ARROW_INSERT = "sf-arrow-insert";
 const ARROW_INSERT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M3 6v12" /><path d="M8 12h11.5" /><path d="M15.5 7.5L20 12l-4.5 4.5" /></g></svg>`;
 
 /** User-provided (reicon--setting2.svg) — cog, distinct from ICON_SETTINGS_GEAR's Mage Icons
- * glyph. Used for SeriesModal.ts's "access obsidian's setting window" icon (obsidian elements tab)
- * and TopPanel.ts's series-settings button that opens that same modal. */
+ * glyph. Used for ObsidianElementsModal.ts's "access obsidian's setting window" icon
+ * and TopPanel.ts's series-settings button that opens SeriesModal. */
 export const ICON_SETTINGS_ALT = "sf-settings-alt";
 const SETTINGS_ALT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="10" stroke-width="1.5"><path d="M12 15a3 3 0 1 0 0-6a3 3 0 0 0 0 6" /><path d="M2 12.88v-1.76c0-1.04.85-1.9 1.9-1.9c1.81 0 2.55-1.28 1.64-2.85c-.52-.9-.21-2.07.7-2.59l1.73-.99c.79-.47 1.81-.19 2.28.6l.11.19c.9 1.57 2.38 1.57 3.29 0l.11-.19c.47-.79 1.49-1.07 2.28-.6l1.73.99c.91.52 1.22 1.69.7 2.59c-.91 1.57-.17 2.85 1.64 2.85c1.04 0 1.9.85 1.9 1.9v1.76c0 1.04-.85 1.9-1.9 1.9c-1.81 0-2.55 1.28-1.64 2.85c.52.91.21 2.07-.7 2.59l-1.73.99c-.79.47-1.81.19-2.28-.6l-.11-.19c-.9-1.57-2.38-1.57-3.29 0l-.11.19c-.47.79-1.49 1.07-2.28.6l-1.73-.99a1.9 1.9 0 0 1-.7-2.59c.91-1.57.17-2.85-1.64-2.85c-1.05 0-1.9-.86-1.9-1.9" /></g></svg>`;
 
 /** User-provided (reicon--eye-duotone.svg) — eye, duotone via opacity, distinct from ICON_EYE's
- * Mono Icons glyph and ICON_EYE_OUTLINE's Tabler outline. Used for SeriesModal.ts's "hide, or
- * show, obsidian's interface elements" icon (obsidian elements tab). */
+ * Mono Icons glyph and ICON_EYE_OUTLINE's Tabler outline. Used for ObsidianElementsModal.ts's
+ * hide-or-show row. */
 export const ICON_EYE_DUOTONE = "sf-eye-duotone";
 const EYE_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M2 12c0 1.64.425 2.191 1.275 3.296C4.972 17.5 7.818 20 12 20s7.028-2.5 8.725-4.704C21.575 14.192 22 13.639 22 12c0-1.64-.425-2.191-1.275-3.296C19.028 6.5 16.182 4 12 4S4.972 6.5 3.275 8.704C2.425 9.81 2 10.361 2 12" opacity=".5" /><path fill-rule="evenodd" d="M8.25 12a3.75 3.75 0 1 1 7.5 0a3.75 3.75 0 0 1-7.5 0m1.5 0a2.25 2.25 0 1 1 4.5 0a2.25 2.25 0 0 1-4.5 0" clip-rule="evenodd" /></g></svg>`;
+
+/** User-provided (simple-icons--obsidian.svg) — Obsidian gem. Used for SeriesModal.ts's
+ * "obsidian elements" hover icon (formatting tab). */
+export const ICON_OBSIDIAN = "sf-obsidian";
+const OBSIDIAN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M19.355 18.538a68.967 68.959 0 0 0 1.858-2.954.81.81 0 0 0-.062-.9c-.516-.685-1.504-2.075-2.042-3.362-.553-1.321-.636-3.375-.64-4.377a1.707 1.707 0 0 0-.358-1.05l-3.198-4.064a3.744 3.744 0 0 1-.076.543c-.106.503-.307 1.004-.536 1.5-.134.29-.29.6-.446.914l-.31.626c-.516 1.068-.997 2.227-1.132 3.59-.124 1.26.046 2.73.815 4.481.128.011.257.025.386.044a6.363 6.363 0 0 1 3.326 1.505c.916.79 1.744 1.922 2.415 3.5z"/><path d="M8.199 22.569c.073.012.146.02.22.02.78.024 2.095.092 3.16.29.87.16 2.593.64 4.01 1.055 1.083.316 2.198-.548 2.355-1.664.114-.814.33-1.735.725-2.58l-.01.005c-.67-1.87-1.522-3.078-2.416-3.849a5.295 5.295 0 0 0-2.778-1.257c-1.54-.216-2.952.19-3.84.45.532 2.218.368 4.829-1.425 7.531z"/><path d="M5.533 9.938c-.023.1-.056.197-.098.29L2.82 16.059a1.602 1.602 0 0 0 .313 1.772l4.116 4.24c2.103-3.101 1.796-6.02.836-8.3-.728-1.73-1.832-3.081-2.55-3.831z"/><path d="M9.32 14.01c.615-.183 1.606-.465 2.745-.534-.683-1.725-.848-3.233-.716-4.577.154-1.552.7-2.847 1.235-3.95.113-.235.223-.454.328-.664.149-.297.288-.577.419-.86.217-.47.379-.885.46-1.27.08-.38.08-.72-.014-1.043-.095-.325-.297-.675-.68-1.06a1.6 1.6 0 0 0-1.475.36l-4.95 4.452a1.602 1.602 0 0 0-.513.952l-.427 2.83c.672.59 2.328 2.316 3.335 4.711.09.21.175.43.253.653z"/></g></svg>`;
+
+/** User-provided (reicon--file-text-duotone.svg) — page at half opacity, text lines at full.
+ * Used for SeriesModal.ts's recreate-welcome-note hover icon (general tab). */
+export const ICON_FILE_TEXT_DUOTONE = "sf-file-text-duotone";
+const FILE_TEXT_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M14 22H10C6.229 22 4.343 22 3.172 20.828C2 19.657 2 17.771 2 14V10C2 6.229 2 4.343 3.172 3.172C4.343 2 6.239 2 10.03 2C10.636 2 11.121 2 11.53 2.017C11.517 2.097 11.51 2.178 11.509 2.261L11.5 5.095C11.5 6.192 11.5 7.162 11.605 7.943C11.719 8.79 11.98 9.637 12.672 10.328C13.363 11.02 14.21 11.281 15.057 11.395C15.838 11.5 16.808 11.5 17.905 11.5H21.957C22 12.034 22 12.69 22 13.563V14C22 17.771 22 19.657 20.828 20.828C19.657 22 17.771 22 14 22" opacity=".5"/><path d="M19.352 7.617L15.393 4.054C14.265 3.039 13.701 2.531 13.009 2.266L13 5C13 7.357 13 8.536 13.732 9.268C14.464 10 15.643 10 18 10H21.58C21.218 9.296 20.568 8.712 19.352 7.617" opacity=".5"/><path d="M6 13.75h8a.75.75 0 0 1 0 1.5H6a.75.75 0 0 1 0-1.5M6 17.25h5.5a.75.75 0 0 1 0 1.5H6a.75.75 0 0 1 0-1.5"/></g></svg>`;
 
 /** User-provided (reicon--floppy-duotone.svg) — floppy disk, duotone via opacity. Used for
  * SeriesModal.ts's "themes" and "types & tags" icons (import & export tab). */
@@ -686,7 +696,7 @@ export const ICON_CLOSE_SQUARE_DUOTONE = "sf-close-square-duotone";
 const CLOSE_SQUARE_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M12 22c-4.714 0-7.071 0-8.536-1.465C2 19.072 2 16.714 2 12s0-7.071 1.464-8.536C4.93 2 7.286 2 12 2s7.071 0 8.535 1.464C22 4.93 22 7.286 22 12s0 7.071-1.465 8.535C19.072 22 16.714 22 12 22" opacity=".5"/><path d="M8.97 8.97a.75.75 0 0 1 1.06 0L12 10.94l1.97-1.97a.75.75 0 1 1 1.06 1.06L13.06 12l1.97 1.97a.75.75 0 1 1-1.06 1.06L12 13.06l-1.97 1.97a.75.75 0 0 1-1.06-1.06L10.94 12l-1.97-1.97a.75.75 0 0 1 0-1.06"/></g></svg>`;
 
 /** "fluent-emoji-high-contrast--cross-mark" — Archive's empty-list glyph. Thick X with
- * rounded caps; colour follows currentColor so the empty state can mute it. */
+ * rounded caps; fill follows currentColor so the empty state can match the page and stamp it. */
 export const ICON_X = "sf-x";
 const X_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M0 0h32v32H0z" fill="none" /><path fill="currentColor" d="M24.879 2.879A3 3 0 1 1 29.12 7.12l-8.79 8.79a.125.125 0 0 0 0 .177l8.79 8.79a3 3 0 1 1-4.242 4.243l-8.79-8.79a.125.125 0 0 0-.177 0l-8.79 8.79a3 3 0 1 1-4.243-4.242l8.79-8.79a.125.125 0 0 0 0-.177l-8.79-8.79A3 3 0 0 1 7.12 2.878l8.79 8.79a.125.125 0 0 0 .177 0z"/></svg>`;
 
@@ -746,6 +756,37 @@ const DOCUMENT_PAGE_BREAK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox
  * opens PlotThreadRegistryModal (beside the settings cog on the story library Series tab). */
 export const ICON_PLOT_THREADS = "sf-plot-threads";
 const PLOT_THREADS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M4 2v6H2V2h2M2 22v-6h2v6zm3-10c0 1.11-.89 2-2 2s-2-.89-2-2s.89-2 2-2s2 .89 2 2m19-6v12c0 1.11-.89 2-2 2H10c-1.1 0-2-.89-2-2v-4l-2-2l2-2V6c0-1.11.9-2 2-2h12c1.11 0 2 .89 2 2Z" /></svg>`;
+
+/** Fluent UI (Microsoft) — list-bar-24-filled. Interface modal breadcrumb: list interface editing. */
+export const ICON_LIST_BAR_FILLED = "sf-list-bar-filled";
+const LIST_BAR_FILLED_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M9.5 21H19a2 2 0 0 0 2-2v-1a2 2 0 0 0-2-2H9.5zm0-6.5H19a2 2 0 0 0 2-2v-1a2 2 0 0 0-2-2H9.5zM8 9.5v5H5a2 2 0 0 1-2-2v-1a2 2 0 0 1 2-2zM9.5 8H19a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H9.5zM8 3v5H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm0 13v5H5a2 2 0 0 1-2-2v-1a2 2 0 0 1 2-2z" /></svg>`;
+
+/** Reicon — clipboard-list-filled. Interface modal breadcrumb: story context. Distinct from
+ * ICON_CLIPBOARD_LIST_DUOTONE (Story Context's Details tab). */
+export const ICON_CLIPBOARD_LIST_FILLED = "sf-clipboard-list-filled";
+const CLIPBOARD_LIST_FILLED_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M9.5 2A1.5 1.5 0 0 0 8 3.5v1A1.5 1.5 0 0 0 9.5 6h5A1.5 1.5 0 0 0 16 4.5v-1A1.5 1.5 0 0 0 14.5 2z" /><path fill-rule="evenodd" d="M6.5 4.037c-1.258.07-2.052.27-2.621.84C3 5.756 3 7.17 3 9.998v6c0 2.829 0 4.243.879 5.122c.878.878 2.293.878 5.121.878h6c2.828 0 4.243 0 5.121-.878c.879-.88.879-2.293.879-5.122v-6c0-2.828 0-4.242-.879-5.121c-.569-.57-1.363-.77-2.621-.84V4.5a3 3 0 0 1-3 3h-5a3 3 0 0 1-3-3zM7 9.75a.75.75 0 0 0 0 1.5h.5a.75.75 0 0 0 0-1.5zm3.5 0a.75.75 0 0 0 0 1.5H17a.75.75 0 0 0 0-1.5zM7 13.25a.75.75 0 0 0 0 1.5h.5a.75.75 0 0 0 0-1.5zm3.5 0a.75.75 0 0 0 0 1.5H17a.75.75 0 0 0 0-1.5zM7 16.75a.75.75 0 0 0 0 1.5h.5a.75.75 0 0 0 0-1.5zm3.5 0a.75.75 0 0 0 0 1.5H17a.75.75 0 0 0 0-1.5z" clip-rule="evenodd" /></g></svg>`;
+
+/** Fluent UI (Microsoft) — window-header-horizontal-20-filled. Section chrome: use boxes. */
+export const ICON_WINDOW_HEADER_HORIZONTAL = "sf-window-header-horizontal";
+const WINDOW_HEADER_HORIZONTAL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M0 0h20v20H0z" fill="none" /><path fill="currentColor" fill-rule="evenodd" d="M3 5.5A2.5 2.5 0 0 1 5.5 3h9A2.5 2.5 0 0 1 17 5.5v9a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 3 14.5zM4.5 7v7.5a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V7z" /></svg>`;
+
+/** Fluent UI (Microsoft) — line-horizontal-1-24-filled. Section chrome: use header pill. */
+export const ICON_LINE_HORIZONTAL = "sf-line-horizontal";
+const LINE_HORIZONTAL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M2 12a1 1 0 0 1 1-1h18a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1" /></svg>`;
+
+/** Fluent UI (Microsoft) — text-12-filled. Interface modal breadcrumb: list-mode text. Native
+ * 12-grid so the T reads heavier than sibling 24/32 glyphs in the same CSS box. Also section
+ * chrome: use title text. */
+export const ICON_TEXT_12_FILLED = "sf-text-12-filled";
+const TEXT_12_FILLED_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path d="M0 0h12v12H0z" fill="none" /><path fill="currentColor" d="M2 2.75A.75.75 0 0 1 2.75 2h6a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V3.5H6.5v5h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5H5v-5H3.5v.75a.75.75 0 0 1-1.5 0z" /></svg>`;
+
+/** Fluent UI (Microsoft) — paint-brush-32-filled. Interface modal breadcrumb: list-mode colours. */
+export const ICON_PAINT_BRUSH_FILLED = "sf-paint-brush-filled";
+const PAINT_BRUSH_FILLED_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M0 0h32v32H0z" fill="none" /><path fill="currentColor" d="M17 7V2H7a1 1 0 0 0-1 1v11h20V3a1 1 0 0 0-1-1h-2v7a1 1 0 1 1-2 0V2h-2v5a1 1 0 1 1-2 0m9 9H6v2.75A3.25 3.25 0 0 0 9.25 22H13v5a3 3 0 1 0 6 0v-5h3.75A3.25 3.25 0 0 0 26 18.75z" /></svg>`;
+
+/** Fluent UI (Microsoft) — resize-32-regular. Interface modal breadcrumb: list-mode size. */
+export const ICON_RESIZE = "sf-resize";
+const RESIZE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M0 0h32v32H0z" fill="none" /><path fill="currentColor" d="M13 3H7.5A4.5 4.5 0 0 0 3 7.5V9a1 1 0 0 0 2 0V7.5A2.5 2.5 0 0 1 7.5 5H13a1 1 0 1 0 0-2M5 24.5v-8A2.5 2.5 0 0 1 7.5 14h8a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1-2.5 2.5h-8A2.5 2.5 0 0 1 5 24.5M15.5 29a4.5 4.5 0 0 0 4.5-4.5v-8a4.5 4.5 0 0 0-4.5-4.5h-8A4.5 4.5 0 0 0 3 16.5v8A4.5 4.5 0 0 0 7.5 29zm6.5-1a1 1 0 0 1 1-1h1.5a2.5 2.5 0 0 0 2.5-2.5V19a1 1 0 1 1 2 0v5.5a4.5 4.5 0 0 1-4.5 4.5H23a1 1 0 0 1-1-1m7-15V7.5A4.5 4.5 0 0 0 24.5 3H19a1 1 0 1 0 0 2h5.5A2.5 2.5 0 0 1 27 7.5V13a1 1 0 1 0 2 0" /></svg>`;
 
 /** Registers storyForge's custom Lucide-style icons so `setIcon` can address them by id. */
 export function registerCustomIcons(): void {
@@ -904,6 +945,8 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_ARROW_INSERT, ARROW_INSERT_SVG);
 	addIcon(ICON_SETTINGS_ALT, SETTINGS_ALT_SVG);
 	addIcon(ICON_EYE_DUOTONE, EYE_DUOTONE_SVG);
+	addIcon(ICON_OBSIDIAN, OBSIDIAN_SVG);
+	addIcon(ICON_FILE_TEXT_DUOTONE, FILE_TEXT_DUOTONE_SVG);
 	addIcon(ICON_FLOPPY_DUOTONE, FLOPPY_DUOTONE_SVG);
 	addIcon(ICON_COPY_DUOTONE, COPY_DUOTONE_SVG);
 	addIcon(ICON_CLOSE_SQUARE_DUOTONE, CLOSE_SQUARE_DUOTONE_SVG);
@@ -919,4 +962,11 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_ELEMENT2_FILLED, ELEMENT2_FILLED_SVG);
 	addIcon(ICON_DOCUMENT_PAGE_BREAK, DOCUMENT_PAGE_BREAK_SVG);
 	addIcon(ICON_PLOT_THREADS, PLOT_THREADS_SVG);
+	addIcon(ICON_LIST_BAR_FILLED, LIST_BAR_FILLED_SVG);
+	addIcon(ICON_CLIPBOARD_LIST_FILLED, CLIPBOARD_LIST_FILLED_SVG);
+	addIcon(ICON_WINDOW_HEADER_HORIZONTAL, WINDOW_HEADER_HORIZONTAL_SVG);
+	addIcon(ICON_LINE_HORIZONTAL, LINE_HORIZONTAL_SVG);
+	addIcon(ICON_TEXT_12_FILLED, TEXT_12_FILLED_SVG);
+	addIcon(ICON_PAINT_BRUSH_FILLED, PAINT_BRUSH_FILLED_SVG);
+	addIcon(ICON_RESIZE, RESIZE_SVG);
 }

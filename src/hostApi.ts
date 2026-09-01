@@ -213,6 +213,7 @@ const HEADING_DIVIDER_THICKNESSES = ["thin", "medium", "thick", "extra-thick"] a
 const EDITOR_SCROLLBAR_THICKNESSES = ["thin", "medium", "thick"] as const;
 const CYCLING_GUIDE_FLAG_SIZES = ["small", "medium", "large"] as const;
 const CYCLING_GUIDE_INTERVALS = ["short", "medium", "large"] as const;
+const RECOMMEND_SECTION_CHROMES = ["box", "pill", "text"] as const;
 
 const LINKED_SETTING_VALIDATORS: Record<SfLinkedFormattingKey, ValuePredicate> = {
 	colorPaletteName: isOneOf(...PALETTE_NAMES),
@@ -369,6 +370,7 @@ const LINKED_SETTING_VALIDATORS: Record<SfLinkedFormattingKey, ValuePredicate> =
 	recommendSectionTitleColor: isColorString,
 	recommendSectionTitleMuted: isBoolean,
 	recommendSectionTitleSmallCaps: isBoolean,
+	recommendSectionChrome: isOneOf(...RECOMMEND_SECTION_CHROMES),
 	recommendItemsFontSize: isFiniteNumber,
 	recommendItemsOverrideFont: isBoolean,
 	recommendItemsFontFamily: isString,
@@ -591,6 +593,7 @@ export const LINKED_FORMATTING_KEYS = [
 	"recommendSectionTitleColor",
 	"recommendSectionTitleMuted",
 	"recommendSectionTitleSmallCaps",
+	"recommendSectionChrome",
 	"recommendItemsFontSize",
 	"recommendItemsOverrideFont",
 	"recommendItemsFontFamily",

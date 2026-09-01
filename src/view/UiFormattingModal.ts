@@ -5,18 +5,40 @@ import {
 	bindColorSwatchButton,
 	persistAndRestyle,
 	renderCustomFontCard,
-	renderTabbedBody,
 	mountPlainScroll,
 	type ColorSwatchMutedOption,
-	type StyleModalTab,
 } from "./styleModalHelpers";
 import { resolveThemeMutedColor } from "./PalettePickerModal";
 import { resolveMainThreadRowColor } from "./novelColor";
 import { renderInterfaceFontsTab } from "./interfaceFontsTab";
 import { renderInterfaceColoursTab } from "./interfaceColoursTab";
 import { renderInterfaceSizesTab } from "./interfaceSizesTab";
+import { renderSectionChromePicker } from "./sectionChrome";
 import { mountAlignedPreviewColumn } from "./rowAlignedPreview";
 import { mountRightSidebarPreviewSample, mountStorytellingPreviewSample, mountUiStylePreviewSample, type RightSidebarPreviewMode } from "./uiStylePreviewSample";
+import {
+	isLeafNode,
+	nodeAtPath,
+	renderIconBreadcrumb,
+	type BreadcrumbNode,
+} from "./interfaceBreadcrumb";
+import {
+	ICON_ARCHIVE_FILLED,
+	ICON_BOOK_DUOTONE,
+	ICON_BOOK_OPEN,
+	ICON_BOOK_OPEN_FILLED,
+	ICON_CLIPBOARD_LIST_FILLED,
+	ICON_CODEX,
+	ICON_ELEMENT2_FILLED,
+	ICON_LAYOUT_SELECTOR,
+	ICON_LIST_BAR_FILLED,
+	ICON_NOTEBOOK_DUOTONE,
+	ICON_PAINT_BRUSH_FILLED,
+	ICON_RESIZE,
+	ICON_SERIES,
+	ICON_TEXT_12_FILLED,
+	ICON_UNPLACED,
+} from "../icons";
 
 function mutedSwatch(
 	plugin: StoryForgePlugin,
@@ -34,18 +56,6 @@ function mutedSwatch(
 function previewMainThread(plugin: StoryForgePlugin): { color: string; text: string } {
 	const row = resolveMainThreadRowColor(plugin.app, plugin.getSettings());
 	return { color: row.background, text: row.text };
-}
-
-/** Innermost visible tab pane under a tabbed body (walks nested tab hosts). */
-function leafTabBody(root: HTMLElement): HTMLElement | null {
-	let node: HTMLElement = root;
-	for (;;) {
-		const next: HTMLElement | null = node.querySelector(
-			":scope > .sf-text-style-tab-body-wrapper > .sf-text-style-tab-body:not(.sf-settings-hidden)",
-		);
-		if (!next) return node === root ? null : node;
-		node = next;
-	}
 }
 
 /** The single storyForge interface chrome modal. formatForge adds font pickers via
@@ -80,265 +90,235 @@ export class UiFormattingModal extends Modal {
 
 		const layout = contentEl.createDiv({ cls: "sf-ui-format-layout" });
 		const controls = layout.createDiv({ cls: "sf-ui-format-controls" });
+		const crumbRow = controls.createDiv({ cls: "sf-ui-format-crumb-row" });
+		const crumbBody = controls.createDiv({ cls: "sf-ui-format-crumb-body" });
+		const leafHost = crumbBody.createDiv({ cls: "sf-ui-format-crumb-leaf" });
 		const previewPane = layout.createDiv({ cls: "sf-ui-format-preview-pane" });
 		previewPane.createDiv({ cls: "sf-ui-format-preview-label", text: "Preview" });
 		const preview = previewPane.createDiv({ cls: "sf-ui-format-preview" });
 		const chromePreview = preview.createDiv({ cls: "sf-ui-format-preview-chrome" });
 		const rowPreview = preview.createDiv({ cls: "sf-ui-format-preview-rows sf-settings-hidden" });
-		const storyforgePreview = chromePreview.createDiv();
-		const storytellingPreview = chromePreview.createDiv({ cls: "sf-settings-hidden" });
-		const rightPreview = chromePreview.createDiv({ cls: "sf-settings-hidden" });
-		mountUiStylePreviewSample(storyforgePreview);
-		mountStorytellingPreviewSample(storytellingPreview);
-		mountRightSidebarPreviewSample(rightPreview, "chrome", previewMainThread(this.plugin));
 
-		const contextTabs: StyleModalTab[] = [
+		const tree: BreadcrumbNode[] = [
 			{
-				id: "novel",
-				label: "Novel",
-				render: (body) => this.renderContextNovelContent(body, settings),
+				id: "visual",
+				label: "visual interface editing",
+				icon: ICON_ELEMENT2_FILLED,
+				children: [
+					{
+						id: "storyforge",
+						label: "storyforge",
+						icon: ICON_SERIES,
+						children: [
+							{
+								id: "series",
+								label: "series",
+								icon: ICON_SERIES,
+								render: (body) => {
+									this.renderTitleStyleGroup(body, settings, {
+										labelPrefix: "",
+										sizeKey: "librarySeriesTitleFontSize",
+										colorKey: "librarySeriesTitleColor",
+										smallCapsKey: "librarySeriesTitleSmallCaps",
+										overrideFontKey: "librarySeriesTitleOverrideFont",
+										fontFamilyKey: "librarySeriesTitleFontFamily",
+										fontWeightKey: "librarySeriesTitleFontWeight",
+										restyle: () => this.plugin.applyLibraryHeaderStyles(),
+										mergeFont: true,
+									});
+								},
+							},
+							{
+								id: "library",
+								label: "library",
+								icon: ICON_BOOK_DUOTONE,
+								render: (body) => {
+									this.renderPanelColourGroup(body, settings, {
+										colorKey: "libraryItemsColor",
+										mutedKey: "libraryItemsMuted",
+										highlightTextKey: "highlightTextColor",
+										restyle: () => {
+											this.plugin.applyLibraryHeaderStyles();
+											this.plugin.applyHighlightStyle();
+											this.plugin.applyStorytellingItemsStyle();
+										},
+									});
+									this.renderTitleStyleGroup(body, settings, {
+										labelPrefix: "novels",
+										sizeKey: "libraryBookTitleFontSize",
+										smallCapsKey: "libraryBookTitleSmallCaps",
+										overrideFontKey: "libraryBookTitleOverrideFont",
+										fontFamilyKey: "libraryBookTitleFontFamily",
+										fontWeightKey: "libraryBookTitleFontWeight",
+										restyle: () => this.plugin.applyLibraryHeaderStyles(),
+										mergeFont: true,
+									});
+									this.renderSubtitleStyleGroup(body, settings);
+									this.renderLibraryItemsGroup(body, settings);
+								},
+							},
+							{
+								id: "unplaced",
+								label: "unplaced",
+								icon: ICON_UNPLACED,
+								render: (body) => this.renderUnplacedPanelContent(body, settings),
+							},
+							{
+								id: "codex",
+								label: "codex",
+								icon: ICON_CODEX,
+								render: (body) => this.renderCodexPanelContent(body, settings),
+							},
+						],
+					},
+					{
+						id: "storytelling",
+						label: "storytelling",
+						icon: ICON_BOOK_OPEN,
+						render: (body) => {
+							const scroll = mountPlainScroll(body);
+							this.renderStorytellingPanelContent(scroll, settings);
+						},
+					},
+					{
+						id: "story-context",
+						label: "story context",
+						icon: ICON_CLIPBOARD_LIST_FILLED,
+						children: [
+							{
+								id: "chrome",
+								label: "navigation",
+								icon: ICON_LAYOUT_SELECTOR,
+								render: (body) => this.renderPanelChromeContent(body, settings),
+							},
+							{
+								id: "novel",
+								label: "novel",
+								icon: ICON_BOOK_DUOTONE,
+								render: (body) => this.renderContextNovelContent(body, settings),
+							},
+							{
+								id: "box",
+								label: "chapter",
+								icon: ICON_BOOK_OPEN_FILLED,
+								render: (body) => this.renderContextBoxContent(body, settings),
+							},
+							{
+								id: "details",
+								label: "dossier",
+								icon: ICON_NOTEBOOK_DUOTONE,
+								render: (body) => this.renderContextDossierContent(body, settings),
+							},
+							{
+								id: "archive",
+								label: "archive",
+								icon: ICON_ARCHIVE_FILLED,
+								render: (body) => this.renderRightRailPanelContent(body, settings),
+							},
+						],
+					},
+				],
 			},
 			{
-				id: "box",
-				label: "Chapter",
-				render: (body) => this.renderContextBoxContent(body, settings),
-			},
-			{
-				id: "details",
-				label: "Dossier",
-				render: (body) => this.renderContextDossierContent(body, settings),
+				id: "list",
+				label: "list interface editing",
+				icon: ICON_LIST_BAR_FILLED,
+				children: [
+					{
+						id: "text",
+						label: "text",
+						icon: ICON_TEXT_12_FILLED,
+						render: (body) => renderInterfaceFontsTab(body, this.plugin),
+					},
+					{
+						id: "colours",
+						label: "colours",
+						icon: ICON_PAINT_BRUSH_FILLED,
+						render: (body) => renderInterfaceColoursTab(body, this.plugin),
+					},
+					{
+						id: "size",
+						label: "size",
+						icon: ICON_RESIZE,
+						render: (body) => renderInterfaceSizesTab(body, this.plugin),
+					},
+				],
 			},
 		];
 
-		let contextTabId = "novel";
-		let rightTabId = "chrome";
-		let rightPreviewMode: RightSidebarPreviewMode = "chrome";
-		const setRightPreviewMode = (mode: RightSidebarPreviewMode) => {
-			rightPreviewMode = mode;
-			if (!rightPreview.hasClass("sf-settings-hidden")) {
-				mountRightSidebarPreviewSample(
-					rightPreview,
-					rightPreviewMode,
-					previewMainThread(this.plugin),
-				);
-			}
+		const clearPreview = () => {
+			this.disposeRowPreview?.();
+			this.disposeRowPreview = null;
+			chromePreview.empty();
+			rowPreview.empty();
+			rowPreview.addClass("sf-settings-hidden");
+			chromePreview.removeClass("sf-settings-hidden");
+			preview.removeClass("is-row-aligned");
 		};
 
-		const rightTabs: StyleModalTab[] = [
-			{
-				id: "chrome",
-				label: "Navigation",
-				render: (body) => this.renderPanelChromeContent(body, settings),
-			},
-			{
-				id: "story-context",
-				label: "Story Context",
-				render: (body) =>
-					renderTabbedBody(body, contextTabs, {
-						onActivate: (id) => {
-							contextTabId = id;
-							if (rightTabId === "story-context") {
-								setRightPreviewMode(id as RightSidebarPreviewMode);
-							}
-						},
-					}),
-			},
-			{
-				id: "archive",
-				label: "Archive",
-				render: (body) => this.renderRightRailPanelContent(body, settings),
-			},
-		];
-
-		const panelTabs: StyleModalTab[] = [
-			{
-				id: "series",
-				label: "Series",
-				render: (body) => {
-					this.renderTitleStyleGroup(body, settings, {
-						labelPrefix: "",
-						sizeKey: "librarySeriesTitleFontSize",
-						colorKey: "librarySeriesTitleColor",
-						smallCapsKey: "librarySeriesTitleSmallCaps",
-						overrideFontKey: "librarySeriesTitleOverrideFont",
-						fontFamilyKey: "librarySeriesTitleFontFamily",
-						fontWeightKey: "librarySeriesTitleFontWeight",
-						restyle: () => this.plugin.applyLibraryHeaderStyles(),
-						mergeFont: true,
-					});
-				},
-			},
-			{
-				id: "library",
-				label: "Library",
-				render: (body) => {
-					this.renderPanelColourGroup(body, settings, {
-						colorKey: "libraryItemsColor",
-						mutedKey: "libraryItemsMuted",
-						highlightTextKey: "highlightTextColor",
-						restyle: () => {
-							this.plugin.applyLibraryHeaderStyles();
-							this.plugin.applyHighlightStyle();
-							this.plugin.applyStorytellingItemsStyle();
-						},
-					});
-					this.renderTitleStyleGroup(body, settings, {
-						labelPrefix: "novels",
-						sizeKey: "libraryBookTitleFontSize",
-						smallCapsKey: "libraryBookTitleSmallCaps",
-						overrideFontKey: "libraryBookTitleOverrideFont",
-						fontFamilyKey: "libraryBookTitleFontFamily",
-						fontWeightKey: "libraryBookTitleFontWeight",
-						restyle: () => this.plugin.applyLibraryHeaderStyles(),
-						mergeFont: true,
-					});
-					this.renderSubtitleStyleGroup(body, settings);
-					this.renderLibraryItemsGroup(body, settings);
-				},
-			},
-			{
-				id: "unplaced",
-				label: "Unplaced",
-				render: (body) => {
-					this.renderUnplacedPanelContent(body, settings);
-				},
-			},
-			{
-				id: "codex",
-				label: "Codex",
-				render: (body) => {
-					this.renderCodexPanelContent(body, settings);
-				},
-			},
-		];
-
-		const visualTabs: StyleModalTab[] = [
-			{
-				id: "storyforge",
-				label: "storyforge",
-				render: (body) => renderTabbedBody(body, panelTabs),
-			},
-			{
-				id: "storytelling",
-				label: "storytelling",
-				render: (body) => {
-					const scroll = mountPlainScroll(body);
-					this.renderStorytellingPanelContent(scroll, settings);
-				},
-			},
-			{
-				id: "story-context",
-				label: "story context",
-				render: (body) =>
-					renderTabbedBody(body, rightTabs, {
-						onActivate: (id) => {
-							rightTabId = id;
-							setRightPreviewMode(
-								(id === "story-context" ? contextTabId : id) as RightSidebarPreviewMode,
-							);
-						},
-					}),
-			},
-		];
-
-		const listTabs: StyleModalTab[] = [
-			{
-				id: "text",
-				label: "text",
-				render: (body) => renderInterfaceFontsTab(body, this.plugin),
-			},
-			{
-				id: "colours",
-				label: "colours",
-				render: (body) => renderInterfaceColoursTab(body, this.plugin),
-			},
-			{
-				id: "size",
-				label: "size",
-				render: (body) => renderInterfaceSizesTab(body, this.plugin),
-			},
-		];
-
-		let topId = "visual";
-		let visualId = "storyforge";
-
-		const showVisualPreview = () => {
-			chromePreview.removeClass("sf-settings-hidden");
+		const showVisualPreview = (path: string[]) => {
 			rowPreview.addClass("sf-settings-hidden");
+			rowPreview.empty();
+			chromePreview.removeClass("sf-settings-hidden");
 			preview.removeClass("is-row-aligned");
 			this.disposeRowPreview?.();
 			this.disposeRowPreview = null;
-			storyforgePreview.toggleClass("sf-settings-hidden", visualId !== "storyforge");
-			storytellingPreview.toggleClass("sf-settings-hidden", visualId !== "storytelling");
-			rightPreview.toggleClass("sf-settings-hidden", visualId !== "story-context");
-			if (visualId === "story-context") {
-				mountRightSidebarPreviewSample(
-					rightPreview,
-					rightPreviewMode,
-					previewMainThread(this.plugin),
-				);
+			chromePreview.empty();
+			const visualId = path[1];
+			if (visualId === "storyforge") {
+				mountUiStylePreviewSample(chromePreview);
+			} else if (visualId === "storytelling") {
+				mountStorytellingPreviewSample(chromePreview);
+			} else if (visualId === "story-context") {
+				const mode = (path[2] as RightSidebarPreviewMode | undefined) ?? "chrome";
+				mountRightSidebarPreviewSample(chromePreview, mode, previewMainThread(this.plugin));
 			}
 		};
 
-		const showListPreview = () => {
+		const showListPreview = (sourcesRoot: HTMLElement) => {
 			chromePreview.addClass("sf-settings-hidden");
+			chromePreview.empty();
 			rowPreview.removeClass("sf-settings-hidden");
 			preview.addClass("is-row-aligned");
 			this.disposeRowPreview?.();
-			this.disposeRowPreview = null;
-			const sourcesRoot = leafTabBody(controls);
-			if (sourcesRoot) this.disposeRowPreview = mountAlignedPreviewColumn(rowPreview, sourcesRoot);
+			this.disposeRowPreview = mountAlignedPreviewColumn(rowPreview, sourcesRoot);
 		};
 
-		renderTabbedBody(
-			controls,
-			[
-				{
-					id: "visual",
-					label: "visual interface editing",
-					render: (body) =>
-						renderTabbedBody(body, visualTabs, {
-							onActivate: (id) => {
-								visualId = id;
-								if (topId === "visual") showVisualPreview();
-							},
-						}),
-				},
-				{
-					id: "list",
-					label: "list interface editing",
-					render: (body) =>
-						renderTabbedBody(body, listTabs, {
-							onActivate: () => {
-								if (topId === "list") showListPreview();
-							},
-						}),
-				},
-			],
-			{
-				onActivate: (id) => {
-					topId = id;
-					if (id === "list") showListPreview();
-					else showVisualPreview();
-				},
-			},
-		);
+		let path: string[] = [];
+		const applyPath = (next: string[]) => {
+			const same = next.length === path.length && next.every((id, i) => id === path[i]);
+			path = next;
+			renderIconBreadcrumb(crumbRow, tree, path, applyPath);
+			if (same && leafHost.childElementCount > 0) return;
+			leafHost.empty();
+			leafHost.removeClass("sf-ui-format-plain-scroll-host");
+			crumbBody.removeClass("sf-ui-format-plain-scroll-wrap");
+			const leaf = nodeAtPath(tree, path);
+			if (isLeafNode(leaf) && leaf.render) {
+				leaf.render(leafHost);
+				if (path[0] === "list") showListPreview(leafHost);
+				else showVisualPreview(path);
+			} else {
+				clearPreview();
+			}
+		};
+		applyPath([]);
 	}
 
 	/**
-	 * Shared by Unplaced/Codex/Archive: header size, font, and small caps.
+	 * Shared by Unplaced/Archive: header size, font, and small caps.
 	 * Panel colour lives on `renderPanelColourGroup` instead.
 	 */
 	private renderHeaderStyleGroup(
 		body: HTMLElement,
 		settings: StoryForgePluginSettings,
 		config: {
-			sizeKey: "unplacedFontSize" | "codexFontSize" | "archiveHeaderFontSize";
-			smallCapsKey: "unplacedSmallCaps" | "codexSmallCaps" | "archiveHeaderSmallCaps";
+			sizeKey: "unplacedFontSize" | "archiveHeaderFontSize";
+			smallCapsKey: "unplacedSmallCaps" | "archiveHeaderSmallCaps";
 			fontKeys: {
-				overrideFontKey: "unplacedOverrideFont" | "codexOverrideFont" | "archiveHeaderOverrideFont";
-				fontFamilyKey: "unplacedFontFamily" | "codexFontFamily" | "archiveHeaderFontFamily";
-				fontWeightKey: "unplacedFontWeight" | "codexFontWeight" | "archiveHeaderFontWeight";
+				overrideFontKey: "unplacedOverrideFont" | "archiveHeaderOverrideFont";
+				fontFamilyKey: "unplacedFontFamily" | "archiveHeaderFontFamily";
+				fontWeightKey: "unplacedFontWeight" | "archiveHeaderFontWeight";
 			};
 			restyle: () => void;
 		},
@@ -379,9 +359,9 @@ export class UiFormattingModal extends Modal {
 	}
 
 	/**
-	 * The single colour option for Library / Unplaced / Codex: one swatch (plus muted) and the
-	 * highlight-text swatch that sits with it. Series title keeps its own colour; everything else
-	 * in the panel (book titles, items, folders, notes, highlight background) follows this one.
+	 * Library / Unplaced / Codex / Archive: primary fill and highlight-text in one table row,
+	 * same primary/text columns as list → colours. Series title keeps its own colour; everything
+	 * else in the panel (book titles, items, folders, notes, highlight background) follows this.
 	 */
 	private renderPanelColourGroup(
 		body: HTMLElement,
@@ -396,32 +376,50 @@ export class UiFormattingModal extends Modal {
 	): void {
 		const group = new SettingGroup(body);
 		if (config.heading) group.setHeading(config.heading);
-		group
-			.addSetting((setting) => {
-				setting.setName("Colour").addButton((button) =>
-					bindColorSwatchButton(
-						this.app,
-						this.plugin,
-						button.buttonEl,
-						settings[config.colorKey],
-						(hex) => {
-							void this.plugin.updateSetting(config.colorKey, hex).then(() => config.restyle());
-						},
-						undefined,
-						mutedSwatch(this.plugin, config.mutedKey, settings[config.mutedKey], config.restyle),
-					),
-				);
-			})
-			.addSetting((setting) => {
-				setting.setName("Highlight text colour").addButton((button) =>
-					bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings[config.highlightTextKey], (hex) => {
-						void this.plugin.updateSetting(config.highlightTextKey, hex).then(() => {
-							this.plugin.applyHighlightStyle();
-							config.restyle();
-						});
-					}),
-				);
+		const table = group.listEl.createEl("table", { cls: "sf-box-colour-table" });
+		const headRow = table.createEl("thead").createEl("tr");
+		headRow.createEl("th");
+		headRow.createEl("th", { text: "primary" });
+		headRow.createEl("th", { text: "text" });
+		const tr = table.createEl("tbody").createEl("tr");
+		tr.createEl("th", { attr: { scope: "row" } });
+		this.bindPanelColourSwatch(tr.createEl("td"), settings, config, "primary");
+		this.bindPanelColourSwatch(tr.createEl("td"), settings, config, "text");
+	}
+
+	private bindPanelColourSwatch(
+		cell: HTMLElement,
+		settings: StoryForgePluginSettings,
+		config: {
+			colorKey: "libraryItemsColor" | "unplacedColor" | "codexColor" | "archiveHeaderColor";
+			mutedKey: "libraryItemsMuted" | "unplacedMuted" | "codexMuted" | "archiveHeaderMuted";
+			highlightTextKey: "highlightTextColor" | "unplacedHighlightTextColor" | "codexHighlightTextColor" | "archiveHighlightTextColor";
+			restyle: () => void;
+		},
+		role: "primary" | "text",
+	): void {
+		const button = cell.createEl("button", { attr: { type: "button" } });
+		if (role === "primary") {
+			bindColorSwatchButton(
+				this.app,
+				this.plugin,
+				button,
+				settings[config.colorKey],
+				(hex) => {
+					void this.plugin.updateSetting(config.colorKey, hex).then(() => config.restyle());
+				},
+				undefined,
+				mutedSwatch(this.plugin, config.mutedKey, settings[config.mutedKey], config.restyle),
+			);
+		} else {
+			bindColorSwatchButton(this.app, this.plugin, button, settings[config.highlightTextKey], (hex) => {
+				void this.plugin.updateSetting(config.highlightTextKey, hex).then(() => {
+					this.plugin.applyHighlightStyle();
+					config.restyle();
+				});
 			});
+		}
+		button.setAttr("aria-label", `${role} colour`);
 	}
 
 	private renderTitleStyleGroup(
@@ -730,16 +728,6 @@ export class UiFormattingModal extends Modal {
 				this.plugin.applyCodexNoteLabelStyle();
 			},
 		});
-		this.renderHeaderStyleGroup(body, settings, {
-			sizeKey: "codexFontSize",
-			smallCapsKey: "codexSmallCaps",
-			fontKeys: {
-				overrideFontKey: "codexOverrideFont",
-				fontFamilyKey: "codexFontFamily",
-				fontWeightKey: "codexFontWeight",
-			},
-			restyle: () => this.plugin.applyHeaderStyles(),
-		});
 
 		const codexNoteGroup = new SettingGroup(body);
 		const codexNoteRestyle = () => {
@@ -990,6 +978,7 @@ export class UiFormattingModal extends Modal {
 		settings: StoryForgePluginSettings,
 	): void {
 		const restyle = () => this.restyleRightRail();
+		renderSectionChromePicker(body.createDiv(), this.plugin, { restyle });
 		body.createEl("h3", { cls: "sf-settings-section-h4", text: "Chapter" });
 
 		this.renderTitleStyleGroup(body, settings, {

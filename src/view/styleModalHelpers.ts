@@ -279,6 +279,8 @@ export interface FontCardExtras {
 	onSettingEl?: (settingEl: HTMLElement) => void;
 	/** Render the setting into this node instead of a SettingGroup (e.g. half of a split row). */
 	parent?: HTMLElement;
+	/** Skip the setting name; used when the name lives in a neighbouring table cell. */
+	omitName?: boolean;
 }
 
 export function renderCustomFontCard(
@@ -330,7 +332,7 @@ export function renderCustomFontCard(
 		let colorHideEl: HTMLElement | undefined;
 		addSetting((setting) => {
 			setting.settingEl.addClass("sf-font-row");
-			setting.setName(colour ? "Text colour" : rowName);
+			if (!extras?.omitName) setting.setName(colour ? "Text colour" : rowName);
 			if (colour) {
 				colorHideEl = setting.settingEl;
 				bindColour(setting);
@@ -383,7 +385,7 @@ export function renderCustomFontCard(
 	let colorHideEl: HTMLElement | undefined;
 	addSetting((setting) => {
 		setting.settingEl.addClass("sf-font-row");
-		setting.setName(rowName);
+		if (!extras?.omitName) setting.setName(rowName);
 		setting.addButton((button) => {
 			pickButtonEl = button.buttonEl;
 			syncPickLabel();
@@ -425,9 +427,8 @@ export interface StyleModalTab {
 	render: (body: HTMLElement) => void;
 }
 
-/** Builds the tab bar + body-visibility wiring shared by TextStyleModal,
- * UiFormattingModal, and ProtectionsModal — identical in all three before
- * this extraction. */
+/** Builds the tab bar + body-visibility wiring shared by TextStyleModal
+ * and ProtectionsModal — identical in both before this extraction. */
 export function renderTabbedBody(
 	contentEl: HTMLElement,
 	tabs: StyleModalTab[],

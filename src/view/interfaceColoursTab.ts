@@ -11,6 +11,7 @@ import {
 } from "./styleModalHelpers";
 import { resolveThemeMutedColor } from "./PalettePickerModal";
 import { markAlignedPreview, refreshAlignedPreview } from "./rowAlignedPreview";
+import { mountSectionChromePickerOutsideBox, resolveTitleShadow } from "./sectionChrome";
 
 function mutedSwatch(
 	plugin: StoryForgePlugin,
@@ -43,13 +44,22 @@ interface ColourRow {
 	onMainPick?: (plugin: StoryForgePlugin, hex: string, restyle: () => void) => void;
 	mainMutedOption?: (plugin: StoryForgePlugin, restyle: () => void) => ColorSwatchMutedOption;
 	mainLeading?: (plugin: StoryForgePlugin, restyle: () => void) => ColorSwatchLeadingOption;
-	/** Render this row and `pair` on one line (label + swatch, then label + swatch). */
-	pair?: ColourRow;
+	/** Combined `option: selectee` preview, kept on this row. */
+	preview?: "option-selectee";
+	skipPreview?: boolean;
+	/** Story Context section card; follows box / header-pill / title-text chrome. */
+	sectionChrome?: boolean;
 }
 
 interface ColourSection {
 	heading: string;
 	rows: ColourRow[];
+	/** First swatch column header. Omit to hide that column. */
+	mainHeader?: "primary" | "main";
+	/** Text swatch column. Default true; set false for main-only tables. */
+	textHeader?: boolean;
+	splitPreview?: boolean;
+	chromePicker?: boolean;
 }
 
 function panelRestyle(plugin: StoryForgePlugin): void {
@@ -75,7 +85,9 @@ function railRestyle(plugin: StoryForgePlugin): void {
 function catalog(): ColourSection[] {
 	return [
 		{
-			heading: "Series",
+			heading: "storyforge panel",
+			mainHeader: "primary",
+			splitPreview: true,
 			rows: [
 				{
 					label: "Series title",
@@ -86,11 +98,6 @@ function catalog(): ColourSection[] {
 					},
 					effectiveMain: (s) => s.librarySeriesTitleColor,
 				},
-			],
-		},
-		{
-			heading: "Library",
-			rows: [
 				{
 					label: "Library",
 					mainKey: "libraryItemsColor",
@@ -100,11 +107,6 @@ function catalog(): ColourSection[] {
 					effectiveMain: (s) => mutedOr(s.libraryItemsColor, s.libraryItemsMuted),
 					effectiveText: (s) => s.highlightTextColor,
 				},
-			],
-		},
-		{
-			heading: "Unplaced",
-			rows: [
 				{
 					label: "Unplaced",
 					mainKey: "unplacedColor",
@@ -114,11 +116,6 @@ function catalog(): ColourSection[] {
 					effectiveMain: (s) => mutedOr(s.unplacedColor, s.unplacedMuted),
 					effectiveText: (s) => s.unplacedHighlightTextColor,
 				},
-			],
-		},
-		{
-			heading: "Codex",
-			rows: [
 				{
 					label: "Codex",
 					mainKey: "codexColor",
@@ -132,9 +129,11 @@ function catalog(): ColourSection[] {
 		},
 		{
 			heading: "storytelling",
+			mainHeader: "primary",
+			splitPreview: true,
 			rows: [
 				{
-					label: "storyTelling items",
+					label: "storytelling",
 					mainKey: "storytellingItemsColor",
 					textKey: "storytellingHighlightTextColor",
 					restyle: panelRestyle,
@@ -188,6 +187,8 @@ function catalog(): ColourSection[] {
 		},
 		{
 			heading: "Navigation",
+			mainHeader: "main",
+			textHeader: false,
 			rows: [
 				{
 					label: "Active tab icons",
@@ -236,18 +237,20 @@ function catalog(): ColourSection[] {
 			heading: "Chapter",
 			rows: [
 				{
-					label: "Option",
+					label: "option",
 					mainKey: "recommendMetaLabelColor",
 					mainMutedKey: "recommendMetaLabelMuted",
 					restyle: railRestyle,
 					effectiveMain: (s) => mutedOr(s.recommendMetaLabelColor, s.recommendMetaLabelMuted),
-					pair: {
-						label: "Selectee",
-						mainKey: "recommendMetaControlColor",
-						mainMutedKey: "recommendMetaControlMuted",
-						restyle: railRestyle,
-						effectiveMain: (s) => mutedOr(s.recommendMetaControlColor, s.recommendMetaControlMuted),
-					},
+					preview: "option-selectee",
+				},
+				{
+					label: "selectee",
+					mainKey: "recommendMetaControlColor",
+					mainMutedKey: "recommendMetaControlMuted",
+					restyle: railRestyle,
+					effectiveMain: (s) => mutedOr(s.recommendMetaControlColor, s.recommendMetaControlMuted),
+					skipPreview: true,
 				},
 				{
 					label: "Synopsis",
@@ -259,6 +262,8 @@ function catalog(): ColourSection[] {
 		},
 		{
 			heading: "Sections",
+			mainHeader: "main",
+			chromePicker: true,
 			rows: [
 				{
 					label: "Labels",
@@ -283,6 +288,7 @@ function catalog(): ColourSection[] {
 					restyle: railRestyle,
 					effectiveMain: (s) => mutedOr(s.recommendUnknownColor, s.recommendUnknownMuted),
 					effectiveText: (s) => mutedOr(s.recommendUnknownHeaderColor, s.recommendUnknownHeaderMuted),
+					sectionChrome: true,
 				},
 				{
 					label: "Details to capture",
@@ -293,6 +299,7 @@ function catalog(): ColourSection[] {
 					restyle: railRestyle,
 					effectiveMain: (s) => mutedOr(s.recommendCaptureColor, s.recommendCaptureMuted),
 					effectiveText: (s) => mutedOr(s.recommendCaptureHeaderColor, s.recommendCaptureHeaderMuted),
+					sectionChrome: true,
 				},
 				{
 					label: "Holding area",
@@ -303,6 +310,7 @@ function catalog(): ColourSection[] {
 					restyle: railRestyle,
 					effectiveMain: (s) => mutedOr(s.recommendHoldingColor, s.recommendHoldingMuted),
 					effectiveText: (s) => mutedOr(s.recommendHoldingHeaderColor, s.recommendHoldingHeaderMuted),
+					sectionChrome: true,
 				},
 				{
 					label: "Resolved",
@@ -313,6 +321,7 @@ function catalog(): ColourSection[] {
 					restyle: railRestyle,
 					effectiveMain: (s) => mutedOr(s.recommendResolvedColor, s.recommendResolvedMuted),
 					effectiveText: (s) => mutedOr(s.recommendResolvedHeaderColor, s.recommendResolvedHeaderMuted),
+					sectionChrome: true,
 				},
 			],
 		},
@@ -330,6 +339,7 @@ function catalog(): ColourSection[] {
 		},
 		{
 			heading: "Archive",
+			mainHeader: "main",
 			rows: [
 				{
 					label: "Archive",
@@ -375,13 +385,12 @@ function bindSwatch(
 	button.setAttr("aria-label", `${label} ${role} colour`);
 }
 
-function bindRowTextSwatch(plugin: StoryForgePlugin, cell: HTMLElement, row: ColourRow): void {
-	const restyle = () => row.restyle(plugin);
+function bindRowMainSwatch(plugin: StoryForgePlugin, cell: HTMLElement, row: ColourRow, restyle: () => void): void {
 	bindSwatch(
 		plugin,
 		cell,
 		row.label,
-		"text",
+		"main",
 		row.mainKey,
 		row.mainMutedKey,
 		restyle,
@@ -443,6 +452,11 @@ function cssPrefixForColour(row: ColourRow): string | undefined {
 	}
 }
 
+function paintPlainSample(slot: HTMLElement, text: string, color: string, type: Record<string, string>): void {
+	const sample = slot.createDiv({ cls: "sf-row-preview-sample", text });
+	sample.setCssStyles({ color, ...type });
+}
+
 function paintColourPreview(slot: HTMLElement, plugin: StoryForgePlugin, row: ColourRow): void {
 	const s = plugin.getSettings();
 	slot.empty();
@@ -455,86 +469,88 @@ function paintColourPreview(slot: HTMLElement, plugin: StoryForgePlugin, row: Co
 		return;
 	}
 	if (!row.textKey || !row.effectiveText) {
+		paintPlainSample(slot, row.label, color, type);
+		return;
+	}
+	const textColor = row.effectiveText(s, plugin);
+	if (row.sectionChrome && s.recommendSectionChrome === "text") {
 		const sample = slot.createDiv({ cls: "sf-row-preview-sample", text: row.label });
-		sample.setCssStyles({ color, ...type });
+		sample.setCssStyles({
+			color: textColor,
+			textShadow: resolveTitleShadow(slot.ownerDocument, textColor, color),
+			...type,
+		});
 		return;
 	}
 	const pill = slot.createDiv({ cls: "sf-row-preview-pill", text: row.label });
+	pill.toggleClass("is-header-pill", !!row.sectionChrome && s.recommendSectionChrome === "pill");
 	pill.setCssStyles({
 		backgroundColor: color,
-		color: row.effectiveText(s, plugin),
+		color: textColor,
 		...type,
 	});
 }
 
-function paintPairedColourPreview(slot: HTMLElement, plugin: StoryForgePlugin, left: ColourRow, right: ColourRow): void {
+function paintSplitPreview(slot: HTMLElement, plugin: StoryForgePlugin, row: ColourRow): void {
+	const s = plugin.getSettings();
 	slot.empty();
-	slot.addClass("sf-row-preview-pair");
-	paintColourPreview(slot.createDiv({ cls: "sf-row-preview-pair-half" }), plugin, left);
-	paintColourPreview(slot.createDiv({ cls: "sf-row-preview-pair-half" }), plugin, right);
+	slot.addClass("sf-row-preview-split");
+	const type = previewTypeStyles(cssPrefixForColour(row));
+	paintPlainSample(slot.createDiv({ cls: "sf-row-preview-split-primary" }), row.label, row.effectiveMain(s, plugin), type);
+	paintColourPreview(slot.createDiv({ cls: "sf-row-preview-split-box" }), plugin, row);
 }
 
-function renderColourPairRow(parent: HTMLElement, plugin: StoryForgePlugin, left: ColourRow, right: ColourRow): void {
-	const pairEl = parent.createDiv({ cls: "sf-meta-pair-row sf-meta-pair-row--colours" });
-	for (const row of [left, right]) {
-		const half = pairEl.createDiv({ cls: "sf-meta-pair-half" });
-		half.createSpan({ cls: "sf-meta-pair-label", text: row.label });
-		bindRowTextSwatch(plugin, half, row);
-	}
-	markAlignedPreview(pairEl, (slot) => paintPairedColourPreview(slot, plugin, left, right));
+function paintOptionSelecteePreview(slot: HTMLElement, plugin: StoryForgePlugin): void {
+	const s = plugin.getSettings();
+	slot.empty();
+	const line = slot.createDiv({ cls: "sf-row-preview-sample" });
+	const optionColor = mutedOr(s.recommendMetaLabelColor, s.recommendMetaLabelMuted);
+	const selecteeColor = mutedOr(s.recommendMetaControlColor, s.recommendMetaControlMuted);
+	const optionType = previewTypeStyles("--sf-recommend-meta-label");
+	const selecteeType = previewTypeStyles("--sf-recommend-meta-control");
+	const option = line.createSpan({ text: "option" });
+	option.setCssStyles({ color: optionColor, ...optionType });
+	const colon = line.createSpan({ text: ": " });
+	colon.setCssStyles({ color: optionColor, ...optionType });
+	const selectee = line.createSpan({ text: "selectee" });
+	selectee.setCssStyles({ color: selecteeColor, ...selecteeType });
 }
 
-function renderPlainColourRow(parent: HTMLElement, plugin: StoryForgePlugin, row: ColourRow): void {
-	const el = parent.createDiv({ cls: "sf-colour-plain-row" });
-	el.createSpan({ cls: "sf-meta-pair-label", text: row.label });
-	bindRowTextSwatch(plugin, el, row);
-	markAlignedPreview(el, (slot) => paintColourPreview(slot, plugin, row));
+function swatchInMainColumn(row: ColourRow): boolean {
+	return !!(row.icon || row.textKey);
 }
 
-function renderColourTable(parent: HTMLElement, plugin: StoryForgePlugin, rows: ColourRow[]): void {
+function swatchInTextColumn(row: ColourRow): boolean {
+	return !row.icon;
+}
+
+function renderColourTable(parent: HTMLElement, plugin: StoryForgePlugin, section: ColourSection): void {
 	const table = parent.createEl("table", { cls: "sf-box-colour-table" });
 	const headRow = table.createEl("thead").createEl("tr");
 	headRow.createEl("th");
-	headRow.createEl("th", { text: "main" });
-	headRow.createEl("th", { text: "text" });
+	headRow.createEl("th", { text: section.mainHeader ?? "" });
+	if (section.textHeader === false) headRow.createEl("th");
+	else headRow.createEl("th", { text: "text" });
 	const tbody = table.createEl("tbody");
-	for (const row of rows) {
+	for (const row of section.rows) {
 		const restyle = () => row.restyle(plugin);
 		const tr = tbody.createEl("tr");
 		tr.createEl("th", { text: row.label, attr: { scope: "row" } });
 		const mainCell = tr.createEl("td");
+		if (swatchInMainColumn(row)) bindRowMainSwatch(plugin, mainCell, row, restyle);
 		const textCell = tr.createEl("td");
-		if (row.icon || row.textKey) {
-			bindSwatch(
-				plugin,
-				mainCell,
-				row.label,
-				"main",
-				row.mainKey,
-				row.mainMutedKey,
-				restyle,
-				row.mainLeading?.(plugin, restyle),
-				row.mainMutedOption?.(plugin, restyle),
-				row.onMainPick ? (hex) => row.onMainPick!(plugin, hex, restyle) : undefined,
-			);
-		}
 		if (row.textKey) {
 			bindSwatch(plugin, textCell, row.label, "text", row.textKey, row.textMutedKey, restyle);
-		} else if (!row.icon) {
-			bindSwatch(
-				plugin,
-				textCell,
-				row.label,
-				"text",
-				row.mainKey,
-				row.mainMutedKey,
-				restyle,
-				row.mainLeading?.(plugin, restyle),
-				row.mainMutedOption?.(plugin, restyle),
-				row.onMainPick ? (hex) => row.onMainPick!(plugin, hex, restyle) : undefined,
-			);
+		} else if (swatchInTextColumn(row)) {
+			bindRowMainSwatch(plugin, textCell, row, restyle);
 		}
-		markAlignedPreview(tr, (slot) => paintColourPreview(slot, plugin, row));
+		if (!row.skipPreview) {
+			markAlignedPreview(tr, (slot) => {
+				if (row.preview === "option-selectee") paintOptionSelecteePreview(slot, plugin);
+				else if (section.splitPreview && row.textKey) paintSplitPreview(slot, plugin, row);
+				else paintColourPreview(slot, plugin, row);
+			});
+		}
 	}
 }
 
@@ -544,13 +560,12 @@ export function renderInterfaceColoursTab(body: HTMLElement, plugin: StoryForgeP
 	for (const section of catalog()) {
 		const group = new SettingGroup(scroll);
 		group.setHeading(section.heading);
-		if (section.rows.some((row) => row.pair)) {
-			for (const row of section.rows) {
-				if (row.pair) renderColourPairRow(group.listEl, plugin, row, row.pair);
-				else renderPlainColourRow(group.listEl, plugin, row);
-			}
-			continue;
+		if (section.chromePicker) {
+			mountSectionChromePickerOutsideBox(group, plugin, {
+				compact: true,
+				restyle: () => plugin.applyRightRailPanelStyles(),
+			});
 		}
-		renderColourTable(group.listEl, plugin, section.rows);
+		renderColourTable(group.listEl, plugin, section);
 	}
 }
