@@ -21,19 +21,21 @@ function bindSmallCapsCheckbox(cell: HTMLElement, plugin: StoryForgePlugin, row:
 		attr: { "aria-label": `${row.name} small caps` },
 	});
 	checkbox.checked = plugin.getSettings()[key] as boolean;
-	checkbox.addEventListener("change", () => persistAndRestyle(plugin, key, checkbox.checked, restyle));
+	checkbox.addEventListener("change", () => {
+		void persistAndRestyle(plugin, key, checkbox.checked, restyle);
+	});
 }
 
 function renderFontTableRow(
-	tbody: HTMLElement,
+	table: HTMLElement,
 	scroll: HTMLElement,
 	plugin: StoryForgePlugin,
 	row: ChromeRow,
 	sample: string,
 ): void {
-	const tr = tbody.createEl("tr");
-	tr.createEl("th", { text: row.name, attr: { scope: "row" } });
-	const fontCell = tr.createEl("td", { cls: "sf-box-font-table-font" });
+	const rowEl = table.createDiv({ cls: "sf-box-font-table-row" });
+	rowEl.createDiv({ cls: "sf-box-font-table-name", text: row.name });
+	const fontCell = rowEl.createDiv({ cls: "sf-box-font-table-font" });
 	renderCustomFontCard(
 		scroll,
 		plugin,
@@ -51,13 +53,13 @@ function renderFontTableRow(
 			omitName: true,
 		},
 	);
-	const capsCell = tr.createEl("td", { cls: "sf-box-font-table-caps" });
+	const capsCell = rowEl.createDiv({ cls: "sf-box-font-table-caps" });
 	if (row.smallCapsKey) bindSmallCapsCheckbox(capsCell, plugin, row);
 	if (row.skipPreview) return;
 	if (row.previewKind === "option-selectee") {
-		markAlignedPreview(tr, (slot) => paintOptionSelecteeChromePreview(slot, plugin));
+		markAlignedPreview(rowEl, (slot) => paintOptionSelecteeChromePreview(slot, plugin));
 	} else {
-		markAlignedPreview(tr, (slot) => paintChromeTextPreview(slot, plugin, row, sample));
+		markAlignedPreview(rowEl, (slot) => paintChromeTextPreview(slot, plugin, row, sample));
 	}
 }
 
@@ -68,24 +70,23 @@ export function renderInterfaceFontsTab(body: HTMLElement, plugin: StoryForgePlu
 	for (const section of chromeCatalog(plugin)) {
 		const group = new SettingGroup(scroll);
 		group.setHeading(section.heading);
-		const table = group.listEl.createEl("table", { cls: "sf-box-font-table" });
+		const table = group.listEl.createDiv({ cls: "sf-box-font-table" });
 		const catalogRows: ChromeRow[] = [];
 		for (const row of section.rows) {
 			catalogRows.push(row);
 			if (row.pair) catalogRows.push(row.pair);
 		}
 		if (catalogRows.some((row) => row.smallCapsKey)) {
-			const headRow = table.createEl("thead").createEl("tr");
-			headRow.createEl("th");
-			headRow.createEl("th");
-			const capsHead = headRow.createEl("th", { cls: "sf-box-font-table-caps-head" });
-			capsHead.createEl("span", { text: "small caps", cls: "sf-small-caps-label sf-box-font-table-caps-label" });
+			const headRow = table.createDiv({ cls: "sf-box-font-table-head" });
+			headRow.createDiv();
+			headRow.createDiv();
+			const capsHead = headRow.createDiv({ cls: "sf-box-font-table-caps-head" });
+			capsHead.createSpan({ text: "small caps", cls: "sf-small-caps-label sf-box-font-table-caps-label" });
 		}
-		const tbody = table.createEl("tbody");
 		for (const row of catalogRows) {
 			const sample = LOREM_PHRASES[sampleIndex % LOREM_PHRASES.length];
 			sampleIndex += 1;
-			renderFontTableRow(tbody, scroll, plugin, row, sample);
+			renderFontTableRow(table, scroll, plugin, row, sample);
 		}
 	}
 }

@@ -312,16 +312,16 @@ function mountRecommendNovelBody(body: HTMLElement, mainThread: PreviewMainThrea
 		const block = scroll.createDiv({ cls: "sf-recommend-plot-block sf-recommend-plot-block--plain" });
 		const headerRow = block.createDiv({ cls: "sf-recommend-plot-header-row" });
 		const nameEl = headerRow.createDiv({ cls: "sf-recommend-plot-chapter-name", text: chapter.title });
-		headerRow.setCssStyles({ backgroundColor: thread.color, color: thread.text });
+		headerRow.setCssStyles({ color: thread.text });
 		nameEl.setCssStyles({ color: thread.text });
 		block.style.setProperty("--sf-plot-card-header-bg", thread.color);
 		block.style.setProperty("--sf-plot-card-header-fg", thread.text);
+		block.style.setProperty("--sf-plot-card-outline", thread.color);
 		const lineCenterX = gutter.lineOffsets[chapter.line] + 1;
 		const cardPad = 16;
 		const headerMarginLeft = lineCenterX - gutter.cardShift - cardPad;
 		block.setCssStyles({
 			marginLeft: `${gutter.cardShift}px`,
-			boxShadow: `inset 0 0 0 2px ${thread.color}`,
 		});
 		headerRow.setCssStyles({ marginLeft: `${headerMarginLeft}px` });
 		headerRow.style.paddingLeft = `${cardPad + Math.max(0, -cardPad - headerMarginLeft)}px`;
@@ -369,13 +369,14 @@ function mountRecommendChapterCard(body: HTMLElement, mainThread: PreviewMainThr
 	const titleShadow = resolveTitleShadow(body.ownerDocument, mainThread.text, mainThread.color);
 	body.style.setProperty("--sf-plot-card-header-bg", mainThread.color);
 	body.style.setProperty("--sf-plot-card-header-fg", mainThread.text);
+	body.style.setProperty("--sf-plot-card-outline", mainThread.color);
 	body.style.setProperty("--sf-plot-card-title-shadow", titleShadow);
 	card.style.setProperty("--sf-plot-card-header-bg", mainThread.color);
 	card.style.setProperty("--sf-plot-card-header-fg", mainThread.text);
 	card.style.setProperty("--sf-plot-card-title-shadow", titleShadow);
-	card.setCssStyles({ boxShadow: `inset 0 0 0 2px ${mainThread.color}` });
+	card.style.setProperty("--sf-plot-card-outline", mainThread.color);
 	const header = card.createDiv({ cls: "sf-recommend-plot-header-row" });
-	header.setCssStyles({ backgroundColor: mainThread.color, color: mainThread.text });
+	header.setCssStyles({ color: mainThread.text });
 	const nameEl = header.createDiv({ cls: "sf-recommend-plot-chapter-name", text: "I. Amet Consectetur" });
 	nameEl.setCssStyles({ color: mainThread.text });
 	const meta = card.createDiv({ cls: "sf-recommend-meta" });

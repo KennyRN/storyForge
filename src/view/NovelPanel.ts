@@ -335,15 +335,14 @@ async function renderNovelPlot(
 		// inheritance alone — set directly on it instead.
 		const rowColor = resolveChapterRowColor(app, bookFolderName, file.name, options.plugin.getSettings());
 		if (rowColor) {
-			headerRow.setCssStyles({ backgroundColor: rowColor.background, color: rowColor.text });
-			// An inset box-shadow, not a real border — see .sf-recommend-plot-block--plain's own
-			// doc comment for why (no box-model footprint, so nothing measured against this card's
-			// content edge, including the margin-left below, needs to compensate for a border's
-			// width).
-			block.setCssStyles({ boxShadow: `inset 0 0 0 2px ${rowColor.background}` });
+			headerRow.setCssStyles({ color: rowColor.text });
+			// Outline colour is `--sf-plot-card-outline` (see .sf-recommend-plot-block--plain) —
+			// an inset box-shadow, not a real border, so nothing measured against this card's
+			// content edge needs to compensate for a border's width.
 			block.setCssProps({
 				"--sf-plot-card-header-bg": rowColor.background,
 				"--sf-plot-card-header-fg": rowColor.text,
+				"--sf-plot-card-outline": rowColor.background,
 			});
 			nameEl.setCssStyles({ color: rowColor.text });
 			collapseBtn.setCssStyles({ color: rowColor.text });
