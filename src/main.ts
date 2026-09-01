@@ -80,6 +80,9 @@ export type StatusBarView = "hidden" | "sync-only" | "all";
 
 export type CyclingGuideInterval = "short" | "medium" | "large";
 
+/** Story Context section chrome: boxed card, header-only pill, or title text. */
+export type RecommendSectionChrome = "box" | "pill" | "text";
+
 const CYCLING_GUIDE_INTERVAL_WORDS: Record<CyclingGuideInterval, number> = {
 	short: 300,
 	medium: 500,
@@ -119,6 +122,11 @@ export interface StoryForgePluginSettings {
 	/** Hides Obsidian's tab bar in the main editor window (left/storyLibrary/right sidebars keep their own). */
 	hideEditorTabs: boolean;
 	hideSeriesPane: boolean;
+	/**
+	 * Set at the end of first-run onboarding: true only if the user opted in and
+	 * `ensureWelcomeNote` ran. Not shown in settings UI. Existing vaults stay false.
+	 */
+	welcomeNoteCreatedOnOnboarding: boolean;
 	/** The panel layout chosen from the layout selector menu (hand-off brief §2/§5.1). Persists across reloads. */
 	layout: SfLayout;
 	statusBarView: StatusBarView;
@@ -329,6 +337,7 @@ export interface StoryForgePluginSettings {
 	recommendSectionTitleColor: string;
 	recommendSectionTitleMuted: boolean;
 	recommendSectionTitleSmallCaps: boolean;
+	recommendSectionChrome: RecommendSectionChrome;
 	recommendItemsFontSize: number;
 	recommendItemsOverrideFont: boolean;
 	recommendItemsFontFamily: CustomFontFamily;
@@ -502,6 +511,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	hideNavRow: true,
 	hideEditorTabs: true,
 	hideSeriesPane: false,
+	welcomeNoteCreatedOnOnboarding: false,
 	layout: "hybrid",
 	statusBarView: "all",
 	highlightActiveChapter: true,
@@ -695,6 +705,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	recommendSectionTitleColor: "var(--text-muted)",
 	recommendSectionTitleMuted: false,
 	recommendSectionTitleSmallCaps: false,
+	recommendSectionChrome: "box",
 	recommendItemsFontSize: 1,
 	recommendItemsOverrideFont: false,
 	recommendItemsFontFamily: "ibm-plex-sans-var",

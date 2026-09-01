@@ -30,6 +30,7 @@ export const PREFERENCE_SESSION_KEYS = [
 	"collapsedPlotChapterKeys",
 	"lastAutomaticBackupAt",
 	"storyContextShellApplied",
+	"welcomeNoteCreatedOnOnboarding",
 ] as const;
 
 /** Behaviour settings that are not themes, storyForge interface, types/tags, or threads. */

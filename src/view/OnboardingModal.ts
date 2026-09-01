@@ -280,6 +280,7 @@ export class OnboardingModal extends Modal {
 				);
 				if (file instanceof TFile) landing = file;
 			}
+			await this.plugin.updateSetting("welcomeNoteCreatedOnOnboarding", this.createWelcomeNote);
 			this.close();
 			if (chapter) {
 				await this.plugin.updateSetting("selectedNovel", chapter.folderName);

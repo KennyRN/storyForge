@@ -1,5 +1,5 @@
 {
-	"contractVersion": 11,
+	"contractVersion": 12,
 	"keys": [
 		"colorPaletteName",
 		"colorPaletteVariant",
@@ -155,6 +155,7 @@
 		"recommendSectionTitleColor",
 		"recommendSectionTitleMuted",
 		"recommendSectionTitleSmallCaps",
+		"recommendSectionChrome",
 		"recommendItemsFontSize",
 		"recommendItemsOverrideFont",
 		"recommendItemsFontFamily",
@@ -376,6 +377,7 @@
 		"recommendSectionTitleColor": "string",
 		"recommendSectionTitleMuted": "boolean",
 		"recommendSectionTitleSmallCaps": "boolean",
+		"recommendSectionChrome": "string",
 		"recommendItemsFontSize": "number",
 		"recommendItemsOverrideFont": "boolean",
 		"recommendItemsFontFamily": "string",

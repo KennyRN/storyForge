@@ -1,4 +1,4 @@
-import { App, Modal, Notice, Setting, SettingGroup } from "obsidian";
+import { App, Modal, Notice, Setting, SettingGroup, setIcon } from "obsidian";
 import type StoryForgePlugin from "../main";
 import type { AutomaticBackupFrequency } from "../main";
 import {
@@ -24,6 +24,8 @@ import {
 	type StoryForgeTransferSelection,
 } from "../settingsTransfer";
 import { ensureWelcomeNote } from "../welcomeNote";
+import { ICON_FILE_TEXT_DUOTONE } from "../icons";
+import { makeAccessibleActivatable } from "./a11y";
 
 export type ImportSource = {
 	kind: "theme" | "backup" | "paste";
@@ -688,17 +690,25 @@ export class ProtectionsController {
 		});
 	}
 
-	/** Its own boundary box — moved out of the Backup section onto SeriesModal's obsidian elements
-	 * tab (bottom), since it's about restoring storyForge's own content, not a backup concern. Not
-	 * called from renderBackupSection() any more, so ProtectionsModal's own Backup tab no longer
-	 * shows it either — this lives only where it was moved to. */
+	/** Its own boundary box — on SeriesModal's general tab (bottom). Moved off Backup and then
+	 * off the old obsidian-elements tab. Not called from renderBackupSection(), so ProtectionsModal's
+	 * Backup tab does not show it. */
 	renderWelcomeNoteSection(body: HTMLElement): void {
+		const created = this.plugin.getSettings().welcomeNoteCreatedOnOnboarding;
+		const name = created ? "recreate the storyforge welcome note" : "create the storyforge welcome note";
+		const desc = created
+			? "restores storyforge's welcome note to your codex"
+			: "creates the storyforge's welcome note and places it into your codex";
 		const welcomeNoteCard = new SettingGroup(body);
 		welcomeNoteCard.addSetting((setting) => {
-			setting
-				.setName("recreate storyforge welcome note")
-				.setDesc("restores storyforge's welcome note to your codex if you deleted it, if not, then this opens it for you")
-				.addButton((button) => button.setButtonText("recreate welcome note").onClick(() => this.recreateWelcomeNote()));
+			setting.setName(name).setDesc(desc);
+			const iconEl = setting.controlEl.createSpan({
+				cls: "sf-series-modal-settings-icon",
+				attr: { role: "button", tabindex: "0", "aria-label": name },
+			});
+			setIcon(iconEl, ICON_FILE_TEXT_DUOTONE);
+			iconEl.addEventListener("click", () => this.recreateWelcomeNote());
+			makeAccessibleActivatable(iconEl, () => this.recreateWelcomeNote());
 		});
 	}
 

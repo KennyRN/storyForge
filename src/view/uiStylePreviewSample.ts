@@ -4,6 +4,8 @@
  */
 import { setIcon } from "obsidian";
 import { MAIN_THREAD_FALLBACK_COLOR } from "../plotThreads";
+import { resolveTitleShadow } from "../titleShadow";
+import { renderStampedEmptyCross } from "./stampedCross";
 
 const ICON_UNPLACED = "sf-archive-drawer";
 const ICON_PLUS_SQUARE = "sf-plus-square";
@@ -23,10 +25,10 @@ const ICON_PERSON = "sf-person-fill";
 const ICON_MEEPLE = "nameforge-meeple";
 const ICON_MAP_PIN = "sf-map-pin";
 const ICON_ARCHIVE = "sf-archive-filled";
+const ICON_UNARCHIVE = "sf-inbox-download";
 const ICON_FORGE = "sf-hammer-anvil";
 const ICON_BOOK_DUOTONE = "sf-book-duotone";
 const ICON_CODEX = "sf-earth-fill";
-const ICON_X = "sf-x";
 const ICON_BOOK_OPEN_FILLED = "sf-book-open-filled";
 const ICON_CLIPBOARD_LIST_DUOTONE = "sf-clipboard-list-duotone";
 const ICON_NOTEBOOK_DUOTONE = "sf-notebook-duotone";
@@ -364,9 +366,13 @@ function mountRecommendChapterCard(body: HTMLElement, mainThread: PreviewMainThr
 	const card = body.createDiv({
 		cls: "sf-recommend-plot-block sf-recommend-plot-block--plain sf-recommend-plot-block--chapter",
 	});
+	const titleShadow = resolveTitleShadow(body.ownerDocument, mainThread.text, mainThread.color);
 	body.style.setProperty("--sf-plot-card-header-bg", mainThread.color);
 	body.style.setProperty("--sf-plot-card-header-fg", mainThread.text);
+	body.style.setProperty("--sf-plot-card-title-shadow", titleShadow);
 	card.style.setProperty("--sf-plot-card-header-bg", mainThread.color);
+	card.style.setProperty("--sf-plot-card-header-fg", mainThread.text);
+	card.style.setProperty("--sf-plot-card-title-shadow", titleShadow);
 	card.setCssStyles({ boxShadow: `inset 0 0 0 2px ${mainThread.color}` });
 	const header = card.createDiv({ cls: "sf-recommend-plot-header-row" });
 	header.setCssStyles({ backgroundColor: mainThread.color, color: mainThread.text });
@@ -406,11 +412,7 @@ function mountRecommendChapterCard(body: HTMLElement, mainThread: PreviewMainThr
 	});
 	const unknownSection = unknown.createDiv({ cls: "sf-recommend-section" });
 	unknownSection.createDiv({ cls: "sf-recommend-section-title", text: "Named but not in Codex" });
-	const unknownRow = unknownSection.createDiv({ cls: "sf-recommend-row" });
-	unknownRow.createSpan({ cls: "sf-recommend-row-label", text: "Mira Quill" });
-	const unknownActions = unknownRow.createDiv({ cls: "sf-recommend-row-actions" });
-	setIcon(unknownActions.createSpan({ cls: "sf-recommend-icon-btn", attr: { "aria-label": "add to codex" } }), ICON_PLUS_SQUARE);
-	setIcon(unknownActions.createSpan({ cls: "sf-recommend-icon-btn", attr: { "aria-label": "ignore" } }), ICON_MINUS_SQUARE);
+	renderStampedEmptyCross(unknownSection, "None found.");
 }
 
 function mountRecommendChapterBody(body: HTMLElement, mainThread: PreviewMainThread): void {
@@ -555,8 +557,13 @@ export function mountRightSidebarPreviewSample(
 	setIcon(archiveBtn, ICON_ARCHIVE);
 	archiveBtn.addEventListener("click", () => showArchiveTab());
 
-	const archEmpty = archive.createDiv({ cls: "sf-recommend-scroll" }).createDiv({ cls: "sf-archive-empty" });
-	setIcon(archEmpty, ICON_X);
+	const archList = archive.createDiv({ cls: "sf-recommend-scroll" }).createDiv({ cls: "sf-archive-list" });
+	const selected = archList.createDiv({ cls: "sf-row sf-row-selected" });
+	selected.createSpan({ cls: "sf-archive-label", text: "Magna Aliqua" });
+	setIcon(selected.createSpan({ cls: "sf-archive-unarchive-btn", attr: { "aria-label": "Unarchive" } }), ICON_UNARCHIVE);
+	const rest = archList.createDiv({ cls: "sf-row" });
+	rest.createSpan({ cls: "sf-archive-label", text: "Ut Enim Ad Minim" });
+	setIcon(rest.createSpan({ cls: "sf-archive-unarchive-btn", attr: { "aria-label": "Unarchive" } }), ICON_UNARCHIVE);
 
 	const showCustomBody = (mount: (el: HTMLElement) => void) => {
 		for (const btn of Object.values(tabButtons)) btn?.removeClass("is-active");

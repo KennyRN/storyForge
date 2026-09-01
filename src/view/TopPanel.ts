@@ -195,7 +195,7 @@ function bindChapterOpen(row: HTMLElement, open: () => void): void {
 }
 
 /**
- * Renders a title, splitting off a "// subtitle" onto its own muted line if present. Returns the
+ * Renders a title, splitting off a "// subtitle" onto its own line if present. Returns the
  * wrapper to pass to `attachInlineRename`. `showOpenIcon` marks the currently-selected novel in the
  * Series tab's book list (renderSeriesList) — shown only while "highlight active chapter" is off,
  * since that setting's own row background already carries the same meaning when it's on. The icon
@@ -204,8 +204,14 @@ function bindChapterOpen(row: HTMLElement, open: () => void): void {
  * Context's own Novel-tab icon (ICON_BOOK_DUOTONE) so the same glyph marks "this is the selected
  * novel" in both the left and right sidebars. Having no colour of its own, it simply inherits
  * whatever colour the row's text is already using.
+ * `subtitleInBrackets` is for Unplaced Novels: same type as the title, wrapped in parentheses.
  */
-function renderRowTitle(row: HTMLElement, displayTitle: string, showOpenIcon = false): HTMLElement {
+function renderRowTitle(
+	row: HTMLElement,
+	displayTitle: string,
+	showOpenIcon = false,
+	subtitleInBrackets = false,
+): HTMLElement {
 	const { title, subtitle } = splitTitleSubtitle(displayTitle);
 	const wrap = row.createDiv({ cls: "sf-row-title-wrap" });
 	const titleLine = wrap.createDiv({ cls: "sf-row-title-line" });
@@ -214,7 +220,10 @@ function renderRowTitle(row: HTMLElement, displayTitle: string, showOpenIcon = f
 		setIcon(titleLine.createSpan({ cls: "sf-row-open-icon", attr: { "aria-label": "Open" } }), ICON_BOOK_DUOTONE);
 	}
 	if (subtitle) {
-		wrap.createDiv({ cls: "sf-row-subtitle", text: subtitle });
+		wrap.createDiv({
+			cls: subtitleInBrackets ? "sf-row-subtitle sf-row-subtitle--title" : "sf-row-subtitle",
+			text: subtitleInBrackets ? `(${subtitle})` : subtitle,
+		});
 	}
 	return wrap;
 }
@@ -398,7 +407,12 @@ function renderSeriesList(
 				const isSelectedBook = options.currentBookFolderName === folder.name;
 				const isHighlighted = options.highlightActiveChapter && isSelectedBook;
 				if (isHighlighted) row.addClass("sf-row-selected");
-				const label = renderRowTitle(row, numbered[ordered.length + i], isSelectedBook && !options.highlightActiveChapter);
+				const label = renderRowTitle(
+					row,
+					numbered[ordered.length + i],
+					isSelectedBook && !options.highlightActiveChapter,
+					true,
+				);
 				row.addEventListener("click", (e) => {
 					if (row.querySelector(".sf-drag-handle")?.contains(e.target as Node)) return;
 					options.onSelectBook(folder.name);

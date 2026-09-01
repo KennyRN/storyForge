@@ -47,6 +47,7 @@ import {
 	ICON_EYE,
 	ICON_EYE_OUTLINE,
 	ICON_FILE_PLUS,
+	ICON_FILE_TEXT_DUOTONE,
 	ICON_FILTER,
 	ICON_FILTER_LIST,
 	ICON_FIRE,
@@ -80,6 +81,7 @@ import {
 	ICON_MUSIC_NOTE,
 	ICON_NOTEBOOK,
 	ICON_NOTEBOOK_DUOTONE,
+	ICON_OBSIDIAN,
 	ICON_NUMBER_CIRCLE_0,
 	ICON_NUMBER_CIRCLE_1,
 	ICON_NUMBER_CIRCLE_2,
@@ -468,6 +470,18 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		// Superseded by ICON_ADD_SQUARE on the same button (RecommendationView.ts's "add chapter
 		// summary to chapter details" action) — kept registered, just currently unused.
 		usedIn: [],
+	},
+	{
+		id: ICON_FILE_TEXT_DUOTONE,
+		label: "File text (duotone)",
+		source: "custom",
+		usedIn: ["protectionsController.ts — recreate storyforge welcome note hover icon (SeriesModal general tab)"],
+	},
+	{
+		id: ICON_OBSIDIAN,
+		label: "Obsidian",
+		source: "custom",
+		usedIn: ["SeriesModal.ts — formatting tab hover icon that opens ObsidianElementsModal"],
 	},
 	{
 		id: ICON_LOCATION_TARGET_SQUARE,

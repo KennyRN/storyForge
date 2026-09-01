@@ -39,6 +39,11 @@ export interface ChromeRow {
 	preview: (s: StoryForgePluginSettings, plugin: StoryForgePlugin) => string;
 	/** Fill behind the specimen when this text sits on a coloured bar in the live UI. */
 	previewBackground?: (s: StoryForgePluginSettings, plugin: StoryForgePlugin) => string;
+	/** Combined `excepteur: non proident` preview, kept on this row. */
+	previewKind?: "option-selectee";
+	skipPreview?: boolean;
+	/** Existing small-caps setting for this font, shown in the list → text table. */
+	smallCapsKey?: keyof StoryForgePluginSettings;
 	/** Render this row and `pair` as equal halves of one setting row. */
 	pair?: ChromeRow;
 }
@@ -65,6 +70,7 @@ export function chromeCatalog(plugin: StoryForgePlugin): ChromeSection[] {
 					fontWeightKey: "librarySeriesTitleFontWeight",
 					sizeKey: "librarySeriesTitleFontSize",
 					cssPrefix: "--sf-lib-series",
+					smallCapsKey: "librarySeriesTitleSmallCaps",
 					preview: (s) => s.librarySeriesTitleColor,
 				},
 			],
@@ -79,6 +85,7 @@ export function chromeCatalog(plugin: StoryForgePlugin): ChromeSection[] {
 					fontWeightKey: "libraryBookTitleFontWeight",
 					sizeKey: "libraryBookTitleFontSize",
 					cssPrefix: "--sf-lib-book",
+					smallCapsKey: "libraryBookTitleSmallCaps",
 					preview: (s) => libraryItems(s),
 				},
 				{
@@ -88,6 +95,7 @@ export function chromeCatalog(plugin: StoryForgePlugin): ChromeSection[] {
 					fontWeightKey: "libraryBookSubtitleFontWeight",
 					sizeKey: "libraryBookSubtitleFontSize",
 					cssPrefix: "--sf-lib-subtitle",
+					smallCapsKey: "libraryBookSubtitleSmallCaps",
 					preview: (s) => libraryItems(s),
 				},
 				{
@@ -111,6 +119,7 @@ export function chromeCatalog(plugin: StoryForgePlugin): ChromeSection[] {
 					fontWeightKey: "unplacedFontWeight",
 					sizeKey: "unplacedFontSize",
 					cssPrefix: "--sf-unplaced",
+					smallCapsKey: "unplacedSmallCaps",
 					preview: (s) => unplaced(s),
 				},
 				{
@@ -127,15 +136,6 @@ export function chromeCatalog(plugin: StoryForgePlugin): ChromeSection[] {
 		{
 			heading: "Codex",
 			rows: [
-				{
-					name: "Header",
-					overrideFontKey: "codexOverrideFont",
-					fontFamilyKey: "codexFontFamily",
-					fontWeightKey: "codexFontWeight",
-					sizeKey: "codexFontSize",
-					cssPrefix: "--sf-codex",
-					preview: (s) => codex(s),
-				},
 				{
 					name: "Codex font",
 					overrideFontKey: "codexNoteLabelOverrideFont",
@@ -174,6 +174,7 @@ export function chromeCatalog(plugin: StoryForgePlugin): ChromeSection[] {
 					fontWeightKey: "recommendNovelTitleFontWeight",
 					sizeKey: "recommendNovelTitleFontSize",
 					cssPrefix: "--sf-recommend-novel-title",
+					smallCapsKey: "recommendNovelTitleSmallCaps",
 					preview: (s) => mutedOr(s.recommendNovelTitleColor, s.recommendNovelTitleMuted),
 				},
 				{
@@ -183,6 +184,7 @@ export function chromeCatalog(plugin: StoryForgePlugin): ChromeSection[] {
 					fontWeightKey: "recommendNovelSubtitleFontWeight",
 					sizeKey: "recommendNovelSubtitleFontSize",
 					cssPrefix: "--sf-recommend-novel-subtitle",
+					smallCapsKey: "recommendNovelSubtitleSmallCaps",
 					preview: (s) => mutedOr(s.recommendNovelSubtitleColor, s.recommendNovelSubtitleMuted),
 				},
 			],
@@ -197,26 +199,30 @@ export function chromeCatalog(plugin: StoryForgePlugin): ChromeSection[] {
 					fontWeightKey: "recommendChapterTitleFontWeight",
 					sizeKey: "recommendChapterTitleFontSize",
 					cssPrefix: "--sf-recommend-chapter",
+					smallCapsKey: "recommendChapterTitleSmallCaps",
 					preview: () => thread.text,
 					previewBackground: () => thread.background,
 				},
 				{
-					name: "Option",
+					name: "option",
 					overrideFontKey: "recommendMetaLabelOverrideFont",
 					fontFamilyKey: "recommendMetaLabelFontFamily",
 					fontWeightKey: "recommendMetaLabelFontWeight",
 					sizeKey: "recommendMetaLabelFontSize",
 					cssPrefix: "--sf-recommend-meta-label",
+					smallCapsKey: "recommendMetaLabelSmallCaps",
 					preview: (s) => mutedOr(s.recommendMetaLabelColor, s.recommendMetaLabelMuted),
-					pair: {
-						name: "Selectee",
-						overrideFontKey: "recommendMetaControlOverrideFont",
-						fontFamilyKey: "recommendMetaControlFontFamily",
-						fontWeightKey: "recommendMetaControlFontWeight",
-						sizeKey: "recommendMetaControlFontSize",
-						cssPrefix: "--sf-recommend-meta-control",
-						preview: (s) => mutedOr(s.recommendMetaControlColor, s.recommendMetaControlMuted),
-					},
+					previewKind: "option-selectee",
+				},
+				{
+					name: "selectee",
+					overrideFontKey: "recommendMetaControlOverrideFont",
+					fontFamilyKey: "recommendMetaControlFontFamily",
+					fontWeightKey: "recommendMetaControlFontWeight",
+					sizeKey: "recommendMetaControlFontSize",
+					cssPrefix: "--sf-recommend-meta-control",
+					preview: (s) => mutedOr(s.recommendMetaControlColor, s.recommendMetaControlMuted),
+					skipPreview: true,
 				},
 				{
 					name: "Synopsis",
@@ -239,6 +245,7 @@ export function chromeCatalog(plugin: StoryForgePlugin): ChromeSection[] {
 					fontWeightKey: "recommendSectionTitleFontWeight",
 					sizeKey: "recommendSectionTitleFontSize",
 					cssPrefix: "--sf-recommend-section",
+					smallCapsKey: "recommendSectionTitleSmallCaps",
 					preview: () => thread.text,
 					previewBackground: () => thread.background,
 				},
@@ -263,6 +270,7 @@ export function chromeCatalog(plugin: StoryForgePlugin): ChromeSection[] {
 					fontWeightKey: "recommendDossierHeaderFontWeight",
 					sizeKey: "recommendDossierHeaderFontSize",
 					cssPrefix: "--sf-recommend-dossier",
+					smallCapsKey: "recommendDossierHeaderSmallCaps",
 					preview: (s) => mutedOr(s.recommendDossierHeaderColor, s.recommendDossierHeaderMuted),
 				},
 			],
@@ -277,6 +285,7 @@ export function chromeCatalog(plugin: StoryForgePlugin): ChromeSection[] {
 					fontWeightKey: "archiveHeaderFontWeight",
 					sizeKey: "archiveHeaderFontSize",
 					cssPrefix: "--sf-archive-header",
+					smallCapsKey: "archiveHeaderSmallCaps",
 					preview: (s) => archive(s),
 				},
 				{
@@ -296,7 +305,7 @@ export function chromeCatalog(plugin: StoryForgePlugin): ChromeSection[] {
 export function restyleForPrefix(plugin: StoryForgePlugin, cssPrefix: string): () => void {
 	return () => {
 		if (cssPrefix.startsWith("--sf-lib-")) plugin.applyLibraryHeaderStyles();
-		else if (cssPrefix.startsWith("--sf-unplaced") || cssPrefix === "--sf-codex") plugin.applyHeaderStyles();
+		else if (cssPrefix.startsWith("--sf-unplaced")) plugin.applyHeaderStyles();
 		else if (cssPrefix.startsWith("--sf-codex-")) {
 			plugin.applyCodexFolderStyle();
 			plugin.applyCodexNoteLabelStyle();
@@ -352,4 +361,21 @@ export function paintPairedChromePreview(
 	slot.addClass("sf-row-preview-pair");
 	paintChromeTextPreview(slot.createDiv({ cls: "sf-row-preview-pair-half" }), plugin, left, leftSample);
 	paintChromeTextPreview(slot.createDiv({ cls: "sf-row-preview-pair-half" }), plugin, right, rightSample);
+}
+
+/** Shared specimen for option/selectee in list text and size. */
+export function paintOptionSelecteeChromePreview(slot: HTMLElement, plugin: StoryForgePlugin): void {
+	const s = plugin.getSettings();
+	slot.empty();
+	const line = slot.createDiv({ cls: "sf-row-preview-sample" });
+	const option = line.createSpan({ text: "excepteur:" });
+	option.setCssStyles({
+		color: mutedOr(s.recommendMetaLabelColor, s.recommendMetaLabelMuted),
+		...chromeTypeStyles("--sf-recommend-meta-label"),
+	});
+	const selectee = line.createSpan({ text: " non proident" });
+	selectee.setCssStyles({
+		color: mutedOr(s.recommendMetaControlColor, s.recommendMetaControlMuted),
+		...chromeTypeStyles("--sf-recommend-meta-control"),
+	});
 }

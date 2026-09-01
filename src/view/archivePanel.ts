@@ -8,6 +8,7 @@ import { getArchivedChapters, unarchiveChapter, chapterDisplayTitle } from "../b
 import { getArchivedCodexItems, unarchiveCodexItem, type ArchivedCodexItem } from "../codex";
 import { recordChapterUnarchive } from "../history";
 import { ICON_BOOK_DUOTONE, ICON_CODEX, ICON_UNARCHIVE, ICON_X } from "../icons";
+import { stampCrossIcon } from "./stampedCross";
 import { libraryChapterPath } from "../paths";
 import { formatSingleLine } from "../titleNumbering";
 import { excerpt } from "../wordCount";
@@ -81,6 +82,7 @@ function renderArchiveEmpty(el: HTMLElement, label: string): void {
 		attr: { "aria-label": label },
 	});
 	setIcon(empty, ICON_X);
+	stampCrossIcon(empty);
 }
 
 function renderCodex(el: HTMLElement, host: ArchivePanelHost): void {
