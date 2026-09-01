@@ -34,6 +34,11 @@ export function tagRegistryFilePath(): string {
 	return `${BACKSTAGE_ROOT}/tag-registry.md`;
 }
 
+/** Vault `#tag` display/icon/order config for the Codex pane (discovered tags, not user-minted labels). */
+export function vaultTagsFilePath(): string {
+	return `${BACKSTAGE_ROOT}/vault-tags.md`;
+}
+
 /** Vault-wide registry of named plot threads (colour + name) chapters can belong to. */
 export function plotThreadsFilePath(): string {
 	return `${BACKSTAGE_ROOT}/plot-threads.md`;
@@ -80,8 +85,9 @@ export function chapterSidecarPath(bookFolderName: string, chapterFilename: stri
 	return `${chapterSidecarFolderPath(bookFolderName)}/${chapterFilename}`;
 }
 
+/** Per-book Story Context sidecars (`attribution.md`, ignored names, chapter caches). */
 export function recommendSidecarFolderPath(bookFolderName: string): string {
-	return `${bookBackstagePath(bookFolderName)}/recommend`;
+	return `${bookBackstagePath(bookFolderName)}/story-details`;
 }
 
 export function recommendSidecarPath(bookFolderName: string, chapterFilename: string): string {
@@ -158,5 +164,6 @@ export function isBackstageBookkeepingPath(path: string): boolean {
 	if (path === wordCountFilePath()) return true;
 	if (path.endsWith("/wordcount.md")) return true;
 	if (path.includes("/chapters/")) return true;
+	if (path.includes("/story-details/")) return true;
 	return path.includes("/recommend/");
 }

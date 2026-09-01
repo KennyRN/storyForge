@@ -5,6 +5,7 @@ import {
 	addDaysISO,
 	dailyNetsForRange,
 	mostRecentMondayISO,
+	isoWeekNumber,
 	sumNetsThisWeek,
 	todayISOInEngland,
 	weeklyNetsFromDaily,
@@ -26,6 +27,7 @@ export {
 	sumNetsThisWeek,
 	addDaysISO,
 	mostRecentMondayISO,
+	isoWeekNumber,
 };
 export type { DayNet, WeekNet };
 

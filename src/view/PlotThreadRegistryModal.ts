@@ -79,7 +79,7 @@ export class PlotThreadRegistryModal extends Modal {
 
 	private paintNamePreview(input: HTMLElement, background: string, color: string): void {
 		input.setCssProps({ "--sf-thread-bg": background, "--sf-thread-fg": color });
-		input.setCssStyles({ backgroundColor: background, color });
+		input.setCssStyles({ backgroundColor: background, color, webkitTextFillColor: color });
 	}
 
 	private renderUseCheckbox(
@@ -102,8 +102,14 @@ export class PlotThreadRegistryModal extends Modal {
 	private renderRow(rowsEl: HTMLElement, entry: PlotThread): void {
 		const row = rowsEl.createDiv({ cls: "sf-row sf-plot-thread-registry-row" });
 		row.dataset.key = entry.id;
-		const handle = row.createSpan({ cls: "sf-drag-handle" });
-		setIcon(handle, "grip-vertical");
+		const isMain = entry.id === MAIN_THREAD_ID;
+		if (isMain) {
+			row.dataset.dragLocked = "true";
+			row.createSpan({ cls: "sf-plot-thread-col-spacer" });
+		} else {
+			const handle = row.createSpan({ cls: "sf-drag-handle" });
+			setIcon(handle, "grip-vertical");
+		}
 
 		const settings = this.plugin.getSettings();
 		const textColor = resolvePlotThreadTextColor(settings, entry);
@@ -142,11 +148,10 @@ export class PlotThreadRegistryModal extends Modal {
 				attr: { "aria-label": `Delete ${entry.label}`, title: `Delete ${entry.label}`, tabindex: "0" },
 			});
 			setIcon(deleteBtn, ICON_MINUS_SQUARE);
+			deleteBtn.addEventListener("pointerdown", (event) => event.stopPropagation());
 			const requestDelete = () => void this.handleDelete(entry);
 			deleteBtn.addEventListener("click", requestDelete);
 			makeAccessibleActivatable(deleteBtn, requestDelete);
-		} else {
-			nameGroup.createSpan({ cls: "sf-plot-thread-action-spacer" });
 		}
 
 		this.renderUseCheckbox(row, isPlotThreadUsed(entry), `use ${entry.label}`, (value) => {
@@ -180,8 +185,8 @@ export class PlotThreadRegistryModal extends Modal {
 		const input = nameGroup.createEl("input", {
 			cls: "sf-modal-input sf-plot-thread-name",
 			type: "text",
-			attr: { placeholder: "new plot thread" },
 		});
+		input.value = "new plot thread";
 		this.paintNamePreview(input, pendingColor, pendingTextColor);
 
 		bindColorSwatchButton(this.app, this.plugin, threadSwatch, pendingColor, (hex) => {
@@ -213,6 +218,7 @@ export class PlotThreadRegistryModal extends Modal {
 			attr: { "aria-label": "Add", title: "Add", tabindex: "0" },
 		});
 		setIcon(addBtn, ICON_PLUS_SQUARE);
+		addBtn.addEventListener("pointerdown", (event) => event.stopPropagation());
 		addBtn.addEventListener("click", commitAdd);
 		makeAccessibleActivatable(addBtn, commitAdd);
 		input.addEventListener("keydown", (event) => {

@@ -58,6 +58,7 @@ describe("complete export", () => {
 		expect(document.settings.bodyTextFontFamily).toBe("ibm-plex-sans-var");
 		expect(document.settings.codeSize).toBe(1.1);
 		expect(document.types).toEqual(registry.codexTypes);
+		expect(document.codexTags).toEqual({ order: [], tags: [] });
 		expect(document.chapterTags).toEqual(registry.chapterTags);
 		expect(document.novelTags).toEqual(registry.novelTags);
 		expect(document.threads.map((thread) => thread.label)).toEqual(["main thread", "Romance"]);
@@ -65,6 +66,44 @@ describe("complete export", () => {
 
 		const parsed = parseCompleteExport(stringifyCompleteExport(document));
 		expect(parsed).toEqual(document);
+	});
+
+	it("round-trips vault #tag config as codex tags", () => {
+		const vaultTags = {
+			order: ["hero"],
+			tags: [{ id: "hero", iconAlias: "person-fill", display: true, pageOrder: ["Codex/Jane.md"] }],
+		};
+		const document = buildCompleteExport(
+			{
+				settings,
+				registry,
+				vaultTags,
+				threads,
+				titleforge: DEFAULT_TITLEFORGE_SETTINGS,
+			},
+			new Date("2026-08-29T12:00:00.000Z"),
+		);
+		expect(document.codexTags).toEqual(vaultTags);
+		expect(parseCompleteExport(stringifyCompleteExport(document)).codexTags).toEqual(vaultTags);
+		expect(completePreviewCounts(document).find((row) => row.label === "codex tags")?.count).toBe("1 settings");
+	});
+
+	it("does not invent codex tags when a legacy complete file omits them", () => {
+		const parsed = parseCompleteExport(
+			JSON.stringify({
+				format: COMPLETE_EXPORT_FORMAT,
+				version: 1,
+				exportedAt: "2026-08-29T12:00:00.000Z",
+				template: false,
+				settings: { layout: "hybrid" },
+				types: [],
+				chapterTags: [],
+				novelTags: [],
+				threads: [],
+				titleforge: null,
+			}),
+		);
+		expect(parsed.codexTags).toBeUndefined();
 	});
 
 	it("strips template-only fields while keeping colours and formatForge keys", () => {
@@ -127,6 +166,7 @@ describe("complete export", () => {
 		expect(completePreviewCounts(document).map((row) => row.count)).toEqual([
 			`${Object.keys(document.settings).length} settings`,
 			"1 settings",
+			"0 settings",
 			"1 settings",
 			"1 settings",
 			"2 settings",

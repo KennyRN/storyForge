@@ -20,6 +20,7 @@ import {
 	type CodexTreeFolder,
 	type CodexTreeItem,
 } from "./codexTree";
+import { filterVisiblePathsByTag, readVaultTags, sortTreeByPageOrder } from "./vaultTags";
 
 export { partitionCodexNotes, findUnknownScopedNotes, type CodexNote };
 export { isDescendantFolder, countFilesInFolder, type CodexFolders, type CodexFolderEntry };
@@ -260,14 +261,21 @@ export function collectCodexNotes(app: App): CodexNote[] {
 	return notes;
 }
 
-export function buildCodexTree(app: App, visiblePaths: ReadonlySet<string>): CodexTreeFolder | null {
+export function buildCodexTree(
+	app: App,
+	visiblePaths: ReadonlySet<string>,
+	options?: { tagFilterMode?: boolean; pageOrder?: readonly string[] },
+): CodexTreeFolder | null {
 	const root = app.vault.getAbstractFileByPath(CODEX_ROOT);
 	if (!(root instanceof TFolder)) return null;
 	const { folders, order } = readCodexFrontmatter(app);
 	const realPaths = new Set(
 		root.children.filter((c): c is TFile => c instanceof TFile && c.extension === "md").map((c) => c.path),
 	);
-	return resolveCodexTree(folders, order, realPaths, visiblePaths);
+	const tree = resolveCodexTree(folders, order, realPaths, visiblePaths, {
+		tagFilterMode: options?.tagFilterMode,
+	});
+	return options?.pageOrder?.length ? sortTreeByPageOrder(tree, options.pageOrder) : tree;
 }
 
 export function getCodexView(
@@ -275,12 +283,19 @@ export function getCodexView(
 	currentBookId: string | null,
 	mode: CodexViewMode,
 	typeFilter?: ReadonlySet<string>,
+	tagFilter?: string | null,
 ): CodexTreeFolder | null {
 	if (mode === "codexHidden") return null;
 	const notes = collectCodexNotes(app);
 	const { codex } = partitionCodexNotes(notes, currentBookId);
-	const visiblePaths = new Set(codex.map((n) => n.path));
-	return buildCodexTree(app, typeFilter ? filterVisiblePathsByType(app, visiblePaths, typeFilter) : visiblePaths);
+	let visiblePaths: ReadonlySet<string> = new Set(codex.map((n) => n.path));
+	if (typeFilter && typeFilter.size > 0) visiblePaths = filterVisiblePathsByType(app, visiblePaths, typeFilter);
+	if (tagFilter) {
+		visiblePaths = filterVisiblePathsByTag(app, visiblePaths, tagFilter);
+		const pageOrder = readVaultTags(app).tags.find((entry) => entry.id === tagFilter)?.pageOrder;
+		return buildCodexTree(app, visiblePaths, { tagFilterMode: true, pageOrder });
+	}
+	return buildCodexTree(app, visiblePaths);
 }
 
 /** Filename characters that would leave `Codex/` or break the filesystem. Mirrors uniqueCodexFilename. */

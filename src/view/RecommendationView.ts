@@ -23,8 +23,8 @@ import {
 import { CODEX_TYPES, codexTypeIcon, getCodexEntriesByType } from "../codex";
 import { debounce } from "../debounce";
 import { splitTitleSubtitle } from "../titleNumbering";
-import { ICON_ADD_SQUARE, ICON_ARCHIVE_FILLED, ICON_BOOK_DUOTONE, ICON_BOOK_OPEN_FILLED, ICON_CHECK_SQUARE, ICON_CLIPBOARD_LIST_DUOTONE, ICON_FOCUS_OFF, ICON_FOCUS_ON, ICON_FORGE, ICON_LOCATION_TARGET_SQUARE, ICON_MAP_PIN, ICON_MAP_PIN_PLUS, ICON_MINUS_SQUARE, ICON_MULTIPLY_SQUARE, ICON_NOTEBOOK_DUOTONE, ICON_PERSON_FILL, ICON_PERSON_FILL_ADD, ICON_PLUS_SQUARE, ICON_REFRESH_SQUARE } from "../icons";
-import { bookFolderNameFromChapterPath, CODEX_ROOT, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath, seriesFilePath } from "../paths";
+import { ICON_ADD_SQUARE, ICON_ARCHIVE_FILLED, ICON_BOOK_DUOTONE, ICON_BOOK_OPEN_FILLED, ICON_CHECK_SQUARE, ICON_CLIPBOARD_LIST_DUOTONE, ICON_DASHBOARD_CHART, ICON_FOCUS_OFF, ICON_FOCUS_ON, ICON_FORGE, ICON_LOCATION_TARGET_SQUARE, ICON_MAP_PIN, ICON_MAP_PIN_PLUS, ICON_MINUS_SQUARE, ICON_MULTIPLY_SQUARE, ICON_NOTEBOOK_DUOTONE, ICON_PERSON_FILL, ICON_PERSON_FILL_ADD, ICON_PLUS_SQUARE, ICON_REFRESH_SQUARE } from "../icons";
+import { bookFolderNameFromChapterPath, CODEX_ROOT, isBackstageBookkeepingPath, isCodexNotePath, isLibraryChapterPath, libraryChapterPath, seriesFilePath } from "../paths";
 import { OBSIDIAN_SELECTORS } from "../obsidianInternals";
 import { getBookId } from "../series";
 import { groupHitsByChapter, lensLabel } from "../recommend/hitGrouping";
@@ -45,7 +45,7 @@ import { createCodexLore } from "../recommend/lore";
 import type { CastMember, ChapterRecommendReport, DetailHit, UnknownNameHint } from "../recommend/types";
 import { makeAccessibleActivatable } from "./a11y";
 import { activateRightRailView } from "./activateRightRailView";
-import { renderArchiveList, renderArchiveTabs, type ArchiveMode } from "./archivePanel";
+import { renderArchiveList, renderArchiveModeIcons, type ArchiveMode } from "./archivePanel";
 import { CodexEntryPickerModal } from "./CodexEntryPickerModal";
 import { CodexLoreTypeModal } from "./CodexLoreTypeModal";
 import { DossierEntitySuggest } from "./DossierEntitySuggest";
@@ -53,6 +53,7 @@ import { ChapterTitleModal } from "./ChapterTitleModal";
 import { iconAction, renderMetaControl, renderNovelPanel } from "./NovelPanel";
 import { resolveMainThreadRowColor } from "./novelColor";
 import { isRecommendTabActive, type RecommendTab } from "./recommendTabActive";
+import { countWords, formatWordCount } from "../wordCount";
 
 export const RECOMMEND_VIEW_TYPE = "storyforge-recommend-view";
 
@@ -84,6 +85,10 @@ export class RecommendationView extends ItemView {
 	private forgeFamilyExpanded = false;
 	private forgeFamilyActiveId: string | null = null;
 	private forgeFamilyPanelDisposer: (() => void) | null = null;
+	/** Word count of the chapter or Codex note in the main editor — Focus Mode chrome. */
+	private centerWordCount = 0;
+	/** Word count of the chapter this panel is bound to — Chapter tab actions row. */
+	private chapterWordCount = 0;
 
 	/** Dossier tab state */
 	private dossierQuery = "";
@@ -142,11 +147,13 @@ export class RecommendationView extends ItemView {
 					if (this.showingArchive) this.render();
 					else this.debouncedReload();
 				}
+				void this.refreshDisplayedWordCounts();
 			}),
 		);
 		this.syncFromPluginSelection();
 		this.followActiveFile();
 		await this.reload();
+		void this.refreshDisplayedWordCounts();
 	}
 
 	async onClose(): Promise<void> {
@@ -172,12 +179,25 @@ export class RecommendationView extends ItemView {
 	 * way out, and doesn't call preventDefault/stopPropagation so Obsidian's own tab-activation
 	 * click handling still runs underneath it. */
 	private registerTabHeaderFocusToggle(): void {
-		const headerEl = (this.leaf as unknown as { tabHeaderEl?: HTMLElement }).tabHeaderEl;
+		const headerEl = this.tabHeaderEl();
 		if (!headerEl) return;
+		this.decorateTabHeader(headerEl);
 		this.registerDomEvent(headerEl, "click", (evt) => {
 			if ((evt.target as HTMLElement).closest(".workspace-tab-header-inner-close-button")) return;
 			this.toggleFocusMode();
 		});
+	}
+
+	private tabHeaderEl(): HTMLElement | null {
+		return (this.leaf as unknown as { tabHeaderEl?: HTMLElement }).tabHeaderEl ?? null;
+	}
+
+	/** Marks the live tab node so styles.css can pack it to the sidebar's outer edge without
+	 * depending on Obsidian putting `data-type` on `.workspace-tab-header` (that attribute lives
+	 * on the leaf content; themes also center the header inner, which ate margin-left: auto). */
+	private decorateTabHeader(headerEl: HTMLElement): void {
+		headerEl.addClass("sf-context-focus-tab");
+		headerEl.closest(".workspace-tab-header-container")?.addClass("sf-context-focus-header");
 	}
 
 	private toggleFocusMode(): void {
@@ -194,8 +214,9 @@ export class RecommendationView extends ItemView {
 	 * ItemView. Reaches into the same undocumented header node registerTabHeaderFocusToggle()
 	 * uses, isolated here for the same reason. */
 	private syncTabHeader(): void {
-		const headerEl = (this.leaf as unknown as { tabHeaderEl?: HTMLElement }).tabHeaderEl;
+		const headerEl = this.tabHeaderEl();
 		if (!headerEl) return;
+		this.decorateTabHeader(headerEl);
 		const iconEl = headerEl.querySelector<HTMLElement>(OBSIDIAN_SELECTORS.tabHeaderInnerIcon);
 		if (iconEl) {
 			iconEl.empty();
@@ -264,13 +285,15 @@ export class RecommendationView extends ItemView {
 
 	private followActiveFile(): void {
 		const file = this.app.workspace.getActiveFile();
-		if (!file) return;
-		const book = bookFolderNameFromChapterPath(file.path);
-		if (book) {
-			this.bookFolderName = book;
-			this.chapterFilename = file.name;
-			void this.reload();
+		if (file) {
+			const book = bookFolderNameFromChapterPath(file.path);
+			if (book) {
+				this.bookFolderName = book;
+				this.chapterFilename = file.name;
+				void this.reload();
+			}
 		}
+		void this.refreshDisplayedWordCounts();
 	}
 
 	private recommendSettings() {
@@ -377,6 +400,8 @@ export class RecommendationView extends ItemView {
 	private render(force = false): void {
 		if (this.closed) return;
 		if (!force && this.forgeFamilyPanelDisposer) return;
+		const headerEl = this.tabHeaderEl();
+		if (headerEl) this.decorateTabHeader(headerEl);
 		const el = this.contentEl;
 		el.empty();
 		el.addClass("sf-recommend-view");
@@ -386,6 +411,7 @@ export class RecommendationView extends ItemView {
 		// right-rail tab are untouched, this only ever touches this view's own contentEl.
 		if (this.focusMode) {
 			this.renderFocusModeContent(el);
+			void this.refreshDisplayedWordCounts();
 			return;
 		}
 
@@ -525,8 +551,6 @@ export class RecommendationView extends ItemView {
 		if (this.forgeFamilyExpanded) return;
 
 		if (this.showingArchive) {
-			const body = el.createDiv({ cls: "sf-recommend-body" });
-			const archiveBody = body.createDiv({ cls: "sf-archive-embedded" });
 			const host = {
 				app: this.app,
 				plugin: this.plugin,
@@ -537,10 +561,9 @@ export class RecommendationView extends ItemView {
 				},
 				refresh: () => this.render(),
 			};
-			const fixed = archiveBody.createDiv({ cls: "sf-recommend-fixed" });
-			const archiveHeader = fixed.createDiv({ cls: "sf-archive-embedded-header" });
-			archiveHeader.createSpan({ cls: "sf-archive-view-title", text: "Archive" });
-			renderArchiveTabs(fixed, host);
+			renderArchiveModeIcons(el, host);
+			const body = el.createDiv({ cls: "sf-recommend-body" });
+			const archiveBody = body.createDiv({ cls: "sf-archive-embedded" });
 			renderArchiveList(archiveBody.createDiv({ cls: "sf-recommend-scroll" }), host);
 			return;
 		}
@@ -568,16 +591,15 @@ export class RecommendationView extends ItemView {
 	}
 
 	/**
-	 * Focus Mode's entire panel body: nothing but the Forge-family control, since everything else
-	 * this panel would normally show is hidden (the Focus toggle's own design keeps the
-	 * tab-header row itself to just the one icon too - this all lives in the panel content, which
-	 * is ours to use). Same shared forgeFamily* state as the normal tabs-region rendering above,
-	 * so a window already open there stays open when Focus Mode turns on, just relocated into this
-	 * chrome; renders nothing at all when no companion panel is registered.
+	 * Focus Mode's entire panel body: word count + stats (display-only) and the Forge-family
+	 * control. Everything else this panel would normally show is hidden (the Focus toggle's own
+	 * design keeps the tab-header row itself to just the one icon too - this all lives in the
+	 * panel content, which is ours to use). Same shared forgeFamily* state as the normal
+	 * tabs-region rendering above, so a window already open there stays open when Focus Mode
+	 * turns on, just relocated into this chrome.
 	 */
 	private renderFocusModeContent(el: HTMLElement): void {
 		const family = this.plugin.getCompanionPanels();
-		if (family.length === 0) return;
 		if (this.forgeFamilyActiveId && !family.some((p) => p.id === this.forgeFamilyActiveId)) {
 			this.forgeFamilyActiveId = null;
 		}
@@ -586,21 +608,76 @@ export class RecommendationView extends ItemView {
 
 		// Bottom-right row (--focus modifier: margin-top: auto pushes it to the bottom of this flex
 		// column whether or not the panel above is present - a lone flex child isn't otherwise
-		// pushed down by an empty container). Member icons (if expanded) then the trigger
-		// last/rightmost - "shown … from right to left" - matching justify-content: flex-end.
+		// pushed down by an empty container). Chapter icon sits 3px from the count; the same gap
+		// that used to sit between that pair and forge stays. Expanding the family inserts member
+		// icons in that gap, sliding the pair toward centre.
 		const row = el.createDiv({ cls: "sf-recommend-view__forge-row sf-recommend-view__forge-row--focus" });
-		if (this.forgeFamilyExpanded) {
-			this.renderForgeFamilyIcons(row, family);
-		}
-		const trigger = row.createSpan({
-			cls: "sf-recommend-view__forge-family",
-			attr: { role: "button", tabindex: "0", "aria-label": "Forge family" },
+		const cluster = row.createDiv({
+			cls: "sf-focus-wordcount-cluster",
+			attr: { "aria-label": `Word count ${formatWordCount(this.centerWordCount)}` },
 		});
-		setIcon(trigger, ICON_FORGE);
-		setTooltip(trigger, "Forge family");
-		const toggle = () => this.toggleForgeFamilyExpanded();
-		trigger.addEventListener("click", toggle);
-		makeAccessibleActivatable(trigger, toggle);
+		setIcon(cluster.createSpan({ cls: "sf-icon sf-focus-chapter-icon" }), ICON_BOOK_OPEN_FILLED);
+		cluster.createSpan({ cls: "sf-focus-wordcount", text: formatWordCount(this.centerWordCount) });
+		if (family.length > 0) {
+			const members = row.createDiv({
+				cls: `sf-recommend-view__forge-members${this.forgeFamilyExpanded ? " is-expanded" : ""}`,
+			});
+			this.renderForgeFamilyIcons(members, family);
+			const trigger = row.createSpan({
+				cls: "sf-recommend-view__forge-family",
+				attr: { role: "button", tabindex: "0", "aria-label": "Forge family" },
+			});
+			setIcon(trigger, ICON_FORGE);
+			setTooltip(trigger, "Forge family");
+			const toggle = () => this.toggleForgeFamilyExpanded();
+			trigger.addEventListener("click", toggle);
+			makeAccessibleActivatable(trigger, toggle);
+		}
+	}
+
+	private renderChapterWordCount(parent: HTMLElement): void {
+		const cluster = parent.createDiv({
+			cls: "sf-recommend-chapter-wordcount",
+			attr: { "aria-label": `Chapter word count ${formatWordCount(this.chapterWordCount)}` },
+		});
+		setIcon(cluster.createSpan({ cls: "sf-icon sf-recommend-chapter-wordcount-icon" }), ICON_DASHBOARD_CHART);
+		cluster.createSpan({
+			cls: "sf-recommend-chapter-wordcount-value",
+			text: formatWordCount(this.chapterWordCount),
+		});
+	}
+
+	private async refreshDisplayedWordCounts(): Promise<void> {
+		const file = this.app.workspace.getActiveFile();
+		let center = 0;
+		if (file && (isLibraryChapterPath(file.path) || isCodexNotePath(file.path))) {
+			center = countWords(await this.app.vault.cachedRead(file));
+		}
+		let chapter = 0;
+		if (this.bookFolderName && this.chapterFilename) {
+			const path = libraryChapterPath(this.bookFolderName, this.chapterFilename);
+			const chapterFile = this.app.vault.getAbstractFileByPath(path);
+			if (chapterFile instanceof TFile) {
+				chapter = countWords(await this.app.vault.cachedRead(chapterFile));
+			}
+		}
+		if (this.closed) return;
+		if (center !== this.centerWordCount) {
+			this.centerWordCount = center;
+			const el = this.contentEl.querySelector(".sf-focus-wordcount");
+			if (el instanceof HTMLElement) {
+				el.setText(formatWordCount(center));
+				el.parentElement?.setAttr("aria-label", `Word count ${formatWordCount(center)}`);
+			}
+		}
+		if (chapter !== this.chapterWordCount) {
+			this.chapterWordCount = chapter;
+			const el = this.contentEl.querySelector(".sf-recommend-chapter-wordcount-value");
+			if (el instanceof HTMLElement) {
+				el.setText(formatWordCount(chapter));
+				el.parentElement?.setAttr("aria-label", `Chapter word count ${formatWordCount(chapter)}`);
+			}
+		}
 	}
 
 	private tabIsActive(tab: RecommendTab): boolean {
@@ -624,12 +701,23 @@ export class RecommendationView extends ItemView {
 	/** Focus Mode's own trigger: a true toggle, since - unlike the tabs-region version above -
 	 * there's no other tab to click to dismiss it here. Collapsing also hides whatever member
 	 * panel was showing - "clicking on the forge family icon hides all the forge family plugin
-	 * icons and any displayed plugin panels." */
+	 * icons and any displayed plugin panels." In Focus Mode the member row is already in the DOM
+	 * (collapsed) so toggling only flips its class — that slides the word count and stats icon
+	 * toward the centre without rebuilding the row. */
 	private toggleForgeFamilyExpanded(): void {
 		this.forgeFamilyExpanded = !this.forgeFamilyExpanded;
 		if (!this.forgeFamilyExpanded) {
 			this.forgeFamilyActiveId = null;
 			this.disposeForgeFamilyPanel();
+		}
+		if (this.focusMode) {
+			if (!this.forgeFamilyExpanded) {
+				this.contentEl.querySelector(".sf-recommend-view__forge-panel")?.remove();
+			}
+			this.contentEl
+				.querySelector(".sf-recommend-view__forge-members")
+				?.toggleClass("is-expanded", this.forgeFamilyExpanded);
+			return;
 		}
 		this.render(true);
 	}
@@ -779,6 +867,8 @@ export class RecommendationView extends ItemView {
 		if (this.report) {
 			iconAction(actions, ICON_ADD_SQUARE, "add chapter summary to chapter details", () => void this.sendSynopsis());
 		}
+		this.renderChapterWordCount(actions);
+		void this.refreshDisplayedWordCounts();
 
 		if (!this.report) {
 			body.createDiv({ cls: "sf-empty", text: "Nothing here yet." });

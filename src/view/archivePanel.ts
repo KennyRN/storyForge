@@ -7,7 +7,7 @@ import type StoryForgePlugin from "../main";
 import { getArchivedChapters, unarchiveChapter, chapterDisplayTitle } from "../book";
 import { getArchivedCodexItems, unarchiveCodexItem, type ArchivedCodexItem } from "../codex";
 import { recordChapterUnarchive } from "../history";
-import { ICON_UNARCHIVE } from "../icons";
+import { ICON_BOOK_DUOTONE, ICON_CODEX, ICON_UNARCHIVE, ICON_X } from "../icons";
 import { libraryChapterPath } from "../paths";
 import { formatSingleLine } from "../titleNumbering";
 import { excerpt } from "../wordCount";
@@ -25,41 +25,48 @@ export interface ArchivePanelHost {
 	refresh: () => void;
 }
 
-/** Renders Codex / Novel tabs + archive list into `el` (no panel chrome header). */
+/** Renders Codex / Novel mode icons + archive list into `el` (no panel chrome header). */
 export function renderArchivePanel(el: HTMLElement, host: ArchivePanelHost): void {
-	renderArchiveTabs(el, host);
+	renderArchiveModeIcons(el, host);
 	renderArchiveList(el, host);
 }
 
-/** Tab strip only — mount in a non-scrolling region so tabs stay put. */
+/** Mode-icon row — Codex globe and duo-book (Novel), same visual language as Forge-family
+ * member icons. Mount in a non-scrolling region so they stay put. */
+export function renderArchiveModeIcons(el: HTMLElement, host: ArchivePanelHost): void {
+	const row = el.createDiv({ cls: "sf-recommend-view__forge-row sf-archive-mode-row" });
+	addArchiveModeIcon(row, host, "codex", ICON_CODEX, "Codex");
+	addArchiveModeIcon(row, host, "novel", ICON_BOOK_DUOTONE, "Novel");
+}
+
+function addArchiveModeIcon(
+	row: HTMLElement,
+	host: ArchivePanelHost,
+	mode: ArchiveMode,
+	icon: string,
+	label: string,
+): void {
+	const btn = row.createSpan({
+		cls: `sf-recommend-view__forge-icon${host.mode === mode ? " is-active" : ""}`,
+		attr: { role: "button", tabindex: "0", "aria-label": label },
+	});
+	setIcon(btn, icon);
+	setTooltip(btn, label);
+	const select = () => {
+		host.setMode(mode);
+		host.refresh();
+	};
+	btn.addEventListener("click", (e) => {
+		e.stopPropagation();
+		select();
+	});
+	makeAccessibleActivatable(btn, select);
+}
+
+/** @deprecated Use renderArchiveModeIcons — kept so older call sites that imported the tab strip
+ * still type-check; forwards to the icon row. */
 export function renderArchiveTabs(el: HTMLElement, host: ArchivePanelHost): void {
-	const tabs = el.createDiv({ cls: "sf-archive-view-tabs sf-archive-embedded-tabs" });
-	const codexTab = tabs.createSpan({
-		cls: `sf-archive-view-tab${host.mode === "codex" ? " is-active" : ""}`,
-		text: "Codex",
-		attr: { role: "tab", tabindex: "0", "aria-selected": String(host.mode === "codex") },
-	});
-	const novelTab = tabs.createSpan({
-		cls: `sf-archive-view-tab${host.mode === "novel" ? " is-active" : ""}`,
-		text: "Novel",
-		attr: { role: "tab", tabindex: "0", "aria-selected": String(host.mode === "novel") },
-	});
-	codexTab.addEventListener("click", () => {
-		host.setMode("codex");
-		host.refresh();
-	});
-	novelTab.addEventListener("click", () => {
-		host.setMode("novel");
-		host.refresh();
-	});
-	makeAccessibleActivatable(codexTab, () => {
-		host.setMode("codex");
-		host.refresh();
-	});
-	makeAccessibleActivatable(novelTab, () => {
-		host.setMode("novel");
-		host.refresh();
-	});
+	renderArchiveModeIcons(el, host);
 }
 
 /** List for the active tab — mount in the scrolling region. */
@@ -68,10 +75,18 @@ export function renderArchiveList(el: HTMLElement, host: ArchivePanelHost): void
 	else renderNovel(el, host);
 }
 
+function renderArchiveEmpty(el: HTMLElement, label: string): void {
+	const empty = el.createDiv({
+		cls: "sf-archive-empty",
+		attr: { "aria-label": label },
+	});
+	setIcon(empty, ICON_X);
+}
+
 function renderCodex(el: HTMLElement, host: ArchivePanelHost): void {
 	const archived = getArchivedCodexItems(host.app);
 	if (archived.length === 0) {
-		el.createDiv({ cls: "sf-empty", text: "No archived codex items." });
+		renderArchiveEmpty(el, "No archived codex items.");
 		return;
 	}
 	const list = el.createDiv({ cls: "sf-archive-list" });
@@ -112,7 +127,7 @@ function renderNovel(el: HTMLElement, host: ArchivePanelHost): void {
 	}
 	const archived = getArchivedChapters(host.app, host.bookFolderName);
 	if (archived.length === 0) {
-		el.createDiv({ cls: "sf-empty", text: "No archived chapters." });
+		renderArchiveEmpty(el, "No archived chapters.");
 		return;
 	}
 	const list = el.createDiv({ cls: "sf-archive-list" });

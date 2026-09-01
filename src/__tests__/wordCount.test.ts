@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { countWords, excerpt, stripForCounting, sumWordCounts } from "../wordCount";
+import { countWords, excerpt, formatWordCount, stripForCounting, sumWordCounts } from "../wordCount";
 
 describe("stripForCounting", () => {
 	it("strips a leading YAML frontmatter block", () => {
@@ -35,6 +35,15 @@ describe("countWords", () => {
 
 	it("ignores stripped comments when counting", () => {
 		expect(countWords("one %% two three %% four")).toBe(2);
+	});
+});
+
+describe("formatWordCount", () => {
+	it("groups thousands and does not append a unit word", () => {
+		expect(formatWordCount(0)).toBe("0");
+		expect(formatWordCount(312)).toBe("312");
+		expect(formatWordCount(1234)).toBe("1,234");
+		expect(formatWordCount(1_000_000)).toBe("1,000,000");
 	});
 });
 

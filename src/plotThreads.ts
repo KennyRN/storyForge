@@ -253,23 +253,27 @@ export async function deletePlotThread(app: App, id: string): Promise<PlotThread
 	return { entries };
 }
 
-/** Reorders the list to match `newIdOrder`. Any existing id missing from `newIdOrder` is appended
- * at the end, preserving its relative order, so a stale/partial order can't silently drop entries. */
+/** Reorders non-default threads to match `newIdOrder`. The default main thread always stays first.
+ * Any existing id missing from `newIdOrder` is appended at the end, preserving its relative order,
+ * so a stale/partial order can't silently drop entries. */
 export async function reorderPlotThreads(app: App, newIdOrder: string[]): Promise<PlotThreadMutationResult> {
 	const entries = await mutatePlotThreads(app, (current) => {
-		const byId = new Map(current.map((e) => [e.id, e]));
+		const main = current.find((entry) => entry.id === MAIN_THREAD_ID) ?? null;
+		const rest = current.filter((entry) => entry.id !== MAIN_THREAD_ID);
+		const byId = new Map(rest.map((e) => [e.id, e]));
 		const reordered: PlotThread[] = [];
 		for (const id of newIdOrder) {
+			if (id === MAIN_THREAD_ID) continue;
 			const entry = byId.get(id);
 			if (entry) {
 				reordered.push(entry);
 				byId.delete(id);
 			}
 		}
-		for (const leftover of current) {
+		for (const leftover of rest) {
 			if (byId.has(leftover.id)) reordered.push(leftover);
 		}
-		return reordered;
+		return main ? [main, ...reordered] : reordered;
 	});
 	return { entries };
 }
