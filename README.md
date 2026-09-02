@@ -1,11 +1,9 @@
-## 0.16.0 Update
-- redesign of some of the visual layout, not only on the main storyForge interface but also within some of the menus
+## 0.16.1 Update
+- redesign of some of the visual layout, not only on the main storyForge interface but also within some of the menus (update 0.16.1 extended this to the text format menu)
 - added a new method of filtering within the Codex, using `#tags`, just add `#tags` within your normal markdown document. Then in the new codex tags window (found on the codex pane, it's the one with the `#` on it), set an icon and check the use checkbox
   - sitting beneath the other Codex icons is the one for your tag, nice and easy, and you're not limited to just having a single type visible
 
 ***⚠️ WARNING: this plugin no longer creates an external backup!***
-
-Embedded custom fonts (and full manuscript typography) now live in the optional **formatForge** companion plugin. The split keeps storyForge’s bundle smaller for Obsidian Sync. (Sadly this means it's no longer a one-stop-shop but it's close enough with the advantage that formatForge can now work on other vaults for a simple-to-use theme formatting alteration plugin.)
 
 # storyForge
 Storytelling plugin by volcanicMole
