@@ -111,10 +111,11 @@ function isCodexRef(value: unknown): value is CodexRef {
 
 function zipPathNameLists(paths: unknown, names: unknown): CodexRef[] {
 	if (!Array.isArray(paths)) return [];
-	const nameList = Array.isArray(names) ? names : [];
+	const pathList = paths as unknown[];
+	const nameList = (Array.isArray(names) ? names : []) as unknown[];
 	const result: CodexRef[] = [];
-	for (let i = 0; i < paths.length; i++) {
-		const path = paths[i];
+	for (let i = 0; i < pathList.length; i++) {
+		const path = pathList[i];
 		if (typeof path !== "string" || path.length === 0) continue;
 		const name = nameList[i];
 		result.push({

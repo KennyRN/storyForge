@@ -383,7 +383,7 @@
 }
 
 .sf-row-subtitle--title {
-	font-size: inherit;
+	font-size: 90%;
 	font-weight: inherit;
 	font-family: inherit;
 	font-variant: inherit;
@@ -674,8 +674,8 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 
 /* Series-mode-only hover icons — pinned to the bottom-left corner of the whole pane (see
  * renderSeriesPaneCornerButtons's doc comment), not part of any row's flex flow any more.
- * Settings cog is leftmost (outside); stats sits between it and plot-threads. Sized 50% bigger
- * than this codebase's default icon size (16px -> 24px). */
+ * Settings cog is leftmost (outside); stats sits between it and plot-threads; Codex types
+ * and Codex tags follow. Sized 50% bigger than this codebase's default icon size (16px -> 24px). */
 .sf-series-pane-corner {
 	position: absolute;
 	left: 8px;
@@ -4353,8 +4353,7 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	display: flex;
 	flex-wrap: wrap;
 	align-items: baseline;
-	column-gap: 0.35em;
-	row-gap: 2px;
+	gap: 2px 0.35em;
 	min-width: 0;
 	flex: 1;
 	cursor: pointer;
