@@ -247,6 +247,28 @@ export interface StoryForgePluginSettings {
 	heading6Size: number;
 	heading6OverrideColor: boolean;
 	heading6Color: string;
+	/**
+	 * Quote / link / list colour and quote size — same native-when-disconnected split as
+	 * body/heading colour. formatForge owns fonts and, while connected, writes the same
+	 * `--sf-quote-*` / `--sf-body-link-*` / `--sf-*-marker` vars from its own settings.
+	 */
+	blockquoteOverrideSize: boolean;
+	blockquoteSize: number;
+	blockquoteOverrideColor: boolean;
+	blockquoteColor: string;
+	blockquoteOverrideBg: boolean;
+	blockquoteBgColor: string;
+	blockquoteOverrideBorder: boolean;
+	blockquoteBorderColor: string;
+	bodyLinkOverrideColor: boolean;
+	bodyLinkColor: string;
+	bodyLinkOverrideHoverColor: boolean;
+	bodyLinkHoverColor: string;
+	bodyLinkRemoveUnderline: boolean;
+	orderedListOverrideColor: boolean;
+	orderedListColor: string;
+	unorderedListOverrideColor: boolean;
+	unorderedListColor: string;
 	useToolsPanel: boolean;
 	/** "canonical" enforces SF-before-Tools tab order on open; flips to "user" (permanently) the first time the user drags Tools ahead of SF. */
 	panelOrderMode: "canonical" | "user";
@@ -617,6 +639,23 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	heading6Size: 1,
 	heading6OverrideColor: false,
 	heading6Color: "var(--text-normal)",
+	blockquoteOverrideSize: false,
+	blockquoteSize: 1,
+	blockquoteOverrideColor: false,
+	blockquoteColor: "var(--text-normal)",
+	blockquoteOverrideBg: false,
+	blockquoteBgColor: "#2a2a2a",
+	blockquoteOverrideBorder: false,
+	blockquoteBorderColor: "#7eb8da",
+	bodyLinkOverrideColor: false,
+	bodyLinkColor: "#7eb8da",
+	bodyLinkOverrideHoverColor: false,
+	bodyLinkHoverColor: "#a8d4ef",
+	bodyLinkRemoveUnderline: false,
+	orderedListOverrideColor: false,
+	orderedListColor: "#7eb8da",
+	unorderedListOverrideColor: false,
+	unorderedListColor: "#7eb8da",
 	useToolsPanel: true,
 	panelOrderMode: "canonical",
 	colorPaletteName: "Custom",

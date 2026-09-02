@@ -220,12 +220,16 @@ const PREVIEW_MAIN_THREAD_FALLBACK: PreviewMainThread = {
 	text: "#1c1917",
 };
 
-function mountRecommendMetaRow(meta: HTMLElement, label: string, icon: string, value: string): void {
+function mountRecommendMetaNames(meta: HTMLElement, label: string, names: string[]): void {
 	const row = meta.createDiv({ cls: "sf-recommend-meta-row" });
 	row.createSpan({ cls: "sf-recommend-meta-label", text: label });
-	const control = row.createSpan({ cls: "sf-recommend-meta-control" });
-	setIcon(control.createSpan({ cls: "sf-recommend-meta-icon" }), icon);
-	control.createSpan({ cls: "sf-recommend-meta-value", text: value });
+	const values = row.createSpan({ cls: "sf-recommend-meta-values" });
+	names.forEach((name, index) => {
+		values.createSpan({
+			cls: "sf-recommend-meta-value",
+			text: index < names.length - 1 ? `${name},` : name,
+		});
+	});
 }
 
 function mountRecommendPillCard(
@@ -326,16 +330,8 @@ function mountRecommendNovelBody(body: HTMLElement, mainThread: PreviewMainThrea
 		headerRow.setCssStyles({ marginLeft: `${headerMarginLeft}px` });
 		headerRow.style.paddingLeft = `${cardPad + Math.max(0, -cardPad - headerMarginLeft)}px`;
 		const plotMeta = block.createDiv({ cls: "sf-recommend-meta" });
-		const povRow = plotMeta.createDiv({ cls: "sf-recommend-meta-row" });
-		povRow.createSpan({ cls: "sf-recommend-meta-label", text: "PoV:" });
-		const povControl = povRow.createSpan({ cls: "sf-recommend-meta-control" });
-		setIcon(povControl.createSpan({ cls: "sf-recommend-meta-icon" }), ICON_PERSON);
-		povControl.createSpan({ cls: "sf-recommend-meta-value", text: "Jane Protagonist" });
-		const locRow = plotMeta.createDiv({ cls: "sf-recommend-meta-row" });
-		locRow.createSpan({ cls: "sf-recommend-meta-label", text: "Location:" });
-		const locControl = locRow.createSpan({ cls: "sf-recommend-meta-control" });
-		setIcon(locControl.createSpan({ cls: "sf-recommend-meta-icon" }), ICON_MAP_PIN);
-		locControl.createSpan({ cls: "sf-recommend-meta-value", text: chapter.place });
+		mountRecommendMetaNames(plotMeta, "PoV:", ["Jane Protagonist"]);
+		mountRecommendMetaNames(plotMeta, "Location:", [chapter.place]);
 		block.createDiv({ cls: "sf-recommend-plot-textarea-divider" });
 		block.createEl("textarea", {
 			cls: "sf-recommend-synopsis sf-recommend-plot-textarea",
@@ -380,8 +376,8 @@ function mountRecommendChapterCard(body: HTMLElement, mainThread: PreviewMainThr
 	const nameEl = header.createDiv({ cls: "sf-recommend-plot-chapter-name", text: "I. Amet Consectetur" });
 	nameEl.setCssStyles({ color: mainThread.text });
 	const meta = card.createDiv({ cls: "sf-recommend-meta" });
-	mountRecommendMetaRow(meta, "PoV:", ICON_PERSON, "Jane Protagonist");
-	mountRecommendMetaRow(meta, "Location:", ICON_MAP_PIN, "The Harbour");
+	mountRecommendMetaNames(meta, "PoV:", ["Jane Protagonist"]);
+	mountRecommendMetaNames(meta, "Location:", ["The Harbour"]);
 	card.createEl("textarea", {
 		cls: "sf-recommend-synopsis sf-recommend-plot-textarea",
 		text: "Chapter summary goes here.",

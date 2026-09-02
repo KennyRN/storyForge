@@ -23,7 +23,7 @@ import {
 import { CODEX_TYPES, codexTypeIcon, getCodexEntriesByType } from "../codex";
 import { debounce } from "../debounce";
 import { splitTitleSubtitle } from "../titleNumbering";
-import { ICON_ADD_SQUARE, ICON_ARCHIVE_FILLED, ICON_BOOK_DUOTONE, ICON_BOOK_OPEN_FILLED, ICON_CHECK_SQUARE, ICON_CLIPBOARD_LIST_DUOTONE, ICON_DASHBOARD_CHART, ICON_FOCUS_OFF, ICON_FOCUS_ON, ICON_FORGE, ICON_LOCATION_TARGET_SQUARE, ICON_MAP_PIN, ICON_MAP_PIN_PLUS, ICON_MINUS_SQUARE, ICON_MULTIPLY_SQUARE, ICON_NOTEBOOK_DUOTONE, ICON_PERSON_FILL, ICON_PERSON_FILL_ADD, ICON_PLUS_SQUARE, ICON_REFRESH_SQUARE } from "../icons";
+import { ICON_ADD_SQUARE, ICON_ARCHIVE_FILLED, ICON_BOOK_DUOTONE, ICON_BOOK_OPEN_FILLED, ICON_CHECK_SQUARE, ICON_CLIPBOARD_LIST_DUOTONE, ICON_DASHBOARD_CHART, ICON_FOCUS_OFF, ICON_FOCUS_ON, ICON_FORGE, ICON_LOCATION_TARGET_SQUARE, ICON_MAP_PIN_PLUS, ICON_MINUS_SQUARE, ICON_MULTIPLY_SQUARE, ICON_NOTEBOOK_DUOTONE, ICON_PERSON_FILL_ADD, ICON_PLUS_SQUARE, ICON_REFRESH_SQUARE } from "../icons";
 import { bookFolderNameFromChapterPath, CODEX_ROOT, isBackstageBookkeepingPath, isCodexNotePath, isLibraryChapterPath, libraryChapterPath, seriesFilePath } from "../paths";
 import { OBSIDIAN_SELECTORS } from "../obsidianInternals";
 import { getBookId } from "../series";
@@ -51,7 +51,7 @@ import { CodexEntryPickerModal } from "./CodexEntryPickerModal";
 import { CodexLoreTypeModal } from "./CodexLoreTypeModal";
 import { DossierEntitySuggest } from "./DossierEntitySuggest";
 import { ChapterTitleModal } from "./ChapterTitleModal";
-import { iconAction, renderMetaControl, renderNovelPanel } from "./NovelPanel";
+import { iconAction, renderMetaRefList, renderNovelPanel } from "./NovelPanel";
 import { resolveMainThreadRowColor } from "./novelColor";
 import { resolveTitleShadow } from "../titleShadow";
 import { isRecommendTabActive, type RecommendTab } from "./recommendTabActive";
@@ -1242,8 +1242,7 @@ export class RecommendationView extends ItemView {
 	}
 
 	/**
-	 * Chapter PoV + Location rows — plain `Label: [icon] Name`.
-	 * Icon and name are one control (shared hover / click / tooltip).
+	 * Chapter PoV + Location rows — wrapping comma-separated names, or the add icon when unset.
 	 */
 	private renderNarratingLabel(parent: HTMLElement): void {
 		if (!this.bookFolderName || !this.chapterFilename) return;
@@ -1256,74 +1255,70 @@ export class RecommendationView extends ItemView {
 			this.castCache.length > 0 ? this.castCache : undefined,
 		);
 		const chapter = getChapterEntry(this.app, bookFolderName, chapterFilename);
-		const locationPath = chapter?.locationPath ?? null;
-		const locationName = chapter?.locationName ?? null;
+		const chapterPov = chapter?.pov ?? [];
+		const displayPov =
+			chapterPov.length > 0
+				? chapterPov
+				: narrator
+					? [{ path: narrator.path, name: narrator.name }]
+					: [];
+		const location = chapter?.location ?? [];
 
 		const meta = parent.createDiv({ cls: "sf-recommend-meta" });
-
-		const povRow = meta.createDiv({ cls: "sf-recommend-meta-row" });
-		povRow.createSpan({ cls: "sf-recommend-meta-label", text: "PoV:" });
-		renderMetaControl(povRow, {
-			iconId: narrator ? ICON_PERSON_FILL : ICON_PERSON_FILL_ADD,
-			value: narrator?.name ?? null,
-			tooltip: narrator ? "change pov character" : "set pov character",
-			onOpen: () => void this.openNarratorPicker(!!narrator),
-		});
-
-		const locRow = meta.createDiv({ cls: "sf-recommend-meta-row" });
-		locRow.createSpan({ cls: "sf-recommend-meta-label", text: "Location:" });
-		renderMetaControl(locRow, {
-			iconId: locationPath ? ICON_MAP_PIN : ICON_MAP_PIN_PLUS,
-			value: locationPath ? (locationName ?? locationPath) : null,
-			tooltip: locationPath ? "change location" : "set location",
-			onOpen: () => void this.openLocationPicker(!!locationPath),
-		});
+		renderMetaRefList(
+			meta,
+			"PoV:",
+			displayPov,
+			ICON_PERSON_FILL_ADD,
+			() => void this.openNarratorPicker(chapterPov),
+			chapterPov.length > 0 || narrator ? "change pov character" : "set pov character",
+		);
+		renderMetaRefList(
+			meta,
+			"Location:",
+			location,
+			ICON_MAP_PIN_PLUS,
+			() => void this.openLocationPicker(location),
+			location.length > 0 ? "change location" : "set location",
+		);
 	}
 
-	private async openNarratorPicker(hasValue: boolean): Promise<void> {
+	private async openNarratorPicker(current: { path: string; name: string }[]): Promise<void> {
 		if (!this.bookFolderName || !this.chapterFilename) return;
 		const bookFolderName = this.bookFolderName;
 		const chapterFilename = this.chapterFilename;
 		const bookId = getBookId(this.app, bookFolderName);
 		const entries = getCodexEntriesByType(this.app, "person", bookId);
-		new CodexEntryPickerModal(
-			this.app,
-			"Set PoV",
-			"No person entries in the Codex yet.",
+		new CodexEntryPickerModal(this.app, {
+			mode: "multi",
+			label: "PoV:",
+			emptyMessage: "No person entries in the Codex yet.",
 			entries,
-			hasValue,
-			async (entry) => {
-				await writeChapterPov(this.app, bookFolderName, chapterFilename, entry.path, entry.name);
+			initiallySelected: current,
+			onAccept: async (selected) => {
+				await writeChapterPov(this.app, bookFolderName, chapterFilename, selected);
 				await this.forceRefresh();
 			},
-			async () => {
-				await writeChapterPov(this.app, bookFolderName, chapterFilename, null, null);
-				await this.forceRefresh();
-			},
-		).open();
+		}).open();
 	}
 
-	private async openLocationPicker(hasValue: boolean): Promise<void> {
+	private async openLocationPicker(current: { path: string; name: string }[]): Promise<void> {
 		if (!this.bookFolderName || !this.chapterFilename) return;
 		const bookFolderName = this.bookFolderName;
 		const chapterFilename = this.chapterFilename;
 		const bookId = getBookId(this.app, bookFolderName);
 		const entries = getCodexEntriesByType(this.app, "place", bookId);
-		new CodexEntryPickerModal(
-			this.app,
-			"Set location",
-			"No place entries in the Codex yet.",
+		new CodexEntryPickerModal(this.app, {
+			mode: "multi",
+			label: "Location:",
+			emptyMessage: "No place entries in the Codex yet.",
 			entries,
-			hasValue,
-			async (entry) => {
-				await writeChapterLocation(this.app, bookFolderName, chapterFilename, entry.path, entry.name);
+			initiallySelected: current,
+			onAccept: async (selected) => {
+				await writeChapterLocation(this.app, bookFolderName, chapterFilename, selected);
 				await this.forceRefresh();
 			},
-			async () => {
-				await writeChapterLocation(this.app, bookFolderName, chapterFilename, null, null);
-				await this.forceRefresh();
-			},
-		).open();
+		}).open();
 	}
 
 	private async resolveHit(hit: DetailHit): Promise<void> {

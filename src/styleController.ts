@@ -482,6 +482,15 @@ export class StyleController {
 			"--sf-h5-color": s.heading5OverrideColor ? s.heading5Color : null,
 			"--sf-h6-size": s.heading6OverrideSize ? `${s.heading6Size}em` : null,
 			"--sf-h6-color": s.heading6OverrideColor ? s.heading6Color : null,
+			"--sf-quote-size": s.blockquoteOverrideSize ? `${s.blockquoteSize}em` : null,
+			"--sf-quote-color": s.blockquoteOverrideColor ? s.blockquoteColor : null,
+			"--sf-quote-bg": s.blockquoteOverrideBg ? s.blockquoteBgColor : null,
+			"--sf-quote-border": s.blockquoteOverrideBorder ? s.blockquoteBorderColor : null,
+			"--sf-body-link-color": s.bodyLinkOverrideColor ? s.bodyLinkColor : null,
+			"--sf-body-link-color-hover": s.bodyLinkOverrideHoverColor ? s.bodyLinkHoverColor : null,
+			"--sf-body-link-decoration": s.bodyLinkRemoveUnderline ? "none" : null,
+			"--sf-ol-marker": s.orderedListOverrideColor ? s.orderedListColor : null,
+			"--sf-ul-marker": s.unorderedListOverrideColor ? s.unorderedListColor : null,
 		};
 		this.applyStyleVarsToAllDocs(vars);
 	}

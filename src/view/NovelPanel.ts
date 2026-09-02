@@ -13,10 +13,10 @@ import {
 	writeChapterPlot,
 	writeChapterPov,
 	writeDefaultPov,
+	type CodexRef,
 } from "../book";
 import { getCodexEntriesByType } from "../codex";
 import {
-	ICON_MAP_PIN,
 	ICON_MAP_PIN_PLUS,
 	ICON_PERSON_FILL,
 	ICON_PERSON_FILL_ADD,
@@ -266,21 +266,20 @@ function renderDefaultPovRow(app: App, parent: HTMLElement, bookFolderName: stri
 async function openDefaultPovPicker(app: App, bookFolderName: string, hasValue: boolean, onChanged: () => void): Promise<void> {
 	const bookId = getBookId(app, bookFolderName);
 	const entries = getCodexEntriesByType(app, "person", bookId);
-	new CodexEntryPickerModal(
-		app,
-		"Set PoV",
-		"No person entries in the Codex yet.",
+	new CodexEntryPickerModal(app, {
+		title: "Set PoV",
+		emptyMessage: "No person entries in the Codex yet.",
 		entries,
 		hasValue,
-		async (entry) => {
+		onPick: async (entry) => {
 			await writeDefaultPov(app, bookFolderName, entry.path, entry.name);
 			onChanged();
 		},
-		async () => {
+		onClear: async () => {
 			await writeDefaultPov(app, bookFolderName, null, null);
 			onChanged();
 		},
-	).open();
+	}).open();
 }
 
 async function renderNovelPlot(
@@ -408,24 +407,29 @@ async function renderNovelPlot(
 			file.name,
 			options.castCache?.length ? options.castCache : undefined,
 		);
+		const chapterPov = entry?.pov ?? [];
+		const displayPov =
+			chapterPov.length > 0
+				? chapterPov
+				: narrator
+					? [{ path: narrator.path, name: narrator.name }]
+					: [];
 		const meta = block.createDiv({ cls: "sf-recommend-meta" });
-		renderPlotMetaRow(
+		renderMetaRefList(
 			meta,
 			"PoV:",
-			narrator ? ICON_PERSON_FILL : ICON_PERSON_FILL_ADD,
-			narrator?.name ?? null,
-			!!narrator,
-			() => void openNovelChapterPovPicker(app, bookFolderName, file.name, !!narrator, options.onChanged),
-			narrator ? "change pov character" : "set pov character",
+			displayPov,
+			ICON_PERSON_FILL_ADD,
+			() => void openNovelChapterPovPicker(app, bookFolderName, file.name, chapterPov, options.onChanged),
+			chapterPov.length > 0 || narrator ? "change pov character" : "set pov character",
 		);
-		renderPlotMetaRow(
+		renderMetaRefList(
 			meta,
 			"Location:",
-			entry?.locationPath ? ICON_MAP_PIN : ICON_MAP_PIN_PLUS,
-			entry?.locationName ?? entry?.locationPath ?? null,
-			!!entry?.locationPath,
-			() => void openNovelChapterLocationPicker(app, bookFolderName, file.name, !!entry?.locationPath, options.onChanged),
-			entry?.locationPath ? "change location" : "set location",
+			entry?.location ?? [],
+			ICON_MAP_PIN_PLUS,
+			() => void openNovelChapterLocationPicker(app, bookFolderName, file.name, entry?.location ?? [], options.onChanged),
+			(entry?.location.length ?? 0) > 0 ? "change location" : "set location",
 		);
 
 		// A plain divider line, not the textarea's own border-top (an earlier version's approach):
@@ -507,75 +511,48 @@ async function renderNovelPlot(
 	}
 }
 
-function renderPlotMetaRow(
-	parent: HTMLElement,
-	label: string,
-	iconId: string,
-	value: string | null,
-	hasValue: boolean,
-	onOpen: () => void,
-	tooltip: string,
-): void {
-	const row = parent.createDiv({ cls: "sf-recommend-meta-row" });
-	row.createSpan({ cls: "sf-recommend-meta-label", text: label });
-	renderMetaControl(row, {
-		iconId,
-		value: hasValue ? value : null,
-		tooltip,
-		onOpen,
-	});
-}
-
 async function openNovelChapterPovPicker(
 	app: App,
 	bookFolderName: string,
 	filename: string,
-	hasValue: boolean,
+	current: CodexRef[],
 	onChanged: () => void,
 ): Promise<void> {
 	const bookId = getBookId(app, bookFolderName);
 	const entries = getCodexEntriesByType(app, "person", bookId);
-	new CodexEntryPickerModal(
-		app,
-		"Set PoV",
-		"No person entries in the Codex yet.",
+	new CodexEntryPickerModal(app, {
+		mode: "multi",
+		label: "PoV:",
+		emptyMessage: "No person entries in the Codex yet.",
 		entries,
-		hasValue,
-		async (entry) => {
-			await writeChapterPov(app, bookFolderName, filename, entry.path, entry.name);
+		initiallySelected: current,
+		onAccept: async (selected) => {
+			await writeChapterPov(app, bookFolderName, filename, selected);
 			onChanged();
 		},
-		async () => {
-			await writeChapterPov(app, bookFolderName, filename, null, null);
-			onChanged();
-		},
-	).open();
+	}).open();
 }
 
 async function openNovelChapterLocationPicker(
 	app: App,
 	bookFolderName: string,
 	filename: string,
-	hasValue: boolean,
+	current: CodexRef[],
 	onChanged: () => void,
 ): Promise<void> {
 	const bookId = getBookId(app, bookFolderName);
 	const entries = getCodexEntriesByType(app, "place", bookId);
-	new CodexEntryPickerModal(
-		app,
-		"Set location",
-		"No place entries in the Codex yet.",
+	new CodexEntryPickerModal(app, {
+		mode: "multi",
+		label: "Location:",
+		emptyMessage: "No place entries in the Codex yet.",
 		entries,
-		hasValue,
-		async (entry) => {
-			await writeChapterLocation(app, bookFolderName, filename, entry.path, entry.name);
+		initiallySelected: current,
+		onAccept: async (selected) => {
+			await writeChapterLocation(app, bookFolderName, filename, selected);
 			onChanged();
 		},
-		async () => {
-			await writeChapterLocation(app, bookFolderName, filename, null, null);
-			onChanged();
-		},
-	).open();
+	}).open();
 }
 
 function plotChapterCollapseKey(bookFolderName: string, filename: string): string {
@@ -617,6 +594,37 @@ export function renderMetaControl(
 		opts.onOpen();
 	});
 	makeAccessibleActivatable(control, opts.onOpen);
+}
+
+/** Comma-separated Codex refs that wrap under the first line; empty state keeps the add-icon control. */
+export function renderMetaRefList(
+	parent: HTMLElement,
+	label: string,
+	refs: CodexRef[],
+	emptyIconId: string,
+	onOpen: () => void,
+	tooltip: string,
+): void {
+	const row = parent.createDiv({ cls: "sf-recommend-meta-row" });
+	row.createSpan({ cls: "sf-recommend-meta-label", text: label });
+	if (refs.length === 0) {
+		renderMetaControl(row, { iconId: emptyIconId, value: null, tooltip, onOpen });
+		return;
+	}
+	const values = row.createSpan({
+		cls: "sf-recommend-meta-values",
+		attr: { role: "button", tabindex: "0", "aria-label": tooltip },
+	});
+	setTooltip(values, tooltip);
+	refs.forEach((ref, index) => {
+		const text = index < refs.length - 1 ? `${ref.name || ref.path},` : ref.name || ref.path;
+		values.createSpan({ cls: "sf-recommend-meta-value", text });
+	});
+	values.addEventListener("click", (e) => {
+		e.stopPropagation();
+		onOpen();
+	});
+	makeAccessibleActivatable(values, onOpen);
 }
 
 /** Small icon-only action button — Story Context list-row actions (RecommendationView.ts). */

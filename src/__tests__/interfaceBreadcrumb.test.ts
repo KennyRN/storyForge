@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	clickBreadcrumb,
+	ensureLeafPath,
 	groupsForPath,
 	isLeafNode,
 	nodeAtPath,
@@ -120,5 +121,57 @@ describe("nodeAtPath / isLeafNode", () => {
 		expect(isLeafNode(nodeAtPath(tree, ["visual", "storytelling"]))).toBe(true);
 		expect(isLeafNode(nodeAtPath(tree, ["visual", "story-context"]))).toBe(false);
 		expect(isLeafNode(nodeAtPath(tree, ["visual", "story-context", "novel"]))).toBe(true);
+	});
+});
+
+describe("ensureLeafPath", () => {
+	it("is a no-op on a leaf", () => {
+		expect(ensureLeafPath(tree, ["visual", "storytelling"])).toEqual(["visual", "storytelling"]);
+	});
+
+	it("appends the first child when no preference is given", () => {
+		expect(ensureLeafPath(tree, ["visual"])).toEqual(["visual", "storyforge", "series"]);
+		expect(ensureLeafPath(tree, ["list"])).toEqual(["list", "text"]);
+	});
+
+	it("uses preferredChild when that id exists among children", () => {
+		expect(
+			ensureLeafPath(tree, ["visual"], (id) => (id === "visual" ? "storytelling" : undefined)),
+		).toEqual(["visual", "storytelling"]);
+		expect(
+			ensureLeafPath(tree, ["visual", "storyforge"], (id) => (id === "storyforge" ? "library" : undefined)),
+		).toEqual(["visual", "storyforge", "library"]);
+	});
+
+	it("falls back to the first child when preferredChild is missing", () => {
+		expect(ensureLeafPath(tree, ["visual"], () => "missing")).toEqual(["visual", "storyforge", "series"]);
+	});
+});
+
+describe("dual-icon nodes", () => {
+	const dualTree: BreadcrumbNode[] = [
+		{
+			id: "body",
+			label: "Body",
+			icon: "body",
+			children: [
+				{
+					id: "links",
+					label: "Links and lists",
+					icon: "link",
+					icons: ["link", "list"],
+					render: () => undefined,
+				},
+			],
+		},
+	];
+
+	it("treats a dual-icon crumb as one sibling", () => {
+		expect(groupsForPath(dualTree, ["body"]).map((group) => group.map((n) => n.id))).toEqual([
+			["body"],
+			["links"],
+		]);
+		expect(nodeAtPath(dualTree, ["body", "links"])?.icons).toEqual(["link", "list"]);
+		expect(isLeafNode(nodeAtPath(dualTree, ["body", "links"]))).toBe(true);
 	});
 });

@@ -8,6 +8,7 @@ import {
 	collectReferencedPaths,
 	countFilesInFolder,
 	findContainer,
+	flattenCodexTreeFiles,
 	insertIntoContainer,
 	isDescendantFolder,
 	isFolderKey,
@@ -222,7 +223,8 @@ export function filterVisiblePathsByType(
 }
 
 /** Codex entries of the given type (or a type nested under it — see codexTypeMatchesOrDescendsFrom),
- * scoped like the Codex pane itself (universal + this book's own, excluding archived). */
+ * scoped like the Codex pane itself (universal + this book's own, excluding archived), in the
+ * same order as a fully-expanded Codex tree (folders flattened). */
 export function getCodexEntriesByType(
 	app: App,
 	type: string,
@@ -230,12 +232,15 @@ export function getCodexEntriesByType(
 ): { path: string; name: string }[] {
 	const { types } = readCodexFrontmatter(app);
 	const { codex } = partitionCodexNotes(collectCodexNotes(app), currentBookId);
-	return codex
-		.filter((note) => {
-			const entryType = types[note.path];
-			return entryType != null && codexTypeMatchesOrDescendsFrom(entryType, type);
-		})
-		.map((note) => ({ path: note.path, name: codexBasename(note.path) }));
+	const visiblePaths = new Set(codex.map((note) => note.path));
+	const tree = buildCodexTree(app, visiblePaths);
+	const ordered = tree
+		? flattenCodexTreeFiles(tree)
+		: codex.map((note) => ({ path: note.path, name: codexBasename(note.path) }));
+	return ordered.filter((entry) => {
+		const entryType = types[entry.path];
+		return entryType != null && codexTypeMatchesOrDescendsFrom(entryType, type);
+	});
 }
 
 /** Flat, single-pass scan — Codex notes always live directly under `Codex/` now (folders are virtual). Archived paths (direct or nested inside an archived folder) are excluded. */

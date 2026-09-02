@@ -5,6 +5,8 @@ export interface DragZone {
 	container: HTMLElement;
 }
 
+export type ReorderAxis = "vertical" | "horizontal";
+
 /**
  * Pointer-based drag-to-reorder across one or more "zones" (each a distinct
  * container), so it works with both desktop mouse and mobile touch (unlike
@@ -14,12 +16,16 @@ export interface DragZone {
  *
  * Reorders the DOM live as the pointer moves. On release, reads the final
  * DOM order back out of each zone via each row's `data-key` and reports it.
+ *
+ * `axis` defaults to vertical (existing chapter/tag/series lists). Horizontal
+ * is for left/right chip rows (PoV/location picker).
  */
 export function makeReorderable(
 	zones: DragZone[],
 	rowSelector: string,
 	handleSelector: string,
 	onReorder: (zoneRowKeys: Record<string, string[]>) => void,
+	axis: ReorderAxis = "vertical",
 ): void {
 	function getRowsInZone(zone: DragZone): HTMLElement[] {
 		return Array.from(zone.container.querySelectorAll<HTMLElement>(rowSelector));
@@ -50,13 +56,15 @@ export function makeReorderable(
 		commitOrder();
 	}
 
-	function zoneForPoint(clientY: number): DragZone {
+	function zoneForPoint(coord: number): DragZone {
 		let best = zones[0];
 		let bestDistance = Infinity;
 		for (const zone of zones) {
 			const rect = zone.container.getBoundingClientRect();
-			if (clientY >= rect.top && clientY <= rect.bottom) return zone;
-			const distance = clientY < rect.top ? rect.top - clientY : clientY - rect.bottom;
+			const start = axis === "horizontal" ? rect.left : rect.top;
+			const end = axis === "horizontal" ? rect.right : rect.bottom;
+			if (coord >= start && coord <= end) return zone;
+			const distance = coord < start ? start - coord : coord - end;
 			if (distance < bestDistance) {
 				bestDistance = distance;
 				best = zone;
@@ -77,13 +85,20 @@ export function makeReorderable(
 		handle.tabIndex = 0;
 		handle.setAttribute("role", "button");
 		if (!handle.hasAttribute("aria-label")) {
-			handle.setAttribute("aria-label", "Drag to reorder, or use arrow keys");
+			handle.setAttribute(
+				"aria-label",
+				axis === "horizontal"
+					? "Drag to reorder, or use left and right arrow keys"
+					: "Drag to reorder, or use arrow keys",
+			);
 		}
 		handle.addEventListener("keydown", (event: KeyboardEvent) => {
-			if (event.key === "ArrowUp") {
+			const prev = axis === "horizontal" ? "ArrowLeft" : "ArrowUp";
+			const next = axis === "horizontal" ? "ArrowRight" : "ArrowDown";
+			if (event.key === prev) {
 				event.preventDefault();
 				moveRowBy(row, -1);
-			} else if (event.key === "ArrowDown") {
+			} else if (event.key === next) {
 				event.preventDefault();
 				moveRowBy(row, 1);
 			}
@@ -111,21 +126,26 @@ export function makeReorderable(
 			row.classList.add("sf-dragging");
 			beginDrag();
 
-			let startY = downEvent.clientY;
+			let startCoord = axis === "horizontal" ? downEvent.clientX : downEvent.clientY;
 			let startRect = row.getBoundingClientRect();
 
 			const onMove = (moveEvent: PointerEvent) => {
-				const deltaY = moveEvent.clientY - startY;
-				row.setCssStyles({ transform: `translateY(${deltaY}px)` });
+				const pointerCoord = axis === "horizontal" ? moveEvent.clientX : moveEvent.clientY;
+				const delta = pointerCoord - startCoord;
+				row.setCssStyles({ transform: axis === "horizontal" ? `translateX(${delta}px)` : `translateY(${delta}px)` });
 
-				const currentCenter = startRect.top + startRect.height / 2 + deltaY;
+				const startEdge = axis === "horizontal" ? startRect.left : startRect.top;
+				const size = axis === "horizontal" ? startRect.width : startRect.height;
+				const currentCenter = startEdge + size / 2 + delta;
 				const targetZone = zoneForPoint(currentCenter);
 				const siblings = getRowsInZone(targetZone).filter((sibling) => sibling !== row);
 
 				let insertBefore: HTMLElement | null = null;
 				for (const sibling of siblings) {
 					const rect = sibling.getBoundingClientRect();
-					if (currentCenter < rect.top + rect.height / 2) {
+					const siblingStart = axis === "horizontal" ? rect.left : rect.top;
+					const siblingSize = axis === "horizontal" ? rect.width : rect.height;
+					if (currentCenter < siblingStart + siblingSize / 2) {
 						insertBefore = sibling;
 						break;
 					}
@@ -145,10 +165,10 @@ export function makeReorderable(
 						targetZone.container.appendChild(row);
 					}
 					// Re-baseline against the row's new resting position so the
-					// translateY offset doesn't accumulate across moves.
+					// translate offset doesn't accumulate across moves.
 					row.setCssStyles({ transform: "" });
 					startRect = row.getBoundingClientRect();
-					startY = moveEvent.clientY;
+					startCoord = pointerCoord;
 				}
 			};
 

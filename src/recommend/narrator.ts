@@ -9,7 +9,7 @@ export interface ResolvedNarrator {
 
 /**
  * Resolve the chapter narrator for attribution.
- * Order: per-chapter PoV → book-level default PoV → unset.
+ * Order: first per-chapter PoV → book-level default PoV → unset.
  * When `cast` is supplied, the path must resolve to a Codex person entry.
  */
 export function resolveChapterNarrator(
@@ -21,11 +21,12 @@ export function resolveChapterNarrator(
 	const chapter = getChapterEntry(app, bookFolderName, chapterFilename);
 	const book = readBookFrontmatter(app, bookFolderName);
 
-	const path = chapter?.povPath ?? book?.defaultPovPath ?? null;
+	const firstPov = chapter?.pov[0];
+	const path = firstPov?.path ?? book?.defaultPovPath ?? null;
 	if (!path) return null;
 
-	const fromChapter = !!chapter?.povPath;
-	const fallbackName = fromChapter ? chapter?.povName : book?.defaultPovName;
+	const fromChapter = !!firstPov;
+	const fallbackName = fromChapter ? firstPov.name : book?.defaultPovName;
 
 	if (cast) {
 		const member = cast.find((c) => c.path === path && c.type === "person");

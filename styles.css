@@ -1138,7 +1138,8 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 
 .sf-plot-chapter-pov {
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
+	flex-wrap: wrap;
 	gap: 2px;
 	color: var(--text-muted);
 	font-weight: 400;
@@ -1146,7 +1147,8 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 
 .sf-plot-chapter-location {
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
+	flex-wrap: wrap;
 	gap: 2px;
 	color: var(--text-muted);
 	font-weight: 400;
@@ -1155,9 +1157,11 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 
 .sf-plot-chapter-badge-value {
 	display: flex;
-	align-items: center;
+	align-items: baseline;
+	flex-wrap: wrap;
 	gap: 2px;
 	cursor: pointer;
+	white-space: normal;
 }
 
 .sf-plot-chapter-textarea {
@@ -2311,6 +2315,105 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	color: var(--text-muted);
 }
 
+/*
+ * Multi-select chapter PoV / Location picker. Lock width to 80% of Obsidian's
+ * default dialog so the window doesn't stretch with long name lists. Height
+ * stays content-sized: the name list is capped at 10 rows and scrolls.
+ */
+.modal.sf-codex-entry-picker-modal:not(#storyforge-specificity-boost) {
+	width: calc(0.8 * var(--dialog-width));
+	min-width: calc(0.8 * var(--dialog-width));
+	max-width: calc(0.8 * var(--dialog-width));
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
+}
+
+.sf-codex-entry-picker-modal--multi {
+	width: 100%;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	padding: 16px;
+	min-height: 0;
+	gap: 0;
+}
+
+.sf-codex-entry-picker-selection {
+	display: flex;
+	align-items: flex-start;
+	gap: 6px;
+	min-width: 0;
+}
+
+.sf-codex-entry-picker-label {
+	flex-shrink: 0;
+	line-height: 1.2;
+	padding-top: 16px;
+	color: var(--text-muted);
+	font-weight: 500;
+}
+
+.sf-codex-entry-picker-chips {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-start;
+	gap: 4px 6px;
+	min-width: 0;
+	flex: 1;
+}
+
+.sf-codex-entry-picker-chip {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0;
+	min-width: 0;
+}
+
+.sf-codex-entry-picker-chip .sf-drag-handle {
+	width: auto;
+	height: 14px;
+	cursor: grab;
+}
+
+.sf-codex-entry-picker-chip-name {
+	cursor: pointer;
+	line-height: 1.2;
+	white-space: nowrap;
+}
+
+.sf-codex-entry-picker-chip-name:hover {
+	color: var(--text-accent);
+}
+
+.sf-codex-entry-picker-chip:not(:last-child) .sf-codex-entry-picker-chip-name::after {
+	content: ",";
+}
+
+.sf-codex-entry-picker-divider {
+	border-top: 1px solid var(--background-modifier-border);
+	margin: 10px 0;
+	flex-shrink: 0;
+}
+
+.sf-codex-entry-picker-modal--multi .sf-codex-entry-picker-list {
+	/* 10 palette rows (4px+4px padding + ~1.2em line) plus 9×2px gaps. */
+	max-height: calc(10 * (1.2em + 8px) + 18px);
+	overflow-y: auto;
+	flex-shrink: 0;
+}
+
+.sf-codex-entry-picker-footer {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 8px;
+	margin-top: 10px;
+	flex-shrink: 0;
+}
+
 /* ── Tools View (standalone pane hosting the native ribbon) ── */
 
 .sf-tools-view {
@@ -2754,6 +2857,18 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 .sf-ui-format-crumb-icon:focus-visible {
 	outline: 2px solid var(--text-accent);
 	outline-offset: 2px;
+}
+
+.sf-ui-format-crumb-icon--dual {
+	width: auto;
+	gap: 2px;
+	padding: 0 4px;
+}
+
+.sf-ui-format-crumb-icon--dual svg,
+.sf-ui-format-crumb-icon--dual svg.svg-icon {
+	width: 18px;
+	height: 18px;
 }
 
 .sf-section-chrome-picker {
@@ -3516,6 +3631,25 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	color: var(--sf-body-italic-color, revert);
 }
 
+.markdown-reading-view :is(p, li, blockquote, td, th) a:not(#storyforge-specificity-boost),
+.markdown-reading-view .callout a:not(#storyforge-specificity-boost),
+.cm-line:not(.HyperMD-header) .cm-link:not(#storyforge-specificity-boost),
+.cm-line:not(.HyperMD-header) .cm-hmd-internal-link:not(#storyforge-specificity-boost),
+.cm-line:not(.HyperMD-header) .cm-url:not(#storyforge-specificity-boost),
+.cm-line:not(.HyperMD-header) .cm-underline:not(#storyforge-specificity-boost) {
+	color: var(--sf-body-link-color, revert);
+	text-decoration: var(--sf-body-link-decoration, revert);
+}
+
+.markdown-reading-view :is(p, li, blockquote, td, th) a:hover:not(#storyforge-specificity-boost),
+.markdown-reading-view .callout a:hover:not(#storyforge-specificity-boost),
+.cm-line:not(.HyperMD-header) .cm-link:hover:not(#storyforge-specificity-boost),
+.cm-line:not(.HyperMD-header) .cm-hmd-internal-link:hover:not(#storyforge-specificity-boost),
+.cm-line:not(.HyperMD-header) .cm-url:hover:not(#storyforge-specificity-boost),
+.cm-line:not(.HyperMD-header) .cm-underline:hover:not(#storyforge-specificity-boost) {
+	color: var(--sf-body-link-color-hover, revert);
+}
+
 .markdown-reading-view h1, .HyperMD-header-1 {
 	font-size: var(--sf-h1-size, revert);
 	font-weight: var(--sf-h1-weight, revert);
@@ -4161,9 +4295,9 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 
 .sf-recommend-meta-row {
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 	gap: 4px;
-	flex-wrap: wrap;
+	flex-wrap: nowrap;
 }
 
 .sf-recommend-meta-label {
@@ -4212,6 +4346,28 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	font-family: inherit;
 	font-weight: inherit;
 	font-variation-settings: inherit;
+	white-space: nowrap;
+}
+
+.sf-recommend-meta-values {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	column-gap: 0.35em;
+	row-gap: 2px;
+	min-width: 0;
+	flex: 1;
+	cursor: pointer;
+	line-height: 1.2;
+	font-size: var(--sf-recommend-meta-control-size, 1em);
+	font-weight: var(--sf-recommend-meta-control-weight, 400);
+	color: var(--sf-recommend-meta-control-color, var(--text-normal));
+	font-family: var(--sf-recommend-meta-control-family, inherit);
+	font-variation-settings: var(--sf-recommend-meta-control-variation, normal);
+}
+
+.sf-recommend-meta-values:hover {
+	color: var(--text-accent);
 }
 
 .sf-recommend-novel-fixed .sf-synopsis-plot-title {
