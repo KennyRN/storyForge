@@ -30,6 +30,7 @@ import {
 	ICON_DASHBOARD_CHART,
 	ICON_PLUS_SQUARE,
 	ICON_PLOT_THREADS,
+	ICON_HASHTAG_SQUARE_DUOTONE,
 	ICON_SETTINGS_ALT,
 	ICON_TAG_DUOTONE,
 	ICON_UNPLACED,
@@ -77,13 +78,14 @@ export interface TopPanelOptions {
  * (`overflow-y: auto`), which would clip an absolutely-positioned descendant that's meant to sit
  * outside their own box, so this needs a container the overflow-clipping rows aren't ancestors of.
  * Settings cog is leftmost (the pane's outside edge); stats sits between it and plot-threads;
- * Codex types and chapter/novel tags follow. Relevant only while actually browsing the series
- * list (topPane === "series") — call-site gated, same condition renderTopPanel() used to gate
- * this on internally.
+ * Codex types, Codex tags (hashtag), and chapter/novel tags follow. Relevant only while actually
+ * browsing the series list (topPane === "series") — call-site gated, same condition
+ * renderTopPanel() used to gate this on internally.
  */
 export function renderSeriesPaneCornerButtons(
 	container: HTMLElement,
 	onOpenCodexTypes: () => void,
+	onOpenCodexTags: () => void,
 	onOpenTags: () => void,
 	onOpenPlotThreads: () => void,
 	onOpenSeriesModal: () => void,
@@ -94,6 +96,7 @@ export function renderSeriesPaneCornerButtons(
 	addSeriesCornerButton(corner, ICON_DASHBOARD_CHART, "Stats", onOpenStats);
 	addSeriesCornerButton(corner, ICON_PLOT_THREADS, "Plot threads", onOpenPlotThreads);
 	addSeriesCornerButton(corner, ICON_TAG_DUOTONE, "Codex types", onOpenCodexTypes);
+	addSeriesCornerButton(corner, ICON_HASHTAG_SQUARE_DUOTONE, "Codex tags", onOpenCodexTags);
 	addSeriesCornerButton(corner, ICON_BOOKMARK_DUOTONE, "Chapter and novel tags", onOpenTags);
 }
 
@@ -204,7 +207,8 @@ function bindChapterOpen(row: HTMLElement, open: () => void): void {
  * Context's own Novel-tab icon (ICON_BOOK_DUOTONE) so the same glyph marks "this is the selected
  * novel" in both the left and right sidebars. Having no colour of its own, it simply inherits
  * whatever colour the row's text is already using.
- * `subtitleInBrackets` is for Unplaced Novels: same type as the title, wrapped in parentheses.
+ * `subtitleInBrackets` is for Unplaced Novels: same type as the title, wrapped in
+ * parentheses, at 90% of the title size (see .sf-row-subtitle--title).
  */
 function renderRowTitle(
 	row: HTMLElement,

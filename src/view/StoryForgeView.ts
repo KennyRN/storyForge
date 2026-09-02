@@ -314,7 +314,7 @@ export class StoryForgeView extends ItemView {
 			// Pinned to the pane's own bottom-left corner (see renderSeriesPaneCornerButtons's doc
 			// comment) — rendered straight onto `container` (the pane root), not into `topEl` above,
 			// since .sf-top-panel scrolls and would clip it. Settings cog is leftmost; stats sits
-			// between it and plot-threads.
+			// between it and plot-threads; Codex types and Codex tags sit together.
 			if (topPane === "series") {
 				const refreshAfterPlotThreads = () => {
 					this.plugin.refreshStoryForgeViews();
@@ -324,6 +324,13 @@ export class StoryForgeView extends ItemView {
 				renderSeriesPaneCornerButtons(
 					container,
 					() => new TagRegistryModal(this.app, refreshAfterTags, "codexTypes").open(),
+					() => {
+						try {
+							new VaultTagModal(this.app, refreshAfterTags).open();
+						} catch (err) {
+							new Notice(`storyForge: could not open vault tags — ${(err as Error).message}`);
+						}
+					},
 					() => new TagRegistryModal(this.app, refreshAfterTags, "tags").open(),
 					() => new PlotThreadRegistryModal(this.app, this.plugin, refreshAfterPlotThreads).open(),
 					() => new SeriesModal(this.app, this.plugin, () => this.render()).open(),
