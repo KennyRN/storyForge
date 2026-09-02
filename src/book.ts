@@ -33,13 +33,19 @@ export interface CompileSettings {
 	output?: string;
 }
 
+/** A Codex person or place referenced from a chapter (PoV / location). Order is meaningful. */
+export interface CodexRef {
+	path: string;
+	name: string;
+}
+
 export interface ChapterEntry {
 	chapterId: string;
 	chapterTitle: string;
-	povPath: string | null;
-	povName: string | null;
-	locationPath: string | null;
-	locationName: string | null;
+	/** Ordered PoV characters for this chapter. Empty when unset (book default may still apply). */
+	pov: CodexRef[];
+	/** Ordered locations for this chapter. Empty when unset. */
+	location: CodexRef[];
 	/** Per-chapter plot notes (backstage metadata; never written into the library manuscript). */
 	plot: string;
 	/** Ids into tagRegistry.ts's chapterTags list. Empty when untagged. */
@@ -77,8 +83,12 @@ export interface BookFrontmatter {
 export interface RawChapterEntry {
 	"chapter-id"?: unknown;
 	"chapter-title"?: unknown;
+	/** Ordered `{ path, name }` list. Preferred over the legacy scalar pair below. */
+	pov?: unknown;
 	"pov-path"?: unknown;
 	"pov-name"?: unknown;
+	/** Ordered `{ path, name }` list. Preferred over the legacy scalar pair below. */
+	location?: unknown;
 	"location-path"?: unknown;
 	"location-name"?: unknown;
 	plot?: unknown;
@@ -88,6 +98,97 @@ export interface RawChapterEntry {
 }
 
 const HEX_COLOR_RE = /^#[0-9a-f]{6}$/i;
+
+function isCodexRef(value: unknown): value is CodexRef {
+	return (
+		!!value &&
+		typeof value === "object" &&
+		typeof (value as CodexRef).path === "string" &&
+		(value as CodexRef).path.length > 0 &&
+		typeof (value as CodexRef).name === "string"
+	);
+}
+
+function zipPathNameLists(paths: unknown, names: unknown): CodexRef[] {
+	if (!Array.isArray(paths)) return [];
+	const nameList = Array.isArray(names) ? names : [];
+	const result: CodexRef[] = [];
+	for (let i = 0; i < paths.length; i++) {
+		const path = paths[i];
+		if (typeof path !== "string" || path.length === 0) continue;
+		const name = nameList[i];
+		result.push({
+			path,
+			name: typeof name === "string" && name.length > 0 ? name : path,
+		});
+	}
+	return result;
+}
+
+/**
+ * Accepts, in order: a `{ path, name }` list (or a single object if YAML collapsed a
+ * one-item list), parallel `*-path` / `*-name` string arrays, or a leftover scalar pair.
+ */
+export function parseCodexRefs(list: unknown, legacyPath: unknown, legacyName: unknown): CodexRef[] {
+	if (Array.isArray(list)) {
+		const objects = list.filter(isCodexRef);
+		if (objects.length > 0) return objects;
+	} else if (isCodexRef(list)) {
+		return [list];
+	}
+	const fromParallel = zipPathNameLists(legacyPath, legacyName);
+	if (fromParallel.length > 0) return fromParallel;
+	if (typeof legacyPath === "string" && legacyPath.length > 0) {
+		return [
+			{
+				path: legacyPath,
+				name: typeof legacyName === "string" && legacyName.length > 0 ? legacyName : legacyPath,
+			},
+		];
+	}
+	return [];
+}
+
+/** Persist as parallel string arrays — nested `{ path, name }` objects inside `chapters`
+ * have been observed to make Obsidian's YAML round-trip drop the rest of the chapter entry
+ * (title falls back to the filename code, PoV/location read back empty). */
+function applyCodexRefList(
+	entry: RawChapterEntry,
+	listKey: "pov" | "location",
+	legacyPathKey: "pov-path" | "location-path",
+	legacyNameKey: "pov-name" | "location-name",
+	refs: CodexRef[],
+): void {
+	delete entry[listKey];
+	if (refs.length > 0) {
+		entry[legacyPathKey] = refs.map((r) => r.path);
+		entry[legacyNameKey] = refs.map((r) => r.name);
+	} else {
+		delete entry[legacyPathKey];
+		delete entry[legacyNameKey];
+	}
+}
+
+function withChapterIdentity(
+	app: App,
+	bookFolderName: string,
+	filename: string,
+	existing: RawChapterEntry,
+): RawChapterEntry {
+	const { bookId } = resolveBookIdentity(app, bookFolderName);
+	const chapterId: string =
+		typeof existing["chapter-id"] === "string"
+			? existing["chapter-id"]
+			: nextChapterCode(bookId, collectAllChapterIds(app, bookFolderName));
+	const chapterTitle: string =
+		typeof existing["chapter-title"] === "string" ? existing["chapter-title"] : filename.replace(/\.md$/i, "");
+	return { ...existing, "chapter-id": chapterId, "chapter-title": chapterTitle };
+}
+
+function rekeyCodexRefList(refs: CodexRef[], oldPath: string, newPath: string | null): CodexRef[] {
+	if (newPath === null) return refs.filter((r) => r.path !== oldPath);
+	return refs.map((r) => (r.path === oldPath ? { ...r, path: newPath } : r));
+}
 
 /** The raw, dash-cased on-disk shape of novel.md's frontmatter, as read/written through `modifyBackstageFrontmatter`. */
 export interface RawBookFrontmatter extends FrontMatterCache {
@@ -152,10 +253,8 @@ function parseChaptersMap(raw: unknown): Record<string, ChapterEntry> {
 		if (!chapterId) continue;
 		const chapterTitle =
 			typeof entry["chapter-title"] === "string" ? entry["chapter-title"] : filename.replace(/\.md$/i, "");
-		const povPath = typeof entry["pov-path"] === "string" ? entry["pov-path"] : null;
-		const povName = typeof entry["pov-name"] === "string" ? entry["pov-name"] : null;
-		const locationPath = typeof entry["location-path"] === "string" ? entry["location-path"] : null;
-		const locationName = typeof entry["location-name"] === "string" ? entry["location-name"] : null;
+		const pov = parseCodexRefs(entry.pov, entry["pov-path"], entry["pov-name"]);
+		const location = parseCodexRefs(entry.location, entry["location-path"], entry["location-name"]);
 		const plot = typeof entry.plot === "string" ? entry.plot : "";
 		const tags = Array.isArray(entry.tags) ? entry.tags.filter((v): v is string => typeof v === "string") : [];
 		const color =
@@ -163,7 +262,7 @@ function parseChaptersMap(raw: unknown): Record<string, ChapterEntry> {
 				? entry["chapter-color"]
 				: null;
 		const plotThreadId = typeof entry["plot-thread"] === "string" ? entry["plot-thread"] : null;
-		result[filename] = { chapterId, chapterTitle, povPath, povName, locationPath, locationName, plot, tags, color, plotThreadId };
+		result[filename] = { chapterId, chapterTitle, pov, location, plot, tags, color, plotThreadId };
 	}
 	return result;
 }
@@ -446,36 +545,38 @@ export async function writeDefaultPov(
 	});
 }
 
-/** Sets (or, when both are null, clears) a chapter's PoV reference, preserving its existing id/title. */
+/** Overwrites a chapter's ordered PoV list (empty array clears). */
 export async function writeChapterPov(
 	app: App,
 	bookFolderName: string,
 	filename: string,
-	povPath: string | null,
-	povName: string | null,
+	refs: CodexRef[],
 ): Promise<void> {
 	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
 		const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
 		const existing: RawChapterEntry =
 			chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
-		chapters[filename] = { ...existing, "pov-path": povPath, "pov-name": povName };
+		const next = withChapterIdentity(app, bookFolderName, filename, existing);
+		applyCodexRefList(next, "pov", "pov-path", "pov-name", refs);
+		chapters[filename] = next;
 		fm.chapters = chapters;
 	});
 }
 
-/** Sets (or, when both are null, clears) a chapter's location reference, preserving its existing id/title. */
+/** Overwrites a chapter's ordered location list (empty array clears). */
 export async function writeChapterLocation(
 	app: App,
 	bookFolderName: string,
 	filename: string,
-	locationPath: string | null,
-	locationName: string | null,
+	refs: CodexRef[],
 ): Promise<void> {
 	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
 		const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
 		const existing: RawChapterEntry =
 			chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
-		chapters[filename] = { ...existing, "location-path": locationPath, "location-name": locationName };
+		const next = withChapterIdentity(app, bookFolderName, filename, existing);
+		applyCodexRefList(next, "location", "location-path", "location-name", refs);
+		chapters[filename] = next;
 		fm.chapters = chapters;
 	});
 }
@@ -535,12 +636,12 @@ export async function writeNovelTags(app: App, bookFolderName: string, tagIds: s
 	});
 }
 
-/** Rewrites any chapter's PoV reference matching `oldPath` to `newPath` (or clears it if `newPath` is null), across every book — called when a Codex person note is renamed/moved. */
+/** Rewrites any chapter's PoV reference matching `oldPath` to `newPath` (or drops it if `newPath` is null), across every book — called when a Codex person note is renamed/moved. */
 export async function rekeyChapterPovReferences(app: App, oldPath: string, newPath: string | null): Promise<void> {
 	for (const folder of getLibraryBookFolders(app)) {
 		const fm = readBookFrontmatter(app, folder.name);
 		if (!fm) continue;
-		const hasChapterMatch = Object.values(fm.chapters).some((entry) => entry.povPath === oldPath);
+		const hasChapterMatch = Object.values(fm.chapters).some((entry) => entry.pov.some((r) => r.path === oldPath));
 		const hasDefaultMatch = fm.defaultPovPath === oldPath;
 		if (!hasChapterMatch && !hasDefaultMatch) continue;
 		await modifyBookFrontmatter(app, folder.name, (bfm) => {
@@ -550,32 +651,34 @@ export async function rekeyChapterPovReferences(app: App, oldPath: string, newPa
 			}
 			const chapters: Record<string, RawChapterEntry> = bfm.chapters && typeof bfm.chapters === "object" ? bfm.chapters : {};
 			for (const [filename, entry] of Object.entries(chapters)) {
-				if (entry["pov-path"] === oldPath) {
-					chapters[filename] = { ...entry, "pov-path": newPath, "pov-name": newPath ? entry["pov-name"] : null };
-				}
+				const current = parseCodexRefs(entry.pov, entry["pov-path"], entry["pov-name"]);
+				const next = rekeyCodexRefList(current, oldPath, newPath);
+				if (next.length === current.length && next.every((r, i) => r.path === current[i].path)) continue;
+				const updated: RawChapterEntry = { ...entry };
+				applyCodexRefList(updated, "pov", "pov-path", "pov-name", next);
+				chapters[filename] = updated;
 			}
 			bfm.chapters = chapters;
 		});
 	}
 }
 
-/** Rewrites any chapter's location reference matching `oldPath` to `newPath` (or clears it if `newPath` is null), across every book — called when a Codex place note is renamed/moved. */
+/** Rewrites any chapter's location reference matching `oldPath` to `newPath` (or drops it if `newPath` is null), across every book — called when a Codex place note is renamed/moved. */
 export async function rekeyChapterLocationReferences(app: App, oldPath: string, newPath: string | null): Promise<void> {
 	for (const folder of getLibraryBookFolders(app)) {
 		const fm = readBookFrontmatter(app, folder.name);
 		if (!fm) continue;
-		const hasMatch = Object.values(fm.chapters).some((entry) => entry.locationPath === oldPath);
+		const hasMatch = Object.values(fm.chapters).some((entry) => entry.location.some((r) => r.path === oldPath));
 		if (!hasMatch) continue;
 		await modifyBookFrontmatter(app, folder.name, (bfm) => {
 			const chapters: Record<string, RawChapterEntry> = bfm.chapters && typeof bfm.chapters === "object" ? bfm.chapters : {};
 			for (const [filename, entry] of Object.entries(chapters)) {
-				if (entry["location-path"] === oldPath) {
-					chapters[filename] = {
-						...entry,
-						"location-path": newPath,
-						"location-name": newPath ? entry["location-name"] : null,
-					};
-				}
+				const current = parseCodexRefs(entry.location, entry["location-path"], entry["location-name"]);
+				const next = rekeyCodexRefList(current, oldPath, newPath);
+				if (next.length === current.length && next.every((r, i) => r.path === current[i].path)) continue;
+				const updated: RawChapterEntry = { ...entry };
+				applyCodexRefList(updated, "location", "location-path", "location-name", next);
+				chapters[filename] = updated;
 			}
 			bfm.chapters = chapters;
 		});
@@ -632,18 +735,17 @@ export async function insertChapterEntry(
 ): Promise<void> {
 	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
 		const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
-		chapters[filename] = {
+		const raw: RawChapterEntry = {
 			"chapter-id": entry.chapterId,
 			"chapter-title": entry.chapterTitle,
-			"pov-path": entry.povPath,
-			"pov-name": entry.povName,
-			"location-path": entry.locationPath,
-			"location-name": entry.locationName,
 			plot: entry.plot || undefined,
 			tags: entry.tags.length > 0 ? entry.tags : undefined,
 			"chapter-color": entry.color || undefined,
 			"plot-thread": entry.plotThreadId || undefined,
 		};
+		applyCodexRefList(raw, "pov", "pov-path", "pov-name", entry.pov);
+		applyCodexRefList(raw, "location", "location-path", "location-name", entry.location);
+		chapters[filename] = raw;
 		fm.chapters = chapters;
 		const strip = (list: unknown): string[] =>
 			Array.isArray(list) ? list.filter((v): v is string => typeof v === "string" && v !== filename) : [];
@@ -674,10 +776,8 @@ export async function ensureAllChapterEntries(app: App, bookFolderName: string):
 		merged[file.name] = {
 			chapterId,
 			chapterTitle,
-			povPath: null,
-			povName: null,
-			locationPath: null,
-			locationName: null,
+			pov: [],
+			location: [],
 			plot: "",
 			tags: [],
 			color: null,

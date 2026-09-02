@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { type App } from "obsidian";
 import { makeTFile, makeTFolder } from "./obsidianStub";
-import { readBookFrontmatter, writeBookCoverImage, writeChapterPlotThread, writeChapterTags, writeNovelTags } from "../book";
+import { readBookFrontmatter, writeBookCoverImage, writeChapterLocation, writeChapterPlotThread, writeChapterPov, writeChapterTags, writeNovelTags, rekeyChapterLocationReferences, rekeyChapterPovReferences, parseCodexRefs } from "../book";
 import { safeCoverFilename } from "../coverImage";
 import { BACKSTAGE_ROOT, LIBRARY_ROOT, bookFilePath } from "../paths";
 
@@ -44,13 +44,23 @@ function makeFakeApp(initialFrontmatter: Record<string, unknown> = {}): {
 	const novelPath = bookFilePath(book);
 	const frontmatter: Record<string, unknown> = { ...initialFrontmatter };
 	const folders = new Set<string>([LIBRARY_ROOT, `${LIBRARY_ROOT}/${book}`, BACKSTAGE_ROOT, `${BACKSTAGE_ROOT}/${book}`]);
+	const folderObjs = new Map<string, ReturnType<typeof makeTFolder>>();
+	function folderFor(path: string): ReturnType<typeof makeTFolder> {
+		let folder = folderObjs.get(path);
+		if (!folder) {
+			folder = makeTFolder(path);
+			folderObjs.set(path, folder);
+		}
+		return folder;
+	}
+	folderFor(LIBRARY_ROOT).children = [folderFor(`${LIBRARY_ROOT}/${book}`)];
 	const binaryFiles = new Set<string>();
 	const trashedPaths: string[] = [];
 
 	const app = {
 		vault: {
 			getAbstractFileByPath: (path: string) => {
-				if (folders.has(path)) return makeTFolder(path);
+				if (folders.has(path)) return folderFor(path);
 				if (path === novelPath) return makeTFile(path);
 				if (binaryFiles.has(path)) return makeTFile(path);
 				return null;
@@ -226,5 +236,221 @@ describe("writeChapterPlotThread", () => {
 			chapters: { "ch1.md": { "chapter-id": "c1", "chapter-title": "Chapter One" } },
 		});
 		expect(readBookFrontmatter(app, "BookA")?.chapters["ch1.md"].plotThreadId).toBeNull();
+	});
+});
+
+describe("parseCodexRefs", () => {
+	it("reads a list of path/name objects", () => {
+		expect(
+			parseCodexRefs(
+				[
+					{ path: "Codex/Alice.md", name: "Alice" },
+					{ path: "Codex/Bob.md", name: "Bob" },
+				],
+				undefined,
+				undefined,
+			),
+		).toEqual([
+			{ path: "Codex/Alice.md", name: "Alice" },
+			{ path: "Codex/Bob.md", name: "Bob" },
+		]);
+	});
+
+	it("zips parallel path/name string arrays", () => {
+		expect(parseCodexRefs(undefined, ["Codex/Alice.md", "Codex/Bob.md"], ["Alice", "Bob"])).toEqual([
+			{ path: "Codex/Alice.md", name: "Alice" },
+			{ path: "Codex/Bob.md", name: "Bob" },
+		]);
+	});
+
+	it("treats a single leftover object as a one-item list", () => {
+		expect(parseCodexRefs({ path: "Codex/Alice.md", name: "Alice" }, undefined, undefined)).toEqual([
+			{ path: "Codex/Alice.md", name: "Alice" },
+		]);
+	});
+
+	it("falls back to a leftover scalar path/name pair", () => {
+		expect(parseCodexRefs(undefined, "Codex/Alice.md", "Alice")).toEqual([
+			{ path: "Codex/Alice.md", name: "Alice" },
+		]);
+	});
+
+	it("uses the path as the name when the leftover name is missing", () => {
+		expect(parseCodexRefs(undefined, "Codex/Alice.md", undefined)).toEqual([
+			{ path: "Codex/Alice.md", name: "Codex/Alice.md" },
+		]);
+	});
+
+	it("returns an empty array when nothing is set", () => {
+		expect(parseCodexRefs(undefined, undefined, undefined)).toEqual([]);
+	});
+});
+
+describe("chapter PoV and location lists", () => {
+	it("parses parallel pov-path/pov-name arrays", () => {
+		const { app } = makeFakeApp({
+			chapters: {
+				"ch1.md": {
+					"chapter-id": "c1",
+					"chapter-title": "Chapter One",
+					"pov-path": ["Codex/Alice.md", "Codex/Bob.md"],
+					"pov-name": ["Alice", "Bob"],
+				},
+			},
+		});
+		expect(readBookFrontmatter(app, "BookA")?.chapters["ch1.md"].pov.map((r) => r.name)).toEqual(["Alice", "Bob"]);
+	});
+
+	it("parses leftover scalar pov-path/pov-name into a one-item list", () => {
+		const { app } = makeFakeApp({
+			chapters: {
+				"ch1.md": {
+					"chapter-id": "c1",
+					"chapter-title": "Chapter One",
+					"pov-path": "Codex/Alice.md",
+					"pov-name": "Alice",
+					"location-path": "Codex/Harbour.md",
+					"location-name": "Harbour",
+				},
+			},
+		});
+		const chapter = readBookFrontmatter(app, "BookA")?.chapters["ch1.md"];
+		expect(chapter?.pov).toEqual([{ path: "Codex/Alice.md", name: "Alice" }]);
+		expect(chapter?.location).toEqual([{ path: "Codex/Harbour.md", name: "Harbour" }]);
+	});
+
+	it("parses the new pov/location lists", () => {
+		const { app } = makeFakeApp({
+			chapters: {
+				"ch1.md": {
+					"chapter-id": "c1",
+					"chapter-title": "Chapter One",
+					pov: [
+						{ path: "Codex/Alice.md", name: "Alice" },
+						{ path: "Codex/Bob.md", name: "Bob" },
+					],
+					location: [{ path: "Codex/Harbour.md", name: "Harbour" }],
+				},
+			},
+		});
+		const chapter = readBookFrontmatter(app, "BookA")?.chapters["ch1.md"];
+		expect(chapter?.pov.map((r) => r.name)).toEqual(["Alice", "Bob"]);
+		expect(chapter?.location.map((r) => r.name)).toEqual(["Harbour"]);
+	});
+
+	it("writes parallel pov-path/pov-name arrays and keeps chapter identity", async () => {
+		const { app, frontmatter } = makeFakeApp({
+			chapters: {
+				"ch1.md": {
+					"chapter-id": "c1",
+					"chapter-title": "Chapter One",
+					"pov-path": "Codex/Old.md",
+					"pov-name": "Old",
+				},
+			},
+		});
+		await writeChapterPov(app, "BookA", "ch1.md", [
+			{ path: "Codex/Alice.md", name: "Alice" },
+			{ path: "Codex/Bob.md", name: "Bob" },
+		]);
+		const raw = (frontmatter.chapters as Record<string, Record<string, unknown>>)["ch1.md"];
+		expect(raw["chapter-id"]).toBe("c1");
+		expect(raw["chapter-title"]).toBe("Chapter One");
+		expect(raw["pov-path"]).toEqual(["Codex/Alice.md", "Codex/Bob.md"]);
+		expect(raw["pov-name"]).toEqual(["Alice", "Bob"]);
+		expect(raw.pov).toBeUndefined();
+		expect(readBookFrontmatter(app, "BookA")?.chapters["ch1.md"].pov.map((r) => r.name)).toEqual(["Alice", "Bob"]);
+	});
+
+	it("clears pov by omitting the path/name keys", async () => {
+		const { app, frontmatter } = makeFakeApp({
+			chapters: {
+				"ch1.md": {
+					"chapter-id": "c1",
+					"chapter-title": "Chapter One",
+					"pov-path": ["Codex/Alice.md"],
+					"pov-name": ["Alice"],
+				},
+			},
+		});
+		await writeChapterPov(app, "BookA", "ch1.md", []);
+		const raw = (frontmatter.chapters as Record<string, Record<string, unknown>>)["ch1.md"];
+		expect(raw["pov-path"]).toBeUndefined();
+		expect(raw["pov-name"]).toBeUndefined();
+		expect(raw["chapter-title"]).toBe("Chapter One");
+		expect(readBookFrontmatter(app, "BookA")?.chapters["ch1.md"].pov).toEqual([]);
+	});
+
+	it("writes location lists the same way", async () => {
+		const { app } = makeFakeApp({
+			chapters: { "ch1.md": { "chapter-id": "c1", "chapter-title": "Chapter One" } },
+		});
+		await writeChapterLocation(app, "BookA", "ch1.md", [
+			{ path: "Codex/Harbour.md", name: "Harbour" },
+			{ path: "Codex/Keep.md", name: "Keep" },
+		]);
+		expect(readBookFrontmatter(app, "BookA")?.chapters["ch1.md"].location.map((r) => r.name)).toEqual([
+			"Harbour",
+			"Keep",
+		]);
+	});
+
+	it("rekeys a matching PoV path inside the list and the book default", async () => {
+		const { app } = makeFakeApp({
+			"default-pov-path": "Codex/Alice.md",
+			"default-pov-name": "Alice",
+			chapters: {
+				"ch1.md": {
+					"chapter-id": "c1",
+					"chapter-title": "Chapter One",
+					pov: [
+						{ path: "Codex/Alice.md", name: "Alice" },
+						{ path: "Codex/Bob.md", name: "Bob" },
+					],
+				},
+			},
+		});
+		await rekeyChapterPovReferences(app, "Codex/Alice.md", "Codex/Alicia.md");
+		const fm = readBookFrontmatter(app, "BookA");
+		expect(fm?.defaultPovPath).toBe("Codex/Alicia.md");
+		expect(fm?.chapters["ch1.md"].pov).toEqual([
+			{ path: "Codex/Alicia.md", name: "Alice" },
+			{ path: "Codex/Bob.md", name: "Bob" },
+		]);
+	});
+
+	it("drops a PoV entry when the Codex note is gone", async () => {
+		const { app } = makeFakeApp({
+			chapters: {
+				"ch1.md": {
+					"chapter-id": "c1",
+					"chapter-title": "Chapter One",
+					pov: [
+						{ path: "Codex/Alice.md", name: "Alice" },
+						{ path: "Codex/Bob.md", name: "Bob" },
+					],
+				},
+			},
+		});
+		await rekeyChapterPovReferences(app, "Codex/Alice.md", null);
+		expect(readBookFrontmatter(app, "BookA")?.chapters["ch1.md"].pov).toEqual([
+			{ path: "Codex/Bob.md", name: "Bob" },
+		]);
+	});
+
+	it("rekeys a location path inside the list", async () => {
+		const { app } = makeFakeApp({
+			chapters: {
+				"ch1.md": {
+					"chapter-id": "c1",
+					"chapter-title": "Chapter One",
+					location: [{ path: "Codex/Harbour.md", name: "Harbour" }],
+				},
+			},
+		});
+		await rekeyChapterLocationReferences(app, "Codex/Harbour.md", "Codex/Port.md");
+		expect(readBookFrontmatter(app, "BookA")?.chapters["ch1.md"].location).toEqual([
+			{ path: "Codex/Port.md", name: "Harbour" },
+		]);
 	});
 });

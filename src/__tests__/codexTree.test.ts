@@ -3,6 +3,7 @@ import {
 	collectReferencedPaths,
 	countFilesInFolder,
 	findContainer,
+	flattenCodexTreeFiles,
 	insertIntoContainer,
 	isDescendantFolder,
 	isFolderKey,
@@ -154,5 +155,29 @@ describe("collectReferencedPaths / countFilesInFolder", () => {
 		expect(collectReferencedPaths(folders, ["characters"])).toEqual(new Set(["Codex/Jane.md", "Codex/Bob.md"]));
 		expect(countFilesInFolder(folders, "characters")).toBe(2);
 		expect(countFilesInFolder(folders, "missing")).toBe(0);
+	});
+});
+
+describe("flattenCodexTreeFiles", () => {
+	it("emits files in fully-expanded tree order, including nested folders", () => {
+		const folders: CodexFolders = {
+			characters: { name: "Characters", order: ["Codex/Jane.md", "sub"] },
+			sub: { name: "Sub", order: ["Codex/Bob.md"] },
+		};
+		const realPaths = new Set(["Codex/Jane.md", "Codex/Bob.md", "Codex/Unplaced.md"]);
+		const tree = resolveCodexTree(folders, ["characters"], realPaths, realPaths);
+		expect(flattenCodexTreeFiles(tree).map((e) => e.name)).toEqual(["Jane", "Bob", "Unplaced"]);
+	});
+
+	it("emits a lore-entry folder's linked note where the folder sits, then its children", () => {
+		const folders: CodexFolders = {
+			group: { name: "The Crew", order: ["Codex/Jane.md"], linkedNotePath: "Codex/Crew.md" },
+		};
+		const realPaths = new Set(["Codex/Crew.md", "Codex/Jane.md"]);
+		const tree = resolveCodexTree(folders, ["group"], realPaths, realPaths);
+		expect(flattenCodexTreeFiles(tree)).toEqual([
+			{ path: "Codex/Crew.md", name: "Crew" },
+			{ path: "Codex/Jane.md", name: "Jane" },
+		]);
 	});
 });

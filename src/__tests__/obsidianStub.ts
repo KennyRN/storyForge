@@ -119,6 +119,8 @@ export function stringifyYaml(data: unknown): string {
 }
 
 export function setIcon(_el: HTMLElement, _iconId: string): void {}
+export function addIcon(_id: string, _svg: string): void {}
+export function setTooltip(_el: HTMLElement, _tooltip: string): void {}
 
 export function normalizePath(path: string): string {
 	return path.replace(/\\/g, "/").replace(/\/+/g, "/").replace(/^\.\//, "").replace(/\/$/, "");

@@ -149,6 +149,33 @@ export function resolveCodexTree(
 	return { type: "folder", id: "", name: "Codex", children: rootChildren };
 }
 
+/**
+ * Depth-first walk of a Codex tree into the file order the pane shows when every folder is
+ * expanded: a Lore Entry folder's linked note is emitted where the folder sits, then its
+ * children; unplaced files are already at the end of `tree.children`.
+ */
+export function flattenCodexTreeFiles(tree: CodexTreeFolder): { path: string; name: string }[] {
+	const out: { path: string; name: string }[] = [];
+	const seen = new Set<string>();
+	const emit = (path: string, name: string) => {
+		if (seen.has(path)) return;
+		seen.add(path);
+		out.push({ path, name });
+	};
+	const walk = (items: CodexTreeItem[]) => {
+		for (const item of items) {
+			if (item.type === "file") {
+				emit(item.path, item.name);
+			} else {
+				if (item.path) emit(item.path, item.name);
+				walk(item.children);
+			}
+		}
+	};
+	walk(tree.children);
+	return out;
+}
+
 /** Locates whichever order array (root, or some folder's) currently contains `key`. Folders are stored flatly, so this never needs to recurse. */
 export function findContainer(
 	folders: CodexFolders,
