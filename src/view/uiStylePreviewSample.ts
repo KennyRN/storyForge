@@ -30,7 +30,6 @@ const ICON_BOOK_DUOTONE = "sf-book-duotone";
 const ICON_CODEX = "sf-earth-fill";
 const ICON_BOOK_OPEN_FILLED = "sf-book-open-filled";
 const ICON_CLIPBOARD_LIST_DUOTONE = "sf-clipboard-list-duotone";
-const ICON_CLIPBOARD_DUOTONE = "sf-clipboard-duotone";
 const ICON_NOTEBOOK_FILLED = "sf-notebook-filled";
 const ICON_LOCATION_TARGET_SQUARE = "sf-location-target-square";
 const ICON_ADD_SQUARE = "sf-add-square";
@@ -210,7 +209,7 @@ function mountStatsSample(container: HTMLElement): void {
 }
 
 /** One Story Context tab's worth of representative body content, keyed by the same ids used in `mountRightSidebarPreviewSample`'s clickable tab row. */
-type RecommendTabId = "novel" | "chapter" | "details";
+type RecommendTabId = "novel" | "chapter";
 export type RightSidebarPreviewMode = "chrome" | "novel" | "chapter" | "box" | "details" | "dossier" | "archive";
 export type PreviewMainThread = { color: string; text: string };
 
@@ -415,26 +414,29 @@ function mountRecommendChapterBody(body: HTMLElement, mainThread: PreviewMainThr
 	mountRecommendChapterCard(body, mainThread);
 }
 
-function mountRecommendDossierBody(body: HTMLElement): void {
-	const fixed = body.createDiv({ cls: "sf-recommend-fixed" });
-	const combo = fixed.createDiv({ cls: "sf-recommend-dossier-combo" });
-	combo.createEl("input", {
-		cls: "sf-recommend-dossier-search",
-		attr: { placeholder: "Search Codex entity", value: "Jane Protagonist" },
-	});
-	setIcon(combo.createSpan({ cls: "sf-recommend-icon-btn sf-recommend-dossier-drop" }), ICON_MULTIPLY_SQUARE);
-
-	const scroll = body.createDiv({ cls: "sf-recommend-scroll" });
+function mountNotebookDossierPreview(body: HTMLElement): void {
+	const split = body.createDiv({ cls: "sf-idea-shelf" });
+	const rail = split.createDiv({ cls: "sf-codex-side-actions sf-notebook-source-rail" });
+	setIcon(rail.createSpan({ cls: "sf-notebook-source-btn" }), ICON_NOTEBOOK_FILLED);
+	setIcon(rail.createSpan({ cls: "sf-notebook-source-btn" }), ICON_CODEX);
+	setIcon(rail.createSpan({ cls: "sf-notebook-source-btn is-active" }), ICON_CLIPBOARD_LIST_DUOTONE);
+	const page = split.createDiv({ cls: "sf-notebook-page sf-dossier-page" });
+	const scroll = page.createDiv({ cls: "sf-recommend-scroll" });
 	const chSection = scroll.createDiv({ cls: "sf-recommend-section" });
 	chSection.createDiv({ cls: "sf-recommend-section-title", text: "I. Amet Consectetur" });
 	mountRecommendHitCard(chSection, "matched", "Jane paused at the doorway.");
+	const index = split.createDiv({ cls: "sf-notebook-index sf-bottom-panel" });
+	const tree = index.createDiv({ cls: "sf-codex-tree" });
+	const selected = tree.createDiv({ cls: "sf-row sf-row-selected sf-codex-file" });
+	selected.createSpan({ cls: "sf-row-text", text: "Jane Protagonist" });
 }
 
 /**
  * Mounts Story Context / Archive chrome samples for the right-sidebar tab. Navigation (`chrome`)
  * shows the tab strip, Forge-family member row, and Focus-mode icon. Chapter (`box`) shows the
- * chapter card (header, labels, synopsis, Codex rows) plus pill cards. Novel/Chapter/Details
- * remount that tab's body. Story Context's own tab row is clickable, same as the real panel.
+ * chapter card (header, labels, synopsis, Codex rows) plus pill cards. Novel/Chapter remount that
+ * tab's body. Dossier (`details` / `dossier`) shows Notebook with the Dossier rail icon active.
+ * Story Context's own tab row is clickable, same as the real panel.
  */
 export function mountRightSidebarPreviewSample(
 	container: HTMLElement,
@@ -471,30 +473,29 @@ export function mountRightSidebarPreviewSample(
 	const tabButtons: Partial<Record<RecommendTabId, HTMLElement>> = {};
 	let archiveBtn!: HTMLElement;
 	let forgeBtn!: HTMLElement;
+	let ideasBtn!: HTMLElement;
 	const hideOverlayRows = () => {
 		forgeRow.addClass("sf-settings-hidden");
 		archiveModeRow.addClass("sf-settings-hidden");
 		focusRow.addClass("sf-settings-hidden");
 		focusMembers.removeClass("is-expanded");
 	};
-	const showDossierTab = () => {
-		for (const [tabId, btn] of Object.entries(tabButtons)) btn?.toggleClass("is-active", tabId === "details");
+	const showNotebookDossier = () => {
+		for (const btn of Object.values(tabButtons)) btn?.removeClass("is-active");
 		archiveBtn.removeClass("is-active");
 		forgeBtn.removeClass("is-active");
+		ideasBtn.addClass("is-active");
 		hideOverlayRows();
 		recBody.toggleClass("sf-settings-hidden", false);
 		archive.addClass("sf-settings-hidden");
 		recBody.empty();
-		mountRecommendDossierBody(recBody);
+		mountNotebookDossierPreview(recBody);
 	};
 	const showRecommendTab = (id: RecommendTabId) => {
-		if (id === "details") {
-			showDossierTab();
-			return;
-		}
 		for (const [tabId, btn] of Object.entries(tabButtons)) btn?.toggleClass("is-active", tabId === id);
 		archiveBtn.removeClass("is-active");
 		forgeBtn.removeClass("is-active");
+		ideasBtn.removeClass("is-active");
 		hideOverlayRows();
 		recBody.toggleClass("sf-settings-hidden", false);
 		archive.addClass("sf-settings-hidden");
@@ -505,6 +506,7 @@ export function mountRightSidebarPreviewSample(
 	const showArchiveTab = () => {
 		for (const btn of Object.values(tabButtons)) btn?.removeClass("is-active");
 		forgeBtn.removeClass("is-active");
+		ideasBtn.removeClass("is-active");
 		hideOverlayRows();
 		archiveBtn.addClass("is-active");
 		archiveModeRow.removeClass("sf-settings-hidden");
@@ -514,6 +516,7 @@ export function mountRightSidebarPreviewSample(
 	const showForgeTab = () => {
 		for (const btn of Object.values(tabButtons)) btn?.removeClass("is-active");
 		archiveBtn.removeClass("is-active");
+		ideasBtn.removeClass("is-active");
 		forgeBtn.addClass("is-active");
 		hideOverlayRows();
 		forgeRow.removeClass("sf-settings-hidden");
@@ -526,17 +529,16 @@ export function mountRightSidebarPreviewSample(
 	const tabIcons: Record<RecommendTabId, string> = {
 		novel: ICON_BOOK_DUOTONE,
 		chapter: ICON_BOOK_OPEN_FILLED,
-		details: ICON_CLIPBOARD_LIST_DUOTONE,
 	};
-	(["novel", "chapter", "details"] as RecommendTabId[]).forEach((id) => {
+	(["novel", "chapter"] as RecommendTabId[]).forEach((id) => {
 		const btn = recTabs.createSpan({ cls: "sf-recommend-tab" });
 		setIcon(btn, tabIcons[id]);
 		tabButtons[id] = btn;
 		btn.addEventListener("click", () => showRecommendTab(id));
 	});
-	const ideasBtn = recTabs.createSpan({ cls: "sf-recommend-tab" });
+	ideasBtn = recTabs.createSpan({ cls: "sf-recommend-tab" });
 	setIcon(ideasBtn, ICON_NOTEBOOK_FILLED);
-	ideasBtn.addEventListener("click", () => showRecommendTab("novel"));
+	ideasBtn.addEventListener("click", () => showNotebookDossier());
 	forgeBtn = recTabs.createSpan({ cls: "sf-recommend-tab sf-recommend-tab--forge-family" });
 	setIcon(forgeBtn, ICON_FORGE);
 	forgeBtn.addEventListener("click", () => showForgeTab());
@@ -556,6 +558,7 @@ export function mountRightSidebarPreviewSample(
 		for (const btn of Object.values(tabButtons)) btn?.removeClass("is-active");
 		archiveBtn.removeClass("is-active");
 		forgeBtn.removeClass("is-active");
+		ideasBtn.removeClass("is-active");
 		hideOverlayRows();
 		archive.addClass("sf-settings-hidden");
 		recBody.toggleClass("sf-settings-hidden", false);
@@ -566,7 +569,7 @@ export function mountRightSidebarPreviewSample(
 	if (mode === "archive") showArchiveTab();
 	else if (mode === "chrome") showForgeTab();
 	else if (mode === "chapter" || mode === "novel") showRecommendTab(mode);
-	else if (mode === "details" || mode === "dossier") showDossierTab();
+	else if (mode === "details" || mode === "dossier") showNotebookDossier();
 	else if (mode === "box") {
 		showCustomBody((el) => mountRecommendBoxBody(el, mainThread));
 		tabButtons.chapter?.addClass("is-active");
