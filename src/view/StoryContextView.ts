@@ -994,13 +994,8 @@ export class StoryContextView extends ItemView {
 		const index = split.createDiv({ cls: "sf-notebook-index" });
 		if (usesCodexIndex) this.renderNotebookCodexIndex(index, showTypesCorner);
 		else this.renderNotebookNotesIndex(index, showTypesCorner);
-		if (indexKind === "dossier") {
-			this.disposeIdeaEditor();
-			this.notebookPageEl = page;
-			this.renderNotebookDossierPage(page);
-		} else {
-			void this.mountIdeaEditor();
-		}
+		if (indexKind === "dossier") this.renderNotebookDossierPage(page);
+		else void this.mountIdeaEditor();
 	}
 
 	private renderNotebookSourceRail(parent: HTMLElement): void {
@@ -1480,7 +1475,7 @@ export class StoryContextView extends ItemView {
 			return;
 		}
 
-		if (!this.selectedCodexPath || !this.dossierEntity) {
+		if (!this.selectedCodexPath) {
 			scroll.createDiv({
 				cls: "sf-empty",
 				text: "Select a Codex note to read everything the book says about them, in chapter order.",
@@ -1488,7 +1483,7 @@ export class StoryContextView extends ItemView {
 			return;
 		}
 
-		if (this.dossierHits.length === 0) {
+		if (!this.dossierEntity || this.dossierHits.length === 0) {
 			scroll.createDiv({ cls: "sf-empty", text: "No located details for this entity yet." });
 			return;
 		}
@@ -1534,7 +1529,10 @@ export class StoryContextView extends ItemView {
 			this.dossierBuilding = true;
 			this.render(true);
 			await this.ensureEngine();
-			if (this.closed || this.notebookIndexKind !== "dossier") return;
+			if (this.closed || this.notebookIndexKind !== "dossier") {
+				this.dossierBuilding = false;
+				return;
+			}
 			await this.refreshCast();
 			const entity = this.castCache.find((c) => c.path === this.selectedCodexPath) ?? null;
 			this.dossierEntity = entity;
@@ -1545,7 +1543,7 @@ export class StoryContextView extends ItemView {
 				return;
 			}
 			await this.runDossierSearch(entity);
-			if (this.closed) return;
+			if (this.closed || this.notebookIndexKind !== "dossier") return;
 			this.render(true);
 		} catch (err) {
 			console.error("storyForge: dossier scan failed", err);
@@ -1557,7 +1555,6 @@ export class StoryContextView extends ItemView {
 	private async runDossierSearch(entity: CastMember): Promise<void> {
 		if (!this.bookFolderName) return;
 		this.dossierBuilding = true;
-		this.render();
 		await this.refreshCast();
 		const attribution = await readAttributionStore(this.app, this.bookFolderName);
 		const chapters = getBookChapters(this.app, this.bookFolderName);

@@ -4303,6 +4303,29 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	background-color: var(--sf-right-rail-bg, var(--background-secondary));
 }
 
+/* Dossier in the notebook page: sticky titles cover hit cards with the page fill, and use
+ * the Dossier type styles (formerly the search-field tokens). */
+.sf-notebook-page.sf-dossier-page {
+	cursor: default;
+	padding: 0;
+}
+
+.sf-notebook-page.sf-dossier-page .sf-recommend-scroll {
+	padding: 4px 6px;
+}
+
+.sf-notebook-page.sf-dossier-page .sf-recommend-scroll .sf-recommend-section-title {
+	background-color: var(--sf-editor-bg, var(--background-primary));
+	font-size: var(--sf-recommend-dossier-size, 1.15em);
+	font-weight: var(--sf-recommend-dossier-weight, 600);
+	color: var(--sf-recommend-dossier-color, var(--text-accent));
+	-webkit-text-fill-color: var(--sf-recommend-dossier-color, var(--text-accent));
+	font-variant: var(--sf-recommend-dossier-variant, normal);
+	font-family: var(--sf-recommend-dossier-family, inherit);
+	font-variation-settings: var(--sf-recommend-dossier-variation, normal);
+	text-transform: none;
+}
+
 /* Archive rail view — shares list row styles with the old archive modals */
 .workspace-leaf-content[data-type="storyforge-archive-view"] .view-content.sf-archive-view,
 .sf-archive-view {
