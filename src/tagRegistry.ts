@@ -5,6 +5,7 @@ import { mintId } from "./slug";
 import { ICON_TAG } from "./icons";
 import { CODEX_ICON_CATALOG, TAG_ICON_CATALOG } from "./iconRegistry";
 import { loadCodexTypesFromRegistry, type CodexTypeOption } from "./codex";
+import { loadIdeaTypesFromRegistry, type IdeaTypeOption } from "./notes";
 
 /** One entry in an editable type/tag list (Codex types, chapter tags, or novel tags). */
 export interface TagDefinition {
@@ -22,12 +23,13 @@ export interface TagDefinition {
 	parentId?: string | null;
 }
 
-export type TagListKind = "codexTypes" | "chapterTags" | "novelTags";
+export type TagListKind = "codexTypes" | "chapterTags" | "novelTags" | "ideaTypes";
 
 export interface TagRegistryShape {
 	codexTypes: TagDefinition[];
 	chapterTags: TagDefinition[];
 	novelTags: TagDefinition[];
+	ideaTypes: TagDefinition[];
 }
 
 interface RawTagDefinition {
@@ -42,12 +44,14 @@ export interface RawTagRegistryFrontmatter extends FrontMatterCache {
 	"codex-types"?: unknown;
 	"chapter-tags"?: unknown;
 	"novel-tags"?: unknown;
+	"idea-types"?: unknown;
 }
 
-const RAW_KEY: Record<TagListKind, "codex-types" | "chapter-tags" | "novel-tags"> = {
+const RAW_KEY: Record<TagListKind, "codex-types" | "chapter-tags" | "novel-tags" | "idea-types"> = {
 	codexTypes: "codex-types",
 	chapterTags: "chapter-tags",
 	novelTags: "novel-tags",
+	ideaTypes: "idea-types",
 };
 
 /** Used when a tag/type's `iconAlias` no longer resolves (a stale alias from an older catalog). */
@@ -95,7 +99,7 @@ function tagDefinitionsYaml(entries: readonly TagDefinition[]): string {
 		.join("\n");
 }
 
-export const DEFAULT_TAG_REGISTRY_CONTENT = `---\ncodex-types:\n${tagDefinitionsYaml(SEED_CODEX_TYPES)}\nchapter-tags:\n${tagDefinitionsYaml(SEED_CHAPTER_TAGS)}\nnovel-tags:\n${tagDefinitionsYaml(SEED_NOVEL_TAGS)}\n---\n`;
+export const DEFAULT_TAG_REGISTRY_CONTENT = `---\ncodex-types:\n${tagDefinitionsYaml(SEED_CODEX_TYPES)}\nchapter-tags:\n${tagDefinitionsYaml(SEED_CHAPTER_TAGS)}\nnovel-tags:\n${tagDefinitionsYaml(SEED_NOVEL_TAGS)}\nidea-types:\n---\n`;
 
 function parseTagDefinitions(raw: unknown): TagDefinition[] {
 	if (!Array.isArray(raw)) return [];
@@ -121,6 +125,7 @@ export function readTagRegistry(app: App): TagRegistryShape {
 			codexTypes: SEED_CODEX_TYPES.map((e) => ({ ...e })),
 			chapterTags: SEED_CHAPTER_TAGS.map((e) => ({ ...e })),
 			novelTags: SEED_NOVEL_TAGS.map((e) => ({ ...e })),
+			ideaTypes: [],
 		};
 	}
 	const cache = app.metadataCache.getCache(path);
@@ -129,6 +134,7 @@ export function readTagRegistry(app: App): TagRegistryShape {
 		codexTypes: parseTagDefinitions(fm?.["codex-types"]),
 		chapterTags: parseTagDefinitions(fm?.["chapter-tags"]),
 		novelTags: parseTagDefinitions(fm?.["novel-tags"]),
+		ideaTypes: parseTagDefinitions(fm?.["idea-types"]),
 	};
 }
 
@@ -137,7 +143,7 @@ export function readTagRegistry(app: App): TagRegistryShape {
  * share TAG_ICON_CATALOG — both are fixed, programmer-curated lists (see src/iconRegistry.ts),
  * never user-extensible. */
 export function resolveIconAlias(list: TagListKind, alias: string): string {
-	const catalog = list === "codexTypes" ? CODEX_ICON_CATALOG : TAG_ICON_CATALOG;
+	const catalog = list === "codexTypes" || list === "ideaTypes" ? CODEX_ICON_CATALOG : TAG_ICON_CATALOG;
 	return catalog.find((e) => e.alias === alias)?.iconId ?? FALLBACK_ICON_ID;
 }
 
@@ -156,6 +162,7 @@ export async function ensureTagRegistryFile(app: App): Promise<TagRegistryShape>
 			codexTypes: SEED_CODEX_TYPES.map((e) => ({ ...e })),
 			chapterTags: SEED_CHAPTER_TAGS.map((e) => ({ ...e })),
 			novelTags: SEED_NOVEL_TAGS.map((e) => ({ ...e })),
+			ideaTypes: [],
 		};
 	}
 	return readTagRegistry(app);
@@ -174,6 +181,16 @@ export function loadCodexTypesIntoRegistry(app: App, prefetched?: TagRegistrySha
 		parentId: t.parentId ?? null,
 	}));
 	loadCodexTypesFromRegistry(resolved);
+}
+
+export function loadIdeaTypesIntoRegistry(app: App, prefetched?: TagRegistryShape): void {
+	const { ideaTypes } = prefetched ?? readTagRegistry(app);
+	const resolved: IdeaTypeOption[] = ideaTypes.map((t) => ({
+		type: t.id,
+		label: t.label,
+		icon: resolveIconAlias("ideaTypes", t.iconAlias),
+	}));
+	loadIdeaTypesFromRegistry(resolved);
 }
 
 /**
@@ -213,6 +230,14 @@ async function mutateTagList(
 				parentId: t.parentId ?? null,
 			}));
 			loadCodexTypesFromRegistry(resolved);
+		}
+		if (list === "ideaTypes") {
+			const resolved: IdeaTypeOption[] = next.map((t) => ({
+				type: t.id,
+				label: t.label,
+				icon: resolveIconAlias("ideaTypes", t.iconAlias),
+			}));
+			loadIdeaTypesFromRegistry(resolved);
 		}
 	});
 	return result;
@@ -303,7 +328,7 @@ export async function replaceTagLists(
 	patch: Partial<TagRegistryShape>,
 ): Promise<TagRegistryShape> {
 	const path = tagRegistryFilePath();
-	let result: TagRegistryShape = { codexTypes: [], chapterTags: [], novelTags: [] };
+	let result: TagRegistryShape = { codexTypes: [], chapterTags: [], novelTags: [], ideaTypes: [] };
 	await modifyBackstageFrontmatter<RawTagRegistryFrontmatter>(
 		app,
 		app.vault,
@@ -314,6 +339,7 @@ export async function replaceTagLists(
 				codexTypes: parseTagDefinitions(fm["codex-types"]),
 				chapterTags: parseTagDefinitions(fm["chapter-tags"]),
 				novelTags: parseTagDefinitions(fm["novel-tags"]),
+				ideaTypes: parseTagDefinitions(fm["idea-types"]),
 			};
 			result = {
 				codexTypes:
@@ -326,10 +352,13 @@ export async function replaceTagLists(
 						: current.chapterTags,
 				novelTags:
 					patch.novelTags !== undefined ? cloneTagDefinitions(patch.novelTags) : current.novelTags,
+				ideaTypes:
+					patch.ideaTypes !== undefined ? cloneTagDefinitions(patch.ideaTypes) : current.ideaTypes,
 			};
 			fm["codex-types"] = result.codexTypes.map(toRawTagDefinition);
 			fm["chapter-tags"] = result.chapterTags.map(toRawTagDefinition);
 			fm["novel-tags"] = result.novelTags.map(toRawTagDefinition);
+			fm["idea-types"] = result.ideaTypes.map(toRawTagDefinition);
 			if (patch.codexTypes !== undefined) {
 				const resolved: CodexTypeOption[] = result.codexTypes.map((t) => ({
 					type: t.id,
@@ -338,6 +367,14 @@ export async function replaceTagLists(
 					parentId: t.parentId ?? null,
 				}));
 				loadCodexTypesFromRegistry(resolved);
+			}
+			if (patch.ideaTypes !== undefined) {
+				const resolved: IdeaTypeOption[] = result.ideaTypes.map((t) => ({
+					type: t.id,
+					label: t.label,
+					icon: resolveIconAlias("ideaTypes", t.iconAlias),
+				}));
+				loadIdeaTypesFromRegistry(resolved);
 			}
 		},
 	);

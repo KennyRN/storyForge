@@ -278,7 +278,7 @@ export class StoryForgeView extends ItemView {
 					this.currentBookFolderName = name;
 					this.activeChapterFilename = null;
 					void this.persistSelection();
-					this.plugin.focusRecommendationOnNovel(name);
+					this.plugin.focusStoryContextOnNovel(name);
 					this.render();
 				},
 				onOpenChapter: (bookName, filename) => {
@@ -288,13 +288,13 @@ export class StoryForgeView extends ItemView {
 						// region stays on the Novel overview page. Chapter/Codex still open for real,
 						// below.
 						this.selectChapter(bookName, filename);
-						this.plugin.focusRecommendationOnChapter(bookName, filename);
+						this.plugin.focusStoryContextOnChapter(bookName, filename);
 					} else {
 						// The Chapter tab: opens the chapter for real (unlike the Novel tab above) and
 						// still jumps Story Context to its own Chapter tab for it, so the right sidebar
 						// always mirrors whichever chapter is selected here.
 						void this.openChapter(bookName, filename);
-						this.plugin.focusRecommendationOnChapter(bookName, filename);
+						this.plugin.focusStoryContextOnChapter(bookName, filename);
 					}
 				},
 				onCreateContinuingChapter: (bookFolderName) => void this.handleCreateContinuingChapter(bookFolderName),
@@ -563,7 +563,7 @@ export class StoryForgeView extends ItemView {
 			}
 		}
 		if (this.currentBookFolderName) {
-			this.plugin.focusRecommendationOnNovel(this.currentBookFolderName);
+			this.plugin.focusStoryContextOnNovel(this.currentBookFolderName);
 		}
 	}
 
@@ -597,7 +597,7 @@ export class StoryForgeView extends ItemView {
 		const chapterFilename = resolveEntryChapter(ordered.map((file) => file.name), this.activeChapterFilename);
 		if (!chapterFilename) return;
 		if (chapterFilename !== this.activeChapterFilename) this.selectChapter(bookFolderName, chapterFilename);
-		this.plugin.focusRecommendationOnChapter(bookFolderName, chapterFilename);
+		this.plugin.focusStoryContextOnChapter(bookFolderName, chapterFilename);
 	}
 
 	/** The navigator's continuous-mode launcher (continuous-mode hand-off brief §2, corrected): the

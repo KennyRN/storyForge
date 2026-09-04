@@ -17,7 +17,7 @@ import { renderTabbedBody } from "./styleModalHelpers";
 import { ICON_MINUS_SQUARE, ICON_PLUS_SQUARE, ICON_TAG } from "../icons";
 import { confirmDelete } from "./confirmDeleteModal";
 
-export type TagRegistryScope = "codexTypes" | "tags";
+export type TagRegistryScope = "codexTypes" | "ideaTypes" | "tags";
 
 const TAG_TABS: { id: TagListKind; label: string; addPlaceholder: string }[] = [
 	{ id: "chapterTags", label: "Chapter tags", addPlaceholder: 'New chapter tag (e.g. "2nd pass")' },
@@ -36,7 +36,7 @@ export class TagRegistryModal extends Modal {
 	}
 
 	onOpen(): void {
-		if (this.registryScope === "codexTypes") {
+		if (this.registryScope === "codexTypes" || this.registryScope === "ideaTypes") {
 			this.modalEl.addClass("sf-codex-types-modal");
 		}
 		this.titleEl.remove();
@@ -71,6 +71,13 @@ export class TagRegistryModal extends Modal {
 			const scroll = contentEl.createDiv({ cls: "sf-text-style-tab-body-wrapper" });
 			const body = scroll.createDiv({ cls: "sf-text-style-tab-body" });
 			this.renderCodexTypesList(body, fresh?.list === "codexTypes" ? fresh.entries : undefined);
+			return;
+		}
+
+		if (this.registryScope === "ideaTypes") {
+			const scroll = contentEl.createDiv({ cls: "sf-text-style-tab-body-wrapper" });
+			const body = scroll.createDiv({ cls: "sf-text-style-tab-body" });
+			this.renderList(body, "ideaTypes", 'New notebook type (e.g. "Plot")', fresh?.list === "ideaTypes" ? fresh.entries : undefined);
 			return;
 		}
 

@@ -11,7 +11,6 @@ const ICON_UNPLACED = "sf-archive-drawer";
 const ICON_PLUS_SQUARE = "sf-plus-square";
 const ICON_MINUS_SQUARE = "sf-minus-square";
 const ICON_CHECK_SQUARE = "sf-check-square";
-const ICON_MULTIPLY_SQUARE = "sf-multiply-square";
 const ICON_FILTER_LIST = "sf-filter-list";
 const ICON_FOLDER_PLUS = "sf-folder-plus";
 const ICON_FOLDER = "sf-folder-fill";
@@ -31,9 +30,9 @@ const ICON_BOOK_DUOTONE = "sf-book-duotone";
 const ICON_CODEX = "sf-earth-fill";
 const ICON_BOOK_OPEN_FILLED = "sf-book-open-filled";
 const ICON_CLIPBOARD_LIST_DUOTONE = "sf-clipboard-list-duotone";
-const ICON_NOTEBOOK_DUOTONE = "sf-notebook-duotone";
+const ICON_CLIPBOARD_DUOTONE = "sf-clipboard-duotone";
+const ICON_NOTEBOOK_FILLED = "sf-notebook-filled";
 const ICON_LOCATION_TARGET_SQUARE = "sf-location-target-square";
-const ICON_REFRESH_SQUARE = "sf-refresh-square";
 const ICON_ADD_SQUARE = "sf-add-square";
 
 function listRow(list: HTMLElement, title: string, selected = false, subtitle?: string): HTMLElement {
@@ -211,7 +210,7 @@ function mountStatsSample(container: HTMLElement): void {
 }
 
 /** One Story Context tab's worth of representative body content, keyed by the same ids used in `mountRightSidebarPreviewSample`'s clickable tab row. */
-type RecommendTabId = "novel" | "chapter" | "details" | "dossier";
+type RecommendTabId = "novel" | "chapter" | "details";
 export type RightSidebarPreviewMode = "chrome" | "novel" | "chapter" | "box" | "details" | "dossier" | "archive";
 export type PreviewMainThread = { color: string; text: string };
 
@@ -398,7 +397,6 @@ function mountRecommendChapterCard(body: HTMLElement, mainThread: PreviewMainThr
 
 	const actions = body.createDiv({ cls: "sf-recommend-chapter-card-actions" });
 	setIcon(actions.createSpan({ cls: "sf-recommend-icon-btn" }), ICON_LOCATION_TARGET_SQUARE);
-	setIcon(actions.createSpan({ cls: "sf-recommend-icon-btn" }), ICON_REFRESH_SQUARE);
 	setIcon(actions.createSpan({ cls: "sf-recommend-icon-btn" }), ICON_ADD_SQUARE);
 	const wordcount = actions.createDiv({ cls: "sf-recommend-chapter-wordcount" });
 	setIcon(wordcount.createSpan({ cls: "sf-icon sf-recommend-chapter-wordcount-icon" }), ICON_DASHBOARD_CHART);
@@ -415,27 +413,6 @@ function mountRecommendChapterCard(body: HTMLElement, mainThread: PreviewMainThr
 function mountRecommendChapterBody(body: HTMLElement, mainThread: PreviewMainThread): void {
 	body.addClass("sf-recommend-body--scroll");
 	mountRecommendChapterCard(body, mainThread);
-}
-
-function mountRecommendDetailsBody(body: HTMLElement): void {
-	body.addClass("sf-recommend-body--scroll");
-	const scroll = body.createDiv({ cls: "sf-recommend-scroll" });
-
-	mountRecommendPillCard(scroll, "capture", "Details to capture", (section) => {
-		const openEntity = section.createDiv({ cls: "sf-recommend-entity-header" });
-		openEntity.createSpan({ cls: "sf-recommend-entity-name", text: "Jane Protagonist" });
-		mountRecommendHitCard(section, "solid", "The old locket felt heavier than it looked.");
-	});
-	mountRecommendPillCard(scroll, "holding", "Holding area", (section) => {
-		const holdingEntity = section.createDiv({ cls: "sf-recommend-entity-header" });
-		holdingEntity.createSpan({ cls: "sf-recommend-entity-name", text: "The Harbour" });
-		mountRecommendHitCard(section, "ambiguous", "A storm was rolling in from the coast.");
-	});
-	mountRecommendPillCard(scroll, "resolved", "Resolved", (section) => {
-		const resolvedEntity = section.createDiv({ cls: "sf-recommend-entity-header" });
-		resolvedEntity.createSpan({ cls: "sf-recommend-entity-name", text: "Jane Protagonist" });
-		mountRecommendHitCard(section, "solid", "Jane paused at the doorway.");
-	});
 }
 
 function mountRecommendDossierBody(body: HTMLElement): void {
@@ -456,7 +433,7 @@ function mountRecommendDossierBody(body: HTMLElement): void {
 /**
  * Mounts Story Context / Archive chrome samples for the right-sidebar tab. Navigation (`chrome`)
  * shows the tab strip, Forge-family member row, and Focus-mode icon. Chapter (`box`) shows the
- * chapter card (header, labels, synopsis, Codex rows) plus pill cards. Novel/Chapter/Dossier
+ * chapter card (header, labels, synopsis, Codex rows) plus pill cards. Novel/Chapter/Details
  * remount that tab's body. Story Context's own tab row is clickable, same as the real panel.
  */
 export function mountRightSidebarPreviewSample(
@@ -474,6 +451,7 @@ export function mountRightSidebarPreviewSample(
 	const archiveModeRow = recommend.createDiv({ cls: "sf-recommend-view__forge-row sf-settings-hidden" });
 	setIcon(archiveModeRow.createSpan({ cls: "sf-recommend-view__forge-icon is-active", attr: { "aria-label": "Codex" } }), ICON_CODEX);
 	setIcon(archiveModeRow.createSpan({ cls: "sf-recommend-view__forge-icon", attr: { "aria-label": "Novel" } }), ICON_BOOK_DUOTONE);
+	setIcon(archiveModeRow.createSpan({ cls: "sf-recommend-view__forge-icon", attr: { "aria-label": "Notebook" } }), ICON_NOTEBOOK_FILLED);
 	const recBody = recommend.createDiv({ cls: "sf-recommend-body" });
 	const archive = recommend.createDiv({ cls: "sf-archive-embedded sf-settings-hidden" });
 	const focusRow = recommend.createDiv({
@@ -482,9 +460,6 @@ export function mountRightSidebarPreviewSample(
 
 	const member = forgeRow.createSpan({ cls: "sf-recommend-view__forge-icon is-active" });
 	setIcon(member, ICON_MEEPLE);
-	const focusCount = focusRow.createDiv({ cls: "sf-focus-wordcount-cluster" });
-	setIcon(focusCount.createSpan({ cls: "sf-icon sf-focus-chapter-icon" }), ICON_BOOK_OPEN_FILLED);
-	focusCount.createSpan({ cls: "sf-focus-wordcount", text: "1,234" });
 	const focusMembers = focusRow.createDiv({ cls: "sf-recommend-view__forge-members" });
 	setIcon(focusMembers.createSpan({ cls: "sf-recommend-view__forge-icon is-active" }), ICON_MEEPLE);
 	const focusIcon = focusRow.createSpan({
@@ -496,28 +471,41 @@ export function mountRightSidebarPreviewSample(
 	const tabButtons: Partial<Record<RecommendTabId, HTMLElement>> = {};
 	let archiveBtn!: HTMLElement;
 	let forgeBtn!: HTMLElement;
-	const showRecommendTab = (id: RecommendTabId) => {
-		for (const [tabId, btn] of Object.entries(tabButtons)) btn?.toggleClass("is-active", tabId === id);
-		archiveBtn.removeClass("is-active");
-		forgeBtn.removeClass("is-active");
+	const hideOverlayRows = () => {
 		forgeRow.addClass("sf-settings-hidden");
 		archiveModeRow.addClass("sf-settings-hidden");
 		focusRow.addClass("sf-settings-hidden");
 		focusMembers.removeClass("is-expanded");
+	};
+	const showDossierTab = () => {
+		for (const [tabId, btn] of Object.entries(tabButtons)) btn?.toggleClass("is-active", tabId === "details");
+		archiveBtn.removeClass("is-active");
+		forgeBtn.removeClass("is-active");
+		hideOverlayRows();
+		recBody.toggleClass("sf-settings-hidden", false);
+		archive.addClass("sf-settings-hidden");
+		recBody.empty();
+		mountRecommendDossierBody(recBody);
+	};
+	const showRecommendTab = (id: RecommendTabId) => {
+		if (id === "details") {
+			showDossierTab();
+			return;
+		}
+		for (const [tabId, btn] of Object.entries(tabButtons)) btn?.toggleClass("is-active", tabId === id);
+		archiveBtn.removeClass("is-active");
+		forgeBtn.removeClass("is-active");
+		hideOverlayRows();
 		recBody.toggleClass("sf-settings-hidden", false);
 		archive.addClass("sf-settings-hidden");
 		recBody.empty();
 		if (id === "novel") mountRecommendNovelBody(recBody, mainThread);
-		else if (id === "chapter") mountRecommendChapterBody(recBody, mainThread);
-		else if (id === "details") mountRecommendDetailsBody(recBody);
-		else mountRecommendDossierBody(recBody);
+		else mountRecommendChapterBody(recBody, mainThread);
 	};
 	const showArchiveTab = () => {
 		for (const btn of Object.values(tabButtons)) btn?.removeClass("is-active");
 		forgeBtn.removeClass("is-active");
-		forgeRow.addClass("sf-settings-hidden");
-		focusRow.addClass("sf-settings-hidden");
-		focusMembers.removeClass("is-expanded");
+		hideOverlayRows();
 		archiveBtn.addClass("is-active");
 		archiveModeRow.removeClass("sf-settings-hidden");
 		recBody.addClass("sf-settings-hidden");
@@ -527,8 +515,8 @@ export function mountRightSidebarPreviewSample(
 		for (const btn of Object.values(tabButtons)) btn?.removeClass("is-active");
 		archiveBtn.removeClass("is-active");
 		forgeBtn.addClass("is-active");
+		hideOverlayRows();
 		forgeRow.removeClass("sf-settings-hidden");
-		archiveModeRow.addClass("sf-settings-hidden");
 		focusRow.removeClass("sf-settings-hidden");
 		focusMembers.addClass("is-expanded");
 		recBody.addClass("sf-settings-hidden");
@@ -539,14 +527,16 @@ export function mountRightSidebarPreviewSample(
 		novel: ICON_BOOK_DUOTONE,
 		chapter: ICON_BOOK_OPEN_FILLED,
 		details: ICON_CLIPBOARD_LIST_DUOTONE,
-		dossier: ICON_NOTEBOOK_DUOTONE,
 	};
-	(["novel", "chapter", "details", "dossier"] as RecommendTabId[]).forEach((id) => {
+	(["novel", "chapter", "details"] as RecommendTabId[]).forEach((id) => {
 		const btn = recTabs.createSpan({ cls: "sf-recommend-tab" });
 		setIcon(btn, tabIcons[id]);
 		tabButtons[id] = btn;
 		btn.addEventListener("click", () => showRecommendTab(id));
 	});
+	const ideasBtn = recTabs.createSpan({ cls: "sf-recommend-tab" });
+	setIcon(ideasBtn, ICON_NOTEBOOK_FILLED);
+	ideasBtn.addEventListener("click", () => showRecommendTab("novel"));
 	forgeBtn = recTabs.createSpan({ cls: "sf-recommend-tab sf-recommend-tab--forge-family" });
 	setIcon(forgeBtn, ICON_FORGE);
 	forgeBtn.addEventListener("click", () => showForgeTab());
@@ -566,9 +556,7 @@ export function mountRightSidebarPreviewSample(
 		for (const btn of Object.values(tabButtons)) btn?.removeClass("is-active");
 		archiveBtn.removeClass("is-active");
 		forgeBtn.removeClass("is-active");
-		forgeRow.addClass("sf-settings-hidden");
-		archiveModeRow.addClass("sf-settings-hidden");
-		focusRow.addClass("sf-settings-hidden");
+		hideOverlayRows();
 		archive.addClass("sf-settings-hidden");
 		recBody.toggleClass("sf-settings-hidden", false);
 		recBody.empty();
@@ -577,8 +565,8 @@ export function mountRightSidebarPreviewSample(
 
 	if (mode === "archive") showArchiveTab();
 	else if (mode === "chrome") showForgeTab();
-	else if (mode === "chapter" || mode === "dossier" || mode === "novel") showRecommendTab(mode);
-	else if (mode === "details") showRecommendTab("dossier");
+	else if (mode === "chapter" || mode === "novel") showRecommendTab(mode);
+	else if (mode === "details" || mode === "dossier") showDossierTab();
 	else if (mode === "box") {
 		showCustomBody((el) => mountRecommendBoxBody(el, mainThread));
 		tabButtons.chapter?.addClass("is-active");

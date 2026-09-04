@@ -9,7 +9,7 @@ import { SeriesOverviewView, STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE } from "./view
 import { NovelOverviewView, STORYFORGE_NOVEL_OVERVIEW_VIEW_TYPE } from "./view/NovelOverviewView";
 import { NewChapterView, STORYFORGE_NEW_CHAPTER_VIEW_TYPE } from "./view/NewChapterView";
 import { ToolsView, TOOLS_VIEW_TYPE } from "./view/ToolsPanel";
-import { RecommendationView, RECOMMEND_VIEW_TYPE, activateRecommendView } from "./view/RecommendationView";
+import { StoryContextView, STORY_CONTEXT_VIEW_TYPE, activateStoryContextView } from "./view/StoryContextView";
 import { ArchiveView, ARCHIVE_VIEW_TYPE, activateArchiveView } from "./view/ArchiveView";
 import { recomputeChapterRecommend } from "./recommend/recompute";
 import { isNlpReady } from "./recommend/nlp";
@@ -30,7 +30,7 @@ import { UiFormattingModal } from "./view/UiFormattingModal";
 import { TagRegistryModal } from "./view/TagRegistryModal";
 import { FORMATFORGE_PLUGIN_ID, formatCompanionState } from "./formatCompanionActive";
 import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders, getBookId } from "./series";
-import { ensureTagRegistryFile, loadCodexTypesIntoRegistry } from "./tagRegistry";
+import { ensureTagRegistryFile, loadCodexTypesIntoRegistry, loadIdeaTypesIntoRegistry } from "./tagRegistry";
 import { ensureVaultTagsFile } from "./vaultTags";
 import { ensurePlotThreadsFile } from "./plotThreads";
 import { defaultSeriesPlotThreadColor } from "./view/novelColor";
@@ -48,6 +48,7 @@ import {
 	seriesFilePath,
 	LIBRARY_ROOT,
 	CODEX_ROOT,
+	NOTES_ROOT,
 } from "./paths";
 import type { SfLayout } from "./layout";
 import { recordChapterEdit } from "./history";
@@ -883,7 +884,7 @@ export default class StoryForgePlugin extends Plugin {
 		this.registerView(STORYFORGE_NOVEL_OVERVIEW_VIEW_TYPE, (leaf) => new NovelOverviewView(leaf, this));
 		this.registerView(STORYFORGE_NEW_CHAPTER_VIEW_TYPE, (leaf) => new NewChapterView(leaf, this));
 		this.registerView(TOOLS_VIEW_TYPE, (leaf) => new ToolsView(leaf));
-		this.registerView(RECOMMEND_VIEW_TYPE, (leaf) => new RecommendationView(leaf, this));
+		this.registerView(STORY_CONTEXT_VIEW_TYPE, (leaf) => new StoryContextView(leaf, this));
 		this.registerView(ARCHIVE_VIEW_TYPE, (leaf) => new ArchiveView(leaf, this));
 
 		await this.loadSettings();
@@ -896,7 +897,7 @@ export default class StoryForgePlugin extends Plugin {
 		this.addCommand({
 			id: "open-recommendations",
 			name: "Open Context panel",
-			callback: () => void this.activateRecommendView(),
+			callback: () => void this.activateStoryContextView(),
 		});
 
 		this.addCommand({
@@ -989,6 +990,7 @@ export default class StoryForgePlugin extends Plugin {
 		);
 		const refreshRightRailChrome = debounce(() => this.style.applyRightRailChrome(), 50);
 		this.registerEvent(this.app.workspace.on("layout-change", () => refreshRightRailChrome()));
+		this.registerEvent(this.app.workspace.on("css-change", () => refreshRightRailChrome()));
 		this.register(() => refreshRightRailChrome.cancel());
 
 		this.registerInterval(window.setInterval(() => void this.maybeRunScheduledBackup("interval"), 30 * 60 * 1000));
@@ -1076,7 +1078,7 @@ export default class StoryForgePlugin extends Plugin {
 			STORYFORGE_NOVEL_OVERVIEW_VIEW_TYPE,
 			STORYFORGE_NEW_CHAPTER_VIEW_TYPE,
 			TOOLS_VIEW_TYPE,
-			RECOMMEND_VIEW_TYPE,
+			STORY_CONTEXT_VIEW_TYPE,
 			ARCHIVE_VIEW_TYPE,
 			...this.rightRailRegistry.map((r) => r.viewType),
 		];
@@ -1191,9 +1193,9 @@ export default class StoryForgePlugin extends Plugin {
 	/** Series panel's onSelectBook nudge (StoryForgeView.ts) — an already-open Story Context panel
 	 * (right sidebar) should jump to its Novel tab and show the newly-picked book. A no-op if it
 	 * isn't currently open anywhere. */
-	focusRecommendationOnNovel(bookFolderName: string): void {
-		for (const leaf of this.app.workspace.getLeavesOfType(RECOMMEND_VIEW_TYPE)) {
-			if (leaf.view instanceof RecommendationView) leaf.view.focusNovel(bookFolderName);
+	focusStoryContextOnNovel(bookFolderName: string): void {
+		for (const leaf of this.app.workspace.getLeavesOfType(STORY_CONTEXT_VIEW_TYPE)) {
+			if (leaf.view instanceof StoryContextView) leaf.view.focusNovel(bookFolderName);
 		}
 	}
 
@@ -1202,9 +1204,38 @@ export default class StoryForgePlugin extends Plugin {
 	 * (or that tab itself is switched into) — an already-open Story Context panel (right sidebar)
 	 * should jump to its own Chapter tab and show the given chapter. A no-op if it isn't currently
 	 * open anywhere. */
-	focusRecommendationOnChapter(bookFolderName: string, filename: string): void {
-		for (const leaf of this.app.workspace.getLeavesOfType(RECOMMEND_VIEW_TYPE)) {
-			if (leaf.view instanceof RecommendationView) leaf.view.focusChapter(bookFolderName, filename);
+	focusStoryContextOnChapter(bookFolderName: string, filename: string): void {
+		for (const leaf of this.app.workspace.getLeavesOfType(STORY_CONTEXT_VIEW_TYPE)) {
+			if (leaf.view instanceof StoryContextView) leaf.view.focusChapter(bookFolderName, filename);
+		}
+	}
+
+	/** storyTelling Codex lore click — show the note in Focus Mode's `.sf-codex-page` when that
+	 * panel is in Focus Mode. Returns false so the caller can open the note in the center pane. */
+	openCodexLoreInFocusPage(path: string): boolean {
+		for (const leaf of this.app.workspace.getLeavesOfType(STORY_CONTEXT_VIEW_TYPE)) {
+			if (leaf.view instanceof StoryContextView && leaf.view.openCodexLore(path)) return true;
+		}
+		return false;
+	}
+
+	/** Path currently shown in Focus Mode's `.sf-codex-page`, or null. storyTelling uses this to
+	 * highlight the matching lore row without making the note the active file. */
+	codexFocusPagePath(): string | null {
+		for (const leaf of this.app.workspace.getLeavesOfType(STORY_CONTEXT_VIEW_TYPE)) {
+			if (leaf.view instanceof StoryContextView) {
+				const path = leaf.view.codexPagePath();
+				if (path) return path;
+			}
+		}
+		return null;
+	}
+
+	/** Nudge the storyTelling panel after Focus Mode's lore page opens or closes, so its Codex
+	 * highlight agrees with `.sf-codex-page` without a full storyLibrary re-render. */
+	refreshStorytellingView(): void {
+		for (const leaf of this.app.workspace.getLeavesOfType(STORYTELLING_VIEW_TYPE)) {
+			if (leaf.view instanceof StorytellingView) leaf.view.render();
 		}
 	}
 
@@ -1231,8 +1262,13 @@ export default class StoryForgePlugin extends Plugin {
 	}
 
 	/** The tracked leaf if it still exists in the center pane — null rather than creating one, for
-	 * callers that only want to act on it if it's already open. A sidebar leaf that was adopted by
-	 * an older getLeaf(false) is treated as gone so the next open self-heals into the root split. */
+	 * callers that only want to act on it if it's already open (Notebook auto-naming, restore).
+	 * A sidebar leaf that was adopted by an older getLeaf(false) is treated as gone so the next
+	 * open self-heals into the root split. */
+	peekMainContentLeaf(): WorkspaceLeaf | null {
+		return this.getMainContentLeafIfExists();
+	}
+
 	private getMainContentLeafIfExists(): WorkspaceLeaf | null {
 		return existingMainContentLeaf(this.mainContentWorkspace(), this.mainContentLeafId);
 	}
@@ -1437,10 +1473,10 @@ export default class StoryForgePlugin extends Plugin {
 	/**
 	 * Canonical right-rail types: Story Context → registered (orderHint). Forge-family companion
 	 * panels (registerCompanionPanel) no longer get their own right-rail tab - they're embedded in
-	 * Story Context's own "Forge family" tab instead (RecommendationView.ts).
+	 * Story Context's own "Forge family" tab instead (StoryContextView.ts).
 	 */
 	private rightRailTypes(): string[] {
-		return buildRightRailTypeOrder(RECOMMEND_VIEW_TYPE, this.rightRailRegistry);
+		return buildRightRailTypeOrder(STORY_CONTEXT_VIEW_TYPE, this.rightRailRegistry);
 	}
 
 	/** Replaces all settings with `data` (merged over defaults, same as `loadSettings`), persists, and re-applies every style/extension so the change takes effect immediately. */
@@ -1585,8 +1621,8 @@ export default class StoryForgePlugin extends Plugin {
 		new UiFormattingModal(this.app, this).open();
 	}
 
-	/** Opens the Codex types or chapter/novel tags registry. */
-	openTagRegistry(scope: "codexTypes" | "tags"): void {
+	/** Opens the Codex types, idea types, or chapter/novel tags registry. */
+	openTagRegistry(scope: "codexTypes" | "ideaTypes" | "tags"): void {
 		new TagRegistryModal(this.app, () => this.refreshStoryForgeViews(), scope).open();
 	}
 
@@ -1642,12 +1678,12 @@ export default class StoryForgePlugin extends Plugin {
 		return this.companionPanels.slice();
 	}
 
-	/** Re-render any open Story Context leaf so its "Forge family" tab (RecommendationView.ts)
+	/** Re-render any open Story Context leaf so its "Forge family" tab (StoryContextView.ts)
 	 * picks up a companion panel registering/unregistering - that tab reads getCompanionPanels()
 	 * fresh on every render, so this is just a nudge to re-render now rather than on the next
 	 * unrelated event. */
 	private refreshForgeFamilyPanels(): void {
-		for (const leaf of this.app.workspace.getLeavesOfType(RECOMMEND_VIEW_TYPE)) {
+		for (const leaf of this.app.workspace.getLeavesOfType(STORY_CONTEXT_VIEW_TYPE)) {
 			const view = leaf.view as { refreshForgeFamily?: () => void };
 			if (typeof view.refreshForgeFamily === "function") view.refreshForgeFamily();
 		}
@@ -1770,6 +1806,9 @@ export default class StoryForgePlugin extends Plugin {
 		if (!this.app.vault.getAbstractFileByPath(CODEX_ROOT)) {
 			await this.app.vault.createFolder(CODEX_ROOT);
 		}
+		if (!this.app.vault.getAbstractFileByPath(NOTES_ROOT)) {
+			await this.app.vault.createFolder(NOTES_ROOT);
+		}
 	}
 
 	/** True first run only (see initializeVaultState's isFirstRun): seeds one book and one chapter,
@@ -1794,6 +1833,7 @@ export default class StoryForgePlugin extends Plugin {
 		if (isFirstRun) await this.createFirstRunBookAndChapter();
 		const tagRegistry = await ensureTagRegistryFile(this.app);
 		loadCodexTypesIntoRegistry(this.app, tagRegistry);
+		loadIdeaTypesIntoRegistry(this.app, tagRegistry);
 		await ensureVaultTagsFile(this.app);
 		await ensurePlotThreadsFile(
 			this.app,
@@ -1844,8 +1884,8 @@ export default class StoryForgePlugin extends Plugin {
 		}
 	}
 
-	async activateRecommendView(): Promise<void> {
-		await activateRecommendView(this);
+	async activateStoryContextView(): Promise<void> {
+		await activateStoryContextView(this);
 	}
 
 	async activateArchiveView(tab: "codex" | "novel" = "codex"): Promise<void> {
@@ -1892,7 +1932,7 @@ export default class StoryForgePlugin extends Plugin {
 			STORYFORGE_VIEW_TYPE,
 			STORYTELLING_VIEW_TYPE,
 			TOOLS_VIEW_TYPE,
-			RECOMMEND_VIEW_TYPE,
+			STORY_CONTEXT_VIEW_TYPE,
 			ARCHIVE_VIEW_TYPE,
 			...this.rightRailRegistry.map((r) => r.viewType),
 		]) {
@@ -1917,9 +1957,9 @@ export default class StoryForgePlugin extends Plugin {
 
 		const right = this.app.workspace.rightSplit;
 		if (typeof right.expand === "function") right.expand();
-		const contextLeaf = this.app.workspace.getLeavesOfType(RECOMMEND_VIEW_TYPE)[0] ?? null;
+		const contextLeaf = this.app.workspace.getLeavesOfType(STORY_CONTEXT_VIEW_TYPE)[0] ?? null;
 		if (contextLeaf) {
-			await contextLeaf.setViewState({ type: RECOMMEND_VIEW_TYPE, active: true });
+			await contextLeaf.setViewState({ type: STORY_CONTEXT_VIEW_TYPE, active: true });
 		}
 	}
 
@@ -1931,13 +1971,13 @@ export default class StoryForgePlugin extends Plugin {
 	private async ensureRightRailPanelsUnlocked(): Promise<void> {
 		// Prefer Story Context before dropping legacy Archive tabs so the right split
 		// doesn't collapse when Archive was the active leaf.
-		const existingContext = this.app.workspace.getLeavesOfType(RECOMMEND_VIEW_TYPE)[0];
+		const existingContext = this.app.workspace.getLeavesOfType(STORY_CONTEXT_VIEW_TYPE)[0];
 		if (existingContext) {
 			await this.app.workspace.revealLeaf(existingContext);
 		}
 		this.app.workspace.detachLeavesOfType(ARCHIVE_VIEW_TYPE);
 		// The dedicated Forge tab is retired - Forge-family companions are embedded in Story
-		// Context's own tab instead (RecommendationView.ts). Detach any leftover leaf from a
+		// Context's own tab instead (StoryContextView.ts). Detach any leftover leaf from a
 		// previous version's saved workspace layout, same as the legacy Archive tab above.
 		// Referenced by its old literal type id, not an import - view/ForgeView.ts is gone.
 		this.app.workspace.detachLeavesOfType("storyforge-forge-view");
@@ -1947,19 +1987,19 @@ export default class StoryForgePlugin extends Plugin {
 		if (!this.isRightRailOrderCanonical()) {
 			for (const type of types) this.app.workspace.detachLeavesOfType(type);
 			for (const type of types) {
-				await this.ensureLeaf(type, "right", type === RECOMMEND_VIEW_TYPE);
+				await this.ensureLeaf(type, "right", type === STORY_CONTEXT_VIEW_TYPE);
 			}
 		} else {
 			for (const type of types) {
-				await this.ensureLeaf(type, "right", type === RECOMMEND_VIEW_TYPE);
+				await this.ensureLeaf(type, "right", type === STORY_CONTEXT_VIEW_TYPE);
 			}
 		}
 
 		const right = this.app.workspace.rightSplit;
 		if (typeof right.expand === "function") right.expand();
-		const contextLeaf = this.app.workspace.getLeavesOfType(RECOMMEND_VIEW_TYPE)[0] ?? null;
+		const contextLeaf = this.app.workspace.getLeavesOfType(STORY_CONTEXT_VIEW_TYPE)[0] ?? null;
 		if (contextLeaf) {
-			await contextLeaf.setViewState({ type: RECOMMEND_VIEW_TYPE, active: true });
+			await contextLeaf.setViewState({ type: STORY_CONTEXT_VIEW_TYPE, active: true });
 			await this.app.workspace.revealLeaf(contextLeaf);
 		}
 	}

@@ -390,7 +390,8 @@ export function attachCodexDragReorder(
 					row.classList.add("sf-codex-drop-below");
 					const siblings = rows.filter((r) => r.parentKey === hoveredInfo.parentKey);
 					const idx = siblings.findIndex((r) => r.key === hoveredKey);
-					const next = idx !== -1 ? siblings[idx + 1] : undefined;
+					let next = idx !== -1 ? siblings[idx + 1] : undefined;
+					if (next?.key === draggedKey) next = idx !== -1 ? siblings[idx + 2] : undefined;
 					pendingTarget = { parentId: hoveredInfo.parentKey, beforeKey: next?.key ?? null };
 				}
 			};

@@ -463,6 +463,11 @@
 	outline: none;
 }
 
+.tooltip.sf-stats-wordcount-tooltip {
+	white-space: pre-line;
+	text-align: left;
+}
+
 .sf-stats-value {
 	flex: 1;
 	min-width: 0;
@@ -498,7 +503,8 @@
 
 .sf-codex-filter-btn,
 .sf-codex-new-file-btn,
-.sf-codex-new-folder-btn {
+.sf-codex-new-folder-btn,
+.sf-notebook-source-btn {
 	display: flex;
 	align-items: center;
 	flex-shrink: 0;
@@ -506,7 +512,8 @@
 	cursor: pointer;
 }
 
-.sf-codex-filter-btn.is-active {
+.sf-codex-filter-btn.is-active,
+.sf-notebook-source-btn.is-active {
 	color: var(--sf-codex-color);
 }
 
@@ -3396,7 +3403,7 @@ body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container:not(#sto
 .sf-bottom-header > .sf-icon { font-size: var(--sf-codex-size, 1em); }
 .sf-bottom-header > .sf-icon svg { width: 1em; height: 1em; }
 .sf-bottom-header:not(.sf-codex-hidden) > .sf-icon { color: var(--sf-codex-color); }
-.sf-codex-filter-btn:hover, .sf-codex-new-file-btn:hover, .sf-codex-new-folder-btn:hover, .sf-codex-vault-tag-btn:hover { color: var(--sf-codex-color); }
+.sf-codex-filter-btn:hover, .sf-codex-new-file-btn:hover, .sf-codex-new-folder-btn:hover, .sf-codex-vault-tag-btn:hover, .sf-notebook-source-btn:hover { color: var(--sf-codex-color); }
 
 .sf-top-list:not(.sf-unplaced-list) {
 	font-size: var(--sf-lib-items-size, 1em);
@@ -3809,7 +3816,7 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 /* Story Context tab = Focus Mode toggle. Obsidian (and some themes) grow a lone sidebar tab
  * to the full header and center its inner, which is why margin-left: auto never reached the
  * window edge — the icon sat in the middle of a stretched tab. Classes are applied in
- * RecommendationView.decorateTabHeader(). :not(#storyforge-specificity-boost) matches the
+ * StoryContextView.decorateTabHeader(). :not(#storyforge-specificity-boost) matches the
  * Dynamic Styling pattern so this outranks app.css / theme tab rules. */
 .workspace-tab-header-container.sf-context-focus-header:not(#storyforge-specificity-boost) {
 	display: flex;
@@ -3863,7 +3870,7 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 
 /* A Forge-family companion's renderPanel() mounts here, filling whatever space is left in either
  * of its two homes: below .sf-recommend-tabs in the normal view, or straight into Focus Mode's
- * otherwise-blank panel (RecommendationView.ts's mountActiveForgeFamilyPanel()). */
+ * otherwise-blank panel (StoryContextView.ts's mountActiveForgeFamilyPanel()). */
 .sf-recommend-view__forge-panel {
 	flex: 1;
 	min-height: 0;
@@ -3889,34 +3896,7 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	margin-top: auto;
 	margin-bottom: 0;
 	justify-content: flex-end;
-}
-
-.sf-focus-wordcount-cluster,
-.sf-focus-chapter-icon,
-.sf-focus-wordcount {
-	display: flex;
-	align-items: center;
-	flex-shrink: 0;
-	color: var(--sf-recommend-focus-mode-icon-color, var(--text-muted));
-	pointer-events: none;
-	user-select: none;
-	cursor: default;
-}
-
-.sf-focus-wordcount-cluster {
-	gap: 3px;
-}
-
-.sf-focus-wordcount {
-	font-size: var(--font-ui-small);
-	font-variant-numeric: tabular-nums;
-	line-height: 1;
-	padding: 5px 6px 5px 0;
-}
-
-.sf-focus-chapter-icon {
-	padding: 5px 0 5px 6px;
-	font-size: calc(var(--font-ui-medium) * 1.4);
+	gap: 14px;
 }
 
 .sf-recommend-view__forge-members {
@@ -3935,6 +3915,280 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	max-width: 20rem;
 	opacity: 1;
 	pointer-events: auto;
+}
+
+/* Focus Mode family cluster: parent sits after its children. Expanded members
+ * sit 4px from their parent; the two parents sit 14px apart (row gap). */
+.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-family-cluster {
+	display: flex;
+	align-items: center;
+	gap: 0;
+	flex-shrink: 0;
+}
+
+.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-members {
+	gap: 4px;
+}
+
+.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-members.is-expanded {
+	margin-inline-end: 4px;
+}
+
+/* New-note stays next to the notebook parent; browse still slides out on parent click. */
+.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-icon--notebook-add {
+	margin-inline-end: 4px;
+}
+
+.sf-idea-shelf {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+	overflow: hidden;
+	position: relative;
+	/* Same rail inset as .sf-bottom-panel so the page lines up with the index highlights. */
+	--sf-codex-rail-inset: calc(8px + 22.5px + 4px + 6px);
+}
+
+/* Focus Mode lore page: same rail inset as the notebook page so the two rectangles sit in the
+ * same place when switching between them. No index in this panel — the tree lives on storyTelling. */
+.sf-codex-page-host {
+	display: flex;
+	flex-direction: column;
+	flex: 1;
+	min-height: 0;
+	overflow: hidden;
+	--sf-codex-rail-inset: calc(8px + 22.5px + 4px + 6px);
+}
+
+/* Top pane: the note itself. Outer inset matches index highlight rows; inner padding matches
+ * highlight text (.sf-codex-file is 4px 6px). Top margin 8px + tab padding 5px ≈ 13px to the
+ * tab icons, matching the page's right edge to the pane. */
+.sf-notebook-page,
+.sf-codex-page {
+	flex: 1 1 0%;
+	min-height: 0;
+	min-width: 0;
+	overflow: hidden;
+	position: relative;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
+	margin: 8px 4px 8px var(--sf-codex-rail-inset, 40.5px);
+	padding: 4px 6px;
+	border-radius: 4px;
+	--file-margins: 0px;
+	--background-primary: var(--sf-editor-bg);
+	background: var(--sf-editor-bg) !important;
+	cursor: text;
+}
+
+/* External inset only: top and bottom match the larger left rail gutter. */
+.sf-codex-page {
+	margin-top: var(--sf-codex-rail-inset, 40.5px);
+	margin-bottom: var(--sf-codex-rail-inset, 40.5px);
+	overflow: hidden;
+}
+
+/* 80% of the centre editor. The grafted MarkdownView re-sets `--font-text-size` on itself, so
+ * shrinking that variable on `.sf-codex-page` is a no-op; scale the scroller's font instead.
+ * Do not use `zoom` plus `width: calc(100% / 0.8)` — CodeMirror wraps to the pre-zoom layout
+ * width, so paragraphs run wider than the pane and the scroller grows a horizontal bar. */
+.sf-codex-page .sf-context-editor {
+	width: 100%;
+	max-width: 100%;
+	min-width: 0;
+	height: auto;
+	flex: 1 1 auto;
+	box-sizing: border-box;
+}
+
+.sf-codex-page {
+	--file-line-width: 100%;
+}
+
+.sf-codex-page .cm-scroller,
+.sf-codex-page .markdown-preview-view,
+.sf-notebook-page--codex .cm-scroller,
+.sf-notebook-page--codex .markdown-preview-view {
+	font-size: calc(0.8 * var(--font-text-size, 1em)) !important;
+}
+
+.sf-notebook-card-host {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.sf-notebook-page.sf-notebook-card {
+	flex: 0 0 auto;
+	width: 250px;
+	aspect-ratio: 5 / 7;
+	height: auto;
+	margin: 0;
+	border-radius: 12.5px;
+}
+
+.sf-notebook-page,
+.sf-notebook-page *,
+.sf-codex-page,
+.sf-codex-page *,
+.sf-context-editor,
+.sf-context-editor * {
+	cursor: text !important;
+}
+
+.sf-notebook-page .view-content,
+.sf-notebook-page .markdown-source-view,
+.sf-notebook-page .cm-editor,
+.sf-notebook-page .cm-scroller,
+.sf-notebook-page .cm-content,
+.sf-codex-page .view-content,
+.sf-codex-page .markdown-source-view,
+.sf-codex-page .cm-editor,
+.sf-codex-page .cm-scroller,
+.sf-codex-page .cm-content,
+.sf-context-editor .view-content,
+.sf-context-editor .markdown-source-view,
+.sf-context-editor .cm-editor,
+.sf-context-editor .cm-scroller,
+.sf-context-editor .cm-content {
+	background-color: var(--sf-editor-bg) !important;
+}
+
+/* Bottom pane: the note list. */
+.sf-notebook-index {
+	flex: 0 0 60%;
+	min-height: 0;
+	max-height: 60%;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.sf-notebook-index.sf-bottom-panel {
+	flex: 0 0 60%;
+	min-height: 0;
+	max-height: 60%;
+	height: 60%;
+}
+
+.sf-context-editor,
+.sf-context-editor .workspace-leaf,
+.sf-context-editor .workspace-leaf-content,
+.sf-context-editor .view-content,
+.sf-context-editor .markdown-source-view,
+.sf-context-editor .cm-editor {
+	height: 100%;
+	min-height: 0;
+	max-height: 100%;
+}
+
+.sf-context-editor {
+	flex: 1 1 auto;
+	width: 100%;
+	height: auto;
+	min-height: 0;
+	overflow: hidden;
+	pointer-events: auto;
+	border-radius: 4px;
+	--file-margins: 0px;
+	--background-primary: var(--sf-editor-bg);
+	background: transparent !important;
+	cursor: text;
+}
+
+.sf-context-editor .workspace-leaf {
+	contain: none;
+}
+
+.sf-notebook-page .view-content,
+.sf-notebook-page .markdown-source-view,
+.sf-notebook-page .cm-editor,
+.sf-notebook-page .cm-scroller,
+.sf-notebook-page .cm-contentContainer,
+.sf-codex-page .view-content,
+.sf-codex-page .markdown-source-view,
+.sf-codex-page .cm-editor,
+.sf-codex-page .cm-scroller,
+.sf-codex-page .cm-contentContainer,
+.sf-context-editor .view-content,
+.sf-context-editor .markdown-source-view,
+.sf-context-editor .cm-scroller,
+.sf-context-editor .cm-contentContainer {
+	padding: 0 !important;
+	margin: 0 !important;
+}
+
+.sf-context-editor .cm-scroller {
+	height: 100%;
+	overflow-x: hidden;
+	overflow-y: auto;
+}
+
+.sf-codex-page .sf-context-editor .cm-scroller {
+	overflow-x: hidden;
+	overflow-y: auto;
+}
+
+.sf-notebook-page .cm-content,
+.sf-codex-page .cm-content,
+.sf-context-editor .cm-content {
+	padding-top: 0 !important;
+	padding-left: 0 !important;
+	padding-right: 0 !important;
+	padding-inline: 0 !important;
+	max-width: 100%;
+	margin: 0 !important;
+	box-sizing: border-box;
+}
+
+.sf-notebook-page .cm-sizer,
+.sf-codex-page .cm-sizer,
+.sf-context-editor .cm-sizer {
+	padding-left: 0 !important;
+	padding-right: 0 !important;
+	padding-top: 0 !important;
+	margin: 0 !important;
+}
+
+.sf-codex-page .cm-sizer,
+.sf-codex-page .cm-contentContainer {
+	max-width: 100%;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+/* No !important — nested list lines set padding-left inline and must keep it. */
+.sf-notebook-page .cm-line,
+.sf-codex-page .cm-line,
+.sf-context-editor .cm-line {
+	max-width: 100%;
+	margin-inline: 0;
+	padding-left: 0;
+	padding-right: 0;
+	box-sizing: border-box;
+	overflow-wrap: break-word;
+}
+
+.sf-notebook-page .cm-gutters,
+.sf-codex-page .cm-gutters,
+.sf-context-editor .cm-gutters {
+	display: none !important;
+}
+
+.sf-context-editor .cm-content,
+.sf-context-editor .cm-sizer {
+	min-height: 100%;
+}
+
+/* Continuous mode zeroes this so empty chapters don't leave a gap in the scroll; the Story
+ * Context editor needs it so an empty note still has a clickable typing surface. */
+.sf-context-editor .cm-sizer {
+	padding-bottom: 40%;
 }
 
 /* A family member's own icon (in either row's .sf-recommend-view__forge-icon) and Focus Mode's
@@ -3985,7 +4239,24 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	height: 1em;
 }
 
-/* RecommendationView.ts's renderNovel() host — see its own doc comment: exists only so
+/* Focus Mode bottom row: every icon is 20px. Padding is 0 so the 4px
+ * parent↔sibling and 14px parent↔parent gaps are the visible spacing. */
+.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-family,
+.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-icon {
+	padding: 0;
+	font-size: 20px;
+	--icon-size: 20px;
+}
+
+.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-family svg,
+.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-family svg.svg-icon,
+.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-icon svg,
+.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-icon svg.svg-icon {
+	width: 20px;
+	height: 20px;
+}
+
+/* StoryContextView.ts's renderNovel() host — see its own doc comment: exists only so
  * renderNovelPanel()'s unconditional container.empty() can't wipe out the tabs row built into its
  * parent right before it. Nested flex (not `display: contents`) so this host takes the remaining
  * column height and `.sf-recommend-body` inside it still gets the fixed/scroll split's sizing. */
@@ -4208,6 +4479,12 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	align-items: center;
 	justify-content: space-between;
 	margin-bottom: 10px;
+}
+
+/* Notebook page sits 8px below the tab row; tabs keep 5px padding, so page-to-icon is ~13px
+ * — same as the page's right edge to the pane (10px view padding + 4px page margin). */
+.sf-recommend-view:has(.sf-notebook-page) .sf-recommend-tabs {
+	margin-bottom: 0;
 }
 
 /* Icon-only, sized and treated the same as the left sidebar's storyLibrary panel's own
@@ -4852,6 +5129,10 @@ input.sf-recommend-chapter-title[type="text"]:focus {
  * macOS frameless: .sidebar-toggle-button.mod-right is position:fixed and paints
  * with --tab-container-background ← --titlebar-background ← --background-primary.
  * Pin toggles + all .mod-top tab strips to the same shell colour.
+ *
+ * `--sf-editor-bg` is a concrete rgb() snapshot of the manuscript pane, set on body by
+ * StyleController.applyRightRailChrome — not `var(--background-primary)`, which `.mod-right-split`
+ * remaps to the sidebar and would re-resolve inside Notebook.
  */
 .mod-right-split:not(#storyforge-specificity-boost) {
 	--background-primary: var(--background-secondary);
@@ -4895,7 +5176,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 
 /* ---------------------------------------------------------------------------
  * Editable Codex types / chapter tags / novel tags, and the icon catalog
- * they draw from (TopPanel badges, RecommendationView chips, TagRegistryModal,
+ * they draw from (TopPanel badges, Story Context chips, TagRegistryModal,
  * IconPickerModal, TagPickerModal).
  * ------------------------------------------------------------------------- */
 
@@ -5356,7 +5637,8 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 
 .sf-codex-side-actions .sf-codex-filter-btn,
 .sf-codex-side-actions .sf-codex-new-file-btn,
-.sf-codex-side-actions .sf-codex-new-folder-btn {
+.sf-codex-side-actions .sf-codex-new-folder-btn,
+.sf-codex-side-actions .sf-notebook-source-btn {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -5368,7 +5650,8 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 .sf-codex-side-actions .sf-codex-filter-btn svg,
 .sf-codex-side-actions .sf-codex-new-file-btn svg,
 .sf-codex-side-actions .sf-codex-new-folder-btn svg,
-.sf-codex-side-actions .sf-codex-vault-tag-btn svg {
+.sf-codex-side-actions .sf-codex-vault-tag-btn svg,
+.sf-codex-side-actions .sf-notebook-source-btn svg {
 	width: 22.5px;
 	height: 22.5px;
 }
@@ -5549,7 +5832,8 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 
 /* Click-to-edit's grafted inline editor (graftedEditor.ts) — a real WorkspaceLeaf/MarkdownView
  * spliced into an ordinary content-flow <div>, not Obsidian's own absolutely-positioned workspace
- * chrome.
+ * chrome. `.sf-grafted-editor` is continuous-mode only. Story Context notebook/codex pages mount
+ * under `.sf-context-editor` (contextEditor.ts) and do not use these rules.
  *
  * Content-sized, not a bounded box with its own scrollbar (tried first, reverted for feeling like
  * a foreign nested pane — position jump on entry, mismatched typography, and the outer continuous
@@ -5564,7 +5848,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
  * Every rule below removes one such clipper so the graft renders content-sized and lets the outer
  * scroll do the work, the same way Obsidian's own single-file editor uses the window as its
  * viewport. */
-.sf-grafted-editor .workspace-leaf {
+.sf-continuous-scroll .sf-grafted-editor .workspace-leaf {
 	/* `all: unset` here (tried, reverted) also wiped Obsidian's own `flex: 1 0 0px` — the rule that
 	 * gives every leaf its *width*, by ignoring its own content size (`flex-basis: 0px`) and filling
 	 * whatever `flex-grow: 1` hands it from the row-direction split. With that gone, nothing below
@@ -5586,16 +5870,16 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	contain: layout style paint;
 	min-height: min-content;
 }
-.sf-grafted-editor .workspace-leaf-content,
-.sf-grafted-editor .view-content,
-.sf-grafted-editor .markdown-source-view,
-.sf-grafted-editor .cm-editor,
-.sf-grafted-editor .cm-scroller {
+.sf-continuous-scroll .sf-grafted-editor .workspace-leaf-content,
+.sf-continuous-scroll .sf-grafted-editor .view-content,
+.sf-continuous-scroll .sf-grafted-editor .markdown-source-view,
+.sf-continuous-scroll .sf-grafted-editor .cm-editor,
+.sf-continuous-scroll .sf-grafted-editor .cm-scroller {
 	height: auto;
 }
-.sf-grafted-editor .workspace-leaf-content,
-.sf-grafted-editor .view-content,
-.sf-grafted-editor .markdown-source-view {
+.sf-continuous-scroll .sf-grafted-editor .workspace-leaf-content,
+.sf-continuous-scroll .sf-grafted-editor .view-content,
+.sf-continuous-scroll .sf-grafted-editor .markdown-source-view {
 	/* Obsidian's stock CSS clips these (delegating scrolling entirely to `.cm-scroller`) for the
 	 * normal window-filling case. Grafted with no definite height above, that non-`visible` overflow
 	 * trips a second, unrelated collapse: a flex item's *automatic* minimum size — the floor it gets
@@ -5607,11 +5891,11 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	overflow: visible;
 	min-height: min-content;
 }
-.sf-grafted-editor .cm-editor {
+.sf-continuous-scroll .sf-grafted-editor .cm-editor {
 	/* Obsidian's stock CSS sets `min-height: 100%` here for the normal, window-filling case. */
 	min-height: auto;
 }
-.sf-grafted-editor .cm-scroller {
+.sf-continuous-scroll .sf-grafted-editor .cm-scroller {
 	/* The shorthand, not `overflow-y: clip` alone — see the block comment above: a lone `clip` axis
 	 * paired with a still-scrolling one gets blockified right back into a scroll container. */
 	overflow: clip;
@@ -5620,19 +5904,22 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	 * clipping* — this is the fix for the chapter going blank again once `overflow: clip` landed. */
 	min-height: min-content;
 }
-.sf-grafted-editor .view-content {
+.sf-continuous-scroll .sf-grafted-editor .view-content {
 	/* Otherwise reads as a distinct panel now that the box no longer has its own bounded height to
 	 * visually justify one (research brief §8). */
 	background: none;
 }
 
-/* Redundant chrome inside the continuous scroll: the chapter's own header (ContinuousReadThrough.ts)
- * already shows its title, and a single-tab grafted leaf has nothing worth a tab strip, inline
- * title, or metadata block for. */
+/* Redundant chrome on grafted / context editors: a single-tab leaf has nothing worth a tab
+ * strip, inline title, or metadata block. */
 .sf-grafted-editor .view-header,
 .sf-grafted-editor .workspace-tab-header-container,
 .sf-grafted-editor .inline-title,
-.sf-grafted-editor .metadata-container {
+.sf-grafted-editor .metadata-container,
+.sf-context-editor .view-header,
+.sf-context-editor .workspace-tab-header-container,
+.sf-context-editor .inline-title,
+.sf-context-editor .metadata-container {
 	display: none;
 }
 /* Obsidian's own click-to-append affordance below the last line — no purpose mid-scroll, and
@@ -5640,7 +5927,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
  * own padding-bottom: CM6 writes that one as an inline style to reserve space for virtualised lines
  * still below the viewport, and any author rule fighting it there (worse, an `!important` one)
  * breaks the scroll math the moment a chapter is too long to render in full. */
-.sf-grafted-editor .cm-sizer {
+.sf-continuous-scroll .sf-grafted-editor .cm-sizer {
 	padding-bottom: 0;
 }
 

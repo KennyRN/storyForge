@@ -1,6 +1,10 @@
 export const LIBRARY_ROOT = "_story-library";
 /** Intentionally un-prefixed (unlike the `_sf-`/`_story-`/`_backstage` roots) — the user-facing folder of wikilink-target notes the writer reads and edits directly, so it presents as an ordinary vault folder rather than plugin plumbing. */
 export const CODEX_ROOT = "Codex";
+/** Intentionally un-prefixed, same reason as `Codex/` — a user-facing folder of ordinary markdown notes (the Notebook), not plugin plumbing. */
+export const NOTES_ROOT = "notes";
+/** Filesystem archive for Notebook notes. Not a virtual-folder hide: archived notes are moved here and omitted from the notebook tree. */
+export const NOTES_ARCHIVE_ROOT = `${NOTES_ROOT}/archive`;
 /** Nested under a shared `_backstage/` parent — room for sibling xForge plugins to keep their own non-content state alongside storyForge's, each in its own subfolder, rather than each plugin claiming a vault-root name for itself. */
 export const BACKSTAGE_ROOT = "_backstage/storyforge";
 /** titleForge's own sibling region under the shared `_backstage/` parent — deliberately not nested under `BACKSTAGE_ROOT`, since titleForge is an extraction-ready subplugin (see `src/titleforge/README.md`), not storyForge bookkeeping. */
@@ -29,6 +33,11 @@ export function codexFilePath(): string {
 	return `${BACKSTAGE_ROOT}/codex.md`;
 }
 
+/** Virtual folder tree, order, and idea-type assignments for the Notebook. */
+export function notesFilePath(): string {
+	return `${BACKSTAGE_ROOT}/notes.md`;
+}
+
 /** Vault-wide registry of user-editable Codex types, chapter tags, novel tags, and the icon catalog they draw from. */
 export function tagRegistryFilePath(): string {
 	return `${BACKSTAGE_ROOT}/tag-registry.md`;
@@ -47,6 +56,22 @@ export function plotThreadsFilePath(): string {
 /** True if `path` is a flat `.md` note directly inside `Codex/` (no nested segments — Codex folders are virtual, not real). */
 export function isCodexNotePath(path: string): boolean {
 	const prefix = `${CODEX_ROOT}/`;
+	if (!path.startsWith(prefix)) return false;
+	const rest = path.slice(prefix.length);
+	return rest.length > 0 && !rest.includes("/") && rest.toLowerCase().endsWith(".md");
+}
+
+/** True if `path` is a flat `.md` note directly inside `notes/` (no nested segments — Notebook folders are virtual; `notes/archive/` is excluded). */
+export function isNotesNotePath(path: string): boolean {
+	const prefix = `${NOTES_ROOT}/`;
+	if (!path.startsWith(prefix)) return false;
+	const rest = path.slice(prefix.length);
+	return rest.length > 0 && !rest.includes("/") && rest.toLowerCase().endsWith(".md");
+}
+
+/** True if `path` is a flat `.md` note directly inside `notes/archive/`. */
+export function isNotesArchiveNotePath(path: string): boolean {
+	const prefix = `${NOTES_ARCHIVE_ROOT}/`;
 	if (!path.startsWith(prefix)) return false;
 	const rest = path.slice(prefix.length);
 	return rest.length > 0 && !rest.includes("/") && rest.toLowerCase().endsWith(".md");

@@ -31,6 +31,7 @@ const registry: TagRegistryShape = {
 	codexTypes: [{ id: "person", label: "Person", iconAlias: "person-fill" }],
 	chapterTags: [{ id: "draft", label: "Draft", iconAlias: "pencil" }],
 	novelTags: [{ id: "editing", label: "Editing", iconAlias: "warning-square" }],
+	ideaTypes: [],
 };
 
 const threads: PlotThread[] = [
@@ -72,7 +73,7 @@ describe("complete export", () => {
 	it("round-trips vault #tag config as codex tags", () => {
 		const vaultTags = {
 			order: ["hero"],
-			tags: [{ id: "hero", iconAlias: "person-fill", display: true, pageOrder: ["Codex/Jane.md"] }],
+			tags: [{ id: "hero", iconAlias: "person-fill", display: true, notesDisplay: false, pageOrder: ["Codex/Jane.md"] }],
 		};
 		const document = buildCompleteExport(
 			{

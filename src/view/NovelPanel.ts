@@ -34,7 +34,7 @@ import { collectPlotLines, chapterPlotLineKey, resolveChapterRowColor, type Plot
 
 /**
  * A novel's cover/synopsis/chapter-by-chapter plot — the content Story Context's own Novel tab
- * (RecommendationView.ts) shows in the right sidebar, and the storyLibrary panel's Novel-layout
+ * (StoryContextView.ts) shows in the right sidebar, and the storyLibrary panel's Novel-layout
  * main-pane page (NovelOverviewView.ts) mirrors in the main editor area. One render function
  * shared by both hosts rather than two copies drifting apart (see SeriesOverviewView.ts's doc
  * comment for the duplication this project already learned not to repeat). Story Context's
@@ -48,7 +48,7 @@ export interface NovelPanelOptions {
 	plugin: StoryForgePlugin;
 	/** Shown in place of the panel when no novel is selected — hosts word this slightly differently. */
 	emptyText: string;
-	/** RecommendationView's own hydrated cast list, used to validate a PoV path still resolves to a
+	/** Story Context's own hydrated cast list, used to validate a PoV path still resolves to a
 	 * live Codex person entry (see resolveChapterNarrator's doc comment). Omitted by simpler hosts —
 	 * resolveChapterNarrator falls back to the stored PoV name directly without it. */
 	castCache?: CastMember[];
@@ -575,7 +575,7 @@ function persistPlotCardCollapsed(plugin: StoryForgePlugin, key: string, collaps
 }
 
 /** Icon (+ optional value) as a single interactive control — shared by this panel's Default PoV /
- * per-chapter PoV+location rows and Story Context's own Chapter tab (RecommendationView.ts). */
+ * per-chapter PoV+location rows and Story Context's own Chapter tab (StoryContextView.ts). */
 export function renderMetaControl(
 	row: HTMLElement,
 	opts: { iconId: string; value: string | null; tooltip: string; onOpen: () => void },
@@ -627,7 +627,7 @@ export function renderMetaRefList(
 	makeAccessibleActivatable(values, onOpen);
 }
 
-/** Small icon-only action button — Story Context list-row actions (RecommendationView.ts). */
+/** Small icon-only action button — Story Context list-row actions (StoryContextView.ts). */
 export function iconAction(parent: HTMLElement, iconId: string, label: string, onActivate: () => void): HTMLElement {
 	const btn = parent.createSpan({
 		cls: "sf-recommend-icon-btn",

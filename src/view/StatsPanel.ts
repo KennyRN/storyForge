@@ -1,4 +1,4 @@
-import { setIcon } from "obsidian";
+import { setIcon, setTooltip } from "obsidian";
 import { ICON_DASHBOARD_CHART } from "../icons";
 import { formatWordCount } from "../wordCount";
 import { makeAccessibleActivatable } from "./a11y";
@@ -24,6 +24,18 @@ export interface StatsPanelOptions {
 	onOpenHistory?: () => void;
 }
 
+/** Hover copy for the storytelling stats chart — lowercase, with a blank line before chapter/novel. */
+export function formatStatsHoverTooltip(counts: Record<StatsMode, number>): string {
+	return [
+		"wordcount",
+		`daily: ${formatWordCount(counts.daily)}`,
+		`weekly: ${formatWordCount(counts.weekly)}`,
+		"",
+		`chapter: ${formatWordCount(counts.chapter)}`,
+		`novel: ${formatWordCount(counts.story)}`,
+	].join("\n");
+}
+
 export function renderStatsPanel(container: HTMLElement, options: StatsPanelOptions): void {
 	container.empty();
 
@@ -33,6 +45,7 @@ export function renderStatsPanel(container: HTMLElement, options: StatsPanelOpti
 		attr: { "aria-label": options.onOpenHistory ? "wordcount history" : "stats" },
 	});
 	setIcon(chart, ICON_DASHBOARD_CHART);
+	setTooltip(chart, formatStatsHoverTooltip(options.counts), { classes: ["sf-stats-wordcount-tooltip"] });
 	if (options.onOpenHistory) {
 		chart.addEventListener("click", () => options.onOpenHistory?.());
 		makeAccessibleActivatable(chart, () => options.onOpenHistory?.());

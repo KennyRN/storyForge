@@ -63,12 +63,11 @@ export const DEFAULT_TITLEFORGE_SETTINGS: TitleForgeSettings = {
 	seriesStrategy: "echo",
 	seriesVolumes: 3,
 	lastTabByScope: {
-		// Not "series" for any of these defaults — that tab is currently an empty placeholder (see
-		// TAB_TRADITIONS), which would be a dead end to land a first-time user on. "webFiction" is
-		// reachable from both the "all" and "series" scopes and has traditions to show, so it's the
-		// more useful default landing tab for both; "novels" scope defaults to its own "novels" tab.
+		// The "all" scope lands on "novels" (its widest, most familiar tab) rather than the
+		// narrower "series" umbrella view; the "series" and "novels" scopes each land on their
+		// own namesake tab, the one that matches the context titleForge was opened from.
 		all: "novels",
-		series: "webFiction",
+		series: "series",
 		novels: "novels",
 	},
 	lastQuantity: 5,

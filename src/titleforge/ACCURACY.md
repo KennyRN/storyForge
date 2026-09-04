@@ -80,3 +80,29 @@ None of the above affects correctness of the *engine* or of *generated output*
 — every generator only ever outputs English (see `README.md` §"English only").
 This entirely concerns the original-script citation shown under "Why this
 shape", which is metadata, never output.
+
+## `title-composer` — the `series` umbrella family (verified)
+
+The nine `series-*` patterns (family `series`, added in Stage 5) are grounded in
+the frozen anglophone series-name corpus, **series corpus v1.0.0** (2026-09-02,
+n=303; SHA-256 `4025e68d…62c1`). Their weights, genre-eligibility, and exemplars
+were computed from that corpus by `corpus/derive.mjs`, not asserted — see
+`corpus/` for the full provenance trail.
+
+Every exemplar on these nine shapes is a **real, published series taken directly
+from the frozen corpus** — they enter as *verified*, not *illustrative*:
+
+| shape | exemplars (all real series) |
+|---|---|
+| `series-simple` | The Belgariad; The Expanse; The Strain |
+| `series-compound` | The Stormlight Archive; Revelation Space; Cthulhu Mythos |
+| `series-of` | A Song of Ice and Fire; The Book of the New Sun; The Books of Blood |
+| `series-pair` | Memory, Sorrow, and Thorn; The Fast and the Furious; Jeeves and Wooster |
+| `series-name` | James Bond; Harry Bosch; Hannibal Lecter |
+| `series-marker` | The Stormlight Archive; The Murderbot Diaries; The Best American Short Stories |
+| `series-colon` | Mission: Impossible |
+| `series-verb` | Shatter Me |
+| `series-clause` | How to Train Your Dragon |
+
+Do not "improve" or paraphrase these — if a shape's exemplar ever needs
+regenerating, re-run `corpus/derive.mjs` and copy its output (invariant 8).

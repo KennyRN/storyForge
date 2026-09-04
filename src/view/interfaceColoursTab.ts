@@ -290,39 +290,6 @@ function catalog(): ColourSection[] {
 					effectiveText: (s) => mutedOr(s.recommendUnknownHeaderColor, s.recommendUnknownHeaderMuted),
 					sectionChrome: true,
 				},
-				{
-					label: "Details to capture",
-					mainKey: "recommendCaptureColor",
-					mainMutedKey: "recommendCaptureMuted",
-					textKey: "recommendCaptureHeaderColor",
-					textMutedKey: "recommendCaptureHeaderMuted",
-					restyle: railRestyle,
-					effectiveMain: (s) => mutedOr(s.recommendCaptureColor, s.recommendCaptureMuted),
-					effectiveText: (s) => mutedOr(s.recommendCaptureHeaderColor, s.recommendCaptureHeaderMuted),
-					sectionChrome: true,
-				},
-				{
-					label: "Holding area",
-					mainKey: "recommendHoldingColor",
-					mainMutedKey: "recommendHoldingMuted",
-					textKey: "recommendHoldingHeaderColor",
-					textMutedKey: "recommendHoldingHeaderMuted",
-					restyle: railRestyle,
-					effectiveMain: (s) => mutedOr(s.recommendHoldingColor, s.recommendHoldingMuted),
-					effectiveText: (s) => mutedOr(s.recommendHoldingHeaderColor, s.recommendHoldingHeaderMuted),
-					sectionChrome: true,
-				},
-				{
-					label: "Resolved",
-					mainKey: "recommendResolvedColor",
-					mainMutedKey: "recommendResolvedMuted",
-					textKey: "recommendResolvedHeaderColor",
-					textMutedKey: "recommendResolvedHeaderMuted",
-					restyle: railRestyle,
-					effectiveMain: (s) => mutedOr(s.recommendResolvedColor, s.recommendResolvedMuted),
-					effectiveText: (s) => mutedOr(s.recommendResolvedHeaderColor, s.recommendResolvedHeaderMuted),
-					sectionChrome: true,
-				},
 			],
 		},
 		{
@@ -437,9 +404,6 @@ function cssPrefixForColour(row: ColourRow): string | undefined {
 			return "--sf-recommend-synopsis";
 		case "recommendSectionTitleColor":
 		case "recommendUnknownColor":
-		case "recommendCaptureColor":
-		case "recommendHoldingColor":
-		case "recommendResolvedColor":
 			return "--sf-recommend-section";
 		case "recommendItemsColor":
 			return "--sf-recommend-items";

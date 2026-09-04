@@ -7,7 +7,7 @@ export type IconPickerSource = TagListKind | readonly IconCatalogEntry[];
 
 function catalogFor(source: IconPickerSource): readonly IconCatalogEntry[] {
 	if (typeof source !== "string") return source;
-	return source === "codexTypes" ? CODEX_ICON_CATALOG : TAG_ICON_CATALOG;
+	return source === "codexTypes" || source === "ideaTypes" ? CODEX_ICON_CATALOG : TAG_ICON_CATALOG;
 }
 
 /**

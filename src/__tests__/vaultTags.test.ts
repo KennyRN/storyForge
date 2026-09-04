@@ -6,6 +6,7 @@ import { CODEX_ICON_CATALOG, TAG_ICON_CATALOG, VAULT_TAG_ICON_CATALOG } from "..
 import {
 	applySiblingReorder,
 	collectVaultTagIds,
+	collectNotesTagIds,
 	ensureVaultTagsFile,
 	filterVisiblePathsByTag,
 	isVaultTagScanExcluded,
@@ -15,6 +16,7 @@ import {
 	readVaultTags,
 	reorderVaultTags,
 	setVaultTagDisplay,
+	setVaultTagNotesDisplay,
 	setVaultTagIcon,
 	setVaultTagPageOrder,
 	siblingOrderAfterMove,
@@ -122,8 +124,8 @@ describe("ensureVaultTagsFile / readVaultTags", () => {
 		});
 		const result = readVaultTags(app);
 		expect(result.tags).toEqual([
-			{ id: "hero", iconAlias: "person-fill", display: true, pageOrder: ["Codex/Jane.md"] },
-			{ id: "place", iconAlias: "", display: false, pageOrder: [] },
+			{ id: "hero", iconAlias: "person-fill", display: true, notesDisplay: false, pageOrder: ["Codex/Jane.md"] },
+			{ id: "place", iconAlias: "", display: false, notesDisplay: false, pageOrder: [] },
 		]);
 	});
 });
@@ -146,13 +148,24 @@ describe("vault tag mutators", () => {
 		});
 	});
 
-	it("clears display when the icon is cleared", async () => {
+	it("clears notesDisplay when the icon is cleared", async () => {
 		const { app } = makeFakeApp(true, {
 			order: ["hero"],
-			tags: [{ id: "hero", "icon-alias": "person-fill", display: true }],
+			tags: [{ id: "hero", "icon-alias": "person-fill", display: true, "notes-display": true }],
 		});
 		await setVaultTagIcon(app, "hero", "");
-		expect(readVaultTags(app).tags[0]).toMatchObject({ iconAlias: "", display: false });
+		expect(readVaultTags(app).tags[0]).toMatchObject({ iconAlias: "", display: false, notesDisplay: false });
+	});
+
+	it("allows notesDisplay after an icon is picked, independently of Codex display", async () => {
+		const { app } = makeFakeApp(true, { order: [], tags: [] });
+		await setVaultTagIcon(app, "hero", "person-fill");
+		await setVaultTagNotesDisplay(app, "hero", true);
+		expect(readVaultTags(app).tags[0]).toMatchObject({
+			iconAlias: "person-fill",
+			display: false,
+			notesDisplay: true,
+		});
 	});
 
 	it("reorders listed ids and appends anything missing from the new order", async () => {
@@ -176,6 +189,15 @@ describe("collectVaultTagIds / filterVisiblePathsByTag", () => {
 			{ path: "_story-library/aaa/chapter.md", cache: { frontmatter: { tags: ["hero", "draft"] } } },
 		]);
 		expect(collectVaultTagIds(app).sort()).toEqual(["draft", "hero"]);
+	});
+
+	it("collects notebook tags only from notes/*.md", () => {
+		const { app } = makeFakeApp(false, {}, [
+			{ path: "notes/spark.md", cache: { tags: [{ tag: "#plot" }] } },
+			{ path: "Codex/Jane.md", cache: { tags: [{ tag: "#hero" }] } },
+			{ path: "notes/archive/old.md", cache: { tags: [{ tag: "#archived" }] } },
+		]);
+		expect([...collectNotesTagIds(app)]).toEqual(["plot"]);
 	});
 
 	it("filters Codex paths to those carrying the tag", () => {
@@ -216,6 +238,7 @@ describe("page-order helpers", () => {
 	it("moves a key among siblings", () => {
 		expect(siblingOrderAfterMove(["a", "b", "c"], "c", "a")).toEqual(["c", "a", "b"]);
 		expect(siblingOrderAfterMove(["a", "b", "c"], "a", null)).toEqual(["b", "c", "a"]);
+		expect(siblingOrderAfterMove(["a", "b", "c"], "b", "b")).toEqual(["a", "b", "c"]);
 	});
 
 	it("merges a sibling reorder into the flat ranking without dropping unseen keys", () => {
@@ -266,7 +289,7 @@ describe("parseVaultTagsShape", () => {
 			}),
 		).toEqual({
 			order: ["hero"],
-			tags: [{ id: "hero", iconAlias: "person-fill", display: true, pageOrder: ["Codex/Jane.md"] }],
+			tags: [{ id: "hero", iconAlias: "person-fill", display: true, notesDisplay: false, pageOrder: ["Codex/Jane.md"] }],
 		});
 		expect(
 			parseVaultTagsShape({
@@ -275,7 +298,7 @@ describe("parseVaultTagsShape", () => {
 			}),
 		).toEqual({
 			order: ["hero"],
-			tags: [{ id: "hero", iconAlias: "person-fill", display: true, pageOrder: ["Codex/Jane.md"] }],
+			tags: [{ id: "hero", iconAlias: "person-fill", display: true, notesDisplay: false, pageOrder: ["Codex/Jane.md"] }],
 		});
 	});
 });

@@ -284,9 +284,47 @@ describe("parseCodexRefs", () => {
 	it("returns an empty array when nothing is set", () => {
 		expect(parseCodexRefs(undefined, undefined, undefined)).toEqual([]);
 	});
+
+	it("reads the encoded v1 scalar used on disk", () => {
+		expect(parseCodexRefs("v1;Codex%2FAlice.md=Alice&Codex%2FBob.md=Bob", undefined, undefined)).toEqual([
+			{ path: "Codex/Alice.md", name: "Alice" },
+			{ path: "Codex/Bob.md", name: "Bob" },
+		]);
+	});
+
+	it("reads a leftover JSON-stringified list", () => {
+		expect(
+			parseCodexRefs(
+				JSON.stringify([
+					{ path: "Codex/Alice.md", name: "Alice" },
+					{ path: "Codex/Bob.md", name: "Bob" },
+				]),
+				undefined,
+				undefined,
+			),
+		).toEqual([
+			{ path: "Codex/Alice.md", name: "Alice" },
+			{ path: "Codex/Bob.md", name: "Bob" },
+		]);
+	});
 });
 
 describe("chapter PoV and location lists", () => {
+	it("parses encoded pov/location scalars", () => {
+		const { app } = makeFakeApp({
+			chapters: {
+				"ch1.md": {
+					"chapter-id": "c1",
+					"chapter-title": "Chapter One",
+					pov: "v1;Codex%2FAlice.md=Alice&Codex%2FBob.md=Bob",
+					location: "v1;Codex%2FHarbour.md=Harbour",
+				},
+			},
+		});
+		expect(readBookFrontmatter(app, "BookA")?.chapters["ch1.md"].pov.map((r) => r.name)).toEqual(["Alice", "Bob"]);
+		expect(readBookFrontmatter(app, "BookA")?.chapters["ch1.md"].location.map((r) => r.name)).toEqual(["Harbour"]);
+	});
+
 	it("parses parallel pov-path/pov-name arrays", () => {
 		const { app } = makeFakeApp({
 			chapters: {
@@ -338,7 +376,7 @@ describe("chapter PoV and location lists", () => {
 		expect(chapter?.location.map((r) => r.name)).toEqual(["Harbour"]);
 	});
 
-	it("writes parallel pov-path/pov-name arrays and keeps chapter identity", async () => {
+	it("writes an encoded scalar and keeps chapter identity on the same object", async () => {
 		const { app, frontmatter } = makeFakeApp({
 			chapters: {
 				"ch1.md": {
@@ -349,20 +387,22 @@ describe("chapter PoV and location lists", () => {
 				},
 			},
 		});
+		const before = (frontmatter.chapters as Record<string, Record<string, unknown>>)["ch1.md"];
 		await writeChapterPov(app, "BookA", "ch1.md", [
 			{ path: "Codex/Alice.md", name: "Alice" },
 			{ path: "Codex/Bob.md", name: "Bob" },
 		]);
 		const raw = (frontmatter.chapters as Record<string, Record<string, unknown>>)["ch1.md"];
+		expect(raw).toBe(before);
 		expect(raw["chapter-id"]).toBe("c1");
 		expect(raw["chapter-title"]).toBe("Chapter One");
-		expect(raw["pov-path"]).toEqual(["Codex/Alice.md", "Codex/Bob.md"]);
-		expect(raw["pov-name"]).toEqual(["Alice", "Bob"]);
-		expect(raw.pov).toBeUndefined();
+		expect(raw.pov).toBe("v1;Codex%2FAlice.md=Alice&Codex%2FBob.md=Bob");
+		expect(raw["pov-path"]).toBeUndefined();
+		expect(raw["pov-name"]).toBeUndefined();
 		expect(readBookFrontmatter(app, "BookA")?.chapters["ch1.md"].pov.map((r) => r.name)).toEqual(["Alice", "Bob"]);
 	});
 
-	it("clears pov by omitting the path/name keys", async () => {
+	it("clears pov by omitting the encoded key", async () => {
 		const { app, frontmatter } = makeFakeApp({
 			chapters: {
 				"ch1.md": {
@@ -375,6 +415,7 @@ describe("chapter PoV and location lists", () => {
 		});
 		await writeChapterPov(app, "BookA", "ch1.md", []);
 		const raw = (frontmatter.chapters as Record<string, Record<string, unknown>>)["ch1.md"];
+		expect(raw.pov).toBeUndefined();
 		expect(raw["pov-path"]).toBeUndefined();
 		expect(raw["pov-name"]).toBeUndefined();
 		expect(raw["chapter-title"]).toBe("Chapter One");
@@ -382,13 +423,15 @@ describe("chapter PoV and location lists", () => {
 	});
 
 	it("writes location lists the same way", async () => {
-		const { app } = makeFakeApp({
+		const { app, frontmatter } = makeFakeApp({
 			chapters: { "ch1.md": { "chapter-id": "c1", "chapter-title": "Chapter One" } },
 		});
 		await writeChapterLocation(app, "BookA", "ch1.md", [
 			{ path: "Codex/Harbour.md", name: "Harbour" },
 			{ path: "Codex/Keep.md", name: "Keep" },
 		]);
+		const raw = (frontmatter.chapters as Record<string, Record<string, unknown>>)["ch1.md"];
+		expect(raw.location).toBe("v1;Codex%2FHarbour.md=Harbour&Codex%2FKeep.md=Keep");
 		expect(readBookFrontmatter(app, "BookA")?.chapters["ch1.md"].location.map((r) => r.name)).toEqual([
 			"Harbour",
 			"Keep",

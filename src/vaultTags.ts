@@ -6,6 +6,7 @@ import {
 	TITLEFORGE_BACKSTAGE_ROOT,
 	isBackupFolderPath,
 	isExportFolderPath,
+	isNotesNotePath,
 	vaultTagsFilePath,
 } from "./paths";
 import { modifyBackstageFrontmatter } from "./writeGuard";
@@ -19,6 +20,8 @@ export interface VaultTagEntry {
 	iconAlias: string;
 	/** Rail icon is shown only when this is true *and* `iconAlias` is set. */
 	display: boolean;
+	/** Notebook rail icon — independent of Codex `display`. */
+	notesDisplay: boolean;
 	/** Flat ranking of Codex file paths and folder ids for this tag's filtered tree. */
 	pageOrder: string[];
 }
@@ -34,6 +37,8 @@ interface RawVaultTagEntry {
 	"icon-alias"?: unknown;
 	iconAlias?: unknown;
 	display?: unknown;
+	"notes-display"?: unknown;
+	notesDisplay?: unknown;
 	"page-order"?: unknown;
 	pageOrder?: unknown;
 }
@@ -115,10 +120,13 @@ function parseVaultTagEntry(raw: unknown): VaultTagEntry | null {
 				? entry.iconAlias
 				: "";
 	const display = entry.display === true && iconAlias.length > 0;
+	const notesDisplay =
+		(entry["notes-display"] === true || entry.notesDisplay === true) && iconAlias.length > 0;
 	return {
 		id,
 		iconAlias,
 		display,
+		notesDisplay,
 		pageOrder: parseStringArray(entry["page-order"] ?? entry.pageOrder),
 	};
 }
@@ -150,6 +158,7 @@ function toRawVaultTag(entry: VaultTagEntry): RawVaultTagEntry {
 		id: entry.id,
 		"icon-alias": entry.iconAlias,
 		display: entry.display,
+		"notes-display": entry.notesDisplay,
 		"page-order": entry.pageOrder,
 	};
 }
@@ -157,7 +166,11 @@ function toRawVaultTag(entry: VaultTagEntry): RawVaultTagEntry {
 export function cloneVaultTags(shape: VaultTagsShape): VaultTagsShape {
 	return {
 		order: [...shape.order],
-		tags: shape.tags.map((entry) => ({ ...entry, pageOrder: [...entry.pageOrder] })),
+		tags: shape.tags.map((entry) => ({
+			...entry,
+			notesDisplay: entry.notesDisplay === true,
+			pageOrder: [...entry.pageOrder],
+		})),
 	};
 }
 
@@ -225,9 +238,11 @@ function upsertTag(current: VaultTagsShape, id: string, patch: Partial<Omit<Vaul
 		id,
 		iconAlias: patch.iconAlias ?? existing?.iconAlias ?? "",
 		display: false,
+		notesDisplay: false,
 		pageOrder: patch.pageOrder ? [...patch.pageOrder] : existing?.pageOrder ? [...existing.pageOrder] : [],
 	};
 	merged.display = merged.iconAlias.length > 0 && (patch.display ?? existing?.display ?? false);
+	merged.notesDisplay = merged.iconAlias.length > 0 && (patch.notesDisplay ?? existing?.notesDisplay ?? false);
 	const tags = existing
 		? current.tags.map((entry) => (entry.id === id ? merged : entry))
 		: [...current.tags, merged];
@@ -264,6 +279,7 @@ export async function setVaultTagIcon(app: App, tagId: string, iconAlias: string
 		upsertTag(current, id, {
 			iconAlias: nextAlias,
 			display: nextAlias.length > 0 ? current.tags.find((entry) => entry.id === id)?.display ?? false : false,
+			notesDisplay: nextAlias.length > 0 ? current.tags.find((entry) => entry.id === id)?.notesDisplay ?? false : false,
 		}),
 	);
 }
@@ -278,6 +294,19 @@ export async function setVaultTagDisplay(app: App, tagId: string, display: boole
 			return existing ? current : upsertTag(current, id, { display: false });
 		}
 		return upsertTag(current, id, { display });
+	});
+}
+
+/** Notebook rail `notesDisplay` — same icon-required rule as Codex `display`. */
+export async function setVaultTagNotesDisplay(app: App, tagId: string, notesDisplay: boolean): Promise<VaultTagsShape> {
+	const id = normalizeVaultTagId(tagId);
+	if (!id) return readVaultTags(app);
+	return mutateVaultTags(app, (current) => {
+		const existing = current.tags.find((entry) => entry.id === id);
+		if (!existing?.iconAlias) {
+			return existing ? current : upsertTag(current, id, { notesDisplay: false });
+		}
+		return upsertTag(current, id, { notesDisplay });
 	});
 }
 
@@ -298,6 +327,18 @@ export function collectVaultTagIds(app: App): string[] {
 	return [...ids];
 }
 
+/** `#tags` that appear on at least one flat `notes/*.md` file (the Notebook shelf). */
+export function collectNotesTagIds(app: App): Set<string> {
+	const files: TFile[] =
+		typeof app.vault.getMarkdownFiles === "function" ? app.vault.getMarkdownFiles() : [];
+	const ids = new Set<string>();
+	for (const file of files) {
+		if (!isNotesNotePath(file.path)) continue;
+		for (const id of tagsFromFileCache(app.metadataCache.getCache(file.path))) ids.add(id);
+	}
+	return ids;
+}
+
 export function filterVisiblePathsByTag(
 	app: App,
 	visiblePaths: ReadonlySet<string>,
@@ -316,33 +357,34 @@ export interface VaultTagRow {
 	id: string;
 	iconAlias: string;
 	display: boolean;
+	notesDisplay: boolean;
 }
 
-/** Currently-in-the-vault tags, persisted order first, newcomers appended alphabetically. */
-export function listVaultTagRows(app: App, fresh?: VaultTagsShape): VaultTagRow[] {
+/** Currently-in-the-vault tags, persisted order first, newcomers appended alphabetically.
+ * Pass `presentIds` to restrict the list (Notebook modal: tags that appear on `notes/*.md`). */
+export function listVaultTagRows(app: App, fresh?: VaultTagsShape, presentIds?: ReadonlySet<string>): VaultTagRow[] {
 	const config = fresh ?? readVaultTags(app);
-	const seen = new Set(collectVaultTagIds(app));
+	const seen = presentIds ?? new Set(collectVaultTagIds(app));
 	const byId = new Map(config.tags.map((entry) => [entry.id, entry]));
 	const rows: VaultTagRow[] = [];
 	const used = new Set<string>();
+	const pushRow = (id: string): void => {
+		const entry = byId.get(id);
+		rows.push({
+			id,
+			iconAlias: entry?.iconAlias ?? "",
+			display: Boolean(entry?.display && entry.iconAlias),
+			notesDisplay: Boolean(entry?.notesDisplay && entry.iconAlias),
+		});
+	};
 	for (const id of config.order) {
 		if (!seen.has(id) || used.has(id)) continue;
 		used.add(id);
-		const entry = byId.get(id);
-		rows.push({
-			id,
-			iconAlias: entry?.iconAlias ?? "",
-			display: Boolean(entry?.display && entry.iconAlias),
-		});
+		pushRow(id);
 	}
 	const newcomers = [...seen].filter((id) => !used.has(id)).sort((a, b) => a.localeCompare(b));
 	for (const id of newcomers) {
-		const entry = byId.get(id);
-		rows.push({
-			id,
-			iconAlias: entry?.iconAlias ?? "",
-			display: Boolean(entry?.display && entry.iconAlias),
-		});
+		pushRow(id);
 	}
 	return rows;
 }
@@ -400,6 +442,7 @@ export function applySiblingReorder(pageOrder: readonly string[], newSiblingOrde
 }
 
 export function siblingOrderAfterMove(siblings: readonly string[], draggedKey: string, beforeKey: string | null): string[] {
+	if (beforeKey === draggedKey) return [...siblings];
 	const without = siblings.filter((key) => key !== draggedKey);
 	if (beforeKey === null) return [...without, draggedKey];
 	const index = without.indexOf(beforeKey);

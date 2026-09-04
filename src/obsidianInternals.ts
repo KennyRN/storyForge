@@ -42,7 +42,7 @@ export const OBSIDIAN_SELECTORS = {
 	ribbonAction: ".side-dock-ribbon-action",
 	tabHeaderContainer: ".mod-left-split .workspace-tab-header-container",
 	/**
-	 * The icon child within a `.workspace-tab-header`'s inner row. RecommendationView.ts's Focus
+	 * The icon child within a `.workspace-tab-header`'s inner row. StoryContextView.ts's Focus
 	 * toggle uses this to repaint its own tab's icon in place after getIcon() changes - no public
 	 * API refreshes an already-open leaf's tab icon without recreating the view.
 	 */
