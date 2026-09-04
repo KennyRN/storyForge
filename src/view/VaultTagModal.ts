@@ -2,11 +2,13 @@ import { App, Modal, Notice, setIcon } from "obsidian";
 import { VAULT_TAG_ICON_CATALOG } from "../iconRegistry";
 import { ICON_CHECK_SQUARE, ICON_TAG } from "../icons";
 import {
+	collectNotesTagIds,
 	listVaultTagRows,
 	reorderVaultTags,
 	resolveVaultTagIconAlias,
 	setVaultTagDisplay,
 	setVaultTagIcon,
+	setVaultTagNotesDisplay,
 	type VaultTagRow,
 	type VaultTagsShape,
 } from "../vaultTags";
@@ -14,15 +16,15 @@ import { makeReorderable, type DragZone } from "./dragReorder";
 import { makeAccessibleActivatable } from "./a11y";
 
 /**
- * Vault `#tag` manager — every tag currently in the vault, with a drag handle, icon picker,
- * read-only `#name`, and a display checkbox that only enables after an icon is picked.
- * Displayed tags become filter icons on the Codex rail. The top row is a muted sample
- * (handle / placeholder icon / `#example` / tick), not a column-header strip.
+ * Vault `#tag` manager — every tag currently in the vault (Codex) or on `notes/*.md` (Notebook),
+ * with a drag handle, icon picker, read-only `#name`, and a display checkbox that only enables
+ * after an icon is picked. Displayed tags become filter icons on the matching rail.
  */
 export class VaultTagModal extends Modal {
 	constructor(
 		app: App,
 		private onChange: () => void,
+		private tagScope: "codex" | "notes" = "codex",
 	) {
 		super(app);
 	}
@@ -32,7 +34,7 @@ export class VaultTagModal extends Modal {
 		try {
 			this.render();
 		} catch (err) {
-			new Notice(`storyForge: could not open vault tags — ${(err as Error).message}`);
+			new Notice(`storyForge: could not open ${this.tagScope === "notes" ? "notebook" : "vault"} tags — ${(err as Error).message}`);
 			this.close();
 		}
 	}
@@ -62,12 +64,19 @@ export class VaultTagModal extends Modal {
 		const headerTick = header.createSpan({ cls: "sf-vault-tag-display" });
 		setIcon(headerTick.createSpan({ cls: "sf-vault-tag-header-tick" }), ICON_CHECK_SQUARE);
 
-		const rows = listVaultTagRows(this.app, fresh);
+		const rows = listVaultTagRows(
+			this.app,
+			fresh,
+			this.tagScope === "notes" ? collectNotesTagIds(this.app) : undefined,
+		);
 		const rowsEl = body.createDiv({ cls: "sf-modal-book-list sf-tag-registry-list" });
 		if (rows.length === 0) {
 			rowsEl.createDiv({
 				cls: "sf-empty sf-empty-inline",
-				text: "No tags in this vault yet. Add a #tag to a note and it will show up here.",
+				text:
+					this.tagScope === "notes"
+						? "No tags on notebook notes yet. Add a #tag to a note and it will show up here."
+						: "No tags in this vault yet. Add a #tag to a note and it will show up here.",
 			});
 			return;
 		}
@@ -101,7 +110,14 @@ export class VaultTagModal extends Modal {
 		el.createSpan({ cls: "sf-vault-tag-name", text: `#${row.id}` });
 
 		const canDisplay = Boolean(row.iconAlias);
-		const tooltip = canDisplay ? "display filtering icon in codex" : "select a tag icon";
+		const tooltip =
+			this.tagScope === "notes"
+				? canDisplay
+					? "display filtering icon in notebook"
+					: "select a tag icon"
+				: canDisplay
+					? "display filtering icon in codex"
+					: "select a tag icon";
 		const displayWrap = el.createSpan({
 			cls: `sf-vault-tag-display${canDisplay ? "" : " is-disabled"}`,
 			attr: { title: tooltip },
@@ -110,7 +126,7 @@ export class VaultTagModal extends Modal {
 			type: "checkbox",
 			attr: { "aria-label": tooltip },
 		});
-		checkbox.checked = row.display;
+		checkbox.checked = this.tagScope === "notes" ? row.notesDisplay : row.display;
 		checkbox.disabled = !canDisplay;
 		checkbox.addEventListener("change", () => {
 			if (!row.iconAlias) {
@@ -143,7 +159,10 @@ export class VaultTagModal extends Modal {
 
 	private async handleSetDisplay(id: string, display: boolean): Promise<void> {
 		try {
-			const fresh = await setVaultTagDisplay(this.app, id, display);
+			const fresh =
+				this.tagScope === "notes"
+					? await setVaultTagNotesDisplay(this.app, id, display)
+					: await setVaultTagDisplay(this.app, id, display);
 			this.onChange();
 			this.render(fresh);
 		} catch (err) {

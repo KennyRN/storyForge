@@ -239,26 +239,34 @@ export class StyleController {
 	}
 
 	/**
-	 * Align right-rail chrome with the left sidedock’s painted background.
+	 * Align right-rail chrome with the left sidedock’s painted background, and snapshot the
+	 * manuscript editor’s `--background-primary` as a concrete colour.
 	 *
-	 * Sets `--sf-right-rail-bg` on each style document’s body (consumed by styles.css).
+	 * `--sf-editor-bg` must be an already-resolved colour (rgb/hex), not `var(--background-primary)`:
+	 * `.mod-right-split` remaps that token to the sidebar, and an inherited `var()` would re-resolve
+	 * there. Notebook’s grafted editor reads `--sf-editor-bg` so it matches the centre pane.
+	 *
+	 * `--sf-right-rail-bg` is set on each style document’s body (consumed by styles.css).
 	 * Prefer the left leaf’s computed colour when available so themes like Minimal match;
 	 * otherwise fall back to `--background-secondary`.
 	 */
 	applyRightRailChrome(): void {
 		for (const doc of this.host.getStyleDocuments()) {
+			const win = doc.defaultView;
 			const left =
 				doc.querySelector<HTMLElement>(".mod-left-split .workspace-leaf-content") ??
 				doc.querySelector<HTMLElement>(".mod-left-split");
-			let bg = "var(--background-secondary)";
-			const win = doc.defaultView;
+			let railBg = "var(--background-secondary)";
 			if (left && win) {
 				const painted = win.getComputedStyle(left).backgroundColor;
 				if (painted && painted !== "rgba(0, 0, 0, 0)" && painted !== "transparent") {
-					bg = painted;
+					railBg = painted;
 				}
 			}
-			doc.body.setCssProps({ "--sf-right-rail-bg": bg });
+			doc.body.setCssProps({
+				"--sf-right-rail-bg": railBg,
+				"--sf-editor-bg": paintedThemePrimary(doc),
+			});
 		}
 	}
 
@@ -282,24 +290,6 @@ export class StyleController {
 		const recommendUnknownHeaderColor = s.recommendUnknownHeaderMuted
 			? "var(--text-muted)"
 			: s.recommendUnknownHeaderColor;
-		const recommendCaptureColor = s.recommendCaptureMuted
-			? "var(--text-muted)"
-			: s.recommendCaptureColor;
-		const recommendCaptureHeaderColor = s.recommendCaptureHeaderMuted
-			? "var(--text-muted)"
-			: s.recommendCaptureHeaderColor;
-		const recommendHoldingColor = s.recommendHoldingMuted
-			? "var(--text-muted)"
-			: s.recommendHoldingColor;
-		const recommendHoldingHeaderColor = s.recommendHoldingHeaderMuted
-			? "var(--text-muted)"
-			: s.recommendHoldingHeaderColor;
-		const recommendResolvedColor = s.recommendResolvedMuted
-			? "var(--text-muted)"
-			: s.recommendResolvedColor;
-		const recommendResolvedHeaderColor = s.recommendResolvedHeaderMuted
-			? "var(--text-muted)"
-			: s.recommendResolvedHeaderColor;
 		const recommendMetaLabelColor = s.recommendMetaLabelMuted ? "var(--text-muted)" : s.recommendMetaLabelColor;
 		const recommendMetaControlColor = s.recommendMetaControlMuted
 			? "var(--text-muted)"
@@ -350,27 +340,6 @@ export class StyleController {
 				this.host.getStyleDocuments()[0] ?? document,
 				recommendUnknownHeaderColor,
 				recommendUnknownColor,
-			),
-			"--sf-recommend-capture-color": recommendCaptureColor,
-			"--sf-recommend-capture-header-color": recommendCaptureHeaderColor,
-			"--sf-recommend-capture-title-shadow": resolveTitleShadow(
-				this.host.getStyleDocuments()[0] ?? document,
-				recommendCaptureHeaderColor,
-				recommendCaptureColor,
-			),
-			"--sf-recommend-holding-color": recommendHoldingColor,
-			"--sf-recommend-holding-header-color": recommendHoldingHeaderColor,
-			"--sf-recommend-holding-title-shadow": resolveTitleShadow(
-				this.host.getStyleDocuments()[0] ?? document,
-				recommendHoldingHeaderColor,
-				recommendHoldingColor,
-			),
-			"--sf-recommend-resolved-color": recommendResolvedColor,
-			"--sf-recommend-resolved-header-color": recommendResolvedHeaderColor,
-			"--sf-recommend-resolved-title-shadow": resolveTitleShadow(
-				this.host.getStyleDocuments()[0] ?? document,
-				recommendResolvedHeaderColor,
-				recommendResolvedColor,
 			),
 			"--sf-recommend-meta-label-size": `${s.recommendMetaLabelFontSize}em`,
 			"--sf-recommend-meta-label-color": recommendMetaLabelColor,
@@ -622,4 +591,19 @@ export class StyleController {
 		if (!result) return { family: null, variation: null, resolved: false };
 		return { family: result.family, variation: result.variation, resolved: true };
 	}
+}
+
+/** Resolve the theme's manuscript `--background-primary` on `body` (not inside `.mod-right-split`). */
+function paintedThemePrimary(doc: Document): string {
+	const win = doc.defaultView;
+	if (!win) return "var(--background-primary)";
+	const probe = doc.createElement("div");
+	probe.style.position = "absolute";
+	probe.style.left = "-9999px";
+	probe.style.backgroundColor = "var(--background-primary)";
+	doc.body.appendChild(probe);
+	const painted = win.getComputedStyle(probe).backgroundColor;
+	probe.remove();
+	if (painted && painted !== "rgba(0, 0, 0, 0)" && painted !== "transparent") return painted;
+	return "var(--background-primary)";
 }

@@ -32,7 +32,7 @@ import {
 	ICON_ELEMENT2_FILLED,
 	ICON_LAYOUT_SELECTOR,
 	ICON_LIST_BAR_FILLED,
-	ICON_NOTEBOOK_DUOTONE,
+	ICON_DOSSIER,
 	ICON_PAINT_BRUSH_FILLED,
 	ICON_RESIZE,
 	ICON_SERIES,
@@ -206,7 +206,7 @@ export class UiFormattingModal extends Modal {
 							{
 								id: "details",
 								label: "dossier",
-								icon: ICON_NOTEBOOK_DUOTONE,
+								icon: ICON_DOSSIER,
 								render: (body) => this.renderContextDossierContent(body, settings),
 							},
 							{
@@ -1013,7 +1013,7 @@ export class UiFormattingModal extends Modal {
 		itemsGroup.addSetting((setting) => {
 			setting
 				.setName("Text size")
-				.setDesc("Text size of Codex reference rows and of detail hits in the Details and Dossier panes.")
+				.setDesc("Text size of Codex reference rows and of detail hits in the Chapter and Dossier panes.")
 				.addSlider((slider) =>
 					slider
 						.setLimits(0.5, 1.5, 0.1)
@@ -1069,27 +1069,6 @@ export class UiFormattingModal extends Modal {
 				textKey: "recommendUnknownHeaderColor",
 				textMuted: "recommendUnknownHeaderMuted",
 			},
-			{
-				label: "Details to capture",
-				boxKey: "recommendCaptureColor",
-				boxMuted: "recommendCaptureMuted",
-				textKey: "recommendCaptureHeaderColor",
-				textMuted: "recommendCaptureHeaderMuted",
-			},
-			{
-				label: "Holding area",
-				boxKey: "recommendHoldingColor",
-				boxMuted: "recommendHoldingMuted",
-				textKey: "recommendHoldingHeaderColor",
-				textMuted: "recommendHoldingHeaderMuted",
-			},
-			{
-				label: "Resolved",
-				boxKey: "recommendResolvedColor",
-				boxMuted: "recommendResolvedMuted",
-				textKey: "recommendResolvedHeaderColor",
-				textMuted: "recommendResolvedHeaderMuted",
-			},
 		];
 		for (const row of rows) {
 			const tr = body.createEl("tr");
@@ -1123,16 +1102,16 @@ export class UiFormattingModal extends Modal {
 		button.setAttr("aria-label", `${boxLabel} ${role} colour`);
 	}
 
-	/** Dossier search field — the typed entity name at the top of the Dossier pane. */
+	/** Dossier page chapter names — sticky headers in the Notebook Dossier view. */
 	private renderContextDossierContent(
 		body: HTMLElement,
 		settings: StoryForgePluginSettings,
 	): void {
 		this.renderTitleStyleGroup(body, settings, {
-			labelPrefix: "Dossier search",
+			labelPrefix: "Dossier chapter",
 			heading: "Dossier",
 			sizeDesc:
-				"The typed entity name in the Dossier search field. Hit cards use Text size; chapter names under the search use Title size (Box).",
+				"Sticky chapter names on the Dossier page. Hit cards use Text size; chapter names use these type styles.",
 			sizeKey: "recommendDossierHeaderFontSize",
 			overrideFontKey: "recommendDossierHeaderOverrideFont",
 			fontFamilyKey: "recommendDossierHeaderFontFamily",

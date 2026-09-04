@@ -6,6 +6,10 @@ import { App, MarkdownView, TFile, WorkspaceLeaf, WorkspaceSplit } from "obsidia
  * inline in the scroll instead of leaving to a separate pane (continuous-mode inline-editor
  * research brief §2–§3).
  *
+ * Story Context's notebook/codex pages do not use this class. They call `mountContextEditor`
+ * (contextEditor.ts), which mounts the same leaf technique under `.sf-context-editor` so the two
+ * features do not share CSS.
+ *
  * There is no *public* API for this — `Editor`/`MarkdownView` have no standalone constructor
  * outside a real `WorkspaceLeaf`, and `Workspace.createLeafInParent` only accepts a `WorkspaceSplit`
  * already in Obsidian's own layout tree. The technique here (documented in the research brief,
@@ -40,57 +44,40 @@ export interface GraftedEditorHandle {
 	destroy: () => void;
 }
 
+export interface MountLeafEditorOptions {
+	/** CSS class on the grafted split. Continuous click-to-edit uses `sf-grafted-editor`;
+	 * Story Context uses `sf-context-editor`. Never both. */
+	className: string;
+	active?: boolean;
+	activateOnPointer?: boolean;
+}
+
 /**
- * Mounts `file` into `container` as a real, editable `MarkdownView` in Live Preview, caret placed
- * at `cursorOffset`. Returns null (logging the cause) on any failure — callers must fall back to
- * opening the file in a real tab rather than leaving `container` half-mounted.
- *
- * Deliberately does not focus the editor itself — focusing scrolls the caret into view, and the
- * caller (`ContinuousReadView.editChapter`) needs a chance to correct the outer continuous scroll's
- * position first (research brief §7: anchoring the clicked paragraph back to where the reader's eye
- * already was). Focusing before that correction lands would mean two scroll adjustments fighting
- * each other instead of one clean one — callers must call `handle.view.editor.focus()` themselves
- * once any correction is done.
+ * Shared leaf-graft used by continuous click-to-edit and Story Context. Callers pick the
+ * className; they must not share stylesheet hooks.
  */
-export async function graftEditor(
+export async function mountLeafEditor(
 	app: App,
 	container: HTMLElement,
 	file: TFile,
 	cursorOffset: number,
+	options: MountLeafEditorOptions,
 ): Promise<GraftedEditorHandle | null> {
 	let split: GraftableSplit | null = null;
 	try {
-		// WorkspaceSplit is an exported public class; only its constructor's argument shape is
-		// undeclared in the public typings — this is the one unofficial line in the whole technique.
 		const SplitCtor = WorkspaceSplit as unknown as new (workspace: App["workspace"], direction: "vertical" | "horizontal") => GraftableSplit;
 		split = new SplitCtor(app.workspace, "vertical");
 
-		// A freshly constructed split has no real parent, so its inherited getRoot()/getContainer()
-		// (which walk up `.parent`) can't resolve anything sane. Overriding them on this one instance
-		// — not on the prototype — points a leaf created inside it at the real layout tree with zero
-		// blast radius outside this one graft.
 		const realRoot = app.workspace.rootSplit;
 		const realContainer = realRoot.getContainer();
 		split.getRoot = () => realRoot;
 		split.getContainer = () => realContainer;
 
-		// styles.css strips this graft's whole height/overflow chain down to content-sized, so
-		// CodeMirror finds no clipping ancestor closer than the outer continuous scroll and treats
-		// that as its effective viewport instead — see the .sf-grafted-editor block comment there
-		// for the full mechanism (research brief §1, §6).
-		split.containerEl.addClass("sf-grafted-editor");
+		split.containerEl.addClass(options.className);
 		container.appendChild(split.containerEl);
 
 		const leaf = app.workspace.createLeafInParent(split, 0);
-		// Live Preview, not source mode — visually closest to the rendered markup it's replacing,
-		// minimising the jolt of the rendered-to-editable transition. `source` is an undocumented
-		// state key; a wrong value just degrades to source mode rather than failing, so it needs no
-		// guard of its own.
-		await leaf.openFile(file, { active: true, state: { mode: "source", source: false } });
-		// A grafted leaf isn't part of the workspace's normal visible-tab tracking, so it's a
-		// plausible candidate for Obsidian treating it as background/inactive and handing back a
-		// lightweight DeferredView instead of a fully-initialised MarkdownView — this forces the real
-		// one. Harmless no-op if it was never deferred to begin with.
+		await leaf.openFile(file, { active: options.active !== false, state: { mode: "source", source: false } });
 		await leaf.loadIfDeferred();
 
 		const view = leaf.view;
@@ -98,16 +85,27 @@ export async function graftEditor(
 			throw new Error("grafted leaf did not produce a MarkdownView");
 		}
 
-		// Without this, clicking a wikilink inside the grafted editor navigates *this* leaf to the
-		// target file, silently replacing the chapter being edited.
 		leaf.setPinned(true);
 		view.editor.setCursor(view.editor.offsetToPos(cursorOffset));
 
 		const containerEl = split.containerEl;
+		const activatePane = (evt?: Event): void => {
+			evt?.stopPropagation();
+			if (app.workspace.activeLeaf !== leaf) {
+				app.workspace.setActiveLeaf(leaf, { focus: true });
+			}
+			view.editor.focus();
+		};
+		if (options.activateOnPointer) {
+			containerEl.addEventListener("pointerdown", activatePane, true);
+			activatePane();
+		}
+
 		return {
 			leaf,
 			view,
 			destroy: () => {
+				if (options.activateOnPointer) containerEl.removeEventListener("pointerdown", activatePane, true);
 				leaf.detach();
 				containerEl.remove();
 			},
@@ -117,4 +115,21 @@ export async function graftEditor(
 		split?.containerEl.remove();
 		return null;
 	}
+}
+
+/**
+ * Continuous-mode click-to-edit. Mounts under `.sf-grafted-editor` only.
+ *
+ * Deliberately does not focus the editor itself — focusing scrolls the caret into view, and the
+ * caller (`ContinuousReadView.editChapter`) needs a chance to correct the outer continuous scroll's
+ * position first (research brief §7). Callers must call `handle.view.editor.focus()` themselves
+ * once any correction is done.
+ */
+export async function graftEditor(
+	app: App,
+	container: HTMLElement,
+	file: TFile,
+	cursorOffset: number,
+): Promise<GraftedEditorHandle | null> {
+	return mountLeafEditor(app, container, file, cursorOffset, { className: "sf-grafted-editor" });
 }

@@ -75,6 +75,10 @@ export class Notice {
 	constructor(_message?: string) {}
 }
 export class WorkspaceLeaf {}
+export class MarkdownView {
+	file: TFile | null = null;
+	editor = { focus() {} };
+}
 export class TFile {
 	path = "";
 	name = "";
@@ -120,7 +124,11 @@ export function stringifyYaml(data: unknown): string {
 
 export function setIcon(_el: HTMLElement, _iconId: string): void {}
 export function addIcon(_id: string, _svg: string): void {}
-export function setTooltip(_el: HTMLElement, _tooltip: string): void {}
+export function setTooltip(
+	_el: HTMLElement,
+	_tooltip: string,
+	_options?: { delay?: number; placement?: string; classes?: string[] },
+): void {}
 
 export function normalizePath(path: string): string {
 	return path.replace(/\\/g, "/").replace(/\/+/g, "/").replace(/^\.\//, "").replace(/\/$/, "");

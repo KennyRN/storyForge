@@ -24,20 +24,24 @@ export function stampCrossIcon(host: HTMLElement): void {
 		height: "200%",
 		"color-interpolation-filters": "sRGB",
 	});
-	filter.appendChild(svgEl("feOffset", { in: "SourceAlpha", dx: "1.25", dy: "1.25", result: "offDark" }));
-	filter.appendChild(svgEl("feGaussianBlur", { in: "offDark", stdDeviation: "1.15", result: "blurDark" }));
+	filter.appendChild(svgEl("feOffset", { in: "SourceAlpha", dx: "1.19", dy: "1.19", result: "offDark" }));
+	filter.appendChild(svgEl("feGaussianBlur", { in: "offDark", stdDeviation: "1.09", result: "blurDark" }));
 	filter.appendChild(svgEl("feComposite", { in: "SourceAlpha", in2: "blurDark", operator: "out", result: "innerDark" }));
-	filter.appendChild(svgEl("feFlood", { "flood-color": "#000", "flood-opacity": "0.55", result: "black" }));
+	filter.appendChild(svgEl("feFlood", { "flood-color": "#000", "flood-opacity": "0.52", result: "black" }));
 	filter.appendChild(svgEl("feComposite", { in: "black", in2: "innerDark", operator: "in", result: "shadowDark" }));
-	filter.appendChild(svgEl("feOffset", { in: "SourceAlpha", dx: "-1", dy: "-1", result: "offLight" }));
-	filter.appendChild(svgEl("feGaussianBlur", { in: "offLight", stdDeviation: "0.85", result: "blurLight" }));
+	filter.appendChild(svgEl("feOffset", { in: "SourceAlpha", dx: "-0.95", dy: "-0.95", result: "offLight" }));
+	filter.appendChild(svgEl("feGaussianBlur", { in: "offLight", stdDeviation: "0.81", result: "blurLight" }));
 	filter.appendChild(svgEl("feComposite", { in: "SourceAlpha", in2: "blurLight", operator: "out", result: "innerLight" }));
-	filter.appendChild(svgEl("feFlood", { "flood-color": "#fff", "flood-opacity": "0.32", result: "white" }));
+	filter.appendChild(svgEl("feFlood", { "flood-color": "#fff", "flood-opacity": "0.30", result: "white" }));
 	filter.appendChild(svgEl("feComposite", { in: "white", in2: "innerLight", operator: "in", result: "shadowLight" }));
+	// Keep the original wall lighting, but punch a flat floor so the trough isn't a rounded U.
+	filter.appendChild(svgEl("feMorphology", { in: "SourceAlpha", operator: "erode", radius: "1.09", result: "floor" }));
+	filter.appendChild(svgEl("feComposite", { in: "shadowDark", in2: "floor", operator: "out", result: "wallDark" }));
+	filter.appendChild(svgEl("feComposite", { in: "shadowLight", in2: "floor", operator: "out", result: "wallLight" }));
 	const merge = svgEl("feMerge", {});
 	merge.appendChild(svgEl("feMergeNode", { in: "SourceGraphic" }));
-	merge.appendChild(svgEl("feMergeNode", { in: "shadowDark" }));
-	merge.appendChild(svgEl("feMergeNode", { in: "shadowLight" }));
+	merge.appendChild(svgEl("feMergeNode", { in: "wallDark" }));
+	merge.appendChild(svgEl("feMergeNode", { in: "wallLight" }));
 	filter.appendChild(merge);
 	defs.appendChild(filter);
 	svg.insertBefore(defs, svg.firstChild);

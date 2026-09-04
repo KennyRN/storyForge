@@ -117,6 +117,8 @@ export class StorytellingView extends ItemView {
 				this.currentBookFolderName = bookName;
 				this.activeChapterFilename = file.name;
 				void this.persistSelection();
+			} else if (this.plugin.codexFocusPagePath() === file.path) {
+				// Lore is open in Focus Mode's right-rail page; keep the current chapter selected.
 			} else if (this.activeChapterFilename !== null) {
 				this.activeChapterFilename = null;
 				void this.persistSelection();
@@ -188,7 +190,8 @@ export class StorytellingView extends ItemView {
 
 		const currentBookId = this.currentBookFolderName ? getBookId(this.app, this.currentBookFolderName) : null;
 		const activeFile = this.app.workspace.getActiveFile();
-		const activeFilePath = activeFile?.path ?? null;
+		const focusLorePath = this.plugin.codexFocusPagePath();
+		const activeFilePath = focusLorePath ?? activeFile?.path ?? null;
 
 		if (this.vaultTagFilter && !displayedVaultTags(this.app).some((tag) => tag.id === this.vaultTagFilter)) {
 			this.vaultTagFilter = null;
@@ -306,7 +309,7 @@ export class StorytellingView extends ItemView {
 	private async handleCreateCodexFile(): Promise<void> {
 		try {
 			const file = await createCodexNote(this.app, this.codexTargetFolderId());
-			await this.openInMainContentLeaf(file);
+			await this.openCodexFile(file.path);
 		} catch (err) {
 			new Notice(`storyForge: could not create file — ${(err as Error).message}`);
 		}
@@ -320,11 +323,15 @@ export class StorytellingView extends ItemView {
 		}
 	}
 
-	/** BottomPanel.ts's onOpenFile — a Codex note click, same "force it active" treatment as
-	 * openChapter() needs, and for the same reason (see openInMainContentLeaf's doc comment):
-	 * without it, clicking off a chapter and onto a Codex entry left the chapter's row still
-	 * highlighted, since followActiveFile() never got the active-leaf-change to run on. */
+	/** BottomPanel.ts's onOpenFile — a Codex lore click. In Focus Mode this mounts the note in
+	 * the right-rail `.sf-codex-page` and leaves the chapter in the center pane; otherwise it
+	 * opens in the main content leaf with the same "force it active" treatment as openChapter()
+	 * (see openInMainContentLeaf's doc comment). */
 	private async openCodexFile(path: string): Promise<void> {
+		if (this.plugin.openCodexLoreInFocusPage(path)) {
+			this.render();
+			return;
+		}
 		const file = this.app.vault.getAbstractFileByPath(path);
 		if (file instanceof TFile) {
 			await this.openInMainContentLeaf(file);

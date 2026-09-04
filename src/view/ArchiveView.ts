@@ -4,7 +4,7 @@ import { ICON_ARCHIVE } from "../icons";
 import { BACKSTAGE_ROOT, bookFolderNameFromChapterPath, isLibraryRootFilePath } from "../paths";
 import { activateRightRailView } from "./activateRightRailView";
 import { renderArchivePanel, type ArchiveMode } from "./archivePanel";
-import { RecommendationView, RECOMMEND_VIEW_TYPE } from "./RecommendationView";
+import { StoryContextView, STORY_CONTEXT_VIEW_TYPE } from "./StoryContextView";
 
 /**
  * Legacy ItemView kept registered so old workspaces that still restore an Archive leaf
@@ -116,9 +116,9 @@ export async function activateArchiveView(
 	plugin: StoryForgePlugin,
 	tab: ArchiveMode = "codex",
 ): Promise<void> {
-	await activateRightRailView(plugin, RECOMMEND_VIEW_TYPE, (leaf) => {
+	await activateRightRailView(plugin, STORY_CONTEXT_VIEW_TYPE, (leaf) => {
 		const view = leaf.view;
-		if (view instanceof RecommendationView) {
+		if (view instanceof StoryContextView) {
 			view.openArchive(tab);
 		}
 	});

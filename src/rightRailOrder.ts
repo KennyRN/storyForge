@@ -9,7 +9,7 @@ export interface RightRailOrderEntry {
 
 /**
  * Story Context → registered (by orderHint). Archive and Forge-family companions both live
- * inside Story Context itself (RecommendationView.ts) rather than as their own right-rail tabs.
+ * inside Story Context itself (StoryContextView.ts) rather than as their own right-rail tabs.
  */
 export function buildRightRailTypeOrder(storyContext: string, registered: RightRailOrderEntry[]): string[] {
 	const mid = [...registered]

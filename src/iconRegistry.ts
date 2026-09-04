@@ -30,7 +30,10 @@ import {
 	ICON_CHEVRON_DOWN,
 	ICON_CHEVRON_RIGHT,
 	ICON_CITY,
+	ICON_CLIPBOARD_ADD_DUOTONE,
+	ICON_CLIPBOARD_DUOTONE,
 	ICON_CLIPBOARD_LIST_DUOTONE,
+	ICON_CLIPBOARD_TEXT_DUOTONE,
 	ICON_CODEX,
 	ICON_CONTINUOUS_MODE,
 	ICON_CROWN,
@@ -38,6 +41,7 @@ import {
 	ICON_DASHBOARD_CHART,
 	ICON_DEAD_TREE,
 	ICON_DOCUMENT_PAGE_BREAK,
+	ICON_DOSSIER,
 	ICON_DRAGON,
 	ICON_EDIT_PEN,
 	ICON_EGG,
@@ -83,7 +87,10 @@ import {
 	ICON_MULTIPLY_SQUARE,
 	ICON_MUSIC_NOTE,
 	ICON_NOTEBOOK,
+	ICON_NOTEBOOK_ADD,
 	ICON_NOTEBOOK_DUOTONE,
+	ICON_NOTEBOOK_EYE,
+	ICON_NOTEBOOK_FILLED,
 	ICON_OBSIDIAN,
 	ICON_PAGE_PORTRAIT,
 	ICON_PAGE_TEXT,
@@ -365,7 +372,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		label: "Archive",
 		source: "custom",
 		usedIn: [
-			"RecommendationView.ts — Archive tab (Novel/Chapter/Details/Dossier row) and the embedded archive pane's own header",
+			"StoryContextView.ts — Archive tab (Novel/Chapter/Details/Dossier row) and the embedded archive pane's own header",
 			"ArchiveView.ts — legacy Archive leaf header (detached from rail)",
 		],
 	},
@@ -375,7 +382,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		source: "custom",
 		usedIn: ["archivePanel.ts — unarchive row button"],
 	},
-	{ id: ICON_CODEX, label: "Codex", source: "custom", usedIn: ["StoryForgeView.ts — layout tab row, leading icon on the \"Codex\" tab", "archivePanel.ts — Archive Codex-mode icon", "iconRegistry.ts — Codex icon catalog (\"earth\")"] },
+	{ id: ICON_CODEX, label: "Codex", source: "custom", usedIn: ["StoryForgeView.ts — layout tab row, leading icon on the \"Codex\" tab", "archivePanel.ts — Archive Codex-mode icon", "StoryContextView.ts — Notebook pane Codex-index switcher", "iconRegistry.ts — Codex icon catalog (\"earth\")"] },
 	{
 		id: ICON_SERIES,
 		label: "Series",
@@ -437,7 +444,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		source: "custom",
 		usedIn: [
 			"StatsPanel.ts — stats pane icon (opens WordCountModal)",
-			"RecommendationView.ts — Story Context Chapter tab word-count chrome (display-only)",
+			"StoryContextView.ts — Story Context Chapter tab word-count chrome (display-only)",
 			"TopPanel.ts — series-pane hover icon between the settings cog and plot-threads (opens WordCountModal)",
 		],
 	},
@@ -466,21 +473,19 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		id: ICON_FORGE,
 		label: "Forge",
 		source: "custom",
-		usedIn: ["RecommendationView.ts — Story Context's \"Forge family\" tab icon"],
+		usedIn: ["StoryContextView.ts — Story Context's \"Forge family\" tab icon"],
 	},
 	{
 		id: ICON_EYE,
 		label: "View chapter",
 		source: "custom",
-		// Superseded by ICON_LOCATION_TARGET_SQUARE on the same button (RecommendationView.ts's
-		// "go to chapter" action) — kept registered, just currently unused.
 		usedIn: [],
 	},
 	{
 		id: ICON_FILE_PLUS,
 		label: "Add to chapter",
 		source: "custom",
-		// Superseded by ICON_ADD_SQUARE on the same button (RecommendationView.ts's "add chapter
+		// Superseded by ICON_ADD_SQUARE on the same button (StoryContextView.ts's "add chapter
 		// summary to chapter details" action) — kept registered, just currently unused.
 		usedIn: [],
 	},
@@ -500,20 +505,20 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		id: ICON_LOCATION_TARGET_SQUARE,
 		label: "Location target (square)",
 		source: "custom",
-		usedIn: ["RecommendationView.ts — Story Context Chapter tab's \"go to chapter\" action (replaces ICON_EYE)"],
+		usedIn: ["StoryContextView.ts — Story Context Chapter tab's \"go to chapter\" action (replaces ICON_EYE)"],
 	},
 	{
 		id: ICON_REFRESH_SQUARE,
 		label: "Refresh (square, text + repeat arrow)",
 		source: "custom",
-		usedIn: ["RecommendationView.ts — Story Context Chapter tab's \"refresh story context\" action (replaces the stock \"refresh-cw\" Lucide icon)"],
+		usedIn: [],
 	},
 	{
 		id: ICON_ADD_SQUARE,
 		label: "Add (square)",
 		source: "custom",
 		usedIn: [
-			"RecommendationView.ts — Story Context Chapter tab's \"add chapter summary to chapter details\" action (replaces ICON_FILE_PLUS)",
+			"StoryContextView.ts — Story Context Chapter tab's \"create details note\" action",
 		],
 	},
 	{
@@ -532,7 +537,13 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		id: ICON_MULTIPLY_SQUARE,
 		label: "Clear",
 		source: "custom",
-		usedIn: ["RecommendationView.ts — clear selected dossier entity"],
+		usedIn: [
+			"CodexEntryPickerModal.ts — cancel",
+			"TypesTagsExportModal.ts — cancel",
+			"ThreadsExportModal.ts — cancel",
+			"CompleteExportModal.ts — cancel",
+			"PreferencesExportModal.ts — cancel",
+		],
 	},
 	{ id: ICON_FOLDER_PLUS, label: "New folder", source: "custom", usedIn: ["BottomPanel.ts — new Codex folder button"] },
 	{ id: ICON_FOLDER, label: "Folder", source: "custom", usedIn: ["BottomPanel.ts — Codex folder row icon (plain folders, and lore-folder expand)"] },
@@ -568,7 +579,8 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		usedIn: [
 			"TopPanel.ts — new chapter button (Unplaced Chapters) and new book button (Unplaced Novels)",
 			"BottomPanel.ts — new Codex note button",
-			"RecommendationView.ts — create in Codex (unknown name)",
+			"StoryContextView.ts — create in Codex (unknown name)",
+			"IdeaShelfPanel.ts — new notebook note button",
 		],
 	},
 	{
@@ -576,9 +588,9 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		label: "Ignore",
 		source: "custom",
 		usedIn: [
-			"RecommendationView.ts — ignore unknown name",
-			"RecommendationView.ts — ignore detail (solid)",
-			"RecommendationView.ts — ignore detail attribution (grey)",
+			"StoryContextView.ts — ignore unknown name",
+			"StoryContextView.ts — ignore detail (solid)",
+			"StoryContextView.ts — ignore detail attribution (grey)",
 		],
 	},
 	{
@@ -586,8 +598,8 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		label: "Done / confirm",
 		source: "custom",
 		usedIn: [
-			"RecommendationView.ts — mark detail done",
-			"RecommendationView.ts — confirm grey attribution",
+			"StoryContextView.ts — mark detail done",
+			"StoryContextView.ts — confirm grey attribution",
 			"VaultTagModal.ts — muted sample-row tick standing in for the display checkbox",
 		],
 	},
@@ -717,7 +729,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		id: ICON_NOTEBOOK,
 		label: "Notebook",
 		source: "custom",
-		usedIn: ["RecommendationView.ts — Story Context view tab icon"],
+		usedIn: ["StoryContextView.ts — Story Context view tab icon"],
 	},
 	{
 		id: ICON_STORYTELLING,
@@ -738,6 +750,27 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		usedIn: [],
 	},
 	{
+		id: ICON_NOTEBOOK_FILLED,
+		label: "Notebook (filled)",
+		source: "custom",
+		usedIn: [
+			"StoryContextView.ts — Story Context Notebook tab, Focus Mode Notebook trigger, Notebook pane notebook-index switcher",
+			"archivePanel.ts — Archive Notebook-mode icon",
+		],
+	},
+	{
+		id: ICON_NOTEBOOK_EYE,
+		label: "Notebook with eye",
+		source: "custom",
+		usedIn: ["StoryContextView.ts — Focus Mode Notebook pop-out browse button"],
+	},
+	{
+		id: ICON_NOTEBOOK_ADD,
+		label: "Notebook with add",
+		source: "custom",
+		usedIn: ["StoryContextView.ts — Focus Mode Notebook pop-out new-note button"],
+	},
+	{
 		id: ICON_CARDS,
 		label: "Playing cards (outline)",
 		source: "custom",
@@ -748,7 +781,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		label: "Book (duotone)",
 		source: "custom",
 		usedIn: [
-			"RecommendationView.ts — Story Context's Novel tab icon",
+			"StoryContextView.ts — Story Context's Novel tab icon",
 			"StoryForgeView.ts — layout tab row, leading icon on the \"Novel\" tab",
 			"NovelOverviewView.ts — main-pane Novel overview page's own tab icon",
 			"WordCountModal.ts — stats-pane mode picker (novel)",
@@ -760,7 +793,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		label: "Book open (filled)",
 		source: "custom",
 		usedIn: [
-			"RecommendationView.ts — Story Context's Chapter tab icon and Focus Mode word-count chrome",
+			"StoryContextView.ts — Story Context's Chapter tab icon and Focus Mode word-count chrome",
 			"StoryForgeView.ts — layout tab row, leading icon on the \"Chapter\" tab",
 			"WordCountModal.ts — stats-pane mode picker (chapter)",
 		],
@@ -769,19 +802,43 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		id: ICON_CLIPBOARD_LIST_DUOTONE,
 		label: "Clipboard list (duotone)",
 		source: "custom",
-		usedIn: ["RecommendationView.ts — Story Context's Details tab icon"],
+		usedIn: ["StoryContextView.ts — Notebook source rail Dossier icon"],
+	},
+	{
+		id: ICON_CLIPBOARD_ADD_DUOTONE,
+		label: "Clipboard add (duotone)",
+		source: "custom",
+		usedIn: [],
+	},
+	{
+		id: ICON_CLIPBOARD_TEXT_DUOTONE,
+		label: "Clipboard text (duotone)",
+		source: "custom",
+		usedIn: [],
+	},
+	{
+		id: ICON_CLIPBOARD_DUOTONE,
+		label: "Clipboard (duotone)",
+		source: "custom",
+		usedIn: [],
 	},
 	{
 		id: ICON_NOTEBOOK_DUOTONE,
 		label: "Notebook (duotone)",
 		source: "custom",
-		usedIn: ["RecommendationView.ts — Story Context's Dossier tab icon"],
+		usedIn: [],
+	},
+	{
+		id: ICON_DOSSIER,
+		label: "Dossier (bill duotone)",
+		source: "custom",
+		usedIn: ["UiFormattingModal.ts — story-context dossier formatting leaf"],
 	},
 	{
 		id: ICON_ARCHIVE_FILLED,
 		label: "Archive (filled)",
 		source: "custom",
-		usedIn: ["RecommendationView.ts — Story Context's Archive tab icon"],
+		usedIn: ["StoryContextView.ts — Story Context's Archive tab icon"],
 	},
 	{
 		id: ICON_X,

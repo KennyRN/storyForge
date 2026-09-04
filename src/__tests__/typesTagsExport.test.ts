@@ -16,13 +16,14 @@ const registry: TagRegistryShape = {
 	],
 	chapterTags: [{ id: "draft", label: "Draft", iconAlias: "pencil" }],
 	novelTags: [{ id: "editing", label: "Editing", iconAlias: "warning-square" }],
+	ideaTypes: [],
 };
 
 const vaultTags: VaultTagsShape = {
 	order: ["hero", "harbour"],
 	tags: [
-		{ id: "hero", iconAlias: "person-fill", display: true, pageOrder: ["Codex/Jane.md"] },
-		{ id: "harbour", iconAlias: "location-pin", display: false, pageOrder: [] },
+		{ id: "hero", iconAlias: "person-fill", display: true, notesDisplay: false, pageOrder: ["Codex/Jane.md"] },
+		{ id: "harbour", iconAlias: "location-pin", display: false, notesDisplay: false, pageOrder: [] },
 	],
 };
 
@@ -116,7 +117,7 @@ describe("types & tags export", () => {
 		);
 		expect(parsed.codexTags).toEqual({
 			order: ["hero"],
-			tags: [{ id: "hero", iconAlias: "person-fill", display: true, pageOrder: ["Codex/Jane.md"] }],
+			tags: [{ id: "hero", iconAlias: "person-fill", display: true, notesDisplay: false, pageOrder: ["Codex/Jane.md"] }],
 		});
 	});
 
@@ -136,7 +137,7 @@ describe("types & tags export", () => {
 		expect(parsed.included.codexTags).toBe(true);
 		expect(parsed.codexTags).toEqual({
 			order: ["hero"],
-			tags: [{ id: "hero", iconAlias: "person-fill", display: true, pageOrder: ["Codex/Jane.md"] }],
+			tags: [{ id: "hero", iconAlias: "person-fill", display: true, notesDisplay: false, pageOrder: ["Codex/Jane.md"] }],
 		});
 	});
 

@@ -45,7 +45,7 @@ export class NovelOverviewView extends ItemView {
 		return ICON_BOOK_DUOTONE;
 	}
 
-	// Same reload triggers as Story Context's own Novel tab (RecommendationView.ts's onOpen) —
+	// Same reload triggers as Story Context's own Novel tab (StoryContextView.ts's onOpen) —
 	// this page shows the same data, so it needs to notice the same writes.
 	private readonly debouncedRender = debounce(() => {
 		if (!this.closed && !isDragInProgress()) this.render();

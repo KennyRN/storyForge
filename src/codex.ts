@@ -576,6 +576,10 @@ export async function moveCodexItem(
 		if (type === "folder" && targetParentId !== null && isDescendantFolder(folders, key, targetParentId)) {
 			return;
 		}
+		const current = findContainer(folders, order, key);
+		if (beforeKey === key && (current?.folderId ?? null) === targetParentId) {
+			return;
+		}
 		removeFromContainer(folders, order, key);
 		const targetArr = targetParentId !== null ? (folders[targetParentId]?.order ?? order) : order;
 		const idx = beforeKey ? targetArr.indexOf(beforeKey) : -1;

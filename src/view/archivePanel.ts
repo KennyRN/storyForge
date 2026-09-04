@@ -7,14 +7,15 @@ import type StoryForgePlugin from "../main";
 import { getArchivedChapters, unarchiveChapter, chapterDisplayTitle } from "../book";
 import { getArchivedCodexItems, unarchiveCodexItem, type ArchivedCodexItem } from "../codex";
 import { recordChapterUnarchive } from "../history";
-import { ICON_BOOK_DUOTONE, ICON_CODEX, ICON_UNARCHIVE, ICON_X } from "../icons";
+import { collectArchivedNotes, unarchiveNotesNote } from "../notes";
+import { ICON_BOOK_DUOTONE, ICON_CODEX, ICON_NOTEBOOK_FILLED, ICON_UNARCHIVE, ICON_X } from "../icons";
 import { stampCrossIcon } from "./stampedCross";
 import { libraryChapterPath } from "../paths";
 import { formatSingleLine } from "../titleNumbering";
 import { excerpt } from "../wordCount";
 import { makeAccessibleActivatable } from "./a11y";
 
-export type ArchiveMode = "codex" | "novel";
+export type ArchiveMode = "codex" | "novel" | "notes";
 
 export interface ArchivePanelHost {
 	app: App;
@@ -38,6 +39,7 @@ export function renderArchiveModeIcons(el: HTMLElement, host: ArchivePanelHost):
 	const row = el.createDiv({ cls: "sf-recommend-view__forge-row sf-archive-mode-row" });
 	addArchiveModeIcon(row, host, "codex", ICON_CODEX, "Codex");
 	addArchiveModeIcon(row, host, "novel", ICON_BOOK_DUOTONE, "Novel");
+	addArchiveModeIcon(row, host, "notes", ICON_NOTEBOOK_FILLED, "Notebook");
 }
 
 function addArchiveModeIcon(
@@ -73,6 +75,7 @@ export function renderArchiveTabs(el: HTMLElement, host: ArchivePanelHost): void
 /** List for the active tab — mount in the scrolling region. */
 export function renderArchiveList(el: HTMLElement, host: ArchivePanelHost): void {
 	if (host.mode === "codex") renderCodex(el, host);
+	else if (host.mode === "notes") renderNotes(el, host);
 	else renderNovel(el, host);
 }
 
@@ -155,6 +158,41 @@ function renderNovelRow(
 		try {
 			await unarchiveChapter(host.app, bookFolderName, filename);
 			await recordChapterUnarchive(host.app, bookFolderName, filename);
+			host.plugin.refreshStoryForgeViews();
+			host.refresh();
+		} catch (err) {
+			new Notice(`storyForge: could not unarchive — ${err instanceof Error ? err.message : String(err)}`);
+		}
+	};
+	unarchiveBtn.addEventListener("click", (e) => {
+		e.stopPropagation();
+		void handle();
+	});
+	makeAccessibleActivatable(unarchiveBtn, () => void handle());
+}
+
+function renderNotes(el: HTMLElement, host: ArchivePanelHost): void {
+	const archived = collectArchivedNotes(host.app);
+	if (archived.length === 0) {
+		renderArchiveEmpty(el, "No archived notes.");
+		return;
+	}
+	const list = el.createDiv({ cls: "sf-archive-list" });
+	for (const entry of archived) {
+		renderNotesRow(list, entry.path, entry.name, host);
+	}
+}
+
+function renderNotesRow(list: HTMLElement, path: string, name: string, host: ArchivePanelHost): void {
+	const row = list.createDiv({ cls: "sf-row" });
+	row.createSpan({ cls: "sf-archive-label", text: name });
+	void attachCodexExcerpt(host.app, row, path);
+
+	const unarchiveBtn = row.createSpan({ cls: "sf-archive-unarchive-btn", attr: { "aria-label": "Unarchive" } });
+	setIcon(unarchiveBtn, ICON_UNARCHIVE);
+	const handle = async () => {
+		try {
+			await unarchiveNotesNote(host.app, path);
 			host.plugin.refreshStoryForgeViews();
 			host.refresh();
 		} catch (err) {

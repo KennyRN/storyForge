@@ -50,14 +50,14 @@ const TAB_LABELS: Record<TitleForgeTab, string> = {
 /**
  * Which generators live under each generator tab (i.e. every tab but "kept titles" — that one
  * pools kept entries across a scope's own tabs rather than picking a tradition; see KeptEntry).
- * "series" is deliberately empty — there's no generator built specifically for series yet, so the
- * tab stays an honest placeholder rather than borrowing one that isn't really about series.
- * "novels" pairs `title-composer` (the Anglophone general-purpose bench) with
- * `non-western-literary` (the comparative world-literary one); everything serialised/episodic
- * goes under "web fiction & light novels".
+ * "series" runs `title-composer` in series mode with its shape family forced to "series" — the
+ * corpus-grounded umbrella shape set (series corpus v1.0.0); see `handleGenerate`. "novels" pairs
+ * `title-composer` (the Anglophone general-purpose bench) with `non-western-literary` (the
+ * comparative world-literary one); everything serialised/episodic goes under "web fiction & light
+ * novels".
  */
 const TAB_TRADITIONS: Record<TitleForgeTab, string[]> = {
-	series: [],
+	series: ["title-composer"],
 	webFiction: [
 		"western-serial",
 		"japanese-ln",
@@ -102,10 +102,11 @@ const SCOPE_TABS: Record<TitleForgeScope, TitleForgeTab[]> = {
  *
  * Renders no header/blurb of its own (the modal has neither), groups the traditions into tabs
  * (see TAB_TRADITIONS), and only ever shows the series checkbox under the "novels" tab — the
- * "series" tab (once it has a generator) will always be in series mode, "web fiction & light
- * novels" never is. "kept titles" isn't a generator tab at all — see renderKeptTab. Generating
- * writes straight into the history list — there's no separate "just generated" preview; every row,
- * old or new, carries the same info/short-list/use-this-title actions (renderTitleRow).
+ * "series" tab is always in series mode (title-composer, shape family forced to "series"), "web
+ * fiction & light novels" never is. "kept titles" isn't a generator tab at all — see
+ * renderKeptTab. Generating writes straight into the history list — there's no separate "just
+ * generated" preview; every row, old or new, carries the same info/short-list/use-this-title
+ * actions (renderTitleRow).
  *
  * Every Tradition picker offers "Any" (ANY_TRADITION_ID) first, and it's always what's
  * automatically selected — never a remembered last pick. In that mode there's no single spec to
@@ -162,9 +163,9 @@ export class TitleForgePanel {
 		return SCOPE_TABS[this.opts.scope];
 	}
 
-	/** "novels" is the most useful default landing tab when it's reachable (not the empty "series"
-	 * placeholder) — falls back to the scope's own first tab when it isn't (e.g. the "series"
-	 * scope, which never reaches "novels" at all). */
+	/** "novels" is the most useful default landing tab when it's reachable — falls back to the
+	 * scope's own first tab when it isn't (the "series" scope, which never reaches "novels", lands
+	 * on its own "series" tab). */
 	private defaultTab(): TitleForgeTab {
 		const order = this.tabOrder();
 		return order.includes("novels") ? "novels" : order[0];
@@ -248,15 +249,6 @@ export class TitleForgePanel {
 
 		if (this.activeTab === "kept") {
 			this.renderKeptTab(container);
-			return;
-		}
-
-		if (this.activeTab === "series") {
-			// Left deliberately empty — see TAB_TRADITIONS.
-			container.createDiv({
-				cls: "titleforge-empty",
-				text: "No series generators yet.",
-			});
 			return;
 		}
 
@@ -353,7 +345,9 @@ export class TitleForgePanel {
 				void this.persistUiState();
 			});
 
-			if (spec.families && spec.families.length > 0) {
+			// In series mode the shape family is forced to "series" (the corpus-grounded umbrella
+			// set — see handleGenerate), so the picker would only mislead.
+			if (spec.families && spec.families.length > 0 && !this.effectiveSeriesMode()) {
 				this.renderSelect(row, "Shape family", spec.families, this.family, (value) => {
 					this.family = value;
 					void this.persistUiState();
@@ -489,6 +483,11 @@ export class TitleForgePanel {
 				if (this.effectiveSeriesMode()) {
 					const result = generateSeries(spec, {
 						...baseOptions,
+						// Draw the umbrella and its volumes from the corpus-grounded series shape
+						// set, not the novel patterns (invariant 2 of the Stage 5 brief). Generators
+						// with no "series" family fall through untouched — eligiblePatterns treats an
+						// empty family match as a soft no-op.
+						family: "series",
 						strategy: this.seriesStrategy,
 						volumes: this.seriesVolumes,
 						exclude,

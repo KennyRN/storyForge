@@ -56,6 +56,8 @@ src/titleforge/
                         pattern has note+exemplar, every genre generates, every series
                         strategy succeeds)
   ACCURACY.md          what's verified vs. illustrative vs. dropped in each lexicon, and why
+  corpus/              frozen series-name research (v1.0.0, n=303) behind title-composer's
+                       `series` shape family — provenance only, never imported/bundled
   README.md            this file
 ```
 

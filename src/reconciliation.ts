@@ -7,6 +7,8 @@ import {
 	chapterSidecarPath,
 	isCodexNotePath,
 	isLibraryChapterPath,
+	isNotesArchiveNotePath,
+	isNotesNotePath,
 	recommendSidecarPath,
 } from "./paths";
 import {
@@ -21,6 +23,7 @@ import {
 } from "./book";
 import { renameSeriesBookEntry } from "./series";
 import { rekeyCodexNotePath } from "./codex";
+import { rekeyNotesNotePath } from "./notes";
 import { deleteChapterSidecar, renameChapterSidecar } from "./chapterSidecar";
 import { deleteRecommendCache, renameRecommendSidecar } from "./recommend/cache";
 import { modifyBackstageFrontmatter, renameBackstagePath } from "./writeGuard";
@@ -43,6 +46,10 @@ export function registerReconciliationEvents(app: App, plugin: Plugin): void {
 				await handleCodexNoteRename(app, oldPath, file.path);
 				return;
 			}
+			if (file instanceof TFile && (isNotesNotePath(oldPath) || isNotesArchiveNotePath(oldPath))) {
+				await handleNotesNoteRename(app, oldPath, file.path);
+				return;
+			}
 			if (file instanceof TFolder) {
 				await handleBookFolderRename(app, oldPath, file.path);
 			}
@@ -62,6 +69,11 @@ async function handleCodexNoteRename(app: App, oldPath: string, newPath: string)
 	await rekeyCodexNotePath(app, oldPath, rekeyedPath);
 	await rekeyChapterPovReferences(app, oldPath, rekeyedPath);
 	await rekeyChapterLocationReferences(app, oldPath, rekeyedPath);
+}
+
+async function handleNotesNoteRename(app: App, oldPath: string, newPath: string): Promise<void> {
+	const rekeyedPath = isNotesNotePath(newPath) || isNotesArchiveNotePath(newPath) ? newPath : null;
+	await rekeyNotesNotePath(app, oldPath, rekeyedPath);
 }
 
 async function handleChapterRename(app: App, oldPath: string, newPath: string): Promise<void> {

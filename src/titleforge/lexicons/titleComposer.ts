@@ -3,7 +3,7 @@ import type { GeneratorSpec } from "../engine/types.js";
 export const titleComposerLexicon: GeneratorSpec = {
 	"id": "title-composer",
 	"name": "Title composer",
-	"blurb": "The full English shape taxonomy. Seventy-four shapes across twenty-six families, for novels and series alike.",
+	"blurb": "The full English shape taxonomy. Eighty-three shapes across twenty-seven families, for novels and series alike.",
 	"tradition": "Anglophone",
 	"notes": [
 		"This is the general-purpose bench, and it names series as readily as novels — a series title is grammatically the same kind of object as a novel title.",
@@ -161,6 +161,10 @@ export const titleComposerLexicon: GeneratorSpec = {
 		{
 			"id": "rhetoric",
 			"label": "Rhetorical devices"
+		},
+		{
+			"id": "series",
+			"label": "Series umbrella"
 		}
 	],
 	"patterns": [
@@ -1626,6 +1630,193 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"weight": 2,
 			"exemplar": "the Hercule Poirot mysteries",
 			"note": "Named for the detective rather than the crime. Note that \"The X Mysteries\" is usually a reader or retailer label rather than the publisher's own title, so it belongs on the shelf more than the cover."
+		},
+		{
+			"id": "series-simple",
+			"family": "series",
+			"label": "The [Noun]",
+			"templates": [
+				"The {noun}",
+				"The {abstract}",
+				"The {group}",
+				"The {kingdom}"
+			],
+			"genres": [
+				"epic",
+				"sf",
+				"horror",
+				"hist",
+				"rom",
+				"ya"
+			],
+			"weight": 3,
+			"exemplar": "The Belgariad; The Expanse; The Strain",
+			"note": "The barest umbrella — one weighty noun. Reads as \"the one that matters\"; leans literary/SF. Nearly always takes \"The\"."
+		},
+		{
+			"id": "series-compound",
+			"family": "series",
+			"label": "[Adjective] [Noun] / The [Adjective] [Noun]",
+			"templates": [
+				"The {adj} {noun}",
+				"{adj} {noun}",
+				"The {colour} {noun}",
+				"{noun} {noun#2}",
+				"The {noun} {noun#2}"
+			],
+			"genres": [
+				"epic",
+				"sf",
+				"horror",
+				"crime",
+				"lit",
+				"hist",
+				"rom",
+				"short",
+				"ya"
+			],
+			"weight": 15,
+			"exemplar": "The Stormlight Archive; Revelation Space; Cthulhu Mythos",
+			"note": "The workhorse series shape (~half the corpus). Articled and bare forms are near-even in real series, so both are offered; pick the adjective for sound."
+		},
+		{
+			"id": "series-of",
+			"family": "series",
+			"label": "The [Noun] of [Noun]",
+			"templates": [
+				"The {noun} of {noun#2}",
+				"{noun|a} of {noun#2}",
+				"{noun} of {place}",
+				"{title} of {place}",
+				"The {taleWord} of {name}",
+				"{group} of {place}"
+			],
+			"genres": [
+				"epic",
+				"sf",
+				"horror",
+				"crime",
+				"lit",
+				"hist",
+				"rom",
+				"ya"
+			],
+			"weight": 5,
+			"exemplar": "A Song of Ice and Fire; The Book of the New Sun; The Books of Blood",
+			"note": "The of-genitive is iconic but a MINORITY in real series (~15%) — do not overweight it. The bare and \"A …\" forms matter (A Song of Ice and Fire)."
+		},
+		{
+			"id": "series-pair",
+			"family": "series",
+			"label": "[Noun] and [Noun]",
+			"templates": [
+				"{noun} and {noun#2}",
+				"The {noun} and the {noun#2}",
+				"{name} and {name#2}",
+				"{adj} and {adj#2}"
+			],
+			"genres": [
+				"epic",
+				"crime",
+				"lit",
+				"ya"
+			],
+			"weight": 1,
+			"exemplar": "Memory, Sorrow, and Thorn; The Fast and the Furious; Jeeves and Wooster",
+			"note": "Coordination — a pairing or a duo. Uncommon but distinctive; also the natural home for the ampersand pairing (Bryant & May)."
+		},
+		{
+			"id": "series-name",
+			"family": "series",
+			"label": "[Character Name]",
+			"templates": [
+				"{name} {name#2}",
+				"{honorific} {name}",
+				"{name}"
+			],
+			"genres": [
+				"epic",
+				"sf",
+				"horror",
+				"crime",
+				"lit",
+				"hist",
+				"ya"
+			],
+			"weight": 6,
+			"exemplar": "James Bond; Harry Bosch; Hannibal Lecter",
+			"note": "A recurring protagonist as the umbrella. In real series this is overwhelmingly crime/thriller (and comic) — hence its genre-eligibility, not a global default."
+		},
+		{
+			"id": "series-marker",
+			"family": "series",
+			"label": "The [Noun] [Saga/Cycle/Chronicles/Files]",
+			"templates": [
+				"The {adj} {seriesWord}",
+				"The {noun} {seriesWord}",
+				"{name} {seriesWord}",
+				"The {name} {countWord}",
+				"The {storyWord} of {place}"
+			],
+			"genres": [
+				"epic",
+				"sf",
+				"horror",
+				"crime",
+				"lit",
+				"hist",
+				"rom",
+				"ya"
+			],
+			"weight": 6,
+			"exemplar": "The Stormlight Archive; The Murderbot Diaries; The Best American Short Stories",
+			"note": "The one genuinely series-specific shape: a trailing multi-work marker (Saga, Cycle, Chronicles, Files, Trilogy). A minority tail in the corpus — signals scope without being the norm."
+		},
+		{
+			"id": "series-colon",
+			"family": "series",
+			"label": "[Name]: [Noun]",
+			"templates": [
+				"{name}: {noun}",
+				"{noun}: {abstract}"
+			],
+			"genres": [
+				"crime"
+			],
+			"weight": 1,
+			"exemplar": "Mission: Impossible",
+			"note": "Bipartite, colon-split — franchise/property register (Mission: Impossible). Rare in prose series; low weight."
+		},
+		{
+			"id": "series-verb",
+			"family": "series",
+			"label": "[Verb] [Object]",
+			"templates": [
+				"{strikeVerb} Me",
+				"{verb} the {noun}"
+			],
+			"genres": [
+				"sf",
+				"ya"
+			],
+			"weight": 1,
+			"exemplar": "Shatter Me",
+			"note": "Imperative/verbal — urgent, voice-forward (Shatter Me). Very rare as a series umbrella; low weight, YA-leaning."
+		},
+		{
+			"id": "series-clause",
+			"family": "series",
+			"label": "How to [Verb] [Noun]",
+			"templates": [
+				"How to {verb} Your {noun}"
+			],
+			"genres": [
+				"epic",
+				"ya"
+			],
+			"weight": 1,
+			"exemplar": "How to Train Your Dragon",
+			"note": "A clause/how-to umbrella (How to Train Your Dragon). Very rare; children's/comic register; low weight."
 		}
 	],
 	"lexicon": {
