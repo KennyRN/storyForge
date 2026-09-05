@@ -10,9 +10,9 @@ import {
 	sweepAttributionOrphans,
 	writeAttributionStore,
 } from "./decisions";
-import { analyzeChapter } from "./engine";
+import { analyzeChapter, demoteGoneMatchesToUnknown, stripMarkdownMapped } from "./engine";
 import { loadHydratedCodexInventory } from "./inventory";
-import { resolveChapterNarrator } from "./narrator";
+import { resolveChapterNarrator, resolveDisplayedChapterPov } from "./narrator";
 import type { DialogueQuoteStyle } from "./quoteSpans";
 import type { ChapterRecommendReport } from "./types";
 
@@ -38,12 +38,30 @@ function bookScanExtras(
 	entries: Awaited<ReturnType<typeof loadHydratedCodexInventory>>,
 ): {
 	narrator: { path: string; name: string } | null;
+	povRefs: Array<{ path: string; name: string }>;
 	dialogueQuotes: DialogueQuoteStyle;
 } {
 	return {
 		narrator: resolveChapterNarrator(app, bookFolderName, chapterFilename, entries),
+		povRefs: resolveDisplayedChapterPov(app, bookFolderName, chapterFilename, entries),
 		dialogueQuotes: readBookFrontmatter(app, bookFolderName)?.dialogueQuotes ?? "double",
 	};
+}
+
+function applyGoneMatchDemotion(
+	report: ChapterRecommendReport,
+	previousMatched: ChapterRecommendReport["matched"] | undefined,
+	entries: Awaited<ReturnType<typeof loadHydratedCodexInventory>>,
+	rawChapter: string,
+	includeUnknownNames: boolean,
+): void {
+	if (!includeUnknownNames) return;
+	demoteGoneMatchesToUnknown(
+		report,
+		previousMatched,
+		entries,
+		stripMarkdownMapped(rawChapter).text,
+	);
 }
 
 /** Recomputes and caches a chapter recommend report. */
@@ -65,6 +83,7 @@ export async function recomputeChapterRecommend(
 	const resolved = await readResolvedStore(app, bookFolderName, chapterFilename);
 	const extras = bookScanExtras(app, bookFolderName, chapterFilename, entries);
 
+	const previous = await readRecommendCache(app, bookFolderName, chapterFilename);
 	const report = await analyzeChapter(raw, entries, {
 		chapterFilename,
 		existingPlot,
@@ -72,8 +91,16 @@ export async function recomputeChapterRecommend(
 		attributions: attribution.decisions,
 		resolvedIds: resolved.resolvedIds,
 		narrator: extras.narrator,
+		povRefs: extras.povRefs,
 		dialogueQuotes: extras.dialogueQuotes,
 	});
+	applyGoneMatchDemotion(
+		report,
+		previous?.matched,
+		entries,
+		raw,
+		settings.recommendIncludeUnknownNames,
+	);
 	await withIgnoredNames(app, bookFolderName, report);
 
 	const liveSentences = new Set(report.sentenceKeys);
@@ -105,6 +132,7 @@ export async function loadOrRecomputeChapterRecommend(
 	const resolved = await readResolvedStore(app, bookFolderName, chapterFilename);
 	const extras = bookScanExtras(app, bookFolderName, chapterFilename, entries);
 
+	const cached = await readRecommendCache(app, bookFolderName, chapterFilename);
 	const fresh = await analyzeChapter(raw, entries, {
 		chapterFilename,
 		existingPlot,
@@ -112,11 +140,18 @@ export async function loadOrRecomputeChapterRecommend(
 		attributions: attribution.decisions,
 		resolvedIds: resolved.resolvedIds,
 		narrator: extras.narrator,
+		povRefs: extras.povRefs,
 		dialogueQuotes: extras.dialogueQuotes,
 	});
+	applyGoneMatchDemotion(
+		fresh,
+		cached?.matched,
+		entries,
+		raw,
+		settings.recommendIncludeUnknownNames,
+	);
 	await withIgnoredNames(app, bookFolderName, fresh);
 
-	const cached = await readRecommendCache(app, bookFolderName, chapterFilename);
 	if (cached && isRecommendCacheFresh(cached, fresh.contentHash)) {
 		// Re-apply live resolved/attribution onto cached hits
 		const resolvedSet = new Set(resolved.resolvedIds);
@@ -125,12 +160,21 @@ export async function loadOrRecomputeChapterRecommend(
 		}
 		// Overlay live Codex metadata (type/name) so pane edits show without waiting on hash drift.
 		const byPath = new Map(entries.map((e) => [e.path, e]));
+		const stale = cached.matched.filter((m) => !byPath.has(m.path));
+		cached.matched = cached.matched.filter((m) => byPath.has(m.path));
 		for (const m of cached.matched) {
 			const live = byPath.get(m.path);
 			if (!live) continue;
 			m.type = live.type;
 			m.name = live.name;
 		}
+		applyGoneMatchDemotion(
+			cached,
+			stale,
+			entries,
+			raw,
+			settings.recommendIncludeUnknownNames,
+		);
 		await withIgnoredNames(app, bookFolderName, cached);
 		return cached;
 	}

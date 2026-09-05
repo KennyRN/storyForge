@@ -28,6 +28,7 @@ import { attachCodexDragReorder, type CodexDragRowInfo } from "./dragReorderTree
 import { IdeaSetTypeModal } from "./IdeaSetTypeModal";
 import { TagPickerModal } from "./TagPickerModal";
 import { applySiblingReorder, readVaultTags, setVaultTagPageOrder, siblingOrderAfterMove } from "../vaultTags";
+import { renderStampedIndexEmpty } from "./stampedCross";
 
 export interface IdeaShelfPanelOptions {
 	collapsedPaths: ReadonlySet<string>;
@@ -60,8 +61,8 @@ export function renderIdeaShelfPanel(app: App, container: HTMLElement, options: 
 
 	const treeEl = body.createDiv({ cls: "sf-codex-tree" });
 	const tree = getNotesView(app, options.typeFilter, options.tagFilter);
-	if (!tree) {
-		treeEl.createDiv({ cls: "sf-empty", text: "Nothing here yet." });
+	if (!tree || tree.children.length === 0) {
+		renderStampedIndexEmpty(treeEl, "Nothing here yet.");
 		return;
 	}
 

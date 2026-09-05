@@ -102,6 +102,7 @@ function makeHost() {
 		codexNoteLabelUseFolderColor: false,
 		codexUseHeaderColorForAll: false,
 		hideSeriesPane: false,
+		autoFocus: true,
 		heading2OverrideSize: false,
 		heading2Size: 1.5,
 		heading3OverrideSize: false,

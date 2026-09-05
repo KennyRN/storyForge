@@ -1,0 +1,291 @@
+{
+  "version": "1.1.0",
+  "generatedAt": "2026-09-05",
+  "corpus": {
+    "total": 311,
+    "englishOriginal": 301,
+    "selected": 225,
+    "topQuartile": 39,
+    "referenceExcluded": 10,
+    "blocs": [
+      "gr-progression-fantasy",
+      "gr-litrpg-gamelit",
+      "gr-dungeon-core",
+      "rr-rising-stars",
+      "rr-progression",
+      "dungeon-core",
+      "webnovel-dungeon",
+      "villainess-en",
+      "wattpad-romance",
+      "rr-regression",
+      "rr-tracker",
+      "romance-app",
+      "romance-goodnovel",
+      "romance-novelcat",
+      "pub-aethon",
+      "pub-shadowalley",
+      "pub-gr-prog-litrpg",
+      "reference"
+    ],
+    "selectionRule": "rated titles with >= median ratings count are selected; top quartile = >= p75; unrated frame-coverage titles retained for frames the rated pool underrepresents",
+    "note": "Anchor-sourced; ratings counts from Goodreads shelves. Translated titles held out (scope=reference-translated), subtractable."
+  },
+  "gates": {
+    "MIN_COUNT": 3,
+    "MIN_BLOCS": 2,
+    "MIN_FORMULAS": 2
+  },
+  "lengthModes": {
+    "standard": 111,
+    "long": 35,
+    "terse": 75,
+    "extreme": 4
+  },
+  "registers": {
+    "neutral": 169,
+    "sincere": 39,
+    "ironic-cosy": 1,
+    "hard": 16
+  },
+  "families": [
+    {
+      "family": "setting-anchor",
+      "count": 33,
+      "share": 0.147,
+      "topQuartileCount": 4,
+      "distinctBlocs": 9,
+      "distinctFormulas": 33,
+      "gates": {
+        "g1_count": true,
+        "g2_blocs": true,
+        "g3_formulas": true
+      },
+      "promoted": true,
+      "existingCoverage": null,
+      "isGap": true,
+      "reason": "promoted — NEW pattern (gap in shipped generator)"
+    },
+    {
+      "family": "possessive-relation",
+      "count": 28,
+      "share": 0.124,
+      "topQuartileCount": 3,
+      "distinctBlocs": 10,
+      "distinctFormulas": 28,
+      "gates": {
+        "g1_count": true,
+        "g2_blocs": true,
+        "g3_formulas": true
+      },
+      "promoted": true,
+      "existingCoverage": null,
+      "isGap": true,
+      "reason": "promoted — NEW pattern (gap in shipped generator)"
+    },
+    {
+      "family": "class-role",
+      "count": 24,
+      "share": 0.107,
+      "topQuartileCount": 1,
+      "distinctBlocs": 10,
+      "distinctFormulas": 24,
+      "gates": {
+        "g1_count": true,
+        "g2_blocs": true,
+        "g3_formulas": true
+      },
+      "promoted": true,
+      "existingCoverage": "rank-role",
+      "isGap": false,
+      "reason": "promoted, already covered by \"rank-role\""
+    },
+    {
+      "family": "regression-rebirth",
+      "count": 13,
+      "share": 0.058,
+      "topQuartileCount": 3,
+      "distinctBlocs": 5,
+      "distinctFormulas": 13,
+      "gates": {
+        "g1_count": true,
+        "g2_blocs": true,
+        "g3_formulas": true
+      },
+      "promoted": true,
+      "existingCoverage": null,
+      "isGap": true,
+      "reason": "promoted — NEW pattern (gap in shipped generator)"
+    },
+    {
+      "family": "system-bracket",
+      "count": 12,
+      "share": 0.053,
+      "topQuartileCount": 3,
+      "distinctBlocs": 3,
+      "distinctFormulas": 12,
+      "gates": {
+        "g1_count": true,
+        "g2_blocs": true,
+        "g3_formulas": true
+      },
+      "promoted": true,
+      "existingCoverage": null,
+      "isGap": true,
+      "reason": "promoted — NEW pattern (gap in shipped generator)"
+    },
+    {
+      "family": "full-sentence",
+      "count": 11,
+      "share": 0.049,
+      "topQuartileCount": 1,
+      "distinctBlocs": 5,
+      "distinctFormulas": 11,
+      "gates": {
+        "g1_count": true,
+        "g2_blocs": true,
+        "g3_formulas": true
+      },
+      "promoted": true,
+      "existingCoverage": "situation-complaint",
+      "isGap": false,
+      "reason": "promoted, already covered by \"situation-complaint\""
+    },
+    {
+      "family": "first-person-declarative",
+      "count": 8,
+      "share": 0.036,
+      "topQuartileCount": 1,
+      "distinctBlocs": 5,
+      "distinctFormulas": 8,
+      "gates": {
+        "g1_count": true,
+        "g2_blocs": true,
+        "g3_formulas": true
+      },
+      "promoted": true,
+      "existingCoverage": "situation-complaint (partial)",
+      "isGap": false,
+      "reason": "promoted, already covered by \"situation-complaint (partial)\""
+    },
+    {
+      "family": "system-litrpg",
+      "count": 7,
+      "share": 0.031,
+      "topQuartileCount": 2,
+      "distinctBlocs": 4,
+      "distinctFormulas": 7,
+      "gates": {
+        "g1_count": true,
+        "g2_blocs": true,
+        "g3_formulas": true
+      },
+      "promoted": true,
+      "existingCoverage": "system-calamity",
+      "isGap": false,
+      "reason": "promoted, already covered by \"system-calamity\""
+    },
+    {
+      "family": "genre-subtitle",
+      "count": 5,
+      "share": 0.022,
+      "topQuartileCount": 1,
+      "distinctBlocs": 2,
+      "distinctFormulas": 5,
+      "gates": {
+        "g1_count": true,
+        "g2_blocs": true,
+        "g3_formulas": true
+      },
+      "promoted": true,
+      "existingCoverage": "genre-subtitle",
+      "isGap": false,
+      "reason": "promoted, already covered by \"genre-subtitle\""
+    },
+    {
+      "family": "interrogative-hook",
+      "count": 4,
+      "share": 0.018,
+      "topQuartileCount": 0,
+      "distinctBlocs": 3,
+      "distinctFormulas": 4,
+      "gates": {
+        "g1_count": true,
+        "g2_blocs": true,
+        "g3_formulas": true
+      },
+      "promoted": true,
+      "existingCoverage": null,
+      "isGap": true,
+      "reason": "promoted — NEW pattern (gap in shipped generator)"
+    },
+    {
+      "family": "status-hook",
+      "count": 4,
+      "share": 0.018,
+      "topQuartileCount": 0,
+      "distinctBlocs": 2,
+      "distinctFormulas": 4,
+      "gates": {
+        "g1_count": true,
+        "g2_blocs": true,
+        "g3_formulas": true
+      },
+      "promoted": true,
+      "existingCoverage": null,
+      "isGap": true,
+      "reason": "promoted — NEW pattern (gap in shipped generator)"
+    },
+    {
+      "family": "warning-label",
+      "count": 1,
+      "share": 0.004,
+      "topQuartileCount": 0,
+      "distinctBlocs": 1,
+      "distinctFormulas": 1,
+      "gates": {
+        "g1_count": false,
+        "g2_blocs": false,
+        "g3_formulas": false
+      },
+      "promoted": false,
+      "existingCoverage": "warning-title",
+      "isGap": false,
+      "reason": "HELD — count 1<3, blocs 1<2, formulas 1<2"
+    },
+    {
+      "family": "numeric-grind",
+      "count": 1,
+      "share": 0.004,
+      "topQuartileCount": 0,
+      "distinctBlocs": 1,
+      "distinctFormulas": 1,
+      "gates": {
+        "g1_count": false,
+        "g2_blocs": false,
+        "g3_formulas": false
+      },
+      "promoted": false,
+      "existingCoverage": "numeric-grind",
+      "isGap": false,
+      "reason": "HELD — count 1<3, blocs 1<2, formulas 1<2"
+    }
+  ],
+  "promotedGaps": [
+    "setting-anchor",
+    "possessive-relation",
+    "regression-rebirth",
+    "system-bracket",
+    "interrogative-hook",
+    "status-hook"
+  ],
+  "heldFamilies": [
+    {
+      "family": "warning-label",
+      "reason": "HELD — count 1<3, blocs 1<2, formulas 1<2"
+    },
+    {
+      "family": "numeric-grind",
+      "reason": "HELD — count 1<3, blocs 1<2, formulas 1<2"
+    }
+  ]
+}

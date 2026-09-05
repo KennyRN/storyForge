@@ -247,16 +247,16 @@ export class SeriesModal extends Modal {
 		}
 	}
 
-	/** Codex types + vault `#tag`s share one box; chapter/novel tags, plot threads, and cycling
-	 * guide each get their own. Hover icon, no Open buttons, no group headings. titleForge lives
-	 * on the import & export tab now — see renderImportExportTab(). */
+	/** Types (Codex / Notebook / Archive) + vault `#tag`s share one box; chapter/novel tags, plot
+	 * threads, and cycling guide each get their own. Hover icon, no Open buttons, no group
+	 * headings. titleForge lives on the import & export tab now — see renderImportExportTab(). */
 	private renderTypesAndTagsTab(contentEl: HTMLElement): void {
 		const plugin = this.plugin;
 
 		const typesGroup = new SettingGroup(contentEl);
 		typesGroup.addSetting((setting) => {
-			setting.setName("codex types").setDesc("manage codex types");
-			this.renderHoverIcon(setting, ICON_TAG_DUOTONE, "Open Codex types", () =>
+			setting.setName("types").setDesc("manage Codex, Notebook, and Archive types");
+			this.renderHoverIcon(setting, ICON_TAG_DUOTONE, "Open types", () =>
 				new TagRegistryModal(this.app, () => this.render(), "codexTypes").open(),
 			);
 		});
@@ -350,6 +350,18 @@ export class SeriesModal extends Modal {
 						void plugin.updateSetting("hideSeriesPane", value).then(() => {
 							plugin.refreshStoryForgeViews();
 							this.render();
+						});
+					}),
+				);
+		});
+		togglesGroup.addSetting((setting) => {
+			setting
+				.setName("auto-focus")
+				.setDesc("enables focus mode upon vault open, otherwise opens in story library mode")
+				.addToggle((toggle) =>
+					toggle.setValue(settings.autoFocus).onChange((value) => {
+						void plugin.updateSetting("autoFocus", value).then(() => {
+							plugin.applyLeftPanelLanding({ restoreCenter: true });
 						});
 					}),
 				);

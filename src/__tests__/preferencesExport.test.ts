@@ -20,6 +20,7 @@ const SETTINGS = {
 	recommendIncludeUnknownNames: false,
 	seriesNumberingStyle: "arabic",
 	chapterNumberingStyle: "arabic",
+	autoFocus: true,
 	hideHelp: false,
 	hideSearch: true,
 	hideBookmarks: true,
@@ -63,6 +64,7 @@ describe("preferences export", () => {
 			backup: true,
 		});
 		expect(document.general?.layout).toBe("hybrid");
+		expect(document.general?.autoFocus).toBe(true);
 		expect(document.obsidian?.hideHelp).toBe(false);
 		expect(document.backup?.automaticBackupEnabled).toBe(true);
 		expect(document.description).toBe("roman defaults");

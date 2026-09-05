@@ -37,9 +37,8 @@ trail.)
    regenerate `series-shapes.json` and `series-weights.json` from the frozen
    corpus, then re-copy the shapes into `titleComposer.ts`. The exemplars are
    frozen facts (invariant 8): regenerate here, never hand-edit them.
-   `corpus.core.frozen.json` is the 303-record research input; it is the one
-   large artifact kept alongside the external research pipeline — drop it in
-   here from the Stage 5 handoff bundle if you need to re-run `derive.mjs`.
+   `corpus.core.frozen.json` (303 records) is vendored in this folder;
+   `build-corpus.mjs` reconstructs it from a compact table if it's ever lost.
 
 ## The five edits, in one glance (all applied)
 

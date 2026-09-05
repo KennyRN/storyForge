@@ -5,10 +5,10 @@
  * consults it rather than deciding pane visibility ad hoc.
  *
  * "Codex focus" used to live here as a fourth layout (navigator top pane + codex + stats, no
- * unplaced). It's since moved out into its own always-available "Storytelling" panel
- * (StorytellingView.ts) rather than being a mode you switch the storyLibrary panel into — that
- * panel reuses `renderTopPanel`'s "navigator" mode directly, bypassing this layout selector
- * entirely. Codex still embeds here too, under "Chapter" — and, full-pane and alone, under
+ * unplaced). It's since moved into storytelling mode on the combined left-rail panel
+ * (StoryForgeView.ts) rather than being a mode you switch the storyforge face's layout selector
+ * into — that face reuses `renderTopPanel`'s "navigator" mode directly, bypassing this layout
+ * selector entirely. Codex still embeds here too, under "Chapter" — and, full-pane and alone, under
  * "codex" below.
  */
 export type SfLayout = "codex" | "seriesBrowse" | "novelBrowse" | "hybrid";

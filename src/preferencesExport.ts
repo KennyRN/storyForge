@@ -44,6 +44,7 @@ export const PREFERENCE_GENERAL_KEYS = [
 	"recommendIncludeUnknownNames",
 	"seriesNumberingStyle",
 	"chapterNumberingStyle",
+	"autoFocus",
 ] as const satisfies ReadonlyArray<keyof StoryForgePluginSettings>;
 
 export const PREFERENCE_OBSIDIAN_KEYS = [

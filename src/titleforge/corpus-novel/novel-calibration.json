@@ -1,0 +1,587 @@
+{
+	"derived_from": "corpus v1.1.0 (2026-09-05), n=402",
+	"note": "Suggested weights scaled to the composer's 1..5 novel band from corpus basis counts. Genre-eligibility = corpus genres with >=2 attesting records. Exemplars are real corpus titles. Families with corpus_basis=null have no single structural axis in this corpus and are left for judgement / dedicated sourcing.",
+	"novel_pattern_count": 74,
+	"series_pattern_count": 9,
+	"calibration": [
+		{
+			"family": "core",
+			"corpus_basis": "SF01",
+			"corpus_n": 56,
+			"current_weights": [
+				1,
+				2,
+				3,
+				5
+			],
+			"suggested_weight": 1,
+			"corpus_genre_eligibility": [
+				"sf",
+				"horror",
+				"crime",
+				"lit",
+				"hist",
+				"rom",
+				"ya"
+			],
+			"corpus_verified_exemplars": [
+				"Troubles",
+				"Misery",
+				"The Suspect"
+			],
+			"pattern_ids": [
+				"the-noun",
+				"the-adj-noun",
+				"a-adj-noun",
+				"stacked-modifiers",
+				"the-plural"
+			]
+		},
+		{
+			"family": "of",
+			"corpus_basis": "OFGEN",
+			"corpus_n": 48,
+			"current_weights": [
+				1,
+				2,
+				3
+			],
+			"suggested_weight": 1,
+			"corpus_genre_eligibility": [
+				"epic",
+				"sf",
+				"horror",
+				"crime",
+				"lit",
+				"hist",
+				"rom",
+				"ya"
+			],
+			"corpus_verified_exemplars": [
+				"The Siege of Krishnapur",
+				"The Silence of the Lambs",
+				"A Dram of Poison"
+			],
+			"pattern_ids": [
+				"of-the",
+				"a-of-and",
+				"bare-of",
+				"role-of-place",
+				"number-of-abstract"
+			]
+		},
+		{
+			"family": "poss",
+			"corpus_basis": "POSS",
+			"corpus_n": 23,
+			"current_weights": [
+				1,
+				2,
+				3
+			],
+			"suggested_weight": 1,
+			"corpus_genre_eligibility": [
+				"sf",
+				"horror",
+				"crime",
+				"lit",
+				"rom",
+				"ya"
+			],
+			"corpus_verified_exemplars": [
+				"Midnight's Children",
+				"Boy's Life",
+				"Gideon's Fire"
+			],
+			"pattern_ids": [
+				"name-poss",
+				"role-poss",
+				"pronoun-poss"
+			]
+		},
+		{
+			"family": "pair",
+			"corpus_basis": "SF04",
+			"corpus_n": 11,
+			"current_weights": [
+				1,
+				3
+			],
+			"suggested_weight": 1,
+			"corpus_genre_eligibility": [
+				"epic",
+				"sf",
+				"crime",
+				"lit",
+				"hist",
+				"rom",
+				"ya"
+			],
+			"corpus_verified_exemplars": [
+				"Heat and Dust",
+				"Death and the Joyful Woman",
+				"Harry Potter and the Goblet of Fire"
+			],
+			"pattern_ids": [
+				"noun-and-noun",
+				"the-and-the",
+				"triad",
+				"ampersand",
+				"dilemma"
+			]
+		},
+		{
+			"family": "prep",
+			"corpus_basis": "SF03",
+			"corpus_n": 90,
+			"current_weights": [
+				2,
+				3,
+				4
+			],
+			"suggested_weight": 2,
+			"corpus_genre_eligibility": [
+				"epic",
+				"sf",
+				"horror",
+				"crime",
+				"lit",
+				"hist",
+				"rom",
+				"ya"
+			],
+			"corpus_verified_exemplars": [
+				"Something to Answer For",
+				"The Silence of the Lambs",
+				"Beast in View"
+			],
+			"pattern_ids": [
+				"the-noun-in-the",
+				"lead-preposition",
+				"extended-preposition",
+				"with-companion"
+			]
+		},
+		{
+			"family": "verb",
+			"corpus_basis": null,
+			"corpus_n": null,
+			"current_weights": [
+				1,
+				2,
+				3
+			],
+			"suggested_weight": null,
+			"corpus_genre_eligibility": null,
+			"corpus_verified_exemplars": [],
+			"pattern_ids": [
+				"imperative",
+				"gerund-object",
+				"negative-imperative",
+				"verb-manner",
+				"aphorism"
+			]
+		},
+		{
+			"family": "clause",
+			"corpus_basis": "SENTENCE",
+			"corpus_n": 23,
+			"current_weights": [
+				1,
+				2
+			],
+			"suggested_weight": 1,
+			"corpus_genre_eligibility": [
+				"epic",
+				"sf",
+				"crime",
+				"lit",
+				"hist",
+				"rom",
+				"ya"
+			],
+			"corpus_verified_exemplars": [
+				"How Late It Was, How Late",
+				"The Cabin at the End of the World",
+				"The Spy Who Came in from the Cold"
+			],
+			"pattern_ids": [
+				"who-clause",
+				"that-clause",
+				"overreaching"
+			]
+		},
+		{
+			"family": "question",
+			"corpus_basis": "QUES",
+			"corpus_n": 0,
+			"current_weights": [
+				1,
+				2
+			],
+			"suggested_weight": 1,
+			"corpus_genre_eligibility": [],
+			"corpus_verified_exemplars": [],
+			"pattern_ids": [
+				"question",
+				"statement-question",
+				"direct-address"
+			]
+		},
+		{
+			"family": "name",
+			"corpus_basis": "SF05",
+			"corpus_n": 31,
+			"current_weights": [
+				1,
+				2
+			],
+			"suggested_weight": 1,
+			"corpus_genre_eligibility": [
+				"horror",
+				"crime",
+				"lit",
+				"rom",
+				"ya"
+			],
+			"corpus_verified_exemplars": [
+				"G.",
+				"Mine",
+				"Forfeit"
+			],
+			"pattern_ids": [
+				"honorific-name",
+				"name-epithet",
+				"appositive",
+				"life-of-name"
+			]
+		},
+		{
+			"family": "place",
+			"corpus_basis": null,
+			"corpus_n": null,
+			"current_weights": [
+				2
+			],
+			"suggested_weight": null,
+			"corpus_genre_eligibility": null,
+			"corpus_verified_exemplars": [],
+			"pattern_ids": [
+				"bare-place",
+				"bounded-space"
+			]
+		},
+		{
+			"family": "number",
+			"corpus_basis": null,
+			"corpus_n": null,
+			"current_weights": [
+				2
+			],
+			"suggested_weight": null,
+			"corpus_genre_eligibility": null,
+			"corpus_verified_exemplars": [],
+			"pattern_ids": [
+				"number-noun",
+				"quantifier"
+			]
+		},
+		{
+			"family": "event",
+			"corpus_basis": null,
+			"corpus_n": null,
+			"current_weights": [
+				2,
+				3
+			],
+			"suggested_weight": null,
+			"corpus_genre_eligibility": null,
+			"corpus_verified_exemplars": [],
+			"pattern_ids": [
+				"rise-of",
+				"strikes-back"
+			]
+		},
+		{
+			"family": "modifier",
+			"corpus_basis": "SF02",
+			"corpus_n": 210,
+			"current_weights": [
+				5
+			],
+			"suggested_weight": 5,
+			"corpus_genre_eligibility": [
+				"epic",
+				"sf",
+				"horror",
+				"crime",
+				"lit",
+				"hist",
+				"rom",
+				"ya"
+			],
+			"corpus_verified_exemplars": [
+				"The Elected Member",
+				"Swan Song",
+				"Beat Not the Bones"
+			],
+			"pattern_ids": [
+				"colour-noun",
+				"weather-noun"
+			]
+		},
+		{
+			"family": "list",
+			"corpus_basis": null,
+			"corpus_n": null,
+			"current_weights": [
+				1
+			],
+			"suggested_weight": null,
+			"corpus_genre_eligibility": null,
+			"corpus_verified_exemplars": [],
+			"pattern_ids": [
+				"asyndeton"
+			]
+		},
+		{
+			"family": "subtitle",
+			"corpus_basis": "SF10",
+			"corpus_n": 2,
+			"current_weights": [
+				1,
+				2,
+				3
+			],
+			"suggested_weight": 1,
+			"corpus_genre_eligibility": [],
+			"corpus_verified_exemplars": [
+				"Possession: A Romance",
+				"Catch Me: Kill Me"
+			],
+			"pattern_ids": [
+				"colon-subtitle",
+				"archaic-or",
+				"series-word",
+				"detective-series"
+			]
+		},
+		{
+			"family": "guide",
+			"corpus_basis": null,
+			"corpus_n": null,
+			"current_weights": [
+				2
+			],
+			"suggested_weight": null,
+			"corpus_genre_eligibility": null,
+			"corpus_verified_exemplars": [],
+			"pattern_ids": [
+				"how-to",
+				"art-of"
+			]
+		},
+		{
+			"family": "abstract",
+			"corpus_basis": "SF01",
+			"corpus_n": 56,
+			"current_weights": [
+				2
+			],
+			"suggested_weight": 1,
+			"corpus_genre_eligibility": [
+				"sf",
+				"horror",
+				"crime",
+				"lit",
+				"hist",
+				"rom",
+				"ya"
+			],
+			"corpus_verified_exemplars": [
+				"Troubles",
+				"Misery",
+				"The Suspect"
+			],
+			"pattern_ids": [
+				"bare-abstract"
+			]
+		},
+		{
+			"family": "sentence",
+			"corpus_basis": "SENTENCE",
+			"corpus_n": 23,
+			"current_weights": [
+				1,
+				2
+			],
+			"suggested_weight": 1,
+			"corpus_genre_eligibility": [
+				"epic",
+				"sf",
+				"crime",
+				"lit",
+				"hist",
+				"rom",
+				"ya"
+			],
+			"corpus_verified_exemplars": [
+				"How Late It Was, How Late",
+				"The Cabin at the End of the World",
+				"The Spy Who Came in from the Cold"
+			],
+			"pattern_ids": [
+				"declarative",
+				"conditional",
+				"temporal-clause",
+				"conjunction-opener",
+				"how-clause"
+			]
+		},
+		{
+			"family": "participle",
+			"corpus_basis": null,
+			"corpus_n": null,
+			"current_weights": [
+				1,
+				3
+			],
+			"suggested_weight": null,
+			"corpus_genre_eligibility": null,
+			"corpus_verified_exemplars": [],
+			"pattern_ids": [
+				"past-participle",
+				"participle-by"
+			]
+		},
+		{
+			"family": "journey",
+			"corpus_basis": null,
+			"corpus_n": null,
+			"current_weights": [
+				2,
+				3
+			],
+			"suggested_weight": null,
+			"corpus_genre_eligibility": null,
+			"corpus_verified_exemplars": [],
+			"pattern_ids": [
+				"road-to",
+				"return-to"
+			]
+		},
+		{
+			"family": "tale",
+			"corpus_basis": null,
+			"corpus_n": null,
+			"current_weights": [
+				4
+			],
+			"suggested_weight": null,
+			"corpus_genre_eligibility": null,
+			"corpus_verified_exemplars": [],
+			"pattern_ids": [
+				"tale-of"
+			]
+		},
+		{
+			"family": "lastfirst",
+			"corpus_basis": null,
+			"corpus_n": null,
+			"current_weights": [
+				4
+			],
+			"suggested_weight": null,
+			"corpus_genre_eligibility": null,
+			"corpus_verified_exemplars": [],
+			"pattern_ids": [
+				"last-first"
+			]
+		},
+		{
+			"family": "temporal",
+			"corpus_basis": null,
+			"corpus_n": null,
+			"current_weights": [
+				2,
+				3
+			],
+			"suggested_weight": null,
+			"corpus_genre_eligibility": null,
+			"corpus_verified_exemplars": [],
+			"pattern_ids": [
+				"age-of",
+				"one-night"
+			]
+		},
+		{
+			"family": "negative",
+			"corpus_basis": null,
+			"corpus_n": null,
+			"current_weights": [
+				2
+			],
+			"suggested_weight": null,
+			"corpus_genre_eligibility": null,
+			"corpus_verified_exemplars": [],
+			"pattern_ids": [
+				"absence"
+			]
+		},
+		{
+			"family": "reference",
+			"corpus_basis": null,
+			"corpus_n": null,
+			"current_weights": [
+				1,
+				2
+			],
+			"suggested_weight": null,
+			"corpus_genre_eligibility": null,
+			"corpus_verified_exemplars": [],
+			"pattern_ids": [
+				"reference-work",
+				"listicle"
+			]
+		},
+		{
+			"family": "rhetoric",
+			"corpus_basis": null,
+			"corpus_n": null,
+			"current_weights": [
+				1,
+				2,
+				3
+			],
+			"suggested_weight": null,
+			"corpus_genre_eligibility": null,
+			"corpus_verified_exemplars": [],
+			"pattern_ids": [
+				"oxymoron",
+				"metaphor",
+				"simile",
+				"repetition",
+				"exclamatory"
+			]
+		}
+	],
+	"flags": [
+		"WEIGHT  the-adj-noun (family core): current 5 vs corpus-suggested 1 (basis SF01, n=56)"
+	],
+	"families_without_corpus_basis": [
+		"verb",
+		"place",
+		"number",
+		"event",
+		"list",
+		"guide",
+		"participle",
+		"journey",
+		"tale",
+		"lastfirst",
+		"temporal",
+		"negative",
+		"reference",
+		"rhetoric"
+	]
+}

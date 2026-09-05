@@ -50,6 +50,7 @@ import {
 	ICON_EXCLAMATION_SQUARE_FILL,
 	ICON_EXPLOSION,
 	ICON_EYE,
+	ICON_EYE_DUOTONE,
 	ICON_EYE_OUTLINE,
 	ICON_FILE_PLUS,
 	ICON_FILE_TEXT_DUOTONE,
@@ -76,6 +77,7 @@ import {
 	ICON_LAYOUT_SELECTOR,
 	ICON_LIGHTNING,
 	ICON_LINK2,
+	ICON_LINK2_DUOTONE,
 	ICON_LIST3_FILLED,
 	ICON_LOCATION_TARGET_SQUARE,
 	ICON_LOCK,
@@ -87,10 +89,7 @@ import {
 	ICON_MULTIPLY_SQUARE,
 	ICON_MUSIC_NOTE,
 	ICON_NOTEBOOK,
-	ICON_NOTEBOOK_ADD,
 	ICON_NOTEBOOK_DUOTONE,
-	ICON_NOTEBOOK_EYE,
-	ICON_NOTEBOOK_FILLED,
 	ICON_OBSIDIAN,
 	ICON_PAGE_PORTRAIT,
 	ICON_PAGE_TEXT,
@@ -115,6 +114,7 @@ import {
 	ICON_PLANET,
 	ICON_PLUS_SQUARE,
 	ICON_MINUS_SQUARE,
+	ICON_MINUS_CIRCLE_DUOTONE,
 	ICON_CHECK_SQUARE,
 	ICON_PLOT_THREADS,
 	ICON_RAIN,
@@ -144,6 +144,7 @@ import {
 	ICON_TAG,
 	ICON_TAG_DUOTONE,
 	ICON_TAG_EDIT,
+	ICON_TARGET_DUOTONE,
 	ICON_TEMPLE,
 	ICON_TEXT_HEADER_1,
 	ICON_TEXT_HEADER_2,
@@ -369,10 +370,11 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 	{ id: ICON_UNPLACED, label: "Unplaced", source: "custom", usedIn: ["TopPanel.ts — Unplaced section header (books & chapters)"] },
 	{
 		id: ICON_ARCHIVE,
-		label: "Archive",
+		label: "Archive (line box)",
 		source: "custom",
 		usedIn: [
-			"StoryContextView.ts — Archive tab (Novel/Chapter/Details/Dossier row) and the embedded archive pane's own header",
+			"StoryContextView.ts — Archive tab (Novel/Chapter/Details/Dossier row)",
+			"UiFormattingModal.ts / uiStylePreviewSample.ts — story-context archive formatting leaf and preview",
 			"ArchiveView.ts — legacy Archive leaf header (detached from rail)",
 		],
 	},
@@ -382,13 +384,13 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		source: "custom",
 		usedIn: ["archivePanel.ts — unarchive row button"],
 	},
-	{ id: ICON_CODEX, label: "Codex", source: "custom", usedIn: ["StoryForgeView.ts — layout tab row, leading icon on the \"Codex\" tab", "archivePanel.ts — Archive Codex-mode icon", "StoryContextView.ts — Notebook pane Codex-index switcher", "iconRegistry.ts — Codex icon catalog (\"earth\")"] },
+	{ id: ICON_CODEX, label: "Codex", source: "custom", usedIn: ["StoryForgeView.ts — layout tab row, leading icon on the \"Codex\" tab", "archivePanel.ts — Archive Codex-mode icon", "StoryContextView.ts — Notebook pane Codex-index switcher", "TagRegistryModal.ts — types manager Codex tab", "iconRegistry.ts — Codex icon catalog (\"earth\")"] },
 	{
 		id: ICON_SERIES,
 		label: "Series",
 		source: "custom",
 		usedIn: [
-			"StoryForgeView.ts — view tab icon; also the layout tab row's \"Series\" tab icon",
+			"StoryForgeView.ts — storyforge-face tab icon; also the layout tab row's \"Series\" tab icon",
 			"SeriesOverviewView.ts — view tab icon",
 		],
 	},
@@ -429,7 +431,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		source: "custom",
 		usedIn: [
 			"TopPanel.ts — Series tab's book list, marks the currently open/selected novel",
-			"StorytellingView.ts — view tab icon",
+			"StoryForgeView.ts — storytelling-mode tab icon",
 		],
 	},
 	{
@@ -482,6 +484,15 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		usedIn: [],
 	},
 	{
+		id: ICON_EYE_DUOTONE,
+		label: "Eye (duotone)",
+		source: "custom",
+		usedIn: [
+			"ObsidianElementsModal.ts — hide-or-show row",
+			"StoryContextView.ts — Focus Mode Notebook browse child",
+		],
+	},
+	{
 		id: ICON_FILE_PLUS,
 		label: "Add to chapter",
 		source: "custom",
@@ -505,7 +516,13 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		id: ICON_LOCATION_TARGET_SQUARE,
 		label: "Location target (square)",
 		source: "custom",
-		usedIn: ["StoryContextView.ts — Story Context Chapter tab's \"go to chapter\" action (replaces ICON_EYE)"],
+		usedIn: [],
+	},
+	{
+		id: ICON_TARGET_DUOTONE,
+		label: "Target (duotone)",
+		source: "custom",
+		usedIn: ["StoryContextView.ts — Story Context Chapter tab's \"go to chapter\" action"],
 	},
 	{
 		id: ICON_REFRESH_SQUARE,
@@ -517,9 +534,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		id: ICON_ADD_SQUARE,
 		label: "Add (square)",
 		source: "custom",
-		usedIn: [
-			"StoryContextView.ts — Story Context Chapter tab's \"create details note\" action",
-		],
+		usedIn: [],
 	},
 	{
 		id: ICON_CHEVRON_DOWN,
@@ -579,7 +594,6 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		usedIn: [
 			"TopPanel.ts — new chapter button (Unplaced Chapters) and new book button (Unplaced Novels)",
 			"BottomPanel.ts — new Codex note button",
-			"StoryContextView.ts — create in Codex (unknown name)",
 			"IdeaShelfPanel.ts — new notebook note button",
 		],
 	},
@@ -588,10 +602,18 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		label: "Ignore",
 		source: "custom",
 		usedIn: [
-			"StoryContextView.ts — ignore unknown name",
-			"StoryContextView.ts — ignore detail (solid)",
-			"StoryContextView.ts — ignore detail attribution (grey)",
+			"TagRegistryModal.ts — delete type/tag",
+			"TagPickerModal.ts — delete tag",
+			"CodexSetTypeModal.ts — delete type",
+			"IdeaSetTypeModal.ts — delete type",
+			"PlotThreadRegistryModal.ts — delete thread",
 		],
+	},
+	{
+		id: ICON_MINUS_CIRCLE_DUOTONE,
+		label: "Ignore (circle, duotone)",
+		source: "custom",
+		usedIn: ["StoryContextView.ts — ignore unknown name"],
 	},
 	{
 		id: ICON_CHECK_SQUARE,
@@ -628,6 +650,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 	{ id: ICON_PAGE_PORTRAIT, label: "Page portrait", source: "custom", usedIn: ["TextStyleModal.ts — text format breadcrumb: Body text"] },
 	{ id: ICON_BLOCKQUOTE, label: "Block quote", source: "custom", usedIn: ["TextStyleModal.ts — text format breadcrumb: Quote"] },
 	{ id: ICON_LINK2, label: "Link", source: "custom", usedIn: ["TextStyleModal.ts — text format breadcrumb: Links half of Links and lists"] },
+	{ id: ICON_LINK2_DUOTONE, label: "Link (duotone)", source: "custom", usedIn: ["StoryContextView.ts — Story Context Chapter tab link unknown name to existing Codex"] },
 	{ id: ICON_LIST3_FILLED, label: "List", source: "custom", usedIn: ["TextStyleModal.ts — text format breadcrumb: Lists half of Links and lists"] },
 	{ id: ICON_TEXT_HEADER_1, label: "Heading 1", source: "custom", usedIn: ["TextStyleModal.ts — text format breadcrumb: H1"] },
 	{ id: ICON_TEXT_HEADER_2, label: "Heading 2", source: "custom", usedIn: ["TextStyleModal.ts — text format breadcrumb: H2"] },
@@ -683,7 +706,12 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		id: ICON_ADD_CIRCLE,
 		label: "Add (circle, duotone)",
 		source: "custom",
-		usedIn: ["CodexFocusNavigator.ts — 'continue the story' tile", "NewChapterView.ts — full-page create-chapter icon (3em)"],
+		usedIn: [
+			"CodexFocusNavigator.ts — 'continue the story' tile",
+			"NewChapterView.ts — full-page create-chapter icon (3em)",
+			"StoryContextView.ts — Focus Mode Notebook new-note child",
+			"StoryContextView.ts — Story Context Chapter tab add to Codex and create details note",
+		],
 	},
 	{
 		id: ICON_LAYOUT_SELECTOR,
@@ -702,9 +730,9 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		label: "Tag (duotone)",
 		source: "custom",
 		usedIn: [
-			"SeriesModal.ts — types, tags, & threads tab hover icon that opens Codex types",
-			"TopPanel.ts — series-pane hover icon that opens Codex types",
-			"BottomPanel.ts — full-pane Codex tab hover icon that opens Codex types",
+			"SeriesModal.ts — types, tags, & threads tab hover icon that opens the types manager",
+			"TopPanel.ts — series-pane hover icon that opens the types manager",
+			"BottomPanel.ts — full-pane Codex tab hover icon that opens the types manager",
 		],
 	},
 	{
@@ -729,7 +757,7 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		id: ICON_NOTEBOOK,
 		label: "Notebook",
 		source: "custom",
-		usedIn: ["StoryContextView.ts — Story Context view tab icon"],
+		usedIn: [],
 	},
 	{
 		id: ICON_STORYTELLING,
@@ -748,27 +776,6 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		label: "Bookshelf",
 		source: "custom",
 		usedIn: [],
-	},
-	{
-		id: ICON_NOTEBOOK_FILLED,
-		label: "Notebook (filled)",
-		source: "custom",
-		usedIn: [
-			"StoryContextView.ts — Story Context Notebook tab, Focus Mode Notebook trigger, Notebook pane notebook-index switcher",
-			"archivePanel.ts — Archive Notebook-mode icon",
-		],
-	},
-	{
-		id: ICON_NOTEBOOK_EYE,
-		label: "Notebook with eye",
-		source: "custom",
-		usedIn: ["StoryContextView.ts — Focus Mode Notebook pop-out browse button"],
-	},
-	{
-		id: ICON_NOTEBOOK_ADD,
-		label: "Notebook with add",
-		source: "custom",
-		usedIn: ["StoryContextView.ts — Focus Mode Notebook pop-out new-note button"],
 	},
 	{
 		id: ICON_CARDS,
@@ -826,7 +833,11 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		id: ICON_NOTEBOOK_DUOTONE,
 		label: "Notebook (duotone)",
 		source: "custom",
-		usedIn: [],
+		usedIn: [
+			"StoryContextView.ts — Story Context Notebook tab, Focus Mode Notebook trigger, Notebook pane notebook-index switcher, Archive source rail",
+			"archivePanel.ts — Archive Notebook-mode icon",
+			"TagRegistryModal.ts — types manager Notebook tab",
+		],
 	},
 	{
 		id: ICON_DOSSIER,
@@ -836,9 +847,12 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 	},
 	{
 		id: ICON_ARCHIVE_FILLED,
-		label: "Archive (filled)",
+		label: "Archive (filled box)",
 		source: "custom",
-		usedIn: ["StoryContextView.ts — Story Context's Archive tab icon"],
+		usedIn: [
+			"TagRegistryModal.ts — types manager Archive tab",
+			"TypesTagsExportModal.ts / PreferencesExportModal.ts / ThreadsExportModal.ts / CompleteExportModal.ts — archive-preset hover icon",
+		],
 	},
 	{
 		id: ICON_X,

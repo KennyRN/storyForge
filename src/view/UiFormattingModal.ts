@@ -23,7 +23,7 @@ import {
 	type BreadcrumbNode,
 } from "./interfaceBreadcrumb";
 import {
-	ICON_ARCHIVE_FILLED,
+	ICON_ARCHIVE,
 	ICON_BOOK_DUOTONE,
 	ICON_BOOK_OPEN,
 	ICON_BOOK_OPEN_FILLED,
@@ -212,7 +212,7 @@ export class UiFormattingModal extends Modal {
 							{
 								id: "archive",
 								label: "archive",
-								icon: ICON_ARCHIVE_FILLED,
+								icon: ICON_ARCHIVE,
 								render: (body) => this.renderRightRailPanelContent(body, settings),
 							},
 						],
@@ -578,7 +578,7 @@ export class UiFormattingModal extends Modal {
 		itemsGroup.addSetting((setting) => {
 			setting
 				.setName("storyTelling items")
-				.setDesc("Text size of chapters in the storyTelling panel, from 0.5em to 1.5em.")
+				.setDesc("Text size of chapters in storytelling mode, from 0.5em to 1.5em.")
 				.addSlider((slider) =>
 					slider
 						.setLimits(0.5, 1.5, 0.1)
@@ -659,7 +659,7 @@ export class UiFormattingModal extends Modal {
 			highlightTextColourSetting = setting;
 			setting
 				.setName("Highlight text colour")
-				.setDesc("Colour of the active chapter's text in the storyTelling panel.")
+				.setDesc("Colour of the active chapter's text in storytelling mode.")
 				.addButton((button) =>
 					bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings.storytellingHighlightTextColor, (hex) => {
 						void this.plugin.updateSetting("storytellingHighlightTextColor", hex).then(() => this.plugin.applyHighlightStyle());

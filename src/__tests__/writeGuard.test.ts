@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
 	ForbiddenWriteError,
 	assertBackstagePath,
+	modifyBackstageFrontmatter,
+	modifyCodexNoteAliases,
 	normalizeVaultPath,
 	writeBackstageFile,
 	writeBackupText,
@@ -9,7 +11,7 @@ import {
 } from "../writeGuard";
 import { BACKSTAGE_ROOT, LIBRARY_ROOT, TITLEFORGE_BACKSTAGE_ROOT, bookFilePath, libraryChapterPath, seriesFilePath } from "../paths";
 import { makeTFile } from "./obsidianStub";
-import type { Vault } from "obsidian";
+import type { App, FrontMatterCache, TFile, Vault } from "obsidian";
 
 describe("normalizeVaultPath", () => {
 	it("collapses . segments and trailing slashes", () => {
@@ -214,5 +216,99 @@ describe("writeBackstageFile — cold-start index lag", () => {
 		const result = await writeBackstageFile(vault, `${TITLEFORGE_BACKSTAGE_ROOT}/settings.json`, "{}");
 		expect(result).toBe(file);
 		expect(modified).toEqual(["ok"]);
+	});
+});
+
+describe("modifyCodexNoteAliases", () => {
+	function fakeCodexNote(
+		path: string,
+		initial: Record<string, unknown>,
+	): {
+		app: App;
+		vault: Vault;
+		frontmatter: Record<string, unknown>;
+		processCalls: number;
+		bodyWrites: number;
+	} {
+		const file = makeTFile(path);
+		const frontmatter: Record<string, unknown> = { ...initial };
+		let processCalls = 0;
+		let bodyWrites = 0;
+		const vault = {
+			getAbstractFileByPath: (p: string) => (p === path ? file : null),
+			modify: async () => {
+				bodyWrites += 1;
+			},
+			create: async () => {
+				throw new Error("unexpected create");
+			},
+		} as unknown as Vault;
+		const app = {
+			vault,
+			fileManager: {
+				processFrontMatter: async (_file: TFile, fn: (fm: FrontMatterCache) => void) => {
+					processCalls += 1;
+					fn(frontmatter as FrontMatterCache);
+				},
+			},
+		} as unknown as App;
+		return {
+			app,
+			vault,
+			frontmatter,
+			get processCalls() {
+				return processCalls;
+			},
+			get bodyWrites() {
+				return bodyWrites;
+			},
+		};
+	}
+
+	it("rewrites only the aliases key on a Codex note", async () => {
+		const fake = fakeCodexNote("Codex/Arsenal.md", { book: "TECa", title: "keep me", aliases: ["A"] });
+		await modifyCodexNoteAliases(fake.app, fake.vault, "Codex/Arsenal.md", (aliases) => [
+			...aliases,
+			"The Gunners",
+		]);
+		expect(fake.frontmatter).toEqual({ book: "TECa", title: "keep me", aliases: ["A", "The Gunners"] });
+		expect(fake.processCalls).toBe(1);
+		expect(fake.bodyWrites).toBe(0);
+	});
+
+	it("refuses non-Codex paths without touching frontmatter", async () => {
+		const fake = fakeCodexNote("notes/Jane.md", { aliases: [] });
+		await expect(
+			modifyCodexNoteAliases(fake.app, fake.vault, "notes/Jane.md", (aliases) => [...aliases, "Gunners"]),
+		).rejects.toBeInstanceOf(ForbiddenWriteError);
+		await expect(
+			modifyCodexNoteAliases(fake.app, fake.vault, `${LIBRARY_ROOT}/TECa/ch1.md`, (a) => a),
+		).rejects.toBeInstanceOf(ForbiddenWriteError);
+		expect(fake.processCalls).toBe(0);
+	});
+
+	it("does not expose a general Codex frontmatter or body write", async () => {
+		const file = makeTFile("Codex/Jane.md");
+		const vault = {
+			getAbstractFileByPath: () => file,
+			modify: async () => undefined,
+			create: async () => file,
+			createFolder: async () => undefined,
+		} as unknown as Vault;
+		const app = {
+			vault,
+			fileManager: {
+				processFrontMatter: async () => undefined,
+			},
+		} as unknown as App;
+
+		await expect(writeBackstageFile(vault, "Codex/Jane.md", "stolen body")).rejects.toBeInstanceOf(
+			ForbiddenWriteError,
+		);
+		await expect(
+			modifyBackstageFrontmatter(app, vault, "Codex/Jane.md", "---\n---\n", (fm) => {
+				fm.title = "nope";
+			}),
+		).rejects.toBeInstanceOf(ForbiddenWriteError);
 	});
 });

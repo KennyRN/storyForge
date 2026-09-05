@@ -1,0 +1,29 @@
+{
+	"source": "Michael L. Printz Award (Excellence in Young Adult Literature) — winners",
+	"authority": "en.wikipedia.org/wiki/Michael_L._Printz_Award (Winner rows 2000-2007); ALA/YALSA official (2025); Booklist/ALA winner lines (2011-2023)",
+	"confidence_default": "C3",
+	"primary_genre_default": "ya",
+	"note": "Confident winners only. 2008-2010, 2022 and 2024 were ambiguous across the fetched sources (winner vs honor) and are QUARANTINED pending single-source verification, per the never-invent rule — not included here.",
+	"records": [
+		{ "title": "Monster", "year": 2000 },
+		{ "title": "Kit's Wilderness", "year": 2001 },
+		{ "title": "A Step from Heaven", "year": 2002 },
+		{ "title": "Postcards from No Man's Land", "year": 2003 },
+		{ "title": "The First Part Last", "year": 2004 },
+		{ "title": "How I Live Now", "year": 2005 },
+		{ "title": "American Born Chinese", "year": 2007 },
+		{ "title": "Ship Breaker", "year": 2011, "secondary_genres": ["sf"] },
+		{ "title": "Where Things Come Back", "year": 2012 },
+		{ "title": "In Darkness", "year": 2013 },
+		{ "title": "Midwinterblood", "year": 2014 },
+		{ "title": "I'll Give You the Sun", "year": 2015 },
+		{ "title": "Bone Gap", "year": 2016 },
+		{ "title": "March", "year": 2017 },
+		{ "title": "We Are Okay", "year": 2018 },
+		{ "title": "The Poet X", "year": 2019 },
+		{ "title": "Dig", "year": 2020 },
+		{ "title": "Everything Sad Is Untrue", "year": 2021 },
+		{ "title": "All My Rage", "year": 2023 },
+		{ "title": "Brownstone", "year": 2025 }
+	]
+}

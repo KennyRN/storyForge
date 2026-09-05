@@ -18,18 +18,19 @@ export interface TagDefinition {
 	 * Nested-type parent — another id in the same list, or null/undefined at the root. Only
 	 * `codexTypes` ever sets this, and only as a child of the built-in "person" or "place" types
 	 * (nesting is deliberately not offered anywhere else — see TagRegistryModal's Codex types tab
-	 * and CodexSetTypeModal). chapterTags/novelTags never set it.
+	 * and CodexSetTypeModal). Notebook/Archive types and chapterTags/novelTags never set it.
 	 */
 	parentId?: string | null;
 }
 
-export type TagListKind = "codexTypes" | "chapterTags" | "novelTags" | "ideaTypes";
+export type TagListKind = "codexTypes" | "chapterTags" | "novelTags" | "ideaTypes" | "archiveTypes";
 
 export interface TagRegistryShape {
 	codexTypes: TagDefinition[];
 	chapterTags: TagDefinition[];
 	novelTags: TagDefinition[];
 	ideaTypes: TagDefinition[];
+	archiveTypes: TagDefinition[];
 }
 
 interface RawTagDefinition {
@@ -45,13 +46,15 @@ export interface RawTagRegistryFrontmatter extends FrontMatterCache {
 	"chapter-tags"?: unknown;
 	"novel-tags"?: unknown;
 	"idea-types"?: unknown;
+	"archive-types"?: unknown;
 }
 
-const RAW_KEY: Record<TagListKind, "codex-types" | "chapter-tags" | "novel-tags" | "idea-types"> = {
+const RAW_KEY: Record<TagListKind, "codex-types" | "chapter-tags" | "novel-tags" | "idea-types" | "archive-types"> = {
 	codexTypes: "codex-types",
 	chapterTags: "chapter-tags",
 	novelTags: "novel-tags",
 	ideaTypes: "idea-types",
+	archiveTypes: "archive-types",
 };
 
 /** Used when a tag/type's `iconAlias` no longer resolves (a stale alias from an older catalog). */
@@ -99,7 +102,21 @@ function tagDefinitionsYaml(entries: readonly TagDefinition[]): string {
 		.join("\n");
 }
 
-export const DEFAULT_TAG_REGISTRY_CONTENT = `---\ncodex-types:\n${tagDefinitionsYaml(SEED_CODEX_TYPES)}\nchapter-tags:\n${tagDefinitionsYaml(SEED_CHAPTER_TAGS)}\nnovel-tags:\n${tagDefinitionsYaml(SEED_NOVEL_TAGS)}\nidea-types:\n---\n`;
+export const DEFAULT_TAG_REGISTRY_CONTENT = `---\ncodex-types:\n${tagDefinitionsYaml(SEED_CODEX_TYPES)}\nchapter-tags:\n${tagDefinitionsYaml(SEED_CHAPTER_TAGS)}\nnovel-tags:\n${tagDefinitionsYaml(SEED_NOVEL_TAGS)}\nidea-types:\narchive-types:\n---\n`;
+
+function seedTagRegistry(): TagRegistryShape {
+	return {
+		codexTypes: SEED_CODEX_TYPES.map((e) => ({ ...e })),
+		chapterTags: SEED_CHAPTER_TAGS.map((e) => ({ ...e })),
+		novelTags: SEED_NOVEL_TAGS.map((e) => ({ ...e })),
+		ideaTypes: [],
+		archiveTypes: [],
+	};
+}
+
+function emptyTagRegistry(): TagRegistryShape {
+	return { codexTypes: [], chapterTags: [], novelTags: [], ideaTypes: [], archiveTypes: [] };
+}
 
 function parseTagDefinitions(raw: unknown): TagDefinition[] {
 	if (!Array.isArray(raw)) return [];
@@ -120,14 +137,7 @@ function parseTagDefinitions(raw: unknown): TagDefinition[] {
 export function readTagRegistry(app: App): TagRegistryShape {
 	const path = tagRegistryFilePath();
 	const file = app.vault.getAbstractFileByPath(path);
-	if (!file) {
-		return {
-			codexTypes: SEED_CODEX_TYPES.map((e) => ({ ...e })),
-			chapterTags: SEED_CHAPTER_TAGS.map((e) => ({ ...e })),
-			novelTags: SEED_NOVEL_TAGS.map((e) => ({ ...e })),
-			ideaTypes: [],
-		};
-	}
+	if (!file) return seedTagRegistry();
 	const cache = app.metadataCache.getCache(path);
 	const fm = cache?.frontmatter;
 	return {
@@ -135,15 +145,16 @@ export function readTagRegistry(app: App): TagRegistryShape {
 		chapterTags: parseTagDefinitions(fm?.["chapter-tags"]),
 		novelTags: parseTagDefinitions(fm?.["novel-tags"]),
 		ideaTypes: parseTagDefinitions(fm?.["idea-types"]),
+		archiveTypes: parseTagDefinitions(fm?.["archive-types"]),
 	};
 }
 
 /** Resolves a tag/type's `iconAlias` to the real icon id `setIcon` needs, falling back to a generic
- * icon if the alias is stale. Codex types draw from CODEX_ICON_CATALOG; chapter/novel/Codex tags
- * share TAG_ICON_CATALOG — both are fixed, programmer-curated lists (see src/iconRegistry.ts),
- * never user-extensible. */
+ * icon if the alias is stale. Codex / Notebook / Archive types draw from CODEX_ICON_CATALOG;
+ * chapter/novel tags share TAG_ICON_CATALOG — both are fixed, programmer-curated lists
+ * (see src/iconRegistry.ts), never user-extensible. */
 export function resolveIconAlias(list: TagListKind, alias: string): string {
-	const catalog = list === "codexTypes" || list === "ideaTypes" ? CODEX_ICON_CATALOG : TAG_ICON_CATALOG;
+	const catalog = list === "chapterTags" || list === "novelTags" ? TAG_ICON_CATALOG : CODEX_ICON_CATALOG;
 	return catalog.find((e) => e.alias === alias)?.iconId ?? FALLBACK_ICON_ID;
 }
 
@@ -158,12 +169,7 @@ export async function ensureTagRegistryFile(app: App): Promise<TagRegistryShape>
 		await modifyBackstageFrontmatter(app, app.vault, path, DEFAULT_TAG_REGISTRY_CONTENT, () => {
 			/* defaults from DEFAULT_TAG_REGISTRY_CONTENT are sufficient */
 		});
-		return {
-			codexTypes: SEED_CODEX_TYPES.map((e) => ({ ...e })),
-			chapterTags: SEED_CHAPTER_TAGS.map((e) => ({ ...e })),
-			novelTags: SEED_NOVEL_TAGS.map((e) => ({ ...e })),
-			ideaTypes: [],
-		};
+		return seedTagRegistry();
 	}
 	return readTagRegistry(app);
 }
@@ -328,7 +334,7 @@ export async function replaceTagLists(
 	patch: Partial<TagRegistryShape>,
 ): Promise<TagRegistryShape> {
 	const path = tagRegistryFilePath();
-	let result: TagRegistryShape = { codexTypes: [], chapterTags: [], novelTags: [], ideaTypes: [] };
+	let result: TagRegistryShape = emptyTagRegistry();
 	await modifyBackstageFrontmatter<RawTagRegistryFrontmatter>(
 		app,
 		app.vault,
@@ -340,6 +346,7 @@ export async function replaceTagLists(
 				chapterTags: parseTagDefinitions(fm["chapter-tags"]),
 				novelTags: parseTagDefinitions(fm["novel-tags"]),
 				ideaTypes: parseTagDefinitions(fm["idea-types"]),
+				archiveTypes: parseTagDefinitions(fm["archive-types"]),
 			};
 			result = {
 				codexTypes:
@@ -354,11 +361,16 @@ export async function replaceTagLists(
 					patch.novelTags !== undefined ? cloneTagDefinitions(patch.novelTags) : current.novelTags,
 				ideaTypes:
 					patch.ideaTypes !== undefined ? cloneTagDefinitions(patch.ideaTypes) : current.ideaTypes,
+				archiveTypes:
+					patch.archiveTypes !== undefined
+						? cloneTagDefinitions(patch.archiveTypes)
+						: current.archiveTypes,
 			};
 			fm["codex-types"] = result.codexTypes.map(toRawTagDefinition);
 			fm["chapter-tags"] = result.chapterTags.map(toRawTagDefinition);
 			fm["novel-tags"] = result.novelTags.map(toRawTagDefinition);
 			fm["idea-types"] = result.ideaTypes.map(toRawTagDefinition);
+			fm["archive-types"] = result.archiveTypes.map(toRawTagDefinition);
 			if (patch.codexTypes !== undefined) {
 				const resolved: CodexTypeOption[] = result.codexTypes.map((t) => ({
 					type: t.id,

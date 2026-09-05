@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isGoneAwayPlaceholder, viewTypeFromGoneAwayText, viewTypeFromLeafChrome } from "../goneAwayView";
+import { mapLegacyLeftRailViewType } from "../view/leftPanelMode";
 
 describe("viewTypeFromGoneAwayText", () => {
 	it("reads the view type out of Obsidian's EmptyView placeholder", () => {
@@ -8,12 +9,15 @@ describe("viewTypeFromGoneAwayText", () => {
 		).toBe("storyforge-view");
 	});
 
-	it("accepts the older prefixed sentence", () => {
+	it("maps recovered storytelling chrome onto storyforge-view", () => {
+		expect(mapLegacyLeftRailViewType("storyforge-storytelling-view")).toBe("storyforge-view");
 		expect(
-			viewTypeFromGoneAwayText(
-				"Plugin no longer active. The plugin that created this view (storyforge-storytelling-view) has gone away",
+			mapLegacyLeftRailViewType(
+				viewTypeFromGoneAwayText(
+					"Plugin no longer active. The plugin that created this view (storyforge-storytelling-view) has gone away",
+				) ?? "",
 			),
-		).toBe("storyforge-storytelling-view");
+		).toBe("storyforge-view");
 	});
 
 	it("returns null when the placeholder is a plain empty editor", () => {

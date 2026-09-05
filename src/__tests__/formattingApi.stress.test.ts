@@ -140,6 +140,7 @@ function makeLinkedDefaults(): SettingsBag {
 		codexNoteLabelUseFolderColor: false,
 		codexUseHeaderColorForAll: false,
 		hideSeriesPane: false,
+		autoFocus: true,
 		bodyTextOverrideSize: false,
 		bodyTextSize: 1,
 		heading1OverrideSize: false,

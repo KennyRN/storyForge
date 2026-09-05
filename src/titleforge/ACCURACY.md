@@ -106,3 +106,66 @@ from the frozen corpus** — they enter as *verified*, not *illustrative*:
 
 Do not "improve" or paraphrase these — if a shape's exemplar ever needs
 regenerating, re-run `corpus/derive.mjs` and copy its output (invariant 8).
+
+## `western-serial` — Stage 4.1 vocabulary/weight correction
+
+After the corpus-webnovel merge shipped (6 patterns, 9 lexicon slots), real use
+surfaced two problems the merge's own tests couldn't catch because they check
+structure, not feel: the 9 new slots (`monster`, `owner`, `relObject`, `rebirth`,
+`rebirthTail`, `bracketTag`, `interro`, `statusVerb`, `beloved`) shipped
+**untagged** — so they never narrowed by genre like every older slot — and most
+had only 5-14 hand-picked entries where the underlying corpus family attests far
+more. `possessive-relation` also tied for the highest weight in the file (4)
+while drawing from the narrowest of those slots, which under a filtered
+genre+platform combination (e.g. romance+webnovel) could reach ~40% of draws.
+
+Stage 4.1 (this pass) re-mined `corpus-webnovel/corpus.jsonl` exhaustively for
+every one of the 9 slots — every attested, in-scope phrase for a family, not a
+sample — and tagged every entry by genre using the same compact `#tag` syntax
+used everywhere else in the lexicons. `possessive-relation`'s `weightCap` was
+lowered 4 → 3 in `pattern-templates.mjs` (matching `dungeon-anchor`'s existing
+cap rationale) and regenerated through `derive.mjs`, not hand-edited. See
+`corpus-webnovel/pattern-templates.mjs` for the per-slot mining notes and
+`corpus-webnovel/derived-patterns.json` for the regenerated provenance. No
+exemplars changed; no templates changed; no new patterns were added.
+
+## `title-composer` — fantasy/SF sibling genres (flat, non-hierarchical)
+
+`epic` (Epic fantasy) and `sf` (Science fiction) were the only fantasy/SF genre
+options — no subgenre distinction existed anywhere in titleForge, in code or in
+any corpus doc (the frozen corpus's `secondary_genres` field exists but was
+never populated in any record). Five sibling genre ids were added as flat,
+independent entries alongside them — not a hierarchy, no type-system change:
+
+| id | label | provenance |
+|---|---|---|
+| `urban-fantasy` | Urban fantasy | attested in `corpus/corpus.core.frozen.json` `source_note` free text (Butcher, Correia, Briggs, Aaronovitch) — real signal, never structured |
+| `space-opera` | Space opera | attested likewise (Weber, Rusch, Chaney & Maggert) |
+| `military-sf` | Military SF | attested likewise (Weber, Alanson, Larson, Forstchen, Drake) |
+| `heroic-fantasy` | Heroic fantasy | editorial addition — no corpus record names it |
+| `sword-sorcery` | Sword & Sorcery | editorial addition — no corpus record names it |
+
+Every pattern already tagged `epic` and/or `sf` was reviewed and given the
+sibling(s) that fit its shape (e.g. `of-the` also reads as heroic-fantasy,
+sword-sorcery, urban-fantasy and space-opera; `series-compound` fits all five;
+`declarative` only fits urban-fantasy/space-opera/military-sf). `name-epithet`
+also picked up `sword-sorcery` alone, without `epic`, as an explicit exception —
+its exemplar ("Conan the Barbarian") is the archetypal S&S naming convention
+even though the Tier-2 novel calibration pass had already narrowed this shape's
+own genres off `epic`.
+
+A sibling id in a pattern's `genres` isn't enough on its own — an untagged
+shared-lexicon slot is genre-neutral and falls through unfiltered even under a
+brand-new genre id (see `engine/lexicon.ts`'s `withTags`). So every existing
+`adj`/`colour`/`noun`/`abstract`/`place`/... entry already tagged `epic`/`sf`
+was swept and given the matching sibling tag(s) (`epic` → always
+`heroic-fantasy`, plus `sword-sorcery` for pulp/combat/quest words like `sword`,
+`blade`, `siege`, `throne`; `sf` → always `space-opera`, plus `military-sf` for
+martial/logistics words like `fleet`, `garrison`, `regiment`), and any
+`horror`/`crime`-tagged entry picked up `urban-fantasy` (its defining
+contemporary/noir register in this lexicon). A small number of brand-new,
+hand-authored words with no corpus backing (e.g. `barbarian`, `neon-lit`,
+`starless`, `battle-worn`) were added to `adj`, each tagged with both its
+sibling and parent genre. `series-shapes.json` (the vendored provenance copy of
+the nine `series` patterns) was updated identically so it stays byte-matched
+with `titleComposer.ts`, per `seriesFamily.test.ts`'s vendored-copy check.

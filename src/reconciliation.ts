@@ -1,6 +1,7 @@
-import { App, Plugin, TFile, TFolder } from "obsidian";
+import { App, Plugin, TFile, TFolder, type EventRef } from "obsidian";
 import {
 	LIBRARY_ROOT,
+	CODEX_ROOT,
 	bookBackstagePath,
 	bookFolderNameFromChapterPath,
 	chapterFilenameFromPath,
@@ -20,20 +21,22 @@ import {
 	removeChapterEntry,
 	rekeyChapterPovReferences,
 	rekeyChapterLocationReferences,
+	pruneMissingChapterCodexRefs,
 } from "./book";
 import { renameSeriesBookEntry } from "./series";
-import { rekeyCodexNotePath } from "./codex";
+import { rekeyCodexNotePath, reconcileMissingCodexNotes } from "./codex";
 import { rekeyNotesNotePath } from "./notes";
 import { deleteChapterSidecar, renameChapterSidecar } from "./chapterSidecar";
 import { deleteRecommendCache, renameRecommendSidecar } from "./recommend/cache";
 import { modifyBackstageFrontmatter, renameBackstagePath } from "./writeGuard";
+import { debounce } from "./debounce";
 
 /** Live rename/delete handling for chapters and book folders. Registered once at plugin load.
  *
- * Cross-book chapter moves and chapter deletes are intentionally behind-the-scenes: the
- * library pane is scoped to a single novel, so users trigger these via Obsidian's file
- * explorer (or other vault tools). We listen to vault `rename` / `delete` and keep
- * novel.md + sidecars in sync without any library-pane UI for those operations.
+ * Cross-book chapter moves and chapter/codex/notebook deletes are intentionally behind-the-scenes: the
+ * library pane is scoped to a single novel, and Codex notes have no in-plugin delete, so users
+ * trigger these via Obsidian's file explorer (or other vault tools). We listen to vault
+ * `rename` / `delete` and keep novel.md + sidecars / codex.md / notes.md in sync.
  */
 export function registerReconciliationEvents(app: App, plugin: Plugin): void {
 	plugin.registerEvent(
@@ -57,10 +60,38 @@ export function registerReconciliationEvents(app: App, plugin: Plugin): void {
 	);
 	plugin.registerEvent(
 		app.vault.on("delete", async (file) => {
-			if (!(file instanceof TFile) || !isLibraryChapterPath(file.path)) return;
-			await handleChapterDelete(app, file.path);
+			if (!(file instanceof TFile)) return;
+			if (isLibraryChapterPath(file.path)) {
+				await handleChapterDelete(app, file.path);
+				return;
+			}
+			if (isCodexNotePath(file.path)) {
+				await rekeyCodexNotePath(app, file.path, null);
+				await rekeyChapterPovReferences(app, file.path, null);
+				await rekeyChapterLocationReferences(app, file.path, null);
+				return;
+			}
+			if (isNotesNotePath(file.path) || isNotesArchiveNotePath(file.path)) {
+				await rekeyNotesNotePath(app, file.path, null);
+			}
 		}),
 	);
+	const reconcileExternalCodex = debounce(() => {
+		void (async () => {
+			await reconcileMissingCodexNotes(app);
+			await pruneMissingChapterCodexRefs(app);
+		})();
+	}, 300);
+	plugin.registerEvent(
+		(app.vault as unknown as { on(name: "raw", callback: (path: string) => void): EventRef }).on(
+			"raw",
+			(path: string) => {
+				if (path !== CODEX_ROOT && !isCodexNotePath(path) && !path.startsWith(`${CODEX_ROOT}/`)) return;
+				reconcileExternalCodex();
+			},
+		),
+	);
+	plugin.register(() => reconcileExternalCodex.cancel());
 }
 
 /** Fires for renames done via this plugin's own Codex UI and via Obsidian's native file explorer alike. */

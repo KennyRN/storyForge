@@ -65,6 +65,9 @@
 	justify-content: center;
 	flex: 1;
 	font-size: calc(var(--font-ui-medium) * 1.4);
+	/* Obsidian's .svg-icon sizes off --icon-size; pin it to the tab's em so the glyph
+	 * matches width/height: 1em below even if a more-specific .svg-icon rule wins. */
+	--icon-size: 1em;
 	color: var(--text-muted);
 	cursor: pointer;
 	padding: 5px 6px;
@@ -78,7 +81,8 @@
 	align-items: center;
 	flex-shrink: 0;
 }
-.sf-layout-tab-icon svg {
+.sf-layout-tab-icon svg,
+.sf-layout-tab-icon svg.svg-icon {
 	width: 1em;
 	height: 1em;
 }
@@ -512,9 +516,19 @@
 	cursor: pointer;
 }
 
-.sf-codex-filter-btn.is-active,
-.sf-notebook-source-btn.is-active {
+.sf-codex-filter-btn.is-active {
 	color: var(--sf-codex-color);
+}
+
+/* Notebook / Archive source rails sit beside the page and should match Story Context
+ * header tabs (.sf-recommend-tab), not Codex rail colour. */
+.sf-notebook-source-btn {
+	color: var(--sf-recommend-tabs-color, var(--text-muted));
+}
+
+.sf-notebook-source-btn:hover,
+.sf-notebook-source-btn.is-active {
+	color: var(--sf-recommend-tabs-active-color, var(--text-accent));
 }
 
 .sf-codex-hidden .sf-icon,
@@ -2714,6 +2728,19 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	height: min(90vh, 780px);
 }
 
+.modal.sf-codex-types-modal .sf-tag-registry-modal {
+	padding: 0;
+}
+
+.modal.sf-codex-types-modal .sf-types-modal-tabs {
+	border-bottom: 1px solid var(--background-modifier-border);
+	flex-shrink: 0;
+}
+
+.modal.sf-codex-types-modal .sf-text-style-tab-body-wrapper {
+	padding: 16px;
+}
+
 .sf-text-style-modal,
 .sf-ui-formatting-modal,
 .sf-hide-ui-modal,
@@ -3403,7 +3430,7 @@ body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container:not(#sto
 .sf-bottom-header > .sf-icon { font-size: var(--sf-codex-size, 1em); }
 .sf-bottom-header > .sf-icon svg { width: 1em; height: 1em; }
 .sf-bottom-header:not(.sf-codex-hidden) > .sf-icon { color: var(--sf-codex-color); }
-.sf-codex-filter-btn:hover, .sf-codex-new-file-btn:hover, .sf-codex-new-folder-btn:hover, .sf-codex-vault-tag-btn:hover, .sf-notebook-source-btn:hover { color: var(--sf-codex-color); }
+.sf-codex-filter-btn:hover, .sf-codex-new-file-btn:hover, .sf-codex-new-folder-btn:hover, .sf-codex-vault-tag-btn:hover { color: var(--sf-codex-color); }
 
 .sf-top-list:not(.sf-unplaced-list) {
 	font-size: var(--sf-lib-items-size, 1em);
@@ -3424,11 +3451,11 @@ body.sf-use-tools-panel .mod-left-split .workspace-tab-header-container:not(#sto
 .sf-top-list:not(.sf-unplaced-list) .sf-row:hover:not(.sf-series-overview-row) .sf-row-text {
 	color: var(--sf-highlight-text);
 }
-/* storyTelling panel's own chapter-item styling (UiFormattingModal's "storyTelling" tab) — this
- * panel renders the exact same .sf-top-list/.sf-row markup as the storyLibrary panel's own
+/* storytelling mode's own chapter-item styling (UiFormattingModal's "storytelling" tab) — this
+ * face renders the exact same .sf-top-list/.sf-row markup as the storyforge panel's own
  * chapter list (both go through TopPanel.ts's renderTopPanel), so the only way to style them
  * independently is by out-specificity-ing the shared rules above via this ancestor class, which
- * StorytellingView.ts's render() sets on its own root. Falls back to the shared vars above when
+ * StoryForgeView.ts's storytelling-mode render sets on its own root. Falls back to the shared vars above when
  * unset, so an untouched install (storytellingLinkItemsColorToLibrary defaults true, and the size/
  * font vars are simply never populated) looks identical to before this split existed. */
 .storyforge-storytelling-view .sf-top-list:not(.sf-unplaced-list) {
@@ -3849,6 +3876,12 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	display: none;
 }
 
+/* Combined left-rail storyforge / storytelling-mode tab: icon-only like Focus, but it stays
+ * in normal tab order next to Tools (do not pack it to the far edge). */
+.workspace-tab-header.sf-left-mode-tab .workspace-tab-header-inner-title:not(#storyforge-specificity-boost) {
+	display: none;
+}
+
 /* Story Context (recommendations) view.
  * contentEl is .view-content.sf-recommend-view — set padding here so Obsidian's
  * default .view-content inset is overridden evenly on both sides.
@@ -3890,13 +3923,19 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	justify-content: flex-start;
 	gap: 4px;
 	margin-bottom: 10px;
+	padding-left: 8px;
+	padding-right: 8px;
 }
 
 .sf-recommend-view__forge-row--focus {
+	--sf-focus-parent-icon: 20px;
 	margin-top: auto;
 	margin-bottom: 0;
 	justify-content: flex-end;
+	align-items: center;
 	gap: 14px;
+	padding-left: 0;
+	padding-right: 0;
 }
 
 .sf-recommend-view__forge-members {
@@ -4209,6 +4248,7 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	background: transparent;
 	flex-shrink: 0;
 	font-size: calc(var(--font-ui-medium) * 1.4);
+	--icon-size: 1em;
 }
 
 .sf-recommend-view__forge-family {
@@ -4234,26 +4274,37 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 }
 
 .sf-recommend-view__forge-family svg,
-.sf-recommend-view__forge-icon svg {
+.sf-recommend-view__forge-family svg.svg-icon,
+.sf-recommend-view__forge-icon svg,
+.sf-recommend-view__forge-icon svg.svg-icon {
 	width: 1em;
 	height: 1em;
 }
 
-/* Focus Mode bottom row: every icon is 20px. Padding is 0 so the 4px
- * parent↔sibling and 14px parent↔parent gaps are the visible spacing. */
-.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-family,
+/* Focus Mode bottom row: parents 20px; children 90% of that. Padding is 0 so
+ * the 4px parent↔sibling and 14px parent↔parent gaps are the visible spacing. */
+.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-family {
+	padding: 0;
+	font-size: var(--sf-focus-parent-icon);
+	--icon-size: var(--sf-focus-parent-icon);
+}
+
 .sf-recommend-view__forge-row--focus .sf-recommend-view__forge-icon {
 	padding: 0;
-	font-size: 20px;
-	--icon-size: 20px;
+	font-size: calc(var(--sf-focus-parent-icon) * 0.9);
+	--icon-size: calc(var(--sf-focus-parent-icon) * 0.9);
 }
 
 .sf-recommend-view__forge-row--focus .sf-recommend-view__forge-family svg,
-.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-family svg.svg-icon,
+.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-family svg.svg-icon {
+	width: var(--sf-focus-parent-icon);
+	height: var(--sf-focus-parent-icon);
+}
+
 .sf-recommend-view__forge-row--focus .sf-recommend-view__forge-icon svg,
 .sf-recommend-view__forge-row--focus .sf-recommend-view__forge-icon svg.svg-icon {
-	width: 20px;
-	height: 20px;
+	width: calc(var(--sf-focus-parent-icon) * 0.9);
+	height: calc(var(--sf-focus-parent-icon) * 0.9);
 }
 
 /* StoryContextView.ts's renderNovel() host — see its own doc comment: exists only so
@@ -4304,17 +4355,27 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 }
 
 /* Dossier in the notebook page: sticky titles cover hit cards with the page fill, and use
- * the Dossier type styles (formerly the search-field tokens). */
+ * the Dossier type styles (formerly the search-field tokens). No top padding on the scroller
+ * — that gap sits above `top: 0` and lets cards show through. Side/bottom inset stays on the
+ * scroller; the title's own padding and negative side margins stretch the mask to the page edge. */
 .sf-notebook-page.sf-dossier-page {
 	cursor: default;
 	padding: 0;
 }
 
+.sf-notebook-page.sf-archive-page {
+	cursor: default;
+}
+
 .sf-notebook-page.sf-dossier-page .sf-recommend-scroll {
-	padding: 4px 6px;
+	padding: 0 6px 4px;
 }
 
 .sf-notebook-page.sf-dossier-page .sf-recommend-scroll .sf-recommend-section-title {
+	top: 0;
+	margin-left: -6px;
+	margin-right: -6px;
+	padding: 4px 6px 6px;
 	background-color: var(--sf-editor-bg, var(--background-primary));
 	font-size: var(--sf-recommend-dossier-size, 1.15em);
 	font-weight: var(--sf-recommend-dossier-weight, 600);
@@ -4502,6 +4563,9 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	align-items: center;
 	justify-content: space-between;
 	margin-bottom: 10px;
+	/* Match the Notebook source rail (`.sf-codex-side-actions { left: 8px }`). */
+	padding-left: 8px;
+	padding-right: 8px;
 }
 
 /* Notebook page sits 8px below the tab row; tabs keep 5px padding, so page-to-icon is ~13px
@@ -4521,13 +4585,17 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	align-items: center;
 	justify-content: center;
 	font-size: calc(var(--font-ui-medium) * 1.4);
+	/* Same --icon-size pin as .sf-layout-tab: setIcon's .svg-icon otherwise stays
+	 * at Obsidian's default (~18px) and the Story Context tabs read smaller. */
+	--icon-size: 1em;
 	color: var(--sf-recommend-tabs-color, var(--text-muted));
 	cursor: pointer;
 	padding: 5px 6px;
 	border-radius: 4px;
 }
 
-.sf-recommend-tab svg {
+.sf-recommend-tab svg,
+.sf-recommend-tab svg.svg-icon {
 	width: 1em;
 	height: 1em;
 }
@@ -4961,13 +5029,45 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	height: 18px;
 }
 
-.sf-recommend-row-label {
-	cursor: pointer;
+.sf-recommend-unknown-name {
 	color: inherit;
 }
 
-.sf-recommend-row-label:hover {
-	text-decoration: underline;
+.sf-recommend-match-list {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 2px 0.35em;
+	padding: 6px 0 8px;
+	min-width: 0;
+	color: var(--sf-recommend-items-color, var(--text-normal));
+	font-size: var(--sf-recommend-items-size, 1em);
+	font-weight: var(--sf-recommend-items-weight, 400);
+	font-family: var(--sf-recommend-items-family, inherit);
+	font-variation-settings: var(--sf-recommend-items-variation, normal);
+	line-height: 1.2;
+}
+
+.sf-recommend-match-item {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 0.2em;
+	white-space: nowrap;
+	color: inherit;
+}
+
+.sf-recommend-match-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	color: inherit;
+	line-height: 1;
+}
+
+.sf-recommend-match-icon svg {
+	width: 1em;
+	height: 1em;
 }
 
 .sf-recommend-ambiguous {
@@ -5046,7 +5146,6 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 .sf-recommend-hit-span:focus-visible,
 .sf-recommend-tab:focus-visible,
 .sf-recommend-refresh:focus-visible,
-.sf-recommend-row-label:focus-visible,
 .sf-recommend-icon-btn:focus-visible,
 .sf-recommend-entity-header:focus-visible {
 	outline: 2px solid var(--text-accent);
@@ -6592,8 +6691,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	height: 22.5px;
 }
 
-.sf-recommend-chapter-card-actions .sf-recommend-icon-btn:hover,
-.sf-recommend-unknown-card .sf-recommend-icon-btn:hover {
+.sf-recommend-chapter-card-actions .sf-recommend-icon-btn:hover {
 	color: var(--sf-plot-card-header-bg, var(--text-accent));
 }
 
@@ -6653,9 +6751,15 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	color: var(--sf-plot-card-header-fg, var(--sf-recommend-highlight-text, var(--text-normal)));
 }
 
+.sf-recommend-plot-block--chapter .sf-recommend-match-list {
+	margin-left: -16px;
+	margin-right: -16px;
+	padding: 6px 16px 8px;
+}
+
 /* Named-but-not-in-Codex: same card chrome and row highlight as the chapter card, in muted
- * instead of the chapter's plot colour. Hover fill is the header bar; text and rest-state
- * +/− icons pick up the header text colour. */
+ * instead of the chapter's plot colour. Hover fill is the header bar; text and icons pick up
+ * the header title colour. */
 .sf-recommend-plot-block--plain.sf-recommend-unknown-card {
 	border-radius: 10px;
 	overflow: hidden;
@@ -6702,12 +6806,9 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	color: var(--sf-recommend-unknown-header-color, var(--background-primary));
 }
 
-.sf-recommend-unknown-card .sf-recommend-row:hover .sf-recommend-icon-btn {
-	color: var(--sf-recommend-unknown-header-color, var(--background-primary));
-}
-
+.sf-recommend-unknown-card .sf-recommend-row:hover .sf-recommend-icon-btn,
 .sf-recommend-unknown-card .sf-recommend-row:hover .sf-recommend-icon-btn:hover {
-	color: var(--sf-plot-card-header-bg, var(--text-accent));
+	color: var(--sf-recommend-unknown-header-color, var(--background-primary));
 }
 
 /* Details to capture / Holding area / Resolved — same pill chrome as Named but not in Codex,

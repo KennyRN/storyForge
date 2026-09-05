@@ -92,6 +92,16 @@ describe("readTagRegistry", () => {
 		const result = readTagRegistry(app);
 		expect(result.chapterTags).toEqual([{ id: "draft", label: "Draft", iconAlias: "pencil" }]);
 	});
+
+	it("parses archive-types independently of idea-types", () => {
+		const { app } = makeFakeApp(true, {
+			"archive-types": [{ id: "ref", label: "Reference", "icon-alias": "crown" }],
+			"idea-types": [{ id: "plot", label: "Plot", "icon-alias": "pencil" }],
+		});
+		const result = readTagRegistry(app);
+		expect(result.archiveTypes).toEqual([{ id: "ref", label: "Reference", iconAlias: "crown" }]);
+		expect(result.ideaTypes).toEqual([{ id: "plot", label: "Plot", iconAlias: "pencil" }]);
+	});
 });
 
 describe("tag definition CRUD (chapterTags)", () => {

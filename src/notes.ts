@@ -15,6 +15,7 @@ import {
 	type CodexTreeFolder,
 	type CodexTreeItem,
 } from "./codexTree";
+import { stripMissingCodexNoteRefs } from "./codex";
 import { bookFolderNameFromChapterPath, chapterFilenameFromPath, isLibraryChapterPath, NOTES_ARCHIVE_ROOT, NOTES_ROOT, notesFilePath } from "./paths";
 import type { NumberingStyle } from "./numberingStyle";
 import { formatSingleLine } from "./titleNumbering";
@@ -32,12 +33,14 @@ export type { CodexTreeFile as NotesTreeFile, CodexTreeItem as NotesTreeItem } f
 export interface NotesFrontmatterShape {
 	folders: CodexFolders;
 	order: string[];
+	archive: string[];
 	types: Record<string, string>;
 }
 
 export interface RawNotesFrontmatter extends FrontMatterCache {
 	folders?: unknown;
 	order?: unknown;
+	archive?: unknown;
 	types?: unknown;
 }
 
@@ -63,7 +66,7 @@ export function loadIdeaTypesFromRegistry(resolved: readonly IdeaTypeOption[]): 
 	IDEA_TYPES.push(...resolved.map((t) => ({ ...t })));
 }
 
-export const DEFAULT_NOTES_CONTENT = `---\nfolders:\norder:\ntypes:\n---\n`;
+export const DEFAULT_NOTES_CONTENT = `---\nfolders:\norder:\narchive:\ntypes:\n---\n`;
 
 /**
  * `processFrontMatter` does not update `metadataCache` on the same tick (see tagRegistry.ts).
@@ -75,6 +78,7 @@ function snapshotNotesFrontmatter(app: App, fm: RawNotesFrontmatter): void {
 	notesFrontmatterLive.set(app, {
 		folders: parseFolders(fm.folders),
 		order: parseStringArray(fm.order),
+		archive: parseStringArray(fm.archive),
 		types: parseTypes(fm.types),
 	});
 }
@@ -117,12 +121,13 @@ export function readNotesFrontmatter(app: App): NotesFrontmatterShape {
 	const live = notesFrontmatterLive.get(app);
 	if (live) return live;
 	const file = app.vault.getAbstractFileByPath(notesFilePath());
-	if (!file) return { folders: {}, order: [], types: {} };
+	if (!file) return { folders: {}, order: [], archive: [], types: {} };
 	const cache = app.metadataCache.getCache(notesFilePath());
 	const fm = cache?.frontmatter;
 	return {
 		folders: parseFolders(fm?.folders),
 		order: parseStringArray(fm?.order),
+		archive: parseStringArray(fm?.archive),
 		types: parseTypes(fm?.types),
 	};
 }
@@ -174,7 +179,21 @@ export function collectArchivedNotes(app: App): { path: string; name: string }[]
 		if (!(child instanceof TFile) || child.extension !== "md") continue;
 		notes.push({ path: child.path, name: child.basename });
 	}
-	return notes;
+	const order = readNotesFrontmatter(app).archive;
+	if (order.length === 0) return notes;
+	const byPath = new Map(notes.map((note) => [note.path, note]));
+	const ordered: { path: string; name: string }[] = [];
+	const seen = new Set<string>();
+	for (const path of order) {
+		const note = byPath.get(path);
+		if (!note || seen.has(path)) continue;
+		ordered.push(note);
+		seen.add(path);
+	}
+	for (const note of notes) {
+		if (!seen.has(note.path)) ordered.push(note);
+	}
+	return ordered;
 }
 
 export function buildNotesTree(
@@ -466,10 +485,15 @@ export async function archiveNotesItem(app: App, key: string): Promise<void> {
 	const { folders } = readNotesFrontmatter(app);
 	if (isFolderKey(folders, key)) {
 		const paths = descendantNotePaths(folders, key);
-		for (const path of paths) await moveNoteToArchive(app, path);
+		const dests: string[] = [];
+		for (const path of paths) {
+			const dest = await moveNoteToArchive(app, path);
+			if (dest) dests.push(dest);
+		}
 		await modifyNotesFrontmatter(app, (fm) => {
 			const nextFolders = parseFolders(fm.folders);
 			const order = parseStringArray(fm.order);
+			const archive = parseStringArray(fm.archive);
 			const types = parseTypes(fm.types);
 			for (const path of paths) {
 				removeFromContainer(nextFolders, order, path);
@@ -477,8 +501,12 @@ export async function archiveNotesItem(app: App, key: string): Promise<void> {
 			}
 			removeFromContainer(nextFolders, order, key);
 			delete nextFolders[key];
+			for (const dest of dests) {
+				if (!archive.includes(dest)) archive.push(dest);
+			}
 			fm.folders = nextFolders;
 			fm.order = order;
+			fm.archive = archive;
 			fm.types = types;
 		});
 		return;
@@ -487,14 +515,17 @@ export async function archiveNotesItem(app: App, key: string): Promise<void> {
 	await modifyNotesFrontmatter(app, (fm) => {
 		const nextFolders = parseFolders(fm.folders);
 		const order = parseStringArray(fm.order);
+		const archive = parseStringArray(fm.archive);
 		const types = parseTypes(fm.types);
 		removeFromContainer(nextFolders, order, key);
 		if (dest && key in types) {
 			types[dest] = types[key];
 		}
 		delete types[key];
+		if (dest && !archive.includes(dest)) archive.push(dest);
 		fm.folders = nextFolders;
 		fm.order = order;
+		fm.archive = archive;
 		fm.types = types;
 	});
 }
@@ -511,6 +542,7 @@ export async function unarchiveNotesNote(app: App, archivePath: string): Promise
 	await modifyNotesFrontmatter(app, (fm) => {
 		const folders = parseFolders(fm.folders);
 		const order = parseStringArray(fm.order);
+		const archive = parseStringArray(fm.archive).filter((path) => path !== archivePath);
 		const types = parseTypes(fm.types);
 		if (!order.includes(dest)) order.push(dest);
 		if (archivePath in types) {
@@ -519,9 +551,16 @@ export async function unarchiveNotesNote(app: App, archivePath: string): Promise
 		}
 		fm.folders = folders;
 		fm.order = order;
+		fm.archive = archive;
 		fm.types = types;
 	});
 	return moved instanceof TFile ? moved : null;
+}
+
+export async function reorderArchivedNotes(app: App, nextPaths: string[]): Promise<void> {
+	await modifyNotesFrontmatter(app, (fm) => {
+		fm.archive = nextPaths;
+	});
 }
 
 export async function removeNotesFolder(app: App, folderId: string): Promise<void> {
@@ -566,6 +605,7 @@ export async function rekeyNotesNotePath(app: App, oldPath: string, newPath: str
 	await modifyNotesFrontmatter(app, (fm) => {
 		const folders = parseFolders(fm.folders);
 		const order = parseStringArray(fm.order);
+		const archive = parseStringArray(fm.archive);
 		const types = parseTypes(fm.types);
 		const rekey = (arr: string[]): string[] =>
 			newPath ? arr.map((k) => (k === oldPath ? newPath : k)) : arr.filter((k) => k !== oldPath);
@@ -589,10 +629,42 @@ export async function rekeyNotesNotePath(app: App, oldPath: string, newPath: str
 			nextOrder = nextOrder.filter((k) => k !== newPath);
 			removeFromContainer(folders, nextOrder, newPath);
 		}
+		let nextArchive = rekey(archive);
+		if (newPath && newPath.startsWith(`${NOTES_ARCHIVE_ROOT}/`)) {
+			if (!nextArchive.includes(newPath)) nextArchive.push(newPath);
+		} else if (newPath) {
+			nextArchive = nextArchive.filter((k) => k !== newPath);
+		}
 		fm.folders = folders;
 		fm.order = nextOrder;
+		fm.archive = nextArchive;
 		fm.types = types;
 	});
+}
+
+function notesShapeEquals(a: NotesFrontmatterShape, b: NotesFrontmatterShape): boolean {
+	return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
+ * Drop every file-path reference in `notes.md` whose note is no longer in the vault
+ * (`notes/*.md` or `notes/archive/*.md`). Virtual folder ids stay. Used on vault open
+ * for deletes that happened while Obsidian was closed — `resolveCodexTree` /
+ * `collectArchivedNotes` already hide these orphans; this writes the cleanup back.
+ */
+export async function pruneMissingNotesNotes(app: App): Promise<boolean> {
+	if (!app.vault.getAbstractFileByPath(notesFilePath())) return false;
+	const current = readNotesFrontmatter(app);
+	const pathExists = (path: string) => app.vault.getAbstractFileByPath(path) != null;
+	const next = stripMissingCodexNoteRefs(current.folders, current.order, current.archive, current.types, pathExists);
+	if (notesShapeEquals(current, next)) return false;
+	await modifyNotesFrontmatter(app, (fm) => {
+		fm.folders = next.folders;
+		fm.order = next.order;
+		fm.archive = next.archive;
+		fm.types = next.types;
+	});
+	return true;
 }
 
 export async function moveNotesItem(

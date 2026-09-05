@@ -1,4 +1,4 @@
-import { ItemView, Notice, setIcon, TFile, WorkspaceLeaf } from "obsidian";
+import { ItemView, Notice, setIcon, setTooltip, TFile, WorkspaceLeaf } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { bookFolderNameFromChapterPath, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath } from "../paths";
 import { getBookId, getSeriesBooks } from "../series";
@@ -12,7 +12,7 @@ import { VaultTagModal } from "./VaultTagModal";
 import { createCodexFolder, createCodexNote, readCodexFrontmatter } from "../codex";
 import { displayedVaultTags } from "../vaultTags";
 import { debounce } from "../debounce";
-import { ICON_BOOK_DUOTONE, ICON_BOOK_OPEN_FILLED, ICON_CODEX, ICON_SERIES } from "../icons";
+import { ICON_BOOK_DUOTONE, ICON_BOOK_OPEN, ICON_BOOK_OPEN_FILLED, ICON_CODEX, ICON_SERIES } from "../icons";
 import { countWords } from "../wordCount";
 import { getBookWordStats } from "../history";
 import { WordCountModal } from "./WordCountModal";
@@ -26,6 +26,8 @@ import { STORYFORGE_CONTINUOUS_VIEW_TYPE, type ContinuousReadView } from "./Cont
 import { emitContinuousScrollTo, onContinuousMode } from "./continuousEvents";
 import { STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE } from "./SeriesOverviewView";
 import { STORYFORGE_NOVEL_OVERVIEW_VIEW_TYPE } from "./NovelOverviewView";
+import { OBSIDIAN_SELECTORS } from "../obsidianInternals";
+import { focusModeForStorytellingMode } from "./leftPanelMode";
 
 export const STORYFORGE_VIEW_TYPE = "storyforge-view";
 
@@ -59,6 +61,11 @@ export class StoryForgeView extends ItemView {
 	/** Tears down the live position indicator's event-listener — must run before the next render
 	 * discards its DOM (see render()). */
 	private continuousCleanup: (() => void) | null = null;
+	/**
+	 * Session-only left-rail face: storytelling mode (navigator + Codex + stats) vs storyforge
+	 * (layout tabs). Initialized from `autoFocus` on open; header click / commands flip it.
+	 */
+	private storytellingMode = true;
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -72,11 +79,67 @@ export class StoryForgeView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		return "storyLibrary";
+		return this.storytellingMode ? "storytelling mode" : "storyforge";
 	}
 
 	getIcon(): string {
-		return ICON_SERIES;
+		return this.storytellingMode ? ICON_BOOK_OPEN : ICON_SERIES;
+	}
+
+	isStorytellingMode(): boolean {
+		return this.storytellingMode;
+	}
+
+	/**
+	 * Switch this leaf's face. Always pairs Focus Mode on Story Context with the new face, even
+	 * when already showing it (commands / auto-focus landing). `restoreCenter` is for entering
+	 * storytelling mode from a click/command; vault-open landing restores the center itself.
+	 */
+	setStorytellingMode(on: boolean, options?: { restoreCenter?: boolean }): void {
+		const changed = this.storytellingMode !== on;
+		this.storytellingMode = on;
+		if (changed) this.render();
+		this.syncTabHeader();
+		this.plugin.setStoryContextFocusMode(focusModeForStorytellingMode(on));
+		if (on && options?.restoreCenter !== false) void this.plugin.restoreStorytellingCenterEditor(false);
+	}
+
+	private toggleStorytellingMode(): void {
+		this.setStorytellingMode(!this.storytellingMode);
+	}
+
+	private tabHeaderEl(): HTMLElement | null {
+		return (this.leaf as unknown as { tabHeaderEl?: HTMLElement }).tabHeaderEl ?? null;
+	}
+
+	private decorateTabHeader(headerEl: HTMLElement): void {
+		headerEl.addClass("sf-left-mode-tab");
+	}
+
+	/** Icon-only tab header; click toggles faces only when this tab is already the active one
+	 * (coming from Tools must not flip the face). pointerdown so we see `is-active` before
+	 * Obsidian activates the leaf. See StoryContextView.ts's Focus header toggle. */
+	private registerTabHeaderModeToggle(): void {
+		const headerEl = this.tabHeaderEl();
+		if (!headerEl) return;
+		this.decorateTabHeader(headerEl);
+		this.registerDomEvent(headerEl, "pointerdown", (evt) => {
+			if ((evt.target as HTMLElement).closest(".workspace-tab-header-inner-close-button")) return;
+			if (!headerEl.classList.contains("is-active")) return;
+			this.toggleStorytellingMode();
+		});
+	}
+
+	private syncTabHeader(): void {
+		const headerEl = this.tabHeaderEl();
+		if (!headerEl) return;
+		this.decorateTabHeader(headerEl);
+		const iconEl = headerEl.querySelector<HTMLElement>(OBSIDIAN_SELECTORS.tabHeaderInnerIcon);
+		if (iconEl) {
+			iconEl.empty();
+			setIcon(iconEl, this.getIcon());
+		}
+		setTooltip(headerEl, this.getDisplayText());
 	}
 
 	private readonly debouncedRender = debounce(() => {
@@ -86,10 +149,12 @@ export class StoryForgeView extends ItemView {
 
 	async onOpen(): Promise<void> {
 		const settings = this.plugin.getSettings();
+		this.storytellingMode = settings.autoFocus;
 		this.currentBookFolderName = settings.selectedNovel;
 		this.activeChapterFilename = settings.selectedObject;
 		this.layout = SF_LAYOUTS.includes(settings.layout) ? settings.layout : "hybrid";
 		this.collapsedCodexFolders = new Set(settings.collapsedCodexFolderIds);
+		this.registerTabHeaderModeToggle();
 		this.registerEvent(this.app.workspace.on("active-leaf-change", () => this.followActiveFile()));
 		this.registerEvent(this.app.workspace.on("file-open", () => this.followActiveFile()));
 		this.registerEvent(this.app.vault.on("rename", (file) => { if (!isBackstageBookkeepingPath(file.path)) this.debouncedRender(); }));
@@ -104,15 +169,18 @@ export class StoryForgeView extends ItemView {
 		this.registerEvent(onContinuousMode(this.app, (payload) => { if (!payload.active) this.render(); }));
 		try {
 			this.followActiveFile();
+			this.syncTabHeader();
 			// Reopening straight onto the Series/Novel/Chapter tab (persisted layout) must land the main
 			// editor pane on the matching page immediately, same as clicking that tab live does
 			// (selectLayout() above) — without this, the sidebar shows e.g. the Series tab as active but
 			// the main pane keeps showing whatever was last open there until the tab is clicked again.
 			// Gated on this tab actually being the one on screen, though: main.ts hydrates
-			// every storyLibrary leaf on each reload/hot-reload (to fix stale deferred-view
+			// every storyforge leaf on each reload/hot-reload (to fix stale deferred-view
 			// chrome), including ones left sitting inactive in the background — without this check, a
-			// backgrounded Novel/Series tab would hijack the main pane out from under whatever tab (e.g.
-			// storyTelling) the user actually left active.
+			// backgrounded Novel/Series tab would hijack the main pane out from under whatever tab
+			// (e.g. Tools) the user actually left active. Storytelling mode restores the chapter
+			// editor from main.ts instead.
+			if (this.storytellingMode) return;
 			if (!this.containerEl.isShown()) return;
 			if (this.layout === "seriesBrowse") {
 				void this.openSeriesOverview();
@@ -122,7 +190,7 @@ export class StoryForgeView extends ItemView {
 				this.focusChapterPaneForBook(this.currentBookFolderName);
 			}
 		} catch (err) {
-			console.error("storyForge: storyLibrary failed to open", err);
+			console.error("storyForge: storyforge panel failed to open", err);
 		}
 	}
 
@@ -144,6 +212,14 @@ export class StoryForgeView extends ItemView {
 	}
 
 	private followActiveFile(): void {
+		// Focusing this sidebar is not a file navigation. In storytelling mode, getActiveFile()
+		// often still reports the last markdown file (or a restored non-chapter), and treating that
+		// as a change would wipe the persisted chapter before restoreStorytellingCenterEditor() can
+		// open it.
+		if (this.storytellingMode && this.app.workspace.getActiveViewOfType(StoryForgeView) === this) {
+			this.render();
+			return;
+		}
 		const file = this.app.workspace.getActiveFile();
 		if (file) {
 			const bookName = bookFolderNameFromChapterPath(file.path);
@@ -151,6 +227,8 @@ export class StoryForgeView extends ItemView {
 				this.currentBookFolderName = bookName;
 				this.activeChapterFilename = file.name;
 				void this.persistSelection();
+			} else if (this.storytellingMode && this.plugin.codexFocusPagePath() === file.path) {
+				// Lore is open in Focus Mode's right-rail page; keep the current chapter selected.
 			} else if (this.activeChapterFilename !== null) {
 				// Codex (or any non-chapter) is open — clear library row highlight so only the editor file is selected.
 				this.activeChapterFilename = null;
@@ -190,7 +268,12 @@ export class StoryForgeView extends ItemView {
 		this.continuousCleanup = null;
 		const container = this.contentEl;
 		container.empty();
-		container.addClass("storyforge-view");
+		container.toggleClass("storyforge-storytelling-view", this.storytellingMode);
+		container.toggleClass("storyforge-view", !this.storytellingMode);
+		if (this.storytellingMode) {
+			this.renderStorytellingContent(container);
+			return;
+		}
 
 		const config = layoutConfig(this.layout);
 		// The Codex tab is the codex pane alone — no top pane, no stats — so it needs a different
@@ -408,6 +491,113 @@ export class StoryForgeView extends ItemView {
 		void this.refreshStats();
 	}
 
+	/** Compact navigator + Codex + stats (the old storyTelling leaf). */
+	private renderStorytellingContent(container: HTMLElement): void {
+		container.toggleClass("sf-layout-codex-only", false);
+		container.toggleClass("sf-layout-library-only", false);
+
+		const mode = this.plugin.getSettings().hideSeriesPane ? "novel" : "navigator";
+		const continuousReadLeaf = this.currentBookFolderName ? this.findContinuousReadLeaf(this.currentBookFolderName) : null;
+		const continuousActiveFilename = continuousReadLeaf ? (continuousReadLeaf.view as ContinuousReadView).getCurrentFilename() : null;
+
+		const topEl = container.createDiv({ cls: "sf-top-panel sf-top-panel--above-codex" });
+		renderTopPanel(this.app, topEl, {
+			mode,
+			hideSeriesPane: this.plugin.getSettings().hideSeriesPane,
+			seriesNumberingStyle: this.plugin.getSettings().seriesNumberingStyle,
+			chapterNumberingStyle: this.plugin.getSettings().chapterNumberingStyle,
+			showUnplacedSection: false,
+			currentBookFolderName: this.currentBookFolderName,
+			activeChapterFilename: this.activeChapterFilename,
+			highlightActiveChapter: this.plugin.getSettings().highlightActiveChapter,
+			unplacedMode: "unplaced",
+			onToggleUnplacedMode: () => {
+				/* no unplaced section here */
+			},
+			onSelectBook: (name) => {
+				this.currentBookFolderName = name;
+				this.activeChapterFilename = null;
+				void this.persistSelection();
+				this.render();
+			},
+			onOpenChapter: (bookName, filename) => void this.openChapter(bookName, filename),
+			onCreateContinuingChapter: (bookFolderName) => void this.handleCreateContinuingChapter(bookFolderName),
+			onArchiveChapter: async () => {
+				if (this.closed) return;
+				await this.refreshStats();
+			},
+			continuousActiveFilename,
+			onOpenContinuousRead: (bookFolderName) => void this.openContinuousRead(bookFolderName),
+			onExitContinuousRead: (bookFolderName) => void this.exitContinuousRead(bookFolderName),
+			onContinuousScrollTo: (bookFolderName, filename) => emitContinuousScrollTo(this.app, { bookFolderName, filename }),
+			registerContinuousCleanup: (dispose) => {
+				this.continuousCleanup = dispose;
+			},
+		});
+
+		const currentBookId = this.currentBookFolderName ? getBookId(this.app, this.currentBookFolderName) : null;
+		const activeFile = this.app.workspace.getActiveFile();
+		const focusLorePath = this.plugin.codexFocusPagePath();
+		const activeFilePath = focusLorePath ?? activeFile?.path ?? null;
+
+		if (this.vaultTagFilter && !displayedVaultTags(this.app).some((tag) => tag.id === this.vaultTagFilter)) {
+			this.vaultTagFilter = null;
+		}
+
+		const bottomEl = container.createDiv({ cls: "sf-bottom-panel" });
+		renderBottomPanel(this.app, bottomEl, {
+			currentBookId,
+			mode: "codex",
+			collapsedPaths: this.collapsedCodexFolders,
+			onToggleFolder: (folderId) => {
+				if (this.collapsedCodexFolders.has(folderId)) {
+					this.collapsedCodexFolders.delete(folderId);
+				} else {
+					this.collapsedCodexFolders.add(folderId);
+				}
+				this.activeCodexFolderId = folderId;
+				void this.plugin.updateSetting("collapsedCodexFolderIds", Array.from(this.collapsedCodexFolders));
+				this.render();
+			},
+			activeFilePath,
+			highlightActiveChapter: this.plugin.getSettings().highlightActiveChapter,
+			onCreateFolder: () => void this.handleCreateCodexFolder(),
+			onCreateFile: () => void this.handleCreateCodexFile(),
+			typeFilter: this.codexTypeFilter,
+			onChangeTypeFilter: (next: string[]) => {
+				this.codexTypeFilter = new Set(next);
+				this.render();
+			},
+			tagFilter: this.vaultTagFilter,
+			onChangeTagFilter: (next) => {
+				this.vaultTagFilter = next;
+				this.render();
+			},
+			onOpenFile: (path) => void this.openCodexFile(path),
+		});
+
+		const statsEl = container.createDiv({ cls: "sf-stats-panel" });
+		renderStatsPanel(statsEl, {
+			mode: this.statsMode,
+			counts: this.statsCounts,
+			onOpenHistory: () => {
+				if (this.currentBookFolderName) {
+					new WordCountModal(this.app, this.currentBookFolderName, {
+						statsMode: this.statsMode,
+						seriesNumberingStyle: this.plugin.getSettings().seriesNumberingStyle,
+						chapterNumberingStyle: this.plugin.getSettings().chapterNumberingStyle,
+						onSelectStatsMode: (mode) => {
+							this.statsMode = mode;
+							this.render();
+						},
+					}).open();
+				}
+			},
+		});
+
+		void this.refreshStats();
+	}
+
 	private openWordCountHistory(): void {
 		const series = getSeriesBooks(this.app);
 		const bookFolderName =
@@ -484,7 +674,7 @@ export class StoryForgeView extends ItemView {
 	private async handleCreateCodexFile(): Promise<void> {
 		try {
 			const file = await createCodexNote(this.app, this.codexTargetFolderId());
-			await this.openInMainContentLeaf(file);
+			await this.openCodexFile(file.path);
 		} catch (err) {
 			new Notice(`storyForge: could not create file — ${(err as Error).message}`);
 		}
@@ -515,6 +705,10 @@ export class StoryForgeView extends ItemView {
 	 * without it, clicking off a chapter and onto a Codex entry left the chapter's row still
 	 * highlighted, since followActiveFile() never got the active-leaf-change to run on. */
 	private async openCodexFile(path: string): Promise<void> {
+		if (this.storytellingMode && this.plugin.openCodexLoreInFocusPage(path)) {
+			this.render();
+			return;
+		}
 		const file = this.app.vault.getAbstractFileByPath(path);
 		if (file instanceof TFile) {
 			await this.openInMainContentLeaf(file);

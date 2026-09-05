@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { type App } from "obsidian";
 import { makeTFile, makeTFolder } from "./obsidianStub";
-import { readBookFrontmatter, writeBookCoverImage, writeChapterLocation, writeChapterPlotThread, writeChapterPov, writeChapterTags, writeNovelTags, rekeyChapterLocationReferences, rekeyChapterPovReferences, parseCodexRefs } from "../book";
+import { readBookFrontmatter, writeBookCoverImage, writeChapterLocation, writeChapterPlotThread, writeChapterPov, writeChapterTags, writeNovelTags, pruneMissingChapterCodexRefs, rekeyChapterLocationReferences, rekeyChapterPovReferences, parseCodexRefs } from "../book";
 import { safeCoverFilename } from "../coverImage";
 import { BACKSTAGE_ROOT, LIBRARY_ROOT, bookFilePath } from "../paths";
 
@@ -39,6 +39,7 @@ function makeFakeApp(initialFrontmatter: Record<string, unknown> = {}): {
 	frontmatter: Record<string, unknown>;
 	trashedPaths: string[];
 	binaryFiles: Set<string>;
+	files: Set<string>;
 } {
 	const book = "BookA";
 	const novelPath = bookFilePath(book);
@@ -55,6 +56,7 @@ function makeFakeApp(initialFrontmatter: Record<string, unknown> = {}): {
 	}
 	folderFor(LIBRARY_ROOT).children = [folderFor(`${LIBRARY_ROOT}/${book}`)];
 	const binaryFiles = new Set<string>();
+	const files = new Set<string>();
 	const trashedPaths: string[] = [];
 
 	const app = {
@@ -62,7 +64,7 @@ function makeFakeApp(initialFrontmatter: Record<string, unknown> = {}): {
 			getAbstractFileByPath: (path: string) => {
 				if (folders.has(path)) return folderFor(path);
 				if (path === novelPath) return makeTFile(path);
-				if (binaryFiles.has(path)) return makeTFile(path);
+				if (binaryFiles.has(path) || files.has(path)) return makeTFile(path);
 				return null;
 			},
 			create: async (path: string) => makeTFile(path),
@@ -95,7 +97,7 @@ function makeFakeApp(initialFrontmatter: Record<string, unknown> = {}): {
 		},
 	} as unknown as App;
 
-	return { app, frontmatter, trashedPaths, binaryFiles };
+	return { app, frontmatter, trashedPaths, binaryFiles, files };
 }
 
 describe("writeBookCoverImage", () => {
@@ -495,5 +497,33 @@ describe("chapter PoV and location lists", () => {
 		expect(readBookFrontmatter(app, "BookA")?.chapters["ch1.md"].location).toEqual([
 			{ path: "Codex/Port.md", name: "Harbour" },
 		]);
+	});
+
+	it("prunes PoV, location, and default PoV refs whose Codex files are gone", async () => {
+		const { app, files } = makeFakeApp({
+			"default-pov-path": "Codex/Gone.md",
+			"default-pov-name": "Gone",
+			chapters: {
+				"ch1.md": {
+					"chapter-id": "c1",
+					"chapter-title": "Chapter One",
+					pov: [
+						{ path: "Codex/Alice.md", name: "Alice" },
+						{ path: "Codex/Missing.md", name: "Missing" },
+					],
+					location: [
+						{ path: "Codex/Harbour.md", name: "Harbour" },
+						{ path: "Codex/Ruins.md", name: "Ruins" },
+					],
+				},
+			},
+		});
+		files.add("Codex/Alice.md");
+		files.add("Codex/Harbour.md");
+		await pruneMissingChapterCodexRefs(app);
+		const fm = readBookFrontmatter(app, "BookA");
+		expect(fm?.defaultPovPath).toBeNull();
+		expect(fm?.chapters["ch1.md"].pov).toEqual([{ path: "Codex/Alice.md", name: "Alice" }]);
+		expect(fm?.chapters["ch1.md"].location).toEqual([{ path: "Codex/Harbour.md", name: "Harbour" }]);
 	});
 });

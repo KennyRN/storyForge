@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyzeChapter, contentHash, hashId, stripMarkdownMapped } from "../recommend/engine";
+import { analyzeChapter, contentHash, demoteGoneMatchesToUnknown, hashId, stripMarkdownMapped } from "../recommend/engine";
 import { applyIgnoredNames } from "../recommend/decisions";
 import {
 	normalizeFactKey,
@@ -30,6 +30,79 @@ describe("applyIgnoredNames", () => {
 		applyIgnoredNames(report, ["aldric"]);
 		expect(report.unknownNames).toEqual(["Zelda"]);
 		expect(report.unknownNameHints.map((h) => h.name)).toEqual(["Zelda"]);
+	});
+});
+
+describe("demoteGoneMatchesToUnknown", () => {
+	function reportWith(unknown: string[] = [], matched: ChapterRecommendReport["matched"] = []): ChapterRecommendReport {
+		return {
+			chapterFilename: "ch1.md",
+			contentHash: "x",
+			synopsisHeuristic: "",
+			matched,
+			unknownNames: [...unknown],
+			unknownNameHints: unknown.map((name) => ({ name })),
+			hits: [],
+			sentenceKeys: [],
+		};
+	}
+
+	it("adds a gone Codex match whose name still appears in the chapter", () => {
+		const report = reportWith();
+		demoteGoneMatchesToUnknown(
+			report,
+			[{ path: "Codex/Jane.md", name: "Jane", type: "person", matchedAs: ["Jane"], ambiguousWith: [] }],
+			[],
+			"Jane walked into the room.",
+		);
+		expect(report.unknownNames).toEqual(["Jane"]);
+		expect(report.unknownNameHints).toEqual([{ name: "Jane" }]);
+	});
+
+	it("resurfaces a name NER would miss when it previously matched via gazetteer", () => {
+		const report = reportWith();
+		demoteGoneMatchesToUnknown(
+			report,
+			[{ path: "Codex/Harbour.md", name: "the harbour", type: "place", matchedAs: ["the harbour"], ambiguousWith: [] }],
+			[],
+			"They met at the harbour before dawn.",
+		);
+		expect(report.unknownNames).toEqual(["the harbour"]);
+	});
+
+	it("does not demote a match whose Codex file is still live", () => {
+		const report = reportWith();
+		demoteGoneMatchesToUnknown(
+			report,
+			[{ path: "Codex/Jane.md", name: "Jane", type: "person", matchedAs: ["Jane"], ambiguousWith: [] }],
+			[{ path: "Codex/Jane.md", name: "Jane" }],
+			"Jane walked into the room.",
+		);
+		expect(report.unknownNames).toEqual([]);
+	});
+
+	it("does not demote a PoV-only inject whose name is absent from the chapter", () => {
+		const report = reportWith();
+		demoteGoneMatchesToUnknown(
+			report,
+			[{ path: "Codex/Alex.md", name: "Alex", type: "person", matchedAs: ["PoV"], ambiguousWith: [] }],
+			[],
+			"I ran towards London.",
+		);
+		expect(report.unknownNames).toEqual([]);
+	});
+
+	it("skips names already in unknown or still matched under another entry", () => {
+		const report = reportWith(["Jane"], [
+			{ path: "Codex/Jane-II.md", name: "Jane", type: "person", matchedAs: ["Jane"], ambiguousWith: [] },
+		]);
+		demoteGoneMatchesToUnknown(
+			report,
+			[{ path: "Codex/Jane.md", name: "Jane", type: "person", matchedAs: ["Jane"], ambiguousWith: [] }],
+			[{ path: "Codex/Jane-II.md", name: "Jane" }],
+			"Jane walked into the room.",
+		);
+		expect(report.unknownNames).toEqual(["Jane"]);
 	});
 });
 
@@ -102,6 +175,22 @@ describe("analyzeChapter (dossier engine)", () => {
 		);
 		expect(hits.length).toBe(2);
 		expect(hits.every((h) => h.ambiguousWith.length > 0)).toBe(true);
+	});
+
+	it("treats a YAML alias as the same Codex note (one matched path, not unknown)", async () => {
+		await ensureNlp();
+		const arsenal = person("Codex/Arsenal.md", "Arsenal", "", ["The Gunners"]);
+		const prose = "The Gunners walked onto the pitch.";
+		const report = await analyzeChapter(prose, [arsenal], {
+			chapterFilename: "ch1.md",
+			existingPlot: "",
+			includeUnknownNames: true,
+		});
+		expect(report.matched).toHaveLength(1);
+		expect(report.matched[0].path).toBe("Codex/Arsenal.md");
+		expect(report.matched[0].name).toBe("Arsenal");
+		expect(report.matched[0].matchedAs).toContain("The Gunners");
+		expect(report.unknownNames).not.toContain("The Gunners");
 	});
 
 	it("prefers existing plot for synopsis", async () => {
@@ -403,6 +492,44 @@ describe("first-person narrator attribution", () => {
 			matchedAs: ["PoV"],
 		});
 		expect(report.matched.find((m) => m.path === other.path)).toBeUndefined();
+	});
+
+	it("lists every PoV in matched even when their names never appear", async () => {
+		await ensureNlp();
+		const prose = "I ran towards London.";
+		const report = await analyzeChapter(prose, [narrator, other], {
+			chapterFilename: "ch1.md",
+			existingPlot: "",
+			includeUnknownNames: false,
+			narrator: narratorOpt,
+			povRefs: [
+				{ path: narrator.path, name: narrator.name },
+				{ path: other.path, name: other.name },
+			],
+			dialogueQuotes: "double",
+		});
+		expect(report.matched.map((m) => m.path).sort()).toEqual([narrator.path, other.path].sort());
+		expect(report.matched.find((m) => m.path === other.path)).toMatchObject({
+			name: "Jane",
+			matchedAs: ["PoV"],
+		});
+	});
+
+	it("does not inject a PoV whose Codex file is no longer in the inventory", async () => {
+		await ensureNlp();
+		const prose = "I ran towards London.";
+		const report = await analyzeChapter(prose, [narrator], {
+			chapterFilename: "ch1.md",
+			existingPlot: "",
+			includeUnknownNames: false,
+			narrator: narratorOpt,
+			povRefs: [
+				{ path: narrator.path, name: narrator.name },
+				{ path: other.path, name: other.name },
+			],
+			dialogueQuotes: "double",
+		});
+		expect(report.matched.map((m) => m.path)).toEqual([narrator.path]);
 	});
 });
 

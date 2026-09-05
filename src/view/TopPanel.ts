@@ -78,9 +78,9 @@ export interface TopPanelOptions {
  * (`overflow-y: auto`), which would clip an absolutely-positioned descendant that's meant to sit
  * outside their own box, so this needs a container the overflow-clipping rows aren't ancestors of.
  * Settings cog is leftmost (the pane's outside edge); stats sits between it and plot-threads;
- * Codex types, Codex tags (hashtag), and chapter/novel tags follow. Relevant only while actually
- * browsing the series list (topPane === "series") — call-site gated, same condition
- * renderTopPanel() used to gate this on internally.
+ * types (Codex / Notebook / Archive), Codex tags (hashtag), and chapter/novel tags follow.
+ * Relevant only while actually browsing the series list (topPane === "series") — call-site gated,
+ * same condition renderTopPanel() used to gate this on internally.
  */
 export function renderSeriesPaneCornerButtons(
 	container: HTMLElement,
@@ -95,7 +95,7 @@ export function renderSeriesPaneCornerButtons(
 	addSeriesCornerButton(corner, ICON_SETTINGS_ALT, "Series settings", onOpenSeriesModal);
 	addSeriesCornerButton(corner, ICON_DASHBOARD_CHART, "Stats", onOpenStats);
 	addSeriesCornerButton(corner, ICON_PLOT_THREADS, "Plot threads", onOpenPlotThreads);
-	addSeriesCornerButton(corner, ICON_TAG_DUOTONE, "Codex types", onOpenCodexTypes);
+	addSeriesCornerButton(corner, ICON_TAG_DUOTONE, "Types", onOpenCodexTypes);
 	addSeriesCornerButton(corner, ICON_HASHTAG_SQUARE_DUOTONE, "Codex tags", onOpenCodexTags);
 	addSeriesCornerButton(corner, ICON_BOOKMARK_DUOTONE, "Chapter and novel tags", onOpenTags);
 }

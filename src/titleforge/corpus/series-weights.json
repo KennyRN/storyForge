@@ -25,83 +25,254 @@
 			"basis": "SF01",
 			"n": 25,
 			"weight": 3,
-			"genres": ["epic", "sf", "horror", "hist", "rom", "ya"],
-			"byGenre": { "epic": 7, "sf": 7, "rom": 7, "ya": 3, "horror": 3, "hist": 9, "crime": 1 }
+			"genres": [
+				"epic",
+				"sf",
+				"horror",
+				"hist",
+				"rom",
+				"ya"
+			],
+			"byGenre": {
+				"epic": 7,
+				"sf": 7,
+				"rom": 7,
+				"ya": 3,
+				"horror": 3,
+				"hist": 9,
+				"crime": 1
+			}
 		},
 		{
 			"shape": "series-compound",
 			"basis": "SF02",
 			"n": 153,
 			"weight": 15,
-			"genres": ["epic", "sf", "horror", "crime", "lit", "hist", "rom", "short", "ya"],
-			"byGenre": { "epic": 64, "sf": 51, "ya": 34, "horror": 11, "hist": 22, "crime": 11, "short": 4, "lit": 16, "rom": 13 }
+			"genres": [
+				"epic",
+				"sf",
+				"horror",
+				"crime",
+				"lit",
+				"hist",
+				"rom",
+				"short",
+				"ya"
+			],
+			"byGenre": {
+				"epic": 64,
+				"sf": 51,
+				"ya": 34,
+				"horror": 11,
+				"hist": 22,
+				"crime": 11,
+				"short": 4,
+				"lit": 16,
+				"rom": 13
+			}
 		},
 		{
 			"shape": "series-of",
 			"basis": "SF03",
 			"n": 45,
 			"weight": 5,
-			"genres": ["epic", "sf", "horror", "crime", "lit", "hist", "rom", "ya"],
-			"byGenre": { "epic": 29, "ya": 17, "sf": 7, "hist": 3, "horror": 2, "rom": 3, "crime": 3, "lit": 5 }
+			"genres": [
+				"epic",
+				"sf",
+				"horror",
+				"crime",
+				"lit",
+				"hist",
+				"rom",
+				"ya"
+			],
+			"byGenre": {
+				"epic": 29,
+				"ya": 17,
+				"sf": 7,
+				"hist": 3,
+				"horror": 2,
+				"rom": 3,
+				"crime": 3,
+				"lit": 5
+			}
 		},
 		{
 			"shape": "series-pair",
 			"basis": "SF04",
 			"n": 13,
 			"weight": 1,
-			"genres": ["epic", "crime", "lit", "ya"],
-			"byGenre": { "epic": 8, "crime": 2, "ya": 4, "lit": 2, "hist": 1, "sf": 1, "horror": 1 }
+			"genres": [
+				"epic",
+				"crime",
+				"lit",
+				"ya"
+			],
+			"byGenre": {
+				"epic": 8,
+				"crime": 2,
+				"ya": 4,
+				"lit": 2,
+				"hist": 1,
+				"sf": 1,
+				"horror": 1
+			}
 		},
 		{
 			"shape": "series-name",
 			"basis": "SF05",
 			"n": 64,
 			"weight": 6,
-			"genres": ["epic", "sf", "horror", "crime", "lit", "hist", "ya"],
-			"byGenre": { "sf": 3, "crime": 47, "hist": 7, "horror": 5, "lit": 10, "epic": 5, "ya": 8, "rom": 1 }
+			"genres": [
+				"epic",
+				"sf",
+				"horror",
+				"crime",
+				"lit",
+				"hist",
+				"ya"
+			],
+			"byGenre": {
+				"sf": 3,
+				"crime": 47,
+				"hist": 7,
+				"horror": 5,
+				"lit": 10,
+				"epic": 5,
+				"ya": 8,
+				"rom": 1
+			}
 		},
 		{
 			"shape": "series-marker",
 			"basis": "MARKER",
 			"n": 64,
 			"weight": 6,
-			"genres": ["epic", "sf", "horror", "crime", "lit", "hist", "rom", "ya"],
-			"byGenre": { "epic": 31, "ya": 11, "crime": 2, "hist": 14, "sf": 17, "lit": 12, "short": 1, "horror": 3, "rom": 2 }
+			"genres": [
+				"epic",
+				"sf",
+				"horror",
+				"crime",
+				"lit",
+				"hist",
+				"rom",
+				"ya"
+			],
+			"byGenre": {
+				"epic": 31,
+				"ya": 11,
+				"crime": 2,
+				"hist": 14,
+				"sf": 17,
+				"lit": 12,
+				"short": 1,
+				"horror": 3,
+				"rom": 2
+			}
 		},
 		{
 			"shape": "series-colon",
 			"basis": "SF10",
 			"n": 1,
 			"weight": 1,
-			"genres": ["crime"],
-			"byGenre": { "crime": 1 }
+			"genres": [
+				"crime"
+			],
+			"byGenre": {
+				"crime": 1
+			}
 		},
 		{
 			"shape": "series-verb",
 			"basis": "SF09",
 			"n": 1,
 			"weight": 1,
-			"genres": ["sf", "ya"],
-			"byGenre": { "sf": 1, "ya": 1 }
+			"genres": [
+				"sf",
+				"ya"
+			],
+			"byGenre": {
+				"sf": 1,
+				"ya": 1
+			}
 		},
 		{
 			"shape": "series-clause",
 			"basis": "SF08",
 			"n": 1,
 			"weight": 1,
-			"genres": ["epic", "ya"],
-			"byGenre": { "epic": 1, "ya": 1 }
+			"genres": [
+				"epic",
+				"ya"
+			],
+			"byGenre": {
+				"epic": 1,
+				"ya": 1
+			}
 		}
 	],
 	"family_by_genre": {
-		"epic": { "SF03": 29, "SF02": 64, "SF01": 7, "SF04": 8, "SF05": 5, "SF08": 1 },
-		"sf": { "SF02": 51, "SF01": 7, "SF03": 7, "SF05": 3, "SF09": 1, "SF04": 1 },
-		"ya": { "SF02": 34, "SF03": 17, "SF05": 8, "SF04": 4, "SF01": 3, "SF09": 1, "SF08": 1 },
-		"horror": { "SF02": 11, "SF03": 2, "SF05": 5, "SF01": 3, "SF04": 1 },
-		"hist": { "SF02": 22, "SF03": 3, "SF05": 7, "SF01": 9, "SF04": 1 },
-		"crime": { "SF02": 11, "SF05": 47, "SF10": 1, "SF04": 2, "SF03": 3, "SF01": 1 },
-		"short": { "SF02": 4 },
-		"lit": { "SF02": 16, "SF05": 10, "SF03": 5, "SF04": 2 },
-		"rom": { "SF02": 13, "SF03": 3, "SF01": 7, "SF05": 1 }
+		"epic": {
+			"SF03": 29,
+			"SF02": 64,
+			"SF01": 7,
+			"SF04": 8,
+			"SF05": 5,
+			"SF08": 1
+		},
+		"sf": {
+			"SF02": 51,
+			"SF01": 7,
+			"SF03": 7,
+			"SF05": 3,
+			"SF09": 1,
+			"SF04": 1
+		},
+		"ya": {
+			"SF02": 34,
+			"SF03": 17,
+			"SF05": 8,
+			"SF04": 4,
+			"SF01": 3,
+			"SF09": 1,
+			"SF08": 1
+		},
+		"horror": {
+			"SF02": 11,
+			"SF03": 2,
+			"SF05": 5,
+			"SF01": 3,
+			"SF04": 1
+		},
+		"hist": {
+			"SF02": 22,
+			"SF03": 3,
+			"SF05": 7,
+			"SF01": 9,
+			"SF04": 1
+		},
+		"crime": {
+			"SF02": 11,
+			"SF05": 47,
+			"SF10": 1,
+			"SF04": 2,
+			"SF03": 3,
+			"SF01": 1
+		},
+		"short": {
+			"SF02": 4
+		},
+		"lit": {
+			"SF02": 16,
+			"SF05": 10,
+			"SF03": 5,
+			"SF04": 2
+		},
+		"rom": {
+			"SF02": 13,
+			"SF03": 3,
+			"SF01": 7,
+			"SF05": 1
+		}
 	}
 }

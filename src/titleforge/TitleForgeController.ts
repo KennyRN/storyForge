@@ -5,6 +5,10 @@ import type { GeneratorSpec } from "./engine/types.js";
 import { DEFAULT_TITLEFORGE_SETTINGS, type TitleForgeOpenOptions, type TitleForgeSettings } from "./settings.js";
 import { TitleForgeStorage } from "./storage.js";
 import { TitleForgeModal } from "./view/TitleForgeModal.js";
+import { TitleForgePanel } from "./view/TitleForgePanel.js";
+
+/** Companion-panel id for the Story Context Forge-family row — always first. */
+export const TITLEFORGE_COMPANION_ID = "titleforge";
 
 /**
  * titleForge's whole bootstrap — the module a standalone titleForge plugin's
@@ -14,12 +18,10 @@ import { TitleForgeModal } from "./view/TitleForgeModal.js";
  * Everything else — command/ribbon registration, settings, storage, the live
  * generator list — is self-contained here.
  *
- * There is deliberately no main-area workspace view: titleForge only ever
- * opens as a modal (`openModal()`, `TitleForgeModal.ts`) — from the ribbon
- * icon, the command, `TitleForgeSettingsModal`'s "Open titleForge" button, or
- * a rename modal's dice icon (`NovelTitleModal.ts`, `SeriesTitleModal.ts`).
- * A tab would sit around in the workspace outliving the moment a title was
- * needed for; a modal opens for exactly that moment and closes with it.
+ * There is no main-area workspace view: the ribbon, command, settings button, and rename-modal
+ * dice still open a modal (`openModal()`, `TitleForgeModal.ts`). Story Context's Forge-family
+ * row also embeds this panel (`mountEmbeddedPanel`) as the leading companion icon — that is a
+ * right-rail host, not a workspace tab.
  *
  * Reuses one storyForge resource directly: the identity glyph (`ICON_TITLEFORGE`,
  * from `../icons.js`). Everything else — engine, lexicons, storage, view — is
@@ -84,5 +86,12 @@ export class TitleForgeController {
 	 * SeriesTitleModal.ts), which each pass their own `scope` and `onUse`. See TitleForgeOpenOptions. */
 	openModal(options: TitleForgeOpenOptions = {}): void {
 		new TitleForgeModal(this.plugin.app, this, options).open();
+	}
+
+	/** Embed titleForge in Story Context's Forge-family panel (ICON_TITLEFORGE — the title-header glyph). */
+	mountEmbeddedPanel(containerEl: HTMLElement): () => void {
+		const panel = new TitleForgePanel(containerEl, this, { scope: "all" });
+		void panel.load();
+		return () => containerEl.empty();
 	}
 }

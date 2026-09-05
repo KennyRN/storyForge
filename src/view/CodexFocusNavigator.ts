@@ -49,8 +49,8 @@ export interface CodexFocusNavigatorOptions {
  *
  * Chapter tiles reuse Hybrid's own row classes (sf-top-list/sf-row/sf-row-text/sf-row-selected)
  * outright, so every bit of Hybrid's chapter-row styling — font, colour, highlight, hover — is
- * identical here by construction rather than approximated. Text is centred in the storyLibrary
- * navigator (no numbering column); the storyTelling panel left-aligns titles and Codex rows
+ * identical here by construction rather than approximated. Text is centred in the storyforge
+ * navigator (no numbering column); storytelling mode left-aligns titles and Codex rows
  * to the same inset (see `.storyforge-storytelling-view` in styles.css). Unlike Hybrid's list,
  * these tiles are not drag-reorderable — the visible window is too small and shifts underneath
  * the cursor as the current chapter changes, so dragging never had a stable target here.
