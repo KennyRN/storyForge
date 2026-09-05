@@ -57,6 +57,12 @@ export interface AnalyzeOptions {
 	lexicons?: ReturnType<typeof defaultLexicons>;
 	/** Resolved chapter narrator (PoV). Null/omitted → first-person binding inert. */
 	narrator?: { path: string; name: string } | null;
+	/**
+	 * Every PoV character listed for this chapter (chapter list, or the default
+	 * narrator when the list is empty). Each live inventory path is force-added
+	 * to `matched`. Defaults to `narrator` when omitted.
+	 */
+	povRefs?: Array<{ path: string; name: string }>;
 	/** Declared book dialogue quote style (default double). */
 	dialogueQuotes?: DialogueQuoteStyle;
 }
@@ -362,27 +368,86 @@ function collectMatched(
 	return result;
 }
 
-/** Ensure the chapter PoV appears in Characters even when only referred to as "I". */
-function ensureNarratorMatched(
+/** True for synthetic `matchedAs` tokens that were never chapter prose. */
+function isSyntheticMatchedAs(surface: string): boolean {
+	return surface.trim().toLowerCase() === "pov";
+}
+
+function surfaceAppearsInText(text: string, surface: string): boolean {
+	const trimmed = surface.trim();
+	if (!trimmed) return false;
+	return wordBoundaryPattern(trimmed).test(text);
+}
+
+/**
+ * Ensure every listed PoV still in the live inventory appears in `matched`,
+ * even when the chapter only refers to them as "I".
+ */
+function ensurePovMatched(
 	matched: MatchedCodexEntry[],
-	narrator: { path: string; name: string } | null,
+	povRefs: Array<{ path: string; name: string }>,
 	cast: CastMember[],
 ): MatchedCodexEntry[] {
-	if (!narrator) return matched;
-	if (matched.some((m) => m.path === narrator.path)) return matched;
-	const entry = cast.find((c) => c.path === narrator.path);
-	const next = [
-		...matched,
-		{
-			path: narrator.path,
-			name: entry?.name ?? narrator.name,
-			type: entry?.type ?? "person",
+	if (povRefs.length === 0) return matched;
+	const byPath = new Map(cast.map((c) => [c.path, c]));
+	const seen = new Set(matched.map((m) => m.path));
+	const next = [...matched];
+	for (const ref of povRefs) {
+		if (seen.has(ref.path)) continue;
+		const entry = byPath.get(ref.path);
+		if (!entry) continue;
+		seen.add(ref.path);
+		next.push({
+			path: entry.path,
+			name: entry.name,
+			type: entry.type,
 			matchedAs: ["PoV"],
 			ambiguousWith: [],
-		},
-	];
+		});
+	}
 	next.sort((a, b) => a.name.localeCompare(b.name));
 	return next;
+}
+
+/**
+ * When a Codex note disappears, gazetteer matching drops it from `matched` and
+ * PROPN NER often fails to re-list the same surface under unknown names.
+ * Promote previous matches whose files are gone — and whose name still appears
+ * in the chapter — into `unknownNameHints`. Mutates `report`.
+ */
+export function demoteGoneMatchesToUnknown(
+	report: ChapterRecommendReport,
+	previousMatched: MatchedCodexEntry[] | undefined,
+	liveEntries: Iterable<{ path: string; name: string; aliases?: string[] }>,
+	prose: string,
+): void {
+	if (!previousMatched?.length) return;
+	const live = new Set<string>();
+	const gazetteer = new Set<string>();
+	for (const entry of liveEntries) {
+		live.add(entry.path);
+		gazetteer.add(entry.name.toLowerCase());
+		for (const alias of entry.aliases ?? []) {
+			if (alias.trim()) gazetteer.add(alias.trim().toLowerCase());
+		}
+	}
+	const already = new Set(report.unknownNames.map((n) => n.toLowerCase()));
+	for (const m of report.matched) already.add(m.name.toLowerCase());
+
+	for (const prev of previousMatched) {
+		if (live.has(prev.path)) continue;
+		const surfaces = [prev.name, ...prev.matchedAs].filter((s) => !isSyntheticMatchedAs(s));
+		if (!surfaces.some((s) => surfaceAppearsInText(prose, s))) continue;
+		const name = prev.name.trim() || surfaces.find((s) => s.trim())?.trim();
+		if (!name) continue;
+		const key = name.toLowerCase();
+		if (already.has(key) || gazetteer.has(key)) continue;
+		already.add(key);
+		report.unknownNameHints.push({ name });
+		report.unknownNames.push(name);
+	}
+	report.unknownNameHints.sort((a, b) => a.name.localeCompare(b.name));
+	report.unknownNames = report.unknownNameHints.map((h) => h.name);
 }
 
 const HYPHEN_RE = /^[-–—]$/;
@@ -814,10 +879,12 @@ export async function analyzeChapter(
 	const prose = stripped.text.trim();
 	const sentences = splitSentences(rawChapter, stripped, nlp);
 	const keys = buildMatchKeys(entries);
+	const povRefs =
+		options.povRefs ?? (options.narrator ? [options.narrator] : []);
 
-	const matched = ensureNarratorMatched(
+	const matched = ensurePovMatched(
 		collectMatched(sentences, entries, keys),
-		options.narrator ?? null,
+		povRefs,
 		entries,
 	);
 	const hits = scanFile(
@@ -844,11 +911,12 @@ export async function analyzeChapter(
 	const synopsisHeuristic = extractSynopsis(prose, options.existingPlot);
 	const inventoryFp = entryFactsFingerprint(entries);
 	const narratorKey = options.narrator?.path ?? "";
+	const povKey = povRefs.map((r) => r.path).join("&");
 	const quotesKey = options.dialogueQuotes ?? "double";
 
 	return {
 		chapterFilename: options.chapterFilename,
-		contentHash: contentHash([prose, inventoryFp, synopsisHeuristic, narratorKey, quotesKey]),
+		contentHash: contentHash([prose, inventoryFp, synopsisHeuristic, narratorKey, povKey, quotesKey]),
 		synopsisHeuristic,
 		matched,
 		unknownNames: unknownHints.map((u) => u.name),

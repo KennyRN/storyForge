@@ -23,16 +23,16 @@ const ICON_DASHBOARD_CHART = "sf-dashboard-chart";
 const ICON_PERSON = "sf-person-fill";
 const ICON_MEEPLE = "nameforge-meeple";
 const ICON_MAP_PIN = "sf-map-pin";
-const ICON_ARCHIVE = "sf-archive-filled";
-const ICON_UNARCHIVE = "sf-inbox-download";
+const ICON_ARCHIVE = "sf-box";
 const ICON_FORGE = "sf-hammer-anvil";
+const ICON_TITLEFORGE = "sf-titleforge";
 const ICON_BOOK_DUOTONE = "sf-book-duotone";
 const ICON_CODEX = "sf-earth-fill";
 const ICON_BOOK_OPEN_FILLED = "sf-book-open-filled";
 const ICON_CLIPBOARD_LIST_DUOTONE = "sf-clipboard-list-duotone";
-const ICON_NOTEBOOK_FILLED = "sf-notebook-filled";
-const ICON_LOCATION_TARGET_SQUARE = "sf-location-target-square";
-const ICON_ADD_SQUARE = "sf-add-square";
+const ICON_NOTEBOOK_DUOTONE = "sf-notebook-duotone";
+const ICON_TARGET_DUOTONE = "sf-target-duotone";
+const ICON_ADD_CIRCLE = "sf-add-circle";
 
 function listRow(list: HTMLElement, title: string, selected = false, subtitle?: string): HTMLElement {
 	const row = list.createDiv({ cls: selected ? "sf-row sf-row-selected" : "sf-row" });
@@ -140,9 +140,9 @@ export function mountUiStylePreviewSample(container: HTMLElement): void {
 }
 
 /**
- * storyTelling pane mock: series + book header, compact three-chapter navigator (no Unplaced,
- * no drag handles), Codex, and Stats — the same composition StorytellingView.ts's render()
- * builds. Rooted under `.storyforge-storytelling-view` so the `--sf-storytelling-items-*` /
+ * storytelling-mode mock: series + book header, compact three-chapter navigator (no Unplaced,
+ * no drag handles), Codex, and Stats — the same composition StoryForgeView.ts's storytelling
+ * face builds. Rooted under `.storyforge-storytelling-view` so the `--sf-storytelling-items-*` /
  * `--sf-storytelling-highlight-*` overrides in styles.css apply the same way they do live.
  */
 export function mountStorytellingPreviewSample(container: HTMLElement): void {
@@ -384,19 +384,24 @@ function mountRecommendChapterCard(body: HTMLElement, mainThread: PreviewMainThr
 
 	const chars = card.createDiv({ cls: "sf-recommend-section" });
 	chars.createDiv({ cls: "sf-recommend-section-title", text: "Characters in chapter" });
-	const charRow = chars.createDiv({ cls: "sf-recommend-row" });
-	setIcon(charRow.createSpan({ cls: "sf-icon" }), ICON_PERSON);
-	charRow.createSpan({ cls: "sf-recommend-row-label", text: "Jane Protagonist" });
+	const charList = chars.createDiv({ cls: "sf-recommend-match-list" });
+	const jane = charList.createSpan({ cls: "sf-recommend-match-item" });
+	setIcon(jane.createSpan({ cls: "sf-icon sf-recommend-match-icon" }), ICON_PERSON);
+	jane.createSpan({ cls: "sf-recommend-match-label", text: "Jane Protagonist," });
+	const alex = charList.createSpan({ cls: "sf-recommend-match-item" });
+	setIcon(alex.createSpan({ cls: "sf-icon sf-recommend-match-icon" }), ICON_PERSON);
+	alex.createSpan({ cls: "sf-recommend-match-label", text: "Alex" });
 
 	const others = card.createDiv({ cls: "sf-recommend-section" });
 	others.createDiv({ cls: "sf-recommend-section-title", text: "Other Codex references" });
-	const otherRow = others.createDiv({ cls: "sf-recommend-row" });
-	setIcon(otherRow.createSpan({ cls: "sf-icon" }), ICON_MAP_PIN);
-	otherRow.createSpan({ cls: "sf-recommend-row-label", text: "The Harbour" });
+	const otherList = others.createDiv({ cls: "sf-recommend-match-list" });
+	const harbour = otherList.createSpan({ cls: "sf-recommend-match-item" });
+	setIcon(harbour.createSpan({ cls: "sf-icon sf-recommend-match-icon" }), ICON_MAP_PIN);
+	harbour.createSpan({ cls: "sf-recommend-match-label", text: "The Harbour" });
 
 	const actions = body.createDiv({ cls: "sf-recommend-chapter-card-actions" });
-	setIcon(actions.createSpan({ cls: "sf-recommend-icon-btn" }), ICON_LOCATION_TARGET_SQUARE);
-	setIcon(actions.createSpan({ cls: "sf-recommend-icon-btn" }), ICON_ADD_SQUARE);
+	setIcon(actions.createSpan({ cls: "sf-recommend-icon-btn" }), ICON_TARGET_DUOTONE);
+	setIcon(actions.createSpan({ cls: "sf-recommend-icon-btn" }), ICON_ADD_CIRCLE);
 	const wordcount = actions.createDiv({ cls: "sf-recommend-chapter-wordcount" });
 	setIcon(wordcount.createSpan({ cls: "sf-icon sf-recommend-chapter-wordcount-icon" }), ICON_DASHBOARD_CHART);
 	wordcount.createSpan({ cls: "sf-recommend-chapter-wordcount-value", text: "1,234" });
@@ -417,7 +422,7 @@ function mountRecommendChapterBody(body: HTMLElement, mainThread: PreviewMainThr
 function mountNotebookDossierPreview(body: HTMLElement): void {
 	const split = body.createDiv({ cls: "sf-idea-shelf" });
 	const rail = split.createDiv({ cls: "sf-codex-side-actions sf-notebook-source-rail" });
-	setIcon(rail.createSpan({ cls: "sf-notebook-source-btn" }), ICON_NOTEBOOK_FILLED);
+	setIcon(rail.createSpan({ cls: "sf-notebook-source-btn" }), ICON_NOTEBOOK_DUOTONE);
 	setIcon(rail.createSpan({ cls: "sf-notebook-source-btn" }), ICON_CODEX);
 	setIcon(rail.createSpan({ cls: "sf-notebook-source-btn is-active" }), ICON_CLIPBOARD_LIST_DUOTONE);
 	const page = split.createDiv({ cls: "sf-notebook-page sf-dossier-page" });
@@ -429,6 +434,21 @@ function mountNotebookDossierPreview(body: HTMLElement): void {
 	const tree = index.createDiv({ cls: "sf-codex-tree" });
 	const selected = tree.createDiv({ cls: "sf-row sf-row-selected sf-codex-file" });
 	selected.createSpan({ cls: "sf-row-text", text: "Jane Protagonist" });
+}
+
+function mountArchiveSplitPreview(body: HTMLElement): void {
+	const split = body.createDiv({ cls: "sf-idea-shelf sf-archive-shelf" });
+	const rail = split.createDiv({ cls: "sf-codex-side-actions sf-notebook-source-rail" });
+	setIcon(rail.createSpan({ cls: "sf-notebook-source-btn is-active" }), ICON_CODEX);
+	setIcon(rail.createSpan({ cls: "sf-notebook-source-btn" }), ICON_BOOK_DUOTONE);
+	setIcon(rail.createSpan({ cls: "sf-notebook-source-btn" }), ICON_NOTEBOOK_DUOTONE);
+	split.createDiv({ cls: "sf-notebook-page sf-archive-page" });
+	const index = split.createDiv({ cls: "sf-notebook-index sf-bottom-panel" });
+	const tree = index.createDiv({ cls: "sf-codex-tree" });
+	const selected = tree.createDiv({ cls: "sf-codex-file sf-row-selected" });
+	selected.createSpan({ cls: "sf-row-text", text: "Magna Aliqua" });
+	const rest = tree.createDiv({ cls: "sf-codex-file" });
+	rest.createSpan({ cls: "sf-row-text", text: "Ut Enim Ad Minim" });
 }
 
 /**
@@ -450,20 +470,17 @@ export function mountRightSidebarPreviewSample(
 	const recommend = rail.createDiv({ cls: "sf-recommend-view" });
 	const recTabs = recommend.createDiv({ cls: "sf-recommend-tabs" });
 	const forgeRow = recommend.createDiv({ cls: "sf-recommend-view__forge-row sf-settings-hidden" });
-	const archiveModeRow = recommend.createDiv({ cls: "sf-recommend-view__forge-row sf-settings-hidden" });
-	setIcon(archiveModeRow.createSpan({ cls: "sf-recommend-view__forge-icon is-active", attr: { "aria-label": "Codex" } }), ICON_CODEX);
-	setIcon(archiveModeRow.createSpan({ cls: "sf-recommend-view__forge-icon", attr: { "aria-label": "Novel" } }), ICON_BOOK_DUOTONE);
-	setIcon(archiveModeRow.createSpan({ cls: "sf-recommend-view__forge-icon", attr: { "aria-label": "Notebook" } }), ICON_NOTEBOOK_FILLED);
 	const recBody = recommend.createDiv({ cls: "sf-recommend-body" });
 	const archive = recommend.createDiv({ cls: "sf-archive-embedded sf-settings-hidden" });
 	const focusRow = recommend.createDiv({
 		cls: "sf-recommend-view__forge-row sf-recommend-view__forge-row--focus sf-settings-hidden",
 	});
 
-	const member = forgeRow.createSpan({ cls: "sf-recommend-view__forge-icon is-active" });
-	setIcon(member, ICON_MEEPLE);
+	setIcon(forgeRow.createSpan({ cls: "sf-recommend-view__forge-icon is-active" }), ICON_TITLEFORGE);
+	setIcon(forgeRow.createSpan({ cls: "sf-recommend-view__forge-icon" }), ICON_MEEPLE);
 	const focusMembers = focusRow.createDiv({ cls: "sf-recommend-view__forge-members" });
-	setIcon(focusMembers.createSpan({ cls: "sf-recommend-view__forge-icon is-active" }), ICON_MEEPLE);
+	setIcon(focusMembers.createSpan({ cls: "sf-recommend-view__forge-icon is-active" }), ICON_TITLEFORGE);
+	setIcon(focusMembers.createSpan({ cls: "sf-recommend-view__forge-icon" }), ICON_MEEPLE);
 	const focusIcon = focusRow.createSpan({
 		cls: "sf-recommend-view__forge-family",
 		attr: { "aria-label": "Focus mode icon" },
@@ -476,7 +493,6 @@ export function mountRightSidebarPreviewSample(
 	let ideasBtn!: HTMLElement;
 	const hideOverlayRows = () => {
 		forgeRow.addClass("sf-settings-hidden");
-		archiveModeRow.addClass("sf-settings-hidden");
 		focusRow.addClass("sf-settings-hidden");
 		focusMembers.removeClass("is-expanded");
 	};
@@ -509,9 +525,10 @@ export function mountRightSidebarPreviewSample(
 		ideasBtn.removeClass("is-active");
 		hideOverlayRows();
 		archiveBtn.addClass("is-active");
-		archiveModeRow.removeClass("sf-settings-hidden");
-		recBody.addClass("sf-settings-hidden");
-		archive.removeClass("sf-settings-hidden");
+		recBody.toggleClass("sf-settings-hidden", false);
+		archive.addClass("sf-settings-hidden");
+		recBody.empty();
+		mountArchiveSplitPreview(recBody);
 	};
 	const showForgeTab = () => {
 		for (const btn of Object.values(tabButtons)) btn?.removeClass("is-active");
@@ -532,27 +549,19 @@ export function mountRightSidebarPreviewSample(
 	};
 	(["novel", "chapter"] as RecommendTabId[]).forEach((id) => {
 		const btn = recTabs.createSpan({ cls: "sf-recommend-tab" });
-		setIcon(btn, tabIcons[id]);
+		setIcon(btn.createSpan({ cls: "sf-layout-tab-icon" }), tabIcons[id]);
 		tabButtons[id] = btn;
 		btn.addEventListener("click", () => showRecommendTab(id));
 	});
 	ideasBtn = recTabs.createSpan({ cls: "sf-recommend-tab" });
-	setIcon(ideasBtn, ICON_NOTEBOOK_FILLED);
+	setIcon(ideasBtn.createSpan({ cls: "sf-layout-tab-icon" }), ICON_NOTEBOOK_DUOTONE);
 	ideasBtn.addEventListener("click", () => showNotebookDossier());
 	forgeBtn = recTabs.createSpan({ cls: "sf-recommend-tab sf-recommend-tab--forge-family" });
-	setIcon(forgeBtn, ICON_FORGE);
+	setIcon(forgeBtn.createSpan({ cls: "sf-layout-tab-icon" }), ICON_FORGE);
 	forgeBtn.addEventListener("click", () => showForgeTab());
 	archiveBtn = recTabs.createSpan({ cls: "sf-recommend-tab sf-recommend-tab--archive" });
-	setIcon(archiveBtn, ICON_ARCHIVE);
+	setIcon(archiveBtn.createSpan({ cls: "sf-layout-tab-icon" }), ICON_ARCHIVE);
 	archiveBtn.addEventListener("click", () => showArchiveTab());
-
-	const archList = archive.createDiv({ cls: "sf-recommend-scroll" }).createDiv({ cls: "sf-archive-list" });
-	const selected = archList.createDiv({ cls: "sf-row sf-row-selected" });
-	selected.createSpan({ cls: "sf-archive-label", text: "Magna Aliqua" });
-	setIcon(selected.createSpan({ cls: "sf-archive-unarchive-btn", attr: { "aria-label": "Unarchive" } }), ICON_UNARCHIVE);
-	const rest = archList.createDiv({ cls: "sf-row" });
-	rest.createSpan({ cls: "sf-archive-label", text: "Ut Enim Ad Minim" });
-	setIcon(rest.createSpan({ cls: "sf-archive-unarchive-btn", attr: { "aria-label": "Unarchive" } }), ICON_UNARCHIVE);
 
 	const showCustomBody = (mount: (el: HTMLElement) => void) => {
 		for (const btn of Object.values(tabButtons)) btn?.removeClass("is-active");

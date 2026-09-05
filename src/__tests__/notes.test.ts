@@ -16,6 +16,7 @@ import {
 	resolveSelectedNotesPath,
 	sanitizeNotesBasename,
 	unarchiveNotesNote,
+	reorderArchivedNotes,
 	uniqueNotesFilename,
 } from "../notes";
 import { isNotesArchiveNotePath, isNotesNotePath, NOTES_ARCHIVE_ROOT, NOTES_ROOT, notesFilePath } from "../paths";
@@ -200,6 +201,21 @@ describe("archive / unarchive moves files into notes/archive/", () => {
 		await unarchiveNotesNote(app, "notes/archive/spark.md");
 		expect(collectNotesPaths(app)).toEqual(["notes/spark.md"]);
 		expect(collectArchivedNotes(app)).toEqual([]);
+	});
+
+	it("reorders archived notes by the persisted archive list", async () => {
+		const { app } = fakeNotesApp(["notes/a.md", "notes/b.md"]);
+		await archiveNotesItem(app, "notes/a.md");
+		await archiveNotesItem(app, "notes/b.md");
+		expect(collectArchivedNotes(app).map((n) => n.path)).toEqual([
+			"notes/archive/a.md",
+			"notes/archive/b.md",
+		]);
+		await reorderArchivedNotes(app, ["notes/archive/b.md", "notes/archive/a.md"]);
+		expect(collectArchivedNotes(app).map((n) => n.path)).toEqual([
+			"notes/archive/b.md",
+			"notes/archive/a.md",
+		]);
 	});
 
 	it("never creates a note outside notes/ even with a traversal filename", async () => {

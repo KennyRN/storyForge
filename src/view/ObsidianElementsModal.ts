@@ -100,12 +100,12 @@ export class ObsidianElementsModal extends Modal {
 		reopenPanelsGroup.setHeading("reopen closed storyforge panels");
 		reopenPanelsGroup.addSetting((setting) => {
 			setting
-				.setName("story library panel")
+				.setName("storyforge")
 				.addButton((btn) => btn.setButtonText("reopen").onClick(() => void plugin.activateView()));
 		});
 		reopenPanelsGroup.addSetting((setting) => {
 			setting
-				.setName("storytelling panel")
+				.setName("storytelling mode")
 				.addButton((btn) => btn.setButtonText("reopen").onClick(() => void plugin.activateStorytellingView()));
 		});
 		reopenPanelsGroup.addSetting((setting) => {

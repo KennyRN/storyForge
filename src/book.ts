@@ -387,6 +387,7 @@ export function getArchivedChapters(app: App, bookFolderName?: string): { bookFo
 		const fm = readBookFrontmatter(app, name);
 		if (!fm) continue;
 		for (const filename of fm.archive) {
+			if (!app.vault.getAbstractFileByPath(libraryChapterPath(name, filename))) continue;
 			result.push({
 				bookFolderName: name,
 				bookTitle: fm.bookTitleReference || name,
@@ -475,6 +476,12 @@ export async function unarchiveChapter(app: App, bookFolderName: string, filenam
 		fm.archive = archive.filter((v) => v !== filename);
 		if (!unplaced.includes(filename)) unplaced.push(filename);
 		fm.unplaced = unplaced;
+	});
+}
+
+export async function writeBookArchiveOrder(app: App, bookFolderName: string, nextFilenames: string[]): Promise<void> {
+	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
+		fm.archive = nextFilenames;
 	});
 }
 
@@ -738,6 +745,32 @@ export async function rekeyChapterLocationReferences(app: App, oldPath: string, 
 	}
 }
 
+/**
+ * Drops chapter PoV / location refs (and the book default PoV) whose Codex files
+ * no longer exist — catches deletes that happened while Obsidian was closed.
+ * Live deletes already go through `rekeyChapterPovReferences` / `rekeyChapterLocationReferences`.
+ */
+export async function pruneMissingChapterCodexRefs(app: App): Promise<void> {
+	const missing = new Set<string>();
+	for (const folder of getLibraryBookFolders(app)) {
+		const fm = readBookFrontmatter(app, folder.name);
+		if (!fm) continue;
+		const consider = (path: string | null | undefined) => {
+			if (!path) return;
+			if (!(app.vault.getAbstractFileByPath(path) instanceof TFile)) missing.add(path);
+		};
+		consider(fm.defaultPovPath);
+		for (const entry of Object.values(fm.chapters)) {
+			for (const ref of entry.pov) consider(ref.path);
+			for (const ref of entry.location) consider(ref.path);
+		}
+	}
+	for (const path of missing) {
+		await rekeyChapterPovReferences(app, path, null);
+		await rekeyChapterLocationReferences(app, path, null);
+	}
+}
+
 /** Rekeys a chapter's `chapters` map entry when its file is renamed outside the plugin. No-op if `oldFilename` isn't present. */
 export async function renameChapterEntry(
 	app: App,
@@ -760,6 +793,56 @@ export async function renameChapterEntry(
 		fm.unplaced = rekeyList(fm.unplaced);
 		fm.archive = rekeyList(fm.archive);
 	});
+}
+
+export function stripMissingChapterRefs(
+	chapterOrder: string[],
+	unplaced: string[],
+	archive: string[],
+	chapterKeys: string[],
+	filenameExists: (filename: string) => boolean,
+): { chapterOrder: string[]; unplaced: string[]; archive: string[]; chapterKeys: string[] } {
+	return {
+		chapterOrder: chapterOrder.filter(filenameExists),
+		unplaced: unplaced.filter(filenameExists),
+		archive: archive.filter(filenameExists),
+		chapterKeys: chapterKeys.filter(filenameExists),
+	};
+}
+
+/**
+ * Drop every filename in `novel.md` (order, unplaced, archive, chapters map) whose chapter
+ * file is no longer in the library folder. Used on vault open for deletes that happened
+ * while Obsidian was closed — live deletes already go through `removeChapterEntry`.
+ */
+export async function pruneMissingChapterEntries(app: App, bookFolderName: string): Promise<boolean> {
+	const fm = readBookFrontmatter(app, bookFolderName);
+	if (!fm) return false;
+	const existing = new Set(getBookChapterFiles(app, bookFolderName).map((file) => file.name));
+	const filenameExists = (filename: string) => existing.has(filename);
+	const chapterKeys = Object.keys(fm.chapters);
+	const next = stripMissingChapterRefs(fm.chapterOrder, fm.unplaced, fm.archive, chapterKeys, filenameExists);
+	if (
+		JSON.stringify(next.chapterOrder) === JSON.stringify(fm.chapterOrder) &&
+		JSON.stringify(next.unplaced) === JSON.stringify(fm.unplaced) &&
+		JSON.stringify(next.archive) === JSON.stringify(fm.archive) &&
+		JSON.stringify(next.chapterKeys) === JSON.stringify(chapterKeys)
+	) {
+		return false;
+	}
+	const keep = new Set(next.chapterKeys);
+	await modifyBookFrontmatter(app, bookFolderName, (raw) => {
+		raw["chapter-order"] = next.chapterOrder;
+		raw.unplaced = next.unplaced;
+		raw.archive = next.archive;
+		const chapters: Record<string, RawChapterEntry> =
+			raw.chapters && typeof raw.chapters === "object" ? { ...raw.chapters } : {};
+		for (const name of Object.keys(chapters)) {
+			if (!keep.has(name)) delete chapters[name];
+		}
+		raw.chapters = chapters;
+	});
+	return true;
 }
 
 /** Removes a chapter from novel.md's chapters map and order/unplaced/archive lists. */

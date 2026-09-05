@@ -13,9 +13,9 @@ export type CodexEntryPickerSingleOptions = {
 	title: string;
 	emptyMessage: string;
 	entries: CodexPickerEntry[];
-	hasValue: boolean;
+	hasValue?: boolean;
 	onPick: (entry: CodexPickerEntry) => void | Promise<void>;
-	onClear: () => void | Promise<void>;
+	onClear?: () => void | Promise<void>;
 };
 
 export type CodexEntryPickerMultiOptions = {
@@ -33,7 +33,8 @@ export type CodexEntryPickerOptions = CodexEntryPickerSingleOptions | CodexEntry
  * Lists Codex entries of a given type, scoped to the current book.
  *
  * Single mode (Default PoV): clicking a row picks it and closes; when a value is already set,
- * an extra "Clear" row fires onClear instead.
+ * an extra "Clear" row fires onClear instead. Omit `hasValue` / `onClear` to hide Clear
+ * (e.g. linking an unknown name as an alias).
  *
  * Multi mode (chapter PoV / Location): selected names sit above a divider with a drag handle
  * over each name; clicking a name in the list below appends it; the modal stays open until
@@ -75,11 +76,12 @@ export class CodexEntryPickerModal extends Modal {
 
 		const list = contentEl.createDiv({ cls: "sf-palette-list" });
 
-		if (opts.hasValue) {
+		if (opts.hasValue && opts.onClear) {
+			const onClear = opts.onClear;
 			const clearRow = list.createDiv({ cls: "sf-row sf-palette-row sf-picker-clear-row" });
 			clearRow.createSpan({ text: "— Clear —" });
 			clearRow.addEventListener("click", () => {
-				void opts.onClear();
+				void onClear();
 				this.close();
 			});
 		}

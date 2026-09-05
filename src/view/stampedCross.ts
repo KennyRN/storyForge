@@ -61,3 +61,14 @@ export function renderStampedEmptyCross(parent: HTMLElement, label: string): HTM
 	stampCrossIcon(empty);
 	return empty;
 }
+
+/** Full-pane empty index — same 72px stamped X as Archive. */
+export function renderStampedIndexEmpty(parent: HTMLElement, label: string): HTMLElement {
+	const empty = parent.createDiv({
+		cls: "sf-archive-empty",
+		attr: { "aria-label": label },
+	});
+	setIcon(empty, ICON_X);
+	stampCrossIcon(empty);
+	return empty;
+}

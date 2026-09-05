@@ -1,27 +1,50 @@
 import { describe, expect, it } from "vitest";
 import type { App } from "obsidian";
+import { TFile } from "obsidian";
 import {
 	createCodexNote,
+	evictMissingCodexNotes,
 	renameCodexNoteFile,
 	sanitizeCodexBasename,
 	uniqueCodexFilename,
 } from "../codex";
 import { CODEX_ROOT } from "../paths";
-import { makeTFile } from "./obsidianStub";
+import { makeTFile, makeTFolder } from "./obsidianStub";
 
-function fakeCodexApp(existingPaths: string[] = []): {
+function fakeCodexApp(
+	existingPaths: string[] = [],
+	opts: { missingOnDisk?: string[]; existsLiesFor?: string[] } = {},
+): {
 	app: App;
 	created: string[];
 	renamed: Array<[string, string]>;
+	deleted: string[];
 } {
 	const files = new Map<string, ReturnType<typeof makeTFile>>();
 	for (const path of existingPaths) files.set(path, makeTFile(path));
+	const disk = new Set(existingPaths.filter((p) => !(opts.missingOnDisk ?? []).includes(p)));
 	const created: string[] = [];
 	const renamed: Array<[string, string]> = [];
+	const deleted: string[] = [];
+	const root = makeTFolder(CODEX_ROOT);
+	const syncRootChildren = () => {
+		root.children = [...files.values()].filter((f) => f.path.startsWith(`${CODEX_ROOT}/`));
+	};
+	syncRootChildren();
 	const app = {
 		vault: {
+			adapter: {
+				exists: async (path: string) => disk.has(path) || (opts.existsLiesFor ?? []).includes(path),
+				list: async (path: string) => {
+					if (path !== CODEX_ROOT) return { files: [], folders: [] };
+					return {
+						files: [...disk].filter((p) => p.startsWith(`${CODEX_ROOT}/`)),
+						folders: [],
+					};
+				},
+			},
 			getAbstractFileByPath: (path: string) => {
-				if (path === CODEX_ROOT) return { path: CODEX_ROOT };
+				if (path === CODEX_ROOT) return root;
 				return files.get(path) ?? null;
 			},
 			createFolder: async () => undefined,
@@ -29,7 +52,15 @@ function fakeCodexApp(existingPaths: string[] = []): {
 				created.push(path);
 				const file = makeTFile(path);
 				files.set(path, file);
+				disk.add(path);
+				syncRootChildren();
 				return file;
+			},
+			delete: async (file: { path: string }) => {
+				deleted.push(file.path);
+				files.delete(file.path);
+				disk.delete(file.path);
+				syncRootChildren();
 			},
 		},
 		fileManager: {
@@ -37,12 +68,15 @@ function fakeCodexApp(existingPaths: string[] = []): {
 			renameFile: async (file: { path: string }, dest: string) => {
 				renamed.push([file.path, dest]);
 				files.delete(file.path);
+				disk.delete(file.path);
 				file.path = dest;
 				files.set(dest, file as ReturnType<typeof makeTFile>);
+				disk.add(dest);
+				syncRootChildren();
 			},
 		},
 	} as unknown as App;
-	return { app, created, renamed };
+	return { app, created, renamed, deleted };
 }
 
 describe("sanitizeCodexBasename", () => {
@@ -66,15 +100,44 @@ describe("sanitizeCodexBasename", () => {
 });
 
 describe("uniqueCodexFilename", () => {
-	it("falls back to New Note when the name sanitizes to empty", () => {
+	it("falls back to New Note when the name sanitizes to empty", async () => {
 		const { app } = fakeCodexApp();
-		expect(uniqueCodexFilename(app, "../")).toBe("New Note.md");
-		expect(uniqueCodexFilename(app, "..")).toBe("New Note.md");
+		expect(await uniqueCodexFilename(app, "../")).toBe("New Note.md");
+		expect(await uniqueCodexFilename(app, "..")).toBe("New Note.md");
 	});
 
-	it("disambiguates collisions", () => {
+	it("disambiguates collisions", async () => {
 		const { app } = fakeCodexApp([`${CODEX_ROOT}/Ada.md`]);
-		expect(uniqueCodexFilename(app, "Ada")).toBe("Ada 2.md");
+		expect(await uniqueCodexFilename(app, "Ada")).toBe("Ada 2.md");
+	});
+
+	it("reuses a name whose markdown was deleted outside Obsidian", async () => {
+		const { app, deleted } = fakeCodexApp([`${CODEX_ROOT}/Berwyn.md`], {
+			missingOnDisk: [`${CODEX_ROOT}/Berwyn.md`],
+		});
+		expect(await uniqueCodexFilename(app, "Berwyn")).toBe("Berwyn.md");
+		expect(deleted).toEqual([`${CODEX_ROOT}/Berwyn.md`]);
+	});
+
+	it("reuses a name even when adapter.exists still reports the ghost", async () => {
+		const { app } = fakeCodexApp([`${CODEX_ROOT}/Berwyn.md`], {
+			missingOnDisk: [`${CODEX_ROOT}/Berwyn.md`],
+			existsLiesFor: [`${CODEX_ROOT}/Berwyn.md`],
+		});
+		expect(await uniqueCodexFilename(app, "Berwyn")).toBe("Berwyn.md");
+	});
+});
+
+describe("evictMissingCodexNotes", () => {
+	it("removes vault-index ghosts under Codex/", async () => {
+		const { app, deleted } = fakeCodexApp(
+			[`${CODEX_ROOT}/Kept.md`, `${CODEX_ROOT}/Gone.md`],
+			{ missingOnDisk: [`${CODEX_ROOT}/Gone.md`] },
+		);
+		expect(await evictMissingCodexNotes(app)).toEqual([`${CODEX_ROOT}/Gone.md`]);
+		expect(deleted).toEqual([`${CODEX_ROOT}/Gone.md`]);
+		expect(app.vault.getAbstractFileByPath(`${CODEX_ROOT}/Gone.md`)).toBeNull();
+		expect(app.vault.getAbstractFileByPath(`${CODEX_ROOT}/Kept.md`)).toBeInstanceOf(TFile);
 	});
 });
 
@@ -96,5 +159,23 @@ describe("createCodexNote / renameCodexNoteFile", () => {
 		expect(renamed).toHaveLength(1);
 		expect(renamed[0][1].startsWith(`${CODEX_ROOT}/`)).toBe(true);
 		expect(renamed[0][1].includes("..")).toBe(false);
+	});
+
+	it("renames Berwyn 2 back to Berwyn when the unnumbered file is only a ghost", async () => {
+		const { app, renamed } = fakeCodexApp([`${CODEX_ROOT}/Berwyn.md`, `${CODEX_ROOT}/Berwyn 2.md`], {
+			missingOnDisk: [`${CODEX_ROOT}/Berwyn.md`],
+			existsLiesFor: [`${CODEX_ROOT}/Berwyn.md`],
+		});
+		const file = app.vault.getAbstractFileByPath(`${CODEX_ROOT}/Berwyn 2.md`) as unknown as ReturnType<typeof makeTFile>;
+		await renameCodexNoteFile(app, file as never, "Berwyn");
+		expect(renamed).toEqual([[`${CODEX_ROOT}/Berwyn 2.md`, `${CODEX_ROOT}/Berwyn.md`]]);
+	});
+
+	it("does not bump Berwyn 2 to Berwyn 3 when Berwyn.md is still a real file", async () => {
+		const { app, renamed } = fakeCodexApp([`${CODEX_ROOT}/Berwyn.md`, `${CODEX_ROOT}/Berwyn 2.md`]);
+		const file = app.vault.getAbstractFileByPath(`${CODEX_ROOT}/Berwyn 2.md`) as unknown as ReturnType<typeof makeTFile>;
+		await renameCodexNoteFile(app, file as never, "Berwyn");
+		expect(renamed).toEqual([]);
+		expect(file.path).toBe(`${CODEX_ROOT}/Berwyn 2.md`);
 	});
 });

@@ -53,12 +53,16 @@ Notes on conventions used below:
 | recommendView.notebookSource.notebook | Notebook | — |
 | recommendView.notebookSource.codex | Codex | — |
 | recommendView.notebookSource.dossier | Dossier | — |
+| recommendView.archiveSource.codex | Codex | — |
+| recommendView.archiveSource.novel | Novel | — |
+| recommendView.archiveSource.notebook | Notebook | — |
 | recommendView.empty.noChapter | Open a chapter to see story context. | — |
 | recommendView.loadingModel | Loading language model… | — |
 | recommendView.section.synopsis | Synopsis | — |
 | recommendView.section.characters | Characters in chapter | — |
 | recommendView.section.unknown | Named but not in Codex | — |
 | recommendView.stubBtn.ariaLabel | create in codex | — |
+| recommendView.linkUnknown.ariaLabel | link to existing Codex | — |
 | recommendView.ignoreUnknown.ariaLabel | ignore | — |
 | recommendView.section.other | Other Codex references | — |
 | recommendView.chapterAction.createDetailsNote | create details note | — |

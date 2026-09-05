@@ -1,8 +1,8 @@
-import { App, TFile, TFolder, type FrontMatterCache } from "obsidian";
+import { App, TFile, TFolder, normalizePath, type FrontMatterCache } from "obsidian";
 import { ICON_MAP_PIN, ICON_PERSON_2_FILL, ICON_PERSON_FILL } from "./icons";
 import { CODEX_ROOT, codexFilePath } from "./paths";
 import { partitionCodexNotes, findUnknownScopedNotes, type CodexNote } from "./codexPartition";
-import { modifyBackstageFrontmatter } from "./writeGuard";
+import { modifyBackstageFrontmatter, modifyCodexNoteAliases } from "./writeGuard";
 import {
 	codexBasename,
 	collectReferencedPaths,
@@ -222,6 +222,20 @@ export function filterVisiblePathsByType(
 	return result;
 }
 
+/** Book-scoped Codex notes (universal + this book's own, excluding archived), in the same
+ * order as a fully-expanded Codex tree (folders flattened). Not filtered by type. */
+export function getCodexEntries(
+	app: App,
+	currentBookId: string | null,
+): { path: string; name: string }[] {
+	const { codex } = partitionCodexNotes(collectCodexNotes(app), currentBookId);
+	const visiblePaths = new Set(codex.map((note) => note.path));
+	const tree = buildCodexTree(app, visiblePaths);
+	return tree
+		? flattenCodexTreeFiles(tree)
+		: codex.map((note) => ({ path: note.path, name: codexBasename(note.path) }));
+}
+
 /** Codex entries of the given type (or a type nested under it — see codexTypeMatchesOrDescendsFrom),
  * scoped like the Codex pane itself (universal + this book's own, excluding archived), in the
  * same order as a fully-expanded Codex tree (folders flattened). */
@@ -231,13 +245,7 @@ export function getCodexEntriesByType(
 	currentBookId: string | null,
 ): { path: string; name: string }[] {
 	const { types } = readCodexFrontmatter(app);
-	const { codex } = partitionCodexNotes(collectCodexNotes(app), currentBookId);
-	const visiblePaths = new Set(codex.map((note) => note.path));
-	const tree = buildCodexTree(app, visiblePaths);
-	const ordered = tree
-		? flattenCodexTreeFiles(tree)
-		: codex.map((note) => ({ path: note.path, name: codexBasename(note.path) }));
-	return ordered.filter((entry) => {
+	return getCodexEntries(app, currentBookId).filter((entry) => {
 		const entryType = types[entry.path];
 		return entryType != null && codexTypeMatchesOrDescendsFrom(entryType, type);
 	});
@@ -321,14 +329,112 @@ export function sanitizeCodexBasename(raw: string): string {
 	return stripped;
 }
 
-/** Collision-unique `stem.md` under `CODEX_ROOT`, using a sanitized stem. */
-export function uniqueCodexFilename(app: App, baseName: string): string {
+function sameVaultPath(a: string, b: string): boolean {
+	return normalizePath(a).toLowerCase() === normalizePath(b).toLowerCase();
+}
+
+function pathInSet(paths: Iterable<string>, path: string): boolean {
+	return [...paths].some((entry) => sameVaultPath(entry, path));
+}
+
+/** Markdown files actually present under `Codex/` on disk. `adapter.list` reads the folder;
+ * `adapter.exists` can stay true for Finder-deleted files after the vault index has gone stale. */
+async function listCodexMarkdownOnDisk(app: App): Promise<Set<string> | null> {
+	const list = app.vault.adapter?.list?.bind(app.vault.adapter);
+	if (typeof list !== "function") return null;
+	try {
+		const result = await list(CODEX_ROOT);
+		const files = Array.isArray(result?.files) ? result.files : [];
+		return new Set(
+			files
+				.map((p) => normalizePath(String(p)))
+				.filter((p) => p.toLowerCase().endsWith(".md"))
+				.map((p) => (p.startsWith(`${CODEX_ROOT}/`) ? p : normalizePath(`${CODEX_ROOT}/${p}`))),
+		);
+	} catch {
+		return null;
+	}
+}
+
+/** Collision-unique `stem.md` under `CODEX_ROOT`, using a sanitized stem.
+ * Ghosts left in Obsidian's vault index after an external (Finder) delete are
+ * evicted first, so a reused name like `Berwyn.md` is not forced to `Berwyn 2.md`.
+ * `ignorePath` is the note being renamed — its own numbered name must not count as taken. */
+export async function uniqueCodexFilename(
+	app: App,
+	baseName: string,
+	ignorePath?: string,
+): Promise<string> {
+	await evictMissingCodexNotes(app);
 	const stem = sanitizeCodexBasename(baseName) || "New Note";
-	let candidate = `${stem}.md`;
-	if (!app.vault.getAbstractFileByPath(`${CODEX_ROOT}/${candidate}`)) return candidate;
+	if (!(await isCodexPathOccupied(app, `${CODEX_ROOT}/${stem}.md`, ignorePath))) return `${stem}.md`;
 	let n = 2;
-	while (app.vault.getAbstractFileByPath(`${CODEX_ROOT}/${stem} ${n}.md`)) n++;
+	while (await isCodexPathOccupied(app, `${CODEX_ROOT}/${stem} ${n}.md`, ignorePath)) n++;
 	return `${stem} ${n}.md`;
+}
+
+/** True when `path` exists on disk. Prefers `adapter.list` so a stale `exists()` cache cannot
+ * keep a Finder-deleted `Berwyn.md` reserved. */
+async function vaultPathExistsOnDisk(app: App, path: string): Promise<boolean> {
+	const listed = await listCodexMarkdownOnDisk(app);
+	if (listed) return pathInSet(listed, path);
+	const exists = app.vault.adapter?.exists?.bind(app.vault.adapter);
+	if (typeof exists === "function") {
+		try {
+			return await exists(path);
+		} catch {
+			/* fall through to the in-memory index */
+		}
+	}
+	return app.vault.getAbstractFileByPath(path) instanceof TFile;
+}
+
+/** Drop a vault-index TFile whose markdown is no longer on disk (external delete). */
+async function evictMissingCodexNoteAt(app: App, path: string): Promise<void> {
+	const existing = app.vault.getAbstractFileByPath(path);
+	if (!(existing instanceof TFile)) return;
+	if (await vaultPathExistsOnDisk(app, path)) return;
+	try {
+		await app.vault.delete(existing, true);
+	} catch {
+		/* index already diverged from disk */
+	}
+}
+
+/** Drop every Codex/*.md still listed in the vault index whose file is gone from disk. */
+export async function evictMissingCodexNotes(app: App): Promise<string[]> {
+	const root = app.vault.getAbstractFileByPath(CODEX_ROOT);
+	if (!(root instanceof TFolder)) return [];
+	const onDisk = await listCodexMarkdownOnDisk(app);
+	const evicted: string[] = [];
+	for (const child of [...root.children]) {
+		if (!(child instanceof TFile) || child.extension !== "md") continue;
+		const present = onDisk ? pathInSet(onDisk, child.path) : await vaultPathExistsOnDisk(app, child.path);
+		if (present) continue;
+		const path = child.path;
+		try {
+			await app.vault.delete(child, true);
+		} catch {
+			/* index already diverged from disk */
+		}
+		evicted.push(path);
+	}
+	return evicted;
+}
+
+async function isCodexPathOccupied(app: App, path: string, ignorePath?: string): Promise<boolean> {
+	if (ignorePath && sameVaultPath(path, ignorePath)) return false;
+	await evictMissingCodexNoteAt(app, path);
+	if (ignorePath && sameVaultPath(path, ignorePath)) return false;
+	const listed = await listCodexMarkdownOnDisk(app);
+	if (listed) return pathInSet(listed, path);
+	const existing = app.vault.getAbstractFileByPath(path);
+	if (!existing) return false;
+	if (existing instanceof TFile) {
+		if (ignorePath && sameVaultPath(existing.path, ignorePath)) return false;
+		return vaultPathExistsOnDisk(app, path);
+	}
+	return true;
 }
 
 /** Mints a new virtual folder and registers it into `parentFolderId`'s order (or the root's, if null). Returns the new folder id. */
@@ -391,7 +497,7 @@ export async function createCodexNote(
 	options: CreateCodexNoteOptions = {},
 ): Promise<TFile> {
 	if (!app.vault.getAbstractFileByPath(CODEX_ROOT)) await app.vault.createFolder(CODEX_ROOT);
-	const filename = uniqueCodexFilename(app, options.filename ?? "New Note");
+	const filename = await uniqueCodexFilename(app, options.filename ?? "New Note");
 	const path = `${CODEX_ROOT}/${filename}`;
 	const file = await app.vault.create(path, options.content ?? "");
 	await modifyBackstageFrontmatter<RawCodexFrontmatter>(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
@@ -408,13 +514,26 @@ export async function createCodexNote(
 export async function renameCodexNoteFile(app: App, file: TFile, newBasename: string): Promise<void> {
 	const stem = sanitizeCodexBasename(newBasename);
 	if (!stem || stem === file.basename) return;
-	let candidate = `${CODEX_ROOT}/${stem}.md`;
-	if (candidate !== file.path && app.vault.getAbstractFileByPath(candidate)) {
-		let n = 2;
-		while (app.vault.getAbstractFileByPath(`${CODEX_ROOT}/${stem} ${n}.md`)) n++;
-		candidate = `${CODEX_ROOT}/${stem} ${n}.md`;
-	}
+	const filename = await uniqueCodexFilename(app, stem, file.path);
+	const candidate = `${CODEX_ROOT}/${filename}`;
+	if (sameVaultPath(candidate, file.path)) return;
 	await app.fileManager.renameFile(file, candidate);
+}
+
+/**
+ * Append `alias` to a Codex note's YAML `aliases` (Obsidian Properties). No-op when blank,
+ * already present, or equal to the file basename (case-insensitive). Refuses non-Codex paths.
+ */
+export async function addCodexNoteAlias(app: App, path: string, alias: string): Promise<void> {
+	const trimmed = alias.trim();
+	if (!trimmed) return;
+	const file = app.vault.getAbstractFileByPath(path);
+	const basename = file instanceof TFile ? file.basename : "";
+	await modifyCodexNoteAliases(app, app.vault, path, (aliases) => {
+		if (basename.toLowerCase() === trimmed.toLowerCase()) return aliases;
+		if (aliases.some((existing) => existing.toLowerCase() === trimmed.toLowerCase())) return aliases;
+		return [...aliases, trimmed];
+	});
 }
 
 /** Pure metadata rename — virtual folders have no real file, so there's nothing to rename on disk. */
@@ -517,12 +636,17 @@ export function getArchivedCodexItems(app: App): ArchivedCodexItem[] {
 	});
 }
 
+export async function reorderArchivedCodexItems(app: App, nextKeys: string[]): Promise<void> {
+	await modifyBackstageFrontmatter<RawCodexFrontmatter>(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
+		fm.archive = nextKeys;
+	});
+}
+
 /**
  * Rekeys every reference to `oldPath` (root order, any folder's order, archive) to `newPath`,
- * or strips it entirely if `newPath` is null (no longer a trackable flat Codex note — moved
- * out of `Codex/` or into a nested real subfolder). Called by the vault-rename reconciliation
- * handler, so this fires for renames done via Obsidian's native file explorer too, not just
- * this plugin's own rename UI.
+ * or strips it entirely if `newPath` is null (deleted, or no longer a trackable flat Codex note
+ * — moved out of `Codex/` or into a nested real subfolder). Called by the vault-rename and
+ * vault-delete reconciliation handlers, so this fires for file-explorer and Finder deletes too.
  */
 export async function rekeyCodexNotePath(app: App, oldPath: string, newPath: string | null): Promise<void> {
 	if (!app.vault.getAbstractFileByPath(codexFilePath())) return;
@@ -554,6 +678,73 @@ export async function rekeyCodexNotePath(app: App, oldPath: string, newPath: str
 		fm.archive = rekey(archive);
 		fm.types = types;
 	});
+}
+
+/**
+ * Drop every file-path reference in `codex.md` whose note is no longer in the vault.
+ * Virtual folder ids stay. Used after an external delete (Finder, etc.) and on vault
+ * open for deletes that happened while Obsidian was closed — `resolveCodexTree` already
+ * hides these orphans; this writes the cleanup back to the order markdown.
+ */
+export function stripMissingCodexNoteRefs(
+	folders: CodexFolders,
+	order: string[],
+	archive: string[],
+	types: Record<string, string>,
+	pathExists: (path: string) => boolean,
+): CodexFrontmatterShape {
+	const keep = (key: string): boolean => isFolderKey(folders, key) || pathExists(key);
+	const nextFolders: CodexFolders = {};
+	for (const [id, entry] of Object.entries(folders)) {
+		const next: CodexFolderEntry = { name: entry.name, order: entry.order.filter(keep) };
+		if (entry.linkedNotePath && pathExists(entry.linkedNotePath)) next.linkedNotePath = entry.linkedNotePath;
+		nextFolders[id] = next;
+	}
+	const nextTypes: Record<string, string> = {};
+	for (const [path, type] of Object.entries(types)) {
+		if (pathExists(path)) nextTypes[path] = type;
+	}
+	return {
+		folders: nextFolders,
+		order: order.filter(keep),
+		archive: archive.filter(keep),
+		types: nextTypes,
+	};
+}
+
+function codexShapeEquals(a: CodexFrontmatterShape, b: CodexFrontmatterShape): boolean {
+	return JSON.stringify(a) === JSON.stringify(b);
+}
+
+export async function pruneMissingCodexNotes(app: App): Promise<boolean> {
+	if (!app.vault.getAbstractFileByPath(codexFilePath())) return false;
+	const current = readCodexFrontmatter(app);
+	const referenced = collectReferencedPaths(current.folders, current.order);
+	for (const path of collectReferencedPaths(current.folders, current.archive)) referenced.add(path);
+	for (const path of Object.keys(current.types)) referenced.add(path);
+	const existence = new Map<string, boolean>();
+	await Promise.all(
+		[...referenced].map(async (path) => {
+			if (isFolderKey(current.folders, path)) return;
+			existence.set(path, await vaultPathExistsOnDisk(app, path));
+		}),
+	);
+	const pathExists = (path: string) => existence.get(path) === true;
+	const next = stripMissingCodexNoteRefs(current.folders, current.order, current.archive, current.types, pathExists);
+	if (codexShapeEquals(current, next)) return false;
+	await modifyBackstageFrontmatter<RawCodexFrontmatter>(app, app.vault, codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
+		fm.folders = next.folders;
+		fm.order = next.order;
+		fm.archive = next.archive;
+		fm.types = next.types;
+	});
+	return true;
+}
+
+/** Evict vault-index ghosts then strip their leftovers from `codex.md`. */
+export async function reconcileMissingCodexNotes(app: App): Promise<void> {
+	await evictMissingCodexNotes(app);
+	await pruneMissingCodexNotes(app);
 }
 
 /**

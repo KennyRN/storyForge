@@ -1,4 +1,4 @@
-import { App, Modal, Notice, setIcon } from "obsidian";
+import { App, Modal, Notice, setIcon, setTooltip } from "obsidian";
 import {
 	addTagDefinition,
 	deleteTagDefinition,
@@ -14,29 +14,51 @@ import {
 import { makeReorderable, type DragZone } from "./dragReorder";
 import { makeAccessibleActivatable } from "./a11y";
 import { renderTabbedBody } from "./styleModalHelpers";
-import { ICON_MINUS_SQUARE, ICON_PLUS_SQUARE, ICON_TAG } from "../icons";
+import {
+	ICON_ARCHIVE_FILLED,
+	ICON_CODEX,
+	ICON_MINUS_SQUARE,
+	ICON_NOTEBOOK_DUOTONE,
+	ICON_PLUS_SQUARE,
+	ICON_TAG,
+} from "../icons";
 import { confirmDelete } from "./confirmDeleteModal";
 
-export type TagRegistryScope = "codexTypes" | "ideaTypes" | "tags";
+export type TypesTabId = "codexTypes" | "ideaTypes" | "archiveTypes";
+export type TagRegistryScope = TypesTabId | "tags";
 
 const TAG_TABS: { id: TagListKind; label: string; addPlaceholder: string }[] = [
 	{ id: "chapterTags", label: "Chapter tags", addPlaceholder: 'New chapter tag (e.g. "2nd pass")' },
 	{ id: "novelTags", label: "Novel tags", addPlaceholder: 'New novel tag (e.g. "Needs cover")' },
 ];
 
-/** Manage Codex types, or chapter/novel tags, as two separate dialogs: add, rename, re-icon,
- * reorder, delete. Codex types additionally nests — see renderCodexTypesList. */
+const TYPES_TABS: { id: TypesTabId; icon: string; label: string; addPlaceholder: string }[] = [
+	{ id: "codexTypes", icon: ICON_CODEX, label: "Codex", addPlaceholder: 'New type name (e.g. "Faction")' },
+	{ id: "ideaTypes", icon: ICON_NOTEBOOK_DUOTONE, label: "Notebook", addPlaceholder: 'New notebook type (e.g. "Plot")' },
+	{ id: "archiveTypes", icon: ICON_ARCHIVE_FILLED, label: "Archive", addPlaceholder: 'New archive type (e.g. "Reference")' },
+];
+
+function isTypesScope(scope: TagRegistryScope): scope is TypesTabId {
+	return scope !== "tags";
+}
+
+/** Manage Codex / Notebook / Archive types, or chapter/novel tags, as two separate dialogs: add,
+ * rename, re-icon, reorder, delete. Types share one icon-tabbed window (Codex globe, Notebook,
+ * Archive in that order). Codex types additionally nest — see renderCodexTypesList. */
 export class TagRegistryModal extends Modal {
+	private typesTab: TypesTabId;
+
 	constructor(
 		app: App,
 		private onChange: () => void,
 		private registryScope: TagRegistryScope,
 	) {
 		super(app);
+		this.typesTab = isTypesScope(registryScope) ? registryScope : "codexTypes";
 	}
 
 	onOpen(): void {
-		if (this.registryScope === "codexTypes" || this.registryScope === "ideaTypes") {
+		if (isTypesScope(this.registryScope)) {
 			this.modalEl.addClass("sf-codex-types-modal");
 		}
 		this.titleEl.remove();
@@ -67,17 +89,21 @@ export class TagRegistryModal extends Modal {
 		contentEl.empty();
 		contentEl.addClass("sf-tag-registry-modal");
 
-		if (this.registryScope === "codexTypes") {
+		if (isTypesScope(this.registryScope)) {
+			this.renderTypesTabs(contentEl);
 			const scroll = contentEl.createDiv({ cls: "sf-text-style-tab-body-wrapper" });
 			const body = scroll.createDiv({ cls: "sf-text-style-tab-body" });
-			this.renderCodexTypesList(body, fresh?.list === "codexTypes" ? fresh.entries : undefined);
-			return;
-		}
-
-		if (this.registryScope === "ideaTypes") {
-			const scroll = contentEl.createDiv({ cls: "sf-text-style-tab-body-wrapper" });
-			const body = scroll.createDiv({ cls: "sf-text-style-tab-body" });
-			this.renderList(body, "ideaTypes", 'New notebook type (e.g. "Plot")', fresh?.list === "ideaTypes" ? fresh.entries : undefined);
+			if (this.typesTab === "codexTypes") {
+				this.renderCodexTypesList(body, fresh?.list === "codexTypes" ? fresh.entries : undefined);
+			} else {
+				const tab = TYPES_TABS.find((entry) => entry.id === this.typesTab) ?? TYPES_TABS[1];
+				this.renderList(
+					body,
+					this.typesTab,
+					tab.addPlaceholder,
+					fresh?.list === this.typesTab ? fresh.entries : undefined,
+				);
+			}
 			return;
 		}
 
@@ -92,8 +118,34 @@ export class TagRegistryModal extends Modal {
 		);
 	}
 
-	/** Flat renderer — chapterTags/novelTags, which never nest. `freshEntries` overrides the
-	 * readTagRegistry() lookup — see render()'s doc comment. */
+	/** Codex / Notebook / Archive — same icon size and colour-only active treatment as the
+	 * storyForge panel's layout tabs (`.sf-layout-tab`). */
+	private renderTypesTabs(parent: HTMLElement): void {
+		const tabs = parent.createDiv({ cls: "sf-layout-tabs sf-types-modal-tabs", attr: { role: "tablist" } });
+		for (const tab of TYPES_TABS) {
+			const btn = tabs.createSpan({
+				cls: `sf-layout-tab${this.typesTab === tab.id ? " is-active" : ""}`,
+				attr: {
+					role: "tab",
+					tabindex: "0",
+					"aria-label": tab.label,
+					"aria-selected": String(this.typesTab === tab.id),
+				},
+			});
+			setIcon(btn.createSpan({ cls: "sf-layout-tab-icon" }), tab.icon);
+			setTooltip(btn, tab.label);
+			const select = () => {
+				if (this.typesTab === tab.id) return;
+				this.typesTab = tab.id;
+				this.render();
+			};
+			btn.addEventListener("click", select);
+			makeAccessibleActivatable(btn, select);
+		}
+	}
+
+	/** Flat renderer — Notebook/Archive types and chapterTags/novelTags, which never nest.
+	 * `freshEntries` overrides the readTagRegistry() lookup — see render()'s doc comment. */
 	private renderList(body: HTMLElement, list: TagListKind, addPlaceholder: string, freshEntries?: TagDefinition[]): void {
 		const entries = freshEntries ?? readTagRegistry(this.app)[list];
 

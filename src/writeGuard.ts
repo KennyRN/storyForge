@@ -6,6 +6,7 @@ import {
 	EXPORT_ROOT,
 	LIBRARY_ROOT,
 	TITLEFORGE_BACKSTAGE_ROOT,
+	isCodexNotePath,
 	isLibraryRootFilePath,
 } from "./paths";
 
@@ -19,11 +20,12 @@ import {
  *
  * Every write that targets a chapter file under `_story-library/<code>/` or a
  * note under `Codex/` must go through this module (which will refuse it).
- * Library manuscripts are prose-only; Codex notes are user-owned (create/rename
- * for wikilinks are the only intentional disk exceptions elsewhere, and must
- * not grow into content edits). Story Context never edits Codex note bodies —
- * its write footprint is `_backstage/storyforge/` (plus flat library-root
- * files above) and `_backstage/titleforge/` (titleForge's own sibling region).
+ * Library manuscripts are prose-only; Codex notes are user-owned. Intentional
+ * disk exceptions are create, rename (wikilinks), and aliases-only YAML via
+ * `modifyCodexNoteAliases` — never body edits or other frontmatter keys.
+ * Story Context never edits Codex note bodies — its write footprint is
+ * `_backstage/storyforge/` (plus flat library-root files above) and
+ * `_backstage/titleforge/` (titleForge's own sibling region).
  * Backup zips are an allowed write root: `_sf-backup/` only. User-facing shareable
  * JSON copies are another: `_export/` only.
  *
@@ -284,6 +286,49 @@ export function enqueueBackstageWrite<T>(path: string, task: () => Promise<T>): 
 		if (pathQueues.get(key) === settled) pathQueues.delete(key);
 	});
 	return run;
+}
+
+function readAliasList(raw: unknown): string[] {
+	if (Array.isArray(raw)) {
+		return raw
+			.filter((v): v is string => typeof v === "string")
+			.map((s) => s.trim())
+			.filter(Boolean);
+	}
+	if (typeof raw === "string" && raw.trim()) return [raw.trim()];
+	return [];
+}
+
+/**
+ * The third Codex disk exception: rewrite only the note's YAML `aliases` key.
+ * Refuses any path that is not a flat `Codex/*.md` note. The mutate callback
+ * receives and returns the alias list — it cannot see or change other keys
+ * or the note body.
+ */
+export async function modifyCodexNoteAliases(
+	app: { fileManager: { processFrontMatter: (file: TFile, fn: (fm: FrontMatterCache) => void) => Promise<void> } },
+	vault: Vault,
+	path: string,
+	mutate: (aliases: string[]) => string[],
+): Promise<void> {
+	const normalized = normalizeVaultPath(path);
+	if (!isCodexNotePath(normalized)) {
+		throw new ForbiddenWriteError(path);
+	}
+	const file = vault.getAbstractFileByPath(normalized);
+	if (!(file instanceof TFile)) {
+		throw new ForbiddenWriteError(path);
+	}
+	await enqueueBackstageWrite(normalized, async () => {
+		await app.fileManager.processFrontMatter(file, (fm) => {
+			const next = mutate(readAliasList(fm.aliases));
+			if (next.length === 0) {
+				delete fm.aliases;
+			} else {
+				fm.aliases = next;
+			}
+		});
+	});
 }
 
 export async function modifyBackstageFrontmatter<T extends FrontMatterCache = FrontMatterCache>(

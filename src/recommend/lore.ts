@@ -11,7 +11,7 @@ export interface CreateLoreOptions {
 
 /** Creates a typed Codex lore entry as a blank note (frontmatter only, no seeded headings). */
 export async function createCodexLore(app: App, options: CreateLoreOptions): Promise<TFile> {
-	const filename = uniqueCodexFilename(app, options.name);
+	const filename = await uniqueCodexFilename(app, options.name);
 	if (filename === "New Note.md" && !options.name.trim().replace(/[/\\?%*:|"<>]/g, "")) {
 		throw new Error("Name is empty");
 	}

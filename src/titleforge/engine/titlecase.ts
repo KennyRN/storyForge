@@ -73,6 +73,41 @@ function isAcronym(word: string): boolean {
 	return letters.length >= 2 && letters === letters.toUpperCase() && /[A-Z]/.test(letters);
 }
 
+/**
+ * Known acronyms whose canonical casing must survive the title-case pass even
+ * when the gloss arrives lowercase, is mixed-case (so `isAcronym` misses it), or
+ * carries a possessive `'s` (which defeats the all-caps test). Keyed by the
+ * lowercased letter core; value is the canonical rendering.
+ */
+const ACRONYMS = new Map<string, string>([
+	["litrpg", "LitRPG"],
+	["gamelit", "GameLit"],
+	["sysapoc", "SysApoc"],
+	["ceo", "CEO"],
+	["neet", "NEET"],
+	["rpg", "RPG"],
+	["npc", "NPC"],
+	["mmo", "MMO"],
+	["vr", "VR"],
+	["ai", "AI"],
+	["op", "OP"],
+	["pov", "POV"],
+	["gm", "GM"],
+]);
+
+/**
+ * If a word's letter core (ignoring surrounding brackets/punctuation and a
+ * trailing possessive) is a known acronym, rebuild it with canonical casing.
+ * Returns null when the word isn't a known acronym, so the caller falls through.
+ */
+function applyAcronym(word: string): string | null {
+	const m = word.match(/^([^A-Za-z]*)([A-Za-z]+)((?:['’]s)?)([^A-Za-z]*)$/);
+	if (!m) return null;
+	const [, lead, core, poss, trail] = m;
+	const canon = ACRONYMS.get(core.toLowerCase());
+	return canon === undefined ? null : lead + canon + poss + trail;
+}
+
 /** Capitalise the first letter of each hyphen-separated segment; leave acronym segments alone. */
 function capitaliseWord(word: string): string {
 	return word
@@ -101,6 +136,11 @@ export function titleCase(input: string): string {
 	let afterColon = true; // the start of the string counts as a sentence start too
 
 	const cased = words.map((word, index) => {
+		const acro = applyAcronym(word);
+		if (acro !== null) {
+			afterColon = /:$/.test(word);
+			return acro;
+		}
 		const isFirst = index === 0;
 		const isLast = index === words.length - 1;
 		const bare = word.replace(/[.,!?:;"']+$/g, "");

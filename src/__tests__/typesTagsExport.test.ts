@@ -17,6 +17,7 @@ const registry: TagRegistryShape = {
 	chapterTags: [{ id: "draft", label: "Draft", iconAlias: "pencil" }],
 	novelTags: [{ id: "editing", label: "Editing", iconAlias: "warning-square" }],
 	ideaTypes: [],
+	archiveTypes: [],
 };
 
 const vaultTags: VaultTagsShape = {

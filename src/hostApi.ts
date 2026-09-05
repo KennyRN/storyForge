@@ -900,7 +900,7 @@ export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 		},
 
 		async createNote(opt) {
-			const filename = uniqueCodexFilename(plugin.app, opt.name);
+			const filename = await uniqueCodexFilename(plugin.app, opt.name);
 			let content = opt.content ?? "";
 			if (opt.bookId && !/^---\r?\n/.test(content)) {
 				content = `---\nbook: ${yamlQuotedScalar(opt.bookId)}\n---\n\n${content}`;

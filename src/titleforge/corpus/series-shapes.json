@@ -15,7 +15,12 @@
 			"horror",
 			"hist",
 			"rom",
-			"ya"
+			"ya",
+			"heroic-fantasy",
+			"sword-sorcery",
+			"urban-fantasy",
+			"space-opera",
+			"military-sf"
 		],
 		"weight": 3,
 		"exemplar": "The Belgariad; The Expanse; The Strain",
@@ -41,7 +46,12 @@
 			"hist",
 			"rom",
 			"short",
-			"ya"
+			"ya",
+			"heroic-fantasy",
+			"sword-sorcery",
+			"urban-fantasy",
+			"space-opera",
+			"military-sf"
 		],
 		"weight": 15,
 		"exemplar": "The Stormlight Archive; Revelation Space; Cthulhu Mythos",
@@ -67,7 +77,11 @@
 			"lit",
 			"hist",
 			"rom",
-			"ya"
+			"ya",
+			"heroic-fantasy",
+			"sword-sorcery",
+			"urban-fantasy",
+			"space-opera"
 		],
 		"weight": 5,
 		"exemplar": "A Song of Ice and Fire; The Book of the New Sun; The Books of Blood",
@@ -87,7 +101,10 @@
 			"epic",
 			"crime",
 			"lit",
-			"ya"
+			"ya",
+			"heroic-fantasy",
+			"sword-sorcery",
+			"urban-fantasy"
 		],
 		"weight": 1,
 		"exemplar": "Memory, Sorrow, and Thorn; The Fast and the Furious; Jeeves and Wooster",
@@ -109,7 +126,12 @@
 			"crime",
 			"lit",
 			"hist",
-			"ya"
+			"ya",
+			"heroic-fantasy",
+			"sword-sorcery",
+			"urban-fantasy",
+			"space-opera",
+			"military-sf"
 		],
 		"weight": 6,
 		"exemplar": "James Bond; Harry Bosch; Hannibal Lecter",
@@ -134,7 +156,12 @@
 			"lit",
 			"hist",
 			"rom",
-			"ya"
+			"ya",
+			"heroic-fantasy",
+			"sword-sorcery",
+			"urban-fantasy",
+			"space-opera",
+			"military-sf"
 		],
 		"weight": 6,
 		"exemplar": "The Stormlight Archive; The Murderbot Diaries; The Best American Short Stories",
@@ -165,7 +192,9 @@
 		],
 		"genres": [
 			"sf",
-			"ya"
+			"ya",
+			"space-opera",
+			"military-sf"
 		],
 		"weight": 1,
 		"exemplar": "Shatter Me",
@@ -180,7 +209,9 @@
 		],
 		"genres": [
 			"epic",
-			"ya"
+			"ya",
+			"heroic-fantasy",
+			"sword-sorcery"
 		],
 		"weight": 1,
 		"exemplar": "How to Train Your Dragon",

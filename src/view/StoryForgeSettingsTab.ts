@@ -108,15 +108,15 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				type: "group",
 				items: [
 					{
-						name: "storyLibrary panel",
-						desc: "If you've closed the storyLibrary panel, click this to bring it back.",
+						name: "storyforge",
+						desc: "If you've closed the storyforge panel, click this to bring it back.",
 						action: () => {
 							void this.plugin.activateView();
 						},
 					},
 					{
-						name: "storyTelling panel",
-						desc: "If you've closed the storyTelling (Codex) panel, click this to bring it back.",
+						name: "storytelling mode",
+						desc: "If you've closed storytelling mode, click this to bring it back.",
 						action: () => {
 							void this.plugin.activateStorytellingView();
 						},
@@ -236,8 +236,8 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 				type: "group",
 				items: [
 					{
-						name: "Codex types",
-						desc: "Manage Codex entry types and the icons they draw from.",
+						name: "Types",
+						desc: "Manage Codex, Notebook, and Archive types and the icons they draw from.",
 						action: () => {
 							new TagRegistryModal(this.app, () => this.refreshDomState(), "codexTypes").open();
 						},

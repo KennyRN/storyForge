@@ -17,10 +17,10 @@ import {
 	writeChapterLocation,
 	writeChapterPov,
 } from "../book";
-import { CODEX_TYPES, codexTypeIcon, createCodexFolder, createCodexNote, getCodexEntriesByType, readCodexFrontmatter } from "../codex";
+import { CODEX_TYPES, addCodexNoteAlias, codexTypeIcon, codexTypeMatchesOrDescendsFrom, createCodexFolder, createCodexNote, getCodexEntries, getCodexEntriesByType, readCodexFrontmatter } from "../codex";
 import { debounce } from "../debounce";
 import { splitTitleSubtitle } from "../titleNumbering";
-import { ICON_ADD_SQUARE, ICON_ARCHIVE_FILLED, ICON_BOOK_DUOTONE, ICON_BOOK_OPEN_FILLED, ICON_CLIPBOARD_LIST_DUOTONE, ICON_CODEX, ICON_DASHBOARD_CHART, ICON_FOCUS_OFF, ICON_FOCUS_ON, ICON_FORGE, ICON_LOCATION_TARGET_SQUARE, ICON_MAP_PIN_PLUS, ICON_MINUS_SQUARE, ICON_NOTEBOOK_ADD, ICON_NOTEBOOK_EYE, ICON_NOTEBOOK_FILLED, ICON_PERSON_FILL_ADD, ICON_PLUS_SQUARE } from "../icons";
+import { ICON_ADD_CIRCLE, ICON_ARCHIVE, ICON_BOOK_DUOTONE, ICON_BOOK_OPEN_FILLED, ICON_CLIPBOARD_LIST_DUOTONE, ICON_CODEX, ICON_DASHBOARD_CHART, ICON_EYE_DUOTONE, ICON_FOCUS_OFF, ICON_FOCUS_ON, ICON_FORGE, ICON_LINK2_DUOTONE, ICON_MAP_PIN_PLUS, ICON_MINUS_CIRCLE_DUOTONE, ICON_NOTEBOOK_DUOTONE, ICON_PERSON_FILL_ADD, ICON_TARGET_DUOTONE } from "../icons";
 import { bookFolderNameFromChapterPath, CODEX_ROOT, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath, NOTES_ROOT, seriesFilePath } from "../paths";
 import { OBSIDIAN_SELECTORS } from "../obsidianInternals";
 import { getBookId } from "../series";
@@ -42,7 +42,7 @@ import { writeRecommendCache } from "../recommend/cache";
 import { makeAccessibleActivatable } from "./a11y";
 import { renderStampedEmptyCross } from "./stampedCross";
 import { activateRightRailView } from "./activateRightRailView";
-import { renderArchiveList, renderArchiveModeIcons, type ArchiveMode } from "./archivePanel";
+import { renderArchiveIndex, archiveFilePathForKey, type ArchiveMode, type ArchivePanelHost } from "./archivePanel";
 import { mountContextEditor, type ContextEditorHandle } from "./contextEditor";
 import { renderBottomPanel } from "./BottomPanel";
 import { renderIdeaShelfPanel } from "./IdeaShelfPanel";
@@ -72,6 +72,9 @@ export class StoryContextView extends ItemView {
 	/** When true, archive list is shown under Chapter/Notebook tabs. */
 	private showingArchive = false;
 	private archiveMode: ArchiveMode = "codex";
+	private selectedArchiveKey: string | null = null;
+	private archiveTypeFilter = new Set<string>();
+	private archiveTagFilter: string | null = null;
 	/** When true, the Notebook split pane is the Story Context body (non-focus). */
 	private showingIdeas = false;
 	/** Focus Mode: Notebook member-icon row (add / browse) is expanded. */
@@ -139,9 +142,8 @@ export class StoryContextView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		// Doubles as this tab's accessible label/tooltip (Obsidian's own tab-header mechanism) -
-		// carries the Focus state so assistive tech gets it without any redundant DOM of our own.
-		return this.focusMode ? "Context panel — Focus Mode: On" : "Context panel — Focus Mode: Off";
+		// Doubles as this tab's accessible label/tooltip (Obsidian's own tab-header mechanism).
+		return this.focusMode ? "storytelling mode" : "story context";
 	}
 
 	getIcon(): string {
@@ -264,12 +266,21 @@ export class StoryContextView extends ItemView {
 			this.plugin.refreshStorytellingView();
 			return;
 		}
-		this.focusMode = !this.focusMode;
+		this.setFocusMode(!this.focusMode);
+	}
+
+	/**
+	 * Driven by the left-rail face (storytelling mode → on, storyforge → off). No-op when already
+	 * in that state. Does not switch the left panel (right header stays independent).
+	 */
+	setFocusMode(on: boolean): void {
+		if (this.focusMode === on) return;
+		this.focusMode = on;
 		// A live Forge-family companion window (forgeFamilyActiveId/forgeFamilyPanelDisposer)
 		// isn't reset here - it's the same window shown in both layouts (renderFocusModeContent()
 		// below re-mounts it into the blank panel's own chrome), just relocated, not dismissed.
 		// The Codex lore page is Focus Mode only — leaving it would leave a grafted editor with
-		// no host, and storyTelling's highlight would keep pointing at a page that isn't showing.
+		// no host, and storytelling mode's highlight would keep pointing at a page that isn't showing.
 		if (!this.focusMode) this.clearCodexPage();
 		this.render(true);
 		this.syncTabHeader();
@@ -293,7 +304,7 @@ export class StoryContextView extends ItemView {
 	}
 
 	/**
-	 * storyTelling's Codex lore click (StorytellingView.ts): show the note in Focus Mode's
+	 * storytelling mode's Codex lore click (StoryForgeView.ts): show the note in Focus Mode's
 	 * `.sf-codex-page` instead of replacing the chapter in the center pane. Returns false when
 	 * this panel isn't in Focus Mode, so the caller can fall through to a normal open.
 	 */
@@ -534,7 +545,7 @@ export class StoryContextView extends ItemView {
 				"aria-selected": String(this.tabIsActive("novel")),
 			},
 		});
-		setIcon(novelTab, ICON_BOOK_DUOTONE);
+		setIcon(novelTab.createSpan({ cls: "sf-layout-tab-icon" }), ICON_BOOK_DUOTONE);
 		setTooltip(novelTab, "Novel");
 		const chapterTab = tabs.createSpan({
 			cls: `sf-recommend-tab${this.tabIsActive("chapter") ? " is-active" : ""}`,
@@ -545,7 +556,7 @@ export class StoryContextView extends ItemView {
 				"aria-selected": String(this.tabIsActive("chapter")),
 			},
 		});
-		setIcon(chapterTab, ICON_BOOK_OPEN_FILLED);
+		setIcon(chapterTab.createSpan({ cls: "sf-layout-tab-icon" }), ICON_BOOK_OPEN_FILLED);
 		setTooltip(chapterTab, "Chapter");
 		const selectMode = (mode: RecommendMode) => {
 			this.showingArchive = false;
@@ -575,7 +586,7 @@ export class StoryContextView extends ItemView {
 				"aria-selected": String(this.tabIsActive("ideas")),
 			},
 		});
-		setIcon(ideasTab, ICON_NOTEBOOK_FILLED);
+		setIcon(ideasTab.createSpan({ cls: "sf-layout-tab-icon" }), ICON_NOTEBOOK_DUOTONE);
 		setTooltip(ideasTab, "Notebook");
 		const selectIdeas = () => {
 			this.showingArchive = false;
@@ -609,7 +620,7 @@ export class StoryContextView extends ItemView {
 					"aria-selected": String(this.tabIsActive("forge")),
 				},
 			});
-			setIcon(forgeTab, ICON_FORGE);
+			setIcon(forgeTab.createSpan({ cls: "sf-layout-tab-icon" }), ICON_FORGE);
 			setTooltip(forgeTab, "Forge family");
 			const selectForgeFamily = () => this.selectForgeFamily();
 			forgeTab.addEventListener("click", (e) => {
@@ -628,7 +639,7 @@ export class StoryContextView extends ItemView {
 				"aria-selected": String(this.tabIsActive("archive")),
 			},
 		});
-		setIcon(archiveTab, ICON_ARCHIVE_FILLED);
+		setIcon(archiveTab.createSpan({ cls: "sf-layout-tab-icon" }), ICON_ARCHIVE);
 		const toggleArchive = () => {
 			this.showingArchive = !this.showingArchive;
 			this.showingIdeas = false;
@@ -665,20 +676,7 @@ export class StoryContextView extends ItemView {
 		}
 
 		if (this.showingArchive) {
-			const host = {
-				app: this.app,
-				plugin: this.plugin,
-				bookFolderName: this.bookFolderName,
-				mode: this.archiveMode,
-				setMode: (mode: ArchiveMode) => {
-					this.archiveMode = mode;
-				},
-				refresh: () => this.render(),
-			};
-			renderArchiveModeIcons(el, host);
-			const body = el.createDiv({ cls: "sf-recommend-body" });
-			const archiveBody = body.createDiv({ cls: "sf-archive-embedded" });
-			renderArchiveList(archiveBody.createDiv({ cls: "sf-recommend-scroll" }), host);
+			this.renderArchiveSplit(el);
 			return;
 		}
 
@@ -734,7 +732,7 @@ export class StoryContextView extends ItemView {
 			cls: "sf-recommend-view__forge-family",
 			attr: { role: "button", tabindex: "0", "aria-label": "Notebook" },
 		});
-		setIcon(ideaTrigger, ICON_NOTEBOOK_FILLED);
+		setIcon(ideaTrigger, ICON_NOTEBOOK_DUOTONE);
 		setTooltip(ideaTrigger, "Notebook");
 		const toggleIdeas = () => this.toggleIdeaShelfExpanded();
 		ideaTrigger.addEventListener("click", toggleIdeas);
@@ -935,7 +933,7 @@ export class StoryContextView extends ItemView {
 			cls: `sf-recommend-view__forge-icon sf-recommend-view__forge-icon--notebook-add${this.ideaCardOpen ? " is-active" : ""}`,
 			attr: { role: "button", tabindex: "0", "aria-label": "New note" },
 		});
-		setIcon(plus, ICON_NOTEBOOK_ADD);
+		setIcon(plus, ICON_ADD_CIRCLE);
 		setTooltip(plus, "New note");
 		const add = () => void this.createIdeaFromShelf({ asCard: true });
 		plus.addEventListener("click", add);
@@ -947,7 +945,7 @@ export class StoryContextView extends ItemView {
 			cls: `sf-recommend-view__forge-icon sf-recommend-view__forge-icon--notebook-popout${this.ideaShelfPanelOpen ? " is-active" : ""}`,
 			attr: { role: "button", tabindex: "0", "aria-label": "Browse notebook" },
 		});
-		setIcon(eye, ICON_NOTEBOOK_EYE);
+		setIcon(eye, ICON_EYE_DUOTONE);
 		setTooltip(eye, "Browse notebook");
 		const browse = () => {
 			this.ideaCardOpen = false;
@@ -961,6 +959,85 @@ export class StoryContextView extends ItemView {
 		};
 		eye.addEventListener("click", browse);
 		makeAccessibleActivatable(eye, browse);
+	}
+
+	private archiveHost(): ArchivePanelHost {
+		return {
+			app: this.app,
+			plugin: this.plugin,
+			bookFolderName: this.bookFolderName,
+			mode: this.archiveMode,
+			setMode: (mode) => {
+				this.archiveMode = mode;
+				this.selectedArchiveKey = null;
+				this.archiveTypeFilter = new Set();
+				this.archiveTagFilter = null;
+			},
+			refresh: () => this.render(true),
+			selectedKey: this.selectedArchiveKey,
+			onSelect: (key) => {
+				this.selectedArchiveKey = key;
+				this.render(true);
+			},
+			typeFilter: this.archiveTypeFilter,
+			onChangeTypeFilter: (next) => {
+				this.archiveTypeFilter = new Set(next);
+				this.render(true);
+			},
+			tagFilter: this.archiveTagFilter,
+			onChangeTagFilter: (next) => {
+				this.archiveTagFilter = next;
+				this.render(true);
+			},
+			onOpenTypes:
+				this.archiveMode === "novel"
+					? undefined
+					: () => this.plugin.openTagRegistry("archiveTypes"),
+			onOpenTags: () => {
+				try {
+					const scope = this.archiveMode === "notes" ? "notes" : "codex";
+					new VaultTagModal(this.app, () => this.plugin.refreshStoryForgeViews(), scope).open();
+				} catch (err) {
+					new Notice(`storyForge: could not open archive tags — ${err instanceof Error ? err.message : String(err)}`);
+				}
+			},
+		};
+	}
+
+	private renderArchiveSplit(el: HTMLElement): void {
+		const split = el.createDiv({ cls: "sf-idea-shelf sf-archive-shelf" });
+		this.renderArchiveSourceRail(split);
+		const page = split.createDiv({ cls: "sf-notebook-page sf-archive-page" });
+		this.notebookPageEl = page;
+		const index = split.createDiv({ cls: "sf-notebook-index" });
+		renderArchiveIndex(index, this.archiveHost());
+		void this.mountIdeaEditor();
+	}
+
+	private renderArchiveSourceRail(parent: HTMLElement): void {
+		const rail = parent.createDiv({ cls: "sf-codex-side-actions sf-notebook-source-rail" });
+		this.addArchiveSourceIcon(rail, "codex", ICON_CODEX, "Codex");
+		this.addArchiveSourceIcon(rail, "novel", ICON_BOOK_DUOTONE, "Novel");
+		this.addArchiveSourceIcon(rail, "notes", ICON_NOTEBOOK_DUOTONE, "Notebook");
+	}
+
+	private addArchiveSourceIcon(rail: HTMLElement, mode: ArchiveMode, icon: string, label: string): void {
+		const btn = rail.createSpan({
+			cls: `sf-notebook-source-btn${this.archiveMode === mode ? " is-active" : ""}`,
+			attr: { role: "button", tabindex: "0", "aria-label": label },
+		});
+		setIcon(btn, icon);
+		setTooltip(btn, label);
+		const select = () => {
+			if (this.archiveMode === mode) return;
+			this.archiveMode = mode;
+			this.selectedArchiveKey = null;
+			this.archiveTypeFilter = new Set();
+			this.archiveTagFilter = null;
+			this.render(true);
+		};
+		btn.addEventListener("click", select);
+		makeAccessibleActivatable(btn, select);
 	}
 
 	private renderIdeaShelfSplit(el: HTMLElement, showTypesCorner: boolean): void {
@@ -992,7 +1069,7 @@ export class StoryContextView extends ItemView {
 		});
 		this.notebookPageEl = page;
 		const index = split.createDiv({ cls: "sf-notebook-index" });
-		if (usesCodexIndex) this.renderNotebookCodexIndex(index, showTypesCorner);
+		if (usesCodexIndex) this.renderNotebookCodexIndex(index);
 		else this.renderNotebookNotesIndex(index, showTypesCorner);
 		if (indexKind === "dossier") this.renderNotebookDossierPage(page);
 		else void this.mountIdeaEditor();
@@ -1000,7 +1077,7 @@ export class StoryContextView extends ItemView {
 
 	private renderNotebookSourceRail(parent: HTMLElement): void {
 		const rail = parent.createDiv({ cls: "sf-codex-side-actions sf-notebook-source-rail" });
-		this.addNotebookSourceIcon(rail, "notes", ICON_NOTEBOOK_FILLED, "Notebook");
+		this.addNotebookSourceIcon(rail, "notes", ICON_NOTEBOOK_DUOTONE, "Notebook");
 		this.addNotebookSourceIcon(rail, "codex", ICON_CODEX, "Codex");
 		this.addNotebookSourceIcon(rail, "dossier", ICON_CLIPBOARD_LIST_DUOTONE, "Dossier");
 	}
@@ -1072,7 +1149,7 @@ export class StoryContextView extends ItemView {
 		});
 	}
 
-	private renderNotebookCodexIndex(index: HTMLElement, showTypesCorner: boolean): void {
+	private renderNotebookCodexIndex(index: HTMLElement): void {
 		index.addClass("sf-bottom-panel");
 		const currentBookId = this.bookFolderName ? getBookId(this.app, this.bookFolderName) : null;
 		renderBottomPanel(this.app, index, {
@@ -1104,16 +1181,6 @@ export class StoryContextView extends ItemView {
 				if (this.notebookIndexKind === "dossier") void this.loadDossierForSelectedCodex();
 				else this.render(true);
 			},
-			onOpenCodexTypes: showTypesCorner ? () => this.plugin.openTagRegistry("codexTypes") : undefined,
-			onOpenTags: showTypesCorner
-				? () => {
-						try {
-							new VaultTagModal(this.app, () => this.plugin.refreshStoryForgeViews()).open();
-						} catch (err) {
-							new Notice(`storyForge: could not open vault tags — ${err instanceof Error ? err.message : String(err)}`);
-						}
-					}
-				: undefined,
 		});
 	}
 
@@ -1173,6 +1240,7 @@ export class StoryContextView extends ItemView {
 	}
 
 	private notebookPageFilePath(): string | null {
+		if (this.showingArchive) return archiveFilePathForKey(this.archiveHost(), this.selectedArchiveKey);
 		if (!this.focusMode && this.notebookIndexKind === "codex") return this.selectedCodexPath;
 		return this.selectedIdeaPath;
 	}
@@ -1351,18 +1419,22 @@ export class StoryContextView extends ItemView {
 			textarea.addEventListener("pointerdown", (e) => e.stopPropagation());
 			resizeToContent();
 
-			const persons = this.report.matched.filter((m) => m.type === "person");
-			const others = this.report.matched.filter((m) => m.type !== "person");
+			const persons = this.report.matched.filter((m) =>
+				codexTypeMatchesOrDescendsFrom(m.type, "person"),
+			);
+			const others = this.report.matched.filter(
+				(m) => !codexTypeMatchesOrDescendsFrom(m.type, "person"),
+			);
 			this.renderMatchList(card, "Characters in chapter", persons);
 			this.renderMatchList(card, "Other Codex references", others);
 		}
 
 		const actions = body.createDiv({ cls: "sf-recommend-chapter-card-actions" });
-		iconAction(actions, ICON_LOCATION_TARGET_SQUARE, "go to chapter", () => {
+		iconAction(actions, ICON_TARGET_DUOTONE, "go to chapter", () => {
 			if (!this.bookFolderName || !this.chapterFilename) return;
 			void this.openChapter(this.bookFolderName, this.chapterFilename);
 		});
-		iconAction(actions, ICON_ADD_SQUARE, "create details note", () => void this.createDetailsNote());
+		iconAction(actions, ICON_ADD_CIRCLE, "create details note", () => void this.createDetailsNote());
 		this.renderChapterWordCount(actions);
 		void this.refreshDisplayedWordCounts();
 
@@ -1385,23 +1457,20 @@ export class StoryContextView extends ItemView {
 			renderStampedEmptyCross(section, "None found.");
 			return;
 		}
-		for (const item of items) {
-			const row = section.createDiv({ cls: "sf-recommend-row" });
+		const list = section.createDiv({ cls: "sf-recommend-match-list" });
+		items.forEach((item, index) => {
+			const chip = list.createSpan({ cls: "sf-recommend-match-item" });
 			const iconId = codexTypeIcon(item.type);
-			if (iconId) setIcon(row.createSpan({ cls: "sf-icon" }), iconId);
-			const label = row.createSpan({
-				cls: "sf-recommend-row-label",
-				text: item.ambiguousWith.length > 0 ? `${item.name} ?` : item.name,
+			if (iconId) setIcon(chip.createSpan({ cls: "sf-icon sf-recommend-match-icon" }), iconId);
+			const labelText = item.ambiguousWith.length > 0 ? `${item.name} ?` : item.name;
+			chip.createSpan({
+				cls: "sf-recommend-match-label",
+				text: index < items.length - 1 ? `${labelText},` : labelText,
 			});
 			if (item.ambiguousWith.length > 0) {
-				row.createSpan({
-					cls: "sf-recommend-ambiguous",
-					text: `also ${item.ambiguousWith.join(", ")}`,
-				});
+				setTooltip(chip, `also ${item.ambiguousWith.join(", ")}`);
 			}
-			label.addEventListener("click", () => void this.openPath(item.path));
-			makeAccessibleActivatable(label, () => void this.openPath(item.path));
-		}
+		});
 	}
 
 	private renderUnknownList(el: HTMLElement, report: ChapterRecommendReport): void {
@@ -1421,12 +1490,15 @@ export class StoryContextView extends ItemView {
 		for (const hint of hints) {
 			const row = section.createDiv({ cls: "sf-recommend-row" });
 			const label = hint.nerType ? `${hint.name} (${hint.nerType})` : hint.name;
-			row.createSpan({ cls: "sf-recommend-row-label", text: label });
+			row.createSpan({ cls: "sf-recommend-unknown-name", text: label });
 			const actions = row.createDiv({ cls: "sf-recommend-row-actions" });
-			iconAction(actions, ICON_PLUS_SQUARE, "add to codex", () =>
+			iconAction(actions, ICON_ADD_CIRCLE, "add to codex", () =>
 				void this.createStub(hint.name, hint.nerType),
 			);
-			iconAction(actions, ICON_MINUS_SQUARE, "ignore", () =>
+			iconAction(actions, ICON_LINK2_DUOTONE, "link to existing Codex", () =>
+				void this.linkUnknownName(hint.name),
+			);
+			iconAction(actions, ICON_MINUS_CIRCLE_DUOTONE, "ignore", () =>
 				void this.ignoreUnknownName(hint.name),
 			);
 		}
@@ -1737,6 +1809,27 @@ export class StoryContextView extends ItemView {
 			if (!type) return;
 			void this.finishLore(name, type);
 		}, nerTypeHintToCodexType(nerType)).open();
+	}
+
+	private async linkUnknownName(name: string): Promise<void> {
+		const bookId = this.bookFolderName ? getBookId(this.app, this.bookFolderName) : null;
+		const entries = getCodexEntries(this.app, bookId);
+		new CodexEntryPickerModal(this.app, {
+			title: "Link to existing Codex",
+			emptyMessage: "No Codex notes yet.",
+			entries,
+			onPick: async (entry) => {
+				try {
+					await addCodexNoteAlias(this.app, entry.path, name);
+					new Notice(`storyForge: linked ${name} to ${entry.name}`);
+					await this.forceRefresh();
+				} catch (err) {
+					new Notice(
+						`storyForge: could not link to Codex — ${err instanceof Error ? err.message : String(err)}`,
+					);
+				}
+			},
+		}).open();
 	}
 
 	private async ignoreUnknownName(name: string): Promise<void> {

@@ -7,11 +7,11 @@ export type IconPickerSource = TagListKind | readonly IconCatalogEntry[];
 
 function catalogFor(source: IconPickerSource): readonly IconCatalogEntry[] {
 	if (typeof source !== "string") return source;
-	return source === "codexTypes" || source === "ideaTypes" ? CODEX_ICON_CATALOG : TAG_ICON_CATALOG;
+	return source === "chapterTags" || source === "novelTags" ? TAG_ICON_CATALOG : CODEX_ICON_CATALOG;
 }
 
 /**
- * Icon-only grid of every icon in the given catalog (Codex types draw from
+ * Icon-only grid of every icon in the given catalog (Codex / Notebook / Archive types draw from
  * CODEX_ICON_CATALOG; chapter/novel tags share TAG_ICON_CATALOG; vault `#tag`s pass
  * VAULT_TAG_ICON_CATALOG). No header, no labels — the catalogs are small and visual enough to
  * scan by shape alone; each entry's `label` is still used for aria-label/title (hover tooltip)
