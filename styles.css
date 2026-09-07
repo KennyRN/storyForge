@@ -7298,6 +7298,10 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 
 /* Equal-width, spread across the modal's full width, rather than sized to each tab's own text. */
 .titleforge-tab {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
 	flex: 1 1 0;
 	text-align: center;
 	background: var(--background-secondary);
@@ -7307,6 +7311,19 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	font-size: 0.85em;
 	color: var(--text-muted);
 	cursor: pointer;
+}
+
+/* A tab's leading icon (series/novels/web fiction — see TAB_ICONS; "kept titles" has none) — no
+ * colour of its own, so it matches the tab's own (currentColor), same convention as
+ * .sf-layout-tab-icon. */
+.titleforge-tab-icon {
+	display: flex;
+	align-items: center;
+	flex-shrink: 0;
+}
+.titleforge-tab-icon svg.svg-icon {
+	width: 1.1em;
+	height: 1.1em;
 }
 
 .titleforge-tab:hover {

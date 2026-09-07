@@ -868,6 +868,12 @@ const TEXT_HEADER_6_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 
 export const ICON_VERTICAL_SCROLL_POINT = "sf-vertical-scroll-point";
 const VERTICAL_SCROLL_POINT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M14 12a2 2 0 1 1-4 0a2 2 0 0 1 4 0M8 7s2.946-4 4-4s4 4 4 4m0 10s-2.946 4-4 4s-4-4-4-4"/></svg>`;
 
+/** Icon Park (twotone) — new-computer. titleForge's own tab row: the "web fiction & light
+ * novels" tab (TitleForgePanel.ts's TAB_LABELS/renderTabs) — same mask-based two-tone build as
+ * ICON_NOTEBOOK, just a screen-and-stand glyph instead of a notebook. */
+export const ICON_COMPUTER = "sf-computer";
+const COMPUTER_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><defs><mask id="sf-computer-mask"><g fill="none" stroke="#fff" stroke-linejoin="round" stroke-width="4"><rect width="36" height="28" x="6" y="6" fill="#555" rx="3" /><path stroke-linecap="round" d="M14 42h20m-10-8v8" /></g></mask></defs><path fill="currentColor" d="M0 0h48v48H0z" mask="url(#sf-computer-mask)" /></svg>`;
+
 /** Registers storyForge's custom Lucide-style icons so `setIcon` can address them by id. */
 export function registerCustomIcons(): void {
 	addIcon(ICON_UNPLACED, INBOX_SVG);
@@ -1069,4 +1075,5 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_TEXT_HEADER_5, TEXT_HEADER_5_SVG);
 	addIcon(ICON_TEXT_HEADER_6, TEXT_HEADER_6_SVG);
 	addIcon(ICON_VERTICAL_SCROLL_POINT, VERTICAL_SCROLL_POINT_SVG);
+	addIcon(ICON_COMPUTER, COMPUTER_SVG);
 }
