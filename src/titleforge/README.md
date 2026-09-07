@@ -43,6 +43,10 @@ src/titleforge/
     registry.ts               register / getGenerator / listGenerators / listByTradition
     index.ts                  barrel export
   lexicons/            one .ts module per tradition, each a typed GeneratorSpec
+  tools/
+    genre-coverage.ts    npx tsx / `npm run titleforge:coverage` — per-genre eligible-pattern
+                         and own/inherited-lexeme counts, THIN/inherits-only flags; reads the
+                         bundled specs only, never a vault copy
   storage.ts           the only file touching app.vault — see "Storage" below
   settings.ts          TitleForgeSettings type + defaults
   TitleForgeController.ts   bootstrap: owns settings/storage/registry, self-registers
@@ -110,6 +114,48 @@ A slot used more than once in one template must be indexed —
 **after** the shape is chosen, not before, so under "any genre" a shape's own
 `genres` list supplies the scope.
 
+### Genres: an optional two-level parent/subgenre model
+
+A `GenreOption` (`engine/types.ts`) may carry a `parent`, pointing at another
+genre's id — e.g. `title-composer` ships `{ id: "western", label: "Western",
+parent: "hist" }`. Depth is capped at **two**: a genre with a `parent` may not
+itself be a parent (`validateSpec` enforces this, along with no cycles/orphan
+parents). A genre with no `parent` and nothing pointing at it as one behaves
+exactly as a flat genre always has — this is additive, not a redesign.
+
+`genreScope(spec, id)` (`engine/generate.ts`) is the one function that turns a
+selected id into "everything it reaches": selecting a **subgenre** reaches
+itself plus its ancestors (a `#hist`-only pattern is eligible under *Western*);
+selecting a **parent** reaches itself plus every descendant (a
+`#western`-only pattern is eligible under *Historical*). Pattern eligibility
+(`eligiblePatterns`) is a straight membership test against that scope.
+Lexicon vocabulary is more careful, because "union everything" would make a
+richly-authored subgenre indistinguishable from a starved one: a subgenre
+selection uses **most-specific-tag-present-wins** (`narrowLeaf` — the first
+tag in the chain that matches anything in a given slot wins outright, so
+adding one `#western` word makes that one slot Western-only while every other
+slot keeps falling back to `#hist`), while a parent selection uses a plain
+**union** of self plus every descendant (`narrowParent`).
+
+This is what makes a new subgenre cheap: declare `{ id: "regency", parent:
+"hist" }` with zero lexemes and zero patterns of its own, and it already
+produces valid, Historical-shaped titles by inheritance (`title-composer`
+ships `western`/`regency` this way deliberately, as a live example — see
+`genre-coverage`'s "inherits only" flag below). `validateSpec`'s reachability
+check follows the same rule: a subgenre with no *own* material is never
+flagged unreachable as long as its parent has patterns.
+
+Run `npm run titleforge:coverage` (`tools/genre-coverage.ts`) to see, per
+generator, every genre's eligible-pattern count, its own-tagged lexeme count,
+how much more it can reach by inheritance, and a `THIN`/`inherits only` flag —
+the "easy to see what needs expanding" half of this feature. It exits
+non-zero if any declared genre is genuinely unreachable, so it can gate CI.
+
+The view (`TitleForgePanel.hierarchicalGenreOptions`) renders this as one
+flat, indented `<select>` — parents in declaration order, each immediately
+followed by its own subgenres — rather than a dependent pair of pickers, to
+keep the picker's shape unchanged.
+
 ## Storage
 
 `storage.ts` is the *only* file that imports `obsidian`-vault-adjacent
@@ -119,10 +165,31 @@ under `_backstage/titleforge/`:
 
 - `lexicons/*.json` — seeded from the bundled `.ts` defaults on first load,
   as **real, hand-editable JSON**. A vault copy always wins over the bundled
-  default, and a parse failure falls back to the bundled default with a
-  `Notice` (never a silent swallow). This is how "edit a word, no rebuild"
-  (the original design's whole point) survives inside a bundled Obsidian
-  plugin: the bundled `.ts` module is just the seed.
+  default at *load* time, and a parse failure falls back to the bundled
+  default with a `Notice` (never a silent swallow). This is how "edit a word,
+  no rebuild" (the original design's whole point) survives inside a bundled
+  Obsidian plugin: the bundled `.ts` module is just the seed.
+  - **Seed propagation** (`ensureLexiconsSeeded`, on every `onload()`): a
+    hidden `lexicons/.seed-manifest.json` tracks, per generator, the hash of
+    the bundled bytes and the hash of what was actually written to the vault
+    at the moment it was last seeded/reset. A rebuilt bundle then propagates
+    automatically onto any vault copy that was **never hand-edited since**
+    (hashes still match); a copy that *has* been hand-edited is always kept,
+    with a one-off `Notice` pointing at "Reset lexicon to bundled default" to
+    adopt the new version deliberately. A vault copy that pre-dates this
+    manifest is left untouched the first time it's seen (its provenance is
+    unknown) and just gets an advisory `Notice`, once — from then on it's
+    tracked like any other. This is what makes "genres/vocabulary look out of
+    date" something a rebuild fixes on its own, without ever silently
+    discarding an edit.
+  - **Reset** (`resetLexiconToBundled`, id-based) always re-resolves the true
+    bundled spec from `ALL_TITLEFORGE_LEXICONS` by id, never from whatever
+    spec a caller happens to be holding — `TitleForgeController.generators`
+    is itself vault-preferred, so a spec sourced from there can *be* the
+    stale copy the reset button exists to replace. The settings modal also
+    has a "Reset all lexicons to bundled" button (confirms first) for
+    clearing out every generator's vault copy at once — mainly useful right
+    after an upgrade whose vault copies pre-date the manifest above.
 - `settings.json` — last-used generator/genre/family/platform/series settings.
 - `history/<generatorId>.jsonl` — one file per tradition (not one global file),
   since exclusion sets are naturally scoped per tradition. About forty bytes

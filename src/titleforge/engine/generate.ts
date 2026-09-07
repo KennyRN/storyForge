@@ -6,6 +6,7 @@ import { countWords, titleCase } from "./titlecase.js";
 import type {
 	GenerateOptions,
 	GeneratorSpec,
+	GenreOption,
 	Lexeme,
 	Pattern,
 	SeriesOptions,
@@ -44,6 +45,72 @@ function inRange(count: number, range: WordCountRange | undefined): boolean {
 	return true;
 }
 
+/** The genre option for `id`, or undefined if the spec declares no such id. */
+export function genreById(spec: GeneratorSpec, id: string): GenreOption | undefined {
+	return spec.genres.find((g) => g.id === id);
+}
+
+/** True when some other genre in the spec declares `id` as its `parent`. */
+export function isParent(spec: GeneratorSpec, id: string): boolean {
+	return spec.genres.some((g) => g.parent === id);
+}
+
+/**
+ * `id`'s parent chain, immediate parent first — `[]` for a top-level genre, a missing id, or a
+ * chain that cycles back on itself. Guarded rather than thrown: a malformed hand-edited lexicon
+ * should degrade to "no inheritance" (that's what `validateSpec`'s cycle/orphan checks are for),
+ * never hang or crash generation.
+ */
+export function ancestorIds(spec: GeneratorSpec, id: string): string[] {
+	const chain: string[] = [];
+	const seen = new Set<string>([id]);
+	let current = genreById(spec, id);
+	while (current?.parent) {
+		if (seen.has(current.parent)) break; // cycle guard
+		const parent = genreById(spec, current.parent);
+		if (!parent) break; // orphan-parent guard
+		chain.push(parent.id);
+		seen.add(parent.id);
+		current = parent;
+	}
+	return chain;
+}
+
+/** Direct and transitive children of `id`. Two-level in practice (`validateSpec` forbids a
+ * subgenre from itself being a parent), but this walks recursively — via a threaded `seen` set,
+ * so a cyclic hand-edit terminates rather than recursing forever — so it degrades safely even on
+ * a lexicon that violates that depth limit. */
+export function descendantIds(
+	spec: GeneratorSpec,
+	id: string,
+	seen: Set<string> = new Set([id]),
+): string[] {
+	const out: string[] = [];
+	for (const g of spec.genres) {
+		if (g.parent !== id || seen.has(g.id)) continue;
+		seen.add(g.id);
+		out.push(g.id, ...descendantIds(spec, g.id, seen));
+	}
+	return out;
+}
+
+/**
+ * The full scope of genre ids a selection of `id` reaches, most-specific first.
+ *
+ * `"all"` is the sentinel for no genre narrowing at all (unchanged from before subgenres
+ * existed) and always yields `[]`. Selecting a parent reaches itself plus everything under it —
+ * a `#western`-only pattern becomes eligible under *Historical*. Selecting a leaf (a subgenre, or
+ * an ordinary flat genre with no parent/children) reaches itself plus its ancestors — a `#hist`
+ * pattern is eligible under *Western*, and a flat genre with neither reduces to `[id]`, identical
+ * to today's behaviour.
+ */
+export function genreScope(spec: GeneratorSpec, id: string): string[] {
+	if (id === "all") return [];
+	return isParent(spec, id)
+		? [id, ...descendantIds(spec, id)]
+		: [id, ...ancestorIds(spec, id)];
+}
+
 /** Patterns available under the selected genre, platform and pattern id. */
 export function eligiblePatterns(
 	spec: GeneratorSpec,
@@ -60,8 +127,9 @@ export function eligiblePatterns(
 		if (byFamily.length > 0) candidates = byFamily;
 	}
 	if (genre && genre !== "all") {
+		const scope = genreScope(spec, genre);
 		const byGenre = candidates.filter(
-			(p) => !p.genres || p.genres.length === 0 || p.genres.includes(genre),
+			(p) => !p.genres || p.genres.length === 0 || p.genres.some((g) => scope.includes(g)),
 		);
 		if (byGenre.length > 0) candidates = byGenre;
 	}
@@ -152,16 +220,8 @@ function draw(
 		// Vocabulary is scoped after the pattern is chosen, not before. Under "any
 		// genre" the pattern's own genre supplies the scope, which is what stops a
 		// Russian pattern being filled with Arabic nouns.
-		const scopeTags =
-			options.genre && options.genre !== "all"
-				? [options.genre]
-				: pattern.genres?.length
-					? [pick(rng, pattern.genres)!]
-					: [];
-		const lexemes = scopeLexicon(baseLexemes, [
-			...scopeTags,
-			...(options.tags ?? []),
-		]);
+		const genreId = resolveGenreId(rng, options, pattern);
+		const lexemes = scopeLexicon(baseLexemes, resolveGenreNarrowing(spec, genreId), options.tags ?? []);
 
 		const title = titleCase(renderTemplate(rng, template, lexemes, forced.bound));
 		if (title === "") continue;
@@ -264,7 +324,8 @@ export function generateSeries(
 	if (strategy === "anchor") {
 		anchorSlot = options.anchorSlot ?? chooseAnchorSlot(template, lexemes);
 		if (anchorSlot) {
-			const scoped = scopeLexicon(lexemes, tagsFor(rng, options, volumePattern));
+			const { narrowing, extraTags } = tagsFor(spec, rng, options, volumePattern);
+			const scoped = scopeLexicon(lexemes, narrowing, extraTags);
 			const chosen = weightedPick(rng, scoped[anchorSlot] ?? [], (l) => l.weight ?? 1);
 			if (chosen) {
 				bound = { [anchorSlot]: chosen };
@@ -482,35 +543,92 @@ function chooseAnchorSlot(
 	);
 }
 
-function tagsFor(rng: Rng, options: GenerateOptions, pattern: Pattern): string[] {
-	const base =
-		options.genre && options.genre !== "all"
-			? [options.genre]
-			: pattern.genres?.length
-				? [pick(rng, pattern.genres)!]
-				: [];
-	return [...base, ...(options.tags ?? [])];
+/** Which genre id (if any) a draw should scope its vocabulary to, and whether that id is a
+ * parent or a leaf — resolved once here so `scopeLexicon`'s two call sites (a single title's
+ * `draw`, and a series' anchor-slot lookup) apply the same rule for "no genre selected": the
+ * pattern's own genre supplies the scope, which is what stops a Russian pattern being filled
+ * with Arabic nouns. */
+function resolveGenreId(
+	rng: Rng,
+	options: GenerateOptions,
+	pattern: Pattern,
+): string | undefined {
+	if (options.genre && options.genre !== "all") return options.genre;
+	return pattern.genres?.length ? pick(rng, pattern.genres) : undefined;
+}
+
+/** Kept for the same call shape series volume-anchoring used before subgenres — resolves the
+ * genre narrowing for `pattern` and folds in `options.tags` unchanged. */
+function tagsFor(
+	spec: GeneratorSpec,
+	rng: Rng,
+	options: GenerateOptions,
+	pattern: Pattern,
+): { narrowing: GenreNarrowing; extraTags: string[] } {
+	return {
+		narrowing: resolveGenreNarrowing(spec, resolveGenreId(rng, options, pattern)),
+		extraTags: [...(options.tags ?? [])],
+	};
+}
+
+/** How a selected genre id narrows lexicon slots: `"none"` (no genre selected and the pattern
+ * declared none either — nothing to narrow on), `"leaf"` (an ordinary flat genre or a subgenre —
+ * most-specific-tag-present wins, walking up `chain` toward the root), or `"parent"` (a genre
+ * with subgenres of its own — union of every tag in `chain`). `chain` is `genreScope`'s output:
+ * `[id, ...ancestors]` for a leaf, `[id, ...descendants]` for a parent. */
+export interface GenreNarrowing {
+	kind: "leaf" | "parent" | "none";
+	chain: string[];
+}
+
+export function resolveGenreNarrowing(spec: GeneratorSpec, id: string | undefined): GenreNarrowing {
+	if (!id) return { kind: "none", chain: [] };
+	return { kind: isParent(spec, id) ? "parent" : "leaf", chain: genreScope(spec, id) };
+}
+
+/** Leaf/flat selection: the first tag in `chain` (most specific first) that actually matches
+ * something in this slot wins outright; if none match, the slot is genre-neutral (pass
+ * through). This is what makes a new subgenre cheap to grow — add one `#western` place-name and
+ * the `place` slot becomes western-only, while a slot with no `#western` entries still falls
+ * back to the parent's `#hist` pool, and a slot with neither falls back to everything. */
+export function narrowLeaf(entries: Lexeme[], chain: readonly string[]): Lexeme[] {
+	for (const tag of chain) {
+		const hits = entries.filter((e) => (e.tags ?? []).includes(tag));
+		if (hits.length > 0) return hits;
+	}
+	return entries;
+}
+
+/** Parent selection: the broad mix — every entry tagged with the parent itself or any of its
+ * descendants — forgiving the same way `withTags` is if nothing in the slot matches any of them. */
+export function narrowParent(entries: Lexeme[], chain: readonly string[]): Lexeme[] {
+	const hits = entries.filter((e) => chain.some((tag) => (e.tags ?? []).includes(tag)));
+	return hits.length > 0 ? hits : entries;
 }
 
 /**
- * Narrow each slot to the vocabulary tagged for the requested genre.
+ * Narrow each slot to the vocabulary tagged for the requested genre (honouring subgenre
+ * inheritance — see `GenreNarrowing`), then layer `extraTags` (mood etc.) on top exactly as
+ * before: one tag at a time, each forgiving on its own, so a slot tagged by genre but not by
+ * mood still narrows on genre rather than falling back to everything.
  *
- * Per-slot and forgiving: a slot where nothing carries the tag is genre-neutral
- * and passes through untouched. That is what lets one flat lexicon serve every
- * genre, where the originals kept a separate word bank per genre and duplicated
- * hundreds of shared words between them.
+ * Per-slot and forgiving throughout — a slot where nothing carries a given tag is genre-neutral
+ * for that tag and passes through untouched. That is what lets one flat lexicon serve every
+ * genre (and now every subgenre), where the originals kept a separate word bank per genre and
+ * duplicated hundreds of shared words between them.
  */
 function scopeLexicon(
 	lexemes: Record<string, Lexeme[]>,
-	tags: readonly string[],
+	genre: GenreNarrowing,
+	extraTags: readonly string[],
 ): Record<string, Lexeme[]> {
-	if (tags.length === 0) return lexemes;
+	if (genre.kind === "none" && extraTags.length === 0) return lexemes;
 	const scoped: Record<string, Lexeme[]> = {};
 	for (const [slot, entries] of Object.entries(lexemes)) {
 		let pool = entries;
-		// One tag at a time, so a slot tagged by genre but not by mood still
-		// narrows on genre rather than falling back to everything.
-		for (const tag of tags) pool = withTags(pool, [tag]);
+		if (genre.kind === "leaf") pool = narrowLeaf(pool, genre.chain);
+		else if (genre.kind === "parent") pool = narrowParent(pool, genre.chain);
+		for (const tag of extraTags) pool = withTags(pool, [tag]);
 		scoped[slot] = pool;
 	}
 	return scoped;
@@ -558,10 +676,43 @@ export function validateSpec(spec: GeneratorSpec): string[] {
 		}
 	}
 
+	// Genre hierarchy: orphan/self/cyclic parents, and the depth-2 limit (a genre with a `parent`
+	// may not itself be a parent — kept at 2 to match the UI, a single indented dropdown, and the
+	// feature request; a deeper taxonomy would need a different picker).
+	for (const genre of spec.genres) {
+		if (!genre.parent) continue;
+		if (genre.parent === genre.id) {
+			problems.push(`${spec.id}: genre "${genre.id}" is its own parent`);
+			continue;
+		}
+		if (!genreIds.has(genre.parent)) {
+			problems.push(`${spec.id}: genre "${genre.id}" has unknown parent "${genre.parent}"`);
+			continue;
+		}
+		if (isParent(spec, genre.id)) {
+			problems.push(`${spec.id}: genre "${genre.id}" is both a subgenre and a parent (max depth is 2)`);
+		}
+		const visited = new Set<string>([genre.id]);
+		let cursor: GenreOption | undefined = genre;
+		while (cursor?.parent) {
+			if (visited.has(cursor.parent)) {
+				problems.push(`${spec.id}: genre "${genre.id}" has a cyclic parent chain`);
+				break;
+			}
+			visited.add(cursor.parent);
+			cursor = genreById(spec, cursor.parent);
+		}
+	}
+
+	// Reachability via subtree: a leaf (subgenre or flat genre) counts as reachable if it or any
+	// ancestor has eligible patterns; a parent counts as reachable if it or any descendant does. A
+	// brand-new subgenre with zero own patterns/lexemes is therefore not reported unreachable
+	// purely for having no *own* material — inheritance covers it.
 	for (const genre of spec.genres) {
 		if (genre.id === "all") continue;
+		const scope = genreScope(spec, genre.id);
 		const reachable = spec.patterns.some(
-			(p) => !p.genres || p.genres.length === 0 || p.genres.includes(genre.id),
+			(p) => !p.genres || p.genres.length === 0 || p.genres.some((g) => scope.includes(g)),
 		);
 		if (!reachable) problems.push(`${spec.id}: genre "${genre.id}" has no patterns`);
 	}

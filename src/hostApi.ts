@@ -29,14 +29,12 @@ import {
 	createCodexNote,
 	ensureVirtualFolder,
 	getCodexView,
-	partitionCodexNotes,
 	readCodexFrontmatter,
 	registerCodexType as registerCodexTypeInternal,
 	setCodexEntryType,
 	uniqueCodexFilename,
 	type CodexTypeOption,
 } from "./codex";
-import { yamlQuotedScalar } from "./yamlQuote";
 import { SF_LAYOUTS } from "./layout";
 import { NUMBERING_STYLE_OPTIONS } from "./numberingStyle";
 import { BACKSTAGE_ROOT, CODEX_ROOT, LIBRARY_ROOT, isCodexNotePath, isLibraryChapterPath } from "./paths";
@@ -59,8 +57,9 @@ import {
 	saveSettingsPreset,
 } from "./settingsPresets";
 
-/** Bumped to 9 for synchronous companion teardown (`onHostDisconnect`). */
-export const STORYFORGE_API_VERSION = 9 as const;
+/** Bumped to 10 — hard break: Codex book-scoping removed. `createNote`, `listByType` and
+ * `getCodexView` no longer take a book id, and `listByType` returns `{ path, name }` only. */
+export const STORYFORGE_API_VERSION = 10 as const;
 
 export interface CodexWriteException {
 	pluginId: string;
@@ -122,15 +121,11 @@ export interface StoryForgeHostApi {
 		name: string;
 		type?: string;
 		parentFolderId?: string | null;
-		bookId?: string | null;
 		content?: string;
 	}): Promise<{ path: string }>;
 	setType(path: string, type: string): Promise<void>;
-	listByType(
-		type: string,
-		bookId?: string | null,
-	): Promise<Array<{ path: string; name: string; bookIds: string[] }>>;
-	getCodexView(bookId?: string | null): unknown;
+	listByType(type: string): Promise<Array<{ path: string; name: string }>>;
+	getCodexView(): unknown;
 	getActiveBook(): { folderName: string; bookId: string } | null;
 	onActiveBookChange(cb: (book: { folderName: string; bookId: string } | null) => void): () => void;
 	registerRightRailView(opt: {
@@ -901,13 +896,9 @@ export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 
 		async createNote(opt) {
 			const filename = await uniqueCodexFilename(plugin.app, opt.name);
-			let content = opt.content ?? "";
-			if (opt.bookId && !/^---\r?\n/.test(content)) {
-				content = `---\nbook: ${yamlQuotedScalar(opt.bookId)}\n---\n\n${content}`;
-			}
 			const file = await createCodexNote(plugin.app, opt.parentFolderId ?? null, {
 				filename,
-				content,
+				content: opt.content ?? "",
 			});
 			if (opt.type) {
 				await setCodexEntryType(plugin.app, file.path, opt.type);
@@ -919,21 +910,18 @@ export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 			return setCodexEntryType(plugin.app, path, type);
 		},
 
-		async listByType(type, bookId = null) {
+		async listByType(type) {
 			const { types } = readCodexFrontmatter(plugin.app);
-			const notes = collectCodexNotes(plugin.app);
-			const { codex } = partitionCodexNotes(notes, bookId ?? null);
-			return codex
-				.filter((n) => types[n.path] === type)
-				.map((n) => ({
-					path: n.path,
-					name: n.path.replace(/^Codex\//, "").replace(/\.md$/i, ""),
-					bookIds: [...n.bookIds],
+			return collectCodexNotes(plugin.app)
+				.filter((path) => types[path] === type)
+				.map((path) => ({
+					path,
+					name: path.replace(/^Codex\//, "").replace(/\.md$/i, ""),
 				}));
 		},
 
-		getCodexView(bookId) {
-			return getCodexView(plugin.app, bookId ?? null, "codex");
+		getCodexView() {
+			return getCodexView(plugin.app, "codex");
 		},
 
 		getActiveBook() {

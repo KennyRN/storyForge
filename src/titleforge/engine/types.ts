@@ -36,6 +36,19 @@ export interface LabelledOption {
 	label: string;
 }
 
+/**
+ * A genre option; a subgenre points at its parent genre's id via `parent`.
+ *
+ * Two-level only (a genre with a `parent` may not itself be a parent — enforced by
+ * `validateSpec`), so this stays a flat picker with indentation rather than a dependent
+ * parent->child UI. Absent `parent` = a top-level (or ordinary, flat) genre; a spec with no
+ * `parent` links anywhere behaves identically to the old flat `LabelledOption[]` shape.
+ */
+export interface GenreOption extends LabelledOption {
+	/** Parent genre id. Absent = a top-level genre. */
+	parent?: string;
+}
+
 /** One title shape: a family of interchangeable templates plus the metadata that explains it. */
 export interface Pattern {
 	id: string;
@@ -62,7 +75,7 @@ export interface GeneratorSpec {
 	blurb: string;
 	tradition: string;
 	notes?: string[];
-	genres: LabelledOption[];
+	genres: GenreOption[];
 	platforms?: LabelledOption[];
 	families?: LabelledOption[];
 	patterns: Pattern[];

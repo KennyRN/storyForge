@@ -11,8 +11,8 @@ import { NewChapterView, STORYFORGE_NEW_CHAPTER_VIEW_TYPE } from "./view/NewChap
 import { ToolsView, TOOLS_VIEW_TYPE } from "./view/ToolsPanel";
 import { StoryContextView, STORY_CONTEXT_VIEW_TYPE, activateStoryContextView } from "./view/StoryContextView";
 import { ArchiveView, ARCHIVE_VIEW_TYPE, activateArchiveView } from "./view/ArchiveView";
-import { recomputeChapterRecommend } from "./recommend/recompute";
-import { isNlpReady } from "./recommend/nlp";
+import { recomputeChapterRecommend } from "./story-context/recompute";
+import { isNlpReady } from "./story-context/nlp";
 import { CODEX_TYPES, evictMissingCodexNotes, pruneMissingCodexNotes } from "./codex";
 import { buildRightRailTypeOrder, isCanonicalTypeOrder } from "./rightRailOrder";
 import {
@@ -29,7 +29,7 @@ import { StoryForgeSettingsTab } from "./view/StoryForgeSettingsTab";
 import { UiFormattingModal } from "./view/UiFormattingModal";
 import { TagRegistryModal } from "./view/TagRegistryModal";
 import { FORMATFORGE_PLUGIN_ID, formatCompanionState } from "./formatCompanionActive";
-import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders, getBookId } from "./series";
+import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders } from "./series";
 import { ensureTagRegistryFile, loadCodexTypesIntoRegistry, loadIdeaTypesIntoRegistry } from "./tagRegistry";
 import { ensureVaultTagsFile } from "./vaultTags";
 import { ensurePlotThreadsFile } from "./plotThreads";
@@ -1908,11 +1908,10 @@ export default class StoryForgePlugin extends Plugin {
 		await recordChapterEdit(this.app, bookFolderName, file.name, countWords(raw));
 
 		const chapterFilename = chapterFilenameFromPath(chapterPath) ?? file.name;
-		const bookId = getBookId(this.app, bookFolderName);
 		// Story Context NLP is lazy: only refresh the recommend cache once the
 		// panel has loaded winkNLP this session (first open pays the cost).
 		if (isNlpReady()) {
-			await recomputeChapterRecommend(this.app, bookFolderName, chapterFilename, bookId, {
+			await recomputeChapterRecommend(this.app, bookFolderName, chapterFilename, {
 				codexFactSectionByType: this.pluginSettings.codexFactSectionByType,
 				recommendIncludeUnknownNames: this.pluginSettings.recommendIncludeUnknownNames,
 			});

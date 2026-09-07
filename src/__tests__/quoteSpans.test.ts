@@ -4,7 +4,7 @@ import {
 	normalizeDialogueQuoteStyle,
 	partitionQuoteSpans,
 	type QuoteSpan,
-} from "../recommend/quoteSpans";
+} from "../story-context/quoteSpans";
 
 function kinds(spans: QuoteSpan[]): string {
 	return spans.map((s) => `${s.kind}:${s.start}-${s.end}`).join("|");

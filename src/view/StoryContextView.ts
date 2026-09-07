@@ -23,22 +23,21 @@ import { splitTitleSubtitle } from "../titleNumbering";
 import { ICON_ADD_CIRCLE, ICON_ARCHIVE, ICON_BOOK_DUOTONE, ICON_BOOK_OPEN_FILLED, ICON_CLIPBOARD_LIST_DUOTONE, ICON_CODEX, ICON_DASHBOARD_CHART, ICON_EYE_DUOTONE, ICON_FOCUS_OFF, ICON_FOCUS_ON, ICON_FORGE, ICON_LINK2_DUOTONE, ICON_MAP_PIN_PLUS, ICON_MINUS_CIRCLE_DUOTONE, ICON_NOTEBOOK_DUOTONE, ICON_PERSON_FILL_ADD, ICON_TARGET_DUOTONE } from "../icons";
 import { bookFolderNameFromChapterPath, CODEX_ROOT, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath, NOTES_ROOT, seriesFilePath } from "../paths";
 import { OBSIDIAN_SELECTORS } from "../obsidianInternals";
-import { getBookId } from "../series";
-import { groupHitsByChapter, lensLabel } from "../recommend/hitGrouping";
+import { groupHitsByChapter, lensLabel } from "../story-context/hitGrouping";
 import {
 	addIgnoredName,
 	applyIgnoredNames,
 	readAttributionStore,
-} from "../recommend/decisions";
-import { ensureNlp } from "../recommend/nlp";
-import { resolveChapterNarrator } from "../recommend/narrator";
-import { loadOrRecomputeChapterRecommend, recomputeChapterRecommend } from "../recommend/recompute";
-import { scanEntityAcrossChapters } from "../recommend/engine";
-import { loadHydratedCodexInventory } from "../recommend/inventory";
-import { createCodexLore } from "../recommend/lore";
-import type { CastMember, ChapterRecommendReport, DetailHit, UnknownNameHint } from "../recommend/types";
-import { buildDetailsNoteBody } from "../recommend/detailsNote";
-import { writeRecommendCache } from "../recommend/cache";
+} from "../story-context/decisions";
+import { ensureNlp } from "../story-context/nlp";
+import { resolveChapterNarrator } from "../story-context/narrator";
+import { loadOrRecomputeChapterRecommend, recomputeChapterRecommend } from "../story-context/recompute";
+import { scanEntityAcrossChapters } from "../story-context/engine";
+import { loadHydratedCodexInventory } from "../story-context/inventory";
+import { createCodexLore } from "../story-context/lore";
+import type { CastMember, ChapterRecommendReport, DetailHit, UnknownNameHint } from "../story-context/types";
+import { buildDetailsNoteBody } from "../story-context/detailsNote";
+import { writeRecommendCache } from "../story-context/cache";
 import { makeAccessibleActivatable } from "./a11y";
 import { renderStampedEmptyCross } from "./stampedCross";
 import { activateRightRailView } from "./activateRightRailView";
@@ -447,12 +446,10 @@ export class StoryContextView extends ItemView {
 				this.render();
 				return;
 			}
-			const bookId = getBookId(this.app, this.bookFolderName);
 			this.report = await loadOrRecomputeChapterRecommend(
 				this.app,
 				this.bookFolderName,
 				this.chapterFilename,
-				bookId,
 				this.recommendSettings(),
 			);
 			if (this.report) this.synopsisDraft = this.report.synopsisHeuristic;
@@ -467,12 +464,10 @@ export class StoryContextView extends ItemView {
 		try {
 			await this.ensureEngine();
 			if (!this.bookFolderName || !this.chapterFilename) return;
-			const bookId = getBookId(this.app, this.bookFolderName);
 			this.report = await recomputeChapterRecommend(
 				this.app,
 				this.bookFolderName,
 				this.chapterFilename,
-				bookId,
 				this.recommendSettings(),
 			);
 			if (this.report) this.synopsisDraft = this.report.synopsisHeuristic;
@@ -492,10 +487,8 @@ export class StoryContextView extends ItemView {
 			this.castCache = [];
 			return;
 		}
-		const bookId = getBookId(this.app, this.bookFolderName);
 		this.castCache = await loadHydratedCodexInventory(
 			this.app,
-			bookId,
 			this.recommendSettings().codexFactSectionByType,
 		);
 	}
@@ -1151,9 +1144,7 @@ export class StoryContextView extends ItemView {
 
 	private renderNotebookCodexIndex(index: HTMLElement): void {
 		index.addClass("sf-bottom-panel");
-		const currentBookId = this.bookFolderName ? getBookId(this.app, this.bookFolderName) : null;
 		renderBottomPanel(this.app, index, {
-			currentBookId,
 			mode: "codex",
 			collapsedPaths: this.collapsedCodexFolders,
 			onToggleFolder: (folderId) => {
@@ -1702,8 +1693,7 @@ export class StoryContextView extends ItemView {
 		if (!this.bookFolderName || !this.chapterFilename) return;
 		const bookFolderName = this.bookFolderName;
 		const chapterFilename = this.chapterFilename;
-		const bookId = getBookId(this.app, bookFolderName);
-		const entries = getCodexEntriesByType(this.app, "person", bookId);
+		const entries = getCodexEntriesByType(this.app, "person");
 		new CodexEntryPickerModal(this.app, {
 			mode: "multi",
 			label: "PoV:",
@@ -1721,8 +1711,7 @@ export class StoryContextView extends ItemView {
 		if (!this.bookFolderName || !this.chapterFilename) return;
 		const bookFolderName = this.bookFolderName;
 		const chapterFilename = this.chapterFilename;
-		const bookId = getBookId(this.app, bookFolderName);
-		const entries = getCodexEntriesByType(this.app, "place", bookId);
+		const entries = getCodexEntriesByType(this.app, "place");
 		new CodexEntryPickerModal(this.app, {
 			mode: "multi",
 			label: "Location:",
@@ -1767,12 +1756,10 @@ export class StoryContextView extends ItemView {
 		if (!this.bookFolderName || !this.chapterFilename) return;
 		try {
 			await this.ensureEngine();
-			const bookId = getBookId(this.app, this.bookFolderName);
 			const freshReport = await recomputeChapterRecommend(
 				this.app,
 				this.bookFolderName,
 				this.chapterFilename,
-				bookId,
 				this.recommendSettings(),
 			);
 			this.report = freshReport;
@@ -1812,8 +1799,7 @@ export class StoryContextView extends ItemView {
 	}
 
 	private async linkUnknownName(name: string): Promise<void> {
-		const bookId = this.bookFolderName ? getBookId(this.app, this.bookFolderName) : null;
-		const entries = getCodexEntries(this.app, bookId);
+		const entries = getCodexEntries(this.app);
 		new CodexEntryPickerModal(this.app, {
 			title: "Link to existing Codex",
 			emptyMessage: "No Codex notes yet.",
@@ -1841,12 +1827,10 @@ export class StoryContextView extends ItemView {
 	}
 
 	private async finishLore(name: string, type: string): Promise<void> {
-		const bookId = this.bookFolderName ? getBookId(this.app, this.bookFolderName) : null;
 		try {
 			await createCodexLore(this.app, {
 				name,
 				type,
-				bookId,
 			});
 			new Notice(`storyForge: created Codex ${CODEX_TYPES.find((t) => t.type === type)?.label ?? type}`);
 			await this.forceRefresh();
