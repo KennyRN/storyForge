@@ -50,7 +50,7 @@ export async function migrateStructuralLayout(app: App): Promise<void> {
 /**
  * Moves `legacy`'s entire subtree into `dest`, file by file, rather than one
  * top-level `renameFile` — so a `dest` that already partially exists (e.g. a
- * lazy backstage write, like a recommend-cache sidecar, beat the structural
+ * lazy backstage write, like a storyContext-cache sidecar, beat the structural
  * migration to creating the new root on some earlier run — this happened for
  * real, see the regression test) still gets every remaining legacy file
  * merged in, instead of a naive "does dest exist" check silently skipping the
@@ -247,7 +247,7 @@ export async function migrateVaultSchema(app: App): Promise<void> {
 		await migrateChapterOrderField(app, folder.name);
 	}
 	await migrateWordCountV1ToV2(app);
-	await migrateRecommendFolderToStoryDetails(app);
+	await migrateLegacySidecarFolder(app);
 }
 
 /**
@@ -256,7 +256,7 @@ export async function migrateVaultSchema(app: App): Promise<void> {
  * `mergeFolderInto`) so a mixed vault cannot strand files under the old name.
  * Safe no-op once every book already uses `story-details`.
  */
-export async function migrateRecommendFolderToStoryDetails(app: App): Promise<void> {
+export async function migrateLegacySidecarFolder(app: App): Promise<void> {
 	const root = app.vault.getAbstractFileByPath(BACKSTAGE_ROOT);
 	if (!(root instanceof TFolder)) return;
 	for (const child of [...root.children]) {

@@ -118,39 +118,39 @@ function buildGutterLineBackground(lineColors: string[], lineOffsets: number[]) 
 export function renderNovelPanel(app: App, container: HTMLElement, options: NovelPanelOptions): void {
 	container.empty();
 	const wide = options.layout === "wide";
-	const body = container.createDiv({ cls: "sf-recommend-body" });
+	const body = container.createDiv({ cls: "sf-story-context-body" });
 
 	if (!options.bookFolderName) {
-		body.addClass("sf-recommend-body--scroll");
+		body.addClass("sf-story-context-body--scroll");
 		body.createDiv({ cls: "sf-empty", text: options.emptyText });
 		return;
 	}
 
 	const bookFolderName = options.bookFolderName;
-	const fixed = body.createDiv({ cls: "sf-recommend-fixed sf-recommend-novel-fixed" });
+	const fixed = body.createDiv({ cls: "sf-story-context-fixed sf-story-context-novel-fixed" });
 
 	// "wide" splits into a cover-left/text-right row (cover, then synopsis + Default PoV in a
 	// column beside it) — everything else (title/subtitle, synopsis) still parents directly off
 	// `fixed` for "sidebar", one column top to bottom same as before.
-	const coverHost = wide ? fixed.createDiv({ cls: "sf-recommend-novel-cover-row" }) : fixed;
+	const coverHost = wide ? fixed.createDiv({ cls: "sf-story-context-novel-cover-row" }) : fixed;
 
-	const cover = coverHost.createDiv({ cls: "sf-synopsis-cover sf-recommend-novel-cover" });
+	const cover = coverHost.createDiv({ cls: "sf-synopsis-cover sf-story-context-novel-cover" });
 	renderNovelCover(app, cover, bookFolderName);
 	cover.addEventListener("click", () => pickNovelCover(app, cover, bookFolderName));
 
-	const textHost = wide ? coverHost.createDiv({ cls: "sf-recommend-novel-text-col" }) : fixed;
+	const textHost = wide ? coverHost.createDiv({ cls: "sf-story-context-novel-text-col" }) : fixed;
 
 	if (!wide) {
 		const numberedTitle = numberedBookTitle(app, bookFolderName, undefined, options.plugin.getSettings().seriesNumberingStyle);
 		const { title, subtitle } = splitTitleSubtitle(numberedTitle);
-		fixed.createDiv({ cls: "sf-recommend-novel-title", text: title });
+		fixed.createDiv({ cls: "sf-story-context-novel-title", text: title });
 		if (subtitle) {
-			fixed.createDiv({ cls: "sf-recommend-novel-subtitle", text: subtitle });
+			fixed.createDiv({ cls: "sf-story-context-novel-subtitle", text: subtitle });
 		}
 	}
 
 	const synopsis = textHost.createEl("textarea", {
-		cls: "sf-recommend-synopsis sf-recommend-novel-synopsis",
+		cls: "sf-story-context-synopsis sf-story-context-novel-synopsis",
 		attr: { "aria-label": "Novel synopsis" },
 	});
 	synopsis.addEventListener("pointerdown", (e) => e.stopPropagation());
@@ -163,7 +163,7 @@ export function renderNovelPanel(app: App, container: HTMLElement, options: Nove
 	});
 
 	if (wide) {
-		const defaultPovSection = textHost.createDiv({ cls: "sf-recommend-section" });
+		const defaultPovSection = textHost.createDiv({ cls: "sf-story-context-section" });
 		renderDefaultPovRow(app, defaultPovSection, bookFolderName, options.onChanged);
 	}
 
@@ -173,9 +173,9 @@ export function renderNovelPanel(app: App, container: HTMLElement, options: Nove
 
 	if (!wide && gutter && lineColors[0]) {
 		const threadLeft = gutter.lineOffsets[0];
-		const wrap = textHost.createDiv({ cls: "sf-recommend-novel-synopsis-wrap" });
+		const wrap = textHost.createDiv({ cls: "sf-story-context-novel-synopsis-wrap" });
 		synopsis.before(wrap);
-		const cap = wrap.createDiv({ cls: "sf-recommend-novel-synopsis-thread-cap" });
+		const cap = wrap.createDiv({ cls: "sf-story-context-novel-synopsis-thread-cap" });
 		cap.setCssStyles({ backgroundColor: lineColors[0] });
 		wrap.append(synopsis);
 		wrap.setCssStyles({
@@ -183,13 +183,13 @@ export function renderNovelPanel(app: App, container: HTMLElement, options: Nove
 			width: `calc(100% - ${threadLeft}px)`,
 			backgroundColor: lineColors[0],
 		});
-		synopsis.addClass("sf-recommend-novel-synopsis--thread");
+		synopsis.addClass("sf-story-context-novel-synopsis--thread");
 	}
 	if (wide && gutter && lineColors[0]) {
 		const threadLeft = gutter.lineOffsets[0];
-		const wrap = fixed.createDiv({ cls: "sf-recommend-novel-cover-thread" });
+		const wrap = fixed.createDiv({ cls: "sf-story-context-novel-cover-thread" });
 		coverHost.before(wrap);
-		const cap = wrap.createDiv({ cls: "sf-recommend-novel-synopsis-thread-cap" });
+		const cap = wrap.createDiv({ cls: "sf-story-context-novel-synopsis-thread-cap" });
 		cap.setCssStyles({ backgroundColor: lineColors[0] });
 		wrap.append(coverHost);
 		wrap.setCssStyles({
@@ -197,13 +197,13 @@ export function renderNovelPanel(app: App, container: HTMLElement, options: Nove
 			width: `calc(100% - ${threadLeft}px)`,
 		});
 		wrap.style.setProperty("--sf-cover-thread-color", lineColors[0]);
-		cover.addClass("sf-recommend-novel-cover--thread");
+		cover.addClass("sf-story-context-novel-cover--thread");
 	}
 	if (gutter) {
-		const drop = body.createDiv({ cls: "sf-recommend-novel-thread-drop" });
+		const drop = body.createDiv({ cls: "sf-story-context-novel-thread-drop" });
 		drop.setCssStyles(buildGutterLineBackground(lineColors, gutter.lineOffsets));
 	}
-	const scroll = body.createDiv({ cls: "sf-recommend-scroll" });
+	const scroll = body.createDiv({ cls: "sf-story-context-scroll" });
 	void renderNovelPlot(app, scroll, bookFolderName, options, wide, plotLines);
 }
 
@@ -252,9 +252,9 @@ function renderDefaultPovRow(app: App, parent: HTMLElement, bookFolderName: stri
 	const fm = readBookFrontmatter(app, bookFolderName);
 	const path = fm?.defaultPovPath ?? null;
 	const name = fm?.defaultPovName ?? null;
-	const meta = parent.createDiv({ cls: "sf-recommend-meta" });
-	const row = meta.createDiv({ cls: "sf-recommend-meta-row" });
-	row.createSpan({ cls: "sf-recommend-meta-label", text: "Default PoV:" });
+	const meta = parent.createDiv({ cls: "sf-story-context-meta" });
+	const row = meta.createDiv({ cls: "sf-story-context-meta-row" });
+	row.createSpan({ cls: "sf-story-context-meta-label", text: "Default PoV:" });
 	renderMetaControl(row, {
 		iconId: path ? ICON_PERSON_FILL : ICON_PERSON_FILL_ADD,
 		value: path ? (name ?? path) : null,
@@ -310,18 +310,18 @@ async function renderNovelPlot(
 		scroll.setCssStyles({ ...buildGutterLineBackground(lineColors, gutter.lineOffsets), backgroundAttachment: "local" });
 	}
 	for (const file of ordered) {
-		const block = scroll.createDiv({ cls: "sf-recommend-plot-block sf-recommend-plot-block--plain" });
+		const block = scroll.createDiv({ cls: "sf-story-context-plot-block sf-story-context-plot-block--plain" });
 		if (gutter) block.setCssStyles({ marginLeft: `${gutter.cardShift}px` });
-		const headerRow = block.createDiv({ cls: "sf-recommend-plot-header-row" });
+		const headerRow = block.createDiv({ cls: "sf-story-context-plot-header-row" });
 		const { title, subtitle } = splitTitleSubtitle(
 			numberedChapterTitle(app, bookFolderName, file.name, options.plugin.getSettings().chapterNumberingStyle),
 		);
 		const nameEl = headerRow.createDiv({
-			cls: "sf-recommend-plot-chapter-name",
+			cls: "sf-story-context-plot-chapter-name",
 			text: subtitle ? `${title} (${subtitle})` : title,
 		});
 		const collapseBtn = headerRow.createSpan({
-			cls: "sf-recommend-plot-collapse",
+			cls: "sf-story-context-plot-collapse",
 			attr: { role: "button", tabindex: "0" },
 		});
 		// Each chapter reads as its own card: the whole header band (not just the name text) is
@@ -334,7 +334,7 @@ async function renderNovelPlot(
 		const rowColor = resolveChapterRowColor(app, bookFolderName, file.name, options.plugin.getSettings());
 		if (rowColor) {
 			headerRow.setCssStyles({ color: rowColor.text });
-			// Outline colour is `--sf-plot-card-outline` (see .sf-recommend-plot-block--plain) —
+			// Outline colour is `--sf-plot-card-outline` (see .sf-story-context-plot-block--plain) —
 			// an inset box-shadow, not a real border, so nothing measured against this card's
 			// content edge needs to compensate for a border's width.
 			block.setCssProps({
@@ -379,7 +379,7 @@ async function renderNovelPlot(
 			applyPlotCardCollapsed(block, collapseBtn, collapsed);
 		applyCollapsed((options.plugin.getSettings().collapsedPlotChapterKeys ?? []).includes(chapterKey));
 		const toggleCollapsed = () => {
-			const next = !block.hasClass("sf-recommend-plot-block--collapsed");
+			const next = !block.hasClass("sf-story-context-plot-block--collapsed");
 			applyCollapsed(next);
 			persistPlotCardCollapsed(options.plugin, chapterKey, next);
 		};
@@ -392,7 +392,7 @@ async function renderNovelPlot(
 		// Title-click rename stays on the central Novel overview only — the sidebar Novel tab
 		// shows the same coloured title but does not open ChapterTitleModal.
 		if (wide) {
-			nameEl.addClass("sf-recommend-plot-chapter-name--clickable");
+			nameEl.addClass("sf-story-context-plot-chapter-name--clickable");
 			const openTitleModal = () =>
 				new ChapterTitleModal(app, options.plugin, bookFolderName, file.name, () => options.onChanged()).open();
 			nameEl.addEventListener("click", openTitleModal);
@@ -413,7 +413,7 @@ async function renderNovelPlot(
 				: narrator
 					? [{ path: narrator.path, name: narrator.name }]
 					: [];
-		const meta = block.createDiv({ cls: "sf-recommend-meta" });
+		const meta = block.createDiv({ cls: "sf-story-context-meta" });
 		renderMetaRefList(
 			meta,
 			"PoV:",
@@ -437,9 +437,9 @@ async function renderNovelPlot(
 		// mark wherever the (opaque) border-top passed over the (inset) outline. This divider sits
 		// in the card's ordinary padded content area instead — well clear of the outline on both
 		// sides — so nothing crosses it at all.
-		block.createDiv({ cls: "sf-recommend-plot-textarea-divider" });
+		block.createDiv({ cls: "sf-story-context-plot-textarea-divider" });
 		const textarea = block.createEl("textarea", {
-			cls: "sf-recommend-synopsis sf-recommend-plot-textarea",
+			cls: "sf-story-context-synopsis sf-story-context-plot-textarea",
 			// rows="1" overrides the HTML default of 2 — without it, a single-line description's
 			// resizeToContent() (below) never shows a gap-free 1-line box: scrollHeight can't report
 			// less than the textarea's own current height, and its un-styled intrinsic height (what
@@ -557,7 +557,7 @@ function plotChapterCollapseKey(bookFolderName: string, filename: string): strin
 }
 
 function applyPlotCardCollapsed(block: HTMLElement, collapseBtn: HTMLElement, collapsed: boolean): void {
-	block.toggleClass("sf-recommend-plot-block--collapsed", collapsed);
+	block.toggleClass("sf-story-context-plot-block--collapsed", collapsed);
 	setCharmChevronIcon(collapseBtn, collapsed);
 	collapseBtn.setAttribute("aria-expanded", collapsed ? "false" : "true");
 	collapseBtn.setAttribute("aria-label", collapsed ? "expand chapter card" : "collapse chapter card");
@@ -578,13 +578,13 @@ export function renderMetaControl(
 	opts: { iconId: string; value: string | null; tooltip: string; onOpen: () => void },
 ): void {
 	const control = row.createSpan({
-		cls: "sf-recommend-meta-control",
+		cls: "sf-story-context-meta-control",
 		attr: { role: "button", tabindex: "0", "aria-label": opts.tooltip },
 	});
 	setTooltip(control, opts.tooltip);
-	setIcon(control.createSpan({ cls: "sf-recommend-meta-icon" }), opts.iconId);
+	setIcon(control.createSpan({ cls: "sf-story-context-meta-icon" }), opts.iconId);
 	if (opts.value) {
-		control.createSpan({ cls: "sf-recommend-meta-value", text: opts.value });
+		control.createSpan({ cls: "sf-story-context-meta-value", text: opts.value });
 	}
 	control.addEventListener("click", (e) => {
 		e.stopPropagation();
@@ -602,20 +602,20 @@ export function renderMetaRefList(
 	onOpen: () => void,
 	tooltip: string,
 ): void {
-	const row = parent.createDiv({ cls: "sf-recommend-meta-row" });
-	row.createSpan({ cls: "sf-recommend-meta-label", text: label });
+	const row = parent.createDiv({ cls: "sf-story-context-meta-row" });
+	row.createSpan({ cls: "sf-story-context-meta-label", text: label });
 	if (refs.length === 0) {
 		renderMetaControl(row, { iconId: emptyIconId, value: null, tooltip, onOpen });
 		return;
 	}
 	const values = row.createSpan({
-		cls: "sf-recommend-meta-values",
+		cls: "sf-story-context-meta-values",
 		attr: { role: "button", tabindex: "0", "aria-label": tooltip },
 	});
 	setTooltip(values, tooltip);
 	refs.forEach((ref, index) => {
 		const text = index < refs.length - 1 ? `${ref.name || ref.path},` : ref.name || ref.path;
-		values.createSpan({ cls: "sf-recommend-meta-value", text });
+		values.createSpan({ cls: "sf-story-context-meta-value", text });
 	});
 	values.addEventListener("click", (e) => {
 		e.stopPropagation();
@@ -627,7 +627,7 @@ export function renderMetaRefList(
 /** Small icon-only action button — Story Context list-row actions (StoryContextView.ts). */
 export function iconAction(parent: HTMLElement, iconId: string, label: string, onActivate: () => void): HTMLElement {
 	const btn = parent.createSpan({
-		cls: "sf-recommend-icon-btn",
+		cls: "sf-story-context-icon-btn",
 		attr: { "aria-label": label, tabindex: "0", role: "button" },
 	});
 	setIcon(btn, iconId);

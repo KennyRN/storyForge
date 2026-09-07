@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { type App } from "obsidian";
 import { makeTFile, makeTFolder } from "./obsidianStub";
-import { migrateStructuralLayout, migrateTitleforgeLocation, migrateRecommendFolderToStoryDetails } from "../migration";
+import { migrateStructuralLayout, migrateTitleforgeLocation, migrateLegacySidecarFolder } from "../migration";
 import { LIBRARY_ROOT, BACKSTAGE_ROOT, TITLEFORGE_BACKSTAGE_ROOT, bookFilePath, seriesFilePath } from "../paths";
 
 /**
@@ -230,7 +230,7 @@ describe("migrateStructuralLayout", () => {
 		expect(kinds.size).toBe(0);
 	});
 
-	it("merges into an already-partially-existing new backstage root instead of skipping the whole move — regression for a lazy write (e.g. a recommend-cache sidecar) beating the structural migration to creating _backstage/storyforge/ on some earlier run", async () => {
+	it("merges into an already-partially-existing new backstage root instead of skipping the whole move — regression for a lazy write (e.g. a storyContext-cache sidecar) beating the structural migration to creating _backstage/storyforge/ on some earlier run", async () => {
 		const { app, kinds, content, frontmatter } = seedLegacyVault();
 
 		// Simulate the real-world corruption: a lazy write already created part
@@ -357,7 +357,7 @@ describe("migrateTitleforgeLocation", () => {
 	});
 });
 
-describe("migrateRecommendFolderToStoryDetails", () => {
+describe("migrateLegacySidecarFolder", () => {
 	it("renames each book's recommend folder to story-details", async () => {
 		const { app, kinds, content, seedFolder, seedFile } = makeFakeVaultApp();
 		seedFolder(BACKSTAGE_ROOT);
@@ -365,7 +365,7 @@ describe("migrateRecommendFolderToStoryDetails", () => {
 		seedFolder(`${BACKSTAGE_ROOT}/aaa/recommend`);
 		seedFile(`${BACKSTAGE_ROOT}/aaa/recommend/attribution.md`, "cache");
 
-		await migrateRecommendFolderToStoryDetails(app);
+		await migrateLegacySidecarFolder(app);
 
 		expect(kinds.has(`${BACKSTAGE_ROOT}/aaa/recommend`)).toBe(false);
 		expect(kinds.get(`${BACKSTAGE_ROOT}/aaa/story-details`)).toBe("folder");
@@ -381,7 +381,7 @@ describe("migrateRecommendFolderToStoryDetails", () => {
 		seedFolder(`${BACKSTAGE_ROOT}/aaa/story-details`);
 		seedFile(`${BACKSTAGE_ROOT}/aaa/story-details/new.md`, "current");
 
-		await migrateRecommendFolderToStoryDetails(app);
+		await migrateLegacySidecarFolder(app);
 
 		expect(kinds.has(`${BACKSTAGE_ROOT}/aaa/recommend`)).toBe(false);
 		expect(content.get(`${BACKSTAGE_ROOT}/aaa/story-details/old.md`)).toBe("legacy");

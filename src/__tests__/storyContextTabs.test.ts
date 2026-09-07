@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isRecommendTabActive } from "../view/recommendTabActive";
+import { isStoryContextTabActive } from "../view/storyContextTabActive";
 
 const TABS = ["novel", "chapter", "forge", "archive", "ideas"] as const;
 
@@ -9,10 +9,10 @@ function activeTabs(state: {
 	showingIdeas: boolean;
 	mode: "novel" | "chapter";
 }): string[] {
-	return TABS.filter((tab) => isRecommendTabActive(tab, state));
+	return TABS.filter((tab) => isStoryContextTabActive(tab, state));
 }
 
-describe("isRecommendTabActive", () => {
+describe("isStoryContextTabActive", () => {
 	it("highlights only the current mode tab", () => {
 		expect(
 			activeTabs({ forgeFamilyExpanded: false, showingArchive: false, showingIdeas: false, mode: "chapter" }),
@@ -57,7 +57,7 @@ describe("isRecommendTabActive", () => {
 
 	it("does not keep Chapter highlighted when switching to Forge family", () => {
 		expect(
-			isRecommendTabActive("chapter", {
+			isStoryContextTabActive("chapter", {
 				forgeFamilyExpanded: true,
 				showingArchive: false,
 				showingIdeas: false,
@@ -65,7 +65,7 @@ describe("isRecommendTabActive", () => {
 			}),
 		).toBe(false);
 		expect(
-			isRecommendTabActive("forge", {
+			isStoryContextTabActive("forge", {
 				forgeFamilyExpanded: true,
 				showingArchive: false,
 				showingIdeas: false,

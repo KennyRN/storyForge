@@ -794,8 +794,8 @@ export class UiFormattingModal extends Modal {
 					.setName("Active tab icons")
 					.setDesc("Colour of the selected navigation icon.")
 					.addButton((button) =>
-						bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings.recommendTabsActiveColor, (hex) => {
-							void this.plugin.updateSetting("recommendTabsActiveColor", hex).then(() => restyle());
+						bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings.storyContextTabsActiveColor, (hex) => {
+							void this.plugin.updateSetting("storyContextTabsActiveColor", hex).then(() => restyle());
 						}),
 					);
 			})
@@ -808,12 +808,12 @@ export class UiFormattingModal extends Modal {
 							this.app,
 							this.plugin,
 							button.buttonEl,
-							settings.recommendTabsColor,
+							settings.storyContextTabsColor,
 							(hex) => {
-								void this.plugin.updateSetting("recommendTabsColor", hex).then(() => restyle());
+								void this.plugin.updateSetting("storyContextTabsColor", hex).then(() => restyle());
 							},
 							undefined,
-							mutedSwatch(this.plugin, "recommendTabsMuted", settings.recommendTabsMuted, restyle),
+							mutedSwatch(this.plugin, "storyContextTabsMuted", settings.storyContextTabsMuted, restyle),
 						),
 					);
 			})
@@ -822,8 +822,8 @@ export class UiFormattingModal extends Modal {
 					.setName("Focus mode icon")
 					.setDesc("Colour of the Forge family icon in Focus mode. There is no separate active or inactive colour.")
 					.addButton((button) =>
-						bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings.recommendFocusModeIconColor, (hex) => {
-							void this.plugin.updateSetting("recommendFocusModeIconColor", hex).then(() => restyle());
+						bindColorSwatchButton(this.app, this.plugin, button.buttonEl, settings.storyContextFocusModeIconColor, (hex) => {
+							void this.plugin.updateSetting("storyContextFocusModeIconColor", hex).then(() => restyle());
 						}),
 					);
 			});
@@ -844,24 +844,24 @@ export class UiFormattingModal extends Modal {
 				.addSlider((slider) =>
 					slider
 						.setLimits(0.5, 1.5, 0.1)
-						.setValue(settings.recommendSynopsisFontSize)
-						.onChange((value) => persistAndRestyle(this.plugin, "recommendSynopsisFontSize", value, restyle)),
+						.setValue(settings.storyContextSynopsisFontSize)
+						.onChange((value) => persistAndRestyle(this.plugin, "storyContextSynopsisFontSize", value, restyle)),
 				);
 		});
 		renderCustomFontCard(
 			body,
 			this.plugin,
 			"",
-			"recommendSynopsisOverrideFont",
-			"recommendSynopsisFontFamily",
-			"recommendSynopsisFontWeight",
+			"storyContextSynopsisOverrideFont",
+			"storyContextSynopsisFontFamily",
+			"storyContextSynopsisFontWeight",
 			restyle,
-			() => this.plugin.getSettings().recommendSynopsisFontSize,
+			() => this.plugin.getSettings().storyContextSynopsisFontSize,
 			synopsisGroup,
 			{
-				hex: settings.recommendSynopsisColor,
+				hex: settings.storyContextSynopsisColor,
 				onPick: (hex) => {
-					void this.plugin.updateSetting("recommendSynopsisColor", hex).then(() => restyle());
+					void this.plugin.updateSetting("storyContextSynopsisColor", hex).then(() => restyle());
 				},
 			},
 		);
@@ -881,10 +881,10 @@ export class UiFormattingModal extends Modal {
 				.addSlider((slider) =>
 					slider
 						.setLimits(0.5, 1.5, 0.1)
-						.setValue(settings.recommendMetaLabelFontSize)
+						.setValue(settings.storyContextMetaLabelFontSize)
 						.onChange((value) => {
-							void this.plugin.updateSetting("recommendMetaLabelFontSize", value).then(() =>
-								this.plugin.updateSetting("recommendMetaControlFontSize", value).then(() => restyle()),
+							void this.plugin.updateSetting("storyContextMetaLabelFontSize", value).then(() =>
+								this.plugin.updateSetting("storyContextMetaControlFontSize", value).then(() => restyle()),
 							);
 						}),
 				);
@@ -893,18 +893,18 @@ export class UiFormattingModal extends Modal {
 			body,
 			this.plugin,
 			"",
-			"recommendMetaLabelOverrideFont",
-			"recommendMetaLabelFontFamily",
-			"recommendMetaLabelFontWeight",
+			"storyContextMetaLabelOverrideFont",
+			"storyContextMetaLabelFontFamily",
+			"storyContextMetaLabelFontWeight",
 			restyle,
-			() => this.plugin.getSettings().recommendMetaLabelFontSize,
+			() => this.plugin.getSettings().storyContextMetaLabelFontSize,
 			metaGroup,
 			{
-				hex: settings.recommendMetaLabelColor,
+				hex: settings.storyContextMetaLabelColor,
 				onPick: (hex) => {
-					void this.plugin.updateSetting("recommendMetaLabelColor", hex).then(() => restyle());
+					void this.plugin.updateSetting("storyContextMetaLabelColor", hex).then(() => restyle());
 				},
-				muted: mutedSwatch(this.plugin, "recommendMetaLabelMuted", settings.recommendMetaLabelMuted, restyle),
+				muted: mutedSwatch(this.plugin, "storyContextMetaLabelMuted", settings.storyContextMetaLabelMuted, restyle),
 			},
 			{ rowName: "Option" },
 		);
@@ -912,7 +912,7 @@ export class UiFormattingModal extends Modal {
 			setting
 				.setName("Label small caps")
 				.addToggle((toggle) =>
-					toggle.setValue(settings.recommendMetaLabelSmallCaps).onChange((value) => persistAndRestyle(this.plugin, "recommendMetaLabelSmallCaps", value, restyle)),
+					toggle.setValue(settings.storyContextMetaLabelSmallCaps).onChange((value) => persistAndRestyle(this.plugin, "storyContextMetaLabelSmallCaps", value, restyle)),
 				);
 			setting.nameEl.addClass("sf-small-caps-label");
 		});
@@ -922,18 +922,18 @@ export class UiFormattingModal extends Modal {
 			body,
 			this.plugin,
 			"",
-			"recommendMetaControlOverrideFont",
-			"recommendMetaControlFontFamily",
-			"recommendMetaControlFontWeight",
+			"storyContextMetaControlOverrideFont",
+			"storyContextMetaControlFontFamily",
+			"storyContextMetaControlFontWeight",
 			restyle,
-			() => this.plugin.getSettings().recommendMetaLabelFontSize,
+			() => this.plugin.getSettings().storyContextMetaLabelFontSize,
 			selecteeGroup,
 			{
-				hex: settings.recommendMetaControlColor,
+				hex: settings.storyContextMetaControlColor,
 				onPick: (hex) => {
-					void this.plugin.updateSetting("recommendMetaControlColor", hex).then(() => restyle());
+					void this.plugin.updateSetting("storyContextMetaControlColor", hex).then(() => restyle());
 				},
-				muted: mutedSwatch(this.plugin, "recommendMetaControlMuted", settings.recommendMetaControlMuted, restyle),
+				muted: mutedSwatch(this.plugin, "storyContextMetaControlMuted", settings.storyContextMetaControlMuted, restyle),
 			},
 			{ rowName: "Selectee" },
 		);
@@ -947,26 +947,26 @@ export class UiFormattingModal extends Modal {
 		const restyle = () => this.restyleRightRail();
 		this.renderTitleStyleGroup(body, settings, {
 			labelPrefix: "Novel title",
-			sizeKey: "recommendNovelTitleFontSize",
-			overrideFontKey: "recommendNovelTitleOverrideFont",
-			fontFamilyKey: "recommendNovelTitleFontFamily",
-			fontWeightKey: "recommendNovelTitleFontWeight",
-			colorKey: "recommendNovelTitleColor",
-			smallCapsKey: "recommendNovelTitleSmallCaps",
-			mutedKey: "recommendNovelTitleMuted",
+			sizeKey: "storyContextNovelTitleFontSize",
+			overrideFontKey: "storyContextNovelTitleOverrideFont",
+			fontFamilyKey: "storyContextNovelTitleFontFamily",
+			fontWeightKey: "storyContextNovelTitleFontWeight",
+			colorKey: "storyContextNovelTitleColor",
+			smallCapsKey: "storyContextNovelTitleSmallCaps",
+			mutedKey: "storyContextNovelTitleMuted",
 			restyle,
 			mergeFont: true,
 		});
 
 		this.renderTitleStyleGroup(body, settings, {
 			labelPrefix: "Novel subtitle",
-			sizeKey: "recommendNovelSubtitleFontSize",
-			overrideFontKey: "recommendNovelSubtitleOverrideFont",
-			fontFamilyKey: "recommendNovelSubtitleFontFamily",
-			fontWeightKey: "recommendNovelSubtitleFontWeight",
-			colorKey: "recommendNovelSubtitleColor",
-			smallCapsKey: "recommendNovelSubtitleSmallCaps",
-			mutedKey: "recommendNovelSubtitleMuted",
+			sizeKey: "storyContextNovelSubtitleFontSize",
+			overrideFontKey: "storyContextNovelSubtitleOverrideFont",
+			fontFamilyKey: "storyContextNovelSubtitleFontFamily",
+			fontWeightKey: "storyContextNovelSubtitleFontWeight",
+			colorKey: "storyContextNovelSubtitleColor",
+			smallCapsKey: "storyContextNovelSubtitleSmallCaps",
+			mutedKey: "storyContextNovelSubtitleMuted",
 			restyle,
 			mergeFont: true,
 		});
@@ -983,11 +983,11 @@ export class UiFormattingModal extends Modal {
 
 		this.renderTitleStyleGroup(body, settings, {
 			labelPrefix: "Chapter title",
-			sizeKey: "recommendChapterTitleFontSize",
-			overrideFontKey: "recommendChapterTitleOverrideFont",
-			fontFamilyKey: "recommendChapterTitleFontFamily",
-			fontWeightKey: "recommendChapterTitleFontWeight",
-			smallCapsKey: "recommendChapterTitleSmallCaps",
+			sizeKey: "storyContextChapterTitleFontSize",
+			overrideFontKey: "storyContextChapterTitleOverrideFont",
+			fontFamilyKey: "storyContextChapterTitleFontFamily",
+			fontWeightKey: "storyContextChapterTitleFontWeight",
+			smallCapsKey: "storyContextChapterTitleSmallCaps",
 			restyle,
 			mergeFont: true,
 		});
@@ -999,12 +999,12 @@ export class UiFormattingModal extends Modal {
 
 		this.renderTitleStyleGroup(body, settings, {
 			labelPrefix: "Labels",
-			sizeKey: "recommendSectionTitleFontSize",
-			overrideFontKey: "recommendSectionTitleOverrideFont",
-			fontFamilyKey: "recommendSectionTitleFontFamily",
-			fontWeightKey: "recommendSectionTitleFontWeight",
-			colorKey: "recommendSectionTitleColor",
-			mutedKey: "recommendSectionTitleMuted",
+			sizeKey: "storyContextSectionTitleFontSize",
+			overrideFontKey: "storyContextSectionTitleOverrideFont",
+			fontFamilyKey: "storyContextSectionTitleFontFamily",
+			fontWeightKey: "storyContextSectionTitleFontWeight",
+			colorKey: "storyContextSectionTitleColor",
+			mutedKey: "storyContextSectionTitleMuted",
 			restyle,
 			mergeFont: true,
 		});
@@ -1017,34 +1017,34 @@ export class UiFormattingModal extends Modal {
 				.addSlider((slider) =>
 					slider
 						.setLimits(0.5, 1.5, 0.1)
-						.setValue(settings.recommendItemsFontSize)
-						.onChange((value) => persistAndRestyle(this.plugin, "recommendItemsFontSize", value, restyle)),
+						.setValue(settings.storyContextItemsFontSize)
+						.onChange((value) => persistAndRestyle(this.plugin, "storyContextItemsFontSize", value, restyle)),
 				);
 		});
 		renderCustomFontCard(
 			body,
 			this.plugin,
 			"",
-			"recommendItemsOverrideFont",
-			"recommendItemsFontFamily",
-			"recommendItemsFontWeight",
+			"storyContextItemsOverrideFont",
+			"storyContextItemsFontFamily",
+			"storyContextItemsFontWeight",
 			restyle,
-			() => this.plugin.getSettings().recommendItemsFontSize,
+			() => this.plugin.getSettings().storyContextItemsFontSize,
 			itemsGroup,
 			{
-				hex: settings.recommendItemsColor,
+				hex: settings.storyContextItemsColor,
 				onPick: (hex) => {
-					void this.plugin.updateSetting("recommendItemsColor", hex).then(() => restyle());
+					void this.plugin.updateSetting("storyContextItemsColor", hex).then(() => restyle());
 				},
-				muted: mutedSwatch(this.plugin, "recommendItemsMuted", settings.recommendItemsMuted, restyle),
+				muted: mutedSwatch(this.plugin, "storyContextItemsMuted", settings.storyContextItemsMuted, restyle),
 			},
 		);
 
 		const unknownGroup = new SettingGroup(body);
-		this.renderRecommendBoxColourTable(unknownGroup.listEl, settings, restyle);
+		this.renderStoryContextBoxColourTable(unknownGroup.listEl, settings, restyle);
 	}
 
-	private renderRecommendBoxColourTable(
+	private renderStoryContextBoxColourTable(
 		parent: HTMLElement,
 		settings: StoryForgePluginSettings,
 		restyle: () => void,
@@ -1064,21 +1064,21 @@ export class UiFormattingModal extends Modal {
 		}> = [
 			{
 				label: "Named but not in Codex",
-				boxKey: "recommendUnknownColor",
-				boxMuted: "recommendUnknownMuted",
-				textKey: "recommendUnknownHeaderColor",
-				textMuted: "recommendUnknownHeaderMuted",
+				boxKey: "storyContextUnknownColor",
+				boxMuted: "storyContextUnknownMuted",
+				textKey: "storyContextUnknownHeaderColor",
+				textMuted: "storyContextUnknownHeaderMuted",
 			},
 		];
 		for (const row of rows) {
 			const tr = body.createEl("tr");
 			tr.createEl("th", { text: row.label, attr: { scope: "row" } });
-			this.bindRecommendBoxColourSwatch(tr.createEl("td"), settings, restyle, row.label, "box", row.boxKey, row.boxMuted);
-			this.bindRecommendBoxColourSwatch(tr.createEl("td"), settings, restyle, row.label, "text", row.textKey, row.textMuted);
+			this.bindStoryContextBoxColourSwatch(tr.createEl("td"), settings, restyle, row.label, "box", row.boxKey, row.boxMuted);
+			this.bindStoryContextBoxColourSwatch(tr.createEl("td"), settings, restyle, row.label, "text", row.textKey, row.textMuted);
 		}
 	}
 
-	private bindRecommendBoxColourSwatch(
+	private bindStoryContextBoxColourSwatch(
 		cell: HTMLElement,
 		settings: StoryForgePluginSettings,
 		restyle: () => void,
@@ -1112,13 +1112,13 @@ export class UiFormattingModal extends Modal {
 			heading: "Dossier",
 			sizeDesc:
 				"Sticky chapter names on the Dossier page. Hit cards use Text size; chapter names use these type styles.",
-			sizeKey: "recommendDossierHeaderFontSize",
-			overrideFontKey: "recommendDossierHeaderOverrideFont",
-			fontFamilyKey: "recommendDossierHeaderFontFamily",
-			fontWeightKey: "recommendDossierHeaderFontWeight",
-			colorKey: "recommendDossierHeaderColor",
-			smallCapsKey: "recommendDossierHeaderSmallCaps",
-			mutedKey: "recommendDossierHeaderMuted",
+			sizeKey: "storyContextDossierHeaderFontSize",
+			overrideFontKey: "storyContextDossierHeaderOverrideFont",
+			fontFamilyKey: "storyContextDossierHeaderFontFamily",
+			fontWeightKey: "storyContextDossierHeaderFontWeight",
+			colorKey: "storyContextDossierHeaderColor",
+			smallCapsKey: "storyContextDossierHeaderSmallCaps",
+			mutedKey: "storyContextDossierHeaderMuted",
 			restyle: () => this.restyleRightRail(),
 			mergeFont: true,
 		});

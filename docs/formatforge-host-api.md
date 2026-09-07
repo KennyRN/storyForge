@@ -103,7 +103,7 @@ Use the v8 batch method for themes and imports:
 await api.formatting.updateLinkedSettings({
   bodyTextSize: 1.1,
   editorScrollbarThumbColor: "#112233",
-  recommendHeaderColor: "#abcdef",
+  storyContextHeaderColor: "#abcdef",
 });
 ```
 

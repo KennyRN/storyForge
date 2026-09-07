@@ -209,7 +209,7 @@ function mountStatsSample(container: HTMLElement): void {
 }
 
 /** One Story Context tab's worth of representative body content, keyed by the same ids used in `mountRightSidebarPreviewSample`'s clickable tab row. */
-type RecommendTabId = "novel" | "chapter";
+type StoryContextTabId = "novel" | "chapter";
 export type RightSidebarPreviewMode = "chrome" | "novel" | "chapter" | "box" | "details" | "dossier" | "archive";
 export type PreviewMainThread = { color: string; text: string };
 
@@ -218,68 +218,68 @@ const PREVIEW_MAIN_THREAD_FALLBACK: PreviewMainThread = {
 	text: "#1c1917",
 };
 
-function mountRecommendMetaNames(meta: HTMLElement, label: string, names: string[]): void {
-	const row = meta.createDiv({ cls: "sf-recommend-meta-row" });
-	row.createSpan({ cls: "sf-recommend-meta-label", text: label });
-	const values = row.createSpan({ cls: "sf-recommend-meta-values" });
+function mountStoryContextMetaNames(meta: HTMLElement, label: string, names: string[]): void {
+	const row = meta.createDiv({ cls: "sf-story-context-meta-row" });
+	row.createSpan({ cls: "sf-story-context-meta-label", text: label });
+	const values = row.createSpan({ cls: "sf-story-context-meta-values" });
 	names.forEach((name, index) => {
 		values.createSpan({
-			cls: "sf-recommend-meta-value",
+			cls: "sf-story-context-meta-value",
 			text: index < names.length - 1 ? `${name},` : name,
 		});
 	});
 }
 
-function mountRecommendPillCard(
+function mountStoryContextPillCard(
 	parent: HTMLElement,
 	variant: "capture" | "holding" | "resolved" | "unknown",
 	title: string,
 	fill: (section: HTMLElement) => void,
 ): void {
 	const card = parent.createDiv({
-		cls: `sf-recommend-plot-block sf-recommend-plot-block--plain ${
-			variant === "unknown" ? "sf-recommend-unknown-card" : `sf-recommend-pill-card sf-recommend-pill-card--${variant}`
+		cls: `sf-story-context-plot-block sf-story-context-plot-block--plain ${
+			variant === "unknown" ? "sf-story-context-unknown-card" : `sf-story-context-pill-card sf-story-context-pill-card--${variant}`
 		}`,
 	});
-	const section = card.createDiv({ cls: "sf-recommend-section" });
-	section.createDiv({ cls: "sf-recommend-section-title", text: title });
+	const section = card.createDiv({ cls: "sf-story-context-section" });
+	section.createDiv({ cls: "sf-story-context-section-title", text: title });
 	fill(section);
 }
 
-function mountRecommendBoxBody(body: HTMLElement, mainThread: PreviewMainThread): void {
-	body.addClass("sf-recommend-body--scroll");
-	mountRecommendChapterCard(body, mainThread);
-	mountRecommendPillCard(body, "capture", "Details to capture", (section) => {
-		const entity = section.createDiv({ cls: "sf-recommend-entity-header" });
-		entity.createSpan({ cls: "sf-recommend-entity-name", text: "Jane Protagonist" });
-		mountRecommendHitCard(section, "solid", "The old locket felt heavier than it looked.");
+function mountStoryContextBoxBody(body: HTMLElement, mainThread: PreviewMainThread): void {
+	body.addClass("sf-story-context-body--scroll");
+	mountStoryContextChapterCard(body, mainThread);
+	mountStoryContextPillCard(body, "capture", "Details to capture", (section) => {
+		const entity = section.createDiv({ cls: "sf-story-context-entity-header" });
+		entity.createSpan({ cls: "sf-story-context-entity-name", text: "Jane Protagonist" });
+		mountStoryContextHitCard(section, "solid", "The old locket felt heavier than it looked.");
 	});
-	mountRecommendPillCard(body, "holding", "Holding area", (section) => {
-		const entity = section.createDiv({ cls: "sf-recommend-entity-header" });
-		entity.createSpan({ cls: "sf-recommend-entity-name", text: "The Harbour" });
-		mountRecommendHitCard(section, "ambiguous", "A storm was rolling in from the coast.");
+	mountStoryContextPillCard(body, "holding", "Holding area", (section) => {
+		const entity = section.createDiv({ cls: "sf-story-context-entity-header" });
+		entity.createSpan({ cls: "sf-story-context-entity-name", text: "The Harbour" });
+		mountStoryContextHitCard(section, "ambiguous", "A storm was rolling in from the coast.");
 	});
-	mountRecommendPillCard(body, "resolved", "Resolved", (section) => {
-		const entity = section.createDiv({ cls: "sf-recommend-entity-header" });
-		entity.createSpan({ cls: "sf-recommend-entity-name", text: "Jane Protagonist" });
-		mountRecommendHitCard(section, "solid", "Jane paused at the doorway.");
+	mountStoryContextPillCard(body, "resolved", "Resolved", (section) => {
+		const entity = section.createDiv({ cls: "sf-story-context-entity-header" });
+		entity.createSpan({ cls: "sf-story-context-entity-name", text: "Jane Protagonist" });
+		mountStoryContextHitCard(section, "solid", "Jane paused at the doorway.");
 	});
 }
 
-function mountRecommendNovelBody(body: HTMLElement, mainThread: PreviewMainThread): void {
-	const fixed = body.createDiv({ cls: "sf-recommend-fixed sf-recommend-novel-fixed" });
-	fixed.createDiv({ cls: "sf-synopsis-cover sf-recommend-novel-cover" });
-	fixed.createDiv({ cls: "sf-recommend-novel-title", text: "Ipsum Liber" });
-	fixed.createDiv({ cls: "sf-recommend-novel-subtitle", text: "Vol. I — Dolor Sit" });
-	const wrap = fixed.createDiv({ cls: "sf-recommend-novel-synopsis-wrap" });
+function mountStoryContextNovelBody(body: HTMLElement, mainThread: PreviewMainThread): void {
+	const fixed = body.createDiv({ cls: "sf-story-context-fixed sf-story-context-novel-fixed" });
+	fixed.createDiv({ cls: "sf-synopsis-cover sf-story-context-novel-cover" });
+	fixed.createDiv({ cls: "sf-story-context-novel-title", text: "Ipsum Liber" });
+	fixed.createDiv({ cls: "sf-story-context-novel-subtitle", text: "Vol. I — Dolor Sit" });
+	const wrap = fixed.createDiv({ cls: "sf-story-context-novel-synopsis-wrap" });
 	wrap.setCssStyles({
 		marginLeft: "2px",
 		width: "calc(100% - 2px)",
 		backgroundColor: mainThread.color,
 	});
-	wrap.createDiv({ cls: "sf-recommend-novel-synopsis-thread-cap" }).setCssStyles({ backgroundColor: mainThread.color });
+	wrap.createDiv({ cls: "sf-story-context-novel-synopsis-thread-cap" }).setCssStyles({ backgroundColor: mainThread.color });
 	wrap.createEl("textarea", {
-		cls: "sf-recommend-synopsis sf-recommend-novel-synopsis sf-recommend-novel-synopsis--thread",
+		cls: "sf-story-context-synopsis sf-story-context-novel-synopsis sf-story-context-novel-synopsis--thread",
 		text: "A brief synopsis of the novel goes here.",
 		attr: { readonly: "true", rows: "3" },
 	});
@@ -303,7 +303,7 @@ function mountRecommendNovelBody(body: HTMLElement, mainThread: PreviewMainThrea
 		},
 	};
 
-	const scroll = body.createDiv({ cls: "sf-recommend-scroll" });
+	const scroll = body.createDiv({ cls: "sf-story-context-scroll" });
 	scroll.setCssStyles({ ...gutter.background, backgroundAttachment: "local" });
 	const chapters: Array<{ title: string; place: string; summary: string; line: number }> = [
 		{ title: "I. Amet Consectetur", place: "The Harbour", summary: "Chapter summary goes here.", line: 0 },
@@ -311,9 +311,9 @@ function mountRecommendNovelBody(body: HTMLElement, mainThread: PreviewMainThrea
 	];
 	for (const chapter of chapters) {
 		const thread = previewPlotThreads[chapter.line];
-		const block = scroll.createDiv({ cls: "sf-recommend-plot-block sf-recommend-plot-block--plain" });
-		const headerRow = block.createDiv({ cls: "sf-recommend-plot-header-row" });
-		const nameEl = headerRow.createDiv({ cls: "sf-recommend-plot-chapter-name", text: chapter.title });
+		const block = scroll.createDiv({ cls: "sf-story-context-plot-block sf-story-context-plot-block--plain" });
+		const headerRow = block.createDiv({ cls: "sf-story-context-plot-header-row" });
+		const nameEl = headerRow.createDiv({ cls: "sf-story-context-plot-chapter-name", text: chapter.title });
 		headerRow.setCssStyles({ color: thread.text });
 		nameEl.setCssStyles({ color: thread.text });
 		block.style.setProperty("--sf-plot-card-header-bg", thread.color);
@@ -327,38 +327,38 @@ function mountRecommendNovelBody(body: HTMLElement, mainThread: PreviewMainThrea
 		});
 		headerRow.setCssStyles({ marginLeft: `${headerMarginLeft}px` });
 		headerRow.style.paddingLeft = `${cardPad + Math.max(0, -cardPad - headerMarginLeft)}px`;
-		const plotMeta = block.createDiv({ cls: "sf-recommend-meta" });
-		mountRecommendMetaNames(plotMeta, "PoV:", ["Jane Protagonist"]);
-		mountRecommendMetaNames(plotMeta, "Location:", [chapter.place]);
-		block.createDiv({ cls: "sf-recommend-plot-textarea-divider" });
+		const plotMeta = block.createDiv({ cls: "sf-story-context-meta" });
+		mountStoryContextMetaNames(plotMeta, "PoV:", ["Jane Protagonist"]);
+		mountStoryContextMetaNames(plotMeta, "Location:", [chapter.place]);
+		block.createDiv({ cls: "sf-story-context-plot-textarea-divider" });
 		block.createEl("textarea", {
-			cls: "sf-recommend-synopsis sf-recommend-plot-textarea",
+			cls: "sf-story-context-synopsis sf-story-context-plot-textarea",
 			text: chapter.summary,
 			attr: { readonly: "true", rows: "2" },
 		});
 	}
 }
 
-function mountRecommendHitCard(scroll: HTMLElement, tier: string, sentence: string): void {
-	const card = scroll.createDiv({ cls: `sf-recommend-hit sf-recommend-hit-${tier}` });
-	const meta = card.createDiv({ cls: "sf-recommend-hit-meta" });
-	meta.createSpan({ cls: `sf-recommend-tier sf-recommend-tier-${tier}`, text: tier });
-	meta.createSpan({ cls: "sf-recommend-lens", text: "name" });
-	card.createDiv({ cls: "sf-recommend-hit-span", text: sentence });
-	const actions = card.createDiv({ cls: "sf-recommend-hit-actions" });
+function mountStoryContextHitCard(scroll: HTMLElement, tier: string, sentence: string): void {
+	const card = scroll.createDiv({ cls: `sf-story-context-hit sf-story-context-hit-${tier}` });
+	const meta = card.createDiv({ cls: "sf-story-context-hit-meta" });
+	meta.createSpan({ cls: `sf-story-context-tier sf-story-context-tier-${tier}`, text: tier });
+	meta.createSpan({ cls: "sf-story-context-lens", text: "name" });
+	card.createDiv({ cls: "sf-story-context-hit-span", text: sentence });
+	const actions = card.createDiv({ cls: "sf-story-context-hit-actions" });
 	if (tier === "ambiguous") {
 		actions.createEl("button", { text: "Jane Protagonist" });
 		actions.createEl("button", { text: "The Harbour" });
 		return;
 	}
-	setIcon(actions.createSpan({ cls: "sf-recommend-icon-btn", attr: { "aria-label": "detail added/accepted" } }), ICON_CHECK_SQUARE);
-	setIcon(actions.createSpan({ cls: "sf-recommend-icon-btn", attr: { "aria-label": "ignore this detail" } }), ICON_MINUS_SQUARE);
+	setIcon(actions.createSpan({ cls: "sf-story-context-icon-btn", attr: { "aria-label": "detail added/accepted" } }), ICON_CHECK_SQUARE);
+	setIcon(actions.createSpan({ cls: "sf-story-context-icon-btn", attr: { "aria-label": "ignore this detail" } }), ICON_MINUS_SQUARE);
 }
 
 /** Chapter-tab card: header band, PoV/Location, synopsis, Codex rows, actions, unknown names. */
-function mountRecommendChapterCard(body: HTMLElement, mainThread: PreviewMainThread): void {
+function mountStoryContextChapterCard(body: HTMLElement, mainThread: PreviewMainThread): void {
 	const card = body.createDiv({
-		cls: "sf-recommend-plot-block sf-recommend-plot-block--plain sf-recommend-plot-block--chapter",
+		cls: "sf-story-context-plot-block sf-story-context-plot-block--plain sf-story-context-plot-block--chapter",
 	});
 	const titleShadow = resolveTitleShadow(body.ownerDocument, mainThread.text, mainThread.color);
 	body.style.setProperty("--sf-plot-card-header-bg", mainThread.color);
@@ -369,54 +369,54 @@ function mountRecommendChapterCard(body: HTMLElement, mainThread: PreviewMainThr
 	card.style.setProperty("--sf-plot-card-header-fg", mainThread.text);
 	card.style.setProperty("--sf-plot-card-title-shadow", titleShadow);
 	card.style.setProperty("--sf-plot-card-outline", mainThread.color);
-	const header = card.createDiv({ cls: "sf-recommend-plot-header-row" });
+	const header = card.createDiv({ cls: "sf-story-context-plot-header-row" });
 	header.setCssStyles({ color: mainThread.text });
-	const nameEl = header.createDiv({ cls: "sf-recommend-plot-chapter-name", text: "I. Amet Consectetur" });
+	const nameEl = header.createDiv({ cls: "sf-story-context-plot-chapter-name", text: "I. Amet Consectetur" });
 	nameEl.setCssStyles({ color: mainThread.text });
-	const meta = card.createDiv({ cls: "sf-recommend-meta" });
-	mountRecommendMetaNames(meta, "PoV:", ["Jane Protagonist"]);
-	mountRecommendMetaNames(meta, "Location:", ["The Harbour"]);
+	const meta = card.createDiv({ cls: "sf-story-context-meta" });
+	mountStoryContextMetaNames(meta, "PoV:", ["Jane Protagonist"]);
+	mountStoryContextMetaNames(meta, "Location:", ["The Harbour"]);
 	card.createEl("textarea", {
-		cls: "sf-recommend-synopsis sf-recommend-plot-textarea",
+		cls: "sf-story-context-synopsis sf-story-context-plot-textarea",
 		text: "Chapter summary goes here.",
 		attr: { readonly: "true", rows: "2" },
 	});
 
-	const chars = card.createDiv({ cls: "sf-recommend-section" });
-	chars.createDiv({ cls: "sf-recommend-section-title", text: "Characters in chapter" });
-	const charList = chars.createDiv({ cls: "sf-recommend-match-list" });
-	const jane = charList.createSpan({ cls: "sf-recommend-match-item" });
-	setIcon(jane.createSpan({ cls: "sf-icon sf-recommend-match-icon" }), ICON_PERSON);
-	jane.createSpan({ cls: "sf-recommend-match-label", text: "Jane Protagonist," });
-	const alex = charList.createSpan({ cls: "sf-recommend-match-item" });
-	setIcon(alex.createSpan({ cls: "sf-icon sf-recommend-match-icon" }), ICON_PERSON);
-	alex.createSpan({ cls: "sf-recommend-match-label", text: "Alex" });
+	const chars = card.createDiv({ cls: "sf-story-context-section" });
+	chars.createDiv({ cls: "sf-story-context-section-title", text: "Characters in chapter" });
+	const charList = chars.createDiv({ cls: "sf-story-context-match-list" });
+	const jane = charList.createSpan({ cls: "sf-story-context-match-item" });
+	setIcon(jane.createSpan({ cls: "sf-icon sf-story-context-match-icon" }), ICON_PERSON);
+	jane.createSpan({ cls: "sf-story-context-match-label", text: "Jane Protagonist," });
+	const alex = charList.createSpan({ cls: "sf-story-context-match-item" });
+	setIcon(alex.createSpan({ cls: "sf-icon sf-story-context-match-icon" }), ICON_PERSON);
+	alex.createSpan({ cls: "sf-story-context-match-label", text: "Alex" });
 
-	const others = card.createDiv({ cls: "sf-recommend-section" });
-	others.createDiv({ cls: "sf-recommend-section-title", text: "Other Codex references" });
-	const otherList = others.createDiv({ cls: "sf-recommend-match-list" });
-	const harbour = otherList.createSpan({ cls: "sf-recommend-match-item" });
-	setIcon(harbour.createSpan({ cls: "sf-icon sf-recommend-match-icon" }), ICON_MAP_PIN);
-	harbour.createSpan({ cls: "sf-recommend-match-label", text: "The Harbour" });
+	const others = card.createDiv({ cls: "sf-story-context-section" });
+	others.createDiv({ cls: "sf-story-context-section-title", text: "Other Codex references" });
+	const otherList = others.createDiv({ cls: "sf-story-context-match-list" });
+	const harbour = otherList.createSpan({ cls: "sf-story-context-match-item" });
+	setIcon(harbour.createSpan({ cls: "sf-icon sf-story-context-match-icon" }), ICON_MAP_PIN);
+	harbour.createSpan({ cls: "sf-story-context-match-label", text: "The Harbour" });
 
-	const actions = body.createDiv({ cls: "sf-recommend-chapter-card-actions" });
-	setIcon(actions.createSpan({ cls: "sf-recommend-icon-btn" }), ICON_TARGET_DUOTONE);
-	setIcon(actions.createSpan({ cls: "sf-recommend-icon-btn" }), ICON_ADD_CIRCLE);
-	const wordcount = actions.createDiv({ cls: "sf-recommend-chapter-wordcount" });
-	setIcon(wordcount.createSpan({ cls: "sf-icon sf-recommend-chapter-wordcount-icon" }), ICON_DASHBOARD_CHART);
-	wordcount.createSpan({ cls: "sf-recommend-chapter-wordcount-value", text: "1,234" });
+	const actions = body.createDiv({ cls: "sf-story-context-chapter-card-actions" });
+	setIcon(actions.createSpan({ cls: "sf-story-context-icon-btn" }), ICON_TARGET_DUOTONE);
+	setIcon(actions.createSpan({ cls: "sf-story-context-icon-btn" }), ICON_ADD_CIRCLE);
+	const wordcount = actions.createDiv({ cls: "sf-story-context-chapter-wordcount" });
+	setIcon(wordcount.createSpan({ cls: "sf-icon sf-story-context-chapter-wordcount-icon" }), ICON_DASHBOARD_CHART);
+	wordcount.createSpan({ cls: "sf-story-context-chapter-wordcount-value", text: "1,234" });
 
 	const unknown = body.createDiv({
-		cls: "sf-recommend-plot-block sf-recommend-plot-block--plain sf-recommend-unknown-card",
+		cls: "sf-story-context-plot-block sf-story-context-plot-block--plain sf-story-context-unknown-card",
 	});
-	const unknownSection = unknown.createDiv({ cls: "sf-recommend-section" });
-	unknownSection.createDiv({ cls: "sf-recommend-section-title", text: "Named but not in Codex" });
+	const unknownSection = unknown.createDiv({ cls: "sf-story-context-section" });
+	unknownSection.createDiv({ cls: "sf-story-context-section-title", text: "Named but not in Codex" });
 	renderStampedEmptyCross(unknownSection, "None found.");
 }
 
-function mountRecommendChapterBody(body: HTMLElement, mainThread: PreviewMainThread): void {
-	body.addClass("sf-recommend-body--scroll");
-	mountRecommendChapterCard(body, mainThread);
+function mountStoryContextChapterBody(body: HTMLElement, mainThread: PreviewMainThread): void {
+	body.addClass("sf-story-context-body--scroll");
+	mountStoryContextChapterCard(body, mainThread);
 }
 
 function mountNotebookDossierPreview(body: HTMLElement): void {
@@ -426,10 +426,10 @@ function mountNotebookDossierPreview(body: HTMLElement): void {
 	setIcon(rail.createSpan({ cls: "sf-notebook-source-btn" }), ICON_CODEX);
 	setIcon(rail.createSpan({ cls: "sf-notebook-source-btn is-active" }), ICON_CLIPBOARD_LIST_DUOTONE);
 	const page = split.createDiv({ cls: "sf-notebook-page sf-dossier-page" });
-	const scroll = page.createDiv({ cls: "sf-recommend-scroll" });
-	const chSection = scroll.createDiv({ cls: "sf-recommend-section" });
-	chSection.createDiv({ cls: "sf-recommend-section-title", text: "I. Amet Consectetur" });
-	mountRecommendHitCard(chSection, "matched", "Jane paused at the doorway.");
+	const scroll = page.createDiv({ cls: "sf-story-context-scroll" });
+	const chSection = scroll.createDiv({ cls: "sf-story-context-section" });
+	chSection.createDiv({ cls: "sf-story-context-section-title", text: "I. Amet Consectetur" });
+	mountStoryContextHitCard(chSection, "matched", "Jane paused at the doorway.");
 	const index = split.createDiv({ cls: "sf-notebook-index sf-bottom-panel" });
 	const tree = index.createDiv({ cls: "sf-codex-tree" });
 	const selected = tree.createDiv({ cls: "sf-row sf-row-selected sf-codex-file" });
@@ -467,27 +467,27 @@ export function mountRightSidebarPreviewSample(
 
 	const rail = container.createDiv({ cls: "sf-right-rail-preview" });
 
-	const recommend = rail.createDiv({ cls: "sf-recommend-view" });
-	const recTabs = recommend.createDiv({ cls: "sf-recommend-tabs" });
-	const forgeRow = recommend.createDiv({ cls: "sf-recommend-view__forge-row sf-settings-hidden" });
-	const recBody = recommend.createDiv({ cls: "sf-recommend-body" });
-	const archive = recommend.createDiv({ cls: "sf-archive-embedded sf-settings-hidden" });
-	const focusRow = recommend.createDiv({
-		cls: "sf-recommend-view__forge-row sf-recommend-view__forge-row--focus sf-settings-hidden",
+	const storyContext = rail.createDiv({ cls: "sf-story-context-view" });
+	const recTabs = storyContext.createDiv({ cls: "sf-story-context-tabs" });
+	const forgeRow = storyContext.createDiv({ cls: "sf-story-context-view__forge-row sf-settings-hidden" });
+	const recBody = storyContext.createDiv({ cls: "sf-story-context-body" });
+	const archive = storyContext.createDiv({ cls: "sf-archive-embedded sf-settings-hidden" });
+	const focusRow = storyContext.createDiv({
+		cls: "sf-story-context-view__forge-row sf-story-context-view__forge-row--focus sf-settings-hidden",
 	});
 
-	setIcon(forgeRow.createSpan({ cls: "sf-recommend-view__forge-icon is-active" }), ICON_TITLEFORGE);
-	setIcon(forgeRow.createSpan({ cls: "sf-recommend-view__forge-icon" }), ICON_MEEPLE);
-	const focusMembers = focusRow.createDiv({ cls: "sf-recommend-view__forge-members" });
-	setIcon(focusMembers.createSpan({ cls: "sf-recommend-view__forge-icon is-active" }), ICON_TITLEFORGE);
-	setIcon(focusMembers.createSpan({ cls: "sf-recommend-view__forge-icon" }), ICON_MEEPLE);
+	setIcon(forgeRow.createSpan({ cls: "sf-story-context-view__forge-icon is-active" }), ICON_TITLEFORGE);
+	setIcon(forgeRow.createSpan({ cls: "sf-story-context-view__forge-icon" }), ICON_MEEPLE);
+	const focusMembers = focusRow.createDiv({ cls: "sf-story-context-view__forge-members" });
+	setIcon(focusMembers.createSpan({ cls: "sf-story-context-view__forge-icon is-active" }), ICON_TITLEFORGE);
+	setIcon(focusMembers.createSpan({ cls: "sf-story-context-view__forge-icon" }), ICON_MEEPLE);
 	const focusIcon = focusRow.createSpan({
-		cls: "sf-recommend-view__forge-family",
+		cls: "sf-story-context-view__forge-family",
 		attr: { "aria-label": "Focus mode icon" },
 	});
 	setIcon(focusIcon, ICON_FORGE);
 
-	const tabButtons: Partial<Record<RecommendTabId, HTMLElement>> = {};
+	const tabButtons: Partial<Record<StoryContextTabId, HTMLElement>> = {};
 	let archiveBtn!: HTMLElement;
 	let forgeBtn!: HTMLElement;
 	let ideasBtn!: HTMLElement;
@@ -507,7 +507,7 @@ export function mountRightSidebarPreviewSample(
 		recBody.empty();
 		mountNotebookDossierPreview(recBody);
 	};
-	const showRecommendTab = (id: RecommendTabId) => {
+	const showStoryContextTab = (id: StoryContextTabId) => {
 		for (const [tabId, btn] of Object.entries(tabButtons)) btn?.toggleClass("is-active", tabId === id);
 		archiveBtn.removeClass("is-active");
 		forgeBtn.removeClass("is-active");
@@ -516,8 +516,8 @@ export function mountRightSidebarPreviewSample(
 		recBody.toggleClass("sf-settings-hidden", false);
 		archive.addClass("sf-settings-hidden");
 		recBody.empty();
-		if (id === "novel") mountRecommendNovelBody(recBody, mainThread);
-		else mountRecommendChapterBody(recBody, mainThread);
+		if (id === "novel") mountStoryContextNovelBody(recBody, mainThread);
+		else mountStoryContextChapterBody(recBody, mainThread);
 	};
 	const showArchiveTab = () => {
 		for (const btn of Object.values(tabButtons)) btn?.removeClass("is-active");
@@ -543,23 +543,23 @@ export function mountRightSidebarPreviewSample(
 		archive.addClass("sf-settings-hidden");
 	};
 
-	const tabIcons: Record<RecommendTabId, string> = {
+	const tabIcons: Record<StoryContextTabId, string> = {
 		novel: ICON_BOOK_DUOTONE,
 		chapter: ICON_BOOK_OPEN_FILLED,
 	};
-	(["novel", "chapter"] as RecommendTabId[]).forEach((id) => {
-		const btn = recTabs.createSpan({ cls: "sf-recommend-tab" });
+	(["novel", "chapter"] as StoryContextTabId[]).forEach((id) => {
+		const btn = recTabs.createSpan({ cls: "sf-story-context-tab" });
 		setIcon(btn.createSpan({ cls: "sf-layout-tab-icon" }), tabIcons[id]);
 		tabButtons[id] = btn;
-		btn.addEventListener("click", () => showRecommendTab(id));
+		btn.addEventListener("click", () => showStoryContextTab(id));
 	});
-	ideasBtn = recTabs.createSpan({ cls: "sf-recommend-tab" });
+	ideasBtn = recTabs.createSpan({ cls: "sf-story-context-tab" });
 	setIcon(ideasBtn.createSpan({ cls: "sf-layout-tab-icon" }), ICON_NOTEBOOK_DUOTONE);
 	ideasBtn.addEventListener("click", () => showNotebookDossier());
-	forgeBtn = recTabs.createSpan({ cls: "sf-recommend-tab sf-recommend-tab--forge-family" });
+	forgeBtn = recTabs.createSpan({ cls: "sf-story-context-tab sf-story-context-tab--forge-family" });
 	setIcon(forgeBtn.createSpan({ cls: "sf-layout-tab-icon" }), ICON_FORGE);
 	forgeBtn.addEventListener("click", () => showForgeTab());
-	archiveBtn = recTabs.createSpan({ cls: "sf-recommend-tab sf-recommend-tab--archive" });
+	archiveBtn = recTabs.createSpan({ cls: "sf-story-context-tab sf-story-context-tab--archive" });
 	setIcon(archiveBtn.createSpan({ cls: "sf-layout-tab-icon" }), ICON_ARCHIVE);
 	archiveBtn.addEventListener("click", () => showArchiveTab());
 
@@ -577,10 +577,10 @@ export function mountRightSidebarPreviewSample(
 
 	if (mode === "archive") showArchiveTab();
 	else if (mode === "chrome") showForgeTab();
-	else if (mode === "chapter" || mode === "novel") showRecommendTab(mode);
+	else if (mode === "chapter" || mode === "novel") showStoryContextTab(mode);
 	else if (mode === "details" || mode === "dossier") showNotebookDossier();
 	else if (mode === "box") {
-		showCustomBody((el) => mountRecommendBoxBody(el, mainThread));
+		showCustomBody((el) => mountStoryContextBoxBody(el, mainThread));
 		tabButtons.chapter?.addClass("is-active");
-	} else showRecommendTab("novel");
+	} else showStoryContextTab("novel");
 }

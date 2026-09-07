@@ -1,6 +1,6 @@
 # NLP Licences
 
-Story Context (the dossier / recommend panel) bundles a local English NLP model.
+Story Context (the dossier / context panel) bundles a local English NLP model.
 There is **one local model and still no network fetch** — Obsidian's offline
 install path (`main.js` + `manifest.json` + `styles.css`) carries the model
 inside the bundled plugin.
