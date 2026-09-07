@@ -2,7 +2,7 @@ import type { GeneratorSpec } from "../engine/types.js";
 
 export const indonesianWebLexicon: GeneratorSpec = {
 	"id": "indonesian-web",
-	"name": "Indonesian web-novel shape",
+	"name": "Indonesian webnovel shape",
 	"blurb": "English titles built like Wattpad ID and NovelMe: qualified nouns, intimate possessives.",
 	"tradition": "Southeast Asian",
 	"notes": [
@@ -11,27 +11,27 @@ export const indonesianWebLexicon: GeneratorSpec = {
 	"genres": [
 		{
 			"id": "all",
-			"label": "Any"
+			"label": "any"
 		},
 		{
 			"id": "romansa",
-			"label": "Romansa (romance)"
+			"label": "romansa (romance)"
 		},
 		{
 			"id": "fantasi",
-			"label": "Fantasi"
+			"label": "fantasi"
 		},
 		{
 			"id": "isekai",
-			"label": "Isekai & sistem"
+			"label": "isekai & sistem"
 		},
 		{
 			"id": "remaja",
-			"label": "Remaja (teen)"
+			"label": "remaja (teen)"
 		},
 		{
 			"id": "horor",
-			"label": "Horor"
+			"label": "horor"
 		}
 	],
 	"patterns": [

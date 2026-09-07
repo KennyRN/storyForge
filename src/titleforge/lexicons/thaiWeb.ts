@@ -2,7 +2,7 @@ import type { GeneratorSpec } from "../engine/types.js";
 
 export const thaiWebLexicon: GeneratorSpec = {
 	"id": "thai-web",
-	"name": "Thai web-novel shape",
+	"name": "Thai webnovel shape",
 	"blurb": "English titles built like Thai serials: nominalised abstractions, oblique and interior.",
 	"tradition": "Southeast Asian",
 	"notes": [
@@ -13,27 +13,27 @@ export const thaiWebLexicon: GeneratorSpec = {
 	"genres": [
 		{
 			"id": "all",
-			"label": "Any"
+			"label": "any"
 		},
 		{
 			"id": "romance",
-			"label": "Romance"
+			"label": "romance"
 		},
 		{
 			"id": "fantasy",
-			"label": "Fantasy"
+			"label": "fantasy"
 		},
 		{
 			"id": "bl",
-			"label": "BL (Boys' Love)"
+			"label": "bl (boys' love)"
 		},
 		{
 			"id": "royal",
-			"label": "Royal & historical"
+			"label": "royal & historical"
 		},
 		{
 			"id": "horror",
-			"label": "Horror"
+			"label": "horror"
 		}
 	],
 	"patterns": [

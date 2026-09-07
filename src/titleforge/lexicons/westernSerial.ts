@@ -2,41 +2,41 @@ import type { GeneratorSpec } from "../engine/types.js";
 
 export const westernSerialLexicon: GeneratorSpec = {
 	"id": "western-serial",
-	"name": "Web serial (Anglophone)",
+	"name": "webnovel",
 	"blurb": "LitRPG, progression fantasy, dungeon core, cosy apocalypse.",
 	"tradition": "Anglophone",
 	"genres": [
 		{
 			"id": "all",
-			"label": "Any"
+			"label": "any"
 		},
 		{
 			"id": "litrpg",
-			"label": "LitRPG & system"
+			"label": "litrpg & system"
 		},
 		{
 			"id": "progression",
-			"label": "Progression fantasy"
+			"label": "progression fantasy"
 		},
 		{
 			"id": "dungeon",
-			"label": "Dungeon core"
+			"label": "dungeon core"
 		},
 		{
 			"id": "isekai",
-			"label": "Isekai & portal"
+			"label": "isekai & portal"
 		},
 		{
 			"id": "cultivation",
-			"label": "Western cultivation"
+			"label": "western cultivation"
 		},
 		{
 			"id": "cosy",
-			"label": "Cosy & slice of life"
+			"label": "cosy & slice of life"
 		},
 		{
 			"id": "romance",
-			"label": "Romance (Wattpad register)"
+			"label": "romance (wattpad register)"
 		}
 	],
 	"platforms": [

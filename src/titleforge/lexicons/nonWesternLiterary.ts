@@ -12,27 +12,27 @@ export const nonWesternLiteraryLexicon: GeneratorSpec = {
 	"genres": [
 		{
 			"id": "all",
-			"label": "Any region"
+			"label": "any region"
 		},
 		{
 			"id": "arabic",
-			"label": "Arabic"
+			"label": "arabic"
 		},
 		{
 			"id": "persian",
-			"label": "Persian"
+			"label": "persian"
 		},
 		{
 			"id": "russian",
-			"label": "Russian"
+			"label": "russian"
 		},
 		{
 			"id": "hindi",
-			"label": "Hindi & Urdu"
+			"label": "hindi & urdu"
 		},
 		{
 			"id": "swahili",
-			"label": "Swahili"
+			"label": "swahili"
 		}
 	],
 	"patterns": [
