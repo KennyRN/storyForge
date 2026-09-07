@@ -17,7 +17,7 @@ const SETTINGS = {
 	hideToolsPanelIcon: false,
 	panelOrderMode: "canonical",
 	codexFactSectionByType: { person: "Facts" },
-	recommendIncludeUnknownNames: false,
+	storyContextIncludeUnknownNames: false,
 	seriesNumberingStyle: "arabic",
 	chapterNumberingStyle: "arabic",
 	autoFocus: true,

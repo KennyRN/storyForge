@@ -151,7 +151,7 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 						desc: "List proper names found in the chapter that are not in the Codex.",
 						control: {
 							type: "toggle",
-							key: "recommendIncludeUnknownNames",
+							key: "storyContextIncludeUnknownNames",
 						},
 					},
 				],

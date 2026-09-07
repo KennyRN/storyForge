@@ -9,12 +9,12 @@ import {
 	setFactValue,
 	emptyFacts,
 } from "../story-context/facts";
-import { buildRecommendSidecarContent, parseRecommendSidecar } from "../story-context/cache";
+import { buildStoryContextSidecarContent, parseStoryContextSidecar } from "../story-context/cache";
 import { groupHitsByChapter, lensLabel } from "../story-context/hitGrouping";
 import { buildLensRegistry } from "../story-context/lenses";
 import { ensureNlp } from "../story-context/nlp";
 import { hasFirstPersonInNarration } from "../story-context/quoteSpans";
-import type { CastMember, ChapterRecommendReport } from "../story-context/types";
+import type { CastMember, ChapterStoryContextReport } from "../story-context/types";
 
 function person(path: string, name: string, factsBody: string, aliases: string[] = []): CastMember {
 	const facts = parseFactsFromSection(factsBody, "Facts");
@@ -34,7 +34,7 @@ describe("applyIgnoredNames", () => {
 });
 
 describe("demoteGoneMatchesToUnknown", () => {
-	function reportWith(unknown: string[] = [], matched: ChapterRecommendReport["matched"] = []): ChapterRecommendReport {
+	function reportWith(unknown: string[] = [], matched: ChapterStoryContextReport["matched"] = []): ChapterStoryContextReport {
 		return {
 			chapterFilename: "ch1.md",
 			contentHash: "x",
@@ -546,9 +546,9 @@ describe("lenses registry", () => {
 	});
 });
 
-describe("recommend cache", () => {
+describe("Story Context cache", () => {
 	it("round-trips report JSON", () => {
-		const report: ChapterRecommendReport = {
+		const report: ChapterStoryContextReport = {
 			chapterFilename: "ch1.md",
 			contentHash: "abc",
 			synopsisHeuristic: "Once upon a time",
@@ -558,8 +558,8 @@ describe("recommend cache", () => {
 			hits: [],
 			sentenceKeys: [],
 		};
-		const raw = buildRecommendSidecarContent(report, []);
-		const parsed = parseRecommendSidecar(raw);
+		const raw = buildStoryContextSidecarContent(report, []);
+		const parsed = parseStoryContextSidecar(raw);
 		expect(parsed?.chapterFilename).toBe("ch1.md");
 		expect(parsed?.unknownNames).toEqual(["Zelda"]);
 		expect(parsed?.contentHash).toBe("abc");

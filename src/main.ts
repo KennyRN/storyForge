@@ -11,8 +11,9 @@ import { NewChapterView, STORYFORGE_NEW_CHAPTER_VIEW_TYPE } from "./view/NewChap
 import { ToolsView, TOOLS_VIEW_TYPE } from "./view/ToolsPanel";
 import { StoryContextView, STORY_CONTEXT_VIEW_TYPE, activateStoryContextView } from "./view/StoryContextView";
 import { ArchiveView, ARCHIVE_VIEW_TYPE, activateArchiveView } from "./view/ArchiveView";
-import { recomputeChapterRecommend } from "./story-context/recompute";
+import { recomputeChapterStoryContext } from "./story-context/recompute";
 import { isNlpReady } from "./story-context/nlp";
+import { remapLegacyStoryContextKeys } from "./story-context/legacyKeys";
 import { CODEX_TYPES, evictMissingCodexNotes, pruneMissingCodexNotes } from "./codex";
 import { buildRightRailTypeOrder, isCanonicalTypeOrder } from "./rightRailOrder";
 import {
@@ -83,7 +84,7 @@ export type StatusBarView = "hidden" | "sync-only" | "all";
 export type CyclingGuideInterval = "short" | "medium" | "large";
 
 /** Story Context section chrome: boxed card, header-only pill, or title text. */
-export type RecommendSectionChrome = "box" | "pill" | "text";
+export type StoryContextSectionChrome = "box" | "pill" | "text";
 
 const CYCLING_GUIDE_INTERVAL_WORDS: Record<CyclingGuideInterval, number> = {
 	short: 300,
@@ -299,8 +300,8 @@ export interface StoryForgePluginSettings {
 	lastAutomaticBackupAt: number;
 	/** Per Codex type id → H2 heading label used for structured Facts in notes. */
 	codexFactSectionByType: Record<string, string>;
-	/** When true, the recommendation engine lists proper-name candidates not in Codex. */
-	recommendIncludeUnknownNames: boolean;
+	/** When true, the Story Context engine lists proper-name candidates not in Codex. */
+	storyContextIncludeUnknownNames: boolean;
 	/** How "#" resolves in book titles within a series (numberedBookTitle). */
 	seriesNumberingStyle: NumberingStyle;
 	/** How "#" resolves in chapter titles within a book (numberedChapterTitle). */
@@ -314,108 +315,108 @@ export interface StoryForgePluginSettings {
 	/** Colour of companion icons in the Forge right-rail secondary header. */
 	forgeCompanionIconColor: string;
 	/** Kept for settings compatibility; Navigation no longer exposes a base colour. */
-	recommendHeaderColor: string;
-	recommendHeaderMuted: boolean;
-	recommendTabsFontSize: number;
-	recommendTabsOverrideFont: boolean;
-	recommendTabsFontFamily: CustomFontFamily;
-	recommendTabsFontWeight: FontWeight;
-	recommendTabsColor: string;
-	recommendTabsMuted: boolean;
-	recommendTabsActiveColor: string;
-	recommendFocusModeIconColor: string;
-	recommendChapterTitleFontSize: number;
-	recommendChapterTitleOverrideFont: boolean;
-	recommendChapterTitleFontFamily: CustomFontFamily;
-	recommendChapterTitleFontWeight: FontWeight;
-	recommendChapterTitleColor: string;
-	recommendChapterTitleMuted: boolean;
-	recommendChapterTitleSmallCaps: boolean;
-	recommendDossierHeaderFontSize: number;
-	recommendDossierHeaderOverrideFont: boolean;
-	recommendDossierHeaderFontFamily: CustomFontFamily;
-	recommendDossierHeaderFontWeight: FontWeight;
-	recommendDossierHeaderColor: string;
-	recommendDossierHeaderMuted: boolean;
-	recommendDossierHeaderSmallCaps: boolean;
-	recommendNovelTitleFontSize: number;
-	recommendNovelTitleOverrideFont: boolean;
-	recommendNovelTitleFontFamily: CustomFontFamily;
-	recommendNovelTitleFontWeight: FontWeight;
-	recommendNovelTitleColor: string;
-	recommendNovelTitleMuted: boolean;
-	recommendNovelTitleSmallCaps: boolean;
-	recommendNovelSubtitleFontSize: number;
-	recommendNovelSubtitleOverrideFont: boolean;
-	recommendNovelSubtitleFontFamily: CustomFontFamily;
-	recommendNovelSubtitleFontWeight: FontWeight;
-	recommendNovelSubtitleColor: string;
-	recommendNovelSubtitleMuted: boolean;
-	recommendNovelSubtitleSmallCaps: boolean;
-	recommendPlotChapterFontSize: number;
-	recommendPlotChapterOverrideFont: boolean;
-	recommendPlotChapterFontFamily: CustomFontFamily;
-	recommendPlotChapterFontWeight: FontWeight;
-	recommendPlotChapterColor: string;
-	recommendPlotChapterMuted: boolean;
-	recommendPlotChapterSmallCaps: boolean;
-	recommendSectionTitleFontSize: number;
-	recommendSectionTitleOverrideFont: boolean;
-	recommendSectionTitleFontFamily: CustomFontFamily;
-	recommendSectionTitleFontWeight: FontWeight;
-	recommendSectionTitleColor: string;
-	recommendSectionTitleMuted: boolean;
-	recommendSectionTitleSmallCaps: boolean;
-	recommendSectionChrome: RecommendSectionChrome;
-	recommendItemsFontSize: number;
-	recommendItemsOverrideFont: boolean;
-	recommendItemsFontFamily: CustomFontFamily;
-	recommendItemsFontWeight: FontWeight;
-	recommendItemsColor: string;
-	recommendItemsMuted: boolean;
-	recommendDetailsFontSize: number;
-	recommendDetailsOverrideFont: boolean;
-	recommendDetailsFontFamily: CustomFontFamily;
-	recommendDetailsFontWeight: FontWeight;
-	recommendDetailsColor: string;
-	recommendDetailsMuted: boolean;
-	recommendUnknownColor: string;
-	recommendUnknownMuted: boolean;
-	recommendUnknownHeaderColor: string;
-	recommendUnknownHeaderMuted: boolean;
-	recommendCaptureColor: string;
-	recommendCaptureMuted: boolean;
-	recommendCaptureHeaderColor: string;
-	recommendCaptureHeaderMuted: boolean;
-	recommendHoldingColor: string;
-	recommendHoldingMuted: boolean;
-	recommendHoldingHeaderColor: string;
-	recommendHoldingHeaderMuted: boolean;
-	recommendResolvedColor: string;
-	recommendResolvedMuted: boolean;
-	recommendResolvedHeaderColor: string;
-	recommendResolvedHeaderMuted: boolean;
-	recommendMetaLabelFontSize: number;
-	recommendMetaLabelOverrideFont: boolean;
-	recommendMetaLabelFontFamily: CustomFontFamily;
-	recommendMetaLabelFontWeight: FontWeight;
-	recommendMetaLabelColor: string;
-	recommendMetaLabelMuted: boolean;
-	recommendMetaLabelSmallCaps: boolean;
-	recommendMetaControlFontSize: number;
-	recommendMetaControlOverrideFont: boolean;
-	recommendMetaControlFontFamily: CustomFontFamily;
-	recommendMetaControlFontWeight: FontWeight;
-	recommendMetaControlColor: string;
-	recommendMetaControlMuted: boolean;
-	recommendSynopsisFontSize: number;
-	recommendSynopsisOverrideFont: boolean;
-	recommendSynopsisFontFamily: CustomFontFamily;
-	recommendSynopsisFontWeight: FontWeight;
-	recommendSynopsisColor: string;
-	recommendHighlightColor: string;
-	recommendHighlightTextColor: string;
-	recommendUseHeaderColorForAll: boolean;
+	storyContextHeaderColor: string;
+	storyContextHeaderMuted: boolean;
+	storyContextTabsFontSize: number;
+	storyContextTabsOverrideFont: boolean;
+	storyContextTabsFontFamily: CustomFontFamily;
+	storyContextTabsFontWeight: FontWeight;
+	storyContextTabsColor: string;
+	storyContextTabsMuted: boolean;
+	storyContextTabsActiveColor: string;
+	storyContextFocusModeIconColor: string;
+	storyContextChapterTitleFontSize: number;
+	storyContextChapterTitleOverrideFont: boolean;
+	storyContextChapterTitleFontFamily: CustomFontFamily;
+	storyContextChapterTitleFontWeight: FontWeight;
+	storyContextChapterTitleColor: string;
+	storyContextChapterTitleMuted: boolean;
+	storyContextChapterTitleSmallCaps: boolean;
+	storyContextDossierHeaderFontSize: number;
+	storyContextDossierHeaderOverrideFont: boolean;
+	storyContextDossierHeaderFontFamily: CustomFontFamily;
+	storyContextDossierHeaderFontWeight: FontWeight;
+	storyContextDossierHeaderColor: string;
+	storyContextDossierHeaderMuted: boolean;
+	storyContextDossierHeaderSmallCaps: boolean;
+	storyContextNovelTitleFontSize: number;
+	storyContextNovelTitleOverrideFont: boolean;
+	storyContextNovelTitleFontFamily: CustomFontFamily;
+	storyContextNovelTitleFontWeight: FontWeight;
+	storyContextNovelTitleColor: string;
+	storyContextNovelTitleMuted: boolean;
+	storyContextNovelTitleSmallCaps: boolean;
+	storyContextNovelSubtitleFontSize: number;
+	storyContextNovelSubtitleOverrideFont: boolean;
+	storyContextNovelSubtitleFontFamily: CustomFontFamily;
+	storyContextNovelSubtitleFontWeight: FontWeight;
+	storyContextNovelSubtitleColor: string;
+	storyContextNovelSubtitleMuted: boolean;
+	storyContextNovelSubtitleSmallCaps: boolean;
+	storyContextPlotChapterFontSize: number;
+	storyContextPlotChapterOverrideFont: boolean;
+	storyContextPlotChapterFontFamily: CustomFontFamily;
+	storyContextPlotChapterFontWeight: FontWeight;
+	storyContextPlotChapterColor: string;
+	storyContextPlotChapterMuted: boolean;
+	storyContextPlotChapterSmallCaps: boolean;
+	storyContextSectionTitleFontSize: number;
+	storyContextSectionTitleOverrideFont: boolean;
+	storyContextSectionTitleFontFamily: CustomFontFamily;
+	storyContextSectionTitleFontWeight: FontWeight;
+	storyContextSectionTitleColor: string;
+	storyContextSectionTitleMuted: boolean;
+	storyContextSectionTitleSmallCaps: boolean;
+	storyContextSectionChrome: StoryContextSectionChrome;
+	storyContextItemsFontSize: number;
+	storyContextItemsOverrideFont: boolean;
+	storyContextItemsFontFamily: CustomFontFamily;
+	storyContextItemsFontWeight: FontWeight;
+	storyContextItemsColor: string;
+	storyContextItemsMuted: boolean;
+	storyContextDetailsFontSize: number;
+	storyContextDetailsOverrideFont: boolean;
+	storyContextDetailsFontFamily: CustomFontFamily;
+	storyContextDetailsFontWeight: FontWeight;
+	storyContextDetailsColor: string;
+	storyContextDetailsMuted: boolean;
+	storyContextUnknownColor: string;
+	storyContextUnknownMuted: boolean;
+	storyContextUnknownHeaderColor: string;
+	storyContextUnknownHeaderMuted: boolean;
+	storyContextCaptureColor: string;
+	storyContextCaptureMuted: boolean;
+	storyContextCaptureHeaderColor: string;
+	storyContextCaptureHeaderMuted: boolean;
+	storyContextHoldingColor: string;
+	storyContextHoldingMuted: boolean;
+	storyContextHoldingHeaderColor: string;
+	storyContextHoldingHeaderMuted: boolean;
+	storyContextResolvedColor: string;
+	storyContextResolvedMuted: boolean;
+	storyContextResolvedHeaderColor: string;
+	storyContextResolvedHeaderMuted: boolean;
+	storyContextMetaLabelFontSize: number;
+	storyContextMetaLabelOverrideFont: boolean;
+	storyContextMetaLabelFontFamily: CustomFontFamily;
+	storyContextMetaLabelFontWeight: FontWeight;
+	storyContextMetaLabelColor: string;
+	storyContextMetaLabelMuted: boolean;
+	storyContextMetaLabelSmallCaps: boolean;
+	storyContextMetaControlFontSize: number;
+	storyContextMetaControlOverrideFont: boolean;
+	storyContextMetaControlFontFamily: CustomFontFamily;
+	storyContextMetaControlFontWeight: FontWeight;
+	storyContextMetaControlColor: string;
+	storyContextMetaControlMuted: boolean;
+	storyContextSynopsisFontSize: number;
+	storyContextSynopsisOverrideFont: boolean;
+	storyContextSynopsisFontFamily: CustomFontFamily;
+	storyContextSynopsisFontWeight: FontWeight;
+	storyContextSynopsisColor: string;
+	storyContextHighlightColor: string;
+	storyContextHighlightTextColor: string;
+	storyContextUseHeaderColorForAll: boolean;
 	archiveHeaderFontSize: number;
 	archiveHeaderOverrideFont: boolean;
 	archiveHeaderFontFamily: CustomFontFamily;
@@ -444,15 +445,15 @@ type FontFamilySettingKey =
 	| "codexFontFamily"
 	| "codexFolderFontFamily"
 	| "codexNoteLabelFontFamily"
-	| "recommendTabsFontFamily"
-	| "recommendChapterTitleFontFamily"
-	| "recommendDossierHeaderFontFamily"
-	| "recommendSectionTitleFontFamily"
-	| "recommendItemsFontFamily"
-	| "recommendDetailsFontFamily"
-	| "recommendMetaLabelFontFamily"
-	| "recommendMetaControlFontFamily"
-	| "recommendSynopsisFontFamily"
+	| "storyContextTabsFontFamily"
+	| "storyContextChapterTitleFontFamily"
+	| "storyContextDossierHeaderFontFamily"
+	| "storyContextSectionTitleFontFamily"
+	| "storyContextItemsFontFamily"
+	| "storyContextDetailsFontFamily"
+	| "storyContextMetaLabelFontFamily"
+	| "storyContextMetaControlFontFamily"
+	| "storyContextSynopsisFontFamily"
 	| "archiveHeaderFontFamily"
 	| "archiveItemsFontFamily";
 
@@ -466,15 +467,15 @@ const FONT_FAMILY_SETTING_KEYS: FontFamilySettingKey[] = [
 	"codexFontFamily",
 	"codexFolderFontFamily",
 	"codexNoteLabelFontFamily",
-	"recommendTabsFontFamily",
-	"recommendChapterTitleFontFamily",
-	"recommendDossierHeaderFontFamily",
-	"recommendSectionTitleFontFamily",
-	"recommendItemsFontFamily",
-	"recommendDetailsFontFamily",
-	"recommendMetaLabelFontFamily",
-	"recommendMetaControlFontFamily",
-	"recommendSynopsisFontFamily",
+	"storyContextTabsFontFamily",
+	"storyContextChapterTitleFontFamily",
+	"storyContextDossierHeaderFontFamily",
+	"storyContextSectionTitleFontFamily",
+	"storyContextItemsFontFamily",
+	"storyContextDetailsFontFamily",
+	"storyContextMetaLabelFontFamily",
+	"storyContextMetaControlFontFamily",
+	"storyContextSynopsisFontFamily",
 	"archiveHeaderFontFamily",
 	"archiveItemsFontFamily",
 ];
@@ -693,115 +694,115 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 		place: "Facts",
 		populace: "Facts",
 	},
-	recommendIncludeUnknownNames: true,
+	storyContextIncludeUnknownNames: true,
 	seriesNumberingStyle: "arabic",
 	chapterNumberingStyle: "arabic",
 	editorScrollbarThumbColor: "#6b7280",
 	editorScrollbarUseThemeColor: false,
 	editorScrollbarThickness: "thick",
 	forgeCompanionIconColor: "var(--text-accent)",
-	recommendHeaderColor: "var(--text-accent)",
-	recommendHeaderMuted: false,
-	recommendTabsFontSize: 0.85,
-	recommendTabsOverrideFont: false,
-	recommendTabsFontFamily: "ibm-plex-sans-var",
-	recommendTabsFontWeight: "400",
-	recommendTabsColor: "var(--text-muted)",
-	recommendTabsMuted: false,
-	recommendTabsActiveColor: "var(--text-accent)",
-	recommendFocusModeIconColor: "var(--text-muted)",
-	recommendChapterTitleFontSize: 1,
-	recommendChapterTitleOverrideFont: false,
-	recommendChapterTitleFontFamily: "ibm-plex-sans-var",
-	recommendChapterTitleFontWeight: "600",
-	recommendChapterTitleColor: "var(--text-accent)",
-	recommendChapterTitleMuted: false,
-	recommendChapterTitleSmallCaps: false,
-	recommendDossierHeaderFontSize: 1.15,
-	recommendDossierHeaderOverrideFont: false,
-	recommendDossierHeaderFontFamily: "ibm-plex-sans-var",
-	recommendDossierHeaderFontWeight: "600",
-	recommendDossierHeaderColor: "var(--text-accent)",
-	recommendDossierHeaderMuted: false,
-	recommendDossierHeaderSmallCaps: false,
-	recommendNovelTitleFontSize: 1.1,
-	recommendNovelTitleOverrideFont: false,
-	recommendNovelTitleFontFamily: "ibm-plex-sans-var",
-	recommendNovelTitleFontWeight: "600",
-	recommendNovelTitleColor: "var(--text-normal)",
-	recommendNovelTitleMuted: false,
-	recommendNovelTitleSmallCaps: false,
-	recommendNovelSubtitleFontSize: 0.9,
-	recommendNovelSubtitleOverrideFont: false,
-	recommendNovelSubtitleFontFamily: "ibm-plex-sans-var",
-	recommendNovelSubtitleFontWeight: "400",
-	recommendNovelSubtitleColor: "var(--text-muted)",
-	recommendNovelSubtitleMuted: false,
-	recommendNovelSubtitleSmallCaps: false,
-	recommendPlotChapterFontSize: 1,
-	recommendPlotChapterOverrideFont: false,
-	recommendPlotChapterFontFamily: "ibm-plex-sans-var",
-	recommendPlotChapterFontWeight: "600",
-	recommendPlotChapterColor: "var(--text-normal)",
-	recommendPlotChapterMuted: false,
-	recommendPlotChapterSmallCaps: false,
-	recommendSectionTitleFontSize: 0.85,
-	recommendSectionTitleOverrideFont: false,
-	recommendSectionTitleFontFamily: "ibm-plex-sans-var",
-	recommendSectionTitleFontWeight: "600",
-	recommendSectionTitleColor: "var(--text-muted)",
-	recommendSectionTitleMuted: false,
-	recommendSectionTitleSmallCaps: false,
-	recommendSectionChrome: "box",
-	recommendItemsFontSize: 1,
-	recommendItemsOverrideFont: false,
-	recommendItemsFontFamily: "ibm-plex-sans-var",
-	recommendItemsFontWeight: "400",
-	recommendItemsColor: "#c8c8c8",
-	recommendItemsMuted: false,
-	recommendDetailsFontSize: 0.9,
-	recommendDetailsOverrideFont: false,
-	recommendDetailsFontFamily: "ibm-plex-sans-var",
-	recommendDetailsFontWeight: "400",
-	recommendDetailsColor: "var(--text-normal)",
-	recommendDetailsMuted: false,
-	recommendUnknownColor: "var(--text-muted)",
-	recommendUnknownMuted: true,
-	recommendUnknownHeaderColor: "var(--background-primary)",
-	recommendUnknownHeaderMuted: false,
-	recommendCaptureColor: "var(--interactive-accent)",
-	recommendCaptureMuted: false,
-	recommendCaptureHeaderColor: "var(--text-on-accent)",
-	recommendCaptureHeaderMuted: false,
-	recommendHoldingColor: "var(--text-warning)",
-	recommendHoldingMuted: false,
-	recommendHoldingHeaderColor: "var(--background-primary)",
-	recommendHoldingHeaderMuted: false,
-	recommendResolvedColor: "var(--text-muted)",
-	recommendResolvedMuted: true,
-	recommendResolvedHeaderColor: "var(--background-primary)",
-	recommendResolvedHeaderMuted: false,
-	recommendMetaLabelFontSize: 0.9,
-	recommendMetaLabelOverrideFont: false,
-	recommendMetaLabelFontFamily: "ibm-plex-sans-var",
-	recommendMetaLabelFontWeight: "500",
-	recommendMetaLabelColor: "var(--text-muted)",
-	recommendMetaLabelMuted: false,
-	recommendMetaLabelSmallCaps: false,
-	recommendMetaControlFontSize: 1,
-	recommendMetaControlOverrideFont: false,
-	recommendMetaControlFontFamily: "ibm-plex-sans-var",
-	recommendMetaControlFontWeight: "400",
-	recommendMetaControlColor: "var(--text-normal)",
-	recommendMetaControlMuted: false,
-	recommendSynopsisFontSize: 1,
-	recommendSynopsisOverrideFont: false,
-	recommendSynopsisFontFamily: "ibm-plex-sans-var",
-	recommendSynopsisFontWeight: "400",
-	recommendSynopsisColor: "var(--text-normal)",
-	recommendHighlightColor: "#fef3c7",
-	recommendHighlightTextColor: "#1f2937",
-	recommendUseHeaderColorForAll: false,
+	storyContextHeaderColor: "var(--text-accent)",
+	storyContextHeaderMuted: false,
+	storyContextTabsFontSize: 0.85,
+	storyContextTabsOverrideFont: false,
+	storyContextTabsFontFamily: "ibm-plex-sans-var",
+	storyContextTabsFontWeight: "400",
+	storyContextTabsColor: "var(--text-muted)",
+	storyContextTabsMuted: false,
+	storyContextTabsActiveColor: "var(--text-accent)",
+	storyContextFocusModeIconColor: "var(--text-muted)",
+	storyContextChapterTitleFontSize: 1,
+	storyContextChapterTitleOverrideFont: false,
+	storyContextChapterTitleFontFamily: "ibm-plex-sans-var",
+	storyContextChapterTitleFontWeight: "600",
+	storyContextChapterTitleColor: "var(--text-accent)",
+	storyContextChapterTitleMuted: false,
+	storyContextChapterTitleSmallCaps: false,
+	storyContextDossierHeaderFontSize: 1.15,
+	storyContextDossierHeaderOverrideFont: false,
+	storyContextDossierHeaderFontFamily: "ibm-plex-sans-var",
+	storyContextDossierHeaderFontWeight: "600",
+	storyContextDossierHeaderColor: "var(--text-accent)",
+	storyContextDossierHeaderMuted: false,
+	storyContextDossierHeaderSmallCaps: false,
+	storyContextNovelTitleFontSize: 1.1,
+	storyContextNovelTitleOverrideFont: false,
+	storyContextNovelTitleFontFamily: "ibm-plex-sans-var",
+	storyContextNovelTitleFontWeight: "600",
+	storyContextNovelTitleColor: "var(--text-normal)",
+	storyContextNovelTitleMuted: false,
+	storyContextNovelTitleSmallCaps: false,
+	storyContextNovelSubtitleFontSize: 0.9,
+	storyContextNovelSubtitleOverrideFont: false,
+	storyContextNovelSubtitleFontFamily: "ibm-plex-sans-var",
+	storyContextNovelSubtitleFontWeight: "400",
+	storyContextNovelSubtitleColor: "var(--text-muted)",
+	storyContextNovelSubtitleMuted: false,
+	storyContextNovelSubtitleSmallCaps: false,
+	storyContextPlotChapterFontSize: 1,
+	storyContextPlotChapterOverrideFont: false,
+	storyContextPlotChapterFontFamily: "ibm-plex-sans-var",
+	storyContextPlotChapterFontWeight: "600",
+	storyContextPlotChapterColor: "var(--text-normal)",
+	storyContextPlotChapterMuted: false,
+	storyContextPlotChapterSmallCaps: false,
+	storyContextSectionTitleFontSize: 0.85,
+	storyContextSectionTitleOverrideFont: false,
+	storyContextSectionTitleFontFamily: "ibm-plex-sans-var",
+	storyContextSectionTitleFontWeight: "600",
+	storyContextSectionTitleColor: "var(--text-muted)",
+	storyContextSectionTitleMuted: false,
+	storyContextSectionTitleSmallCaps: false,
+	storyContextSectionChrome: "box",
+	storyContextItemsFontSize: 1,
+	storyContextItemsOverrideFont: false,
+	storyContextItemsFontFamily: "ibm-plex-sans-var",
+	storyContextItemsFontWeight: "400",
+	storyContextItemsColor: "#c8c8c8",
+	storyContextItemsMuted: false,
+	storyContextDetailsFontSize: 0.9,
+	storyContextDetailsOverrideFont: false,
+	storyContextDetailsFontFamily: "ibm-plex-sans-var",
+	storyContextDetailsFontWeight: "400",
+	storyContextDetailsColor: "var(--text-normal)",
+	storyContextDetailsMuted: false,
+	storyContextUnknownColor: "var(--text-muted)",
+	storyContextUnknownMuted: true,
+	storyContextUnknownHeaderColor: "var(--background-primary)",
+	storyContextUnknownHeaderMuted: false,
+	storyContextCaptureColor: "var(--interactive-accent)",
+	storyContextCaptureMuted: false,
+	storyContextCaptureHeaderColor: "var(--text-on-accent)",
+	storyContextCaptureHeaderMuted: false,
+	storyContextHoldingColor: "var(--text-warning)",
+	storyContextHoldingMuted: false,
+	storyContextHoldingHeaderColor: "var(--background-primary)",
+	storyContextHoldingHeaderMuted: false,
+	storyContextResolvedColor: "var(--text-muted)",
+	storyContextResolvedMuted: true,
+	storyContextResolvedHeaderColor: "var(--background-primary)",
+	storyContextResolvedHeaderMuted: false,
+	storyContextMetaLabelFontSize: 0.9,
+	storyContextMetaLabelOverrideFont: false,
+	storyContextMetaLabelFontFamily: "ibm-plex-sans-var",
+	storyContextMetaLabelFontWeight: "500",
+	storyContextMetaLabelColor: "var(--text-muted)",
+	storyContextMetaLabelMuted: false,
+	storyContextMetaLabelSmallCaps: false,
+	storyContextMetaControlFontSize: 1,
+	storyContextMetaControlOverrideFont: false,
+	storyContextMetaControlFontFamily: "ibm-plex-sans-var",
+	storyContextMetaControlFontWeight: "400",
+	storyContextMetaControlColor: "var(--text-normal)",
+	storyContextMetaControlMuted: false,
+	storyContextSynopsisFontSize: 1,
+	storyContextSynopsisOverrideFont: false,
+	storyContextSynopsisFontFamily: "ibm-plex-sans-var",
+	storyContextSynopsisFontWeight: "400",
+	storyContextSynopsisColor: "var(--text-normal)",
+	storyContextHighlightColor: "#fef3c7",
+	storyContextHighlightTextColor: "#1f2937",
+	storyContextUseHeaderColorForAll: false,
 	archiveHeaderFontSize: 1,
 	archiveHeaderOverrideFont: false,
 	archiveHeaderFontFamily: "ibm-plex-sans-var",
@@ -901,7 +902,7 @@ export default class StoryForgePlugin extends Plugin {
 			.forEach((el) => el.remove());
 
 		this.addCommand({
-			id: "open-recommendations",
+			id: "open-story-context",
 			name: "Open Context panel",
 			callback: () => void this.activateStoryContextView(),
 		});
@@ -1414,6 +1415,10 @@ export default class StoryForgePlugin extends Plugin {
 	async loadSettings(): Promise<void> {
 		const data: unknown = await this.loadData();
 		this.pluginSettings = Object.assign({}, DEFAULT_SETTINGS, data);
+		remapLegacyStoryContextKeys(
+			this.pluginSettings as unknown as Record<string, unknown>,
+			(key) => key in DEFAULT_SETTINGS,
+		);
 		migrateRemovedFonts(this.pluginSettings);
 		migrateCodexFocusLayout(this.pluginSettings);
 		const shellMigrated = migrateStoryContextShell(this.pluginSettings, data);
@@ -1511,6 +1516,7 @@ export default class StoryForgePlugin extends Plugin {
 			throw new Error("Settings import must be a JSON object");
 		}
 		const incoming = data as Record<string, unknown>;
+		remapLegacyStoryContextKeys(incoming, (key) => key in DEFAULT_SETTINGS);
 		const invalid = [
 			...findInvalidLinkedSettings(incoming),
 			...findInvalidEnumSettings(incoming),
@@ -1908,12 +1914,12 @@ export default class StoryForgePlugin extends Plugin {
 		await recordChapterEdit(this.app, bookFolderName, file.name, countWords(raw));
 
 		const chapterFilename = chapterFilenameFromPath(chapterPath) ?? file.name;
-		// Story Context NLP is lazy: only refresh the recommend cache once the
+		// Story Context NLP is lazy: only refresh the Story Context cache once the
 		// panel has loaded winkNLP this session (first open pays the cost).
 		if (isNlpReady()) {
-			await recomputeChapterRecommend(this.app, bookFolderName, chapterFilename, {
+			await recomputeChapterStoryContext(this.app, bookFolderName, chapterFilename, {
 				codexFactSectionByType: this.pluginSettings.codexFactSectionByType,
-				recommendIncludeUnknownNames: this.pluginSettings.recommendIncludeUnknownNames,
+				storyContextIncludeUnknownNames: this.pluginSettings.storyContextIncludeUnknownNames,
 			});
 		}
 	}

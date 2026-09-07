@@ -4,7 +4,7 @@ import { codexBasename } from "../codexTree";
 import { emptyFacts, parseFactsFromNote } from "./facts";
 import type { CodexEntryInput } from "./types";
 
-/** Async hydrated Codex inventory for the recommend engine (all non-archived notes). */
+/** Async hydrated Codex inventory for the Story Context engine (all non-archived notes). */
 export async function loadHydratedCodexInventory(
 	app: App,
 	factSectionByType: Record<string, string>,

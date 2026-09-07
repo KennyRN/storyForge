@@ -10,7 +10,7 @@ import {
 	isLibraryChapterPath,
 	isNotesArchiveNotePath,
 	isNotesNotePath,
-	recommendSidecarPath,
+	storyContextSidecarPath,
 } from "./paths";
 import {
 	getChapterEntry,
@@ -27,7 +27,7 @@ import { renameSeriesBookEntry } from "./series";
 import { rekeyCodexNotePath, reconcileMissingCodexNotes } from "./codex";
 import { rekeyNotesNotePath } from "./notes";
 import { deleteChapterSidecar, renameChapterSidecar } from "./chapterSidecar";
-import { deleteRecommendCache, renameRecommendSidecar } from "./story-context/cache";
+import { deleteStoryContextCache, renameStoryContextSidecar } from "./story-context/cache";
 import { modifyBackstageFrontmatter, renameBackstagePath } from "./writeGuard";
 import { debounce } from "./debounce";
 
@@ -126,13 +126,13 @@ async function handleChapterRename(app: App, oldPath: string, newPath: string): 
 	}
 	await renameChapterEntry(app, oldBook, oldFilename, newFilename);
 	await renameChapterSidecar(app, oldBook, oldFilename, newFilename);
-	await renameRecommendSidecar(app, oldBook, oldFilename, newFilename);
+	await renameStoryContextSidecar(app, oldBook, oldFilename, newFilename);
 }
 
 /**
  * Chapter file moved between library book folders (e.g. via file explorer — not the
  * single-novel library pane). Transfers the novel.md entry to the destination as
- * unplaced and moves fingerprint/recommend sidecars with it.
+ * unplaced and moves fingerprint/Story Context sidecars with it.
  */
 async function handleChapterCrossBookMove(
 	app: App,
@@ -159,8 +159,8 @@ async function handleChapterCrossBookMove(
 		});
 	}
 
-	const oldRec = recommendSidecarPath(oldBook, oldFilename);
-	const newRec = recommendSidecarPath(newBook, newFilename);
+	const oldRec = storyContextSidecarPath(oldBook, oldFilename);
+	const newRec = storyContextSidecarPath(newBook, newFilename);
 	if (app.vault.getAbstractFileByPath(oldRec)) {
 		await renameBackstagePath(app.vault, oldRec, newRec);
 	}
@@ -172,7 +172,7 @@ async function handleChapterDelete(app: App, path: string): Promise<void> {
 	if (!book || !filename) return;
 	await removeChapterEntry(app, book, filename);
 	await deleteChapterSidecar(app, book, filename);
-	await deleteRecommendCache(app, book, filename);
+	await deleteStoryContextCache(app, book, filename);
 }
 
 async function handleBookFolderRename(app: App, oldPath: string, newPath: string): Promise<void> {

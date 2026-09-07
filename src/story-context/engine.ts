@@ -12,7 +12,7 @@ import { hasFirstPersonInNarration, type DialogueQuoteStyle } from "./quoteSpans
 import type {
 	AttributionDecision,
 	CastMember,
-	ChapterRecommendReport,
+	ChapterStoryContextReport,
 	CorefTier,
 	DetailHit,
 	MatchedCodexEntry,
@@ -416,7 +416,7 @@ function ensurePovMatched(
  * in the chapter — into `unknownNameHints`. Mutates `report`.
  */
 export function demoteGoneMatchesToUnknown(
-	report: ChapterRecommendReport,
+	report: ChapterStoryContextReport,
 	previousMatched: MatchedCodexEntry[] | undefined,
 	liveEntries: Iterable<{ path: string; name: string; aliases?: string[] }>,
 	prose: string,
@@ -871,7 +871,7 @@ export async function analyzeChapter(
 	rawChapter: string,
 	entries: CastMember[],
 	options: AnalyzeOptions,
-): Promise<ChapterRecommendReport> {
+): Promise<ChapterStoryContextReport> {
 	const nlp = await ensureNlp();
 	const lexicons = options.lexicons ?? defaultLexicons();
 	const lenses = buildLensRegistry(lexicons);

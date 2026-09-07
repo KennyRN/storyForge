@@ -10,7 +10,7 @@ import type {
 	EditorScrollbarThickness,
 	FontWeight,
 	HeadingDividerThickness,
-	RecommendSectionChrome,
+	StoryContextSectionChrome,
 	StoryForgePluginSettings,
 } from "./main";
 import { resolveTitleShadow } from "./titleShadow";
@@ -274,82 +274,82 @@ export class StyleController {
 	applyRightRailPanelStyles(): void {
 		const s = this.host.getSettings();
 
-		const recommendItemsColor = s.recommendItemsMuted ? "var(--text-muted)" : s.recommendItemsColor;
-		const recommendChapterColor = s.recommendChapterTitleMuted ? "var(--text-muted)" : s.recommendChapterTitleColor;
-		const recommendDossierHeaderColor = s.recommendDossierHeaderMuted
+		const storyContextItemsColor = s.storyContextItemsMuted ? "var(--text-muted)" : s.storyContextItemsColor;
+		const storyContextChapterColor = s.storyContextChapterTitleMuted ? "var(--text-muted)" : s.storyContextChapterTitleColor;
+		const storyContextDossierHeaderColor = s.storyContextDossierHeaderMuted
 			? "var(--text-muted)"
-			: s.recommendDossierHeaderColor;
-		const recommendNovelTitleColor = s.recommendNovelTitleMuted ? "var(--text-muted)" : s.recommendNovelTitleColor;
-		const recommendNovelSubtitleColor = s.recommendNovelSubtitleMuted
+			: s.storyContextDossierHeaderColor;
+		const storyContextNovelTitleColor = s.storyContextNovelTitleMuted ? "var(--text-muted)" : s.storyContextNovelTitleColor;
+		const storyContextNovelSubtitleColor = s.storyContextNovelSubtitleMuted
 			? "var(--text-muted)"
-			: s.recommendNovelSubtitleColor;
-		const recommendSectionColor = s.recommendSectionTitleMuted ? "var(--text-muted)" : s.recommendSectionTitleColor;
-		const recommendUnknownColor = s.recommendUnknownMuted
+			: s.storyContextNovelSubtitleColor;
+		const storyContextSectionColor = s.storyContextSectionTitleMuted ? "var(--text-muted)" : s.storyContextSectionTitleColor;
+		const storyContextUnknownColor = s.storyContextUnknownMuted
 			? "var(--text-muted)"
-			: s.recommendUnknownColor;
-		const recommendUnknownHeaderColor = s.recommendUnknownHeaderMuted
+			: s.storyContextUnknownColor;
+		const storyContextUnknownHeaderColor = s.storyContextUnknownHeaderMuted
 			? "var(--text-muted)"
-			: s.recommendUnknownHeaderColor;
-		const recommendMetaLabelColor = s.recommendMetaLabelMuted ? "var(--text-muted)" : s.recommendMetaLabelColor;
-		const recommendMetaControlColor = s.recommendMetaControlMuted
+			: s.storyContextUnknownHeaderColor;
+		const storyContextMetaLabelColor = s.storyContextMetaLabelMuted ? "var(--text-muted)" : s.storyContextMetaLabelColor;
+		const storyContextMetaControlColor = s.storyContextMetaControlMuted
 			? "var(--text-muted)"
-			: s.recommendMetaControlColor;
-		const recommendSynopsisColor = s.recommendSynopsisColor;
-		const recommendTabsColor = s.recommendTabsMuted
+			: s.storyContextMetaControlColor;
+		const storyContextSynopsisColor = s.storyContextSynopsisColor;
+		const storyContextTabsColor = s.storyContextTabsMuted
 			? "var(--text-muted)"
-			: s.recommendTabsColor;
-		const recommendTabsActiveColor = s.recommendTabsActiveColor;
-		const recommendFocusModeIconColor = s.recommendFocusModeIconColor;
-		const recommendHighlightBg = s.recommendHighlightColor;
+			: s.storyContextTabsColor;
+		const storyContextTabsActiveColor = s.storyContextTabsActiveColor;
+		const storyContextFocusModeIconColor = s.storyContextFocusModeIconColor;
+		const storyContextHighlightBg = s.storyContextHighlightColor;
 
 		const archiveHeaderColor = s.archiveHeaderMuted ? "var(--text-muted)" : s.archiveHeaderColor;
 		const archiveItemsColor = archiveHeaderColor;
 		const archiveHighlightBg = archiveHeaderColor;
 
 		const vars: Record<string, string | null> = {
-			"--sf-forge-companion-color": recommendTabsColor,
-			"--sf-recommend-tabs-size": `${s.recommendTabsFontSize}em`,
-			"--sf-recommend-tabs-color": recommendTabsColor,
-			"--sf-recommend-tabs-active-color": recommendTabsActiveColor,
-			"--sf-recommend-focus-mode-icon-color": recommendFocusModeIconColor,
-			"--sf-recommend-chapter-size": `${s.recommendChapterTitleFontSize}em`,
-			"--sf-recommend-chapter-color": recommendChapterColor,
-			"--sf-recommend-chapter-variant": s.recommendChapterTitleSmallCaps ? "small-caps" : "normal",
-			"--sf-recommend-dossier-size": `${s.recommendDossierHeaderFontSize}em`,
-			"--sf-recommend-dossier-color": recommendDossierHeaderColor,
-			"--sf-recommend-dossier-variant": s.recommendDossierHeaderSmallCaps ? "small-caps" : "normal",
-			"--sf-recommend-novel-title-size": `${s.recommendNovelTitleFontSize}em`,
-			"--sf-recommend-novel-title-color": recommendNovelTitleColor,
-			"--sf-recommend-novel-title-variant": s.recommendNovelTitleSmallCaps ? "small-caps" : "normal",
-			"--sf-recommend-novel-subtitle-size": `${s.recommendNovelSubtitleFontSize}em`,
-			"--sf-recommend-novel-subtitle-color": recommendNovelSubtitleColor,
-			"--sf-recommend-novel-subtitle-variant": s.recommendNovelSubtitleSmallCaps ? "small-caps" : "normal",
-			"--sf-recommend-plot-chapter-size": `${s.recommendChapterTitleFontSize}em`,
-			"--sf-recommend-plot-chapter-color": recommendChapterColor,
-			"--sf-recommend-plot-chapter-variant": s.recommendChapterTitleSmallCaps ? "small-caps" : "normal",
-			"--sf-recommend-section-size": `${s.recommendSectionTitleFontSize}em`,
-			"--sf-recommend-section-color": recommendSectionColor,
-			"--sf-recommend-section-variant": s.recommendSectionTitleSmallCaps ? "small-caps" : "normal",
-			"--sf-recommend-items-color": recommendItemsColor,
-			"--sf-recommend-items-size": `${s.recommendItemsFontSize}em`,
-			"--sf-recommend-details-size": `${s.recommendItemsFontSize}em`,
-			"--sf-recommend-details-color": recommendItemsColor,
-			"--sf-recommend-unknown-color": recommendUnknownColor,
-			"--sf-recommend-unknown-header-color": recommendUnknownHeaderColor,
-			"--sf-recommend-unknown-title-shadow": resolveTitleShadow(
+			"--sf-forge-companion-color": storyContextTabsColor,
+			"--sf-story-context-tabs-size": `${s.storyContextTabsFontSize}em`,
+			"--sf-story-context-tabs-color": storyContextTabsColor,
+			"--sf-story-context-tabs-active-color": storyContextTabsActiveColor,
+			"--sf-story-context-focus-mode-icon-color": storyContextFocusModeIconColor,
+			"--sf-story-context-chapter-size": `${s.storyContextChapterTitleFontSize}em`,
+			"--sf-story-context-chapter-color": storyContextChapterColor,
+			"--sf-story-context-chapter-variant": s.storyContextChapterTitleSmallCaps ? "small-caps" : "normal",
+			"--sf-story-context-dossier-size": `${s.storyContextDossierHeaderFontSize}em`,
+			"--sf-story-context-dossier-color": storyContextDossierHeaderColor,
+			"--sf-story-context-dossier-variant": s.storyContextDossierHeaderSmallCaps ? "small-caps" : "normal",
+			"--sf-story-context-novel-title-size": `${s.storyContextNovelTitleFontSize}em`,
+			"--sf-story-context-novel-title-color": storyContextNovelTitleColor,
+			"--sf-story-context-novel-title-variant": s.storyContextNovelTitleSmallCaps ? "small-caps" : "normal",
+			"--sf-story-context-novel-subtitle-size": `${s.storyContextNovelSubtitleFontSize}em`,
+			"--sf-story-context-novel-subtitle-color": storyContextNovelSubtitleColor,
+			"--sf-story-context-novel-subtitle-variant": s.storyContextNovelSubtitleSmallCaps ? "small-caps" : "normal",
+			"--sf-story-context-plot-chapter-size": `${s.storyContextChapterTitleFontSize}em`,
+			"--sf-story-context-plot-chapter-color": storyContextChapterColor,
+			"--sf-story-context-plot-chapter-variant": s.storyContextChapterTitleSmallCaps ? "small-caps" : "normal",
+			"--sf-story-context-section-size": `${s.storyContextSectionTitleFontSize}em`,
+			"--sf-story-context-section-color": storyContextSectionColor,
+			"--sf-story-context-section-variant": s.storyContextSectionTitleSmallCaps ? "small-caps" : "normal",
+			"--sf-story-context-items-color": storyContextItemsColor,
+			"--sf-story-context-items-size": `${s.storyContextItemsFontSize}em`,
+			"--sf-story-context-details-size": `${s.storyContextItemsFontSize}em`,
+			"--sf-story-context-details-color": storyContextItemsColor,
+			"--sf-story-context-unknown-color": storyContextUnknownColor,
+			"--sf-story-context-unknown-header-color": storyContextUnknownHeaderColor,
+			"--sf-story-context-unknown-title-shadow": resolveTitleShadow(
 				this.host.getStyleDocuments()[0] ?? document,
-				recommendUnknownHeaderColor,
-				recommendUnknownColor,
+				storyContextUnknownHeaderColor,
+				storyContextUnknownColor,
 			),
-			"--sf-recommend-meta-label-size": `${s.recommendMetaLabelFontSize}em`,
-			"--sf-recommend-meta-label-color": recommendMetaLabelColor,
-			"--sf-recommend-meta-label-variant": s.recommendMetaLabelSmallCaps ? "small-caps" : "normal",
-			"--sf-recommend-meta-control-size": `${s.recommendMetaLabelFontSize}em`,
-			"--sf-recommend-meta-control-color": recommendMetaControlColor,
-			"--sf-recommend-synopsis-size": `${s.recommendSynopsisFontSize}em`,
-			"--sf-recommend-synopsis-color": recommendSynopsisColor,
-			"--sf-recommend-highlight-bg": recommendHighlightBg,
-			"--sf-recommend-highlight-text": s.recommendHighlightTextColor,
+			"--sf-story-context-meta-label-size": `${s.storyContextMetaLabelFontSize}em`,
+			"--sf-story-context-meta-label-color": storyContextMetaLabelColor,
+			"--sf-story-context-meta-label-variant": s.storyContextMetaLabelSmallCaps ? "small-caps" : "normal",
+			"--sf-story-context-meta-control-size": `${s.storyContextMetaLabelFontSize}em`,
+			"--sf-story-context-meta-control-color": storyContextMetaControlColor,
+			"--sf-story-context-synopsis-size": `${s.storyContextSynopsisFontSize}em`,
+			"--sf-story-context-synopsis-color": storyContextSynopsisColor,
+			"--sf-story-context-highlight-bg": storyContextHighlightBg,
+			"--sf-story-context-highlight-text": s.storyContextHighlightTextColor,
 			"--sf-archive-header-color": archiveHeaderColor,
 			"--sf-archive-header-size": `${s.archiveHeaderFontSize}em`,
 			"--sf-archive-header-variant": s.archiveHeaderSmallCaps ? "small-caps" : "normal",
@@ -358,23 +358,23 @@ export class StyleController {
 			"--sf-archive-highlight-bg": archiveHighlightBg,
 			"--sf-archive-highlight-text": s.archiveHighlightTextColor,
 		};
-		this.assignUiFontVars(vars, "--sf-recommend-tabs", s.recommendTabsOverrideFont, s.recommendTabsFontFamily, s.recommendTabsFontWeight);
-		this.assignUiFontVars(vars, "--sf-recommend-chapter", s.recommendChapterTitleOverrideFont, s.recommendChapterTitleFontFamily, s.recommendChapterTitleFontWeight);
-		this.assignUiFontVars(vars, "--sf-recommend-dossier", s.recommendDossierHeaderOverrideFont, s.recommendDossierHeaderFontFamily, s.recommendDossierHeaderFontWeight);
-		this.assignUiFontVars(vars, "--sf-recommend-novel-title", s.recommendNovelTitleOverrideFont, s.recommendNovelTitleFontFamily, s.recommendNovelTitleFontWeight);
-		this.assignUiFontVars(vars, "--sf-recommend-novel-subtitle", s.recommendNovelSubtitleOverrideFont, s.recommendNovelSubtitleFontFamily, s.recommendNovelSubtitleFontWeight);
-		this.assignUiFontVars(vars, "--sf-recommend-plot-chapter", s.recommendChapterTitleOverrideFont, s.recommendChapterTitleFontFamily, s.recommendChapterTitleFontWeight);
-		this.assignUiFontVars(vars, "--sf-recommend-section", s.recommendSectionTitleOverrideFont, s.recommendSectionTitleFontFamily, s.recommendSectionTitleFontWeight);
-		this.assignUiFontVars(vars, "--sf-recommend-items", s.recommendItemsOverrideFont, s.recommendItemsFontFamily, s.recommendItemsFontWeight);
-		this.assignUiFontVars(vars, "--sf-recommend-details", s.recommendItemsOverrideFont, s.recommendItemsFontFamily, s.recommendItemsFontWeight);
-		this.assignUiFontVars(vars, "--sf-recommend-meta-label", s.recommendMetaLabelOverrideFont, s.recommendMetaLabelFontFamily, s.recommendMetaLabelFontWeight);
-		this.assignUiFontVars(vars, "--sf-recommend-meta-control", s.recommendMetaControlOverrideFont, s.recommendMetaControlFontFamily, s.recommendMetaControlFontWeight);
-		this.assignUiFontVars(vars, "--sf-recommend-synopsis", s.recommendSynopsisOverrideFont, s.recommendSynopsisFontFamily, s.recommendSynopsisFontWeight);
+		this.assignUiFontVars(vars, "--sf-story-context-tabs", s.storyContextTabsOverrideFont, s.storyContextTabsFontFamily, s.storyContextTabsFontWeight);
+		this.assignUiFontVars(vars, "--sf-story-context-chapter", s.storyContextChapterTitleOverrideFont, s.storyContextChapterTitleFontFamily, s.storyContextChapterTitleFontWeight);
+		this.assignUiFontVars(vars, "--sf-story-context-dossier", s.storyContextDossierHeaderOverrideFont, s.storyContextDossierHeaderFontFamily, s.storyContextDossierHeaderFontWeight);
+		this.assignUiFontVars(vars, "--sf-story-context-novel-title", s.storyContextNovelTitleOverrideFont, s.storyContextNovelTitleFontFamily, s.storyContextNovelTitleFontWeight);
+		this.assignUiFontVars(vars, "--sf-story-context-novel-subtitle", s.storyContextNovelSubtitleOverrideFont, s.storyContextNovelSubtitleFontFamily, s.storyContextNovelSubtitleFontWeight);
+		this.assignUiFontVars(vars, "--sf-story-context-plot-chapter", s.storyContextChapterTitleOverrideFont, s.storyContextChapterTitleFontFamily, s.storyContextChapterTitleFontWeight);
+		this.assignUiFontVars(vars, "--sf-story-context-section", s.storyContextSectionTitleOverrideFont, s.storyContextSectionTitleFontFamily, s.storyContextSectionTitleFontWeight);
+		this.assignUiFontVars(vars, "--sf-story-context-items", s.storyContextItemsOverrideFont, s.storyContextItemsFontFamily, s.storyContextItemsFontWeight);
+		this.assignUiFontVars(vars, "--sf-story-context-details", s.storyContextItemsOverrideFont, s.storyContextItemsFontFamily, s.storyContextItemsFontWeight);
+		this.assignUiFontVars(vars, "--sf-story-context-meta-label", s.storyContextMetaLabelOverrideFont, s.storyContextMetaLabelFontFamily, s.storyContextMetaLabelFontWeight);
+		this.assignUiFontVars(vars, "--sf-story-context-meta-control", s.storyContextMetaControlOverrideFont, s.storyContextMetaControlFontFamily, s.storyContextMetaControlFontWeight);
+		this.assignUiFontVars(vars, "--sf-story-context-synopsis", s.storyContextSynopsisOverrideFont, s.storyContextSynopsisFontFamily, s.storyContextSynopsisFontWeight);
 		this.assignUiFontVars(vars, "--sf-archive-header", s.archiveHeaderOverrideFont, s.archiveHeaderFontFamily, s.archiveHeaderFontWeight);
 		this.assignUiFontVars(vars, "--sf-archive-items", s.archiveItemsOverrideFont, s.archiveItemsFontFamily, s.archiveItemsFontWeight);
 		this.applyStyleVarsToAllDocs(vars);
 		for (const doc of this.host.getStyleDocuments()) {
-			this.applySectionChromeBodyClass(doc.body, s.recommendSectionChrome ?? "box");
+			this.applySectionChromeBodyClass(doc.body, s.storyContextSectionChrome ?? "box");
 		}
 	}
 
@@ -546,7 +546,7 @@ export class StyleController {
 		body.classList.add(`sf-sb-${thickness}`);
 	}
 
-	private applySectionChromeBodyClass(body: HTMLElement, chrome: RecommendSectionChrome): void {
+	private applySectionChromeBodyClass(body: HTMLElement, chrome: StoryContextSectionChrome): void {
 		body.classList.remove("sf-section-chrome-box", "sf-section-chrome-pill", "sf-section-chrome-text");
 		body.classList.add(`sf-section-chrome-${chrome}`);
 	}
