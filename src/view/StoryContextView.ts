@@ -23,7 +23,6 @@ import { splitTitleSubtitle } from "../titleNumbering";
 import { ICON_ADD_CIRCLE, ICON_ARCHIVE, ICON_BOOK_DUOTONE, ICON_BOOK_OPEN_FILLED, ICON_CLIPBOARD_LIST_DUOTONE, ICON_CODEX, ICON_DASHBOARD_CHART, ICON_EYE_DUOTONE, ICON_FOCUS_OFF, ICON_FOCUS_ON, ICON_FORGE, ICON_LINK2_DUOTONE, ICON_MAP_PIN_PLUS, ICON_MINUS_CIRCLE_DUOTONE, ICON_NOTEBOOK_DUOTONE, ICON_PERSON_FILL_ADD, ICON_TARGET_DUOTONE } from "../icons";
 import { bookFolderNameFromChapterPath, CODEX_ROOT, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath, NOTES_ROOT, seriesFilePath } from "../paths";
 import { OBSIDIAN_SELECTORS } from "../obsidianInternals";
-import { getBookId } from "../series";
 import { groupHitsByChapter, lensLabel } from "../recommend/hitGrouping";
 import {
 	addIgnoredName,
@@ -1828,12 +1827,10 @@ export class StoryContextView extends ItemView {
 	}
 
 	private async finishLore(name: string, type: string): Promise<void> {
-		const bookId = this.bookFolderName ? getBookId(this.app, this.bookFolderName) : null;
 		try {
 			await createCodexLore(this.app, {
 				name,
 				type,
-				bookId,
 			});
 			new Notice(`storyForge: created Codex ${CODEX_TYPES.find((t) => t.type === type)?.label ?? type}`);
 			await this.forceRefresh();
