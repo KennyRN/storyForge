@@ -1,5 +1,14 @@
 import { Notice, setIcon, setTooltip } from "obsidian";
-import { ICON_ARROW_INSERT, ICON_DICE, ICON_INFO_CIRCLE, ICON_STAR_FILL, ICON_STAR_OUTLINE } from "../../icons.js";
+import {
+	ICON_ARROW_INSERT,
+	ICON_BOOK_DUOTONE,
+	ICON_COMPUTER,
+	ICON_DICE,
+	ICON_INFO_CIRCLE,
+	ICON_SERIES,
+	ICON_STAR_FILL,
+	ICON_STAR_OUTLINE,
+} from "../../icons.js";
 import { generateOne, generateSeries } from "../engine/generate.js";
 import { toEntry } from "../engine/history.js";
 import type { GeneratorSpec, GenreOption, HistoryEntry, LabelledOption, SeriesStrategy } from "../engine/types.js";
@@ -47,6 +56,17 @@ const TAB_LABELS: Record<TitleForgeTab, string> = {
 	webFiction: "web fiction & light novels",
 	novels: "novels",
 	kept: "★ kept titles",
+};
+
+/** Leading icon for each generator tab (renderTabs) — reuses storyForge's own Series/Novel pane
+ * icons (StoryForgeView.ts's SF_LAYOUT_TAB_ICONS: ICON_SERIES, ICON_BOOK_DUOTONE) so the two
+ * readings of "Series"/"Novel" match, plus ICON_COMPUTER (a screen-and-stand glyph, not a book)
+ * for "web fiction & light novels" — these are serialised, web-native titles. "kept titles" has
+ * none — it isn't a tradition tab at all (its own "★" is baked into TAB_LABELS instead). */
+const TAB_ICONS: Partial<Record<TitleForgeTab, string>> = {
+	series: ICON_SERIES,
+	webFiction: ICON_COMPUTER,
+	novels: ICON_BOOK_DUOTONE,
 };
 
 /**
@@ -328,9 +348,11 @@ export class TitleForgePanel {
 		const tabs = container.createDiv({ cls: "titleforge-tabs" });
 		for (const tab of this.tabOrder()) {
 			const button = tabs.createEl("button", {
-				text: TAB_LABELS[tab],
 				cls: "titleforge-tab" + (tab === this.activeTab ? " is-active" : ""),
 			});
+			const icon = TAB_ICONS[tab];
+			if (icon) setIcon(button.createSpan({ cls: "titleforge-tab-icon" }), icon);
+			button.createSpan({ text: TAB_LABELS[tab] });
 			button.addEventListener("click", () => {
 				if (tab === this.activeTab) return;
 				this.activeTab = tab;
