@@ -23,8 +23,8 @@ import {
 	setCharmChevronIcon,
 } from "../icons";
 import { bookBackstagePath } from "../paths";
-import { resolveChapterNarrator } from "../recommend/narrator";
-import type { CastMember } from "../recommend/types";
+import { resolveChapterNarrator } from "../story-context/narrator";
+import type { CastMember } from "../story-context/types";
 import { numberedBookTitle } from "../series";
 import { splitTitleSubtitle } from "../titleNumbering";
 import { makeAccessibleActivatable } from "./a11y";

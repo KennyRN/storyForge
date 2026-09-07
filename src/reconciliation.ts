@@ -27,7 +27,7 @@ import { renameSeriesBookEntry } from "./series";
 import { rekeyCodexNotePath, reconcileMissingCodexNotes } from "./codex";
 import { rekeyNotesNotePath } from "./notes";
 import { deleteChapterSidecar, renameChapterSidecar } from "./chapterSidecar";
-import { deleteRecommendCache, renameRecommendSidecar } from "./recommend/cache";
+import { deleteRecommendCache, renameRecommendSidecar } from "./story-context/cache";
 import { modifyBackstageFrontmatter, renameBackstagePath } from "./writeGuard";
 import { debounce } from "./debounce";
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildDetailsNoteBody, formatDetailsDateLine } from "../recommend/detailsNote";
-import type { DetailHit } from "../recommend/types";
+import { buildDetailsNoteBody, formatDetailsDateLine } from "../story-context/detailsNote";
+import type { DetailHit } from "../story-context/types";
 
 function makeHit(overrides: Partial<DetailHit>): DetailHit {
 	return {
