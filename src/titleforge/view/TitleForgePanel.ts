@@ -49,24 +49,26 @@ const QUANTITY_OPTIONS = [3, 5, 10, 15, 25] as const;
  * each title). */
 const ANY_TRADITION_ID = "any";
 
-// Tab titles are deliberately lowercase throughout, star included — matches the rest of the
-// modal's understated chrome rather than reading as a shouted section header.
+// Tab names are deliberately lowercase throughout — matches the rest of the modal's understated
+// chrome rather than reading as a shouted section header. Each tab is icon-only (renderTabs), so
+// these are never rendered directly — they're the hover tooltip and aria-label behind each icon.
 const TAB_LABELS: Record<TitleForgeTab, string> = {
 	series: "series",
 	webFiction: "web fiction & light novels",
 	novels: "novels",
-	kept: "★ kept titles",
+	kept: "kept titles",
 };
 
-/** Leading icon for each generator tab (renderTabs) — reuses storyForge's own Series/Novel pane
+/** Each tab's own (and only) header icon (renderTabs) — reuses storyForge's own Series/Novel pane
  * icons (StoryForgeView.ts's SF_LAYOUT_TAB_ICONS: ICON_SERIES, ICON_BOOK_DUOTONE) so the two
- * readings of "Series"/"Novel" match, plus ICON_COMPUTER (a screen-and-stand glyph, not a book)
- * for "web fiction & light novels" — these are serialised, web-native titles. "kept titles" has
- * none — it isn't a tradition tab at all (its own "★" is baked into TAB_LABELS instead). */
-const TAB_ICONS: Partial<Record<TitleForgeTab, string>> = {
+ * readings of "Series"/"Novel" match, ICON_COMPUTER (a screen-and-stand glyph, not a book) for
+ * "web fiction & light novels" — these are serialised, web-native titles — and the same
+ * ICON_STAR_FILL its short-list star (renderTitleRow) already uses for "kept titles". */
+const TAB_ICONS: Record<TitleForgeTab, string> = {
 	series: ICON_SERIES,
 	webFiction: ICON_COMPUTER,
 	novels: ICON_BOOK_DUOTONE,
+	kept: ICON_STAR_FILL,
 };
 
 /**
@@ -344,16 +346,25 @@ export class TitleForgePanel {
 		this.renderHistory(container);
 	}
 
+	/** Icon-only tab headers — a hover icon per tab (its name is the tooltip/aria-label, not visible
+	 * text), same treatment as StoryForgeView.ts's own .sf-layout-tab row rather than a button chip:
+	 * a plain `<span>`, not a `<button>`, made keyboard-activatable via `makeAccessibleActivatable`
+	 * (role, tabindex, Enter/Space) since it isn't a real button element. */
 	private renderTabs(container: HTMLElement): void {
 		const tabs = container.createDiv({ cls: "titleforge-tabs" });
 		for (const tab of this.tabOrder()) {
-			const button = tabs.createEl("button", {
+			const button = tabs.createSpan({
 				cls: "titleforge-tab" + (tab === this.activeTab ? " is-active" : ""),
+				attr: {
+					role: "tab",
+					tabindex: "0",
+					"aria-selected": String(tab === this.activeTab),
+					"aria-label": TAB_LABELS[tab],
+				},
 			});
-			const icon = TAB_ICONS[tab];
-			if (icon) setIcon(button.createSpan({ cls: "titleforge-tab-icon" }), icon);
-			button.createSpan({ text: TAB_LABELS[tab] });
-			button.addEventListener("click", () => {
+			setIcon(button.createSpan({ cls: "titleforge-tab-icon" }), TAB_ICONS[tab]);
+			setTooltip(button, TAB_LABELS[tab]);
+			const activate = () => {
 				if (tab === this.activeTab) return;
 				this.activeTab = tab;
 				void this.persistUiState();
@@ -368,6 +379,15 @@ export class TitleForgePanel {
 				this.family = "all";
 				this.platform = "all";
 				void this.loadHistoryForCurrentGenerator().then(() => this.render());
+			};
+			button.addEventListener("click", activate);
+			// Not `makeAccessibleActivatable` (a11y.ts) — it hardcodes role="button", which would
+			// stomp the role="tab" set above; Enter/Space activation wired directly instead.
+			button.addEventListener("keydown", (evt) => {
+				if (evt.key === "Enter" || evt.key === " ") {
+					evt.preventDefault();
+					activate();
+				}
 			});
 		}
 	}
