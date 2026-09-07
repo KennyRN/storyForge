@@ -57,7 +57,8 @@ import {
 	saveSettingsPreset,
 } from "./settingsPresets";
 
-/** Bumped to 10 — hard break: Codex book-scoping removed (`createNote`/`listByType`/`getCodexView` no longer take `bookId`; `listByType` no longer returns `bookIds`). */
+/** Bumped to 10 — hard break: Codex book-scoping removed. `createNote`, `listByType` and
+ * `getCodexView` no longer take a book id, and `listByType` returns `{ path, name }` only. */
 export const STORYFORGE_API_VERSION = 10 as const;
 
 export interface CodexWriteException {
