@@ -41,6 +41,37 @@ function isGeneratorSpec(value: unknown): value is GeneratorSpec {
 	return typeof v.id === "string" && Array.isArray(v.patterns) && typeof v.lexicon === "object";
 }
 
+function seedManifestPath(): string {
+	return `${root()}/lexicons/.seed-manifest.json`;
+}
+
+/**
+ * `id -> { bundledHash, fileHash }` as of the moment this id was last seeded/reset — the tracking
+ * that lets `ensureLexiconsSeeded` tell "the bundle moved on and this file was never touched"
+ * (safe to re-seed) apart from "the bundle moved on but someone hand-edited this file" (must not
+ * be clobbered), without an author-maintained version field on every lexicon.
+ */
+interface SeedManifestEntry {
+	/** Hash of the bundled spec's serialised bytes at the moment this id was last seeded/reset. */
+	bundledHash: string;
+	/** Hash of the bytes actually written to the vault at that same moment. */
+	fileHash: string;
+}
+type SeedManifest = Record<string, SeedManifestEntry>;
+
+/**
+ * SHA-256 over the exact serialised bytes, hex-encoded — the project's existing hashing
+ * convention (the corpus freeze certificates under `corpus/`) via the runtime's own Web Crypto,
+ * so this needs no extra dependency.
+ */
+async function sha256Hex(text: string): Promise<string> {
+	const bytes = new TextEncoder().encode(text);
+	const digest = await crypto.subtle.digest("SHA-256", bytes);
+	return Array.from(new Uint8Array(digest))
+		.map((b) => b.toString(16).padStart(2, "0"))
+		.join("");
+}
+
 export class TitleForgeStorage {
 	constructor(private app: App) {}
 
@@ -50,28 +81,132 @@ export class TitleForgeStorage {
 	}
 
 	/**
-	 * Seed every bundled lexicon out to the vault as real JSON, once, so it's
-	 * hand-editable from day one — this is how "edit a word, no rebuild" (see
-	 * `NOTES.md`) survives inside a bundled Obsidian plugin. Idempotent: only
-	 * writes the ones that aren't already there.
+	 * Seed every bundled lexicon out to the vault as real JSON so it's hand-editable from day one —
+	 * this is how "edit a word, no rebuild" (see `NOTES.md`) survives inside a bundled Obsidian
+	 * plugin — and, on every later load, propagate a rebuilt bundle onto any vault copy that was
+	 * never hand-edited, via the hash manifest (see `SeedManifestEntry`). A copy the manifest can't
+	 * yet vouch for (no entry — an install from before this manifest existed) is never overwritten;
+	 * its provenance is simply unknown. This is what makes "genres/vocabulary look out of date"
+	 * something a rebuild fixes on its own, without ever silently discarding a hand-edit.
 	 */
 	async ensureLexiconsSeeded(): Promise<void> {
+		const manifest = await this.readSeedManifest();
+		let manifestChanged = false;
+		let advisedMissingManifest = false;
+
 		for (const spec of ALL_TITLEFORGE_LEXICONS) {
 			const path = lexiconPath(spec.id);
-			if (this.app.vault.getAbstractFileByPath(path)) continue;
-			// Cold start: the in-memory vault index can lag behind disk, so a file that
-			// already exists would make writeBackstageFile's create() throw.
-			if (await this.app.vault.adapter.exists(path)) continue;
-			await this.resetLexiconToBundled(spec);
+			const bundledText = JSON.stringify(spec, null, "\t");
+			const bundledHash = await sha256Hex(bundledText);
+
+			// Cold start: the in-memory vault index can lag behind disk, so a file that already
+			// exists would make writeBackstageFile's create() throw — check both.
+			const onDisk =
+				this.app.vault.getAbstractFileByPath(path) !== null ||
+				(await this.app.vault.adapter.exists(path));
+
+			if (!onDisk) {
+				await enqueueBackstageWrite(path, () => writeBackstageFile(this.app.vault, path, bundledText));
+				manifest[spec.id] = { bundledHash, fileHash: bundledHash };
+				manifestChanged = true;
+				continue;
+			}
+
+			const entry = manifest[spec.id];
+			if (!entry) {
+				// A vault copy from before this manifest existed — provenance unknown, so it is
+				// left exactly as it is. Only recorded, so future passes can tell a real
+				// hand-edit apart from this one-time "we don't actually know" case.
+				const currentFileHash = await this.readFileHashOr(path, bundledHash);
+				manifest[spec.id] = { bundledHash, fileHash: currentFileHash };
+				manifestChanged = true;
+				if (!advisedMissingManifest) {
+					advisedMissingManifest = true;
+					new Notice(
+						"titleForge found existing lexicon copies from a previous version. If genres or " +
+							"vocabulary look out of date, use Settings → Reset lexicon to bundled default.",
+					);
+				}
+				continue;
+			}
+
+			const currentFileHash = await this.readFileHashOr(path, entry.fileHash);
+			const userEdited = currentFileHash !== entry.fileHash;
+			const bundleChanged = bundledHash !== entry.bundledHash;
+
+			if (bundleChanged && !userEdited) {
+				// The propagation fix: an untouched seed file tracks the bundle forward.
+				await enqueueBackstageWrite(path, () => writeBackstageFile(this.app.vault, path, bundledText));
+				manifest[spec.id] = { bundledHash, fileHash: bundledHash };
+				manifestChanged = true;
+			} else if (bundleChanged && userEdited) {
+				new Notice(
+					`titleForge: the bundled "${spec.name}" lexicon changed, but your edited copy was ` +
+						`kept. Use Settings → Reset lexicon to bundled default to adopt the new version.`,
+				);
+			}
+			// Neither changed: no-op.
+		}
+
+		if (manifestChanged) await this.writeSeedManifest(manifest);
+	}
+
+	/** Reads a vault file's current hash, falling back to `fallback` if the read/parse fails —
+	 * treated as "unchanged" rather than guessed at, matching `loadGenerator`'s own never-throw
+	 * stance on a file it can't make sense of. */
+	private async readFileHashOr(path: string, fallback: string): Promise<string> {
+		try {
+			return await sha256Hex(await this.app.vault.adapter.read(path));
+		} catch {
+			return fallback;
 		}
 	}
 
-	/** Overwrite the vault copy with the bundled default — the settings modal's "reset" action. */
-	async resetLexiconToBundled(spec: GeneratorSpec): Promise<void> {
-		const path = lexiconPath(spec.id);
+	private async readSeedManifest(): Promise<SeedManifest> {
+		const path = seedManifestPath();
+		if (!(await this.app.vault.adapter.exists(path))) return {};
+		try {
+			const text = await this.app.vault.adapter.read(path);
+			const parsed: unknown = JSON.parse(text);
+			return typeof parsed === "object" && parsed !== null ? (parsed as SeedManifest) : {};
+		} catch {
+			return {};
+		}
+	}
+
+	private async writeSeedManifest(manifest: SeedManifest): Promise<void> {
+		const path = seedManifestPath();
 		await enqueueBackstageWrite(path, () =>
-			writeBackstageFile(this.app.vault, path, JSON.stringify(spec, null, "\t")),
+			writeBackstageFile(this.app.vault, path, JSON.stringify(manifest, null, "\t")),
 		);
+	}
+
+	/** Records that the vault copy for `id` now matches the bundled bytes exactly — called after a
+	 * fresh seed or an explicit reset, both of which write the bundled bytes verbatim. */
+	private async recordSeedHashes(id: string, serialisedBundled: string): Promise<void> {
+		const hash = await sha256Hex(serialisedBundled);
+		const manifest = await this.readSeedManifest();
+		manifest[id] = { bundledHash: hash, fileHash: hash };
+		await this.writeSeedManifest(manifest);
+	}
+
+	/**
+	 * Overwrite the vault copy with the true bundled default — the settings modal's "reset" action.
+	 *
+	 * Re-resolves the bundled spec by id internally rather than trusting whatever spec the caller
+	 * passes: `TitleForgeController.generators` (what callers like `TitleForgeSettingsModal` read
+	 * from) is itself vault-preferred, so a spec sourced from there can *be* the stale vault copy —
+	 * "reset" would then write the stale copy back over itself, a no-op in exactly the case where
+	 * it's needed. Accepting a bare id keeps that mistake structurally impossible.
+	 */
+	async resetLexiconToBundled(specOrId: GeneratorSpec | string): Promise<void> {
+		const id = typeof specOrId === "string" ? specOrId : specOrId.id;
+		const bundled = ALL_TITLEFORGE_LEXICONS.find((s) => s.id === id);
+		if (!bundled) throw new Error(`No bundled lexicon for "${id}"`);
+		const path = lexiconPath(id);
+		const serialised = JSON.stringify(bundled, null, "\t");
+		await enqueueBackstageWrite(path, () => writeBackstageFile(this.app.vault, path, serialised));
+		await this.recordSeedHashes(id, serialised);
 	}
 
 	/**

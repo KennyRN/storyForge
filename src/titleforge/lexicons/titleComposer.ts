@@ -17,20 +17,28 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"label": "Any genre"
 		},
 		{
+			"id": "fantasy",
+			"label": "Fantasy"
+		},
+		{
 			"id": "epic",
-			"label": "Epic fantasy"
+			"label": "Epic fantasy",
+			"parent": "fantasy"
 		},
 		{
 			"id": "heroic-fantasy",
-			"label": "Heroic fantasy"
+			"label": "Heroic fantasy",
+			"parent": "fantasy"
 		},
 		{
 			"id": "sword-sorcery",
-			"label": "Sword & Sorcery"
+			"label": "Sword & Sorcery",
+			"parent": "fantasy"
 		},
 		{
 			"id": "urban-fantasy",
-			"label": "Urban fantasy"
+			"label": "Urban fantasy",
+			"parent": "fantasy"
 		},
 		{
 			"id": "sf",
@@ -38,11 +46,13 @@ export const titleComposerLexicon: GeneratorSpec = {
 		},
 		{
 			"id": "space-opera",
-			"label": "Space opera"
+			"label": "Space opera",
+			"parent": "sf"
 		},
 		{
 			"id": "military-sf",
-			"label": "Military SF"
+			"label": "Military SF",
+			"parent": "sf"
 		},
 		{
 			"id": "horror",
@@ -59,6 +69,16 @@ export const titleComposerLexicon: GeneratorSpec = {
 		{
 			"id": "hist",
 			"label": "Historical"
+		},
+		{
+			"id": "western",
+			"label": "Western",
+			"parent": "hist"
+		},
+		{
+			"id": "regency",
+			"label": "Regency",
+			"parent": "hist"
 		},
 		{
 			"id": "rom",
