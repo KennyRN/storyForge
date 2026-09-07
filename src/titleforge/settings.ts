@@ -34,8 +34,9 @@ export interface TitleForgeOpenOptions {
  * extraction only has to repoint the storage path, not restructure the shape.
  *
  * No `lastGeneratorId` here (a settings file from before this shape has one, now unread, same as
- * the old `lastTab` field below) — "Any" is always what's automatically selected wherever a
- * Tradition picker is shown, so there's nothing to remember about the last one picked.
+ * the old `lastTab` field below) — "Any" (or, on a tab with only one tradition, that tradition
+ * itself — see `defaultGeneratorIdFor` in view/TitleForgePanel.ts) is always what's automatically
+ * selected, so there's nothing to remember about the last one picked.
  */
 export interface TitleForgeSettings {
 	lastGenre: string;
