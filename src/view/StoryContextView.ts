@@ -447,12 +447,10 @@ export class StoryContextView extends ItemView {
 				this.render();
 				return;
 			}
-			const bookId = getBookId(this.app, this.bookFolderName);
 			this.report = await loadOrRecomputeChapterRecommend(
 				this.app,
 				this.bookFolderName,
 				this.chapterFilename,
-				bookId,
 				this.recommendSettings(),
 			);
 			if (this.report) this.synopsisDraft = this.report.synopsisHeuristic;
@@ -467,12 +465,10 @@ export class StoryContextView extends ItemView {
 		try {
 			await this.ensureEngine();
 			if (!this.bookFolderName || !this.chapterFilename) return;
-			const bookId = getBookId(this.app, this.bookFolderName);
 			this.report = await recomputeChapterRecommend(
 				this.app,
 				this.bookFolderName,
 				this.chapterFilename,
-				bookId,
 				this.recommendSettings(),
 			);
 			if (this.report) this.synopsisDraft = this.report.synopsisHeuristic;
@@ -492,10 +488,8 @@ export class StoryContextView extends ItemView {
 			this.castCache = [];
 			return;
 		}
-		const bookId = getBookId(this.app, this.bookFolderName);
 		this.castCache = await loadHydratedCodexInventory(
 			this.app,
-			bookId,
 			this.recommendSettings().codexFactSectionByType,
 		);
 	}
@@ -1151,9 +1145,7 @@ export class StoryContextView extends ItemView {
 
 	private renderNotebookCodexIndex(index: HTMLElement): void {
 		index.addClass("sf-bottom-panel");
-		const currentBookId = this.bookFolderName ? getBookId(this.app, this.bookFolderName) : null;
 		renderBottomPanel(this.app, index, {
-			currentBookId,
 			mode: "codex",
 			collapsedPaths: this.collapsedCodexFolders,
 			onToggleFolder: (folderId) => {
@@ -1702,8 +1694,7 @@ export class StoryContextView extends ItemView {
 		if (!this.bookFolderName || !this.chapterFilename) return;
 		const bookFolderName = this.bookFolderName;
 		const chapterFilename = this.chapterFilename;
-		const bookId = getBookId(this.app, bookFolderName);
-		const entries = getCodexEntriesByType(this.app, "person", bookId);
+		const entries = getCodexEntriesByType(this.app, "person");
 		new CodexEntryPickerModal(this.app, {
 			mode: "multi",
 			label: "PoV:",
@@ -1721,8 +1712,7 @@ export class StoryContextView extends ItemView {
 		if (!this.bookFolderName || !this.chapterFilename) return;
 		const bookFolderName = this.bookFolderName;
 		const chapterFilename = this.chapterFilename;
-		const bookId = getBookId(this.app, bookFolderName);
-		const entries = getCodexEntriesByType(this.app, "place", bookId);
+		const entries = getCodexEntriesByType(this.app, "place");
 		new CodexEntryPickerModal(this.app, {
 			mode: "multi",
 			label: "Location:",
@@ -1767,12 +1757,10 @@ export class StoryContextView extends ItemView {
 		if (!this.bookFolderName || !this.chapterFilename) return;
 		try {
 			await this.ensureEngine();
-			const bookId = getBookId(this.app, this.bookFolderName);
 			const freshReport = await recomputeChapterRecommend(
 				this.app,
 				this.bookFolderName,
 				this.chapterFilename,
-				bookId,
 				this.recommendSettings(),
 			);
 			this.report = freshReport;
@@ -1812,8 +1800,7 @@ export class StoryContextView extends ItemView {
 	}
 
 	private async linkUnknownName(name: string): Promise<void> {
-		const bookId = this.bookFolderName ? getBookId(this.app, this.bookFolderName) : null;
-		const entries = getCodexEntries(this.app, bookId);
+		const entries = getCodexEntries(this.app);
 		new CodexEntryPickerModal(this.app, {
 			title: "Link to existing Codex",
 			emptyMessage: "No Codex notes yet.",

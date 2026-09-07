@@ -36,7 +36,6 @@ import {
 } from "../vaultTags";
 
 export interface BottomPanelOptions {
-	currentBookId: string | null;
 	mode: CodexViewMode;
 	collapsedPaths: ReadonlySet<string>;
 	onToggleFolder: (folderId: string) => void;
@@ -76,7 +75,7 @@ export function renderBottomPanel(app: App, container: HTMLElement, options: Bot
 	renderVaultTagRail(rail, app, options);
 
 	const treeEl = body.createDiv({ cls: "sf-codex-tree" });
-	const tree = getCodexView(app, options.currentBookId, options.mode, options.typeFilter, options.tagFilter);
+	const tree = getCodexView(app, options.mode, options.typeFilter, options.tagFilter);
 	if (!tree) {
 		treeEl.createDiv({ cls: "sf-empty", text: "Nothing here yet." });
 		return;

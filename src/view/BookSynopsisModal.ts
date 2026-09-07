@@ -17,7 +17,7 @@ import {
 } from "../book";
 import { getCodexEntriesByType } from "../codex";
 import { bookBackstagePath } from "../paths";
-import { bookDisplayTitle, getBookId, numberedBookTitle } from "../series";
+import { bookDisplayTitle, numberedBookTitle } from "../series";
 import { splitTitleSubtitle } from "../titleNumbering";
 import { ICON_MAP_PIN_PLUS, ICON_PERSON_FILL_ADD, ICON_TIMELINE } from "../icons";
 import { attachInlineRename } from "./inlineRename";
@@ -89,8 +89,7 @@ export class BookSynopsisModal extends Modal {
 	}
 
 	private async openDefaultPovPicker(row: HTMLElement, hasValue: boolean): Promise<void> {
-		const bookId = getBookId(this.app, this.bookFolderName);
-		const entries = getCodexEntriesByType(this.app, "person", bookId);
+		const entries = getCodexEntriesByType(this.app, "person");
 		new CodexEntryPickerModal(this.app, {
 			title: "Set PoV",
 			emptyMessage: "No person entries in the Codex yet.",
@@ -194,8 +193,7 @@ export class BookSynopsisModal extends Modal {
 	}
 
 	private async openPovPicker(filename: string, povWrap: HTMLElement, current: CodexRef[]): Promise<void> {
-		const bookId = getBookId(this.app, this.bookFolderName);
-		const entries = getCodexEntriesByType(this.app, "person", bookId);
+		const entries = getCodexEntriesByType(this.app, "person");
 		new CodexEntryPickerModal(this.app, {
 			mode: "multi",
 			label: "PoV:",
@@ -239,8 +237,7 @@ export class BookSynopsisModal extends Modal {
 	}
 
 	private async openLocationPicker(filename: string, locWrap: HTMLElement, current: CodexRef[]): Promise<void> {
-		const bookId = getBookId(this.app, this.bookFolderName);
-		const entries = getCodexEntriesByType(this.app, "place", bookId);
+		const entries = getCodexEntriesByType(this.app, "place");
 		new CodexEntryPickerModal(this.app, {
 			mode: "multi",
 			label: "Location:",

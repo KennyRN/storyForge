@@ -1,7 +1,7 @@
 import { ItemView, Notice, setIcon, setTooltip, TFile, WorkspaceLeaf } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { bookFolderNameFromChapterPath, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath } from "../paths";
-import { getBookId, getSeriesBooks } from "../series";
+import { getSeriesBooks } from "../series";
 import { renderSeriesPaneCornerButtons, renderTopPanel, type UnplacedViewMode } from "./TopPanel";
 import { renderBottomPanel } from "./BottomPanel";
 import { renderStatsPanel, type StatsMode } from "./StatsPanel";
@@ -423,7 +423,6 @@ export class StoryForgeView extends ItemView {
 		}
 
 		if (config.showCodex) {
-			const currentBookId = this.currentBookFolderName ? getBookId(this.app, this.currentBookFolderName) : null;
 			const activeFile = this.app.workspace.getActiveFile();
 			const activeFilePath = activeFile?.path ?? null;
 
@@ -433,7 +432,6 @@ export class StoryForgeView extends ItemView {
 
 			const bottomEl = container.createDiv({ cls: "sf-bottom-panel" });
 			renderBottomPanel(this.app, bottomEl, {
-				currentBookId,
 				mode: "codex",
 				collapsedPaths: this.collapsedCodexFolders,
 				onToggleFolder: (folderId) => {
@@ -535,7 +533,6 @@ export class StoryForgeView extends ItemView {
 			},
 		});
 
-		const currentBookId = this.currentBookFolderName ? getBookId(this.app, this.currentBookFolderName) : null;
 		const activeFile = this.app.workspace.getActiveFile();
 		const focusLorePath = this.plugin.codexFocusPagePath();
 		const activeFilePath = focusLorePath ?? activeFile?.path ?? null;
@@ -546,7 +543,6 @@ export class StoryForgeView extends ItemView {
 
 		const bottomEl = container.createDiv({ cls: "sf-bottom-panel" });
 		renderBottomPanel(this.app, bottomEl, {
-			currentBookId,
 			mode: "codex",
 			collapsedPaths: this.collapsedCodexFolders,
 			onToggleFolder: (folderId) => {

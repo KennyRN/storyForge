@@ -25,7 +25,7 @@ import {
 import { bookBackstagePath } from "../paths";
 import { resolveChapterNarrator } from "../recommend/narrator";
 import type { CastMember } from "../recommend/types";
-import { getBookId, numberedBookTitle } from "../series";
+import { numberedBookTitle } from "../series";
 import { splitTitleSubtitle } from "../titleNumbering";
 import { makeAccessibleActivatable } from "./a11y";
 import { ChapterTitleModal } from "./ChapterTitleModal";
@@ -264,8 +264,7 @@ function renderDefaultPovRow(app: App, parent: HTMLElement, bookFolderName: stri
 }
 
 async function openDefaultPovPicker(app: App, bookFolderName: string, hasValue: boolean, onChanged: () => void): Promise<void> {
-	const bookId = getBookId(app, bookFolderName);
-	const entries = getCodexEntriesByType(app, "person", bookId);
+	const entries = getCodexEntriesByType(app, "person");
 	new CodexEntryPickerModal(app, {
 		title: "Set PoV",
 		emptyMessage: "No person entries in the Codex yet.",
@@ -518,8 +517,7 @@ async function openNovelChapterPovPicker(
 	current: CodexRef[],
 	onChanged: () => void,
 ): Promise<void> {
-	const bookId = getBookId(app, bookFolderName);
-	const entries = getCodexEntriesByType(app, "person", bookId);
+	const entries = getCodexEntriesByType(app, "person");
 	new CodexEntryPickerModal(app, {
 		mode: "multi",
 		label: "PoV:",
@@ -540,8 +538,7 @@ async function openNovelChapterLocationPicker(
 	current: CodexRef[],
 	onChanged: () => void,
 ): Promise<void> {
-	const bookId = getBookId(app, bookFolderName);
-	const entries = getCodexEntriesByType(app, "place", bookId);
+	const entries = getCodexEntriesByType(app, "place");
 	new CodexEntryPickerModal(app, {
 		mode: "multi",
 		label: "Location:",

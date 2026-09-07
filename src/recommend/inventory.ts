@@ -1,29 +1,27 @@
 import { App, TFile } from "obsidian";
-import { collectCodexNotes, partitionCodexNotes, readCodexFrontmatter } from "../codex";
+import { collectCodexNotes, readCodexFrontmatter } from "../codex";
 import { codexBasename } from "../codexTree";
 import { emptyFacts, parseFactsFromNote } from "./facts";
 import type { CodexEntryInput } from "./types";
 
-/** Async book-scoped Codex inventory for the recommend engine. */
+/** Async hydrated Codex inventory for the recommend engine (all non-archived notes). */
 export async function loadHydratedCodexInventory(
 	app: App,
-	currentBookId: string | null,
 	factSectionByType: Record<string, string>,
 ): Promise<CodexEntryInput[]> {
 	const { types } = readCodexFrontmatter(app);
-	const { codex } = partitionCodexNotes(collectCodexNotes(app), currentBookId);
 	const entries: CodexEntryInput[] = [];
 
-	for (const note of codex) {
-		const type = types[note.path] ?? "untagged";
+	for (const path of collectCodexNotes(app)) {
+		const type = types[path] ?? "untagged";
 		const heading = factSectionByType[type] ?? "Facts";
-		const file = app.vault.getAbstractFileByPath(note.path);
+		const file = app.vault.getAbstractFileByPath(path);
 		let facts = emptyFacts(heading);
 		let aliases: string[] = [];
 		if (file instanceof TFile) {
 			const raw = await app.vault.cachedRead(file);
 			facts = parseFactsFromNote(raw, heading);
-			const cache = app.metadataCache.getCache(note.path);
+			const cache = app.metadataCache.getCache(path);
 			const aliasesRaw: unknown = cache?.frontmatter?.aliases;
 			aliases = Array.isArray(aliasesRaw)
 				? aliasesRaw.filter((v): v is string => typeof v === "string")
@@ -32,8 +30,8 @@ export async function loadHydratedCodexInventory(
 					: [];
 		}
 		entries.push({
-			path: note.path,
-			name: codexBasename(note.path),
+			path,
+			name: codexBasename(path),
 			aliases,
 			type,
 			facts,
