@@ -1,7 +1,6 @@
 import { App, TFile, TFolder, normalizePath, type FrontMatterCache } from "obsidian";
 import { ICON_MAP_PIN, ICON_PERSON_2_FILL, ICON_PERSON_FILL } from "./icons";
 import { CODEX_ROOT, codexFilePath } from "./paths";
-import { partitionCodexNotes, findUnknownScopedNotes, type CodexNote } from "./codexPartition";
 import { modifyBackstageFrontmatter, modifyCodexNoteAliases } from "./writeGuard";
 import {
 	codexBasename,
@@ -23,7 +22,6 @@ import {
 } from "./codexTree";
 import { filterVisiblePathsByTag, readVaultTags, sortTreeByPageOrder } from "./vaultTags";
 
-export { partitionCodexNotes, findUnknownScopedNotes, type CodexNote };
 export { isDescendantFolder, countFilesInFolder, type CodexFolders, type CodexFolderEntry };
 export type { CodexTreeFile, CodexTreeFolder, CodexTreeItem };
 
@@ -222,56 +220,44 @@ export function filterVisiblePathsByType(
 	return result;
 }
 
-/** Book-scoped Codex notes (universal + this book's own, excluding archived), in the same
- * order as a fully-expanded Codex tree (folders flattened). Not filtered by type. */
-export function getCodexEntries(
-	app: App,
-	currentBookId: string | null,
-): { path: string; name: string }[] {
-	const { codex } = partitionCodexNotes(collectCodexNotes(app), currentBookId);
-	const visiblePaths = new Set(codex.map((note) => note.path));
+/** Non-archived Codex notes, in the same order as a fully-expanded Codex tree
+ * (folders flattened). Not filtered by type. */
+export function getCodexEntries(app: App): { path: string; name: string }[] {
+	const visiblePaths = new Set(collectCodexNotes(app));
 	const tree = buildCodexTree(app, visiblePaths);
 	return tree
 		? flattenCodexTreeFiles(tree)
-		: codex.map((note) => ({ path: note.path, name: codexBasename(note.path) }));
+		: [...visiblePaths].map((path) => ({ path, name: codexBasename(path) }));
 }
 
 /** Codex entries of the given type (or a type nested under it — see codexTypeMatchesOrDescendsFrom),
- * scoped like the Codex pane itself (universal + this book's own, excluding archived), in the
- * same order as a fully-expanded Codex tree (folders flattened). */
+ * scoped like the Codex pane itself (all non-archived notes), in the same order as a
+ * fully-expanded Codex tree (folders flattened). */
 export function getCodexEntriesByType(
 	app: App,
 	type: string,
-	currentBookId: string | null,
 ): { path: string; name: string }[] {
 	const { types } = readCodexFrontmatter(app);
-	return getCodexEntries(app, currentBookId).filter((entry) => {
+	return getCodexEntries(app).filter((entry) => {
 		const entryType = types[entry.path];
 		return entryType != null && codexTypeMatchesOrDescendsFrom(entryType, type);
 	});
 }
 
 /** Flat, single-pass scan — Codex notes always live directly under `Codex/` now (folders are virtual). Archived paths (direct or nested inside an archived folder) are excluded. */
-export function collectCodexNotes(app: App): CodexNote[] {
+export function collectCodexNotes(app: App): string[] {
 	const root = app.vault.getAbstractFileByPath(CODEX_ROOT);
 	if (!(root instanceof TFolder)) return [];
 	const { folders, archive } = readCodexFrontmatter(app);
 	const archivedPaths = collectReferencedPaths(folders, archive);
 
-	const notes: CodexNote[] = [];
+	const paths: string[] = [];
 	for (const child of root.children) {
 		if (!(child instanceof TFile) || child.extension !== "md") continue;
 		if (archivedPaths.has(child.path)) continue;
-		const fm = app.metadataCache.getCache(child.path)?.frontmatter;
-		const raw: unknown = fm?.book;
-		const bookIds = Array.isArray(raw)
-			? raw.filter((v): v is string => typeof v === "string")
-			: typeof raw === "string"
-				? [raw]
-				: [];
-		notes.push({ path: child.path, bookIds });
+		paths.push(child.path);
 	}
-	return notes;
+	return paths;
 }
 
 export function buildCodexTree(
@@ -293,15 +279,12 @@ export function buildCodexTree(
 
 export function getCodexView(
 	app: App,
-	currentBookId: string | null,
 	mode: CodexViewMode,
 	typeFilter?: ReadonlySet<string>,
 	tagFilter?: string | null,
 ): CodexTreeFolder | null {
 	if (mode === "codexHidden") return null;
-	const notes = collectCodexNotes(app);
-	const { codex } = partitionCodexNotes(notes, currentBookId);
-	let visiblePaths: ReadonlySet<string> = new Set(codex.map((n) => n.path));
+	let visiblePaths: ReadonlySet<string> = new Set(collectCodexNotes(app));
 	if (typeFilter && typeFilter.size > 0) visiblePaths = filterVisiblePathsByType(app, visiblePaths, typeFilter);
 	if (tagFilter) {
 		visiblePaths = filterVisiblePathsByTag(app, visiblePaths, tagFilter);

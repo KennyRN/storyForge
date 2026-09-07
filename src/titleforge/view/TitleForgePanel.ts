@@ -2,7 +2,7 @@ import { Notice, setIcon, setTooltip } from "obsidian";
 import { ICON_ARROW_INSERT, ICON_DICE, ICON_INFO_CIRCLE, ICON_STAR_FILL, ICON_STAR_OUTLINE } from "../../icons.js";
 import { generateOne, generateSeries } from "../engine/generate.js";
 import { toEntry } from "../engine/history.js";
-import type { GeneratorSpec, HistoryEntry, LabelledOption, SeriesStrategy } from "../engine/types.js";
+import type { GeneratorSpec, GenreOption, HistoryEntry, LabelledOption, SeriesStrategy } from "../engine/types.js";
 import type { TitleForgeScope, TitleForgeTab } from "../settings.js";
 import type { TitleForgeController } from "../TitleForgeController.js";
 import { TitleShapeInfoModal } from "./TitleShapeInfoModal.js";
@@ -323,6 +323,31 @@ export class TitleForgePanel {
 		return [{ id: ANY_TRADITION_ID, label: "Any" }, ...specific];
 	}
 
+	/** Top-level genres in declaration order, each immediately followed by its own subgenres
+	 * (also in declaration order), visually indented — a single flat, hierarchy-aware `<select>`
+	 * rather than a dependent parent->child pair of pickers, per the two-level genre model
+	 * (`GenreOption.parent`, `engine/generate.ts`'s `genreScope`). "Any genre" (`all`) has no
+	 * parent and no children, so it is unaffected and stays first. `this.genre` itself is always
+	 * just a plain subgenre/genre id — indentation is presentation only. */
+	private hierarchicalGenreOptions(spec: GeneratorSpec): LabelledOption[] {
+		const byParent = new Map<string, GenreOption[]>();
+		for (const genre of spec.genres) {
+			if (!genre.parent) continue;
+			const siblings = byParent.get(genre.parent) ?? [];
+			siblings.push(genre);
+			byParent.set(genre.parent, siblings);
+		}
+		const out: LabelledOption[] = [];
+		for (const genre of spec.genres) {
+			if (genre.parent) continue; // emitted under its own parent below
+			out.push(genre);
+			for (const child of byParent.get(genre.id) ?? []) {
+				out.push({ id: child.id, label: ` ${child.label}` });
+			}
+		}
+		return out;
+	}
+
 	/** `spec` is undefined in "Any" mode — genre/shape-family/platform are one tradition's own
 	 * vocabulary, so there's nothing meaningful to offer until a specific one is picked. */
 	private renderControls(container: HTMLElement, spec: GeneratorSpec | undefined): void {
@@ -340,7 +365,7 @@ export class TitleForgePanel {
 		});
 
 		if (spec) {
-			this.renderSelect(row, "Genre", spec.genres, this.genre, (value) => {
+			this.renderSelect(row, "Genre", this.hierarchicalGenreOptions(spec), this.genre, (value) => {
 				this.genre = value;
 				void this.persistUiState();
 			});

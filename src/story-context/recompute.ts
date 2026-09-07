@@ -69,7 +69,6 @@ export async function recomputeChapterRecommend(
 	app: App,
 	bookFolderName: string,
 	chapterFilename: string,
-	bookId: string | null,
 	settings: RecommendSettingsSlice,
 ): Promise<ChapterRecommendReport | null> {
 	const path = libraryChapterPath(bookFolderName, chapterFilename);
@@ -78,7 +77,7 @@ export async function recomputeChapterRecommend(
 
 	const raw = await app.vault.cachedRead(file);
 	const existingPlot = await readChapterPlot(app, bookFolderName, chapterFilename);
-	const entries = await loadHydratedCodexInventory(app, bookId, settings.codexFactSectionByType);
+	const entries = await loadHydratedCodexInventory(app, settings.codexFactSectionByType);
 	const attribution = await readAttributionStore(app, bookFolderName);
 	const resolved = await readResolvedStore(app, bookFolderName, chapterFilename);
 	const extras = bookScanExtras(app, bookFolderName, chapterFilename, entries);
@@ -118,7 +117,6 @@ export async function loadOrRecomputeChapterRecommend(
 	app: App,
 	bookFolderName: string,
 	chapterFilename: string,
-	bookId: string | null,
 	settings: RecommendSettingsSlice,
 ): Promise<ChapterRecommendReport | null> {
 	const path = libraryChapterPath(bookFolderName, chapterFilename);
@@ -127,7 +125,7 @@ export async function loadOrRecomputeChapterRecommend(
 
 	const raw = await app.vault.cachedRead(file);
 	const existingPlot = await readChapterPlot(app, bookFolderName, chapterFilename);
-	const entries = await loadHydratedCodexInventory(app, bookId, settings.codexFactSectionByType);
+	const entries = await loadHydratedCodexInventory(app, settings.codexFactSectionByType);
 	const attribution = await readAttributionStore(app, bookFolderName);
 	const resolved = await readResolvedStore(app, bookFolderName, chapterFilename);
 	const extras = bookScanExtras(app, bookFolderName, chapterFilename, entries);
