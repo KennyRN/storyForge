@@ -74,6 +74,33 @@ const TAB_TRADITIONS: Record<TitleForgeTab, string[]> = {
 };
 
 /**
+ * Tabs whose "Genre"/"Sub genre" pickers are built straight from their own generators' genre
+ * trees (renderControls, mergedGenreOptions) rather than a Genre-as-tradition + Sub-genre-as-
+ * hierarchical-genre-list pair — no tradition is itself a genre (the "Title composer"/"World
+ * literary shapes" complaint this replaced), whether a tab has one tradition ("series") or several
+ * ("novels"). "web fiction & light novels" is deliberately not here: each of its seven traditions
+ * is a genuinely distinct regional/language market — "Western serial", "Japanese light novel", and
+ * so on really do read as the top-level choice there — so it keeps the older pair.
+ */
+const MERGED_GENRE_TABS: TitleForgeTab[] = ["series", "novels"];
+
+/** Encodes a (generator id, genre id) pair as one composite option id for the merged "Genre"
+ * picker (mergedGenreOptions), since two traditions in the same tab could in principle declare the
+ * same genre id. Decoded by `decodeGenrePick`. */
+function encodeGenrePick(generatorId: string, genreId: string): string {
+	return `${generatorId}::${genreId}`;
+}
+
+/** Reverses `encodeGenrePick`. Returns undefined for any value that isn't one of our own encoded
+ * ids (defensive only — every option `renderSelect` is given here comes from `encodeGenrePick`
+ * itself, so this should never actually happen). */
+function decodeGenrePick(value: string): { generatorId: string; genreId: string } | undefined {
+	const i = value.indexOf("::");
+	if (i === -1) return undefined;
+	return { generatorId: value.slice(0, i), genreId: value.slice(i + 2) };
+}
+
+/**
  * Which tabs are reachable for each scope (see TitleForgeScope in settings.ts). "all" is every
  * tab, unchanged from before scopes existed. "series"/"novels" are the two fixed, narrower views
  * used when titleForge is opened from a specific naming context — a Series' or a Novel's dice
@@ -112,18 +139,20 @@ const SCOPE_TABS: Record<TitleForgeScope, TitleForgeTab[]> = {
  * generated" preview; every row, old or new, carries the same info/short-list/use-this-title
  * actions (renderTitleRow).
  *
- * There is no separate "Tradition" picker any more. On a tab with more than one tradition of its
- * own (TAB_TRADITIONS) — "novels" and "web fiction & light novels" — each tradition is what the
- * "Genre" picker offers, "Any" (ANY_TRADITION_ID) first and always what's automatically selected
- * — never a remembered last pick; a generator's own `genres` (with their two-level
- * parent/subgenre structure) are then what the "Sub genre" picker offers below it
- * (`hierarchicalGenreOptions`). In "Any" mode there's no single spec to source sub
- * genre/family/platform from (so those pickers are hidden), history pools across the whole tab
- * instead of one generator's file, and Generate draws a fresh random tradition per result. The
- * "series" tab has only the one tradition (title-composer, pinned by `defaultGeneratorIdFor`), so
- * it skips the Any/tradition step entirely: that generator's own top-level genres (Fantasy,
- * Science fiction, ...) are the "Genre" picker there, and their children (Epic fantasy, Heroic
- * fantasy, ...) are the "Sub genre" picker (`topGenreOptions`/`subGenreOptions`).
+ * There is no separate "Tradition" picker any more. On "series" and "novels" (MERGED_GENRE_TABS),
+ * no tradition is itself a genre: every tradition reachable from the tab contributes its own
+ * top-level genres (Fantasy, Science fiction, Arabic, ...) straight into the "Genre" picker
+ * (`mergedGenreOptions`), "Any" first and always what's automatically selected — never a
+ * remembered last pick — and picking one also picks its tradition (`this.generatorId`) behind the
+ * scenes; whichever genre's own children it has (Epic fantasy, Heroic fantasy, ... under Fantasy)
+ * become the "Sub genre" picker below it (`subGenreOptions`), hidden entirely when it has none.
+ * "web fiction & light novels" is the one tab that still pairs a Tradition-as-"Genre" picker
+ * (`traditionOptions`) with a flat, indentation-hierarchy "Sub genre" list
+ * (`hierarchicalGenreOptions`) — each of its seven traditions is a genuinely distinct
+ * regional/language market, not itself a genre's sibling. In "Any" mode (either kind of tab)
+ * there's no single spec to source sub genre/family/platform from (so those pickers are hidden),
+ * history pools across the whole tab instead of one generator's file, and Generate draws a fresh
+ * random tradition per result.
  */
 export class TitleForgePanel {
 	private generatorId: string;
@@ -338,9 +367,10 @@ export class TitleForgePanel {
 		}
 	}
 
-	/** The traditions the "Genre" picker should offer: "Any" first, then the current tab's own —
-	 * each shown under its own name (e.g. "World literary shapes"), since a tradition (generator)
-	 * is now presented as a top-level genre rather than through a separate picker of its own. */
+	/** The traditions the "Genre" picker should offer on a `!MERGED_GENRE_TABS` tab (currently just
+	 * "web fiction & light novels"): "Any" first, then the current tab's own — each shown under its
+	 * own name (e.g. "Western serial"), since a tradition (generator) is presented as a top-level
+	 * genre rather than through a separate picker of its own. */
 	private traditionOptions(): LabelledOption[] {
 		const ids = TAB_TRADITIONS[this.activeTab];
 		const specific = this.controller.generators
@@ -349,13 +379,14 @@ export class TitleForgePanel {
 		return [{ id: ANY_TRADITION_ID, label: "Any" }, ...specific];
 	}
 
-	/** Options for the "Sub genre" picker on a multi-tradition tab (i.e. everywhere but "series" —
-	 * see renderControls): top-level genres in declaration order, each immediately followed by its
-	 * own subgenres (also in declaration order), visually indented — a single flat, hierarchy-aware
-	 * `<select>` rather than a dependent parent->child pair of pickers, per the two-level genre model
-	 * (`GenreOption.parent`, `engine/generate.ts`'s `genreScope`). "Any genre" (`all`) has no parent
-	 * and no children, so it is unaffected and stays first. `this.genre` itself is always just a
-	 * plain subgenre/genre id — indentation is presentation only. */
+	/** Options for the "Sub genre" picker on a `!MERGED_GENRE_TABS` tab (currently just "web
+	 * fiction & light novels" — see renderControls): top-level genres in declaration order, each
+	 * immediately followed by its own subgenres (also in declaration order), visually indented — a
+	 * single flat, hierarchy-aware `<select>` rather than a dependent parent->child pair of pickers,
+	 * per the two-level genre model (`GenreOption.parent`, `engine/generate.ts`'s `genreScope`).
+	 * "Any genre" (`all`) has no parent and no children, so it is unaffected and stays first.
+	 * `this.genre` itself is always just a plain subgenre/genre id — indentation is presentation
+	 * only. */
 	private hierarchicalGenreOptions(spec: GeneratorSpec): LabelledOption[] {
 		const byParent = new Map<string, GenreOption[]>();
 		for (const genre of spec.genres) {
@@ -369,7 +400,7 @@ export class TitleForgePanel {
 			if (genre.parent) continue; // emitted under its own parent below
 			out.push(genre);
 			for (const child of byParent.get(genre.id) ?? []) {
-				out.push({ id: child.id, label: ` ${child.label}` });
+				out.push({ id: child.id, label: ` ${child.label}` });
 			}
 		}
 		return out;
@@ -378,26 +409,47 @@ export class TitleForgePanel {
 	/** The top-level ancestor of genre `id` within `spec` — `id` itself when it has no parent, or
 	 * when `id` isn't one of `spec`'s own genres at all (a stale cross-tradition value; renderSelect
 	 * downstream self-heals that the same way it already does any other stale picker value). Used
-	 * only by the "series" tab's split Genre/Sub genre pair (renderControls). */
+	 * by the `MERGED_GENRE_TABS` pickers (renderControls) to figure out which top genre a possibly-
+	 * already-leaf `this.genre` (e.g. read back from settings) actually belongs to. */
 	private topGenreId(spec: GeneratorSpec, id: string): string {
 		return spec.genres.find((g) => g.id === id)?.parent ?? id;
 	}
 
-	/** The "series" tab's own "Genre" picker: `spec`'s top-level genres only (no `parent`) — e.g.
-	 * Fantasy, Science fiction, Historical — never the leaf/subgenres themselves. */
+	/** `spec`'s own top-level genres only (no `parent`) — e.g. Fantasy, Science fiction, Historical
+	 * — never the leaf/subgenres themselves. Every `MERGED_GENRE_TABS` tradition's own top-level
+	 * genres, gathered this way, are what feeds the shared "Genre" picker (`mergedGenreOptions`). */
 	private topGenreOptions(spec: GeneratorSpec): LabelledOption[] {
 		return spec.genres.filter((g) => !g.parent);
 	}
 
-	/** The "series" tab's own "Sub genre" picker, dependent on whichever top genre `topId` is
-	 * currently selected: an "Any" entry standing for `topId` itself (no narrower pick) followed by
-	 * its children (e.g. under Fantasy: Epic fantasy, Heroic fantasy, Sword & Sorcery, Urban
-	 * fantasy). Empty when `topId` has no children at all — the caller skips the picker entirely
-	 * rather than show a pointless single "Any" choice. */
+	/** A `MERGED_GENRE_TABS` tab's own "Sub genre" picker, dependent on whichever top genre `topId`
+	 * is currently selected within `spec`: an "Any" entry standing for `topId` itself (no narrower
+	 * pick) followed by its children (e.g. under Fantasy: Epic fantasy, Heroic fantasy, Sword &
+	 * Sorcery, Urban fantasy). Empty when `topId` has no children at all — the caller skips the
+	 * picker entirely rather than show a pointless single "Any" choice. */
 	private subGenreOptions(spec: GeneratorSpec, topId: string): LabelledOption[] {
 		const children = spec.genres.filter((g) => g.parent === topId);
 		if (children.length === 0) return [];
 		return [{ id: topId, label: "Any" }, ...children];
+	}
+
+	/** The merged "Genre" picker for a `MERGED_GENRE_TABS` tab: "Any" (`ANY_TRADITION_ID`) first,
+	 * then every tradition reachable from the current tab contributes its own top-level genres in
+	 * turn (`topGenreOptions`), each encoded as `(generator id, genre id)` via `encodeGenrePick` so
+	 * two traditions sharing a genre id can't collide — decoded back in the picker's own `onChange`
+	 * (renderControls). Each spec's own "Any ..." entry (`all`) is skipped since the one shared
+	 * "Any" above already covers it. On "series" (one tradition) this is just a merge of one. */
+	private mergedGenreOptions(): LabelledOption[] {
+		const ids = TAB_TRADITIONS[this.activeTab];
+		const out: LabelledOption[] = [{ id: ANY_TRADITION_ID, label: "Any" }];
+		for (const gen of this.controller.generators) {
+			if (!ids.includes(gen.id)) continue;
+			for (const genre of this.topGenreOptions(gen)) {
+				if (genre.id === "all") continue;
+				out.push({ id: encodeGenrePick(gen.id, genre.id), label: genre.label });
+			}
+		}
+		return out;
 	}
 
 	/** `spec` is undefined in "Any" mode — sub genre/shape-family/platform are one tradition's own
@@ -405,21 +457,31 @@ export class TitleForgePanel {
 	private renderControls(container: HTMLElement, spec: GeneratorSpec | undefined): void {
 		const row = container.createDiv({ cls: "titleforge-row" });
 
-		if (this.activeTab === "series") {
-			// The "series" tab only ever runs title-composer (its one tradition, pinned by
-			// defaultGeneratorIdFor) — there's no tradition to choose, so it skips straight to that
-			// generator's own two-level genre model: its top-level genres (Fantasy, Science
-			// fiction, ...) are the "Genre" picker, and whichever one's own children (Epic fantasy,
-			// Heroic fantasy, ...) are the "Sub genre" picker below it.
-			if (spec) {
-				const topId = this.topGenreId(spec, this.genre);
-				this.renderSelect(row, "Genre", this.topGenreOptions(spec), topId, (value) => {
-					this.genre = value;
-					void this.persistUiState();
-					this.render(); // the Sub genre picker's own options depend on this choice
-				});
+		if (MERGED_GENRE_TABS.includes(this.activeTab)) {
+			// No separate tradition step — no tradition is itself a genre (the "Title
+			// composer"/"World literary shapes" complaint this replaced). Every tradition reachable
+			// from this tab contributes its own top-level genres straight into "Genre"
+			// (mergedGenreOptions); picking one also picks its tradition (this.generatorId) behind
+			// the scenes, and its own children, if it has any, become "Sub genre" below it.
+			const selected = spec ? encodeGenrePick(spec.id, this.topGenreId(spec, this.genre)) : ANY_TRADITION_ID;
+			this.renderSelect(row, "Genre", this.mergedGenreOptions(), selected, (value) => {
+				if (value === ANY_TRADITION_ID) {
+					this.generatorId = ANY_TRADITION_ID;
+					this.genre = "all";
+				} else {
+					const pick = decodeGenrePick(value);
+					if (!pick) return; // defensive only — see decodeGenrePick
+					this.generatorId = pick.generatorId;
+					this.genre = pick.genreId;
+				}
+				this.family = "all";
+				this.platform = "all";
+				void this.persistUiState();
+				void this.loadHistoryForCurrentGenerator().then(() => this.render());
+			});
 
-				const subOptions = this.subGenreOptions(spec, topId);
+			if (spec) {
+				const subOptions = this.subGenreOptions(spec, this.topGenreId(spec, this.genre));
 				if (subOptions.length > 0) {
 					this.renderSelect(row, "Sub genre", subOptions, this.genre, (value) => {
 						this.genre = value;
