@@ -111,22 +111,22 @@ export function chapterSidecarPath(bookFolderName: string, chapterFilename: stri
 }
 
 /** Per-book Story Context sidecars (`attribution.md`, ignored names, chapter caches). */
-export function recommendSidecarFolderPath(bookFolderName: string): string {
+export function storyContextSidecarFolderPath(bookFolderName: string): string {
 	return `${bookBackstagePath(bookFolderName)}/story-details`;
 }
 
-export function recommendSidecarPath(bookFolderName: string, chapterFilename: string): string {
-	return `${recommendSidecarFolderPath(bookFolderName)}/${chapterFilename}`;
+export function storyContextSidecarPath(bookFolderName: string, chapterFilename: string): string {
+	return `${storyContextSidecarFolderPath(bookFolderName)}/${chapterFilename}`;
 }
 
 /** Book-scoped attribution decisions (confirm/reject coref) for Story Context. */
-export function recommendAttributionPath(bookFolderName: string): string {
-	return `${recommendSidecarFolderPath(bookFolderName)}/attribution.md`;
+export function storyContextAttributionPath(bookFolderName: string): string {
+	return `${storyContextSidecarFolderPath(bookFolderName)}/attribution.md`;
 }
 
 /** Book-scoped ignored unknown names for Story Context (“Named but not in Codex”). */
-export function recommendIgnoredNamesPath(bookFolderName: string): string {
-	return `${recommendSidecarFolderPath(bookFolderName)}/ignored-names.md`;
+export function storyContextIgnoredNamesPath(bookFolderName: string): string {
+	return `${storyContextSidecarFolderPath(bookFolderName)}/ignored-names.md`;
 }
 
 export function libraryBookPath(bookFolderName: string): string {

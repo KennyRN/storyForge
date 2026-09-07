@@ -192,25 +192,25 @@ function catalog(): ColourSection[] {
 			rows: [
 				{
 					label: "Active tab icons",
-					mainKey: "recommendTabsActiveColor",
+					mainKey: "storyContextTabsActiveColor",
 					icon: true,
 					restyle: railRestyle,
-					effectiveMain: (s) => s.recommendTabsActiveColor,
+					effectiveMain: (s) => s.storyContextTabsActiveColor,
 				},
 				{
 					label: "Inactive tab icons",
-					mainKey: "recommendTabsColor",
-					mainMutedKey: "recommendTabsMuted",
+					mainKey: "storyContextTabsColor",
+					mainMutedKey: "storyContextTabsMuted",
 					icon: true,
 					restyle: railRestyle,
-					effectiveMain: (s) => mutedOr(s.recommendTabsColor, s.recommendTabsMuted),
+					effectiveMain: (s) => mutedOr(s.storyContextTabsColor, s.storyContextTabsMuted),
 				},
 				{
 					label: "Focus mode icon",
-					mainKey: "recommendFocusModeIconColor",
+					mainKey: "storyContextFocusModeIconColor",
 					icon: true,
 					restyle: railRestyle,
-					effectiveMain: (s) => s.recommendFocusModeIconColor,
+					effectiveMain: (s) => s.storyContextFocusModeIconColor,
 				},
 			],
 		},
@@ -219,17 +219,17 @@ function catalog(): ColourSection[] {
 			rows: [
 				{
 					label: "Novel title",
-					mainKey: "recommendNovelTitleColor",
-					mainMutedKey: "recommendNovelTitleMuted",
+					mainKey: "storyContextNovelTitleColor",
+					mainMutedKey: "storyContextNovelTitleMuted",
 					restyle: railRestyle,
-					effectiveMain: (s) => mutedOr(s.recommendNovelTitleColor, s.recommendNovelTitleMuted),
+					effectiveMain: (s) => mutedOr(s.storyContextNovelTitleColor, s.storyContextNovelTitleMuted),
 				},
 				{
 					label: "Novel subtitle",
-					mainKey: "recommendNovelSubtitleColor",
-					mainMutedKey: "recommendNovelSubtitleMuted",
+					mainKey: "storyContextNovelSubtitleColor",
+					mainMutedKey: "storyContextNovelSubtitleMuted",
 					restyle: railRestyle,
-					effectiveMain: (s) => mutedOr(s.recommendNovelSubtitleColor, s.recommendNovelSubtitleMuted),
+					effectiveMain: (s) => mutedOr(s.storyContextNovelSubtitleColor, s.storyContextNovelSubtitleMuted),
 				},
 			],
 		},
@@ -238,25 +238,25 @@ function catalog(): ColourSection[] {
 			rows: [
 				{
 					label: "option",
-					mainKey: "recommendMetaLabelColor",
-					mainMutedKey: "recommendMetaLabelMuted",
+					mainKey: "storyContextMetaLabelColor",
+					mainMutedKey: "storyContextMetaLabelMuted",
 					restyle: railRestyle,
-					effectiveMain: (s) => mutedOr(s.recommendMetaLabelColor, s.recommendMetaLabelMuted),
+					effectiveMain: (s) => mutedOr(s.storyContextMetaLabelColor, s.storyContextMetaLabelMuted),
 					preview: "option-selectee",
 				},
 				{
 					label: "selectee",
-					mainKey: "recommendMetaControlColor",
-					mainMutedKey: "recommendMetaControlMuted",
+					mainKey: "storyContextMetaControlColor",
+					mainMutedKey: "storyContextMetaControlMuted",
 					restyle: railRestyle,
-					effectiveMain: (s) => mutedOr(s.recommendMetaControlColor, s.recommendMetaControlMuted),
+					effectiveMain: (s) => mutedOr(s.storyContextMetaControlColor, s.storyContextMetaControlMuted),
 					skipPreview: true,
 				},
 				{
 					label: "Synopsis",
-					mainKey: "recommendSynopsisColor",
+					mainKey: "storyContextSynopsisColor",
 					restyle: railRestyle,
-					effectiveMain: (s) => mutedOr(s.recommendSynopsisColor, false),
+					effectiveMain: (s) => mutedOr(s.storyContextSynopsisColor, false),
 				},
 			],
 		},
@@ -267,27 +267,27 @@ function catalog(): ColourSection[] {
 			rows: [
 				{
 					label: "Labels",
-					mainKey: "recommendSectionTitleColor",
-					mainMutedKey: "recommendSectionTitleMuted",
+					mainKey: "storyContextSectionTitleColor",
+					mainMutedKey: "storyContextSectionTitleMuted",
 					restyle: railRestyle,
-					effectiveMain: (s) => mutedOr(s.recommendSectionTitleColor, s.recommendSectionTitleMuted),
+					effectiveMain: (s) => mutedOr(s.storyContextSectionTitleColor, s.storyContextSectionTitleMuted),
 				},
 				{
 					label: "Text",
-					mainKey: "recommendItemsColor",
-					mainMutedKey: "recommendItemsMuted",
+					mainKey: "storyContextItemsColor",
+					mainMutedKey: "storyContextItemsMuted",
 					restyle: railRestyle,
-					effectiveMain: (s) => mutedOr(s.recommendItemsColor, s.recommendItemsMuted),
+					effectiveMain: (s) => mutedOr(s.storyContextItemsColor, s.storyContextItemsMuted),
 				},
 				{
 					label: "Named but not in Codex",
-					mainKey: "recommendUnknownColor",
-					mainMutedKey: "recommendUnknownMuted",
-					textKey: "recommendUnknownHeaderColor",
-					textMutedKey: "recommendUnknownHeaderMuted",
+					mainKey: "storyContextUnknownColor",
+					mainMutedKey: "storyContextUnknownMuted",
+					textKey: "storyContextUnknownHeaderColor",
+					textMutedKey: "storyContextUnknownHeaderMuted",
 					restyle: railRestyle,
-					effectiveMain: (s) => mutedOr(s.recommendUnknownColor, s.recommendUnknownMuted),
-					effectiveText: (s) => mutedOr(s.recommendUnknownHeaderColor, s.recommendUnknownHeaderMuted),
+					effectiveMain: (s) => mutedOr(s.storyContextUnknownColor, s.storyContextUnknownMuted),
+					effectiveText: (s) => mutedOr(s.storyContextUnknownHeaderColor, s.storyContextUnknownHeaderMuted),
 					sectionChrome: true,
 				},
 			],
@@ -297,10 +297,10 @@ function catalog(): ColourSection[] {
 			rows: [
 				{
 					label: "Dossier search",
-					mainKey: "recommendDossierHeaderColor",
-					mainMutedKey: "recommendDossierHeaderMuted",
+					mainKey: "storyContextDossierHeaderColor",
+					mainMutedKey: "storyContextDossierHeaderMuted",
 					restyle: railRestyle,
-					effectiveMain: (s) => mutedOr(s.recommendDossierHeaderColor, s.recommendDossierHeaderMuted),
+					effectiveMain: (s) => mutedOr(s.storyContextDossierHeaderColor, s.storyContextDossierHeaderMuted),
 				},
 			],
 		},
@@ -392,23 +392,23 @@ function cssPrefixForColour(row: ColourRow): string | undefined {
 			return "--sf-codex-note";
 		case "storytellingItemsColor":
 			return "--sf-storytelling-items";
-		case "recommendNovelTitleColor":
-			return "--sf-recommend-novel-title";
-		case "recommendNovelSubtitleColor":
-			return "--sf-recommend-novel-subtitle";
-		case "recommendMetaLabelColor":
-			return "--sf-recommend-meta-label";
-		case "recommendMetaControlColor":
-			return "--sf-recommend-meta-control";
-		case "recommendSynopsisColor":
-			return "--sf-recommend-synopsis";
-		case "recommendSectionTitleColor":
-		case "recommendUnknownColor":
-			return "--sf-recommend-section";
-		case "recommendItemsColor":
-			return "--sf-recommend-items";
-		case "recommendDossierHeaderColor":
-			return "--sf-recommend-dossier";
+		case "storyContextNovelTitleColor":
+			return "--sf-story-context-novel-title";
+		case "storyContextNovelSubtitleColor":
+			return "--sf-story-context-novel-subtitle";
+		case "storyContextMetaLabelColor":
+			return "--sf-story-context-meta-label";
+		case "storyContextMetaControlColor":
+			return "--sf-story-context-meta-control";
+		case "storyContextSynopsisColor":
+			return "--sf-story-context-synopsis";
+		case "storyContextSectionTitleColor":
+		case "storyContextUnknownColor":
+			return "--sf-story-context-section";
+		case "storyContextItemsColor":
+			return "--sf-story-context-items";
+		case "storyContextDossierHeaderColor":
+			return "--sf-story-context-dossier";
 		case "archiveHeaderColor":
 			return "--sf-archive-items";
 		default:
@@ -437,7 +437,7 @@ function paintColourPreview(slot: HTMLElement, plugin: StoryForgePlugin, row: Co
 		return;
 	}
 	const textColor = row.effectiveText(s, plugin);
-	if (row.sectionChrome && s.recommendSectionChrome === "text") {
+	if (row.sectionChrome && s.storyContextSectionChrome === "text") {
 		const sample = slot.createDiv({ cls: "sf-row-preview-sample", text: row.label });
 		sample.setCssStyles({
 			color: textColor,
@@ -447,7 +447,7 @@ function paintColourPreview(slot: HTMLElement, plugin: StoryForgePlugin, row: Co
 		return;
 	}
 	const pill = slot.createDiv({ cls: "sf-row-preview-pill", text: row.label });
-	pill.toggleClass("is-header-pill", !!row.sectionChrome && s.recommendSectionChrome === "pill");
+	pill.toggleClass("is-header-pill", !!row.sectionChrome && s.storyContextSectionChrome === "pill");
 	pill.setCssStyles({
 		backgroundColor: color,
 		color: textColor,
@@ -468,10 +468,10 @@ function paintOptionSelecteePreview(slot: HTMLElement, plugin: StoryForgePlugin)
 	const s = plugin.getSettings();
 	slot.empty();
 	const line = slot.createDiv({ cls: "sf-row-preview-sample" });
-	const optionColor = mutedOr(s.recommendMetaLabelColor, s.recommendMetaLabelMuted);
-	const selecteeColor = mutedOr(s.recommendMetaControlColor, s.recommendMetaControlMuted);
-	const optionType = previewTypeStyles("--sf-recommend-meta-label");
-	const selecteeType = previewTypeStyles("--sf-recommend-meta-control");
+	const optionColor = mutedOr(s.storyContextMetaLabelColor, s.storyContextMetaLabelMuted);
+	const selecteeColor = mutedOr(s.storyContextMetaControlColor, s.storyContextMetaControlMuted);
+	const optionType = previewTypeStyles("--sf-story-context-meta-label");
+	const selecteeType = previewTypeStyles("--sf-story-context-meta-control");
 	const option = line.createSpan({ text: "option" });
 	option.setCssStyles({ color: optionColor, ...optionType });
 	const colon = line.createSpan({ text: ": " });

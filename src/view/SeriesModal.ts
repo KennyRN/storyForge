@@ -397,8 +397,8 @@ export class SeriesModal extends Modal {
 				.setDesc("list names found in the chapter which aren't in the codex")
 				.addToggle((toggle) =>
 					toggle
-						.setValue(settings.recommendIncludeUnknownNames)
-						.onChange((value) => void plugin.updateSetting("recommendIncludeUnknownNames", value)),
+						.setValue(settings.storyContextIncludeUnknownNames)
+						.onChange((value) => void plugin.updateSetting("storyContextIncludeUnknownNames", value)),
 				);
 		});
 

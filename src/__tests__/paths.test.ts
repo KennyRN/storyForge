@@ -9,7 +9,7 @@ import {
 	isLibraryChapterPath,
 	isLibraryRootFilePath,
 	libraryChapterPath,
-	recommendSidecarPath,
+	storyContextSidecarPath,
 	seriesFilePath,
 	wordCountFilePath,
 } from "../paths";
@@ -43,8 +43,8 @@ describe("isBackstageBookkeepingPath", () => {
 		expect(isBackstageBookkeepingPath(chapterSidecarPath("My Novel", "Chapter 1.md"))).toBe(true);
 	});
 
-	it("flags a recommend sidecar path", () => {
-		expect(isBackstageBookkeepingPath(recommendSidecarPath("My Novel", "Chapter 1.md"))).toBe(true);
+	it("flags a Story Context sidecar path", () => {
+		expect(isBackstageBookkeepingPath(storyContextSidecarPath("My Novel", "Chapter 1.md"))).toBe(true);
 		expect(isBackstageBookkeepingPath("_backstage/storyforge/My Novel/recommend/Chapter 1.md")).toBe(true);
 	});
 });

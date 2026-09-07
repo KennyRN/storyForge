@@ -1,16 +1,16 @@
-type RecommendMode = "novel" | "chapter";
-export type RecommendTab = RecommendMode | "forge" | "archive" | "ideas";
+type StoryContextMode = "novel" | "chapter";
+export type StoryContextTab = StoryContextMode | "forge" | "archive" | "ideas";
 
 /** Exactly one Story Context tab is active. Forge family, Archive, and Notebook sit beside the
  * Novel/Chapter modes, so those mode tabs must not stay highlighted while
  * any overlay is showing. */
-export function isRecommendTabActive(
-	tab: RecommendTab,
+export function isStoryContextTabActive(
+	tab: StoryContextTab,
 	state: {
 		forgeFamilyExpanded: boolean;
 		showingArchive: boolean;
 		showingIdeas: boolean;
-		mode: RecommendMode;
+		mode: StoryContextMode;
 	},
 ): boolean {
 	if (state.forgeFamilyExpanded) return tab === "forge";

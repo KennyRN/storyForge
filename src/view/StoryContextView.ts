@@ -31,13 +31,13 @@ import {
 } from "../story-context/decisions";
 import { ensureNlp } from "../story-context/nlp";
 import { resolveChapterNarrator } from "../story-context/narrator";
-import { loadOrRecomputeChapterRecommend, recomputeChapterRecommend } from "../story-context/recompute";
+import { loadOrRecomputeChapterStoryContext, recomputeChapterStoryContext } from "../story-context/recompute";
 import { scanEntityAcrossChapters } from "../story-context/engine";
 import { loadHydratedCodexInventory } from "../story-context/inventory";
 import { createCodexLore } from "../story-context/lore";
-import type { CastMember, ChapterRecommendReport, DetailHit, UnknownNameHint } from "../story-context/types";
+import type { CastMember, ChapterStoryContextReport, DetailHit, UnknownNameHint } from "../story-context/types";
 import { buildDetailsNoteBody } from "../story-context/detailsNote";
-import { writeRecommendCache } from "../story-context/cache";
+import { writeStoryContextCache } from "../story-context/cache";
 import { makeAccessibleActivatable } from "./a11y";
 import { renderStampedEmptyCross } from "./stampedCross";
 import { activateRightRailView } from "./activateRightRailView";
@@ -53,21 +53,21 @@ import { ChapterTitleModal } from "./ChapterTitleModal";
 import { iconAction, renderMetaRefList, renderNovelPanel } from "./NovelPanel";
 import { resolveMainThreadRowColor } from "./novelColor";
 import { resolveTitleShadow } from "../titleShadow";
-import { isRecommendTabActive, type RecommendTab } from "./recommendTabActive";
+import { isStoryContextTabActive, type StoryContextTab } from "./storyContextTabActive";
 import { storytellingCodexOpenTarget } from "./codexOpenTarget";
 import { displayedVaultTags } from "../vaultTags";
 import { countWords, formatWordCount } from "../wordCount";
 
-/** Workspace view-type id. The string is historical (`recommend-view`) so existing layouts restore. */
-export const STORY_CONTEXT_VIEW_TYPE = "storyforge-recommend-view";
+/** Workspace view-type id. The string is historical (`storyContext-view`) so existing layouts restore. */
+export const STORY_CONTEXT_VIEW_TYPE = "storyforge-storyContext-view";
 
-type RecommendMode = "novel" | "chapter";
+type StoryContextMode = "novel" | "chapter";
 type NotebookIndexKind = "notes" | "codex" | "dossier";
 
 export class StoryContextView extends ItemView {
 	private bookFolderName: string | null = null;
 	private chapterFilename: string | null = null;
-	private mode: RecommendMode = "chapter";
+	private mode: StoryContextMode = "chapter";
 	/** When true, archive list is shown under Chapter/Notebook tabs. */
 	private showingArchive = false;
 	private archiveMode: ArchiveMode = "codex";
@@ -101,7 +101,7 @@ export class StoryContextView extends ItemView {
 	private activeCodexFolderId: string | null = null;
 	private notebookCodexTypeFilter = new Set<string>();
 	private notebookCodexTagFilter: string | null = null;
-	private report: ChapterRecommendReport | null = null;
+	private report: ChapterStoryContextReport | null = null;
 	private synopsisDraft = "";
 	private closed = false;
 	private nlpReady = false;
@@ -114,7 +114,7 @@ export class StoryContextView extends ItemView {
 	private focusMode = false;
 	/** Forge family: whether the member-icon row is showing, which member (if any) has its panel
 	 * embedded, and that panel's disposer. One shared piece of state rendered in two places - the
-	 * "Forge family" tab in .sf-recommend-tabs (normal view) and the trigger in the blank Focus
+	 * "Forge family" tab in .sf-story-context-tabs (normal view) and the trigger in the blank Focus
 	 * Mode panel (renderFocusModeContent()) - so an open companion window survives toggling Focus
 	 * Mode, just relocated into whichever chrome is showing. */
 	private forgeFamilyExpanded = false;
@@ -155,14 +155,14 @@ export class StoryContextView extends ItemView {
 	private readonly debouncedReload = debounce(() => void this.reload(), 500);
 
 	async onOpen(): Promise<void> {
-		this.contentEl.addClass("sf-recommend-view");
+		this.contentEl.addClass("sf-story-context-view");
 		this.contentEl.addClass("sf-context-view");
 		this.registerTabHeaderFocusToggle();
 		this.registerEvent(this.app.workspace.on("active-leaf-change", () => this.followActiveFile()));
 		this.registerEvent(this.app.workspace.on("file-open", () => this.followActiveFile()));
 		this.registerEvent(
 			this.app.vault.on("modify", (file) => {
-				// Ignore recommend/wordcount sidecars — writing the cache must not retrigger reload.
+				// Ignore storyContext/wordcount sidecars — writing the cache must not retrigger reload.
 				if (isBackstageBookkeepingPath(file.path)) return;
 				const codexPrefix = `${CODEX_ROOT}/`;
 				if (
@@ -409,11 +409,11 @@ export class StoryContextView extends ItemView {
 		void this.refreshDisplayedWordCounts();
 	}
 
-	private recommendSettings() {
+	private storyContextSettings() {
 		const s = this.plugin.getSettings();
 		return {
 			codexFactSectionByType: s.codexFactSectionByType,
-			recommendIncludeUnknownNames: s.recommendIncludeUnknownNames,
+			storyContextIncludeUnknownNames: s.storyContextIncludeUnknownNames,
 		};
 	}
 
@@ -446,11 +446,11 @@ export class StoryContextView extends ItemView {
 				this.render();
 				return;
 			}
-			this.report = await loadOrRecomputeChapterRecommend(
+			this.report = await loadOrRecomputeChapterStoryContext(
 				this.app,
 				this.bookFolderName,
 				this.chapterFilename,
-				this.recommendSettings(),
+				this.storyContextSettings(),
 			);
 			if (this.report) this.synopsisDraft = this.report.synopsisHeuristic;
 			this.render();
@@ -464,11 +464,11 @@ export class StoryContextView extends ItemView {
 		try {
 			await this.ensureEngine();
 			if (!this.bookFolderName || !this.chapterFilename) return;
-			this.report = await recomputeChapterRecommend(
+			this.report = await recomputeChapterStoryContext(
 				this.app,
 				this.bookFolderName,
 				this.chapterFilename,
-				this.recommendSettings(),
+				this.storyContextSettings(),
 			);
 			if (this.report) this.synopsisDraft = this.report.synopsisHeuristic;
 			if (this.showingIdeas && this.notebookIndexKind === "dossier") {
@@ -489,12 +489,12 @@ export class StoryContextView extends ItemView {
 		}
 		this.castCache = await loadHydratedCodexInventory(
 			this.app,
-			this.recommendSettings().codexFactSectionByType,
+			this.storyContextSettings().codexFactSectionByType,
 		);
 	}
 
 	/**
-	 * `force` is for the toggles that change what's embedded below .sf-recommend-tabs
+	 * `force` is for the toggles that change what's embedded below .sf-story-context-tabs
 	 * (toggleFocusMode/toggleForgeFamilyExpanded/toggleForgeFamilyPanel) only - every other caller
 	 * (reload(), file/vault watchers, …) should leave it false. While a Forge-family companion
 	 * panel is embedded (forgeFamilyPanelDisposer set) an unforced call is a no-op: without this,
@@ -514,7 +514,7 @@ export class StoryContextView extends ItemView {
 		if (headerEl) this.decorateTabHeader(headerEl);
 		const el = this.contentEl;
 		el.empty();
-		el.addClass("sf-recommend-view");
+		el.addClass("sf-story-context-view");
 		el.addClass("sf-context-view");
 		// Focus Mode (toggled from this view's own tab-header icon, see registerTabHeaderFocusToggle
 		// above): blank the panel entirely rather than simplify it - left sidebar and every other
@@ -528,9 +528,9 @@ export class StoryContextView extends ItemView {
 		// Icon-only, matching the left sidebar's storyLibrary panel (StoryForgeView.ts's own
 		// .sf-layout-tab layout-select row) both in icon size (styles.css) and in treatment - a
 		// plain colour highlight for hover/active, no background chip.
-		const tabs = el.createDiv({ cls: "sf-recommend-tabs" });
+		const tabs = el.createDiv({ cls: "sf-story-context-tabs" });
 		const novelTab = tabs.createSpan({
-			cls: `sf-recommend-tab${this.tabIsActive("novel") ? " is-active" : ""}`,
+			cls: `sf-story-context-tab${this.tabIsActive("novel") ? " is-active" : ""}`,
 			attr: {
 				role: "tab",
 				tabindex: "0",
@@ -541,7 +541,7 @@ export class StoryContextView extends ItemView {
 		setIcon(novelTab.createSpan({ cls: "sf-layout-tab-icon" }), ICON_BOOK_DUOTONE);
 		setTooltip(novelTab, "Novel");
 		const chapterTab = tabs.createSpan({
-			cls: `sf-recommend-tab${this.tabIsActive("chapter") ? " is-active" : ""}`,
+			cls: `sf-story-context-tab${this.tabIsActive("chapter") ? " is-active" : ""}`,
 			attr: {
 				role: "tab",
 				tabindex: "0",
@@ -551,7 +551,7 @@ export class StoryContextView extends ItemView {
 		});
 		setIcon(chapterTab.createSpan({ cls: "sf-layout-tab-icon" }), ICON_BOOK_OPEN_FILLED);
 		setTooltip(chapterTab, "Chapter");
-		const selectMode = (mode: RecommendMode) => {
+		const selectMode = (mode: StoryContextMode) => {
 			this.showingArchive = false;
 			this.showingIdeas = false;
 			this.ideaShelfPanelOpen = false;
@@ -571,7 +571,7 @@ export class StoryContextView extends ItemView {
 		makeAccessibleActivatable(chapterTab, () => selectMode("chapter"));
 
 		const ideasTab = tabs.createSpan({
-			cls: `sf-recommend-tab${this.tabIsActive("ideas") ? " is-active" : ""}`,
+			cls: `sf-story-context-tab${this.tabIsActive("ideas") ? " is-active" : ""}`,
 			attr: {
 				role: "tab",
 				tabindex: "0",
@@ -605,7 +605,7 @@ export class StoryContextView extends ItemView {
 		}
 		if (forgeFamily.length > 0) {
 			const forgeTab = tabs.createSpan({
-				cls: `sf-recommend-tab sf-recommend-tab--forge-family${this.tabIsActive("forge") ? " is-active" : ""}`,
+				cls: `sf-story-context-tab sf-story-context-tab--forge-family${this.tabIsActive("forge") ? " is-active" : ""}`,
 				attr: {
 					role: "tab",
 					tabindex: "0",
@@ -624,7 +624,7 @@ export class StoryContextView extends ItemView {
 		}
 
 		const archiveTab = tabs.createSpan({
-			cls: `sf-recommend-tab sf-recommend-tab--archive${this.tabIsActive("archive") ? " is-active" : ""}`,
+			cls: `sf-story-context-tab sf-story-context-tab--archive${this.tabIsActive("archive") ? " is-active" : ""}`,
 			attr: {
 				role: "tab",
 				tabindex: "0",
@@ -655,7 +655,7 @@ export class StoryContextView extends ItemView {
 		// above - then, if a member is open, its embedded panel takes over the rest of the panel
 		// (tabs + row stay visible so it can be switched or closed), same precedence Archive has.
 		if (forgeFamily.length > 0 && this.forgeFamilyExpanded) {
-			const row = el.createDiv({ cls: "sf-recommend-view__forge-row" });
+			const row = el.createDiv({ cls: "sf-story-context-view__forge-row" });
 			this.renderForgeFamilyIcons(row, forgeFamily);
 		}
 		if (this.mountActiveForgeFamilyPanel(el, forgeFamily)) return;
@@ -679,7 +679,7 @@ export class StoryContextView extends ItemView {
 		}
 
 		if (this.loading) {
-			const body = el.createDiv({ cls: "sf-recommend-body sf-recommend-body--scroll" });
+			const body = el.createDiv({ cls: "sf-story-context-body sf-story-context-body--scroll" });
 			body.createDiv({ cls: "sf-empty", text: "Loading language model…" });
 			return;
 		}
@@ -711,18 +711,18 @@ export class StoryContextView extends ItemView {
 			this.mountActiveForgeFamilyPanel(el, family);
 		}
 
-		const row = el.createDiv({ cls: "sf-recommend-view__forge-row sf-recommend-view__forge-row--focus" });
+		const row = el.createDiv({ cls: "sf-story-context-view__forge-row sf-story-context-view__forge-row--focus" });
 
 		const ideaFamily = row.createDiv({
-			cls: "sf-recommend-view__forge-family-cluster sf-recommend-view__forge-family-cluster--notebook",
+			cls: "sf-story-context-view__forge-family-cluster sf-story-context-view__forge-family-cluster--notebook",
 		});
 		const ideaMembers = ideaFamily.createDiv({
-			cls: `sf-recommend-view__forge-members${this.ideaShelfExpanded ? " is-expanded" : ""}`,
+			cls: `sf-story-context-view__forge-members${this.ideaShelfExpanded ? " is-expanded" : ""}`,
 		});
 		this.renderIdeaShelfBrowseIcon(ideaMembers);
 		this.renderNotebookAddIcon(ideaFamily);
 		const ideaTrigger = ideaFamily.createSpan({
-			cls: "sf-recommend-view__forge-family",
+			cls: "sf-story-context-view__forge-family",
 			attr: { role: "button", tabindex: "0", "aria-label": "Notebook" },
 		});
 		setIcon(ideaTrigger, ICON_NOTEBOOK_DUOTONE);
@@ -732,13 +732,13 @@ export class StoryContextView extends ItemView {
 		makeAccessibleActivatable(ideaTrigger, toggleIdeas);
 
 		if (family.length > 0) {
-			const forgeFamily = row.createDiv({ cls: "sf-recommend-view__forge-family-cluster" });
+			const forgeFamily = row.createDiv({ cls: "sf-story-context-view__forge-family-cluster" });
 			const members = forgeFamily.createDiv({
-				cls: `sf-recommend-view__forge-members${this.forgeFamilyExpanded ? " is-expanded" : ""}`,
+				cls: `sf-story-context-view__forge-members${this.forgeFamilyExpanded ? " is-expanded" : ""}`,
 			});
 			this.renderForgeFamilyIcons(members, family);
 			const trigger = forgeFamily.createSpan({
-				cls: "sf-recommend-view__forge-family",
+				cls: "sf-story-context-view__forge-family",
 				attr: { role: "button", tabindex: "0", "aria-label": "Forge family" },
 			});
 			setIcon(trigger, ICON_FORGE);
@@ -751,12 +751,12 @@ export class StoryContextView extends ItemView {
 
 	private renderChapterWordCount(parent: HTMLElement): void {
 		const cluster = parent.createDiv({
-			cls: "sf-recommend-chapter-wordcount",
+			cls: "sf-story-context-chapter-wordcount",
 			attr: { "aria-label": `Chapter word count ${formatWordCount(this.chapterWordCount)}` },
 		});
-		setIcon(cluster.createSpan({ cls: "sf-icon sf-recommend-chapter-wordcount-icon" }), ICON_DASHBOARD_CHART);
+		setIcon(cluster.createSpan({ cls: "sf-icon sf-story-context-chapter-wordcount-icon" }), ICON_DASHBOARD_CHART);
 		cluster.createSpan({
-			cls: "sf-recommend-chapter-wordcount-value",
+			cls: "sf-story-context-chapter-wordcount-value",
 			text: formatWordCount(this.chapterWordCount),
 		});
 	}
@@ -773,7 +773,7 @@ export class StoryContextView extends ItemView {
 		if (this.closed) return;
 		if (chapter !== this.chapterWordCount) {
 			this.chapterWordCount = chapter;
-			const el = this.contentEl.querySelector(".sf-recommend-chapter-wordcount-value");
+			const el = this.contentEl.querySelector(".sf-story-context-chapter-wordcount-value");
 			if (el instanceof HTMLElement) {
 				el.setText(formatWordCount(chapter));
 				el.parentElement?.setAttr("aria-label", `Chapter word count ${formatWordCount(chapter)}`);
@@ -781,8 +781,8 @@ export class StoryContextView extends ItemView {
 		}
 	}
 
-	private tabIsActive(tab: RecommendTab): boolean {
-		return isRecommendTabActive(tab, {
+	private tabIsActive(tab: StoryContextTab): boolean {
+		return isStoryContextTabActive(tab, {
 			forgeFamilyExpanded: this.forgeFamilyExpanded,
 			showingArchive: this.showingArchive,
 			showingIdeas: this.showingIdeas,
@@ -832,7 +832,7 @@ export class StoryContextView extends ItemView {
 				this.contentEl.querySelector(".sf-codex-page-host")?.remove();
 				if (this.forgeFamilyActiveId) this.render(true);
 			} else {
-				this.contentEl.querySelector(".sf-recommend-view__forge-panel")?.remove();
+				this.contentEl.querySelector(".sf-story-context-view__forge-panel")?.remove();
 			}
 			return;
 		}
@@ -851,7 +851,7 @@ export class StoryContextView extends ItemView {
 	private renderForgeFamilyIcons(row: HTMLElement, family: StoryForgeCompanionPanel[]): void {
 		for (const plugin of family) {
 			const btn = row.createSpan({
-				cls: `sf-recommend-view__forge-icon${plugin.id === this.forgeFamilyActiveId ? " is-active" : ""}`,
+				cls: `sf-story-context-view__forge-icon${plugin.id === this.forgeFamilyActiveId ? " is-active" : ""}`,
 				attr: { role: "button", tabindex: "0", "aria-label": plugin.label },
 			});
 			setIcon(btn, plugin.icon);
@@ -871,7 +871,7 @@ export class StoryContextView extends ItemView {
 		this.disposeForgeFamilyPanel();
 		const active = family.find((p) => p.id === this.forgeFamilyActiveId) ?? null;
 		if (!active) return false;
-		const panelEl = container.createDiv({ cls: "sf-recommend-view__forge-panel" });
+		const panelEl = container.createDiv({ cls: "sf-story-context-view__forge-panel" });
 		this.forgeFamilyPanelDisposer = active.renderPanel(panelEl);
 		return true;
 	}
@@ -887,7 +887,7 @@ export class StoryContextView extends ItemView {
 	}
 
 	private syncFocusPopoutChrome(): void {
-		const members = this.contentEl.querySelectorAll(".sf-recommend-view__forge-members");
+		const members = this.contentEl.querySelectorAll(".sf-story-context-view__forge-members");
 		const ideaMembers = members[0];
 		const forgeMembers = members.length > 1 ? members[1] : null;
 		ideaMembers?.toggleClass("is-expanded", this.ideaShelfExpanded);
@@ -911,10 +911,10 @@ export class StoryContextView extends ItemView {
 			if (!this.ideaShelfExpanded) {
 				this.contentEl.querySelector(".sf-idea-shelf")?.remove();
 				this.contentEl.querySelector(".sf-notebook-card-host")?.remove();
-				this.contentEl.querySelector(".sf-recommend-view__forge-panel")?.remove();
+				this.contentEl.querySelector(".sf-story-context-view__forge-panel")?.remove();
 			} else {
 				this.contentEl.querySelector(".sf-codex-page-host")?.remove();
-				this.contentEl.querySelector(".sf-recommend-view__forge-panel")?.remove();
+				this.contentEl.querySelector(".sf-story-context-view__forge-panel")?.remove();
 			}
 			return;
 		}
@@ -923,7 +923,7 @@ export class StoryContextView extends ItemView {
 
 	private renderNotebookAddIcon(parent: HTMLElement): void {
 		const plus = parent.createSpan({
-			cls: `sf-recommend-view__forge-icon sf-recommend-view__forge-icon--notebook-add${this.ideaCardOpen ? " is-active" : ""}`,
+			cls: `sf-story-context-view__forge-icon sf-story-context-view__forge-icon--notebook-add${this.ideaCardOpen ? " is-active" : ""}`,
 			attr: { role: "button", tabindex: "0", "aria-label": "New note" },
 		});
 		setIcon(plus, ICON_ADD_CIRCLE);
@@ -935,7 +935,7 @@ export class StoryContextView extends ItemView {
 
 	private renderIdeaShelfBrowseIcon(row: HTMLElement): void {
 		const eye = row.createSpan({
-			cls: `sf-recommend-view__forge-icon sf-recommend-view__forge-icon--notebook-popout${this.ideaShelfPanelOpen ? " is-active" : ""}`,
+			cls: `sf-story-context-view__forge-icon sf-story-context-view__forge-icon--notebook-popout${this.ideaShelfPanelOpen ? " is-active" : ""}`,
 			attr: { role: "button", tabindex: "0", "aria-label": "Browse notebook" },
 		});
 		setIcon(eye, ICON_EYE_DUOTONE);
@@ -1330,7 +1330,7 @@ export class StoryContextView extends ItemView {
 		// instant this runs. A dedicated nested-flex host isolates renderNovelPanel's own
 		// `.empty()` to just its own children while still giving its content the remaining column
 		// height (its fixed/scroll split needs that to size correctly).
-		const host = el.createDiv({ cls: "sf-recommend-novel-host" });
+		const host = el.createDiv({ cls: "sf-story-context-novel-host" });
 		renderNovelPanel(this.app, host, {
 			bookFolderName: this.bookFolderName,
 			plugin: this.plugin,
@@ -1342,10 +1342,10 @@ export class StoryContextView extends ItemView {
 	}
 
 	private renderChapter(el: HTMLElement): void {
-		const body = el.createDiv({ cls: "sf-recommend-body" });
+		const body = el.createDiv({ cls: "sf-story-context-body" });
 
 		if (!this.bookFolderName || !this.chapterFilename) {
-			body.addClass("sf-recommend-body--scroll");
+			body.addClass("sf-story-context-body--scroll");
 			body.createDiv({ cls: "sf-empty", text: "Open a chapter to see story context." });
 			return;
 		}
@@ -1353,19 +1353,19 @@ export class StoryContextView extends ItemView {
 		// The card now holds the description plus Characters / Other Codex lists, so it can
 		// grow taller than the pane — scroll the whole body rather than pin the card and clip
 		// the icons that sit directly under it.
-		body.addClass("sf-recommend-body--scroll");
+		body.addClass("sf-story-context-body--scroll");
 		const bookFolderName = this.bookFolderName;
 		const chapterFilename = this.chapterFilename;
 
 		const card = body.createDiv({
-			cls: "sf-recommend-plot-block sf-recommend-plot-block--plain sf-recommend-plot-block--chapter",
+			cls: "sf-story-context-plot-block sf-story-context-plot-block--plain sf-story-context-plot-block--chapter",
 		});
-		const headerRow = card.createDiv({ cls: "sf-recommend-plot-header-row" });
+		const headerRow = card.createDiv({ cls: "sf-story-context-plot-header-row" });
 		const { title, subtitle } = splitTitleSubtitle(
 			numberedChapterTitle(this.app, bookFolderName, chapterFilename, this.plugin.getSettings().chapterNumberingStyle),
 		);
 		const nameEl = headerRow.createDiv({
-			cls: "sf-recommend-plot-chapter-name sf-recommend-plot-chapter-name--clickable",
+			cls: "sf-story-context-plot-chapter-name sf-story-context-plot-chapter-name--clickable",
 			text: subtitle ? `${title} (${subtitle})` : title,
 		});
 		const rowColor = resolveMainThreadRowColor(this.app, this.plugin.getSettings());
@@ -1395,7 +1395,7 @@ export class StoryContextView extends ItemView {
 
 		if (this.report) {
 			const textarea = card.createEl("textarea", {
-				cls: "sf-recommend-synopsis sf-recommend-plot-textarea",
+				cls: "sf-story-context-synopsis sf-story-context-plot-textarea",
 				attr: { "aria-label": "chapter summary", rows: "1" },
 			});
 			textarea.value = this.synopsisDraft;
@@ -1420,7 +1420,7 @@ export class StoryContextView extends ItemView {
 			this.renderMatchList(card, "Other Codex references", others);
 		}
 
-		const actions = body.createDiv({ cls: "sf-recommend-chapter-card-actions" });
+		const actions = body.createDiv({ cls: "sf-story-context-chapter-card-actions" });
 		iconAction(actions, ICON_TARGET_DUOTONE, "go to chapter", () => {
 			if (!this.bookFolderName || !this.chapterFilename) return;
 			void this.openChapter(this.bookFolderName, this.chapterFilename);
@@ -1440,22 +1440,22 @@ export class StoryContextView extends ItemView {
 	private renderMatchList(
 		el: HTMLElement,
 		title: string,
-		items: ChapterRecommendReport["matched"],
+		items: ChapterStoryContextReport["matched"],
 	): void {
-		const section = el.createDiv({ cls: "sf-recommend-section" });
-		section.createDiv({ cls: "sf-recommend-section-title", text: title });
+		const section = el.createDiv({ cls: "sf-story-context-section" });
+		section.createDiv({ cls: "sf-story-context-section-title", text: title });
 		if (items.length === 0) {
 			renderStampedEmptyCross(section, "None found.");
 			return;
 		}
-		const list = section.createDiv({ cls: "sf-recommend-match-list" });
+		const list = section.createDiv({ cls: "sf-story-context-match-list" });
 		items.forEach((item, index) => {
-			const chip = list.createSpan({ cls: "sf-recommend-match-item" });
+			const chip = list.createSpan({ cls: "sf-story-context-match-item" });
 			const iconId = codexTypeIcon(item.type);
-			if (iconId) setIcon(chip.createSpan({ cls: "sf-icon sf-recommend-match-icon" }), iconId);
+			if (iconId) setIcon(chip.createSpan({ cls: "sf-icon sf-story-context-match-icon" }), iconId);
 			const labelText = item.ambiguousWith.length > 0 ? `${item.name} ?` : item.name;
 			chip.createSpan({
-				cls: "sf-recommend-match-label",
+				cls: "sf-story-context-match-label",
 				text: index < items.length - 1 ? `${labelText},` : labelText,
 			});
 			if (item.ambiguousWith.length > 0) {
@@ -1464,12 +1464,12 @@ export class StoryContextView extends ItemView {
 		});
 	}
 
-	private renderUnknownList(el: HTMLElement, report: ChapterRecommendReport): void {
+	private renderUnknownList(el: HTMLElement, report: ChapterStoryContextReport): void {
 		const card = el.createDiv({
-			cls: "sf-recommend-plot-block sf-recommend-plot-block--plain sf-recommend-unknown-card",
+			cls: "sf-story-context-plot-block sf-story-context-plot-block--plain sf-story-context-unknown-card",
 		});
-		const section = card.createDiv({ cls: "sf-recommend-section" });
-		section.createDiv({ cls: "sf-recommend-section-title", text: "Named but not in Codex" });
+		const section = card.createDiv({ cls: "sf-story-context-section" });
+		section.createDiv({ cls: "sf-story-context-section-title", text: "Named but not in Codex" });
 		const hints: UnknownNameHint[] =
 			report.unknownNameHints.length > 0
 				? report.unknownNameHints
@@ -1479,10 +1479,10 @@ export class StoryContextView extends ItemView {
 			return;
 		}
 		for (const hint of hints) {
-			const row = section.createDiv({ cls: "sf-recommend-row" });
+			const row = section.createDiv({ cls: "sf-story-context-row" });
 			const label = hint.nerType ? `${hint.name} (${hint.nerType})` : hint.name;
-			row.createSpan({ cls: "sf-recommend-unknown-name", text: label });
-			const actions = row.createDiv({ cls: "sf-recommend-row-actions" });
+			row.createSpan({ cls: "sf-story-context-unknown-name", text: label });
+			const actions = row.createDiv({ cls: "sf-story-context-row-actions" });
 			iconAction(actions, ICON_ADD_CIRCLE, "add to codex", () =>
 				void this.createStub(hint.name, hint.nerType),
 			);
@@ -1497,36 +1497,36 @@ export class StoryContextView extends ItemView {
 
 	private renderHitCard(parent: HTMLElement, hit: DetailHit): void {
 		const card = parent.createDiv({
-			cls: `sf-recommend-hit sf-recommend-hit-${hit.tier}${hit.negated ? " is-negated" : ""}`,
+			cls: `sf-story-context-hit sf-story-context-hit-${hit.tier}${hit.negated ? " is-negated" : ""}`,
 		});
 
-		const meta = card.createDiv({ cls: "sf-recommend-hit-meta" });
+		const meta = card.createDiv({ cls: "sf-story-context-hit-meta" });
 		meta.createSpan({
-			cls: `sf-recommend-tier sf-recommend-tier-${hit.tier}`,
+			cls: `sf-story-context-tier sf-story-context-tier-${hit.tier}`,
 			text: hit.tier,
 		});
-		meta.createSpan({ cls: "sf-recommend-lens", text: lensLabel(hit.lens) });
+		meta.createSpan({ cls: "sf-story-context-lens", text: lensLabel(hit.lens) });
 		if (hit.trait) {
-			meta.createSpan({ cls: "sf-recommend-trait", text: hit.trait });
+			meta.createSpan({ cls: "sf-story-context-trait", text: hit.trait });
 		}
 		if (hit.negated) {
-			meta.createSpan({ cls: "sf-recommend-negated", text: "negated" });
+			meta.createSpan({ cls: "sf-story-context-negated", text: "negated" });
 		}
 
-		const spanEl = card.createDiv({ cls: "sf-recommend-hit-span", text: hit.sentence });
+		const spanEl = card.createDiv({ cls: "sf-story-context-hit-span", text: hit.sentence });
 		spanEl.addEventListener("click", () => void this.jumpToHit(hit));
 		makeAccessibleActivatable(spanEl, () => void this.jumpToHit(hit));
 
 		if (hit.currentCodexFact) {
 			card.createDiv({
-				cls: "sf-recommend-codex-fact",
+				cls: "sf-story-context-codex-fact",
 				text: `Codex · ${hit.currentCodexFact.key}: ${hit.currentCodexFact.value}`,
 			});
 		}
 	}
 
 	private renderNotebookDossierPage(page: HTMLElement): void {
-		const scroll = page.createDiv({ cls: "sf-recommend-scroll" });
+		const scroll = page.createDiv({ cls: "sf-story-context-scroll" });
 
 		if (!this.bookFolderName) {
 			scroll.createDiv({ cls: "sf-empty", text: "Open a chapter to see story context." });
@@ -1559,9 +1559,9 @@ export class StoryContextView extends ItemView {
 		const groups = groupHitsByChapter(ordered, this.dossierHits);
 
 		for (const group of groups) {
-			const chSection = scroll.createDiv({ cls: "sf-recommend-section" });
+			const chSection = scroll.createDiv({ cls: "sf-story-context-section" });
 			const chTitle = chSection.createDiv({
-				cls: "sf-recommend-section-title",
+				cls: "sf-story-context-section-title",
 				text: group.chapter.label,
 			});
 			chTitle.addEventListener("click", () => {
@@ -1670,7 +1670,7 @@ export class StoryContextView extends ItemView {
 					: [];
 		const location = chapter?.location ?? [];
 
-		const meta = parent.createDiv({ cls: "sf-recommend-meta" });
+		const meta = parent.createDiv({ cls: "sf-story-context-meta" });
 		renderMetaRefList(
 			meta,
 			"PoV:",
@@ -1756,11 +1756,11 @@ export class StoryContextView extends ItemView {
 		if (!this.bookFolderName || !this.chapterFilename) return;
 		try {
 			await this.ensureEngine();
-			const freshReport = await recomputeChapterRecommend(
+			const freshReport = await recomputeChapterStoryContext(
 				this.app,
 				this.bookFolderName,
 				this.chapterFilename,
-				this.recommendSettings(),
+				this.storyContextSettings(),
 			);
 			this.report = freshReport;
 			if (this.report) this.synopsisDraft = this.report.synopsisHeuristic;
@@ -1822,7 +1822,7 @@ export class StoryContextView extends ItemView {
 		if (!this.bookFolderName || !this.report) return;
 		const ignored = await addIgnoredName(this.app, this.bookFolderName, name);
 		applyIgnoredNames(this.report, ignored.names);
-		await writeRecommendCache(this.app, this.bookFolderName, this.report);
+		await writeStoryContextCache(this.app, this.bookFolderName, this.report);
 		this.render();
 	}
 

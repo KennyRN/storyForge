@@ -90,7 +90,7 @@ export interface UnknownNameHint {
 	nerType?: string;
 }
 
-export interface ChapterRecommendReport {
+export interface ChapterStoryContextReport {
 	chapterFilename: string;
 	contentHash: string;
 	synopsisHeuristic: string;
