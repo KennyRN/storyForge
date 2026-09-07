@@ -7201,6 +7201,14 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	color: var(--text-normal);
 }
 
+/* Genre and Sub genre (renderSelect's `wide` flag) — flex-basis 100% claims the whole row on its
+ * own within .titleforge-row's flex-wrap, so each stacks full-width rather than sizing to its
+ * selected option's own text; the <select> itself then fills it via the field's default (stretch)
+ * cross-axis alignment, same full width as the Generate button below (.titleforge-generate-button). */
+.titleforge-field--wide {
+	flex: 1 1 100%;
+}
+
 .titleforge-series-toggle {
 	display: flex;
 	align-items: center;

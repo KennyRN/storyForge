@@ -520,7 +520,7 @@ export class TitleForgePanel {
 				this.platform = "all";
 				void this.persistUiState();
 				void this.loadHistoryForCurrentGenerator().then(() => this.render());
-			});
+			}, true);
 
 			if (spec) {
 				const subOptions = this.subGenreOptions(spec, this.topGenreId(spec, this.genre));
@@ -528,7 +528,7 @@ export class TitleForgePanel {
 					this.renderSelect(row, "Sub genre", subOptions, this.genre, (value) => {
 						this.genre = value;
 						void this.persistUiState();
-					});
+					}, true);
 				}
 			}
 		} else {
@@ -542,7 +542,7 @@ export class TitleForgePanel {
 				this.platform = "all";
 				void this.persistUiState();
 				void this.loadHistoryForCurrentGenerator().then(() => this.render());
-			});
+			}, true);
 
 			if (spec) {
 				// A generator's own genres (with their two-level parent/subgenre structure) are
@@ -550,7 +550,7 @@ export class TitleForgePanel {
 				this.renderSelect(row, "Sub genre", this.hierarchicalGenreOptions(spec), this.genre, (value) => {
 					this.genre = value;
 					void this.persistUiState();
-				});
+				}, true);
 			}
 		}
 
@@ -647,14 +647,19 @@ export class TitleForgePanel {
 		}
 	}
 
+	/** `wide`, when true, stretches this field (and its select) across the whole row — Genre and Sub
+	 * genre (renderControls) use it so they read at the same full width as the Generate button
+	 * below them, rather than sizing to their own selected option's text like Shape family/Platform
+	 * still do. */
 	private renderSelect(
 		container: HTMLElement,
 		labelText: string,
 		options: LabelledOption[],
 		value: string,
 		onChange: (value: string) => void,
+		wide = false,
 	): HTMLSelectElement {
-		const label = container.createEl("label", { cls: "titleforge-field" });
+		const label = container.createEl("label", { cls: "titleforge-field" + (wide ? " titleforge-field--wide" : "") });
 		label.createSpan({ text: labelText });
 		const select = label.createEl("select");
 		for (const opt of options) {
