@@ -29,7 +29,6 @@ import {
 	createCodexNote,
 	ensureVirtualFolder,
 	getCodexView,
-	partitionCodexNotes,
 	readCodexFrontmatter,
 	registerCodexType as registerCodexTypeInternal,
 	setCodexEntryType,
@@ -919,21 +918,19 @@ export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 			return setCodexEntryType(plugin.app, path, type);
 		},
 
-		async listByType(type, bookId = null) {
+		async listByType(type, _bookId = null) {
 			const { types } = readCodexFrontmatter(plugin.app);
-			const notes = collectCodexNotes(plugin.app);
-			const { codex } = partitionCodexNotes(notes, bookId ?? null);
-			return codex
-				.filter((n) => types[n.path] === type)
-				.map((n) => ({
-					path: n.path,
-					name: n.path.replace(/^Codex\//, "").replace(/\.md$/i, ""),
-					bookIds: [...n.bookIds],
+			return collectCodexNotes(plugin.app)
+				.filter((path) => types[path] === type)
+				.map((path) => ({
+					path,
+					name: path.replace(/^Codex\//, "").replace(/\.md$/i, ""),
+					bookIds: [] as string[],
 				}));
 		},
 
-		getCodexView(bookId) {
-			return getCodexView(plugin.app, bookId ?? null, "codex");
+		getCodexView(_bookId) {
+			return getCodexView(plugin.app, "codex");
 		},
 
 		getActiveBook() {
