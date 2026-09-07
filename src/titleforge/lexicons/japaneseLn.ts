@@ -2,7 +2,7 @@ import type { GeneratorSpec } from "../engine/types.js";
 
 export const japaneseLnLexicon: GeneratorSpec = {
 	"id": "japanese-ln",
-	"name": "Japanese light-novel shape",
+	"name": "Japanese light novel shape",
 	"blurb": "English titles built like light novels: full-sentence premises, deadpan negations.",
 	"tradition": "East Asian",
 	"notes": [
@@ -12,31 +12,31 @@ export const japaneseLnLexicon: GeneratorSpec = {
 	"genres": [
 		{
 			"id": "all",
-			"label": "Any"
+			"label": "any"
 		},
 		{
 			"id": "isekai",
-			"label": "Isekai"
+			"label": "isekai"
 		},
 		{
 			"id": "villainess",
-			"label": "Villainess / otome"
+			"label": "villainess / otome"
 		},
 		{
 			"id": "cheat",
-			"label": "Cheat & overpowered"
+			"label": "cheat & overpowered"
 		},
 		{
 			"id": "exiled",
-			"label": "Exiled / slow life"
+			"label": "exiled / slow life"
 		},
 		{
 			"id": "romcom",
-			"label": "School romcom"
+			"label": "school romcom"
 		},
 		{
 			"id": "short",
-			"label": "Short & brandable"
+			"label": "short & brandable"
 		}
 	],
 	"patterns": [

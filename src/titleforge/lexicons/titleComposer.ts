@@ -14,83 +14,83 @@ export const titleComposerLexicon: GeneratorSpec = {
 	"genres": [
 		{
 			"id": "all",
-			"label": "Any genre"
+			"label": "any genre"
 		},
 		{
 			"id": "fantasy",
-			"label": "Fantasy"
+			"label": "fantasy"
 		},
 		{
 			"id": "epic",
-			"label": "Epic fantasy",
+			"label": "epic fantasy",
 			"parent": "fantasy"
 		},
 		{
 			"id": "heroic-fantasy",
-			"label": "Heroic fantasy",
+			"label": "heroic fantasy",
 			"parent": "fantasy"
 		},
 		{
 			"id": "sword-sorcery",
-			"label": "Sword & Sorcery",
+			"label": "sword & sorcery",
 			"parent": "fantasy"
 		},
 		{
 			"id": "urban-fantasy",
-			"label": "Urban fantasy",
+			"label": "urban fantasy",
 			"parent": "fantasy"
 		},
 		{
 			"id": "sf",
-			"label": "Science fiction"
+			"label": "science fiction"
 		},
 		{
 			"id": "space-opera",
-			"label": "Space opera",
+			"label": "space opera",
 			"parent": "sf"
 		},
 		{
 			"id": "military-sf",
-			"label": "Military SF",
+			"label": "military sf",
 			"parent": "sf"
 		},
 		{
 			"id": "horror",
-			"label": "Horror"
+			"label": "horror"
 		},
 		{
 			"id": "crime",
-			"label": "Crime & thriller"
+			"label": "crime & thriller"
 		},
 		{
 			"id": "lit",
-			"label": "Literary"
+			"label": "literary"
 		},
 		{
 			"id": "hist",
-			"label": "Historical"
+			"label": "historical"
 		},
 		{
 			"id": "western",
-			"label": "Western",
+			"label": "western",
 			"parent": "hist"
 		},
 		{
 			"id": "regency",
-			"label": "Regency",
+			"label": "regency",
 			"parent": "hist"
 		},
 		{
 			"id": "rom",
-			"label": "Romance"
+			"label": "romance"
 		},
 		{
 			"id": "short",
-			"label": "Short fiction"
+			"label": "short fiction"
 		},
 		{
 			"id": "ya",
-			"label": "Young adult"
+			"label": "young adult"
 		}
 	],
 	"families": [

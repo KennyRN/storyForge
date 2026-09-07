@@ -2,7 +2,7 @@ import type { GeneratorSpec } from "../engine/types.js";
 
 export const koreanWebLexicon: GeneratorSpec = {
 	"id": "korean-web",
-	"name": "Korean web-novel shape",
+	"name": "Korean webnovel shape",
 	"blurb": "English titles built like Korean serials: regressors, \"only I\", polite defiance.",
 	"tradition": "East Asian",
 	"notes": [
@@ -11,27 +11,27 @@ export const koreanWebLexicon: GeneratorSpec = {
 	"genres": [
 		{
 			"id": "all",
-			"label": "Any"
+			"label": "any"
 		},
 		{
 			"id": "regression",
-			"label": "Regression & return"
+			"label": "regression & return"
 		},
 		{
 			"id": "hunter",
-			"label": "Hunter / system"
+			"label": "hunter / system"
 		},
 		{
 			"id": "romfan",
-			"label": "Romance fantasy"
+			"label": "romance fantasy"
 		},
 		{
 			"id": "modern",
-			"label": "Modern & office"
+			"label": "modern & office"
 		},
 		{
 			"id": "martial",
-			"label": "Murim / martial"
+			"label": "murim / martial"
 		}
 	],
 	"patterns": [
@@ -96,7 +96,7 @@ export const koreanWebLexicon: GeneratorSpec = {
 			],
 			"weight": 3,
 			"exemplar": "이번 생은 사양하겠습니다 — \"I Would Rather Decline This Life\" (illustrative)",
-			"note": "The signature Korean web novel tone: formally polite in construction, flatly defiant in content. Courtesy as a weapon."
+			"note": "The signature Korean webnovel tone: formally polite in construction, flatly defiant in content. Courtesy as a weapon."
 		},
 		{
 			"id": "reverse-role",

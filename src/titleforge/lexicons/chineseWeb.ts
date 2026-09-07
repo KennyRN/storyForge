@@ -2,7 +2,7 @@ import type { GeneratorSpec } from "../engine/types.js";
 
 export const chineseWebLexicon: GeneratorSpec = {
 	"id": "chinese-web",
-	"name": "Chinese web-novel shape",
+	"name": "Chinese webnovel shape",
 	"blurb": "English titles built like Qidian and JJWXC serials: stacked categories, four-beat compounds.",
 	"tradition": "East Asian",
 	"notes": [
@@ -12,35 +12,35 @@ export const chineseWebLexicon: GeneratorSpec = {
 	"genres": [
 		{
 			"id": "all",
-			"label": "Any"
+			"label": "any"
 		},
 		{
 			"id": "xianxia",
-			"label": "Xianxia (仙侠)"
+			"label": "xianxia (仙侠)"
 		},
 		{
 			"id": "xuanhuan",
-			"label": "Xuanhuan (玄幻)"
+			"label": "xuanhuan (玄幻)"
 		},
 		{
 			"id": "wuxia",
-			"label": "Wuxia (武侠)"
+			"label": "wuxia (武侠)"
 		},
 		{
 			"id": "system",
-			"label": "System / game (系统)"
+			"label": "system / game (系统)"
 		},
 		{
 			"id": "rebirth",
-			"label": "Rebirth (重生)"
+			"label": "rebirth (重生)"
 		},
 		{
 			"id": "urban",
-			"label": "Urban (都市)"
+			"label": "urban (都市)"
 		},
 		{
 			"id": "romance",
-			"label": "Romance & danmei"
+			"label": "romance & danmei"
 		}
 	],
 	"platforms": [

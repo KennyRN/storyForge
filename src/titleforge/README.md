@@ -1,10 +1,10 @@
 # titleForge
 
 Nine title & series generators — each an English shape taxonomy modelled on a
-different tradition's title conventions (Anglophone literary, Western web
-serial, Japanese light novel, Korean web novel, Chinese web novel, Vietnamese
-web novel, Indonesian web novel, Thai web novel, and a comparative "world
-literary shapes" bench for Arabic/Persian/Russian/Hindi/Swahili conventions).
+different tradition's title conventions (Anglophone literary, webnovel,
+Japanese light novel, Korean webnovel, Chinese webnovel, Vietnamese webnovel,
+Indonesian webnovel, Thai webnovel, and a comparative "world literary shapes"
+bench for Arabic/Persian/Russian/Hindi/Swahili conventions).
 
 **Every generator outputs English, only English.** A title from `japanese-ln`
 is an English title that *feels* like a light novel; it never needs to survive

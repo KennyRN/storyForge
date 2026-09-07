@@ -101,8 +101,8 @@ const TAB_TRADITIONS: Record<TitleForgeTab, string[]> = {
  * hierarchical-genre-list pair — no tradition is itself a genre (the "Title composer"/"World
  * literary shapes" complaint this replaced), whether a tab has one tradition ("series") or several
  * ("novels"). "web fiction & light novels" is deliberately not here: each of its seven traditions
- * is a genuinely distinct regional/language market — "Western serial", "Japanese light novel", and
- * so on really do read as the top-level choice there — so it keeps the older pair.
+ * is a genuinely distinct regional/language market — "webnovel", "Japanese light novel", and so on
+ * really do read as the top-level choice there — so it keeps the older pair.
  */
 const MERGED_GENRE_TABS: TitleForgeTab[] = ["series", "novels"];
 
@@ -411,8 +411,8 @@ export class TitleForgePanel {
 
 	/** The traditions the "Genre" picker should offer on a `!MERGED_GENRE_TABS` tab (currently just
 	 * "web fiction & light novels"): "Any" first, then the current tab's own — each shown under its
-	 * own name (e.g. "Western serial"), since a tradition (generator) is presented as a top-level
-	 * genre rather than through a separate picker of its own. */
+	 * own name (e.g. "webnovel"), since a tradition (generator) is presented as a top-level genre
+	 * rather than through a separate picker of its own. */
 	private traditionOptions(): LabelledOption[] {
 		const ids = TAB_TRADITIONS[this.activeTab];
 		const specific = this.controller.generators

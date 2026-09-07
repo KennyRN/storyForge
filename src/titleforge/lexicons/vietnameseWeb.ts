@@ -2,7 +2,7 @@ import type { GeneratorSpec } from "../engine/types.js";
 
 export const vietnameseWebLexicon: GeneratorSpec = {
 	"id": "vietnamese-web",
-	"name": "Vietnamese web-novel shape",
+	"name": "Vietnamese webnovel shape",
 	"blurb": "English titles in two registers: elevated-martial and modern-romantic.",
 	"tradition": "Southeast Asian",
 	"notes": [
@@ -11,27 +11,27 @@ export const vietnameseWebLexicon: GeneratorSpec = {
 	"genres": [
 		{
 			"id": "all",
-			"label": "Any"
+			"label": "any"
 		},
 		{
 			"id": "tienhiep",
-			"label": "Tiên hiệp (xianxia)"
+			"label": "tiên hiệp (xianxia)"
 		},
 		{
 			"id": "kiemhiep",
-			"label": "Kiếm hiệp (wuxia)"
+			"label": "kiếm hiệp (wuxia)"
 		},
 		{
 			"id": "ngontinh",
-			"label": "Ngôn tình (romance)"
+			"label": "ngôn tình (romance)"
 		},
 		{
 			"id": "dothi",
-			"label": "Đô thị (urban)"
+			"label": "đô thị (urban)"
 		},
 		{
 			"id": "hethong",
-			"label": "Hệ thống (system)"
+			"label": "hệ thống (system)"
 		}
 	],
 	"patterns": [
