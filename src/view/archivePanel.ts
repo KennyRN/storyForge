@@ -76,7 +76,7 @@ export function renderArchivePanel(el: HTMLElement, host: ArchivePanelHost): voi
 /** Mode-icon row — Codex globe and duo-book (Novel), same visual language as Forge-family
  * member icons. Mount in a non-scrolling region so they stay put. */
 export function renderArchiveModeIcons(el: HTMLElement, host: ArchivePanelHost): void {
-	const row = el.createDiv({ cls: "sf-recommend-view__forge-row sf-archive-mode-row" });
+	const row = el.createDiv({ cls: "sf-story-context-view__forge-row sf-archive-mode-row" });
 	addArchiveModeIcon(row, host, "codex", ICON_CODEX, "Codex");
 	addArchiveModeIcon(row, host, "novel", ICON_BOOK_DUOTONE, "Novel");
 	addArchiveModeIcon(row, host, "notes", ICON_NOTEBOOK_DUOTONE, "Notebook");
@@ -90,7 +90,7 @@ function addArchiveModeIcon(
 	label: string,
 ): void {
 	const btn = row.createSpan({
-		cls: `sf-recommend-view__forge-icon${host.mode === mode ? " is-active" : ""}`,
+		cls: `sf-story-context-view__forge-icon${host.mode === mode ? " is-active" : ""}`,
 		attr: { role: "button", tabindex: "0", "aria-label": label },
 	});
 	setIcon(btn, icon);

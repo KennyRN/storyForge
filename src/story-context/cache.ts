@@ -1,5 +1,5 @@
 import { App, parseYaml, stringifyYaml, TFile } from "obsidian";
-import { recommendSidecarFolderPath, recommendSidecarPath } from "../paths";
+import { storyContextSidecarFolderPath, storyContextSidecarPath } from "../paths";
 import {
 	deleteBackstagePath,
 	ensureBackstageFolder,
@@ -7,7 +7,7 @@ import {
 	renameBackstagePath,
 	writeBackstageFile,
 } from "../writeGuard";
-import type { ChapterRecommendReport } from "./types";
+import type { ChapterStoryContextReport } from "./types";
 
 const AUTO_MARKER = "<!-- AUTO-MAINTAINED — do not edit, the plugin overwrites it -->";
 
@@ -21,8 +21,8 @@ function parseFrontmatterBlock(raw: string): Record<string, unknown> {
 	return parsed ?? {};
 }
 
-export function buildRecommendSidecarContent(
-	report: ChapterRecommendReport,
+export function buildStoryContextSidecarContent(
+	report: ChapterStoryContextReport,
 	resolvedIds: string[] = [],
 ): string {
 	const frontmatter = {
@@ -36,12 +36,12 @@ export function buildRecommendSidecarContent(
 	return `---\n${yaml}\n---\n${body}`;
 }
 
-export function parseRecommendSidecar(raw: string): ChapterRecommendReport | null {
+export function parseStoryContextSidecar(raw: string): ChapterStoryContextReport | null {
 	const fm = parseFrontmatterBlock(raw);
 	const jsonMatch = raw.match(/```json\s*([\s\S]*?)```/);
 	if (!jsonMatch) return null;
 	try {
-		const report = JSON.parse(jsonMatch[1].trim()) as ChapterRecommendReport;
+		const report = JSON.parse(jsonMatch[1].trim()) as ChapterStoryContextReport;
 		if (typeof report.chapterFilename !== "string") return null;
 		if (typeof fm.contentHash === "string") report.contentHash = fm.contentHash;
 		if (!Array.isArray(report.hits)) report.hits = [];
@@ -63,24 +63,24 @@ export function parseRecommendSidecar(raw: string): ChapterRecommendReport | nul
 	}
 }
 
-export async function writeRecommendCache(
+export async function writeStoryContextCache(
 	app: App,
 	bookFolderName: string,
-	report: ChapterRecommendReport,
+	report: ChapterStoryContextReport,
 	resolvedIds?: string[],
 ): Promise<void> {
-	const path = recommendSidecarPath(bookFolderName, report.chapterFilename);
+	const path = storyContextSidecarPath(bookFolderName, report.chapterFilename);
 	// Shares the sidecar path with the resolved/decision writers, so the compare-then-write
 	// has to run inside the same queue to avoid clobbering a concurrent resolve.
 	await enqueueBackstageWrite(path, async () => {
-		await ensureBackstageFolder(app.vault, recommendSidecarFolderPath(bookFolderName));
+		await ensureBackstageFolder(app.vault, storyContextSidecarFolderPath(bookFolderName));
 		const ids =
 			resolvedIds ??
 			report.hits.filter((h) => h.resolved).map((h) => h.id);
 		// Sweep orphans against current hit ids
 		const live = new Set(report.hits.map((h) => h.id));
 		const swept = ids.filter((id) => live.has(id));
-		const content = buildRecommendSidecarContent(report, swept);
+		const content = buildStoryContextSidecarContent(report, swept);
 		const file = app.vault.getAbstractFileByPath(path);
 		if (file instanceof TFile) {
 			const existing = await app.vault.read(file);
@@ -90,36 +90,36 @@ export async function writeRecommendCache(
 	});
 }
 
-export async function readRecommendCache(
+export async function readStoryContextCache(
 	app: App,
 	bookFolderName: string,
 	chapterFilename: string,
-): Promise<ChapterRecommendReport | null> {
-	const path = recommendSidecarPath(bookFolderName, chapterFilename);
+): Promise<ChapterStoryContextReport | null> {
+	const path = storyContextSidecarPath(bookFolderName, chapterFilename);
 	const file = app.vault.getAbstractFileByPath(path);
 	if (!(file instanceof TFile)) return null;
-	return parseRecommendSidecar(await app.vault.cachedRead(file));
+	return parseStoryContextSidecar(await app.vault.cachedRead(file));
 }
 
-export function isRecommendCacheFresh(cached: ChapterRecommendReport, contentHash: string): boolean {
+export function isStoryContextCacheFresh(cached: ChapterStoryContextReport, contentHash: string): boolean {
 	return cached.contentHash === contentHash;
 }
 
-/** Follows a chapter rename: moves the recommend cache sidecar to the new chapter filename. */
-export async function renameRecommendSidecar(
+/** Follows a chapter rename: moves the Story Context cache sidecar to the new chapter filename. */
+export async function renameStoryContextSidecar(
 	app: App,
 	bookFolderName: string,
 	oldFilename: string,
 	newFilename: string,
 ): Promise<void> {
-	const oldPath = recommendSidecarPath(bookFolderName, oldFilename);
-	const newPath = recommendSidecarPath(bookFolderName, newFilename);
+	const oldPath = storyContextSidecarPath(bookFolderName, oldFilename);
+	const newPath = storyContextSidecarPath(bookFolderName, newFilename);
 	const file = app.vault.getAbstractFileByPath(oldPath);
 	if (!(file instanceof TFile)) return;
 	await renameBackstagePath(app.vault, oldPath, newPath);
 }
 
-/** Deletes the recommend cache sidecar for a chapter (e.g. after the chapter file is deleted). */
-export async function deleteRecommendCache(app: App, bookFolderName: string, chapterFilename: string): Promise<void> {
-	await deleteBackstagePath(app, recommendSidecarPath(bookFolderName, chapterFilename));
+/** Deletes the Story Context cache sidecar for a chapter (e.g. after the chapter file is deleted). */
+export async function deleteStoryContextCache(app: App, bookFolderName: string, chapterFilename: string): Promise<void> {
+	await deleteBackstagePath(app, storyContextSidecarPath(bookFolderName, chapterFilename));
 }

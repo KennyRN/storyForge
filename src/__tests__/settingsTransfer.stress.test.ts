@@ -12,7 +12,7 @@ const SETTINGS = {
 	automaticBackupFrequency: "daily",
 	selectedNovel: "Roman Republic",
 	bodyTextSize: 1,
-	recommendHeaderColor: "#abcdef",
+	storyContextHeaderColor: "#abcdef",
 	colorPaletteName: "Custom",
 	colorPaletteVariant: "",
 	customPaletteColors: [{ name: "Ink", hex: "#232427" }],
@@ -20,7 +20,7 @@ const SETTINGS = {
 
 const LINKED = {
 	bodyTextSize: 1.25,
-	recommendHeaderColor: "#123456",
+	storyContextHeaderColor: "#123456",
 	colorPaletteName: "Custom",
 	colorPaletteVariant: "",
 	customPaletteColors: [{ name: "Ink", hex: "#111111" }],

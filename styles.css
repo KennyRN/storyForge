@@ -1,7 +1,7 @@
 /* Obsidian's default .view-content padding is only zeroed for its own known view types
    (e.g. markdown) - do the same for this plugin's views so they aren't inset.
    Story Context / Archive keep view-content padding: their contentEl *is* the
-   padded .sf-recommend-view / .sf-archive-view surface. */
+   padded .sf-story-context-view / .sf-archive-view surface. */
 .workspace-leaf-content[data-type="storyforge-view"] .view-content,
 .workspace-leaf-content[data-type="storyforge-storytelling-view"] .view-content,
 .workspace-leaf-content[data-type="storyforge-tools-view"] .view-content {
@@ -45,7 +45,7 @@
 
 /* Replaces the old "choose layout" dropdown icon — one tab per layout (Codex / Series browse /
  * Novel browse / Hybrid), sitting above everything else in the panel. Deliberately its own
- * styling rather than reusing Story Context's .sf-recommend-tab* — that class's colours are
+ * styling rather than reusing Story Context's .sf-story-context-tab* — that class's colours are
  * wired to Story Context's own formatting settings, unrelated to this panel. */
 .sf-layout-tabs {
 	display: flex;
@@ -521,14 +521,14 @@
 }
 
 /* Notebook / Archive source rails sit beside the page and should match Story Context
- * header tabs (.sf-recommend-tab), not Codex rail colour. */
+ * header tabs (.sf-story-context-tab), not Codex rail colour. */
 .sf-notebook-source-btn {
-	color: var(--sf-recommend-tabs-color, var(--text-muted));
+	color: var(--sf-story-context-tabs-color, var(--text-muted));
 }
 
 .sf-notebook-source-btn:hover,
 .sf-notebook-source-btn.is-active {
-	color: var(--sf-recommend-tabs-active-color, var(--text-accent));
+	color: var(--sf-story-context-tabs-active-color, var(--text-accent));
 }
 
 .sf-codex-hidden .sf-icon,
@@ -3099,7 +3099,7 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	user-select: none;
 }
 
-.sf-ui-format-preview .sf-right-rail-preview .sf-recommend-view,
+.sf-ui-format-preview .sf-right-rail-preview .sf-story-context-view,
 .sf-ui-format-preview .sf-right-rail-preview .sf-archive-view {
 	border: 1px solid var(--background-modifier-border);
 	border-radius: 6px;
@@ -3113,8 +3113,8 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	flex-direction: column;
 }
 
-.sf-ui-format-preview .sf-recommend-body,
-.sf-ui-format-preview .sf-recommend-body.sf-recommend-body--scroll {
+.sf-ui-format-preview .sf-story-context-body,
+.sf-ui-format-preview .sf-story-context-body.sf-story-context-body--scroll {
 	flex: 0 0 auto;
 	height: auto;
 	max-height: none;
@@ -3122,11 +3122,11 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	min-height: 0;
 }
 
-.sf-ui-format-preview .sf-recommend-plot-block {
+.sf-ui-format-preview .sf-story-context-plot-block {
 	flex-shrink: 0;
 }
 
-.sf-ui-format-preview .sf-recommend-synopsis {
+.sf-ui-format-preview .sf-story-context-synopsis {
 	height: 4.5em;
 }
 
@@ -3882,12 +3882,12 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	display: none;
 }
 
-/* Story Context (recommendations) view.
- * contentEl is .view-content.sf-recommend-view — set padding here so Obsidian's
+/* Story Context (story-contextations) view.
+ * contentEl is .view-content.sf-story-context-view — set padding here so Obsidian's
  * default .view-content inset is overridden evenly on both sides.
  * Column layout: header/tabs (+ chapter fixed block) stay put; lower lists scroll. */
-.workspace-leaf-content[data-type="storyforge-recommend-view"] .view-content.sf-recommend-view,
-.sf-recommend-view {
+.workspace-leaf-content[data-type="storyforge-story-context-view"] .view-content.sf-story-context-view,
+.sf-story-context-view {
 	display: flex;
 	flex-direction: column;
 	padding: 8px 10px 16px;
@@ -3896,15 +3896,15 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	box-sizing: border-box;
 }
 
-.sf-recommend-header,
-.sf-recommend-tabs {
+.sf-story-context-header,
+.sf-story-context-tabs {
 	flex-shrink: 0;
 }
 
 /* A Forge-family companion's renderPanel() mounts here, filling whatever space is left in either
- * of its two homes: below .sf-recommend-tabs in the normal view, or straight into Focus Mode's
+ * of its two homes: below .sf-story-context-tabs in the normal view, or straight into Focus Mode's
  * otherwise-blank panel (StoryContextView.ts's mountActiveForgeFamilyPanel()). */
-.sf-recommend-view__forge-panel {
+.sf-story-context-view__forge-panel {
 	flex: 1;
 	min-height: 0;
 	overflow: auto;
@@ -3912,11 +3912,11 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	box-sizing: border-box;
 }
 
-/* Forge-family member-icon row: two homes share this class. Directly under .sf-recommend-tabs in
+/* Forge-family member-icon row: two homes share this class. Directly under .sf-story-context-tabs in
  * the normal view (margin-bottom pairs it with whatever body/panel comes below); pinned to the
  * bottom of Focus Mode's otherwise-empty panel via the --focus modifier's margin-top: auto (a
  * lone flex child isn't otherwise pushed down by an empty flex column). Icons left-aligned. */
-.sf-recommend-view__forge-row {
+.sf-story-context-view__forge-row {
 	flex-shrink: 0;
 	display: flex;
 	align-items: center;
@@ -3927,7 +3927,7 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	padding-right: 8px;
 }
 
-.sf-recommend-view__forge-row--focus {
+.sf-story-context-view__forge-row--focus {
 	--sf-focus-parent-icon: 20px;
 	margin-top: auto;
 	margin-bottom: 0;
@@ -3938,7 +3938,7 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	padding-right: 0;
 }
 
-.sf-recommend-view__forge-members {
+.sf-story-context-view__forge-members {
 	display: flex;
 	align-items: center;
 	gap: 4px;
@@ -3950,7 +3950,7 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	transition: max-width 200ms ease, opacity 160ms ease;
 }
 
-.sf-recommend-view__forge-members.is-expanded {
+.sf-story-context-view__forge-members.is-expanded {
 	max-width: 20rem;
 	opacity: 1;
 	pointer-events: auto;
@@ -3958,23 +3958,23 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 
 /* Focus Mode family cluster: parent sits after its children. Expanded members
  * sit 4px from their parent; the two parents sit 14px apart (row gap). */
-.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-family-cluster {
+.sf-story-context-view__forge-row--focus .sf-story-context-view__forge-family-cluster {
 	display: flex;
 	align-items: center;
 	gap: 0;
 	flex-shrink: 0;
 }
 
-.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-members {
+.sf-story-context-view__forge-row--focus .sf-story-context-view__forge-members {
 	gap: 4px;
 }
 
-.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-members.is-expanded {
+.sf-story-context-view__forge-row--focus .sf-story-context-view__forge-members.is-expanded {
 	margin-inline-end: 4px;
 }
 
 /* New-note stays next to the notebook parent; browse still slides out on parent click. */
-.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-icon--notebook-add {
+.sf-story-context-view__forge-row--focus .sf-story-context-view__forge-icon--notebook-add {
 	margin-inline-end: 4px;
 }
 
@@ -4230,19 +4230,19 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	padding-bottom: 40%;
 }
 
-/* A family member's own icon (in either row's .sf-recommend-view__forge-icon) and Focus Mode's
- * standalone trigger (.sf-recommend-view__forge-family) share one visual language: invisible
+/* A family member's own icon (in either row's .sf-story-context-view__forge-icon) and Focus Mode's
+ * standalone trigger (.sf-story-context-view__forge-family) share one visual language: invisible
  * padding border for hit-target size, opacity-based active state, no background/border-radius
- * chrome. The tabs-region trigger is a real .sf-recommend-tab instead (styled with the other tabs
+ * chrome. The tabs-region trigger is a real .sf-story-context-tab instead (styled with the other tabs
  * above), since it sits in that row rather than standing alone. */
-.sf-recommend-view__forge-family,
-.sf-recommend-view__forge-icon {
+.sf-story-context-view__forge-family,
+.sf-story-context-view__forge-icon {
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	box-sizing: border-box;
 	padding: 5px 6px;
-	color: var(--sf-recommend-tabs-color, var(--text-muted));
+	color: var(--sf-story-context-tabs-color, var(--text-muted));
 	opacity: 1;
 	cursor: pointer;
 	background: transparent;
@@ -4251,58 +4251,58 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	--icon-size: 1em;
 }
 
-.sf-recommend-view__forge-family {
-	color: var(--sf-recommend-focus-mode-icon-color, var(--text-muted));
+.sf-story-context-view__forge-family {
+	color: var(--sf-story-context-focus-mode-icon-color, var(--text-muted));
 }
 
-.sf-recommend-view__forge-family:hover,
-.sf-recommend-view__forge-family:focus-visible {
+.sf-story-context-view__forge-family:hover,
+.sf-story-context-view__forge-family:focus-visible {
 	filter: brightness(1.15);
 	outline: none;
 }
 
-.sf-recommend-view__forge-icon:hover,
-.sf-recommend-view__forge-icon:focus-visible {
-	color: var(--sf-recommend-tabs-active-color, var(--text-accent));
+.sf-story-context-view__forge-icon:hover,
+.sf-story-context-view__forge-icon:focus-visible {
+	color: var(--sf-story-context-tabs-active-color, var(--text-accent));
 	opacity: 1;
 	outline: none;
 }
 
-.sf-recommend-view__forge-icon.is-active {
-	color: var(--sf-recommend-tabs-active-color, var(--text-accent));
+.sf-story-context-view__forge-icon.is-active {
+	color: var(--sf-story-context-tabs-active-color, var(--text-accent));
 	opacity: 1;
 }
 
-.sf-recommend-view__forge-family svg,
-.sf-recommend-view__forge-family svg.svg-icon,
-.sf-recommend-view__forge-icon svg,
-.sf-recommend-view__forge-icon svg.svg-icon {
+.sf-story-context-view__forge-family svg,
+.sf-story-context-view__forge-family svg.svg-icon,
+.sf-story-context-view__forge-icon svg,
+.sf-story-context-view__forge-icon svg.svg-icon {
 	width: 1em;
 	height: 1em;
 }
 
 /* Focus Mode bottom row: parents 20px; children 90% of that. Padding is 0 so
  * the 4px parent↔sibling and 14px parent↔parent gaps are the visible spacing. */
-.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-family {
+.sf-story-context-view__forge-row--focus .sf-story-context-view__forge-family {
 	padding: 0;
 	font-size: var(--sf-focus-parent-icon);
 	--icon-size: var(--sf-focus-parent-icon);
 }
 
-.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-icon {
+.sf-story-context-view__forge-row--focus .sf-story-context-view__forge-icon {
 	padding: 0;
 	font-size: calc(var(--sf-focus-parent-icon) * 0.9);
 	--icon-size: calc(var(--sf-focus-parent-icon) * 0.9);
 }
 
-.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-family svg,
-.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-family svg.svg-icon {
+.sf-story-context-view__forge-row--focus .sf-story-context-view__forge-family svg,
+.sf-story-context-view__forge-row--focus .sf-story-context-view__forge-family svg.svg-icon {
 	width: var(--sf-focus-parent-icon);
 	height: var(--sf-focus-parent-icon);
 }
 
-.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-icon svg,
-.sf-recommend-view__forge-row--focus .sf-recommend-view__forge-icon svg.svg-icon {
+.sf-story-context-view__forge-row--focus .sf-story-context-view__forge-icon svg,
+.sf-story-context-view__forge-row--focus .sf-story-context-view__forge-icon svg.svg-icon {
 	width: calc(var(--sf-focus-parent-icon) * 0.9);
 	height: calc(var(--sf-focus-parent-icon) * 0.9);
 }
@@ -4310,8 +4310,8 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 /* StoryContextView.ts's renderNovel() host — see its own doc comment: exists only so
  * renderNovelPanel()'s unconditional container.empty() can't wipe out the tabs row built into its
  * parent right before it. Nested flex (not `display: contents`) so this host takes the remaining
- * column height and `.sf-recommend-body` inside it still gets the fixed/scroll split's sizing. */
-.sf-recommend-novel-host {
+ * column height and `.sf-story-context-body` inside it still gets the fixed/scroll split's sizing. */
+.sf-story-context-novel-host {
 	flex: 1;
 	min-height: 0;
 	display: flex;
@@ -4319,7 +4319,7 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	overflow: hidden;
 }
 
-.sf-recommend-body {
+.sf-story-context-body {
 	flex: 1;
 	min-height: 0;
 	display: flex;
@@ -4327,16 +4327,16 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	overflow: hidden;
 }
 
-.sf-recommend-body.sf-recommend-body--scroll {
+.sf-story-context-body.sf-story-context-body--scroll {
 	overflow-x: hidden;
 	overflow-y: auto;
 }
 
-.sf-recommend-fixed {
+.sf-story-context-fixed {
 	flex-shrink: 0;
 }
 
-.sf-recommend-scroll {
+.sf-story-context-scroll {
 	flex: 1;
 	min-height: 0;
 	overflow-x: hidden;
@@ -4345,7 +4345,7 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 
 /* Sticky section headers within chapter/dossier scroll panes:
  * each title pins to the top until the next section's title pushes it off. */
-.sf-recommend-scroll .sf-recommend-section-title {
+.sf-story-context-scroll .sf-story-context-section-title {
 	position: sticky;
 	top: 0;
 	z-index: 2;
@@ -4367,23 +4367,23 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	cursor: default;
 }
 
-.sf-notebook-page.sf-dossier-page .sf-recommend-scroll {
+.sf-notebook-page.sf-dossier-page .sf-story-context-scroll {
 	padding: 0 6px 4px;
 }
 
-.sf-notebook-page.sf-dossier-page .sf-recommend-scroll .sf-recommend-section-title {
+.sf-notebook-page.sf-dossier-page .sf-story-context-scroll .sf-story-context-section-title {
 	top: 0;
 	margin-left: -6px;
 	margin-right: -6px;
 	padding: 4px 6px 6px;
 	background-color: var(--sf-editor-bg, var(--background-primary));
-	font-size: var(--sf-recommend-dossier-size, 1.15em);
-	font-weight: var(--sf-recommend-dossier-weight, 600);
-	color: var(--sf-recommend-dossier-color, var(--text-accent));
-	-webkit-text-fill-color: var(--sf-recommend-dossier-color, var(--text-accent));
-	font-variant: var(--sf-recommend-dossier-variant, normal);
-	font-family: var(--sf-recommend-dossier-family, inherit);
-	font-variation-settings: var(--sf-recommend-dossier-variation, normal);
+	font-size: var(--sf-story-context-dossier-size, 1.15em);
+	font-weight: var(--sf-story-context-dossier-weight, 600);
+	color: var(--sf-story-context-dossier-color, var(--text-accent));
+	-webkit-text-fill-color: var(--sf-story-context-dossier-color, var(--text-accent));
+	font-variant: var(--sf-story-context-dossier-variant, normal);
+	font-family: var(--sf-story-context-dossier-family, inherit);
+	font-variation-settings: var(--sf-story-context-dossier-variation, normal);
 	text-transform: none;
 }
 
@@ -4558,7 +4558,7 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	background-color: var(--sf-editor-scrollbar-thumb, #6b7280);
 }
 
-.sf-recommend-tabs {
+.sf-story-context-tabs {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -4570,7 +4570,7 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 
 /* Notebook page sits 8px below the tab row; tabs keep 5px padding, so page-to-icon is ~13px
  * — same as the page's right edge to the pane (10px view padding + 4px page margin). */
-.sf-recommend-view:has(.sf-notebook-page) .sf-recommend-tabs {
+.sf-story-context-view:has(.sf-notebook-page) .sf-story-context-tabs {
 	margin-bottom: 0;
 }
 
@@ -4578,9 +4578,9 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
  * layout-select tabs (.sf-layout-tab in StoryForgeView.ts, styles.css line ~46): the icon's size
  * comes from the tab's own font-size rather than a fixed pixel value, and hover/active are a
  * plain colour change - no background chip ("highlighted icons, not tab buttons"). Colours stay
- * on their own --sf-recommend-tabs-* variables (Story Context's own formatting settings still
+ * on their own --sf-story-context-tabs-* variables (Story Context's own formatting settings still
  * apply); only the .sf-layout-tab sizing/treatment is shared, not those settings. */
-.sf-recommend-tab {
+.sf-story-context-tab {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -4588,34 +4588,34 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	/* Same --icon-size pin as .sf-layout-tab: setIcon's .svg-icon otherwise stays
 	 * at Obsidian's default (~18px) and the Story Context tabs read smaller. */
 	--icon-size: 1em;
-	color: var(--sf-recommend-tabs-color, var(--text-muted));
+	color: var(--sf-story-context-tabs-color, var(--text-muted));
 	cursor: pointer;
 	padding: 5px 6px;
 	border-radius: 4px;
 }
 
-.sf-recommend-tab svg,
-.sf-recommend-tab svg.svg-icon {
+.sf-story-context-tab svg,
+.sf-story-context-tab svg.svg-icon {
 	width: 1em;
 	height: 1em;
 }
 
-.sf-recommend-tab:hover {
-	color: var(--sf-recommend-tabs-active-color, var(--text-accent));
+.sf-story-context-tab:hover {
+	color: var(--sf-story-context-tabs-active-color, var(--text-accent));
 }
 
-.sf-recommend-tab.is-active {
-	color: var(--sf-recommend-tabs-active-color, var(--text-accent));
+.sf-story-context-tab.is-active {
+	color: var(--sf-story-context-tabs-active-color, var(--text-accent));
 }
 
 /* Chapter title row's "go to chapter" button. Padding + SVG size deliberately match the synopsis
- * row's own actions-column icons below (both 22.5px — 18px's usual .sf-recommend-icon-btn size,
+ * row's own actions-column icons below (both 22.5px — 18px's usual .sf-story-context-icon-btn size,
  * bumped 25% for these three Chapter-tab icons only; deliberately not touching the shared
- * .sf-recommend-icon-btn rule everyone else uses) — that's what the title row and the synopsis
+ * .sf-story-context-icon-btn rule everyone else uses) — that's what the title row and the synopsis
  * row's actions column (same gap, same icon box) both give up out of their available width, which
  * is what keeps the chapter title input and the summary textarea the same rendered width as each
  * other below. */
-.sf-recommend-refresh {
+.sf-story-context-refresh {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -4625,35 +4625,35 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	flex-shrink: 0;
 }
 
-.sf-recommend-refresh svg {
+.sf-story-context-refresh svg {
 	width: 22.5px;
 	height: 22.5px;
 }
 
-.sf-recommend-refresh:hover {
-	color: var(--sf-recommend-tabs-active-color, var(--text-normal));
+.sf-story-context-refresh:hover {
+	color: var(--sf-story-context-tabs-active-color, var(--text-normal));
 }
 
-.sf-recommend-chapter-title-row {
+.sf-story-context-chapter-title-row {
 	display: flex;
 	align-items: center;
 	gap: 8px;
 	margin-bottom: 8px;
 }
 
-/* input.…[type="text"] so this actually outranks input.sf-recommend-chapter-title[type="text"]'s
+/* input.…[type="text"] so this actually outranks input.sf-story-context-chapter-title[type="text"]'s
  * own margin-bottom below (same class + attribute, but that rule also matches the bare element,
  * so a plain two-class selector here used to lose the specificity tie and never actually zeroed
  * it) — without that, the input carried a phantom 8px of margin into this row's flex cross-axis
  * centering, which is what threw the "go to chapter" icon's centering off from the input's real
  * (visible) box. */
-.sf-recommend-chapter-title-row input.sf-recommend-chapter-title[type="text"] {
+.sf-story-context-chapter-title-row input.sf-story-context-chapter-title[type="text"] {
 	margin-bottom: 0;
 	min-width: 0;
 	flex: 1;
 }
 
-.sf-recommend-meta {
+.sf-story-context-meta {
 	display: flex;
 	flex-direction: column;
 	gap: 4px;
@@ -4661,41 +4661,41 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	margin-bottom: 0;
 }
 
-.sf-recommend-meta-row {
+.sf-story-context-meta-row {
 	display: flex;
 	align-items: flex-start;
 	gap: 4px;
 	flex-wrap: nowrap;
 }
 
-.sf-recommend-meta-label {
+.sf-story-context-meta-label {
 	flex-shrink: 0;
-	font-size: var(--sf-recommend-meta-label-size, 0.9em);
-	font-weight: var(--sf-recommend-meta-label-weight, 500);
-	color: var(--sf-recommend-meta-label-color, var(--text-muted));
-	font-variant: var(--sf-recommend-meta-label-variant, normal);
-	font-family: var(--sf-recommend-meta-label-family, inherit);
-	font-variation-settings: var(--sf-recommend-meta-label-variation, normal);
+	font-size: var(--sf-story-context-meta-label-size, 0.9em);
+	font-weight: var(--sf-story-context-meta-label-weight, 500);
+	color: var(--sf-story-context-meta-label-color, var(--text-muted));
+	font-variant: var(--sf-story-context-meta-label-variant, normal);
+	font-family: var(--sf-story-context-meta-label-family, inherit);
+	font-variation-settings: var(--sf-story-context-meta-label-variation, normal);
 }
 
-.sf-recommend-meta-control {
+.sf-story-context-meta-control {
 	display: inline-flex;
 	align-items: center;
 	gap: 4px;
 	cursor: pointer;
 	line-height: 1;
-	font-size: var(--sf-recommend-meta-control-size, 1em);
-	font-weight: var(--sf-recommend-meta-control-weight, 400);
-	color: var(--sf-recommend-meta-control-color, var(--text-normal));
-	font-family: var(--sf-recommend-meta-control-family, inherit);
-	font-variation-settings: var(--sf-recommend-meta-control-variation, normal);
+	font-size: var(--sf-story-context-meta-control-size, 1em);
+	font-weight: var(--sf-story-context-meta-control-weight, 400);
+	color: var(--sf-story-context-meta-control-color, var(--text-normal));
+	font-family: var(--sf-story-context-meta-control-family, inherit);
+	font-variation-settings: var(--sf-story-context-meta-control-variation, normal);
 }
 
-.sf-recommend-meta-control:hover {
+.sf-story-context-meta-control:hover {
 	color: var(--text-accent);
 }
 
-.sf-recommend-meta-icon {
+.sf-story-context-meta-icon {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -4704,12 +4704,12 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	line-height: 1;
 }
 
-.sf-recommend-meta-icon svg {
+.sf-story-context-meta-icon svg {
 	width: 1em;
 	height: 1em;
 }
 
-.sf-recommend-meta-value {
+.sf-story-context-meta-value {
 	color: inherit;
 	font-family: inherit;
 	font-weight: inherit;
@@ -4717,7 +4717,7 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	white-space: nowrap;
 }
 
-.sf-recommend-meta-values {
+.sf-story-context-meta-values {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: baseline;
@@ -4726,18 +4726,18 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	flex: 1;
 	cursor: pointer;
 	line-height: 1.2;
-	font-size: var(--sf-recommend-meta-control-size, 1em);
-	font-weight: var(--sf-recommend-meta-control-weight, 400);
-	color: var(--sf-recommend-meta-control-color, var(--text-normal));
-	font-family: var(--sf-recommend-meta-control-family, inherit);
-	font-variation-settings: var(--sf-recommend-meta-control-variation, normal);
+	font-size: var(--sf-story-context-meta-control-size, 1em);
+	font-weight: var(--sf-story-context-meta-control-weight, 400);
+	color: var(--sf-story-context-meta-control-color, var(--text-normal));
+	font-family: var(--sf-story-context-meta-control-family, inherit);
+	font-variation-settings: var(--sf-story-context-meta-control-variation, normal);
 }
 
-.sf-recommend-meta-values:hover {
+.sf-story-context-meta-values:hover {
 	color: var(--text-accent);
 }
 
-.sf-recommend-novel-fixed .sf-synopsis-plot-title {
+.sf-story-context-novel-fixed .sf-synopsis-plot-title {
 	margin-top: 12px;
 	/* Zeroed so the pill-stub's coloured lines run straight into the scroll pane's own
 	 * lines below with no dead space (both Story Context's Novel tab and the central
@@ -4745,36 +4745,36 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	margin-bottom: 0;
 }
 
-.sf-recommend-novel-cover {
+.sf-story-context-novel-cover {
 	width: 120px;
 	height: 180px;
 	margin: 0 auto 12px;
 	align-self: center;
 }
 
-.sf-recommend-novel-title {
+.sf-story-context-novel-title {
 	text-align: center;
 	margin-bottom: 4px;
-	color: var(--sf-recommend-novel-title-color, var(--text-normal));
-	font-size: var(--sf-recommend-novel-title-size, 1.1em);
-	font-weight: var(--sf-recommend-novel-title-weight, 600);
-	font-variant: var(--sf-recommend-novel-title-variant, normal);
-	font-family: var(--sf-recommend-novel-title-family, inherit);
-	font-variation-settings: var(--sf-recommend-novel-title-variation, normal);
+	color: var(--sf-story-context-novel-title-color, var(--text-normal));
+	font-size: var(--sf-story-context-novel-title-size, 1.1em);
+	font-weight: var(--sf-story-context-novel-title-weight, 600);
+	font-variant: var(--sf-story-context-novel-title-variant, normal);
+	font-family: var(--sf-story-context-novel-title-family, inherit);
+	font-variation-settings: var(--sf-story-context-novel-title-variation, normal);
 }
 
-.sf-recommend-novel-subtitle {
+.sf-story-context-novel-subtitle {
 	text-align: center;
 	margin-bottom: 10px;
-	color: var(--sf-recommend-novel-subtitle-color, var(--text-muted));
-	font-size: var(--sf-recommend-novel-subtitle-size, 0.9em);
-	font-weight: var(--sf-recommend-novel-subtitle-weight, 400);
-	font-variant: var(--sf-recommend-novel-subtitle-variant, normal);
-	font-family: var(--sf-recommend-novel-subtitle-family, inherit);
-	font-variation-settings: var(--sf-recommend-novel-subtitle-variation, normal);
+	color: var(--sf-story-context-novel-subtitle-color, var(--text-muted));
+	font-size: var(--sf-story-context-novel-subtitle-size, 0.9em);
+	font-weight: var(--sf-story-context-novel-subtitle-weight, 400);
+	font-variant: var(--sf-story-context-novel-subtitle-variant, normal);
+	font-family: var(--sf-story-context-novel-subtitle-family, inherit);
+	font-variation-settings: var(--sf-story-context-novel-subtitle-variation, normal);
 }
 
-.sf-recommend-novel-synopsis {
+.sf-story-context-novel-synopsis {
 	width: 100%;
 	min-height: 88px;
 	margin-bottom: 10px;
@@ -4782,9 +4782,9 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 }
 
 /* Story Context Novel tab: 12px gap between the synopsis and the chapter flags below.
- * The gap itself is .sf-recommend-novel-thread-drop (the coloured lines keep running
+ * The gap itself is .sf-story-context-novel-thread-drop (the coloured lines keep running
  * through it); the wrap no longer has a bottom margin of its own. */
-.sf-recommend-view .sf-recommend-novel-synopsis {
+.sf-story-context-view .sf-story-context-novel-synopsis {
 	margin-bottom: 0;
 }
 
@@ -4795,7 +4795,7 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
  * fill does not peek around that corner.
  * ::after is the 2px left strand, painted above the textarea so Obsidian's focus box-shadow
  * cannot cover it. */
-.sf-recommend-view .sf-recommend-novel-synopsis-wrap {
+.sf-story-context-view .sf-story-context-novel-synopsis-wrap {
 	display: flex;
 	flex-direction: column;
 	position: relative;
@@ -4804,11 +4804,11 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	overflow: hidden;
 }
 
-.sf-recommend-view .sf-recommend-novel-synopsis-wrap .sf-recommend-novel-synopsis {
+.sf-story-context-view .sf-story-context-novel-synopsis-wrap .sf-story-context-novel-synopsis {
 	margin-bottom: 0;
 }
 
-.sf-recommend-view .sf-recommend-novel-synopsis-wrap::after {
+.sf-story-context-view .sf-story-context-novel-synopsis-wrap::after {
 	content: "";
 	position: absolute;
 	left: 0;
@@ -4821,19 +4821,19 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 
 /* Continues every plot-thread line through the gap under the synopsis (sidebar) /
  * cover row (wide overview). Secondary lines begin here — they do not wrap the box. */
-.sf-recommend-novel-thread-drop {
+.sf-story-context-novel-thread-drop {
 	flex-shrink: 0;
 	height: 12px;
 	background-repeat: no-repeat;
 }
 
-.sf-recommend-novel-synopsis-thread-cap {
+.sf-story-context-novel-synopsis-thread-cap {
 	flex-shrink: 0;
 	height: 4px;
 	border-radius: 0 2px 2px 0;
 }
 
-.sf-recommend-view textarea.sf-recommend-novel-synopsis--thread {
+.sf-story-context-view textarea.sf-story-context-novel-synopsis--thread {
 	display: block;
 	width: calc(100% - 2px);
 	margin: 0 0 0 2px;
@@ -4847,10 +4847,10 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	outline: none;
 }
 
-.sf-recommend-view textarea.sf-recommend-novel-synopsis--thread:hover,
-.sf-recommend-view textarea.sf-recommend-novel-synopsis--thread:focus,
-.sf-recommend-view textarea.sf-recommend-novel-synopsis--thread:focus-visible,
-.sf-recommend-view textarea.sf-recommend-novel-synopsis--thread:active {
+.sf-story-context-view textarea.sf-story-context-novel-synopsis--thread:hover,
+.sf-story-context-view textarea.sf-story-context-novel-synopsis--thread:focus,
+.sf-story-context-view textarea.sf-story-context-novel-synopsis--thread:focus-visible,
+.sf-story-context-view textarea.sf-story-context-novel-synopsis--thread:active {
 	box-shadow: none;
 	outline: none;
 	border-width: 0 1px 1px 0;
@@ -4859,16 +4859,16 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	background-color: var(--background-modifier-form-field);
 }
 
-.sf-recommend-plot-block {
+.sf-story-context-plot-block {
 	padding: 12px 0;
 	border-bottom: 1px solid var(--background-modifier-border);
 }
 
-.sf-recommend-plot-block:last-child {
+.sf-story-context-plot-block:last-child {
 	border-bottom: none;
 }
 
-.sf-recommend-plot-header-row {
+.sf-story-context-plot-header-row {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -4876,18 +4876,18 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	margin-bottom: 6px;
 }
 
-.sf-recommend-plot-chapter-name {
+.sf-story-context-plot-chapter-name {
 	flex: 1;
 	min-width: 0;
-	color: var(--sf-recommend-plot-chapter-color, var(--text-normal));
-	font-size: var(--sf-recommend-plot-chapter-size, 1em);
-	font-weight: var(--sf-recommend-plot-chapter-weight, 600);
-	font-variant: var(--sf-recommend-plot-chapter-variant, normal);
-	font-family: var(--sf-recommend-plot-chapter-family, inherit);
-	font-variation-settings: var(--sf-recommend-plot-chapter-variation, normal);
+	color: var(--sf-story-context-plot-chapter-color, var(--text-normal));
+	font-size: var(--sf-story-context-plot-chapter-size, 1em);
+	font-weight: var(--sf-story-context-plot-chapter-weight, 600);
+	font-variant: var(--sf-story-context-plot-chapter-variant, normal);
+	font-family: var(--sf-story-context-plot-chapter-family, inherit);
+	font-variation-settings: var(--sf-story-context-plot-chapter-variation, normal);
 }
 
-.sf-recommend-plot-textarea {
+.sf-story-context-plot-textarea {
 	width: 100%;
 	min-height: 72px;
 	margin-top: 8px;
@@ -4899,16 +4899,16 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
  * only those two win. */
 /* input[type="text"] specificity (element + attribute) so Obsidian's own default text-input
  * chrome (background/border from the active theme) can't outrank this box's look. */
-input.sf-recommend-chapter-title[type="text"] {
+input.sf-story-context-chapter-title[type="text"] {
 	appearance: none;
 	width: 100%;
 	margin: 0 0 8px;
-	color: var(--sf-recommend-chapter-color, var(--text-accent));
-	font-size: var(--sf-recommend-chapter-size, 1em);
-	font-variant: var(--sf-recommend-chapter-variant, normal);
-	font-family: var(--sf-recommend-chapter-family, inherit);
-	font-variation-settings: var(--sf-recommend-chapter-variation, normal);
-	font-weight: var(--sf-recommend-chapter-weight, 600);
+	color: var(--sf-story-context-chapter-color, var(--text-accent));
+	font-size: var(--sf-story-context-chapter-size, 1em);
+	font-variant: var(--sf-story-context-chapter-variant, normal);
+	font-family: var(--sf-story-context-chapter-family, inherit);
+	font-variation-settings: var(--sf-story-context-chapter-variation, normal);
+	font-weight: var(--sf-story-context-chapter-weight, 600);
 	background-color: var(--sf-right-rail-bg, var(--background-secondary));
 	border: 1px solid currentColor;
 	border-radius: 4px;
@@ -4919,37 +4919,37 @@ input.sf-recommend-chapter-title[type="text"] {
 	text-overflow: ellipsis;
 }
 
-input.sf-recommend-chapter-title[type="text"]:focus {
+input.sf-story-context-chapter-title[type="text"]:focus {
 	box-shadow: none;
 }
 
-.sf-recommend-section {
+.sf-story-context-section {
 	margin-bottom: 14px;
 }
 
-.sf-recommend-section-title {
-	font-size: var(--sf-recommend-section-size, 0.85em);
-	font-weight: var(--sf-recommend-section-weight, 600);
-	color: var(--sf-recommend-section-color, var(--text-muted));
-	font-variant: var(--sf-recommend-section-variant, normal);
+.sf-story-context-section-title {
+	font-size: var(--sf-story-context-section-size, 0.85em);
+	font-weight: var(--sf-story-context-section-weight, 600);
+	color: var(--sf-story-context-section-color, var(--text-muted));
+	font-variant: var(--sf-story-context-section-variant, normal);
 	text-transform: lowercase;
 	margin-bottom: 6px;
-	font-family: var(--sf-recommend-section-family, inherit);
-	font-variation-settings: var(--sf-recommend-section-variation, normal);
+	font-family: var(--sf-story-context-section-family, inherit);
+	font-variation-settings: var(--sf-story-context-section-variation, normal);
 }
 
 /* Refresh (top) and add-to-chapter (bottom) sit outside the box, on its right edge — see
- * .sf-recommend-synopsis-actions below for how each aligns to its respective corner. Same 8px gap
- * as .sf-recommend-chapter-title-row, so the title input and the summary box render the same
+ * .sf-story-context-synopsis-actions below for how each aligns to its respective corner. Same 8px gap
+ * as .sf-story-context-chapter-title-row, so the title input and the summary box render the same
  * width (each row gives up one icon-box-width + one gap out of the same available width). */
-.sf-recommend-synopsis-row {
+.sf-story-context-synopsis-row {
 	display: flex;
 	align-items: stretch;
 	gap: 8px;
 	margin-bottom: 6px;
 }
 
-.sf-recommend-synopsis {
+.sf-story-context-synopsis {
 	flex: 1;
 	min-width: 0;
 	height: 120px;
@@ -4958,57 +4958,57 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	overflow-y: auto;
 	box-sizing: border-box;
 	margin-bottom: 0;
-	font-size: var(--sf-recommend-synopsis-size, 1em);
-	color: var(--sf-recommend-synopsis-color, var(--text-normal));
-	font-family: var(--sf-recommend-synopsis-family, inherit);
-	font-variation-settings: var(--sf-recommend-synopsis-variation, normal);
-	font-weight: var(--sf-recommend-synopsis-weight, 400);
+	font-size: var(--sf-story-context-synopsis-size, 1em);
+	color: var(--sf-story-context-synopsis-color, var(--text-normal));
+	font-family: var(--sf-story-context-synopsis-family, inherit);
+	font-variation-settings: var(--sf-story-context-synopsis-variation, normal);
+	font-weight: var(--sf-story-context-synopsis-weight, 400);
 }
 
 /* Refresh (top) and add-to-chapter (bottom) — stretched to the row's full height (matching the
  * summary box, the tallest/only other row item) and space-betweened so the first button's top
  * lands flush with the box's top and the second's bottom lands flush with the box's bottom. */
-.sf-recommend-synopsis-actions {
+.sf-story-context-synopsis-actions {
 	display: flex;
 	flex-direction: column;
 	justify-content: space-between;
 	flex-shrink: 0;
 }
 
-/* 25% bigger than the shared .sf-recommend-icon-btn svg{width/height:18px} default — scoped to
- * just these two Chapter-tab icons (matching .sf-recommend-refresh's own bump above), not the
+/* 25% bigger than the shared .sf-story-context-icon-btn svg{width/height:18px} default — scoped to
+ * just these two Chapter-tab icons (matching .sf-story-context-refresh's own bump above), not the
  * icon-btn class generally, which plenty of other, differently-scaled buttons across Story
  * Context (row actions, dossier dropdown, archive, …) still use unchanged. */
-.sf-recommend-synopsis-actions .sf-recommend-icon-btn svg {
+.sf-story-context-synopsis-actions .sf-story-context-icon-btn svg {
 	width: 22.5px;
 	height: 22.5px;
 }
 
-.sf-recommend-hit-actions button {
+.sf-story-context-hit-actions button {
 	font-size: 0.85em;
 }
 
-.sf-recommend-row {
+.sf-story-context-row {
 	display: flex;
 	align-items: center;
 	gap: 6px;
 	padding: 3px 0;
 	flex-wrap: wrap;
-	color: var(--sf-recommend-items-color, var(--text-normal));
-	font-size: var(--sf-recommend-items-size, 1em);
-	font-weight: var(--sf-recommend-items-weight, 400);
-	font-family: var(--sf-recommend-items-family, inherit);
-	font-variation-settings: var(--sf-recommend-items-variation, normal);
+	color: var(--sf-story-context-items-color, var(--text-normal));
+	font-size: var(--sf-story-context-items-size, 1em);
+	font-weight: var(--sf-story-context-items-weight, 400);
+	font-family: var(--sf-story-context-items-family, inherit);
+	font-variation-settings: var(--sf-story-context-items-variation, normal);
 }
 
-.sf-recommend-row-actions {
+.sf-story-context-row-actions {
 	display: flex;
 	align-items: center;
 	gap: 2px;
 	margin-left: auto;
 }
 
-.sf-recommend-icon-btn {
+.sf-story-context-icon-btn {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -5019,36 +5019,36 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	border-radius: 0;
 }
 
-.sf-recommend-icon-btn:hover {
+.sf-story-context-icon-btn:hover {
 	color: var(--text-accent);
 	background: transparent;
 }
 
-.sf-recommend-icon-btn svg {
+.sf-story-context-icon-btn svg {
 	width: 18px;
 	height: 18px;
 }
 
-.sf-recommend-unknown-name {
+.sf-story-context-unknown-name {
 	color: inherit;
 }
 
-.sf-recommend-match-list {
+.sf-story-context-match-list {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: baseline;
 	gap: 2px 0.35em;
 	padding: 6px 0 8px;
 	min-width: 0;
-	color: var(--sf-recommend-items-color, var(--text-normal));
-	font-size: var(--sf-recommend-items-size, 1em);
-	font-weight: var(--sf-recommend-items-weight, 400);
-	font-family: var(--sf-recommend-items-family, inherit);
-	font-variation-settings: var(--sf-recommend-items-variation, normal);
+	color: var(--sf-story-context-items-color, var(--text-normal));
+	font-size: var(--sf-story-context-items-size, 1em);
+	font-weight: var(--sf-story-context-items-weight, 400);
+	font-family: var(--sf-story-context-items-family, inherit);
+	font-variation-settings: var(--sf-story-context-items-variation, normal);
 	line-height: 1.2;
 }
 
-.sf-recommend-match-item {
+.sf-story-context-match-item {
 	display: inline-flex;
 	align-items: baseline;
 	gap: 0.2em;
@@ -5056,7 +5056,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	color: inherit;
 }
 
-.sf-recommend-match-icon {
+.sf-story-context-match-icon {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -5065,17 +5065,17 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	line-height: 1;
 }
 
-.sf-recommend-match-icon svg {
+.sf-story-context-match-icon svg {
 	width: 1em;
 	height: 1em;
 }
 
-.sf-recommend-ambiguous {
+.sf-story-context-ambiguous {
 	font-size: 0.8em;
 	color: var(--text-faint);
 }
 
-.sf-recommend-entity-header {
+.sf-story-context-entity-header {
 	display: flex;
 	align-items: center;
 	gap: 6px;
@@ -5083,93 +5083,93 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	cursor: pointer;
 }
 
-.sf-recommend-entity-name {
-	font-weight: var(--sf-recommend-section-weight, 600);
-	font-size: var(--sf-recommend-section-size, 0.95em);
-	color: var(--sf-recommend-section-color, var(--text-muted));
-	font-variant: var(--sf-recommend-section-variant, normal);
-	font-family: var(--sf-recommend-section-family, inherit);
-	font-variation-settings: var(--sf-recommend-section-variation, normal);
+.sf-story-context-entity-name {
+	font-weight: var(--sf-story-context-section-weight, 600);
+	font-size: var(--sf-story-context-section-size, 0.95em);
+	color: var(--sf-story-context-section-color, var(--text-muted));
+	font-variant: var(--sf-story-context-section-variant, normal);
+	font-family: var(--sf-story-context-section-family, inherit);
+	font-variation-settings: var(--sf-story-context-section-variation, normal);
 }
 
-.sf-recommend-hit {
+.sf-story-context-hit {
 	padding: 8px 0;
 	border-bottom: 1px solid var(--background-modifier-border);
-	font-size: var(--sf-recommend-details-size, 0.9em);
-	color: var(--sf-recommend-details-color, var(--text-normal));
-	font-family: var(--sf-recommend-details-family, inherit);
-	font-variation-settings: var(--sf-recommend-details-variation, normal);
-	font-weight: var(--sf-recommend-details-weight, 400);
+	font-size: var(--sf-story-context-details-size, 0.9em);
+	color: var(--sf-story-context-details-color, var(--text-normal));
+	font-family: var(--sf-story-context-details-family, inherit);
+	font-variation-settings: var(--sf-story-context-details-variation, normal);
+	font-weight: var(--sf-story-context-details-weight, 400);
 }
 
-.sf-recommend-hit.is-resolved {
+.sf-story-context-hit.is-resolved {
 	opacity: 0.55;
 }
 
-.sf-recommend-hit-meta {
+.sf-story-context-hit-meta {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 6px;
 	align-items: center;
 	margin-bottom: 4px;
 	font-size: 0.85em;
-	color: var(--sf-recommend-details-color, var(--text-muted));
+	color: var(--sf-story-context-details-color, var(--text-muted));
 	text-transform: lowercase;
 }
 
-.sf-recommend-tier-solid {
+.sf-story-context-tier-solid {
 	color: var(--text-normal);
 }
 
-.sf-recommend-tier-grey {
+.sf-story-context-tier-grey {
 	color: var(--text-muted);
 }
 
-.sf-recommend-tier-ambiguous {
+.sf-story-context-tier-ambiguous {
 	color: var(--text-warning, var(--text-accent));
 }
 
-.sf-recommend-negated {
+.sf-story-context-negated {
 	color: var(--text-error, var(--text-muted));
 }
 
-.sf-recommend-hit-span {
-	color: var(--sf-recommend-details-color, var(--text-normal));
+.sf-story-context-hit-span {
+	color: var(--sf-story-context-details-color, var(--text-normal));
 	cursor: pointer;
 	line-height: 1.35;
 }
 
-.sf-recommend-hit-span:hover {
+.sf-story-context-hit-span:hover {
 	text-decoration: underline;
 }
 
-.sf-recommend-hit-span:focus-visible,
-.sf-recommend-tab:focus-visible,
-.sf-recommend-refresh:focus-visible,
-.sf-recommend-icon-btn:focus-visible,
-.sf-recommend-entity-header:focus-visible {
+.sf-story-context-hit-span:focus-visible,
+.sf-story-context-tab:focus-visible,
+.sf-story-context-refresh:focus-visible,
+.sf-story-context-icon-btn:focus-visible,
+.sf-story-context-entity-header:focus-visible {
 	outline: 2px solid var(--text-accent);
 	outline-offset: 2px;
 }
 
-.sf-recommend-codex-fact {
+.sf-story-context-codex-fact {
 	font-size: 0.9em;
-	color: var(--sf-recommend-details-color, var(--text-muted));
+	color: var(--sf-story-context-details-color, var(--text-muted));
 	margin-top: 4px;
 }
 
-.sf-recommend-competing {
+.sf-story-context-competing {
 	font-size: 0.9em;
-	color: var(--sf-recommend-details-color, var(--text-faint));
+	color: var(--sf-story-context-details-color, var(--text-faint));
 	margin-top: 4px;
 }
 
-.sf-recommend-lens,
-.sf-recommend-trait {
+.sf-story-context-lens,
+.sf-story-context-trait {
 	color: inherit;
 }
 
-.sf-recommend-hit-actions {
+.sf-story-context-hit-actions {
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -5177,7 +5177,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	margin-top: 6px;
 }
 
-.sf-recommend-dossier-combo {
+.sf-story-context-dossier-combo {
 	display: flex;
 	align-items: center;
 	gap: 4px;
@@ -5187,7 +5187,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 /* Beat Obsidian `input` / `input[type=search]` / `.modal input` so size, weight, family,
  * and colour actually apply (font-variant is rarely set on those, which is why small-caps
  * was the only control that visibly changed). */
-.sf-recommend-dossier-combo input.sf-recommend-dossier-search {
+.sf-story-context-dossier-combo input.sf-story-context-dossier-search {
 	flex: 1;
 	min-width: 0;
 	box-sizing: border-box;
@@ -5200,35 +5200,35 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	box-shadow: none;
 	-webkit-appearance: none;
 	appearance: none;
-	font-size: var(--sf-recommend-dossier-size, 1.15em);
-	font-weight: var(--sf-recommend-dossier-weight, 600);
-	color: var(--sf-recommend-dossier-color, var(--text-accent));
-	-webkit-text-fill-color: var(--sf-recommend-dossier-color, var(--text-accent));
-	font-variant: var(--sf-recommend-dossier-variant, normal);
-	font-family: var(--sf-recommend-dossier-family, inherit);
-	font-variation-settings: var(--sf-recommend-dossier-variation, normal);
+	font-size: var(--sf-story-context-dossier-size, 1.15em);
+	font-weight: var(--sf-story-context-dossier-weight, 600);
+	color: var(--sf-story-context-dossier-color, var(--text-accent));
+	-webkit-text-fill-color: var(--sf-story-context-dossier-color, var(--text-accent));
+	font-variant: var(--sf-story-context-dossier-variant, normal);
+	font-family: var(--sf-story-context-dossier-family, inherit);
+	font-variation-settings: var(--sf-story-context-dossier-variation, normal);
 	line-height: 1.3;
 }
 
-.sf-recommend-dossier-combo input.sf-recommend-dossier-search:focus,
-.sf-recommend-dossier-combo input.sf-recommend-dossier-search:focus-visible {
+.sf-story-context-dossier-combo input.sf-story-context-dossier-search:focus,
+.sf-story-context-dossier-combo input.sf-story-context-dossier-search:focus-visible {
 	box-shadow: none;
 	outline: none;
 	border-bottom-color: var(--text-accent);
 }
 
-.sf-recommend-dossier-combo input.sf-recommend-dossier-search::placeholder {
+.sf-story-context-dossier-combo input.sf-story-context-dossier-search::placeholder {
 	color: var(--text-muted);
 	-webkit-text-fill-color: var(--text-muted);
 	opacity: 0.85;
 	font-weight: 500;
 }
 
-.sf-recommend-dossier-drop {
+.sf-story-context-dossier-drop {
 	flex-shrink: 0;
 }
 
-.sf-recommend-dossier-suggest-item {
+.sf-story-context-dossier-suggest-item {
 	display: flex;
 	align-items: center;
 	gap: 6px;
@@ -5839,7 +5839,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	flex-shrink: 0;
 }
 
-/* Same chrome as Story Context's chapter-card action icons (.sf-recommend-icon-btn):
+/* Same chrome as Story Context's chapter-card action icons (.sf-story-context-icon-btn):
  * muted rest, no fill, 22.5px glyph. Hover is the storyTelling chapter highlight colour
  * (the selected-row fill, not the text on it), and only for a control that can fire. */
 .sf-navigator-transport-btn {
@@ -6080,9 +6080,9 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 }
 
 /* ── Series overview (SeriesOverviewView.ts) ──
- * The Series tab's main-pane page. Independent of Story Context's own .sf-recommend-* styling —
+ * The Series tab's main-pane page. Independent of Story Context's own .sf-story-context-* styling —
  * none of these classes read Story Context's formatting settings, by design (see the view's own
- * doc comment). Column layout mirroring .sf-recommend-view's own fixed-header/scrolling-body
+ * doc comment). Column layout mirroring .sf-story-context-view's own fixed-header/scrolling-body
  * split (styles.css's Story Context section): series title, hero image, and description
  * stay put in .sf-series-overview-fixed; the novel list is the only part that scrolls. */
 .workspace-leaf-content[data-type="storyforge-series-overview-view"] .view-content.sf-series-overview-view,
@@ -6165,7 +6165,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 }
 
 /* Book-cover ratio (2:3, same as every other cover box in the plugin — .sf-series-overview-cover,
- * .sf-recommend-novel-cover, …) — reuses .sf-synopsis-cover's placeholder/has-image/rounded-corner
+ * .sf-story-context-novel-cover, …) — reuses .sf-synopsis-cover's placeholder/has-image/rounded-corner
  * styling (NovelPanel.ts's cover elsewhere already shares it) so this cover looks and behaves the
  * same everywhere.
  *
@@ -6389,11 +6389,11 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 
 /* ── Novel overview (NovelOverviewView.ts) ──
  * The Novel tab's own main-pane page. Unlike Series overview above, this page deliberately DOES
- * reuse Story Context's own .sf-recommend-* classes (NovelPanel.ts) rather than inventing
+ * reuse Story Context's own .sf-story-context-* classes (NovelPanel.ts) rather than inventing
  * independent styling — the whole point of this page is that it mirrors that tab, formatting
  * settings included. This wrapper just supplies the flex column/height:100% shell that content's
  * fixed/scroll split (cover+synopsis+Default PoV stay put; the plot list scrolls) needs to work
- * the same way it does inside the right sidebar's own .sf-recommend-view. */
+ * the same way it does inside the right sidebar's own .sf-story-context-view. */
 .workspace-leaf-content[data-type="storyforge-novel-overview-view"] .view-content.sf-novel-overview-view,
 .sf-novel-overview-view {
 	display: flex;
@@ -6406,8 +6406,8 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	padding: 24px 32px 0;
 }
 
-.sf-novel-overview-view .sf-recommend-scroll {
-	/* Gap between cover/synopsis and plot cards is .sf-recommend-novel-thread-drop
+.sf-novel-overview-view .sf-story-context-scroll {
+	/* Gap between cover/synopsis and plot cards is .sf-story-context-novel-thread-drop
 	 * (the coloured lines keep running through it). */
 	padding-top: 0;
 	padding-bottom: 48px;
@@ -6415,14 +6415,14 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 
 /* NovelPanel.ts's "wide" layout (this page only — Story Context's own Novel tab keeps its
  * stacked/centred "sidebar" layout unchanged): cover left, synopsis + Default PoV beside it. */
-.sf-recommend-novel-cover-row {
+.sf-story-context-novel-cover-row {
 	display: flex;
 	align-items: stretch;
 	gap: 20px;
 	margin-bottom: 12px;
 }
 
-.sf-recommend-novel-text-col {
+.sf-story-context-novel-text-col {
 	flex: 1;
 	min-width: 0;
 	padding-top: 4px;
@@ -6434,7 +6434,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
  * Outer top-left is the wrap's 10px clip. ::before fills that 10×10 so the crescent between
  * the outer curve and the cover's 8×6 inner radius is thread colour (not a notch of page
  * background). The cover is opaque and sits on top, so only that ring shows. */
-.sf-novel-overview-view .sf-recommend-novel-cover-thread {
+.sf-novel-overview-view .sf-story-context-novel-cover-thread {
 	display: flex;
 	flex-direction: column;
 	position: relative;
@@ -6443,7 +6443,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	overflow: hidden;
 }
 
-.sf-novel-overview-view .sf-recommend-novel-cover-thread::before {
+.sf-novel-overview-view .sf-story-context-novel-cover-thread::before {
 	content: "";
 	position: absolute;
 	left: 0;
@@ -6454,7 +6454,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	pointer-events: none;
 }
 
-.sf-novel-overview-view .sf-recommend-novel-cover-thread::after {
+.sf-novel-overview-view .sf-story-context-novel-cover-thread::after {
 	content: "";
 	position: absolute;
 	left: 0;
@@ -6465,28 +6465,28 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	pointer-events: none;
 }
 
-.sf-novel-overview-view .sf-recommend-novel-cover-thread .sf-recommend-novel-cover-row {
+.sf-novel-overview-view .sf-story-context-novel-cover-thread .sf-story-context-novel-cover-row {
 	margin-bottom: 0;
 }
 
-.sf-novel-overview-view .sf-recommend-novel-cover-thread .sf-recommend-novel-text-col {
+.sf-novel-overview-view .sf-story-context-novel-cover-thread .sf-story-context-novel-text-col {
 	padding-top: 0;
 }
 
-.sf-novel-overview-view .sf-recommend-novel-cover-thread .sf-recommend-novel-synopsis {
+.sf-novel-overview-view .sf-story-context-novel-cover-thread .sf-story-context-novel-synopsis {
 	border-top-width: 0;
 }
 
-/* Bigger, left-aligned cover — overrides the sidebar's centred 120×180 (.sf-recommend-novel-cover
+/* Bigger, left-aligned cover — overrides the sidebar's centred 120×180 (.sf-story-context-novel-cover
  * above), same 2:3 aspect ratio. */
-.sf-novel-overview-view .sf-recommend-novel-cover {
+.sf-novel-overview-view .sf-story-context-novel-cover {
 	width: 220px;
 	height: 330px;
 	margin: 0;
 	align-self: flex-start;
 }
 
-.sf-novel-overview-view .sf-recommend-novel-cover.sf-recommend-novel-cover--thread {
+.sf-novel-overview-view .sf-story-context-novel-cover.sf-story-context-novel-cover--thread {
 	margin-left: 2px;
 	position: relative;
 	z-index: 1;
@@ -6495,18 +6495,18 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 }
 
 /* Placeholder must be opaque or the 10×10 thread fill shows through as a box. */
-.sf-novel-overview-view .sf-recommend-novel-cover.sf-recommend-novel-cover--thread:not(.has-image) {
+.sf-novel-overview-view .sf-story-context-novel-cover.sf-story-context-novel-cover--thread:not(.has-image) {
 	opacity: 1;
 	background: color-mix(in srgb, var(--text-normal) 8%, var(--background-primary) 92%);
 }
 
-.sf-novel-overview-view .sf-recommend-novel-text-col .sf-recommend-novel-synopsis {
+.sf-novel-overview-view .sf-story-context-novel-text-col .sf-story-context-novel-synopsis {
 	flex: 1 1 0;
 	min-height: 0;
 	height: 0;
 }
 
-.sf-novel-overview-view .sf-recommend-novel-text-col .sf-recommend-section {
+.sf-novel-overview-view .sf-story-context-novel-text-col .sf-story-context-section {
 	flex-shrink: 0;
 	margin: 8px 0 0;
 }
@@ -6520,7 +6520,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
  * has a real min-content size; the stub stays absolutely positioned so its height can be
  * "whatever's left below the bar down to the row's bottom edge" without knowing the "Plot"
  * heading's font size ahead of time. */
-.sf-recommend-plot-pill-col {
+.sf-story-context-plot-pill-col {
 	position: relative;
 	display: flex;
 	flex-direction: column;
@@ -6533,7 +6533,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 
 /* Thick rounded bar the gutter lines emerge from — fill is the leftmost (first) line's colour, set
  * inline. In-flow so this column's auto track doesn't collapse when the stub is out of flow. */
-.sf-recommend-plot-pill {
+.sf-story-context-plot-pill {
 	flex-shrink: 0;
 	width: 100%;
 	height: 5px;
@@ -6547,7 +6547,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
  * own bottom edge (50% + half its 5px height) and runs to this column's own bottom edge — flush
  * with the scroll pane's own top once .sf-synopsis-plot-title's bottom margin is zeroed for "wide"
  * below, so nothing breaks the run of colour between the header and the scrollable list. */
-.sf-recommend-plot-pill-stub {
+.sf-story-context-plot-pill-stub {
 	position: absolute;
 	top: calc(50% + 2.5px);
 	bottom: 0;
@@ -6555,7 +6555,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	width: 100%;
 }
 
-/* .sf-recommend-novel-fixed .sf-synopsis-plot-title's margin-bottom is already 0 (above), so the
+/* .sf-story-context-novel-fixed .sf-synopsis-plot-title's margin-bottom is already 0 (above), so the
  * pill-stub's coloured lines run straight into the scroll pane's own lines below. */
 
 /* Each chapter reads as its own card (renderNovelPlot — Story Context's sidebar Novel tab and
@@ -6579,10 +6579,10 @@ input.sf-recommend-chapter-title[type="text"]:focus {
  * header) looking borderless: there's no separate border layer there left to poke out from behind
  * it once the header's own edges are flush with the card's true ones. It also sidesteps the last
  * card's border-bottom entirely (see the removed workaround this replaced, previously needed
- * because .sf-recommend-plot-block:last-child sets border-bottom: none, which box-shadow was never
+ * because .sf-story-context-plot-block:last-child sets border-bottom: none, which box-shadow was never
  * subject to in the first place). border-radius still clips it to the same rounded shape as
  * everything else, same as it would a real border. */
-.sf-recommend-plot-block--plain {
+.sf-story-context-plot-block--plain {
 	box-shadow: inset 0 0 0 2px var(--sf-plot-card-outline, var(--background-modifier-border));
 	border-radius: 0 10px 10px 10px;
 	border-bottom: none;
@@ -6608,7 +6608,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
  * card, not stopping short of it). Vertical padding kept tight (4px, matching
  * .sf-series-overview-row-title's own vertical rhythm) rather than the rest of the card's more
  * generous spacing — this band reads as a title bar, not a content row. */
-.sf-recommend-plot-block--plain .sf-recommend-plot-header-row {
+.sf-story-context-plot-block--plain .sf-story-context-plot-header-row {
 	margin-top: 0;
 	margin-right: -16px;
 	margin-bottom: 6px;
@@ -6632,34 +6632,34 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 /* Chapter tab's single card: same chrome as Novel plot cards, but every corner is rounded.
  * Plot cards keep a square top-left so the header band can run out into the colour-line
  * gutter; this screen has no gutter, so there is nothing to extend into. */
-.sf-recommend-plot-block--plain.sf-recommend-plot-block--chapter {
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--chapter {
 	border-radius: 10px;
 	overflow: hidden;
 }
 
-.sf-recommend-plot-block--plain.sf-recommend-plot-block--chapter .sf-recommend-plot-header-row {
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--chapter .sf-story-context-plot-header-row {
 	border-radius: 10px 10px 0 0;
 }
 
 /* Chapter-tab title follows Chapter title size/font (same source as Novel plot-card names).
  * Colour is overridden inline per card from the series default main thread. */
-.sf-recommend-plot-block--chapter .sf-recommend-plot-chapter-name {
-	color: var(--sf-plot-card-header-fg, var(--sf-recommend-chapter-color, var(--sf-recommend-plot-chapter-color, var(--text-normal))));
-	font-size: var(--sf-recommend-chapter-size, var(--sf-recommend-plot-chapter-size, 1em));
-	font-weight: var(--sf-recommend-chapter-weight, var(--sf-recommend-plot-chapter-weight, 600));
-	font-variant: var(--sf-recommend-chapter-variant, var(--sf-recommend-plot-chapter-variant, normal));
-	font-family: var(--sf-recommend-chapter-family, var(--sf-recommend-plot-chapter-family, inherit));
-	font-variation-settings: var(--sf-recommend-chapter-variation, var(--sf-recommend-plot-chapter-variation, normal));
+.sf-story-context-plot-block--chapter .sf-story-context-plot-chapter-name {
+	color: var(--sf-plot-card-header-fg, var(--sf-story-context-chapter-color, var(--sf-story-context-plot-chapter-color, var(--text-normal))));
+	font-size: var(--sf-story-context-chapter-size, var(--sf-story-context-plot-chapter-size, 1em));
+	font-weight: var(--sf-story-context-chapter-weight, var(--sf-story-context-plot-chapter-weight, 600));
+	font-variant: var(--sf-story-context-chapter-variant, var(--sf-story-context-plot-chapter-variant, normal));
+	font-family: var(--sf-story-context-chapter-family, var(--sf-story-context-plot-chapter-family, inherit));
+	font-variation-settings: var(--sf-story-context-chapter-variation, var(--sf-story-context-plot-chapter-variation, normal));
 }
 
-.sf-recommend-chapter-card-actions {
+.sf-story-context-chapter-card-actions {
 	display: flex;
 	align-items: center;
 	gap: 4px;
 	margin: 0 0 10px;
 }
 
-.sf-recommend-chapter-wordcount {
+.sf-story-context-chapter-wordcount {
 	display: flex;
 	align-items: center;
 	gap: 0;
@@ -6670,7 +6670,7 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	cursor: default;
 }
 
-.sf-recommend-chapter-wordcount-icon {
+.sf-story-context-chapter-wordcount-icon {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -6678,20 +6678,20 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 	color: inherit;
 }
 
-.sf-recommend-chapter-wordcount-value {
+.sf-story-context-chapter-wordcount-value {
 	font-size: var(--font-ui-smaller);
 	line-height: 1;
 	font-variant-numeric: tabular-nums;
 	color: inherit;
 }
 
-.sf-recommend-chapter-card-actions .sf-recommend-icon-btn svg,
-.sf-recommend-chapter-wordcount-icon svg {
+.sf-story-context-chapter-card-actions .sf-story-context-icon-btn svg,
+.sf-story-context-chapter-wordcount-icon svg {
 	width: 22.5px;
 	height: 22.5px;
 }
 
-.sf-recommend-chapter-card-actions .sf-recommend-icon-btn:hover {
+.sf-story-context-chapter-card-actions .sf-story-context-icon-btn:hover {
 	color: var(--sf-plot-card-header-bg, var(--text-accent));
 }
 
@@ -6699,59 +6699,59 @@ input.sf-recommend-chapter-title[type="text"]:focus {
  * bars using the same accent as the header (and the same text colour as the chapter
  * name). --sf-plot-card-header-* are set on the chapter pane body from the series
  * default main thread. */
-.sf-recommend-plot-block--chapter .sf-recommend-section {
+.sf-story-context-plot-block--chapter .sf-story-context-section {
 	margin-bottom: 0;
 }
 
-.sf-recommend-plot-block--chapter .sf-recommend-section-title {
+.sf-story-context-plot-block--chapter .sf-story-context-section-title {
 	margin: 0 -16px;
 	padding: 4px 16px;
 	background-color: var(--sf-plot-card-header-bg, transparent);
-	color: var(--sf-plot-card-header-fg, var(--sf-recommend-chapter-color, var(--text-normal)));
+	color: var(--sf-plot-card-header-fg, var(--sf-story-context-chapter-color, var(--text-normal)));
 	overflow: visible;
 	white-space: normal;
 }
 
-.sf-recommend-plot-block--chapter .sf-recommend-row {
+.sf-story-context-plot-block--chapter .sf-story-context-row {
 	margin-left: -16px;
 	margin-right: -16px;
 	padding: 3px 16px;
 }
 
-.sf-recommend-plot-block--chapter .sf-recommend-section-title + .sf-recommend-row {
+.sf-story-context-plot-block--chapter .sf-story-context-section-title + .sf-story-context-row {
 	padding-top: 6px;
 }
 
-.sf-recommend-plot-block--chapter .sf-recommend-row:last-child {
+.sf-story-context-plot-block--chapter .sf-story-context-row:last-child {
 	padding-bottom: 6px;
 }
 
-.sf-recommend-plot-block--chapter .sf-recommend-section:last-child .sf-recommend-row:last-child {
+.sf-story-context-plot-block--chapter .sf-story-context-section:last-child .sf-story-context-row:last-child {
 	padding-bottom: 8px;
 }
 
-.sf-recommend-plot-block--chapter .sf-recommend-section-title + .sf-empty,
-.sf-recommend-unknown-card .sf-recommend-section-title + .sf-empty,
-.sf-recommend-pill-card .sf-recommend-section-title + .sf-empty {
+.sf-story-context-plot-block--chapter .sf-story-context-section-title + .sf-empty,
+.sf-story-context-unknown-card .sf-story-context-section-title + .sf-empty,
+.sf-story-context-pill-card .sf-story-context-section-title + .sf-empty {
 	min-height: 3.25em;
 }
 
-.sf-recommend-plot-block--chapter .sf-recommend-section-title + .sf-empty {
+.sf-story-context-plot-block--chapter .sf-story-context-section-title + .sf-empty {
 	margin-left: -16px;
 	margin-right: -16px;
 	padding: 6px 16px;
 }
 
-.sf-recommend-plot-block--chapter .sf-recommend-section:last-child .sf-empty:last-child {
+.sf-story-context-plot-block--chapter .sf-story-context-section:last-child .sf-empty:last-child {
 	padding-bottom: 8px;
 }
 
-.sf-recommend-plot-block--chapter .sf-recommend-row:hover {
-	background-color: var(--sf-plot-card-header-bg, var(--sf-recommend-highlight-bg, var(--background-modifier-hover)));
-	color: var(--sf-plot-card-header-fg, var(--sf-recommend-highlight-text, var(--text-normal)));
+.sf-story-context-plot-block--chapter .sf-story-context-row:hover {
+	background-color: var(--sf-plot-card-header-bg, var(--sf-story-context-highlight-bg, var(--background-modifier-hover)));
+	color: var(--sf-plot-card-header-fg, var(--sf-story-context-highlight-text, var(--text-normal)));
 }
 
-.sf-recommend-plot-block--chapter .sf-recommend-match-list {
+.sf-story-context-plot-block--chapter .sf-story-context-match-list {
 	margin-left: -16px;
 	margin-right: -16px;
 	padding: 6px 16px 8px;
@@ -6760,160 +6760,160 @@ input.sf-recommend-chapter-title[type="text"]:focus {
 /* Named-but-not-in-Codex: same card chrome and row highlight as the chapter card, in muted
  * instead of the chapter's plot colour. Hover fill is the header bar; text and icons pick up
  * the header title colour. */
-.sf-recommend-plot-block--plain.sf-recommend-unknown-card {
+.sf-story-context-plot-block--plain.sf-story-context-unknown-card {
 	border-radius: 10px;
 	overflow: hidden;
-	box-shadow: inset 0 0 0 2px var(--sf-recommend-unknown-color, var(--text-muted));
+	box-shadow: inset 0 0 0 2px var(--sf-story-context-unknown-color, var(--text-muted));
 }
 
-.sf-recommend-unknown-card .sf-recommend-section {
+.sf-story-context-unknown-card .sf-story-context-section {
 	margin-bottom: 0;
 }
 
-.sf-recommend-unknown-card .sf-recommend-section-title {
+.sf-story-context-unknown-card .sf-story-context-section-title {
 	margin: 0 -16px;
 	padding: 4px 16px;
-	background-color: var(--sf-recommend-unknown-color, var(--text-muted));
-	color: var(--sf-recommend-unknown-header-color, var(--background-primary));
+	background-color: var(--sf-story-context-unknown-color, var(--text-muted));
+	color: var(--sf-story-context-unknown-header-color, var(--background-primary));
 }
 
-.sf-recommend-unknown-card .sf-recommend-row {
+.sf-story-context-unknown-card .sf-story-context-row {
 	margin-left: -16px;
 	margin-right: -16px;
 	padding: 3px 16px;
 }
 
-.sf-recommend-unknown-card .sf-recommend-section-title + .sf-recommend-row {
+.sf-story-context-unknown-card .sf-story-context-section-title + .sf-story-context-row {
 	padding-top: 6px;
 }
 
-.sf-recommend-unknown-card .sf-recommend-section:last-child .sf-recommend-row:last-child {
+.sf-story-context-unknown-card .sf-story-context-section:last-child .sf-story-context-row:last-child {
 	padding-bottom: 8px;
 }
 
-.sf-recommend-unknown-card .sf-recommend-section-title + .sf-empty {
+.sf-story-context-unknown-card .sf-story-context-section-title + .sf-empty {
 	margin-left: -16px;
 	margin-right: -16px;
 	padding: 6px 16px;
 }
 
-.sf-recommend-unknown-card .sf-recommend-section:last-child .sf-empty:last-child {
+.sf-story-context-unknown-card .sf-story-context-section:last-child .sf-empty:last-child {
 	padding-bottom: 8px;
 }
 
-.sf-recommend-unknown-card .sf-recommend-row:hover {
-	background-color: var(--sf-recommend-unknown-color, var(--text-muted));
-	color: var(--sf-recommend-unknown-header-color, var(--background-primary));
+.sf-story-context-unknown-card .sf-story-context-row:hover {
+	background-color: var(--sf-story-context-unknown-color, var(--text-muted));
+	color: var(--sf-story-context-unknown-header-color, var(--background-primary));
 }
 
-.sf-recommend-unknown-card .sf-recommend-row:hover .sf-recommend-icon-btn,
-.sf-recommend-unknown-card .sf-recommend-row:hover .sf-recommend-icon-btn:hover {
-	color: var(--sf-recommend-unknown-header-color, var(--background-primary));
+.sf-story-context-unknown-card .sf-story-context-row:hover .sf-story-context-icon-btn,
+.sf-story-context-unknown-card .sf-story-context-row:hover .sf-story-context-icon-btn:hover {
+	color: var(--sf-story-context-unknown-header-color, var(--background-primary));
 }
 
 /* Details to capture / Holding area / Resolved — same pill chrome as Named but not in Codex,
  * each with its own box + header-text colours. */
-.sf-recommend-plot-block--plain.sf-recommend-pill-card {
+.sf-story-context-plot-block--plain.sf-story-context-pill-card {
 	border-radius: 10px;
 	overflow: hidden;
 	box-shadow: inset 0 0 0 2px var(--sf-pill-box-color, var(--text-muted));
 }
-.sf-recommend-pill-card--capture {
-	--sf-pill-box-color: var(--sf-recommend-capture-color, var(--interactive-accent));
-	--sf-pill-header-color: var(--sf-recommend-capture-header-color, var(--text-on-accent));
+.sf-story-context-pill-card--capture {
+	--sf-pill-box-color: var(--sf-story-context-capture-color, var(--interactive-accent));
+	--sf-pill-header-color: var(--sf-story-context-capture-header-color, var(--text-on-accent));
 }
-.sf-recommend-pill-card--holding {
-	--sf-pill-box-color: var(--sf-recommend-holding-color, var(--text-warning));
-	--sf-pill-header-color: var(--sf-recommend-holding-header-color, var(--background-primary));
+.sf-story-context-pill-card--holding {
+	--sf-pill-box-color: var(--sf-story-context-holding-color, var(--text-warning));
+	--sf-pill-header-color: var(--sf-story-context-holding-header-color, var(--background-primary));
 }
-.sf-recommend-pill-card--resolved {
-	--sf-pill-box-color: var(--sf-recommend-resolved-color, var(--text-muted));
-	--sf-pill-header-color: var(--sf-recommend-resolved-header-color, var(--background-primary));
+.sf-story-context-pill-card--resolved {
+	--sf-pill-box-color: var(--sf-story-context-resolved-color, var(--text-muted));
+	--sf-pill-header-color: var(--sf-story-context-resolved-header-color, var(--background-primary));
 }
-.sf-recommend-pill-card .sf-recommend-section {
+.sf-story-context-pill-card .sf-story-context-section {
 	margin-bottom: 0;
 }
-.sf-recommend-pill-card .sf-recommend-section-title {
+.sf-story-context-pill-card .sf-story-context-section-title {
 	margin: 0 -16px;
 	padding: 4px 16px;
 	background-color: var(--sf-pill-box-color, var(--text-muted));
 	color: var(--sf-pill-header-color, var(--background-primary));
 }
-.sf-recommend-pill-card .sf-recommend-entity-header,
-.sf-recommend-pill-card .sf-recommend-hit,
-.sf-recommend-pill-card .sf-empty {
+.sf-story-context-pill-card .sf-story-context-entity-header,
+.sf-story-context-pill-card .sf-story-context-hit,
+.sf-story-context-pill-card .sf-empty {
 	margin-left: -16px;
 	margin-right: -16px;
 	padding-left: 16px;
 	padding-right: 16px;
 }
-.sf-recommend-pill-card .sf-recommend-section-title + .sf-recommend-entity-header,
-.sf-recommend-pill-card .sf-recommend-section-title + .sf-empty {
+.sf-story-context-pill-card .sf-story-context-section-title + .sf-story-context-entity-header,
+.sf-story-context-pill-card .sf-story-context-section-title + .sf-empty {
 	padding-top: 6px;
 }
-.sf-recommend-pill-card .sf-recommend-section:last-child .sf-recommend-hit:last-child,
-.sf-recommend-pill-card .sf-recommend-section:last-child .sf-empty:last-child {
+.sf-story-context-pill-card .sf-story-context-section:last-child .sf-story-context-hit:last-child,
+.sf-story-context-pill-card .sf-story-context-section:last-child .sf-empty:last-child {
 	padding-bottom: 8px;
 }
 
-body.sf-section-chrome-pill .sf-recommend-plot-block--plain.sf-recommend-unknown-card,
-body.sf-section-chrome-pill .sf-recommend-plot-block--plain.sf-recommend-pill-card,
-body.sf-section-chrome-pill .sf-recommend-plot-block--plain.sf-recommend-plot-block--chapter,
-body.sf-section-chrome-text .sf-recommend-plot-block--plain.sf-recommend-unknown-card,
-body.sf-section-chrome-text .sf-recommend-plot-block--plain.sf-recommend-pill-card,
-body.sf-section-chrome-text .sf-recommend-plot-block--plain.sf-recommend-plot-block--chapter {
+body.sf-section-chrome-pill .sf-story-context-plot-block--plain.sf-story-context-unknown-card,
+body.sf-section-chrome-pill .sf-story-context-plot-block--plain.sf-story-context-pill-card,
+body.sf-section-chrome-pill .sf-story-context-plot-block--plain.sf-story-context-plot-block--chapter,
+body.sf-section-chrome-text .sf-story-context-plot-block--plain.sf-story-context-unknown-card,
+body.sf-section-chrome-text .sf-story-context-plot-block--plain.sf-story-context-pill-card,
+body.sf-section-chrome-text .sf-story-context-plot-block--plain.sf-story-context-plot-block--chapter {
 	box-shadow: none;
 	padding-top: 8px;
 	padding-bottom: 8px;
 }
 
-body.sf-section-chrome-pill .sf-recommend-unknown-card .sf-recommend-section-title,
-body.sf-section-chrome-pill .sf-recommend-pill-card .sf-recommend-section-title,
-body.sf-section-chrome-pill .sf-recommend-plot-block--chapter .sf-recommend-plot-header-row,
-body.sf-section-chrome-pill .sf-recommend-plot-block--chapter .sf-recommend-section-title {
+body.sf-section-chrome-pill .sf-story-context-unknown-card .sf-story-context-section-title,
+body.sf-section-chrome-pill .sf-story-context-pill-card .sf-story-context-section-title,
+body.sf-section-chrome-pill .sf-story-context-plot-block--chapter .sf-story-context-plot-header-row,
+body.sf-section-chrome-pill .sf-story-context-plot-block--chapter .sf-story-context-section-title {
 	border-radius: 10px;
 	margin-left: 0;
 	margin-right: 0;
 }
 
-body.sf-section-chrome-pill .sf-recommend-plot-block--chapter .sf-recommend-section-title {
+body.sf-section-chrome-pill .sf-story-context-plot-block--chapter .sf-story-context-section-title {
 	margin-top: 8px;
 }
 
-body.sf-section-chrome-text .sf-recommend-unknown-card .sf-recommend-section-title {
+body.sf-section-chrome-text .sf-story-context-unknown-card .sf-story-context-section-title {
 	background-color: transparent;
-	text-shadow: var(--sf-recommend-unknown-title-shadow, none);
+	text-shadow: var(--sf-story-context-unknown-title-shadow, none);
 }
 
-body.sf-section-chrome-text .sf-recommend-pill-card--capture .sf-recommend-section-title {
+body.sf-section-chrome-text .sf-story-context-pill-card--capture .sf-story-context-section-title {
 	background-color: transparent;
-	text-shadow: var(--sf-recommend-capture-title-shadow, none);
+	text-shadow: var(--sf-story-context-capture-title-shadow, none);
 }
 
-body.sf-section-chrome-text .sf-recommend-pill-card--holding .sf-recommend-section-title {
+body.sf-section-chrome-text .sf-story-context-pill-card--holding .sf-story-context-section-title {
 	background-color: transparent;
-	text-shadow: var(--sf-recommend-holding-title-shadow, none);
+	text-shadow: var(--sf-story-context-holding-title-shadow, none);
 }
 
-body.sf-section-chrome-text .sf-recommend-pill-card--resolved .sf-recommend-section-title {
+body.sf-section-chrome-text .sf-story-context-pill-card--resolved .sf-story-context-section-title {
 	background-color: transparent;
-	text-shadow: var(--sf-recommend-resolved-title-shadow, none);
+	text-shadow: var(--sf-story-context-resolved-title-shadow, none);
 }
 
-body.sf-section-chrome-text .sf-recommend-plot-block--chapter .sf-recommend-plot-header-row,
-body.sf-section-chrome-text .sf-recommend-plot-block--chapter .sf-recommend-section-title {
+body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-context-plot-header-row,
+body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-context-section-title {
 	background-color: transparent;
 	margin-left: 0;
 	margin-right: 0;
-	color: var(--sf-plot-card-header-fg, var(--sf-recommend-chapter-color, var(--text-normal)));
+	color: var(--sf-plot-card-header-fg, var(--sf-story-context-chapter-color, var(--text-normal)));
 	text-shadow: var(--sf-plot-card-title-shadow, none);
 }
 
-body.sf-section-chrome-text .sf-recommend-plot-block--chapter .sf-recommend-plot-chapter-name {
+body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-context-plot-chapter-name {
 	text-shadow: var(--sf-plot-card-title-shadow, none);
 }
 
-.sf-recommend-plot-collapse {
+.sf-story-context-plot-collapse {
 	/* Centred on the 2px inset outline: `left: 1px` is the stroke's midline (flush
 	 * header); `translate(-50%, -50%)` centres the 16px glyph on that point. renderNovelPlot
 	 * overrides `left` when the header band bleeds into the gutter. Taken out of flow so
@@ -6938,11 +6938,11 @@ body.sf-section-chrome-text .sf-recommend-plot-block--chapter .sf-recommend-plot
 	overflow: visible;
 }
 
-.sf-recommend-plot-collapse:hover {
+.sf-story-context-plot-collapse:hover {
 	opacity: 0.85;
 }
 
-.sf-recommend-plot-collapse svg {
+.sf-story-context-plot-collapse svg {
 	display: block;
 	width: 16px;
 	height: 16px;
@@ -6952,7 +6952,7 @@ body.sf-section-chrome-text .sf-recommend-plot-block--chapter .sf-recommend-plot
 	stroke: currentColor;
 }
 
-.sf-recommend-plot-collapse svg path {
+.sf-story-context-plot-collapse svg path {
 	fill: none;
 	stroke: currentColor;
 	stroke-width: 1.5;
@@ -6960,12 +6960,12 @@ body.sf-section-chrome-text .sf-recommend-plot-block--chapter .sf-recommend-plot
 	stroke-linejoin: round;
 }
 
-.sf-recommend-plot-block--plain.sf-recommend-plot-block--collapsed .sf-recommend-meta,
-.sf-recommend-plot-block--plain.sf-recommend-plot-block--collapsed .sf-recommend-plot-textarea-divider {
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--collapsed .sf-story-context-meta,
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--collapsed .sf-story-context-plot-textarea-divider {
 	display: none;
 }
 
-.sf-recommend-plot-block--plain.sf-recommend-plot-block--collapsed .sf-recommend-plot-header-row {
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--collapsed .sf-story-context-plot-header-row {
 	margin-bottom: 0;
 }
 
@@ -6975,16 +6975,16 @@ body.sf-section-chrome-text .sf-recommend-plot-block--chapter .sf-recommend-plot
  * strip would otherwise show the page background between the text box and the
  * shadow-border. Painting the card closes that gap. overflow stays visible so the
  * header band can still bleed into the colour-line gutter. */
-.sf-recommend-plot-block--plain.sf-recommend-plot-block--collapsed {
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--collapsed {
 	background: var(--sf-plot-card-header-bg, transparent);
 }
 
 /* Collapsed description paints as a continuation of the title bar: same fill and text
  * colour as the header band (custom properties set inline per card). Hover/focus of the
  * transparent-textarea rules above would otherwise punch a hole in that fill. */
-.sf-recommend-plot-block--plain.sf-recommend-plot-block--collapsed .sf-recommend-plot-textarea,
-.sf-recommend-plot-block--plain.sf-recommend-plot-block--collapsed .sf-recommend-plot-textarea:hover,
-.sf-recommend-plot-block--plain.sf-recommend-plot-block--collapsed .sf-recommend-plot-textarea:focus {
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--collapsed .sf-story-context-plot-textarea,
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--collapsed .sf-story-context-plot-textarea:hover,
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--collapsed .sf-story-context-plot-textarea:focus {
 	background: var(--sf-plot-card-header-bg, transparent);
 	color: var(--sf-plot-card-header-fg, inherit);
 	box-shadow: none;
@@ -6993,21 +6993,21 @@ body.sf-section-chrome-text .sf-recommend-plot-block--chapter .sf-recommend-plot
 	max-width: none;
 }
 
-.sf-recommend-plot-block--plain.sf-recommend-plot-block--collapsed .sf-recommend-plot-textarea::placeholder {
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--collapsed .sf-story-context-plot-textarea::placeholder {
 	color: var(--sf-plot-card-header-fg, inherit);
 	opacity: 0.55;
 }
 
 /* Breathing room between the PoV/location rows and the plot textarea's own top border below,
  * now that the card's own bottom padding (above) no longer supplies it. */
-.sf-recommend-plot-block--plain .sf-recommend-meta {
+.sf-story-context-plot-block--plain .sf-story-context-meta {
 	margin-bottom: 10px;
 }
 
 /* The divider between the meta rows and the plot textarea — a plain line living in the card's
  * ordinary padded content area (no bleed of its own), so it can't cross the card's own inset
  * outline the way the textarea's own border-top used to (see the textarea's own rule below). */
-.sf-recommend-plot-block--plain .sf-recommend-plot-textarea-divider {
+.sf-story-context-plot-block--plain .sf-story-context-plot-textarea-divider {
 	height: 1px;
 	background: var(--background-modifier-border);
 }
@@ -7021,14 +7021,14 @@ body.sf-section-chrome-text .sf-recommend-plot-block--chapter .sf-recommend-plot
  * outline itself, so the two crossed at the card's left/right edges and left a visible mark right
  * there.
  *
- * min-height: 0 (overriding the base .sf-recommend-plot-textarea rule's fixed 72px) plus height:
+ * min-height: 0 (overriding the base .sf-story-context-plot-textarea rule's fixed 72px) plus height:
  * auto is what lets it start at a single line — renderNovelPlot's own resize-to-scrollHeight, run
  * once on an empty textarea before the real plot text loads in, is what actually measures and sets
  * that starting height; this is just what stops the 72px floor from overriding it. overflow-y:
  * hidden (rather than the base rule's auto) is required for that scrollHeight measurement to track
  * the content's true height rather than clamping to whatever's currently visible; resize: none
  * removes the manual drag handle a plain <textarea> would otherwise have. */
-.sf-recommend-plot-block--plain .sf-recommend-plot-textarea {
+.sf-story-context-plot-block--plain .sf-story-context-plot-textarea {
 	margin: 0 -16px 0;
 	/* Not width: auto — a block-level <textarea> isn't guaranteed to fill available width the way a
 	 * plain <div> (e.g. the header row above) does, so the bleed is computed explicitly: 100% of the
@@ -7054,17 +7054,17 @@ body.sf-section-chrome-text .sf-recommend-plot-block--chapter .sf-recommend-plot
  * card it already sits inside), so hovering or focusing it would otherwise paint over the card's
  * own inset outline for its entire height. Explicitly reasserted here since the base rule above
  * only covers the resting state. */
-.sf-recommend-plot-block--plain .sf-recommend-plot-textarea:hover,
-.sf-recommend-plot-block--plain .sf-recommend-plot-textarea:focus {
+.sf-story-context-plot-block--plain .sf-story-context-plot-textarea:hover,
+.sf-story-context-plot-block--plain .sf-story-context-plot-textarea:focus {
 	background: transparent;
 	box-shadow: none;
 }
 
 /* Chapter pane: the description is unboxed text in the card (lists follow it, so it
  * no longer fills the card's bottom). No divider, no side-bleed, no corner radius. */
-.sf-recommend-plot-block--plain.sf-recommend-plot-block--chapter .sf-recommend-plot-textarea,
-.sf-recommend-plot-block--plain.sf-recommend-plot-block--chapter .sf-recommend-plot-textarea:hover,
-.sf-recommend-plot-block--plain.sf-recommend-plot-block--chapter .sf-recommend-plot-textarea:focus {
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--chapter .sf-story-context-plot-textarea,
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--chapter .sf-story-context-plot-textarea:hover,
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--chapter .sf-story-context-plot-textarea:focus {
 	margin: 0;
 	width: 100%;
 	max-width: none;
@@ -7079,11 +7079,11 @@ body.sf-section-chrome-text .sf-recommend-plot-block--chapter .sf-recommend-plot
 
 /* The chapter name opens ChapterTitleModal (central Novel overview, and Story Context's
  * Chapter tab). Same hover affordance as any other clickable text in the plugin. */
-.sf-recommend-plot-chapter-name--clickable {
+.sf-story-context-plot-chapter-name--clickable {
 	cursor: pointer;
 }
 
-.sf-recommend-plot-chapter-name--clickable:hover {
+.sf-story-context-plot-chapter-name--clickable:hover {
 	text-decoration: underline;
 }
 

@@ -10,7 +10,7 @@ import {
 const SETTINGS = {
 	automaticBackupEnabled: false,
 	bodyTextSize: 1,
-	recommendHeaderColor: "#abcdef",
+	storyContextHeaderColor: "#abcdef",
 	colorPaletteName: "Custom",
 	colorPaletteVariant: "",
 	customPaletteColors: [{ name: "Ink", hex: "#232427" }],
@@ -22,7 +22,7 @@ describe("storyForge settings transfer", () => {
 			SETTINGS,
 			{
 				bodyTextSize: SETTINGS.bodyTextSize,
-				recommendHeaderColor: SETTINGS.recommendHeaderColor,
+				storyContextHeaderColor: SETTINGS.storyContextHeaderColor,
 				colorPaletteName: SETTINGS.colorPaletteName,
 			},
 			new Date("2026-08-05T10:30:00.000Z"),
@@ -35,7 +35,7 @@ describe("storyForge settings transfer", () => {
 		expect(document.storySettings).not.toHaveProperty("bodyTextSize");
 		expect(document.formatting).toMatchObject({
 			bodyTextSize: SETTINGS.bodyTextSize,
-			recommendHeaderColor: SETTINGS.recommendHeaderColor,
+			storyContextHeaderColor: SETTINGS.storyContextHeaderColor,
 		});
 		expect(document.formatting).not.toHaveProperty("colorPaletteName");
 		expect(document.palette).toMatchObject({

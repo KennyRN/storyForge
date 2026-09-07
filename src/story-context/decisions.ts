@@ -10,10 +10,10 @@
 
 import { App, parseYaml, stringifyYaml, TFile } from "obsidian";
 import {
-	recommendAttributionPath,
-	recommendIgnoredNamesPath,
-	recommendSidecarFolderPath,
-	recommendSidecarPath,
+	storyContextAttributionPath,
+	storyContextIgnoredNamesPath,
+	storyContextSidecarFolderPath,
+	storyContextSidecarPath,
 } from "../paths";
 import { ensureBackstageFolder, enqueueBackstageWrite, writeBackstageFile } from "../writeGuard";
 import type { AttributionDecision } from "./types";
@@ -72,7 +72,7 @@ export function sweepResolvedOrphans(store: ResolvedStore, liveIds: Set<string>)
 }
 
 export async function readAttributionStore(app: App, bookFolderName: string): Promise<AttributionStore> {
-	const path = recommendAttributionPath(bookFolderName);
+	const path = storyContextAttributionPath(bookFolderName);
 	const file = app.vault.getAbstractFileByPath(path);
 	if (!(file instanceof TFile)) return { decisions: [] };
 	const parsed = parseJsonSidecar<AttributionStore>(await app.vault.cachedRead(file));
@@ -92,7 +92,7 @@ export async function upsertAttributionDecision(
 	bookFolderName: string,
 	decision: AttributionDecision,
 ): Promise<AttributionStore> {
-	const path = recommendAttributionPath(bookFolderName);
+	const path = storyContextAttributionPath(bookFolderName);
 	return enqueueBackstageWrite(path, async () => {
 		const current = await readAttributionStore(app, bookFolderName);
 		const next: AttributionStore = {
@@ -101,7 +101,7 @@ export async function upsertAttributionDecision(
 			),
 		};
 		next.decisions.push(decision);
-		await ensureBackstageFolder(app.vault, recommendSidecarFolderPath(bookFolderName));
+		await ensureBackstageFolder(app.vault, storyContextSidecarFolderPath(bookFolderName));
 		await writeBackstageFile(
 			app.vault,
 			path,
@@ -116,15 +116,15 @@ export async function writeAttributionStore(
 	bookFolderName: string,
 	store: AttributionStore,
 ): Promise<void> {
-	const path = recommendAttributionPath(bookFolderName);
+	const path = storyContextAttributionPath(bookFolderName);
 	await enqueueBackstageWrite(path, async () => {
-		await ensureBackstageFolder(app.vault, recommendSidecarFolderPath(bookFolderName));
+		await ensureBackstageFolder(app.vault, storyContextSidecarFolderPath(bookFolderName));
 		await writeBackstageFile(app.vault, path, buildJsonSidecar({ kind: "attribution" }, store));
 	});
 }
 
 /**
- * Resolved ids live beside the chapter recommend cache (frontmatter merge + JSON body).
+ * Resolved ids live beside the chapter Story Context cache (frontmatter merge + JSON body).
  * When the cache sidecar does not yet exist, we write a minimal resolved-only file.
  */
 export async function readResolvedStore(
@@ -132,7 +132,7 @@ export async function readResolvedStore(
 	bookFolderName: string,
 	chapterFilename: string,
 ): Promise<ResolvedStore> {
-	const path = recommendSidecarPath(bookFolderName, chapterFilename);
+	const path = storyContextSidecarPath(bookFolderName, chapterFilename);
 	const file = app.vault.getAbstractFileByPath(path);
 	if (!(file instanceof TFile)) return { resolvedIds: [] };
 	const raw = await app.vault.cachedRead(file);
@@ -153,7 +153,7 @@ export async function markResolved(
 ): Promise<ResolvedStore> {
 	// Queued as one unit so a concurrent recompute cannot drop a just-resolved id.
 	// The inner helper must stay unqueued: nesting on the same key would deadlock.
-	return enqueueBackstageWrite(recommendSidecarPath(bookFolderName, chapterFilename), async () => {
+	return enqueueBackstageWrite(storyContextSidecarPath(bookFolderName, chapterFilename), async () => {
 		const current = await readResolvedStore(app, bookFolderName, chapterFilename);
 		if (current.resolvedIds.includes(hitId)) return current;
 		const next: ResolvedStore = { resolvedIds: [...current.resolvedIds, hitId] };
@@ -168,8 +168,8 @@ async function persistResolvedIds(
 	chapterFilename: string,
 	resolvedIds: string[],
 ): Promise<void> {
-	await ensureBackstageFolder(app.vault, recommendSidecarFolderPath(bookFolderName));
-	const path = recommendSidecarPath(bookFolderName, chapterFilename);
+	await ensureBackstageFolder(app.vault, storyContextSidecarFolderPath(bookFolderName));
+	const path = storyContextSidecarPath(bookFolderName, chapterFilename);
 	const file = app.vault.getAbstractFileByPath(path);
 	let existing = "";
 	if (file instanceof TFile) existing = await app.vault.read(file);
@@ -200,9 +200,9 @@ export async function writeResolvedIdsOntoCache(
 	resolvedIds: string[],
 	reportJson: unknown,
 ): Promise<void> {
-	const path = recommendSidecarPath(bookFolderName, chapterFilename);
+	const path = storyContextSidecarPath(bookFolderName, chapterFilename);
 	await enqueueBackstageWrite(path, async () => {
-		await ensureBackstageFolder(app.vault, recommendSidecarFolderPath(bookFolderName));
+		await ensureBackstageFolder(app.vault, storyContextSidecarFolderPath(bookFolderName));
 		const fm: Record<string, unknown> = {
 			chapter: chapterFilename,
 			resolvedIds,
@@ -227,7 +227,7 @@ export async function readIgnoredNamesStore(
 	app: App,
 	bookFolderName: string,
 ): Promise<IgnoredNamesStore> {
-	const path = recommendIgnoredNamesPath(bookFolderName);
+	const path = storyContextIgnoredNamesPath(bookFolderName);
 	const file = app.vault.getAbstractFileByPath(path);
 	if (!(file instanceof TFile)) return { names: [] };
 	const parsed = parseJsonSidecar<IgnoredNamesStore>(await app.vault.cachedRead(file));
@@ -246,12 +246,12 @@ export async function addIgnoredName(
 ): Promise<IgnoredNamesStore> {
 	const key = name.trim().toLowerCase();
 	if (!key) return readIgnoredNamesStore(app, bookFolderName);
-	const path = recommendIgnoredNamesPath(bookFolderName);
+	const path = storyContextIgnoredNamesPath(bookFolderName);
 	return enqueueBackstageWrite(path, async () => {
 		const current = await readIgnoredNamesStore(app, bookFolderName);
 		if (current.names.includes(key)) return current;
 		const next: IgnoredNamesStore = { names: [...current.names, key] };
-		await ensureBackstageFolder(app.vault, recommendSidecarFolderPath(bookFolderName));
+		await ensureBackstageFolder(app.vault, storyContextSidecarFolderPath(bookFolderName));
 		await writeBackstageFile(
 			app.vault,
 			path,

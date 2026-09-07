@@ -41,7 +41,7 @@ export const PREFERENCE_GENERAL_KEYS = [
 	"hideToolsPanelIcon",
 	"panelOrderMode",
 	"codexFactSectionByType",
-	"recommendIncludeUnknownNames",
+	"storyContextIncludeUnknownNames",
 	"seriesNumberingStyle",
 	"chapterNumberingStyle",
 	"autoFocus",

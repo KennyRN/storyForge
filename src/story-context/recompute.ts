@@ -1,7 +1,7 @@
 import { App, TFile } from "obsidian";
 import { readBookFrontmatter, readChapterPlot } from "../book";
 import { libraryChapterPath } from "../paths";
-import { writeRecommendCache, readRecommendCache, isRecommendCacheFresh } from "./cache";
+import { writeStoryContextCache, readStoryContextCache, isStoryContextCacheFresh } from "./cache";
 import {
 	applyIgnoredNames,
 	readAttributionStore,
@@ -14,18 +14,18 @@ import { analyzeChapter, demoteGoneMatchesToUnknown, stripMarkdownMapped } from 
 import { loadHydratedCodexInventory } from "./inventory";
 import { resolveChapterNarrator, resolveDisplayedChapterPov } from "./narrator";
 import type { DialogueQuoteStyle } from "./quoteSpans";
-import type { ChapterRecommendReport } from "./types";
+import type { ChapterStoryContextReport } from "./types";
 
-export interface RecommendSettingsSlice {
+export interface StoryContextSettingsSlice {
 	codexFactSectionByType: Record<string, string>;
-	recommendIncludeUnknownNames: boolean;
+	storyContextIncludeUnknownNames: boolean;
 }
 
 async function withIgnoredNames(
 	app: App,
 	bookFolderName: string,
-	report: ChapterRecommendReport,
-): Promise<ChapterRecommendReport> {
+	report: ChapterStoryContextReport,
+): Promise<ChapterStoryContextReport> {
 	const ignored = await readIgnoredNamesStore(app, bookFolderName);
 	applyIgnoredNames(report, ignored.names);
 	return report;
@@ -49,8 +49,8 @@ function bookScanExtras(
 }
 
 function applyGoneMatchDemotion(
-	report: ChapterRecommendReport,
-	previousMatched: ChapterRecommendReport["matched"] | undefined,
+	report: ChapterStoryContextReport,
+	previousMatched: ChapterStoryContextReport["matched"] | undefined,
 	entries: Awaited<ReturnType<typeof loadHydratedCodexInventory>>,
 	rawChapter: string,
 	includeUnknownNames: boolean,
@@ -64,13 +64,13 @@ function applyGoneMatchDemotion(
 	);
 }
 
-/** Recomputes and caches a chapter recommend report. */
-export async function recomputeChapterRecommend(
+/** Recomputes and caches a chapter Story Context report. */
+export async function recomputeChapterStoryContext(
 	app: App,
 	bookFolderName: string,
 	chapterFilename: string,
-	settings: RecommendSettingsSlice,
-): Promise<ChapterRecommendReport | null> {
+	settings: StoryContextSettingsSlice,
+): Promise<ChapterStoryContextReport | null> {
 	const path = libraryChapterPath(bookFolderName, chapterFilename);
 	const file = app.vault.getAbstractFileByPath(path);
 	if (!(file instanceof TFile)) return null;
@@ -82,11 +82,11 @@ export async function recomputeChapterRecommend(
 	const resolved = await readResolvedStore(app, bookFolderName, chapterFilename);
 	const extras = bookScanExtras(app, bookFolderName, chapterFilename, entries);
 
-	const previous = await readRecommendCache(app, bookFolderName, chapterFilename);
+	const previous = await readStoryContextCache(app, bookFolderName, chapterFilename);
 	const report = await analyzeChapter(raw, entries, {
 		chapterFilename,
 		existingPlot,
-		includeUnknownNames: settings.recommendIncludeUnknownNames,
+		includeUnknownNames: settings.storyContextIncludeUnknownNames,
 		attributions: attribution.decisions,
 		resolvedIds: resolved.resolvedIds,
 		narrator: extras.narrator,
@@ -98,7 +98,7 @@ export async function recomputeChapterRecommend(
 		previous?.matched,
 		entries,
 		raw,
-		settings.recommendIncludeUnknownNames,
+		settings.storyContextIncludeUnknownNames,
 	);
 	await withIgnoredNames(app, bookFolderName, report);
 
@@ -108,17 +108,17 @@ export async function recomputeChapterRecommend(
 		await writeAttributionStore(app, bookFolderName, sweptAttr);
 	}
 
-	await writeRecommendCache(app, bookFolderName, report);
+	await writeStoryContextCache(app, bookFolderName, report);
 	return report;
 }
 
 /** Loads cache if still matching a fresh analysis hash; otherwise recomputes and writes. */
-export async function loadOrRecomputeChapterRecommend(
+export async function loadOrRecomputeChapterStoryContext(
 	app: App,
 	bookFolderName: string,
 	chapterFilename: string,
-	settings: RecommendSettingsSlice,
-): Promise<ChapterRecommendReport | null> {
+	settings: StoryContextSettingsSlice,
+): Promise<ChapterStoryContextReport | null> {
 	const path = libraryChapterPath(bookFolderName, chapterFilename);
 	const file = app.vault.getAbstractFileByPath(path);
 	if (!(file instanceof TFile)) return null;
@@ -130,11 +130,11 @@ export async function loadOrRecomputeChapterRecommend(
 	const resolved = await readResolvedStore(app, bookFolderName, chapterFilename);
 	const extras = bookScanExtras(app, bookFolderName, chapterFilename, entries);
 
-	const cached = await readRecommendCache(app, bookFolderName, chapterFilename);
+	const cached = await readStoryContextCache(app, bookFolderName, chapterFilename);
 	const fresh = await analyzeChapter(raw, entries, {
 		chapterFilename,
 		existingPlot,
-		includeUnknownNames: settings.recommendIncludeUnknownNames,
+		includeUnknownNames: settings.storyContextIncludeUnknownNames,
 		attributions: attribution.decisions,
 		resolvedIds: resolved.resolvedIds,
 		narrator: extras.narrator,
@@ -146,11 +146,11 @@ export async function loadOrRecomputeChapterRecommend(
 		cached?.matched,
 		entries,
 		raw,
-		settings.recommendIncludeUnknownNames,
+		settings.storyContextIncludeUnknownNames,
 	);
 	await withIgnoredNames(app, bookFolderName, fresh);
 
-	if (cached && isRecommendCacheFresh(cached, fresh.contentHash)) {
+	if (cached && isStoryContextCacheFresh(cached, fresh.contentHash)) {
 		// Re-apply live resolved/attribution onto cached hits
 		const resolvedSet = new Set(resolved.resolvedIds);
 		for (const hit of cached.hits) {
@@ -171,7 +171,7 @@ export async function loadOrRecomputeChapterRecommend(
 			stale,
 			entries,
 			raw,
-			settings.recommendIncludeUnknownNames,
+			settings.storyContextIncludeUnknownNames,
 		);
 		await withIgnoredNames(app, bookFolderName, cached);
 		return cached;
@@ -183,6 +183,6 @@ export async function loadOrRecomputeChapterRecommend(
 		await writeAttributionStore(app, bookFolderName, sweptAttr);
 	}
 
-	await writeRecommendCache(app, bookFolderName, fresh);
+	await writeStoryContextCache(app, bookFolderName, fresh);
 	return fresh;
 }

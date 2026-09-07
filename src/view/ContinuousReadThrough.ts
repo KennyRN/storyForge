@@ -173,7 +173,7 @@ export function renderContinuousReadThrough(
 		// `commitActiveEdit`, and `resolveClickedBlock` are all intact and functional. Re-enabling is
 		// restoring the two lines below plus the `isLinkClick`/`resolveClickedBlock` import from
 		// "./clickToEditDom" (dropped while unused, so Obsidian's automated checker doesn't flag it —
-		// see the postmortem's §9 for the recommended first step before doing so — re-run the live
+		// see the postmortem's §9 for the suggested first step before doing so — re-run the live
 		// diagnostic that was never finished).
 		//
 		// body.addEventListener("click", (e) => {

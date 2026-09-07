@@ -1,6 +1,6 @@
 import { setIcon, setTooltip } from "obsidian";
 import type StoryForgePlugin from "../main";
-import type { RecommendSectionChrome } from "../main";
+import type { StoryContextSectionChrome } from "../main";
 import {
 	ICON_LINE_HORIZONTAL,
 	ICON_TEXT_12_FILLED,
@@ -13,7 +13,7 @@ import { refreshAlignedPreview } from "./rowAlignedPreview";
 export { resolveTitleShadow } from "../titleShadow";
 
 const SECTION_CHROME_OPTIONS: Array<{
-	id: RecommendSectionChrome;
+	id: StoryContextSectionChrome;
 	icon: string;
 	tooltip: string;
 }> = [
@@ -48,7 +48,7 @@ export function renderSectionChromePicker(
 	host.empty();
 	host.addClass("sf-section-chrome-picker");
 	host.toggleClass("is-compact", !!options?.compact);
-	const selected = plugin.getSettings().recommendSectionChrome ?? "box";
+	const selected = plugin.getSettings().storyContextSectionChrome ?? "box";
 	for (const option of SECTION_CHROME_OPTIONS) {
 		const active = selected === option.id;
 		const el = host.createSpan({
@@ -61,7 +61,7 @@ export function renderSectionChromePicker(
 		setIcon(el, option.icon);
 		setTooltip(el, option.tooltip);
 		const select = () => {
-			void persistAndRestyle(plugin, "recommendSectionChrome", option.id, () => {
+			void persistAndRestyle(plugin, "storyContextSectionChrome", option.id, () => {
 				options?.restyle?.();
 				refreshAlignedPreview();
 				renderSectionChromePicker(host, plugin, options);
