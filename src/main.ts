@@ -11,8 +11,8 @@ import { NewChapterView, STORYFORGE_NEW_CHAPTER_VIEW_TYPE } from "./view/NewChap
 import { ToolsView, TOOLS_VIEW_TYPE } from "./view/ToolsPanel";
 import { StoryContextView, STORY_CONTEXT_VIEW_TYPE, activateStoryContextView } from "./view/StoryContextView";
 import { ArchiveView, ARCHIVE_VIEW_TYPE, activateArchiveView } from "./view/ArchiveView";
-import { recomputeChapterRecommend } from "./recommend/recompute";
-import { isNlpReady } from "./recommend/nlp";
+import { recomputeChapterRecommend } from "./story-context/recompute";
+import { isNlpReady } from "./story-context/nlp";
 import { CODEX_TYPES, evictMissingCodexNotes, pruneMissingCodexNotes } from "./codex";
 import { buildRightRailTypeOrder, isCanonicalTypeOrder } from "./rightRailOrder";
 import {

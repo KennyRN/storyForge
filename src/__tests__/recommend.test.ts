@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { analyzeChapter, contentHash, demoteGoneMatchesToUnknown, hashId, stripMarkdownMapped } from "../recommend/engine";
-import { applyIgnoredNames } from "../recommend/decisions";
+import { analyzeChapter, contentHash, demoteGoneMatchesToUnknown, hashId, stripMarkdownMapped } from "../story-context/engine";
+import { applyIgnoredNames } from "../story-context/decisions";
 import {
 	normalizeFactKey,
 	parseFactsFromNote,
@@ -8,13 +8,13 @@ import {
 	serializeFactsSection,
 	setFactValue,
 	emptyFacts,
-} from "../recommend/facts";
-import { buildRecommendSidecarContent, parseRecommendSidecar } from "../recommend/cache";
-import { groupHitsByChapter, lensLabel } from "../recommend/hitGrouping";
-import { buildLensRegistry } from "../recommend/lenses";
-import { ensureNlp } from "../recommend/nlp";
-import { hasFirstPersonInNarration } from "../recommend/quoteSpans";
-import type { CastMember, ChapterRecommendReport } from "../recommend/types";
+} from "../story-context/facts";
+import { buildRecommendSidecarContent, parseRecommendSidecar } from "../story-context/cache";
+import { groupHitsByChapter, lensLabel } from "../story-context/hitGrouping";
+import { buildLensRegistry } from "../story-context/lenses";
+import { ensureNlp } from "../story-context/nlp";
+import { hasFirstPersonInNarration } from "../story-context/quoteSpans";
+import type { CastMember, ChapterRecommendReport } from "../story-context/types";
 
 function person(path: string, name: string, factsBody: string, aliases: string[] = []): CastMember {
 	const facts = parseFactsFromSection(factsBody, "Facts");

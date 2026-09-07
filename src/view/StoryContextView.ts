@@ -23,21 +23,21 @@ import { splitTitleSubtitle } from "../titleNumbering";
 import { ICON_ADD_CIRCLE, ICON_ARCHIVE, ICON_BOOK_DUOTONE, ICON_BOOK_OPEN_FILLED, ICON_CLIPBOARD_LIST_DUOTONE, ICON_CODEX, ICON_DASHBOARD_CHART, ICON_EYE_DUOTONE, ICON_FOCUS_OFF, ICON_FOCUS_ON, ICON_FORGE, ICON_LINK2_DUOTONE, ICON_MAP_PIN_PLUS, ICON_MINUS_CIRCLE_DUOTONE, ICON_NOTEBOOK_DUOTONE, ICON_PERSON_FILL_ADD, ICON_TARGET_DUOTONE } from "../icons";
 import { bookFolderNameFromChapterPath, CODEX_ROOT, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath, NOTES_ROOT, seriesFilePath } from "../paths";
 import { OBSIDIAN_SELECTORS } from "../obsidianInternals";
-import { groupHitsByChapter, lensLabel } from "../recommend/hitGrouping";
+import { groupHitsByChapter, lensLabel } from "../story-context/hitGrouping";
 import {
 	addIgnoredName,
 	applyIgnoredNames,
 	readAttributionStore,
-} from "../recommend/decisions";
-import { ensureNlp } from "../recommend/nlp";
-import { resolveChapterNarrator } from "../recommend/narrator";
-import { loadOrRecomputeChapterRecommend, recomputeChapterRecommend } from "../recommend/recompute";
-import { scanEntityAcrossChapters } from "../recommend/engine";
-import { loadHydratedCodexInventory } from "../recommend/inventory";
-import { createCodexLore } from "../recommend/lore";
-import type { CastMember, ChapterRecommendReport, DetailHit, UnknownNameHint } from "../recommend/types";
-import { buildDetailsNoteBody } from "../recommend/detailsNote";
-import { writeRecommendCache } from "../recommend/cache";
+} from "../story-context/decisions";
+import { ensureNlp } from "../story-context/nlp";
+import { resolveChapterNarrator } from "../story-context/narrator";
+import { loadOrRecomputeChapterRecommend, recomputeChapterRecommend } from "../story-context/recompute";
+import { scanEntityAcrossChapters } from "../story-context/engine";
+import { loadHydratedCodexInventory } from "../story-context/inventory";
+import { createCodexLore } from "../story-context/lore";
+import type { CastMember, ChapterRecommendReport, DetailHit, UnknownNameHint } from "../story-context/types";
+import { buildDetailsNoteBody } from "../story-context/detailsNote";
+import { writeRecommendCache } from "../story-context/cache";
 import { makeAccessibleActivatable } from "./a11y";
 import { renderStampedEmptyCross } from "./stampedCross";
 import { activateRightRailView } from "./activateRightRailView";

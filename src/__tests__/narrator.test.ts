@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { type App } from "obsidian";
 import { makeTFile, makeTFolder } from "./obsidianStub";
 import { bookFilePath } from "../paths";
-import { resolveChapterNarrator, resolveDisplayedChapterPov } from "../recommend/narrator";
+import { resolveChapterNarrator, resolveDisplayedChapterPov } from "../story-context/narrator";
 import { BUILTIN_CODEX_TYPES, CODEX_TYPES } from "../codex";
-import type { CastMember } from "../recommend/types";
-import { emptyFacts } from "../recommend/facts";
+import type { CastMember } from "../story-context/types";
+import { emptyFacts } from "../story-context/facts";
 
 function makeFakeApp(frontmatter: Record<string, unknown>): App {
 	const novelPath = bookFilePath("BookA");
