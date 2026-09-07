@@ -31,7 +31,7 @@ const SERIES_STRATEGY_OPTIONS: LabelledOption[] = [
 
 const QUANTITY_OPTIONS = [3, 5, 10, 15, 25] as const;
 
-/** Not a real generator id — the Tradition picker's own "Any" choice, and always what's
+/** Not a real generator id — the Genre picker's own "Any" choice, and always what's
  * automatically selected whenever a tab with traditions of its own is shown. Generating in this
  * mode picks a fresh random tradition from the current tab for each of `quantity`'s results
  * (never persisted as a HistoryEntry's own generatorId — toEntry always records the real spec that
@@ -87,7 +87,7 @@ const SCOPE_TABS: Record<TitleForgeScope, TitleForgeTab[]> = {
 };
 
 /**
- * The titleForge workbench itself: pick a tradition and genre, generate titles or whole series,
+ * The titleForge workbench itself: pick a genre and sub genre, generate titles or whole series,
  * see why a shape reads the way it does, and review every title kept across every tradition.
  *
  * The only host is TitleForgeModal — titleForge has no main-area workspace view (see
@@ -103,15 +103,20 @@ const SCOPE_TABS: Record<TitleForgeScope, TitleForgeTab[]> = {
  * Renders no header/blurb of its own (the modal has neither), groups the traditions into tabs
  * (see TAB_TRADITIONS), and only ever shows the series checkbox under the "novels" tab — the
  * "series" tab is always in series mode (title-composer, shape family forced to "series"), "web
- * fiction & light novels" never is. "kept titles" isn't a generator tab at all — see
+ * fiction & light novels" never is. The "series" tab also never shows the strategy/volumes
+ * controls (renderControls) — it always generates with whichever strategy/volume-count were last
+ * set, with no picker of its own to change them. "kept titles" isn't a generator tab at all — see
  * renderKeptTab. Generating writes straight into the history list — there's no separate "just
  * generated" preview; every row, old or new, carries the same info/short-list/use-this-title
  * actions (renderTitleRow).
  *
- * Every Tradition picker offers "Any" (ANY_TRADITION_ID) first, and it's always what's
- * automatically selected — never a remembered last pick. In that mode there's no single spec to
- * source genre/family/platform from (so those pickers are hidden), history pools across the whole
- * tab instead of one generator's file, and Generate draws a fresh random tradition per result.
+ * There is no separate "Tradition" picker any more: each tab's own generators (TAB_TRADITIONS)
+ * are what the "Genre" picker offers, "Any" (ANY_TRADITION_ID) first and always what's
+ * automatically selected — never a remembered last pick. A generator's own `genres` (with their
+ * two-level parent/subgenre structure, see `hierarchicalGenreOptions`) are what the "Sub genre"
+ * picker offers below it. In "Any" mode there's no single spec to source sub genre/family/platform
+ * from (so those pickers are hidden), history pools across the whole tab instead of one
+ * generator's file, and Generate draws a fresh random tradition per result.
  */
 export class TitleForgePanel {
 	private generatorId: string;
@@ -314,7 +319,9 @@ export class TitleForgePanel {
 		}
 	}
 
-	/** The traditions the "Tradition" picker should offer: "Any" first, then the current tab's own. */
+	/** The traditions the "Genre" picker should offer: "Any" first, then the current tab's own —
+	 * each shown under its own name (e.g. "World literary shapes"), since a tradition (generator)
+	 * is now presented as a top-level genre rather than through a separate picker of its own. */
 	private traditionOptions(): LabelledOption[] {
 		const ids = TAB_TRADITIONS[this.activeTab];
 		const specific = this.controller.generators
@@ -323,12 +330,12 @@ export class TitleForgePanel {
 		return [{ id: ANY_TRADITION_ID, label: "Any" }, ...specific];
 	}
 
-	/** Top-level genres in declaration order, each immediately followed by its own subgenres
-	 * (also in declaration order), visually indented — a single flat, hierarchy-aware `<select>`
-	 * rather than a dependent parent->child pair of pickers, per the two-level genre model
-	 * (`GenreOption.parent`, `engine/generate.ts`'s `genreScope`). "Any genre" (`all`) has no
-	 * parent and no children, so it is unaffected and stays first. `this.genre` itself is always
-	 * just a plain subgenre/genre id — indentation is presentation only. */
+	/** Options for the "Sub genre" picker: top-level genres in declaration order, each immediately
+	 * followed by its own subgenres (also in declaration order), visually indented — a single flat,
+	 * hierarchy-aware `<select>` rather than a dependent parent->child pair of pickers, per the
+	 * two-level genre model (`GenreOption.parent`, `engine/generate.ts`'s `genreScope`). "Any genre"
+	 * (`all`) has no parent and no children, so it is unaffected and stays first. `this.genre`
+	 * itself is always just a plain subgenre/genre id — indentation is presentation only. */
 	private hierarchicalGenreOptions(spec: GeneratorSpec): LabelledOption[] {
 		const byParent = new Map<string, GenreOption[]>();
 		for (const genre of spec.genres) {
@@ -348,14 +355,15 @@ export class TitleForgePanel {
 		return out;
 	}
 
-	/** `spec` is undefined in "Any" mode — genre/shape-family/platform are one tradition's own
+	/** `spec` is undefined in "Any" mode — sub genre/shape-family/platform are one tradition's own
 	 * vocabulary, so there's nothing meaningful to offer until a specific one is picked. */
 	private renderControls(container: HTMLElement, spec: GeneratorSpec | undefined): void {
 		const row = container.createDiv({ cls: "titleforge-row" });
 
-		// Always has "Any" plus at least one real tradition by the time renderControls is reached
+		// A tradition is now a top-level "Genre" choice rather than a separate "Tradition" picker —
+		// always has "Any" plus at least one real tradition by the time renderControls is reached
 		// (render() already bailed out above if this tab has none loaded at all).
-		this.renderSelect(row, "Tradition", this.traditionOptions(), this.generatorId, (value) => {
+		this.renderSelect(row, "Genre", this.traditionOptions(), this.generatorId, (value) => {
 			this.generatorId = value;
 			this.genre = "all";
 			this.family = "all";
@@ -365,7 +373,9 @@ export class TitleForgePanel {
 		});
 
 		if (spec) {
-			this.renderSelect(row, "Genre", this.hierarchicalGenreOptions(spec), this.genre, (value) => {
+			// A generator's own genres (with their two-level parent/subgenre structure) are what
+			// "Sub genre" now offers — the old flat "Genre" picker, one level down.
+			this.renderSelect(row, "Sub genre", this.hierarchicalGenreOptions(spec), this.genre, (value) => {
 				this.genre = value;
 				void this.persistUiState();
 			});
@@ -403,7 +413,10 @@ export class TitleForgePanel {
 			});
 		}
 
-		if (this.effectiveSeriesMode()) {
+		// The "series" tab never shows Strategy/Volumes — it just generates with whichever values
+		// were last set (from settings, or from a prior visit to the "novels" tab), with no picker
+		// of its own to change them. "novels" (series-mode on) still gets full control over both.
+		if (this.effectiveSeriesMode() && this.activeTab !== "series") {
 			this.renderSelect(
 				seriesRow,
 				"Strategy",
