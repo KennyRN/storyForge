@@ -122,16 +122,16 @@ const LEGACY_TITLEFORGE_ROOT = `${BACKSTAGE_ROOT}/titleforge`;
  * under storyForge's own backstage root to its own sibling region,
  * `_backstage/titleforge/`. No-ops once the legacy folder is gone. Merges
  * (see `mergeFolderInto`) rather than skipping outright if the new root
- * already partially exists — `ensureLexiconsSeeded` seeds bundled defaults
- * the moment `TitleForgeController.onload()` runs, so a vault that's ever
- * loaded even one build in between can already have a partial new-location
- * folder before this migration gets a chance to run.
+ * already partially exists — `TitleForgeController.onload()` creates
+ * `user enhanced lexicon.md` and reads `settings.json` the moment it runs, so
+ * a vault that's ever loaded even one build in between can already have a
+ * partial new-location folder before this migration gets a chance to run.
  *
  * Deliberately **not** folded into `migrateStructuralLayout` / called from
  * `initializeVaultState` — `TitleForgeController.onload()` still touches this
- * folder immediately (`ensureLexiconsSeeded`, `loadSettings`). `main.ts` runs
+ * folder immediately (the additions file, `loadSettings`). `main.ts` runs
  * this on layout-ready, immediately before that `onload()`, so a vault that's
- * ever loaded even one build in between cannot seed the new path first and
+ * ever loaded even one build in between cannot create the new path first and
  * skip the move. (Both wait for layout-ready rather than plugin `onload()`,
  * because vault I/O during `onload()` can fail a cold start and unload the
  * plugin before custom views restore.)

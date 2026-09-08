@@ -12,6 +12,7 @@ import { TitleForgePanel } from "./TitleForgePanel.js";
  */
 export class TitleForgeModal extends Modal {
 	private panel: TitleForgePanel | null = null;
+	private unsubscribeReload: (() => void) | null = null;
 
 	constructor(
 		app: App,
@@ -37,9 +38,12 @@ export class TitleForgeModal extends Modal {
 			onUse: wrappedOnUse,
 		});
 		await this.panel.load();
+		this.unsubscribeReload = this.controller.onGeneratorsReloaded(() => this.panel?.refresh());
 	}
 
 	onClose(): void {
+		this.unsubscribeReload?.();
+		this.unsubscribeReload = null;
 		this.contentEl.empty();
 		this.panel = null;
 	}

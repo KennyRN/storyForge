@@ -89,6 +89,10 @@ function parseTitleForgeSettings(raw: unknown): TitleForgeSettings {
 			typeof source.lastQuantity === "number" && Number.isFinite(source.lastQuantity)
 				? source.lastQuantity
 				: DEFAULT_TITLEFORGE_SETTINGS.lastQuantity,
+		legacyLexiconsNoticeShown:
+			typeof source.legacyLexiconsNoticeShown === "boolean"
+				? source.legacyLexiconsNoticeShown
+				: DEFAULT_TITLEFORGE_SETTINGS.legacyLexiconsNoticeShown,
 	};
 }
 

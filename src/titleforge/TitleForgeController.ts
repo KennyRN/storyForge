@@ -1,4 +1,4 @@
-import type { App, Plugin } from "obsidian";
+import { Notice, type App, type Plugin, type TAbstractFile } from "obsidian";
 import { ICON_TITLEFORGE } from "../icons.js";
 import { getGenerator, register, unregister } from "./engine/registry.js";
 import type { GeneratorSpec } from "./engine/types.js";
@@ -33,6 +33,10 @@ export class TitleForgeController {
 	settings: TitleForgeSettings = { ...DEFAULT_TITLEFORGE_SETTINGS };
 	generators: GeneratorSpec[] = [];
 
+	/** Open panels that want to redraw when the user-additions file changes (see `watchUserLexicon`). */
+	private readonly reloadListeners = new Set<() => void>();
+	private userLexiconReloadTimer: ReturnType<typeof setTimeout> | undefined;
+
 	constructor(private readonly plugin: Plugin) {
 		this.storage = new TitleForgeStorage(plugin.app);
 	}
@@ -44,9 +48,10 @@ export class TitleForgeController {
 	}
 
 	async onload(): Promise<void> {
-		await this.storage.ensureLexiconsSeeded();
 		await this.reloadGenerators();
 		this.settings = await this.storage.loadSettings();
+		await this.adviseLegacyLexiconsOnce();
+		this.watchUserLexicon();
 
 		this.plugin.addRibbonIcon(ICON_TITLEFORGE, "Open titleForge", () => this.openModal());
 		this.plugin.addCommand({
@@ -56,13 +61,59 @@ export class TitleForgeController {
 		});
 	}
 
+	/**
+	 * One-time advisory for vaults upgraded from a titleForge that seeded per-lexicon JSON: the
+	 * built-in words now live inside the plugin, and `_backstage/titleforge/lexicons/` is dead
+	 * weight the user may delete. Deliberately non-destructive — a copy there could have been
+	 * hand-edited under the old model (brief §5).
+	 */
+	private async adviseLegacyLexiconsOnce(): Promise<void> {
+		if (this.settings.legacyLexiconsNoticeShown) return;
+		this.settings.legacyLexiconsNoticeShown = true;
+		await this.saveSettings();
+		if (await this.storage.hasLegacyLexicons()) {
+			new Notice(
+				"titleForge: built-in words now live inside the plugin. The old " +
+					`"${this.storage.legacyLexiconsDir()}/" folder is no longer used and can be deleted. ` +
+					`To re-add any personal edits, put them in "${this.storage.userLexiconPath()}".`,
+			);
+		}
+	}
+
+	/**
+	 * Re-scan the user-additions file when it changes, so "add a word, see it" needs no reload.
+	 * Debounced — an editor save can fire several `modify` events in a burst.
+	 */
+	private watchUserLexicon(): void {
+		const targetPath = this.storage.userLexiconPath();
+		const onChange = (file: TAbstractFile): void => {
+			if (file.path !== targetPath) return;
+			clearTimeout(this.userLexiconReloadTimer);
+			this.userLexiconReloadTimer = setTimeout(() => {
+				void this.reloadGenerators().then(() => {
+					for (const listener of this.reloadListeners) listener();
+				});
+			}, 300);
+		};
+		const { vault } = this.plugin.app;
+		this.plugin.registerEvent(vault.on("modify", onChange));
+		this.plugin.registerEvent(vault.on("create", onChange));
+		this.plugin.registerEvent(vault.on("delete", onChange));
+	}
+
+	/** Subscribe to "generators were re-scanned" — returns an unsubscribe. Used by open panels. */
+	onGeneratorsReloaded(listener: () => void): () => void {
+		this.reloadListeners.add(listener);
+		return () => this.reloadListeners.delete(listener);
+	}
+
 	onunload(): void {
 		// No view/leaf is registered, and the settings/history writes below are all
 		// fire-and-forget already awaited at their call sites — nothing owned here
 		// needs explicit teardown.
 	}
 
-	/** Re-reads every generator from the vault (preferring hand-edited copies) and re-registers them. */
+	/** Re-scans the compiled-in bundle plus the user-additions file and re-registers every generator. */
 	async reloadGenerators(): Promise<void> {
 		this.generators = await this.storage.loadAllGenerators();
 		for (const spec of this.generators) {
@@ -92,6 +143,10 @@ export class TitleForgeController {
 	mountEmbeddedPanel(containerEl: HTMLElement): () => void {
 		const panel = new TitleForgePanel(containerEl, this, { scope: "all" });
 		void panel.load();
-		return () => containerEl.empty();
+		const unsubscribe = this.onGeneratorsReloaded(() => panel.refresh());
+		return () => {
+			unsubscribe();
+			containerEl.empty();
+		};
 	}
 }

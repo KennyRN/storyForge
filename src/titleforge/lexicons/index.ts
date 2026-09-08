@@ -12,9 +12,11 @@ import { westernSerialLexicon } from "./westernSerial.js";
 /**
  * The nine bundled generators, in the order they should list in the picker.
  *
- * These are the *defaults* — `storage.ts` seeds them out to
- * `_backstage/storyforge/titleforge/lexicons/*.json` on first load, and a vault copy
- * (hand-edited, no rebuild needed) takes priority over the bundled one here.
+ * These are compiled-in and read-only: `storage.ts` never writes them to the
+ * vault and never loads them from it. A user extends `title-composer` (only)
+ * by adding words to `_backstage/titleforge/user enhanced lexicon.md`, which
+ * `storage.loadAllGenerators()` merges on top — additive only, see
+ * `engine/userLexicon.ts`.
  */
 export const ALL_TITLEFORGE_LEXICONS: GeneratorSpec[] = [
 	titleComposerLexicon,
