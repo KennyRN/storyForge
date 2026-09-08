@@ -1,17 +1,18 @@
 import { App, Modal } from "obsidian";
+import { ancestorIds, genreById } from "../engine/generate.js";
 import { replay } from "../engine/history.js";
-import type { GeneratorSpec, HistoryEntry } from "../engine/types.js";
+import { humanizeTemplate } from "../engine/template.js";
+import type { GeneratorSpec, HistoryEntry, Pattern } from "../engine/types.js";
 
 /**
- * "Why this shape" — a small read-only modal opened from a history/kept row's info icon
- * (TitleForgePanel.ts's `renderTitleRow`). Shows which tradition a title came from and which
- * shape (Pattern) it was drawn through.
+ * "About this title" — a small read-only modal opened from a history/kept row's info icon
+ * (TitleForgePanel.ts's `renderTitleRow`). Shows the granular path a title took: its
+ * genre → sub-genre → shape, then the exact template and what that shape signals.
  *
- * `HistoryEntry` doesn't persist a `patternId` (only `generatorId`, `seed`, `genre?`, `title`,
- * `at`, `kept?` — see engine/types.ts), so this recovers it by replaying the entry's own stored
- * seed back through its generator (`replay()`, engine/history.ts) rather than adding a stored
- * field/migration for something derivable on demand. Shares `replay()`'s own pre-existing caveat:
- * exact only while the lexicon hasn't changed since the entry was created.
+ * The shape is read straight off the entry (`patternId` / `templateIndex`, recorded by
+ * `toEntry`). Entries written before those fields existed fall back to replaying the entry's
+ * seed (`replay()`), which is exact only while the lexicon hasn't changed since — hence the
+ * preference for the stored fields.
  */
 export class TitleShapeInfoModal extends Modal {
 	constructor(
@@ -26,29 +27,61 @@ export class TitleShapeInfoModal extends Modal {
 		const { contentEl } = this;
 		contentEl.addClass("titleforge-shape-info-modal");
 		contentEl.createEl("h2", { text: this.entry.title });
-		contentEl.createEl("p", {
-			cls: "titleforge-shape-info-tradition",
-			text: `${this.spec.name} — ${this.spec.tradition}`,
-		});
 
-		const recomputed = replay(this.spec, this.entry);
-		const pattern = this.spec.patterns.find((p) => p.id === recomputed.patternId);
-		if (pattern) {
-			contentEl.createEl("h3", { text: pattern.label });
-			contentEl.createEl("p", { text: pattern.note });
-			contentEl.createEl("p", {
-				cls: "titleforge-shape-info-exemplar",
-				text: `Modelled on: ${pattern.exemplar}`,
-			});
-		} else {
+		const resolved = this.resolveShape();
+		if (!resolved) {
 			contentEl.createDiv({
 				cls: "titleforge-empty",
 				text: "Couldn't recover this title's shape.",
 			});
+			return;
 		}
+		const { pattern, templateIndex } = resolved;
+
+		contentEl.createEl("p", {
+			cls: "titleforge-shape-info-path",
+			text: [...this.genreCrumbs(), pattern.label].join("  ›  "),
+		});
+
+		const template = pattern.templates[templateIndex] ?? pattern.templates[0];
+		if (template) {
+			contentEl.createEl("p", {
+				cls: "titleforge-shape-info-template",
+				text: humanizeTemplate(template),
+			});
+		}
+		contentEl.createEl("p", { text: pattern.note });
 	}
 
 	onClose(): void {
 		this.contentEl.empty();
+	}
+
+	/** The recorded pattern + template, or — for a pre-`patternId` entry — a replay of the seed. */
+	private resolveShape(): { pattern: Pattern; templateIndex: number } | undefined {
+		if (this.entry.patternId) {
+			const pattern = this.spec.patterns.find((p) => p.id === this.entry.patternId);
+			if (pattern) {
+				const templateIndex =
+					this.entry.templateIndex !== undefined &&
+					this.entry.templateIndex < pattern.templates.length
+						? this.entry.templateIndex
+						: 0;
+				return { pattern, templateIndex };
+			}
+		}
+		const recomputed = replay(this.spec, this.entry);
+		const pattern = this.spec.patterns.find((p) => p.id === recomputed.patternId);
+		return pattern ? { pattern, templateIndex: recomputed.templateIndex } : undefined;
+	}
+
+	/** `["Fantasy", "Epic fantasy"]` — the genre and any sub-genre, top level first. Empty when the
+	 * title was generated under "Any genre" (nothing narrower to show). */
+	private genreCrumbs(): string[] {
+		const id = this.entry.genre;
+		if (!id || id === "all") return [];
+		const ids = [...ancestorIds(this.spec, id)].reverse();
+		ids.push(id);
+		return ids.map((gid) => genreById(this.spec, gid)?.label ?? gid);
 	}
 }

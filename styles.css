@@ -7228,11 +7228,6 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	padding: var(--size-4-2, 8px) 0;
 }
 
-.titleforge-history h3 {
-	flex: 0 0 auto;
-	margin-bottom: var(--size-4-2, 8px);
-}
-
 /* Boxed like nameForge's own results list, but filling whatever's left of the modal's fixed
  * height (set on .titleforge-view, above) rather than a size of its own — .titleforge-kept-list
  * (in the "kept titles" tab, below) matches it exactly. */
@@ -7250,13 +7245,20 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 }
 
 /* One row — shared by .titleforge-history-list and .titleforge-kept-list alike (TitleForgePanel.ts's
- * renderTitleRow renders both from the same code). */
+ * renderTitleRow renders both from the same code). The title sits on its own line (.titleforge-row-head)
+ * with the action icons on a second line beneath it (.titleforge-row-actions). */
 .titleforge-row-item {
 	display: flex;
-	align-items: center;
-	gap: var(--size-4-2, 8px);
-	padding: 6px 0;
+	flex-direction: column;
+	gap: 4px;
+	padding: 8px 0;
 	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.titleforge-row-head {
+	display: flex;
+	align-items: baseline;
+	gap: var(--size-4-2, 8px);
 }
 
 .titleforge-row-title {
@@ -7267,32 +7269,31 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 .titleforge-row-actions {
 	display: flex;
 	align-items: center;
-	gap: 2px;
-	flex: 0 0 auto;
+	gap: var(--size-4-2, 8px);
 }
 
-.titleforge-row-icon-button {
+/* Plain hover-icons — a coloured glyph that brightens on hover/focus, no button chrome — same
+ * treatment as the tab row (.titleforge-tab). Rendered as role="button" <span>s (renderTitleRow's
+ * addRowIcon). */
+.titleforge-row-icon {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	background: transparent;
-	border: none;
-	border-radius: var(--radius-s, 4px);
-	padding: 4px;
+	--icon-size: 16px;
 	color: var(--text-muted);
 	cursor: pointer;
 }
 
-.titleforge-row-icon-button:hover {
+.titleforge-row-icon:hover,
+.titleforge-row-icon:focus-visible {
 	color: var(--text-normal);
-	background: var(--background-modifier-hover);
 }
 
-.titleforge-row-icon-button.is-kept {
+.titleforge-row-icon.is-kept {
 	color: var(--text-accent);
 }
 
-.titleforge-row-icon-button svg.svg-icon {
+.titleforge-row-icon svg.svg-icon {
 	width: 16px;
 	height: 16px;
 }
@@ -7425,16 +7426,18 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	letter-spacing: 0.04em;
 }
 
-/* ── titleForge "why this shape" info popup (TitleShapeInfoModal.ts) ── */
+/* ── titleForge "about this title" info popup (TitleShapeInfoModal.ts) ── */
 
-.titleforge-shape-info-tradition {
+/* genre › sub-genre › shape — the granular path the title took. */
+.titleforge-shape-info-path {
 	color: var(--text-muted);
 	margin-bottom: var(--size-4-3, 12px);
 }
 
-.titleforge-shape-info-exemplar {
-	font-style: italic;
-	color: var(--text-muted);
+/* The exact template, humanised — e.g. "The [Adj] [Noun]". */
+.titleforge-shape-info-template {
+	font-family: var(--font-monospace);
+	color: var(--text-normal);
 }
 
 /* ── titleForge settings modal (TitleForgeSettingsModal.ts) ── */

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { normaliseLexicon } from "../engine/lexicon.js";
 import { createRng } from "../engine/rng.js";
-import { renderTemplate, slotsIn, validateTemplate } from "../engine/template.js";
+import { humanizeTemplate, renderTemplate, slotsIn, validateTemplate } from "../engine/template.js";
 
 describe("titleforge slotsIn", () => {
 	it("lists each slot occurrence, index stripped, not deduped", () => {
@@ -14,6 +14,23 @@ describe("titleforge slotsIn", () => {
 
 	it("ignores literal escaped braces", () => {
 		expect(slotsIn("{{literal}} {noun}")).toEqual(["noun"]);
+	});
+});
+
+describe("titleforge humanizeTemplate", () => {
+	it("turns tokens into bracketed slot names, dropping decorations", () => {
+		expect(humanizeTemplate("The {adj} {noun}")).toBe("The [Adj] [Noun]");
+		expect(humanizeTemplate("The {noun#1} of the {noun#2}")).toBe("The [Noun] of the [Noun]");
+		expect(humanizeTemplate("The {role|title} of {place}")).toBe("The [Role] of [Place]");
+		expect(humanizeTemplate("{noun:epic} rises")).toBe("[Noun] rises");
+	});
+
+	it("spaces a camelCase slot name", () => {
+		expect(humanizeTemplate("{placeBare}")).toBe("[Place Bare]");
+	});
+
+	it("keeps literal escaped braces", () => {
+		expect(humanizeTemplate("{{not a slot}} {noun}")).toBe("{not a slot} [Noun]");
 	});
 });
 

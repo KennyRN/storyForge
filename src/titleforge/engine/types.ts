@@ -106,6 +106,8 @@ export interface TitleResult {
 	title: string;
 	patternId: string;
 	patternLabel: string;
+	/** Index of the specific template within `pattern.templates` that produced this title. */
+	templateIndex: number;
 	genre?: string;
 	platform?: string;
 	wordCount: number;
@@ -147,4 +149,10 @@ export interface HistoryEntry {
 	at: string;
 	/** Whether the writer marked this one as a keeper. */
 	kept?: boolean;
+	/** The shape this title was drawn through — recorded so "about this title" doesn't have to
+	 * re-derive it by replaying the seed (which drifts once the lexicon changes). Absent on
+	 * entries written before this field existed; the info modal falls back to `replay` for those. */
+	patternId?: string;
+	/** Index of the specific template within that pattern — pairs with `patternId`. */
+	templateIndex?: number;
 }
