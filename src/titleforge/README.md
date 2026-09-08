@@ -41,8 +41,10 @@ src/titleforge/
     generate.ts             generateOne / generateMany / generateSeries / validateSpec
     history.ts               JSONL parse/serialise, toEntry, titlesFrom, replay, replayMatches
     registry.ts               register / getGenerator / listGenerators / listByTradition
+    userLexicon.ts            scan `user enhanced lexicon.md` + merge its words into a bundled spec
     index.ts                  barrel export
   lexicons/            one .ts module per tradition, each a typed GeneratorSpec
+    userLexiconTemplate.ts  bootstrap contents of `user enhanced lexicon.md` (also the user docs)
   tools/
     genre-coverage.ts    npx tsx / `npm run titleforge:coverage` — per-genre eligible-pattern
                          and own/inherited-lexeme counts, THIN/inherits-only flags; reads the
@@ -163,33 +165,30 @@ storyForge modules (`../paths.js` for `TITLEFORGE_BACKSTAGE_ROOT`,
 `../writeGuard.js` for guarded writes). Everything titleForge writes lives
 under `_backstage/titleforge/`:
 
-- `lexicons/*.json` — seeded from the bundled `.ts` defaults on first load,
-  as **real, hand-editable JSON**. A vault copy always wins over the bundled
-  default at *load* time, and a parse failure falls back to the bundled
-  default with a `Notice` (never a silent swallow). This is how "edit a word,
-  no rebuild" (the original design's whole point) survives inside a bundled
-  Obsidian plugin: the bundled `.ts` module is just the seed.
-  - **Seed propagation** (`ensureLexiconsSeeded`, on every `onload()`): a
-    hidden `lexicons/.seed-manifest.json` tracks, per generator, the hash of
-    the bundled bytes and the hash of what was actually written to the vault
-    at the moment it was last seeded/reset. A rebuilt bundle then propagates
-    automatically onto any vault copy that was **never hand-edited since**
-    (hashes still match); a copy that *has* been hand-edited is always kept,
-    with a one-off `Notice` pointing at "Reset lexicon to bundled default" to
-    adopt the new version deliberately. A vault copy that pre-dates this
-    manifest is left untouched the first time it's seen (its provenance is
-    unknown) and just gets an advisory `Notice`, once — from then on it's
-    tracked like any other. This is what makes "genres/vocabulary look out of
-    date" something a rebuild fixes on its own, without ever silently
-    discarding an edit.
-  - **Reset** (`resetLexiconToBundled`, id-based) always re-resolves the true
-    bundled spec from `ALL_TITLEFORGE_LEXICONS` by id, never from whatever
-    spec a caller happens to be holding — `TitleForgeController.generators`
-    is itself vault-preferred, so a spec sourced from there can *be* the
-    stale copy the reset button exists to replace. The settings modal also
-    has a "Reset all lexicons to bundled" button (confirms first) for
-    clearing out every generator's vault copy at once — mainly useful right
-    after an upgrade whose vault copies pre-date the manifest above.
+- The built-in word lists are **compiled in and read-only** — never seeded
+  to the vault, never loaded from it. `loadAllGenerators()` returns the
+  compiled `ALL_TITLEFORGE_LEXICONS`, with the user's own additions merged
+  into `title-composer` only. There is no vault copy of the built-ins to go
+  stale, and no code path lets the vault change a shipped word.
+- `user enhanced lexicon.md` — the one file the user *can* edit. On first
+  load it is created from the bundled instruction template
+  (`lexicons/userLexiconTemplate.ts`); its worked examples all sit inside
+  fenced code blocks so the scanner skips them. The scanner
+  (`engine/userLexicon.ts`) reads a word only when it is a `- ` list item
+  directly under a `## <slot>` heading matching a known `title-composer`
+  lexicon slot, parses it with the shared `parseCompactEntry`, and
+  **appends** it to a deep copy of the bundled spec (additive only — bundled
+  entries are never removed, reordered, or mutated). Malformed lines are
+  skipped and reported in one consolidated `Notice`, never thrown; a file
+  that can't be read at all falls back to the pure bundle. `validateSpec`
+  runs on the merged spec. Editing the file re-scans live (debounced
+  `vault.on` subscription in `TitleForgeController.watchUserLexicon`), so
+  "add a word, see it" needs no reload.
+  - Vaults upgraded from a titleForge that seeded `lexicons/*.json` get a
+    one-time advisory `Notice` (`adviseLegacyLexiconsOnce`,
+    `settings.legacyLexiconsNoticeShown`) that the folder is now unused and
+    can be deleted — never deleted automatically, since a copy there could
+    have been hand-edited under the old model.
 - `settings.json` — last-used generator/genre/family/platform/series settings.
 - `history/<generatorId>.jsonl` — one file per tradition (not one global file),
   since exclusion sets are naturally scoped per tradition. About forty bytes
@@ -204,9 +203,9 @@ If this ever becomes its own installed plugin:
 1. Copy `src/titleforge/` into the new plugin's `src/`.
 2. `storage.ts`: change `root()` to point at the new plugin's own vault-root
    constant instead of storyForge's `TITLEFORGE_BACKSTAGE_ROOT`, and replace
-   the two `writeGuard.ts` calls with plain
-   `vault.create`/`vault.modify` (writeGuard's only job was confining writes
-   inside storyForge's folder, which a standalone plugin doesn't need).
+   the `writeGuard.ts` calls with plain `vault.create`/`vault.modify`
+   (writeGuard's only job was confining writes inside storyForge's folder,
+   which a standalone plugin doesn't need).
 3. `TitleForgeController.ts`: swap the `ICON_TITLEFORGE` import for an owned SVG
    registered via Obsidian's `addIcon()`.
 4. Write a thin `main.ts`: `export default class extends Plugin { onload() { this.controller = new TitleForgeController(this); return this.controller.onload(); } onunload() { this.controller.onunload(); } }`.
@@ -219,13 +218,14 @@ If this ever becomes its own installed plugin:
 
 ## Extending it
 
-Adding a word or a whole tradition is data work, not code work, once seeded:
-edit the JSON under `_backstage/titleforge/lexicons/` directly in the vault
-(or edit the bundled `.ts` module and re-copy it out via the settings modal's
-"Reset lexicon to bundled default"). The compact string form —
-`"gloss #tag *weight ^stem"` — is `gloss`, then `#tag`/`*weight` in any order,
-then `^stem` last; the object form (`{ gloss, tags?, weight?, stem? }`) is the
-escape hatch for a word that genuinely needs a `#`, `*` or `^` in it.
+A **user** adds words by editing `_backstage/titleforge/user enhanced
+lexicon.md` — `- word #tag` bullets under `## <slot>` headings, merged into
+`title-composer` (see Storage above). Changing or expanding the **built-in**
+lists is code work: edit the bundled `.ts` module under `lexicons/` and
+rebuild. The compact string form — `"gloss #tag *weight ^stem"` — is `gloss`,
+then `#tag`/`*weight` in any order, then `^stem` last; the object form
+(`{ gloss, tags?, weight?, stem? }`) is the escape hatch for a word that
+genuinely needs a `#`, `*` or `^` in it.
 
 A slot is either *bare* (no entry's gloss starts with "the ") or *articled*
 (every entry's does) — `checkArticleAgreement` enforces that a template only

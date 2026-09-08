@@ -9,7 +9,7 @@ import type { Lexeme, LexemeInput, RawLexicon } from "./types.js";
  * The object form (`{ gloss, tags?, weight?, stem? }`) is the escape hatch for a
  * word that genuinely needs a literal `#`, `*` or `^` in it.
  */
-function parseCompactEntry(raw: string): Lexeme {
+export function parseCompactEntry(raw: string): Lexeme {
 	let rest = raw;
 
 	// `^stem` is last and runs to the end of the string, so peel it off first.

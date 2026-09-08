@@ -54,6 +54,11 @@ export interface TitleForgeSettings {
 	lastTabByScope: Record<TitleForgeScope, TitleForgeTab>;
 	/** How many titles (or, in series mode, how many whole series) one click of Generate produces. */
 	lastQuantity: number;
+	/** Set once the "the old lexicons/ folder is now unused" advisory has been shown (see
+	 * `TitleForgeController.adviseLegacyLexiconsOnce`). Absent in a settings file from an older
+	 * build, which `loadSettings()` merges onto the default `false` below — so the notice shows
+	 * exactly once per vault after upgrading. */
+	legacyLexiconsNoticeShown: boolean;
 }
 
 export const DEFAULT_TITLEFORGE_SETTINGS: TitleForgeSettings = {
@@ -72,4 +77,5 @@ export const DEFAULT_TITLEFORGE_SETTINGS: TitleForgeSettings = {
 		novels: "novels",
 	},
 	lastQuantity: 5,
+	legacyLexiconsNoticeShown: false,
 };

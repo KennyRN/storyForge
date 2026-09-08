@@ -219,6 +219,13 @@ export class TitleForgePanel {
 		this.render();
 	}
 
+	/** Redraw against the controller's current generators — called when the user-additions file is
+	 * re-scanned (see `TitleForgeController.onGeneratorsReloaded`). The panel reads generators off
+	 * the controller by reference, so a plain re-render picks up the new words. */
+	refresh(): void {
+		this.render();
+	}
+
 	private currentSpec(): GeneratorSpec | undefined {
 		return this.controller.getGeneratorById(this.generatorId);
 	}
