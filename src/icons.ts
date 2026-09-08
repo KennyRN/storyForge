@@ -37,6 +37,9 @@ export const ICON_MAP_PIN_PLUS = "sf-map-pin-plus";
 export const ICON_FORGE = "sf-hammer-anvil";
 /** Same glyph nameForge registers as `nameforge-meeple`, so the Story Context preview can show it without nameForge loaded. */
 export const ICON_MEEPLE = "nameforge-meeple";
+/** Same glyph nameForge registers as `nameforge-packs` (the decoration beside its pack dropdown) —
+ * reused as the leading icon on titleForge's Genre / Sub genre pickers so the two read alike. */
+export const ICON_PACKS = "nameforge-packs";
 export const ICON_FILE_PLUS = "sf-file-plus";
 export const ICON_EYE = "sf-eye";
 export const ICON_MULTIPLY_SQUARE = "sf-multiply-square";
@@ -368,6 +371,10 @@ const PROTECTIONS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24
 const HAMMER_ANVIL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><g fill="currentColor" fill-opacity="0.25" stroke="none"><path d="M6 14C6 4 14 4 14 4v20H6z"/><rect width="28" height="6" x="14" y="10"/><path d="M6 30h36s0 8-6 8h-7l2 6H13l2-6H6z"/></g><path fill="none" stroke="currentColor" stroke-linejoin="round" stroke-width="4" d="M6 14C6 4 14 4 14 4v20H6zm8-4h28v6H14zM6 30h36s0 8-6 8h-7l2 6H13l2-6H6z"/></svg>`;
 const MEEPLE_SVG =
 	'<g transform="scale(4.16667)"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20H4a1 1 0 0 1-1-1c0-2 3.378-4.907 4-6c-1 0-4-.5-4-2c0-2 4-3.5 6-4c0-1.5.5-4 3-4s3 2.5 3 4c2 .5 6 2 6 4c0 1.5-3 2-4 2c.622 1.093 4 4 4 6a1 1 0 0 1-1 1h-5c-1 0-2-4-3-4s-2 4-3 4" /></g>';
+/** Verbatim copy of nameForge's own `nameforge-packs` SVG (a book + a parcel), so titleForge can
+ * show it whether or not nameForge is installed — same arrangement as MEEPLE_SVG above. */
+const PACKS_SVG =
+	'<g transform="scale(4.16667)"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M8.593 3.217H4.698A1.95 1.95 0 0 0 2.75 5.164v13.633c0 1.075.872 1.947 1.948 1.947h3.895a1.95 1.95 0 0 0 1.947-1.947V5.164a1.95 1.95 0 0 0-1.947-1.947" /><path d="M6.645 17.379a1.503 1.503 0 1 0 0-3.007a1.503 1.503 0 0 0 0 3.007M10.54 7.93l3.116 11.685a1.95 1.95 0 0 0 2.386 1.373l3.768-.974a1.947 1.947 0 0 0 1.373-2.386L17.658 4.385a1.947 1.947 0 0 0-2.386-1.373l-3.758 1.003c-.406.111-.764.35-1.023.682" /><path d="M16.665 17.241a1.502 1.502 0 1 0 0-3.004a1.502 1.502 0 0 0 0 3.004" /></g></g>';
 
 /** Mage Icons — file with plus (add synopsis to chapter plot). */
 const FILE_PLUS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none"/><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path stroke-linejoin="round" d="M14.186 2.753v3.596c0 .487.194.955.54 1.3a1.85 1.85 0 0 0 1.306.539h4.125"/><path stroke-linejoin="round" d="M20.25 8.568v8.568a4.25 4.25 0 0 1-1.362 2.97a4.28 4.28 0 0 1-3.072 1.14h-7.59a4.3 4.3 0 0 1-3.1-1.124a4.26 4.26 0 0 1-1.376-2.986V6.862a4.25 4.25 0 0 1 1.362-2.97a4.28 4.28 0 0 1 3.072-1.14h5.714a3.5 3.5 0 0 1 2.361.905l2.96 2.722a2.97 2.97 0 0 1 1.031 2.189"/><path stroke-miterlimit="10" d="M11.57 10.424v7.116m-3.55-3.55h7.117"/></g></svg>`;
@@ -907,6 +914,7 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_MAP_PIN_PLUS, MAP_PIN_PLUS_SVG);
 	addIcon(ICON_FORGE, HAMMER_ANVIL_SVG);
 	addIcon(ICON_MEEPLE, MEEPLE_SVG);
+	addIcon(ICON_PACKS, PACKS_SVG);
 	addIcon(ICON_FILE_PLUS, FILE_PLUS_SVG);
 	addIcon(ICON_EYE, EYE_SVG);
 	addIcon(ICON_MULTIPLY_SQUARE, MULTIPLY_SQUARE_SVG);
