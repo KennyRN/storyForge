@@ -7209,6 +7209,35 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	flex: 1 1 100%;
 }
 
+/* Genre / Sub genre — no visible text label, just a leading icon (ICON_PACKS, same glyph nameForge
+ * puts beside its own pack dropdown) with the <select> filling the rest of the row. Both pickers
+ * use it, so the pair reads as one group and the two boxes line up exactly. */
+.titleforge-field--iconed {
+	flex-direction: row;
+	align-items: center;
+	gap: var(--size-4-2, 8px);
+}
+
+.titleforge-field-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	color: var(--text-muted);
+	line-height: 0;
+}
+
+.titleforge-field-icon svg,
+.titleforge-field-icon svg.svg-icon {
+	width: 20px;
+	height: 20px;
+}
+
+.titleforge-field--iconed select {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
 .titleforge-series-toggle {
 	display: flex;
 	align-items: center;
@@ -7269,6 +7298,7 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 .titleforge-row-actions {
 	display: flex;
 	align-items: center;
+	justify-content: flex-end;
 	gap: var(--size-4-2, 8px);
 }
 

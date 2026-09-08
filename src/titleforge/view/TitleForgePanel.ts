@@ -5,6 +5,7 @@ import {
 	ICON_COMPUTER,
 	ICON_DICE,
 	ICON_INFO_CIRCLE,
+	ICON_PACKS,
 	ICON_SERIES,
 	ICON_STAR_FILL,
 	ICON_STAR_OUTLINE,
@@ -527,7 +528,7 @@ export class TitleForgePanel {
 				this.platform = "all";
 				void this.persistUiState();
 				void this.loadHistoryForCurrentGenerator().then(() => this.render());
-			}, true);
+			}, true, ICON_PACKS);
 
 			if (spec) {
 				const subOptions = this.subGenreOptions(spec, this.topGenreId(spec, this.genre));
@@ -535,7 +536,7 @@ export class TitleForgePanel {
 					this.renderSelect(row, "Sub genre", subOptions, this.genre, (value) => {
 						this.genre = value;
 						void this.persistUiState();
-					}, true);
+					}, true, ICON_PACKS);
 				}
 			}
 		} else {
@@ -549,7 +550,7 @@ export class TitleForgePanel {
 				this.platform = "all";
 				void this.persistUiState();
 				void this.loadHistoryForCurrentGenerator().then(() => this.render());
-			}, true);
+			}, true, ICON_PACKS);
 
 			if (spec) {
 				// A generator's own genres (with their two-level parent/subgenre structure) are
@@ -557,7 +558,7 @@ export class TitleForgePanel {
 				this.renderSelect(row, "Sub genre", this.hierarchicalGenreOptions(spec), this.genre, (value) => {
 					this.genre = value;
 					void this.persistUiState();
-				}, true);
+				}, true, ICON_PACKS);
 			}
 		}
 
@@ -657,7 +658,11 @@ export class TitleForgePanel {
 	/** `wide`, when true, stretches this field (and its select) across the whole row — Genre and Sub
 	 * genre (renderControls) use it so they read at the same full width as the Generate button
 	 * below them, rather than sizing to their own selected option's text like Shape family/Platform
-	 * still do. */
+	 * still do.
+	 *
+	 * `leadingIcon`, when given, replaces the visible text label with that icon sitting to the left
+	 * of the select (Genre and Sub genre both use ICON_PACKS, so the pair reads as one group);
+	 * `labelText` then survives only as the select's accessible name/tooltip. */
 	private renderSelect(
 		container: HTMLElement,
 		labelText: string,
@@ -665,10 +670,27 @@ export class TitleForgePanel {
 		value: string,
 		onChange: (value: string) => void,
 		wide = false,
+		leadingIcon?: string,
 	): HTMLSelectElement {
-		const label = container.createEl("label", { cls: "titleforge-field" + (wide ? " titleforge-field--wide" : "") });
-		label.createSpan({ text: labelText });
+		const label = container.createEl("label", {
+			cls:
+				"titleforge-field" +
+				(wide ? " titleforge-field--wide" : "") +
+				(leadingIcon ? " titleforge-field--iconed" : ""),
+		});
+		if (leadingIcon) {
+			setIcon(
+				label.createSpan({ cls: "titleforge-field-icon", attr: { "aria-hidden": "true" } }),
+				leadingIcon,
+			);
+		} else {
+			label.createSpan({ text: labelText });
+		}
 		const select = label.createEl("select");
+		if (leadingIcon) {
+			select.setAttribute("aria-label", labelText);
+			setTooltip(select, labelText);
+		}
 		for (const opt of options) {
 			select.createEl("option", { text: opt.label, value: opt.id });
 		}
