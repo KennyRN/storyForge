@@ -210,11 +210,14 @@ function draw(
 			weightedPick(rng, patterns, (p) => p.weight ?? 1) ??
 			patterns[0];
 		if (!pattern) break;
-		const index = forced.templateIndex ?? options.templateIndex;
-		const template =
-			index !== undefined
-				? pattern.templates[index % pattern.templates.length]
-				: pick(rng, pattern.templates);
+		const forcedIndex = forced.templateIndex ?? options.templateIndex;
+		// Pick by index (not `pick`) so the choice can be recorded on the result — one rng.int
+		// call, exactly as `pick` would have spent, so seeded replays are unaffected.
+		const templateIndex =
+			forcedIndex !== undefined
+				? forcedIndex % pattern.templates.length
+				: rng.int(pattern.templates.length);
+		const template = pattern.templates[templateIndex];
 		if (!template) break;
 
 		// Vocabulary is scoped after the pattern is chosen, not before. Under "any
@@ -231,6 +234,7 @@ function draw(
 			title,
 			patternId: pattern.id,
 			patternLabel: pattern.label,
+			templateIndex,
 			...(options.genre ? { genre: options.genre } : {}),
 			...(options.platform ? { platform: options.platform } : {}),
 			wordCount: countWords(title),
@@ -250,6 +254,7 @@ function draw(
 		title: "",
 		patternId: "none",
 		patternLabel: "no eligible pattern",
+		templateIndex: 0,
 		wordCount: 0,
 		seed,
 		constraintRelaxed: true,

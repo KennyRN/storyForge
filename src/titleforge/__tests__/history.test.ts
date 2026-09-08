@@ -63,6 +63,14 @@ describe("titleforge history: toEntry / titlesFrom", () => {
 		expect(typeof entry.at).toBe("string");
 	});
 
+	it("records the shape (patternId + templateIndex) the title was drawn through", () => {
+		const result = generateOne(spec, { seed: 123 });
+		const entry = toEntry(result);
+		expect(entry.patternId).toBe(result.patternId);
+		expect(entry.templateIndex).toBe(result.templateIndex);
+		expect(typeof entry.templateIndex).toBe("number");
+	});
+
 	it("titlesFrom extracts just the titles", () => {
 		const entries: HistoryEntry[] = [
 			{ generatorId: "a", seed: 1, title: "One", at: "now" },

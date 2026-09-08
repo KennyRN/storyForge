@@ -776,33 +776,59 @@ export class TitleForgePanel {
 		opts: { showTradition?: string },
 	): void {
 		const item = list.createEl("li", { cls: "titleforge-row-item" });
-		item.createSpan({ cls: "titleforge-row-title", text: entry.title });
+
+		const head = item.createDiv({ cls: "titleforge-row-head" });
+		head.createSpan({ cls: "titleforge-row-title", text: entry.title });
 		if (opts.showTradition) {
-			item.createSpan({ cls: "titleforge-row-tradition", text: opts.showTradition });
+			head.createSpan({ cls: "titleforge-row-tradition", text: opts.showTradition });
 		}
 
+		// The row's actions sit on their own line beneath the title, as plain hover-icons (a
+		// coloured glyph that brightens on hover/focus) rather than button chips — same treatment
+		// as the tab row (renderTabs).
 		const actions = item.createDiv({ cls: "titleforge-row-actions" });
 
-		const infoButton = actions.createEl("button", { cls: "titleforge-row-icon-button" });
-		setIcon(infoButton, ICON_INFO_CIRCLE);
-		setTooltip(infoButton, "about this title");
-		infoButton.addEventListener("click", () => {
+		this.addRowIcon(actions, ICON_INFO_CIRCLE, "about this title", () => {
 			new TitleShapeInfoModal(this.controller.app, spec, entry).open();
 		});
 
-		const starButton = actions.createEl("button", {
-			cls: "titleforge-row-icon-button" + (entry.kept ? " is-kept" : ""),
-		});
-		setIcon(starButton, entry.kept ? ICON_STAR_FILL : ICON_STAR_OUTLINE);
-		setTooltip(starButton, entry.kept ? "remove from short list" : "short list title");
-		starButton.addEventListener("click", () => void this.toggleKeptEntry(spec.id, entry));
+		this.addRowIcon(
+			actions,
+			entry.kept ? ICON_STAR_FILL : ICON_STAR_OUTLINE,
+			entry.kept ? "remove from short list" : "short list title",
+			() => void this.toggleKeptEntry(spec.id, entry),
+			entry.kept ? "is-kept" : undefined,
+		);
 
 		if (this.opts.onUse) {
-			const useButton = actions.createEl("button", { cls: "titleforge-row-icon-button" });
-			setIcon(useButton, ICON_ARROW_INSERT);
-			setTooltip(useButton, this.useTooltipFor(spec.id));
-			useButton.addEventListener("click", () => this.opts.onUse!(entry.title));
+			this.addRowIcon(actions, ICON_ARROW_INSERT, this.useTooltipFor(spec.id), () =>
+				this.opts.onUse!(entry.title),
+			);
 		}
+	}
+
+	/** One hover-icon in a row's action line — a `<span>` (not a `<button>`), made
+	 * keyboard-activatable the same way the tab icons are. */
+	private addRowIcon(
+		container: HTMLElement,
+		icon: string,
+		label: string,
+		onActivate: () => void,
+		extraClass?: string,
+	): void {
+		const el = container.createSpan({
+			cls: "titleforge-row-icon" + (extraClass ? ` ${extraClass}` : ""),
+			attr: { role: "button", tabindex: "0", "aria-label": label },
+		});
+		setIcon(el, icon);
+		setTooltip(el, label);
+		el.addEventListener("click", onActivate);
+		el.addEventListener("keydown", (evt) => {
+			if (evt.key === "Enter" || evt.key === " ") {
+				evt.preventDefault();
+				onActivate();
+			}
+		});
 	}
 
 	/** In "Any" mode `this.history` is already pooled across every tradition in the current tab
@@ -811,7 +837,6 @@ export class TitleForgePanel {
 	 * same tradition. */
 	private renderHistory(container: HTMLElement): void {
 		const section = container.createDiv({ cls: "titleforge-history" });
-		section.createEl("h3", { text: "History" });
 		if (this.history.length === 0) {
 			section.createDiv({
 				cls: "titleforge-empty",

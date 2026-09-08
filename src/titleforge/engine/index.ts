@@ -11,7 +11,7 @@ export * from "./types.js";
 export { createRng, pick, randomSeed, weightedPick } from "./rng.js";
 export type { Rng } from "./rng.js";
 export { normaliseLexicon, parseCompactEntry, withTags } from "./lexicon.js";
-export { renderTemplate, slotsIn, validateTemplate } from "./template.js";
+export { humanizeTemplate, renderTemplate, slotsIn, validateTemplate } from "./template.js";
 export { titleCase, countWords } from "./titlecase.js";
 export { checkArticleAgreement } from "./articles.js";
 export {

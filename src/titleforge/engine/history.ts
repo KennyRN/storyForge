@@ -59,6 +59,13 @@ export function toEntry(result: TitleResult, extra: { kept?: boolean } = {}): Hi
 	};
 	if (result.genre) entry.genre = result.genre;
 	if (extra.kept !== undefined) entry.kept = extra.kept;
+	// Record the shape so "about this title" reads it straight back rather than replaying the
+	// seed (which no longer reproduces the same draw once the lexicon has changed). "none" is
+	// the empty-result sentinel — nothing worth recording.
+	if (result.patternId && result.patternId !== "none") {
+		entry.patternId = result.patternId;
+		entry.templateIndex = result.templateIndex;
+	}
 	return entry;
 }
 
