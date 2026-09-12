@@ -199,7 +199,10 @@ export class TitleForgePanel {
 	private seriesStrategy: SeriesStrategy;
 	private seriesVolumes: number;
 	private quantity: number;
-	private activeTab: TitleForgeTab;
+	/** Null until the user picks a section from the switcher menu (renderSectionPicker) — every
+	 * fresh open starts here, deliberately not resuming whatever section was active last time (see
+	 * `renderSectionPlaceholder`'s doc comment for why). */
+	private activeTab: TitleForgeTab | null = null;
 	/** Whether the section-switcher menu (renderSectionPicker) is currently open. */
 	private showSectionPicker = false;
 	/** Which section was active right before switching to "kept titles" (renderBottomBar's star
@@ -222,17 +225,23 @@ export class TitleForgePanel {
 		this.seriesStrategy = s.seriesStrategy;
 		this.seriesVolumes = s.seriesVolumes;
 		this.quantity = s.lastQuantity;
-		const lastTab = s.lastTabByScope[this.opts.scope];
-		this.activeTab = this.tabOrder().includes(lastTab) ? lastTab : this.defaultTab();
-		// "Any" is always what's automatically selected (or, on a tab with exactly one tradition,
-		// that tradition itself — see defaultGeneratorIdFor) — there's nothing to remember here
-		// across opens, so unlike genre/family/platform this never reads a persisted "last tradition".
-		this.generatorId = this.defaultGeneratorIdFor(this.activeTab);
+		// "any" is always what's automatically selected within a section (or, on a section with
+		// exactly one tradition, that tradition itself — see defaultGeneratorIdFor); there's nothing
+		// to remember here across opens, so unlike genre/family/platform this never reads a
+		// persisted "last tradition". `activeTab` itself starts null regardless of
+		// `lastTabByScope` — see that field's own doc comment.
+		this.generatorId = ANY_TRADITION_ID;
 	}
 
 	/** Loads history for the starting tab (or, on the "kept titles" tab, this scope's kept
-	 * entries) and renders — the host (TitleForgeModal.onOpen) calls this once. */
+	 * entries) and renders — the host (TitleForgeModal.onOpen) calls this once. `activeTab` is
+	 * always null at this point (a fresh open), so there's nothing to load yet — `render()` shows
+	 * the section placeholder instead. */
 	async load(): Promise<void> {
+		if (this.activeTab === null) {
+			this.render();
+			return;
+		}
 		await this.loadHistoryForCurrentGenerator();
 		if (this.activeTab === "kept") await this.loadKeptEntries();
 		this.render();
@@ -247,6 +256,15 @@ export class TitleForgePanel {
 
 	private currentSpec(): GeneratorSpec | undefined {
 		return this.controller.getGeneratorById(this.generatorId);
+	}
+
+	/** `this.activeTab`, asserted non-null — for the handful of methods only ever reachable once a
+	 * section is actually active (everything `renderControls` calls or draws from, and
+	 * `handleGenerate`, all unreachable while the section placeholder is showing). `render()`'s own
+	 * early return for `activeTab === null` is the one place that's genuinely null. */
+	private section(): TitleForgeTab {
+		if (this.activeTab === null) throw new Error("titleForge: no section active yet");
+		return this.activeTab;
 	}
 
 	private tabOrder(): TitleForgeTab[] {
@@ -287,6 +305,12 @@ export class TitleForgePanel {
 	private async loadHistoryForCurrentGenerator(): Promise<void> {
 		if (this.generatorId !== ANY_TRADITION_ID) {
 			this.history = await this.controller.storage.loadHistory(this.generatorId);
+			return;
+		}
+		// Only ever called once a section is active (load()/switchToSection() both guard this),
+		// but defensively: nothing to pool from the section placeholder itself.
+		if (this.activeTab === null) {
+			this.history = [];
 			return;
 		}
 		const ids = TAB_TRADITIONS[this.activeTab];
@@ -337,7 +361,12 @@ export class TitleForgePanel {
 			seriesStrategy: this.seriesStrategy,
 			seriesVolumes: this.seriesVolumes,
 			lastQuantity: this.quantity,
-			lastTabByScope: { ...this.controller.settings.lastTabByScope, [this.opts.scope]: this.activeTab },
+			// Only once a section is actually active — `activeTab` is null before that (the section
+			// placeholder), and every fresh open starts there regardless of what's stored here now,
+			// so there's nothing meaningful to persist yet.
+			...(this.activeTab
+				? { lastTabByScope: { ...this.controller.settings.lastTabByScope, [this.opts.scope]: this.activeTab } }
+				: {}),
 		});
 		await this.controller.saveSettings();
 	}
@@ -346,6 +375,12 @@ export class TitleForgePanel {
 		const container = this.container;
 		container.empty();
 		container.addClass("titleforge-view");
+
+		if (this.activeTab === null) {
+			this.renderSectionPlaceholder(container);
+			this.renderBottomBar(container);
+			return;
+		}
 
 		if (this.activeTab === "kept") {
 			this.renderKeptTab(container);
@@ -386,6 +421,31 @@ export class TitleForgePanel {
 		this.family = "all";
 		this.platform = "all";
 		void this.loadHistoryForCurrentGenerator().then(() => this.render());
+	}
+
+	/** What renders instead of the real Genre picker while `activeTab` is still null — a fresh
+	 * open, every time, deliberately never resuming a remembered section (see `activeTab`'s own
+	 * doc comment). A disabled, single-option select carrying only the prompt itself, built from
+	 * the same `renderSelect` the real Genre picker uses so it's the exact same size/position —
+	 * the binder icon beside it is the only interactive part, opening the same section-switcher
+	 * menu (`renderSectionPicker`) that a real Genre picker's icon does. */
+	private renderSectionPlaceholder(container: HTMLElement): void {
+		const row = container.createDiv({ cls: "titleforge-row" });
+		const select = this.renderSelect(
+			row,
+			"Genre",
+			[{ id: "placeholder", label: "← pick type of titles to generate" }],
+			"placeholder",
+			() => {},
+			true,
+			ICON_PACKS,
+			() => {
+				this.showSectionPicker = !this.showSectionPicker;
+				this.render();
+			},
+		);
+		select.disabled = true;
+		if (this.showSectionPicker) this.renderSectionPicker(container);
 	}
 
 	/** The series/novels/webnovels switcher, opened by clicking the leading icon on the Genre
@@ -471,7 +531,7 @@ export class TitleForgePanel {
 	 * own name (e.g. "webnovel"), since a tradition (generator) is presented as a top-level genre
 	 * rather than through a separate picker of its own. */
 	private traditionOptions(): LabelledOption[] {
-		const ids = TAB_TRADITIONS[this.activeTab];
+		const ids = TAB_TRADITIONS[this.section()];
 		const specific = this.controller.generators
 			.filter((g) => ids.includes(g.id))
 			.map((g) => ({ id: g.id, label: g.name }));
@@ -539,7 +599,7 @@ export class TitleForgePanel {
 	 * (renderControls). Each spec's own "Any ..." entry (`all`) is skipped since the one shared
 	 * "Any" above already covers it. On "series" (one tradition) this is just a merge of one. */
 	private mergedGenreOptions(): LabelledOption[] {
-		const ids = TAB_TRADITIONS[this.activeTab];
+		const ids = TAB_TRADITIONS[this.section()];
 		const out: LabelledOption[] = [{ id: ANY_TRADITION_ID, label: "any" }];
 		for (const gen of this.controller.generators) {
 			if (!ids.includes(gen.id)) continue;
@@ -556,7 +616,7 @@ export class TitleForgePanel {
 	private renderControls(container: HTMLElement, spec: GeneratorSpec | undefined): void {
 		const row = container.createDiv({ cls: "titleforge-row" });
 
-		if (MERGED_GENRE_TABS.includes(this.activeTab)) {
+		if (MERGED_GENRE_TABS.includes(this.section())) {
 			// No separate tradition step — no tradition is itself a genre (the "Title
 			// composer"/"World literary shapes" complaint this replaced). Every tradition reachable
 			// from this tab contributes its own top-level genres straight into "Genre"
@@ -800,7 +860,7 @@ export class TitleForgePanel {
 	 * generated TitleResult). */
 	private async handleGenerate(): Promise<void> {
 		const isAny = this.generatorId === ANY_TRADITION_ID;
-		const pool = this.controller.generators.filter((g) => TAB_TRADITIONS[this.activeTab].includes(g.id));
+		const pool = this.controller.generators.filter((g) => TAB_TRADITIONS[this.section()].includes(g.id));
 		if (isAny ? pool.length === 0 : !this.currentSpec()) return;
 
 		const baseOptions = isAny
