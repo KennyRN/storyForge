@@ -536,7 +536,7 @@ export class TitleForgePanel {
 					this.renderSelect(row, "Sub genre", subOptions, this.genre, (value) => {
 						this.genre = value;
 						void this.persistUiState();
-					}, true, ICON_PACKS);
+					}, true);
 				}
 			}
 		} else {
@@ -558,7 +558,7 @@ export class TitleForgePanel {
 				this.renderSelect(row, "Sub genre", this.hierarchicalGenreOptions(spec), this.genre, (value) => {
 					this.genre = value;
 					void this.persistUiState();
-				}, true, ICON_PACKS);
+				}, true);
 			}
 		}
 
@@ -658,11 +658,11 @@ export class TitleForgePanel {
 	/** `wide`, when true, stretches this field (and its select) across the whole row — Genre and Sub
 	 * genre (renderControls) use it so they read at the same full width as the Generate button
 	 * below them, rather than sizing to their own selected option's text like Shape family/Platform
-	 * still do.
+	 * still do — and hides the visible text label (Genre/Sub genre read as a pair of plain boxes,
+	 * not labelled fields); `labelText` survives as the select's accessible name/tooltip instead.
 	 *
-	 * `leadingIcon`, when given, replaces the visible text label with that icon sitting to the left
-	 * of the select (Genre and Sub genre both use ICON_PACKS, so the pair reads as one group);
-	 * `labelText` then survives only as the select's accessible name/tooltip. */
+	 * `leadingIcon`, when given, adds that icon to the left of the select (only Genre uses it —
+	 * nameForge's own "packs" glyph — so Sub genre sits underneath as a plain, unmarked box). */
 	private renderSelect(
 		container: HTMLElement,
 		labelText: string,
@@ -683,11 +683,11 @@ export class TitleForgePanel {
 				label.createSpan({ cls: "titleforge-field-icon", attr: { "aria-hidden": "true" } }),
 				leadingIcon,
 			);
-		} else {
+		} else if (!wide) {
 			label.createSpan({ text: labelText });
 		}
 		const select = label.createEl("select");
-		if (leadingIcon) {
+		if (leadingIcon || wide) {
 			select.setAttribute("aria-label", labelText);
 			setTooltip(select, labelText);
 		}
