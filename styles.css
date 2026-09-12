@@ -7183,8 +7183,8 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	display: flex;
 	flex-wrap: wrap;
 	align-items: flex-end;
-	gap: var(--size-4-3, 12px);
-	margin-bottom: var(--size-4-4, 16px);
+	gap: 12px;
+	margin-bottom: 16px;
 }
 
 .titleforge-field {
@@ -7204,34 +7204,37 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 /* Genre and Sub genre (renderSelect's `wide` flag) — flex-basis 100% claims the whole row on its
  * own within .titleforge-row's flex-wrap, so each stacks full-width rather than sizing to its
  * selected option's own text; the <select> itself then fills it via the field's default (stretch)
- * cross-axis alignment, same full width as the Generate button below (.titleforge-generate-button). */
+ * cross-axis alignment, same full width as the Generate button below (.titleforge-generate-button).
+ * Both wide fields always get the row layout below (icon slot + select side by side) — Genre and
+ * Sub genre are the same size and start at the same x position whether or not the slot actually
+ * holds a glyph (`renderSelect` still creates the slot span for Sub genre, just never calls
+ * `setIcon` on it), which is what keeps the two boxes visually identical. */
 .titleforge-field--wide {
 	flex: 1 1 100%;
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
 }
 
 /* Genre and Sub genre stack tighter than .titleforge-row's own gap (12px) would otherwise give
  * them — 4px, so the pair reads as one group. Only meaningful between two full-width fields on
  * their own wrapped lines, so this targets adjacent `--wide` siblings specifically rather than
  * touching the row's general gap (still 12px, used between Shape family/Platform and inside the
- * series-options row). */
+ * series-options row). Hardcoded, not the row's own `gap` var, so the two numbers can't drift
+ * apart if a theme redefines Obsidian's --size-4-* scale. */
 .titleforge-field--wide + .titleforge-field--wide {
-	margin-top: calc(var(--size-4-1, 4px) - var(--size-4-3, 12px));
+	margin-top: -8px;
 }
 
-/* Genre only — no visible text label, just a leading icon (ICON_PACKS, same glyph nameForge puts
- * beside its own pack dropdown) with the <select> filling the rest of the row. Sub genre sits
- * beneath it as a plain, unmarked box (renderSelect's `wide` with no `leadingIcon`). */
-.titleforge-field--iconed {
-	flex-direction: row;
-	align-items: center;
-	gap: var(--size-4-2, 8px);
-}
-
+/* The Genre/Sub genre icon slot — always 20x20 and always present on a `--wide` field (see above),
+ * empty for Sub genre. ICON_PACKS (nameForge's own "packs" glyph) is the one Genre actually shows. */
 .titleforge-field-icon {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	flex-shrink: 0;
+	width: 20px;
+	height: 20px;
 	color: var(--text-muted);
 	line-height: 0;
 }
@@ -7242,7 +7245,7 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	height: 20px;
 }
 
-.titleforge-field--iconed select {
+.titleforge-field--wide select {
 	flex: 1 1 auto;
 	min-width: 0;
 }
@@ -7392,7 +7395,7 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	display: flex;
 	gap: 4px;
 	padding: 4px;
-	margin-bottom: var(--size-4-1, 4px);
+	margin-bottom: 4px;
 	background: var(--background-secondary);
 	border-radius: var(--radius-m, 8px);
 }
