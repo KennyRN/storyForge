@@ -12,7 +12,7 @@ import {
 } from "../../icons.js";
 import { generateOne, generateSeries } from "../engine/generate.js";
 import { toEntry } from "../engine/history.js";
-import type { GeneratorSpec, GenreOption, HistoryEntry, LabelledOption, SeriesStrategy } from "../engine/types.js";
+import type { GeneratorSpec, GenreOption, HistoryEntry, LabelledOption } from "../engine/types.js";
 import type { TitleForgeScope, TitleForgeTab } from "../settings.js";
 import type { TitleForgeController } from "../TitleForgeController.js";
 import { TitleShapeInfoModal } from "./TitleShapeInfoModal.js";
@@ -32,12 +32,6 @@ interface TitleForgePanelOptions {
 	scope: TitleForgeScope;
 	onUse?: (title: string) => void;
 }
-
-const SERIES_STRATEGY_OPTIONS: LabelledOption[] = [
-	{ id: "echo", label: "Echo — one shape, repeated" },
-	{ id: "anchor", label: "Anchor — one element fixed" },
-	{ id: "free", label: "Free — label + loose volumes" },
-];
 
 const QUANTITY_OPTIONS = [3, 5, 10, 15, 25] as const;
 
@@ -161,14 +155,14 @@ const SCOPE_TABS: Record<TitleForgeScope, TitleForgeTab[]> = {
  *
  * Renders no header/blurb of its own (the modal has neither), groups the traditions into
  * "sections" (see TAB_TRADITIONS — the type/field names still say "tab" throughout, a holdover
- * from when these were literal tab-bar icons), and only ever shows the series checkbox under the
- * "novels" section — the "series" section is always in series mode (title-composer, shape family
- * forced to "series"), "webnovels" never is. The "series" section also never shows the
- * strategy/volumes controls (renderControls) — it always generates with whichever
- * strategy/volume-count were last set, with no picker of its own to change them. "kept titles"
- * isn't a generator section at all — see renderKeptTab. Generating writes straight into the
- * history list — there's no separate "just generated" preview; every row, old or new, carries the
- * same info/short-list/use-this-title actions (renderTitleRow).
+ * from when these were literal tab-bar icons), and is only ever in series mode for the "series"
+ * section itself (title-composer, shape family forced to "series") — "novels" and "webnovels"
+ * never are; there's no way to opt a section into series mode any more, only to switch to the
+ * series section outright. It always generates with `generateSeries`' own default strategy/volume
+ * count, with no picker anywhere to change either. "kept titles" isn't a generator section at all
+ * — see renderKeptTab. Generating writes straight into the history list — there's no separate
+ * "just generated" preview; every row, old or new, carries the same info/short-list/use-this-title
+ * actions (renderTitleRow).
  *
  * There is no separate "Tradition" picker. On "series" and "novels" (MERGED_GENRE_TABS), no
  * tradition is itself a genre: every tradition reachable from the section contributes its own
@@ -195,9 +189,6 @@ export class TitleForgePanel {
 	private genre: string;
 	private family: string;
 	private platform: string;
-	private seriesMode: boolean;
-	private seriesStrategy: SeriesStrategy;
-	private seriesVolumes: number;
 	private quantity: number;
 	/** Null until the user picks a section from the switcher menu (renderSectionPicker) — every
 	 * fresh open starts here, deliberately not resuming whatever section was active last time (see
@@ -221,9 +212,6 @@ export class TitleForgePanel {
 		this.genre = s.lastGenre;
 		this.family = s.lastFamily;
 		this.platform = s.lastPlatform;
-		this.seriesMode = s.seriesMode;
-		this.seriesStrategy = s.seriesStrategy;
-		this.seriesVolumes = s.seriesVolumes;
 		this.quantity = s.lastQuantity;
 		// "any" is always what's automatically selected within a section (or, on a section with
 		// exactly one tradition, that tradition itself — see defaultGeneratorIdFor); there's nothing
@@ -290,13 +278,11 @@ export class TitleForgePanel {
 		return ids.length === 1 ? ids[0] : ANY_TRADITION_ID;
 	}
 
-	/** The effective series-mode for generation/display: forced on for the "series" tab,
-	 * checkbox-controlled for "novels", and never on for "web fiction & light novels" (which has
-	 * no checkbox) or "kept titles" (which never generates). */
+	/** The effective series-mode for generation/display: on for the "series" section only — the
+	 * dedicated place for series generation now that its own section exists; "novels" no longer
+	 * has a checkbox to opt into it, and "web fiction & light novels"/"kept titles" never did. */
 	private effectiveSeriesMode(): boolean {
-		if (this.activeTab === "series") return true;
-		if (this.activeTab === "novels") return this.seriesMode;
-		return false;
+		return this.activeTab === "series";
 	}
 
 	/** In "Any" mode there's no single generator's file to read — pool every tradition reachable
@@ -357,9 +343,6 @@ export class TitleForgePanel {
 			lastGenre: this.genre,
 			lastFamily: this.family,
 			lastPlatform: this.platform,
-			seriesMode: this.seriesMode,
-			seriesStrategy: this.seriesStrategy,
-			seriesVolumes: this.seriesVolumes,
 			lastQuantity: this.quantity,
 			// Only once a section is actually active — `activeTab` is null before that (the section
 			// placeholder), and every fresh open starts there regardless of what's stored here now,
@@ -701,61 +684,6 @@ export class TitleForgePanel {
 
 		if (this.showSectionPicker) this.renderSectionPicker(container);
 
-		// The checkbox itself only matters where series-mode is a genuine choice: the "novels" tab.
-		// The "series" tab is always in series mode and "web fiction & light novels" never is, so
-		// neither shows it. Strategy/Volumes: the "series" tab never shows them — it just generates
-		// with whichever values were last set (from settings, or from a prior visit to the "novels"
-		// tab), with no picker of its own to change them. "novels" (series-mode on) still gets full
-		// control over both.
-		//
-		// This row is only created when it will actually hold one of those — on "series"/"web
-		// fiction & light novels" it would otherwise be an empty `.titleforge-row`, and an empty
-		// flex child still contributes its own margin (flex items' margins don't collapse the way
-		// block-level ones do), silently doubling the gap below the Genre/Sub genre row.
-		const showSeriesToggle = this.activeTab === "novels";
-		const showStrategyVolumes = this.effectiveSeriesMode() && this.activeTab !== "series";
-		if (showSeriesToggle || showStrategyVolumes) {
-			const seriesRow = container.createDiv({ cls: "titleforge-row" });
-
-			if (showSeriesToggle) {
-				const seriesLabel = seriesRow.createEl("label", { cls: "titleforge-series-toggle" });
-				const seriesCheckbox = seriesLabel.createEl("input", { type: "checkbox" });
-				seriesCheckbox.checked = this.seriesMode;
-				seriesLabel.createSpan({ text: " Series" });
-				seriesCheckbox.addEventListener("change", () => {
-					this.seriesMode = seriesCheckbox.checked;
-					void this.persistUiState();
-					this.render();
-				});
-			}
-
-			if (showStrategyVolumes) {
-				this.renderSelect(
-					seriesRow,
-					"Strategy",
-					SERIES_STRATEGY_OPTIONS,
-					this.seriesStrategy,
-					(value) => {
-						this.seriesStrategy = value as SeriesStrategy;
-						void this.persistUiState();
-					},
-				);
-
-				const volumesLabel = seriesRow.createEl("label", { cls: "titleforge-field" });
-				volumesLabel.createSpan({ text: "Volumes" });
-				const volumesInput = volumesLabel.createEl("input", { type: "number" });
-				volumesInput.min = "1";
-				volumesInput.max = "12";
-				volumesInput.value = String(this.seriesVolumes);
-				volumesInput.addEventListener("change", () => {
-					const n = Math.max(1, Math.min(12, Number(volumesInput.value) || 3));
-					this.seriesVolumes = n;
-					volumesInput.value = String(n);
-					void this.persistUiState();
-				});
-			}
-		}
-
 		this.renderQuantity(container);
 
 		const actions = container.createDiv({ cls: "titleforge-actions" });
@@ -885,10 +813,10 @@ export class TitleForgePanel {
 						// Draw the umbrella and its volumes from the corpus-grounded series shape
 						// set, not the novel patterns (invariant 2 of the Stage 5 brief). Generators
 						// with no "series" family fall through untouched — eligiblePatterns treats an
-						// empty family match as a soft no-op.
+						// empty family match as a soft no-op. `strategy`/`volumes` are omitted —
+						// there's no picker for either any more, so this always takes generateSeries'
+						// own defaults (echo, 3).
 						family: "series",
-						strategy: this.seriesStrategy,
-						volumes: this.seriesVolumes,
 						exclude,
 					});
 					await this.controller.storage.appendHistory(toEntry(result.series));

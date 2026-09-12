@@ -27,7 +27,6 @@ import {
 	type TitleForgeTab,
 	type TitleForgeScope,
 } from "./titleforge/settings";
-import type { SeriesStrategy } from "./titleforge/engine/types";
 
 export const COMPLETE_EXPORT_FORMAT = "storyforge-complete" as const;
 export const COMPLETE_EXPORT_VERSION = 1 as const;
@@ -57,7 +56,6 @@ function cloneJson<T>(value: T): T {
 
 const TITLEFORGE_TABS: TitleForgeTab[] = ["series", "webFiction", "novels", "kept"];
 const TITLEFORGE_SCOPES: TitleForgeScope[] = ["all", "series", "novels"];
-const SERIES_STRATEGIES: SeriesStrategy[] = ["echo", "anchor", "free"];
 
 function parseTitleForgeSettings(raw: unknown): TitleForgeSettings {
 	const source = isRecord(raw) ? raw : {};
@@ -70,20 +68,13 @@ function parseTitleForgeSettings(raw: unknown): TitleForgeSettings {
 			}
 		}
 	}
-	const strategy =
-		typeof source.seriesStrategy === "string" && SERIES_STRATEGIES.includes(source.seriesStrategy as SeriesStrategy)
-			? (source.seriesStrategy as SeriesStrategy)
-			: DEFAULT_TITLEFORGE_SETTINGS.seriesStrategy;
+	// A settings file from before the novels-tab series checkbox was removed can still have
+	// seriesMode/seriesStrategy/seriesVolumes keys — simply unread now, same precedent as the old
+	// flat lastTab field above.
 	return {
 		lastGenre: typeof source.lastGenre === "string" ? source.lastGenre : DEFAULT_TITLEFORGE_SETTINGS.lastGenre,
 		lastFamily: typeof source.lastFamily === "string" ? source.lastFamily : DEFAULT_TITLEFORGE_SETTINGS.lastFamily,
 		lastPlatform: typeof source.lastPlatform === "string" ? source.lastPlatform : DEFAULT_TITLEFORGE_SETTINGS.lastPlatform,
-		seriesMode: typeof source.seriesMode === "boolean" ? source.seriesMode : DEFAULT_TITLEFORGE_SETTINGS.seriesMode,
-		seriesStrategy: strategy,
-		seriesVolumes:
-			typeof source.seriesVolumes === "number" && Number.isFinite(source.seriesVolumes)
-				? source.seriesVolumes
-				: DEFAULT_TITLEFORGE_SETTINGS.seriesVolumes,
 		lastTabByScope,
 		lastQuantity:
 			typeof source.lastQuantity === "number" && Number.isFinite(source.lastQuantity)

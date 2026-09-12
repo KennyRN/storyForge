@@ -7262,15 +7262,6 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	min-width: 0;
 }
 
-.titleforge-series-toggle {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-	font-size: 0.9em;
-	color: var(--text-normal);
-	cursor: pointer;
-}
-
 .titleforge-actions {
 	margin-bottom: var(--size-4-4, 16px);
 }

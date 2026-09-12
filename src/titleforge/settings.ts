@@ -1,5 +1,3 @@
-import type { SeriesStrategy } from "./engine/types.js";
-
 /**
  * TitleForgeModal's tabs. "series", "webFiction" and "novels" each pick from their own list of
  * generators (see TAB_TRADITIONS in view/TitleForgePanel.ts); "kept" pools every kept title
@@ -42,9 +40,6 @@ export interface TitleForgeSettings {
 	lastGenre: string;
 	lastFamily: string;
 	lastPlatform: string;
-	seriesMode: boolean;
-	seriesStrategy: SeriesStrategy;
-	seriesVolumes: number;
 	/** Last-active tab, remembered separately per scope — so switching between a Series-triggered
 	 * open and a Novel-triggered open doesn't jump the tab unexpectedly. Replaces a single flat
 	 * `lastTab` field; a settings file saved by an older build has no `lastTabByScope` at all, and
@@ -65,9 +60,6 @@ export const DEFAULT_TITLEFORGE_SETTINGS: TitleForgeSettings = {
 	lastGenre: "all",
 	lastFamily: "all",
 	lastPlatform: "all",
-	seriesMode: false,
-	seriesStrategy: "echo",
-	seriesVolumes: 3,
 	lastTabByScope: {
 		// The "all" scope lands on "novels" (its widest, most familiar tab) rather than the
 		// narrower "series" umbrella view; the "series" and "novels" scopes each land on their
