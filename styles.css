@@ -7161,10 +7161,10 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	overflow: hidden;
 }
 
-.titleforge-view > .titleforge-tabs,
 .titleforge-view > .titleforge-row,
 .titleforge-view > .titleforge-quantity-toggle,
-.titleforge-view > .titleforge-actions {
+.titleforge-view > .titleforge-actions,
+.titleforge-view > .titleforge-bottom-bar {
 	flex: 0 0 auto;
 }
 
@@ -7226,23 +7226,35 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	margin-top: -8px;
 }
 
-/* The Genre/Sub genre icon slot — always 20x20 and always present on a `--wide` field (see above),
- * empty for Sub genre. ICON_PACKS (nameForge's own "packs" glyph) is the one Genre actually shows. */
+/* The Genre/Sub genre icon slot — always 24x24 (matching nameForge's own
+ * .nameforge-modal__icon-decoration--lg, the size ICON_PACKS is shown at there) and always present
+ * on a `--wide` field (see above), empty for Sub genre. */
 .titleforge-field-icon {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	flex-shrink: 0;
-	width: 20px;
-	height: 20px;
+	width: 24px;
+	height: 24px;
 	color: var(--text-muted);
 	line-height: 0;
 }
 
 .titleforge-field-icon svg,
 .titleforge-field-icon svg.svg-icon {
-	width: 20px;
-	height: 20px;
+	width: 24px;
+	height: 24px;
+}
+
+/* Genre's icon doubles as the section switcher's trigger (renderSectionPicker) — the only
+ * remaining icon-slot that's ever interactive (Sub genre's is always the plain aria-hidden spacer). */
+.titleforge-field-icon--clickable {
+	cursor: pointer;
+}
+
+.titleforge-field-icon--clickable:hover,
+.titleforge-field-icon--clickable:focus-visible {
+	color: var(--text-normal);
 }
 
 .titleforge-field--wide select {
@@ -7340,52 +7352,58 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	height: 16px;
 }
 
-.titleforge-tabs {
+/* The series/novels/webnovels switcher (renderSectionPicker) — opened by clicking the Genre
+ * picker's leading icon, replacing the old always-visible tab row. A plain flow block under the
+ * Genre/Sub genre row, not a floating overlay, so it never needs its own positioning logic. */
+.titleforge-section-menu {
 	display: flex;
-	flex-wrap: wrap;
-	gap: var(--size-4-2, 8px);
+	flex-direction: column;
+	gap: 2px;
 	margin-bottom: var(--size-4-3, 12px);
+	padding: 4px;
+	background: var(--background-secondary);
+	border-radius: var(--radius-m, 8px);
 }
 
-/* Icon-only headers, equal-width across the modal's full width, rather than sized to each tab's
- * own content — same "flex: 1" convention as StoryForgeView.ts's own .sf-layout-tab. Each tab's
- * name (TAB_LABELS) is a hover tooltip/aria-label (renderTabs) rather than visible text, so this
- * is plain icon-nav treatment, not a button chip: hover/active are colour changes only, no
- * background or border. */
-.titleforge-tab {
-	display: inline-flex;
+.titleforge-section-menu-item {
+	display: flex;
 	align-items: center;
-	justify-content: center;
-	flex: 1 1 0;
-	font-size: calc(var(--font-ui-medium) * 1.25);
-	/* Obsidian's .svg-icon sizes off --icon-size; pin it to the tab's em so the glyph matches
-	 * width/height: 1em below even if a more-specific .svg-icon rule wins. */
-	--icon-size: 1em;
+	gap: var(--size-4-2, 8px);
+	padding: 6px 8px;
+	border-radius: var(--radius-s, 6px);
 	color: var(--text-muted);
 	cursor: pointer;
-	padding: 5px 8px;
-	border-radius: 4px;
 }
 
-/* Each tab's own (and now only) icon — no colour of its own, so it matches the tab's own
- * (currentColor), same convention as .sf-layout-tab-icon. */
-.titleforge-tab-icon {
-	display: flex;
-	align-items: center;
-	flex-shrink: 0;
-}
-.titleforge-tab-icon svg,
-.titleforge-tab-icon svg.svg-icon {
-	width: 1em;
-	height: 1em;
-}
-
-.titleforge-tab:hover {
+.titleforge-section-menu-item:hover,
+.titleforge-section-menu-item:focus-visible {
+	background: var(--background-modifier-hover);
 	color: var(--text-normal);
 }
 
-.titleforge-tab.is-active {
+.titleforge-section-menu-item.is-active {
 	color: var(--text-accent);
+}
+
+.titleforge-section-menu-icon {
+	display: inline-flex;
+	align-items: center;
+	flex-shrink: 0;
+}
+
+.titleforge-section-menu-icon svg,
+.titleforge-section-menu-icon svg.svg-icon {
+	width: 16px;
+	height: 16px;
+}
+
+/* The kept-titles star toggle, beneath the generated pane (or the kept-titles list itself) —
+ * replaces the old "kept titles" tab icon. Reuses .titleforge-row-icon's plain hover-icon
+ * treatment; right-aligned to match the per-title action row above it. */
+.titleforge-bottom-bar {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: var(--size-4-2, 8px);
 }
 
 /* How many titles one click of Generate produces — a pill toggle modelled on nameForge's own
@@ -7470,16 +7488,20 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 
 /* ── titleForge "about this title" info popup (TitleShapeInfoModal.ts) ── */
 
-/* genre › sub-genre › shape — the granular path the title took. */
-.titleforge-shape-info-path {
-	color: var(--text-muted);
-	margin-bottom: var(--size-4-3, 12px);
+/* Consistent spacing on every edge, and an h2 that doesn't carry the theme's own oversized
+ * top margin — before this the gap above the title read much larger than the gap below it. */
+.titleforge-shape-info-modal {
+	padding: var(--size-4-4, 16px) var(--size-4-5, 20px);
 }
 
-/* The exact template, humanised — e.g. "The [Adj] [Noun]". */
-.titleforge-shape-info-template {
-	font-family: var(--font-monospace);
-	color: var(--text-normal);
+.titleforge-shape-info-modal h2 {
+	margin: 0 0 var(--size-4-3, 12px);
+}
+
+/* genre › sub-genre › shape — template, all in one line, lower case (description, not a result). */
+.titleforge-shape-info-path {
+	margin: 0;
+	color: var(--text-muted);
 }
 
 /* ── titleForge settings modal (TitleForgeSettingsModal.ts) ── */

@@ -7,7 +7,9 @@ import type { GeneratorSpec, HistoryEntry, Pattern } from "../engine/types.js";
 /**
  * "About this title" — a small read-only modal opened from a history/kept row's info icon
  * (TitleForgePanel.ts's `renderTitleRow`). Shows the granular path a title took: its
- * genre → sub-genre → shape, then the exact template and what that shape signals.
+ * genre → sub-genre → shape, then the exact template that produced it — one line, lower case
+ * throughout (this is descriptive chrome, not a result; the title itself, in the `h2` above it,
+ * stays exactly as generated).
  *
  * The shape is read straight off the entry (`patternId` / `templateIndex`, recorded by
  * `toEntry`). Entries written before those fields existed fall back to replaying the entry's
@@ -38,19 +40,14 @@ export class TitleShapeInfoModal extends Modal {
 		}
 		const { pattern, templateIndex } = resolved;
 
-		contentEl.createEl("p", {
-			cls: "titleforge-shape-info-path",
-			text: [...this.genreCrumbs(), pattern.label].join("  ›  "),
-		});
-
+		// Genre crumbs are already lower case (see the genre-label sweep); the pattern's own label
+		// and its exact template aren't authored that way, so they're lowered here to match — this
+		// line is all description, not a result.
+		const crumbs = [...this.genreCrumbs(), pattern.label.toLowerCase()].join("  ›  ");
 		const template = pattern.templates[templateIndex] ?? pattern.templates[0];
-		if (template) {
-			contentEl.createEl("p", {
-				cls: "titleforge-shape-info-template",
-				text: humanizeTemplate(template),
-			});
-		}
-		contentEl.createEl("p", { text: pattern.note });
+		const line = template ? `${crumbs}  —  ${humanizeTemplate(template).toLowerCase()}` : crumbs;
+
+		contentEl.createEl("p", { cls: "titleforge-shape-info-path", text: line });
 	}
 
 	onClose(): void {
@@ -75,8 +72,8 @@ export class TitleShapeInfoModal extends Modal {
 		return pattern ? { pattern, templateIndex: recomputed.templateIndex } : undefined;
 	}
 
-	/** `["Fantasy", "Epic fantasy"]` — the genre and any sub-genre, top level first. Empty when the
-	 * title was generated under "Any genre" (nothing narrower to show). */
+	/** `["fantasy", "epic fantasy"]` — the genre and any sub-genre, top level first. Empty when the
+	 * title was generated under "any genre" (nothing narrower to show). */
 	private genreCrumbs(): string[] {
 		const id = this.entry.genre;
 		if (!id || id === "all") return [];

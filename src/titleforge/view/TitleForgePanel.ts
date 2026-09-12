@@ -50,27 +50,34 @@ const QUANTITY_OPTIONS = [3, 5, 10, 15, 25] as const;
  * each title). */
 const ANY_TRADITION_ID = "any";
 
-// Tab names are deliberately lowercase throughout — matches the rest of the modal's understated
-// chrome rather than reading as a shouted section header. Each tab is icon-only (renderTabs), so
-// these are never rendered directly — they're the hover tooltip and aria-label behind each icon.
+// Section names are deliberately lowercase throughout — matches the rest of the modal's
+// understated chrome rather than reading as a shouted header. Shown as visible text in the
+// section-switcher menu (renderSectionPicker) and doubling as its items' aria-label; "kept titles"
+// is reached via its own star toggle (renderBottomBar) rather than this menu — see SECTION_ORDER.
 const TAB_LABELS: Record<TitleForgeTab, string> = {
 	series: "series",
-	webFiction: "web fiction & light novels",
+	webFiction: "webnovels",
 	novels: "novels",
 	kept: "kept titles",
 };
 
-/** Each tab's own (and only) header icon (renderTabs) — reuses storyForge's own Series/Novel pane
- * icons (StoryForgeView.ts's SF_LAYOUT_TAB_ICONS: ICON_SERIES, ICON_BOOK_DUOTONE) so the two
- * readings of "Series"/"Novel" match, ICON_COMPUTER (a screen-and-stand glyph, not a book) for
- * "web fiction & light novels" — these are serialised, web-native titles — and the same
- * ICON_STAR_FILL its short-list star (renderTitleRow) already uses for "kept titles". */
+/** Each section's own icon, in the switcher menu (renderSectionPicker) — reuses storyForge's own
+ * Series/Novel pane icons (StoryForgeView.ts's SF_LAYOUT_TAB_ICONS: ICON_SERIES,
+ * ICON_BOOK_DUOTONE) so the two readings of "Series"/"Novel" match, and ICON_COMPUTER (a
+ * screen-and-stand glyph, not a book) for "webnovels" — these are serialised, web-native titles.
+ * `kept`'s entry is unused by that menu (see SECTION_ORDER) but kept here so this stays a total
+ * map over TitleForgeTab; ICON_STAR_FILL/ICON_STAR_OUTLINE are used directly for its own toggle. */
 const TAB_ICONS: Record<TitleForgeTab, string> = {
 	series: ICON_SERIES,
 	webFiction: ICON_COMPUTER,
 	novels: ICON_BOOK_DUOTONE,
 	kept: ICON_STAR_FILL,
 };
+
+/** Fixed reading order for the section-switcher menu, regardless of scope — "kept titles" isn't
+ * offered here at all (see renderBottomBar's star toggle instead). `renderSectionPicker` filters
+ * this down to whichever of the three a given scope actually reaches (SCOPE_TABS). */
+const SECTION_ORDER: TitleForgeTab[] = ["series", "novels", "webFiction"];
 
 /**
  * Which generators live under each generator tab (i.e. every tab but "kept titles" — that one
@@ -148,34 +155,40 @@ const SCOPE_TABS: Record<TitleForgeScope, TitleForgeTab[]> = {
  * it owns the container's lifecycle (empty it, remove it, whatever) and just calls
  * load()/render() into it.
  *
- * `opts.scope` (see SCOPE_TABS) fixes which tabs are reachable and which traditions the "kept
- * titles" tab pools from for this open; `opts.onUse`, when supplied, is what puts a "use this
+ * `opts.scope` (see SCOPE_TABS) fixes which sections are reachable and which traditions the "kept
+ * titles" toggle pools from for this open; `opts.onUse`, when supplied, is what puts a "use this
  * title" arrow on every row — see `renderTitleRow`.
  *
- * Renders no header/blurb of its own (the modal has neither), groups the traditions into tabs
- * (see TAB_TRADITIONS), and only ever shows the series checkbox under the "novels" tab — the
- * "series" tab is always in series mode (title-composer, shape family forced to "series"), "web
- * fiction & light novels" never is. The "series" tab also never shows the strategy/volumes
- * controls (renderControls) — it always generates with whichever strategy/volume-count were last
- * set, with no picker of its own to change them. "kept titles" isn't a generator tab at all — see
- * renderKeptTab. Generating writes straight into the history list — there's no separate "just
- * generated" preview; every row, old or new, carries the same info/short-list/use-this-title
- * actions (renderTitleRow).
+ * Renders no header/blurb of its own (the modal has neither), groups the traditions into
+ * "sections" (see TAB_TRADITIONS — the type/field names still say "tab" throughout, a holdover
+ * from when these were literal tab-bar icons), and only ever shows the series checkbox under the
+ * "novels" section — the "series" section is always in series mode (title-composer, shape family
+ * forced to "series"), "webnovels" never is. The "series" section also never shows the
+ * strategy/volumes controls (renderControls) — it always generates with whichever
+ * strategy/volume-count were last set, with no picker of its own to change them. "kept titles"
+ * isn't a generator section at all — see renderKeptTab. Generating writes straight into the
+ * history list — there's no separate "just generated" preview; every row, old or new, carries the
+ * same info/short-list/use-this-title actions (renderTitleRow).
  *
- * There is no separate "Tradition" picker any more. On "series" and "novels" (MERGED_GENRE_TABS),
- * no tradition is itself a genre: every tradition reachable from the tab contributes its own
- * top-level genres (Fantasy, Science fiction, Arabic, ...) straight into the "Genre" picker
- * (`mergedGenreOptions`), "Any" first and always what's automatically selected — never a
+ * There is no separate "Tradition" picker. On "series" and "novels" (MERGED_GENRE_TABS), no
+ * tradition is itself a genre: every tradition reachable from the section contributes its own
+ * top-level genres (fantasy, science fiction, ...) straight into the "Genre" picker
+ * (`mergedGenreOptions`), "any" first and always what's automatically selected — never a
  * remembered last pick — and picking one also picks its tradition (`this.generatorId`) behind the
- * scenes; whichever genre's own children it has (Epic fantasy, Heroic fantasy, ... under Fantasy)
+ * scenes; whichever genre's own children it has (epic fantasy, heroic fantasy, ... under fantasy)
  * become the "Sub genre" picker below it (`subGenreOptions`), hidden entirely when it has none.
- * "web fiction & light novels" is the one tab that still pairs a Tradition-as-"Genre" picker
+ * "webnovels" is the one section that still pairs a Tradition-as-"Genre" picker
  * (`traditionOptions`) with a flat, indentation-hierarchy "Sub genre" list
  * (`hierarchicalGenreOptions`) — each of its seven traditions is a genuinely distinct
- * regional/language market, not itself a genre's sibling. In "Any" mode (either kind of tab)
+ * regional/language market, not itself a genre's sibling. In "any" mode (either kind of section)
  * there's no single spec to source sub genre/family/platform from (so those pickers are hidden),
- * history pools across the whole tab instead of one generator's file, and Generate draws a fresh
- * random tradition per result.
+ * history pools across the whole section instead of one generator's file, and Generate draws a
+ * fresh random tradition per result.
+ *
+ * There is no visible tab bar any more. Which section is active is switched from the
+ * section-switcher menu (`renderSectionPicker`, `SECTION_ORDER`) opened by clicking the leading
+ * icon on the Genre picker; "kept titles" is reached by its own star toggle beneath the generated
+ * list instead (`renderBottomBar`), flipping back to whichever section was active before it.
  */
 export class TitleForgePanel {
 	private generatorId: string;
@@ -187,6 +200,11 @@ export class TitleForgePanel {
 	private seriesVolumes: number;
 	private quantity: number;
 	private activeTab: TitleForgeTab;
+	/** Whether the section-switcher menu (renderSectionPicker) is currently open. */
+	private showSectionPicker = false;
+	/** Which section was active right before switching to "kept titles" (renderBottomBar's star
+	 * toggle) — where the toggle switches back to. Null until the first switch into kept titles. */
+	private preKeptTab: TitleForgeTab | null = null;
 
 	private history: HistoryEntry[] = [];
 	private keptEntries: KeptEntry[] = [];
@@ -328,10 +346,10 @@ export class TitleForgePanel {
 		const container = this.container;
 		container.empty();
 		container.addClass("titleforge-view");
-		this.renderTabs(container);
 
 		if (this.activeTab === "kept") {
 			this.renderKeptTab(container);
+			this.renderBottomBar(container);
 			return;
 		}
 
@@ -341,10 +359,12 @@ export class TitleForgePanel {
 				cls: "titleforge-empty",
 				text: "No title generators are loaded.",
 			});
+			this.renderBottomBar(container);
 			return;
 		}
 		// A specific tradition can go stale (a hand-edited lexicon dropped it) — fall back to this
-		// tab's default rather than an error, same spirit as renderSelect's own stale-value handling.
+		// section's default rather than an error, same spirit as renderSelect's own stale-value
+		// handling.
 		if (this.generatorId !== ANY_TRADITION_ID && !this.currentSpec()) {
 			this.generatorId = this.defaultGeneratorIdFor(this.activeTab);
 		}
@@ -352,52 +372,81 @@ export class TitleForgePanel {
 
 		this.renderControls(container, spec);
 		this.renderHistory(container);
+		this.renderBottomBar(container);
 	}
 
-	/** Icon-only tab headers — a hover icon per tab (its name is the tooltip/aria-label, not visible
-	 * text), same treatment as StoryForgeView.ts's own .sf-layout-tab row rather than a button chip:
-	 * a plain `<span>`, not a `<button>`, made keyboard-activatable via `makeAccessibleActivatable`
-	 * (role, tabindex, Enter/Space) since it isn't a real button element. */
-	private renderTabs(container: HTMLElement): void {
-		const tabs = container.createDiv({ cls: "titleforge-tabs" });
-		for (const tab of this.tabOrder()) {
-			const button = tabs.createSpan({
-				cls: "titleforge-tab" + (tab === this.activeTab ? " is-active" : ""),
-				attr: {
-					role: "tab",
-					tabindex: "0",
-					"aria-selected": String(tab === this.activeTab),
-					"aria-label": TAB_LABELS[tab],
-				},
-			});
-			setIcon(button.createSpan({ cls: "titleforge-tab-icon" }), TAB_ICONS[tab]);
-			setTooltip(button, TAB_LABELS[tab]);
-			const activate = () => {
-				if (tab === this.activeTab) return;
-				this.activeTab = tab;
-				void this.persistUiState();
+	/** Switches to `tab`, resetting genre/family/platform and reloading its history — the section
+	 * change every entry point (the section-switcher menu; a stale-tradition fallback elsewhere)
+	 * needs, factored out so there's exactly one place that does it. */
+	private switchToSection(tab: TitleForgeTab): void {
+		this.activeTab = tab;
+		void this.persistUiState();
+		if (TAB_TRADITIONS[tab].length > 0) this.generatorId = this.defaultGeneratorIdFor(tab);
+		this.genre = "all";
+		this.family = "all";
+		this.platform = "all";
+		void this.loadHistoryForCurrentGenerator().then(() => this.render());
+	}
 
-				if (tab === "kept") {
-					void this.loadKeptEntries().then(() => this.render());
+	/** The series/novels/webnovels switcher, opened by clicking the leading icon on the Genre
+	 * picker (renderSelect's `onIconClick`) — this is the only way to change section now that
+	 * there's no visible tab bar. Offers `SECTION_ORDER` filtered to whatever this scope actually
+	 * reaches (SCOPE_TABS); "kept titles" is deliberately not offered here, see renderBottomBar. */
+	private renderSectionPicker(container: HTMLElement): void {
+		const menu = container.createDiv({ cls: "titleforge-section-menu" });
+		for (const tab of SECTION_ORDER) {
+			if (!this.tabOrder().includes(tab)) continue;
+			const item = menu.createDiv({
+				cls: "titleforge-section-menu-item" + (tab === this.activeTab ? " is-active" : ""),
+				attr: { role: "button", tabindex: "0", "aria-label": TAB_LABELS[tab] },
+			});
+			setIcon(item.createSpan({ cls: "titleforge-section-menu-icon" }), TAB_ICONS[tab]);
+			item.createSpan({ text: TAB_LABELS[tab] });
+			const choose = () => {
+				this.showSectionPicker = false;
+				if (tab === this.activeTab) {
+					this.render();
 					return;
 				}
-
-				if (TAB_TRADITIONS[tab].length > 0) this.generatorId = this.defaultGeneratorIdFor(tab);
-				this.genre = "all";
-				this.family = "all";
-				this.platform = "all";
-				void this.loadHistoryForCurrentGenerator().then(() => this.render());
+				this.switchToSection(tab);
 			};
-			button.addEventListener("click", activate);
-			// Not `makeAccessibleActivatable` (a11y.ts) — it hardcodes role="button", which would
-			// stomp the role="tab" set above; Enter/Space activation wired directly instead.
-			button.addEventListener("keydown", (evt) => {
+			item.addEventListener("click", choose);
+			item.addEventListener("keydown", (evt) => {
 				if (evt.key === "Enter" || evt.key === " ") {
 					evt.preventDefault();
-					activate();
+					choose();
 				}
 			});
 		}
+	}
+
+	/** The short-list toggle beneath the generated pane, replacing the old "kept titles" tab icon:
+	 * a single star (renderTitleRow's own hover-icon treatment) that switches into "kept titles"
+	 * and — filled, once there — switches back to whichever section was active before. Shown in
+	 * both the normal and kept-titles views, always at the bottom. */
+	private renderBottomBar(container: HTMLElement): void {
+		const bar = container.createDiv({ cls: "titleforge-bottom-bar" });
+		const isKept = this.activeTab === "kept";
+		this.addRowIcon(
+			bar,
+			isKept ? ICON_STAR_FILL : ICON_STAR_OUTLINE,
+			isKept ? "back to generator" : "kept titles",
+			() => {
+				if (isKept) {
+					// A plain return to wherever we came from, not a fresh section switch — leaves
+					// genre/family/platform exactly as the user had them, unlike switchToSection.
+					this.activeTab = this.preKeptTab ?? this.defaultTab();
+					void this.persistUiState();
+					void this.loadHistoryForCurrentGenerator().then(() => this.render());
+					return;
+				}
+				this.preKeptTab = this.activeTab;
+				this.activeTab = "kept";
+				void this.persistUiState();
+				void this.loadKeptEntries().then(() => this.render());
+			},
+			isKept ? "is-kept" : undefined,
+		);
 	}
 
 	private renderKeptTab(container: HTMLElement): void {
@@ -426,7 +475,7 @@ export class TitleForgePanel {
 		const specific = this.controller.generators
 			.filter((g) => ids.includes(g.id))
 			.map((g) => ({ id: g.id, label: g.name }));
-		return [{ id: ANY_TRADITION_ID, label: "Any" }, ...specific];
+		return [{ id: ANY_TRADITION_ID, label: "any" }, ...specific];
 	}
 
 	/** Options for the "Sub genre" picker on a `!MERGED_GENRE_TABS` tab (currently just "web
@@ -480,7 +529,7 @@ export class TitleForgePanel {
 	private subGenreOptions(spec: GeneratorSpec, topId: string): LabelledOption[] {
 		const children = spec.genres.filter((g) => g.parent === topId);
 		if (children.length === 0) return [];
-		return [{ id: topId, label: "Any" }, ...children];
+		return [{ id: topId, label: "any" }, ...children];
 	}
 
 	/** The merged "Genre" picker for a `MERGED_GENRE_TABS` tab: "Any" (`ANY_TRADITION_ID`) first,
@@ -491,7 +540,7 @@ export class TitleForgePanel {
 	 * "Any" above already covers it. On "series" (one tradition) this is just a merge of one. */
 	private mergedGenreOptions(): LabelledOption[] {
 		const ids = TAB_TRADITIONS[this.activeTab];
-		const out: LabelledOption[] = [{ id: ANY_TRADITION_ID, label: "Any" }];
+		const out: LabelledOption[] = [{ id: ANY_TRADITION_ID, label: "any" }];
 		for (const gen of this.controller.generators) {
 			if (!ids.includes(gen.id)) continue;
 			for (const genre of this.topGenreOptions(gen)) {
@@ -528,7 +577,10 @@ export class TitleForgePanel {
 				this.platform = "all";
 				void this.persistUiState();
 				void this.loadHistoryForCurrentGenerator().then(() => this.render());
-			}, true, ICON_PACKS);
+			}, true, ICON_PACKS, () => {
+				this.showSectionPicker = !this.showSectionPicker;
+				this.render();
+			});
 
 			if (spec) {
 				const subOptions = this.subGenreOptions(spec, this.topGenreId(spec, this.genre));
@@ -550,7 +602,10 @@ export class TitleForgePanel {
 				this.platform = "all";
 				void this.persistUiState();
 				void this.loadHistoryForCurrentGenerator().then(() => this.render());
-			}, true, ICON_PACKS);
+			}, true, ICON_PACKS, () => {
+				this.showSectionPicker = !this.showSectionPicker;
+				this.render();
+			});
 
 			if (spec) {
 				// A generator's own genres (with their two-level parent/subgenre structure) are
@@ -579,6 +634,8 @@ export class TitleForgePanel {
 				});
 			}
 		}
+
+		if (this.showSectionPicker) this.renderSectionPicker(container);
 
 		// The checkbox itself only matters where series-mode is a genuine choice: the "novels" tab.
 		// The "series" tab is always in series mode and "web fiction & light novels" never is, so
@@ -675,7 +732,10 @@ export class TitleForgePanel {
 	 * same x position whether or not that slot actually holds a glyph.
 	 *
 	 * `leadingIcon`, when given, fills that slot (only Genre uses it — nameForge's own "packs"
-	 * glyph); Sub genre leaves the slot empty, sitting underneath as a plain, unmarked box. */
+	 * glyph); Sub genre leaves the slot empty, sitting underneath as a plain, unmarked box.
+	 *
+	 * `onIconClick`, when given (Genre only), makes that icon the section switcher's trigger —
+	 * see `renderSectionPicker`. */
 	private renderSelect(
 		container: HTMLElement,
 		labelText: string,
@@ -684,13 +744,30 @@ export class TitleForgePanel {
 		onChange: (value: string) => void,
 		wide = false,
 		leadingIcon?: string,
+		onIconClick?: () => void,
 	): HTMLSelectElement {
 		const label = container.createEl("label", {
 			cls: "titleforge-field" + (wide ? " titleforge-field--wide" : ""),
 		});
 		if (wide) {
-			const iconSlot = label.createSpan({ cls: "titleforge-field-icon", attr: { "aria-hidden": "true" } });
+			const iconSlot = label.createSpan({ cls: "titleforge-field-icon" });
 			if (leadingIcon) setIcon(iconSlot, leadingIcon);
+			if (onIconClick) {
+				iconSlot.addClass("titleforge-field-icon--clickable");
+				iconSlot.setAttribute("role", "button");
+				iconSlot.tabIndex = 0;
+				iconSlot.setAttribute("aria-label", "change section");
+				setTooltip(iconSlot, "change section");
+				iconSlot.addEventListener("click", onIconClick);
+				iconSlot.addEventListener("keydown", (evt) => {
+					if (evt.key === "Enter" || evt.key === " ") {
+						evt.preventDefault();
+						onIconClick();
+					}
+				});
+			} else {
+				iconSlot.setAttribute("aria-hidden", "true");
+			}
 		} else {
 			label.createSpan({ text: labelText });
 		}
@@ -815,7 +892,7 @@ export class TitleForgePanel {
 
 		// The row's actions sit on their own line beneath the title, as plain hover-icons (a
 		// coloured glyph that brightens on hover/focus) rather than button chips — same treatment
-		// as the tab row (renderTabs).
+		// as the section-switcher menu (renderSectionPicker) and the bottom-bar star (renderBottomBar).
 		const actions = item.createDiv({ cls: "titleforge-row-actions" });
 
 		this.addRowIcon(actions, ICON_INFO_CIRCLE, "about this title", () => {
@@ -838,7 +915,7 @@ export class TitleForgePanel {
 	}
 
 	/** One hover-icon in a row's action line — a `<span>` (not a `<button>`), made
-	 * keyboard-activatable the same way the tab icons are. */
+	 * keyboard-activatable the same way the section-switcher menu's own items are. */
 	private addRowIcon(
 		container: HTMLElement,
 		icon: string,
