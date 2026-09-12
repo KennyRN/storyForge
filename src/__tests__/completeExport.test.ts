@@ -65,7 +65,7 @@ describe("complete export", () => {
 		expect(document.chapterTags).toEqual(registry.chapterTags);
 		expect(document.novelTags).toEqual(registry.novelTags);
 		expect(document.threads.map((thread) => thread.label)).toEqual(["main thread", "Romance"]);
-		expect(document.titleforge?.seriesStrategy).toBe("echo");
+		expect(document.titleforge?.lastQuantity).toBe(DEFAULT_TITLEFORGE_SETTINGS.lastQuantity);
 
 		const parsed = parseCompleteExport(stringifyCompleteExport(document));
 		expect(parsed).toEqual(document);
