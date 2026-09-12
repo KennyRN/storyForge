@@ -615,6 +615,10 @@ export class TitleForgePanel {
 	 * vocabulary, so there's nothing meaningful to offer until a specific one is picked. */
 	private renderControls(container: HTMLElement, spec: GeneratorSpec | undefined): void {
 		const row = container.createDiv({ cls: "titleforge-row" });
+		// The Genre picker's leading icon doubles as an obvious "you're here" indicator once a
+		// section is chosen — the same glyph the section-switcher menu shows beside that section's
+		// name (TAB_ICONS) — rather than staying the neutral binder glyph forever.
+		const sectionIcon = TAB_ICONS[this.section()];
 
 		if (MERGED_GENRE_TABS.includes(this.section())) {
 			// No separate tradition step — no tradition is itself a genre (the "Title
@@ -637,7 +641,7 @@ export class TitleForgePanel {
 				this.platform = "all";
 				void this.persistUiState();
 				void this.loadHistoryForCurrentGenerator().then(() => this.render());
-			}, true, ICON_PACKS, () => {
+			}, true, sectionIcon, () => {
 				this.showSectionPicker = !this.showSectionPicker;
 				this.render();
 			});
@@ -662,7 +666,7 @@ export class TitleForgePanel {
 				this.platform = "all";
 				void this.persistUiState();
 				void this.loadHistoryForCurrentGenerator().then(() => this.render());
-			}, true, ICON_PACKS, () => {
+			}, true, sectionIcon, () => {
 				this.showSectionPicker = !this.showSectionPicker;
 				this.render();
 			});
@@ -787,12 +791,15 @@ export class TitleForgePanel {
 	 * below them, rather than sizing to their own selected option's text like Shape family/Platform
 	 * still do — and hides the visible text label (Genre/Sub genre read as a pair of plain boxes,
 	 * not labelled fields); `labelText` survives as the select's accessible name/tooltip instead.
-	 * It also always reserves a leading icon slot (`.titleforge-field-icon`, CSS-sized 20x20
+	 * It also always reserves a leading icon slot (`.titleforge-field-icon`, CSS-sized 24x24
 	 * regardless of content) so Genre and Sub genre are the exact same size and start at the exact
 	 * same x position whether or not that slot actually holds a glyph.
 	 *
-	 * `leadingIcon`, when given, fills that slot (only Genre uses it — nameForge's own "packs"
-	 * glyph); Sub genre leaves the slot empty, sitting underneath as a plain, unmarked box.
+	 * `leadingIcon`, when given, fills that slot (only Genre uses it — the section placeholder's
+	 * own picker (`renderSectionPlaceholder`) shows nameForge's own "packs" glyph before anything's
+	 * chosen; once a section is active, `renderControls` swaps it for that section's own icon —
+	 * TAB_ICONS — as a visual "you're here" indicator). Sub genre leaves the slot empty, sitting
+	 * underneath as a plain, unmarked box.
 	 *
 	 * `onIconClick`, when given (Genre only), makes that icon the section switcher's trigger —
 	 * see `renderSectionPicker`. */
