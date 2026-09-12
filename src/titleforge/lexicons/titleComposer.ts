@@ -41,6 +41,21 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"parent": "fantasy"
 		},
 		{
+			"id": "dark-fantasy",
+			"label": "dark fantasy",
+			"parent": "fantasy"
+		},
+		{
+			"id": "portal-fantasy",
+			"label": "portal fantasy",
+			"parent": "fantasy"
+		},
+		{
+			"id": "cosy-fantasy",
+			"label": "cosy fantasy",
+			"parent": "fantasy"
+		},
+		{
 			"id": "sf",
 			"label": "science fiction"
 		},
@@ -55,12 +70,121 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"parent": "sf"
 		},
 		{
+			"id": "cyberpunk",
+			"label": "cyberpunk",
+			"parent": "sf"
+		},
+		{
+			"id": "dystopian",
+			"label": "dystopian",
+			"parent": "sf"
+		},
+		{
+			"id": "hard-sf",
+			"label": "hard sf",
+			"parent": "sf"
+		},
+		{
+			"id": "first-contact",
+			"label": "first contact",
+			"parent": "sf"
+		},
+		{
+			"id": "alt-history",
+			"label": "alternate history",
+			"parent": "sf"
+		},
+		{
 			"id": "horror",
 			"label": "horror"
 		},
 		{
+			"id": "gothic",
+			"label": "gothic",
+			"parent": "horror"
+		},
+		{
+			"id": "cosmic-horror",
+			"label": "cosmic horror",
+			"parent": "horror"
+		},
+		{
+			"id": "folk-horror",
+			"label": "folk horror",
+			"parent": "horror"
+		},
+		{
+			"id": "supernatural",
+			"label": "supernatural",
+			"parent": "horror"
+		},
+		{
+			"id": "slasher",
+			"label": "slasher",
+			"parent": "horror"
+		},
+		{
 			"id": "crime",
-			"label": "crime & thriller"
+			"label": "crime"
+		},
+		{
+			"id": "whodunit",
+			"label": "whodunit",
+			"parent": "crime"
+		},
+		{
+			"id": "cosy-mystery",
+			"label": "cosy mystery",
+			"parent": "crime"
+		},
+		{
+			"id": "noir",
+			"label": "noir",
+			"parent": "crime"
+		},
+		{
+			"id": "police-procedural",
+			"label": "police procedural",
+			"parent": "crime"
+		},
+		{
+			"id": "heist",
+			"label": "heist",
+			"parent": "crime"
+		},
+		{
+			"id": "hardboiled",
+			"label": "hardboiled",
+			"parent": "crime"
+		},
+		{
+			"id": "thriller",
+			"label": "thriller"
+		},
+		{
+			"id": "psych-thriller",
+			"label": "psychological thriller",
+			"parent": "thriller"
+		},
+		{
+			"id": "spy",
+			"label": "spy",
+			"parent": "thriller"
+		},
+		{
+			"id": "legal-thriller",
+			"label": "legal thriller",
+			"parent": "thriller"
+		},
+		{
+			"id": "techno-thriller",
+			"label": "techno-thriller",
+			"parent": "thriller"
+		},
+		{
+			"id": "domestic-thriller",
+			"label": "domestic thriller",
+			"parent": "thriller"
 		},
 		{
 			"id": "lit",
@@ -81,8 +205,53 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"parent": "hist"
 		},
 		{
+			"id": "wartime",
+			"label": "wartime",
+			"parent": "hist"
+		},
+		{
+			"id": "ancient",
+			"label": "ancient",
+			"parent": "hist"
+		},
+		{
+			"id": "medieval",
+			"label": "medieval",
+			"parent": "hist"
+		},
+		{
+			"id": "naval",
+			"label": "naval",
+			"parent": "hist"
+		},
+		{
 			"id": "rom",
 			"label": "romance"
+		},
+		{
+			"id": "contemporary-romance",
+			"label": "contemporary romance",
+			"parent": "rom"
+		},
+		{
+			"id": "rom-com",
+			"label": "romantic comedy",
+			"parent": "rom"
+		},
+		{
+			"id": "historical-romance",
+			"label": "historical romance",
+			"parent": "rom"
+		},
+		{
+			"id": "romantasy",
+			"label": "romantasy",
+			"parent": "rom"
+		},
+		{
+			"id": "paranormal-romance",
+			"label": "paranormal romance",
+			"parent": "rom"
 		},
 		{
 			"id": "short",
@@ -219,6 +388,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 			],
 			"weight": 3,
 			"genres": [
+				"fantasy",
 				"epic",
 				"sf",
 				"horror",
@@ -227,7 +397,12 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"ya",
 				"heroic-fantasy",
 				"urban-fantasy",
-				"space-opera"
+				"space-opera",
+				"whodunit",
+				"legal-thriller",
+				"techno-thriller",
+				"romantasy",
+				"ancient"
 			],
 			"exemplar": "The Road; The Trial; The Shining",
 			"note": "Plain and weighty. Implies \"the one that matters\" and dares you to ask which."
@@ -243,10 +418,12 @@ export const titleComposerLexicon: GeneratorSpec = {
 			],
 			"weight": 5,
 			"genres": [
+				"fantasy",
 				"epic",
 				"sf",
 				"horror",
 				"crime",
+				"thriller",
 				"lit",
 				"hist",
 				"rom",
@@ -346,7 +523,11 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"heroic-fantasy",
 				"sword-sorcery",
 				"urban-fantasy",
-				"space-opera"
+				"space-opera",
+				"dark-fantasy",
+				"gothic",
+				"ancient",
+				"naval"
 			],
 			"exemplar": "The Lord of the Rings; The Name of the Rose",
 			"note": "The default epic shape. Grand and hierarchical: the \"of\" implies dominion, and dominion implies stakes."
@@ -366,7 +547,8 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"lit",
 				"rom",
 				"ya",
-				"heroic-fantasy"
+				"heroic-fantasy",
+				"romantasy"
 			],
 			"exemplar": "A Song of Ice and Fire; A Tale of Two Cities",
 			"note": "The softer, more lyrical cousin — a fragment of something larger. The two paired nouns should not be synonyms."
@@ -387,7 +569,8 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"short",
 				"hist",
 				"heroic-fantasy",
-				"sword-sorcery"
+				"sword-sorcery",
+				"whodunit"
 			],
 			"exemplar": "Of Mice and Men; Heart of Darkness; Lord of the Flies",
 			"note": "Terser, biblical, aphoristic. Dropping the article ages the title by a century."
@@ -447,8 +630,11 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"rom",
 				"hist",
 				"crime",
+				"thriller",
 				"short",
-				"ya"
+				"ya",
+				"historical-romance",
+				"regency"
 			],
 			"exemplar": "Sophie's Choice; Charlotte's Web; Ender's Game",
 			"note": "Anchors everything to one owner. Intimate and character-forward, and it makes the reader want to meet them."
@@ -470,7 +656,9 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"rom",
 				"horror",
 				"heroic-fantasy",
-				"urban-fantasy"
+				"urban-fantasy",
+				"naval",
+				"cosy-fantasy"
 			],
 			"exemplar": "The Handmaid's Tale; The Time Traveler's Wife; The Zookeeper's Wife",
 			"note": "Occupation plus relation or object. Quietly evocative, and the workhorse of the literary shelf."
@@ -550,6 +738,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"genres": [
 				"epic",
 				"crime",
+				"thriller",
 				"hist",
 				"heroic-fantasy",
 				"sword-sorcery",
@@ -571,6 +760,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"lit",
 				"rom",
 				"crime",
+				"thriller",
 				"hist"
 			],
 			"exemplar": "Thelma & Louise; Jonathan Strange & Mr Norrell",
@@ -587,6 +777,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"weight": 1,
 			"genres": [
 				"crime",
+				"thriller",
 				"horror",
 				"sf",
 				"epic",
@@ -613,9 +804,11 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"lit",
 				"horror",
 				"crime",
+				"thriller",
 				"hist",
 				"short",
-				"ya"
+				"ya",
+				"domestic-thriller"
 			],
 			"exemplar": "The Girl on the Train; The Man in the High Castle; The Cat in the Hat",
 			"note": "Places a figure precisely. Quiet, cinematic, and faintly unsettling because the pairing is never quite ordinary."
@@ -664,6 +857,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"sf",
 				"horror",
 				"crime",
+				"thriller",
 				"epic",
 				"heroic-fantasy",
 				"urban-fantasy",
@@ -684,6 +878,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"weight": 2,
 			"genres": [
 				"crime",
+				"thriller",
 				"lit",
 				"horror",
 				"short"
@@ -703,6 +898,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"weight": 3,
 			"genres": [
 				"crime",
+				"thriller",
 				"horror",
 				"epic",
 				"sf",
@@ -730,7 +926,8 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"lit",
 				"rom",
 				"short",
-				"crime"
+				"crime",
+				"thriller"
 			],
 			"exemplar": "Finding Nemo; Saving Private Ryan; Educating Rita",
 			"note": "Ongoing action. Reads as a process or a quest rather than an event."
@@ -748,6 +945,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"genres": [
 				"horror",
 				"crime",
+				"thriller",
 				"lit",
 				"ya"
 			],
@@ -765,6 +963,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"weight": 1,
 			"genres": [
 				"crime",
+				"thriller",
 				"sf",
 				"horror",
 				"urban-fantasy",
@@ -787,6 +986,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"genres": [
 				"lit",
 				"crime",
+				"thriller",
 				"horror",
 				"epic",
 				"heroic-fantasy",
@@ -810,6 +1010,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"lit",
 				"epic",
 				"crime",
+				"thriller",
 				"horror",
 				"short",
 				"ya",
@@ -870,6 +1071,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"weight": 2,
 			"genres": [
 				"crime",
+				"thriller",
 				"horror",
 				"lit",
 				"short",
@@ -914,7 +1116,8 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"lit",
 				"rom",
 				"short",
-				"crime"
+				"crime",
+				"thriller"
 			],
 			"exemplar": "Dear John; Are You There God? It's Me, Margaret",
 			"note": "The letter form. Intimate, and it casts the reader as the addressee whether they like it or not."
@@ -931,7 +1134,10 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"genres": [
 				"lit",
 				"crime",
-				"horror"
+				"thriller",
+				"horror",
+				"historical-romance",
+				"regency"
 			],
 			"exemplar": "Mrs. Dalloway; Doctor Faustus; Dr. No",
 			"note": "The honorific supplies class, era, or irony in a single word."
@@ -1043,6 +1249,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"weight": 2,
 			"genres": [
 				"crime",
+				"thriller",
 				"sf",
 				"lit",
 				"hist",
@@ -1070,6 +1277,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"lit",
 				"epic",
 				"crime",
+				"thriller",
 				"hist",
 				"ya",
 				"heroic-fantasy",
@@ -1186,6 +1394,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"weight": 1,
 			"genres": [
 				"crime",
+				"thriller",
 				"lit",
 				"short",
 				"sf",
@@ -1209,6 +1418,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"epic",
 				"sf",
 				"crime",
+				"thriller",
 				"hist",
 				"ya",
 				"heroic-fantasy",
@@ -1252,6 +1462,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"epic",
 				"sf",
 				"crime",
+				"thriller",
 				"hist",
 				"lit",
 				"ya",
@@ -1320,7 +1531,9 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"lit",
 				"hist",
 				"rom",
-				"short"
+				"short",
+				"spy",
+				"techno-thriller"
 			],
 			"exemplar": "Atonement; Persuasion; Beloved; The Unbearable Lightness of Being",
 			"note": "A concept as the whole title. Spare and thematic, and it dares the reader to find it pretentious."
@@ -1341,6 +1554,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"sf",
 				"horror",
 				"crime",
+				"thriller",
 				"ya",
 				"urban-fantasy",
 				"space-opera",
@@ -1403,6 +1617,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"genres": [
 				"lit",
 				"crime",
+				"thriller",
 				"short",
 				"sf",
 				"urban-fantasy",
@@ -1442,6 +1657,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"weight": 3,
 			"genres": [
 				"crime",
+				"thriller",
 				"horror",
 				"lit",
 				"epic",
@@ -1466,6 +1682,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"genres": [
 				"horror",
 				"crime",
+				"thriller",
 				"lit",
 				"sf",
 				"urban-fantasy",
@@ -1512,6 +1729,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"genres": [
 				"sf",
 				"crime",
+				"thriller",
 				"lit",
 				"epic",
 				"heroic-fantasy",
@@ -1629,6 +1847,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"genres": [
 				"lit",
 				"crime",
+				"thriller",
 				"horror",
 				"epic",
 				"ya",
@@ -1655,7 +1874,8 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"hist",
 				"heroic-fantasy",
 				"space-opera",
-				"military-sf"
+				"military-sf",
+				"cosy-fantasy"
 			],
 			"exemplar": "The Dictionary of the Khazars; The Anatomy of Melancholy",
 			"note": "Borrows the shape of a reference work. Playful, systematic, or mock-authoritative."
@@ -1673,6 +1893,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"genres": [
 				"lit",
 				"crime",
+				"thriller",
 				"short",
 				"rom"
 			],
@@ -1692,6 +1913,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"genres": [
 				"horror",
 				"crime",
+				"thriller",
 				"lit",
 				"sf",
 				"ya",
@@ -1778,7 +2000,8 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"genres": [
 				"short",
 				"rom",
-				"crime"
+				"crime",
+				"thriller"
 			],
 			"exemplar": "Airplane!; Oklahoma!; Mamma Mia!",
 			"note": "The mark itself supplies the energy. Reads as comedy or musical unless the phrase is genuinely alarming."
@@ -1795,6 +2018,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 			],
 			"genres": [
 				"crime",
+				"thriller",
 				"hist"
 			],
 			"weight": 2,
@@ -1822,7 +2046,8 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"sword-sorcery",
 				"urban-fantasy",
 				"space-opera",
-				"military-sf"
+				"military-sf",
+				"dark-fantasy"
 			],
 			"weight": 3,
 			"exemplar": "The Belgariad; The Expanse; The Strain",
@@ -1844,6 +2069,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"sf",
 				"horror",
 				"crime",
+				"thriller",
 				"lit",
 				"hist",
 				"rom",
@@ -1853,7 +2079,8 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"sword-sorcery",
 				"urban-fantasy",
 				"space-opera",
-				"military-sf"
+				"military-sf",
+				"dark-fantasy"
 			],
 			"weight": 15,
 			"exemplar": "The Stormlight Archive; Revelation Space; Cthulhu Mythos",
@@ -1876,6 +2103,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"sf",
 				"horror",
 				"crime",
+				"thriller",
 				"lit",
 				"hist",
 				"rom",
@@ -1902,6 +2130,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"genres": [
 				"epic",
 				"crime",
+				"thriller",
 				"lit",
 				"ya",
 				"heroic-fantasy",
@@ -1926,6 +2155,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"sf",
 				"horror",
 				"crime",
+				"thriller",
 				"lit",
 				"hist",
 				"ya",
@@ -1955,6 +2185,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"sf",
 				"horror",
 				"crime",
+				"thriller",
 				"lit",
 				"hist",
 				"rom",
@@ -1963,7 +2194,8 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"sword-sorcery",
 				"urban-fantasy",
 				"space-opera",
-				"military-sf"
+				"military-sf",
+				"portal-fantasy"
 			],
 			"weight": 6,
 			"exemplar": "The Stormlight Archive; The Murderbot Diaries; The Best American Short Stories",
@@ -1978,7 +2210,8 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"{noun}: {abstract}"
 			],
 			"genres": [
-				"crime"
+				"crime",
+				"thriller"
 			],
 			"weight": 1,
 			"exemplar": "Mission: Impossible",
@@ -2114,7 +2347,38 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"colonized #space-opera #sf",
 			"battle-worn #military-sf #sf",
 			"frontline #military-sf #sf",
-			"requisitioned #military-sf #sf"
+			"requisitioned #military-sf #sf",
+			// 41-subgenre taxonomy expansion (frozen subgenre corpus, novel+series lanes) —
+			// see ACCURACY.md for provenance
+			"Wicked #historical-romance *3",
+			"Forbidden #historical-romance",
+			"Dangerous #historical-romance",
+			"Sinful #historical-romance",
+			"Broken #dark-fantasy *2",
+			"Black #dark-fantasy",
+			"Grim #dark-fantasy",
+			"Steel #dark-fantasy",
+			"Dark #paranormal-romance *2",
+			"Night #paranormal-romance",
+			"Midnight #paranormal-romance",
+			"Immortal #paranormal-romance",
+			// general-lexicon enrichment (237 words, comprehensively mined) — untagged, drawn for
+			// every genre; see ACCURACY.md. A handful of comprehensive-pass words are skipped here
+			// because this same handoff also tags them to a subgenre in this slot (e.g. "wicked" ->
+			// historical-romance above) — see the handoff's own GENERAL-LEXICON-ADDITIONS-COMPREHENSIVE.md
+			// note that it wasn't cross-checked against the new subgenre fragments.
+			"cold",
+			"strange",
+			"silent",
+			"royal",
+			"lonely",
+			"sweet",
+			"lovely",
+			"horrid",
+			"fallen",
+			"damned",
+			"shattered",
+			"underground"
 		],
 		"colour": [
 			"scarlet #hist #rom #lit",
@@ -2132,7 +2396,9 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"indigo #sf #lit #rom #space-opera",
 			"bone-white #horror #epic #ya #heroic-fantasy #sword-sorcery #urban-fantasy",
 			"ochre #hist #lit",
-			"silver #epic #sf #rom #ya #heroic-fantasy #space-opera"
+			"silver #epic #sf #rom #ya #heroic-fantasy #space-opera",
+			"red",
+			"purple"
 		],
 		"noun": [
 			"quarantine #sf #horror #crime #space-opera #urban-fantasy",
@@ -2303,7 +2569,84 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"consolation #lit #rom #short",
 			"defiance #ya #epic #heroic-fantasy",
 			"belonging #ya #lit",
-			"notoriety #ya #crime #urban-fantasy"
+			"notoriety #ya #crime #urban-fantasy",
+			"Night #noir *3",
+			"Dark #noir *2",
+			"Kiss #noir *2",
+			"Goodbye #noir *2",
+			"Blues #noir *2",
+			"Sleep #noir",
+			"Alibi #noir",
+			"Nightmare #noir",
+			"Rage #noir",
+			"Nowhere #noir",
+			"Dark #paranormal-romance *4",
+			"Moon #paranormal-romance *2",
+			"Night #paranormal-romance",
+			"Blood #paranormal-romance",
+			"Midnight #paranormal-romance",
+			"Hunger #paranormal-romance",
+			"Kiss #paranormal-romance",
+			"Blood #romantasy *3",
+			"Fire #romantasy",
+			"Flames #romantasy",
+			"Ash #romantasy",
+			"Thorns #romantasy",
+			"Glory #romantasy",
+			"Flesh #romantasy",
+			"Glory #military-sf",
+			"Desolation #military-sf",
+			"murder",
+			"history",
+			"game",
+			"secret",
+			"love",
+			"honor",
+			"peace",
+			"memory",
+			"madness",
+			"horror",
+			"violence",
+			"sin",
+			"fate",
+			"crime",
+			"revelation",
+			"vengeance",
+			"marriage",
+			"fear",
+			"grace",
+			"romance",
+			"affair",
+			"apocalypse",
+			"legacy",
+			"eclipse",
+			"mission",
+			"dead",
+			"time",
+			"dream",
+			"enemy",
+			"future",
+			"question",
+			"magic",
+			"force",
+			"command",
+			"pride",
+			"comfort",
+			"quest",
+			"voyage",
+			"revival",
+			"union",
+			"lies",
+			"farewell",
+			"music",
+			"dance",
+			"riddle",
+			"gravity",
+			"story",
+			"truth",
+			"jazz",
+			"blood",
+			"goodbye"
 		],
 		"object": [
 			"sextant #hist #sf #epic #heroic-fantasy #space-opera",
@@ -2336,7 +2679,49 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"typewriter #lit #crime #hist #urban-fantasy",
 			"wedding ring #rom #crime #lit #urban-fantasy",
 			"signal flare #sf #crime #ya #space-opera #military-sf #urban-fantasy",
-			"glass eye #horror #crime #short #urban-fantasy"
+			"glass eye #horror #crime #short #urban-fantasy",
+			"Ship #naval *2",
+			"Sloop #naval",
+			"Brig #naval",
+			"Cutter #naval",
+			"Corvette #naval",
+			"Ketch #naval",
+			"Fireship #naval",
+			"Vessel #naval",
+			"Court #romantasy *4",
+			"Kingdom #romantasy *3",
+			"Crown #romantasy *2",
+			"Throne #romantasy",
+			"Wings #romantasy *2",
+			"Serpent #romantasy *2",
+			"Eagle #ancient *2",
+			"Emperor #ancient",
+			"Empire #ancient",
+			"Legion #ancient",
+			"bomb",
+			"gun",
+			"hammer",
+			"needle",
+			"dagger",
+			"coin",
+			"poison",
+			"diamond",
+			"dress",
+			"egg",
+			"ashes",
+			"bridge",
+			"box",
+			"falcon",
+			"wardrobe",
+			"gates",
+			"notebook",
+			"lock",
+			"rings",
+			"doors",
+			"door",
+			"window",
+			"diary",
+			"arms"
 		],
 		"symbol": [
 			"tallow #hist #horror #lit #urban-fantasy",
@@ -2362,7 +2747,15 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"frost #epic #lit #horror #ya #heroic-fantasy #urban-fantasy",
 			"honey #rom #lit #short",
 			"wire #sf #crime #horror #ya #space-opera #urban-fantasy",
-			"feather #lit #rom #short"
+			"feather #lit #rom #short",
+			"moon",
+			"sun",
+			"star",
+			"stars",
+			"sky",
+			"light",
+			"shadow",
+			"ice"
 		],
 		"animal": [
 			"corncrake #lit #hist #short",
@@ -2386,7 +2779,18 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"fox #crime #lit #epic #ya #heroic-fantasy #urban-fantasy",
 			"whale #lit #epic #sf #heroic-fantasy #space-opera",
 			"starling #lit #short #rom",
-			"adder #horror #epic #crime #heroic-fantasy #urban-fantasy"
+			"adder #horror #epic #crime #heroic-fantasy #urban-fantasy",
+			"dragon",
+			"lion",
+			"cat",
+			"beast",
+			"horse",
+			"tiger",
+			"dog",
+			"dove",
+			"horses",
+			"birds",
+			"dragons"
 		],
 		"plant": [
 			"hawthorn #epic #horror #hist #heroic-fantasy #urban-fantasy",
@@ -2402,7 +2806,12 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"rye #hist #lit",
 			"foxglove #horror #crime #rom #urban-fantasy",
 			"laurel #hist #epic #heroic-fantasy",
-			"bramble #epic #horror #lit #ya #heroic-fantasy #urban-fantasy"
+			"bramble #epic #horror #lit #ya #heroic-fantasy #urban-fantasy",
+			"rose",
+			"woods",
+			"roses",
+			"thorns",
+			"poppy"
 		],
 		"weather": [
 			"hoarfrost #epic #horror #lit #heroic-fantasy #urban-fantasy",
@@ -2416,7 +2825,10 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"monsoon #hist #lit",
 			"blizzard #sf #epic #crime #ya #heroic-fantasy #space-opera #urban-fantasy",
 			"fog #crime #horror #lit #ya #urban-fantasy",
-			"heat #crime #lit #short #urban-fantasy"
+			"heat #crime #lit #short #urban-fantasy",
+			"storm",
+			"wind",
+			"snow"
 		],
 		"water": [
 			"millpond #lit #horror #hist #urban-fantasy",
@@ -2428,7 +2840,9 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"undertow #horror #crime #lit #ya #urban-fantasy",
 			"harbour #hist #crime #lit #urban-fantasy",
 			"flood #epic #hist #horror #heroic-fantasy #urban-fantasy",
-			"reservoir #crime #sf #lit #space-opera #urban-fantasy"
+			"reservoir #crime #sf #lit #space-opera #urban-fantasy",
+			"sea",
+			"fountain"
 		],
 		"body": [
 			"knuckle #crime #lit #short #urban-fantasy",
@@ -2442,7 +2856,13 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"spine #horror #sf #space-opera #urban-fantasy",
 			"lung #horror #sf #lit #space-opera #urban-fantasy",
 			"skin #horror #lit #urban-fantasy",
-			"pulse #sf #crime #rom #ya #space-opera #urban-fantasy"
+			"pulse #sf #crime #rom #ya #space-opera #urban-fantasy",
+			"eye",
+			"bones",
+			"corpse",
+			"eyes",
+			"flesh",
+			"head"
 		],
 		"food": [
 			"bread #hist #lit #rom",
@@ -2538,7 +2958,45 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"the Old Parish #horror #hist #urban-fantasy",
 			"Rosemead #rom #hist #lit",
 			"Havenhurst #rom #hist",
-			"Kentmere #rom #hist #lit"
+			"Kentmere #rom #hist #lit",
+			"Castle #gothic *3",
+			"House #gothic *2",
+			"Manor #gothic",
+			"Inn #gothic",
+			"Forest #gothic",
+			"Recess #gothic",
+			"Upstairs #domestic-thriller *2",
+			"Window #domestic-thriller",
+			"Door #domestic-thriller",
+			"Next Door #domestic-thriller",
+			"city",
+			"home",
+			"island",
+			"mountain",
+			"street",
+			"land",
+			"hall",
+			"park",
+			"grave",
+			"world",
+			"kingdom",
+			"court",
+			"hill",
+			"earth",
+			"heaven",
+			"hell",
+			"room",
+			"country",
+			"paradise",
+			"republic",
+			"academy",
+			"realm",
+			"galaxy",
+			"expanse",
+			"universe",
+			"space",
+			"graveyard",
+			"upstairs"
 		],
 		"placeBare": [
 			"Folstoc #epic #hist #heroic-fantasy",
@@ -2580,7 +3038,10 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"Nine Reaches #epic #sf #heroic-fantasy #space-opera",
 			"Thessaly Minor #hist #sf #epic #heroic-fantasy #space-opera",
 			"Pale Dominion #epic #horror #sf #heroic-fantasy #space-opera #urban-fantasy",
-			"Free Cantons #hist #epic #heroic-fantasy"
+			"Free Cantons #hist #epic #heroic-fantasy",
+			"Kingdom #medieval",
+			"Kings #medieval",
+			"Kings"
 		],
 		"planet": [
 			"Kestrel #sf #space-opera",
@@ -2613,7 +3074,14 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"Archivist #sf #lit #epic #heroic-fantasy #space-opera",
 			"Almoner #hist #lit",
 			"Chancellor #hist #epic #sf #heroic-fantasy #space-opera",
-			"Rook #crime #epic #ya #heroic-fantasy #urban-fantasy"
+			"Rook #crime #epic #ya #heroic-fantasy #urban-fantasy",
+			"Inspector #police-procedural *7",
+			"Chief Inspector #police-procedural *2",
+			"Detective #police-procedural",
+			"Commissario #police-procedural",
+			"DCI #police-procedural",
+			"Superintendent #police-procedural",
+			"Sergeant #police-procedural"
 		],
 		"role": [
 			"coroner #crime #horror #hist #urban-fantasy",
@@ -2648,7 +3116,72 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"smuggler #crime #hist #sf #ya #space-opera #urban-fantasy",
 			"governess #rom #hist #horror #urban-fantasy",
 			"housekeeper #crime #horror #lit #urban-fantasy",
-			"schoolmaster #hist #lit #horror #urban-fantasy"
+			"schoolmaster #hist #lit #horror #urban-fantasy",
+			"Witch #cosy-fantasy *3",
+			"Wizard #cosy-fantasy",
+			"Sorceress #cosy-fantasy",
+			"Vampire #gothic *2",
+			"Woman #gothic *2",
+			"Monk #gothic",
+			"Wanderer #gothic",
+			"Stranger #gothic",
+			"Historian #gothic",
+			"Baron #gothic",
+			"Necromancer #gothic",
+			"Orphan #gothic",
+			"Moor #gothic",
+			"Phantom #gothic",
+			"Killer #noir *2",
+			"Grifter #noir",
+			"Thief #noir",
+			"Burglar #noir",
+			"Stranger #noir",
+			"Phantom #noir",
+			"Angel #noir",
+			"Bride #noir",
+			"Wife #domestic-thriller *3",
+			"Girl #domestic-thriller *3",
+			"Woman #domestic-thriller *2",
+			"Husband #domestic-thriller",
+			"Couple #domestic-thriller",
+			"Family #domestic-thriller",
+			"Housemaid #domestic-thriller",
+			"Guest #domestic-thriller",
+			"Captain #naval *4",
+			"Admiral #naval *2",
+			"Midshipman #naval *2",
+			"Commander #naval",
+			"Commodore #naval",
+			"Lieutenant #naval",
+			"Governor #naval",
+			"Duke #historical-romance #regency *5",
+			"Rogue #historical-romance #regency *2",
+			"Rake #historical-romance #regency",
+			"Lord #historical-romance #regency",
+			"Lady #historical-romance #regency",
+			"Scoundrel #historical-romance #regency",
+			"Viscount #historical-romance #regency",
+			"Earl #historical-romance #regency",
+			"Governess #historical-romance #regency",
+			"Lover #paranormal-romance *4",
+			"Prince #paranormal-romance",
+			"Vampire #paranormal-romance",
+			"Hunter #paranormal-romance",
+			"Brotherhood #paranormal-romance",
+			"Breed #paranormal-romance",
+			"spy",
+			"knight",
+			"monster",
+			"devil",
+			"emperor",
+			"butcher",
+			"detective",
+			"mistress",
+			"gentleman",
+			"traitor",
+			"hero",
+			"magician",
+			"ghost"
 		],
 		"person": [
 			"foreigner #hist #lit #crime #urban-fantasy",
@@ -2690,7 +3223,11 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"husband #rom #crime #lit #urban-fantasy",
 			"cousin #hist #lit #short #ya",
 			"grandmother #lit #horror #short #urban-fantasy",
-			"twin #horror #sf #lit #ya #space-opera #urban-fantasy"
+			"twin #horror #sf #lit #ya #space-opera #urban-fantasy",
+			"children",
+			"bride",
+			"brothers",
+			"sisters"
 		],
 		"group": [
 			"Wardens #epic #hist #heroic-fantasy #sword-sorcery",
@@ -2705,7 +3242,24 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"Bereaved #lit #horror #hist #ya #urban-fantasy",
 			"Tithed #epic #hist #horror #heroic-fantasy #urban-fantasy",
 			"Unnumbered #epic #sf #horror #heroic-fantasy #space-opera #urban-fantasy",
-			"Wintering Host #epic #hist #heroic-fantasy"
+			"Wintering Host #epic #hist #heroic-fantasy",
+			"Dragoons #military-sf",
+			"Empire #dark-fantasy *2",
+			"Company #dark-fantasy *2",
+			"Remains #dark-fantasy",
+			"Fleet #military-sf *2",
+			"War #military-sf *2",
+			"Legion #military-sf",
+			"Corps #military-sf",
+			"Damned #military-sf *2",
+			"Empire #military-sf",
+			"Club #historical-romance *2",
+			"League #historical-romance",
+			"Society #historical-romance",
+			"Rules #historical-romance",
+			"Brotherhood #historical-romance",
+			"Circle #historical-romance",
+			"squad"
 		],
 		"epithet": [
 			"Unwitnessed #epic #horror #hist #heroic-fantasy #urban-fantasy",
@@ -2723,7 +3277,9 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"Professor #sf #crime #lit #space-opera #urban-fantasy",
 			"Madame #hist #rom #crime #urban-fantasy",
 			"Inspector #crime #hist #urban-fantasy",
-			"Brother #horror #hist #epic #heroic-fantasy #urban-fantasy"
+			"Brother #horror #hist #epic #heroic-fantasy #urban-fantasy",
+			"Miss #cosy-mystery *2",
+			"Mrs #cosy-mystery"
 		],
 		"verb": [
 			"witness #crime #lit #hist #urban-fantasy",
@@ -2770,7 +3326,8 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"counting #crime #sf #lit #space-opera #urban-fantasy",
 			"translating #lit #sf #short #space-opera",
 			"mending #lit #rom #hist #short",
-			"outrunning #crime #sf #epic #ya #heroic-fantasy #space-opera #urban-fantasy"
+			"outrunning #crime #sf #epic #ya #heroic-fantasy #space-opera #urban-fantasy",
+			"haunting"
 		],
 		"pastVerb": [
 			"recanted #hist #crime #epic #heroic-fantasy #urban-fantasy",
@@ -2834,7 +3391,9 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"siege #epic #hist #heroic-fantasy #sword-sorcery",
 			"breaking #epic #hist #sf #heroic-fantasy #space-opera",
 			"reckoning #epic #horror #crime #ya #heroic-fantasy #sword-sorcery #urban-fantasy",
-			"sundering #epic #sf #horror #ya #heroic-fantasy #space-opera #urban-fantasy"
+			"sundering #epic #sf #horror #ya #heroic-fantasy #space-opera #urban-fantasy",
+			"rising",
+			"sunrise"
 		],
 		"taleWord": [
 			"reckoning #epic #crime #hist #heroic-fantasy #sword-sorcery #urban-fantasy",
@@ -2864,7 +3423,20 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"Annals #epic #hist #heroic-fantasy",
 			"Quartet #lit #hist #rom",
 			"Papers #crime #hist #lit #urban-fantasy",
-			"Dossier #crime #sf #space-opera #urban-fantasy"
+			"Dossier #crime #sf #space-opera #urban-fantasy",
+			"Wheel #epic",
+			"Realm #epic",
+			"Song #epic",
+			"Wars #epic",
+			"Chronicles #portal-fantasy *4",
+			"Mysteries #cosy-mystery *2",
+			"Murders #cosy-mystery",
+			"Murder Club #cosy-mystery",
+			"Chronicles #medieval",
+			"Stories #medieval",
+			"Saga #medieval",
+			"Wars #medieval",
+			"diaries"
 		],
 		"refWord": [
 			"Book #epic #lit #hist #ya #heroic-fantasy",
@@ -2902,7 +3474,10 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"first light #epic #sf #lit #ya #heroic-fantasy #space-opera",
 			"the small hours #crime #horror #lit #urban-fantasy",
 			"the interregnum #hist #epic #sf #heroic-fantasy #space-opera",
-			"the quiet years #lit #hist #sf #space-opera"
+			"the quiet years #lit #hist #sf #space-opera",
+			"dawn",
+			"twilight",
+			"hours"
 		],
 		"shortTime": [
 			"day #lit #crime #short #ya #urban-fantasy",
@@ -2920,7 +3495,8 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"Harvest #epic #hist #lit #heroic-fantasy",
 			"Candlemas #hist #horror #lit #urban-fantasy",
 			"Equinox #sf #epic #lit #ya #heroic-fantasy #space-opera",
-			"Solstice #epic #sf #horror #ya #heroic-fantasy #space-opera #urban-fantasy"
+			"Solstice #epic #sf #horror #ya #heroic-fantasy #space-opera #urban-fantasy",
+			"autumn"
 		],
 		"era": [
 			"Age #epic #sf #hist #ya #heroic-fantasy #space-opera",
@@ -2939,7 +3515,8 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"A Hundred #epic #lit #hist #heroic-fantasy",
 			"Thirteen #horror #crime #ya #urban-fantasy",
 			"Five #crime #sf #short #space-opera #urban-fantasy",
-			"Twenty-One #crime #lit #sf #space-opera #urban-fantasy"
+			"Twenty-One #crime #lit #sf #space-opera #urban-fantasy",
+			"zero"
 		],
 		"ordinal": [
 			"First #epic #sf #hist #ya #heroic-fantasy #space-opera",
