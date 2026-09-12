@@ -580,49 +580,59 @@ export class TitleForgePanel {
 			}
 		}
 
-		const seriesRow = container.createDiv({ cls: "titleforge-row" });
 		// The checkbox itself only matters where series-mode is a genuine choice: the "novels" tab.
 		// The "series" tab is always in series mode and "web fiction & light novels" never is, so
-		// neither shows it.
-		if (this.activeTab === "novels") {
-			const seriesLabel = seriesRow.createEl("label", { cls: "titleforge-series-toggle" });
-			const seriesCheckbox = seriesLabel.createEl("input", { type: "checkbox" });
-			seriesCheckbox.checked = this.seriesMode;
-			seriesLabel.createSpan({ text: " Series" });
-			seriesCheckbox.addEventListener("change", () => {
-				this.seriesMode = seriesCheckbox.checked;
-				void this.persistUiState();
-				this.render();
-			});
-		}
+		// neither shows it. Strategy/Volumes: the "series" tab never shows them — it just generates
+		// with whichever values were last set (from settings, or from a prior visit to the "novels"
+		// tab), with no picker of its own to change them. "novels" (series-mode on) still gets full
+		// control over both.
+		//
+		// This row is only created when it will actually hold one of those — on "series"/"web
+		// fiction & light novels" it would otherwise be an empty `.titleforge-row`, and an empty
+		// flex child still contributes its own margin (flex items' margins don't collapse the way
+		// block-level ones do), silently doubling the gap below the Genre/Sub genre row.
+		const showSeriesToggle = this.activeTab === "novels";
+		const showStrategyVolumes = this.effectiveSeriesMode() && this.activeTab !== "series";
+		if (showSeriesToggle || showStrategyVolumes) {
+			const seriesRow = container.createDiv({ cls: "titleforge-row" });
 
-		// The "series" tab never shows Strategy/Volumes — it just generates with whichever values
-		// were last set (from settings, or from a prior visit to the "novels" tab), with no picker
-		// of its own to change them. "novels" (series-mode on) still gets full control over both.
-		if (this.effectiveSeriesMode() && this.activeTab !== "series") {
-			this.renderSelect(
-				seriesRow,
-				"Strategy",
-				SERIES_STRATEGY_OPTIONS,
-				this.seriesStrategy,
-				(value) => {
-					this.seriesStrategy = value as SeriesStrategy;
+			if (showSeriesToggle) {
+				const seriesLabel = seriesRow.createEl("label", { cls: "titleforge-series-toggle" });
+				const seriesCheckbox = seriesLabel.createEl("input", { type: "checkbox" });
+				seriesCheckbox.checked = this.seriesMode;
+				seriesLabel.createSpan({ text: " Series" });
+				seriesCheckbox.addEventListener("change", () => {
+					this.seriesMode = seriesCheckbox.checked;
 					void this.persistUiState();
-				},
-			);
+					this.render();
+				});
+			}
 
-			const volumesLabel = seriesRow.createEl("label", { cls: "titleforge-field" });
-			volumesLabel.createSpan({ text: "Volumes" });
-			const volumesInput = volumesLabel.createEl("input", { type: "number" });
-			volumesInput.min = "1";
-			volumesInput.max = "12";
-			volumesInput.value = String(this.seriesVolumes);
-			volumesInput.addEventListener("change", () => {
-				const n = Math.max(1, Math.min(12, Number(volumesInput.value) || 3));
-				this.seriesVolumes = n;
-				volumesInput.value = String(n);
-				void this.persistUiState();
-			});
+			if (showStrategyVolumes) {
+				this.renderSelect(
+					seriesRow,
+					"Strategy",
+					SERIES_STRATEGY_OPTIONS,
+					this.seriesStrategy,
+					(value) => {
+						this.seriesStrategy = value as SeriesStrategy;
+						void this.persistUiState();
+					},
+				);
+
+				const volumesLabel = seriesRow.createEl("label", { cls: "titleforge-field" });
+				volumesLabel.createSpan({ text: "Volumes" });
+				const volumesInput = volumesLabel.createEl("input", { type: "number" });
+				volumesInput.min = "1";
+				volumesInput.max = "12";
+				volumesInput.value = String(this.seriesVolumes);
+				volumesInput.addEventListener("change", () => {
+					const n = Math.max(1, Math.min(12, Number(volumesInput.value) || 3));
+					this.seriesVolumes = n;
+					volumesInput.value = String(n);
+					void this.persistUiState();
+				});
+			}
 		}
 
 		this.renderQuantity(container);
@@ -660,9 +670,12 @@ export class TitleForgePanel {
 	 * below them, rather than sizing to their own selected option's text like Shape family/Platform
 	 * still do — and hides the visible text label (Genre/Sub genre read as a pair of plain boxes,
 	 * not labelled fields); `labelText` survives as the select's accessible name/tooltip instead.
+	 * It also always reserves a leading icon slot (`.titleforge-field-icon`, CSS-sized 20x20
+	 * regardless of content) so Genre and Sub genre are the exact same size and start at the exact
+	 * same x position whether or not that slot actually holds a glyph.
 	 *
-	 * `leadingIcon`, when given, adds that icon to the left of the select (only Genre uses it —
-	 * nameForge's own "packs" glyph — so Sub genre sits underneath as a plain, unmarked box). */
+	 * `leadingIcon`, when given, fills that slot (only Genre uses it — nameForge's own "packs"
+	 * glyph); Sub genre leaves the slot empty, sitting underneath as a plain, unmarked box. */
 	private renderSelect(
 		container: HTMLElement,
 		labelText: string,
@@ -673,21 +686,16 @@ export class TitleForgePanel {
 		leadingIcon?: string,
 	): HTMLSelectElement {
 		const label = container.createEl("label", {
-			cls:
-				"titleforge-field" +
-				(wide ? " titleforge-field--wide" : "") +
-				(leadingIcon ? " titleforge-field--iconed" : ""),
+			cls: "titleforge-field" + (wide ? " titleforge-field--wide" : ""),
 		});
-		if (leadingIcon) {
-			setIcon(
-				label.createSpan({ cls: "titleforge-field-icon", attr: { "aria-hidden": "true" } }),
-				leadingIcon,
-			);
-		} else if (!wide) {
+		if (wide) {
+			const iconSlot = label.createSpan({ cls: "titleforge-field-icon", attr: { "aria-hidden": "true" } });
+			if (leadingIcon) setIcon(iconSlot, leadingIcon);
+		} else {
 			label.createSpan({ text: labelText });
 		}
 		const select = label.createEl("select");
-		if (leadingIcon || wide) {
+		if (wide) {
 			select.setAttribute("aria-label", labelText);
 			setTooltip(select, labelText);
 		}
