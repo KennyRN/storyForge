@@ -53,7 +53,8 @@ That's it. \`- \` then the word, then a space, then your \`#tags\`.
 | Fantasy | \`#fantasy\` | \`#epic\` \`#heroic-fantasy\` \`#sword-sorcery\` \`#urban-fantasy\` \`#dark-fantasy\` \`#portal-fantasy\` \`#cosy-fantasy\` |
 | Science fiction | \`#sf\` | \`#space-opera\` \`#military-sf\` \`#cyberpunk\` \`#dystopian\` \`#hard-sf\` \`#first-contact\` \`#alt-history\` |
 | Horror | \`#horror\` | \`#gothic\` \`#cosmic-horror\` \`#folk-horror\` \`#supernatural\` \`#slasher\` |
-| Crime & thriller | \`#crime\` | \`#whodunit\` \`#cosy-mystery\` \`#noir\` \`#psych-thriller\` \`#spy\` \`#heist\` \`#legal-thriller\` |
+| Crime | \`#crime\` | \`#whodunit\` \`#cosy-mystery\` \`#noir\` \`#police-procedural\` \`#heist\` \`#hardboiled\` |
+| Thriller | \`#thriller\` | \`#psych-thriller\` \`#spy\` \`#legal-thriller\` \`#techno-thriller\` \`#domestic-thriller\` |
 | Literary | \`#lit\` | *(none)* |
 | Historical | \`#hist\` | \`#western\` \`#regency\` \`#wartime\` \`#ancient\` \`#medieval\` \`#naval\` |
 | Romance | \`#rom\` | \`#contemporary-romance\` \`#rom-com\` \`#historical-romance\` \`#romantasy\` \`#paranormal-romance\` |

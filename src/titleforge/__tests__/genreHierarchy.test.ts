@@ -293,11 +293,15 @@ describe("regression — the shipped fantasy/sf parent retrofit changes nothing 
 		return clone;
 	}
 
-	// "fantasy" (the new umbrella) is never used as a pattern/lexeme tag anywhere in the bundle,
-	// so making epic/heroic-fantasy/sword-sorcery/urban-fantasy its children cannot widen what
-	// any of them draws from — genreScope adds "fantasy" to the chain, but nothing is tagged with
-	// it, so every lookup falls through exactly as it did with no parent at all.
-	it.each(["epic", "heroic-fantasy", "sword-sorcery", "urban-fantasy"])(
+	// "fantasy" was never used as a pattern/lexeme tag anywhere in the bundle at the time this
+	// retrofit shipped, so making epic/heroic-fantasy/sword-sorcery/urban-fantasy its children
+	// couldn't widen what any of them drew from. The subgenre-corpus handoff later gave "fantasy"
+	// its first real pattern content (`the-noun`/`the-adj-noun`, so the three new bare-"fantasy"
+	// subgenres — dark-fantasy/portal-fantasy/cosy-fantasy — have something to inherit); of these
+	// four pre-existing siblings, only sword-sorcery didn't already have `the-noun` on its own
+	// account, so it's the one exception — see the dedicated test below, same pattern as
+	// military-sf's.
+	it.each(["epic", "heroic-fantasy", "urban-fantasy"])(
 		"selecting %s yields the same eligible patterns as before the retrofit",
 		(genre) => {
 			const before = eligiblePatterns(beforeRetrofit(), { genre }).map((p) => p.id).sort();
@@ -306,7 +310,7 @@ describe("regression — the shipped fantasy/sf parent retrofit changes nothing 
 		},
 	);
 
-	it.each(["epic", "heroic-fantasy", "sword-sorcery", "urban-fantasy"])(
+	it.each(["epic", "heroic-fantasy", "urban-fantasy"])(
 		"selecting %s produces byte-identical output across many seeds",
 		(genre) => {
 			const before = beforeRetrofit();
@@ -317,6 +321,18 @@ describe("regression — the shipped fantasy/sf parent retrofit changes nothing 
 			}
 		},
 	);
+
+	// sword-sorcery didn't have `the-noun` on its own account (unlike its three siblings above),
+	// so giving "fantasy" real pattern content newly reaches it there too — deliberate, same
+	// shape as the military-sf case below, not a regression.
+	it("selecting sword-sorcery now also reaches the-noun via the fantasy parent (deliberate change)", () => {
+		const before = beforeRetrofit();
+		const beforeIds = eligiblePatterns(before, { genre: "sword-sorcery" }).map((p) => p.id);
+		const afterIds = eligiblePatterns(titleComposerLexicon, { genre: "sword-sorcery" }).map((p) => p.id);
+		expect(afterIds).toContain("the-noun");
+		expect(beforeIds).not.toContain("the-noun");
+		expect(afterIds.length).toBeGreaterThan(beforeIds.length);
+	});
 
 	// space-opera happens to already carry the "sf" tag (or an equivalent) on every pattern it
 	// needs, so making sf its parent is also a no-op for it specifically — verified, not assumed.

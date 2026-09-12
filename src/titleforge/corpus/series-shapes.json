@@ -20,7 +20,8 @@
 			"sword-sorcery",
 			"urban-fantasy",
 			"space-opera",
-			"military-sf"
+			"military-sf",
+			"dark-fantasy"
 		],
 		"weight": 3,
 		"exemplar": "The Belgariad; The Expanse; The Strain",
@@ -42,6 +43,7 @@
 			"sf",
 			"horror",
 			"crime",
+			"thriller",
 			"lit",
 			"hist",
 			"rom",
@@ -51,7 +53,8 @@
 			"sword-sorcery",
 			"urban-fantasy",
 			"space-opera",
-			"military-sf"
+			"military-sf",
+			"dark-fantasy"
 		],
 		"weight": 15,
 		"exemplar": "The Stormlight Archive; Revelation Space; Cthulhu Mythos",
@@ -74,6 +77,7 @@
 			"sf",
 			"horror",
 			"crime",
+			"thriller",
 			"lit",
 			"hist",
 			"rom",
@@ -100,6 +104,7 @@
 		"genres": [
 			"epic",
 			"crime",
+			"thriller",
 			"lit",
 			"ya",
 			"heroic-fantasy",
@@ -124,6 +129,7 @@
 			"sf",
 			"horror",
 			"crime",
+			"thriller",
 			"lit",
 			"hist",
 			"ya",
@@ -153,6 +159,7 @@
 			"sf",
 			"horror",
 			"crime",
+			"thriller",
 			"lit",
 			"hist",
 			"rom",
@@ -161,7 +168,8 @@
 			"sword-sorcery",
 			"urban-fantasy",
 			"space-opera",
-			"military-sf"
+			"military-sf",
+			"portal-fantasy"
 		],
 		"weight": 6,
 		"exemplar": "The Stormlight Archive; The Murderbot Diaries; The Best American Short Stories",
@@ -176,7 +184,8 @@
 			"{noun}: {abstract}"
 		],
 		"genres": [
-			"crime"
+			"crime",
+			"thriller"
 		],
 		"weight": 1,
 		"exemplar": "Mission: Impossible",

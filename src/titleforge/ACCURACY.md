@@ -169,3 +169,95 @@ hand-authored words with no corpus backing (e.g. `barbarian`, `neon-lit`,
 sibling and parent genre. `series-shapes.json` (the vendored provenance copy of
 the nine `series` patterns) was updated identically so it stays byte-matched
 with `titleComposer.ts`, per `seriesFamily.test.ts`'s vendored-copy check.
+
+## `title-composer` — 41-subgenre taxonomy expansion (frozen subgenre corpus, both lanes)
+
+A frozen, sourced handoff (`README.md`/`MANIFEST.md`/`RECONCILIATION.md` +
+`novel-lane/`/`series-lane/` COVERAGE/LEXICON-FRAGMENTS/SHAPES docs, each entry
+traced to named T1/T2 sources) expanded the taxonomy from 18 to 41 declared
+genres/subgenres across two "lanes" — novel-shape patterns and the existing
+`family: "series"` patterns above — plus 237 general-vocabulary words. Applied
+as a single pass; every declared subgenre validates as reachable
+(`validateSpec`, `npm run titleforge:coverage`).
+
+**Taxonomy.** `crime` split into two top-level siblings, `crime` and
+`thriller` (existing `#crime`-tagged lexemes untouched; every pattern
+previously eligible under `crime` also got `thriller` added — additive only,
+since the two were one merged genre until this split). All 41 subgenres are
+declared as two-level `GenreOption`s in both lanes; a subgenre with no own
+lexicon/pattern work is still declared and selectable, resolving to its
+parent's pool (per the handoff's own "declare all, disposition differs by
+design" rule).
+
+**Where the handoff's own docs disagreed or ran short, judgment calls (all
+additive, never removing/narrowing anything):**
+- `START-HERE.md`'s summary paragraph disagreed with `COVERAGE.md`'s own table
+  for 5 subgenre dispositions (cyberpunk/cosmic-horror/slasher/hard-sf/heist) —
+  the table (explicitly "the master/honest map") won.
+- `SHAPES.md` only gave explicit pattern-weight prose for 7 of the 9
+  "shape"-disposition novel subgenres; `whodunit`/`ancient`'s shape work is
+  instead drawn from their own `novel-lane/batches/<id>.frozen.json` `verdict`
+  field and `START-HERE.md`'s cross-family of-genitive percentages.
+- `noir`'s disposition is "shape+lexicon" in `COVERAGE.md`, but its own
+  `frozen.json` verdict is explicit that its shape is structurally identical to
+  parent `crime` ("shapes ~ parent") — no separate pattern-weight work was
+  done for it; the lexicon fragment stands on its own.
+- **Pattern `weight` is global, not per-genre** — `weightedPick` draws from
+  whichever patterns are eligible for the *current* genre selection, all
+  sharing one flat weight. So "make pattern X feel dominant for subgenre Y" was
+  achieved by *which* existing patterns list Y in their `genres` (never by
+  bumping a shared pattern's `weight`, which would also inflate it for every
+  sibling genre already on that pattern) — e.g. romantasy's "50% of-genitive +
+  coordination" signature is expressed by adding it to the existing `a-of-and`
+  pattern (already an exact template match, "A [Noun] of [Noun] and [Noun]"),
+  not by reweighting it.
+- **`fantasy` had no pattern content at all** (confirmed by
+  `genreHierarchy.test.ts`'s own pre-existing comment) — unlike `sf`/`horror`/
+  `crime`/`hist`/`rom`, which are already used as bare genre tags on dozens of
+  patterns, so their new subgenries (cyberpunk, gothic, whodunit's siblings,
+  etc.) inherit a working baseline for free. Without a fix, the three new
+  fantasy subgenres (`dark-fantasy`/`portal-fantasy`/`cosy-fantasy`) would have
+  been completely unreachable (`validateSpec` caught this immediately). Fixed
+  by adding bare `"fantasy"` to `the-noun`/`the-adj-noun` (both already list
+  every fantasy sibling individually, so this is a no-op for them — verified in
+  `genreHierarchy.test.ts` — and newly gives `sword-sorcery` access to
+  `the-noun`, the one sibling that didn't already have it there, which is
+  called out as a deliberate change in that same test file).
+- **A slot the corpus named isn't always drawn by any current pattern** — e.g.
+  no existing pattern references `{object}` in series mode, no series pattern
+  uses `{role}`. Where a fragment's literal slot would sit dormant, the words
+  were either re-slotted to the nearest already-live equivalent (dark-fantasy's
+  and military-sf's series "object" words → `group`, already drawn by
+  `series-simple`; medieval's series "object" words → `kingdom`, already drawn
+  there too) or merged into an already-reachable slot the same subgenre already
+  owns in the other lane (paranormal-romance's series `role`/`adj` words folded
+  into its own existing `role`/`adj` entries; romantasy's series words merged
+  into its novel `object`/`abstract` entries, per the handoff's own note that
+  romantasy is "identical in both lanes").
+- **General-lexicon vs. new subgenre-tag collisions, undetected by the
+  handoff's own dedup.** `GENERAL-LEXICON-ADDITIONS-COMPREHENSIVE.md` was
+  checked against the existing 799 glosses and the earlier 105 additions, but
+  *not* against this same handoff's own new `LEXICON-FRAGMENTS.md`/
+  `SERIES-LEXICON-FRAGMENTS.md` tags (parallel work-streams). Cross-checked by
+  hand, same slot: ~20 collisions found and skipped (the subgenre-tagged
+  version already surfaces under "Any genre" per `withTags`, so also adding an
+  untagged copy would only double-weight that one word) — e.g. `role`:
+  vampire/lord/lady/duke/baron/viscount/rake/rogue/killer/phantom/angel/
+  wanderer/necromancer/burglar/admiral/lover; `abstract`: sleep/kiss/blues;
+  `seriesWord`: mysteries/wars/wheel; `object`: wings; `group`: club/society;
+  `adj`: wicked. The comprehensive doc's own explicit "approved... genuinely
+  general copies" exceptions (blood, ghost, kings, goodbye, jazz, upstairs)
+  were honoured as written — both the tagged and untagged copy exist.
+- `regency` and `historical-romance` share one honorific/role pool by design
+  (per the handoff's own instruction, since a fragile 7-author regency-only
+  copy would fail the author-floor) — the shared words are dual-tagged
+  (`#historical-romance #regency`) rather than duplicated, reachable from
+  either subgenre's own narrowing.
+- `military-sf`'s pre-existing lexicon/patterns were left untouched per the
+  handoff's own instruction ("do not touch" the six pre-existing
+  fantasy/sf siblings) — only its explicit top-up (3 new, diffed-non-duplicate
+  words: glory, dragoons, desolation) was added.
+- `series-shapes.json` was regenerated from the final `titleComposer.ts` state
+  (not from `corpus/derive.mjs`, which only reproduces the original v1.0.0
+  series corpus and knows nothing of this later expansion) to keep
+  `seriesFamily.test.ts`'s vendored-copy invariant meaningful going forward.
