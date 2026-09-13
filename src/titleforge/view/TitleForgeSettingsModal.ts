@@ -36,7 +36,7 @@ export class TitleForgeSettingsModal extends Modal {
 		contentEl.createEl("h2", { text: "titleForge" });
 		contentEl.createEl("p", {
 			text:
-				"Nine title & series generators, each modelled on a different tradition's shapes. " +
+				"Eight title & series generators, each modelled on a different tradition's shapes. " +
 				"The built-in word lists are baked into the plugin and can't be edited or broken — " +
 				"but you can add your own words, and titleForge blends them in the next time it " +
 				"generates, no reload needed.",

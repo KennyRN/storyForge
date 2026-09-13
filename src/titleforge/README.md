@@ -1,10 +1,12 @@
 # titleForge
 
-Nine title & series generators — each an English shape taxonomy modelled on a
+Eight title & series generators — each an English shape taxonomy modelled on a
 different tradition's title conventions (Anglophone literary, webnovel,
 Japanese light novel, Korean webnovel, Chinese webnovel, Vietnamese webnovel,
-Indonesian webnovel, Thai webnovel, and a comparative "world literary shapes"
-bench for Arabic/Persian/Russian/Hindi/Swahili conventions).
+Indonesian webnovel, Thai webnovel). The Anglophone one, `title-composer`, also
+carries a comparative "world fiction" genre (with Arabic, Persian, Russian,
+Hindi & Urdu and Swahili subgenres) rather than that being a separate
+tradition of its own.
 
 **Every generator outputs English, only English.** A title from `japanese-ln`
 is an English title that *feels* like a light novel; it never needs to survive
@@ -57,7 +59,7 @@ src/titleforge/
     TitleForgeModal.ts         the only surface — a modal window, no main-area workspace view
     TitleForgePanel.ts         the actual UI/state, rendered into the modal's contentEl
     TitleForgeSettingsModal.ts opened from storyForge's own settings tab
-  __tests__/            vitest — engine unit tests + a structural sweep over all nine
+  __tests__/            vitest — engine unit tests + a structural sweep over all eight
                         bundled lexicons (validateSpec, checkArticleAgreement, every
                         pattern has note+exemplar, every genre generates, generateSeries
                         succeeds)

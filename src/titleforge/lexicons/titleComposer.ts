@@ -3,13 +3,14 @@ import type { GeneratorSpec } from "../engine/types.js";
 export const titleComposerLexicon: GeneratorSpec = {
 	"id": "title-composer",
 	"name": "Title composer",
-	"blurb": "The full English shape taxonomy. Eighty-three shapes across twenty-seven families, for novels and series alike.",
+	"blurb": "The full English shape taxonomy. Eighty-eight shapes across twenty-seven families, for novels and series alike.",
 	"tradition": "Anglophone",
 	"notes": [
 		"This is the general-purpose bench, and it names series as readily as novels — a series title is grammatically the same kind of object as a novel title.",
 		"Pick the shape for the feeling first and fill the slots second. The same material reads completely differently through a different family.",
 		"To shift genre without changing shape, keep the family and change the genre — the vocabulary swaps underneath.",
-		"Names and places are invented. Check any that feel familiar before you use them."
+		"Names and places are invented. Check any that feel familiar before you use them.",
+		"World fiction (Arabic, Persian, Russian, Hindi & Urdu, Swahili) is literary rather than commercial: shorter, more abstract, and less willing to explain itself. Indigenous North American, Aboriginal Australian and Maori naming is deliberately excluded — see ACCURACY.md."
 	],
 	"genres": [
 		{
@@ -260,6 +261,35 @@ export const titleComposerLexicon: GeneratorSpec = {
 		{
 			"id": "ya",
 			"label": "young adult"
+		},
+		{
+			"id": "world-fiction",
+			"label": "world fiction"
+		},
+		{
+			"id": "arabic",
+			"label": "arabic",
+			"parent": "world-fiction"
+		},
+		{
+			"id": "persian",
+			"label": "persian",
+			"parent": "world-fiction"
+		},
+		{
+			"id": "russian",
+			"label": "russian",
+			"parent": "world-fiction"
+		},
+		{
+			"id": "hindi",
+			"label": "hindi & urdu",
+			"parent": "world-fiction"
+		},
+		{
+			"id": "swahili",
+			"label": "swahili",
+			"parent": "world-fiction"
 		}
 	],
 	"families": [
@@ -2251,6 +2281,80 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"weight": 1,
 			"exemplar": "How to Train Your Dragon",
 			"note": "A clause/how-to umbrella (How to Train Your Dragon). Very rare; children's/comic register; low weight."
+		},
+		{
+			"id": "idafa",
+			"label": "[Head] of [Dependent] — Arabic construct",
+			"templates": [
+				"{head} of {dependent}",
+				"{head} of {dependent} to the North",
+				"The {subject#1} and the {subject#2}"
+			],
+			"weight": 4,
+			"genres": [
+				"arabic"
+			],
+			"exemplar": "موسم الهجرة إلى الشمال — Season of Migration to the North",
+			"note": "In the Arabic construct the first noun takes no article and the second carries it, so definiteness sits on the dependent. In English that reads as \"Season of Migration\", never \"The Season of the Migration\"."
+		},
+		{
+			"id": "ezafe",
+			"label": "The [Adjective] [Noun] — Persian",
+			"templates": [
+				"The {adjective} {head}",
+				"The {head} of {dependent}",
+				"The {adjective} {subject}"
+			],
+			"weight": 4,
+			"genres": [
+				"persian"
+			],
+			"exemplar": "بوف کور — The Blind Owl",
+			"note": "The Persian linking vowel between head and modifier is audible but usually unwritten, which is why these titles feel compact and slightly riddling."
+		},
+		{
+			"id": "paired-abstraction",
+			"label": "[Abstraction] and [Abstraction] — Russian",
+			"templates": [
+				"{abstractA} and {abstractB}",
+				"{adjective} {subject}",
+				"A {head} of {dependent}"
+			],
+			"weight": 4,
+			"genres": [
+				"russian"
+			],
+			"exemplar": "Война и мир — War and Peace",
+			"note": "Two large abstractions joined by \"and\". A nineteenth-century Russian signature that still reads as a claim to moral seriousness."
+		},
+		{
+			"id": "hindi-compound",
+			"label": "Compound or bare abstract noun — Hindi & Urdu",
+			"templates": [
+				"The {head} of {dependent}",
+				"The {adjective} {subject}",
+				"{dependent}"
+			],
+			"weight": 3,
+			"genres": [
+				"hindi"
+			],
+			"exemplar": "गोदान — Godan, \"the gift of a cow\"",
+			"note": "Either a single dense compound or a bare abstract noun. Both resist the article-plus-modifier shape English expects, so the English equivalent is a one-word title."
+		},
+		{
+			"id": "swahili-genitive",
+			"label": "[Noun] of [Noun] — Swahili",
+			"templates": [
+				"{head} of {dependent}",
+				"{subject} of {dependent}"
+			],
+			"weight": 3,
+			"genres": [
+				"swahili"
+			],
+			"note": "A plain genitive, but Swahili chooses the connecting particle by noun class, so the original has a grammatical agreement English simply lacks.",
+			"exemplar": "Safari ya Maisha — \"Journey of Life\" (illustrative)"
 		}
 	],
 	"lexicon": {
@@ -3577,6 +3681,113 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"foreclosure #crime #lit #urban-fantasy",
 			"extinction #sf #horror #epic #ya #heroic-fantasy #space-opera #urban-fantasy",
 			"reckoning #epic #crime #horror #ya #heroic-fantasy #sword-sorcery #urban-fantasy"
+		],
+		"head": [
+			"Season #arabic",
+			"Book #arabic",
+			"Map #arabic",
+			"Nights #arabic",
+			"House #arabic",
+			"Garden #persian",
+			"Night #persian",
+			"Book #persian",
+			"Mirror #persian #hindi",
+			"Road #persian",
+			"House #russian",
+			"Chronicle #russian",
+			"Island #russian",
+			"House #hindi",
+			"Road #hindi",
+			"Journey #swahili",
+			"House #swahili",
+			"Hotel #arabic",
+			"Balcony #arabic",
+			"Train #russian",
+			"Notebook #russian",
+			"Courtyard #persian",
+			"Threshold #persian",
+			"Verandah #hindi",
+			"Riverbank #swahili"
+		],
+		"dependent": [
+			"Migration #arabic",
+			"Sand #arabic",
+			"Absence #arabic",
+			"the River #arabic",
+			"Silence #arabic",
+			"Silence #persian",
+			"Wind #persian",
+			"Stone #persian",
+			"Waiting #persian #hindi",
+			"Silence #russian",
+			"Winter #russian",
+			"Memory #russian",
+			"Silence #hindi",
+			"Earth #hindi",
+			"Life #swahili",
+			"Blood #swahili",
+			"Exile #arabic",
+			"the City #russian",
+			"the Dust #hindi",
+			"Rain #swahili",
+			"the Ashes #persian"
+		],
+		"abstractA": [
+			"War #russian",
+			"Crime #russian",
+			"Life #russian",
+			"Love #arabic",
+			"Love #persian",
+			"Love #hindi",
+			"Memory #russian"
+		],
+		"abstractB": [
+			"Peace #russian",
+			"Punishment #russian",
+			"Fate #russian",
+			"Separation #persian",
+			"Parting #hindi",
+			"Forgetting #russian"
+		],
+		"adjective": [
+			"Blind #arabic",
+			"Distant #arabic",
+			"Blind #persian",
+			"Bright #persian",
+			"Dead #russian",
+			"Quiet #russian",
+			"Black #hindi",
+			"Long #swahili",
+			"Crimson #russian",
+			"New #swahili",
+			"Patient #persian",
+			"Unwritten #arabic"
+		],
+		"subject": [
+			"Owl #persian",
+			"Book of Kings #persian",
+			"Souls #russian",
+			"Don #russian",
+			"Dogs #arabic",
+			"Thief #arabic",
+			"City #arabic",
+			"Strangers #arabic",
+			"Mirror #arabic",
+			"Man #persian",
+			"Wanderer #persian",
+			"Brothers #russian",
+			"Master #russian",
+			"Village #hindi",
+			"Woman #hindi",
+			"Strangers #swahili",
+			"Elder #swahili",
+			"People #hindi",
+			"Children #swahili",
+			"Heirs #arabic",
+			"Sisters #russian",
+			"Women #swahili",
+			"Pilgrims #persian",
+			"Clerks #hindi"
 		]
 	}
 };
