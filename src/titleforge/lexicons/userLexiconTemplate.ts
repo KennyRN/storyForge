@@ -59,6 +59,7 @@ That's it. \`- \` then the word, then a space, then your \`#tags\`.
 | Historical | \`#hist\` | \`#western\` \`#regency\` \`#wartime\` \`#ancient\` \`#medieval\` \`#naval\` |
 | Romance | \`#rom\` | \`#contemporary-romance\` \`#rom-com\` \`#historical-romance\` \`#romantasy\` \`#paranormal-romance\` |
 | Young adult | \`#ya\` | *(none)* |
+| World fiction | \`#world-fiction\` | \`#arabic\` \`#persian\` \`#russian\` \`#hindi\` \`#swahili\` |
 
 ## Two quick tips
 
@@ -137,6 +138,13 @@ Put your word under the slot whose examples it most resembles.
 **Grammar bits**
 - \`possessive\` — My, Her, His
 - \`manner\` — Regardless, By Halves, in Winter
+
+**World fiction only** *(these five feed just the \`#arabic\` \`#persian\` \`#russian\` \`#hindi\` \`#swahili\` shapes — everything above also works for World fiction, but these won't show up anywhere else)*
+- \`head\` — Season, Garden, Chronicle *(the "of" construction's first noun)*
+- \`dependent\` — Migration, Silence, the River *(the "of" construction's second noun)*
+- \`adjective\` — Blind, Distant, Quiet *(a separate pool from \`adj\` above)*
+- \`subject\` — Owl, Souls, Strangers
+- \`abstractA\` / \`abstractB\` — War / Peace, Crime / Punishment *(a paired "X and Y" shape)*
 
 ---
 

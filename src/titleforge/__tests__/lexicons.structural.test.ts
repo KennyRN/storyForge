@@ -10,14 +10,13 @@ import { ALL_TITLEFORGE_LEXICONS } from "../lexicons/index.js";
  * `npm test` instead of silently rendering a broken title.
  */
 describe("titleforge bundled lexicons — structural validation", () => {
-	it("ships exactly the nine documented traditions", () => {
+	it("ships exactly the eight documented traditions", () => {
 		expect(ALL_TITLEFORGE_LEXICONS.map((s) => s.id).sort()).toEqual(
 			[
 				"chinese-web",
 				"indonesian-web",
 				"japanese-ln",
 				"korean-web",
-				"non-western-literary",
 				"thai-web",
 				"title-composer",
 				"vietnamese-web",
