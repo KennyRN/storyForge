@@ -122,34 +122,22 @@ describe("titleforge generateOne / generateMany", () => {
 });
 
 describe("titleforge generateSeries", () => {
-	it("echo: every volume and the series title share one template realisation", () => {
-		const set = generateSeries(spec, {
-			strategy: "echo",
-			volumes: 2,
-			pattern: "place-and-place",
-			seed: 1,
-		});
+	it("every volume shares one template realisation with the forced pattern", () => {
+		const set = generateSeries(spec, { pattern: "place-and-place", seed: 1 });
 		expect(set.volumes.length).toBeGreaterThan(0);
 		for (const v of set.volumes) expect(v.patternId).toBe("place-and-place");
 	});
 
-	it("anchor: never anchors a single-slot template, and carries the anchor into the series title", () => {
-		const set = generateSeries(spec, {
-			strategy: "anchor",
-			volumes: 2,
-			pattern: "place-and-place",
-			seed: 7,
-		});
-		if (set.anchorSlot) {
-			expect(set.anchorWord).toBeTruthy();
-			expect(set.series.title.toLowerCase()).toContain(set.anchorWord!.toLowerCase());
-		}
+	it("always produces a fixed number of volumes, not a configurable one", () => {
+		const set = generateSeries(spec, { pattern: "place-and-place", seed: 2 });
+		expect(set.volumes.length).toBe(3);
 	});
 
-	it("free: volumes are not forced to one shape", () => {
-		const set = generateSeries(spec, { strategy: "free", volumes: 3, seed: 3 });
-		expect(set.strategy).toBe("free");
-		expect(set.volumes.length).toBeGreaterThan(0);
+	it("has no strategy/volumes options or anchor fields any more", () => {
+		const set = generateSeries(spec, { pattern: "place-and-place", seed: 4 });
+		expect(set).not.toHaveProperty("strategy");
+		expect(set).not.toHaveProperty("anchorSlot");
+		expect(set).not.toHaveProperty("anchorWord");
 	});
 });
 

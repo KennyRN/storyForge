@@ -66,11 +66,9 @@ describe("titleforge bundled lexicons — structural validation", () => {
 				expect(new Set(titles).size).toBe(titles.length);
 			});
 
-			it("generateSeries succeeds under every strategy", () => {
-				for (const strategy of ["echo", "anchor", "free"] as const) {
-					const set = generateSeries(spec, { strategy, volumes: 3, seed: 1 });
-					expect(set.series.title, `${spec.id} ${strategy} series title`).not.toBe("");
-				}
+			it("generateSeries succeeds", () => {
+				const set = generateSeries(spec, { seed: 1 });
+				expect(set.series.title, `${spec.id} series title`).not.toBe("");
 			});
 		});
 	}

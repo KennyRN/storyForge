@@ -158,8 +158,9 @@ const SCOPE_TABS: Record<TitleForgeScope, TitleForgeTab[]> = {
  * from when these were literal tab-bar icons), and is only ever in series mode for the "series"
  * section itself (title-composer, shape family forced to "series") — "novels" and "webnovels"
  * never are; there's no way to opt a section into series mode any more, only to switch to the
- * series section outright. It always generates with `generateSeries`' own default strategy/volume
- * count, with no picker anywhere to change either. "kept titles" isn't a generator section at all
+ * series section outright. It always generates a fixed number of volumes (`generateSeries`'
+ * `SERIES_VOLUME_COUNT`) — there's no strategy concept or volume-count picker any more, having
+ * never had a surface that made either reachable. "kept titles" isn't a generator section at all
  * — see renderKeptTab. Generating writes straight into the history list — there's no separate
  * "just generated" preview; every row, old or new, carries the same info/short-list/use-this-title
  * actions (renderTitleRow).
@@ -813,9 +814,8 @@ export class TitleForgePanel {
 						// Draw the umbrella and its volumes from the corpus-grounded series shape
 						// set, not the novel patterns (invariant 2 of the Stage 5 brief). Generators
 						// with no "series" family fall through untouched — eligiblePatterns treats an
-						// empty family match as a soft no-op. `strategy`/`volumes` are omitted —
-						// there's no picker for either any more, so this always takes generateSeries'
-						// own defaults (echo, 3).
+						// empty family match as a soft no-op. There's no strategy/volume-count option
+						// to pass any more — generateSeries always produces its own fixed set.
 						family: "series",
 						exclude,
 					});
