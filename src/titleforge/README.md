@@ -59,8 +59,8 @@ src/titleforge/
     TitleForgeSettingsModal.ts opened from storyForge's own settings tab
   __tests__/            vitest — engine unit tests + a structural sweep over all nine
                         bundled lexicons (validateSpec, checkArticleAgreement, every
-                        pattern has note+exemplar, every genre generates, every series
-                        strategy succeeds)
+                        pattern has note+exemplar, every genre generates, generateSeries
+                        succeeds)
   ACCURACY.md          what's verified vs. illustrative vs. dropped in each lexicon, and why
   corpus/              frozen series-name research (v1.0.0, n=303) behind title-composer's
                        `series` shape family — provenance only, never imported/bundled
@@ -95,10 +95,13 @@ const result = generateOne(getGenerator("title-composer")!, {
 ```
 
 `generateMany(spec, count, options)` is the batch form (no duplicates within
-the batch). `generateSeries(spec, options)` produces a series title and its
-volumes as one coherent set — see `SeriesStrategy` in `types.ts`: `echo` (one
-shape, repeated), `anchor` (one element fixed, e.g. *Harry Potter and the
-[Noun]*), `free` (a label plus loose volumes, e.g. *The Chronicles of Narnia*).
+the batch). `generateSeries(spec, options)` produces a series title and a
+fixed number of volumes (three) as one coherent set — one shape, chosen once,
+realised across every volume so the set reads as a family. (An earlier
+revision offered this as one of three interchangeable strategies — echo,
+anchor, free — with a configurable volume count, but no surface ever exposed
+the choice and only this behaviour was ever reachable, so the other two and
+the options themselves were removed rather than kept half-built.)
 
 ### Template syntax
 

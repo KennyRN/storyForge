@@ -116,26 +116,17 @@ export interface TitleResult {
 	constraintRelaxed?: boolean;
 }
 
-export type SeriesStrategy = "echo" | "anchor" | "free";
-
 export interface SeriesOptions extends GenerateOptions {
-	volumes?: number;
-	strategy?: SeriesStrategy;
-	/** Force the shape the volumes are drawn from. */
+	/** Force the shape the volumes (and, ordinarily, the series title itself) are drawn from. */
 	volumePattern?: string;
-	/** Force the shape the series title itself is drawn from (defaults per-strategy). */
+	/** Force the shape the series title itself is drawn from, overriding `volumePattern`. */
 	seriesPattern?: string;
-	/** Force which slot 'anchor' holds constant, instead of choosing automatically. */
-	anchorSlot?: string;
 }
 
 export interface SeriesResult {
 	generatorId: string;
-	strategy: SeriesStrategy;
 	series: TitleResult;
 	volumes: TitleResult[];
-	anchorSlot?: string;
-	anchorWord?: string;
 	seed: number;
 }
 

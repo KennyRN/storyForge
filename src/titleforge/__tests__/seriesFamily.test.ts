@@ -110,19 +110,15 @@ describe("titleComposer — series umbrella family", () => {
 	});
 
 	it("generateSeries under family:\"series\" draws every title from a series shape", () => {
-		for (const strategy of ["echo", "anchor", "free"] as const) {
-			for (let seed = 1; seed <= 25; seed++) {
-				const set = generateSeries(titleComposerLexicon, {
-					family: "series",
-					genre: seed % 2 ? "crime" : "epic",
-					strategy,
-					volumes: 3,
-					seed,
-				});
-				expect(set.series.title, `${strategy}/${seed}`).not.toBe("");
-				for (const result of [set.series, ...set.volumes]) {
-					expect(result.patternId, `${strategy}/${seed}: ${result.title}`).toMatch(/^series-/);
-				}
+		for (let seed = 1; seed <= 25; seed++) {
+			const set = generateSeries(titleComposerLexicon, {
+				family: "series",
+				genre: seed % 2 ? "crime" : "epic",
+				seed,
+			});
+			expect(set.series.title, `${seed}`).not.toBe("");
+			for (const result of [set.series, ...set.volumes]) {
+				expect(result.patternId, `${seed}: ${result.title}`).toMatch(/^series-/);
 			}
 		}
 	});

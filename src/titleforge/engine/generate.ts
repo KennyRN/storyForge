@@ -11,7 +11,6 @@ import type {
 	Pattern,
 	SeriesOptions,
 	SeriesResult,
-	SeriesStrategy,
 	TitleResult,
 } from "./types.js";
 
@@ -261,19 +260,30 @@ function draw(
 	};
 }
 
+/** How many volume titles `generateSeries` produces alongside the series umbrella title. Not
+ * configurable — see this function's own doc comment for why. */
+const SERIES_VOLUME_COUNT = 3;
+
 /**
- * Generate a series title and its volumes as a coherent set.
+ * Generate a series title and its volumes as a coherent set: one shape, chosen
+ * once, realised across `SERIES_VOLUME_COUNT` volumes so the set reads as a
+ * family.
  *
  * A series title is grammatically the same kind of object as a novel title —
  * *The Lord of the Rings* could be a standalone book — so this reuses the same
- * shapes rather than a separate vocabulary. What differs is the relationship
- * between the titles, and there are three real strategies for that. See
- * `SeriesStrategy`.
+ * shapes rather than a separate vocabulary.
  *
  * Tolkien is the instructive partial case: *The Fellowship of the Ring* and
  * *The Return of the King* echo one shape, but *The Two Towers* breaks it. He
  * considered it one novel and the three-volume split was the publisher's, which
  * is roughly what an imperfect echo looks like in the wild.
+ *
+ * (An earlier revision offered this as one of three interchangeable
+ * strategies — echo/anchor/free, with a configurable volume count — but no
+ * surface ever exposed the choice, and this, the "echo" behaviour, was the
+ * only one ever actually reachable. Rather than keep the other two half-built
+ * and unreachable, they were removed along with the strategy/volume-count
+ * options themselves.)
  */
 export function generateSeries(
 	spec: GeneratorSpec,
@@ -281,71 +291,35 @@ export function generateSeries(
 ): SeriesResult {
 	const seed = options.seed ?? randomSeed();
 	const rng = createRng(seed);
-	const volumes = Math.max(1, options.volumes ?? 3);
-	const strategy: SeriesStrategy = options.strategy ?? "echo";
-	const lexemes = normaliseLexicon(spec.lexicon);
 
 	const taken = new Set<string>(
 		[...(options.exclude ?? [])].map((v) => v.toLowerCase()),
 	);
 	const nextSeed = () => rng.int(0xffffffff);
 
-	// A set built on a one-slot shape cannot show a family resemblance — every
-	// volume is just "The [Noun]" — and under 'anchor' it is worse than that,
-	// because fixing the only slot fixes the whole title and returns the same
-	// one three times. Both strategies therefore want a shape with room to vary.
-	const minSlots = strategy === "free" ? 1 : 2;
-	// Under 'anchor' the shape must also contain something worth anchoring — a
-	// person, a place, a house. Anchoring an adjective gives a set that reads as
-	// accidentally repetitive ("Kindly Autopsy, Kindly Quarantine") rather than
-	// deliberately linked, so shapes without a nameable element are skipped and
-	// only fallen back to if nothing else qualifies.
+	// A set built on a one-slot shape cannot show a family resemblance — every volume would just
+	// be "The [Noun]" — so a shape with room to vary is preferred, falling back to any shape at
+	// all only if nothing wider qualifies.
 	const choice =
-		(strategy === "anchor"
-			? chooseSeriesShape(spec, options, rng, minSlots, options.volumePattern, true)
-			: undefined) ??
-		chooseSeriesShape(spec, options, rng, minSlots, options.volumePattern) ??
+		chooseSeriesShape(spec, options, rng, 2, options.volumePattern) ??
 		chooseSeriesShape(spec, options, rng, 1, options.volumePattern);
 	const volumePattern = choice?.pattern;
 	if (!volumePattern || !choice) {
 		return {
 			generatorId: spec.id,
-			strategy,
 			series: generateOne(spec, options),
 			volumes: [],
 			seed,
 		};
 	}
 
-	// Under 'echo' and 'anchor' the whole set is held to one realisation of one
-	// shape; that fixed template is what makes the titles read as a family.
+	// The whole set is held to one realisation of one shape; that fixed template is what makes
+	// the titles read as a family.
 	const templateIndex = choice.templateIndex;
-	const template = volumePattern.templates[templateIndex];
-
-	let bound: Record<string, Lexeme> | undefined;
-	let anchorSlot: string | undefined;
-	let anchorWord: string | undefined;
-
-	if (strategy === "anchor") {
-		anchorSlot = options.anchorSlot ?? chooseAnchorSlot(template, lexemes);
-		if (anchorSlot) {
-			const { narrowing, extraTags } = tagsFor(spec, rng, options, volumePattern);
-			const scoped = scopeLexicon(lexemes, narrowing, extraTags);
-			const chosen = weightedPick(rng, scoped[anchorSlot] ?? [], (l) => l.weight ?? 1);
-			if (chosen) {
-				bound = { [anchorSlot]: chosen };
-				anchorWord = chosen.gloss;
-			}
-		}
-	}
-
-	const forced: Forced =
-		strategy === "free"
-			? {}
-			: { pattern: volumePattern, templateIndex, ...(bound ? { bound } : {}) };
+	const forced: Forced = { pattern: volumePattern, templateIndex };
 
 	const volumeResults: TitleResult[] = [];
-	for (let i = 0; i < volumes; i++) {
+	for (let i = 0; i < SERIES_VOLUME_COUNT; i++) {
 		let result: TitleResult | undefined;
 		for (let attempt = 0; attempt < ATTEMPT_BUDGET; attempt++) {
 			const s = nextSeed();
@@ -357,24 +331,12 @@ export function generateSeries(
 		volumeResults.push(result);
 	}
 
-	const series = drawSeriesTitle(
-		spec,
-		options,
-		rng,
-		strategy,
-		volumePattern,
-		templateIndex,
-		bound,
-		taken,
-	);
+	const series = drawSeriesTitle(spec, options, rng, volumePattern, templateIndex, taken);
 
 	return {
 		generatorId: spec.id,
-		strategy,
 		series,
 		volumes: volumeResults,
-		...(anchorSlot ? { anchorSlot } : {}),
-		...(anchorWord ? { anchorWord } : {}),
 		seed,
 	};
 }
@@ -383,33 +345,21 @@ function drawSeriesTitle(
 	spec: GeneratorSpec,
 	options: SeriesOptions,
 	rng: Rng,
-	strategy: SeriesStrategy,
 	volumePattern: Pattern,
 	templateIndex: number,
-	bound: Record<string, Lexeme> | undefined,
 	taken: Set<string>,
 ): TitleResult {
 	const explicit = options.seriesPattern
 		? spec.patterns.find((p) => p.id === options.seriesPattern)
 		: undefined;
+	const pattern = explicit ?? volumePattern;
 
-	// 'free' wants a label — a shape built on a collective noun (Chronicles,
-	// Files, Saga). 'echo' wants the same shape as the volumes, so the set reads
-	// as one family. 'anchor' wants a shape that still contains the anchor.
-	const pattern =
-		explicit ??
-		(strategy === "free"
-			? findCollectivePattern(spec, options, volumePattern, rng) ?? volumePattern
-			: volumePattern);
-
+	// Normally a different realisation of the same shape as the volumes, so the series title
+	// doesn't read as a fourth volume.
 	const forced: Forced =
-		pattern === volumePattern && strategy !== "free"
-			? {
-					pattern,
-					templateIndex: seriesTemplateIndex(pattern, templateIndex, bound),
-					...(bound ? { bound } : {}),
-				}
-			: { pattern, ...(bound ? { bound } : {}) };
+		pattern === volumePattern
+			? { pattern, templateIndex: seriesTemplateIndex(pattern, templateIndex) }
+			: { pattern };
 
 	for (let attempt = 0; attempt < ATTEMPT_BUDGET; attempt++) {
 		const s = rng.int(0xffffffff);
@@ -417,9 +367,8 @@ function drawSeriesTitle(
 		if (result.title !== "" && !taken.has(result.title.toLowerCase())) return result;
 	}
 
-	// The forced shape is exhausted — a narrow template with a fixed anchor can
-	// have fewer distinct fillings than the set has volumes. Drop the constraint
-	// rather than returning a title the set already contains.
+	// The forced shape is exhausted — drop the constraint rather than returning a title the set
+	// already contains.
 	for (let attempt = 0; attempt < ATTEMPT_BUDGET; attempt++) {
 		const s = rng.int(0xffffffff);
 		const result = draw(spec, { ...options, exclude: taken }, createRng(s), s);
@@ -430,28 +379,12 @@ function drawSeriesTitle(
 }
 
 /**
- * Which realisation of the shape the series title should use.
- *
- * Normally a different template from the volumes, so the series title is not
- * simply a fourth volume. Under 'anchor' that is overridden: the anchor has to
- * survive into the series title — "Harry Potter and the Philosopher's Stone"
- * belongs to "Harry Potter", not to something else — so a template that drops
- * the anchored slot is no use, and repeating the volumes' template is better.
+ * Which realisation of the shape the series title should use — normally a different template
+ * from the volumes', so the series title doesn't read as a fourth volume.
  */
-function seriesTemplateIndex(
-	pattern: Pattern,
-	volumeIndex: number,
-	bound: Record<string, Lexeme> | undefined,
-): number {
+function seriesTemplateIndex(pattern: Pattern, volumeIndex: number): number {
 	if (pattern.templates.length <= 1) return volumeIndex;
-	const anchor = bound ? Object.keys(bound)[0] : undefined;
-
-	for (let step = 1; step < pattern.templates.length; step++) {
-		const index = (volumeIndex + step) % pattern.templates.length;
-		const template = pattern.templates[index];
-		if (!anchor || slotsIn(template).includes(anchor)) return index;
-	}
-	return volumeIndex;
+	return (volumeIndex + 1) % pattern.templates.length;
 }
 
 /**
@@ -465,7 +398,6 @@ function chooseSeriesShape(
 	rng: Rng,
 	minSlots: number,
 	forcedId?: string,
-	requireAnchorable = false,
 ): { pattern: Pattern; templateIndex: number } | undefined {
 	const patterns = forcedId
 		? spec.patterns.filter((p) => p.id === forcedId)
@@ -476,7 +408,6 @@ function chooseSeriesShape(
 		pattern.templates.forEach((template, templateIndex) => {
 			const slots = slotsIn(template);
 			if (slots.length < minSlots) return;
-			if (requireAnchorable && !slots.some((slot) => ANCHORABLE.includes(slot))) return;
 			candidates.push({ pattern, templateIndex, weight: pattern.weight ?? 1 });
 		});
 	}
@@ -486,73 +417,9 @@ function chooseSeriesShape(
 		: undefined;
 }
 
-/**
- * A shape whose templates use a collective noun — Chronicles, Saga, Files.
- *
- * Failing that, any shape other than the one the volumes use, so a 'free'
- * series title at least reads as a different kind of object from its volumes.
- * Some generators have no collective vocabulary at all, and there the series
- * title is simply another title, which is what 'free' means anyway.
- */
-function findCollectivePattern(
-	spec: GeneratorSpec,
-	options: GenerateOptions,
-	avoid: Pattern | undefined,
-	rng: Rng,
-): Pattern | undefined {
-	const COLLECTIVE = ["seriesWord", "countWord", "storyWord"];
-	const eligible = eligiblePatterns(spec, options);
-	const collective = eligible.find((p) =>
-		p.templates.some((t) => slotsIn(t).some((slot) => COLLECTIVE.includes(slot))),
-	);
-	if (collective) return collective;
-	const others = eligible.filter((p) => p !== avoid);
-	return weightedPick(rng, others, (p) => p.weight ?? 1);
-}
-
-/**
- * Pick the slot to hold constant.
- *
- * Prefers the slot most likely to read as a recurring element — a person, a
- * place, a house — because anchoring an adjective produces a set that looks
- * accidentally repetitive rather than deliberately linked.
- */
-/**
- * Slots worth holding constant: things a reader recognises as *the same thing*
- * recurring. Harry Potter anchors on a person; a house or a realm works the
- * same way. Adjectives and abstractions do not.
- */
-const ANCHORABLE = [
-	"name", "role", "title", "person", "place", "placeBare", "kingdom",
-	"group", "planet", "epithet", "kin", "honorific", "relation", "villainRole",
-	"profession", "modernRole", "world", "domain", "setting", "hvNoun",
-];
-
-/** Slots that make a poor anchor even when nothing better is present. */
-const UNANCHORABLE = [
-	"adj", "colour", "quality", "qualifier", "modifier", "warmAdj", "adjective",
-	"quantAll", "quantNo", "possessive", "ordinal", "manner", "predicate", "rank",
-];
-
-function chooseAnchorSlot(
-	template: string,
-	lexemes: Record<string, Lexeme[]>,
-): string | undefined {
-	const present = slotsIn(template).filter((slot) => (lexemes[slot]?.length ?? 0) > 0);
-	// Never anchor the only slot: that fixes the entire title rather than one
-	// element of it, and the set comes back as the same title repeated.
-	if (present.length < 2) return undefined;
-	return (
-		present.find((slot) => ANCHORABLE.includes(slot)) ??
-		present.find((slot) => !UNANCHORABLE.includes(slot))
-	);
-}
-
 /** Which genre id (if any) a draw should scope its vocabulary to, and whether that id is a
- * parent or a leaf — resolved once here so `scopeLexicon`'s two call sites (a single title's
- * `draw`, and a series' anchor-slot lookup) apply the same rule for "no genre selected": the
- * pattern's own genre supplies the scope, which is what stops a Russian pattern being filled
- * with Arabic nouns. */
+ * parent or a leaf — resolved once here so a pattern's own genre supplies the scope when none
+ * was explicitly selected, which is what stops a Russian pattern being filled with Arabic nouns. */
 function resolveGenreId(
 	rng: Rng,
 	options: GenerateOptions,
@@ -560,20 +427,6 @@ function resolveGenreId(
 ): string | undefined {
 	if (options.genre && options.genre !== "all") return options.genre;
 	return pattern.genres?.length ? pick(rng, pattern.genres) : undefined;
-}
-
-/** Kept for the same call shape series volume-anchoring used before subgenres — resolves the
- * genre narrowing for `pattern` and folds in `options.tags` unchanged. */
-function tagsFor(
-	spec: GeneratorSpec,
-	rng: Rng,
-	options: GenerateOptions,
-	pattern: Pattern,
-): { narrowing: GenreNarrowing; extraTags: string[] } {
-	return {
-		narrowing: resolveGenreNarrowing(spec, resolveGenreId(rng, options, pattern)),
-		extraTags: [...(options.tags ?? [])],
-	};
 }
 
 /** How a selected genre id narrows lexicon slots: `"none"` (no genre selected and the pattern
