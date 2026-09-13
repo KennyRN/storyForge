@@ -8,14 +8,54 @@ import type { GeneratorSpec, HistoryEntry, Pattern } from "../engine/types.js";
  * "About this title" — a small read-only modal opened from a history/kept row's info icon
  * (TitleForgePanel.ts's `renderTitleRow`). Shows the granular path a title took: its
  * genre → sub-genre → shape, then the exact template that produced it — one line, lower case
- * throughout (this is descriptive chrome, not a result; the title itself, in the `h2` above it,
- * stays exactly as generated).
+ * throughout, every crumb joined by the same chevron (this is descriptive chrome, not a result;
+ * the title itself, in the `h2` above it, stays exactly as generated).
  *
  * The shape is read straight off the entry (`patternId` / `templateIndex`, recorded by
  * `toEntry`). Entries written before those fields existed fall back to replaying the entry's
  * seed (`replay()`), which is exact only while the lexicon hasn't changed since — hence the
  * preference for the stored fields.
  */
+
+/** Bracketed slot names in a humanized shape string, in order — `"The [Adj] [Noun]"` →
+ * `["Adj", "Noun"]`. Used to compare a pattern's authored label against the exact template that
+ * ran, since both are written in this same `[Bracket]` convention. */
+function bracketTokens(text: string): string[] {
+	return [...text.matchAll(/\[([^\]]+)\]/g)].map((m) => m[1] ?? "");
+}
+
+/** Whether a pattern's authored label and its actual template describe the same shape closely
+ * enough that showing both would just repeat one thing twice: same number of slots, and each
+ * pair either identical or one a generic stand-in for the other ("adjective"/"adj" — most
+ * patterns' one template matches their label exactly this loosely). A template that narrows a
+ * slot to something the label never named — `stacked-modifiers`' second template draws
+ * `{colour}` where its label only promises "[Adjective]" — fails this, and both get shown. */
+function sameShape(label: string, template: string): boolean {
+	const labelTokens = bracketTokens(label);
+	const templateTokens = bracketTokens(humanizeTemplate(template));
+	if (labelTokens.length !== templateTokens.length) return false;
+	return labelTokens.every((word, i) => {
+		const a = word.toLowerCase();
+		const b = (templateTokens[i] ?? "").toLowerCase();
+		return a === b || a.startsWith(b) || b.startsWith(a);
+	});
+}
+
+/** A leading literal article reads better parenthesised than capitalised — "(the) [adjective]
+ * [noun]" instead of "the [adjective] [noun]" — it's shorter, and it stops the one fixed word
+ * competing for attention with the placeholders either side of it. */
+function compactArticle(text: string): string {
+	return text.replace(/^(the|an?)\b\s*/i, (_, word: string) => `(${word.toLowerCase()}) `);
+}
+
+/** The pattern's own label, plus the exact template that ran — but only when the template says
+ * something the label doesn't already (see `sameShape`); most of the time that's just noise. */
+function shapeCrumbs(label: string, template: string | undefined): string[] {
+	const shownLabel = compactArticle(label.toLowerCase());
+	if (!template || sameShape(label, template)) return [shownLabel];
+	return [shownLabel, compactArticle(humanizeTemplate(template).toLowerCase())];
+}
+
 export class TitleShapeInfoModal extends Modal {
 	constructor(
 		app: App,
@@ -39,15 +79,13 @@ export class TitleShapeInfoModal extends Modal {
 			return;
 		}
 		const { pattern, templateIndex } = resolved;
-
-		// Genre crumbs are already lower case (see the genre-label sweep); the pattern's own label
-		// and its exact template aren't authored that way, so they're lowered here to match — this
-		// line is all description, not a result.
-		const crumbs = [...this.genreCrumbs(), pattern.label.toLowerCase()].join("  ›  ");
 		const template = pattern.templates[templateIndex] ?? pattern.templates[0];
-		const line = template ? `${crumbs}  —  ${humanizeTemplate(template).toLowerCase()}` : crumbs;
 
-		contentEl.createEl("p", { cls: "titleforge-shape-info-path", text: line });
+		// Genre crumbs are already lower case (see the genre-label sweep); the shape crumbs aren't
+		// authored that way, so they're lowered as they're built. Every crumb — genre, sub-genre,
+		// shape — is joined with the same chevron, including the shape's own label/template pair.
+		const crumbs = [...this.genreCrumbs(), ...shapeCrumbs(pattern.label, template)];
+		contentEl.createEl("p", { cls: "titleforge-shape-info-path", text: crumbs.join("  ›  ") });
 	}
 
 	onClose(): void {
