@@ -17,11 +17,12 @@ import type { TitleForgeScope, TitleForgeTab } from "../settings.js";
 import type { TitleForgeController } from "../TitleForgeController.js";
 import { TitleShapeInfoModal } from "./TitleShapeInfoModal.js";
 
-/** One kept entry as shown on the "kept titles" tab — a HistoryEntry plus which tradition it came
- * from, since kept titles are pooled across every generator rather than scoped to one. */
+/** One kept entry as shown on the "kept titles" tab — a HistoryEntry plus which generator it came
+ * from, since kept titles are pooled across every generator rather than scoped to one (the row
+ * itself shows only the title — see renderTitleRow — `generatorId` is just for resolving the
+ * spec each entry needs to render/replay against). */
 interface KeptEntry {
 	generatorId: string;
-	generatorName: string;
 	entry: HistoryEntry;
 }
 
@@ -34,6 +35,15 @@ interface TitleForgePanelOptions {
 }
 
 const QUANTITY_OPTIONS = [3, 5, 10, 15, 25] as const;
+
+/** The "Shape family" picker (renderControls) is hidden behind this flag rather than removed: a
+ * third axis of narrowing beside Genre/Sub genre, with its own vocabulary of family names, read
+ * as more confusing than useful. Everything it drove — `this.family`, `eligiblePatterns`' family
+ * filter, `persistUiState`, series mode's forced "series" family — is untouched and still fully
+ * live; flipping this back to `true` is the entire rollback. TODO: revisit in a future UI audit —
+ * either bring the picker back (perhaps folded into Sub genre) or, if it's still unwanted then,
+ * finish the job and delete `family` end to end rather than leave it perpetually "all". */
+const SHOW_SHAPE_FAMILY_PICKER = false;
 
 /** Not a real generator id — the Genre picker's own "Any" choice, and (see
  * `defaultGeneratorIdFor`) automatically selected whenever a tab with more than one tradition of
@@ -77,10 +87,11 @@ const SECTION_ORDER: TitleForgeTab[] = ["series", "novels", "webFiction"];
  * Which generators live under each generator tab (i.e. every tab but "kept titles" — that one
  * pools kept entries across a scope's own tabs rather than picking a tradition; see KeptEntry).
  * "series" runs `title-composer` in series mode with its shape family forced to "series" — the
- * corpus-grounded umbrella shape set (series corpus v1.0.0); see `handleGenerate`. "novels" pairs
- * `title-composer` (the Anglophone general-purpose bench) with `non-western-literary` (the
- * comparative world-literary one); everything serialised/episodic goes under "web fiction & light
- * novels".
+ * corpus-grounded umbrella shape set (series corpus v1.0.0); see `handleGenerate`. "novels" is
+ * just `title-composer` too — its comparative world-literary shapes (Arabic, Persian, Russian,
+ * Hindi & Urdu, Swahili) used to be a separate `non-western-literary` tradition merged in here;
+ * they're now `title-composer`'s own "world fiction" genre, so there's nothing left to merge.
+ * Everything serialised/episodic goes under "web fiction & light novels".
  */
 const TAB_TRADITIONS: Record<TitleForgeTab, string[]> = {
 	series: ["title-composer"],
@@ -93,7 +104,7 @@ const TAB_TRADITIONS: Record<TitleForgeTab, string[]> = {
 		"indonesian-web",
 		"thai-web",
 	],
-	novels: ["title-composer", "non-western-literary"],
+	novels: ["title-composer"],
 	kept: [],
 };
 
@@ -101,10 +112,12 @@ const TAB_TRADITIONS: Record<TitleForgeTab, string[]> = {
  * Tabs whose "Genre"/"Sub genre" pickers are built straight from their own generators' genre
  * trees (renderControls, mergedGenreOptions) rather than a Genre-as-tradition + Sub-genre-as-
  * hierarchical-genre-list pair — no tradition is itself a genre (the "Title composer"/"World
- * literary shapes" complaint this replaced), whether a tab has one tradition ("series") or several
- * ("novels"). "web fiction & light novels" is deliberately not here: each of its seven traditions
- * is a genuinely distinct regional/language market — "webnovel", "Japanese light novel", and so on
- * really do read as the top-level choice there — so it keeps the older pair.
+ * literary shapes" complaint this replaced). Both tabs here happen to have just one tradition
+ * (`title-composer`) now, but the mechanism works the same regardless — `mergedGenreOptions`
+ * merges however many are in `TAB_TRADITIONS[section]`. "web fiction & light novels" is
+ * deliberately not here: each of its seven traditions is a genuinely distinct regional/language
+ * market — "webnovel", "Japanese light novel", and so on really do read as the top-level choice
+ * there — so it keeps the older pair.
  */
 const MERGED_GENRE_TABS: TitleForgeTab[] = ["series", "novels"];
 
@@ -332,7 +345,7 @@ export class TitleForgePanel {
 					? this.history
 					: await this.controller.storage.loadHistory(spec.id);
 			for (const entry of history) {
-				if (entry.kept) pooled.push({ generatorId: spec.id, generatorName: spec.name, entry });
+				if (entry.kept) pooled.push({ generatorId: spec.id, entry });
 			}
 		}
 		pooled.sort((a, b) => b.entry.at.localeCompare(a.entry.at));
@@ -506,7 +519,7 @@ export class TitleForgePanel {
 		for (const kept of this.keptEntries) {
 			const spec = this.controller.getGeneratorById(kept.generatorId);
 			if (!spec) continue; // a hand-edited/removed lexicon — nothing sensible to show
-			this.renderTitleRow(list, spec, kept.entry, { showTradition: kept.generatorName });
+			this.renderTitleRow(list, spec, kept.entry);
 		}
 	}
 
@@ -667,8 +680,9 @@ export class TitleForgePanel {
 
 		if (spec) {
 			// In series mode the shape family is forced to "series" (the corpus-grounded umbrella
-			// set — see handleGenerate), so the picker would only mislead.
-			if (spec.families && spec.families.length > 0 && !this.effectiveSeriesMode()) {
+			// set — see handleGenerate), so the picker would only mislead. See
+			// SHOW_SHAPE_FAMILY_PICKER for why this is hidden even outside series mode.
+			if (SHOW_SHAPE_FAMILY_PICKER && spec.families && spec.families.length > 0 && !this.effectiveSeriesMode()) {
 				this.renderSelect(row, "Shape family", spec.families, this.family, (value) => {
 					this.family = value;
 					void this.persistUiState();
@@ -866,24 +880,16 @@ export class TitleForgePanel {
 		return "use this title";
 	}
 
-	/** One row — used by both renderHistory and renderKeptTab. `spec` is the entry's own
-	 * generator (kept rows can differ from the currently active one), `opts.showTradition` adds a
-	 * tradition-name label (kept rows only — history rows are already scoped to one generator).
-	 * Every row gets an info icon (opens TitleShapeInfoModal) and a short-list star; a "use this
-	 * title" arrow is added only when this panel was opened with an `onUse` callback. */
-	private renderTitleRow(
-		list: HTMLElement,
-		spec: GeneratorSpec,
-		entry: HistoryEntry,
-		opts: { showTradition?: string },
-	): void {
+	/** One row — used by both renderHistory and renderKeptTab. `spec` is the entry's own generator
+	 * (kept rows can differ from the currently active one). The row shows exactly two things: the
+	 * title on its own line, nothing else beside it, and the action icons on the line beneath —
+	 * an info icon (opens TitleShapeInfoModal) and a short-list star; a "use this title" arrow
+	 * joins them only when this panel was opened with an `onUse` callback. */
+	private renderTitleRow(list: HTMLElement, spec: GeneratorSpec, entry: HistoryEntry): void {
 		const item = list.createEl("li", { cls: "titleforge-row-item" });
 
 		const head = item.createDiv({ cls: "titleforge-row-head" });
 		head.createSpan({ cls: "titleforge-row-title", text: entry.title });
-		if (opts.showTradition) {
-			head.createSpan({ cls: "titleforge-row-tradition", text: opts.showTradition });
-		}
 
 		// The row's actions sit on their own line beneath the title, as plain hover-icons (a
 		// coloured glyph that brightens on hover/focus) rather than button chips — same treatment
@@ -935,8 +941,7 @@ export class TitleForgePanel {
 
 	/** In "Any" mode `this.history` is already pooled across every tradition in the current tab
 	 * (loadHistoryForCurrentGenerator), so each row resolves its own generator rather than sharing
-	 * one — and gets a tradition label, same as a kept-tab row, since they're no longer all the
-	 * same tradition. */
+	 * one — the row itself doesn't say which, though (see renderTitleRow), only the title. */
 	private renderHistory(container: HTMLElement): void {
 		const section = container.createDiv({ cls: "titleforge-history" });
 		if (this.history.length === 0) {
@@ -951,11 +956,10 @@ export class TitleForgePanel {
 		}
 		const list = section.createEl("ul", { cls: "titleforge-history-list" });
 		const recent = [...this.history].reverse().slice(0, 30);
-		const showTradition = this.generatorId === ANY_TRADITION_ID;
 		for (const entry of recent) {
 			const spec = this.controller.getGeneratorById(entry.generatorId);
 			if (!spec) continue; // a hand-edited/removed lexicon — nothing sensible to show
-			this.renderTitleRow(list, spec, entry, showTradition ? { showTradition: spec.name } : {});
+			this.renderTitleRow(list, spec, entry);
 		}
 	}
 }
