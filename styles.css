@@ -7468,15 +7468,6 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	box-sizing: border-box;
 }
 
-/* The one thing a kept row shows that a plain history row doesn't — history is already scoped to
- * one generator, kept titles are pooled across a whole scope's worth of them. */
-.titleforge-row-tradition {
-	font-size: 0.75em;
-	color: var(--text-faint);
-	text-transform: uppercase;
-	letter-spacing: 0.04em;
-}
-
 /* ── titleForge "about this title" info popup (TitleShapeInfoModal.ts) ── */
 
 /* Consistent spacing on every edge, and an h2 that doesn't carry the theme's own oversized
