@@ -4793,82 +4793,43 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	box-sizing: border-box;
 }
 
-/* Story Context Novel tab: 12px gap between the synopsis and the chapter flags below.
- * The gap itself is .sf-story-context-novel-thread-drop (the coloured lines keep running
- * through it); the wrap no longer has a bottom margin of its own. */
+/* Story Context Novel tab: the synopsis is a plain box now — same corner radius on all four
+ * corners as the cover above it (.sf-synopsis-cover's own 4px), rather than the uneven radii its
+ * old coloured thread-wrap needed. 6px beneath it, then the pane's own thick divider
+ * (.sf-story-context-novel-host .sf-story-context-scroll, below) — the plot thread's colour
+ * starts there now instead of at the synopsis. */
 .sf-story-context-view .sf-story-context-novel-synopsis {
-	margin-bottom: 0;
+	margin-bottom: 6px;
+	border-radius: 4px;
 }
 
-/* Story Context Novel tab: synopsis follows the primary plot thread.
- * Wrap is filled with the thread colour. Overflow clips the outer top-left to 10px. The cap is
- * the 4px top stroke with a rounded right end. The textarea's top-left radius is the inner
- * curve of the L (10px outer − 2px left / 4px top). Bottom-right matches the textarea so the
- * fill does not peek around that corner.
- * ::after is the 2px left strand, painted above the textarea so Obsidian's focus box-shadow
- * cannot cover it. */
-.sf-story-context-view .sf-story-context-novel-synopsis-wrap {
-	display: flex;
-	flex-direction: column;
-	position: relative;
-	margin-bottom: 0;
-	border-radius: 10px 0 10px 0;
-	overflow: hidden;
+/* The divider between the synopsis and the chapter flags below it: the same thick, neutral rule
+ * the storytelling panel's own chapter-selector/codex-tree divider uses
+ * (.storyforge-storytelling-view .sf-top-panel.sf-top-panel--above-codex) — not the plot-thread
+ * colour, which starts immediately below this line instead (renderNovelPlot's own background,
+ * painted on this element from its own top edge — inside the border, so it fills the 6px gap
+ * before the first card too, rather than waiting until the card itself). Scoped to the sidebar's
+ * own host — the central Novel-overview page (.sf-novel-overview-view) keeps its original
+ * cover-thread/drop treatment untouched. */
+.sf-story-context-novel-host .sf-story-context-scroll {
+	border-top: 3px solid var(--background-modifier-border);
+	padding-top: 6px;
 }
 
-.sf-story-context-view .sf-story-context-novel-synopsis-wrap .sf-story-context-novel-synopsis {
-	margin-bottom: 0;
-}
-
-.sf-story-context-view .sf-story-context-novel-synopsis-wrap::after {
-	content: "";
-	position: absolute;
-	left: 0;
-	top: 4px;
-	bottom: 0;
-	width: 2px;
-	background-color: inherit;
-	pointer-events: none;
-}
-
-/* Continues every plot-thread line through the gap under the synopsis (sidebar) /
- * cover row (wide overview). Secondary lines begin here — they do not wrap the box. */
+/* Continues every plot-thread line through the gap under the cover row (wide overview only —
+ * see .sf-story-context-novel-host .sf-story-context-scroll above for the sidebar's own thick
+ * divider in place of this). */
 .sf-story-context-novel-thread-drop {
 	flex-shrink: 0;
 	height: 12px;
 	background-repeat: no-repeat;
 }
 
+/* The wide overview's cover-thread cap — the sidebar synopsis no longer has one of its own. */
 .sf-story-context-novel-synopsis-thread-cap {
 	flex-shrink: 0;
 	height: 4px;
 	border-radius: 0 2px 2px 0;
-}
-
-.sf-story-context-view textarea.sf-story-context-novel-synopsis--thread {
-	display: block;
-	width: calc(100% - 2px);
-	margin: 0 0 0 2px;
-	border-width: 0 1px 1px 0;
-	border-style: solid;
-	border-right-color: var(--background-modifier-border);
-	border-bottom-color: var(--background-modifier-border);
-	border-radius: 8px 0 10px 0 / 6px 0 10px 0;
-	background-color: var(--background-modifier-form-field);
-	box-shadow: none;
-	outline: none;
-}
-
-.sf-story-context-view textarea.sf-story-context-novel-synopsis--thread:hover,
-.sf-story-context-view textarea.sf-story-context-novel-synopsis--thread:focus,
-.sf-story-context-view textarea.sf-story-context-novel-synopsis--thread:focus-visible,
-.sf-story-context-view textarea.sf-story-context-novel-synopsis--thread:active {
-	box-shadow: none;
-	outline: none;
-	border-width: 0 1px 1px 0;
-	margin: 0 0 0 2px;
-	width: calc(100% - 2px);
-	background-color: var(--background-modifier-form-field);
 }
 
 .sf-story-context-plot-block {
