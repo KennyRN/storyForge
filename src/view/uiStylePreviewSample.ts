@@ -264,15 +264,8 @@ function mountStoryContextNovelBody(body: HTMLElement, mainThread: PreviewMainTh
 	fixed.createDiv({ cls: "sf-synopsis-cover sf-story-context-novel-cover" });
 	fixed.createDiv({ cls: "sf-story-context-novel-title", text: "Ipsum Liber" });
 	fixed.createDiv({ cls: "sf-story-context-novel-subtitle", text: "Vol. I — Dolor Sit" });
-	const wrap = fixed.createDiv({ cls: "sf-story-context-novel-synopsis-wrap" });
-	wrap.setCssStyles({
-		marginLeft: "2px",
-		width: "calc(100% - 2px)",
-		backgroundColor: mainThread.color,
-	});
-	wrap.createDiv({ cls: "sf-story-context-novel-synopsis-thread-cap" }).setCssStyles({ backgroundColor: mainThread.color });
-	wrap.createEl("textarea", {
-		cls: "sf-story-context-synopsis sf-story-context-novel-synopsis sf-story-context-novel-synopsis--thread",
+	fixed.createEl("textarea", {
+		cls: "sf-story-context-synopsis sf-story-context-novel-synopsis",
 		text: "A brief synopsis of the novel goes here.",
 		attr: { readonly: "true", rows: "3" },
 	});
@@ -496,6 +489,7 @@ export function mountRightSidebarPreviewSample(
 		ideasBtn.addClass("is-active");
 		hideOverlayRows();
 		recBody.toggleClass("sf-settings-hidden", false);
+		recBody.removeClass("sf-story-context-novel-host");
 		archive.addClass("sf-settings-hidden");
 		recBody.empty();
 		mountNotebookDossierPreview(recBody);
@@ -507,6 +501,11 @@ export function mountRightSidebarPreviewSample(
 		ideasBtn.removeClass("is-active");
 		hideOverlayRows();
 		recBody.toggleClass("sf-settings-hidden", false);
+		// Real host: StoryContextView.ts wraps renderNovelPanel's output in a
+		// `.sf-story-context-novel-host` div (see NovelPanel.ts's own doc comment) — mirrored here
+		// only for the Novel tab so its thick-divider rule (`.sf-story-context-novel-host
+		// .sf-story-context-scroll`, styles.css) previews correctly without leaking onto Chapter.
+		recBody.toggleClass("sf-story-context-novel-host", id === "novel");
 		archive.addClass("sf-settings-hidden");
 		recBody.empty();
 		if (id === "novel") mountStoryContextNovelBody(recBody, mainThread);

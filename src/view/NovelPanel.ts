@@ -171,20 +171,14 @@ export function renderNovelPanel(app: App, container: HTMLElement, options: Nove
 	const lineColors = plotLines.map((line) => line.color);
 	const gutter = computeChapterLineGutterMetrics(lineColors.length);
 
-	if (!wide && gutter && lineColors[0]) {
-		const threadLeft = gutter.lineOffsets[0];
-		const wrap = textHost.createDiv({ cls: "sf-story-context-novel-synopsis-wrap" });
-		synopsis.before(wrap);
-		const cap = wrap.createDiv({ cls: "sf-story-context-novel-synopsis-thread-cap" });
-		cap.setCssStyles({ backgroundColor: lineColors[0] });
-		wrap.append(synopsis);
-		wrap.setCssStyles({
-			marginLeft: `${threadLeft}px`,
-			width: `calc(100% - ${threadLeft}px)`,
-			backgroundColor: lineColors[0],
-		});
-		synopsis.addClass("sf-story-context-novel-synopsis--thread");
-	}
+	// Sidebar (!wide): the synopsis box used to carry the primary thread's colour itself (a
+	// coloured wrap/cap around the textarea, with matching uneven corner radii). It's now a plain
+	// box instead — same corner radius on all four corners as the cover above it
+	// (.sf-story-context-novel-synopsis, styles.css) — and the thread colour starts at the thick
+	// divider below it instead (.sf-story-context-novel-host .sf-story-context-scroll's own
+	// background, painted from its own top edge — no separate "drop" element needed for this
+	// layout any more). See the "wide" branch below for the central Novel-overview page, which is
+	// untouched: its thread still runs up the cover instead.
 	if (wide && gutter && lineColors[0]) {
 		const threadLeft = gutter.lineOffsets[0];
 		const wrap = fixed.createDiv({ cls: "sf-story-context-novel-cover-thread" });
@@ -199,7 +193,9 @@ export function renderNovelPanel(app: App, container: HTMLElement, options: Nove
 		wrap.style.setProperty("--sf-cover-thread-color", lineColors[0]);
 		cover.addClass("sf-story-context-novel-cover--thread");
 	}
-	if (gutter) {
+	// Wide only: the sidebar gets the thick divider (styles.css) in place of this gap, and its own
+	// scroll pane's background starts the thread colour immediately below that instead.
+	if (wide && gutter) {
 		const drop = body.createDiv({ cls: "sf-story-context-novel-thread-drop" });
 		drop.setCssStyles(buildGutterLineBackground(lineColors, gutter.lineOffsets));
 	}
