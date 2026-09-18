@@ -4322,13 +4322,33 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 /* StoryContextView.ts's renderNovel() host — see its own doc comment: exists only so
  * renderNovelPanel()'s unconditional container.empty() can't wipe out the tabs row built into its
  * parent right before it. Nested flex (not `display: contents`) so this host takes the remaining
- * column height and `.sf-story-context-body` inside it still gets the fixed/scroll split's sizing. */
+ * column height and `.sf-story-context-body` inside it still gets the fixed/scroll split's sizing.
+ *
+ * The negative side margins bleed this host out through .sf-story-context-view's own 10px side
+ * padding (styles.css) — the *only* padding between here and the sidebar's true edges, and the
+ * only level this can be undone at: escaping a parent's padding this way doesn't trigger that
+ * parent's own `overflow: hidden` (padding is still inside its border box, not overflow), but
+ * `.sf-story-context-body`/`.sf-story-context-scroll` further in are each wrapped in their own
+ * `overflow: hidden` box with no padding of its own to escape — bleeding this far out from
+ * underneath one of *them* instead just gets clipped at that box's own (still-inset) edge. This is
+ * what lets the chapter-flags divider below reach the sidebar's real edges; .sf-story-context-fixed
+ * and .sf-story-context-scroll each add the same 10px back as their own padding so their content
+ * (cover/title/synopsis, chapter cards) lands exactly where it did before this host started
+ * bleeding. */
 .sf-story-context-novel-host {
 	flex: 1;
 	min-height: 0;
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
+	margin-left: -10px;
+	margin-right: -10px;
+}
+
+.sf-story-context-novel-host .sf-story-context-fixed {
+	padding-left: 10px;
+	padding-right: 10px;
+	box-sizing: border-box;
 }
 
 .sf-story-context-body {
@@ -4814,12 +4834,11 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 .sf-story-context-novel-host .sf-story-context-scroll {
 	border-top: 3px solid var(--background-modifier-border);
 	padding-top: 6px;
-	/* Bleeds out through .sf-story-context-view's own 10px side padding (styles.css) so the border
-	 * spans the sidebar's full width edge to edge, the same as the storytelling panel's chapter-
-	 * selector/codex-tree divider does — then adds that same 10px back as this element's own
-	 * padding so the cards inside it land exactly where they used to, undisturbed by the bleed. */
-	margin-left: -10px;
-	margin-right: -10px;
+	/* .sf-story-context-novel-host has already bled out to the sidebar's true edges (above) — this
+	 * element just needs its own 10px back so the chapter cards inside it (and the gutter lines
+	 * painted on this element's own background) land exactly where they did before, while the
+	 * border itself — always drawn at the border box, outside any padding — reaches those true
+	 * edges the host recovered. */
 	padding-left: 10px;
 	padding-right: 10px;
 	box-sizing: border-box;
