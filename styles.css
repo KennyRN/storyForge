@@ -8,6 +8,15 @@
 	padding: 0;
 }
 
+/* Project-pane redesign (experimental): drop Obsidian's own header/content seam so the native
+ * header and the storytelling panel's top pane read as one larger pane instead of two stacked
+ * ones. The divider *inside* the pane, between the header and the chapter selector, is a separate
+ * rule (`.storyforge-storytelling-view .sf-top-header`, further down). */
+.workspace-leaf-content[data-type="storyforge-storytelling-view"] .view-header {
+	border-bottom: none;
+	box-shadow: none;
+}
+
 .storyforge-view:not(#storyforge-specificity-boost) {
 	box-sizing: border-box;
 	display: grid;
@@ -103,10 +112,11 @@
 }
 
 /* Storytelling: the old "Codex focus" composition (compact navigator + codex + stats), now its
- * own always-available left-rail panel instead of a storyForge-panel layout. The navigator is
- * short and fixed-height, unlike the full chapter tree the storyForge panel's 3fr/2fr split is
- * tuned for — size its row to content so Codex sits right below it instead of a gap where the
- * tree would otherwise have scrolled. */
+ * own always-available left-rail panel instead of a storyForge-panel layout. The navigator sizes
+ * to content (a single row day-to-day, up to 5 more when the chapter selector is expanded),
+ * unlike the full chapter tree the storyForge panel's 3fr/2fr split is tuned for — its row is
+ * "auto" so Codex sits right below it instead of a gap where the tree would otherwise have
+ * scrolled. */
 .storyforge-storytelling-view:not(#storyforge-specificity-boost) {
 	box-sizing: border-box;
 	display: grid;
@@ -114,8 +124,10 @@
 	height: 100%;
 	min-height: 0;
 	padding: 0;
-	/* Navigator padding 8px + transport column (22.5px icon + 4px button pad) + body gap 6px
-	 * + .sf-top-list window pad 4px — chapter row left edge. Codex uses the same inset. */
+	/* Navigator padding 8px + toggle column (22.5px icon + 4px button pad) + body gap 6px
+	 * + .sf-top-list window pad 4px — chapter row left edge. Codex uses the same inset. Only holds
+	 * up while the toggle column actually has a button in it (canGoContinuous) — see
+	 * CodexFocusNavigator.ts. */
 	--sf-storytelling-nav-transport: calc(22.5px + 4px);
 	--sf-storytelling-list-inset: calc(8px + var(--sf-storytelling-nav-transport) + 6px + 4px);
 	/* Same as .sf-navigator padding — gap above the Codex divider equals the gap below it. */
@@ -5696,7 +5708,10 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	display: flex;
 	flex-direction: column;
 	flex: 1;
-	padding: 8px;
+	/* Right inset trimmed to 4px (down from the 8px the other three sides keep) to match
+	 * .sf-codex-tree's own right padding, now that the chapter selector has nothing reserving
+	 * space on that side any more — see .sf-navigator-chapter-col. */
+	padding: 8px 4px 8px 8px;
 	gap: 10px;
 }
 
@@ -5707,7 +5722,8 @@ input.sf-story-context-chapter-title[type="text"]:focus {
  * by copying it. */
 /* No inter-row gap — .sf-top-list's own rows (the novel pages' chapter list) stack flush with
  * none of their own, and matching that snug spacing is what makes this compact rather than
- * reading as three separately spaced tiles. */
+ * reading as separately spaced tiles (the collapsed row and the expanded list below it get their
+ * own gap from .sf-navigator-chapter-col instead). */
 .sf-navigator-window {
 	display: flex;
 	flex-direction: column;
@@ -5816,18 +5832,27 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	height: 32px;
 }
 
-/* Transport chevrons sit in a column either side of the chapter list, not in a row beneath it. */
+/* The continuous-mode toggle sits in its own column to the left of the chapter selector — the
+ * transport chevrons that used to flank the selector on both sides are gone (project-pane
+ * redesign), so the selector itself now stretches to fill the rest of the row. */
 .sf-navigator-body {
 	display: flex;
 	flex-direction: row;
-	align-items: center;
+	align-items: flex-start;
 	gap: 6px;
 	min-width: 0;
 }
 
-.sf-navigator-body .sf-navigator-window {
+/* The chapter selector: the always-visible current-chapter row, and — while expanded — its
+ * scrollable chapter list directly beneath it. flex: 1 (the toggle column is the only other flex
+ * item left in .sf-navigator-body) is what lets this stretch towards the codex tree's own right
+ * inset now that there's no reserved column on that side any more. */
+.sf-navigator-chapter-col {
+	display: flex;
+	flex-direction: column;
 	flex: 1;
 	min-width: 0;
+	gap: 4px;
 }
 
 .sf-navigator-transport-col {
@@ -5858,19 +5883,14 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	height: 22.5px;
 }
 
-.sf-navigator-transport-btn:not(.sf-navigator-transport-btn-disabled):hover,
+.sf-navigator-transport-btn:hover,
 .sf-navigator-transport-btn.is-active {
 	color: var(--sf-storytelling-highlight-bg, var(--sf-highlight-bg, var(--text-accent)));
 	background: transparent;
 }
 
-.sf-navigator-transport-btn-disabled {
-	color: var(--text-muted);
-	cursor: default;
-}
-
-/* Non-chapter placeholder tiles (empty gap / create affordance) — deliberately distinct from a
- * real chapter row, since they aren't chapters. */
+/* The "continue the story" tile — the only placeholder tile left now that the sliding window
+ * (and its empty-gap placeholder) is gone. */
 .sf-navigator-tile {
 	min-width: 0;
 	display: flex;
@@ -5879,12 +5899,6 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	text-align: center;
 	padding: 6px 8px;
 	border-radius: 4px;
-}
-
-.sf-navigator-tile-empty {
-	cursor: default;
-	color: var(--text-faint);
-	border: 1px dashed var(--background-modifier-border);
 }
 
 .sf-navigator-tile-create {
@@ -5906,14 +5920,22 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	height: 1.4em;
 }
 
-/* Continuous mode's fifth control (continuous-mode hand-off brief §2) sits in the centre slot
- * among the five and uses its own glyph — that's distinct enough on its own; no divider or extra
- * spacing, so it stays exactly the same size as the other four and the row stays evenly gapped. */
-
-/* The live position indicator (continuous mode's read-only stand-in for the window) sits directly
- * above the manuscript scroll — no extra gap needed beyond .sf-navigator's own row gap. */
+/* The live position indicator (continuous mode's read-only stand-in for the current-chapter row)
+ * sits directly above the manuscript scroll — no extra gap needed beyond .sf-navigator's own row
+ * gap. */
 .sf-navigator-indicator .sf-row {
 	cursor: pointer;
+}
+
+/* The chapter selector's expanded state (project-pane redesign): the whole placed spine, capped
+ * to 5 rows tall (matching .sf-navigator-window's own fixed 32px row height below) and scrollable
+ * beyond that, ending in the "continue the story" tile. Reuses .sf-top-list/.sf-navigator-window
+ * outright for its rows — same reasoning as the collapsed row above it — so its text formatting
+ * and hover highlight are identical to both the collapsed row and the codex tree beneath it, by
+ * construction rather than by matching styles independently. */
+.sf-navigator-expanded-list {
+	max-height: calc(5 * 32px);
+	overflow-y: auto;
 }
 
 .sf-navigator-continuous-host {

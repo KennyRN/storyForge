@@ -50,6 +50,10 @@ export class StoryForgeView extends ItemView {
 	private activeChapterFilename: string | null = null;
 	private layout: SfLayout = "hybrid";
 	private unplacedMode: UnplacedViewMode = "unplaced";
+	/** "navigator" mode's chapter selector: whether its 5-row scrollable chapter list is expanded
+	 * below the current-chapter row. Session-only, like unplacedMode — reset whenever the selected
+	 * book changes so a stale expanded list doesn't survive a book switch. */
+	private chapterSelectorExpanded = false;
 	private collapsedCodexFolders = new Set<string>();
 	private activeCodexFolderId: string | null = null;
 	/** codexTypes ids currently filtering the Codex tree — session-only, like unplacedMode. */
@@ -357,9 +361,15 @@ export class StoryForgeView extends ItemView {
 					this.unplacedMode = this.unplacedMode === "unplaced" ? "unplacedHidden" : "unplaced";
 					this.render();
 				},
+				chapterSelectorExpanded: this.chapterSelectorExpanded,
+				onToggleChapterSelectorExpanded: () => {
+					this.chapterSelectorExpanded = !this.chapterSelectorExpanded;
+					this.render();
+				},
 				onSelectBook: (name) => {
 					this.currentBookFolderName = name;
 					this.activeChapterFilename = null;
+					this.chapterSelectorExpanded = false;
 					void this.persistSelection();
 					this.plugin.focusStoryContextOnNovel(name);
 					this.render();
@@ -512,9 +522,15 @@ export class StoryForgeView extends ItemView {
 			onToggleUnplacedMode: () => {
 				/* no unplaced section here */
 			},
+			chapterSelectorExpanded: this.chapterSelectorExpanded,
+			onToggleChapterSelectorExpanded: () => {
+				this.chapterSelectorExpanded = !this.chapterSelectorExpanded;
+				this.render();
+			},
 			onSelectBook: (name) => {
 				this.currentBookFolderName = name;
 				this.activeChapterFilename = null;
+				this.chapterSelectorExpanded = false;
 				void this.persistSelection();
 				this.render();
 			},
