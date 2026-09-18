@@ -3902,7 +3902,11 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 .sf-story-context-view {
 	display: flex;
 	flex-direction: column;
-	padding: 8px 10px 16px;
+	/* Named so .sf-story-context-novel-host's full-bleed divider (below) can size itself off the
+	 * exact same value via var() instead of a second, separately-typed "10px" that could drift out
+	 * of sync with this one. */
+	--sf-story-context-side-inset: 10px;
+	padding: 8px var(--sf-story-context-side-inset) 16px;
 	overflow: hidden;
 	height: 100%;
 	box-sizing: border-box;
@@ -4324,30 +4328,35 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
  * parent right before it. Nested flex (not `display: contents`) so this host takes the remaining
  * column height and `.sf-story-context-body` inside it still gets the fixed/scroll split's sizing.
  *
- * The negative side margins bleed this host out through .sf-story-context-view's own 10px side
- * padding (styles.css) — the *only* padding between here and the sidebar's true edges, and the
- * only level this can be undone at: escaping a parent's padding this way doesn't trigger that
- * parent's own `overflow: hidden` (padding is still inside its border box, not overflow), but
- * `.sf-story-context-body`/`.sf-story-context-scroll` further in are each wrapped in their own
- * `overflow: hidden` box with no padding of its own to escape — bleeding this far out from
- * underneath one of *them* instead just gets clipped at that box's own (still-inset) edge. This is
- * what lets the chapter-flags divider below reach the sidebar's real edges; .sf-story-context-fixed
- * and .sf-story-context-scroll each add the same 10px back as their own padding so their content
- * (cover/title/synopsis, chapter cards) lands exactly where it did before this host started
- * bleeding. */
+ * An explicit width (rather than relying on align-items: stretch's own flex-basis maths) bleeds
+ * this host out through .sf-story-context-view's own side padding (styles.css) to the sidebar's
+ * true edges — the *only* padding between here and there, and the only level this can be undone
+ * at: escaping a parent's padding this way doesn't trigger that parent's own `overflow: hidden`
+ * (padding is still inside its border box, not overflow), but `.sf-story-context-body`/
+ * `.sf-story-context-scroll` further in are each wrapped in their own `overflow: hidden` box with
+ * no padding of its own to escape — bleeding this far out from underneath one of *them* instead
+ * just gets clipped at that box's own (still-inset) edge. A stretched flex item computed to the
+ * same target size via flex-basis-then-subtract-margins arithmetic instead of one direct width
+ * measured a device pixel short on at least one side in testing (sub-pixel container widths round
+ * differently at each step of that algorithm) — width + a single margin-left is one direct
+ * computation instead, which held up edge to edge.
+ *
+ * .sf-story-context-fixed and .sf-story-context-scroll each add the same inset back as their own
+ * padding so their content (cover/title/synopsis, chapter cards) lands exactly where it did before
+ * this host started bleeding. */
 .sf-story-context-novel-host {
 	flex: 1;
 	min-height: 0;
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
-	margin-left: -10px;
-	margin-right: -10px;
+	width: calc(100% + (var(--sf-story-context-side-inset) * 2));
+	margin-left: calc(-1 * var(--sf-story-context-side-inset));
 }
 
 .sf-story-context-novel-host .sf-story-context-fixed {
-	padding-left: 10px;
-	padding-right: 10px;
+	padding-left: var(--sf-story-context-side-inset);
+	padding-right: var(--sf-story-context-side-inset);
 	box-sizing: border-box;
 }
 
@@ -4835,12 +4844,12 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	border-top: 3px solid var(--background-modifier-border);
 	padding-top: 6px;
 	/* .sf-story-context-novel-host has already bled out to the sidebar's true edges (above) — this
-	 * element just needs its own 10px back so the chapter cards inside it (and the gutter lines
+	 * element just needs its own inset back so the chapter cards inside it (and the gutter lines
 	 * painted on this element's own background) land exactly where they did before, while the
 	 * border itself — always drawn at the border box, outside any padding — reaches those true
 	 * edges the host recovered. */
-	padding-left: 10px;
-	padding-right: 10px;
+	padding-left: var(--sf-story-context-side-inset);
+	padding-right: var(--sf-story-context-side-inset);
 	box-sizing: border-box;
 }
 
