@@ -4814,6 +4814,15 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 .sf-story-context-novel-host .sf-story-context-scroll {
 	border-top: 3px solid var(--background-modifier-border);
 	padding-top: 6px;
+	/* Bleeds out through .sf-story-context-view's own 10px side padding (styles.css) so the border
+	 * spans the sidebar's full width edge to edge, the same as the storytelling panel's chapter-
+	 * selector/codex-tree divider does — then adds that same 10px back as this element's own
+	 * padding so the cards inside it land exactly where they used to, undisturbed by the bleed. */
+	margin-left: -10px;
+	margin-right: -10px;
+	padding-left: 10px;
+	padding-right: 10px;
+	box-sizing: border-box;
 }
 
 /* Continues every plot-thread line through the gap under the cover row (wide overview only —
