@@ -5855,6 +5855,11 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	gap: 4px;
 }
 
+/* Fixed to the current-chapter row's own height (see .sf-navigator-window .sf-row below) rather
+ * than sizing to the toggle button's own height, so centering inside it lines the toggle up with
+ * that row specifically — .sf-navigator-body's flex-start keeps this column pinned to the top
+ * there, not stretched (and re-centred lower) across the taller box the expanded chapter list
+ * beside it grows into. */
 .sf-navigator-transport-col {
 	display: flex;
 	flex-direction: column;
@@ -5862,6 +5867,7 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	justify-content: center;
 	gap: 4px;
 	flex-shrink: 0;
+	height: 32px;
 }
 
 /* Same chrome as Story Context's chapter-card action icons (.sf-story-context-icon-btn):
