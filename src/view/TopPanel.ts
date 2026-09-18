@@ -55,6 +55,10 @@ export interface TopPanelOptions {
 	highlightActiveChapter: boolean;
 	unplacedMode: UnplacedViewMode;
 	onToggleUnplacedMode: () => void;
+	/** "navigator" mode only: whether the chapter selector's 5-row scrollable list is expanded
+	 * below the current-chapter row. */
+	chapterSelectorExpanded: boolean;
+	onToggleChapterSelectorExpanded: () => void;
 	onSelectBook: (bookFolderName: string) => void;
 	onOpenChapter: (bookFolderName: string, filename: string) => void;
 	/** Codex focus's forward-only `[+]`: create a chapter, append it to the end of chapter-order, open it. */
@@ -166,6 +170,8 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 			chapterNumberingStyle: options.chapterNumberingStyle,
 			onOpenChapter: options.onOpenChapter,
 			onCreateContinuing: options.onCreateContinuingChapter,
+			chapterSelectorExpanded: options.chapterSelectorExpanded,
+			onToggleChapterSelectorExpanded: options.onToggleChapterSelectorExpanded,
 			continuousActiveFilename: options.continuousActiveFilename,
 			onOpenContinuousRead: options.onOpenContinuousRead,
 			onExitContinuousRead: options.onExitContinuousRead,

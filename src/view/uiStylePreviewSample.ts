@@ -14,10 +14,6 @@ const ICON_CHECK_SQUARE = "sf-check-square";
 const ICON_FILTER_LIST = "sf-filter-list";
 const ICON_FOLDER_PLUS = "sf-folder-plus";
 const ICON_FOLDER = "sf-folder-fill";
-const ICON_TRANSPORT_TO_START = "sf-transport-to-start";
-const ICON_TRANSPORT_PREVIOUS = "sf-transport-previous";
-const ICON_TRANSPORT_NEXT = "sf-transport-next";
-const ICON_TRANSPORT_TO_END = "sf-transport-to-end";
 const ICON_CONTINUOUS_MODE = "sf-continuous-mode";
 const ICON_DASHBOARD_CHART = "sf-dashboard-chart";
 const ICON_PERSON = "sf-person-fill";
@@ -162,43 +158,40 @@ export function mountStorytellingPreviewSample(container: HTMLElement): void {
 	mountStatsSample(view);
 }
 
-/** Compact three-chapter navigator — same chrome as CodexFocusNavigator.ts / navigatorControls.ts. */
+/**
+ * The chapter selector — same chrome as CodexFocusNavigator.ts / navigatorControls.ts: the
+ * continuous-mode toggle in its own column to the left, and the current-chapter row above its
+ * expanded (5-row scrollable) chapter list. Shown expanded here, with a selected and unselected
+ * row plus the "continue the story" tile, so this one static mock previews every row state at
+ * once rather than only the day-to-day single-row look.
+ */
 function mountNavigatorSample(body: HTMLElement): void {
 	const wrap = body.createDiv({ cls: "sf-navigator" });
 	const navBody = wrap.createDiv({ cls: "sf-navigator-body" });
-	const leftCol = navBody.createDiv({ cls: "sf-navigator-transport-col" });
-	const windowEl = navBody.createDiv({ cls: "sf-top-list sf-navigator-window" });
-	const rightCol = navBody.createDiv({ cls: "sf-navigator-transport-col" });
+	const toggleCol = navBody.createDiv({ cls: "sf-navigator-transport-col" });
+	const chapterCol = navBody.createDiv({ cls: "sf-navigator-chapter-col" });
 
+	const toggle = toggleCol.createSpan({
+		cls: "sf-navigator-transport-btn sf-navigator-transport-toggle",
+		attr: { "aria-label": "continuous reading mode" },
+	});
+	setIcon(toggle, ICON_CONTINUOUS_MODE);
+
+	const windowEl = chapterCol.createDiv({ cls: "sf-top-list sf-navigator-window" });
+	windowEl.createDiv({ cls: "sf-row sf-row-selected" }).createDiv({ cls: "sf-row-text", text: "II. Adipiscing Elit" });
+
+	const expandedList = chapterCol.createDiv({ cls: "sf-top-list sf-navigator-window sf-navigator-expanded-list" });
 	const tiles: Array<{ title: string; selected?: boolean }> = [
 		{ title: "I. Amet Consectetur" },
 		{ title: "II. Adipiscing Elit", selected: true },
 		{ title: "III. Sed Do Eiusmod" },
 	];
 	for (const tile of tiles) {
-		const row = windowEl.createDiv({ cls: tile.selected ? "sf-row sf-row-selected" : "sf-row" });
+		const row = expandedList.createDiv({ cls: tile.selected ? "sf-row sf-row-selected" : "sf-row" });
 		row.createDiv({ cls: "sf-row-text", text: tile.title });
 	}
-
-	const transports: Array<{ icon: string; label: string }> = [
-		{ icon: ICON_TRANSPORT_TO_START, label: "first chapter" },
-		{ icon: ICON_TRANSPORT_PREVIOUS, label: "previous chapter" },
-		{ icon: ICON_TRANSPORT_NEXT, label: "next chapter" },
-		{ icon: ICON_TRANSPORT_TO_END, label: "last chapter" },
-	];
-	for (const transport of transports) {
-		const btn = leftCol.createSpan({
-			cls: "sf-navigator-transport-btn",
-			attr: { "aria-label": transport.label },
-		});
-		setIcon(btn, transport.icon);
-	}
-
-	const toggle = rightCol.createSpan({
-		cls: "sf-navigator-transport-btn sf-navigator-transport-toggle",
-		attr: { "aria-label": "continuous reading mode" },
-	});
-	setIcon(toggle, ICON_CONTINUOUS_MODE);
+	const createTile = expandedList.createDiv({ cls: "sf-navigator-tile sf-navigator-tile-create" });
+	setIcon(createTile.createSpan({ cls: "sf-icon" }), ICON_ADD_CIRCLE);
 }
 
 function mountStatsSample(container: HTMLElement): void {
