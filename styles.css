@@ -7184,8 +7184,10 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	 * custom property that the Style Settings plugin sets (from nameForge's own @settings schema)
 	 * if it's installed and configured, inheriting into titleForge's DOM subtree the same as any
 	 * theme variable would — no CSS import or JS dependency between the two repos either way.
-	 * Falls back to the theme accent when Style Settings/nameForge aren't in the picture. */
-	--forge-accent: var(--nameforge-accent-color, var(--interactive-accent));
+	 * Falls back to nameForge's own vivid-purple Style Settings default (#7c3aed), not the theme
+	 * accent — on a theme whose own accent reads flat/muted, falling back to it would leave the
+	 * generate button looking exactly as under-highlighted as this whole change is meant to fix. */
+	--forge-accent: var(--nameforge-accent-color, #7c3aed);
 	display: flex;
 	flex-direction: column;
 	height: min(640px, 80vh);

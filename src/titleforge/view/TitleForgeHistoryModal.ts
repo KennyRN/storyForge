@@ -4,10 +4,12 @@ import type { TitleForgeController } from "../TitleForgeController.js";
 import { renderTitleRow } from "./titleRow.js";
 
 /**
- * "Previous generations" — every title ever generated under a given set of traditions (usually
- * one section's own — see TitleForgePanel.renderBottomBar), newest first, moved out here so the
- * inline box (TitleForgePanel.renderHistory) can stay just the current batch. Headerless, same
- * shell treatment as nameForge's own previous-generations modal.
+ * "Previous generations" — every title ever generated across every tradition reachable in the
+ * panel's own scope (TitleForgePanel.renderBottomBar passes `scopedGeneratorIds()`, the same set
+ * "kept titles" pools from), newest first — not scoped down to just the currently active
+ * section/generator. Moved out here so the inline box (TitleForgePanel.renderHistory) can stay
+ * just the current batch. Headerless, same shell treatment as nameForge's own previous-generations
+ * modal.
  *
  * Every row carries the same info/short-list/use-this-title actions the inline rows do (see
  * titleRow.ts) — nothing is lost by the move. Kept-toggling here re-reads/re-writes straight from
@@ -21,9 +23,10 @@ export class TitleForgeHistoryModal extends Modal {
 		app: App,
 		private controller: TitleForgeController,
 		/** Every generator id whose history this modal should pool and show, newest first —
-		 * TitleForgePanel.renderBottomBar passes the active section's own traditions. */
+		 * TitleForgePanel.renderBottomBar passes every tradition reachable in the panel's own scope
+		 * (`scopedGeneratorIds()`), not just the currently active section. */
 		private generatorIds: string[],
-		private opts: { onUse?: (title: string) => void; useTooltip?: string } = {},
+		private opts: { onUse?: (title: string) => void; useTooltipFor?: (generatorId: string) => string } = {},
 	) {
 		super(app);
 	}
@@ -72,7 +75,7 @@ export class TitleForgeHistoryModal extends Modal {
 							this.opts.onUse!(title);
 						}
 					: undefined,
-				useTooltip: this.opts.useTooltip,
+				useTooltip: this.opts.useTooltipFor?.(entry.generatorId),
 			});
 		}
 	}
