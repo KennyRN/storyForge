@@ -141,7 +141,7 @@ export class TitleForgeController {
 
 	/** Embed titleForge in Story Context's Forge-family panel (ICON_TITLEFORGE — the title-header glyph). */
 	mountEmbeddedPanel(containerEl: HTMLElement): () => void {
-		const panel = new TitleForgePanel(containerEl, this, { scope: "all" });
+		const panel = new TitleForgePanel(containerEl, this, { scope: "all", panel: true });
 		void panel.load();
 		const unsubscribe = this.onGeneratorsReloaded(() => panel.refresh());
 		return () => {

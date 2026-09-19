@@ -7179,6 +7179,13 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 }
 
 .titleforge-view {
+	/* Shared Forge-family accent — the same expression nameForge's own styles.css defines
+	 * --forge-accent as. --nameforge-accent-color isn't nameForge-internal: it's a plain global CSS
+	 * custom property that the Style Settings plugin sets (from nameForge's own @settings schema)
+	 * if it's installed and configured, inheriting into titleForge's DOM subtree the same as any
+	 * theme variable would — no CSS import or JS dependency between the two repos either way.
+	 * Falls back to the theme accent when Style Settings/nameForge aren't in the picture. */
+	--forge-accent: var(--nameforge-accent-color, var(--interactive-accent));
 	display: flex;
 	flex-direction: column;
 	height: min(640px, 80vh);
@@ -7203,6 +7210,27 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	min-height: 0;
 	display: flex;
 	flex-direction: column;
+}
+
+/* Set by TitleForgeController.mountEmbeddedPanel — the Story Context rail host
+ * (.sf-story-context-view__forge-panel) sizes itself, not a fixed modal box, so this variant
+ * drops .titleforge-view's own fixed height/padding above in favour of filling whatever the host
+ * gives it, nameForge's own companion-panel treatment (.nameforge-modal--panel). The modal path
+ * (.titleforge-view with no .is-panel) is untouched. */
+.titleforge-view.is-panel {
+	height: 100%;
+	flex: 1;
+	min-height: 0;
+	/* Relaxed toward nameForge's own --nf-panel-inline (4px) — the host
+	 * (.sf-story-context-view__forge-panel) already contributes its own 8px on every side. */
+	padding: 4px;
+}
+
+.titleforge-view.is-panel .titleforge-history-list,
+.titleforge-view.is-panel .titleforge-kept-list {
+	/* Same floor nameForge's own panel results list holds
+	 * (.nameforge-modal--panel .nameforge-modal__results-list). */
+	min-height: 280px;
 }
 
 .titleforge-row {
@@ -7361,7 +7389,7 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 }
 
 .titleforge-row-icon.is-kept {
-	color: var(--text-accent);
+	color: var(--forge-accent);
 }
 
 .titleforge-row-icon svg.svg-icon {
@@ -7399,7 +7427,7 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 }
 
 .titleforge-section-menu-item.is-active {
-	color: var(--text-accent);
+	color: var(--forge-accent);
 }
 
 .titleforge-section-menu-icon {
@@ -7414,12 +7442,13 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	height: 16px;
 }
 
-/* The kept-titles star toggle, beneath the generated pane (or the kept-titles list itself) —
- * replaces the old "kept titles" tab icon. Reuses .titleforge-row-icon's plain hover-icon
- * treatment; right-aligned to match the per-title action row above it. */
+/* The bottom bar's two affordances — "previous generations" and the kept-titles star toggle
+ * (TitleForgePanel.renderBottomBar) — both reuse .titleforge-row-icon's plain hover-icon
+ * treatment; right-aligned to match the per-title action row above them. */
 .titleforge-bottom-bar {
 	display: flex;
 	justify-content: flex-end;
+	gap: var(--size-4-2, 8px);
 	margin-top: var(--size-4-2, 8px);
 }
 
@@ -7447,7 +7476,7 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 }
 
 .titleforge-quantity-button.is-active {
-	background: var(--interactive-accent);
+	background: var(--forge-accent);
 	color: var(--text-on-accent);
 }
 
@@ -7462,13 +7491,13 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	background-color: var(--interactive-accent);
+	background-color: var(--forge-accent);
 	color: var(--text-on-accent);
 	cursor: pointer;
 }
 
 .titleforge-generate-button:hover {
-	background-color: var(--interactive-accent);
+	background-color: var(--forge-accent);
 	filter: brightness(1.1);
 }
 
@@ -7492,6 +7521,31 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	border-radius: var(--radius-m, 6px);
 	background-color: var(--background-secondary);
 	box-sizing: border-box;
+}
+
+/* ── titleForge "previous generations" modal (TitleForgeHistoryModal.ts) ──
+ * Headerless, same shell treatment as nameForge's own previous-generations modal
+ * (nameForge/styles.css's .nameforge-history-modal) — reached from the bottom bar (above) rather
+ * than the inline box, which only ever shows the current batch now (see .titleforge-history-list). */
+
+.modal.titleforge-history-modal .modal-header,
+.modal.titleforge-history-modal .modal-title,
+.modal.titleforge-history-modal .modal-close-button {
+	display: none;
+}
+
+.titleforge-history-modal-content {
+	padding: var(--size-4-3, 12px) var(--size-4-4, 16px);
+}
+
+/* Rows are .titleforge-row-item, same as the inline box and the kept-titles tab — only the list's
+ * own box treatment (a scrollable max-height rather than filling a fixed host) is modal-specific. */
+.titleforge-history-modal-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	max-height: min(60vh, 420px);
+	overflow-y: auto;
 }
 
 /* ── titleForge "about this title" info popup (TitleShapeInfoModal.ts) ── */

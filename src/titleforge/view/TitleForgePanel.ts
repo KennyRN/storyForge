@@ -1,10 +1,8 @@
 import { Notice, setIcon, setTooltip } from "obsidian";
 import {
-	ICON_ARROW_INSERT,
 	ICON_BOOK_DUOTONE,
 	ICON_COMPUTER,
 	ICON_DICE,
-	ICON_INFO_CIRCLE,
 	ICON_PACKS,
 	ICON_SERIES,
 	ICON_STAR_FILL,
@@ -15,7 +13,8 @@ import { toEntry } from "../engine/history.js";
 import type { GeneratorSpec, GenreOption, HistoryEntry, LabelledOption } from "../engine/types.js";
 import type { TitleForgeScope, TitleForgeTab } from "../settings.js";
 import type { TitleForgeController } from "../TitleForgeController.js";
-import { TitleShapeInfoModal } from "./TitleShapeInfoModal.js";
+import { TitleForgeHistoryModal } from "./TitleForgeHistoryModal.js";
+import { addRowIcon, renderTitleRow } from "./titleRow.js";
 
 /** One kept entry as shown on the "kept titles" tab — a HistoryEntry plus which generator it came
  * from, since kept titles are pooled across every generator rather than scoped to one (the row
@@ -32,6 +31,9 @@ interface KeptEntry {
 interface TitleForgePanelOptions {
 	scope: TitleForgeScope;
 	onUse?: (title: string) => void;
+	/** Set by TitleForgeController.mountEmbeddedPanel — fills the Story Context rail
+	 * (.titleforge-view.is-panel) instead of the modal's own fixed height. */
+	panel?: boolean;
 }
 
 const QUANTITY_OPTIONS = [3, 5, 10, 15, 25] as const;
@@ -216,6 +218,12 @@ export class TitleForgePanel {
 
 	private history: HistoryEntry[] = [];
 	private keptEntries: KeptEntry[] = [];
+	/** The titles produced by the most recent `handleGenerate` — what the inline bordered box
+	 * (renderHistory) actually shows now; the running history itself lives on in `history` (still
+	 * read for the exclude-set and for "kept titles" pooling) and is reachable in full from the
+	 * bottom bar's "previous generations" modal (TitleForgeHistoryModal) instead. Cleared on a
+	 * section switch — a fresh section has nothing of its own generated yet this session. */
+	private currentBatch: HistoryEntry[] = [];
 
 	constructor(
 		private container: HTMLElement,
@@ -372,9 +380,11 @@ export class TitleForgePanel {
 		const container = this.container;
 		container.empty();
 		container.addClass("titleforge-view");
+		if (this.opts.panel) container.addClass("is-panel");
 
 		if (this.activeTab === null) {
 			this.renderSectionPlaceholder(container);
+			this.renderHistory(container);
 			this.renderBottomBar(container);
 			return;
 		}
@@ -391,6 +401,7 @@ export class TitleForgePanel {
 				cls: "titleforge-empty",
 				text: "No title generators are loaded.",
 			});
+			this.renderHistory(container);
 			this.renderBottomBar(container);
 			return;
 		}
@@ -412,6 +423,7 @@ export class TitleForgePanel {
 	 * needs, factored out so there's exactly one place that does it. */
 	private switchToSection(tab: TitleForgeTab): void {
 		this.activeTab = tab;
+		this.currentBatch = [];
 		void this.persistUiState();
 		if (TAB_TRADITIONS[tab].length > 0) this.generatorId = this.defaultGeneratorIdFor(tab);
 		this.genre = "all";
@@ -477,14 +489,28 @@ export class TitleForgePanel {
 		}
 	}
 
-	/** The short-list toggle beneath the generated pane, replacing the old "kept titles" tab icon:
-	 * a single star (renderTitleRow's own hover-icon treatment) that switches into "kept titles"
-	 * and — filled, once there — switches back to whichever section was active before. Shown in
-	 * both the normal and kept-titles views, always at the bottom. */
+	/** The bottom bar's two affordances, both right-aligned: "previous generations" (opens
+	 * TitleForgeHistoryModal — everything ever generated under the active section's own
+	 * traditions, since the inline box above only ever shows the current batch now — see
+	 * `currentBatch`) and the short-list star, which switches into "kept titles" and — filled, once
+	 * there — switches back to whichever section was active before. Shown in both the normal and
+	 * kept-titles views; "previous generations" only where there's a real generator section active
+	 * to browse (not the section placeholder, not "kept titles" itself). */
 	private renderBottomBar(container: HTMLElement): void {
 		const bar = container.createDiv({ cls: "titleforge-bottom-bar" });
 		const isKept = this.activeTab === "kept";
-		this.addRowIcon(
+
+		if (this.activeTab !== null && !isKept) {
+			const activeTab = this.activeTab;
+			addRowIcon(bar, "history", "previous generations", () => {
+				new TitleForgeHistoryModal(this.controller.app, this.controller, TAB_TRADITIONS[activeTab], {
+					onUse: this.opts.onUse,
+					useTooltip: activeTab === "series" ? "use this series name" : "use this title",
+				}).open();
+			});
+		}
+
+		addRowIcon(
 			bar,
 			isKept ? ICON_STAR_FILL : ICON_STAR_OUTLINE,
 			isKept ? "back to generator" : "kept titles",
@@ -519,7 +545,12 @@ export class TitleForgePanel {
 		for (const kept of this.keptEntries) {
 			const spec = this.controller.getGeneratorById(kept.generatorId);
 			if (!spec) continue; // a hand-edited/removed lexicon — nothing sensible to show
-			this.renderTitleRow(list, spec, kept.entry);
+			renderTitleRow(list, spec, kept.entry, {
+				app: this.controller.app,
+				onToggleKept: (spec, entry) => void this.toggleKeptEntry(spec.id, entry),
+				onUse: this.opts.onUse,
+				useTooltip: this.useTooltipFor(spec.id),
+			});
 		}
 	}
 
@@ -800,14 +831,15 @@ export class TitleForgePanel {
 	}
 
 	/** Generates `this.quantity` independent results (single titles, or whole series-with-volumes
-	 * bundles in series mode) per click, writing each straight into history — there's no separate
-	 * "just generated" preview, the history reload at the end is the only render. Exclusions
-	 * accumulate across the whole batch (not just against prior history) so one click of, say,
-	 * quantity 10 doesn't produce duplicates against itself. In "Any" mode, each of the `quantity`
-	 * results draws its own fresh random tradition from the current tab (genre/family/platform
-	 * have nothing to offer here — see renderControls — so those go to "all"); the entry it writes
-	 * still records that specific tradition's own id, never "any" itself (toEntry reads it off the
-	 * generated TitleResult). */
+	 * bundles in series mode) per click, writing each straight into history and replacing
+	 * `currentBatch` with exactly what this click produced — the inline box (renderHistory) shows
+	 * only that; the full running history stays reachable from "previous generations"
+	 * (TitleForgeHistoryModal). Exclusions accumulate across the whole batch (not just against
+	 * prior history) so one click of, say, quantity 10 doesn't produce duplicates against itself.
+	 * In "Any" mode, each of the `quantity` results draws its own fresh random tradition from the
+	 * current tab (genre/family/platform have nothing to offer here — see renderControls — so
+	 * those go to "all"); the entry it writes still records that specific tradition's own id, never
+	 * "any" itself (toEntry reads it off the generated TitleResult). */
 	private async handleGenerate(): Promise<void> {
 		const isAny = this.generatorId === ANY_TRADITION_ID;
 		const pool = this.controller.generators.filter((g) => TAB_TRADITIONS[this.section()].includes(g.id));
@@ -817,6 +849,7 @@ export class TitleForgePanel {
 			? { genre: "all", family: "all", platform: "all" }
 			: { genre: this.genre, family: this.family, platform: this.platform };
 		const exclude = new Set(this.history.map((e) => e.title.toLowerCase()));
+		const batch: HistoryEntry[] = [];
 
 		try {
 			for (let i = 0; i < this.quantity; i++) {
@@ -833,19 +866,25 @@ export class TitleForgePanel {
 						family: "series",
 						exclude,
 					});
-					await this.controller.storage.appendHistory(toEntry(result.series));
+					const seriesEntry = toEntry(result.series);
+					await this.controller.storage.appendHistory(seriesEntry);
+					batch.push(seriesEntry);
 					exclude.add(result.series.title.toLowerCase());
 					for (const volume of result.volumes) {
-						await this.controller.storage.appendHistory(toEntry(volume));
+						const volumeEntry = toEntry(volume);
+						await this.controller.storage.appendHistory(volumeEntry);
+						batch.push(volumeEntry);
 						exclude.add(volume.title.toLowerCase());
 					}
 				} else {
-					const result = generateOne(spec, { ...baseOptions, exclude });
-					await this.controller.storage.appendHistory(toEntry(result));
-					exclude.add(result.title.toLowerCase());
+					const entry = toEntry(generateOne(spec, { ...baseOptions, exclude }));
+					await this.controller.storage.appendHistory(entry);
+					batch.push(entry);
+					exclude.add(entry.title.toLowerCase());
 				}
 			}
 			await this.loadHistoryForCurrentGenerator();
+			this.currentBatch = batch;
 			this.render();
 		} catch (err) {
 			new Notice(`titleForge: could not generate a title — ${(err as Error).message}`);
@@ -854,7 +893,10 @@ export class TitleForgePanel {
 
 	/** Flips one entry's "kept" flag, in whichever generator's history file it actually lives in
 	 * — not necessarily the currently active one, since the "kept titles" tab pools entries from
-	 * every tradition reachable in this scope. */
+	 * every tradition reachable in this scope. Also patches `currentBatch` in place when the
+	 * toggled entry is showing there — it holds its own copies (see `handleGenerate`), not a shared
+	 * reference with `history`, so a plain `this.history = updated` alone wouldn't be reflected in
+	 * the inline box's next render. */
 	private async toggleKeptEntry(generatorId: string, entry: HistoryEntry): Promise<void> {
 		const history =
 			generatorId === this.generatorId ? this.history : await this.controller.storage.loadHistory(generatorId);
@@ -863,9 +905,13 @@ export class TitleForgePanel {
 		);
 		if (index === -1) return;
 		const updated = [...history];
-		updated[index] = { ...updated[index], kept: !updated[index].kept };
+		const updatedEntry = { ...updated[index], kept: !updated[index].kept };
+		updated[index] = updatedEntry;
 		await this.controller.storage.saveHistory(generatorId, updated);
 		if (generatorId === this.generatorId) this.history = updated;
+		this.currentBatch = this.currentBatch.map((e) =>
+			e.seed === entry.seed && e.title === entry.title && e.at === entry.at ? updatedEntry : e,
+		);
 		if (this.activeTab === "kept") await this.loadKeptEntries();
 		this.render();
 	}
@@ -880,86 +926,28 @@ export class TitleForgePanel {
 		return "use this title";
 	}
 
-	/** One row — used by both renderHistory and renderKeptTab. `spec` is the entry's own generator
-	 * (kept rows can differ from the currently active one). The row shows exactly two things: the
-	 * title on its own line, nothing else beside it, and the action icons on the line beneath —
-	 * an info icon (opens TitleShapeInfoModal) and a short-list star; a "use this title" arrow
-	 * joins them only when this panel was opened with an `onUse` callback. */
-	private renderTitleRow(list: HTMLElement, spec: GeneratorSpec, entry: HistoryEntry): void {
-		const item = list.createEl("li", { cls: "titleforge-row-item" });
-
-		const head = item.createDiv({ cls: "titleforge-row-head" });
-		head.createSpan({ cls: "titleforge-row-title", text: entry.title });
-
-		// The row's actions sit on their own line beneath the title, as plain hover-icons (a
-		// coloured glyph that brightens on hover/focus) rather than button chips — same treatment
-		// as the section-switcher menu (renderSectionPicker) and the bottom-bar star (renderBottomBar).
-		const actions = item.createDiv({ cls: "titleforge-row-actions" });
-
-		this.addRowIcon(actions, ICON_INFO_CIRCLE, "about this title", () => {
-			new TitleShapeInfoModal(this.controller.app, spec, entry).open();
-		});
-
-		this.addRowIcon(
-			actions,
-			entry.kept ? ICON_STAR_FILL : ICON_STAR_OUTLINE,
-			entry.kept ? "remove from short list" : "short list title",
-			() => void this.toggleKeptEntry(spec.id, entry),
-			entry.kept ? "is-kept" : undefined,
-		);
-
-		if (this.opts.onUse) {
-			this.addRowIcon(actions, ICON_ARROW_INSERT, this.useTooltipFor(spec.id), () =>
-				this.opts.onUse!(entry.title),
-			);
-		}
-	}
-
-	/** One hover-icon in a row's action line — a `<span>` (not a `<button>`), made
-	 * keyboard-activatable the same way the section-switcher menu's own items are. */
-	private addRowIcon(
-		container: HTMLElement,
-		icon: string,
-		label: string,
-		onActivate: () => void,
-		extraClass?: string,
-	): void {
-		const el = container.createSpan({
-			cls: "titleforge-row-icon" + (extraClass ? ` ${extraClass}` : ""),
-			attr: { role: "button", tabindex: "0", "aria-label": label },
-		});
-		setIcon(el, icon);
-		setTooltip(el, label);
-		el.addEventListener("click", onActivate);
-		el.addEventListener("keydown", (evt) => {
-			if (evt.key === "Enter" || evt.key === " ") {
-				evt.preventDefault();
-				onActivate();
-			}
-		});
-	}
-
-	/** In "Any" mode `this.history` is already pooled across every tradition in the current tab
-	 * (loadHistoryForCurrentGenerator), so each row resolves its own generator rather than sharing
-	 * one — the row itself doesn't say which, though (see renderTitleRow), only the title. */
+	/** The bordered box beneath the controls — always drawn once a panel is up (even from the
+	 * section placeholder, or when no generators are loaded — see `render()`), showing only the
+	 * current batch (`currentBatch`, set by `handleGenerate`) rather than the running history: an
+	 * in-box placeholder row before anything's been generated this session, replaced wholesale by
+	 * each new click of Generate. The full history lives on in the "previous generations" modal
+	 * (renderBottomBar, TitleForgeHistoryModal). */
 	private renderHistory(container: HTMLElement): void {
 		const section = container.createDiv({ cls: "titleforge-history" });
-		if (this.history.length === 0) {
-			section.createDiv({
-				cls: "titleforge-empty",
-				text:
-					this.generatorId === ANY_TRADITION_ID
-						? "Nothing generated yet."
-						: "Nothing generated yet for this tradition.",
-			});
+		const list = section.createEl("ul", { cls: "titleforge-history-list" });
+		if (this.currentBatch.length === 0) {
+			list.createEl("li", { cls: "titleforge-empty", text: "Nothing generated yet." });
 			return;
 		}
-		const list = section.createEl("ul", { cls: "titleforge-history-list" });
-		const recent = [...this.history].reverse().slice(0, 30);
-		for (const entry of recent) {
+		for (const entry of this.currentBatch) {
 			const spec = this.controller.getGeneratorById(entry.generatorId);
 			if (!spec) continue; // a hand-edited/removed lexicon — nothing sensible to show
-			this.renderTitleRow(list, spec, entry);
+			renderTitleRow(list, spec, entry, {
+				app: this.controller.app,
+				onToggleKept: (spec, entry) => void this.toggleKeptEntry(spec.id, entry),
+				onUse: this.opts.onUse,
+				useTooltip: this.useTooltipFor(spec.id),
+			});
 		}
 	}
 }
