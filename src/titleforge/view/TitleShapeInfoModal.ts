@@ -24,34 +24,70 @@ function bracketTokens(text: string): string[] {
 	return [...text.matchAll(/\[([^\]]+)\]/g)].map((m) => m[1] ?? "");
 }
 
+/** A composite label spells out more than one shape as alternatives joined by " / " —
+ * `series-compound`'s "[Adjective] [Noun] / The [Adjective] [Noun]" is two shapes, not one.
+ * A plain label comes back as its own single-element array. */
+function labelAlternatives(label: string): string[] {
+	return label.split(/\s*\/\s*/);
+}
+
 /** Whether a pattern's authored label and its actual template describe the same shape closely
  * enough that showing both would just repeat one thing twice: same number of slots, and each
  * pair either identical or one a generic stand-in for the other ("adjective"/"adj" — most
  * patterns' one template matches their label exactly this loosely). A template that narrows a
  * slot to something the label never named — `stacked-modifiers`' second template draws
- * `{colour}` where its label only promises "[Adjective]" — fails this, and both get shown. */
+ * `{colour}` where its label only promises "[Adjective]" — fails this, and both get shown. A
+ * composite label matches if the template agrees with *any* one of its alternatives. */
 function sameShape(label: string, template: string): boolean {
-	const labelTokens = bracketTokens(label);
 	const templateTokens = bracketTokens(humanizeTemplate(template));
-	if (labelTokens.length !== templateTokens.length) return false;
-	return labelTokens.every((word, i) => {
-		const a = word.toLowerCase();
-		const b = (templateTokens[i] ?? "").toLowerCase();
-		return a === b || a.startsWith(b) || b.startsWith(a);
+	return labelAlternatives(label).some((alt) => {
+		const labelTokens = bracketTokens(alt);
+		if (labelTokens.length !== templateTokens.length) return false;
+		return labelTokens.every((word, i) => {
+			const a = word.toLowerCase();
+			const b = (templateTokens[i] ?? "").toLowerCase();
+			return a === b || a.startsWith(b) || b.startsWith(a);
+		});
 	});
 }
 
 /** A leading literal article reads better parenthesised than capitalised — "(the) [adjective]
  * [noun]" instead of "the [adjective] [noun]" — it's shorter, and it stops the one fixed word
- * competing for attention with the placeholders either side of it. */
+ * competing for attention with the placeholders either side of it. Runs on each alternative of a
+ * composite label too, so the article after a " / " gets the same treatment as one at the very
+ * start — though `collapseArticleAlternatives` (below) handles the common case of a composite
+ * that's nothing *but* an optional article, so this rarely still sees a "/" by the time it runs. */
 function compactArticle(text: string): string {
-	return text.replace(/^(the|an?)\b\s*/i, (_, word: string) => `(${word.toLowerCase()}) `);
+	return text.replace(
+		/(^|\/\s*)(the|an?)\b\s*/gi,
+		(_, prefix: string, word: string) => `${prefix}(${word.toLowerCase()}) `,
+	);
+}
+
+/** When a composite label's alternatives are the exact same shape except for a leading article —
+ * `series-compound`'s "[Adjective] [Noun] / The [Adjective] [Noun]" is the common case — spelling
+ * out both full alternatives joined by " / " says the same thing twice and makes the crumb needlessly
+ * long; collapsing to one shape with a parenthesised article ("(the) [adjective] [noun]") says
+ * exactly as much — the article is merely optional, not a genuinely different shape — in a third
+ * the length. Leaves any other composite (genuinely different alternatives, not just an article)
+ * untouched for `compactArticle` to handle article-wise, one alternative at a time, as before. */
+function collapseArticleAlternatives(label: string): string {
+	const alts = labelAlternatives(label);
+	if (alts.length < 2) return label;
+	const articleRe = /^(the|an?)\b\s*/i;
+	const stripped = alts.map((alt) => alt.replace(articleRe, ""));
+	const allSameShape = stripped.every((s) => s.toLowerCase() === stripped[0].toLowerCase());
+	if (!allSameShape) return label;
+	const articled = alts.find((alt) => articleRe.test(alt));
+	const article = articled?.match(articleRe)?.[1]?.toLowerCase();
+	return article ? `(${article}) ${stripped[0]}` : stripped[0];
 }
 
 /** The pattern's own label, plus the exact template that ran — but only when the template says
- * something the label doesn't already (see `sameShape`); most of the time that's just noise. */
-function shapeCrumbs(label: string, template: string | undefined): string[] {
-	const shownLabel = compactArticle(label.toLowerCase());
+ * something the label doesn't already (see `sameShape`); most of the time that's just noise.
+ * Exported for `shapeInfoBreadcrumbs.test.ts` — everything else here stays module-private. */
+export function shapeCrumbs(label: string, template: string | undefined): string[] {
+	const shownLabel = compactArticle(collapseArticleAlternatives(label).toLowerCase());
 	if (!template || sameShape(label, template)) return [shownLabel];
 	return [shownLabel, compactArticle(humanizeTemplate(template).toLowerCase())];
 }
@@ -110,11 +146,12 @@ export class TitleShapeInfoModal extends Modal {
 		return pattern ? { pattern, templateIndex: recomputed.templateIndex } : undefined;
 	}
 
-	/** `["fantasy", "epic fantasy"]` — the genre and any sub-genre, top level first. Empty when the
-	 * title was generated under "any genre" (nothing narrower to show). */
+	/** `["fantasy", "epic fantasy"]` — the genre and any sub-genre, top level first. Always at least
+	 * one crumb — "any genre" when the title was generated under "any genre" — so the line always
+	 * opens with a genre crumb rather than sometimes starting straight on the shape. */
 	private genreCrumbs(): string[] {
 		const id = this.entry.genre;
-		if (!id || id === "all") return [];
+		if (!id || id === "all") return ["any genre"];
 		const ids = [...ancestorIds(this.spec, id)].reverse();
 		ids.push(id);
 		return ids.map((gid) => genreById(this.spec, gid)?.label ?? gid);
