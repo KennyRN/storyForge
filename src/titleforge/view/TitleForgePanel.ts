@@ -4,6 +4,7 @@ import {
 	ICON_COMPUTER,
 	ICON_DICE,
 	ICON_PACKS,
+	ICON_PREVIOUS_GENERATIONS,
 	ICON_SERIES,
 	ICON_STAR_FILL,
 	ICON_STAR_OUTLINE,
@@ -36,7 +37,7 @@ interface TitleForgePanelOptions {
 	panel?: boolean;
 }
 
-const QUANTITY_OPTIONS = [3, 5, 10, 15, 25] as const;
+const QUANTITY_OPTIONS = [5, 10, 15, 25, 50] as const;
 
 /** The "Shape family" picker (renderControls) is hidden behind this flag rather than removed: a
  * third axis of narrowing beside Genre/Sub genre, with its own vocabulary of family names, read
@@ -384,6 +385,8 @@ export class TitleForgePanel {
 
 		if (this.activeTab === null) {
 			this.renderSectionPlaceholder(container);
+			this.renderQuantity(container);
+			this.renderGenerateButton(container);
 			this.renderHistory(container);
 			this.renderBottomBar(container);
 			return;
@@ -401,6 +404,8 @@ export class TitleForgePanel {
 				cls: "titleforge-empty",
 				text: "No title generators are loaded.",
 			});
+			this.renderQuantity(container);
+			this.renderGenerateButton(container);
 			this.renderHistory(container);
 			this.renderBottomBar(container);
 			return;
@@ -489,26 +494,22 @@ export class TitleForgePanel {
 		}
 	}
 
-	/** The bottom bar's two affordances, both right-aligned: "previous generations" (opens
-	 * TitleForgeHistoryModal — everything ever generated under the active section's own
-	 * traditions, since the inline box above only ever shows the current batch now — see
-	 * `currentBatch`) and the short-list star, which switches into "kept titles" and — filled, once
-	 * there — switches back to whichever section was active before. Shown in both the normal and
-	 * kept-titles views; "previous generations" only where there's a real generator section active
-	 * to browse (not the section placeholder, not "kept titles" itself). */
+	/** The bottom bar's two affordances, both right-aligned and always shown regardless of section
+	 * state: "previous generations" (opens TitleForgeHistoryModal — every title ever generated
+	 * across every tradition reachable in this scope, `scopedGeneratorIds()`, not just the
+	 * currently active section/generator, since the inline box above only ever shows the current
+	 * batch now — see `currentBatch`) and the short-list star, which switches into "kept titles"
+	 * and — filled, once there — switches back to whichever section was active before. */
 	private renderBottomBar(container: HTMLElement): void {
 		const bar = container.createDiv({ cls: "titleforge-bottom-bar" });
 		const isKept = this.activeTab === "kept";
 
-		if (this.activeTab !== null && !isKept) {
-			const activeTab = this.activeTab;
-			addRowIcon(bar, "history", "previous generations", () => {
-				new TitleForgeHistoryModal(this.controller.app, this.controller, TAB_TRADITIONS[activeTab], {
-					onUse: this.opts.onUse,
-					useTooltip: activeTab === "series" ? "use this series name" : "use this title",
-				}).open();
-			});
-		}
+		addRowIcon(bar, ICON_PREVIOUS_GENERATIONS, "previous generations", () => {
+			new TitleForgeHistoryModal(this.controller.app, this.controller, [...this.scopedGeneratorIds()], {
+				onUse: this.opts.onUse,
+				useTooltipFor: (generatorId) => this.useTooltipFor(generatorId),
+			}).open();
+		});
 
 		addRowIcon(
 			bar,
@@ -731,7 +732,14 @@ export class TitleForgePanel {
 		if (this.showSectionPicker) this.renderSectionPicker(container);
 
 		this.renderQuantity(container);
+		this.renderGenerateButton(container);
+	}
 
+	/** The generate button itself — factored out of renderControls so the section-placeholder and
+	 * "no generators loaded" states (render()) can show it too: quantity + generate are always
+	 * present now, not conditional on a fully-resolved section/spec (handleGenerate itself guards
+	 * the cases where there's nothing yet to generate from). */
+	private renderGenerateButton(container: HTMLElement): void {
 		const actions = container.createDiv({ cls: "titleforge-actions" });
 		const generateButton = actions.createEl("button", {
 			cls: "titleforge-generate-button",
@@ -841,6 +849,12 @@ export class TitleForgePanel {
 	 * those go to "all"); the entry it writes still records that specific tradition's own id, never
 	 * "any" itself (toEntry reads it off the generated TitleResult). */
 	private async handleGenerate(): Promise<void> {
+		// Quantity/Generate are always shown now (render()), including from the section
+		// placeholder — nothing to generate from until a section's actually picked.
+		if (this.activeTab === null) {
+			new Notice("titleForge: pick a section first.");
+			return;
+		}
 		const isAny = this.generatorId === ANY_TRADITION_ID;
 		const pool = this.controller.generators.filter((g) => TAB_TRADITIONS[this.section()].includes(g.id));
 		if (isAny ? pool.length === 0 : !this.currentSpec()) return;
@@ -935,10 +949,7 @@ export class TitleForgePanel {
 	private renderHistory(container: HTMLElement): void {
 		const section = container.createDiv({ cls: "titleforge-history" });
 		const list = section.createEl("ul", { cls: "titleforge-history-list" });
-		if (this.currentBatch.length === 0) {
-			list.createEl("li", { cls: "titleforge-empty", text: "Nothing generated yet." });
-			return;
-		}
+		// Empty until the first generate — no placeholder copy, just the bordered box on its own.
 		for (const entry of this.currentBatch) {
 			const spec = this.controller.getGeneratorById(entry.generatorId);
 			if (!spec) continue; // a hand-edited/removed lexicon — nothing sensible to show

@@ -684,6 +684,13 @@ const TITLEFORGE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 
 export const ICON_DICE = "sf-dice";
 const DICE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 15 15"><path d="M0 0h15v15H0z" fill="none" /><path fill="currentColor" d="M4.14 1.14c-.68.05-1.33.43-1.7 1.07L.29 5.93c-.59 1.03-.26 2.32.77 2.91l3.72 2.14c.15.09.31.19.47.24V7.47c0-1.76 1.45-3.22 3.21-3.22h1.31c-.18-.26-.41-.5-.7-.67L5.35 1.44c-.39-.22-.8-.33-1.21-.3m.33.76c.6 0 1.12.41 1.28.99c.19.72-.23 1.45-.95 1.64c-.71.19-1.44-.23-1.64-.94c-.19-.72.24-1.45.95-1.64c.12-.04.24-.05.36-.05M2.2 5.84c.6 0 1.12.41 1.28.99c.19.71-.24 1.45-.95 1.64S1.08 8.23.89 7.52s.23-1.45.95-1.64c.11-.03.24-.05.36-.04m6.26-.52c-1.18 0-2.14.96-2.14 2.15v4.28c0 1.19.96 2.15 2.14 2.15h4.29c1.19 0 2.14-.96 2.14-2.15V7.47c0-1.19-.95-2.15-2.14-2.15zm4.29.81c.35 0 .69.14.95.39a1.34 1.34 0 0 1 0 1.89c-.26.26-.6.4-.95.4a1.34 1.34 0 0 1 0-2.68m-4.29 4.28c.36 0 .7.14.95.4c.25.25.39.59.39.94a1.34 1.34 0 0 1-2.68 0c0-.35.14-.69.4-.94c.25-.26.59-.4.94-.4" /></svg>`;
 
+/** Mage Icons — clipboard-2 (Apache 2.0). Same glyph as nameForge's own "previous generations"
+ * icon (nameForge/src/icons.ts's ICON_PREVIOUS_GENERATIONS) — copied under storyForge's own id
+ * rather than referenced across plugins, same as ICON_DICE above. titleForge's own "previous
+ * generations" bottom-bar action (TitleForgePanel.ts). */
+export const ICON_PREVIOUS_GENERATIONS = "sf-previous-generations";
+const PREVIOUS_GENERATIONS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"><path d="M16.94 4.697H17c.796 0 1.559.308 2.121.856S20 6.843 20 7.618v9.737a3.84 3.84 0 0 1-1.172 2.754A4.06 4.06 0 0 1 16 21.25H8c-1.06 0-2.078-.41-2.828-1.14A3.84 3.84 0 0 1 4 17.354V7.618c0-.764.308-1.499.857-2.045a3.04 3.04 0 0 1 2.083-.876" /><path d="M15.94 2.75h-8c-.552 0-1 .436-1 .974V5.67c0 .538.448.974 1 .974h8c.552 0 1-.436 1-.974V3.724a.987.987 0 0 0-1-.974m-7.787 8.71h7.694m-7.694 4.398h7.694" /></g></svg>`;
+
 /** Hand-authored (no source pack — this project's own) — an arrow feeding into a bracketed field.
  * TitleForgePanel.ts's per-row "use this title" action, shown only when titleForge was opened from
  * a field that can receive a title back (a Novel's or Series' rename modal), never in its
@@ -1042,6 +1049,7 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_DICE_DUAL, DICE_DUAL_SVG);
 	addIcon(ICON_TITLEFORGE, TITLEFORGE_SVG);
 	addIcon(ICON_DICE, DICE_SVG);
+	addIcon(ICON_PREVIOUS_GENERATIONS, PREVIOUS_GENERATIONS_SVG);
 	addIcon(ICON_ARROW_INSERT, ARROW_INSERT_SVG);
 	addIcon(ICON_SETTINGS_ALT, SETTINGS_ALT_SVG);
 	addIcon(ICON_EYE_DUOTONE, EYE_DUOTONE_SVG);
