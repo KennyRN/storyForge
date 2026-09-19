@@ -228,13 +228,18 @@ function draw(
 		const title = titleCase(renderTemplate(rng, template, lexemes, forced.bound));
 		if (title === "") continue;
 
+		// Recorded genre is the pattern's own specific tag this draw actually came from, not
+		// just the (possibly much broader) request that reached it — see
+		// resolveDisplayGenreId's own doc comment for why these two deliberately differ.
+		const displayGenreId = resolveDisplayGenreId(rng, spec, options, pattern);
+
 		const result: TitleResult = {
 			generatorId: spec.id,
 			title,
 			patternId: pattern.id,
 			patternLabel: pattern.label,
 			templateIndex,
-			...(options.genre ? { genre: options.genre } : {}),
+			...(displayGenreId ? { genre: displayGenreId } : {}),
 			...(options.platform ? { platform: options.platform } : {}),
 			wordCount: countWords(title),
 			seed,
@@ -427,6 +432,46 @@ function resolveGenreId(
 ): string | undefined {
 	if (options.genre && options.genre !== "all") return options.genre;
 	return pattern.genres?.length ? pick(rng, pattern.genres) : undefined;
+}
+
+/** Which specific genre/subgenre this particular draw's pattern actually came from — recorded on
+ * the result (`draw()`, below) and, via `toEntry`, on the history entry, so "about this title"
+ * can always say precisely where the shape originated: a "the-noun" draw really was a
+ * science-fiction > space-opera one, or a thriller > legal-thriller one, even when the request
+ * itself was broader than that ("any genre" outright, or a top genre picked with "any" subgenre)
+ * — a pattern is typically eligible under many genres at once (`pattern.genres`), and the request
+ * alone doesn't say which one actually applies to *this* draw.
+ *
+ * Deliberately separate from `resolveGenreId` (word-scoping, above): that one stays at whatever
+ * level was actually requested on purpose — a broader net across every subgenre under a top pick,
+ * so vocabulary still gets the full width of the requested branch — while this always resolves to
+ * the pattern's own most specific tag, since knowing precisely which subgenre a shape came from is
+ * the whole point here. Picking among several equally-specific candidates spends its own `rng`
+ * draw, same as any other pattern-shaped choice — deterministic and replay-safe for any entry
+ * generated from here on (older entries without a stored `patternId` already replay best-effort,
+ * see TitleShapeInfoModal's own doc comment). */
+function resolveDisplayGenreId(
+	rng: Rng,
+	spec: GeneratorSpec,
+	options: GenerateOptions,
+	pattern: Pattern,
+): string | undefined {
+	const tags = (pattern.genres ?? []).filter((g) => g !== "all");
+	const requested = options.genre && options.genre !== "all" ? options.genre : undefined;
+	if (tags.length === 0) return requested;
+
+	// Tags consistent with whatever was actually requested (its own genreScope reachability chain
+	// — itself plus ancestors/descendants) when something was; every one of the pattern's own tags
+	// when the request was fully unconstrained ("any genre").
+	const reachable = requested ? new Set(genreScope(spec, requested)) : undefined;
+	const inScope = reachable ? tags.filter((g) => reachable.has(g)) : tags;
+	const pool = inScope.length > 0 ? inScope : tags;
+
+	// Prefer the pool's own leaf-level tags over top-level ones — a pattern's `genres` typically
+	// lists a top genre alongside its own subgenres redundantly ("fantasy" and "epic" together),
+	// so this loses nothing and answers with "epic fantasy" rather than the less useful "fantasy".
+	const leaves = pool.filter((g) => !!genreById(spec, g)?.parent);
+	return pick(rng, leaves.length > 0 ? leaves : pool);
 }
 
 /** How a selected genre id narrows lexicon slots: `"none"` (no genre selected and the pattern
