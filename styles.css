@@ -7465,7 +7465,12 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	border-radius: var(--radius-m, 8px);
 }
 
-.titleforge-quantity-button {
+/* .titleforge-quantity-toggle (ancestor) qualifies this rather than the bare class alone — same
+ * reason as .titleforge-actions on the generate button, below: Obsidian's own core
+ * `button:not(.clickable-icon) { background-color: var(--interactive-normal); }` is specificity
+ * (0,1,1), which beats a plain single class (0,1,0) — this quantity button is a real <button>
+ * too, so without the extra qualifier its "transparent" here loses to Obsidian's own grey. */
+.titleforge-quantity-toggle .titleforge-quantity-button {
 	flex: 1 1 0;
 	border: none;
 	border-radius: var(--radius-s, 6px);
@@ -7482,8 +7487,16 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 }
 
 /* The generate button — icon-only, full-width, accent-coloured, modelled on nameForge's own
- * generate button (nameForge/styles.css's .nameforge-modal__generate-button). */
-.titleforge-generate-button {
+ * generate button (nameForge/styles.css's .nameforge-modal__generate-button). A single class
+ * selector (specificity 0,1,0) here loses its background-color to some other same-ish-specificity
+ * rule in the cascade (not this stylesheet's own — nothing else here targets this class; almost
+ * certainly Obsidian's own base button styling) — the button rendered grey at rest and only
+ * accent-coloured on :hover (0,2,0, a class plus a pseudo-class, specific enough to win). Every
+ * other --forge-accent use in titleForge (.is-active, .is-kept — see above) is already a two-class
+ * compound selector for exactly this reason; nameForge's own generate button works the same way
+ * (.nameforge-modal__icon-button.nameforge-modal__generate-button). Scoping under the wrapper here
+ * (.titleforge-actions .titleforge-generate-button, 0,2,0) matches that same margin. */
+.titleforge-actions .titleforge-generate-button {
 	width: 100%;
 	height: 48px;
 	padding: 0;
@@ -7497,7 +7510,7 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	cursor: pointer;
 }
 
-.titleforge-generate-button:hover {
+.titleforge-actions .titleforge-generate-button:hover {
 	background-color: var(--forge-accent);
 	filter: brightness(1.1);
 }
