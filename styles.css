@@ -7179,15 +7179,14 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 }
 
 .titleforge-view {
-	/* Shared Forge-family accent — the same expression nameForge's own styles.css defines
-	 * --forge-accent as. --nameforge-accent-color isn't nameForge-internal: it's a plain global CSS
-	 * custom property that the Style Settings plugin sets (from nameForge's own @settings schema)
-	 * if it's installed and configured, inheriting into titleForge's DOM subtree the same as any
-	 * theme variable would — no CSS import or JS dependency between the two repos either way.
-	 * Falls back to nameForge's own vivid-purple Style Settings default (#7c3aed), not the theme
-	 * accent — on a theme whose own accent reads flat/muted, falling back to it would leave the
-	 * generate button looking exactly as under-highlighted as this whole change is meant to fix. */
-	--forge-accent: var(--nameforge-accent-color, #7c3aed);
+	/* Shared Forge-family accent — the plain Obsidian theme accent, same value nameForge's own
+	 * --forge-accent now resolves to. Previously chained through --nameforge-accent-color (set by
+	 * the Style Settings plugin from nameForge's own @settings schema, when installed/configured)
+	 * so a configured nameForge accent would carry over here too — dropped after that chain turned
+	 * out to resolve inconsistently between the two plugins' own DOM subtrees in practice, leaving
+	 * the two visibly different colours instead of the intended lockstep. Reading the theme accent
+	 * directly, with no indirection, is the one thing guaranteed identical for both. */
+	--forge-accent: var(--interactive-accent);
 	display: flex;
 	flex-direction: column;
 	height: min(640px, 80vh);
