@@ -2,6 +2,7 @@ import { MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf, type PaneType } fro
 import { existingMainContentLeaf, resolveMainContentLeaf, type MainContentWorkspace } from "./mainContentLeaf";
 import type { Extension } from "@codemirror/state";
 import { createCyclingGuideViewPlugin } from "./cyclingGuide";
+import { createOpeningWordsLayer, DEFAULT_OPENING_WORDS_TARGET } from "./openingWords";
 import { StoryForgeView, STORYFORGE_VIEW_TYPE } from "./view/StoryForgeView";
 import { LEGACY_STORYTELLING_VIEW_TYPE, mapLegacyLeftRailViewType, storytellingModeForAutoFocus } from "./view/leftPanelMode";
 import { ContinuousReadView, STORYFORGE_CONTINUOUS_VIEW_TYPE } from "./view/ContinuousReadView";
@@ -948,6 +949,7 @@ export default class StoryForgePlugin extends Plugin {
 			console.error("storyForge: cycling guide failed", err);
 		}
 		this.registerEditorExtension(this.cyclingGuideExtensions);
+		this.registerEditorExtension(createOpeningWordsLayer(DEFAULT_OPENING_WORDS_TARGET));
 		registerTabTitleOverrides(
 			this.app,
 			(eventRef) => this.registerEvent(eventRef),
