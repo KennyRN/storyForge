@@ -19,7 +19,7 @@ describe("titleforge slotsIn", () => {
 
 describe("titleforge humanizeTemplate", () => {
 	it("turns tokens into bracketed slot names, dropping decorations", () => {
-		expect(humanizeTemplate("The {adj} {noun}")).toBe("The [Adj] [Noun]");
+		expect(humanizeTemplate("The {adj} {noun}")).toBe("The [Adjective] [Noun]");
 		expect(humanizeTemplate("The {noun#1} of the {noun#2}")).toBe("The [Noun] of the [Noun]");
 		expect(humanizeTemplate("The {role|title} of {place}")).toBe("The [Role] of [Place]");
 		expect(humanizeTemplate("{noun:epic} rises")).toBe("[Noun] rises");
@@ -27,6 +27,11 @@ describe("titleforge humanizeTemplate", () => {
 
 	it("spaces a camelCase slot name", () => {
 		expect(humanizeTemplate("{placeBare}")).toBe("[Place Bare]");
+	});
+
+	it("spells out an abbreviated slot word, standalone or compound", () => {
+		expect(humanizeTemplate("{adjective}")).toBe("[Adjective]");
+		expect(humanizeTemplate("A {warmAdj} {coldNoun}")).toBe("A [Warm Adjective] [Cold Noun]");
 	});
 
 	it("keeps literal escaped braces", () => {

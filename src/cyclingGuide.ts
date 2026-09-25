@@ -29,7 +29,7 @@ class CycleBadgeWidget extends WidgetType {
 const cyclingGuideBadgeDeco = Decoration.widget({ widget: new CycleBadgeWidget(), side: 1 });
 
 /** True when this editor is a library chapter (not Codex or other notes). */
-function isChapterEditor(view: EditorView): boolean {
+export function isChapterEditor(view: EditorView): boolean {
 	const path = view.state.field(editorInfoField, false)?.file?.path;
 	return !!path && isLibraryChapterPath(path);
 }

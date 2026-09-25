@@ -1087,16 +1087,36 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	align-self: stretch;
 	flex-shrink: 0;
 	border-radius: 4px;
-	background: var(--text-normal);
-	opacity: 0.08;
 	box-sizing: border-box;
 	cursor: pointer;
 	overflow: hidden;
+	/* Blank state: opaque 8% tint (opacity alone would also wash out the pattern below) plus
+	   pattern.css's diagonal-lines-sm (bansal.io/pattern-css) — same 45deg/4-stop band tiled via
+	   background-size as .sf-palette-swatch.is-theme-default below. Stop percentages set the
+	   line:gap ratio (10% line, 40% gap, half the tile — the 4-stop band repeats twice per tile
+	   to close the diagonal seam); background-size sets the physical scale. 10px tile measures
+	   out to a 2px line on an 8px gap on screen, in --sf-cover-pattern-line (themed 25%
+	   brighter/darker just below). */
+	background: color-mix(in srgb, var(--text-normal) 8%, var(--background-primary) 92%);
+	background-image: linear-gradient(45deg,
+		var(--sf-cover-pattern-line) 10%, transparent 10%,
+		transparent 50%, var(--sf-cover-pattern-line) 50%,
+		var(--sf-cover-pattern-line) 60%, transparent 60%,
+		transparent);
+	background-size: 10px 10px;
+}
+
+.theme-dark .sf-synopsis-cover {
+	--sf-cover-pattern-line: color-mix(in srgb, var(--background-modifier-border) 90%, white 10%);
+}
+
+.theme-light .sf-synopsis-cover {
+	--sf-cover-pattern-line: color-mix(in srgb, var(--background-modifier-border) 90%, black 10%);
 }
 
 .sf-synopsis-cover.has-image {
-	opacity: 1;
 	background: transparent;
+	background-image: none;
 }
 
 .sf-synopsis-cover img {
@@ -1104,6 +1124,31 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	height: 100%;
 	object-fit: cover;
 	display: block;
+}
+
+/* "Opening words" chapter-editor background (openingWords.ts) - a single CM6 layer rectangle (the
+   same below-text "layer" mechanism CM6 itself uses for selection backgrounds) spanning the full
+   editor width, from the top of the chapter through the end of the paragraph containing the target
+   word (300 by default). One continuous box, not one per line/paragraph, so the diagonal pattern
+   below never seams or breaks stride at a line boundary and there's no uncovered gap anywhere in the
+   region. Same pattern.css diagonal-lines-sm technique as .sf-synopsis-cover above, tuned to a 23px
+   tile / 2px line (line stop % = 50 * line / tile). */
+.sf-opening-words-fill {
+	pointer-events: none;
+	background-image: linear-gradient(45deg,
+		var(--sf-opening-words-pattern-line) 4.3478%, transparent 4.3478%,
+		transparent 50%, var(--sf-opening-words-pattern-line) 50%,
+		var(--sf-opening-words-pattern-line) 54.3478%, transparent 54.3478%,
+		transparent);
+	background-size: 23px 23px;
+}
+
+.theme-dark .sf-opening-words-fill {
+	--sf-opening-words-pattern-line: color-mix(in srgb, var(--background-modifier-border) 90%, white 10%);
+}
+
+.theme-light .sf-opening-words-fill {
+	--sf-opening-words-pattern-line: color-mix(in srgb, var(--background-modifier-border) 90%, black 10%);
 }
 
 .sf-synopsis-body .sf-modal-textarea {
@@ -6518,12 +6563,6 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	z-index: 1;
 	/* Inner L: 10px outer − 2px left / 4px top. Other corners keep the cover's 4px. */
 	border-radius: 8px 4px 4px 0 / 6px 4px 4px 0;
-}
-
-/* Placeholder must be opaque or the 10×10 thread fill shows through as a box. */
-.sf-novel-overview-view .sf-story-context-novel-cover.sf-story-context-novel-cover--thread:not(.has-image) {
-	opacity: 1;
-	background: color-mix(in srgb, var(--text-normal) 8%, var(--background-primary) 92%);
 }
 
 .sf-novel-overview-view .sf-story-context-novel-text-col .sf-story-context-novel-synopsis {

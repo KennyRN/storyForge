@@ -52,7 +52,7 @@ That's it. \`- \` then the word, then a space, then your \`#tags\`.
 |---|---|---|
 | Fantasy | \`#fantasy\` | \`#epic\` \`#heroic-fantasy\` \`#sword-sorcery\` \`#urban-fantasy\` \`#dark-fantasy\` \`#portal-fantasy\` \`#cosy-fantasy\` |
 | Science fiction | \`#sf\` | \`#space-opera\` \`#military-sf\` \`#cyberpunk\` \`#dystopian\` \`#hard-sf\` \`#first-contact\` \`#alt-history\` |
-| Horror | \`#horror\` | \`#gothic\` \`#cosmic-horror\` \`#folk-horror\` \`#supernatural\` \`#slasher\` |
+| Horror | \`#horror\` | \`#gothic\` \`#cosmic-horror\` \`#folk-horror\` \`#supernatural\` \`#splatterpunk\` |
 | Crime | \`#crime\` | \`#whodunit\` \`#cosy-mystery\` \`#noir\` \`#police-procedural\` \`#heist\` \`#hardboiled\` |
 | Thriller | \`#thriller\` | \`#psych-thriller\` \`#spy\` \`#legal-thriller\` \`#techno-thriller\` \`#domestic-thriller\` |
 | Literary | \`#lit\` | *(none)* |
