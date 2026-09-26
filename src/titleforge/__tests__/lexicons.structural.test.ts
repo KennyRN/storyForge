@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { checkArticleAgreement } from "../engine/articles.js";
-import { generateMany, generateOne, generateSeries, validateSpec } from "../engine/generate.js";
+import { generateMany, generateOne, validateSpec } from "../engine/generate.js";
 import { ALL_TITLEFORGE_LEXICONS } from "../lexicons/index.js";
 
 /**
@@ -63,11 +63,6 @@ describe("titleforge bundled lexicons — structural validation", () => {
 				expect(results.length).toBe(8);
 				const titles = results.map((r) => r.title.toLowerCase());
 				expect(new Set(titles).size).toBe(titles.length);
-			});
-
-			it("generateSeries succeeds", () => {
-				const set = generateSeries(spec, { seed: 1 });
-				expect(set.series.title, `${spec.id} series title`).not.toBe("");
 			});
 		});
 	}

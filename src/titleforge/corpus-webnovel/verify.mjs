@@ -8,8 +8,18 @@
  * Merges derived-patterns.json into a clone of westernSerialLexicon (never
  * mutating the shipped object), then asserts: validateSpec clean,
  * checkArticleAgreement clean, per-genre non-empty generation, generateMany(8)
- * unique, all three series strategies non-empty, and — the corpus-specific
- * invariant — every new exemplar is a verified English-original corpus title.
+ * unique, and — the corpus-specific invariant — every new exemplar is a
+ * verified English-original corpus title.
+ *
+ * PROVENANCE-ONLY, LIKE ITS SIBLING `corpus/`/`corpus-novel/` FOLDERS: this was a
+ * one-time pre-integration check for the HANDOFF.md patch (6 patterns, 9 slots),
+ * which has since been applied for real to the shipped `westernSerial.ts`. Every
+ * id/slot this script tries to merge in is therefore already present in the spec
+ * it clones, so the collision guard a few lines down (`existingIds.has(p.id)`)
+ * fires on the very first pattern — permanently, by construction, not a
+ * regression. Kept for the record rather than deleted; not expected to run clean
+ * again unless it's rewritten to validate the live lexicon directly instead of
+ * re-merging an already-merged patch.
  */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -21,7 +31,7 @@ import * as artMod from "../engine/articles.ts";
 import * as wsMod from "../lexicons/westernSerial.ts";
 const gen = genMod.default ?? genMod;
 const art = artMod.default ?? artMod;
-const { validateSpec, generateOne, generateMany, generateSeries } = gen;
+const { validateSpec, generateOne, generateMany } = gen;
 const { checkArticleAgreement } = art;
 const { westernSerialLexicon } = wsMod.default ?? wsMod;
 
@@ -65,13 +75,6 @@ check("every genre generates non-empty", genreProblems);
 
 const many = generateMany(spec, 8, { seed: 1 });
 check("generateMany(8) unique", new Set(many.map((r) => r.title.toLowerCase())).size === 8 ? [] : ["duplicates found"]);
-
-const seriesProblems = [];
-for (const strategy of ["echo", "anchor", "free"]) {
-	const s = generateSeries(spec, { strategy, volumes: 3, seed: 1 });
-	if (!s.series.title) seriesProblems.push(`${strategy} empty`);
-}
-check("generateSeries all strategies", seriesProblems);
 
 const exemplarProblems = derived.patterns
 	.filter((p) => !verifiedTitles.has(p.exemplar))

@@ -9,7 +9,7 @@ import {
 	ICON_STAR_FILL,
 	ICON_STAR_OUTLINE,
 } from "../../icons.js";
-import { generateOne, generateSeries } from "../engine/generate.js";
+import { generateOne } from "../engine/generate.js";
 import { toEntry } from "../engine/history.js";
 import type { GeneratorSpec, GenreOption, HistoryEntry, LabelledOption } from "../engine/types.js";
 import type { TitleForgeScope, TitleForgeTab } from "../settings.js";
@@ -174,9 +174,9 @@ const SCOPE_TABS: Record<TitleForgeScope, TitleForgeTab[]> = {
  * from when these were literal tab-bar icons), and is only ever in series mode for the "series"
  * section itself (title-composer, shape family forced to "series") — "novels" and "webnovels"
  * never are; there's no way to opt a section into series mode any more, only to switch to the
- * series section outright. It always generates a fixed number of volumes (`generateSeries`'
- * `SERIES_VOLUME_COUNT`) — there's no strategy concept or volume-count picker any more, having
- * never had a surface that made either reachable. "kept titles" isn't a generator section at all
+ * series section outright. It generates one series name per requested quantity, drawn from the
+ * corpus-grounded `series` shape family (`generateOne(spec, { family: "series" })`) — volume
+ * titles are novel titles and are never produced here. "kept titles" isn't a generator section at all
  * — see renderKeptTab. Generating writes straight into the history list — there's no separate
  * "just generated" preview; every row, old or new, carries the same info/short-list/use-this-title
  * actions (renderTitleRow).
@@ -838,8 +838,8 @@ export class TitleForgePanel {
 		return select;
 	}
 
-	/** Generates `this.quantity` independent results (single titles, or whole series-with-volumes
-	 * bundles in series mode) per click, writing each straight into history and replacing
+	/** Generates `this.quantity` independent results — one title per draw, a series name in series
+	 * mode and a novel title otherwise — per click, writing each straight into history and replacing
 	 * `currentBatch` with exactly what this click produced — the inline box (renderHistory) shows
 	 * only that; the full running history stays reachable from "previous generations"
 	 * (TitleForgeHistoryModal). Exclusions accumulate across the whole batch (not just against
@@ -869,33 +869,19 @@ export class TitleForgePanel {
 			for (let i = 0; i < this.quantity; i++) {
 				const spec = isAny ? pool[Math.floor(Math.random() * pool.length)] : this.currentSpec();
 				if (!spec) return;
-				if (this.effectiveSeriesMode()) {
-					const result = generateSeries(spec, {
+				const entry = toEntry(
+					generateOne(spec, {
 						...baseOptions,
-						// Draw the umbrella and its volumes from the corpus-grounded series shape
-						// set, not the novel patterns (invariant 2 of the Stage 5 brief). Generators
-						// with no "series" family fall through untouched — eligiblePatterns treats an
-						// empty family match as a soft no-op. There's no strategy/volume-count option
-						// to pass any more — generateSeries always produces its own fixed set.
-						family: "series",
+						// Series section: draw from the corpus-grounded series shape family, not the
+						// novel patterns. eligiblePatterns treats an empty family match as a soft
+						// no-op, so generators with no "series" family fall through untouched.
+						family: this.effectiveSeriesMode() ? "series" : baseOptions.family,
 						exclude,
-					});
-					const seriesEntry = toEntry(result.series);
-					await this.controller.storage.appendHistory(seriesEntry);
-					batch.push(seriesEntry);
-					exclude.add(result.series.title.toLowerCase());
-					for (const volume of result.volumes) {
-						const volumeEntry = toEntry(volume);
-						await this.controller.storage.appendHistory(volumeEntry);
-						batch.push(volumeEntry);
-						exclude.add(volume.title.toLowerCase());
-					}
-				} else {
-					const entry = toEntry(generateOne(spec, { ...baseOptions, exclude }));
-					await this.controller.storage.appendHistory(entry);
-					batch.push(entry);
-					exclude.add(entry.title.toLowerCase());
-				}
+					}),
+				);
+				await this.controller.storage.appendHistory(entry);
+				batch.push(entry);
+				exclude.add(entry.title.toLowerCase());
 			}
 			await this.loadHistoryForCurrentGenerator();
 			this.currentBatch = batch;

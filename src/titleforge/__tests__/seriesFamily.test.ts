@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { checkArticleAgreement } from "../engine/articles.js";
-import { eligiblePatterns, generateSeries, validateSpec } from "../engine/generate.js";
+import { eligiblePatterns, generateOne, validateSpec } from "../engine/generate.js";
 import { titleComposerLexicon } from "../lexicons/titleComposer.js";
 
 /**
@@ -113,17 +113,15 @@ describe("titleComposer — series umbrella family", () => {
 		expect(epic).not.toContain("series-colon");
 	});
 
-	it("generateSeries under family:\"series\" draws every title from a series shape", () => {
+	it("generateOne under family:\"series\" draws from a series shape", () => {
 		for (let seed = 1; seed <= 25; seed++) {
-			const set = generateSeries(titleComposerLexicon, {
+			const result = generateOne(titleComposerLexicon, {
 				family: "series",
 				genre: seed % 2 ? "crime" : "epic",
 				seed,
 			});
-			expect(set.series.title, `${seed}`).not.toBe("");
-			for (const result of [set.series, ...set.volumes]) {
-				expect(result.patternId, `${seed}: ${result.title}`).toMatch(/^series-/);
-			}
+			expect(result.title, `${seed}`).not.toBe("");
+			expect(result.patternId, `${seed}: ${result.title}`).toMatch(/^series-/);
 		}
 	});
 });

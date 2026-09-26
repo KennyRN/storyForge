@@ -3,7 +3,6 @@ import {
 	eligiblePatterns,
 	generateMany,
 	generateOne,
-	generateSeries,
 	validateSpec,
 } from "../engine/generate.js";
 import type { GeneratorSpec } from "../engine/types.js";
@@ -118,26 +117,6 @@ describe("titleforge generateOne / generateMany", () => {
 			exclude: [first.title],
 		});
 		expect(second.title.toLowerCase()).not.toBe(first.title.toLowerCase());
-	});
-});
-
-describe("titleforge generateSeries", () => {
-	it("every volume shares one template realisation with the forced pattern", () => {
-		const set = generateSeries(spec, { pattern: "place-and-place", seed: 1 });
-		expect(set.volumes.length).toBeGreaterThan(0);
-		for (const v of set.volumes) expect(v.patternId).toBe("place-and-place");
-	});
-
-	it("always produces a fixed number of volumes, not a configurable one", () => {
-		const set = generateSeries(spec, { pattern: "place-and-place", seed: 2 });
-		expect(set.volumes.length).toBe(3);
-	});
-
-	it("has no strategy/volumes options or anchor fields any more", () => {
-		const set = generateSeries(spec, { pattern: "place-and-place", seed: 4 });
-		expect(set).not.toHaveProperty("strategy");
-		expect(set).not.toHaveProperty("anchorSlot");
-		expect(set).not.toHaveProperty("anchorWord");
 	});
 });
 
