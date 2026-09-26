@@ -261,3 +261,63 @@ additive, never removing/narrowing anything):**
   (not from `corpus/derive.mjs`, which only reproduces the original v1.0.0
   series corpus and knows nothing of this later expansion) to keep
   `seriesFamily.test.ts`'s vendored-copy invariant meaningful going forward.
+
+## `title-composer` — series-lane derivation package (875-series corpus, lean pass)
+
+A second, later handoff — "reuse the novel lexicon wholesale, derive only the
+`seriesWord` slot + a small family of series-shape patterns + a per-subgenre
+weight tilt" — mined 875 series (distinct from, and larger than, the
+`series-weights.json` v1.0.0 n=303 corpus above; that file documents the
+original corpus's own shape distribution and was left untouched rather than
+retrofitted with unsourced numbers). Applied as a lean, additive pass on top
+of the already-integrated 9-shape/41-subgenre baseline, not a redo.
+
+**Judgment calls (the handoff flagged several explicitly as "agent's call"):**
+- Of the 4 shapes the handoff proposed as new, 3 turned out to already exist
+  almost verbatim once the 41-subgenre pass above is accounted for — extended
+  in place rather than duplicated, per the same "weight is global, not
+  per-genre" doctrine as the romantasy call above:
+  - its `series-collection` is `series-marker`'s first two templates
+    verbatim; only added value was a `{name}'s {seriesWord}` possessive
+    template (now added) and three missing genres (`dark-fantasy`,
+    `cyberpunk`, `supernatural`, now added).
+  - its `series-of` **is** the existing `series-of` id by the handoff's own
+    admission ("could RESCOPE... instead of a new id") — rescoped: added
+    `dark-fantasy`, `supernatural`, `cosmic-horror`.
+  - its `series-world` is `series-simple`'s `"The {noun}"` template plus a
+    bare `{place}` draw (the `{place}` slot already exists, already holds
+    coined single-word realm names like "the Fetterlands"/"Widdershin" from
+    the 41-subgenre pass, and is already used mid-template elsewhere) — added
+    `"{place}"` as a template and `cyberpunk`/`hard-sf` as genres to
+    `series-simple` rather than standing up a fourth near-duplicate pattern.
+    Its other proposed template, an unspaced `"{noun}{noun}"` portmanteau
+    (Discworld/Malazan-style), has no precedent anywhere else in the template
+    grammar and wasn't worth the risk for a weight-3 tail shape — dropped.
+- Its `series-named` (protagonist-name, weight 5, crime/thriller/historical
+  only) is genuinely new: no existing pattern combines `{name}` with
+  `{seriesWord}`, and the flagged `{firstname}`/`{surname}` dependency turned
+  out to be moot — `{name}` already exists as a populated slot (already drawn
+  by `series-name`) and was reused as-is rather than standing up parallel
+  given-name/surname pools. Added as a new pattern, genre-scoped to the
+  granular subgenres (`whodunit`, `cosy-mystery`, `police-procedural`,
+  `hardboiled`, `noir`, `spy`, `legal-thriller`, `techno-thriller`, `western`,
+  `regency`, `wartime`, `ancient`, `medieval`, `naval`) rather than the coarse
+  `crime`/`thriller`/`hist` parents `series-name` already carries — the two
+  patterns now co-exist and both draw in those subgenres, which *is* the tilt
+  (more combined named-protagonist weight there, without touching
+  `series-name`'s existing weight or its broader, thinner fantasy/SF spread).
+- The handoff's 27-entry `seriesWord` list mostly duplicated existing entries
+  once genre-origin variants are accounted for; 14 genuinely new words were
+  added (Legacy, Codex, Legendarium, Compendium, Dynasty, Cantos, Universe,
+  Verse, a new SF-tagged Wars, Casebook, Records, a general crime-tagged
+  Mysteries, Novels, Adventures, Memoirs). `Trilogy`/`Duology` were skipped —
+  already covered by the separate `countWord` slot (`"The {name} {countWord}"`
+  in `series-marker`), which exists precisely to keep fixed-part-count words
+  apart from open-ended collection words; adding them to `seriesWord` too
+  would blur that split. The literal word `Series` was skipped as a
+  reader/retailer label rather than a cover-worthy title word, per the same
+  caution already on record for "X Mysteries" above.
+- No raw pattern `weight` was bumped for the fantasy/SF/horror "tilt up"
+  entries in the handoff's table — per the doctrine above, that would inflate
+  the pattern for every sibling genre it already covers. The tilt is
+  expressed entirely through which patterns list which genres.

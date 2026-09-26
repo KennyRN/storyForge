@@ -7,9 +7,10 @@ import { titleComposerLexicon } from "../lexicons/titleComposer.js";
 
 /**
  * Stage 5 integration check for the corpus-grounded `family: "series"` shape set
- * (INTEGRATION-PROMPT.md, series corpus v1.0.0, n=303). Verifies the nine
- * patterns are present, structurally clean, and that genre-eligibility visibly
- * bites when series generation is routed through the family.
+ * (INTEGRATION-PROMPT.md, series corpus v1.0.0, n=303, plus the later `series-named`
+ * addition tuned from an 875-series corpus). Verifies the ten patterns are present,
+ * structurally clean, and that genre-eligibility visibly bites when series
+ * generation is routed through the family.
  */
 
 const SERIES_SHAPE_IDS = [
@@ -18,6 +19,7 @@ const SERIES_SHAPE_IDS = [
 	"series-of",
 	"series-pair",
 	"series-name",
+	"series-named",
 	"series-marker",
 	"series-colon",
 	"series-verb",
@@ -29,7 +31,7 @@ describe("titleComposer — series umbrella family", () => {
 		expect(titleComposerLexicon.families?.some((f) => f.id === "series")).toBe(true);
 	});
 
-	it("carries exactly the nine derived series shapes", () => {
+	it("carries exactly the ten derived series shapes", () => {
 		const ids = titleComposerLexicon.patterns
 			.filter((p) => p.family === "series")
 			.map((p) => p.id);
@@ -48,6 +50,7 @@ describe("titleComposer — series umbrella family", () => {
 			titleComposerLexicon.patterns.find((p) => p.id === id)!.weight ?? 1;
 		expect(weight("series-compound")).toBe(15);
 		expect(weight("series-name")).toBe(6);
+		expect(weight("series-named")).toBe(5);
 		expect(weight("series-marker")).toBe(6);
 		expect(weight("series-of")).toBe(5);
 		expect(weight("series-simple")).toBe(3);
@@ -86,7 +89,7 @@ describe("titleComposer — series umbrella family", () => {
 
 	it("narrows to only the series shapes when family is supplied", () => {
 		const picked = eligiblePatterns(titleComposerLexicon, { family: "series" });
-		expect(picked.length).toBe(9);
+		expect(picked.length).toBe(10);
 		expect(picked.every((p) => p.family === "series")).toBe(true);
 	});
 
@@ -95,6 +98,7 @@ describe("titleComposer — series umbrella family", () => {
 			(p) => p.id,
 		);
 		expect(crime).toContain("series-name");
+		expect(crime).toContain("series-named");
 		expect(crime).toContain("series-colon");
 		expect(crime).not.toContain("series-verb");
 		expect(crime).not.toContain("series-clause");

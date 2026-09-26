@@ -7,7 +7,8 @@
 			"The {noun}",
 			"The {abstract}",
 			"The {group}",
-			"The {kingdom}"
+			"The {kingdom}",
+			"{place}"
 		],
 		"genres": [
 			"epic",
@@ -21,10 +22,12 @@
 			"urban-fantasy",
 			"space-opera",
 			"military-sf",
-			"dark-fantasy"
+			"dark-fantasy",
+			"cyberpunk",
+			"hard-sf"
 		],
 		"weight": 3,
-		"exemplar": "The Belgariad; The Expanse; The Strain",
+		"exemplar": "The Belgariad; The Expanse; The Strain; Discworld",
 		"note": "The barest umbrella — one weighty noun. Reads as \"the one that matters\"; leans literary/SF. Nearly always takes \"The\"."
 	},
 	{
@@ -85,7 +88,10 @@
 			"heroic-fantasy",
 			"sword-sorcery",
 			"urban-fantasy",
-			"space-opera"
+			"space-opera",
+			"dark-fantasy",
+			"supernatural",
+			"cosmic-horror"
 		],
 		"weight": 5,
 		"exemplar": "A Song of Ice and Fire; The Book of the New Sun; The Books of Blood",
@@ -144,6 +150,34 @@
 		"note": "A recurring protagonist as the umbrella. In real series this is overwhelmingly crime/thriller (and comic) — hence its genre-eligibility, not a global default."
 	},
 	{
+		"id": "series-named",
+		"family": "series",
+		"label": "[Protagonist Name] / The [Name] [SeriesWord]",
+		"templates": [
+			"{name}",
+			"The {name} {seriesWord}"
+		],
+		"genres": [
+			"whodunit",
+			"cosy-mystery",
+			"police-procedural",
+			"hardboiled",
+			"noir",
+			"spy",
+			"legal-thriller",
+			"techno-thriller",
+			"western",
+			"regency",
+			"wartime",
+			"ancient",
+			"medieval",
+			"naval"
+		],
+		"weight": 5,
+		"exemplar": "Hercule Poirot; Inspector Rebus; Sharpe; The Cormoran Strike Novels",
+		"note": "The named-protagonist umbrella, tuned to the subgenres where a series corpus shows it dominant (62-67% of crime/thriller/historical series) — `series-name` already covers this shape more thinly across a wider genre spread; this pattern adds a second, heavier draw specifically where the shape is the norm rather than the exception."
+	},
+	{
 		"id": "series-marker",
 		"family": "series",
 		"label": "The [Noun] [Saga/Cycle/Chronicles/Files]",
@@ -151,6 +185,7 @@
 			"The {adj} {seriesWord}",
 			"The {noun} {seriesWord}",
 			"{name} {seriesWord}",
+			"{name}'s {seriesWord}",
 			"The {name} {countWord}",
 			"The {storyWord} of {place}"
 		],
@@ -169,7 +204,10 @@
 			"urban-fantasy",
 			"space-opera",
 			"military-sf",
-			"portal-fantasy"
+			"portal-fantasy",
+			"dark-fantasy",
+			"cyberpunk",
+			"supernatural"
 		],
 		"weight": 6,
 		"exemplar": "The Stormlight Archive; The Murderbot Diaries; The Best American Short Stories",
