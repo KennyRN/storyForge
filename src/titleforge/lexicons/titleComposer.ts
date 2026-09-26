@@ -2063,7 +2063,8 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"The {noun}",
 				"The {abstract}",
 				"The {group}",
-				"The {kingdom}"
+				"The {kingdom}",
+				"{place}"
 			],
 			"genres": [
 				"epic",
@@ -2077,10 +2078,12 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"urban-fantasy",
 				"space-opera",
 				"military-sf",
-				"dark-fantasy"
+				"dark-fantasy",
+				"cyberpunk",
+				"hard-sf"
 			],
 			"weight": 3,
-			"exemplar": "The Belgariad; The Expanse; The Strain",
+			"exemplar": "The Belgariad; The Expanse; The Strain; Discworld",
 			"note": "The barest umbrella — one weighty noun. Reads as \"the one that matters\"; leans literary/SF. Nearly always takes \"The\"."
 		},
 		{
@@ -2141,7 +2144,10 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"heroic-fantasy",
 				"sword-sorcery",
 				"urban-fantasy",
-				"space-opera"
+				"space-opera",
+				"dark-fantasy",
+				"supernatural",
+				"cosmic-horror"
 			],
 			"weight": 5,
 			"exemplar": "A Song of Ice and Fire; The Book of the New Sun; The Books of Blood",
@@ -2200,6 +2206,34 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"note": "A recurring protagonist as the umbrella. In real series this is overwhelmingly crime/thriller (and comic) — hence its genre-eligibility, not a global default."
 		},
 		{
+			"id": "series-named",
+			"family": "series",
+			"label": "[Protagonist Name] / The [Name] [SeriesWord]",
+			"templates": [
+				"{name}",
+				"The {name} {seriesWord}"
+			],
+			"genres": [
+				"whodunit",
+				"cosy-mystery",
+				"police-procedural",
+				"hardboiled",
+				"noir",
+				"spy",
+				"legal-thriller",
+				"techno-thriller",
+				"western",
+				"regency",
+				"wartime",
+				"ancient",
+				"medieval",
+				"naval"
+			],
+			"weight": 5,
+			"exemplar": "Hercule Poirot; Inspector Rebus; Sharpe; The Cormoran Strike Novels",
+			"note": "The named-protagonist umbrella, tuned to the subgenres where a series corpus shows it dominant (62-67% of crime/thriller/historical series) — `series-name` already covers this shape more thinly across a wider genre spread; this pattern adds a second, heavier draw specifically where the shape is the norm rather than the exception."
+		},
+		{
 			"id": "series-marker",
 			"family": "series",
 			"label": "The [Noun] [Saga/Cycle/Chronicles/Files]",
@@ -2207,6 +2241,7 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"The {adj} {seriesWord}",
 				"The {noun} {seriesWord}",
 				"{name} {seriesWord}",
+				"{name}'s {seriesWord}",
 				"The {name} {countWord}",
 				"The {storyWord} of {place}"
 			],
@@ -2225,7 +2260,10 @@ export const titleComposerLexicon: GeneratorSpec = {
 				"urban-fantasy",
 				"space-opera",
 				"military-sf",
-				"portal-fantasy"
+				"portal-fantasy",
+				"dark-fantasy",
+				"cyberpunk",
+				"supernatural"
 			],
 			"weight": 6,
 			"exemplar": "The Stormlight Archive; The Murderbot Diaries; The Best American Short Stories",
@@ -4763,7 +4801,22 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"Stories #medieval",
 			"Saga #medieval",
 			"Wars #medieval",
-			"diaries"
+			"diaries",
+			"Legacy",
+			"Codex #epic #heroic-fantasy #sword-sorcery #dark-fantasy",
+			"Legendarium #epic #heroic-fantasy #sword-sorcery #dark-fantasy",
+			"Compendium #epic #heroic-fantasy #sword-sorcery #dark-fantasy",
+			"Dynasty #epic #heroic-fantasy #sword-sorcery #dark-fantasy",
+			"Cantos #sf #space-opera #hard-sf",
+			"Universe #sf #space-opera #hard-sf",
+			"Verse #sf #space-opera #hard-sf",
+			"Wars #sf #space-opera #military-sf",
+			"Casebook #crime #whodunit #police-procedural #hardboiled #noir",
+			"Records #crime #whodunit #police-procedural #hardboiled #noir",
+			"Mysteries #crime #whodunit #police-procedural #hardboiled #noir",
+			"Novels #thriller #spy #legal-thriller #techno-thriller",
+			"Adventures #hist #western #wartime #naval",
+			"Memoirs #hist #wartime #ancient #naval"
 		],
 		"refWord": [
 			"Book #epic #lit #hist #ya #heroic-fantasy",
