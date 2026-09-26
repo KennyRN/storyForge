@@ -40,7 +40,7 @@ src/titleforge/
     template.ts           slot-filling renderer: {slot}, {slot#2}, {slot^}, {slot:tag}, {slot|filter}
     titlecase.ts           British-convention title case + indefinite-article fix + word count
     articles.ts            static bare/articled slot-agreement lint
-    generate.ts             generateOne / generateMany / generateSeries / validateSpec
+    generate.ts             generateOne / generateMany / validateSpec
     history.ts               JSONL parse/serialise, toEntry, titlesFrom, replay, replayMatches
     registry.ts               register / getGenerator / listGenerators / listByTradition
     userLexicon.ts            scan `user enhanced lexicon.md` + merge its words into a bundled spec
@@ -61,8 +61,7 @@ src/titleforge/
     TitleForgeSettingsModal.ts opened from storyForge's own settings tab
   __tests__/            vitest — engine unit tests + a structural sweep over all eight
                         bundled lexicons (validateSpec, checkArticleAgreement, every
-                        pattern has note+exemplar, every genre generates, generateSeries
-                        succeeds)
+                        pattern has note+exemplar, every genre generates)
   ACCURACY.md          what's verified vs. illustrative vs. dropped in each lexicon, and why
   corpus/              frozen series-name research (v1.0.0, n=303) behind title-composer's
                        `series` shape family — provenance only, never imported/bundled
@@ -83,7 +82,7 @@ folder itself never needs `git grep` to find what depends on it:
 ## The engine API
 
 ```ts
-import { generateOne, generateMany, generateSeries, getGenerator } from "./engine/index.js";
+import { generateOne, generateMany, getGenerator } from "./engine/index.js";
 import { titleComposerLexicon } from "./lexicons/titleComposer.js";
 import { register } from "./engine/registry.js";
 
@@ -97,13 +96,12 @@ const result = generateOne(getGenerator("title-composer")!, {
 ```
 
 `generateMany(spec, count, options)` is the batch form (no duplicates within
-the batch). `generateSeries(spec, options)` produces a series title and a
-fixed number of volumes (three) as one coherent set — one shape, chosen once,
-realised across every volume so the set reads as a family. (An earlier
-revision offered this as one of three interchangeable strategies — echo,
-anchor, free — with a configurable volume count, but no surface ever exposed
-the choice and only this behaviour was ever reachable, so the other two and
-the options themselves were removed rather than kept half-built.)
+the batch). Series names come from the same `generateOne`, scoped with
+`{ family: "series" }` to draw from the corpus-grounded `series` shape family
+instead of the novel patterns — see title-composer's `series`-tagged patterns.
+Volume titles come from the novel patterns; an earlier revision generated a
+series umbrella plus a fixed set of volumes as one coherent bundle, and this
+was removed because volume titles are novel titles, not series titles.
 
 ### Template syntax
 

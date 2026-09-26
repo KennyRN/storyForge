@@ -116,20 +116,6 @@ export interface TitleResult {
 	constraintRelaxed?: boolean;
 }
 
-export interface SeriesOptions extends GenerateOptions {
-	/** Force the shape the volumes (and, ordinarily, the series title itself) are drawn from. */
-	volumePattern?: string;
-	/** Force the shape the series title itself is drawn from, overriding `volumePattern`. */
-	seriesPattern?: string;
-}
-
-export interface SeriesResult {
-	generatorId: string;
-	series: TitleResult;
-	volumes: TitleResult[];
-	seed: number;
-}
-
 /** One recorded generation. Stores the seed (provenance) and the title text (survives lexicon drift). */
 export interface HistoryEntry {
 	generatorId: string;

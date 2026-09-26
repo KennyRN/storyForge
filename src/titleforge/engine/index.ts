@@ -18,7 +18,6 @@ export {
 	eligiblePatterns,
 	generateOne,
 	generateMany,
-	generateSeries,
 	validateSpec,
 } from "./generate.js";
 export {
