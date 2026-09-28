@@ -1,13 +1,16 @@
-import { EditorView, layer, RectangleMarker, type LayerMarker } from "@codemirror/view";
+import { App, editorInfoField } from "obsidian";
+import { EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
 import { countWordsInLine } from "./wordCount";
 import { isChapterEditor } from "./cyclingGuide";
+import { bookFolderNameFromChapterPath, chapterFilenameFromPath } from "./paths";
+import { getBookChapters } from "./book";
 
-/**
- * How many opening words a diagonal-pattern background marks as "the first page" - roughly what an
- * agent/editor reads first. Hardcoded for now; the plan is to make this user-configurable (or
- * deselectable) once the look is settled.
- */
-export const DEFAULT_OPENING_WORDS_TARGET = 300;
+/** The scroller class toggled while a chapter has an "opening words" (depth guide) region to paint. */
+const ACTIVE_CLASS = "sf-opening-words-active";
+/** Document-space height (px) of the region, from the top of the chapter through the boundary. */
+const HEIGHT_PROP = "--sf-opening-words-height";
+/** Live `-scrollTop` (px), kept in sync with scrolling so the region tracks the text underneath it. */
+const OFFSET_PROP = "--sf-opening-words-offset";
 
 /**
  * Last CM6 line number of the paragraph containing the `targetWords`-th word - i.e. the boundary is
@@ -35,46 +38,146 @@ function findOpeningWordsEndLine(view: EditorView, targetWords: number): number 
 }
 
 /**
- * One continuous rectangle spanning the full editor width, from the top of the document through the
- * end of the opening paragraph - a single box rather than a per-line/per-paragraph decoration, so the
- * diagonal pattern painted on it (in CSS) never seams or breaks stride at a line boundary.
+ * Document-space height (from the top of the chapter) of the "opening words" region, extended past
+ * `endLine` (the paragraph's last line of actual text) through any blank separator line(s) to wherever
+ * the next paragraph's real text starts - or the end of the document - so nothing unpatterned sits
+ * between the region and the rest of the (intentionally plain) manuscript.
  */
-function buildOpeningWordsMarkers(view: EditorView, targetWords: number): readonly LayerMarker[] {
-	if (!isChapterEditor(view)) return [];
+function findOpeningWordsRegionHeight(view: EditorView, targetWords: number): number | null {
 	const endLine = findOpeningWordsEndLine(view, targetWords);
-	if (endLine === null) return [];
+	if (endLine === null) return null;
 
-	// RectangleMarker/layer coordinates are relative to the scroller's own top-left corner (0,0),
-	// same as `lineBlockAt`'s own document-height space - so the top of the document is literally 0,
-	// no translation needed. For the bottom: `endLine` deliberately stops at the paragraph's last line
-	// of actual text, one line short of the blank separator line that follows it - CM6 line boxes are
-	// contiguous with no gap between them, so stopping there leaves that blank line's own height as an
-	// unpatterned strip sitting right at the boundary. Skip past it (and any further blank lines) to
-	// wherever the next paragraph's real text starts - or the end of the document - so nothing
-	// unpatterned sits between the fill and the rest of the (intentionally plain) manuscript.
 	const doc = view.state.doc;
-	const top = view.lineBlockAt(0).top;
 	let nextTextLine = endLine + 1;
 	while (nextTextLine <= doc.lines && doc.line(nextTextLine).text.trim() === "") nextTextLine++;
-	const bottom = nextTextLine <= doc.lines ? view.lineBlockAt(doc.line(nextTextLine).from).top : view.contentHeight;
-
-	const scrollerRect = view.scrollDOM.getBoundingClientRect();
-	// clientWidth excludes a reserved-but-currently-empty scrollbar gutter; getBoundingClientRect
-	// doesn't, so the pattern still reaches the pane's true right edge when no scrollbar is drawn.
-	const width = scrollerRect.width;
-	return [new RectangleMarker("sf-opening-words-fill", 0, top, width, bottom - top)];
+	return nextTextLine <= doc.lines ? view.lineBlockAt(doc.line(nextTextLine).from).top : view.contentHeight;
 }
 
 /**
- * A CM6 layer (same "rectangle behind the text" mechanism CM6 itself uses for selection
- * backgrounds) painting the "opening words" diagonal-pattern editor background, from the top of the
- * chapter through the end of the paragraph containing the `targetWords`-th word.
+ * True if `path`'s chapter sits among the first `chaptersCovered` chapters of its book, in the book's
+ * own chapter order (same order/source `numberedChapterTitle` uses) - the "depth guide" setting only
+ * shows the region for a book's early chapters, per the "chapters covered" setting.
  */
-export function createOpeningWordsLayer(targetWords: number) {
-	return layer({
-		above: false,
-		class: "sf-opening-words-layer",
-		markers: (view) => buildOpeningWordsMarkers(view, targetWords),
-		update: (update) => update.docChanged,
-	});
+function isWithinCoveredChapters(app: App, path: string, chaptersCovered: number): boolean {
+	if (chaptersCovered <= 0) return false;
+	const bookFolderName = bookFolderNameFromChapterPath(path);
+	const filename = chapterFilenameFromPath(path);
+	if (!bookFolderName || !filename) return false;
+	const { ordered, unplaced } = getBookChapters(app, bookFolderName);
+	const idx = [...ordered, ...unplaced].findIndex((file) => file.name === filename);
+	return idx !== -1 && idx < chaptersCovered;
+}
+
+/**
+ * Paints the "opening words" (depth guide) diagonal-pattern background on the chapter editor's own
+ * scroller (`.cm-scroller`), not on anything living inside its scrolled content.
+ *
+ * A scroll container clips its *content* - including CM6 decorations/layers, however they're
+ * positioned - to the scrollport, which sits inside the space a classic (non-overlay) scrollbar
+ * reserves. That reservation is invisible on macOS's overlay scrollbars (nothing to clip against) but
+ * real on Windows/Linux, where it silently ate the right edge of an earlier layer-based version of
+ * this fill. The scroller's *own* background is different: painted across its border box (confirmed
+ * empirically - see the plugin's dev notes), it reaches under a reserved gutter the same way the
+ * editor's normal background already does.
+ *
+ * The tradeoff is that only `background-attachment: scroll` (the default - tied to the box) reaches
+ * the gutter; `background-attachment: local` (tied to the scrolled content, which is what "moves with
+ * the text" ordinarily means) was verified to clip at the scrollport exactly like a layer does, gutter
+ * or not. So the background is pinned to the box, sized to the region's document-space height via
+ * `--sf-opening-words-height` (published here, recomputed on doc/geometry changes), and its vertical
+ * position is corrected on every scroll (rAF-throttled) via `--sf-opening-words-offset` - i.e. the
+ * pattern's "scrolling with the content" is simulated in JS rather than delegated to the browser.
+ *
+ * `chaptersCovered` (settings > guides > depth) gates this to a book's early chapters only; that check
+ * needs a vault/frontmatter read (`getBookChapters`), so it's cached per file path rather than redone
+ * on every keystroke - only re-evaluated when the editor's underlying file actually changes.
+ */
+class OpeningWordsPlugin {
+	private readonly scroller: HTMLElement;
+	private readonly onScroll: () => void;
+	private rafHandle: number | null = null;
+	private cachedPath: string | null = null;
+	private cachedWithinCoverage = false;
+
+	constructor(
+		private readonly view: EditorView,
+		private readonly app: App,
+		private readonly targetWords: number,
+		private readonly chaptersCovered: number,
+	) {
+		this.scroller = view.scrollDOM;
+		this.onScroll = () => this.scheduleOffsetUpdate();
+		this.scroller.addEventListener("scroll", this.onScroll, { passive: true });
+		this.updateRegion();
+		this.updateOffset();
+	}
+
+	update(update: ViewUpdate): void {
+		if (update.docChanged || update.geometryChanged) {
+			this.updateRegion();
+			this.updateOffset();
+		}
+	}
+
+	destroy(): void {
+		this.scroller.removeEventListener("scroll", this.onScroll);
+		if (this.rafHandle !== null) cancelAnimationFrame(this.rafHandle);
+		this.clearRegion();
+		this.scroller.style.removeProperty(OFFSET_PROP);
+	}
+
+	private updateRegion(): void {
+		if (!isChapterEditor(this.view)) {
+			this.cachedPath = null;
+			this.clearRegion();
+			return;
+		}
+		const path = this.view.state.field(editorInfoField, false)?.file?.path ?? null;
+		if (!path) {
+			this.clearRegion();
+			return;
+		}
+		if (path !== this.cachedPath) {
+			this.cachedPath = path;
+			this.cachedWithinCoverage = isWithinCoveredChapters(this.app, path, this.chaptersCovered);
+		}
+		if (!this.cachedWithinCoverage) {
+			this.clearRegion();
+			return;
+		}
+
+		const height = findOpeningWordsRegionHeight(this.view, this.targetWords);
+		if (height === null) {
+			this.clearRegion();
+			return;
+		}
+		this.scroller.classList.add(ACTIVE_CLASS);
+		this.scroller.style.setProperty(HEIGHT_PROP, `${height}px`);
+	}
+
+	private clearRegion(): void {
+		this.scroller.classList.remove(ACTIVE_CLASS);
+		this.scroller.style.removeProperty(HEIGHT_PROP);
+	}
+
+	private scheduleOffsetUpdate(): void {
+		if (this.rafHandle !== null) return;
+		this.rafHandle = requestAnimationFrame(() => {
+			this.rafHandle = null;
+			this.updateOffset();
+		});
+	}
+
+	private updateOffset(): void {
+		this.scroller.style.setProperty(OFFSET_PROP, `${-this.scroller.scrollTop}px`);
+	}
+}
+
+/**
+ * Creates the CM6 extension that drives the "opening words" (depth guide) chapter-editor background.
+ * `targetWords` and `chaptersCovered` come from settings > guides > depth (depthGuideLevel /
+ * depthGuideChaptersCovered) - the caller rebuilds this extension whenever either changes.
+ */
+export function createOpeningWordsBackground(app: App, targetWords: number, chaptersCovered: number) {
+	return ViewPlugin.define((view) => new OpeningWordsPlugin(view, app, targetWords, chaptersCovered));
 }

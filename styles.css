@@ -314,6 +314,104 @@
 	padding: 2px 4px 6px;
 }
 
+/* TopPanel.ts's Novel-tab chapter list: Default PoV (NovelPanel.ts's renderDefaultPovRow) and the
+ * Novel/Chapter Length rows all share ONE .sf-story-context-meta* wrapper (a global, view-agnostic
+ * set of classes — not scoped to Story Context's own sidebar despite the name) so the gap between
+ * all three rows is identical (the wrapper's own `gap`, not a margin between separately-wrapped
+ * rows) — see renderDefaultPovRow's own doc comment for why that matters. Side inset to match
+ * .sf-top-list's own 4px so the label lines up with the chapter rows below. */
+.sf-top-body > .sf-story-context-meta {
+	padding: 4px 6px;
+	flex-shrink: 0;
+}
+
+/* The ghost label in a planned-length row's inline editor (renderPlannedLengthEditorRow) — same
+ * text as the real label above it, invisible, purely to reserve the identical width so the input
+ * beside it lands exactly where that row's own value/icon sits (i.e. right after the colon). */
+.sf-story-context-meta-label--ghost {
+	visibility: hidden;
+}
+
+.sf-planned-length-editor-input {
+	/* "1,000,000" is 9 characters; tabular-nums keeps every digit that same fixed width, so this
+	 * comfortably fits it without needing to measure the actual formatted string. */
+	width: 9ch;
+	/* border-box (not content-box) so height:auto + this padding is the box's whole height —
+	 * Obsidian's own input styling otherwise sets a fixed --input-height meant for a full-size
+	 * settings-tab field, which content-box would then stack this padding/border on top of. */
+	box-sizing: border-box;
+	height: auto;
+	line-height: 1.3;
+	font: inherit;
+	font-variant-numeric: tabular-nums;
+	color: var(--text-normal);
+	background: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	box-shadow: none;
+	border-radius: 4px;
+	padding: 4px 6px;
+}
+
+.sf-planned-length-editor-input:focus {
+	outline: none;
+	/* Obsidian's own default text-input focus style adds a thick box-shadow glow on top of its
+	 * border (reads as a much heavier ~3px ring) — neutralized here so the only visible border is
+	 * this element's own explicit 1px one, just recoloured on focus. */
+	box-shadow: none;
+	border-color: var(--interactive-accent);
+}
+
+/* The "x" sits beside a box now sized by line-height + 4px padding (above) rather than Obsidian's
+ * taller default input height, but the row's own .sf-story-context-meta-row still aligns its
+ * children to the top (align-items: flex-start) for rows whose value can wrap to multiple lines —
+ * this row's box never does, so it centres against the box instead. Compound selector so this wins
+ * regardless of the two rules' order in the file (same specificity as a bare .sf-story-context-meta-row
+ * override otherwise). */
+.sf-story-context-meta-row.sf-planned-length-editor-row {
+	align-items: center;
+}
+
+/* Placed-chapters header (TopPanel.ts's renderPlacedHeader) — same shape as the Unplaced header
+ * above it (icon + label, collapse-toggle on click) but its own classes: it's coloured to match
+ * the chapter rows themselves (--sf-lib-items-color, the same "Library items" colour setting the
+ * placed list already uses) rather than the independently themeable "unplaced" colour, and it
+ * never carries an add-file button. */
+.sf-placed-zone {
+	flex-shrink: 0;
+}
+
+.sf-placed-header {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 10px 2px;
+	color: var(--sf-lib-items-color, var(--text-normal));
+	cursor: pointer;
+}
+
+.sf-placed-header > .sf-icon {
+	color: inherit;
+}
+
+.sf-placed-header > .sf-icon svg {
+	width: 1em;
+	height: 1em;
+}
+
+.sf-placed-hidden .sf-icon,
+.sf-placed-hidden .sf-header-placed {
+	color: var(--text-faint);
+}
+
+.sf-header-placed {
+	flex: 1;
+	font-weight: 600;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: inherit;
+}
+
 .sf-row {
 	display: flex;
 	align-items: center;
@@ -1126,29 +1224,70 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	display: block;
 }
 
-/* "Opening words" chapter-editor background (openingWords.ts) - a single CM6 layer rectangle (the
-   same below-text "layer" mechanism CM6 itself uses for selection backgrounds) spanning the full
-   editor width, from the top of the chapter through the end of the paragraph containing the target
-   word (300 by default). One continuous box, not one per line/paragraph, so the diagonal pattern
-   below never seams or breaks stride at a line boundary and there's no uncovered gap anywhere in the
-   region. Same pattern.css diagonal-lines-sm technique as .sf-synopsis-cover above, tuned to a 23px
-   tile / 2px line (line stop % = 50 * line / tile). */
-.sf-opening-words-fill {
-	pointer-events: none;
-	background-image: linear-gradient(45deg,
-		var(--sf-opening-words-pattern-line) 4.3478%, transparent 4.3478%,
-		transparent 50%, var(--sf-opening-words-pattern-line) 50%,
-		var(--sf-opening-words-pattern-line) 54.3478%, transparent 54.3478%,
-		transparent);
-	background-size: 23px 23px;
+/* "Opening words" chapter-editor background (openingWords.ts) - painted as the *scroller's own*
+   background (.cm-scroller), not on anything inside its scrolled content. A scroll container clips
+   its content - any child element, however positioned, including a CM6 decoration or layer - to the
+   scrollport, which sits inside the space a classic (non-overlay) scrollbar reserves; that clipped a
+   layer-based version of this fill on Windows/Linux (invisible on macOS's overlay scrollbars, which
+   reserve nothing to clip against). The scroller's own background paints across its border box
+   instead, reaching under a reserved gutter the same way the editor's normal background already does
+   - confirmed empirically, since only `background-attachment: scroll` (the default, tied to the box)
+   does this; `background-attachment: local` (tied to the scrolled content) was verified to clip at
+   the scrollport exactly like a layer, gutter or not. So this is pinned to the box - openingWords.ts
+   simulates "scrolls with the text" in JS instead, publishing the region's document-space height as
+   --sf-opening-words-height and correcting --sf-opening-words-offset on every scroll (rAF-throttled).
+   Pattern itself is pattern.css's diagonal-lines-sm, as a *repeating* gradient (not the tiled
+   background-size version .sf-synopsis-cover above uses) so the band can be cut off at the region's
+   exact height without a partial tile: 23px period, 2px line. */
+.cm-scroller.sf-opening-words-active {
+	background-image: repeating-linear-gradient(45deg,
+		var(--sf-opening-words-pattern-line) 0px, var(--sf-opening-words-pattern-line) 2px,
+		transparent 2px, transparent 23px);
+	background-attachment: scroll;
+	background-origin: border-box;
+	background-clip: border-box;
+	background-repeat: no-repeat;
+	background-size: 100% var(--sf-opening-words-height, 0px);
+	background-position: 0 var(--sf-opening-words-offset, 0px);
 }
 
-.theme-dark .sf-opening-words-fill {
+.theme-dark .cm-scroller.sf-opening-words-active {
 	--sf-opening-words-pattern-line: color-mix(in srgb, var(--background-modifier-border) 90%, white 10%);
 }
 
-.theme-light .sf-opening-words-fill {
+.theme-light .cm-scroller.sf-opening-words-active {
 	--sf-opening-words-pattern-line: color-mix(in srgb, var(--background-modifier-border) 90%, black 10%);
+}
+
+/* "Depth" word-target picker (styleModalHelpers.ts's renderDepthGuideLevelPicker, CyclingGuideModal's
+   depth tab) - plain hover icons, not boxed buttons: colour-only hover/active state, no background
+   fill, matching .sf-wordcount-mode-btn's treatment elsewhere in the plugin. */
+.sf-depth-guide-level-picker {
+	display: flex;
+	gap: 10px;
+}
+
+.sf-depth-guide-level-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+.sf-depth-guide-level-btn svg {
+	width: 20px;
+	height: 20px;
+}
+
+.sf-depth-guide-level-btn.is-active,
+.sf-depth-guide-level-btn:hover,
+.sf-depth-guide-level-btn:focus-visible {
+	color: var(--interactive-accent);
+}
+
+.sf-depth-guide-level-btn:focus-visible {
+	outline: none;
 }
 
 .sf-synopsis-body .sf-modal-textarea {
@@ -1286,6 +1425,17 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 .sf-modal-title-input {
 	font-size: 1.3em;
 	font-weight: 600;
+}
+
+/* NumberEntryModal — a single field, so its own .sf-modal-hint (reused as a field label rather
+ * than a below-input instruction, its usual role) needs a bit of space above the input. */
+.sf-number-entry-modal .sf-modal-hint {
+	margin-bottom: 6px;
+}
+
+.sf-number-entry-modal .sf-modal-input {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
 }
 
 /* Series title (SeriesOverviewView.ts's renderTitleField) — styled as an h1. Plain clickable text
@@ -4823,6 +4973,40 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	color: var(--text-accent);
 }
 
+/* Central-pane Novel tab's "Length:" row (renderNovelPlot) — same row/label/value classes as the
+ * clickable PoV/Location rows above it, but this one isn't a picker trigger, so it drops the
+ * pointer cursor and hover colour those rows use to signal clickability. */
+.sf-story-context-meta-values.sf-story-context-meta-values--static {
+	cursor: default;
+}
+
+.sf-story-context-meta-values.sf-story-context-meta-values--static:hover {
+	color: var(--sf-story-context-meta-control-color, var(--text-normal));
+}
+
+/* Meta row "clear" button (renderMetaClearButton, NovelPanel.ts) — ICON_X, the same glyph
+ * storyForge's own empty-list stamps use, at inline-button scale rather than that decorative one.
+ * Muted at rest so it doesn't compete with the value text beside it; only shown once a value is
+ * set (call-site gated, not this rule). */
+.sf-story-context-meta-clear {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	color: var(--text-faint);
+	cursor: pointer;
+	line-height: 1;
+}
+
+.sf-story-context-meta-clear svg {
+	width: 0.7em;
+	height: 0.7em;
+}
+
+.sf-story-context-meta-clear:hover {
+	color: var(--text-accent);
+}
+
 .sf-story-context-novel-fixed .sf-synopsis-plot-title {
 	margin-top: 12px;
 	/* Zeroed so the pill-stub's coloured lines run straight into the scroll pane's own
@@ -4860,6 +5044,33 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	font-variation-settings: var(--sf-story-context-novel-subtitle-variation, normal);
 }
 
+/* Wide overview: the title reads as the page's own heading — left-aligned above the cover row
+ * instead of centred above it, and sized off the same --sf-h1-* variables SeriesOverviewView's
+ * page title uses (so it matches that page's own h1 styling, formatForge-driven or not). */
+.sf-story-context-novel-title--wide {
+	text-align: left;
+	margin-bottom: 2px;
+	font-size: var(--sf-h1-size, 1.802em);
+	font-weight: var(--sf-h1-weight, 700);
+	font-family: var(--sf-h1-family, inherit);
+	font-variation-settings: var(--sf-h1-variation, normal);
+	color: var(--sf-h1-color, var(--text-normal));
+	font-variant: var(--sf-h1-variant, normal);
+}
+
+/* Subtitle reads as a heading 2 beneath the h1 title above — same --sf-h2-* variables convention
+ * as the title's own --sf-h1-* ones, in place of the sidebar's small muted caption treatment. */
+.sf-story-context-novel-subtitle--wide {
+	text-align: left;
+	margin-bottom: 16px;
+	font-size: var(--sf-h2-size, 1.602em);
+	font-weight: var(--sf-h2-weight, 600);
+	font-family: var(--sf-h2-family, inherit);
+	font-variation-settings: var(--sf-h2-variation, normal);
+	color: var(--sf-h2-color, var(--text-normal));
+	font-variant: var(--sf-h2-variant, normal);
+}
+
 .sf-story-context-novel-synopsis {
 	width: 100%;
 	min-height: 88px;
@@ -4877,14 +5088,9 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	border-radius: 4px;
 }
 
-/* The divider between the synopsis and the chapter flags below it: the same thick, neutral rule
+/* The divider between the synopsis and the chapter cards below it: the same thick, neutral rule
  * the storytelling panel's own chapter-selector/codex-tree divider uses
- * (.storyforge-storytelling-view .sf-top-panel.sf-top-panel--above-codex) — not the plot-thread
- * colour, which starts immediately below this line instead (renderNovelPlot's own background,
- * painted on this element from its own top edge — inside the border, so it fills the 6px gap
- * before the first card too, rather than waiting until the card itself). Scoped to the sidebar's
- * own host — the central Novel-overview page (.sf-novel-overview-view) keeps its original
- * cover-thread/drop treatment untouched. */
+ * (.storyforge-storytelling-view .sf-top-panel.sf-top-panel--above-codex). */
 .sf-story-context-novel-host .sf-story-context-scroll {
 	border-top: 3px solid var(--background-modifier-border);
 	padding-top: 6px;
@@ -4896,22 +5102,6 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	padding-left: var(--sf-story-context-side-inset);
 	padding-right: var(--sf-story-context-side-inset);
 	box-sizing: border-box;
-}
-
-/* Continues every plot-thread line through the gap under the cover row (wide overview only —
- * see .sf-story-context-novel-host .sf-story-context-scroll above for the sidebar's own thick
- * divider in place of this). */
-.sf-story-context-novel-thread-drop {
-	flex-shrink: 0;
-	height: 12px;
-	background-repeat: no-repeat;
-}
-
-/* The wide overview's cover-thread cap — the sidebar synopsis no longer has one of its own. */
-.sf-story-context-novel-synopsis-thread-cap {
-	flex-shrink: 0;
-	height: 4px;
-	border-radius: 0 2px 2px 0;
 }
 
 .sf-story-context-plot-block {
@@ -6464,7 +6654,10 @@ input.sf-story-context-chapter-title[type="text"]:focus {
  * independent styling — the whole point of this page is that it mirrors that tab, formatting
  * settings included. This wrapper just supplies the flex column/height:100% shell that content's
  * fixed/scroll split (cover+synopsis+Default PoV stay put; the plot list scrolls) needs to work
- * the same way it does inside the right sidebar's own .sf-story-context-view. */
+ * the same way it does inside the right sidebar's own .sf-story-context-view. No max-width/padding
+ * of its own any more — the header band and the divider below it (both below) need to reach this
+ * view's true left/right edges, so the 60em reading-width cap moves onto each piece of content
+ * instead (the header band's own children, and the scroll pane), rather than living here. */
 .workspace-leaf-content[data-type="storyforge-novel-overview-view"] .view-content.sf-novel-overview-view,
 .sf-novel-overview-view {
 	display: flex;
@@ -6472,16 +6665,55 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	height: 100%;
 	overflow: hidden;
 	box-sizing: border-box;
-	max-width: 60em;
-	margin: 0 auto;
-	padding: 24px 32px 0;
+	/* Obsidian's own .view-content base rule pads itself by default — zeroed here since the
+	 * header band below needs to reach this element's true edges; every inset now lives on the
+	 * band's own children and the scroll pane instead (below). */
+	padding: 0;
 }
 
+/* The header band (title + cover + synopsis + Default PoV): full-bleed to this view's true edges —
+ * painted with the same background colour a native Obsidian sidebar uses (the sidedock's own
+ * computed colour, so it matches whatever theme is active; falls back to --background-secondary),
+ * so this page's top section reads as "sidebar-coloured" the way Story Context's own Novel tab
+ * already does simply by sitting inside the right sidebar. border-bottom is the divider into the
+ * chapter list below — drawn on this full-width band rather than on the (capped) scroll pane, so
+ * it actually spans the page edge to edge instead of stopping at the 60em reading column. */
+.sf-novel-overview-view .sf-story-context-novel-fixed {
+	background-color: var(--sf-right-rail-bg, var(--background-secondary));
+	border-bottom: 3px solid var(--background-modifier-border);
+}
+
+/* Every direct child of the header band (title, subtitle, cover row) gets the 60em reading-width
+ * cap and side inset the outer view used to supply itself — centred within the full-bleed band
+ * above rather than the band itself being capped. First child carries the old top inset, last
+ * child a bottom inset so content doesn't touch the divider. */
+.sf-novel-overview-view .sf-story-context-novel-fixed > * {
+	box-sizing: border-box;
+	width: 100%;
+	max-width: 60em;
+	margin-left: auto;
+	margin-right: auto;
+	padding-left: 32px;
+	padding-right: 32px;
+}
+
+.sf-novel-overview-view .sf-story-context-novel-fixed > *:first-child {
+	padding-top: 24px;
+}
+
+.sf-novel-overview-view .sf-story-context-novel-fixed > *:last-child {
+	padding-bottom: 20px;
+}
+
+/* The chapter list below the divider: same 60em cap/inset as the header band's own content,
+ * centred independently since the outer view no longer caps anything itself. */
 .sf-novel-overview-view .sf-story-context-scroll {
-	/* Gap between cover/synopsis and plot cards is .sf-story-context-novel-thread-drop
-	 * (the coloured lines keep running through it). */
-	padding-top: 0;
-	padding-bottom: 48px;
+	box-sizing: border-box;
+	width: 100%;
+	max-width: 60em;
+	margin-left: auto;
+	margin-right: auto;
+	padding: 20px 32px 48px;
 }
 
 /* NovelPanel.ts's "wide" layout (this page only — Story Context's own Novel tab keeps its
@@ -6501,53 +6733,6 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	flex-direction: column;
 }
 
-/* Wide overview: 4px cap across cover + synopsis, 2px left strand beside the cover.
- * Outer top-left is the wrap's 10px clip. ::before fills that 10×10 so the crescent between
- * the outer curve and the cover's 8×6 inner radius is thread colour (not a notch of page
- * background). The cover is opaque and sits on top, so only that ring shows. */
-.sf-novel-overview-view .sf-story-context-novel-cover-thread {
-	display: flex;
-	flex-direction: column;
-	position: relative;
-	margin-bottom: 0;
-	border-radius: 10px 0 0 0;
-	overflow: hidden;
-}
-
-.sf-novel-overview-view .sf-story-context-novel-cover-thread::before {
-	content: "";
-	position: absolute;
-	left: 0;
-	top: 0;
-	width: 10px;
-	height: 10px;
-	background-color: var(--sf-cover-thread-color);
-	pointer-events: none;
-}
-
-.sf-novel-overview-view .sf-story-context-novel-cover-thread::after {
-	content: "";
-	position: absolute;
-	left: 0;
-	top: 4px;
-	bottom: 0;
-	width: 2px;
-	background-color: var(--sf-cover-thread-color);
-	pointer-events: none;
-}
-
-.sf-novel-overview-view .sf-story-context-novel-cover-thread .sf-story-context-novel-cover-row {
-	margin-bottom: 0;
-}
-
-.sf-novel-overview-view .sf-story-context-novel-cover-thread .sf-story-context-novel-text-col {
-	padding-top: 0;
-}
-
-.sf-novel-overview-view .sf-story-context-novel-cover-thread .sf-story-context-novel-synopsis {
-	border-top-width: 0;
-}
-
 /* Bigger, left-aligned cover — overrides the sidebar's centred 120×180 (.sf-story-context-novel-cover
  * above), same 2:3 aspect ratio. */
 .sf-novel-overview-view .sf-story-context-novel-cover {
@@ -6557,86 +6742,28 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	align-self: flex-start;
 }
 
-.sf-novel-overview-view .sf-story-context-novel-cover.sf-story-context-novel-cover--thread {
-	margin-left: 2px;
-	position: relative;
-	z-index: 1;
-	/* Inner L: 10px outer − 2px left / 4px top. Other corners keep the cover's 4px. */
-	border-radius: 8px 4px 4px 0 / 6px 4px 4px 0;
-}
-
+/* The only remaining child of this column now that Default PoV's row moved to TopPanel.ts's own
+ * Novel tab (NovelPanel.ts no longer renders it at all) — flex:1 fills the rest of the column's
+ * height, which .sf-story-context-novel-cover-row's own align-items:stretch already sets to match
+ * the cover's height, so the synopsis box ends up exactly as tall as the cover beside it. */
 .sf-novel-overview-view .sf-story-context-novel-text-col .sf-story-context-novel-synopsis {
 	flex: 1 1 0;
 	min-height: 0;
 	height: 0;
 }
 
-.sf-novel-overview-view .sf-story-context-novel-text-col .sf-story-context-section {
-	flex-shrink: 0;
-	margin: 8px 0 0;
-}
-
-/* renderNovelPanel's own plot-thread cap — sits in .sf-book-line's grid column 1 (explicit, so it
- * doesn't auto-place under .sf-book-title-row's column-2 "Plot" label on the wide overview). Width
- * is set inline per book (renderNovelPanel) — 2px corner radius on each side plus room for every
- * further line in the gutter below.
- *
- * The bar itself is in-flow (flex-centred in this stretched column) so the grid's `auto` track
- * has a real min-content size; the stub stays absolutely positioned so its height can be
- * "whatever's left below the bar down to the row's bottom edge" without knowing the "Plot"
- * heading's font size ahead of time. */
-.sf-story-context-plot-pill-col {
-	position: relative;
-	display: flex;
-	flex-direction: column;
-	justify-content: center;
-	grid-column: 1;
-	grid-row: 1;
-	min-width: 4px;
-	min-height: 5px;
-}
-
-/* Thick rounded bar the gutter lines emerge from — fill is the leftmost (first) line's colour, set
- * inline. In-flow so this column's auto track doesn't collapse when the stub is out of flow. */
-.sf-story-context-plot-pill {
-	flex-shrink: 0;
-	width: 100%;
-	height: 5px;
-	border-radius: 2px;
-}
-
-/* The line-stub — a sliver of the same lines the scroll pane's own full-height background paints
- * (buildGutterLineBackground, same colours/x-offsets both places), rendered here in the *static*
- * header itself rather than only starting once the scroll pane begins below it, so the lines read
- * as genuinely emerging out of the bar rather than merely lining up with it. Starts at the bar's
- * own bottom edge (50% + half its 5px height) and runs to this column's own bottom edge — flush
- * with the scroll pane's own top once .sf-synopsis-plot-title's bottom margin is zeroed for "wide"
- * below, so nothing breaks the run of colour between the header and the scrollable list. */
-.sf-story-context-plot-pill-stub {
-	position: absolute;
-	top: calc(50% + 2.5px);
-	bottom: 0;
-	left: 0;
-	width: 100%;
-}
-
-/* .sf-story-context-novel-fixed .sf-synopsis-plot-title's margin-bottom is already 0 (above), so the
- * pill-stub's coloured lines run straight into the scroll pane's own lines below. */
-
 /* Each chapter reads as its own card (renderNovelPlot — Story Context's sidebar Novel tab and
  * the central Novel overview). The narrow divider list this same block styling used to serve
- * is gone. 10px (top-right/bottom-left/bottom-
- * right — top-left stays square, see below) to match .sf-series-overview-card's own radius (the
- * Series tab's novel cards) — same numeric size, not that card's own per-corner asymmetry, since
- * this card's own asymmetry has a different reason (below). box-shadow colour is overridden inline
- * per card to the chapter's own resolved colour (resolveChapterRowColor) — this bare colour is just
- * the fallback for when that resolves to nothing (e.g. an empty custom palette). No bottom padding:
- * the plot textarea below now bleeds all the way to the card's own bottom edge (see its own rule
- * further down) rather than sitting inset like the header/meta rows above it.
+ * is gone. Same 10px radius on every corner, matching .sf-series-overview-card's own radius (the
+ * Series tab's novel cards). box-shadow colour is overridden inline per card to the chapter's own
+ * resolved colour (resolveChapterRowColor) — this bare colour is just the fallback for when that
+ * resolves to nothing (e.g. an empty custom palette). No bottom padding: the plot textarea below
+ * now bleeds all the way to the card's own bottom edge (see its own rule further down) rather than
+ * sitting inset like the header/meta rows above it.
  *
  * An inset box-shadow instead of a real `border` — deliberately: a real border sits in its own
  * box-model layer, pushing the content box (and everything measured against it — the header/
- * textarea's own bleed math, renderNovelPlot's line-centring margin-left) inward by its own width,
+ * textarea's own bleed math) inward by its own width,
  * so every one of those had to separately compensate for it. box-shadow: inset paints the same 2px
  * outline as a pure visual layer with no box-model footprint at all — the content box reaches
  * exactly to the card's true outer edge, and the header (painted on top, same colour) simply covers
@@ -6649,28 +6776,23 @@ input.sf-story-context-chapter-title[type="text"]:focus {
  * everything else, same as it would a real border. */
 .sf-story-context-plot-block--plain {
 	box-shadow: inset 0 0 0 2px var(--sf-plot-card-outline, var(--background-modifier-border));
-	border-radius: 0 10px 10px 10px;
+	border-radius: 10px;
 	border-bottom: none;
 	padding: 0 16px 0;
 	margin-bottom: 12px;
 }
 
-/* The header band spans the card's full width/top and beyond — its own explicit top-right radius
- * (matching the card's) rounds that corner now that the card's own overflow: hidden no longer does
- * it for free; top-left stays square, same reason the card's is (see above). Background set inline
- * per card from the same resolveChapterRowColor result as the card's own inset box-shadow, so the
- * band and the shadow always read as one accent — and since the header sits flush with the card's
- * true top/right edges (the shadow, unlike a real border, doesn't push the content box in from
- * them), the header simply paints over that shadow everywhere the two overlap: the "banner" region
- * never shows a border of its own at all, just the header's solid fill (the name text gets that
- * result's matching text colour too, set inline on it directly — see renderNovelPlot's own comment
- * on why that can't just be inherited from here). margin-right is the fixed -16px bleed back out to
- * the card's own right edge, against
- * the padding above; margin-left defaults to that same -16px (a plain flush-left band) but
- * renderNovelPlot overrides it inline per card with a bigger negative value whenever the chapter's
- * own colour matches one of the gutter's lines — reaching further left, past the card's own edge,
- * until the band is centred on that specific line (so the line reads as running straight into the
- * card, not stopping short of it). Vertical padding kept tight (4px, matching
+/* The header band spans the card's full width/top and beyond — its own explicit top radius
+ * (matching the card's) rounds both top corners now that the card's own overflow: hidden no
+ * longer does it for free. Background set inline per card from the same resolveChapterRowColor
+ * result as the card's own inset box-shadow, so the band and the shadow always read as one
+ * accent — and since the header sits flush with the card's true top/left/right edges (the
+ * shadow, unlike a real border, doesn't push the content box in from them), the header simply
+ * paints over that shadow everywhere the two overlap: the "banner" region never shows a border
+ * of its own at all, just the header's solid fill (the name text gets that result's matching
+ * text colour too, set inline on it directly — see renderNovelPlot's own comment on why that
+ * can't just be inherited from here). margin-left/-right are the fixed -16px bleed back out to
+ * the card's own edges, against the padding above. Vertical padding kept tight (4px, matching
  * .sf-series-overview-row-title's own vertical rhythm) rather than the rest of the card's more
  * generous spacing — this band reads as a title bar, not a content row. */
 .sf-story-context-plot-block--plain .sf-story-context-plot-header-row {
@@ -6679,24 +6801,17 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	margin-bottom: 6px;
 	margin-left: -16px;
 	position: relative;
-	/* 16px left matches the card's content inset (meta rows / description text).
-	 * renderNovelPlot increases it when this band bleeds into the gutter, so the
-	 * title stays on that same line rather than sliding left with the band. */
+	/* 16px left matches the card's content inset (meta rows / description text). */
 	padding: 4px 16px;
 	justify-content: flex-start;
-	border-radius: 0 10px 0 0;
+	border-radius: 10px 10px 0 0;
 	background-color: var(--sf-plot-card-header-bg, transparent);
 	color: var(--sf-plot-card-header-fg, inherit);
 }
 
-/* Charm chevron-right (collapsed) / chevron-down (expanded). Colour inherits the chapter
- * title text (set inline on the button from resolveChapterRowColor, with the plot-chapter
- * CSS variable as fallback). Obsidian's `.svg-icon` is fill-only, so stroke is re-enabled
- * here — these glyphs are stroke-drawn 16×16 Charm icons. */
-
-/* Chapter tab's single card: same chrome as Novel plot cards, but every corner is rounded.
- * Plot cards keep a square top-left so the header band can run out into the colour-line
- * gutter; this screen has no gutter, so there is nothing to extend into. */
+/* Chapter tab's single card: same chrome as Novel plot cards (every corner already rounded
+ * to match — see above); overflow: hidden still needed here since this card's rows/sections
+ * bleed edge to edge and need clipping to the rounded shape. */
 .sf-story-context-plot-block--plain.sf-story-context-plot-block--chapter {
 	border-radius: 10px;
 	overflow: hidden;
@@ -6715,6 +6830,97 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	font-variant: var(--sf-story-context-chapter-variant, var(--sf-story-context-plot-chapter-variant, normal));
 	font-family: var(--sf-story-context-chapter-family, var(--sf-story-context-plot-chapter-family, inherit));
 	font-variation-settings: var(--sf-story-context-chapter-variation, var(--sf-story-context-plot-chapter-variation, normal));
+}
+
+/* ── In-cell "data bar" chapter header (renderNovelPlot/renderDataBar — main-pane Novel overview
+ * only: .sf-story-context-plot-block--databar, set only when NovelPanelOptions.layout === "wide")
+ * ── The header row becomes an Excel-style data bar instead of a solid-fill title band: no card
+ * outline, no meta/textarea divider (both skipped or overridden below), and the header no longer
+ * bleeds to the card's edges — it's a small 4px-radius inset row, like this plugin's other
+ * hover-highlight rows (.sf-row). renderDataBar appends plain solid-colour
+ * .sf-story-context-plot-databar-segment divs directly into it, each with its own left/width/
+ * colour set as an inline style in JS (not a CSS gradient/mask driven by a custom property) — this
+ * file only supplies their static positioning (absolute, full height). Compound 2-3 class
+ * selectors throughout so these always win over the --plain/--chapter base rules above regardless
+ * of source order in this file. */
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--databar {
+	box-shadow: none;
+}
+
+/* No padding here (unlike the --plain default) — the bar segments are plain children positioned
+ * relative to this row, and should span its true 0%–100% width. nameEl carries its own padding
+ * instead (below), which only insets its *text*, not the box its colour-split gradient paints
+ * into (background defaults to the padding box, and nameEl has no border, so that box is exactly
+ * as wide as headerRow) — so the two stay aligned without needing to share a literal box. */
+/* align-items: flex-end (not center) is deliberate — it pins the title to the row's own bottom
+ * edge regardless of the row's height, so a taller bar (a design constant tuned from time to
+ * time, see the dot-lattice geometry in renderDataBar/addDots) only ever adds blank space above
+ * the title, never moves it. */
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--databar .sf-story-context-plot-header-row {
+	margin: 0 0 6px;
+	padding: 0;
+	height: 34px;
+	display: flex;
+	align-items: flex-end;
+	border-radius: 4px;
+	overflow: hidden;
+	position: relative;
+	background-color: transparent;
+}
+
+.sf-story-context-plot-block--databar .sf-story-context-plot-chapter-name {
+	position: relative;
+	z-index: 1;
+	padding: 4px 6px;
+}
+
+.sf-story-context-plot-databar-segment {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	z-index: 0;
+	pointer-events: none;
+}
+
+/* One dot in the "target reached" diamond lattice (renderDataBar's addDots) — its own left/top/
+ * width/height/border-radius are all set inline per dot (they vary per row/column), this just
+ * supplies what every dot shares. */
+.sf-story-context-plot-databar-dot {
+	position: absolute;
+	z-index: 0;
+	pointer-events: none;
+}
+
+/* The dashed target-length marker (renderDataBar's addMarker) — a 2px-wide SVG line, not a div,
+ * since only SVG stroke-linecap gives dashes rounded caps. */
+.sf-story-context-plot-databar-marker {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	z-index: 0;
+	pointer-events: none;
+	overflow: visible;
+}
+
+/* Collapsing a --databar card only ever hides the PoV/Location meta rows (the shared collapsed
+ * rule above) — unlike the plain sidebar/Chapter-tab cards, it never repaints the whole card or
+ * the still-visible plot-notes textarea in the header's accent colour, since the data bar itself
+ * is the only coloured element a --databar card ever has. */
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--databar.sf-story-context-plot-block--collapsed {
+	background: transparent;
+}
+
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--databar.sf-story-context-plot-block--collapsed
+	.sf-story-context-plot-header-row {
+	margin-bottom: 0;
+}
+
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--databar.sf-story-context-plot-block--collapsed .sf-story-context-plot-textarea,
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--databar.sf-story-context-plot-block--collapsed .sf-story-context-plot-textarea:hover,
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--databar.sf-story-context-plot-block--collapsed .sf-story-context-plot-textarea:focus {
+	background: transparent;
+	color: var(--text-normal);
+	box-shadow: none;
 }
 
 .sf-story-context-chapter-card-actions {
@@ -6978,53 +7184,6 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	text-shadow: var(--sf-plot-card-title-shadow, none);
 }
 
-.sf-story-context-plot-collapse {
-	/* Centred on the 2px inset outline: `left: 1px` is the stroke's midline (flush
-	 * header); `translate(-50%, -50%)` centres the 16px glyph on that point. renderNovelPlot
-	 * overrides `left` when the header band bleeds into the gutter. Taken out of flow so
-	 * the title stays at the header's 16px padding, just after the glyph. */
-	position: absolute;
-	left: 1px;
-	top: 50%;
-	transform: translate(-50%, -50%);
-	z-index: 1;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 16px;
-	height: 16px;
-	padding: 0;
-	margin: 0;
-	border: none;
-	background: transparent;
-	cursor: pointer;
-	color: inherit;
-	border-radius: 0;
-	overflow: visible;
-}
-
-.sf-story-context-plot-collapse:hover {
-	opacity: 0.85;
-}
-
-.sf-story-context-plot-collapse svg {
-	display: block;
-	width: 16px;
-	height: 16px;
-	flex-shrink: 0;
-	overflow: visible;
-	fill: none;
-	stroke: currentColor;
-}
-
-.sf-story-context-plot-collapse svg path {
-	fill: none;
-	stroke: currentColor;
-	stroke-width: 1.5;
-	stroke-linecap: round;
-	stroke-linejoin: round;
-}
-
 .sf-story-context-plot-block--plain.sf-story-context-plot-block--collapsed .sf-story-context-meta,
 .sf-story-context-plot-block--plain.sf-story-context-plot-block--collapsed .sf-story-context-plot-textarea-divider {
 	display: none;
@@ -7038,8 +7197,7 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
  * description box doesn't always reach the inset outline (Obsidian's textarea max-width,
  * the 16px side padding, the textarea's own bottom-corner radius), and any leftover
  * strip would otherwise show the page background between the text box and the
- * shadow-border. Painting the card closes that gap. overflow stays visible so the
- * header band can still bleed into the colour-line gutter. */
+ * shadow-border. Painting the card closes that gap. */
 .sf-story-context-plot-block--plain.sf-story-context-plot-block--collapsed {
 	background: var(--sf-plot-card-header-bg, transparent);
 }
@@ -7142,8 +7300,9 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	appearance: none;
 }
 
-/* The chapter name opens ChapterTitleModal (central Novel overview, and Story Context's
- * Chapter tab). Same hover affordance as any other clickable text in the plugin. */
+/* Clickable chapter-name affordance: toggles a Novel-pane plot card's collapse (NovelPanel.ts)
+ * or opens ChapterTitleModal (Story Context's Chapter tab). Same hover style either way, same
+ * as any other clickable text in the plugin. */
 .sf-story-context-plot-chapter-name--clickable {
 	cursor: pointer;
 }

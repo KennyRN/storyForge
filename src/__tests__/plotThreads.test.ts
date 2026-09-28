@@ -18,7 +18,7 @@ import {
 	setPlotThreadUse,
 } from "../plotThreads";
 import { BACKSTAGE_ROOT, plotThreadsFilePath } from "../paths";
-import { collectPlotLines, plotThreadLineKey, resolveMainThreadRowColor } from "../view/novelColor";
+import { resolveMainThreadRowColor } from "../view/novelColor";
 import type { StoryForgePluginSettings } from "../main";
 
 function makeFakeApp(
@@ -262,45 +262,6 @@ describe("plot thread CRUD", () => {
 });
 
 const gutterSettings = {} as StoryForgePluginSettings;
-
-describe("collectPlotLines", () => {
-	it("always starts with the main thread when plot-threads.md is missing", () => {
-		const { app } = makeFakeApp(false);
-		expect(collectPlotLines(app, "BookA", gutterSettings)).toEqual([
-			{ key: plotThreadLineKey(MAIN_THREAD_ID), color: MAIN_THREAD_FALLBACK_COLOR },
-		]);
-	});
-
-	it("always starts with the main thread when the registry list is empty", () => {
-		const { app } = makeFakeApp(true, { "plot-threads": [] });
-		expect(collectPlotLines(app, "BookA", gutterSettings)[0]).toEqual({
-			key: plotThreadLineKey(MAIN_THREAD_ID),
-			color: MAIN_THREAD_FALLBACK_COLOR,
-		});
-	});
-
-	it("uses the stored main-thread colour when present", () => {
-		const { app } = makeFakeApp(true, {
-			"plot-threads": [{ id: MAIN_THREAD_ID, label: "main thread", color: "#c41e3a" }],
-		});
-		expect(collectPlotLines(app, "BookA", gutterSettings)[0]).toEqual({
-			key: plotThreadLineKey(MAIN_THREAD_ID),
-			color: "#c41e3a",
-		});
-	});
-
-	it("skips unused threads as if they were not in the registry", () => {
-		const { app } = makeFakeApp(true, {
-			"plot-threads": [
-				{ id: MAIN_THREAD_ID, label: "main thread", color: "#c41e3a", use: false },
-				{ id: "romance", label: "Romance", color: "#4a90d9" },
-			],
-		});
-		expect(collectPlotLines(app, "BookA", gutterSettings)).toEqual([
-			{ key: plotThreadLineKey("romance"), color: "#4a90d9" },
-		]);
-	});
-});
 
 describe("replacePlotThreads", () => {
 	it("keeps the current main thread when the payload omits it", async () => {

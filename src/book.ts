@@ -61,6 +61,11 @@ export interface ChapterEntry {
 
 export interface BookFrontmatter {
 	goalDaily: number | null;
+	/** Author's own target lengths (words) for this novel and for a typical chapter in it — shown
+	 * as editable fields above the chapter tree (TopPanel.ts); purely informational, nothing else
+	 * in the plugin currently reads them. */
+	plannedNovelLength: number | null;
+	plannedChapterLength: number | null;
 	chapterOrder: string[];
 	unplaced: string[];
 	archive: string[];
@@ -268,6 +273,8 @@ export interface RawBookFrontmatter extends FrontMatterCache {
 	"dialogue-quotes"?: unknown;
 	"default-pov-path"?: unknown;
 	"default-pov-name"?: unknown;
+	"planned-novel-length"?: unknown;
+	"planned-chapter-length"?: unknown;
 	/** Deliberately not the bare key "tags" — that collides with Obsidian's own native tag-pane frontmatter key. */
 	"novel-tags"?: unknown;
 	/** Legacy pre-migration keys, deleted by migrateLegacyBookEntry. */
@@ -357,6 +364,8 @@ export function readBookFrontmatter(app: App, bookFolderName: string): BookFront
 			seriesOrderReference: typeof fm?.["series-order-reference"] === "number" ? fm["series-order-reference"] : null,
 			coverImage: safeCoverFilename(fm?.["cover-image"]),
 			goalDaily: typeof fm?.goal_daily === "number" ? fm.goal_daily : null,
+			plannedNovelLength: typeof fm?.["planned-novel-length"] === "number" ? fm["planned-novel-length"] : null,
+			plannedChapterLength: typeof fm?.["planned-chapter-length"] === "number" ? fm["planned-chapter-length"] : null,
 			chapterOrder,
 			unplaced,
 			archive,
@@ -430,6 +439,20 @@ export function collectAllChapterIds(app: App, bookFolderName: string): string[]
 export async function writeBookChapterOrder(app: App, bookFolderName: string, newOrder: string[]): Promise<void> {
 	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
 		fm["chapter-order"] = newOrder;
+	});
+}
+
+/** `value` null or non-positive clears the field entirely rather than storing 0. */
+export async function writeBookPlannedNovelLength(app: App, bookFolderName: string, value: number | null): Promise<void> {
+	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
+		fm["planned-novel-length"] = value !== null && value > 0 ? value : undefined;
+	});
+}
+
+/** `value` null or non-positive clears the field entirely rather than storing 0. */
+export async function writeBookPlannedChapterLength(app: App, bookFolderName: string, value: number | null): Promise<void> {
+	await modifyBookFrontmatter(app, bookFolderName, (fm) => {
+		fm["planned-chapter-length"] = value !== null && value > 0 ? value : undefined;
 	});
 }
 

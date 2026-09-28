@@ -1,11 +1,13 @@
 import { App, Modal } from "obsidian";
 import type StoryForgePlugin from "../main";
-import { renderCyclingGuideCard } from "./styleModalHelpers";
+import { renderCyclingGuideCard, renderDepthGuideCard, renderTabbedBody, type StyleModalTab } from "./styleModalHelpers";
 
 /**
- * Fixed-size modal wrapping the cycling-guide settings card (toggle + interval/colour/thickness/
- * flag size/rounded lines + manuscript-page preview). Opened from SeriesModal's general tab via
- * the document-page-break hover icon — the card itself used to render inline on that tab.
+ * Fixed-size modal — "guides to help with storytelling" — wrapping the cycling-guide and depth-guide
+ * settings cards behind a "cycling"/"depth" tab bar (cycling: toggle + interval/colour/thickness/flag
+ * size/rounded lines + manuscript-page preview; depth: toggle + depth level/chapters covered). Opened
+ * from SeriesModal's general tab via the document-page-break hover icon — the cycling card itself
+ * used to render inline on that tab, before this modal existed.
  */
 export class CyclingGuideModal extends Modal {
 	constructor(
@@ -30,9 +32,19 @@ export class CyclingGuideModal extends Modal {
 		contentEl.empty();
 		contentEl.addClass("sf-cycling-guide-modal");
 
-		// Same scroll shell as HideUiModal — without it, the fixed-height modal clips content.
-		const scroll = contentEl.createDiv({ cls: "sf-text-style-tab-body-wrapper" });
-		const body = scroll.createDiv({ cls: "sf-text-style-tab-body" });
-		renderCyclingGuideCard(this.app, this.plugin, body, this.plugin.getSettings(), true);
+		const settings = this.plugin.getSettings();
+		const tabs: StyleModalTab[] = [
+			{
+				id: "cycling",
+				label: "cycling",
+				render: (body) => renderCyclingGuideCard(this.app, this.plugin, body, settings, true),
+			},
+			{
+				id: "depth",
+				label: "depth",
+				render: (body) => renderDepthGuideCard(this.plugin, body, settings),
+			},
+		];
+		renderTabbedBody(contentEl, tabs);
 	}
 }

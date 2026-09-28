@@ -2,7 +2,7 @@ import { MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf, type PaneType } fro
 import { existingMainContentLeaf, resolveMainContentLeaf, type MainContentWorkspace } from "./mainContentLeaf";
 import type { Extension } from "@codemirror/state";
 import { createCyclingGuideViewPlugin } from "./cyclingGuide";
-import { createOpeningWordsLayer, DEFAULT_OPENING_WORDS_TARGET } from "./openingWords";
+import { createOpeningWordsBackground } from "./openingWords";
 import { StoryForgeView, STORYFORGE_VIEW_TYPE } from "./view/StoryForgeView";
 import { LEGACY_STORYTELLING_VIEW_TYPE, mapLegacyLeftRailViewType, storytellingModeForAutoFocus } from "./view/leftPanelMode";
 import { ContinuousReadView, STORYFORGE_CONTINUOUS_VIEW_TYPE } from "./view/ContinuousReadView";
@@ -84,6 +84,8 @@ export type StatusBarView = "hidden" | "sync-only" | "all";
 
 export type CyclingGuideInterval = "short" | "medium" | "large";
 
+export type DepthGuideLevel = "standard" | "deep" | "extremely-deep";
+
 /** Story Context section chrome: boxed card, header-only pill, or title text. */
 export type StoryContextSectionChrome = "box" | "pill" | "text";
 
@@ -91,6 +93,12 @@ const CYCLING_GUIDE_INTERVAL_WORDS: Record<CyclingGuideInterval, number> = {
 	short: 300,
 	medium: 500,
 	large: 750,
+};
+
+const DEPTH_GUIDE_WORDS: Record<DepthGuideLevel, number> = {
+	standard: 300,
+	deep: 450,
+	"extremely-deep": 600,
 };
 
 export interface StoryForgePluginSettings {
@@ -296,6 +304,9 @@ export interface StoryForgePluginSettings {
 	cyclingGuideFlagSize: "small" | "medium" | "large";
 	cyclingGuideRoundedLines: boolean;
 	cyclingGuideInterval: CyclingGuideInterval;
+	depthGuideEnabled: boolean;
+	depthGuideLevel: DepthGuideLevel;
+	depthGuideChaptersCovered: number;
 	automaticBackupEnabled: boolean;
 	automaticBackupFrequency: AutomaticBackupFrequency;
 	lastAutomaticBackupAt: number;
@@ -544,7 +555,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	hideSeriesPane: false,
 	autoFocus: true,
 	welcomeNoteCreatedOnOnboarding: false,
-	layout: "hybrid",
+	layout: "novelBrowse",
 	statusBarView: "all",
 	highlightActiveChapter: true,
 	highlightColor: "#fef3c7",
@@ -687,6 +698,9 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	cyclingGuideFlagSize: "medium",
 	cyclingGuideRoundedLines: false,
 	cyclingGuideInterval: "medium",
+	depthGuideEnabled: false,
+	depthGuideLevel: "standard",
+	depthGuideChaptersCovered: 10,
 	automaticBackupEnabled: false,
 	automaticBackupFrequency: "daily",
 	lastAutomaticBackupAt: 0,
@@ -859,6 +873,8 @@ export default class StoryForgePlugin extends Plugin {
 	 */
 	private cyclingGuideExtensions: Extension[] = [];
 	private currentCyclingGuidePlugin: ReturnType<typeof createCyclingGuideViewPlugin> | null = null;
+	/** Same mutable-array + `workspace.updateOptions()` mechanism as `cyclingGuideExtensions`, for the "depth guide" (settings > guides > depth). */
+	private depthGuideExtensions: Extension[] = [];
 	private backupInProgress = false;
 	/** Guards enforcePanelOrder()'s own detach/recreate against being mistaken for a user tab drag by the layout-change watcher. */
 	private isAdjustingPanelOrder = false;
@@ -949,7 +965,12 @@ export default class StoryForgePlugin extends Plugin {
 			console.error("storyForge: cycling guide failed", err);
 		}
 		this.registerEditorExtension(this.cyclingGuideExtensions);
-		this.registerEditorExtension(createOpeningWordsLayer(DEFAULT_OPENING_WORDS_TARGET));
+		try {
+			if (this.pluginSettings.depthGuideEnabled) this.rebuildDepthGuideExtension();
+		} catch (err) {
+			console.error("storyForge: depth guide failed", err);
+		}
+		this.registerEditorExtension(this.depthGuideExtensions);
 		registerTabTitleOverrides(
 			this.app,
 			(eventRef) => this.registerEvent(eventRef),
@@ -1552,6 +1573,7 @@ export default class StoryForgePlugin extends Plugin {
 
 		this.applyAllStyles();
 		this.setCyclingGuideEnabled(this.pluginSettings.cyclingGuideEnabled);
+		this.setDepthGuideEnabled(this.pluginSettings.depthGuideEnabled);
 		this.refreshStoryForgeViews();
 	}
 
@@ -1804,6 +1826,26 @@ export default class StoryForgePlugin extends Plugin {
 		this.cyclingGuideExtensions.length = 0;
 		this.currentCyclingGuidePlugin = null;
 		if (enabled) this.rebuildCyclingGuideExtension();
+		this.app.workspace.updateOptions();
+	}
+
+	/** Rebuilds the "depth guide" CM6 extension with the current level (word target) and chapters-covered settings. */
+	rebuildDepthGuideExtension(): void {
+		this.depthGuideExtensions.length = 0;
+		this.depthGuideExtensions.push(
+			createOpeningWordsBackground(
+				this.app,
+				DEPTH_GUIDE_WORDS[this.pluginSettings.depthGuideLevel],
+				this.pluginSettings.depthGuideChaptersCovered,
+			),
+		);
+		this.app.workspace.updateOptions();
+	}
+
+	/** Enables/disables the "Depth guide" CM6 extension, applied to every currently-open editor and every editor opened from now on. */
+	setDepthGuideEnabled(enabled: boolean): void {
+		this.depthGuideExtensions.length = 0;
+		if (enabled) this.rebuildDepthGuideExtension();
 		this.app.workspace.updateOptions();
 	}
 

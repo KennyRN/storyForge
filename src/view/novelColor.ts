@@ -1,7 +1,7 @@
 import { App } from "obsidian";
 import type { StoryForgePluginSettings } from "../main";
-import { getBookChapters, getChapterEntry } from "../book";
-import { getDefaultPlotThread, getPlotThread, getSelectablePlotThread, isPlotThreadColor, MAIN_THREAD_FALLBACK_COLOR, MAIN_THREAD_ID, readUsedPlotThreads, type PlotThread } from "../plotThreads";
+import { getChapterEntry } from "../book";
+import { getDefaultPlotThread, getPlotThread, getSelectablePlotThread, isPlotThreadColor, MAIN_THREAD_FALLBACK_COLOR, MAIN_THREAD_ID, type PlotThread } from "../plotThreads";
 import { getSeriesBookEntry } from "../series";
 import {
 	pickDefaultAccentColor,
@@ -18,22 +18,6 @@ export interface NovelRowColor {
 	background: string;
 	/** Contrast-resolved colour for text drawn over `background` (hand-off item 3a). */
 	text: string;
-}
-
-/** One strand in the Novel panel's plot-line gutter. `key` is what cards match against
- * (a plot-thread id, or a leftover legacy hex) so two threads that happen to share a colour
- * still get their own lines. */
-export interface PlotLine {
-	key: string;
-	color: string;
-}
-
-export function plotThreadLineKey(threadId: string): string {
-	return `thread:${threadId}`;
-}
-
-export function legacyColorLineKey(hex: string): string {
-	return `legacy:${hex.toLowerCase()}`;
 }
 
 /**
@@ -104,7 +88,7 @@ export function nextUnusedPlotThreadColor(settings: StoryForgePluginSettings, us
 }
 
 /** Series default main-thread colour + text — used by the Chapter tab card chrome (border,
- * header band, section titles) so that box matches the Novel gutter's first line, not the
+ * header band, section titles) so that box matches the series' default thread, not the
  * chapter's assigned thread. */
 export function resolveMainThreadRowColor(app: App, settings: StoryForgePluginSettings): NovelRowColor {
 	const main = getDefaultPlotThread(app) ?? getPlotThread(app, MAIN_THREAD_ID);
@@ -153,70 +137,3 @@ export function resolveChapterRowColor(
 	return { background: accentHex, text };
 }
 
-/** Stable key for which plot-line this chapter belongs to — used to line the card header up with
- * the matching gutter strand (collectPlotLines). Unassigned chapters share the default main thread. */
-export function chapterPlotLineKey(app: App, bookFolderName: string, filename: string): string {
-	const stored = getChapterEntry(app, bookFolderName, filename);
-	if (stored?.plotThreadId && getSelectablePlotThread(app, stored.plotThreadId)) {
-		return plotThreadLineKey(stored.plotThreadId);
-	}
-	if (stored?.color) return legacyColorLineKey(stored.color);
-	const fallback = getDefaultPlotThread(app);
-	return plotThreadLineKey(fallback?.id ?? MAIN_THREAD_ID);
-}
-
-/**
- * The Novel panel's colour-line gutter (renderNovelPlot — Story Context's sidebar Novel tab and
- * the central Novel-overview page): the default "main thread" first, then each other plot thread
- * that at least one placed chapter in this book belongs to, in registry order, then any leftover
- * anonymous `chapter-color` hexes in first-appearance order. Matching is by `key` (not hex), so
- * two threads that share a colour still get two lines.
- */
-export function collectPlotLines(app: App, bookFolderName: string, _settings: StoryForgePluginSettings): PlotLine[] {
-	const threads = readUsedPlotThreads(app);
-	const defaultThread = threads.find((t) => t.id === MAIN_THREAD_ID) ?? threads[0];
-	if (!defaultThread) return [];
-	const defaultKey = plotThreadLineKey(defaultThread.id);
-	const lines: PlotLine[] = [{ key: defaultKey, color: defaultThread.color }];
-	const seen = new Set<string>([defaultKey]);
-	const { ordered } = getBookChapters(app, bookFolderName);
-	const usedThreadIds = new Set<string>();
-	const leftoverHexes: string[] = [];
-	for (const file of ordered) {
-		const stored = getChapterEntry(app, bookFolderName, file.name);
-		if (stored?.plotThreadId && getSelectablePlotThread(app, stored.plotThreadId)) {
-			usedThreadIds.add(stored.plotThreadId);
-			continue;
-		}
-		if (stored?.color) {
-			const hex = stored.color.toLowerCase();
-			if (!leftoverHexes.includes(hex)) leftoverHexes.push(hex);
-		}
-	}
-	for (const thread of threads) {
-		if (thread.id === defaultThread.id) continue;
-		if (!usedThreadIds.has(thread.id)) continue;
-		const key = plotThreadLineKey(thread.id);
-		if (seen.has(key)) continue;
-		seen.add(key);
-		lines.push({ key, color: thread.color });
-	}
-	const threadColors = new Set(threads.map((t) => t.color.toLowerCase()));
-	for (const hex of leftoverHexes) {
-		if (threadColors.has(hex)) continue;
-		const key = legacyColorLineKey(hex);
-		if (seen.has(key)) continue;
-		seen.add(key);
-		lines.push({ key, color: hex });
-	}
-	return lines;
-}
-
-/**
- * Every distinct chapter-card colour in use across a book's placed chapters, in a fixed order for
- * the Novel panel's colour-line gutter. Wrapper around collectPlotLines — prefer that when the
- * caller needs to match a card to a specific strand (two threads can share a hex).
- */
-export function collectChapterLineColors(app: App, bookFolderName: string, settings: StoryForgePluginSettings): string[] {
-	return collectPlotLines(app, bookFolderName, settings).map((line) => line.color);
-}

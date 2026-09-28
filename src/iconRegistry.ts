@@ -40,6 +40,9 @@ import {
 	ICON_CYCLE_ALT,
 	ICON_DASHBOARD_CHART,
 	ICON_DEAD_TREE,
+	ICON_DENSITY_LARGE,
+	ICON_DENSITY_MEDIUM,
+	ICON_DENSITY_SMALL,
 	ICON_DOCUMENT_PAGE_BREAK,
 	ICON_DOSSIER,
 	ICON_DRAGON,
@@ -1037,5 +1040,23 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 		label: "Expanded section",
 		source: "lucide",
 		usedIn: ["BottomPanel.ts — Codex folder collapse chevron"],
+	},
+	{
+		id: ICON_DENSITY_LARGE,
+		label: "Density (large)",
+		source: "custom",
+		usedIn: ["styleModalHelpers.ts — depth guide word-target picker (settings > guides > depth): standard (300 words)"],
+	},
+	{
+		id: ICON_DENSITY_MEDIUM,
+		label: "Density (medium)",
+		source: "custom",
+		usedIn: ["styleModalHelpers.ts — depth guide word-target picker (settings > guides > depth): deep (450 words)"],
+	},
+	{
+		id: ICON_DENSITY_SMALL,
+		label: "Density (small)",
+		source: "custom",
+		usedIn: ["styleModalHelpers.ts — depth guide word-target picker (settings > guides > depth): extremely deep (600 words)"],
 	},
 ];
