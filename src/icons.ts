@@ -143,38 +143,31 @@ export const ICON_TARGET_DUOTONE = "sf-target-duotone";
 export const ICON_REFRESH_SQUARE = "sf-refresh-square";
 export const ICON_ADD_SQUARE = "sf-add-square";
 
-/** Charm Icons (jaynewey/charm-icons, MIT) — chevron-down / chevron-right. Collapse control on
- * chapter plot cards (NovelPanel.ts — Story Context Novel tab and the central Novel overview). These
- * are stroke glyphs; Obsidian's `setIcon` / `.svg-icon` is fill-only (`stroke: none`), so the plot
- * card paints them with `setCharmChevronIcon` rather than `setIcon`. Still registered via
+/** Charm Icons (jaynewey/charm-icons, MIT) — chevron-down / chevron-right. Registered via
  * `addIcon` so they show up in iconRegistry.ts. */
 export const ICON_CHEVRON_DOWN = "sf-chevron-down";
 export const ICON_CHEVRON_RIGHT = "sf-chevron-right";
 const CHEVRON_DOWN_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none"><path d="M0 0h16v16H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m3.75 5.75 4.25 4.5 4.25-4.5"/></svg>`;
 const CHEVRON_RIGHT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none"><path d="M0 0h16v16H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="m5.75 3.75 4.5 4.25-4.5 4.25"/></svg>`;
-const CHARM_CHEVRON_DOWN_D = "m3.75 5.75 4.25 4.5 4.25-4.5";
-const CHARM_CHEVRON_RIGHT_D = "m5.75 3.75 4.5 4.25-4.5 4.25";
 
-/** Paints a Charm chevron into `el` as a real stroke SVG (not via `setIcon`). `collapsed`
- * true → chevron-right; false → chevron-down. Colour follows `currentColor`. */
-export function setCharmChevronIcon(el: HTMLElement, collapsed: boolean): void {
+/** Garden Icons (garden--number-fill-16) — a hash/number glyph, the "set a number" control icon
+ * (TopPanel.ts's Novel-tab planned novel/chapter length rows). Four stroked lines, not a solid
+ * shape, so — same reason the Charm chevrons above are painted rather than run through `setIcon`
+ * (Obsidian's `.svg-icon` is fill-only) — this is drawn directly via setNumberFillIcon instead of
+ * being registered through addIcon. */
+const NUMBER_FILL_D = "M2.5 5.5h12m-13 5h12m-1.5-9l-3 13m-2-13l-3 13";
+
+export function setNumberFillIcon(el: HTMLElement): void {
 	el.empty();
 	el.createSvg("svg", {
-		attr: {
-			viewBox: "0 0 16 16",
-			width: "16",
-			height: "16",
-			fill: "none",
-			"aria-hidden": "true",
-		},
+		attr: { viewBox: "0 0 16 16", width: "16", height: "16", fill: "none", "aria-hidden": "true" },
 	}).createSvg("path", {
 		attr: {
-			fill: "none",
+			fill: "currentColor",
 			stroke: "currentColor",
 			"stroke-linecap": "round",
-			"stroke-linejoin": "round",
-			"stroke-width": "1.5",
-			d: collapsed ? CHARM_CHEVRON_RIGHT_D : CHARM_CHEVRON_DOWN_D,
+			"stroke-width": "2",
+			d: NUMBER_FILL_D,
 		},
 	});
 }
@@ -786,7 +779,8 @@ export const ICON_ELEMENT2_FILLED = "sf-element2-filled";
 const ELEMENT2_FILLED_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M11 19.9V4.1C11 2.6 10.36 2 8.77 2H4.73C3.14 2 2.5 2.6 2.5 4.1v15.8c0 1.5.64 2.1 2.23 2.1h4.04c1.59 0 2.23-.6 2.23-2.1m10.5-9V4.1c0-1.5-.64-2.1-2.23-2.1h-4.04C13.64 2 13 2.6 13 4.1v6.8c0 1.5.64 2.1 2.23 2.1h4.04c1.59 0 2.23-.6 2.23-2.1m0 9v-2.8c0-1.5-.64-2.1-2.23-2.1h-4.04c-1.59 0-2.23.6-2.23 2.1v2.8c0 1.5.64 2.1 2.23 2.1h4.04c1.59 0 2.23-.6 2.23-2.1" /></svg>`;
 
 /** User-provided (fluent--document-page-break-20-filled) — document split by a dashed break.
- * Used for SeriesModal.ts's "cycling guide" icon (general tab), which opens CyclingGuideModal. */
+ * Used for SeriesModal.ts's "guides" icon (general tab), which opens CyclingGuideModal (cycling
+ * guide + depth guide, behind a tab bar). */
 export const ICON_DOCUMENT_PAGE_BREAK = "sf-document-page-break";
 const DOCUMENT_PAGE_BREAK_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M0 0h20v20H0z" fill="none" /><path fill="currentColor" d="M16 6V2.5c0-.276-.226-.5-.5-.5H4.496A.5.5 0 0 0 4 2.5V6c0 .828.667 1.5 1.488 1.5H14.5c.821 0 1.5-.672 1.5-1.5M3 9.5a.5.5 0 0 0 0 1h1.2a.5.5 0 0 0 0-1zm3.2 0a.5.5 0 0 0 0 1h1.2a.5.5 0 0 0 0-1zm2.7.5a.5.5 0 0 1 .5-.5h1.2a.5.5 0 0 1 0 1H9.4a.5.5 0 0 1-.5-.5m3.7-.5a.5.5 0 0 0 0 1h1.2a.5.5 0 0 0 0-1zm2.7.5a.5.5 0 0 1 .5-.5H17a.5.5 0 0 1 0 1h-1.2a.5.5 0 0 1-.5-.5m.7 7.5V14c0-.828-.679-1.5-1.5-1.5H5.488C4.667 12.5 4 13.172 4 14v3.5c0 .276.222.5.496.5H15.5c.274 0 .5-.224.5-.5" /></svg>`;
 
@@ -887,6 +881,24 @@ const VERTICAL_SCROLL_POINT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewB
  * ICON_NOTEBOOK, just a screen-and-stand glyph instead of a notebook. */
 export const ICON_COMPUTER = "sf-computer";
 const COMPUTER_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><defs><mask id="sf-computer-mask"><g fill="none" stroke="#fff" stroke-linejoin="round" stroke-width="4"><rect width="36" height="28" x="6" y="6" fill="#555" rx="3" /><path stroke-linecap="round" d="M14 42h20m-10-8v8" /></g></mask></defs><path fill="currentColor" d="M0 0h48v48H0z" mask="url(#sf-computer-mask)" /></svg>`;
+
+/** Tabler — baseline-density-large. Two widely-spaced horizontal lines. Depth guide's word-target
+ * picker (settings > guides > depth, styleModalHelpers.ts's renderDepthGuideCard) — the sparsest of
+ * the three density icons, standing for the shortest target ("standard", 300 words). */
+export const ICON_DENSITY_LARGE = "sf-density-large";
+const DENSITY_LARGE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16M4 20h16" /></svg>`;
+
+/** Tabler — baseline-density-medium. Three horizontal lines. Depth guide's word-target picker
+ * (settings > guides > depth) — the middle density icon, standing for the middle target ("deep", 450
+ * words). */
+export const ICON_DENSITY_MEDIUM = "sf-density-medium";
+const DENSITY_MEDIUM_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 20h16M4 12h16M4 4h16" /></svg>`;
+
+/** Tabler — baseline-density-small. Four tightly-spaced horizontal lines. Depth guide's word-target
+ * picker (settings > guides > depth) — the densest of the three icons, standing for the longest
+ * target ("extremely deep", 600 words). */
+export const ICON_DENSITY_SMALL = "sf-density-small";
+const DENSITY_SMALL_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 3h16M4 9h16M4 15h16M4 21h16" /></svg>`;
 
 /** Registers storyForge's custom Lucide-style icons so `setIcon` can address them by id. */
 export function registerCustomIcons(): void {
@@ -1092,4 +1104,7 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_TEXT_HEADER_6, TEXT_HEADER_6_SVG);
 	addIcon(ICON_VERTICAL_SCROLL_POINT, VERTICAL_SCROLL_POINT_SVG);
 	addIcon(ICON_COMPUTER, COMPUTER_SVG);
+	addIcon(ICON_DENSITY_LARGE, DENSITY_LARGE_SVG);
+	addIcon(ICON_DENSITY_MEDIUM, DENSITY_MEDIUM_SVG);
+	addIcon(ICON_DENSITY_SMALL, DENSITY_SMALL_SVG);
 }

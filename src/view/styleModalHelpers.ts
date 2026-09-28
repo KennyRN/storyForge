@@ -1,8 +1,10 @@
 import { App, DropdownComponent, Setting, SettingGroup, setIcon, ToggleComponent } from "obsidian";
 import type StoryForgePlugin from "../main";
-import type { CyclingGuideInterval, HeadingDividerThickness, StoryForgePluginSettings } from "../main";
+import type { CyclingGuideInterval, DepthGuideLevel, HeadingDividerThickness, StoryForgePluginSettings } from "../main";
 import type { FontCatalogEntry } from "../formattingApi";
-import { ICON_CYCLE_ALT } from "../icons";
+import { ICON_CYCLE_ALT, ICON_DENSITY_LARGE, ICON_DENSITY_MEDIUM, ICON_DENSITY_SMALL } from "../icons";
+import { debounce } from "../debounce";
+import { makeAccessibleActivatable } from "./a11y";
 
 /** Shared building blocks for TextStyleModal, UiFormattingModal, and
  * ProtectionsModal — free functions rather than a base class, matching the
@@ -629,4 +631,94 @@ export function renderCyclingGuideCard(
 		});
 	});
 	applyCyclingGuideVisibility(!cyclingGuideToggle.getValue());
+}
+
+/** Icon/level pairs for the "depth" picker below, sparsest → densest icon matching shortest →
+ * longest word target. */
+const DEPTH_GUIDE_LEVEL_ICONS: { level: DepthGuideLevel; icon: string; label: string }[] = [
+	{ level: "standard", icon: ICON_DENSITY_LARGE, label: "standard (300 words)" },
+	{ level: "deep", icon: ICON_DENSITY_MEDIUM, label: "deep (450 words)" },
+	{ level: "extremely-deep", icon: ICON_DENSITY_SMALL, label: "extremely deep (600 words)" },
+];
+
+/** Three-icon segmented control for "depth", replacing a dropdown: one hover-highlighted icon button
+ * per level, the selected one staying highlighted - the same is-active convention as
+ * .sf-wordcount-mode-btn/.titleforge-quantity-button elsewhere in the plugin. */
+function renderDepthGuideLevelPicker(plugin: StoryForgePlugin, setting: Setting, initialLevel: DepthGuideLevel): void {
+	const picker = setting.controlEl.createDiv({ cls: "sf-depth-guide-level-picker" });
+	let currentLevel = initialLevel;
+	for (const { level, icon, label } of DEPTH_GUIDE_LEVEL_ICONS) {
+		const btn = picker.createSpan({
+			cls: `sf-depth-guide-level-btn${level === currentLevel ? " is-active" : ""}`,
+			attr: { "aria-label": label, "aria-pressed": level === currentLevel ? "true" : "false" },
+		});
+		setIcon(btn, icon);
+		const select = () => {
+			if (level === currentLevel) return;
+			currentLevel = level;
+			for (const child of Array.from(picker.children)) {
+				child.classList.remove("is-active");
+				child.setAttribute("aria-pressed", "false");
+			}
+			btn.classList.add("is-active");
+			btn.setAttribute("aria-pressed", "true");
+			void persistAndRestyle(plugin, "depthGuideLevel", level, () => plugin.rebuildDepthGuideExtension());
+		};
+		btn.addEventListener("click", select);
+		makeAccessibleActivatable(btn, select);
+	}
+}
+
+/**
+ * "Depth guide" toggle plus its two dependent options (Depth, Chapters covered) - the settings behind
+ * openingWords.ts's chapter-editor background (the diagonal-pattern "first page" region). Used by
+ * CyclingGuideModal's "depth" tab.
+ */
+export function renderDepthGuideCard(plugin: StoryForgePlugin, body: HTMLElement, settings: StoryForgePluginSettings): void {
+	const depthGuideGroup = new SettingGroup(body);
+
+	let depthGuideToggle!: ToggleComponent;
+	depthGuideGroup.addSetting((setting) => {
+		setting.setName("depth guide").addToggle((toggle) => {
+			depthGuideToggle = toggle;
+			toggle.setValue(settings.depthGuideEnabled);
+		});
+	});
+
+	let depthGuideLevelSetting!: Setting;
+	depthGuideGroup.addSetting((setting) => {
+		depthGuideLevelSetting = setting;
+		setting.setName("depth");
+		renderDepthGuideLevelPicker(plugin, setting, settings.depthGuideLevel);
+	});
+
+	let depthGuideChaptersCoveredSetting!: Setting;
+	const persistChaptersCovered = debounce(
+		(value: number) => void persistAndRestyle(plugin, "depthGuideChaptersCovered", value, () => plugin.rebuildDepthGuideExtension()),
+		400,
+	);
+	depthGuideGroup.addSetting((setting) => {
+		depthGuideChaptersCoveredSetting = setting;
+		setting.setName("chapters covered").addText((text) => {
+			text.inputEl.type = "number";
+			text.inputEl.min = "0";
+			text.setValue(String(settings.depthGuideChaptersCovered));
+			text.onChange((value) => {
+				const raw = Number(value);
+				persistChaptersCovered(Number.isFinite(raw) ? Math.max(0, Math.floor(raw)) : 0);
+			});
+		});
+	});
+
+	const applyDepthGuideVisibility = (hidden: boolean) => {
+		depthGuideLevelSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+		depthGuideChaptersCoveredSetting.settingEl.toggleClass("sf-settings-hidden", hidden);
+	};
+	depthGuideToggle.onChange((value) => {
+		void plugin.updateSetting("depthGuideEnabled", value).then(() => {
+			plugin.setDepthGuideEnabled(value);
+			applyDepthGuideVisibility(!value);
+		});
+	});
+	applyDepthGuideVisibility(!depthGuideToggle.getValue());
 }

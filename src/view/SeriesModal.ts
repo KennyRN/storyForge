@@ -293,8 +293,8 @@ export class SeriesModal extends Modal {
 
 		const cyclingGuideGroup = new SettingGroup(contentEl);
 		cyclingGuideGroup.addSetting((setting) => {
-			setting.setName("cycling guide").setDesc("draws a floating guideline");
-			this.renderHoverIcon(setting, ICON_DOCUMENT_PAGE_BREAK, "Open cycling guide", () =>
+			setting.setName("guides").setDesc("guides to help with storytelling");
+			this.renderHoverIcon(setting, ICON_DOCUMENT_PAGE_BREAK, "Open guides", () =>
 				new CyclingGuideModal(this.app, plugin).open(),
 			);
 		});

@@ -16,21 +16,17 @@ import {
 	type CodexRef,
 } from "../book";
 import { getCodexEntriesByType } from "../codex";
-import {
-	ICON_MAP_PIN_PLUS,
-	ICON_PERSON_FILL,
-	ICON_PERSON_FILL_ADD,
-	setCharmChevronIcon,
-} from "../icons";
+import { readChapterWordCount } from "../history";
+import { ICON_MAP_PIN_PLUS, ICON_PERSON_FILL, ICON_PERSON_FILL_ADD, ICON_X } from "../icons";
 import { bookBackstagePath } from "../paths";
 import { resolveChapterNarrator } from "../story-context/narrator";
 import type { CastMember } from "../story-context/types";
 import { numberedBookTitle } from "../series";
 import { splitTitleSubtitle } from "../titleNumbering";
 import { makeAccessibleActivatable } from "./a11y";
-import { ChapterTitleModal } from "./ChapterTitleModal";
 import { CodexEntryPickerModal } from "./CodexEntryPickerModal";
-import { collectPlotLines, chapterPlotLineKey, resolveChapterRowColor, type PlotLine } from "./novelColor";
+import { resolveChapterRowColor } from "./novelColor";
+import { formatWordCount } from "../wordCount";
 
 /**
  * A novel's cover/synopsis/chapter-by-chapter plot — the content Story Context's own Novel tab
@@ -38,13 +34,13 @@ import { collectPlotLines, chapterPlotLineKey, resolveChapterRowColor, type Plot
  * main-pane page (NovelOverviewView.ts) mirrors in the main editor area. One render function
  * shared by both hosts rather than two copies drifting apart (see SeriesOverviewView.ts's doc
  * comment for the duplication this project already learned not to repeat). Story Context's
- * sidebar omits Default PoV and the "Plot" heading; the wide overview also omits the heading
- * and runs the primary plot thread up the cover and along the top of the cover/synopsis row.
+ * sidebar omits the "Plot" heading. Neither host shows Default PoV any more — that row moved to
+ * the storyLibrary panel's own left-sidebar Novel tab instead (TopPanel.ts's renderBookList,
+ * alongside its Novel/Chapter Length rows), which is a different pane from either of these.
  */
 export interface NovelPanelOptions {
 	bookFolderName: string | null;
-	/** Needed for settings (colour palette, plot-card collapse) and to open ChapterTitleModal on a
-	 * "wide" card's title click. */
+	/** Needed for settings (colour palette, plot-card collapse). */
 	plugin: StoryForgePlugin;
 	/** Shown in place of the panel when no novel is selected — hosts word this slightly differently. */
 	emptyText: string;
@@ -58,61 +54,12 @@ export interface NovelPanelOptions {
 	 * closed view or a since-changed selection never lands a stale value. */
 	isStale: () => boolean;
 	/** "sidebar" (default, omit to get it) is Story Context's own stacked/centred layout: cover on
-	 * top, title/subtitle beneath it, synopsis below that, then the plot-thread cards.
-	 * "wide" is the storyLibrary panel's Novel-overview page (NovelOverviewView.ts) — a larger,
-	 * left-aligned cover with no title/subtitle, and synopsis and Default PoV beside the cover
-		 * instead of under it. The primary plot thread runs up the cover's left and along the top
-		 * of that row; further threads start at the bottom of that row and run down to the right of
-		 * the primary. Both hosts share coloured plot cards, the colour-line gutter, collapse
-	 * chevrons, and coloured chapter titles; only "wide" opens ChapterTitleModal from a title click. */
+	 * top, title/subtitle beneath it, synopsis below that, then the plot cards.
+	 * "wide" is the storyLibrary panel's Novel-overview page (NovelOverviewView.ts) — title/subtitle
+	 * as a left-aligned page heading above a larger left-aligned cover, with the synopsis filling
+	 * the rest of that column's height beside the cover instead of sitting under it. Both hosts
+	 * share the same coloured plot cards and coloured chapter titles. */
 	layout?: "sidebar" | "wide";
-}
-
-interface ChapterLineGutterMetrics {
-	/** Cap width — 2px corner radius on each side plus room for the full line bundle, so every
-	 * strand lands on the bar's straight segment (see lineOffsets). */
-	pillWidth: number;
-	/** Each line's left x-offset within the scroll pane's background, same order as the colours
-	 * passed in. Offset by the cap's own corner radius (not from 0) so the first line starts just
-	 * past where the left curve ends, and the last ends just short of where its right curve
-	 * begins — the lines read as continuing directly out from inside the bar above them, not
-	 * merely lined up beside it. */
-	lineOffsets: number[];
-	/** How far every chapter card shifts right to clear the last line, plus a small gap. */
-	cardShift: number;
-}
-
-const GUTTER_CAP_RADIUS = 2;
-const GUTTER_LINE_WIDTH = 2;
-const GUTTER_LINE_GAP = 2;
-const GUTTER_CARD_GAP = 8;
-
-/** Null when there are no lines to draw at all (collectChapterLineColors came back empty — e.g. an
- * empty custom palette) — callers skip the pill/gutter/card-shift entirely in that case. */
-function computeChapterLineGutterMetrics(lineCount: number): ChapterLineGutterMetrics | null {
-	if (lineCount <= 0) return null;
-	const pitch = GUTTER_LINE_WIDTH + GUTTER_LINE_GAP;
-	const bundleWidth = (lineCount - 1) * pitch + GUTTER_LINE_WIDTH;
-	return {
-		pillWidth: 2 * GUTTER_CAP_RADIUS + bundleWidth,
-		lineOffsets: Array.from({ length: lineCount }, (_, i) => GUTTER_CAP_RADIUS + i * pitch),
-		cardShift: GUTTER_CAP_RADIUS + bundleWidth + GUTTER_CARD_GAP,
-	};
-}
-
-/** The line bundle's own paint job — a solid-colour linear-gradient "stripe" per line, each sized
- * to its own 2px column and positioned at its own lineOffsets entry — shared between the header's
- * pill-stub (a few static pixels, so the lines are visibly already running before the scroll pane
- * even begins) and the scroll pane's own full-height background (renderNovelPlot). Same colours,
- * same x-offsets, in both places, so the two read as one continuous set of lines rather than two
- * separately-aligned ones. */
-function buildGutterLineBackground(lineColors: string[], lineOffsets: number[]) {
-	return {
-		backgroundImage: lineColors.map((c) => `linear-gradient(${c}, ${c})`).join(", "),
-		backgroundSize: lineColors.map(() => "2px 100%").join(", "),
-		backgroundPosition: lineOffsets.map((x) => `${x}px 0`).join(", "),
-		backgroundRepeat: "no-repeat",
-	};
 }
 
 export function renderNovelPanel(app: App, container: HTMLElement, options: NovelPanelOptions): void {
@@ -129,9 +76,21 @@ export function renderNovelPanel(app: App, container: HTMLElement, options: Nove
 	const bookFolderName = options.bookFolderName;
 	const fixed = body.createDiv({ cls: "sf-story-context-fixed sf-story-context-novel-fixed" });
 
-	// "wide" splits into a cover-left/text-right row (cover, then synopsis + Default PoV in a
-	// column beside it) — everything else (title/subtitle, synopsis) still parents directly off
-	// `fixed` for "sidebar", one column top to bottom same as before.
+	// "wide" shows the title as a page heading above the cover row; "sidebar" shows it centred
+	// beneath the cover instead (below, once the cover/text-col split is set up).
+	if (wide) {
+		const numberedTitle = numberedBookTitle(app, bookFolderName, undefined, options.plugin.getSettings().seriesNumberingStyle);
+		const { title, subtitle } = splitTitleSubtitle(numberedTitle);
+		fixed.createDiv({ cls: "sf-story-context-novel-title sf-story-context-novel-title--wide", text: title });
+		if (subtitle) {
+			fixed.createDiv({ cls: "sf-story-context-novel-subtitle sf-story-context-novel-subtitle--wide", text: subtitle });
+		}
+	}
+
+	// "wide" splits into a cover-left/text-right row (cover, then synopsis beside it, filling the
+	// full height of that column via flex — see .sf-story-context-novel-text-col's own synopsis
+	// rule) — everything else (synopsis) still parents directly off `fixed` for "sidebar", one
+	// column top to bottom same as before.
 	const coverHost = wide ? fixed.createDiv({ cls: "sf-story-context-novel-cover-row" }) : fixed;
 
 	const cover = coverHost.createDiv({ cls: "sf-synopsis-cover sf-story-context-novel-cover" });
@@ -162,45 +121,8 @@ export function renderNovelPanel(app: App, container: HTMLElement, options: Nove
 		synopsis.value = value;
 	});
 
-	if (wide) {
-		const defaultPovSection = textHost.createDiv({ cls: "sf-story-context-section" });
-		renderDefaultPovRow(app, defaultPovSection, bookFolderName, options.onChanged);
-	}
-
-	const plotLines = collectPlotLines(app, bookFolderName, options.plugin.getSettings());
-	const lineColors = plotLines.map((line) => line.color);
-	const gutter = computeChapterLineGutterMetrics(lineColors.length);
-
-	// Sidebar (!wide): the synopsis box used to carry the primary thread's colour itself (a
-	// coloured wrap/cap around the textarea, with matching uneven corner radii). It's now a plain
-	// box instead — same corner radius on all four corners as the cover above it
-	// (.sf-story-context-novel-synopsis, styles.css) — and the thread colour starts at the thick
-	// divider below it instead (.sf-story-context-novel-host .sf-story-context-scroll's own
-	// background, painted from its own top edge — no separate "drop" element needed for this
-	// layout any more). See the "wide" branch below for the central Novel-overview page, which is
-	// untouched: its thread still runs up the cover instead.
-	if (wide && gutter && lineColors[0]) {
-		const threadLeft = gutter.lineOffsets[0];
-		const wrap = fixed.createDiv({ cls: "sf-story-context-novel-cover-thread" });
-		coverHost.before(wrap);
-		const cap = wrap.createDiv({ cls: "sf-story-context-novel-synopsis-thread-cap" });
-		cap.setCssStyles({ backgroundColor: lineColors[0] });
-		wrap.append(coverHost);
-		wrap.setCssStyles({
-			marginLeft: `${threadLeft}px`,
-			width: `calc(100% - ${threadLeft}px)`,
-		});
-		wrap.style.setProperty("--sf-cover-thread-color", lineColors[0]);
-		cover.addClass("sf-story-context-novel-cover--thread");
-	}
-	// Wide only: the sidebar gets the thick divider (styles.css) in place of this gap, and its own
-	// scroll pane's background starts the thread colour immediately below that instead.
-	if (wide && gutter) {
-		const drop = body.createDiv({ cls: "sf-story-context-novel-thread-drop" });
-		drop.setCssStyles(buildGutterLineBackground(lineColors, gutter.lineOffsets));
-	}
 	const scroll = body.createDiv({ cls: "sf-story-context-scroll" });
-	void renderNovelPlot(app, scroll, bookFolderName, options, wide, plotLines);
+	void renderNovelPlot(app, scroll, bookFolderName, options);
 }
 
 /** Exported for SeriesOverviewView.ts's per-row cover box — same cover, same click-to-set
@@ -244,11 +166,14 @@ export function pickNovelCover(app: App, cover: HTMLElement, bookFolderName: str
 	input.click();
 }
 
-function renderDefaultPovRow(app: App, parent: HTMLElement, bookFolderName: string, onChanged: () => void): void {
+/** Exported for TopPanel.ts's Novel-tab chapter list, which shows this same row above its Novel
+ * Length/Chapter Length fields — all three share one .sf-story-context-meta wrapper there (equal
+ * spacing between all three rows), so this takes that wrapper directly rather than creating its
+ * own nested one. */
+export function renderDefaultPovRow(app: App, meta: HTMLElement, bookFolderName: string, onChanged: () => void): void {
 	const fm = readBookFrontmatter(app, bookFolderName);
 	const path = fm?.defaultPovPath ?? null;
 	const name = fm?.defaultPovName ?? null;
-	const meta = parent.createDiv({ cls: "sf-story-context-meta" });
 	const row = meta.createDiv({ cls: "sf-story-context-meta-row" });
 	row.createSpan({ cls: "sf-story-context-meta-label", text: "Default PoV:" });
 	renderMetaControl(row, {
@@ -277,13 +202,205 @@ async function openDefaultPovPicker(app: App, bookFolderName: string, hasValue: 
 	}).open();
 }
 
+function clamp(value: number, min: number, max: number): number {
+	return Math.min(max, Math.max(min, value));
+}
+
+/** Significant figures in a positive integer, found by stripping trailing zeros — e.g.
+ * 1500 -> 2 (from "15"), 1050 -> 3 (from "105"), 1234 -> 4 (nothing to strip). */
+function countSignificantFigures(value: number): number {
+	const digits = String(Math.abs(Math.round(value)));
+	const trimmed = digits.replace(/0+$/, "");
+	return trimmed.length || 1;
+}
+
+/** Rounds `value` to the same number of significant figures as `reference` — i.e. to the same
+ * place value as reference's own least-significant digit. Used to decide whether a chapter's
+ * word count "matches" its configured target length without treating a handful of words'
+ * difference as meaningful: 1,493 against a 1,500 target (2 sig figs) rounds to 1,500 and
+ * reads as a match; 1,443 rounds to 1,400 (short); 1,561 rounds to 1,600 (over). */
+function roundToSignificantFigures(value: number, reference: number): number {
+	const totalDigits = String(Math.abs(Math.round(reference))).length;
+	const sigFigs = countSignificantFigures(reference);
+	const increment = 10 ** Math.max(0, totalDigits - sigFigs);
+	return Math.round(value / increment) * increment;
+}
+
+/**
+ * The in-cell data bar (main-pane Novel overview only) — appended into `headerRow` as plain,
+ * absolutely-positioned solid-colour `<div>`s whose left/width are computed here in JS and set as
+ * inline styles, not via CSS custom properties/gradients/masks: this is the most bulletproof way
+ * to guarantee the fill actually paints, with nothing that can silently no-op if a `var()`
+ * reference or a `mask-image` doesn't resolve the way expected. `headerRow` itself carries no
+ * padding for --databar cards (see its own CSS) — these segments span its true 0%–100% width, and
+ * `nameEl`'s own padding (also in that CSS) only insets its *text*, not the background box the
+ * gradient below paints into, so the two stay aligned without any shared-box trickery.
+ */
+function renderDataBar(
+	headerRow: HTMLElement,
+	nameEl: HTMLElement,
+	rowColor: { background: string; text: string } | null,
+	wordCount: number,
+	fillPercent: number,
+	targetPercent: number | null,
+	targetLength: number | null,
+): void {
+	const color = rowColor?.background ?? "var(--background-modifier-border)";
+	// Matches headerRow's own border-radius (styles.css) — the right end's rounding (when it's the
+	// bar's actual visual end) is meant to read as the same corner as the row's own left corners,
+	// not a separate, bigger pill cap.
+	const cornerRadius = 4;
+
+	/** A solid-colour segment. `roundedEnd` rounds its right edge by `cornerRadius` — only for a
+	 * segment that's the bar's actual visual end (never the solid portion ahead of a dotted one,
+	 * which ends in a dot-bisected seam instead — see addDots). The row's own left edge already
+	 * reads as rounded for free, via headerRow's own border-radius + overflow: hidden. */
+	const addSolid = (left: string, width: string, roundedEnd: boolean): void => {
+		const seg = headerRow.createDiv({ cls: "sf-story-context-plot-databar-segment" });
+		seg.setCssStyles({
+			left,
+			width,
+			backgroundColor: color,
+			borderRadius: roundedEnd ? `0 ${cornerRadius}px ${cornerRadius}px 0` : "0",
+		});
+	};
+
+	/**
+	 * The "target reached" overflow: a diamond/staggered dot lattice from `leftPercent` to
+	 * `leftPercent + widthPercent`, built as individual small circles (not a CSS background
+	 * pattern). Fixed grid, matching the bar's own fixed 34px height (see
+	 * .sf-story-context-plot-block--databar .sf-story-context-plot-header-row in styles.css):
+	 * 2px dots on a 4px row-to-row vertical step, alternating horizontal offset by half the 8px
+	 * column pitch each row (the standard way to describe a single diamond lattice as two
+	 * interleaved columns) — 9 rows total: the "on-seam" column (row 0, 2, 4, 6, 8) gets 5 dots at
+	 * centres 1/9/17/25/33px, flush with the bar's own top and bottom edges; the offset column
+	 * (row 1, 3, 5, 7) gets 4 dots at 5/13/21/29px, inset one 4px step from each end. `dotRadius +
+	 * 8 * rowPitch + dotRadius` works out to exactly 34px, so no special-casing is needed for
+	 * either vertical edge. 8px horizontal pitch (centre-to-centre) with a 2px dot leaves a 6px
+	 * edge-to-edge gap, matching the vertical gap.
+	 * The one deliberate exception is the seam column (the dot pattern's own left edge, where it
+	 * meets the solid segment before it): drawn as a half-circle (flat edge on the left, so only
+	 * its right half ever actually shows), in every row it appears in.
+	 * At the right edge (how far the chapter's actually been written), a dot is kept whole if its
+	 * centre falls at or before that edge (more than half of it would be visible) and dropped
+	 * entirely otherwise — never partially clipped.
+	 * Needs the row's real pixel width (word-count-driven percentages alone can't place a fixed
+	 * 8px grid), so this measures `headerRow` once via getBoundingClientRect() — a one-time read,
+	 * not re-measured if the pane is resized afterward.
+	 */
+	const addDots = (leftPercent: number, widthPercent: number): void => {
+		const rowRect = headerRow.getBoundingClientRect();
+		const segmentWidthPx = (widthPercent / 100) * rowRect.width;
+		const segmentLeftPx = (leftPercent / 100) * rowRect.width;
+		if (rowRect.height <= 0 || segmentWidthPx <= 0) return;
+
+		const dotDiameter = 2;
+		const dotRadius = dotDiameter / 2;
+		const colPitch = 8; // horizontal, centre-to-centre
+		const rowPitch = 4; // vertical, row-to-row step (each row alternates horizontal offset)
+		const rowsInBar = 9;
+
+		for (let row = 0; row < rowsInBar; row++) {
+			const centerY = dotRadius + row * rowPitch;
+			const xOffset = row % 2 === 0 ? 0 : colPitch / 2;
+			for (let centerX = xOffset; centerX <= segmentWidthPx; centerX += colPitch) {
+				const isSeamColumn = xOffset === 0 && centerX === 0;
+				const dot = headerRow.createDiv({ cls: "sf-story-context-plot-databar-dot" });
+				dot.setCssStyles({ backgroundColor: color });
+				if (isSeamColumn) {
+					dot.setCssStyles({
+						left: `${segmentLeftPx}px`,
+						top: `${centerY - dotRadius}px`,
+						width: `${dotRadius}px`,
+						height: `${dotDiameter}px`,
+						borderRadius: `0 ${dotRadius}px ${dotRadius}px 0`,
+					});
+				} else {
+					dot.setCssStyles({
+						left: `${segmentLeftPx + centerX - dotRadius}px`,
+						top: `${centerY - dotRadius}px`,
+						width: `${dotDiameter}px`,
+						height: `${dotDiameter}px`,
+						borderRadius: "50%",
+					});
+				}
+			}
+		}
+	};
+
+	/** The "not yet reached" target marker: a 2px, round-capped, dashed (3px dash, 3px gap)
+	 * vertical line at `targetPct`, centred on that x position. An SVG <line> rather than a CSS
+	 * background — there's no CSS-only way to get rounded caps on individual dashes, only real
+	 * solid/dashed borders (square-cut) or `stroke-linecap`, which is SVG/canvas-only. */
+	const addMarker = (targetPct: number): void => {
+		const svg = headerRow.createSvg("svg", {
+			cls: "sf-story-context-plot-databar-marker",
+			attr: { width: "2", height: "100%" },
+		});
+		svg.setCssStyles({ left: `calc(${targetPct}% - 1px)` });
+		svg.createSvg("line", {
+			attr: {
+				x1: "1",
+				y1: "0",
+				x2: "1",
+				y2: "100%",
+				stroke: color,
+				"stroke-width": "2",
+				"stroke-linecap": "round",
+				"stroke-dasharray": "3 3",
+			},
+		});
+	};
+
+	if (wordCount === 0) {
+		// No words yet: a 3px sliver at the start, no target marker even if one is configured.
+		addSolid("0", "3px", true);
+	} else if (targetLength != null && targetPercent != null) {
+		// Round the chapter's actual word count to the target length's own significant figures
+		// before comparing — a handful of words either side of the target (e.g. 1,493 against a
+		// 1,500 target) reads as "close enough" rather than firing a marker/dots for noise.
+		const roundedWordCount = roundToSignificantFigures(wordCount, targetLength);
+		if (roundedWordCount === targetLength) {
+			// Close enough at the target's own precision: plain fill, no marker, no dots.
+			addSolid("0", `${fillPercent}%`, true);
+		} else if (roundedWordCount > targetLength) {
+			// Past target: solid 0 -> target, diamond-dotted target -> fill, no marker.
+			addSolid("0", `${targetPercent}%`, false);
+			if (fillPercent > targetPercent) {
+				addDots(targetPercent, fillPercent - targetPercent);
+			}
+		} else {
+			// Still short: solid 0 -> fill (rounded end — nothing follows it), plus a dashed
+			// target marker.
+			addSolid("0", `${fillPercent}%`, true);
+			addMarker(targetPercent);
+		}
+	} else {
+		// No target configured: plain fill, nothing else.
+		addSolid("0", `${fillPercent}%`, true);
+	}
+
+	// Title text-colour split: rowColor.text where the bar covers the title, rowColor.background
+	// (the thread's own accent, as plain coloured text) past it — a hard cutover at the same
+	// fillPercent the bar itself uses. Set directly here (not through a CSS class referencing a
+	// custom property) for the same reason the segments above are: no var() to fail to resolve.
+	if (rowColor) {
+		nameEl.style.setProperty(
+			"background-image",
+			`linear-gradient(to right, ${rowColor.text} 0%, ${rowColor.text} ${fillPercent}%, ${rowColor.background} ${fillPercent}%, ${rowColor.background} 100%)`,
+		);
+		nameEl.style.setProperty("background-clip", "text");
+		nameEl.style.setProperty("-webkit-background-clip", "text");
+		nameEl.style.setProperty("color", "transparent");
+		nameEl.style.setProperty("-webkit-text-fill-color", "transparent");
+	}
+}
+
 async function renderNovelPlot(
 	app: App,
 	scroll: HTMLElement,
 	bookFolderName: string,
 	options: NovelPanelOptions,
-	wide: boolean,
-	plotLines: PlotLine[],
 ): Promise<void> {
 	scroll.empty();
 	const { ordered } = getBookChapters(app, bookFolderName);
@@ -291,33 +408,35 @@ async function renderNovelPlot(
 		scroll.createDiv({ cls: "sf-empty", text: "No placed chapters yet." });
 		return;
 	}
-	const lineColors = plotLines.map((line) => line.color);
-	// The colour-line gutter (renderNovelPanel's own pill sits directly above it, same colours and
-	// the same computeChapterLineGutterMetrics geometry, so the lines read as continuing out of the
-	// pill rather than just lining up beside it) — one 2px line per plot thread in use (plus the
-	// book's own default), 2px gaps between them, painted as backgrounds on the scroll pane itself
-	// rather than as real elements so it never needs its own height calculation. background-attachment:
-	// local (rather than the default "scroll", which stays fixed to the viewport) is what makes it
-	// scroll together with the cards and span the pane's full *scrollable* content height, not just
-	// whatever's currently visible. Every card is then shifted right past the last line, plus a
-	// small gap, so nothing overlaps it.
-	const gutter = computeChapterLineGutterMetrics(lineColors.length);
-	if (gutter) {
-		scroll.setCssStyles({ ...buildGutterLineBackground(lineColors, gutter.lineOffsets), backgroundAttachment: "local" });
+	// The in-cell data bar (wide/central-pane host only — see below) needs every chapter's word
+	// count up front to find the book's own max before any single card's fill % can be computed,
+	// so this is read once here rather than per-card inside the loop.
+	const wide = options.layout === "wide";
+	let wordCounts: number[] = [];
+	let maxWordCount = 0;
+	let targetLength: number | null = null;
+	if (wide) {
+		wordCounts = await Promise.all(ordered.map((file) => readChapterWordCount(app, bookFolderName, file.name)));
+		if (options.isStale()) return;
+		maxWordCount = wordCounts.reduce((max, n) => Math.max(max, n), 0);
+		targetLength = readBookFrontmatter(app, bookFolderName)?.plannedChapterLength ?? null;
 	}
-	for (const file of ordered) {
+	for (let i = 0; i < ordered.length; i++) {
+		const file = ordered[i];
 		const block = scroll.createDiv({ cls: "sf-story-context-plot-block sf-story-context-plot-block--plain" });
-		if (gutter) block.setCssStyles({ marginLeft: `${gutter.cardShift}px` });
+		if (wide) block.addClass("sf-story-context-plot-block--databar");
 		const headerRow = block.createDiv({ cls: "sf-story-context-plot-header-row" });
 		const { title, subtitle } = splitTitleSubtitle(
 			numberedChapterTitle(app, bookFolderName, file.name, options.plugin.getSettings().chapterNumberingStyle),
 		);
+		// The title itself is the card's expand/collapse control (no separate chevron button) —
+		// clicking or activating it toggles .sf-story-context-plot-block--collapsed below. Wide
+		// only: it also sits on top of the data bar (see renderDataBar below) — headerRow itself
+		// carries no padding for --databar cards any more, nameEl's own does, so the bar (a plain
+		// absolutely-positioned child of headerRow) spans the row's true full width.
 		const nameEl = headerRow.createDiv({
-			cls: "sf-story-context-plot-chapter-name",
+			cls: "sf-story-context-plot-chapter-name sf-story-context-plot-chapter-name--clickable",
 			text: subtitle ? `${title} (${subtitle})` : title,
-		});
-		const collapseBtn = headerRow.createSpan({
-			cls: "sf-story-context-plot-collapse",
 			attr: { role: "button", tabindex: "0" },
 		});
 		// Each chapter reads as its own card: the whole header band (not just the name text) is
@@ -332,68 +451,38 @@ async function renderNovelPlot(
 			headerRow.setCssStyles({ color: rowColor.text });
 			// Outline colour is `--sf-plot-card-outline` (see .sf-story-context-plot-block--plain) —
 			// an inset box-shadow, not a real border, so nothing measured against this card's
-			// content edge needs to compensate for a border's width.
+			// content edge needs to compensate for a border's width. Wide/--databar cards have no
+			// outline at all (the data bar is their only chrome), so it's left unset for them — a
+			// dead custom property here would just invite some later rule to accidentally reuse it.
 			block.setCssProps({
 				"--sf-plot-card-header-bg": rowColor.background,
 				"--sf-plot-card-header-fg": rowColor.text,
-				"--sf-plot-card-outline": rowColor.background,
+				...(wide ? {} : { "--sf-plot-card-outline": rowColor.background }),
 			});
-			nameEl.setCssStyles({ color: rowColor.text });
-			collapseBtn.setCssStyles({ color: rowColor.text });
-			// The header band reaches back out past the card's own left edge, into the gutter,
-			// until it's centred exactly on the one line that matches this chapter's own plot
-			// thread (matched by key, not hex, so two threads that share a colour still land on
-			// their own strand). No z-index/stacking change needed for it to cover any *other*
-			// lines it crosses on the way there: it's a normal in-flow child with its own opaque
-			// background, so it already paints above the scroll pane's own background (the lines)
-			// by default.
-			if (gutter) {
-				const matchIndex = plotLines.findIndex((line) => line.key === chapterPlotLineKey(app, bookFolderName, file.name));
-				if (matchIndex !== -1) {
-					const lineCenterX = gutter.lineOffsets[matchIndex] + GUTTER_LINE_WIDTH / 2;
-					// -16 is the card's own left padding (cancelled, same as the header's static
-					// right margin cancels its right padding); no separate compensation for the
-					// card's own outline needed on top of that — it's an inset box-shadow (above),
-					// which — unlike a real border — never shifts the content box in the first place.
-					headerRow.setCssStyles({ marginLeft: `${lineCenterX - gutter.cardShift - 16}px` });
-				}
-			}
+			// Wide: renderDataBar sets the title's own colour directly instead (split between
+			// rowColor.text where the bar covers it and rowColor.background where it doesn't).
+			if (!wide) nameEl.setCssStyles({ color: rowColor.text });
 		}
-		// Title left edge = card inner text edge (16px, same as meta/description). The
-		// header band may bleed left into the gutter; extra padding-left keeps the title
-		// on that 16px line. The chevron is out of flow, centred on the 2px inset outline
-		// (`left: 1px` when flush; shifted by the same extra bleed so it stays on the
-		// card's shadow, not out on the colour line).
-		const cardPad = 16;
-		const headerMarginLeft = headerRow.style.marginLeft ? parseFloat(headerRow.style.marginLeft) : -cardPad;
-		const extraBleed = Math.max(0, -cardPad - headerMarginLeft);
-		headerRow.setCssStyles({ paddingLeft: `${cardPad + extraBleed}px` });
-		collapseBtn.setCssStyles({ left: `${1 + extraBleed}px` });
+
+		if (wide) {
+			const wordCount = wordCounts[i];
+			const fillPercent = maxWordCount > 0 ? clamp((wordCount / maxWordCount) * 100, 0, 100) : 0;
+			const targetPercent =
+				targetLength != null && maxWordCount > 0 ? clamp((targetLength / maxWordCount) * 100, 0, 100) : null;
+			renderDataBar(headerRow, nameEl, rowColor, wordCount, fillPercent, targetPercent, targetLength);
+		}
 
 		const chapterKey = plotChapterCollapseKey(bookFolderName, file.name);
 		const applyCollapsed = (collapsed: boolean) =>
-			applyPlotCardCollapsed(block, collapseBtn, collapsed);
+			applyPlotCardCollapsed(block, nameEl, collapsed);
 		applyCollapsed((options.plugin.getSettings().collapsedPlotChapterKeys ?? []).includes(chapterKey));
 		const toggleCollapsed = () => {
 			const next = !block.hasClass("sf-story-context-plot-block--collapsed");
 			applyCollapsed(next);
 			persistPlotCardCollapsed(options.plugin, chapterKey, next);
 		};
-		collapseBtn.addEventListener("click", (e) => {
-			e.stopPropagation();
-			toggleCollapsed();
-		});
-		makeAccessibleActivatable(collapseBtn, toggleCollapsed);
-
-		// Title-click rename stays on the central Novel overview only — the sidebar Novel tab
-		// shows the same coloured title but does not open ChapterTitleModal.
-		if (wide) {
-			nameEl.addClass("sf-story-context-plot-chapter-name--clickable");
-			const openTitleModal = () =>
-				new ChapterTitleModal(app, options.plugin, bookFolderName, file.name, () => options.onChanged()).open();
-			nameEl.addEventListener("click", openTitleModal);
-			makeAccessibleActivatable(nameEl, openTitleModal);
-		}
+		nameEl.addEventListener("click", toggleCollapsed);
+		makeAccessibleActivatable(nameEl, toggleCollapsed);
 
 		const entry = getChapterEntry(app, bookFolderName, file.name);
 		const narrator = resolveChapterNarrator(
@@ -426,14 +515,28 @@ async function renderNovelPlot(
 			() => void openNovelChapterLocationPicker(app, bookFolderName, file.name, entry?.location ?? [], options.onChanged),
 			(entry?.location.length ?? 0) > 0 ? "change location" : "set location",
 		);
+		// Central pane only — the sidebar Story Context Novel tab shares this same loop but never
+		// computed wordCounts (see the `wide` guard at the top of this function).
+		if (wide) {
+			const lengthRow = meta.createDiv({ cls: "sf-story-context-meta-row" });
+			lengthRow.createSpan({ cls: "sf-story-context-meta-label", text: "Length:" });
+			// A plain (non-clickable) value — same classes/layout as the PoV/Location rows'
+			// `.sf-story-context-meta-values`, minus the click affordance those rows' `--static`
+			// modifier strips (styles.css): word count isn't something to open a picker on.
+			const lengthValues = lengthRow.createSpan({
+				cls: "sf-story-context-meta-values sf-story-context-meta-values--static",
+			});
+			lengthValues.createSpan({ cls: "sf-story-context-meta-value", text: formatWordCount(wordCounts[i]) });
+		}
 
 		// A plain divider line, not the textarea's own border-top (an earlier version's approach):
 		// that border spanned the textarea's own bled-out width, the same width as the card's
 		// outline itself, so the two crossed right at the card's left/right edges and left a visible
 		// mark wherever the (opaque) border-top passed over the (inset) outline. This divider sits
 		// in the card's ordinary padded content area instead — well clear of the outline on both
-		// sides — so nothing crosses it at all.
-		block.createDiv({ cls: "sf-story-context-plot-textarea-divider" });
+		// sides — so nothing crosses it at all. Wide/--databar cards have no outline to clear any
+		// more (the data bar is the card's only chrome), so they skip this divider entirely.
+		if (!wide) block.createDiv({ cls: "sf-story-context-plot-textarea-divider" });
 		const textarea = block.createEl("textarea", {
 			cls: "sf-story-context-synopsis sf-story-context-plot-textarea",
 			// rows="1" overrides the HTML default of 2 — without it, a single-line description's
@@ -552,12 +655,10 @@ function plotChapterCollapseKey(bookFolderName: string, filename: string): strin
 	return `${bookFolderName}/${filename}`;
 }
 
-function applyPlotCardCollapsed(block: HTMLElement, collapseBtn: HTMLElement, collapsed: boolean): void {
+function applyPlotCardCollapsed(block: HTMLElement, titleControl: HTMLElement, collapsed: boolean): void {
 	block.toggleClass("sf-story-context-plot-block--collapsed", collapsed);
-	setCharmChevronIcon(collapseBtn, collapsed);
-	collapseBtn.setAttribute("aria-expanded", collapsed ? "false" : "true");
-	collapseBtn.setAttribute("aria-label", collapsed ? "expand chapter card" : "collapse chapter card");
-	setTooltip(collapseBtn, collapsed ? "expand chapter card" : "collapse chapter card");
+	titleControl.setAttribute("aria-expanded", collapsed ? "false" : "true");
+	setTooltip(titleControl, collapsed ? "expand chapter card" : "collapse chapter card");
 }
 
 function persistPlotCardCollapsed(plugin: StoryForgePlugin, key: string, collapsed: boolean): void {
@@ -568,17 +669,34 @@ function persistPlotCardCollapsed(plugin: StoryForgePlugin, key: string, collaps
 }
 
 /** Icon (+ optional value) as a single interactive control — shared by this panel's Default PoV /
- * per-chapter PoV+location rows and Story Context's own Chapter tab (StoryContextView.ts). */
+ * per-chapter PoV+location rows, Story Context's own Chapter tab (StoryContextView.ts), and
+ * TopPanel.ts's Novel/Chapter Length rows. `paintIcon` is an escape hatch for an icon that can't
+ * go through Obsidian's `setIcon` (fill-only `.svg-icon`) — a stroke-drawn glyph, say — takes
+ * priority over `iconId` when both are given. `hideIconWhenValue` drops the icon entirely once
+ * `value` is set, leaving just the value text as the control (TopPanel.ts's length rows want the
+ * number alone once there's a number to show; Default PoV/PoV/location keep their icon alongside
+ * the value, so this defaults to off). */
 export function renderMetaControl(
 	row: HTMLElement,
-	opts: { iconId: string; value: string | null; tooltip: string; onOpen: () => void },
+	opts: {
+		iconId?: string;
+		paintIcon?: (el: HTMLElement) => void;
+		value: string | null;
+		tooltip: string;
+		onOpen: () => void;
+		hideIconWhenValue?: boolean;
+	},
 ): void {
 	const control = row.createSpan({
 		cls: "sf-story-context-meta-control",
 		attr: { role: "button", tabindex: "0", "aria-label": opts.tooltip },
 	});
 	setTooltip(control, opts.tooltip);
-	setIcon(control.createSpan({ cls: "sf-story-context-meta-icon" }), opts.iconId);
+	if (!(opts.hideIconWhenValue && opts.value)) {
+		const iconEl = control.createSpan({ cls: "sf-story-context-meta-icon" });
+		if (opts.paintIcon) opts.paintIcon(iconEl);
+		else if (opts.iconId) setIcon(iconEl, opts.iconId);
+	}
 	if (opts.value) {
 		control.createSpan({ cls: "sf-story-context-meta-value", text: opts.value });
 	}
@@ -587,6 +705,24 @@ export function renderMetaControl(
 		opts.onOpen();
 	});
 	makeAccessibleActivatable(control, opts.onOpen);
+}
+
+/** A small "x" button beside a meta control's value — clears it directly, no picker/modal needed.
+ * Used by TopPanel.ts's planned novel/chapter length rows (unlike Default PoV/PoV/location, whose
+ * clearing lives inside their own picker modal instead — see CodexEntryPickerModal's "— Clear —"
+ * row). */
+export function renderMetaClearButton(row: HTMLElement, tooltip: string, onClear: () => void): void {
+	const btn = row.createSpan({
+		cls: "sf-story-context-meta-clear",
+		attr: { role: "button", tabindex: "0", "aria-label": tooltip },
+	});
+	setTooltip(btn, tooltip);
+	setIcon(btn, ICON_X);
+	btn.addEventListener("click", (e) => {
+		e.stopPropagation();
+		onClear();
+	});
+	makeAccessibleActivatable(btn, onClear);
 }
 
 /** Comma-separated Codex refs that wrap under the first line; empty state keeps the add-icon control. */

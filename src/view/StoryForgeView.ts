@@ -2,7 +2,13 @@ import { ItemView, Notice, setIcon, setTooltip, TFile, WorkspaceLeaf } from "obs
 import type StoryForgePlugin from "../main";
 import { bookFolderNameFromChapterPath, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath } from "../paths";
 import { getSeriesBooks } from "../series";
-import { renderSeriesPaneCornerButtons, renderTopPanel, type UnplacedViewMode } from "./TopPanel";
+import {
+	renderSeriesPaneCornerButtons,
+	renderTopPanel,
+	type PlacedViewMode,
+	type PlannedLengthField,
+	type UnplacedViewMode,
+} from "./TopPanel";
 import { renderBottomPanel } from "./BottomPanel";
 import { renderStatsPanel, type StatsMode } from "./StatsPanel";
 import { SeriesModal } from "./SeriesModal";
@@ -48,8 +54,13 @@ const SF_LAYOUT_TAB_ICONS: Record<SfLayout, string> = {
 export class StoryForgeView extends ItemView {
 	private currentBookFolderName: string | null = null;
 	private activeChapterFilename: string | null = null;
-	private layout: SfLayout = "hybrid";
+	private layout: SfLayout = "novelBrowse";
 	private unplacedMode: UnplacedViewMode = "unplaced";
+	/** "novel" mode's placed-chapters header — collapse toggle, session-only like unplacedMode. */
+	private placedMode: PlacedViewMode = "placed";
+	/** Which planned-length row's inline "push down" editor is open, if either — session-only,
+	 * like placedMode/unplacedMode. */
+	private plannedLengthEditorField: PlannedLengthField | null = null;
 	/** "navigator" mode's chapter selector: whether its 5-row scrollable chapter list is expanded
 	 * below the current-chapter row. Session-only, like unplacedMode — reset whenever the selected
 	 * book changes so a stale expanded list doesn't survive a book switch. */
@@ -106,6 +117,25 @@ export class StoryForgeView extends ItemView {
 		this.syncTabHeader();
 		this.plugin.setStoryContextFocusMode(focusModeForStorytellingMode(on));
 		if (on && options?.restoreCenter !== false) void this.plugin.restoreStorytellingCenterEditor(false);
+		// Leaving storytelling mode (header toggle / command) must land the main pane on whatever
+		// this.layout's own tab shows, same as reopening straight onto that tab does (onOpen) —
+		// without this the center pane keeps showing the chapter text storytelling mode left it on
+		// instead of switching to e.g. the Novel overview the sidebar now shows.
+		if (changed && !on) this.openCenterForLayout();
+	}
+
+	/** Opens the main pane page matching `this.layout` (Series/Novel overview, or focuses the
+	 * Chapter pane) — shared by onOpen() (reopening straight onto a persisted tab) and
+	 * setStorytellingMode() (leaving storytelling mode back onto the last tab). */
+	private openCenterForLayout(): void {
+		if (!this.containerEl.isShown()) return;
+		if (this.layout === "seriesBrowse") {
+			void this.openSeriesOverview();
+		} else if (this.layout === "novelBrowse") {
+			void this.openNovelOverview();
+		} else if (this.layout === "hybrid" && this.currentBookFolderName) {
+			this.focusChapterPaneForBook(this.currentBookFolderName);
+		}
 	}
 
 	private toggleStorytellingMode(): void {
@@ -156,7 +186,7 @@ export class StoryForgeView extends ItemView {
 		this.storytellingMode = settings.autoFocus;
 		this.currentBookFolderName = settings.selectedNovel;
 		this.activeChapterFilename = settings.selectedObject;
-		this.layout = SF_LAYOUTS.includes(settings.layout) ? settings.layout : "hybrid";
+		this.layout = SF_LAYOUTS.includes(settings.layout) ? settings.layout : "novelBrowse";
 		this.collapsedCodexFolders = new Set(settings.collapsedCodexFolderIds);
 		this.registerTabHeaderModeToggle();
 		this.registerEvent(this.app.workspace.on("active-leaf-change", () => this.followActiveFile()));
@@ -185,14 +215,7 @@ export class StoryForgeView extends ItemView {
 			// (e.g. Tools) the user actually left active. Storytelling mode restores the chapter
 			// editor from main.ts instead.
 			if (this.storytellingMode) return;
-			if (!this.containerEl.isShown()) return;
-			if (this.layout === "seriesBrowse") {
-				void this.openSeriesOverview();
-			} else if (this.layout === "novelBrowse") {
-				void this.openNovelOverview();
-			} else if (this.layout === "hybrid" && this.currentBookFolderName) {
-				this.focusChapterPaneForBook(this.currentBookFolderName);
-			}
+			this.openCenterForLayout();
 		} catch (err) {
 			console.error("storyForge: storyforge panel failed to open", err);
 		}
@@ -349,6 +372,10 @@ export class StoryForgeView extends ItemView {
 
 			renderTopPanel(this.app, topEl, {
 				mode: topPane,
+				// Only the actual "Novel" tab gets the newer chapter-tree chrome — the "Chapter"
+				// tab (hybrid) also resolves topPane to "novel" (layoutConfig) but keeps the
+				// original look.
+				isNovelPane: this.layout === "novelBrowse",
 				hideSeriesPane: this.plugin.getSettings().hideSeriesPane,
 				seriesNumberingStyle: this.plugin.getSettings().seriesNumberingStyle,
 				chapterNumberingStyle: this.plugin.getSettings().chapterNumberingStyle,
@@ -359,6 +386,16 @@ export class StoryForgeView extends ItemView {
 				unplacedMode: this.unplacedMode,
 				onToggleUnplacedMode: () => {
 					this.unplacedMode = this.unplacedMode === "unplaced" ? "unplacedHidden" : "unplaced";
+					this.render();
+				},
+				placedMode: this.placedMode,
+				onTogglePlacedMode: () => {
+					this.placedMode = this.placedMode === "placed" ? "placedHidden" : "placed";
+					this.render();
+				},
+				plannedLengthEditorField: this.plannedLengthEditorField,
+				onSetPlannedLengthEditor: (field) => {
+					this.plannedLengthEditorField = field;
 					this.render();
 				},
 				chapterSelectorExpanded: this.chapterSelectorExpanded,
@@ -511,6 +548,8 @@ export class StoryForgeView extends ItemView {
 		const topEl = container.createDiv({ cls: "sf-top-panel sf-top-panel--above-codex" });
 		renderTopPanel(this.app, topEl, {
 			mode,
+			// The storytelling face's compact navigator+Codex layout is never the "Novel" tab.
+			isNovelPane: false,
 			hideSeriesPane: this.plugin.getSettings().hideSeriesPane,
 			seriesNumberingStyle: this.plugin.getSettings().seriesNumberingStyle,
 			chapterNumberingStyle: this.plugin.getSettings().chapterNumberingStyle,
@@ -521,6 +560,16 @@ export class StoryForgeView extends ItemView {
 			unplacedMode: "unplaced",
 			onToggleUnplacedMode: () => {
 				/* no unplaced section here */
+			},
+			placedMode: this.placedMode,
+			onTogglePlacedMode: () => {
+				this.placedMode = this.placedMode === "placed" ? "placedHidden" : "placed";
+				this.render();
+			},
+			plannedLengthEditorField: this.plannedLengthEditorField,
+			onSetPlannedLengthEditor: (field) => {
+				this.plannedLengthEditorField = field;
+				this.render();
 			},
 			chapterSelectorExpanded: this.chapterSelectorExpanded,
 			onToggleChapterSelectorExpanded: () => {

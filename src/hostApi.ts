@@ -699,6 +699,7 @@ const ENUM_SETTING_ALLOWED: Partial<Record<keyof StoryForgePluginSettings, reado
 	automaticBackupFrequency: ["every-open", "daily", "weekly"],
 	seriesNumberingStyle: Object.keys(NUMBERING_STYLE_OPTIONS),
 	chapterNumberingStyle: Object.keys(NUMBERING_STYLE_OPTIONS),
+	depthGuideLevel: ["standard", "deep", "extremely-deep"],
 };
 
 /** Non-linked enum keys whose imported values are not in the allowed set. */
