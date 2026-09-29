@@ -7157,6 +7157,14 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	box-shadow: none;
 }
 
+/* Tier 1 ("bar", NovelPanel.ts's applyPlotCardTier) sits on top of --collapsed, so everything
+ * above still applies — its only extra job is hiding the description, leaving the data bar and
+ * title alone. */
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--databar.sf-story-context-plot-block--collapsed.sf-story-context-plot-block--bar
+	.sf-story-context-plot-textarea {
+	display: none;
+}
+
 .sf-story-context-chapter-card-actions {
 	display: flex;
 	align-items: center;
