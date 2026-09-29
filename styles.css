@@ -6580,6 +6580,33 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	cursor: pointer;
 }
 
+/* Placed novel cards only (SeriesOverviewView.ts's renderNovelRow adds the --databar modifier;
+ * unplaced cards keep the solid chip above, untouched). The title line hosts the databar:
+ * paintSeriesNovelBar appends a plain .sf-series-overview-row-databar-segment div with its own
+ * left/width/colour set inline — this file only supplies the positioning context, the clipping
+ * (same 4px right corners as the title itself, left square against the cover) and the stacking of
+ * the title's text above the fill. No height or padding change: the segment is out of flow, so the
+ * line stays exactly as tall as the title makes it. Unrelated to the chapter cards' 34px
+ * .sf-story-context-plot-block--databar rules further down, which stay scoped to chapters. */
+.sf-series-overview-row-title-line--databar {
+	position: relative;
+	overflow: hidden;
+	border-radius: 0 4px 4px 0;
+}
+
+.sf-series-overview-row-title-line--databar .sf-series-overview-row-title {
+	position: relative;
+	z-index: 1;
+}
+
+.sf-series-overview-row-databar-segment {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	z-index: 0;
+	pointer-events: none;
+}
+
 .sf-series-overview-row-synopsis {
 	grid-column: 2;
 	grid-row: 2;

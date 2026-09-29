@@ -1,6 +1,6 @@
 import { App, ItemView, Notice, setTooltip, TFile, TFolder, WorkspaceLeaf } from "obsidian";
 import type StoryForgePlugin from "../main";
-import { readBookSynopsis, writeBookSynopsis } from "../book";
+import { getBookChapters, readBookSynopsis, writeBookSynopsis } from "../book";
 import {
 	getSeriesBooks,
 	numberedBookTitle,
@@ -15,10 +15,16 @@ import { makeAccessibleActivatable } from "./a11y";
 import { isDragInProgress } from "./dragLock";
 import { debounce } from "../debounce";
 import { ICON_SERIES } from "../icons";
-import { measureSeriesOverviewScrollbarGutter, renderNovelCover, pickNovelCover } from "./NovelPanel";
+import {
+	measureSeriesOverviewScrollbarGutter,
+	pickNovelCover,
+	readOrderedChapterWordCounts,
+	renderNovelCover,
+} from "./NovelPanel";
 import { NovelTitleModal } from "./NovelTitleModal";
 import { SeriesTitleModal } from "./SeriesTitleModal";
-import { resolveNovelRowColor } from "./novelColor";
+import { resolveNovelRowColor, type NovelRowColor } from "./novelColor";
+import { computeSeriesNovelBarLayout, type SeriesNovelBarEntry } from "./seriesNovelBar";
 
 export const STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE = "storyforge-series-overview-view";
 
@@ -42,6 +48,10 @@ export const STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE = "storyforge-series-overview-
  */
 export class SeriesOverviewView extends ItemView {
 	private closed = false;
+	/** Bumped at the start of every render() — the placed cards' databars are painted only after
+	 * their word counts resolve asynchronously, so a result that comes back after a newer render
+	 * has started (its cards already replaced) is recognised by a stale generation and discarded. */
+	private renderGeneration = 0;
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -106,6 +116,7 @@ export class SeriesOverviewView extends ItemView {
 
 	render(): void {
 		if (isDragInProgress()) return;
+		const generation = ++this.renderGeneration;
 		const { contentEl } = this;
 		contentEl.empty();
 		contentEl.addClass("sf-series-overview-view");
@@ -115,7 +126,7 @@ export class SeriesOverviewView extends ItemView {
 		this.renderCoverDescriptionRow(fixed);
 
 		const scroll = contentEl.createDiv({ cls: "sf-series-overview-scroll" });
-		this.renderNovelsList(scroll);
+		this.renderNovelsList(scroll, generation);
 
 		measureSeriesOverviewScrollbarGutter(contentEl);
 	}
@@ -172,8 +183,14 @@ export class SeriesOverviewView extends ItemView {
 	 * unplaced-only if it isn't, or everything when nothing is selected. Not reorderable here —
 	 * dragging a card only ever moved the row, not the underlying series/unplaced order (see
 	 * TopPanel.ts's own left-sidebar list for that), so it was dropped along with the drag handle
-	 * (this page's own follow-up brief). */
-	private renderNovelsList(container: HTMLElement): void {
+	 * (this page's own follow-up brief).
+	 *
+	 * Placed novels' title lines carry a databar (renderNovelRow, paintSeriesNovelBar), filled in
+	 * once every placed novel's live word total has been read — asynchronously, so each card is
+	 * drawn first and painted afterwards, and a result that resolves after the view has closed or a
+	 * newer render has begun (`generation` no longer current) is dropped. Nothing is read at all
+	 * when only unplaced novels are showing: they never have a bar and never set the scale. */
+	private renderNovelsList(container: HTMLElement, generation: number): void {
 		container.empty();
 		const { ordered, unplaced } = getSeriesBooks(this.app);
 		const selected = this.plugin.getSettings().selectedNovel;
@@ -182,11 +199,46 @@ export class SeriesOverviewView extends ItemView {
 		const showUnplaced = !selected || selectedIsUnplaced;
 
 		const list = container.createDiv({ cls: "sf-top-list" });
-		if (showOrdered) for (const folder of ordered) this.renderNovelRow(list, folder, { ordered, unplaced });
-		if (showUnplaced) for (const folder of unplaced) this.renderNovelRow(list, folder, { ordered, unplaced });
+		const placedRows: { folder: TFolder; row: PlacedNovelRow }[] = [];
+		if (showOrdered) {
+			for (const folder of ordered) {
+				const row = this.renderNovelRow(list, folder, { ordered, unplaced }, true);
+				if (row) placedRows.push({ folder, row });
+			}
+		}
+		if (showUnplaced) for (const folder of unplaced) this.renderNovelRow(list, folder, { ordered, unplaced }, false);
 		if (ordered.length === 0 && unplaced.length === 0) {
 			list.createDiv({ cls: "sf-empty sf-empty-inline", text: "No books yet." });
 		}
+		if (placedRows.length > 0) void this.paintPlacedNovelBars(placedRows, generation);
+	}
+
+	/** Reads each placed novel's total — the sum of its placed, non-archived chapters' live word
+	 * counts, the same figure the Novel pane's header bar uses — then scales every placed card's
+	 * bar against the longest of them (computeSeriesNovelBarLayout, seriesNovelBar.ts). */
+	private async paintPlacedNovelBars(
+		placedRows: { folder: TFolder; row: PlacedNovelRow }[],
+		generation: number,
+	): Promise<void> {
+		let totals: number[];
+		try {
+			totals = await Promise.all(
+				placedRows.map(async ({ folder }) => {
+					const counts = await readOrderedChapterWordCounts(
+						this.app,
+						folder.name,
+						getBookChapters(this.app, folder.name).ordered,
+					);
+					return counts.reduce((sum, n) => sum + n, 0);
+				}),
+			);
+		} catch (err) {
+			console.error("storyForge: could not read novel word counts for the Series overview", err);
+			return;
+		}
+		if (this.closed || generation !== this.renderGeneration) return;
+		const layout = computeSeriesNovelBarLayout(totals);
+		placedRows.forEach(({ row }, i) => paintSeriesNovelBar(row, layout[i]));
 	}
 
 	/** One novel's row: just the "card" now (cover image, then a title input over a synopsis
@@ -202,16 +254,24 @@ export class SeriesOverviewView extends ItemView {
 	 * is this render pass's one getSeriesBooks() result, reused across every row's numbering instead
 	 * of each row re-querying it (see numberedBookTitle's own doc comment).
 	 *
-	 * The title chip's own background/text colour comes from resolveNovelRowColor (novelColor.ts) —
-	 * the same accent NovelTitleModal's colour option sets, or that function's own random-looking
-	 * per-novel default when nothing's been picked yet — applied only to the title line itself, not
-	 * the whole card (cover stays on the card's own background). The synopsis box has no top, right,
-	 * or bottom border at all (styles.css) — just its plain left edge, inherited from .sf-modal-input. */
+	 * The novel's colour comes from resolveNovelRowColor (novelColor.ts) — the same accent
+	 * NovelTitleModal's colour option sets, or that function's own random-looking per-novel default
+	 * when nothing's been picked yet — applied only to the title line itself, not the whole card
+	 * (cover stays on the card's own background). How it's applied depends on `placed`:
+	 * - Unplaced novels (not part of the series): a solid chip — the title's own background and
+	 *   text colour set straight from that colour. Returns null.
+	 * - Placed novels: no solid background. The title line is marked as a databar host instead and
+	 *   its pieces are returned, so renderNovelsList can paint the fill (paintSeriesNovelBar) once
+	 *   the novel's word total has been read; until then the unfilled line just shows the card's own
+	 *   background.
+	 * The synopsis box has no top, right, or bottom border at all (styles.css) — just its plain left
+	 * edge, inherited from .sf-modal-input. */
 	private renderNovelRow(
 		list: HTMLElement,
 		folder: TFolder,
 		prefetched: { ordered: TFolder[]; unplaced: TFolder[] },
-	): void {
+		placed: boolean,
+	): PlacedNovelRow | null {
 		const row = list.createDiv({ cls: "sf-row sf-series-overview-row" });
 
 		const card = row.createDiv({ cls: "sf-series-overview-card" });
@@ -231,7 +291,8 @@ export class SeriesOverviewView extends ItemView {
 			attr: { role: "button", tabindex: "0", "aria-label": "title" },
 		});
 		const rowColor = resolveNovelRowColor(this.app, folder.name, this.plugin.getSettings());
-		if (rowColor) titleEl.setCssStyles({ backgroundColor: rowColor.background, color: rowColor.text });
+		if (placed) titleLine.addClass("sf-series-overview-row-title-line--databar");
+		else if (rowColor) titleEl.setCssStyles({ backgroundColor: rowColor.background, color: rowColor.text });
 		setTooltip(titleEl, "title");
 		const openTitleModal = () =>
 			new NovelTitleModal(this.app, this.plugin, folder.name, () => {
@@ -253,6 +314,60 @@ export class SeriesOverviewView extends ItemView {
 			if (this.closed) return;
 			synopsis.value = value;
 		});
+
+		return placed ? { titleLine, titleEl, rowColor } : null;
+	}
+}
+
+/** The pieces of a placed novel card's title line that paintSeriesNovelBar needs. */
+interface PlacedNovelRow {
+	titleLine: HTMLElement;
+	titleEl: HTMLElement;
+	rowColor: NovelRowColor | null;
+}
+
+/**
+ * Paints one placed novel card's databar — a simpler sibling of NovelPanel.ts's renderDataBar
+ * (chapter cards), deliberately kept separate from it: one solid segment, no target marker, no
+ * overflow lattice, and the title line keeps its usual height. Same construction for the same
+ * reason — a plain absolutely positioned `<div>` with inline left/width, not a CSS custom
+ * property or gradient, so there's nothing that can silently fail to resolve. The segment spans
+ * the title line's true 0%–100% width (cover's right edge to the card's); the title's own padding
+ * insets only its text, which sits above the segment (see
+ * .sf-series-overview-row-title-line--databar in styles.css).
+ */
+function paintSeriesNovelBar(row: PlacedNovelRow, entry: SeriesNovelBarEntry): void {
+	const { titleLine, titleEl, rowColor } = row;
+	const color = rowColor?.background ?? "var(--background-modifier-border)";
+	// Matches the title line's own right-corner radius — the fill's right end rounds only when it's
+	// the bar's visual end. At 100% the title line's own rounded corner and clipping supply the
+	// curve, so the segment stays square there. The left edge is always square against the cover.
+	const cornerRadius = 4;
+	const roundedEnd = entry.sliver || entry.fillPercent < 100;
+
+	const seg = titleLine.createDiv({ cls: "sf-series-overview-row-databar-segment" });
+	seg.setCssStyles({
+		left: "0",
+		// No words yet: a 3px sliver at the start, as chapter cards show.
+		width: entry.sliver ? "3px" : `${entry.fillPercent}%`,
+		backgroundColor: color,
+		borderRadius: roundedEnd ? `0 ${cornerRadius}px ${cornerRadius}px 0` : "0",
+	});
+
+	// Title text-colour split: rowColor.text where the fill covers the title, rowColor.background
+	// (the novel's own colour, as plain coloured text) beyond it — a hard cutover at the fill's own
+	// percentage, painted through background-clip: text so a truncated title's ellipsis takes the
+	// colour at its own position too. Left alone when there's no novel colour, as renderDataBar does.
+	if (rowColor) {
+		const fillPercent = entry.fillPercent;
+		titleEl.style.setProperty(
+			"background-image",
+			`linear-gradient(to right, ${rowColor.text} 0%, ${rowColor.text} ${fillPercent}%, ${rowColor.background} ${fillPercent}%, ${rowColor.background} 100%)`,
+		);
+		titleEl.style.setProperty("background-clip", "text");
+		titleEl.style.setProperty("-webkit-background-clip", "text");
+		titleEl.style.setProperty("color", "transparent");
+		titleEl.style.setProperty("-webkit-text-fill-color", "transparent");
 	}
 }
 
