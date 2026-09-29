@@ -1498,10 +1498,6 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
 	cursor: pointer;
 }
 
-.sf-series-title-clickable:hover {
-	background: var(--background-modifier-hover);
-}
-
 /* Cover + description row beneath the series title (SeriesOverviewView.ts's
  * renderCoverDescriptionRow), replacing the plain hint text that used to sit there. Cover fixed at
  * the same 220×330 the central Novel pane's own cover uses (.sf-novel-overview-view .sf-story-
@@ -5107,6 +5103,14 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 	font-variant: var(--sf-h2-variant, normal);
 }
 
+/* Novel overview title/subtitle open NovelTitleModal on click (NovelPanel.ts). Pointer cursor
+ * only — no hover background. Shrunk to the text so the empty width beside it isn't a target. */
+.sf-story-context-novel-title--clickable {
+	cursor: pointer;
+	width: fit-content;
+	max-width: 100%;
+}
+
 .sf-story-context-novel-synopsis {
 	width: 100%;
 	min-height: 88px;
@@ -6780,6 +6784,12 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	color: var(--text-muted);
 }
 
+/* SeriesTitleModal.ts: the same inline dice as NovelTitleModal.ts's, beside the title box. */
+.sf-series-title-modal .sf-modal-title-row .sf-modal-input {
+	flex: 1;
+	width: auto;
+}
+
 .sf-novel-title-row .sf-modal-input {
 	flex: 1;
 	width: auto;
@@ -7050,6 +7060,37 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	border-radius: 10px;
 	overflow: hidden;
 }
+/* Chapter tab title bar: create-details-note + rename icons, hidden until the bar is hovered (or
+ * holds keyboard focus). 1px flex gap — each button's 2px padding plus the glyphs' own inset
+ * whitespace make up the visible spacing — and 5px from the bar's right edge. Opacity rather
+ * than display so the bar's height doesn't jump and the icons stay in the tab order. */
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--chapter .sf-story-context-plot-header-row {
+	padding-right: 5px;
+}
+
+.sf-story-context-chapter-header-actions {
+	display: flex;
+	align-items: center;
+	gap: 1px;
+	flex-shrink: 0;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.sf-story-context-plot-header-row:hover .sf-story-context-chapter-header-actions,
+.sf-story-context-chapter-header-actions:focus-within {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+/* Touch devices (mobile) have no hover — keep the icons reachable. */
+@media (hover: none) {
+	.sf-story-context-chapter-header-actions {
+		opacity: 1;
+		pointer-events: auto;
+	}
+}
+
 
 .sf-story-context-plot-block--plain.sf-story-context-plot-block--chapter .sf-story-context-plot-header-row {
 	border-radius: 10px 10px 0 0;
@@ -7293,7 +7334,29 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 .sf-story-context-unknown-card .sf-story-context-row {
 	margin-left: -16px;
 	margin-right: -16px;
-	padding: 3px 16px;
+	/* 3px right: the action icons sit close to the card's right edge. */
+	padding: 3px 3px 3px 16px;
+}
+
+/* Action icons hidden until the row is hovered (or holds keyboard focus); opacity rather than
+ * display so rows don't change height and the icons stay in the tab order. */
+.sf-story-context-unknown-card .sf-story-context-row-actions {
+	opacity: 0;
+	pointer-events: none;
+}
+
+.sf-story-context-unknown-card .sf-story-context-row:hover .sf-story-context-row-actions,
+.sf-story-context-unknown-card .sf-story-context-row-actions:focus-within {
+	opacity: 1;
+	pointer-events: auto;
+}
+
+/* Touch devices (mobile) have no hover — keep the icons reachable. */
+@media (hover: none) {
+	.sf-story-context-unknown-card .sf-story-context-row-actions {
+		opacity: 1;
+		pointer-events: auto;
+	}
 }
 
 .sf-story-context-unknown-card .sf-story-context-section-title + .sf-story-context-row {
@@ -7542,9 +7605,8 @@ body.sf-section-chrome-text .sf-story-context-plot-block--chapter .sf-story-cont
 	appearance: none;
 }
 
-/* Clickable chapter-name affordance: toggles a Novel-pane plot card's collapse (NovelPanel.ts)
- * or opens ChapterTitleModal (Story Context's Chapter tab). Same hover style either way, same
- * as any other clickable text in the plugin. */
+/* Clickable chapter-name affordance: toggles a Novel-pane plot card's collapse
+ * (NovelPanel.ts). Same hover style as any other clickable text in the plugin. */
 .sf-story-context-plot-chapter-name--clickable {
 	cursor: pointer;
 }

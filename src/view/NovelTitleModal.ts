@@ -34,11 +34,15 @@ import { readOrderedChapterWordCounts, renderDefaultPovRow, renderPlannedLengthA
  * change to the shared helper.
  */
 export class NovelTitleModal extends Modal {
+	/** `nameOnly` is the Novel overview page's own variant (NovelPanel.ts's wide title/subtitle):
+	 * title box and dice, hint and Novel Colour only — everything after the colour row
+	 * (renderExtendedOptions) is left out. */
 	constructor(
 		app: App,
 		private plugin: StoryForgePlugin,
 		private folderName: string,
 		private onChange: () => void,
+		private options: { nameOnly?: boolean } = {},
 	) {
 		super(app);
 	}
@@ -109,7 +113,7 @@ export class NovelTitleModal extends Modal {
 			});
 		}
 
-		this.renderExtendedOptions(contentEl);
+		if (!this.options.nameOnly) this.renderExtendedOptions(contentEl);
 
 		window.setTimeout(() => input.focus(), 0);
 	}

@@ -15,7 +15,7 @@ export const ICON_FOLDER_PLUS = "sf-folder-plus";
 export const ICON_FOLDER = "sf-folder-fill";
 export const ICON_PLUS_SQUARE = "sf-plus-square";
 export const ICON_MINUS_SQUARE = "sf-minus-square";
-/** "reicon--minus-circle-duotone" — Story Context Chapter tab ignore-unknown action. */
+/** "solar--minus-circle-line-duotone" — Story Context Chapter tab ignore-unknown action. */
 export const ICON_MINUS_CIRCLE_DUOTONE = "sf-minus-circle-duotone";
 export const ICON_CHECK_SQUARE = "sf-check-square";
 export const ICON_TIMELINE = "sf-timeline";
@@ -188,12 +188,16 @@ const TRANSPORT_NEXT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0
 // reicon--arrows-down-duotone
 const TRANSPORT_TO_END_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M5 6.25a.75.75 0 0 0-.488 1.32l7 6c.28.24.695.24.976 0l7-6A.75.75 0 0 0 19 6.25z" opacity=".5" /><path fill-rule="evenodd" d="M4.43 10.512a.75.75 0 0 1 1.058-.081L12 16.012l6.512-5.581a.75.75 0 1 1 .976 1.139l-7 6a.75.75 0 0 1-.976 0l-7-6a.75.75 0 0 1-.081-1.058" clip-rule="evenodd" /></g></svg>`;
 
-/** Duotone plus-in-a-circle. Codex-focus navigator's "continue the story" tile, NewChapterView's
- * full-page create-chapter icon, Focus Mode's Notebook new-note child, and Story Context Chapter
+/** "solar--add-circle-line-duotone" — duotone plus-in-a-circle. Codex-focus navigator's "continue
+ * the story" tile, NewChapterView's full-page create-chapter icon, Focus Mode's Notebook new-note child, and Story Context Chapter
  * tab + actions (add to Codex / create details note). */
 export const ICON_ADD_CIRCLE = "sf-add-circle";
-const ADD_CIRCLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><path fill="currentColor" d="M12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2" opacity=".3" /><path fill="currentColor" d="M12 7a1 1 0 0 0-.993.883L11 8v3H8a1 1 0 0 0-.117 1.993L8 13h3v3a1 1 0 0 0 1.993.117L13 16v-3h3a1 1 0 0 0 .117-1.993L16 11h-3V8a1 1 0 0 0-1-1" /></svg>`;
-const MINUS_CIRCLE_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2s10 4.477 10 10" opacity=".5" /><path d="M15.75 12a.75.75 0 0 1-.75.75H9a.75.75 0 0 1 0-1.5h6a.75.75 0 0 1 .75.75" /></g></svg>`;
+const ADD_CIRCLE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><circle cx="12" cy="12" r="10" opacity=".5" /><path d="M15 12L12 12M12 12L9 12M12 12L12 9M12 12L12 15" /></g></svg>`;
+/** "solar--pen-new-round-line-duotone" — Story Context Chapter tab's hover "rename chapter" action
+ * (opens ChapterTitleModal), beside ICON_ADD_CIRCLE's "create details note". */
+export const ICON_PEN_ROUND_DUOTONE = "sf-pen-round-duotone";
+const PEN_ROUND_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><path d="M16.6522 3.45508C16.6522 3.45508 16.7333 4.83381 17.9499 6.05034C19.1664 7.26687 20.5451 7.34797 20.5451 7.34797M10.1002 15.5876L8.4126 13.9" opacity=".5" /><path d="M16.652 3.45506L17.3009 2.80624C18.3759 1.73125 20.1188 1.73125 21.1938 2.80624C22.2687 3.88124 22.2687 5.62415 21.1938 6.69914L20.5449 7.34795L14.5801 13.3128C14.1761 13.7168 13.9741 13.9188 13.7513 14.0926C13.4886 14.2975 13.2043 14.4732 12.9035 14.6166C12.6485 14.7381 12.3775 14.8284 11.8354 15.0091L10.1 15.5876L8.97709 15.9619C8.71035 16.0508 8.41626 15.9814 8.21744 15.7826C8.01862 15.5837 7.9492 15.2897 8.03811 15.0229L8.41242 13.9L8.99089 12.1646C9.17157 11.6225 9.26191 11.3515 9.38344 11.0965C9.52679 10.7957 9.70249 10.5114 9.90743 10.2487C10.0812 10.0259 10.2832 9.82394 10.6872 9.41993L16.652 3.45506Z" /><path d="M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2" opacity=".5" /></g></svg>`;
+const MINUS_CIRCLE_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.5"><circle cx="12" cy="12" r="10" opacity=".5" /><path d="M15 12H9" /></g></svg>`;
 const TARGET_DUOTONE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M0 0h24v24H0z" fill="none" /><g fill="currentColor"><path d="M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2s10 4.477 10 10" opacity=".5" /><path d="M9.25 12a.75.75 0 0 1 .75-.75h1.25V10a.75.75 0 0 1 1.5 0v1.25H14a.75.75 0 0 1 0 1.5h-1.25V14a.75.75 0 0 1-1.5 0v-1.25H10a.75.75 0 0 1-.75-.75m-7.222.75a10 10 0 0 1 0-1.5H5a.75.75 0 0 1 0 1.5zm10.722 9.222a10 10 0 0 1-1.5 0V19a.75.75 0 0 1 1.5 0zm9.222-10.722a10 10 0 0 1 0 1.5H19a.75.75 0 0 1 0-1.5zM12.75 2.028V5a.75.75 0 0 1-1.5 0V2.028a10 10 0 0 1 1.5 0" /></g></svg>`;
 
 /** The layout selector button's glyph (TopPanel.ts) — replaces the generic lucide "layout-grid". */
@@ -1038,6 +1042,7 @@ export function registerCustomIcons(): void {
 	addIcon(ICON_TRANSPORT_NEXT, TRANSPORT_NEXT_SVG);
 	addIcon(ICON_TRANSPORT_TO_END, TRANSPORT_TO_END_SVG);
 	addIcon(ICON_ADD_CIRCLE, ADD_CIRCLE_SVG);
+	addIcon(ICON_PEN_ROUND_DUOTONE, PEN_ROUND_DUOTONE_SVG);
 	addIcon(ICON_MINUS_CIRCLE_DUOTONE, MINUS_CIRCLE_DUOTONE_SVG);
 	addIcon(ICON_LAYOUT_SELECTOR, LAYOUT_SELECTOR_SVG);
 	addIcon(ICON_FILTER_LIST, FILTER_LIST_SVG);

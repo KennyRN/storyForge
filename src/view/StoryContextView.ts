@@ -20,7 +20,7 @@ import {
 import { CODEX_TYPES, addCodexNoteAlias, codexTypeIcon, codexTypeMatchesOrDescendsFrom, createCodexFolder, createCodexNote, getCodexEntries, getCodexEntriesByType, readCodexFrontmatter } from "../codex";
 import { debounce } from "../debounce";
 import { splitTitleSubtitle } from "../titleNumbering";
-import { ICON_ADD_CIRCLE, ICON_ARCHIVE, ICON_BOOK_DUOTONE, ICON_BOOK_OPEN_FILLED, ICON_CLIPBOARD_LIST_DUOTONE, ICON_CODEX, ICON_DASHBOARD_CHART, ICON_EYE_DUOTONE, ICON_FOCUS_OFF, ICON_FOCUS_ON, ICON_FORGE, ICON_LINK2_DUOTONE, ICON_MAP_PIN_PLUS, ICON_MINUS_CIRCLE_DUOTONE, ICON_NOTEBOOK_DUOTONE, ICON_PERSON_FILL_ADD } from "../icons";
+import { ICON_ADD_CIRCLE, ICON_ARCHIVE, ICON_BOOK_DUOTONE, ICON_BOOK_OPEN_FILLED, ICON_CLIPBOARD_LIST_DUOTONE, ICON_CODEX, ICON_DASHBOARD_CHART, ICON_EYE_DUOTONE, ICON_FOCUS_OFF, ICON_FOCUS_ON, ICON_FORGE, ICON_LINK2_DUOTONE, ICON_MAP_PIN_PLUS, ICON_MINUS_CIRCLE_DUOTONE, ICON_NOTEBOOK_DUOTONE, ICON_PEN_ROUND_DUOTONE, ICON_PERSON_FILL_ADD } from "../icons";
 import { bookFolderNameFromChapterPath, CODEX_ROOT, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath, NOTES_ROOT, seriesFilePath } from "../paths";
 import { OBSIDIAN_SELECTORS } from "../obsidianInternals";
 import { groupHitsByChapter, lensLabel } from "../story-context/hitGrouping";
@@ -1369,7 +1369,7 @@ export class StoryContextView extends ItemView {
 			numberedChapterTitle(this.app, bookFolderName, chapterFilename, this.plugin.getSettings().chapterNumberingStyle),
 		);
 		const nameEl = headerRow.createDiv({
-			cls: "sf-story-context-plot-chapter-name sf-story-context-plot-chapter-name--clickable",
+			cls: "sf-story-context-plot-chapter-name",
 			text: subtitle ? `${title} (${subtitle})` : title,
 		});
 		const rowColor = resolveMainThreadRowColor(this.app, this.plugin.getSettings());
@@ -1390,15 +1390,17 @@ export class StoryContextView extends ItemView {
 			"--sf-plot-card-title-shadow": titleShadow,
 		});
 		nameEl.setCssStyles({ color: rowColor.text });
-		// Same row as the chapter title (headerRow is display:flex; justify-content:space-between
-		// — nameEl's own flex:1 already pushes this to the row's right edge), coloured to match the
-		// title/row text rather than the shared .sf-story-context-icon-btn default (--text-muted).
-		const detailsNoteBtn = iconAction(headerRow, ICON_ADD_CIRCLE, "create details note", () => void this.createDetailsNote());
+		// Title-bar actions, revealed on hover/focus of the row (always shown where there is no
+		// hover — see .sf-story-context-chapter-header-actions). nameEl's flex:1 pushes them to the
+		// row's right edge; coloured to match the title/row text rather than the shared
+		// .sf-story-context-icon-btn default (--text-muted).
+		const headerActions = headerRow.createDiv({ cls: "sf-story-context-chapter-header-actions" });
+		const detailsNoteBtn = iconAction(headerActions, ICON_ADD_CIRCLE, "create details note", () => void this.createDetailsNote());
 		detailsNoteBtn.setCssStyles({ color: rowColor.text });
-		const openTitleModal = () =>
-			new ChapterTitleModal(this.app, this.plugin, bookFolderName, chapterFilename, () => void this.reload()).open();
-		nameEl.addEventListener("click", openTitleModal);
-		makeAccessibleActivatable(nameEl, openTitleModal);
+		const renameBtn = iconAction(headerActions, ICON_PEN_ROUND_DUOTONE, "rename chapter", () =>
+			new ChapterTitleModal(this.app, this.plugin, bookFolderName, chapterFilename, () => void this.reload()).open(),
+		);
+		renameBtn.setCssStyles({ color: rowColor.text });
 
 		this.renderNarratingLabel(card);
 

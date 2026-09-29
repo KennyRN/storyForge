@@ -47,7 +47,10 @@ export class SeriesTitleModal extends Modal {
 			this.onChange();
 		});
 
-		const diceBtn = contentEl.createSpan({ cls: "sf-titleforge-dice", attr: { "aria-label": "generate a title" } });
+		const diceBtn = titleRow.createSpan({
+			cls: "sf-titleforge-dice sf-titleforge-dice--inline",
+			attr: { "aria-label": "generate a title" },
+		});
 		setIcon(diceBtn, ICON_DICE);
 		setTooltip(diceBtn, "generate a title");
 		const openTitleForge = () => {
