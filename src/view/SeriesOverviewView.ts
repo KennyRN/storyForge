@@ -273,10 +273,10 @@ export class SeriesOverviewView extends ItemView {
 	 * (cover stays on the card's own background). How it's applied depends on `placed`:
 	 * - Unplaced novels (not part of the series): a solid chip — the title's own background and
 	 *   text colour set straight from that colour. Returns null.
-	 * - Placed novels: no solid background. The title line is marked as a databar host instead and
-	 *   its pieces are returned, so renderNovelsList can paint the fill (paintSeriesNovelBar) once
-	 *   the novel's word total has been read; until then the unfilled line just shows the card's own
-	 *   background.
+	 * - Placed novels: no solid chip. The title line is marked as a databar host instead and its
+	 *   pieces are returned, so renderNovelsList can paint the fill (paintSeriesNovelBar) once the
+	 *   novel's word total has been read; the unfilled remainder shows the page's own background
+	 *   (--background-primary, styles.css) rather than the card's darker one.
 	 * The synopsis box has no top, right, or bottom border at all (styles.css) — just its plain left
 	 * edge, inherited from .sf-modal-input. */
 	private renderNovelRow(
