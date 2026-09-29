@@ -48,6 +48,7 @@ const SETTINGS = {
 	collapsedCodexFolderIds: ["places"],
 	collapsedPlotChapterKeys: ["book-one/ch1.md"],
 	novelOverviewPlotCardTiers: { "book-one/ch1.md": "collapsed" },
+	storyContextPlotCardTiers: { "book-one/ch1.md": "bar" },
 	lastAutomaticBackupAt: 123,
 	storyContextShellApplied: true,
 	welcomeNoteCreatedOnOnboarding: false,

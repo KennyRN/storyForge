@@ -142,11 +142,9 @@ export function renderNovelPanel(app: App, container: HTMLElement, options: Nove
 	// wide layout's novel length bar (below) and the chapter data bars can share one read instead
 	// of each doing their own Promise.all over every placed chapter's content. getBookChapters()
 	// is synchronous — only the per-chapter word-count read is async — so only that read needs a
-	// shared promise; "sidebar" never creates one, so it never performs the extra read at all.
+	// shared promise. Both layouts need it: every chapter card carries a data bar.
 	const { ordered } = getBookChapters(app, bookFolderName);
-	const wordCountsPromise: Promise<number[]> | null = wide
-		? Promise.all(ordered.map((file) => readChapterWordCount(app, bookFolderName, file.name)))
-		: null;
+	const wordCountsPromise = Promise.all(ordered.map((file) => readChapterWordCount(app, bookFolderName, file.name)));
 
 	// Novel length bar (wide only) — a new direct child of `fixed`, appended after coverHost so it
 	// becomes the band's last child: it inherits the shared 60em/32px cap-and-inset rule the same
@@ -154,7 +152,7 @@ export function renderNovelPanel(app: App, container: HTMLElement, options: Nove
 	// padding for free (coverHost's own margin-bottom, changed to 20px in styles.css, supplies the
 	// matching gap above it). The bar itself renders empty here; segments/dividers are filled in
 	// once wordCountsPromise resolves (see the fire-and-forget block below, after `scroll`).
-	if (wide && wordCountsPromise) {
+	if (wide) {
 		const lengthBarWrap = fixed.createDiv({ cls: "sf-story-context-novel-length-bar-wrap" });
 		const lengthBar = lengthBarWrap.createDiv({ cls: "sf-story-context-novel-length-bar" });
 		// Background/border mirrored from the synopsis textarea directly, not guessed at via CSS
@@ -722,48 +720,38 @@ async function renderNovelPlot(
 	bookFolderName: string,
 	options: NovelPanelOptions,
 	ordered: TFile[],
-	wordCountsPromise: Promise<number[]> | null,
+	wordCountsPromise: Promise<number[]>,
 ): Promise<void> {
 	scroll.empty();
 	if (ordered.length === 0) {
 		scroll.createDiv({ cls: "sf-empty", text: "no placed chapters" });
 		return;
 	}
-	// The in-cell data bar (wide/central-pane host only — see below) needs every chapter's word
-	// count up front to find the book's own max before any single card's fill % can be computed —
-	// wordCountsPromise is that shared read, hoisted (and, when wide, shared with the novel length
-	// bar) by renderNovelPanel rather than started fresh here.
-	const wide = options.layout === "wide";
-	let wordCounts: number[] = [];
-	let maxWordCount = 0;
-	let targetLength: number | null = null;
-	if (wide && wordCountsPromise) {
-		wordCounts = await wordCountsPromise;
-		if (options.isStale()) return;
-		maxWordCount = wordCounts.reduce((max, n) => Math.max(max, n), 0);
-		targetLength = readBookFrontmatter(app, bookFolderName)?.plannedChapterLength ?? null;
-	}
+	// The in-cell data bar needs every chapter's word count up front to find the book's own max
+	// before any single card's fill % can be computed — wordCountsPromise is that shared read,
+	// hoisted (and, when wide, shared with the novel length bar) by renderNovelPanel rather than
+	// started fresh here.
+	const wordCounts = await wordCountsPromise;
+	if (options.isStale()) return;
+	const maxWordCount = wordCounts.reduce((max, n) => Math.max(max, n), 0);
+	const targetLength = readBookFrontmatter(app, bookFolderName)?.plannedChapterLength ?? null;
 	for (let i = 0; i < ordered.length; i++) {
 		const file = ordered[i];
-		const block = scroll.createDiv({ cls: "sf-story-context-plot-block sf-story-context-plot-block--plain" });
-		if (wide) block.addClass("sf-story-context-plot-block--databar");
+		const block = scroll.createDiv({
+			cls: "sf-story-context-plot-block sf-story-context-plot-block--plain sf-story-context-plot-block--databar",
+		});
 		const headerRow = block.createDiv({ cls: "sf-story-context-plot-header-row" });
 		const { title, subtitle } = splitTitleSubtitle(
 			numberedChapterTitle(app, bookFolderName, file.name, options.plugin.getSettings().chapterNumberingStyle),
 		);
-		// Sidebar: the title itself is the card's expand/collapse control (no separate chevron
-		// button) — clicking or activating it toggles .sf-story-context-plot-block--collapsed below.
-		// Wide: the title is plain text and the whole header row (the data bar) is the control
-		// instead, cycling the card's three tiers — see the tier wiring below. The title also sits
-		// on top of the data bar there (see renderDataBar below) — headerRow itself carries no
-		// padding for --databar cards any more, nameEl's own does, so the bar (a plain
-		// absolutely-positioned child of headerRow) spans the row's true full width.
+		// The title is plain text; the whole header row (the data bar) is the card's control,
+		// cycling its three tiers — see the tier wiring below. The title sits on top of the data
+		// bar (see renderDataBar below) — headerRow itself carries no padding for --databar cards,
+		// nameEl's own does, so the bar (a plain absolutely-positioned child of headerRow) spans the
+		// row's true full width.
 		const nameEl = headerRow.createDiv({
-			cls: wide
-				? "sf-story-context-plot-chapter-name"
-				: "sf-story-context-plot-chapter-name sf-story-context-plot-chapter-name--clickable",
+			cls: "sf-story-context-plot-chapter-name",
 			text: subtitle ? `${title} (${subtitle})` : title,
-			...(wide ? {} : { attr: { role: "button", tabindex: "0" } }),
 		});
 		// Each chapter reads as its own card: the whole header band (not just the name text) is
 		// painted with the chapter's plot-thread colour — its assigned thread if it has one, else
@@ -777,62 +765,46 @@ async function renderNovelPlot(
 			headerRow.setCssStyles({ color: rowColor.text });
 			// Outline colour is `--sf-plot-card-outline` (see .sf-story-context-plot-block--plain) —
 			// an inset box-shadow, not a real border, so nothing measured against this card's
-			// content edge needs to compensate for a border's width. Wide/--databar cards have no
-			// outline at all (the data bar is their only chrome), so it's left unset for them — a
-			// dead custom property here would just invite some later rule to accidentally reuse it.
+			// content edge needs to compensate for a border's width. --databar cards have no
+			// outline at all (the data bar is their only chrome), so it's left unset — a dead custom
+			// property here would just invite some later rule to accidentally reuse it.
+			// renderDataBar sets the title's own colour directly (split between rowColor.text where
+			// the bar covers it and rowColor.background where it doesn't).
 			block.setCssProps({
 				"--sf-plot-card-header-bg": rowColor.background,
 				"--sf-plot-card-header-fg": rowColor.text,
-				...(wide ? {} : { "--sf-plot-card-outline": rowColor.background }),
 			});
-			// Wide: renderDataBar sets the title's own colour directly instead (split between
-			// rowColor.text where the bar covers it and rowColor.background where it doesn't).
-			if (!wide) nameEl.setCssStyles({ color: rowColor.text });
 		}
 
-		if (wide) {
-			const wordCount = wordCounts[i];
-			const fillPercent = maxWordCount > 0 ? clamp((wordCount / maxWordCount) * 100, 0, 100) : 0;
-			const targetPercent =
-				targetLength != null && maxWordCount > 0 ? clamp((targetLength / maxWordCount) * 100, 0, 100) : null;
-			renderDataBar(headerRow, nameEl, rowColor, wordCount, fillPercent, targetPercent, targetLength);
-		}
+		const wordCount = wordCounts[i];
+		const fillPercent = maxWordCount > 0 ? clamp((wordCount / maxWordCount) * 100, 0, 100) : 0;
+		const targetPercent =
+			targetLength != null && maxWordCount > 0 ? clamp((targetLength / maxWordCount) * 100, 0, 100) : null;
+		renderDataBar(headerRow, nameEl, rowColor, wordCount, fillPercent, targetPercent, targetLength);
 
+		// Three tiers (plotCardTier.ts), each host in its own setting (plotCardTierSettingKey) so
+		// the sidebar and the centre pane never move each other's cards. The header row is the
+		// single click/keyboard target, so a click on the title text simply bubbles up to it.
 		const chapterKey = plotChapterCollapseKey(bookFolderName, file.name);
-		if (wide) {
-			// The centre pane's own three tiers (plotCardTier.ts), stored in their own setting —
-			// never collapsedPlotChapterKeys, which is the sidebar's alone. The header row is the
-			// single click/keyboard target, so a click on the title text simply bubbles up to it.
-			let tier = readPlotCardTier(options.plugin.getSettings().novelOverviewPlotCardTiers, chapterKey);
+		const tierSettingKey = plotCardTierSettingKey(options);
+		let tier = readPlotCardTier(options.plugin.getSettings()[tierSettingKey], chapterKey);
+		applyPlotCardTier(block, headerRow, tier);
+		const cycleTier = () => {
+			const revealsDescription = tier === "bar";
+			tier = nextPlotCardTier(tier);
 			applyPlotCardTier(block, headerRow, tier);
-			const cycleTier = () => {
-				const revealsDescription = tier === "bar";
-				tier = nextPlotCardTier(tier);
-				applyPlotCardTier(block, headerRow, tier);
-				// A hidden textarea measures as zero height, and the card's width-only
-				// ResizeObserver (below) won't fire on reveal, so re-measure it here or it
-				// reappears collapsed to nothing. resizeToContent is declared further down this
-				// same synchronous card build, so it always exists by the time this can run.
-				if (revealsDescription) resizeToContent();
-				persistPlotCardTier(options.plugin, chapterKey, tier);
-			};
-			headerRow.addEventListener("click", cycleTier);
-			makeAccessibleActivatable(headerRow, cycleTier);
-			// Count only for now — completed once the description loads, and refreshed after each
-			// blur-and-write (both below), so an edit shows without a re-render.
-			setTooltip(headerRow, plotCardTooltip(wordCounts[i], ""));
-		} else {
-			const applyCollapsed = (collapsed: boolean) =>
-				applyPlotCardCollapsed(block, nameEl, collapsed);
-			applyCollapsed((options.plugin.getSettings().collapsedPlotChapterKeys ?? []).includes(chapterKey));
-			const toggleCollapsed = () => {
-				const next = !block.hasClass("sf-story-context-plot-block--collapsed");
-				applyCollapsed(next);
-				persistPlotCardCollapsed(options.plugin, chapterKey, next);
-			};
-			nameEl.addEventListener("click", toggleCollapsed);
-			makeAccessibleActivatable(nameEl, toggleCollapsed);
-		}
+			// A hidden textarea measures as zero height, and the card's width-only
+			// ResizeObserver (below) won't fire on reveal, so re-measure it here or it
+			// reappears collapsed to nothing. resizeToContent is declared further down this
+			// same synchronous card build, so it always exists by the time this can run.
+			if (revealsDescription) resizeToContent();
+			persistPlotCardTier(options.plugin, tierSettingKey, chapterKey, tier);
+		};
+		headerRow.addEventListener("click", cycleTier);
+		makeAccessibleActivatable(headerRow, cycleTier);
+		// Count only for now — completed once the description loads, and refreshed after each
+		// blur-and-write (both below), so an edit shows without a re-render.
+		setTooltip(headerRow, plotCardTooltip(wordCounts[i], ""));
 
 		const entry = getChapterEntry(app, bookFolderName, file.name);
 		const narrator = resolveChapterNarrator(
@@ -865,9 +837,8 @@ async function renderNovelPlot(
 			() => void openNovelChapterLocationPicker(app, bookFolderName, file.name, entry?.location ?? [], options.onChanged),
 			(entry?.location.length ?? 0) > 0 ? "change location" : "set location",
 		);
-		// Central pane only — the sidebar Story Context Novel tab shares this same loop but never
-		// computed wordCounts (see the `wide` guard at the top of this function).
-		if (wide) {
+		// Central pane only — the sidebar's data bar tooltip already carries the word count.
+		if (options.layout === "wide") {
 			const lengthRow = meta.createDiv({ cls: "sf-story-context-meta-row" });
 			lengthRow.createSpan({ cls: "sf-story-context-meta-label", text: "Length:" });
 			// A plain (non-clickable) value — same classes/layout as the PoV/Location rows'
@@ -879,14 +850,8 @@ async function renderNovelPlot(
 			lengthValues.createSpan({ cls: "sf-story-context-meta-value", text: formatWordCount(wordCounts[i]) });
 		}
 
-		// A plain divider line, not the textarea's own border-top (an earlier version's approach):
-		// that border spanned the textarea's own bled-out width, the same width as the card's
-		// outline itself, so the two crossed right at the card's left/right edges and left a visible
-		// mark wherever the (opaque) border-top passed over the (inset) outline. This divider sits
-		// in the card's ordinary padded content area instead — well clear of the outline on both
-		// sides — so nothing crosses it at all. Wide/--databar cards have no outline to clear any
-		// more (the data bar is the card's only chrome), so they skip this divider entirely.
-		if (!wide) block.createDiv({ cls: "sf-story-context-plot-textarea-divider" });
+		// No meta/description divider: --databar cards have no outline to separate it from (the
+		// data bar is the card's only chrome).
 		const textarea = block.createEl("textarea", {
 			cls: "sf-story-context-synopsis sf-story-context-plot-textarea",
 			// rows="1" overrides the HTML default of 2 — without it, a single-line description's
@@ -950,14 +915,14 @@ async function renderNovelPlot(
 				resizeToContent();
 			}
 			void writeChapterPlot(app, bookFolderName, file.name, trimmed);
-			if (wide) setTooltip(headerRow, plotCardTooltip(wordCounts[i], trimmed));
+			setTooltip(headerRow, plotCardTooltip(wordCounts[i], trimmed));
 		});
 		resizeToContent();
 		const plot = await readChapterPlot(app, bookFolderName, file.name);
 		if (options.isStale()) return;
 		textarea.value = plot.replace(/\s+$/, "");
 		resizeToContent();
-		if (wide) setTooltip(headerRow, plotCardTooltip(wordCounts[i], textarea.value));
+		setTooltip(headerRow, plotCardTooltip(wordCounts[i], textarea.value));
 	}
 }
 
@@ -1007,31 +972,25 @@ function plotChapterCollapseKey(bookFolderName: string, filename: string): strin
 	return `${bookFolderName}/${filename}`;
 }
 
-function applyPlotCardCollapsed(block: HTMLElement, titleControl: HTMLElement, collapsed: boolean): void {
-	block.toggleClass("sf-story-context-plot-block--collapsed", collapsed);
-	titleControl.setAttribute("aria-expanded", collapsed ? "false" : "true");
-	setTooltip(titleControl, collapsed ? "expand chapter card" : "collapse chapter card");
+type PlotCardTierSettingKey = "novelOverviewPlotCardTiers" | "storyContextPlotCardTiers";
+
+/** Each host keeps its own tiers: the centre pane (wide) and the right sidebar never share one. */
+function plotCardTierSettingKey(options: NovelPanelOptions): PlotCardTierSettingKey {
+	return options.layout === "wide" ? "novelOverviewPlotCardTiers" : "storyContextPlotCardTiers";
 }
 
-function persistPlotCardCollapsed(plugin: StoryForgePlugin, key: string, collapsed: boolean): void {
-	const current = plugin.getSettings().collapsedPlotChapterKeys ?? [];
-	if (collapsed === current.includes(key)) return;
-	const next = collapsed ? [...current, key] : current.filter((k) => k !== key);
-	void plugin.updateSetting("collapsedPlotChapterKeys", next);
-}
-
-/** Wide (centre pane) only. Tier 2 ("collapsed") is exactly the sidebar's collapsed state; tier 1
- * ("bar") adds --bar on top of it, whose only extra job is hiding the description. */
+/** Tier 2 ("collapsed") hides the meta rows; tier 1 ("bar") adds --bar on top of it, whose only
+ * extra job is hiding the description. */
 function applyPlotCardTier(block: HTMLElement, headerRow: HTMLElement, tier: PlotCardTier): void {
 	block.toggleClass("sf-story-context-plot-block--collapsed", tier !== "extended");
 	block.toggleClass("sf-story-context-plot-block--bar", tier === "bar");
 	headerRow.setAttribute("aria-expanded", tier === "bar" ? "false" : "true");
 }
 
-function persistPlotCardTier(plugin: StoryForgePlugin, key: string, tier: PlotCardTier): void {
-	const current = plugin.getSettings().novelOverviewPlotCardTiers;
+function persistPlotCardTier(plugin: StoryForgePlugin, settingKey: PlotCardTierSettingKey, key: string, tier: PlotCardTier): void {
+	const current = plugin.getSettings()[settingKey];
 	if (readPlotCardTier(current, key) === tier) return;
-	void plugin.updateSetting("novelOverviewPlotCardTiers", withPlotCardTier(current, key, tier));
+	void plugin.updateSetting(settingKey, withPlotCardTier(current, key, tier));
 }
 
 /** Icon (+ optional value) as a single interactive control — shared by this panel's Default PoV /

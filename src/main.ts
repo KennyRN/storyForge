@@ -296,14 +296,17 @@ export interface StoryForgePluginSettings {
 	selectedNovel: string | null;
 	selectedObject: string | null;
 	collapsedCodexFolderIds: string[];
-	/** Chapter plot cards the user has collapsed on Story Context's right sidebar Novel tab
-	 * (`${bookFolderName}/${filename}`). Sidebar only — the Novel overview centre pane keeps its
-	 * own three-tier state in `novelOverviewPlotCardTiers`. */
+	/** Legacy two-state collapse list for chapter plot cards (`${bookFolderName}/${filename}`).
+	 * No longer written — kept only as the one-time seed for both three-tier maps below (see
+	 * migratePlotCardTiers). */
 	collapsedPlotChapterKeys: string[];
 	/** Novel overview centre pane chapter card tiers, same key as `collapsedPlotChapterKeys`.
 	 * Only non-extended cards are stored; an absent key means extended. Seeded once from
 	 * `collapsedPlotChapterKeys` (see migratePlotCardTiers), then fully independent of it. */
 	novelOverviewPlotCardTiers: PlotCardTierMap;
+	/** Story Context right sidebar Novel tab chapter card tiers — same shape and seeding as
+	 * `novelOverviewPlotCardTiers`, independent of it. */
+	storyContextPlotCardTiers: PlotCardTierMap;
 	cyclingGuideEnabled: boolean;
 	cyclingGuideThickness: HeadingDividerThickness;
 	cyclingGuideColor: string;
@@ -541,19 +544,24 @@ function migrateStoryContextShell(settings: StoryForgePluginSettings, data: unkn
 }
 
 /**
- * One-time: seed the Novel overview's own chapter card tiers from the list both panes used to
- * share, so every card collapsed before the upgrade stays collapsed (tier 2) and every other card
- * stays extended. Inspects the raw save file for the same reason migrateStoryContextShell does:
- * once `data` is merged into `settings` an absent key is indistinguishable from an empty one. A
- * fresh install (no save file) has nothing to copy and keeps the empty default.
+ * One-time, per map: seed each host's own chapter card tiers (the Novel overview centre pane's and
+ * the Story Context sidebar's) from the two-state collapsed list they used to use, so every card
+ * collapsed before the upgrade stays collapsed (tier 2) and every other card stays extended.
+ * Inspects the raw save file for the same reason migrateStoryContextShell does: once `data` is
+ * merged into `settings` an absent key is indistinguishable from an empty one. A fresh install (no
+ * save file) has nothing to copy and keeps the empty defaults.
  */
 function migratePlotCardTiers(settings: StoryForgePluginSettings, data: unknown): boolean {
 	if (data == null) return false;
 	const raw = typeof data === "object" ? (data as Record<string, unknown>) : null;
-	if (raw && "novelOverviewPlotCardTiers" in raw) return false;
 	const collapsed = Array.isArray(settings.collapsedPlotChapterKeys) ? settings.collapsedPlotChapterKeys : [];
-	settings.novelOverviewPlotCardTiers = seedPlotCardTiers(collapsed);
-	return true;
+	let seeded = false;
+	for (const key of ["novelOverviewPlotCardTiers", "storyContextPlotCardTiers"] as const) {
+		if (raw && key in raw) continue;
+		settings[key] = seedPlotCardTiers(collapsed);
+		seeded = true;
+	}
+	return seeded;
 }
 
 export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
@@ -715,6 +723,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	collapsedCodexFolderIds: [],
 	collapsedPlotChapterKeys: [],
 	novelOverviewPlotCardTiers: {},
+	storyContextPlotCardTiers: {},
 	cyclingGuideEnabled: false,
 	cyclingGuideThickness: "thin",
 	cyclingGuideColor: "#f59e0b",

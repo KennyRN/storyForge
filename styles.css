@@ -5120,25 +5120,20 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 
 /* Story Context Novel tab: the synopsis is a plain box now — same corner radius on all four
  * corners as the cover above it (.sf-synopsis-cover's own 4px), rather than the uneven radii its
- * old coloured thread-wrap needed. 6px beneath it, then the pane's own thick divider
- * (.sf-story-context-novel-host .sf-story-context-scroll, below) — the plot thread's colour
- * starts there now instead of at the synopsis. */
+ * old coloured thread-wrap needed. No margin beneath it: the whole gap down to the first chapter
+ * card is the scroll pane's own padding-top (below), so it's one number. */
 .sf-story-context-view .sf-story-context-novel-synopsis {
-	margin-bottom: 6px;
+	margin-bottom: 0;
 	border-radius: 4px;
 }
 
-/* The divider between the synopsis and the chapter cards below it: the same thick, neutral rule
- * the storytelling panel's own chapter-selector/codex-tree divider uses
- * (.storyforge-storytelling-view .sf-top-panel.sf-top-panel--above-codex). */
+/* The chapter card list beneath the synopsis — no divider, just the 11px gap (matching the 11px
+ * between cards, see the sidebar card rules further down). */
 .sf-story-context-novel-host .sf-story-context-scroll {
-	border-top: 3px solid var(--background-modifier-border);
-	padding-top: 6px;
+	padding-top: 11px;
 	/* .sf-story-context-novel-host has already bled out to the sidebar's true edges (above) — this
-	 * element just needs its own inset back so the chapter cards inside it (and the gutter lines
-	 * painted on this element's own background) land exactly where they did before, while the
-	 * border itself — always drawn at the border box, outside any padding — reaches those true
-	 * edges the host recovered. */
+	 * element just needs its own inset back so the chapter cards inside it land exactly where they
+	 * did before. */
 	padding-left: var(--sf-story-context-side-inset);
 	padding-right: var(--sf-story-context-side-inset);
 	box-sizing: border-box;
@@ -6784,13 +6779,13 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	color: var(--text-muted);
 }
 
-/* SeriesTitleModal.ts: the same inline dice as NovelTitleModal.ts's, beside the title box. */
-.sf-series-title-modal .sf-modal-title-row .sf-modal-input {
+.sf-novel-title-row .sf-modal-input {
 	flex: 1;
 	width: auto;
 }
 
-.sf-novel-title-row .sf-modal-input {
+/* SeriesTitleModal.ts: the same inline dice as NovelTitleModal.ts's, beside the title box. */
+.sf-series-title-modal .sf-modal-title-row .sf-modal-input {
 	flex: 1;
 	width: auto;
 }
@@ -7060,6 +7055,11 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	border-radius: 10px;
 	overflow: hidden;
 }
+
+.sf-story-context-plot-block--plain.sf-story-context-plot-block--chapter .sf-story-context-plot-header-row {
+	border-radius: 10px 10px 0 0;
+}
+
 /* Chapter tab title bar: create-details-note + rename icons, hidden until the bar is hovered (or
  * holds keyboard focus). 1px flex gap — each button's 2px padding plus the glyphs' own inset
  * whitespace make up the visible spacing — and 5px from the bar's right edge. Opacity rather
@@ -7089,11 +7089,6 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 		opacity: 1;
 		pointer-events: auto;
 	}
-}
-
-
-.sf-story-context-plot-block--plain.sf-story-context-plot-block--chapter .sf-story-context-plot-header-row {
-	border-radius: 10px 10px 0 0;
 }
 
 /* Chapter-tab title follows Chapter title size/font (same source as Novel plot-card names).
@@ -7204,6 +7199,28 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 .sf-story-context-plot-block--plain.sf-story-context-plot-block--databar.sf-story-context-plot-block--collapsed.sf-story-context-plot-block--bar
 	.sf-story-context-plot-textarea {
 	display: none;
+}
+
+/* Story Context sidebar Novel tab only (.sf-story-context-novel-host exists nowhere else): 11px
+ * between cards (the shared --plain rule's 12px is the centre pane's), and 4px corners on the card
+ * and its description — the same radius as the data bar row — in place of the shared 10px. */
+.sf-story-context-novel-host .sf-story-context-plot-block--plain.sf-story-context-plot-block--databar {
+	margin-bottom: 11px;
+	border-radius: 4px;
+}
+
+/* Sidebar spacing: 8px from the Location row (extended) or the data bar (collapsed) down to the
+ * description text — the meta rows' own 10px margin is dropped so the textarea's top padding is
+ * the whole gap — and no bottom padding, so the card's 11px margin is the only gap before the next
+ * card's header. */
+.sf-story-context-novel-host .sf-story-context-plot-block--plain.sf-story-context-plot-block--databar .sf-story-context-meta {
+	margin-bottom: 0;
+}
+
+.sf-story-context-novel-host .sf-story-context-plot-block--plain.sf-story-context-plot-block--databar .sf-story-context-plot-textarea {
+	border-radius: 0 0 4px 4px;
+	padding-top: 8px;
+	padding-bottom: 0;
 }
 
 .sf-story-context-chapter-card-actions {
