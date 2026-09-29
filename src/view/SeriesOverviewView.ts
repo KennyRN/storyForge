@@ -1,6 +1,6 @@
-import { App, ItemView, Notice, setIcon, setTooltip, TFile, TFolder, WorkspaceLeaf } from "obsidian";
+import { App, ItemView, Notice, setTooltip, TFile, TFolder, WorkspaceLeaf } from "obsidian";
 import type StoryForgePlugin from "../main";
-import { reorderSeriesBooks, readBookSynopsis, writeBookSynopsis } from "../book";
+import { readBookSynopsis, writeBookSynopsis } from "../book";
 import {
 	getSeriesBooks,
 	numberedBookTitle,
@@ -8,16 +8,14 @@ import {
 	readSeriesFrontmatter,
 	writeSeriesCoverImage,
 	writeSeriesDescription,
-	writeUnplacedOrder,
 } from "../series";
 import { seriesBackstagePath, seriesFilePath } from "../paths";
 import { splitTitleSubtitle } from "../titleNumbering";
-import { makeReorderable, type DragZone } from "./dragReorder";
 import { makeAccessibleActivatable } from "./a11y";
 import { isDragInProgress } from "./dragLock";
 import { debounce } from "../debounce";
 import { ICON_SERIES } from "../icons";
-import { renderNovelCover, pickNovelCover } from "./NovelPanel";
+import { measureSeriesOverviewScrollbarGutter, renderNovelCover, pickNovelCover } from "./NovelPanel";
 import { NovelTitleModal } from "./NovelTitleModal";
 import { SeriesTitleModal } from "./SeriesTitleModal";
 import { resolveNovelRowColor } from "./novelColor";
@@ -86,6 +84,17 @@ export class SeriesOverviewView extends ItemView {
 		this.registerEvent(this.app.metadataCache.on("changed", (file) => {
 			if (file.path === seriesFilePath()) this.debouncedRender();
 		}));
+		// Keeps the fixed band's and novel list's 20px insets aligned/solid across a scrollbar
+		// appearing or disappearing (measureSeriesOverviewScrollbarGutter's own doc comment,
+		// NovelPanel.ts — same technique the central Novel pane uses) — render() already re-measures
+		// on every render triggered by the listeners above; these two catch the remaining cases that
+		// don't themselves trigger a render: the pane being resized and a theme/CSS snippet change
+		// that restyles/re-widths the scrollbar. Observing contentEl itself (not the scroll pane,
+		// which render() rebuilds from scratch every time) means this never needs re-attaching.
+		const scrollbarGutterObserver = new ResizeObserver(() => measureSeriesOverviewScrollbarGutter(this.contentEl));
+		scrollbarGutterObserver.observe(this.contentEl);
+		this.register(() => scrollbarGutterObserver.disconnect());
+		this.registerEvent(this.app.workspace.on("css-change", () => measureSeriesOverviewScrollbarGutter(this.contentEl)));
 		this.render();
 	}
 
@@ -107,6 +116,8 @@ export class SeriesOverviewView extends ItemView {
 
 		const scroll = contentEl.createDiv({ cls: "sf-series-overview-scroll" });
 		this.renderNovelsList(scroll);
+
+		measureSeriesOverviewScrollbarGutter(contentEl);
 	}
 
 	/** Plain clickable h1 text, not an input — mirrors the novel row title's own move
@@ -158,13 +169,10 @@ export class SeriesOverviewView extends ItemView {
 	}
 
 	/** Filtered to match the currently selected novel — placed-only if it's in the series order,
-	 * unplaced-only if it isn't, or everything when nothing is selected. Reordering persists to
-	 * whichever single list is actually on screen: the placed set via reorderSeriesBooks (which
-	 * replaces the whole `order` array — see resolveOrder in ordering.ts), or the unplaced set via
-	 * its own separate writeUnplacedOrder (see SeriesFrontmatter's unplacedOrder doc comment for why
-	 * that's a distinct field rather than reusing `order`, which would place them). With both lists
-	 * showing at once (nothing selected) there's no single field a combined drag could write back
-	 * to without corrupting the other category, so dragging is display-only there. */
+	 * unplaced-only if it isn't, or everything when nothing is selected. Not reorderable here —
+	 * dragging a card only ever moved the row, not the underlying series/unplaced order (see
+	 * TopPanel.ts's own left-sidebar list for that), so it was dropped along with the drag handle
+	 * (this page's own follow-up brief). */
 	private renderNovelsList(container: HTMLElement): void {
 		container.empty();
 		const { ordered, unplaced } = getSeriesBooks(this.app);
@@ -172,7 +180,6 @@ export class SeriesOverviewView extends ItemView {
 		const selectedIsUnplaced = selected !== null && unplaced.some((f) => f.name === selected);
 		const showOrdered = !selected || !selectedIsUnplaced;
 		const showUnplaced = !selected || selectedIsUnplaced;
-		const reorderable = showOrdered !== showUnplaced;
 
 		const list = container.createDiv({ cls: "sf-top-list" });
 		if (showOrdered) for (const folder of ordered) this.renderNovelRow(list, folder, { ordered, unplaced });
@@ -180,33 +187,12 @@ export class SeriesOverviewView extends ItemView {
 		if (ordered.length === 0 && unplaced.length === 0) {
 			list.createDiv({ cls: "sf-empty sf-empty-inline", text: "No books yet." });
 		}
-
-		if (!reorderable) return;
-		const zones: DragZone[] = [{ key: "order", container: list }];
-		makeReorderable(zones, ".sf-row", ".sf-drag-handle", (zoneRowKeys) => {
-			void (async () => {
-				const newOrder = (zoneRowKeys.order ?? []).filter(Boolean);
-				try {
-					if (showOrdered) {
-						await reorderSeriesBooks(this.app, newOrder);
-					} else {
-						await writeUnplacedOrder(this.app, newOrder);
-					}
-				} catch (err) {
-					new Notice(`storyForge: could not save the new order — ${(err as Error).message}`);
-					if (!this.closed) this.render();
-				}
-			})();
-		});
 	}
 
-	/** One novel's row: a drag handle sitting outside a "card" (cover image, then a title input over
-	 * a synopsis textarea — a grid, see .sf-series-overview-card in styles.css, so the cover can
-	 * span the title+synopsis column's combined height while the handle stays confined to just the
-	 * title line's own row, unaffected by either). The card is the only part styled with the
-	 * sidebar's own background colour — the handle stays outside it, on the page's own background —
-	 * so each novel reads as a distinct card floating in the list. Dragging the handle still moves
-	 * the whole row (card included) together, since both live under the one draggable `.sf-row`.
+	/** One novel's row: just the "card" now (cover image, then a title input over a synopsis
+	 * textarea — a grid, see .sf-series-overview-card in styles.css, so the cover can span the
+	 * title+synopsis column's combined height) — no drag handle any more, and nothing here is
+	 * reorderable (see renderNovelsList's own doc comment).
 	 *
 	 * The title itself is plain clickable text, not an input — "Volume #//Outside the Walls"
 	 * renders as "Volume 1 (Outside the Walls)" (numberedBookTitle resolves the "#", splitTitleSubtitle
@@ -219,18 +205,14 @@ export class SeriesOverviewView extends ItemView {
 	 * The title chip's own background/text colour comes from resolveNovelRowColor (novelColor.ts) —
 	 * the same accent NovelTitleModal's colour option sets, or that function's own random-looking
 	 * per-novel default when nothing's been picked yet — applied only to the title line itself, not
-	 * the whole card (cover stays on the card's own background). The synopsis box picks up that same
-	 * colour too, but only as a 2px outline on its right/bottom edges (border-right-width/
-	 * border-bottom-width in styles.css, coloured here) — its own background stays plain. */
+	 * the whole card (cover stays on the card's own background). The synopsis box has no top, right,
+	 * or bottom border at all (styles.css) — just its plain left edge, inherited from .sf-modal-input. */
 	private renderNovelRow(
 		list: HTMLElement,
 		folder: TFolder,
 		prefetched: { ordered: TFolder[]; unplaced: TFolder[] },
 	): void {
 		const row = list.createDiv({ cls: "sf-row sf-series-overview-row" });
-		row.dataset.key = folder.name;
-
-		setIcon(row.createSpan({ cls: "sf-drag-handle" }), "grip-vertical");
 
 		const card = row.createDiv({ cls: "sf-series-overview-card" });
 
@@ -262,7 +244,6 @@ export class SeriesOverviewView extends ItemView {
 			cls: "sf-modal-input sf-series-overview-row-synopsis",
 			attr: { "aria-label": "synopsis" },
 		});
-		if (rowColor) synopsis.setCssStyles({ borderRightColor: rowColor.background, borderBottomColor: rowColor.background });
 		setTooltip(synopsis, "synopsis");
 		synopsis.addEventListener("pointerdown", (e) => e.stopPropagation());
 		synopsis.addEventListener("blur", () => {

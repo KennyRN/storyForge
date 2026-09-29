@@ -4,7 +4,7 @@ import { CODEX_ROOT, isBackstageBookkeepingPath, isLibraryChapterPath, seriesFil
 import { debounce } from "../debounce";
 import { isDragInProgress } from "./dragLock";
 import { ICON_BOOK_DUOTONE } from "../icons";
-import { renderNovelPanel } from "./NovelPanel";
+import { measureNovelOverviewScrollbarGutter, renderNovelPanel } from "./NovelPanel";
 
 export const STORYFORGE_NOVEL_OVERVIEW_VIEW_TYPE = "storyforge-novel-overview-view";
 
@@ -68,6 +68,18 @@ export class NovelOverviewView extends ItemView {
 			}),
 		);
 		this.registerEvent(this.app.metadataCache.on("changed", () => this.debouncedRender()));
+		// Keeps the header band's and chapter list's 20px insets aligned/solid across a scrollbar
+		// appearing or disappearing (measureNovelOverviewScrollbarGutter's own doc comment,
+		// NovelPanel.ts) — renderNovelPanel already re-measures on every render triggered by the
+		// listeners above; these two catch the remaining cases that don't themselves trigger a
+		// render: the pane being resized (dragging a split, window resize) and a theme/CSS snippet
+		// change that restyles/re-widths the scrollbar. Observing contentEl itself (not the scroll
+		// pane, which renderNovelPanel rebuilds from scratch on every render) means this never needs
+		// re-attaching.
+		const scrollbarGutterObserver = new ResizeObserver(() => measureNovelOverviewScrollbarGutter(this.contentEl));
+		scrollbarGutterObserver.observe(this.contentEl);
+		this.register(() => scrollbarGutterObserver.disconnect());
+		this.registerEvent(this.app.workspace.on("css-change", () => measureNovelOverviewScrollbarGutter(this.contentEl)));
 		this.render();
 	}
 

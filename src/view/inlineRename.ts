@@ -18,16 +18,26 @@ export interface InlineRenameOptions {
 	extraMenuItems?: ExtraMenuItem[];
 	/** Optional extra element (e.g. a pencil icon button) that also triggers edit mode on click. */
 	trigger?: HTMLElement;
+	/** When set, "Rename" (and `trigger`, if any) call this instead of swapping `label` for an
+	 * inline `<input>` — used where renaming needs a richer UI than a single title field (e.g.
+	 * ChapterTitleModal's title + plot-thread picker). `onCommit`/`getCurrentTitle` are unused in
+	 * that case; the caller's own handler is responsible for persisting the change. */
+	onRenameClick?: () => void;
+	/** Overrides the menu item's own text, which otherwise reads "Rename" — e.g. the series pane's
+	 * novel rows use "set details" instead, since right-clicking there opens NovelTitleModal's full
+	 * set of fields rather than a bare title swap. */
+	renameLabel?: string;
 }
 
-/** Attaches a right-click context menu to `row` with a "Rename" action (and optional extra items) — purely a row/label swap plus a caller-supplied `onCommit`, agnostic to what renaming actually does underneath. */
+/** Attaches a right-click context menu to `row` with a "Rename" action (and optional extra items) — purely a row/label swap plus a caller-supplied `onCommit`, agnostic to what renaming actually does underneath (unless `onRenameClick` overrides that swap entirely). */
 export function attachInlineRename(options: InlineRenameOptions): void {
-	const { row, label, getCurrentTitle, onCommit, extraMenuItems, trigger } = options;
+	const { row, label, getCurrentTitle, onCommit, extraMenuItems, trigger, onRenameClick, renameLabel } = options;
+	const startRename = onRenameClick ?? beginEdit;
 
 	row.addEventListener("contextmenu", (event: MouseEvent) => {
 		event.preventDefault();
 		const menu = new Menu();
-		menu.addItem((item) => item.setTitle("Rename").onClick(() => beginEdit()));
+		menu.addItem((item) => item.setTitle(renameLabel ?? "Rename").onClick(() => startRename()));
 		if (extraMenuItems) {
 			menu.addSeparator();
 			for (const extra of extraMenuItems) {
@@ -40,7 +50,7 @@ export function attachInlineRename(options: InlineRenameOptions): void {
 	if (trigger) {
 		trigger.addEventListener("click", (event) => {
 			event.stopPropagation();
-			beginEdit();
+			startRename();
 		});
 	}
 

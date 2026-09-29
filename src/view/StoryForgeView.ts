@@ -22,6 +22,7 @@ import { ICON_BOOK_DUOTONE, ICON_BOOK_OPEN, ICON_BOOK_OPEN_FILLED, ICON_CODEX, I
 import { countWords } from "../wordCount";
 import { getBookWordStats } from "../history";
 import { WordCountModal } from "./WordCountModal";
+import { ChapterTitleModal } from "./ChapterTitleModal";
 import { isDragInProgress } from "./dragLock";
 import { makeAccessibleActivatable } from "./a11y";
 import { layoutConfig, SF_LAYOUTS, SF_LAYOUT_LABELS, type SfLayout } from "../layout";
@@ -371,6 +372,7 @@ export class StoryForgeView extends ItemView {
 			if (config.showCodex) topEl.addClass("sf-top-panel--above-codex");
 
 			renderTopPanel(this.app, topEl, {
+				plugin: this.plugin,
 				mode: topPane,
 				// Only the actual "Novel" tab gets the newer chapter-tree chrome — the "Chapter"
 				// tab (hybrid) also resolves topPane to "novel" (layoutConfig) but keeps the
@@ -427,6 +429,8 @@ export class StoryForgeView extends ItemView {
 						this.plugin.focusStoryContextOnChapter(bookName, filename);
 					}
 				},
+				onRenameChapter: (bookName, filename) =>
+					new ChapterTitleModal(this.app, this.plugin, bookName, filename, () => this.render()).open(),
 				onCreateContinuingChapter: (bookFolderName) => void this.handleCreateContinuingChapter(bookFolderName),
 				onArchiveChapter: async () => {
 					if (this.closed) return;
@@ -547,6 +551,7 @@ export class StoryForgeView extends ItemView {
 
 		const topEl = container.createDiv({ cls: "sf-top-panel sf-top-panel--above-codex" });
 		renderTopPanel(this.app, topEl, {
+			plugin: this.plugin,
 			mode,
 			// The storytelling face's compact navigator+Codex layout is never the "Novel" tab.
 			isNovelPane: false,
