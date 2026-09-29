@@ -534,23 +534,23 @@ export class StoryContextView extends ItemView {
 			attr: {
 				role: "tab",
 				tabindex: "0",
-				"aria-label": "Novel",
+				"aria-label": "novel",
 				"aria-selected": String(this.tabIsActive("novel")),
 			},
 		});
 		setIcon(novelTab.createSpan({ cls: "sf-layout-tab-icon" }), ICON_BOOK_DUOTONE);
-		setTooltip(novelTab, "Novel");
+		setTooltip(novelTab, "novel");
 		const chapterTab = tabs.createSpan({
 			cls: `sf-story-context-tab${this.tabIsActive("chapter") ? " is-active" : ""}`,
 			attr: {
 				role: "tab",
 				tabindex: "0",
-				"aria-label": "Chapter",
+				"aria-label": "chapter",
 				"aria-selected": String(this.tabIsActive("chapter")),
 			},
 		});
 		setIcon(chapterTab.createSpan({ cls: "sf-layout-tab-icon" }), ICON_BOOK_OPEN_FILLED);
-		setTooltip(chapterTab, "Chapter");
+		setTooltip(chapterTab, "chapter");
 		const selectMode = (mode: StoryContextMode) => {
 			this.showingArchive = false;
 			this.showingIdeas = false;
@@ -575,12 +575,12 @@ export class StoryContextView extends ItemView {
 			attr: {
 				role: "tab",
 				tabindex: "0",
-				"aria-label": "Notebook",
+				"aria-label": "notebook",
 				"aria-selected": String(this.tabIsActive("ideas")),
 			},
 		});
 		setIcon(ideasTab.createSpan({ cls: "sf-layout-tab-icon" }), ICON_NOTEBOOK_DUOTONE);
-		setTooltip(ideasTab, "Notebook");
+		setTooltip(ideasTab, "notebook");
 		const selectIdeas = () => {
 			this.showingArchive = false;
 			this.showingIdeas = true;
@@ -609,12 +609,12 @@ export class StoryContextView extends ItemView {
 				attr: {
 					role: "tab",
 					tabindex: "0",
-					"aria-label": "Forge family",
+					"aria-label": "forge family",
 					"aria-selected": String(this.tabIsActive("forge")),
 				},
 			});
 			setIcon(forgeTab.createSpan({ cls: "sf-layout-tab-icon" }), ICON_FORGE);
-			setTooltip(forgeTab, "Forge family");
+			setTooltip(forgeTab, "forge family");
 			const selectForgeFamily = () => this.selectForgeFamily();
 			forgeTab.addEventListener("click", (e) => {
 				e.stopPropagation();
@@ -628,7 +628,7 @@ export class StoryContextView extends ItemView {
 			attr: {
 				role: "tab",
 				tabindex: "0",
-				"aria-label": "Archive",
+				"aria-label": "archive",
 				"aria-selected": String(this.tabIsActive("archive")),
 			},
 		});
@@ -723,10 +723,10 @@ export class StoryContextView extends ItemView {
 		this.renderNotebookAddIcon(ideaFamily);
 		const ideaTrigger = ideaFamily.createSpan({
 			cls: "sf-story-context-view__forge-family",
-			attr: { role: "button", tabindex: "0", "aria-label": "Notebook" },
+			attr: { role: "button", tabindex: "0", "aria-label": "notebook" },
 		});
 		setIcon(ideaTrigger, ICON_NOTEBOOK_DUOTONE);
-		setTooltip(ideaTrigger, "Notebook");
+		setTooltip(ideaTrigger, "notebook");
 		const toggleIdeas = () => this.toggleIdeaShelfExpanded();
 		ideaTrigger.addEventListener("click", toggleIdeas);
 		makeAccessibleActivatable(ideaTrigger, toggleIdeas);
@@ -739,10 +739,10 @@ export class StoryContextView extends ItemView {
 			this.renderForgeFamilyIcons(members, family);
 			const trigger = forgeFamily.createSpan({
 				cls: "sf-story-context-view__forge-family",
-				attr: { role: "button", tabindex: "0", "aria-label": "Forge family" },
+				attr: { role: "button", tabindex: "0", "aria-label": "forge family" },
 			});
 			setIcon(trigger, ICON_FORGE);
-			setTooltip(trigger, "Forge family");
+			setTooltip(trigger, "forge family");
 			const toggle = () => this.toggleForgeFamilyExpanded();
 			trigger.addEventListener("click", toggle);
 			makeAccessibleActivatable(trigger, toggle);
@@ -850,12 +850,16 @@ export class StoryContextView extends ItemView {
 	/** Shared by both forgeFamily rows (tabs-region and Focus Mode). */
 	private renderForgeFamilyIcons(row: HTMLElement, family: StoryForgeCompanionPanel[]): void {
 		for (const plugin of family) {
+			// First letter only — labels are camelCase plugin names ("titleForge"), so a full
+			// toLowerCase() would mangle them; this just keeps a capitalised label in line with
+			// the rest of this panel's lowercase tooltips.
+			const label = plugin.label.charAt(0).toLowerCase() + plugin.label.slice(1);
 			const btn = row.createSpan({
 				cls: `sf-story-context-view__forge-icon${plugin.id === this.forgeFamilyActiveId ? " is-active" : ""}`,
-				attr: { role: "button", tabindex: "0", "aria-label": plugin.label },
+				attr: { role: "button", tabindex: "0", "aria-label": label },
 			});
 			setIcon(btn, plugin.icon);
-			setTooltip(btn, plugin.label);
+			setTooltip(btn, label);
 			const toggle = () => this.toggleForgeFamilyPanel(plugin.id);
 			btn.addEventListener("click", toggle);
 			makeAccessibleActivatable(btn, toggle);
@@ -924,10 +928,10 @@ export class StoryContextView extends ItemView {
 	private renderNotebookAddIcon(parent: HTMLElement): void {
 		const plus = parent.createSpan({
 			cls: `sf-story-context-view__forge-icon sf-story-context-view__forge-icon--notebook-add${this.ideaCardOpen ? " is-active" : ""}`,
-			attr: { role: "button", tabindex: "0", "aria-label": "New note" },
+			attr: { role: "button", tabindex: "0", "aria-label": "new note" },
 		});
 		setIcon(plus, ICON_ADD_CIRCLE);
-		setTooltip(plus, "New note");
+		setTooltip(plus, "new note");
 		const add = () => void this.createIdeaFromShelf({ asCard: true });
 		plus.addEventListener("click", add);
 		makeAccessibleActivatable(plus, add);
@@ -936,10 +940,10 @@ export class StoryContextView extends ItemView {
 	private renderIdeaShelfBrowseIcon(row: HTMLElement): void {
 		const eye = row.createSpan({
 			cls: `sf-story-context-view__forge-icon sf-story-context-view__forge-icon--notebook-popout${this.ideaShelfPanelOpen ? " is-active" : ""}`,
-			attr: { role: "button", tabindex: "0", "aria-label": "Browse notebook" },
+			attr: { role: "button", tabindex: "0", "aria-label": "browse notebook" },
 		});
 		setIcon(eye, ICON_EYE_DUOTONE);
-		setTooltip(eye, "Browse notebook");
+		setTooltip(eye, "browse notebook");
 		const browse = () => {
 			this.ideaCardOpen = false;
 			this.ideaShelfPanelOpen = true;
@@ -1009,9 +1013,9 @@ export class StoryContextView extends ItemView {
 
 	private renderArchiveSourceRail(parent: HTMLElement): void {
 		const rail = parent.createDiv({ cls: "sf-codex-side-actions sf-notebook-source-rail" });
-		this.addArchiveSourceIcon(rail, "codex", ICON_CODEX, "Codex");
-		this.addArchiveSourceIcon(rail, "novel", ICON_BOOK_DUOTONE, "Novel");
-		this.addArchiveSourceIcon(rail, "notes", ICON_NOTEBOOK_DUOTONE, "Notebook");
+		this.addArchiveSourceIcon(rail, "codex", ICON_CODEX, "codex");
+		this.addArchiveSourceIcon(rail, "novel", ICON_BOOK_DUOTONE, "novel");
+		this.addArchiveSourceIcon(rail, "notes", ICON_NOTEBOOK_DUOTONE, "notebook");
 	}
 
 	private addArchiveSourceIcon(rail: HTMLElement, mode: ArchiveMode, icon: string, label: string): void {
@@ -1070,9 +1074,9 @@ export class StoryContextView extends ItemView {
 
 	private renderNotebookSourceRail(parent: HTMLElement): void {
 		const rail = parent.createDiv({ cls: "sf-codex-side-actions sf-notebook-source-rail" });
-		this.addNotebookSourceIcon(rail, "notes", ICON_NOTEBOOK_DUOTONE, "Notebook");
-		this.addNotebookSourceIcon(rail, "codex", ICON_CODEX, "Codex");
-		this.addNotebookSourceIcon(rail, "dossier", ICON_CLIPBOARD_LIST_DUOTONE, "Dossier");
+		this.addNotebookSourceIcon(rail, "notes", ICON_NOTEBOOK_DUOTONE, "notebook");
+		this.addNotebookSourceIcon(rail, "codex", ICON_CODEX, "codex");
+		this.addNotebookSourceIcon(rail, "dossier", ICON_CLIPBOARD_LIST_DUOTONE, "dossier");
 	}
 
 	private addNotebookSourceIcon(

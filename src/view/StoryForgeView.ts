@@ -510,9 +510,8 @@ export class StoryForgeView extends ItemView {
 					this.render();
 				},
 				onOpenFile: (path) => void this.openCodexFile(path),
-				// Types/tags corner lives on the full-pane Codex tab only. Chapter layout still
-				// embeds Codex underneath the novel list, but those two icons would duplicate
-				// (and crowd) a subpane that isn't the types/tags home.
+				// Types/tags corner lives on the full-pane Codex tab (the only layout that still
+				// shows Codex).
 				...(config.topPane === "none"
 					? {
 							onOpenCodexTypes: () =>

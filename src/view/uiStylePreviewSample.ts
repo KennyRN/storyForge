@@ -47,12 +47,12 @@ function listRow(list: HTMLElement, title: string, selected = false, subtitle?: 
 function mountCodexTreeSample(bottom: HTMLElement): void {
 	const body = bottom.createDiv({ cls: "sf-codex-body" });
 	const rail = body.createDiv({ cls: "sf-codex-side-actions" });
-	setIcon(rail.createSpan({ cls: "sf-codex-new-folder-btn", attr: { "aria-label": "New folder" } }), ICON_FOLDER_PLUS);
-	setIcon(rail.createSpan({ cls: "sf-codex-new-file-btn", attr: { "aria-label": "New file" } }), ICON_PLUS_SQUARE);
-	setIcon(rail.createSpan({ cls: "sf-codex-filter-btn", attr: { "aria-label": "Filter by type" } }), ICON_FILTER_LIST);
+	setIcon(rail.createSpan({ cls: "sf-codex-new-folder-btn", attr: { "aria-label": "new folder" } }), ICON_FOLDER_PLUS);
+	setIcon(rail.createSpan({ cls: "sf-codex-new-file-btn", attr: { "aria-label": "new file" } }), ICON_PLUS_SQUARE);
+	setIcon(rail.createSpan({ cls: "sf-codex-filter-btn", attr: { "aria-label": "filter by type" } }), ICON_FILTER_LIST);
 	const vaultTags = rail.createDiv({ cls: "sf-codex-vault-tags" });
-	setIcon(vaultTags.createSpan({ cls: "sf-codex-vault-tag-btn is-active", attr: { "aria-label": "Filter by #hero" } }), ICON_PERSON);
-	setIcon(vaultTags.createSpan({ cls: "sf-codex-vault-tag-btn", attr: { "aria-label": "Filter by #place" } }), ICON_MAP_PIN);
+	setIcon(vaultTags.createSpan({ cls: "sf-codex-vault-tag-btn is-active", attr: { "aria-label": "filter by #hero" } }), ICON_PERSON);
+	setIcon(vaultTags.createSpan({ cls: "sf-codex-vault-tag-btn", attr: { "aria-label": "filter by #place" } }), ICON_MAP_PIN);
 
 	const tree = body.createDiv({ cls: "sf-codex-tree" });
 	const folder = tree.createDiv({ cls: "sf-codex-folder" });

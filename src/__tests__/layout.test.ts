@@ -29,10 +29,10 @@ describe("layoutConfig", () => {
 		});
 	});
 
-	it("Chapter: novel top, codex + unplaced, no stats", () => {
+	it("Chapter: novel top, unplaced visible, no codex, no stats", () => {
 		expect(layoutConfig("hybrid")).toEqual({
 			topPane: "novel",
-			showCodex: true,
+			showCodex: false,
 			showStats: false,
 			showUnplaced: true,
 		});
@@ -57,7 +57,7 @@ describe("layoutConfig", () => {
 	it("falls back to Chapter composition for an unknown persisted layout", () => {
 		expect(layoutConfig("codexFocus" as never)).toEqual({
 			topPane: "novel",
-			showCodex: true,
+			showCodex: false,
 			showStats: false,
 			showUnplaced: true,
 		});
