@@ -1,12 +1,13 @@
 import { App, Modal, setIcon, setTooltip } from "obsidian";
 import type StoryForgePlugin from "../main";
-import { renameBookTitle } from "../book";
+import { getBookChapters, readBookFrontmatter, renameBookTitle, writeBookPlannedChapterLength, writeBookPlannedNovelLength } from "../book";
 import { readSeriesFrontmatter, writeSeriesBookColor } from "../series";
 import { bindTextCommit } from "./SeriesModal";
 import { bindColorSwatchButton } from "./styleModalHelpers";
 import { resolveNovelRowColor } from "./novelColor";
 import { makeAccessibleActivatable } from "./a11y";
 import { ICON_DICE } from "../icons";
+import { readOrderedChapterWordCounts, renderDefaultPovRow, renderPlannedLengthAlwaysOpenRow, renderPlannedLengthStatRow } from "./NovelPanel";
 
 /**
  * Opened by clicking a novel's title in the Series overview page's novel list
@@ -98,14 +99,73 @@ export class NovelTitleModal extends Modal {
 
 		const rowColor = resolveNovelRowColor(this.app, this.folderName, this.plugin.getSettings());
 		if (rowColor) {
+			// Label then swatch, same row — matches Default PoV/Novel Length/Chapter Length below it
+			// (label first, control second, all on one line).
 			const colorRow = contentEl.createDiv({ cls: "sf-novel-title-color-row" });
-			colorRow.createSpan({ cls: "sf-modal-hint", text: "novel colour" });
+			colorRow.createSpan({ cls: "sf-story-context-meta-label", text: "Novel Colour:" });
 			const colorBtn = colorRow.createEl("button", { cls: "sf-color-swatch-btn", attr: { "aria-label": "novel colour" } });
 			bindColorSwatchButton(this.app, this.plugin, colorBtn, rowColor.background, (hex) => {
 				void writeSeriesBookColor(this.app, this.folderName, hex).then(() => this.onChange());
 			});
 		}
 
+		this.renderExtendedOptions(contentEl);
+
 		window.setTimeout(() => input.focus(), 0);
+	}
+
+	/** Default PoV + Novel Length + Chapter Length — the same three rows, same behaviour, that
+	 * TopPanel.ts's Novel tab shows above its own chapter list (renderBookList's isNovelPane
+	 * block), except the two length rows: there, clicking a collapsed control opens a "push down"
+	 * editor beneath it (renderPlannedLengthMetaRow); here, both stay permanently expanded with no
+	 * collapsed state to click into or back out of (renderPlannedLengthAlwaysOpenRow) — this modal
+	 * is already the "more detail" surface, so there's no reason to hide them a second time. */
+	private renderExtendedOptions(contentEl: HTMLElement): void {
+		const { ordered } = getBookChapters(this.app, this.folderName);
+		const bookFm = readBookFrontmatter(this.app, this.folderName);
+		const meta = contentEl.createDiv({ cls: "sf-story-context-meta" });
+
+		renderDefaultPovRow(this.app, meta, this.folderName, () => {
+			this.onChange();
+			this.render();
+		});
+
+		const plannedNovelLength = bookFm?.plannedNovelLength ?? null;
+		renderPlannedLengthAlwaysOpenRow(meta, "Novel Length", plannedNovelLength, (value) => {
+			void writeBookPlannedNovelLength(this.app, this.folderName, value).then(() => {
+				this.onChange();
+				this.render();
+			});
+		});
+		if (plannedNovelLength !== null) {
+			const currentValueEl = renderPlannedLengthStatRow(meta, "Novel Length", "current");
+			void (async () => {
+				const counts = await readOrderedChapterWordCounts(this.app, this.folderName, ordered);
+				const total = counts.reduce((sum, n) => sum + n, 0);
+				if (!currentValueEl.isConnected) return;
+				currentValueEl.setText(`${total.toLocaleString("en-US")} of ${plannedNovelLength.toLocaleString("en-US")}`);
+			})();
+		}
+
+		renderPlannedLengthAlwaysOpenRow(meta, "Chapter Length", bookFm?.plannedChapterLength ?? null, (value) => {
+			void writeBookPlannedChapterLength(this.app, this.folderName, value).then(() => {
+				this.onChange();
+				this.render();
+			});
+		});
+		if (ordered.length > 0) {
+			const averageValueEl = renderPlannedLengthStatRow(meta, "Chapter Length", "average");
+			const medianValueEl = renderPlannedLengthStatRow(meta, "Chapter Length", "median");
+			void (async () => {
+				const counts = await readOrderedChapterWordCounts(this.app, this.folderName, ordered);
+				if (counts.length === 0) return;
+				const average = Math.round(counts.reduce((sum, n) => sum + n, 0) / counts.length);
+				const sorted = [...counts].sort((a, b) => a - b);
+				const mid = Math.floor(sorted.length / 2);
+				const median = sorted.length % 2 === 0 ? Math.round((sorted[mid - 1] + sorted[mid]) / 2) : sorted[mid];
+				if (averageValueEl.isConnected) averageValueEl.setText(average.toLocaleString("en-US"));
+				if (medianValueEl.isConnected) medianValueEl.setText(median.toLocaleString("en-US"));
+			})();
+		}
 	}
 }

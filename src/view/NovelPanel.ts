@@ -17,7 +17,7 @@ import {
 } from "../book";
 import { getCodexEntriesByType } from "../codex";
 import { readChapterWordCount } from "../history";
-import { ICON_MAP_PIN_PLUS, ICON_PERSON_FILL, ICON_PERSON_FILL_ADD, ICON_X } from "../icons";
+import { ICON_MAP_PIN_PLUS, ICON_PERSON_FILL, ICON_PERSON_FILL_ADD, ICON_X, setNumberFillIcon } from "../icons";
 import { bookBackstagePath } from "../paths";
 import { resolveChapterNarrator } from "../story-context/narrator";
 import type { CastMember } from "../story-context/types";
@@ -27,6 +27,7 @@ import { makeAccessibleActivatable } from "./a11y";
 import { CodexEntryPickerModal } from "./CodexEntryPickerModal";
 import { resolveChapterRowColor } from "./novelColor";
 import { formatWordCount } from "../wordCount";
+import { computeNovelLengthBarLayout, type NovelLengthBarLayout } from "./novelLengthBar";
 
 /**
  * A novel's cover/synopsis/chapter-by-chapter plot — the content Story Context's own Novel tab
@@ -121,8 +122,93 @@ export function renderNovelPanel(app: App, container: HTMLElement, options: Nove
 		synopsis.value = value;
 	});
 
+	// Hoisted here (rather than inside renderNovelPlot, which used to compute both itself) so the
+	// wide layout's novel length bar (below) and the chapter data bars can share one read instead
+	// of each doing their own Promise.all over every placed chapter's content. getBookChapters()
+	// is synchronous — only the per-chapter word-count read is async — so only that read needs a
+	// shared promise; "sidebar" never creates one, so it never performs the extra read at all.
+	const { ordered } = getBookChapters(app, bookFolderName);
+	const wordCountsPromise: Promise<number[]> | null = wide
+		? Promise.all(ordered.map((file) => readChapterWordCount(app, bookFolderName, file.name)))
+		: null;
+
+	// Novel length bar (wide only) — a new direct child of `fixed`, appended after coverHost so it
+	// becomes the band's last child: it inherits the shared 60em/32px cap-and-inset rule the same
+	// way the title/cover row above it do, and picks up the band's existing last-child 20px bottom
+	// padding for free (coverHost's own margin-bottom, changed to 20px in styles.css, supplies the
+	// matching gap above it). The bar itself renders empty here; segments/dividers are filled in
+	// once wordCountsPromise resolves (see the fire-and-forget block below, after `scroll`).
+	if (wide && wordCountsPromise) {
+		const lengthBarWrap = fixed.createDiv({ cls: "sf-story-context-novel-length-bar-wrap" });
+		const lengthBar = lengthBarWrap.createDiv({ cls: "sf-story-context-novel-length-bar" });
+		// Background/border mirrored from the synopsis textarea directly, not guessed at via CSS
+		// variable names — the synopsis sets neither itself (styles.css), so it's riding Obsidian's
+		// own default <textarea> chrome, and measuring its actual computed style here is the only
+		// way to be sure this bar matches it exactly, in every theme, without needing to know which
+		// token Obsidian's own CSS happens to use internally. Corner radius is fixed 4px in CSS
+		// instead (matching the chapter data bars and the synopsis's own explicit radius) — the
+		// textarea's inherited radius turned out not to be a reliable thing to mirror.
+		const synopsisStyle = synopsis.ownerDocument.defaultView?.getComputedStyle(synopsis);
+		if (synopsisStyle) {
+			lengthBar.setCssStyles({
+				backgroundColor: synopsisStyle.backgroundColor,
+				border: `${synopsisStyle.borderTopWidth} ${synopsisStyle.borderTopStyle} ${synopsisStyle.borderTopColor}`,
+			});
+		}
+		void wordCountsPromise.then((wordCounts) => {
+			if (options.isStale()) return;
+			const plannedNovelLength = readBookFrontmatter(app, bookFolderName)?.plannedNovelLength ?? null;
+			const layout = computeNovelLengthBarLayout(wordCounts, plannedNovelLength);
+			renderNovelLengthBarContent(app, lengthBar, bookFolderName, ordered, wordCounts, layout, options);
+		});
+	}
+
 	const scroll = body.createDiv({ cls: "sf-story-context-scroll" });
-	void renderNovelPlot(app, scroll, bookFolderName, options);
+	// Wide only: the scroller itself stays full-width/unpadded (styles.css reserves a stable
+	// scrollbar gutter on it instead), and this inner column carries the 60em cap/padding — see
+	// measureNovelOverviewScrollbarGutter's own doc comment for why the split exists. Chapter cards
+	// mount into whichever of the two is the right host; renderNovelPlot itself doesn't need to
+	// know which.
+	const scrollHost = wide ? scroll.createDiv({ cls: "sf-story-context-novel-scroll-column" }) : scroll;
+	if (wide) measureNovelOverviewScrollbarGutter(container);
+	void renderNovelPlot(app, scrollHost, bookFolderName, options, ordered, wordCountsPromise);
+}
+
+/**
+ * Measures a scroller's actual reserved scrollbar gutter (its offsetWidth minus its clientWidth —
+ * the width `scrollbar-gutter: stable` sets aside, whether or not a scrollbar is currently drawn)
+ * and writes it onto `root` as the given custom property, which both a fixed header band's and the
+ * scroller's own capped content columns (styles.css) subtract from their right padding. This is
+ * what keeps a solid inset — exactly its own px value whether or not the scroller is tall enough
+ * to actually show a scrollbar, and with the scrollbar (when shown) sitting inside that inset
+ * rather than narrowing or widening it. Only writes the property when the measured value has
+ * actually changed, so re-measuring on every render, on the scroller's own resize, and on
+ * Obsidian's css-change event doesn't thrash layout. Queries for `scrollSelector` fresh each call
+ * rather than taking an element reference, since the caller's own render typically rebuilds that
+ * element from scratch each time — a stale reference from a resize/css-change listener set up once
+ * in onOpen would otherwise measure a detached node.
+ */
+function measureScrollbarGutter(root: HTMLElement, scrollSelector: string, cssVarName: string): void {
+	const scroll = root.querySelector<HTMLElement>(scrollSelector);
+	if (!scroll) return;
+	const gutter = Math.max(0, scroll.offsetWidth - scroll.clientWidth);
+	const next = `${gutter}px`;
+	if (root.style.getPropertyValue(cssVarName) !== next) {
+		root.style.setProperty(cssVarName, next);
+	}
+}
+
+/** The central Novel pane's own header band + chapter list — see measureScrollbarGutter's own doc
+ * comment. Called from renderNovelPanel on every render and from NovelOverviewView.ts's own
+ * resize/css-change listeners. */
+export function measureNovelOverviewScrollbarGutter(root: HTMLElement): void {
+	measureScrollbarGutter(root, ".sf-story-context-scroll", "--sf-novel-overview-scrollbar-gutter");
+}
+
+/** Same idea, for the Series overview page's own header band + novel list (SeriesOverviewView.ts) —
+ * a separate custom property so the two pages' gutters never cross-contaminate each other's CSS. */
+export function measureSeriesOverviewScrollbarGutter(root: HTMLElement): void {
+	measureScrollbarGutter(root, ".sf-series-overview-scroll", "--sf-series-overview-scrollbar-gutter");
 }
 
 /** Exported for SeriesOverviewView.ts's per-row cover box — same cover, same click-to-set
@@ -200,6 +286,184 @@ async function openDefaultPovPicker(app: App, bookFolderName: string, hasValue: 
 			onChanged();
 		},
 	}).open();
+}
+
+/** Which of the Novel tab's two planned-length rows (if either) currently has its inline "push
+ * down" number editor open — see renderPlannedLengthMetaRow. At most one at a time. Also reused
+ * by NovelTitleModal, which shows the same two rows (its own local open/closed state, not a
+ * shared one — TopPanel.ts's own editor closes independently of the modal's). */
+export type PlannedLengthField = "novel" | "chapter";
+
+/** Digits before the caret, ignoring any comma separators already in the value — used to
+ * re-place the caret after reformatting adds/removes commas around it. */
+function countDigitsBeforeCaret(input: HTMLInputElement): number {
+	const pos = input.selectionStart ?? input.value.length;
+	return (input.value.slice(0, pos).match(/\d/g) ?? []).length;
+}
+
+/** Inverse of countDigitsBeforeCaret: places the caret right after the Nth digit in the
+ * (already reformatted) value, so typing/deleting in the middle of a grouped number doesn't
+ * bounce the caret to the end every keystroke. */
+function setCaretAfterDigitCount(input: HTMLInputElement, digitCount: number): void {
+	if (digitCount <= 0) {
+		input.setSelectionRange(0, 0);
+		return;
+	}
+	let seen = 0;
+	for (let i = 0; i < input.value.length; i++) {
+		if (/\d/.test(input.value[i])) {
+			seen++;
+			if (seen === digitCount) {
+				input.setSelectionRange(i + 1, i + 1);
+				return;
+			}
+		}
+	}
+	input.setSelectionRange(input.value.length, input.value.length);
+}
+
+/** Shared comma-formatting/keyboard wiring for a planned-length numeric input — used by both
+ * renderPlannedLengthEditorRow's "push down" editor and renderPlannedLengthAlwaysOpenRow's
+ * permanently-visible field. Enter blurs (committing), Escape reverts to `value`, blur commits
+ * whatever's left; `onDone` fires at most once (a fresh input from the next render carries its
+ * own guard, so this only ever needs to protect a single element's own lifetime) — including when
+ * a caller invokes the returned `finish` directly (the "x" clear button, which needs to commit
+ * `null` regardless of whatever's currently typed, rather than blur's own read of the live value).
+ * Does not focus the input — callers that want that (the "push down" editor, on open) do it
+ * themselves. */
+function bindPlannedLengthInput(input: HTMLInputElement, value: number | null, onDone: (next: number | null) => void): (next: number | null) => void {
+	input.addEventListener("pointerdown", (e) => e.stopPropagation());
+	input.addEventListener("input", () => {
+		const caretDigits = countDigitsBeforeCaret(input);
+		const digits = input.value.replace(/\D/g, "");
+		input.value = digits ? Number(digits).toLocaleString("en-US") : "";
+		setCaretAfterDigitCount(input, caretDigits);
+	});
+	let settled = false;
+	const finish = (next: number | null) => {
+		if (settled) return;
+		settled = true;
+		onDone(next);
+	};
+	input.addEventListener("keydown", (event) => {
+		if (event.key === "Enter") {
+			event.preventDefault();
+			input.blur();
+		} else if (event.key === "Escape") {
+			event.preventDefault();
+			finish(value);
+		}
+	});
+	input.addEventListener("blur", () => {
+		const digits = input.value.replace(/\D/g, "");
+		finish(digits ? Number(digits) : null);
+	});
+	return finish;
+}
+
+/** The inline "push down" number editor a planned-length row opens beneath itself — same idea as
+ * the storytelling panel's chapter selector expanding its 5-row list below the current-chapter row
+ * (CodexFocusNavigator.ts) rather than a modal. A `--ghost` label (identical text, hidden but still
+ * taking up space) reserves the same width the real label above occupies, so the input's left edge
+ * lands exactly where that row's own value/icon sits — visually aligned with the label's colon.
+ * Comma-grouped as you type; Enter blurs (committing), Escape reverts to the original value, the
+ * "x" (renderMetaClearButton) clears outright — all three close the editor via `onDone`, called at
+ * most once per open (the "x" beside the box is the only place this row shows one; the collapsed
+ * meta-control above never does). */
+function renderPlannedLengthEditorRow(meta: HTMLElement, label: string, value: number | null, onDone: (value: number | null) => void): void {
+	const row = meta.createDiv({ cls: "sf-story-context-meta-row sf-planned-length-editor-row" });
+	row.createSpan({
+		cls: "sf-story-context-meta-label sf-story-context-meta-label--ghost",
+		text: `${label}:`,
+		attr: { "aria-hidden": "true" },
+	});
+	const input = row.createEl("input", {
+		cls: "sf-planned-length-editor-input",
+		attr: { type: "text", inputmode: "numeric", autocomplete: "off", "aria-label": label },
+	});
+	input.value = value !== null ? value.toLocaleString("en-US") : "";
+	const finish = bindPlannedLengthInput(input, value, onDone);
+	renderMetaClearButton(row, `clear ${label.toLowerCase()}`, () => finish(null));
+	window.setTimeout(() => {
+		input.focus();
+		input.select();
+	}, 0);
+}
+
+/** A planned-length row with no collapsed state at all — the real (non-ghost) label sits directly
+ * beside its own always-visible input, rather than a separate clickable meta-control toggling
+ * renderPlannedLengthEditorRow open/closed beneath it. NovelTitleModal's Novel Length/Chapter
+ * Length rows use this: those two fields stay expanded permanently with no way to collapse them. */
+export function renderPlannedLengthAlwaysOpenRow(meta: HTMLElement, label: string, value: number | null, onCommit: (value: number | null) => void): void {
+	const row = meta.createDiv({ cls: "sf-story-context-meta-row sf-planned-length-editor-row" });
+	row.createSpan({ cls: "sf-story-context-meta-label", text: `${label}:` });
+	const input = row.createEl("input", {
+		cls: "sf-planned-length-editor-input",
+		attr: { type: "text", inputmode: "numeric", autocomplete: "off", "aria-label": label },
+	});
+	input.value = value !== null ? value.toLocaleString("en-US") : "";
+	const finish = bindPlannedLengthInput(input, value, onCommit);
+	renderMetaClearButton(row, `clear ${label.toLowerCase()}`, () => finish(null));
+}
+
+/** Reads every ordered chapter's live word count in parallel — the source for both the Novel
+ * Length row's "current of target" figure and the Chapter Length editor's average/median stats. */
+export async function readOrderedChapterWordCounts(app: App, bookFolderName: string, ordered: TFile[]): Promise<number[]> {
+	return Promise.all(ordered.map((file) => readChapterWordCount(app, bookFolderName, file.name)));
+}
+
+/** One of the two plain (non-interactive) stat rows shown beneath the open Chapter Length editor —
+ * "average:"/"median:", comma-grouped like the length fields themselves. `ghostLabelText` is the
+ * real "Chapter Length" label text: an invisible copy of it reserves a label column exactly as
+ * wide as that row's own label, and the real (much shorter) "average"/"median" text is right-
+ * aligned within that same reserved width — same font, so this lines their own colon up with
+ * Chapter Length's, matching a fixed number column rather than a fixed label-start column (compare
+ * renderPlannedLengthEditorRow's ghost, which instead reserves space *before* its input). Returns
+ * the value span so the caller can patch in the live figure once its async word-count read resolves.
+ */
+export function renderPlannedLengthStatRow(meta: HTMLElement, ghostLabelText: string, label: string): HTMLElement {
+	const row = meta.createDiv({ cls: "sf-story-context-meta-row sf-planned-length-stat-row" });
+	const labelSlot = row.createSpan({ cls: "sf-story-context-meta-label sf-planned-length-stat-label" });
+	labelSlot.createSpan({
+		cls: "sf-planned-length-stat-label-ghost",
+		text: `${ghostLabelText}:`,
+		attr: { "aria-hidden": "true" },
+	});
+	labelSlot.createSpan({ cls: "sf-planned-length-stat-label-text", text: `${label}:` });
+	return row.createSpan({ cls: "sf-story-context-meta-value" });
+}
+
+/** A planned novel/chapter length row, styled identically to Default PoV's own meta row (same
+ * label + icon-control pieces, renderMetaControl above) rather than a persistent text box:
+ * clicking the control (setNumberFillIcon when unset — a stroke-drawn glyph, so it can't go
+ * through Obsidian's fill-only `setIcon` — or just the number itself once set, `hideIconWhenValue`
+ * dropping the icon then) opens the inline editor below (renderPlannedLengthEditorRow) instead of a
+ * modal. Clearing (the "x") lives only in that editor, not on this collapsed row. Returns the
+ * created value span (or null if `value` is unset) — Novel Length's row uses this to patch in the
+ * live "current of target" text once that async total resolves (see TopPanel.ts's renderBookList
+ * and NovelTitleModal, both of which call this). */
+export function renderPlannedLengthMetaRow(
+	meta: HTMLElement,
+	field: PlannedLengthField,
+	label: string,
+	value: number | null,
+	isEditorOpen: boolean,
+	onSetEditor: (field: PlannedLengthField | null) => void,
+	onCommit: (value: number | null) => void,
+): HTMLElement | null {
+	const row = meta.createDiv({ cls: "sf-story-context-meta-row" });
+	row.createSpan({ cls: "sf-story-context-meta-label", text: `${label}:` });
+	const valueEl = renderMetaControl(row, {
+		paintIcon: setNumberFillIcon,
+		value: value !== null ? value.toLocaleString("en-US") : null,
+		hideIconWhenValue: true,
+		tooltip: isEditorOpen ? `close ${label.toLowerCase()}` : value !== null ? `change ${label.toLowerCase()}` : `set ${label.toLowerCase()}`,
+		onOpen: () => onSetEditor(isEditorOpen ? null : field),
+	});
+	if (isEditorOpen) {
+		renderPlannedLengthEditorRow(meta, label, value, onCommit);
+	}
+	return valueEl;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -396,27 +660,69 @@ function renderDataBar(
 	}
 }
 
+/**
+ * Fills the empty novel length bar shell (renderNovelPanel, wide only) with one solid segment per
+ * placed chapter with more than 0 words, plus dividers — from `layout` (computeNovelLengthBarLayout,
+ * novelLengthBar.ts), in the same "plain absolutely positioned divs, inline left/width percentages"
+ * style as renderDataBar()'s own segments (addSolid) above, for the same reason: no CSS custom
+ * property/gradient to silently fail to resolve.
+ */
+function renderNovelLengthBarContent(
+	app: App,
+	bar: HTMLElement,
+	bookFolderName: string,
+	ordered: TFile[],
+	wordCounts: number[],
+	layout: NovelLengthBarLayout,
+	options: NovelPanelOptions,
+): void {
+	bar.empty();
+	for (const segment of layout.segments) {
+		const file = ordered[segment.chapterIndex];
+		const rowColor = resolveChapterRowColor(app, bookFolderName, file.name, options.plugin.getSettings());
+		const seg = bar.createDiv({ cls: "sf-story-context-novel-length-bar-segment" });
+		seg.setCssStyles({
+			left: `${segment.leftPercent}%`,
+			width: `${segment.widthPercent}%`,
+			backgroundColor: rowColor?.background ?? "var(--background-modifier-border)",
+		});
+		// Built the same way the chapter card's own title reads (numberedChapterTitle +
+		// splitTitleSubtitle, subtitle in brackets when present) so the tooltip always matches.
+		const { title, subtitle } = splitTitleSubtitle(
+			numberedChapterTitle(app, bookFolderName, file.name, options.plugin.getSettings().chapterNumberingStyle),
+		);
+		const titleText = subtitle ? `${title} (${subtitle})` : title;
+		setTooltip(seg, `${titleText}: ${formatWordCount(wordCounts[segment.chapterIndex])}`);
+	}
+	for (const dividerPercent of layout.dividerPercents) {
+		const divider = bar.createDiv({ cls: "sf-story-context-novel-length-bar-divider" });
+		divider.setCssStyles({ left: `${dividerPercent}%` });
+	}
+}
+
 async function renderNovelPlot(
 	app: App,
 	scroll: HTMLElement,
 	bookFolderName: string,
 	options: NovelPanelOptions,
+	ordered: TFile[],
+	wordCountsPromise: Promise<number[]> | null,
 ): Promise<void> {
 	scroll.empty();
-	const { ordered } = getBookChapters(app, bookFolderName);
 	if (ordered.length === 0) {
-		scroll.createDiv({ cls: "sf-empty", text: "No placed chapters yet." });
+		scroll.createDiv({ cls: "sf-empty", text: "no placed chapters" });
 		return;
 	}
 	// The in-cell data bar (wide/central-pane host only — see below) needs every chapter's word
-	// count up front to find the book's own max before any single card's fill % can be computed,
-	// so this is read once here rather than per-card inside the loop.
+	// count up front to find the book's own max before any single card's fill % can be computed —
+	// wordCountsPromise is that shared read, hoisted (and, when wide, shared with the novel length
+	// bar) by renderNovelPanel rather than started fresh here.
 	const wide = options.layout === "wide";
 	let wordCounts: number[] = [];
 	let maxWordCount = 0;
 	let targetLength: number | null = null;
-	if (wide) {
-		wordCounts = await Promise.all(ordered.map((file) => readChapterWordCount(app, bookFolderName, file.name)));
+	if (wide && wordCountsPromise) {
+		wordCounts = await wordCountsPromise;
 		if (options.isStale()) return;
 		maxWordCount = wordCounts.reduce((max, n) => Math.max(max, n), 0);
 		targetLength = readBookFrontmatter(app, bookFolderName)?.plannedChapterLength ?? null;
@@ -676,6 +982,9 @@ function persistPlotCardCollapsed(plugin: StoryForgePlugin, key: string, collaps
  * `value` is set, leaving just the value text as the control (TopPanel.ts's length rows want the
  * number alone once there's a number to show; Default PoV/PoV/location keep their icon alongside
  * the value, so this defaults to off). */
+/** Returns the created value span (or null if `opts.value` was falsy and none was created) — so a
+ * caller with a live async figure to layer in later (TopPanel.ts's Novel Length row prefixing the
+ * current word count) can patch its text in place once that resolves, without a full re-render. */
 export function renderMetaControl(
 	row: HTMLElement,
 	opts: {
@@ -686,7 +995,7 @@ export function renderMetaControl(
 		onOpen: () => void;
 		hideIconWhenValue?: boolean;
 	},
-): void {
+): HTMLElement | null {
 	const control = row.createSpan({
 		cls: "sf-story-context-meta-control",
 		attr: { role: "button", tabindex: "0", "aria-label": opts.tooltip },
@@ -697,14 +1006,16 @@ export function renderMetaControl(
 		if (opts.paintIcon) opts.paintIcon(iconEl);
 		else if (opts.iconId) setIcon(iconEl, opts.iconId);
 	}
+	let valueEl: HTMLElement | null = null;
 	if (opts.value) {
-		control.createSpan({ cls: "sf-story-context-meta-value", text: opts.value });
+		valueEl = control.createSpan({ cls: "sf-story-context-meta-value", text: opts.value });
 	}
 	control.addEventListener("click", (e) => {
 		e.stopPropagation();
 		opts.onOpen();
 	});
 	makeAccessibleActivatable(control, opts.onOpen);
+	return valueEl;
 }
 
 /** A small "x" button beside a meta control's value — clears it directly, no picker/modal needed.

@@ -37,18 +37,28 @@ import {
 	ICON_SETTINGS_ALT,
 	ICON_TAG_DUOTONE,
 	ICON_UNPLACED,
-	setNumberFillIcon,
 } from "../icons";
 import { recordChapterArchive, readChapterWordCount } from "../history";
-import { renderDefaultPovRow, renderMetaClearButton, renderMetaControl } from "./NovelPanel";
+import {
+	renderDefaultPovRow,
+	renderMetaClearButton,
+	renderMetaControl,
+	renderPlannedLengthMetaRow,
+	renderPlannedLengthStatRow,
+	readOrderedChapterWordCounts,
+	type PlannedLengthField,
+} from "./NovelPanel";
+import { NovelTitleModal } from "./NovelTitleModal";
+import type StoryForgePlugin from "../main";
 
 export type UnplacedViewMode = "unplaced" | "unplacedHidden";
 export type PlacedViewMode = "placed" | "placedHidden";
-/** Which of the Novel tab's two planned-length rows (if either) currently has its inline "push
- * down" number editor open — see renderPlannedLengthMetaRow. At most one at a time. */
-export type PlannedLengthField = "novel" | "chapter";
+export type { PlannedLengthField } from "./NovelPanel";
 
 export interface TopPanelOptions {
+	/** Needed only by the series list's novel rows (renderSeriesList), to open NovelTitleModal on
+	 * right-click "set novel details" the same way SeriesOverviewView's own novel-title click does. */
+	plugin: StoryForgePlugin;
 	/** "navigator" is Codex focus's compact three-chapter navigator (renderCodexFocusNavigator),
 	 * not the full chapter tree — the book-line header above it renders the same as it does for
 	 * "novel" (see `isNovelPane` below for the one path that suppresses it). */
@@ -86,6 +96,12 @@ export interface TopPanelOptions {
 	onToggleChapterSelectorExpanded: () => void;
 	onSelectBook: (bookFolderName: string) => void;
 	onOpenChapter: (bookFolderName: string, filename: string) => void;
+	/** When set, both placed and unplaced chapters' right-click "Rename" (and any inline-rename
+	 * trigger) opens this instead of the plain inline title swap — the Novel tab wires this to
+	 * ChapterTitleModal, the same modal Story Context's own chapter-title click uses, so renaming a
+	 * chapter here gets its title + plot-thread picker rather than a bare text field. Every other
+	 * mode (series, storytelling navigator) keeps the plain inline rename. */
+	onRenameChapter?: (bookFolderName: string, filename: string) => void;
 	/** Codex focus's forward-only `[+]`: create a chapter, append it to the end of chapter-order, open it. */
 	onCreateContinuingChapter: (bookFolderName: string) => void;
 	onArchiveChapter?: () => void | Promise<void>;
@@ -145,13 +161,22 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 	const series = getSeriesBooks(app);
 
 	const header = container.createDiv({ cls: "sf-top-header" });
+	// Both drop this header's own divider (styles.css) — the real Novel tab because the header
+	// ends up with nothing in it at all (see below), the Series tab because its header would
+	// otherwise hold only the series name, removed just below (follow-up brief: series name is the
+	// central Series overview page's job now, not this sidebar's — the Chapter tab and the
+	// storytelling face's own navigator, which can also render with hideSeriesPane on, keep it).
+	if (options.mode === "series") header.addClass("sf-top-header--series");
+	if (options.isNovelPane) header.addClass("sf-top-header--novel-pane");
 
 	// The real "Novel" tab only (isNovelPane) drops the series-name line and the book
 	// title/subtitle entirely — the placed-chapters header plus the chapter tree below it already
 	// identify what's showing there, so this top identity block is redundant on that one tab.
 	// Every other path that can still resolve mode to "novel" (the "Chapter" tab/hybrid layout,
-	// the storytelling face's own hideSeriesPane-driven novel mode, etc.) keeps this block.
-	if (!options.hideSeriesPane && !options.isNovelPane) {
+	// the storytelling face's own hideSeriesPane-driven novel mode, etc.) keeps this block. The
+	// Series tab also drops it now — the central Series overview page is the series name's one
+	// home, per the same follow-up brief.
+	if (!options.hideSeriesPane && !options.isNovelPane && options.mode !== "series") {
 		const seriesLine = header.createDiv({ cls: "sf-header-line sf-series-line" });
 		seriesLine.createSpan({ cls: "sf-header-text", text: series.seriesTitle });
 	}
@@ -282,16 +307,17 @@ function renderChapterTagBadges(row: HTMLElement, app: App, bookFolderName: stri
 	}
 }
 
-/** Right-click "Tags..." menu item: opens the multi-select TagPickerModal for `list`, writing the full replacement id array via `write` and re-rendering the panel on success. */
+/** Right-click "Tags..." menu item: opens the multi-select TagPickerModal for `list`, writing the full replacement id array via `write` and re-rendering the panel on success. `title` defaults to "Tags..." — the novel rows (placed/unplaced) pass the lowercase "tags" instead, matching "set novel details" beside it. */
 function tagsMenuItem(
 	app: App,
 	list: "chapterTags" | "novelTags",
 	currentIds: string[],
 	write: (nextIds: string[]) => Promise<void>,
 	rerender: () => void,
+	title = "Tags...",
 ): ExtraMenuItem {
 	return {
-		title: "Tags...",
+		title,
 		onClick: () => {
 			void import("./TagPickerModal").then(({ TagPickerModal }) => {
 				new TagPickerModal(app, list, currentIds, (nextIds) => write(nextIds).then(rerender)).open();
@@ -344,117 +370,6 @@ function renderPlacedHeader(zone: HTMLElement, label: string, isHidden: boolean,
 		text: isHidden ? `${label.toLowerCase()} hidden` : label,
 	});
 	header.addEventListener("click", () => onToggleMode());
-}
-
-/** Digits before the caret, ignoring any comma separators already in the value — used to
- * re-place the caret after reformatting adds/removes commas around it. */
-function countDigitsBeforeCaret(input: HTMLInputElement): number {
-	const pos = input.selectionStart ?? input.value.length;
-	return (input.value.slice(0, pos).match(/\d/g) ?? []).length;
-}
-
-/** Inverse of countDigitsBeforeCaret: places the caret right after the Nth digit in the
- * (already reformatted) value, so typing/deleting in the middle of a grouped number doesn't
- * bounce the caret to the end every keystroke. */
-function setCaretAfterDigitCount(input: HTMLInputElement, digitCount: number): void {
-	if (digitCount <= 0) {
-		input.setSelectionRange(0, 0);
-		return;
-	}
-	let seen = 0;
-	for (let i = 0; i < input.value.length; i++) {
-		if (/\d/.test(input.value[i])) {
-			seen++;
-			if (seen === digitCount) {
-				input.setSelectionRange(i + 1, i + 1);
-				return;
-			}
-		}
-	}
-	input.setSelectionRange(input.value.length, input.value.length);
-}
-
-/** The inline "push down" number editor a planned-length row opens beneath itself — same idea as
- * the storytelling panel's chapter selector expanding its 5-row list below the current-chapter row
- * (CodexFocusNavigator.ts) rather than a modal. A `--ghost` label (identical text, hidden but still
- * taking up space) reserves the same width the real label above occupies, so the input's left edge
- * lands exactly where that row's own value/icon sits — visually aligned with the label's colon.
- * Comma-grouped as you type; Enter blurs (committing), Escape reverts to the original value, the
- * "x" (renderMetaClearButton) clears outright — all three close the editor via `onDone`, called at
- * most once per open (the "x" beside the box is the only place this row shows one; the collapsed
- * meta-control above never does). */
-function renderPlannedLengthEditorRow(meta: HTMLElement, label: string, value: number | null, onDone: (value: number | null) => void): void {
-	const row = meta.createDiv({ cls: "sf-story-context-meta-row sf-planned-length-editor-row" });
-	row.createSpan({
-		cls: "sf-story-context-meta-label sf-story-context-meta-label--ghost",
-		text: `${label}:`,
-		attr: { "aria-hidden": "true" },
-	});
-	const input = row.createEl("input", {
-		cls: "sf-planned-length-editor-input",
-		attr: { type: "text", inputmode: "numeric", autocomplete: "off", "aria-label": label },
-	});
-	input.value = value !== null ? value.toLocaleString("en-US") : "";
-	input.addEventListener("pointerdown", (e) => e.stopPropagation());
-	input.addEventListener("input", () => {
-		const caretDigits = countDigitsBeforeCaret(input);
-		const digits = input.value.replace(/\D/g, "");
-		input.value = digits ? Number(digits).toLocaleString("en-US") : "";
-		setCaretAfterDigitCount(input, caretDigits);
-	});
-	let settled = false;
-	const finish = (next: number | null) => {
-		if (settled) return;
-		settled = true;
-		onDone(next);
-	};
-	input.addEventListener("keydown", (event) => {
-		if (event.key === "Enter") {
-			event.preventDefault();
-			input.blur();
-		} else if (event.key === "Escape") {
-			event.preventDefault();
-			finish(value);
-		}
-	});
-	input.addEventListener("blur", () => {
-		const digits = input.value.replace(/\D/g, "");
-		finish(digits ? Number(digits) : null);
-	});
-	renderMetaClearButton(row, `clear ${label.toLowerCase()}`, () => finish(null));
-	window.setTimeout(() => {
-		input.focus();
-		input.select();
-	}, 0);
-}
-
-/** A planned novel/chapter length row, styled identically to Default PoV's own meta row (same
- * label + icon-control pieces, renderMetaControl/NovelPanel.ts) rather than a persistent text box:
- * clicking the control (setNumberFillIcon when unset — a stroke-drawn glyph, so it can't go
- * through Obsidian's fill-only `setIcon` — or just the number itself once set, `hideIconWhenValue`
- * dropping the icon then) opens the inline editor below (renderPlannedLengthEditorRow) instead of a
- * modal. Clearing (the "x") lives only in that editor, not on this collapsed row. */
-function renderPlannedLengthMetaRow(
-	meta: HTMLElement,
-	field: PlannedLengthField,
-	label: string,
-	value: number | null,
-	isEditorOpen: boolean,
-	onSetEditor: (field: PlannedLengthField | null) => void,
-	onCommit: (value: number | null) => void,
-): void {
-	const row = meta.createDiv({ cls: "sf-story-context-meta-row" });
-	row.createSpan({ cls: "sf-story-context-meta-label", text: `${label}:` });
-	renderMetaControl(row, {
-		paintIcon: setNumberFillIcon,
-		value: value !== null ? value.toLocaleString("en-US") : null,
-		hideIconWhenValue: true,
-		tooltip: isEditorOpen ? `close ${label.toLowerCase()}` : value !== null ? `change ${label.toLowerCase()}` : `set ${label.toLowerCase()}`,
-		onOpen: () => onSetEditor(isEditorOpen ? null : field),
-	});
-	if (isEditorOpen) {
-		renderPlannedLengthEditorRow(meta, label, value, onCommit);
-	}
 }
 
 /** Builds the hybrid "New" button's intent menu (hand-off brief §5.4). A continuing chapter is
@@ -529,6 +444,9 @@ function renderSeriesList(
 			label,
 			getCurrentTitle: () => bookDisplayTitle(app, folder.name),
 			onCommit: (newTitle) => renameBookTitle(app, folder.name, newTitle),
+			renameLabel: "set novel details",
+			onRenameClick: () =>
+				new NovelTitleModal(app, options.plugin, folder.name, () => renderTopPanel(app, container, options)).open(),
 			extraMenuItems: [
 				tagsMenuItem(
 					app,
@@ -536,12 +454,13 @@ function renderSeriesList(
 					readBookFrontmatter(app, folder.name)?.novelTags ?? [],
 					(nextIds) => writeNovelTags(app, folder.name, nextIds),
 					() => renderTopPanel(app, container, options),
+					"tags",
 				),
 			],
 		});
 	});
 	if (ordered.length === 0) {
-		mainList.createDiv({ cls: "sf-empty sf-empty-inline", text: "Drag a book here to sequence it." });
+		mainList.createDiv({ cls: "sf-empty sf-empty-inline", text: "drag a novel to add it to the series" });
 	}
 
 	const zones: DragZone[] = [{ key: "ordered", container: mainList }];
@@ -588,6 +507,9 @@ function renderSeriesList(
 					label,
 					getCurrentTitle: () => bookDisplayTitle(app, folder.name),
 					onCommit: (newTitle) => renameBookTitle(app, folder.name, newTitle),
+					renameLabel: "set novel details",
+					onRenameClick: () =>
+						new NovelTitleModal(app, options.plugin, folder.name, () => renderTopPanel(app, container, options)).open(),
 					extraMenuItems: [
 						tagsMenuItem(
 							app,
@@ -595,6 +517,7 @@ function renderSeriesList(
 							readBookFrontmatter(app, folder.name)?.novelTags ?? [],
 							(nextIds) => writeNovelTags(app, folder.name, nextIds),
 							() => renderTopPanel(app, container, options),
+							"tags",
 						),
 					],
 				});
@@ -656,15 +579,29 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 				options.onSetPlannedLengthEditor(null);
 			})();
 		};
-		renderPlannedLengthMetaRow(
+		const plannedNovelLength = bookFm?.plannedNovelLength ?? null;
+		const novelLengthValueEl = renderPlannedLengthMetaRow(
 			meta,
 			"novel",
 			"Novel Length",
-			bookFm?.plannedNovelLength ?? null,
+			plannedNovelLength,
 			options.plannedLengthEditorField === "novel",
 			options.onSetPlannedLengthEditor,
 			commitPlannedNovelLength,
 		);
+		// Prefixed in once the live total resolves (not rendered up front — it needs a per-chapter
+		// read of every placed chapter's current content, same live source renderNovelPlot's data
+		// bars use) rather than blocking the whole panel's render on it: "12,000 of 50,000", so a
+		// chapter that's overshot its own target still just reads "56,120 of 50,000" rather than
+		// clamping or hiding the overshoot.
+		if (novelLengthValueEl && plannedNovelLength !== null) {
+			void (async () => {
+				const counts = await readOrderedChapterWordCounts(app, bookFolderName, ordered);
+				const total = counts.reduce((sum, n) => sum + n, 0);
+				if (!novelLengthValueEl.isConnected) return;
+				novelLengthValueEl.setText(`${total.toLocaleString("en-US")} of ${plannedNovelLength.toLocaleString("en-US")}`);
+			})();
+		}
 		renderPlannedLengthMetaRow(
 			meta,
 			"chapter",
@@ -674,6 +611,21 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 			options.onSetPlannedLengthEditor,
 			commitPlannedChapterLength,
 		);
+		// average/median chapter length — only while that editor's actually open, beneath its box.
+		if (options.plannedLengthEditorField === "chapter" && ordered.length > 0) {
+			const averageValueEl = renderPlannedLengthStatRow(meta, "Chapter Length", "average");
+			const medianValueEl = renderPlannedLengthStatRow(meta, "Chapter Length", "median");
+			void (async () => {
+				const counts = await readOrderedChapterWordCounts(app, bookFolderName, ordered);
+				if (counts.length === 0) return;
+				const average = Math.round(counts.reduce((sum, n) => sum + n, 0) / counts.length);
+				const sorted = [...counts].sort((a, b) => a - b);
+				const mid = Math.floor(sorted.length / 2);
+				const median = sorted.length % 2 === 0 ? Math.round((sorted[mid - 1] + sorted[mid]) / 2) : sorted[mid];
+				if (averageValueEl.isConnected) averageValueEl.setText(average.toLocaleString("en-US"));
+				if (medianValueEl.isConnected) medianValueEl.setText(median.toLocaleString("en-US"));
+			})();
+		}
 
 		const placedZone = bodyEl.createDiv({ cls: "sf-placed-zone" });
 		placedHidden = options.placedMode === "placedHidden";
@@ -709,6 +661,7 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 				label,
 				getCurrentTitle: () => chapterDisplayTitle(app, bookFolderName, file.name),
 				onCommit: (newTitle) => renameChapterTitle(app, bookFolderName, file.name, newTitle),
+				onRenameClick: options.onRenameChapter ? () => options.onRenameChapter!(bookFolderName, file.name) : undefined,
 				extraMenuItems: [
 					tagsMenuItem(
 						app,
@@ -722,7 +675,7 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 			});
 		});
 		if (ordered.length === 0) {
-			mainList.createDiv({ cls: "sf-empty sf-empty-inline", text: "Drag a chapter here to sequence it." });
+			mainList.createDiv({ cls: "sf-empty sf-empty-inline", text: "drag a chapter to add it to the novel" });
 		}
 		zones.push({ key: "ordered", container: mainList });
 	}
@@ -763,6 +716,7 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 					label,
 					getCurrentTitle: () => chapterDisplayTitle(app, bookFolderName, file.name),
 					onCommit: (newTitle) => renameChapterTitle(app, bookFolderName, file.name, newTitle),
+					onRenameClick: options.onRenameChapter ? () => options.onRenameChapter!(bookFolderName, file.name) : undefined,
 					extraMenuItems: [
 						tagsMenuItem(
 							app,
