@@ -17,7 +17,8 @@ import {
 	writeChapterLocation,
 	writeChapterPov,
 } from "../book";
-import { CODEX_TYPES, addCodexNoteAlias, codexTypeIcon, codexTypeMatchesOrDescendsFrom, createCodexFolder, createCodexNote, getCodexEntries, getCodexEntriesByType, readCodexFrontmatter } from "../codex";
+import { CODEX_TYPES, addCodexNoteAlias, codexTypeIcon, codexTypeMatchesOrDescendsFrom, createCodexFolder, createCodexNote, getCodexEntries, getCodexView, getCodexEntriesByType, readCodexFrontmatter } from "../codex";
+import { flattenCodexTreeFiles } from "../codexTree";
 import { debounce } from "../debounce";
 import { splitTitleSubtitle } from "../titleNumbering";
 import { ICON_ADD_CIRCLE, ICON_ARCHIVE, ICON_BOOK_DUOTONE, ICON_BOOK_OPEN_FILLED, ICON_CLIPBOARD_LIST_DUOTONE, ICON_CODEX, ICON_DASHBOARD_CHART, ICON_EYE_DUOTONE, ICON_FOCUS_OFF, ICON_FOCUS_ON, ICON_FORGE, ICON_LINK2_DUOTONE, ICON_MAP_PIN_PLUS, ICON_MINUS_CIRCLE_DUOTONE, ICON_NOTEBOOK_DUOTONE, ICON_PEN_ROUND_DUOTONE, ICON_PERSON_FILL_ADD } from "../icons";
@@ -95,8 +96,9 @@ export class StoryContextView extends ItemView {
 	private collapsedIdeaFolders = new Set<string>();
 	private ideaTypeFilter = new Set<string>();
 	private ideaTagFilter: string | null = null;
-	/** Story Context Notebook split only (not Focus Mode): notes, Codex editor, or Dossier. */
-	private notebookIndexKind: NotebookIndexKind = "notes";
+	/** Story Context Notebook split only (not Focus Mode): Codex editor, notes, or Dossier. Codex by
+	 * default; the tab keeps whichever the user last picked. */
+	private notebookIndexKind: NotebookIndexKind = "codex";
 	private collapsedCodexFolders = new Set<string>();
 	private activeCodexFolderId: string | null = null;
 	private notebookCodexTypeFilter = new Set<string>();
@@ -584,7 +586,6 @@ export class StoryContextView extends ItemView {
 		const selectIdeas = () => {
 			this.showingArchive = false;
 			this.showingIdeas = true;
-			this.notebookIndexKind = "notes";
 			this.forgeFamilyExpanded = false;
 			this.forgeFamilyActiveId = null;
 			this.disposeForgeFamilyPanel();
@@ -1015,7 +1016,7 @@ export class StoryContextView extends ItemView {
 		const rail = parent.createDiv({ cls: "sf-codex-side-actions sf-notebook-source-rail" });
 		this.addArchiveSourceIcon(rail, "codex", ICON_CODEX, "codex");
 		this.addArchiveSourceIcon(rail, "novel", ICON_BOOK_DUOTONE, "novel");
-		this.addArchiveSourceIcon(rail, "notes", ICON_NOTEBOOK_DUOTONE, "notebook");
+		this.addArchiveSourceIcon(rail, "notes", ICON_NOTEBOOK_DUOTONE, "notes");
 	}
 
 	private addArchiveSourceIcon(rail: HTMLElement, mode: ArchiveMode, icon: string, label: string): void {
@@ -1054,6 +1055,15 @@ export class StoryContextView extends ItemView {
 		) {
 			this.notebookCodexTagFilter = null;
 		}
+		// The Codex page opens on the topmost entry in the (filtered) tree when nothing is picked yet,
+		// or when the picked note has since been deleted or filtered out.
+		if (indexKind === "codex") {
+			const tree = getCodexView(this.app, "codex", this.notebookCodexTypeFilter, this.notebookCodexTagFilter);
+			const files = tree ? flattenCodexTreeFiles(tree) : [];
+			if (!this.selectedCodexPath || !files.some((f) => f.path === this.selectedCodexPath)) {
+				this.selectedCodexPath = files[0]?.path ?? null;
+			}
+		}
 		const split = el.createDiv({ cls: "sf-idea-shelf" });
 		if (showSourceRail) this.renderNotebookSourceRail(split);
 		const page = split.createDiv({
@@ -1074,8 +1084,8 @@ export class StoryContextView extends ItemView {
 
 	private renderNotebookSourceRail(parent: HTMLElement): void {
 		const rail = parent.createDiv({ cls: "sf-codex-side-actions sf-notebook-source-rail" });
-		this.addNotebookSourceIcon(rail, "notes", ICON_NOTEBOOK_DUOTONE, "notebook");
 		this.addNotebookSourceIcon(rail, "codex", ICON_CODEX, "codex");
+		this.addNotebookSourceIcon(rail, "notes", ICON_NOTEBOOK_DUOTONE, "notes");
 		this.addNotebookSourceIcon(rail, "dossier", ICON_CLIPBOARD_LIST_DUOTONE, "dossier");
 	}
 
@@ -1547,7 +1557,7 @@ export class StoryContextView extends ItemView {
 		if (!this.selectedCodexPath) {
 			scroll.createDiv({
 				cls: "sf-empty",
-				text: "Select a Codex note to read everything the book says about them, in chapter order.",
+				text: "select a codex entry to discover what's said about them",
 			});
 			return;
 		}
