@@ -9,7 +9,7 @@ import {
 	writeSeriesCoverImage,
 	writeSeriesDescription,
 } from "../series";
-import { seriesBackstagePath, seriesFilePath } from "../paths";
+import { isBackstageBookkeepingPath, isLibraryChapterPath, seriesBackstagePath, seriesFilePath } from "../paths";
 import { splitTitleSubtitle } from "../titleNumbering";
 import { makeAccessibleActivatable } from "./a11y";
 import { isDragInProgress } from "./dragLock";
@@ -34,7 +34,11 @@ export const STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE = "storyforge-series-overview-
  * continuous read mode replaces it (see ContinuousReadView.ts). A fixed header (series title,
  * hero image, description) over an independently scrolling novel list —
  * each row its own title + synopsis, filtered to placed-only or unplaced-only to match whichever
- * novel is currently selected (both show when nothing is selected).
+ * novel is currently selected (both show when nothing is selected). A placed novel's title line is
+ * a word-count databar in the novel's own colour, scaled against the longest placed novel; an
+ * unplaced novel's title is a solid chip in that colour instead (renderNovelRow). The page
+ * re-renders whenever series.md, any novel's novel.md, or any chapter changes (onOpen), so the
+ * bars keep up while the author writes.
  *
  * The per-novel detail block this page used to show below the list (cover, Default PoV,
  * chapter-by-chapter plot) was removed — Story Context's Novel tab in the right sidebar shows the
@@ -72,10 +76,14 @@ export class SeriesOverviewView extends ItemView {
 		return ICON_SERIES;
 	}
 
-	// series.md is this page's whole data source (title, order, unplaced-order, per-book titles) —
-	// without this, a reorder or rename made elsewhere (the left sidebar's Series panel, the popup
-	// Series settings modal) left this page stale until something else happened to trigger a
-	// re-render. Debounced and, crucially, also triggered by metadataCache's own "changed" event
+	// This page's data sources: series.md (title, order, unplaced-order, per-book titles), plus every
+	// novel's novel.md (which chapters are placed or archived) and its chapters' own text (the
+	// placed cards' databar word totals) — without these, a reorder or rename made elsewhere (the
+	// left sidebar's Series panel, the popup Series settings modal), or simply writing in a chapter,
+	// left this page stale until something else happened to trigger a re-render. Every novel's
+	// chapters are watched, not just placed ones — cheaper than working out which novels are placed
+	// on every write, and the debounce absorbs it. Debounced and, crucially, also triggered by
+	// metadataCache's own "changed" event
 	// (not just vault's "modify") for the same reason StoryForgeView.ts's equivalent listener is:
 	// "modify" fires the instant the file is written, before Obsidian has finished re-parsing its
 	// frontmatter — reading getSeriesBooks() synchronously off that raw event renders the *previous*
@@ -86,13 +94,18 @@ export class SeriesOverviewView extends ItemView {
 	}, 400);
 
 	async onOpen(): Promise<void> {
+		// Same path filter as NovelOverviewView.ts's own modify listener, narrowed to what this page
+		// shows — backstage bookkeeping writes are skipped first, since they never change it.
+		const isRelevantPath = (path: string): boolean =>
+			!isBackstageBookkeepingPath(path) &&
+			(isLibraryChapterPath(path) || path.endsWith("novel.md") || path === seriesFilePath());
 		this.registerEvent(
 			this.app.vault.on("modify", (file) => {
-				if (file.path === seriesFilePath()) this.debouncedRender();
+				if (isRelevantPath(file.path)) this.debouncedRender();
 			}),
 		);
 		this.registerEvent(this.app.metadataCache.on("changed", (file) => {
-			if (file.path === seriesFilePath()) this.debouncedRender();
+			if (isRelevantPath(file.path)) this.debouncedRender();
 		}));
 		// Keeps the fixed band's and novel list's 20px insets aligned/solid across a scrollbar
 		// appearing or disappearing (measureSeriesOverviewScrollbarGutter's own doc comment,
