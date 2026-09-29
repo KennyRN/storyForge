@@ -28,7 +28,7 @@ import { CodexEntryPickerModal } from "./CodexEntryPickerModal";
 import { resolveChapterRowColor } from "./novelColor";
 import { formatWordCount } from "../wordCount";
 import { computeNovelLengthBarLayout, type NovelLengthBarLayout } from "./novelLengthBar";
-import { nextPlotCardTier, readPlotCardTier, withPlotCardTier, type PlotCardTier } from "./plotCardTier";
+import { nextPlotCardTier, plotCardTooltip, readPlotCardTier, withPlotCardTier, type PlotCardTier } from "./plotCardTier";
 
 /**
  * A novel's cover/synopsis/chapter-by-chapter plot — the content Story Context's own Novel tab
@@ -803,6 +803,9 @@ async function renderNovelPlot(
 			};
 			headerRow.addEventListener("click", cycleTier);
 			makeAccessibleActivatable(headerRow, cycleTier);
+			// Count only for now — completed once the description loads, and refreshed after each
+			// blur-and-write (both below), so an edit shows without a re-render.
+			setTooltip(headerRow, plotCardTooltip(wordCounts[i], ""));
 		} else {
 			const applyCollapsed = (collapsed: boolean) =>
 				applyPlotCardCollapsed(block, nameEl, collapsed);
@@ -932,12 +935,14 @@ async function renderNovelPlot(
 				resizeToContent();
 			}
 			void writeChapterPlot(app, bookFolderName, file.name, trimmed);
+			if (wide) setTooltip(headerRow, plotCardTooltip(wordCounts[i], trimmed));
 		});
 		resizeToContent();
 		const plot = await readChapterPlot(app, bookFolderName, file.name);
 		if (options.isStale()) return;
 		textarea.value = plot.replace(/\s+$/, "");
 		resizeToContent();
+		if (wide) setTooltip(headerRow, plotCardTooltip(wordCounts[i], textarea.value));
 	}
 }
 
