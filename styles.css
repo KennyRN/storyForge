@@ -6587,9 +6587,12 @@ input.sf-story-context-chapter-title[type="text"]:focus {
  * (same 4px right corners as the title itself, left square against the cover) and the stacking of
  * the title's text above the fill. No height or padding change: the segment is out of flow, so the
  * line stays exactly as tall as the title makes it. Unrelated to the chapter cards' 34px
- * .sf-story-context-plot-block--databar rules further down, which stay scoped to chapters. */
+ * .sf-story-context-plot-block--databar rules further down, which stay scoped to chapters.
+ * The unfilled remainder is the page's own background (--background-primary, as behind the cards),
+ * not the card's darker --background-secondary. */
 .sf-series-overview-row-title-line--databar {
 	position: relative;
+	background-color: var(--background-primary);
 	overflow: hidden;
 	border-radius: 0 4px 4px 0;
 }
