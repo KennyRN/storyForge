@@ -25,6 +25,7 @@ import { numberedBookTitle } from "../series";
 import { splitTitleSubtitle } from "../titleNumbering";
 import { makeAccessibleActivatable } from "./a11y";
 import { CodexEntryPickerModal } from "./CodexEntryPickerModal";
+import { NovelTitleModal } from "./NovelTitleModal";
 import { resolveChapterRowColor } from "./novelColor";
 import { formatWordCount } from "../wordCount";
 import { computeNovelLengthBarLayout, type NovelLengthBarLayout } from "./novelLengthBar";
@@ -83,9 +84,23 @@ export function renderNovelPanel(app: App, container: HTMLElement, options: Nove
 	if (wide) {
 		const numberedTitle = numberedBookTitle(app, bookFolderName, undefined, options.plugin.getSettings().seriesNumberingStyle);
 		const { title, subtitle } = splitTitleSubtitle(numberedTitle);
-		fixed.createDiv({ cls: "sf-story-context-novel-title sf-story-context-novel-title--wide", text: title });
+		// Clicking the title or subtitle opens the name-only NovelTitleModal (rename, titleForge
+		// dice, Novel Colour). The title carries the keyboard/button semantics; the subtitle is
+		// just a second click target for the same modal.
+		const openNameModal = () =>
+			new NovelTitleModal(app, options.plugin, bookFolderName, options.onChanged, { nameOnly: true }).open();
+		const titleEl = fixed.createDiv({
+			cls: "sf-story-context-novel-title sf-story-context-novel-title--wide sf-story-context-novel-title--clickable",
+			text: title,
+		});
+		titleEl.addEventListener("click", openNameModal);
+		makeAccessibleActivatable(titleEl, openNameModal);
 		if (subtitle) {
-			fixed.createDiv({ cls: "sf-story-context-novel-subtitle sf-story-context-novel-subtitle--wide", text: subtitle });
+			const subtitleEl = fixed.createDiv({
+				cls: "sf-story-context-novel-subtitle sf-story-context-novel-subtitle--wide sf-story-context-novel-title--clickable",
+				text: subtitle,
+			});
+			subtitleEl.addEventListener("click", openNameModal);
 		}
 	}
 

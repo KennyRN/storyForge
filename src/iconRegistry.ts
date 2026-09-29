@@ -94,6 +94,7 @@ import {
 	ICON_NOTEBOOK,
 	ICON_NOTEBOOK_DUOTONE,
 	ICON_OBSIDIAN,
+	ICON_PEN_ROUND_DUOTONE,
 	ICON_PAGE_PORTRAIT,
 	ICON_PAGE_TEXT,
 	ICON_NUMBER_CIRCLE_0,
@@ -715,6 +716,12 @@ export const ICON_REGISTRY: IconRegistryEntry[] = [
 			"StoryContextView.ts — Focus Mode Notebook new-note child",
 			"StoryContextView.ts — Story Context Chapter tab add to Codex and create details note",
 		],
+	},
+	{
+		id: ICON_PEN_ROUND_DUOTONE,
+		label: "Pen in circle (duotone)",
+		source: "custom",
+		usedIn: ["StoryContextView.ts — Story Context Chapter tab title-bar hover rename chapter"],
 	},
 	{
 		id: ICON_LAYOUT_SELECTOR,
