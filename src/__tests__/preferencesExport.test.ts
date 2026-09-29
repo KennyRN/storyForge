@@ -47,6 +47,7 @@ const SETTINGS = {
 	selectedObject: "codex/person.md",
 	collapsedCodexFolderIds: ["places"],
 	collapsedPlotChapterKeys: ["book-one/ch1.md"],
+	novelOverviewPlotCardTiers: { "book-one/ch1.md": "collapsed" },
 	lastAutomaticBackupAt: 123,
 	storyContextShellApplied: true,
 	welcomeNoteCreatedOnOnboarding: false,
