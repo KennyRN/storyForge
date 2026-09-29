@@ -107,17 +107,17 @@ export function renderIdeaShelfPanel(app: App, container: HTMLElement, options: 
 }
 
 function renderActionButtons(parent: HTMLElement, app: App, options: IdeaShelfPanelOptions): void {
-	const newFolderBtn = parent.createSpan({ cls: "sf-codex-new-folder-btn", attr: { "aria-label": "New folder" } });
+	const newFolderBtn = parent.createSpan({ cls: "sf-codex-new-folder-btn", attr: { "aria-label": "new folder" } });
 	setIcon(newFolderBtn, ICON_FOLDER_PLUS);
 	bindPaneCornerButton(newFolderBtn, () => options.onCreateFolder());
 
-	const newFileBtn = parent.createSpan({ cls: "sf-codex-new-file-btn", attr: { "aria-label": "New file" } });
+	const newFileBtn = parent.createSpan({ cls: "sf-codex-new-file-btn", attr: { "aria-label": "new file" } });
 	setIcon(newFileBtn, ICON_PLUS_SQUARE);
 	bindPaneCornerButton(newFileBtn, () => options.onCreateFile());
 
 	const filterBtn = parent.createSpan({
 		cls: `sf-codex-filter-btn${options.typeFilter.size > 0 ? " is-active" : ""}`,
-		attr: { "aria-label": "Filter by type" },
+		attr: { "aria-label": "filter by type" },
 	});
 	setIcon(filterBtn, ICON_FILTER_LIST);
 	bindPaneCornerButton(filterBtn, () => {
@@ -139,7 +139,7 @@ function renderNotesTagRail(parent: HTMLElement, app: App, options: IdeaShelfPan
 	for (const tag of tags) {
 		const btn = stack.createSpan({
 			cls: `sf-codex-vault-tag-btn${active === tag.id ? " is-active" : ""}`,
-			attr: { "aria-label": `Filter by #${tag.id}`, title: `#${tag.id}` },
+			attr: { "aria-label": `filter by #${tag.id}` },
 		});
 		setIcon(btn, tag.iconId);
 		bindPaneCornerButton(btn, () => {
@@ -157,7 +157,7 @@ function renderIdeaTypesCorner(
 	if (onOpenIdeaTypes) {
 		const typesBtn = corner.createSpan({
 			cls: "sf-codex-types-btn",
-			attr: { "aria-label": "Notebook types" },
+			attr: { "aria-label": "notebook types" },
 		});
 		setIcon(typesBtn, ICON_TAG_DUOTONE);
 		bindPaneCornerButton(typesBtn, onOpenIdeaTypes);
@@ -165,7 +165,7 @@ function renderIdeaTypesCorner(
 	if (onOpenTags) {
 		const tagsBtn = corner.createSpan({
 			cls: "sf-codex-tags-btn",
-			attr: { "aria-label": "Notebook tags" },
+			attr: { "aria-label": "notebook tags" },
 		});
 		setIcon(tagsBtn, ICON_HASHTAG_SQUARE_DUOTONE);
 		bindPaneCornerButton(tagsBtn, onOpenTags);
@@ -210,7 +210,7 @@ function renderTreeChildren(
 				if (options.selectedPath === linkedPath) headerEl.addClass("sf-row-selected");
 				folderToggleEl = contentEl.createSpan({ cls: "sf-icon sf-codex-type-icon sf-codex-folder-toggle" });
 				setIcon(folderToggleEl, ICON_FOLDER);
-				folderToggleEl.setAttr("aria-label", collapsed ? "Expand folder" : "Collapse folder");
+				folderToggleEl.setAttr("aria-label", collapsed ? "expand folder" : "collapse folder");
 				const entryType = getNotesEntryType(app, linkedPath);
 				if (entryType) {
 					const typeIconEl = contentEl.createSpan({ cls: "sf-icon sf-codex-type-icon" });
@@ -219,6 +219,7 @@ function renderTreeChildren(
 			} else {
 				const folderIcon = contentEl.createSpan({ cls: "sf-icon sf-codex-type-icon" });
 				setIcon(folderIcon, ICON_FOLDER);
+				folderIcon.setAttr("aria-label", collapsed ? "expand folder" : "collapse folder");
 			}
 			rowInfo.push({
 				key: item.id,

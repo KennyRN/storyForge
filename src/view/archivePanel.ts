@@ -77,9 +77,9 @@ export function renderArchivePanel(el: HTMLElement, host: ArchivePanelHost): voi
  * member icons. Mount in a non-scrolling region so they stay put. */
 export function renderArchiveModeIcons(el: HTMLElement, host: ArchivePanelHost): void {
 	const row = el.createDiv({ cls: "sf-story-context-view__forge-row sf-archive-mode-row" });
-	addArchiveModeIcon(row, host, "codex", ICON_CODEX, "Codex");
-	addArchiveModeIcon(row, host, "novel", ICON_BOOK_DUOTONE, "Novel");
-	addArchiveModeIcon(row, host, "notes", ICON_NOTEBOOK_DUOTONE, "Notebook");
+	addArchiveModeIcon(row, host, "codex", ICON_CODEX, "codex");
+	addArchiveModeIcon(row, host, "novel", ICON_BOOK_DUOTONE, "novel");
+	addArchiveModeIcon(row, host, "notes", ICON_NOTEBOOK_DUOTONE, "notebook");
 }
 
 function addArchiveModeIcon(
@@ -219,7 +219,7 @@ function renderArchiveTypesCorner(container: HTMLElement, host: ArchivePanelHost
 	if (host.onOpenTypes) {
 		const typesBtn = corner.createSpan({
 			cls: "sf-codex-types-btn",
-			attr: { "aria-label": "Archive types" },
+			attr: { "aria-label": "archive types" },
 		});
 		setIcon(typesBtn, ICON_TAG_DUOTONE);
 		bindArchiveButton(typesBtn, host.onOpenTypes);
@@ -227,7 +227,7 @@ function renderArchiveTypesCorner(container: HTMLElement, host: ArchivePanelHost
 	if (host.onOpenTags) {
 		const tagsBtn = corner.createSpan({
 			cls: "sf-codex-tags-btn",
-			attr: { "aria-label": host.mode === "notes" ? "Notebook tags" : "Vault tags" },
+			attr: { "aria-label": host.mode === "notes" ? "notebook tags" : "vault tags" },
 		});
 		setIcon(tagsBtn, ICON_HASHTAG_SQUARE_DUOTONE);
 		bindArchiveButton(tagsBtn, host.onOpenTags);
@@ -239,7 +239,7 @@ function renderArchiveFilterRail(parent: HTMLElement, host: ArchivePanelHost): v
 		const typeFilter = host.typeFilter ?? new Set<string>();
 		const filterBtn = parent.createSpan({
 			cls: `sf-codex-filter-btn${typeFilter.size > 0 ? " is-active" : ""}`,
-			attr: { "aria-label": "Filter by type" },
+			attr: { "aria-label": "filter by type" },
 		});
 		setIcon(filterBtn, ICON_FILTER_LIST);
 		bindArchiveButton(filterBtn, () => {
@@ -259,7 +259,7 @@ function renderArchiveFilterRail(parent: HTMLElement, host: ArchivePanelHost): v
 	for (const tag of tags) {
 		const btn = stack.createSpan({
 			cls: `sf-codex-vault-tag-btn${active === tag.id ? " is-active" : ""}`,
-			attr: { "aria-label": `Filter by #${tag.id}`, title: `#${tag.id}` },
+			attr: { "aria-label": `filter by #${tag.id}` },
 		});
 		setIcon(btn, tag.iconId);
 		bindArchiveButton(btn, () => {
@@ -293,7 +293,7 @@ function renderArchiveRows(
 		}
 		if (item.filePath) void attachCodexExcerpt(host.app, row, item.filePath);
 
-		const unarchiveBtn = row.createSpan({ cls: "sf-archive-unarchive-btn", attr: { "aria-label": "Unarchive" } });
+		const unarchiveBtn = row.createSpan({ cls: "sf-archive-unarchive-btn", attr: { "aria-label": "unarchive" } });
 		setIcon(unarchiveBtn, ICON_UNARCHIVE);
 		const unarchive = () => void unarchiveItem(item, host);
 		unarchiveBtn.addEventListener("click", (e) => {

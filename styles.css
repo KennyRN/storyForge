@@ -145,7 +145,7 @@
 	overflow-y: auto;
 }
 
-/* Divider only when Codex sits underneath (Chapter tab). On Series/Novel the library is the last
+/* Divider only when Codex sits underneath (the Storytelling panel). Elsewhere the library is the last
  * pane, and this border was the stray line part-way down under unplaced novels/chapters.
  * Applied in JS when both panes exist, rather than inferring from sibling structure. */
 .sf-top-panel.sf-top-panel--above-codex {
