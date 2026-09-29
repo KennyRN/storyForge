@@ -1015,8 +1015,8 @@ export class StoryContextView extends ItemView {
 	private renderArchiveSourceRail(parent: HTMLElement): void {
 		const rail = parent.createDiv({ cls: "sf-codex-side-actions sf-notebook-source-rail" });
 		this.addArchiveSourceIcon(rail, "codex", ICON_CODEX, "codex");
-		this.addArchiveSourceIcon(rail, "novel", ICON_BOOK_DUOTONE, "novel");
 		this.addArchiveSourceIcon(rail, "notes", ICON_NOTEBOOK_DUOTONE, "notes");
+		this.addArchiveSourceIcon(rail, "novel", ICON_BOOK_DUOTONE, "novel");
 	}
 
 	private addArchiveSourceIcon(rail: HTMLElement, mode: ArchiveMode, icon: string, label: string): void {
