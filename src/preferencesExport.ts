@@ -29,6 +29,7 @@ export const PREFERENCE_SESSION_KEYS = [
 	"collapsedCodexFolderIds",
 	"collapsedPlotChapterKeys",
 	"novelOverviewPlotCardTiers",
+	"storyContextPlotCardTiers",
 	"lastAutomaticBackupAt",
 	"storyContextShellApplied",
 	"welcomeNoteCreatedOnOnboarding",

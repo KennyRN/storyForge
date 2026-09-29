@@ -1,9 +1,8 @@
 /**
- * Pure state and text helpers for the Novel overview page's three-tier chapter cards
- * (NovelPanel.ts's renderNovelPlot, wide layout only) — deliberately DOM-free so they can be unit
- * tested without a live Obsidian environment, the same way novelLengthBar.ts and seriesNovelBar.ts
- * are. The right sidebar's Novel tab keeps its own two-state collapse (collapsedPlotChapterKeys)
- * and uses none of this.
+ * Pure state and text helpers for the three-tier chapter cards (NovelPanel.ts's renderNovelPlot —
+ * both the Novel overview centre pane and the Story Context sidebar's Novel tab, each with its own
+ * stored map) — deliberately DOM-free so they can be unit tested without a live Obsidian
+ * environment, the same way novelLengthBar.ts and seriesNovelBar.ts are.
  */
 import { formatWordCount } from "../wordCount";
 
