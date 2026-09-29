@@ -36,6 +36,7 @@ import { ensureTagRegistryFile, loadCodexTypesIntoRegistry, loadIdeaTypesIntoReg
 import { ensureVaultTagsFile } from "./vaultTags";
 import { ensurePlotThreadsFile } from "./plotThreads";
 import { defaultSeriesPlotThreadColor } from "./view/novelColor";
+import { seedPlotCardTiers, type PlotCardTierMap } from "./view/plotCardTier";
 import { resolveThemeBackgroundColor } from "./view/PalettePickerModal";
 import { createBook, createChapter, ensureAllChapterEntries, getBookChapters, pruneMissingChapterCodexRefs, pruneMissingChapterEntries, readBookFrontmatter, syncAllBookReferenceFields, writeBookChapterOrder } from "./book";
 import { pruneMissingNotesNotes } from "./notes";
@@ -295,9 +296,14 @@ export interface StoryForgePluginSettings {
 	selectedNovel: string | null;
 	selectedObject: string | null;
 	collapsedCodexFolderIds: string[];
-	/** Chapter plot cards the user has collapsed on the story library novel pane
-	 * (`${bookFolderName}/${filename}`). Sidebar Novel tab is unaffected. */
+	/** Chapter plot cards the user has collapsed on Story Context's right sidebar Novel tab
+	 * (`${bookFolderName}/${filename}`). Sidebar only — the Novel overview centre pane keeps its
+	 * own three-tier state in `novelOverviewPlotCardTiers`. */
 	collapsedPlotChapterKeys: string[];
+	/** Novel overview centre pane chapter card tiers, same key as `collapsedPlotChapterKeys`.
+	 * Only non-extended cards are stored; an absent key means extended. Seeded once from
+	 * `collapsedPlotChapterKeys` (see migratePlotCardTiers), then fully independent of it. */
+	novelOverviewPlotCardTiers: PlotCardTierMap;
 	cyclingGuideEnabled: boolean;
 	cyclingGuideThickness: HeadingDividerThickness;
 	cyclingGuideColor: string;
@@ -534,6 +540,22 @@ function migrateStoryContextShell(settings: StoryForgePluginSettings, data: unkn
 	return true;
 }
 
+/**
+ * One-time: seed the Novel overview's own chapter card tiers from the list both panes used to
+ * share, so every card collapsed before the upgrade stays collapsed (tier 2) and every other card
+ * stays extended. Inspects the raw save file for the same reason migrateStoryContextShell does:
+ * once `data` is merged into `settings` an absent key is indistinguishable from an empty one. A
+ * fresh install (no save file) has nothing to copy and keeps the empty default.
+ */
+function migratePlotCardTiers(settings: StoryForgePluginSettings, data: unknown): boolean {
+	if (data == null) return false;
+	const raw = typeof data === "object" ? (data as Record<string, unknown>) : null;
+	if (raw && "novelOverviewPlotCardTiers" in raw) return false;
+	const collapsed = Array.isArray(settings.collapsedPlotChapterKeys) ? settings.collapsedPlotChapterKeys : [];
+	settings.novelOverviewPlotCardTiers = seedPlotCardTiers(collapsed);
+	return true;
+}
+
 export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	hideHelp: true,
 	hideSearch: true,
@@ -692,6 +714,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	selectedObject: null,
 	collapsedCodexFolderIds: [],
 	collapsedPlotChapterKeys: [],
+	novelOverviewPlotCardTiers: {},
 	cyclingGuideEnabled: false,
 	cyclingGuideThickness: "thin",
 	cyclingGuideColor: "#f59e0b",
@@ -1445,13 +1468,14 @@ export default class StoryForgePlugin extends Plugin {
 		migrateRemovedFonts(this.pluginSettings);
 		migrateCodexFocusLayout(this.pluginSettings);
 		const shellMigrated = migrateStoryContextShell(this.pluginSettings, data);
+		const plotCardTiersSeeded = migratePlotCardTiers(this.pluginSettings, data);
 		const sections = { ...DEFAULT_SETTINGS.codexFactSectionByType, ...this.pluginSettings.codexFactSectionByType };
 		for (const opt of CODEX_TYPES) {
 			if (!sections[opt.type]) sections[opt.type] = "Facts";
 		}
 		this.pluginSettings.codexFactSectionByType = sections;
 		this.syncObsidianSettingsRef();
-		if (shellMigrated) await this.saveSettings();
+		if (shellMigrated || plotCardTiersSeeded) await this.saveSettings();
 	}
 
 	async saveSettings(): Promise<void> {
