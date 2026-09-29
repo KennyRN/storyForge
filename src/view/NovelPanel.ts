@@ -28,6 +28,7 @@ import { CodexEntryPickerModal } from "./CodexEntryPickerModal";
 import { resolveChapterRowColor } from "./novelColor";
 import { formatWordCount } from "../wordCount";
 import { computeNovelLengthBarLayout, type NovelLengthBarLayout } from "./novelLengthBar";
+import { nextPlotCardTier, readPlotCardTier, withPlotCardTier, type PlotCardTier } from "./plotCardTier";
 
 /**
  * A novel's cover/synopsis/chapter-by-chapter plot — the content Story Context's own Novel tab
@@ -735,15 +736,19 @@ async function renderNovelPlot(
 		const { title, subtitle } = splitTitleSubtitle(
 			numberedChapterTitle(app, bookFolderName, file.name, options.plugin.getSettings().chapterNumberingStyle),
 		);
-		// The title itself is the card's expand/collapse control (no separate chevron button) —
-		// clicking or activating it toggles .sf-story-context-plot-block--collapsed below. Wide
-		// only: it also sits on top of the data bar (see renderDataBar below) — headerRow itself
-		// carries no padding for --databar cards any more, nameEl's own does, so the bar (a plain
+		// Sidebar: the title itself is the card's expand/collapse control (no separate chevron
+		// button) — clicking or activating it toggles .sf-story-context-plot-block--collapsed below.
+		// Wide: the title is plain text and the whole header row (the data bar) is the control
+		// instead, cycling the card's three tiers — see the tier wiring below. The title also sits
+		// on top of the data bar there (see renderDataBar below) — headerRow itself carries no
+		// padding for --databar cards any more, nameEl's own does, so the bar (a plain
 		// absolutely-positioned child of headerRow) spans the row's true full width.
 		const nameEl = headerRow.createDiv({
-			cls: "sf-story-context-plot-chapter-name sf-story-context-plot-chapter-name--clickable",
+			cls: wide
+				? "sf-story-context-plot-chapter-name"
+				: "sf-story-context-plot-chapter-name sf-story-context-plot-chapter-name--clickable",
 			text: subtitle ? `${title} (${subtitle})` : title,
-			attr: { role: "button", tabindex: "0" },
+			...(wide ? {} : { attr: { role: "button", tabindex: "0" } }),
 		});
 		// Each chapter reads as its own card: the whole header band (not just the name text) is
 		// painted with the chapter's plot-thread colour — its assigned thread if it has one, else
@@ -779,16 +784,37 @@ async function renderNovelPlot(
 		}
 
 		const chapterKey = plotChapterCollapseKey(bookFolderName, file.name);
-		const applyCollapsed = (collapsed: boolean) =>
-			applyPlotCardCollapsed(block, nameEl, collapsed);
-		applyCollapsed((options.plugin.getSettings().collapsedPlotChapterKeys ?? []).includes(chapterKey));
-		const toggleCollapsed = () => {
-			const next = !block.hasClass("sf-story-context-plot-block--collapsed");
-			applyCollapsed(next);
-			persistPlotCardCollapsed(options.plugin, chapterKey, next);
-		};
-		nameEl.addEventListener("click", toggleCollapsed);
-		makeAccessibleActivatable(nameEl, toggleCollapsed);
+		if (wide) {
+			// The centre pane's own three tiers (plotCardTier.ts), stored in their own setting —
+			// never collapsedPlotChapterKeys, which is the sidebar's alone. The header row is the
+			// single click/keyboard target, so a click on the title text simply bubbles up to it.
+			let tier = readPlotCardTier(options.plugin.getSettings().novelOverviewPlotCardTiers, chapterKey);
+			applyPlotCardTier(block, headerRow, tier);
+			const cycleTier = () => {
+				const revealsDescription = tier === "bar";
+				tier = nextPlotCardTier(tier);
+				applyPlotCardTier(block, headerRow, tier);
+				// A hidden textarea measures as zero height, and the card's width-only
+				// ResizeObserver (below) won't fire on reveal, so re-measure it here or it
+				// reappears collapsed to nothing. resizeToContent is declared further down this
+				// same synchronous card build, so it always exists by the time this can run.
+				if (revealsDescription) resizeToContent();
+				persistPlotCardTier(options.plugin, chapterKey, tier);
+			};
+			headerRow.addEventListener("click", cycleTier);
+			makeAccessibleActivatable(headerRow, cycleTier);
+		} else {
+			const applyCollapsed = (collapsed: boolean) =>
+				applyPlotCardCollapsed(block, nameEl, collapsed);
+			applyCollapsed((options.plugin.getSettings().collapsedPlotChapterKeys ?? []).includes(chapterKey));
+			const toggleCollapsed = () => {
+				const next = !block.hasClass("sf-story-context-plot-block--collapsed");
+				applyCollapsed(next);
+				persistPlotCardCollapsed(options.plugin, chapterKey, next);
+			};
+			nameEl.addEventListener("click", toggleCollapsed);
+			makeAccessibleActivatable(nameEl, toggleCollapsed);
+		}
 
 		const entry = getChapterEntry(app, bookFolderName, file.name);
 		const narrator = resolveChapterNarrator(
@@ -972,6 +998,20 @@ function persistPlotCardCollapsed(plugin: StoryForgePlugin, key: string, collaps
 	if (collapsed === current.includes(key)) return;
 	const next = collapsed ? [...current, key] : current.filter((k) => k !== key);
 	void plugin.updateSetting("collapsedPlotChapterKeys", next);
+}
+
+/** Wide (centre pane) only. Tier 2 ("collapsed") is exactly the sidebar's collapsed state; tier 1
+ * ("bar") adds --bar on top of it, whose only extra job is hiding the description. */
+function applyPlotCardTier(block: HTMLElement, headerRow: HTMLElement, tier: PlotCardTier): void {
+	block.toggleClass("sf-story-context-plot-block--collapsed", tier !== "extended");
+	block.toggleClass("sf-story-context-plot-block--bar", tier === "bar");
+	headerRow.setAttribute("aria-expanded", tier === "bar" ? "false" : "true");
+}
+
+function persistPlotCardTier(plugin: StoryForgePlugin, key: string, tier: PlotCardTier): void {
+	const current = plugin.getSettings().novelOverviewPlotCardTiers;
+	if (readPlotCardTier(current, key) === tier) return;
+	void plugin.updateSetting("novelOverviewPlotCardTiers", withPlotCardTier(current, key, tier));
 }
 
 /** Icon (+ optional value) as a single interactive control — shared by this panel's Default PoV /
