@@ -1446,6 +1446,11 @@ export default class StoryForgePlugin extends Plugin {
 	}
 
 	onunload(): void {
+		// The manuscript editor's unsaved chapters: onunload can't wait, but the saves it starts
+		// still complete (each is a single vault.process).
+		for (const leaf of this.app.workspace.getLeavesOfType(STORYFORGE_CONTINUOUS_VIEW_TYPE)) {
+			if (leaf.view instanceof ContinuousReadView) void leaf.view.flushPending();
+		}
 		this.titleForge?.onunload();
 		// Restores the native ribbon directly (without detaching the leaf, which would reset
 		// its position on next load) by running the same DOM restoration ToolsView.onClose() does.

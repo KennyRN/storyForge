@@ -1,13 +1,15 @@
-import { ItemView, Platform, TAbstractFile, TFile, WorkspaceLeaf, type ViewStateResult } from "obsidian";
+import { ItemView, Notice, Platform, TAbstractFile, TFile, WorkspaceLeaf, type ViewStateResult } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { chapterDisplayTitle, getBookChapters, renameChapterTitle } from "../book";
 import { canEnterContinuousMode, resolveEntryChapter } from "../continuousMode";
+import { runContentBackup } from "../backup";
 import { bookFilePath, bookFolderNameFromChapterPath } from "../paths";
 import { numberedBookTitle } from "../series";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
 import { emitContinuousMode, onContinuousScrollTo } from "./continuousEvents";
 import { attachInlineRename } from "./inlineRename";
 import { ManuscriptSurface } from "./manuscript/ManuscriptSurface";
+import { ManuscriptWriter } from "./manuscript/manuscriptWriter";
 import { ICON_CONTINUOUS_MODE } from "../icons";
 
 export const STORYFORGE_CONTINUOUS_VIEW_TYPE = "storyforge-continuous-view";
@@ -26,13 +28,22 @@ interface ContinuousReadViewState {
  * talking to this view through continuousEvents.ts's pair of workspace events rather than a
  * direct reference.
  *
+ * Editing is desktop only; on mobile the same surface opens read-only. The author's typing is
+ * saved per chapter by manuscript/manuscriptWriter.ts, the one module allowed to write prose.
+ *
  * The sidebar's "exit" action replaces this same leaf with the normal chapter editor (see
- * `exitTarget`). This view has no exit control of its own.
+ * `getExitTarget`, and `flushPending`, which exit awaits first). This view has no exit control of
+ * its own.
  */
 export class ContinuousReadView extends ItemView {
 	private bookFolderName: string | null = null;
 	private entryFilename: string | null = null;
 	private surface: ManuscriptSurface | null = null;
+	private writer: ManuscriptWriter | null = null;
+	/** The once-per-session content backup taken before the first save (brief §3.5), shared by
+	 * every chapter that saves while it runs. A session is this view's life, across book switches. */
+	private sessionBackup: Promise<void> | null = null;
+	private lastRefusalNotice = 0;
 	/** The spine the surface was built from, by filename — a different list means a rebuild. */
 	private spine: string[] = [];
 	/** Bumped on every render so a render still reading files can tell it's been overtaken. */
@@ -72,6 +83,8 @@ export class ContinuousReadView extends ItemView {
 			}),
 		);
 		this.registerEvent(this.app.vault.on("modify", (file) => void this.onChapterModified(file)));
+		// Quitting mid-sentence loses nothing: Obsidian waits for these tasks before closing.
+		this.registerEvent(this.app.workspace.on("quit", (tasks) => tasks.add(() => this.flushPending())));
 		this.registerEvent(this.app.vault.on("create", (file) => this.onBookFileSetChanged(file)));
 		this.registerEvent(this.app.vault.on("delete", (file) => this.onBookFileSetChanged(file)));
 		this.registerEvent(this.app.vault.on("rename", (file) => this.onBookFileSetChanged(file)));
@@ -117,15 +130,42 @@ export class ContinuousReadView extends ItemView {
 		return this.entryFilename ? { filename: this.entryFilename, offset: null } : null;
 	}
 
+	/** Saves every unsaved chapter now. Exit, book switch, close, plugin unload and quit all
+	 * come through here. */
+	async flushPending(): Promise<void> {
+		await this.writer?.flushAll();
+	}
+
 	async onClose(): Promise<void> {
 		this.renderToken++;
-		this.teardownSurface();
+		await this.teardownSurface();
 		emitContinuousMode(this.app, { active: false });
 	}
 
-	private teardownSurface(): void {
-		this.surface?.destroy();
+	/** Flushes, then tears the editor down. The surface stays readable until the flush is done,
+	 * since saving reads the chapters' text from it. */
+	private async teardownSurface(): Promise<void> {
+		const writer = this.writer;
+		const surface = this.surface;
+		this.writer = null;
 		this.surface = null;
+		if (writer) {
+			await writer.flushAll();
+			writer.dispose();
+		}
+		surface?.destroy();
+	}
+
+	private ensureSessionBackup(): Promise<void> {
+		if (!this.sessionBackup) {
+			this.sessionBackup = runContentBackup(this.app, true).then(
+				() => undefined,
+				(err) => {
+					new Notice(`storyForge: the backup before continuous-mode saves failed — ${(err as Error).message}. Saving anyway.`);
+				},
+			);
+		}
+		return this.sessionBackup;
 	}
 
 	private numberedTitles(bookFolderName: string, ordered: TFile[]): Map<TFile, string> {
@@ -138,7 +178,8 @@ export class ContinuousReadView extends ItemView {
 
 	private async render(): Promise<void> {
 		const token = ++this.renderToken;
-		this.teardownSurface();
+		await this.teardownSurface();
+		if (token !== this.renderToken) return; // overtaken while flushing
 		const container = this.contentEl;
 		container.empty();
 		container.addClass("storyforge-continuous-view");
@@ -178,9 +219,16 @@ export class ContinuousReadView extends ItemView {
 		this.surface = new ManuscriptSurface(host, {
 			chapters: ordered.map((file, i) => ({ file, raw: raws[i], title: titles.get(file) ?? file.basename })),
 			entryFile,
-			// Editing switches on in a later stage of the build; read-only for now.
-			editable: false,
+			// Editing is desktop only (brief §3.13); mobile opens the same surface read-only.
+			editable: Platform.isDesktopApp,
 			lockInput: !Platform.isDesktopApp,
+			onChaptersEdited: (files) => this.writer?.noteEdited(files),
+			onEditRefused: () => {
+				const now = Date.now();
+				if (now - this.lastRefusalNotice < 2000) return;
+				this.lastRefusalNotice = now;
+				new Notice("Edits can't cross a chapter break.");
+			},
 			onTopChapterChange: (file) => {
 				this.entryFilename = file.name;
 				emitContinuousMode(this.app, { active: true, bookFolderName, filename: file.name });
@@ -200,6 +248,13 @@ export class ContinuousReadView extends ItemView {
 			},
 		});
 
+		this.writer = new ManuscriptWriter({
+			app: this.app,
+			bookFolderName,
+			surface: this.surface,
+			ensureSessionBackup: () => this.ensureSessionBackup(),
+		});
+
 		emitContinuousMode(this.app, { active: true, bookFolderName, filename: entryFile.name });
 	}
 
@@ -214,7 +269,7 @@ export class ContinuousReadView extends ItemView {
 	private onBookMetadataChanged(): void {
 		if (!this.surface || !this.bookFolderName) return;
 		if (this.spineChanged()) {
-			void this.render();
+			void this.rebuildSpine();
 			return;
 		}
 		this.refreshTitles();
@@ -224,7 +279,30 @@ export class ContinuousReadView extends ItemView {
 	private onBookFileSetChanged(file: TAbstractFile): void {
 		if (!this.surface || !this.bookFolderName) return;
 		if (bookFolderNameFromChapterPath(file.path) !== this.bookFolderName && !this.surface.files().includes(file as TFile)) return;
-		if (this.spineChanged()) void this.render();
+		if (this.spineChanged()) void this.rebuildSpine();
+	}
+
+	/**
+	 * The spine changed (brief §3.6): flush pending saves — a chapter that has left the spine or the
+	 * vault can no longer be saved, so its unsaved text goes to a recovery file — then rebuild the
+	 * document in place, keeping the caret's chapter and offset and what's at the top of the screen.
+	 * Falls back to a full render when the book can no longer be read continuously.
+	 */
+	private async rebuildSpine(): Promise<void> {
+		const token = this.renderToken;
+		await this.flushPending();
+		if (token !== this.renderToken || !this.surface || !this.bookFolderName) return;
+		const { ordered } = getBookChapters(this.app, this.bookFolderName);
+		if (!canEnterContinuousMode(ordered.length)) {
+			await this.render();
+			return;
+		}
+		const surface = this.surface;
+		const titles = this.numberedTitles(this.bookFolderName, ordered);
+		const raws = await Promise.all(ordered.map((file) => (surface.has(file) ? null : this.app.vault.read(file))));
+		if (token !== this.renderToken || this.surface !== surface) return;
+		this.spine = ordered.map((file) => file.name);
+		surface.rebuild(ordered.map((file, i) => ({ file, raw: raws[i], title: titles.get(file) ?? file.basename })));
 	}
 
 	private spineChanged(): boolean {
@@ -239,8 +317,9 @@ export class ContinuousReadView extends ItemView {
 	private async onChapterModified(file: TAbstractFile): Promise<void> {
 		if (!(file instanceof TFile) || !this.surface || !this.bookFolderName) return;
 		if (bookFolderNameFromChapterPath(file.path) !== this.bookFolderName) return;
-		if (!this.surface.files().includes(file)) return;
+		if (!this.surface.has(file)) return;
+		const writer = this.writer;
 		const raw = await this.app.vault.read(file);
-		this.surface?.reloadFromDisk(file, raw);
+		if (writer && writer === this.writer) await writer.onDiskChanged(file, raw);
 	}
 }

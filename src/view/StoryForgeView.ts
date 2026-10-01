@@ -883,8 +883,12 @@ export class StoryForgeView extends ItemView {
 	 * caret is on screen; otherwise on the chapter at the top of the screen (manuscript brief §3.7). */
 	private async exitContinuousRead(bookFolderName: string): Promise<void> {
 		const leaf = this.findContinuousReadLeaf(bookFolderName);
-		const target = leaf ? (leaf.view as ContinuousReadView).getExitTarget() : null;
-		if (!leaf || !target) return;
+		if (!leaf) return;
+		const manuscript = leaf.view as ContinuousReadView;
+		// Saved before the normal editor reads the file, so it opens on the author's latest text.
+		await manuscript.flushPending();
+		const target = manuscript.getExitTarget();
+		if (!target) return;
 		const path = libraryChapterPath(bookFolderName, target.filename);
 		const file = this.app.vault.getAbstractFileByPath(path);
 		if (!(file instanceof TFile)) return;
