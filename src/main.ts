@@ -6,6 +6,7 @@ import { createOpeningWordsBackground } from "./openingWords";
 import { StoryForgeView, STORYFORGE_VIEW_TYPE } from "./view/StoryForgeView";
 import { LEGACY_STORYTELLING_VIEW_TYPE, mapLegacyLeftRailViewType, storytellingModeForAutoFocus } from "./view/leftPanelMode";
 import { ContinuousReadView, STORYFORGE_CONTINUOUS_VIEW_TYPE } from "./view/ContinuousReadView";
+import type { ManuscriptGuideSettings } from "./view/manuscript/ManuscriptSurface";
 import { SeriesOverviewView, STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE } from "./view/SeriesOverviewView";
 import { NovelOverviewView, STORYFORGE_NOVEL_OVERVIEW_VIEW_TYPE } from "./view/NovelOverviewView";
 import { NewChapterView, STORYFORGE_NEW_CHAPTER_VIEW_TYPE } from "./view/NewChapterView";
@@ -1851,6 +1852,22 @@ export default class StoryForgePlugin extends Plugin {
 		this.style.applyRightRailPanelStyles();
 	}
 
+	/** The guides as continuous mode's manuscript editor follows them: a word count per guide, or
+	 * null when it's off. The depth guide's 'chapters covered' setting doesn't apply there. */
+	manuscriptGuideSettings(): ManuscriptGuideSettings {
+		return {
+			depthWords: this.pluginSettings.depthGuideEnabled ? DEPTH_GUIDE_WORDS[this.pluginSettings.depthGuideLevel] : null,
+		};
+	}
+
+	/** Pushes the current guide settings to every open manuscript editor — those don't run
+	 * registered editor extensions, so updateOptions() doesn't reach them. */
+	private refreshManuscriptGuides(): void {
+		for (const leaf of this.app.workspace.getLeavesOfType(STORYFORGE_CONTINUOUS_VIEW_TYPE)) {
+			if (leaf.view instanceof ContinuousReadView) leaf.view.applyGuideSettings();
+		}
+	}
+
 	/** Rebuilds the cycling guide CM6 extension with the current interval setting. */
 	rebuildCyclingGuideExtension(): void {
 		this.cyclingGuideExtensions.length = 0;
@@ -1878,6 +1895,7 @@ export default class StoryForgePlugin extends Plugin {
 			),
 		);
 		this.app.workspace.updateOptions();
+		this.refreshManuscriptGuides();
 	}
 
 	/** Enables/disables the "Depth guide" CM6 extension, applied to every currently-open editor and every editor opened from now on. */
@@ -1885,6 +1903,7 @@ export default class StoryForgePlugin extends Plugin {
 		this.depthGuideExtensions.length = 0;
 		if (enabled) this.rebuildDepthGuideExtension();
 		this.app.workspace.updateOptions();
+		this.refreshManuscriptGuides();
 	}
 
 	applyLibraryHeaderStyles(): void {

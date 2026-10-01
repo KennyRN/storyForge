@@ -1262,23 +1262,34 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
    Pattern itself is pattern.css's diagonal-lines-sm, as a *repeating* gradient (not the tiled
    background-size version .sf-synopsis-cover above uses) so the band can be cut off at the region's
    exact height without a partial tile: 23px period, 2px line. */
-.cm-scroller.sf-opening-words-active {
-	background-image: repeating-linear-gradient(45deg,
+.cm-scroller.sf-opening-words-active,
+.cm-scroller.sf-manuscript-depth-active {
+	--sf-opening-words-pattern: repeating-linear-gradient(45deg,
 		var(--sf-opening-words-pattern-line) 0px, var(--sf-opening-words-pattern-line) 2px,
 		transparent 2px, transparent 23px);
 	background-attachment: scroll;
 	background-origin: border-box;
 	background-clip: border-box;
 	background-repeat: no-repeat;
+}
+
+.cm-scroller.sf-opening-words-active {
+	background-image: var(--sf-opening-words-pattern);
 	background-size: 100% var(--sf-opening-words-height, 0px);
 	background-position: 0 var(--sf-opening-words-offset, 0px);
 }
 
-.theme-dark .cm-scroller.sf-opening-words-active {
+/* The manuscript editor (view/manuscript/manuscriptGuides.ts) paints the same band at every chapter
+   start: one background layer per band on or near screen, each layer's size and position written
+   inline from the heightmap as it scrolls - the same box-pinned technique as above, generalised. */
+
+.theme-dark .cm-scroller.sf-opening-words-active,
+.theme-dark .cm-scroller.sf-manuscript-depth-active {
 	--sf-opening-words-pattern-line: color-mix(in srgb, var(--background-modifier-border) 90%, white 10%);
 }
 
-.theme-light .cm-scroller.sf-opening-words-active {
+.theme-light .cm-scroller.sf-opening-words-active,
+.theme-light .cm-scroller.sf-manuscript-depth-active {
 	--sf-opening-words-pattern-line: color-mix(in srgb, var(--background-modifier-border) 90%, black 10%);
 }
 
