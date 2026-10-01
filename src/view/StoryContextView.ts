@@ -200,6 +200,7 @@ export class StoryContextView extends ItemView {
 		this.disposeForgeFamilyPanel();
 		this.disposeIdeaEditor();
 		this.disposeCodexEditor();
+		this.notebookInk.release();
 	}
 
 	/** main.ts's registerCompanionPanel() nudge: a companion panel just registered/unregistered
@@ -517,6 +518,8 @@ export class StoryContextView extends ItemView {
 		this.disposeCodexEditor();
 		const headerEl = this.tabHeaderEl();
 		if (headerEl) this.decorateTabHeader(headerEl);
+		// Before the old rail goes: lets a rebuilt Notebook rail slide its bar on from here.
+		this.notebookInk.release();
 		const el = this.contentEl;
 		el.empty();
 		el.addClass("sf-story-context-view");
@@ -1090,7 +1093,7 @@ export class StoryContextView extends ItemView {
 		this.addNotebookSourceIcon(rail, "codex", ICON_CODEX, "codex");
 		this.addNotebookSourceIcon(rail, "notes", ICON_NOTEBOOK_DUOTONE, "notes");
 		this.addNotebookSourceIcon(rail, "dossier", ICON_CLIPBOARD_LIST_DUOTONE, "dossier");
-		this.notebookInk.mount(rail);
+		this.notebookInk.mount(rail, parent);
 	}
 
 	private addNotebookSourceIcon(
