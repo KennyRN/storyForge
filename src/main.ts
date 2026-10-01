@@ -1857,6 +1857,9 @@ export default class StoryForgePlugin extends Plugin {
 	manuscriptGuideSettings(): ManuscriptGuideSettings {
 		return {
 			depthWords: this.pluginSettings.depthGuideEnabled ? DEPTH_GUIDE_WORDS[this.pluginSettings.depthGuideLevel] : null,
+			cyclingWords: this.pluginSettings.cyclingGuideEnabled
+				? CYCLING_GUIDE_INTERVAL_WORDS[this.pluginSettings.cyclingGuideInterval]
+				: null,
 		};
 	}
 
@@ -1874,6 +1877,7 @@ export default class StoryForgePlugin extends Plugin {
 		this.currentCyclingGuidePlugin = createCyclingGuideViewPlugin(CYCLING_GUIDE_INTERVAL_WORDS[this.pluginSettings.cyclingGuideInterval]);
 		this.cyclingGuideExtensions.push(this.currentCyclingGuidePlugin);
 		this.app.workspace.updateOptions();
+		this.refreshManuscriptGuides();
 	}
 
 	/** Enables/disables the "Cycling guide" CM6 extension, applied to every currently-open editor and every editor opened from now on. */
@@ -1882,6 +1886,7 @@ export default class StoryForgePlugin extends Plugin {
 		this.currentCyclingGuidePlugin = null;
 		if (enabled) this.rebuildCyclingGuideExtension();
 		this.app.workspace.updateOptions();
+		this.refreshManuscriptGuides();
 	}
 
 	/** Rebuilds the "depth guide" CM6 extension with the current level (word target) and chapters-covered settings. */

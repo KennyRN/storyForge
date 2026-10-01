@@ -14,7 +14,7 @@ import { chapterIndexAt, chapterIndexNear, chaptersTouched } from "../../manuscr
 import { chapterRangesField, editRefused, manuscriptStateExtensions, structuralAnnotation, structuralSpec } from "../../manuscript/manuscriptState";
 import { minimalReplacement } from "../../manuscript/manuscriptSync";
 import { manuscriptHeaders, setChapterTitles, type HeaderHooks } from "./manuscriptHeaders";
-import { manuscriptDepthGuide } from "./manuscriptGuides";
+import { manuscriptCyclingGuide, manuscriptDepthGuide } from "./manuscriptGuides";
 
 /**
  * The manuscript editor (continuous-mode manuscript brief §3): one storyForge-owned CodeMirror 6
@@ -50,6 +50,7 @@ interface ChapterRecord {
 /** The guides as the settings have them: each a word count, or null when that guide is off. */
 export interface ManuscriptGuideSettings {
 	depthWords: number | null;
+	cyclingWords: number | null;
 }
 
 export interface ManuscriptSurfaceOptions {
@@ -82,6 +83,7 @@ export class ManuscriptSurface {
 	private readonly records = new Map<string, ChapterRecord>();
 	private readonly editability = new Compartment();
 	private readonly depthGuide = new Compartment();
+	private readonly cyclingGuide = new Compartment();
 	private nextId = 0;
 	private topId: string | null = null;
 	private scrollFrame: number | null = null;
@@ -110,6 +112,7 @@ export class ManuscriptSurface {
 				manuscriptHeaders(hooks, titles),
 				this.editability.of(this.editabilityExtension(options.editable)),
 				this.depthGuide.of(depthGuideExtension(options.guides)),
+				this.cyclingGuide.of(cyclingGuideExtension(options.guides)),
 				history(),
 				search({ top: true }),
 				highlightSelectionMatches(),
@@ -186,9 +189,12 @@ export class ManuscriptSurface {
 		this.view.dispatch({ effects: this.editability.reconfigure(this.editabilityExtension(editable)) });
 	}
 
-	/** Applies changed guide settings live, as rebuildDepthGuideExtension does for normal editors. */
+	/** Applies changed guide settings live, as rebuildDepthGuideExtension and
+	 * rebuildCyclingGuideExtension do for normal editors. */
 	setGuides(guides: ManuscriptGuideSettings): void {
-		this.view.dispatch({ effects: this.depthGuide.reconfigure(depthGuideExtension(guides)) });
+		this.view.dispatch({
+			effects: [this.depthGuide.reconfigure(depthGuideExtension(guides)), this.cyclingGuide.reconfigure(cyclingGuideExtension(guides))],
+		});
 	}
 
 	/** Redraws the headers with new numbered titles, keyed by file. Does not touch the document. */
@@ -399,4 +405,8 @@ export class ManuscriptSurface {
 
 function depthGuideExtension(guides: ManuscriptGuideSettings): Extension {
 	return guides.depthWords === null ? [] : manuscriptDepthGuide(guides.depthWords);
+}
+
+function cyclingGuideExtension(guides: ManuscriptGuideSettings): Extension {
+	return guides.cyclingWords === null ? [] : manuscriptCyclingGuide(guides.cyclingWords);
 }
