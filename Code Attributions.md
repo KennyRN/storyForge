@@ -1,6 +1,6 @@
 # Code Attributions
 
-This project uses techniques (not copied code, unless noted) originating from the following third-party, open-source Obsidian plugins. Attribution and licence details are below, as a courtesy regardless of whether any code was directly adapted.
+This project uses techniques (not copied code, unless noted) originating from the following third-party, open-source Obsidian plugins and code snippets. Attribution and licence details are below, as a courtesy regardless of whether any code was directly adapted.
 
 ---
 
@@ -18,6 +18,15 @@ storyForge's own implementation is written from Obsidian's public API (`Workspac
 ## Embeddable Markdown Editor technique (considered, not used)
 
 A different, more commonly vendored technique — constructing a standalone CodeMirror editor not backed by a real file — was documented publicly by **Fevol**, crediting **mgmeyers** of the Kanban plugin for the original prototype-resolution work. storyForge does not use this technique: it isn't file-backed (persisting it would mean the plugin calling `vault.modify` directly on a chapter body, which storyForge's write-guard tenet forbids), so it doesn't fit here. Noted for completeness, since it's the technique most often associated with "an editor embedded in a plugin's own view."
+
+## Ink Slider (Notebook source rail's sliding indicator)
+
+`src/view/notebookInk.ts` and the `.sf-notebook-source-rail--ink` rules in `styles.css` adapt the "Ink Slider" CSS tab pattern, in which a solid bar slides beneath the active tab, its position and size measured from the active element rather than assumed and re-aligned when the layout resizes. storyForge turns it vertical, so the bar slides beside the Notebook source rail's active icon, and keeps the original's easing curve (`cubic-bezier(0.65, 0, 0.35, 1)`) and 0.45s duration.
+
+- **Ink Slider**, by CodeFronts — **MIT Licence**. The page gives no named author or copyright year; it states only "MIT licensed". *See [MIT License](#mit-license) below, read with CodeFronts as the copyright holder for this entry.*
+  Source: https://codefronts.com/navigation/css-tabs/ink-slider/
+
+storyForge's implementation is written for the plugin's own rail markup and re-render cycle (carrying the bar's position across a rail rebuild, a `ResizeObserver` instead of a window resize listener), not copied from the snippet.
 
 ## `obsidian-typings`
 
