@@ -4230,6 +4230,9 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	position: relative;
 	/* Same rail inset as .sf-bottom-panel so the page lines up with the index highlights. */
 	--sf-codex-rail-inset: calc(8px + 22.5px + 4px + 6px);
+	/* Notebook source rail's ink track and bar (.sf-notebook-source-rail--ink): their width.
+	 * Must stay under the inset's 6px gutter so neither touches the icons or the page. */
+	--sf-notebook-ink-thickness: 2px;
 }
 
 /* Focus Mode lore page: same rail inset as the notebook page so the two rectangles sit in the
@@ -6060,6 +6063,30 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 .sf-codex-side-actions .sf-notebook-source-btn svg {
 	width: 22.5px;
 	height: 22.5px;
+}
+
+/* Notebook source rail only (not Archive, which shares the rail classes): the ink track and the
+ * bar marking the active source. Adapted from CodeFronts' "Ink Slider" (MIT; see Code
+ * Attributions.md). Both are positioned against the rail itself, so `100%` is the icon column's
+ * right edge; the page's left edge, in the same coordinates, is the rail inset less the rail's
+ * own `left: 8px` (.sf-codex-side-actions). Centre the channel between the two. Vertical
+ * geometry is measured from the icons in notebookInk.ts. */
+.sf-notebook-source-rail--ink .sf-notebook-ink-track,
+.sf-notebook-source-rail--ink .sf-notebook-ink-bar {
+	position: absolute;
+	top: 0;
+	left: calc((100% + var(--sf-codex-rail-inset, 40.5px) - 8px - var(--sf-notebook-ink-thickness, 2px)) / 2);
+	width: var(--sf-notebook-ink-thickness, 2px);
+	pointer-events: none;
+}
+
+.sf-notebook-source-rail--ink .sf-notebook-ink-track {
+	background: var(--sf-editor-bg);
+}
+
+/* Same colour reference as the active icon (.sf-notebook-source-btn.is-active). */
+.sf-notebook-source-rail--ink .sf-notebook-ink-bar {
+	background: var(--sf-story-context-tabs-active-color, var(--text-accent));
 }
 
 .sf-codex-side-actions .sf-codex-vault-tags {
