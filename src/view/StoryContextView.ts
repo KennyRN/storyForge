@@ -58,6 +58,7 @@ import { isStoryContextTabActive, type StoryContextTab } from "./storyContextTab
 import { storytellingCodexOpenTarget } from "./codexOpenTarget";
 import { displayedVaultTags } from "../vaultTags";
 import { countWords, formatWordCount } from "../wordCount";
+import { NotebookInkIndicator } from "./notebookInk";
 
 /** Workspace view-type id. The string is historical (`storyContext-view`) so existing layouts restore. */
 export const STORY_CONTEXT_VIEW_TYPE = "storyforge-storyContext-view";
@@ -99,6 +100,8 @@ export class StoryContextView extends ItemView {
 	/** Story Context Notebook split only (not Focus Mode): Codex editor, notes, or Dossier. Codex by
 	 * default; the tab keeps whichever the user last picked. */
 	private notebookIndexKind: NotebookIndexKind = "codex";
+	/** Sliding indicator beside the Notebook source rail's active icon (see notebookInk.ts). */
+	private readonly notebookInk = new NotebookInkIndicator();
 	private collapsedCodexFolders = new Set<string>();
 	private activeCodexFolderId: string | null = null;
 	private notebookCodexTypeFilter = new Set<string>();
@@ -1087,6 +1090,7 @@ export class StoryContextView extends ItemView {
 		this.addNotebookSourceIcon(rail, "codex", ICON_CODEX, "codex");
 		this.addNotebookSourceIcon(rail, "notes", ICON_NOTEBOOK_DUOTONE, "notes");
 		this.addNotebookSourceIcon(rail, "dossier", ICON_CLIPBOARD_LIST_DUOTONE, "dossier");
+		this.notebookInk.mount(rail);
 	}
 
 	private addNotebookSourceIcon(
