@@ -6367,6 +6367,34 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	gap: 14px;
 }
 
+/* The manuscript editor (manuscript/ManuscriptSurface.ts). Its host carries Obsidian's own editor
+ * container classes, so typography, margins and line width come from Obsidian's rules for
+ * `.markdown-source-view.mod-cm6` exactly as in the chapter editor — nothing here restates them.
+ * This only lets the host fill the view; the editor inside scrolls itself. */
+.storyforge-continuous-view > .sf-manuscript {
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+/* Chapter headers: block widgets, not document text. Obsidian forces `display: block` and zero
+ * margins on direct children of `.cm-content`, so spacing is padding. */
+.sf-manuscript .sf-manuscript-header {
+	padding: 2.5em 0 0.75em;
+	font-weight: 600;
+	color: var(--sf-lib-items-color, var(--text-normal));
+	cursor: default;
+	user-select: none;
+}
+
+.sf-manuscript .sf-manuscript-header-first {
+	padding-top: 0;
+}
+
+.sf-manuscript .sf-manuscript-header .sf-rename-input {
+	font-weight: 600;
+	width: 100%;
+}
+
 /* A comfortable reading column, centred in the (now much wider) main pane rather than stretched
  * edge to edge — this view holds only the manuscript, no controls (see CodexFocusNavigator.ts). */
 .sf-continuous-view .sf-continuous-scroll {
