@@ -11,15 +11,18 @@ import { computeChapterOrderAfterCreation, type ChapterPlacement } from "./chapt
 
 /**
  * Creates a chapter and places it on the spine immediately after `anchorFilename` — or at the
- * end if there's no anchor (or it isn't found in chapter-order). Opens the file: a continuing
- * chapter is one the writer means to write into right away.
+ * end if there's no anchor (or it isn't found in chapter-order). Opens the file by default: a
+ * continuing chapter is one the writer means to write into right away. `openFile: false` passes
+ * straight through to createChapter, for continuous mode's manuscript editor, where the new
+ * chapter is written into in place rather than in a tab of its own.
  */
 export async function createContinuingChapter(
 	app: App,
 	bookFolderName: string,
 	anchorFilename: string | null,
+	options?: { openFile?: boolean },
 ): Promise<{ filename: string; chapterId: string }> {
-	const created = await createChapter(app, bookFolderName);
+	const created = await createChapter(app, bookFolderName, options);
 	const currentOrder = readBookFrontmatter(app, bookFolderName)?.chapterOrder ?? [];
 	const placement: ChapterPlacement = anchorFilename ? { type: "after", anchor: anchorFilename } : { type: "append" };
 	const nextOrder = computeChapterOrderAfterCreation(currentOrder, created.filename, placement);

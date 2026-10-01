@@ -958,6 +958,18 @@ export default class StoryForgePlugin extends Plugin {
 		});
 
 		this.addCommand({
+			id: "new-chapter-after-this-one",
+			name: "New chapter after this one",
+			// Continuous mode's manuscript editor only: after the caret's chapter (manuscript brief §3.10).
+			checkCallback: (checking) => {
+				const manuscript = this.app.workspace.getActiveViewOfType(ContinuousReadView);
+				if (!manuscript || !manuscript.canCreateChapters()) return false;
+				if (!checking) void manuscript.createChapterAfterCaret();
+				return true;
+			},
+		});
+
+		this.addCommand({
 			id: "open-archive",
 			name: "Open Archive",
 			callback: () => void this.activateArchiveView("codex"),

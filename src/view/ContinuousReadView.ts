@@ -1,6 +1,7 @@
 import { ItemView, Notice, Platform, TAbstractFile, TFile, WorkspaceLeaf, type ViewStateResult } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { chapterDisplayTitle, getBookChapters, renameChapterTitle } from "../book";
+import { createContinuingChapter } from "../chapterCreation";
 import { canEnterContinuousMode, resolveEntryChapter } from "../continuousMode";
 import { runContentBackup } from "../backup";
 import { bookFilePath, bookFolderNameFromChapterPath } from "../paths";
@@ -44,6 +45,10 @@ export class ContinuousReadView extends ItemView {
 	 * every chapter that saves while it runs. A session is this view's life, across book switches. */
 	private sessionBackup: Promise<void> | null = null;
 	private lastRefusalNotice = 0;
+	/** Spine rebuilds run one at a time, in order. */
+	private spineWork: Promise<void> = Promise.resolve();
+	/** A chapter just created from here, to put the caret in once it reaches the manuscript. */
+	private pendingFocus: string | null = null;
 	/** The spine the surface was built from, by filename — a different list means a rebuild. */
 	private spine: string[] = [];
 	/** Bumped on every render so a render still reading files can tell it's been overtaken. */
@@ -128,6 +133,36 @@ export class ContinuousReadView extends ItemView {
 		const target = this.surface?.exitTarget();
 		if (target) return { filename: target.file.name, offset: target.offset };
 		return this.entryFilename ? { filename: this.entryFilename, offset: null } : null;
+	}
+
+	/** Whether chapters can be created from here: editing is desktop only (brief §3.13). */
+	canCreateChapters(): boolean {
+		return Platform.isDesktopApp && this.surface !== null;
+	}
+
+	/** The 'New chapter after this one' command: after the caret's chapter (or, with the caret on a
+	 * break, the chapter at the top of the screen). */
+	createChapterAfterCaret(): Promise<void> {
+		return this.createChapterAfter(this.surface?.caretFile() ?? this.surface?.topFile() ?? null);
+	}
+
+	/**
+	 * New chapters (brief §3.10), one behaviour for all three entry points: create the file and place
+	 * it on the spine after `anchor` (or at the end) through the existing creation path, without
+	 * opening it; the spine change then brings it into the manuscript as a structural, non-undoable
+	 * insert, and the caret goes into it. Whatever the author types there saves to the new file.
+	 */
+	async createChapterAfter(anchor: TFile | null): Promise<void> {
+		if (!this.bookFolderName || !this.canCreateChapters()) return;
+		try {
+			const created = await createContinuingChapter(this.app, this.bookFolderName, anchor?.name ?? null, { openFile: false });
+			this.pendingFocus = created.filename;
+			// The metadata cache may not have the new spine yet; its 'changed' event rebuilds again
+			// when it does, and the caret goes in then.
+			await this.rebuildSpine();
+		} catch (err) {
+			new Notice(`storyForge: could not create chapter — ${(err as Error).message}`);
+		}
 	}
 
 	/** The guide settings changed: reconfigure the manuscript live. */
@@ -235,6 +270,7 @@ export class ContinuousReadView extends ItemView {
 				this.lastRefusalNotice = now;
 				new Notice("Edits can't cross a chapter break.");
 			},
+			onAppendChapter: Platform.isDesktopApp ? () => void this.createChapterAfter(null) : null,
 			onTopChapterChange: (file) => {
 				this.entryFilename = file.name;
 				emitContinuousMode(this.app, { active: true, bookFolderName, filename: file.name });
@@ -250,6 +286,9 @@ export class ContinuousReadView extends ItemView {
 						await renameChapterTitle(this.app, bookFolderName, file.name, newTitle);
 						this.refreshTitles();
 					},
+					extraMenuItems: Platform.isDesktopApp
+						? [{ title: "New chapter after this", onClick: () => this.createChapterAfter(file) }]
+						: undefined,
 				});
 			},
 		});
@@ -294,7 +333,15 @@ export class ContinuousReadView extends ItemView {
 	 * document in place, keeping the caret's chapter and offset and what's at the top of the screen.
 	 * Falls back to a full render when the book can no longer be read continuously.
 	 */
-	private async rebuildSpine(): Promise<void> {
+	private rebuildSpine(): Promise<void> {
+		this.spineWork = this.spineWork.then(
+			() => this.rebuildSpineNow(),
+			() => this.rebuildSpineNow(),
+		);
+		return this.spineWork;
+	}
+
+	private async rebuildSpineNow(): Promise<void> {
 		const token = this.renderToken;
 		await this.flushPending();
 		if (token !== this.renderToken || !this.surface || !this.bookFolderName) return;
@@ -309,6 +356,11 @@ export class ContinuousReadView extends ItemView {
 		if (token !== this.renderToken || this.surface !== surface) return;
 		this.spine = ordered.map((file) => file.name);
 		surface.rebuild(ordered.map((file, i) => ({ file, raw: raws[i], title: titles.get(file) ?? file.basename })));
+		const focus = this.pendingFocus && ordered.find((file) => file.name === this.pendingFocus);
+		if (focus) {
+			this.pendingFocus = null;
+			surface.focusChapter(focus);
+		}
 	}
 
 	private spineChanged(): boolean {

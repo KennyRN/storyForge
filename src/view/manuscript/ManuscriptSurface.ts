@@ -70,6 +70,8 @@ export interface ManuscriptSurfaceOptions {
 	onChaptersEdited: (files: TFile[]) => void;
 	/** An edit crossing a chapter break was refused. */
 	onEditRefused: () => void;
+	/** The control after the last chapter: appends one. Null hides it (no chapter creation). */
+	onAppendChapter: (() => void) | null;
 }
 
 /** A position held across a rebuild by chapter and offset, since raw positions don't survive one. */
@@ -101,6 +103,7 @@ export class ManuscriptSurface {
 				const record = this.records.get(chapterId);
 				if (record) options.decorateHeader(row, label, record.file);
 			},
+			onAppend: options.onAppendChapter,
 		};
 
 		const entry = ranges.find((r) => this.records.get(r.id)?.file === options.entryFile) ?? ranges[0];
@@ -158,6 +161,17 @@ export class ManuscriptSurface {
 		const ranges = this.ranges();
 		const i = chapterIndexAt(ranges, this.view.state.selection.main.head);
 		return i === -1 ? null : (this.records.get(ranges[i].id)?.file ?? null);
+	}
+
+	/** Puts the caret at the end of the chapter (where a new, empty one is ready to type into),
+	 * brings its header to the top of the screen, and focuses the editor. */
+	focusChapter(file: TFile): void {
+		const record = this.recordFor(file);
+		const range = record && this.rangeFor(record.id);
+		if (!record || !range) return;
+		this.view.dispatch({ selection: EditorSelection.cursor(range.to) });
+		this.scrollToChapterId(record.id);
+		this.view.focus();
 	}
 
 	/** Scrolls the chapter's header to the top of the screen. */
