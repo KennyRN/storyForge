@@ -29,7 +29,7 @@ function chapterBand(state: EditorState, range: ChapterRange, targetWords: numbe
  * touched (all of them after a spine rebuild, plus any new ones) and drops chapters that are gone.
  * Typing therefore costs one chapter's recount, never the whole book's.
  */
-function refreshTouched<T>(update: ViewUpdate, cache: Map<string, T>, compute: (range: ChapterRange) => T): void {
+export function refreshTouched<T>(update: ViewUpdate, cache: Map<string, T>, compute: (range: ChapterRange) => T): void {
 	const ranges = update.state.field(chapterRangesField);
 	const rebuilt = update.transactions.some((tr) => tr.effects.some((e) => e.is(setChapterRanges)));
 	const before = new Map(update.startState.field(chapterRangesField).map((r) => [r.id, r]));
