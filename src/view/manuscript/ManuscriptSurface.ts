@@ -15,6 +15,7 @@ import { chapterRangesField, editRefused, manuscriptStateExtensions, structuralA
 import { minimalReplacement } from "../../manuscript/manuscriptSync";
 import { manuscriptHeaders, setChapterTitles, type HeaderHooks } from "./manuscriptHeaders";
 import { manuscriptCyclingGuide, manuscriptDepthGuide } from "./manuscriptGuides";
+import { emphasisKeymap, manuscriptDressing } from "./manuscriptDressingView";
 
 /**
  * The manuscript editor (continuous-mode manuscript brief §3): one storyForge-owned CodeMirror 6
@@ -119,7 +120,9 @@ export class ManuscriptSurface {
 				history(),
 				search({ top: true }),
 				highlightSelectionMatches(),
-				keymap.of([...searchKeymap, ...historyKeymap, ...defaultKeymap]),
+				manuscriptDressing(),
+				// Ahead of the default keymap, whose Mod-I would otherwise select the parent syntax node.
+				keymap.of([...emphasisKeymap, ...searchKeymap, ...historyKeymap, ...defaultKeymap]),
 				EditorView.lineWrapping,
 				EditorView.contentAttributes.of({ spellcheck: "true" }),
 				// cm-s-obsidian: the class Obsidian's own editor carries, which themes key prose styling on.
