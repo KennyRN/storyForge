@@ -1,5 +1,7 @@
 import { Facet, RangeSet, StateEffect, StateField, type EditorState, type Extension, type Range } from "@codemirror/state";
 import { Decoration, EditorView, WidgetType, type DecorationSet } from "@codemirror/view";
+import { setIcon } from "obsidian";
+import { ICON_PLUS_SQUARE } from "../../icons";
 import { chapterRangesField, setChapterRanges } from "../../manuscript/manuscriptState";
 
 /**
@@ -15,6 +17,9 @@ export interface HeaderHooks {
 	/** Called whenever a header's DOM is built: binds the right-click menu to `row`, swapping
 	 * `label` for an input to rename. */
 	decorate: (row: HTMLElement, label: HTMLElement, chapterId: string) => void;
+	/** The quiet control after the last chapter, which appends a new one (brief §3.10). Null
+	 * where chapters can't be created (the read-only surface on mobile): no control is drawn. */
+	onAppend: (() => void) | null;
 }
 
 export const headerHooksFacet = Facet.define<HeaderHooks, HeaderHooks | null>({
@@ -74,6 +79,41 @@ class ChapterHeaderWidget extends WidgetType {
 	}
 }
 
+/** After the last chapter: appends a new one. Same glyph as the library's chapter 'New' button. */
+class AppendChapterWidget extends WidgetType {
+	eq(other: AppendChapterWidget): boolean {
+		return other instanceof AppendChapterWidget;
+	}
+
+	toDOM(view: EditorView): HTMLElement {
+		const doc = view.dom.ownerDocument;
+		const row = doc.createElement("div");
+		row.className = "sf-manuscript-append";
+		row.contentEditable = "false";
+		const button = doc.createElement("span");
+		button.className = "sf-manuscript-append-button";
+		button.setAttribute("aria-label", "New chapter");
+		button.setAttribute("role", "button");
+		button.tabIndex = 0;
+		setIcon(button, ICON_PLUS_SQUARE);
+		row.appendChild(button);
+		row.addEventListener("mousedown", (event) => event.preventDefault());
+		const append = (): void => view.state.facet(headerHooksFacet)?.onAppend?.();
+		button.addEventListener("click", append);
+		button.addEventListener("keydown", (event) => {
+			if (event.key === "Enter" || event.key === " ") {
+				event.preventDefault();
+				append();
+			}
+		});
+		return row;
+	}
+
+	ignoreEvent(): boolean {
+		return true;
+	}
+}
+
 function buildDecorations(state: EditorState): DecorationSet {
 	const ranges = state.field(chapterRangesField);
 	const titles = state.field(chapterTitlesField);
@@ -88,6 +128,9 @@ function buildDecorations(state: EditorState): DecorationSet {
 		const widget = new ChapterHeaderWidget(r.id, titles.get(r.id) ?? "", i === 0);
 		decos.push(Decoration.widget({ widget, block: true, side: -1 }).range(r.from));
 	});
+	if (state.facet(headerHooksFacet)?.onAppend) {
+		decos.push(Decoration.widget({ widget: new AppendChapterWidget(), block: true, side: 1 }).range(state.doc.length));
+	}
 	return Decoration.set(decos, true);
 }
 
