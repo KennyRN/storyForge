@@ -4230,8 +4230,9 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	position: relative;
 	/* Same rail inset as .sf-bottom-panel so the page lines up with the index highlights. */
 	--sf-codex-rail-inset: calc(8px + 22.5px + 4px + 6px);
-	/* Notebook source rail's ink track and bar (.sf-notebook-source-rail--ink): their width.
-	 * Must stay under the inset's 6px gutter so neither touches the icons or the page. */
+	/* Notebook/Archive source rails' ink track and bar (.sf-notebook-source-rail--ink): their
+	 * width, taken from the page side of the inset's 6px gutter. Keep it under 6px so the
+	 * channel never touches the icons. */
 	--sf-notebook-ink-thickness: 2px;
 }
 
@@ -6065,17 +6066,17 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	height: 22.5px;
 }
 
-/* Notebook source rail only (not Archive, which shares the rail classes): the ink track and the
- * bar marking the active source. Adapted from CodeFronts' "Ink Slider" (MIT; see Code
- * Attributions.md). Both are positioned against the rail itself, so `100%` is the icon column's
- * right edge; the page's left edge, in the same coordinates, is the rail inset less the rail's
- * own `left: 8px` (.sf-codex-side-actions). Centre the channel between the two. Vertical
- * geometry is measured from the icons in notebookInk.ts. */
+/* Notebook and Archive source rails: the ink track and the bar marking the active source.
+ * Adapted from CodeFronts' "Ink Slider" (MIT; see Code Attributions.md). Both are positioned
+ * against the rail itself; the page's left edge, in those coordinates, is the rail inset less the
+ * rail's own `left: 8px` (.sf-codex-side-actions), and the channel sits flush against it, so the
+ * track reads as part of the page. Vertical geometry (page height, active icon) is measured in
+ * notebookInk.ts. */
 .sf-notebook-source-rail--ink .sf-notebook-ink-track,
 .sf-notebook-source-rail--ink .sf-notebook-ink-bar {
 	position: absolute;
 	top: 0;
-	left: calc((100% + var(--sf-codex-rail-inset, 40.5px) - 8px - var(--sf-notebook-ink-thickness, 2px)) / 2);
+	left: calc(var(--sf-codex-rail-inset, 40.5px) - 8px - var(--sf-notebook-ink-thickness, 2px));
 	width: var(--sf-notebook-ink-thickness, 2px);
 	pointer-events: none;
 }
