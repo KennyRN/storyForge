@@ -1004,7 +1004,8 @@ export async function createBook(app: App, initialTitle?: string): Promise<{ fol
  * display time, same idiom as `DEFAULT_BOOK_TITLE`), then opened (unless `openFile: false` —
  * the idea-chapter creation path deliberately doesn't steal editor focus). Creating the empty
  * manuscript file (and `createBook`'s folder creation) are intentional library exceptions —
- * the plugin never modifies chapter prose after that.
+ * after that, the only prose write is the author's own typing in the manuscript editor, through
+ * writeGuard.ts's `writeManuscriptChapterBody`.
  */
 export async function createChapter(
 	app: App,
