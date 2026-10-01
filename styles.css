@@ -6084,9 +6084,21 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	background: var(--sf-editor-bg);
 }
 
-/* Same colour reference as the active icon (.sf-notebook-source-btn.is-active). */
+/* Same colour reference as the active icon (.sf-notebook-source-btn.is-active). Slides with the
+ * Ink Slider's own curve; `.is-instant` is set briefly by notebookInk.ts to place it unanimated. */
 .sf-notebook-source-rail--ink .sf-notebook-ink-bar {
 	background: var(--sf-story-context-tabs-active-color, var(--text-accent));
+	transition: transform 0.45s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.sf-notebook-source-rail--ink .sf-notebook-ink-bar.is-instant {
+	transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.sf-notebook-source-rail--ink .sf-notebook-ink-bar {
+		transition: none;
+	}
 }
 
 .sf-codex-side-actions .sf-codex-vault-tags {
