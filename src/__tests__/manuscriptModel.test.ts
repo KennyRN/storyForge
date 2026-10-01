@@ -11,7 +11,7 @@ import {
 	validateRanges,
 	type ChapterRange,
 } from "../manuscript/manuscriptModel";
-import { chapterIndexAt, chaptersTouched, classifyChange, classifyEdit, separatorSpans } from "../manuscript/manuscriptBoundaries";
+import { chapterIndexAt, chapterIndexNear, chaptersTouched, classifyChange, classifyEdit, separatorSpans } from "../manuscript/manuscriptBoundaries";
 import { chapterRangesField, editRefused, manuscriptStateExtensions, structuralSpec } from "../manuscript/manuscriptState";
 
 const FILES: Record<string, string> = {
@@ -311,6 +311,13 @@ describe("chapter lookups", () => {
 		expect(chapterIndexAt(ranges, ranges[0].to + 1)).toBe(-1);
 		expect(chapterIndexAt(ranges, ranges[1].from)).toBe(1);
 		expect(chapterIndexAt(ranges, ranges[2].from)).toBe(2);
+	});
+
+	it("chapterIndexNear counts a separator as the chapter after it", () => {
+		expect(chapterIndexNear(ranges, ranges[0].to + 1)).toBe(1);
+		expect(chapterIndexNear(ranges, ranges[1].from)).toBe(1);
+		expect(chapterIndexNear(ranges, 0)).toBe(0);
+		expect(chapterIndexNear([], 0)).toBe(-1);
 	});
 
 	it("classifyChange", () => {

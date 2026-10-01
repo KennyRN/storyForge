@@ -25,6 +25,15 @@ export function chapterIndexAt(ranges: readonly ChapterRange[], pos: number): nu
 	return -1;
 }
 
+/** Like `chapterIndexAt`, but a position inside a separator counts as the following chapter, since
+ * that chapter's header is drawn there. For "which chapter is at the top of the screen". */
+export function chapterIndexNear(ranges: readonly ChapterRange[], pos: number): number {
+	if (ranges.length === 0) return -1;
+	const i = chapterIndexAt(ranges, pos);
+	if (i !== -1) return i;
+	return Math.min(lastChapterEndingBy(ranges, pos) + 1, ranges.length - 1);
+}
+
 /** Index of the chapter wholly containing the replaced span `[from, to]`, or -1 when the span
  * touches or crosses a separator. */
 export function chapterContaining(ranges: readonly ChapterRange[], from: number, to: number): number {
