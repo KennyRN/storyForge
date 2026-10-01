@@ -130,6 +130,11 @@ export class ContinuousReadView extends ItemView {
 		return this.entryFilename ? { filename: this.entryFilename, offset: null } : null;
 	}
 
+	/** The guide settings changed: reconfigure the manuscript live. */
+	applyGuideSettings(): void {
+		this.surface?.setGuides(this.plugin.manuscriptGuideSettings());
+	}
+
 	/** Saves every unsaved chapter now. Exit, book switch, close, plugin unload and quit all
 	 * come through here. */
 	async flushPending(): Promise<void> {
@@ -219,6 +224,7 @@ export class ContinuousReadView extends ItemView {
 		this.surface = new ManuscriptSurface(host, {
 			chapters: ordered.map((file, i) => ({ file, raw: raws[i], title: titles.get(file) ?? file.basename })),
 			entryFile,
+			guides: this.plugin.manuscriptGuideSettings(),
 			// Editing is desktop only (brief §3.13); mobile opens the same surface read-only.
 			editable: Platform.isDesktopApp,
 			lockInput: !Platform.isDesktopApp,
