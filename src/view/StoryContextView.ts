@@ -100,7 +100,7 @@ export class StoryContextView extends ItemView {
 	/** Story Context Notebook split only (not Focus Mode): Codex editor, notes, or Dossier. Codex by
 	 * default; the tab keeps whichever the user last picked. */
 	private notebookIndexKind: NotebookIndexKind = "codex";
-	/** Sliding indicator beside the Notebook source rail's active icon (see notebookInk.ts). */
+	/** Sliding indicator beside the Notebook/Archive source rail's active icon (see notebookInk.ts). */
 	private readonly notebookInk = new NotebookInkIndicator();
 	private collapsedCodexFolders = new Set<string>();
 	private activeCodexFolderId: string | null = null;
@@ -1010,19 +1010,21 @@ export class StoryContextView extends ItemView {
 
 	private renderArchiveSplit(el: HTMLElement): void {
 		const split = el.createDiv({ cls: "sf-idea-shelf sf-archive-shelf" });
-		this.renderArchiveSourceRail(split);
+		const rail = this.renderArchiveSourceRail(split);
 		const page = split.createDiv({ cls: "sf-notebook-page sf-archive-page" });
 		this.notebookPageEl = page;
 		const index = split.createDiv({ cls: "sf-notebook-index" });
 		renderArchiveIndex(index, this.archiveHost());
+		this.notebookInk.mount("archive", rail, page);
 		void this.mountIdeaEditor();
 	}
 
-	private renderArchiveSourceRail(parent: HTMLElement): void {
+	private renderArchiveSourceRail(parent: HTMLElement): HTMLElement {
 		const rail = parent.createDiv({ cls: "sf-codex-side-actions sf-notebook-source-rail" });
 		this.addArchiveSourceIcon(rail, "codex", ICON_CODEX, "codex");
 		this.addArchiveSourceIcon(rail, "notes", ICON_NOTEBOOK_DUOTONE, "notes");
 		this.addArchiveSourceIcon(rail, "novel", ICON_BOOK_DUOTONE, "novel");
+		return rail;
 	}
 
 	private addArchiveSourceIcon(rail: HTMLElement, mode: ArchiveMode, icon: string, label: string): void {
@@ -1071,7 +1073,7 @@ export class StoryContextView extends ItemView {
 			}
 		}
 		const split = el.createDiv({ cls: "sf-idea-shelf" });
-		if (showSourceRail) this.renderNotebookSourceRail(split);
+		const rail = showSourceRail ? this.renderNotebookSourceRail(split) : null;
 		const page = split.createDiv({
 			cls:
 				indexKind === "codex"
@@ -1084,16 +1086,18 @@ export class StoryContextView extends ItemView {
 		const index = split.createDiv({ cls: "sf-notebook-index" });
 		if (usesCodexIndex) this.renderNotebookCodexIndex(index);
 		else this.renderNotebookNotesIndex(index, showTypesCorner);
+		// After the index, whose height sets the page's: the track spans the page.
+		if (rail) this.notebookInk.mount("notebook", rail, page);
 		if (indexKind === "dossier") this.renderNotebookDossierPage(page);
 		else void this.mountIdeaEditor();
 	}
 
-	private renderNotebookSourceRail(parent: HTMLElement): void {
+	private renderNotebookSourceRail(parent: HTMLElement): HTMLElement {
 		const rail = parent.createDiv({ cls: "sf-codex-side-actions sf-notebook-source-rail" });
 		this.addNotebookSourceIcon(rail, "codex", ICON_CODEX, "codex");
 		this.addNotebookSourceIcon(rail, "notes", ICON_NOTEBOOK_DUOTONE, "notes");
 		this.addNotebookSourceIcon(rail, "dossier", ICON_CLIPBOARD_LIST_DUOTONE, "dossier");
-		this.notebookInk.mount(rail, parent);
+		return rail;
 	}
 
 	private addNotebookSourceIcon(
