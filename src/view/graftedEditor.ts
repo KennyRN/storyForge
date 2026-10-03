@@ -2,13 +2,10 @@ import { App, MarkdownView, TFile, WorkspaceLeaf, WorkspaceSplit } from "obsidia
 
 /**
  * Grafts a real, live, auto-saving Obsidian editor — a genuine `WorkspaceLeaf` running a genuine
- * `MarkdownView` — into an arbitrary container element, so continuous mode's click-to-edit can stay
- * inline in the scroll instead of leaving to a separate pane (continuous-mode inline-editor
- * research brief §2–§3).
- *
- * Story Context's notebook/codex pages do not use this class. They call `mountContextEditor`
- * (contextEditor.ts), which mounts the same leaf technique under `.sf-context-editor` so the two
- * features do not share CSS.
+ * `MarkdownView` — into an arbitrary container element. Story Context's notebook and codex pages
+ * are its only user, through `mountContextEditor` (contextEditor.ts), which mounts it under
+ * `.sf-context-editor`. (Continuous mode used this for its old inline click-to-edit; it now has its
+ * own manuscript editor, view/manuscript/, which grafts nothing.)
  *
  * There is no *public* API for this — `Editor`/`MarkdownView` have no standalone constructor
  * outside a real `WorkspaceLeaf`, and `Workspace.createLeafInParent` only accepts a `WorkspaceSplit`
@@ -45,16 +42,14 @@ export interface GraftedEditorHandle {
 }
 
 export interface MountLeafEditorOptions {
-	/** CSS class on the grafted split. Continuous click-to-edit uses `sf-grafted-editor`;
-	 * Story Context uses `sf-context-editor`. Never both. */
+	/** CSS class on the grafted split — Story Context uses `sf-context-editor`. */
 	className: string;
 	active?: boolean;
 	activateOnPointer?: boolean;
 }
 
 /**
- * Shared leaf-graft used by continuous click-to-edit and Story Context. Callers pick the
- * className; they must not share stylesheet hooks.
+ * The leaf graft behind Story Context's notebook and codex editors. The caller picks the className.
  */
 export async function mountLeafEditor(
 	app: App,
@@ -115,21 +110,4 @@ export async function mountLeafEditor(
 		split?.containerEl.remove();
 		return null;
 	}
-}
-
-/**
- * Continuous-mode click-to-edit. Mounts under `.sf-grafted-editor` only.
- *
- * Deliberately does not focus the editor itself — focusing scrolls the caret into view, and the
- * caller (`ContinuousReadView.editChapter`) needs a chance to correct the outer continuous scroll's
- * position first (research brief §7). Callers must call `handle.view.editor.focus()` themselves
- * once any correction is done.
- */
-export async function graftEditor(
-	app: App,
-	container: HTMLElement,
-	file: TFile,
-	cursorOffset: number,
-): Promise<GraftedEditorHandle | null> {
-	return mountLeafEditor(app, container, file, cursorOffset, { className: "sf-grafted-editor" });
 }
