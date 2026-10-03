@@ -66,11 +66,11 @@ export class ContinuousReadView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		if (!this.bookFolderName) return "Continuous read";
+		if (!this.bookFolderName) return "continuous mode";
 		const { title } = splitTitleSubtitle(
 			numberedBookTitle(this.app, this.bookFolderName, undefined, this.plugin.getSettings().seriesNumberingStyle),
 		);
-		return `Reading — ${title}`;
+		return `continuous mode: ${title}`;
 	}
 
 	getIcon(): string {
