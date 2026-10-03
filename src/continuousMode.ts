@@ -1,15 +1,8 @@
 /**
- * Pure logic for codex-focus's continuous read-and-write mode (hand-off brief §2). The rendering
- * and IntersectionObserver plumbing live in view/ContinuousReadThrough.ts; this module holds only
- * the decisions that can be tested without a DOM.
+ * Pure logic for codex-focus's continuous mode (hand-off brief §2): the entry gate and landing
+ * chapter. The manuscript editor itself lives in view/manuscript/, with its own DOM-free decisions
+ * in src/manuscript/.
  */
-
-/** One chapter's live visibility, as fed by the position IntersectionObserver — 0 when the
- * chapter isn't currently intersecting the viewport at all. */
-export interface ChapterVisibility {
-	filename: string;
-	ratio: number;
-}
 
 /**
  * Continuous mode's self-gate (hand-off brief §2.1): offered only once there's more than one
@@ -18,23 +11,6 @@ export interface ChapterVisibility {
  */
 export function canEnterContinuousMode(placedCount: number): boolean {
 	return placedCount > 1;
-}
-
-/**
- * Picks whichever chapter is most visible right now, for the live position indicator and for
- * "whichever chapter they scrolled to" on exit (hand-off brief §2.3–2.4). Ties keep whichever
- * chapter was seen first (document order, since visibilities is built in spine order), which in
- * practice means the earlier of two equally-visible chapters — a reasonable, stable default.
- * Returns null only when nothing is visible yet (e.g. the instant before the first
- * IntersectionObserver callback fires).
- */
-export function pickCurrentChapter(visibilities: ChapterVisibility[]): string | null {
-	let best: ChapterVisibility | null = null;
-	for (const v of visibilities) {
-		if (v.ratio <= 0) continue;
-		if (!best || v.ratio > best.ratio) best = v;
-	}
-	return best?.filename ?? null;
 }
 
 /**

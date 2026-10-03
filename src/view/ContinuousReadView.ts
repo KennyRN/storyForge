@@ -1,13 +1,16 @@
-import { ItemView, MarkdownView, TFile, WorkspaceLeaf, type ViewStateResult } from "obsidian";
-import { EditorView } from "@codemirror/view";
+import { ItemView, Notice, Platform, TAbstractFile, TFile, WorkspaceLeaf, type ViewStateResult } from "obsidian";
 import type StoryForgePlugin from "../main";
-import { chapterDisplayTitle, getBookChapters } from "../book";
+import { chapterDisplayTitle, getBookChapters, renameChapterTitle } from "../book";
+import { createContinuingChapter } from "../chapterCreation";
 import { canEnterContinuousMode, resolveEntryChapter } from "../continuousMode";
+import { runContentBackup } from "../backup";
+import { bookFilePath, bookFolderNameFromChapterPath } from "../paths";
 import { numberedBookTitle } from "../series";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
-import { renderContinuousReadThrough, type ContinuousReadThroughHandle } from "./ContinuousReadThrough";
 import { emitContinuousMode, onContinuousScrollTo } from "./continuousEvents";
-import { graftEditor, type GraftedEditorHandle } from "./graftedEditor";
+import { attachInlineRename } from "./inlineRename";
+import { ManuscriptSurface } from "./manuscript/ManuscriptSurface";
+import { ManuscriptWriter } from "./manuscript/manuscriptWriter";
 import { ICON_CONTINUOUS_MODE } from "../icons";
 
 export const STORYFORGE_CONTINUOUS_VIEW_TYPE = "storyforge-continuous-view";
@@ -18,39 +21,38 @@ interface ContinuousReadViewState {
 	entryFilename: string;
 }
 
-/** Cached across every ContinuousReadView instance for the life of the plugin session, not
- * per-view — the graft technique either works on this Obsidian build or it doesn't, so there's no
- * point re-attempting (and re-logging the failure) on every single click (inline-editor research
- * brief §3.5: "detect once per session at first use and cache the result"). Undefined means
- * "not yet attempted"; a real attempt sets it to true or false. */
-let graftingSupported: boolean | undefined;
-
 /**
- * Continuous read-and-write mode's own view (continuous-mode hand-off brief §2, corrected twice):
- * the sidebar is menus only, so this view holds the manuscript and nothing else — no indicator, no
- * transport row. Those live back in CodexFocusNavigator.ts (they're navigation, not story), talking
- * to this view via continuousEvents.ts's pair of custom workspace events rather than a direct
- * reference. Reading itself is strictly read-only (`cachedRead` + `MarkdownRenderer`).
+ * Continuous mode's own view: the manuscript editor (continuous-mode manuscript brief §3), one
+ * CodeMirror editor holding every placed chapter of the book, in spine order (see
+ * manuscript/ManuscriptSurface.ts). The sidebar is menus only, so this view holds the manuscript
+ * and nothing else — the live position indicator and the transport live in CodexFocusNavigator.ts,
+ * talking to this view through continuousEvents.ts's pair of workspace events rather than a
+ * direct reference.
  *
- * Click-to-edit (§2.6, resolved via the inline-editor research brief): a deliberate click on a
- * chapter's body grafts a real, live, auto-saving `MarkdownView` directly into that chapter's
- * rendered slot (graftedEditor.ts) — reading and light editing stay in the same continuous scroll,
- * "touch-edit here, touch-edit there", rather than leaving to a separate tab. Only one editor is
- * ever live at a time (`activeEdit` below); it commits (and reverts to rendered markup) when the
- * reader scrolls it out of view, clicks a different chapter, presses Escape, or the view itself
- * closes. If grafting isn't available on this Obsidian build, this falls back to the previous
- * behaviour — opening a real editor in this same leaf, leaving the continuous scroll — rather than
- * leaving the chapter half-mounted.
+ * Editing is desktop only; on mobile the same surface opens read-only. The author's typing is
+ * saved per chapter by manuscript/manuscriptWriter.ts, the one module allowed to write prose.
  *
- * The sidebar's "exit" action replaces this same leaf with a real single-chapter editor on
- * whichever chapter the reader last scrolled to — symmetric with how entering lands them back at
- * their place (hand-off brief §2.4). This view has no exit control of its own.
+ * The sidebar's "exit" action replaces this same leaf with the normal chapter editor (see
+ * `getExitTarget`, and `flushPending`, which exit awaits first). This view has no exit control of
+ * its own.
  */
 export class ContinuousReadView extends ItemView {
 	private bookFolderName: string | null = null;
 	private entryFilename: string | null = null;
-	private readThrough: ContinuousReadThroughHandle | null = null;
-	private activeEdit: { filename: string; handle: GraftedEditorHandle; onKeydown: (e: KeyboardEvent) => void } | null = null;
+	private surface: ManuscriptSurface | null = null;
+	private writer: ManuscriptWriter | null = null;
+	/** The once-per-session content backup taken before the first save (brief §3.5), shared by
+	 * every chapter that saves while it runs. A session is this view's life, across book switches. */
+	private sessionBackup: Promise<void> | null = null;
+	private lastRefusalNotice = 0;
+	/** Spine rebuilds run one at a time, in order. */
+	private spineWork: Promise<void> = Promise.resolve();
+	/** A chapter just created from here, to put the caret in once it reaches the manuscript. */
+	private pendingFocus: string | null = null;
+	/** The spine the surface was built from, by filename — a different list means a rebuild. */
+	private spine: string[] = [];
+	/** Bumped on every render so a render still reading files can tell it's been overtaken. */
+	private renderToken = 0;
 
 	constructor(
 		leaf: WorkspaceLeaf,
@@ -64,11 +66,11 @@ export class ContinuousReadView extends ItemView {
 	}
 
 	getDisplayText(): string {
-		if (!this.bookFolderName) return "Continuous read";
+		if (!this.bookFolderName) return "continuous mode";
 		const { title } = splitTitleSubtitle(
 			numberedBookTitle(this.app, this.bookFolderName, undefined, this.plugin.getSettings().seriesNumberingStyle),
 		);
-		return `Reading — ${title}`;
+		return `continuous mode: ${title}`;
 	}
 
 	getIcon(): string {
@@ -80,7 +82,20 @@ export class ContinuousReadView extends ItemView {
 		// holding a direct reference to it — see continuousEvents.ts.
 		this.registerEvent(
 			onContinuousScrollTo(this.app, (payload) => {
-				if (payload.bookFolderName === this.bookFolderName) this.readThrough?.scrollTo(payload.filename);
+				if (payload.bookFolderName !== this.bookFolderName) return;
+				const file = this.surface?.files().find((f) => f.name === payload.filename);
+				if (file) this.surface?.scrollToChapter(file);
+			}),
+		);
+		this.registerEvent(this.app.vault.on("modify", (file) => void this.onChapterModified(file)));
+		// Quitting mid-sentence loses nothing: Obsidian waits for these tasks before closing.
+		this.registerEvent(this.app.workspace.on("quit", (tasks) => tasks.add(() => this.flushPending())));
+		this.registerEvent(this.app.vault.on("create", (file) => this.onBookFileSetChanged(file)));
+		this.registerEvent(this.app.vault.on("delete", (file) => this.onBookFileSetChanged(file)));
+		this.registerEvent(this.app.vault.on("rename", (file) => this.onBookFileSetChanged(file)));
+		this.registerEvent(
+			this.app.metadataCache.on("changed", (file) => {
+				if (this.bookFolderName && file.path === bookFilePath(this.bookFolderName)) this.onBookMetadataChanged();
 			}),
 		);
 	}
@@ -92,37 +107,119 @@ export class ContinuousReadView extends ItemView {
 			this.entryFilename = s.entryFilename;
 		}
 		await super.setState(state, result);
-		this.render();
+		await this.render();
 	}
 
 	getState(): Record<string, unknown> {
 		return this.bookFolderName && this.entryFilename
-			? { bookFolderName: this.bookFolderName, entryFilename: this.entryFilename }
+			? { bookFolderName: this.bookFolderName, entryFilename: this.getCurrentFilename() ?? this.entryFilename }
 			: {};
 	}
 
-	/** The chapter this view is currently centred on — the sidebar reads this synchronously
+	/** The chapter at the top of the screen — the sidebar reads this synchronously
 	 * (getLeavesOfType + a direct method call) to paint its live position indicator correctly on
 	 * its own next render, without waiting for an event round-trip. */
 	getCurrentFilename(): string | null {
-		return this.readThrough?.getCurrentFilename() ?? this.entryFilename;
+		return this.surface?.topFile()?.name ?? this.entryFilename;
 	}
 
 	getBookFolderName(): string | null {
 		return this.bookFolderName;
 	}
 
+	/** Where exit lands (brief §3.7): the caret's chapter and file offset when the caret is on
+	 * screen, otherwise the chapter at the top of the screen with no offset. */
+	getExitTarget(): { filename: string; offset: number | null } | null {
+		const target = this.surface?.exitTarget();
+		if (target) return { filename: target.file.name, offset: target.offset };
+		return this.entryFilename ? { filename: this.entryFilename, offset: null } : null;
+	}
+
+	/** Whether chapters can be created from here: editing is desktop only (brief §3.13). */
+	canCreateChapters(): boolean {
+		return Platform.isDesktopApp && this.surface !== null;
+	}
+
+	/** The 'New chapter after this one' command: after the caret's chapter (or, with the caret on a
+	 * break, the chapter at the top of the screen). */
+	createChapterAfterCaret(): Promise<void> {
+		return this.createChapterAfter(this.surface?.caretFile() ?? this.surface?.topFile() ?? null);
+	}
+
+	/**
+	 * New chapters (brief §3.10), one behaviour for all three entry points: create the file and place
+	 * it on the spine after `anchor` (or at the end) through the existing creation path, without
+	 * opening it; the spine change then brings it into the manuscript as a structural, non-undoable
+	 * insert, and the caret goes into it. Whatever the author types there saves to the new file.
+	 */
+	async createChapterAfter(anchor: TFile | null): Promise<void> {
+		if (!this.bookFolderName || !this.canCreateChapters()) return;
+		try {
+			const created = await createContinuingChapter(this.app, this.bookFolderName, anchor?.name ?? null, { openFile: false });
+			this.pendingFocus = created.filename;
+			// The metadata cache may not have the new spine yet; its 'changed' event rebuilds again
+			// when it does, and the caret goes in then.
+			await this.rebuildSpine();
+		} catch (err) {
+			new Notice(`storyForge: could not create chapter — ${(err as Error).message}`);
+		}
+	}
+
+	/** The guide settings changed: reconfigure the manuscript live. */
+	applyGuideSettings(): void {
+		this.surface?.setGuides(this.plugin.manuscriptGuideSettings());
+	}
+
+	/** Saves every unsaved chapter now. Exit, book switch, close, plugin unload and quit all
+	 * come through here. */
+	async flushPending(): Promise<void> {
+		await this.writer?.flushAll();
+	}
+
 	async onClose(): Promise<void> {
-		this.commitActiveEdit();
-		this.readThrough?.dispose();
-		this.readThrough = null;
+		this.renderToken++;
+		await this.teardownSurface();
 		emitContinuousMode(this.app, { active: false });
 	}
 
-	private render(): void {
-		this.commitActiveEdit();
-		this.readThrough?.dispose();
-		this.readThrough = null;
+	/** Flushes, then tears the editor down. The surface stays readable until the flush is done,
+	 * since saving reads the chapters' text from it. */
+	private async teardownSurface(): Promise<void> {
+		const writer = this.writer;
+		const surface = this.surface;
+		this.writer = null;
+		this.surface = null;
+		if (writer) {
+			await writer.flushAll();
+			writer.dispose();
+		}
+		surface?.destroy();
+	}
+
+	private ensureSessionBackup(): Promise<void> {
+		if (!this.sessionBackup) {
+			this.sessionBackup = runContentBackup(this.app, true).then(
+				() => undefined,
+				(err) => {
+					new Notice(`storyForge: the backup before continuous-mode saves failed — ${(err as Error).message}. Saving anyway.`);
+				},
+			);
+		}
+		return this.sessionBackup;
+	}
+
+	private numberedTitles(bookFolderName: string, ordered: TFile[]): Map<TFile, string> {
+		const numbered = applyHashNumbering(
+			ordered.map((file) => chapterDisplayTitle(this.app, bookFolderName, file.name)),
+			this.plugin.getSettings().chapterNumberingStyle,
+		);
+		return new Map(ordered.map((file, i) => [file, numbered[i]]));
+	}
+
+	private async render(): Promise<void> {
+		const token = ++this.renderToken;
+		await this.teardownSurface();
+		if (token !== this.renderToken) return; // overtaken while flushing
 		const container = this.contentEl;
 		container.empty();
 		container.addClass("storyforge-continuous-view");
@@ -140,120 +237,147 @@ export class ContinuousReadView extends ItemView {
 			return;
 		}
 
-		const numbered = applyHashNumbering(
-			ordered.map((file) => chapterDisplayTitle(this.app, bookFolderName, file.name)),
-			this.plugin.getSettings().chapterNumberingStyle,
-		);
-		const titleFor = (file: TFile) => numbered[ordered.indexOf(file)];
-		// canEnterContinuousMode above guarantees ordered isn't empty, so this can only be null in
-		// principle — the ordered[0] fallback is just belt-and-braces, never actually reached.
+		// canEnterContinuousMode above guarantees ordered isn't empty, so the ordered[0] fallback is
+		// belt-and-braces only.
 		const entryFilename =
 			resolveEntryChapter(
 				ordered.map((file) => file.name),
 				this.entryFilename,
 			) ?? ordered[0].name;
+		const entryFile = ordered.find((file) => file.name === entryFilename) ?? ordered[0];
+		const titles = this.numberedTitles(bookFolderName, ordered);
+		const raws = await Promise.all(ordered.map((file) => this.app.vault.read(file)));
+		if (token !== this.renderToken) return; // overtaken while reading
 
-		const scrollHost = container.createDiv({ cls: "sf-continuous-view" });
-		this.readThrough = renderContinuousReadThrough(this.app, scrollHost, this, {
-			bookFolderName,
-			ordered,
-			titleFor,
-			entryFilename,
-			onPositionChange: (filename) => emitContinuousMode(this.app, { active: true, bookFolderName, filename }),
-			onEditChapter: (file, sourceOffset, clickedTop) => void this.editChapter(file, sourceOffset, clickedTop),
-			onEditedSectionScrolledAway: (filename) => {
-				if (this.activeEdit?.filename === filename) this.commitActiveEdit();
+		// Obsidian's own editor container classes, so the manuscript picks up exactly the typography
+		// the chapter editor has — Obsidian's, the theme's, storyForge's and formatForge's — with no
+		// copied values (brief §3.12). `.view-content > .markdown-source-view.mod-cm6 > .cm-editor`
+		// is also what gives the scroller Obsidian's file margins.
+		const host = container.createDiv({ cls: "markdown-source-view mod-cm6 is-live-preview is-readable-line-width sf-manuscript" });
+		this.spine = ordered.map((file) => file.name);
+		this.entryFilename = entryFile.name;
+		this.surface = new ManuscriptSurface(host, {
+			chapters: ordered.map((file, i) => ({ file, raw: raws[i], title: titles.get(file) ?? file.basename })),
+			entryFile,
+			guides: this.plugin.manuscriptGuideSettings(),
+			// Editing is desktop only (brief §3.13); mobile opens the same surface read-only.
+			editable: Platform.isDesktopApp,
+			lockInput: !Platform.isDesktopApp,
+			onChaptersEdited: (files) => this.writer?.noteEdited(files),
+			onEditRefused: () => {
+				const now = Date.now();
+				if (now - this.lastRefusalNotice < 2000) return;
+				this.lastRefusalNotice = now;
+				new Notice("Edits can't cross a chapter break.");
 			},
-			onChapterRenamed: () => this.render(),
+			onAppendChapter: Platform.isDesktopApp ? () => void this.createChapterAfter(null) : null,
+			onTopChapterChange: (file) => {
+				this.entryFilename = file.name;
+				emitContinuousMode(this.app, { active: true, bookFolderName, filename: file.name });
+			},
+			decorateHeader: (row, label, file) => {
+				// Inert to left-click (the widget sees to that); renamed only via this right-click menu,
+				// through the same path the chapter tree uses.
+				attachInlineRename({
+					row,
+					label,
+					getCurrentTitle: () => chapterDisplayTitle(this.app, bookFolderName, file.name),
+					onCommit: async (newTitle) => {
+						await renameChapterTitle(this.app, bookFolderName, file.name, newTitle);
+						this.refreshTitles();
+					},
+					extraMenuItems: Platform.isDesktopApp
+						? [{ title: "New chapter after this", onClick: () => this.createChapterAfter(file) }]
+						: undefined,
+				});
+			},
 		});
 
-		emitContinuousMode(this.app, { active: true, bookFolderName, filename: entryFilename });
+		this.writer = new ManuscriptWriter({
+			app: this.app,
+			bookFolderName,
+			surface: this.surface,
+			ensureSessionBackup: () => this.ensureSessionBackup(),
+		});
+
+		emitContinuousMode(this.app, { active: true, bookFolderName, filename: entryFile.name });
+	}
+
+	/** Redraws the headers only: the document is untouched (brief §3.4). */
+	private refreshTitles(): void {
+		if (!this.surface || !this.bookFolderName) return;
+		const titles = this.numberedTitles(this.bookFolderName, this.surface.files());
+		this.surface.setTitles((file) => titles.get(file) ?? file.basename);
+	}
+
+	/** novel.md changed: a title, or the spine itself (placement, reorder, unplace, archive). */
+	private onBookMetadataChanged(): void {
+		if (!this.surface || !this.bookFolderName) return;
+		if (this.spineChanged()) {
+			void this.rebuildSpine();
+			return;
+		}
+		this.refreshTitles();
+	}
+
+	/** A file appeared, vanished or moved in this book's folder: the spine may have changed. */
+	private onBookFileSetChanged(file: TAbstractFile): void {
+		if (!this.surface || !this.bookFolderName) return;
+		if (bookFolderNameFromChapterPath(file.path) !== this.bookFolderName && !this.surface.files().includes(file as TFile)) return;
+		if (this.spineChanged()) void this.rebuildSpine();
 	}
 
 	/**
-	 * Click-to-edit (inline-editor research brief §2–§5): grafts a real editor into the clicked
-	 * chapter's own slot in the scroll, caret landing exactly where the reader clicked. Falls back
-	 * to opening a real editor in this leaf — leaving the continuous scroll — only if grafting isn't
-	 * available on this Obsidian build.
+	 * The spine changed (brief §3.6): flush pending saves — a chapter that has left the spine or the
+	 * vault can no longer be saved, so its unsaved text goes to a recovery file — then rebuild the
+	 * document in place, keeping the caret's chapter and offset and what's at the top of the screen.
+	 * Falls back to a full render when the book can no longer be read continuously.
 	 */
-	private async editChapter(file: TFile, sourceOffset: number, clickedTop: number): Promise<void> {
-		if (this.activeEdit?.filename === file.name) return; // already live — nothing to do
-		this.commitActiveEdit();
-		if (!this.readThrough) return;
-
-		if (graftingSupported === false) {
-			await this.openInMainPaneFallback(file, sourceOffset);
-			return;
-		}
-
-		const container = this.readThrough.lockSectionForEditing(file.name);
-		if (!container) return;
-
-		// The graft's own openFile can otherwise scroll the outer container — hold it steady around
-		// the mount (inline-editor research brief §3.1) before the more precise correction below.
-		const scrollEl = this.readThrough.getScrollElement();
-		const savedScrollTop = scrollEl.scrollTop;
-		const handle = await graftEditor(this.app, container, file, sourceOffset);
-		scrollEl.scrollTop = savedScrollTop;
-
-		if (!handle) {
-			graftingSupported = false;
-			this.readThrough.unlockSection(file.name);
-			await this.openInMainPaneFallback(file, sourceOffset);
-			return;
-		}
-		graftingSupported = true;
-
-		// Anchor the clicked paragraph back to where the reader's eye already was (research brief
-		// §7): the grafted editor's own chrome (Live Preview markers, line padding) rarely lands the
-		// caret at exactly `clickedTop`, so measure the actual gap and correct the outer scroll for
-		// it — then focus, so the editor's own scroll-into-view doesn't fight this correction (see
-		// graftEditor's doc comment for why focus is deferred to here).
-		await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
-		const cmContent = handle.view.containerEl.querySelector(".cm-content");
-		const cmView = cmContent instanceof HTMLElement ? EditorView.findFromDOM(cmContent) : null;
-		const coords = cmView?.coordsAtPos(sourceOffset);
-		if (coords) {
-			const delta = coords.top - clickedTop;
-			// A correction this large means `coordsAtPos` measured against a layout that hadn't
-			// actually settled yet (one `requestAnimationFrame` isn't a hard guarantee CM6's own
-			// measure pass has run) rather than a genuine small offset from the editor's own chrome —
-			// applying it anyway would scroll the (perfectly fine) editor off-screen, which looks
-			// exactly like the chapter having vanished. Skipping a wild delta is safer than a wrong
-			// scroll; the reader just keeps their original scroll position instead.
-			if (Math.abs(delta) < scrollEl.clientHeight) scrollEl.scrollTop += delta;
-		}
-		handle.view.editor.focus();
-
-		const onKeydown = (e: KeyboardEvent): void => {
-			if (e.key === "Escape") this.commitActiveEdit();
-		};
-		handle.view.containerEl.addEventListener("keydown", onKeydown);
-		this.activeEdit = { filename: file.name, handle, onKeydown };
+	private rebuildSpine(): Promise<void> {
+		this.spineWork = this.spineWork.then(
+			() => this.rebuildSpineNow(),
+			() => this.rebuildSpineNow(),
+		);
+		return this.spineWork;
 	}
 
-	/** Commits and tears down the one live grafted editor, if any, reverting its chapter back to
-	 * normal virtualised rendering. Idempotent — safe to call whether or not one is currently live. */
-	private commitActiveEdit(): void {
-		if (!this.activeEdit) return;
-		const { filename, handle, onKeydown } = this.activeEdit;
-		this.activeEdit = null;
-		handle.view.containerEl.removeEventListener("keydown", onKeydown);
-		handle.destroy();
-		this.readThrough?.unlockSection(filename);
+	private async rebuildSpineNow(): Promise<void> {
+		const token = this.renderToken;
+		await this.flushPending();
+		if (token !== this.renderToken || !this.surface || !this.bookFolderName) return;
+		const { ordered } = getBookChapters(this.app, this.bookFolderName);
+		if (!canEnterContinuousMode(ordered.length)) {
+			await this.render();
+			return;
+		}
+		const surface = this.surface;
+		const titles = this.numberedTitles(this.bookFolderName, ordered);
+		const raws = await Promise.all(ordered.map((file) => (surface.has(file) ? null : this.app.vault.read(file))));
+		if (token !== this.renderToken || this.surface !== surface) return;
+		this.spine = ordered.map((file) => file.name);
+		surface.rebuild(ordered.map((file, i) => ({ file, raw: raws[i], title: titles.get(file) ?? file.basename })));
+		const focus = this.pendingFocus && ordered.find((file) => file.name === this.pendingFocus);
+		if (focus) {
+			this.pendingFocus = null;
+			surface.focusChapter(focus);
+		}
 	}
 
-	/** The pre-graft behaviour, kept as the fallback when grafting isn't available: opens a real
-	 * editor in this same leaf, caret at the exact clicked position — this does leave the continuous
-	 * scroll, unlike the grafted path, but is still a real, fully-featured Obsidian editor rather
-	 * than nothing at all. */
-	private async openInMainPaneFallback(file: TFile, sourceOffset: number): Promise<void> {
-		await this.leaf.openFile(file, { active: true });
-		this.app.workspace.setActiveLeaf(this.leaf, { focus: true });
-		const view = this.leaf.view;
-		if (view instanceof MarkdownView) {
-			view.editor.setCursor(view.editor.offsetToPos(sourceOffset));
-			view.editor.focus();
-		}
+	private spineChanged(): boolean {
+		if (!this.bookFolderName) return false;
+		const { ordered } = getBookChapters(this.app, this.bookFolderName);
+		const next = ordered.map((file) => file.name);
+		return next.length !== this.spine.length || next.some((name, i) => name !== this.spine[i]);
+	}
+
+	/** A chapter of this book was modified elsewhere: bring its text in from disk (brief §3.6).
+	 * bookFolderNameFromChapterPath rejects the vast majority of vault-wide writes in O(1). */
+	private async onChapterModified(file: TAbstractFile): Promise<void> {
+		if (!(file instanceof TFile) || !this.surface || !this.bookFolderName) return;
+		if (bookFolderNameFromChapterPath(file.path) !== this.bookFolderName) return;
+		if (!this.surface.has(file)) return;
+		const writer = this.writer;
+		const raw = await this.app.vault.read(file);
+		if (writer && writer === this.writer) await writer.onDiskChanged(file, raw);
 	}
 }

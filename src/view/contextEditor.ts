@@ -4,9 +4,8 @@ import { mountLeafEditor, type GraftedEditorHandle } from "./graftedEditor";
 export type ContextEditorHandle = GraftedEditorHandle;
 
 /**
- * Story Context notebook-page / codex-page editor. Same WorkspaceLeaf graft as continuous
- * click-to-edit, but a separate CSS class (`.sf-context-editor`) so those panes never pick up
- * `.sf-grafted-editor` rules written for the centre-pane continuous scroll.
+ * Story Context notebook-page / codex-page editor: the WorkspaceLeaf graft from graftedEditor.ts,
+ * mounted under its own CSS class (`.sf-context-editor`).
  *
  * `active: false` keeps the chapter in the centre pane as the workspace's active file.
  */

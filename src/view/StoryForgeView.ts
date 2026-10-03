@@ -1,4 +1,4 @@
-import { ItemView, Notice, setIcon, setTooltip, TFile, WorkspaceLeaf } from "obsidian";
+import { ItemView, MarkdownView, Notice, setIcon, setTooltip, TFile, WorkspaceLeaf } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { bookFolderNameFromChapterPath, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath } from "../paths";
 import { getSeriesBooks } from "../series";
@@ -878,13 +878,18 @@ export class StoryForgeView extends ItemView {
 		if (!this.closed) this.render();
 	}
 
-	/** The sidebar's "exit continuous mode" control: replaces the read view's own leaf with a real
-	 * single-chapter editor on whichever chapter it's currently centred on (hand-off brief §2.4). */
+	/** The sidebar's "exit continuous mode" control: replaces the manuscript's own leaf with the
+	 * normal chapter editor — on the caret's chapter, caret at the same place in the file, when the
+	 * caret is on screen; otherwise on the chapter at the top of the screen (manuscript brief §3.7). */
 	private async exitContinuousRead(bookFolderName: string): Promise<void> {
 		const leaf = this.findContinuousReadLeaf(bookFolderName);
-		const filename = leaf ? (leaf.view as ContinuousReadView).getCurrentFilename() : null;
-		if (!leaf || !filename) return;
-		const path = libraryChapterPath(bookFolderName, filename);
+		if (!leaf) return;
+		const manuscript = leaf.view as ContinuousReadView;
+		// Saved before the normal editor reads the file, so it opens on the author's latest text.
+		await manuscript.flushPending();
+		const target = manuscript.getExitTarget();
+		if (!target) return;
+		const path = libraryChapterPath(bookFolderName, target.filename);
 		const file = this.app.vault.getAbstractFileByPath(path);
 		if (!(file instanceof TFile)) return;
 		await leaf.openFile(file, { active: true });
@@ -892,6 +897,11 @@ export class StoryForgeView extends ItemView {
 		// workspace can still consider the sidebar (or nothing) active, which is what was behind
 		// the stale toggle/indicator: active-leaf-change never fired the way a normal file-open would.
 		this.app.workspace.setActiveLeaf(leaf, { focus: true });
+		if (target.offset !== null && leaf.view instanceof MarkdownView) {
+			const editor = leaf.view.editor;
+			editor.setCursor(editor.offsetToPos(target.offset));
+			editor.scrollIntoView({ from: editor.getCursor(), to: editor.getCursor() }, true);
+		}
 		// Same reasoning as openContinuousRead(): re-render immediately rather than wait for events,
 		// so the toggle reverts to its normal icon and the window becomes clickable again straight away.
 		if (!this.closed) this.render();

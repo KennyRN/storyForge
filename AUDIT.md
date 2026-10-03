@@ -132,3 +132,12 @@ Given the plugin's core promise is non-destructive editing of an existing vault,
 - `manifest.json` — `id`, `name`, `minAppVersion` (1.11.0, matches `versions.json`), and `isDesktopOnly: false` are all correct and consistent with what the code actually does.
 - `package.json` — dependencies are minimal and reasonable (no runtime dependencies at all, consistent with the plugin's plain-markdown philosophy). No `lint` script or CI workflow (see §7). No `test:coverage` script, which would help quantify the gaps in §8.
 - **Plugin-review scanner: "Vault Enumeration"** — `vault.adapter.list()` in `backup.ts` is intentional, scoped to that one file, writes zips only to `_sf-backup/` via the Obsidian vault API (no Node `fs`), always excludes `_sf-backup/` from the zip itself, and is documented in README.md's "Privacy and vault access" section.
+
+---
+
+## 10. Open live checks — continuous mode's manuscript editor
+
+Added 2026-10-03. Continuous mode's manuscript editor (`src/view/manuscript/`, branch `continuous-manuscript-editor`, commits c845eb5..5238bb6) passed all four live hold points on desktop macOS. Two items from its brief's definition of done couldn't be checked with the hardware available, and stay open until someone can:
+
+- [ ] **Book-length performance.** Continuous mode opens a book of about 150,000 words in under a second on desktop, and typing stays smooth with both the depth and cycling guides on. What should keep it fast: CodeMirror renders only the viewport, the guides and prose dressing decorate only visible chapters/lines, and an edit recounts only the chapter it touches ([manuscriptGuides.ts](src/view/manuscript/manuscriptGuides.ts) `refreshTouched`). What could still cost time: opening reads every placed chapter with `vault.read` before the editor appears ([ContinuousReadView.ts](src/view/ContinuousReadView.ts) `render`), and header decorations are rebuilt on every keystroke, O(chapters) ([manuscriptHeaders.ts](src/view/manuscript/manuscriptHeaders.ts)).
+- [ ] **Mobile, read-only.** On a phone or tablet the manuscript opens read-only (`Platform.isDesktopApp` false: `EditorState.readOnly` plus `EditorView.editable` off, so no on-screen keyboard) with no errors; headers, numbering, the depth and cycling guides, prose dressing, the sidebar's position indicator and transport, and exit all work; the right-click menu's 'New chapter after this', the end-of-manuscript control and the 'New chapter after this one' command don't appear. `isDesktopOnly` stays false.

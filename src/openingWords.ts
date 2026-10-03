@@ -1,6 +1,6 @@
 import { App, editorInfoField } from "obsidian";
 import { EditorView, ViewPlugin, ViewUpdate } from "@codemirror/view";
-import { countWordsInLine } from "./wordCount";
+import { findOpeningWordsBoundary } from "./openingWordsRegion";
 import { isChapterEditor } from "./cyclingGuide";
 import { bookFolderNameFromChapterPath, chapterFilenameFromPath } from "./paths";
 import { getBookChapters } from "./book";
@@ -13,44 +13,17 @@ const HEIGHT_PROP = "--sf-opening-words-height";
 const OFFSET_PROP = "--sf-opening-words-offset";
 
 /**
- * Last CM6 line number of the paragraph containing the `targetWords`-th word - i.e. the boundary is
- * pushed forward to the next blank line (or the end of the document) rather than cutting a paragraph
- * in half. Returns null if the chapter doesn't have `targetWords` words yet.
- */
-function findOpeningWordsEndLine(view: EditorView, targetWords: number): number | null {
-	const doc = view.state.doc;
-	let cumulative = 0;
-	let crossingLine = -1;
-	for (let i = 1; i <= doc.lines; i++) {
-		cumulative += countWordsInLine(doc.line(i).text);
-		if (cumulative >= targetWords) {
-			crossingLine = i;
-			break;
-		}
-	}
-	if (crossingLine === -1) return null;
-
-	let endLine = crossingLine;
-	while (endLine < doc.lines && doc.line(endLine + 1).text.trim() !== "") {
-		endLine++;
-	}
-	return endLine;
-}
-
-/**
- * Document-space height (from the top of the chapter) of the "opening words" region, extended past
- * `endLine` (the paragraph's last line of actual text) through any blank separator line(s) to wherever
- * the next paragraph's real text starts - or the end of the document - so nothing unpatterned sits
- * between the region and the rest of the (intentionally plain) manuscript.
+ * Document-space height (from the top of the chapter) of the "opening words" region: through the
+ * end of the paragraph holding the `targetWords`-th word, then on through any blank separator
+ * line(s) to wherever the next paragraph's real text starts - or the end of the document - so
+ * nothing unpatterned sits between the region and the rest of the (intentionally plain) manuscript.
+ * The rule itself lives in openingWordsRegion.ts, shared with the manuscript editor.
  */
 function findOpeningWordsRegionHeight(view: EditorView, targetWords: number): number | null {
-	const endLine = findOpeningWordsEndLine(view, targetWords);
-	if (endLine === null) return null;
-
 	const doc = view.state.doc;
-	let nextTextLine = endLine + 1;
-	while (nextTextLine <= doc.lines && doc.line(nextTextLine).text.trim() === "") nextTextLine++;
-	return nextTextLine <= doc.lines ? view.lineBlockAt(doc.line(nextTextLine).from).top : view.contentHeight;
+	const boundary = findOpeningWordsBoundary(doc.lines, (i) => doc.line(i).text, targetWords);
+	if (boundary === null) return null;
+	return boundary.nextTextLine !== null ? view.lineBlockAt(doc.line(boundary.nextTextLine).from).top : view.contentHeight;
 }
 
 /**

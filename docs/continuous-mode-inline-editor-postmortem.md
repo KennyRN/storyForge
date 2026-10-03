@@ -1522,3 +1522,26 @@ The failure modes here are all silent, so test the mechanism directly rather tha
 
 Then: scroll from chapter 1 through the edited chapter to chapter 3 in one continuous gesture with no stall at the boundaries; confirm no `.cm-gap` is ever visible as blank space; confirm the clicked paragraph stays put on entry; and confirm a chapter longer than a few screens still renders correctly when entered near its end, which is the case Attempt B silently broke.
 ```
+
+---
+
+## Closing note — superseded by the manuscript editor (2026-10-03)
+
+Nothing above was resumed. Kenny's brief of 1 October 2026, 'continuous mode as a manuscript
+editor', replaced this approach wholesale rather than finishing it, on the grounds that the
+failure was architectural: every click tore down one rendering system and built a whole Obsidian
+pane in its place, inside a scroll that was reacting to the height change.
+
+Continuous mode is now one storyForge-owned CodeMirror 6 editor holding every placed chapter of
+the book as protected sections of a single document (`src/view/manuscript/`, with its DOM-free
+model and rules in `src/manuscript/`). Reading, editing and writing are the same surface, so there
+is no swap, no pane inside a block, and the browser places the caret natively on the character
+clicked. It uses public API only. Prose saves go through a single guarded entry point in
+`src/writeGuard.ts` (`writeManuscriptChapterBody`).
+
+Built on branch `continuous-manuscript-editor` in nine commits, from c845eb5 ('Manuscript editor
+1/9') to 'Manuscript editor 9/9', which removed what this document describes:
+`ContinuousReadThrough.ts`, `clickToCaret.ts`, `clickToEditDom.ts` and their tests,
+`graftEditor()`, the edit plumbing in `ContinuousReadView.ts`, and every `.sf-grafted-editor` rule.
+`mountLeafEditor` in `graftedEditor.ts` stays, because Story Context's notebook and codex editors
+still use it. §9's 're-enable' instructions no longer apply: there is nothing left to re-enable.

@@ -14,6 +14,9 @@
 	},
 	"license": "MIT",
 	"devDependencies": {
+		"@codemirror/commands": "6.10.2",
+		"@codemirror/language": "^6.12.4",
+		"@codemirror/search": "^6.7.2",
 		"@types/node": "^20.11.0",
 		"esbuild": "^0.20.0",
 		"obsidian": "latest",
