@@ -6223,13 +6223,6 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	overflow-y: auto;
 }
 
-.sf-navigator-continuous-host {
-	display: flex;
-	flex-direction: column;
-	flex: 1;
-	min-height: 0;
-}
-
 /* Redundant chrome on Story Context's grafted editors (contextEditor.ts): a single-tab leaf has
  * nothing worth a tab strip, inline title, or metadata block. */
 .sf-context-editor .view-header,
