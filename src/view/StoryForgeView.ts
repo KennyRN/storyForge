@@ -25,6 +25,7 @@ import { WordCountModal } from "./WordCountModal";
 import { ChapterTitleModal } from "./ChapterTitleModal";
 import { isDragInProgress } from "./dragLock";
 import { makeAccessibleActivatable } from "./a11y";
+import { disposeInkSliders } from "./inkSlider";
 import { layoutConfig, SF_LAYOUTS, SF_LAYOUT_LABELS, type SfLayout } from "../layout";
 import { createContinuingChapter } from "../chapterCreation";
 import { getBookChapters } from "../book";
@@ -226,6 +227,7 @@ export class StoryForgeView extends ItemView {
 		this.closed = true;
 		this.debouncedRender.cancel();
 		this.continuousCleanup?.();
+		disposeInkSliders(["library-codex-tags", "storytelling-codex-tags", "storytelling-continuous"]);
 	}
 
 	/** The read view's leaf open on `bookFolderName`, if any — used both to know whether continuous
@@ -509,6 +511,7 @@ export class StoryForgeView extends ItemView {
 					this.vaultTagFilter = next;
 					this.render();
 				},
+				tagInkKey: "library-codex-tags",
 				onOpenFile: (path) => void this.openCodexFile(path),
 				// Types/tags corner lives on the full-pane Codex tab (the only layout that still
 				// shows Codex).
@@ -638,6 +641,7 @@ export class StoryForgeView extends ItemView {
 				this.vaultTagFilter = next;
 				this.render();
 			},
+			tagInkKey: "storytelling-codex-tags",
 			onOpenFile: (path) => void this.openCodexFile(path),
 		});
 

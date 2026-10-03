@@ -55,10 +55,10 @@ import { iconAction, renderMetaRefList, renderNovelPanel } from "./NovelPanel";
 import { resolveMainThreadRowColor } from "./novelColor";
 import { resolveTitleShadow } from "../titleShadow";
 import { isStoryContextTabActive, type StoryContextTab } from "./storyContextTabActive";
-import { storytellingCodexOpenTarget } from "./codexOpenTarget";
+import { storytellingCodexClickAction, storytellingCodexOpenTarget } from "./codexOpenTarget";
 import { displayedVaultTags } from "../vaultTags";
 import { countWords, formatWordCount } from "../wordCount";
-import { NotebookInkIndicator } from "./notebookInk";
+import { disposeInkSliders, inkSlider } from "./inkSlider";
 
 /** Workspace view-type id. The string is historical (`storyContext-view`) so existing layouts restore. */
 export const STORY_CONTEXT_VIEW_TYPE = "storyforge-storyContext-view";
@@ -100,8 +100,6 @@ export class StoryContextView extends ItemView {
 	/** Story Context Notebook split only (not Focus Mode): Codex editor, notes, or Dossier. Codex by
 	 * default; the tab keeps whichever the user last picked. */
 	private notebookIndexKind: NotebookIndexKind = "codex";
-	/** Sliding indicator beside the Notebook/Archive source rail's active icon (see notebookInk.ts). */
-	private readonly notebookInk = new NotebookInkIndicator();
 	private collapsedCodexFolders = new Set<string>();
 	private activeCodexFolderId: string | null = null;
 	private notebookCodexTypeFilter = new Set<string>();
@@ -200,7 +198,7 @@ export class StoryContextView extends ItemView {
 		this.disposeForgeFamilyPanel();
 		this.disposeIdeaEditor();
 		this.disposeCodexEditor();
-		this.notebookInk.release();
+		disposeInkSliders(["notebook-source", "archive-source", "notebook-codex-tags", "archive-codex-tags"]);
 	}
 
 	/** main.ts's registerCompanionPanel() nudge: a companion panel just registered/unregistered
@@ -311,11 +309,17 @@ export class StoryContextView extends ItemView {
 	/**
 	 * storytelling mode's Codex lore click (StoryForgeView.ts): show the note in Focus Mode's
 	 * `.sf-codex-page` instead of replacing the chapter in the center pane. Returns false when
-	 * this panel isn't in Focus Mode, so the caller can fall through to a normal open.
+	 * this panel isn't in Focus Mode, so the caller can fall through to a normal open. Re-clicking
+	 * the lore already shown there (its highlighted row) closes the page instead.
 	 */
 	openCodexLore(path: string): boolean {
 		if (storytellingCodexOpenTarget(this.focusMode) !== "codex-page") return false;
-		if (this.showingCodexPage && this.selectedCodexPath === path && this.codexEditorHandle) return true;
+		if (storytellingCodexClickAction(this.codexPagePath(), path) === "close") {
+			this.clearCodexPage();
+			this.render(true);
+			this.syncTabHeader();
+			return true;
+		}
 		this.showingCodexPage = true;
 		this.selectedCodexPath = path;
 		this.ideaShelfExpanded = false;
@@ -518,8 +522,6 @@ export class StoryContextView extends ItemView {
 		this.disposeCodexEditor();
 		const headerEl = this.tabHeaderEl();
 		if (headerEl) this.decorateTabHeader(headerEl);
-		// Before the old rail goes: lets a rebuilt Notebook rail slide its bar on from here.
-		this.notebookInk.release();
 		const el = this.contentEl;
 		el.empty();
 		el.addClass("sf-story-context-view");
@@ -1015,7 +1017,13 @@ export class StoryContextView extends ItemView {
 		this.notebookPageEl = page;
 		const index = split.createDiv({ cls: "sf-notebook-index" });
 		renderArchiveIndex(index, this.archiveHost());
-		this.notebookInk.mount("archive", rail, page);
+		inkSlider("archive-source").mount({
+			container: rail,
+			buttons: ".sf-notebook-source-btn",
+			span: page,
+			variant: "source",
+			observe: [split, page],
+		});
 		void this.mountIdeaEditor();
 	}
 
@@ -1036,6 +1044,7 @@ export class StoryContextView extends ItemView {
 		setTooltip(btn, label);
 		const select = () => {
 			if (this.archiveMode === mode) return;
+			inkSlider("archive-source").capture();
 			this.archiveMode = mode;
 			this.selectedArchiveKey = null;
 			this.archiveTypeFilter = new Set();
@@ -1087,7 +1096,15 @@ export class StoryContextView extends ItemView {
 		if (usesCodexIndex) this.renderNotebookCodexIndex(index);
 		else this.renderNotebookNotesIndex(index, showTypesCorner);
 		// After the index, whose height sets the page's: the track spans the page.
-		if (rail) this.notebookInk.mount("notebook", rail, page);
+		if (rail) {
+			inkSlider("notebook-source").mount({
+				container: rail,
+				buttons: ".sf-notebook-source-btn",
+				span: page,
+					variant: "source",
+				observe: [split, page],
+			});
+		}
 		if (indexKind === "dossier") this.renderNotebookDossierPage(page);
 		else void this.mountIdeaEditor();
 	}
@@ -1114,6 +1131,7 @@ export class StoryContextView extends ItemView {
 		setTooltip(btn, label);
 		const select = () => {
 			if (this.notebookIndexKind === kind) return;
+			inkSlider("notebook-source").capture();
 			this.notebookIndexKind = kind;
 			if (kind === "dossier") {
 				this.disposeIdeaEditor();
@@ -1192,6 +1210,7 @@ export class StoryContextView extends ItemView {
 				this.notebookCodexTagFilter = next;
 				this.render(true);
 			},
+			tagInkKey: "notebook-codex-tags",
 			onOpenFile: (path) => {
 				this.selectedCodexPath = path;
 				if (this.notebookIndexKind === "dossier") void this.loadDossierForSelectedCodex();
