@@ -1262,23 +1262,34 @@ body.sf-codex-drag-active *:not(#storyforge-specificity-boost) {
    Pattern itself is pattern.css's diagonal-lines-sm, as a *repeating* gradient (not the tiled
    background-size version .sf-synopsis-cover above uses) so the band can be cut off at the region's
    exact height without a partial tile: 23px period, 2px line. */
-.cm-scroller.sf-opening-words-active {
-	background-image: repeating-linear-gradient(45deg,
+.cm-scroller.sf-opening-words-active,
+.cm-scroller.sf-manuscript-depth-active {
+	--sf-opening-words-pattern: repeating-linear-gradient(45deg,
 		var(--sf-opening-words-pattern-line) 0px, var(--sf-opening-words-pattern-line) 2px,
 		transparent 2px, transparent 23px);
 	background-attachment: scroll;
 	background-origin: border-box;
 	background-clip: border-box;
 	background-repeat: no-repeat;
+}
+
+.cm-scroller.sf-opening-words-active {
+	background-image: var(--sf-opening-words-pattern);
 	background-size: 100% var(--sf-opening-words-height, 0px);
 	background-position: 0 var(--sf-opening-words-offset, 0px);
 }
 
-.theme-dark .cm-scroller.sf-opening-words-active {
+/* The manuscript editor (view/manuscript/manuscriptGuides.ts) paints the same band at every chapter
+   start: one background layer per band on or near screen, each layer's size and position written
+   inline from the heightmap as it scrolls - the same box-pinned technique as above, generalised. */
+
+.theme-dark .cm-scroller.sf-opening-words-active,
+.theme-dark .cm-scroller.sf-manuscript-depth-active {
 	--sf-opening-words-pattern-line: color-mix(in srgb, var(--background-modifier-border) 90%, white 10%);
 }
 
-.theme-light .cm-scroller.sf-opening-words-active {
+.theme-light .cm-scroller.sf-opening-words-active,
+.theme-light .cm-scroller.sf-manuscript-depth-active {
 	--sf-opening-words-pattern-line: color-mix(in srgb, var(--background-modifier-border) 90%, black 10%);
 }
 
@@ -6252,141 +6263,13 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	overflow-y: auto;
 }
 
-.sf-navigator-continuous-host {
-	display: flex;
-	flex-direction: column;
-	flex: 1;
-	min-height: 0;
-}
-
-.sf-continuous-scroll {
-	flex: 1;
-	min-height: 0;
-	overflow-y: auto;
-	padding-right: 4px;
-}
-
-.sf-continuous-chapter {
-	margin-bottom: 28px;
-}
-
-.sf-continuous-header {
-	display: flex;
-	align-items: center;
-	font-weight: 600;
-	margin-bottom: 8px;
-	color: var(--sf-lib-items-color, var(--text-normal));
-}
-
-/* Right-click rename (hand-off brief §2.7) swaps the label span for an <input> here — flex:1
- * on .sf-rename-input needs a flex parent to actually fill the header's width. */
-.sf-continuous-header .sf-rename-input {
-	font-weight: 600;
-}
-
-.sf-continuous-body {
-	min-height: 1.5em;
-}
-
-/* Click-to-edit's grafted inline editor (graftedEditor.ts) — a real WorkspaceLeaf/MarkdownView
- * spliced into an ordinary content-flow <div>, not Obsidian's own absolutely-positioned workspace
- * chrome. `.sf-grafted-editor` is continuous-mode only. Story Context notebook/codex pages mount
- * under `.sf-context-editor` (contextEditor.ts) and do not use these rules.
- *
- * Content-sized, not a bounded box with its own scrollbar (tried first, reverted for feeling like
- * a foreign nested pane — position jump on entry, mismatched typography, and the outer continuous
- * scroll refusing to move until the box's own scroll was exhausted). CodeMirror 6 decides what to
- * render by intersecting with the nearest ancestor that is *actually overflowing* and whose
- * computed `overflow` isn't `visible` (its own `visiblePixelRange`) — it already walks up past this
- * graft to `.sf-continuous-scroll` and attaches a native scroll listener there, so no bridging code
- * is needed to make it treat the outer scroll as its viewport. The only thing stopping it were two
- * clippers this stylesheet itself was creating: `.sf-grafted-editor`'s own declared height, and
- * Obsidian's stock `.cm-scroller { overflow-x: auto }` rule (the CSS Overflow spec blockifies a
- * paired `overflow-y: visible` into `auto`, so `overflow: visible` alone never actually removed it).
- * Every rule below removes one such clipper so the graft renders content-sized and lets the outer
- * scroll do the work, the same way Obsidian's own single-file editor uses the window as its
- * viewport. */
-.sf-continuous-scroll .sf-grafted-editor .workspace-leaf {
-	/* `all: unset` here (tried, reverted) also wiped Obsidian's own `flex: 1 0 0px` — the rule that
-	 * gives every leaf its *width*, by ignoring its own content size (`flex-basis: 0px`) and filling
-	 * whatever `flex-grow: 1` hands it from the row-direction split. With that gone, nothing below
-	 * had a real width to resolve CM6's own percentage flex-bases against, and the whole chapter
-	 * collapsed to an ~11px sliver instead of the zero-height box from before — same failure, the
-	 * other axis. Leaving `flex` alone and overriding `min-height` fixed width without breaking it.
-	 *
-	 * That min-height alone still wasn't enough, though — confirmed live via getComputedStyle:
-	 * Obsidian sets `contain: strict` on every `.workspace-leaf` (size + layout + style + paint
-	 * containment, almost certainly a performance guard for the many-tabs case). Size containment
-	 * makes the browser compute intrinsic sizes — `auto`, `min-content`, `max-content` — as if the
-	 * element had *no content at all*, no matter what's actually inside, so `min-height: min-content`
-	 * was measuring against a phantom empty box the whole time. This is also, in hindsight, exactly
-	 * why the very first bounded-height fix (`height: 70vh`) ever worked at all: `vh` resolves to a
-	 * concrete pixel value, never touching intrinsic sizing, so it was the one value in this whole
-	 * saga that `contain: strict` couldn't quietly defeat. Dropping just the `size` component here
-	 * (keeping layout/style/paint, whatever they're for) lets height be computed from content again
-	 * — scoped to this one synthetic leaf, so none of Obsidian's real tabs lose the optimisation. */
-	contain: layout style paint;
-	min-height: min-content;
-}
-.sf-continuous-scroll .sf-grafted-editor .workspace-leaf-content,
-.sf-continuous-scroll .sf-grafted-editor .view-content,
-.sf-continuous-scroll .sf-grafted-editor .markdown-source-view,
-.sf-continuous-scroll .sf-grafted-editor .cm-editor,
-.sf-continuous-scroll .sf-grafted-editor .cm-scroller {
-	height: auto;
-}
-.sf-continuous-scroll .sf-grafted-editor .workspace-leaf-content,
-.sf-continuous-scroll .sf-grafted-editor .view-content,
-.sf-continuous-scroll .sf-grafted-editor .markdown-source-view {
-	/* Obsidian's stock CSS clips these (delegating scrolling entirely to `.cm-scroller`) for the
-	 * normal window-filling case. Grafted with no definite height above, that non-`visible` overflow
-	 * trips a second, unrelated collapse: a flex item's *automatic* minimum size — the floor it gets
-	 * when no author `min-height` is set — resolves to 0 instead of its content size whenever the
-	 * item's own overflow isn't `visible` (CSS Flexbox §4.5's "automatic minimum size"). `overflow:
-	 * visible` (the shorthand, both axes, same blockification reason as `.cm-scroller` below) removes
-	 * the trigger; `min-height: min-content` is belt-and-braces against the same rule for whichever
-	 * of these three turns out to actually be the flex item. */
-	overflow: visible;
-	min-height: min-content;
-}
-.sf-continuous-scroll .sf-grafted-editor .cm-editor {
-	/* Obsidian's stock CSS sets `min-height: 100%` here for the normal, window-filling case. */
-	min-height: auto;
-}
-.sf-continuous-scroll .sf-grafted-editor .cm-scroller {
-	/* The shorthand, not `overflow-y: clip` alone — see the block comment above: a lone `clip` axis
-	 * paired with a still-scrolling one gets blockified right back into a scroll container. */
-	overflow: clip;
-	/* `clip` is itself a non-`visible` value, so without this the same automatic-minimum-size-is-0
-	 * flex rule described above now hits the scroller *because of the very change that stops it
-	 * clipping* — this is the fix for the chapter going blank again once `overflow: clip` landed. */
-	min-height: min-content;
-}
-.sf-continuous-scroll .sf-grafted-editor .view-content {
-	/* Otherwise reads as a distinct panel now that the box no longer has its own bounded height to
-	 * visually justify one (research brief §8). */
-	background: none;
-}
-
-/* Redundant chrome on grafted / context editors: a single-tab leaf has nothing worth a tab
- * strip, inline title, or metadata block. */
-.sf-grafted-editor .view-header,
-.sf-grafted-editor .workspace-tab-header-container,
-.sf-grafted-editor .inline-title,
-.sf-grafted-editor .metadata-container,
+/* Redundant chrome on Story Context's grafted editors (contextEditor.ts): a single-tab leaf has
+ * nothing worth a tab strip, inline title, or metadata block. */
 .sf-context-editor .view-header,
 .sf-context-editor .workspace-tab-header-container,
 .sf-context-editor .inline-title,
 .sf-context-editor .metadata-container {
 	display: none;
-}
-/* Obsidian's own click-to-append affordance below the last line — no purpose mid-scroll, and
- * otherwise reads as a large gap before the next chapter. Deliberately not touching `.cm-content`'s
- * own padding-bottom: CM6 writes that one as an inline style to reserve space for virtualised lines
- * still below the viewport, and any author rule fighting it there (worse, an `!important` one)
- * breaks the scroll math the moment a chapter is too long to render in full. */
-.sf-continuous-scroll .sf-grafted-editor .cm-sizer {
-	padding-bottom: 0;
 }
 
 /* Continuous mode's own view (ContinuousReadView.ts) — the manuscript belongs in the main editor
@@ -6398,21 +6281,52 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	overflow: hidden;
 }
 
-.sf-continuous-view {
-	display: flex;
-	flex-direction: column;
-	flex: 1;
+/* The manuscript editor (manuscript/ManuscriptSurface.ts). Its host carries Obsidian's own editor
+ * container classes, so typography, margins and line width come from Obsidian's rules for
+ * `.markdown-source-view.mod-cm6` exactly as in the chapter editor — nothing here restates them.
+ * This only lets the host fill the view; the editor inside scrolls itself. */
+.storyforge-continuous-view > .sf-manuscript {
+	flex: 1 1 auto;
 	min-height: 0;
-	padding: 24px 32px;
-	gap: 14px;
 }
 
-/* A comfortable reading column, centred in the (now much wider) main pane rather than stretched
- * edge to edge — this view holds only the manuscript, no controls (see CodexFocusNavigator.ts). */
-.sf-continuous-view .sf-continuous-scroll {
+/* Chapter headers: block widgets, not document text. Obsidian forces `display: block` and zero
+ * margins on direct children of `.cm-content`, so spacing is padding. */
+.sf-manuscript .sf-manuscript-header {
+	padding: 2.5em 0 0.75em;
+	font-weight: 600;
+	color: var(--sf-lib-items-color, var(--text-normal));
+	cursor: default;
+	user-select: none;
+}
+
+.sf-manuscript .sf-manuscript-header-first {
+	padding-top: 0;
+}
+
+.sf-manuscript .sf-manuscript-header .sf-rename-input {
+	font-weight: 600;
 	width: 100%;
-	max-width: 46em;
-	margin: 0 auto;
+}
+
+/* The quiet control after the last chapter, which appends a new one (manuscriptHeaders.ts). */
+.sf-manuscript .sf-manuscript-append {
+	padding: 2.5em 0 3em;
+	text-align: center;
+	user-select: none;
+}
+
+.sf-manuscript .sf-manuscript-append-button {
+	display: inline-flex;
+	color: var(--text-faint);
+	opacity: 0.6;
+	cursor: pointer;
+}
+
+.sf-manuscript .sf-manuscript-append-button:hover,
+.sf-manuscript .sf-manuscript-append-button:focus-visible {
+	color: var(--text-muted);
+	opacity: 1;
 }
 
 /* ── Series overview (SeriesOverviewView.ts) ──

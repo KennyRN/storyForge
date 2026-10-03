@@ -42,7 +42,15 @@ On the right there's more options. There's a blank tab to hide things on the rig
 Also over here, there's the Archive section. As storyForge cannot delete files within your codex or library, this is where you can have them hidden, unseen unless one day you want to go back to them. (To add files to the archive, right click on the chapter or codex lore item and select archive.)
 
 ## Privacy and vault access
-storyForge writes only inside `_backstage/storyforge/` (plugin state) and `_sf-backup/` (backup zips) — plus two narrow exceptions at the story library's root, `series.md` and each book's `novel-<code>.md`, which describe your novels without being manuscript prose themselves. There's no code path anywhere in the plugin that writes to your existing prose, codex, or any other vault content: the only writes are for creating new files, renaming codex files (for wikilink purposes), and in the backstage, backup, and those two library-root metadata paths.
+storyForge writes only inside `_backstage/storyforge/` (plugin state) and `_sf-backup/` (backups and recovery files) — plus two narrow exceptions at the story library's root, `series.md` and each book's `novel-<code>.md`, which describe your novels without being manuscript prose themselves. Beyond that, the only writes are for creating new files, renaming codex files (for wikilink purposes), and saving what you type in continuous mode.
+
+storyForge never writes prose on its own initiative. The one time it writes to a chapter is when you type in continuous mode, where it saves your own typing — and nothing else — through a single guarded path:
+- **Only your book's placed chapters.** It saves only to chapter files on the spine of the book open in continuous mode. It refuses everything else: unplaced and archived chapters, other books, your codex, and the rest of your vault.
+- **Never over a file that changed elsewhere.** Before each save it checks the chapter file still holds what continuous mode last saw. If something else changed it in the meantime (a normal editor tab, sync, another plugin), the file on disk is left exactly as it is, and what you'd typed goes to a recovery file in `_sf-backup/recovery/` instead, with a notice telling you where. Nothing is merged and nothing is overwritten.
+- **A backup first.** Before the first save of each continuous-mode session, storyForge takes a backup zip into `_sf-backup/`.
+- **Nothing unchanged.** A chapter you don't edit is never written, and frontmatter and line endings are kept exactly as they were.
+
+On mobile, continuous mode is read-only and writes nothing.
 
 If you're running an automated security/behavior scan against storyForge, here's what it'll likely flag and why:
 - **Vault enumeration** (recommendation): building a backup zip requires walking vault folders via Obsidian's `vault.adapter.list()` API. That happens only in `src/backup.ts`, only when a backup runs, and never uploads anything. The plugin does **not** use Node's `fs` module or write outside the vault.

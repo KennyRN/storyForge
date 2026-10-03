@@ -6,6 +6,7 @@ import { createOpeningWordsBackground } from "./openingWords";
 import { StoryForgeView, STORYFORGE_VIEW_TYPE } from "./view/StoryForgeView";
 import { LEGACY_STORYTELLING_VIEW_TYPE, mapLegacyLeftRailViewType, storytellingModeForAutoFocus } from "./view/leftPanelMode";
 import { ContinuousReadView, STORYFORGE_CONTINUOUS_VIEW_TYPE } from "./view/ContinuousReadView";
+import type { ManuscriptGuideSettings } from "./view/manuscript/ManuscriptSurface";
 import { SeriesOverviewView, STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE } from "./view/SeriesOverviewView";
 import { NovelOverviewView, STORYFORGE_NOVEL_OVERVIEW_VIEW_TYPE } from "./view/NovelOverviewView";
 import { NewChapterView, STORYFORGE_NEW_CHAPTER_VIEW_TYPE } from "./view/NewChapterView";
@@ -957,6 +958,18 @@ export default class StoryForgePlugin extends Plugin {
 		});
 
 		this.addCommand({
+			id: "new-chapter-after-this-one",
+			name: "New chapter after this one",
+			// Continuous mode's manuscript editor only: after the caret's chapter (manuscript brief §3.10).
+			checkCallback: (checking) => {
+				const manuscript = this.app.workspace.getActiveViewOfType(ContinuousReadView);
+				if (!manuscript || !manuscript.canCreateChapters()) return false;
+				if (!checking) void manuscript.createChapterAfterCaret();
+				return true;
+			},
+		});
+
+		this.addCommand({
 			id: "open-archive",
 			name: "Open Archive",
 			callback: () => void this.activateArchiveView("codex"),
@@ -1446,6 +1459,11 @@ export default class StoryForgePlugin extends Plugin {
 	}
 
 	onunload(): void {
+		// The manuscript editor's unsaved chapters: onunload can't wait, but the saves it starts
+		// still complete (each is a single vault.process).
+		for (const leaf of this.app.workspace.getLeavesOfType(STORYFORGE_CONTINUOUS_VIEW_TYPE)) {
+			if (leaf.view instanceof ContinuousReadView) void leaf.view.flushPending();
+		}
 		this.titleForge?.onunload();
 		// Restores the native ribbon directly (without detaching the leaf, which would reset
 		// its position on next load) by running the same DOM restoration ToolsView.onClose() does.
@@ -1846,12 +1864,32 @@ export default class StoryForgePlugin extends Plugin {
 		this.style.applyRightRailPanelStyles();
 	}
 
+	/** The guides as continuous mode's manuscript editor follows them: a word count per guide, or
+	 * null when it's off. The depth guide's 'chapters covered' setting doesn't apply there. */
+	manuscriptGuideSettings(): ManuscriptGuideSettings {
+		return {
+			depthWords: this.pluginSettings.depthGuideEnabled ? DEPTH_GUIDE_WORDS[this.pluginSettings.depthGuideLevel] : null,
+			cyclingWords: this.pluginSettings.cyclingGuideEnabled
+				? CYCLING_GUIDE_INTERVAL_WORDS[this.pluginSettings.cyclingGuideInterval]
+				: null,
+		};
+	}
+
+	/** Pushes the current guide settings to every open manuscript editor — those don't run
+	 * registered editor extensions, so updateOptions() doesn't reach them. */
+	private refreshManuscriptGuides(): void {
+		for (const leaf of this.app.workspace.getLeavesOfType(STORYFORGE_CONTINUOUS_VIEW_TYPE)) {
+			if (leaf.view instanceof ContinuousReadView) leaf.view.applyGuideSettings();
+		}
+	}
+
 	/** Rebuilds the cycling guide CM6 extension with the current interval setting. */
 	rebuildCyclingGuideExtension(): void {
 		this.cyclingGuideExtensions.length = 0;
 		this.currentCyclingGuidePlugin = createCyclingGuideViewPlugin(CYCLING_GUIDE_INTERVAL_WORDS[this.pluginSettings.cyclingGuideInterval]);
 		this.cyclingGuideExtensions.push(this.currentCyclingGuidePlugin);
 		this.app.workspace.updateOptions();
+		this.refreshManuscriptGuides();
 	}
 
 	/** Enables/disables the "Cycling guide" CM6 extension, applied to every currently-open editor and every editor opened from now on. */
@@ -1860,6 +1898,7 @@ export default class StoryForgePlugin extends Plugin {
 		this.currentCyclingGuidePlugin = null;
 		if (enabled) this.rebuildCyclingGuideExtension();
 		this.app.workspace.updateOptions();
+		this.refreshManuscriptGuides();
 	}
 
 	/** Rebuilds the "depth guide" CM6 extension with the current level (word target) and chapters-covered settings. */
@@ -1873,6 +1912,7 @@ export default class StoryForgePlugin extends Plugin {
 			),
 		);
 		this.app.workspace.updateOptions();
+		this.refreshManuscriptGuides();
 	}
 
 	/** Enables/disables the "Depth guide" CM6 extension, applied to every currently-open editor and every editor opened from now on. */
@@ -1880,6 +1920,7 @@ export default class StoryForgePlugin extends Plugin {
 		this.depthGuideExtensions.length = 0;
 		if (enabled) this.rebuildDepthGuideExtension();
 		this.app.workspace.updateOptions();
+		this.refreshManuscriptGuides();
 	}
 
 	applyLibraryHeaderStyles(): void {

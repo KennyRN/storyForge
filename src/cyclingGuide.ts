@@ -5,7 +5,8 @@ import { countWordsInLine } from "./wordCount";
 import { ICON_CYCLE_ALT } from "./icons";
 import { isLibraryChapterPath } from "./paths";
 
-const cyclingGuideLineDeco = Decoration.line({ attributes: { class: "sf-cycling-guide-line" } });
+/** Shared with the manuscript editor's book-wide guide (view/manuscript/manuscriptGuides.ts). */
+export const cyclingGuideLineDeco = Decoration.line({ attributes: { class: "sf-cycling-guide-line" } });
 
 /** The small badge rendered at the bottom-right corner of a cycling-guide divider line. */
 class CycleBadgeWidget extends WidgetType {
@@ -26,7 +27,7 @@ class CycleBadgeWidget extends WidgetType {
 	}
 }
 
-const cyclingGuideBadgeDeco = Decoration.widget({ widget: new CycleBadgeWidget(), side: 1 });
+export const cyclingGuideBadgeDeco = Decoration.widget({ widget: new CycleBadgeWidget(), side: 1 });
 
 /** True when this editor is a library chapter (not Codex or other notes). */
 export function isChapterEditor(view: EditorView): boolean {

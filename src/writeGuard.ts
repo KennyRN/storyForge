@@ -1,4 +1,5 @@
 import { App, TFile, Vault, type FrontMatterCache } from "obsidian";
+import { getBookChapters } from "./book";
 import {
 	BACKSTAGE_ROOT,
 	BACKUPS_FOLDER,
@@ -7,7 +8,9 @@ import {
 	LIBRARY_ROOT,
 	TITLEFORGE_BACKSTAGE_ROOT,
 	isCodexNotePath,
+	isLibraryChapterPath,
 	isLibraryRootFilePath,
+	libraryChapterPath,
 } from "./paths";
 
 /**
@@ -17,6 +20,15 @@ import {
  * library-root bookkeeping file), which describes the manuscripts without
  * being manuscript prose themselves — so the non-destructive guarantee holds
  * even if the rest of the code is wrong.
+ *
+ * The tenet: storyForge never authors or alters prose on its own initiative.
+ * The only prose it ever writes is the author's own typing in the manuscript
+ * editor (continuous mode), and that goes through exactly one entry point,
+ * `writeManuscriptChapterBody` below — which only the manuscript writer module
+ * may import (enforced by an architecture test), which only accepts an existing
+ * placed chapter of the book open in the manuscript, and which never overwrites
+ * text it hasn't seen: if the file on disk differs from the writer's last-known
+ * base, it leaves the disk untouched and reports a conflict instead.
  *
  * Every write that targets a chapter file under `_story-library/<code>/` or a
  * note under `Codex/` must go through this module (which will refuse it).
@@ -364,4 +376,49 @@ export async function renameBackstagePath(vault: Vault, oldPath: string, newPath
 	if (file) {
 		await vault.rename(file, newNormalized);
 	}
+}
+
+/** What a manuscript chapter write did. `conflict` carries the disk text, which was left untouched. */
+export type ManuscriptWriteResult = { status: "written" } | { status: "unchanged" } | { status: "conflict"; disk: string };
+
+/**
+ * The single prose write path (see the tenet in this module's header): writes an edited chapter
+ * file from the manuscript editor. Refuses — with ForbiddenWriteError, before touching anything —
+ * unless `file` is an existing chapter file of `bookFolderName`, at exactly that book's library
+ * path, and on that book's placed spine (not unplaced, not archived). The write is a
+ * `vault.process` that compares the file's current text with `base`, the writer's last-known disk
+ * text: on a mismatch it hands the current text straight back (no change on disk) and reports a
+ * conflict. A `next` equal to `base` writes nothing.
+ *
+ * Only `src/view/manuscript/manuscriptWriter.ts` may import this (manuscriptGuard.test.ts).
+ */
+export async function writeManuscriptChapterBody(
+	app: App,
+	file: TFile,
+	bookFolderName: string,
+	base: string,
+	next: string,
+): Promise<ManuscriptWriteResult> {
+	const normalized = normalizeVaultPath(file.path);
+	const expected = libraryChapterPath(bookFolderName, file.name);
+	if (normalized !== expected || !isLibraryChapterPath(normalized) || file.extension !== "md") {
+		throw new ForbiddenWriteError(file.path);
+	}
+	if (app.vault.getAbstractFileByPath(normalized) !== file) {
+		throw new ForbiddenWriteError(file.path);
+	}
+	if (!getBookChapters(app, bookFolderName).ordered.includes(file)) {
+		throw new ForbiddenWriteError(file.path);
+	}
+	if (next === base) return { status: "unchanged" };
+
+	return enqueueBackstageWrite(normalized, async () => {
+		const seen: { disk: string | null } = { disk: null };
+		await app.vault.process(file, (current) => {
+			if (current === base) return next;
+			seen.disk = current;
+			return current;
+		});
+		return seen.disk === null ? { status: "written" } : { status: "conflict", disk: seen.disk };
+	});
 }
