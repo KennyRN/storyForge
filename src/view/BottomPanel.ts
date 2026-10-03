@@ -23,6 +23,7 @@ import {
 	ICON_TAG_DUOTONE,
 } from "../icons";
 import { makeAccessibleActivatable } from "./a11y";
+import { inkSlider } from "./inkSlider";
 import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
 import { attachCodexDragReorder, type CodexDragRowInfo } from "./dragReorderTree";
 import { CodexSetTypeModal } from "./CodexSetTypeModal";
@@ -49,6 +50,9 @@ export interface BottomPanelOptions {
 	/** Vault `#tag` currently filtering the tree — session-only, single-select. Null shows everything (still AND'd with typeFilter). */
 	tagFilter?: string | null;
 	onChangeTagFilter?: (next: string | null) => void;
+	/** inkSlider.ts slot for this host's #tag rail (one per codex index, e.g. `library-codex-tags`):
+	 * a codex-coloured bar slides to the selected tag. No bar when omitted. */
+	tagInkKey?: string;
 	/** Opens a Codex file's own note (distinct from onCreateFile) — the caller's own
 	 * "one tab, and the active-leaf highlight actually follows the click" helper, same as
 	 * onOpenChapter elsewhere, rather than this file reaching into app.workspace directly. */
@@ -166,6 +170,7 @@ function renderVaultTagRail(parent: HTMLElement, app: App, options: BottomPanelO
 	if (tags.length === 0) return;
 	const stack = parent.createDiv({ cls: "sf-codex-vault-tags" });
 	const active = options.tagFilter ?? null;
+	const ink = options.tagInkKey ? inkSlider(options.tagInkKey) : null;
 	for (const tag of tags) {
 		const btn = stack.createSpan({
 			cls: `sf-codex-vault-tag-btn${active === tag.id ? " is-active" : ""}`,
@@ -173,9 +178,11 @@ function renderVaultTagRail(parent: HTMLElement, app: App, options: BottomPanelO
 		});
 		setIcon(btn, tag.iconId);
 		bindPaneCornerButton(btn, () => {
+			ink?.capture();
 			options.onChangeTagFilter?.(active === tag.id ? null : tag.id);
 		});
 	}
+	ink?.mount({ container: parent, buttons: ".sf-codex-vault-tag-btn", variant: "codex-tags" });
 }
 
 /**

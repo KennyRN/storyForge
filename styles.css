@@ -4241,10 +4241,6 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	position: relative;
 	/* Same rail inset as .sf-bottom-panel so the page lines up with the index highlights. */
 	--sf-codex-rail-inset: calc(8px + 22.5px + 4px + 6px);
-	/* Notebook/Archive source rails' ink track and bar (.sf-notebook-source-rail--ink): their
-	 * width, taken from the page side of the inset's 6px gutter. Keep it under 6px so the
-	 * channel never touches the icons. */
-	--sf-notebook-ink-thickness: 2px;
 }
 
 /* Focus Mode lore page: same rail inset as the notebook page so the two rectangles sit in the
@@ -6077,40 +6073,87 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	height: 22.5px;
 }
 
-/* Notebook and Archive source rails: the ink track and the bar marking the active source.
- * Adapted from CodeFronts' "Ink Slider" (MIT; see Code Attributions.md). Both are positioned
- * against the rail itself; the page's left edge, in those coordinates, is the rail inset less the
- * rail's own `left: 8px` (.sf-codex-side-actions), and the channel sits flush against it, so the
- * track reads as part of the page. Vertical geometry (page height, active icon) is measured in
- * notebookInk.ts. */
-.sf-notebook-source-rail--ink .sf-notebook-ink-track,
-.sf-notebook-source-rail--ink .sf-notebook-ink-bar {
+/* Ink slider (src/view/inkSlider.ts), adapted from CodeFronts' "Ink Slider" (MIT; see Code
+ * Attributions.md): a track beside an icon rail, holding a bar the length of one icon that slides
+ * to the selected one. Vertical geometry is measured in inkSlider.ts; each variant below sets the
+ * horizontal position and colours. The bar is a child of the track, which clips it, so a bar
+ * parked above the first icon (no selection) is out of sight. */
+.sf-ink-track {
+	/* Width of the track and bar, taken from the page side of the rail's 6px gutter (the last
+	 * term of --sf-codex-rail-inset). Keep it under 6px so the channel never touches the icons. */
+	--sf-ink-thickness: 2px;
 	position: absolute;
 	top: 0;
-	left: calc(var(--sf-codex-rail-inset, 40.5px) - 8px - var(--sf-notebook-ink-thickness, 2px));
-	width: var(--sf-notebook-ink-thickness, 2px);
+	width: var(--sf-ink-thickness);
+	overflow: hidden;
 	pointer-events: none;
 }
 
-.sf-notebook-source-rail--ink .sf-notebook-ink-track {
-	background: var(--sf-editor-bg);
-}
-
-/* Same colour reference as the active icon (.sf-notebook-source-btn.is-active). Slides with the
- * Ink Slider's own curve; `.is-instant` is set briefly by notebookInk.ts to place it unanimated. */
-.sf-notebook-source-rail--ink .sf-notebook-ink-bar {
-	background: var(--sf-story-context-tabs-active-color, var(--text-accent));
+/* Ink Slider's own curve and duration (INK_DURATION_MS in inkSlider.ts must match). `.is-instant`
+ * is set briefly by inkSlider.ts to place the bar unanimated. */
+.sf-ink-bar {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
 	transition: transform 0.45s cubic-bezier(0.65, 0, 0.35, 1);
 }
 
-.sf-notebook-source-rail--ink .sf-notebook-ink-bar.is-instant {
+.sf-ink-bar.is-instant {
 	transition: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
-	.sf-notebook-source-rail--ink .sf-notebook-ink-bar {
+	.sf-ink-bar {
 		transition: none;
 	}
+}
+
+/* Notebook and Archive source rails. Positioned against the rail itself; the page's left edge, in
+ * those coordinates, is the rail inset less the rail's own `left: 8px` (.sf-codex-side-actions),
+ * and the channel sits flush against it, full page height, so the track reads as part of the
+ * page. Bar: same colour reference as the active icon (.sf-notebook-source-btn.is-active). */
+.sf-ink-track--source {
+	left: calc(var(--sf-codex-rail-inset, 40.5px) - 8px - var(--sf-ink-thickness));
+	background: var(--sf-editor-bg);
+}
+
+.sf-ink-track--source .sf-ink-bar {
+	background: var(--sf-story-context-tabs-active-color, var(--text-accent));
+}
+
+/* Codex indexes' #tag rail (not notes indexes). Same placement rule as the source rails: flush
+ * against the tree's rows, whose left edge is the tree's left padding (.sf-codex-tree), less the
+ * rail's `left: 8px`. The track is invisible; the bar takes the same colour reference as the
+ * active tag (.sf-codex-vault-tag-btn.is-active) and parks above the first tag when none is
+ * selected. */
+.sf-ink-track--codex-tags {
+	left: calc(var(--sf-codex-rail-inset, 40.5px) - 8px - var(--sf-ink-thickness));
+	background: transparent;
+}
+
+/* storyTelling's codex tree is padded to the chapter rows' inset instead. */
+.storyforge-storytelling-view .sf-ink-track--codex-tags {
+	left: calc(var(--sf-storytelling-list-inset) - 8px - var(--sf-ink-thickness));
+}
+
+.sf-ink-track--codex-tags .sf-ink-bar {
+	background: var(--sf-codex-color);
+}
+
+/* storyTelling sidebar's continuous-mode toggle. Positioned against the toggle column (made the
+ * containing block below), the same distance from its icon as the #tag rail's bar is from the
+ * tags: the rail's 6px gutter past the column's right edge, less the bar's own width. That leaves
+ * a gap before the current-chapter row (navigator body gap 6px + window pad 4px). Invisible
+ * track; the bar is the same chapter highlight colour as the active toggle
+ * (.sf-navigator-transport-btn.is-active) and parks above the icon while off. */
+.sf-ink-track--continuous {
+	left: calc(100% + 6px - var(--sf-ink-thickness));
+	background: transparent;
+}
+
+.sf-ink-track--continuous .sf-ink-bar {
+	background: var(--sf-storytelling-highlight-bg, var(--sf-highlight-bg, var(--text-accent)));
 }
 
 .sf-codex-side-actions .sf-codex-vault-tags {
@@ -6180,6 +6223,8 @@ input.sf-story-context-chapter-title[type="text"]:focus {
  * there, not stretched (and re-centred lower) across the taller box the expanded chapter list
  * beside it grows into. */
 .sf-navigator-transport-col {
+	/* Containing block for the continuous toggle's ink track; no effect on layout. */
+	position: relative;
 	display: flex;
 	flex-direction: column;
 	align-items: center;

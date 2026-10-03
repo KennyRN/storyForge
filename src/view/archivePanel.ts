@@ -35,6 +35,7 @@ import { libraryChapterPath } from "../paths";
 import { formatSingleLine } from "../titleNumbering";
 import { excerpt } from "../wordCount";
 import { makeAccessibleActivatable } from "./a11y";
+import { inkSlider } from "./inkSlider";
 import { attachCodexDragReorder, type CodexDragRowInfo } from "./dragReorderTree";
 import { applySiblingReorder, displayedVaultTags, filterVisiblePathsByTag, siblingOrderAfterMove } from "../vaultTags";
 import { TagPickerModal } from "./TagPickerModal";
@@ -256,6 +257,8 @@ function renderArchiveFilterRail(parent: HTMLElement, host: ArchivePanelHost): v
 	if (tags.length === 0 || !host.onChangeTagFilter) return;
 	const stack = parent.createDiv({ cls: "sf-codex-vault-tags" });
 	const active = host.tagFilter ?? null;
+	// Codex mode only: the notes-mode tag rail keeps its plain colour highlight.
+	const ink = host.mode === "codex" ? inkSlider("archive-codex-tags") : null;
 	for (const tag of tags) {
 		const btn = stack.createSpan({
 			cls: `sf-codex-vault-tag-btn${active === tag.id ? " is-active" : ""}`,
@@ -263,9 +266,11 @@ function renderArchiveFilterRail(parent: HTMLElement, host: ArchivePanelHost): v
 		});
 		setIcon(btn, tag.iconId);
 		bindArchiveButton(btn, () => {
+			ink?.capture();
 			host.onChangeTagFilter?.(active === tag.id ? null : tag.id);
 		});
 	}
+	ink?.mount({ container: parent, buttons: ".sf-codex-vault-tag-btn", variant: "codex-tags" });
 }
 
 function renderArchiveRows(

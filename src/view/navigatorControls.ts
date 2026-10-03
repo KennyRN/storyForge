@@ -1,6 +1,7 @@
 import { TFile, setIcon, setTooltip } from "obsidian";
 import { splitTitleSubtitle } from "../titleNumbering";
 import { makeAccessibleActivatable } from "./a11y";
+import { inkSlider } from "./inkSlider";
 import { ICON_CONTINUOUS_MODE } from "../icons";
 
 /**
@@ -36,8 +37,18 @@ export function renderContinuousToggle(col: HTMLElement, toggle: ContinuousToggl
 	if (toggle.active) btn.addClass("is-active");
 	setTooltip(btn, label);
 	setIcon(btn, ICON_CONTINUOUS_MODE);
-	btn.addEventListener("pointerdown", toggle.onToggle);
-	makeAccessibleActivatable(btn, toggle.onToggle);
+	// Ink bar (inkSlider.ts), as on the codex #tag rails: parked above the icon while off, sliding
+	// down beside it when on and back up when off again. Both navigator states (off in the
+	// selector, on in the continuous indicator) share the slot, so the slide carries across the
+	// sidebar re-render that switching mode causes.
+	const ink = inkSlider("storytelling-continuous");
+	const onToggle = () => {
+		ink.capture();
+		toggle.onToggle();
+	};
+	btn.addEventListener("pointerdown", onToggle);
+	makeAccessibleActivatable(btn, onToggle);
+	ink.mount({ container: col, buttons: ".sf-navigator-transport-toggle", variant: "continuous" });
 }
 
 /** The continuous read view's read-only equivalent of the sidebar's draggable chapter tile — no
