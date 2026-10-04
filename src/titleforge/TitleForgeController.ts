@@ -35,7 +35,7 @@ export class TitleForgeController {
 
 	/** Open panels that want to redraw when the user-additions file changes (see `watchUserLexicon`). */
 	private readonly reloadListeners = new Set<() => void>();
-	private userLexiconReloadTimer: ReturnType<typeof setTimeout> | undefined;
+	private userLexiconReloadTimer: number | undefined;
 
 	constructor(private readonly plugin: Plugin) {
 		this.storage = new TitleForgeStorage(plugin.app);
@@ -91,8 +91,8 @@ export class TitleForgeController {
 			// The user-additions file, or one of the nameForge packs a name register is set to.
 			const isPack = Object.values(this.settings.namePacks).includes(file.path);
 			if (file.path !== targetPath && !isPack) return;
-			clearTimeout(this.userLexiconReloadTimer);
-			this.userLexiconReloadTimer = setTimeout(() => {
+			window.clearTimeout(this.userLexiconReloadTimer);
+			this.userLexiconReloadTimer = window.setTimeout(() => {
 				void this.reloadGenerators().then(() => {
 					for (const listener of this.reloadListeners) listener();
 				});

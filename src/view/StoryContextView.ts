@@ -1304,7 +1304,7 @@ export class StoryContextView extends ItemView {
 
 	private disposeIdeaEditor(): void {
 		const grafted = this.ideaEditorHandle;
-		const restoreCenter = Boolean(grafted && this.app.workspace.activeLeaf === grafted.leaf);
+		const restoreCenter = Boolean(grafted && this.app.workspace.getActiveViewOfType(MarkdownView)?.leaf === grafted.leaf);
 		grafted?.destroy();
 		this.ideaEditorHandle = null;
 		this.ideaEditorPath = null;
@@ -1352,7 +1352,7 @@ export class StoryContextView extends ItemView {
 
 	private disposeCodexEditor(): void {
 		const grafted = this.codexEditorHandle;
-		const restoreCenter = Boolean(grafted && this.app.workspace.activeLeaf === grafted.leaf);
+		const restoreCenter = Boolean(grafted && this.app.workspace.getActiveViewOfType(MarkdownView)?.leaf === grafted.leaf);
 		grafted?.destroy();
 		this.codexEditorHandle = null;
 		this.codexEditorPath = null;

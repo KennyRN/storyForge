@@ -49,8 +49,11 @@ function makeFakePlugin(initialFiles: Record<string, string> = {}): {
 
 beforeEach(() => {
 	vi.useFakeTimers();
+	// The controller debounces on window-scoped timers; node has no `window`, so lend it the faked ones.
+	vi.stubGlobal("window", { setTimeout, clearTimeout });
 });
 afterEach(() => {
+	vi.unstubAllGlobals();
 	vi.useRealTimers();
 });
 

@@ -52,10 +52,10 @@ class ChapterHeaderWidget extends WidgetType {
 
 	toDOM(view: EditorView): HTMLElement {
 		const doc = view.dom.ownerDocument;
-		const row = doc.createElement("div");
+		const row = doc.win.createDiv();
 		row.className = this.first ? "sf-manuscript-header sf-manuscript-header-first" : "sf-manuscript-header";
 		row.contentEditable = "false";
-		const label = doc.createElement("span");
+		const label = doc.win.createSpan();
 		label.className = "sf-manuscript-header-title";
 		label.textContent = this.title;
 		row.appendChild(label);
@@ -87,10 +87,10 @@ class AppendChapterWidget extends WidgetType {
 
 	toDOM(view: EditorView): HTMLElement {
 		const doc = view.dom.ownerDocument;
-		const row = doc.createElement("div");
+		const row = doc.win.createDiv();
 		row.className = "sf-manuscript-append";
 		row.contentEditable = "false";
-		const button = doc.createElement("span");
+		const button = doc.win.createSpan();
 		button.className = "sf-manuscript-append-button";
 		button.setAttribute("aria-label", "New chapter");
 		button.setAttribute("role", "button");

@@ -1,7 +1,7 @@
 import { normaliseLexicon, withTags } from "./lexicon.js";
 import type { Rng } from "./rng.js";
 import { createRng, pick, randomSeed, weightedPick } from "./rng.js";
-import { renderTemplate, slotsIn, validateTemplate } from "./template.js";
+import { renderTemplate, validateTemplate } from "./template.js";
 import { inventName, MIN_NAME_SOURCES } from "./names.js";
 import { countWords, titleCase } from "./titlecase.js";
 import type {
