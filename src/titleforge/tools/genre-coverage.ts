@@ -4,18 +4,20 @@
  * Loads the bundled specs (never a vault copy — this reads `ALL_TITLEFORGE_LEXICONS` directly,
  * the same source `storage.ts` seeds out to the vault) and prints, per generator, one row per
  * declared genre (parents and subgenres alike): its eligible-pattern count, its own-tagged
- * lexeme count, how many more lexemes it can reach by inheritance, and a THIN flag when either
- * count looks too small to carry a genre on its own.
+ * lexeme count, how many more lexemes it can reach by inheritance, a THIN flag when either
+ * count looks too small to carry a genre on its own, and the smallest pool a draw actually sees
+ * across the slots its patterns use (THIN POOL below `THIN_POOL`).
  *
  * Run with `npx tsx src/titleforge/tools/genre-coverage.ts` (or `npm run titleforge:coverage`).
  * Exits non-zero if any declared genre is unreachable (no eligible patterns at all), so it can
  * gate CI the same way a failing test would.
  */
 import { fileURLToPath } from "node:url";
-import { eligiblePatterns, genreScope } from "../engine/generate.js";
+import { eligiblePatterns, genreScope, scopedLexicon } from "../engine/generate.js";
 import { normaliseLexicon } from "../engine/lexicon.js";
 import type { GeneratorSpec, GenreOption } from "../engine/types.js";
 import { ALL_TITLEFORGE_LEXICONS } from "../lexicons/index.js";
+import { poolSize, THIN_POOL, usedSlots } from "./vocab-pools.js";
 
 /** Below this many own-tagged lexemes, a genre is flagged THIN even if it has eligible patterns
  * — there's a shape to draw from, but not enough of its own vocabulary to feel distinct. */
@@ -30,6 +32,10 @@ interface Row {
 	inheritedLexemes: number;
 	thin: boolean;
 	inheritsOnly: boolean;
+	/** Smallest pool a draw under this genre sees, across the slots its patterns use (additive
+	 * model: own + ancestors' lexicons + general list), and which slot it is. */
+	minPool: number;
+	minPoolSlot: string;
 }
 
 function countTagged(lexemes: Record<string, { tags?: string[] }[]>, ids: readonly string[]): number {
@@ -55,10 +61,13 @@ function reportGenerator(spec: GeneratorSpec): { rows: Row[]; unreachable: strin
 		if (g.parent) (byParent.get(g.parent) ?? byParent.set(g.parent, []).get(g.parent)!).push(g);
 	}
 	const ordered: GenreOption[] = [];
-	for (const g of spec.genres) {
-		if (g.parent) continue;
+	const visit = (g: GenreOption): void => {
+		if (ordered.includes(g)) return; // cycle guard
 		ordered.push(g);
-		ordered.push(...(byParent.get(g.id) ?? []));
+		for (const child of byParent.get(g.id) ?? []) visit(child); // recursive: up to three levels
+	};
+	for (const g of spec.genres) {
+		if (!g.parent) visit(g);
 	}
 
 	for (const genre of ordered) {
@@ -79,7 +88,18 @@ function reportGenerator(spec: GeneratorSpec): { rows: Row[]; unreachable: strin
 		const thin = !reachable || ownCount < THIN_LEXEME_THRESHOLD;
 		const inheritsOnly = isSubgenre && ownCount === 0;
 
+		const pools = scopedLexicon(spec, genre.id);
+		let minPool = Infinity;
+		let minPoolSlot = "—";
+		for (const slot of usedSlots(spec, genre.id)) {
+			const n = poolSize(pools[slot]);
+			if (n < minPool) [minPool, minPoolSlot] = [n, slot];
+		}
+		if (minPool === Infinity) minPool = 0;
+
 		rows.push({
+			minPool,
+			minPoolSlot,
 			id: genre.id,
 			label: genre.label,
 			parent: genre.parent ?? "—",
@@ -109,15 +129,20 @@ function main(): void {
 		console.log(`\n=== ${spec.id} (${spec.name}) ===`);
 		console.log(
 			pad("id", 18) + pad("parent", 14) + pad("patterns", 10) + pad("own", 6) +
-				pad("inherited", 11) + "flags",
+				pad("inherited", 11) + pad("min pool", 24) + "flags",
 		);
 		for (const row of rows) {
-			const flags = [row.thin ? "THIN" : "", row.inheritsOnly ? "inherits only" : ""]
+			const flags = [
+				row.thin ? "THIN" : "",
+				row.inheritsOnly ? "inherits only" : "",
+				row.minPool < THIN_POOL ? "THIN POOL" : "",
+			]
 				.filter(Boolean)
 				.join(" ");
 			console.log(
 				pad(row.id, 18) + pad(row.parent, 14) + pad(row.eligiblePatterns, 10) +
-					pad(row.ownLexemes, 6) + pad(row.inheritedLexemes, 11) + flags,
+					pad(row.ownLexemes, 6) + pad(row.inheritedLexemes, 11) +
+					pad(`${row.minPool} (${row.minPoolSlot})`, 24) + flags,
 			);
 			if (row.thin || row.inheritsOnly) needsExpanding.push(`${spec.id}/${row.id}`);
 		}

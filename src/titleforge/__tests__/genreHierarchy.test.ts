@@ -6,10 +6,13 @@ import {
 	genreById,
 	generateOne,
 	genreScope,
+	inParentLexicon,
+	isGeneralEntry,
 	isParent,
 	narrowLeaf,
 	narrowParent,
 	resolveGenreNarrowing,
+	scopedLexicon,
 	validateSpec,
 } from "../engine/generate.js";
 import type { GeneratorSpec, Lexeme } from "../engine/types.js";
@@ -243,11 +246,27 @@ describe("validateSpec — genre hierarchy checks", () => {
 		);
 	});
 
-	it("flags a depth-3 grandchild (a subgenre that is itself a parent)", () => {
+	it("accepts a depth-3 grandchild, and a middle parent inherits its own ancestors", () => {
 		const spec = fixture();
 		spec.genres.push({ id: "grandchild", label: "Grandchild", parent: "western" });
+		expect(validateSpec(spec)).toEqual([]);
+		expect(genreScope(spec, "western")).toEqual(["western", "grandchild", "hist"]);
+		expect(genreScope(spec, "grandchild")).toEqual(["grandchild", "western", "hist"]);
+		expect(resolveGenreNarrowing(spec, "western")).toEqual({
+			kind: "parent",
+			chain: ["western", "grandchild"],
+			inherit: ["hist"],
+		});
+	});
+
+	it("flags a depth-4 great-grandchild", () => {
+		const spec = fixture();
+		spec.genres.push(
+			{ id: "grandchild", label: "Grandchild", parent: "western" },
+			{ id: "great", label: "Great-grandchild", parent: "grandchild" },
+		);
 		expect(validateSpec(spec)).toEqual(
-			expect.arrayContaining([expect.stringContaining('"western" is both a subgenre and a parent')]),
+			expect.arrayContaining([expect.stringContaining('"great" is nested 4 deep (max depth is 3)')]),
 		);
 	});
 
@@ -310,15 +329,19 @@ describe("regression — the shipped fantasy/sf parent retrofit changes nothing 
 		},
 	);
 
+	// Vocabulary is no longer byte-identical, by design: under the additive model a subgenre also
+	// draws on its parent's lexicon (entries tagged with 2+ of the parent's subgenres), so a
+	// parent link now widens what a subgenre's slots offer. Patterns are unchanged (above).
 	it.each(["epic", "heroic-fantasy", "urban-fantasy"])(
-		"selecting %s produces byte-identical output across many seeds",
+		"selecting %s draws on fantasy's lexicon once fantasy is its parent (additive model)",
 		(genre) => {
-			const before = beforeRetrofit();
-			for (let seed = 0; seed < 200; seed++) {
-				expect(generateOne(titleComposerLexicon, { genre, seed }).title).toBe(
-					generateOne(before, { genre, seed }).title,
-				);
-			}
+			const viaParent = scopedLexicon(titleComposerLexicon, genre).role.filter(
+				(e) =>
+					!(e.tags ?? []).includes(genre) &&
+					inParentLexicon(titleComposerLexicon, e.tags, "fantasy") &&
+					!isGeneralEntry(titleComposerLexicon, e.tags),
+			);
+			expect(viaParent.length).toBeGreaterThan(0);
 		},
 	);
 
@@ -334,15 +357,12 @@ describe("regression — the shipped fantasy/sf parent retrofit changes nothing 
 		expect(afterIds.length).toBeGreaterThan(beforeIds.length);
 	});
 
-	// space-opera happens to already carry the "sf" tag (or an equivalent) on every pattern it
-	// needs, so making sf its parent is also a no-op for it specifically — verified, not assumed.
-	it("selecting space-opera also produces byte-identical output (its own tagging already covers sf's pool)", () => {
-		const before = beforeRetrofit();
-		for (let seed = 0; seed < 200; seed++) {
-			expect(generateOne(titleComposerLexicon, { genre: "space-opera", seed }).title).toBe(
-				generateOne(before, { genre: "space-opera", seed }).title,
-			);
-		}
+	// space-opera already carries the "sf" tag (or an equivalent) on every pattern it needs, so
+	// making sf its parent leaves its pattern set unchanged — verified, not assumed.
+	it("selecting space-opera yields the same eligible patterns as before the retrofit", () => {
+		const before = eligiblePatterns(beforeRetrofit(), { genre: "space-opera" }).map((p) => p.id).sort();
+		const after = eligiblePatterns(titleComposerLexicon, { genre: "space-opera" }).map((p) => p.id).sort();
+		expect(after).toEqual(before);
 	});
 
 	// military-sf is the honest exception: `genre-coverage` flags it THIN (well under the shipped

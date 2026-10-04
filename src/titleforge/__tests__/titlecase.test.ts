@@ -53,4 +53,8 @@ describe("titleforge countWords", () => {
 	it("collapses runs of whitespace", () => {
 		expect(countWords("The   Lord   of the Rings")).toBe(5);
 	});
+	it("leaves letters after a leading number lowercase (decades, ordinals)", () => {
+		expect(titleCase("support my family in the 1980s")).toBe("Support My Family in the 1980s");
+		expect(titleCase("the 21st floor of the 3rd tower")).toBe("The 21st Floor of the 3rd Tower");
+	});
 });

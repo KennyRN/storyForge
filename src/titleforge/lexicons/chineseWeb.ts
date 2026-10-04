@@ -554,6 +554,96 @@ export const chineseWebLexicon: GeneratorSpec = {
 				"tags": [
 					"wuxia"
 				]
+			},
+			{
+				"gloss": "the Nine Heavens",
+				"tags": [
+					"xuanhuan"
+				]
+			},
+			{
+				"gloss": "the Divine Realm",
+				"tags": [
+					"xuanhuan"
+				]
+			},
+			{
+				"gloss": "the Primordial Continent",
+				"tags": [
+					"xuanhuan"
+				]
+			},
+			{
+				"gloss": "the Immortal Realm",
+				"tags": [
+					"xianxia"
+				]
+			},
+			{
+				"gloss": "the Heavenly Court",
+				"tags": [
+					"xianxia"
+				]
+			},
+			{
+				"gloss": "the Imperial Court",
+				"tags": [
+					"rebirth"
+				]
+			},
+			{
+				"gloss": "the 1970s",
+				"tags": [
+					"rebirth"
+				]
+			},
+			{
+				"gloss": "the Countryside",
+				"tags": [
+					"rebirth"
+				]
+			},
+			{
+				"gloss": "the Game World",
+				"tags": [
+					"system"
+				]
+			},
+			{
+				"gloss": "the Doomsday",
+				"tags": [
+					"system"
+				]
+			},
+			{
+				"gloss": "the City",
+				"tags": [
+					"urban"
+				]
+			},
+			{
+				"gloss": "the Stock Market",
+				"tags": [
+					"urban"
+				]
+			},
+			{
+				"gloss": "the Imperial Harem",
+				"tags": [
+					"romance"
+				]
+			},
+			{
+				"gloss": "the Showbiz Circle",
+				"tags": [
+					"romance"
+				]
+			},
+			{
+				"gloss": "the Inner Palace",
+				"tags": [
+					"romance"
+				]
 			}
 		],
 		"systemWord": [

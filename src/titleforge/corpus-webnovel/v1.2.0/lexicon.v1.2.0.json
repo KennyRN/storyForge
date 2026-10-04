@@ -1,0 +1,1332 @@
+{
+ "onlineWord": {
+  "status": "NEW",
+  "genres": [
+   "vrmmo",
+   "isekai/media-world"
+  ],
+  "entries": [
+   {
+    "value": "Ascend",
+    "sources": [
+     "Ascend Online"
+    ]
+   },
+   {
+    "value": "Awaken",
+    "sources": [
+     "Awaken Online"
+    ]
+   },
+   {
+    "value": "Eternal",
+    "sources": [
+     "Eternal Online"
+    ]
+   },
+   {
+    "value": "Eternus",
+    "sources": [
+     "Eternus Online"
+    ]
+   },
+   {
+    "value": "Oblivion",
+    "sources": [
+     "Oblivion Online"
+    ]
+   },
+   {
+    "value": "Rebirth",
+    "sources": [
+     "Rebirth Online"
+    ]
+   },
+   {
+    "value": "Continue",
+    "sources": [
+     "Continue Online"
+    ]
+   },
+   {
+    "value": "Headshot",
+    "sources": [
+     "Headshot Online"
+    ]
+   },
+   {
+    "value": "Sky Realms",
+    "sources": [
+     "Sky Realms Online"
+    ]
+   },
+   {
+    "value": "True World",
+    "sources": [
+     "True World Online"
+    ]
+   },
+   {
+    "value": "World Gate",
+    "sources": [
+     "World Gate Online"
+    ]
+   },
+   {
+    "value": "New Era",
+    "sources": [
+     "New Era Online"
+    ]
+   },
+   {
+    "value": "Modern Age",
+    "sources": [
+     "Modern Age Online"
+    ]
+   },
+   {
+    "value": "Ages",
+    "sources": [
+     "Ages Online"
+    ]
+   },
+   {
+    "value": "Universe",
+    "sources": [
+     "Universe Online"
+    ]
+   },
+   {
+    "value": "Battlegrounds",
+    "sources": [
+     "Battlegrounds Online"
+    ]
+   },
+   {
+    "value": "Beast Slayer",
+    "sources": [
+     "Beast Slayer Online"
+    ]
+   },
+   {
+    "value": "Fate & Freedom",
+    "sources": [
+     "Fate & Freedom Online"
+    ]
+   },
+   {
+    "value": "Uniworld",
+    "sources": [
+     "Uniworld Online"
+    ]
+   },
+   {
+    "value": "Somnia",
+    "sources": [
+     "Somnia Online"
+    ]
+   },
+   {
+    "value": "Insania",
+    "sources": [
+     "Insania Online"
+    ]
+   }
+  ]
+ },
+ "heroName": {
+  "status": "NEW",
+  "genres": [
+   "litrpg",
+   "system-apocalypse",
+   "villainess",
+   "regression"
+  ],
+  "entries": [
+   {
+    "value": "Adam",
+    "sources": [
+     "Adam vs the Apocalypse"
+    ]
+   },
+   {
+    "value": "Andy",
+    "sources": [
+     "Andy in the Apocalypse"
+    ]
+   },
+   {
+    "value": "Amelia",
+    "sources": [
+     "Amelia the Level Zero Hero",
+     "Amelia Thornheart"
+    ]
+   },
+   {
+    "value": "Chloe",
+    "sources": [
+     "Chloe the Zombie"
+    ]
+   },
+   {
+    "value": "Clara",
+    "sources": [
+     "Clara Casewell, Attorney to the Villainess"
+    ]
+   },
+   {
+    "value": "Teren",
+    "sources": [
+     "Teren Marr, Again"
+    ]
+   },
+   {
+    "value": "Teresa",
+    "sources": [
+     "Teresa Of All Trades"
+    ]
+   },
+   {
+    "value": "Tori",
+    "sources": [
+     "Tori Transmigrated"
+    ]
+   },
+   {
+    "value": "Emie",
+    "sources": [
+     "Emie Ascended"
+    ]
+   },
+   {
+    "value": "Nyx",
+    "sources": [
+     "Nyx the Demon Girl"
+    ]
+   },
+   {
+    "value": "Yona",
+    "sources": [
+     "Yona"
+    ]
+   },
+   {
+    "value": "Ajax",
+    "sources": [
+     "Ajax's Ascension"
+    ]
+   },
+   {
+    "value": "Derek",
+    "sources": [
+     "Derek's Dungeon Depot"
+    ]
+   },
+   {
+    "value": "Jake",
+    "sources": [
+     "Jake's Magical Market"
+    ]
+   },
+   {
+    "value": "Jane",
+    "sources": [
+     "Judicator Jane"
+    ]
+   },
+   {
+    "value": "Joan",
+    "sources": [
+     "Villainess Joan of Arc"
+    ]
+   },
+   {
+    "value": "Howard",
+    "sources": [
+     "Underpowered Howard"
+    ]
+   },
+   {
+    "value": "Dave",
+    "sources": [
+     "Last Save Dave"
+    ]
+   }
+  ]
+ },
+ "loopWord": {
+  "status": "NEW",
+  "genres": [
+   "regression"
+  ],
+  "entries": [
+   {
+    "value": "Lost",
+    "sources": [
+     "Lost Loop"
+    ]
+   },
+   {
+    "value": "Lazy",
+    "sources": [
+     "Lazy Loops"
+    ]
+   },
+   {
+    "value": "Time",
+    "sources": [
+     "Learning to Love Time Loops Without Going Insane",
+     "The Stubborn Skill-Grinder In A Time Loop"
+    ]
+   }
+  ],
+  "note": "thin — time-loop pattern leans on '{role} of Time' (Throne/Warden/Mark of Time) using the role slot"
+ },
+ "epithet": {
+  "status": "NEW",
+  "genres": [
+   "system-apocalypse",
+   "regression",
+   "cultivation",
+   "litrpg"
+  ],
+  "entries": [
+   {
+    "value": "Fireborn",
+    "sources": [
+     "Aetherios System: Fireborn"
+    ]
+   },
+   {
+    "value": "Genesis",
+    "sources": [
+     "Death: Genesis"
+    ]
+   },
+   {
+    "value": "Reborn",
+    "sources": [
+     "Deathworld Commando: Reborn"
+    ]
+   },
+   {
+    "value": "Willbender",
+    "sources": [
+     "Soulshard: Willbender"
+    ]
+   },
+   {
+    "value": "Hexcaller",
+    "sources": [
+     "Evil Eye: Hexcaller"
+    ]
+   },
+   {
+    "value": "Time Thief",
+    "sources": [
+     "Eclipse: Time Thief"
+    ]
+   },
+   {
+    "value": "New World",
+    "sources": [
+     "Change: New World"
+    ]
+   },
+   {
+    "value": "The Broken System",
+    "sources": [
+     "Hoqalo: The Broken System"
+    ]
+   },
+   {
+    "value": "Generic System",
+    "sources": [
+     "Apocalypse: Generic System"
+    ]
+   },
+   {
+    "value": "The Weakest Druid",
+    "sources": [
+     "Dreadspire: The Weakest Druid"
+    ]
+   },
+   {
+    "value": "Ten Lives Left",
+    "sources": [
+     "Offworlder: Ten Lives Left"
+    ]
+   },
+   {
+    "value": "Forged in Nightmare",
+    "sources": [
+     "System Reset: Forged in Nightmare"
+    ]
+   },
+   {
+    "value": "The Final Ceiling",
+    "sources": [
+     "Tenjou: The Final Ceiling"
+    ]
+   },
+   {
+    "value": "Unlimited Weapon Maker",
+    "sources": [
+     "Time Sovereign: Unlimited Weapon Maker"
+    ]
+   },
+   {
+    "value": "Monsters & Legends",
+    "sources": [
+     "Infinite Realm: Monsters & Legends"
+    ]
+   },
+   {
+    "value": "Trash Class",
+    "sources": [
+     "Observer: Trash Class"
+    ]
+   },
+   {
+    "value": "Dragon Cosmos",
+    "sources": [
+     "Dungeon Apocalypse: Dragon Cosmos"
+    ]
+   },
+   {
+    "value": "Archmage in Seclusion",
+    "sources": [
+     "Not The Hero: Archmage in Seclusion"
+    ]
+   }
+  ]
+ },
+ "ascentObject": {
+  "status": "NEW",
+  "genres": [
+   "progression"
+  ],
+  "entries": [
+   {
+    "value": "Mankind",
+    "sources": [
+     "Rise of Mankind"
+    ]
+   },
+   {
+    "value": "Dragons",
+    "sources": [
+     "Path of Dragons"
+    ]
+   },
+   {
+    "value": "Steel",
+    "sources": [
+     "Path of Steel"
+    ]
+   },
+   {
+    "value": "Transcendence",
+    "sources": [
+     "Path to Transcendence"
+    ]
+   },
+   {
+    "value": "Prosperity",
+    "sources": [
+     "Path to Prosperity"
+    ]
+   },
+   {
+    "value": "Mastery",
+    "sources": [
+     "Road to Mastery"
+    ]
+   },
+   {
+    "value": "Chaos",
+    "sources": [
+     "Ascension of Chaos"
+    ]
+   },
+   {
+    "value": "Doom",
+    "sources": [
+     "Age of Doom"
+    ]
+   },
+   {
+    "value": "Gods",
+    "sources": [
+     "Age of Gods"
+    ]
+   },
+   {
+    "value": "Ascension",
+    "sources": [
+     "Age of Ascension",
+     "The Path of Ascension"
+    ]
+   },
+   {
+    "value": "Devourer",
+    "sources": [
+     "Rise of the Devourer"
+    ]
+   },
+   {
+    "value": "Archon",
+    "sources": [
+     "Rise of the Archon"
+    ]
+   },
+   {
+    "value": "Runeforger",
+    "sources": [
+     "Legend of the Runeforger"
+    ]
+   },
+   {
+    "value": "Primalist",
+    "sources": [
+     "Ascension of the Primalist"
+    ]
+   },
+   {
+    "value": "Skillmaster",
+    "sources": [
+     "RISE OF THE SKILLMASTER"
+    ]
+   },
+   {
+    "value": "Hollows",
+    "sources": [
+     "The Road of Hollows"
+    ]
+   }
+  ],
+  "note": "single-word objects only; two-element objects moved to compoundMod + compoundNoun (Kenny 3 Oct)"
+ },
+ "mundane+": {
+  "status": "EXTEND",
+  "note": "dao-of fillers",
+  "entries": [
+   {
+    "value": "Cooking",
+    "sources": [
+     "Dao of Cooking"
+    ]
+   },
+   {
+    "value": "Healing",
+    "sources": [
+     "Dao of Healing"
+    ]
+   },
+   {
+    "value": "Money",
+    "sources": [
+     "Dao of Money"
+    ]
+   },
+   {
+    "value": "Deal",
+    "sources": [
+     "Dao of the Deal"
+    ]
+   }
+  ]
+ },
+ "calamity+": {
+  "status": "EXTEND",
+  "entries": [
+   {
+    "value": "Doom",
+    "sources": [
+     "Age of Doom",
+     "Clerk Clark and the Superstore of Doom ()",
+     "Doom Route Breaker: Reborn as the Empire's Queen",
+     "Doom System Survivor"
+    ]
+   },
+   {
+    "value": "Cataclysm",
+    "sources": [
+     "Cataclysm Rising",
+     "Twelfth Cataclysm"
+    ]
+   },
+   {
+    "value": "Ruin",
+    "sources": [
+     "Reforged from Ruin",
+     "Tides of Ruin"
+    ]
+   },
+   {
+    "value": "Armageddon",
+    "sources": [
+     "Traclaon Armageddon"
+    ]
+   },
+   {
+    "value": "Disaster",
+    "sources": [
+     "New Disaster"
+    ]
+   },
+   {
+    "value": "Calamity",
+    "sources": [
+     "The Exalted Mage of Calamity"
+    ]
+   }
+  ]
+ },
+ "monster+": {
+  "status": "EXTEND",
+  "genres": [
+   "dungeon-core",
+   "dungeon-crawler"
+  ],
+  "entries": [
+   {
+    "value": "Dinosaur",
+    "sources": [
+     "Dinosaur Dungeon"
+    ]
+   },
+   {
+    "value": "Dragon",
+    "sources": [
+     "Dragon Core"
+    ]
+   },
+   {
+    "value": "Bee",
+    "sources": [
+     "The Bee Dungeon"
+    ]
+   },
+   {
+    "value": "Cat",
+    "sources": [
+     "Cat Core"
+    ]
+   },
+   {
+    "value": "Island",
+    "sources": [
+     "Island Core"
+    ]
+   },
+   {
+    "value": "Museum",
+    "sources": [
+     "Museum Core"
+    ]
+   },
+   {
+    "value": "Oasis",
+    "sources": [
+     "OASIS CORE"
+    ]
+   },
+   {
+    "value": "Elemental",
+    "sources": [
+     "Elemental Dungeon"
+    ]
+   },
+   {
+    "value": "Abyssal",
+    "sources": [
+     "The Abyssal Dungeon"
+    ]
+   },
+   {
+    "value": "Ancient",
+    "sources": [
+     "The Ancient Core"
+    ]
+   },
+   {
+    "value": "Divine",
+    "sources": [
+     "The Divine Dungeon"
+    ]
+   },
+   {
+    "value": "Infinity",
+    "sources": [
+     "The Infinity Dungeon"
+    ]
+   },
+   {
+    "value": "Viridescent",
+    "sources": [
+     "Viridescent Core"
+    ]
+   },
+   {
+    "value": "Dragonheart",
+    "sources": [
+     "Dragonheart Core"
+    ]
+   },
+   {
+    "value": "Boneless",
+    "sources": [
+     "The Boneless Dungeon"
+    ]
+   },
+   {
+    "value": "Lonely",
+    "sources": [
+     "A Lonely Dungeon"
+    ]
+   },
+   {
+    "value": "Greedy",
+    "sources": [
+     "Greedy Dungeon"
+    ]
+   },
+   {
+    "value": "Reluctant",
+    "sources": [
+     "The Reluctant Dungeon"
+    ]
+   },
+   {
+    "value": "Misplaced",
+    "sources": [
+     "The Misplaced Dungeon"
+    ]
+   },
+   {
+    "value": "Forgotten",
+    "sources": [
+     "Forgotten Dungeon"
+    ]
+   },
+   {
+    "value": "Worthy",
+    "sources": [
+     "Worthy Core"
+    ]
+   },
+   {
+    "value": "Annihilation",
+    "sources": [
+     "Annihilation Core"
+    ]
+   },
+   {
+    "value": "Blue",
+    "sources": [
+     "Blue Core"
+    ]
+   },
+   {
+    "value": "Comet",
+    "sources": [
+     "The Comet Core"
+    ]
+   },
+   {
+    "value": "Rogue",
+    "sources": [
+     "Rogue Dungeon"
+    ]
+   }
+  ]
+ },
+ "role+": {
+  "status": "EXTEND",
+  "entries": [
+   {
+    "value": "Mage",
+    "sources": [
+     "Blackflame Mage",
+     "Cantrip Mage",
+     "Construction Mage",
+     "Guild Mage",
+     "Immovable Mage",
+     "Industrial Mage",
+     "Minute Mage",
+     "Reader Mage"
+    ]
+   },
+   {
+    "value": "Farmer",
+    "sources": [
+     "Apocalypse Farmer",
+     "Infinite Farmer",
+     "Tower Farmer"
+    ]
+   },
+   {
+    "value": "Healer",
+    "sources": [
+     "Death Healer",
+     "Spiteful Healer"
+    ]
+   },
+   {
+    "value": "Cultivator",
+    "sources": [
+     "Elder Cultivator",
+     "Unintended Cultivator"
+    ]
+   },
+   {
+    "value": "Seeker",
+    "sources": [
+     "Rune Seeker",
+     "Sylver Seeker"
+    ]
+   },
+   {
+    "value": "Breaker",
+    "sources": [
+     "Magic Breaker",
+     "Tower Breaker"
+    ]
+   },
+   {
+    "value": "Eater",
+    "sources": [
+     "Flesh Eater",
+     "Skill Eater"
+    ]
+   },
+   {
+    "value": "Slayer",
+    "sources": [
+     "Apocalypse Slayer"
+    ]
+   },
+   {
+    "value": "Juggernaut",
+    "sources": [
+     "Arcane Juggernaut"
+    ]
+   },
+   {
+    "value": "Lord",
+    "sources": [
+     "Chained Lord"
+    ]
+   },
+   {
+    "value": "Monster",
+    "sources": [
+     "Cheating Monster"
+    ]
+   },
+   {
+    "value": "Chef",
+    "sources": [
+     "(profession compound pool — see candidates.v1.2.0.json)"
+    ]
+   },
+   {
+    "value": "Summoner",
+    "sources": [
+     "(profession compound pool — see candidates.v1.2.0.json)"
+    ]
+   },
+   {
+    "value": "Necromancer",
+    "sources": [
+     "(profession compound pool — see candidates.v1.2.0.json)"
+    ]
+   },
+   {
+    "value": "Tamer",
+    "sources": [
+     "(profession compound pool — see candidates.v1.2.0.json)"
+    ]
+   },
+   {
+    "value": "Botanist",
+    "sources": [
+     "(profession compound pool — see candidates.v1.2.0.json)"
+    ]
+   },
+   {
+    "value": "Alchemist",
+    "sources": [
+     "(profession compound pool — see candidates.v1.2.0.json)"
+    ]
+   },
+   {
+    "value": "Engineer",
+    "sources": [
+     "(profession compound pool — see candidates.v1.2.0.json)"
+    ]
+   },
+   {
+    "value": "Wandsmith",
+    "sources": [
+     "(profession compound pool — see candidates.v1.2.0.json)"
+    ]
+   },
+   {
+    "value": "Runesmith",
+    "sources": [
+     "(profession compound pool — see candidates.v1.2.0.json)"
+    ]
+   },
+   {
+    "value": "Druid",
+    "sources": [
+     "(profession compound pool — see candidates.v1.2.0.json)"
+    ]
+   },
+   {
+    "value": "Occultist",
+    "sources": [
+     "(profession compound pool — see candidates.v1.2.0.json)"
+    ]
+   },
+   {
+    "value": "Exorcist",
+    "sources": [
+     "(profession compound pool — see candidates.v1.2.0.json)"
+    ]
+   },
+   {
+    "value": "Knight",
+    "sources": [
+     "(profession compound pool — see candidates.v1.2.0.json)"
+    ]
+   },
+   {
+    "value": "Hunter",
+    "sources": [
+     "(profession compound pool — see candidates.v1.2.0.json)"
+    ]
+   },
+   {
+    "value": "Assassin",
+    "sources": [
+     "(profession compound pool — see candidates.v1.2.0.json)"
+    ]
+   }
+  ]
+ },
+ "rank+": {
+  "status": "EXTEND",
+  "entries": [
+   {
+    "value": "Arcane",
+    "sources": [
+     "Arcane Ascension",
+     "Arcane Exfil",
+     "Arcane Juggernaut"
+    ]
+   },
+   {
+    "value": "Accidental",
+    "sources": []
+   },
+   {
+    "value": "Forgotten",
+    "sources": [
+     "Forgotten Conqueror",
+     "Forgotten Dungeon"
+    ]
+   },
+   {
+    "value": "Unbound",
+    "sources": [
+     "Unbound Ascension",
+     "Unbound Elder"
+    ]
+   },
+   {
+    "value": "Modern",
+    "sources": [
+     "Modern Awakening",
+     "Modern Patriarch"
+    ]
+   },
+   {
+    "value": "Second",
+    "sources": [
+     "Second Saga",
+     "Second Summons"
+    ]
+   },
+   {
+    "value": "Spell",
+    "sources": [
+     "Spell Bow",
+     "Spell Weaver"
+    ]
+   },
+   {
+    "value": "Soul",
+    "sources": [
+     "Soul Guardian",
+     "Soul Nexus"
+    ]
+   },
+   {
+    "value": "Blackflame",
+    "sources": [
+     "Blackflame Mage"
+    ]
+   },
+   {
+    "value": "Boundless",
+    "sources": [
+     "Boundless Cultivation"
+    ]
+   },
+   {
+    "value": "Brimstone",
+    "sources": [
+     "Brimstone Fantasy"
+    ]
+   },
+   {
+    "value": "Cantrip",
+    "sources": [
+     "Cantrip Mage"
+    ]
+   },
+   {
+    "value": "Calculating",
+    "sources": [
+     "Calculating Cultivation"
+    ]
+   },
+   {
+    "value": "Annihilation",
+    "sources": [
+     "Annihilation Core"
+    ]
+   },
+   {
+    "value": "Augmented",
+    "sources": [
+     "Augmented Aspects"
+    ]
+   },
+   {
+    "value": "Artificial",
+    "sources": [
+     "Artificial Jelly"
+    ]
+   },
+   {
+    "value": "Applied",
+    "sources": [
+     "Applied Cultivation"
+    ]
+   }
+  ]
+ },
+ "bracketTag": {
+  "status": "RETIRE"
+ },
+ "ascentLead": {
+  "status": "NEW",
+  "genres": [
+   "progression"
+  ],
+  "entries": [
+   {
+    "value": "Rise",
+    "sources": [
+     "Rise Of The Unbound Flame",
+     "Rise of The Abyssal Noble",
+     "Rise of The Living Enchantment",
+     "Rise of a Manor Lord",
+     "Rise of the Living Forge",
+     "Rise of the Mystic Mage",
+     "Rise of the Rune Carpenter",
+     "Rise of the Undead Legion",
+     "The Rise of the Winter Wolf"
+    ]
+   },
+   {
+    "value": "Legend",
+    "sources": [
+     "Legend of the Awakened Goblin",
+     "Legend of the Spear Saint",
+     "The Legend Of Dark Heart"
+    ]
+   },
+   {
+    "value": "Return",
+    "sources": [
+     "RETURN OF THE MARTIAL MESSIAH",
+     "Return of the Runebound Professor",
+     "Return of the Wand Mage"
+    ]
+   },
+   {
+    "value": "Dawn",
+    "sources": [
+     "Dawn of the Density God"
+    ]
+   },
+   {
+    "value": "Path",
+    "sources": [
+     "Path of the Last Champion"
+    ]
+   },
+   {
+    "value": "Saga",
+    "sources": [
+     "Saga of the Soul Dungeon"
+    ]
+   },
+   {
+    "value": "Chronicles",
+    "sources": [
+     "The Chronicles of Emberstone Farm"
+    ]
+   }
+  ]
+ },
+ "compoundMod": {
+  "status": "NEW",
+  "genres": [
+   "progression"
+  ],
+  "entries": [
+   {
+    "value": "Density",
+    "sources": [
+     "Dawn of the Density God"
+    ]
+   },
+   {
+    "value": "Awakened",
+    "sources": [
+     "Legend of the Awakened Goblin"
+    ]
+   },
+   {
+    "value": "Spear",
+    "sources": [
+     "Legend of the Spear Saint"
+    ]
+   },
+   {
+    "value": "Last",
+    "sources": [
+     "Path of the Last Champion"
+    ]
+   },
+   {
+    "value": "Martial",
+    "sources": [
+     "RETURN OF THE MARTIAL MESSIAH"
+    ]
+   },
+   {
+    "value": "Runebound",
+    "sources": [
+     "Return of the Runebound Professor"
+    ]
+   },
+   {
+    "value": "Wand",
+    "sources": [
+     "Return of the Wand Mage"
+    ]
+   },
+   {
+    "value": "Unbound",
+    "sources": [
+     "Rise Of The Unbound Flame"
+    ]
+   },
+   {
+    "value": "Abyssal",
+    "sources": [
+     "Rise of The Abyssal Noble"
+    ]
+   },
+   {
+    "value": "Living",
+    "sources": [
+     "Rise of The Living Enchantment",
+     "Rise of the Living Forge"
+    ]
+   },
+   {
+    "value": "Manor",
+    "sources": [
+     "Rise of a Manor Lord"
+    ]
+   },
+   {
+    "value": "Mystic",
+    "sources": [
+     "Rise of the Mystic Mage"
+    ]
+   },
+   {
+    "value": "Rune",
+    "sources": [
+     "Rise of the Rune Carpenter"
+    ]
+   },
+   {
+    "value": "Undead",
+    "sources": [
+     "Rise of the Undead Legion"
+    ]
+   },
+   {
+    "value": "Soul",
+    "sources": [
+     "Saga of the Soul Dungeon"
+    ]
+   },
+   {
+    "value": "Emberstone",
+    "sources": [
+     "The Chronicles of Emberstone Farm"
+    ]
+   },
+   {
+    "value": "Dark",
+    "sources": [
+     "The Legend Of Dark Heart"
+    ]
+   },
+   {
+    "value": "Winter",
+    "sources": [
+     "The Rise of the Winter Wolf"
+    ]
+   }
+  ]
+ },
+ "compoundNoun": {
+  "status": "NEW",
+  "genres": [
+   "progression"
+  ],
+  "entries": [
+   {
+    "value": "God",
+    "sources": [
+     "Dawn of the Density God"
+    ]
+   },
+   {
+    "value": "Goblin",
+    "sources": [
+     "Legend of the Awakened Goblin"
+    ]
+   },
+   {
+    "value": "Saint",
+    "sources": [
+     "Legend of the Spear Saint"
+    ]
+   },
+   {
+    "value": "Champion",
+    "sources": [
+     "Path of the Last Champion"
+    ]
+   },
+   {
+    "value": "Messiah",
+    "sources": [
+     "RETURN OF THE MARTIAL MESSIAH"
+    ]
+   },
+   {
+    "value": "Professor",
+    "sources": [
+     "Return of the Runebound Professor"
+    ]
+   },
+   {
+    "value": "Mage",
+    "sources": [
+     "Return of the Wand Mage",
+     "Rise of the Mystic Mage"
+    ]
+   },
+   {
+    "value": "Flame",
+    "sources": [
+     "Rise Of The Unbound Flame"
+    ]
+   },
+   {
+    "value": "Noble",
+    "sources": [
+     "Rise of The Abyssal Noble"
+    ]
+   },
+   {
+    "value": "Enchantment",
+    "sources": [
+     "Rise of The Living Enchantment"
+    ]
+   },
+   {
+    "value": "Lord",
+    "sources": [
+     "Rise of a Manor Lord"
+    ]
+   },
+   {
+    "value": "Forge",
+    "sources": [
+     "Rise of the Living Forge"
+    ]
+   },
+   {
+    "value": "Carpenter",
+    "sources": [
+     "Rise of the Rune Carpenter"
+    ]
+   },
+   {
+    "value": "Legion",
+    "sources": [
+     "Rise of the Undead Legion"
+    ]
+   },
+   {
+    "value": "Dungeon",
+    "sources": [
+     "Saga of the Soul Dungeon"
+    ]
+   },
+   {
+    "value": "Farm",
+    "sources": [
+     "The Chronicles of Emberstone Farm"
+    ]
+   },
+   {
+    "value": "Heart",
+    "sources": [
+     "The Legend Of Dark Heart"
+    ]
+   },
+   {
+    "value": "Wolf",
+    "sources": [
+     "The Rise of the Winter Wolf"
+    ]
+   }
+  ]
+ }
+}

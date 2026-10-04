@@ -118,6 +118,8 @@ function capitaliseWord(word: string): string {
 			const first = segment.match(/[A-Za-z]/);
 			if (!first || first.index === undefined) return segment;
 			const i = first.index;
+			// Letters after a leading number are a suffix, not a word: "1980s", "21st", "3rd".
+			if (/\d/.test(segment.slice(0, i))) return segment.toLowerCase();
 			return segment.slice(0, i) + segment[i].toUpperCase() + segment.slice(i + 1).toLowerCase();
 		})
 		.join("-");

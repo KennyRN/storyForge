@@ -321,3 +321,238 @@ of the already-integrated 9-shape/41-subgenre baseline, not a redo.
   entries in the handoff's table — per the doctrine above, that would inflate
   the pattern for every sibling genre it already covers. The tilt is
   expressed entirely through which patterns list which genres.
+
+## `western-serial` — webnovel v1.2.0 integration (genre tree, 9 patterns, collision guard)
+
+Applied from the v1.2.0 integration brief and `corpus-webnovel/v1.2.0/lexicon.v1.2.0.json`.
+Everything below is a call the brief left open, or a place where two of its rules collided.
+
+**Engine (behaviour-preserving for every other lexicon):**
+- *Depth 3.* The brief's `progression > dungeon > dungeon-core` is three levels deep; the engine
+  capped at two. `MAX_GENRE_DEPTH` is now 3, and a middle-level parent reaches its descendants
+  *and* its ancestors (`genreScope`), so `dungeon` still inherits `progression`'s own patterns
+  (rule 1). For a top-level parent the ancestor tail is empty, so title-composer is unchanged.
+  The web-fiction picker indents recursively.
+- *Cultivation-in-isekai* is a generic `genreExclusions` spec field, applied **before** the
+  forgiving slot fallback. Otherwise a slot with nothing tagged `#isekai` would fall back to every
+  entry, `#cultivation` included.
+- *Collision guard* is a generic `reservedTitles` field. A colliding render resamples **within the
+  same pattern** (the first cut re-picked the pattern, which bled vr-online's share into the others
+  and failed check 3). After 20 resamples the draw drops that pattern and moves to the next.
+
+**Rule conflicts:**
+- `system-calamity`'s shipped `{systemWord} {calamity}: Book One` was dropped, even though the brief
+  says to keep existing templates. Check 3 forbids "Book N", and STAGE4 ruling 2 strips
+  publication-status tails.
+- The shipped interro entry `Awakened as the` was changed to `Awakened as`. The template supplies
+  its own `the`, so it rendered "Awakened as the the Rooster?" (a v1.1.0 bug, made visible because
+  isekai now leans on this pattern).
+
+**Tagging judgement calls** (role+/rank+/calamity+ arrive with no `genres` field):
+- Every new role/rank gets `#progression`, since all source titles are progression-tree. A *leaf*
+  tag is added only where the leaf ends up with at least 5 entries. `narrowLeaf` makes a
+  leaf-tagged slot exclusive, so a 2–3 word pool is worse than inheriting `#progression`. For that
+  reason system-apocalypse, tower-climbing and magic-academy get no role tags, though *Tower
+  Farmer* or *Apocalypse Slayer* would suggest them.
+- `#crafting-profession` roles: Farmer, Chef, Botanist, Engineer, Wandsmith, Runesmith, plus the
+  shipped Alchemist.
+- `#regression` roles: Mage, Healer, Knight, Lord, Exorcist, Hunter, Assassin, plus the shipped
+  Summoner and Necromancer.
+- `#villainess` roles: Mage, Healer, Knight, plus the shipped Summoner, Necromancer and Alchemist.
+  `#villainess` ranks: Forgotten, Second, plus the shipped Accidental, Reluctant and Insufferable.
+  **None of this is evidence-led.** The handoff has no villainess role/rank vocabulary, and without
+  tags those slots fell back to every entry ("Return of the Mythic Billionaire"). Replace these
+  tags with harvested vocabulary.
+- calamity+ (Doom, Cataclysm, Ruin, Armageddon, Disaster, Calamity) → `#litrpg
+  #system-apocalypse`. The shipped RR "System Invasion" words (Apocalypse, Integration, Culling,
+  Reset, Convergence, Rollout, Migration) also gain `#system-apocalypse`, so the new leaf is 13
+  words wide rather than 6.
+- monster+ (`dungeon-core` + `dungeon-crawler`) → `#dungeon`, their parent. The new entries pool
+  with the 19 shipped `#dungeon` ones; tagging them per child would have displaced those under
+  `narrowLeaf`.
+- ranks are **not** tagged `#dungeon`. Only 2 would qualify, and they would replace the whole
+  inherited rank pool under dungeon-core/crawler.
+
+**Lexicon renderings:**
+- ascentObject agent nouns keep their source article, giving `the Devourer`, `the Archon`, `the
+  Runeforger`, `the Primalist` and `the Skillmaster` ("Rise of the Devourer", never "Rise of
+  Devourer"). The mass/plural nouns stay bare.
+- mundane+ `Deal` ships as `the Deal`, matching the exemplar *Dao of the Deal*.
+- De-duplicated against shipped entries: monster Cat, Boneless, Lonely, Misplaced, Rogue; role
+  Summoner, Necromancer, Alchemist; rank Accidental. Tags were merged where noted above.
+
+**Open items for review (visible in `corpus-webnovel/v1.2.0/SAMPLES-v1.2.0.md`):**
+- `vr-online`: all 21 onlineWord values are the heads of real "X Online" titles, so
+  `{onlineWord} Online` can *only* reproduce a corpus title. The guard always rejects it, which
+  leaves just `The {onlineWord} Online` ("The Ascend Online"). The slot needs fillers that aren't
+  real titles, or a different second template.
+- isekai's role pool is just Summoner and Bureaucrat, the only `#isekai` roles (unchanged from
+  v1.1.0), so isekai samples are repetitive. The handoff supplies no isekai role vocabulary.
+- dungeon-core and dungeon-crawler have no vocabulary or patterns of their own (the monster+ entries
+  cover both), so they produce identical output.
+- `{role} of the {calamity}` with *Doom* reads "Mage of the Doom".
+
+## All lexicons — additive vocabulary model (own + parent + general)
+
+Kenny's rules: genre words are **added** to a shared pool rather than replacing it.
+- An entry tagged with 2+ subgenres of a parent belongs to that parent's lexicon.
+- An entry spanning 2+ top-level genres (subgenre tags count towards their top genre) is on the
+  general list.
+
+Engine details are in the README ("Vocabulary is additive"). This entry logs the decisions the
+rules couldn't make on their own.
+
+**Engine calls beyond the brief:**
+- *Thin-tier cut (`fullTier` = 8).* The first cut gave a genre's sole own word the whole 55% own
+  share: sword-sorcery's "Speaker" came up in 55% of draws, and isekai's Summoner and Bureaucrat
+  in 39% each. A tier now earns its full share only at 8 words. Speaker is now 13%, and isekai's
+  two are 24% each.
+- *Genre-neutral fallback widened.* When a genre has nothing of its own or inherited in a slot,
+  the whole slot is drawn, as before. Without this, those cells shrank to the general list, and
+  korean/chinese/vietnamese came out *thinner* than under the old model.
+
+**Untagged-entry audit.** Untagged entries are general by definition. All were kept general except
+these, which would leak into the wrong register:
+- place `galaxy`, `expanse`, `universe`, `space` → `#sf`
+- abstract `magic` → `#fantasy`; `jazz` → `#crime #noir`
+- object `bomb` → `#thriller`; `gun` → `#crime`
+
+Each is tagged within one top-level genre, deliberately: a multi-genre tag would put it straight
+back on the general list. The korean and chinese untagged entries (`Strongest`, `Dragon`,
+`Phoenix`…) are register-neutral within their tradition and stay general.
+
+**webnovel.**
+- `romance` is `isolated`: it never draws the general list, so its roles stay Bad Boy and
+  Billionaire.
+- isekai's role pool went from 2 to 17 with no hand-tagging. Mage, Summoner, Necromancer and the
+  rest span 2+ top-level genres, so they're general. This resolves the v1.2.0 open item.
+- The v1.2.0 villainess/regression stopgap tags now also decide general-list membership. Reviewed
+  and kept.
+- Cultivator and Sect Elder stay single-genre `#cultivation`. The isekai exclusion runs before the
+  tiers, so multi-genre cultivation words (Rooster, Chicken Farming) are still dropped there.
+
+**Result** (`tools/VOCAB-POOLS.md`, thin = fewer than 8 words in a slot a genre's patterns use):
+
+| Lexicon | Thin before | Thin after |
+|---|--:|--:|
+| title-composer | 1,075 | 347 |
+| western-serial | 81 | 42 |
+| thai-web | 20 | 6 |
+
+No lexicon got thinner. What's left is mostly function-word slots (`countWord`, `storyWord`,
+`honorific`, `warning`, `ascentLead`…), which are step 3's worklist.
+
+**Seen in passing, not fixed:** title-composer world-fiction can produce real titles verbatim
+("Season of Migration to the North"). title-composer has no `reservedTitles` list.
+
+## Invented character names (title-composer `name`, webnovel `heroName`)
+
+Kenny wanted no real or scraped names in titles.
+- webnovel's `heroName` held 18 protagonist names lifted from real corpus titles (Adam, Jake, Nyx…).
+- title-composer's `name` held 42 curated names of undocumented provenance.
+
+Both now hold `@register` entries that invent names with nameForge's Markov model (README,
+"Invented character names").
+
+**Decisions:**
+- *Registers follow how the old names clustered*: fantasy, historical, modern, sf, gothic. Two
+  were added because one "historical" register can't cover them: **ancient** (Latin/Greek) and
+  **frontier** (western). title-composer's 42 old names are now style sources inside the
+  registers, so they're never output verbatim.
+- *Sources are ordinary given names of each period.* The `hero` sources deliberately exclude the
+  18 scraped names.
+- *Tuning:* nameForge defaults (faithfulness 2, strictness 3) plus novelty 1 (rejects one-edit
+  variants). Higher strictness made no visible difference in samples.
+- *Length band:* the sources' own 10th–90th percentile, floored at 4 letters and at least three
+  lengths wide. Without it, about a third of outputs were stubs ("Pri", "Con") or portmanteaus
+  ("Augustusiah", "Tiberikleon"). Without the width rule, the hero register returned "Conn" in half
+  its draws. Now 34 of 40 draws are distinct.
+- *Exclusive name slot* (title-composer): under the additive model, a multi-genre register entry
+  would be general and leak modern names into epic fantasy. Names are register-critical, so the
+  slot keeps exclusive narrowing.
+- *Reports:* a slot with an `@register` entry counts as unbounded ("invented") in
+  `VOCAB-POOLS.md` and in the coverage tool's min-pool column.
+
+**Known limits:**
+- Markov output sometimes lands on a real given name (Irina, Ruben) or an English word (Honor,
+  Clan). These are coincidental and not scraped.
+- nameForge *mix* packs can't be used, because their names live in the packs they mix. The
+  writer picks one of those packs instead.
+
+## Step 3 — thin-slot expansion (all lexicons)
+
+Additions follow the ranked list in `tools/VOCAB-POOLS.md`. Rule of thumb: a register-neutral word
+goes in **untagged**, so it's general and works in every genre. A register-bound word gets a tag
+within **one** top-level genre, so it can't leak through the general list ("Thy" → `#hist`,
+"weekend" → `#contemporary-romance`, "magic" → `#fantasy`).
+
+**Where the words came from:**
+
+| Lexicon | Source of additions |
+|---|---|
+| title-composer | Judgement-authored. Mostly closed-class grammatical words (ordinals, quantifiers, era nouns, story/count words, strike verbs), plus 3–7 words per thin world-fiction language, each tagged to its own language only. |
+| webnovel | **Harvested from the frozen v1.2.0 corpus.** Every addition traces to at least one eligible series, logged under `step3Additions` in `lexicon.v1.2.0.provenance.json`. ascentLead additions all have 2+ series. |
+| japanese-ln, korean, chinese, vietnamese, indonesian, thai | Judgement-authored genre-convention vocabulary, each word tagged to a single genre. These lexicons have no corpus in the repo, so these entries are unsourced. Review them like any hand-written word. |
+
+**Decisions:**
+- *japanese-ln `verb` is exclusive.* It serves two grammars: isekai's infinitive ("I Shall Survive
+  Using…") and romcom's past tense ("The Girl I Sat Next To…"). Under the additive model the
+  multi-genre "Survive" was general and could reach romcom ("The Girl I Survive Turned Out to Be My
+  Sister"). This leak came from step 1; exclusiveSlots closes it.
+- *Hindi "Widow" replaced by "Daughters-in-Law".* With the existing "Black", it produced "The Black
+  Widow".
+- *webnovel verify check 3c narrowed* to the brief's actual "Book N": "Book" followed by a number
+  (One, 2, IV). The new corpus-attested lead "Book" ("Book of the Dead") matched the old `Book \w+`.
+- *titleCase:* letters after a leading number now stay lowercase ("1980s", "21st"). This was a bug,
+  not new behaviour.
+
+**Left thin on purpose:**
+- webnovel `warning` (2 in progression/cultivation) and `loopWord` (3): the corpus has no more
+  evidence.
+- webnovel romance roles (2): isolated.
+- korean `only` (1–2): its templates need a plural-agreeing subject ("Only I Know…"), so singular
+  additions would break the grammar.
+
+**Result:** pools of 3 words or fewer went from 455 (before step 1) to those 6.
+
+| Lexicon | Pools under 8 words |
+|---|---|
+| title-composer | 1,075 → 28 |
+| webnovel | 81 → 14 |
+
+**Seen in passing, not fixed** (all pre-existing):
+- japanese-ln reproduces some real titles verbatim ("Log Horizon", "Reincarnated as a Sword",
+  "Rascal Does Not Dream of…").
+- title-composer world-fiction can reproduce "Life and Fate", "Dead Souls" and "Season of Migration
+  to the North".
+- `{era}s` pluralises "Century" as "Centurys", and `Where the {animal}s {strikeVerb}` gives a plural
+  subject a singular verb.
+
+## Grammar fixes and the real-title guard for title-composer and japanese-ln
+
+**Plurals.** Fifteen title-composer templates pluralised with a literal `{slot}s`, which gave
+"Centurys", "Ladys" and "childrens" (on entries that are already plural). They now use a `|plural`
+filter:
+- it pluralises the last word, including irregulars (wolf → wolves, child → children);
+- it leaves already-plural entries alone.
+
+A structural test rejects a literal `}s` in any lexicon.
+
+**Agreement.** `Where the {animal}s {strikeVerb}` paired a plural subject with a third-person verb
+("Where the Wolves Rises"). It's now `Where the {animal|plural} {strikeVerb|bare}`, where `|bare`
+gives the base form (rises → rise, watches → watch).
+
+**Real titles.** title-composer and japanese-ln now carry `reservedTitles`, like webnovel. Both are
+built by `tools/build-reserved.ts`:
+- title-composer (981 titles): its series and novel corpora (names, aliases, bracket-free and
+  pre-colon forms), its pattern exemplars, and 60 curated translated classics in the shapes its
+  world-fiction genres generate ("War and Peace", "Life and Fate", "Dead Souls", "Season of
+  Migration to the North").
+- japanese-ln (170 titles): its frozen v1.4.0 corpus, copied into `corpus-jpln/` from the
+  September handoff, plus its exemplars.
+
+This closes "Log Horizon", "Reincarnated as a Sword" and the world-fiction classics noted earlier.
+The curated classics list is a judgement call, kept in the builder so it's easy to extend.
+
+**Limit:** the guard matches titles exactly. A near-miss ("Life and Fates") isn't caught, and no
+list can hold every published title.

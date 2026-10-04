@@ -584,12 +584,17 @@ export class TitleForgePanel {
 			byParent.set(genre.parent, siblings);
 		}
 		const out: LabelledOption[] = [];
+		// Recursive for three-level trees (webnovel's progression > dungeon > dungeon-core); the
+		// `seen` guard keeps a cyclic hand-edit from recursing forever.
+		const seen = new Set<string>();
+		const emit = (genre: GenreOption, depth: number): void => {
+			if (seen.has(genre.id)) return;
+			seen.add(genre.id);
+			out.push(depth === 0 ? genre : { id: genre.id, label: `${" ".repeat(depth)}${genre.label}` });
+			for (const child of byParent.get(genre.id) ?? []) emit(child, depth + 1);
+		};
 		for (const genre of spec.genres) {
-			if (genre.parent) continue; // emitted under its own parent below
-			out.push(genre);
-			for (const child of byParent.get(genre.id) ?? []) {
-				out.push({ id: child.id, label: ` ${child.label}` });
-			}
+			if (!genre.parent) emit(genre, 0); // children are emitted under their own parent
 		}
 		return out;
 	}
