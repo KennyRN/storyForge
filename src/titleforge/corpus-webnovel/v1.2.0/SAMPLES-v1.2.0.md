@@ -35,7 +35,7 @@ Verification: all checks pass.
 |--:|---|---|
 | 1 | Save File Cataclysm | system-calamity |
 | 2 | My Warden's Life | possessive-relation |
-| 3 | Why Is Everyone Obsessed with the Botanist? | interrogative-hook |
+| 3 | Awakened as the Botanist? | interrogative-hook |
 | 4 | Armageddon Exorcist | rank-role |
 | 5 | Level One Retired Villain | rank-role |
 | 6 | Assassin of the Doom | system-calamity |
@@ -47,7 +47,7 @@ Verification: all checks pass.
 | 12 | My Ranger's Oath | possessive-relation |
 | 13 | Augmented Accountant: Fireborn | colon-subtitle |
 | 14 | Doom Cartographer | rank-role |
-| 15 | Three Hundred Levels of Sanity | numeric-grind |
+| 15 | Ten Levels of Sanity | numeric-grind |
 | 16 | Applied Mage | rank-role |
 | 17 | Katess in the Cataclysm | name-anchor |
 | 18 | Patch Notes Integration | system-calamity |
@@ -74,9 +74,9 @@ Verification: all checks pass.
 | 14 | Cataclysm Wandsmith | rank-role |
 | 15 | Blackflame Lord | rank-role |
 | 16 | Insufferable Healer | rank-role |
-| 17 | Dawn of the Winter Legion | ascent-compound |
+| 17 | Ascension of the Winter Legion | ascent-compound |
 | 18 | The Soul Respawn Clerk | rank-role |
-| 19 | Path of the Density Legion | ascent-compound |
+| 19 | Road of the Density Legion | ascent-compound |
 | 20 | Boundless Apprentice Lich | rank-role |
 
 ## western cultivation (`cultivation`)
@@ -124,9 +124,9 @@ Verification: all checks pass.
 | 14 | Doom Breaker | rank-role |
 | 15 | Bee Dungeon | dungeon-anchor |
 | 16 | Insufferable Goblin | rank-role |
-| 17 | Dawn of the Winter Legion | ascent-compound |
+| 17 | Ascension of the Winter Legion | ascent-compound |
 | 18 | The Soul Dungeon Core | rank-role |
-| 19 | Path of the Density Legion | ascent-compound |
+| 19 | Road of the Density Legion | ascent-compound |
 | 20 | The Annihilation Dungeon | dungeon-anchor |
 
 ## dungeon core (`dungeon-core`)
@@ -149,9 +149,9 @@ Verification: all checks pass.
 | 14 | Doom Botanist | rank-role |
 | 15 | Bee Dungeon | dungeon-anchor |
 | 16 | Insufferable Cartographer | rank-role |
-| 17 | Dawn of the Winter Legion | ascent-compound |
+| 17 | Ascension of the Winter Legion | ascent-compound |
 | 18 | The Boundless Dungeon Core | rank-role |
-| 19 | Path of the Density Legion | ascent-compound |
+| 19 | Road of the Density Legion | ascent-compound |
 | 20 | Cantrip Goblin | rank-role |
 
 ## dungeon crawler (`dungeon-crawler`)
@@ -174,9 +174,9 @@ Verification: all checks pass.
 | 14 | Doom Botanist | rank-role |
 | 15 | Bee Dungeon | dungeon-anchor |
 | 16 | Insufferable Cartographer | rank-role |
-| 17 | Dawn of the Winter Legion | ascent-compound |
+| 17 | Ascension of the Winter Legion | ascent-compound |
 | 18 | The Boundless Dungeon Core | rank-role |
-| 19 | Path of the Density Legion | ascent-compound |
+| 19 | Road of the Density Legion | ascent-compound |
 | 20 | Cantrip Goblin | rank-role |
 
 ## System Apocalypse (`system-apocalypse`)
@@ -210,11 +210,11 @@ Verification: all checks pass.
 |--:|---|---|
 | 1 | The Insufferable Hunter | rank-role |
 | 2 | Age of Integration | ascent-of |
-| 3 | Saga of the Soul Lord | ascent-compound |
+| 3 | Road of the Soul Lord | ascent-compound |
 | 4 | Disaster Rooster | rank-role |
 | 5 | Mythic Retired Villain | rank-role |
 | 6 | Brimstone Knight | rank-role |
-| 7 | Saga of Doom | ascent-of |
+| 7 | Will of Doom | ascent-of |
 | 8 | The Artificial Cartographer of the Understory | rank-role |
 | 9 | The Spell Lord of the Respawn Point | rank-role |
 | 10 | The Augmented Slime of the Guild Annexe | rank-role |
@@ -227,7 +227,7 @@ Verification: all checks pass.
 | 17 | The Battlegrounds Online | vr-online |
 | 18 | The Soul Respawn Clerk | rank-role |
 | 19 | The Sky Realms Online | vr-online |
-| 20 | Saga of Ascension | ascent-of |
+| 20 | Soul of Ascension | ascent-of |
 
 ## magic academy (`magic-academy`)
 
@@ -245,14 +245,14 @@ Verification: all checks pass.
 | 10 | The Augmented Slime of the Guild Annexe | rank-role |
 | 11 | Second Quartermaster | rank-role |
 | 12 | Only the Exorcist Can Enter the Guild Annexe | only-i |
-| 13 | Path of the Density God | ascent-compound |
+| 13 | Keeper of the Density God | ascent-compound |
 | 14 | Cataclysm Wandsmith | rank-role |
 | 15 | Only the Juggernaut Can Enter the Respawn Point | only-i |
 | 16 | Insufferable Healer | rank-role |
 | 17 | RE: Chef | re-prefix |
 | 18 | The Soul Respawn Clerk | rank-role |
 | 19 | RE: Occultist | re-prefix |
-| 20 | Saga of Ascension | ascent-of |
+| 20 | Soul of Ascension | ascent-of |
 
 ## crafting & profession (`crafting-profession`)
 
@@ -274,9 +274,9 @@ Verification: all checks pass.
 | 14 | Cataclysm Portal Technician | rank-role |
 | 15 | Only the Wandsmith Can Enter the Respawn Point | only-i |
 | 16 | Insufferable Engineer | rank-role |
-| 17 | Dawn of the Winter Legion | ascent-compound |
+| 17 | Ascension of the Winter Legion | ascent-compound |
 | 18 | The Soul Chef | rank-role |
-| 19 | Path of the Density Legion | ascent-compound |
+| 19 | Road of the Density Legion | ascent-compound |
 | 20 | A Decent Cup of Tea in Floor Zero | mundane-in-fantasy |
 
 ## core progression (`progression-core`)
@@ -299,9 +299,9 @@ Verification: all checks pass.
 | 14 | Cataclysm Wandsmith | rank-role |
 | 15 | Blackflame Lord | rank-role |
 | 16 | Insufferable Healer | rank-role |
-| 17 | Dawn of the Winter Legion | ascent-compound |
+| 17 | Ascension of the Winter Legion | ascent-compound |
 | 18 | The Soul Respawn Clerk | rank-role |
-| 19 | Path of the Density Legion | ascent-compound |
+| 19 | Road of the Density Legion | ascent-compound |
 | 20 | Boundless Apprentice Lich | rank-role |
 
 ## tower climbing (`tower-climbing`)
@@ -314,69 +314,69 @@ Verification: all checks pass.
 | 4 | Disaster Rooster | rank-role |
 | 5 | Mythic Retired Villain | rank-role |
 | 6 | Brimstone Knight | rank-role |
-| 7 | Saga of Doom | ascent-of |
+| 7 | Will of Doom | ascent-of |
 | 8 | The Artificial Cartographer of the Understory | rank-role |
 | 9 | The Spell Lord of the Respawn Point | rank-role |
 | 10 | The Augmented Slime of the Guild Annexe | rank-role |
 | 11 | Second Quartermaster | rank-role |
 | 12 | Age of Cataclysm | ascent-of |
-| 13 | Path of the Density God | ascent-compound |
+| 13 | Keeper of the Density God | ascent-compound |
 | 14 | Cataclysm Wandsmith | rank-role |
 | 15 | Only the Juggernaut Can Enter the Respawn Point | only-i |
 | 16 | Insufferable Healer | rank-role |
 | 17 | The Floor Zero Spire | tower-anchor |
 | 18 | The Soul Respawn Clerk | rank-role |
 | 19 | The Tutorial Meadow Spire | tower-anchor |
-| 20 | Saga of Ascension | ascent-of |
+| 20 | Soul of Ascension | ascent-of |
 
 ## isekai (`isekai`)
 
 | # | Name | Pattern |
 |--:|---|---|
-| 1 | I Am the Second Lord Against My Better Judgement | situation-complaint |
-| 2 | What Do You Mean I'm the Forgotten Mage? | interrogative-hook |
-| 3 | Why Is Everyone Obsessed with the Botanist? | interrogative-hook |
-| 4 | The Exorcist Who Got a Second Save File | regression-rebirth |
+| 1 | I Am the Forgotten Lord Against My Better Judgement | situation-complaint |
+| 2 | What Do You Mean I'm the Magical Mage? | interrogative-hook |
+| 3 | Awakened as the Botanist? | interrogative-hook |
+| 4 | The Exorcist Who Eludes Death | regression-rebirth |
 | 5 | Return of the Accidental Bureaucrat | regression-rebirth |
-| 6 | My Respawn Timer Chose the Suburbs and No One Warned Me | situation-complaint |
+| 6 | My Respawn Timer Chose a Magic World and No One Warned Me | situation-complaint |
 | 7 | I Reincarnated as the Bureaucrat | regression-rebirth |
 | 8 | I Reincarnated as a Chef and I Have Notes | situation-complaint |
 | 9 | Becoming the Necromancer | regression-rebirth |
 | 10 | I Reincarnated as a Lord and I Want a Refund | situation-complaint |
 | 11 | I Reincarnated as a Bureaucrat and I Have Notes | situation-complaint |
-| 12 | The Healer Who Kept the Patch Notes | regression-rebirth |
+| 12 | The Healer Who Got a Second Save File | regression-rebirth |
 | 13 | The Modern Age Online | vr-online |
-| 14 | My Changelog Chose Another World Against My Better Judgement | situation-complaint |
-| 15 | Return of the Accidental Necromancer | regression-rebirth |
+| 14 | My Changelog Chose a New World Against My Better Judgement | situation-complaint |
+| 15 | Return of the Fated Necromancer | regression-rebirth |
 | 16 | I Reincarnated as a Hunter and I Am Extremely Tired | situation-complaint |
 | 17 | The Battlegrounds Online | vr-online |
-| 18 | I Am the Accidental Summoner and I Have Notes | situation-complaint |
+| 18 | I Am the Conscripted Summoner and I Have Notes | situation-complaint |
 | 19 | The Sky Realms Online | vr-online |
-| 20 | Why Is Everyone Obsessed with the Cartographer? | interrogative-hook |
+| 20 | Awakened as the Cartographer? | interrogative-hook |
 
 ## reincarnation (`isekai/reincarnation`)
 
 | # | Name | Pattern |
 |--:|---|---|
 | 1 | Oh Great, I Was Reincarnated as the Chef | regression-rebirth |
-| 2 | The Bureaucrat Who Kept the Patch Notes | regression-rebirth |
-| 3 | Return of the Forgotten Exorcist | regression-rebirth |
-| 4 | The Knight Who Got a Second Save File | regression-rebirth |
+| 2 | The Bureaucrat Who Got a Second Save File | regression-rebirth |
+| 3 | Return of the Magical Exorcist | regression-rebirth |
+| 4 | The Knight Who Eludes Death | regression-rebirth |
 | 5 | Return of the Accidental Bureaucrat | regression-rebirth |
-| 6 | The Mage Who Kept the Patch Notes | regression-rebirth |
+| 6 | The Mage Who Got a Second Save File | regression-rebirth |
 | 7 | I Reincarnated as the Cartographer | regression-rebirth |
-| 8 | Return of the Second Summoner | regression-rebirth |
+| 8 | Return of the Friendly Summoner | regression-rebirth |
 | 9 | Becoming the Slime | regression-rebirth |
-| 10 | The Second Life of the Farmer | regression-rebirth |
-| 11 | Return of the Accidental Summoner | regression-rebirth |
-| 12 | The Lord Who Kept the Patch Notes | regression-rebirth |
-| 13 | So I'm the Accidental Summoner? | interrogative-hook |
-| 14 | The Lord Who Would Not Stay Dead | regression-rebirth |
-| 15 | Return of the Reluctant Slime | regression-rebirth |
+| 10 | Return of the Friendly Exorcist | regression-rebirth |
+| 11 | Return of the Conscripted Summoner | regression-rebirth |
+| 12 | The Lord Who Got a Second Save File | regression-rebirth |
+| 13 | Why Is Everyone Obsessed with the Accidental Summoner? | interrogative-hook |
+| 14 | The Lord Who Kept the Patch Notes | regression-rebirth |
+| 15 | Return of the Fated Slime | regression-rebirth |
 | 16 | Return of the Second Necromancer | regression-rebirth |
-| 17 | So I'm the Assassin? | interrogative-hook |
+| 17 | Why Is Everyone Obsessed with the Assassin? | interrogative-hook |
 | 18 | Becoming the Bureaucrat | regression-rebirth |
-| 19 | Why Is Everyone Obsessed with the Summoner? | interrogative-hook |
+| 19 | Awakened as the Summoner? | interrogative-hook |
 | 20 | Transmigrated into the Mage | regression-rebirth |
 
 ## into a game or story (`isekai/media-world`)
@@ -384,69 +384,69 @@ Verification: all checks pass.
 | # | Name | Pattern |
 |--:|---|---|
 | 1 | I Am the Second Chef Against My Better Judgement | situation-complaint |
-| 2 | What Do You Mean I'm the Forgotten Healer? | interrogative-hook |
+| 2 | What Do You Mean I'm the Friendly Healer? | interrogative-hook |
 | 3 | The Modern Age Online | vr-online |
-| 4 | My Cooldown Chose the Frontier Ward and It Will Not Stop Levelling | situation-complaint |
+| 4 | My Cooldown Chose a Magic World and It Will Not Stop Levelling | situation-complaint |
 | 5 | I Reincarnated as a Summoner and It Will Not Stop Levelling | situation-complaint |
-| 6 | My Respawn Timer Chose the Suburbs and No One Warned Me | situation-complaint |
-| 7 | Awakened as the Cartographer? | interrogative-hook |
+| 6 | My Respawn Timer Chose a Fantasy World and No One Warned Me | situation-complaint |
+| 7 | Wait, I'm the Cartographer? | interrogative-hook |
 | 8 | I Reincarnated as an Exorcist and I Have Notes | situation-complaint |
-| 9 | I Am the Accidental Slime and I Am Extremely Tired | situation-complaint |
+| 9 | I Am the Conscripted Slime and I Am Extremely Tired | situation-complaint |
 | 10 | I Reincarnated as a Chef and I Want a Refund | situation-complaint |
 | 11 | I Reincarnated as a Necromancer and I Have Notes | situation-complaint |
-| 12 | Why Is Everyone Obsessed with the Second Botanist? | interrogative-hook |
-| 13 | I Am the Forgotten Summoner and the Guild Is Furious | situation-complaint |
+| 12 | Awakened as the Friendly Botanist? | interrogative-hook |
+| 13 | I Am the Friendly Summoner and the Guild Is Furious | situation-complaint |
 | 14 | My Changelog Chose the Suburbs Against My Better Judgement | situation-complaint |
-| 15 | Turns Out I'm the Reluctant Accountant? | interrogative-hook |
+| 15 | So I'm the Fated Accountant? | interrogative-hook |
 | 16 | I Reincarnated as a Hunter and I Am Extremely Tired | situation-complaint |
 | 17 | The Battlegrounds Online | vr-online |
-| 18 | I Am the Reluctant Bureaucrat and I Have Notes | situation-complaint |
+| 18 | I Am the Fated Bureaucrat and I Have Notes | situation-complaint |
 | 19 | The Sky Realms Online | vr-online |
-| 20 | Why Is Everyone Obsessed with the Mage? | interrogative-hook |
+| 20 | Awakened as the Mage? | interrogative-hook |
 
 ## cosy & slice of life (`cosy`)
 
 | # | Name | Pattern |
 |--:|---|---|
-| 1 | Please Ignore the Botanist | warning-title |
-| 2 | My System Chose the Suburbs and No One Warned Me | situation-complaint |
+| 1 | Don't Fear the Botanist | warning-title |
+| 2 | My System Chose Seclusion and No One Warned Me | situation-complaint |
 | 3 | I Reincarnated as a Chef and I Want a Refund | situation-complaint |
-| 4 | The Forgotten Knight's Guide to Pension Planning | mundane-in-fantasy |
+| 4 | The Unintended Knight's Guide to Pension Planning | mundane-in-fantasy |
 | 5 | A Practical Guide to Bookkeeping | mundane-in-fantasy |
 | 6 | Do Not Feed the Crop Rotation | warning-title |
-| 7 | I Am the Insufferable Librarian and the Guild Is Furious | situation-complaint |
-| 8 | Please Ignore the Alchemist | warning-title |
+| 7 | I Am the Unintended Librarian and the Guild Is Furious | situation-complaint |
+| 8 | Don't Fear the Alchemist | warning-title |
 | 9 | Customer Service in the Frontier Ward | mundane-in-fantasy |
 | 10 | Please Ignore the Mage | warning-title |
 | 11 | A Practical Guide to Pension Planning | mundane-in-fantasy |
-| 12 | My Changelog Chose the Suburbs and I Want a Refund | situation-complaint |
+| 12 | My Changelog Chose Seclusion and I Want a Refund | situation-complaint |
 | 13 | My Adventurer's Secret | possessive-relation |
-| 14 | The Insufferable Farmer's Guide to Compost | mundane-in-fantasy |
+| 14 | The Unintended Farmer's Guide to Compost | mundane-in-fantasy |
 | 15 | I Reincarnated as a Rooster and the Guild Is Furious | situation-complaint |
 | 16 | A Practical Guide to a Decent Cup of Tea | mundane-in-fantasy |
-| 17 | So I'm the Assassin? | interrogative-hook |
+| 17 | Why Is Everyone Obsessed with the Assassin? | interrogative-hook |
 | 18 | Customer Service in the Wandering Inn | mundane-in-fantasy |
-| 19 | Why Is Everyone Obsessed with the Alchemist? | interrogative-hook |
-| 20 | I Am the Insufferable Bureaucrat and I Am Extremely Tired | situation-complaint |
+| 19 | Awakened as the Alchemist? | interrogative-hook |
+| 20 | I Am the Unintended Bureaucrat and I Am Extremely Tired | situation-complaint |
 
 ## villainess (`villainess`)
 
 | # | Name | Pattern |
 |--:|---|---|
 | 1 | I Am the Second Slime Against My Better Judgement | situation-complaint |
-| 2 | The Alchemist Who Kept the Patch Notes | regression-rebirth |
+| 2 | The Alchemist Who Got a Second Save File | regression-rebirth |
 | 3 | Return of the Forgotten Bureaucrat | regression-rebirth |
-| 4 | My Cooldown Chose the Guild Annexe and It Will Not Stop Levelling | situation-complaint |
+| 4 | My Cooldown Chose a Shounen Manga and It Will Not Stop Levelling | situation-complaint |
 | 5 | I Reincarnated as a Necromancer and It Will Not Stop Levelling | situation-complaint |
-| 6 | My Respawn Timer Chose the Respawn Point and No One Warned Me | situation-complaint |
+| 6 | My Respawn Timer Chose a Fantasy World and No One Warned Me | situation-complaint |
 | 7 | I Reincarnated as the Mage | regression-rebirth |
 | 8 | I Reincarnated as a Bureaucrat and I Have Notes | situation-complaint |
 | 9 | I Am the Accidental Healer and I Am Extremely Tired | situation-complaint |
 | 10 | I Reincarnated as a Slime and I Want a Refund | situation-complaint |
 | 11 | I Reincarnated as a Summoner and I Have Notes | situation-complaint |
-| 12 | The Knight Who Kept the Patch Notes | regression-rebirth |
+| 12 | The Knight Who Got a Second Save File | regression-rebirth |
 | 13 | The Knight Who Lived Twice | regression-rebirth |
-| 14 | My Changelog Chose the Suburbs Against My Better Judgement | situation-complaint |
+| 14 | My Changelog Chose the Guild Annexe Against My Better Judgement | situation-complaint |
 | 15 | Return of the Insufferable Healer | regression-rebirth |
 | 16 | I Reincarnated as an Exorcist and I Am Extremely Tired | situation-complaint |
 | 17 | Katess in the Doom | name-anchor |
@@ -458,26 +458,26 @@ Verification: all checks pass.
 
 | # | Name | Pattern |
 |--:|---|---|
-| 1 | I Am the Artificial Assassin Against My Better Judgement | situation-complaint |
-| 2 | Accidental Assassin: Forged in Nightmare | colon-subtitle |
-| 3 | Respawn Point: Monsters & Legends | colon-subtitle |
-| 4 | The Rooster Who Ground Morale to Ten Thousand | numeric-grind |
+| 1 | I Am the Friendly Assassin Against My Better Judgement | situation-complaint |
+| 2 | Insufferable Assassin: Forged in Nightmare | colon-subtitle |
+| 3 | Perfectly Ordinary Village: Monsters & Legends | colon-subtitle |
+| 4 | The Rooster Who Ground Morale to Two | numeric-grind |
 | 5 | Nine Levels of Luck | numeric-grind |
-| 6 | My Respawn Timer Chose the Respawn Point and No One Warned Me | situation-complaint |
+| 6 | My Respawn Timer Chose a Fantasy World and No One Warned Me | situation-complaint |
 | 7 | I Reincarnated as the Exorcist | regression-rebirth |
 | 8 | I Reincarnated as a Cartographer and I Have Notes | situation-complaint |
-| 9 | Ten Thousand Years of Health and Safety | numeric-grind |
+| 9 | Forty-Seven Years of Health and Safety | numeric-grind |
 | 10 | I Reincarnated as an Assassin and I Want a Refund | situation-complaint |
-| 11 | Ten Thousand Levels of Strength | numeric-grind |
-| 12 | The Assassin Who Kept the Patch Notes | regression-rebirth |
+| 11 | Forty-Seven Levels of Strength | numeric-grind |
+| 12 | The Assassin Who Got a Second Save File | regression-rebirth |
 | 13 | Hunter of Time | time-loop |
-| 14 | My Changelog Chose the Suburbs Against My Better Judgement | situation-complaint |
-| 15 | Return of the Arcane Exorcist | regression-rebirth |
+| 14 | My Changelog Chose the Guild Annexe Against My Better Judgement | situation-complaint |
+| 15 | Return of the Modern Exorcist | regression-rebirth |
 | 16 | I Reincarnated as a Chef and I Am Extremely Tired | situation-complaint |
-| 17 | RE: Respawn Point | re-prefix |
-| 18 | I Am the Off-Brand Mage and I Have Notes | situation-complaint |
+| 17 | RE: Perfectly Ordinary Village | re-prefix |
+| 18 | I Am the Unbound Mage and I Have Notes | situation-complaint |
 | 19 | RE: Hunter | re-prefix |
-| 20 | Doom: Unbound System | colon-subtitle |
+| 20 | Doom: Blackflame System | colon-subtitle |
 
 ## Pattern shares (500 draws per genre)
 

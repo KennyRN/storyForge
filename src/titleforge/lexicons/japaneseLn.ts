@@ -277,6 +277,9 @@ export const japaneseLnLexicon: GeneratorSpec = {
 			"note": "De-branded from Saekano's freed subtitle; the how-to premise."
 		}
 	],
+	// `verb` serves two grammars: isekai's infinitive ("I Shall Survive Using…") and romcom's past
+	// tense ("The Girl I Sat Next To…"). Kept exclusive so a multi-genre (general) verb can't cross.
+	"exclusiveSlots": ["verb"],
 	"lexicon": {
 		"transition": [
 			{
@@ -1506,6 +1509,30 @@ export const japaneseLnLexicon: GeneratorSpec = {
 				"tags": [
 					"villainess"
 				]
+			},
+			{
+				"gloss": "Almanac",
+				"tags": [
+					"slowlife"
+				]
+			},
+			{
+				"gloss": "Seasons",
+				"tags": [
+					"slowlife"
+				]
+			},
+			{
+				"gloss": "Harvest",
+				"tags": [
+					"slowlife"
+				]
+			},
+			{
+				"gloss": "Notebook",
+				"tags": [
+					"slowlife"
+				]
 			}
 		],
 		"brand": [
@@ -2441,6 +2468,48 @@ export const japaneseLnLexicon: GeneratorSpec = {
 					"cheat",
 					"vrmmo"
 				]
+			},
+			{
+				"gloss": "Founded a Nation",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Broke the Game",
+				"tags": [
+					"cheat"
+				]
+			},
+			{
+				"gloss": "Outgrew the Hero",
+				"tags": [
+					"cheat"
+				]
+			},
+			{
+				"gloss": "Became Unbeatable",
+				"tags": [
+					"cheat"
+				]
+			},
+			{
+				"gloss": "Topped the Leaderboard",
+				"tags": [
+					"vrmmo"
+				]
+			},
+			{
+				"gloss": "Became a Raid Boss",
+				"tags": [
+					"vrmmo"
+				]
+			},
+			{
+				"gloss": "Unlocked a Hidden Class",
+				"tags": [
+					"vrmmo"
+				]
 			}
 		],
 		"verb": [
@@ -2504,6 +2573,84 @@ export const japaneseLnLexicon: GeneratorSpec = {
 				"gloss": "Grind",
 				"tags": [
 					"vrmmo"
+				]
+			},
+			{
+				"gloss": "Build a Kingdom",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Defeat the Demon Lord",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Live Freely",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Become a Noble",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Rule the World",
+				"tags": [
+					"cheat"
+				]
+			},
+			{
+				"gloss": "Crush My Enemies",
+				"tags": [
+					"cheat"
+				]
+			},
+			{
+				"gloss": "Break Every Rule",
+				"tags": [
+					"cheat"
+				]
+			},
+			{
+				"gloss": "Clear the Game",
+				"tags": [
+					"vrmmo"
+				]
+			},
+			{
+				"gloss": "Top the Rankings",
+				"tags": [
+					"vrmmo"
+				]
+			},
+			{
+				"gloss": "Solo the Raid",
+				"tags": [
+					"vrmmo"
+				]
+			},
+			{
+				"gloss": "Walked Home With",
+				"tags": [
+					"romcom"
+				]
+			},
+			{
+				"gloss": "Tutored",
+				"tags": [
+					"romcom"
+				]
+			},
+			{
+				"gloss": "Bumped Into",
+				"tags": [
+					"romcom"
 				]
 			}
 		],
@@ -2701,6 +2848,48 @@ export const japaneseLnLexicon: GeneratorSpec = {
 				"tags": [
 					"romcom"
 				]
+			},
+			{
+				"gloss": "The Girl Next Door",
+				"tags": [
+					"romcom"
+				]
+			},
+			{
+				"gloss": "My Childhood Friend",
+				"tags": [
+					"romcom"
+				]
+			},
+			{
+				"gloss": "The Student Council President",
+				"tags": [
+					"romcom"
+				]
+			},
+			{
+				"gloss": "This Bookworm",
+				"tags": [
+					"romcom"
+				]
+			},
+			{
+				"gloss": "This Former Office Worker",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Even the Demon Lord",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "This Unemployed Gamer",
+				"tags": [
+					"isekai"
+				]
 			}
 		],
 		"predicate": [
@@ -2733,6 +2922,30 @@ export const japaneseLnLexicon: GeneratorSpec = {
 				"gloss": "Retire Early",
 				"tags": [
 					"slowlife"
+				]
+			},
+			{
+				"gloss": "Run a Shop Just Fine",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Stay Unbeatable",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Keep It Low-Key",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Make Friends",
+				"tags": [
+					"isekai"
 				]
 			}
 		],
@@ -2884,6 +3097,36 @@ export const japaneseLnLexicon: GeneratorSpec = {
 				"gloss": "Decided to Open an Inn",
 				"tags": [
 					"slowlife"
+				]
+			},
+			{
+				"gloss": "Decided to Become an Adventurer After All",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Started Over in Another Kingdom",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Joined the Demon Lord's Army",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Opened a Restaurant in the Capital",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Became a Wandering Merchant",
+				"tags": [
+					"isekai"
 				]
 			}
 		],
@@ -3091,6 +3334,54 @@ export const japaneseLnLexicon: GeneratorSpec = {
 				"tags": [
 					"vrmmo"
 				]
+			},
+			{
+				"gloss": "Live as a Commoner",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Stay Out of the Hero's Way",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Keep a Low Profile",
+				"tags": [
+					"cheat"
+				]
+			},
+			{
+				"gloss": "Hide My Level",
+				"tags": [
+					"cheat"
+				]
+			},
+			{
+				"gloss": "Hold Back",
+				"tags": [
+					"cheat"
+				]
+			},
+			{
+				"gloss": "Play Casually",
+				"tags": [
+					"vrmmo"
+				]
+			},
+			{
+				"gloss": "Stay a Support",
+				"tags": [
+					"vrmmo"
+				]
+			},
+			{
+				"gloss": "Just Enjoy the Game",
+				"tags": [
+					"vrmmo"
+				]
 			}
 		],
 		"clausePast": [
@@ -3108,6 +3399,36 @@ export const japaneseLnLexicon: GeneratorSpec = {
 			},
 			{
 				"gloss": "Ended Up Ruling Together",
+				"tags": [
+					"villainess"
+				]
+			},
+			{
+				"gloss": "Broke Off the Engagement",
+				"tags": [
+					"villainess"
+				]
+			},
+			{
+				"gloss": "Swapped Places",
+				"tags": [
+					"villainess"
+				]
+			},
+			{
+				"gloss": "Ran the Duchy Together",
+				"tags": [
+					"villainess"
+				]
+			},
+			{
+				"gloss": "Became Rivals Instead",
+				"tags": [
+					"villainess"
+				]
+			},
+			{
+				"gloss": "Fled the Capital",
 				"tags": [
 					"villainess"
 				]

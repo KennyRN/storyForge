@@ -54,7 +54,8 @@ const CERTIFIED = [
 const ISEKAI = CERTIFIED.filter((g) => g === "isekai" || g.startsWith("isekai/"));
 const N = 500;
 const TOLERANCE = 5; // percentage points
-const FORBIDDEN = /\b(LitRPG|GameLit|Progression Fantasy|Isekai|VRMMO|Xianxia|Stubbed|Book \w+)\b/i;
+// "Book N" = a volume marker (Book One, Book 2, Book IV) — not "Book of …", which is a name shape.
+const FORBIDDEN = /\b(LitRPG|GameLit|Progression Fantasy|Isekai|VRMMO|Xianxia|Stubbed|Book (?:\d+|One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|I{1,3}|IV|VI{0,3}|IX|X))\b/i;
 const CULTIVATION = /\b(Cultivation|Cultivator|Dao|Qi|Xianxia)\b/i;
 const TOKEN_RE = /\{([a-zA-Z_]\w*)(?::([a-zA-Z_][\w-]*))?(?:#\d+)?\^?(?:\|[a-z]+)*\}/g;
 

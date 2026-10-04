@@ -498,6 +498,30 @@ export const thaiWebLexicon: GeneratorSpec = {
 					"romance",
 					"bl"
 				]
+			},
+			{
+				"gloss": "Serving",
+				"tags": [
+					"royal"
+				]
+			},
+			{
+				"gloss": "Kneeling",
+				"tags": [
+					"royal"
+				]
+			},
+			{
+				"gloss": "Pledging",
+				"tags": [
+					"royal"
+				]
+			},
+			{
+				"gloss": "Mourning",
+				"tags": [
+					"royal"
+				]
 			}
 		]
 	}

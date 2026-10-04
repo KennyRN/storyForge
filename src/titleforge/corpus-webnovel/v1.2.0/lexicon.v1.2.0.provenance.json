@@ -711,5 +711,181 @@
   "role: Necromancer",
   "role: Alchemist",
   "rank: Accidental"
- ]
+ ],
+ "step3Additions": {
+  "ascentLead": {
+   "Age": [
+    "Age of Ascension",
+    "Age of Asura",
+    "Age of Doom",
+    "Age of Gods"
+   ],
+   "Mark": [
+    "Mark of Time",
+    "Mark of the Crijik",
+    "Mark of the Fool"
+   ],
+   "Master": [
+    "Master of Monster Arts",
+    "Master of Puppets",
+    "Master of All, Jack of None"
+   ],
+   "Tales": [
+    "Tales of Shattered Glass",
+    "Tales of a Far Rider",
+    "Tales of the Endless Empire"
+   ],
+   "Ascension": [
+    "Ascension of Chaos",
+    "Ascension of the Primalist"
+   ],
+   "Book": [
+    "Book of the Dead",
+    "The Book of Dungeons"
+   ],
+   "Keeper": [
+    "Keeper of Totality",
+    "Keeper of the Infinite Archive"
+   ],
+   "Paragon": [
+    "Paragon of Mana",
+    "Paragon of Skills"
+   ],
+   "Road": [
+    "Road to Mastery",
+    "The Road of Hollows"
+   ],
+   "Soul": [
+    "Soul of Blades",
+    "Soul of the Warrior"
+   ],
+   "Throne": [
+    "Throne of Ashes",
+    "Throne of Time"
+   ],
+   "Will": [
+    "Will of the Unyielding",
+    "Will of the Wizards"
+   ],
+   "Art": [
+    "The Art of Mana",
+    "The Art of Seeking Gold"
+   ],
+   "Power": [
+    "The Power of Formations",
+    "The Power of Ten"
+   ],
+   "Reincarnation": [
+    "Reincarnation of the Death God",
+    "The Reincarnation of Alysara"
+   ]
+  },
+  "interro": {
+   "Wait, I'm": [
+    "Reincarnated as the Villainess’s Butler – Wait, I’m the Final Boss?"
+   ],
+   "No Need for": [
+    "No Need for a Core?"
+   ]
+  },
+  "warning": {
+   "Don't Fear the": [
+    "Don't Fear the Reaper"
+   ]
+  },
+  "rebirthTail": {
+   "Eludes Death": [
+    "A Novel Concept - He Who Eludes Death"
+   ]
+  },
+  "number": {
+   "Ten": [
+    "Ten Thousand Tragedies",
+    "The Power of Ten"
+   ],
+   "Twelve": [
+    "12 Miles Below",
+    "12 Steps to Transcendence"
+   ],
+   "Five": [
+    "Five Golden Coins",
+    "Five Element Overlord: I Can Upgrade Everything!"
+   ],
+   "A Hundred": [
+    "Summoned A Hundred Years Too Late",
+    "The Hundred Reigns"
+   ],
+   "A Thousand": [
+    "A Thousand Li"
+   ],
+   "A Million": [
+    "A Million Lifetimes to Say Goodbye"
+   ]
+  },
+  "place": {
+   "a Fantasy World": [
+    "A Budding Scientist in a Fantasy World"
+   ],
+   "a New World": [
+    "Overleveled: Arrival in a New World"
+   ],
+   "a Magic World": [
+    "Rebuilding Science in a Magic World"
+   ],
+   "an Otome Game": [
+    "Reincarnated as the Heroine in an Otome Game"
+   ],
+   "a Shounen Manga": [
+    "Reincarnated in a Shounen Manga"
+   ],
+   "Seclusion": [
+    "Not The Hero: Archmage in Seclusion"
+   ]
+  },
+  "placeBare": {
+   "Fantasy World": [
+    "A Budding Scientist in a Fantasy World"
+   ],
+   "New World": [
+    "Overleveled: Arrival in a New World"
+   ],
+   "Magic World": [
+    "Rebuilding Science in a Magic World"
+   ],
+   "Otome Game": [
+    "Reincarnated as the Heroine in an Otome Game"
+   ],
+   "Shounen Manga": [
+    "Reincarnated in a Shounen Manga"
+   ]
+  },
+  "rank": {
+   "Otherworldly": [
+    "An Otherworldly Scholar"
+   ],
+   "Budding": [
+    "A Budding Scientist in a Fantasy World"
+   ],
+   "Conscripted": [
+    "Conscripted Crafter - The Dead Man Gives"
+   ],
+   "Fated": [
+    "Fated To Fall"
+   ],
+   "Chaotic": [
+    "Chaotic Craftsman Worships The Cube"
+   ],
+   "Magical": [
+    "Magical Engineering",
+    "Magical Girl Rending Nightmare"
+   ],
+   "Friendly": [
+    "Friendly Fyre"
+   ],
+   "Unintended": [
+    "Unintended Cultivator"
+   ]
+  }
+ },
+ "step3Note": "Step 3 thin-slot expansion (2026-10-04): every addition traces to the eligible v1.2.0 series listed."
 }

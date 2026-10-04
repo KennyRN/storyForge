@@ -4601,7 +4601,19 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"Tithebreaker #epic #hist #heroic-fantasy",
 			"Becalmed #epic #sf #lit #heroic-fantasy #space-opera",
 			"Wintercome #epic #hist #horror #heroic-fantasy #urban-fantasy",
-			"Merciful #epic #hist #rom #heroic-fantasy"
+			"Merciful #epic #hist #rom #heroic-fantasy",
+			"Uncrowned #fantasy",
+			"Oathbreaker #fantasy",
+			"Unready #fantasy",
+			"Grey #fantasy",
+			"Younger",
+			"Fair",
+			"Wise",
+			"Silent",
+			"Forsaken",
+			"Hollow #horror",
+			"Twice-Drowned #horror",
+			"Unburied #horror"
 		],
 		"honorific": [
 			"Mister #lit #crime #hist #short #urban-fantasy",
@@ -4717,7 +4729,25 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"answers #epic #sf #horror #heroic-fantasy #space-opera #urban-fantasy",
 			"endures #hist #epic #lit #heroic-fantasy",
 			"returns #epic #sf #crime #ya #heroic-fantasy #space-opera #urban-fantasy",
-			"holds #epic #hist #lit #heroic-fantasy"
+			"holds #epic #hist #lit #heroic-fantasy",
+			"burns",
+			"waits",
+			"remembers",
+			"wakes",
+			"breaks",
+			"sleeps",
+			"sings",
+			"watches",
+			"speaks",
+			"turns",
+			"gathers",
+			"calls",
+			"dreams",
+			"lingers",
+			"remains",
+			"stirs",
+			"hungers #horror",
+			"bleeds #horror"
 		],
 		"riseFall": [
 			"fall #epic #hist #sf #ya #heroic-fantasy #space-opera",
@@ -4804,7 +4834,17 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"Trilogy #epic #sf #lit #ya #heroic-fantasy #space-opera",
 			"Duology #epic #sf #lit #ya #heroic-fantasy #space-opera",
 			"Quartet #lit #hist #rom",
-			"Quintet #lit #sf #hist #space-opera"
+			"Quintet #lit #sf #hist #space-opera",
+			"Cycle",
+			"Sequence",
+			"Saga",
+			"Chronicles",
+			"Sextet",
+			"Septet",
+			"Series",
+			"Novels",
+			"Books",
+			"Omnibus"
 		],
 		"storyWord": [
 			"Stories #lit #short #crime #ya #urban-fantasy",
@@ -4812,7 +4852,21 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"Cases #crime #short #urban-fantasy",
 			"Sketches #lit #hist #short",
 			"Fragments #lit #sf #short #ya #space-opera",
-			"Dispatches #sf #hist #crime #short #space-opera #urban-fantasy"
+			"Dispatches #sf #hist #crime #short #space-opera #urban-fantasy",
+			"Letters",
+			"Papers",
+			"Accounts",
+			"Confessions",
+			"Histories",
+			"Records",
+			"Notebooks",
+			"Memoirs",
+			"Adventures",
+			"Testimonies",
+			"Casebooks #crime",
+			"Mysteries #crime",
+			"Legends #fantasy",
+			"Ballads #fantasy"
 		],
 		"time": [
 			"winter #epic #lit #hist #ya #heroic-fantasy",
@@ -4836,7 +4890,17 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"winter #epic #lit #hist #heroic-fantasy",
 			"summer #rom #lit #short #ya",
 			"morning #lit #rom #short",
-			"hour #crime #horror #sf #ya #space-opera #urban-fantasy"
+			"hour #crime #horror #sf #ya #space-opera #urban-fantasy",
+			"evening",
+			"spring",
+			"autumn",
+			"week",
+			"afternoon",
+			"dawn",
+			"midnight",
+			"season",
+			"month",
+			"weekend #contemporary-romance"
 		],
 		"season": [
 			"Midsummer #rom #lit #epic #ya #heroic-fantasy",
@@ -4855,7 +4919,14 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"Reign #epic #hist #ya #heroic-fantasy",
 			"Century #hist #sf #lit #space-opera",
 			"Season #lit #rom #epic #heroic-fantasy",
-			"Decade #hist #lit #sf #space-opera"
+			"Decade #hist #lit #sf #space-opera",
+			"Era",
+			"Epoch",
+			"Winter",
+			"Summer",
+			"Night",
+			"Hour",
+			"Generation"
 		],
 		"number": [
 			"Seven #epic #horror #hist #ya #heroic-fantasy #urban-fantasy",
@@ -4875,24 +4946,47 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"Third #lit #sf #horror #space-opera #urban-fantasy",
 			"Seventh #epic #horror #hist #ya #heroic-fantasy #urban-fantasy",
 			"Last #epic #sf #lit #ya #heroic-fantasy #space-opera",
-			"Only #lit #rom #sf #ya #space-opera"
+			"Only #lit #rom #sf #ya #space-opera",
+			"Fourth",
+			"Fifth",
+			"Sixth",
+			"Eighth",
+			"Ninth",
+			"Tenth",
+			"Thirteenth",
+			"Hundredth",
+			"Final",
+			"Next"
 		],
 		"quantAll": [
 			"All #lit #epic #hist #ya #heroic-fantasy",
-			"Everything #lit #sf #rom #ya #space-opera"
+			"Everything #lit #sf #rom #ya #space-opera",
+			"Half",
+			"None of",
+			"Some of",
+			"Both",
+			"Not All",
+			"Only"
 		],
 		"quantNo": [
 			"Nothing #lit #crime #horror #ya #urban-fantasy",
 			"Nobody #crime #lit #horror #ya #urban-fantasy",
 			"No One #crime #horror #short #ya #urban-fantasy",
-			"Something #horror #lit #short #urban-fantasy"
+			"Something #horror #lit #short #urban-fantasy",
+			"Someone",
+			"None",
+			"Little",
+			"Not One",
+			"Anything"
 		],
 		"possessive": [
 			"My #lit #rom #short *2 #ya",
 			"Her #lit #rom #crime #ya #urban-fantasy",
 			"His #lit #epic #hist #ya #heroic-fantasy",
 			"Our #lit #hist #sf #space-opera",
-			"Their #lit #sf #hist #ya #space-opera"
+			"Their #lit #sf #hist #ya #space-opera",
+			"Your",
+			"Thy #hist"
 		],
 		"manner": [
 			"Regardless #lit #crime #short #urban-fantasy",
@@ -4954,7 +5048,28 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"Courtyard #persian",
 			"Threshold #persian",
 			"Verandah #hindi",
-			"Riverbank #swahili"
+			"Riverbank #swahili",
+			"Alley #arabic",
+			"Palace #arabic",
+			"Rose Garden #persian",
+			"Cypress #persian",
+			"Caravanserai #persian",
+			"Lamp #persian #hindi",
+			"Field #hindi",
+			"Gift #hindi",
+			"Well #hindi",
+			"River #hindi",
+			"Monsoon #hindi",
+			"Steppe #russian",
+			"Station #russian",
+			"Orchard #russian",
+			"Letter #russian",
+			"Diary #russian",
+			"Song #swahili",
+			"Shore #swahili",
+			"Path #swahili",
+			"Harvest #swahili",
+			"Market #swahili"
 		],
 		"dependent": [
 			"Migration #arabic",
@@ -4973,11 +5088,31 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"Earth #hindi",
 			"Life #swahili",
 			"Blood #swahili",
-			"Exile #arabic",
+			"Exile #arabic #russian",
 			"the City #russian",
 			"the Dust #hindi",
 			"Rain #swahili",
-			"the Ashes #persian"
+			"the Ashes #persian",
+			"the Desert #arabic",
+			"the Sea #arabic #swahili",
+			"Thirst #arabic",
+			"Salt #arabic",
+			"Roses #persian",
+			"the Nightingale #persian",
+			"Smoke #persian",
+			"Longing #persian",
+			"the Monsoon #hindi",
+			"Hunger #hindi",
+			"Debt #hindi",
+			"the Fields #hindi",
+			"Kinship #hindi",
+			"the Steppe #russian",
+			"Snow #russian",
+			"Conscience #russian",
+			"the Ancestors #swahili",
+			"Freedom #swahili",
+			"Harvest #swahili",
+			"Drums #swahili"
 		],
 		"abstractA": [
 			"War #russian",
@@ -4986,7 +5121,10 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"Love #arabic",
 			"Love #persian",
 			"Love #hindi",
-			"Memory #russian"
+			"Memory #russian",
+			"Faith #russian",
+			"Exile #russian",
+			"Hunger #russian"
 		],
 		"abstractB": [
 			"Peace #russian",
@@ -4994,7 +5132,11 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"Fate #russian",
 			"Separation #persian",
 			"Parting #hindi",
-			"Forgetting #russian"
+			"Forgetting #russian",
+			"Doubt #russian",
+			"Return #russian",
+			"Bread #russian",
+			"Ashes #russian"
 		],
 		"adjective": [
 			"Blind #arabic",
@@ -5008,7 +5150,27 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"Crimson #russian",
 			"New #swahili",
 			"Patient #persian",
-			"Unwritten #arabic"
+			"Unwritten #arabic",
+			"Silent #hindi #persian",
+			"Sacred #hindi",
+			"Dusty #hindi",
+			"Forgotten #hindi",
+			"Golden #hindi",
+			"Hungry #hindi",
+			"Thirsty #arabic",
+			"Hidden #arabic",
+			"Last #arabic",
+			"Wandering #persian",
+			"Ruined #persian",
+			"Frozen #russian",
+			"Idle #russian",
+			"Superfluous #russian",
+			"White #russian",
+			"Old #swahili",
+			"Free #swahili",
+			"Dry #swahili",
+			"Weeping #swahili",
+			"Broken #swahili"
 		],
 		"subject": [
 			"Owl #persian",
@@ -5034,7 +5196,22 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"Sisters #russian",
 			"Women #swahili",
 			"Pilgrims #persian",
-			"Clerks #hindi"
+			"Clerks #hindi",
+			"Weavers #hindi",
+			"Daughters-in-Law #hindi",
+			"Moneylender #hindi",
+			"Landlord #hindi",
+			"Daughters #hindi",
+			"Fishermen #swahili",
+			"Healer #swahili",
+			"Prophet #swahili",
+			"Grandmothers #swahili",
+			"Nightingale #persian",
+			"Dervish #persian",
+			"Poet #persian",
+			"Exiles #russian",
+			"Officers #russian",
+			"Peasants #russian"
 		]
 	}
 };

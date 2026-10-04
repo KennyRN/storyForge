@@ -323,6 +323,150 @@ export const koreanWebLexicon: GeneratorSpec = {
 				"tags": [
 					"regression"
 				]
+			},
+			{
+				"gloss": "Healer",
+				"tags": [
+					"hunter"
+				]
+			},
+			{
+				"gloss": "Tank",
+				"tags": [
+					"hunter"
+				]
+			},
+			{
+				"gloss": "Awakener",
+				"tags": [
+					"hunter"
+				]
+			},
+			{
+				"gloss": "Gate Breaker",
+				"tags": [
+					"hunter"
+				]
+			},
+			{
+				"gloss": "Guild Master",
+				"tags": [
+					"hunter"
+				]
+			},
+			{
+				"gloss": "Porter",
+				"tags": [
+					"hunter"
+				]
+			},
+			{
+				"gloss": "Webtoon Artist",
+				"tags": [
+					"modern"
+				]
+			},
+			{
+				"gloss": "Office Worker",
+				"tags": [
+					"modern"
+				]
+			},
+			{
+				"gloss": "Rookie Actor",
+				"tags": [
+					"modern"
+				]
+			},
+			{
+				"gloss": "Surgeon",
+				"tags": [
+					"modern"
+				]
+			},
+			{
+				"gloss": "Detective",
+				"tags": [
+					"modern"
+				]
+			},
+			{
+				"gloss": "Genius Chef",
+				"tags": [
+					"modern"
+				]
+			},
+			{
+				"gloss": "Swordsman",
+				"tags": [
+					"martial"
+				]
+			},
+			{
+				"gloss": "Clan Heir",
+				"tags": [
+					"martial"
+				]
+			},
+			{
+				"gloss": "Demonic Cult Leader",
+				"tags": [
+					"martial"
+				]
+			},
+			{
+				"gloss": "Martial Artist",
+				"tags": [
+					"martial"
+				]
+			},
+			{
+				"gloss": "Fist Master",
+				"tags": [
+					"martial"
+				]
+			},
+			{
+				"gloss": "Blade Saint",
+				"tags": [
+					"martial"
+				]
+			},
+			{
+				"gloss": "Grand Duke",
+				"tags": [
+					"romfan"
+				]
+			},
+			{
+				"gloss": "Empress",
+				"tags": [
+					"romfan"
+				]
+			},
+			{
+				"gloss": "Crown Prince",
+				"tags": [
+					"romfan"
+				]
+			},
+			{
+				"gloss": "Male Lead",
+				"tags": [
+					"romfan"
+				]
+			},
+			{
+				"gloss": "Duchess",
+				"tags": [
+					"romfan"
+				]
+			},
+			{
+				"gloss": "Knight Commander",
+				"tags": [
+					"romfan"
+				]
 			}
 		],
 		"modifier": [
@@ -499,6 +643,102 @@ export const koreanWebLexicon: GeneratorSpec = {
 				"gloss": "Trial",
 				"tags": [
 					"regression"
+				]
+			},
+			{
+				"gloss": "Gate",
+				"tags": [
+					"hunter"
+				]
+			},
+			{
+				"gloss": "Status Window",
+				"tags": [
+					"hunter"
+				]
+			},
+			{
+				"gloss": "Raid",
+				"tags": [
+					"hunter"
+				]
+			},
+			{
+				"gloss": "Skill Book",
+				"tags": [
+					"hunter"
+				]
+			},
+			{
+				"gloss": "Agency",
+				"tags": [
+					"modern"
+				]
+			},
+			{
+				"gloss": "Hospital",
+				"tags": [
+					"modern"
+				]
+			},
+			{
+				"gloss": "Stock Market",
+				"tags": [
+					"modern"
+				]
+			},
+			{
+				"gloss": "Drama",
+				"tags": [
+					"modern"
+				]
+			},
+			{
+				"gloss": "Sword Manual",
+				"tags": [
+					"martial"
+				]
+			},
+			{
+				"gloss": "Sect",
+				"tags": [
+					"martial"
+				]
+			},
+			{
+				"gloss": "Inner Energy",
+				"tags": [
+					"martial"
+				]
+			},
+			{
+				"gloss": "Demonic Art",
+				"tags": [
+					"martial"
+				]
+			},
+			{
+				"gloss": "Engagement",
+				"tags": [
+					"romfan"
+				]
+			},
+			{
+				"gloss": "Marriage",
+				"tags": [
+					"romfan"
+				]
+			},
+			{
+				"gloss": "Novel",
+				"tags": [
+					"romfan"
+				]
+			},
+			{
+				"gloss": "Debut Ball",
+				"tags": [
+					"romfan"
 				]
 			}
 		],
