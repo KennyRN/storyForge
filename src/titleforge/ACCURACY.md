@@ -444,3 +444,37 @@ No lexicon got thinner. What's left is mostly function-word slots (`countWord`, 
 
 **Seen in passing, not fixed:** title-composer world-fiction can produce real titles verbatim
 ("Season of Migration to the North"). title-composer has no `reservedTitles` list.
+
+## Invented character names (title-composer `name`, webnovel `heroName`)
+
+Kenny wanted no real or scraped names in titles.
+- webnovel's `heroName` held 18 protagonist names lifted from real corpus titles (Adam, Jake, Nyx…).
+- title-composer's `name` held 42 curated names of undocumented provenance.
+
+Both now hold `@register` entries that invent names with nameForge's Markov model (README,
+"Invented character names").
+
+**Decisions:**
+- *Registers follow how the old names clustered*: fantasy, historical, modern, sf, gothic. Two
+  were added because one "historical" register can't cover them: **ancient** (Latin/Greek) and
+  **frontier** (western). title-composer's 42 old names are now style sources inside the
+  registers, so they're never output verbatim.
+- *Sources are ordinary given names of each period.* The `hero` sources deliberately exclude the
+  18 scraped names.
+- *Tuning:* nameForge defaults (faithfulness 2, strictness 3) plus novelty 1 (rejects one-edit
+  variants). Higher strictness made no visible difference in samples.
+- *Length band:* the sources' own 10th–90th percentile, floored at 4 letters and at least three
+  lengths wide. Without it, about a third of outputs were stubs ("Pri", "Con") or portmanteaus
+  ("Augustusiah", "Tiberikleon"). Without the width rule, the hero register returned "Conn" in half
+  its draws. Now 34 of 40 draws are distinct.
+- *Exclusive name slot* (title-composer): under the additive model, a multi-genre register entry
+  would be general and leak modern names into epic fantasy. Names are register-critical, so the
+  slot keeps exclusive narrowing.
+- *Reports:* a slot with an `@register` entry counts as unbounded ("invented") in
+  `VOCAB-POOLS.md` and in the coverage tool's min-pool column.
+
+**Known limits:**
+- Markov output sometimes lands on a real given name (Irina, Ruben) or an English word (Honor,
+  Clan). These are coincidental and not scraped.
+- nameForge *mix* packs can't be used, because their names live in the packs they mix. The
+  writer picks one of those packs instead.

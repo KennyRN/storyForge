@@ -4,7 +4,8 @@ import type { Lexeme, LexemeInput, RawLexicon } from "./types.js";
  * Compact string entry format: `gloss`, then `#tag` and `*weight` in any order,
  * then `^stem` last (the stem runs to the end of the string). See NOTES.md.
  *
- * Examples: `"Crown"`, `"Reckoning #fantasy *3"`, `"I Was Banished ^Being Banished"`.
+ * Examples: `"Crown"`, `"Reckoning #fantasy *3"`, `"I Was Banished ^Being Banished"`, and
+ * `"@fantasy #epic"` — an invented name from the `fantasy` name register (`Lexeme.generator`).
  *
  * The object form (`{ gloss, tags?, weight?, stem? }`) is the escape hatch for a
  * word that genuinely needs a literal `#`, `*` or `^` in it.
@@ -35,6 +36,8 @@ export function parseCompactEntry(raw: string): Lexeme {
 	const gloss = rest.replace(/\s+/g, " ").trim();
 
 	const lexeme: Lexeme = { gloss };
+	// `@id` = invent a name with `GeneratorSpec.nameGenerators[id]` (see engine/names.ts).
+	if (/^@[\w-]+$/.test(gloss)) lexeme.generator = gloss.slice(1);
 	if (tags.length > 0) lexeme.tags = tags;
 	if (weight !== undefined) lexeme.weight = weight;
 	if (stem !== undefined && stem.length > 0) lexeme.stem = stem;

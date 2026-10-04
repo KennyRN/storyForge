@@ -49,9 +49,9 @@ Verification: all checks pass.
 | 14 | Doom Cartographer | rank-role |
 | 15 | Three Hundred Levels of Sanity | numeric-grind |
 | 16 | Applied Mage | rank-role |
-| 17 | Nyx in the Calamity | name-anchor |
+| 17 | Katess in the Cataclysm | name-anchor |
 | 18 | Patch Notes Integration | system-calamity |
-| 19 | Derek in the Apocalypse | name-anchor |
+| 19 | Felira in the Cataclysm | name-anchor |
 | 20 | The Ranger's Revenge | possessive-relation |
 
 ## gamelit (`gamelit`)
@@ -199,9 +199,9 @@ Verification: all checks pass.
 | 14 | The Annihilation Wandsmith Skill Tree | system-calamity |
 | 15 | Blackflame Lord | rank-role |
 | 16 | Bureaucrat of the Reset | system-calamity |
-| 17 | Nyx in the Descent | name-anchor |
+| 17 | Katess in the Ruin | name-anchor |
 | 18 | Patch Notes Integration | system-calamity |
-| 19 | Derek in the Apocalypse | name-anchor |
+| 19 | Felira in the Armageddon | name-anchor |
 | 20 | The Hidden Tutorial Meadow Only I Can Reach | only-i |
 
 ## vrmmo (`vrmmo`)
@@ -449,9 +449,9 @@ Verification: all checks pass.
 | 14 | My Changelog Chose the Suburbs Against My Better Judgement | situation-complaint |
 | 15 | Return of the Insufferable Healer | regression-rebirth |
 | 16 | I Reincarnated as an Exorcist and I Am Extremely Tired | situation-complaint |
-| 17 | Nyx in the Calamity | name-anchor |
+| 17 | Katess in the Doom | name-anchor |
 | 18 | I Am the Insufferable Alchemist and I Have Notes | situation-complaint |
-| 19 | Derek in the Apocalypse | name-anchor |
+| 19 | Felira in the Cataclysm | name-anchor |
 | 20 | Transmigrated into the Healer | regression-rebirth |
 
 ## Regression & Rebirth (`regression`)

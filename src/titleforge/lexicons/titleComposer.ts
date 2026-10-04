@@ -1,4 +1,5 @@
 import type { GeneratorSpec } from "../engine/types.js";
+import { registers } from "./nameRegisters.js";
 
 export const titleComposerLexicon: GeneratorSpec = {
 	"id": "title-composer",
@@ -2492,6 +2493,10 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"note": "The defining BookTok romantasy title formula — the genre's own primers joke about it. Weight 4: dominant in the corpus. No token dependency (uses existing noun/abstract slots, both confirmed fully bare). Mined M."
 		}
 	],
+	// Character names are invented per register (engine/names.ts), and the name slot stays exclusive
+	// so a register never leaks into another genre's titles through the general list.
+	"nameGenerators": registers("fantasy", "historical", "ancient", "frontier", "modern", "sf", "gothic"),
+	"exclusiveSlots": ["name"],
 	"lexicon": {
 		"adj": [
 			"seldom-seen #lit #hist #short",
@@ -3837,48 +3842,13 @@ export const titleComposerLexicon: GeneratorSpec = {
 			"salt cod #hist #lit"
 		],
 		"name": [
-			"Wren #lit #crime #short #ya #urban-fantasy",
-			"Osric #epic #hist #heroic-fantasy",
-			"Talia #sf #rom #epic #ya #heroic-fantasy #space-opera",
-			"Brannoc #epic #hist #heroic-fantasy",
-			"Ludmila #hist #lit #sf #space-opera",
-			"Fintan #epic #lit #hist #heroic-fantasy",
-			"Aurelia #hist #rom #epic #heroic-fantasy",
-			"Kestrel Vane #sf #crime #space-opera #urban-fantasy",
-			"Josiah #hist #horror #lit #urban-fantasy",
-			"Marguerite #hist #rom #lit",
-			"Emeric #epic #hist #sf #heroic-fantasy #space-opera",
-			"Suniva #epic #lit #rom #heroic-fantasy",
-			"Cabot #crime #sf #hist #space-opera #urban-fantasy",
-			"Lorna #lit #crime #rom #ya #urban-fantasy",
-			"Absalom #hist #horror #epic #heroic-fantasy #urban-fantasy",
-			"Aldwyn #epic #hist #heroic-fantasy",
-			"Carys #epic #hist #rom #ya #heroic-fantasy",
-			"Maerin #epic #heroic-fantasy",
-			"Bevan #epic #hist #crime #heroic-fantasy #urban-fantasy",
-			"Enid #hist #lit #rom",
-			"Tomas #hist #crime #lit #urban-fantasy",
-			"Sela #epic #sf #ya #heroic-fantasy #space-opera",
-			"Rhun #epic #heroic-fantasy",
-			"Idris #epic #hist #lit #heroic-fantasy",
-			"Nesta #hist #rom #lit",
-			"Gwarin #epic #heroic-fantasy",
-			"Alderic #epic #hist #heroic-fantasy",
-			"Hesper #sf #lit #rom #ya #space-opera",
-			"Corin #epic #sf #ya #heroic-fantasy #space-opera",
-			"Merrow #crime #horror #epic #heroic-fantasy #urban-fantasy",
-			"Ilse #lit #hist #crime #urban-fantasy",
-			"Ottoline #lit #hist #rom",
-			"Jerome #lit #crime #short #urban-fantasy",
-			"Vesna #sf #lit #crime #space-opera #urban-fantasy",
-			"Ansel #lit #short #sf #space-opera",
-			"Rosalind #rom #hist #lit",
-			"Halloway #crime #horror #lit #urban-fantasy",
-			"Marchetti #crime #rom #urban-fantasy",
-			"Okonkwo #lit #hist #short",
-			"Nadia #sf #crime #rom #ya #space-opera #urban-fantasy",
-			"Bram #horror #crime #short #ya #urban-fantasy",
-			"Perpetua #hist #lit #horror #urban-fantasy"
+			"@fantasy #fantasy #medieval #romantasy #ya",
+			"@historical #hist #lit #rom #historical-romance",
+			"@ancient #ancient",
+			"@frontier #western",
+			"@modern #lit #crime #thriller #short #ya #urban-fantasy #rom #contemporary-romance #rom-com #paranormal-romance",
+			"@sf #sf",
+			"@gothic #horror"
 		],
 		"place": [
 			"Widdershin #epic #horror #heroic-fantasy #urban-fantasy",

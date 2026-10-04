@@ -17,7 +17,7 @@ import { eligiblePatterns, genreScope, scopedLexicon } from "../engine/generate.
 import { normaliseLexicon } from "../engine/lexicon.js";
 import type { GeneratorSpec, GenreOption } from "../engine/types.js";
 import { ALL_TITLEFORGE_LEXICONS } from "../lexicons/index.js";
-import { THIN_POOL, usedSlots } from "./vocab-pools.js";
+import { poolSize, THIN_POOL, usedSlots } from "./vocab-pools.js";
 
 /** Below this many own-tagged lexemes, a genre is flagged THIN even if it has eligible patterns
  * — there's a shape to draw from, but not enough of its own vocabulary to feel distinct. */
@@ -92,7 +92,7 @@ function reportGenerator(spec: GeneratorSpec): { rows: Row[]; unreachable: strin
 		let minPool = Infinity;
 		let minPoolSlot = "—";
 		for (const slot of usedSlots(spec, genre.id)) {
-			const n = pools[slot]?.length ?? 0;
+			const n = poolSize(pools[slot]);
 			if (n < minPool) [minPool, minPoolSlot] = [n, slot];
 		}
 		if (minPool === Infinity) minPool = 0;

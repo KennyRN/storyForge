@@ -2,6 +2,7 @@ import { normaliseLexicon, withTags } from "./lexicon.js";
 import type { Rng } from "./rng.js";
 import { createRng, pick, randomSeed, weightedPick } from "./rng.js";
 import { renderTemplate, slotsIn, validateTemplate } from "./template.js";
+import { inventName, MIN_NAME_SOURCES } from "./names.js";
 import { countWords, titleCase } from "./titlecase.js";
 import type {
 	GenerateOptions,
@@ -265,7 +266,11 @@ function draw(
 		const genreId = resolveGenreId(rng, options, pattern);
 		const lexemes = scopedLexicon(spec, genreId, options.tags ?? [], baseLexemes);
 
-		const title = titleCase(renderTemplate(rng, template, lexemes, forced.bound));
+		const invent = (id: string): string | undefined => {
+			const gen = spec.nameGenerators?.[id];
+			return gen ? inventName(gen, rng.int(0xffffffff)) : undefined;
+		};
+		const title = titleCase(renderTemplate(rng, template, lexemes, forced.bound, invent));
 		if (title === "") continue;
 
 		if (reserved?.has(title.toLowerCase())) {
@@ -635,6 +640,20 @@ export function validateSpec(spec: GeneratorSpec): string[] {
 			}
 			for (const slot of referencedSlots(template)) {
 				if (!slots.has(slot)) problems.push(`${where}: unknown slot "{${slot}}"`);
+			}
+		}
+	}
+
+	// Name registers: every `@id` entry resolves, and every register has enough sources.
+	for (const [id, gen] of Object.entries(spec.nameGenerators ?? {})) {
+		if (gen.sources.length < MIN_NAME_SOURCES) {
+			problems.push(`${spec.id}: name register "${id}" has ${gen.sources.length} sources (min ${MIN_NAME_SOURCES})`);
+		}
+	}
+	for (const [slot, entries] of Object.entries(normaliseLexicon(spec.lexicon))) {
+		for (const e of entries) {
+			if (e.generator && !spec.nameGenerators?.[e.generator]) {
+				problems.push(`${spec.id}: {${slot}} entry "@${e.generator}" names an unknown name register`);
 			}
 		}
 	}

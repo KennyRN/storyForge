@@ -41,6 +41,13 @@ export function usedSlots(spec: GeneratorSpec, genreId: string): string[] {
 	return [...slots].filter((s) => spec.lexicon[s]).sort();
 }
 
+/** A pool's effective size: its entry count, or Infinity when it can invent names (an `@register`
+ * entry is an unlimited supply, not one word). */
+export function poolSize(pool: readonly { generator?: string }[] | undefined): number {
+	if (!pool) return 0;
+	return pool.some((e) => e.generator) ? Infinity : pool.length;
+}
+
 /** The same spec with every slot exclusive — how a draw scoped before the additive model. */
 function exclusiveTwin(spec: GeneratorSpec): GeneratorSpec {
 	return { ...spec, exclusiveSlots: Object.keys(spec.lexicon) };
@@ -75,11 +82,12 @@ function report(): string {
 			const before = scopedLexicon(twin, g.id);
 			const after = scopedLexicon(spec, g.id);
 			for (const slot of usedSlots(spec, g.id)) {
-				const b = before[slot]?.length ?? 0;
-				const a = after[slot]?.length ?? 0;
+				const b = poolSize(before[slot]);
+				const a = poolSize(after[slot]);
 				if (b < THIN_POOL) thinBefore++;
 				if (a < THIN_POOL) thinAfter++;
-				if (b < THIN_POOL || a < THIN_POOL) cells.push(`| ${g.id} | ${slot} | ${b} | ${a} |${a < THIN_POOL ? " **thin**" : ""} |`);
+				const show = (n: number) => (n === Infinity ? "invented" : String(n));
+				if (b < THIN_POOL || a < THIN_POOL) cells.push(`| ${g.id} | ${slot} | ${show(b)} | ${show(a)} |${a < THIN_POOL ? " **thin**" : ""} |`);
 			}
 		}
 

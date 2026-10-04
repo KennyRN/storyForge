@@ -119,6 +119,30 @@ A slot used more than once in one template must be indexed —
 **after** the shape is chosen, not before, so under "any genre" a shape's own
 `genres` list supplies the scope.
 
+### Invented character names
+
+No title uses a real or scraped character name. A lexicon entry written `@id`
+(e.g. `"@fantasy #epic"`) renders a name **invented** by name register `id`
+(`GeneratorSpec.nameGenerators`, built-ins in `lexicons/nameRegisters.ts`). Each
+register is a list of style sources, given names of a period or culture. A draw builds
+nameForge's Markov model over that list (`engine/markov.ts`, a verbatim port; glue in
+`engine/names.ts`) and invents a new name in the same style, seeded from the draw, so
+replays stay exact.
+
+- Output within one edit of any source is rejected, so sources are never reproduced.
+- Output is kept within the sources' own 10th–90th percentile length band, at least 4
+  letters and at least three lengths wide. Outside that band, Markov output is mostly
+  stubs ("Con") or portmanteaus ("Augustusiah").
+- `{name#1} & {name#2}` gets two different names; a repeated `{name#1}` echoes one.
+- title-composer has seven registers (fantasy, historical, ancient, frontier, modern,
+  sf, gothic). Its `name` slot is in `exclusiveSlots`, so a register never leaks into
+  another genre through the general list. webnovel has one, `hero`.
+- In titleForge settings, under **Character names**, the writer can point any register
+  at one of their own nameForge packs (files under `_backstage/nameforge/`), so names
+  follow their own world's style. A pack that's missing, has fewer than 10 names, or is
+  a nameForge *mix* pack falls back to the built-in sources with a notice. Edits to a
+  chosen pack apply without a reload.
+
 ### Genres: an optional parent/subgenre tree (up to three levels)
 
 A `GenreOption` (`engine/types.ts`) may carry a `parent`, pointing at another

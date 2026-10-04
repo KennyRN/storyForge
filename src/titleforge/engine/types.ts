@@ -17,6 +17,9 @@ export interface Lexeme {
 	weight?: number;
 	/** A combining form used by the `{slot^}` token, e.g. "Got Reincarnated" for "Reincarnated". */
 	stem?: string;
+	/** Set on an `@id` entry: instead of rendering its gloss, the draw invents a name with
+	 * `GeneratorSpec.nameGenerators[id]`. Genre tags and weights work as for any other entry. */
+	generator?: string;
 }
 
 /**
@@ -93,6 +96,8 @@ export interface GeneratorSpec {
 	/** Slots that keep the older exclusive narrowing: once any entry carries the genre's tag, only
 	 * tagged entries are drawn. For slots where blending in other genres' words reads wrong. */
 	exclusiveSlots?: string[];
+	/** Name registers that `@id` lexicon entries invent names from — see `engine/names.ts`. */
+	nameGenerators?: Record<string, NameGenerator>;
 	/** Tags barred while a genre in some subtree is selected — see `GenreExclusion`. */
 	genreExclusions?: GenreExclusion[];
 	/**
@@ -110,6 +115,20 @@ export interface GeneratorSpec {
  * selection reaches (`genreScope`). Applied before the forgiving slot narrowing, so a slot with
  * nothing tagged for the selection can't fall back to the excluded entries either.
  */
+/** A name register: source names whose style invented names follow (`engine/names.ts`). */
+export interface NameGenerator {
+	/** Shown in titleForge settings, where the writer can swap in their own nameForge pack. */
+	label: string;
+	/** Style sources. Never reproduced: output within `novelty` edits of any of them is rejected. */
+	sources: readonly string[];
+	/** nameForge's tuning: 1–3, how closely output hugs the sources (default 2). */
+	faithfulness?: number;
+	/** nameForge's tuning: 1–5, how fussy acceptance is (default 3). */
+	strictness?: number;
+	/** Minimum edit distance from every source, minus one (default 1: one-letter variants rejected). */
+	novelty?: number;
+}
+
 export interface GenreExclusion {
 	when: string;
 	exclude: string[];
