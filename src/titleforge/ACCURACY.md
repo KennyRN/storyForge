@@ -478,3 +478,52 @@ Both now hold `@register` entries that invent names with nameForge's Markov mode
   Clan). These are coincidental and not scraped.
 - nameForge *mix* packs can't be used, because their names live in the packs they mix. The
   writer picks one of those packs instead.
+
+## Step 3 — thin-slot expansion (all lexicons)
+
+Additions follow the ranked list in `tools/VOCAB-POOLS.md`. Rule of thumb: a register-neutral word
+goes in **untagged**, so it's general and works in every genre. A register-bound word gets a tag
+within **one** top-level genre, so it can't leak through the general list ("Thy" → `#hist`,
+"weekend" → `#contemporary-romance`, "magic" → `#fantasy`).
+
+**Where the words came from:**
+
+| Lexicon | Source of additions |
+|---|---|
+| title-composer | Judgement-authored. Mostly closed-class grammatical words (ordinals, quantifiers, era nouns, story/count words, strike verbs), plus 3–7 words per thin world-fiction language, each tagged to its own language only. |
+| webnovel | **Harvested from the frozen v1.2.0 corpus.** Every addition traces to at least one eligible series, logged under `step3Additions` in `lexicon.v1.2.0.provenance.json`. ascentLead additions all have 2+ series. |
+| japanese-ln, korean, chinese, vietnamese, indonesian, thai | Judgement-authored genre-convention vocabulary, each word tagged to a single genre. These lexicons have no corpus in the repo, so these entries are unsourced. Review them like any hand-written word. |
+
+**Decisions:**
+- *japanese-ln `verb` is exclusive.* It serves two grammars: isekai's infinitive ("I Shall Survive
+  Using…") and romcom's past tense ("The Girl I Sat Next To…"). Under the additive model the
+  multi-genre "Survive" was general and could reach romcom ("The Girl I Survive Turned Out to Be My
+  Sister"). This leak came from step 1; exclusiveSlots closes it.
+- *Hindi "Widow" replaced by "Daughters-in-Law".* With the existing "Black", it produced "The Black
+  Widow".
+- *webnovel verify check 3c narrowed* to the brief's actual "Book N": "Book" followed by a number
+  (One, 2, IV). The new corpus-attested lead "Book" ("Book of the Dead") matched the old `Book \w+`.
+- *titleCase:* letters after a leading number now stay lowercase ("1980s", "21st"). This was a bug,
+  not new behaviour.
+
+**Left thin on purpose:**
+- webnovel `warning` (2 in progression/cultivation) and `loopWord` (3): the corpus has no more
+  evidence.
+- webnovel romance roles (2): isolated.
+- korean `only` (1–2): its templates need a plural-agreeing subject ("Only I Know…"), so singular
+  additions would break the grammar.
+
+**Result:** pools of 3 words or fewer went from 455 (before step 1) to those 6.
+
+| Lexicon | Pools under 8 words |
+|---|---|
+| title-composer | 1,075 → 28 |
+| webnovel | 81 → 14 |
+
+**Seen in passing, not fixed** (all pre-existing):
+- japanese-ln reproduces some real titles verbatim ("Log Horizon", "Reincarnated as a Sword",
+  "Rascal Does Not Dream of…").
+- title-composer world-fiction can reproduce "Life and Fate", "Dead Souls" and "Season of Migration
+  to the North".
+- `{era}s` pluralises "Century" as "Centurys", and `Where the {animal}s {strikeVerb}` gives a plural
+  subject a singular verb.

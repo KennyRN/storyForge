@@ -1273,6 +1273,54 @@ export const westernSerialLexicon: GeneratorSpec = {
 					"progression",
 					"cultivation"
 				]
+			},
+			{
+				"gloss": "Otherworldly",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Budding",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Conscripted",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Fated",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Chaotic",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Magical",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Friendly",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Unintended",
+				"tags": [
+					"cosy"
+				]
 			}
 		],
 		"place": [
@@ -1368,6 +1416,42 @@ export const westernSerialLexicon: GeneratorSpec = {
 				"tags": [
 					"dungeon",
 					"litrpg"
+				]
+			},
+			{
+				"gloss": "a Fantasy World",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "a New World",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "a Magic World",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "an Otome Game",
+				"tags": [
+					"isekai/media-world"
+				]
+			},
+			{
+				"gloss": "a Shounen Manga",
+				"tags": [
+					"isekai/media-world"
+				]
+			},
+			{
+				"gloss": "Seclusion",
+				"tags": [
+					"cosy"
 				]
 			}
 		],
@@ -1510,6 +1594,12 @@ export const westernSerialLexicon: GeneratorSpec = {
 				"tags": [
 					"cosy"
 				]
+			},
+			{
+				"gloss": "Don't Fear the",
+				"tags": [
+					"cosy"
+				]
 			}
 		],
 		"complaint": [
@@ -1591,7 +1681,13 @@ export const westernSerialLexicon: GeneratorSpec = {
 			"Ten Thousand",
 			"Three Hundred",
 			"Two",
-			"Forty-Seven"
+			"Forty-Seven",
+			"Ten",
+			"Twelve",
+			"Five",
+			"A Hundred",
+			"A Thousand",
+			"A Million"
 		],
 		"placeBare": [
 			{
@@ -1686,6 +1782,36 @@ export const westernSerialLexicon: GeneratorSpec = {
 				"tags": [
 					"dungeon",
 					"litrpg"
+				]
+			},
+			{
+				"gloss": "Fantasy World",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "New World",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Magic World",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Otome Game",
+				"tags": [
+					"isekai/media-world"
+				]
+			},
+			{
+				"gloss": "Shounen Manga",
+				"tags": [
+					"isekai/media-world"
 				]
 			}
 		],
@@ -1818,7 +1944,8 @@ export const westernSerialLexicon: GeneratorSpec = {
 			"Came Back Wrong #litrpg #progression #isekai #cultivation",
 			"Would Not Stay Dead #litrpg #progression #isekai #cultivation",
 			"Kept the Patch Notes #litrpg #progression #isekai #cultivation",
-			"Got a Second Save File #litrpg #progression #isekai #cultivation"
+			"Got a Second Save File #litrpg #progression #isekai #cultivation",
+			"Eludes Death #litrpg #progression #isekai #cultivation"
 		],
 		"interro": [
 			"So What If I'm #cosy #litrpg #isekai #cultivation",
@@ -1826,7 +1953,9 @@ export const westernSerialLexicon: GeneratorSpec = {
 			"Turns Out I'm #cosy #litrpg #isekai #cultivation",
 			"So I'm #cosy #litrpg #isekai #cultivation",
 			"Why Is Everyone Obsessed With #cosy #litrpg #isekai #cultivation",
-			"Awakened as #cosy #litrpg #isekai #cultivation"
+			"Awakened as #cosy #litrpg #isekai #cultivation",
+			"Wait, I'm #cosy #litrpg #isekai",
+			"No Need for #cosy #litrpg #isekai"
 		],
 		"statusVerb": [
 			"Rejected by #romance",
@@ -1920,7 +2049,22 @@ export const westernSerialLexicon: GeneratorSpec = {
 			"Dawn #progression",
 			"Path #progression",
 			"Saga #progression",
-			"Chronicles #progression"
+			"Chronicles #progression",
+			"Age #progression",
+			"Mark #progression",
+			"Master #progression",
+			"Tales #progression",
+			"Ascension #progression",
+			"Book #progression",
+			"Keeper #progression",
+			"Paragon #progression",
+			"Road #progression",
+			"Soul #progression",
+			"Throne #progression",
+			"Will #progression",
+			"Art #progression",
+			"Power #progression",
+			"Reincarnation #progression"
 		],
 		"compoundMod": [
 			"Density #progression",

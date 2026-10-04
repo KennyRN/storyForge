@@ -317,6 +317,78 @@ export const vietnameseWebLexicon: GeneratorSpec = {
 					"kiemhiep",
 					"tienhiep"
 				]
+			},
+			{
+				"gloss": "Pavilion",
+				"tags": [
+					"kiemhiep"
+				]
+			},
+			{
+				"gloss": "Manor",
+				"tags": [
+					"kiemhiep"
+				]
+			},
+			{
+				"gloss": "Clan",
+				"tags": [
+					"kiemhiep"
+				]
+			},
+			{
+				"gloss": "Valley",
+				"tags": [
+					"kiemhiep"
+				]
+			},
+			{
+				"gloss": "Fortress",
+				"tags": [
+					"kiemhiep"
+				]
+			},
+			{
+				"gloss": "Peak",
+				"tags": [
+					"tienhiep"
+				]
+			},
+			{
+				"gloss": "Heaven",
+				"tags": [
+					"tienhiep"
+				]
+			},
+			{
+				"gloss": "Inner Court",
+				"tags": [
+					"ngontinh"
+				]
+			},
+			{
+				"gloss": "Garden",
+				"tags": [
+					"ngontinh"
+				]
+			},
+			{
+				"gloss": "Imperial City",
+				"tags": [
+					"ngontinh"
+				]
+			},
+			{
+				"gloss": "Residence",
+				"tags": [
+					"ngontinh"
+				]
+			},
+			{
+				"gloss": "Mansion",
+				"tags": [
+					"ngontinh"
+				]
 			}
 		],
 		"person": [
@@ -544,6 +616,24 @@ export const vietnameseWebLexicon: GeneratorSpec = {
 					"dothi",
 					"hethong"
 				]
+			},
+			{
+				"gloss": "a Delivery Driver",
+				"tags": [
+					"dothi"
+				]
+			},
+			{
+				"gloss": "a Debt-Ridden Student",
+				"tags": [
+					"dothi"
+				]
+			},
+			{
+				"gloss": "Rock Bottom",
+				"tags": [
+					"dothi"
+				]
 			}
 		],
 		"endState": [
@@ -580,6 +670,24 @@ export const vietnameseWebLexicon: GeneratorSpec = {
 					"tienhiep",
 					"hethong"
 				]
+			},
+			{
+				"gloss": "a Tycoon",
+				"tags": [
+					"dothi"
+				]
+			},
+			{
+				"gloss": "the Boardroom",
+				"tags": [
+					"dothi"
+				]
+			},
+			{
+				"gloss": "the Top of the City",
+				"tags": [
+					"dothi"
+				]
 			}
 		],
 		"systemWord": [
@@ -598,6 +706,30 @@ export const vietnameseWebLexicon: GeneratorSpec = {
 			},
 			{
 				"gloss": "Experience Points",
+				"tags": [
+					"hethong"
+				]
+			},
+			{
+				"gloss": "Points Shop",
+				"tags": [
+					"hethong"
+				]
+			},
+			{
+				"gloss": "Task Panel",
+				"tags": [
+					"hethong"
+				]
+			},
+			{
+				"gloss": "Sign-In System",
+				"tags": [
+					"hethong"
+				]
+			},
+			{
+				"gloss": "Lottery",
 				"tags": [
 					"hethong"
 				]
@@ -649,6 +781,24 @@ export const vietnameseWebLexicon: GeneratorSpec = {
 				"tags": [
 					"tienhiep",
 					"dothi"
+				]
+			},
+			{
+				"gloss": "Conquer",
+				"tags": [
+					"hethong"
+				]
+			},
+			{
+				"gloss": "Upgrade",
+				"tags": [
+					"hethong"
+				]
+			},
+			{
+				"gloss": "Unlock",
+				"tags": [
+					"hethong"
 				]
 			}
 		]
