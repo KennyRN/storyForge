@@ -447,39 +447,150 @@ export function scopedLexicon(
 	base: Record<string, Lexeme[]> = normaliseLexicon(spec.lexicon),
 ): Record<string, Lexeme[]> {
 	return scopeLexicon(
+		spec,
 		base,
-		resolveGenreNarrowing(spec, genreId),
+		genreId,
 		extraTags,
 		excludedTags(spec, genreId),
 		genreId ? genreScope(spec, genreId) : [],
 	);
 }
 
+/** Default `GeneratorSpec.vocabularyBlend`: how a draw splits between a genre's own words, the
+ * words it inherits from its ancestors, and the general list. */
+export const DEFAULT_VOCABULARY_BLEND = { own: 0.55, inherited: 0.3, generic: 0.15, fullTier: 8 } as const;
+
+/** Per-spec genre lookups for the promotion rules, built once and cached. */
+interface GenreIndex {
+	/** `[id, ...ancestors]` for every declared genre id. */
+	chain: Map<string, string[]>;
+}
+
+const genreIndexCache = new WeakMap<GeneratorSpec, GenreIndex>();
+
+function genreIndex(spec: GeneratorSpec): GenreIndex {
+	let index = genreIndexCache.get(spec);
+	if (!index) {
+		const chain = new Map<string, string[]>();
+		for (const g of spec.genres) chain.set(g.id, [g.id, ...ancestorIds(spec, g.id)]);
+		index = { chain };
+		genreIndexCache.set(spec, index);
+	}
+	return index;
+}
+
+/** The genre-id tags on `tags` (anything that isn't a declared genre, e.g. a mood tag, is
+ * ignored by the promotion rules), minus the "all" sentinel. */
+function genreTags(index: GenreIndex, tags: readonly string[] | undefined): string[] {
+	return (tags ?? []).filter((t) => t !== "all" && index.chain.has(t));
+}
+
 /**
- * Narrow each slot to the vocabulary tagged for the requested genre (honouring subgenre
- * inheritance — see `GenreNarrowing`), then layer `extraTags` (mood etc.) on top exactly as
- * before: one tag at a time, each forgiving on its own, so a slot tagged by genre but not by
- * mood still narrows on genre rather than falling back to everything.
+ * Parent-lexicon rule: an entry belongs to `parentId`'s lexicon when it is tagged with the parent
+ * itself, or with two or more of the parent's subgenres. A tag deeper down counts towards the
+ * direct child it sits under, so `[dungeon-core, dungeon-crawler]` is one subgenre of
+ * `progression` (both are under `dungeon`) but two of `dungeon`.
+ */
+export function inParentLexicon(spec: GeneratorSpec, tags: readonly string[] | undefined, parentId: string): boolean {
+	const index = genreIndex(spec);
+	const children = new Set<string>();
+	for (const t of genreTags(index, tags)) {
+		const chain = index.chain.get(t)!;
+		const at = chain.indexOf(parentId);
+		if (at === 0) return true;
+		if (at > 0) children.add(chain[at - 1]);
+	}
+	return children.size >= 2;
+}
+
+/**
+ * General-list rule: an entry is general when its tags span two or more top-level genres (a
+ * subgenre tag counts towards its top-level genre), or when it carries no genre tag at all.
+ */
+export function isGeneralEntry(spec: GeneratorSpec, tags: readonly string[] | undefined): boolean {
+	const index = genreIndex(spec);
+	const tops = new Set(genreTags(index, tags).map((t) => index.chain.get(t)!.at(-1)!));
+	return tops.size !== 1;
+}
+
+/**
+ * One slot's pool under the additive model: the genre's own words, then each ancestor's lexicon
+ * (nearest first), then the general list — each entry in its highest tier only — with weights
+ * rescaled so the tiers split the draw by `blend`. Empty tiers are skipped and the rest
+ * renormalised. A slot with nothing of the genre's own or inherited is genre-neutral for it: the
+ * whole (post-exclusion) slot is drawn, as before.
+ */
+function blendSlot(
+	spec: GeneratorSpec,
+	entries: Lexeme[],
+	genreId: string,
+	isolated: boolean,
+): Lexeme[] {
+	const own = new Set(isParent(spec, genreId) ? [genreId, ...descendantIds(spec, genreId)] : [genreId]);
+	const ancestors = ancestorIds(spec, genreId);
+	const tiers: { share: number; entries: Lexeme[] }[] = [];
+	const placed = new Set<Lexeme>();
+	const take = (share: number, test: (e: Lexeme) => boolean) => {
+		const hits = entries.filter((e) => !placed.has(e) && test(e));
+		hits.forEach((e) => placed.add(e));
+		tiers.push({ share, entries: hits });
+	};
+
+	const blend = { ...DEFAULT_VOCABULARY_BLEND, ...spec.vocabularyBlend };
+	take(blend.own, (e) => (e.tags ?? []).some((t) => own.has(t)));
+	// Nearer ancestors weigh more: rings halve, normalised to the inherited share.
+	const ringWeights = ancestors.map((_, i) => 1 / 2 ** i);
+	const ringTotal = ringWeights.reduce((a, b) => a + b, 0);
+	ancestors.forEach((a, i) => take((blend.inherited * ringWeights[i]) / ringTotal, (e) => inParentLexicon(spec, e.tags, a)));
+	// Nothing of the genre's own or inherited in this slot: the slot is genre-neutral for it, and
+	// the whole slot is drawn, exactly as before the additive model.
+	if (tiers.every((t) => t.entries.length === 0)) return entries;
+	if (!isolated) take(blend.generic, (e) => isGeneralEntry(spec, e.tags));
+
+	// A tier earns its full share only once it holds `fullTier` words; a thinner one gets a
+	// proportional cut, so a genre with one own word doesn't hand that word half of every draw.
+	for (const t of tiers) t.share *= Math.min(1, t.entries.length / Math.max(1, blend.fullTier));
+	const live = tiers.filter((t) => t.entries.length > 0 && t.share > 0);
+	if (live.length === 0) return entries;
+	const shareTotal = live.reduce((a, t) => a + t.share, 0);
+	const out: Lexeme[] = [];
+	for (const tier of live) {
+		const weightTotal = tier.entries.reduce((a, e) => a + (e.weight ?? 1), 0);
+		for (const e of tier.entries) {
+			out.push({ ...e, weight: ((e.weight ?? 1) * tier.share) / (shareTotal * weightTotal) });
+		}
+	}
+	return out;
+}
+
+/**
+ * Scope each slot to the requested genre, then layer `extraTags` (mood etc.) on top: one tag at a
+ * time, each forgiving on its own.
  *
- * Per-slot and forgiving throughout — a slot where nothing carries a given tag is genre-neutral
- * for that tag and passes through untouched. That is what lets one flat lexicon serve every
- * genre (and now every subgenre), where the originals kept a separate word bank per genre and
- * duplicated hundreds of shared words between them.
+ * Genre scoping is additive (`blendSlot`): the genre's own words are drawn alongside its
+ * ancestors' lexicons and the general list, rather than replacing them, so one tagged word no
+ * longer collapses a slot to that word. `GeneratorSpec.exclusiveSlots` keeps the older exclusive
+ * narrowing (`narrowLeaf`/`narrowParent`) for named slots. Exclusions run first either way.
  */
 function scopeLexicon(
+	spec: GeneratorSpec,
 	lexemes: Record<string, Lexeme[]>,
-	genre: GenreNarrowing,
+	genreId: string | undefined,
 	extraTags: readonly string[],
 	excluded: readonly string[] = [],
 	scope: readonly string[] = [],
 ): Record<string, Lexeme[]> {
-	if (genre.kind === "none" && extraTags.length === 0) return lexemes;
+	if (!genreId && extraTags.length === 0) return lexemes;
+	const narrowing = resolveGenreNarrowing(spec, genreId);
+	const exclusive = new Set(spec.exclusiveSlots ?? []);
+	const isolated = genreId ? [genreId, ...ancestorIds(spec, genreId)].some((id) => genreById(spec, id)?.isolated) : false;
 	const scoped: Record<string, Lexeme[]> = {};
 	for (const [slot, entries] of Object.entries(lexemes)) {
 		let pool = entries;
 		if (excluded.length > 0) pool = pool.filter((e) => survivesExclusion(e.tags, excluded, scope));
-		if (genre.kind === "leaf") pool = narrowLeaf(pool, genre.chain);
-		else if (genre.kind === "parent") pool = narrowParent(pool, genre.chain, genre.inherit);
+		if (genreId && !exclusive.has(slot)) pool = blendSlot(spec, pool, genreId, isolated);
+		else if (narrowing.kind === "leaf") pool = narrowLeaf(pool, narrowing.chain);
+		else if (narrowing.kind === "parent") pool = narrowParent(pool, narrowing.chain, narrowing.inherit);
 		for (const tag of extraTags) pool = withTags(pool, [tag]);
 		scoped[slot] = pool;
 	}

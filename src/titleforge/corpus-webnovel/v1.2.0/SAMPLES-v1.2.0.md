@@ -9,11 +9,11 @@ Verification: all checks pass.
 | # | Name | Pattern |
 |--:|---|---|
 | 1 | Save File Cataclysm | system-calamity |
-| 2 | What Do You Mean I'm the Brimstone Slayer? | interrogative-hook |
-| 3 | Floor Zero: Monsters & Legends | colon-subtitle |
-| 4 | The Augmented Exorcist's Guide to Health and Safety | mundane-in-fantasy |
+| 2 | What Do You Mean I'm the Cantrip Juggernaut? | interrogative-hook |
+| 3 | Tutorial Meadow: Monsters & Legends | colon-subtitle |
+| 4 | The Augmented Hunter's Guide to Health and Safety | mundane-in-fantasy |
 | 5 | A Practical Guide to Customer Service | mundane-in-fantasy |
-| 6 | Seeker of the Doom | system-calamity |
+| 6 | Breaker of the Doom | system-calamity |
 | 7 | The Snake's Rise | possessive-relation |
 | 8 | The Ruin System | system-calamity |
 | 9 | Crop Rotation in the Understory | mundane-in-fantasy |
@@ -21,11 +21,11 @@ Verification: all checks pass.
 | 11 | Only the Respawn Clerk Can Enter a Backwater Dungeon | only-i |
 | 12 | My Ranger's Oath | possessive-relation |
 | 13 | The Modern Age Online | vr-online |
-| 14 | Doom Eater | rank-role |
+| 14 | Doom Slayer | rank-role |
 | 15 | Bee Dungeon | dungeon-anchor |
-| 16 | Artificial Respawn Clerk | rank-role |
-| 17 | The Understory Spire | tower-anchor |
-| 18 | The Certified Accountant | rank-role |
+| 16 | Applied Respawn Clerk | rank-role |
+| 17 | The Respawn Point Spire | tower-anchor |
+| 18 | The Arcane Accountant | rank-role |
 | 19 | Dao of Small Talk | dao-of |
 | 20 | The Ranger's Revenge | possessive-relation |
 
@@ -35,20 +35,20 @@ Verification: all checks pass.
 |--:|---|---|
 | 1 | Save File Cataclysm | system-calamity |
 | 2 | My Warden's Life | possessive-relation |
-| 3 | Why Is Everyone Obsessed with the Druid? | interrogative-hook |
-| 4 | Armageddon Hunter | rank-role |
-| 5 | Level One Portal Technician | rank-role |
-| 6 | Mage of the Doom | system-calamity |
+| 3 | Why Is Everyone Obsessed with the Botanist? | interrogative-hook |
+| 4 | Armageddon Exorcist | rank-role |
+| 5 | Level One Retired Villain | rank-role |
+| 6 | Assassin of the Doom | system-calamity |
 | 7 | The Snake's Rise | possessive-relation |
 | 8 | The Ruin System | system-calamity |
-| 9 | The Deprecated Apprentice Lich of Floor Zero | rank-role |
+| 9 | The Middling Tamer of Floor Zero | rank-role |
 | 10 | The Cataclysm Loot Table | system-calamity |
-| 11 | Deprecated Quartermaster | rank-role |
+| 11 | Middling Beast Handler | rank-role |
 | 12 | My Ranger's Oath | possessive-relation |
-| 13 | Middling Accountant: Fireborn | colon-subtitle |
-| 14 | Doom Eater | rank-role |
+| 13 | Augmented Accountant: Fireborn | colon-subtitle |
+| 14 | Doom Cartographer | rank-role |
 | 15 | Three Hundred Levels of Sanity | numeric-grind |
-| 16 | Augmented Tavern Owner | rank-role |
+| 16 | Applied Mage | rank-role |
 | 17 | Nyx in the Calamity | name-anchor |
 | 18 | Patch Notes Integration | system-calamity |
 | 19 | Derek in the Apocalypse | name-anchor |
@@ -58,174 +58,174 @@ Verification: all checks pass.
 
 | # | Name | Pattern |
 |--:|---|---|
-| 1 | The Applied Engineer | rank-role |
-| 2 | Only the Respawn Clerk Can Enter the Understory | only-i |
-| 3 | The Hidden Understory Only I Can Reach | only-i |
-| 4 | Armageddon Knight | rank-role |
-| 5 | Mythic Tavern Owner | rank-role |
-| 6 | Boundless Botanist | rank-role |
-| 7 | The Augmented Healer | rank-role |
-| 8 | The Annihilation Alchemist of Tier Three | rank-role |
-| 9 | The Second Seeker of Tier Three | rank-role |
-| 10 | The Calculating Druid of the Understory | rank-role |
-| 11 | Modern Summoner | rank-role |
-| 12 | Doom Runesmith | rank-role |
-| 13 | Age of Recall | ascent-of |
-| 14 | Doom Monster | rank-role |
-| 15 | Spell Seeker | rank-role |
-| 16 | Applied Apprentice Lich | rank-role |
+| 1 | The Insufferable Hunter | rank-role |
+| 2 | Only the Dungeon Inspector Can Enter the Guild Annexe | only-i |
+| 3 | The Hidden Tutorial Meadow Only I Can Reach | only-i |
+| 4 | Disaster Rooster | rank-role |
+| 5 | Mythic Retired Villain | rank-role |
+| 6 | Brimstone Knight | rank-role |
+| 7 | The Applied Slayer | rank-role |
+| 8 | The Artificial Cartographer of the Understory | rank-role |
+| 9 | The Spell Lord of the Respawn Point | rank-role |
+| 10 | The Augmented Slime of the Guild Annexe | rank-role |
+| 11 | Second Quartermaster | rank-role |
+| 12 | Cataclysm Slime | rank-role |
+| 13 | Age of Migration | ascent-of |
+| 14 | Cataclysm Wandsmith | rank-role |
+| 15 | Blackflame Lord | rank-role |
+| 16 | Insufferable Healer | rank-role |
 | 17 | Dawn of the Winter Legion | ascent-compound |
-| 18 | The Spell Guild Auditor | rank-role |
+| 18 | The Soul Respawn Clerk | rank-role |
 | 19 | Path of the Density Legion | ascent-compound |
-| 20 | Soul Tavern Owner | rank-role |
+| 20 | Boundless Apprentice Lich | rank-role |
 
 ## western cultivation (`cultivation`)
 
 | # | Name | Pattern |
 |--:|---|---|
-| 1 | The Applied Cultivator | rank-role |
-| 2 | What Do You Mean I'm the Applied Rooster? | interrogative-hook |
-| 3 | Azure Sect: Monsters & Legends | colon-subtitle |
-| 4 | Only the Cultivator Can Enter the Azure Sect | only-i |
-| 5 | Only the Sect Elder Can Enter the Azure Sect | only-i |
-| 6 | Calculating Cultivator | rank-role |
-| 7 | Awakened as the Rooster? | interrogative-hook |
-| 8 | The Applied Sect Elder of the Azure Sect | rank-role |
-| 9 | Beware of Rooster | warning-title |
-| 10 | The Applied Cultivator of the Azure Sect | rank-role |
-| 11 | Boundless Sect Elder | rank-role |
-| 12 | Why Is Everyone Obsessed with the Applied Cultivator? | interrogative-hook |
-| 13 | Age of Tribulation | ascent-of |
-| 14 | Tribulation Rooster | rank-role |
+| 1 | The Artificial Engineer | rank-role |
+| 2 | What Do You Mean I'm the Soul Eater? | interrogative-hook |
+| 3 | Tutorial Meadow: Monsters & Legends | colon-subtitle |
+| 4 | Only the Assassin Can Enter a Perfectly Ordinary Village | only-i |
+| 5 | Only the Sect Elder Can Enter the Ninth Floor | only-i |
+| 6 | Doom Sect Elder | rank-role |
+| 7 | Awakened as the Beast Handler? | interrogative-hook |
+| 8 | The Brimstone Sect Elder of Tier Three | rank-role |
+| 9 | Beware of Respawn Clerk | warning-title |
+| 10 | The Soul Exorcist of the Guild Annexe | rank-role |
+| 11 | Applied Sect Elder | rank-role |
+| 12 | Why Is Everyone Obsessed with the Brimstone Engineer? | interrogative-hook |
+| 13 | Age of Rollout | ascent-of |
+| 14 | Doom Breaker | rank-role |
 | 15 | A Practical Guide to Small Talk | mundane-in-fantasy |
-| 16 | Applied Rooster | rank-role |
+| 16 | Artificial Cultivator | rank-role |
 | 17 | Dao of Debt Collection | dao-of |
-| 18 | The Boundless Sect Elder | rank-role |
+| 18 | The Applied Rooster | rank-role |
 | 19 | Dao of Small Talk | dao-of |
-| 20 | Why Is Everyone Obsessed with the Rooster? | interrogative-hook |
+| 20 | Why Is Everyone Obsessed with the Farmhand? | interrogative-hook |
 
 ## dungeon (`dungeon`)
 
 | # | Name | Pattern |
 |--:|---|---|
-| 1 | The Applied Slime | rank-role |
+| 1 | The Insufferable Engineer | rank-role |
 | 2 | Station Core | dungeon-anchor |
 | 3 | Divine Dungeon | dungeon-anchor |
-| 4 | Descent Goblin | rank-role |
-| 5 | Mythic Dungeon Core | rank-role |
-| 6 | Boundless Slime | rank-role |
-| 7 | The Augmented Dungeon | dungeon-anchor |
-| 8 | The Annihilation Dungeon Core of the Respawn Point | rank-role |
-| 9 | The Hidden Respawn Point Only I Can Reach | only-i |
-| 10 | The Calculating Goblin of the Guild Annexe | rank-role |
-| 11 | Modern Dungeon Core | rank-role |
+| 4 | Disaster Accountant | rank-role |
+| 5 | Mythic Slime | rank-role |
+| 6 | Brimstone Chef | rank-role |
+| 7 | The Applied Dungeon | dungeon-anchor |
+| 8 | The Artificial Dungeon Core of Floor Zero | rank-role |
+| 9 | The Hidden Floor Zero Only I Can Reach | only-i |
+| 10 | The Augmented Exorcist of the Frontier Ward | rank-role |
+| 11 | Second Dungeon Core | rank-role |
 | 12 | Divine Core | dungeon-anchor |
 | 13 | My Sorcerer's Ledger | possessive-relation |
-| 14 | Descent Slime | rank-role |
+| 14 | Doom Breaker | rank-role |
 | 15 | Bee Dungeon | dungeon-anchor |
-| 16 | Applied Dungeon Core | rank-role |
+| 16 | Insufferable Goblin | rank-role |
 | 17 | Dawn of the Winter Legion | ascent-compound |
-| 18 | The Spell Dungeon Core | rank-role |
+| 18 | The Soul Dungeon Core | rank-role |
 | 19 | Path of the Density Legion | ascent-compound |
-| 20 | The Cantrip Dungeon | dungeon-anchor |
+| 20 | The Annihilation Dungeon | dungeon-anchor |
 
 ## dungeon core (`dungeon-core`)
 
 | # | Name | Pattern |
 |--:|---|---|
-| 1 | The Applied Slime | rank-role |
+| 1 | The Insufferable Accountant | rank-role |
 | 2 | Station Core | dungeon-anchor |
 | 3 | Divine Dungeon | dungeon-anchor |
-| 4 | Descent Goblin | rank-role |
-| 5 | Mythic Dungeon Core | rank-role |
-| 6 | Boundless Slime | rank-role |
-| 7 | The Augmented Dungeon | dungeon-anchor |
-| 8 | The Annihilation Dungeon Core of the Respawn Point | rank-role |
-| 9 | The Hidden Respawn Point Only I Can Reach | only-i |
-| 10 | The Calculating Goblin of the Guild Annexe | rank-role |
-| 11 | Modern Dungeon Core | rank-role |
+| 4 | Armageddon Bureaucrat | rank-role |
+| 5 | Reluctant Slime | rank-role |
+| 6 | Annihilation Hunter | rank-role |
+| 7 | The Accidental Dungeon | dungeon-anchor |
+| 8 | The Accidental Dungeon Core of Floor Zero | rank-role |
+| 9 | The Hidden Floor Zero Only I Can Reach | only-i |
+| 10 | The Accidental Rooster of Tier Three | rank-role |
+| 11 | Soul Dungeon Core | rank-role |
 | 12 | Divine Core | dungeon-anchor |
 | 13 | My Sorcerer's Ledger | possessive-relation |
-| 14 | Descent Slime | rank-role |
+| 14 | Doom Botanist | rank-role |
 | 15 | Bee Dungeon | dungeon-anchor |
-| 16 | Applied Dungeon Core | rank-role |
+| 16 | Insufferable Cartographer | rank-role |
 | 17 | Dawn of the Winter Legion | ascent-compound |
-| 18 | The Spell Dungeon Core | rank-role |
+| 18 | The Boundless Dungeon Core | rank-role |
 | 19 | Path of the Density Legion | ascent-compound |
-| 20 | The Cantrip Dungeon | dungeon-anchor |
+| 20 | Cantrip Goblin | rank-role |
 
 ## dungeon crawler (`dungeon-crawler`)
 
 | # | Name | Pattern |
 |--:|---|---|
-| 1 | The Applied Slime | rank-role |
+| 1 | The Insufferable Accountant | rank-role |
 | 2 | Station Core | dungeon-anchor |
 | 3 | Divine Dungeon | dungeon-anchor |
-| 4 | Descent Goblin | rank-role |
-| 5 | Mythic Dungeon Core | rank-role |
-| 6 | Boundless Slime | rank-role |
-| 7 | The Augmented Dungeon | dungeon-anchor |
-| 8 | The Annihilation Dungeon Core of the Respawn Point | rank-role |
-| 9 | The Hidden Respawn Point Only I Can Reach | only-i |
-| 10 | The Calculating Goblin of the Guild Annexe | rank-role |
-| 11 | Modern Dungeon Core | rank-role |
+| 4 | Armageddon Bureaucrat | rank-role |
+| 5 | Reluctant Slime | rank-role |
+| 6 | Annihilation Hunter | rank-role |
+| 7 | The Accidental Dungeon | dungeon-anchor |
+| 8 | The Accidental Dungeon Core of Floor Zero | rank-role |
+| 9 | The Hidden Floor Zero Only I Can Reach | only-i |
+| 10 | The Accidental Rooster of Tier Three | rank-role |
+| 11 | Soul Dungeon Core | rank-role |
 | 12 | Divine Core | dungeon-anchor |
 | 13 | My Sorcerer's Ledger | possessive-relation |
-| 14 | Descent Slime | rank-role |
+| 14 | Doom Botanist | rank-role |
 | 15 | Bee Dungeon | dungeon-anchor |
-| 16 | Applied Dungeon Core | rank-role |
+| 16 | Insufferable Cartographer | rank-role |
 | 17 | Dawn of the Winter Legion | ascent-compound |
-| 18 | The Spell Dungeon Core | rank-role |
+| 18 | The Boundless Dungeon Core | rank-role |
 | 19 | Path of the Density Legion | ascent-compound |
-| 20 | The Cantrip Dungeon | dungeon-anchor |
+| 20 | Cantrip Goblin | rank-role |
 
 ## System Apocalypse (`system-apocalypse`)
 
 | # | Name | Pattern |
 |--:|---|---|
-| 1 | Save File Ruin | system-calamity |
-| 2 | Forgotten Engineer: Forged in Nightmare | colon-subtitle |
-| 3 | Understory: Monsters & Legends | colon-subtitle |
-| 4 | Disaster Knight | rank-role |
-| 5 | Mythic Tavern Owner | rank-role |
-| 6 | Slayer of the Ruin | system-calamity |
-| 7 | The Hidden Understory Only I Can Reach | only-i |
-| 8 | The Armageddon System | system-calamity |
-| 9 | The Second Seeker of Tier Three | rank-role |
-| 10 | The Ruin Loot Table | system-calamity |
-| 11 | Farmhand of the Apocalypse | system-calamity |
-| 12 | Only the Botanist Can Enter the Understory | only-i |
+| 1 | Save File Armageddon | system-calamity |
+| 2 | Forgotten Hunter: Forged in Nightmare | colon-subtitle |
+| 3 | Tutorial Meadow: Monsters & Legends | colon-subtitle |
+| 4 | Calamity Rooster | rank-role |
+| 5 | Mythic Retired Villain | rank-role |
+| 6 | Botanist of the Ruin | system-calamity |
+| 7 | The Hidden Perfectly Ordinary Village Only I Can Reach | only-i |
+| 8 | The Disaster System | system-calamity |
+| 9 | The Spell Lord of the Respawn Point | rank-role |
+| 10 | The Armageddon Loot Table | system-calamity |
+| 11 | Healer of the Apocalypse | system-calamity |
+| 12 | Only the Exorcist Can Enter the Guild Annexe | only-i |
 | 13 | Rise of Dragons | ascent-of |
-| 14 | The Cantrip Monster Skill Tree | system-calamity |
-| 15 | Spell Seeker | rank-role |
-| 16 | Hunter of the Reset | system-calamity |
-| 17 | Nyx in the Calamity | name-anchor |
-| 18 | Patch Notes Apocalypse | system-calamity |
+| 14 | The Annihilation Wandsmith Skill Tree | system-calamity |
+| 15 | Blackflame Lord | rank-role |
+| 16 | Bureaucrat of the Reset | system-calamity |
+| 17 | Nyx in the Descent | name-anchor |
+| 18 | Patch Notes Integration | system-calamity |
 | 19 | Derek in the Apocalypse | name-anchor |
-| 20 | Breaker of the Culling | system-calamity |
+| 20 | The Hidden Tutorial Meadow Only I Can Reach | only-i |
 
 ## vrmmo (`vrmmo`)
 
 | # | Name | Pattern |
 |--:|---|---|
-| 1 | The Applied Engineer | rank-role |
-| 2 | Age of Descent | ascent-of |
+| 1 | The Insufferable Hunter | rank-role |
+| 2 | Age of Integration | ascent-of |
 | 3 | Saga of the Soul Lord | ascent-compound |
-| 4 | Armageddon Knight | rank-role |
-| 5 | Mythic Tavern Owner | rank-role |
-| 6 | Boundless Botanist | rank-role |
+| 4 | Disaster Rooster | rank-role |
+| 5 | Mythic Retired Villain | rank-role |
+| 6 | Brimstone Knight | rank-role |
 | 7 | Saga of Doom | ascent-of |
-| 8 | The Annihilation Alchemist of Tier Three | rank-role |
-| 9 | The Second Seeker of Tier Three | rank-role |
-| 10 | The Calculating Druid of the Understory | rank-role |
-| 11 | Modern Summoner | rank-role |
+| 8 | The Artificial Cartographer of the Understory | rank-role |
+| 9 | The Spell Lord of the Respawn Point | rank-role |
+| 10 | The Augmented Slime of the Guild Annexe | rank-role |
+| 11 | Second Quartermaster | rank-role |
 | 12 | Age of Cataclysm | ascent-of |
 | 13 | The Modern Age Online | vr-online |
-| 14 | Doom Monster | rank-role |
-| 15 | Only the Healer Can Enter Tier Three | only-i |
-| 16 | Applied Apprentice Lich | rank-role |
+| 14 | Cataclysm Wandsmith | rank-role |
+| 15 | Only the Juggernaut Can Enter the Respawn Point | only-i |
+| 16 | Insufferable Healer | rank-role |
 | 17 | The Battlegrounds Online | vr-online |
-| 18 | The Spell Guild Auditor | rank-role |
+| 18 | The Soul Respawn Clerk | rank-role |
 | 19 | The Sky Realms Online | vr-online |
 | 20 | Saga of Ascension | ascent-of |
 
@@ -233,250 +233,250 @@ Verification: all checks pass.
 
 | # | Name | Pattern |
 |--:|---|---|
-| 1 | The Applied Engineer | rank-role |
-| 2 | Age of Descent | ascent-of |
-| 3 | Rise of the Cantrip Runesmith | ascent-of |
-| 4 | Armageddon Knight | rank-role |
-| 5 | Mythic Tavern Owner | rank-role |
-| 6 | Boundless Botanist | rank-role |
-| 7 | The Hidden Understory Only I Can Reach | only-i |
-| 8 | The Annihilation Alchemist of Tier Three | rank-role |
-| 9 | The Second Seeker of Tier Three | rank-role |
-| 10 | The Calculating Druid of the Understory | rank-role |
-| 11 | Modern Summoner | rank-role |
-| 12 | Only the Botanist Can Enter the Understory | only-i |
+| 1 | The Insufferable Hunter | rank-role |
+| 2 | Age of Integration | ascent-of |
+| 3 | Rise of the Annihilation Slime | ascent-of |
+| 4 | Disaster Rooster | rank-role |
+| 5 | Mythic Retired Villain | rank-role |
+| 6 | Brimstone Knight | rank-role |
+| 7 | The Hidden Perfectly Ordinary Village Only I Can Reach | only-i |
+| 8 | The Artificial Cartographer of the Understory | rank-role |
+| 9 | The Spell Lord of the Respawn Point | rank-role |
+| 10 | The Augmented Slime of the Guild Annexe | rank-role |
+| 11 | Second Quartermaster | rank-role |
+| 12 | Only the Exorcist Can Enter the Guild Annexe | only-i |
 | 13 | Path of the Density God | ascent-compound |
-| 14 | Doom Monster | rank-role |
-| 15 | Only the Healer Can Enter Tier Three | only-i |
-| 16 | Applied Apprentice Lich | rank-role |
-| 17 | RE: Eater | re-prefix |
-| 18 | The Spell Guild Auditor | rank-role |
-| 19 | RE: Tamer | re-prefix |
+| 14 | Cataclysm Wandsmith | rank-role |
+| 15 | Only the Juggernaut Can Enter the Respawn Point | only-i |
+| 16 | Insufferable Healer | rank-role |
+| 17 | RE: Chef | re-prefix |
+| 18 | The Soul Respawn Clerk | rank-role |
+| 19 | RE: Occultist | re-prefix |
 | 20 | Saga of Ascension | ascent-of |
 
 ## crafting & profession (`crafting-profession`)
 
 | # | Name | Pattern |
 |--:|---|---|
-| 1 | The Applied Wandsmith | rank-role |
-| 2 | The Forgotten Wandsmith's Guide to Debt Collection | mundane-in-fantasy |
+| 1 | The Insufferable Eater | rank-role |
+| 2 | The Forgotten Breaker's Guide to Debt Collection | mundane-in-fantasy |
 | 3 | A Practical Guide to a Decent Cup of Tea | mundane-in-fantasy |
-| 4 | Armageddon Runesmith | rank-role |
-| 5 | Mythic Farmer | rank-role |
-| 6 | Boundless Wandsmith | rank-role |
-| 7 | Healing in Tier Three | mundane-in-fantasy |
-| 8 | The Annihilation Alchemist of Tier Three | rank-role |
-| 9 | The Second Botanist of Tier Three | rank-role |
-| 10 | The Calculating Wandsmith of the Understory | rank-role |
-| 11 | Modern Alchemist | rank-role |
-| 12 | The Cantrip Wandsmith's Guide to Cooking | mundane-in-fantasy |
-| 13 | Age of Recall | ascent-of |
-| 14 | Doom Engineer | rank-role |
-| 15 | Only the Botanist Can Enter Tier Three | only-i |
-| 16 | Applied Chef | rank-role |
+| 4 | Disaster Slime | rank-role |
+| 5 | Mythic Botanist | rank-role |
+| 6 | Brimstone Healer | rank-role |
+| 7 | Healing in the Respawn Point | mundane-in-fantasy |
+| 8 | The Artificial Alchemist of the Understory | rank-role |
+| 9 | The Spell Runesmith of the Respawn Point | rank-role |
+| 10 | The Augmented Druid of the Guild Annexe | rank-role |
+| 11 | Second Farmer | rank-role |
+| 12 | The Annihilation Lord's Guide to Cooking | mundane-in-fantasy |
+| 13 | Age of Migration | ascent-of |
+| 14 | Cataclysm Portal Technician | rank-role |
+| 15 | Only the Wandsmith Can Enter the Respawn Point | only-i |
+| 16 | Insufferable Engineer | rank-role |
 | 17 | Dawn of the Winter Legion | ascent-compound |
-| 18 | The Spell Farmer | rank-role |
+| 18 | The Soul Chef | rank-role |
 | 19 | Path of the Density Legion | ascent-compound |
-| 20 | A Decent Cup of Tea in Tier Three | mundane-in-fantasy |
+| 20 | A Decent Cup of Tea in Floor Zero | mundane-in-fantasy |
 
 ## core progression (`progression-core`)
 
 | # | Name | Pattern |
 |--:|---|---|
-| 1 | The Applied Engineer | rank-role |
-| 2 | Only the Respawn Clerk Can Enter the Understory | only-i |
-| 3 | The Hidden Understory Only I Can Reach | only-i |
-| 4 | Armageddon Knight | rank-role |
-| 5 | Mythic Tavern Owner | rank-role |
-| 6 | Boundless Botanist | rank-role |
-| 7 | The Augmented Healer | rank-role |
-| 8 | The Annihilation Alchemist of Tier Three | rank-role |
-| 9 | The Second Seeker of Tier Three | rank-role |
-| 10 | The Calculating Druid of the Understory | rank-role |
-| 11 | Modern Summoner | rank-role |
-| 12 | Doom Runesmith | rank-role |
-| 13 | Age of Recall | ascent-of |
-| 14 | Doom Monster | rank-role |
-| 15 | Spell Seeker | rank-role |
-| 16 | Applied Apprentice Lich | rank-role |
+| 1 | The Insufferable Hunter | rank-role |
+| 2 | Only the Dungeon Inspector Can Enter the Guild Annexe | only-i |
+| 3 | The Hidden Tutorial Meadow Only I Can Reach | only-i |
+| 4 | Disaster Rooster | rank-role |
+| 5 | Mythic Retired Villain | rank-role |
+| 6 | Brimstone Knight | rank-role |
+| 7 | The Applied Slayer | rank-role |
+| 8 | The Artificial Cartographer of the Understory | rank-role |
+| 9 | The Spell Lord of the Respawn Point | rank-role |
+| 10 | The Augmented Slime of the Guild Annexe | rank-role |
+| 11 | Second Quartermaster | rank-role |
+| 12 | Cataclysm Slime | rank-role |
+| 13 | Age of Migration | ascent-of |
+| 14 | Cataclysm Wandsmith | rank-role |
+| 15 | Blackflame Lord | rank-role |
+| 16 | Insufferable Healer | rank-role |
 | 17 | Dawn of the Winter Legion | ascent-compound |
-| 18 | The Spell Guild Auditor | rank-role |
+| 18 | The Soul Respawn Clerk | rank-role |
 | 19 | Path of the Density Legion | ascent-compound |
-| 20 | Soul Tavern Owner | rank-role |
+| 20 | Boundless Apprentice Lich | rank-role |
 
 ## tower climbing (`tower-climbing`)
 
 | # | Name | Pattern |
 |--:|---|---|
-| 1 | The Applied Engineer | rank-role |
-| 2 | Age of Descent | ascent-of |
-| 3 | Rise of the Cantrip Runesmith | ascent-of |
-| 4 | Armageddon Knight | rank-role |
-| 5 | Mythic Tavern Owner | rank-role |
-| 6 | Boundless Botanist | rank-role |
+| 1 | The Insufferable Hunter | rank-role |
+| 2 | Age of Integration | ascent-of |
+| 3 | Rise of the Annihilation Slime | ascent-of |
+| 4 | Disaster Rooster | rank-role |
+| 5 | Mythic Retired Villain | rank-role |
+| 6 | Brimstone Knight | rank-role |
 | 7 | Saga of Doom | ascent-of |
-| 8 | The Annihilation Alchemist of Tier Three | rank-role |
-| 9 | The Second Seeker of Tier Three | rank-role |
-| 10 | The Calculating Druid of the Understory | rank-role |
-| 11 | Modern Summoner | rank-role |
+| 8 | The Artificial Cartographer of the Understory | rank-role |
+| 9 | The Spell Lord of the Respawn Point | rank-role |
+| 10 | The Augmented Slime of the Guild Annexe | rank-role |
+| 11 | Second Quartermaster | rank-role |
 | 12 | Age of Cataclysm | ascent-of |
 | 13 | Path of the Density God | ascent-compound |
-| 14 | Doom Monster | rank-role |
-| 15 | Only the Healer Can Enter Tier Three | only-i |
-| 16 | Applied Apprentice Lich | rank-role |
-| 17 | The Tier Three Spire | tower-anchor |
-| 18 | The Spell Guild Auditor | rank-role |
-| 19 | The Understory Spire | tower-anchor |
+| 14 | Cataclysm Wandsmith | rank-role |
+| 15 | Only the Juggernaut Can Enter the Respawn Point | only-i |
+| 16 | Insufferable Healer | rank-role |
+| 17 | The Floor Zero Spire | tower-anchor |
+| 18 | The Soul Respawn Clerk | rank-role |
+| 19 | The Tutorial Meadow Spire | tower-anchor |
 | 20 | Saga of Ascension | ascent-of |
 
 ## isekai (`isekai`)
 
 | # | Name | Pattern |
 |--:|---|---|
-| 1 | I Am the Accidental Bureaucrat Against My Better Judgement | situation-complaint |
-| 2 | What Do You Mean I'm the Accidental Bureaucrat? | interrogative-hook |
-| 3 | Why Is Everyone Obsessed with the Bureaucrat? | interrogative-hook |
-| 4 | The Bureaucrat Who Got a Second Save File | regression-rebirth |
-| 5 | Return of the Accidental Summoner | regression-rebirth |
-| 6 | My Respawn Timer Chose Another World and No One Warned Me | situation-complaint |
-| 7 | I Reincarnated as the Summoner | regression-rebirth |
-| 8 | I Reincarnated as a Bureaucrat and I Have Notes | situation-complaint |
-| 9 | Becoming the Summoner | regression-rebirth |
-| 10 | I Reincarnated as a Bureaucrat and I Want a Refund | situation-complaint |
-| 11 | I Reincarnated as a Summoner and I Have Notes | situation-complaint |
-| 12 | The Bureaucrat Who Kept the Patch Notes | regression-rebirth |
+| 1 | I Am the Second Lord Against My Better Judgement | situation-complaint |
+| 2 | What Do You Mean I'm the Forgotten Mage? | interrogative-hook |
+| 3 | Why Is Everyone Obsessed with the Botanist? | interrogative-hook |
+| 4 | The Exorcist Who Got a Second Save File | regression-rebirth |
+| 5 | Return of the Accidental Bureaucrat | regression-rebirth |
+| 6 | My Respawn Timer Chose the Suburbs and No One Warned Me | situation-complaint |
+| 7 | I Reincarnated as the Bureaucrat | regression-rebirth |
+| 8 | I Reincarnated as a Chef and I Have Notes | situation-complaint |
+| 9 | Becoming the Necromancer | regression-rebirth |
+| 10 | I Reincarnated as a Lord and I Want a Refund | situation-complaint |
+| 11 | I Reincarnated as a Bureaucrat and I Have Notes | situation-complaint |
+| 12 | The Healer Who Kept the Patch Notes | regression-rebirth |
 | 13 | The Modern Age Online | vr-online |
 | 14 | My Changelog Chose Another World Against My Better Judgement | situation-complaint |
-| 15 | Awakened as the Accidental Bureaucrat? | interrogative-hook |
-| 16 | I Reincarnated as a Bureaucrat and I Am Extremely Tired | situation-complaint |
+| 15 | Return of the Accidental Necromancer | regression-rebirth |
+| 16 | I Reincarnated as a Hunter and I Am Extremely Tired | situation-complaint |
 | 17 | The Battlegrounds Online | vr-online |
 | 18 | I Am the Accidental Summoner and I Have Notes | situation-complaint |
 | 19 | The Sky Realms Online | vr-online |
-| 20 | The Rebirth Online | vr-online |
+| 20 | Why Is Everyone Obsessed with the Cartographer? | interrogative-hook |
 
 ## reincarnation (`isekai/reincarnation`)
 
 | # | Name | Pattern |
 |--:|---|---|
-| 1 | Oh Great, I Was Reincarnated as the Bureaucrat | regression-rebirth |
-| 2 | The Summoner Who Kept the Patch Notes | regression-rebirth |
-| 3 | Return of the Accidental Bureaucrat | regression-rebirth |
-| 4 | The Bureaucrat Who Got a Second Save File | regression-rebirth |
-| 5 | Return of the Accidental Summoner | regression-rebirth |
-| 6 | The Bureaucrat Who Kept the Patch Notes | regression-rebirth |
-| 7 | I Reincarnated as the Summoner | regression-rebirth |
-| 8 | Awakened as the Summoner? | interrogative-hook |
-| 9 | Becoming the Summoner | regression-rebirth |
-| 10 | The Second Life of the Bureaucrat | regression-rebirth |
-| 11 | Reborn as the Bureaucrat | regression-rebirth |
-| 12 | Turns Out I'm the Accidental Summoner? | interrogative-hook |
+| 1 | Oh Great, I Was Reincarnated as the Chef | regression-rebirth |
+| 2 | The Bureaucrat Who Kept the Patch Notes | regression-rebirth |
+| 3 | Return of the Forgotten Exorcist | regression-rebirth |
+| 4 | The Knight Who Got a Second Save File | regression-rebirth |
+| 5 | Return of the Accidental Bureaucrat | regression-rebirth |
+| 6 | The Mage Who Kept the Patch Notes | regression-rebirth |
+| 7 | I Reincarnated as the Cartographer | regression-rebirth |
+| 8 | Return of the Second Summoner | regression-rebirth |
+| 9 | Becoming the Slime | regression-rebirth |
+| 10 | The Second Life of the Farmer | regression-rebirth |
+| 11 | Return of the Accidental Summoner | regression-rebirth |
+| 12 | The Lord Who Kept the Patch Notes | regression-rebirth |
 | 13 | So I'm the Accidental Summoner? | interrogative-hook |
-| 14 | The Bureaucrat Who Would Not Stay Dead | regression-rebirth |
-| 15 | The Bureaucrat Who Lived Twice | regression-rebirth |
-| 16 | What Do You Mean I'm the Accidental Bureaucrat? | interrogative-hook |
-| 17 | So I'm the Bureaucrat? | interrogative-hook |
-| 18 | What Do You Mean I'm the Bureaucrat? | interrogative-hook |
+| 14 | The Lord Who Would Not Stay Dead | regression-rebirth |
+| 15 | Return of the Reluctant Slime | regression-rebirth |
+| 16 | Return of the Second Necromancer | regression-rebirth |
+| 17 | So I'm the Assassin? | interrogative-hook |
+| 18 | Becoming the Bureaucrat | regression-rebirth |
 | 19 | Why Is Everyone Obsessed with the Summoner? | interrogative-hook |
-| 20 | Transmigrated into the Bureaucrat | regression-rebirth |
+| 20 | Transmigrated into the Mage | regression-rebirth |
 
 ## into a game or story (`isekai/media-world`)
 
 | # | Name | Pattern |
 |--:|---|---|
-| 1 | I Am the Accidental Bureaucrat Against My Better Judgement | situation-complaint |
-| 2 | What Do You Mean I'm the Accidental Bureaucrat? | interrogative-hook |
+| 1 | I Am the Second Chef Against My Better Judgement | situation-complaint |
+| 2 | What Do You Mean I'm the Forgotten Healer? | interrogative-hook |
 | 3 | The Modern Age Online | vr-online |
-| 4 | My Cooldown Chose the Suburbs and It Will Not Stop Levelling | situation-complaint |
+| 4 | My Cooldown Chose the Frontier Ward and It Will Not Stop Levelling | situation-complaint |
 | 5 | I Reincarnated as a Summoner and It Will Not Stop Levelling | situation-complaint |
-| 6 | My Respawn Timer Chose Another World and No One Warned Me | situation-complaint |
-| 7 | Awakened as the Summoner? | interrogative-hook |
-| 8 | I Reincarnated as a Bureaucrat and I Have Notes | situation-complaint |
-| 9 | I Am the Accidental Summoner and I Am Extremely Tired | situation-complaint |
-| 10 | I Reincarnated as a Bureaucrat and I Want a Refund | situation-complaint |
-| 11 | I Reincarnated as a Summoner and I Have Notes | situation-complaint |
-| 12 | Why Is Everyone Obsessed with the Accidental Bureaucrat? | interrogative-hook |
-| 13 | I Am the Accidental Summoner and the Guild Is Furious | situation-complaint |
-| 14 | My Changelog Chose Another World Against My Better Judgement | situation-complaint |
-| 15 | Turns Out I'm the Accidental Bureaucrat? | interrogative-hook |
-| 16 | I Reincarnated as a Bureaucrat and I Am Extremely Tired | situation-complaint |
+| 6 | My Respawn Timer Chose the Suburbs and No One Warned Me | situation-complaint |
+| 7 | Awakened as the Cartographer? | interrogative-hook |
+| 8 | I Reincarnated as an Exorcist and I Have Notes | situation-complaint |
+| 9 | I Am the Accidental Slime and I Am Extremely Tired | situation-complaint |
+| 10 | I Reincarnated as a Chef and I Want a Refund | situation-complaint |
+| 11 | I Reincarnated as a Necromancer and I Have Notes | situation-complaint |
+| 12 | Why Is Everyone Obsessed with the Second Botanist? | interrogative-hook |
+| 13 | I Am the Forgotten Summoner and the Guild Is Furious | situation-complaint |
+| 14 | My Changelog Chose the Suburbs Against My Better Judgement | situation-complaint |
+| 15 | Turns Out I'm the Reluctant Accountant? | interrogative-hook |
+| 16 | I Reincarnated as a Hunter and I Am Extremely Tired | situation-complaint |
 | 17 | The Battlegrounds Online | vr-online |
-| 18 | I Am the Accidental Summoner and I Have Notes | situation-complaint |
+| 18 | I Am the Reluctant Bureaucrat and I Have Notes | situation-complaint |
 | 19 | The Sky Realms Online | vr-online |
-| 20 | Why Is Everyone Obsessed with the Bureaucrat? | interrogative-hook |
+| 20 | Why Is Everyone Obsessed with the Mage? | interrogative-hook |
 
 ## cosy & slice of life (`cosy`)
 
 | # | Name | Pattern |
 |--:|---|---|
-| 1 | Please Ignore the Farmer | warning-title |
+| 1 | Please Ignore the Botanist | warning-title |
 | 2 | My System Chose the Suburbs and No One Warned Me | situation-complaint |
-| 3 | I Reincarnated as a Bureaucrat and I Want a Refund | situation-complaint |
-| 4 | The Insufferable Botanist's Guide to Pension Planning | mundane-in-fantasy |
+| 3 | I Reincarnated as a Chef and I Want a Refund | situation-complaint |
+| 4 | The Forgotten Knight's Guide to Pension Planning | mundane-in-fantasy |
 | 5 | A Practical Guide to Bookkeeping | mundane-in-fantasy |
 | 6 | Do Not Feed the Crop Rotation | warning-title |
-| 7 | I Am the Insufferable Accountant and the Guild Is Furious | situation-complaint |
+| 7 | I Am the Insufferable Librarian and the Guild Is Furious | situation-complaint |
 | 8 | Please Ignore the Alchemist | warning-title |
 | 9 | Customer Service in the Frontier Ward | mundane-in-fantasy |
-| 10 | Please Ignore the Chef | warning-title |
+| 10 | Please Ignore the Mage | warning-title |
 | 11 | A Practical Guide to Pension Planning | mundane-in-fantasy |
 | 12 | My Changelog Chose the Suburbs and I Want a Refund | situation-complaint |
 | 13 | My Adventurer's Secret | possessive-relation |
-| 14 | The Semi-Retired Rooster's Guide to Compost | mundane-in-fantasy |
-| 15 | I Reincarnated as an Accountant and the Guild Is Furious | situation-complaint |
+| 14 | The Insufferable Farmer's Guide to Compost | mundane-in-fantasy |
+| 15 | I Reincarnated as a Rooster and the Guild Is Furious | situation-complaint |
 | 16 | A Practical Guide to a Decent Cup of Tea | mundane-in-fantasy |
-| 17 | So I'm the Botanist? | interrogative-hook |
+| 17 | So I'm the Assassin? | interrogative-hook |
 | 18 | Customer Service in the Wandering Inn | mundane-in-fantasy |
 | 19 | Why Is Everyone Obsessed with the Alchemist? | interrogative-hook |
-| 20 | I Am the Semi-Retired Librarian and I Am Extremely Tired | situation-complaint |
+| 20 | I Am the Insufferable Bureaucrat and I Am Extremely Tired | situation-complaint |
 
 ## villainess (`villainess`)
 
 | # | Name | Pattern |
 |--:|---|---|
-| 1 | I Am the Second Healer Against My Better Judgement | situation-complaint |
+| 1 | I Am the Second Slime Against My Better Judgement | situation-complaint |
 | 2 | The Alchemist Who Kept the Patch Notes | regression-rebirth |
-| 3 | Return of the Forgotten Healer | regression-rebirth |
+| 3 | Return of the Forgotten Bureaucrat | regression-rebirth |
 | 4 | My Cooldown Chose the Guild Annexe and It Will Not Stop Levelling | situation-complaint |
 | 5 | I Reincarnated as a Necromancer and It Will Not Stop Levelling | situation-complaint |
 | 6 | My Respawn Timer Chose the Respawn Point and No One Warned Me | situation-complaint |
-| 7 | I Reincarnated as the Summoner | regression-rebirth |
-| 8 | I Reincarnated as a Healer and I Have Notes | situation-complaint |
-| 9 | I Am the Accidental Summoner and I Am Extremely Tired | situation-complaint |
-| 10 | I Reincarnated as a Healer and I Want a Refund | situation-complaint |
+| 7 | I Reincarnated as the Mage | regression-rebirth |
+| 8 | I Reincarnated as a Bureaucrat and I Have Notes | situation-complaint |
+| 9 | I Am the Accidental Healer and I Am Extremely Tired | situation-complaint |
+| 10 | I Reincarnated as a Slime and I Want a Refund | situation-complaint |
 | 11 | I Reincarnated as a Summoner and I Have Notes | situation-complaint |
-| 12 | The Healer Who Kept the Patch Notes | regression-rebirth |
-| 13 | The Mage Who Lived Twice | regression-rebirth |
+| 12 | The Knight Who Kept the Patch Notes | regression-rebirth |
+| 13 | The Knight Who Lived Twice | regression-rebirth |
 | 14 | My Changelog Chose the Suburbs Against My Better Judgement | situation-complaint |
-| 15 | Return of the Insufferable Summoner | regression-rebirth |
-| 16 | I Reincarnated as a Knight and I Am Extremely Tired | situation-complaint |
+| 15 | Return of the Insufferable Healer | regression-rebirth |
+| 16 | I Reincarnated as an Exorcist and I Am Extremely Tired | situation-complaint |
 | 17 | Nyx in the Calamity | name-anchor |
 | 18 | I Am the Insufferable Alchemist and I Have Notes | situation-complaint |
 | 19 | Derek in the Apocalypse | name-anchor |
-| 20 | Transmigrated into the Mage | regression-rebirth |
+| 20 | Transmigrated into the Healer | regression-rebirth |
 
 ## Regression & Rebirth (`regression`)
 
 | # | Name | Pattern |
 |--:|---|---|
-| 1 | I Am the Artificial Knight Against My Better Judgement | situation-complaint |
-| 2 | Accidental Knight: Forged in Nightmare | colon-subtitle |
+| 1 | I Am the Artificial Assassin Against My Better Judgement | situation-complaint |
+| 2 | Accidental Assassin: Forged in Nightmare | colon-subtitle |
 | 3 | Respawn Point: Monsters & Legends | colon-subtitle |
-| 4 | The Assassin Who Ground Morale to Ten Thousand | numeric-grind |
+| 4 | The Rooster Who Ground Morale to Ten Thousand | numeric-grind |
 | 5 | Nine Levels of Luck | numeric-grind |
 | 6 | My Respawn Timer Chose the Respawn Point and No One Warned Me | situation-complaint |
-| 7 | I Reincarnated as the Lord | regression-rebirth |
-| 8 | I Reincarnated as a Hunter and I Have Notes | situation-complaint |
+| 7 | I Reincarnated as the Exorcist | regression-rebirth |
+| 8 | I Reincarnated as a Cartographer and I Have Notes | situation-complaint |
 | 9 | Ten Thousand Years of Health and Safety | numeric-grind |
-| 10 | I Reincarnated as a Knight and I Want a Refund | situation-complaint |
+| 10 | I Reincarnated as an Assassin and I Want a Refund | situation-complaint |
 | 11 | Ten Thousand Levels of Strength | numeric-grind |
-| 12 | The Knight Who Kept the Patch Notes | regression-rebirth |
-| 13 | Exorcist of Time | time-loop |
+| 12 | The Assassin Who Kept the Patch Notes | regression-rebirth |
+| 13 | Hunter of Time | time-loop |
 | 14 | My Changelog Chose the Suburbs Against My Better Judgement | situation-complaint |
-| 15 | Return of the Arcane Lord | regression-rebirth |
-| 16 | I Reincarnated as an Assassin and I Am Extremely Tired | situation-complaint |
-| 17 | RE: Lord | re-prefix |
-| 18 | I Am the Off-Brand Summoner and I Have Notes | situation-complaint |
-| 19 | RE: Understory | re-prefix |
+| 15 | Return of the Arcane Exorcist | regression-rebirth |
+| 16 | I Reincarnated as a Chef and I Am Extremely Tired | situation-complaint |
+| 17 | RE: Respawn Point | re-prefix |
+| 18 | I Am the Off-Brand Mage and I Have Notes | situation-complaint |
+| 19 | RE: Hunter | re-prefix |
 | 20 | Doom: Unbound System | colon-subtitle |
 
 ## Pattern shares (500 draws per genre)

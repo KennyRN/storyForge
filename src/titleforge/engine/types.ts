@@ -47,6 +47,9 @@ export interface LabelledOption {
 export interface GenreOption extends LabelledOption {
 	/** Parent genre id. Absent = a top-level genre. */
 	parent?: string;
+	/** True = draws under this genre (and anything beneath it) skip the general list, e.g. a
+	 * romance register that generic fantasy roles would break. */
+	isolated?: boolean;
 }
 
 /** One title shape: a family of interchangeable templates plus the metadata that explains it. */
@@ -80,6 +83,16 @@ export interface GeneratorSpec {
 	families?: LabelledOption[];
 	patterns: Pattern[];
 	lexicon: RawLexicon;
+	/**
+	 * How a genre-scoped draw splits between the genre's own words, its ancestors' lexicons and
+	 * the general list (see `engine/generate.ts` `blendSlot`). Any field left out takes
+	 * `DEFAULT_VOCABULARY_BLEND`'s value; empty tiers are renormalised away. `fullTier` is the word
+	 * count a tier needs before it earns its full share (thinner tiers get a proportional cut).
+	 */
+	vocabularyBlend?: { own?: number; inherited?: number; generic?: number; fullTier?: number };
+	/** Slots that keep the older exclusive narrowing: once any entry carries the genre's tag, only
+	 * tagged entries are drawn. For slots where blending in other genres' words reads wrong. */
+	exclusiveSlots?: string[];
 	/** Tags barred while a genre in some subtree is selected — see `GenreExclusion`. */
 	genreExclusions?: GenreExclusion[];
 	/**

@@ -118,7 +118,8 @@ export const westernSerialLexicon: GeneratorSpec = {
 		},
 		{
 			"id": "romance",
-			"label": "romance (wattpad register)"
+			"label": "romance (wattpad register)",
+			"isolated": true
 		}
 	],
 	"platforms": [
