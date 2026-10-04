@@ -323,7 +323,7 @@ export class ContinuousReadView extends ItemView {
 	/** A file appeared, vanished or moved in this book's folder: the spine may have changed. */
 	private onBookFileSetChanged(file: TAbstractFile): void {
 		if (!this.surface || !this.bookFolderName) return;
-		if (bookFolderNameFromChapterPath(file.path) !== this.bookFolderName && !this.surface.files().includes(file as TFile)) return;
+		if (bookFolderNameFromChapterPath(file.path) !== this.bookFolderName && !(file instanceof TFile && this.surface.files().includes(file))) return;
 		if (this.spineChanged()) void this.rebuildSpine();
 	}
 
@@ -352,7 +352,7 @@ export class ContinuousReadView extends ItemView {
 		}
 		const surface = this.surface;
 		const titles = this.numberedTitles(this.bookFolderName, ordered);
-		const raws = await Promise.all(ordered.map((file) => (surface.has(file) ? null : this.app.vault.read(file))));
+		const raws = await Promise.all(ordered.map((file) => (surface.has(file) ? Promise.resolve(null) : this.app.vault.read(file))));
 		if (token !== this.renderToken || this.surface !== surface) return;
 		this.spine = ordered.map((file) => file.name);
 		surface.rebuild(ordered.map((file, i) => ({ file, raw: raws[i], title: titles.get(file) ?? file.basename })));

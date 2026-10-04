@@ -977,7 +977,7 @@ export default class StoryForgePlugin extends Plugin {
 
 		this.addCommand({
 			id: "open-view",
-			name: "Open storyforge",
+			name: "Open story library",
 			callback: () => void this.activateView(),
 		});
 

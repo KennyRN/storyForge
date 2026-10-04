@@ -45,7 +45,7 @@ export function refreshTouched<T>(update: ViewUpdate, cache: Map<string, T>, com
 /** Top of the text line at `pos`, below any block widget (a chapter header) joined into its block. */
 function textTop(view: EditorView, pos: number): number {
 	const block = view.lineBlockAt(pos);
-	if (Array.isArray(block.type)) {
+	if (typeof block.type !== "number") {
 		for (const part of block.type) if (part.type === BlockType.Text && pos >= part.from && pos <= part.to) return part.top;
 	}
 	return block.top;

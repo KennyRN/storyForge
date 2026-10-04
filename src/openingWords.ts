@@ -94,7 +94,7 @@ class OpeningWordsPlugin {
 
 	destroy(): void {
 		this.scroller.removeEventListener("scroll", this.onScroll);
-		if (this.rafHandle !== null) cancelAnimationFrame(this.rafHandle);
+		if (this.rafHandle !== null) this.scroller.win.cancelAnimationFrame(this.rafHandle);
 		this.clearRegion();
 		this.scroller.style.removeProperty(OFFSET_PROP);
 	}
@@ -135,7 +135,7 @@ class OpeningWordsPlugin {
 
 	private scheduleOffsetUpdate(): void {
 		if (this.rafHandle !== null) return;
-		this.rafHandle = requestAnimationFrame(() => {
+		this.rafHandle = this.scroller.win.requestAnimationFrame(() => {
 			this.rafHandle = null;
 			this.updateOffset();
 		});
