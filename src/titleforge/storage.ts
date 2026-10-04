@@ -4,6 +4,8 @@ import { enqueueBackstageWrite, writeBackstageFile } from "../writeGuard.js";
 import { parseEntries, serialiseEntries } from "./engine/history.js";
 import type { GeneratorSpec, HistoryEntry } from "./engine/types.js";
 import { mergeUserLexicon } from "./engine/userLexicon.js";
+import { extractNamesFromMarkdown } from "./engine/markov.js";
+import { MIN_NAME_SOURCES, withNameSources } from "./engine/names.js";
 import { ALL_TITLEFORGE_LEXICONS } from "./lexicons/index.js";
 import { USER_LEXICON_TEMPLATE } from "./lexicons/userLexiconTemplate.js";
 import { DEFAULT_TITLEFORGE_SETTINGS, type TitleForgeSettings } from "./settings.js";
@@ -26,6 +28,9 @@ import { DEFAULT_TITLEFORGE_SETTINGS, type TitleForgeSettings } from "./settings
  * plugin's own vault root and replace the writeGuard calls with a plain
  * `vault.create`/`modify`.
  */
+/** nameForge's default packs folder (`nameForge/src/paths.ts` `DEFAULT_NAMES_FOLDER`). */
+export const NAMEFORGE_PACKS_FOLDER = "_backstage/nameforge";
+
 function root(): string {
 	return TITLEFORGE_BACKSTAGE_ROOT;
 }
@@ -101,7 +106,65 @@ export class TitleForgeStorage {
 	 * `lexicons/*.json`, ever). A malformed additions file degrades to the pure
 	 * bundle with a `Notice` (invariant I3).
 	 */
-	async loadAllGenerators(): Promise<GeneratorSpec[]> {
+	async loadAllGenerators(namePacks: Record<string, string> = {}): Promise<GeneratorSpec[]> {
+		const specs = await this.loadWithUserWords();
+		return Promise.all(specs.map((spec) => this.applyNamePacks(spec, namePacks)));
+	}
+
+	/**
+	 * Swap in the writer's own nameForge packs for `spec`'s name registers (`settings.namePacks`).
+	 * A pack that's missing, unreadable, a nameForge *mix* pack (its names live in other files) or
+	 * too small keeps the built-in sources, with a `Notice` saying why.
+	 */
+	private async applyNamePacks(spec: GeneratorSpec, namePacks: Record<string, string>): Promise<GeneratorSpec> {
+		if (!spec.nameGenerators) return spec;
+		const overrides: Record<string, string[]> = {};
+		for (const registerId of Object.keys(spec.nameGenerators)) {
+			const path = namePacks[`${spec.id}/${registerId}`];
+			if (!path) continue;
+			const label = spec.nameGenerators[registerId].label;
+			const file = this.app.vault.getAbstractFileByPath(path);
+			if (!(file instanceof TFile)) {
+				new Notice(`titleForge: name pack "${path}" for ${label} names wasn't found — using built-in names.`);
+				continue;
+			}
+			try {
+				if (this.app.metadataCache.getFileCache(file)?.frontmatter?.type === "mix") {
+					new Notice(`titleForge: "${file.basename}" is a nameForge mix pack, which titleForge can't read — pick one of the packs it mixes.`);
+					continue;
+				}
+				const names = extractNamesFromMarkdown(await this.app.vault.cachedRead(file));
+				if (names.length < MIN_NAME_SOURCES) {
+					new Notice(
+						`titleForge: "${file.basename}" has ${names.length} names; ${label} names need at least ` +
+							`${MIN_NAME_SOURCES} — using built-in names.`,
+					);
+					continue;
+				}
+				overrides[registerId] = names;
+			} catch (err) {
+				new Notice(`titleForge: couldn't read name pack "${path}" (${(err as Error).message}) — using built-in names.`);
+			}
+		}
+		return withNameSources(spec, overrides);
+	}
+
+	/** nameForge packs the settings modal can offer: markdown files under nameForge's default
+	 * folder whose frontmatter `type` is one titleForge can read (not `mix`). */
+	listNamePacks(): TFile[] {
+		const prefix = `${NAMEFORGE_PACKS_FOLDER}/`;
+		return this.app.vault
+			.getMarkdownFiles()
+			.filter((f) => f.path.startsWith(prefix))
+			.filter((f) => {
+				const type = this.app.metadataCache.getFileCache(f)?.frontmatter?.type;
+				return typeof type === "string" && type !== "mix";
+			})
+			.sort((a, b) => a.basename.localeCompare(b.basename));
+	}
+
+	/** The compiled-in bundle with the user's own words merged into `title-composer`. */
+	private async loadWithUserWords(): Promise<GeneratorSpec[]> {
 		const fileText = await this.readUserLexicon();
 		if (fileText === null) return [...ALL_TITLEFORGE_LEXICONS];
 
@@ -132,15 +195,17 @@ export class TitleForgeStorage {
 
 	async loadSettings(): Promise<TitleForgeSettings> {
 		const path = settingsPath();
+		// `namePacks` is copied, never shared: a shallow spread would hand every settings object the
+		// default's own map, and choosing a pack would then mutate the defaults.
 		if (!(await this.app.vault.adapter.exists(path))) {
-			return { ...DEFAULT_TITLEFORGE_SETTINGS };
+			return { ...DEFAULT_TITLEFORGE_SETTINGS, namePacks: {} };
 		}
 		try {
 			const text = await this.app.vault.adapter.read(path);
 			const parsed = JSON.parse(text) as Partial<TitleForgeSettings>;
-			return { ...DEFAULT_TITLEFORGE_SETTINGS, ...parsed };
+			return { ...DEFAULT_TITLEFORGE_SETTINGS, ...parsed, namePacks: { ...(parsed.namePacks ?? {}) } };
 		} catch {
-			return { ...DEFAULT_TITLEFORGE_SETTINGS };
+			return { ...DEFAULT_TITLEFORGE_SETTINGS, namePacks: {} };
 		}
 	}
 

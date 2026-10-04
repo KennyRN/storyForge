@@ -492,6 +492,60 @@ export const indonesianWebLexicon: GeneratorSpec = {
 				"tags": [
 					"romansa"
 				]
+			},
+			{
+				"gloss": "Demon King",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Villainess",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Saint",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Dragon Knight",
+				"tags": [
+					"fantasi"
+				]
+			},
+			{
+				"gloss": "Sorceress",
+				"tags": [
+					"fantasi"
+				]
+			},
+			{
+				"gloss": "Guardian",
+				"tags": [
+					"fantasi"
+				]
+			},
+			{
+				"gloss": "Village Shaman",
+				"tags": [
+					"horor"
+				]
+			},
+			{
+				"gloss": "Night Watchman",
+				"tags": [
+					"horor"
+				]
+			},
+			{
+				"gloss": "Ghost Bride",
+				"tags": [
+					"horor"
+				]
 			}
 		],
 		"possessed": [
@@ -548,6 +602,30 @@ export const indonesianWebLexicon: GeneratorSpec = {
 				"gloss": "Name",
 				"tags": [
 					"romansa"
+				]
+			},
+			{
+				"gloss": "Status Window",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Skill",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Party",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "Guild",
+				"tags": [
+					"isekai"
 				]
 			}
 		],
@@ -701,6 +779,30 @@ export const indonesianWebLexicon: GeneratorSpec = {
 				"tags": [
 					"isekai"
 				]
+			},
+			{
+				"gloss": "a Commoner",
+				"tags": [
+					"fantasi"
+				]
+			},
+			{
+				"gloss": "an Exile",
+				"tags": [
+					"fantasi"
+				]
+			},
+			{
+				"gloss": "a Servant",
+				"tags": [
+					"fantasi"
+				]
+			},
+			{
+				"gloss": "a Nobody",
+				"tags": [
+					"isekai"
+				]
 			}
 		],
 		"endState": [
@@ -719,6 +821,30 @@ export const indonesianWebLexicon: GeneratorSpec = {
 			},
 			{
 				"gloss": "Max Level",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "the Crown",
+				"tags": [
+					"fantasi"
+				]
+			},
+			{
+				"gloss": "Legend",
+				"tags": [
+					"fantasi"
+				]
+			},
+			{
+				"gloss": "the Strongest",
+				"tags": [
+					"isekai"
+				]
+			},
+			{
+				"gloss": "the Demon King's Seat",
 				"tags": [
 					"isekai"
 				]

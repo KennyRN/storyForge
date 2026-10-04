@@ -111,36 +111,94 @@ was removed because volume titles are novel titles, not series titles.
 | `{slot#2}` | a specific, stable draw — repeat the token to echo the same word |
 | `{slot^}` | the entry's combining form (`Lexeme.stem`) |
 | `{slot:tag}` | restrict the draw to entries carrying `tag` |
-| `{slot\|lower}` | filters: `lower`, `upper`, `title`, `a`, `the` |
+| `{slot\|lower}` | filters: `lower`, `upper`, `title`, `a`, `the`, `plural`, `bare` |
 | `{{` `}}` | literal braces |
+
+`plural` pluralises the entry's last word ("Century" → "Centuries", "wolf" →
+"wolves") and leaves an already-plural entry alone; never write a literal `{slot}s`,
+which gives "Centurys" (a structural test enforces this). `bare` turns a third-person
+verb into its base form for a plural subject ("Where the {animal|plural}
+{strikeVerb|bare}" → "Where the Wolves Rise").
 
 A slot used more than once in one template must be indexed —
 `validateSpec`/`validateTemplate` enforce it. Vocabulary is scoped by genre tag
 **after** the shape is chosen, not before, so under "any genre" a shape's own
 `genres` list supplies the scope.
 
-### Genres: an optional two-level parent/subgenre model
+### Invented character names
+
+No title uses a real or scraped character name. A lexicon entry written `@id`
+(e.g. `"@fantasy #epic"`) renders a name **invented** by name register `id`
+(`GeneratorSpec.nameGenerators`, built-ins in `lexicons/nameRegisters.ts`). Each
+register is a list of style sources, given names of a period or culture. A draw builds
+nameForge's Markov model over that list (`engine/markov.ts`, a verbatim port; glue in
+`engine/names.ts`) and invents a new name in the same style, seeded from the draw, so
+replays stay exact.
+
+- Output within one edit of any source is rejected, so sources are never reproduced.
+- Output is kept within the sources' own 10th–90th percentile length band, at least 4
+  letters and at least three lengths wide. Outside that band, Markov output is mostly
+  stubs ("Con") or portmanteaus ("Augustusiah").
+- `{name#1} & {name#2}` gets two different names; a repeated `{name#1}` echoes one.
+- title-composer has seven registers (fantasy, historical, ancient, frontier, modern,
+  sf, gothic). Its `name` slot is in `exclusiveSlots`, so a register never leaks into
+  another genre through the general list. webnovel has one, `hero`.
+- In titleForge settings, under **Character names**, the writer can point any register
+  at one of their own nameForge packs (files under `_backstage/nameforge/`), so names
+  follow their own world's style. A pack that's missing, has fewer than 10 names, or is
+  a nameForge *mix* pack falls back to the built-in sources with a notice. Edits to a
+  chosen pack apply without a reload.
+
+### Genres: an optional parent/subgenre tree (up to three levels)
 
 A `GenreOption` (`engine/types.ts`) may carry a `parent`, pointing at another
 genre's id — e.g. `title-composer` ships `{ id: "western", label: "Western",
-parent: "hist" }`. Depth is capped at **two**: a genre with a `parent` may not
-itself be a parent (`validateSpec` enforces this, along with no cycles/orphan
-parents). A genre with no `parent` and nothing pointing at it as one behaves
+parent: "hist" }`. Depth is capped at **three** (`MAX_GENRE_DEPTH`;
+`validateSpec` enforces it, along with no cycles/orphan parents). Only
+`western-serial` uses the third level (`progression > dungeon > dungeon-core`);
+title-composer is two-level. A genre with no `parent` and nothing pointing at it as one behaves
 exactly as a flat genre always has — this is additive, not a redesign.
 
 `genreScope(spec, id)` (`engine/generate.ts`) is the one function that turns a
 selected id into "everything it reaches": selecting a **subgenre** reaches
 itself plus its ancestors (a `#hist`-only pattern is eligible under *Western*);
 selecting a **parent** reaches itself plus every descendant (a
-`#western`-only pattern is eligible under *Historical*). Pattern eligibility
-(`eligiblePatterns`) is a straight membership test against that scope.
-Lexicon vocabulary is more careful, because "union everything" would make a
-richly-authored subgenre indistinguishable from a starved one: a subgenre
-selection uses **most-specific-tag-present-wins** (`narrowLeaf` — the first
-tag in the chain that matches anything in a given slot wins outright, so
-adding one `#western` word makes that one slot Western-only while every other
-slot keeps falling back to `#hist`), while a parent selection uses a plain
-**union** of self plus every descendant (`narrowParent`).
+`#western`-only pattern is eligible under *Historical*). A middle-level parent
+(`dungeon`) reaches its descendants and then its ancestors, so it still inherits
+its own parent's patterns. Pattern eligibility (`eligiblePatterns`) is a
+straight membership test against that scope.
+
+#### Vocabulary is additive
+
+A genre's own words are **added** to a shared pool rather than replacing it
+(`blendSlot` in `engine/generate.ts`). Each slot a draw uses combines three tiers,
+each entry in its highest tier only:
+
+| Tier | What's in it |
+|---|---|
+| own | entries tagged with the genre (for a parent selection: with itself or any descendant) |
+| inherited | each ancestor's **lexicon**, nearest first: entries tagged with the parent, **or with 2+ of the parent's subgenres** |
+| general | entries whose tags span **2+ top-level genres** (a subgenre tag counts towards its top genre), or that carry no genre tag |
+
+So `scaffold [hist, horror, epic, heroic-fantasy, sword-sorcery, urban-fantasy]`
+is in fantasy's lexicon (four fantasy subgenres) and on the general list
+(hist + horror + fantasy). Both rules are derived at draw time (`inParentLexicon`,
+`isGeneralEntry`), so a new word follows them with no extra tagging.
+
+The tiers split each draw by `vocabularyBlend` (default 55% own, 30% inherited,
+15% general; nearer ancestors weigh more). Empty tiers are renormalised away.
+A tier with fewer than `fullTier` (8) words gets a proportional cut, so a genre
+with one own word doesn't hand that word half of every draw. A slot where a genre
+has nothing of its own or inherited stays genre-neutral, and the whole slot is
+drawn, as before. Opt-outs: `GenreOption.isolated` skips the general list (webnovel
+`romance`), and `GeneratorSpec.exclusiveSlots` keeps the older exclusive narrowing
+(`narrowLeaf`/`narrowParent`) for named slots.
+
+Consequence for tagging: **multi-genre tags make a word general**. A word that must
+stay in one register (galaxy, gun) is tagged within one top-level genre only.
+`npm run titleforge:pools` (`tools/vocab-pools.ts`) writes `tools/VOCAB-POOLS.md`,
+with before/after pool sizes, every promotion each rule makes, the untagged
+entries to audit, and sample titles per genre.
 
 This is what makes a new subgenre cheap: declare `{ id: "regency", parent:
 "hist" }` with zero lexemes and zero patterns of its own, and it already
@@ -152,14 +210,30 @@ flagged unreachable as long as its parent has patterns.
 
 Run `npm run titleforge:coverage` (`tools/genre-coverage.ts`) to see, per
 generator, every genre's eligible-pattern count, its own-tagged lexeme count,
-how much more it can reach by inheritance, and a `THIN`/`inherits only` flag —
+how much more it can reach by inheritance, the smallest pool a draw sees
+(`min pool`, with its slot), and `THIN`/`inherits only`/`THIN POOL` flags —
 the "easy to see what needs expanding" half of this feature. It exits
 non-zero if any declared genre is genuinely unreachable, so it can gate CI.
 
 The view (`TitleForgePanel.hierarchicalGenreOptions`) renders this as one
 flat, indented `<select>` — parents in declaration order, each immediately
-followed by its own subgenres — rather than a dependent pair of pickers, to
-keep the picker's shape unchanged.
+followed by its own subgenres (indented once more per level) — rather than a
+dependent pair of pickers, to keep the picker's shape unchanged.
+
+Two optional spec fields refine a draw further:
+
+- `genreExclusions: [{ when, exclude }]` — while `when` or anything under it is
+  selected, patterns and lexemes tagged with an `exclude` tag are never drawn,
+  unless they also carry a non-excluded tag the selection reaches. Applied
+  before the forgiving slot fallback. webnovel uses it to keep cultivation out
+  of isekai.
+- `reservedTitles` — real titles a draw must never reproduce (matched
+  case-insensitively). A colliding render resamples within the same pattern; after
+  `RESERVED_RETRIES` (20) resamples the draw falls back to the next pattern.
+  webnovel's list is generated by `corpus-webnovel/v1.2.0/build-reserved.mjs`;
+  title-composer's and japanese-ln's by `tools/build-reserved.ts`, from their frozen
+  corpora (series, novel, and `corpus-jpln/`), their pattern exemplars, and a short
+  curated list of translated classics for title-composer's world-fiction shapes.
 
 ## Storage
 
