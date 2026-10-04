@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { normaliseLexicon } from "../engine/lexicon.js";
 import { createRng } from "../engine/rng.js";
-import { humanizeTemplate, renderTemplate, slotsIn, validateTemplate } from "../engine/template.js";
+import { bareVerb, humanizeTemplate, pluralise, renderTemplate, slotsIn, validateTemplate } from "../engine/template.js";
 
 describe("titleforge slotsIn", () => {
 	it("lists each slot occurrence, index stripped, not deduped", () => {
@@ -120,5 +120,29 @@ describe("titleforge renderTemplate", () => {
 		const tagged = normaliseLexicon({ noun: ["ash #epic", "ember #horror"] });
 		const out = renderTemplate(createRng(1), "{noun:epic}", tagged);
 		expect(out).toBe("ash");
+	});
+
+	describe("plural and bare filters", () => {
+		it("pluralises the last word, leaving already-plural entries alone", () => {
+			expect(pluralise("Century")).toBe("Centuries");
+			expect(pluralise("wolf")).toBe("wolves");
+			expect(pluralise("Sea Serpent")).toBe("Sea Serpents");
+			expect(pluralise("Witness")).toBe("Witnesses");
+			expect(pluralise("birds")).toBe("birds");
+			expect(pluralise("children")).toBe("children");
+		});
+
+		it("turns a third-person verb into its base form for a plural subject", () => {
+			expect(bareVerb("rises")).toBe("rise");
+			expect(bareVerb("watches")).toBe("watch");
+			expect(bareVerb("buries")).toBe("bury");
+			expect(bareVerb("falls apart")).toBe("fall apart");
+		});
+
+		it("are usable from a template", () => {
+			const lexemes = { era: [{ gloss: "Century" }], animal: [{ gloss: "wolf" }], strikeVerb: [{ gloss: "rises" }] };
+			expect(renderTemplate(createRng(1), "Nine {era|plural}", lexemes)).toBe("Nine Centuries");
+			expect(renderTemplate(createRng(1), "Where the {animal|plural} {strikeVerb|bare}", lexemes)).toBe("Where the wolves rise");
+		});
 	});
 });
