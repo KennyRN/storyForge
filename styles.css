@@ -4849,7 +4849,7 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 
 /* Notebook page sits 8px below the tab row; tabs keep 5px padding, so page-to-icon is ~13px
  * — same as the page's right edge to the pane (10px view padding + 4px page margin). */
-.sf-story-context-view:has(.sf-notebook-page) .sf-story-context-tabs {
+.sf-story-context-view--notebook-page .sf-story-context-tabs {
 	margin-bottom: 0;
 }
 
