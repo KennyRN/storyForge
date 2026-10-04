@@ -243,11 +243,27 @@ describe("validateSpec — genre hierarchy checks", () => {
 		);
 	});
 
-	it("flags a depth-3 grandchild (a subgenre that is itself a parent)", () => {
+	it("accepts a depth-3 grandchild, and a middle parent inherits its own ancestors", () => {
 		const spec = fixture();
 		spec.genres.push({ id: "grandchild", label: "Grandchild", parent: "western" });
+		expect(validateSpec(spec)).toEqual([]);
+		expect(genreScope(spec, "western")).toEqual(["western", "grandchild", "hist"]);
+		expect(genreScope(spec, "grandchild")).toEqual(["grandchild", "western", "hist"]);
+		expect(resolveGenreNarrowing(spec, "western")).toEqual({
+			kind: "parent",
+			chain: ["western", "grandchild"],
+			inherit: ["hist"],
+		});
+	});
+
+	it("flags a depth-4 great-grandchild", () => {
+		const spec = fixture();
+		spec.genres.push(
+			{ id: "grandchild", label: "Grandchild", parent: "western" },
+			{ id: "great", label: "Great-grandchild", parent: "grandchild" },
+		);
 		expect(validateSpec(spec)).toEqual(
-			expect.arrayContaining([expect.stringContaining('"western" is both a subgenre and a parent')]),
+			expect.arrayContaining([expect.stringContaining('"great" is nested 4 deep (max depth is 3)')]),
 		);
 	});
 

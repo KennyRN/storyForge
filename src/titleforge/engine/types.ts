@@ -39,10 +39,10 @@ export interface LabelledOption {
 /**
  * A genre option; a subgenre points at its parent genre's id via `parent`.
  *
- * Two-level only (a genre with a `parent` may not itself be a parent — enforced by
- * `validateSpec`), so this stays a flat picker with indentation rather than a dependent
- * parent->child UI. Absent `parent` = a top-level (or ordinary, flat) genre; a spec with no
- * `parent` links anywhere behaves identically to the old flat `LabelledOption[]` shape.
+ * At most three levels deep (`MAX_GENRE_DEPTH`, enforced by `validateSpec`) — e.g. webnovel's
+ * progression > dungeon > dungeon-core — so this stays a flat picker with indentation rather than
+ * a dependent parent->child UI. Absent `parent` = a top-level (or ordinary, flat) genre; a spec
+ * with no `parent` links anywhere behaves identically to the old flat `LabelledOption[]` shape.
  */
 export interface GenreOption extends LabelledOption {
 	/** Parent genre id. Absent = a top-level genre. */
@@ -80,6 +80,26 @@ export interface GeneratorSpec {
 	families?: LabelledOption[];
 	patterns: Pattern[];
 	lexicon: RawLexicon;
+	/** Tags barred while a genre in some subtree is selected — see `GenreExclusion`. */
+	genreExclusions?: GenreExclusion[];
+	/**
+	 * Real titles (matched case-insensitively) a draw must never reproduce. Slot fillers that come
+	 * straight from real titles can recombine into one exactly ("Somnia" + "Online"); a matching
+	 * draw is rejected and resampled, and a pattern that keeps colliding is dropped for that draw
+	 * (`RESERVED_RETRIES` in `generate.ts`).
+	 */
+	reservedTitles?: readonly string[];
+}
+
+/**
+ * While the selected genre is `when` or anything under it, patterns and lexemes tagged with any
+ * of `exclude` are never drawn — unless they also carry a tag, not itself excluded, that the
+ * selection reaches (`genreScope`). Applied before the forgiving slot narrowing, so a slot with
+ * nothing tagged for the selection can't fall back to the excluded entries either.
+ */
+export interface GenreExclusion {
+	when: string;
+	exclude: string[];
 }
 
 /** A word-count constraint: an exact count, or an inclusive min/max range. */
