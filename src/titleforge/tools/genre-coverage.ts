@@ -55,10 +55,13 @@ function reportGenerator(spec: GeneratorSpec): { rows: Row[]; unreachable: strin
 		if (g.parent) (byParent.get(g.parent) ?? byParent.set(g.parent, []).get(g.parent)!).push(g);
 	}
 	const ordered: GenreOption[] = [];
-	for (const g of spec.genres) {
-		if (g.parent) continue;
+	const visit = (g: GenreOption): void => {
+		if (ordered.includes(g)) return; // cycle guard
 		ordered.push(g);
-		ordered.push(...(byParent.get(g.id) ?? []));
+		for (const child of byParent.get(g.id) ?? []) visit(child); // recursive: up to three levels
+	};
+	for (const g of spec.genres) {
+		if (!g.parent) visit(g);
 	}
 
 	for (const genre of ordered) {

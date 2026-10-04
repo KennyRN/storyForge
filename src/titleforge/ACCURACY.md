@@ -321,3 +321,73 @@ of the already-integrated 9-shape/41-subgenre baseline, not a redo.
   entries in the handoff's table — per the doctrine above, that would inflate
   the pattern for every sibling genre it already covers. The tilt is
   expressed entirely through which patterns list which genres.
+
+## `western-serial` — webnovel v1.2.0 integration (genre tree, 9 patterns, collision guard)
+
+Applied from the v1.2.0 integration brief and `corpus-webnovel/v1.2.0/lexicon.v1.2.0.json`.
+Everything below is a call the brief left open, or a place where two of its rules collided.
+
+**Engine (behaviour-preserving for every other lexicon):**
+- *Depth 3.* The brief's `progression > dungeon > dungeon-core` is three levels deep; the engine
+  capped at two. `MAX_GENRE_DEPTH` is now 3, and a middle-level parent reaches its descendants
+  *and* its ancestors (`genreScope`), so `dungeon` still inherits `progression`'s own patterns
+  (rule 1). For a top-level parent the ancestor tail is empty, so title-composer is unchanged.
+  The web-fiction picker indents recursively.
+- *Cultivation-in-isekai* is a generic `genreExclusions` spec field, applied **before** the
+  forgiving slot fallback. Otherwise a slot with nothing tagged `#isekai` would fall back to every
+  entry, `#cultivation` included.
+- *Collision guard* is a generic `reservedTitles` field. A colliding render resamples **within the
+  same pattern** (the first cut re-picked the pattern, which bled vr-online's share into the others
+  and failed check 3). After 20 resamples the draw drops that pattern and moves to the next.
+
+**Rule conflicts:**
+- `system-calamity`'s shipped `{systemWord} {calamity}: Book One` was dropped, even though the brief
+  says to keep existing templates. Check 3 forbids "Book N", and STAGE4 ruling 2 strips
+  publication-status tails.
+- The shipped interro entry `Awakened as the` was changed to `Awakened as`. The template supplies
+  its own `the`, so it rendered "Awakened as the the Rooster?" (a v1.1.0 bug, made visible because
+  isekai now leans on this pattern).
+
+**Tagging judgement calls** (role+/rank+/calamity+ arrive with no `genres` field):
+- Every new role/rank gets `#progression`, since all source titles are progression-tree. A *leaf*
+  tag is added only where the leaf ends up with at least 5 entries. `narrowLeaf` makes a
+  leaf-tagged slot exclusive, so a 2–3 word pool is worse than inheriting `#progression`. For that
+  reason system-apocalypse, tower-climbing and magic-academy get no role tags, though *Tower
+  Farmer* or *Apocalypse Slayer* would suggest them.
+- `#crafting-profession` roles: Farmer, Chef, Botanist, Engineer, Wandsmith, Runesmith, plus the
+  shipped Alchemist.
+- `#regression` roles: Mage, Healer, Knight, Lord, Exorcist, Hunter, Assassin, plus the shipped
+  Summoner and Necromancer.
+- `#villainess` roles: Mage, Healer, Knight, plus the shipped Summoner, Necromancer and Alchemist.
+  `#villainess` ranks: Forgotten, Second, plus the shipped Accidental, Reluctant and Insufferable.
+  **None of this is evidence-led.** The handoff has no villainess role/rank vocabulary, and without
+  tags those slots fell back to every entry ("Return of the Mythic Billionaire"). Replace these
+  tags with harvested vocabulary.
+- calamity+ (Doom, Cataclysm, Ruin, Armageddon, Disaster, Calamity) → `#litrpg
+  #system-apocalypse`. The shipped RR "System Invasion" words (Apocalypse, Integration, Culling,
+  Reset, Convergence, Rollout, Migration) also gain `#system-apocalypse`, so the new leaf is 13
+  words wide rather than 6.
+- monster+ (`dungeon-core` + `dungeon-crawler`) → `#dungeon`, their parent. The new entries pool
+  with the 19 shipped `#dungeon` ones; tagging them per child would have displaced those under
+  `narrowLeaf`.
+- ranks are **not** tagged `#dungeon`. Only 2 would qualify, and they would replace the whole
+  inherited rank pool under dungeon-core/crawler.
+
+**Lexicon renderings:**
+- ascentObject agent nouns keep their source article, giving `the Devourer`, `the Archon`, `the
+  Runeforger`, `the Primalist` and `the Skillmaster` ("Rise of the Devourer", never "Rise of
+  Devourer"). The mass/plural nouns stay bare.
+- mundane+ `Deal` ships as `the Deal`, matching the exemplar *Dao of the Deal*.
+- De-duplicated against shipped entries: monster Cat, Boneless, Lonely, Misplaced, Rogue; role
+  Summoner, Necromancer, Alchemist; rank Accidental. Tags were merged where noted above.
+
+**Open items for review (visible in `corpus-webnovel/v1.2.0/SAMPLES-v1.2.0.md`):**
+- `vr-online`: all 21 onlineWord values are the heads of real "X Online" titles, so
+  `{onlineWord} Online` can *only* reproduce a corpus title. The guard always rejects it, which
+  leaves just `The {onlineWord} Online` ("The Ascend Online"). The slot needs fillers that aren't
+  real titles, or a different second template.
+- isekai's role pool is just Summoner and Bureaucrat, the only `#isekai` roles (unchanged from
+  v1.1.0), so isekai samples are repetitive. The handoff supplies no isekai role vocabulary.
+- dungeon-core and dungeon-crawler have no vocabulary or patterns of their own (the monster+ entries
+  cover both), so they produce identical output.
+- `{role} of the {calamity}` with *Doom* reads "Mage of the Doom".

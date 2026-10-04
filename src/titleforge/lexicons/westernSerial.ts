@@ -1,38 +1,120 @@
 import type { GeneratorSpec } from "../engine/types.js";
+import { westernSerialReservedTitles } from "./westernSerialReserved.js";
 
+/**
+ * webnovel (western-serial) — Western-original web-fiction series names.
+ *
+ * Patterns, genre tree and lexicon follow webnovel corpus v1.2.0
+ * (`corpus-webnovel/v1.2.0/`, SHA-256 25fef8e2…80bc7aadbd6): 1,535 eligible series out of 1,655.
+ * `romance` keeps its v1.1.0 patterns (thin: not re-derived). Slot provenance lives in
+ * `corpus-webnovel/v1.2.0/lexicon.v1.2.0.provenance.json`, not here; judgement-call tags are
+ * logged in `ACCURACY.md`.
+ *
+ * Not in the genre picker — reported thin — no evidence in webnovel v1.2.0: rational-magic,
+ * isekai/transmigration, isekai/transportation, isekai/portal, isekai/summoning,
+ * isekai/reverse-isekai. Add them once a harvest supplies evidence.
+ */
 export const westernSerialLexicon: GeneratorSpec = {
 	"id": "western-serial",
 	"name": "webnovel",
-	"blurb": "LitRPG, progression fantasy, dungeon core, cosy apocalypse.",
+	"blurb": "LitRPG, progression fantasy, dungeon core, isekai, villainess, regression.",
 	"tradition": "Anglophone",
+	// Deliberately absent: rational-magic and isekai/transmigration, /transportation, /portal,
+	// /summoning, /reverse-isekai — reported thin — no evidence in webnovel v1.2.0.
 	"genres": [
 		{
 			"id": "all",
 			"label": "any"
 		},
 		{
-			"id": "litrpg",
-			"label": "litrpg & system"
-		},
-		{
 			"id": "progression",
 			"label": "progression fantasy"
 		},
 		{
-			"id": "dungeon",
-			"label": "dungeon core"
+			"id": "litrpg",
+			"label": "litrpg",
+			"parent": "progression"
 		},
 		{
-			"id": "isekai",
-			"label": "isekai & portal"
+			"id": "gamelit",
+			"label": "gamelit",
+			"parent": "progression"
 		},
 		{
 			"id": "cultivation",
-			"label": "western cultivation"
+			"label": "western cultivation",
+			"parent": "progression"
+		},
+		{
+			"id": "dungeon",
+			"label": "dungeon",
+			"parent": "progression"
+		},
+		{
+			"id": "dungeon-core",
+			"label": "dungeon core",
+			"parent": "dungeon"
+		},
+		{
+			"id": "dungeon-crawler",
+			"label": "dungeon crawler",
+			"parent": "dungeon"
+		},
+		{
+			"id": "system-apocalypse",
+			"label": "System Apocalypse",
+			"parent": "progression"
+		},
+		{
+			"id": "vrmmo",
+			"label": "vrmmo",
+			"parent": "progression"
+		},
+		{
+			"id": "magic-academy",
+			"label": "magic academy",
+			"parent": "progression"
+		},
+		{
+			"id": "crafting-profession",
+			"label": "crafting & profession",
+			"parent": "progression"
+		},
+		{
+			"id": "progression-core",
+			"label": "core progression",
+			"parent": "progression"
+		},
+		{
+			"id": "tower-climbing",
+			"label": "tower climbing",
+			"parent": "progression"
+		},
+		{
+			"id": "isekai",
+			"label": "isekai"
+		},
+		{
+			"id": "isekai/reincarnation",
+			"label": "reincarnation",
+			"parent": "isekai"
+		},
+		{
+			"id": "isekai/media-world",
+			"label": "into a game or story",
+			"parent": "isekai"
 		},
 		{
 			"id": "cosy",
 			"label": "cosy & slice of life"
+		},
+		{
+			"id": "villainess",
+			"label": "villainess"
+		},
+		{
+			"id": "regression",
+			"label": "Regression & Rebirth"
 		},
 		{
 			"id": "romance",
@@ -72,10 +154,12 @@ export const westernSerialLexicon: GeneratorSpec = {
 			"templates": [
 				"{systemWord} {calamity}",
 				"The {calamity} {systemWord}",
-				"{systemWord} {calamity}: Book One"
+				"{role} of the {calamity}",
+				"The {rank} {role} {systemWord}"
 			],
 			"weight": 4,
 			"genres": [
+				"system-apocalypse",
 				"litrpg"
 			],
 			"platforms": [
@@ -90,11 +174,25 @@ export const westernSerialLexicon: GeneratorSpec = {
 			"label": "The [Rank] [Role]",
 			"templates": [
 				"The {rank} {role}",
-				"The {rank} {role} of {place}"
+				"The {rank} {role} of {place}",
+				"{rank} {role}",
+				"{calamity} {role}"
 			],
-			"weight": 4,
+			"weight": 5,
 			"note": "A bare superlative noun phrase, the Anglophone cousin of the Chinese rank-and-role title.",
-			"exemplar": "The Legendary Mechanic"
+			"exemplar": "The Legendary Mechanic",
+			"genres": [
+				"litrpg",
+				"gamelit",
+				"cultivation",
+				"dungeon",
+				"system-apocalypse",
+				"vrmmo",
+				"magic-academy",
+				"crafting-profession",
+				"progression-core",
+				"tower-climbing"
+			]
 		},
 		{
 			"id": "only-i",
@@ -103,7 +201,7 @@ export const westernSerialLexicon: GeneratorSpec = {
 				"The Hidden {placeBare} Only I Can Reach",
 				"Only the {role} Can Enter {place}"
 			],
-			"weight": 3,
+			"weight": 1,
 			"genres": [
 				"litrpg",
 				"progression",
@@ -119,11 +217,10 @@ export const westernSerialLexicon: GeneratorSpec = {
 				"{warning} {role}",
 				"{warning} {mundane}"
 			],
-			"weight": 3,
+			"weight": 1,
 			"genres": [
-				"cultivation",
 				"cosy",
-				"dungeon"
+				"cultivation"
 			],
 			"note": "A deadpan warning label attached to something absurd. Promises comedy and signals the author is not taking the genre solemnly.",
 			"exemplar": "Beware of Chicken"
@@ -136,11 +233,11 @@ export const westernSerialLexicon: GeneratorSpec = {
 				"A Practical Guide to {mundane}",
 				"The {rank} {role}'s Guide to {mundane}"
 			],
-			"weight": 4,
+			"weight": 3,
 			"genres": [
 				"cosy",
 				"cultivation",
-				"isekai"
+				"crafting-profession"
 			],
 			"note": "The cosy register. The joke is the collision of administrative vocabulary with an epic setting.",
 			"exemplar": "A Practical Guide to Evil"
@@ -155,8 +252,10 @@ export const westernSerialLexicon: GeneratorSpec = {
 			],
 			"weight": 3,
 			"genres": [
-				"litrpg",
-				"cosy"
+				"villainess",
+				"isekai/media-world",
+				"cosy",
+				"regression"
 			],
 			"note": "The first-person aggrieved title: the Anglophone answer to the Japanese full-sentence premise, usually a beat drier.",
 			"exemplar": "I've Been Killing Slimes for 300 Years and Maxed Out My Level"
@@ -172,25 +271,10 @@ export const westernSerialLexicon: GeneratorSpec = {
 			"weight": 2,
 			"genres": [
 				"litrpg",
-				"progression"
+				"regression"
 			],
 			"note": "The number is the premise. Progression fiction sells accumulated effort, so quantify it.",
 			"exemplar": "I've Been Killing Slimes for 300 Years"
-		},
-		{
-			"id": "genre-subtitle",
-			"label": "[Title]: A [Genre] [Form]",
-			"templates": [
-				"The {rank} {role}: A LitRPG Serial",
-				"{place}: A Progression Fantasy"
-			],
-			"weight": 2,
-			"platforms": [
-				"royalroad",
-				"scribblehub"
-			],
-			"note": "An explicit genre subtitle, because discovery on serial platforms is search- and tag-driven rather than shelf-driven.",
-			"exemplar": "The Wandering Inn: A LitRPG Adventure"
 		},
 		{
 			"id": "wattpad-register",
@@ -219,16 +303,16 @@ export const westernSerialLexicon: GeneratorSpec = {
 				"{monster} Core"
 			],
 			"genres": [
-				"dungeon",
-				"litrpg"
+				"dungeon-core",
+				"dungeon-crawler"
 			],
 			"platforms": [
 				"royalroad",
 				"scribblehub",
 				"webnovel"
 			],
-			"weight": 3,
-			"note": "The dungeon-core naming convention: a one-word modifier welded to Dungeon or Core. Instantly legible as POV-is-the-dungeon fiction.",
+			"weight": 4,
+			"note": "The dungeon naming convention: a one-word modifier welded to Dungeon or Core. Instantly legible as POV-is-the-dungeon (core) or delve-the-dungeon (crawler) fiction.",
 			"exemplar": "Cultivating Dungeon"
 		},
 		{
@@ -246,7 +330,7 @@ export const westernSerialLexicon: GeneratorSpec = {
 			],
 			"weight": 3,
 			"note": "The protagonist named by who owns them or what they hold. Two registers share one shape: the fantasy/dungeon streak (the alliterative \"The Crafter's ...\") and the huge binge-romance-app streak (\"The Alpha's Mate\", \"The CEO's Contract Wife\"). Crossed the gate once the corpus was scaled; the romance-app bloc is what gives it its dominant register.",
-			"exemplar": "Carl's Doomsday Scenario"
+			"exemplar": "Jake's Magical Market"
 		},
 		{
 			"id": "regression-rebirth",
@@ -257,36 +341,13 @@ export const westernSerialLexicon: GeneratorSpec = {
 				"The {role} Who {rebirthTail}"
 			],
 			"genres": [
-				"litrpg",
-				"progression",
-				"isekai",
-				"cultivation"
+				"regression",
+				"isekai/reincarnation",
+				"villainess"
 			],
 			"weight": 3,
 			"note": "The rebirth marker is the whole premise: the reader is promised a protagonist who already knows how the story ends. The single most load-bearing frame in anglophone web fiction after the bare class-role.",
 			"exemplar": "I Became a Patron God"
-		},
-		{
-			"id": "bracket-tag",
-			"label": "[Core Title] [Genre Tag]",
-			"templates": [
-				"The {rank} {role} [{bracketTag}]",
-				"{placeBare} [{bracketTag}]",
-				"{monster} Dungeon [{bracketTag}]"
-			],
-			"genres": [
-				"litrpg",
-				"progression",
-				"dungeon"
-			],
-			"platforms": [
-				"royalroad",
-				"scribblehub",
-				"webnovel"
-			],
-			"weight": 3,
-			"note": "The bracketed genre tag welded to the title — a Royal Road discoverability move (readers filter by tag, so the tag goes in the title). Barely exists in trad prose; a native web-serial artefact. Crossed the gate once the RR tracker data was folded in.",
-			"exemplar": "Godless Sword [Timeloop LitRPG]"
 		},
 		{
 			"id": "interrogative-hook",
@@ -322,6 +383,143 @@ export const westernSerialLexicon: GeneratorSpec = {
 			"weight": 2,
 			"note": "The relationship-status hook that dominates the binge-romance apps (Dreame, GoodNovel, NovelCat): the title states what was done to the heroine by the love interest — rejected, married, kidnapped, sold. Fated-mate and contract-marriage machinery compressed into a headline. Firmly the sincere register; keep it away from the ironic frames.",
 			"exemplar": "Kidnapped by My Mate"
+		},
+		{
+			"id": "colon-subtitle",
+			"label": "[Core Title]: [Epithet]",
+			"templates": [
+				"{calamity}: {rank} {systemWord}",
+				"{placeBare}: {epithet}",
+				"{rank} {role}: {epithet}"
+			],
+			"weight": 3,
+			"genres": [
+				"system-apocalypse",
+				"regression",
+				"cultivation",
+				"litrpg"
+			],
+			"note": "A short core title, then a colon and a subtitle that names the hook (the class, the twist, the system). What's left once the genre descriptors are stripped off a Royal Road title: the subtitle is story, not tag.",
+			"exemplar": "Apocalypse: Generic System"
+		},
+		{
+			"id": "ascent-of",
+			"label": "[Rise / Path / Age] of [Object]",
+			"templates": [
+				"{ascentLead} of {ascentObject}",
+				"Rise of the {rank} {role}",
+				"Age of {calamity}"
+			],
+			"weight": 2,
+			"genres": [
+				"progression"
+			],
+			"note": "The trajectory as the title: a rise, a path, an age. Progression fiction sells the climb, so the title names the climb and one word for what's at the top.",
+			"exemplar": "Rise of Mankind"
+		},
+		{
+			"id": "ascent-compound",
+			"label": "[Rise / Legend] of the [Modifier] [Noun]",
+			"templates": [
+				"{ascentLead} of the {compoundMod} {compoundNoun}"
+			],
+			"weight": 2,
+			"genres": [
+				"progression"
+			],
+			"note": "The same climb as ascent-of, but the protagonist is a two-word coinage: an odd modifier welded to an ordinary noun. The modifier is the hook, and the two halves are drawn separately so no real title's pair ships whole.",
+			"exemplar": "Rise of the Living Forge"
+		},
+		{
+			"id": "vr-online",
+			"label": "[Name] Online",
+			"templates": [
+				"{onlineWord} Online",
+				"The {onlineWord} Online"
+			],
+			"weight": 4,
+			"genres": [
+				"vrmmo",
+				"isekai/media-world"
+			],
+			"note": "The VRMMO convention: the game's own name, then Online. Tells the reader the story happens inside a game before they read a word of the blurb.",
+			"exemplar": "Ascend Online"
+		},
+		{
+			"id": "name-anchor",
+			"label": "[Hero Name] vs the [Calamity]",
+			"templates": [
+				"{heroName} vs the {calamity}",
+				"{heroName} in the {calamity}",
+				"{heroName} the {rank} {role}",
+				"{role} {heroName}"
+			],
+			"weight": 2,
+			"genres": [
+				"litrpg",
+				"system-apocalypse",
+				"villainess"
+			],
+			"note": "A first name up front: the protagonist is the brand. Usually paired with the catastrophe or a deflating epithet, which keeps it light.",
+			"exemplar": "Adam vs the Apocalypse"
+		},
+		{
+			"id": "time-loop",
+			"label": "[Word] Loop / [Role] of Time",
+			"templates": [
+				"{loopWord} Loop",
+				"{loopWord} Loops",
+				"{role} of Time"
+			],
+			"weight": 3,
+			"genres": [
+				"regression"
+			],
+			"note": "The loop named outright. Regression's second chance made literal and repeatable; the title promises iteration rather than a single do-over.",
+			"exemplar": "Lost Loop"
+		},
+		{
+			"id": "re-prefix",
+			"label": "RE: [Role]",
+			"templates": [
+				"RE: {role}",
+				"RE: {placeBare}"
+			],
+			"weight": 2,
+			"genres": [
+				"regression",
+				"magic-academy"
+			],
+			"note": "The RE: prefix, borrowed from Re:Zero and the email reply line: this is a redo. Two characters carry the whole regression premise.",
+			"exemplar": "RE: Knight"
+		},
+		{
+			"id": "tower-anchor",
+			"label": "The [Rank] Tower",
+			"templates": [
+				"The {rank} Tower",
+				"The {placeBare} Spire",
+				"The {role} and the Tower"
+			],
+			"weight": 3,
+			"genres": [
+				"tower-climbing"
+			],
+			"note": "The tower is the setting, the structure and the progression curve at once: one floor at a time. Naming it is naming the genre.",
+			"exemplar": "The Fractured Tower"
+		},
+		{
+			"id": "dao-of",
+			"label": "Dao of [Mundane Thing]",
+			"templates": [
+				"Dao of {mundane:cultivation}"
+			],
+			"weight": 2,
+			"genres": [
+				"cultivation"
+			],
+			"note": "Western cultivation's comic register: the lofty Dao applied to something ordinary. The joke and the premise are the same thing, a path to enlightenment through cooking or money.",
+			"exemplar": "Dao of the Deal"
 		}
 	],
 	"lexicon": {
@@ -410,14 +608,16 @@ export const westernSerialLexicon: GeneratorSpec = {
 			{
 				"gloss": "Apocalypse",
 				"tags": [
-					"litrpg"
+					"litrpg",
+					"system-apocalypse"
 				],
 				"weight": 3
 			},
 			{
 				"gloss": "Integration",
 				"tags": [
-					"litrpg"
+					"litrpg",
+					"system-apocalypse"
 				]
 			},
 			{
@@ -436,25 +636,29 @@ export const westernSerialLexicon: GeneratorSpec = {
 			{
 				"gloss": "Culling",
 				"tags": [
-					"litrpg"
+					"litrpg",
+					"system-apocalypse"
 				]
 			},
 			{
 				"gloss": "Reset",
 				"tags": [
-					"litrpg"
+					"litrpg",
+					"system-apocalypse"
 				]
 			},
 			{
 				"gloss": "Convergence",
 				"tags": [
-					"litrpg"
+					"litrpg",
+					"system-apocalypse"
 				]
 			},
 			{
 				"gloss": "Rollout",
 				"tags": [
-					"litrpg"
+					"litrpg",
+					"system-apocalypse"
 				]
 			},
 			{
@@ -466,7 +670,8 @@ export const westernSerialLexicon: GeneratorSpec = {
 			{
 				"gloss": "Migration",
 				"tags": [
-					"litrpg"
+					"litrpg",
+					"system-apocalypse"
 				]
 			},
 			{
@@ -480,6 +685,48 @@ export const westernSerialLexicon: GeneratorSpec = {
 				"tags": [
 					"litrpg"
 				]
+			},
+			{
+				"gloss": "Doom",
+				"tags": [
+					"litrpg",
+					"system-apocalypse"
+				]
+			},
+			{
+				"gloss": "Cataclysm",
+				"tags": [
+					"litrpg",
+					"system-apocalypse"
+				]
+			},
+			{
+				"gloss": "Ruin",
+				"tags": [
+					"litrpg",
+					"system-apocalypse"
+				]
+			},
+			{
+				"gloss": "Armageddon",
+				"tags": [
+					"litrpg",
+					"system-apocalypse"
+				]
+			},
+			{
+				"gloss": "Disaster",
+				"tags": [
+					"litrpg",
+					"system-apocalypse"
+				]
+			},
+			{
+				"gloss": "Calamity",
+				"tags": [
+					"litrpg",
+					"system-apocalypse"
+				]
 			}
 		],
 		"role": [
@@ -487,14 +734,18 @@ export const westernSerialLexicon: GeneratorSpec = {
 				"gloss": "Necromancer",
 				"tags": [
 					"litrpg",
-					"progression"
+					"progression",
+					"regression",
+					"villainess"
 				]
 			},
 			{
 				"gloss": "Alchemist",
 				"tags": [
 					"progression",
-					"cosy"
+					"cosy",
+					"crafting-profession",
+					"villainess"
 				]
 			},
 			{
@@ -561,7 +812,9 @@ export const westernSerialLexicon: GeneratorSpec = {
 				"gloss": "Summoner",
 				"tags": [
 					"progression",
-					"isekai"
+					"isekai",
+					"regression",
+					"villainess"
 				]
 			},
 			{
@@ -652,6 +905,173 @@ export const westernSerialLexicon: GeneratorSpec = {
 					"litrpg",
 					"progression"
 				]
+			},
+			{
+				"gloss": "Mage",
+				"tags": [
+					"progression",
+					"litrpg",
+					"regression",
+					"villainess"
+				]
+			},
+			{
+				"gloss": "Farmer",
+				"tags": [
+					"progression",
+					"cosy",
+					"crafting-profession"
+				]
+			},
+			{
+				"gloss": "Healer",
+				"tags": [
+					"progression",
+					"litrpg",
+					"regression",
+					"villainess"
+				]
+			},
+			{
+				"gloss": "Cultivator",
+				"tags": [
+					"cultivation"
+				]
+			},
+			{
+				"gloss": "Seeker",
+				"tags": [
+					"progression"
+				]
+			},
+			{
+				"gloss": "Breaker",
+				"tags": [
+					"progression"
+				]
+			},
+			{
+				"gloss": "Eater",
+				"tags": [
+					"progression",
+					"litrpg"
+				]
+			},
+			{
+				"gloss": "Slayer",
+				"tags": [
+					"progression"
+				]
+			},
+			{
+				"gloss": "Juggernaut",
+				"tags": [
+					"progression",
+					"litrpg"
+				]
+			},
+			{
+				"gloss": "Lord",
+				"tags": [
+					"progression",
+					"regression"
+				]
+			},
+			{
+				"gloss": "Monster",
+				"tags": [
+					"progression",
+					"litrpg"
+				]
+			},
+			{
+				"gloss": "Chef",
+				"tags": [
+					"progression",
+					"cosy",
+					"crafting-profession"
+				]
+			},
+			{
+				"gloss": "Tamer",
+				"tags": [
+					"progression",
+					"litrpg"
+				]
+			},
+			{
+				"gloss": "Botanist",
+				"tags": [
+					"progression",
+					"cosy",
+					"crafting-profession"
+				]
+			},
+			{
+				"gloss": "Engineer",
+				"tags": [
+					"progression",
+					"crafting-profession"
+				]
+			},
+			{
+				"gloss": "Wandsmith",
+				"tags": [
+					"progression",
+					"crafting-profession"
+				]
+			},
+			{
+				"gloss": "Runesmith",
+				"tags": [
+					"progression",
+					"crafting-profession"
+				]
+			},
+			{
+				"gloss": "Druid",
+				"tags": [
+					"progression",
+					"litrpg"
+				]
+			},
+			{
+				"gloss": "Occultist",
+				"tags": [
+					"progression"
+				]
+			},
+			{
+				"gloss": "Exorcist",
+				"tags": [
+					"progression",
+					"regression"
+				]
+			},
+			{
+				"gloss": "Knight",
+				"tags": [
+					"progression",
+					"litrpg",
+					"regression",
+					"villainess"
+				]
+			},
+			{
+				"gloss": "Hunter",
+				"tags": [
+					"progression",
+					"litrpg",
+					"regression"
+				]
+			},
+			{
+				"gloss": "Assassin",
+				"tags": [
+					"progression",
+					"litrpg",
+					"regression"
+				]
 			}
 		],
 		"rank": [
@@ -691,14 +1111,16 @@ export const westernSerialLexicon: GeneratorSpec = {
 				"gloss": "Reluctant",
 				"tags": [
 					"cosy",
-					"progression"
+					"progression",
+					"villainess"
 				]
 			},
 			{
 				"gloss": "Accidental",
 				"tags": [
 					"cosy",
-					"isekai"
+					"isekai",
+					"villainess"
 				]
 			},
 			{
@@ -711,7 +1133,8 @@ export const westernSerialLexicon: GeneratorSpec = {
 				"gloss": "Insufferable",
 				"tags": [
 					"cosy",
-					"cultivation"
+					"cultivation",
+					"villainess"
 				]
 			},
 			{
@@ -742,6 +1165,109 @@ export const westernSerialLexicon: GeneratorSpec = {
 				"gloss": "Certified",
 				"tags": [
 					"litrpg"
+				]
+			},
+			{
+				"gloss": "Arcane",
+				"tags": [
+					"progression",
+					"litrpg"
+				]
+			},
+			{
+				"gloss": "Forgotten",
+				"tags": [
+					"progression",
+					"villainess"
+				]
+			},
+			{
+				"gloss": "Unbound",
+				"tags": [
+					"progression"
+				]
+			},
+			{
+				"gloss": "Modern",
+				"tags": [
+					"progression"
+				]
+			},
+			{
+				"gloss": "Second",
+				"tags": [
+					"progression",
+					"villainess"
+				]
+			},
+			{
+				"gloss": "Spell",
+				"tags": [
+					"progression"
+				]
+			},
+			{
+				"gloss": "Soul",
+				"tags": [
+					"progression"
+				]
+			},
+			{
+				"gloss": "Blackflame",
+				"tags": [
+					"progression"
+				]
+			},
+			{
+				"gloss": "Boundless",
+				"tags": [
+					"progression",
+					"cultivation"
+				]
+			},
+			{
+				"gloss": "Brimstone",
+				"tags": [
+					"progression"
+				]
+			},
+			{
+				"gloss": "Cantrip",
+				"tags": [
+					"progression"
+				]
+			},
+			{
+				"gloss": "Calculating",
+				"tags": [
+					"progression",
+					"cultivation"
+				]
+			},
+			{
+				"gloss": "Annihilation",
+				"tags": [
+					"progression"
+				]
+			},
+			{
+				"gloss": "Augmented",
+				"tags": [
+					"progression",
+					"litrpg"
+				]
+			},
+			{
+				"gloss": "Artificial",
+				"tags": [
+					"progression"
+				]
+			},
+			{
+				"gloss": "Applied",
+				"tags": [
+					"progression",
+					"cultivation"
 				]
 			}
 		],
@@ -927,6 +1453,30 @@ export const westernSerialLexicon: GeneratorSpec = {
 				"tags": [
 					"cultivation",
 					"cosy"
+				]
+			},
+			{
+				"gloss": "Cooking",
+				"tags": [
+					"cultivation"
+				]
+			},
+			{
+				"gloss": "Healing",
+				"tags": [
+					"cultivation"
+				]
+			},
+			{
+				"gloss": "Money",
+				"tags": [
+					"cultivation"
+				]
+			},
+			{
+				"gloss": "the Deal",
+				"tags": [
+					"cultivation"
 				]
 			}
 		],
@@ -1154,7 +1704,27 @@ export const westernSerialLexicon: GeneratorSpec = {
 			"Real-Time #dungeon #litrpg",
 			"Bound #dungeon #litrpg",
 			"Lonely #dungeon #litrpg",
-			"Cultivating #dungeon #litrpg"
+			"Cultivating #dungeon #litrpg",
+			"Dinosaur #dungeon",
+			"Dragon #dungeon",
+			"Bee #dungeon",
+			"Island #dungeon",
+			"Museum #dungeon",
+			"Oasis #dungeon",
+			"Elemental #dungeon",
+			"Abyssal #dungeon",
+			"Ancient #dungeon",
+			"Divine #dungeon",
+			"Infinity #dungeon",
+			"Viridescent #dungeon",
+			"Dragonheart #dungeon",
+			"Greedy #dungeon",
+			"Reluctant #dungeon",
+			"Forgotten #dungeon",
+			"Worthy #dungeon",
+			"Annihilation #dungeon",
+			"Blue #dungeon",
+			"Comet #dungeon"
 		],
 		"owner": [
 			"Alpha #romance",
@@ -1246,46 +1816,13 @@ export const westernSerialLexicon: GeneratorSpec = {
 			"Kept the Patch Notes #litrpg #progression #isekai #cultivation",
 			"Got a Second Save File #litrpg #progression #isekai #cultivation"
 		],
-		"bracketTag": [
-			"LitRPG #litrpg",
-			"A LitRPG Deckbuilder #litrpg",
-			"An Idle LitRPG #litrpg",
-			"A Cozy Apocalyptic LitRPG #litrpg",
-			"GameLit #litrpg",
-			"LitRPG Cultivation #litrpg",
-			"Comedy LitRPG #litrpg",
-			"Otome LitRPG #litrpg",
-			"Sengoku LitRPG #litrpg",
-			"Timeloop LitRPG #litrpg",
-			"Hulking Eldritch Knight LitRPG #litrpg",
-			"Slow Burn Isekai #litrpg",
-			"Slow Burn Cultivation #litrpg",
-			"Death Magic #litrpg",
-			"Dragonslayer #litrpg",
-			"Grim Dark #litrpg",
-			"Yuri #litrpg",
-			"Romance Harem #litrpg",
-			"Slice of Life #litrpg",
-			"Post-Apoc System Apocalypse #litrpg",
-			"Kingdom Building #litrpg #progression",
-			"Crafting & Kingdom-Building Fantasy #litrpg #progression",
-			"Progression Fantasy #litrpg #progression",
-			"Progression Fantasy Transmigration #litrpg #progression",
-			"Multi-World Progression #litrpg #progression",
-			"Genetic Progression Fantasy #litrpg #progression",
-			"Timestop Progression LitRPG #litrpg #progression",
-			"Rags-to-Riches Treasure Hunter LitRPG #litrpg #progression",
-			"Dungeon Core #litrpg #dungeon",
-			"Dragon-Raising Settlement-Building LitRPG #litrpg #dungeon",
-			"Dungeon-Diving LitRPG Apocalypse #litrpg #dungeon"
-		],
 		"interro": [
 			"So What If I'm #cosy #litrpg #isekai #cultivation",
 			"What Do You Mean I'm #cosy #litrpg #isekai #cultivation",
 			"Turns Out I'm #cosy #litrpg #isekai #cultivation",
 			"So I'm #cosy #litrpg #isekai #cultivation",
 			"Why Is Everyone Obsessed With #cosy #litrpg #isekai #cultivation",
-			"Awakened as the #cosy #litrpg #isekai #cultivation"
+			"Awakened as #cosy #litrpg #isekai #cultivation"
 		],
 		"statusVerb": [
 			"Rejected by #romance",
@@ -1320,6 +1857,150 @@ export const westernSerialLexicon: GeneratorSpec = {
 			"Exiled Noble #romance",
 			"Soldier #romance",
 			"Tyrant #romance"
+		],
+		"onlineWord": [
+			"Ascend #vrmmo #isekai/media-world",
+			"Awaken #vrmmo #isekai/media-world",
+			"Eternal #vrmmo #isekai/media-world",
+			"Eternus #vrmmo #isekai/media-world",
+			"Oblivion #vrmmo #isekai/media-world",
+			"Rebirth #vrmmo #isekai/media-world",
+			"Continue #vrmmo #isekai/media-world",
+			"Headshot #vrmmo #isekai/media-world",
+			"Sky Realms #vrmmo #isekai/media-world",
+			"True World #vrmmo #isekai/media-world",
+			"World Gate #vrmmo #isekai/media-world",
+			"New Era #vrmmo #isekai/media-world",
+			"Modern Age #vrmmo #isekai/media-world",
+			"Ages #vrmmo #isekai/media-world",
+			"Universe #vrmmo #isekai/media-world",
+			"Battlegrounds #vrmmo #isekai/media-world",
+			"Beast Slayer #vrmmo #isekai/media-world",
+			"Fate & Freedom #vrmmo #isekai/media-world",
+			"Uniworld #vrmmo #isekai/media-world",
+			"Somnia #vrmmo #isekai/media-world",
+			"Insania #vrmmo #isekai/media-world"
+		],
+		"heroName": [
+			"Adam #litrpg #system-apocalypse #villainess #regression",
+			"Andy #litrpg #system-apocalypse #villainess #regression",
+			"Amelia #litrpg #system-apocalypse #villainess #regression",
+			"Chloe #litrpg #system-apocalypse #villainess #regression",
+			"Clara #litrpg #system-apocalypse #villainess #regression",
+			"Teren #litrpg #system-apocalypse #villainess #regression",
+			"Teresa #litrpg #system-apocalypse #villainess #regression",
+			"Tori #litrpg #system-apocalypse #villainess #regression",
+			"Emie #litrpg #system-apocalypse #villainess #regression",
+			"Nyx #litrpg #system-apocalypse #villainess #regression",
+			"Yona #litrpg #system-apocalypse #villainess #regression",
+			"Ajax #litrpg #system-apocalypse #villainess #regression",
+			"Derek #litrpg #system-apocalypse #villainess #regression",
+			"Jake #litrpg #system-apocalypse #villainess #regression",
+			"Jane #litrpg #system-apocalypse #villainess #regression",
+			"Joan #litrpg #system-apocalypse #villainess #regression",
+			"Howard #litrpg #system-apocalypse #villainess #regression",
+			"Dave #litrpg #system-apocalypse #villainess #regression"
+		],
+		"loopWord": [
+			"Lost #regression",
+			"Lazy #regression",
+			"Time #regression"
+		],
+		"epithet": [
+			"Fireborn #system-apocalypse #regression #cultivation #litrpg",
+			"Genesis #system-apocalypse #regression #cultivation #litrpg",
+			"Reborn #system-apocalypse #regression #cultivation #litrpg",
+			"Willbender #system-apocalypse #regression #cultivation #litrpg",
+			"Hexcaller #system-apocalypse #regression #cultivation #litrpg",
+			"Time Thief #system-apocalypse #regression #cultivation #litrpg",
+			"New World #system-apocalypse #regression #cultivation #litrpg",
+			"The Broken System #system-apocalypse #regression #cultivation #litrpg",
+			"Generic System #system-apocalypse #regression #cultivation #litrpg",
+			"The Weakest Druid #system-apocalypse #regression #cultivation #litrpg",
+			"Ten Lives Left #system-apocalypse #regression #cultivation #litrpg",
+			"Forged in Nightmare #system-apocalypse #regression #cultivation #litrpg",
+			"The Final Ceiling #system-apocalypse #regression #cultivation #litrpg",
+			"Unlimited Weapon Maker #system-apocalypse #regression #cultivation #litrpg",
+			"Monsters & Legends #system-apocalypse #regression #cultivation #litrpg",
+			"Trash Class #system-apocalypse #regression #cultivation #litrpg",
+			"Dragon Cosmos #system-apocalypse #regression #cultivation #litrpg",
+			"Archmage in Seclusion #system-apocalypse #regression #cultivation #litrpg"
+		],
+		"ascentLead": [
+			"Rise #progression",
+			"Legend #progression",
+			"Return #progression",
+			"Dawn #progression",
+			"Path #progression",
+			"Saga #progression",
+			"Chronicles #progression"
+		],
+		"compoundMod": [
+			"Density #progression",
+			"Awakened #progression",
+			"Spear #progression",
+			"Last #progression",
+			"Martial #progression",
+			"Runebound #progression",
+			"Wand #progression",
+			"Unbound #progression",
+			"Abyssal #progression",
+			"Living #progression",
+			"Manor #progression",
+			"Mystic #progression",
+			"Rune #progression",
+			"Undead #progression",
+			"Soul #progression",
+			"Emberstone #progression",
+			"Dark #progression",
+			"Winter #progression"
+		],
+		"compoundNoun": [
+			"God #progression",
+			"Goblin #progression",
+			"Saint #progression",
+			"Champion #progression",
+			"Messiah #progression",
+			"Professor #progression",
+			"Mage #progression",
+			"Flame #progression",
+			"Noble #progression",
+			"Enchantment #progression",
+			"Lord #progression",
+			"Forge #progression",
+			"Carpenter #progression",
+			"Legion #progression",
+			"Dungeon #progression",
+			"Farm #progression",
+			"Heart #progression",
+			"Wolf #progression"
+		],
+		"ascentObject": [
+			"Mankind #progression",
+			"Dragons #progression",
+			"Steel #progression",
+			"Transcendence #progression",
+			"Prosperity #progression",
+			"Mastery #progression",
+			"Chaos #progression",
+			"Doom #progression",
+			"Gods #progression",
+			"Ascension #progression",
+			"the Devourer #progression",
+			"the Archon #progression",
+			"the Runeforger #progression",
+			"the Primalist #progression",
+			"the Skillmaster #progression",
+			"Hollows #progression"
 		]
-	}
+	},
+	"reservedTitles": westernSerialReservedTitles,
+	"genreExclusions": [
+		{
+			"when": "isekai",
+			"exclude": [
+				"cultivation"
+			]
+		}
+	]
 };
