@@ -24,6 +24,7 @@ import { splitTitleSubtitle } from "../titleNumbering";
 import { ICON_ADD_CIRCLE, ICON_ARCHIVE, ICON_BOOK_DUOTONE, ICON_BOOK_OPEN_FILLED, ICON_CLIPBOARD_LIST_DUOTONE, ICON_CODEX, ICON_DASHBOARD_CHART, ICON_EYE_DUOTONE, ICON_FOCUS_OFF, ICON_FOCUS_ON, ICON_FORGE, ICON_LINK2_DUOTONE, ICON_MAP_PIN_PLUS, ICON_MINUS_CIRCLE_DUOTONE, ICON_NOTEBOOK_DUOTONE, ICON_PEN_ROUND_DUOTONE, ICON_PERSON_FILL_ADD } from "../icons";
 import { bookFolderNameFromChapterPath, CODEX_ROOT, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath, NOTES_ROOT, seriesFilePath } from "../paths";
 import { OBSIDIAN_SELECTORS } from "../obsidianInternals";
+import { createNotebookPage, NOTEBOOK_PAGE_PRESENT_CLASS } from "./notebookPage";
 import { groupHitsByChapter, lensLabel } from "../story-context/hitGrouping";
 import {
 	addIgnoredName,
@@ -524,6 +525,7 @@ export class StoryContextView extends ItemView {
 		if (headerEl) this.decorateTabHeader(headerEl);
 		const el = this.contentEl;
 		el.empty();
+		el.removeClass(NOTEBOOK_PAGE_PRESENT_CLASS);
 		el.addClass("sf-story-context-view");
 		el.addClass("sf-context-view");
 		// Focus Mode (toggled from this view's own tab-header icon, see registerTabHeaderFocusToggle
@@ -838,6 +840,7 @@ export class StoryContextView extends ItemView {
 			if (this.forgeFamilyExpanded) {
 				this.contentEl.querySelector(".sf-idea-shelf")?.remove();
 				this.contentEl.querySelector(".sf-notebook-card-host")?.remove();
+				this.contentEl.removeClass(NOTEBOOK_PAGE_PRESENT_CLASS);
 				this.contentEl.querySelector(".sf-codex-page-host")?.remove();
 				if (this.forgeFamilyActiveId) this.render(true);
 			} else {
@@ -924,6 +927,7 @@ export class StoryContextView extends ItemView {
 			if (!this.ideaShelfExpanded) {
 				this.contentEl.querySelector(".sf-idea-shelf")?.remove();
 				this.contentEl.querySelector(".sf-notebook-card-host")?.remove();
+				this.contentEl.removeClass(NOTEBOOK_PAGE_PRESENT_CLASS);
 				this.contentEl.querySelector(".sf-story-context-view__forge-panel")?.remove();
 			} else {
 				this.contentEl.querySelector(".sf-codex-page-host")?.remove();
@@ -1013,7 +1017,7 @@ export class StoryContextView extends ItemView {
 	private renderArchiveSplit(el: HTMLElement): void {
 		const split = el.createDiv({ cls: "sf-idea-shelf sf-archive-shelf" });
 		const rail = this.renderArchiveSourceRail(split);
-		const page = split.createDiv({ cls: "sf-notebook-page sf-archive-page" });
+		const page = createNotebookPage(split, "sf-archive-page");
 		this.notebookPageEl = page;
 		const index = split.createDiv({ cls: "sf-notebook-index" });
 		renderArchiveIndex(index, this.archiveHost());
@@ -1083,14 +1087,10 @@ export class StoryContextView extends ItemView {
 		}
 		const split = el.createDiv({ cls: "sf-idea-shelf" });
 		const rail = showSourceRail ? this.renderNotebookSourceRail(split) : null;
-		const page = split.createDiv({
-			cls:
-				indexKind === "codex"
-					? "sf-notebook-page sf-notebook-page--codex"
-					: indexKind === "dossier"
-						? "sf-notebook-page sf-dossier-page"
-						: "sf-notebook-page",
-		});
+		const page = createNotebookPage(
+			split,
+			indexKind === "codex" ? "sf-notebook-page--codex" : indexKind === "dossier" ? "sf-dossier-page" : "",
+		);
 		this.notebookPageEl = page;
 		const index = split.createDiv({ cls: "sf-notebook-index" });
 		if (usesCodexIndex) this.renderNotebookCodexIndex(index);
@@ -1246,7 +1246,7 @@ export class StoryContextView extends ItemView {
 
 	private renderNotebookCard(el: HTMLElement): void {
 		const host = el.createDiv({ cls: "sf-notebook-card-host" });
-		const page = host.createDiv({ cls: "sf-notebook-page sf-notebook-card" });
+		const page = createNotebookPage(host, "sf-notebook-card");
 		this.notebookPageEl = page;
 		void this.mountIdeaEditor();
 	}
