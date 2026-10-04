@@ -1,4 +1,5 @@
-import { App, Modal, Notice } from "obsidian";
+import { App, Modal, Notice, Setting } from "obsidian";
+import { NAMEFORGE_PACKS_FOLDER } from "../storage.js";
 import type { TitleForgeController } from "../TitleForgeController.js";
 
 /**
@@ -61,10 +62,59 @@ export class TitleForgeSettingsModal extends Modal {
 			this.controller.openModal();
 		});
 
+		this.renderNamePacks(contentEl);
+
 		contentEl.createEl("h3", { text: "Traditions" });
 		const list = contentEl.createDiv({ cls: "titleforge-settings-list" });
 		for (const spec of this.controller.generators) {
 			this.renderGeneratorRow(list, spec.id, spec.name);
+		}
+	}
+
+	/**
+	 * "Character names": every name register (engine/names.ts) gets a dropdown — built-in, or one
+	 * of the writer's nameForge packs — so invented names follow their own world's style. Packs are
+	 * listed from nameForge's default folder; mix packs are left out because their names live in
+	 * the packs they mix.
+	 */
+	private renderNamePacks(container: HTMLElement): void {
+		const specs = this.controller.generators.filter((s) => s.nameGenerators);
+		if (specs.length === 0) return;
+		container.createEl("h3", { text: "Character names" });
+		container.createEl("p", {
+			cls: "setting-item-description",
+			text:
+				"Names in titles are invented, in the style of each register below. Pick one of your " +
+				"nameForge packs to have them invented in your own world's style instead.",
+		});
+
+		const packs = this.controller.storage.listNamePacks();
+		if (packs.length === 0) {
+			container.createEl("p", {
+				cls: "setting-item-description",
+				text: `No nameForge packs found in "${NAMEFORGE_PACKS_FOLDER}/" — built-in names are used.`,
+			});
+		}
+
+		for (const spec of specs) {
+			for (const [registerId, gen] of Object.entries(spec.nameGenerators ?? {})) {
+				const key = `${spec.id}/${registerId}`;
+				const current = this.controller.settings.namePacks[key];
+				new Setting(container)
+					.setName(`${gen.label} names`)
+					.setDesc(spec.name)
+					.addDropdown((dropdown) => {
+						dropdown.addOption("", "Built-in");
+						for (const pack of packs) dropdown.addOption(pack.path, pack.basename);
+						// A previously chosen pack that's since moved or been deleted still shows, so
+						// the setting never silently changes under the writer.
+						if (current && !packs.some((p) => p.path === current)) dropdown.addOption(current, `${current} (missing)`);
+						dropdown.setValue(current ?? "");
+						dropdown.onChange((value) => {
+							void this.controller.setNamePack(key, value || undefined);
+						});
+					});
+			}
 		}
 	}
 

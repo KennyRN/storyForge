@@ -54,6 +54,11 @@ export interface TitleForgeSettings {
 	 * build, which `loadSettings()` merges onto the default `false` below — so the notice shows
 	 * exactly once per vault after upgrading. */
 	legacyLexiconsNoticeShown: boolean;
+	/** The writer's own nameForge packs standing in for built-in name registers, as
+	 * `"<generator id>/<register id>"` → vault path (e.g. `"title-composer/fantasy"` →
+	 * `"_backstage/nameforge/Elvish.md"`). Absent key = built-in sources. Absent entirely in a
+	 * settings file from an older build, which `loadSettings()` merges onto the default `{}`. */
+	namePacks: Record<string, string>;
 }
 
 export const DEFAULT_TITLEFORGE_SETTINGS: TitleForgeSettings = {
@@ -70,4 +75,5 @@ export const DEFAULT_TITLEFORGE_SETTINGS: TitleForgeSettings = {
 	},
 	lastQuantity: 5,
 	legacyLexiconsNoticeShown: false,
+	namePacks: {},
 };

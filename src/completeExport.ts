@@ -84,6 +84,11 @@ function parseTitleForgeSettings(raw: unknown): TitleForgeSettings {
 			typeof source.legacyLexiconsNoticeShown === "boolean"
 				? source.legacyLexiconsNoticeShown
 				: DEFAULT_TITLEFORGE_SETTINGS.legacyLexiconsNoticeShown,
+		namePacks: isRecord(source.namePacks)
+			? Object.fromEntries(
+					Object.entries(source.namePacks).filter((e): e is [string, string] => typeof e[1] === "string"),
+				)
+			: {},
 	};
 }
 

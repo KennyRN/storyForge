@@ -30,7 +30,7 @@ export const TITLEFORGE_COMPANION_ID = "titleforge";
  */
 export class TitleForgeController {
 	readonly storage: TitleForgeStorage;
-	settings: TitleForgeSettings = { ...DEFAULT_TITLEFORGE_SETTINGS };
+	settings: TitleForgeSettings = { ...DEFAULT_TITLEFORGE_SETTINGS, namePacks: {} };
 	generators: GeneratorSpec[] = [];
 
 	/** Open panels that want to redraw when the user-additions file changes (see `watchUserLexicon`). */
@@ -48,8 +48,9 @@ export class TitleForgeController {
 	}
 
 	async onload(): Promise<void> {
-		await this.reloadGenerators();
+		// Settings first: they say which nameForge packs the generators load with.
 		this.settings = await this.storage.loadSettings();
+		await this.reloadGenerators();
 		await this.adviseLegacyLexiconsOnce();
 		this.watchUserLexicon();
 
@@ -87,7 +88,9 @@ export class TitleForgeController {
 	private watchUserLexicon(): void {
 		const targetPath = this.storage.userLexiconPath();
 		const onChange = (file: TAbstractFile): void => {
-			if (file.path !== targetPath) return;
+			// The user-additions file, or one of the nameForge packs a name register is set to.
+			const isPack = Object.values(this.settings.namePacks).includes(file.path);
+			if (file.path !== targetPath && !isPack) return;
 			clearTimeout(this.userLexiconReloadTimer);
 			this.userLexiconReloadTimer = setTimeout(() => {
 				void this.reloadGenerators().then(() => {
@@ -99,6 +102,16 @@ export class TitleForgeController {
 		this.plugin.registerEvent(vault.on("modify", onChange));
 		this.plugin.registerEvent(vault.on("create", onChange));
 		this.plugin.registerEvent(vault.on("delete", onChange));
+	}
+
+	/** Point a name register at one of the writer's nameForge packs (or back to built-in with
+	 * `undefined`), then reload so open panels pick it up at once. */
+	async setNamePack(key: string, path: string | undefined): Promise<void> {
+		if (path) this.settings.namePacks[key] = path;
+		else delete this.settings.namePacks[key];
+		await this.saveSettings();
+		await this.reloadGenerators();
+		for (const listener of this.reloadListeners) listener();
 	}
 
 	/** Subscribe to "generators were re-scanned" — returns an unsubscribe. Used by open panels. */
@@ -115,7 +128,7 @@ export class TitleForgeController {
 
 	/** Re-scans the compiled-in bundle plus the user-additions file and re-registers every generator. */
 	async reloadGenerators(): Promise<void> {
-		this.generators = await this.storage.loadAllGenerators();
+		this.generators = await this.storage.loadAllGenerators(this.settings.namePacks);
 		for (const spec of this.generators) {
 			unregister(spec.id);
 			register(spec);

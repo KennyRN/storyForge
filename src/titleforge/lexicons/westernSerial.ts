@@ -1,4 +1,5 @@
 import type { GeneratorSpec } from "../engine/types.js";
+import { registers } from "./nameRegisters.js";
 import { westernSerialReservedTitles } from "./westernSerialReserved.js";
 
 /**
@@ -523,6 +524,8 @@ export const westernSerialLexicon: GeneratorSpec = {
 			"exemplar": "Dao of the Deal"
 		}
 	],
+	// Hero names are invented (engine/names.ts); v1.2.0's 18 names lifted from real series are gone.
+	"nameGenerators": registers("hero"),
 	"lexicon": {
 		"systemWord": [
 			{
@@ -1883,24 +1886,7 @@ export const westernSerialLexicon: GeneratorSpec = {
 			"Insania #vrmmo #isekai/media-world"
 		],
 		"heroName": [
-			"Adam #litrpg #system-apocalypse #villainess #regression",
-			"Andy #litrpg #system-apocalypse #villainess #regression",
-			"Amelia #litrpg #system-apocalypse #villainess #regression",
-			"Chloe #litrpg #system-apocalypse #villainess #regression",
-			"Clara #litrpg #system-apocalypse #villainess #regression",
-			"Teren #litrpg #system-apocalypse #villainess #regression",
-			"Teresa #litrpg #system-apocalypse #villainess #regression",
-			"Tori #litrpg #system-apocalypse #villainess #regression",
-			"Emie #litrpg #system-apocalypse #villainess #regression",
-			"Nyx #litrpg #system-apocalypse #villainess #regression",
-			"Yona #litrpg #system-apocalypse #villainess #regression",
-			"Ajax #litrpg #system-apocalypse #villainess #regression",
-			"Derek #litrpg #system-apocalypse #villainess #regression",
-			"Jake #litrpg #system-apocalypse #villainess #regression",
-			"Jane #litrpg #system-apocalypse #villainess #regression",
-			"Joan #litrpg #system-apocalypse #villainess #regression",
-			"Howard #litrpg #system-apocalypse #villainess #regression",
-			"Dave #litrpg #system-apocalypse #villainess #regression"
+			"@hero #litrpg #system-apocalypse #villainess #regression"
 		],
 		"loopWord": [
 			"Lost #regression",
