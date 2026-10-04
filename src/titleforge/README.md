@@ -135,16 +135,40 @@ itself plus its ancestors (a `#hist`-only pattern is eligible under *Western*);
 selecting a **parent** reaches itself plus every descendant (a
 `#western`-only pattern is eligible under *Historical*). A middle-level parent
 (`dungeon`) reaches its descendants and then its ancestors, so it still inherits
-its own parent's patterns; for its vocabulary, a slot with nothing tagged in its
-subtree falls back to the ancestors leaf-style (`GenreNarrowing.inherit`). Pattern eligibility
-(`eligiblePatterns`) is a straight membership test against that scope.
-Lexicon vocabulary is more careful, because "union everything" would make a
-richly-authored subgenre indistinguishable from a starved one: a subgenre
-selection uses **most-specific-tag-present-wins** (`narrowLeaf` — the first
-tag in the chain that matches anything in a given slot wins outright, so
-adding one `#western` word makes that one slot Western-only while every other
-slot keeps falling back to `#hist`), while a parent selection uses a plain
-**union** of self plus every descendant (`narrowParent`).
+its own parent's patterns. Pattern eligibility (`eligiblePatterns`) is a
+straight membership test against that scope.
+
+#### Vocabulary is additive
+
+A genre's own words are **added** to a shared pool rather than replacing it
+(`blendSlot` in `engine/generate.ts`). Each slot a draw uses combines three tiers,
+each entry in its highest tier only:
+
+| Tier | What's in it |
+|---|---|
+| own | entries tagged with the genre (for a parent selection: with itself or any descendant) |
+| inherited | each ancestor's **lexicon**, nearest first: entries tagged with the parent, **or with 2+ of the parent's subgenres** |
+| general | entries whose tags span **2+ top-level genres** (a subgenre tag counts towards its top genre), or that carry no genre tag |
+
+So `scaffold [hist, horror, epic, heroic-fantasy, sword-sorcery, urban-fantasy]`
+is in fantasy's lexicon (four fantasy subgenres) and on the general list
+(hist + horror + fantasy). Both rules are derived at draw time (`inParentLexicon`,
+`isGeneralEntry`), so a new word follows them with no extra tagging.
+
+The tiers split each draw by `vocabularyBlend` (default 55% own, 30% inherited,
+15% general; nearer ancestors weigh more). Empty tiers are renormalised away.
+A tier with fewer than `fullTier` (8) words gets a proportional cut, so a genre
+with one own word doesn't hand that word half of every draw. A slot where a genre
+has nothing of its own or inherited stays genre-neutral, and the whole slot is
+drawn, as before. Opt-outs: `GenreOption.isolated` skips the general list (webnovel
+`romance`), and `GeneratorSpec.exclusiveSlots` keeps the older exclusive narrowing
+(`narrowLeaf`/`narrowParent`) for named slots.
+
+Consequence for tagging: **multi-genre tags make a word general**. A word that must
+stay in one register (galaxy, gun) is tagged within one top-level genre only.
+`npm run titleforge:pools` (`tools/vocab-pools.ts`) writes `tools/VOCAB-POOLS.md`,
+with before/after pool sizes, every promotion each rule makes, the untagged
+entries to audit, and sample titles per genre.
 
 This is what makes a new subgenre cheap: declare `{ id: "regency", parent:
 "hist" }` with zero lexemes and zero patterns of its own, and it already
@@ -156,7 +180,8 @@ flagged unreachable as long as its parent has patterns.
 
 Run `npm run titleforge:coverage` (`tools/genre-coverage.ts`) to see, per
 generator, every genre's eligible-pattern count, its own-tagged lexeme count,
-how much more it can reach by inheritance, and a `THIN`/`inherits only` flag —
+how much more it can reach by inheritance, the smallest pool a draw sees
+(`min pool`, with its slot), and `THIN`/`inherits only`/`THIN POOL` flags —
 the "easy to see what needs expanding" half of this feature. It exits
 non-zero if any declared genre is genuinely unreachable, so it can gate CI.
 

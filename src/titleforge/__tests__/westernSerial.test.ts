@@ -39,7 +39,8 @@ describe("genreExclusions", () => {
 	it("drops entries carrying only the excluded tag, keeps ones that also carry an in-scope tag", () => {
 		const glosses = (genre: string) => scopedLexicon(fixture(), genre).noun.map((e) => e.gloss).sort();
 		expect(glosses("isekai")).toEqual(["Portal", "Sect"]);
-		expect(glosses("isekai/rebirth")).toEqual(["Portal"]);
+		// Sect also reaches isekai/rebirth through its parent's lexicon (it's tagged #isekai).
+		expect(glosses("isekai/rebirth")).toEqual(["Portal", "Sect"]);
 		expect(glosses("cultivation")).toEqual(["Qi", "Sect"]);
 	});
 
@@ -106,6 +107,11 @@ describe("western-serial — webnovel v1.2.0", () => {
 				expect(r.title, `${genre} seed ${seed}`).not.toMatch(cultivationWord);
 			}
 		}
+	});
+
+	it("isekai draws on the general role list, romance never does", () => {
+		expect(scopedLexicon(spec, "isekai").role.length).toBeGreaterThanOrEqual(15);
+		expect(scopedLexicon(spec, "romance").role.map((e) => e.gloss).sort()).toEqual(["Bad Boy", "Billionaire"]);
 	});
 
 	it("ships no bracket tags and no thin genres in the picker", () => {

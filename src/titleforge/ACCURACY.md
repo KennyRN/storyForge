@@ -391,3 +391,56 @@ Everything below is a call the brief left open, or a place where two of its rule
 - dungeon-core and dungeon-crawler have no vocabulary or patterns of their own (the monster+ entries
   cover both), so they produce identical output.
 - `{role} of the {calamity}` with *Doom* reads "Mage of the Doom".
+
+## All lexicons — additive vocabulary model (own + parent + general)
+
+Kenny's rules: genre words are **added** to a shared pool rather than replacing it.
+- An entry tagged with 2+ subgenres of a parent belongs to that parent's lexicon.
+- An entry spanning 2+ top-level genres (subgenre tags count towards their top genre) is on the
+  general list.
+
+Engine details are in the README ("Vocabulary is additive"). This entry logs the decisions the
+rules couldn't make on their own.
+
+**Engine calls beyond the brief:**
+- *Thin-tier cut (`fullTier` = 8).* The first cut gave a genre's sole own word the whole 55% own
+  share: sword-sorcery's "Speaker" came up in 55% of draws, and isekai's Summoner and Bureaucrat
+  in 39% each. A tier now earns its full share only at 8 words. Speaker is now 13%, and isekai's
+  two are 24% each.
+- *Genre-neutral fallback widened.* When a genre has nothing of its own or inherited in a slot,
+  the whole slot is drawn, as before. Without this, those cells shrank to the general list, and
+  korean/chinese/vietnamese came out *thinner* than under the old model.
+
+**Untagged-entry audit.** Untagged entries are general by definition. All were kept general except
+these, which would leak into the wrong register:
+- place `galaxy`, `expanse`, `universe`, `space` → `#sf`
+- abstract `magic` → `#fantasy`; `jazz` → `#crime #noir`
+- object `bomb` → `#thriller`; `gun` → `#crime`
+
+Each is tagged within one top-level genre, deliberately: a multi-genre tag would put it straight
+back on the general list. The korean and chinese untagged entries (`Strongest`, `Dragon`,
+`Phoenix`…) are register-neutral within their tradition and stay general.
+
+**webnovel.**
+- `romance` is `isolated`: it never draws the general list, so its roles stay Bad Boy and
+  Billionaire.
+- isekai's role pool went from 2 to 17 with no hand-tagging. Mage, Summoner, Necromancer and the
+  rest span 2+ top-level genres, so they're general. This resolves the v1.2.0 open item.
+- The v1.2.0 villainess/regression stopgap tags now also decide general-list membership. Reviewed
+  and kept.
+- Cultivator and Sect Elder stay single-genre `#cultivation`. The isekai exclusion runs before the
+  tiers, so multi-genre cultivation words (Rooster, Chicken Farming) are still dropped there.
+
+**Result** (`tools/VOCAB-POOLS.md`, thin = fewer than 8 words in a slot a genre's patterns use):
+
+| Lexicon | Thin before | Thin after |
+|---|--:|--:|
+| title-composer | 1,075 | 347 |
+| western-serial | 81 | 42 |
+| thai-web | 20 | 6 |
+
+No lexicon got thinner. What's left is mostly function-word slots (`countWord`, `storyWord`,
+`honorific`, `warning`, `ascentLead`…), which are step 3's worklist.
+
+**Seen in passing, not fixed:** title-composer world-fiction can produce real titles verbatim
+("Season of Migration to the North"). title-composer has no `reservedTitles` list.
