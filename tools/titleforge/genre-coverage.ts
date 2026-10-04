@@ -8,15 +8,15 @@
  * count looks too small to carry a genre on its own, and the smallest pool a draw actually sees
  * across the slots its patterns use (THIN POOL below `THIN_POOL`).
  *
- * Run with `npx tsx src/titleforge/tools/genre-coverage.ts` (or `npm run titleforge:coverage`).
+ * Run with `npx tsx tools/titleforge/genre-coverage.ts` (or `npm run titleforge:coverage`).
  * Exits non-zero if any declared genre is unreachable (no eligible patterns at all), so it can
  * gate CI the same way a failing test would.
  */
 import { fileURLToPath } from "node:url";
-import { eligiblePatterns, genreScope, scopedLexicon } from "../engine/generate.js";
-import { normaliseLexicon } from "../engine/lexicon.js";
-import type { GeneratorSpec, GenreOption } from "../engine/types.js";
-import { ALL_TITLEFORGE_LEXICONS } from "../lexicons/index.js";
+import { eligiblePatterns, genreScope, scopedLexicon } from "../../src/titleforge/engine/generate.js";
+import { normaliseLexicon } from "../../src/titleforge/engine/lexicon.js";
+import type { GeneratorSpec, GenreOption } from "../../src/titleforge/engine/types.js";
+import { ALL_TITLEFORGE_LEXICONS } from "../../src/titleforge/lexicons/index.js";
 import { poolSize, THIN_POOL, usedSlots } from "./vocab-pools.js";
 
 /** Below this many own-tagged lexemes, a genre is flagged THIN even if it has eligible patterns

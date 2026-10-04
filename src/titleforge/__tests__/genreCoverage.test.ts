@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GeneratorSpec } from "../engine/types.js";
-import { countTagged, reportGenerator, THIN_LEXEME_THRESHOLD } from "../tools/genre-coverage.js";
+import { countTagged, reportGenerator, THIN_LEXEME_THRESHOLD } from "../../../tools/titleforge/genre-coverage.js";
 
 /** A small synthetic spec exercising every row shape the reporter distinguishes: a parent with
  * plenty of its own material, a subgenre with none ("inherits only"), a subgenre with a little
