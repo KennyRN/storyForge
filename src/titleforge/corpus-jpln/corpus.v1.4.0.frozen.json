@@ -1,0 +1,1109 @@
+{
+  "corpus": "jpln-localised",
+  "version": "1.4.0",
+  "total": 141,
+  "sha256": "9e29c7fb33488f6261b8ce05c3ade387142eefed57f0af4c2364e8549e782f20",
+  "tiers": {
+    "T2": 111,
+    "T1": 28,
+    "T3": 2
+  },
+  "isekai": 75,
+  "villainess": 27,
+  "records": [
+    {
+      "id": "100-girlfriends",
+      "title": "The 100 Girlfriends Who Really, Really, Really, Really, Really Love You",
+      "lane": "harem",
+      "tags": [
+        "comedy"
+      ]
+    },
+    {
+      "id": "7th-loop",
+      "title": "7th Time Loop: The Villainess Enjoys a Carefree Life Married to Her Worst Enemy!",
+      "lane": "villainess",
+      "tags": [
+        "romance",
+        "time-loop"
+      ]
+    },
+    {
+      "id": "adachi-shimamura",
+      "title": "Adachi and Shimamura",
+      "lane": "bl-gl",
+      "tags": [
+        "gl",
+        "school"
+      ]
+    },
+    {
+      "id": "allworks-maid",
+      "title": "Heroine? Saint? No, I'm an All-Works Maid (and Proud of It)!",
+      "lane": "villainess",
+      "tags": [
+        "comedy",
+        "otome"
+      ]
+    },
+    {
+      "id": "am-i-saint",
+      "title": "Am I a Saint? No, I'm the Villainess!",
+      "lane": "villainess",
+      "tags": [
+        "otome"
+      ]
+    },
+    {
+      "id": "angel-next-door",
+      "title": "The Angel Next Door Spoils Me Rotten",
+      "lane": "romcom",
+      "tags": [
+        "school"
+      ]
+    },
+    {
+      "id": "another",
+      "title": "Another",
+      "lane": "horror",
+      "tags": [
+        "mystery"
+      ]
+    },
+    {
+      "id": "another-note",
+      "title": "Death Note: Another Note",
+      "lane": "mystery",
+      "tags": [
+        "brand-subtitle"
+      ]
+    },
+    {
+      "id": "apothecary",
+      "title": "The Apothecary Diaries",
+      "lane": "mystery",
+      "tags": [
+        "slice"
+      ]
+    },
+    {
+      "id": "arifureta",
+      "title": "From Commonplace to World's Strongest",
+      "lane": "iso-cheat",
+      "tags": [
+        "brand-subtitle",
+        "harem"
+      ]
+    },
+    {
+      "id": "aristocrat-reborn",
+      "title": "Chronicles of an Aristocrat Reborn in Another World",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "comedy"
+      ]
+    },
+    {
+      "id": "average",
+      "title": "Didn't I Say to Make My Abilities Average in the Next Life?!",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "comedy"
+      ]
+    },
+    {
+      "id": "avoid-unhappy",
+      "title": "The Villainess and Villain Try to Avoid Another Unhappy Ending",
+      "lane": "villainess",
+      "tags": []
+    },
+    {
+      "id": "aynik",
+      "title": "All You Need Is Kill",
+      "lane": "sf",
+      "tags": [
+        "time-loop"
+      ]
+    },
+    {
+      "id": "backstabbed",
+      "title": "Backstabbed in a Backwater Dungeon: My Trusted Companions Tried to Kill Me, But Thanks to the Gift of an Unlimited Gacha I Got LVL 9999 Friends and Am Out For Revenge on My Former Party Members and the World",
+      "lane": "iso-cheat",
+      "tags": [
+        "dungeon",
+        "exiled"
+      ]
+    },
+    {
+      "id": "banished-quiet",
+      "title": "Banished from the Hero's Party, I Decided to Live a Quiet Life in the Countryside",
+      "lane": "iso-slowlife",
+      "tags": [
+        "exiled"
+      ]
+    },
+    {
+      "id": "bibliophile-princess",
+      "title": "Bibliophile Princess",
+      "lane": "villainess",
+      "tags": [
+        "otome",
+        "romance"
+      ]
+    },
+    {
+      "id": "black-summoner",
+      "title": "Black Summoner",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "cheat"
+      ]
+    },
+    {
+      "id": "bofuri",
+      "title": "I Don't Want to Get Hurt, so I'll Max Out My Defense",
+      "lane": "vrmmo",
+      "tags": [
+        "brand-subtitle",
+        "comedy"
+      ]
+    },
+    {
+      "id": "boogiepop",
+      "title": "Boogiepop and Others",
+      "lane": "sf",
+      "tags": [
+        "horror",
+        "mystery"
+      ]
+    },
+    {
+      "id": "bookworm",
+      "title": "Ascendance of a Bookworm",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "slowlife"
+      ]
+    },
+    {
+      "id": "breakup-plan",
+      "title": "Breaking Up Was the Plan, the Duke Falling For the Villainess Was Not!",
+      "lane": "villainess",
+      "tags": [
+        "romance"
+      ]
+    },
+    {
+      "id": "buck-naked",
+      "title": "Buck Naked in Another World",
+      "lane": "iso-transported",
+      "tags": []
+    },
+    {
+      "id": "bunny-girl",
+      "title": "Rascal Does Not Dream of Bunny Girl Senpai",
+      "lane": "romcom",
+      "tags": [
+        "school",
+        "supernatural"
+      ]
+    },
+    {
+      "id": "by-grace-gods",
+      "title": "By the Grace of the Gods",
+      "lane": "iso-slowlife",
+      "tags": []
+    },
+    {
+      "id": "campfire",
+      "title": "Campfire Cooking in Another World with My Absurd Skill",
+      "lane": "iso-slowlife",
+      "tags": [
+        "cheat"
+      ]
+    },
+    {
+      "id": "chillin-lvl2",
+      "title": "Chillin' in Another World with Level 2 Super Cheat Powers",
+      "lane": "iso-cheat",
+      "tags": [
+        "slowlife"
+      ]
+    },
+    {
+      "id": "condemned-villainess",
+      "title": "The Condemned Villainess Goes Back in Time and Aims to Become the Ultimate Villain",
+      "lane": "villainess",
+      "tags": [
+        "time-loop"
+      ]
+    },
+    {
+      "id": "cooking-wild-game",
+      "title": "Cooking with Wild Game",
+      "lane": "iso-slowlife",
+      "tags": []
+    },
+    {
+      "id": "cote",
+      "title": "Classroom of the Elite",
+      "lane": "romcom",
+      "tags": [
+        "school"
+      ]
+    },
+    {
+      "id": "cross-dressing-cecilia",
+      "title": "Cross-Dressing Villainess Cecilia Sylvie",
+      "lane": "villainess",
+      "tags": [
+        "otome"
+      ]
+    },
+    {
+      "id": "danmachi",
+      "title": "Is It Wrong to Try to Pick Up Girls in a Dungeon?",
+      "lane": "dungeon",
+      "tags": [
+        "fantasy"
+      ]
+    },
+    {
+      "id": "dating-sim-mobs",
+      "title": "Trapped in a Dating Sim: The World of Otome Games is Tough for Mobs",
+      "lane": "villainess",
+      "tags": [
+        "brand-subtitle",
+        "comedy",
+        "otome"
+      ]
+    },
+    {
+      "id": "death-march",
+      "title": "Death March to the Parallel World Rhapsody",
+      "lane": "iso-transported",
+      "tags": []
+    },
+    {
+      "id": "demon-knight",
+      "title": "The Villainess and the Demon Knight",
+      "lane": "villainess",
+      "tags": [
+        "romance"
+      ]
+    },
+    {
+      "id": "demon-lords-tale",
+      "title": "A Demon Lord's Tale: Dungeons, Monster Girls, and Heartwarming Bliss",
+      "lane": "iso-slowlife",
+      "tags": [
+        "dungeon",
+        "harem"
+      ]
+    },
+    {
+      "id": "dendrogram",
+      "title": "Infinite Dendrogram",
+      "lane": "vrmmo",
+      "tags": []
+    },
+    {
+      "id": "der-werwolf",
+      "title": "The Annals of Veight",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "nonhuman"
+      ]
+    },
+    {
+      "id": "devil-parttimer",
+      "title": "The Devil Is a Part-Timer!",
+      "lane": "iso-transported",
+      "tags": [
+        "comedy",
+        "reverse-isekai"
+      ]
+    },
+    {
+      "id": "division-maneuver",
+      "title": "Division Maneuver",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "sf"
+      ]
+    },
+    {
+      "id": "dragon-hatchling",
+      "title": "Reincarnated as a Dragon Hatchling",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "nonhuman"
+      ]
+    },
+    {
+      "id": "drugstore",
+      "title": "Drugstore in Another World: The Slow Life of a Cheat Pharmacist",
+      "lane": "iso-slowlife",
+      "tags": [
+        "brand-subtitle",
+        "cheat"
+      ]
+    },
+    {
+      "id": "dungeon-dive",
+      "title": "Dungeon Dive: Aim for the Deepest Level",
+      "lane": "iso-cheat",
+      "tags": [
+        "brand-subtitle",
+        "dungeon"
+      ]
+    },
+    {
+      "id": "dungeon-elf",
+      "title": "Dungeon Elf: What's a Dungeon without Treasure Chests?",
+      "lane": "dungeon",
+      "tags": [
+        "brand-subtitle"
+      ]
+    },
+    {
+      "id": "dxd",
+      "title": "High School DxD",
+      "lane": "harem",
+      "tags": [
+        "ecchi",
+        "school"
+      ]
+    },
+    {
+      "id": "eminence-shadow",
+      "title": "The Eminence in Shadow",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "comedy",
+        "dark"
+      ]
+    },
+    {
+      "id": "empire-corpses",
+      "title": "The Empire of Corpses",
+      "lane": "sf",
+      "tags": [
+        "historical"
+      ]
+    },
+    {
+      "id": "even-dogs",
+      "title": "Even Dogs Go to Other Worlds",
+      "lane": "iso-slowlife",
+      "tags": [
+        "nonhuman"
+      ]
+    },
+    {
+      "id": "evil-lord-empire",
+      "title": "I'm the Evil Lord of an Intergalactic Empire!",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "sf",
+        "villainess"
+      ]
+    },
+    {
+      "id": "exiled-villainess",
+      "title": "I Was Exiled as a Villainess!",
+      "lane": "villainess",
+      "tags": [
+        "exiled"
+      ]
+    },
+    {
+      "id": "failure-frame",
+      "title": "Failure Frame: I Became the Strongest and Annihilated Everything With Low-Level Spells",
+      "lane": "iso-cheat",
+      "tags": [
+        "brand-subtitle",
+        "dark"
+      ]
+    },
+    {
+      "id": "fallen-daughter",
+      "title": "Formerly, the Fallen Daughter of the Duke",
+      "lane": "villainess",
+      "tags": []
+    },
+    {
+      "id": "faraway-paladin",
+      "title": "The Faraway Paladin",
+      "lane": "fantasy",
+      "tags": []
+    },
+    {
+      "id": "farming-life",
+      "title": "Farming Life in Another World",
+      "lane": "iso-slowlife",
+      "tags": []
+    },
+    {
+      "id": "finest-assassin",
+      "title": "The World's Finest Assassin Gets Reincarnated in Another World as an Aristocrat",
+      "lane": "iso-reincarnation",
+      "tags": []
+    },
+    {
+      "id": "gear-x-magic",
+      "title": "Gear x Magic: Reincarnated as an Engineer, I'll Save the Villainous Princess",
+      "lane": "iso-cheat",
+      "tags": [
+        "brand-subtitle",
+        "villainess"
+      ]
+    },
+    {
+      "id": "goblin-slayer",
+      "title": "Goblin Slayer",
+      "lane": "fantasy",
+      "tags": [
+        "dark"
+      ]
+    },
+    {
+      "id": "goodbye-overtime",
+      "title": "Goodbye, Overtime! This Reincarnated Villainess Is Living for Her New Big Brother",
+      "lane": "villainess",
+      "tags": [
+        "comedy"
+      ]
+    },
+    {
+      "id": "goth",
+      "title": "Goth",
+      "lane": "horror",
+      "tags": []
+    },
+    {
+      "id": "greatest-demon-lord",
+      "title": "The Greatest Demon Lord Is Reborn as a Typical Nobody",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "comedy"
+      ]
+    },
+    {
+      "id": "grimgar",
+      "title": "Grimgar of Fantasy and Ash",
+      "lane": "iso-transported",
+      "tags": []
+    },
+    {
+      "id": "hero-summons",
+      "title": "I Got Caught Up in a Hero Summons, but the Other World Was at Peace!",
+      "lane": "iso-transported",
+      "tags": [
+        "comedy"
+      ]
+    },
+    {
+      "id": "heros-friend",
+      "title": "Reincarnated Into a Game as the Hero's Friend: Running the Kingdom Behind the Scenes",
+      "lane": "kingdom-building",
+      "tags": [
+        "brand-subtitle"
+      ]
+    },
+    {
+      "id": "how-not-summon",
+      "title": "How NOT to Summon a Demon Lord",
+      "lane": "iso-transported",
+      "tags": [
+        "comedy",
+        "harem",
+        "vrmmo"
+      ]
+    },
+    {
+      "id": "inept-villainess",
+      "title": "Though I Am an Inept Villainess",
+      "lane": "villainess",
+      "tags": []
+    },
+    {
+      "id": "isekai-tensei-recruited",
+      "title": "Recruited to Another World",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "brand-subtitle",
+        "cheat"
+      ]
+    },
+    {
+      "id": "kino",
+      "title": "Kino's Journey -the Beautiful World-",
+      "lane": "slice",
+      "tags": []
+    },
+    {
+      "id": "konosuba",
+      "title": "God's Blessing on This Wonderful World!",
+      "lane": "iso-transported",
+      "tags": [
+        "brand-subtitle",
+        "comedy"
+      ]
+    },
+    {
+      "id": "land-mines",
+      "title": "To Another World... with Land Mines!",
+      "lane": "iso-transported",
+      "tags": []
+    },
+    {
+      "id": "lazy-dungeon-master",
+      "title": "Lazy Dungeon Master",
+      "lane": "iso-transported",
+      "tags": [
+        "dungeon"
+      ]
+    },
+    {
+      "id": "leadale",
+      "title": "In the Land of Leadale",
+      "lane": "vrmmo",
+      "tags": [
+        "isekai"
+      ]
+    },
+    {
+      "id": "legend-sword-saint",
+      "title": "Legend of the Accidental Sword Saint: Playing the Mentor from the Sidelines",
+      "lane": "iso-cheat",
+      "tags": [
+        "brand-subtitle"
+      ]
+    },
+    {
+      "id": "like-villains-reincarnated",
+      "title": "I Like Villains, so I Reincarnated as One",
+      "lane": "villainess",
+      "tags": [
+        "isekai"
+      ]
+    },
+    {
+      "id": "lodoss",
+      "title": "Record of Lodoss War",
+      "lane": "fantasy",
+      "tags": []
+    },
+    {
+      "id": "log-horizon",
+      "title": "Log Horizon",
+      "lane": "vrmmo",
+      "tags": []
+    },
+    {
+      "id": "logh",
+      "title": "Legend of the Galactic Heroes",
+      "lane": "sf",
+      "tags": []
+    },
+    {
+      "id": "loner-life",
+      "title": "Loner Life in Another World",
+      "lane": "dungeon",
+      "tags": []
+    },
+    {
+      "id": "love-villainess",
+      "title": "I'm in Love with the Villainess",
+      "lane": "villainess",
+      "tags": [
+        "gl"
+      ]
+    },
+    {
+      "id": "magic-maker",
+      "title": "Magic Maker: How to Create Magic in Another World",
+      "lane": "iso-cheat",
+      "tags": [
+        "brand-subtitle"
+      ]
+    },
+    {
+      "id": "magic-user-reborn",
+      "title": "Magic User: Reborn in Another World as a Max Level Wizard",
+      "lane": "iso-cheat",
+      "tags": [
+        "brand-subtitle"
+      ]
+    },
+    {
+      "id": "might-as-well-cheat",
+      "title": "Might as Well Cheat: I Got Transported to Another World Where I Can Live My Wildest Dreams!",
+      "lane": "iso-cheat",
+      "tags": [
+        "brand-subtitle"
+      ]
+    },
+    {
+      "id": "modern-villainess",
+      "title": "Modern Villainess: It's Not Easy Building a Corporate Empire Before the Crash",
+      "lane": "villainess",
+      "tags": [
+        "brand-subtitle",
+        "comedy"
+      ]
+    },
+    {
+      "id": "mushoku-tensei",
+      "title": "Jobless Reincarnation",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "brand-subtitle",
+        "seinen"
+      ]
+    },
+    {
+      "id": "my-isekai-life",
+      "title": "My Isekai Life: I Gained a Second Character Class and Became the Strongest Sage in the World!",
+      "lane": "iso-cheat",
+      "tags": [
+        "brand-subtitle"
+      ]
+    },
+    {
+      "id": "new-gate",
+      "title": "The New Gate",
+      "lane": "system",
+      "tags": []
+    },
+    {
+      "id": "newlife",
+      "title": "New Life+: Young Again in Another World",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "brand-subtitle"
+      ]
+    },
+    {
+      "id": "now-demon-lord",
+      "title": "Now I'm a Demon Lord! Happily Ever After with Monster Girls in My Dungeon",
+      "lane": "iso-slowlife",
+      "tags": [
+        "dungeon",
+        "harem"
+      ]
+    },
+    {
+      "id": "oregairu",
+      "title": "My Youth Romantic Comedy Is Wrong, As I Expected",
+      "lane": "romcom",
+      "tags": [
+        "school"
+      ]
+    },
+    {
+      "id": "oreimo",
+      "title": "My Little Sister Can't Be This Cute!",
+      "lane": "romcom",
+      "tags": []
+    },
+    {
+      "id": "otherworldly-munchkin",
+      "title": "Otherworldly Munchkin: Let's Speedrun the Dungeon with Only 1 HP!",
+      "lane": "iso-cheat",
+      "tags": [
+        "brand-subtitle",
+        "dungeon"
+      ]
+    },
+    {
+      "id": "overlord",
+      "title": "Overlord",
+      "lane": "vrmmo",
+      "tags": [
+        "dark"
+      ]
+    },
+    {
+      "id": "oversummoned",
+      "title": "Oversummoned, Overpowered, and Over It!",
+      "lane": "iso-transported",
+      "tags": [
+        "cheat"
+      ]
+    },
+    {
+      "id": "piggy-duke",
+      "title": "Reincarnated as the Piggy Duke: This Time I'm Gonna Tell Her How I Feel!",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "brand-subtitle",
+        "villainess"
+      ]
+    },
+    {
+      "id": "prodigies",
+      "title": "High School Prodigies Have It Easy Even in Another World",
+      "lane": "iso-transported",
+      "tags": [
+        "cheat"
+      ]
+    },
+    {
+      "id": "proud-villainess",
+      "title": "Proud to Be the Villainess",
+      "lane": "villainess",
+      "tags": []
+    },
+    {
+      "id": "pupil-wise-man",
+      "title": "She Professed Herself Pupil of the Wise Man",
+      "lane": "iso-cheat",
+      "tags": [
+        "vrmmo"
+      ]
+    },
+    {
+      "id": "quiet-blacksmith",
+      "title": "My Quiet Blacksmith Life in Another World",
+      "lane": "iso-slowlife",
+      "tags": [
+        "crafting"
+      ]
+    },
+    {
+      "id": "re-monster",
+      "title": "Re:Monster",
+      "lane": "system",
+      "tags": [
+        "nonhuman"
+      ]
+    },
+    {
+      "id": "re-re",
+      "title": "Re:RE — Reincarnator Executioner",
+      "lane": "iso-reincarnation",
+      "tags": []
+    },
+    {
+      "id": "realist-hero",
+      "title": "How a Realist Hero Rebuilt the Kingdom",
+      "lane": "kingdom-building",
+      "tags": []
+    },
+    {
+      "id": "reborn-assassin-apprentice",
+      "title": "Reborn as an Assassin's Apprentice",
+      "lane": "iso-reincarnation",
+      "tags": []
+    },
+    {
+      "id": "reborn-master-blade",
+      "title": "Reborn to Master the Blade: From Hero-King to Extraordinary Squire",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "brand-subtitle"
+      ]
+    },
+    {
+      "id": "record-wortenia",
+      "title": "Record of Wortenia War",
+      "lane": "iso-transported",
+      "tags": []
+    },
+    {
+      "id": "refuse-enemy",
+      "title": "I Refuse to Be Your Enemy!",
+      "lane": "villainess",
+      "tags": []
+    },
+    {
+      "id": "reincarnated-princess-routes",
+      "title": "The Reincarnated Princess Spends Another Day Skipping Story Routes",
+      "lane": "villainess",
+      "tags": [
+        "otome"
+      ]
+    },
+    {
+      "id": "reincarnated-sword",
+      "title": "Reincarnated as a Sword",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "nonhuman"
+      ]
+    },
+    {
+      "id": "restaurant-another-world",
+      "title": "Restaurant to Another World",
+      "lane": "iso-slowlife",
+      "tags": []
+    },
+    {
+      "id": "rezero",
+      "title": "Re:Zero − Starting Life in Another World",
+      "lane": "iso-transported",
+      "tags": [
+        "dark",
+        "seinen"
+      ]
+    },
+    {
+      "id": "role-over",
+      "title": "My Role As The Villainess Is Over!",
+      "lane": "villainess",
+      "tags": []
+    },
+    {
+      "id": "saekano",
+      "title": "How to Raise a Boring Girlfriend",
+      "lane": "romcom",
+      "tags": [
+        "brand-subtitle"
+      ]
+    },
+    {
+      "id": "sao",
+      "title": "Sword Art Online",
+      "lane": "vrmmo",
+      "tags": []
+    },
+    {
+      "id": "saved-potion",
+      "title": "I Saved Myself with a Potion!: Life in Another World",
+      "lane": "iso-cheat",
+      "tags": [
+        "brand-subtitle"
+      ]
+    },
+    {
+      "id": "saving-80k-gold",
+      "title": "Saving 80,000 Gold in Another World for My Retirement",
+      "lane": "iso-slowlife",
+      "tags": [
+        "comedy"
+      ]
+    },
+    {
+      "id": "screwed-up-girl",
+      "title": "This Is Screwed Up, but I Was Reincarnated as a Girl in Another World!",
+      "lane": "iso-reincarnation",
+      "tags": []
+    },
+    {
+      "id": "seirei-gensouki",
+      "title": "Spirit Chronicles",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "brand-subtitle"
+      ]
+    },
+    {
+      "id": "shield-hero",
+      "title": "The Rising of the Shield Hero",
+      "lane": "iso-transported",
+      "tags": []
+    },
+    {
+      "id": "skeleton-knight",
+      "title": "Skeleton Knight in Another World",
+      "lane": "iso-transported",
+      "tags": []
+    },
+    {
+      "id": "slime",
+      "title": "That Time I Got Reincarnated as a Slime",
+      "lane": "iso-reincarnation",
+      "tags": []
+    },
+    {
+      "id": "slimes-300",
+      "title": "I've Been Killing Slimes for 300 Years and Maxed Out My Level",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "comedy",
+        "slowlife"
+      ]
+    },
+    {
+      "id": "slow-life-wish",
+      "title": "Slow Life in Another World (I Wish!)",
+      "lane": "iso-slowlife",
+      "tags": []
+    },
+    {
+      "id": "smartphone",
+      "title": "In Another World With My Smartphone",
+      "lane": "iso-transported",
+      "tags": [
+        "cheat"
+      ]
+    },
+    {
+      "id": "spice-wolf",
+      "title": "Spice and Wolf",
+      "lane": "fantasy",
+      "tags": []
+    },
+    {
+      "id": "spider",
+      "title": "So I'm a Spider, So What?",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "comedy",
+        "nonhuman"
+      ]
+    },
+    {
+      "id": "sponger",
+      "title": "The Ideal Sponger Life",
+      "lane": "iso-slowlife",
+      "tags": [
+        "comedy"
+      ]
+    },
+    {
+      "id": "survival-mistress",
+      "title": "Survival in Another World with My Mistress!",
+      "lane": "iso-transported",
+      "tags": [
+        "survival"
+      ]
+    },
+    {
+      "id": "survive-potions",
+      "title": "I Shall Survive Using Potions!",
+      "lane": "iso-cheat",
+      "tags": []
+    },
+    {
+      "id": "taming-final-boss",
+      "title": "I'm the Villainess, So I'm Taming the Final Boss",
+      "lane": "villainess",
+      "tags": [
+        "otome",
+        "romance"
+      ]
+    },
+    {
+      "id": "tanya",
+      "title": "The Saga of Tanya the Evil",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "dark",
+        "military",
+        "seinen"
+      ]
+    },
+    {
+      "id": "tearmoon",
+      "title": "Tearmoon Empire",
+      "lane": "villainess",
+      "tags": [
+        "time-loop"
+      ]
+    },
+    {
+      "id": "tomozaki",
+      "title": "Bottom-tier Character Tomozaki",
+      "lane": "romcom",
+      "tags": [
+        "school"
+      ]
+    },
+    {
+      "id": "train-childhood",
+      "title": "The Girl I Saved on the Train Turned Out to Be My Childhood Friend",
+      "lane": "romcom",
+      "tags": [
+        "school"
+      ]
+    },
+    {
+      "id": "undead-adventurer",
+      "title": "The Unwanted Undead Adventurer",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "nonhuman"
+      ]
+    },
+    {
+      "id": "vending-machine",
+      "title": "Reincarnated as a Vending Machine, I Now Wander the Dungeon",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "dungeon",
+        "nonhuman"
+      ]
+    },
+    {
+      "id": "villainess-doom",
+      "title": "My Next Life as a Villainess: All Routes Lead to Doom!",
+      "lane": "villainess",
+      "tags": [
+        "brand-subtitle",
+        "comedy",
+        "otome"
+      ]
+    },
+    {
+      "id": "villainess-lvl99",
+      "title": "Villainess Level 99: I May Be the Hidden Boss but I'm Not the Demon Lord",
+      "lane": "villainess",
+      "tags": [
+        "brand-subtitle",
+        "isekai"
+      ]
+    },
+    {
+      "id": "villainess-villain",
+      "title": "If the Villainess and Villain Met and Fell in Love",
+      "lane": "villainess",
+      "tags": [
+        "romance"
+      ]
+    },
+    {
+      "id": "vrmmo-dude",
+      "title": "A Playthrough of a Certain Dude's VRMMO Life",
+      "lane": "vrmmo",
+      "tags": [
+        "slowlife"
+      ]
+    },
+    {
+      "id": "welcome-japan-elf",
+      "title": "Welcome to Japan, Ms. Elf!",
+      "lane": "iso-transported",
+      "tags": [
+        "reverse-isekai"
+      ]
+    },
+    {
+      "id": "wild-last-boss",
+      "title": "A Wild Last Boss Appeared!",
+      "lane": "villainess",
+      "tags": [
+        "isekai"
+      ]
+    },
+    {
+      "id": "woof-woof",
+      "title": "Woof Woof Story: I Told You to Turn Me Into a Pampered Pooch, Not Fenrir!",
+      "lane": "iso-reincarnation",
+      "tags": [
+        "comedy",
+        "nonhuman"
+      ]
+    },
+    {
+      "id": "zeroth-maria",
+      "title": "The Empty Box and Zeroth Maria",
+      "lane": "horror",
+      "tags": [
+        "mystery"
+      ]
+    }
+  ]
+}

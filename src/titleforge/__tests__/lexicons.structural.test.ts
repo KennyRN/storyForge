@@ -35,6 +35,14 @@ describe("titleforge bundled lexicons — structural validation", () => {
 				expect(checkArticleAgreement(spec)).toEqual([]);
 			});
 
+			it("pluralises with {slot|plural}, never a literal {slot}s (which gives \"Centurys\")", () => {
+				for (const pattern of spec.patterns) {
+					for (const template of pattern.templates) {
+						expect(template, `${spec.id}/${pattern.id}`).not.toMatch(/\}s\b/);
+					}
+				}
+			});
+
 			it("every pattern has a non-empty note and exemplar", () => {
 				for (const pattern of spec.patterns) {
 					expect(pattern.note?.trim(), `${spec.id}/${pattern.id} note`).not.toBe("");

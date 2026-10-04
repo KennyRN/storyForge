@@ -527,3 +527,32 @@ within **one** top-level genre, so it can't leak through the general list ("Thy"
   to the North".
 - `{era}s` pluralises "Century" as "Centurys", and `Where the {animal}s {strikeVerb}` gives a plural
   subject a singular verb.
+
+## Grammar fixes and the real-title guard for title-composer and japanese-ln
+
+**Plurals.** Fifteen title-composer templates pluralised with a literal `{slot}s`, which gave
+"Centurys", "Ladys" and "childrens" (on entries that are already plural). They now use a `|plural`
+filter:
+- it pluralises the last word, including irregulars (wolf → wolves, child → children);
+- it leaves already-plural entries alone.
+
+A structural test rejects a literal `}s` in any lexicon.
+
+**Agreement.** `Where the {animal}s {strikeVerb}` paired a plural subject with a third-person verb
+("Where the Wolves Rises"). It's now `Where the {animal|plural} {strikeVerb|bare}`, where `|bare`
+gives the base form (rises → rise, watches → watch).
+
+**Real titles.** title-composer and japanese-ln now carry `reservedTitles`, like webnovel. Both are
+built by `tools/build-reserved.ts`:
+- title-composer (981 titles): its series and novel corpora (names, aliases, bracket-free and
+  pre-colon forms), its pattern exemplars, and 60 curated translated classics in the shapes its
+  world-fiction genres generate ("War and Peace", "Life and Fate", "Dead Souls", "Season of
+  Migration to the North").
+- japanese-ln (170 titles): its frozen v1.4.0 corpus, copied into `corpus-jpln/` from the
+  September handoff, plus its exemplars.
+
+This closes "Log Horizon", "Reincarnated as a Sword" and the world-fiction classics noted earlier.
+The curated classics list is a judgement call, kept in the builder so it's easy to extend.
+
+**Limit:** the guard matches titles exactly. A near-miss ("Life and Fates") isn't caught, and no
+list can hold every published title.
