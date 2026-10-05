@@ -157,7 +157,7 @@ export class TitleForgeStorage {
 			.getMarkdownFiles()
 			.filter((f) => f.path.startsWith(prefix))
 			.filter((f) => {
-				const type = this.app.metadataCache.getFileCache(f)?.frontmatter?.type;
+				const type: unknown = this.app.metadataCache.getFileCache(f)?.frontmatter?.type;
 				return typeof type === "string" && type !== "mix";
 			})
 			.sort((a, b) => a.basename.localeCompare(b.basename));

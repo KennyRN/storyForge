@@ -9,7 +9,6 @@
  *
  * Obsidian-free and import-free, like the rest of `engine/`.
  */
-/* eslint-disable */
 // ---------------------------------------------------------------------------
 // Boundary markers. These must never appear inside a real name; `^` and `$`
 // are safe for onomastic data.

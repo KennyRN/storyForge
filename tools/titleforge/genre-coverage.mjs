@@ -1,5 +1,5 @@
 /**
- * genre-coverage.ts — "easy to see what needs expanding" for the two-level genre model.
+ * genre-coverage.mjs — "easy to see what needs expanding" for the two-level genre model.
  *
  * Loads the bundled specs (never a vault copy — this reads `ALL_TITLEFORGE_LEXICONS` directly,
  * the same source `storage.ts` seeds out to the vault) and prints, per generator, one row per
@@ -8,37 +8,44 @@
  * count looks too small to carry a genre on its own, and the smallest pool a draw actually sees
  * across the slots its patterns use (THIN POOL below `THIN_POOL`).
  *
- * Run with `npx tsx src/titleforge/tools/genre-coverage.ts` (or `npm run titleforge:coverage`).
+ * Run with `npx tsx tools/titleforge/genre-coverage.mjs` (or `npm run titleforge:coverage`).
  * Exits non-zero if any declared genre is unreachable (no eligible patterns at all), so it can
  * gate CI the same way a failing test would.
  */
 import { fileURLToPath } from "node:url";
-import { eligiblePatterns, genreScope, scopedLexicon } from "../engine/generate.js";
-import { normaliseLexicon } from "../engine/lexicon.js";
-import type { GeneratorSpec, GenreOption } from "../engine/types.js";
-import { ALL_TITLEFORGE_LEXICONS } from "../lexicons/index.js";
-import { poolSize, THIN_POOL, usedSlots } from "./vocab-pools.js";
+import { eligiblePatterns, genreScope, scopedLexicon } from "../../src/titleforge/engine/generate.ts";
+import { normaliseLexicon } from "../../src/titleforge/engine/lexicon.ts";
+import { ALL_TITLEFORGE_LEXICONS } from "../../src/titleforge/lexicons/index.ts";
+import { poolSize, THIN_POOL, usedSlots } from "./vocab-pools.mjs";
+
+/** @typedef {import("../../src/titleforge/engine/types.ts").GeneratorSpec} GeneratorSpec */
+/** @typedef {import("../../src/titleforge/engine/types.ts").GenreOption} GenreOption */
 
 /** Below this many own-tagged lexemes, a genre is flagged THIN even if it has eligible patterns
  * — there's a shape to draw from, but not enough of its own vocabulary to feel distinct. */
 const THIN_LEXEME_THRESHOLD = 20;
 
-interface Row {
-	id: string;
-	label: string;
-	parent: string;
-	eligiblePatterns: number;
-	ownLexemes: number;
-	inheritedLexemes: number;
-	thin: boolean;
-	inheritsOnly: boolean;
-	/** Smallest pool a draw under this genre sees, across the slots its patterns use (additive
-	 * model: own + ancestors' lexicons + general list), and which slot it is. */
-	minPool: number;
-	minPoolSlot: string;
-}
+/**
+ * @typedef {object} Row
+ * @property {string} id
+ * @property {string} label
+ * @property {string} parent
+ * @property {number} eligiblePatterns
+ * @property {number} ownLexemes
+ * @property {number} inheritedLexemes
+ * @property {boolean} thin
+ * @property {boolean} inheritsOnly
+ * @property {number} minPool Smallest pool a draw under this genre sees, across the slots its
+ *   patterns use (additive model: own + ancestors' lexicons + general list)
+ * @property {string} minPoolSlot ...and which slot it is.
+ */
 
-function countTagged(lexemes: Record<string, { tags?: string[] }[]>, ids: readonly string[]): number {
+/**
+ * @param {Record<string, { tags?: string[] }[]>} lexemes
+ * @param {readonly string[]} ids
+ * @returns {number}
+ */
+function countTagged(lexemes, ids) {
 	if (ids.length === 0) return 0;
 	let count = 0;
 	for (const entries of Object.values(lexemes)) {
@@ -49,19 +56,32 @@ function countTagged(lexemes: Record<string, { tags?: string[] }[]>, ids: readon
 	return count;
 }
 
-function reportGenerator(spec: GeneratorSpec): { rows: Row[]; unreachable: string[] } {
+/**
+ * @param {GeneratorSpec} spec
+ * @returns {{ rows: Row[]; unreachable: string[] }}
+ */
+function reportGenerator(spec) {
 	const lexemes = normaliseLexicon(spec.lexicon);
-	const rows: Row[] = [];
-	const unreachable: string[] = [];
+	/** @type {Row[]} */
+	const rows = [];
+	/** @type {string[]} */
+	const unreachable = [];
 
 	// Parents before children, matching declaration order otherwise — same order the view's
 	// hierarchicalGenreOptions renders in.
-	const byParent = new Map<string, GenreOption[]>();
+	/** @type {Map<string, GenreOption[]>} */
+	const byParent = new Map();
 	for (const g of spec.genres) {
-		if (g.parent) (byParent.get(g.parent) ?? byParent.set(g.parent, []).get(g.parent)!).push(g);
+		if (g.parent) {
+			const siblings = byParent.get(g.parent) ?? [];
+			siblings.push(g);
+			byParent.set(g.parent, siblings);
+		}
 	}
-	const ordered: GenreOption[] = [];
-	const visit = (g: GenreOption): void => {
+	/** @type {GenreOption[]} */
+	const ordered = [];
+	/** @param {GenreOption} g */
+	const visit = (g) => {
 		if (ordered.includes(g)) return; // cycle guard
 		ordered.push(g);
 		for (const child of byParent.get(g.id) ?? []) visit(child); // recursive: up to three levels
@@ -114,13 +134,15 @@ function reportGenerator(spec: GeneratorSpec): { rows: Row[]; unreachable: strin
 	return { rows, unreachable };
 }
 
-function pad(value: string | number, width: number): string {
+/** @param {string | number} value @param {number} width @returns {string} */
+function pad(value, width) {
 	return String(value).padEnd(width);
 }
 
-function main(): void {
+function main() {
 	let anyUnreachable = false;
-	const needsExpanding: string[] = [];
+	/** @type {string[]} */
+	const needsExpanding = [];
 
 	for (const spec of ALL_TITLEFORGE_LEXICONS) {
 		const { rows, unreachable } = reportGenerator(spec);
@@ -167,7 +189,7 @@ function main(): void {
 }
 
 // Only run (and only ever call process.exit) when executed directly — `npx tsx
-// genre-coverage.ts` — not when a test imports the pure helpers below.
+// genre-coverage.mjs` — not when a test imports the pure helpers below.
 const isMain = process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1];
 if (isMain) main();
 

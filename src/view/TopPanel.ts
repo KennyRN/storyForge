@@ -41,8 +41,6 @@ import {
 import { recordChapterArchive, readChapterWordCount } from "../history";
 import {
 	renderDefaultPovRow,
-	renderMetaClearButton,
-	renderMetaControl,
 	renderPlannedLengthMetaRow,
 	renderPlannedLengthStatRow,
 	readOrderedChapterWordCounts,

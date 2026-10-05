@@ -5,6 +5,7 @@
 import { setIcon } from "obsidian";
 import { MAIN_THREAD_FALLBACK_COLOR } from "../plotThreads";
 import { resolveTitleShadow } from "../titleShadow";
+import { createNotebookPage, NOTEBOOK_PAGE_PRESENT_CLASS } from "./notebookPage";
 import { renderStampedEmptyCross } from "./stampedCross";
 
 const ICON_UNPLACED = "sf-archive-drawer";
@@ -411,7 +412,7 @@ function mountNotebookDossierPreview(body: HTMLElement): void {
 	setIcon(rail.createSpan({ cls: "sf-notebook-source-btn" }), ICON_NOTEBOOK_DUOTONE);
 	setIcon(rail.createSpan({ cls: "sf-notebook-source-btn" }), ICON_CODEX);
 	setIcon(rail.createSpan({ cls: "sf-notebook-source-btn is-active" }), ICON_CLIPBOARD_LIST_DUOTONE);
-	const page = split.createDiv({ cls: "sf-notebook-page sf-dossier-page" });
+	const page = createNotebookPage(split, "sf-dossier-page");
 	const scroll = page.createDiv({ cls: "sf-story-context-scroll" });
 	const chSection = scroll.createDiv({ cls: "sf-story-context-section" });
 	chSection.createDiv({ cls: "sf-story-context-section-title", text: "I. Amet Consectetur" });
@@ -428,7 +429,7 @@ function mountArchiveSplitPreview(body: HTMLElement): void {
 	setIcon(rail.createSpan({ cls: "sf-notebook-source-btn is-active" }), ICON_CODEX);
 	setIcon(rail.createSpan({ cls: "sf-notebook-source-btn" }), ICON_BOOK_DUOTONE);
 	setIcon(rail.createSpan({ cls: "sf-notebook-source-btn" }), ICON_NOTEBOOK_DUOTONE);
-	split.createDiv({ cls: "sf-notebook-page sf-archive-page" });
+	createNotebookPage(split, "sf-archive-page");
 	const index = split.createDiv({ cls: "sf-notebook-index sf-bottom-panel" });
 	const tree = index.createDiv({ cls: "sf-codex-tree" });
 	const selected = tree.createDiv({ cls: "sf-codex-file sf-row-selected" });
@@ -492,6 +493,7 @@ export function mountRightSidebarPreviewSample(
 		recBody.removeClass("sf-story-context-novel-host");
 		archive.addClass("sf-settings-hidden");
 		recBody.empty();
+		storyContext.removeClass(NOTEBOOK_PAGE_PRESENT_CLASS);
 		mountNotebookDossierPreview(recBody);
 	};
 	const showStoryContextTab = (id: StoryContextTabId) => {
@@ -508,6 +510,7 @@ export function mountRightSidebarPreviewSample(
 		recBody.toggleClass("sf-story-context-novel-host", id === "novel");
 		archive.addClass("sf-settings-hidden");
 		recBody.empty();
+		storyContext.removeClass(NOTEBOOK_PAGE_PRESENT_CLASS);
 		if (id === "novel") mountStoryContextNovelBody(recBody, mainThread);
 		else mountStoryContextChapterBody(recBody, mainThread);
 	};
@@ -520,6 +523,7 @@ export function mountRightSidebarPreviewSample(
 		recBody.toggleClass("sf-settings-hidden", false);
 		archive.addClass("sf-settings-hidden");
 		recBody.empty();
+		storyContext.removeClass(NOTEBOOK_PAGE_PRESENT_CLASS);
 		mountArchiveSplitPreview(recBody);
 	};
 	const showForgeTab = () => {
@@ -564,6 +568,7 @@ export function mountRightSidebarPreviewSample(
 		archive.addClass("sf-settings-hidden");
 		recBody.toggleClass("sf-settings-hidden", false);
 		recBody.empty();
+		storyContext.removeClass(NOTEBOOK_PAGE_PRESENT_CLASS);
 		mount(recBody);
 	};
 

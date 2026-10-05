@@ -74,7 +74,7 @@ export function manuscriptStateExtensions(initialRanges: ChapterRange[]): Extens
 /** A structural transaction spec: bypasses the boundary filter, stays out of undo history, and
  * optionally replaces the chapter ranges. */
 export function structuralSpec(changes: ChangeSpec | undefined, ranges?: ChapterRange[], extra?: TransactionSpec): TransactionSpec {
-	const extraEffects = extra?.effects === undefined ? [] : Array.isArray(extra.effects) ? extra.effects : [extra.effects];
+	const extraEffects = extra?.effects === undefined ? [] : extra.effects instanceof StateEffect ? [extra.effects] : extra.effects;
 	return {
 		...extra,
 		changes,

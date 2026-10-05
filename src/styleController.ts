@@ -597,11 +597,8 @@ export class StyleController {
 function paintedThemePrimary(doc: Document): string {
 	const win = doc.defaultView;
 	if (!win) return "var(--background-primary)";
-	const probe = doc.createElement("div");
-	probe.style.position = "absolute";
-	probe.style.left = "-9999px";
-	probe.style.backgroundColor = "var(--background-primary)";
-	doc.body.appendChild(probe);
+	const probe = doc.body.createDiv();
+	probe.setCssStyles({ position: "absolute", left: "-9999px", backgroundColor: "var(--background-primary)" });
 	const painted = win.getComputedStyle(probe).backgroundColor;
 	probe.remove();
 	if (painted && painted !== "rgba(0, 0, 0, 0)" && painted !== "transparent") return painted;

@@ -4273,8 +4273,13 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	border-radius: 4px;
 	--file-margins: 0px;
 	--background-primary: var(--sf-editor-bg);
-	background: var(--sf-editor-bg) !important;
 	cursor: text;
+}
+
+/* Boosted so a theme's own page/leaf background can't paint over the editor colour. */
+.sf-notebook-page:not(#storyforge-specificity-boost),
+.sf-codex-page:not(#storyforge-specificity-boost) {
+	background: var(--sf-editor-bg);
 }
 
 /* External inset only: top and bottom match the larger left rail gutter. */
@@ -4301,11 +4306,11 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	--file-line-width: 100%;
 }
 
-.sf-codex-page .cm-scroller,
-.sf-codex-page .markdown-preview-view,
-.sf-notebook-page--codex .cm-scroller,
-.sf-notebook-page--codex .markdown-preview-view {
-	font-size: calc(0.8 * var(--font-text-size, 1em)) !important;
+.sf-codex-page .cm-scroller:not(#storyforge-specificity-boost),
+.sf-codex-page .markdown-preview-view:not(#storyforge-specificity-boost),
+.sf-notebook-page--codex .cm-scroller:not(#storyforge-specificity-boost),
+.sf-notebook-page--codex .markdown-preview-view:not(#storyforge-specificity-boost) {
+	font-size: calc(0.8 * var(--font-text-size, 1em));
 }
 
 .sf-notebook-card-host {
@@ -4325,31 +4330,35 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	border-radius: 12.5px;
 }
 
-.sf-notebook-page,
-.sf-notebook-page *,
-.sf-codex-page,
-.sf-codex-page *,
-.sf-context-editor,
-.sf-context-editor * {
-	cursor: text !important;
+/* Boosted past core's own cursors inside the grafted leaf (resize handle, header buttons, fold
+ * indicators) and the dossier page's `cursor: default`, exactly as before. */
+.sf-notebook-page:not(#storyforge-specificity-boost),
+.sf-notebook-page *:not(#storyforge-specificity-boost),
+.sf-codex-page:not(#storyforge-specificity-boost),
+.sf-codex-page *:not(#storyforge-specificity-boost),
+.sf-context-editor:not(#storyforge-specificity-boost),
+.sf-context-editor *:not(#storyforge-specificity-boost) {
+	cursor: text;
 }
 
-.sf-notebook-page .view-content,
-.sf-notebook-page .markdown-source-view,
-.sf-notebook-page .cm-editor,
-.sf-notebook-page .cm-scroller,
-.sf-notebook-page .cm-content,
-.sf-codex-page .view-content,
-.sf-codex-page .markdown-source-view,
-.sf-codex-page .cm-editor,
-.sf-codex-page .cm-scroller,
-.sf-codex-page .cm-content,
-.sf-context-editor .view-content,
-.sf-context-editor .markdown-source-view,
-.sf-context-editor .cm-editor,
-.sf-context-editor .cm-scroller,
-.sf-context-editor .cm-content {
-	background-color: var(--sf-editor-bg) !important;
+/* `.workspace-leaf-content >` lifts the view-content selectors past the later
+ * `.mod-right-split .view-content` rail background (same boost, later in the file). */
+.sf-notebook-page .workspace-leaf-content > .view-content:not(#storyforge-specificity-boost),
+.sf-notebook-page .markdown-source-view:not(#storyforge-specificity-boost),
+.sf-notebook-page .cm-editor:not(#storyforge-specificity-boost),
+.sf-notebook-page .cm-scroller:not(#storyforge-specificity-boost),
+.sf-notebook-page .cm-content:not(#storyforge-specificity-boost),
+.sf-codex-page .workspace-leaf-content > .view-content:not(#storyforge-specificity-boost),
+.sf-codex-page .markdown-source-view:not(#storyforge-specificity-boost),
+.sf-codex-page .cm-editor:not(#storyforge-specificity-boost),
+.sf-codex-page .cm-scroller:not(#storyforge-specificity-boost),
+.sf-codex-page .cm-content:not(#storyforge-specificity-boost),
+.sf-context-editor .workspace-leaf-content > .view-content:not(#storyforge-specificity-boost),
+.sf-context-editor .markdown-source-view:not(#storyforge-specificity-boost),
+.sf-context-editor .cm-editor:not(#storyforge-specificity-boost),
+.sf-context-editor .cm-scroller:not(#storyforge-specificity-boost),
+.sf-context-editor .cm-content:not(#storyforge-specificity-boost) {
+	background-color: var(--sf-editor-bg);
 }
 
 /* Bottom pane: the note list. */
@@ -4390,30 +4399,36 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	border-radius: 4px;
 	--file-margins: 0px;
 	--background-primary: var(--sf-editor-bg);
-	background: transparent !important;
 	cursor: text;
+}
+
+/* Boosted past core's `.workspace-split` tab-container background (same specificity otherwise). */
+.sf-context-editor:not(#storyforge-specificity-boost) {
+	background: transparent;
 }
 
 .sf-context-editor .workspace-leaf {
 	contain: none;
 }
 
-.sf-notebook-page .view-content,
-.sf-notebook-page .markdown-source-view,
-.sf-notebook-page .cm-editor,
-.sf-notebook-page .cm-scroller,
-.sf-notebook-page .cm-contentContainer,
-.sf-codex-page .view-content,
-.sf-codex-page .markdown-source-view,
-.sf-codex-page .cm-editor,
-.sf-codex-page .cm-scroller,
-.sf-codex-page .cm-contentContainer,
-.sf-context-editor .view-content,
-.sf-context-editor .markdown-source-view,
-.sf-context-editor .cm-scroller,
-.sf-context-editor .cm-contentContainer {
-	padding: 0 !important;
-	margin: 0 !important;
+/* Boosted past core's `.cm-scroller { padding: var(--file-margins) }`: in a sidebar core sets
+ * `--file-margins` on the scroller itself, so the page's own `--file-margins: 0px` never reaches it. */
+.sf-notebook-page .view-content:not(#storyforge-specificity-boost),
+.sf-notebook-page .markdown-source-view:not(#storyforge-specificity-boost),
+.sf-notebook-page .cm-editor:not(#storyforge-specificity-boost),
+.sf-notebook-page .cm-scroller:not(#storyforge-specificity-boost),
+.sf-notebook-page .cm-contentContainer:not(#storyforge-specificity-boost),
+.sf-codex-page .view-content:not(#storyforge-specificity-boost),
+.sf-codex-page .markdown-source-view:not(#storyforge-specificity-boost),
+.sf-codex-page .cm-editor:not(#storyforge-specificity-boost),
+.sf-codex-page .cm-scroller:not(#storyforge-specificity-boost),
+.sf-codex-page .cm-contentContainer:not(#storyforge-specificity-boost),
+.sf-context-editor .view-content:not(#storyforge-specificity-boost),
+.sf-context-editor .markdown-source-view:not(#storyforge-specificity-boost),
+.sf-context-editor .cm-scroller:not(#storyforge-specificity-boost),
+.sf-context-editor .cm-contentContainer:not(#storyforge-specificity-boost) {
+	padding: 0;
+	margin: 0;
 }
 
 .sf-context-editor .cm-scroller {
@@ -4430,22 +4445,28 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 .sf-notebook-page .cm-content,
 .sf-codex-page .cm-content,
 .sf-context-editor .cm-content {
-	padding-top: 0 !important;
-	padding-left: 0 !important;
-	padding-right: 0 !important;
-	padding-inline: 0 !important;
 	max-width: 100%;
-	margin: 0 !important;
 	box-sizing: border-box;
 }
 
-.sf-notebook-page .cm-sizer,
-.sf-codex-page .cm-sizer,
-.sf-context-editor .cm-sizer {
-	padding-left: 0 !important;
-	padding-right: 0 !important;
-	padding-top: 0 !important;
-	margin: 0 !important;
+.sf-notebook-page .cm-content:not(#storyforge-specificity-boost),
+.sf-codex-page .cm-content:not(#storyforge-specificity-boost),
+.sf-context-editor .cm-content:not(#storyforge-specificity-boost) {
+	padding-top: 0;
+	padding-left: 0;
+	padding-right: 0;
+	padding-inline: 0;
+	margin: 0;
+}
+
+/* Boosted past core's readable-line-width `margin-inline: auto` on the sizer. */
+.sf-notebook-page .cm-sizer:not(#storyforge-specificity-boost),
+.sf-codex-page .cm-sizer:not(#storyforge-specificity-boost),
+.sf-context-editor .cm-sizer:not(#storyforge-specificity-boost) {
+	padding-left: 0;
+	padding-right: 0;
+	padding-top: 0;
+	margin: 0;
 }
 
 .sf-codex-page .cm-sizer,
@@ -4467,10 +4488,11 @@ body:not(.sf-codex-indent-none) .sf-codex-folder-children .sf-codex-folder-heade
 	overflow-wrap: break-word;
 }
 
-.sf-notebook-page .cm-gutters,
-.sf-codex-page .cm-gutters,
-.sf-context-editor .cm-gutters {
-	display: none !important;
+/* Boosted past CodeMirror's injected `.ͼ1 .cm-gutters { display: flex }` (same specificity otherwise). */
+.sf-notebook-page .cm-gutters:not(#storyforge-specificity-boost),
+.sf-codex-page .cm-gutters:not(#storyforge-specificity-boost),
+.sf-context-editor .cm-gutters:not(#storyforge-specificity-boost) {
+	display: none;
 }
 
 .sf-context-editor .cm-content,
@@ -4849,7 +4871,7 @@ body.sf-editor-scrollbar .markdown-preview-view:active::-webkit-scrollbar-thumb:
 
 /* Notebook page sits 8px below the tab row; tabs keep 5px padding, so page-to-icon is ~13px
  * — same as the page's right edge to the pane (10px view padding + 4px page margin). */
-.sf-story-context-view:has(.sf-notebook-page) .sf-story-context-tabs {
+.sf-story-context-view--notebook-page .sf-story-context-tabs {
 	margin-bottom: 0;
 }
 
