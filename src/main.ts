@@ -16,7 +16,7 @@ import { ArchiveView, ARCHIVE_VIEW_TYPE, activateArchiveView } from "./view/Arch
 import { recomputeChapterStoryContext } from "./story-context/recompute";
 import { isNlpReady } from "./story-context/nlp";
 import { remapLegacyStoryContextKeys } from "./story-context/legacyKeys";
-import { CODEX_TYPES, evictMissingCodexNotes, pruneMissingCodexNotes } from "./codex";
+import { CODEX_TYPES, pruneMissingCodexNotes } from "./codex";
 import { buildRightRailTypeOrder, isCanonicalTypeOrder } from "./rightRailOrder";
 import {
 	createHostApi,
@@ -1995,7 +1995,6 @@ export default class StoryForgePlugin extends Plugin {
 			resolveThemeBackgroundColor(),
 		);
 		await migrateVaultSchema(this.app);
-		await evictMissingCodexNotes(this.app);
 		await pruneMissingCodexNotes(this.app);
 		await pruneMissingNotesNotes(this.app);
 		await pruneMissingChapterCodexRefs(this.app);
