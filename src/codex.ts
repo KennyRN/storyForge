@@ -340,15 +340,14 @@ async function listCodexMarkdownOnDisk(app: App): Promise<Set<string> | null> {
 }
 
 /** Collision-unique `stem.md` under `CODEX_ROOT`, using a sanitized stem.
- * Ghosts left in Obsidian's vault index after an external (Finder) delete are
- * evicted first, so a reused name like `Berwyn.md` is not forced to `Berwyn 2.md`.
+ * Occupancy is read from the disk, so a ghost left in Obsidian's vault index after an external
+ * (Finder) delete doesn't count and a reused name like `Berwyn.md` is not forced to `Berwyn 2.md`.
  * `ignorePath` is the note being renamed — its own numbered name must not count as taken. */
 export async function uniqueCodexFilename(
 	app: App,
 	baseName: string,
 	ignorePath?: string,
 ): Promise<string> {
-	await evictMissingCodexNotes(app);
 	const stem = sanitizeCodexBasename(baseName) || "New Note";
 	if (!(await isCodexPathOccupied(app, `${CODEX_ROOT}/${stem}.md`, ignorePath))) return `${stem}.md`;
 	let n = 2;
@@ -372,42 +371,7 @@ async function vaultPathExistsOnDisk(app: App, path: string): Promise<boolean> {
 	return app.vault.getAbstractFileByPath(path) instanceof TFile;
 }
 
-/** Drop a vault-index TFile whose markdown is no longer on disk (external delete). */
-async function evictMissingCodexNoteAt(app: App, path: string): Promise<void> {
-	const existing = app.vault.getAbstractFileByPath(path);
-	if (!(existing instanceof TFile)) return;
-	if (await vaultPathExistsOnDisk(app, path)) return;
-	try {
-		await app.vault.delete(existing, true);
-	} catch {
-		/* index already diverged from disk */
-	}
-}
-
-/** Drop every Codex/*.md still listed in the vault index whose file is gone from disk. */
-export async function evictMissingCodexNotes(app: App): Promise<string[]> {
-	const root = app.vault.getAbstractFileByPath(CODEX_ROOT);
-	if (!(root instanceof TFolder)) return [];
-	const onDisk = await listCodexMarkdownOnDisk(app);
-	const evicted: string[] = [];
-	for (const child of [...root.children]) {
-		if (!(child instanceof TFile) || child.extension !== "md") continue;
-		const present = onDisk ? pathInSet(onDisk, child.path) : await vaultPathExistsOnDisk(app, child.path);
-		if (present) continue;
-		const path = child.path;
-		try {
-			await app.vault.delete(child, true);
-		} catch {
-			/* index already diverged from disk */
-		}
-		evicted.push(path);
-	}
-	return evicted;
-}
-
 async function isCodexPathOccupied(app: App, path: string, ignorePath?: string): Promise<boolean> {
-	if (ignorePath && sameVaultPath(path, ignorePath)) return false;
-	await evictMissingCodexNoteAt(app, path);
 	if (ignorePath && sameVaultPath(path, ignorePath)) return false;
 	const listed = await listCodexMarkdownOnDisk(app);
 	if (listed) return pathInSet(listed, path);
@@ -724,9 +688,9 @@ export async function pruneMissingCodexNotes(app: App): Promise<boolean> {
 	return true;
 }
 
-/** Evict vault-index ghosts then strip their leftovers from `codex.md`. */
+/** Strip `codex.md`'s entries for notes gone from disk. A ghost the vault index still lists is left
+ * alone: storyForge never deletes a file, and Obsidian drops the ghost on its next rescan. */
 export async function reconcileMissingCodexNotes(app: App): Promise<void> {
-	await evictMissingCodexNotes(app);
 	await pruneMissingCodexNotes(app);
 }
 
