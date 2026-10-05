@@ -4,7 +4,7 @@ import { mergeUserLexicon } from "../engine/userLexicon.js";
 import { japaneseLnLexicon } from "../lexicons/japaneseLn.js";
 import { titleComposerLexicon } from "../lexicons/titleComposer.js";
 
-/** The real-title guard for title-composer and japanese-ln (lists built by tools/titleforge/build-reserved.ts). */
+/** The real-title guard for title-composer and japanese-ln (lists built by tools/titleforge/build-reserved.mjs). */
 describe.each([
 	["title-composer", titleComposerLexicon],
 	["japanese-ln", japaneseLnLexicon],

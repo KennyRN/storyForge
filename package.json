@@ -10,8 +10,8 @@
 		"test:watch": "vitest",
 		"sync:formatting-contract": "node sync-formatting-contract.mjs",
 		"check:formatting-contract": "node sync-formatting-contract.mjs --check",
-		"titleforge:coverage": "tsx tools/titleforge/genre-coverage.ts",
-		"titleforge:pools": "tsx tools/titleforge/vocab-pools.ts"
+		"titleforge:coverage": "tsx tools/titleforge/genre-coverage.mjs",
+		"titleforge:pools": "tsx tools/titleforge/vocab-pools.mjs"
 	},
 	"license": "MIT",
 	"devDependencies": {
