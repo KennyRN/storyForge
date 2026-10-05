@@ -543,7 +543,7 @@ A structural test rejects a literal `}s` in any lexicon.
 gives the base form (rises → rise, watches → watch).
 
 **Real titles.** title-composer and japanese-ln now carry `reservedTitles`, like webnovel. Both are
-built by `tools/titleforge/build-reserved.ts`:
+built by `tools/titleforge/build-reserved.mjs`:
 - title-composer (981 titles): its series and novel corpora (names, aliases, bracket-free and
   pre-colon forms), its pattern exemplars, and 60 curated translated classics in the shapes its
   world-fiction genres generate ("War and Peace", "Life and Fate", "Dead Souls", "Season of
