@@ -3,22 +3,22 @@ Storytelling plugin by volcanicMole
 
 Obsidian + storyForge + (formatForge) + a theme = fully functional storytelling app.
 
-***⚠️ WARNING: this plugin no longer creates an external backup!*** Backups are zips kept inside your vault (see [Keeping your words safe](#keeping-your-words-safe)).
-
 ## 0.17.0 Update
-A big one this time!
+A big update this time!
 
-Leading off is continuous mode: you can now write in it, not just read it.
-- **Continuous mode is a real manuscript editor.** The whole book opens as one manuscript and you can write straight through it, chapter to chapter, without the old click-to-edit dance. Each chapter still saves to its own file (and only the chapters you actually change). The depth guide sits at the start of every chapter, the cycling guide runs across the whole book, prose dressing and the emphasis keys work as you type, and you can start a new chapter from inside the manuscript (right click → *New chapter after this*, the control at the end of the manuscript, or the command). On mobile it stays read-only.
+One of my sayings is *Simplify to Amplify*. That is what this update is about: simplification and amplification (wow, corporate speak warning). The biggest change is probably the smallest change. Panels having a flip side. Clicking on the storytelling / focus mode icons in the Obsidian sidebar headers introduces a different view.
+
+- **Continuous mode is finally a real manuscript editor.** The whole book opens as one manuscript and you can write straight through it, chapter to chapter, without the old click-to-edit dance. Each chapter still saves to its own file (and only the chapters you actually change). The depth guide sits at the start of every chapter, the cycling guide runs across the whole book, prose dressing and the emphasis keys work as you type, and you can start a new chapter from inside the manuscript (right click → *New chapter after this*, the control at the end of the manuscript, or the command). On mobile it stays read-only.
 - **Series overview** now shows word-count bars on each placed novel's card, and keeps itself up to date as chapters and novels change.
-- **Novel overview** has new chapter cards with three tiers of detail (pick how much you want to see in settings), and the word-count bar is now the button. Hover over a bar for the word count and the chapter's description.
+- **Novel overview** has new chapter cards with three tiers of detail and the word-count bar is now the button. Hover over a bar for the word count and the chapter's description.
 - **Story Context**
   - the Novel tab gets the same data-bar chapter cards
   - the Notebook now opens on the Codex first, you can rename notes, and there's a new prompt for building a dossier
-  - the Codex has been dropped from the Chapter tab (it lives in the Notebook now)
+  - the Codex has been dropped from the Chapter tab
   - "Recommend" is gone for good: everything is called Story Context now, and your old settings are moved over automatically. ⚠️ The command id changed, so if you'd set a hotkey for opening it you'll need to set it again.
+  - Clicking an open codex page in storytelling mode again now closes it.
 - **Codex notes are no longer scoped to a single book.** All your lore is visible across the whole series. (Any old `book:` lines in your notes are left alone; they just don't do anything any more.)
-- **A sliding ink indicator** on the Notebook and Archive source rails, the Codex `#tag` rails and the continuous-mode toggle. Clicking an open codex page again now closes it.
+- **A sliding ink indicator** on the Notebook and Archive source rails, the Codex `#tag` rails and the continuous-mode toggle.
 - **The storytelling panel's project pane** has been redesigned, and the novel title modal is now just the name, with the series dice inline.
 - **titleForge** has had a huge overhaul:
   - pick a section (series, novels or web fiction), then a genre and sub genre: there are now 41 sub genres across 7 genres
