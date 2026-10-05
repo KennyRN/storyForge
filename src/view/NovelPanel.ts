@@ -663,14 +663,12 @@ function renderDataBar(
 	// fillPercent the bar itself uses. Set directly here (not through a CSS class referencing a
 	// custom property) for the same reason the segments above are: no var() to fail to resolve.
 	if (rowColor) {
-		nameEl.style.setProperty(
-			"background-image",
-			`linear-gradient(to right, ${rowColor.text} 0%, ${rowColor.text} ${fillPercent}%, ${rowColor.background} ${fillPercent}%, ${rowColor.background} 100%)`,
-		);
-		nameEl.style.setProperty("background-clip", "text");
-		nameEl.style.setProperty("-webkit-background-clip", "text");
-		nameEl.style.setProperty("color", "transparent");
-		nameEl.style.setProperty("-webkit-text-fill-color", "transparent");
+		nameEl.setCssStyles({
+			backgroundImage: `linear-gradient(to right, ${rowColor.text} 0%, ${rowColor.text} ${fillPercent}%, ${rowColor.background} ${fillPercent}%, ${rowColor.background} 100%)`,
+			backgroundClip: "text",
+			color: "transparent",
+			webkitTextFillColor: "transparent",
+		});
 	}
 }
 

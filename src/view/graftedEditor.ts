@@ -86,7 +86,7 @@ export async function mountLeafEditor(
 		const containerEl = split.containerEl;
 		const activatePane = (evt?: Event): void => {
 			evt?.stopPropagation();
-			if (app.workspace.activeLeaf !== leaf) {
+			if (app.workspace.getActiveViewOfType(MarkdownView)?.leaf !== leaf) {
 				app.workspace.setActiveLeaf(leaf, { focus: true });
 			}
 			view.editor.focus();

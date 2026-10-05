@@ -373,14 +373,12 @@ function paintSeriesNovelBar(row: PlacedNovelRow, entry: SeriesNovelBarEntry): v
 	// colour at its own position too. Left alone when there's no novel colour, as renderDataBar does.
 	if (rowColor) {
 		const fillPercent = entry.fillPercent;
-		titleEl.style.setProperty(
-			"background-image",
-			`linear-gradient(to right, ${rowColor.text} 0%, ${rowColor.text} ${fillPercent}%, ${rowColor.background} ${fillPercent}%, ${rowColor.background} 100%)`,
-		);
-		titleEl.style.setProperty("background-clip", "text");
-		titleEl.style.setProperty("-webkit-background-clip", "text");
-		titleEl.style.setProperty("color", "transparent");
-		titleEl.style.setProperty("-webkit-text-fill-color", "transparent");
+		titleEl.setCssStyles({
+			backgroundImage: `linear-gradient(to right, ${rowColor.text} 0%, ${rowColor.text} ${fillPercent}%, ${rowColor.background} ${fillPercent}%, ${rowColor.background} 100%)`,
+			backgroundClip: "text",
+			color: "transparent",
+			webkitTextFillColor: "transparent",
+		});
 	}
 }
 

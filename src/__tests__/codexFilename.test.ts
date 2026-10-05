@@ -3,7 +3,7 @@ import type { App } from "obsidian";
 import { TFile } from "obsidian";
 import {
 	createCodexNote,
-	evictMissingCodexNotes,
+	reconcileMissingCodexNotes,
 	renameCodexNoteFile,
 	sanitizeCodexBasename,
 	uniqueCodexFilename,
@@ -116,7 +116,7 @@ describe("uniqueCodexFilename", () => {
 			missingOnDisk: [`${CODEX_ROOT}/Berwyn.md`],
 		});
 		expect(await uniqueCodexFilename(app, "Berwyn")).toBe("Berwyn.md");
-		expect(deleted).toEqual([`${CODEX_ROOT}/Berwyn.md`]);
+		expect(deleted).toEqual([]);
 	});
 
 	it("reuses a name even when adapter.exists still reports the ghost", async () => {
@@ -128,15 +128,14 @@ describe("uniqueCodexFilename", () => {
 	});
 });
 
-describe("evictMissingCodexNotes", () => {
-	it("removes vault-index ghosts under Codex/", async () => {
+describe("reconcileMissingCodexNotes", () => {
+	it("never deletes anything, ghost or real", async () => {
 		const { app, deleted } = fakeCodexApp(
 			[`${CODEX_ROOT}/Kept.md`, `${CODEX_ROOT}/Gone.md`],
 			{ missingOnDisk: [`${CODEX_ROOT}/Gone.md`] },
 		);
-		expect(await evictMissingCodexNotes(app)).toEqual([`${CODEX_ROOT}/Gone.md`]);
-		expect(deleted).toEqual([`${CODEX_ROOT}/Gone.md`]);
-		expect(app.vault.getAbstractFileByPath(`${CODEX_ROOT}/Gone.md`)).toBeNull();
+		await reconcileMissingCodexNotes(app);
+		expect(deleted).toEqual([]);
 		expect(app.vault.getAbstractFileByPath(`${CODEX_ROOT}/Kept.md`)).toBeInstanceOf(TFile);
 	});
 });
