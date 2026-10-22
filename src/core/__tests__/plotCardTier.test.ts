@@ -5,7 +5,7 @@ import {
 	readPlotCardTier,
 	seedPlotCardTiers,
 	withPlotCardTier,
-} from "../view/plotCardTier";
+} from "../plotCardTier";
 
 describe("nextPlotCardTier", () => {
 	it("cycles extended → collapsed → bar → extended", () => {

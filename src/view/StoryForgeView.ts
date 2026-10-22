@@ -11,9 +11,9 @@ import {
 import { renderBottomPanel } from "./BottomPanel";
 import { renderStatsPanel, type StatsMode } from "./StatsPanel";
 import { createCodexFolder, createCodexNote, readCodexFrontmatter } from "../codex";
-import { debounce } from "../debounce";
+import { debounce } from "../core/debounce";
 import { ICON_BOOK_DUOTONE, ICON_BOOK_OPEN, ICON_BOOK_OPEN_FILLED, ICON_CODEX, ICON_SERIES } from "../icons";
-import { countWords } from "../wordCount";
+import { countWords } from "../core/wordCount";
 import { getBookWordStats } from "../history";
 import { isDragInProgress } from "./dragLock";
 import { makeAccessibleActivatable } from "./a11y";

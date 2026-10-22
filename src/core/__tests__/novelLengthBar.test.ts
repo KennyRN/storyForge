@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeGhostChapterDividerPercents, computeNovelLengthBarLayout } from "../view/novelLengthBar";
+import { computeGhostChapterDividerPercents, computeNovelLengthBarLayout } from "../novelLengthBar";
 
 describe("computeNovelLengthBarLayout", () => {
 	it("scales to the planned length when it is above the total written", () => {

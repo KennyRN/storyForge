@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeSeriesNovelBarLayout } from "../view/seriesNovelBar";
+import { computeSeriesNovelBarLayout } from "../seriesNovelBar";
 
 describe("computeSeriesNovelBarLayout", () => {
 	it("fills the longest novel to 100% and scales the others proportionally", () => {

@@ -13,9 +13,9 @@ import {
 	wordsToday,
 	type DayNet,
 	type WeekNet,
-} from "./historyMath";
+} from "./core/historyMath";
 import { getBookChapterFiles, readBookFrontmatter } from "./book";
-import { countWords, sumWordCounts } from "./wordCount";
+import { countWords, sumWordCounts } from "./core/wordCount";
 import { getLibraryBookFolders } from "./series";
 
 export {

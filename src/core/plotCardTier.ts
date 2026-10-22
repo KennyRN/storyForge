@@ -4,7 +4,7 @@
  * stored map) — deliberately DOM-free so they can be unit tested without a live Obsidian
  * environment, the same way novelLengthBar.ts and seriesNovelBar.ts are.
  */
-import { formatWordCount } from "../wordCount";
+import { formatWordCount } from "./wordCount";
 
 /**
  * "bar": the data bar and title only. "collapsed": the data bar and the description (the card's

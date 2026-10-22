@@ -1,7 +1,7 @@
 import { App, PluginSettingTab, type SettingDefinitionItem } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { ProtectionsModal } from "./ProtectionsModal";
-import { NUMBERING_STYLE_OPTIONS } from "../numberingStyle";
+import { NUMBERING_STYLE_OPTIONS } from "../core/numberingStyle";
 
 function getPath(obj: Record<string, unknown>, path: string): unknown {
 	let cursor: unknown = obj;

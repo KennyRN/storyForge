@@ -15,11 +15,11 @@ import {
 import { recordChapterUnarchive } from "../history";
 import { ICON_BOOK_DUOTONE, ICON_CODEX, ICON_FOLDER, ICON_UNARCHIVE } from "../icons";
 import { libraryChapterPath } from "../paths";
-import { formatSingleLine } from "../titleNumbering";
-import { excerpt } from "../wordCount";
+import { formatSingleLine } from "../core/titleNumbering";
+import { excerpt } from "../core/wordCount";
 import { makeAccessibleActivatable } from "./a11y";
 import { attachCodexDragReorder, type CodexDragRowInfo } from "./dragReorderTree";
-import { applySiblingReorder, siblingOrderAfterMove } from "../siblingOrder";
+import { applySiblingReorder, siblingOrderAfterMove } from "../core/siblingOrder";
 import { renderStampedIndexEmpty } from "./stampedCross";
 
 export type ArchiveMode = "codex" | "novel";

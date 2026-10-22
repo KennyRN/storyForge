@@ -1,10 +1,10 @@
 import { App, TFile, TFolder, type FrontMatterCache } from "obsidian";
 import { LIBRARY_ROOT, seriesBackstagePath, seriesFilePath } from "./paths";
-import { resolveOrder, type OrderResult } from "./ordering";
+import { resolveOrder, type OrderResult } from "./core/ordering";
 import { deleteBackstagePath, enqueueBackstageWrite, modifyBackstageFrontmatter, writeBackstageBinary, writeBackstageFile } from "./writeGuard";
-import { mintId } from "./slug";
-import { applyHashNumbering } from "./titleNumbering";
-import type { NumberingStyle } from "./numberingStyle";
+import { mintId } from "./core/slug";
+import { applyHashNumbering } from "./core/titleNumbering";
+import type { NumberingStyle } from "./core/numberingStyle";
 import { safeCoverExtension, safeCoverFilename } from "./coverImage";
 import { extractSection, splitFrontmatterAndBody, upsertSection } from "./sectionBody";
 

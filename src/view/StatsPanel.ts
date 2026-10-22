@@ -1,6 +1,6 @@
 import { setIcon, setTooltip } from "obsidian";
 import { ICON_DASHBOARD_CHART } from "../icons";
-import { formatWordCount } from "../wordCount";
+import { formatWordCount } from "../core/wordCount";
 import { makeAccessibleActivatable } from "./a11y";
 
 export type StatsMode = "daily" | "weekly" | "chapter" | "story";

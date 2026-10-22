@@ -19,8 +19,8 @@ import { makeReorderable, type DragZone } from "./dragReorder";
 import { makeAccessibleActivatable } from "./a11y";
 import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
 import { renderCodexFocusNavigator } from "./CodexFocusNavigator";
-import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
-import type { NumberingStyle } from "../numberingStyle";
+import { applyHashNumbering, splitTitleSubtitle } from "../core/titleNumbering";
+import type { NumberingStyle } from "../core/numberingStyle";
 import {
 	ICON_BOOK_DUOTONE,
 	ICON_LIST_BAR_FILLED,

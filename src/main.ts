@@ -8,7 +8,7 @@ import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders } f
 import { ensureTagRegistryFile, loadCodexTypesIntoRegistry } from "./tagRegistry";
 import { createBook, createChapter, ensureAllChapterEntries, getBookChapters, pruneMissingChapterCodexRefs, pruneMissingChapterEntries, readBookFrontmatter, syncAllBookReferenceFields, writeBookChapterOrder } from "./book";
 import { resolveStorytellingCenterPath } from "./storytellingCenter";
-import type { NumberingStyle } from "./numberingStyle";
+import type { NumberingStyle } from "./core/numberingStyle";
 import { registerReconciliationEvents } from "./reconciliation";
 import {
 	isLibraryChapterPath,
@@ -20,10 +20,10 @@ import {
 } from "./paths";
 import type { SfLayout } from "./layout";
 import { recordChapterEdit } from "./history";
-import { extractFingerprint } from "./fingerprint";
+import { extractFingerprint } from "./core/fingerprint";
 import { updateChapterFingerprint } from "./chapterSidecar";
-import { debounce } from "./debounce";
-import { countWords } from "./wordCount";
+import { debounce } from "./core/debounce";
+import { countWords } from "./core/wordCount";
 import { registerCustomIcons } from "./icons";
 import { runContentBackup } from "./backup";
 

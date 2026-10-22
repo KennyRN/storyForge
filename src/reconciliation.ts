@@ -26,7 +26,7 @@ import { rekeyCodexNotePath, reconcileMissingCodexNotes } from "./codex";
 import { deleteChapterSidecar, renameChapterSidecar } from "./chapterSidecar";
 import { deleteStoryDetailsSidecar, renameStoryDetailsSidecar } from "./storyDetailsSidecar";
 import { modifyBackstageFrontmatter, renameBackstagePath } from "./writeGuard";
-import { debounce } from "./debounce";
+import { debounce } from "./core/debounce";
 
 /** Live rename/delete handling for chapters and book folders. Registered once at plugin load.
  *

@@ -1,7 +1,7 @@
 import { App, TFile, TFolder, type FrontMatterCache } from "obsidian";
 import { bookBackstagePath, bookFilePath, libraryBookPath, libraryChapterPath, LIBRARY_ROOT } from "./paths";
-import { resolveOrder, type OrderResult } from "./ordering";
-import { mintId } from "./slug";
+import { resolveOrder, type OrderResult } from "./core/ordering";
+import { mintId } from "./core/slug";
 import { deleteBackstagePath, enqueueBackstageWrite, modifyBackstageFrontmatter, writeBackstageBinary, writeBackstageFile } from "./writeGuard";
 import { safeCoverExtension, safeCoverFilename } from "./coverImage";
 import { extractSection, splitFrontmatterAndBody, upsertSection } from "./sectionBody";
@@ -17,14 +17,14 @@ import {
 	writeSeriesOrder,
 	type SeriesBookEntry,
 } from "./series";
-import { nextNovelCode } from "./novelCode";
-import { nextChapterCode } from "./chapterCode";
-import { applyHashNumbering } from "./titleNumbering";
-import type { NumberingStyle } from "./numberingStyle";
+import { nextNovelCode } from "./core/novelCode";
+import { nextChapterCode } from "./core/chapterCode";
+import { applyHashNumbering } from "./core/titleNumbering";
+import type { NumberingStyle } from "./core/numberingStyle";
 import {
 	normalizeDialogueQuoteStyle,
 	type DialogueQuoteStyle,
-} from "./dialogueQuoteStyle";
+} from "./core/dialogueQuoteStyle";
 
 export interface CompileSettings {
 	format?: string;
