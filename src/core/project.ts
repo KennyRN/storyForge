@@ -104,6 +104,7 @@ export class Project {
 
 	/** Creates the folder (and any missing parents); a no-op if it exists. */
 	async createFolder(path: string): Promise<void> {
+		if (this.isFolder(path)) return;
 		await this.fs.createFolder(path);
 		const st = await this.fs.stat(path);
 		this.index.setFolder(path, st?.mtimeMs ?? 0);
@@ -143,15 +144,16 @@ export class Project {
 	 * doesn't exist it is created from `defaultContent` first. Nothing is written when nothing changes.
 	 * Unreadable frontmatter rejects with UnreadableFrontmatterError and leaves the disk untouched.
 	 */
-	async modifyFrontmatter(path: string, defaultContent: string, mutate: (fm: FrontmatterRecord) => void): Promise<void> {
+	async modifyFrontmatter<T extends FrontmatterRecord = FrontmatterRecord>(path: string, defaultContent: string, mutate: (fm: T) => void): Promise<void> {
+		const apply = mutate as (fm: FrontmatterRecord) => void;
 		await this.fs.transaction(path, async (tx) => {
 			const st = await tx.stat();
 			if (!st || st.kind !== "file") {
-				await tx.createFile(editFrontmatter(defaultContent, mutate, path));
+				await tx.createFile(editFrontmatter(defaultContent, apply, path));
 				return;
 			}
 			const text = await tx.readText();
-			const next = editFrontmatter(text, mutate, path);
+			const next = editFrontmatter(text, apply, path);
 			if (next === text) return;
 			await tx.writeText(next, { op: "frontmatter-edit", keys: changedTopLevelKeys(text, next) });
 		});

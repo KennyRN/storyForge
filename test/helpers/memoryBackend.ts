@@ -5,6 +5,8 @@ export class MemoryBackend implements Backend {
 	files = new Map<string, string | Uint8Array>();
 	folders = new Set<string>();
 	reads: string[] = [];
+	/** Every mutating call, as "op:path". */
+	writes: string[] = [];
 	private clock = 1;
 
 	constructor(initial: Record<string, string | Uint8Array | null> = {}) {
@@ -58,22 +60,27 @@ export class MemoryBackend implements Backend {
 	}
 
 	async writeText(path: string, text: string): Promise<void> {
+		this.writes.push(`writeText:${path}`);
 		this.clock++;
 		this.setFile(path, text);
 	}
 	async writeBinary(path: string, data: Uint8Array): Promise<void> {
+		this.writes.push(`writeBinary:${path}`);
 		this.clock++;
 		this.setFile(path, data);
 	}
 	async createFile(path: string, content: string | Uint8Array): Promise<void> {
+		this.writes.push(`createFile:${path}`);
 		if (this.files.has(path) || this.folders.has(path)) throw new BackendError("EEXIST", `exists: ${path}`, path);
 		this.clock++;
 		this.setFile(path, content);
 	}
 	async createFolder(path: string): Promise<void> {
+		this.writes.push(`createFolder:${path}`);
 		this.addFolder(path);
 	}
 	async rename(from: string, to: string): Promise<void> {
+		this.writes.push(`rename:${from}->${to}`);
 		if (this.files.has(to) || this.folders.has(to)) throw new BackendError("EEXIST", `exists: ${to}`, to);
 		if (this.files.has(from)) {
 			const c = this.files.get(from) as string | Uint8Array;
@@ -92,6 +99,7 @@ export class MemoryBackend implements Backend {
 		}
 	}
 	async retire(path: string): Promise<string> {
+		this.writes.push(`retire:${path}`);
 		let target = ".trash/" + path;
 		let n = 2;
 		while (this.files.has(target)) target = `.trash/${path} (${n++})`;

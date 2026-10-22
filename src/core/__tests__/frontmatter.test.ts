@@ -285,3 +285,11 @@ describe("editFrontmatter — line endings, BOM and edge layouts", () => {
 		expect(() => editFrontmatter(text, (fm) => (fm.a = Symbol("x") as never))).toThrow();
 	});
 });
+
+describe("editFrontmatter — null values", () => {
+	it("writes null as an empty value, like 0.17.1's defaults", () => {
+		expect(editFrontmatter("---\nn: 5\nt: x\n---\n", (fm) => (fm.n = null))).toBe("---\nn:\nt: x\n---\n");
+		expect(editFrontmatter("---\nt: x\n---\n", (fm) => (fm.z = null))).toBe("---\nt: x\nz:\n---\n");
+		expect(editFrontmatter("---\nt: x\n---\n", (fm) => (fm.o = { a: null }))).toBe("---\nt: x\no:\n  a:\n---\n");
+	});
+});

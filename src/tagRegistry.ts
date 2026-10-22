@@ -2,7 +2,7 @@ import { App } from "obsidian";
 import { tagRegistryFilePath } from "./core/paths";
 import { modifyBackstageFrontmatter } from "./writeGuard";
 import { ICON_TAG } from "./icons";
-import { CODEX_ICON_CATALOG, TAG_ICON_CATALOG } from "./iconRegistry";
+import { CODEX_ICON_CATALOG, TAG_ICON_CATALOG } from "./core/iconRegistry";
 import { loadCodexTypesFromRegistry, type CodexTypeOption } from "./codex";
 
 /** One entry in a type/tag list as stored in tag-registry.md (read-only here: nothing in the app edits the registry). */

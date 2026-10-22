@@ -77,7 +77,8 @@ function splitLayout(text: string): Layout | null {
 	return null;
 }
 
-const YAML_OPTS = { indent: 2, indentSeq: true, lineWidth: 0, singleQuote: false } as const;
+/** Matches how 0.17.1 wrote files: 2-space indent, block sequences indented under their key, double quotes only when needed, null as an empty value. */
+const YAML_OPTS = { indent: 2, indentSeq: true, lineWidth: 0, singleQuote: false, nullStr: "" } as const;
 
 function parseBlock(block: string): { doc: Document.Parsed; data: FrontmatterRecord } | { error: string } {
 	let doc: Document.Parsed;
@@ -290,7 +291,13 @@ function comparePair(sp: Splicer, doc: Document, pair: Pair, afterVal: unknown, 
 		const oldText = sp.src.slice(node.range[0], node.range[1]);
 		const text = oldText.includes("\n") ? null : scalarText(afterVal, node.type);
 		if (text !== null) {
-			sp.push({ start: node.range[0], end: node.range[1], text });
+			if (text === "") {
+				// A value cleared to null: `key: old` becomes `key:`
+				const colon = sp.src.indexOf(":", key.range![1]);
+				sp.push({ start: colon === -1 ? node.range[0] : colon + 1, end: node.range[1], text });
+			} else {
+				sp.push({ start: node.range[0], end: node.range[1], text });
+			}
 			return;
 		}
 	}
@@ -327,60 +334,88 @@ function applyEdits(src: string, edits: Edit[]): string {
  */
 export function editFrontmatter(text: string, mutate: (fm: FrontmatterRecord) => void, path?: string): string {
 	const layout = splitLayout(text);
-	let before: FrontmatterRecord = {};
-	let parsed: { doc: Document.Parsed; data: FrontmatterRecord } | null = null;
-	if (layout) {
-		const p = parseBlock(layout.block);
-		if ("error" in p) throw new UnreadableFrontmatterError(p.error, path);
-		parsed = p;
-		before = p.data;
+	if (!layout) {
+		// No frontmatter yet: add one if the mutation produces any data.
+		const draft: FrontmatterRecord = {};
+		mutate(draft);
+		const after = normalise(draft) as FrontmatterRecord;
+		if (Object.keys(after).length === 0) return text;
+		const eol = detectEol(text);
+		const bom = text.startsWith("\uFEFF") ? "\uFEFF" : "";
+		const rest = bom ? text.slice(1) : text;
+		const yamlText = stringify(after, YAML_OPTS).replace(/\n/g, eol);
+		const result = `${bom}---${eol}${yamlText}---${eol}${rest}`;
+		const check = readFrontmatter(result);
+		if (check.state !== "ok" || !deepEqual(check.data, after)) {
+			throw new FrontmatterRoundTripError("the new frontmatter does not read back as intended");
+		}
+		return result;
 	}
+	const newBlock = editBlock(layout.block, layout.eol, mutate, path);
+	if (newBlock === layout.block) return text;
+	const result = layout.head + newBlock + layout.tail;
+	// The part of the file outside the frontmatter must be byte-identical.
+	const again = splitLayout(result);
+	if (!again || again.tail !== layout.tail || again.head !== layout.head) {
+		throw new FrontmatterRoundTripError("text outside the frontmatter block changed");
+	}
+	return result;
+}
+
+/**
+ * Edits the YAML text between a file's fences (or a whole-file YAML document) by splicing only the
+ * ranges the mutation changes. Returns `block` itself when nothing changes.
+ */
+function editBlock(block: string, eol: "\n" | "\r\n", mutate: (fm: FrontmatterRecord) => void, path?: string): string {
+	const p = parseBlock(block);
+	if ("error" in p) throw new UnreadableFrontmatterError(p.error, path);
+	const before = p.data;
 	const draft = structuredClone(before);
 	mutate(draft);
 	const after = normalise(draft) as FrontmatterRecord;
-	if (deepEqual(before, after)) return text;
+	if (deepEqual(before, after)) return block;
 
-	let result: string;
-	if (!layout || !parsed) {
-		// No frontmatter yet: add one.
-		const eol = detectEol(text);
-		const bom = text.startsWith("﻿") ? "﻿" : "";
-		const rest = bom ? text.slice(1) : text;
-		const yamlText = Object.keys(after).length ? stringify(after, YAML_OPTS).replace(/\n/g, eol) : "";
-		result = `${bom}---${eol}${yamlText}---${eol}${rest}`;
+	const sp = new Splicer(block, eol);
+	const root = p.doc.contents;
+	const rootSharesKey = isMap(root) && Object.keys(after).some((k) => Object.prototype.hasOwnProperty.call(before, k));
+	if (isMap(root) && rootSharesKey) {
+		diffMap(sp, p.doc, root, after, sp.column((root.items[0].key as Scalar).range![0]));
+	} else if (Object.keys(after).length === 0) {
+		sp.push({ start: 0, end: block.length, text: "" });
+	} else if (isMap(root)) {
+		// No existing key survives: rewrite the whole block.
+		sp.push({ start: 0, end: block.length, text: stringify(after, YAML_OPTS).replace(/\n/g, eol) });
 	} else {
-		const sp = new Splicer(layout.block, layout.eol);
-		const root = parsed.doc.contents;
-		const rootSharesKey = isMap(root) && Object.keys(after).some((k) => Object.prototype.hasOwnProperty.call(before, k));
-		if (isMap(root) && rootSharesKey) {
-			diffMap(sp, parsed.doc, root, after, sp.column((root.items[0].key as Scalar).range![0]));
-		} else if (Object.keys(after).length === 0) {
-			sp.push({ start: 0, end: layout.block.length, text: "" });
-		} else if (isMap(root)) {
-			// No existing key survives: rewrite the whole block.
-			sp.push({ start: 0, end: layout.block.length, text: stringify(after, YAML_OPTS).replace(/\n/g, layout.eol) });
-		} else {
-			// Empty/comment-only block: append after any comments.
-			const at = layout.block.length;
-			sp.push({ start: at, end: at, text: stringify(after, YAML_OPTS).replace(/\n/g, layout.eol) });
-		}
-		const newBlock = applyEdits(layout.block, sp.edits);
-		result = layout.head + newBlock + layout.tail;
+		// Empty/comment-only block: append after any comments.
+		const at = block.length;
+		const lead = at > 0 && !/\n$/.test(block) ? eol : "";
+		sp.push({ start: at, end: at, text: lead + stringify(after, YAML_OPTS).replace(/\n/g, eol) });
 	}
+	const result = applyEdits(block, sp.edits);
 
-	// Self-check: the result must read back to exactly what the mutation asked for, and the part of
-	// the file outside the frontmatter must be byte-identical.
-	const check = readFrontmatter(result);
-	if (check.state !== "ok" || !deepEqual(check.data, after)) {
-		throw new FrontmatterRoundTripError("the edited frontmatter does not read back as intended");
-	}
-	if (layout) {
-		const again = splitLayout(result);
-		if (!again || again.tail !== layout.tail || again.head !== layout.head) {
-			throw new FrontmatterRoundTripError("text outside the frontmatter block changed");
-		}
+	// Self-check: the result must read back to exactly what the mutation asked for.
+	const check = parseBlock(result);
+	if ("error" in check || !deepEqual(check.data, after)) {
+		throw new FrontmatterRoundTripError("the edited YAML does not read back as intended");
 	}
 	return result;
+}
+
+/** Edits a whole-file YAML document (no fences) with the same minimal-rewrite guarantees as editFrontmatter. */
+export function editYamlText(text: string, mutate: (data: FrontmatterRecord) => void, path?: string): string {
+	return editBlock(text, detectEol(text), mutate, path);
+}
+
+/** Parses a whole-file YAML document. Throws UnreadableFrontmatterError (never returns "empty") if it can't be read safely. */
+export function parseYamlText(text: string, path?: string): FrontmatterRecord {
+	const p = parseBlock(text);
+	if ("error" in p) throw new UnreadableFrontmatterError(p.error, path);
+	return p.data;
+}
+
+/** Renders `data` as a whole-file YAML document in 0.17.1's style. */
+export function stringifyYamlText(data: FrontmatterRecord): string {
+	return Object.keys(data).length ? stringify(data, YAML_OPTS) : "";
 }
 
 /** The note body: everything after the frontmatter block (or the whole text when there is none). */
@@ -399,4 +434,22 @@ export function changedTopLevelKeys(beforeText: string, afterText: string): stri
 	const db = b.state === "ok" ? b.data : {};
 	const keys = new Set([...Object.keys(da), ...Object.keys(db)]);
 	return [...keys].filter((k) => !deepEqual(da[k], db[k])).sort();
+}
+
+/** Renders `data` as a frontmatter block (`---`, YAML, `---`) in 0.17.1's style, with `\n` line endings. */
+export function stringifyFrontmatterBlock(data: FrontmatterRecord): string {
+	const yaml = Object.keys(data).length ? stringify(data, YAML_OPTS) : "";
+	return `---\n${yaml}---\n`;
+}
+
+/**
+ * Splits a file into its frontmatter section (both fences and the YAML between them, up to and
+ * including the closing fence's line break) and everything after it. Null when there is no frontmatter.
+ */
+export function splitFrontmatterSection(text: string): { frontmatter: string; rest: string } | null {
+	const layout = splitLayout(text);
+	if (!layout) return null;
+	const nl = layout.tail.search(/\r?\n/);
+	const fenceLineEnd = nl === -1 ? layout.tail.length : layout.tail.indexOf("\n", nl) + 1;
+	return { frontmatter: layout.head + layout.block + layout.tail.slice(0, fenceLineEnd), rest: layout.tail.slice(fenceLineEnd) };
 }

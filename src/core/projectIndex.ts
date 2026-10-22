@@ -24,6 +24,12 @@ export const EAGER_ROOTS = ["_story-library", "Codex", "notes", "_backstage/stor
 export interface IndexEntry {
 	/** Project-relative path, on-disk spelling. */
 	path: string;
+	/** Last path segment, e.g. "Jane.md" (what a TFile/TFolder called `name`). */
+	name: string;
+	/** `name` without its extension for files; `name` for folders. */
+	basename: string;
+	/** Lower-cased extension without the dot; "" for folders and extensionless files. */
+	extension: string;
 	kind: EntryKind;
 	size: number;
 	mtimeMs: number;
@@ -47,6 +53,14 @@ export type Change =
 	| { type: "modified"; path: string }
 	| { type: "deleted"; path: string }
 	| { type: "renamed"; from: string; to: string };
+
+function names(path: string, kind: EntryKind): Pick<IndexEntry, "name" | "basename" | "extension"> {
+	const name = baseName(path);
+	if (kind === "folder") return { name, basename: name, extension: "" };
+	const dot = name.lastIndexOf(".");
+	if (dot <= 0) return { name, basename: name, extension: "" };
+	return { name, basename: name.slice(0, dot), extension: name.slice(dot + 1).toLowerCase() };
+}
 
 export function isEagerPath(path: string): boolean {
 	const key = foldKey(path);
@@ -150,7 +164,7 @@ export class ProjectIndex {
 	setFile(path: string, info: { size: number; mtimeMs: number; text?: string }): IndexEntry {
 		const canonical = this.canonical(path);
 		this.ensureParents(canonical);
-		const entry: IndexEntry = { path: canonical, kind: "file", size: info.size, mtimeMs: info.mtimeMs, collision: false };
+		const entry: IndexEntry = { ...names(canonical, "file"), path: canonical, kind: "file", size: info.size, mtimeMs: info.mtimeMs, collision: false };
 		if (isEagerPath(canonical) && info.text !== undefined) {
 			const fm = readFrontmatter(info.text);
 			entry.frontmatterState = fm.state;
@@ -168,7 +182,7 @@ export class ProjectIndex {
 		this.ensureParents(canonical);
 		const existing = this.byExact.get(canonical);
 		if (existing && existing.kind === "folder") return existing;
-		const entry: IndexEntry = { path: canonical, kind: "folder", size: 0, mtimeMs, collision: false };
+		const entry: IndexEntry = { ...names(canonical, "folder"), path: canonical, kind: "folder", size: 0, mtimeMs, collision: false };
 		this.insert(entry);
 		return entry;
 	}
@@ -200,7 +214,8 @@ export class ProjectIndex {
 		this.ensureParents(t);
 		for (const e of moved) {
 			const rest = e.path.split("/").slice(depth);
-			this.insert({ ...e, path: [t, ...rest].join("/"), collision: false });
+			const moved_ = [t, ...rest].join("/");
+			this.insert({ ...e, ...names(moved_, e.kind), path: moved_, collision: false });
 		}
 	}
 
@@ -277,7 +292,7 @@ export class ProjectIndex {
 			dir = parentOf(dir);
 		}
 		for (const d of missing.reverse()) {
-			this.insert({ path: d, kind: "folder", size: 0, mtimeMs: 0, collision: false });
+			this.insert({ ...names(d, "folder"), path: d, kind: "folder", size: 0, mtimeMs: 0, collision: false });
 		}
 	}
 

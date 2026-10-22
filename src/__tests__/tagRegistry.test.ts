@@ -4,7 +4,7 @@ import { makeTFile, makeTFolder } from "./obsidianStub";
 import { ensureTagRegistryFile, readTagRegistry, resolveIconAlias } from "../tagRegistry";
 import { BACKSTAGE_ROOT, tagRegistryFilePath } from "../core/paths";
 import { BUILTIN_CODEX_TYPES, CODEX_TYPES, registerCodexType } from "../codex";
-import { CODEX_ICON_CATALOG, TAG_ICON_CATALOG } from "../iconRegistry";
+import { CODEX_ICON_CATALOG, TAG_ICON_CATALOG } from "../core/iconRegistry";
 import { ICON_TAG } from "../icons";
 
 // Fake App: tag-registry.md's frontmatter is a single mutable object shared between
