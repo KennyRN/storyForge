@@ -14,7 +14,7 @@ import {
 } from "../codex";
 import { recordChapterUnarchive } from "../history";
 import { ICON_BOOK_DUOTONE, ICON_CODEX, ICON_FOLDER, ICON_UNARCHIVE } from "../icons";
-import { libraryChapterPath } from "../paths";
+import { libraryChapterPath } from "../core/paths";
 import { formatSingleLine } from "../core/titleNumbering";
 import { excerpt } from "../core/wordCount";
 import { makeAccessibleActivatable } from "./a11y";

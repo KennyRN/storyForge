@@ -7,7 +7,7 @@ import {
 	LIBRARY_ROOT,
 	isCodexNotePath,
 	isLibraryRootFilePath,
-} from "./paths";
+} from "./core/paths";
 
 /**
  * The one narrow module every plugin write funnels through. It physically

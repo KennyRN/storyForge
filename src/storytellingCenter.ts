@@ -1,4 +1,4 @@
-import { libraryChapterPath } from "./paths";
+import { libraryChapterPath } from "./core/paths";
 
 /**
  * Path the center editor should open when the storyTelling sidebar is showing —

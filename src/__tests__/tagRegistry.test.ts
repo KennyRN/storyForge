@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { type App } from "obsidian";
 import { makeTFile, makeTFolder } from "./obsidianStub";
 import { ensureTagRegistryFile, readTagRegistry, resolveIconAlias } from "../tagRegistry";
-import { BACKSTAGE_ROOT, tagRegistryFilePath } from "../paths";
+import { BACKSTAGE_ROOT, tagRegistryFilePath } from "../core/paths";
 import { BUILTIN_CODEX_TYPES, CODEX_TYPES, registerCodexType } from "../codex";
 import { CODEX_ICON_CATALOG, TAG_ICON_CATALOG } from "../iconRegistry";
 import { ICON_TAG } from "../icons";

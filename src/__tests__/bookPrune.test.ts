@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { App } from "obsidian";
 import { pruneMissingChapterEntries, readBookFrontmatter, stripMissingChapterRefs } from "../book";
-import { BACKSTAGE_ROOT, LIBRARY_ROOT, bookFilePath, libraryBookPath, libraryChapterPath } from "../paths";
+import { BACKSTAGE_ROOT, LIBRARY_ROOT, bookFilePath, libraryBookPath, libraryChapterPath } from "../core/paths";
 import { makeTFile, makeTFolder } from "./obsidianStub";
 
 describe("stripMissingChapterRefs", () => {

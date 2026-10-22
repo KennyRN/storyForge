@@ -9,7 +9,7 @@ import {
 } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { ICON_BOOK_DUOTONE, ICON_CODEX, ICON_FOCUS_OFF, ICON_FOCUS_ON } from "../icons";
-import { bookFolderNameFromChapterPath, CODEX_ROOT, isBackstageBookkeepingPath, isLibraryChapterPath, NOTES_ROOT, seriesFilePath } from "../paths";
+import { bookFolderNameFromChapterPath, CODEX_ROOT, isBackstageBookkeepingPath, isLibraryChapterPath, NOTES_ROOT, seriesFilePath } from "../core/paths";
 import { createNotebookPage } from "./notebookPage";
 import { makeAccessibleActivatable } from "./a11y";
 import { activateRightRailView } from "./activateRightRailView";

@@ -9,7 +9,7 @@ import {
 	isCodexNotePath,
 	isLibraryChapterPath,
 	storyContextSidecarPath,
-} from "./paths";
+} from "./core/paths";
 import {
 	getChapterEntry,
 	insertChapterEntry,

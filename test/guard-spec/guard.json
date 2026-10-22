@@ -1,0 +1,872 @@
+{
+	"version": 1,
+	"description": "Write-guard rule table. The TypeScript guard (src/core/backend/guard.ts) and, in Brief 4, the Rust guard must give each row's expected result. Paths are project-relative; \\ is a separator; ops: write-file, write-binary, create-file, create-folder, rename (from/to), retire, frontmatter-edit (keys = top-level keys the edit changes; Codex notes allow exactly [\"aliases\"]).",
+	"rows": [
+		{
+			"id": "write-allowed-1",
+			"op": "write-file",
+			"path": "_backstage/storyforge/settings-presets/x.json",
+			"expect": "allow",
+			"reason": "backstage subtree or flat library-root file"
+		},
+		{
+			"id": "write-allowed-2",
+			"op": "write-file",
+			"path": "_backstage/storyforge/TECa/cover.png",
+			"expect": "allow",
+			"reason": "backstage subtree or flat library-root file"
+		},
+		{
+			"id": "write-allowed-3",
+			"op": "write-file",
+			"path": "_backstage/storyforge/TECa/chapters/ch1.md",
+			"expect": "allow",
+			"reason": "backstage subtree or flat library-root file"
+		},
+		{
+			"id": "write-allowed-4",
+			"op": "write-file",
+			"path": "_backstage/storyforge/TECa/story-details/ch1.md",
+			"expect": "allow",
+			"reason": "backstage subtree or flat library-root file"
+		},
+		{
+			"id": "write-allowed-5",
+			"op": "write-file",
+			"path": "_story-library/series.md",
+			"expect": "allow",
+			"reason": "backstage subtree or flat library-root file"
+		},
+		{
+			"id": "write-allowed-6",
+			"op": "write-file",
+			"path": "_story-library/novel-TECa.md",
+			"expect": "allow",
+			"reason": "backstage subtree or flat library-root file"
+		},
+		{
+			"id": "write-allowed-7",
+			"op": "write-file",
+			"path": "_story-library/not-a-novel.md",
+			"expect": "allow",
+			"reason": "backstage subtree or flat library-root file"
+		},
+		{
+			"id": "write-allowed-8",
+			"op": "write-file",
+			"path": "_story-library/index.json",
+			"expect": "allow",
+			"reason": "backstage subtree or flat library-root file"
+		},
+		{
+			"id": "folder-backstage-root",
+			"op": "create-folder",
+			"path": "_backstage/storyforge",
+			"expect": "allow",
+			"reason": "backstage root"
+		},
+		{
+			"id": "folder-backstage-nested",
+			"op": "create-folder",
+			"path": "_backstage/storyforge/TECa/chapters",
+			"expect": "allow"
+		},
+		{
+			"id": "write-forbidden-titleforge-root",
+			"op": "write-file",
+			"path": "_backstage/titleforge",
+			"expect": "refuse"
+		},
+		{
+			"id": "write-forbidden-titleforge-file",
+			"op": "write-file",
+			"path": "_backstage/titleforge/settings.json",
+			"expect": "refuse"
+		},
+		{
+			"id": "write-forbidden-library-chapter",
+			"op": "write-file",
+			"path": "_story-library/TECa/ch1.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "write-forbidden-codex-note",
+			"op": "write-file",
+			"path": "Codex/Jane.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "write-forbidden-novel-code-no-ext",
+			"op": "write-file",
+			"path": "_story-library/novel-TECa",
+			"expect": "refuse"
+		},
+		{
+			"id": "write-forbidden-book-folder-as-file",
+			"op": "write-file",
+			"path": "_story-library/TECa",
+			"expect": "refuse"
+		},
+		{
+			"id": "write-forbidden-trav-into-library",
+			"op": "write-file",
+			"path": "_backstage/storyforge/../../_story-library/TECa/ch1.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "write-forbidden-trav-into-codex-deep",
+			"op": "write-file",
+			"path": "_backstage/storyforge/foo/../../../Codex/Jane.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "write-forbidden-trav-into-codex",
+			"op": "write-file",
+			"path": "_backstage/storyforge/../../Codex/Jane.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "write-forbidden-backstage-prefix-evil",
+			"op": "write-file",
+			"path": "_backstage/storyforge_evil/x.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "write-forbidden-backstage-nested-wrong-parent",
+			"op": "write-file",
+			"path": "foo/_backstage/storyforge/x.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "write-forbidden-backstage-uppercase",
+			"op": "write-file",
+			"path": "_BACKSTAGE/STORYFORGE/series.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "folder-library-as-write",
+			"op": "write-file",
+			"path": "_story-library",
+			"expect": "refuse",
+			"reason": "a folder path is not a file target"
+		},
+		{
+			"id": "folder-codex-as-write",
+			"op": "write-file",
+			"path": "Codex",
+			"expect": "refuse"
+		},
+		{
+			"id": "invalid-absolute",
+			"op": "write-file",
+			"path": "/_backstage/storyforge/series.md",
+			"expect": "refuse",
+			"reason": "not a safe relative path"
+		},
+		{
+			"id": "invalid-nul",
+			"op": "write-file",
+			"path": "_backstage/storyforge/x.md\u0000.md",
+			"expect": "refuse",
+			"reason": "not a safe relative path"
+		},
+		{
+			"id": "invalid-drive-letter",
+			"op": "write-file",
+			"path": "C:/x/y.md",
+			"expect": "refuse",
+			"reason": "not a safe relative path"
+		},
+		{
+			"id": "invalid-drive-letter-backslash",
+			"op": "write-file",
+			"path": "C:\\x\\y.md",
+			"expect": "refuse",
+			"reason": "not a safe relative path"
+		},
+		{
+			"id": "invalid-escape-root",
+			"op": "write-file",
+			"path": "../x.md",
+			"expect": "refuse",
+			"reason": "not a safe relative path"
+		},
+		{
+			"id": "invalid-escape-deep",
+			"op": "write-file",
+			"path": "_backstage/storyforge/../../../etc/passwd",
+			"expect": "refuse",
+			"reason": "not a safe relative path"
+		},
+		{
+			"id": "invalid-root-itself",
+			"op": "write-file",
+			"path": "",
+			"expect": "refuse",
+			"reason": "not a safe relative path"
+		},
+		{
+			"id": "invalid-dot-only",
+			"op": "write-file",
+			"path": ".",
+			"expect": "refuse",
+			"reason": "not a safe relative path"
+		},
+		{
+			"id": "write-forbidden-obsidian-folder",
+			"op": "write-file",
+			"path": ".obsidian/app.json",
+			"expect": "refuse",
+			"reason": "outside every allowed root"
+		},
+		{
+			"id": "write-forbidden-git",
+			"op": "write-file",
+			"path": ".git/config",
+			"expect": "refuse",
+			"reason": "outside every allowed root"
+		},
+		{
+			"id": "write-forbidden-trash-target",
+			"op": "write-file",
+			"path": ".trash/x.md",
+			"expect": "refuse",
+			"reason": "outside every allowed root"
+		},
+		{
+			"id": "write-forbidden-project-root-file",
+			"op": "write-file",
+			"path": "README.md",
+			"expect": "refuse",
+			"reason": "outside every allowed root"
+		},
+		{
+			"id": "write-forbidden-unrelated-folder",
+			"op": "write-file",
+			"path": "elsewhere/x.md",
+			"expect": "refuse",
+			"reason": "outside every allowed root"
+		},
+		{
+			"id": "write-forbidden-notes-folder",
+			"op": "write-file",
+			"path": "notes/n.md",
+			"expect": "refuse",
+			"reason": "outside every allowed root"
+		},
+		{
+			"id": "write-forbidden-titleforge-new",
+			"op": "write-file",
+			"path": "_backstage/titleforge/lexicons/x.json",
+			"expect": "refuse",
+			"reason": "outside every allowed root"
+		},
+		{
+			"id": "backup-write",
+			"op": "write-file",
+			"path": "_sf-backup/2026-01-01 backup.zip",
+			"expect": "allow",
+			"reason": "backup root reserved for Brief 3"
+		},
+		{
+			"id": "backup-text",
+			"op": "write-file",
+			"path": "_sf-backup/formatForge settings.json",
+			"expect": "allow"
+		},
+		{
+			"id": "backup-binary",
+			"op": "write-binary",
+			"path": "_sf-backup/a/b.zip",
+			"expect": "allow"
+		},
+		{
+			"id": "backup-create",
+			"op": "create-file",
+			"path": "_sf-backup/x.zip",
+			"expect": "allow"
+		},
+		{
+			"id": "backup-folder",
+			"op": "create-folder",
+			"path": "_sf-backup",
+			"expect": "allow"
+		},
+		{
+			"id": "backup-traversal",
+			"op": "write-file",
+			"path": "_sf-backup/../Codex/settings.json",
+			"expect": "refuse"
+		},
+		{
+			"id": "backup-uppercase",
+			"op": "write-file",
+			"path": "_SF-BACKUP/x.zip",
+			"expect": "refuse",
+			"reason": "case variant"
+		},
+		{
+			"id": "export-write-file-1",
+			"op": "write-file",
+			"path": "_export/2026-08-28 - Cast.json",
+			"expect": "refuse",
+			"reason": "the _export/ allowance was removed"
+		},
+		{
+			"id": "export-create-file-2",
+			"op": "create-file",
+			"path": "_export/x.json",
+			"expect": "refuse",
+			"reason": "the _export/ allowance was removed"
+		},
+		{
+			"id": "export-create-folder-3",
+			"op": "create-folder",
+			"path": "_export",
+			"expect": "refuse",
+			"reason": "the _export/ allowance was removed"
+		},
+		{
+			"id": "export-write-file-4",
+			"op": "write-file",
+			"path": "_export/nested/Cast.json",
+			"expect": "refuse",
+			"reason": "the _export/ allowance was removed"
+		},
+		{
+			"id": "export-write-file-5",
+			"op": "write-file",
+			"path": "_export/../Codex/settings.json",
+			"expect": "refuse",
+			"reason": "the _export/ allowance was removed"
+		},
+		{
+			"id": "chapter-create",
+			"op": "create-file",
+			"path": "_story-library/TECa/aaa.md",
+			"expect": "allow",
+			"reason": "new chapter file"
+		},
+		{
+			"id": "chapter-create-unicode-nfd",
+			"op": "create-file",
+			"path": "_story-library/TECa/Café.md",
+			"expect": "allow",
+			"reason": "NFD is normalised before the rule applies"
+		},
+		{
+			"id": "chapter-create-deeper",
+			"op": "create-file",
+			"path": "_story-library/TECa/sub/x.md",
+			"expect": "refuse",
+			"reason": "only <code>/<file>.md"
+		},
+		{
+			"id": "chapter-create-nonmd",
+			"op": "create-file",
+			"path": "_story-library/TECa/x.txt",
+			"expect": "refuse"
+		},
+		{
+			"id": "chapter-create-at-root-no-ext",
+			"op": "create-file",
+			"path": "_story-library/TECa",
+			"expect": "refuse"
+		},
+		{
+			"id": "chapter-write-existing",
+			"op": "write-file",
+			"path": "_story-library/TECa/aaa.md",
+			"expect": "refuse",
+			"reason": "prose is never written"
+		},
+		{
+			"id": "chapter-binary",
+			"op": "write-binary",
+			"path": "_story-library/TECa/aaa.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "chapter-frontmatter-edit",
+			"op": "frontmatter-edit",
+			"path": "_story-library/TECa/aaa.md",
+			"keys": [
+				"x"
+			],
+			"expect": "refuse"
+		},
+		{
+			"id": "chapter-rename-from",
+			"op": "rename",
+			"from": "_story-library/TECa/aaa.md",
+			"to": "_story-library/TECa/bbb.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "chapter-rename-out",
+			"op": "rename",
+			"from": "_story-library/TECa/aaa.md",
+			"to": "_backstage/storyforge/aaa.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "chapter-rename-in",
+			"op": "rename",
+			"from": "_backstage/storyforge/aaa.md",
+			"to": "_story-library/TECa/aaa.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "chapter-retire",
+			"op": "retire",
+			"path": "_story-library/TECa/aaa.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "codex-create",
+			"op": "create-file",
+			"path": "Codex/Jane.md",
+			"expect": "allow",
+			"reason": "new Codex note"
+		},
+		{
+			"id": "codex-create-unicode",
+			"op": "create-file",
+			"path": "Codex/Café.md",
+			"expect": "allow"
+		},
+		{
+			"id": "codex-create-nested",
+			"op": "create-file",
+			"path": "Codex/sub/Jane.md",
+			"expect": "refuse",
+			"reason": "Codex folders are virtual"
+		},
+		{
+			"id": "codex-create-nonmd",
+			"op": "create-file",
+			"path": "Codex/Jane.txt",
+			"expect": "refuse"
+		},
+		{
+			"id": "codex-write-existing",
+			"op": "write-file",
+			"path": "Codex/Jane.md",
+			"expect": "refuse",
+			"reason": "Codex note bodies are never written"
+		},
+		{
+			"id": "codex-binary",
+			"op": "write-binary",
+			"path": "Codex/Jane.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "codex-alias-edit",
+			"op": "frontmatter-edit",
+			"path": "Codex/Jane.md",
+			"keys": [
+				"aliases"
+			],
+			"expect": "allow",
+			"reason": "aliases-only YAML"
+		},
+		{
+			"id": "codex-alias-edit-other-key",
+			"op": "frontmatter-edit",
+			"path": "Codex/Jane.md",
+			"keys": [
+				"aliases",
+				"type"
+			],
+			"expect": "refuse",
+			"reason": "only the aliases key"
+		},
+		{
+			"id": "codex-edit-other-key",
+			"op": "frontmatter-edit",
+			"path": "Codex/Jane.md",
+			"keys": [
+				"type"
+			],
+			"expect": "refuse"
+		},
+		{
+			"id": "codex-edit-no-keys-declared",
+			"op": "frontmatter-edit",
+			"path": "Codex/Jane.md",
+			"expect": "refuse",
+			"reason": "keys must be declared for Codex notes"
+		},
+		{
+			"id": "codex-edit-empty-keys",
+			"op": "frontmatter-edit",
+			"path": "Codex/Jane.md",
+			"keys": [],
+			"expect": "refuse"
+		},
+		{
+			"id": "codex-rename",
+			"op": "rename",
+			"from": "Codex/Jane.md",
+			"to": "Codex/Janet.md",
+			"expect": "refuse",
+			"reason": "link-updating rename is Brief 3"
+		},
+		{
+			"id": "codex-rename-out",
+			"op": "rename",
+			"from": "Codex/Jane.md",
+			"to": "_backstage/storyforge/Jane.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "codex-retire",
+			"op": "retire",
+			"path": "Codex/Jane.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "folder-library-root",
+			"op": "create-folder",
+			"path": "_story-library",
+			"expect": "allow"
+		},
+		{
+			"id": "folder-library-book",
+			"op": "create-folder",
+			"path": "_story-library/TECa",
+			"expect": "allow"
+		},
+		{
+			"id": "folder-library-nested",
+			"op": "create-folder",
+			"path": "_story-library/TECa/sub",
+			"expect": "refuse"
+		},
+		{
+			"id": "folder-codex-root",
+			"op": "create-folder",
+			"path": "Codex",
+			"expect": "allow"
+		},
+		{
+			"id": "folder-codex-nested",
+			"op": "create-folder",
+			"path": "Codex/sub",
+			"expect": "refuse"
+		},
+		{
+			"id": "folder-notes",
+			"op": "create-folder",
+			"path": "notes",
+			"expect": "refuse",
+			"reason": "notes/ is never created by the app"
+		},
+		{
+			"id": "folder-elsewhere",
+			"op": "create-folder",
+			"path": "elsewhere",
+			"expect": "refuse"
+		},
+		{
+			"id": "folder-obsidian",
+			"op": "create-folder",
+			"path": ".obsidian",
+			"expect": "refuse"
+		},
+		{
+			"id": "backstage-create",
+			"op": "create-file",
+			"path": "_backstage/storyforge/codex.md",
+			"expect": "allow"
+		},
+		{
+			"id": "backstage-fm-edit",
+			"op": "frontmatter-edit",
+			"path": "_backstage/storyforge/codex.md",
+			"keys": [
+				"folders",
+				"order"
+			],
+			"expect": "allow",
+			"reason": "any keys in backstage"
+		},
+		{
+			"id": "backstage-fm-edit-nokeys",
+			"op": "frontmatter-edit",
+			"path": "_backstage/storyforge/codex.md",
+			"expect": "allow"
+		},
+		{
+			"id": "flat-root-fm-edit",
+			"op": "frontmatter-edit",
+			"path": "_story-library/series.md",
+			"keys": [
+				"order"
+			],
+			"expect": "allow",
+			"reason": "series.md"
+		},
+		{
+			"id": "flat-root-create",
+			"op": "create-file",
+			"path": "_story-library/novel-TECb.md",
+			"expect": "allow"
+		},
+		{
+			"id": "backstage-rename",
+			"op": "rename",
+			"from": "_backstage/storyforge/TECa/chapters/a.md",
+			"to": "_backstage/storyforge/TECa/chapters/b.md",
+			"expect": "allow"
+		},
+		{
+			"id": "backstage-rename-folder",
+			"op": "rename",
+			"from": "_backstage/storyforge/TECa",
+			"to": "_backstage/storyforge/TECz",
+			"expect": "allow"
+		},
+		{
+			"id": "flat-root-rename",
+			"op": "rename",
+			"from": "_story-library/novel-TECa.md",
+			"to": "_story-library/novel-TECz.md",
+			"expect": "allow",
+			"reason": "metadata to metadata"
+		},
+		{
+			"id": "backstage-to-backup-rename",
+			"op": "rename",
+			"from": "_backstage/storyforge/a.md",
+			"to": "_sf-backup/a.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "backup-rename",
+			"op": "rename",
+			"from": "_sf-backup/a.zip",
+			"to": "_sf-backup/b.zip",
+			"expect": "allow"
+		},
+		{
+			"id": "rename-to-hidden",
+			"op": "rename",
+			"from": "_backstage/storyforge/a.md",
+			"to": ".obsidian/a.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "backstage-retire",
+			"op": "retire",
+			"path": "_backstage/storyforge/TECa/story-details/ch1.md",
+			"expect": "allow",
+			"reason": "only backstage metadata is ever retired"
+		},
+		{
+			"id": "flat-root-retire",
+			"op": "retire",
+			"path": "_story-library/novel-TECa.md",
+			"expect": "allow"
+		},
+		{
+			"id": "backup-retire",
+			"op": "retire",
+			"path": "_sf-backup/a.zip",
+			"expect": "refuse"
+		},
+		{
+			"id": "elsewhere-retire",
+			"op": "retire",
+			"path": "elsewhere/x.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "backstage-retire-root",
+			"op": "retire",
+			"path": "_backstage/storyforge",
+			"expect": "refuse",
+			"reason": "never the backstage root itself"
+		},
+		{
+			"id": "variant-library-case",
+			"op": "create-file",
+			"path": "_Story-Library/TECa/aaa.md",
+			"expect": "refuse",
+			"reason": "case variant of a protected folder"
+		},
+		{
+			"id": "variant-library-upper",
+			"op": "write-file",
+			"path": "_STORY-LIBRARY/series.md",
+			"expect": "refuse",
+			"reason": "case variant of a protected folder"
+		},
+		{
+			"id": "variant-library-upper-fm",
+			"op": "frontmatter-edit",
+			"path": "_STORY-LIBRARY/series.md",
+			"keys": [
+				"aliases"
+			],
+			"expect": "refuse",
+			"reason": "case variant of a protected folder"
+		},
+		{
+			"id": "variant-codex-lower",
+			"op": "create-file",
+			"path": "codex/Jane.md",
+			"expect": "refuse",
+			"reason": "case variant of a protected folder"
+		},
+		{
+			"id": "variant-codex-upper",
+			"op": "write-file",
+			"path": "CODEX/Jane.md",
+			"expect": "refuse",
+			"reason": "case variant of a protected folder"
+		},
+		{
+			"id": "variant-codex-upper-alias",
+			"op": "frontmatter-edit",
+			"path": "CODEX/Jane.md",
+			"keys": [
+				"aliases"
+			],
+			"expect": "refuse",
+			"reason": "case variant of a protected folder"
+		},
+		{
+			"id": "variant-backstage-case",
+			"op": "write-file",
+			"path": "_Backstage/StoryForge/x.md",
+			"expect": "refuse",
+			"reason": "case variant of a protected folder"
+		},
+		{
+			"id": "variant-backstage-case-parent",
+			"op": "write-file",
+			"path": "_BACKSTAGE/storyforge/x.md",
+			"expect": "refuse",
+			"reason": "case variant of a protected folder"
+		},
+		{
+			"id": "variant-backstage-mixed",
+			"op": "write-file",
+			"path": "_backstage/Storyforge/x.md",
+			"expect": "refuse",
+			"reason": "case variant of a protected folder"
+		},
+		{
+			"id": "variant-backup-mixed",
+			"op": "write-file",
+			"path": "_sf-Backup/x.zip",
+			"expect": "refuse",
+			"reason": "case variant of a protected folder"
+		},
+		{
+			"id": "variant-export-case",
+			"op": "write-file",
+			"path": "_Export/x.json",
+			"expect": "refuse",
+			"reason": "case variant of a protected folder"
+		},
+		{
+			"id": "variant-rename-case",
+			"op": "rename",
+			"from": "_BACKSTAGE/storyforge/a.md",
+			"to": "_backstage/storyforge/b.md",
+			"expect": "refuse",
+			"reason": "case variant of a protected folder"
+		},
+		{
+			"id": "variant-retire-case",
+			"op": "retire",
+			"path": "_Backstage/storyforge/a.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "sep-library-write",
+			"op": "write-file",
+			"path": "_story-library\\TECa\\aaa.md",
+			"expect": "refuse",
+			"reason": "backslashes are separators"
+		},
+		{
+			"id": "sep-codex-write",
+			"op": "write-file",
+			"path": "Codex\\Jane.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "sep-codex-create",
+			"op": "create-file",
+			"path": "Codex\\Jane.md",
+			"expect": "allow",
+			"reason": "it is a valid Codex create once separators are unified"
+		},
+		{
+			"id": "sep-backstage-write",
+			"op": "write-file",
+			"path": "_backstage\\storyforge\\x.md",
+			"expect": "allow",
+			"reason": "inside backstage after unifying separators"
+		},
+		{
+			"id": "sep-mixed-library-write",
+			"op": "write-file",
+			"path": "_story-library/TECa\\aaa.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "sep-mixed-escape",
+			"op": "write-file",
+			"path": "_backstage/storyforge\\..\\..\\Codex\\Jane.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "sep-double-slash",
+			"op": "write-file",
+			"path": "_story-library//TECa//aaa.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "sep-dot-segments",
+			"op": "write-file",
+			"path": "_backstage/./storyforge/./x.md",
+			"expect": "allow"
+		},
+		{
+			"id": "sep-trailing-slash-folder",
+			"op": "create-folder",
+			"path": "_backstage/storyforge/",
+			"expect": "allow"
+		},
+		{
+			"id": "unicode-codex-nfd-write",
+			"op": "write-file",
+			"path": "Codex/Café.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "unicode-library-nfd-write",
+			"op": "write-file",
+			"path": "_story-library/CAFÉ/ch.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "unicode-backstage-nfd-write",
+			"op": "write-file",
+			"path": "_backstage/storyforge/Café/x.md",
+			"expect": "allow"
+		},
+		{
+			"id": "unicode-fullwidth-library",
+			"op": "write-file",
+			"path": "＿story-library/x.md",
+			"expect": "refuse",
+			"reason": "not the protected folder, not an allowed one either"
+		}
+	]
+}

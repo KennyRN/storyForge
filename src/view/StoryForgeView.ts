@@ -1,6 +1,6 @@
 import { ItemView, Notice, setIcon, setTooltip, TFile, WorkspaceLeaf } from "obsidian";
 import type StoryForgePlugin from "../main";
-import { bookFolderNameFromChapterPath, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath } from "../paths";
+import { bookFolderNameFromChapterPath, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath } from "../core/paths";
 import { getSeriesBooks } from "../series";
 import {
 	renderTopPanel,

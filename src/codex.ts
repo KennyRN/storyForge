@@ -1,6 +1,6 @@
 import { App, TFile, TFolder, normalizePath, type FrontMatterCache } from "obsidian";
 import { ICON_MAP_PIN, ICON_PERSON_2_FILL, ICON_PERSON_FILL } from "./icons";
-import { CODEX_ROOT, codexFilePath } from "./paths";
+import { CODEX_ROOT, codexFilePath } from "./core/paths";
 import { modifyBackstageFrontmatter, modifyCodexNoteAliases } from "./writeGuard";
 import {
 	codexBasename,

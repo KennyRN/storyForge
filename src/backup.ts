@@ -1,6 +1,6 @@
 import { normalizePath, type App } from "obsidian";
 import { zipSync, type Zippable } from "fflate";
-import { BACKUPS_FOLDER, isBackupFolderPath } from "./paths";
+import { BACKUPS_FOLDER, isBackupFolderPath } from "./core/paths";
 import {
 	enqueueBackstageWrite,
 	normalizeVaultPath,

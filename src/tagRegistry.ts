@@ -1,5 +1,5 @@
 import { App } from "obsidian";
-import { tagRegistryFilePath } from "./paths";
+import { tagRegistryFilePath } from "./core/paths";
 import { modifyBackstageFrontmatter } from "./writeGuard";
 import { ICON_TAG } from "./icons";
 import { CODEX_ICON_CATALOG, TAG_ICON_CATALOG } from "./iconRegistry";

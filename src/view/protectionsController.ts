@@ -2,7 +2,7 @@ import { App, Notice, Setting, SettingGroup } from "obsidian";
 import type StoryForgePlugin from "../main";
 import type { AutomaticBackupFrequency } from "../main";
 import { runFullBackup } from "../backup";
-import { BACKUPS_FOLDER } from "../paths";
+import { BACKUPS_FOLDER } from "../core/paths";
 
 /** The backup controls (automatic schedule + manual backup), shown in ProtectionsModal. */
 export class ProtectionsController {

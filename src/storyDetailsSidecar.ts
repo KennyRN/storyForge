@@ -1,5 +1,5 @@
 import { App, TFile } from "obsidian";
-import { storyContextSidecarPath } from "./paths";
+import { storyContextSidecarPath } from "./core/paths";
 import { deleteBackstagePath, renameBackstagePath } from "./writeGuard";
 
 /** Follows a chapter rename: moves the chapter's `story-details/` sidecar to the new chapter filename. */

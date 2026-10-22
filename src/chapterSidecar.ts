@@ -1,5 +1,5 @@
 import { App, parseYaml, stringifyYaml, TFile, type FrontMatterCache } from "obsidian";
-import { chapterSidecarFolderPath, chapterSidecarPath } from "./paths";
+import { chapterSidecarFolderPath, chapterSidecarPath } from "./core/paths";
 import { ensureBackstageFolder, deleteBackstagePath, enqueueBackstageWrite, renameBackstagePath, writeBackstageFile } from "./writeGuard";
 import type { Fingerprint } from "./core/fingerprint";
 

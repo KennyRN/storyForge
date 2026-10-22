@@ -17,7 +17,7 @@ import {
 	LIBRARY_ROOT,
 	CODEX_ROOT,
 	NOTES_ROOT,
-} from "./paths";
+} from "./core/paths";
 import type { SfLayout } from "./layout";
 import { recordChapterEdit } from "./history";
 import { extractFingerprint } from "./core/fingerprint";

@@ -14,7 +14,7 @@ import {
 	writeBookPlannedNovelLength,
 		} from "../book";
 import { createContinuingChapter } from "../chapterCreation";
-import { bookBackstagePath } from "../paths";
+import { bookBackstagePath } from "../core/paths";
 import { makeReorderable, type DragZone } from "./dragReorder";
 import { makeAccessibleActivatable } from "./a11y";
 import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";

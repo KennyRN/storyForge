@@ -9,7 +9,7 @@ import {
 	writeBackupText,
 	writeExportText,
 } from "../writeGuard";
-import { BACKSTAGE_ROOT, LIBRARY_ROOT, bookFilePath, libraryChapterPath, seriesFilePath } from "../paths";
+import { BACKSTAGE_ROOT, LIBRARY_ROOT, bookFilePath, libraryChapterPath, seriesFilePath } from "../core/paths";
 import { makeTFile } from "./obsidianStub";
 import type { App, FrontMatterCache, TFile, Vault } from "obsidian";
 

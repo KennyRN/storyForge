@@ -8,7 +8,7 @@ import {
 	sanitizeCodexBasename,
 	uniqueCodexFilename,
 } from "../codex";
-import { CODEX_ROOT } from "../paths";
+import { CODEX_ROOT } from "../core/paths";
 import { makeTFile, makeTFolder } from "./obsidianStub";
 
 function fakeCodexApp(

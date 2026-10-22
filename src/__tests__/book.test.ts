@@ -3,7 +3,7 @@ import { type App } from "obsidian";
 import { makeTFile, makeTFolder } from "./obsidianStub";
 import { readBookFrontmatter, writeBookCoverImage, writeChapterLocation, writeChapterPlotThread, writeChapterPov, writeChapterTags, writeNovelTags, pruneMissingChapterCodexRefs, rekeyChapterLocationReferences, rekeyChapterPovReferences, parseCodexRefs } from "../book";
 import { safeCoverFilename } from "../coverImage";
-import { BACKSTAGE_ROOT, LIBRARY_ROOT, bookFilePath } from "../paths";
+import { BACKSTAGE_ROOT, LIBRARY_ROOT, bookFilePath } from "../core/paths";
 
 describe("safeCoverFilename", () => {
 	it("accepts a plain basename", () => {

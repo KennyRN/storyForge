@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { App } from "obsidian";
 import { updateChapterFingerprint } from "../chapterSidecar";
-import { chapterSidecarPath } from "../paths";
+import { chapterSidecarPath } from "../core/paths";
 import { makeTFile } from "./obsidianStub";
 
 function delay(ms: number): Promise<void> {

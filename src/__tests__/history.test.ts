@@ -9,7 +9,7 @@ import {
 	recordChapterUnarchive,
 	totalsFromDailyNets,
 } from "../history";
-import { BACKSTAGE_ROOT, bookFilePath, bookWordCountFilePath, LIBRARY_ROOT, wordCountFilePath } from "../paths";
+import { BACKSTAGE_ROOT, bookFilePath, bookWordCountFilePath, LIBRARY_ROOT, wordCountFilePath } from "../core/paths";
 
 type Store = Map<string, string>;
 

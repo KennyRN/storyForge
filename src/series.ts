@@ -1,5 +1,5 @@
 import { App, TFile, TFolder, type FrontMatterCache } from "obsidian";
-import { LIBRARY_ROOT, seriesBackstagePath, seriesFilePath } from "./paths";
+import { LIBRARY_ROOT, seriesBackstagePath, seriesFilePath } from "./core/paths";
 import { resolveOrder, type OrderResult } from "./core/ordering";
 import { deleteBackstagePath, enqueueBackstageWrite, modifyBackstageFrontmatter, writeBackstageBinary, writeBackstageFile } from "./writeGuard";
 import { mintId } from "./core/slug";

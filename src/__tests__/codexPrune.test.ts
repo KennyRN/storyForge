@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { App } from "obsidian";
 import { pruneMissingCodexNotes, readCodexFrontmatter, rekeyCodexNotePath, stripMissingCodexNoteRefs } from "../codex";
-import { CODEX_ROOT, BACKSTAGE_ROOT, codexFilePath } from "../paths";
+import { CODEX_ROOT, BACKSTAGE_ROOT, codexFilePath } from "../core/paths";
 import { makeTFile, makeTFolder } from "./obsidianStub";
 
 describe("stripMissingCodexNoteRefs", () => {
