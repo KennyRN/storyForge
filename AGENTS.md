@@ -1,34 +1,36 @@
 # storyForge
 
-storyForge is becoming a standalone desktop app (Tauri 2, macOS first). This repository is mid-transition: today it holds a **stripped Obsidian plugin used as a test harness** while the app's engine is built. The design decisions live in the project's `storyForge app – decisions.md`; read it before changing anything structural. The plugin itself continues, unchanged, as `storytellingForge`.
+storyForge is becoming a standalone desktop app (Tauri 2, macOS first). This repository now holds the app's **data core**: a plain TypeScript library over a folder of markdown, with no dependency on Obsidian. The design decisions live in the project's `storyForge app – decisions.md`; read it before changing anything structural. The Obsidian plugin continues, unchanged, as `storytellingForge`; its last storyForge-repo incarnation (with its interface) is the git tag `plugin-harness-final`.
 
-## What the harness is
+Reports to read first: `docs/strip-report.md` (what was removed from the plugin and why), `docs/project-handle.md` (the design of the core, with the review rulings in §10) and `docs/data-core-report.md` (what was built, and every difference from the plugin's behaviour).
 
-TypeScript, an Obsidian plugin bundle (`main.js` + `styles.css` + `manifest.json`). The strip removed everything on the v1 cut list (titleForge, the Story Context engine, the Notebook, plot threads and tags, registry editors, the icon picker, continuous mode and the guides, interface formatting and palettes, export/import/presets, migrations, Obsidian chrome management and Forge-family hosting). What remains:
+## Layout
 
-- the storytelling and storyForge faces (left panel: navigator, Codex tree, stats; series/novel/chapter tabs and library management)
-- the right-hand panel: the lore slot (Focus Mode) and the Archive list
-- backups, word-count history recording, reconciliation of renames/deletes, `#` auto-numbering and its styles
-- the whole data layer (`book.ts`, `series.ts`, `codex.ts`) and the pure layout maths (`seriesNovelBar`, `novelLengthBar`, `plotCardTier`, `historyMath`, …), kept for v1.1
-
-`docs/strip-report.md` lists exactly what was removed, relocated and deliberately kept.
+- `src/core/` — the library. `project.ts` (the **Project handle**: a synchronous in-memory index for reads, guarded asynchronous writes with write-through), `projectIndex.ts`, `frontmatter.ts` (parse and minimal-diff edit), `backend/` (the Backend interface, the **write guard** and `GuardedBackend`), then the ported data layer: `paths`, `series`, `book`, `codex`, `codexTree`, `tagRegistry`, `chapterSidecar`, `storyDetailsSidecar`, `chapterCreation`, `chapterPlacement`, `history`, `reconciliation`, `sectionBody`, `coverImage`, plus the pure maths and helpers.
+- `src/backends/node-fs/` — the file-system Backend (atomic writes, `.trash/` retire). Used by tests and the CLI check now; the Tauri backend is Brief 4.
+- `src/view/` — DOM-only helpers kept for the interface work (`dragReorder`, `dragReorderTree`, `dragLock`, `inkSlider`, `a11y`, `codexOpenTarget`) and `src/layout.ts`, `src/storytellingCenter.ts`. No Obsidian dependency.
+- `src/cli/` and `scripts/` — the developer check: `npm run check -- <folder>` copies a folder and reports on it; it never writes to the source.
+- `test/fixtures/` — synthetic projects in the 0.17 layout (`node test/fixtures/build.mjs` regenerates them; commit the result). `test/guard-spec/guard.json` — the write-guard rule table the Rust guard must also pass. `test/diskSafety/` — the disk-safety suite.
 
 ## Hard rules
 
-- **Never install this build in a real vault.** It keeps the plugin id `storyforge`; use a copy of a vault.
-- **The disk format is frozen at 0.17.** Do not rename, add or remove folders, files or frontmatter keys, and do not migrate or tidy anything. Data of cut features stays on disk untouched.
-- **The prose tenet:** nothing writes prose except the author's own typing. `writeGuard.ts` refuses every write into the story library and Codex apart from the documented exceptions (create, rename, Codex alias edits, flat library-root files, backstage, backups, exports).
+- **The disk format is frozen at 0.17.** Every path, filename and frontmatter key is read and written exactly as 0.17.1 did. No migrations. A folder in an older layout is refused (`LegacyLayoutError`), untouched. Data of removed features stays on disk, untouched.
+- **Unknown frontmatter keys survive every rewrite**, and **rewrites are minimal**: changing one key changes only that key's lines (`frontmatter.ts` splices into the original text). If a YAML construct can't be rewritten minimally, **stop and report**; don't accept wider churn. Unreadable frontmatter (anchors, tags, duplicate keys, bad syntax) means the file is *unavailable*, never empty, and every write to it is refused.
+- **No prose writes.** There is no way to write a chapter body or a Codex note body. The single prose path, link rewriting on Codex rename, and backups are later work; until then an operation that would need them is **refused**, not approximated (`renameCodexNoteFile` throws `CodexRenameUnavailableError`).
+- **The write guard sits below the data layer** (`GuardedBackend`); data code can't skip it. Its rules are the table in `test/guard-spec/guard.json`; change the table and the guard together, and keep the Rust guard's expectations in mind. Nothing is ever deleted: the only removal is `retire` into `.trash/`.
+- **Fixtures are synthetic.** Never commit real manuscript or Codex text. Real-vault checks use `npm run check` on a local copy.
 - **Attribution:** read `Code Attributions.md` before opening any reference repository. Escalate rather than copying from an unlicensed source.
 - **Short-lived branches:** see `.cursor/rules/short-lived-branches.mdc`.
 
-## Commands (see `package.json` scripts)
+## Hold rules (stop and report, don't push on)
 
-- Tests: `npm test` (vitest). Tests stub the `obsidian` module via `src/__tests__/obsidianStub.ts` (aliased in `vitest.config.ts`).
-- Typecheck + production build: `npm run build` → `tsc -noEmit -skipLibCheck` then `esbuild` to produce `main.js` (git-ignored). The `tsc` step is the type gate; there is no lint config. `noUnusedLocals` is off in `tsconfig.json` — turning it on permanently is an open decision.
-- Dev build: `npm run dev` (esbuild watch, non-terminating).
-- CI runs install, test and build only. There is no release workflow in this repository on purpose.
+- A YAML construct can't be rewritten minimally.
+- A test can't be ported faithfully.
+- Something would need a behaviour change in a kept module, not just a severed import.
+- The disk-safety suite fails and the fix would widen what an operation touches.
 
-## Undocumented/internal API surfaces (re-verify on an Obsidian minor bump)
+## Commands
 
-- `src/view/graftedEditor.ts` — grafts a real `WorkspaceLeaf`/`MarkdownView` into arbitrary plugin DOM for the lore slot and the Archive page (`mountLeafEditor`, via `contextEditor.ts`), using a freshly constructed `WorkspaceSplit` with its `getRoot`/`getContainer` overridden per-instance. Every operation is public except the `WorkspaceSplit` constructor's argument shape, which the typings don't declare; if a future Obsidian changes it, construction throws (caught and logged), which is the most detectable failure point available.
-- `leaf.tabHeaderEl` and the `.workspace-tab-header-inner-icon` selector (in `StoryContextView.ts` and `StoryForgeView.ts`) — used to repaint a tab's icon in place; both views degrade quietly if they disappear.
+- Typecheck: `npm run build` (= `tsc -noEmit`). `noUnusedLocals` is off in `tsconfig.json`; turning it on permanently is an open decision.
+- Tests: `npm test` (vitest, including the disk-safety suite). CI runs install, typecheck and test only.
+- Check a folder: `npm run check -- <folder>`.

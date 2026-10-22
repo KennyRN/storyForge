@@ -206,3 +206,12 @@ Rules (identical to today's, minus `_export/`, plus the explicit allowances that
    - No change → the original string is returned and nothing is written.
    - Disk-safety test: change one chapter's entry in a `chapters` map and assert only that entry's lines differ.
 5. **Eager reading only inside storyForge's own folders:** `_story-library/`, `Codex/`, `notes/`, `_backstage/storyforge/` (markdown bodies are read, hashed and word-counted). Everywhere else the index holds path, kind and size only; no body or attachment is read, and no frontmatter is available for files outside those folders. The CLI check reports scan duration.
+
+## 11. As built (differences from the design above)
+
+- `Project` also has `updateText` (whole-file read-modify-write under one lock, used for generated backstage files), `isFile`/`isFolder`/`list`/`entry`, and `modifyFrontmatter` is generic over the frontmatter type. `Project.createFolder` skips the backend call when the index already has the folder.
+- `IndexEntry` gained `name`, `basename` and `extension` so ported code could keep using `.name`/`.basename`/`.extension`.
+- The guard decides over `GuardOp` values and the `GuardedBackend` exposes a `transaction` (read-modify-write under one lock) whose writes are checked at the moment they happen, so the Codex alias rule is enforced against the keys the edit actually changed.
+- The content hash is a dependency-free SHA-256 (`core/hash.ts`), so the core runs unchanged in Node and a webview.
+- The frontmatter module also exports `editYamlText`/`parseYamlText`/`stringifyYamlText` for whole-file YAML documents (word-count history), `splitFrontmatterSection`, `stringifyFrontmatterBlock` and `changedTopLevelKeys`.
+- Null values are written as an empty value (`key:`), like 0.17.1's default files; setting a key to `undefined` removes it.

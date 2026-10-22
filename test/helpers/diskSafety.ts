@@ -118,7 +118,7 @@ function related(a: string[], b: string[]): boolean {
 	return true;
 }
 
-function leafDiffs(before: unknown, after: unknown, at: string[] = []): string[][] {
+export function leafDiffs(before: unknown, after: unknown, at: string[] = []): string[][] {
 	if (JSON.stringify(before) === JSON.stringify(after)) return [];
 	const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === "object" && !Array.isArray(v);
 	if (isObj(before) && isObj(after)) {
@@ -128,7 +128,7 @@ function leafDiffs(before: unknown, after: unknown, at: string[] = []): string[]
 	return [at];
 }
 
-function assertMinimal(file: string, beforeText: string, afterText: string, spec: FileSpec): void {
+export function assertMinimal(file: string, beforeText: string, afterText: string, spec: FileSpec): void {
 	const touched = spec.touched ?? [];
 	if (spec.format === "text") {
 		if (spec.frontmatterSame) {
@@ -167,7 +167,9 @@ function assertMinimal(file: string, beforeText: string, afterText: string, spec
 	for (const [key, text] of beforePairs) {
 		const keyPath = key.split("\u0001");
 		if (touched.some((t) => related(t, keyPath))) continue;
-		expect(afterPairs.get(key), `${file}: untouched entry "${keyPath.join(" > ")}" was rewritten`).toBe(text);
+		// (a comment that used to follow a deleted sibling may now trail this entry: allow the text to grow, never change)
+		const afterText = afterPairs.get(key);
+		expect(afterText?.startsWith(text) ?? false, `${file}: untouched entry "${keyPath.join(" > ")}" was rewritten\nbefore: ${JSON.stringify(text)}\nafter:  ${JSON.stringify(afterText)}`).toBe(true);
 	}
 }
 

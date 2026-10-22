@@ -218,7 +218,8 @@ function pairExtentEnd(sp: Splicer, doc: Document, pair: Pair): number {
 		const colon = sp.src.indexOf(":", key.range![1]);
 		return colon === -1 ? key.range![1] : colon + 1;
 	}
-	if (isScalar(node as never)) return node.range[1];
+	// Block scalars (| and >) and multi-line scalars carry their trailing line break in the range.
+	if (isScalar(node as never)) return sp.trimmedEnd(node.range[1], node.range[0]);
 	return sp.trimmedEnd(node.range[1], node.range[0]);
 }
 
@@ -256,9 +257,13 @@ function diffMap(sp: Splicer, doc: Document, map: YAMLMap, after: Record<string,
 	}
 	const additions = Object.keys(after).filter((k) => !existing.has(k));
 	if (additions.length > 0 && lastRetained) {
-		const at = sp.lineBreak(pairExtentEnd(sp, doc, lastRetained));
+		const brk = sp.lineBreak(pairExtentEnd(sp, doc, lastRetained));
+		const nl = sp.src.startsWith("\r\n", brk) ? 2 : sp.src[brk] === "\n" ? 1 : 0;
 		const text = additions.map((k) => pairText(sp, k, after[k], indent, true)).join(sp.eol);
-		sp.push({ start: at, end: at, text: sp.eol + text });
+		// Insert at the start of the line after the last kept pair, so a deletion of the lines that
+		// follow it (or of its own trailing nested entries) never overlaps the insertion.
+		if (nl > 0) sp.push({ start: brk + nl, end: brk + nl, text: text + sp.eol });
+		else sp.push({ start: brk, end: brk, text: sp.eol + text });
 	}
 }
 
@@ -317,7 +322,9 @@ function comparePair(sp: Splicer, doc: Document, pair: Pair, afterVal: unknown, 
 }
 
 function applyEdits(src: string, edits: Edit[]): string {
-	const sorted = [...edits].sort((a, b) => b.start - a.start || b.end - a.end);
+	// Applied back to front. Edits at the same position keep the order they were made in: the one
+	// made later is applied first, so the earlier one lands in front of it.
+	const sorted = edits.map((e, i) => ({ e, i })).sort((a, b) => b.e.start - a.e.start || b.e.end - a.e.end || b.i - a.i).map((x) => x.e);
 	for (let i = 1; i < sorted.length; i++) {
 		if (sorted[i].end > sorted[i - 1].start) throw new FrontmatterRoundTripError("overlapping edits");
 	}

@@ -305,3 +305,45 @@ describe("editFrontmatter — values that need quoting", () => {
 		expect(out).toContain('t: "Book #"');
 	});
 });
+
+describe("editFrontmatter — multi-line values and comments", () => {
+	it("replaces a block scalar with a short string, leaving the next key alone", () => {
+		expect(editFrontmatter("---\nd: |\n  line one\n  line two\nz: 1\n---\n", (fm) => (fm.d = "short"))).toBe("---\nd: short\nz: 1\n---\n");
+	});
+
+	it("leaves a block scalar byte-identical when another key changes", () => {
+		expect(editFrontmatter("---\nd: |\n  line one\n  line two\nz: 1\n---\n", (fm) => (fm.z = 2))).toBe("---\nd: |\n  line one\n  line two\nz: 2\n---\n");
+	});
+
+	it("replaces a multi-line quoted scalar", () => {
+		expect(editFrontmatter("---\nd: 'a\n  b'\nz: 1\n---\n", (fm) => (fm.d = "x"))).toBe("---\nd: x\nz: 1\n---\n");
+	});
+
+	it("writes a multi-line string as a block scalar", () => {
+		expect(editFrontmatter("---\nz: 1\n---\n", (fm) => (fm.s = "line1\nline2"))).toBe("---\nz: 1\ns: |-\n  line1\n  line2\n---\n");
+	});
+
+	it("keeps a trailing comment on a scalar that changed", () => {
+		expect(editFrontmatter("---\nn: 1 # one\nm: 2\n---\n", (fm) => (fm.n = 5))).toBe("---\nn: 5 # one\nm: 2\n---\n");
+	});
+
+	it("keeps a comment above an entry inside a map when a sibling changes", () => {
+		const out = editFrontmatter("---\nm:\n  # about a\n  a: 1\n  b: 2\n---\n", (fm) => ((fm.m as Record<string, number>).b = 3));
+		expect(out).toBe("---\nm:\n  # about a\n  a: 1\n  b: 3\n---\n");
+	});
+
+	it("documents what is lost when a whole list is rewritten: comments inside it", () => {
+		const out = editFrontmatter("---\nl:\n  - a\n  # why\n  - b\nz: 1\n---\n", (fm) => (fm.l = ["a", "b", "c"]));
+		expect(out).toBe("---\nl:\n  - a\n  - b\n  - c\nz: 1\n---\n");
+	});
+
+	it("edits a quoted key's value without touching the key", () => {
+		expect(editFrontmatter('---\n"odd key": 1\nz: 1\n---\n', (fm) => (fm["odd key"] = 2))).toBe('---\n"odd key": 2\nz: 1\n---\n');
+	});
+
+	it("moves a comment on an empty key's line when the key gains a list (known limitation)", () => {
+		expect(editFrontmatter("---\nitems: # my list\nother: 1\n---\n", (fm) => (fm.items = ["a", "b"]))).toBe(
+			"---\nitems:\n  - a\n  - b # my list\nother: 1\n---\n",
+		);
+	});
+});
