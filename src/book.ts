@@ -262,8 +262,6 @@ function rekeyCodexRefList(refs: CodexRef[], oldPath: string, newPath: string | 
 export interface RawBookFrontmatter extends FrontMatterCache {
 	chapters?: Record<string, RawChapterEntry>;
 	"chapter-order"?: unknown[];
-	/** Legacy pre-migration key, renamed to "chapter-order" by migrateChapterOrderField. */
-	order?: unknown[];
 	unplaced?: unknown[];
 	archive?: unknown[];
 	"cover-image"?: unknown;
@@ -277,9 +275,6 @@ export interface RawBookFrontmatter extends FrontMatterCache {
 	"planned-chapter-length"?: unknown;
 	/** Deliberately not the bare key "tags" — that collides with Obsidian's own native tag-pane frontmatter key. */
 	"novel-tags"?: unknown;
-	/** Legacy pre-migration keys, deleted by migrateLegacyBookEntry. */
-	id?: unknown;
-	title?: unknown;
 }
 
 function defaultBookContent(bookId: string, bookTitle: string, seriesOrderReference: number | null): string {
@@ -352,9 +347,7 @@ export function readBookFrontmatter(app: App, bookFolderName: string): BookFront
 	const fm = app.metadataCache.getCache(path)?.frontmatter;
 		const chapterOrder = Array.isArray(fm?.["chapter-order"])
 			? fm["chapter-order"].filter((v: unknown) => typeof v === "string")
-			: Array.isArray(fm?.order)
-				? fm.order.filter((v: unknown) => typeof v === "string")
-				: [];
+			: [];
 		const unplaced = Array.isArray(fm?.unplaced) ? fm.unplaced.filter((v: unknown) => typeof v === "string") : [];
 		const archive = Array.isArray(fm?.archive) ? fm.archive.filter((v: unknown) => typeof v === "string") : [];
 		return {

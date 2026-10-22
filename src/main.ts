@@ -1,7 +1,6 @@
 import { MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf, type PaneType } from "obsidian";
 import { existingMainContentLeaf, resolveMainContentLeaf, type MainContentWorkspace } from "./mainContentLeaf";
 import { StoryForgeView, STORYFORGE_VIEW_TYPE } from "./view/StoryForgeView";
-import { LEGACY_STORYTELLING_VIEW_TYPE, storytellingModeForAutoFocus } from "./view/leftPanelMode";
 import { StoryContextView, STORY_CONTEXT_VIEW_TYPE, activateArchiveView, activateStoryContextView } from "./view/StoryContextView";
 import { CODEX_TYPES, pruneMissingCodexNotes } from "./codex";
 import { StoryForgeSettingsTab } from "./view/StoryForgeSettingsTab";
@@ -11,7 +10,6 @@ import { seedPlotCardTiers, type PlotCardTierMap } from "./view/plotCardTier";
 import { createBook, createChapter, ensureAllChapterEntries, getBookChapters, pruneMissingChapterCodexRefs, pruneMissingChapterEntries, readBookFrontmatter, syncAllBookReferenceFields, writeBookChapterOrder } from "./book";
 import { resolveStorytellingCenterPath } from "./storytellingCenter";
 import type { NumberingStyle } from "./numberingStyle";
-import { migrateStructuralLayout, migrateVaultSchema } from "./migration";
 import { registerReconciliationEvents } from "./reconciliation";
 import {
 	isLibraryChapterPath,
@@ -839,6 +837,7 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 
 /** View types of removed features, still possibly present in a saved layout. */
 const RETIRED_VIEW_TYPES = [
+	"storyforge-storytelling-view",
 	"storyforge-tools-view",
 	"storyforge-archive-view",
 	"storyforge-forge-view",
@@ -987,7 +986,7 @@ export default class StoryForgePlugin extends Plugin {
 	}
 
 	private allPluginViewTypes(): string[] {
-		return [STORYFORGE_VIEW_TYPE, LEGACY_STORYTELLING_VIEW_TYPE, STORY_CONTEXT_VIEW_TYPE];
+		return [STORYFORGE_VIEW_TYPE, STORY_CONTEXT_VIEW_TYPE];
 	}
 
 	/**
@@ -1082,7 +1081,7 @@ export default class StoryForgePlugin extends Plugin {
 	}
 
 	applyLeftPanelLanding(options?: { restoreCenter?: boolean }): void {
-		const storytelling = storytellingModeForAutoFocus(this.pluginSettings.autoFocus);
+		const storytelling = this.pluginSettings.autoFocus;
 		for (const leaf of this.app.workspace.getLeavesOfType(STORYFORGE_VIEW_TYPE)) {
 			if (leaf.view instanceof StoryForgeView) {
 				leaf.view.setStorytellingMode(storytelling, { restoreCenter: options?.restoreCenter ?? false });
@@ -1253,17 +1252,12 @@ export default class StoryForgePlugin extends Plugin {
 	}
 
 	private async initializeVaultState(): Promise<void> {
-		// Must run before anything below resolves seriesFilePath()/bookFilePath()
-		// (including ensureEagerFolders's isFirstRun-adjacent checks) — see
-		// migrateStructuralLayout's doc comment in migration.ts.
-		await migrateStructuralLayout(this.app);
 		await this.ensureEagerFolders();
 		const isFirstRun = !this.app.vault.getAbstractFileByPath(seriesFilePath());
 		await ensureSeriesFile(this.app);
 		if (isFirstRun) await this.createFirstRunBookAndChapter();
 		const tagRegistry = await ensureTagRegistryFile(this.app);
 		loadCodexTypesIntoRegistry(this.app, tagRegistry);
-		await migrateVaultSchema(this.app);
 		await pruneMissingCodexNotes(this.app);
 		await pruneMissingChapterCodexRefs(this.app);
 		const books = await ensureAllSeriesBookEntries(this.app, (folderName) => {
@@ -1347,7 +1341,7 @@ export default class StoryForgePlugin extends Plugin {
 		for (const type of this.allPluginViewTypes()) this.dedupeLeavesOfType(type);
 
 		// Combined left panel: one leaf. Detach the retired storytelling tab from saved layouts.
-		this.app.workspace.detachLeavesOfType(LEGACY_STORYTELLING_VIEW_TYPE);
+		this.app.workspace.detachLeavesOfType("storyforge-storytelling-view");
 		await this.ensureLeaf(STORYFORGE_VIEW_TYPE, "left", true);
 		await this.ensureLeaf(STORY_CONTEXT_VIEW_TYPE, "right", true);
 

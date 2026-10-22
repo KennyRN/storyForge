@@ -4,7 +4,6 @@ import { makeTFile, makeTFolder } from "./obsidianStub";
 import {
 	getBookWordStats,
 	getChapterDaily,
-	migrateWordCountV1ToV2,
 	recordChapterArchive,
 	recordChapterEdit,
 	recordChapterUnarchive,
@@ -238,61 +237,5 @@ describe("concurrent writes", () => {
 		expect(statsB.current).toBe(2);
 		expect(store.has(bookWordCountFilePath("BookA"))).toBe(true);
 		expect(store.has(bookWordCountFilePath("BookB"))).toBe(true);
-	});
-});
-
-describe("migrateWordCountV1ToV2", () => {
-	it("converts legacy shared wordcount.md into per-book v2 files and removes the legacy file", async () => {
-		const store: Store = new Map();
-		const folders = new Set<string>([BACKSTAGE_ROOT, `${BACKSTAGE_ROOT}/BookA`]);
-		store.set(
-			wordCountFilePath(),
-			JSON.stringify({
-				BookA: { "2026-07-18": 100, "2026-07-19": 150 },
-			}),
-		);
-
-		const app = {
-			vault: {
-				getAbstractFileByPath: (path: string) => {
-					if (folders.has(path)) return folderAt(path, store, folders);
-					return fileAt(path, store);
-				},
-				read: async (file: { path: string }) => store.get(file.path) ?? "",
-				cachedRead: async (file: { path: string }) => store.get(file.path) ?? "",
-				create: async (path: string, content: string) => {
-					store.set(path, content);
-					const parent = path.slice(0, path.lastIndexOf("/"));
-					if (parent) folders.add(parent);
-					return makeTFile(path);
-				},
-				modify: async (file: { path: string }, content: string) => {
-					store.set(file.path, content);
-				},
-				createFolder: async (path: string) => {
-					folders.add(path);
-				},
-			},
-			metadataCache: { getCache: () => null },
-			fileManager: {
-				trashFile: async (file: { path: string }) => {
-					store.delete(file.path);
-				},
-			},
-		} as unknown as App;
-
-		await migrateWordCountV1ToV2(app);
-
-		expect(store.has(wordCountFilePath())).toBe(false);
-		expect(store.has(bookWordCountFilePath("BookA"))).toBe(true);
-
-		const stats = await getBookWordStats(app, "BookA", new Date("2026-07-19T12:00:00Z"));
-		expect(stats.lifetimeWritten).toBe(150);
-		expect(stats.daily["2026-07-18"]?.net).toBe(100);
-		expect(stats.daily["2026-07-19"]?.net).toBe(50);
-
-		const totals = totalsFromDailyNets(stats.daily);
-		expect(totals["2026-07-18"]).toBe(100);
-		expect(totals["2026-07-19"]).toBe(150);
 	});
 });

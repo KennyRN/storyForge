@@ -22,7 +22,6 @@ import { layoutConfig, SF_LAYOUTS, SF_LAYOUT_LABELS, type SfLayout } from "../la
 import { createContinuingChapter } from "../chapterCreation";
 import { getBookChapters } from "../book";
 import { resolveEntryChapter } from "../spineWindow";
-import { focusModeForStorytellingMode } from "./leftPanelMode";
 
 export const STORYFORGE_VIEW_TYPE = "storyforge-view";
 
@@ -102,7 +101,7 @@ export class StoryForgeView extends ItemView {
 		this.storytellingMode = on;
 		if (changed) this.render();
 		this.syncTabHeader();
-		this.plugin.setStoryContextFocusMode(focusModeForStorytellingMode(on));
+		this.plugin.setStoryContextFocusMode(on);
 		if (on && options?.restoreCenter !== false) void this.plugin.restoreStorytellingCenterEditor(false);
 		// Leaving storytelling mode (header toggle / command) must land the main pane on whatever
 		// this.layout's own tab shows, same as reopening straight onto that tab does (onOpen) —

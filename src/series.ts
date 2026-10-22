@@ -48,8 +48,6 @@ export interface RawSeriesFrontmatter extends FrontMatterCache {
 	"series-title"?: unknown;
 	"series-id"?: unknown;
 	"cover-image"?: unknown;
-	/** Legacy pre-migration key, migrated to "series-title" by migrateSeriesTitleField. */
-	title?: unknown;
 }
 
 export const DEFAULT_SERIES_CONTENT = `---\nseries-title: Series\norder:\nbooks:\n---\n`;

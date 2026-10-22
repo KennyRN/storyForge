@@ -368,50 +368,6 @@ export async function recomputeBookTotal(app: App, bookFolderName: string): Prom
 	return recomputeBookCurrent(app, bookFolderName);
 }
 
-/**
- * Migrate v1 `_sf-backstage/wordcount.md` into per-book v2 files, then trash the legacy file.
- * Safe to re-run: skips books that already have a v2 file; deletes legacy when done.
- */
-export async function migrateWordCountV1ToV2(app: App): Promise<void> {
-	const legacyPath = wordCountFilePath();
-	const legacyFile = app.vault.getAbstractFileByPath(legacyPath);
-	if (!(legacyFile instanceof TFile)) return;
-
-	const raw = await app.vault.read(legacyFile);
-	const parsed = (parseYaml(raw) as Record<string, Record<string, number>> | null) ?? {};
-
-	await enqueueWrite(async () => {
-		for (const [bookFolderName, dateTotals] of Object.entries(parsed)) {
-			if (!dateTotals || typeof dateTotals !== "object") continue;
-			const existing = app.vault.getAbstractFileByPath(bookWordCountFilePath(bookFolderName));
-			if (existing instanceof TFile) continue;
-
-			const dates = Object.keys(dateTotals).sort();
-			const data = emptyBookData();
-			let previous = 0;
-			for (const date of dates) {
-				const total = typeof dateTotals[date] === "number" ? dateTotals[date] : 0;
-				const net = total - previous;
-				data.daily[date] = { net, chapters: {} };
-				if (net > 0) data.lifetimeWritten += net;
-				previous = total;
-			}
-			data.current = previous;
-			if (data.lifetimeWritten < data.current) data.lifetimeWritten = data.current;
-			await writeBookFile(app, bookFolderName, data);
-		}
-		await deleteBackstagePath(app, legacyPath);
-	});
-
-	// After historical nets are in place, align `current` to live manuscripts.
-	for (const folder of getLibraryBookFolders(app)) {
-		const path = bookWordCountFilePath(folder.name);
-		if (app.vault.getAbstractFileByPath(path) instanceof TFile) {
-			await recomputeBookCurrent(app, folder.name);
-		}
-	}
-}
-
 /** Heatmap helper: day nets for an inclusive ISO range from book stats. */
 export function dayNetsFromStats(stats: BookWordStats, fromISO: string, toISO: string): DayNet[] {
 	return dailyNetsForRange(dailyNetsMap(stats.daily), fromISO, toISO);
