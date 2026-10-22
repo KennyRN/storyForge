@@ -11,8 +11,15 @@
 		"importHelpers": true,
 		"isolatedModules": true,
 		"strict": true,
-		"lib": ["DOM", "DOM.Iterable", "ES2020"],
+		"lib": [
+			"DOM",
+			"DOM.Iterable",
+			"ES2020"
+		],
 		"skipLibCheck": true
 	},
-	"include": ["src/**/*.ts"]
+	"include": [
+		"src/**/*.ts",
+		"test/**/*.ts"
+	]
 }
