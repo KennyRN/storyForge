@@ -1,7 +1,6 @@
 import { App } from "obsidian";
 import { tagRegistryFilePath } from "./paths";
 import { modifyBackstageFrontmatter } from "./writeGuard";
-import { mintId } from "./slug";
 import { ICON_TAG } from "./icons";
 import { CODEX_ICON_CATALOG, TAG_ICON_CATALOG } from "./iconRegistry";
 import { loadCodexTypesFromRegistry, type CodexTypeOption } from "./codex";
@@ -94,10 +93,6 @@ function seedTagRegistry(): TagRegistryShape {
 		ideaTypes: [],
 		archiveTypes: [],
 	};
-}
-
-function emptyTagRegistry(): TagRegistryShape {
-	return { codexTypes: [], chapterTags: [], novelTags: [], ideaTypes: [], archiveTypes: [] };
 }
 
 function parseTagDefinitions(raw: unknown): TagDefinition[] {

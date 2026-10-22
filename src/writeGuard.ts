@@ -1,5 +1,4 @@
 import { App, TFile, Vault, type FrontMatterCache } from "obsidian";
-import { getBookChapters } from "./book";
 import {
 	BACKSTAGE_ROOT,
 	BACKUPS_FOLDER,
@@ -7,9 +6,7 @@ import {
 	EXPORT_ROOT,
 	LIBRARY_ROOT,
 	isCodexNotePath,
-	isLibraryChapterPath,
 	isLibraryRootFilePath,
-	libraryChapterPath,
 } from "./paths";
 
 /**

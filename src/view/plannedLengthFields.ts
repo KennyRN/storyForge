@@ -5,7 +5,6 @@ import { readChapterWordCount } from "../history";
 import { ICON_PERSON_FILL, ICON_PERSON_FILL_ADD, ICON_X, setNumberFillIcon } from "../icons";
 import { makeAccessibleActivatable } from "./a11y";
 import { CodexEntryPickerModal } from "./CodexEntryPickerModal";
-import { formatWordCount } from "../wordCount";
 
 /** Exported for TopPanel.ts's Novel-tab chapter list, which shows this same row above its Novel
  * Length/Chapter Length fields — all three share one .sf-story-context-meta wrapper there (equal

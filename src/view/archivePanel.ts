@@ -7,7 +7,6 @@ import type StoryForgePlugin from "../main";
 import { getArchivedChapters, unarchiveChapter, chapterDisplayTitle, writeBookArchiveOrder } from "../book";
 import {
 	getArchivedCodexItems,
-	getCodexEntryType,
 	readCodexFrontmatter,
 	reorderArchivedCodexItems,
 	unarchiveCodexItem,
@@ -245,16 +244,6 @@ async function unarchiveItem(item: ArchiveIndexItem, host: ArchivePanelHost): Pr
 	} catch (err) {
 		new Notice(`storyForge: could not unarchive — ${err instanceof Error ? err.message : String(err)}`);
 	}
-}
-
-function bindArchiveButton(btn: HTMLElement, onActivate: () => void): void {
-	btn.addEventListener("pointerdown", (e) => {
-		if (e.button !== 0) return;
-		e.preventDefault();
-		e.stopPropagation();
-		onActivate();
-	});
-	makeAccessibleActivatable(btn, onActivate);
 }
 
 export function archiveFilePathForKey(host: ArchivePanelHost, key: string | null): string | null {

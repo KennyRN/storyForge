@@ -8,7 +8,7 @@ export class ProtectionsModal extends Modal {
 
 	constructor(
 		app: App,
-		private plugin: StoryForgePlugin,
+		plugin: StoryForgePlugin,
 	) {
 		super(app);
 		this.controller = new ProtectionsController(app, plugin);

@@ -13,8 +13,6 @@ import { registerReconciliationEvents } from "./reconciliation";
 import {
 	isLibraryChapterPath,
 	bookFolderNameFromChapterPath,
-	chapterFilenameFromPath,
-	libraryChapterPath,
 	seriesFilePath,
 	LIBRARY_ROOT,
 	CODEX_ROOT,
@@ -572,15 +570,6 @@ export default class StoryForgePlugin extends Plugin {
 			() => undefined,
 		);
 		return run;
-	}
-
-	/**
-	 * Creates missing storyForge / Tools / right-rail leaves and focuses storyForge on the
-	 * left (Tools stays as a sibling tab, not the active one). Expands the right rail so
-	 * Story Context is ready the same way the left panels are.
-	 */
-	private async ensureSidePanels(): Promise<void> {
-		return this.enqueueEnsurePanels(() => this.ensureSidePanelsUnlocked());
 	}
 
 	private async ensureSidePanelsUnlocked(): Promise<void> {

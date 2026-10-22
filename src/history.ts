@@ -1,6 +1,6 @@
 import { App, parseYaml, stringifyYaml, TFile } from "obsidian";
-import { bookWordCountFilePath, libraryChapterPath, wordCountFilePath } from "./paths";
-import { deleteBackstagePath, writeBackstageFile } from "./writeGuard";
+import { bookWordCountFilePath, libraryChapterPath } from "./paths";
+import { writeBackstageFile } from "./writeGuard";
 import {
 	addDaysISO,
 	dailyNetsForRange,

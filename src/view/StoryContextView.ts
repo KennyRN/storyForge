@@ -27,18 +27,15 @@ export const STORY_CONTEXT_VIEW_TYPE = "storyforge-storyContext-view";
  */
 export class StoryContextView extends ItemView {
 	private bookFolderName: string | null = null;
-	private chapterFilename: string | null = null;
 	private archiveMode: ArchiveMode = "codex";
 	private selectedArchiveKey: string | null = null;
 	private notebookPageEl: HTMLElement | null = null;
 	private ideaEditorHandle: ContextEditorHandle | null = null;
-	private ideaEditorPath: string | null = null;
 	/** Focus Mode: a Codex lore note is mounted in `.sf-codex-page` (storyTelling click). */
 	private showingCodexPage = false;
 	private selectedCodexPath: string | null = null;
 	private codexPageEl: HTMLElement | null = null;
 	private codexEditorHandle: ContextEditorHandle | null = null;
-	private codexEditorPath: string | null = null;
 	private closed = false;
 	/** Focus Mode: blanks this panel down to just its own tab-header icon (toggled by clicking
 	 * that icon, see registerTabHeaderFocusToggle()). Session-only - the plugin has no settings
@@ -217,7 +214,6 @@ export class StoryContextView extends ItemView {
 	syncFromPluginSelection(): void {
 		const settings = this.plugin.getSettings();
 		if (settings.selectedNovel) this.bookFolderName = settings.selectedNovel;
-		if (settings.selectedObject) this.chapterFilename = settings.selectedObject;
 	}
 
 	/** Series panel (left sidebar) selected a novel. Takes the book folder name directly (rather
@@ -230,10 +226,9 @@ export class StoryContextView extends ItemView {
 
 	/** storyLibrary panel's Novel-layout entry (StoryForgeView.ts's openNovelOverview) — takes
 	 * both book and chapter directly for the same race-avoidance reason focusNovel() does. */
-	focusChapter(bookFolderName: string, filename: string): void {
+	focusChapter(bookFolderName: string, _filename: string): void {
 		this.clearCodexPage();
 		this.bookFolderName = bookFolderName;
-		this.chapterFilename = filename;
 		this.render();
 	}
 
@@ -253,7 +248,6 @@ export class StoryContextView extends ItemView {
 		const book = bookFolderNameFromChapterPath(file.path);
 		if (book) {
 			this.bookFolderName = book;
-			this.chapterFilename = file.name;
 		}
 	}
 
@@ -263,7 +257,6 @@ export class StoryContextView extends ItemView {
 			const book = bookFolderNameFromChapterPath(file.path);
 			if (book) {
 				this.bookFolderName = book;
-				this.chapterFilename = file.name;
 				if (!this.focusMode) this.render();
 			}
 		}
@@ -379,7 +372,6 @@ export class StoryContextView extends ItemView {
 			return;
 		}
 		this.ideaEditorHandle = handle;
-		this.ideaEditorPath = path;
 		handle.view.editor.focus();
 	}
 
@@ -388,7 +380,6 @@ export class StoryContextView extends ItemView {
 		const restoreCenter = Boolean(grafted && this.app.workspace.getActiveViewOfType(MarkdownView)?.leaf === grafted.leaf);
 		grafted?.destroy();
 		this.ideaEditorHandle = null;
-		this.ideaEditorPath = null;
 		this.notebookPageEl = null;
 		if (restoreCenter) {
 			const center = this.plugin.peekMainContentLeaf();
@@ -426,7 +417,6 @@ export class StoryContextView extends ItemView {
 			return;
 		}
 		this.codexEditorHandle = handle;
-		this.codexEditorPath = path;
 		handle.view.editor.focus();
 	}
 
@@ -435,7 +425,6 @@ export class StoryContextView extends ItemView {
 		const restoreCenter = Boolean(grafted && this.app.workspace.getActiveViewOfType(MarkdownView)?.leaf === grafted.leaf);
 		grafted?.destroy();
 		this.codexEditorHandle = null;
-		this.codexEditorPath = null;
 		this.codexPageEl = null;
 		if (restoreCenter) {
 			const center = this.plugin.peekMainContentLeaf();

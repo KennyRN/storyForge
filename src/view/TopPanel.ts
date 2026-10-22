@@ -5,7 +5,6 @@ import {
 	chapterDisplayTitle,
 	createBook,
 	getBookChapters,
-	getChapterEntry,
 	readBookFrontmatter,
 	renameBookTitle,
 	renameChapterTitle,
@@ -14,7 +13,7 @@ import {
 	writeBookPlannedChapterLength,
 	writeBookPlannedNovelLength,
 		} from "../book";
-import { createContinuingChapter, createIdeaChapter } from "../chapterCreation";
+import { createContinuingChapter } from "../chapterCreation";
 import { bookBackstagePath } from "../paths";
 import { makeReorderable, type DragZone } from "./dragReorder";
 import { makeAccessibleActivatable } from "./a11y";
@@ -24,14 +23,8 @@ import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
 import type { NumberingStyle } from "../numberingStyle";
 import {
 	ICON_BOOK_DUOTONE,
-	ICON_BOOKMARK_DUOTONE,
-	ICON_DASHBOARD_CHART,
 	ICON_LIST_BAR_FILLED,
 	ICON_PLUS_SQUARE,
-	ICON_PLOT_THREADS,
-	ICON_HASHTAG_SQUARE_DUOTONE,
-	ICON_SETTINGS_ALT,
-	ICON_TAG_DUOTONE,
 	ICON_UNPLACED,
 } from "../icons";
 import { recordChapterArchive, readChapterWordCount } from "../history";

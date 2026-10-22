@@ -1,4 +1,4 @@
-import { ItemView, MarkdownView, Notice, setIcon, setTooltip, TFile, WorkspaceLeaf } from "obsidian";
+import { ItemView, Notice, setIcon, setTooltip, TFile, WorkspaceLeaf } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { bookFolderNameFromChapterPath, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath } from "../paths";
 import { getSeriesBooks } from "../series";
@@ -17,7 +17,6 @@ import { countWords } from "../wordCount";
 import { getBookWordStats } from "../history";
 import { isDragInProgress } from "./dragLock";
 import { makeAccessibleActivatable } from "./a11y";
-import { disposeInkSliders } from "./inkSlider";
 import { layoutConfig, SF_LAYOUTS, SF_LAYOUT_LABELS, type SfLayout } from "../layout";
 import { createContinuingChapter } from "../chapterCreation";
 import { getBookChapters } from "../book";
@@ -55,8 +54,6 @@ export class StoryForgeView extends ItemView {
 	private chapterSelectorExpanded = false;
 	private collapsedCodexFolders = new Set<string>();
 	private activeCodexFolderId: string | null = null;
-	/** codexTypes ids currently filtering the Codex tree — session-only, like unplacedMode. */
-	private codexTypeFilter = new Set<string>();
 	/** Vault `#tag` currently filtering the Codex tree — session-only, single-select. */
 	private statsMode: StatsMode = "daily";
 	private statsCounts: Record<StatsMode, number> = { daily: 0, weekly: 0, chapter: 0, story: 0 };
