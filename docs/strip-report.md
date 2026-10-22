@@ -86,8 +86,7 @@ A one-off `tsc --noUnusedLocals --noUnusedParameters` found 28 leftovers in non-
 - Left as they were because they were not on the lists: `docs/full-audit-2026-08-05.md`, `docs/text-labels.md`, `AUDIT.md`, the descriptive text in `Code Attributions.md` (its entries still apply: the grafted editor and ink slider are both kept) and `Icon Licences.md` (no icons were removed from `icons.ts`; some `usedIn` strings in `iconRegistry.ts` name removed views).
 - Old workspaces: a saved layout with a leaf of a removed view type is detached on load (see above), not recovered.
 
-## Not done
+## Verification
 
-- **Harness check in a vault copy (§2) — needs you.** Nothing was run in Obsidian.
-- **Disk-safety checksum check — needs you.** Record checksums of `_story-library/`, `Codex/` and `notes/` before the session and compare after. By construction the write guard refuses any write into those folders except the documented exceptions, and no code path that writes chapter or Codex bodies exists any more, but that has not been verified live.
-- Merge of `strip` into `main` and any push: not done. The `strip` branch is local only.
+- **Harness check in a vault copy (§2) and the disk-safety checksum check: waived.** Kenny will not run this build in Obsidian; the first time it is looked at is when the new engine replaces Obsidian. Verification is therefore typecheck, build, the 37 test files / 340 tests, and by-construction reasoning: the write guard refuses any write into `_story-library/` and `Codex/` apart from the documented exceptions, and no code path that writes chapter or Codex bodies remains.
+- H1 (after commit 2) was passed on the same basis.
