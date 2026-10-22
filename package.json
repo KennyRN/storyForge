@@ -1,21 +1,15 @@
 {
 	"name": "storyforge",
 	"version": "0.17.1",
-	"description": "A minimalist novel-writing workspace for Obsidian.",
-	"main": "main.js",
+	"description": "storyForge's data core: a plain TypeScript library over a folder of markdown (the standalone app's engine).",
 	"scripts": {
-		"dev": "node esbuild.config.mjs",
-		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"build": "tsc -noEmit -skipLibCheck",
 		"test": "vitest run",
 		"test:watch": "vitest"
 	},
 	"license": "MIT",
 	"devDependencies": {
-		"@codemirror/state": "^6.5.0",
-		"@codemirror/view": "^6.38.6",
 		"@types/node": "^20.11.0",
-		"esbuild": "^0.20.0",
-		"obsidian": "latest",
 		"typescript": "^5.4.0",
 		"vitest": "^1.4.0"
 	},
