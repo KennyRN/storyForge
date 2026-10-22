@@ -1,0 +1,5 @@
+---
+aliases: []
+---
+
+An archived note.
