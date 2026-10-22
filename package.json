@@ -5,11 +5,13 @@
 	"scripts": {
 		"build": "tsc -noEmit -skipLibCheck",
 		"test": "vitest run",
-		"test:watch": "vitest"
+		"test:watch": "vitest",
+		"check": "tsx scripts/check-project.ts"
 	},
 	"license": "MIT",
 	"devDependencies": {
 		"@types/node": "^20.11.0",
+		"tsx": "^4.23.15",
 		"typescript": "^5.4.0",
 		"vitest": "^1.4.0"
 	},

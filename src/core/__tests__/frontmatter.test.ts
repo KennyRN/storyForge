@@ -293,3 +293,15 @@ describe("editFrontmatter — null values", () => {
 		expect(editFrontmatter("---\nt: x\n---\n", (fm) => (fm.o = { a: null }))).toBe("---\nt: x\no:\n  a:\n---\n");
 	});
 });
+
+describe("editFrontmatter — values that need quoting", () => {
+	it("quotes a string containing ' #' (otherwise YAML would read the rest as a comment)", () => {
+		const out = editFrontmatter("---\nt: x\n---\n", (fm) => {
+			fm.t = "Book #";
+			fm.u = "Chapter # // sub";
+		});
+		const r = readFrontmatter(out);
+		expect(r.state === "ok" && r.data).toEqual({ t: "Book #", u: "Chapter # // sub" });
+		expect(out).toContain('t: "Book #"');
+	});
+});

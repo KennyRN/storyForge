@@ -51,7 +51,7 @@ chapters:
     chapter-title: 日本語の章
   ch-a5.md:
     chapter-id: c-a5z9
-    chapter-title: Chapter #
+    chapter-title: "Chapter #"
     x-entry-unknown: keep
 ---
 

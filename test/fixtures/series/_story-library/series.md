@@ -13,7 +13,7 @@ books:
     book-color: "#3a6ea5"
   bbb:
     book-id: b-bbb2
-    book-title: Book #
+    book-title: "Book #"
   ccc:
     book-id: b-ccc3
     book-title: Spare Draft

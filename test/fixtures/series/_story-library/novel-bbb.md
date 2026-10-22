@@ -1,6 +1,6 @@
 ---
 book-id-reference: b-bbb2
-book-title-reference: Book #
+book-title-reference: "Book #"
 series-order-reference: 2
 chapter-order:
   - ch-b1.md
