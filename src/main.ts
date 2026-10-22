@@ -1,23 +1,10 @@
 import { MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf, type PaneType } from "obsidian";
 import { existingMainContentLeaf, resolveMainContentLeaf, type MainContentWorkspace } from "./mainContentLeaf";
 import { StoryForgeView, STORYFORGE_VIEW_TYPE } from "./view/StoryForgeView";
-import { LEGACY_STORYTELLING_VIEW_TYPE, mapLegacyLeftRailViewType, storytellingModeForAutoFocus } from "./view/leftPanelMode";
-import { ToolsView, TOOLS_VIEW_TYPE } from "./view/ToolsPanel";
-import { StoryContextView, STORY_CONTEXT_VIEW_TYPE, activateStoryContextView } from "./view/StoryContextView";
-import { ArchiveView, ARCHIVE_VIEW_TYPE, activateArchiveView } from "./view/ArchiveView";
+import { LEGACY_STORYTELLING_VIEW_TYPE, storytellingModeForAutoFocus } from "./view/leftPanelMode";
+import { StoryContextView, STORY_CONTEXT_VIEW_TYPE, activateArchiveView, activateStoryContextView } from "./view/StoryContextView";
 import { CODEX_TYPES, pruneMissingCodexNotes } from "./codex";
-import { buildRightRailTypeOrder, isCanonicalTypeOrder } from "./rightRailOrder";
-import {
-	createHostApi,
-	findInvalidEnumSettings,
-	findInvalidLinkedSettings,
-	type RightRailRegistration,
-	type StoryForgeCompanionPanel,
-	type StoryForgeHostApi,
-	type StoryForgeViewContribution,
-} from "./hostApi";
 import { StoryForgeSettingsTab } from "./view/StoryForgeSettingsTab";
-import { FORMATFORGE_PLUGIN_ID, formatCompanionState } from "./formatCompanionActive";
 import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders } from "./series";
 import { ensureTagRegistryFile, loadCodexTypesIntoRegistry } from "./tagRegistry";
 import { seedPlotCardTiers, type PlotCardTierMap } from "./view/plotCardTier";
@@ -43,10 +30,7 @@ import { updateChapterFingerprint } from "./chapterSidecar";
 import { debounce } from "./debounce";
 import { countWords } from "./wordCount";
 import { ICON_STORYTELLING, registerCustomIcons } from "./icons";
-import { type FormatCompanionRegistration, teardownFormatCompanion } from "./formattingApi";
-import { refreshTabTitles, registerTabTitleOverrides } from "./tabTitles";
 import { runContentBackup } from "./backup";
-import { viewTypeFromLeafChrome, isGoneAwayPlaceholder } from "./goneAwayView";
 
 export type CodexFolderIndicatorThickness = "none" | "thin" | "medium" | "thick";
 
@@ -853,38 +837,21 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	archiveUseHeaderColorForAll: false,
 };
 
+/** View types of removed features, still possibly present in a saved layout. */
+const RETIRED_VIEW_TYPES = [
+	"storyforge-tools-view",
+	"storyforge-archive-view",
+	"storyforge-forge-view",
+	"storyforge-continuous-view",
+	"storyforge-series-overview-view",
+	"storyforge-novel-overview-view",
+	"storyforge-new-chapter-view",
+];
+
 export default class StoryForgePlugin extends Plugin {
-	/** Versioned host API for xForge siblings (`app.plugins.getPlugin("storyforge")?.api`). */
-	api!: StoryForgeHostApi;
-	private rightRailRegistry: RightRailRegistration[] = [];
-	private activeBookListeners = new Set<(book: { folderName: string; bookId: string } | null) => void>();
 	private recomputeDebouncers = new Map<string, () => void>();
 	private pluginSettings: StoryForgePluginSettings = DEFAULT_SETTINGS;
-	/** Documents of currently open pop-out windows, kept in sync via the "window-open"/"window-close" workspace events. */
-	private extraDocs = new Set<Document>();
-	/** CSS-variable / body-class styling layer (constructed early in `onload`). */
-	/** Tracks which documents already had companion FontFace registration (idempotent per doc). */
-	private fontFacesRegisteredFor = new Set<Document>();
-	/** Active formatForge (or future typography) companion, if registered. */
-	private formatCompanion: FormatCompanionRegistration | null = null;
-	/** Settings tab — refreshed when format companion registers/unregisters. */
-	private settingsTab: StoryForgeSettingsTab | null = null;
-	/**
-	 * Re-render callback(s) for any currently-open SeriesModal — same idea as settingsTab above, but
-	 * SeriesModal is a plain Modal (no Obsidian-managed refreshDomState hook), so it self-registers
-	 * one of these in onOpen()/deregisters in onClose(). Without this, a formatForge companion that
-	 * registers *after* the modal's formatting tab has already rendered (a load-order race - see
-	 * registerFormatCompanion() below) leaves that tab stuck showing the "install formatForge" nudge
-	 * until the user manually switches tabs to force a re-render.
-	 */
-	private openSeriesModalRefreshers = new Set<() => void>();
-	/** Contributions into storyLibrary panel / future slots. */
-	private viewContributions: StoryForgeViewContribution[] = [];
-	/** Companion panels for the Forge right-rail tab (nameForge, …). */
-	private companionPanels: StoryForgeCompanionPanel[] = [];
 	private backupInProgress = false;
-	/** Guards enforcePanelOrder()'s own detach/recreate against being mistaken for a user tab drag by the layout-change watcher. */
-	private isAdjustingPanelOrder = false;
 	/** Serialises ensureSidePanels / ensureRightRailPanels so overlapping calls cannot create duplicate tabs. */
 	private ensurePanelsChain: Promise<void> = Promise.resolve();
 	/** The one main-area tab storyForge's own navigation (Series overview, continuous read, chapter
@@ -898,12 +865,9 @@ export default class StoryForgePlugin extends Plugin {
 		// saved tabs become EmptyView ("plugin has gone away"). Settings/API/icons are all
 		// synchronous here so nameForge can touch `plugin.api` the moment those tabs restore.
 		this.syncObsidianSettingsRef();
-		this.api = createHostApi(this);
 		registerCustomIcons();
 		this.registerView(STORYFORGE_VIEW_TYPE, (leaf) => new StoryForgeView(leaf, this));
-		this.registerView(TOOLS_VIEW_TYPE, (leaf) => new ToolsView(leaf));
 		this.registerView(STORY_CONTEXT_VIEW_TYPE, (leaf) => new StoryContextView(leaf, this));
-		this.registerView(ARCHIVE_VIEW_TYPE, (leaf) => new ArchiveView(leaf, this));
 
 		await this.loadSettings();
 		document
@@ -931,30 +895,12 @@ export default class StoryForgePlugin extends Plugin {
 		});
 
 		this.addCommand({
-			id: "open-tools-view",
-			name: "Open Tools panel",
-			callback: () => void this.activateToolsView(),
-		});
-
-		this.addCommand({
 			id: "open-storytelling-view",
 			name: "Open storytelling mode",
 			callback: () => void this.activateStorytellingView(),
 		});
 
-		this.settingsTab = new StoryForgeSettingsTab(this.app, this);
-		this.addSettingTab(this.settingsTab);
-		try {
-			this.applyAllStyles();
-		} catch (err) {
-			console.error("storyForge: applyAllStyles failed", err);
-		}
-		registerTabTitleOverrides(
-			this.app,
-			(eventRef) => this.registerEvent(eventRef),
-			() => this.pluginSettings.chapterNumberingStyle,
-		);
-
+		this.addSettingTab(new StoryForgeSettingsTab(this.app, this));
 		registerReconciliationEvents(this.app, this);
 
 		this.registerEvent(
@@ -962,22 +908,6 @@ export default class StoryForgePlugin extends Plugin {
 				if (file instanceof TFile && isLibraryChapterPath(file.path)) {
 					this.scheduleRecompute(file.path);
 				}
-			}),
-		);
-
-		// CSS custom properties are only set on the document they were applied to, so a pane
-		// detached into its own OS window (a WorkspaceWindow, with its own `doc`) starts out
-		// with none of this plugin's styling. Track it and re-apply everything into it.
-		this.registerEvent(
-			this.app.workspace.on("window-open", (win) => {
-				this.extraDocs.add(win.doc);
-				this.applyAllStyles();
-			}),
-		);
-		this.registerEvent(
-			this.app.workspace.on("window-close", (win) => {
-				this.extraDocs.delete(win.doc);
-				this.fontFacesRegisteredFor.delete(win.doc);
 			}),
 		);
 
@@ -1045,8 +975,7 @@ export default class StoryForgePlugin extends Plugin {
 			}
 		})();
 		void this.enqueueEnsurePanels(async () => {
-			await this.recoverGoneAwayLeaves();
-			this.detachGoneAwayPlaceholders();
+			this.detachRetiredLeaves();
 			await this.ensureSidePanelsUnlocked();
 			await this.hydratePluginViews();
 			this.applyLeftPanelLanding();
@@ -1054,75 +983,19 @@ export default class StoryForgePlugin extends Plugin {
 				await this.restoreStorytellingCenterEditor(true);
 			}
 		});
-		this.registerPanelOrderWatcher();
-		refreshTabTitles(this.app, this.pluginSettings.chapterNumberingStyle);
 		void this.maybeRunScheduledBackup("vault-open");
 	}
 
 	private allPluginViewTypes(): string[] {
-		return [
-			STORYFORGE_VIEW_TYPE,
-			LEGACY_STORYTELLING_VIEW_TYPE,
-			TOOLS_VIEW_TYPE,
-			STORY_CONTEXT_VIEW_TYPE,
-			ARCHIVE_VIEW_TYPE,
-			...this.rightRailRegistry.map((r) => r.viewType),
-		];
+		return [STORYFORGE_VIEW_TYPE, LEGACY_STORYTELLING_VIEW_TYPE, STORY_CONTEXT_VIEW_TYPE];
 	}
 
 	/**
-	 * Workspace leaves that restored as EmptyView because our type was not yet registered.
-	 * getLeavesOfType() will not find them — EmptyView's type is "empty" — so walk every
-	 * leaf and put the original type back. Leftovers are detached in detachGoneAwayPlaceholders().
+	 * View types of features that have been removed. A saved layout can still hold a leaf of one of
+	 * these; with no view registered it would show as "plugin has gone away", so close it.
 	 */
-	private async recoverGoneAwayLeaves(): Promise<void> {
-		const types = this.allPluginViewTypes();
-		const typeSet = new Set(types);
-		const leaves: WorkspaceLeaf[] = [];
-		this.app.workspace.iterateAllLeaves((leaf) => leaves.push(leaf));
-		for (const leaf of leaves) {
-			if (!leaf.view) continue;
-			const viewType = leaf.view.getViewType();
-			if (viewType !== "empty") continue;
-			const state = leaf.getViewState();
-			const restoreTypeRaw =
-				(typeSet.has(state.type) ? state.type : null) ??
-				viewTypeFromLeafChrome(this.leafChromeText(leaf), types);
-			if (!restoreTypeRaw) continue;
-			const restoreType = mapLegacyLeftRailViewType(restoreTypeRaw);
-			try {
-				await leaf.setViewState({ ...state, type: restoreType });
-			} catch (err) {
-				console.error(`storyForge: failed to recover ${restoreType} leaf`, err);
-				leaf.detach();
-			}
-		}
-	}
-
-	/** Drop EmptyView tabs that still show the gone-away placeholder after recovery. */
-	private detachGoneAwayPlaceholders(): void {
-		const gone: WorkspaceLeaf[] = [];
-		this.app.workspace.iterateAllLeaves((leaf) => {
-			if (!leaf.view || leaf.view.getViewType() !== "empty") return;
-			if (isGoneAwayPlaceholder(this.leafChromeText(leaf))) gone.push(leaf);
-		});
-		for (const leaf of gone) leaf.detach();
-	}
-
-	private leafChromeText(leaf: WorkspaceLeaf): string {
-		const view = leaf.view;
-		const header = leaf as WorkspaceLeaf & {
-			tabHeaderInnerTitleEl?: HTMLElement;
-			tabHeaderEl?: HTMLElement;
-		};
-		return [
-			view?.getViewType() ?? "",
-			leaf.getViewState()?.type ?? "",
-			view?.getDisplayText() ?? "",
-			view?.containerEl?.textContent ?? "",
-			header.tabHeaderInnerTitleEl?.textContent ?? "",
-			header.tabHeaderEl?.textContent ?? "",
-		].join("\n");
+	private detachRetiredLeaves(): void {
+		for (const type of RETIRED_VIEW_TYPES) this.app.workspace.detachLeavesOfType(type);
 	}
 
 	/**
@@ -1139,7 +1012,6 @@ export default class StoryForgePlugin extends Plugin {
 				} catch (err) {
 					console.error(`storyForge: loadIfDeferred failed for ${type}`, err);
 				}
-				if (leaf.view instanceof ToolsView) leaf.view.restoreRibbon();
 			}
 		}
 	}
@@ -1302,27 +1174,6 @@ export default class StoryForgePlugin extends Plugin {
 		return file instanceof TFile ? file : null;
 	}
 
-	onunload(): void {
-		// Restores the native ribbon directly (without detaching the leaf, which would reset
-		// its position on next load) by running the same DOM restoration ToolsView.onClose() does.
-		for (const leaf of this.app.workspace.getLeavesOfType(TOOLS_VIEW_TYPE)) {
-			if (leaf.view instanceof ToolsView) {
-				leaf.view.restoreRibbon();
-			}
-		}
-		document.body.classList.remove("sf-tools-open");
-		teardownFormatCompanion({
-			getCompanion: () => this.formatCompanion,
-			getLinkedSettings: () => this.api.formatting.getLinkedSettings(),
-			forgetCompanion: () => {
-				this.formatCompanion = null;
-			},
-			clearHostStyles: () => undefined,
-		});
-		this.extraDocs.clear();
-		this.fontFacesRegisteredFor.clear();
-	}
-
 	async loadSettings(): Promise<void> {
 		const data: unknown = await this.loadData();
 		this.pluginSettings = Object.assign({}, DEFAULT_SETTINGS, data);
@@ -1363,7 +1214,6 @@ export default class StoryForgePlugin extends Plugin {
 	/** Persist a validated settings patch in one save, rolling memory back on failure. */
 	async updateSettings(partial: Partial<StoryForgePluginSettings>): Promise<void> {
 		const previous = { ...this.pluginSettings };
-		const prevNovel = this.pluginSettings.selectedNovel;
 		Object.assign(this.pluginSettings, partial);
 		try {
 			await this.saveSettings();
@@ -1372,271 +1222,6 @@ export default class StoryForgePlugin extends Plugin {
 			this.syncObsidianSettingsRef();
 			throw error;
 		}
-		if (
-			Object.prototype.hasOwnProperty.call(partial, "selectedNovel") &&
-			prevNovel !== this.pluginSettings.selectedNovel
-		) {
-			this.notifyActiveBookListeners();
-		}
-	}
-
-	/** Hosted siblings: register a right-rail tab after Forge (by orderHint). */
-	registerHostedRightRailView(reg: RightRailRegistration): void {
-		const existing = this.rightRailRegistry.findIndex((r) => r.viewType === reg.viewType);
-		if (existing >= 0) this.rightRailRegistry[existing] = reg;
-		else this.rightRailRegistry.push(reg);
-		if (this.app.workspace.layoutReady) {
-			void this.enqueueEnsurePanels(async () => {
-				await this.ensureRightRailPanelsUnlocked();
-				await this.hydratePluginViews();
-			});
-		}
-	}
-
-	addActiveBookListener(cb: (book: { folderName: string; bookId: string } | null) => void): () => void {
-		this.activeBookListeners.add(cb);
-		return () => this.activeBookListeners.delete(cb);
-	}
-
-	private notifyActiveBookListeners(): void {
-		const book = this.api?.getActiveBook() ?? null;
-		for (const cb of this.activeBookListeners) {
-			try {
-				cb(book);
-			} catch {
-				/* sibling listener errors must not break SF */
-			}
-		}
-	}
-
-	/**
-	 * Canonical right-rail types: Story Context → registered (orderHint). Forge-family companion
-	 * panels (registerCompanionPanel) no longer get their own right-rail tab - they're embedded in
-	 * Story Context's own "Forge family" tab instead (StoryContextView.ts).
-	 */
-	private rightRailTypes(): string[] {
-		return buildRightRailTypeOrder(STORY_CONTEXT_VIEW_TYPE, this.rightRailRegistry);
-	}
-
-	/** Replaces all settings with `data` (merged over defaults, same as `loadSettings`), persists, and re-applies every style/extension so the change takes effect immediately. */
-	async importSettings(data: unknown): Promise<void> {
-		if (!data || typeof data !== "object" || Array.isArray(data)) {
-			throw new Error("Settings import must be a JSON object");
-		}
-		const incoming = data as Record<string, unknown>;
-		const invalid = [
-			...findInvalidLinkedSettings(incoming),
-			...findInvalidEnumSettings(incoming),
-		];
-		if (invalid.length > 0) {
-			const shown = invalid.slice(0, 5).join(", ");
-			const rest = invalid.length > 5 ? `, and ${invalid.length - 5} more` : "";
-			throw new Error(`Invalid settings value for ${shown}${rest}`);
-		}
-		const previous = { ...this.pluginSettings };
-		const merged = { ...this.pluginSettings };
-		for (const key of Object.keys(DEFAULT_SETTINGS) as Array<keyof StoryForgePluginSettings>) {
-			if (!Object.prototype.hasOwnProperty.call(incoming, key)) continue;
-			(merged as unknown as Record<string, unknown>)[key as string] = incoming[key as string];
-		}
-		this.pluginSettings = merged;
-		migrateRemovedFonts(this.pluginSettings);
-		migrateCodexFocusLayout(this.pluginSettings);
-		const sections = { ...DEFAULT_SETTINGS.codexFactSectionByType, ...this.pluginSettings.codexFactSectionByType };
-		for (const opt of CODEX_TYPES) {
-			if (!sections[opt.type]) sections[opt.type] = "Facts";
-		}
-		this.pluginSettings.codexFactSectionByType = sections;
-		try {
-			await this.saveSettings();
-		} catch (error) {
-			this.pluginSettings = previous;
-			this.syncObsidianSettingsRef();
-			throw error;
-		}
-
-		this.applyAllStyles();
-		this.refreshStoryForgeViews();
-	}
-
-	/** Asks the format companion to register faces into the main document and every open pop-out. */
-	private registerCustomFontFacesForAllDocs(): void {
-		const register = this.formatCompanion?.registerFacesForDocument;
-		if (!register) return;
-		for (const doc of this.getStyleDocuments()) {
-			if (this.fontFacesRegisteredFor.has(doc)) continue;
-			this.fontFacesRegisteredFor.add(doc);
-			register(doc);
-		}
-	}
-
-	/** Notify companion after host restyles so it can refresh editor typography / font vars. */
-	private notifyFormatCompanionStylesApplied(): void {
-		try {
-			this.formatCompanion?.onHostStylesApplied?.();
-		} catch {
-			/* companion errors must not break SF */
-		}
-	}
-
-	getFormatCompanion(): FormatCompanionRegistration | null {
-		return this.formatCompanion;
-	}
-
-	/**
-	 * Only a live companion takes the formatting UI over. When formatForge is enabled but
-	 * has not registered, storyForge keeps its own entries so a failed companion load does
-	 * not leave the user with no formatting controls at all.
-	 */
-	isFormatCompanionActive(): boolean {
-		return (
-			formatCompanionState(
-				this.getFormatCompanion(),
-				this.api?.formatting?.isCompanionActive() === true,
-				this.app,
-			) === "connected"
-		);
-	}
-
-	/**
-	 * Opens Obsidian's own Settings window (`app.setting`), optionally scrolled to a specific tab
-	 * id. `app.setting` is undocumented/internal — no public API exposes it — so this asserts only
-	 * the minimal shape actually used rather than casting to `any`.
-	 */
-	openObsidianSettings(tabId?: string): void {
-		const settingApp = (this.app as unknown as { setting?: { open(): void; openTabById(id: string): void } }).setting;
-		settingApp?.open();
-		if (tabId) settingApp?.openTabById(tabId);
-	}
-
-	openFormatForgeSettings(): void {
-		const open = this.getFormatCompanion()?.openSettings;
-		if (open) {
-			open();
-			return;
-		}
-		this.openObsidianSettings(FORMATFORGE_PLUGIN_ID);
-	}
-
-	/** Open formatForge's combined settings modal (Text styling + Formatting themes + Palette)
-	 * directly. Falls back to openFormatForgeSettings() (the Obsidian Settings window) on an older
-	 * formatForge that hasn't registered this hook yet. */
-	openFormatForgeFormattingModal(): void {
-		const open = this.getFormatCompanion()?.openFormattingModal;
-		if (open) {
-			open();
-			return;
-		}
-		this.openFormatForgeSettings();
-	}
-
-	/** Open formatForge's own Text styling modal directly. Falls back to openFormatForgeSettings()
-	 * (the Obsidian Settings window) on an older formatForge that hasn't registered this hook yet. */
-	openFormatForgeTextStyleModal(): void {
-		const open = this.getFormatCompanion()?.openTextStyleModal;
-		if (open) {
-			open();
-			return;
-		}
-		this.openFormatForgeSettings();
-	}
-
-	/** Open formatForge's own Formatting themes modal directly. Falls back to
-	 * openFormatForgeSettings() (the Obsidian Settings window) on an older formatForge that hasn't
-	 * registered this hook yet. */
-	openFormatForgeThemesModal(): void {
-		const open = this.getFormatCompanion()?.openThemesModal;
-		if (open) {
-			open();
-			return;
-		}
-		this.openFormatForgeSettings();
-	}
-
-	/** SeriesModal calls this in onOpen()/onClose() so its formatting tab can be told to re-render
-	 * when the format companion registers/unregisters while it's open. */
-	registerSeriesModalRefresh(refresh: () => void): () => void {
-		this.openSeriesModalRefreshers.add(refresh);
-		return () => this.openSeriesModalRefreshers.delete(refresh);
-	}
-
-	registerFormatCompanion(reg: FormatCompanionRegistration): () => void {
-		this.formatCompanion = reg;
-		this.fontFacesRegisteredFor.clear();
-		this.applyLinkedFormattingStyles();
-		this.settingsTab?.refreshDomState();
-		this.openSeriesModalRefreshers.forEach((refresh) => refresh());
-		return () => {
-			if (this.formatCompanion === reg) {
-				this.formatCompanion = null;
-				this.fontFacesRegisteredFor.clear();
-				this.applyLinkedFormattingStyles();
-				this.settingsTab?.refreshDomState();
-				this.openSeriesModalRefreshers.forEach((refresh) => refresh());
-			}
-		};
-	}
-
-	registerViewContribution(opt: StoryForgeViewContribution): () => void {
-		this.viewContributions.push(opt);
-		this.viewContributions.sort((a, b) => a.orderHint - b.orderHint);
-		return () => {
-			this.viewContributions = this.viewContributions.filter((c) => c !== opt);
-		};
-	}
-
-	getViewContributions(slot: string): StoryForgeViewContribution[] {
-		return this.viewContributions.filter((c) => c.slot === slot);
-	}
-
-	registerCompanionPanel(opt: StoryForgeCompanionPanel): () => void {
-		const existing = this.companionPanels.findIndex((p) => p.id === opt.id);
-		if (existing >= 0) this.companionPanels[existing] = opt;
-		else this.companionPanels.push(opt);
-		this.companionPanels.sort((a, b) => a.orderHint - b.orderHint || a.id.localeCompare(b.id));
-		this.refreshForgeFamilyPanels();
-		return () => {
-			this.companionPanels = this.companionPanels.filter((p) => p !== opt);
-			this.refreshForgeFamilyPanels();
-		};
-	}
-
-	getCompanionPanels(): StoryForgeCompanionPanel[] {
-		return this.companionPanels.slice().sort((a, b) => {
-			return a.orderHint - b.orderHint || a.id.localeCompare(b.id);
-		});
-	}
-
-	/** Re-render any open Story Context leaf so its "Forge family" tab (StoryContextView.ts)
-	 * picks up a companion panel registering/unregistering - that tab reads getCompanionPanels()
-	 * fresh on every render, so this is just a nudge to re-render now rather than on the next
-	 * unrelated event. */
-	private refreshForgeFamilyPanels(): void {
-		for (const leaf of this.app.workspace.getLeavesOfType(STORY_CONTEXT_VIEW_TYPE)) {
-			const view = leaf.view as { refreshForgeFamily?: () => void };
-			if (typeof view.refreshForgeFamily === "function") view.refreshForgeFamily();
-		}
-	}
-
-	/** Main document plus open pop-out windows. */
-	getStyleDocuments(): Document[] {
-		return [document, ...this.extraDocs];
-	}
-
-	/**
-	 * Re-apply SF-owned formatting (chrome, sizes, guides, scrollbar) and notify formatForge.
-	 * Editor colour/font/divider vars are owned by the companion when present.
-	 */
-	applyLinkedFormattingStyles(): void {
-		this.registerCustomFontFacesForAllDocs();
-		this.notifyFormatCompanionStylesApplied();
-	}
-
-	/** The full "recompute every derived CSS/DOM styling surface" sequence, shared by initial
-	 * load, new-window setup, and settings import — anywhere the plugin needs every style
-	 * category rebuilt from current settings. */
-	private applyAllStyles(): void {
-		this.applyLinkedFormattingStyles();
 	}
 
 	/** Eagerly creates the story library and Codex root folders (mirrors the already-eager _backstage/storyforge
@@ -1730,11 +1315,6 @@ export default class StoryForgePlugin extends Plugin {
 		}
 	}
 
-	async activateToolsView(): Promise<void> {
-		const leaf = await this.ensureLeaf(TOOLS_VIEW_TYPE, "left", true);
-		if (leaf) await this.app.workspace.revealLeaf(leaf);
-	}
-
 	async activateStorytellingView(): Promise<void> {
 		const leaf = await this.ensureLeaf(STORYFORGE_VIEW_TYPE, "left", true);
 		if (leaf) {
@@ -1764,28 +1344,12 @@ export default class StoryForgePlugin extends Plugin {
 
 	private async ensureSidePanelsUnlocked(): Promise<void> {
 		// Strip stacked copies from prior hot-reloads / raced ensures before creating anything.
-		for (const type of [
-			STORYFORGE_VIEW_TYPE,
-			LEGACY_STORYTELLING_VIEW_TYPE,
-			TOOLS_VIEW_TYPE,
-			STORY_CONTEXT_VIEW_TYPE,
-			ARCHIVE_VIEW_TYPE,
-			...this.rightRailRegistry.map((r) => r.viewType),
-		]) {
-			this.dedupeLeavesOfType(type);
-		}
+		for (const type of this.allPluginViewTypes()) this.dedupeLeavesOfType(type);
 
-		// Canonical left order: Tools, then the combined storyforge / storytelling-mode tab.
-		if (this.pluginSettings.useToolsPanel) {
-			await this.ensureLeaf(TOOLS_VIEW_TYPE, "left", false);
-		} else {
-			this.dedupeLeavesOfType(TOOLS_VIEW_TYPE);
-		}
 		// Combined left panel: one leaf. Detach the retired storytelling tab from saved layouts.
 		this.app.workspace.detachLeavesOfType(LEGACY_STORYTELLING_VIEW_TYPE);
 		await this.ensureLeaf(STORYFORGE_VIEW_TYPE, "left", true);
-		await this.ensureRightRailPanelsUnlocked();
-		await this.enforcePanelOrder();
+		await this.ensureLeaf(STORY_CONTEXT_VIEW_TYPE, "right", true);
 
 		const storyforgeLeaf = this.app.workspace.getLeavesOfType(STORYFORGE_VIEW_TYPE)[0] ?? null;
 		if (storyforgeLeaf) await this.app.workspace.revealLeaf(storyforgeLeaf);
@@ -1798,64 +1362,10 @@ export default class StoryForgePlugin extends Plugin {
 		}
 	}
 
-	/** Ensure Story Context → [hosted] exist in that order on the right. */
-	private async ensureRightRailPanels(): Promise<void> {
-		return this.enqueueEnsurePanels(() => this.ensureRightRailPanelsUnlocked());
-	}
-
-	private async ensureRightRailPanelsUnlocked(): Promise<void> {
-		// Prefer Story Context before dropping legacy Archive tabs so the right split
-		// doesn't collapse when Archive was the active leaf.
-		const existingContext = this.app.workspace.getLeavesOfType(STORY_CONTEXT_VIEW_TYPE)[0];
-		if (existingContext) {
-			await this.app.workspace.revealLeaf(existingContext);
-		}
-		this.app.workspace.detachLeavesOfType(ARCHIVE_VIEW_TYPE);
-		// The dedicated Forge tab is retired - Forge-family companions are embedded in Story
-		// Context's own tab instead (StoryContextView.ts). Detach any leftover leaf from a
-		// previous version's saved workspace layout, same as the legacy Archive tab above.
-		// Referenced by its old literal type id, not an import - view/ForgeView.ts is gone.
-		this.app.workspace.detachLeavesOfType("storyforge-forge-view");
-
-		const types = this.rightRailTypes();
-		for (const type of types) this.dedupeLeavesOfType(type);
-		if (!this.isRightRailOrderCanonical()) {
-			for (const type of types) this.app.workspace.detachLeavesOfType(type);
-			for (const type of types) {
-				await this.ensureLeaf(type, "right", type === STORY_CONTEXT_VIEW_TYPE);
-			}
-		} else {
-			for (const type of types) {
-				await this.ensureLeaf(type, "right", type === STORY_CONTEXT_VIEW_TYPE);
-			}
-		}
-
-		const right = this.app.workspace.rightSplit;
-		if (typeof right.expand === "function") right.expand();
-		const contextLeaf = this.app.workspace.getLeavesOfType(STORY_CONTEXT_VIEW_TYPE)[0] ?? null;
-		if (contextLeaf) {
-			await contextLeaf.setViewState({ type: STORY_CONTEXT_VIEW_TYPE, active: true });
-			await this.app.workspace.revealLeaf(contextLeaf);
-		}
-	}
-
 	/** Keeps the first leaf of `type` and detaches any extras (duplicate tab icons). */
 	private dedupeLeavesOfType(type: string): void {
 		const leaves = this.app.workspace.getLeavesOfType(type);
 		for (let i = 1; i < leaves.length; i++) leaves[i].detach();
-	}
-
-	/** True when right-rail tabs appear in canonical order (missing tabs are OK). */
-	private isRightRailOrderCanonical(): boolean {
-		const expected = this.rightRailTypes();
-		const order: string[] = [];
-		this.app.workspace.iterateAllLeaves((leaf) => {
-			const type = leaf.view.getViewType();
-			if (expected.includes(type)) order.push(type);
-		});
-		const present = expected.filter((t) => order.includes(t));
-		const actual = order.filter((t) => expected.includes(t));
-		return actual.join("\0") === present.join("\0");
 	}
 
 	/**
@@ -1874,55 +1384,5 @@ export default class StoryForgePlugin extends Plugin {
 			reveal: false,
 			split: false,
 		});
-	}
-
-	/** Canonical left-rail order: Tools, then the combined storyforge / storytelling-mode tab. */
-	private readonly LEFT_RAIL_ORDER = [TOOLS_VIEW_TYPE, STORYFORGE_VIEW_TYPE];
-
-	/** True if the present left-rail leaves (Tools / combined panel) appear in canonical
-	 * order when walking the workspace's layout tree. Missing tabs are fine — only the relative
-	 * order of whichever are actually present is checked. */
-	private isCanonicalLeftOrder(): boolean {
-		const order: string[] = [];
-		this.app.workspace.iterateAllLeaves((leaf) => {
-			const type = leaf.view.getViewType();
-			if (this.LEFT_RAIL_ORDER.includes(type)) order.push(type);
-		});
-		return isCanonicalTypeOrder(this.LEFT_RAIL_ORDER, order);
-	}
-
-	/**
-	 * Corrects the Tools / combined-panel tab order back to canonical when it's drifted.
-	 * Obsidian exposes no public API to reorder existing tabs in place, so this detaches and
-	 * recreates the left-rail leaves via ensureLeaf(), guarded so the layout-change watcher below never
-	 * mistakes this self-correction for a user drag. No-ops once the user has deliberately reordered
-	 * the tabs (panelOrderMode === "user"). Does not touch Story Context on the right.
-	 */
-	private async enforcePanelOrder(): Promise<void> {
-		if (this.pluginSettings.panelOrderMode !== "canonical") return;
-		if (this.isCanonicalLeftOrder()) return;
-		this.isAdjustingPanelOrder = true;
-		try {
-			this.app.workspace.detachLeavesOfType(TOOLS_VIEW_TYPE);
-			this.app.workspace.detachLeavesOfType(STORYFORGE_VIEW_TYPE);
-			this.app.workspace.detachLeavesOfType(LEGACY_STORYTELLING_VIEW_TYPE);
-			if (this.pluginSettings.useToolsPanel) await this.ensureLeaf(TOOLS_VIEW_TYPE, "left", false);
-			await this.ensureLeaf(STORYFORGE_VIEW_TYPE, "left", true);
-		} finally {
-			this.isAdjustingPanelOrder = false;
-		}
-	}
-
-	/** Detects a deliberate user drag out of Tools / combined-panel order and switches to "user" mode permanently - after which Obsidian's own layout persistence carries the user's order across reopens with no further enforcement. */
-	private registerPanelOrderWatcher(): void {
-		this.registerEvent(
-			this.app.workspace.on("layout-change", () => {
-				if (this.isAdjustingPanelOrder) return;
-				if (this.pluginSettings.panelOrderMode !== "canonical") return;
-				if (!this.isCanonicalLeftOrder()) {
-					void this.updateSetting("panelOrderMode", "user");
-				}
-			}),
-		);
 	}
 }

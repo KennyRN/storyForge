@@ -1,10 +1,7 @@
 import { App, PluginSettingTab, type SettingDefinitionItem } from "obsidian";
 import type StoryForgePlugin from "../main";
-import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
-import { HideUiModal } from "./HideUiModal";
 import { ProtectionsModal } from "./ProtectionsModal";
-import { NUMBERING_STYLE_OPTIONS, type NumberingStyle } from "../numberingStyle";
-import { refreshTabTitles } from "../tabTitles";
+import { NUMBERING_STYLE_OPTIONS } from "../numberingStyle";
 
 function getPath(obj: Record<string, unknown>, path: string): unknown {
 	let cursor: unknown = obj;
@@ -60,20 +57,9 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			return;
 		}
 
-		if (key === "useToolsPanel") {
-			await this.plugin.updateSetting("useToolsPanel", Boolean(value));
-			if (value) {
-				void this.plugin.activateToolsView();
-			} else {
-				this.app.workspace.detachLeavesOfType(TOOLS_VIEW_TYPE);
-			}
-			return;
-		}
-
 		if (key === "seriesNumberingStyle" || key === "chapterNumberingStyle") {
 			await super.setControlValue(key, value);
 			this.plugin.refreshStoryForgeViews();
-			if (key === "chapterNumberingStyle") refreshTabTitles(this.app, value as NumberingStyle);
 			return;
 		}
 		if (key === "hideSeriesPane" || key === "highlightActiveChapter") {
@@ -142,51 +128,6 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 						desc: "If you've closed storytelling mode, click this to bring it back.",
 						action: () => {
 							void this.plugin.activateStorytellingView();
-						},
-					},
-				],
-			},
-			{
-				type: "group",
-				items: [
-					{
-						name: "Tools panel",
-						desc: "Hide the ribbon; ribbon icons are available in the tools panel.",
-						control: {
-							type: "toggle",
-							key: "useToolsPanel",
-						},
-					},
-					{
-						name: "Reopen tools panel",
-						desc: "Open the tools panel if it was closed.",
-						action: () => {
-							void this.plugin.activateToolsView();
-						},
-					},
-				],
-			},
-			{
-				type: "group",
-				items: [
-					{
-						name: "Unknown name suggestions",
-						desc: "List proper names found in the chapter that are not in the Codex.",
-						control: {
-							type: "toggle",
-							key: "storyContextIncludeUnknownNames",
-						},
-					},
-				],
-			},
-			{
-				type: "group",
-				items: [
-					{
-						name: "Hide Obsidian interface elements",
-						desc: "Choose which Obsidian UI chrome to hide.",
-						action: () => {
-							new HideUiModal(this.app, this.plugin).open();
 						},
 					},
 				],

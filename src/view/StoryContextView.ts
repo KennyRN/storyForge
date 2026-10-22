@@ -10,7 +10,6 @@ import {
 import type StoryForgePlugin from "../main";
 import { ICON_BOOK_DUOTONE, ICON_CODEX, ICON_FOCUS_OFF, ICON_FOCUS_ON } from "../icons";
 import { bookFolderNameFromChapterPath, CODEX_ROOT, isBackstageBookkeepingPath, isLibraryChapterPath, NOTES_ROOT, seriesFilePath } from "../paths";
-import { OBSIDIAN_SELECTORS } from "../obsidianInternals";
 import { createNotebookPage } from "./notebookPage";
 import { makeAccessibleActivatable } from "./a11y";
 import { activateRightRailView } from "./activateRightRailView";
@@ -179,7 +178,7 @@ export class StoryContextView extends ItemView {
 		const headerEl = this.tabHeaderEl();
 		if (!headerEl) return;
 		this.decorateTabHeader(headerEl);
-		const iconEl = headerEl.querySelector<HTMLElement>(OBSIDIAN_SELECTORS.tabHeaderInnerIcon);
+		const iconEl = headerEl.querySelector<HTMLElement>(".workspace-tab-header-inner-icon");
 		if (iconEl) {
 			iconEl.empty();
 			setIcon(iconEl, this.getIcon());
@@ -450,5 +449,13 @@ export async function activateStoryContextView(plugin: StoryForgePlugin): Promis
 	await activateRightRailView(plugin, STORY_CONTEXT_VIEW_TYPE, (leaf) => {
 		const view = leaf.view;
 		if (view instanceof StoryContextView) view.syncFromPluginSelection();
+	});
+}
+
+/** Opens the Archive list inside the right-hand panel. */
+export async function activateArchiveView(plugin: StoryForgePlugin, tab: ArchiveMode = "codex"): Promise<void> {
+	await activateRightRailView(plugin, STORY_CONTEXT_VIEW_TYPE, (leaf) => {
+		const view = leaf.view;
+		if (view instanceof StoryContextView) view.openArchive(tab);
 	});
 }

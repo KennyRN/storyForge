@@ -34,15 +34,6 @@ import {
  * `_backstage/storyforge/` (plus flat library-root files above).
  * Backup zips are an allowed write root: `_sf-backup/` only. User-facing shareable
  * JSON copies are another: `_export/` only.
- *
- * Host API / xForge siblings:
- * - Codex note *frontmatter* create/edit is only for plugins that called
- *   `registerCodexWriteException`, and only for essential owned fields.
- * - `allowBody` defaults false; hosted timelineForge must not edit note bodies.
- * - nameForge should not register. languageForge: deferred — do not pre-grant.
- * - Never Library prose. Never raw `_backstage/storyforge/codex.md` from siblings
- *   (use `ensureVirtualFolder` / `createNote` / `setType` host facades).
- * See docs/xforge-sibling-writes.md and docs/xforge-timelineforge-host-audit.md.
  */
 
 export class ForbiddenWriteError extends Error {

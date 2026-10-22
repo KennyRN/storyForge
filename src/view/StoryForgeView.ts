@@ -22,7 +22,6 @@ import { layoutConfig, SF_LAYOUTS, SF_LAYOUT_LABELS, type SfLayout } from "../la
 import { createContinuingChapter } from "../chapterCreation";
 import { getBookChapters } from "../book";
 import { resolveEntryChapter } from "../spineWindow";
-import { OBSIDIAN_SELECTORS } from "../obsidianInternals";
 import { focusModeForStorytellingMode } from "./leftPanelMode";
 
 export const STORYFORGE_VIEW_TYPE = "storyforge-view";
@@ -156,7 +155,7 @@ export class StoryForgeView extends ItemView {
 		const headerEl = this.tabHeaderEl();
 		if (!headerEl) return;
 		this.decorateTabHeader(headerEl);
-		const iconEl = headerEl.querySelector<HTMLElement>(OBSIDIAN_SELECTORS.tabHeaderInnerIcon);
+		const iconEl = headerEl.querySelector<HTMLElement>(".workspace-tab-header-inner-icon");
 		if (iconEl) {
 			iconEl.empty();
 			setIcon(iconEl, this.getIcon());
