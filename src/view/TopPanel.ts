@@ -22,7 +22,6 @@ import { bookBackstagePath } from "../paths";
 import { makeReorderable, type DragZone } from "./dragReorder";
 import { makeAccessibleActivatable } from "./a11y";
 import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
-import { ChapterIdeaCaptureModal } from "./ChapterIdeaCaptureModal";
 import { renderCodexFocusNavigator } from "./CodexFocusNavigator";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
 import type { NumberingStyle } from "../numberingStyle";
@@ -360,8 +359,7 @@ function renderPlacedHeader(zone: HTMLElement, label: string, isHidden: boolean,
 }
 
 /** Builds the hybrid "New" button's intent menu (hand-off brief §5.4). A continuing chapter is
- * created and appended to the spine immediately; an idea chapter is captured lightly (H2) and
- * left unplaced, never opened, so editor focus isn't disturbed. */
+ * created and appended to the spine immediately. */
 function showChapterCreationMenu(
 	app: App,
 	bookFolderName: string,
@@ -380,20 +378,6 @@ function showChapterCreationMenu(
 					new Notice(`storyForge: could not create chapter — ${(err as Error).message}`);
 				}
 			})();
-		}),
-	);
-	menu.addItem((item) =>
-		item.setTitle("Add chapter idea").onClick(() => {
-			new ChapterIdeaCaptureModal(app, (title) => {
-				void (async () => {
-					try {
-						await createIdeaChapter(app, bookFolderName, title);
-						rerender();
-					} catch (err) {
-						new Notice(`storyForge: could not create chapter — ${(err as Error).message}`);
-					}
-				})();
-			}).open();
 		}),
 	);
 	if (event) {

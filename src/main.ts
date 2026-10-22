@@ -22,14 +22,13 @@ import { UiFormattingModal } from "./view/UiFormattingModal";
 import { TagRegistryModal } from "./view/TagRegistryModal";
 import { FORMATFORGE_PLUGIN_ID, formatCompanionState } from "./formatCompanionActive";
 import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders } from "./series";
-import { ensureTagRegistryFile, loadCodexTypesIntoRegistry, loadIdeaTypesIntoRegistry } from "./tagRegistry";
+import { ensureTagRegistryFile, loadCodexTypesIntoRegistry } from "./tagRegistry";
 import { ensureVaultTagsFile } from "./vaultTags";
 import { ensurePlotThreadsFile } from "./plotThreads";
 import { defaultSeriesPlotThreadColor } from "./view/novelColor";
 import { seedPlotCardTiers, type PlotCardTierMap } from "./view/plotCardTier";
 import { resolveThemeBackgroundColor } from "./view/PalettePickerModal";
 import { createBook, createChapter, ensureAllChapterEntries, getBookChapters, pruneMissingChapterCodexRefs, pruneMissingChapterEntries, readBookFrontmatter, syncAllBookReferenceFields, writeBookChapterOrder } from "./book";
-import { pruneMissingNotesNotes } from "./notes";
 import { resolveStorytellingCenterPath } from "./storytellingCenter";
 import type { NumberingStyle } from "./numberingStyle";
 import { migrateStructuralLayout, migrateVaultSchema } from "./migration";
@@ -1783,7 +1782,6 @@ export default class StoryForgePlugin extends Plugin {
 		if (isFirstRun) await this.createFirstRunBookAndChapter();
 		const tagRegistry = await ensureTagRegistryFile(this.app);
 		loadCodexTypesIntoRegistry(this.app, tagRegistry);
-		loadIdeaTypesIntoRegistry(this.app, tagRegistry);
 		await ensureVaultTagsFile(this.app);
 		await ensurePlotThreadsFile(
 			this.app,
@@ -1792,7 +1790,6 @@ export default class StoryForgePlugin extends Plugin {
 		);
 		await migrateVaultSchema(this.app);
 		await pruneMissingCodexNotes(this.app);
-		await pruneMissingNotesNotes(this.app);
 		await pruneMissingChapterCodexRefs(this.app);
 		const books = await ensureAllSeriesBookEntries(this.app, (folderName) => {
 			const fm = readBookFrontmatter(this.app, folderName);

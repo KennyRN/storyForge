@@ -5,7 +5,6 @@ import { mintId } from "./slug";
 import { ICON_TAG } from "./icons";
 import { CODEX_ICON_CATALOG, TAG_ICON_CATALOG } from "./iconRegistry";
 import { loadCodexTypesFromRegistry, type CodexTypeOption } from "./codex";
-import { loadIdeaTypesFromRegistry, type IdeaTypeOption } from "./notes";
 
 /** One entry in an editable type/tag list (Codex types, chapter tags, or novel tags). */
 export interface TagDefinition {
@@ -189,16 +188,6 @@ export function loadCodexTypesIntoRegistry(app: App, prefetched?: TagRegistrySha
 	loadCodexTypesFromRegistry(resolved);
 }
 
-export function loadIdeaTypesIntoRegistry(app: App, prefetched?: TagRegistryShape): void {
-	const { ideaTypes } = prefetched ?? readTagRegistry(app);
-	const resolved: IdeaTypeOption[] = ideaTypes.map((t) => ({
-		type: t.id,
-		label: t.label,
-		icon: resolveIconAlias("ideaTypes", t.iconAlias),
-	}));
-	loadIdeaTypesFromRegistry(resolved);
-}
-
 /**
  * Returns the freshly-written `list` entries (the same array used to build the frontmatter) rather
  * than void — callers that need to reflect the mutation back into their own UI immediately
@@ -236,14 +225,6 @@ async function mutateTagList(
 				parentId: t.parentId ?? null,
 			}));
 			loadCodexTypesFromRegistry(resolved);
-		}
-		if (list === "ideaTypes") {
-			const resolved: IdeaTypeOption[] = next.map((t) => ({
-				type: t.id,
-				label: t.label,
-				icon: resolveIconAlias("ideaTypes", t.iconAlias),
-			}));
-			loadIdeaTypesFromRegistry(resolved);
 		}
 	});
 	return result;
@@ -379,14 +360,6 @@ export async function replaceTagLists(
 					parentId: t.parentId ?? null,
 				}));
 				loadCodexTypesFromRegistry(resolved);
-			}
-			if (patch.ideaTypes !== undefined) {
-				const resolved: IdeaTypeOption[] = result.ideaTypes.map((t) => ({
-					type: t.id,
-					label: t.label,
-					icon: resolveIconAlias("ideaTypes", t.iconAlias),
-				}));
-				loadIdeaTypesFromRegistry(resolved);
 			}
 		},
 	);

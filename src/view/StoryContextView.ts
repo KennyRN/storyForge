@@ -8,7 +8,7 @@ import {
 	setTooltip,
 } from "obsidian";
 import type StoryForgePlugin from "../main";
-import { ICON_BOOK_DUOTONE, ICON_CODEX, ICON_FOCUS_OFF, ICON_FOCUS_ON, ICON_NOTEBOOK_DUOTONE } from "../icons";
+import { ICON_BOOK_DUOTONE, ICON_CODEX, ICON_FOCUS_OFF, ICON_FOCUS_ON } from "../icons";
 import { bookFolderNameFromChapterPath, CODEX_ROOT, isBackstageBookkeepingPath, isLibraryChapterPath, NOTES_ROOT, seriesFilePath } from "../paths";
 import { OBSIDIAN_SELECTORS } from "../obsidianInternals";
 import { createNotebookPage } from "./notebookPage";
@@ -334,8 +334,7 @@ export class StoryContextView extends ItemView {
 					: () => this.plugin.openTagRegistry("archiveTypes"),
 			onOpenTags: () => {
 				try {
-					const scope = this.archiveMode === "notes" ? "notes" : "codex";
-					new VaultTagModal(this.app, () => this.plugin.refreshStoryForgeViews(), scope).open();
+					new VaultTagModal(this.app, () => this.plugin.refreshStoryForgeViews(), "codex").open();
 				} catch (err) {
 					new Notice(`storyForge: could not open archive tags — ${err instanceof Error ? err.message : String(err)}`);
 				}
@@ -363,7 +362,6 @@ export class StoryContextView extends ItemView {
 	private renderArchiveSourceRail(parent: HTMLElement): HTMLElement {
 		const rail = parent.createDiv({ cls: "sf-codex-side-actions sf-notebook-source-rail" });
 		this.addArchiveSourceIcon(rail, "codex", ICON_CODEX, "codex");
-		this.addArchiveSourceIcon(rail, "notes", ICON_NOTEBOOK_DUOTONE, "notes");
 		this.addArchiveSourceIcon(rail, "novel", ICON_BOOK_DUOTONE, "novel");
 		return rail;
 	}

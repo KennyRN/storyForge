@@ -15,19 +15,11 @@ import {
 } from "../codex";
 import { recordChapterUnarchive } from "../history";
 import {
-	collectArchivedNotes,
-	displayedNotesVaultTags,
-	getNotesEntryType,
-	reorderArchivedNotes,
-	unarchiveNotesNote,
-} from "../notes";
-import {
 	ICON_BOOK_DUOTONE,
 	ICON_CODEX,
 	ICON_FILTER_LIST,
 	ICON_FOLDER,
 	ICON_HASHTAG_SQUARE_DUOTONE,
-	ICON_NOTEBOOK_DUOTONE,
 	ICON_TAG_DUOTONE,
 	ICON_UNARCHIVE,
 } from "../icons";
@@ -41,7 +33,7 @@ import { applySiblingReorder, displayedVaultTags, filterVisiblePathsByTag, sibli
 import { TagPickerModal } from "./TagPickerModal";
 import { renderStampedIndexEmpty } from "./stampedCross";
 
-export type ArchiveMode = "codex" | "novel" | "notes";
+export type ArchiveMode = "codex" | "novel";
 
 export interface ArchivePanelHost {
 	app: App;
@@ -80,7 +72,6 @@ export function renderArchiveModeIcons(el: HTMLElement, host: ArchivePanelHost):
 	const row = el.createDiv({ cls: "sf-story-context-view__forge-row sf-archive-mode-row" });
 	addArchiveModeIcon(row, host, "codex", ICON_CODEX, "codex");
 	addArchiveModeIcon(row, host, "novel", ICON_BOOK_DUOTONE, "novel");
-	addArchiveModeIcon(row, host, "notes", ICON_NOTEBOOK_DUOTONE, "notebook");
 }
 
 function addArchiveModeIcon(
@@ -137,11 +128,7 @@ export function renderArchiveIndex(el: HTMLElement, host: ArchivePanelHost, asIn
 	if (items.length === 0) {
 		const emptyHost = asIndex ? el.createDiv({ cls: "sf-codex-tree" }) : el;
 		const label =
-			host.mode === "codex"
-				? "No archived codex items."
-				: host.mode === "notes"
-					? "No archived notes."
-					: "No archived chapters.";
+			host.mode === "codex" ? "No archived codex items." : "No archived chapters.";
 		renderStampedIndexEmpty(emptyHost, label);
 		return;
 	}
@@ -168,20 +155,6 @@ function collectArchiveIndexItems(host: ArchivePanelHost): ArchiveIndexItem[] {
 			items = items.filter((item) => {
 				if (!item.filePath) return false;
 				const type = getCodexEntryType(host.app, item.filePath);
-				return Boolean(type && typeFilter.has(type));
-			});
-		}
-	} else if (host.mode === "notes") {
-		items = collectArchivedNotes(host.app).map((entry) => ({
-			key: entry.path,
-			filePath: entry.path,
-			type: "file" as const,
-			name: entry.name,
-		}));
-		if (typeFilter.size > 0) {
-			items = items.filter((item) => {
-				if (!item.filePath) return false;
-				const type = getNotesEntryType(host.app, item.filePath);
 				return Boolean(type && typeFilter.has(type));
 			});
 		}
@@ -228,7 +201,7 @@ function renderArchiveTypesCorner(container: HTMLElement, host: ArchivePanelHost
 	if (host.onOpenTags) {
 		const tagsBtn = corner.createSpan({
 			cls: "sf-codex-tags-btn",
-			attr: { "aria-label": host.mode === "notes" ? "notebook tags" : "vault tags" },
+			attr: { "aria-label": "vault tags" },
 		});
 		setIcon(tagsBtn, ICON_HASHTAG_SQUARE_DUOTONE);
 		bindArchiveButton(tagsBtn, host.onOpenTags);
@@ -246,18 +219,18 @@ function renderArchiveFilterRail(parent: HTMLElement, host: ArchivePanelHost): v
 		bindArchiveButton(filterBtn, () => {
 			new TagPickerModal(
 				host.app,
-				host.mode === "notes" ? "ideaTypes" : "codexTypes",
+				"codexTypes",
 				Array.from(typeFilter),
 				(nextIds) => host.onChangeTypeFilter?.(nextIds),
 				false,
 			).open();
 		});
 	}
-	const tags = host.mode === "notes" ? displayedNotesVaultTags(host.app) : displayedVaultTags(host.app);
+	const tags = displayedVaultTags(host.app);
 	if (tags.length === 0 || !host.onChangeTagFilter) return;
 	const stack = parent.createDiv({ cls: "sf-codex-vault-tags" });
 	const active = host.tagFilter ?? null;
-	// Codex mode only: the notes-mode tag rail keeps its plain colour highlight.
+	// Codex mode only: the novel-mode tag rail keeps its plain colour highlight.
 	const ink = host.mode === "codex" ? inkSlider("archive-codex-tags") : null;
 	for (const tag of tags) {
 		const btn = stack.createSpan({
@@ -347,10 +320,6 @@ async function persistArchiveOrder(host: ArchivePanelHost, nextKeys: string[]): 
 		await reorderArchivedCodexItems(host.app, nextKeys);
 		return;
 	}
-	if (host.mode === "notes") {
-		await reorderArchivedNotes(host.app, nextKeys);
-		return;
-	}
 	if (!host.bookFolderName) return;
 	await writeBookArchiveOrder(host.app, host.bookFolderName, nextKeys);
 }
@@ -359,8 +328,6 @@ async function unarchiveItem(item: ArchiveIndexItem, host: ArchivePanelHost): Pr
 	try {
 		if (host.mode === "codex") {
 			await unarchiveCodexItem(host.app, item.key);
-		} else if (host.mode === "notes") {
-			await unarchiveNotesNote(host.app, item.key);
 		} else if (host.bookFolderName) {
 			await unarchiveChapter(host.app, host.bookFolderName, item.key);
 			await recordChapterUnarchive(host.app, host.bookFolderName, item.key);

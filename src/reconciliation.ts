@@ -8,8 +8,6 @@ import {
 	chapterSidecarPath,
 	isCodexNotePath,
 	isLibraryChapterPath,
-	isNotesArchiveNotePath,
-	isNotesNotePath,
 	storyContextSidecarPath,
 } from "./paths";
 import {
@@ -25,7 +23,6 @@ import {
 } from "./book";
 import { renameSeriesBookEntry } from "./series";
 import { rekeyCodexNotePath, reconcileMissingCodexNotes } from "./codex";
-import { rekeyNotesNotePath } from "./notes";
 import { deleteChapterSidecar, renameChapterSidecar } from "./chapterSidecar";
 import { deleteStoryDetailsSidecar, renameStoryDetailsSidecar } from "./storyDetailsSidecar";
 import { modifyBackstageFrontmatter, renameBackstagePath } from "./writeGuard";
@@ -49,10 +46,6 @@ export function registerReconciliationEvents(app: App, plugin: Plugin): void {
 				await handleCodexNoteRename(app, oldPath, file.path);
 				return;
 			}
-			if (file instanceof TFile && (isNotesNotePath(oldPath) || isNotesArchiveNotePath(oldPath))) {
-				await handleNotesNoteRename(app, oldPath, file.path);
-				return;
-			}
 			if (file instanceof TFolder) {
 				await handleBookFolderRename(app, oldPath, file.path);
 			}
@@ -70,9 +63,6 @@ export function registerReconciliationEvents(app: App, plugin: Plugin): void {
 				await rekeyChapterPovReferences(app, file.path, null);
 				await rekeyChapterLocationReferences(app, file.path, null);
 				return;
-			}
-			if (isNotesNotePath(file.path) || isNotesArchiveNotePath(file.path)) {
-				await rekeyNotesNotePath(app, file.path, null);
 			}
 		}),
 	);
@@ -100,11 +90,6 @@ async function handleCodexNoteRename(app: App, oldPath: string, newPath: string)
 	await rekeyCodexNotePath(app, oldPath, rekeyedPath);
 	await rekeyChapterPovReferences(app, oldPath, rekeyedPath);
 	await rekeyChapterLocationReferences(app, oldPath, rekeyedPath);
-}
-
-async function handleNotesNoteRename(app: App, oldPath: string, newPath: string): Promise<void> {
-	const rekeyedPath = isNotesNotePath(newPath) || isNotesArchiveNotePath(newPath) ? newPath : null;
-	await rekeyNotesNotePath(app, oldPath, rekeyedPath);
 }
 
 async function handleChapterRename(app: App, oldPath: string, newPath: string): Promise<void> {
