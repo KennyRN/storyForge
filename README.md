@@ -3,6 +3,8 @@ Storytelling plugin by volcanicMole
 
 Obsidian + storyForge + (formatForge) + a theme = fully functional storytelling app.
 
+> **Note:** storyForge has now been slightly renamed to **storytellingForge**. My focus is now on storytellingForge's sister app, **storyForge**, which is going to be a standalone app.
+
 ## 0.17.0 Update
 A big update this time!
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.17.1
+
+- Novel overview: the novel length bar can now divide the unwritten remainder into planned-chapter-length "ghost chapter" blocks, and show a 4px story-structure strip beneath the bar. Both are toggles on a new "novel" tab of the guides modal.
+- README: storyForge is now storytellingForge; development focus has moved to its sister app, storyForge (a standalone app).
+
 ## 0.17.0
 
 - Continuous mode is a real manuscript editor: the whole book as one document you can write straight through, saved per chapter (only chapters you change), with the depth guide at every chapter start, the cycling guide across the book, prose dressing and emphasis keys, and new chapters from inside the manuscript. Read-only on mobile.
