@@ -28,6 +28,11 @@ A different, more commonly vendored technique — constructing a standalone Code
 
 storyForge's implementation is written for the plugin's own rail markup and re-render cycle (carrying the bar's position across a rail rebuild, a `ResizeObserver` instead of a window resize listener), not copied from the snippet.
 
+## `yaml` (frontmatter parsing and value generation)
+
+`src/core/frontmatter.ts` uses the **`yaml`** package by Eemeli Aro — **ISC Licence** (`Copyright Eemeli Aro <eemeli@gmail.com>`). It is a runtime dependency used for parsing, source ranges and generating the text of new or changed values; no code is copied from it.
+  Source: https://github.com/eemeli/yaml
+
 ## `obsidian-typings`
 
 By Fevol and contributors — used only as a reference during research to verify internal API shapes; not a project dependency and no code from it is included.

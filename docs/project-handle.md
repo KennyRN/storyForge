@@ -194,3 +194,15 @@ Rules (identical to today's, minus `_export/`, plus the explicit allowances that
 3. **Refusing YAML constructs** (anchors, tags, duplicate keys): fine to refuse rather than attempt?
 4. **Modified block sequences re-styled** (§5 limitation a): acceptable under "only that key's lines change"? (The *key's lines* change; nothing else does.)
 5. **Index scans read every markdown body** for the hash/word count. OK for projects of a few thousand files; alternatively compute hashes lazily. I'd keep it eager now (Brief 4 can optimise).
+
+## 10. Rulings at H1 (Kenny, passed on by Claude) and how they change the design
+
+1. **`retire` → `.trash/` inside the project: accepted**, as an intended behaviour difference to record in the core report. Never overwrite inside `.trash/`: an existing name gives the incoming file a unique name (`name (2).ext`). Only backstage sidecars are ever retired.
+2. **Case / Unicode / separator variants of protected folders are refused** by the guard, and get rows in `test/guard-spec/guard.json` (case variants, NFC/NFD variants, mixed separators) so the Rust guard inherits them.
+3. **Unsupported or broken YAML is "unreadable", not empty.** The index marks the file `frontmatterError`; the data layer treats it as *unavailable* (a read helper returns an explicit "unreadable" result, never `{}`/defaults); every write to it fails with a typed `UnreadableFrontmatterError` and the disk is untouched; the CLI check reports it.
+4. **Lists may be rewritten whole; maps must be edited path by path.** Consequences for §5:
+   - The edit is **spliced into the original text**: each changed path is mapped to its source range in the original file and only that range is replaced. Untouched entries (and everything else in the file) keep their original bytes. This replaces the earlier plan of letting the library re-stringify the document, which would normalise unchanged parts.
+   - Generated text (new keys, replaced lists) is styled to match 0.17.1's output: 2-space indent, block sequences indented under their key, plain scalars unless quoting is needed, double quotes when it is.
+   - No change → the original string is returned and nothing is written.
+   - Disk-safety test: change one chapter's entry in a `chapters` map and assert only that entry's lines differ.
+5. **Eager reading only inside storyForge's own folders:** `_story-library/`, `Codex/`, `notes/`, `_backstage/storyforge/` (markdown bodies are read, hashed and word-counted). Everywhere else the index holds path, kind and size only; no body or attachment is read, and no frontmatter is available for files outside those folders. The CLI check reports scan duration.
