@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased — the strip
+
+This repository is now the seed of the standalone storyForge app. Before the app is built, the plugin was stripped to a small test harness (not released as a plugin; `release.yml` is gone). Removed: titleForge, the Story Context engine (the right-hand view keeps only the lore slot and the Archive), the overview pages and title/settings modals, continuous mode and the guides, the Notebook, export/import/presets/onboarding, plot threads and tags and their editors, interface formatting and palettes, Forge-family hosting and Obsidian chrome management, migrations, and the winkNLP and manuscript CodeMirror dependencies. The data layer, the pure layout maths and the on-disk format (0.17) are unchanged. See `docs/strip-report.md`.
+
 ## 0.17.1
 
 - Novel overview: the novel length bar can now divide the unwritten remainder into planned-chapter-length "ghost chapter" blocks, and show a 4px story-structure strip beneath the bar. Both are toggles on a new "novel" tab of the guides modal.
