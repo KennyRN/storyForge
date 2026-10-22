@@ -27,7 +27,7 @@ import { renameSeriesBookEntry } from "./series";
 import { rekeyCodexNotePath, reconcileMissingCodexNotes } from "./codex";
 import { rekeyNotesNotePath } from "./notes";
 import { deleteChapterSidecar, renameChapterSidecar } from "./chapterSidecar";
-import { deleteStoryContextCache, renameStoryContextSidecar } from "./story-context/cache";
+import { deleteStoryDetailsSidecar, renameStoryDetailsSidecar } from "./storyDetailsSidecar";
 import { modifyBackstageFrontmatter, renameBackstagePath } from "./writeGuard";
 import { debounce } from "./debounce";
 
@@ -126,7 +126,7 @@ async function handleChapterRename(app: App, oldPath: string, newPath: string): 
 	}
 	await renameChapterEntry(app, oldBook, oldFilename, newFilename);
 	await renameChapterSidecar(app, oldBook, oldFilename, newFilename);
-	await renameStoryContextSidecar(app, oldBook, oldFilename, newFilename);
+	await renameStoryDetailsSidecar(app, oldBook, oldFilename, newFilename);
 }
 
 /**
@@ -172,7 +172,7 @@ async function handleChapterDelete(app: App, path: string): Promise<void> {
 	if (!book || !filename) return;
 	await removeChapterEntry(app, book, filename);
 	await deleteChapterSidecar(app, book, filename);
-	await deleteStoryContextCache(app, book, filename);
+	await deleteStoryDetailsSidecar(app, book, filename);
 }
 
 async function handleBookFolderRename(app: App, oldPath: string, newPath: string): Promise<void> {

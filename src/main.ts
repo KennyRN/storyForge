@@ -13,9 +13,6 @@ import { NewChapterView, STORYFORGE_NEW_CHAPTER_VIEW_TYPE } from "./view/NewChap
 import { ToolsView, TOOLS_VIEW_TYPE } from "./view/ToolsPanel";
 import { StoryContextView, STORY_CONTEXT_VIEW_TYPE, activateStoryContextView } from "./view/StoryContextView";
 import { ArchiveView, ARCHIVE_VIEW_TYPE, activateArchiveView } from "./view/ArchiveView";
-import { recomputeChapterStoryContext } from "./story-context/recompute";
-import { isNlpReady } from "./story-context/nlp";
-import { remapLegacyStoryContextKeys } from "./story-context/legacyKeys";
 import { CODEX_TYPES, pruneMissingCodexNotes } from "./codex";
 import { buildRightRailTypeOrder, isCanonicalTypeOrder } from "./rightRailOrder";
 import {
@@ -1469,10 +1466,6 @@ export default class StoryForgePlugin extends Plugin {
 	async loadSettings(): Promise<void> {
 		const data: unknown = await this.loadData();
 		this.pluginSettings = Object.assign({}, DEFAULT_SETTINGS, data);
-		remapLegacyStoryContextKeys(
-			this.pluginSettings as unknown as Record<string, unknown>,
-			(key) => key in DEFAULT_SETTINGS,
-		);
 		migrateRemovedFonts(this.pluginSettings);
 		migrateCodexFocusLayout(this.pluginSettings);
 		const shellMigrated = migrateStoryContextShell(this.pluginSettings, data);
@@ -1571,7 +1564,6 @@ export default class StoryForgePlugin extends Plugin {
 			throw new Error("Settings import must be a JSON object");
 		}
 		const incoming = data as Record<string, unknown>;
-		remapLegacyStoryContextKeys(incoming, (key) => key in DEFAULT_SETTINGS);
 		const invalid = [
 			...findInvalidLinkedSettings(incoming),
 			...findInvalidEnumSettings(incoming),
@@ -2008,16 +2000,6 @@ export default class StoryForgePlugin extends Plugin {
 		const fingerprint = extractFingerprint(raw);
 		await updateChapterFingerprint(this.app, bookFolderName, file.name, fingerprint);
 		await recordChapterEdit(this.app, bookFolderName, file.name, countWords(raw));
-
-		const chapterFilename = chapterFilenameFromPath(chapterPath) ?? file.name;
-		// Story Context NLP is lazy: only refresh the Story Context cache once the
-		// panel has loaded winkNLP this session (first open pays the cost).
-		if (isNlpReady()) {
-			await recomputeChapterStoryContext(this.app, bookFolderName, chapterFilename, {
-				codexFactSectionByType: this.pluginSettings.codexFactSectionByType,
-				storyContextIncludeUnknownNames: this.pluginSettings.storyContextIncludeUnknownNames,
-			});
-		}
 	}
 
 	async activateStoryContextView(): Promise<void> {

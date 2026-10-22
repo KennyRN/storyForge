@@ -24,7 +24,7 @@ import type { NumberingStyle } from "./numberingStyle";
 import {
 	normalizeDialogueQuoteStyle,
 	type DialogueQuoteStyle,
-} from "./story-context/quoteSpans";
+} from "./dialogueQuoteStyle";
 
 export interface CompileSettings {
 	format?: string;

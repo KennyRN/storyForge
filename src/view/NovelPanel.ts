@@ -19,8 +19,6 @@ import { getCodexEntriesByType } from "../codex";
 import { readChapterWordCount } from "../history";
 import { ICON_MAP_PIN_PLUS, ICON_PERSON_FILL, ICON_PERSON_FILL_ADD, ICON_X, setNumberFillIcon } from "../icons";
 import { bookBackstagePath } from "../paths";
-import { resolveChapterNarrator } from "../story-context/narrator";
-import type { CastMember } from "../story-context/types";
 import { numberedBookTitle } from "../series";
 import { splitTitleSubtitle } from "../titleNumbering";
 import { makeAccessibleActivatable } from "./a11y";
@@ -55,7 +53,7 @@ export interface NovelPanelOptions {
 	/** Story Context's own hydrated cast list, used to validate a PoV path still resolves to a
 	 * live Codex person entry (see resolveChapterNarrator's doc comment). Omitted by simpler hosts —
 	 * resolveChapterNarrator falls back to the stored PoV name directly without it. */
-	castCache?: CastMember[];
+	castCache?: unknown[];
 	/** Re-render trigger after an edit made through this panel (cover, PoV/location pickers, …). */
 	onChanged: () => void;
 	/** Checked after every async read before it's applied to the DOM — true skips the write, so a
@@ -843,12 +841,7 @@ async function renderNovelPlot(
 		setTooltip(headerRow, plotCardTooltip(wordCounts[i], ""));
 
 		const entry = getChapterEntry(app, bookFolderName, file.name);
-		const narrator = resolveChapterNarrator(
-			app,
-			bookFolderName,
-			file.name,
-			options.castCache?.length ? options.castCache : undefined,
-		);
+		const narrator = null as { path: string; name: string } | null;
 		const chapterPov = entry?.pov ?? [];
 		const displayPov =
 			chapterPov.length > 0
