@@ -49,13 +49,6 @@ import {
 } from "./formattingApi";
 import type { PaletteColor } from "./colorPalettes";
 import { PALETTE_NAMES } from "./colorPalettes";
-import {
-	archiveFormattingTheme,
-	listSettingsPresets,
-	readSettingsPreset,
-	renameSettingsPreset,
-	saveSettingsPreset,
-} from "./settingsPresets";
 
 /** Bumped to 10 — hard break: Codex book-scoping removed. `createNote`, `listByType` and
  * `getCodexView` no longer take a book id, and `listByType` returns `{ path, name }` only. */
@@ -812,26 +805,6 @@ export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 
 		readSettingsExport(path) {
 			return readSettingsExportFromBackups(plugin.app, path);
-		},
-
-		saveFormattingPreset(name, content, overwrite) {
-			return saveSettingsPreset(plugin.app, "formatForge", name, content, overwrite);
-		},
-
-		listFormattingPresets() {
-			return listSettingsPresets(plugin.app, "formatForge");
-		},
-
-		readFormattingPreset(path) {
-			return readSettingsPreset(plugin.app, "formatForge", path);
-		},
-
-		renameFormattingPreset(path, newName, overwrite) {
-			return renameSettingsPreset(plugin.app, "formatForge", path, newName, overwrite);
-		},
-
-		deleteFormattingPreset(path) {
-			return archiveFormattingTheme(plugin.app, path);
 		},
 
 		registerViewContribution(opt) {

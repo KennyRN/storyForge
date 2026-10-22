@@ -381,7 +381,7 @@ function makeFakePlugin() {
 }
 
 describe("formatting API stress", () => {
-	it("exposes API version 10 with managed presets, batched updates, and teardown", () => {
+	it("exposes API version 10 with batched updates and teardown", () => {
 		const plugin = makeFakePlugin();
 		const api = createHostApi(plugin);
 		expect(STORYFORGE_API_VERSION).toBe(10);
@@ -393,11 +393,6 @@ describe("formatting API stress", () => {
 		expect(api.formatting.saveFormattingExport).toBeTypeOf("function");
 		expect(api.formatting.listSettingsExports).toBeTypeOf("function");
 		expect(api.formatting.readSettingsExport).toBeTypeOf("function");
-		expect(api.formatting.saveFormattingPreset).toBeTypeOf("function");
-		expect(api.formatting.listFormattingPresets).toBeTypeOf("function");
-		expect(api.formatting.readFormattingPreset).toBeTypeOf("function");
-		expect(api.formatting.renameFormattingPreset).toBeTypeOf("function");
-		expect(api.formatting.deleteFormattingPreset).toBeTypeOf("function");
 		expect(api.formatting.openInterfaceModal).toBeTypeOf("function");
 	});
 

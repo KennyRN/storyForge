@@ -50,7 +50,6 @@ import { updateChapterFingerprint } from "./chapterSidecar";
 import { debounce } from "./debounce";
 import { countWords } from "./wordCount";
 import { ICON_STORYTELLING, registerCustomIcons } from "./icons";
-import { OnboardingModal } from "./view/OnboardingModal";
 import { type FormatCompanionRegistration, teardownFormatCompanion } from "./formattingApi";
 import { refreshTabTitles, registerTabTitleOverrides } from "./tabTitles";
 import { PaletteColor, PaletteName } from "./colorPalettes";
@@ -951,10 +950,6 @@ export default class StoryForgePlugin extends Plugin {
 			id: "open-storytelling-view",
 			name: "Open storytelling mode",
 			callback: () => void this.activateStorytellingView(),
-		});
-
-		this.addRibbonIcon(ICON_STORYTELLING, "Open onboarding", () => {
-			new OnboardingModal(this.app, this).open();
 		});
 
 		this.settingsTab = new StoryForgeSettingsTab(this.app, this);

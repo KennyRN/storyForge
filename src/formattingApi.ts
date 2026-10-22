@@ -185,15 +185,6 @@ export interface StoryForgeFormattingApi {
 	listSettingsExports(): Promise<Array<{ path: string; name: string }>>;
 	/** Read a discovered settings JSON file from `_sf-backup/`. */
 	readSettingsExport(path: string): Promise<string>;
-	/** Create/update a user-named formatForge preset in storyForge backstage. */
-	saveFormattingPreset(name: string, content: string, overwrite?: boolean): Promise<{ path: string; name: string }>;
-	/** List user-named formatForge presets from storyForge backstage. */
-	listFormattingPresets(): Promise<Array<{ path: string; name: string }>>;
-	/** Read one discovered formatForge preset. */
-	readFormattingPreset(path: string): Promise<string>;
-	renameFormattingPreset(path: string, newName: string, overwrite?: boolean): Promise<{ path: string; name: string }>;
-	/** Move a named theme into `_backstage/storyforge/settings/archived-settings/`. */
-	deleteFormattingPreset(path: string): Promise<void>;
 	/**
 	 * Contribute UI into a storyForge view slot. `render` mounts into the provided
 	 * container and must return a disposer. Known slots: `"storyforge-panel"` (left
