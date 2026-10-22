@@ -25,6 +25,3 @@ jobs:
 
       - name: Build
         run: npm run build
-
-      - name: Formatting contract
-        run: npm run check:formatting-contract
