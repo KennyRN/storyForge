@@ -63,3 +63,26 @@ export function computeNovelLengthBarLayout(
 	if (segments.length > 0 && filledPercent < 100) dividerPercents.push(filledPercent);
 	return { scale, segments, dividerPercents };
 }
+
+/** Story-structure section boundaries (percent of the bar) for the structure guidelines strip. */
+export const STRUCTURE_GUIDELINE_PERCENTS = [10, 20, 35, 50, 65, 80, 90];
+
+/**
+ * Ghost chapter boundaries: starting from where writing stops, one boundary every
+ * `plannedChapterLength` words, stopping short of the planned novel length (a partial remainder
+ * becomes the final ghost chapter). Empty once the words written reach the planned length, or when
+ * either length is unset. Returned as 0-100 percents of `scale` (computeNovelLengthBarLayout's).
+ */
+export function computeGhostChapterDividerPercents(
+	totalWritten: number,
+	plannedNovelLength: number | null,
+	plannedChapterLength: number | null,
+	scale: number,
+): number[] {
+	if (!plannedNovelLength || !plannedChapterLength || plannedChapterLength <= 0 || scale <= 0) return [];
+	const percents: number[] = [];
+	for (let k = 1; totalWritten + k * plannedChapterLength < plannedNovelLength; k++) {
+		percents.push(((totalWritten + k * plannedChapterLength) / scale) * 100);
+	}
+	return percents;
+}

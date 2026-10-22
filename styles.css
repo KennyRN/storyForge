@@ -7012,6 +7012,31 @@ input.sf-story-context-chapter-title[type="text"]:focus {
 	pointer-events: none;
 }
 
+/* Structure guidelines (renderNovelPanel, wide only, toggleable) — a 4px strip directly beneath
+ * the novel length bar, split into story-structure sections (left/width inline) that alternate
+ * solid blocks: the bar's border colour first, then its background colour (both measured, set as
+ * custom properties). */
+.sf-story-context-novel-structure-strip {
+	position: relative;
+	width: 100%;
+	height: 4px;
+	overflow: hidden;
+}
+
+.sf-story-context-novel-structure-section {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+}
+
+.sf-story-context-novel-structure-section.is-border {
+	background-color: var(--sf-structure-fg, var(--background-modifier-border));
+}
+
+.sf-story-context-novel-structure-section.is-background {
+	background-color: var(--sf-structure-bg, var(--background-primary));
+}
+
 /* Each chapter reads as its own card (renderNovelPlot — Story Context's sidebar Novel tab and
  * the central Novel overview). The narrow divider list this same block styling used to serve
  * is gone. Same 10px radius on every corner, matching .sf-series-overview-card's own radius (the

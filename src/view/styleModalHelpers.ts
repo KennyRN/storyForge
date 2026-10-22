@@ -722,3 +722,23 @@ export function renderDepthGuideCard(plugin: StoryForgePlugin, body: HTMLElement
 	});
 	applyDepthGuideVisibility(!depthGuideToggle.getValue());
 }
+
+/**
+ * "ghost chapter" and "structure guidelines" toggles for the Novel overview's novel length bar
+ * (NovelPanel.ts). Used by CyclingGuideModal's "novel" tab; each change re-renders the overview.
+ */
+export function renderNovelGuideCard(plugin: StoryForgePlugin, body: HTMLElement, settings: StoryForgePluginSettings): void {
+	const group = new SettingGroup(body);
+	const addToggle = (name: string, key: "novelGhostChaptersEnabled" | "novelStructureGuidelinesEnabled") => {
+		group.addSetting((setting) => {
+			setting.setName(name).addToggle((toggle) => {
+				toggle.setValue(settings[key]);
+				toggle.onChange((value) => {
+					void plugin.updateSetting(key, value).then(() => plugin.refreshNovelOverviewView());
+				});
+			});
+		});
+	};
+	addToggle("ghost chapter", "novelGhostChaptersEnabled");
+	addToggle("structure guidelines", "novelStructureGuidelinesEnabled");
+}

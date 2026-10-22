@@ -1,11 +1,12 @@
 import { App, Modal } from "obsidian";
 import type StoryForgePlugin from "../main";
-import { renderCyclingGuideCard, renderDepthGuideCard, renderTabbedBody, type StyleModalTab } from "./styleModalHelpers";
+import { renderCyclingGuideCard, renderDepthGuideCard, renderNovelGuideCard, renderTabbedBody, type StyleModalTab } from "./styleModalHelpers";
 
 /**
  * Fixed-size modal — "guides to help with storytelling" — wrapping the cycling-guide and depth-guide
  * settings cards behind a "cycling"/"depth" tab bar (cycling: toggle + interval/colour/thickness/flag
- * size/rounded lines + manuscript-page preview; depth: toggle + depth level/chapters covered). Opened
+ * size/rounded lines + manuscript-page preview; depth: toggle + depth level/chapters covered; novel: ghost chapter +
+ * structure guidelines toggles for the Novel overview's novel length bar). Opened
  * from SeriesModal's general tab via the document-page-break hover icon — the cycling card itself
  * used to render inline on that tab, before this modal existed.
  */
@@ -43,6 +44,11 @@ export class CyclingGuideModal extends Modal {
 				id: "depth",
 				label: "depth",
 				render: (body) => renderDepthGuideCard(this.plugin, body, settings),
+			},
+			{
+				id: "novel",
+				label: "novel",
+				render: (body) => renderNovelGuideCard(this.plugin, body, settings),
 			},
 		];
 		renderTabbedBody(contentEl, tabs);

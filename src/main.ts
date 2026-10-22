@@ -317,6 +317,10 @@ export interface StoryForgePluginSettings {
 	depthGuideEnabled: boolean;
 	depthGuideLevel: DepthGuideLevel;
 	depthGuideChaptersCovered: number;
+	/** Novel overview's novel length bar: divide the unwritten remainder into planned-chapter-length blocks. */
+	novelGhostChaptersEnabled: boolean;
+	/** Novel overview's novel length bar: 4px striped structure strip beneath the bar. */
+	novelStructureGuidelinesEnabled: boolean;
 	automaticBackupEnabled: boolean;
 	automaticBackupFrequency: AutomaticBackupFrequency;
 	lastAutomaticBackupAt: number;
@@ -734,6 +738,8 @@ export const DEFAULT_SETTINGS: StoryForgePluginSettings = {
 	depthGuideEnabled: false,
 	depthGuideLevel: "standard",
 	depthGuideChaptersCovered: 10,
+	novelGhostChaptersEnabled: true,
+	novelStructureGuidelinesEnabled: true,
 	automaticBackupEnabled: false,
 	automaticBackupFrequency: "daily",
 	lastAutomaticBackupAt: 0,

@@ -28,7 +28,12 @@ import { CodexEntryPickerModal } from "./CodexEntryPickerModal";
 import { NovelTitleModal } from "./NovelTitleModal";
 import { resolveChapterRowColor } from "./novelColor";
 import { formatWordCount } from "../wordCount";
-import { computeNovelLengthBarLayout, type NovelLengthBarLayout } from "./novelLengthBar";
+import {
+	computeGhostChapterDividerPercents,
+	computeNovelLengthBarLayout,
+	STRUCTURE_GUIDELINE_PERCENTS,
+	type NovelLengthBarLayout,
+} from "./novelLengthBar";
 import { nextPlotCardTier, plotCardTooltip, readPlotCardTier, withPlotCardTier, type PlotCardTier } from "./plotCardTier";
 
 /**
@@ -169,11 +174,44 @@ export function renderNovelPanel(app: App, container: HTMLElement, options: Nove
 				border: `${synopsisStyle.borderTopWidth} ${synopsisStyle.borderTopStyle} ${synopsisStyle.borderTopColor}`,
 			});
 		}
+		// Structure guidelines: a 4px strip beneath the bar, split into story-structure sections
+		// that alternate solid border-colour / background-colour blocks — colours from the same
+		// synopsis measurement.
+		if (options.plugin.getSettings().novelStructureGuidelinesEnabled) {
+			const strip = lengthBarWrap.createDiv({ cls: "sf-story-context-novel-structure-strip" });
+			if (synopsisStyle) {
+				strip.setCssProps({
+					"--sf-structure-bg": synopsisStyle.backgroundColor,
+					"--sf-structure-fg": synopsisStyle.borderTopColor,
+				});
+			}
+			const bounds = [0, ...STRUCTURE_GUIDELINE_PERCENTS, 100];
+			for (let i = 0; i < bounds.length - 1; i++) {
+				const section = strip.createDiv({
+					cls: `sf-story-context-novel-structure-section ${i % 2 === 0 ? "is-border" : "is-background"}`,
+				});
+				section.setCssStyles({ left: `${bounds[i]}%`, width: `${bounds[i + 1] - bounds[i]}%` });
+			}
+		}
 		void wordCountsPromise.then((wordCounts) => {
 			if (options.isStale()) return;
-			const plannedNovelLength = readBookFrontmatter(app, bookFolderName)?.plannedNovelLength ?? null;
+			const bookFm = readBookFrontmatter(app, bookFolderName);
+			const plannedNovelLength = bookFm?.plannedNovelLength ?? null;
 			const layout = computeNovelLengthBarLayout(wordCounts, plannedNovelLength);
 			renderNovelLengthBarContent(app, lengthBar, bookFolderName, ordered, wordCounts, layout, options);
+			if (options.plugin.getSettings().novelGhostChaptersEnabled) {
+				const totalWritten = wordCounts.reduce((sum, n) => sum + n, 0);
+				const ghostPercents = computeGhostChapterDividerPercents(
+					totalWritten,
+					plannedNovelLength,
+					bookFm?.plannedChapterLength ?? null,
+					layout.scale,
+				);
+				for (const percent of ghostPercents) {
+					const divider = lengthBar.createDiv({ cls: "sf-story-context-novel-length-bar-divider" });
+					divider.setCssStyles({ left: `${percent}%` });
+				}
+			}
 		});
 	}
 

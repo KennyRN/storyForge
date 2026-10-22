@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeNovelLengthBarLayout } from "../view/novelLengthBar";
+import { computeGhostChapterDividerPercents, computeNovelLengthBarLayout } from "../view/novelLengthBar";
 
 describe("computeNovelLengthBarLayout", () => {
 	it("scales to the planned length when it is above the total written", () => {
@@ -93,5 +93,29 @@ describe("computeNovelLengthBarLayout", () => {
 	it("renders an empty bar for a book with no placed chapters at all", () => {
 		const layout = computeNovelLengthBarLayout([], null);
 		expect(layout).toEqual({ scale: 0, segments: [], dividerPercents: [] });
+	});
+});
+
+describe("computeGhostChapterDividerPercents", () => {
+	it("steps one planned chapter at a time from the written total, last ghost chapter partial", () => {
+		// written 3000 of 10000, chapters of 2500: ghosts end at 5500, 8000, then partial to 10000.
+		const percents = computeGhostChapterDividerPercents(3000, 10000, 2500, 10000);
+		expect(percents).toHaveLength(2);
+		expect(percents[0]).toBeCloseTo(55);
+		expect(percents[1]).toBeCloseTo(80);
+	});
+
+	it("draws no boundary at the novel's end when the remainder divides exactly", () => {
+		expect(computeGhostChapterDividerPercents(0, 10000, 2500, 10000)).toEqual([25, 50, 75]);
+	});
+
+	it("has no ghost chapters once writing reaches or passes the planned length", () => {
+		expect(computeGhostChapterDividerPercents(10000, 10000, 2500, 10000)).toEqual([]);
+		expect(computeGhostChapterDividerPercents(12000, 10000, 2500, 12000)).toEqual([]);
+	});
+
+	it("has no ghost chapters without both planned lengths", () => {
+		expect(computeGhostChapterDividerPercents(0, null, 2500, 10000)).toEqual([]);
+		expect(computeGhostChapterDividerPercents(0, 10000, null, 10000)).toEqual([]);
 	});
 });
