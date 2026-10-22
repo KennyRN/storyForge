@@ -16,14 +16,11 @@ import {
 	type StoryForgeHostApi,
 	type StoryForgeViewContribution,
 } from "./hostApi";
-import { StyleController } from "./styleController";
 import { StoryForgeSettingsTab } from "./view/StoryForgeSettingsTab";
-import { UiFormattingModal } from "./view/UiFormattingModal";
 import { FORMATFORGE_PLUGIN_ID, formatCompanionState } from "./formatCompanionActive";
 import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders } from "./series";
 import { ensureTagRegistryFile, loadCodexTypesIntoRegistry } from "./tagRegistry";
 import { seedPlotCardTiers, type PlotCardTierMap } from "./view/plotCardTier";
-import { resolveThemeBackgroundColor } from "./view/PalettePickerModal";
 import { createBook, createChapter, ensureAllChapterEntries, getBookChapters, pruneMissingChapterCodexRefs, pruneMissingChapterEntries, readBookFrontmatter, syncAllBookReferenceFields, writeBookChapterOrder } from "./book";
 import { resolveStorytellingCenterPath } from "./storytellingCenter";
 import type { NumberingStyle } from "./numberingStyle";
@@ -48,7 +45,6 @@ import { countWords } from "./wordCount";
 import { ICON_STORYTELLING, registerCustomIcons } from "./icons";
 import { type FormatCompanionRegistration, teardownFormatCompanion } from "./formattingApi";
 import { refreshTabTitles, registerTabTitleOverrides } from "./tabTitles";
-import { PaletteColor, PaletteName } from "./colorPalettes";
 import { runContentBackup } from "./backup";
 import { viewTypeFromLeafChrome, isGoneAwayPlaceholder } from "./goneAwayView";
 
@@ -273,9 +269,9 @@ export interface StoryForgePluginSettings {
 	useToolsPanel: boolean;
 	/** "canonical" enforces SF-before-Tools tab order on open; flips to "user" (permanently) the first time the user drags Tools ahead of SF. */
 	panelOrderMode: "canonical" | "user";
-	colorPaletteName: PaletteName;
+	colorPaletteName: string;
 	colorPaletteVariant: string;
-	customPaletteColors: PaletteColor[];
+	customPaletteColors: { name: string; hex: string }[];
 	selectedNovel: string | null;
 	selectedObject: string | null;
 	collapsedCodexFolderIds: string[];
@@ -867,7 +863,6 @@ export default class StoryForgePlugin extends Plugin {
 	/** Documents of currently open pop-out windows, kept in sync via the "window-open"/"window-close" workspace events. */
 	private extraDocs = new Set<Document>();
 	/** CSS-variable / body-class styling layer (constructed early in `onload`). */
-	private style!: StyleController;
 	/** Tracks which documents already had companion FontFace registration (idempotent per doc). */
 	private fontFacesRegisteredFor = new Set<Document>();
 	/** Active formatForge (or future typography) companion, if registered. */
@@ -903,7 +898,6 @@ export default class StoryForgePlugin extends Plugin {
 		// saved tabs become EmptyView ("plugin has gone away"). Settings/API/icons are all
 		// synchronous here so nameForge can touch `plugin.api` the moment those tabs restore.
 		this.syncObsidianSettingsRef();
-		this.style = new StyleController(this);
 		this.api = createHostApi(this);
 		registerCustomIcons();
 		this.registerView(STORYFORGE_VIEW_TYPE, (leaf) => new StoryForgeView(leaf, this));
@@ -1002,10 +996,6 @@ export default class StoryForgePlugin extends Plugin {
 				}
 			}),
 		);
-		const refreshRightRailChrome = debounce(() => this.style.applyRightRailChrome(), 50);
-		this.registerEvent(this.app.workspace.on("layout-change", () => refreshRightRailChrome()));
-		this.registerEvent(this.app.workspace.on("css-change", () => refreshRightRailChrome()));
-		this.register(() => refreshRightRailChrome.cancel());
 
 		this.registerInterval(window.setInterval(() => void this.maybeRunScheduledBackup("interval"), 30 * 60 * 1000));
 	}
@@ -1066,12 +1056,6 @@ export default class StoryForgePlugin extends Plugin {
 		});
 		this.registerPanelOrderWatcher();
 		refreshTabTitles(this.app, this.pluginSettings.chapterNumberingStyle);
-		try {
-			this.applyEditorScrollbarStyles();
-			this.style.applyRightRailChrome();
-		} catch (err) {
-			console.error("storyForge: layout-ready styles failed", err);
-		}
 		void this.maybeRunScheduledBackup("vault-open");
 	}
 
@@ -1333,7 +1317,7 @@ export default class StoryForgePlugin extends Plugin {
 			forgetCompanion: () => {
 				this.formatCompanion = null;
 			},
-			clearHostStyles: () => this.style.clearAll(),
+			clearHostStyles: () => undefined,
 		});
 		this.extraDocs.clear();
 		this.fontFacesRegisteredFor.clear();
@@ -1569,12 +1553,6 @@ export default class StoryForgePlugin extends Plugin {
 		this.openFormatForgeSettings();
 	}
 
-	/** Opens the storyForge interface modal. formatForge adds font pickers to this same modal
-	 * when registered; it does not replace it. */
-	openStoryForgeInterface(): void {
-		new UiFormattingModal(this.app, this).open();
-	}
-
 	/** SeriesModal calls this in onOpen()/onClose() so its formatting tab can be told to re-render
 	 * when the format companion registers/unregisters while it's open. */
 	registerSeriesModalRefresh(refresh: () => void): () => void {
@@ -1645,29 +1623,12 @@ export default class StoryForgePlugin extends Plugin {
 		return [document, ...this.extraDocs];
 	}
 
-	/** Public for host API: apply CSS vars across all style documents. */
-	applyHostStyleVars(vars: Record<string, string | null>): void {
-		this.style.applyStyleVars(vars);
-	}
-
 	/**
 	 * Re-apply SF-owned formatting (chrome, sizes, guides, scrollbar) and notify formatForge.
 	 * Editor colour/font/divider vars are owned by the companion when present.
 	 */
 	applyLinkedFormattingStyles(): void {
-		this.applyVisibilityStyles();
-		this.applyHeaderStyles();
-		this.applyHighlightStyle();
-		this.applyLibraryHeaderStyles();
-		this.applyStorytellingItemsStyle();
-		this.applyCodexFolderStyle();
-		this.applyCodexNoteLabelStyle();
-		this.applyTextStyleOverrides();
 		this.registerCustomFontFacesForAllDocs();
-		this.applyCyclingGuideStyle();
-		this.applyEditorScrollbarStyles();
-		this.applyRightRailPanelStyles();
-		this.style.applyRightRailChrome();
 		this.notifyFormatCompanionStylesApplied();
 	}
 
@@ -1676,57 +1637,6 @@ export default class StoryForgePlugin extends Plugin {
 	 * category rebuilt from current settings. */
 	private applyAllStyles(): void {
 		this.applyLinkedFormattingStyles();
-	}
-
-	applyVisibilityStyles(): void {
-		this.style.applyVisibilityStyles();
-	}
-
-	applyHeaderStyles(): void {
-		this.style.applyHeaderStyles();
-	}
-
-	applyHighlightStyle(): void {
-		this.style.applyHighlightStyle();
-	}
-
-	/** Restyles the "Cycling guide" floating divider (thickness/colour only - the CM6 extension itself is toggled by `setCyclingGuideEnabled`). */
-	applyCyclingGuideStyle(): void {
-		this.style.applyCyclingGuideStyle();
-	}
-
-	/** Manuscript editor scrollbar thumb/track colours and width. */
-	applyEditorScrollbarStyles(): void {
-		this.style.applyEditorScrollbarStyles();
-	}
-
-	applyRightRailPanelStyles(): void {
-		this.style.applyRightRailPanelStyles();
-	}
-
-	applyLibraryHeaderStyles(): void {
-		this.style.applyLibraryHeaderStyles();
-	}
-
-	/** storyTelling panel's own chapter-item styling — see StoryForgePluginSettings.storytellingItemsFontSize's doc comment. */
-	applyStorytellingItemsStyle(): void {
-		this.style.applyStorytellingItemsStyle();
-	}
-
-	applyCodexFolderStyle(): void {
-		this.style.applyCodexFolderStyle();
-	}
-
-	applyCodexNoteLabelStyle(): void {
-		this.style.applyCodexNoteLabelStyle();
-	}
-
-	/**
-	 * Editor body/heading *sizes* only. Colour, font, small-caps, and dividers are owned by
-	 * formatForge when present (applied via `formatting.setStyleVars`).
-	 */
-	applyTextStyleOverrides(): void {
-		this.style.applyTextStyleOverrides();
 	}
 
 	/** Eagerly creates the story library and Codex root folders (mirrors the already-eager _backstage/storyforge

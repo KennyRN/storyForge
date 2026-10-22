@@ -47,8 +47,9 @@ import {
 	type SfLinkedFormattingKey,
 	type StoryForgeFormattingApi,
 } from "./formattingApi";
-import type { PaletteColor } from "./colorPalettes";
-import { PALETTE_NAMES } from "./colorPalettes";
+type PaletteColor = { name: string; hex: string };
+// The palette names the (removed) palette system offered; kept so the linked-settings contract still validates.
+const PALETTE_NAMES = ["Atom", "Ayu", "Catppuccin", "Dracula", "Everforest", "Flexoki", "Gruvbox", "Nord", "Rosé Pine", "Solarized", "Custom"];
 
 /** Bumped to 10 — hard break: Codex book-scoping removed. `createNote`, `listByType` and
  * `getCodexView` no longer take a book id, and `listByType` returns `{ path, name }` only. */
@@ -721,7 +722,7 @@ export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 		},
 
 		openInterfaceModal() {
-			plugin.openStoryForgeInterface();
+			/* the interface modal was removed */
 		},
 
 		registerCompanion(reg: FormatCompanionRegistration) {
@@ -769,7 +770,7 @@ export function createHostApi(plugin: StoryForgePlugin): StoryForgeHostApi {
 		},
 
 		setStyleVars(vars) {
-			plugin.applyHostStyleVars(vars);
+			void vars; /* host style vars are no longer applied */
 		},
 
 		getStyleDocuments() {

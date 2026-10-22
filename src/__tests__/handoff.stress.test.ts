@@ -181,36 +181,6 @@ describe("SF ↔ FF handoff stress", () => {
 		}
 	});
 
-	it("FF-style editor var bursts stay consistent across pop-out docs", async () => {
-		const { plugin, docs } = makeHost();
-		const api = createHostApi(plugin);
-		const applied = vi.fn();
-		api.formatting.registerCompanion({
-			pluginId: "formatforge",
-			version: 1,
-			onHostStylesApplied: applied,
-			resolveFont: (id, w) => ({ family: `"storyForge ${id}"`, variation: `"wght" ${w}` }),
-		});
-
-		for (let i = 0; i < 500; i++) {
-			await api.formatting.updateLinkedSetting("bodyTextOverrideSize", true);
-			await api.formatting.updateLinkedSetting("bodyTextSize", 0.8 + (i % 20) * 0.05);
-			api.formatting.setStyleVars({
-				"--sf-body-color": `#${(i % 200).toString(16).padStart(2, "0")}aa00`,
-				"--sf-body-family": `"storyForge Nunito", var(--font-text)`,
-				"--sf-body-variation": `"wght" ${400 + (i % 5) * 100}`,
-				"--sf-h1-color": i % 2 === 0 ? "#ffffff" : null,
-				"--sf-h1-link-color": i % 3 === 0 ? "var(--sf-h1-color, var(--h1-color))" : null,
-			});
-		}
-
-		expect(applied.mock.calls.length).toBe(1000); // 2 linked updates × 500
-		for (const doc of docs) {
-			expect(doc.body.style.getPropertyValue("--sf-body-family")).toContain("Nunito");
-			expect(doc.body.style.getPropertyValue("--sf-body-variation")).toMatch(/"wght"/);
-		}
-	});
-
 	it("SF chrome font resolve via companion under concurrent restyles", () => {
 		const { plugin } = makeHost();
 		const api = createHostApi(plugin);

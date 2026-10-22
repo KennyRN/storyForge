@@ -1,16 +1,10 @@
 import { App, PluginSettingTab, type SettingDefinitionItem } from "obsidian";
 import type StoryForgePlugin from "../main";
 import { TOOLS_VIEW_TYPE } from "./ToolsPanel";
-import { COLOR_PALETTES, defaultVariantName, PALETTE_NAMES, type PresetPaletteName } from "../colorPalettes";
-import { TextStyleModal } from "./TextStyleModal";
 import { HideUiModal } from "./HideUiModal";
 import { ProtectionsModal } from "./ProtectionsModal";
 import { NUMBERING_STYLE_OPTIONS, type NumberingStyle } from "../numberingStyle";
 import { refreshTabTitles } from "../tabTitles";
-
-function isPresetPaletteName(name: string): name is PresetPaletteName {
-	return name in COLOR_PALETTES;
-}
 
 function getPath(obj: Record<string, unknown>, path: string): unknown {
 	let cursor: unknown = obj;
@@ -68,7 +62,6 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 
 		if (key === "useToolsPanel") {
 			await this.plugin.updateSetting("useToolsPanel", Boolean(value));
-			this.plugin.applyVisibilityStyles();
 			if (value) {
 				void this.plugin.activateToolsView();
 			} else {
@@ -95,31 +88,9 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		}
 
 		await super.setControlValue(key, value);
-		if (key === "colorPaletteName") {
-			const name = String(value);
-			if (isPresetPaletteName(name)) {
-				const appearance = document.body.classList.contains("theme-dark") ? "dark" : "light";
-				await this.plugin.updateSetting(
-					"colorPaletteVariant",
-					defaultVariantName(COLOR_PALETTES[name], appearance),
-				);
-			}
-			this.refreshDomState();
-		}
 	}
 
 	getSettingDefinitions(): SettingDefinitionItem[] {
-		const paletteOptions = Object.fromEntries(PALETTE_NAMES.map((name) => [name, name]));
-		const settings = this.plugin.getSettings();
-		const colorCount = settings.customPaletteColors.length;
-		const selectedName = settings.colorPaletteName;
-		const variantOptions =
-			isPresetPaletteName(selectedName)
-				? Object.fromEntries(COLOR_PALETTES[selectedName].map((v) => [v.name, v.name]))
-				: {};
-		const companionActive = () => this.plugin.isFormatCompanionActive();
-		const companionInactive = () => !this.plugin.isFormatCompanionActive();
-
 		return [
 			{
 				type: "group",
@@ -211,70 +182,6 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			{
 				type: "group",
 				items: [
-					{
-						name: "Colour palette",
-						desc: "Palette used when picking colours for storyForge UI elements.",
-						visible: companionInactive,
-						control: {
-							type: "dropdown",
-							key: "colorPaletteName",
-							options: paletteOptions,
-						},
-					},
-					{
-						name: "Palette variant",
-						desc: "Named variant of the selected palette.",
-						visible: () => {
-							if (this.plugin.isFormatCompanionActive()) return false;
-							const name = this.plugin.getSettings().colorPaletteName;
-							return isPresetPaletteName(name) && COLOR_PALETTES[name].length > 1;
-						},
-						control: {
-							type: "dropdown",
-							key: "colorPaletteVariant",
-							options: variantOptions,
-						},
-					},
-					...Array.from({ length: colorCount }, (_, i) => [
-						{
-							name: `Custom colour ${i + 1} name`,
-							visible: () => companionInactive() && this.plugin.getSettings().colorPaletteName === "Custom",
-							control: {
-								type: "text" as const,
-								key: `customPaletteColors.${i}.name`,
-								placeholder: "Name",
-							},
-						},
-						{
-							name: `Custom colour ${i + 1}`,
-							visible: () => companionInactive() && this.plugin.getSettings().colorPaletteName === "Custom",
-							control: {
-								type: "color" as const,
-								key: `customPaletteColors.${i}.hex`,
-							},
-						},
-					]).flat(),
-					{
-						name: "Formatting (formatForge)",
-						desc: "Text styling, colours, fonts, and the colour palette are managed by formatForge while it is enabled.",
-						visible: companionActive,
-						action: () => this.plugin.openFormatForgeSettings(),
-					},
-					{
-						name: "Text styling",
-						desc: "Open the text styling modal (editor size overrides and scrollbar).",
-						visible: companionInactive,
-						action: () => {
-							new TextStyleModal(this.app, this.plugin).open();
-						},
-					},
-					{
-						name: "storyForge interface",
-						desc: "Open interface formatting options. Font pickers appear here when formatForge is enabled.",
-						action: () => {
-							this.plugin.openStoryForgeInterface();
-						},
-					},
 					{
 						name: "Hide Obsidian interface elements",
 						desc: "Choose which Obsidian UI chrome to hide.",

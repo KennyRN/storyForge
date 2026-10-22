@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createHostApi, LINKED_FORMATTING_KEYS, STORYFORGE_API_VERSION } from "../hostApi";
 import { teardownFormatCompanion, type FormatCompanionRegistration, type SfLinkedFormattingKey } from "../formattingApi";
 import type StoryForgePlugin from "../main";
-import { PALETTE_NAMES } from "../colorPalettes";
+const PALETTE_NAMES = ["Atom", "Ayu", "Catppuccin", "Dracula", "Everforest", "Flexoki", "Gruvbox", "Nord", "Rosé Pine", "Solarized", "Custom"];
 
 type SettingsBag = Record<string, unknown>;
 
@@ -479,23 +479,6 @@ describe("formatting API stress", () => {
 		await expect(
 			api.formatting.updateLinkedSetting("notARealKey" as never, "x"),
 		).rejects.toThrow(/not an SF-linked formatting key/);
-	});
-
-	it("setStyleVars writes to all style documents under burst", () => {
-		const plugin = makeFakePlugin();
-		const api = createHostApi(plugin);
-		const docs = api.formatting.getStyleDocuments();
-		expect(docs).toHaveLength(2);
-
-		for (let i = 0; i < 200; i++) {
-			api.formatting.setStyleVars({
-				"--sf-body-color": i % 2 === 0 ? `#${(i % 255).toString(16).padStart(2, "0")}0000` : null,
-				"--sf-h1-size": `${1 + (i % 10) * 0.1}em`,
-			});
-		}
-		expect(plugin._debug.styleWrites).toHaveLength(200);
-		expect(docs[0].body.style.getPropertyValue("--sf-h1-size")).toBe("1.9em");
-		expect(docs[0].body.style.getPropertyValue("--sf-body-color")).toBe("");
 	});
 
 	it("palette update persists through linked settings", async () => {

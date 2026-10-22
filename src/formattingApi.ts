@@ -10,7 +10,8 @@
  * to it. Interface chrome stays in storyForge's modal; formatForge adds font pickers there.
  */
 
-import type { PaletteColor, PaletteName } from "./colorPalettes";
+type PaletteColor = { name: string; hex: string };
+type PaletteName = string;
 
 /** Keys formatForge may read/write on storyForge (stored in SF data.json). */
 export type SfLinkedFormattingKey =

@@ -67,7 +67,7 @@ export class ObsidianElementsModal extends Modal {
 		obsidianSettingsGroup.addSetting((setting) => {
 			setting.setName("hide obsidian's standard settings icon").addToggle((toggle) =>
 				toggle.setValue(settings.hideObsidianSettingsIcon).onChange((value) => {
-					void plugin.updateSetting("hideObsidianSettingsIcon", value).then(() => plugin.applyVisibilityStyles());
+					void plugin.updateSetting("hideObsidianSettingsIcon", value);
 					this.render();
 				}),
 			);
@@ -76,7 +76,6 @@ export class ObsidianElementsModal extends Modal {
 			setting.setName("hide ribbon and use tools panel").addToggle((toggle) =>
 				toggle.setValue(settings.useToolsPanel).onChange(async (value) => {
 					await plugin.updateSetting("useToolsPanel", value);
-					plugin.applyVisibilityStyles();
 					if (value) {
 						void plugin.activateToolsView();
 					} else {
@@ -90,7 +89,7 @@ export class ObsidianElementsModal extends Modal {
 			obsidianSettingsGroup.addSetting((setting) => {
 				setting.setName("hide the tools panel").addToggle((toggle) =>
 					toggle.setValue(settings.hideToolsPanelIcon).onChange((value) => {
-						void plugin.updateSetting("hideToolsPanelIcon", value).then(() => plugin.applyVisibilityStyles());
+						void plugin.updateSetting("hideToolsPanelIcon", value);
 					}),
 				);
 			});
