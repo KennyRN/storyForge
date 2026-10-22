@@ -1,4 +1,4 @@
-import { mintId } from "./core/slug";
+import { mintId } from "./slug";
 
 export interface CodexFolderEntry {
 	name: string;

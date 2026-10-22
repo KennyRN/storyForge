@@ -1,6 +1,6 @@
 import { App, TFile, setIcon } from "obsidian";
 import { chapterDisplayTitle, getBookChapters } from "../book";
-import { resolveCurrentChapterIndex } from "../spineWindow";
+import { resolveCurrentChapterIndex } from "../core/spineWindow";
 import { applyHashNumbering, splitTitleSubtitle } from "../core/titleNumbering";
 import type { NumberingStyle } from "../core/numberingStyle";
 import { makeAccessibleActivatable } from "./a11y";

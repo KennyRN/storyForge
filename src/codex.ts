@@ -19,7 +19,7 @@ import {
 	type CodexTreeFile,
 	type CodexTreeFolder,
 	type CodexTreeItem,
-} from "./codexTree";
+} from "./core/codexTree";
 
 export { isDescendantFolder, countFilesInFolder, type CodexFolders, type CodexFolderEntry };
 export type { CodexTreeFile, CodexTreeFolder, CodexTreeItem };

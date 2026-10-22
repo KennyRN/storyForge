@@ -390,3 +390,13 @@ export function bodyOf(text: string): string {
 	const nl = layout.tail.search(/\r?\n/);
 	return nl === -1 ? "" : layout.tail.slice(layout.tail.indexOf("\n", nl) + 1);
 }
+
+/** The top-level keys whose values differ between two versions of a file's frontmatter (sorted). */
+export function changedTopLevelKeys(beforeText: string, afterText: string): string[] {
+	const a = readFrontmatter(beforeText);
+	const b = readFrontmatter(afterText);
+	const da = a.state === "ok" ? a.data : {};
+	const db = b.state === "ok" ? b.data : {};
+	const keys = new Set([...Object.keys(da), ...Object.keys(db)]);
+	return [...keys].filter((k) => !deepEqual(da[k], db[k])).sort();
+}

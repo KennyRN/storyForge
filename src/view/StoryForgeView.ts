@@ -20,7 +20,7 @@ import { makeAccessibleActivatable } from "./a11y";
 import { layoutConfig, SF_LAYOUTS, SF_LAYOUT_LABELS, type SfLayout } from "../layout";
 import { createContinuingChapter } from "../chapterCreation";
 import { getBookChapters } from "../book";
-import { resolveEntryChapter } from "../spineWindow";
+import { resolveEntryChapter } from "../core/spineWindow";
 
 export const STORYFORGE_VIEW_TYPE = "storyforge-view";
 

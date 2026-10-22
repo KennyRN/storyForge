@@ -7,7 +7,7 @@
  */
 import type { App } from "obsidian";
 import { createChapter, readBookFrontmatter, renameChapterTitle, writeBookChapterOrder } from "./book";
-import { computeChapterOrderAfterCreation, type ChapterPlacement } from "./chapterPlacement";
+import { computeChapterOrderAfterCreation, type ChapterPlacement } from "./core/chapterPlacement";
 
 /**
  * Creates a chapter and places it on the spine immediately after `anchorFilename` — or at the

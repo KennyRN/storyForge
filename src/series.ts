@@ -5,8 +5,8 @@ import { deleteBackstagePath, enqueueBackstageWrite, modifyBackstageFrontmatter,
 import { mintId } from "./core/slug";
 import { applyHashNumbering } from "./core/titleNumbering";
 import type { NumberingStyle } from "./core/numberingStyle";
-import { safeCoverExtension, safeCoverFilename } from "./coverImage";
-import { extractSection, splitFrontmatterAndBody, upsertSection } from "./sectionBody";
+import { safeCoverExtension, safeCoverFilename } from "./core/coverImage";
+import { extractSection, splitFrontmatterAndBody, upsertSection } from "./core/sectionBody";
 
 export interface SeriesBookEntry {
 	bookId: string;

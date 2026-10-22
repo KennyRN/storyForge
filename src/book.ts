@@ -3,8 +3,8 @@ import { bookBackstagePath, bookFilePath, libraryBookPath, libraryChapterPath, L
 import { resolveOrder, type OrderResult } from "./core/ordering";
 import { mintId } from "./core/slug";
 import { deleteBackstagePath, enqueueBackstageWrite, modifyBackstageFrontmatter, writeBackstageBinary, writeBackstageFile } from "./writeGuard";
-import { safeCoverExtension, safeCoverFilename } from "./coverImage";
-import { extractSection, splitFrontmatterAndBody, upsertSection } from "./sectionBody";
+import { safeCoverExtension, safeCoverFilename } from "./core/coverImage";
+import { extractSection, splitFrontmatterAndBody, upsertSection } from "./core/sectionBody";
 import {
 	collectAllBookIds,
 	getLibraryBookFolders,
