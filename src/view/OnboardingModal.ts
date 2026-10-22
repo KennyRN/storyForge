@@ -13,7 +13,6 @@ import {
 	type OnboardingConfigFile,
 } from "../onboardingConfig";
 import { makeAccessibleActivatable } from "./a11y";
-import type { TitleForgeScope } from "../titleforge/settings";
 
 /**
  * First-run onboarding. Create project writes the series/novel names, optional welcome
@@ -27,7 +26,6 @@ export class OnboardingModal extends Modal {
 	private files: OnboardingConfigFile[] = [];
 	private seriesHintEl: HTMLElement | null = null;
 	private seriesNamedRow: HTMLElement | null = null;
-	private seriesTitleForgeEl: HTMLElement | null = null;
 	private selectedPath = "";
 	private closed = false;
 	private creating = false;
@@ -75,12 +73,7 @@ export class OnboardingModal extends Modal {
 			(value) => {
 				this.seriesName = value;
 			},
-			{
-				icon: ICON_DICE,
-				scope: "series",
-				tooltip: "generate a series name",
-				inBoxHint: "can toggle on within storyforge settings",
-			},
+			{ inBoxHint: "can toggle on within storyforge settings" },
 		);
 		this.renderNamedField(
 			namesBox,
@@ -90,7 +83,7 @@ export class OnboardingModal extends Modal {
 			(value) => {
 				this.novelName = value;
 			},
-			{ icon: ICON_DICE, scope: "novels", tooltip: "generate a novel title" },
+			{},
 		);
 		this.syncStandaloneSeriesVisibility();
 		this.renderToggleRow(fields.createDiv({ cls: "sf-types-tags-box sf-onboarding-box" }));
@@ -111,12 +104,7 @@ export class OnboardingModal extends Modal {
 		placeholder: string,
 		value: string,
 		onChange: (value: string) => void,
-		titleForge: {
-			icon: string;
-			scope: TitleForgeScope;
-			tooltip: string;
-			inBoxHint?: string;
-		},
+		options: { inBoxHint?: string },
 	): HTMLElement {
 		const field = parent.createDiv({ cls: "sf-onboarding-field" });
 		const row = field.createDiv({ cls: "sf-onboarding-named-row" });
@@ -128,55 +116,20 @@ export class OnboardingModal extends Modal {
 		});
 		input.value = value;
 		input.addEventListener("input", () => onChange(input.value));
-		if (titleForge.inBoxHint) {
+		if (options.inBoxHint) {
 			this.seriesNamedRow = row;
 			this.seriesHintEl = wrap.createDiv({
 				cls: "sf-onboarding-field-label sf-onboarding-series-inbox",
-				text: titleForge.inBoxHint,
+				text: options.inBoxHint,
 			});
 		}
-		const titleForgeEl = this.renderTitleForgeIcon(
-			row,
-			titleForge.icon,
-			titleForge.scope,
-			titleForge.tooltip,
-			(title) => {
-				onChange(title);
-				input.value = title;
-			},
-		);
-		if (titleForge.inBoxHint) this.seriesTitleForgeEl = titleForgeEl;
 		field.createDiv({ cls: "sf-onboarding-field-label", text: label });
 		return field;
-	}
-
-	private renderTitleForgeIcon(
-		parent: HTMLElement,
-		icon: string,
-		scope: TitleForgeScope,
-		tooltip: string,
-		onUse: (title: string) => void,
-	): HTMLElement {
-		const iconEl = parent.createSpan({
-			cls: "sf-titleforge-dice sf-titleforge-dice--inline",
-			attr: { "aria-label": tooltip },
-		});
-		setIcon(iconEl, icon);
-		setTooltip(iconEl, tooltip);
-		const openTitleForge = () => {
-			if (iconEl.hasClass("is-muted")) return;
-			this.plugin.titleForge.openModal({ scope, onUse });
-		};
-		iconEl.addEventListener("click", openTitleForge);
-		makeAccessibleActivatable(iconEl, openTitleForge);
-		return iconEl;
 	}
 
 	private syncStandaloneSeriesVisibility(): void {
 		this.seriesNamedRow?.toggleClass("is-standalone-hint", this.standalone);
 		this.seriesHintEl?.toggleClass("sf-settings-hidden", !this.standalone);
-		this.seriesTitleForgeEl?.toggleClass("is-muted", this.standalone);
-		this.seriesTitleForgeEl?.toggleAttribute("aria-disabled", this.standalone);
 		const input = this.seriesNamedRow?.querySelector("input");
 		if (input instanceof HTMLInputElement) input.disabled = this.standalone;
 	}

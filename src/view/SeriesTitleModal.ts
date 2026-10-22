@@ -47,24 +47,6 @@ export class SeriesTitleModal extends Modal {
 			this.onChange();
 		});
 
-		const diceBtn = titleRow.createSpan({
-			cls: "sf-titleforge-dice sf-titleforge-dice--inline",
-			attr: { "aria-label": "generate a title" },
-		});
-		setIcon(diceBtn, ICON_DICE);
-		setTooltip(diceBtn, "generate a title");
-		const openTitleForge = () => {
-			this.close();
-			this.plugin.titleForge.openModal({
-				scope: "series",
-				onUse: (title) => {
-					void writeSeriesTitle(this.app, title).then(() => this.onChange());
-				},
-			});
-		};
-		diceBtn.addEventListener("click", openTitleForge);
-		makeAccessibleActivatable(diceBtn, openTitleForge);
-
 		window.setTimeout(() => input.focus(), 0);
 	}
 }

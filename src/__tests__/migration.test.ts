@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { type App } from "obsidian";
 import { makeTFile, makeTFolder } from "./obsidianStub";
-import { migrateStructuralLayout, migrateTitleforgeLocation, migrateLegacySidecarFolder } from "../migration";
-import { LIBRARY_ROOT, BACKSTAGE_ROOT, TITLEFORGE_BACKSTAGE_ROOT, bookFilePath, seriesFilePath } from "../paths";
+import { migrateStructuralLayout, migrateLegacySidecarFolder } from "../migration";
+import { LIBRARY_ROOT, BACKSTAGE_ROOT, bookFilePath, seriesFilePath } from "../paths";
 
 /**
  * Minimal in-memory vault: a flat map of path -> "file" | "folder", plus
@@ -302,58 +302,6 @@ describe("migrateStructuralLayout", () => {
 		expect(content.get(`${LIBRARY_ROOT}/aab/uttb_chapter-aaa.md`)).toBe("legacy prose");
 		expect(kinds.get(bookFilePath("aab"))).toBe("file");
 		expect(frontmatter.get(bookFilePath("aab"))?.["book-id-reference"]).toBe("uttb");
-	});
-});
-
-describe("migrateTitleforgeLocation", () => {
-	it("renames the legacy nested folder to titleForge's own sibling region, contents intact", async () => {
-		const { app, kinds, content, seedFolder, seedFile } = makeFakeVaultApp();
-
-		seedFolder(`${BACKSTAGE_ROOT}/titleforge`);
-		seedFolder(`${BACKSTAGE_ROOT}/titleforge/lexicons`);
-		seedFile(`${BACKSTAGE_ROOT}/titleforge/lexicons/title-composer.json`, '{"id":"title-composer"}');
-		seedFile(`${BACKSTAGE_ROOT}/titleforge/settings.json`, "{}");
-		seedFolder(`${BACKSTAGE_ROOT}/titleforge/history`);
-		seedFile(`${BACKSTAGE_ROOT}/titleforge/history/title-composer.jsonl`, "");
-
-		await migrateTitleforgeLocation(app);
-
-		expect(kinds.has(`${BACKSTAGE_ROOT}/titleforge`)).toBe(false);
-		expect(kinds.get(TITLEFORGE_BACKSTAGE_ROOT)).toBe("folder");
-		expect(content.get(`${TITLEFORGE_BACKSTAGE_ROOT}/lexicons/title-composer.json`)).toBe('{"id":"title-composer"}');
-		expect(content.get(`${TITLEFORGE_BACKSTAGE_ROOT}/settings.json`)).toBe("{}");
-		expect(kinds.get(`${TITLEFORGE_BACKSTAGE_ROOT}/history/title-composer.jsonl`)).toBe("file");
-	});
-
-	it("is a true no-op on a second run", async () => {
-		const { app, kinds, seedFolder, seedFile } = makeFakeVaultApp();
-		seedFolder(`${BACKSTAGE_ROOT}/titleforge`);
-		seedFile(`${BACKSTAGE_ROOT}/titleforge/settings.json`, "{}");
-
-		await migrateTitleforgeLocation(app);
-		const snapshot = new Map(kinds);
-		await migrateTitleforgeLocation(app);
-
-		expect(kinds).toEqual(snapshot);
-	});
-
-	it("no-ops on a vault with no legacy titleforge folder", async () => {
-		const { app, kinds } = makeFakeVaultApp();
-		await expect(migrateTitleforgeLocation(app)).resolves.toBeUndefined();
-		expect(kinds.size).toBe(0);
-	});
-
-	it("does not clobber an already-migrated new-location folder", async () => {
-		const { app, kinds, content, seedFolder, seedFile } = makeFakeVaultApp();
-		seedFolder(`${BACKSTAGE_ROOT}/titleforge`);
-		seedFile(`${BACKSTAGE_ROOT}/titleforge/settings.json`, "stale");
-		seedFolder(TITLEFORGE_BACKSTAGE_ROOT);
-		seedFile(`${TITLEFORGE_BACKSTAGE_ROOT}/settings.json`, "current");
-
-		await migrateTitleforgeLocation(app);
-
-		expect(kinds.get(`${BACKSTAGE_ROOT}/titleforge`)).toBe("folder");
-		expect(content.get(`${TITLEFORGE_BACKSTAGE_ROOT}/settings.json`)).toBe("current");
 	});
 });
 

@@ -36,7 +36,6 @@ import { formatCompanionState } from "../formatCompanionActive";
 import { TagRegistryModal } from "./TagRegistryModal";
 import { VaultTagModal } from "./VaultTagModal";
 import { PlotThreadRegistryModal } from "./PlotThreadRegistryModal";
-import { TitleForgeSettingsModal } from "../titleforge/view/TitleForgeSettingsModal";
 import { TypesTagsExportModal } from "./TypesTagsExportModal";
 import { ThreadsExportModal } from "./ThreadsExportModal";
 import { PreferencesExportModal } from "./PreferencesExportModal";
@@ -573,14 +572,6 @@ export class SeriesModal extends Modal {
 	 * storyForge equivalent, so the row opens formatForge's modal (or its settings fallback). */
 	private renderImportExportTab(contentEl: HTMLElement): void {
 		const plugin = this.plugin;
-
-		const titleForgeGroup = new SettingGroup(contentEl);
-		titleForgeGroup.addSetting((setting) => {
-			setting.setName("titleforge").setDesc("series and title generator setting with hand-editable word lists");
-			this.renderHoverIcon(setting, ICON_TITLEFORGE, "open titleforge", () =>
-				new TitleForgeSettingsModal(this.app, plugin.titleForge).open(),
-			);
-		});
 
 		const namedGroup = new SettingGroup(contentEl);
 		namedGroup.addSetting((setting) => {

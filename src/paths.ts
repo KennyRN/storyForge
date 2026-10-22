@@ -7,8 +7,6 @@ export const NOTES_ROOT = "notes";
 export const NOTES_ARCHIVE_ROOT = `${NOTES_ROOT}/archive`;
 /** Nested under a shared `_backstage/` parent — room for sibling xForge plugins to keep their own non-content state alongside storyForge's, each in its own subfolder, rather than each plugin claiming a vault-root name for itself. */
 export const BACKSTAGE_ROOT = "_backstage/storyforge";
-/** titleForge's own sibling region under the shared `_backstage/` parent — deliberately not nested under `BACKSTAGE_ROOT`, since titleForge is an extraction-ready subplugin (see `src/titleforge/README.md`), not storyForge bookkeeping. */
-export const TITLEFORGE_BACKSTAGE_ROOT = "_backstage/titleforge";
 /** Vault-root folder where backup zip files are written (Obsidian vault API only — no Node `fs`). Always excluded from backup zips. */
 export const BACKUPS_FOLDER = "_sf-backup";
 /** Vault-root folder for user-facing shareable JSON copies (types & tags, later other settings). Distinct from `_sf-backup/` dated archives and from `_backstage/storyforge/settings/` named presets. */

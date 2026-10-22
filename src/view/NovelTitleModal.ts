@@ -78,24 +78,6 @@ export class NovelTitleModal extends Modal {
 			if (event.key === "Enter") this.close();
 		});
 
-		const diceBtn = titleRow.createSpan({
-			cls: "sf-titleforge-dice sf-titleforge-dice--inline",
-			attr: { "aria-label": "generate a title" },
-		});
-		setIcon(diceBtn, ICON_DICE);
-		setTooltip(diceBtn, "generate a title");
-		const openTitleForge = () => {
-			this.close();
-			this.plugin.titleForge.openModal({
-				scope: "novels",
-				onUse: (title) => {
-					void renameBookTitle(this.app, this.folderName, title).then(() => this.onChange());
-				},
-			});
-		};
-		diceBtn.addEventListener("click", openTitleForge);
-		makeAccessibleActivatable(diceBtn, openTitleForge);
-
 		contentEl.createDiv({
 			cls: "sf-modal-hint",
 			text: "# inserts a counted number\n// breaks title into title and subtitle",

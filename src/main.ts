@@ -43,7 +43,7 @@ import { createBook, createChapter, ensureAllChapterEntries, getBookChapters, pr
 import { pruneMissingNotesNotes } from "./notes";
 import { resolveStorytellingCenterPath } from "./storytellingCenter";
 import type { NumberingStyle } from "./numberingStyle";
-import { migrateStructuralLayout, migrateTitleforgeLocation, migrateVaultSchema } from "./migration";
+import { migrateStructuralLayout, migrateVaultSchema } from "./migration";
 import { registerReconciliationEvents } from "./reconciliation";
 import {
 	isLibraryChapterPath,
@@ -61,13 +61,12 @@ import { extractFingerprint } from "./fingerprint";
 import { updateChapterFingerprint } from "./chapterSidecar";
 import { debounce } from "./debounce";
 import { countWords } from "./wordCount";
-import { ICON_STORYTELLING, ICON_TITLEFORGE, registerCustomIcons } from "./icons";
+import { ICON_STORYTELLING, registerCustomIcons } from "./icons";
 import { OnboardingModal } from "./view/OnboardingModal";
 import { type FormatCompanionRegistration, teardownFormatCompanion } from "./formattingApi";
 import { refreshTabTitles, registerTabTitleOverrides } from "./tabTitles";
 import { PaletteColor, PaletteName } from "./colorPalettes";
 import { runContentBackup } from "./backup";
-import { TitleForgeController, TITLEFORGE_COMPANION_ID } from "./titleforge/TitleForgeController";
 import { viewTypeFromLeafChrome, isGoneAwayPlaceholder } from "./goneAwayView";
 
 export type CodexFolderIndicatorThickness = "none" | "thin" | "medium" | "thick";
@@ -923,13 +922,6 @@ export default class StoryForgePlugin extends Plugin {
 	 * opens, the new-chapter page, …) always reuses — see getMainContentLeaf(). Not persisted:
 	 * starts fresh (null) every session, adopting whatever leaf the first such navigation touches. */
 	private mainContentLeafId: string | null = null;
-	/**
-	 * titleForge — an in-tree, extraction-ready subplugin (see src/titleforge/README.md), not a
-	 * storyForge feature. Constructed during onload; `onload()` itself waits for layout-ready
-	 * so vault I/O cannot fail the plugin before views are registered. `onunload()` on disable.
-	 * Not private — StoryForgeSettingsTab.ts opens TitleForgeSettingsModal with it.
-	 */
-	titleForge!: TitleForgeController;
 
 	async onload(): Promise<void> {
 		// Nothing that awaits may run before registerView(). Workspace restore races plugin
@@ -939,7 +931,6 @@ export default class StoryForgePlugin extends Plugin {
 		this.syncObsidianSettingsRef();
 		this.style = new StyleController(this);
 		this.api = createHostApi(this);
-		this.titleForge = new TitleForgeController(this);
 		registerCustomIcons();
 		this.registerView(STORYFORGE_VIEW_TYPE, (leaf) => new StoryForgeView(leaf, this));
 		this.registerView(STORYFORGE_CONTINUOUS_VIEW_TYPE, (leaf) => new ContinuousReadView(leaf, this));
@@ -1110,26 +1101,11 @@ export default class StoryForgePlugin extends Plugin {
 
 	/**
 	 * Vault I/O and leaf recovery wait for layout-ready: the in-memory vault index is not
-	 * guaranteed during onload, and titleForge seeds files the moment it starts. Running that
-	 * before initializeVaultState keeps migrateTitleforgeLocation ahead of the seed (see
-	 * migration.ts). A throw here must not unload the plugin — that is what turns restored
+	 * guaranteed during onload. A throw here must not unload the plugin — that is what turns restored
 	 * leaves into "plugin has gone away".
 	 */
 	private async onWorkspaceLayoutReady(): Promise<void> {
 		void (async () => {
-			try {
-				await migrateTitleforgeLocation(this.app);
-				await this.titleForge.onload();
-				this.registerCompanionPanel({
-					id: TITLEFORGE_COMPANION_ID,
-					orderHint: 0,
-					icon: ICON_TITLEFORGE,
-					label: "titleForge",
-					renderPanel: (el) => this.titleForge.mountEmbeddedPanel(el),
-				});
-			} catch (err) {
-				console.error("storyForge: titleForge failed to load", err);
-			}
 			try {
 				await this.initializeVaultState();
 			} catch (err) {
@@ -1470,7 +1446,6 @@ export default class StoryForgePlugin extends Plugin {
 		for (const leaf of this.app.workspace.getLeavesOfType(STORYFORGE_CONTINUOUS_VIEW_TYPE)) {
 			if (leaf.view instanceof ContinuousReadView) void leaf.view.flushPending();
 		}
-		this.titleForge?.onunload();
 		// Restores the native ribbon directly (without detaching the leaf, which would reset
 		// its position on next load) by running the same DOM restoration ToolsView.onClose() does.
 		for (const leaf of this.app.workspace.getLeavesOfType(TOOLS_VIEW_TYPE)) {
@@ -1789,8 +1764,6 @@ export default class StoryForgePlugin extends Plugin {
 
 	getCompanionPanels(): StoryForgeCompanionPanel[] {
 		return this.companionPanels.slice().sort((a, b) => {
-			if (a.id === TITLEFORGE_COMPANION_ID && b.id !== TITLEFORGE_COMPANION_ID) return -1;
-			if (b.id === TITLEFORGE_COMPANION_ID && a.id !== TITLEFORGE_COMPANION_ID) return 1;
 			return a.orderHint - b.orderHint || a.id.localeCompare(b.id);
 		});
 	}

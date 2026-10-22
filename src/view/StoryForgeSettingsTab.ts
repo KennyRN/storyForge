@@ -6,7 +6,6 @@ import { TextStyleModal } from "./TextStyleModal";
 import { HideUiModal } from "./HideUiModal";
 import { ProtectionsModal } from "./ProtectionsModal";
 import { TagRegistryModal } from "./TagRegistryModal";
-import { TitleForgeSettingsModal } from "../titleforge/view/TitleForgeSettingsModal";
 
 function isPresetPaletteName(name: string): name is PresetPaletteName {
 	return name in COLOR_PALETTES;
@@ -259,18 +258,6 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 						desc: "Backup and protection options.",
 						action: () => {
 							new ProtectionsModal(this.app, this.plugin).open();
-						},
-					},
-				],
-			},
-			{
-				type: "group",
-				items: [
-					{
-						name: "titleForge",
-						desc: "Title & series generator settings — nine traditions, hand-editable word lists.",
-						action: () => {
-							new TitleForgeSettingsModal(this.app, this.plugin.titleForge).open();
 						},
 					},
 				],

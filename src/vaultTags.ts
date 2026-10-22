@@ -3,7 +3,6 @@ import { ICON_TAG } from "./icons";
 import { VAULT_TAG_ICON_CATALOG } from "./iconRegistry";
 import {
 	BACKSTAGE_ROOT,
-	TITLEFORGE_BACKSTAGE_ROOT,
 	isBackupFolderPath,
 	isExportFolderPath,
 	isNotesNotePath,
@@ -96,11 +95,10 @@ export function tagsFromFileCache(
 	return [...out];
 }
 
-/** Plugin bookkeeping should not seed the vault-tag modal. `_backstage/` covers storyForge and titleForge. */
+/** Plugin bookkeeping should not seed the vault-tag modal. `_backstage/` covers storyForge. */
 export function isVaultTagScanExcluded(path: string): boolean {
 	if (path === "_backstage" || path.startsWith("_backstage/")) return true;
 	if (path === BACKSTAGE_ROOT || path.startsWith(`${BACKSTAGE_ROOT}/`)) return true;
-	if (path === TITLEFORGE_BACKSTAGE_ROOT || path.startsWith(`${TITLEFORGE_BACKSTAGE_ROOT}/`)) return true;
 	return isBackupFolderPath(path) || isExportFolderPath(path);
 }
 

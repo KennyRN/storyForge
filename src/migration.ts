@@ -1,5 +1,5 @@
 import { App, TFile, TFolder } from "obsidian";
-import { BACKSTAGE_ROOT, LIBRARY_ROOT, TITLEFORGE_BACKSTAGE_ROOT, bookBackstagePath, bookFilePath, libraryBookPath, seriesFilePath, codexFilePath, CODEX_ROOT } from "./paths";
+import { BACKSTAGE_ROOT, LIBRARY_ROOT, bookBackstagePath, bookFilePath, libraryBookPath, seriesFilePath, codexFilePath, CODEX_ROOT } from "./paths";
 import { modifyBackstageFrontmatter, renameBackstagePath } from "./writeGuard";
 import {
 	DEFAULT_SERIES_CONTENT,
@@ -112,38 +112,6 @@ async function migrateBackstageRootRename(app: App): Promise<void> {
 		return;
 	}
 	await mergeFolderInto(app, LEGACY_BACKSTAGE_ROOT, BACKSTAGE_ROOT);
-}
-
-/** Pre-1a titleForge location, nested under storyForge's own backstage root, superseded by `TITLEFORGE_BACKSTAGE_ROOT` (`_backstage/titleforge`), titleForge's own sibling region. */
-const LEGACY_TITLEFORGE_ROOT = `${BACKSTAGE_ROOT}/titleforge`;
-
-/**
- * Moves titleForge's vault data (lexicons, settings.json, history) out from
- * under storyForge's own backstage root to its own sibling region,
- * `_backstage/titleforge/`. No-ops once the legacy folder is gone. Merges
- * (see `mergeFolderInto`) rather than skipping outright if the new root
- * already partially exists — `TitleForgeController.onload()` creates
- * `user enhanced lexicon.md` and reads `settings.json` the moment it runs, so
- * a vault that's ever loaded even one build in between can already have a
- * partial new-location folder before this migration gets a chance to run.
- *
- * Deliberately **not** folded into `migrateStructuralLayout` / called from
- * `initializeVaultState` — `TitleForgeController.onload()` still touches this
- * folder immediately (the additions file, `loadSettings`). `main.ts` runs
- * this on layout-ready, immediately before that `onload()`, so a vault that's
- * ever loaded even one build in between cannot create the new path first and
- * skip the move. (Both wait for layout-ready rather than plugin `onload()`,
- * because vault I/O during `onload()` can fail a cold start and unload the
- * plugin before custom views restore.)
- */
-export async function migrateTitleforgeLocation(app: App): Promise<void> {
-	const legacy = app.vault.getAbstractFileByPath(LEGACY_TITLEFORGE_ROOT);
-	if (!(legacy instanceof TFolder)) return;
-	if (!app.vault.getAbstractFileByPath(TITLEFORGE_BACKSTAGE_ROOT)) {
-		await app.fileManager.renameFile(legacy, TITLEFORGE_BACKSTAGE_ROOT);
-		return;
-	}
-	await mergeFolderInto(app, LEGACY_TITLEFORGE_ROOT, TITLEFORGE_BACKSTAGE_ROOT);
 }
 
 /**

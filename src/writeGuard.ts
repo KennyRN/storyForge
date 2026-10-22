@@ -6,7 +6,6 @@ import {
 	CODEX_ROOT,
 	EXPORT_ROOT,
 	LIBRARY_ROOT,
-	TITLEFORGE_BACKSTAGE_ROOT,
 	isCodexNotePath,
 	isLibraryChapterPath,
 	isLibraryRootFilePath,
@@ -36,8 +35,7 @@ import {
  * disk exceptions are create, rename (wikilinks), and aliases-only YAML via
  * `modifyCodexNoteAliases` — never body edits or other frontmatter keys.
  * Story Context never edits Codex note bodies — its write footprint is
- * `_backstage/storyforge/` (plus flat library-root files above) and
- * `_backstage/titleforge/` (titleForge's own sibling region).
+ * `_backstage/storyforge/` (plus flat library-root files above).
  * Backup zips are an allowed write root: `_sf-backup/` only. User-facing shareable
  * JSON copies are another: `_export/` only.
  *
@@ -54,7 +52,7 @@ import {
 export class ForbiddenWriteError extends Error {
 	constructor(path: string) {
 		super(
-			`storyForge refused to write to "${path}": outside ${BACKSTAGE_ROOT}/, ${TITLEFORGE_BACKSTAGE_ROOT}/, ${BACKUPS_FOLDER}/, ${EXPORT_ROOT}/, or a flat file directly at ${LIBRARY_ROOT}/`,
+			`storyForge refused to write to "${path}": outside ${BACKSTAGE_ROOT}/, ${BACKUPS_FOLDER}/, ${EXPORT_ROOT}/, or a flat file directly at ${LIBRARY_ROOT}/`,
 		);
 		this.name = "ForbiddenWriteError";
 	}
@@ -85,7 +83,7 @@ export function normalizeVaultPath(path: string): string {
 
 /**
  * Throws ForbiddenWriteError unless `path` resolves strictly under
- * `_backstage/storyforge/` or `_backstage/titleforge/` — with a narrow
+ * `_backstage/storyforge/` — with a narrow
  * exception for any flat file directly at the library root (`series.md`,
  * `novel-<code>.md`, and any other library-root bookkeeping file), which
  * lives alongside the manuscripts but is still plugin-managed metadata, not
@@ -105,9 +103,7 @@ export function assertBackstagePath(path: string): void {
 		normalized.startsWith(`${CODEX_ROOT}/`);
 	const allowed =
 		normalized === BACKSTAGE_ROOT ||
-		normalized.startsWith(`${BACKSTAGE_ROOT}/`) ||
-		normalized === TITLEFORGE_BACKSTAGE_ROOT ||
-		normalized.startsWith(`${TITLEFORGE_BACKSTAGE_ROOT}/`);
+		normalized.startsWith(`${BACKSTAGE_ROOT}/`);
 	if (forbidden || !allowed) {
 		throw new ForbiddenWriteError(path);
 	}

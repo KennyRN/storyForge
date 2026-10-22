@@ -9,7 +9,7 @@ import {
 	writeBackupText,
 	writeExportText,
 } from "../writeGuard";
-import { BACKSTAGE_ROOT, LIBRARY_ROOT, TITLEFORGE_BACKSTAGE_ROOT, bookFilePath, libraryChapterPath, seriesFilePath } from "../paths";
+import { BACKSTAGE_ROOT, LIBRARY_ROOT, bookFilePath, libraryChapterPath, seriesFilePath } from "../paths";
 import { makeTFile } from "./obsidianStub";
 import type { App, FrontMatterCache, TFile, Vault } from "obsidian";
 
@@ -38,11 +38,6 @@ describe("assertBackstagePath — adversarial", () => {
 		`${BACKSTAGE_ROOT}/TECa/cover.png`,
 		`${BACKSTAGE_ROOT}/TECa/chapters/ch1.md`,
 		`${BACKSTAGE_ROOT}/TECa/story-details/ch1.md`,
-		// titleForge's own sibling region under the shared _backstage/ parent.
-		TITLEFORGE_BACKSTAGE_ROOT,
-		`${TITLEFORGE_BACKSTAGE_ROOT}/settings.json`,
-		`${TITLEFORGE_BACKSTAGE_ROOT}/lexicons/title-composer.json`,
-		`${TITLEFORGE_BACKSTAGE_ROOT}/history/title-composer.jsonl`,
 		// The narrow library-root exception: series.md and novel-<code>.md describe
 		// the manuscripts without being manuscript prose themselves.
 		seriesFilePath(),
@@ -54,6 +49,9 @@ describe("assertBackstagePath — adversarial", () => {
 		`${LIBRARY_ROOT}/index.json`,
 	];
 	const forbidden = [
+		// titleForge was removed; its sibling region is no longer an allowed write root.
+		"_backstage/titleforge",
+		"_backstage/titleforge/settings.json",
 		`${LIBRARY_ROOT}/TECa/ch1.md`,
 		libraryChapterPath("TECa", "ch1.md"),
 		"Codex/Jane.md",
@@ -193,12 +191,12 @@ describe("writeBackstageFile — cold-start index lag", () => {
 			},
 		} as unknown as Vault;
 
-		await writeBackstageFile(vault, `${TITLEFORGE_BACKSTAGE_ROOT}/lexicons/title-composer.json`, "{}");
-		expect(created).toEqual([`${TITLEFORGE_BACKSTAGE_ROOT}/lexicons/title-composer.json`]);
+		await writeBackstageFile(vault, `${BACKSTAGE_ROOT}/settings.json`, "{}");
+		expect(created).toEqual([`${BACKSTAGE_ROOT}/settings.json`]);
 	});
 
 	it("modifies when create throws because the file already exists on disk", async () => {
-		const file = makeTFile(`${TITLEFORGE_BACKSTAGE_ROOT}/settings.json`);
+		const file = makeTFile(`${BACKSTAGE_ROOT}/settings.json`);
 		const modified: string[] = [];
 		let createCalls = 0;
 		const vault = {
@@ -213,7 +211,7 @@ describe("writeBackstageFile — cold-start index lag", () => {
 			createFolder: async () => undefined,
 		} as unknown as Vault;
 
-		const result = await writeBackstageFile(vault, `${TITLEFORGE_BACKSTAGE_ROOT}/settings.json`, "{}");
+		const result = await writeBackstageFile(vault, `${BACKSTAGE_ROOT}/settings.json`, "{}");
 		expect(result).toBe(file);
 		expect(modified).toEqual(["ok"]);
 	});

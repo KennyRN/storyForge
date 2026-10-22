@@ -21,12 +21,6 @@ import {
 } from "./typesTagsExport";
 import { readTagRegistry, type TagDefinition, type TagRegistryShape } from "./tagRegistry";
 import { readVaultTags, type VaultTagsShape } from "./vaultTags";
-import {
-	DEFAULT_TITLEFORGE_SETTINGS,
-	type TitleForgeSettings,
-	type TitleForgeTab,
-	type TitleForgeScope,
-} from "./titleforge/settings";
 
 export const COMPLETE_EXPORT_FORMAT = "storyforge-complete" as const;
 export const COMPLETE_EXPORT_VERSION = 1 as const;
@@ -43,7 +37,6 @@ export interface CompleteExportDocument {
 	chapterTags: TagDefinition[];
 	novelTags: TagDefinition[];
 	threads: PlotThread[];
-	titleforge: TitleForgeSettings | null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -52,44 +45,6 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function cloneJson<T>(value: T): T {
 	return JSON.parse(JSON.stringify(value)) as T;
-}
-
-const TITLEFORGE_TABS: TitleForgeTab[] = ["series", "webFiction", "novels", "kept"];
-const TITLEFORGE_SCOPES: TitleForgeScope[] = ["all", "series", "novels"];
-
-function parseTitleForgeSettings(raw: unknown): TitleForgeSettings {
-	const source = isRecord(raw) ? raw : {};
-	const lastTabByScope = { ...DEFAULT_TITLEFORGE_SETTINGS.lastTabByScope };
-	if (isRecord(source.lastTabByScope)) {
-		for (const scope of TITLEFORGE_SCOPES) {
-			const tab = source.lastTabByScope[scope];
-			if (typeof tab === "string" && TITLEFORGE_TABS.includes(tab as TitleForgeTab)) {
-				lastTabByScope[scope] = tab as TitleForgeTab;
-			}
-		}
-	}
-	// A settings file from before the novels-tab series checkbox was removed can still have
-	// seriesMode/seriesStrategy/seriesVolumes keys — simply unread now, same precedent as the old
-	// flat lastTab field above.
-	return {
-		lastGenre: typeof source.lastGenre === "string" ? source.lastGenre : DEFAULT_TITLEFORGE_SETTINGS.lastGenre,
-		lastFamily: typeof source.lastFamily === "string" ? source.lastFamily : DEFAULT_TITLEFORGE_SETTINGS.lastFamily,
-		lastPlatform: typeof source.lastPlatform === "string" ? source.lastPlatform : DEFAULT_TITLEFORGE_SETTINGS.lastPlatform,
-		lastTabByScope,
-		lastQuantity:
-			typeof source.lastQuantity === "number" && Number.isFinite(source.lastQuantity)
-				? source.lastQuantity
-				: DEFAULT_TITLEFORGE_SETTINGS.lastQuantity,
-		legacyLexiconsNoticeShown:
-			typeof source.legacyLexiconsNoticeShown === "boolean"
-				? source.legacyLexiconsNoticeShown
-				: DEFAULT_TITLEFORGE_SETTINGS.legacyLexiconsNoticeShown,
-		namePacks: isRecord(source.namePacks)
-			? Object.fromEntries(
-					Object.entries(source.namePacks).filter((e): e is [string, string] => typeof e[1] === "string"),
-				)
-			: {},
-	};
 }
 
 function templatizePlotThreads(threads: PlotThread[]): PlotThread[] {
@@ -108,7 +63,6 @@ export function prepareCompleteDocument(document: CompleteExportDocument): Compl
 		...document,
 		settings,
 		threads: templatizePlotThreads(document.threads),
-		titleforge: null,
 	};
 }
 
@@ -152,7 +106,6 @@ export function buildCompleteExport(
 		registry: TagRegistryShape;
 		vaultTags?: VaultTagsShape;
 		threads: PlotThread[];
-		titleforge: TitleForgeSettings;
 		formatting?: Record<string, unknown> | null;
 	},
 	exportedAt: Date = new Date(),
@@ -177,7 +130,6 @@ export function buildCompleteExport(
 		chapterTags: typesTags.chapterTags ?? [],
 		novelTags: typesTags.novelTags ?? [],
 		threads: threads.threads,
-		titleforge: cloneJson(input.titleforge),
 	};
 	return prepareCompleteDocument(document);
 }
@@ -199,7 +151,6 @@ export function liveCompleteExport(
 			registry: readTagRegistry(plugin.app),
 			vaultTags: readVaultTags(plugin.app),
 			threads: readPlotThreads(plugin.app),
-			titleforge: plugin.titleForge.settings,
 			formatting,
 		},
 		exportedAt,
@@ -266,7 +217,6 @@ export function parseCompleteExport(raw: string): CompleteExportDocument {
 		chapterTags: typesTags.chapterTags ?? [],
 		novelTags: typesTags.novelTags ?? [],
 		threads: threads.threads,
-		titleforge: parsed.titleforge == null ? null : parseTitleForgeSettings(parsed.titleforge),
 	};
 }
 
@@ -287,10 +237,6 @@ export async function applyCompleteExport(
 		novelTags: true,
 	});
 	await applyPlotThreadsDocument(plugin.app, threadsDocumentFromComplete(prepared), "replace");
-	if (prepared.titleforge) {
-		plugin.titleForge.settings = parseTitleForgeSettings(prepared.titleforge);
-		await plugin.titleForge.saveSettings();
-	}
 	plugin.refreshStoryForgeViews();
 	plugin.refreshNovelOverviewView();
 }
@@ -304,8 +250,5 @@ export function completePreviewCounts(document: CompleteExportDocument): Array<{
 		{ label: "novel tags", count: `${document.novelTags.length} settings` },
 		{ label: "threads", count: `${document.threads.length} settings` },
 	];
-	if (document.titleforge) {
-		rows.push({ label: "titleforge", count: `${Object.keys(document.titleforge).length} settings` });
-	}
 	return rows;
 }

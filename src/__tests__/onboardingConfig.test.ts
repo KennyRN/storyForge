@@ -48,7 +48,6 @@ const complete = JSON.stringify({
 	chapterTags: [],
 	novelTags: [],
 	threads: [],
-	titleforge: null,
 });
 
 const template = JSON.stringify({
@@ -61,7 +60,6 @@ const template = JSON.stringify({
 	chapterTags: [],
 	novelTags: [],
 	threads: [],
-	titleforge: null,
 });
 
 describe("classifyOnboardingConfigText", () => {

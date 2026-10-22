@@ -9,7 +9,6 @@ import {
 import { DEFAULT_NEW_THREAD_LABEL } from "../plotThreadsExport";
 import { MAIN_THREAD_ID, MAIN_THREAD_LABEL, type PlotThread } from "../plotThreads";
 import type { TagRegistryShape } from "../tagRegistry";
-import { DEFAULT_TITLEFORGE_SETTINGS } from "../titleforge/settings";
 import type { StoryForgePluginSettings } from "../main";
 
 const settings = {
@@ -47,7 +46,6 @@ describe("complete export", () => {
 				settings,
 				registry,
 				threads,
-				titleforge: DEFAULT_TITLEFORGE_SETTINGS,
 				formatting: { bodyTextFontFamily: "ibm-plex-sans-var", codeSize: 1.1 },
 			},
 			new Date("2026-08-29T12:00:00.000Z"),
@@ -65,7 +63,6 @@ describe("complete export", () => {
 		expect(document.chapterTags).toEqual(registry.chapterTags);
 		expect(document.novelTags).toEqual(registry.novelTags);
 		expect(document.threads.map((thread) => thread.label)).toEqual(["main thread", "Romance"]);
-		expect(document.titleforge?.lastQuantity).toBe(DEFAULT_TITLEFORGE_SETTINGS.lastQuantity);
 
 		const parsed = parseCompleteExport(stringifyCompleteExport(document));
 		expect(parsed).toEqual(document);
@@ -82,7 +79,6 @@ describe("complete export", () => {
 				registry,
 				vaultTags,
 				threads,
-				titleforge: DEFAULT_TITLEFORGE_SETTINGS,
 			},
 			new Date("2026-08-29T12:00:00.000Z"),
 		);
@@ -103,7 +99,6 @@ describe("complete export", () => {
 				chapterTags: [],
 				novelTags: [],
 				threads: [],
-				titleforge: null,
 			}),
 		);
 		expect(parsed.codexTags).toBeUndefined();
@@ -115,14 +110,12 @@ describe("complete export", () => {
 				settings,
 				registry,
 				threads,
-				titleforge: DEFAULT_TITLEFORGE_SETTINGS,
 				formatting: { bodyTextFontFamily: "courier-prime" },
 			},
 			new Date("2026-08-29T12:00:00.000Z"),
 			{ template: true },
 		);
 		expect(document.template).toBe(true);
-		expect(document.titleforge).toBeNull();
 		expect(document.settings.layout).toBe("hybrid");
 		expect(document.settings.bodyTextFontFamily).toBe("courier-prime");
 		expect(document.settings.selectedNovel).toBeUndefined();
@@ -162,7 +155,6 @@ describe("complete export", () => {
 				settings,
 				registry,
 				threads,
-				titleforge: DEFAULT_TITLEFORGE_SETTINGS,
 			},
 			new Date("2026-08-29T12:00:00.000Z"),
 		);
@@ -173,7 +165,6 @@ describe("complete export", () => {
 			"1 settings",
 			"1 settings",
 			"2 settings",
-			`${Object.keys(document.titleforge ?? {}).length} settings`,
 		]);
 	});
 });
