@@ -5,6 +5,8 @@ import { COLOR_PALETTES, defaultVariantName, PALETTE_NAMES, type PresetPaletteNa
 import { TextStyleModal } from "./TextStyleModal";
 import { HideUiModal } from "./HideUiModal";
 import { ProtectionsModal } from "./ProtectionsModal";
+import { NUMBERING_STYLE_OPTIONS, type NumberingStyle } from "../numberingStyle";
+import { refreshTabTitles } from "../tabTitles";
 import { TagRegistryModal } from "./TagRegistryModal";
 
 function isPresetPaletteName(name: string): name is PresetPaletteName {
@@ -76,6 +78,23 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 			return;
 		}
 
+		if (key === "seriesNumberingStyle" || key === "chapterNumberingStyle") {
+			await super.setControlValue(key, value);
+			this.plugin.refreshStoryForgeViews();
+			if (key === "chapterNumberingStyle") refreshTabTitles(this.app, value as NumberingStyle);
+			return;
+		}
+		if (key === "hideSeriesPane" || key === "highlightActiveChapter") {
+			await super.setControlValue(key, Boolean(value));
+			this.plugin.refreshStoryForgeViews();
+			return;
+		}
+		if (key === "autoFocus") {
+			await super.setControlValue(key, Boolean(value));
+			this.plugin.applyLeftPanelLanding({ restoreCenter: true });
+			return;
+		}
+
 		await super.setControlValue(key, value);
 		if (key === "colorPaletteName") {
 			const name = String(value);
@@ -103,6 +122,41 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 		const companionInactive = () => !this.plugin.isFormatCompanionActive();
 
 		return [
+			{
+				type: "group",
+				items: [
+					{
+						name: "Series numbering",
+						desc: "How `#` in a novel title is numbered.",
+						control: { type: "dropdown", key: "seriesNumberingStyle", options: { ...NUMBERING_STYLE_OPTIONS } },
+					},
+					{
+						name: "Chapter numbering",
+						desc: "How `#` in a chapter title is numbered.",
+						control: { type: "dropdown", key: "chapterNumberingStyle", options: { ...NUMBERING_STYLE_OPTIONS } },
+					},
+				],
+			},
+			{
+				type: "group",
+				items: [
+					{
+						name: "Hide series pane",
+						desc: "Hides the series header, locking storyforge to standalone book view. Series data isn't deleted.",
+						control: { type: "toggle", key: "hideSeriesPane" },
+					},
+					{
+						name: "Auto-focus",
+						desc: "Enables storytelling mode when the vault opens, otherwise opens in story library mode.",
+						control: { type: "toggle", key: "autoFocus" },
+					},
+					{
+						name: "Highlight active chapter/item",
+						desc: "Highlights the currently selected chapter, or item, in the storyLibrary panel.",
+						control: { type: "toggle", key: "highlightActiveChapter" },
+					},
+				],
+			},
 			{
 				type: "group",
 				items: [

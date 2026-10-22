@@ -1,5 +1,5 @@
 import { App, Menu, Notice, TFile, TFolder, setIcon } from "obsidian";
-import { bookDisplayTitle, getSeriesBooks, numberedBookTitle, writeUnplacedOrder } from "../series";
+import { bookDisplayTitle, getSeriesBooks, numberedBookTitle, writeSeriesTitle, writeUnplacedOrder } from "../series";
 import {
 	archiveChapter,
 	chapterDisplayTitle,
@@ -45,13 +45,12 @@ import {
 	renderPlannedLengthStatRow,
 	readOrderedChapterWordCounts,
 	type PlannedLengthField,
-} from "./NovelPanel";
-import { NovelTitleModal } from "./NovelTitleModal";
+} from "./plannedLengthFields";
 import type StoryForgePlugin from "../main";
 
 export type UnplacedViewMode = "unplaced" | "unplacedHidden";
 export type PlacedViewMode = "placed" | "placedHidden";
-export type { PlannedLengthField } from "./NovelPanel";
+export type { PlannedLengthField } from "./plannedLengthFields";
 
 export interface TopPanelOptions {
 	/** Needed only by the series list's novel rows (renderSeriesList), to open NovelTitleModal on
@@ -131,12 +130,8 @@ export function renderSeriesPaneCornerButtons(
 	onOpenCodexTags: () => void,
 	onOpenTags: () => void,
 	onOpenPlotThreads: () => void,
-	onOpenSeriesModal: () => void,
-	onOpenStats: () => void,
 ): void {
 	const corner = container.createDiv({ cls: "sf-series-pane-corner" });
-	addSeriesCornerButton(corner, ICON_SETTINGS_ALT, "Series settings", onOpenSeriesModal);
-	addSeriesCornerButton(corner, ICON_DASHBOARD_CHART, "Stats", onOpenStats);
 	addSeriesCornerButton(corner, ICON_PLOT_THREADS, "Plot threads", onOpenPlotThreads);
 	addSeriesCornerButton(corner, ICON_TAG_DUOTONE, "Types", onOpenCodexTypes);
 	addSeriesCornerButton(corner, ICON_HASHTAG_SQUARE_DUOTONE, "Codex tags", onOpenCodexTags);
@@ -176,7 +171,14 @@ export function renderTopPanel(app: App, container: HTMLElement, options: TopPan
 	// home, per the same follow-up brief.
 	if (!options.hideSeriesPane && !options.isNovelPane && options.mode !== "series") {
 		const seriesLine = header.createDiv({ cls: "sf-header-line sf-series-line" });
-		seriesLine.createSpan({ cls: "sf-header-text", text: series.seriesTitle });
+		const seriesLabel = seriesLine.createSpan({ cls: "sf-header-text", text: series.seriesTitle });
+		// Right-click to rename: the Series settings modal that used to hold the series title is gone.
+		attachInlineRename({
+			row: seriesLine,
+			label: seriesLabel,
+			getCurrentTitle: () => getSeriesBooks(app).seriesTitle,
+			onCommit: (newTitle) => writeSeriesTitle(app, newTitle),
+		});
 	}
 
 	if (options.mode !== "series" && !options.isNovelPane) {
@@ -442,9 +444,6 @@ function renderSeriesList(
 			label,
 			getCurrentTitle: () => bookDisplayTitle(app, folder.name),
 			onCommit: (newTitle) => renameBookTitle(app, folder.name, newTitle),
-			renameLabel: "set novel details",
-			onRenameClick: () =>
-				new NovelTitleModal(app, options.plugin, folder.name, () => renderTopPanel(app, container, options)).open(),
 			extraMenuItems: [
 				tagsMenuItem(
 					app,
@@ -505,9 +504,6 @@ function renderSeriesList(
 					label,
 					getCurrentTitle: () => bookDisplayTitle(app, folder.name),
 					onCommit: (newTitle) => renameBookTitle(app, folder.name, newTitle),
-					renameLabel: "set novel details",
-					onRenameClick: () =>
-						new NovelTitleModal(app, options.plugin, folder.name, () => renderTopPanel(app, container, options)).open(),
 					extraMenuItems: [
 						tagsMenuItem(
 							app,

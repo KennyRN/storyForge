@@ -11,7 +11,6 @@ import {
 } from "./TopPanel";
 import { renderBottomPanel } from "./BottomPanel";
 import { renderStatsPanel, type StatsMode } from "./StatsPanel";
-import { SeriesModal } from "./SeriesModal";
 import { PlotThreadRegistryModal } from "./PlotThreadRegistryModal";
 import { TagRegistryModal } from "./TagRegistryModal";
 import { VaultTagModal } from "./VaultTagModal";
@@ -21,8 +20,6 @@ import { debounce } from "../debounce";
 import { ICON_BOOK_DUOTONE, ICON_BOOK_OPEN, ICON_BOOK_OPEN_FILLED, ICON_CODEX, ICON_SERIES } from "../icons";
 import { countWords } from "../wordCount";
 import { getBookWordStats } from "../history";
-import { WordCountModal } from "./WordCountModal";
-import { ChapterTitleModal } from "./ChapterTitleModal";
 import { isDragInProgress } from "./dragLock";
 import { makeAccessibleActivatable } from "./a11y";
 import { disposeInkSliders } from "./inkSlider";
@@ -32,8 +29,6 @@ import { getBookChapters } from "../book";
 import { canEnterContinuousMode, resolveEntryChapter } from "../continuousMode";
 import { STORYFORGE_CONTINUOUS_VIEW_TYPE, type ContinuousReadView } from "./ContinuousReadView";
 import { emitContinuousScrollTo, onContinuousMode } from "./continuousEvents";
-import { STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE } from "./SeriesOverviewView";
-import { STORYFORGE_NOVEL_OVERVIEW_VIEW_TYPE } from "./NovelOverviewView";
 import { OBSIDIAN_SELECTORS } from "../obsidianInternals";
 import { focusModeForStorytellingMode } from "./leftPanelMode";
 
@@ -274,8 +269,6 @@ export class StoryForgeView extends ItemView {
 		await this.plugin.updateSetting("selectedObject", this.activeChapterFilename);
 		// The Series/Novel overview pages (if open) read selectedNovel straight from settings —
 		// nudge them to re-render so picking a different book here is reflected there too.
-		this.plugin.refreshSeriesOverviewView();
-		this.plugin.refreshNovelOverviewView();
 	}
 
 	/** Which top pane the declared layout selects — "none" for the Codex tab, which has no top pane
@@ -342,8 +335,6 @@ export class StoryForgeView extends ItemView {
 					} else if (layout === "novelBrowse") {
 						void this.openNovelOverview();
 					} else {
-						this.plugin.leaveSeriesOverviewIfShowing();
-						this.plugin.leaveNovelOverviewIfShowing();
 						// Switching onto the Chapter tab itself: jump Story Context to whichever chapter
 						// is already selected here, or its book's first chapter if none is (see
 						// focusChapterPaneForBook()'s own doc comment).
@@ -431,8 +422,6 @@ export class StoryForgeView extends ItemView {
 						this.plugin.focusStoryContextOnChapter(bookName, filename);
 					}
 				},
-				onRenameChapter: (bookName, filename) =>
-					new ChapterTitleModal(this.app, this.plugin, bookName, filename, () => this.render()).open(),
 				onCreateContinuingChapter: (bookFolderName) => void this.handleCreateContinuingChapter(bookFolderName),
 				onArchiveChapter: async () => {
 					if (this.closed) return;
@@ -454,7 +443,6 @@ export class StoryForgeView extends ItemView {
 			if (topPane === "series") {
 				const refreshAfterPlotThreads = () => {
 					this.plugin.refreshStoryForgeViews();
-					this.plugin.refreshNovelOverviewView();
 				};
 				const refreshAfterTags = () => this.plugin.refreshStoryForgeViews();
 				renderSeriesPaneCornerButtons(
@@ -469,8 +457,6 @@ export class StoryForgeView extends ItemView {
 					},
 					() => new TagRegistryModal(this.app, refreshAfterTags, "tags").open(),
 					() => new PlotThreadRegistryModal(this.app, this.plugin, refreshAfterPlotThreads).open(),
-					() => new SeriesModal(this.app, this.plugin, () => this.render()).open(),
-					() => this.openWordCountHistory(),
 				);
 			}
 		}
@@ -536,7 +522,6 @@ export class StoryForgeView extends ItemView {
 			renderStatsPanel(statsEl, {
 				mode: this.statsMode,
 				counts: this.statsCounts,
-				onOpenHistory: () => this.openWordCountHistory(),
 			});
 		}
 		void this.refreshStats();
@@ -649,38 +634,9 @@ export class StoryForgeView extends ItemView {
 		renderStatsPanel(statsEl, {
 			mode: this.statsMode,
 			counts: this.statsCounts,
-			onOpenHistory: () => {
-				if (this.currentBookFolderName) {
-					new WordCountModal(this.app, this.currentBookFolderName, {
-						statsMode: this.statsMode,
-						seriesNumberingStyle: this.plugin.getSettings().seriesNumberingStyle,
-						chapterNumberingStyle: this.plugin.getSettings().chapterNumberingStyle,
-						onSelectStatsMode: (mode) => {
-							this.statsMode = mode;
-							this.render();
-						},
-					}).open();
-				}
-			},
 		});
 
 		void this.refreshStats();
-	}
-
-	private openWordCountHistory(): void {
-		const series = getSeriesBooks(this.app);
-		const bookFolderName =
-			this.currentBookFolderName ?? series.ordered[0]?.name ?? series.unplaced[0]?.name ?? null;
-		if (!bookFolderName) return;
-		new WordCountModal(this.app, bookFolderName, {
-			statsMode: this.statsMode,
-			seriesNumberingStyle: this.plugin.getSettings().seriesNumberingStyle,
-			chapterNumberingStyle: this.plugin.getSettings().chapterNumberingStyle,
-			onSelectStatsMode: (mode) => {
-				this.statsMode = mode;
-				this.render();
-			},
-		}).open();
 	}
 
 	private async refreshStats(): Promise<void> {
@@ -803,9 +759,6 @@ export class StoryForgeView extends ItemView {
 	 * ensureBookSelectedForSeriesOverview() for what "currently being worked on" falls back to when
 	 * nothing is selected yet. */
 	private async openSeriesOverview(): Promise<void> {
-		const leaf = this.plugin.getMainContentLeaf();
-		await leaf.setViewState({ type: STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE, active: true });
-		await this.app.workspace.revealLeaf(leaf);
 		await this.ensureBookSelectedForSeriesOverview();
 	}
 
@@ -840,9 +793,6 @@ export class StoryForgeView extends ItemView {
 	 * here too (via selectChapter, same as clicking the row would) — not just a right-sidebar peek —
 	 * so it persists and this panel's own highlight agrees with it as well. */
 	private async openNovelOverview(): Promise<void> {
-		const leaf = this.plugin.getMainContentLeaf();
-		await leaf.setViewState({ type: STORYFORGE_NOVEL_OVERVIEW_VIEW_TYPE, active: true });
-		await this.app.workspace.revealLeaf(leaf);
 		if (!this.currentBookFolderName) return;
 		this.focusChapterPaneForBook(this.currentBookFolderName);
 	}

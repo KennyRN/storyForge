@@ -734,7 +734,7 @@ export function renderNovelGuideCard(plugin: StoryForgePlugin, body: HTMLElement
 			setting.setName(name).addToggle((toggle) => {
 				toggle.setValue(settings[key]);
 				toggle.onChange((value) => {
-					void plugin.updateSetting(key, value).then(() => plugin.refreshNovelOverviewView());
+					void plugin.updateSetting(key, value);
 				});
 			});
 		});

@@ -238,7 +238,6 @@ export async function applyCompleteExport(
 	});
 	await applyPlotThreadsDocument(plugin.app, threadsDocumentFromComplete(prepared), "replace");
 	plugin.refreshStoryForgeViews();
-	plugin.refreshNovelOverviewView();
 }
 
 export function completePreviewCounts(document: CompleteExportDocument): Array<{ label: string; count: string }> {

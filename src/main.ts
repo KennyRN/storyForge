@@ -7,9 +7,6 @@ import { StoryForgeView, STORYFORGE_VIEW_TYPE } from "./view/StoryForgeView";
 import { LEGACY_STORYTELLING_VIEW_TYPE, mapLegacyLeftRailViewType, storytellingModeForAutoFocus } from "./view/leftPanelMode";
 import { ContinuousReadView, STORYFORGE_CONTINUOUS_VIEW_TYPE } from "./view/ContinuousReadView";
 import type { ManuscriptGuideSettings } from "./view/manuscript/ManuscriptSurface";
-import { SeriesOverviewView, STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE } from "./view/SeriesOverviewView";
-import { NovelOverviewView, STORYFORGE_NOVEL_OVERVIEW_VIEW_TYPE } from "./view/NovelOverviewView";
-import { NewChapterView, STORYFORGE_NEW_CHAPTER_VIEW_TYPE } from "./view/NewChapterView";
 import { ToolsView, TOOLS_VIEW_TYPE } from "./view/ToolsPanel";
 import { StoryContextView, STORY_CONTEXT_VIEW_TYPE, activateStoryContextView } from "./view/StoryContextView";
 import { ArchiveView, ARCHIVE_VIEW_TYPE, activateArchiveView } from "./view/ArchiveView";
@@ -931,9 +928,6 @@ export default class StoryForgePlugin extends Plugin {
 		registerCustomIcons();
 		this.registerView(STORYFORGE_VIEW_TYPE, (leaf) => new StoryForgeView(leaf, this));
 		this.registerView(STORYFORGE_CONTINUOUS_VIEW_TYPE, (leaf) => new ContinuousReadView(leaf, this));
-		this.registerView(STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE, (leaf) => new SeriesOverviewView(leaf, this));
-		this.registerView(STORYFORGE_NOVEL_OVERVIEW_VIEW_TYPE, (leaf) => new NovelOverviewView(leaf, this));
-		this.registerView(STORYFORGE_NEW_CHAPTER_VIEW_TYPE, (leaf) => new NewChapterView(leaf, this));
 		this.registerView(TOOLS_VIEW_TYPE, (leaf) => new ToolsView(leaf));
 		this.registerView(STORY_CONTEXT_VIEW_TYPE, (leaf) => new StoryContextView(leaf, this));
 		this.registerView(ARCHIVE_VIEW_TYPE, (leaf) => new ArchiveView(leaf, this));
@@ -1135,9 +1129,6 @@ export default class StoryForgePlugin extends Plugin {
 			STORYFORGE_VIEW_TYPE,
 			LEGACY_STORYTELLING_VIEW_TYPE,
 			STORYFORGE_CONTINUOUS_VIEW_TYPE,
-			STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE,
-			STORYFORGE_NOVEL_OVERVIEW_VIEW_TYPE,
-			STORYFORGE_NEW_CHAPTER_VIEW_TYPE,
 			TOOLS_VIEW_TYPE,
 			STORY_CONTEXT_VIEW_TYPE,
 			ARCHIVE_VIEW_TYPE,
@@ -1226,26 +1217,6 @@ export default class StoryForgePlugin extends Plugin {
 	refreshStoryForgeViews(): void {
 		for (const leaf of this.app.workspace.getLeavesOfType(STORYFORGE_VIEW_TYPE)) {
 			if (leaf.view instanceof StoryForgeView) leaf.view.render();
-		}
-	}
-
-	/** The Series overview page (main-pane view) always reads its selected novel straight from
-	 * settings rather than holding its own copy — this is the one nudge it needs to notice a book
-	 * picked elsewhere (StoryForgeView.ts's onSelectBook/followActiveFile). A no-op if it isn't
-	 * currently open anywhere. */
-	refreshSeriesOverviewView(): void {
-		for (const leaf of this.app.workspace.getLeavesOfType(STORYFORGE_SERIES_OVERVIEW_VIEW_TYPE)) {
-			if (leaf.view instanceof SeriesOverviewView) leaf.view.render();
-		}
-	}
-
-	/** The Novel overview page (main-pane view) always reads its selected novel straight from
-	 * settings too (NovelOverviewView.ts) — same nudge as refreshSeriesOverviewView() above, for the
-	 * storyLibrary panel's Novel layout instead of its Series one. A no-op if it isn't currently
-	 * open anywhere. */
-	refreshNovelOverviewView(): void {
-		for (const leaf of this.app.workspace.getLeavesOfType(STORYFORGE_NOVEL_OVERVIEW_VIEW_TYPE)) {
-			if (leaf.view instanceof NovelOverviewView) leaf.view.render();
 		}
 	}
 
@@ -1384,8 +1355,6 @@ export default class StoryForgePlugin extends Plugin {
 			this.app.workspace.setActiveLeaf(leaf, { focus: true });
 			return;
 		}
-		this.leaveSeriesOverviewIfShowing();
-		this.leaveNovelOverviewIfShowing();
 	}
 
 	private resolveStorytellingCenterFile(): TFile | null {
@@ -1397,44 +1366,6 @@ export default class StoryForgePlugin extends Plugin {
 		if (!path) return null;
 		const file = this.app.vault.getAbstractFileByPath(path);
 		return file instanceof TFile ? file : null;
-	}
-
-	/** Shared body of leaveSeriesOverviewIfShowing()/leaveNovelOverviewIfShowing() below, once the
-	 * caller has already confirmed the tracked main-content leaf is showing the overview page it
-	 * cares about: quietly swaps in whichever chapter was previously selected, or the blank
-	 * "create new chapter" page if there's none (or it's since been deleted). */
-	private replaceOverviewLeafWithEditor(leaf: WorkspaceLeaf): void {
-		const bookFolderName = this.getSettings().selectedNovel;
-		if (!bookFolderName) return;
-		const chapterFilename = this.getSettings().selectedObject;
-		const file = chapterFilename
-			? this.app.vault.getAbstractFileByPath(libraryChapterPath(bookFolderName, chapterFilename))
-			: null;
-		if (file instanceof TFile) {
-			void leaf.openFile(file);
-		} else {
-			void leaf.setViewState({ type: STORYFORGE_NEW_CHAPTER_VIEW_TYPE, active: true, state: { bookFolderName } });
-		}
-	}
-
-	/**
-	 * Called whenever the user leaves the Series tab for Novel/Chapter (StoryForgeView.ts) or
-	 * switches to the storyTelling panel (this plugin's own active-leaf-change listener, above) —
-	 * a no-op unless the tracked main-content tab is actually showing the Series overview page.
-	 */
-	leaveSeriesOverviewIfShowing(): void {
-		const leaf = this.getMainContentLeafIfExists();
-		if (!leaf || !(leaf.view instanceof SeriesOverviewView)) return;
-		this.replaceOverviewLeafWithEditor(leaf);
-	}
-
-	/** Same as leaveSeriesOverviewIfShowing() above, for the Novel layout's own overview page
-	 * (NovelOverviewView.ts) — called whenever the user leaves the Novel tab for Codex/Chapter
-	 * (StoryForgeView.ts) or switches to the storyTelling panel. */
-	leaveNovelOverviewIfShowing(): void {
-		const leaf = this.getMainContentLeafIfExists();
-		if (!leaf || !(leaf.view instanceof NovelOverviewView)) return;
-		this.replaceOverviewLeafWithEditor(leaf);
 	}
 
 	onunload(): void {

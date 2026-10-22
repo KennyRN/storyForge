@@ -1136,7 +1136,6 @@ export class TypesTagsExportModal extends Modal {
 		try {
 			await applyTypesTagsDocument(this.app, document, this.importIncluded);
 			this.plugin.refreshStoryForgeViews();
-			this.plugin.refreshNovelOverviewView();
 			new Notice("storyForge: selected types & tags applied");
 			this.render();
 		} catch (error: unknown) {

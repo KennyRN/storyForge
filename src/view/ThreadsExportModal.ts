@@ -915,7 +915,6 @@ export class ThreadsExportModal extends Modal {
 			}
 			await applyPlotThreadsDocument(this.app, document, mode);
 			this.plugin.refreshStoryForgeViews();
-			this.plugin.refreshNovelOverviewView();
 			new Notice(
 				mode === "add" ? "storyForge: plot threads added" : "storyForge: plot threads applied",
 			);
