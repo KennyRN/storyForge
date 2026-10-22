@@ -19,13 +19,9 @@ import {
 import { StyleController } from "./styleController";
 import { StoryForgeSettingsTab } from "./view/StoryForgeSettingsTab";
 import { UiFormattingModal } from "./view/UiFormattingModal";
-import { TagRegistryModal } from "./view/TagRegistryModal";
 import { FORMATFORGE_PLUGIN_ID, formatCompanionState } from "./formatCompanionActive";
 import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders } from "./series";
 import { ensureTagRegistryFile, loadCodexTypesIntoRegistry } from "./tagRegistry";
-import { ensureVaultTagsFile } from "./vaultTags";
-import { ensurePlotThreadsFile } from "./plotThreads";
-import { defaultSeriesPlotThreadColor } from "./view/novelColor";
 import { seedPlotCardTiers, type PlotCardTierMap } from "./view/plotCardTier";
 import { resolveThemeBackgroundColor } from "./view/PalettePickerModal";
 import { createBook, createChapter, ensureAllChapterEntries, getBookChapters, pruneMissingChapterCodexRefs, pruneMissingChapterEntries, readBookFrontmatter, syncAllBookReferenceFields, writeBookChapterOrder } from "./book";
@@ -1579,11 +1575,6 @@ export default class StoryForgePlugin extends Plugin {
 		new UiFormattingModal(this.app, this).open();
 	}
 
-	/** Opens the Codex / Notebook / Archive types manager, or chapter/novel tags. */
-	openTagRegistry(scope: "codexTypes" | "ideaTypes" | "archiveTypes" | "tags"): void {
-		new TagRegistryModal(this.app, () => this.refreshStoryForgeViews(), scope).open();
-	}
-
 	/** SeriesModal calls this in onOpen()/onClose() so its formatting tab can be told to re-render
 	 * when the format companion registers/unregisters while it's open. */
 	registerSeriesModalRefresh(refresh: () => void): () => void {
@@ -1777,12 +1768,6 @@ export default class StoryForgePlugin extends Plugin {
 		if (isFirstRun) await this.createFirstRunBookAndChapter();
 		const tagRegistry = await ensureTagRegistryFile(this.app);
 		loadCodexTypesIntoRegistry(this.app, tagRegistry);
-		await ensureVaultTagsFile(this.app);
-		await ensurePlotThreadsFile(
-			this.app,
-			defaultSeriesPlotThreadColor(this.pluginSettings) ?? undefined,
-			resolveThemeBackgroundColor(),
-		);
 		await migrateVaultSchema(this.app);
 		await pruneMissingCodexNotes(this.app);
 		await pruneMissingChapterCodexRefs(this.app);

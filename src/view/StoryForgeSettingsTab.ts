@@ -7,7 +7,6 @@ import { HideUiModal } from "./HideUiModal";
 import { ProtectionsModal } from "./ProtectionsModal";
 import { NUMBERING_STYLE_OPTIONS, type NumberingStyle } from "../numberingStyle";
 import { refreshTabTitles } from "../tabTitles";
-import { TagRegistryModal } from "./TagRegistryModal";
 
 function isPresetPaletteName(name: string): name is PresetPaletteName {
 	return name in COLOR_PALETTES;
@@ -281,25 +280,6 @@ export class StoryForgeSettingsTab extends PluginSettingTab {
 						desc: "Choose which Obsidian UI chrome to hide.",
 						action: () => {
 							new HideUiModal(this.app, this.plugin).open();
-						},
-					},
-				],
-			},
-			{
-				type: "group",
-				items: [
-					{
-						name: "Types",
-						desc: "Manage Codex, Notebook, and Archive types and the icons they draw from.",
-						action: () => {
-							new TagRegistryModal(this.app, () => this.refreshDomState(), "codexTypes").open();
-						},
-					},
-					{
-						name: "Chapter and novel tags",
-						desc: "Manage chapter tags, novel tags, and the icons they draw from.",
-						action: () => {
-							new TagRegistryModal(this.app, () => this.refreshDomState(), "tags").open();
 						},
 					},
 				],

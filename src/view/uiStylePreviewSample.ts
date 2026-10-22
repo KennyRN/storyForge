@@ -3,7 +3,7 @@
  * Uses the same `sf-*` classes as the live panels so stylesheet + `--sf-*` vars apply.
  */
 import { setIcon } from "obsidian";
-import { MAIN_THREAD_FALLBACK_COLOR } from "../plotThreads";
+const MAIN_THREAD_FALLBACK_COLOR = "#f59e0b";
 import { resolveTitleShadow } from "../titleShadow";
 import { createNotebookPage, NOTEBOOK_PAGE_PRESENT_CLASS } from "./notebookPage";
 import { renderStampedEmptyCross } from "./stampedCross";

@@ -14,23 +14,13 @@ import {
 	type ArchivedCodexItem,
 } from "../codex";
 import { recordChapterUnarchive } from "../history";
-import {
-	ICON_BOOK_DUOTONE,
-	ICON_CODEX,
-	ICON_FILTER_LIST,
-	ICON_FOLDER,
-	ICON_HASHTAG_SQUARE_DUOTONE,
-	ICON_TAG_DUOTONE,
-	ICON_UNARCHIVE,
-} from "../icons";
+import { ICON_BOOK_DUOTONE, ICON_CODEX, ICON_FOLDER, ICON_UNARCHIVE } from "../icons";
 import { libraryChapterPath } from "../paths";
 import { formatSingleLine } from "../titleNumbering";
 import { excerpt } from "../wordCount";
 import { makeAccessibleActivatable } from "./a11y";
-import { inkSlider } from "./inkSlider";
 import { attachCodexDragReorder, type CodexDragRowInfo } from "./dragReorderTree";
-import { applySiblingReorder, displayedVaultTags, filterVisiblePathsByTag, siblingOrderAfterMove } from "../vaultTags";
-import { TagPickerModal } from "./TagPickerModal";
+import { applySiblingReorder, siblingOrderAfterMove } from "../siblingOrder";
 import { renderStampedIndexEmpty } from "./stampedCross";
 
 export type ArchiveMode = "codex" | "novel";
@@ -45,12 +35,6 @@ export interface ArchivePanelHost {
 	refresh: () => void;
 	selectedKey?: string | null;
 	onSelect?: (key: string) => void;
-	typeFilter?: ReadonlySet<string>;
-	onChangeTypeFilter?: (next: string[]) => void;
-	tagFilter?: string | null;
-	onChangeTagFilter?: (next: string | null) => void;
-	onOpenTypes?: () => void;
-	onOpenTags?: () => void;
 }
 
 interface ArchiveIndexItem {
@@ -114,9 +98,6 @@ export function renderArchiveIndex(el: HTMLElement, host: ArchivePanelHost, asIn
 	if (asIndex) {
 		el.empty();
 		el.addClass("sf-bottom-panel");
-		if (host.onOpenTypes || host.onOpenTags) {
-			renderArchiveTypesCorner(el, host);
-		}
 	}
 
 	if (host.mode === "novel" && !host.bookFolderName) {
@@ -135,8 +116,7 @@ export function renderArchiveIndex(el: HTMLElement, host: ArchivePanelHost, asIn
 
 	if (asIndex) {
 		const body = el.createDiv({ cls: "sf-codex-body" });
-		const rail = body.createDiv({ cls: "sf-codex-side-actions" });
-		renderArchiveFilterRail(rail, host);
+		body.createDiv({ cls: "sf-codex-side-actions" });
 		const treeEl = body.createDiv({ cls: "sf-codex-tree" });
 		renderArchiveRows(treeEl, items, host, true);
 		return;
@@ -146,18 +126,9 @@ export function renderArchiveIndex(el: HTMLElement, host: ArchivePanelHost, asIn
 }
 
 function collectArchiveIndexItems(host: ArchivePanelHost): ArchiveIndexItem[] {
-	const typeFilter = host.typeFilter ?? new Set<string>();
-	const tagFilter = host.tagFilter ?? null;
 	let items: ArchiveIndexItem[] = [];
 	if (host.mode === "codex") {
 		items = getArchivedCodexItems(host.app).map((entry) => archiveItemFromCodex(host.app, entry));
-		if (typeFilter.size > 0) {
-			items = items.filter((item) => {
-				if (!item.filePath) return false;
-				const type = getCodexEntryType(host.app, item.filePath);
-				return Boolean(type && typeFilter.has(type));
-			});
-		}
 	} else if (host.bookFolderName) {
 		const bookFolderName = host.bookFolderName;
 		items = getArchivedChapters(host.app, bookFolderName).map((entry) => ({
@@ -166,11 +137,6 @@ function collectArchiveIndexItems(host: ArchivePanelHost): ArchiveIndexItem[] {
 			type: "file" as const,
 			name: formatSingleLine(chapterDisplayTitle(host.app, bookFolderName, entry.filename)),
 		}));
-	}
-	if (tagFilter) {
-		const visible = new Set(items.map((item) => item.filePath).filter((path): path is string => Boolean(path)));
-		const tagged = filterVisiblePathsByTag(host.app, visible, tagFilter);
-		items = items.filter((item) => item.filePath && tagged.has(item.filePath));
 	}
 	return items;
 }
@@ -186,64 +152,6 @@ function archiveItemFromCodex(app: App, entry: ArchivedCodexItem): ArchiveIndexI
 		};
 	}
 	return { key: entry.key, filePath: entry.key, type: "file", name: entry.name };
-}
-
-function renderArchiveTypesCorner(container: HTMLElement, host: ArchivePanelHost): void {
-	const corner = container.createDiv({ cls: "sf-codex-pane-corner" });
-	if (host.onOpenTypes) {
-		const typesBtn = corner.createSpan({
-			cls: "sf-codex-types-btn",
-			attr: { "aria-label": "archive types" },
-		});
-		setIcon(typesBtn, ICON_TAG_DUOTONE);
-		bindArchiveButton(typesBtn, host.onOpenTypes);
-	}
-	if (host.onOpenTags) {
-		const tagsBtn = corner.createSpan({
-			cls: "sf-codex-tags-btn",
-			attr: { "aria-label": "vault tags" },
-		});
-		setIcon(tagsBtn, ICON_HASHTAG_SQUARE_DUOTONE);
-		bindArchiveButton(tagsBtn, host.onOpenTags);
-	}
-}
-
-function renderArchiveFilterRail(parent: HTMLElement, host: ArchivePanelHost): void {
-	if (host.mode !== "novel" && host.onChangeTypeFilter) {
-		const typeFilter = host.typeFilter ?? new Set<string>();
-		const filterBtn = parent.createSpan({
-			cls: `sf-codex-filter-btn${typeFilter.size > 0 ? " is-active" : ""}`,
-			attr: { "aria-label": "filter by type" },
-		});
-		setIcon(filterBtn, ICON_FILTER_LIST);
-		bindArchiveButton(filterBtn, () => {
-			new TagPickerModal(
-				host.app,
-				"codexTypes",
-				Array.from(typeFilter),
-				(nextIds) => host.onChangeTypeFilter?.(nextIds),
-				false,
-			).open();
-		});
-	}
-	const tags = displayedVaultTags(host.app);
-	if (tags.length === 0 || !host.onChangeTagFilter) return;
-	const stack = parent.createDiv({ cls: "sf-codex-vault-tags" });
-	const active = host.tagFilter ?? null;
-	// Codex mode only: the novel-mode tag rail keeps its plain colour highlight.
-	const ink = host.mode === "codex" ? inkSlider("archive-codex-tags") : null;
-	for (const tag of tags) {
-		const btn = stack.createSpan({
-			cls: `sf-codex-vault-tag-btn${active === tag.id ? " is-active" : ""}`,
-			attr: { "aria-label": `filter by #${tag.id}` },
-		});
-		setIcon(btn, tag.iconId);
-		bindArchiveButton(btn, () => {
-			ink?.capture();
-			host.onChangeTagFilter?.(active === tag.id ? null : tag.id);
-		});
-	}
-	ink?.mount({ container: parent, buttons: ".sf-codex-vault-tag-btn", variant: "codex-tags" });
 }
 
 function renderArchiveRows(
@@ -293,7 +201,7 @@ function renderArchiveRows(
 	}
 
 	if (!asIndex) return;
-	const fullKeys = collectArchiveIndexItems({ ...host, typeFilter: new Set(), tagFilter: null }).map((item) => item.key);
+	const fullKeys = collectArchiveIndexItems(host).map((item) => item.key);
 	attachCodexDragReorder(
 		list,
 		rowInfo,
@@ -351,7 +259,7 @@ function bindArchiveButton(btn: HTMLElement, onActivate: () => void): void {
 
 export function archiveFilePathForKey(host: ArchivePanelHost, key: string | null): string | null {
 	if (!key) return null;
-	const item = collectArchiveIndexItems({ ...host, typeFilter: new Set(), tagFilter: null }).find((entry) => entry.key === key);
+	const item = collectArchiveIndexItems(host).find((entry) => entry.key === key);
 	return item?.filePath ?? null;
 }
 

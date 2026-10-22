@@ -1,4 +1,4 @@
-import { App, type FrontMatterCache } from "obsidian";
+import { App } from "obsidian";
 import { tagRegistryFilePath } from "./paths";
 import { modifyBackstageFrontmatter } from "./writeGuard";
 import { mintId } from "./slug";
@@ -6,7 +6,7 @@ import { ICON_TAG } from "./icons";
 import { CODEX_ICON_CATALOG, TAG_ICON_CATALOG } from "./iconRegistry";
 import { loadCodexTypesFromRegistry, type CodexTypeOption } from "./codex";
 
-/** One entry in an editable type/tag list (Codex types, chapter tags, or novel tags). */
+/** One entry in a type/tag list as stored in tag-registry.md (read-only here: nothing in the app edits the registry). */
 export interface TagDefinition {
 	/** Slug id, minted from `label` when created. Stable once created — this is what per-chapter/per-novel/per-note assignments store. */
 	id: string;
@@ -38,23 +38,6 @@ interface RawTagDefinition {
 	"icon-alias"?: unknown;
 	"parent-id"?: unknown;
 }
-
-/** The raw, dash-cased on-disk shape of tag-registry.md's frontmatter, as read/written through `modifyBackstageFrontmatter`. */
-export interface RawTagRegistryFrontmatter extends FrontMatterCache {
-	"codex-types"?: unknown;
-	"chapter-tags"?: unknown;
-	"novel-tags"?: unknown;
-	"idea-types"?: unknown;
-	"archive-types"?: unknown;
-}
-
-const RAW_KEY: Record<TagListKind, "codex-types" | "chapter-tags" | "novel-tags" | "idea-types" | "archive-types"> = {
-	codexTypes: "codex-types",
-	chapterTags: "chapter-tags",
-	novelTags: "novel-tags",
-	ideaTypes: "idea-types",
-	archiveTypes: "archive-types",
-};
 
 /** Used when a tag/type's `iconAlias` no longer resolves (a stale alias from an older catalog). */
 const FALLBACK_ICON_ID = ICON_TAG;
@@ -186,202 +169,4 @@ export function loadCodexTypesIntoRegistry(app: App, prefetched?: TagRegistrySha
 		parentId: t.parentId ?? null,
 	}));
 	loadCodexTypesFromRegistry(resolved);
-}
-
-/**
- * Returns the freshly-written `list` entries (the same array used to build the frontmatter) rather
- * than void — callers that need to reflect the mutation back into their own UI immediately
- * (TagRegistryModal, CodexSetTypeModal, TagPickerModal) should use this return value instead of
- * turning around and calling readTagRegistry() again: `app.metadataCache` doesn't update
- * synchronously with `processFrontMatter` in real Obsidian (see ensureTagRegistryFile's doc
- * comment), so an immediate re-read after await can still see the pre-mutation frontmatter —
- * exactly the "added type doesn't show up until the modal is reopened" class of bug this avoids.
- */
-async function mutateTagList(
-	app: App,
-	list: TagListKind,
-	mutate: (entries: TagDefinition[]) => TagDefinition[],
-): Promise<TagDefinition[]> {
-	const path = tagRegistryFilePath();
-	const key = RAW_KEY[list];
-	let result: TagDefinition[] = [];
-	await modifyBackstageFrontmatter<RawTagRegistryFrontmatter>(app, app.vault, path, DEFAULT_TAG_REGISTRY_CONTENT, (fm) => {
-		const current = parseTagDefinitions(fm[key]);
-		const next = mutate(current);
-		result = next;
-		fm[key] = next.map((e) =>
-			e.parentId
-				? { id: e.id, label: e.label, "icon-alias": e.iconAlias, "parent-id": e.parentId }
-				: { id: e.id, label: e.label, "icon-alias": e.iconAlias },
-		);
-		// Refresh codex.ts's live CODEX_TYPES from what was *just* written — not a metadataCache
-		// re-read, which doesn't update synchronously with processFrontMatter in real Obsidian
-		// (see ensureTagRegistryFile's doc comment).
-		if (list === "codexTypes") {
-			const resolved: CodexTypeOption[] = next.map((t) => ({
-				type: t.id,
-				label: t.label,
-				icon: resolveIconAlias("codexTypes", t.iconAlias),
-				parentId: t.parentId ?? null,
-			}));
-			loadCodexTypesFromRegistry(resolved);
-		}
-	});
-	return result;
-}
-
-/** Return shape for mutators whose callers need to reflect the change back into their own UI
- * immediately (see mutateTagList's doc comment) — `entries` is the fresh, post-mutation list for
- * the `list` that was touched; safe to render from directly instead of calling readTagRegistry(). */
-export interface TagDefinitionMutationResult {
-	entries: TagDefinition[];
-}
-
-/**
- * Mints a new id from `label`, appends it to `list`, and returns the new id plus the list's fresh
- * post-add entries. `parentId` nests the new entry under an existing id in the same list — only
- * ever passed for `codexTypes`, and only for a child of the built-in "person"/"place" types (see
- * TagDefinition.parentId).
- */
-export async function addTagDefinition(
-	app: App,
-	list: TagListKind,
-	label: string,
-	iconAlias: string,
-	parentId?: string | null,
-): Promise<{ id: string } & TagDefinitionMutationResult> {
-	const trimmed = label.trim();
-	if (!trimmed) throw new Error("addTagDefinition: label is required");
-	let newId = "";
-	const entries = await mutateTagList(app, list, (current) => {
-		newId = mintId(trimmed, current.map((e) => e.id));
-		return [...current, parentId ? { id: newId, label: trimmed, iconAlias, parentId } : { id: newId, label: trimmed, iconAlias }];
-	});
-	return { id: newId, entries };
-}
-
-export async function renameTagDefinition(app: App, list: TagListKind, id: string, newLabel: string): Promise<TagDefinitionMutationResult> {
-	const trimmed = newLabel.trim();
-	if (!trimmed) throw new Error("renameTagDefinition: label is required");
-	const entries = await mutateTagList(app, list, (current) => current.map((e) => (e.id === id ? { ...e, label: trimmed } : e)));
-	return { entries };
-}
-
-export async function setTagDefinitionIcon(app: App, list: TagListKind, id: string, iconAlias: string): Promise<TagDefinitionMutationResult> {
-	const entries = await mutateTagList(app, list, (current) => current.map((e) => (e.id === id ? { ...e, iconAlias } : e)));
-	return { entries };
-}
-
-/** Removes `id` from the registry list only — any chapter/novel/note still referencing it keeps the raw id untouched (non-destructive).
- * No-ops for a protected Codex type id (see PROTECTED_CODEX_TYPE_IDS) — UI surfaces should already
- * hide the delete affordance for these, this is just the backstop. */
-export async function deleteTagDefinition(app: App, list: TagListKind, id: string): Promise<TagDefinitionMutationResult> {
-	if (list === "codexTypes" && PROTECTED_CODEX_TYPE_IDS.has(id)) return { entries: readTagRegistry(app)[list] };
-	const entries = await mutateTagList(app, list, (current) => current.filter((e) => e.id !== id));
-	return { entries };
-}
-
-function cloneTagDefinitions(entries: readonly TagDefinition[]): TagDefinition[] {
-	return entries
-		.filter((entry) => typeof entry.id === "string" && entry.id.length > 0)
-		.map((entry) =>
-			entry.parentId
-				? { id: entry.id, label: entry.label, iconAlias: entry.iconAlias, parentId: entry.parentId }
-				: { id: entry.id, label: entry.label, iconAlias: entry.iconAlias },
-		);
-}
-
-function withProtectedCodexTypes(
-	incoming: TagDefinition[],
-	current: TagDefinition[],
-): TagDefinition[] {
-	const ids = new Set(incoming.map((entry) => entry.id));
-	const missing = current.filter(
-		(entry) => PROTECTED_CODEX_TYPE_IDS.has(entry.id) && !ids.has(entry.id),
-	);
-	return [...missing, ...incoming];
-}
-
-function toRawTagDefinition(entry: TagDefinition): RawTagDefinition {
-	return entry.parentId
-		? { id: entry.id, label: entry.label, "icon-alias": entry.iconAlias, "parent-id": entry.parentId }
-		: { id: entry.id, label: entry.label, "icon-alias": entry.iconAlias };
-}
-
-/** Replaces selected registry lists in one write. Protected Codex types (person/place) are
- * kept if the incoming types list omits them. */
-export async function replaceTagLists(
-	app: App,
-	patch: Partial<TagRegistryShape>,
-): Promise<TagRegistryShape> {
-	const path = tagRegistryFilePath();
-	let result: TagRegistryShape = emptyTagRegistry();
-	await modifyBackstageFrontmatter<RawTagRegistryFrontmatter>(
-		app,
-		app.vault,
-		path,
-		DEFAULT_TAG_REGISTRY_CONTENT,
-		(fm) => {
-			const current: TagRegistryShape = {
-				codexTypes: parseTagDefinitions(fm["codex-types"]),
-				chapterTags: parseTagDefinitions(fm["chapter-tags"]),
-				novelTags: parseTagDefinitions(fm["novel-tags"]),
-				ideaTypes: parseTagDefinitions(fm["idea-types"]),
-				archiveTypes: parseTagDefinitions(fm["archive-types"]),
-			};
-			result = {
-				codexTypes:
-					patch.codexTypes !== undefined
-						? withProtectedCodexTypes(cloneTagDefinitions(patch.codexTypes), current.codexTypes)
-						: current.codexTypes,
-				chapterTags:
-					patch.chapterTags !== undefined
-						? cloneTagDefinitions(patch.chapterTags)
-						: current.chapterTags,
-				novelTags:
-					patch.novelTags !== undefined ? cloneTagDefinitions(patch.novelTags) : current.novelTags,
-				ideaTypes:
-					patch.ideaTypes !== undefined ? cloneTagDefinitions(patch.ideaTypes) : current.ideaTypes,
-				archiveTypes:
-					patch.archiveTypes !== undefined
-						? cloneTagDefinitions(patch.archiveTypes)
-						: current.archiveTypes,
-			};
-			fm["codex-types"] = result.codexTypes.map(toRawTagDefinition);
-			fm["chapter-tags"] = result.chapterTags.map(toRawTagDefinition);
-			fm["novel-tags"] = result.novelTags.map(toRawTagDefinition);
-			fm["idea-types"] = result.ideaTypes.map(toRawTagDefinition);
-			fm["archive-types"] = result.archiveTypes.map(toRawTagDefinition);
-			if (patch.codexTypes !== undefined) {
-				const resolved: CodexTypeOption[] = result.codexTypes.map((t) => ({
-					type: t.id,
-					label: t.label,
-					icon: resolveIconAlias("codexTypes", t.iconAlias),
-					parentId: t.parentId ?? null,
-				}));
-				loadCodexTypesFromRegistry(resolved);
-			}
-		},
-	);
-	return result;
-}
-
-/** Reorders `list` to match `newIdOrder`. Any existing id missing from `newIdOrder` is appended at the end, preserving its relative order, so a stale/partial order can't silently drop entries. */
-export async function reorderTagDefinitions(app: App, list: TagListKind, newIdOrder: string[]): Promise<TagDefinitionMutationResult> {
-	const entries = await mutateTagList(app, list, (current) => {
-		const byId = new Map(current.map((e) => [e.id, e]));
-		const reordered: TagDefinition[] = [];
-		for (const id of newIdOrder) {
-			const entry = byId.get(id);
-			if (entry) {
-				reordered.push(entry);
-				byId.delete(id);
-			}
-		}
-		for (const entry of current) {
-			if (byId.has(entry.id)) reordered.push(entry);
-		}
-		return reordered;
-	});
-	return { entries };
 }

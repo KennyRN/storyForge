@@ -1,6 +1,5 @@
 import type StoryForgePlugin from "../main";
 import type { StoryForgePluginSettings } from "../main";
-import { resolveMainThreadRowColor } from "./novelColor";
 import { refreshAlignedPreview } from "./rowAlignedPreview";
 
 export const LOREM_PHRASES = [
@@ -54,7 +53,7 @@ export interface ChromeSection {
 }
 
 export function chromeCatalog(plugin: StoryForgePlugin): ChromeSection[] {
-	const thread = resolveMainThreadRowColor(plugin.app, plugin.getSettings());
+	const thread = { background: "#f59e0b", text: "#1c1917" };
 	const libraryItems = (s: StoryForgePluginSettings) => mutedOr(s.libraryItemsColor, s.libraryItemsMuted);
 	const unplaced = (s: StoryForgePluginSettings) => mutedOr(s.unplacedColor, s.unplacedMuted);
 	const codex = (s: StoryForgePluginSettings) => mutedOr(s.codexColor, s.codexMuted);

@@ -16,7 +16,6 @@ import { makeAccessibleActivatable } from "./a11y";
 import { activateRightRailView } from "./activateRightRailView";
 import { renderArchiveIndex, archiveFilePathForKey, type ArchiveMode, type ArchivePanelHost } from "./archivePanel";
 import { mountContextEditor, type ContextEditorHandle } from "./contextEditor";
-import { VaultTagModal } from "./VaultTagModal";
 import { storytellingCodexClickAction, storytellingCodexOpenTarget } from "./codexOpenTarget";
 import { disposeInkSliders, inkSlider } from "./inkSlider";
 
@@ -32,8 +31,6 @@ export class StoryContextView extends ItemView {
 	private chapterFilename: string | null = null;
 	private archiveMode: ArchiveMode = "codex";
 	private selectedArchiveKey: string | null = null;
-	private archiveTypeFilter = new Set<string>();
-	private archiveTagFilter: string | null = null;
 	private notebookPageEl: HTMLElement | null = null;
 	private ideaEditorHandle: ContextEditorHandle | null = null;
 	private ideaEditorPath: string | null = null;
@@ -309,35 +306,12 @@ export class StoryContextView extends ItemView {
 			setMode: (mode) => {
 				this.archiveMode = mode;
 				this.selectedArchiveKey = null;
-				this.archiveTypeFilter = new Set();
-				this.archiveTagFilter = null;
 			},
 			refresh: () => this.render(true),
 			selectedKey: this.selectedArchiveKey,
 			onSelect: (key) => {
 				this.selectedArchiveKey = key;
 				this.render(true);
-			},
-			typeFilter: this.archiveTypeFilter,
-			onChangeTypeFilter: (next) => {
-				this.archiveTypeFilter = new Set(next);
-				this.render(true);
-			},
-			tagFilter: this.archiveTagFilter,
-			onChangeTagFilter: (next) => {
-				this.archiveTagFilter = next;
-				this.render(true);
-			},
-			onOpenTypes:
-				this.archiveMode === "novel"
-					? undefined
-					: () => this.plugin.openTagRegistry("archiveTypes"),
-			onOpenTags: () => {
-				try {
-					new VaultTagModal(this.app, () => this.plugin.refreshStoryForgeViews(), "codex").open();
-				} catch (err) {
-					new Notice(`storyForge: could not open archive tags — ${err instanceof Error ? err.message : String(err)}`);
-				}
 			},
 		};
 	}
@@ -378,8 +352,6 @@ export class StoryContextView extends ItemView {
 			inkSlider("archive-source").capture();
 			this.archiveMode = mode;
 			this.selectedArchiveKey = null;
-			this.archiveTypeFilter = new Set();
-			this.archiveTagFilter = null;
 			this.render(true);
 		};
 		btn.addEventListener("click", select);

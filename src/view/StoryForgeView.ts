@@ -3,7 +3,6 @@ import type StoryForgePlugin from "../main";
 import { bookFolderNameFromChapterPath, isBackstageBookkeepingPath, isLibraryChapterPath, libraryChapterPath } from "../paths";
 import { getSeriesBooks } from "../series";
 import {
-	renderSeriesPaneCornerButtons,
 	renderTopPanel,
 	type PlacedViewMode,
 	type PlannedLengthField,
@@ -11,11 +10,7 @@ import {
 } from "./TopPanel";
 import { renderBottomPanel } from "./BottomPanel";
 import { renderStatsPanel, type StatsMode } from "./StatsPanel";
-import { PlotThreadRegistryModal } from "./PlotThreadRegistryModal";
-import { TagRegistryModal } from "./TagRegistryModal";
-import { VaultTagModal } from "./VaultTagModal";
 import { createCodexFolder, createCodexNote, readCodexFrontmatter } from "../codex";
-import { displayedVaultTags } from "../vaultTags";
 import { debounce } from "../debounce";
 import { ICON_BOOK_DUOTONE, ICON_BOOK_OPEN, ICON_BOOK_OPEN_FILLED, ICON_CODEX, ICON_SERIES } from "../icons";
 import { countWords } from "../wordCount";
@@ -65,7 +60,6 @@ export class StoryForgeView extends ItemView {
 	/** codexTypes ids currently filtering the Codex tree — session-only, like unplacedMode. */
 	private codexTypeFilter = new Set<string>();
 	/** Vault `#tag` currently filtering the Codex tree — session-only, single-select. */
-	private vaultTagFilter: string | null = null;
 	private statsMode: StatsMode = "daily";
 	private statsCounts: Record<StatsMode, number> = { daily: 0, weekly: 0, chapter: 0, story: 0 };
 	/** Tears down the live position indicator's event-listener — must run before the next render
@@ -212,7 +206,7 @@ export class StoryForgeView extends ItemView {
 	async onClose(): Promise<void> {
 		this.closed = true;
 		this.debouncedRender.cancel();
-		disposeInkSliders(["library-codex-tags", "storytelling-codex-tags"]);
+		
 	}
 
 	private followActiveFile(): void {
@@ -403,39 +397,11 @@ export class StoryForgeView extends ItemView {
 					await this.refreshStats();
 				},
 			});
-
-			// Pinned to the pane's own bottom-left corner (see renderSeriesPaneCornerButtons's doc
-			// comment) — rendered straight onto `container` (the pane root), not into `topEl` above,
-			// since .sf-top-panel scrolls and would clip it. Settings cog is leftmost; stats sits
-			// between it and plot-threads; Codex types and Codex tags sit together.
-			if (topPane === "series") {
-				const refreshAfterPlotThreads = () => {
-					this.plugin.refreshStoryForgeViews();
-				};
-				const refreshAfterTags = () => this.plugin.refreshStoryForgeViews();
-				renderSeriesPaneCornerButtons(
-					container,
-					() => new TagRegistryModal(this.app, refreshAfterTags, "codexTypes").open(),
-					() => {
-						try {
-							new VaultTagModal(this.app, refreshAfterTags).open();
-						} catch (err) {
-							new Notice(`storyForge: could not open vault tags — ${(err as Error).message}`);
-						}
-					},
-					() => new TagRegistryModal(this.app, refreshAfterTags, "tags").open(),
-					() => new PlotThreadRegistryModal(this.app, this.plugin, refreshAfterPlotThreads).open(),
-				);
-			}
 		}
 
 		if (config.showCodex) {
 			const activeFile = this.app.workspace.getActiveFile();
 			const activeFilePath = activeFile?.path ?? null;
-
-			if (this.vaultTagFilter && !displayedVaultTags(this.app).some((tag) => tag.id === this.vaultTagFilter)) {
-				this.vaultTagFilter = null;
-			}
 
 			const bottomEl = container.createDiv({ cls: "sf-bottom-panel" });
 			renderBottomPanel(this.app, bottomEl, {
@@ -455,33 +421,7 @@ export class StoryForgeView extends ItemView {
 				highlightActiveChapter: this.plugin.getSettings().highlightActiveChapter,
 				onCreateFolder: () => void this.handleCreateCodexFolder(),
 				onCreateFile: () => void this.handleCreateCodexFile(),
-				typeFilter: this.codexTypeFilter,
-				onChangeTypeFilter: (next: string[]) => {
-					this.codexTypeFilter = new Set(next);
-					this.render();
-				},
-				tagFilter: this.vaultTagFilter,
-				onChangeTagFilter: (next) => {
-					this.vaultTagFilter = next;
-					this.render();
-				},
-				tagInkKey: "library-codex-tags",
 				onOpenFile: (path) => void this.openCodexFile(path),
-				// Types/tags corner lives on the full-pane Codex tab (the only layout that still
-				// shows Codex).
-				...(config.topPane === "none"
-					? {
-							onOpenCodexTypes: () =>
-								new TagRegistryModal(this.app, () => this.plugin.refreshStoryForgeViews(), "codexTypes").open(),
-							onOpenTags: () => {
-								try {
-									new VaultTagModal(this.app, () => this.plugin.refreshStoryForgeViews()).open();
-								} catch (err) {
-									new Notice(`storyForge: could not open vault tags — ${(err as Error).message}`);
-								}
-							},
-						}
-					: {}),
 			});
 		}
 
@@ -553,10 +493,6 @@ export class StoryForgeView extends ItemView {
 		const focusLorePath = this.plugin.codexFocusPagePath();
 		const activeFilePath = focusLorePath ?? activeFile?.path ?? null;
 
-		if (this.vaultTagFilter && !displayedVaultTags(this.app).some((tag) => tag.id === this.vaultTagFilter)) {
-			this.vaultTagFilter = null;
-		}
-
 		const bottomEl = container.createDiv({ cls: "sf-bottom-panel" });
 		renderBottomPanel(this.app, bottomEl, {
 			mode: "codex",
@@ -575,17 +511,6 @@ export class StoryForgeView extends ItemView {
 			highlightActiveChapter: this.plugin.getSettings().highlightActiveChapter,
 			onCreateFolder: () => void this.handleCreateCodexFolder(),
 			onCreateFile: () => void this.handleCreateCodexFile(),
-			typeFilter: this.codexTypeFilter,
-			onChangeTypeFilter: (next: string[]) => {
-				this.codexTypeFilter = new Set(next);
-				this.render();
-			},
-			tagFilter: this.vaultTagFilter,
-			onChangeTagFilter: (next) => {
-				this.vaultTagFilter = next;
-				this.render();
-			},
-			tagInkKey: "storytelling-codex-tags",
 			onOpenFile: (path) => void this.openCodexFile(path),
 		});
 

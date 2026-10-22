@@ -13,11 +13,8 @@ import {
 	writeBookChapterOrder,
 	writeBookPlannedChapterLength,
 	writeBookPlannedNovelLength,
-	writeChapterTags,
-	writeNovelTags,
-} from "../book";
+		} from "../book";
 import { createContinuingChapter, createIdeaChapter } from "../chapterCreation";
-import { readTagRegistry, resolveIconAlias } from "../tagRegistry";
 import { bookBackstagePath } from "../paths";
 import { makeReorderable, type DragZone } from "./dragReorder";
 import { makeAccessibleActivatable } from "./a11y";
@@ -101,42 +98,6 @@ export interface TopPanelOptions {
 	/** Codex focus's forward-only `[+]`: create a chapter, append it to the end of chapter-order, open it. */
 	onCreateContinuingChapter: (bookFolderName: string) => void;
 	onArchiveChapter?: () => void | Promise<void>;
-}
-
-/**
- * Series-mode-only hover icons — pinned to the bottom-left corner of the whole pane, not the
- * top header, so they read as persistent panel-level controls. Rendered directly onto the pane's
- * own root element (StoryForgeView's `container`/`contentEl`, which has `position: relative` in
- * styles.css), not into renderTopPanel()'s own DOM — .sf-top-panel/.sf-bottom-panel both scroll
- * (`overflow-y: auto`), which would clip an absolutely-positioned descendant that's meant to sit
- * outside their own box, so this needs a container the overflow-clipping rows aren't ancestors of.
- * Settings cog is leftmost (the pane's outside edge); stats sits between it and plot-threads;
- * types (Codex / Notebook / Archive), Codex tags (hashtag), and chapter/novel tags follow.
- * Relevant only while actually browsing the series list (topPane === "series") — call-site gated,
- * same condition renderTopPanel() used to gate this on internally.
- */
-export function renderSeriesPaneCornerButtons(
-	container: HTMLElement,
-	onOpenCodexTypes: () => void,
-	onOpenCodexTags: () => void,
-	onOpenTags: () => void,
-	onOpenPlotThreads: () => void,
-): void {
-	const corner = container.createDiv({ cls: "sf-series-pane-corner" });
-	addSeriesCornerButton(corner, ICON_PLOT_THREADS, "Plot threads", onOpenPlotThreads);
-	addSeriesCornerButton(corner, ICON_TAG_DUOTONE, "Types", onOpenCodexTypes);
-	addSeriesCornerButton(corner, ICON_HASHTAG_SQUARE_DUOTONE, "Codex tags", onOpenCodexTags);
-	addSeriesCornerButton(corner, ICON_BOOKMARK_DUOTONE, "Chapter and novel tags", onOpenTags);
-}
-
-function addSeriesCornerButton(corner: HTMLElement, icon: string, label: string, onClick: () => void): void {
-	const btn = corner.createSpan({ cls: "sf-series-settings-btn", attr: { "aria-label": label } });
-	setIcon(btn, icon);
-	btn.addEventListener("click", (e) => {
-		e.stopPropagation();
-		onClick();
-	});
-	makeAccessibleActivatable(btn, onClick);
 }
 
 export function renderTopPanel(app: App, container: HTMLElement, options: TopPanelOptions): void {
@@ -279,39 +240,6 @@ function renderRowTitle(
 	return wrap;
 }
 
-/** One small icon per tag id on the chapter, resolved against the shared chapter-tags registry. Unknown/orphaned ids are skipped rather than shown broken. */
-function renderChapterTagBadges(row: HTMLElement, app: App, bookFolderName: string, filename: string): void {
-	const entry = getChapterEntry(app, bookFolderName, filename);
-	if (!entry || entry.tags.length === 0) return;
-	const { chapterTags } = readTagRegistry(app);
-	const badgeRow = row.createDiv({ cls: "sf-row-tag-badges" });
-	for (const tagId of entry.tags) {
-		const def = chapterTags.find((t) => t.id === tagId);
-		if (!def) continue;
-		const badge = badgeRow.createSpan({ cls: "sf-tag-badge", attr: { "aria-label": def.label, title: def.label } });
-		setIcon(badge, resolveIconAlias("chapterTags", def.iconAlias));
-	}
-}
-
-/** Right-click "Tags..." menu item: opens the multi-select TagPickerModal for `list`, writing the full replacement id array via `write` and re-rendering the panel on success. `title` defaults to "Tags..." — the novel rows (placed/unplaced) pass the lowercase "tags" instead, matching "set novel details" beside it. */
-function tagsMenuItem(
-	app: App,
-	list: "chapterTags" | "novelTags",
-	currentIds: string[],
-	write: (nextIds: string[]) => Promise<void>,
-	rerender: () => void,
-	title = "Tags...",
-): ExtraMenuItem {
-	return {
-		title,
-		onClick: () => {
-			void import("./TagPickerModal").then(({ TagPickerModal }) => {
-				new TagPickerModal(app, list, currentIds, (nextIds) => write(nextIds).then(rerender)).open();
-			});
-		},
-	};
-}
-
 function renderUnplacedHeader(
 	zone: HTMLElement,
 	label: string,
@@ -415,16 +343,6 @@ function renderSeriesList(
 			label,
 			getCurrentTitle: () => bookDisplayTitle(app, folder.name),
 			onCommit: (newTitle) => renameBookTitle(app, folder.name, newTitle),
-			extraMenuItems: [
-				tagsMenuItem(
-					app,
-					"novelTags",
-					readBookFrontmatter(app, folder.name)?.novelTags ?? [],
-					(nextIds) => writeNovelTags(app, folder.name, nextIds),
-					() => renderTopPanel(app, container, options),
-					"tags",
-				),
-			],
 		});
 	});
 	if (ordered.length === 0) {
@@ -475,16 +393,6 @@ function renderSeriesList(
 					label,
 					getCurrentTitle: () => bookDisplayTitle(app, folder.name),
 					onCommit: (newTitle) => renameBookTitle(app, folder.name, newTitle),
-					extraMenuItems: [
-						tagsMenuItem(
-							app,
-							"novelTags",
-							readBookFrontmatter(app, folder.name)?.novelTags ?? [],
-							(nextIds) => writeNovelTags(app, folder.name, nextIds),
-							() => renderTopPanel(app, container, options),
-							"tags",
-						),
-					],
 				});
 			});
 			zones.push({ key: "unplaced", container: unplacedList });
@@ -606,7 +514,6 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 		ordered.forEach((file, i) => {
 			const row = createRow(mainList, file.name);
 			const label = renderRowTitle(row, numbered[i]);
-			renderChapterTagBadges(row, app, bookFolderName, file.name);
 			if (options.highlightActiveChapter && options.activeChapterFilename === file.name) {
 				row.addClass("sf-row-selected");
 			}
@@ -628,13 +535,6 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 				onCommit: (newTitle) => renameChapterTitle(app, bookFolderName, file.name, newTitle),
 				onRenameClick: options.onRenameChapter ? () => options.onRenameChapter!(bookFolderName, file.name) : undefined,
 				extraMenuItems: [
-					tagsMenuItem(
-						app,
-						"chapterTags",
-						getChapterEntry(app, bookFolderName, file.name)?.tags ?? [],
-						(nextIds) => writeChapterTags(app, bookFolderName, file.name, nextIds),
-						() => renderTopPanel(app, container, options),
-					),
 					archiveItem,
 				],
 			});
@@ -661,7 +561,6 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 			unplaced.forEach((file, i) => {
 				const row = createRow(unplacedList, file.name);
 				const label = renderRowTitle(row, numbered[ordered.length + i]);
-				renderChapterTagBadges(row, app, bookFolderName, file.name);
 				if (options.highlightActiveChapter && options.activeChapterFilename === file.name) {
 					row.addClass("sf-row-selected");
 				}
@@ -683,13 +582,6 @@ function renderBookList(app: App, bodyEl: HTMLElement, bookFolderName: string, o
 					onCommit: (newTitle) => renameChapterTitle(app, bookFolderName, file.name, newTitle),
 					onRenameClick: options.onRenameChapter ? () => options.onRenameChapter!(bookFolderName, file.name) : undefined,
 					extraMenuItems: [
-						tagsMenuItem(
-							app,
-							"chapterTags",
-							getChapterEntry(app, bookFolderName, file.name)?.tags ?? [],
-							(nextIds) => writeChapterTags(app, bookFolderName, file.name, nextIds),
-							() => renderTopPanel(app, container, options),
-						),
 						archiveItem,
 					],
 				});

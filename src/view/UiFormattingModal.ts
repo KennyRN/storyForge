@@ -9,7 +9,6 @@ import {
 	type ColorSwatchMutedOption,
 } from "./styleModalHelpers";
 import { resolveThemeMutedColor } from "./PalettePickerModal";
-import { resolveMainThreadRowColor } from "./novelColor";
 import { renderInterfaceFontsTab } from "./interfaceFontsTab";
 import { renderInterfaceColoursTab } from "./interfaceColoursTab";
 import { renderInterfaceSizesTab } from "./interfaceSizesTab";
@@ -54,7 +53,7 @@ function mutedSwatch(
 }
 
 function previewMainThread(plugin: StoryForgePlugin): { color: string; text: string } {
-	const row = resolveMainThreadRowColor(plugin.app, plugin.getSettings());
+	const row = { background: "#f59e0b", text: "#1c1917" };
 	return { color: row.background, text: row.text };
 }
 

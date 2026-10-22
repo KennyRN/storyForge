@@ -20,7 +20,6 @@ import {
 	type CodexTreeFolder,
 	type CodexTreeItem,
 } from "./codexTree";
-import { filterVisiblePathsByTag, readVaultTags, sortTreeByPageOrder } from "./vaultTags";
 
 export { isDescendantFolder, countFilesInFolder, type CodexFolders, type CodexFolderEntry };
 export type { CodexTreeFile, CodexTreeFolder, CodexTreeItem };
@@ -263,7 +262,6 @@ export function collectCodexNotes(app: App): string[] {
 export function buildCodexTree(
 	app: App,
 	visiblePaths: ReadonlySet<string>,
-	options?: { tagFilterMode?: boolean; pageOrder?: readonly string[] },
 ): CodexTreeFolder | null {
 	const root = app.vault.getAbstractFileByPath(CODEX_ROOT);
 	if (!(root instanceof TFolder)) return null;
@@ -271,26 +269,17 @@ export function buildCodexTree(
 	const realPaths = new Set(
 		root.children.filter((c): c is TFile => c instanceof TFile && c.extension === "md").map((c) => c.path),
 	);
-	const tree = resolveCodexTree(folders, order, realPaths, visiblePaths, {
-		tagFilterMode: options?.tagFilterMode,
-	});
-	return options?.pageOrder?.length ? sortTreeByPageOrder(tree, options.pageOrder) : tree;
+	return resolveCodexTree(folders, order, realPaths, visiblePaths);
 }
 
 export function getCodexView(
 	app: App,
 	mode: CodexViewMode,
 	typeFilter?: ReadonlySet<string>,
-	tagFilter?: string | null,
 ): CodexTreeFolder | null {
 	if (mode === "codexHidden") return null;
 	let visiblePaths: ReadonlySet<string> = new Set(collectCodexNotes(app));
 	if (typeFilter && typeFilter.size > 0) visiblePaths = filterVisiblePathsByType(app, visiblePaths, typeFilter);
-	if (tagFilter) {
-		visiblePaths = filterVisiblePathsByTag(app, visiblePaths, tagFilter);
-		const pageOrder = readVaultTags(app).tags.find((entry) => entry.id === tagFilter)?.pageOrder;
-		return buildCodexTree(app, visiblePaths, { tagFilterMode: true, pageOrder });
-	}
 	return buildCodexTree(app, visiblePaths);
 }
 

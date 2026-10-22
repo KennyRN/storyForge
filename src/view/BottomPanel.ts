@@ -14,27 +14,11 @@ import {
 	type CodexTreeItem,
 	type CodexViewMode,
 } from "../codex";
-import {
-	ICON_FILTER_LIST,
-	ICON_FOLDER,
-	ICON_FOLDER_PLUS,
-	ICON_HASHTAG_SQUARE_DUOTONE,
-	ICON_PLUS_SQUARE,
-	ICON_TAG_DUOTONE,
-} from "../icons";
+import { ICON_FOLDER, ICON_FOLDER_PLUS, ICON_PLUS_SQUARE } from "../icons";
 import { makeAccessibleActivatable } from "./a11y";
-import { inkSlider } from "./inkSlider";
 import { attachInlineRename, type ExtraMenuItem } from "./inlineRename";
 import { attachCodexDragReorder, type CodexDragRowInfo } from "./dragReorderTree";
 import { CodexSetTypeModal } from "./CodexSetTypeModal";
-import { TagPickerModal } from "./TagPickerModal";
-import {
-	applySiblingReorder,
-	displayedVaultTags,
-	readVaultTags,
-	setVaultTagPageOrder,
-	siblingOrderAfterMove,
-} from "../vaultTags";
 
 export interface BottomPanelOptions {
 	mode: CodexViewMode;
@@ -44,42 +28,21 @@ export interface BottomPanelOptions {
 	highlightActiveChapter: boolean;
 	onCreateFolder: () => void;
 	onCreateFile: () => void;
-	/** codexTypes ids currently filtering the tree — empty shows everything. */
-	typeFilter: ReadonlySet<string>;
-	onChangeTypeFilter: (next: string[]) => void;
-	/** Vault `#tag` currently filtering the tree — session-only, single-select. Null shows everything (still AND'd with typeFilter). */
-	tagFilter?: string | null;
-	onChangeTagFilter?: (next: string | null) => void;
-	/** inkSlider.ts slot for this host's #tag rail (one per codex index, e.g. `library-codex-tags`):
-	 * a codex-coloured bar slides to the selected tag. No bar when omitted. */
-	tagInkKey?: string;
 	/** Opens a Codex file's own note (distinct from onCreateFile) — the caller's own
 	 * "one tab, and the active-leaf highlight actually follows the click" helper, same as
 	 * onOpenChapter elsewhere, rather than this file reaching into app.workspace directly. */
 	onOpenFile: (path: string) => void;
-	/** Opens the Codex types registry. Pinned to this pane's own bottom-left corner (see
-	 * renderCodexTypesCorner). The tag-shaped icon. Only the storyLibrary full-pane Codex tab
-	 * passes this — the Chapter-layout Codex subpane, storyTelling, and other hosts omit it. */
-	onOpenCodexTypes?: () => void;
-	/** Opens the vault `#tag` manager. The hashtag next to types in the same corner. Same
-	 * host gate as onOpenCodexTypes. */
-	onOpenTags?: () => void;
 }
 
 export function renderBottomPanel(app: App, container: HTMLElement, options: BottomPanelOptions): void {
 	container.empty();
 
-	if (options.onOpenCodexTypes || options.onOpenTags) {
-		renderCodexTypesCorner(container, options.onOpenCodexTypes, options.onOpenTags);
-	}
-
 	const body = container.createDiv({ cls: "sf-codex-body" });
 	const rail = body.createDiv({ cls: "sf-codex-side-actions" });
-	renderCodexActionButtons(rail, app, options, ["folder", "file", "filter"]);
-	renderVaultTagRail(rail, app, options);
+	renderCodexActionButtons(rail, options, ["folder", "file"]);
 
 	const treeEl = body.createDiv({ cls: "sf-codex-tree" });
-	const tree = getCodexView(app, options.mode, options.typeFilter, options.tagFilter);
+	const tree = getCodexView(app, options.mode);
 	if (!tree) {
 		treeEl.createDiv({ cls: "sf-empty", text: "Nothing here yet." });
 		return;
@@ -108,16 +71,6 @@ export function renderBottomPanel(app: App, container: HTMLElement, options: Bot
 		(dragged, target) => {
 			void (async () => {
 				try {
-					const tagFilter = options.tagFilter;
-					if (tagFilter) {
-						const info = rowInfo.find((row) => row.key === dragged.key);
-						if (!info || info.parentKey !== target.parentId) return;
-						const siblings = rowInfo.filter((row) => row.parentKey === info.parentKey).map((row) => row.key);
-						const nextSiblings = siblingOrderAfterMove(siblings, dragged.key, target.beforeKey);
-						const previous = readVaultTags(app).tags.find((entry) => entry.id === tagFilter)?.pageOrder ?? [];
-						await setVaultTagPageOrder(app, tagFilter, applySiblingReorder(previous, nextSiblings));
-						return;
-					}
 					await moveCodexItem(app, dragged.key, dragged.type, target.parentId, target.beforeKey);
 				} catch (err) {
 					new Notice(`storyForge: could not save the new order — ${(err as Error).message}`);
@@ -128,31 +81,15 @@ export function renderBottomPanel(app: App, container: HTMLElement, options: Bot
 	);
 }
 
-type CodexActionKind = "filter" | "file" | "folder";
+type CodexActionKind = "file" | "folder";
 
 function renderCodexActionButtons(
 	parent: HTMLElement,
-	app: App,
 	options: BottomPanelOptions,
 	order: CodexActionKind[],
 ): void {
 	for (const kind of order) {
-		if (kind === "filter") {
-			const filterBtn = parent.createSpan({
-				cls: `sf-codex-filter-btn${options.typeFilter.size > 0 ? " is-active" : ""}`,
-				attr: { "aria-label": "filter by type" },
-			});
-			setIcon(filterBtn, ICON_FILTER_LIST);
-			bindPaneCornerButton(filterBtn, () => {
-				new TagPickerModal(
-					app,
-					"codexTypes",
-					Array.from(options.typeFilter),
-					(nextIds) => options.onChangeTypeFilter(nextIds),
-					false,
-				).open();
-			});
-		} else if (kind === "file") {
+		if (kind === "file") {
 			const newFileBtn = parent.createSpan({ cls: "sf-codex-new-file-btn", attr: { "aria-label": "new file" } });
 			setIcon(newFileBtn, ICON_PLUS_SQUARE);
 			bindPaneCornerButton(newFileBtn, () => options.onCreateFile());
@@ -161,59 +98,6 @@ function renderCodexActionButtons(
 			setIcon(newFolderBtn, ICON_FOLDER_PLUS);
 			bindPaneCornerButton(newFolderBtn, () => options.onCreateFolder());
 		}
-	}
-}
-
-function renderVaultTagRail(parent: HTMLElement, app: App, options: BottomPanelOptions): void {
-	if (!options.onChangeTagFilter) return;
-	const tags = displayedVaultTags(app);
-	if (tags.length === 0) return;
-	const stack = parent.createDiv({ cls: "sf-codex-vault-tags" });
-	const active = options.tagFilter ?? null;
-	const ink = options.tagInkKey ? inkSlider(options.tagInkKey) : null;
-	for (const tag of tags) {
-		const btn = stack.createSpan({
-			cls: `sf-codex-vault-tag-btn${active === tag.id ? " is-active" : ""}`,
-			attr: { "aria-label": `filter by #${tag.id}` },
-		});
-		setIcon(btn, tag.iconId);
-		bindPaneCornerButton(btn, () => {
-			ink?.capture();
-			options.onChangeTagFilter?.(active === tag.id ? null : tag.id);
-		});
-	}
-	ink?.mount({ container: parent, buttons: ".sf-codex-vault-tag-btn", variant: "codex-tags" });
-}
-
-/**
- * Codex-types / vault-tags hover icons — pinned to the bottom-left of the Codex pane itself
- * (the `.sf-bottom-panel` root), not the storyLibrary view. The tree is the scroller
- * (see `.sf-codex-tree`); this sits outside that overflow so it stays put.
- *
- * Tag-shaped icon → Codex types. Hashtag → vault `#tag` manager.
- */
-function renderCodexTypesCorner(
-	container: HTMLElement,
-	onOpenCodexTypes?: () => void,
-	onOpenTags?: () => void,
-): void {
-	const corner = container.createDiv({ cls: "sf-codex-pane-corner" });
-	if (onOpenCodexTypes) {
-		const typesBtn = corner.createSpan({
-			cls: "sf-codex-types-btn",
-			attr: { "aria-label": "codex types" },
-		});
-		setIcon(typesBtn, ICON_TAG_DUOTONE);
-		bindPaneCornerButton(typesBtn, onOpenCodexTypes);
-	}
-
-	if (onOpenTags) {
-		const tagsBtn = corner.createSpan({
-			cls: "sf-codex-tags-btn",
-			attr: { "aria-label": "vault tags" },
-		});
-		setIcon(tagsBtn, ICON_HASHTAG_SQUARE_DUOTONE);
-		bindPaneCornerButton(tagsBtn, onOpenTags);
 	}
 }
 
