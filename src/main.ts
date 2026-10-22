@@ -1,12 +1,7 @@
 import { MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf, type PaneType } from "obsidian";
 import { existingMainContentLeaf, resolveMainContentLeaf, type MainContentWorkspace } from "./mainContentLeaf";
-import type { Extension } from "@codemirror/state";
-import { createCyclingGuideViewPlugin } from "./cyclingGuide";
-import { createOpeningWordsBackground } from "./openingWords";
 import { StoryForgeView, STORYFORGE_VIEW_TYPE } from "./view/StoryForgeView";
 import { LEGACY_STORYTELLING_VIEW_TYPE, mapLegacyLeftRailViewType, storytellingModeForAutoFocus } from "./view/leftPanelMode";
-import { ContinuousReadView, STORYFORGE_CONTINUOUS_VIEW_TYPE } from "./view/ContinuousReadView";
-import type { ManuscriptGuideSettings } from "./view/manuscript/ManuscriptSurface";
 import { ToolsView, TOOLS_VIEW_TYPE } from "./view/ToolsPanel";
 import { StoryContextView, STORY_CONTEXT_VIEW_TYPE, activateStoryContextView } from "./view/StoryContextView";
 import { ArchiveView, ARCHIVE_VIEW_TYPE, activateArchiveView } from "./view/ArchiveView";
@@ -898,15 +893,6 @@ export default class StoryForgePlugin extends Plugin {
 	private viewContributions: StoryForgeViewContribution[] = [];
 	/** Companion panels for the Forge right-rail tab (nameForge, …). */
 	private companionPanels: StoryForgeCompanionPanel[] = [];
-	/**
-	 * Mutable extensions array registered once via `registerEditorExtension` - Obsidian rebuilds new
-	 * `EditorState`s (e.g. when switching chapters) from this array's *current* contents, so mutating
-	 * it plus `workspace.updateOptions()` keeps both open and freshly-opened editors in sync.
-	 */
-	private cyclingGuideExtensions: Extension[] = [];
-	private currentCyclingGuidePlugin: ReturnType<typeof createCyclingGuideViewPlugin> | null = null;
-	/** Same mutable-array + `workspace.updateOptions()` mechanism as `cyclingGuideExtensions`, for the "depth guide" (settings > guides > depth). */
-	private depthGuideExtensions: Extension[] = [];
 	private backupInProgress = false;
 	/** Guards enforcePanelOrder()'s own detach/recreate against being mistaken for a user tab drag by the layout-change watcher. */
 	private isAdjustingPanelOrder = false;
@@ -927,7 +913,6 @@ export default class StoryForgePlugin extends Plugin {
 		this.api = createHostApi(this);
 		registerCustomIcons();
 		this.registerView(STORYFORGE_VIEW_TYPE, (leaf) => new StoryForgeView(leaf, this));
-		this.registerView(STORYFORGE_CONTINUOUS_VIEW_TYPE, (leaf) => new ContinuousReadView(leaf, this));
 		this.registerView(TOOLS_VIEW_TYPE, (leaf) => new ToolsView(leaf));
 		this.registerView(STORY_CONTEXT_VIEW_TYPE, (leaf) => new StoryContextView(leaf, this));
 		this.registerView(ARCHIVE_VIEW_TYPE, (leaf) => new ArchiveView(leaf, this));
@@ -943,18 +928,6 @@ export default class StoryForgePlugin extends Plugin {
 			id: "open-story-context",
 			name: "Open Context panel",
 			callback: () => void this.activateStoryContextView(),
-		});
-
-		this.addCommand({
-			id: "new-chapter-after-this-one",
-			name: "New chapter after this one",
-			// Continuous mode's manuscript editor only: after the caret's chapter (manuscript brief §3.10).
-			checkCallback: (checking) => {
-				const manuscript = this.app.workspace.getActiveViewOfType(ContinuousReadView);
-				if (!manuscript || !manuscript.canCreateChapters()) return false;
-				if (!checking) void manuscript.createChapterAfterCaret();
-				return true;
-			},
 		});
 
 		this.addCommand({
@@ -992,18 +965,6 @@ export default class StoryForgePlugin extends Plugin {
 		} catch (err) {
 			console.error("storyForge: applyAllStyles failed", err);
 		}
-		try {
-			if (this.pluginSettings.cyclingGuideEnabled) this.rebuildCyclingGuideExtension();
-		} catch (err) {
-			console.error("storyForge: cycling guide failed", err);
-		}
-		this.registerEditorExtension(this.cyclingGuideExtensions);
-		try {
-			if (this.pluginSettings.depthGuideEnabled) this.rebuildDepthGuideExtension();
-		} catch (err) {
-			console.error("storyForge: depth guide failed", err);
-		}
-		this.registerEditorExtension(this.depthGuideExtensions);
 		registerTabTitleOverrides(
 			this.app,
 			(eventRef) => this.registerEvent(eventRef),
@@ -1128,7 +1089,6 @@ export default class StoryForgePlugin extends Plugin {
 		return [
 			STORYFORGE_VIEW_TYPE,
 			LEGACY_STORYTELLING_VIEW_TYPE,
-			STORYFORGE_CONTINUOUS_VIEW_TYPE,
 			TOOLS_VIEW_TYPE,
 			STORY_CONTEXT_VIEW_TYPE,
 			ARCHIVE_VIEW_TYPE,
@@ -1369,11 +1329,6 @@ export default class StoryForgePlugin extends Plugin {
 	}
 
 	onunload(): void {
-		// The manuscript editor's unsaved chapters: onunload can't wait, but the saves it starts
-		// still complete (each is a single vault.process).
-		for (const leaf of this.app.workspace.getLeavesOfType(STORYFORGE_CONTINUOUS_VIEW_TYPE)) {
-			if (leaf.view instanceof ContinuousReadView) void leaf.view.flushPending();
-		}
 		// Restores the native ribbon directly (without detaching the leaf, which would reset
 		// its position on next load) by running the same DOM restoration ToolsView.onClose() does.
 		for (const leaf of this.app.workspace.getLeavesOfType(TOOLS_VIEW_TYPE)) {
@@ -1527,8 +1482,6 @@ export default class StoryForgePlugin extends Plugin {
 		}
 
 		this.applyAllStyles();
-		this.setCyclingGuideEnabled(this.pluginSettings.cyclingGuideEnabled);
-		this.setDepthGuideEnabled(this.pluginSettings.depthGuideEnabled);
 		this.refreshStoryForgeViews();
 	}
 
@@ -1764,65 +1717,6 @@ export default class StoryForgePlugin extends Plugin {
 
 	applyRightRailPanelStyles(): void {
 		this.style.applyRightRailPanelStyles();
-	}
-
-	/** The guides as continuous mode's manuscript editor follows them: a word count per guide, or
-	 * null when it's off. The depth guide's 'chapters covered' setting doesn't apply there. */
-	manuscriptGuideSettings(): ManuscriptGuideSettings {
-		return {
-			depthWords: this.pluginSettings.depthGuideEnabled ? DEPTH_GUIDE_WORDS[this.pluginSettings.depthGuideLevel] : null,
-			cyclingWords: this.pluginSettings.cyclingGuideEnabled
-				? CYCLING_GUIDE_INTERVAL_WORDS[this.pluginSettings.cyclingGuideInterval]
-				: null,
-		};
-	}
-
-	/** Pushes the current guide settings to every open manuscript editor — those don't run
-	 * registered editor extensions, so updateOptions() doesn't reach them. */
-	private refreshManuscriptGuides(): void {
-		for (const leaf of this.app.workspace.getLeavesOfType(STORYFORGE_CONTINUOUS_VIEW_TYPE)) {
-			if (leaf.view instanceof ContinuousReadView) leaf.view.applyGuideSettings();
-		}
-	}
-
-	/** Rebuilds the cycling guide CM6 extension with the current interval setting. */
-	rebuildCyclingGuideExtension(): void {
-		this.cyclingGuideExtensions.length = 0;
-		this.currentCyclingGuidePlugin = createCyclingGuideViewPlugin(CYCLING_GUIDE_INTERVAL_WORDS[this.pluginSettings.cyclingGuideInterval]);
-		this.cyclingGuideExtensions.push(this.currentCyclingGuidePlugin);
-		this.app.workspace.updateOptions();
-		this.refreshManuscriptGuides();
-	}
-
-	/** Enables/disables the "Cycling guide" CM6 extension, applied to every currently-open editor and every editor opened from now on. */
-	setCyclingGuideEnabled(enabled: boolean): void {
-		this.cyclingGuideExtensions.length = 0;
-		this.currentCyclingGuidePlugin = null;
-		if (enabled) this.rebuildCyclingGuideExtension();
-		this.app.workspace.updateOptions();
-		this.refreshManuscriptGuides();
-	}
-
-	/** Rebuilds the "depth guide" CM6 extension with the current level (word target) and chapters-covered settings. */
-	rebuildDepthGuideExtension(): void {
-		this.depthGuideExtensions.length = 0;
-		this.depthGuideExtensions.push(
-			createOpeningWordsBackground(
-				this.app,
-				DEPTH_GUIDE_WORDS[this.pluginSettings.depthGuideLevel],
-				this.pluginSettings.depthGuideChaptersCovered,
-			),
-		);
-		this.app.workspace.updateOptions();
-		this.refreshManuscriptGuides();
-	}
-
-	/** Enables/disables the "Depth guide" CM6 extension, applied to every currently-open editor and every editor opened from now on. */
-	setDepthGuideEnabled(enabled: boolean): void {
-		this.depthGuideExtensions.length = 0;
-		if (enabled) this.rebuildDepthGuideExtension();
-		this.app.workspace.updateOptions();
-		this.refreshManuscriptGuides();
 	}
 
 	applyLibraryHeaderStyles(): void {

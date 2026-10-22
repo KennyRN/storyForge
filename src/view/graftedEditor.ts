@@ -4,8 +4,7 @@ import { App, MarkdownView, TFile, WorkspaceLeaf, WorkspaceSplit } from "obsidia
  * Grafts a real, live, auto-saving Obsidian editor — a genuine `WorkspaceLeaf` running a genuine
  * `MarkdownView` — into an arbitrary container element. Story Context's notebook and codex pages
  * are its only user, through `mountContextEditor` (contextEditor.ts), which mounts it under
- * `.sf-context-editor`. (Continuous mode used this for its old inline click-to-edit; it now has its
- * own manuscript editor, view/manuscript/, which grafts nothing.)
+ * `.sf-context-editor`.
  *
  * There is no *public* API for this — `Editor`/`MarkdownView` have no standalone constructor
  * outside a real `WorkspaceLeaf`, and `Workspace.createLeafInParent` only accepts a `WorkspaceSplit`

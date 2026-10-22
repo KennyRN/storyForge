@@ -13,3 +13,13 @@ export function resolveCurrentChapterIndex<T>(ordered: T[], currentKey: string |
 	const foundIndex = currentKey === null ? -1 : ordered.findIndex((item) => keyOf(item) === currentKey);
 	return foundIndex === -1 ? 0 : foundIndex;
 }
+
+/**
+ * Where to land when a book is entered: the current chapter if it's still on the placed spine,
+ * otherwise the first placed chapter. Returns null only when there are no placed chapters at all.
+ */
+export function resolveEntryChapter(ordered: string[], activeChapterFilename: string | null): string | null {
+	if (ordered.length === 0) return null;
+	if (activeChapterFilename && ordered.includes(activeChapterFilename)) return activeChapterFilename;
+	return ordered[0];
+}

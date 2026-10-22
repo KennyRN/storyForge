@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveCurrentChapterIndex } from "../spineWindow";
+import { resolveCurrentChapterIndex, resolveEntryChapter } from "../spineWindow";
 
 interface Chapter {
 	name: string;
@@ -22,5 +22,22 @@ describe("resolveCurrentChapterIndex", () => {
 
 	it("falls back to the first placed chapter when currentKey is null (nothing open yet)", () => {
 		expect(resolveCurrentChapterIndex(spine, null, keyOf)).toBe(0);
+	});
+});
+
+describe("resolveEntryChapter", () => {
+	const ordered = ["a.md", "b.md", "c.md"];
+
+	it("returns null for an empty spine", () => {
+		expect(resolveEntryChapter([], "a.md")).toBeNull();
+	});
+
+	it("lands on the active chapter when it's on the spine", () => {
+		expect(resolveEntryChapter(ordered, "b.md")).toBe("b.md");
+	});
+
+	it("falls back to the first placed chapter when the active chapter isn't on the spine", () => {
+		expect(resolveEntryChapter(ordered, "idea.md")).toBe("a.md");
+		expect(resolveEntryChapter(ordered, null)).toBe("a.md");
 	});
 });

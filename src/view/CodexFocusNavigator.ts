@@ -1,12 +1,9 @@
 import { App, TFile, setIcon } from "obsidian";
 import { chapterDisplayTitle, getBookChapters } from "../book";
 import { resolveCurrentChapterIndex } from "../spineWindow";
-import { canEnterContinuousMode } from "../continuousMode";
 import { applyHashNumbering, splitTitleSubtitle } from "../titleNumbering";
 import type { NumberingStyle } from "../numberingStyle";
 import { makeAccessibleActivatable } from "./a11y";
-import { renderContinuousToggle, renderIndicatorSlot } from "./navigatorControls";
-import { onContinuousMode } from "./continuousEvents";
 import { ICON_ADD_CIRCLE } from "../icons";
 
 export interface CodexFocusNavigatorOptions {
@@ -25,23 +22,6 @@ export interface CodexFocusNavigatorOptions {
 	 * function re-renders from scratch on every call and has no state of its own. */
 	chapterSelectorExpanded: boolean;
 	onToggleChapterSelectorExpanded: () => void;
-	/** Non-null while the continuous read view (main editor pane) is open on this book — the
-	 * chapter it's currently centred on. The sidebar renders the live position indicator instead of
-	 * the normal chapter selector while this is set (continuous-mode hand-off brief §2, corrected:
-	 * the manuscript lives in the main pane, but the navigation around it is still this sidebar's
-	 * job, same as everywhere else in the app). */
-	continuousActiveFilename: string | null;
-	/** Opens the continuous read view in the main editor pane. */
-	onOpenContinuousRead: (bookFolderName: string) => void;
-	/** Exits continuous mode: replaces the read view's leaf with a real single-chapter editor on
-	 * whichever chapter it's currently centred on. */
-	onExitContinuousRead: (bookFolderName: string) => void;
-	/** Commands the read view to scroll to a chapter — the live indicator's row and, when
-	 * expanded, its own chapter list while continuous mode is active. */
-	onContinuousScrollTo: (bookFolderName: string, filename: string) => void;
-	/** Registers the live position indicator's event-listener teardown — must run before the next
-	 * render discards this DOM (see StoryForgeView.render()). */
-	registerContinuousCleanup: (dispose: () => void) => void;
 }
 
 /**
@@ -57,11 +37,8 @@ export interface CodexFocusNavigatorOptions {
  * navigator (no numbering column); storytelling mode left-aligns titles and Codex rows
  * to the same inset (see `.storyforge-storytelling-view` in styles.css).
  *
- * The continuous-mode toggle sits in its own column to the left of the selector (the transport
- * chevrons that used to live either side of it are gone). While the continuous read view is open,
- * this sidebar swaps its own selector for a read-only live position indicator that expands the
- * same way, scrolling the manuscript instead of opening files — the manuscript itself never
- * renders here, only the navigation around it.
+ * An empty column to the left of the selector keeps the layout where the continuous-mode toggle
+ * used to sit.
  */
 export function renderCodexFocusNavigator(app: App, container: HTMLElement, options: CodexFocusNavigatorOptions): void {
 	container.empty();
@@ -85,13 +62,8 @@ export function renderCodexFocusNavigator(app: App, container: HTMLElement, opti
 		options.chapterNumberingStyle,
 	);
 	const titleFor = (file: TFile) => numbered[ordered.indexOf(file)];
-	const canGoContinuous = canEnterContinuousMode(ordered.length);
 
-	if (options.continuousActiveFilename && canGoContinuous) {
-		renderContinuousIndicator(app, wrap, ordered, bookFolderName, titleFor, options);
-	} else {
-		renderSelectorBody(wrap, ordered, bookFolderName, titleFor, canGoContinuous, options);
-	}
+	renderSelectorBody(wrap, ordered, bookFolderName, titleFor, options);
 }
 
 function renderSelectorBody(
@@ -99,18 +71,13 @@ function renderSelectorBody(
 	ordered: TFile[],
 	bookFolderName: string,
 	titleFor: (file: TFile) => string,
-	canGoContinuous: boolean,
 	options: CodexFocusNavigatorOptions,
 ): void {
 	const currentIndex = resolveCurrentChapterIndex(ordered, options.activeChapterFilename, (file) => file.name);
 	const currentFile = ordered[currentIndex];
 
 	const body = wrap.createDiv({ cls: "sf-navigator-body" });
-	const toggleCol = body.createDiv({ cls: "sf-navigator-transport-col" });
-	renderContinuousToggle(
-		toggleCol,
-		canGoContinuous ? { active: false, onToggle: () => options.onOpenContinuousRead(bookFolderName) } : null,
-	);
+	body.createDiv({ cls: "sf-navigator-transport-col" });
 
 	const chapterCol = body.createDiv({ cls: "sf-navigator-chapter-col" });
 	const windowEl = chapterCol.createDiv({ cls: "sf-top-list sf-navigator-window" });
@@ -136,57 +103,6 @@ function renderSelectorBody(
 			options.onToggleChapterSelectorExpanded,
 		);
 	}
-}
-
-/**
- * The sidebar's half of continuous mode (continuous-mode hand-off brief §2, corrected): a
- * read-only live position row standing in for the current-chapter selector, expanding the same
- * way into a scroll-to list. Painted immediately from `options.continuousActiveFilename` (a
- * synchronous read of the read view's own state — see StoryForgeView.render()), then kept live via
- * the position-change event for as long as this DOM survives, independent of the sidebar's own
- * re-render cycle. Expand/collapse is a discrete user click, not a hot path, so it goes through the
- * normal top-level re-render (options.onToggleChapterSelectorExpanded) rather than being painted
- * locally — only the live position itself needs the cheaper local repaint below.
- */
-function renderContinuousIndicator(
-	app: App,
-	wrap: HTMLElement,
-	ordered: TFile[],
-	bookFolderName: string,
-	titleFor: (file: TFile) => string,
-	options: CodexFocusNavigatorOptions,
-): void {
-	const body = wrap.createDiv({ cls: "sf-navigator-body" });
-	const toggleCol = body.createDiv({ cls: "sf-navigator-transport-col" });
-	renderContinuousToggle(toggleCol, { active: true, onToggle: () => options.onExitContinuousRead(bookFolderName) });
-
-	const chapterCol = body.createDiv({ cls: "sf-navigator-chapter-col" });
-
-	const paint = (currentFilename: string): void => {
-		chapterCol.empty();
-		const indicatorEl = chapterCol.createDiv({ cls: "sf-top-list sf-navigator-window sf-navigator-indicator" });
-		const currentFile = ordered.find((file) => file.name === currentFilename) ?? ordered[0];
-		renderIndicatorSlot(indicatorEl, currentFile, true, titleFor, options.highlightActiveChapter, () =>
-			options.onToggleChapterSelectorExpanded(),
-		);
-
-		if (options.chapterSelectorExpanded) {
-			const list = chapterCol.createDiv({ cls: "sf-top-list sf-navigator-window sf-navigator-expanded-list sf-navigator-indicator" });
-			for (const file of ordered) {
-				renderIndicatorSlot(list, file, file.name === currentFilename, titleFor, options.highlightActiveChapter, (filename) => {
-					options.onContinuousScrollTo(bookFolderName, filename);
-					options.onToggleChapterSelectorExpanded();
-				});
-			}
-		}
-	};
-
-	paint(options.continuousActiveFilename as string);
-
-	const ref = onContinuousMode(app, (payload) => {
-		if (payload.active && payload.bookFolderName === bookFolderName) paint(payload.filename);
-	});
-	options.registerContinuousCleanup(() => app.workspace.offref(ref));
 }
 
 /** The single always-visible chapter row — day-to-day, the whole of the chapter selector. Its

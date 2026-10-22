@@ -26,9 +26,7 @@ import { disposeInkSliders } from "./inkSlider";
 import { layoutConfig, SF_LAYOUTS, SF_LAYOUT_LABELS, type SfLayout } from "../layout";
 import { createContinuingChapter } from "../chapterCreation";
 import { getBookChapters } from "../book";
-import { canEnterContinuousMode, resolveEntryChapter } from "../continuousMode";
-import { STORYFORGE_CONTINUOUS_VIEW_TYPE, type ContinuousReadView } from "./ContinuousReadView";
-import { emitContinuousScrollTo, onContinuousMode } from "./continuousEvents";
+import { resolveEntryChapter } from "../spineWindow";
 import { OBSIDIAN_SELECTORS } from "../obsidianInternals";
 import { focusModeForStorytellingMode } from "./leftPanelMode";
 
@@ -72,7 +70,6 @@ export class StoryForgeView extends ItemView {
 	private statsCounts: Record<StatsMode, number> = { daily: 0, weekly: 0, chapter: 0, story: 0 };
 	/** Tears down the live position indicator's event-listener — must run before the next render
 	 * discards its DOM (see render()). */
-	private continuousCleanup: (() => void) | null = null;
 	/**
 	 * Session-only left-rail face: storytelling mode (navigator + Codex + stats) vs storyforge
 	 * (layout tabs). Initialized from `autoFocus` on open; header click / commands flip it.
@@ -192,12 +189,6 @@ export class StoryForgeView extends ItemView {
 		this.registerEvent(this.app.vault.on("create", (file) => { if (!isBackstageBookkeepingPath(file.path)) this.debouncedRender(); }));
 		this.registerEvent(this.app.vault.on("modify", (file) => { if (!isBackstageBookkeepingPath(file.path)) this.debouncedRender(); }));
 		this.registerEvent(this.app.metadataCache.on("changed", () => this.debouncedRender()));
-		// Safety net for the structural transition back to the normal window: the read view's own
-		// close (however it happens — the sidebar's exit control, the user closing the tab, etc.)
-		// must not leave this sidebar stuck showing a live indicator for a view that's gone. Ignores
-		// active:true — that fires on every scroll tick, and the indicator already updates itself
-		// far more cheaply than a full render (see CodexFocusNavigator.ts's renderContinuousIndicator).
-		this.registerEvent(onContinuousMode(this.app, (payload) => { if (!payload.active) this.render(); }));
 		try {
 			this.followActiveFile();
 			this.syncTabHeader();
@@ -221,19 +212,7 @@ export class StoryForgeView extends ItemView {
 	async onClose(): Promise<void> {
 		this.closed = true;
 		this.debouncedRender.cancel();
-		this.continuousCleanup?.();
-		disposeInkSliders(["library-codex-tags", "storytelling-codex-tags", "storytelling-continuous"]);
-	}
-
-	/** The read view's leaf open on `bookFolderName`, if any — used both to know whether continuous
-	 * mode is active for the currently-selected book and to read its live chapter synchronously,
-	 * or to replace it with a real editor on exit. */
-	private findContinuousReadLeaf(bookFolderName: string): WorkspaceLeaf | null {
-		for (const leaf of this.app.workspace.getLeavesOfType(STORYFORGE_CONTINUOUS_VIEW_TYPE)) {
-			const view = leaf.view as ContinuousReadView;
-			if (typeof view.getBookFolderName === "function" && view.getBookFolderName() === bookFolderName) return leaf;
-		}
-		return null;
+		disposeInkSliders(["library-codex-tags", "storytelling-codex-tags"]);
 	}
 
 	private followActiveFile(): void {
@@ -287,8 +266,6 @@ export class StoryForgeView extends ItemView {
 		if (isDragInProgress()) return;
 		// Tear down the previous render's live position indicator (if any) before its DOM goes away
 		// — its event listener would otherwise keep firing against a detached element.
-		this.continuousCleanup?.();
-		this.continuousCleanup = null;
 		const container = this.contentEl;
 		container.empty();
 		container.toggleClass("storyforge-storytelling-view", this.storytellingMode);
@@ -354,8 +331,6 @@ export class StoryForgeView extends ItemView {
 
 		// Synchronous read of the read view's own state (a direct method call, not an event) — always
 		// fresh, so a book switch or the read view closing is reflected the moment this re-renders.
-		const continuousReadLeaf = this.currentBookFolderName ? this.findContinuousReadLeaf(this.currentBookFolderName) : null;
-		const continuousActiveFilename = continuousReadLeaf ? (continuousReadLeaf.view as ContinuousReadView).getCurrentFilename() : null;
 
 		// The Codex tab has no top pane at all — skip creating .sf-top-panel entirely rather than
 		// rendering it empty, so the codex-only grid (.sf-layout-codex-only) has just tabs + codex.
@@ -426,13 +401,6 @@ export class StoryForgeView extends ItemView {
 				onArchiveChapter: async () => {
 					if (this.closed) return;
 					await this.refreshStats();
-				},
-				continuousActiveFilename,
-				onOpenContinuousRead: (bookFolderName) => void this.openContinuousRead(bookFolderName),
-				onExitContinuousRead: (bookFolderName) => void this.exitContinuousRead(bookFolderName),
-				onContinuousScrollTo: (bookFolderName, filename) => emitContinuousScrollTo(this.app, { bookFolderName, filename }),
-				registerContinuousCleanup: (dispose) => {
-					this.continuousCleanup = dispose;
 				},
 			});
 
@@ -533,8 +501,6 @@ export class StoryForgeView extends ItemView {
 		container.toggleClass("sf-layout-library-only", false);
 
 		const mode = this.plugin.getSettings().hideSeriesPane ? "novel" : "navigator";
-		const continuousReadLeaf = this.currentBookFolderName ? this.findContinuousReadLeaf(this.currentBookFolderName) : null;
-		const continuousActiveFilename = continuousReadLeaf ? (continuousReadLeaf.view as ContinuousReadView).getCurrentFilename() : null;
 
 		const topEl = container.createDiv({ cls: "sf-top-panel sf-top-panel--above-codex" });
 		renderTopPanel(this.app, topEl, {
@@ -580,13 +546,6 @@ export class StoryForgeView extends ItemView {
 			onArchiveChapter: async () => {
 				if (this.closed) return;
 				await this.refreshStats();
-			},
-			continuousActiveFilename,
-			onOpenContinuousRead: (bookFolderName) => void this.openContinuousRead(bookFolderName),
-			onExitContinuousRead: (bookFolderName) => void this.exitContinuousRead(bookFolderName),
-			onContinuousScrollTo: (bookFolderName, filename) => emitContinuousScrollTo(this.app, { bookFolderName, filename }),
-			registerContinuousCleanup: (dispose) => {
-				this.continuousCleanup = dispose;
 			},
 		});
 
@@ -813,51 +772,4 @@ export class StoryForgeView extends ItemView {
 		this.plugin.focusStoryContextOnChapter(bookFolderName, chapterFilename);
 	}
 
-	/** The navigator's continuous-mode launcher (continuous-mode hand-off brief §2, corrected): the
-	 * sidebar is menus only, so this opens the reading surface in the main editor pane instead of
-	 * rendering it here — landing on the reader's current chapter, same as the brief's entry rule. */
-	private async openContinuousRead(bookFolderName: string): Promise<void> {
-		const { ordered } = getBookChapters(this.app, bookFolderName);
-		if (!canEnterContinuousMode(ordered.length)) return;
-		const entryFilename = resolveEntryChapter(
-			ordered.map((file) => file.name),
-			this.activeChapterFilename,
-		);
-		if (!entryFilename) return;
-		const leaf = this.plugin.getMainContentLeaf();
-		await leaf.setViewState({ type: STORYFORGE_CONTINUOUS_VIEW_TYPE, active: true, state: { bookFolderName, entryFilename } });
-		await this.app.workspace.revealLeaf(leaf);
-		// Don't wait on active-leaf-change/file-open to notice — a custom view has no TFile of its
-		// own for followActiveFile() to key off, so re-render explicitly rather than rely on timing.
-		if (!this.closed) this.render();
-	}
-
-	/** The sidebar's "exit continuous mode" control: replaces the manuscript's own leaf with the
-	 * normal chapter editor — on the caret's chapter, caret at the same place in the file, when the
-	 * caret is on screen; otherwise on the chapter at the top of the screen (manuscript brief §3.7). */
-	private async exitContinuousRead(bookFolderName: string): Promise<void> {
-		const leaf = this.findContinuousReadLeaf(bookFolderName);
-		if (!leaf) return;
-		const manuscript = leaf.view as ContinuousReadView;
-		// Saved before the normal editor reads the file, so it opens on the author's latest text.
-		await manuscript.flushPending();
-		const target = manuscript.getExitTarget();
-		if (!target) return;
-		const path = libraryChapterPath(bookFolderName, target.filename);
-		const file = this.app.vault.getAbstractFileByPath(path);
-		if (!(file instanceof TFile)) return;
-		await leaf.openFile(file, { active: true });
-		// Force-select the editor leaf itself (not just open the file into it) — without this the
-		// workspace can still consider the sidebar (or nothing) active, which is what was behind
-		// the stale toggle/indicator: active-leaf-change never fired the way a normal file-open would.
-		this.app.workspace.setActiveLeaf(leaf, { focus: true });
-		if (target.offset !== null && leaf.view instanceof MarkdownView) {
-			const editor = leaf.view.editor;
-			editor.setCursor(editor.offsetToPos(target.offset));
-			editor.scrollIntoView({ from: editor.getCursor(), to: editor.getCursor() }, true);
-		}
-		// Same reasoning as openContinuousRead(): re-render immediately rather than wait for events,
-		// so the toggle reverts to its normal icon and the window becomes clickable again straight away.
-		if (!this.closed) this.render();
-	}
 }
