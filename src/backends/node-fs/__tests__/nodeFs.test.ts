@@ -144,3 +144,38 @@ describe("NodeFsBackend writes", () => {
 		expect(await b.readText("Codex/Café — 日本語.md")).toBe("x");
 	});
 });
+
+describe("NodeFsBackend.writeTextIfUnchanged", () => {
+	it("writes when the file still holds the expected text, exactly as given, leaving no temp file", async () => {
+		fs.writeFileSync(path.join(dir, "a.md"), "one\r\ntwo\r\n");
+		expect(await b.writeTextIfUnchanged("a.md", "one\r\ntwo\r\n", "one\ntwo\nthree\n")).toBe("written");
+		expect(fs.readFileSync(path.join(dir, "a.md"), "utf8")).toBe("one\ntwo\nthree\n");
+		expect(fs.readdirSync(dir)).toEqual(["a.md"]);
+	});
+	it("reports a conflict and leaves the file and the folder untouched when the text changed", async () => {
+		fs.writeFileSync(path.join(dir, "a.md"), "outside edit");
+		expect(await b.writeTextIfUnchanged("a.md", "what we last saw", "ours")).toBe("conflict");
+		expect(fs.readFileSync(path.join(dir, "a.md"), "utf8")).toBe("outside edit");
+		expect(fs.readdirSync(dir)).toEqual(["a.md"]);
+	});
+	it("rejects with ENOENT for a missing file and never creates it", async () => {
+		await expect(b.writeTextIfUnchanged("nope.md", "", "x")).rejects.toMatchObject({ code: "ENOENT" });
+		expect(fs.readdirSync(dir)).toEqual([]);
+	});
+	it("treats a replaced file (same text, new inode) between the comparison and the swap as a conflict", async () => {
+		fs.writeFileSync(path.join(dir, "a.md"), "same");
+		b.afterCompareHook = (abs) => {
+			fs.rmSync(abs);
+			fs.writeFileSync(abs, "same");
+		};
+		expect(await b.writeTextIfUnchanged("a.md", "same", "ours")).toBe("conflict");
+		expect(fs.readFileSync(path.join(dir, "a.md"), "utf8")).toBe("same");
+		expect(fs.readdirSync(dir)).toEqual(["a.md"]);
+	});
+	it("treats an appended-to file between the comparison and the swap as a conflict", async () => {
+		fs.writeFileSync(path.join(dir, "a.md"), "same");
+		b.afterCompareHook = (abs) => fs.appendFileSync(abs, " + more");
+		expect(await b.writeTextIfUnchanged("a.md", "same", "ours")).toBe("conflict");
+		expect(fs.readFileSync(path.join(dir, "a.md"), "utf8")).toBe("same + more");
+	});
+});

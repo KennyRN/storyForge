@@ -22,7 +22,6 @@ import {
 import {
 	getChapterEntry,
 	insertChapterEntry,
-	pruneMissingChapterCodexRefs,
 	readBookFrontmatter,
 	rekeyChapterLocationReferences,
 	rekeyChapterPovReferences,
@@ -30,7 +29,7 @@ import {
 	renameChapterEntry,
 	writeBookChapterOrder,
 } from "./book";
-import { pruneMissingCodexNotes, rekeyCodexNotePath } from "./codex";
+import { rekeyCodexNotePath } from "./codex";
 import { deleteChapterSidecar, renameChapterSidecar } from "./chapterSidecar";
 import { deleteStoryDetailsSidecar, renameStoryDetailsSidecar } from "./storyDetailsSidecar";
 import { renameSeriesBookEntry } from "./series";
@@ -60,12 +59,6 @@ export async function reconcileDelete(project: Project, path: string): Promise<v
 		await rekeyChapterPovReferences(project, path, null);
 		await rekeyChapterLocationReferences(project, path, null);
 	}
-}
-
-/** Something under `Codex/` changed on disk: drop references to notes that no longer exist. */
-export async function reconcileExternalCodexChange(project: Project): Promise<void> {
-	await pruneMissingCodexNotes(project);
-	await pruneMissingChapterCodexRefs(project);
 }
 
 /** True for a path the Codex reconciliation cares about. */

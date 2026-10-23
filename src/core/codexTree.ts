@@ -87,7 +87,7 @@ export function countFilesInFolder(folders: CodexFolders, folderId: string): num
  * Unplaced files (real, visible, referenced nowhere in the stored tree) are appended as
  * flat file nodes at the end of the root's children — never persisted, computed fresh here.
  * Orphaned order entries (referencing a deleted file or folder id) are silently skipped
- * at render. Missing *files* are stripped from `codex.md` by `pruneMissingCodexNotes` /
+ * at render. Missing *files* are stripped from `codex.md` by the reconciler (reconciler.ts) /
  * vault-delete reconciliation; this skip is the display fallback until that write lands.
  *
  * `tagFilterMode` (vault `#tag` views): omit empty organisational placeholders and folders whose

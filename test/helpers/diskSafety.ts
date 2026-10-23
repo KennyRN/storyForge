@@ -27,13 +27,14 @@ export interface Ctx {
 
 export interface FileSpec {
 	/** How to compare the file: a markdown file with frontmatter, a whole-file YAML document, or just "may change". */
-	format: "frontmatter" | "yaml" | "text";
+	format: "frontmatter" | "yaml" | "text" | "prose";
 	/** Key paths the operation may change (e.g. [["chapters","ch-a1.md","pov"]]). Everything else must be byte-identical. */
 	touched?: string[][];
 	/** Frontmatter files: the note body below must be unchanged (default true for "frontmatter"). */
 	bodySame?: boolean;
 	/** Text files: the frontmatter section must be unchanged, only the rest may differ. */
 	frontmatterSame?: boolean;
+	/** "prose": a chapter or Codex note written by the prose writer or the link rewriter. The frontmatter section and the line-ending style must be byte-identical; the body may change. */
 }
 
 export interface OpSpec {
@@ -130,6 +131,12 @@ export function leafDiffs(before: unknown, after: unknown, at: string[] = []): s
 
 export function assertMinimal(file: string, beforeText: string, afterText: string, spec: FileSpec): void {
 	const touched = spec.touched ?? [];
+	if (spec.format === "prose") {
+		expect(splitFrontmatterSection(afterText)?.frontmatter ?? "", `${file}: the frontmatter must be carried through byte for byte`).toBe(splitFrontmatterSection(beforeText)?.frontmatter ?? "");
+		const eol = (t: string) => (/\r\n/.test(bodyOf(t)) ? "crlf" : "lf");
+		if (bodyOf(afterText).includes("\n")) expect(eol(afterText), `${file}: line endings`).toBe(eol(beforeText));
+		return;
+	}
 	if (spec.format === "text") {
 		if (spec.frontmatterSame) {
 			expect(splitFrontmatterSection(afterText)?.frontmatter, `${file}: frontmatter must not change`).toBe(splitFrontmatterSection(beforeText)?.frontmatter);
@@ -198,8 +205,10 @@ export async function checkOperation(spec: OpSpec): Promise<void> {
 	}
 
 	let error: unknown;
+	let indexProject = ctx.project;
 	try {
-		await spec.run(ctx);
+		const out = (await spec.run(ctx)) as { project?: Project } | undefined;
+		if (out && typeof out === "object" && out.project) indexProject = out.project;
 	} catch (err) {
 		error = err;
 	}
@@ -231,6 +240,7 @@ export async function checkOperation(spec: OpSpec): Promise<void> {
 		if (!isProse(file)) continue;
 		if (spec.removed?.includes(file)) continue; // moved by the (external) setup or an expected rename
 		if (spec.changed?.[file]) {
+			if (spec.changed[file].format === "prose") continue; // a prose write: its own checks run in assertMinimal
 			// only a Codex note's frontmatter may change, never its body
 			expect(/^Codex\//i.test(file), `${spec.name}: ${file} is a chapter and must not change`).toBe(true);
 			expect(bodyOf(fs.readFileSync(ctx.abs(file), "utf8")), `${spec.name}: ${file} body`).toBe(bodyOf(beforeText.get(file) as string));
@@ -254,6 +264,6 @@ export async function checkOperation(spec: OpSpec): Promise<void> {
 	// 5. the index equals a fresh scan
 	if (!spec.throws || diff.changed.length + diff.added.length + diff.removed.length > 0) {
 		const fresh = await ProjectIndex.build(new NodeFsBackend(ctx.root));
-		expect(normalisedIndex(ctx.project.index), `${spec.name}: index vs disk`).toEqual(normalisedIndex(fresh));
+		expect(normalisedIndex(indexProject.index), `${spec.name}: index vs disk`).toEqual(normalisedIndex(fresh));
 	}
 }

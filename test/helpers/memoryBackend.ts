@@ -64,6 +64,25 @@ export class MemoryBackend implements Backend {
 		this.clock++;
 		this.setFile(path, text);
 	}
+	/** Test hooks: run just before the comparison (to simulate an outside writer) / force a failure. */
+	beforeCompare?: (path: string) => void;
+	failNextWrite?: Error;
+	async writeTextIfUnchanged(path: string, expected: string, text: string): Promise<"written" | "conflict"> {
+		this.beforeCompare?.(path);
+		const c = this.files.get(path);
+		if (c === undefined) throw new BackendError("ENOENT", `no such file: ${path}`, path);
+		if (this.failNextWrite) {
+			const err = this.failNextWrite;
+			this.failNextWrite = undefined;
+			throw err;
+		}
+		const current = typeof c === "string" ? c : new TextDecoder().decode(c);
+		if (current !== expected) return "conflict";
+		this.writes.push(`writeTextIfUnchanged:${path}`);
+		this.clock++;
+		this.setFile(path, text);
+		return "written";
+	}
 	async writeBinary(path: string, data: Uint8Array): Promise<void> {
 		this.writes.push(`writeBinary:${path}`);
 		this.clock++;

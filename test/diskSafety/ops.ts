@@ -4,8 +4,7 @@ import { expect } from "vitest";
 import * as path from "node:path";
 import type { OpSpec, Ctx } from "../helpers/diskSafety";
 import {
-	archiveChapter, createBook, createChapter, ensureAllChapterEntries, insertChapterEntry, pruneMissingChapterCodexRefs,
-	pruneMissingChapterEntries, removeChapterEntry, readBookFrontmatter, renameBookTitle, renameChapterEntry, renameChapterTitle,
+	archiveChapter, createBook, createChapter, ensureAllChapterEntries, insertChapterEntry, removeChapterEntry, readBookFrontmatter, renameBookTitle, renameChapterEntry, renameChapterTitle,
 	rekeyChapterLocationReferences, rekeyChapterPovReferences, reorderSeriesBooks, syncAllBookReferenceFields, unarchiveChapter,
 	upsertChapterEntry, writeBookArchiveOrder, writeBookChapterOrder, writeBookCoverImage, writeBookPlannedChapterLength,
 	writeBookPlannedNovelLength, writeBookSynopsis, writeChapterColor, writeChapterLocation, writeChapterPlot, writeChapterPlotThread,
@@ -15,14 +14,14 @@ import { createContinuingChapter } from "../../src/core/chapterCreation";
 import { deleteChapterSidecar, renameChapterSidecar, updateChapterFingerprint } from "../../src/core/chapterSidecar";
 import {
 	addCodexNoteAlias, archiveCodexItem, convertCodexNoteToFolder, createCodexFolder, createCodexNote, ensureVirtualFolder, moveCodexItem,
-	pruneMissingCodexNotes, reconcileMissingCodexNotes, rekeyCodexNotePath, removeCodexFolder, renameCodexFolder, renameCodexNoteFile,
+	rekeyCodexNotePath, removeCodexFolder, renameCodexFolder,
 	reorderArchivedCodexItems, setCodexEntryType, unarchiveCodexItem,
 } from "../../src/core/codex";
 import {
 	getBookWordStats, recomputeBookCurrent, recomputeBookTotal, recordChapterArchive, recordChapterEdit, recordChapterUnarchive,
 } from "../../src/core/history";
 import {
-	reconcileDelete, reconcileExternalCodexChange, reconcileRename,
+	reconcileDelete, reconcileRename,
 } from "../../src/core/reconciliation";
 import {
 	ensureAllSeriesBookEntries, ensureSeriesFile, renameSeriesBookEntry, upsertSeriesBookEntry, writeSeriesBookColor, writeSeriesBookTitle,
@@ -196,14 +195,12 @@ export const OPS: OpSpec[] = [
 			[N]: fm(["chapters", "ch-a1.md", "location"], ["chapters", "ch-a2.md", "location"], ["chapters", "ch-a2.md", "location-path"], ["chapters", "ch-a2.md", "location-name"]),
 		},
 	},
-	{ name: "pruneMissingChapterCodexRefs (every ref exists)", run: (c) => pruneMissingChapterCodexRefs(c.project) },
-	{
+		{
 		name: "renameChapterEntry",
 		run: (c) => renameChapterEntry(c.project, "aaa", "ch-a2.md", "ch-a2x.md"),
 		changed: { [N]: fm(["chapters", "ch-a2.md"], ["chapters", "ch-a2x.md"], ["chapter-order"]) },
 	},
-	{ name: "pruneMissingChapterEntries (all present)", run: (c) => pruneMissingChapterEntries(c.project, "aaa") },
-	{
+		{
 		name: "removeChapterEntry",
 		run: (c) => removeChapterEntry(c.project, "aaa", "ch-a3.md"),
 		changed: { [N]: fm(["chapters", "ch-a3.md"], ["unplaced"], ["chapter-order"], ["archive"]) },
@@ -270,9 +267,7 @@ export const OPS: OpSpec[] = [
 		run: (c) => rekeyCodexNotePath(c.project, "Codex/Sam.md", "Codex/Samuel.md"),
 		changed: { [CODEX]: fm(["folders"], ["types"]) },
 	},
-	{ name: "pruneMissingCodexNotes (every note exists)", run: (c) => pruneMissingCodexNotes(c.project) },
-	{ name: "reconcileMissingCodexNotes (every note exists)", run: (c) => reconcileMissingCodexNotes(c.project) },
-	{ name: "moveCodexItem", run: (c) => moveCodexItem(c.project, "Codex/Sam.md", "file", "f-places", null), changed: { [CODEX]: fm(["folders"], ["order"]) } },
+			{ name: "moveCodexItem", run: (c) => moveCodexItem(c.project, "Codex/Sam.md", "file", "f-places", null), changed: { [CODEX]: fm(["folders"], ["order"]) } },
 	{ name: "ensureTagRegistryFile (exists)", run: (c) => ensureTagRegistryFile(c.project) },
 
 	// ------------------------------------------------- the one Codex write: aliases only
@@ -297,7 +292,6 @@ export const OPS: OpSpec[] = [
 		changed: { "Codex/NoNewline.md": { format: "frontmatter", touched: [["aliases"]] } },
 	},
 	{ name: "addCodexNoteAlias (duplicate writes nothing)", run: (c) => addCodexNoteAlias(c.project, "Codex/Jane.md", "j") },
-	{ name: "renameCodexNoteFile is refused", run: (c) => renameCodexNoteFile(c.project, c.project.entry("Codex/Jane.md")!, "Janet"), throws: /not available yet/ },
 
 	// -------------------------------------------------------------------------------- sidecars
 	{ name: "updateChapterFingerprint (existing sidecar)", run: (c) => updateChapterFingerprint(c.project, "aaa", "ch-a1.md", { opening: "NEW OPEN", closing: "NEW CLOSE" }), changed: { [SIDE]: { format: "text", frontmatterSame: true } } },
@@ -408,9 +402,9 @@ export const OPS: OpSpec[] = [
 		},
 	},
 	{
-		name: "reconcileExternalCodexChange: a Codex note deleted, then reconciled",
+		name: "reconcileDelete: a Codex note deleted outside, its references dropped",
 		setup: (c) => externalDelete(c, "Codex/Harbour.md"),
-		run: (c) => reconcileExternalCodexChange(c.project),
+		run: (c) => reconcileDelete(c.project, "Codex/Harbour.md"),
 		changed: {
 			[CODEX]: fm(["folders"], ["types"]),
 			[N]: fm(["chapters", "ch-a1.md", "location"], ["chapters", "ch-a2.md", "location"], ["chapters", "ch-a2.md", "location-path"], ["chapters", "ch-a2.md", "location-name"]),

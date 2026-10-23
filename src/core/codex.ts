@@ -318,11 +318,6 @@ export async function uniqueCodexFilename(
 	return `${stem} ${n}.md`;
 }
 
-/** True when `path` is a Codex markdown file that exists (case-insensitively). */
-function vaultPathExistsOnDisk(project: Project, path: string): boolean {
-	return pathInSet(listCodexMarkdownOnDisk(project), path);
-}
-
 function isCodexPathOccupied(project: Project, path: string, ignorePath?: string): boolean {
 	if (ignorePath && sameVaultPath(path, ignorePath)) return false;
 	return pathInSet(listCodexMarkdownOnDisk(project), path);
@@ -400,31 +395,6 @@ export async function createCodexNote(
 		fm.order = order;
 	});
 	return file;
-}
-
-/** Thrown by renameCodexNoteFile: a Codex note cannot be renamed until link rewriting exists. */
-export class CodexRenameUnavailableError extends Error {
-	constructor(public readonly path: string) {
-		super(
-			`Renaming the Codex note "${path}" is not available yet: a rename has to update [[links]] to the note, ` +
-				`and link rewriting has not been built. Nothing was renamed.`,
-		);
-		this.name = "CodexRenameUnavailableError";
-	}
-}
-
-/**
- * Renaming a Codex note used to go through Obsidian's link-updating rename. Without it a rename
- * would silently break `[[links]]`, so a real rename is **refused** with a typed error (the link
- * rewriting exception is a later piece of work). Blank or unchanged names, and names that resolve to
- * the note's own, are still a no-op.
- */
-export async function renameCodexNoteFile(_project: Project, file: IndexEntry, newBasename: string): Promise<void> {
-	const stem = sanitizeCodexBasename(newBasename);
-	if (!stem || stem === file.basename) return;
-	const filename = await uniqueCodexFilename(_project, stem, file.path);
-	if (sameVaultPath(`${CODEX_ROOT}/${filename}`, file.path)) return; // the name resolves to the note's own: nothing to rename
-	throw new CodexRenameUnavailableError(file.path);
 }
 
 /**
@@ -530,6 +500,14 @@ export async function convertCodexNoteToFolder(project: Project, path: string): 
 	return newId;
 }
 
+/** True when the note is archived directly, or sits inside an archived folder (or is an archived folder's linked note). */
+export function isCodexNoteArchived(project: Project, path: string): boolean {
+	const { folders, archive } = readCodexFrontmatter(project);
+	const target = path.toLowerCase();
+	for (const p of collectReferencedPaths(folders, archive)) if (p.toLowerCase() === target) return true;
+	return false;
+}
+
 export function getArchivedCodexItems(project: Project): ArchivedCodexItem[] {
 	const { folders, archive } = readCodexFrontmatter(project);
 	return archive.map((key) => {
@@ -583,73 +561,6 @@ export async function rekeyCodexNotePath(project: Project, oldPath: string, newP
 		fm.archive = rekey(archive);
 		fm.types = types;
 	});
-}
-
-/**
- * Drop every file-path reference in `codex.md` whose note is no longer in the vault.
- * Virtual folder ids stay. Used after an external delete (Finder, etc.) and on vault
- * open for deletes that happened while Obsidian was closed — `resolveCodexTree` already
- * hides these orphans; this writes the cleanup back to the order markdown.
- */
-export function stripMissingCodexNoteRefs(
-	folders: CodexFolders,
-	order: string[],
-	archive: string[],
-	types: Record<string, string>,
-	pathExists: (path: string) => boolean,
-): CodexFrontmatterShape {
-	const keep = (key: string): boolean => isFolderKey(folders, key) || pathExists(key);
-	const nextFolders: CodexFolders = {};
-	for (const [id, entry] of Object.entries(folders)) {
-		const next: CodexFolderEntry = { name: entry.name, order: entry.order.filter(keep) };
-		if (entry.linkedNotePath && pathExists(entry.linkedNotePath)) next.linkedNotePath = entry.linkedNotePath;
-		nextFolders[id] = next;
-	}
-	const nextTypes: Record<string, string> = {};
-	for (const [path, type] of Object.entries(types)) {
-		if (pathExists(path)) nextTypes[path] = type;
-	}
-	return {
-		folders: nextFolders,
-		order: order.filter(keep),
-		archive: archive.filter(keep),
-		types: nextTypes,
-	};
-}
-
-function codexShapeEquals(a: CodexFrontmatterShape, b: CodexFrontmatterShape): boolean {
-	return JSON.stringify(a) === JSON.stringify(b);
-}
-
-export async function pruneMissingCodexNotes(project: Project): Promise<boolean> {
-	if (!project.entry(codexFilePath())) return false;
-	const current = readCodexFrontmatter(project);
-	const referenced = collectReferencedPaths(current.folders, current.order);
-	for (const path of collectReferencedPaths(current.folders, current.archive)) referenced.add(path);
-	for (const path of Object.keys(current.types)) referenced.add(path);
-	const existence = new Map<string, boolean>();
-	await Promise.all(
-		[...referenced].map(async (path) => {
-			if (isFolderKey(current.folders, path)) return;
-			existence.set(path, vaultPathExistsOnDisk(project, path));
-		}),
-	);
-	const pathExists = (path: string) => existence.get(path) === true;
-	const next = stripMissingCodexNoteRefs(current.folders, current.order, current.archive, current.types, pathExists);
-	if (codexShapeEquals(current, next)) return false;
-	await project.modifyFrontmatter<RawCodexFrontmatter>(codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
-		setFolders(fm, next.folders);
-		fm.order = next.order;
-		fm.archive = next.archive;
-		fm.types = next.types;
-	});
-	return true;
-}
-
-/** Strip `codex.md`'s entries for notes gone from disk. A ghost the vault index still lists is left
- * alone: storyForge never deletes a file, and Obsidian drops the ghost on its next rescan. */
-export async function reconcileMissingCodexNotes(project: Project): Promise<void> {
-	await pruneMissingCodexNotes(project);
 }
 
 /**

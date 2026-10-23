@@ -13,7 +13,7 @@ Measured over the modules Brief 2 ports (call counts are occurrences in source):
 | `vault.read` / `cachedRead` | body reads | `series`, `book`, `chapterSidecar`, `history` |
 | `vault.create` / `createFolder` / `modify` / `modifyBinary` / `createBinary` / `rename` | writes | `writeGuard` (all but two), plus `book.createChapter` (`vault.create(path, "")`) and `book`/`codex` folder creation (these deliberately bypass the guard today) |
 | `fileManager.processFrontMatter` | every frontmatter write | `writeGuard` ×2, `chapterSidecar` ×1 |
-| `fileManager.renameFile` | **link-updating** rename | `codex.renameCodexNoteFile` only |
+| `fileManager.renameFile` | **link-updating** rename | `linkRewriter.renameCodexNote` (Brief 3; refused in Brief 2) |
 | `fileManager.trashFile` | the only delete | `writeGuard.deleteBackstagePath` only |
 | `vault.adapter.list` / `exists` | on-disk truth when the vault index is stale | `codex` ×4 (`reconcileMissingCodexNotes` and its helpers) |
 | `workspace.getLeaf().openFile` | interface | `book.createChapter` ×1 |
@@ -162,7 +162,7 @@ Rules (identical to today's, minus `_export/`, plus the explicit allowances that
 - `_backstage/storyforge/**`: write, create, folder, rename (both ends inside), retire, frontmatter-edit — allow.
 - `_story-library/<flat file>.md|json|…` (series.md, novel-<code>.md, any flat file with an extension at the root): write/frontmatter-edit/create — allow. **Chapter files** (`_story-library/<code>/*.md`): **create-file only, and only if absent** (today's `createChapter` does this unguarded); every other op — refuse. Creating the root folder and `<code>/` folders: allow.
 - `Codex/*.md`: **create-file only if absent**; `frontmatter-edit` allowed **only when `keys` is exactly `["aliases"]`** (today's `modifyCodexNoteAliases`); everything else — refuse. `renameCodexNoteFile` is refused at the data layer (§3.6) and the guard has no Codex rename row.
-- `_sf-backup/**`: reserved for Brief 3; rows exist in the table as `allow` for create/write so Brief 3 doesn't have to change the guard, **but no Brief 2 code writes there.**
+- `_sf-backup/**`: **create-only** (Brief 3, `docs/safety-core.md` §13): backups and recovery files are created through `backup-create` and `recovery-create`; every other route (write, binary write, generic create, rename, retire) is refused.
 - `_export/**`: **refuse** all ops (allowance removed).
 - Path normalisation exactly as `normalizeVaultPath` (absolute paths, NUL, `..` escaping the root → refuse). I'll port it unchanged and additionally refuse paths whose case-/NFC-folded form hits a protected root through a different spelling (e.g. `_STORY-LIBRARY/ch.md` on a case-insensitive file system) — a hardening, listed as a behaviour difference.
 - Hidden paths (`.git`, `.obsidian`, `.trash` as a *target*): refuse except `retire`'s own move into `.trash/` which the backend does itself.

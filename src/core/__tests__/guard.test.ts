@@ -17,7 +17,7 @@ interface Row {
 const spec = JSON.parse(readFileSync(new URL("../../../test/guard-spec/guard.json", import.meta.url), "utf8")) as { rows: Row[] };
 
 function toOp(r: Row): GuardOp {
-	if (r.op === "rename") return { op: "rename", from: r.from as string, to: r.to as string };
+	if (r.op === "rename" || r.op === "codex-rename") return { op: r.op, from: r.from as string, to: r.to as string };
 	if (r.op === "frontmatter-edit") return { op: "frontmatter-edit", path: r.path as string, keys: r.keys };
 	return { op: r.op, path: r.path as string } as GuardOp;
 }
@@ -26,7 +26,7 @@ describe("guard spec table (test/guard-spec/guard.json)", () => {
 	it("has unique ids and covers every operation", () => {
 		const ids = spec.rows.map((r) => r.id);
 		expect(new Set(ids).size).toBe(ids.length);
-		for (const op of ["write-file", "write-binary", "create-file", "create-folder", "rename", "retire", "frontmatter-edit"]) {
+		for (const op of ["write-file", "write-binary", "create-file", "create-folder", "rename", "retire", "frontmatter-edit", "prose-write", "link-rewrite", "backup-create", "recovery-create", "codex-rename"]) {
 			expect(spec.rows.some((r) => r.op === op && r.expect === "allow")).toBe(true);
 			expect(spec.rows.some((r) => r.op === op && r.expect === "refuse")).toBe(true);
 		}

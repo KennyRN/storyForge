@@ -59,3 +59,18 @@ export async function deleteChapterSidecar(project: Project, bookFolderName: str
 	const path = chapterSidecarPath(bookFolderName, chapterFilename);
 	if (project.exists(path)) await project.retire(path);
 }
+
+/** Reads the opening and closing fingerprint back out of a sidecar's text (what `sidecarBody` wrote). */
+export function parseSidecarFingerprint(text: string): Fingerprint | null {
+	const opening = /(?:^|\n)## opening\r?\n([\s\S]*?)(?:\r?\n\r?\n## closing\r?\n|\r?\n## closing\r?\n)/.exec(text);
+	const closing = /(?:^|\n)## closing\r?\n([\s\S]*?)(?:\r?\n)*$/.exec(text);
+	if (!opening || !closing) return null;
+	return { opening: opening[1].trim(), closing: closing[1].trim() };
+}
+
+/** The stored fingerprint for a chapter, or null if it has no readable sidecar. */
+export async function readChapterFingerprint(project: Project, bookFolderName: string, chapterFilename: string): Promise<Fingerprint | null> {
+	const path = chapterSidecarPath(bookFolderName, chapterFilename);
+	if (!project.isFile(path)) return null;
+	return parseSidecarFingerprint(await project.readText(path));
+}

@@ -13,9 +13,11 @@
  * - External changes arrive through `applyChange` (index only, never writes).
  */
 import type { Backend, EntryKind } from "./backend/types";
-import { type FrontmatterRecord, type ParsedFrontmatter, UnreadableFrontmatterError, readFrontmatter } from "./frontmatter";
+import { type FrontmatterRecord, type ParsedFrontmatter, UnreadableFrontmatterError, bodyOf, readFrontmatter } from "./frontmatter";
+import { type Fingerprint, extractFingerprint } from "./fingerprint";
+import { isCodexNotePath, isLibraryChapterPath } from "./paths";
 import { sha256Text } from "./hash";
-import { baseName, foldKey, isHiddenPath, parentOf, resolvePath } from "./pathRules";
+import { baseName, foldKey, icloudPlaceholderTarget, isHiddenPath, parentOf, resolvePath } from "./pathRules";
 import { countWords } from "./wordCount";
 
 /** Folders whose markdown files are read, hashed and counted. Matched case-insensitively. */
@@ -41,6 +43,13 @@ export interface IndexEntry {
 	frontmatterError?: string;
 	wordCount?: number;
 	hash?: string;
+	/**
+	 * Chapters and Codex notes: SHA-256 of the text after the frontmatter. Absent when that text is
+	 * empty or only whitespace: an empty body is never evidence that two files are the same file.
+	 */
+	bodyHash?: string;
+	/** Chapters: the opening and closing fingerprint of the text, as the fingerprint sidecar stores it. */
+	fingerprint?: Fingerprint;
 }
 
 export interface Collision {
@@ -72,6 +81,8 @@ export class ProjectIndex {
 	private byExact = new Map<string, IndexEntry>();
 	private byFold = new Map<string, Set<string>>();
 	private children = new Map<string, Set<string>>();
+	/** Files (or folders) iCloud has not downloaded: lookup key of the real path -> the real path. */
+	private stubs = new Map<string, string>();
 
 	private constructor(private readonly backend: Pick<Backend, "scan" | "stat" | "readText">) {}
 
@@ -148,6 +159,21 @@ export class ProjectIndex {
 		return this.get(path)?.hash;
 	}
 
+	/** Real paths of files that exist only as iCloud placeholders ("present, not downloaded"). Never treated as missing. */
+	placeholders(): string[] {
+		return [...this.stubs.values()].sort();
+	}
+
+	isPlaceholder(path: string): boolean {
+		return this.stubs.has(foldKey(path));
+	}
+
+	/** Placeholders inside `folder` (at any depth). */
+	placeholdersIn(folder: string): string[] {
+		const f = foldKey(folder);
+		return this.placeholders().filter((p) => foldKey(p).startsWith(f + "/"));
+	}
+
 	collisions(): Collision[] {
 		const out: Collision[] = [];
 		for (const [key, set] of this.byFold) if (set.size > 1) out.push({ key, paths: [...set].sort() });
@@ -163,6 +189,7 @@ export class ProjectIndex {
 
 	setFile(path: string, info: { size: number; mtimeMs: number; text?: string }): IndexEntry {
 		const canonical = this.canonical(path);
+		this.stubs.delete(foldKey(canonical));
 		this.ensureParents(canonical);
 		const entry: IndexEntry = { ...names(canonical, "file"), path: canonical, kind: "file", size: info.size, mtimeMs: info.mtimeMs, collision: false };
 		if (isEagerPath(canonical) && info.text !== undefined) {
@@ -172,6 +199,11 @@ export class ProjectIndex {
 			if (fm.state === "unreadable") entry.frontmatterError = fm.error;
 			entry.wordCount = countWords(info.text);
 			entry.hash = sha256Text(info.text);
+			if (isLibraryChapterPath(canonical) || isCodexNotePath(canonical)) {
+				const body = bodyOf(info.text);
+				if (body.trim() !== "") entry.bodyHash = sha256Text(body);
+				if (isLibraryChapterPath(canonical)) entry.fingerprint = extractFingerprint(info.text);
+			}
 		}
 		this.insert(entry);
 		return entry;
@@ -195,6 +227,7 @@ export class ProjectIndex {
 			const k = foldKey(e.path);
 			if (k === key || k.startsWith(key + "/")) this.drop(e);
 		}
+		for (const k of [...this.stubs.keys()]) if (k === key || k.startsWith(key + "/")) this.stubs.delete(k);
 	}
 
 	/** Moves `from` (and everything inside it) to `to`, keeping each entry's data. */
@@ -212,6 +245,13 @@ export class ProjectIndex {
 			}
 		}
 		this.ensureParents(t);
+		for (const [k, real] of [...this.stubs]) {
+			if (k === key || k.startsWith(key + "/")) {
+				this.stubs.delete(k);
+				const moved_ = [t, ...real.split("/").slice(depth)].join("/");
+				this.stubs.set(foldKey(moved_), moved_);
+			}
+		}
 		for (const e of moved) {
 			const rest = e.path.split("/").slice(depth);
 			const moved_ = [t, ...rest].join("/");
@@ -248,7 +288,15 @@ export class ProjectIndex {
 
 	private async refresh(path: string): Promise<void> {
 		const canonical = resolvePath(path);
-		if (canonical === null || canonical === "" || isHiddenPath(canonical)) return;
+		if (canonical === null || canonical === "") return;
+		const target = icloudPlaceholderTarget(canonical);
+		if (target !== null) {
+			if (isHiddenPath(target)) return;
+			if (await this.backend.stat(canonical)) this.stubs.set(foldKey(target), target);
+			else this.stubs.delete(foldKey(target));
+			return;
+		}
+		if (isHiddenPath(canonical)) return;
 		const stat = await this.backend.stat(canonical);
 		if (!stat) {
 			this.removeEntry(canonical);
@@ -266,6 +314,11 @@ export class ProjectIndex {
 	private async scanInto(dir: string): Promise<void> {
 		for await (const e of this.backend.scan(dir || undefined)) {
 			const canonical = e.path.replace(/\\/g, "/");
+			const target = icloudPlaceholderTarget(canonical);
+			if (target !== null && !isHiddenPath(target)) {
+				this.stubs.set(foldKey(target), target);
+				continue;
+			}
 			if (isHiddenPath(canonical)) continue;
 			if (e.kind === "folder") this.setFolder(canonical, e.mtimeMs, e.path);
 			else await this.loadFile(canonical, e.size, e.mtimeMs, e.path);
