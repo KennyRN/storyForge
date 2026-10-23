@@ -262,7 +262,7 @@ Built in Rust (`build_menu`), as now. Items that act on the window emit the exis
 
 Notes:
 
-- Items that don't apply (New Chapter with no project, Archive with nothing selected) are always enabled and answer with a transient notice ("Open a project first."). Enabling and disabling from the window would need a Rust command that changes state without reading or revealing, which §1.4 doesn't allow; this keeps the command list as it is.
+- Items that don't apply (New Chapter with no project, Archive with nothing selected) are **greyed out** (ruling 5): the window tells Rust which of the app's own items are enabled through one command, `set_menu_state`, which touches no files.
 - **Story ▸ Archive** and **Rename…** act on the **selection in the focused list** (the last-clicked row of the Codex tree, the novel tab or the series tab), and on the open chapter if none. Neither has a shortcut: ⌘⌫ is the Finder's "move to Trash", so Archive stays unassigned unless H1 wants it.
 - ⌘B and ⌘I live only in the editor's keymap, not in a menu, so they cannot clash with a menu accelerator.
 - Checked against macOS's own: ⌘, ⌘Q ⌘H ⌘M ⌘W ⌘N ⌘O ⌘F ⌘Z are standard meanings; ⇧⌘N is "New Folder" in Finder only; ⌘\\ and ⌥⌘\\ are unused by the system.
@@ -317,4 +317,18 @@ New packages to record with licences: the CodeMirror 6 packages above (MIT), Luc
 
 ## 12. H1 rulings
 
-*(Filled in after review.)*
+Decision 26, confirmed 23 October 2026. All eleven are approved as proposed except question 5.
+
+1. **`ProseSession.onSaveResult` is approved,** with conditions: an observer can never change a save's outcome (anything it throws is caught and logged, never passed back into the writer); it reports every outcome (written; conflict, with the recovery path; refused, with the recovery path; failed and retrying; recovered when editors are flushed; session backup failed; mixed line endings normalised); core tests cover it and the disk-safety suite is unchanged.
+2. **Playwright is approved as a development-only dependency,** never part of the built app; its licence is recorded.
+3. **`reveal_in_finder` is approved.** It takes a path relative to the project folder, checked by Rust like every other command and refused outside the folder. It only reveals the file; it never opens, launches or writes anything.
+4. **Undo and Redo are app menu items.** They act on whatever is focused: CodeMirror's history in an editor, and normal text undo in rename and settings fields. Checked at H2 in all three places.
+5. **Menu items are greyed out, not always enabled** (this replaces the proposal in section 7). A command that sets the app's own menu items enabled or disabled is allowed: it touches no files and grants no new permission. It is listed in the report.
+6. **Prose font:** New York, 18 px, line height 1.65, provisionally; judged on screen at H2.
+7. **Shortcuts** as tabled; Archive and Rename have none.
+8. **Panel widths** are navigation state in machine settings, per project.
+9. **The `hybrid` layout is removed.** Old layout values are still read safely: `hybrid`, `codexFocus` or anything unknown maps to a sensible tab, never an error. Nothing is rewritten unless the author changes it.
+10. **Diagnostics are a route in the main window,** compiled out of release builds, not merely hidden.
+11. **`npm run test:ui` is separate from `npm test`.** The interface tests must pass before every commit from commit 3 onwards. They are added to CI only if WebKit runs there practically; otherwise the report says so.
+
+**Preview server rule.** The browser preview's local server is development-only, listens on `localhost` only, and does not exist in release builds. The app's no-network rule stays absolute.
