@@ -35,6 +35,14 @@ export function legacyLayoutReasons(index: ProjectIndex): string[] {
 	return reasons;
 }
 
+/** The file is an iCloud placeholder: it exists but has not been downloaded, so it can't be read or edited yet. */
+export class PlaceholderNotDownloadedError extends Error {
+	constructor(public readonly path: string) {
+		super(`"${path}" is stored in iCloud and has not been downloaded to this Mac yet.`);
+		this.name = "PlaceholderNotDownloadedError";
+	}
+}
+
 export class Project {
 	private constructor(
 		readonly index: ProjectIndex,
@@ -77,11 +85,22 @@ export class Project {
 
 	// ------------------------------------------------------------------------ async reads
 
-	readText(path: string): Promise<string> {
+	async readText(path: string): Promise<string> {
+		this.assertDownloaded(path);
 		return this.fs.readText(path);
 	}
-	readBinary(path: string): Promise<Uint8Array> {
+	async readBinary(path: string): Promise<Uint8Array> {
+		this.assertDownloaded(path);
 		return this.fs.readBinary(path);
+	}
+
+	/** True when the file exists only as an iCloud placeholder: present, not downloaded. */
+	isPlaceholder(path: string): boolean {
+		return this.index.isPlaceholder(path);
+	}
+
+	private assertDownloaded(path: string): void {
+		if (this.index.isPlaceholder(path)) throw new PlaceholderNotDownloadedError(path);
 	}
 
 	// ----------------------------------------------------------------------------- writes

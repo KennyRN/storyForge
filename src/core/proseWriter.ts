@@ -237,6 +237,7 @@ export class ProseWriter {
 	 * edit it. Archived chapters and Codex notes, `notes/`, and anything else are refused.
 	 */
 	private refusal(path: string): string | { kind: ProseKind } {
+		if (this.project.isPlaceholder(path)) return "the file is stored in iCloud and has not been downloaded yet";
 		const entry = this.project.entry(path);
 		if (!entry || entry.kind !== "file") return "the file doesn't exist";
 		const p = entry.path;

@@ -16,7 +16,9 @@
 import { zipSync, type Zippable } from "fflate";
 import { BackendError } from "./backend/types";
 import { BACKUPS_FOLDER, LIBRARY_ROOT, CODEX_ROOT, NOTES_ROOT } from "./paths";
-import { foldKey, isHiddenPath } from "./pathRules";
+import { foldKey, icloudPlaceholderTarget, isHiddenPath } from "./pathRules";
+
+export { icloudPlaceholderTarget };
 import type { Project } from "./project";
 
 export type AutomaticBackupFrequency = "every-open" | "daily" | "weekly";
@@ -92,14 +94,6 @@ function inFullBackup(path: string): boolean {
 	const key = foldKey(path);
 	const first = key.split("/")[0];
 	return first !== ".trash" && first !== BACKUPS_FOLDER.toLowerCase();
-}
-
-/** `.Name.md.icloud` is what macOS leaves for a file that has not been downloaded; returns the real project path. */
-export function icloudPlaceholderTarget(path: string): string | null {
-	const slash = path.lastIndexOf("/");
-	const base = path.slice(slash + 1);
-	if (!base.startsWith(".") || !base.endsWith(".icloud") || base.length <= ".icloud".length + 1) return null;
-	return `${path.slice(0, slash + 1)}${base.slice(1, -".icloud".length)}`;
 }
 
 interface Running {

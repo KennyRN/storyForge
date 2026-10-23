@@ -58,3 +58,15 @@ export function isInside(path: string, folder: string): boolean {
 	const f = foldKey(folder);
 	return f === "" || p === f || p.startsWith(f + "/");
 }
+
+/**
+ * `.Name.md.icloud` is what macOS leaves in place of a file that iCloud has not downloaded. Returns
+ * the real project path (`Name.md`) for such a stub, or null for any other path. A stub inside a
+ * hidden folder is not reported.
+ */
+export function icloudPlaceholderTarget(path: string): string | null {
+	const slash = path.lastIndexOf("/");
+	const base = path.slice(slash + 1);
+	if (!base.startsWith(".") || !base.endsWith(".icloud") || base.length <= ".icloud".length + 1) return null;
+	return `${path.slice(0, slash + 1)}${base.slice(1, -".icloud".length)}`;
+}
