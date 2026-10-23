@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "The main window may call this app's own commands, listen for the app's events, and close itself. Nothing else: no file system, shell, network or dialog permission.",
+  "windows": ["main"],
+  "permissions": [
+    "allow-app-info",
+    "core:event:allow-listen",
+    "core:event:allow-unlisten",
+    "core:window:allow-destroy"
+  ]
+}
