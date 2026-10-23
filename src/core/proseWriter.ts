@@ -54,6 +54,15 @@ export type SaveResult =
 	/** The text could not be saved and could not be recovered either. It stays in the session. */
 	| { kind: "recovery-failed"; path: string; error: Error; recoveryError: Error; backup?: BackupOutcome };
 
+/**
+ * Told every outcome of a save that wrote, tried to write or kept the author's text safely: written (with
+ * `backup` failing, or `normalizedLineEndings`), conflict, refused, error (retrying, or recovered when
+ * flushed), recovery-failed. Not told "unchanged". It also hears of recovery-failed when an outside change
+ * arrived over unsaved text and the copy could not be made. An observer can never change an outcome: what
+ * it throws, or rejects with, is caught and logged.
+ */
+export type SaveObserver = (result: SaveResult) => void | Promise<void>;
+
 /** Sent to the editor when a session's text is replaced from disk. */
 export interface ReloadEvent {
 	path: string;
@@ -113,6 +122,7 @@ export class ProseSession {
 	/** @internal */ inFlight: string | null = null;
 	/** @internal */ recovered: { body: string; path: string } | null = null;
 	/** @internal */ listeners = new Set<(e: ReloadEvent) => void>();
+	/** @internal */ saveListeners = new Set<SaveObserver>();
 	/** @internal */ closed = false;
 	/** @internal False when rebuilding the file from its parts would not give back exactly the bytes read (mixed line endings). */
 	lossless = true;
@@ -150,6 +160,12 @@ export class ProseSession {
 	onReload(listener: (e: ReloadEvent) => void): () => void {
 		this.listeners.add(listener);
 		return () => this.listeners.delete(listener);
+	}
+
+	/** Hears every save outcome (timed saves included), so the interface can say so when it matters. Returns an unsubscribe function. */
+	onSaveResult(listener: SaveObserver): () => void {
+		this.saveListeners.add(listener);
+		return () => this.saveListeners.delete(listener);
 	}
 
 	/** Saves now, if there is anything to save. */
@@ -305,6 +321,7 @@ export class ProseWriter {
 		const result = await this.saveSession(session, true);
 		session.closed = true;
 		session.listeners.clear();
+		session.saveListeners.clear();
 		const key = this.key(session.path);
 		if (this.sessions.get(key) === session) this.sessions.delete(key);
 		return result;
@@ -317,9 +334,22 @@ export class ProseWriter {
 	}
 
 	/** @internal */
-	saveSession(session: ProseSession, flush: boolean): Promise<SaveResult> {
+	async saveSession(session: ProseSession, flush: boolean): Promise<SaveResult> {
 		this.cancelTimer(session);
-		return this.enqueue(session.path, () => this.save(session, flush));
+		const result = await this.enqueue(session.path, () => this.save(session, flush));
+		if (result.kind !== "unchanged") this.observe(session, result);
+		return result;
+	}
+
+	/** Tells the session's save observers. Never throws and never waits: an observer cannot change an outcome. */
+	private observe(session: ProseSession, result: SaveResult): void {
+		for (const listener of [...session.saveListeners]) {
+			try {
+				void Promise.resolve(listener(result)).catch((e) => console.error("storyForge: a save observer failed", e));
+			} catch (e) {
+				console.error("storyForge: a save observer failed", e);
+			}
+		}
 	}
 
 	private enqueue<T>(path: string, task: () => Promise<T>): Promise<T> {
@@ -425,7 +455,10 @@ export class ProseWriter {
 			if (action === "ignore") return { kind: "ignored" };
 			if (action === "recover-then-reload") {
 				const rec = await this.recover(session, session.current);
-				if (!rec.ok) return { kind: "recovery-failed", error: rec.error };
+				if (!rec.ok) {
+					this.observe(session, { kind: "recovery-failed", path: session.path, error: new Error("the file changed outside storyForge"), recoveryError: rec.error });
+					return { kind: "recovery-failed", error: rec.error };
+				}
 				this.cancelTimer(session);
 				const hookErrors = await this.reload(session, diskText, "outside-change", rec.path);
 				return { kind: "recovered-and-reloaded", recoveryPath: rec.path, ...(hookErrors.length ? { hookErrors } : {}) };

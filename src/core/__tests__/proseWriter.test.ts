@@ -7,7 +7,7 @@ import { ManualScheduler, settle } from "../../../test/helpers/scheduler";
 import { archiveChapter } from "../book";
 import { archiveCodexItem } from "../codex";
 import { Project } from "../project";
-import { type ChapterChange, ProseRefused, ProseWriter, type ProseWriterOptions } from "../proseWriter";
+import { type ChapterChange, ProseRefused, ProseWriter, type ProseWriterOptions, type SaveResult } from "../proseWriter";
 import { decideDiskChange, minimalReplacement, parseProseFile, serialiseProseFile, splitFrontmatter } from "../proseFile";
 
 afterEach(cleanupFixtures);
@@ -385,5 +385,115 @@ describe("the after-save hook", () => {
 		s.setBody("x");
 		await s.save();
 		expect(ran).toBe(0);
+	});
+});
+
+describe("onSaveResult (the save observer)", () => {
+	it("hears a timed save, a conflict, a refusal, a failed backup and normalised line endings; never 'unchanged'", async () => {
+		const heard: string[] = [];
+		const { writer, scheduler, write, project } = await setup({ sessionBackup: async () => ({ ok: false, error: new Error("no space") }) }, (root) => {
+			fs.writeFileSync(path.join(root, "_story-library/aaa/ch-a3.md"), "one\r\ntwo\nthree\r\n");
+		});
+
+		const a = await writer.open(CH);
+		a.onSaveResult((r) => void heard.push(r.kind));
+		await a.save(); // nothing to save
+		expect(heard).toEqual([]);
+		a.setBody("typed");
+		scheduler.advance(2000);
+		await settle();
+		expect(heard).toEqual(["saved"]);
+
+		// conflict
+		a.setBody("typed more");
+		write(CH, "elsewhere\n");
+		await a.save();
+		expect(heard).toEqual(["saved", "conflict"]);
+
+		// refused: the chapter is archived behind the session's back
+		const b = await writer.open("_story-library/aaa/ch-a2.md");
+		b.onSaveResult((r) => void heard.push(`b:${r.kind}`));
+		await archiveChapter(project, "aaa", "ch-a2.md");
+		b.setBody("late words");
+		await b.save();
+		expect(heard).toContain("b:refused");
+
+		// normalised line endings arrive in the same event
+		const c = await writer.open("_story-library/aaa/ch-a3.md");
+		let normalised: unknown;
+		c.onSaveResult((r) => void (normalised = r.kind === "saved" ? r.normalizedLineEndings : "not saved"));
+		c.setBody("one\ntwo\nthree!");
+		await c.save();
+		expect(normalised).toBe(true);
+	});
+
+	it("reports a failed session backup in the saved result it carries", async () => {
+		const { writer } = await setup({ sessionBackup: async () => ({ ok: false, error: new Error("no space") }) });
+		const s = await writer.open(CH);
+		const seen: SaveResult[] = [];
+		s.onSaveResult((r) => void seen.push(r));
+		s.setBody("x");
+		await s.save();
+		expect(seen[0]).toMatchObject({ kind: "saved", backup: { ok: false } });
+	});
+
+	it("reports a disk error that will retry, and a recovery on flush", async () => {
+		const { writer, backend } = await setup();
+		const s = await writer.open("_story-library/aaa/ch-a3.md");
+		const seen: SaveResult[] = [];
+		s.onSaveResult((r) => void seen.push(r));
+		backend.writeTextIfUnchanged = async () => {
+			throw new Error("EIO");
+		};
+		s.setBody("Text.");
+		await s.save();
+		await writer.flushAll();
+		expect(seen.map((r) => r.kind)).toEqual(["error", "error"]);
+		expect((seen[0] as { recoveryPath?: string }).recoveryPath).toBeUndefined();
+		expect((seen[1] as { recoveryPath?: string }).recoveryPath).toBeTruthy();
+	});
+
+	it("an observer that throws or rejects never changes the outcome, and later observers still run", async () => {
+		const { writer, read } = await setup();
+		const s = await writer.open(CH);
+		const quiet = console.error;
+		const logged: unknown[][] = [];
+		console.error = (...a: unknown[]) => void logged.push(a);
+		try {
+			let later = 0;
+			s.onSaveResult(() => {
+				throw new Error("boom");
+			});
+			s.onSaveResult(async () => {
+				throw new Error("async boom");
+			});
+			s.onSaveResult(() => void later++);
+			s.setBody("still saved");
+			const result = await s.save();
+			await settle();
+			expect(result).toMatchObject({ kind: "saved" });
+			expect(read(CH)).toContain("still saved");
+			expect(later).toBe(1);
+			expect(logged.length).toBe(2);
+		} finally {
+			console.error = quiet;
+		}
+	});
+
+	it("hears an outside change over unsaved text whose recovery failed; unsubscribing and closing stop it", async () => {
+		const { writer, write, project } = await setup();
+		const s = await writer.open("_story-library/aaa/ch-a3.md");
+		const kinds: string[] = [];
+		const off = s.onSaveResult((r) => void kinds.push(r.kind));
+		s.setBody("Precious.");
+		write("_story-library/aaa/ch-a3.md", "Changed elsewhere.\n");
+		project.fs.createRecovery = async () => {
+			throw new Error("disk full");
+		};
+		await writer.onDiskChanged("_story-library/aaa/ch-a3.md", "Changed elsewhere.\n");
+		expect(kinds).toEqual(["recovery-failed"]);
+		off();
+		await s.save();
+		expect(kinds).toEqual(["recovery-failed"]);
 	});
 });
