@@ -55,25 +55,38 @@ export class NodeFsBackend implements Backend {
 		return nodePath.join(this.root, ...rel.split("/").filter(Boolean));
 	}
 
-	/** Refuses a mutating target whose real parent directory is outside the root (symlink escape). */
-	private async assertInside(rel: string): Promise<void> {
+	/**
+	 * Refuses a mutating target when any existing component of its path, the last included, is a
+	 * symbolic link that leaves the project root, dangles, or is the file itself (symlink escape).
+	 * The Rust backend does the same walk (`containment.rs`); both pass the rows with a `symlink` in
+	 * test/guard-spec/guard.json.
+	 */
+	async assertInside(rel: string): Promise<void> {
 		const realRoot = await this.realRoot;
-		let dir = nodePath.dirname(this.abs(rel));
-		for (;;) {
+		const parts = rel.split("/").filter(Boolean);
+		let cur = this.root;
+		for (let i = 0; i < parts.length; i++) {
+			cur = nodePath.join(cur, parts[i]);
+			let st;
 			try {
-				const real = await fs.realpath(dir);
-				const within = nodePath.relative(realRoot, real);
-				if (within.startsWith("..") || nodePath.isAbsolute(within)) {
-					throw new BackendError("EACCES", `"${rel}" resolves outside the project`, rel);
-				}
-				return;
+				st = await fs.lstat(cur);
 			} catch (err) {
-				if (err instanceof BackendError) throw err;
-				if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw toBackendError(err, rel);
-				const parent = nodePath.dirname(dir);
-				if (parent === dir) return;
-				dir = parent;
+				const code = (err as NodeJS.ErrnoException).code;
+				if (code === "ENOENT" || code === "ENOTDIR") return; // nothing below here exists yet
+				throw toBackendError(err, rel);
 			}
+			if (!st.isSymbolicLink()) continue;
+			let real: string;
+			try {
+				real = await fs.realpath(cur);
+			} catch {
+				throw new BackendError("EACCES", `"${rel}" passes through a symbolic link that points nowhere`, rel);
+			}
+			const within = nodePath.relative(realRoot, real);
+			if (within.startsWith("..") || nodePath.isAbsolute(within)) {
+				throw new BackendError("EACCES", `"${rel}" resolves outside the project`, rel);
+			}
+			if (i === parts.length - 1) throw new BackendError("EACCES", `"${rel}" is a symbolic link`, rel);
 		}
 	}
 

@@ -3162,9 +3162,19 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
+ "storyforge-fs",
  "tauri",
  "tauri-build",
  "tauri-plugin-single-instance",
+ "tempfile",
+]
+
+[[package]]
+name = "storyforge-fs"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
  "tempfile",
  "unicode-normalization",
 ]

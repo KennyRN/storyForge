@@ -1426,6 +1426,185 @@
 			"path": "Notes",
 			"expect": "refuse",
 			"reason": "case variant"
+		},
+		{
+			"id": "symlink-write-out",
+			"op": "write-file",
+			"path": "_backstage/storyforge/escape/stolen.md",
+			"symlink": {
+				"link": "_backstage/storyforge/escape",
+				"target": "outside"
+			},
+			"expect": "refuse",
+			"reason": "a folder inside the project is a link to somewhere outside it"
+		},
+		{
+			"id": "symlink-create-out",
+			"op": "create-file",
+			"path": "_story-library/escape/new.md",
+			"symlink": {
+				"link": "_story-library/escape",
+				"target": "outside"
+			},
+			"expect": "refuse",
+			"reason": "a link to outside inside the library"
+		},
+		{
+			"id": "symlink-folder-out",
+			"op": "create-folder",
+			"path": "_story-library/escape/sub",
+			"symlink": {
+				"link": "_story-library/escape",
+				"target": "outside"
+			},
+			"expect": "refuse",
+			"reason": "a folder created under a link that leaves the project"
+		},
+		{
+			"id": "symlink-rename-to-out",
+			"op": "rename",
+			"from": "_backstage/storyforge/a.md",
+			"to": "_backstage/storyforge/escape/a.md",
+			"symlink": {
+				"link": "_backstage/storyforge/escape",
+				"target": "outside"
+			},
+			"expect": "refuse",
+			"reason": "the destination is under a link that leaves the project"
+		},
+		{
+			"id": "symlink-backup-root",
+			"op": "backup-create",
+			"path": "_sf-backup/x.zip",
+			"symlink": {
+				"link": "_sf-backup",
+				"target": "outside"
+			},
+			"expect": "refuse",
+			"reason": "_sf-backup itself is a link to outside"
+		},
+		{
+			"id": "symlink-prose-write-out",
+			"op": "prose-write",
+			"path": "_story-library/book/Chapter.md",
+			"symlink": {
+				"link": "_story-library/book",
+				"target": "outside"
+			},
+			"expect": "refuse",
+			"reason": "a book folder that is a link to outside"
+		},
+		{
+			"id": "symlink-dangling",
+			"op": "write-file",
+			"path": "_backstage/storyforge/dangling/x.md",
+			"symlink": {
+				"link": "_backstage/storyforge/dangling",
+				"target": "outside-missing"
+			},
+			"expect": "refuse",
+			"reason": "a link whose target does not exist is refused, not followed"
+		},
+		{
+			"id": "symlink-final-component",
+			"op": "write-file",
+			"path": "_backstage/storyforge/note.md",
+			"symlink": {
+				"link": "_backstage/storyforge/note.md",
+				"target": "outside"
+			},
+			"expect": "refuse",
+			"reason": "the file itself is a link"
+		},
+		{
+			"id": "symlink-parent-chain",
+			"op": "write-file",
+			"path": "_backstage/storyforge/x.md",
+			"symlink": {
+				"link": "_backstage",
+				"target": "outside"
+			},
+			"expect": "refuse",
+			"reason": "a link higher up the path leaves the project"
+		},
+		{
+			"id": "symlink-link-rewrite-out",
+			"op": "link-rewrite",
+			"path": "notes/linked/x.md",
+			"symlink": {
+				"link": "notes/linked",
+				"target": "outside"
+			},
+			"expect": "refuse",
+			"reason": "notes/linked is a link to outside"
+		},
+		{
+			"id": "symlink-retire-out",
+			"op": "retire",
+			"path": "_backstage/storyforge/escape/old.md",
+			"symlink": {
+				"link": "_backstage/storyforge/escape",
+				"target": "outside"
+			},
+			"expect": "refuse",
+			"reason": "retiring through a link that leaves the project"
+		},
+		{
+			"id": "symlink-inside-ok",
+			"op": "write-file",
+			"path": "_backstage/storyforge/alias/x.md",
+			"symlink": {
+				"link": "_backstage/storyforge/alias",
+				"target": "_backstage/storyforge/real"
+			},
+			"expect": "allow",
+			"reason": "a link that stays inside the project is fine"
+		},
+		{
+			"id": "symlink-inside-chapter-ok",
+			"op": "create-file",
+			"path": "_story-library/alias/new.md",
+			"symlink": {
+				"link": "_story-library/alias",
+				"target": "_story-library/real"
+			},
+			"expect": "allow",
+			"reason": "a link between two folders of the project"
+		},
+		{
+			"id": "project-md-write",
+			"op": "write-file",
+			"path": "_backstage/storyforge/project.md",
+			"expect": "allow",
+			"reason": "project.md is an ordinary backstage file (decision 23)"
+		},
+		{
+			"id": "project-md-create",
+			"op": "create-file",
+			"path": "_backstage/storyforge/project.md",
+			"expect": "allow",
+			"reason": "project.md is created only when a setting changes"
+		},
+		{
+			"id": "project-md-frontmatter",
+			"op": "frontmatter-edit",
+			"path": "_backstage/storyforge/project.md",
+			"expect": "allow",
+			"reason": "edited with the minimal-rewrite editor"
+		},
+		{
+			"id": "project-md-wrong-folder",
+			"op": "write-file",
+			"path": "_story-library/project.md.bak/x",
+			"expect": "refuse",
+			"reason": "only _backstage/storyforge/project.md is the settings file"
+		},
+		{
+			"id": "project-md-case-variant",
+			"op": "write-file",
+			"path": "_BACKSTAGE/storyforge/project.md",
+			"expect": "refuse",
+			"reason": "a case variant of the backstage folder"
 		}
 	]
 }

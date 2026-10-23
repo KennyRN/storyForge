@@ -1,4 +1,8 @@
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import { readFileSync } from "node:fs";
+import { NodeFsBackend } from "../../backends/node-fs";
 import { describe, expect, it } from "vitest";
 import { MemoryBackend } from "../../../test/helpers/memoryBackend";
 import { ForbiddenWriteError, checkGuard, type GuardOp } from "../backend/guard";
@@ -11,6 +15,7 @@ interface Row {
 	from?: string;
 	to?: string;
 	keys?: string[];
+	symlink?: { link: string; target: string };
 	expect: "allow" | "refuse";
 	reason?: string;
 }
@@ -32,9 +37,47 @@ describe("guard spec table (test/guard-spec/guard.json)", () => {
 		}
 	});
 
-	it.each(spec.rows.map((r) => [r.id, r] as const))("%s", (_id, row) => {
+	it.each(spec.rows.filter((r) => !r.symlink).map((r) => [r.id, r] as const))("%s", (_id, row) => {
 		const decision = checkGuard(toOp(row));
 		expect(decision.allow, JSON.stringify(row) + " -> " + JSON.stringify(decision)).toBe(row.expect === "allow");
+	});
+
+	// Rows with a symlink: the path-only guard, then the containment walk on a real folder (test/guard-spec/README.md).
+	it.each(spec.rows.filter((r) => r.symlink).map((r) => [r.id, r] as const))("%s (with a symbolic link on disk)", async (_id, row) => {
+		const base = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "sf-symlink-")));
+		try {
+			const projectRoot = path.join(base, "project");
+			const outside = path.join(base, "outside");
+			fs.mkdirSync(projectRoot);
+			fs.mkdirSync(outside);
+			const { link, target } = row.symlink as { link: string; target: string };
+			fs.mkdirSync(path.dirname(path.join(projectRoot, link)), { recursive: true });
+			let dest: string;
+			if (target === "outside") dest = outside;
+			else if (target === "outside-missing") dest = path.join(base, "does-not-exist");
+			else {
+				dest = path.join(projectRoot, target);
+				fs.mkdirSync(dest, { recursive: true });
+			}
+			fs.symlinkSync(dest, path.join(projectRoot, link));
+			const op = toOp(row);
+			let allowed = checkGuard(op).allow;
+			if (allowed) {
+				const backend = new NodeFsBackend(projectRoot);
+				const touched = row.op === "rename" || row.op === "codex-rename" ? [row.to as string] : [row.path as string];
+				for (const p of touched) {
+					try {
+						await backend.assertInside(p);
+					} catch {
+						allowed = false;
+					}
+				}
+			}
+			expect(allowed, JSON.stringify(row)).toBe(row.expect === "allow");
+			expect(fs.readdirSync(outside)).toEqual([]);
+		} finally {
+			fs.rmSync(base, { recursive: true, force: true });
+		}
 	});
 });
 
