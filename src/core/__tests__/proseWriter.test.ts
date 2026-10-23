@@ -313,6 +313,24 @@ describe("saving", () => {
 	});
 });
 
+describe("mixed line endings", () => {
+	it("are normalised on the first save, which says so once; a consistent file never does", async () => {
+		const { writer, read } = await setup({}, (root) => {
+			fs.writeFileSync(path.join(root, CH), "one\r\ntwo\nthree\r\n");
+			fs.writeFileSync(path.join(root, "_story-library/aaa/ch-a3.md"), "one\r\ntwo\r\n");
+		});
+		const mixed = await writer.open(CH);
+		mixed.setBody("one\ntwo\nthree!");
+		expect(await mixed.save()).toMatchObject({ kind: "saved", normalizedLineEndings: true });
+		expect(read(CH)).toBe("one\r\ntwo\r\nthree!\r\n");
+		mixed.setBody("again");
+		expect((await mixed.save() as { normalizedLineEndings?: boolean }).normalizedLineEndings).toBeUndefined();
+		const plain = await writer.open("_story-library/aaa/ch-a3.md");
+		plain.setBody("x");
+		expect((await plain.save() as { normalizedLineEndings?: boolean }).normalizedLineEndings).toBeUndefined();
+	});
+});
+
 describe("the after-save hook", () => {
 	it("updates the fingerprint sidecar and word-count history after a chapter save", async () => {
 		const { writer, read } = await setup();

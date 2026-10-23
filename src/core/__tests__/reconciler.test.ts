@@ -149,6 +149,25 @@ describe("other moves while closed", () => {
 	});
 });
 
+describe("a renamed book folder whose new novel file already exists", () => {
+	it("renames nothing and overwrites nothing: the book is gated and reported", async () => {
+		const { root, project, summary } = await whileClosed((r) => {
+			fs.renameSync(path.join(r, A), path.join(r, "_story-library/zzz"));
+			fs.writeFileSync(path.join(r, "_story-library/novel-zzz.md"), "---\nbook-id-reference: b-zzz\n---\nmine\n");
+		});
+		expect(summary.matched.filter((m) => m.kind === "book")).toEqual([]);
+		// a folder whose novel file already exists is a registered book, not a renamed one: the old book is gated
+		expect(summary.gated.some((g) => g.area === "book:aaa" && (g.reason === "novel-exists" || g.reason === "folder-missing"))).toBe(true);
+		expect(summary.pruned).toEqual([]);
+		// the existing novel file is never replaced (new chapters may get entries, as in any registered book)
+		expect(rd(root, "_story-library/novel-zzz.md")).toContain("book-id-reference: b-zzz");
+		expect(rd(root, "_story-library/novel-zzz.md").endsWith("---\nmine\n")).toBe(true);
+		expect(fs.existsSync(path.join(root, "_story-library/novel-aaa.md"))).toBe(true);
+		expect(fs.existsSync(path.join(root, "_backstage/storyforge/aaa/chapters/ch-a1.md"))).toBe(true);
+		expect(project.exists("_story-library/zzz")).toBe(true);
+	});
+});
+
 describe("what can't be matched", () => {
 	it("two new empty chapters and two vanished empty chapters: no matches; recovered, pruned, and new unplaced entries", async () => {
 		const { project, summary } = await whileClosed(

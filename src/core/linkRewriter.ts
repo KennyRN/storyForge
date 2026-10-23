@@ -88,6 +88,8 @@ export interface LinkRewritePlan {
 	notDownloaded: string[];
 	/** Files that could not be read, so their links could not be seen. */
 	unreadable: { path: string; reason: string }[];
+	/** Frontmatter values written unquoted as `[[X]]` (YAML reads them as a nested list, not a link) that name this note. Not rewritten; listed so the announcement isn't silent about them. */
+	unquotedFrontmatter: { path: string; keyPath: (string | number)[]; text: string }[];
 	/** Files whose frontmatter can't be read safely: links in the body are planned, links in the frontmatter are not. */
 	frontmatterSkipped: string[];
 }
@@ -170,10 +172,19 @@ function collectStrings(value: unknown, keyPath: (string | number)[], out: { key
 	else if (value && typeof value === "object") for (const [k, v] of Object.entries(value)) collectStrings(v, [...keyPath, k], out);
 }
 
+/** Finds `[[name]]` as YAML reads it when unquoted: a list holding a list holding one string. */
+function collectNested(value: unknown, keyPath: (string | number)[], found: (keyPath: (string | number)[], name: string) => void): void {
+	if (Array.isArray(value)) {
+		if (value.length === 1 && Array.isArray(value[0]) && value[0].length === 1 && typeof value[0][0] === "string") found(keyPath, value[0][0]);
+		else value.forEach((v, i) => collectNested(v, [...keyPath, i], found));
+	} else if (value && typeof value === "object") for (const [k, v] of Object.entries(value)) collectNested(v, [...keyPath, k], found);
+}
+
 interface FileScan {
 	spans: LinkSpan[];
 	ambiguous: AmbiguousLink[];
 	frontmatterSkipped: boolean;
+	unquoted: { keyPath: (string | number)[]; text: string }[];
 }
 
 /** Finds the links in one file's text that point at the note. */
@@ -181,6 +192,7 @@ function scanFile(path: string, text: string, note: NoteIdentity): FileScan {
 	const spans: LinkSpan[] = [];
 	const ambiguous: AmbiguousLink[] = [];
 	let frontmatterSkipped = false;
+	const unquoted: FileScan["unquoted"] = [];
 	const section = splitFrontmatterSection(text);
 	const bodyStart = section ? section.frontmatter.length : 0;
 
@@ -208,13 +220,17 @@ function scanFile(path: string, text: string, note: NoteIdentity): FileScan {
 			const strings: { keyPath: (string | number)[]; text: string }[] = [];
 			collectStrings(fm.data, [], strings);
 			for (const s of strings) for (const link of scanLinks(s.text, { protect: false })) take(link, s.text, 0, "frontmatter", s.keyPath);
+			collectNested(fm.data, [], (keyPath, name) => {
+				const link: RawLink = { form: "wikilink", start: 0, end: 0, target: name, targetStart: 0, targetEnd: name.length };
+				if (resolveLink(link, path, note, true)) unquoted.push({ keyPath, text: `[[${name}]]` });
+			});
 		} else if (fm.state === "unreadable" && /\[\[|\]\(/.test(section.frontmatter)) {
 			frontmatterSkipped = true;
 		}
 	}
 	const body = text.slice(bodyStart);
 	for (const link of scanLinks(body)) take(link, body, bodyStart, "body");
-	return { spans, ambiguous, frontmatterSkipped };
+	return { spans, ambiguous, frontmatterSkipped, unquoted };
 }
 
 /**
@@ -229,8 +245,10 @@ export async function planCodexRename(project: Project, notePath: string, newNam
 	if (project.isPlaceholder(entry.path)) throw new NotACodexNoteError(notePath, "it is stored in iCloud and has not been downloaded");
 
 	const stem = sanitizeCodexBasename(newName);
-	const bad = stem.match(UNLINKABLE);
-	if (bad) throw new UnlinkableNameError(stem, [...new Set(bad)]);
+	// Checked on the name as typed: the sanitiser would silently drop a `|`, but the author should be told.
+	const typed = newName.trim().replace(/\.md$/i, "");
+	const bad = typed.match(UNLINKABLE);
+	if (bad) throw new UnlinkableNameError(typed, [...new Set(bad)]);
 	const oldName = entry.basename;
 	const base: LinkRewritePlan = {
 		unchanged: false,
@@ -245,6 +263,7 @@ export async function planCodexRename(project: Project, notePath: string, newNam
 		notDownloaded: [],
 		unreadable: [],
 		frontmatterSkipped: [],
+		unquotedFrontmatter: [],
 	};
 	if (!stem || stem === oldName) return { ...base, unchanged: true };
 	const newFilename = await uniqueCodexFilename(project, stem, entry.path);
@@ -286,6 +305,7 @@ export async function planCodexRename(project: Project, notePath: string, newNam
 		const found = scanFile(e.path, text, note);
 		plan.ambiguous.push(...found.ambiguous.filter(() => inProse));
 		if (found.frontmatterSkipped && inProse) plan.frontmatterSkipped.push(e.path);
+		if (inProse) for (const u of found.unquoted) plan.unquotedFrontmatter.push({ path: e.path, ...u });
 		if (inProse) {
 			if (found.spans.length > 0) plan.files.push({ path: e.path, hash: sha256Text(text), spans: found.spans, linkCount: found.spans.length });
 		} else if (found.spans.length > 0) {
