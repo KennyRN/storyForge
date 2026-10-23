@@ -82,5 +82,5 @@ Described under difference 1. It differed from "retire to `.trash/`" only in tha
 
 ## Not done
 
-- **The real-vault check**: `npm run check -- <a copy of your vault or story folder>` has not been run on anything real. It never writes to the folder you give it (it copies to a temp directory and reads the copy; a test proves the source is untouched), prints how long the copy and the scan take, and reports unreadable frontmatter, name collisions and stray or missing files. If you run it and paste me the output I'll fold it into this report; if you'd rather not, it stays recorded as waived. The only thing it can tell us that the fixtures can't is whether a real vault contains YAML the editor refuses, and how long the eager scan takes at your vault's size.
-- Nothing is merged or pushed: `data-core` is a local branch.
+- **The real-vault check: waived by Kenny.** `npm run check -- <folder>` has not been run on anything real; the first real-vault contact will be when the new engine replaces Obsidian. It remains the way to learn whether a real vault holds YAML the editor refuses, and how long the eager scan takes.
+- Merged to `main` and pushed after the waiver.
