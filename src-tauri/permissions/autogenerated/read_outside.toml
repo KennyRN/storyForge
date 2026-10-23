@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-read-outside"
+description = "Enables the read_outside command without any pre-configured scope."
+commands.allow = ["read_outside"]
+
+[[permission]]
+identifier = "deny-read-outside"
+description = "Denies the read_outside command without any pre-configured scope."
+commands.deny = ["read_outside"]

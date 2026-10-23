@@ -3,6 +3,9 @@ main.js
 *.js.map
 .DS_Store
 data.json
+dist/
+src-tauri/target/
+src-tauri/gen/
 
 # fixtures are committed on purpose
 !test/fixtures/**/data.json

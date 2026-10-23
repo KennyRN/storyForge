@@ -1,0 +1,36 @@
+[package]
+name = "storyforge"
+version = "0.1.0"
+description = "storyForge: a desktop app over a folder of markdown"
+edition = "2021"
+license = "MIT"
+publish = false
+
+[workspace]
+members = [".", "fs"]
+
+[lib]
+name = "storyforge_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-single-instance = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+storyforge-fs = { path = "fs" }
+rfd = "0.15"
+notify = "8"
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+panic = "abort"
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

@@ -25,3 +25,7 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Rust tests (the file-system side; no Tauri or macOS needed)
+        run: cargo test -p storyforge-fs
+        working-directory: src-tauri

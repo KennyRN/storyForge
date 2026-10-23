@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-machine-get"
+description = "Enables the machine_get command without any pre-configured scope."
+commands.allow = ["machine_get"]
+
+[[permission]]
+identifier = "deny-machine-get"
+description = "Denies the machine_get command without any pre-configured scope."
+commands.deny = ["machine_get"]

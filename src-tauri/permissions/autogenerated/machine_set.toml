@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-machine-set"
+description = "Enables the machine_set command without any pre-configured scope."
+commands.allow = ["machine_set"]
+
+[[permission]]
+identifier = "deny-machine-set"
+description = "Denies the machine_set command without any pre-configured scope."
+commands.deny = ["machine_set"]

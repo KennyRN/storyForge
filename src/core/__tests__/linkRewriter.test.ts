@@ -128,6 +128,15 @@ describe("planCodexRename: which links count", () => {
 		expect(p.notDownloaded).toEqual(["_story-library/aaa/ch2.md"]);
 	});
 
+	it("lists unquoted [[X]] frontmatter values that name the note, without rewriting them", async () => {
+		const { plan: p } = await plan({ "notes/n.md": "---\nrelated: [[Jane]]\nother: [[Sam]]\nquoted: \"[[Jane]]\"\nlist:\n  - [[Codex/Jane]]\n---\nBody\n" });
+		expect(p.unquotedFrontmatter).toEqual([
+			{ path: "notes/n.md", keyPath: ["related"], text: "[[Jane]]" },
+			{ path: "notes/n.md", keyPath: ["list", 0], text: "[[Codex/Jane]]" },
+		]);
+		expect(spansOf(p, "notes/n.md").map((s) => s.keyPath)).toEqual([["quoted"]]);
+	});
+
 	it("flags a file whose frontmatter can't be read but holds links", async () => {
 		const { plan: p } = await plan({ "notes/n.md": "---\nrel: &a [[Jane]]\nagain: *a\n---\nBody [[Jane]]" });
 		expect(p.frontmatterSkipped).toEqual(["notes/n.md"]);
@@ -153,6 +162,8 @@ describe("planCodexRename: the name", () => {
 		const m = await memoryProject({ "Codex/Jane.md": "x", "notes/n.md": "x" });
 		await expect(planCodexRename(m.project, "Codex/Jane.md", "Janet #2")).rejects.toBeInstanceOf(UnlinkableNameError);
 		await expect(planCodexRename(m.project, "Codex/Jane.md", "A [[B]]")).rejects.toBeInstanceOf(UnlinkableNameError);
+		await expect(planCodexRename(m.project, "Codex/Jane.md", "Jane | Doe")).rejects.toBeInstanceOf(UnlinkableNameError);
+		await expect(planCodexRename(m.project, "Codex/Jane.md", "Jane ^1")).rejects.toBeInstanceOf(UnlinkableNameError);
 		await expect(planCodexRename(m.project, "notes/n.md", "X")).rejects.toBeInstanceOf(NotACodexNoteError);
 		await expect(planCodexRename(m.project, "Codex/Nobody.md", "X")).rejects.toBeInstanceOf(NotACodexNoteError);
 	});

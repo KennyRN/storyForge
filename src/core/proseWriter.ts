@@ -43,7 +43,8 @@ export type ProseKind = "chapter" | "codex";
 
 export type SaveResult =
 	| { kind: "unchanged"; path: string }
-	| { kind: "saved"; path: string; backup?: BackupOutcome; hookErrors?: Error[] }
+	/** `normalizedLineEndings`: the file had mixed line endings and was written in its first style (as in 0.17.1). The interface can mention it once. */
+	| { kind: "saved"; path: string; backup?: BackupOutcome; hookErrors?: Error[]; normalizedLineEndings?: boolean }
 	/** The disk had changed: it won, the author's body is in `recoveryPath`, the session reloaded. */
 	| { kind: "conflict"; path: string; recoveryPath: string; backup?: BackupOutcome; hookErrors?: Error[] }
 	/** The write was refused (guard, archived, out of scope): the body is in `recoveryPath`. */
@@ -97,6 +98,8 @@ export interface ProseWriterOptions {
 	saveDelayMs?: number;
 	/** Register the built-in subscribers (fingerprint sidecar, word-count history). Default true. */
 	builtinSubscribers?: boolean;
+	/** Nothing may be written into the project: every file is refused. */
+	readOnly?: boolean;
 }
 
 const asError = (e: unknown): Error => (e instanceof Error ? e : new Error(String(e)));
@@ -111,6 +114,8 @@ export class ProseSession {
 	/** @internal */ recovered: { body: string; path: string } | null = null;
 	/** @internal */ listeners = new Set<(e: ReloadEvent) => void>();
 	/** @internal */ closed = false;
+	/** @internal False when rebuilding the file from its parts would not give back exactly the bytes read (mixed line endings). */
+	lossless = true;
 
 	constructor(
 		private readonly writer: ProseWriter,
@@ -123,6 +128,7 @@ export class ProseSession {
 		this.shape = parsed.shape;
 		this.savedBody = parsed.body;
 		this.current = parsed.body;
+		this.lossless = serialiseProseFile(parsed.shape, parsed.body) === text;
 	}
 
 	/** The body as the author has it (line breaks are "\n"). The frontmatter is never exposed. */
@@ -237,6 +243,7 @@ export class ProseWriter {
 	 * edit it. Archived chapters and Codex notes, `notes/`, and anything else are refused.
 	 */
 	private refusal(path: string): string | { kind: ProseKind } {
+		if (this.options.readOnly) return "the project is open read-only (it was made by a newer storyForge)";
 		if (this.project.isPlaceholder(path)) return "the file is stored in iCloud and has not been downloaded yet";
 		const entry = this.project.entry(path);
 		if (!entry || entry.kind !== "file") return "the file doesn't exist";
@@ -374,13 +381,15 @@ export class ProseWriter {
 				const hookErrors = await this.reload(session, disk, "conflict", rec.path);
 				return { kind: "conflict", path, recoveryPath: rec.path, backup, ...(hookErrors.length ? { hookErrors } : {}) };
 			}
+			const normalised = !session.lossless;
+			session.lossless = true;
 			session.lastKnown = next;
 			session.savedBody = body;
 			session.recovered = null;
 			await this.project.refresh(path);
 			if (session.dirty) this.noteEdited(session); // typed while saving
 			const hookErrors = await this.runSubscribers(session, next, "save");
-			return { kind: "saved", path, backup, ...(hookErrors.length ? { hookErrors } : {}) };
+			return { kind: "saved", path, backup, ...(hookErrors.length ? { hookErrors } : {}), ...(normalised ? { normalizedLineEndings: true } : {}) };
 		} catch (err) {
 			const error = asError(err);
 			if (error instanceof ForbiddenWriteError) return this.refused(session, body, error.reason, backup);
@@ -442,6 +451,7 @@ export class ProseWriter {
 		const before = session.current;
 		const parsed = parseProseFile(disk);
 		session.lastKnown = disk;
+		session.lossless = serialiseProseFile(parsed.shape, parsed.body) === disk;
 		session.shape = parsed.shape;
 		session.savedBody = parsed.body;
 		session.current = parsed.body;

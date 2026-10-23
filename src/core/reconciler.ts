@@ -63,7 +63,7 @@ export interface ChangeSet {
 	evidence?: ReadonlyMap<string, Evidence>;
 }
 
-export type GateReason = "folder-missing" | "folder-empty" | "not-downloaded" | "unreadable" | "codex-missing";
+export type GateReason = "novel-exists" | "folder-missing" | "folder-empty" | "not-downloaded" | "unreadable" | "codex-missing";
 
 export interface Gate {
 	/** `book:<folder name>` or `codex`. */
@@ -461,11 +461,16 @@ async function reconcileBookRenames(project: Project, summary: ReconcileSummary)
 	const { pairs } = pairUp(vanishedBooks.map((v) => v.name), candidates);
 	const done: { from: string; to: string }[] = [];
 	for (const [from, to] of pairs) {
+		if (project.exists(bookFilePath(to))) {
+			// Never overwrite: nothing is renamed, the book is gated and reported.
+			summary.gated.push({ area: `book:${from}`, reason: "novel-exists", detail: `the folder of book "${from}" looks renamed to "${to}", but ${bookFilePath(to)} already exists, so nothing was renamed` });
+			continue;
+		}
 		try {
 			await handleBookFolderRename(project, libraryBookPath(from), libraryBookPath(to));
 			const oldNovel = bookFilePath(from);
 			const newNovel = bookFilePath(to);
-			if (project.isFile(oldNovel) && !project.exists(newNovel)) await project.rename(oldNovel, newNovel);
+			if (project.isFile(oldNovel)) await project.rename(oldNovel, newNovel);
 			summary.matched.push({ kind: "book", tier: "folder", from: libraryBookPath(from), to: libraryBookPath(to) });
 			done.push({ from, to });
 		} catch (err) {

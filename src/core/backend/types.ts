@@ -14,7 +14,24 @@ export interface Stat {
 export interface ScanEntry extends Stat {
 	/** Project-relative path in the on-disk spelling. */
 	path: string;
+	/**
+	 * The text of a markdown file under storyForge's folders, when the backend returns it with the
+	 * scan (the Tauri backend does, so opening a project is one call, not one per file). The index uses it
+	 * instead of reading the file again.
+	 */
+	text?: string;
+	/** An iCloud placeholder (`.Name.md.icloud`): present, not downloaded. */
+	placeholder?: boolean;
 }
+
+/**
+ * What the caller means to do, passed along with the call so a backend that has its own guard (the
+ * Rust one) can check the same rule the TypeScript guard just did. The node-fs backend ignores them.
+ */
+export type WriteIntent = { op: "write-file" } | { op: "frontmatter-edit"; keys?: readonly string[] };
+export type CreateIntent = { op: "create-file" | "backup-create" | "recovery-create" };
+export type RenameIntent = { op: "rename" | "codex-rename" };
+export type CompareIntent = { op: "prose-write" | "link-rewrite" };
 
 export type BackendErrorCode = "ENOENT" | "EEXIST" | "ENOTDIR" | "EISDIR" | "EACCES" | "UNKNOWN";
 
@@ -37,7 +54,7 @@ export interface Backend {
 	readText(path: string): Promise<string>;
 	readBinary(path: string): Promise<Uint8Array>;
 	/** Atomic: a crash leaves the old file or the new file, never a mixture. Creates missing parents. */
-	writeText(path: string, text: string): Promise<void>;
+	writeText(path: string, text: string, intent?: WriteIntent): Promise<void>;
 	writeBinary(path: string, data: Uint8Array): Promise<void>;
 	/**
 	 * Compare-then-write: replaces the existing file's text with `text` (exactly as given) only if it
@@ -45,13 +62,13 @@ export interface Backend {
 	 * writer going through this backend; implementations narrow the window against outside writers
 	 * as far as the platform allows (docs/safety-core.md §10). A missing file rejects with ENOENT.
 	 */
-	writeTextIfUnchanged(path: string, expected: string, text: string): Promise<"written" | "conflict">;
+	writeTextIfUnchanged(path: string, expected: string, text: string, intent?: CompareIntent): Promise<"written" | "conflict">;
 	/** Fails with EEXIST if `path` exists. Creates missing parents. */
-	createFile(path: string, content: string | Uint8Array): Promise<void>;
+	createFile(path: string, content: string | Uint8Array, intent?: CreateIntent): Promise<void>;
 	/** `mkdir -p`: idempotent. */
 	createFolder(path: string): Promise<void>;
 	/** Fails with EEXIST if `to` exists. Creates missing parents of `to`. */
-	rename(from: string, to: string): Promise<void>;
+	rename(from: string, to: string, intent?: RenameIntent): Promise<void>;
 	/** Moves `path` into `.trash/` inside the project, never overwriting what is already there. Returns the new path. */
 	retire(path: string): Promise<string>;
 }
