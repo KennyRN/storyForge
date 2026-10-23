@@ -260,3 +260,18 @@ fn read_outside_reads_other_notes_but_not_storyforges_own_folders() {
     assert_eq!(p.read_outside("_BACKSTAGE/storyforge/x.md").unwrap_err().code, "FORBIDDEN");
     assert!(p.read_outside("../x").is_err());
 }
+
+#[test]
+fn download_placeholder_only_for_one_existing_stub_and_never_hidden_or_outside() {
+    let (dir, p) = project();
+    put(&dir, "notes/here.md", "x");
+    assert!(p.download_placeholder("notes/here.md", std::time::Duration::from_millis(10)).unwrap(), "a file that is already there needs nothing");
+    assert_eq!(p.download_placeholder("notes/none.md", std::time::Duration::from_millis(10)).unwrap_err().code, "ENOENT");
+    assert_eq!(p.download_placeholder(".obsidian/x.md", std::time::Duration::from_millis(10)).unwrap_err().code, "FORBIDDEN");
+    assert!(p.download_placeholder("../x.md", std::time::Duration::from_millis(10)).is_err());
+    // A stub outside iCloud: macOS cannot download it. That is an error or "not downloaded", never a hang or a write.
+    put(&dir, "notes/.later.md.icloud", "stub");
+    let r = p.download_placeholder("notes/later.md", std::time::Duration::from_millis(300));
+    assert!(matches!(r, Ok(false) | Err(_)), "{r:?}");
+    assert!(!dir.path().join("notes/later.md").exists());
+}

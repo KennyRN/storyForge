@@ -98,6 +98,8 @@ export interface ProseWriterOptions {
 	saveDelayMs?: number;
 	/** Register the built-in subscribers (fingerprint sidecar, word-count history). Default true. */
 	builtinSubscribers?: boolean;
+	/** Nothing may be written into the project: every file is refused. */
+	readOnly?: boolean;
 }
 
 const asError = (e: unknown): Error => (e instanceof Error ? e : new Error(String(e)));
@@ -241,6 +243,7 @@ export class ProseWriter {
 	 * edit it. Archived chapters and Codex notes, `notes/`, and anything else are refused.
 	 */
 	private refusal(path: string): string | { kind: ProseKind } {
+		if (this.options.readOnly) return "the project is open read-only (it was made by a newer storyForge)";
 		if (this.project.isPlaceholder(path)) return "the file is stored in iCloud and has not been downloaded yet";
 		const entry = this.project.entry(path);
 		if (!entry || entry.kind !== "file") return "the file doesn't exist";

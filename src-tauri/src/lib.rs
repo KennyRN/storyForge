@@ -23,6 +23,8 @@ pub struct AppState {
     project: Mutex<Option<Arc<Project>>>,
     machine: MachineStore,
     watcher: Mutex<Option<Watching>>,
+    /// Set when the window has flushed and saved: only then may the app really close.
+    quit_ok: AtomicBool,
 }
 
 /// A running watcher: dropping it (and setting `stop`) ends it.
@@ -182,7 +184,28 @@ macro_rules! fs_commands {
         )*
     };
 }
-fs_commands!(scan, stat, read_text, read_binary, read_outside, write_text, write_binary, create_file, create_folder, compare_write, rename, retire);
+fs_commands!(scan, stat, read_text, read_binary, read_outside, write_text, write_binary, create_file, create_folder, compare_write, rename, retire, download_placeholder);
+
+/// The window has flushed every open editor and saved the snapshot: the app may close now.
+#[tauri::command]
+fn quit_ready(app: tauri::AppHandle, state: State<'_, AppState>) {
+    state.quit_ok.store(true, Ordering::SeqCst);
+    app.exit(0);
+}
+
+/// Closing the window or quitting is stopped, and the window is asked to save everything first. If the
+/// window never answers (it is hung), the app still closes after this long.
+const CLOSE_WATCHDOG: Duration = Duration::from_secs(15);
+
+fn request_close(app: &tauri::AppHandle) {
+    let _ = app.emit("close-requested", ());
+    let app = app.clone();
+    std::thread::spawn(move || {
+        std::thread::sleep(CLOSE_WATCHDOG);
+        app.state::<AppState>().quit_ok.store(true, Ordering::SeqCst);
+        app.exit(0);
+    });
+}
 
 fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let open = MenuItem::with_id(app, "open-project", "Open Project…", true, Some("CmdOrCtrl+O"))?;
@@ -238,7 +261,7 @@ pub fn run() {
         }))
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
-            app.manage(AppState { project: Mutex::new(None), machine: MachineStore::new(&data_dir), watcher: Mutex::new(None) });
+            app.manage(AppState { project: Mutex::new(None), machine: MachineStore::new(&data_dir), watcher: Mutex::new(None), quit_ok: AtomicBool::new(false) });
             let menu = build_menu(app.handle())?;
             app.set_menu(menu)?;
             if let Some(w) = app.get_webview_window("main") {
@@ -252,8 +275,26 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             app_info, pick_project, open_recent, recent_projects, project_info, close_project, scan, stat, read_text, read_binary, read_outside, write_text, write_binary,
-            create_file, create_folder, compare_write, rename, retire, machine_get, machine_set, watch_start, watch_stop
+            create_file, create_folder, compare_write, rename, retire, machine_get, machine_set, watch_start, watch_stop, download_placeholder, quit_ready
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running storyForge");
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                let app = window.app_handle();
+                if !app.state::<AppState>().quit_ok.load(Ordering::SeqCst) {
+                    api.prevent_close();
+                    request_close(app);
+                }
+            }
+        })
+        .build(tauri::generate_context!())
+        .expect("error while building storyForge")
+        .run(|app, event| {
+            // Cmd+Q and the Dock's Quit arrive here, not as a window close.
+            if let tauri::RunEvent::ExitRequested { api, code, .. } = event {
+                if code.is_none() && !app.state::<AppState>().quit_ok.load(Ordering::SeqCst) {
+                    api.prevent_exit();
+                    request_close(app);
+                }
+            }
+        });
 }

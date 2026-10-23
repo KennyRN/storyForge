@@ -23,6 +23,8 @@ const COMMANDS: &[&str] = &[
     "machine_set",
     "watch_start",
     "watch_stop",
+    "download_placeholder",
+    "quit_ready",
 ];
 
 fn main() {

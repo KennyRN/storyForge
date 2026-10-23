@@ -28,6 +28,8 @@
     "allow-machine-set",
     "allow-watch-start",
     "allow-watch-stop",
+    "allow-download-placeholder",
+    "allow-quit-ready",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     "core:window:allow-destroy"

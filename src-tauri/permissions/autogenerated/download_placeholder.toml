@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-download-placeholder"
+description = "Enables the download_placeholder command without any pre-configured scope."
+commands.allow = ["download_placeholder"]
+
+[[permission]]
+identifier = "deny-download-placeholder"
+description = "Denies the download_placeholder command without any pre-configured scope."
+commands.deny = ["download_placeholder"]

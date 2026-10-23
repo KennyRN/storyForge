@@ -44,3 +44,22 @@ pub fn swap(_a: &Path, _b: &Path) -> io::Result<bool> {
 pub fn rename_excl(_from: &Path, _to: &Path) -> io::Result<bool> {
     Ok(false)
 }
+
+/// Asks macOS to download an iCloud file that has not been downloaded (`startDownloadingUbiquitousItem`).
+/// `Ok(true)`: the request was made. `Ok(false)`: not supported here.
+#[cfg(target_os = "macos")]
+pub fn start_download(real_path: &Path) -> io::Result<bool> {
+    use objc2_foundation::{NSFileManager, NSString, NSURL};
+    let path = NSString::from_str(&real_path.to_string_lossy());
+    let url = NSURL::fileURLWithPath(&path);
+    let manager = NSFileManager::defaultManager();
+    match manager.startDownloadingUbiquitousItemAtURL_error(&url) {
+        Ok(()) => Ok(true),
+        Err(e) => Err(io::Error::new(io::ErrorKind::Other, e.localizedDescription().to_string())),
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn start_download(_real_path: &Path) -> io::Result<bool> {
+    Ok(false)
+}

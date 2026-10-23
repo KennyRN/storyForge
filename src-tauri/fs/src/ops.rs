@@ -556,3 +556,43 @@ impl Project {
         Project::open(root, false)
     }
 }
+
+/// How long to wait for an iCloud download before giving up.
+pub const DOWNLOAD_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(60);
+
+impl Project {
+    /// Asks macOS to download one iCloud placeholder (`.Name.md.icloud` for `Name.md`) and waits for the
+    /// real file to appear. One file at a time, only when the author opens it: never in bulk. Returns
+    /// whether the file is now there. Elsewhere, or on failure, the file stays unavailable.
+    pub fn download_placeholder(&self, rel: &str, timeout: std::time::Duration) -> FsResult<bool> {
+        let resolved = resolve_path(rel).ok_or_else(|| FsError::new("EACCES", "not a safe project path", Some(rel)))?;
+        if is_hidden_path(&resolved) {
+            return Err(FsError::forbidden("hidden paths are not downloaded", rel));
+        }
+        let real = self.inside(&resolved)?;
+        if real.exists() {
+            return Ok(true);
+        }
+        let (dir, name) = match resolved.rfind('/') {
+            Some(i) => (&resolved[..=i], &resolved[i + 1..]),
+            None => ("", resolved.as_str()),
+        };
+        let stub = self.inside(&format!("{dir}.{name}.icloud"))?;
+        if !stub.exists() {
+            return Err(FsError::new("ENOENT", "there is no iCloud placeholder for this file", Some(rel)));
+        }
+        match platform::start_download(&real) {
+            Ok(true) => {}
+            Ok(false) => return Ok(false),
+            Err(e) => return Err(FsError::new("UNKNOWN", format!("macOS could not start the download: {e}"), Some(rel))),
+        }
+        let started = std::time::Instant::now();
+        while started.elapsed() < timeout {
+            if real.exists() {
+                return Ok(true);
+            }
+            std::thread::sleep(std::time::Duration::from_millis(250));
+        }
+        Ok(false)
+    }
+}

@@ -25,7 +25,7 @@ import {
 import { LIBRARY_ROOT, CODEX_ROOT, NOTES_ROOT } from "./paths";
 import { type BackupOutcome, ProseWriter, type ProseWriterOptions, type SaveResult } from "./proseWriter";
 import { Project } from "./project";
-import { computeGates, reconcileAtOpen, type ReconcileSummary } from "./reconciler";
+import { computeGates, emptySummary, reconcileAtOpen, type ReconcileSummary } from "./reconciler";
 import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders, writeSeriesTitle } from "./series";
 import { SnapshotKeeper, type SnapshotStore } from "./snapshot";
 import { ensureTagRegistryFile, loadCodexTypesIntoRegistry } from "./tagRegistry";
@@ -66,6 +66,11 @@ export interface OpenProjectOptions {
 	writer?: Omit<ProseWriterOptions, "sessionBackup">;
 	now?: () => Date;
 	snapshotDelayMs?: number;
+	/**
+	 * Open without writing anything into the project folder: no reconciliation, no ensuring, no editing
+	 * (the project was made by a newer storyForge). The snapshot, outside the project, may still be saved.
+	 */
+	readOnly?: boolean;
 }
 
 export interface CloseResult {
@@ -82,10 +87,12 @@ export interface OpenedProject {
 	snapshots: SnapshotKeeper | null;
 	/** What reconciliation at open matched, pruned, added and left alone. */
 	reconciliation: ReconcileSummary;
+	/** Opened without writing (a newer project format). */
+	readOnly: boolean;
 	/** Why the snapshot could not be saved at open, if it could not. */
 	snapshotSaveError?: Error;
-	/** Flushes every open editor (saving or recovering), saves the snapshot, and releases the one-project latch. */
-	close(): Promise<CloseResult>;
+	/** Flushes every open editor (saving or recovering) unless told it already has been, saves the snapshot, and releases the one-project latch. */
+	close(options?: { flush?: boolean }): Promise<CloseResult>;
 }
 
 export async function openProject(root: string, options: OpenProjectOptions): Promise<OpenedProject> {
@@ -96,27 +103,37 @@ export async function openProject(root: string, options: OpenProjectOptions): Pr
 		const project = await Project.open(options.backend);
 		if (!project.isFolder(LIBRARY_ROOT)) throw new NotAProjectError(root);
 
+		const readOnly = options.readOnly === true;
+
 		// 3. The snapshot, if there is one.
 		const loaded = options.snapshotStore ? await options.snapshotStore.load(root) : ({ status: "missing" } as const);
 
 		// 4. Reconcile.
-		const reconciliation = await reconcileAtOpen(project, loaded.status === "ok" ? loaded.snapshot : null, loaded.status === "ok" ? "used" : loaded.status, {
+		const reconciliation = readOnly ? emptySummary(loaded.status === "ok" ? "used" : loaded.status) : await reconcileAtOpen(project, loaded.status === "ok" ? loaded.snapshot : null, loaded.status === "ok" ? "used" : loaded.status, {
 			now: options.now?.(),
 		});
 
 		// 5. Ensure, without pruning. Gated books are left exactly as they are.
-		const registry = await ensureTagRegistryFile(project);
-		loadCodexTypesIntoRegistry(project, registry);
-		const books = await ensureAllSeriesBookEntries(project, (folderName) => {
-			const fm = readBookFrontmatter(project, folderName);
-			if (!fm?.bookIdReference) return null;
-			return { bookId: fm.bookIdReference, bookTitle: fm.bookTitleReference || folderName };
-		});
-		await syncAllBookReferenceFields(project, books);
-		const gated = new Set(computeGates(project).map((g) => g.area));
-		for (const folder of getLibraryBookFolders(project)) {
-			if (gated.has(`book:${folder.name}`)) continue;
-			await ensureAllChapterEntries(project, folder.name);
+		if (readOnly) {
+			try {
+				loadCodexTypesIntoRegistry(project); // reads only: the Codex types in the registry, if there is one
+			} catch {
+				/* no registry yet: the built-in types stay */
+			}
+		} else {
+			const registry = await ensureTagRegistryFile(project);
+			loadCodexTypesIntoRegistry(project, registry);
+			const books = await ensureAllSeriesBookEntries(project, (folderName) => {
+				const fm = readBookFrontmatter(project, folderName);
+				if (!fm?.bookIdReference) return null;
+				return { bookId: fm.bookIdReference, bookTitle: fm.bookTitleReference || folderName };
+			});
+			await syncAllBookReferenceFields(project, books);
+			const gated = new Set(computeGates(project).map((g) => g.area));
+			for (const folder of getLibraryBookFolders(project)) {
+				if (gated.has(`book:${folder.name}`)) continue;
+				await ensureAllChapterEntries(project, folder.name);
+			}
 		}
 
 		// The writer, the backups and the snapshot keeper, wired together.
@@ -129,7 +146,7 @@ export async function openProject(root: string, options: OpenProjectOptions): Pr
 				return { ok: false, error: err instanceof Error ? err : new Error(String(err)) };
 			}
 		};
-		const writer = new ProseWriter(project, { ...options.writer, now: options.now, sessionBackup });
+		const writer = new ProseWriter(project, { ...options.writer, now: options.now, sessionBackup, readOnly });
 		const snapshots = options.snapshotStore ? new SnapshotKeeper(project, options.snapshotStore, root, { delayMs: options.snapshotDelayMs, now: options.now }) : null;
 		if (snapshots) writer.onChapterChanged(() => snapshots.touch());
 
@@ -147,12 +164,14 @@ export async function openProject(root: string, options: OpenProjectOptions): Pr
 			backups,
 			snapshots,
 			reconciliation,
+			readOnly,
 			...(snapshotSaveError ? { snapshotSaveError } : {}),
-			async close() {
+			async close(closeOptions) {
 				if (closed) return { saves: [], snapshot: { skipped: true } };
 				closed = true;
 				try {
-					const saves = await writer.closeAll();
+					// `flush: false` is for a caller that has already flushed (or recovered) the editors itself.
+					const saves = closeOptions?.flush === false ? [] : await writer.closeAll();
 					const snapshot = snapshots ? await snapshots.close() : { skipped: true as const };
 					return { saves, snapshot };
 				} finally {

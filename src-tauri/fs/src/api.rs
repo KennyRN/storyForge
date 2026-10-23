@@ -53,6 +53,7 @@ pub fn dispatch(project: &Project, cmd: &str, args: &Value) -> FsResult<Value> {
             project.rename(opt_str(args, "op").unwrap_or("rename"), str_arg(args, "from")?, str_arg(args, "to")?)?;
             Ok(Value::Null)
         }
+        "download_placeholder" => Ok(json!(project.download_placeholder(str_arg(args, "path")?, crate::ops::DOWNLOAD_TIMEOUT)?)),
         "retire" => Ok(json!(project.retire(str_arg(args, "path")?)?)),
         other => Err(FsError::new("UNKNOWN", format!("unknown command {other}"), None)),
     }

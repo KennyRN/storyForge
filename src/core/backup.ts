@@ -108,7 +108,17 @@ export interface BackupServiceOptions {
 	now?: () => Date;
 }
 
+/** The backup was abandoned (the app is closing) before anything was written under a backup name. */
+export class BackupAbandonedError extends Error {
+	constructor() {
+		super("the backup was abandoned because the app is closing");
+		this.name = "BackupAbandonedError";
+	}
+}
+
 export class BackupService {
+	private abandoned = false;
+	private creating: Promise<unknown> | null = null;
 	/** The most recently requested backup (running, or queued behind the running one). */
 	private running: Running | null = null;
 	private tail: Promise<unknown> = Promise.resolve();
@@ -121,6 +131,16 @@ export class BackupService {
 	) {
 		this.now = options.now ?? (() => new Date());
 		this.createdAt = this.now().getTime();
+	}
+
+	/**
+	 * The app is closing: stop any backup that has not started writing, let one that is writing finish
+	 * (it is a single atomic create), and refuse new ones. The session backup is exempt: closing flushes
+	 * the author's last typing, and that save wants its backup. Resolves when nothing is being written.
+	 */
+	async abandon(): Promise<void> {
+		this.abandoned = true;
+		await this.creating?.catch(() => undefined); // one atomic create: allowed to finish
 	}
 
 	/**
@@ -176,6 +196,7 @@ export class BackupService {
 		const notIncluded: string[] = [];
 		const present = new Set<string>();
 		for await (const e of this.project.fs.scan()) {
+			if (this.abandoned && kind !== "session") throw new BackupAbandonedError();
 			if (e.kind !== "file") continue;
 			const placeholder = icloudPlaceholderTarget(e.path);
 			if (placeholder !== null) {
@@ -190,7 +211,12 @@ export class BackupService {
 		const missing = mustContain.filter((f) => !present.has(foldKey(f)) && !notIncluded.some((n) => foldKey(n) === foldKey(f)));
 		if (missing.length) throw new Error(`can't back up files that are missing: ${missing.join(", ")}`);
 		const zip = zipSync(entries);
-		const path = await this.createUnique(filename, zip);
+		// Abandoning is clean: nothing has been written yet. Once the zip is being created, that is one atomic
+		// step (a temp file renamed into place, or removed), so it is allowed to finish.
+		if (this.abandoned && kind !== "session") throw new BackupAbandonedError();
+		const creating = this.createUnique(filename, zip);
+		this.creating = creating;
+		const path = await creating.finally(() => (this.creating = null));
 		await this.project.refresh(path);
 		return { kind, path, fileCount: Object.keys(entries).length, notIncluded: notIncluded.sort() };
 	}
