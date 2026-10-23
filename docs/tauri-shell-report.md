@@ -95,5 +95,7 @@ Listed with licences in `Code Attributions.md`. Direct: tauri 2.12 and tauri-bui
 ## Not done
 
 - **Kenny's check** (manual, on a copy of the vault): open the copy; read the summary, project text and settings sources; rename a chapter and a Codex note in Obsidian while the app is closed and reopen; edit the test chapter in the app and in Obsidian at once; take both backups; quit with unsaved text. **Pending; not waived.**
+- **Found in Kenny's check, fixed:** Cmd+Q lost unsaved text. The predefined macOS Quit item ends the process without the window's save-first step. It is replaced by an app Quit item (Cmd+Q) that goes through the close request. Checked by hand on 2026-10-23: typed in a chapter, Cmd+Q, the text was on disk with a session backup, and the Rust log showed close requested then the window finished saving. **Not yet checked by hand:** the red window button and the Dock's Quit.
+- The diagnostic window lengthens the chapter autosave to 30 s so the quit check can be done by hand; the core default stays 2 s.
 - Seeing the window: layout, dialogs, menus, the real close flow, single-instance focusing, and the real watcher inside the bundle are untested by me.
 - The real interface, the editor, notices (including the late-write recovery message), the real Tauri-IPC timing, signing beyond ad-hoc, notarisation, auto-update and macOS CI (Brief 5 and later).

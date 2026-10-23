@@ -15,6 +15,7 @@ import "./style.css";
 const app = new AppController({
 	invoke: (cmd, args) => invoke(cmd, args),
 	listen: (event, handler) => listen(event, (e) => handler(e.payload)),
+	saveDelayMs: 30_000, // diagnostic only: time to quit by hand with unsaved text
 });
 
 const root = document.getElementById("app") as HTMLElement;
@@ -71,10 +72,10 @@ function render(): void {
 		${message ? `<div class="banner">${esc(message)}</div>` : ""}
 		${r?.readOnlyReason ? `<div class="banner">${esc(r.readOnlyReason)}</div>` : ""}
 		${r ? `
+		<h2>Edit one chapter (through the prose writer)</h2>${editor(r)}
 		<h2>Reconciliation at open</h2><pre>${esc(summarise(r))}</pre>
 		<h2>Settings and where each came from</h2><pre>${esc(settingsText(r))}</pre>
-		<h2>The project as text</h2><pre>${esc(safe(() => projectAsText(r.opened.project)))}</pre>
-		<h2>Edit one chapter (through the prose writer)</h2>${editor(r)}` : '<p class="muted">Open or create a project. Nothing is opened for you, and an empty folder is never seeded by opening it.</p>'}
+		<h2>The project as text</h2><pre>${esc(safe(() => projectAsText(r.opened.project)))}</pre>` : '<p class="muted">Open or create a project. Nothing is opened for you, and an empty folder is never seeded by opening it.</p>'}
 	</section>`;
 	renderLog();
 	wire();
@@ -108,7 +109,8 @@ function editor(r: Running): string {
 	return `<p><select id="chapter"><option value="">Choose a chapter…</option>${choices.map((c) => `<option value="${esc(c.path)}" ${session?.path === c.path ? "selected" : ""}>${esc(c.label)}</option>`).join("")}</select>
 	<button id="save" ${session ? "" : "disabled"}>Save now</button></p>
 	<textarea id="body" ${session ? "" : "disabled"} spellcheck="true">${session ? esc(session.body) : ""}</textarea>
-	<div id="status" class="muted">${esc(status)}</div>`;
+	<div id="status" class="muted">${esc(status)}</div>
+	<div id="live" class="muted"></div>`;
 }
 
 function describe(res: SaveResult): string {
@@ -116,7 +118,7 @@ function describe(res: SaveResult): string {
 		case "saved":
 			return `saved${res.backup && !res.backup.ok ? ` (the session backup FAILED: ${res.backup.error.message})` : res.backup?.ok ? ` (session backup ${res.backup.path})` : ""}${res.normalizedLineEndings ? "; mixed line endings were normalised" : ""}`;
 		case "unchanged":
-			return "nothing to save";
+			return "nothing to save: the file on disk already matches the box (an automatic save may have just written it)";
 		case "conflict":
 			return `CONFLICT: the file changed elsewhere. The disk won; your text is at ${res.recoveryPath}`;
 		case "refused":
@@ -175,7 +177,11 @@ function wire(): void {
 		})();
 	});
 	const body = $("body") as HTMLTextAreaElement | null;
-	body?.addEventListener("input", () => session?.setBody(body.value));
+	body?.addEventListener("input", () => {
+		if (!session) return;
+		session.setBody(body.value);
+		showLive();
+	});
 	$("save")?.addEventListener("click", () => {
 		void session?.save().then((res) => {
 			status = describe(res);
@@ -184,6 +190,13 @@ function wire(): void {
 		});
 	});
 }
+
+function showLive(): void {
+	const el = document.getElementById("live");
+	if (!el) return;
+	el.textContent = session ? `editing ${session.path}: ${session.body.length} characters in the session, ${session.dirty ? "NOT yet saved (saves 30 s after you stop typing, in this diagnostic window)" : "matches the file on disk"}` : "no chapter open for editing";
+}
+setInterval(showLive, 500);
 
 function fail(e: unknown): void {
 	message = (e as Error)?.message ?? String(e);

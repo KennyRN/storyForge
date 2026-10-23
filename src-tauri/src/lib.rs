@@ -189,6 +189,7 @@ fs_commands!(scan, stat, read_text, read_binary, read_outside, write_text, write
 /// The window has flushed every open editor and saved the snapshot: the app may close now.
 #[tauri::command]
 fn quit_ready(app: tauri::AppHandle, state: State<'_, AppState>) {
+    eprintln!("storyForge: the window finished saving; quitting");
     state.quit_ok.store(true, Ordering::SeqCst);
     app.exit(0);
 }
@@ -198,11 +199,13 @@ fn quit_ready(app: tauri::AppHandle, state: State<'_, AppState>) {
 const CLOSE_WATCHDOG: Duration = Duration::from_secs(15);
 
 fn request_close(app: &tauri::AppHandle) {
+    eprintln!("storyForge: close requested; asking the window to save");
     save_window_state(app);
     let _ = app.emit("close-requested", ());
     let app = app.clone();
     std::thread::spawn(move || {
         std::thread::sleep(CLOSE_WATCHDOG);
+        eprintln!("storyForge: the window did not answer in time; quitting anyway");
         app.state::<AppState>().quit_ok.store(true, Ordering::SeqCst);
         app.exit(0);
     });
@@ -241,6 +244,8 @@ fn restore_window_state(app: &tauri::App) {
 fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     let open = MenuItem::with_id(app, "open-project", "Open Project…", true, Some("CmdOrCtrl+O"))?;
     let new = MenuItem::with_id(app, "new-project", "New Project…", true, Some("CmdOrCtrl+N"))?;
+    // Not the predefined Quit: that ends the process without letting the window save first.
+    let quit = MenuItem::with_id(app, "quit", "Quit storyForge", true, Some("CmdOrCtrl+Q"))?;
     let app_menu = Submenu::with_items(
         app,
         "storyForge",
@@ -254,7 +259,7 @@ fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
             &PredefinedMenuItem::hide_others(app, None)?,
             &PredefinedMenuItem::show_all(app, None)?,
             &PredefinedMenuItem::separator(app)?,
-            &PredefinedMenuItem::quit(app, None)?,
+            &quit,
         ],
     )?;
     let file = Submenu::with_items(app, "File", true, &[&open, &new])?;
@@ -300,6 +305,10 @@ pub fn run() {
                 w.set_theme(Some(Theme::Dark))?;
             }
             app.on_menu_event(|app, event| {
+                if event.id().0.as_str() == "quit" {
+                    request_close(app);
+                    return;
+                }
                 // The window decides what to do; Rust never opens a path on its own initiative.
                 let _ = app.emit("menu", event.id().0.as_str());
             });

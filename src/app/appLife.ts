@@ -43,6 +43,8 @@ export interface Host {
 	listen(event: string, handler: (payload: unknown) => void): Promise<() => void>;
 	timers?: Timers;
 	now?: () => Date;
+	/** How long after the author stops typing a chapter is saved. The diagnostic window lengthens it so the close-with-unsaved-text check is easy to do by hand. */
+	saveDelayMs?: number;
 }
 
 interface PickedProject {
@@ -193,7 +195,7 @@ export class AppController {
 			} catch {
 				/* no project.md: format 0 */
 			}
-			const opened = await openProject(info.root, { backend, snapshotStore: new MachineSnapshotStore(this.machine), projectName: basename(info.root), now: this.now, readOnly });
+			const opened = await openProject(info.root, { backend, snapshotStore: new MachineSnapshotStore(this.machine), projectName: basename(info.root), now: this.now, readOnly, ...(this.host.saveDelayMs ? { writer: { saveDelayMs: this.host.saveDelayMs } } : {}) });
 			const settings = await loadSettings(opened.project, (p) => backend.readOutside(p));
 			const key = sha256Text(info.root);
 			const machineState = await loadMachineProjectState(this.machine, key, settings.pluginPosition);
