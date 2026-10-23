@@ -185,8 +185,12 @@ export class Project {
 		await this.refresh(canonical);
 	}
 
-	/** Re-reads one path from the backend into the index (after a write made through this handle). */
-	private async refresh(path: string): Promise<void> {
+	/**
+	 * Re-reads one path from the backend into the index. Used after a write made through this handle,
+	 * and by the safety-core modules after they write through `fs` directly (the prose writer, the
+	 * link rewriter, backups, recovery). Index only; never writes.
+	 */
+	async refresh(path: string): Promise<void> {
 		const st: Stat | null = await this.fs.stat(path);
 		if (!st) {
 			this.index.removeEntry(path);
