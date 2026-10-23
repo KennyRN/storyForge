@@ -19,6 +19,7 @@ const READ_ONLY = new Set([
 	"getChapterDaily",
 	"getProjectWordStats",
 	"uniqueCodexFilename",
+	"readChapterFingerprint",
 ]);
 /** Covered by name under a different spelling in ops.ts. */
 const ALIASES: Record<string, string> = {

@@ -13,7 +13,9 @@
  * - External changes arrive through `applyChange` (index only, never writes).
  */
 import type { Backend, EntryKind } from "./backend/types";
-import { type FrontmatterRecord, type ParsedFrontmatter, UnreadableFrontmatterError, readFrontmatter } from "./frontmatter";
+import { type FrontmatterRecord, type ParsedFrontmatter, UnreadableFrontmatterError, bodyOf, readFrontmatter } from "./frontmatter";
+import { type Fingerprint, extractFingerprint } from "./fingerprint";
+import { isCodexNotePath, isLibraryChapterPath } from "./paths";
 import { sha256Text } from "./hash";
 import { baseName, foldKey, isHiddenPath, parentOf, resolvePath } from "./pathRules";
 import { countWords } from "./wordCount";
@@ -41,6 +43,13 @@ export interface IndexEntry {
 	frontmatterError?: string;
 	wordCount?: number;
 	hash?: string;
+	/**
+	 * Chapters and Codex notes: SHA-256 of the text after the frontmatter. Absent when that text is
+	 * empty or only whitespace: an empty body is never evidence that two files are the same file.
+	 */
+	bodyHash?: string;
+	/** Chapters: the opening and closing fingerprint of the text, as the fingerprint sidecar stores it. */
+	fingerprint?: Fingerprint;
 }
 
 export interface Collision {
@@ -172,6 +181,11 @@ export class ProjectIndex {
 			if (fm.state === "unreadable") entry.frontmatterError = fm.error;
 			entry.wordCount = countWords(info.text);
 			entry.hash = sha256Text(info.text);
+			if (isLibraryChapterPath(canonical) || isCodexNotePath(canonical)) {
+				const body = bodyOf(info.text);
+				if (body.trim() !== "") entry.bodyHash = sha256Text(body);
+				if (isLibraryChapterPath(canonical)) entry.fingerprint = extractFingerprint(info.text);
+			}
 		}
 		this.insert(entry);
 		return entry;
