@@ -1,0 +1,22 @@
+/* Purposes: what a colour is for. Components use these and nothing else (src/ui/__tests__/purposes.test.ts). */
+:root {
+	color-scheme: dark;
+	--purpose-editor-bg: var(--ef-bg0);
+	--purpose-panel-bg: var(--ef-bg-dim);
+	--purpose-raised-bg: var(--ef-bg1);
+	--purpose-raised-hover: var(--ef-bg2);
+	--purpose-border: var(--ef-bg3);
+	--purpose-decoration: var(--ef-grey0);
+	--purpose-text: var(--ef-fg);
+	--purpose-text-muted: var(--ef-grey2);
+	--purpose-accent: var(--ef-green);
+	--purpose-text-on-accent: var(--ef-bg-dim);
+	--purpose-focus-ring: var(--ef-green);
+	--purpose-selection: var(--ef-bg-visual);
+	--purpose-trouble: var(--ef-red);
+	--purpose-scrim: rgb(0 0 0 / 0.45);
+	--purpose-shadow: rgb(0 0 0 / 0.4);
+	/* Reserved for v1.1 (the numbers): defined, not used yet. */
+	--purpose-data-fill: var(--ef-blue);
+	--purpose-data-overrun: var(--ef-orange);
+}

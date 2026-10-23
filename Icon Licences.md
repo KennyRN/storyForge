@@ -245,6 +245,15 @@ This project uses icons from the following third-party, open-source icon sets. A
 
 # Licence Texts
 
+## Lucide
+
+- **Author:** Lucide Icons and Contributors (some icons derived from Feather, Cole Bemis, MIT)
+- **Source:** https://github.com/lucide-icons/lucide (npm package `lucide`)
+- **Licence:** ISC License — *see [ISC License](#isc-license) below*. The icons derived from Feather (`check`, `chevron-down`, `chevron-right`, `info`, `plus`, `x` among those storyForge uses, and `alert-triangle`, now named `triangle-alert`) carry the MIT licence below as well.
+- **Used for:** the interface's own controls (Brief 5). Only the icons actually imported are bundled, locally.
+
+---
+
 ## Apache License 2.0
 
 *Applies to: Mage Icons, Material Symbols, MingCute Icon, IconPark Solid, Material Design Icons (MDI)*
@@ -479,3 +488,15 @@ CC0 dedicates a work to the public domain. No attribution is legally required, b
 
 Full legal text: https://creativecommons.org/publicdomain/zero/1.0/legalcode
 Human-readable summary: https://creativecommons.org/publicdomain/zero/1.0/
+
+---
+
+## ISC License
+
+*Applies to: Lucide*
+
+Copyright (c) 2026 Lucide Icons and Contributors
+
+Permission to use, copy, modify, and/or distribute this software for any purpose with or without fee is hereby granted, provided that the above copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.

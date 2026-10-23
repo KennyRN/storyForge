@@ -1,0 +1,213 @@
+/* The kit. Purposes only. */
+.sf-icon {
+	flex: none;
+	vertical-align: middle;
+}
+
+.sf-button {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--space-2);
+	padding: 5px 12px;
+	border: 1px solid var(--purpose-border);
+	border-radius: var(--radius);
+	background: var(--purpose-raised-bg);
+	color: var(--purpose-text);
+	cursor: pointer;
+	transition: background var(--motion);
+}
+.sf-button:hover:not(:disabled) {
+	background: var(--purpose-raised-hover);
+}
+.sf-button:disabled {
+	color: var(--purpose-text-muted);
+	cursor: default;
+	opacity: 0.6;
+}
+.sf-button--primary {
+	background: var(--purpose-accent);
+	border-color: var(--purpose-accent);
+	color: var(--purpose-text-on-accent);
+}
+.sf-button--primary:hover:not(:disabled) {
+	background: var(--purpose-accent);
+	filter: brightness(1.08);
+}
+.sf-button--quiet {
+	background: transparent;
+	border-color: transparent;
+	color: var(--purpose-text-muted);
+}
+.sf-button--quiet:hover:not(:disabled) {
+	color: var(--purpose-text);
+}
+.sf-button--icon {
+	padding: 4px;
+	border-color: transparent;
+	background: transparent;
+	color: var(--purpose-text-muted);
+}
+.sf-button--icon:hover:not(:disabled) {
+	color: var(--purpose-text);
+}
+.sf-button.is-active {
+	color: var(--purpose-accent);
+}
+
+.sf-tooltip {
+	position: fixed;
+	z-index: 1000;
+	max-width: 260px;
+	padding: 4px 8px;
+	border-radius: var(--radius);
+	background: var(--purpose-raised-bg);
+	border: 1px solid var(--purpose-border);
+	color: var(--purpose-text);
+	pointer-events: none;
+}
+
+.sf-menu {
+	position: fixed;
+	z-index: 900;
+	min-width: 180px;
+	padding: var(--space-1);
+	border-radius: var(--radius);
+	background: var(--purpose-raised-bg);
+	border: 1px solid var(--purpose-border);
+	box-shadow: 0 6px 24px var(--purpose-shadow);
+}
+.sf-menu-item {
+	display: block;
+	width: 100%;
+	padding: 5px 10px;
+	border: 0;
+	border-radius: 4px;
+	background: transparent;
+	text-align: left;
+	cursor: pointer;
+}
+.sf-menu-item:hover,
+.sf-menu-item:focus-visible {
+	background: var(--purpose-raised-hover);
+}
+.sf-menu-item[aria-disabled="true"] {
+	color: var(--purpose-text-muted);
+	cursor: default;
+}
+.sf-menu-separator {
+	height: 1px;
+	margin: var(--space-1) 0;
+	background: var(--purpose-border);
+}
+
+.sf-dialog-overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 800;
+	display: grid;
+	place-items: center;
+	background: var(--purpose-scrim);
+}
+.sf-dialog {
+	display: flex;
+	flex-direction: column;
+	width: min(560px, calc(100vw - 32px));
+	max-height: calc(100vh - 64px);
+	border-radius: 10px;
+	background: var(--purpose-raised-bg);
+	border: 1px solid var(--purpose-border);
+	box-shadow: 0 12px 48px var(--purpose-shadow);
+}
+.sf-dialog-title {
+	margin: 0;
+	padding: var(--space-4) var(--space-4) var(--space-2);
+	font-size: 15px;
+	font-weight: 600;
+}
+.sf-dialog-body {
+	padding: var(--space-2) var(--space-4);
+	min-height: 0;
+}
+.sf-dialog-buttons {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--space-2);
+	padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+.sf-notices {
+	position: fixed;
+	z-index: 700;
+	left: 50%;
+	bottom: var(--space-4);
+	transform: translateX(-50%);
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
+	width: min(520px, calc(100vw - 32px));
+	pointer-events: none;
+}
+.sf-notice {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-3);
+	padding: var(--space-2) var(--space-3);
+	border-radius: var(--radius);
+	background: var(--purpose-raised-bg);
+	border: 1px solid var(--purpose-border);
+	box-shadow: 0 6px 24px var(--purpose-shadow);
+	pointer-events: auto;
+}
+.sf-notice--sticky {
+	border-left: 3px solid var(--purpose-trouble);
+}
+.sf-notice-actions {
+	display: flex;
+	flex: none;
+	gap: var(--space-1);
+}
+
+.sf-rename-input {
+	width: 100%;
+	padding: 1px 4px;
+	border: 1px solid var(--purpose-accent);
+	border-radius: 4px;
+	background: var(--purpose-editor-bg);
+	color: var(--purpose-text);
+}
+.sf-rename-input[aria-invalid] {
+	border-color: var(--purpose-trouble);
+}
+.sf-rename-problem {
+	color: var(--purpose-text-muted);
+	font-size: 12px;
+}
+.sf-rename-problem:empty {
+	display: none;
+}
+
+/* The ink indicator (ported from inkSlider; the bar is the interface accent). */
+.sf-ink-track {
+	--sf-ink-thickness: 2px;
+	position: absolute;
+	top: 0;
+	width: var(--sf-ink-thickness);
+	overflow: hidden;
+	pointer-events: none;
+}
+.sf-ink-bar {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	background: var(--purpose-accent);
+	transition: transform var(--ink-duration) cubic-bezier(0.65, 0, 0.35, 1);
+}
+.sf-ink-bar.is-instant {
+	transition: none;
+}
+.sf-ink-track--rail {
+	left: 0;
+	height: 100%;
+}

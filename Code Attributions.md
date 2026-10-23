@@ -71,5 +71,6 @@ Used as libraries (nothing copied). Licences as declared by each package.
 | tempfile (tests only) | 3 | MIT OR Apache-2.0 | temp folders in Rust tests |
 | vite | 8.3 | MIT | bundling the window's TypeScript |
 | @tauri-apps/cli, @tauri-apps/api | 2.12 | Apache-2.0 OR MIT | building the app; the window's `invoke` and events |
+| lucide | 1.61 | ISC (some icons MIT, from Feather) | the interface's icons, bundled locally (also in `Icon Licences.md`) |
 
 The window's colours are **Everforest** (sainnhe, MIT; see `Theme Licences.md`); the Soft Dark values were checked against the project's `palette.md`.
