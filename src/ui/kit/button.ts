@@ -13,9 +13,10 @@ export interface ButtonOptions {
 }
 
 export function button(options: ButtonOptions): HTMLButtonElement {
-	const b = el(
+	// WebKit does not focus a button on click; do it, so a dialog or menu it opens can give focus back.
+	const b: HTMLButtonElement = el(
 		"button",
-		{ class: `sf-button sf-button--${options.kind ?? "default"}${options.label ? "" : " sf-button--icon"}`, attrs: { type: "button" }, on: { click: options.onClick } },
+		{ class: `sf-button sf-button--${options.kind ?? "default"}${options.label ? "" : " sf-button--icon"}`, attrs: { type: "button" }, on: { click: (e) => { b.focus({ preventScroll: true }); options.onClick(e); } } },
 		options.icon ? icon(options.icon) : null,
 		options.label ? el("span", { text: options.label }) : null,
 	);

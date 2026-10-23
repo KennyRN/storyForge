@@ -9,3 +9,8 @@ src-tauri/gen/
 
 # fixtures are committed on purpose
 !test/fixtures/**/data.json
+
+# the browser preview and its test output (development only)
+.preview-dist/
+test-results/
+playwright-report/
