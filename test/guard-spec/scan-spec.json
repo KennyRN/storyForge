@@ -1,0 +1,4 @@
+{
+	"description": "Folders whose markdown files the scan reads (text, frontmatter, word count, hash) when a project opens: decision 18. Matched case-insensitively. The TypeScript index (EAGER_ROOTS) and the Rust scan both follow this list; a test in each checks it.",
+	"eagerRoots": ["_story-library", "Codex", "notes", "_backstage/storyforge"]
+}

@@ -1,0 +1,546 @@
+//! The disk operations behind the Rust commands. Every mutating call: refused if the project is open
+//! read-only; checked against the guard (the same table the TypeScript guard passes); kept inside the
+//! project root whatever symbolic links exist; and atomic (a temp file beside the target, then a
+//! rename or an exchange). Nothing here deletes the author's files: the only removals are this app's
+//! own temp files, and `retire` moves a backstage file into `.trash/`.
+use serde::Serialize;
+use std::fs::{self, File, OpenOptions};
+use std::io::{ErrorKind, Read, Write};
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use crate::containment::ensure_inside;
+use crate::error::{FsError, FsResult};
+use crate::guard::{check_guard, Decision, GuardOp};
+use crate::paths::{fold_key, is_hidden_path, resolve_path};
+use crate::platform;
+
+/// Folders whose markdown files `scan` reads (one list, shared with the TypeScript index: scan-spec.json).
+const SCAN_SPEC: &str = include_str!("../../../test/guard-spec/scan-spec.json");
+
+fn eager_roots() -> Vec<String> {
+    #[derive(serde::Deserialize)]
+    struct Spec {
+        #[serde(rename = "eagerRoots")]
+        eager_roots: Vec<String>,
+    }
+    serde_json::from_str::<Spec>(SCAN_SPEC).expect("scan-spec.json").eager_roots.into_iter().map(|r| r.to_lowercase()).collect()
+}
+
+pub fn is_eager_path(path: &str) -> bool {
+    let key = fold_key(path);
+    key.ends_with(".md") && !is_hidden_path(path) && eager_roots().iter().any(|r| key.starts_with(&format!("{r}/")))
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct ScanEntry {
+    pub path: String,
+    pub kind: &'static str,
+    pub size: u64,
+    #[serde(rename = "mtimeMs")]
+    pub mtime_ms: f64,
+    /// An iCloud placeholder (`.Name.md.icloud`): the file exists but has not been downloaded.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub placeholder: bool,
+    /// Markdown under storyForge's folders: its text, so opening a project is one call, not one per file.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct StatInfo {
+    pub kind: &'static str,
+    pub size: u64,
+    #[serde(rename = "mtimeMs")]
+    pub mtime_ms: f64,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct CompareOutcome {
+    /// `written` or `conflict`.
+    pub outcome: &'static str,
+    /// Set when a writer outside the app wrote into the swapped-out file after it was verified: its
+    /// bytes were kept here (a recovery file) instead of being removed.
+    #[serde(rename = "lateWriteRecovery", skip_serializing_if = "Option::is_none")]
+    pub late_write_recovery: Option<String>,
+}
+
+/// Test hooks: run at the two moments an outside writer could interfere.
+#[derive(Default)]
+pub struct Hooks {
+    /// After the temp file is written, before the target is exchanged. Gets the target path.
+    pub before_swap: Option<Box<dyn Fn(&Path) + Send + Sync>>,
+    /// After the swapped-out file was verified, before it is removed. Gets the swapped-out file's path.
+    pub after_verify: Option<Box<dyn Fn(&Path) + Send + Sync>>,
+}
+
+pub struct Project {
+    root: PathBuf,
+    read_only: bool,
+    pub hooks: Hooks,
+}
+
+static COUNTER: AtomicU64 = AtomicU64::new(0);
+
+fn unique_suffix() -> String {
+    let nanos = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_nanos()).unwrap_or(0);
+    format!("{:x}{:x}{:x}", std::process::id(), nanos, COUNTER.fetch_add(1, Ordering::Relaxed))
+}
+
+fn mtime_ms(meta: &fs::Metadata) -> f64 {
+    meta.modified().ok().and_then(|t| t.duration_since(UNIX_EPOCH).ok()).map(|d| d.as_secs_f64() * 1000.0).unwrap_or(0.0)
+}
+
+/// Identity of a file for the "did it change under us" check.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct Identity {
+    #[cfg(unix)]
+    dev: u64,
+    #[cfg(unix)]
+    ino: u64,
+    size: u64,
+    mtime: Option<SystemTime>,
+}
+
+fn identity(meta: &fs::Metadata) -> Identity {
+    #[cfg(unix)]
+    use std::os::unix::fs::MetadataExt;
+    Identity {
+        #[cfg(unix)]
+        dev: meta.dev(),
+        #[cfg(unix)]
+        ino: meta.ino(),
+        size: meta.len(),
+        mtime: meta.modified().ok(),
+    }
+}
+
+fn io_err(e: &std::io::Error, rel: &str) -> FsError {
+    FsError::from_io(e, rel)
+}
+
+impl Project {
+    /// `root` is the folder the user picked; it is canonicalised once, and is fixed for the life of the project.
+    pub fn open(root: &Path, read_only: bool) -> FsResult<Project> {
+        let root = fs::canonicalize(root).map_err(|e| io_err(&e, &root.to_string_lossy()))?;
+        if !root.is_dir() {
+            return Err(FsError::new("ENOTDIR", "not a folder", Some(&root.to_string_lossy())));
+        }
+        Ok(Project { root, read_only, hooks: Hooks::default() })
+    }
+
+    pub fn root(&self) -> &Path {
+        &self.root
+    }
+    pub fn is_read_only(&self) -> bool {
+        self.read_only
+    }
+
+    fn guard(&self, op: &GuardOp, shown: &str) -> FsResult<()> {
+        if self.read_only {
+            return Err(FsError::new("READONLY", "this project was made by a newer storyForge and is open read-only", Some(shown)));
+        }
+        match check_guard(op) {
+            Decision::Allow => Ok(()),
+            Decision::Refuse(reason) => Err(FsError::forbidden(reason, shown)),
+        }
+    }
+
+    fn inside(&self, rel: &str) -> FsResult<PathBuf> {
+        ensure_inside(&self.root, rel).map_err(|m| FsError::new("EACCES", m, Some(rel)))
+    }
+
+    // ------------------------------------------------------------------------------- reads
+
+    pub fn scan(&self, dir: Option<&str>) -> FsResult<Vec<ScanEntry>> {
+        let start = match dir {
+            Some(d) if !d.is_empty() => resolve_path(d).ok_or_else(|| FsError::new("EACCES", "not a safe project path", Some(d)))?,
+            _ => String::new(),
+        };
+        let mut out = Vec::new();
+        self.walk(&start, &mut out)?;
+        Ok(out)
+    }
+
+    fn walk(&self, rel: &str, out: &mut Vec<ScanEntry>) -> FsResult<()> {
+        let abs = if rel.is_empty() { self.root.clone() } else { self.root.join(rel) };
+        let mut names: Vec<fs::DirEntry> = match fs::read_dir(&abs) {
+            Ok(rd) => rd.filter_map(Result::ok).collect(),
+            Err(e) if e.kind() == ErrorKind::NotFound || e.raw_os_error() == Some(20) => return Ok(()),
+            Err(e) => return Err(io_err(&e, rel)),
+        };
+        names.sort_by_key(|e| e.file_name());
+        for entry in names {
+            let name = entry.file_name().to_string_lossy().to_string();
+            let child = if rel.is_empty() { name.clone() } else { format!("{rel}/{name}") };
+            let Ok(meta) = fs::symlink_metadata(entry.path()) else { continue };
+            let ft = meta.file_type();
+            if ft.is_symlink() {
+                continue; // neither followed nor listed
+            }
+            if ft.is_dir() {
+                out.push(ScanEntry { path: child.clone(), kind: "folder", size: 0, mtime_ms: mtime_ms(&meta), placeholder: false, text: None });
+                self.walk(&child, out)?;
+            } else if ft.is_file() {
+                let placeholder = name.starts_with('.') && name.ends_with(".icloud") && name.len() > ".icloud".len() + 1;
+                let text = if is_eager_path(&child) { fs::read(entry.path()).ok().map(|b| String::from_utf8_lossy(&b).into_owned()) } else { None };
+                out.push(ScanEntry { path: child, kind: "file", size: meta.len(), mtime_ms: mtime_ms(&meta), placeholder, text });
+            }
+        }
+        Ok(())
+    }
+
+    pub fn stat(&self, rel: &str) -> FsResult<Option<StatInfo>> {
+        let abs = self.read_target(rel)?;
+        match fs::symlink_metadata(&abs) {
+            Ok(m) if m.file_type().is_symlink() => Ok(None),
+            Ok(m) => Ok(Some(StatInfo { kind: if m.is_dir() { "folder" } else { "file" }, size: if m.is_dir() { 0 } else { m.len() }, mtime_ms: mtime_ms(&m) })),
+            Err(e) if e.kind() == ErrorKind::NotFound || e.raw_os_error() == Some(20) => Ok(None),
+            Err(e) => Err(io_err(&e, rel)),
+        }
+    }
+
+    /// Reads follow the same containment as writes: a link that leaves the project is never read through.
+    fn read_target(&self, rel: &str) -> FsResult<PathBuf> {
+        resolve_path(rel).ok_or_else(|| FsError::new("EACCES", format!("not a safe project path: \"{rel}\""), Some(rel)))?;
+        self.inside(rel)
+    }
+
+    pub fn read_bytes(&self, rel: &str) -> FsResult<Vec<u8>> {
+        let abs = self.read_target(rel)?;
+        fs::read(&abs).map_err(|e| io_err(&e, rel))
+    }
+
+    pub fn read_text(&self, rel: &str) -> FsResult<String> {
+        Ok(String::from_utf8_lossy(&self.read_bytes(rel)?).into_owned())
+    }
+
+    /// A read-only look at a file outside storyForge's own folders (the plugin's `data.json`, links
+    /// in other notes). Never `_backstage/` or `_sf-backup/`.
+    pub fn read_outside(&self, rel: &str) -> FsResult<String> {
+        let resolved = resolve_path(rel).ok_or_else(|| FsError::new("EACCES", "not a safe project path", Some(rel)))?;
+        let key = resolved.to_lowercase();
+        for banned in ["_backstage", "_sf-backup"] {
+            if key == banned || key.starts_with(&format!("{banned}/")) {
+                return Err(FsError::forbidden(format!("{banned}/ is not readable through read_outside"), rel));
+            }
+        }
+        self.read_text(&resolved)
+    }
+
+    // ------------------------------------------------------------------------------ writes
+
+    fn write_atomic(&self, abs: &Path, data: &[u8], perms: Option<fs::Permissions>, rel: &str) -> FsResult<()> {
+        if let Some(parent) = abs.parent() {
+            fs::create_dir_all(parent).map_err(|e| io_err(&e, rel))?;
+        }
+        let tmp = temp_beside(abs);
+        let result = (|| -> std::io::Result<()> {
+            let mut f = OpenOptions::new().write(true).create_new(true).open(&tmp)?;
+            f.write_all(data)?;
+            f.sync_all()?;
+            if let Some(p) = perms {
+                fs::set_permissions(&tmp, p)?;
+            }
+            fs::rename(&tmp, abs)
+        })();
+        if let Err(e) = result {
+            let _ = fs::remove_file(&tmp); // our own temp file
+            return Err(io_err(&e, rel));
+        }
+        Ok(())
+    }
+
+    /// Replaces or creates a file's text. Rewriting a CRLF file with LF-only text keeps CRLF.
+    /// `op` is `write-file` or `frontmatter-edit` (with the keys the edit changes).
+    pub fn write_text(&self, rel: &str, text: &str, op: &str, keys: Option<Vec<String>>) -> FsResult<()> {
+        let guard_op = if op == "frontmatter-edit" { GuardOp::FrontmatterEdit { path: rel.to_string(), keys } } else { GuardOp::WriteFile(rel.to_string()) };
+        self.guard(&guard_op, rel)?;
+        let abs = self.inside(rel)?;
+        let mut out = text.to_string();
+        let mut perms = None;
+        if let Ok(meta) = fs::metadata(&abs) {
+            perms = Some(meta.permissions());
+            if !text.contains("\r\n") && text.contains('\n') {
+                if let Ok(existing) = fs::read(&abs) {
+                    if let Some(i) = existing.iter().position(|b| *b == b'\n') {
+                        if i > 0 && existing[i - 1] == b'\r' {
+                            out = text.replace('\n', "\r\n");
+                        }
+                    }
+                }
+            }
+        }
+        self.write_atomic(&abs, out.as_bytes(), perms, rel)
+    }
+
+    pub fn write_binary(&self, rel: &str, data: &[u8]) -> FsResult<()> {
+        self.guard(&GuardOp::WriteBinary(rel.to_string()), rel)?;
+        let abs = self.inside(rel)?;
+        self.write_atomic(&abs, data, None, rel)
+    }
+
+    /// Exclusive create: fails with EEXIST if `rel` exists, and never overwrites. `op` is `create-file`,
+    /// `backup-create` or `recovery-create`.
+    pub fn create_file(&self, op: &str, rel: &str, content: &[u8]) -> FsResult<()> {
+        let guard_op = GuardOp::from_spec(op, Some(rel), None, None, None).map_err(|m| FsError::new("UNKNOWN", m, Some(rel)))?;
+        if !matches!(guard_op, GuardOp::CreateFile(_) | GuardOp::BackupCreate(_) | GuardOp::RecoveryCreate(_)) {
+            return Err(FsError::forbidden(format!("{op} is not a create operation"), rel));
+        }
+        self.guard(&guard_op, rel)?;
+        let abs = self.inside(rel)?;
+        self.create_excl(&abs, content, rel)
+    }
+
+    fn create_excl(&self, abs: &Path, content: &[u8], rel: &str) -> FsResult<()> {
+        if let Some(parent) = abs.parent() {
+            fs::create_dir_all(parent).map_err(|e| io_err(&e, rel))?;
+        }
+        let tmp = temp_beside(abs);
+        let write = (|| -> std::io::Result<()> {
+            let mut f = OpenOptions::new().write(true).create_new(true).open(&tmp)?;
+            f.write_all(content)?;
+            f.sync_all()
+        })();
+        if let Err(e) = write {
+            let _ = fs::remove_file(&tmp);
+            return Err(io_err(&e, rel));
+        }
+        let moved = link_excl(&tmp, abs);
+        let _ = fs::remove_file(&tmp); // gone already after a rename; our own temp file otherwise
+        moved.map_err(|e| io_err(&e, rel))
+    }
+
+    pub fn create_folder(&self, rel: &str) -> FsResult<()> {
+        self.guard(&GuardOp::CreateFolder(rel.to_string()), rel)?;
+        let abs = self.inside(rel)?;
+        fs::create_dir_all(&abs).map_err(|e| io_err(&e, rel))
+    }
+
+    /// Compare-then-write (docs/tauri-shell.md §4). Writes `text` only if the file still holds exactly
+    /// `expected`; otherwise the file is left as it is and the outcome is `conflict`. `op` is
+    /// `prose-write` or `link-rewrite`.
+    pub fn compare_write(&self, op: &str, rel: &str, expected: &str, text: &str) -> FsResult<CompareOutcome> {
+        let guard_op = GuardOp::from_spec(op, Some(rel), None, None, None).map_err(|m| FsError::new("UNKNOWN", m, Some(rel)))?;
+        if !matches!(guard_op, GuardOp::ProseWrite(_) | GuardOp::LinkRewrite(_)) {
+            return Err(FsError::forbidden(format!("{op} is not a compare-then-write operation"), rel));
+        }
+        self.guard(&guard_op, rel)?;
+        let abs = self.inside(rel)?;
+        let before_meta = fs::symlink_metadata(&abs).map_err(|e| io_err(&e, rel))?;
+        if !before_meta.is_file() {
+            return Err(FsError::new("EISDIR", "not a file", Some(rel)));
+        }
+        let current = fs::read(&abs).map_err(|e| io_err(&e, rel))?;
+        if current != expected.as_bytes() {
+            return Ok(CompareOutcome { outcome: "conflict", late_write_recovery: None });
+        }
+        let before = identity(&before_meta);
+
+        let tmp = temp_beside(&abs);
+        let write = (|| -> std::io::Result<()> {
+            let mut f = OpenOptions::new().write(true).create_new(true).open(&tmp)?;
+            f.write_all(text.as_bytes())?;
+            f.sync_all()?;
+            fs::set_permissions(&tmp, before_meta.permissions())
+        })();
+        if let Err(e) = write {
+            let _ = fs::remove_file(&tmp);
+            return Err(io_err(&e, rel));
+        }
+        if let Some(h) = &self.hooks.before_swap {
+            h(&abs);
+        }
+
+        match platform::swap(&tmp, &abs) {
+            Ok(true) => self.after_swap(&abs, &tmp, expected, rel),
+            Ok(false) => self.stat_checked_replace(&abs, &tmp, expected, &before, rel),
+            Err(e) => {
+                let _ = fs::remove_file(&tmp);
+                Err(io_err(&e, rel))
+            }
+        }
+    }
+
+    /// After the exchange: `tmp` holds what was at the target. Verify it is what the caller expected.
+    fn after_swap(&self, abs: &Path, tmp: &Path, expected: &str, rel: &str) -> FsResult<CompareOutcome> {
+        let swapped_out = fs::read(tmp).map_err(|e| io_err(&e, rel))?;
+        if swapped_out != expected.as_bytes() {
+            // An outside writer got in first: put its version back.
+            return match platform::swap(tmp, abs) {
+                Ok(true) => {
+                    let _ = fs::remove_file(tmp); // our own new text
+                    Ok(CompareOutcome { outcome: "conflict", late_write_recovery: None })
+                }
+                Ok(false) | Err(_) => Err(FsError::new("UNKNOWN", "an outside change was detected and could not be swapped back; the outside version is kept at a temporary name beside the file", Some(rel))),
+            };
+        }
+        let verified = fs::metadata(tmp).map(|m| identity(&m)).ok();
+        if let Some(h) = &self.hooks.after_verify {
+            h(tmp);
+        }
+        let now = fs::metadata(tmp).map(|m| identity(&m)).ok();
+        if verified.is_some() && now == verified {
+            let _ = fs::remove_file(tmp); // the app's own temp file: the old version, already replaced
+            return Ok(CompareOutcome { outcome: "written", late_write_recovery: None });
+        }
+        // Something wrote into the swapped-out file after it was verified: keep it, don't remove it.
+        let recovered = self.keep_late_write(tmp, abs, rel)?;
+        Ok(CompareOutcome { outcome: "written", late_write_recovery: Some(recovered) })
+    }
+
+    fn keep_late_write(&self, tmp: &Path, abs: &Path, rel: &str) -> FsResult<String> {
+        let base = abs.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "file".into());
+        let stem = base.strip_suffix(".md").unwrap_or(&base);
+        let stamp = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
+        for n in 1..10_000 {
+            let suffix = if n == 1 { String::new() } else { format!(" {n}") };
+            let recovery_rel = format!("_sf-backup/recovery/_late-write/{stem} {stamp}{suffix}.md");
+            let guard_op = GuardOp::RecoveryCreate(recovery_rel.clone());
+            self.guard(&guard_op, &recovery_rel)?;
+            let target = self.inside(&recovery_rel)?;
+            if let Some(parent) = target.parent() {
+                fs::create_dir_all(parent).map_err(|e| io_err(&e, &recovery_rel))?;
+            }
+            match link_excl(tmp, &target) {
+                Ok(()) => {
+                    let _ = fs::remove_file(tmp); // the temp name; the content lives on at the recovery path
+                    return Ok(recovery_rel);
+                }
+                Err(e) if e.kind() == ErrorKind::AlreadyExists => continue,
+                Err(e) => return Err(io_err(&e, rel)),
+            }
+        }
+        Err(FsError::new("UNKNOWN", "no free recovery file name", Some(rel)))
+    }
+
+    /// Where the exchange is unavailable: Brief 3's check. The target's identity must be the same after
+    /// the comparison as before it, then the temp file is renamed over it.
+    fn stat_checked_replace(&self, abs: &Path, tmp: &Path, expected: &str, before: &Identity, rel: &str) -> FsResult<CompareOutcome> {
+        if let Some(h) = &self.hooks.before_swap {
+            let _ = h; // already run by the caller
+        }
+        let again = fs::read(abs).ok();
+        let meta_again = fs::symlink_metadata(abs).ok().map(|m| identity(&m));
+        if again.as_deref() != Some(expected.as_bytes()) || meta_again.as_ref() != Some(before) {
+            let _ = fs::remove_file(tmp);
+            return Ok(CompareOutcome { outcome: "conflict", late_write_recovery: None });
+        }
+        if let Err(e) = fs::rename(tmp, abs) {
+            let _ = fs::remove_file(tmp);
+            return Err(io_err(&e, rel));
+        }
+        Ok(CompareOutcome { outcome: "written", late_write_recovery: None })
+    }
+
+    /// Exclusive rename: never replaces. `op` is `rename` or `codex-rename`.
+    pub fn rename(&self, op: &str, from: &str, to: &str) -> FsResult<()> {
+        let guard_op = GuardOp::from_spec(op, None, Some(from), Some(to), None).map_err(|m| FsError::new("UNKNOWN", m, Some(from)))?;
+        if !matches!(guard_op, GuardOp::Rename { .. } | GuardOp::CodexRename { .. }) {
+            return Err(FsError::forbidden(format!("{op} is not a rename operation"), from));
+        }
+        self.guard(&guard_op, &format!("{from} -> {to}"))?;
+        self.rename_unguarded(from, to)
+    }
+
+    fn rename_unguarded(&self, from: &str, to: &str) -> FsResult<()> {
+        let src = self.inside(from)?;
+        let dst = self.inside(to)?;
+        let src_meta = fs::symlink_metadata(&src).map_err(|e| io_err(&e, from))?;
+        if let Some(parent) = dst.parent() {
+            fs::create_dir_all(parent).map_err(|e| io_err(&e, to))?;
+        }
+        if let Ok(dst_meta) = fs::symlink_metadata(&dst) {
+            #[cfg(unix)]
+            let same = {
+                use std::os::unix::fs::MetadataExt;
+                dst_meta.ino() == src_meta.ino() && dst_meta.dev() == src_meta.dev()
+            };
+            #[cfg(not(unix))]
+            let same = false;
+            if !same {
+                return Err(FsError::new("EEXIST", format!("\"{to}\" already exists"), Some(to)));
+            }
+            if from == to {
+                return Ok(());
+            }
+            // A case-only (or Unicode-only) rename on a case-insensitive file system: through a temp name.
+            let hop = PathBuf::from(format!("{}.{}.hop", src.to_string_lossy(), unique_suffix()));
+            fs::rename(&src, &hop).map_err(|e| io_err(&e, to))?;
+            return fs::rename(&hop, &dst).map_err(|e| io_err(&e, to));
+        }
+        let moved = if src_meta.is_file() {
+            link_excl(&src, &dst).and_then(|_| {
+                // a hard link was made (or the rename happened): drop the old name if it is still there
+                if src.exists() && dst.exists() && src != dst {
+                    fs::remove_file(&src)
+                } else {
+                    Ok(())
+                }
+            })
+        } else {
+            match platform::rename_excl(&src, &dst) {
+                Ok(true) => Ok(()),
+                Ok(false) => fs::rename(&src, &dst),
+                Err(e) => Err(e),
+            }
+        };
+        moved.map_err(|e| io_err(&e, to))
+    }
+
+    /// Moves a backstage file into `.trash/` inside the project, never overwriting what is there.
+    pub fn retire(&self, rel: &str) -> FsResult<String> {
+        self.guard(&GuardOp::Retire(rel.to_string()), rel)?;
+        let resolved = resolve_path(rel).ok_or_else(|| FsError::new("EACCES", "not a safe project path", Some(rel)))?;
+        let abs = self.inside(&resolved)?;
+        let meta = fs::symlink_metadata(&abs).map_err(|e| io_err(&e, rel))?;
+        let (dir, base) = match resolved.rfind('/') {
+            Some(i) => (&resolved[..i], &resolved[i + 1..]),
+            None => ("", resolved.as_str()),
+        };
+        let dot = if meta.is_file() { base.rfind('.').filter(|i| *i > 0) } else { None };
+        let (stem, ext) = match dot {
+            Some(i) => (&base[..i], &base[i..]),
+            None => (base, ""),
+        };
+        for n in 1..10_000 {
+            let name = if n == 1 { base.to_string() } else { format!("{stem} ({n}){ext}") };
+            let candidate = [".trash", dir, &name].iter().filter(|s| !s.is_empty()).cloned().collect::<Vec<_>>().join("/");
+            match self.rename_unguarded(&resolved, &candidate) {
+                Ok(()) => return Ok(candidate),
+                Err(e) if e.code == "EEXIST" => continue,
+                Err(e) => return Err(e),
+            }
+        }
+        Err(FsError::new("UNKNOWN", "no free name in .trash", Some(rel)))
+    }
+}
+
+fn temp_beside(target: &Path) -> PathBuf {
+    let name = target.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+    target.with_file_name(format!(".{name}.{}.tmp", unique_suffix()))
+}
+
+/// Makes `to` exist with `from`'s contents, failing with `AlreadyExists` if `to` exists. Leaves `from` in place
+/// when it hard-links, moves it when it renames; callers remove a leftover temp name.
+fn link_excl(from: &Path, to: &Path) -> std::io::Result<()> {
+    match platform::rename_excl(from, to) {
+        Ok(true) => return Ok(()),
+        Ok(false) => {}
+        Err(e) => return Err(e),
+    }
+    match fs::hard_link(from, to) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == ErrorKind::AlreadyExists => Err(e),
+        Err(_) => {
+            // No hard links on this volume: an exclusive create plus copy.
+            let mut src = File::open(from)?;
+            let mut buf = Vec::new();
+            src.read_to_end(&mut buf)?;
+            let mut dst = OpenOptions::new().write(true).create_new(true).open(to)?;
+            dst.write_all(&buf)?;
+            dst.sync_all()
+        }
+    }
+}
