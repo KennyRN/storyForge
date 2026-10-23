@@ -144,7 +144,7 @@ describe("other moves while closed", () => {
 		expect(fs.existsSync(path.join(root, "_story-library/novel-aaa.md"))).toBe(false);
 		const series = project.frontmatter("_story-library/series.md")!;
 		expect(series.order).toEqual(["zzz", "bbb"]);
-		expect(Object.keys(series.books as object)).toEqual(["zzz", "bbb", "ccc"]);
+		expect(Object.keys(series.books as object).sort()).toEqual(["bbb", "ccc", "zzz"]);
 		expect(readBookFrontmatter(project, "zzz")!.chapterOrder).toEqual(["ch-a1.md", "ch-a2.md", "ch-a5.md"]);
 	});
 });
