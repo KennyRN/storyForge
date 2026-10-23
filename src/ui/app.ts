@@ -2,8 +2,8 @@ import { AppController, type Host } from "../app/appLife";
 import { mountNotices } from "./kit/notices";
 import { el, fill } from "./kit/dom";
 import { AppModel } from "./model";
-import { EditorHost } from "./editor/editorHost";
 import { renderStart } from "./screens/start";
+import { mountShell } from "./shell";
 
 /** Builds the interface into `root` over a host (Tauri's, or the browser preview's). */
 export async function startApp(host: Host, root: HTMLElement): Promise<AppModel> {
@@ -15,21 +15,34 @@ export async function startApp(host: Host, root: HTMLElement): Promise<AppModel>
 	mountNotices(notices, model.notices);
 
 	let shown: unknown = undefined;
+	let shell: { dispose(): void } | null = null;
+	let offChapter: (() => void) | null = null;
 	const draw = (): void => {
 		const running = model.running;
 		// The controller touches every topic when it applies an outside change: only a different project (or none) redraws the stage.
 		if (running === shown) return;
 		shown = running;
 		if (!running) {
+			shell?.dispose();
+			shell = null;
+			offChapter?.();
+			offChapter = null;
 			renderStart(stage, model);
 			return;
 		}
-		// The two editor slots; the shell (storytelling and storyForge faces) arrives with the faces.
-		const centre = el("section", { class: "sf-slot sf-slot--centre", attrs: { "aria-label": "Chapter" } });
-		const lore = el("aside", { class: "sf-slot sf-slot--lore", attrs: { "aria-label": "Lore" } });
-		fill(stage, el("h1", { class: "sf-visually-hidden", text: running.root.slice(running.root.lastIndexOf("/") + 1) }), el("div", { class: "sf-frame" }, centre, lore));
-		model.editors = new EditorHost(model, { centre, lore });
+		shell?.dispose();
+		model.initNav();
+		shell = mountShell(stage, model);
+		const writer = running.opened.writer;
+		offChapter?.();
+		offChapter = writer.onChapterChanged(() => model.touch("stats"));
 	};
+	// Edit ▸ Undo and Redo are app menu items (the native ones would not reach CodeMirror's own history): they act on what is focused.
+	await host.listen("menu", (id) => {
+		if (id !== "undo" && id !== "redo") return;
+		if (model.editors?.[id]()) return;
+		document.execCommand(id); // a rename or settings field
+	});
 	model.subscribe("project", draw);
 	await controller.start();
 	draw();

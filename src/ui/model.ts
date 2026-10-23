@@ -4,11 +4,38 @@
  * changed so each redraws only its own subtree. Editors are never redrawn by a topic.
  */
 import type { AppController, OpenOutcome, Running } from "../app/appLife";
+import type { MachineProjectState } from "../app/settings";
+import { getBookChapters } from "../core/book";
 import type { CreateProjectOptions } from "../core/openProject";
+import { libraryChapterPath } from "../core/paths";
+import { getSeriesBooks } from "../core/series";
+import { storytellingCodexClickAction } from "../view/codexOpenTarget";
 import { NoticeCenter } from "./kit/notices";
 import type { EditorHost } from "./editor/editorHost";
 
-export type Topic = "project" | "library" | "codex" | "archive" | "stats" | "settings" | "face" | "notices";
+export type Topic = "project" | "library" | "codex" | "archive" | "stats" | "settings" | "face" | "notices" | "nav";
+
+export type Face = "storytelling" | "storyforge";
+export type ForgeTab = "codex" | "series" | "novel" | "archive";
+
+/** Where the author is: the face, the storyForge tab, the selected novel and chapter, and the layout of the panels. */
+export interface Nav {
+	face: Face;
+	forgeTab: ForgeTab;
+	/** The selected novel's folder name. */
+	book: string | null;
+	/** The selected chapter's filename. */
+	chapter: string | null;
+	collapsedCodex: Set<string>;
+	leftWidth: number;
+	loreWidth: number;
+}
+
+export const DEFAULT_LEFT_WIDTH = 288;
+export const DEFAULT_LORE_WIDTH = 400;
+const clampWidth = (n: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, n));
+export const clampLeft = (n: number): number => clampWidth(n, 200, 480);
+export const clampLore = (n: number): number => clampWidth(n, 280, 640);
 
 const ALL: Topic[] = ["project", "library", "codex", "archive", "stats", "settings", "face"];
 
@@ -16,6 +43,8 @@ export class AppModel {
 	readonly notices = new NoticeCenter();
 	/** Set by the shell once the slots exist. */
 	editors: EditorHost | null = null;
+	nav: Nav = { face: "storytelling", forgeTab: "novel", book: null, chapter: null, collapsedCodex: new Set(), leftWidth: DEFAULT_LEFT_WIDTH, loreWidth: DEFAULT_LORE_WIDTH };
+	private persistTimer: ReturnType<typeof setTimeout> | undefined;
 	private listeners = new Map<Topic, Set<() => void>>();
 
 	constructor(readonly controller: AppController) {
@@ -25,6 +54,101 @@ export class AppModel {
 
 	get running(): Running | null {
 		return this.controller.running;
+	}
+
+	/**
+	 * Works out where the author is when a project opens: the face and tab from the project's preferences
+	 * (decision 23), the novel and chapter from where they were on this computer (or the first of each),
+	 * and the panel widths. Opens nothing.
+	 */
+	initNav(): void {
+		const running = this.running;
+		if (!running) return;
+		const project = running.opened.project;
+		const settings = running.settings.values;
+		const machine: MachineProjectState = running.machineState;
+		const { ordered, unplaced } = getSeriesBooks(project);
+		const books = [...ordered, ...unplaced].map((b) => b.name);
+		const book = machine.selectedNovel && books.includes(machine.selectedNovel) ? machine.selectedNovel : (books[0] ?? null);
+		let chapter: string | null = null;
+		if (book) {
+			const chapters = getBookChapters(project, book);
+			const names = [...chapters.ordered, ...chapters.unplaced].map((c) => c.name);
+			chapter = machine.selectedObject && names.includes(machine.selectedObject) ? machine.selectedObject : (chapters.ordered[0]?.name ?? null);
+		}
+		this.nav = {
+			face: settings.autoFocus ? "storytelling" : "storyforge",
+			forgeTab: settings.layout === "codex" ? "codex" : settings.layout === "seriesBrowse" ? "series" : "novel",
+			book,
+			chapter,
+			collapsedCodex: new Set(machine.collapsedCodexFolderIds),
+			leftWidth: clampLeft(machine.leftWidth ?? DEFAULT_LEFT_WIDTH),
+			loreWidth: clampLore(machine.loreWidth ?? DEFAULT_LORE_WIDTH),
+		};
+	}
+
+	/** The selected chapter's project path, if there is one. */
+	currentChapterPath(): string | null {
+		const { book, chapter } = this.nav;
+		return book && chapter ? libraryChapterPath(book, chapter) : null;
+	}
+
+	/** Selects a chapter and opens it in the centre. */
+	async openChapter(book: string, filename: string): Promise<void> {
+		this.nav.book = book;
+		this.nav.chapter = filename;
+		this.persistSoon();
+		this.touch("nav", "stats");
+		await this.editors?.open("centre", libraryChapterPath(book, filename));
+	}
+
+	/** Opens the selected chapter in the centre, if the centre is empty (opening a project, or the selection changing under it). */
+	async ensureCentre(): Promise<void> {
+		const path = this.currentChapterPath();
+		if (path && this.running && this.running.opened.project.entry(path) && !this.editors?.pathIn("centre")) await this.editors?.open("centre", path);
+	}
+
+	/** A click on a Codex entry: opens it in the lore slot; clicking the entry already there closes the slot (`storytellingCodexClickAction`). */
+	async toggleLore(path: string): Promise<void> {
+		const editors = this.editors;
+		if (!editors) return;
+		const showing = editors.pathIn("lore");
+		if (storytellingCodexClickAction(showing ? this.canonical(showing) : null, this.canonical(path)) === "close") await editors.close("lore");
+		else await editors.open("lore", path);
+		this.touch("nav");
+	}
+
+	private canonical(path: string): string {
+		return this.running?.opened.project.entry(path)?.path ?? path;
+	}
+
+	toggleCodexFolder(id: string): void {
+		if (!this.nav.collapsedCodex.delete(id)) this.nav.collapsedCodex.add(id);
+		this.persistSoon();
+		this.touch("codex");
+	}
+
+	setWidths(left?: number, lore?: number): void {
+		if (left !== undefined) this.nav.leftWidth = clampLeft(left);
+		if (lore !== undefined) this.nav.loreWidth = clampLore(lore);
+		this.persistSoon();
+	}
+
+	/** Where you were is saved a moment after it changes, on this computer only. */
+	persistSoon(): void {
+		clearTimeout(this.persistTimer);
+		this.persistTimer = setTimeout(() => void this.persistNow(), 400);
+	}
+
+	async persistNow(): Promise<void> {
+		clearTimeout(this.persistTimer);
+		if (!this.running) return;
+		const { book, chapter, collapsedCodex, leftWidth, loreWidth } = this.nav;
+		try {
+			await this.controller.saveMachineState({ selectedNovel: book, selectedObject: chapter, collapsedCodexFolderIds: [...collapsedCodex], leftWidth, loreWidth });
+		} catch {
+			/* where you were is a convenience: never worth a notice */
+		}
 	}
 
 	subscribe(topics: Topic | Topic[], listener: () => void): () => void {

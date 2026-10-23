@@ -199,13 +199,11 @@ textarea {
 	background: var(--purpose-editor-bg);
 }
 .sf-slot--lore {
-	width: 400px;
 	flex: none;
 	background: var(--purpose-panel-bg);
-	border-left: 1px solid var(--purpose-border);
 }
-.sf-slot--lore:empty {
-	display: none;
+[hidden] {
+	display: none !important;
 }
 
 #app {

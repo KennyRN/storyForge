@@ -1,10 +1,10 @@
 import { defineConfig } from "vite";
 
-// The window's TypeScript (the diagnostic window now, Brief 5's interface later). No UI framework.
+// The app's window: src/ui (plain TypeScript and DOM, no UI framework). The browser preview has its own config.
 export default defineConfig({
-	root: "src/diagnostic",
+	root: "src/ui",
 	base: "./",
 	clearScreen: false,
 	server: { port: 1420, strictPort: true },
-	build: { outDir: "../../dist", emptyOutDir: true, target: "safari15" },
+	build: { outDir: "../../dist", emptyOutDir: true, target: "safari15", rollupOptions: { input: "src/ui/index.html" } },
 });

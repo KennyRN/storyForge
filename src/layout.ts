@@ -10,16 +10,15 @@
  * into — that face reuses `renderTopPanel`'s "navigator" mode directly, bypassing this layout
  * selector entirely. Codex appears here only full-pane and alone, under "codex" below.
  */
-export type SfLayout = "codex" | "seriesBrowse" | "novelBrowse" | "hybrid";
+export type SfLayout = "codex" | "seriesBrowse" | "novelBrowse";
 
 /** Tab order (left to right) — Codex leads, ahead of Series. */
-export const SF_LAYOUTS: SfLayout[] = ["codex", "seriesBrowse", "novelBrowse", "hybrid"];
+export const SF_LAYOUTS: SfLayout[] = ["codex", "seriesBrowse", "novelBrowse"];
 
 export const SF_LAYOUT_LABELS: Record<SfLayout, string> = {
 	codex: "codex",
 	seriesBrowse: "series",
 	novelBrowse: "novel",
-	hybrid: "chapter",
 };
 
 /** Which top pane a layout shows ("none" for a layout with no top pane at all), and whether the
@@ -33,9 +32,10 @@ export interface LayoutConfig {
 
 /**
  * Maps a layout to its pane composition (hand-off brief §2 table). Series and Novel are
- * navigation-only (no writing metrics, no codex). Chapter is the novel list alone too (it used
- * to pair with an embedded Codex pane, since removed); stats live on the Storytelling panel,
- * not here. "codex" is the odd one out: the Codex pane and
+ * navigation-only (no writing metrics, no codex). The harness's fourth "chapter" (hybrid) layout showed
+ * the same tree as Novel and was merged into it (Brief 5, decision 26); a stored `hybrid`, `codexFocus` or
+ * anything else unknown is read as no choice, so the default (novel) applies. Stats live on the
+ * Storytelling panel, not here. "codex" is the odd one out: the Codex pane and
  * nothing else — no top pane, no stats, no unplaced section.
  */
 export function layoutConfig(layout: SfLayout): LayoutConfig {
@@ -45,8 +45,6 @@ export function layoutConfig(layout: SfLayout): LayoutConfig {
 		case "seriesBrowse":
 			return { topPane: "series", showCodex: false, showStats: false, showUnplaced: true };
 		case "novelBrowse":
-			return { topPane: "novel", showCodex: false, showStats: false, showUnplaced: true };
-		case "hybrid":
 			return { topPane: "novel", showCodex: false, showStats: false, showUnplaced: true };
 		default:
 			return { topPane: "novel", showCodex: false, showStats: false, showUnplaced: true };

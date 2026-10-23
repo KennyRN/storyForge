@@ -178,6 +178,9 @@ export interface MachineProjectState {
 	selectedNovel: string | null;
 	selectedObject: string | null;
 	collapsedCodexFolderIds: string[];
+	/** Panel widths in pixels: screens differ between Macs, so they stay on this computer (decision 26). */
+	leftWidth?: number;
+	loreWidth?: number;
 }
 
 export const DEFAULT_MACHINE_PROJECT_STATE: MachineProjectState = { selectedNovel: null, selectedObject: null, collapsedCodexFolderIds: [] };
@@ -198,6 +201,8 @@ export async function loadMachineProjectState(store: MachineStore, projectKey: s
 			selectedNovel: typeof parsed.selectedNovel === "string" ? parsed.selectedNovel : base.selectedNovel,
 			selectedObject: typeof parsed.selectedObject === "string" ? parsed.selectedObject : base.selectedObject,
 			collapsedCodexFolderIds: Array.isArray(parsed.collapsedCodexFolderIds) ? parsed.collapsedCodexFolderIds.filter((x): x is string => typeof x === "string") : base.collapsedCodexFolderIds,
+			...(typeof parsed.leftWidth === "number" && Number.isFinite(parsed.leftWidth) ? { leftWidth: parsed.leftWidth } : {}),
+			...(typeof parsed.loreWidth === "number" && Number.isFinite(parsed.loreWidth) ? { loreWidth: parsed.loreWidth } : {}),
 		};
 	} catch {
 		return base;

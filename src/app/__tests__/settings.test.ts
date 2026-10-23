@@ -71,17 +71,17 @@ describe("format 0: no project.md", () => {
 
 	it("the first change creates project.md carrying over the values in effect, and leaves data.json alone", async () => {
 		const root = copyFixture("series");
-		fs.writeFileSync(path.join(root, ".obsidian/plugins/storyforge/data.json"), JSON.stringify({ autoFocus: false, layout: "hybrid" }));
+		fs.writeFileSync(path.join(root, ".obsidian/plugins/storyforge/data.json"), JSON.stringify({ autoFocus: false, layout: "seriesBrowse" }));
 		const project = await open(root);
 		const s = await loadSettings(project, reader(root));
 		const dataBefore = fs.readFileSync(path.join(root, ".obsidian/plugins/storyforge/data.json"), "utf8");
 		await setSetting(project, s, "hideSeriesPane", true);
 		const text = fs.readFileSync(path.join(root, PROJECT_SETTINGS_PATH), "utf8");
-		expect(text).toBe("---\nformat-version: 1\nauto-focus: false\nlayout: hybrid\nhide-series-pane: true\n---\n");
+		expect(text).toBe("---\nformat-version: 1\nauto-focus: false\nlayout: seriesBrowse\nhide-series-pane: true\n---\n");
 		expect(fs.readFileSync(path.join(root, ".obsidian/plugins/storyforge/data.json"), "utf8")).toBe(dataBefore);
 		const again = await loadSettings(await open(root), reader(root));
 		expect(again.formatVersion).toBe(1);
-		expect(again.values).toMatchObject({ autoFocus: false, layout: "hybrid", hideSeriesPane: true });
+		expect(again.values).toMatchObject({ autoFocus: false, layout: "seriesBrowse", hideSeriesPane: true });
 		expect(again.sources).toMatchObject({ autoFocus: "project.md", layout: "project.md", hideSeriesPane: "project.md", automaticBackup: "default" });
 	});
 
@@ -111,9 +111,26 @@ describe("format 1: project.md", () => {
 		expect(fs.readFileSync(path.join(root, PROJECT_SETTINGS_PATH), "utf8")).toBe("---\n# my settings\nformat-version: 1\nlayout: codex   # because\nx-future-key:\n  nested: [1, 2]\nauto-focus: false\nchapter-numbering-style: roman-lower\n---\nnotes below\n");
 	});
 
+	it("an old layout value (hybrid, codexFocus, anything unknown) reads as no choice: the default applies, nothing is an error and nothing is rewritten", async () => {
+		for (const value of ["hybrid", "codexFocus", "somethingElse"]) {
+			const root = copyFixture("series");
+			withProjectMd(root, `---\nformat-version: 1\nlayout: ${value}\n---\n`);
+			fs.writeFileSync(path.join(root, ".obsidian/plugins/storyforge/data.json"), JSON.stringify({ layout: value }));
+			const project = await open(root);
+			const before = snapshot(root);
+			const s = await loadSettings(project, reader(root));
+			expect(s.values.layout).toBe("novelBrowse");
+			expect(s.sources.layout).toBe("default");
+			expect(diffSnapshots(before, snapshot(root))).toEqual({ added: [], removed: [], changed: [] });
+			// a change to another setting keeps the old text in the file as it was
+			await setSetting(project, s, "highlightActiveChapter", false);
+			expect(fs.readFileSync(path.join(root, PROJECT_SETTINGS_PATH), "utf8")).toContain(`layout: ${value}`);
+		}
+	});
+
 	it("a newer format-version opens read-only, and every change is refused", async () => {
 		const root = copyFixture("series");
-		withProjectMd(root, "---\nformat-version: 2\nlayout: hybrid\n---\n");
+		withProjectMd(root, "---\nformat-version: 2\nlayout: seriesBrowse\n---\n");
 		const project = await open(root);
 		const s = await loadSettings(project, reader(root));
 		expect(s.readOnly).toBe(true);
@@ -143,7 +160,7 @@ describe("format 1: project.md", () => {
 describe("opening a project twice is byte-identical, in both formats", () => {
 	for (const [name, prepare] of [
 		["format 0 with a plugin data.json", (_root: string) => undefined],
-		["format 1", (root: string) => fs.writeFileSync(path.join(root, PROJECT_SETTINGS_PATH), "---\nformat-version: 1\nlayout: hybrid\n---\n")],
+		["format 1", (root: string) => fs.writeFileSync(path.join(root, PROJECT_SETTINGS_PATH), "---\nformat-version: 1\nlayout: seriesBrowse\n---\n")],
 	] as const) {
 		it(name, async () => {
 			const root = copyFixture("series");

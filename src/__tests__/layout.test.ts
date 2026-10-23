@@ -29,15 +29,6 @@ describe("layoutConfig", () => {
 		});
 	});
 
-	it("Chapter: novel top, unplaced visible, no codex, no stats", () => {
-		expect(layoutConfig("hybrid")).toEqual({
-			topPane: "novel",
-			showCodex: false,
-			showStats: false,
-			showUnplaced: true,
-		});
-	});
-
 	it("the codex pane never pairs with the series list", () => {
 		expect(layoutConfig("seriesBrowse").showCodex).toBe(false);
 	});
