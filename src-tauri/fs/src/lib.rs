@@ -6,6 +6,7 @@ pub mod error;
 pub mod format;
 pub mod machine;
 pub mod platform;
+pub mod watch;
 pub mod guard;
 pub mod ops;
 pub mod paths;

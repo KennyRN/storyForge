@@ -26,6 +26,8 @@
     "allow-retire",
     "allow-machine-get",
     "allow-machine-set",
+    "allow-watch-start",
+    "allow-watch-stop",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     "core:window:allow-destroy"

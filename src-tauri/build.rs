@@ -21,6 +21,8 @@ const COMMANDS: &[&str] = &[
     "retire",
     "machine_get",
     "machine_set",
+    "watch_start",
+    "watch_stop",
 ];
 
 fn main() {

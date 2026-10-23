@@ -1,13 +1,16 @@
 //! storyForge's desktop shell. Rust owns the disk; the window runs the TypeScript core and reaches the
 //! project folder only through this crate's narrow commands (docs/tauri-shell.md).
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{mpsc, Arc, Mutex};
+use std::time::{Duration, Instant, SystemTime};
 
 use serde_json::{json, Value};
 use storyforge_fs::api::dispatch;
 use storyforge_fs::error::{FsError, FsResult};
 use storyforge_fs::machine::MachineStore;
 use storyforge_fs::ops::Project;
+use storyforge_fs::watch::{Batcher, SleepDetector};
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::{Emitter, Manager, State, Theme};
 
@@ -19,6 +22,13 @@ const MAX_RECENT: usize = 10;
 pub struct AppState {
     project: Mutex<Option<Arc<Project>>>,
     machine: MachineStore,
+    watcher: Mutex<Option<Watching>>,
+}
+
+/// A running watcher: dropping it (and setting `stop`) ends it.
+struct Watching {
+    stop: Arc<AtomicBool>,
+    _watcher: notify::RecommendedWatcher,
 }
 
 impl AppState {
@@ -85,7 +95,66 @@ fn project_info(state: State<'_, AppState>) -> Option<Value> {
 
 #[tauri::command]
 fn close_project(state: State<'_, AppState>) {
+    stop_watching(&state);
     *state.project.lock().unwrap() = None;
+}
+
+fn stop_watching(state: &AppState) {
+    if let Some(w) = state.watcher.lock().unwrap().take() {
+        w.stop.store(true, Ordering::SeqCst);
+    }
+}
+
+/// Starts watching the open project. Changes arrive in the window as `watch-batch` events: a batch of
+/// project-relative paths (after 300 ms of quiet, 2 s at most) and a `rescan` flag, set when the system
+/// says events may have been missed or the Mac woke from sleep.
+#[tauri::command]
+fn watch_start(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<(), FsError> {
+    use notify::{RecursiveMode, Watcher};
+    let project = state.project()?;
+    stop_watching(&state);
+    let root = project.root().to_path_buf();
+    let (tx, rx) = mpsc::channel::<notify::Result<notify::Event>>();
+    let mut watcher = notify::recommended_watcher(tx).map_err(|e| FsError::new("UNKNOWN", e.to_string(), None))?;
+    watcher.watch(&root, RecursiveMode::Recursive).map_err(|e| FsError::new("UNKNOWN", e.to_string(), None))?;
+    let stop = Arc::new(AtomicBool::new(false));
+    let stop_thread = stop.clone();
+    std::thread::spawn(move || {
+        let mut batcher = Batcher::new();
+        let mut sleep = SleepDetector::new(SystemTime::now(), Instant::now());
+        while !stop_thread.load(Ordering::SeqCst) {
+            match rx.recv_timeout(Duration::from_millis(100)) {
+                Ok(Ok(event)) => {
+                    let now = Instant::now();
+                    if event.need_rescan() {
+                        batcher.push_rescan(now);
+                    }
+                    for p in &event.paths {
+                        if let Ok(rel) = p.strip_prefix(&root) {
+                            batcher.push(&rel.to_string_lossy(), now);
+                        }
+                    }
+                }
+                Ok(Err(_)) => batcher.push_rescan(Instant::now()),
+                Err(mpsc::RecvTimeoutError::Timeout) => {}
+                Err(mpsc::RecvTimeoutError::Disconnected) => break,
+            }
+            let now = Instant::now();
+            if sleep.woke(SystemTime::now(), now) {
+                batcher.push_rescan(now);
+            }
+            if let Some(batch) = batcher.poll(now) {
+                let _ = app.emit("watch-batch", batch);
+            }
+        }
+    });
+    *state.watcher.lock().unwrap() = Some(Watching { stop, _watcher: watcher });
+    Ok(())
+}
+
+#[tauri::command]
+fn watch_stop(state: State<'_, AppState>) {
+    stop_watching(&state);
 }
 
 #[tauri::command]
@@ -169,7 +238,7 @@ pub fn run() {
         }))
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
-            app.manage(AppState { project: Mutex::new(None), machine: MachineStore::new(&data_dir) });
+            app.manage(AppState { project: Mutex::new(None), machine: MachineStore::new(&data_dir), watcher: Mutex::new(None) });
             let menu = build_menu(app.handle())?;
             app.set_menu(menu)?;
             if let Some(w) = app.get_webview_window("main") {
@@ -183,7 +252,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             app_info, pick_project, open_recent, recent_projects, project_info, close_project, scan, stat, read_text, read_binary, read_outside, write_text, write_binary,
-            create_file, create_folder, compare_write, rename, retire, machine_get, machine_set
+            create_file, create_folder, compare_write, rename, retire, machine_get, machine_set, watch_start, watch_stop
         ])
         .run(tauri::generate_context!())
         .expect("error while running storyForge");

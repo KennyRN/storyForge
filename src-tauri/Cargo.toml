@@ -23,6 +23,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 storyforge-fs = { path = "fs" }
 rfd = "0.15"
+notify = "8"
 
 [dev-dependencies]
 tempfile = "3"

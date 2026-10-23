@@ -39,3 +39,16 @@ pub fn fold_key(path: &str) -> String {
 pub fn is_hidden_path(path: &str) -> bool {
     path.split('/').any(|s| s.starts_with('.'))
 }
+
+/// `.Name.md.icloud` is what macOS leaves for a file iCloud has not downloaded. Returns the real project
+/// path (`Name.md`) for such a stub, or `None`. (The twin of `icloudPlaceholderTarget` in pathRules.ts.)
+pub fn icloud_placeholder_target(path: &str) -> Option<String> {
+    let (dir, base) = match path.rfind('/') {
+        Some(i) => (&path[..=i], &path[i + 1..]),
+        None => ("", path),
+    };
+    if !base.starts_with('.') || !base.ends_with(".icloud") || base.len() <= ".icloud".len() + 1 {
+        return None;
+    }
+    Some(format!("{dir}{}", &base[1..base.len() - ".icloud".len()]))
+}
