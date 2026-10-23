@@ -560,8 +560,8 @@
 			"id": "folder-notes",
 			"op": "create-folder",
 			"path": "notes",
-			"expect": "refuse",
-			"reason": "notes/ is never created by the app"
+			"expect": "allow",
+			"reason": "the eager notes/ folder is created when a project is created (createProject)"
 		},
 		{
 			"id": "folder-elsewhere",
@@ -1408,6 +1408,20 @@
 			"path": "_backstage/storyforge/ABC/cover.png",
 			"expect": "allow",
 			"reason": "backstage subtree"
+		},
+		{
+			"id": "create-folder-notes-nested",
+			"op": "create-folder",
+			"path": "notes/sub",
+			"expect": "refuse",
+			"reason": "Notebook folders are virtual"
+		},
+		{
+			"id": "create-folder-notes-variant",
+			"op": "create-folder",
+			"path": "Notes",
+			"expect": "refuse",
+			"reason": "case variant"
 		}
 	]
 }

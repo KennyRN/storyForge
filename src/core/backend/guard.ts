@@ -13,6 +13,7 @@ import {
 	CODEX_ROOT,
 	EXPORT_ROOT,
 	LIBRARY_ROOT,
+	NOTES_ROOT,
 	isCodexNotePath,
 	isLibraryChapterPath,
 	isLibraryRootFilePath,
@@ -52,7 +53,7 @@ export class ForbiddenWriteError extends Error {
 	}
 }
 
-const PROTECTED_ROOTS = [LIBRARY_ROOT, CODEX_ROOT, "_backstage", BACKUPS_FOLDER, EXPORT_ROOT];
+const PROTECTED_ROOTS = [LIBRARY_ROOT, CODEX_ROOT, NOTES_ROOT, "_backstage", BACKUPS_FOLDER, EXPORT_ROOT];
 
 type PathClass =
 	| "backstage-root"
@@ -63,6 +64,7 @@ type PathClass =
 	| "library-root"
 	| "library-book"
 	| "codex-root"
+	| "notes-root"
 	| "backup-root"
 	| "backup"
 	| "other";
@@ -75,6 +77,7 @@ function classify(p: string): PathClass {
 	if (isCodexNotePath(p)) return "codex-note";
 	if (p === LIBRARY_ROOT) return "library-root";
 	if (p === CODEX_ROOT) return "codex-root";
+	if (p === NOTES_ROOT) return "notes-root";
 	if (p.startsWith(`${LIBRARY_ROOT}/`) && p.split("/").length === 2) return "library-book";
 	if (p === BACKUPS_FOLDER) return "backup-root";
 	if (p.startsWith(`${BACKUPS_FOLDER}/`)) return "backup";
@@ -146,7 +149,7 @@ export function checkGuard(op: GuardOp): GuardDecision {
 			if (c === "backstage" || c === "flat-root-file" || c === "chapter" || c === "codex-note") return ALLOW;
 			return refuse(c === "other" ? otherReason(p) : `cannot create a file at a ${c}`);
 		case "create-folder":
-			if (c === "backstage-root" || c === "backstage" || c === "library-root" || c === "library-book" || c === "codex-root" || c === "backup-root" || c === "backup") {
+			if (c === "backstage-root" || c === "backstage" || c === "library-root" || c === "library-book" || c === "codex-root" || c === "notes-root" || c === "backup-root" || c === "backup") {
 				return ALLOW;
 			}
 			return refuse(c === "other" ? otherReason(p) : `cannot create a folder at a ${c}`);

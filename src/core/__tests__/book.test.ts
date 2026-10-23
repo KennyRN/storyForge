@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { fmFile, memoryProject } from "../../../test/helpers/memoryProject";
 import {
 	parseCodexRefs,
-	pruneMissingChapterCodexRefs,
 	readBookFrontmatter,
 	rekeyChapterLocationReferences,
 	rekeyChapterPovReferences,
@@ -440,34 +439,5 @@ describe("chapter PoV and location lists", () => {
 		});
 		await rekeyChapterLocationReferences(project, "Codex/Harbour.md", "Codex/Port.md");
 		expect(readBookFrontmatter(project, BOOK)?.chapters["ch1.md"].location).toEqual([{ path: "Codex/Port.md", name: "Harbour" }]);
-	});
-
-	it("prunes PoV, location, and default PoV refs whose Codex files are gone", async () => {
-		const { project } = await makeBook(
-			{
-				"default-pov-path": "Codex/Gone.md",
-				"default-pov-name": "Gone",
-				chapters: {
-					"ch1.md": {
-						"chapter-id": "c1",
-						"chapter-title": "Chapter One",
-						pov: [
-							{ path: "Codex/Alice.md", name: "Alice" },
-							{ path: "Codex/Missing.md", name: "Missing" },
-						],
-						location: [
-							{ path: "Codex/Harbour.md", name: "Harbour" },
-							{ path: "Codex/Ruins.md", name: "Ruins" },
-						],
-					},
-				},
-			},
-			{ "Codex/Alice.md": "a", "Codex/Harbour.md": "h" },
-		);
-		await pruneMissingChapterCodexRefs(project);
-		const fm = readBookFrontmatter(project, BOOK);
-		expect(fm?.defaultPovPath).toBeNull();
-		expect(fm?.chapters["ch1.md"].pov).toEqual([{ path: "Codex/Alice.md", name: "Alice" }]);
-		expect(fm?.chapters["ch1.md"].location).toEqual([{ path: "Codex/Harbour.md", name: "Harbour" }]);
 	});
 });

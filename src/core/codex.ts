@@ -318,11 +318,6 @@ export async function uniqueCodexFilename(
 	return `${stem} ${n}.md`;
 }
 
-/** True when `path` is a Codex markdown file that exists (case-insensitively). */
-function vaultPathExistsOnDisk(project: Project, path: string): boolean {
-	return pathInSet(listCodexMarkdownOnDisk(project), path);
-}
-
 function isCodexPathOccupied(project: Project, path: string, ignorePath?: string): boolean {
 	if (ignorePath && sameVaultPath(path, ignorePath)) return false;
 	return pathInSet(listCodexMarkdownOnDisk(project), path);
@@ -591,73 +586,6 @@ export async function rekeyCodexNotePath(project: Project, oldPath: string, newP
 		fm.archive = rekey(archive);
 		fm.types = types;
 	});
-}
-
-/**
- * Drop every file-path reference in `codex.md` whose note is no longer in the vault.
- * Virtual folder ids stay. Used after an external delete (Finder, etc.) and on vault
- * open for deletes that happened while Obsidian was closed — `resolveCodexTree` already
- * hides these orphans; this writes the cleanup back to the order markdown.
- */
-export function stripMissingCodexNoteRefs(
-	folders: CodexFolders,
-	order: string[],
-	archive: string[],
-	types: Record<string, string>,
-	pathExists: (path: string) => boolean,
-): CodexFrontmatterShape {
-	const keep = (key: string): boolean => isFolderKey(folders, key) || pathExists(key);
-	const nextFolders: CodexFolders = {};
-	for (const [id, entry] of Object.entries(folders)) {
-		const next: CodexFolderEntry = { name: entry.name, order: entry.order.filter(keep) };
-		if (entry.linkedNotePath && pathExists(entry.linkedNotePath)) next.linkedNotePath = entry.linkedNotePath;
-		nextFolders[id] = next;
-	}
-	const nextTypes: Record<string, string> = {};
-	for (const [path, type] of Object.entries(types)) {
-		if (pathExists(path)) nextTypes[path] = type;
-	}
-	return {
-		folders: nextFolders,
-		order: order.filter(keep),
-		archive: archive.filter(keep),
-		types: nextTypes,
-	};
-}
-
-function codexShapeEquals(a: CodexFrontmatterShape, b: CodexFrontmatterShape): boolean {
-	return JSON.stringify(a) === JSON.stringify(b);
-}
-
-export async function pruneMissingCodexNotes(project: Project): Promise<boolean> {
-	if (!project.entry(codexFilePath())) return false;
-	const current = readCodexFrontmatter(project);
-	const referenced = collectReferencedPaths(current.folders, current.order);
-	for (const path of collectReferencedPaths(current.folders, current.archive)) referenced.add(path);
-	for (const path of Object.keys(current.types)) referenced.add(path);
-	const existence = new Map<string, boolean>();
-	await Promise.all(
-		[...referenced].map(async (path) => {
-			if (isFolderKey(current.folders, path)) return;
-			existence.set(path, vaultPathExistsOnDisk(project, path));
-		}),
-	);
-	const pathExists = (path: string) => existence.get(path) === true;
-	const next = stripMissingCodexNoteRefs(current.folders, current.order, current.archive, current.types, pathExists);
-	if (codexShapeEquals(current, next)) return false;
-	await project.modifyFrontmatter<RawCodexFrontmatter>(codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
-		setFolders(fm, next.folders);
-		fm.order = next.order;
-		fm.archive = next.archive;
-		fm.types = next.types;
-	});
-	return true;
-}
-
-/** Strip `codex.md`'s entries for notes gone from disk. A ghost the vault index still lists is left
- * alone: storyForge never deletes a file, and Obsidian drops the ghost on its next rescan. */
-export async function reconcileMissingCodexNotes(project: Project): Promise<void> {
-	await pruneMissingCodexNotes(project);
 }
 
 /**

@@ -49,7 +49,12 @@ describe("architecture: who may call the restricted backend operations", () => {
 			const bad = importers(writer).filter((p) => !["core/openProject.ts", "core/index.ts"].includes(p));
 			expect(bad, `${writer} is imported by`).toEqual([]);
 		}
-		expect(importers("reconciler").filter((p) => /proseWriter|linkRewriter/.test(files.find((f) => f.path === p)?.text ?? ""))).toEqual([]);
+		// Reconciliation, backups, recovery, the snapshot and the index never reach for either writer.
+		for (const mod of ["reconciler", "reconciliation", "backup", "recovery", "snapshot", "project", "projectIndex"]) {
+			const f = files.find((x) => x.path === `core/${mod}.ts`);
+			expect(f, mod).toBeDefined();
+			expect(/from\s+["'][^"']*\/(proseWriter|linkRewriter)["']/.test(f!.text), `${mod} imports a prose writer`).toBe(false);
+		}
 	});
 
 	it("nothing outside the backend reaches the raw backend's write methods", () => {

@@ -4,7 +4,6 @@ import { ForbiddenWriteError } from "../backend/guard";
 import {
 	CodexRenameUnavailableError,
 	createCodexNote,
-	reconcileMissingCodexNotes,
 	renameCodexNoteFile,
 	sanitizeCodexBasename,
 	uniqueCodexFilename,
@@ -61,17 +60,6 @@ describe("uniqueCodexFilename", () => {
 		await project.index.applyChange({ type: "deleted", path: `${CODEX_ROOT}/Berwyn.md` });
 		expect(await uniqueCodexFilename(project, "Berwyn")).toBe("Berwyn.md");
 		expect(backend.writes).toEqual([]);
-	});
-});
-
-describe("reconcileMissingCodexNotes", () => {
-	it("never deletes or retires anything", async () => {
-		const { project, backend } = await codexProject([`${CODEX_ROOT}/Kept.md`, `${CODEX_ROOT}/Gone.md`]);
-		backend.files.delete(`${CODEX_ROOT}/Gone.md`);
-		await project.index.applyChange({ type: "deleted", path: `${CODEX_ROOT}/Gone.md` });
-		await reconcileMissingCodexNotes(project);
-		expect(backend.writes.filter((w) => w.startsWith("retire"))).toEqual([]);
-		expect(project.isFile(`${CODEX_ROOT}/Kept.md`)).toBe(true);
 	});
 });
 
