@@ -111,6 +111,7 @@ export class AppController {
 	private queue: Promise<unknown> = Promise.resolve();
 	private activeRewrite: Promise<unknown> | null = null;
 	private backupTimer: unknown;
+	private pendingBackup: Promise<unknown> = Promise.resolve();
 	private shuttingDown = false;
 	private readonly timers: Timers;
 	private readonly now: () => Date;
@@ -251,9 +252,14 @@ export class AppController {
 	// ----------------------------------------------------------------------------- backups
 
 	private scheduleBackups(running: Running): void {
-		void this.maybeAutomaticBackup("open");
+		this.pendingBackup = this.maybeAutomaticBackup("open");
 		this.backupTimer = this.timers.setInterval(() => void this.maybeAutomaticBackup("interval"), BACKUP_CHECK_MS);
 		void running;
+	}
+
+	/** Resolves when the automatic backup started at open (if any) has finished. */
+	backupSettled(): Promise<unknown> {
+		return this.pendingBackup;
 	}
 
 	/** Runs the automatic backup if it is on and due. The last backup's time is the newest zip's date in `_sf-backup/`. */

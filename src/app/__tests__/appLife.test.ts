@@ -110,7 +110,7 @@ describe("newestBackupTime", () => {
 	it("the automatic backup runs at open when it is on and due, and not again the same day", async () => {
 		const prepare = (root: string) => fs.writeFileSync(path.join(root, PROJECT_SETTINGS_PATH), "---\nformat-version: 1\nautomatic-backup: true\nautomatic-backup-frequency: daily\n---\n");
 		const first = await opened("series", prepare);
-		await settle();
+		await first.app.backupSettled();
 		const zips = () => fs.readdirSync(path.join(first.root, "_sf-backup")).filter((f) => f.endsWith(".zip"));
 		expect(zips()).toHaveLength(1);
 		expect(zips()[0]).toMatch(/^20261023 - /);
@@ -119,7 +119,7 @@ describe("newestBackupTime", () => {
 		first.host.nextPick = { root: first.root };
 		const again = await first.app.openDialog("open");
 		expect(again.kind).toBe("opened");
-		await settle();
+		await first.app.backupSettled();
 		expect(zips()).toHaveLength(1);
 		// A day later it is due again.
 		first.host.clock = new Date(2026, 9, 24, 10, 0, 1);
