@@ -50,3 +50,26 @@ Permission is hereby granted, free of charge, to any person obtaining a copy of 
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+---
+
+## Dependencies added for the desktop shell (Brief 4)
+
+Used as libraries (nothing copied). Licences as declared by each package.
+
+| Package | Version | Licence | Used for |
+|---|---|---|---|
+| tauri, tauri-build | 2.12 / 2.7 | Apache-2.0 OR MIT | the desktop shell |
+| tauri-plugin-single-instance | 2.5 | Apache-2.0 OR MIT | a second launch focuses the first |
+| rfd | 0.15 | MIT | the native folder picker (so the window holds no dialog permission) |
+| notify | 8.2 | CC0-1.0 | the file watcher (FSEvents on macOS) |
+| serde, serde_json | 1.0 | MIT OR Apache-2.0 | commands' data |
+| unicode-normalization | 0.1 | (MIT OR Apache-2.0) AND Unicode-3.0 | NFC path rules in the Rust guard |
+| base64 | 0.22 | MIT OR Apache-2.0 | binary data across the command boundary |
+| libc | 0.2 | MIT OR Apache-2.0 | `renamex_np` (the atomic swap and exclusive rename) |
+| objc2, objc2-foundation | 0.6 / 0.3 | MIT | asking macOS to download an iCloud file |
+| tempfile (tests only) | 3 | MIT OR Apache-2.0 | temp folders in Rust tests |
+| vite | 8.3 | MIT | bundling the window's TypeScript |
+| @tauri-apps/cli, @tauri-apps/api | 2.12 | Apache-2.0 OR MIT | building the app; the window's `invoke` and events |
+
+The window's colours are **Everforest** (sainnhe, MIT; see `Theme Licences.md`); the Soft Dark values were checked against the project's `palette.md`.
