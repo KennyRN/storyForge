@@ -1029,13 +1029,15 @@
 			"id": "link-rewrite-6",
 			"op": "link-rewrite",
 			"path": "_story-library/series.md",
-			"expect": "refuse"
+			"expect": "allow",
+			"reason": "any markdown file under the three storyForge folders"
 		},
 		{
 			"id": "link-rewrite-7",
 			"op": "link-rewrite",
 			"path": "_story-library/novel-ABC.md",
-			"expect": "refuse"
+			"expect": "allow",
+			"reason": "any markdown file under the three storyForge folders"
 		},
 		{
 			"id": "link-rewrite-8",
@@ -1089,13 +1091,15 @@
 			"id": "link-rewrite-16",
 			"op": "link-rewrite",
 			"path": "_story-library/ABC/sub/x.md",
-			"expect": "refuse"
+			"expect": "allow",
+			"reason": "any markdown file under the three storyForge folders"
 		},
 		{
 			"id": "link-rewrite-17",
 			"op": "link-rewrite",
 			"path": "Codex/sub/x.md",
-			"expect": "refuse"
+			"expect": "allow",
+			"reason": "any markdown file under the three storyForge folders"
 		},
 		{
 			"id": "link-rewrite-18",

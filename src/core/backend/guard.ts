@@ -159,9 +159,12 @@ export function checkGuard(op: GuardOp): GuardDecision {
 		case "prose-write":
 			if (c === "chapter" || c === "codex-note") return ALLOW;
 			return refuse(c === "other" ? otherReason(p) : `prose is only written to chapters and Codex notes, not a ${c}`);
-		case "link-rewrite":
-			if (c === "chapter" || c === "codex-note" || (p.startsWith("notes/") && p.toLowerCase().endsWith(".md") && !p.split("/").some((x) => x.startsWith(".")))) return ALLOW;
-			return refuse(c === "other" && !p.startsWith("notes/") ? otherReason(p) : `links are only rewritten in chapters, Codex notes and notes, not a ${c}`);
+		case "link-rewrite": {
+			const key = p.toLowerCase();
+			const inRoot = [LIBRARY_ROOT, CODEX_ROOT, NOTES_ROOT].some((r) => p.startsWith(`${r}/`));
+			if (inRoot && key.endsWith(".md") && !p.split("/").some((x) => x.startsWith("."))) return ALLOW;
+			return refuse(c === "other" && !inRoot ? otherReason(p) : "links are only rewritten in markdown files under _story-library/, Codex/ and notes/");
+		}
 		case "backup-create":
 			if (c === "backup" && p.split("/").length === 2 && p.toLowerCase().endsWith(".zip")) return ALLOW;
 			return refuse("backups are _sf-backup/<name>.zip");
