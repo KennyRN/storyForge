@@ -198,6 +198,7 @@ fn quit_ready(app: tauri::AppHandle, state: State<'_, AppState>) {
 const CLOSE_WATCHDOG: Duration = Duration::from_secs(15);
 
 fn request_close(app: &tauri::AppHandle) {
+    save_window_state(app);
     let _ = app.emit("close-requested", ());
     let app = app.clone();
     std::thread::spawn(move || {
@@ -205,6 +206,36 @@ fn request_close(app: &tauri::AppHandle) {
         app.state::<AppState>().quit_ok.store(true, Ordering::SeqCst);
         app.exit(0);
     });
+}
+
+/// Window size and position are machine settings: remembered between launches, kept out of projects.
+fn save_window_state(app: &tauri::AppHandle) {
+    let Some(w) = app.get_webview_window("main") else { return };
+    if w.is_minimized().unwrap_or(false) || w.is_fullscreen().unwrap_or(false) {
+        return;
+    }
+    if let (Ok(size), Ok(pos)) = (w.outer_size(), w.outer_position()) {
+        let state = json!({ "width": size.width, "height": size.height, "x": pos.x, "y": pos.y });
+        let _ = app.state::<AppState>().machine.set("window", &state.to_string());
+    }
+}
+
+fn restore_window_state(app: &tauri::App) {
+    let Some(w) = app.get_webview_window("main") else { return };
+    let Some(text) = app.state::<AppState>().machine.get("window").ok().flatten() else { return };
+    let Ok(v) = serde_json::from_str::<Value>(&text) else { return };
+    let get = |k: &str| v.get(k).and_then(Value::as_i64);
+    if let (Some(width), Some(height), Some(x), Some(y)) = (get("width"), get("height"), get("x"), get("y")) {
+        // Only if the saved place is on a screen that is still there.
+        let on_screen = w.available_monitors().map(|ms| ms.iter().any(|m| {
+            let (mp, ms_) = (m.position(), m.size());
+            x >= mp.x as i64 - 50 && x < mp.x as i64 + ms_.width as i64 - 100 && y >= mp.y as i64 - 50 && y < mp.y as i64 + ms_.height as i64 - 100
+        })).unwrap_or(false);
+        if width >= 400 && height >= 300 && on_screen {
+            let _ = w.set_size(tauri::PhysicalSize::new(width as u32, height as u32));
+            let _ = w.set_position(tauri::PhysicalPosition::new(x as i32, y as i32));
+        }
+    }
 }
 
 fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
@@ -262,6 +293,7 @@ pub fn run() {
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
             app.manage(AppState { project: Mutex::new(None), machine: MachineStore::new(&data_dir), watcher: Mutex::new(None), quit_ok: AtomicBool::new(false) });
+            restore_window_state(app);
             let menu = build_menu(app.handle())?;
             app.set_menu(menu)?;
             if let Some(w) = app.get_webview_window("main") {

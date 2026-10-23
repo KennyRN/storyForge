@@ -1,6 +1,6 @@
 # The Tauri shell: design (Brief 4)
 
-Status: **for review at H1. Nothing here is implemented** apart from the Brief 3 follow-ups (commit 0, already on `tauri-shell`). Section 11 lists the questions I need ruled on.
+Status: **built.** §1 to §11 are the design as submitted at H1; §12 records Kenny's rulings (decision 24) and §13 everything that came out differently when it was built. Where §12 or §13 disagree with an earlier section, they win.
 
 ## 0. Prerequisites on this Mac
 
@@ -155,3 +155,18 @@ All eight questions were ruled in favour of the proposals, with these additions,
 - **Guard table:** may gain an optional `symlink` field and new rows. Every existing row stays byte-identical; the field is documented beside the table; the TypeScript guard passes the new rows in the same commit as the Rust guard.
 - **Swap residual risk accepted, with one more check:** before the swapped-out file is removed, its size and modification time are checked again; if either changed after verification, something wrote into it late, so it is moved into recovery instead of removed.
 - **Removing the app's own temporary files** is allowed under the no-delete rule: they never held the author's writing.
+
+## 13. As built: where it differs from §1 to §11
+
+1. **A second Rust crate.** The disk side is `src-tauri/fs` (`storyforge-fs`: paths, the guard, containment, the operations, the batcher, machine settings, the format marker) with no Tauri dependency, so `cargo test -p storyforge-fs` runs on Linux CI. `src-tauri` itself is only the window glue (commands, menu, watcher thread, single instance, close handling).
+2. **One dispatch for every command.** `storyforge_fs::api::dispatch` is the only implementation of the file commands. The Tauri commands are a macro over it, and a test binary, `sf-bridge`, runs the same dispatch behind a line-oriented JSON protocol. That is how the TypeScript backend contract suite runs against the real Rust code, not a copy of it.
+3. **Backend interface.** `Backend` gained optional *intent* parameters (`writeText`, `createFile`, `rename`, `writeTextIfUnchanged`), so the Rust guard can check the same rule the TypeScript guard just did; `ScanEntry` gained optional `text` and `placeholder`, so the index is built from the one scan with no per-file read. node-fs ignores the extras.
+4. **Containment is stricter than Brief 3's.** Both implementations walk the path component by component: an existing component that is a symbolic link leaving the root, dangling, or the final component itself is refused. `NodeFsBackend.assertInside` was rewritten to match; it is public so the table's symlink rows can run against it.
+5. **Guard table.** Additions only (existing rows byte-identical, checked against `main`): 13 `symlink` rows, 5 `project.md` rows. The optional `symlink` field is documented in `test/guard-spec/README.md`. A new `test/guard-spec/scan-spec.json` holds the list of folders whose markdown the scan reads; Rust embeds it at compile time and a test checks the TypeScript list agrees.
+6. **Rust opens a newer project read-only itself** (`Project::open_checked` reads just the `format-version` key of `project.md`), as well as the window checking, so no write is possible even if the window is wrong. `openProject` has a `readOnly` option that skips reconciliation and ensuring.
+7. **Watcher.** `notify` (FSEvents). A stub (`.Name.md.icloud`) is watched and mapped to its real path. Sleep is detected by the wall clock outrunning the monotonic clock by 5 s or more, not by a macOS power notification (no extra platform code). **Batch order:** the brief lists "update the index" last; the reconciler reads the index, so vanished and appeared files are applied to the index *after* evidence is captured and *before* the reconciler runs.
+8. **Closing.** `close-requested` is raised for the window's close button and for Cmd+Q / Dock Quit. A Rust watchdog closes the app after 15 s if the window never answers. The session backup is exempt from "abandon a backup on close", because the final flush wants it. The late-write recovery from the swap check is reported through `onLateWriteRecovery` (the diagnostic window logs it); the interface that tells the author is Brief 5's.
+9. **Window colour.** The first-frame background is Everforest Soft Dark `bg_dim`, **#293136**. The H1 document said #272E33, which is the *Hard* variant's `bg0`; corrected after checking sainnhe's `palette.md`.
+10. **Machine settings** also hold window size and position, restored only if the saved place is still on a screen.
+11. **Binary data crosses the command boundary as base64** (backup zips, covers), about a third larger than raw bytes. Fine at manuscript sizes; revisit if a vault holds large media.
+12. **iCloud download** asks macOS through `NSFileManager.startDownloadingUbiquitousItem` (the `objc2` crates, in the platform module), one file at a time, waiting up to 60 s.

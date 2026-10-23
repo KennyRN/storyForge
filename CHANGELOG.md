@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — the Tauri shell (0.1.0)
+
+storyForge is now a Tauri 2 desktop app for macOS (unsigned apart from the ad-hoc signature, not notarised). The window runs the TypeScript core; a Rust side owns the disk. There is no real interface yet: a plain diagnostic window stands in. See `docs/tauri-shell.md` and `docs/tauri-shell-report.md`.
+
+- New: `src-tauri/` — the Rust guard (passes the shared table unchanged, plus new symlink and `project.md` rows), containment against symbolic links, atomic writes, compare-then-write by atomic exchange (`renamex_np`) with a late-write check, exclusive create and rename, `.trash/` retire, one bulk scan call with file text, a file watcher with 300 ms/2 s batching, machine settings, single instance, close handling, iCloud downloads, a forced-dark window with the Soft Dark first frame.
+- New: the window has no file-system, shell, network or dialog permission, only this app's commands; a test enforces it.
+- New: `TauriBackend`, and a backend contract suite that node-fs and the real Rust code both pass.
+- New: `project.md` (`format-version: 1`) for settings that travel with the project; a newer format opens read-only. Settings from the plugin's `data.json` are read once and never written to.
+- New: `applyBatch` (evidence first, then echoes, changes, the index, the reconciler), `AppController` (open, create, watcher, the 30-minute backup check, closing within 5 s with recovery as the fallback).
+- Changed: `NodeFsBackend.assertInside` walks the path (a symlink that leaves the project, dangles, or is the file itself is refused). `Backend` calls carry an optional intent. A Codex name containing `[ ] # ^ |` is refused as typed; mixed line endings are reported on save; the rename plan lists unquoted `[[X]]` frontmatter values.
+- Build: `npm run app:build` makes a universal `.app` and `.dmg`; see the README for opening an unnotarised app.
+
 ## Unreleased — the safety core
 
 The five things that keep the author's words safe, plus opening and creating a project. All in `src/core/`, tested against fixtures; no interface, Tauri or file watcher. See `docs/safety-core.md` and `docs/safety-core-report.md`.

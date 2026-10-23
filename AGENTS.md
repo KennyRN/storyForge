@@ -1,10 +1,13 @@
 # storyForge
 
-storyForge is becoming a standalone desktop app (Tauri 2, macOS first). This repository now holds the app's **data core**: a plain TypeScript library over a folder of markdown, with no dependency on Obsidian. The design decisions live in the project's `storyForge app – decisions.md`; read it before changing anything structural. The Obsidian plugin continues, unchanged, as `storytellingForge`; its last storyForge-repo incarnation (with its interface) is the git tag `plugin-harness-final`.
+storyForge is becoming a standalone desktop app (Tauri 2, macOS first). This repository holds the app's **data core** (a plain TypeScript library over a folder of markdown, no dependency on Obsidian) and its **Tauri shell** (a Rust side that owns the disk, a file watcher, settings, app life, and a plain diagnostic window). The design decisions live in the project's `storyForge app – decisions.md`; read it before changing anything structural. The Obsidian plugin continues, unchanged, as `storytellingForge`; its last storyForge-repo incarnation (with its interface) is the git tag `plugin-harness-final`.
 
-Reports to read first: `docs/strip-report.md` (what was removed from the plugin and why), `docs/project-handle.md` (the design of the core, with the review rulings in §10), `docs/data-core-report.md` (what was built, and every difference from the plugin's behaviour) and `docs/safety-core.md` with `docs/safety-core-report.md` (the prose writer, recovery, backups, reconciliation, open/create and link rewriting).
+Reports to read first: `docs/strip-report.md` (what was removed from the plugin and why), `docs/project-handle.md` (the design of the core, with the review rulings in §10), `docs/data-core-report.md` (what was built, and every difference from the plugin's behaviour) and `docs/safety-core.md` with `docs/safety-core-report.md` (the prose writer, recovery, backups, reconciliation, open/create and link rewriting), then `docs/tauri-shell.md` (§12 rulings, §13 as built) and `docs/tauri-shell-report.md`.
 
 ## Layout
+
+- `src-tauri/` — the Rust side. `fs/` (`storyforge-fs`, no Tauri dependency): `guard.rs` (the Rust twin of the TypeScript guard; passes `test/guard-spec/guard.json` unchanged), `containment.rs` (no write through a symbolic link that leaves the project), `ops.rs` (atomic writes, compare-then-write with `renamex_np` exchange, exclusive create/rename, `.trash/` retire, scan), `api.rs` (the one dispatch every command goes through), `watch.rs` (batching), `machine.rs`, `format.rs`, `platform.rs` (the only macOS-specific code). `src/lib.rs` is the window glue; `capabilities/main.json` grants the window only this app's own commands (`test/tauriConfig.test.ts` enforces it).
+- `src/backends/tauri/` — the TypeScript Backend over those commands. `src/app/` — settings (`project.md`), `applyBatch.ts` (the watcher's batch order), `appLife.ts` (open, create, schedule, close). `src/diagnostic/` — the diagnostic window (Vite, no UI framework).
 
 - `src/core/` — the library. `project.ts` (the **Project handle**: a synchronous in-memory index for reads, guarded asynchronous writes with write-through), `projectIndex.ts`, `frontmatter.ts` (parse and minimal-diff edit), `backend/` (the Backend interface, the **write guard** and `GuardedBackend`), `proseWriter.ts` (the single prose write path), `recovery.ts`, `backup.ts`, `snapshot.ts`, `reconciler.ts`, `openProject.ts` (open and create), `linkRewriter.ts` and `linkScan.ts` (Codex rename), then the ported data layer: `paths`, `series`, `book`, `codex`, `codexTree`, `tagRegistry`, `chapterSidecar`, `storyDetailsSidecar`, `chapterCreation`, `chapterPlacement`, `history`, `reconciliation`, `sectionBody`, `coverImage`, plus the pure maths and helpers.
 - `src/backends/node-fs/` — the file-system Backend (atomic writes, `.trash/` retire). Used by tests and the CLI check now; the Tauri backend is Brief 4.
@@ -13,6 +16,11 @@ Reports to read first: `docs/strip-report.md` (what was removed from the plugin 
 - `test/fixtures/` — synthetic projects in the 0.17 layout (`node test/fixtures/build.mjs` regenerates them; commit the result). `test/guard-spec/guard.json` — the write-guard rule table the Rust guard must also pass. `test/diskSafety/` — the disk-safety suite.
 
 ## Hard rules
+
+- **The window never touches the disk.** It has no file-system, shell, network or dialog permission; it calls only this app's narrow Rust commands. Rust holds the project root (chosen by the native picker or the recent list; the window can never send a path back to be treated as the project folder). Every write passes the Rust guard. The app makes no network requests.
+- **A project made by a newer storyForge opens read-only:** no writes into the folder at all (no saves, `project.md`, recovery files or backups). Only the snapshot, which lives outside the project, may be written.
+- **Settings:** project settings in `_backstage/storyforge/project.md` (`format-version`, written only when a setting changes); machine settings (window, recent projects, snapshots, where you were) in the app data folder `io.github.kennyrn.storyforge`.
+- **The guard table may gain rows, never lose or alter them.**
 
 - **The disk format is frozen at 0.17.** Every path, filename and frontmatter key is read and written exactly as 0.17.1 did. No migrations. A folder in an older layout is refused (`LegacyLayoutError`), untouched. Data of removed features stays on disk, untouched.
 - **Unknown frontmatter keys survive every rewrite**, and **rewrites are minimal**: changing one key changes only that key's lines (`frontmatter.ts` splices into the original text). If a YAML construct can't be rewritten minimally, **stop and report**; don't accept wider churn. Unreadable frontmatter (anchors, tags, duplicate keys, bad syntax) means the file is *unavailable*, never empty, and every write to it is refused.
@@ -39,3 +47,4 @@ Reports to read first: `docs/strip-report.md` (what was removed from the plugin 
 - Typecheck: `npm run build` (= `tsc -noEmit`). `noUnusedLocals` is off in `tsconfig.json`; turning it on permanently is an open decision.
 - Tests: `npm test` (vitest, including the disk-safety suite). CI runs install, typecheck and test only.
 - Check a folder: `npm run check -- <folder>`.
+- Rust: `cargo test --workspace` in `src-tauri` (needs the toolchain; the TypeScript contract suite builds `sf-bridge` itself). Build the app: `npm run app:build`.
