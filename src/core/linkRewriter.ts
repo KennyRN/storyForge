@@ -13,12 +13,15 @@
  * - Links in other markdown files outside storyForge's folders are counted, read-only, so the
  *   interface can say they will not be updated.
  */
-import { readFrontmatter, splitFrontmatterSection } from "./frontmatter";
+import type { BackupService } from "./backup";
+import { editFrontmatter, readFrontmatter, splitFrontmatterSection } from "./frontmatter";
 import { sha256Text } from "./hash";
 import { type RawLink, scanLinks } from "./linkScan";
 import { CODEX_ROOT, LIBRARY_ROOT, NOTES_ROOT, isCodexNotePath } from "./paths";
 import { baseName, foldKey, parentOf, resolvePath } from "./pathRules";
 import type { Project } from "./project";
+import type { ProseSession, SaveResult } from "./proseWriter";
+import { handleCodexNoteRename } from "./reconciliation";
 import { sanitizeCodexBasename, uniqueCodexFilename } from "./codex";
 
 export class NotACodexNoteError extends Error {
@@ -293,4 +296,258 @@ export async function planCodexRename(project: Project, notePath: string, newNam
 	for (const stub of project.index.placeholders()) if (isProse(stub) && /\.md$/i.test(stub)) plan.notDownloaded.push(stub);
 	plan.totalLinks = plan.files.reduce((n, f) => n + f.linkCount, 0);
 	return plan;
+}
+
+// ------------------------------------------------------------------------------------ apply
+
+/** The parts of the prose writer the rewrite needs, so open editors are flushed first and told afterwards. */
+export interface RewriteWriter {
+	flushAll(): Promise<SaveResult[]>;
+	session(path: string): ProseSession | undefined;
+	onDiskChanged(path: string, diskText: string): Promise<unknown>;
+}
+
+export interface ApplyRenameOptions {
+	backups: BackupService;
+	/** Open editors. Flushed before anything else; reloaded from disk for files that were rewritten. */
+	writer?: RewriteWriter;
+}
+
+export type RewriteStop = "unchanged" | "flush" | "backup" | "rename";
+
+export interface LinkRewriteResult {
+	/** `done`: renamed and re-keyed (some links may have been skipped, see below). `stopped`: nothing was changed. */
+	status: "done" | "unchanged" | "stopped";
+	stoppedAt?: RewriteStop;
+	error?: Error;
+	/** Where unsaved editor text went during the flush, if anywhere (recovery files). */
+	flushed: SaveResult[];
+	backupPath?: string;
+	oldPath: string;
+	newPath: string;
+	filesUpdated: string[];
+	linksUpdated: number;
+	/** Files that changed between the plan and the apply: left untouched. */
+	skippedChanged: string[];
+	/** Files whose rewrite could not be proven minimal or could not be made: left untouched. */
+	skippedUnsafe: { path: string; reason: string }[];
+	/** Bare links left alone because another file has the same name. */
+	ambiguousLeft: AmbiguousLink[];
+	/** Links in markdown files outside storyForge's folders: not updated. */
+	outsideLinks: number;
+	/** Set if `codex.md` or the novel files could not be re-keyed after the rename. */
+	rekeyError?: Error;
+	/** Files that were rewritten but could not be reloaded into an open editor. */
+	notifyErrors: { path: string; error: Error }[];
+}
+
+function stopped(plan: LinkRewritePlan, at: RewriteStop, error: Error | undefined, flushed: SaveResult[], backupPath?: string): LinkRewriteResult {
+	return {
+		status: at === "unchanged" ? "unchanged" : "stopped",
+		stoppedAt: at,
+		...(error ? { error } : {}),
+		flushed,
+		...(backupPath ? { backupPath } : {}),
+		oldPath: plan.notePath,
+		newPath: plan.newPath,
+		filesUpdated: [],
+		linksUpdated: 0,
+		skippedChanged: [],
+		skippedUnsafe: [],
+		ambiguousLeft: plan.ambiguous,
+		outsideLinks: plan.outside.linkCount,
+		notifyErrors: [],
+	};
+}
+
+function applyBodySpans(text: string, spans: readonly LinkSpan[]): string {
+	let out = text;
+	for (const s of [...spans].filter((x) => x.region === "body").sort((a, b) => b.start - a.start)) {
+		if (out.slice(s.start, s.end) !== s.old) throw new Error(`the text at ${s.start} is no longer "${s.old}"`);
+		out = out.slice(0, s.start) + s.new + out.slice(s.end);
+	}
+	return out;
+}
+
+function getAt(root: unknown, keyPath: readonly (string | number)[]): unknown {
+	let cur = root;
+	for (const k of keyPath) cur = (cur as Record<string | number, unknown> | undefined)?.[k];
+	return cur;
+}
+
+function replaceStrings(root: unknown, spans: readonly LinkSpan[]): void {
+	const groups = new Map<string, LinkSpan[]>();
+	for (const s of spans) if (s.region === "frontmatter") groups.set(JSON.stringify(s.keyPath), [...(groups.get(JSON.stringify(s.keyPath)) ?? []), s]);
+	for (const group of groups.values()) {
+		const keyPath = group[0].keyPath as (string | number)[];
+		const found = getAt(root, keyPath);
+		if (typeof found !== "string") throw new Error(`the frontmatter value at ${keyPath.join(".")} is no longer text`);
+		let value: string = found;
+		for (const s of [...group].sort((a, b) => b.start - a.start)) {
+			if (value.slice(s.start, s.end) !== s.old) throw new Error(`the frontmatter text at ${keyPath.join(".")} is no longer "${s.old}"`);
+			value = value.slice(0, s.start) + s.new + value.slice(s.end);
+		}
+		const parent = getAt(root, keyPath.slice(0, -1)) as Record<string | number, unknown>;
+		parent[keyPath[keyPath.length - 1]] = value;
+	}
+}
+
+const sameJson = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+/**
+ * Builds the rewritten text of one file and proves it minimal: the body equals the original body with
+ * exactly the planned spans replaced, the frontmatter parses to the original data with exactly the
+ * planned strings replaced, and only lines that held a link differ. Throws if any of that fails.
+ */
+export function rewriteFileText(path: string, original: string, spans: readonly LinkSpan[]): string {
+	const origSection = splitFrontmatterSection(original);
+	const origFm = origSection?.frontmatter ?? "";
+	let next = applyBodySpans(original, spans);
+	const expectedBody = next.slice(origFm.length);
+	if (!next.startsWith(origFm)) throw new Error("a body span fell inside the frontmatter");
+	const fmSpans = spans.filter((s) => s.region === "frontmatter");
+	if (fmSpans.length > 0) {
+		next = editFrontmatter(
+			next,
+			(fm) => {
+				replaceStrings(fm, fmSpans);
+			},
+			path,
+		);
+	}
+
+	// The proof.
+	const section = splitFrontmatterSection(next);
+	const nextFm = section?.frontmatter ?? "";
+	if ((section ? section.rest : next) !== expectedBody) throw new Error("the body would change outside the planned links");
+	if (fmSpans.length === 0) {
+		if (nextFm !== origFm) throw new Error("the frontmatter would change");
+	} else {
+		const before = readFrontmatter(original);
+		const after = readFrontmatter(next);
+		if (before.state !== "ok" || after.state !== "ok") throw new Error("the frontmatter can't be read back");
+		const expected = JSON.parse(JSON.stringify(before.data));
+		replaceStrings(expected, fmSpans);
+		if (!sameJson(after.data, expected)) throw new Error("the frontmatter would change outside the planned links");
+		const a = origFm.split(/\r?\n/);
+		const b = nextFm.split(/\r?\n/);
+		if (a.length !== b.length) throw new Error("the frontmatter would change shape");
+		for (let i = 0; i < a.length; i++) if (a[i] !== b[i] && !/\[\[|\]\(/.test(a[i])) throw new Error(`the frontmatter line "${a[i]}" would change`);
+		if (!/\r\n/.test(origFm) !== !/\r\n/.test(nextFm)) throw new Error("the frontmatter line endings would change");
+	}
+	return next;
+}
+
+/**
+ * Carries out a plan: flush open editors, take the pre-rewrite backup (if that fails, stop with
+ * nothing changed), rename the note, rewrite the planned links in files that are still as planned,
+ * re-key `codex.md` and the PoV/location references, and report. Unlike typing, a rewrite is optional,
+ * so it never runs without its backup.
+ */
+export async function applyCodexRename(project: Project, plan: LinkRewritePlan, options: ApplyRenameOptions): Promise<LinkRewriteResult> {
+	if (plan.unchanged) return stopped(plan, "unchanged", undefined, []);
+	const { writer, backups } = options;
+
+	// 1. Flush every open editor. Text that can't be saved or recovered stops the rename.
+	let flushed: SaveResult[] = [];
+	if (writer) {
+		try {
+			flushed = await writer.flushAll();
+		} catch (err) {
+			return stopped(plan, "flush", err instanceof Error ? err : new Error(String(err)), flushed);
+		}
+		const failed = flushed.find((r) => r.kind === "recovery-failed");
+		if (failed) return stopped(plan, "flush", new Error(`unsaved text in "${failed.path}" could not be saved or recovered`), flushed);
+	}
+
+	// 2. The pre-rewrite backup: exactly the files that will change, plus the note.
+	const planned = new Set([plan.notePath, ...plan.files.map((f) => f.path)]);
+	let backupPath: string;
+	try {
+		backupPath = (await backups.runPreRewrite([...planned].sort())).path;
+	} catch (err) {
+		return stopped(plan, "backup", err instanceof Error ? err : new Error(String(err)), flushed);
+	}
+
+	// 3. Rename the note. Its editor, if any, was flushed; close it so it doesn't point at the old path.
+	try {
+		await writer?.session(plan.notePath)?.close();
+		await project.fs.codexRename(plan.notePath, plan.newPath);
+		project.index.moveEntry(plan.notePath, plan.newPath);
+		await project.refresh(plan.newPath);
+	} catch (err) {
+		return stopped(plan, "rename", err instanceof Error ? err : new Error(String(err)), flushed, backupPath);
+	}
+
+	// 4. Rewrite the planned spans, file by file, only where the file is still as planned.
+	const result: LinkRewriteResult = {
+		status: "done",
+		flushed,
+		backupPath,
+		oldPath: plan.notePath,
+		newPath: plan.newPath,
+		filesUpdated: [],
+		linksUpdated: 0,
+		skippedChanged: [],
+		skippedUnsafe: [],
+		ambiguousLeft: plan.ambiguous,
+		outsideLinks: plan.outside.linkCount,
+		notifyErrors: [],
+	};
+	for (const file of plan.files) {
+		const path = file.path === plan.notePath ? plan.newPath : file.path;
+		let original: string;
+		try {
+			original = await project.readText(path);
+		} catch (err) {
+			result.skippedUnsafe.push({ path, reason: `couldn't be read: ${(err as Error).message}` });
+			continue;
+		}
+		if (sha256Text(original) !== file.hash) {
+			result.skippedChanged.push(path);
+			continue;
+		}
+		let next: string;
+		try {
+			next = rewriteFileText(path, original, file.spans);
+		} catch (err) {
+			result.skippedUnsafe.push({ path, reason: (err as Error).message });
+			continue;
+		}
+		if (next === original) continue;
+		try {
+			const outcome = await project.fs.linkRewrite(path, original, next);
+			if (outcome === "conflict") {
+				result.skippedChanged.push(path);
+				continue;
+			}
+		} catch (err) {
+			result.skippedUnsafe.push({ path, reason: `couldn't be written: ${(err as Error).message}` });
+			continue;
+		}
+		result.filesUpdated.push(path);
+		result.linksUpdated += file.linkCount;
+		try {
+			await writer?.onDiskChanged(path, next);
+		} catch (err) {
+			result.notifyErrors.push({ path, error: err instanceof Error ? err : new Error(String(err)) });
+		}
+		await project.refresh(path);
+	}
+
+	// 5. Re-key the backstage files: codex.md, and the PoV and location references in the novel files.
+	try {
+		await handleCodexNoteRename(project, plan.notePath, plan.newPath);
+	} catch (err) {
+		result.rekeyError = err instanceof Error ? err : new Error(String(err));
+	}
+	return result;
+}
+
+/** Plans and applies a Codex note rename in one step (the interface shows the plan first when it wants to). */
+export async function renameCodexNote(project: Project, notePath: string, newName: string, options: ApplyRenameOptions): Promise<LinkRewriteResult> {
+	// Flush first, so the plan is made from what is really on disk (apply flushes again, harmlessly).
+	const flushedFirst = (await options.writer?.flushAll()) ?? [];
+	const result = await applyCodexRename(project, await planCodexRename(project, notePath, newName), options);
+	return { ...result, flushed: [...flushedFirst, ...result.flushed] };
 }

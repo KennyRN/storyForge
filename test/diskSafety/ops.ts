@@ -14,7 +14,7 @@ import { createContinuingChapter } from "../../src/core/chapterCreation";
 import { deleteChapterSidecar, renameChapterSidecar, updateChapterFingerprint } from "../../src/core/chapterSidecar";
 import {
 	addCodexNoteAlias, archiveCodexItem, convertCodexNoteToFolder, createCodexFolder, createCodexNote, ensureVirtualFolder, moveCodexItem,
-	rekeyCodexNotePath, removeCodexFolder, renameCodexFolder, renameCodexNoteFile,
+	rekeyCodexNotePath, removeCodexFolder, renameCodexFolder,
 	reorderArchivedCodexItems, setCodexEntryType, unarchiveCodexItem,
 } from "../../src/core/codex";
 import {
@@ -292,7 +292,6 @@ export const OPS: OpSpec[] = [
 		changed: { "Codex/NoNewline.md": { format: "frontmatter", touched: [["aliases"]] } },
 	},
 	{ name: "addCodexNoteAlias (duplicate writes nothing)", run: (c) => addCodexNoteAlias(c.project, "Codex/Jane.md", "j") },
-	{ name: "renameCodexNoteFile is refused", run: (c) => renameCodexNoteFile(c.project, c.project.entry("Codex/Jane.md")!, "Janet"), throws: /not available yet/ },
 
 	// -------------------------------------------------------------------------------- sidecars
 	{ name: "updateChapterFingerprint (existing sidecar)", run: (c) => updateChapterFingerprint(c.project, "aaa", "ch-a1.md", { opening: "NEW OPEN", closing: "NEW CLOSE" }), changed: { [SIDE]: { format: "text", frontmatterSame: true } } },

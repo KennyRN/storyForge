@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { memoryProject } from "../../../test/helpers/memoryProject";
+import { planCodexRename } from "../linkRewriter";
 import { ForbiddenWriteError } from "../backend/guard";
 import {
-	CodexRenameUnavailableError,
 	createCodexNote,
-	renameCodexNoteFile,
 	sanitizeCodexBasename,
 	uniqueCodexFilename,
 } from "../codex";
@@ -63,7 +62,7 @@ describe("uniqueCodexFilename", () => {
 	});
 });
 
-describe("createCodexNote / renameCodexNoteFile", () => {
+describe("createCodexNote / planCodexRename", () => {
 	it("never creates a note outside Codex/ even with a traversal filename", async () => {
 		const { project, backend } = await codexProject();
 		await createCodexNote(project, null, { filename: "../Library/secret.md" });
@@ -81,26 +80,13 @@ describe("createCodexNote / renameCodexNoteFile", () => {
 		expect(fm("_backstage/storyforge/codex.md").order).toEqual([`${CODEX_ROOT}/Jane.md`]);
 	});
 
-	it("refuses a real rename with a typed error and renames nothing (link rewriting isn't built yet)", async () => {
-		const { project, backend } = await codexProject([`${CODEX_ROOT}/Ada.md`]);
-		const file = project.entry(`${CODEX_ROOT}/Ada.md`)!;
-		await expect(renameCodexNoteFile(project, file, "Grace")).rejects.toBeInstanceOf(CodexRenameUnavailableError);
-		await expect(renameCodexNoteFile(project, file, "../Library/stolen")).rejects.toBeInstanceOf(CodexRenameUnavailableError);
-		expect(backend.writes).toEqual([]);
-		expect(project.isFile(`${CODEX_ROOT}/Ada.md`)).toBe(true);
-	});
-
-	it("treats a blank, unchanged or self-resolving name as a no-op rather than an error", async () => {
+	it("treats a blank, unchanged or self-resolving name as a no-op plan rather than an error", async () => {
 		const { project, backend } = await codexProject([`${CODEX_ROOT}/Berwyn.md`, `${CODEX_ROOT}/Berwyn 2.md`]);
-		const file = project.entry(`${CODEX_ROOT}/Berwyn 2.md`)!;
-		await renameCodexNoteFile(project, file, "");
-		await renameCodexNoteFile(project, file, "Berwyn 2");
-		// "Berwyn" is taken by the other note, so the unique name resolves back to this note's own: nothing to rename
-		await renameCodexNoteFile(project, file, "Berwyn");
+		for (const name of ["", "Berwyn 2", "Berwyn"]) expect((await planCodexRename(project, `${CODEX_ROOT}/Berwyn 2.md`, name)).unchanged, name).toBe(true);
 		expect(backend.writes).toEqual([]);
 	});
 
-	it("the guard also refuses a Codex rename at the boundary", async () => {
+	it("the generic rename is still refused for a Codex note: only the link rewriter may rename one", async () => {
 		const { project } = await codexProject([`${CODEX_ROOT}/Ada.md`]);
 		await expect(project.rename(`${CODEX_ROOT}/Ada.md`, `${CODEX_ROOT}/Grace.md`)).rejects.toBeInstanceOf(ForbiddenWriteError);
 	});

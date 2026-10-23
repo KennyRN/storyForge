@@ -17,6 +17,8 @@ function walk(dir: string): string[] {
 		return p.endsWith(".ts") ? [p] : [];
 	});
 }
+/** Source with `import type ...` statements removed: importing a type grants no power. */
+const valueImportsOnly = (text: string) => text.replace(/import\s+type\s+[^;]*?from\s+["'][^"']*["'];?/g, "");
 const files = walk(SRC).map((p) => ({ path: relative(SRC, p), text: readFileSync(p, "utf8") }));
 
 /** Calls of `.name(` anywhere in src, outside the defining and allowed files. */
@@ -42,7 +44,7 @@ describe("architecture: who may call the restricted backend operations", () => {
 
 	it("the restricted modules are imported only by the modules that may use them", () => {
 		const importers = (mod: string) =>
-			files.filter((f) => new RegExp(`from\\s+["'][^"']*/${mod}["']`).test(f.text) && f.path !== `core/${mod}.ts`).map((f) => f.path);
+			files.filter((f) => new RegExp(`from\\s+["'][^"']*/${mod}["']`).test(valueImportsOnly(f.text)) && f.path !== `core/${mod}.ts`).map((f) => f.path);
 		// Nothing but the prose writer and the link rewriter may import each other's operations, and
 		// reconciliation, opening, backups and recovery never import either writer.
 		for (const writer of ["proseWriter", "linkRewriter"]) {
@@ -53,7 +55,7 @@ describe("architecture: who may call the restricted backend operations", () => {
 		for (const mod of ["reconciler", "reconciliation", "backup", "recovery", "snapshot", "project", "projectIndex"]) {
 			const f = files.find((x) => x.path === `core/${mod}.ts`);
 			expect(f, mod).toBeDefined();
-			expect(/from\s+["'][^"']*\/(proseWriter|linkRewriter)["']/.test(f!.text), `${mod} imports a prose writer`).toBe(false);
+			expect(/from\s+["'][^"']*\/(proseWriter|linkRewriter)["']/.test(valueImportsOnly(f!.text)), `${mod} imports a prose writer`).toBe(false);
 		}
 	});
 

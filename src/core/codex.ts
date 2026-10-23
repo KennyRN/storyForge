@@ -397,31 +397,6 @@ export async function createCodexNote(
 	return file;
 }
 
-/** Thrown by renameCodexNoteFile: a Codex note cannot be renamed until link rewriting exists. */
-export class CodexRenameUnavailableError extends Error {
-	constructor(public readonly path: string) {
-		super(
-			`Renaming the Codex note "${path}" is not available yet: a rename has to update [[links]] to the note, ` +
-				`and link rewriting has not been built. Nothing was renamed.`,
-		);
-		this.name = "CodexRenameUnavailableError";
-	}
-}
-
-/**
- * Renaming a Codex note used to go through Obsidian's link-updating rename. Without it a rename
- * would silently break `[[links]]`, so a real rename is **refused** with a typed error (the link
- * rewriting exception is a later piece of work). Blank or unchanged names, and names that resolve to
- * the note's own, are still a no-op.
- */
-export async function renameCodexNoteFile(_project: Project, file: IndexEntry, newBasename: string): Promise<void> {
-	const stem = sanitizeCodexBasename(newBasename);
-	if (!stem || stem === file.basename) return;
-	const filename = await uniqueCodexFilename(_project, stem, file.path);
-	if (sameVaultPath(`${CODEX_ROOT}/${filename}`, file.path)) return; // the name resolves to the note's own: nothing to rename
-	throw new CodexRenameUnavailableError(file.path);
-}
-
 /**
  * Append `alias` to a Codex note's YAML `aliases` (Obsidian Properties). No-op when blank,
  * already present, or equal to the file basename (case-insensitive). Refuses non-Codex paths.
