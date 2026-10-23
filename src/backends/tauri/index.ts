@@ -136,3 +136,22 @@ export class TauriBackend implements Backend {
 		return r.outcome;
 	}
 }
+
+/** Machine settings (window, recent projects, snapshots, where you were) through `machine_get` / `machine_set`. */
+export class TauriMachineStore {
+	constructor(private readonly invoke: Invoke) {}
+	async get(name: string): Promise<string | null> {
+		try {
+			return (await this.invoke("machine_get", { name })) as string | null;
+		} catch (err) {
+			throw fromRustError(err);
+		}
+	}
+	async set(name: string, text: string): Promise<void> {
+		try {
+			await this.invoke("machine_set", { name, text });
+		} catch (err) {
+			throw fromRustError(err);
+		}
+	}
+}
