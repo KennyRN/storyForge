@@ -36,6 +36,8 @@ function toBackendError(err: unknown, path: string): BackendError {
 
 export class NodeFsBackend implements Backend {
 	private realRoot: Promise<string>;
+	/** Test hook: runs between the comparison and the last identity check of writeTextIfUnchanged. */
+	afterCompareHook?: (absTarget: string) => Promise<void> | void;
 
 	constructor(public readonly root: string) {
 		this.realRoot = fs.realpath(root);
@@ -174,6 +176,53 @@ export class NodeFsBackend implements Backend {
 			}
 		}
 		await this.atomicWrite(rel, out);
+	}
+
+	/**
+	 * Compare-then-write. The new text goes to a temp file first; then, with nothing else able to
+	 * interleave through this backend, the target is read and compared with `expected`, and its
+	 * identity (inode, size, mtime) is checked again immediately before the atomic rename. Any
+	 * difference is a conflict and the temp file is removed. What remains is the gap between that last
+	 * check and the rename (microseconds); see docs/safety-core.md §10.
+	 */
+	async writeTextIfUnchanged(path: string, expected: string, text: string): Promise<"written" | "conflict"> {
+		const rel = this.rel(path);
+		await this.assertInside(rel);
+		const target = this.abs(rel);
+		const tmp = nodePath.join(nodePath.dirname(target), `.${nodePath.basename(target)}.${randomBytes(6).toString("hex")}.tmp`);
+		let handle: fs.FileHandle | undefined;
+		try {
+			handle = await fs.open(tmp, "wx");
+			await handle.writeFile(text);
+			await handle.sync();
+			await handle.close();
+			handle = undefined;
+			let before;
+			let current: string;
+			try {
+				before = await fs.lstat(target);
+				if (!before.isFile()) throw new BackendError("EISDIR", `"${rel}" is not a file`, rel);
+				current = await fs.readFile(target, "utf8");
+			} catch (err) {
+				throw toBackendError(err, rel);
+			}
+			if (current !== expected) {
+				await fs.rm(tmp, { force: true });
+				return "conflict";
+			}
+			await this.afterCompareHook?.(target);
+			const after = await fs.lstat(target).catch(() => undefined);
+			if (!after || after.ino !== before.ino || after.dev !== before.dev || after.size !== before.size || after.mtimeMs !== before.mtimeMs) {
+				await fs.rm(tmp, { force: true });
+				return "conflict";
+			}
+			await fs.rename(tmp, target);
+			return "written";
+		} catch (err) {
+			if (handle) await handle.close().catch(() => undefined);
+			await fs.rm(tmp, { force: true }).catch(() => undefined);
+			throw toBackendError(err, rel);
+		}
 	}
 
 	async writeBinary(path: string, data: Uint8Array): Promise<void> {

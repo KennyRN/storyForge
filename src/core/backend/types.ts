@@ -39,6 +39,13 @@ export interface Backend {
 	/** Atomic: a crash leaves the old file or the new file, never a mixture. Creates missing parents. */
 	writeText(path: string, text: string): Promise<void>;
 	writeBinary(path: string, data: Uint8Array): Promise<void>;
+	/**
+	 * Compare-then-write: replaces the existing file's text with `text` (exactly as given) only if it
+	 * still holds `expected`. The comparison and the replacement must not be separable by another
+	 * writer going through this backend; implementations narrow the window against outside writers
+	 * as far as the platform allows (docs/safety-core.md §10). A missing file rejects with ENOENT.
+	 */
+	writeTextIfUnchanged(path: string, expected: string, text: string): Promise<"written" | "conflict">;
 	/** Fails with EEXIST if `path` exists. Creates missing parents. */
 	createFile(path: string, content: string | Uint8Array): Promise<void>;
 	/** `mkdir -p`: idempotent. */

@@ -1,6 +1,6 @@
 {
 	"version": 1,
-	"description": "Write-guard rule table. The TypeScript guard (src/core/backend/guard.ts) and, in Brief 4, the Rust guard must give each row's expected result. Paths are project-relative; \\ is a separator; ops: write-file, write-binary, create-file, create-folder, rename (from/to), retire, frontmatter-edit (keys = top-level keys the edit changes; Codex notes allow exactly [\"aliases\"]).",
+	"description": "Write-guard rule table. The TypeScript guard (src/core/backend/guard.ts) and, in Brief 4, the Rust guard must give each row's expected result. Paths are project-relative; \\ is a separator; ops: write-file, write-binary, create-file, create-folder, rename (from/to), retire, frontmatter-edit, prose-write, link-rewrite, backup-create, recovery-create, codex-rename (from/to) (keys = top-level keys the edit changes; Codex notes allow exactly [\"aliases\"]).",
 	"rows": [
 		{
 			"id": "write-allowed-1",
@@ -265,26 +265,26 @@
 			"id": "backup-write",
 			"op": "write-file",
 			"path": "_sf-backup/2026-01-01 backup.zip",
-			"expect": "allow",
-			"reason": "backup root reserved for Brief 3"
+			"expect": "refuse",
+			"reason": "_sf-backup/ is create-only; backups go through backup-create"
 		},
 		{
 			"id": "backup-text",
 			"op": "write-file",
 			"path": "_sf-backup/formatForge settings.json",
-			"expect": "allow"
+			"expect": "refuse"
 		},
 		{
 			"id": "backup-binary",
 			"op": "write-binary",
 			"path": "_sf-backup/a/b.zip",
-			"expect": "allow"
+			"expect": "refuse"
 		},
 		{
 			"id": "backup-create",
 			"op": "create-file",
 			"path": "_sf-backup/x.zip",
-			"expect": "allow"
+			"expect": "refuse"
 		},
 		{
 			"id": "backup-folder",
@@ -648,7 +648,8 @@
 			"op": "rename",
 			"from": "_sf-backup/a.zip",
 			"to": "_sf-backup/b.zip",
-			"expect": "allow"
+			"expect": "refuse",
+			"reason": "nothing in _sf-backup/ is ever renamed"
 		},
 		{
 			"id": "rename-to-hidden",
@@ -867,6 +868,546 @@
 			"path": "＿story-library/x.md",
 			"expect": "refuse",
 			"reason": "not the protected folder, not an allowed one either"
+		},
+		{
+			"id": "prose-write-1",
+			"op": "prose-write",
+			"path": "_story-library/ABC/Chapter 1.md",
+			"expect": "allow"
+		},
+		{
+			"id": "prose-write-2",
+			"op": "prose-write",
+			"path": "_story-library/ABC/new.md",
+			"expect": "allow"
+		},
+		{
+			"id": "prose-write-3",
+			"op": "prose-write",
+			"path": "Codex/Jane.md",
+			"expect": "allow"
+		},
+		{
+			"id": "prose-write-4",
+			"op": "prose-write",
+			"path": "Codex/Jane Smith.MD",
+			"expect": "allow"
+		},
+		{
+			"id": "prose-write-5",
+			"op": "prose-write",
+			"path": "notes/idea.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "prose-write-6",
+			"op": "prose-write",
+			"path": "notes/archive/old.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "prose-write-7",
+			"op": "prose-write",
+			"path": "_story-library/series.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "prose-write-8",
+			"op": "prose-write",
+			"path": "_story-library/ABC/sub/deep.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "prose-write-9",
+			"op": "prose-write",
+			"path": "_backstage/storyforge/ABC/novel.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "prose-write-10",
+			"op": "prose-write",
+			"path": "_export/x.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "prose-write-11",
+			"op": "prose-write",
+			"path": "_sf-backup/x.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "prose-write-12",
+			"op": "prose-write",
+			"path": "Codex/sub/n.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "prose-write-13",
+			"op": "prose-write",
+			"path": "_Story-Library/ABC/Chapter 1.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "prose-write-14",
+			"op": "prose-write",
+			"path": "CODEX/Jane.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "prose-write-15",
+			"op": "prose-write",
+			"path": "_story-library\\ABC\\Chapter 1.md",
+			"expect": "allow"
+		},
+		{
+			"id": "prose-write-16",
+			"op": "prose-write",
+			"path": "_story-library/ABC/../../Codex/Jane.md",
+			"expect": "allow"
+		},
+		{
+			"id": "prose-write-17",
+			"op": "prose-write",
+			"path": "_story-library/../../etc/x.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "prose-write-18",
+			"op": "prose-write",
+			"path": "/abs/x.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "prose-write-19",
+			"op": "prose-write",
+			"path": "_story-library/ABC/pic.png",
+			"expect": "refuse"
+		},
+		{
+			"id": "prose-write-20",
+			"op": "prose-write",
+			"path": "_story-library/ABC",
+			"expect": "refuse"
+		},
+		{
+			"id": "prose-write-21",
+			"op": "prose-write",
+			"path": "Codex",
+			"expect": "refuse"
+		},
+		{
+			"id": "link-rewrite-1",
+			"op": "link-rewrite",
+			"path": "_story-library/ABC/Chapter 1.md",
+			"expect": "allow"
+		},
+		{
+			"id": "link-rewrite-2",
+			"op": "link-rewrite",
+			"path": "Codex/Jane.md",
+			"expect": "allow"
+		},
+		{
+			"id": "link-rewrite-3",
+			"op": "link-rewrite",
+			"path": "notes/idea.md",
+			"expect": "allow"
+		},
+		{
+			"id": "link-rewrite-4",
+			"op": "link-rewrite",
+			"path": "notes/archive/old.md",
+			"expect": "allow"
+		},
+		{
+			"id": "link-rewrite-5",
+			"op": "link-rewrite",
+			"path": "notes/sub/deeper/x.md",
+			"expect": "allow"
+		},
+		{
+			"id": "link-rewrite-6",
+			"op": "link-rewrite",
+			"path": "_story-library/series.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "link-rewrite-7",
+			"op": "link-rewrite",
+			"path": "_story-library/novel-ABC.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "link-rewrite-8",
+			"op": "link-rewrite",
+			"path": "_backstage/storyforge/ABC/novel.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "link-rewrite-9",
+			"op": "link-rewrite",
+			"path": "_export/x.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "link-rewrite-10",
+			"op": "link-rewrite",
+			"path": "_sf-backup/recovery/ABC/x.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "link-rewrite-11",
+			"op": "link-rewrite",
+			"path": "notes/pic.png",
+			"expect": "refuse"
+		},
+		{
+			"id": "link-rewrite-12",
+			"op": "link-rewrite",
+			"path": "notes/.hidden/x.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "link-rewrite-13",
+			"op": "link-rewrite",
+			"path": "_NOTES/idea.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "link-rewrite-14",
+			"op": "link-rewrite",
+			"path": "Notes/idea.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "link-rewrite-15",
+			"op": "link-rewrite",
+			"path": "README.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "link-rewrite-16",
+			"op": "link-rewrite",
+			"path": "_story-library/ABC/sub/x.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "link-rewrite-17",
+			"op": "link-rewrite",
+			"path": "Codex/sub/x.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "link-rewrite-18",
+			"op": "link-rewrite",
+			"path": "_story-library/ABC/../../README.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "backup-create-1",
+			"op": "backup-create",
+			"path": "_sf-backup/20260101 - Project.zip",
+			"expect": "allow"
+		},
+		{
+			"id": "backup-create-2",
+			"op": "backup-create",
+			"path": "_sf-backup/20260101-101010 - Project - full.zip",
+			"expect": "allow"
+		},
+		{
+			"id": "backup-create-3",
+			"op": "backup-create",
+			"path": "_sf-backup/x.ZIP",
+			"expect": "allow"
+		},
+		{
+			"id": "backup-create-4",
+			"op": "backup-create",
+			"path": "_sf-backup/sub/x.zip",
+			"expect": "refuse"
+		},
+		{
+			"id": "backup-create-5",
+			"op": "backup-create",
+			"path": "_sf-backup/x.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "backup-create-6",
+			"op": "backup-create",
+			"path": "_sf-backup/recovery/x.zip",
+			"expect": "refuse"
+		},
+		{
+			"id": "backup-create-7",
+			"op": "backup-create",
+			"path": "_sf-backup",
+			"expect": "refuse"
+		},
+		{
+			"id": "backup-create-8",
+			"op": "backup-create",
+			"path": "_SF-BACKUP/x.zip",
+			"expect": "refuse"
+		},
+		{
+			"id": "backup-create-9",
+			"op": "backup-create",
+			"path": "_sf-Backup/x.zip",
+			"expect": "refuse"
+		},
+		{
+			"id": "backup-create-10",
+			"op": "backup-create",
+			"path": "_sf-backup\\x.zip",
+			"expect": "allow"
+		},
+		{
+			"id": "backup-create-11",
+			"op": "backup-create",
+			"path": "_sf-backup/../Codex/x.zip",
+			"expect": "refuse"
+		},
+		{
+			"id": "backup-create-12",
+			"op": "backup-create",
+			"path": "Codex/x.zip",
+			"expect": "refuse"
+		},
+		{
+			"id": "backup-create-13",
+			"op": "backup-create",
+			"path": "x.zip",
+			"expect": "refuse"
+		},
+		{
+			"id": "backup-create-14",
+			"op": "backup-create",
+			"path": "_export/x.zip",
+			"expect": "refuse"
+		},
+		{
+			"id": "backup-create-15",
+			"op": "backup-create",
+			"path": "_backstage/storyforge/x.zip",
+			"expect": "refuse"
+		},
+		{
+			"id": "recovery-create-1",
+			"op": "recovery-create",
+			"path": "_sf-backup/recovery/ABC/Chapter 1 2026-01-01 101010.md",
+			"expect": "allow"
+		},
+		{
+			"id": "recovery-create-2",
+			"op": "recovery-create",
+			"path": "_sf-backup/recovery/_codex/Jane 2026-01-01 101010.md",
+			"expect": "allow"
+		},
+		{
+			"id": "recovery-create-3",
+			"op": "recovery-create",
+			"path": "_sf-backup/recovery/_pruned/ABC/Chapter 1 2026-01-01 101010.md",
+			"expect": "allow"
+		},
+		{
+			"id": "recovery-create-4",
+			"op": "recovery-create",
+			"path": "_sf-backup/recovery/_pruned/_codex/Jane 2026-01-01 101010 2.md",
+			"expect": "allow"
+		},
+		{
+			"id": "recovery-create-5",
+			"op": "recovery-create",
+			"path": "_sf-backup/recovery/Chapter.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "recovery-create-6",
+			"op": "recovery-create",
+			"path": "_sf-backup/recovery/ABC/x.txt",
+			"expect": "refuse"
+		},
+		{
+			"id": "recovery-create-7",
+			"op": "recovery-create",
+			"path": "_sf-backup/recovery/ABC/x.zip",
+			"expect": "refuse"
+		},
+		{
+			"id": "recovery-create-8",
+			"op": "recovery-create",
+			"path": "_sf-backup/x.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "recovery-create-9",
+			"op": "recovery-create",
+			"path": "_sf-backup/recovery",
+			"expect": "refuse"
+		},
+		{
+			"id": "recovery-create-10",
+			"op": "recovery-create",
+			"path": "_sf-backup/Recovery/ABC/x.md",
+			"expect": "refuse",
+			"reason": "the recovery folder name is case-sensitive"
+		},
+		{
+			"id": "recovery-create-11",
+			"op": "recovery-create",
+			"path": "_SF-BACKUP/recovery/ABC/x.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "recovery-create-12",
+			"op": "recovery-create",
+			"path": "_sf-backup/../Codex/x.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "recovery-create-13",
+			"op": "recovery-create",
+			"path": "_sf-backup/recovery/../x.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "recovery-create-14",
+			"op": "recovery-create",
+			"path": "Codex/recovery/ABC/x.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "recovery-create-15",
+			"op": "recovery-create",
+			"path": "_story-library/ABC/x.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "recovery-create-16",
+			"op": "recovery-create",
+			"path": "_sf-backup\\recovery\\ABC\\x.md",
+			"expect": "allow"
+		},
+		{
+			"id": "codex-rename-1",
+			"op": "codex-rename",
+			"from": "Codex/Jane.md",
+			"to": "Codex/Janet.md",
+			"expect": "allow"
+		},
+		{
+			"id": "codex-rename-2",
+			"op": "codex-rename",
+			"from": "Codex/Jane.md",
+			"to": "Codex/Janet Smith.md",
+			"expect": "allow"
+		},
+		{
+			"id": "codex-rename-3",
+			"op": "codex-rename",
+			"from": "Codex/Jane.md",
+			"to": "Codex/jane.md",
+			"expect": "allow"
+		},
+		{
+			"id": "codex-rename-4",
+			"op": "codex-rename",
+			"from": "Codex/Jane.md",
+			"to": "Codex/sub/Jane.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "codex-rename-5",
+			"op": "codex-rename",
+			"from": "Codex/Jane.md",
+			"to": "_story-library/ABC/Jane.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "codex-rename-6",
+			"op": "codex-rename",
+			"from": "Codex/Jane.md",
+			"to": "notes/Jane.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "codex-rename-7",
+			"op": "codex-rename",
+			"from": "_story-library/ABC/a.md",
+			"to": "_story-library/ABC/b.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "codex-rename-8",
+			"op": "codex-rename",
+			"from": "_story-library/ABC/a.md",
+			"to": "Codex/a.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "codex-rename-9",
+			"op": "codex-rename",
+			"from": "notes/a.md",
+			"to": "Codex/a.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "codex-rename-10",
+			"op": "codex-rename",
+			"from": "Codex/Jane.md",
+			"to": "Codex/Jane.txt",
+			"expect": "refuse"
+		},
+		{
+			"id": "codex-rename-11",
+			"op": "codex-rename",
+			"from": "Codex/Jane.md",
+			"to": "_sf-backup/Jane.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "codex-rename-12",
+			"op": "codex-rename",
+			"from": "CODEX/Jane.md",
+			"to": "Codex/Janet.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "codex-rename-13",
+			"op": "codex-rename",
+			"from": "Codex/Jane.md",
+			"to": "CODEX/Janet.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "codex-rename-14",
+			"op": "codex-rename",
+			"from": "Codex/Jane.md",
+			"to": "Codex/../notes/Jane.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "codex-rename-15",
+			"op": "codex-rename",
+			"from": "Codex",
+			"to": "Codex2",
+			"expect": "refuse"
+		},
+		{
+			"id": "codex-rename-16",
+			"op": "codex-rename",
+			"from": "_backstage/storyforge/codex.md",
+			"to": "Codex/codex.md",
+			"expect": "refuse"
+		},
+		{
+			"id": "write-binary-backstage",
+			"op": "write-binary",
+			"path": "_backstage/storyforge/ABC/cover.png",
+			"expect": "allow",
+			"reason": "backstage subtree"
 		}
 	]
 }

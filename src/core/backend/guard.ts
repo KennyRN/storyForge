@@ -27,7 +27,17 @@ export type GuardOp =
 	| { op: "rename"; from: string; to: string }
 	| { op: "retire"; path: string }
 	/** `keys`: the top-level frontmatter keys the edit changes. Codex notes allow exactly ["aliases"]. */
-	| { op: "frontmatter-edit"; path: string; keys?: readonly string[] };
+	| { op: "frontmatter-edit"; path: string; keys?: readonly string[] }
+	/** Compare-then-write of an existing chapter or Codex note body. Only the prose writer calls this. */
+	| { op: "prose-write"; path: string }
+	/** Compare-then-write of an existing markdown file in the library, Codex or notes. Only the link rewriter calls this. */
+	| { op: "link-rewrite"; path: string }
+	/** Create-if-absent of `_sf-backup/<name>.zip`. */
+	| { op: "backup-create"; path: string }
+	/** Create-if-absent of `_sf-backup/recovery/**.md`. */
+	| { op: "recovery-create"; path: string }
+	/** `Codex/*.md` to `Codex/*.md`. Only the link rewriter calls this. */
+	| { op: "codex-rename"; from: string; to: string };
 
 export type GuardDecision = { allow: true } | { allow: false; reason: string };
 
@@ -97,6 +107,15 @@ export function checkGuard(op: GuardOp): GuardDecision {
 	};
 	const bad = (raw: string) => refuse(`"${raw}" is not a safe relative path`);
 
+	if (op.op === "codex-rename") {
+		const from = resolve(op.from);
+		const to = resolve(op.to);
+		if (from === null) return bad(op.from);
+		if (to === null) return bad(op.to);
+		if (isCodexNotePath(from) && isCodexNotePath(to)) return ALLOW;
+		return refuse("a Codex rename is only ever Codex/<name>.md to Codex/<name>.md");
+	}
+
 	if (op.op === "rename") {
 		const from = resolve(op.from);
 		const to = resolve(op.to);
@@ -105,7 +124,6 @@ export function checkGuard(op: GuardOp): GuardDecision {
 		const cf = classify(from);
 		const ct = classify(to);
 		if (isMetadata(cf) && isMetadata(ct)) return ALLOW;
-		if (cf === "backup" && ct === "backup") return ALLOW;
 		if (cf === "other") return refuse(otherReason(from));
 		if (ct === "other") return refuse(otherReason(to));
 		return refuse(`renaming ${cf} to ${ct} is not allowed`);
@@ -118,12 +136,14 @@ export function checkGuard(op: GuardOp): GuardDecision {
 	switch (op.op) {
 		case "write-file":
 		case "write-binary":
-			if (c === "backstage" || c === "flat-root-file" || c === "backup") return ALLOW;
+			if (c === "backup") return refuse("_sf-backup/ is create-only: nothing in it is ever overwritten");
+			if (c === "backstage" || c === "flat-root-file") return ALLOW;
 			if (c === "chapter") return refuse("chapter prose is never written");
 			if (c === "codex-note") return refuse("Codex note bodies are never written");
 			return refuse(c === "other" ? otherReason(p) : `a ${c} is not a writable file`);
 		case "create-file":
-			if (c === "backstage" || c === "flat-root-file" || c === "backup" || c === "chapter" || c === "codex-note") return ALLOW;
+			if (c === "backup") return refuse("_sf-backup/ files are created only as backups or recovery files");
+			if (c === "backstage" || c === "flat-root-file" || c === "chapter" || c === "codex-note") return ALLOW;
 			return refuse(c === "other" ? otherReason(p) : `cannot create a file at a ${c}`);
 		case "create-folder":
 			if (c === "backstage-root" || c === "backstage" || c === "library-root" || c === "library-book" || c === "codex-root" || c === "backup-root" || c === "backup") {
@@ -133,6 +153,18 @@ export function checkGuard(op: GuardOp): GuardDecision {
 		case "retire":
 			if (isMetadata(c)) return ALLOW;
 			return refuse(c === "other" ? otherReason(p) : `only backstage metadata is ever retired, not a ${c}`);
+		case "prose-write":
+			if (c === "chapter" || c === "codex-note") return ALLOW;
+			return refuse(c === "other" ? otherReason(p) : `prose is only written to chapters and Codex notes, not a ${c}`);
+		case "link-rewrite":
+			if (c === "chapter" || c === "codex-note" || (p.startsWith("notes/") && p.toLowerCase().endsWith(".md") && !p.split("/").some((x) => x.startsWith(".")))) return ALLOW;
+			return refuse(c === "other" && !p.startsWith("notes/") ? otherReason(p) : `links are only rewritten in chapters, Codex notes and notes, not a ${c}`);
+		case "backup-create":
+			if (c === "backup" && p.split("/").length === 2 && p.toLowerCase().endsWith(".zip")) return ALLOW;
+			return refuse("backups are _sf-backup/<name>.zip");
+		case "recovery-create":
+			if (c === "backup" && p.startsWith(`${BACKUPS_FOLDER}/recovery/`) && p.split("/").length >= 4 && p.toLowerCase().endsWith(".md")) return ALLOW;
+			return refuse("recovery files are _sf-backup/recovery/<folder>/<name>.md");
 		case "frontmatter-edit":
 			if (isMetadata(c)) return ALLOW;
 			if (c === "codex-note") {
@@ -149,7 +181,7 @@ export function checkGuard(op: GuardOp): GuardDecision {
 export function assertAllowed(op: GuardOp): void {
 	const decision = checkGuard(op);
 	if (!decision.allow) {
-		const path = op.op === "rename" ? `${op.from} -> ${op.to}` : op.path;
+		const path = op.op === "rename" || op.op === "codex-rename" ? `${op.from} -> ${op.to}` : op.path;
 		throw new ForbiddenWriteError(path, decision.reason, op.op);
 	}
 }

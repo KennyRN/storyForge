@@ -69,6 +69,39 @@ export class GuardedBackend {
 		return this.locked([path], () => this.raw.retire(path));
 	}
 
+	// -------------------------------------------- the narrow, caller-restricted operations
+	// (test/architecture.test.ts: only the named module may call each of these.)
+
+	/** Compare-then-write of a chapter or Codex note body. Only `proseWriter.ts` calls this. */
+	proseWrite(path: string, expected: string, text: string): Promise<"written" | "conflict"> {
+		assertAllowed({ op: "prose-write", path });
+		return this.locked([path], () => this.raw.writeTextIfUnchanged(path, expected, text));
+	}
+
+	/** Compare-then-write of a markdown file's links. Only `linkRewriter.ts` calls this. */
+	linkRewrite(path: string, expected: string, text: string): Promise<"written" | "conflict"> {
+		assertAllowed({ op: "link-rewrite", path });
+		return this.locked([path], () => this.raw.writeTextIfUnchanged(path, expected, text));
+	}
+
+	/** Renames a Codex note file. Only `linkRewriter.ts` calls this. */
+	codexRename(from: string, to: string): Promise<void> {
+		assertAllowed({ op: "codex-rename", from, to });
+		return this.locked([from, to], () => this.raw.rename(from, to));
+	}
+
+	/** Creates a backup zip; fails (EEXIST) if the name is taken. Only `backup.ts` calls this. */
+	createBackup(path: string, data: Uint8Array): Promise<void> {
+		assertAllowed({ op: "backup-create", path });
+		return this.locked([path], () => this.raw.createFile(path, data));
+	}
+
+	/** Creates a recovery file; fails (EEXIST) if the name is taken. Only `recovery.ts` calls this. */
+	createRecovery(path: string, text: string): Promise<void> {
+		assertAllowed({ op: "recovery-create", path });
+		return this.locked([path], () => this.raw.createFile(path, text));
+	}
+
 	/**
 	 * Runs `fn` with exclusive access to `path`. Reads and writes made through `tx` are the only ones
 	 * allowed inside; writes are checked against the guard at the moment they are made.
