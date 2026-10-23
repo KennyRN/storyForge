@@ -50,7 +50,7 @@ export class GuardedBackend {
 	/** Creates a new file; fails (EEXIST) if it exists. The only way a chapter or Codex file comes to exist. */
 	createFile(path: string, content: string | Uint8Array): Promise<void> {
 		assertAllowed({ op: "create-file", path });
-		return this.locked([path], () => this.raw.createFile(path, content));
+		return this.locked([path], () => this.raw.createFile(path, content, { op: "create-file" }));
 	}
 
 	createFolder(path: string): Promise<void> {
@@ -60,7 +60,7 @@ export class GuardedBackend {
 
 	rename(from: string, to: string): Promise<void> {
 		assertAllowed({ op: "rename", from, to });
-		return this.locked([from, to], () => this.raw.rename(from, to));
+		return this.locked([from, to], () => this.raw.rename(from, to, { op: "rename" }));
 	}
 
 	/** Moves a backstage file into `.trash/` (never overwriting). Returns its new path. */
@@ -75,31 +75,31 @@ export class GuardedBackend {
 	/** Compare-then-write of a chapter or Codex note body. Only `proseWriter.ts` calls this. */
 	proseWrite(path: string, expected: string, text: string): Promise<"written" | "conflict"> {
 		assertAllowed({ op: "prose-write", path });
-		return this.locked([path], () => this.raw.writeTextIfUnchanged(path, expected, text));
+		return this.locked([path], () => this.raw.writeTextIfUnchanged(path, expected, text, { op: "prose-write" }));
 	}
 
 	/** Compare-then-write of a markdown file's links. Only `linkRewriter.ts` calls this. */
 	linkRewrite(path: string, expected: string, text: string): Promise<"written" | "conflict"> {
 		assertAllowed({ op: "link-rewrite", path });
-		return this.locked([path], () => this.raw.writeTextIfUnchanged(path, expected, text));
+		return this.locked([path], () => this.raw.writeTextIfUnchanged(path, expected, text, { op: "link-rewrite" }));
 	}
 
 	/** Renames a Codex note file. Only `linkRewriter.ts` calls this. */
 	codexRename(from: string, to: string): Promise<void> {
 		assertAllowed({ op: "codex-rename", from, to });
-		return this.locked([from, to], () => this.raw.rename(from, to));
+		return this.locked([from, to], () => this.raw.rename(from, to, { op: "codex-rename" }));
 	}
 
 	/** Creates a backup zip; fails (EEXIST) if the name is taken. Only `backup.ts` calls this. */
 	createBackup(path: string, data: Uint8Array): Promise<void> {
 		assertAllowed({ op: "backup-create", path });
-		return this.locked([path], () => this.raw.createFile(path, data));
+		return this.locked([path], () => this.raw.createFile(path, data, { op: "backup-create" }));
 	}
 
 	/** Creates a recovery file; fails (EEXIST) if the name is taken. Only `recovery.ts` calls this. */
 	createRecovery(path: string, text: string): Promise<void> {
 		assertAllowed({ op: "recovery-create", path });
-		return this.locked([path], () => this.raw.createFile(path, text));
+		return this.locked([path], () => this.raw.createFile(path, text, { op: "recovery-create" }));
 	}
 
 	/**
@@ -112,11 +112,11 @@ export class GuardedBackend {
 			readText: () => this.raw.readText(path),
 			writeText: async (text, intent) => {
 				assertAllowed(intent ? { op: "frontmatter-edit", path, keys: intent.keys } : { op: "write-file", path });
-				await this.raw.writeText(path, text);
+				await this.raw.writeText(path, text, intent ? { op: "frontmatter-edit", keys: intent.keys } : { op: "write-file" });
 			},
 			createFile: async (content) => {
 				assertAllowed({ op: "create-file", path });
-				await this.raw.createFile(path, content);
+				await this.raw.createFile(path, content, { op: "create-file" });
 			},
 		};
 		// Refuse an obviously forbidden path before queueing anything.

@@ -321,13 +321,13 @@ export class ProjectIndex {
 			}
 			if (isHiddenPath(canonical)) continue;
 			if (e.kind === "folder") this.setFolder(canonical, e.mtimeMs, e.path);
-			else await this.loadFile(canonical, e.size, e.mtimeMs, e.path);
+			else await this.loadFile(canonical, e.size, e.mtimeMs, e.path, e.text);
 		}
 	}
 
-	private async loadFile(path: string, size: number, mtimeMs: number, spelling = path): Promise<void> {
-		let text: string | undefined;
-		if (isEagerPath(path)) {
+	private async loadFile(path: string, size: number, mtimeMs: number, spelling = path, preloaded?: string): Promise<void> {
+		let text: string | undefined = preloaded;
+		if (text === undefined && isEagerPath(path)) {
 			try {
 				text = await this.backend.readText(path);
 			} catch {

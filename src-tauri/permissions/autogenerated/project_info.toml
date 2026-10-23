@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-project-info"
+description = "Enables the project_info command without any pre-configured scope."
+commands.allow = ["project_info"]
+
+[[permission]]
+identifier = "deny-project-info"
+description = "Denies the project_info command without any pre-configured scope."
+commands.deny = ["project_info"]

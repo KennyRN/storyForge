@@ -12,7 +12,7 @@ const json = (p: string) => JSON.parse(readFileSync(root(p), "utf8"));
 
 /** The commands declared in build.rs. */
 const manifest = readFileSync(root("build.rs"), "utf8");
-const commands = [...(/commands\(&\[([^\]]*)\]/.exec(manifest)?.[1].matchAll(/"([a-z_]+)"/g) ?? [])].map((m) => m[1]);
+const commands = [...(/const COMMANDS: &\[&str\] = &\[([^\]]*)\]/.exec(manifest)?.[1].matchAll(/"([a-z_]+)"/g) ?? [])].map((m) => m[1]);
 
 const CORE_ALLOWED = new Set(["core:event:allow-listen", "core:event:allow-unlisten", "core:window:allow-destroy"]);
 
@@ -35,6 +35,16 @@ describe("the window's permissions", () => {
 			expect(cap.remote, "no remote origin may be granted anything").toBeUndefined();
 		});
 	}
+
+	it("every declared command is granted, and registered in the handler, and nothing else is", () => {
+		expect(commands.length).toBeGreaterThan(10);
+		const granted = (json("capabilities/main.json").permissions as string[]).filter((p) => p.startsWith("allow-")).map((p) => p.slice(6).replace(/-/g, "_"));
+		expect([...granted].sort()).toEqual([...commands].sort());
+		const lib = readFileSync(root("src/lib.rs"), "utf8");
+		const handler = /generate_handler!\[([\s\S]*?)\]/.exec(lib)?.[1] ?? "";
+		const registered = handler.split(",").map((x) => x.trim()).filter(Boolean);
+		expect([...registered].sort()).toEqual([...commands].sort());
+	});
 
 	it("no Tauri plugin that exposes the file system, shell, network or dialogs is a dependency", () => {
 		const cargo = readFileSync(root("Cargo.toml"), "utf8");

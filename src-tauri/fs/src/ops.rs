@@ -544,3 +544,15 @@ fn link_excl(from: &Path, to: &Path) -> std::io::Result<()> {
         }
     }
 }
+
+impl Project {
+    /// Opens `root`, read-only if its `project.md` says it was made by a newer storyForge.
+    pub fn open_checked(root: &Path) -> FsResult<Project> {
+        let probe = Project::open(root, true)?;
+        let newer = probe.read_text("_backstage/storyforge/project.md").map(|t| crate::format::is_newer_than_supported(&t)).unwrap_or(false);
+        if newer {
+            return Ok(probe);
+        }
+        Project::open(root, false)
+    }
+}

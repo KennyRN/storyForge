@@ -3,6 +3,8 @@
 pub mod api;
 pub mod containment;
 pub mod error;
+pub mod format;
+pub mod machine;
 pub mod platform;
 pub mod guard;
 pub mod ops;

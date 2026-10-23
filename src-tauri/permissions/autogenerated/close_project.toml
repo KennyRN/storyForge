@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-close-project"
+description = "Enables the close_project command without any pre-configured scope."
+commands.allow = ["close_project"]
+
+[[permission]]
+identifier = "deny-close-project"
+description = "Denies the close_project command without any pre-configured scope."
+commands.deny = ["close_project"]
