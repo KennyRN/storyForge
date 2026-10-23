@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { libraryChapterPath } from "../paths";
+import { libraryChapterPath } from "../core/paths";
 import { resolveStorytellingCenterPath } from "../storytellingCenter";
 
 const book = "TECa";

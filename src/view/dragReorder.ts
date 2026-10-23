@@ -132,7 +132,7 @@ export function makeReorderable(
 			const onMove = (moveEvent: PointerEvent) => {
 				const pointerCoord = axis === "horizontal" ? moveEvent.clientX : moveEvent.clientY;
 				const delta = pointerCoord - startCoord;
-				row.setCssStyles({ transform: axis === "horizontal" ? `translateX(${delta}px)` : `translateY(${delta}px)` });
+				row.style.transform = axis === "horizontal" ? `translateX(${delta}px)` : `translateY(${delta}px)`;
 
 				const startEdge = axis === "horizontal" ? startRect.left : startRect.top;
 				const size = axis === "horizontal" ? startRect.width : startRect.height;
@@ -166,7 +166,7 @@ export function makeReorderable(
 					}
 					// Re-baseline against the row's new resting position so the
 					// translate offset doesn't accumulate across moves.
-					row.setCssStyles({ transform: "" });
+					row.style.transform = "";
 					startRect = row.getBoundingClientRect();
 					startCoord = pointerCoord;
 				}
@@ -220,7 +220,7 @@ export function makeReorderable(
 				window.removeEventListener("pointercancel", onUp);
 				handle.removeEventListener("lostpointercapture", onLostCapture);
 				row.classList.remove("sf-dragging");
-				row.setCssStyles({ transform: "" });
+				row.style.transform = "";
 				try {
 					handle.releasePointerCapture(pointerId);
 				} catch {

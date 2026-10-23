@@ -4,6 +4,6 @@
 
 The Obsidian plugin that used to live here continues as **[storytellingForge](https://github.com/KennyRN/storytellingForge)**. If you want the plugin, use that repository.
 
-What is in this repository right now is a deliberately stripped-down build of the plugin, kept as a test harness while the app's engine is built: the storytelling and storyForge faces, the library, the Codex and the lore slot, the archive, backups and word-count history. It is not a release and is not meant to be installed in a vault you care about — it shares the plugin id `storyforge` with the plugin and would replace it.
+What is in this repository right now is the app's **data core**: a TypeScript library that reads and writes a folder of markdown in the 0.17 layout (series, novels, chapters, the Codex, word-count history) with no dependency on Obsidian, a node file-system backend, and a read-only check you can point at a copy of a folder: `npm run check -- <folder>`. It has no interface yet and is not a release. The last version of this repository that was still an Obsidian plugin is the tag `plugin-harness-final`.
 
 The plan for the app lives in the project's decisions document.

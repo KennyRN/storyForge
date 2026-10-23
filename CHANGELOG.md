@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — the data core
+
+The repository's data layer no longer depends on Obsidian. A project handle (a synchronous in-memory index plus a guarded, asynchronous file backend) replaces Obsidian's vault, metadata cache and file manager; the plugin shell, views and modals are gone (kept under the tag `plugin-harness-final`).
+
+- New: `src/core/frontmatter.ts` — minimal-diff frontmatter edits that keep unknown keys, comments, quoting, key order, line endings and the note body; unreadable frontmatter is "unavailable", never empty.
+- New: the write guard at the backend boundary, with its rules as a data table (`test/guard-spec/guard.json`); the `_export/` allowance is removed; case, Unicode and separator variants of protected folders are refused.
+- New: the node-fs backend (atomic writes, `.trash/` instead of delete), synthetic fixtures, a 117-operation disk-safety suite, and `npm run check -- <folder>`.
+- Changed: Codex renaming is refused until link rewriting exists; chapter creation no longer opens the file; a folder in a pre-0.17 layout is refused untouched.
+- Removed: `obsidian`, `esbuild`, the CodeMirror typing peers, `manifest.json`, `styles.css`, `backup.ts` (returns in a later piece of work). See `docs/data-core-report.md`.
+
 ## Unreleased — the strip
 
 This repository is now the seed of the standalone storyForge app. Before the app is built, the plugin was stripped to a small test harness (not released as a plugin; `release.yml` is gone). Removed: titleForge, the Story Context engine (the right-hand view keeps only the lore slot and the Archive), the overview pages and title/settings modals, continuous mode and the guides, the Notebook, export/import/presets/onboarding, plot threads and tags and their editors, interface formatting and palettes, Forge-family hosting and Obsidian chrome management, migrations, and the winkNLP and manuscript CodeMirror dependencies. The data layer, the pure layout maths and the on-disk format (0.17) are unchanged. See `docs/strip-report.md`.

@@ -124,11 +124,14 @@ export class InkSlider {
 		this.observer?.disconnect();
 		this.options = options;
 		this.applied = null;
-		this.track = options.container.createDiv({
-			cls: `sf-ink-track sf-ink-track--${options.variant}`,
-			attr: { "aria-hidden": "true" },
-		});
-		this.bar = this.track.createDiv({ cls: "sf-ink-bar" });
+		const doc = options.container.ownerDocument;
+		this.track = doc.createElement("div");
+		this.track.className = `sf-ink-track sf-ink-track--${options.variant}`;
+		this.track.setAttribute("aria-hidden", "true");
+		options.container.appendChild(this.track);
+		this.bar = doc.createElement("div");
+		this.bar.className = "sf-ink-bar";
+		this.track.appendChild(this.bar);
 		const geometry = this.measure();
 		const delay = this.carry ? resumeDelayMs(this.carry.at, performance.now()) : null;
 		if (geometry) {
@@ -181,7 +184,7 @@ export class InkSlider {
 		const spanRect = options.span?.getBoundingClientRect();
 		const span = spanRect ? { top: spanRect.top, bottom: spanRect.bottom } : { top: first.top, bottom: last.bottom };
 		const containerRect = options.container.getBoundingClientRect();
-		const activeIndex = buttons.findIndex((btn) => btn.hasClass("is-active"));
+		const activeIndex = buttons.findIndex((btn) => btn.classList.contains("is-active"));
 		return computeInkGeometry(
 			{ top: containerRect.top, bottom: containerRect.bottom },
 			span,
@@ -194,10 +197,10 @@ export class InkSlider {
 	 * commits that position, then transitions back on for the next apply(). */
 	private applyInstantly(geometry: InkGeometry): void {
 		if (!this.bar) return;
-		this.bar.addClass("is-instant");
+		this.bar.classList.add("is-instant");
 		this.apply(geometry);
 		void this.bar.offsetHeight;
-		this.bar.removeClass("is-instant");
+		this.bar.classList.remove("is-instant");
 	}
 
 	private apply(geometry: InkGeometry): void {
