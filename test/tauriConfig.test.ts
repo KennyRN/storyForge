@@ -64,13 +64,13 @@ describe("the window's permissions", () => {
 		expect(csp).toContain("default-src 'self'");
 		expect(csp).not.toContain("*");
 		expect(conf.app.windows[0].theme).toBe("Dark");
-		expect(conf.app.windows[0].backgroundColor).toBe("#272E33");
+		expect(conf.app.windows[0].backgroundColor).toBe("#293136");
 		expect(conf.identifier).toBe("io.github.kennyrn.storyforge");
 		expect(conf.plugins ?? {}).toEqual({});
 	});
 
 	it("the first frame is dark before any script runs", () => {
 		const html = readFileSync(fileURLToPath(new URL("../src/diagnostic/index.html", import.meta.url)), "utf8");
-		expect(html).toMatch(/<html[^>]*background:#272E33/);
+		expect(html).toMatch(/<html[^>]*background:#293136/);
 	});
 });

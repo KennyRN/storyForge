@@ -1,0 +1,35 @@
+/* Everforest Soft Dark (sainnhe, MIT), by named purpose: a later theme only swaps these values. */
+:root {
+	color-scheme: dark;
+	--bg-side: #293136; /* bg_dim */
+	--bg-main: #333c43; /* bg0 */
+	--bg-raised: #3a464c; /* bg1 */
+	--border: #434f55; /* bg2 */
+	--text: #d3c6aa; /* fg */
+	--text-muted: #9da9a0; /* grey2 */
+	--accent: #a7c080; /* green */
+	--data: #7fbbb3; /* blue */
+	--trouble: #e67e80; /* red */
+	--warn: #e69875; /* orange */
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg-side); color: var(--text); font: 13px/1.5 -apple-system, "SF Pro Text", system-ui, sans-serif; }
+main { display: grid; grid-template-columns: minmax(260px, 340px) 1fr; min-height: 100vh; }
+aside { background: var(--bg-side); border-right: 1px solid var(--border); padding: 16px; overflow: auto; }
+section.content { background: var(--bg-main); padding: 16px 20px; overflow: auto; }
+h1 { font-size: 15px; margin: 0 0 12px; }
+h2 { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted); margin: 18px 0 6px; }
+button { background: var(--bg-raised); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px; font: inherit; cursor: pointer; margin: 0 6px 6px 0; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button[disabled] { opacity: .45; cursor: default; }
+pre { background: var(--bg-side); border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin: 0; white-space: pre-wrap; word-break: break-word; font: 12px/1.45 ui-monospace, "SF Mono", Menlo, monospace; max-height: 340px; overflow: auto; }
+textarea { width: 100%; min-height: 220px; background: var(--bg-main); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 10px; font: 14px/1.6 ui-serif, Georgia, serif; resize: vertical; }
+select { background: var(--bg-raised); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 4px; max-width: 100%; }
+.muted { color: var(--text-muted); }
+.trouble { color: var(--trouble); }
+.warn { color: var(--warn); }
+.ok { color: var(--accent); }
+ul.recent { list-style: none; padding: 0; margin: 0; }
+ul.recent li button { display: block; width: 100%; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.banner { border: 1px solid var(--trouble); color: var(--trouble); border-radius: 6px; padding: 8px 10px; margin-bottom: 12px; }

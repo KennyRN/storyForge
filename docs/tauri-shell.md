@@ -119,7 +119,7 @@ Plus `format-version: 1`. Rules: no file means format 0 with defaults, or values
 - **Schedule:** at open and every 30 minutes (a timer in the window), per `isBackupDue`.
 - **Closing/quitting:** the close request is intercepted; the window runs `flushAll` (recovering what cannot be saved), saves the snapshot, calls `quit_ready`, and Rust closes. **Time limit: 5 s** (`CLOSE_LIMIT_MS`): if flushing has not finished, whatever is still dirty is written to recovery files directly (one recovery write per session, no saves) and the app closes. macOS logout/shutdown goes through the same close request (`RunEvent::ExitRequested`); the system may cut it short, which is why recovery is the fallback.
 - **iCloud:** opening a placeholder calls `download_placeholder` (macOS: `NSFileManager startDownloadingUbiquitousItem` through a small `objc2` call in the platform module); the editor opens once the real file exists. Never in bulk.
-- **Window:** `"theme": "Dark"`, background colour `#272E33` (Everforest Soft Dark `bg_dim`) set on the window itself and on the HTML root before any script runs, so the first frame is not white. Menus: App, Edit (standard roles), Window, File (Open Project…, New Project…).
+- **Window:** `"theme": "Dark"`, background colour `#293136` (Everforest Soft Dark `bg_dim`) set on the window itself and on the HTML root before any script runs, so the first frame is not white. Menus: App, Edit (standard roles), Window, File (Open Project…, New Project…).
 
 ## 9. The diagnostic window
 
