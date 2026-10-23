@@ -141,3 +141,17 @@ Local build: `npm run app:build` → `tauri build --target universal-apple-darwi
 6. **Folder picker in Rust (`rfd`), not the dialog plugin,** so the window never holds a dialog capability. OK?
 7. **Read-only mode** for a newer `format-version`: the guard is told at open and refuses everything; the app does not offer a way around it in v1. OK?
 8. **Symlink rows** need a new optional `symlink` field in `guard.json` (a link created by the test harness before the check). This changes the table's *shape*, not any existing row. Acceptable under "pass the table unchanged"?
+
+## 12. H1 rulings (decision 24)
+
+All eight questions were ruled in favour of the proposals, with these additions, which override the sections above where they differ:
+
+- **Bundle identifier** `io.github.kennyrn.storyforge`; it never changes after the first release.
+- **Constants:** watcher batch after 300 ms of quiet, 2 s ceiling; schedule check every 30 minutes; closing waits at most 5 s, **and that limit applies only to flushing open editors**. Two operations have their own rules at close: **a link rewrite in progress always finishes first** (stopping halfway would leave links half-updated); **a backup in progress may be abandoned, but cleanly**: its temporary file is removed and no partial zip is ever left under a real backup name.
+- **Hashing stays in TypeScript.** Rust compares bytes: TypeScript sends the text it expects to find along with the new text.
+- **One bulk scan call including text,** paged only if measurements demand it. The report gives the scan's time and payload size.
+- **Folder picker in Rust.** Rust holds the chosen folder itself; the window may be told the path for display but can never send a path back to be treated as the project folder.
+- **Read-only for a newer format** means **no writes into the project folder at all**: no saves, no `project.md`, no recovery files, no backups. The snapshot (outside the project) may still be updated.
+- **Guard table:** may gain an optional `symlink` field and new rows. Every existing row stays byte-identical; the field is documented beside the table; the TypeScript guard passes the new rows in the same commit as the Rust guard.
+- **Swap residual risk accepted, with one more check:** before the swapped-out file is removed, its size and modification time are checked again; if either changed after verification, something wrote into it late, so it is moved into recovery instead of removed.
+- **Removing the app's own temporary files** is allowed under the no-delete rule: they never held the author's writing.
