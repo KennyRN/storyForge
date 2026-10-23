@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { NodeFsBackend } from "../../backends/node-fs";
 import { cleanupFixtures, copyFixture, diffSnapshots, snapshot } from "../../../test/helpers/fixtures";
 import { ManualScheduler, settle } from "../../../test/helpers/scheduler";
@@ -401,8 +401,7 @@ describe("onSaveResult (the save observer)", () => {
 		expect(heard).toEqual([]);
 		a.setBody("typed");
 		scheduler.advance(2000);
-		await settle();
-		expect(heard).toEqual(["saved"]);
+		await vi.waitFor(() => expect(heard).toEqual(["saved"]));
 
 		// conflict
 		a.setBody("typed more");

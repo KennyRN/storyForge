@@ -1,5 +1,4 @@
 import type { ProseSession } from "../../core/proseWriter";
-import { ProseRefused } from "../../core/proseWriter";
 import { parseProseFile } from "../../core/proseFile";
 import { foldKey } from "../../core/pathRules";
 import { el, fill } from "../kit/dom";
@@ -109,8 +108,10 @@ export class EditorHost {
 			try {
 				session = await this.model.controller.openFile(path);
 			} catch (e) {
-				if (!(e instanceof ProseRefused) && !/read-only/i.test((e as Error).message ?? "")) throw e;
-				banner = readOnlyBanner(e instanceof ProseRefused ? e.reason : (e as Error).message);
+				// The writer says why it won't edit a file (ProseRefused); a read-only project says so in its own words.
+				const refusedReason = (e as Error)?.name === "ProseRefused" ? (e as unknown as { reason: string }).reason : undefined;
+				if (refusedReason === undefined && !/read-only/i.test((e as Error)?.message ?? "")) throw e;
+				banner = readOnlyBanner(refusedReason ?? (e as Error).message);
 				readOnlyText = parseProseFile(await project.readText(project.entry(path)?.path ?? path)).body;
 			}
 			if (token !== s.opening) {
