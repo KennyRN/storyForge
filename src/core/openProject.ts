@@ -175,14 +175,13 @@ export interface CreateProjectOptions {
 /**
  * Creates the 0.17.1 first-run layout in an **empty** folder: the eager folders, the series file, a
  * first book and its first chapter (both placed), and the tag registry. Refuses any folder that isn't
- * empty, apart from hidden folders and `.DS_Store`.
+ * empty, apart from hidden entries (`.obsidian/`, `.DS_Store`, a `.gitkeep`).
  */
 export async function createProject(backend: Backend, root: string, options: CreateProjectOptions): Promise<{ folderName: string; chapterFilename: string }> {
 	const found: string[] = [];
 	for await (const e of backend.scan()) {
-		const top = e.path.split("/")[0];
-		if (top === ".DS_Store" && e.kind === "file" && !e.path.includes("/")) continue;
-		if (top.startsWith(".") && (e.kind === "folder" || e.path.includes("/"))) continue;
+		// Hidden entries (`.obsidian/`, `.git/`, `.DS_Store`, a `.gitkeep`) are not content: the index ignores them too.
+		if (e.path.split("/")[0].startsWith(".")) continue;
 		found.push(e.path);
 	}
 	if (found.length > 0) throw new ProjectFolderNotEmptyError(root, found.sort());

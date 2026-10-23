@@ -94,7 +94,7 @@ function findFenceClose(text: string, open: FenceOpen): number {
 		const nl = text.indexOf("\n", pos);
 		const end = nl === -1 ? text.length : nl;
 		const line = text.slice(pos, end);
-		const m = /^[ \t]*(?:>[ \t]*)*(`{3,}|~{3,})[ \t]*$/.exec(line);
+		const m = /^[ \t]*(?:>[ \t]*)*(`{3,}|~{3,})[ \t]*\r?$/.exec(line);
 		if (m && m[1][0] === open.char && m[1].length >= open.length) return nl === -1 ? text.length : nl + 1;
 		pos = nl === -1 ? text.length : nl + 1;
 	}

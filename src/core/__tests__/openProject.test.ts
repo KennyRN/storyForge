@@ -156,6 +156,7 @@ describe("createProject", () => {
 		fs.mkdirSync(path.join(root, ".obsidian"));
 		fs.writeFileSync(path.join(root, ".obsidian/app.json"), "{}");
 		fs.writeFileSync(path.join(root, ".DS_Store"), "x");
+		fs.writeFileSync(path.join(root, ".gitkeep"), "");
 		const backend = new NodeFsBackend(root);
 		const made = await createProject(backend, root, { seriesTitle: "The Lantern Cycle" });
 		expect(made.folderName).toBe("aaa");
@@ -184,7 +185,7 @@ describe("createProject", () => {
 	});
 
 	it("refuses a folder that isn't empty and changes nothing", async () => {
-		for (const make of [(r: string) => fs.writeFileSync(path.join(r, "draft.md"), "mine"), (r: string) => fs.mkdirSync(path.join(r, "Codex")), (r: string) => fs.writeFileSync(path.join(r, ".hidden-file"), "x")]) {
+		for (const make of [(r: string) => fs.writeFileSync(path.join(r, "draft.md"), "mine"), (r: string) => fs.mkdirSync(path.join(r, "Codex")), (r: string) => fs.mkdirSync(path.join(r, "_backstage"))]) {
 			const root = tmp();
 			make(root);
 			const before = dirSnapshot(root);

@@ -52,6 +52,9 @@ describe("scanLinks: what never counts", () => {
 			["wikilink", "A"], ["wikilink", "C"], ["wikilink", "G"],
 		]);
 	});
+	it("fences in a file with CRLF line endings close properly", () => {
+		expect(targets("[[A]]\r\n```\r\n[[B]]\r\n```\r\n[[C]]\r\n~~~\r\n[[D]]\r\n~~~\r\n[[E]]")).toEqual([["wikilink", "A"], ["wikilink", "C"], ["wikilink", "E"]]);
+	});
 	it("an unclosed fence protects the rest of the text", () => {
 		expect(targets("[[A]]\n```\n[[B]]\n[[C]]")).toEqual([["wikilink", "A"]]);
 	});
