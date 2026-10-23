@@ -198,15 +198,17 @@ export class NodeFsBackend implements Backend {
 			await handle.close();
 			handle = undefined;
 			let before;
-			let current: string;
+			let current: Buffer;
 			try {
 				before = await fs.lstat(target);
 				if (!before.isFile()) throw new BackendError("EISDIR", `"${rel}" is not a file`, rel);
-				current = await fs.readFile(target, "utf8");
+				current = await fs.readFile(target);
 			} catch (err) {
 				throw toBackendError(err, rel);
 			}
-			if (current !== expected) {
+			// Compared as bytes: a file with bytes that are not valid UTF-8 never equals the text we
+			// decoded from it, so it is a conflict rather than being silently rewritten.
+			if (!current.equals(Buffer.from(expected, "utf8"))) {
 				await fs.rm(tmp, { force: true });
 				return "conflict";
 			}

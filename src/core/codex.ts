@@ -530,6 +530,14 @@ export async function convertCodexNoteToFolder(project: Project, path: string): 
 	return newId;
 }
 
+/** True when the note is archived directly, or sits inside an archived folder (or is an archived folder's linked note). */
+export function isCodexNoteArchived(project: Project, path: string): boolean {
+	const { folders, archive } = readCodexFrontmatter(project);
+	const target = path.toLowerCase();
+	for (const p of collectReferencedPaths(folders, archive)) if (p.toLowerCase() === target) return true;
+	return false;
+}
+
 export function getArchivedCodexItems(project: Project): ArchivedCodexItem[] {
 	const { folders, archive } = readCodexFrontmatter(project);
 	return archive.map((key) => {
