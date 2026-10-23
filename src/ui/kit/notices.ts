@@ -62,6 +62,13 @@ export class NoticeCenter {
 		this.emit();
 	}
 
+	/** Removes every notice with this key, even a pinned one: what it was about has been put right. */
+	dismissKey(key: string): void {
+		const gone = this.notices.filter((n) => n.key === key);
+		for (const n of gone) this.remove(n.id);
+		if (gone.length) this.emit();
+	}
+
 	/** Pauses a transient notice's timer (the pointer is over it). */
 	hold(id: number): void {
 		const h = this.timers.get(id);

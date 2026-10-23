@@ -1,4 +1,4 @@
-//! The only platform-specific code: the atomic swap and the exclusive rename. macOS has both
+//! The only platform-specific code: the atomic swap, the exclusive rename, iCloud downloads and showing a file in Finder. macOS has both
 //! (`renamex_np` with `RENAME_SWAP` and `RENAME_EXCL`, on APFS); everywhere else, and on file systems
 //! without them, these report "unsupported" and the callers fall back to a stat check and a hard
 //! link. Nothing else in the crate is platform-specific.
@@ -61,5 +61,22 @@ pub fn start_download(real_path: &Path) -> io::Result<bool> {
 
 #[cfg(not(target_os = "macos"))]
 pub fn start_download(_real_path: &Path) -> io::Result<bool> {
+    Ok(false)
+}
+
+/// Shows a file in Finder with it selected (`open -R`). It only reveals: nothing is opened, launched or written.
+/// `Ok(true)`: asked. `Ok(false)`: not supported here.
+#[cfg(target_os = "macos")]
+pub fn reveal(path: &Path) -> io::Result<bool> {
+    let status = std::process::Command::new("/usr/bin/open").arg("-R").arg(path).status()?;
+    if status.success() {
+        Ok(true)
+    } else {
+        Err(io::Error::new(io::ErrorKind::Other, "Finder could not show the file"))
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn reveal(_path: &Path) -> io::Result<bool> {
     Ok(false)
 }

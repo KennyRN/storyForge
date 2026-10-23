@@ -300,6 +300,11 @@ export class AppController {
 	}
 
 	/** Opens a chapter or Codex note for editing. An iCloud placeholder is downloaded first (one file, on demand). */
+	/** Shows a project file in Finder (Rust checks the path and only reveals). */
+	async revealInFinder(path: string): Promise<void> {
+		await this.host.invoke("reveal_in_finder", { path });
+	}
+
 	async openFile(path: string): Promise<ProseSession> {
 		const running = this.requireRunning();
 		if (running.opened.project.isPlaceholder(path)) {

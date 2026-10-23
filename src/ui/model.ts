@@ -6,6 +6,7 @@
 import type { AppController, OpenOutcome, Running } from "../app/appLife";
 import type { CreateProjectOptions } from "../core/openProject";
 import { NoticeCenter } from "./kit/notices";
+import type { EditorHost } from "./editor/editorHost";
 
 export type Topic = "project" | "library" | "codex" | "archive" | "stats" | "settings" | "face" | "notices";
 
@@ -13,6 +14,8 @@ const ALL: Topic[] = ["project", "library", "codex", "archive", "stats", "settin
 
 export class AppModel {
 	readonly notices = new NoticeCenter();
+	/** Set by the shell once the slots exist. */
+	editors: EditorHost | null = null;
 	private listeners = new Map<Topic, Set<() => void>>();
 
 	constructor(readonly controller: AppController) {
@@ -46,6 +49,15 @@ export class AppModel {
 
 	async openRecent(index: number): Promise<OpenOutcome | null> {
 		return this.guard(() => this.controller.openRecent(index), "open the project");
+	}
+
+	/** Reveals a project-relative file in Finder (Rust checks the path and only reveals). */
+	async reveal(path: string): Promise<void> {
+		try {
+			await this.controller.revealInFinder(path);
+		} catch (e) {
+			this.notices.notify({ text: `Could not show the file in Finder: ${(e as Error)?.message ?? String(e)}` });
+		}
 	}
 
 	/** Runs an action; a failure becomes a plain notice that says what could not be done. */

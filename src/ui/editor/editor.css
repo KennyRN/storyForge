@@ -1,0 +1,140 @@
+/* The editor and its dressing. Purposes only. */
+.sf-editor-pane {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
+}
+.sf-editor {
+	flex: 1;
+	min-height: 0;
+}
+.sf-editor-banner {
+	flex: none;
+	padding: var(--space-1) var(--space-4);
+	background: var(--purpose-raised-bg);
+	border-bottom: 1px solid var(--purpose-border);
+	color: var(--purpose-text-muted);
+	font-size: 12px;
+	text-align: center;
+}
+
+.sf-editor .cm-editor {
+	height: 100%;
+	background: transparent;
+	color: var(--purpose-text);
+}
+.sf-editor .cm-editor.cm-focused {
+	outline: none;
+}
+.sf-editor .cm-scroller {
+	font-family: var(--font-prose);
+	scrollbar-width: thin;
+	scrollbar-color: var(--purpose-border) transparent;
+}
+.sf-editor .cm-content {
+	box-sizing: content-box;
+	max-width: var(--prose-measure);
+	margin: 0 auto;
+	padding: 40px 28px 30vh;
+	font-size: var(--prose-size);
+	line-height: var(--prose-line);
+	caret-color: var(--purpose-accent);
+}
+.sf-editor .cm-line {
+	padding: 0;
+}
+.sf-editor .cm-cursor {
+	border-left-color: var(--purpose-accent);
+}
+.sf-editor .cm-selectionBackground,
+.sf-editor .cm-focused .cm-selectionBackground {
+	background: var(--purpose-selection);
+}
+
+/* The dressing. */
+.sf-em {
+	font-style: italic;
+}
+.sf-strong {
+	font-weight: 700;
+}
+.sf-comment {
+	color: var(--purpose-text-muted);
+	opacity: 0.8;
+}
+.sf-marker {
+	color: var(--purpose-text-muted);
+	font-style: normal;
+	font-weight: 400;
+}
+.sf-heading-text {
+	font-weight: 600;
+}
+.sf-heading-1 {
+	font-size: 1.5em;
+	line-height: 1.3;
+}
+.sf-heading-2 {
+	font-size: 1.25em;
+	line-height: 1.35;
+}
+.sf-heading-3,
+.sf-heading-4,
+.sf-heading-5,
+.sf-heading-6 {
+	font-size: 1.1em;
+}
+
+/* The find panel (CodeMirror's), in the kit's look. */
+.sf-editor .cm-panels {
+	background: var(--purpose-raised-bg);
+	color: var(--purpose-text);
+	border-bottom: 1px solid var(--purpose-border);
+	font-family: var(--font-ui);
+	font-size: var(--text-ui);
+}
+.sf-editor .cm-search {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--space-1) var(--space-2);
+	padding: var(--space-2) var(--space-3);
+}
+.sf-editor .cm-search br {
+	display: none;
+}
+.sf-editor .cm-search input[type="text"] {
+	padding: 3px 6px;
+	border: 1px solid var(--purpose-border);
+	border-radius: 4px;
+	background: var(--purpose-editor-bg);
+	color: var(--purpose-text);
+}
+.sf-editor .cm-search input[type="text"]:focus-visible {
+	border-color: var(--purpose-accent);
+}
+.sf-editor .cm-search button {
+	padding: 3px 8px;
+	border: 1px solid var(--purpose-border);
+	border-radius: 4px;
+	background: var(--purpose-raised-hover);
+	color: var(--purpose-text);
+	cursor: pointer;
+}
+.sf-editor .cm-search label {
+	color: var(--purpose-text-muted);
+}
+.sf-editor .cm-search [name="close"] {
+	margin-left: auto;
+	background: transparent;
+	border-color: transparent;
+	color: var(--purpose-text-muted);
+}
+.sf-editor .cm-searchMatch {
+	background: var(--purpose-selection);
+	border-radius: 2px;
+}
+.sf-editor .cm-searchMatch-selected {
+	outline: 1px solid var(--purpose-accent);
+}

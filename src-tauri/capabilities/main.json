@@ -29,6 +29,7 @@
     "allow-watch-start",
     "allow-watch-stop",
     "allow-download-placeholder",
+    "allow-reveal-in-finder",
     "allow-quit-ready",
     "core:event:allow-listen",
     "core:event:allow-unlisten",

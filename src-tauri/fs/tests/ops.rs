@@ -275,3 +275,26 @@ fn download_placeholder_only_for_one_existing_stub_and_never_hidden_or_outside()
     assert!(matches!(r, Ok(false) | Err(_)), "{r:?}");
     assert!(!dir.path().join("notes/later.md").exists());
 }
+
+#[test]
+fn reveal_target_is_a_read_check_inside_the_project_only() {
+    let (dir, p) = project();
+    put(&dir, "Codex/Jane.md", "jane");
+    put(&dir, "_sf-backup/recovery/aaa/ch 2026-10-23 100000.md", "kept");
+    assert!(p.reveal_target("Codex/Jane.md").unwrap().ends_with("Codex/Jane.md"));
+    assert!(p.reveal_target("_sf-backup/recovery/aaa/ch 2026-10-23 100000.md").is_ok());
+    assert!(p.reveal_target("Codex").is_ok(), "a folder can be shown too");
+    for bad in ["../outside.md", "/etc/hosts", "Codex/../../x", "Codex/Missing.md"] {
+        assert!(p.reveal_target(bad).is_err(), "{bad} must be refused");
+    }
+}
+
+#[cfg(unix)]
+#[test]
+fn reveal_target_refuses_a_link_that_leaves_the_project() {
+    let (dir, p) = project();
+    let outside = tempfile::tempdir().unwrap();
+    fs::write(outside.path().join("secret.md"), "x").unwrap();
+    std::os::unix::fs::symlink(outside.path(), dir.path().join("Codex")).unwrap();
+    assert!(p.reveal_target("Codex/secret.md").is_err());
+}

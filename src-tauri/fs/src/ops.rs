@@ -207,6 +207,14 @@ impl Project {
         self.inside(rel)
     }
 
+    /// The absolute path of an existing file or folder inside the project, to show in Finder. Checked like a
+    /// read: a safe project-relative path, no link that leaves the project, and it must exist.
+    pub fn reveal_target(&self, rel: &str) -> FsResult<PathBuf> {
+        let abs = self.read_target(rel)?;
+        fs::symlink_metadata(&abs).map_err(|e| io_err(&e, rel))?;
+        Ok(abs)
+    }
+
     pub fn read_bytes(&self, rel: &str) -> FsResult<Vec<u8>> {
         let abs = self.read_target(rel)?;
         fs::read(&abs).map_err(|e| io_err(&e, rel))

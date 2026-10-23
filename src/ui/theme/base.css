@@ -176,3 +176,38 @@ textarea {
 	border-radius: var(--radius);
 	background: var(--purpose-raised-bg);
 }
+
+.sf-visually-hidden {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+.sf-frame {
+	display: flex;
+	height: 100%;
+}
+.sf-slot {
+	min-width: 0;
+	min-height: 0;
+	height: 100%;
+}
+.sf-slot--centre {
+	flex: 1;
+	background: var(--purpose-editor-bg);
+}
+.sf-slot--lore {
+	width: 400px;
+	flex: none;
+	background: var(--purpose-panel-bg);
+	border-left: 1px solid var(--purpose-border);
+}
+.sf-slot--lore:empty {
+	display: none;
+}
+
+#app {
+	height: 100%;
+}

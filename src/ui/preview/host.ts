@@ -43,7 +43,7 @@ export function createPreviewHost(): Host & { api: PreviewApi } {
 		async invoke(cmd, payload) {
 			// Commands about the window itself are answered here, not by the file code.
 			if (cmd === "reveal_in_finder") {
-				api.revealed.push(String((payload as { args?: { path?: string } } | undefined)?.args?.path ?? ""));
+				api.revealed.push(String((payload as { path?: string } | undefined)?.path ?? ""));
 				return null;
 			}
 			if (cmd === "set_menu_state") {

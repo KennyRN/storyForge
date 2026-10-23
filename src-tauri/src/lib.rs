@@ -186,6 +186,15 @@ macro_rules! fs_commands {
 }
 fs_commands!(scan, stat, read_text, read_binary, read_outside, write_text, write_binary, create_file, create_folder, compare_write, rename, retire, download_placeholder);
 
+/// Shows a file of the open project in Finder. The path is relative to the project folder and checked like a
+/// read; nothing is opened, launched or written.
+#[tauri::command]
+fn reveal_in_finder(state: State<'_, AppState>, path: String) -> Result<(), FsError> {
+    let project = state.project()?;
+    let abs = project.reveal_target(&path)?;
+    storyforge_fs::platform::reveal(&abs).map(|_| ()).map_err(|e| FsError::from_io(&e, &path))
+}
+
 /// The window has flushed every open editor and saved the snapshot: the app may close now.
 #[tauri::command]
 fn quit_ready(app: tauri::AppHandle, state: State<'_, AppState>) {
@@ -316,7 +325,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             app_info, pick_project, open_recent, recent_projects, project_info, close_project, scan, stat, read_text, read_binary, read_outside, write_text, write_binary,
-            create_file, create_folder, compare_write, rename, retire, machine_get, machine_set, watch_start, watch_stop, download_placeholder, quit_ready
+            create_file, create_folder, compare_write, rename, retire, machine_get, machine_set, watch_start, watch_stop, download_placeholder, reveal_in_finder, quit_ready
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
