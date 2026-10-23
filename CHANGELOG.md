@@ -10,6 +10,7 @@ storyForge is now a Tauri 2 desktop app for macOS (unsigned apart from the ad-ho
 - New: `project.md` (`format-version: 1`) for settings that travel with the project; a newer format opens read-only. Settings from the plugin's `data.json` are read once and never written to.
 - New: `applyBatch` (evidence first, then echoes, changes, the index, the reconciler), `AppController` (open, create, watcher, the 30-minute backup check, closing within 5 s with recovery as the fallback).
 - Changed: `NodeFsBackend.assertInside` walks the path (a symlink that leaves the project, dangles, or is the file itself is refused). `Backend` calls carry an optional intent. A Codex name containing `[ ] # ^ |` is refused as typed; mixed line endings are reported on save; the rename plan lists unquoted `[[X]]` frontmatter values.
+- Known gap: quitting from the Dock's menu does not save the last 2 seconds of typing first (Cmd+Q, the app menu and the red button do). Documented in the README and the report; the fix waits for the real interface.
 - Build: `npm run app:build` makes a universal `.app` and `.dmg`; see the README for opening an unnotarised app.
 
 ## Unreleased — the safety core

@@ -12,6 +12,10 @@ The plan for the app lives in the project's decisions document.
 
 storyForge is a Tauri 2 app (macOS first). The window runs the TypeScript core; a small Rust side owns the disk, checks every write against the same guard table as the TypeScript core (`test/guard-spec/guard.json`), and watches the folder for changes made elsewhere (Obsidian, Finder, a sync service). There is no real interface yet: the window is a plain diagnostic page for checking the shell against a copy of a project folder. The app makes no network requests, and the window has no file-system, shell or network permission of its own.
 
+### Known gap: quitting from the Dock
+
+Quitting with Cmd+Q, the app menu's Quit or the red window button saves open text first. **Quitting from the Dock's right-click menu does not:** macOS ends the app without telling the window, so text typed in the last 2 seconds (the autosave delay) can be lost, with no recovery file. Everything older is already saved. The fix needs native macOS code beyond the platform module and waits for the real interface.
+
 ### Building it (on a Mac)
 
 You need Xcode Command Line Tools and Rust (`curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`, then `rustup target add aarch64-apple-darwin x86_64-apple-darwin`).
