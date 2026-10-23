@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased — the safety core
+
+The five things that keep the author's words safe, plus opening and creating a project. All in `src/core/`, tested against fixtures; no interface, Tauri or file watcher. See `docs/safety-core.md` and `docs/safety-core-report.md`.
+
+- New: `ProseWriter` — the single path from the author's typing to a chapter or Codex note (sessions, 2 s save delay, flush-all, compare-then-write, disk wins on conflict, recovery before reload, the "chapter changed" hook for the fingerprint sidecar and word-count history). Archived chapters and notes, `notes/` and everything else are refused.
+- New: recovery files (`_sf-backup/recovery/...`, never overwritten), including `_pruned` records of backstage entries removed by reconciliation.
+- New: backups (session, automatic, full, pre-rewrite), `isBackupDue`, never two at once, never overwritten. The session and automatic backup scope is `_story-library/`, `Codex/`, `notes/` and `_backstage/` (0.17.1 zipped the whole vault).
+- New: the reconciler — match (same body hash, then same opening fingerprint with the closing as tie-break, one-to-one only), then recover, then prune; gates for missing or emptied book folders, a missing Codex, unreadable details and iCloud placeholders. Replaces 0.17.1's prune at load.
+- New: the session snapshot (outside the project folder) and `openProject` / `createProject`.
+- New: Codex rename end to end — `planCodexRename` / `applyCodexRename` / `renameCodexNote`: plan, pre-rewrite backup, rename, minimal link rewrite (wikilinks, embeds, markdown links, links in frontmatter), re-key, report. The Brief 2 refusal is gone.
+- New: compare-then-write on the backends (node-fs: byte comparison plus an inode/size/mtime check before the atomic rename), five new guard operations (89 new rows in the guard table), an architecture test, 37 new disk-safety operations and a link-rewrite fuzzer.
+- Changed: `_sf-backup/` is create-only through every route. A renamed book folder now also renames its `novel-<code>.md`. `createProject` ignores hidden entries in the folder.
+- Removed: `pruneMissingChapterEntries`, `pruneMissingChapterCodexRefs`, `pruneMissingCodexNotes`, `reconcileMissingCodexNotes`, `reconcileExternalCodexChange`, `renameCodexNoteFile`.
+
 ## Unreleased — the data core
 
 The repository's data layer no longer depends on Obsidian. A project handle (a synchronous in-memory index plus a guarded, asynchronous file backend) replaces Obsidian's vault, metadata cache and file manager; the plugin shell, views and modals are gone (kept under the tag `plugin-harness-final`).
