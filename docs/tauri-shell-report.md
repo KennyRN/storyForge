@@ -16,7 +16,7 @@ storyForge now runs as a Tauri 2 desktop app on macOS: the window runs the TypeS
 
 `src-tauri/capabilities/main.json` grants the main window exactly these, and `test/tauriConfig.test.ts` fails if anything else appears (or if a command is declared but not granted, or granted but not registered):
 
-- this app's 22 commands: `app_info`, `pick_project`, `open_recent`, `recent_projects`, `project_info`, `close_project`, `scan`, `stat`, `read_text`, `read_binary`, `read_outside`, `write_text`, `write_binary`, `create_file`, `create_folder`, `compare_write`, `rename`, `retire`, `machine_get`, `machine_set`, `watch_start`, `watch_stop`, `download_placeholder`, `quit_ready`
+- this app's 24 commands: `app_info`, `pick_project`, `open_recent`, `recent_projects`, `project_info`, `close_project`, `scan`, `stat`, `read_text`, `read_binary`, `read_outside`, `write_text`, `write_binary`, `create_file`, `create_folder`, `compare_write`, `rename`, `retire`, `machine_get`, `machine_set`, `watch_start`, `watch_stop`, `download_placeholder`, `quit_ready`
 - `core:event:allow-listen`, `core:event:allow-unlisten`, `core:window:allow-destroy`
 
 No `fs`, `shell`, `http`, `dialog`, `opener` or other plugin is a dependency (the test checks Cargo.toml and package.json). The content security policy allows only `'self'` and Tauri's own IPC. The folder picker is native Rust (`rfd`). The window can never send a path back: `open_recent` takes an index into Rust's own recent list.
@@ -70,7 +70,7 @@ Through the real Rust code (via the test bridge, which carries the reply over a 
 | 300 chapters × 2,000 words, 300 Codex notes (3.5 MB of prose) | 219 ms | 276 ms | 615 entries, 4.2 MB of JSON |
 | 2,000 chapters × 2,000 words, 300 Codex notes (23 MB of prose) | 978 ms | 1,695 ms | 2,353 entries, 24 MB of JSON |
 
-No paging was needed. On the fixture the whole open (scan, reconciliation, ensuring) is well under 100 ms. **Not measured:** Kenny's vault.
+No paging was needed. **Not measured:** Kenny's vault, and Tauri's own IPC.
 
 ## Dependencies
 
