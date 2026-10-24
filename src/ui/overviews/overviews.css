@@ -17,3 +17,16 @@
 .sf-overview-name:hover { color: var(--purpose-accent); }
 .sf-overview-name:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 2px; }
 .sf-overview-row--unplaced .sf-overview-name { color: var(--purpose-text-muted); }
+
+/* The novel overview. */
+.sf-progress { position: relative; height: 20px; border-radius: 3px; background: var(--purpose-bar-track); overflow: hidden; }
+.sf-progress-seg { all: unset; position: absolute; top: 0; bottom: 0; background: var(--purpose-data-fill); cursor: pointer; }
+.sf-progress-seg:focus-visible { outline: 2px solid var(--purpose-text); outline-offset: -2px; }
+.sf-progress-divider { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--purpose-bar-notch); }
+.sf-progress-ghost { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--purpose-guide-faint); }
+.sf-structure-strip { position: relative; height: 4px; margin: 4px 0 16px; background: var(--purpose-guide-faint); border-radius: 2px; }
+.sf-structure-mark { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--purpose-guide); }
+.sf-overview-meta { margin-bottom: 20px; }
+.sf-cards { gap: 12px; }
+.sf-card { display: flex; flex-direction: column; gap: 6px; }
+.sf-bar--link { cursor: pointer; }

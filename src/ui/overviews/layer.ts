@@ -1,5 +1,6 @@
 import { fill } from "../kit/dom";
 import type { AppModel } from "../model";
+import { mountNovelOverview } from "./novelOverview";
 import { mountSeriesOverview } from "./seriesOverview";
 
 /**
@@ -8,11 +9,11 @@ import { mountSeriesOverview } from "./seriesOverview";
  * while the layer covers it the editor is inert (no focus, hidden from assistive technology).
  */
 export function mountOverviewLayer(layer: HTMLElement, centre: HTMLElement, model: AppModel): () => void {
-	let shown: "series" | null = null;
+	let shown: "series" | "novel" | null = null;
 	let disposeBody: (() => void) | null = null;
 
 	const draw = (): void => {
-		const want = model.centreCovered && model.nav.forgeTab === "series" ? "series" : null;
+		const want = model.centreCovered ? (model.nav.forgeTab === "series" ? "series" : "novel") : null;
 		layer.hidden = want === null;
 		centre.toggleAttribute("inert", want !== null);
 		if (want === shown) return;
@@ -20,10 +21,9 @@ export function mountOverviewLayer(layer: HTMLElement, centre: HTMLElement, mode
 		disposeBody?.();
 		disposeBody = null;
 		fill(layer);
-		if (want === "series") {
-			layer.setAttribute("aria-label", "Series overview");
-			disposeBody = mountSeriesOverview(layer, model);
-		}
+		if (want) layer.setAttribute("aria-label", want === "series" ? "Series overview" : "Novel overview");
+		if (want === "series") disposeBody = mountSeriesOverview(layer, model);
+		else if (want === "novel") disposeBody = mountNovelOverview(layer, model);
 	};
 	draw();
 	const off = model.subscribe(["nav", "face", "project"], draw);

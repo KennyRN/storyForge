@@ -66,8 +66,10 @@ export interface DataBarOptions {
 	words: number;
 	target: number | null;
 	scale?: number;
-	/** Tooltip text; defaults to the word count. */
-	tooltip?: string;
+	/** Tooltip text, read each time it shows; defaults to the word count. */
+	tooltip?: string | (() => string);
+	/** Called when the pointer or keyboard first reaches the bar (to start a lazy read). */
+	onHover?: () => void;
 }
 
 /** The data bar: blue fill, a dashed marker short of the target, orange beyond it with a notch at the target. */
@@ -89,6 +91,7 @@ export function dataBar(opts: DataBarOptions): HTMLElement {
 	}
 	if (state.kind === "under") bar.append(marker(state.targetPercent));
 	attachTooltip(bar, opts.tooltip ?? formatWordCount(opts.words));
+	if (opts.onHover) for (const type of ["pointerenter", "focus"]) bar.addEventListener(type, opts.onHover, { once: true });
 	return bar;
 }
 

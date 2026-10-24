@@ -170,7 +170,7 @@ export class AppModel {
 
 	/** True while an overview covers the workspace (the editor underneath is inert). */
 	get centreCovered(): boolean {
-		return this.nav.face === "storyforge" && this.nav.centreView === "overview" && (this.nav.forgeTab === "series");
+		return this.nav.face === "storyforge" && this.nav.centreView === "overview" && (this.nav.forgeTab === "series" || this.nav.forgeTab === "novel");
 	}
 
 	/** Puts the selected chapter back in the workspace if something else (a Codex note opened from the library) is there. */
