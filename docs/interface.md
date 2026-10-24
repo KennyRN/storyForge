@@ -337,3 +337,35 @@ Decision 26, confirmed 23 October 2026. All eleven are approved as proposed exce
 
 - Everything looked right, including the layout and the font as they stand. One major issue: **the lore slot must be there from the start, blank, even when nothing is in it.** Fixed: it is always shown, and only View ▸ Show or Hide Lore Slot (commit 8) hides it.
 - Other, visual, issues are to be raised later by Kenny; none concern behaviour.
+
+---
+
+## 13. As built (differences from the design above)
+
+What changed between the H1 design and the code, and why. Nothing here changes a ruling.
+
+- **The storyForge face's tab strip is a vertical icon rail** (codex, series, novel, archive), not a row of labelled tabs. The ink indicator (`inkSlider`, ported unchanged but for its colour and the reduced-motion rule, which moved into CSS) is vertical, as in the harness, so it fits a vertical rail. Each tab's name is its tooltip and accessible name; ↑ ↓ move between tabs.
+- **The face switch lives in a thin header over the left panel** (project name, then "Flip face"), in both faces. There is no keyboard shortcut in the page: ⌘\ is the View menu's accelerator.
+- **The lore slot is always there, blank when empty** (H2 feedback). View ▸ Show or Hide Lore Slot hides it, and that is remembered per project on this computer (`loreHidden` in the per-project machine state, with the panel widths).
+- **Codex renaming reaches the link rewriter through the project's front door.** `OpenedProject.renameNote.plan` and `.apply` (`openProject.ts`) wrap `planCodexRename` and `renameCodexNote`, because the architecture test lets only `openProject` import the link rewriter. The rename screen runs `apply` inside `AppController.runRewrite`, so closing the app waits for a rewrite in progress. The note's own editor is saved and closed first and reopened under the new name.
+- **The save observer carries one more case:** an outside change that arrived over unsaved text whose recovery file could not be made is reported as `recovery-failed` too (the author's text stays in the editor, and the notice is pinned until it is saved).
+- **Opening an archived file or a read-only project shows its text without a writing session.** `ProseWriter.open` refuses both, so the interface reads the file and shows it in a read-only editor with the banner.
+- **Open Recent in the start screen shows names only.** A missing folder is reported when it is opened (a plain notice), not marked in advance: the window may not stat arbitrary paths.
+- **"Hide series pane"** leaves the series tab out of the rail (the harness hid the series header and locked the view to the book).
+- **Story ▸ Archive and Rename… act on the last thing picked** (a chapter row, a Codex row or a novel row), kept in the model. Rename… for a Codex note opens the dialog; for anything else it starts that row's inline rename (switching to the right tab if needed). Archive is greyed out for a novel (the core has no novel archive).
+- **Notices sit above dialogs** (they report a backup made from the settings dialog, and the dialog would otherwise cover the Reveal button).
+- **`dragReorder` no longer captures the pointer.** See section 14.
+- **Diagnostics are a layer over the interface** on the same controller (not a hash route and not a second window), imported only behind `import.meta.env.DEV`; in a production build the Vite config resolves the page to an empty module. A test builds the bundle and checks.
+- **`reveal_in_finder` and `set_menu_state`** are the two new Rust commands. The first takes a project-relative path checked like a read and runs `open -R`; the second sets the app's own menu items enabled or disabled. Neither writes.
+
+## 14. Ported helpers: what changed in each
+
+| Helper | Source | Change |
+|---|---|---|
+| `manuscriptDressing.ts` → `ui/editor/dressing.ts` | 0.17.1 (`5699284`) | None to the scanners or their tests; the header comment names the app. |
+| `manuscriptDressingView.ts` → `ui/editor/dressingView.ts` | 0.17.1 | One file per editor: the chapter-range state and the per-chapter comment cache are gone; Obsidian's Live Preview class names became `sf-*` classes styled from the purposes. |
+| `inlineRename.ts` → `ui/kit/inlineRename.ts` | harness | Obsidian's `Menu` replaced by the kit menu; F2 and double-click start a rename; a `validate` callback explains a refused name as it is typed; no `createEl`. |
+| `dragReorder.ts` | `main` (ported in Brief 2) | **No pointer capture.** In WebKit, re-capturing the pointer inside a `lostpointercapture` handler after the row is moved between lists hangs the page (found by the WebKit tests; it would have hung the app). The window-level listeners see the whole gesture without capture. |
+| `dragReorderTree.ts`, `dragLock.ts`, `a11y.ts`, `codexOpenTarget.ts` | `main` | Used as they are. |
+| `inkSlider.ts` | `main` | Used as it is; its CSS is in `kit.css` with the accent from the purposes, and reduced motion zeroes `--ink-duration`. |
+| `layout.ts` | `main` | `hybrid` removed (decision 26). A stored `hybrid`, `codexFocus` or unknown value reads as no choice, so the default (the novel tab) applies; nothing is rewritten. |

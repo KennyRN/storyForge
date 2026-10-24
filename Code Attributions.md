@@ -71,6 +71,19 @@ Used as libraries (nothing copied). Licences as declared by each package.
 | tempfile (tests only) | 3 | MIT OR Apache-2.0 | temp folders in Rust tests |
 | vite | 8.3 | MIT | bundling the window's TypeScript |
 | @tauri-apps/cli, @tauri-apps/api | 2.12 | Apache-2.0 OR MIT | building the app; the window's `invoke` and events |
-| lucide | 1.61 | ISC (some icons MIT, from Feather) | the interface's icons, bundled locally (also in `Icon Licences.md`) |
+
+## Dependencies added for the interface (Brief 5)
+
+Used as libraries (nothing copied). Licences as declared by each package.
+
+| Package | Version | Licence | Used for |
+|---|---|---|---|
+| @codemirror/state, @codemirror/view | 6.7 / 6.43 | MIT | the editor (one per writing session) |
+| @codemirror/commands | 6.11 | MIT | undo history and the standard editing keys |
+| @codemirror/search | 6.7 | MIT | find and replace in the open file |
+| lucide | 1.61 | ISC (some icons MIT, from Feather) | the interface's icons, bundled locally (only the ones used); also in `Icon Licences.md` |
+| @playwright/test | 1.64 | Apache-2.0 | **development only**: drives WebKit against the browser preview for the interface tests; never part of the app |
+
+The prose dressing (`src/ui/editor/dressing.ts`, `dressingView.ts`) is storyForge's own code from 0.17.1, ported; no outside code.
 
 The window's colours are **Everforest** (sainnhe, MIT; see `Theme Licences.md`); the Soft Dark values were checked against the project's `palette.md`.

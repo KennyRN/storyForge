@@ -184,6 +184,17 @@ test.describe("the editor", () => {
 		expect(sessions).toBe(2);
 	});
 
+	test("asking for the same file twice at once opens it once, and its session stays alive", async ({ page }) => {
+		await openProject(page);
+		await page.evaluate(() => Promise.all([window.__app.editors!.open("centre", "_story-library/aaa/ch-a3.md"), window.__app.editors!.open("centre", "_story-library/aaa/ch-a3.md"), window.__app.editors!.open("lore", "_story-library/aaa/ch-a3.md")]));
+		await content(page).click();
+		await page.keyboard.press("ControlOrMeta+ArrowDown");
+		await page.keyboard.type(" Still alive.");
+		await expect.poll(() => onDisk(page, CH3), { timeout: 4000 }).toContain("Still alive.");
+		await expect(page.locator(".sf-slot--lore .cm-content")).toHaveCount(0);
+		expect(await page.evaluate(() => window.__app.running!.opened.writer.openSessions().filter((s) => s.path.endsWith("ch-a3.md")).length)).toBe(1);
+	});
+
 	test("opening another file in a slot saves and closes the first, and nothing is lost", async ({ page }) => {
 		await openProject(page);
 		await open(page, "centre", CH1);

@@ -10,7 +10,11 @@ The plan for the app lives in the project's decisions document.
 
 ## The desktop app (macOS)
 
-storyForge is a Tauri 2 app (macOS first). The window runs the TypeScript core; a small Rust side owns the disk, checks every write against the same guard table as the TypeScript core (`test/guard-spec/guard.json`), and watches the folder for changes made elsewhere (Obsidian, Finder, a sync service). There is no real interface yet: the window is a plain diagnostic page for checking the shell against a copy of a project folder. The app makes no network requests, and the window has no file-system, shell or network permission of its own.
+storyForge is a Tauri 2 app (macOS first). The window runs the TypeScript core; a small Rust side owns the disk, checks every write against the same guard table as the TypeScript core (`test/guard-spec/guard.json`), and watches the folder for changes made elsewhere (Obsidian, Finder, a sync service). The interface is plain TypeScript and DOM (no UI framework), in Everforest Soft Dark: a CodeMirror editor, the storytelling face (navigator, Codex, stats, lore slot) and the storyForge face (codex, series, novel and archive tabs), with the Mac menus. The app makes no network requests, and the window has no file-system, shell or network permission of its own.
+
+### Trying the interface without the app
+
+`npm run ui:preview` serves the interface in a browser at `http://127.0.0.1:1421` (development only, this computer only; it is not part of any build). It runs the real Rust file code over a temporary copy of a synthetic project, so nothing of yours is touched. `npm run test:ui` runs the interface tests in WebKit (the first time: `npx playwright install webkit`), and `npm run ui:shots` rewrites the screenshots in `docs/interface-shots/`. In a development build (`npm run app:dev`), View ▸ Developer ▸ Diagnostics shows how the project opened and what the watcher saw; a release build has no such item.
 
 ### Known gap: quitting from the Dock
 

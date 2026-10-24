@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — the v1 interface (0.9.0)
+
+storyForge now has the interface it is written in: the editor, the two faces, the screens around them and the Mac menus, all in Everforest Soft Dark, in plain TypeScript and DOM. The diagnostic window is gone from release builds. 0.9.0 is everything v1 promises; it becomes 1.0 when Kenny says so. See `docs/interface.md` (the design, with the review rulings in §12 and as-built differences in §13) and `docs/interface-report.md`.
+
+- New: the editor (CodeMirror 6, one per writing session) with light prose dressing from 0.17.1 (emphasis and heading markers hidden off the caret's line, `%% comments %%` dimmed, ⌘B and ⌘I), find and replace, spellcheck, undo that survives saves and reloads, silent saving, sticky notices for every outcome that matters, read-only banners.
+- New: the storytelling face (navigator with "add the next chapter", the Codex tree with drag, types, archive and the lore slot, stats) and the storyForge face (codex, series, novel and archive tabs; the series title is renamed on the series tab).
+- New: the start screen, New Project, the reconciliation summary (only when something happened), Codex renaming (name, plan, result), settings (⌘,), and the full menu bar with items greyed out when they do not apply.
+- New: `ProseSession.onSaveResult` (every save outcome, timed saves included); `OpenedProject.renameNote`; the Rust commands `reveal_in_finder` and `set_menu_state` (neither writes).
+- New: a browser preview (development only) that runs the interface in WebKit against the real Rust file code, and 99 WebKit tests (`npm run test:ui`).
+- Changed: the `hybrid` layout is gone (old values read as the default); `dragReorder` no longer captures the pointer (it hung WebKit); Edit ▸ Undo and Redo and Quit are app items.
+- Changed: the diagnostic page is a development-only layer behind View ▸ Developer ▸ Diagnostics; a release build does not contain it.
+
 ## Unreleased — the Tauri shell (0.1.0)
 
 storyForge is now a Tauri 2 desktop app for macOS (unsigned apart from the ad-hoc signature, not notarised). The window runs the TypeScript core; a Rust side owns the disk. There is no real interface yet: a plain diagnostic window stands in. See `docs/tauri-shell.md` and `docs/tauri-shell-report.md`.

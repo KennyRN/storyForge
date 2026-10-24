@@ -21,7 +21,7 @@ interface Occupant {
  * Prose reaches the disk only through the `ProseSession` each editor holds.
  */
 export class EditorHost {
-	private slots: Record<Slot, { host: HTMLElement; occupant: Occupant | null; opening: number }>;
+	private slots: Record<Slot, { host: HTMLElement; occupant: Occupant | null; opening: number; pending: { key: string; done: Promise<void> } | null }>;
 	private endingsShown = new Set<string>();
 	/** Called when a slot's occupant changes (the shell shows or hides the lore slot). */
 	onChange: (() => void) | null = null;
@@ -30,7 +30,7 @@ export class EditorHost {
 		private readonly model: AppModel,
 		hosts: Record<Slot, HTMLElement>,
 	) {
-		this.slots = { centre: { host: hosts.centre, occupant: null, opening: 0 }, lore: { host: hosts.lore, occupant: null, opening: 0 } };
+		this.slots = { centre: { host: hosts.centre, occupant: null, opening: 0, pending: null }, lore: { host: hosts.lore, occupant: null, opening: 0, pending: null } };
 		model.subscribe("project", () => {
 			if (!model.running) this.dropAll();
 		});
@@ -91,6 +91,28 @@ export class EditorHost {
 			this.focus(have);
 			return;
 		}
+		const s = this.slots[slot];
+		// The same file asked for twice while it is still opening (a click during start-up): one open, not two fighting over one session.
+		for (const other of ["centre", "lore"] as const) {
+			const p = this.slots[other].pending;
+			if (p && p.key === this.keyOf(path)) {
+				await p.done;
+				const now = this.where(path);
+				if (now) this.focus(now);
+				return;
+			}
+		}
+		let finish!: () => void;
+		s.pending = { key: this.keyOf(path), done: new Promise<void>((resolve) => (finish = resolve)) };
+		try {
+			await this.openIn(slot, path);
+		} finally {
+			s.pending = null;
+			finish();
+		}
+	}
+
+	private async openIn(slot: Slot, path: string): Promise<void> {
 		const s = this.slots[slot];
 		const token = ++s.opening;
 		const running = this.model.running;
