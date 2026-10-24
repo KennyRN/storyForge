@@ -1,0 +1,55 @@
+.sf-diagnostics {
+	position: fixed;
+	inset: 0;
+	z-index: 960;
+	display: flex;
+	flex-direction: column;
+	background: var(--purpose-panel-bg);
+	color: var(--purpose-text);
+}
+.sf-diagnostics header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 12px 20px;
+	border-bottom: 1px solid var(--purpose-border);
+}
+.sf-diagnostics h1 {
+	margin: 0;
+	font-size: 15px;
+}
+.sf-diag-body {
+	flex: 1;
+	min-height: 0;
+	padding: 4px 20px 24px;
+}
+.sf-diagnostics h2 {
+	margin: 18px 0 6px;
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--purpose-text-muted);
+}
+.sf-diagnostics pre {
+	margin: 0;
+	padding: 10px;
+	max-height: 340px;
+	overflow: auto;
+	white-space: pre-wrap;
+	word-break: break-word;
+	background: var(--purpose-editor-bg);
+	border: 1px solid var(--purpose-border);
+	border-radius: var(--radius);
+	font: 12px/1.45 ui-monospace, "SF Mono", Menlo, monospace;
+}
+.sf-diagnostics button {
+	padding: 5px 10px;
+	border: 1px solid var(--purpose-border);
+	border-radius: var(--radius);
+	background: var(--purpose-raised-bg);
+	color: var(--purpose-text);
+	cursor: pointer;
+}
+.sf-diagnostics .muted {
+	color: var(--purpose-text-muted);
+}

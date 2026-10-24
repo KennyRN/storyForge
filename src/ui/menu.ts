@@ -86,6 +86,8 @@ async function archiveSelection(model: AppModel): Promise<void> {
 	void libraryChapterPath;
 }
 
+let closeDiagnostics: (() => void) | undefined;
+
 /** The menu items the window answers. Returns true for the ones that replace the controller's own handling. */
 export function handleMenu(model: AppModel, id: string): boolean {
 	const requireProject = (): boolean => {
@@ -120,6 +122,12 @@ export function handleMenu(model: AppModel, id: string): boolean {
 			return true;
 		case "toggle-lore":
 			if (requireProject()) model.toggleLoreSlot();
+			return true;
+		case "diagnostics":
+			// Development builds only: Rust has no such item in a release, and this branch is removed from a release bundle.
+			if (import.meta.env.DEV) {
+				void import("../diagnostic/diagnostics").then((m) => (closeDiagnostics?.(), (closeDiagnostics = m.mountDiagnostics(model))));
+			}
 			return true;
 		case "archive":
 			void archiveSelection(model);

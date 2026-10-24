@@ -70,7 +70,12 @@ describe("the window's permissions", () => {
 	});
 
 	it("the first frame is dark before any script runs", () => {
-		const html = readFileSync(fileURLToPath(new URL("../src/diagnostic/index.html", import.meta.url)), "utf8");
-		expect(html).toMatch(/<html[^>]*background:#293136/);
+		// The window itself starts on Soft Dark's bg_dim; the page's stylesheet is a render-blocking link in a production build.
+		const conf = json("tauri.conf.json");
+		const window0 = conf.app.windows[0];
+		expect(String(window0.backgroundColor).toLowerCase()).toBe("#293136");
+		expect(window0.theme).toBe("Dark");
+		const html = readFileSync(fileURLToPath(new URL("../src/ui/index.html", import.meta.url)), "utf8");
+		expect(html).not.toMatch(/<script(?![^>]*type="module")/); // no classic script runs before the first paint
 	});
 });
