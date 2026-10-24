@@ -216,7 +216,7 @@ Three columns, `left | centre | right`:
 
 - Left panel `--purpose-panel-bg`, default 288 px, 200 to 480 px by splitter.
 - Centre `--purpose-editor-bg`, the rest.
-- Right panel (the lore slot) `--purpose-panel-bg`, default 400 px, 280 to 640 px by splitter; hidden when empty, and ⌥⌘\ shows or hides it.
+- Right panel (the lore slot) `--purpose-panel-bg`, default 400 px, 280 to 640 px by splitter; always present and blank when empty (H2 feedback), and ⌥⌘\ shows or hides it.
 
 The header is a thin bar over the left panel: the face switch (one icon button, `aria-pressed`, tooltip "Flip face (⌘\)"), the ink indicator beneath it, and the project's name. The window's title bar stays native and dark.
 
@@ -332,3 +332,8 @@ Decision 26, confirmed 23 October 2026. All eleven are approved as proposed exce
 11. **`npm run test:ui` is separate from `npm test`.** The interface tests must pass before every commit from commit 3 onwards. They are added to CI only if WebKit runs there practically; otherwise the report says so.
 
 **Preview server rule.** The browser preview's local server is development-only, listens on `localhost` only, and does not exist in release builds. The app's no-network rule stays absolute.
+
+### H2 feedback (storytelling face, tried in the built app, 24 October 2026)
+
+- Everything looked right, including the layout and the font as they stand. One major issue: **the lore slot must be there from the start, blank, even when nothing is in it.** Fixed: it is always shown, and only View ▸ Show or Hide Lore Slot (commit 8) hides it.
+- Other, visual, issues are to be raised later by Kenny; none concern behaviour.

@@ -54,6 +54,7 @@ test.describe("the editor", () => {
 	});
 
 	test("lines wrap, spellcheck is on, and the text sits in a centred, readable column", async ({ page }) => {
+		await page.setViewportSize({ width: 1900, height: 800 }); // wide enough that the readable maximum, not the pane, sets the column
 		await openProject(page);
 		await open(page, "centre", CH1);
 		await expect(content(page)).toHaveAttribute("spellcheck", "true");

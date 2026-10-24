@@ -29,7 +29,8 @@ test.describe("the storytelling face", () => {
 		await expect(page.getByRole("tree", { name: "Codex" })).toBeVisible();
 		await expect(page.locator(".sf-stats-value")).toContainText("daily:");
 		await expect(centre(page)).toContainText("Synthetic sentence number 1");
-		await expect(page.locator(".sf-slot--lore")).toBeHidden();
+		await expect(page.locator(".sf-slot--lore")).toBeVisible(); // there from the start, blank
+		await expect(page.locator(".sf-slot--lore")).toBeEmpty();
 		await shot(page, "storytelling");
 	});
 
@@ -117,7 +118,8 @@ test.describe("the storytelling face", () => {
 			await expect(centre(page)).toContainText("Synthetic sentence number 1"); // the chapter stays
 			await shot(page, "storytelling-lore");
 			await codexRow(page, "Jane").click();
-			await expect(page.locator(".sf-slot--lore")).toBeHidden();
+			await expect(lore(page)).toHaveCount(0);
+			await expect(page.locator(".sf-slot--lore")).toBeVisible(); // closed, still there, blank
 			await codexRow(page, "Sam").click();
 			await expect(lore(page)).toBeVisible();
 			await codexRow(page, "Windows").click();

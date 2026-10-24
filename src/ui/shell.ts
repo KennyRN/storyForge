@@ -40,8 +40,6 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	const apply = (): void => {
 		left.style.width = `${model.nav.leftWidth}px`;
 		lore.style.width = `${model.nav.loreWidth}px`;
-		lore.hidden = !model.editors?.pathIn("lore");
-		loreBar.hidden = lore.hidden;
 	};
 	const leftBar = splitter("Resize the library panel", "left", () => model.nav.leftWidth, (w) => (model.setWidths(clampLeft(w)), apply()));
 	const loreBar = splitter("Resize the lore panel", "right", () => model.nav.loreWidth, (w) => (model.setWidths(undefined, clampLore(w)), apply()));
