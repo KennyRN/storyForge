@@ -87,6 +87,32 @@ export class AppModel {
 		};
 	}
 
+	/** Selects a novel (from the series tab): its last chapter, or its first, becomes the selection, and the novel tab shows it. */
+	async selectBook(book: string): Promise<void> {
+		const running = this.running;
+		if (!running) return;
+		const chapters = getBookChapters(running.opened.project, book);
+		const first = chapters.ordered[0]?.name ?? chapters.unplaced[0]?.name ?? null;
+		this.nav.book = book;
+		this.nav.chapter = first;
+		this.nav.forgeTab = "novel";
+		this.persistSoon();
+		this.touch("nav", "stats", "library", "face");
+		const path = this.currentChapterPath();
+		if (path) await this.editors?.open("centre", path);
+	}
+
+	/** Moves between the faces. */
+	flipFace(): void {
+		this.nav.face = this.nav.face === "storytelling" ? "storyforge" : "storytelling";
+		this.touch("face");
+	}
+
+	setForgeTab(tab: ForgeTab): void {
+		this.nav.forgeTab = tab;
+		this.touch("face");
+	}
+
 	/** The selected chapter's project path, if there is one. */
 	currentChapterPath(): string | null {
 		const { book, chapter } = this.nav;

@@ -1,0 +1,178 @@
+import { archiveChapter, chapterDisplayTitle, getBookChapters, readBookFrontmatter, renameChapterTitle, writeBookChapterOrder, writeBookPlannedChapterLength, writeBookPlannedNovelLength, writeDefaultPov, createChapter } from "../../core/book";
+import { getCodexEntriesByType } from "../../core/codex";
+import { readChapterWordCount, recordChapterArchive } from "../../core/history";
+import { libraryChapterPath } from "../../core/paths";
+import { applyHashNumbering } from "../../core/titleNumbering";
+import { el, fill } from "../kit/dom";
+import { attachInlineRename } from "../kit/inlineRename";
+import { menuPoint, showMenu } from "../kit/menu";
+import type { AppModel } from "../model";
+import { isDragInProgress, listRow, reorderable, rowTitle, zoneHeader } from "./rows";
+
+const grouped = (n: number): string => Math.round(n).toLocaleString("en-US");
+
+/** Archives a chapter: its editor is closed (and saved) first, and the selection moves on if it was the selected one. */
+export async function archiveChapterAndTidy(model: AppModel, book: string, filename: string): Promise<void> {
+	const running = model.running;
+	if (!running) return;
+	const project = running.opened.project;
+	const path = libraryChapterPath(book, filename);
+	const slot = model.editors?.where(path);
+	if (slot) await model.editors?.close(slot);
+	const words = await readChapterWordCount(project, book, filename);
+	await archiveChapter(project, book, filename);
+	await recordChapterArchive(project, book, filename, words);
+	if (model.nav.book === book && model.nav.chapter === filename) {
+		const rest = getBookChapters(project, book);
+		model.nav.chapter = rest.ordered[0]?.name ?? rest.unplaced[0]?.name ?? null;
+		const next = model.currentChapterPath();
+		if (next) await model.editors?.open("centre", next);
+	}
+	model.touch("library", "archive", "stats", "nav");
+}
+
+/** The novel tab: the placed and unplaced chapters of the selected novel, the planned lengths and the default PoV. */
+export function mountNovelTab(host: HTMLElement, model: AppModel): () => void {
+	let placedFolded = false;
+	let unplacedFolded = false;
+	let editing: "novel" | "chapter" | null = null;
+	host.classList.add("sf-pane", "sf-forge-pane");
+
+	const draw = (): void => {
+		if (isDragInProgress()) return;
+		const running = model.running;
+		const book = model.nav.book;
+		if (!running || !book) return fill(host, el("div", { class: "sf-muted sf-empty-inline", text: "Open a chapter to get started." }));
+		const project = running.opened.project;
+		const settings = running.settings.values;
+		const readOnly = running.readOnlyReason;
+		const fm = readBookFrontmatter(project, book);
+		const { ordered, unplaced } = getBookChapters(project, book);
+		const numbered = applyHashNumbering([...ordered, ...unplaced].map((c) => chapterDisplayTitle(project, book, c.name)), settings.chapterNumberingStyle);
+		const run = (what: string, action: () => Promise<unknown>) => void model.guard(async () => (await action(), model.touch("library", "nav")), what);
+
+		const row = (name: string, index: number): HTMLElement => {
+			const r = listRow(name, settings.highlightActiveChapter && model.nav.chapter === name);
+			const label = rowTitle(r, numbered[index]);
+			r.addEventListener("click", (e) => {
+				if ((e.target as HTMLElement).closest(".sf-drag-handle, input")) return;
+				void model.openChapter(book, name);
+			});
+			r.addEventListener("keydown", (e) => {
+				if (e.target === r && e.key === "Enter") void model.openChapter(book, name);
+			});
+			if (!readOnly) {
+				attachInlineRename({
+					row: r,
+					label,
+					getCurrentTitle: () => chapterDisplayTitle(project, book, name),
+					onCommit: (title) => renameChapterTitle(project, book, name, title).then(() => model.touch("library", "nav")),
+					extraMenuItems: [{ title: "Archive", onClick: () => run("archive the chapter", () => archiveChapterAndTidy(model, book, name)) }],
+					doubleClick: false,
+				});
+			}
+			return r;
+		};
+		const placedList = el("div", { class: "sf-list", attrs: { role: "list", "aria-label": "Placed chapters" } });
+		ordered.forEach((c, i) => placedList.append(row(c.name, i)));
+		if (ordered.length === 0) placedList.append(el("div", { class: "sf-muted sf-empty-inline", text: "Drag a chapter here to sequence it." }));
+		const unplacedList = el("div", { class: "sf-list sf-unplaced-list", attrs: { role: "list", "aria-label": "Unplaced chapters" } });
+		unplaced.forEach((c, i) => unplacedList.append(row(c.name, ordered.length + i)));
+
+		// Planned lengths and the default PoV
+		const meta = el("div", { class: "sf-meta" });
+		const pov = fm?.defaultPovPath ?? null;
+		meta.append(
+			metaRow("Default PoV:", pov ? (fm?.defaultPovName ?? pov) : "None", {
+				title: pov ? "Change the point-of-view character" : "Set the point-of-view character",
+				disabled: !!readOnly,
+				onClick: (anchor) => {
+					const people = getCodexEntriesByType(project, "person");
+					showMenu(
+						[...(people.length ? people.map((p) => ({ label: p.name, onSelect: () => run("set the PoV", () => writeDefaultPov(project, book, p.path, p.name)) })) : [{ label: "No person entries in the Codex yet.", disabled: true }]), ...(pov ? [{ separator: true }, { label: "Clear", onSelect: () => run("clear the PoV", () => writeDefaultPov(project, book, null, null)) }] : [])],
+						menuPoint(anchor),
+					);
+				},
+			}),
+		);
+		const words = ordered.reduce((n, c) => n + project.wordCount(c.path), 0);
+		const lengthRow = (which: "novel" | "chapter", label: string, value: number | null, shown: string, write: (n: number | null) => Promise<void>): HTMLElement =>
+			editing === which
+				? numberEditor(label, value, (n) => {
+						editing = null;
+						run("save the length", () => write(n));
+					}, () => ((editing = null), draw()))
+				: metaRow(label, shown, { title: `Set the planned ${which} length`, disabled: !!readOnly, onClick: () => ((editing = which), draw()) });
+		const plannedNovel = fm?.plannedNovelLength ?? null;
+		const plannedChapter = fm?.plannedChapterLength ?? null;
+		meta.append(lengthRow("novel", "Novel Length:", plannedNovel, plannedNovel === null ? "Not set" : `${grouped(words)} of ${grouped(plannedNovel)}`, (n) => writeBookPlannedNovelLength(project, book, n)));
+		meta.append(lengthRow("chapter", "Chapter Length:", plannedChapter, plannedChapter === null ? "Not set" : grouped(plannedChapter), (n) => writeBookPlannedChapterLength(project, book, n)));
+		if (editing === "chapter" && ordered.length > 0) {
+			const counts = ordered.map((c) => project.wordCount(c.path)).sort((a, b) => a - b);
+			const mid = Math.floor(counts.length / 2);
+			const median = counts.length % 2 === 0 ? (counts[mid - 1] + counts[mid]) / 2 : counts[mid];
+			meta.append(metaRow("Average:", grouped(counts.reduce((a, b) => a + b, 0) / counts.length), {}), metaRow("Median:", grouped(median), {}));
+		}
+
+		fill(
+			host,
+			el(
+				"div",
+				{ class: "sf-forge-body sf-scroll" },
+				meta,
+				el("div", { class: "sf-placed-zone" }, zoneHeader("Placed Chapters", placedFolded, () => ((placedFolded = !placedFolded), draw())), placedFolded ? null : placedList),
+				el("div", { class: "sf-unplaced-zone" }, zoneHeader("Unplaced Chapters", unplacedFolded, () => ((unplacedFolded = !unplacedFolded), draw()), { name: "New chapter", disabled: !!readOnly, reason: "This project is open read-only.", onCreate: () => run("create the chapter", () => createChapter(project, book)) }), unplacedFolded ? null : unplacedList),
+			),
+		);
+		if (!readOnly) {
+			reorderable(
+				model,
+				[...(placedFolded ? [] : [{ key: "ordered", container: placedList }]), ...(unplacedFolded ? [] : [{ key: "unplaced", container: unplacedList }])],
+				async (keys) => {
+					// With the placed list folded there is no "ordered" zone: nothing to write, rather than an empty order.
+					if (keys.ordered) await writeBookChapterOrder(project, book, keys.ordered.filter(Boolean));
+				},
+				draw,
+			);
+		}
+	};
+	draw();
+	return model.subscribe(["library", "project", "nav", "settings"], () => host.isConnected && draw());
+}
+
+function metaRow(label: string, value: string, options: { title?: string; disabled?: boolean; onClick?: (anchor: HTMLElement) => void }): HTMLElement {
+	const row = el("div", { class: "sf-meta-row" }, el("span", { class: "sf-meta-label", text: label }));
+	if (options.onClick) {
+		const b = el("button", { class: "sf-meta-value", attrs: { type: "button", title: options.title ?? "" }, text: value });
+		b.disabled = !!options.disabled;
+		b.addEventListener("click", () => options.onClick!(b));
+		row.append(b);
+	} else row.append(el("span", { class: "sf-meta-value sf-meta-value--plain", text: value }));
+	return row;
+}
+
+/** An inline number field: Enter saves (empty clears), Escape cancels. Digits are grouped as you type. */
+function numberEditor(label: string, value: number | null, commit: (n: number | null) => void, cancel: () => void): HTMLElement {
+	const input = el("input", { class: "sf-field sf-meta-input", attrs: { type: "text", inputmode: "numeric", "aria-label": label.replace(/:$/, "") } });
+	input.value = value === null ? "" : grouped(value);
+	let done = false;
+	const finish = (save: boolean): void => {
+		if (done) return;
+		done = true;
+		if (!save) return cancel();
+		const digits = input.value.replace(/[^\d]/g, "");
+		commit(digits === "" ? null : Number(digits));
+	};
+	input.addEventListener("input", () => {
+		const digits = input.value.replace(/[^\d]/g, "");
+		input.value = digits === "" ? "" : grouped(Number(digits));
+	});
+	input.addEventListener("keydown", (e) => {
+		if (e.key === "Enter") finish(true);
+		else if (e.key === "Escape") finish(false);
+	});
+	input.addEventListener("blur", () => finish(true));
+	queueMicrotask(() => (input.focus(), input.select()));
+	return el("div", { class: "sf-meta-row" }, el("span", { class: "sf-meta-label", text: label }), input);
+}
+

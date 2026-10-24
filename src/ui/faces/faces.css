@@ -190,3 +190,231 @@ body.sf-codex-drag-active {
 .sf-stats-value {
 	flex: 1;
 }
+
+/* The header over the left panel, and the storyForge face. */
+.sf-left-header {
+	flex: none;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-2);
+	padding: var(--space-1) var(--space-2) var(--space-1) var(--space-4);
+	border-bottom: 1px solid var(--purpose-border);
+	min-height: 36px;
+}
+.sf-left-name {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--purpose-text-muted);
+	font-size: 12px;
+}
+.sf-left-body {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
+.sf-forge {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+}
+.sf-rail {
+	position: relative;
+	flex: none;
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	width: 40px;
+	padding: var(--space-2) 0;
+	align-items: center;
+	border-right: 1px solid var(--purpose-border);
+}
+.sf-rail .sf-ink-track {
+	right: -1px;
+	left: auto;
+	height: 100%;
+}
+.sf-tab {
+	display: inline-flex;
+	padding: 6px;
+	border: 0;
+	border-radius: var(--radius);
+	background: transparent;
+	color: var(--purpose-text-muted);
+	cursor: pointer;
+}
+.sf-tab:hover {
+	color: var(--purpose-text);
+}
+.sf-tab.is-active {
+	color: var(--purpose-accent);
+}
+.sf-forge-tab {
+	flex: 1;
+	min-width: 0;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
+.sf-forge-host {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
+.sf-forge-pane {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
+.sf-forge-body {
+	flex: 1;
+	min-height: 0;
+	padding: var(--space-2) var(--space-3) var(--space-4) var(--space-3);
+}
+.sf-series-title {
+	padding: var(--space-3) var(--space-4) var(--space-1);
+	font-weight: 600;
+}
+.sf-empty-inline {
+	padding: var(--space-2) var(--space-2);
+}
+
+.sf-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.sf-row {
+	display: flex;
+	align-items: center;
+	gap: var(--space-1);
+	padding: 4px 6px;
+	border-radius: var(--radius);
+	cursor: pointer;
+}
+.sf-row:hover {
+	background: var(--purpose-raised-bg);
+}
+.sf-row.is-selected {
+	background: var(--purpose-raised-bg);
+	color: var(--purpose-accent);
+}
+.sf-drag-handle {
+	display: inline-flex;
+	flex: none;
+	color: var(--purpose-decoration);
+	cursor: grab;
+	touch-action: none;
+}
+.sf-row-title-wrap {
+	min-width: 0;
+	flex: 1;
+}
+.sf-row-title-line {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.sf-row-subtitle {
+	color: var(--purpose-text-muted);
+	font-size: 12px;
+}
+.sf-zone-header {
+	display: flex;
+	align-items: center;
+	gap: var(--space-1);
+	margin-top: var(--space-2);
+	color: var(--purpose-text-muted);
+}
+.sf-zone-fold {
+	display: flex;
+	flex: 1;
+	align-items: center;
+	gap: var(--space-1);
+	padding: 6px 4px;
+	border: 0;
+	border-radius: var(--radius);
+	background: transparent;
+	color: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+.sf-zone-fold:hover {
+	color: var(--purpose-text);
+}
+.sf-zone-label {
+	flex: 1;
+	margin: 0;
+	font-size: 12px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+}
+.sf-unplaced-list .sf-row {
+	color: var(--purpose-text-muted);
+}
+
+.sf-meta {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	padding: var(--space-1) var(--space-1) var(--space-2);
+}
+.sf-meta-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-2);
+}
+.sf-meta-label {
+	color: var(--purpose-text-muted);
+}
+.sf-meta-value {
+	padding: 2px 6px;
+	border: 0;
+	border-radius: 4px;
+	background: transparent;
+	color: var(--purpose-text);
+	cursor: pointer;
+}
+.sf-meta-value:hover:not(:disabled) {
+	background: var(--purpose-raised-bg);
+}
+.sf-meta-value--plain {
+	cursor: default;
+}
+.sf-meta-input {
+	width: 120px;
+	text-align: right;
+}
+
+.sf-archive-section {
+	margin-bottom: var(--space-3);
+}
+.sf-archive-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--space-1);
+}
+.sf-archive-open {
+	flex: 1;
+	min-width: 0;
+	padding: 4px 6px;
+	border: 0;
+	border-radius: var(--radius);
+	background: transparent;
+	text-align: left;
+	cursor: pointer;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.sf-archive-open:hover {
+	background: var(--purpose-raised-bg);
+}

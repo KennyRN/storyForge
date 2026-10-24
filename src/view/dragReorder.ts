@@ -113,16 +113,6 @@ export function makeReorderable(
 			if (isDragInProgress()) return;
 			downEvent.preventDefault();
 
-			const pointerId = downEvent.pointerId;
-			try {
-				handle.setPointerCapture(pointerId);
-			} catch {
-				// Can't capture (e.g. the handle isn't connected/visible at this exact instant) —
-				// bail before touching any state, rather than calling beginDrag() with no matching
-				// endDrag() to follow, which would leave isDragInProgress() stuck true and silently
-				// block every future re-render that guards on it.
-				return;
-			}
 			row.classList.add("sf-dragging");
 			beginDrag();
 
@@ -172,45 +162,14 @@ export function makeReorderable(
 				}
 			};
 
-			// Reparenting `row` above (insertBefore/appendChild, moving it past a sibling) can make
-			// Chromium drop `handle`'s pointer capture as a side effect, even though the handle never
-			// actually left the document — observably: drag one row past its neighbour, and the drag
-			// ends right there instead of continuing to track the pointer. `lostpointercapture` fires
-			// either way, so the only way to tell "really gone" (modal closed mid-drag, row torn out
-			// of the document) from "just reparented" is `handle.isConnected`: still connected means
-			// reacquire and keep the same gesture going; actually disconnected means fall through to
-			// the real end-of-drag cleanup below.
-			const onLostCapture = () => {
-				if (cleaned) return;
-				if (handle.isConnected) {
-					try {
-						handle.setPointerCapture(pointerId);
-						return;
-					} catch {
-						// No live pointer to recapture (e.g. it already lifted) — end the drag for real.
-					}
-				}
-				onUp();
-			};
-
-			// Cleanup must run on "pointercancel" too, not just "pointerup" — the browser cancels
-			// (rather than ends) a captured pointer sequence in some fairly common situations, e.g.
-			// a drag that crosses a scrollable ancestor's edge, which this modal's rows now sit
-			// inside. Without this, a cancelled drag never removes its window-level listeners: they
-			// stay bound forever, and the *next* drag attempt runs two conflicting reorder sessions
-			// at once — symptoms like "rows jump around" or "everything jumbles up" are exactly that.
+			// storyForge app (Brief 5): no pointer capture. The window-level listeners below see the whole gesture,
+			// including a pointer that leaves the list, and reparenting the row between zones cannot interrupt them.
+			// The plugin captured the pointer and re-acquired it from a `lostpointercapture` handler after each
+			// reparent; in WebKit (the app's engine) re-capturing inside that handler hangs the page.
 			//
-			// Both of those are still bubbled events, though, so they depend on `handle` still being
-			// attached to the document when the browser dispatches them. Closing the modal mid-drag
-			// (Escape, click-outside, or a re-render that empties the container) detaches `row`/`handle`
-			// synchronously — the implicit pointercancel the browser fires as a result has nowhere to
-			// bubble to, so a window-level listener never sees it, `endDrag()` never runs, and the
-			// global lock leaks forever (every render() anywhere that guards on isDragInProgress()
-			// then silently no-ops, which looks like "the modal won't open" on the next attempt).
-			// "lostpointercapture" is the fix: it's dispatched directly at `handle` — not bubbled from
-			// wherever the pointer happens to be — the moment capture is released for *any* reason,
-			// including the element being removed from the DOM. A listener bound straight to `handle`
-			// doesn't need it to bubble anywhere, so it fires reliably even through a mid-drag close.
+			// Cleanup runs on "pointercancel" too, not just "pointerup": the browser cancels (rather than ends) a
+			// pointer sequence in some fairly common situations. Without it a cancelled drag leaves its
+			// window-level listeners bound, and the next drag runs two reorder sessions at once.
 			let cleaned = false;
 			const onUp = () => {
 				if (cleaned) return;
@@ -218,14 +177,8 @@ export function makeReorderable(
 				window.removeEventListener("pointermove", onMove);
 				window.removeEventListener("pointerup", onUp);
 				window.removeEventListener("pointercancel", onUp);
-				handle.removeEventListener("lostpointercapture", onLostCapture);
 				row.classList.remove("sf-dragging");
 				row.style.transform = "";
-				try {
-					handle.releasePointerCapture(pointerId);
-				} catch {
-					/* already released */
-				}
 				endDrag();
 				commitOrder();
 			};
@@ -233,7 +186,6 @@ export function makeReorderable(
 			window.addEventListener("pointermove", onMove);
 			window.addEventListener("pointerup", onUp);
 			window.addEventListener("pointercancel", onUp);
-			handle.addEventListener("lostpointercapture", onLostCapture);
 		});
 	}
 

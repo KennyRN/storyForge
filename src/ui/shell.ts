@@ -2,6 +2,9 @@ import { clampLeft, clampLore, type AppModel } from "./model";
 import { EditorHost } from "./editor/editorHost";
 import { el, fill } from "./kit/dom";
 import { mountStorytellingFace } from "./faces/storytelling";
+import { mountStoryForgeFace } from "./faces/storyforge";
+import { button } from "./kit/button";
+import { icon } from "./kit/icons";
 
 /** A vertical splitter: drag, or use ← → when focused; reports the new width of the panel it sizes. */
 function splitter(label: string, side: "left" | "right", get: () => number, set: (w: number) => void): HTMLElement {
@@ -34,7 +37,11 @@ function splitter(label: string, side: "left" | "right", get: () => number, set:
 
 /** The frame: the left panel (a face), the centre chapter editor and the lore slot, with splitters. */
 export function mountShell(host: HTMLElement, model: AppModel): { dispose(): void } {
+	const name = model.running?.root.slice((model.running?.root.lastIndexOf("/") ?? -1) + 1) ?? "storyForge";
 	const left = el("nav", { class: "sf-left", attrs: { "aria-label": "Library" } });
+	const faceHost = el("div", { class: "sf-left-body" });
+	const flip = button({ icon: "switch", name: "Flip face", tooltip: "Flip face", onClick: () => model.flipFace() });
+	const header = el("div", { class: "sf-left-header" }, el("span", { class: "sf-left-name", text: name }), flip);
 	const centre = el("section", { class: "sf-slot sf-slot--centre", attrs: { "aria-label": "Chapter" } });
 	const lore = el("aside", { class: "sf-slot sf-slot--lore", attrs: { "aria-label": "Lore" } });
 	const apply = (): void => {
@@ -43,7 +50,6 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	};
 	const leftBar = splitter("Resize the library panel", "left", () => model.nav.leftWidth, (w) => (model.setWidths(clampLeft(w)), apply()));
 	const loreBar = splitter("Resize the lore panel", "right", () => model.nav.loreWidth, (w) => (model.setWidths(undefined, clampLore(w)), apply()));
-	const name = model.running?.root.slice((model.running?.root.lastIndexOf("/") ?? -1) + 1) ?? "storyForge";
 	fill(host, el("h1", { class: "sf-visually-hidden", text: name }), el("div", { class: "sf-frame" }, left, leftBar, centre, loreBar, lore));
 
 	model.editors = new EditorHost(model, { centre, lore });
@@ -53,17 +59,25 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	};
 	apply();
 
+	fill(left, header, faceHost);
 	let disposeFace: (() => void) | null = null;
+	let shownFace: string | null = null;
 	const drawFace = (): void => {
+		const face = model.nav.face;
+		if (face === shownFace) return;
+		shownFace = face;
 		disposeFace?.();
-		fill(left);
-		left.className = "sf-left";
-		disposeFace = mountStorytellingFace(left, model);
+		fill(faceHost);
+		faceHost.className = "sf-left-body";
+		flip.setAttribute("aria-pressed", String(face === "storyforge"));
+		disposeFace = face === "storytelling" ? mountStorytellingFace(faceHost, model) : mountStoryForgeFace(faceHost, model);
 	};
 	drawFace();
+	const offFace = model.subscribe("face", drawFace);
 	void model.ensureCentre();
 	return {
 		dispose() {
+			offFace();
 			disposeFace?.();
 		},
 	};
