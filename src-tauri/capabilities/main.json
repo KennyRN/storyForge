@@ -30,6 +30,7 @@
     "allow-watch-stop",
     "allow-download-placeholder",
     "allow-reveal-in-finder",
+    "allow-set-menu-state",
     "allow-quit-ready",
     "core:event:allow-listen",
     "core:event:allow-unlisten",

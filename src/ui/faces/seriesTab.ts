@@ -32,6 +32,7 @@ export function mountSeriesTab(host: HTMLElement, model: AppModel): () => void {
 			const label = rowTitle(r, numbered[index], unplaced);
 			r.addEventListener("click", (e) => {
 				if ((e.target as HTMLElement).closest(".sf-drag-handle, input")) return;
+				model.select({ kind: "novel", book: folder });
 				void model.selectBook(folder);
 			});
 			if (!readOnly) attachInlineRename({ row: r, label, getCurrentTitle: () => bookDisplayTitle(project, folder), onCommit: (name) => renameBookTitle(project, folder, name).then(() => model.touch("library", "nav")), doubleClick: false });

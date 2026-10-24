@@ -140,7 +140,11 @@ export class AppController {
 		this.unlisten.push(await this.host.listen("watch-batch", (b) => this.enqueue(() => this.onWatchBatch(b as Batch))));
 	}
 
+	/** The interface takes the menu items it owns (New Project needs its own dialog); return true if handled. */
+	menuHandler?: (id: string) => boolean;
+
 	private async onMenu(id: string): Promise<void> {
+		if (this.menuHandler?.(id)) return;
 		if (id === "open-project") await this.openDialog("open");
 		else if (id === "new-project") await this.openDialog("create");
 	}
@@ -300,6 +304,11 @@ export class AppController {
 	}
 
 	/** Opens a chapter or Codex note for editing. An iCloud placeholder is downloaded first (one file, on demand). */
+	/** Tells Rust which of the app's own menu items are enabled (it touches no files). */
+	async setMenuState(enabled: Record<string, boolean>): Promise<void> {
+		await this.host.invoke("set_menu_state", { enabled });
+	}
+
 	/** Shows a project file in Finder (Rust checks the path and only reveals). */
 	async revealInFinder(path: string): Promise<void> {
 		await this.host.invoke("reveal_in_finder", { path });

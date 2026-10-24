@@ -2,6 +2,7 @@ import { button } from "../kit/button";
 import { el, fill } from "../kit/dom";
 import type { AppModel } from "../model";
 import { openNewProject } from "./newProject";
+export { openNewProject };
 
 const baseName = (p: string): string => p.slice(p.lastIndexOf("/") + 1) || p;
 const parentOf = (p: string): string => p.slice(0, Math.max(0, p.lastIndexOf("/")));

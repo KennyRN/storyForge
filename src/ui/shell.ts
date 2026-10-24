@@ -47,6 +47,8 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	const apply = (): void => {
 		left.style.width = `${model.nav.leftWidth}px`;
 		lore.style.width = `${model.nav.loreWidth}px`;
+		lore.hidden = model.nav.loreHidden;
+		loreBar.hidden = model.nav.loreHidden;
 	};
 	const leftBar = splitter("Resize the library panel", "left", () => model.nav.leftWidth, (w) => (model.setWidths(clampLeft(w)), apply()));
 	const loreBar = splitter("Resize the lore panel", "right", () => model.nav.loreWidth, (w) => (model.setWidths(undefined, clampLore(w)), apply()));
@@ -58,6 +60,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 		model.touch("nav");
 	};
 	apply();
+	const offNav = model.subscribe("nav", apply);
 
 	fill(left, header, faceHost);
 	let disposeFace: (() => void) | null = null;
@@ -77,6 +80,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	void model.ensureCentre();
 	return {
 		dispose() {
+			offNav();
 			offFace();
 			disposeFace?.();
 		},

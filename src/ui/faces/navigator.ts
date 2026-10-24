@@ -1,5 +1,4 @@
 import { getBookChapters, numberedChapterTitle } from "../../core/book";
-import { createContinuingChapter } from "../../core/chapterCreation";
 import { numberedBookTitle } from "../../core/series";
 import { button } from "../kit/button";
 import { el, fill } from "../kit/dom";
@@ -60,12 +59,7 @@ export function mountNavigator(host: HTMLElement, model: AppModel): () => void {
 			label: "Add the next chapter",
 			kind: "quiet",
 			disabled: !!noWriting,
-			onClick: () =>
-				void model.guard(async () => {
-					const created = await createContinuingChapter(project, book, chapter);
-					model.touch("library", "stats");
-					await model.openChapter(book, created.filename);
-				}, "create the chapter"),
+			onClick: () => void model.addNextChapter(),
 		});
 		add.classList.add("sf-nav-add");
 		if (noWriting) add.title = noWriting;

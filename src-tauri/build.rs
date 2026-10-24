@@ -25,6 +25,7 @@ const COMMANDS: &[&str] = &[
     "watch_stop",
     "download_placeholder",
     "reveal_in_finder",
+    "set_menu_state",
     "quit_ready",
 ];
 

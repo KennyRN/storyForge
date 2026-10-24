@@ -181,6 +181,8 @@ export interface MachineProjectState {
 	/** Panel widths in pixels: screens differ between Macs, so they stay on this computer (decision 26). */
 	leftWidth?: number;
 	loreWidth?: number;
+	/** View ▸ Show or Hide Lore Slot. */
+	loreHidden?: boolean;
 }
 
 export const DEFAULT_MACHINE_PROJECT_STATE: MachineProjectState = { selectedNovel: null, selectedObject: null, collapsedCodexFolderIds: [] };
@@ -203,6 +205,7 @@ export async function loadMachineProjectState(store: MachineStore, projectKey: s
 			collapsedCodexFolderIds: Array.isArray(parsed.collapsedCodexFolderIds) ? parsed.collapsedCodexFolderIds.filter((x): x is string => typeof x === "string") : base.collapsedCodexFolderIds,
 			...(typeof parsed.leftWidth === "number" && Number.isFinite(parsed.leftWidth) ? { leftWidth: parsed.leftWidth } : {}),
 			...(typeof parsed.loreWidth === "number" && Number.isFinite(parsed.loreWidth) ? { loreWidth: parsed.loreWidth } : {}),
+			...(parsed.loreHidden === true ? { loreHidden: true } : {}),
 		};
 	} catch {
 		return base;

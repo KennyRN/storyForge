@@ -137,7 +137,7 @@
 
 .sf-notices {
 	position: fixed;
-	z-index: 700;
+	z-index: 950; /* above dialogs: a notice about a backup just made must be reachable from the settings dialog */
 	left: 50%;
 	bottom: var(--space-4);
 	transform: translateX(-50%);

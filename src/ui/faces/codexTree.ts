@@ -90,6 +90,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 					parentKey,
 					onClick: (target) => {
 						targetFolder = item.id;
+						model.select({ kind: "codex-folder", id: item.id, ...(item.path ? { path: item.path } : {}) });
 						if (item.path && !toggle.contains(target as Node)) void model.toggleLore(item.path);
 						else model.toggleCodexFolder(item.id);
 					},
@@ -118,7 +119,15 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 					el("span", { class: "sf-codex-name", text: item.name }),
 				);
 				row.style.setProperty("--depth", String(depth));
-				rows.push({ key: item.path, type: "file", parentKey, onClick: () => void model.toggleLore(item.path) });
+				rows.push({
+					key: item.path,
+					type: "file",
+					parentKey,
+					onClick: () => {
+						model.select({ kind: "codex-note", path: item.path });
+						void model.toggleLore(item.path);
+					},
+				});
 				if (!readOnly()) {
 					rowMenu(
 						[

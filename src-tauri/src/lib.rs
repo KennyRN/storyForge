@@ -11,7 +11,8 @@ use storyforge_fs::error::{FsError, FsResult};
 use storyforge_fs::machine::MachineStore;
 use storyforge_fs::ops::Project;
 use storyforge_fs::watch::{Batcher, SleepDetector};
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem, Submenu};
+use std::collections::HashMap;
+use tauri::menu::{Menu, MenuItem, MenuItemKind, PredefinedMenuItem, Submenu};
 use tauri::{Emitter, Manager, State, Theme};
 
 const MAX_RECENT: usize = 10;
@@ -25,6 +26,8 @@ pub struct AppState {
     watcher: Mutex<Option<Watching>>,
     /// Set when the window has flushed and saved: only then may the app really close.
     quit_ok: AtomicBool,
+    /// Which of the app's own menu items are enabled, as the window last said: kept so a rebuilt menu (the recent list changed) keeps it.
+    menu_enabled: Mutex<HashMap<String, bool>>,
 }
 
 /// A running watcher: dropping it (and setting `stop`) ends it.
@@ -71,18 +74,30 @@ fn app_info() -> Value {
 /// The native folder picker. `kind` is `open` or `create` (only the title differs; whether a folder is
 /// fit to create a project in is decided by `createProject`, which refuses a folder that is not empty).
 #[tauri::command]
-async fn pick_project(state: State<'_, AppState>, kind: String) -> Result<Option<Value>, FsError> {
+async fn pick_project(app: tauri::AppHandle, state: State<'_, AppState>, kind: String) -> Result<Option<Value>, FsError> {
     let title = if kind == "create" { "Choose an empty folder for the new project" } else { "Open a storyForge project folder" };
     let Some(handle) = rfd::AsyncFileDialog::new().set_title(title).pick_folder().await else { return Ok(None) };
-    state.open(handle.path()).map(Some)
+    let opened = state.open(handle.path()).map(Some);
+    refresh_menu(&app);
+    opened
 }
 
 /// Opens the `index`th entry of the recent list. The window names an entry, never a path.
 #[tauri::command]
-async fn open_recent(state: State<'_, AppState>, index: usize) -> Result<Value, FsError> {
+async fn open_recent(app: tauri::AppHandle, state: State<'_, AppState>, index: usize) -> Result<Value, FsError> {
     let list = state.recent();
     let root = list.get(index).ok_or_else(|| FsError::new("ENOENT", "no such recent project", None))?;
-    state.open(&PathBuf::from(root))
+    let opened = state.open(&PathBuf::from(root));
+    refresh_menu(&app);
+    opened
+}
+
+/// The window says which of the app's own menu items apply now (no project open, nothing selected, a read-only
+/// project). This sets those items enabled or disabled. It touches no files and reads none.
+#[tauri::command]
+fn set_menu_state(app: tauri::AppHandle, state: State<'_, AppState>, enabled: HashMap<String, bool>) {
+    *state.menu_enabled.lock().unwrap() = enabled;
+    apply_menu_state(&app);
 }
 
 #[tauri::command]
@@ -250,17 +265,24 @@ fn restore_window_state(app: &tauri::App) {
     }
 }
 
+fn item(app: &tauri::AppHandle, id: &str, label: &str, accel: Option<&str>) -> tauri::Result<MenuItem<tauri::Wry>> {
+    MenuItem::with_id(app, id, label, true, accel)
+}
+
+/// The menu bar (docs/interface.md §7). Items that act on the window emit the `menu` event with their id; the
+/// window decides what to do (Rust never opens a path on its own initiative). Quit is handled here.
 fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
-    let open = MenuItem::with_id(app, "open-project", "Open Project…", true, Some("CmdOrCtrl+O"))?;
-    let new = MenuItem::with_id(app, "new-project", "New Project…", true, Some("CmdOrCtrl+N"))?;
-    // Not the predefined Quit: that ends the process without letting the window save first.
-    let quit = MenuItem::with_id(app, "quit", "Quit storyForge", true, Some("CmdOrCtrl+Q"))?;
+    // Not the predefined Quit, Undo and Redo: Quit would end the app without letting the window save first, and
+    // the predefined Undo and Redo act on the web view's own history, which CodeMirror does not use.
+    let quit = item(app, "quit", "Quit storyForge", Some("CmdOrCtrl+Q"))?;
     let app_menu = Submenu::with_items(
         app,
         "storyForge",
         true,
         &[
             &PredefinedMenuItem::about(app, None, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &item(app, "settings", "Settings…", Some("CmdOrCtrl+,"))?,
             &PredefinedMenuItem::separator(app)?,
             &PredefinedMenuItem::services(app, None)?,
             &PredefinedMenuItem::separator(app)?,
@@ -271,31 +293,108 @@ fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
             &quit,
         ],
     )?;
-    // Not the predefined Undo and Redo: those act on the web view's own history, which CodeMirror does not use.
-    let undo = MenuItem::with_id(app, "undo", "Undo", true, Some("CmdOrCtrl+Z"))?;
-    let redo = MenuItem::with_id(app, "redo", "Redo", true, Some("Shift+CmdOrCtrl+Z"))?;
-    let file = Submenu::with_items(app, "File", true, &[&open, &new])?;
+
+    let recent_menu = Submenu::new(app, "Open Recent", true)?;
+    let state = app.state::<AppState>();
+    let recent = state.recent();
+    if recent.is_empty() {
+        recent_menu.append(&MenuItem::with_id(app, "recent-none", "No Recent Projects", false, None::<&str>)?)?;
+    }
+    for (i, root) in recent.iter().enumerate() {
+        let name = std::path::Path::new(root).file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| root.clone());
+        recent_menu.append(&MenuItem::with_id(app, format!("recent:{i}"), name, true, None::<&str>)?)?;
+    }
+    let file = Submenu::with_items(
+        app,
+        "File",
+        true,
+        &[
+            &item(app, "new-chapter", "New Chapter", Some("CmdOrCtrl+N"))?,
+            &PredefinedMenuItem::separator(app)?,
+            &item(app, "new-project", "New Project…", Some("Shift+CmdOrCtrl+N"))?,
+            &item(app, "open-project", "Open Project…", Some("CmdOrCtrl+O"))?,
+            &recent_menu,
+            &PredefinedMenuItem::separator(app)?,
+            &item(app, "close-project", "Close Project", None)?,
+        ],
+    )?;
     let edit = Submenu::with_items(
         app,
         "Edit",
         true,
         &[
-            &undo,
-            &redo,
+            &item(app, "undo", "Undo", Some("CmdOrCtrl+Z"))?,
+            &item(app, "redo", "Redo", Some("Shift+CmdOrCtrl+Z"))?,
             &PredefinedMenuItem::separator(app)?,
             &PredefinedMenuItem::cut(app, None)?,
             &PredefinedMenuItem::copy(app, None)?,
             &PredefinedMenuItem::paste(app, None)?,
             &PredefinedMenuItem::select_all(app, None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &item(app, "find", "Find…", Some("CmdOrCtrl+F"))?,
+            &item(app, "replace", "Find and Replace…", Some("Alt+CmdOrCtrl+F"))?,
         ],
     )?;
+    let view = Submenu::with_items(
+        app,
+        "View",
+        true,
+        &[
+            &item(app, "flip-face", "Flip Face", Some("CmdOrCtrl+\\"))?,
+            &item(app, "toggle-lore", "Show or Hide Lore Slot", Some("Alt+CmdOrCtrl+\\"))?,
+        ],
+    )?;
+    // The diagnostic page exists only in development builds: this item is compiled out of a release.
+    #[cfg(debug_assertions)]
+    {
+        let developer = Submenu::with_items(app, "Developer", true, &[&item(app, "diagnostics", "Diagnostics", None)?])?;
+        view.append(&PredefinedMenuItem::separator(app)?)?;
+        view.append(&developer)?;
+    }
+    let story = Submenu::with_items(app, "Story", true, &[&item(app, "archive", "Archive", None)?, &item(app, "rename", "Rename…", None)?, &PredefinedMenuItem::separator(app)?, &item(app, "backup-now", "Back Up Now", None)?])?;
     let window = Submenu::with_items(
         app,
         "Window",
         true,
         &[&PredefinedMenuItem::minimize(app, None)?, &PredefinedMenuItem::maximize(app, None)?, &PredefinedMenuItem::close_window(app, None)?],
     )?;
-    Menu::with_items(app, &[&app_menu, &file, &edit, &window])
+    Menu::with_items(app, &[&app_menu, &file, &edit, &view, &story, &window])
+}
+
+fn apply_items(items: Vec<MenuItemKind<tauri::Wry>>, enabled: &HashMap<String, bool>) {
+    for it in items {
+        match it {
+            MenuItemKind::Submenu(sub) => {
+                if let Ok(children) = sub.items() {
+                    apply_items(children, enabled);
+                }
+            }
+            MenuItemKind::MenuItem(mi) => {
+                if let Some(v) = enabled.get(&mi.id().0) {
+                    let _ = mi.set_enabled(*v);
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+/// Re-applies the enabled flags the window last sent to the current menu.
+fn apply_menu_state(app: &tauri::AppHandle) {
+    let enabled = app.state::<AppState>().menu_enabled.lock().unwrap().clone();
+    if let Some(menu) = app.menu() {
+        if let Ok(items) = menu.items() {
+            apply_items(items, &enabled);
+        }
+    }
+}
+
+/// Rebuilds the menu bar (the recent list changed) and keeps the enabled flags.
+fn refresh_menu(app: &tauri::AppHandle) {
+    if let Ok(menu) = build_menu(app) {
+        let _ = app.set_menu(menu);
+        apply_menu_state(app);
+    }
 }
 
 pub fn run() {
@@ -309,7 +408,7 @@ pub fn run() {
         }))
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
-            app.manage(AppState { project: Mutex::new(None), machine: MachineStore::new(&data_dir), watcher: Mutex::new(None), quit_ok: AtomicBool::new(false) });
+            app.manage(AppState { project: Mutex::new(None), machine: MachineStore::new(&data_dir), watcher: Mutex::new(None), quit_ok: AtomicBool::new(false), menu_enabled: Mutex::new(HashMap::new()) });
             restore_window_state(app);
             let menu = build_menu(app.handle())?;
             app.set_menu(menu)?;
@@ -328,7 +427,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             app_info, pick_project, open_recent, recent_projects, project_info, close_project, scan, stat, read_text, read_binary, read_outside, write_text, write_binary,
-            create_file, create_folder, compare_write, rename, retire, machine_get, machine_set, watch_start, watch_stop, download_placeholder, reveal_in_finder, quit_ready
+            create_file, create_folder, compare_write, rename, retire, machine_get, machine_set, watch_start, watch_stop, download_placeholder, reveal_in_finder, set_menu_state, quit_ready
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

@@ -6,6 +6,7 @@
 import type { AppController, OpenOutcome, Running } from "../app/appLife";
 import type { MachineProjectState } from "../app/settings";
 import { getBookChapters } from "../core/book";
+import { createContinuingChapter } from "../core/chapterCreation";
 import type { CreateProjectOptions } from "../core/openProject";
 import { libraryChapterPath } from "../core/paths";
 import { getSeriesBooks } from "../core/series";
@@ -29,7 +30,16 @@ export interface Nav {
 	collapsedCodex: Set<string>;
 	leftWidth: number;
 	loreWidth: number;
+	/** View ▸ Show or Hide Lore Slot. */
+	loreHidden: boolean;
 }
+
+/** What Story ▸ Archive and Rename… act on: the last thing the author picked in a list. */
+export type Selection =
+	| { kind: "chapter"; book: string; filename: string }
+	| { kind: "codex-note"; path: string }
+	| { kind: "codex-folder"; id: string; path?: string }
+	| { kind: "novel"; book: string };
 
 export const DEFAULT_LEFT_WIDTH = 288;
 export const DEFAULT_LORE_WIDTH = 400;
@@ -43,7 +53,8 @@ export class AppModel {
 	readonly notices = new NoticeCenter();
 	/** Set by the shell once the slots exist. */
 	editors: EditorHost | null = null;
-	nav: Nav = { face: "storytelling", forgeTab: "novel", book: null, chapter: null, collapsedCodex: new Set(), leftWidth: DEFAULT_LEFT_WIDTH, loreWidth: DEFAULT_LORE_WIDTH };
+	nav: Nav = { face: "storytelling", forgeTab: "novel", book: null, chapter: null, collapsedCodex: new Set(), leftWidth: DEFAULT_LEFT_WIDTH, loreWidth: DEFAULT_LORE_WIDTH, loreHidden: false };
+	selection: Selection | null = null;
 	private persistTimer: ReturnType<typeof setTimeout> | undefined;
 	private listeners = new Map<Topic, Set<() => void>>();
 
@@ -84,7 +95,9 @@ export class AppModel {
 			collapsedCodex: new Set(machine.collapsedCodexFolderIds),
 			leftWidth: clampLeft(machine.leftWidth ?? DEFAULT_LEFT_WIDTH),
 			loreWidth: clampLore(machine.loreWidth ?? DEFAULT_LORE_WIDTH),
+			loreHidden: machine.loreHidden === true,
 		};
+		this.selection = null;
 	}
 
 	/** Selects a novel (from the series tab): its last chapter, or its first, becomes the selection, and the novel tab shows it. */
@@ -100,6 +113,33 @@ export class AppModel {
 		this.touch("nav", "stats", "library", "face");
 		const path = this.currentChapterPath();
 		if (path) await this.editors?.open("centre", path);
+	}
+
+	/** File ▸ New Chapter, and the navigator's "add the next chapter": a chapter after the current one, opened. */
+	async addNextChapter(): Promise<void> {
+		const running = this.running;
+		const { book, chapter } = this.nav;
+		if (!running) return void this.notices.notify({ text: "Open a project first." });
+		if (running.readOnlyReason) return void this.notices.notify({ text: "This project is open read-only." });
+		if (!book) return void this.notices.notify({ text: "This project has no novel yet." });
+		await this.guard(async () => {
+			const created = await createContinuingChapter(running.opened.project, book, chapter);
+			this.touch("library", "stats");
+			await this.openChapter(book, created.filename);
+		}, "create the chapter");
+	}
+
+	/** Remembers what the author picked, for the Story menu. */
+	select(selection: Selection): void {
+		this.selection = selection;
+		this.touch("nav");
+	}
+
+	/** View ▸ Show or Hide Lore Slot. */
+	toggleLoreSlot(): void {
+		this.nav.loreHidden = !this.nav.loreHidden;
+		this.persistSoon();
+		this.touch("nav");
 	}
 
 	/** Moves between the faces. */
@@ -123,6 +163,7 @@ export class AppModel {
 	async openChapter(book: string, filename: string): Promise<void> {
 		this.nav.book = book;
 		this.nav.chapter = filename;
+		this.select({ kind: "chapter", book, filename });
 		this.persistSoon();
 		this.touch("nav", "stats");
 		await this.editors?.open("centre", libraryChapterPath(book, filename));
@@ -169,9 +210,9 @@ export class AppModel {
 	async persistNow(): Promise<void> {
 		clearTimeout(this.persistTimer);
 		if (!this.running) return;
-		const { book, chapter, collapsedCodex, leftWidth, loreWidth } = this.nav;
+		const { book, chapter, collapsedCodex, leftWidth, loreWidth, loreHidden } = this.nav;
 		try {
-			await this.controller.saveMachineState({ selectedNovel: book, selectedObject: chapter, collapsedCodexFolderIds: [...collapsedCodex], leftWidth, loreWidth });
+			await this.controller.saveMachineState({ selectedNovel: book, selectedObject: chapter, collapsedCodexFolderIds: [...collapsedCodex], leftWidth, loreWidth, ...(loreHidden ? { loreHidden } : {}) });
 		} catch {
 			/* where you were is a convenience: never worth a notice */
 		}

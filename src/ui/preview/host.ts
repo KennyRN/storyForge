@@ -50,7 +50,7 @@ export function createPreviewHost(): Host & { api: PreviewApi } {
 				return null;
 			}
 			if (cmd === "set_menu_state") {
-				api.menuStates.push((payload as { args?: { enabled?: Record<string, boolean> } } | undefined)?.args?.enabled ?? {});
+				api.menuStates.push((payload as { enabled?: Record<string, boolean> } | undefined)?.enabled ?? {});
 				return null;
 			}
 			const reply = (await post("/__host/invoke", { cmd, payload })) as { ok?: unknown; err?: unknown };

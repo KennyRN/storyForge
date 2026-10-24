@@ -25,6 +25,9 @@ export function mountStoryForgeFace(host: HTMLElement, model: AppModel): () => v
 	let disposePane: (() => void) | null = null;
 	let shown: ForgeTab | null = null;
 
+	/** The tabs shown: "Hide series pane" (for a standalone book) leaves the series tab out. */
+	const tabs = (): typeof TABS => (model.running?.settings.values.hideSeriesPane ? TABS.filter((t) => t.id !== "series") : TABS);
+
 	const select = (tab: ForgeTab, focus = false): void => {
 		if (tab === model.nav.forgeTab && shown === tab) return;
 		ink.capture();
@@ -35,7 +38,9 @@ export function mountStoryForgeFace(host: HTMLElement, model: AppModel): () => v
 
 	const drawRail = (focus = false): void => {
 		fill(rail);
-		for (const [i, t] of TABS.entries()) {
+		const list = tabs();
+		if (!list.some((t) => t.id === model.nav.forgeTab)) model.nav.forgeTab = "novel";
+		for (const [i, t] of list.entries()) {
 			const active = model.nav.forgeTab === t.id;
 			const tab = el(
 				"button",
@@ -49,7 +54,7 @@ export function mountStoryForgeFace(host: HTMLElement, model: AppModel): () => v
 							const next = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
 							if (!next) return;
 							e.preventDefault();
-							select(TABS[(i + next + TABS.length) % TABS.length].id, true);
+							select(list[(i + next + list.length) % list.length].id, true);
 						},
 					},
 				},
@@ -78,8 +83,17 @@ export function mountStoryForgeFace(host: HTMLElement, model: AppModel): () => v
 	drawRail();
 	drawPane();
 	// The tab can also change from outside (choosing a novel in the series tab shows it on the novel tab).
-	const offSync = model.subscribe("face", () => {
-		if (!host.isConnected || shown === model.nav.forgeTab) return;
+	let railKey = tabs().map((t) => t.id).join();
+	const offSync = model.subscribe(["face", "settings"], () => {
+		if (!host.isConnected) return;
+		const key = tabs().map((t) => t.id).join();
+		if (key !== railKey) {
+			railKey = key;
+			drawRail();
+			drawPane();
+			return;
+		}
+		if (shown === model.nav.forgeTab) return;
 		ink.capture();
 		drawRail();
 		drawPane();

@@ -4,6 +4,7 @@ import { el, fill } from "./kit/dom";
 import { AppModel } from "./model";
 import { renderStart } from "./screens/start";
 import { maybeShowReconciliation } from "./screens/summary";
+import { handleMenu, syncMenuState } from "./menu";
 import { mountShell } from "./shell";
 
 /** Builds the interface into `root` over a host (Tauri's, or the browser preview's). */
@@ -47,6 +48,8 @@ export async function startApp(host: Host, root: HTMLElement): Promise<AppModel>
 		document.execCommand(id); // a rename or settings field
 	});
 	model.subscribe("project", draw);
+	controller.menuHandler = (id) => handleMenu(model, id);
+	syncMenuState(model);
 	await controller.start();
 	draw();
 	return model;
