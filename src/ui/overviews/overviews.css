@@ -30,3 +30,24 @@
 .sf-cards { gap: 12px; }
 .sf-card { display: flex; flex-direction: column; gap: 6px; }
 .sf-bar--link { cursor: pointer; }
+
+/* The history view. */
+.sf-history { min-width: min(560px, 80vw); display: flex; flex-direction: column; gap: 4px; }
+.sf-history-stats { display: flex; flex-wrap: wrap; gap: 4px 24px; }
+.sf-history-stat { display: flex; flex-direction: column; font-size: 13px; }
+.sf-history-chapter { display: flex; justify-content: space-between; gap: 16px; font-size: 13px; padding: 2px 0; }
+.sf-heat-grid { display: flex; flex-direction: column; gap: 3px; }
+.sf-heat-row { display: flex; gap: 3px; }
+.sf-heat-cell { all: unset; box-sizing: border-box; width: 14px; height: 14px; border-radius: 3px; background: var(--purpose-bar-track); }
+button.sf-heat-cell { cursor: pointer; }
+.sf-heat-cell:focus-visible, .sf-heat-cell[aria-selected="true"] { outline: 2px solid var(--purpose-text); outline-offset: 1px; }
+.sf-heat--none { background: none; }
+.sf-heat--1 { background: var(--purpose-heat-a); }
+.sf-heat--2 { background: var(--purpose-heat-b); }
+.sf-heat--3 { background: var(--purpose-heat-c); }
+.sf-heat--4 { background: var(--purpose-heat-d); }
+.sf-heat--loss-1 { background: var(--purpose-heat-loss-a); }
+.sf-heat--loss-2 { background: var(--purpose-heat-loss-b); }
+.sf-heat--loss-3 { background: var(--purpose-heat-loss-c); }
+.sf-heat--loss-4 { background: var(--purpose-heat-loss-d); }
+.sf-stats-chart { cursor: pointer; }

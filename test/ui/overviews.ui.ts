@@ -140,3 +140,43 @@ test.describe("the novel overview", () => {
 		await expect(page.getByRole("tooltip")).toBeVisible();
 	});
 });
+
+test.describe("the history view", () => {
+	const openHistory = async (page: Page) => {
+		await page.getByRole("button", { name: /Open the history/ }).click();
+		return page.getByRole("dialog", { name: "Word count history" });
+	};
+
+	test("shows the totals and a number for every day; clicking a day lists its chapters", async ({ page }) => {
+		await openProject(page);
+		const dialog = await openHistory(page);
+		await expect(dialog.getByText("All novels")).toBeVisible();
+		await expect(dialog.getByRole("gridcell", { name: /Tuesday 20 October: 25/ })).toBeVisible();
+		await dialog.getByRole("gridcell", { name: /Tuesday 20 October/ }).click();
+		await expect(dialog.locator(".sf-history-chapter")).toHaveCount(1);
+		await expect(dialog.locator(".sf-history-chapter")).toContainText("25");
+		await shot(page, "numbers-history");
+	});
+
+	test("a net-loss day says so and is never trouble-coloured", async ({ page }) => {
+		await openProject(page);
+		const text = await page.evaluate(() => window.__preview.read("_backstage/storyforge/aaa/wordcount.md"));
+		await page.evaluate((t) => window.__preview.touch("_backstage/storyforge/aaa/wordcount.md", t), text.replace("daily:\n", "daily:\n  2026-10-22:\n    net: -30\n    chapters:\n      ch-a1.md: -30\n"));
+		const dialog = await openHistory(page);
+		const cell = dialog.getByRole("gridcell", { name: /Thursday 22 October: net loss of 30/ });
+		await expect(cell).toBeVisible();
+		await expect(cell).toHaveClass(/sf-heat--loss-/);
+		const [bg, red] = await page.evaluate(() => [getComputedStyle(document.querySelector(".sf-heat--loss-4, .sf-heat--loss-3, .sf-heat--loss-2, .sf-heat--loss-1")!).backgroundColor, getComputedStyle(document.documentElement).getPropertyValue("--purpose-trouble")]);
+		expect(bg).not.toBe(red);
+	});
+
+	test("opening it writes nothing, and Escape closes it", async ({ page }) => {
+		const root = await openProject(page);
+		const before = tree(root);
+		const dialog = await openHistory(page);
+		await expect(dialog).toBeVisible();
+		await page.keyboard.press("Escape");
+		await expect(dialog).toBeHidden();
+		expect(tree(root)).toEqual(before);
+	});
+});

@@ -6,6 +6,7 @@ import { el, fill } from "../kit/dom";
 import { icon } from "../kit/icons";
 import { attachTooltip } from "../kit/tooltip";
 import type { AppModel } from "../model";
+import { openHistoryDialog } from "../screens/history/historyDialog";
 
 export type StatsMode = "daily" | "weekly" | "chapter" | "story";
 export const MODE_ORDER: StatsMode[] = ["daily", "weekly", "chapter", "story"];
@@ -16,7 +17,7 @@ export function formatStatsHoverTooltip(counts: Record<StatsMode, number>): stri
 	return ["wordcount", `daily: ${formatWordCount(counts.daily)}`, `weekly: ${formatWordCount(counts.weekly)}`, "", `chapter: ${formatWordCount(counts.chapter)}`, `novel: ${formatWordCount(counts.story)}`].join("\n");
 }
 
-/** The stats: the daily, weekly, chapter and novel counts, one at a time, with a switch. (The history view is v1.1.) */
+/** The stats: the daily, weekly, chapter and novel counts, one at a time, with a switch. Clicking the chart opens the history view. */
 export function mountStats(host: HTMLElement, model: AppModel): () => void {
 	let mode: StatsMode = "daily";
 	let counts: Record<StatsMode, number> = { daily: 0, weekly: 0, chapter: 0, story: 0 };
@@ -25,7 +26,11 @@ export function mountStats(host: HTMLElement, model: AppModel): () => void {
 
 	const draw = (): void => {
 		const tip = formatStatsHoverTooltip(counts);
-		const chart = el("span", { class: "sf-stats-chart", attrs: { tabindex: "0", role: "img", "aria-label": tip.replace(/\n+/g, ", ") } }, icon("layers", 16));
+		const chart = el("span", { class: "sf-stats-chart", attrs: { tabindex: "0", role: "button", "aria-label": `${tip.replace(/\n+/g, ", ")}. Open the history` } }, icon("layers", 16));
+		chart.addEventListener("click", () => openHistoryDialog(model));
+		chart.addEventListener("keydown", (e) => {
+			if (e.key === "Enter" || e.key === " ") (e.preventDefault(), openHistoryDialog(model));
+		});
 		attachTooltip(chart, tip);
 		const next = button({ icon: "switch", tooltip: "Switch wordcount", onClick: () => ((mode = MODE_ORDER[(MODE_ORDER.indexOf(mode) + 1) % MODE_ORDER.length]), draw()) });
 		fill(host, chart, el("span", { class: "sf-stats-value", attrs: { "aria-live": "polite" }, text: `${MODE_LABELS[mode]}: ${formatWordCount(counts[mode])}` }), next);
