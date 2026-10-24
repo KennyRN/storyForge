@@ -90,7 +90,7 @@ See `docs/interface.md` §14. In short: the dressing scanners are unchanged; the
 - **Library ▸ codex opens an entry in the workspace**, not the context panel; only storytelling opens entries in the context panel. Flipping back to storytelling puts the selected chapter back in the workspace.
 - **Padded numbering shows "01"** (two digits at least). This changes a kept module's behaviour (`formatNumber`), at Kenny's request, with its test.
 - **A chapter dropped into the unplaced list stays where it was dropped.** The order is saved in `unplaced:` (an existing 0.17 key) and followed on reading; new core function `writeBookUnplacedOrder`, with a core test and a disk-safety operation.
-- **Not yet done by Kenny:** the quit test (⌘Q and the red button, with unsaved text, then reopen).
+- **Kenny's check (24 October 2026):** most of it done by hand; the quit test (⌘Q and the red button, with unsaved text, then reopen) and the other steps not done were **waived** by Kenny.
 
 ## Things that went wrong, and what was learned
 
@@ -108,7 +108,7 @@ See `docs/interface.md` §14. In short: the dressing scanners are unchanged; the
 
 ## Not done
 
-- **Kenny's check in the built app** (Brief 5 §5): write a few paragraphs with bold and italic; open a Codex note in the lore slot and close it; create, rename, place and archive chapters in the storyForge face; rename a Codex note that a chapter links to; change a numbering style and check `project.md` appears in `_backstage/storyforge/`; quit with unsaved text and reopen. **Pending**; the definition of done needs it done or waived before the merge.
+- **Kenny's check in the built app, partly waived** (Brief 5 §5): write a few paragraphs with bold and italic; open a Codex note in the lore slot and close it; create, rename, place and archive chapters in the storyForge face; rename a Codex note that a chapter links to; change a numbering style and check `project.md` appears in `_backstage/storyforge/`; quit with unsaved text and reopen. Done by Kenny in part; the steps not done (including the quit test) were waived on 24 October 2026.
 - **Visual polish** Kenny said he would raise himself (H2). None concerns behaviour.
 - **Known gap from Brief 4:** quitting from the Dock's menu can lose the last 2 seconds of typing (README). The interface does not change that.
 - **Untested in the real window** (no way to see it from here): ⌘Z in the editor, in a rename field and in a settings field (the Undo and Redo items are app items for this reason), the menus' greyed-out states, the native folder picker's two titles, Reveal in Finder, the iCloud placeholder banner, reduced motion with the Mac's real setting.
