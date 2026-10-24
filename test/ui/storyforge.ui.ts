@@ -14,7 +14,7 @@ async function openProject(page: Page, options: Parameters<typeof openPreview>[1
 	await page.locator("[data-recent='0']").click();
 	await page.waitForFunction(() => !!window.__app?.editors);
 }
-const flip = (page: Page) => page.getByRole("button", { name: "Flip face" }).click();
+const flip = (page: Page) => page.getByRole("button", { name: "Flip side" }).click();
 const tab = (page: Page, name: string) => page.getByRole("tab", { name });
 const onDisk = (page: Page, path: string) => page.evaluate((p) => window.__preview.read(p), path);
 const centre = (page: Page) => page.locator(".sf-slot--centre .cm-content");
@@ -30,7 +30,7 @@ async function drag(page: Page, from: ReturnType<typeof rowOf>, to: ReturnType<t
 	await page.mouse.up();
 }
 
-test.describe("the storyForge face", () => {
+test.describe("the library", () => {
 	test("one control flips between the faces; the lore slot and the chapter stay put", async ({ page }) => {
 		await openProject(page);
 		await page.locator(".sf-codex-file", { hasText: "Jane" }).click();
@@ -39,7 +39,7 @@ test.describe("the storyForge face", () => {
 		await expect(page.getByRole("tablist", { name: "Library" })).toBeVisible();
 		await expect(page.locator(".sf-slot--lore .cm-content")).toBeVisible();
 		await expect(centre(page)).toContainText("Synthetic sentence number 1");
-		await expect(page.getByRole("button", { name: "Flip face" })).toHaveAttribute("aria-pressed", "true");
+		await expect(page.getByRole("button", { name: "Flip side" })).toHaveAttribute("aria-pressed", "true");
 		await flip(page);
 		await expect(page.locator(".sf-nav-novel")).toBeVisible();
 		await expect(page.locator(".sf-slot--lore .cm-content")).toBeVisible();
@@ -76,7 +76,7 @@ test.describe("the storyForge face", () => {
 	});
 
 	test.describe("opening in the face the project asks for", () => {
-		test("auto-focus off opens on the storyForge face; the layout names the tab; an old layout reads as the novel tab", async ({ page }) => {
+		test("auto-focus off opens on the library; the layout names the tab; an old layout reads as the novel tab", async ({ page }) => {
 			await openProject(page, {}, async () => void (await page.evaluate(() => window.__preview.touch("_backstage/storyforge/project.md", "---\nformat-version: 1\nauto-focus: false\nlayout: seriesBrowse\n---\n"))));
 			await expect(page.getByRole("tablist")).toBeVisible();
 			await expect(tab(page, "series")).toHaveAttribute("aria-selected", "true");
@@ -95,7 +95,24 @@ test.describe("the storyForge face", () => {
 			await tab(page, "codex").click();
 			await expect(page.locator(".sf-codex-tree .sf-codex-file", { hasText: "Jane" })).toBeVisible();
 			await page.getByRole("button", { name: "New file" }).click();
-			await expect(page.locator(".sf-slot--lore .cm-content")).toBeVisible();
+			await expect(centre(page)).toBeVisible(); // a new note opens in the workspace here
+			await expect(page.locator(".sf-slot--lore .cm-content")).toHaveCount(0);
+		});
+
+		test("an entry opens in the workspace, not the context; flipping back to storytelling puts the chapter back", async ({ page }) => {
+			await openProject(page);
+			await flip(page);
+			await tab(page, "codex").click();
+			await page.locator(".sf-codex-file", { hasText: "Jane" }).click();
+			await expect(page.locator(".sf-slot--centre .cm-content")).toContainText(/\S/);
+			expect(await page.evaluate(() => window.__app.editors!.pathIn("centre"))).toBe("Codex/Jane.md");
+			expect(await page.evaluate(() => window.__app.editors!.pathIn("lore"))).toBeNull();
+			await expect(page.locator(".sf-codex-file", { hasText: "Jane" })).toHaveClass(/is-active/);
+			await flip(page);
+			await expect.poll(() => page.evaluate(() => window.__app.editors!.pathIn("centre"))).toBe("_story-library/aaa/ch-a1.md");
+			await page.locator(".sf-codex-file", { hasText: "Jane" }).click(); // in storytelling it opens in the context panel
+			await expect.poll(() => page.evaluate(() => window.__app.editors!.pathIn("lore"))).toBe("Codex/Jane.md");
+			expect(await page.evaluate(() => window.__app.editors!.pathIn("centre"))).toBe("_story-library/aaa/ch-a1.md");
 		});
 	});
 
@@ -200,6 +217,19 @@ test.describe("the storyForge face", () => {
 		test("dragging an unplaced chapter into the placed list changes chapter-order", async ({ page }) => {
 			await drag(page, rowOf(page, "Unplaced idea"), rowOf(page, "Chapter 2"), "above");
 			await expect.poll(async () => /chapter-order:\n  - ch-a1\.md\n  - ch-a2\.md\n  - ch-a3\.md\n  - ch-a5\.md\n/.test(await onDisk(page, BOOK_A))).toBe(true);
+		});
+
+		test("a chapter dropped at the top of the unplaced list stays at the top", async ({ page }) => {
+			// Unplaced: "Unplaced idea". Drop the placed "Chapter 2" above it.
+			await drag(page, rowOf(page, "Chapter 2"), rowOf(page, "Unplaced idea"), "above");
+			await expect.poll(async () => /unplaced:\n  - ch-a5\.md\n  - ch-a3\.md\n/.test(await onDisk(page, BOOK_A))).toBe(true);
+			const names = () => page.getByRole("list", { name: "Unplaced chapters", exact: true }).locator(".sf-row").evaluateAll((rows) => rows.map((r) => (r as HTMLElement).dataset.key));
+			await expect.poll(names).toEqual(["ch-a5.md", "ch-a3.md"]);
+			await page.reload();
+			await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+			await page.locator("[data-recent='0']").click();
+			await page.getByRole("button", { name: "Flip side" }).click();
+			await expect.poll(names).toEqual(["ch-a5.md", "ch-a3.md"]);
 		});
 
 		test("a chapter is renamed inline and its '#' is numbered from its place", async ({ page }) => {

@@ -40,18 +40,18 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	const name = model.running?.root.slice((model.running?.root.lastIndexOf("/") ?? -1) + 1) ?? "storyForge";
 	const left = el("nav", { class: "sf-left", attrs: { "aria-label": "Library" } });
 	const faceHost = el("div", { class: "sf-left-body" });
-	const flip = button({ icon: "switch", name: "Flip face", tooltip: "Flip face", onClick: () => model.flipFace() });
+	const flip = button({ icon: "switch", name: "Flip side", tooltip: "Flip side", onClick: () => model.flipFace() });
 	const header = el("div", { class: "sf-left-header" }, el("span", { class: "sf-left-name", text: name }), flip);
-	const centre = el("section", { class: "sf-slot sf-slot--centre", attrs: { "aria-label": "Chapter" } });
-	const lore = el("aside", { class: "sf-slot sf-slot--lore", attrs: { "aria-label": "Lore" } });
+	const centre = el("section", { class: "sf-slot sf-slot--centre", attrs: { "aria-label": "Workspace" } });
+	const lore = el("aside", { class: "sf-slot sf-slot--lore", attrs: { "aria-label": "Context" } });
 	const apply = (): void => {
 		left.style.width = `${model.nav.leftWidth}px`;
 		lore.style.width = `${model.nav.loreWidth}px`;
 		lore.hidden = model.nav.loreHidden;
 		loreBar.hidden = model.nav.loreHidden;
 	};
-	const leftBar = splitter("Resize the library panel", "left", () => model.nav.leftWidth, (w) => (model.setWidths(clampLeft(w)), apply()));
-	const loreBar = splitter("Resize the lore panel", "right", () => model.nav.loreWidth, (w) => (model.setWidths(undefined, clampLore(w)), apply()));
+	const leftBar = splitter("Resize the left panel", "left", () => model.nav.leftWidth, (w) => (model.setWidths(clampLeft(w)), apply()));
+	const loreBar = splitter("Resize the context panel", "right", () => model.nav.loreWidth, (w) => (model.setWidths(undefined, clampLore(w)), apply()));
 	fill(host, el("h1", { class: "sf-visually-hidden", text: name }), el("div", { class: "sf-frame" }, left, leftBar, centre, loreBar, lore));
 
 	model.editors = new EditorHost(model, { centre, lore });
@@ -73,6 +73,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 		fill(faceHost);
 		faceHost.className = "sf-left-body";
 		flip.setAttribute("aria-pressed", String(face === "storyforge"));
+		left.setAttribute("aria-label", face === "storytelling" ? "Storytelling" : "Library");
 		disposeFace = face === "storytelling" ? mountStorytellingFace(faceHost, model) : mountStoryForgeFace(faceHost, model);
 	};
 	drawFace();

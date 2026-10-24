@@ -83,7 +83,7 @@ test.describe("the storytelling face", () => {
 		await page.locator(".sf-nav-row").filter({ hasText: "The Storm: Part Two" }).click();
 		await page.locator(".sf-codex-folder-header", { hasText: "Cast" }).click();
 		await expect(codexRow(page, "Jane")).toHaveCount(0);
-		const bar = page.getByRole("separator", { name: "Resize the library panel" });
+		const bar = page.getByRole("separator", { name: "Resize the left panel" });
 		await bar.focus();
 		for (let i = 0; i < 5; i++) await page.keyboard.press("ArrowRight");
 		const width = await page.locator(".sf-left").evaluate((e) => e.getBoundingClientRect().width);
@@ -96,7 +96,7 @@ test.describe("the storytelling face", () => {
 
 	test("the panels resize by dragging the splitter, within limits", async ({ page }) => {
 		await openProject(page);
-		const bar = page.getByRole("separator", { name: "Resize the library panel" });
+		const bar = page.getByRole("separator", { name: "Resize the left panel" });
 		const box = (await bar.boundingBox())!;
 		await page.mouse.move(box.x, box.y + 200);
 		await page.mouse.down();

@@ -63,7 +63,7 @@ export function mountArchiveTab(host: HTMLElement, model: AppModel): () => void 
 						"div",
 						{ attrs: { role: "list" } },
 						...codex.map((c) =>
-							row(c.type === "folder" ? `${c.name} (folder with ${c.childCount ?? 0} children)` : c.name, () => c.type === "file" && void model.toggleLore(c.key), () => run("unarchive the Codex item", () => unarchiveCodexItem(project, c.key))),
+							row(c.type === "folder" ? `${c.name} (folder with ${c.childCount ?? 0} children)` : c.name, () => c.type === "file" && void model.editors?.open("centre", c.key), () => run("unarchive the Codex item", () => unarchiveCodexItem(project, c.key))),
 						),
 					),
 				),

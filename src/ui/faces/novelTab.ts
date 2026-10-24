@@ -1,4 +1,4 @@
-import { archiveChapter, chapterDisplayTitle, getBookChapters, readBookFrontmatter, renameChapterTitle, writeBookChapterOrder, writeBookPlannedChapterLength, writeBookPlannedNovelLength, writeDefaultPov, createChapter } from "../../core/book";
+import { archiveChapter, chapterDisplayTitle, getBookChapters, readBookFrontmatter, renameChapterTitle, writeBookChapterOrder, writeBookUnplacedOrder, writeBookPlannedChapterLength, writeBookPlannedNovelLength, writeDefaultPov, createChapter } from "../../core/book";
 import { getCodexEntriesByType } from "../../core/codex";
 import { readChapterWordCount, recordChapterArchive } from "../../core/history";
 import { libraryChapterPath } from "../../core/paths";
@@ -131,6 +131,8 @@ export function mountNovelTab(host: HTMLElement, model: AppModel): () => void {
 				async (keys) => {
 					// With the placed list folded there is no "ordered" zone: nothing to write, rather than an empty order.
 					if (keys.ordered) await writeBookChapterOrder(project, book, keys.ordered.filter(Boolean));
+					// ...and the unplaced list as it was left, so a chapter dropped at the top of it stays at the top.
+					if (keys.unplaced) await writeBookUnplacedOrder(project, book, keys.unplaced.filter(Boolean));
 				},
 				draw,
 			);

@@ -375,7 +375,18 @@ export function getBookChapters(project: Project, bookFolderName: string): Order
 	const fm = readBookFrontmatter(project, bookFolderName);
 	const archived = new Set(fm?.archive ?? []);
 	const liveFiles = files.filter((file) => !archived.has(file.name));
-	return resolveOrder(liveFiles, fm?.chapterOrder ?? [], (file) => file.name);
+	const result = resolveOrder(liveFiles, fm?.chapterOrder ?? [], (file) => file.name);
+	// The unplaced chapters keep the order the author gave them in `unplaced:` (a chapter dropped at the top of the list stays there);
+	// any the list doesn't name follow, in their old order.
+	const wanted = fm?.unplaced ?? [];
+	if (wanted.length > 0 && result.unplaced.length > 1) {
+		const rank = (name: string): number => {
+			const i = wanted.indexOf(name);
+			return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+		};
+		result.unplaced = result.unplaced.map((f, i) => ({ f, i })).sort((a, b) => rank(a.f.name) - rank(b.f.name) || a.i - b.i).map((x) => x.f);
+	}
+	return result;
 }
 
 /** Returns every archived chapter (filename + display title), scoped to `bookFolderName` if given, otherwise across all books. */
@@ -424,6 +435,13 @@ export function numberedChapterTitle(
 
 export function collectAllChapterIds(project: Project, bookFolderName: string): string[] {
 	return Object.values(readBookFrontmatter(project, bookFolderName)?.chapters ?? {}).map((entry) => entry.chapterId);
+}
+
+/** Persists the order of the *unplaced* chapters among themselves, as the author left them. */
+export async function writeBookUnplacedOrder(project: Project, bookFolderName: string, newOrder: string[]): Promise<void> {
+	await modifyBookFrontmatter(project, bookFolderName, (fm) => {
+		fm.unplaced = newOrder;
+	});
 }
 
 export async function writeBookChapterOrder(project: Project, bookFolderName: string, newOrder: string[]): Promise<void> {

@@ -7,10 +7,11 @@ describe("formatNumber", () => {
 		expect(formatNumber(42, "arabic", 100)).toBe("42");
 	});
 
-	it("pads arabic numerals to the sequence's own width", () => {
+	it("pads arabic numerals to two digits at least, and to the sequence's own width beyond that", () => {
 		// Width is derived from `total` (the highest position in the sequence), not the individual
-		// number being rendered — a 5-item sequence needs no padding at all (1 digit is enough).
-		expect(formatNumber(1, "arabic-padded", 5)).toBe("1");
+		// number being rendered, but never less than two digits: "01 02 03", as the dropdown shows it.
+		expect(formatNumber(1, "arabic-padded", 5)).toBe("01");
+		expect(formatNumber(9, "arabic-padded", 9)).toBe("09");
 		expect(formatNumber(1, "arabic-padded", 15)).toBe("01");
 		expect(formatNumber(5, "arabic-padded", 15)).toBe("05");
 		expect(formatNumber(3, "arabic-padded", 150)).toBe("003");
@@ -64,9 +65,7 @@ describe("formatNumber", () => {
 	});
 
 	it("has the expected sample dropdown label for every style", () => {
-		// arabic-padded's label is illustrative (what it looks like once a sequence reaches double
-		// digits), not a literal 5-item rendering — every other style's label is exactly what
-		// formatNumber(1..5, style, 5) produces, so it's asserted directly against that.
+		// Every style's label is exactly what formatNumber(1..5, style, 5) produces, so it's asserted directly against that.
 		expect(NUMBERING_STYLE_OPTIONS).toEqual({
 			arabic: "1 2 3 4 5",
 			"arabic-padded": "01 02 03 04 05",

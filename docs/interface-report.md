@@ -9,7 +9,7 @@ The editor, both faces, the screens around them and the Mac menus, in Everforest
 - **The editor** (CodeMirror 6, one per writing session): light prose dressing from 0.17.1, ⌘B and ⌘I, find and replace (⌘F, ⌥⌘F), spellcheck (the Mac's own language settings), a readable centred column, undo that survives saves and reloads, silent saving, reloads from disk applied as the minimal edit.
 - **The storytelling face:** the navigator (current novel, chapter selector, "add the next chapter"), the Codex tree (virtual folders, type icons, drag and keyboard reordering, set type, archive, new file and folder; clicking an entry opens it in the lore slot, clicking it again closes it) and the stats.
 - **The storyForge face:** codex, series, novel and archive tabs. The series title is renamed on the series tab; the harness's chapter tab is merged into the novel tab.
-- **The lore slot:** always there, blank when empty.
+- **The context panel** (the lore slot of the design): always there, blank when empty. Naming: the left panel is storytelling | library, the centre the workspace, the right the context (`docs/interface.md` §15).
 - **Screens:** start, New Project, the reconciliation summary (only when something happened), Codex renaming (name, plan, result), settings (⌘,), notices (transient and sticky).
 - **Menus:** storyForge, File (with Open Recent), Edit, View, Story, Window; items greyed out when they don't apply.
 - **A browser preview** and 99 WebKit tests.
@@ -83,6 +83,14 @@ See `docs/interface.md` §14. In short: the dressing scanners are unchanged; the
 - **H1** (the design): reviewed; the rulings are decision 26 in `docs/interface.md` §12.
 - **H2** (the storytelling face, in the built app): Kenny found it right apart from one thing — the lore slot must be there, blank, from the start. Fixed in the next commit and recorded in §12.
 - No hold was hit during the build: no core behaviour changed beyond the two approved additions, no new permission, no package beyond the approved ones, no cut feature came back.
+
+## After Kenny's first look (24 October 2026)
+
+- **Naming:** left panel *storytelling | library*, centre *workspace*, right *context* (`docs/interface.md` §15). The control is "Flip side"; the View menu says Flip Side and Show or Hide Context; the settings say "Opens in: storytelling / library".
+- **Library ▸ codex opens an entry in the workspace**, not the context panel; only storytelling opens entries in the context panel. Flipping back to storytelling puts the selected chapter back in the workspace.
+- **Padded numbering shows "01"** (two digits at least). This changes a kept module's behaviour (`formatNumber`), at Kenny's request, with its test.
+- **A chapter dropped into the unplaced list stays where it was dropped.** The order is saved in `unplaced:` (an existing 0.17 key) and followed on reading; new core function `writeBookUnplacedOrder`, with a core test and a disk-safety operation.
+- **Not yet done by Kenny:** the quit test (⌘Q and the red button, with unsaved text, then reopen).
 
 ## Things that went wrong, and what was learned
 

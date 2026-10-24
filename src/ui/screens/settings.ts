@@ -73,7 +73,7 @@ export function openSettings(model: AppModel): void {
 				),
 			]),
 			section("Interface", [
-				select("autoFocus", "Opens in", [["true", "storytelling"], ["false", "storyForge"]], (v) => v === "true"),
+				select("autoFocus", "Opens in", [["true", "storytelling"], ["false", "library"]], (v) => v === "true"),
 				check("highlightActiveChapter", "Highlight the active chapter"),
 				check("hideSeriesPane", "Hide the series pane (for one standalone book)"),
 			]),

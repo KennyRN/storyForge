@@ -77,7 +77,7 @@ export function mountStoryForgeFace(host: HTMLElement, model: AppModel): () => v
 		pane.setAttribute("aria-label", TABS.find((t) => t.id === tab)!.label);
 		const body = el("div", { class: "sf-forge-host" });
 		pane.append(body);
-		disposePane = tab === "codex" ? mountCodexTree(body, model, { header: true }) : tab === "series" ? mountSeriesTab(body, model) : tab === "novel" ? mountNovelTab(body, model) : mountArchiveTab(body, model);
+		disposePane = tab === "codex" ? mountCodexTree(body, model, { header: true, opensIn: "workspace" }) : tab === "series" ? mountSeriesTab(body, model) : tab === "novel" ? mountNovelTab(body, model) : mountArchiveTab(body, model);
 	};
 
 	drawRail();

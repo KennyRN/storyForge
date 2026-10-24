@@ -30,7 +30,7 @@ export interface Nav {
 	collapsedCodex: Set<string>;
 	leftWidth: number;
 	loreWidth: number;
-	/** View ▸ Show or Hide Lore Slot. */
+	/** View ▸ Show or Hide Context. */
 	loreHidden: boolean;
 }
 
@@ -135,7 +135,7 @@ export class AppModel {
 		this.touch("nav");
 	}
 
-	/** View ▸ Show or Hide Lore Slot. */
+	/** View ▸ Show or Hide Context. */
 	toggleLoreSlot(): void {
 		this.nav.loreHidden = !this.nav.loreHidden;
 		this.persistSoon();
@@ -146,6 +146,15 @@ export class AppModel {
 	flipFace(): void {
 		this.nav.face = this.nav.face === "storytelling" ? "storyforge" : "storytelling";
 		this.touch("face");
+		// The workspace of the storytelling side is the chapter: a Codex note opened there from the library gives way to it.
+		if (this.nav.face === "storytelling") void this.restoreChapter();
+	}
+
+	/** Puts the selected chapter back in the workspace if something else (a Codex note opened from the library) is there. */
+	async restoreChapter(): Promise<void> {
+		const path = this.currentChapterPath();
+		const shown = this.editors?.pathIn("centre");
+		if (path && this.running?.opened.project.entry(path) && shown !== this.canonical(path)) await this.editors?.open("centre", path);
 	}
 
 	setForgeTab(tab: ForgeTab): void {

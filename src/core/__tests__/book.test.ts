@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { fmFile, memoryProject } from "../../../test/helpers/memoryProject";
 import {
+	getBookChapters,
 	parseCodexRefs,
 	readBookFrontmatter,
 	rekeyChapterLocationReferences,
@@ -9,6 +10,7 @@ import {
 	writeChapterLocation,
 	writeChapterPlotThread,
 	writeChapterPov,
+	writeBookUnplacedOrder,
 	writeChapterTags,
 	writeNovelTags,
 } from "../book";
@@ -439,5 +441,33 @@ describe("chapter PoV and location lists", () => {
 		});
 		await rekeyChapterLocationReferences(project, "Codex/Harbour.md", "Codex/Port.md");
 		expect(readBookFrontmatter(project, BOOK)?.chapters["ch1.md"].location).toEqual([{ path: "Codex/Port.md", name: "Harbour" }]);
+	});
+});
+
+
+describe("the unplaced chapters keep the order they were left in", () => {
+	const files = (unplaced?: string[]) => ({
+		[`${LIBRARY_ROOT}/aaa/a.md`]: "A",
+		[`${LIBRARY_ROOT}/aaa/b.md`]: "B",
+		[`${LIBRARY_ROOT}/aaa/c.md`]: "C",
+		[`${LIBRARY_ROOT}/aaa/d.md`]: "D",
+		[bookFilePath("aaa")]: fmFile({ "chapter-order": ["a.md"], ...(unplaced ? { unplaced } : {}) }),
+	});
+
+	it("without a saved order they come in file order, as before", async () => {
+		const mp = await memoryProject(files());
+		expect(getBookChapters(mp.project, "aaa").unplaced.map((f) => f.name)).toEqual(["b.md", "c.md", "d.md"]);
+	});
+
+	it("follow `unplaced:`, with any it doesn't name after, in their old order", async () => {
+		const mp = await memoryProject(files(["d.md", "b.md"]));
+		expect(getBookChapters(mp.project, "aaa").unplaced.map((f) => f.name)).toEqual(["d.md", "b.md", "c.md"]);
+	});
+
+	it("writeBookUnplacedOrder saves the order, and only that key changes", async () => {
+		const mp = await memoryProject(files());
+		await writeBookUnplacedOrder(mp.project, "aaa", ["d.md", "c.md", "b.md"]);
+		expect(getBookChapters(mp.project, "aaa").unplaced.map((f) => f.name)).toEqual(["d.md", "c.md", "b.md"]);
+		expect(mp.fm(bookFilePath("aaa"))["chapter-order"]).toEqual(["a.md"]);
 	});
 });

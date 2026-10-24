@@ -15,9 +15,12 @@ let targetFolder: string | null = null;
 
 /**
  * The Codex tree (virtual folders, order, type icons, drag to reorder and nest, a context menu), shared by
- * the storytelling face's Codex pane and the storyForge face's codex tab. `highlight` is the lore slot's note.
+ * the storytelling side's Codex pane (entries open in the context panel) and the library's codex tab (entries open in the
+ * workspace). The highlighted row is the note shown where that mount opens them.
  */
-export function mountCodexTree(host: HTMLElement, model: AppModel, options: { header: boolean }): () => void {
+export function mountCodexTree(host: HTMLElement, model: AppModel, options: { header: boolean; opensIn: "context" | "workspace" }): () => void {
+	/** Storytelling: an entry opens in the context panel (a second click closes it). Library: it opens in the workspace. */
+	const openEntry = (path: string): void => void (options.opensIn === "workspace" ? model.editors?.open("centre", path) : model.toggleLore(path));
 	const tree = el("div", { class: "sf-codex-tree sf-scroll", attrs: { role: "tree", "aria-label": "Codex" } });
 
 	const run = async (what: string, action: () => Promise<unknown>): Promise<void> => {
@@ -68,7 +71,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 	};
 
 	function renderItems(container: HTMLElement, items: CodexTreeItem[], parentKey: string | null, depth: number, rows: CodexDragRowInfo[]): void {
-		const lorePath = model.editors?.pathIn("lore") ?? null;
+		const lorePath = model.editors?.pathIn(options.opensIn === "workspace" ? "centre" : "lore") ?? null;
 		for (const item of items) {
 			if (item.type === "folder") {
 				const collapsed = model.nav.collapsedCodex.has(item.id);
@@ -91,7 +94,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 					onClick: (target) => {
 						targetFolder = item.id;
 						model.select({ kind: "codex-folder", id: item.id, ...(item.path ? { path: item.path } : {}) });
-						if (item.path && !toggle.contains(target as Node)) void model.toggleLore(item.path);
+						if (item.path && !toggle.contains(target as Node)) openEntry(item.path);
 						else model.toggleCodexFolder(item.id);
 					},
 				});
@@ -125,7 +128,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 					parentKey,
 					onClick: () => {
 						model.select({ kind: "codex-note", path: item.path });
-						void model.toggleLore(item.path);
+						openEntry(item.path);
 					},
 				});
 				if (!readOnly()) {
@@ -148,7 +151,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 		void run("create the note", async () => {
 			const entry = await createCodexNote(project(), validTarget(model), {});
 			model.touch("codex");
-			await model.toggleLore(entry.path);
+			openEntry(entry.path);
 		});
 	const createFolder = (): void => void run("create the folder", () => createCodexFolder(project(), validTarget(model)));
 

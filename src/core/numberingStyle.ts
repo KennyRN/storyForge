@@ -166,7 +166,8 @@ export function formatNumber(n: number, style: NumberingStyle, total: number): s
 		case "arabic":
 			return String(n);
 		case "arabic-padded":
-			return String(n).padStart(String(total).length, "0");
+			// At least two digits ("01 02 03", as the dropdown shows it), more once the sequence needs them. 0.17.1 padded only to the sequence's own width, so a book of nine showed "1"; Kenny asked for "01".
+			return String(n).padStart(Math.max(2, String(total).length), "0");
 		case "roman-upper":
 			return toRoman(n);
 		case "roman-lower":

@@ -340,8 +340,8 @@ fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         "View",
         true,
         &[
-            &item(app, "flip-face", "Flip Face", Some("CmdOrCtrl+\\"))?,
-            &item(app, "toggle-lore", "Show or Hide Lore Slot", Some("Alt+CmdOrCtrl+\\"))?,
+            &item(app, "flip-face", "Flip Side", Some("CmdOrCtrl+\\"))?,
+            &item(app, "toggle-lore", "Show or Hide Context", Some("Alt+CmdOrCtrl+\\"))?,
         ],
     )?;
     // The diagnostic page exists only in development builds: this item is compiled out of a release.

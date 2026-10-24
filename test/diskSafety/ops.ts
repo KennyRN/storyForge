@@ -6,7 +6,7 @@ import type { OpSpec, Ctx } from "../helpers/diskSafety";
 import {
 	archiveChapter, createBook, createChapter, ensureAllChapterEntries, insertChapterEntry, removeChapterEntry, readBookFrontmatter, renameBookTitle, renameChapterEntry, renameChapterTitle,
 	rekeyChapterLocationReferences, rekeyChapterPovReferences, reorderSeriesBooks, syncAllBookReferenceFields, unarchiveChapter,
-	upsertChapterEntry, writeBookArchiveOrder, writeBookChapterOrder, writeBookCoverImage, writeBookPlannedChapterLength,
+	upsertChapterEntry, writeBookArchiveOrder, writeBookChapterOrder, writeBookUnplacedOrder, writeBookCoverImage, writeBookPlannedChapterLength,
 	writeBookPlannedNovelLength, writeBookSynopsis, writeChapterColor, writeChapterLocation, writeChapterPlot, writeChapterPlotThread,
 	writeChapterPov, writeChapterTags, writeDefaultPov, writeDialogueQuotes, writeNovelTags,
 } from "../../src/core/book";
@@ -107,6 +107,8 @@ export const OPS: OpSpec[] = [
 
 	// ------------------------------------------------------------------------ novel-<code>.md
 	{ name: "writeBookChapterOrder", run: (c) => writeBookChapterOrder(c.project, "aaa", ["ch-a2.md", "ch-a1.md", "ch-a5.md"]), changed: { [N]: fm(["chapter-order"]) } },
+	{ name: "writeBookUnplacedOrder", run: (c) => writeBookUnplacedOrder(c.project, "aaa", ["ch-a3.md", "ch-a9.md"]), changed: { [N]: fm(["unplaced"]) } },
+	{ name: "writeBookUnplacedOrder (unchanged)", run: (c) => writeBookUnplacedOrder(c.project, "aaa", ["ch-a3.md"]) },
 	{ name: "writeBookChapterOrder (unchanged)", run: (c) => writeBookChapterOrder(c.project, "aaa", ["ch-a1.md", "ch-a2.md", "ch-a5.md"]) },
 	{ name: "writeBookPlannedNovelLength", run: (c) => writeBookPlannedNovelLength(c.project, "aaa", 90000), changed: { [N]: fm(["planned-novel-length"]) } },
 	{ name: "writeBookPlannedNovelLength (clear)", run: (c) => writeBookPlannedNovelLength(c.project, "aaa", null), changed: { [N]: fm(["planned-novel-length"]) } },

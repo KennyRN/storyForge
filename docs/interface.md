@@ -369,3 +369,20 @@ What changed between the H1 design and the code, and why. Nothing here changes a
 | `dragReorderTree.ts`, `dragLock.ts`, `a11y.ts`, `codexOpenTarget.ts` | `main` | Used as they are. |
 | `inkSlider.ts` | `main` | Used as it is; its CSS is in `kit.css` with the accent from the purposes, and reduced motion zeroes `--ink-duration`. |
 | `layout.ts` | `main` | `hybrid` removed (decision 26). A stored `hybrid`, `codexFocus` or unknown value reads as no choice, so the default (the novel tab) applies; nothing is rewritten. |
+
+## 15. Naming, and changes after Kenny's first look (24 October 2026)
+
+**The panels are named** (use these words in the interface, the docs and conversation):
+
+| Panel | Name | What it is |
+|---|---|---|
+| Left | **storytelling \| library** | One flip-sided panel. **Storytelling** is the side the app opens on: navigator, Codex, stats. **Library** is the flip side: the codex, series, novel and archive tabs, for managing the library. |
+| Centre | **workspace** | Where the chapter is written. |
+| Right | **context** | The panel beside the workspace: a Codex entry opened from the storytelling side. Always there, blank when empty. |
+
+Where this document says "face" it means a side of the left panel; "the storyForge face" is the library, "the lore slot" is the context panel. In the interface: the control is **Flip side**, the settings say "Opens in: storytelling / library", and the View menu has **Flip Side** and **Show or Hide Context**. The code keeps its own names (`face`, `storyforge`, `lore`).
+
+**Rulings from the first look:**
+- In the library's codex tab, clicking an entry opens it in the **workspace**, not the context panel; only on the storytelling side does an entry open in the context panel. Flipping back to storytelling puts the selected chapter back in the workspace. The archive tab's Codex items open in the workspace too.
+- **Padded numbering is two digits at least** ("01 02 03", as the dropdown shows it), wider once the sequence needs it. 0.17.1 padded only to the sequence's own width, so a book of nine showed "1"; this is a deliberate change to `formatNumber`, with its test.
+- **A chapter dropped into the unplaced list stays where it was dropped.** The unplaced chapters are ordered by `unplaced:` in the novel file (the 0.17 key already there); `writeBookUnplacedOrder` saves it, `getBookChapters` follows it, and any chapter the list doesn't name follows in its old order. Covered by a core test and the disk-safety suite.

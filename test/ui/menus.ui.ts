@@ -87,7 +87,7 @@ test.describe("the menus", () => {
 
 	test("Undo and Redo also work in a rename field", async ({ page }) => {
 		await openProject(page);
-		await page.getByRole("button", { name: "Flip face" }).click();
+		await page.getByRole("button", { name: "Flip side" }).click();
 		await page.locator(".sf-row", { hasText: "Chapter 1" }).click({ button: "right" });
 		await page.getByRole("menuitem", { name: "Rename" }).click();
 		const input = page.getByLabel("Name");
@@ -96,7 +96,7 @@ test.describe("the menus", () => {
 		await expect(input).not.toHaveValue("Typed into the field");
 	});
 
-	test("View: Flip Face and Show or Hide Lore Slot", async ({ page }) => {
+	test("View: Flip Side and Show or Hide Context", async ({ page }) => {
 		await openProject(page);
 		await expect(page.locator(".sf-slot--lore")).toBeVisible();
 		await menu(page, "toggle-lore");
@@ -174,6 +174,14 @@ test.describe("settings", () => {
 		expect(await onDisk(page, PROJECT_MD)).toBe(before);
 	});
 
+	test("padded numbering shows 01, 02 as the dropdown says", async ({ page }) => {
+		await openProject(page);
+		await menu(page, "settings");
+		await dialog(page).getByLabel("Chapter numbering").selectOption("arabic-padded");
+		await dialog(page).getByRole("button", { name: "Done" }).click();
+		await expect(page.locator(".sf-nav-current-title")).toHaveText("Chapter 01");
+	});
+
 	test("the interface settings take effect: hide the series pane, highlighting, the face the app opens in", async ({ page }) => {
 		await openProject(page);
 		await menu(page, "settings");
@@ -181,13 +189,13 @@ test.describe("settings", () => {
 		await d.getByLabel("Hide the series pane").check();
 		await d.getByLabel("Opens in").selectOption("false");
 		await d.getByRole("button", { name: "Done" }).click();
-		await page.getByRole("button", { name: "Flip face" }).click();
+		await page.getByRole("button", { name: "Flip side" }).click();
 		await expect(page.getByRole("tab")).toHaveCount(3);
 		await expect(page.getByRole("tab", { name: "series" })).toHaveCount(0);
 		await page.reload();
 		await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
 		await page.locator("[data-recent='0']").click();
-		await expect(page.getByRole("tablist")).toBeVisible(); // opens on the storyForge face now
+		await expect(page.getByRole("tablist")).toBeVisible(); // opens on the library now
 		const text = await onDisk(page, PROJECT_MD);
 		expect(text).toContain("auto-focus: false");
 		expect(text).toContain("hide-series-pane: true");

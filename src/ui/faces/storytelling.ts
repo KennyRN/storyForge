@@ -11,6 +11,6 @@ export function mountStorytellingFace(host: HTMLElement, model: AppModel): () =>
 	const stats = el("section", { attrs: { "aria-label": "Stats" } });
 	fill(host, navigator, codex, stats);
 	host.classList.add("sf-face", "sf-face--storytelling");
-	const offs = [mountNavigator(navigator, model), mountCodexTree(codex, model, { header: true }), mountStats(stats, model)];
+	const offs = [mountNavigator(navigator, model), mountCodexTree(codex, model, { header: true, opensIn: "context" }), mountStats(stats, model)];
 	return () => offs.forEach((off) => off());
 }

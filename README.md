@@ -10,7 +10,7 @@ The plan for the app lives in the project's decisions document.
 
 ## The desktop app (macOS)
 
-storyForge is a Tauri 2 app (macOS first). The window runs the TypeScript core; a small Rust side owns the disk, checks every write against the same guard table as the TypeScript core (`test/guard-spec/guard.json`), and watches the folder for changes made elsewhere (Obsidian, Finder, a sync service). The interface is plain TypeScript and DOM (no UI framework), in Everforest Soft Dark: a CodeMirror editor, the storytelling face (navigator, Codex, stats, lore slot) and the storyForge face (codex, series, novel and archive tabs), with the Mac menus. The app makes no network requests, and the window has no file-system, shell or network permission of its own.
+storyForge is a Tauri 2 app (macOS first). The window runs the TypeScript core; a small Rust side owns the disk, checks every write against the same guard table as the TypeScript core (`test/guard-spec/guard.json`), and watches the folder for changes made elsewhere (Obsidian, Finder, a sync service). The interface is plain TypeScript and DOM (no UI framework), in Everforest Soft Dark: a CodeMirror editor, the left panel's two sides, storytelling (navigator, Codex, stats) and library (codex, series, novel and archive tabs), the workspace in the middle and the context panel on the right, with the Mac menus. The app makes no network requests, and the window has no file-system, shell or network permission of its own.
 
 ### Trying the interface without the app
 
