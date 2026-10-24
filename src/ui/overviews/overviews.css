@@ -5,3 +5,15 @@
 .sf-bar-over { position: absolute; top: 0; bottom: 0; background: var(--purpose-data-overrun); }
 .sf-bar-notch { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--purpose-bar-notch); }
 .sf-bar-marker { position: absolute; top: 0; bottom: 0; margin-left: -1px; height: 100%; stroke: var(--purpose-text); }
+
+/* The layer over the workspace. */
+.sf-overview { position: absolute; inset: 0; overflow: auto; background: var(--purpose-editor-bg); color: var(--purpose-text); }
+.sf-overview-body { padding: 24px 32px; max-width: 880px; }
+.sf-overview-title { font-size: 20px; font-weight: 600; margin: 0 0 20px; }
+.sf-overview-sub { font-size: 13px; font-weight: 600; color: var(--purpose-text-muted); margin: 24px 0 8px; }
+.sf-overview-list { display: flex; flex-direction: column; gap: 14px; }
+.sf-overview-row { display: flex; flex-direction: column; gap: 6px; }
+.sf-overview-name { all: unset; cursor: pointer; font-size: 14px; border-radius: 3px; }
+.sf-overview-name:hover { color: var(--purpose-accent); }
+.sf-overview-name:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 2px; }
+.sf-overview-row--unplaced .sf-overview-name { color: var(--purpose-text-muted); }

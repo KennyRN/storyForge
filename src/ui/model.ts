@@ -17,12 +17,16 @@ import type { EditorHost } from "./editor/editorHost";
 export type Topic = "project" | "library" | "codex" | "archive" | "stats" | "settings" | "face" | "notices" | "nav";
 
 export type Face = "storytelling" | "storyforge";
+/** What the workspace shows on the storyForge face: the open chapter, or the overview of the selected tab. */
+export type CentreView = "chapter" | "overview";
 export type ForgeTab = "codex" | "series" | "novel" | "archive";
 
 /** Where the author is: the face, the storyForge tab, the selected novel and chapter, and the layout of the panels. */
 export interface Nav {
 	face: Face;
 	forgeTab: ForgeTab;
+	/** Not persisted: the app opens on the chapter. */
+	centreView: CentreView;
 	/** The selected novel's folder name. */
 	book: string | null;
 	/** The selected chapter's filename. */
@@ -53,7 +57,7 @@ export class AppModel {
 	readonly notices = new NoticeCenter();
 	/** Set by the shell once the slots exist. */
 	editors: EditorHost | null = null;
-	nav: Nav = { face: "storytelling", forgeTab: "novel", book: null, chapter: null, collapsedCodex: new Set(), leftWidth: DEFAULT_LEFT_WIDTH, loreWidth: DEFAULT_LORE_WIDTH, loreHidden: false };
+	nav: Nav = { face: "storytelling", forgeTab: "novel", centreView: "chapter", book: null, chapter: null, collapsedCodex: new Set(), leftWidth: DEFAULT_LEFT_WIDTH, loreWidth: DEFAULT_LORE_WIDTH, loreHidden: false };
 	selection: Selection | null = null;
 	private persistTimer: ReturnType<typeof setTimeout> | undefined;
 	private listeners = new Map<Topic, Set<() => void>>();
@@ -90,6 +94,7 @@ export class AppModel {
 		this.nav = {
 			face: settings.autoFocus ? "storytelling" : "storyforge",
 			forgeTab: settings.layout === "codex" ? "codex" : settings.layout === "seriesBrowse" ? "series" : "novel",
+			centreView: "chapter",
 			book,
 			chapter,
 			collapsedCodex: new Set(machine.collapsedCodexFolderIds),
@@ -113,6 +118,8 @@ export class AppModel {
 		this.touch("nav", "stats", "library", "face");
 		const path = this.currentChapterPath();
 		if (path) await this.editors?.open("centre", path);
+		// Choosing a novel shows its overview, not its chapter (the chapter stays open underneath).
+		this.setCentreView("overview");
 	}
 
 	/** File ▸ New Chapter, and the navigator's "add the next chapter": a chapter after the current one, opened. */
@@ -144,10 +151,26 @@ export class AppModel {
 
 	/** Moves between the faces. */
 	flipFace(): void {
+		// The storytelling face always shows the chapter; flipping back restores what the centre showed on leaving.
+		if (this.nav.face === "storyforge") this.forgeCentreView = this.nav.centreView;
+		else this.nav.centreView = this.forgeCentreView;
 		this.nav.face = this.nav.face === "storytelling" ? "storyforge" : "storytelling";
 		this.touch("face");
 		// The workspace of the storytelling side is the chapter: a Codex note opened there from the library gives way to it.
 		if (this.nav.face === "storytelling") void this.restoreChapter();
+	}
+
+	private forgeCentreView: CentreView = "chapter";
+
+	setCentreView(view: CentreView): void {
+		if (this.nav.centreView === view) return;
+		this.nav.centreView = view;
+		this.touch("nav");
+	}
+
+	/** True while an overview covers the workspace (the editor underneath is inert). */
+	get centreCovered(): boolean {
+		return this.nav.face === "storyforge" && this.nav.centreView === "overview" && (this.nav.forgeTab === "series");
 	}
 
 	/** Puts the selected chapter back in the workspace if something else (a Codex note opened from the library) is there. */
@@ -174,6 +197,7 @@ export class AppModel {
 		this.nav.chapter = filename;
 		this.select({ kind: "chapter", book, filename });
 		this.persistSoon();
+		this.setCentreView("chapter");
 		this.touch("nav", "stats");
 		await this.editors?.open("centre", libraryChapterPath(book, filename));
 	}

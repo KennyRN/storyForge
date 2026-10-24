@@ -79,6 +79,7 @@ export class EditorHost {
 		return f ? redo(f.view) : false;
 	}
 	find(replace = false): void {
+		if (this.model.centreCovered && !this.focused()) return;
 		const f = this.focused() ?? this.slots.centre.occupant?.mounted ?? null;
 		if (!f) return;
 		(replace ? openFindReplace : openFind)(f.view);
@@ -86,6 +87,7 @@ export class EditorHost {
 
 	/** Opens `path` in `slot`, or focuses the editor that already has it. */
 	async open(slot: Slot, path: string): Promise<void> {
+		if (slot === "centre") this.model.setCentreView("chapter");
 		const have = this.where(path);
 		if (have) {
 			this.focus(have);
