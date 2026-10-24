@@ -5,7 +5,7 @@
  * file code (sf-bridge) over a temporary copy of a synthetic fixture, with the window-only commands
  * (the picker, the watcher, quitting) scripted as in the tests' FakeHost.
  */
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -119,6 +119,14 @@ export function previewHostPlugin(): Plugin {
 							const target = path.join(root, String(body.path));
 							mkdirSync(path.dirname(target), { recursive: true });
 							writeFileSync(target, String(body.text));
+							return send(res, 200, null);
+						}
+						case "/__preview/rename": {
+							const root = host.current?.root ?? projectRoot;
+							if (!root) throw new Error("no project");
+							const to = path.join(root, String(body.to));
+							mkdirSync(path.dirname(to), { recursive: true });
+							renameSync(path.join(root, String(body.from)), to);
 							return send(res, 200, null);
 						}
 						case "/__preview/read": {

@@ -8,6 +8,7 @@ import { icon } from "../kit/icons";
 import { attachInlineRename } from "../kit/inlineRename";
 import { menuPoint, showMenu, type MenuItem } from "../kit/menu";
 import type { AppModel } from "../model";
+import { openRenameCodex } from "../screens/renameCodex";
 
 /** The folder new notes and folders go into: the last folder the author clicked, if it still exists. */
 let targetFolder: string | null = null;
@@ -94,6 +95,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 					},
 				});
 				const items2: MenuItem[] = [
+					...(item.path ? [{ label: "Rename…", onSelect: () => openRenameCodex(model, item.path!) }] : []),
 					...(item.path ? [{ label: "Set type…", onSelect: () => showMenu(typeMenu(item.path!), { x: header.getBoundingClientRect().left + 24, y: header.getBoundingClientRect().bottom }) }] : []),
 					{ label: "Archive Entire Folder", onSelect: () => void run("archive the folder", () => archiveCodexItem(project(), item.id)) },
 					{ label: "Remove Folder and Keep Items", onSelect: () => void run("remove the folder", () => removeCodexFolder(project(), item.id)) },
@@ -120,6 +122,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 				if (!readOnly()) {
 					rowMenu(
 						[
+							{ label: "Rename…", onSelect: () => openRenameCodex(model, item.path) },
 							{ label: "Set type…", onSelect: () => showMenu(typeMenu(item.path), { x: row.getBoundingClientRect().left + 24, y: row.getBoundingClientRect().bottom }) },
 							{ label: "Archive", onSelect: () => void run("archive the note", () => archiveCodexItem(project(), item.path)) },
 							{ label: "Convert to folder", onSelect: () => void run("convert the note to a folder", () => convertCodexNoteToFolder(project(), item.path)) },

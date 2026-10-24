@@ -13,6 +13,8 @@ export interface PreviewApi {
 	pick(mode: "project" | "cancel" | "empty"): Promise<void>;
 	/** Writes a file in the preview's temporary copy of the project, as another editor would. */
 	touch(path: string, text: string): Promise<void>;
+	/** Moves a file in the preview's temporary copy, as another program would (for changes made while the app was closed). */
+	rename(from: string, to: string): Promise<void>;
 	read(path: string): Promise<string>;
 	root(): Promise<string | null>;
 }
@@ -35,6 +37,7 @@ export function createPreviewHost(): Host & { api: PreviewApi } {
 		reset: (options) => post("/__preview/reset", options) as Promise<{ root: string }>,
 		pick: async (mode) => void (await post("/__preview/pick", { mode })),
 		touch: async (path, text) => void (await post("/__preview/touch", { path, text })),
+		rename: async (from, to) => void (await post("/__preview/rename", { from, to })),
 		read: (path) => post("/__preview/read", { path }) as Promise<string>,
 		root: () => post("/__preview/root", {}) as Promise<string | null>,
 	};
