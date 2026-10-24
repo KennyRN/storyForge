@@ -122,7 +122,7 @@ All through purposes in `purposes.css`; nothing outside `src/ui/theme/` names a 
 | `--purpose-data-fill` | blue (exists) | bar fill, heatmap top step |
 | `--purpose-data-overrun` | orange (exists) | bar past its marker only |
 | `--purpose-bar-track` | `bg2` | the bar's background, the empty heatmap cell |
-| `--purpose-heat-1` … `--purpose-heat-4` | `bg2` blended towards `blue` in quarters | heatmap steps |
+| `--purpose-heat-a` … `--purpose-heat-d` | `bg2` blended towards `blue` in quarters | heatmap steps |
 | `--purpose-heat-loss` | `bg4` | net-loss days |
 | `--purpose-guide` | `grey0` | structure strip marks, target marker outline |
 | `--purpose-guide-faint` | `bg3` | ghost dividers |
@@ -156,3 +156,17 @@ As Brief §5, in the WebKit preview, plus:
 - pure tests for the heat bucketing and the bar state table (§5)
 - a disk test: open each overview and the history view against a fixture and assert the project folder is byte-identical afterwards
 - a live-refresh test: type, wait for the save, assert the bar changed and the caret did not move
+
+## 11. H1 rulings (decision 28)
+
+1. **Planned-length fields in both places.** One component, reading the index and writing through the same data-layer function. An edit commits on blur or Return, not per keystroke. The other copy updates without taking focus.
+2. **Plot-note tooltips.** `readChapterPlot` (`src/core/book.ts`) already exists, so no core change should be needed. Read lazily on first hover, cached until the next index change. The word count shows at once; the note joins it when the read finishes. If a core change turns out to be needed, hold.
+3. **"Close enough" rule** (from `renderDataBar` at `5699284`): the word count is rounded to the target's significant figures (1,493 against 1,500 gives 1,500).
+   - equal after rounding: plain fill, no marker, no overrun
+   - over: blue up to the target, orange from the target to the word count
+   - under: blue up to the word count, plus the dashed marker (2 px wide, round caps, 3 px dashes, 3 px gaps)
+   - no words: 3 px sliver, no marker
+   - no target: plain fill
+4. **Marker colour.** Short of the target, the dashed marker is drawn in `fg` (about 5:1 on the track). Past the target, the blue/orange boundary gets a 2 px notch in `bg_dim` (about 6:1 on both), because `fg` is about 1.3:1 on blue and orange. This supersedes §5 and §7 on marker colour. Purposes: `--purpose-bar-notch`; the dashed marker uses `--purpose-text`.
+5. **Four heatmap steps.** 0.17.1's `heatClass`. A day with no writing is an empty cell, not step 1. Each step is the day's share of the largest absolute day or week in the range, rounded up; days and weeks share one scale. Net-loss days also get four steps, in neutral greys (`--purpose-heat-loss-a` to `-d`), never red. This supersedes the single loss purpose in §7.
+6. **Overview layer over the mounted editor.** While the overview covers the editor it is inert: it can't take focus, it is hidden from screen readers (`inert`), and Find, ⌘B, ⌘I and Undo don't act on it. Saving carries on underneath.

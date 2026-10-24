@@ -1,0 +1,7 @@
+/* Bars: the data bar and its parts. Colours by purpose only. */
+.sf-bar { position: relative; height: 12px; border-radius: 3px; background: var(--purpose-bar-track); overflow: hidden; }
+.sf-bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--purpose-data-fill); }
+.sf-bar--sliver::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--purpose-data-fill); }
+.sf-bar-over { position: absolute; top: 0; bottom: 0; background: var(--purpose-data-overrun); }
+.sf-bar-notch { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--purpose-bar-notch); }
+.sf-bar-marker { position: absolute; top: 0; bottom: 0; margin-left: -1px; height: 100%; stroke: var(--purpose-text); }
