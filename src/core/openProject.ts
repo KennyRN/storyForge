@@ -22,6 +22,7 @@ import {
 	syncAllBookReferenceFields,
 	writeBookChapterOrder,
 } from "./book";
+import { planCodexRename, renameCodexNote, type LinkRewritePlan, type LinkRewriteResult } from "./linkRewriter";
 import { LIBRARY_ROOT, CODEX_ROOT, NOTES_ROOT } from "./paths";
 import { type BackupOutcome, ProseWriter, type ProseWriterOptions, type SaveResult } from "./proseWriter";
 import { Project } from "./project";
@@ -87,6 +88,14 @@ export interface OpenedProject {
 	snapshots: SnapshotKeeper | null;
 	/** What reconciliation at open matched, pruned, added and left alone. */
 	reconciliation: ReconcileSummary;
+	/**
+	 * Renaming a Codex note updates the links to it (decision 10). This is the front door to the link rewriter: `plan` reads only and
+	 * says what would change; `apply` flushes open editors, makes the backup, renames and rewrites (decision 19).
+	 */
+	renameNote: {
+		plan(notePath: string, newName: string): Promise<LinkRewritePlan>;
+		apply(notePath: string, newName: string): Promise<LinkRewriteResult>;
+	};
 	/** Opened without writing (a newer project format). */
 	readOnly: boolean;
 	/** Why the snapshot could not be saved at open, if it could not. */
@@ -164,6 +173,10 @@ export async function openProject(root: string, options: OpenProjectOptions): Pr
 			backups,
 			snapshots,
 			reconciliation,
+			renameNote: {
+				plan: (notePath, newName) => planCodexRename(project, notePath, newName),
+				apply: (notePath, newName) => renameCodexNote(project, notePath, newName, { backups, writer }),
+			},
 			readOnly,
 			...(snapshotSaveError ? { snapshotSaveError } : {}),
 			async close(closeOptions) {

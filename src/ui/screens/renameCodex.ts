@@ -1,4 +1,4 @@
-import { planCodexRename, renameCodexNote, type LinkRewritePlan, type LinkRewriteResult } from "../../core/linkRewriter";
+import type { LinkRewritePlan, LinkRewriteResult } from "../../core/linkRewriter";
 import { button } from "../kit/button";
 import { openDialog, type OpenDialog } from "../kit/dialog";
 import { el, fill } from "../kit/dom";
@@ -28,7 +28,6 @@ export function openRenameCodex(model: AppModel, notePath: string): void {
 	const running = model.running;
 	if (!running) return;
 	if (running.readOnlyReason) return void model.notices.notify({ text: "This project is open read-only, so nothing can be renamed." });
-	const project = running.opened.project;
 	const current = baseName(notePath);
 
 	const input = el("input", { class: "sf-field", attrs: { type: "text", "aria-label": "New name", spellcheck: "false" } });
@@ -57,7 +56,7 @@ export function openRenameCodex(model: AppModel, notePath: string): void {
 	const showPlan = async (): Promise<void> => {
 		let plan: LinkRewritePlan;
 		try {
-			plan = await planCodexRename(project, notePath, input.value);
+			plan = await running.opened.renameNote.plan(notePath, input.value);
 		} catch (e) {
 			problem.textContent = (e as Error).message;
 			return;
@@ -91,7 +90,7 @@ export function openRenameCodex(model: AppModel, notePath: string): void {
 		if (slot) await editors?.close(slot); // the note's own editor: saved and closed before the file moves
 		let result: LinkRewriteResult;
 		try {
-			result = await model.controller.runRewrite(() => renameCodexNote(project, notePath, input.value, { backups: running.opened.backups, writer: running.opened.writer }));
+			result = await model.controller.runRewrite(() => running.opened.renameNote.apply(notePath, input.value));
 		} catch (e) {
 			return showResult(plan, undefined, e as Error);
 		}
