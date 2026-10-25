@@ -2,6 +2,7 @@ import { chapterDisplayTitle, getBookChapters } from "../../../core/book";
 import { dayNetsFromStats, defaultHeatmapRange, getBookWordStats, getProjectWordStats, weekNetsFromDayNets, type BookWordStats, type ProjectWordStats } from "../../../core/history";
 import { todayISOInEngland } from "../../../core/historyMath";
 import { libraryChapterPath } from "../../../core/paths";
+import { applyHashNumbering } from "../../../core/titleNumbering";
 import { formatWordCount } from "../../../core/wordCount";
 import { el, fill } from "../../kit/dom";
 import { openDialog } from "../../kit/dialog";
@@ -57,10 +58,13 @@ export function openHistoryDialog(model: AppModel): void {
 				const rows = Object.entries(entry?.chapters ?? {}).filter(([, n]) => n !== 0);
 				const detail = el("div", { class: "sf-history-day", attrs: { "aria-live": "polite" } }, el("h3", { class: "sf-overview-sub", text: dayLabel(selected, entry?.net ?? 0) }));
 				if (rows.length === 0) detail.append(el("div", { class: "sf-muted", text: "No chapter changed that day." }));
-				const live = new Set(getBookChapters(project, book).ordered.map((c) => c.name));
+				const chapters = getBookChapters(project, book);
+				const names = [...chapters.ordered, ...chapters.unplaced].map((c) => c.name);
+				const numbered = applyHashNumbering(names.map((f) => chapterDisplayTitle(project, book, f)), model.running?.settings.values.chapterNumberingStyle ?? "none");
+				const live = new Set(chapters.ordered.map((c) => c.name));
 				for (const [file, n] of rows) {
 					const exists = live.has(file) || project.exists(libraryChapterPath(book, file));
-					detail.append(el("div", { class: "sf-history-chapter" }, el("span", { class: exists ? "" : "sf-muted", text: exists ? chapterDisplayTitle(project, book, file) : file }), el("span", { text: netLabel(n) })));
+					detail.append(el("div", { class: "sf-history-chapter" }, el("span", { class: exists ? "" : "sf-muted", text: exists ? (names.includes(file) ? numbered[names.indexOf(file)] : chapterDisplayTitle(project, book, file)) : file }), el("span", { text: netLabel(n) })));
 				}
 				parts.push(detail);
 			}

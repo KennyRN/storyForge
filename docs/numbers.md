@@ -170,3 +170,13 @@ As Brief §5, in the WebKit preview, plus:
 4. **Marker colour.** Short of the target, the dashed marker is drawn in `fg` (about 5:1 on the track). Past the target, the blue/orange boundary gets a 2 px notch in `bg_dim` (about 6:1 on both), because `fg` is about 1.3:1 on blue and orange. This supersedes §5 and §7 on marker colour. Purposes: `--purpose-bar-notch`; the dashed marker uses `--purpose-text`.
 5. **Four heatmap steps.** 0.17.1's `heatClass`. A day with no writing is an empty cell, not step 1. Each step is the day's share of the largest absolute day or week in the range, rounded up; days and weeks share one scale. Net-loss days also get four steps, in neutral greys (`--purpose-heat-loss-a` to `-d`), never red. This supersedes the single loss purpose in §7.
 6. **Overview layer over the mounted editor.** While the overview covers the editor it is inert: it can't take focus, it is hidden from screen readers (`inert`), and Find, ⌘B, ⌘I and Undo don't act on it. Saving carries on underneath.
+
+## 12. As built
+
+- The layer is `src/ui/overviews/layer.ts`, mounted by the shell beside the editor slot in a `sf-centre-wrap`. `Nav.centreView` and `AppModel.centreCovered` say when it shows; `EditorHost.open` into the centre, `openChapter` and flipping to storytelling put the chapter back; the storyForge face remembers what the centre showed when it was left. The app opens on the chapter, so an overview appears after the author selects the series or novel tab.
+- Heat steps are named `heat-a` to `heat-d` and `heat-loss-a` to `heat-loss-d` (the purposes test reads purpose names as letters and hyphens only). `bg4` joined the palette file.
+- The target marker sits inside the bar's edge at 99% or more, so it is never half clipped.
+- Titles in the overviews and the history breakdown use the same hash numbering as the left panel.
+- The novel overview's bars scale against the longest chapter or the planned chapter length, whichever is larger; segments of the progress bar open their chapter.
+- The overview's planned-length fields use the left panel's click-to-edit field (one component, `lengthFields.ts`); a redraw is skipped while one is being edited.
+- Tests: `test/ui/overviews.ui.ts`; unit tests `bars`, `heatmap` and `refresh` in `src/ui/__tests__/`.

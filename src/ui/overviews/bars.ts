@@ -55,6 +55,8 @@ function marker(percent: number): SVGSVGElement {
 	svg.setAttribute("height", "100%");
 	svg.setAttribute("aria-hidden", "true");
 	svg.style.left = `${percent}%`;
+	// At the very end of the bar the marker would be half clipped: draw it inside the edge.
+	if (percent >= 99) svg.style.marginLeft = "-2px";
 	const line = document.createElementNS(SVG, "line");
 	for (const [k, v] of Object.entries({ x1: "1", x2: "1", y1: "0", y2: "100%", "stroke-width": "2", "stroke-linecap": "round", "stroke-dasharray": "3 3" })) line.setAttribute(k, v);
 	svg.append(line);

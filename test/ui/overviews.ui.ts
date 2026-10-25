@@ -99,6 +99,7 @@ test.describe("the novel overview", () => {
 		expect(withWords).toBeGreaterThan(0);
 		expect(await o.locator(".sf-progress-ghost").count()).toBeGreaterThan(0);
 		await expect(o.locator(".sf-structure-mark")).toHaveCount(7);
+		await expect(o.getByRole("heading", { level: 2 })).toContainText("Book 1:");
 		await shot(page, "numbers-novel-overview");
 	});
 
@@ -159,6 +160,7 @@ test.describe("the history view", () => {
 		await dialog.getByRole("gridcell", { name: /Tuesday 20 October/ }).click();
 		await expect(dialog.locator(".sf-history-chapter")).toHaveCount(1);
 		await expect(dialog.locator(".sf-history-chapter")).toContainText("25");
+		await expect(dialog.locator(".sf-history-chapter")).toContainText("Chapter 1");
 		await shot(page, "numbers-history");
 	});
 

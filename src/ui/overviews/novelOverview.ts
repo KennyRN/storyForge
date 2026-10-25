@@ -1,7 +1,7 @@
 import { chapterDisplayTitle, getBookChapters, readBookFrontmatter, readChapterPlot, writeBookPlannedChapterLength, writeBookPlannedNovelLength } from "../../core/book";
 import { computeGhostChapterDividerPercents, computeNovelLengthBarLayout, STRUCTURE_GUIDELINE_PERCENTS } from "../../core/novelLengthBar";
 import { libraryChapterPath } from "../../core/paths";
-import { bookDisplayTitle } from "../../core/series";
+import { bookDisplayTitle, getSeriesBooks } from "../../core/series";
 import { plotCardTooltip } from "../../core/plotCardTier";
 import { applyHashNumbering } from "../../core/titleNumbering";
 import { formatWordCount } from "../../core/wordCount";
@@ -38,6 +38,13 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 		const plannedChapter = fm?.plannedChapterLength ?? null;
 		const run = (write: () => Promise<void>): void => void model.guard(async () => (await write(), model.touch("library", "nav")), "save the length");
 		const open = (name: string): void => void model.openChapter(book, name);
+
+		const novelTitle = (): string => {
+			const series = getSeriesBooks(project);
+			const all = [...series.ordered, ...series.unplaced].map((f) => f.name);
+			const numbered = applyHashNumbering(all.map((f) => bookDisplayTitle(project, f)), settings.seriesNumberingStyle);
+			return numbered[all.indexOf(book)] ?? bookDisplayTitle(project, book);
+		};
 
 		// The progress bar
 		const layout = computeNovelLengthBarLayout(words, plannedNovel);
@@ -96,7 +103,7 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 		const unplacedList = unplaced.length
 			? [el("h3", { class: "sf-overview-sub", text: "Unplaced" }), el("div", { class: "sf-overview-list", attrs: { role: "list", "aria-label": "Chapters not yet placed" } }, ...unplaced.map((c, i) => el("div", { class: "sf-overview-row sf-overview-row--unplaced", attrs: { role: "listitem" } }, el("button", { class: "sf-overview-name", text: titles[ordered.length + i], attrs: { type: "button" }, on: { click: () => open(c.name) } }))))]
 			: [];
-		fill(host, el("h2", { class: "sf-overview-title", text: bookDisplayTitle(project, book) }), track, strip, meta, el("div", { class: "sf-overview-list sf-cards", attrs: { role: "list", "aria-label": "Placed chapters with word counts" } }, ...cards), ...unplacedList);
+		fill(host, el("h2", { class: "sf-overview-title", text: novelTitle() }), track, strip, meta, el("div", { class: "sf-overview-list sf-cards", attrs: { role: "list", "aria-label": "Placed chapters with word counts" } }, ...cards), ...unplacedList);
 	};
 	draw();
 	const refresh = debounced(() => redrawKeepingFocus(host, draw));
