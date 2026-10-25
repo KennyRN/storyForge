@@ -52,10 +52,11 @@ The fixture novels hold a few dozen words against a plan of 80,000, so the progr
 
 ## Not done
 
-- Kenny's check in the built app (below).
 - The history view's tooltip text for the plot note is not asserted in a test (the fixture's plot notes were not checked).
 
 ## Kenny's check
+
+**Done** by Kenny in the built app on 25 October 2026, before the merge: he reported everything looked good. No issues were raised, so nothing changed after it. The steps he followed:
 
 On a copy of the vault or a fixture copy:
 1. Open the series tab and check the bars against what you know of each novel.
