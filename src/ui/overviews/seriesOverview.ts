@@ -6,6 +6,7 @@ import { computeSeriesNovelBarLayout } from "../../core/seriesNovelBar";
 import { el, fill } from "../kit/dom";
 import type { AppModel } from "../model";
 import { plainBar } from "./bars";
+import { debounced, redrawKeepingFocus } from "./refresh";
 
 /** The words in a novel's placed chapters, from the index. */
 export function novelWordTotal(model: AppModel, book: string): number {
@@ -48,9 +49,11 @@ export function mountSeriesOverview(host: HTMLElement, model: AppModel): () => v
 		fill(host, el("h2", { class: "sf-overview-title", text: series.seriesTitle }), placed, ...unplaced);
 	};
 	draw();
-	const off = model.subscribe(["library", "stats", "project", "archive"], draw);
+	const refresh = debounced(() => redrawKeepingFocus(host, draw));
+	const off = model.subscribe(["library", "stats", "project", "archive"], refresh);
 	return () => {
 		off();
+		refresh.cancel();
 		host.classList.remove("sf-overview-body");
 	};
 }

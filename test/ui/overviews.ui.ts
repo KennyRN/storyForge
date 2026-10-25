@@ -76,6 +76,10 @@ test.describe("the series overview", () => {
 	});
 });
 
+const outside = async (page: Page, path: string, text: string) => {
+	await page.evaluate(([p, t]) => window.__preview.touch(p, t), [path, text]);
+	await page.evaluate((p) => window.__preview.emit("watch-batch", { paths: [p], rescan: false }), path);
+};
 const novelOverview = (page: Page) => page.getByRole("region", { name: "Novel overview" });
 const BOOK_A = "_story-library/novel-aaa.md";
 const onDisk = (page: Page, p: string) => page.evaluate((x) => window.__preview.read(x), p);
@@ -178,5 +182,47 @@ test.describe("the history view", () => {
 		await page.keyboard.press("Escape");
 		await expect(dialog).toBeHidden();
 		expect(tree(root)).toEqual(before);
+	});
+});
+
+test.describe("live refresh", () => {
+	test("an outside edit updates the bars without moving the caret in the editor beneath", async ({ page }) => {
+		await openProject(page);
+		await page.locator(".sf-slot--centre .cm-content").click();
+		await page.keyboard.press("End");
+		await page.keyboard.type(" kept");
+		await expect.poll(() => page.evaluate(() => window.__preview.read("_story-library/aaa/ch-a1.md"))).toContain("kept");
+		const head = () => page.evaluate(() => (window.__app.editors as any).slots.centre.occupant.mounted.view.state.selection.main.head as number);
+		const before = await head();
+		await flip(page);
+		await tab(page, "novel").click();
+		const bar = novelOverview(page).locator('.sf-card[data-chapter="ch-a2.md"] .sf-bar');
+		const label = await bar.getAttribute("aria-label");
+		const text = await page.evaluate(() => window.__preview.read("_story-library/aaa/ch-a2.md"));
+		await outside(page, "_story-library/aaa/ch-a2.md", `${text.trimEnd()} alpha beta gamma delta epsilon\n`);
+		await expect(bar).not.toHaveAttribute("aria-label", label!);
+		expect(await head()).toBe(before);
+	});
+
+	test("a redraw leaves keyboard focus where it was", async ({ page }) => {
+		await openProject(page);
+		await flip(page);
+		await tab(page, "novel").click();
+		const name = novelOverview(page).locator(".sf-card .sf-overview-name").nth(1);
+		await name.focus();
+		const text = await page.evaluate(() => window.__preview.read("_story-library/aaa/ch-a1.md"));
+		await outside(page, "_story-library/aaa/ch-a1.md", `${text.trimEnd()} more words here\n`);
+		await page.waitForTimeout(700);
+		await expect(novelOverview(page).locator(".sf-card .sf-overview-name").nth(1)).toBeFocused();
+	});
+
+	test("the open history view follows an outside change", async ({ page }) => {
+		await openProject(page);
+		await page.getByRole("button", { name: /Open the history/ }).click();
+		const dialog = page.getByRole("dialog", { name: "Word count history" });
+		await expect(dialog.getByRole("gridcell", { name: /Thursday 22 October: 0/ })).toBeVisible();
+		const text = await page.evaluate(() => window.__preview.read("_backstage/storyforge/aaa/wordcount.md"));
+		await outside(page, "_backstage/storyforge/aaa/wordcount.md", text.replace("daily:\n", "daily:\n  2026-10-22:\n    net: 77\n    chapters:\n      ch-a1.md: 77\n"));
+		await expect(dialog.getByRole("gridcell", { name: /Thursday 22 October: 77/ })).toBeVisible();
 	});
 });

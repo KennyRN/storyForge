@@ -10,6 +10,7 @@ import { el, fill } from "../kit/dom";
 import { attachTooltip } from "../kit/tooltip";
 import type { AppModel } from "../model";
 import { dataBar } from "./bars";
+import { debounced, redrawKeepingFocus } from "./refresh";
 
 /** The novel overview: the progress bar (segments, ghost dividers, structure strip), the planned lengths, and a bar-tier card per chapter. */
 export function mountNovelOverview(host: HTMLElement, model: AppModel): () => void {
@@ -98,9 +99,11 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 		fill(host, el("h2", { class: "sf-overview-title", text: bookDisplayTitle(project, book) }), track, strip, meta, el("div", { class: "sf-overview-list sf-cards", attrs: { role: "list", "aria-label": "Placed chapters with word counts" } }, ...cards), ...unplacedList);
 	};
 	draw();
-	const off = model.subscribe(["library", "stats", "project", "archive", "nav"], draw);
+	const refresh = debounced(() => redrawKeepingFocus(host, draw));
+	const off = model.subscribe(["library", "stats", "project", "archive", "nav"], refresh);
 	return () => {
 		off();
+		refresh.cancel();
 		host.classList.remove("sf-overview-body");
 	};
 }

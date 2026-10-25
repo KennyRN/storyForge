@@ -6,6 +6,7 @@ import { formatWordCount } from "../../../core/wordCount";
 import { el, fill } from "../../kit/dom";
 import { openDialog } from "../../kit/dialog";
 import type { AppModel } from "../../model";
+import { debounced } from "../../overviews/refresh";
 import { dayHeatmap, dayLabel, heatScale, netLabel, weekHeatmap } from "./heatmap";
 
 /** The word-count history: series total, this novel's summary, day and week heatmaps, and a day's chapters. Read-only. */
@@ -70,7 +71,8 @@ export function openHistoryDialog(model: AppModel): void {
 		if (refocus) body.querySelector<HTMLElement>(`[data-date="${refocus}"]`)?.focus();
 	};
 
-	const offs = [model.subscribe(["stats", "library", "project"], () => void draw())];
+	const refresh = debounced(() => void draw());
+	const offs = [model.subscribe(["stats", "library", "project"], refresh), () => refresh.cancel()];
 	openDialog({ title: "Word count history", body, buttons: [{ label: "Close", kind: "primary" }], onClose: () => offs.forEach((o) => o()) });
 	void draw();
 }
