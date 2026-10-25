@@ -14,9 +14,9 @@ Version **0.10.0** (1.0 has not been declared). Branch `numbers`. The design is 
 | | |
 |---|---|
 | Typecheck (`npm run build`) | clean |
-| `npm test` | **1,171** passing (1,165 before the brief) |
+| `npm test` | **1,171** passing (1,164 before the brief) |
 | `cargo test --workspace` | all passing (nothing changed on the Rust side except the version) |
-| `npm run test:ui` | **118** passing (106 before commit 3 was counted; 16 are the overviews' own) |
+| `npm run test:ui` | **118** passing (102 before the brief) |
 | `npm run app:build` | builds `storyForge_0.10.0_universal.dmg` |
 
 Opening each overview and the history view is tested to leave the project folder byte-identical. I have not run the built app by hand; the checks are in WebKit against the real Rust bridge.
