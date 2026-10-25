@@ -16,7 +16,22 @@
 	--purpose-trouble: var(--ef-red);
 	--purpose-scrim: rgb(0 0 0 / 0.45);
 	--purpose-shadow: rgb(0 0 0 / 0.4);
-	/* Reserved for v1.1 (the numbers): defined, not used yet. */
+	/* The numbers (v1.1). */
 	--purpose-data-fill: var(--ef-blue);
 	--purpose-data-overrun: var(--ef-orange);
+	--purpose-bar-track: var(--ef-bg2);
+	/* The notch between fill and overrun: about 6:1 against both blue and orange. */
+	--purpose-bar-notch: var(--ef-bg-dim);
+	/* Heatmap steps run from the track towards the data fill. */
+	--purpose-heat-a: color-mix(in srgb, var(--ef-bg2) 75%, var(--ef-blue));
+	--purpose-heat-b: color-mix(in srgb, var(--ef-bg2) 50%, var(--ef-blue));
+	--purpose-heat-c: color-mix(in srgb, var(--ef-bg2) 25%, var(--ef-blue));
+	--purpose-heat-d: var(--ef-blue);
+	/* Net-loss days: neutral greys, never trouble. */
+	--purpose-heat-loss-a: var(--ef-bg3);
+	--purpose-heat-loss-b: var(--ef-bg4);
+	--purpose-heat-loss-c: color-mix(in srgb, var(--ef-bg4) 50%, var(--ef-grey0));
+	--purpose-heat-loss-d: var(--ef-grey0);
+	--purpose-guide: var(--ef-grey0);
+	--purpose-guide-faint: var(--ef-bg3);
 }

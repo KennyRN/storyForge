@@ -23,16 +23,17 @@ function show(target: HTMLElement, text: string): void {
 }
 
 /** A styled tooltip: after a short pause under the pointer, at once on keyboard focus. The text is also the accessible name when the control has none. */
-export function attachTooltip(target: HTMLElement, text: string): void {
-	if (!target.hasAttribute("aria-label") && !target.textContent?.trim()) target.setAttribute("aria-label", text);
+export function attachTooltip(target: HTMLElement, source: string | (() => string)): void {
+	const text = (): string => (typeof source === "function" ? source() : source);
+	if (!target.hasAttribute("aria-label") && !target.textContent?.trim()) target.setAttribute("aria-label", text());
 	target.addEventListener("pointerenter", () => {
 		clearTimeout(timer);
-		timer = setTimeout(() => show(target, text), SHOW_DELAY_MS);
+		timer = setTimeout(() => show(target, text()), SHOW_DELAY_MS);
 	});
 	target.addEventListener("pointerleave", hide);
 	target.addEventListener("pointerdown", hide);
 	target.addEventListener("focus", () => {
-		if (target.matches(":focus-visible")) show(target, text);
+		if (target.matches(":focus-visible")) show(target, text());
 	});
 	target.addEventListener("blur", hide);
 	target.addEventListener("keydown", (e) => {

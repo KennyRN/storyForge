@@ -194,8 +194,14 @@ textarea {
 	min-height: 0;
 	height: 100%;
 }
-.sf-slot--centre {
+.sf-centre-wrap {
 	flex: 1;
+	min-width: 0;
+	height: 100%;
+	position: relative;
+}
+.sf-slot--centre {
+	height: 100%;
 	background: var(--purpose-editor-bg);
 }
 .sf-slot--lore {

@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — the numbers (0.10.0)
+
+The data that calms the author while writing is back: the series overview, the novel overview and the word-count history, all read-only. Nothing new is written to disk. See `docs/numbers.md` (the design, rulings in §11) and `docs/numbers-report.md`.
+
+- New: the series tab covers the workspace with the series overview: each placed novel with a word-count bar scaled against the longest (a 3 px sliver for an empty novel), unplaced novels beneath. The novel tab shows the novel overview: the progress bar (a segment per chapter with words, ghost chapter dividers, the structure strip at 10, 20, 35, 50, 65, 80 and 90%), the planned lengths (the same field as the left panel's), and a bar-tier card per chapter (target marker short of the plan, orange beyond it, plain fill within the target's significant figures, the first paragraph of the plot note on hover). Opening a chapter brings the editor back; selecting the tab again brings the overview back.
+- New: clicking the stats chart opens the word-count history: all novels, this novel, day and week heatmaps (four steps; every cell has its number as a label), and a day's chapters.
+- New: the overviews and the open history view refresh on a 250 ms trailing debounce, keep keyboard focus, and never touch the editor.
+- Changed: the overview is a layer over the mounted editor, which is inert while covered; flipping to the storytelling face always shows the chapter. `attachTooltip` accepts a function. The planned-length controls moved to `src/ui/faces/lengthFields.ts`.
+- Changed vs 0.17.1: overrun is orange beyond a notch, not a dotted pattern; net-loss days are neutral greys, not red; the ghost dividers and structure strip have no switches.
+- 15 new WebKit tests and 6 new unit tests (118 and 1,171 in all).
+
 ## Unreleased — the v1 interface (0.9.0)
 
 storyForge now has the interface it is written in: the editor, the two faces, the screens around them and the Mac menus, all in Everforest Soft Dark, in plain TypeScript and DOM. The diagnostic window is gone from release builds. 0.9.0 is everything v1 promises; it becomes 1.0 when Kenny says so. See `docs/interface.md` (the design, with the review rulings in §12 and as-built differences in §13) and `docs/interface-report.md`.

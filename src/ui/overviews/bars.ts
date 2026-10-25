@@ -1,0 +1,110 @@
+import { formatWordCount } from "../../core/wordCount";
+import { el } from "../kit/dom";
+import { attachTooltip } from "../kit/tooltip";
+
+/** How a data bar is drawn. Pure, so the table in docs/numbers.md §5 is testable without a DOM. */
+export interface DataBarState {
+	kind: "sliver" | "fill" | "under" | "over";
+	/** 0-100: the fill's width (the blue part, for "over"). */
+	fillPercent: number;
+	/** 0-100: where the target sits, for "under" and "over". */
+	targetPercent: number;
+	/** 0-100: the end of the orange part, for "over". */
+	overPercent: number;
+}
+
+/** Rounds `n` to `figures` significant figures. */
+export function roundToSignificantFigures(n: number, figures: number): number {
+	if (n <= 0 || figures < 1) return n;
+	const unit = 10 ** (Math.floor(Math.log10(n)) - (figures - 1));
+	return Math.round(n / unit) * unit;
+}
+
+/** The target's significant figures: its digits without trailing zeros (1500 has two). */
+export function significantFigures(target: number): number {
+	return String(Math.round(target)).replace(/0+$/, "").length || 1;
+}
+
+/**
+ * `scale` is the word count that fills the whole bar (the caller's longest chapter, say). It is raised
+ * to at least the target and the words, so nothing is drawn past the end.
+ */
+export function computeDataBarState(words: number, target: number | null, scale?: number): DataBarState {
+	const hasTarget = target !== null && target > 0;
+	const full = Math.max(scale ?? 0, words, hasTarget ? target : 0);
+	const pct = (n: number): number => (full > 0 ? Math.min(100, Math.max(0, (n / full) * 100)) : 0);
+	if (words <= 0) return { kind: "sliver", fillPercent: 0, targetPercent: 0, overPercent: 0 };
+	if (!hasTarget) return { kind: "fill", fillPercent: pct(words), targetPercent: 0, overPercent: 0 };
+	const rounded = roundToSignificantFigures(words, significantFigures(target));
+	if (rounded === target) return { kind: "fill", fillPercent: pct(words), targetPercent: 0, overPercent: 0 };
+	if (words > target) return { kind: "over", fillPercent: pct(target), targetPercent: pct(target), overPercent: pct(words) };
+	return { kind: "under", fillPercent: pct(words), targetPercent: pct(target), overPercent: 0 };
+}
+
+export function dataBarLabel(title: string, words: number, target: number | null, state: DataBarState): string {
+	const plan = state.kind === "over" ? ", over its plan" : state.kind === "under" ? ", under its plan" : target ? ", at its plan" : "";
+	return `${title}: ${formatWordCount(words)}${plan}`;
+}
+
+const SVG = "http://www.w3.org/2000/svg";
+
+function marker(percent: number): SVGSVGElement {
+	const svg = document.createElementNS(SVG, "svg");
+	svg.setAttribute("class", "sf-bar-marker");
+	svg.setAttribute("width", "2");
+	svg.setAttribute("height", "100%");
+	svg.setAttribute("aria-hidden", "true");
+	svg.style.left = `${percent}%`;
+	// At the very end of the bar the marker would be half clipped: draw it inside the edge.
+	if (percent >= 99) svg.style.marginLeft = "-2px";
+	const line = document.createElementNS(SVG, "line");
+	for (const [k, v] of Object.entries({ x1: "1", x2: "1", y1: "0", y2: "100%", "stroke-width": "2", "stroke-linecap": "round", "stroke-dasharray": "3 3" })) line.setAttribute(k, v);
+	svg.append(line);
+	return svg;
+}
+
+export interface DataBarOptions {
+	title: string;
+	words: number;
+	target: number | null;
+	scale?: number;
+	/** Tooltip text, read each time it shows; defaults to the word count. */
+	tooltip?: string | (() => string);
+	/** Called when the pointer or keyboard first reaches the bar (to start a lazy read). */
+	onHover?: () => void;
+}
+
+/** The data bar: blue fill, a dashed marker short of the target, orange beyond it with a notch at the target. */
+export function dataBar(opts: DataBarOptions): HTMLElement {
+	const state = computeDataBarState(opts.words, opts.target, opts.scale);
+	const bar = el("div", { class: `sf-bar sf-bar--${state.kind}`, attrs: { role: "img", "aria-label": dataBarLabel(opts.title, opts.words, opts.target, state) } });
+	if (state.kind !== "sliver") {
+		const fill = el("div", { class: "sf-bar-fill" });
+		fill.style.width = `${state.fillPercent}%`;
+		bar.append(fill);
+	}
+	if (state.kind === "over") {
+		const over = el("div", { class: "sf-bar-over" });
+		over.style.left = `${state.targetPercent}%`;
+		over.style.width = `${state.overPercent - state.targetPercent}%`;
+		const notch = el("div", { class: "sf-bar-notch" });
+		notch.style.left = `${state.targetPercent}%`;
+		bar.append(over, notch);
+	}
+	if (state.kind === "under") bar.append(marker(state.targetPercent));
+	attachTooltip(bar, opts.tooltip ?? formatWordCount(opts.words));
+	if (opts.onHover) for (const type of ["pointerenter", "focus"]) bar.addEventListener(type, opts.onHover, { once: true });
+	return bar;
+}
+
+/** The series overview's bar: only a fill (or the sliver), no target. */
+export function plainBar(title: string, words: number, fillPercent: number, sliver: boolean): HTMLElement {
+	const bar = el("div", { class: `sf-bar ${sliver ? "sf-bar--sliver" : "sf-bar--fill"}`, attrs: { role: "img", "aria-label": `${title}: ${formatWordCount(words)}` } });
+	if (!sliver) {
+		const fill = el("div", { class: "sf-bar-fill" });
+		fill.style.width = `${fillPercent}%`;
+		bar.append(fill);
+	}
+	attachTooltip(bar, formatWordCount(words));
+	return bar;
+}

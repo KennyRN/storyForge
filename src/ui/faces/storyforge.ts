@@ -29,9 +29,15 @@ export function mountStoryForgeFace(host: HTMLElement, model: AppModel): () => v
 	const tabs = (): typeof TABS => (model.running?.settings.values.hideSeriesPane ? TABS.filter((t) => t.id !== "series") : TABS);
 
 	const select = (tab: ForgeTab, focus = false): void => {
-		if (tab === model.nav.forgeTab && shown === tab) return;
+		const overviewTab = tab === "series" || tab === "novel";
+		if (tab === model.nav.forgeTab && shown === tab) {
+			if (overviewTab) model.setCentreView("overview");
+			return;
+		}
 		ink.capture();
 		model.nav.forgeTab = tab;
+		if (overviewTab) model.nav.centreView = "overview";
+		model.touch("nav");
 		drawRail(focus);
 		drawPane();
 	};

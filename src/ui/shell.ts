@@ -1,3 +1,4 @@
+import { mountOverviewLayer } from "./overviews/layer";
 import { clampLeft, clampLore, type AppModel } from "./model";
 import { EditorHost } from "./editor/editorHost";
 import { el, fill } from "./kit/dom";
@@ -43,6 +44,8 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	const flip = button({ icon: "switch", name: "Flip side", tooltip: "Flip side", onClick: () => model.flipFace() });
 	const header = el("div", { class: "sf-left-header" }, el("span", { class: "sf-left-name", text: name }), flip);
 	const centre = el("section", { class: "sf-slot sf-slot--centre", attrs: { "aria-label": "Workspace" } });
+	const overview = el("div", { class: "sf-overview", attrs: { role: "region" } });
+	const centreWrap = el("div", { class: "sf-centre-wrap" }, centre, overview);
 	const lore = el("aside", { class: "sf-slot sf-slot--lore", attrs: { "aria-label": "Context" } });
 	const apply = (): void => {
 		left.style.width = `${model.nav.leftWidth}px`;
@@ -52,7 +55,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	};
 	const leftBar = splitter("Resize the left panel", "left", () => model.nav.leftWidth, (w) => (model.setWidths(clampLeft(w)), apply()));
 	const loreBar = splitter("Resize the context panel", "right", () => model.nav.loreWidth, (w) => (model.setWidths(undefined, clampLore(w)), apply()));
-	fill(host, el("h1", { class: "sf-visually-hidden", text: name }), el("div", { class: "sf-frame" }, left, leftBar, centre, loreBar, lore));
+	fill(host, el("h1", { class: "sf-visually-hidden", text: name }), el("div", { class: "sf-frame" }, left, leftBar, centreWrap, loreBar, lore));
 
 	model.editors = new EditorHost(model, { centre, lore });
 	model.editors.onChange = () => {
@@ -61,6 +64,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	};
 	apply();
 	const offNav = model.subscribe("nav", apply);
+	const overviews = mountOverviewLayer(overview, centre, model);
 
 	fill(left, header, faceHost);
 	let disposeFace: (() => void) | null = null;
@@ -82,6 +86,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	return {
 		dispose() {
 			offNav();
+			overviews();
 			offFace();
 			disposeFace?.();
 		},
