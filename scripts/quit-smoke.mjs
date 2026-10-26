@@ -10,7 +10,7 @@
 // It drives the window with System Events: the terminal running it needs Accessibility permission, and the
 // screen must be unlocked. Usage: npm run test:quit [-- path/to/storyForge.app]
 import { spawn, spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26,7 +26,9 @@ const REAL_DATA = join(homedir(), DATA_FOLDER);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const run = (cmd, args) => spawnSync(cmd, args, { encoding: "utf8" });
 const osa = (script, ...args) => run("osascript", ["-e", script, ...args]);
+const children = new Set();
 const fail = (msg) => {
+	for (const c of children) c.kill("SIGKILL");
 	console.error(`\nREFUSED/FAILED: ${msg}`);
 	process.exit(1);
 };
@@ -83,7 +85,7 @@ const sendKeys = (text) => osa('on run argv\ntell application "System Events" to
 // ---- One route --------------------------------------------------------------------------------------------
 const results = [];
 async function route(name, send, { expectJoin = false } = {}) {
-	const dir = mkdtempSync(join(tmpdir(), "sf-quit-"));
+	const dir = realpathSync(mkdtempSync(join(tmpdir(), "sf-quit-")));
 	const home = join(dir, "home");
 	const project = join(dir, "proj");
 	cpSync(fixture, project, { recursive: true });
@@ -94,6 +96,7 @@ async function route(name, send, { expectJoin = false } = {}) {
 
 	let stderr = "";
 	const child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: ["ignore", "ignore", "pipe"] });
+	children.add(child);
 	child.stderr.on("data", (d) => (stderr += d));
 	let exited = null;
 	child.on("exit", (code, signal) => (exited = { code, signal, at: Date.now() }));
@@ -101,8 +104,8 @@ async function route(name, send, { expectJoin = false } = {}) {
 	try {
 		await until("the window", () => find("AXButton", "Open Project", "none").startsWith("found"));
 		// The temporary HOME really redirects the app's data folder: the start screen lists OUR fixture copy.
-		await until("the temporary recent project (HOME redirect)", () => find("AXButton", `${"proj"} ${project}`, "none").startsWith("found"), 8000);
-		find("AXButton", `proj ${project}`, "click");
+		await until("the temporary recent project (HOME redirect)", () => find("AXButton", `proj ${dir}`, "none").startsWith("found"), 8000);
+		find("AXButton", `proj ${dir}`, "click");
 		await until("an editor", () => find("AXTextArea", "Text", "focus").startsWith("found"));
 		await sleep(400);
 		sendKeys(marker);
@@ -115,7 +118,9 @@ async function route(name, send, { expectJoin = false } = {}) {
 		const took = exited.at - sent;
 		const closes = (stderr.match(/close requested/g) ?? []).length;
 		const joins = (stderr.match(/already under way/g) ?? []).length;
-		const saved = grepTree(project, marker);
+		const all = grepTree(project, marker);
+		// Only the prose itself counts: the chapter or Codex note, or a recovery file. (A sidecar may mention it too.)
+		const saved = all.filter((f) => /\/(_story-library|Codex|notes)\/.*\.md$/.test(f.slice(project.length)) || f.slice(project.length).startsWith("/_sf-backup/recovery/"));
 		const problems = [];
 		if (closes !== 1) problems.push(`expected one "close requested", saw ${closes}`);
 		if (!/finished saving; quitting/.test(stderr)) problems.push("the window never said it finished saving");
