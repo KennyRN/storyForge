@@ -96,3 +96,7 @@ None of the brief's holds was hit: the guard needed no new operation or row; `wo
 5. Edit a Codex note for a minute. No session appears.
 6. Turn on the live readout in settings, write, watch it count, turn it off.
 7. (Added) ⌘Z under an overview, as above.
+
+## Kenny's check: result
+
+Done, 26 October 2026, with no issues raised. **Item 7 (⌘Z under an overview in the real app) was waived by Kenny**; the guard is covered by the preview test and the inputs table in `docs/sessions.md` §13.
