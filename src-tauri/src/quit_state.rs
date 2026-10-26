@@ -44,6 +44,26 @@ impl QuitState {
         (false, self.begin_close())
     }
 
+    /// A request to close (Cmd+Q, the red button, a signal): runs `start_close` if, and only if, it is the first.
+    /// Returns whether it started the close. This is the function the app calls, so the close starting is tested here.
+    pub fn request_close(&self, start_close: impl FnOnce()) -> bool {
+        let first = self.begin_close();
+        if first {
+            start_close();
+        }
+        first
+    }
+
+    /// `applicationShouldTerminate:` (the Dock's Quit, Log Out, Shut Down): runs `start_close` if no close is under
+    /// way, and says whether macOS may quit now (only after the way out was taken). Never does both nothing and "later".
+    pub fn terminate_request(&self, start_close: impl FnOnce()) -> bool {
+        let (now, start) = self.on_terminate();
+        if start {
+            start_close();
+        }
+        now
+    }
+
     /// The one way out. Whichever of `quit_ready` and the watchdog gets here first decides; the other gets `Skip`.
     pub fn finish(&self) -> Finish {
         if self.done.swap(true, Ordering::SeqCst) {
@@ -75,6 +95,29 @@ mod tests {
         assert_eq!(q.finish(), Finish::Reply); // quit_ready: the single reply
         assert_eq!(q.finish(), Finish::Skip); // the watchdog loses the race: no second reply
         assert!(q.is_ok());
+    }
+
+    #[test]
+    fn a_dock_quit_with_no_close_under_way_starts_the_close_exactly_once() {
+        // The regression: the hook won `begin_close` and then asked `request_close`, which saw a close under way and
+        // did nothing, so the window was never told and macOS waited for ever.
+        let q = QuitState::default();
+        let mut started = 0;
+        assert!(!q.terminate_request(|| started += 1), "not quit yet: the close must run first");
+        assert_eq!(started, 1, "the close must actually start");
+        assert!(!q.terminate_request(|| started += 1));
+        assert!(!q.request_close(|| started += 1)); // a signal, joining
+        assert_eq!(started, 1, "and never a second");
+        assert_eq!(q.finish(), Finish::Reply);
+    }
+
+    #[test]
+    fn cmd_q_then_the_dock_starts_one_close() {
+        let q = QuitState::default();
+        let mut started = 0;
+        assert!(q.request_close(|| started += 1));
+        assert!(!q.terminate_request(|| started += 1));
+        assert_eq!(started, 1);
     }
 
     #[test]
