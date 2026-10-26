@@ -108,3 +108,7 @@ A fixture builder (`npm run fixture:leftovers`) makes a project with one planted
 - **Copies** are whole-file, byte for byte (frontmatter included), named `<name> (leftover <yyyy-mm-dd hhmmss>).md` in `recovery/<book>/` (chapters), `recovery/_codex/`, `recovery/_temp/` (structural and binary; a binary's name keeps its extension before the `.md`, since the guard allows only `.md` recovery files), or the recovery file's own folder.
 - **Summary:** the "Changes found when opening" dialog gained "Words that may not have been saved" (prose and recovery-file leftovers newer than the file beside them), "Other files that may not have been saved" (a history file or a cover, whose leftover can't hold words), "Earlier versions kept", "Tidied" and "Left where they are". A quiet open shows nothing.
 - **Fixture:** `npm run fixture:leftovers [-- <folder>]` (default `~/Desktop/storyForge leftovers fixture`) plants one leftover of every kind and the decoys (`test/helpers/leftovers.ts`, shared with the tests).
+
+## 10. Kenny's check
+
+The summary check with `npm run fixture:leftovers` was **waived by Kenny**, 26 October 2026. `npm run test:quit` passed on the 0.11.1 build with the Mac unlocked; the opening summary and a second open were also exercised in the built app against a fixture copy (a temporary HOME), automatically.
