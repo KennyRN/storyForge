@@ -1,6 +1,6 @@
 # Writing sessions (Brief 7)
 
-Status: **draft for H1 review.** Nothing is built except the two missing tests from Brief 7 §0 (see §11). This document says how sessions will be built, in the order the brief asks. Decision 34 and the brief's §2 are the rules; this is the design that carries them out. Section 10 lists the points where I need a ruling.
+Status: **H1 ruled (decision 35); §10 records the rulings, and the text below is as ruled.** Decision 34 and the brief's §2 are the rules; this is the design that carries them out.
 
 ## 1. The parts
 
@@ -16,7 +16,7 @@ Status: **draft for H1 review.** Nothing is built except the two missing tests f
 
 Today every author change reaches the core through one funnel: the editor's update listener calls `ProseSession.setBody(body)`, and skips transactions annotated `fromWriter` (a reload from disk, applied as the minimal replacement). That distinction already exists, so the feed needs no guessing:
 
-- `setBody(body, origin?)` gains an optional **origin** — `"type" | "delete" | "paste" | "drop" | "cut" | "undo" | "redo" | "other"` — which `editor.ts` takes from CodeMirror's user-event annotation on the transaction (`input.type`, `delete.*`, `input.paste`, `input.drop`, `delete.cut`, `undo`, `redo`). Anything unknown is `"other"`. It changes nothing about saving.
+- `setBody(body, origin?)` gains an optional **origin** — `"type" | "delete" | "paste" | "drop" | "cut" | "undo" | "redo" | "other"` — which `editor.ts` takes from CodeMirror's user-event annotation on the transaction (`input.type`, `input.type.compose` for IME and dictation, `delete.*`, `input.paste`, `input.drop`, `delete.cut`, `undo`, `redo`). An edit with no origin is treated as typing, so a test covers every input path (typing, IME and dictation, paste, drop, cut, undo, redo) to stop a paste slipping through unflagged. It changes nothing about saving.
 - `ProseWriter.onAuthorEdit(listener)` is a new observer, called synchronously from `setBody` with `{ session, origin, body, at }`. Like `onSaveResult` (decision 26) it can never change an outcome: whatever a listener throws is caught and logged.
 - A **reload** is `ProseSession`'s existing `onReload` event. The recorder subscribes to it for each chapter session it has seen an edit in. Reloads are never edits: they move the chapter's baseline (§4), not the session's net.
 - **Link rewrites, reconciliation, opening, backups and recovery** never call `setBody`, so they can't produce an edit. A link rewrite reaches an open editor as a reload, so it is a baseline shift too.
@@ -60,11 +60,11 @@ The existing counter is `countWords` (`wordCount.ts`): the body with `%% comment
 
 Why not an incremental local count: `%% … %%` comments make word counting non-local. Typing one `%` can swallow the rest of a chapter into a comment, or release it. A local count would be wrong in exactly those cases, and "agrees with the existing counter" would be a promise I couldn't keep. A full count of a 10,000-word chapter costs about a millisecond or two (the report measures it), so doing it a few times a minute is free, and doing it never per keystroke is what keeps typing untouched.
 
-**Per-chapter net** is `count(latest body) − baseline`. The baseline is set at the chapter's first edit in the session, to the count of the body *before* that edit (the first `setBody` call carries the new body; the previous body is `session.body` just before, which the feed passes). A **reload** changes a chapter's body without an edit: the recorder counts the body before and after it and **adds the difference to the baseline**, so the reload moves neither the chapter's net nor the session's. The session total is the sum over chapters. (A disk-wins conflict that replaces the author's unsaved text with the disk's is such a reload. Those words stay in the session's net though they were sent to a recovery file. That is a rare edge and I'd leave it.)
+**Per-chapter net** is `count(latest body) − baseline`. The baseline is set at the chapter's first edit in the session, to the count of the body *before* that edit (the first `setBody` call carries the new body; the previous body is `session.body` just before, which the feed passes). A **reload** that lands in a chapter the session has touched changes its body without an edit: the recorder counts the body just before and just after it and **adds the difference to the baseline**, so the reload moves neither the chapter's net nor the session's. The session total is the sum over chapters. (A disk-wins conflict that replaces the author's unsaved text with the disk's is such a reload. Those words stay in the session's net though they were sent to a recovery file. That is a rare edge and I'd leave it.)
 
 ## 5. The three kinds
 
-- **Unreliable (stored).** A single event whose origin is `paste`, `drop`, `undo` or `redo` that **adds more than 30 words** marks the session unreliable. "Adds" is the event's **net**: words in the new body minus words in the previous body, via `countWords` (so a paste that replaces 40 words with 45 adds 5). The threshold, 30, is a constant in `sessions.ts`, not a setting. Typing, deleting and cutting never mark a session; many small pastes don't add up to one.
+- **Unreliable (stored).** A single event whose origin is `paste` or `drop` that **adds more than 30 words** marks the session unreliable. "Adds" is the event's **net**: words in the new body minus words in the previous body, via `countWords` (so a paste that replaces 40 words with 45 adds 5). The threshold, 30, is a constant in `sessions.ts`, not a setting. Typing, deleting, cutting, **undo and redo** never mark a session (they restore the author's own words, and a delete undone in the same session nets to zero anyway); many small pastes don't add up to one. Accepted limit: deleting a large passage, pausing past the idle limit, then undoing it hands the restored words to the next session.
 - **Editing (worked out when shown).** Net ≤ 0, **or** — when the setting is on — pace below the threshold.
 - **Short (worked out when shown).** Length below the minimum shown.
 
@@ -98,8 +98,10 @@ sessions:
     net: 612
     chapters:
       - path: aaa/ch-a1.md
+        id: c-a1k3
         net: 412
       - path: aaa/ch-a2.md
+        id: c-a2m8
         net: 200
     unreliable: false
     recovered: false
@@ -108,7 +110,7 @@ Writing sessions recorded by storyForge on one computer for one month. Safe to r
 ```
 
 - `id` is the start instant in compact form plus offset. Reading de-duplicates by `id` (a file synced twice, or an interrupted write retried).
-- `chapters[].path` is `<book code>/<chapter filename>` as it was at the time. A chapter renamed later keeps its old name here; the history view shows what it finds and says "renamed or removed" when it can't match. (Chapter ids exist in the details sidecars but could be absent; I'd rather not depend on them. See question 6.)
+- `chapters[].path` is `<book code>/<chapter filename>` as it was at the time, and `chapters[].id` is the chapter's stable `chapter-id` when it has one (absent otherwise). The names keep the file readable in Obsidian; the id survives renames, so the history view shows current names and a chapter's sessions can be listed later.
 - **Unknown keys are kept**, at the top level and inside each session and chapter entry: the writer parses to objects and writes those back.
 - The list is rewritten **whole** on each append (the frontmatter editor's rule for a changed list, decision 18). A month holds at most a few hundred entries, about 100 bytes each.
 
@@ -128,7 +130,7 @@ Computed when shown, never stored. For a book and a day:
 storytelling(day) = history net(day) − Σ over that day's unreliable and editing sessions of the session's net in that book's chapters
 ```
 
-The history's day net comes from `wordcount.md` (`BookWordStats.daily`), untouched. Per-chapter nets are why this works per book: the stats panel shows the selected book's figures, the history view's "all novels" sums them. Weeks are sums of the adjusted days (`weeklyNetsFromDaily` over the adjusted `DayNet[]`), so the week and the day can't disagree. Today/this-week in the stats panel use the same function. Pace averages use only sessions that are none of short, editing or unreliable, and the **average is total net ÷ total minutes** across them (time-weighted), not a mean of paces, so a ten-minute burst doesn't weigh like a three-hour afternoon.
+The history's day net comes from `wordcount.md` (`BookWordStats.daily`), untouched. Per-chapter nets are why this works per book: the stats panel shows the selected book's figures, the history view's "all novels" sums them. Weeks are sums of the adjusted days (`weeklyNetsFromDaily` over the adjusted `DayNet[]`), so the week and the day can't disagree. Today/this-week in the stats panel use the same function. Pace averages use only sessions that are none of short, editing or unreliable, and the **average is total net ÷ total minutes** across them (time-weighted), not a mean of paces, so a ten-minute burst doesn't weigh like a three-hour afternoon. The history view shows how many sessions the average is drawn from.
 
 Excluding an editing session can raise a figure (it removes a net loss). Words changed outside the app belong to no session and stay. Chapter, novel and series counts and every bar are untouched: this function is only called by the history view and the stats panel's today/week figures.
 
@@ -140,7 +142,7 @@ The history splits a day at **save time** (`recordChapterEdit` is called when th
 - The mismatch is at most **the net written after midnight in that one session**. An idle limit of 3 minutes lets a session run for hours, so it can be hundreds of words, rarely.
 - A 2 s lag at the boundary can also move a few words across, whichever way I go.
 
-I recommend, **as ruled, to keep the session on its start day** but make the subtraction exact by recording, for a session that crosses midnight, a `by-day:` map (`2026-10-25: 300`, `2026-10-26: 312`) taken from a count at the first edit after midnight, and subtracting each part from its own day. The session is still listed on its start day and counts as one session for length, pace and labels. Without the map the figure is wrong by that net; with it, by at most a couple of seconds' typing. **The alternative is no map, as briefed.** (Question 4.)
+**Ruled: store the per-day split.** The session is still listed on its start day, and counts as one session for length, pace and labels, but a session that crosses England midnight also stores `by-day:` (for example `2026-10-25: 300`, `2026-10-26: 312`), and each part is subtracted from its own day. The split point is the count taken just before the first edit after midnight (England-local). Only sessions that cross midnight store it. Unreliable and editing are judged on the whole session. The remaining mismatch is a couple of seconds of save lag at the boundary.
 
 ## 8. The session in progress, recovery, and the close path
 
@@ -168,15 +170,17 @@ Out-of-range or malformed values in the file fall back to the default, as every 
 
 **Live readout.** A quiet line in the stats panel while a session runs: elapsed time (m:ss, or h:mm:ss) and net words so far. Nothing between sessions. It redraws at most once a second, with no animation, no `aria-live`, and never takes focus.
 
-## 10. Questions for H1
+## 10. H1 rulings (decision 35)
 
-1. **The additive observer in `proseWriter.ts`** (§2): `setBody(body, origin?)` plus `ProseWriter.onAuthorEdit`. No behaviour changes; modelled on `onSaveResult`. Approved?
-2. **Lazy counting** (§4) rather than a running incremental count — because of `%%` comments. OK?
-3. **Unreliable** = a paste/drop/undo/redo whose *net* adds more than 30 words, a constant. OK?
-4. **Midnight** (§7): the `by-day` map (my recommendation), or none, as briefed?
-5. **Pace average** = total net ÷ total minutes over qualifying sessions. OK?
-6. **Chapters in a session file are identified by `<book code>/<filename>`** at the time. OK, or should the chapter id be stored too?
-7. **No guard change** (§6), since the `backstage` class already allows what the writer does. If you want a guard row naming the sessions folder anyway, say so.
+1. **The edit observer on `proseWriter.ts`: approved,** on the terms of `onSaveResult`: it can never change a write's outcome (anything it throws is caught and logged), it hears only author edits through `setBody` (reloads never reach it), and every CodeMirror input path supplies an origin, with a test.
+2. **Lazy counting: approved, plus reloads** (§4). The cost of a paste on a 10,000-word chapter (two full counts) is reported; hold if it is noticeable while typing.
+3. **Unreliable: a paste or drop adding more than 30 words, a constant. Undo and redo come out** (§5).
+4. **Midnight: the per-day split is stored** (§7).
+5. **Average pace: time-weighted**, with the number of sessions it is drawn from shown (§7).
+6. **Chapter identity: the id is stored too,** when present (§6).
+7. **No guard row** (§6). The disk-safety test that session writes land only in `sessions/` is the real protection.
+
+Step 0 additions: a Rust unit test of the quit state (`src-tauri/src/quit_state.rs`: a termination mid-close joins it, no second close starts, macOS gets one reply); and the inert-editor test was proved by removing `inert` once and confirming the focus, find-panel and menu-undo checks each fail. (That proof found that a bare ⌘Z keypress in the browser preview reaches WebKit's own undo even when the editor is inert; the real app consumes ⌘Z with its Undo menu item, which acts only on a focused editor, so the test checks the menu route. Kenny's check should try ⌘Z under an overview in the real app.)
 
 ## 11. Brief 7 §0: the confirmations
 
