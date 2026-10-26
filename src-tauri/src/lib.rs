@@ -247,16 +247,11 @@ static APP: std::sync::OnceLock<tauri::AppHandle> = std::sync::OnceLock::new();
 fn on_terminate() -> storyforge_fs::platform::Terminate {
     use storyforge_fs::platform::Terminate;
     let Some(app) = APP.get() else { return Terminate::Now };
-    let (now, start) = app.state::<AppState>().quit.on_terminate();
-    if now {
-        return Terminate::Now;
-    }
-    if start {
-        start_close(app); // on_terminate already won begin_close: calling request_close would see "already under way" and do nothing
+    if app.state::<AppState>().quit.terminate_request(|| start_close(app)) {
+        Terminate::Now
     } else {
-        eprintln!("storyForge: a close is already under way; joining it");
+        Terminate::Later
     }
-    Terminate::Later
 }
 
 /// Closing the window or quitting is stopped, and the window is asked to save everything first. If the window makes no
@@ -264,11 +259,9 @@ fn on_terminate() -> storyforge_fs::platform::Terminate {
 const CLOSE_WATCHDOG: Duration = Duration::from_secs(15);
 
 fn request_close(app: &tauri::AppHandle) {
-    if !app.state::<AppState>().quit.begin_close() {
+    if !app.state::<AppState>().quit.request_close(|| start_close(app)) {
         eprintln!("storyForge: a close is already under way; joining it");
-        return;
     }
-    start_close(app);
 }
 
 /// Starts the close: the caller has already won `begin_close` (so exactly one close ever starts).
