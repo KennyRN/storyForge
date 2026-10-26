@@ -4,6 +4,7 @@
  * - Chapters:  `_sf-backup/recovery/<book>/<chapter> <yyyy-mm-dd hhmmss>.md` (the 0.17.1 rule)
  * - Codex:     `_sf-backup/recovery/_codex/<note> <yyyy-mm-dd hhmmss>.md`
  * - Pruned:    `_sf-backup/recovery/_pruned/<book or _codex>/<name> <yyyy-mm-dd hhmmss>.md`
+ * - Leftovers: `<folder>/<name> (leftover <yyyy-mm-dd hhmmss>).md`, a copy of a leftover temporary file (Fix 2)
  *
  * Create-only: a name clash gets ` 2`, ` 3`... (decided by the exclusive create, not by looking
  * first). Every recovery returns its path; if the write fails the caller is told and the text stays
@@ -17,6 +18,7 @@ import type { Project } from "./project";
 export const RECOVERY_ROOT = `${BACKUPS_FOLDER}/recovery`;
 export const CODEX_RECOVERY_FOLDER = "_codex";
 export const PRUNED_RECOVERY_FOLDER = "_pruned";
+export const TEMP_RECOVERY_FOLDER = "_temp";
 
 export type RecoveryResult = { ok: true; path: string } | { ok: false; error: Error };
 
@@ -45,7 +47,7 @@ export function prunedRecoveryPath(scope: string, name: string, now: Date, n = 1
 }
 
 /** Creates the first free `candidate(n)` with `text`. Returns its path; never overwrites. */
-async function createFirstFree(project: Project, candidate: (n: number) => string, text: string): Promise<RecoveryResult> {
+async function createFirstFree(project: Project, candidate: (n: number) => string, text: string | Uint8Array): Promise<RecoveryResult> {
 	try {
 		for (let n = 1; n < 10_000; n++) {
 			const path = candidate(n);
@@ -72,6 +74,19 @@ export function recoverChapterText(project: Project, bookFolderName: string, cha
 /** Saves an author's Codex note text that could not be saved. */
 export function recoverCodexText(project: Project, noteBasename: string, text: string, now = new Date()): Promise<RecoveryResult> {
 	return createFirstFree(project, (n) => codexRecoveryPath(noteBasename, now, n), text);
+}
+
+/** The visible name of the copy of a leftover temporary file: `<folder>/<name> (leftover <stamp>).md`, ` 2`, ` 3`... on a clash. */
+export function leftoverRecoveryPath(folder: string, name: string, now: Date, n = 1): string {
+	return `${folder}/${safeName(name)} (leftover ${recoveryStamp(now)})${n > 1 ? ` ${n}` : ""}.md`;
+}
+
+/** The file-name prefix every copy of a leftover for `name` starts with (to recognise a copy made earlier). */
+export const leftoverRecoveryPrefix = (name: string): string => `${safeName(name)} (leftover `;
+
+/** Copies the exact bytes of a leftover temporary file into `folder` (create-only). The caller reads the copy back and checks it. */
+export function recoverLeftoverBytes(project: Project, folder: string, name: string, bytes: Uint8Array, now = new Date()): Promise<RecoveryResult> {
+	return createFirstFree(project, (n) => leftoverRecoveryPath(folder, name, now, n), bytes);
 }
 
 export interface PrunedRecord {

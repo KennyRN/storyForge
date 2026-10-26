@@ -31,7 +31,7 @@ describe("guard spec table (test/guard-spec/guard.json)", () => {
 	it("has unique ids and covers every operation", () => {
 		const ids = spec.rows.map((r) => r.id);
 		expect(new Set(ids).size).toBe(ids.length);
-		for (const op of ["write-file", "write-binary", "create-file", "create-folder", "rename", "retire", "frontmatter-edit", "prose-write", "link-rewrite", "backup-create", "recovery-create", "codex-rename"]) {
+		for (const op of ["write-file", "write-binary", "create-file", "create-folder", "rename", "retire", "temp-remove", "frontmatter-edit", "prose-write", "link-rewrite", "backup-create", "recovery-create", "codex-rename"]) {
 			expect(spec.rows.some((r) => r.op === op && r.expect === "allow")).toBe(true);
 			expect(spec.rows.some((r) => r.op === op && r.expect === "refuse")).toBe(true);
 		}

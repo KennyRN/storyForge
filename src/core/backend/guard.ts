@@ -27,6 +27,8 @@ export type GuardOp =
 	| { op: "create-folder"; path: string }
 	| { op: "rename"; from: string; to: string }
 	| { op: "retire"; path: string }
+	/** Removes one of the app's own leftover temporary files (`.<target>.<hex id>.tmp`). Nothing else. */
+	| { op: "temp-remove"; path: string }
 	/** `keys`: the top-level frontmatter keys the edit changes. Codex notes allow exactly ["aliases"]. */
 	| { op: "frontmatter-edit"; path: string; keys?: readonly string[] }
 	/** Compare-then-write of an existing chapter or Codex note body. Only the prose writer calls this. */
@@ -52,6 +54,14 @@ export class ForbiddenWriteError extends Error {
 		this.name = "ForbiddenWriteError";
 	}
 }
+
+/** The name of a temporary file the app itself makes: `.<target>.<hex id>.tmp` (12 hex digits from the TypeScript backend, 16 to 40 from the Rust one). */
+export function isTempName(name: string): boolean {
+	return /^\.(.+)\.([0-9a-f]{12}|[0-9a-f]{16,40})\.tmp$/.test(name);
+}
+
+/** Where a leftover temp may be removed: beside storyForge's own files, or under `_sf-backup/`. Exact case. */
+const TEMP_ROOTS = [`${LIBRARY_ROOT}/`, `${CODEX_ROOT}/`, `${NOTES_ROOT}/`, `${BACKSTAGE_ROOT}/`, `${BACKUPS_FOLDER}/`];
 
 const PROTECTED_ROOTS = [LIBRARY_ROOT, CODEX_ROOT, NOTES_ROOT, "_backstage", BACKUPS_FOLDER, EXPORT_ROOT];
 
@@ -156,6 +166,13 @@ export function checkGuard(op: GuardOp): GuardDecision {
 		case "retire":
 			if (isMetadata(c)) return ALLOW;
 			return refuse(c === "other" ? otherReason(p) : `only backstage metadata is ever retired, not a ${c}`);
+		case "temp-remove": {
+			const parts = p.split("/");
+			if (parts.length < 2 || !isTempName(parts[parts.length - 1])) return refuse("only the app's own temporary files (.<name>.<hex id>.tmp) are removed");
+			if (parts.slice(0, -1).some((x) => x.startsWith("."))) return refuse("not inside a hidden folder");
+			if (!TEMP_ROOTS.some((r) => p.startsWith(r))) return refuse(c === "other" ? otherReason(p) : "temporary files are removed only beside storyForge's own files or under _sf-backup/");
+			return ALLOW;
+		}
 		case "prose-write":
 			if (c === "chapter" || c === "codex-note") return ALLOW;
 			return refuse(c === "other" ? otherReason(p) : `prose is only written to chapters and Codex notes, not a ${c}`);

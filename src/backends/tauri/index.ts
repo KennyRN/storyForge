@@ -14,6 +14,7 @@ import {
 	type ScanEntry,
 	type Stat,
 	type WriteIntent,
+	type TempLeftover,
 } from "../../core/backend/types";
 
 export type Invoke = (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
@@ -35,7 +36,7 @@ interface RustError {
 	path?: string | null;
 }
 
-const CODES = new Set<string>(["ENOENT", "EEXIST", "ENOTDIR", "EISDIR", "EACCES", "UNKNOWN"]);
+const CODES = new Set<string>(["ENOENT", "EEXIST", "ENOTDIR", "EISDIR", "EACCES", "ECHANGED", "UNKNOWN"]);
 
 export function fromRustError(err: unknown): Error {
 	if (err instanceof Error) return err;
@@ -129,6 +130,12 @@ export class TauriBackend implements Backend {
 	}
 	retire(path: string): Promise<string> {
 		return this.call<string>("retire", { path });
+	}
+	listTempLeftovers(): Promise<TempLeftover[]> {
+		return this.call<TempLeftover[]>("list_temp_leftovers", {});
+	}
+	async removeTemp(path: string, expected?: { size: number; mtimeMs: number }): Promise<void> {
+		await this.call("remove_temp", { path, ...(expected ? { size: expected.size, mtimeMs: expected.mtimeMs } : {}) });
 	}
 	async writeTextIfUnchanged(path: string, expected: string, text: string, intent?: CompareIntent): Promise<"written" | "conflict"> {
 		const r = await this.call<{ outcome: "written" | "conflict"; lateWriteRecovery?: string }>("compare_write", { op: intent?.op ?? "prose-write", path, expected, text });

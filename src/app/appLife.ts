@@ -206,9 +206,19 @@ export class AppController {
 			} catch {
 				/* no project.md: format 0 */
 			}
-			const opened = await openProject(info.root, { backend, snapshotStore: new MachineSnapshotStore(this.machine), projectName: basename(info.root), now: this.now, readOnly, onRewriteProgress: () => this.closeProgress(), ...(this.host.saveDelayMs ? { writer: { saveDelayMs: this.host.saveDelayMs } } : {}) });
-			const settings = await loadSettings(opened.project, (p) => backend.readOutside(p));
 			const key = sha256Text(info.root);
+			const leftoversName = `leftovers/${key}`;
+			const seen = new Set<string>();
+			try {
+				const stored = await this.machine.get(leftoversName);
+				if (stored) for (const k of JSON.parse(stored) as unknown[]) if (typeof k === "string") seen.add(k);
+			} catch {
+				/* nothing remembered */
+			}
+			const opened = await openProject(info.root, { backend, snapshotStore: new MachineSnapshotStore(this.machine), projectName: basename(info.root), now: this.now, readOnly, leftoversSeen: seen, onRewriteProgress: () => this.closeProgress(), ...(this.host.saveDelayMs ? { writer: { saveDelayMs: this.host.saveDelayMs } } : {}) });
+			const settings = await loadSettings(opened.project, (p) => backend.readOutside(p));
+			// Unclassifiable leftovers are reported once: remember them so a second open finds nothing to do.
+			if (opened.leftovers.newlyReported.length > 0) await this.machine.set(leftoversName, JSON.stringify([...seen, ...opened.leftovers.newlyReported])).catch(() => undefined);
 			const machineState = await loadMachineProjectState(this.machine, key, settings.pluginPosition);
 			const running: Running = {
 				root: info.root,

@@ -1,6 +1,6 @@
 # Leftover temporary files (Fix 2)
 
-Status: **investigation for H1 review.** Nothing is built. This says where the app writes a temporary file, what a leftover can hold, which guard change the tidy needs, how each kind would be treated, and where in opening it runs. The rules are decisions 18, 19, 24, 31 and 33 and the Fix 2 brief; section 7 lists the points I need ruled.
+Status: **H1 ruled (decision 39); built (§8 and §9).** The sections before §8 are the investigation as submitted. This says where the app writes a temporary file, what a leftover can hold, which guard change the tidy needs, how each kind would be treated, and where in opening it runs. The rules are decisions 18, 19, 24, 31 and 33 and the Fix 2 brief; section 7 lists the points I need ruled.
 
 ## 1. Every place the app writes a temporary file
 
@@ -90,3 +90,21 @@ A fixture builder (`npm run fixture:leftovers`) makes a project with one planted
 4. **A leftover of a recovery file is left where it is and reported**, never removed. Agreed?
 5. **Binary leftovers** (covers) that differ are left and reported. Agreed?
 6. **After a swap, a leftover holds the previous version**, which will usually match a backup. It is treated like any other differing prose temp (copied to recovery). That can mean an occasional recovery file with older text; I accept that over guessing which kind it is. Agreed?
+
+## 8. H1 rulings (decision 39)
+
+1. **`temp-remove`: approved** as one narrow new guard operation. The guard checks the name itself (`.<target>.<hex id>.tmp`, exactly) and the folder (beside storyForge's own files, or under `_sf-backup/`); never `.obsidian/`, `.trash/`, an iCloud placeholder, a hidden folder or a link that leaves the project. Rows in the shared table, including near-miss names; both guards pass them in one commit; existing rows byte-identical (only the table's `description` text names the new operation).
+2. **`list_temp_leftovers`: approved.** Read-only; only pattern-matching names with sizes and times, from storyForge's folders and `_sf-backup/`; never follows a link out. On the window's allow-list; `test/tauriConfig.test.ts` updated. **The matching removal command:** the operation needs a command to reach it, so `remove_temp` was added beside it, granted by name like every other and refused in a read-only project. This is the one place the "a new Rust command may only read or reveal" rule is stretched, and only to carry the approved guard operation. Flagged for review.
+3. **"Moved into recovery"** is, strictly in this order: copy (create-only, synced by the backend), read the copy back and confirm it matches byte for byte, confirm the leftover's size and modification time are unchanged since it was listed (checked inside Rust, at the moment of removal), only then remove it. If any step fails the leftover stays and the summary says so.
+4. **A recovery file's own leftover** gets a visible name in the same recovery folder, through the same steps, and is reported. If a visible copy with the same bytes is already there, only the leftover is removed.
+5. **Binary leftovers** are treated like structural ones: identical to the file beside it, removed; otherwise copied into `recovery/_temp/`, checked, removed. Genuinely unclassifiable leftovers stay, each reported once and remembered in machine settings (`leftovers/<sha256 of the project path>`).
+6. **The summary labels each recovered copy:** newer than the file beside it (or nothing beside it) says plainly, first, that it may hold unsaved words; older is an earlier version, mentioned quietly. Modification times decide only the label; everything that differs is kept.
+
+## 9. As built
+
+- **Guard:** `temp-remove` in `guard.ts` and `guard.rs` (`is_temp_name`, five allowed roots, no hidden folder), with 40 new rows in `test/guard-spec/guard.json` (allows in each folder; refusals for near-miss names, `.DS_Store`, an iCloud placeholder, `.obsidian/`, `.trash/`, `_export/`, a real backup, a recovery file, a chapter, case variants, a traversal and a link).
+- **Rust:** `Project::list_temp_leftovers` and `Project::remove_temp` (regular files only, never a link, with the size-and-time check), dispatched through `api.rs`; commands `list_temp_leftovers` and `remove_temp`.
+- **TypeScript:** `Backend.listTempLeftovers` and `removeTemp` (Tauri, node-fs, memory, guarded); `src/core/tempTidy.ts` (the only caller of `removeTemp`, enforced by `test/architecture.test.ts`); `recovery.ts` gained the copy helper (it stays the only caller of `createRecovery`, which now accepts bytes); `openProject` runs the tidy as step 2b, after the layout check and before the snapshot and reconciliation, never in a read-only project, and returns `OpenedProject.leftovers`.
+- **Copies** are whole-file, byte for byte (frontmatter included), named `<name> (leftover <yyyy-mm-dd hhmmss>).md` in `recovery/<book>/` (chapters), `recovery/_codex/`, `recovery/_temp/` (structural and binary; a binary's name keeps its extension before the `.md`, since the guard allows only `.md` recovery files), or the recovery file's own folder.
+- **Summary:** the "Changes found when opening" dialog gained "Words that may not have been saved" (prose and recovery-file leftovers newer than the file beside them), "Other files that may not have been saved" (a history file or a cover, whose leftover can't hold words), "Earlier versions kept", "Tidied" and "Left where they are". A quiet open shows nothing.
+- **Fixture:** `npm run fixture:leftovers [-- <folder>]` (default `~/Desktop/storyForge leftovers fixture`) plants one leftover of every kind and the decoys (`test/helpers/leftovers.ts`, shared with the tests).

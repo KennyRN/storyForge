@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — leftover temporary files (0.11.1)
+
+When the app saves a file it writes a hidden temporary file beside it and swaps it in. A crash, force-quit or power cut at the wrong instant can leave one behind, and one can hold words that exist nowhere else. At open, storyForge now deals with them safely. See `docs/temp-tidy.md` (the investigation, rulings in §8, as built in §9).
+
+- New: at open (after the layout check, before reconciliation; never in a read-only project; never on a file under a minute old), a backup's temporary zip and a copy identical to the file beside it are removed; anything that differs is copied into recovery, read back and checked, confirmed unchanged, and only then removed. A recovery file's own leftover gets a visible name in its recovery folder. Anything unclassifiable stays, is reported once and is remembered.
+- New: the opening summary says first, plainly, when what was being saved is newer than the file beside it ("may hold words that were never saved"), and mentions earlier versions quietly.
+- New: a guard operation `temp-remove` (name and folder checked, 40 table rows in both guards) and two commands, `list_temp_leftovers` and `remove_temp`; `npm run fixture:leftovers` builds a copy of the fixture with every kind planted.
+- Fixed: the `quit` refactor of 0.11.0 is covered by a regression test (`QuitState::terminate_request`).
+
 ## Unreleased — writing sessions (0.11.0)
 
 Each writing session is recorded: when it started and ended, to the second, the words it added to the story, and its pace. Sessions are listed in the history view, and editing or pasted-in sessions are left out of the storytelling figures. This is a deliberate, additive change to the 0.17 disk format (decision 34): one new folder, `_backstage/storyforge/sessions/`, read by nothing else; `format-version` is unchanged. See `docs/sessions.md` (the design, rulings in §10, as built in §12) and `docs/sessions-report.md`.

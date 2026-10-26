@@ -28,6 +28,7 @@ const RESTRICTED: Record<string, string[]> = {
 	codexRename: ["core/linkRewriter.ts"],
 	createBackup: ["core/backup.ts"],
 	createRecovery: ["core/recovery.ts"],
+	removeTemp: ["core/tempTidy.ts"],
 	writeTextIfUnchanged: ["core/backend/guarded.ts", "backends/node-fs/index.ts"],
 };
 const DEFINERS = new Set(["core/backend/guarded.ts", "core/backend/types.ts", "backends/node-fs/index.ts"]);

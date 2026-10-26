@@ -2,7 +2,7 @@
  * Opening and creating a project (docs/safety-core.md §8). The order of the steps is a safety
  * guarantee, not an accident of wiring:
  *
- *  1. scan; 2. refuse a pre-0.17 layout (no writes); 3. load the snapshot;
+ *  1. scan; 2. refuse a pre-0.17 layout (no writes); 2b. tidy leftover temporary files; 3. load the snapshot;
  *  4. reconcile the scan against what was last known (match, then recover, then prune);
  *  5. ensure, without pruning, only after reconciliation, so a renamed chapter is matched before it
  *     can be mistaken for a new one; 6. save the snapshot; 7. return.
@@ -11,6 +11,7 @@
  * or ensuring. One project per process (decision 19). Opening an empty folder never seeds it:
  * creating a project is always an explicit request (`createProject`).
  */
+import { type TidyReport, tidyTemporaryFiles } from "./tempTidy";
 import type { Backend } from "./backend/types";
 import { BackupService, type BackupResult } from "./backup";
 import {
@@ -72,6 +73,8 @@ export interface OpenProjectOptions {
 	 * (the project was made by a newer storyForge). The snapshot, outside the project, may still be saved.
 	 */
 	readOnly?: boolean;
+	/** Leftover temporary files already reported as unclassifiable (their keys), so a second open finds nothing to do. */
+	leftoversSeen?: ReadonlySet<string>;
 	/** Called as each stage and each file of a Codex rename finishes (see `ApplyRenameOptions.onProgress`). */
 	onRewriteProgress?: () => void;
 }
@@ -98,6 +101,8 @@ export interface OpenedProject {
 		plan(notePath: string, newName: string): Promise<LinkRewritePlan>;
 		apply(notePath: string, newName: string): Promise<LinkRewriteResult>;
 	};
+	/** What the tidy of leftover temporary files did at open (docs/temp-tidy.md). Empty when there was nothing to do. */
+	leftovers: TidyReport;
 	/** Opened without writing (a newer project format). */
 	readOnly: boolean;
 	/** Why the snapshot could not be saved at open, if it could not. */
@@ -115,6 +120,10 @@ export async function openProject(root: string, options: OpenProjectOptions): Pr
 		if (!project.isFolder(LIBRARY_ROOT)) throw new NotAProjectError(root);
 
 		const readOnly = options.readOnly === true;
+
+		// 2b. Leftover temporary files from a crash or force-quit: anything that differs from the file beside it is copied
+		// into recovery and checked before it is removed; before reconciliation, so that never meets a stray temp.
+		const leftovers = await tidyTemporaryFiles(project, { now: options.now?.() ?? new Date(), readOnly, ...(options.leftoversSeen ? { seen: options.leftoversSeen } : {}) });
 
 		// 3. The snapshot, if there is one.
 		const loaded = options.snapshotStore ? await options.snapshotStore.load(root) : ({ status: "missing" } as const);
@@ -175,6 +184,7 @@ export async function openProject(root: string, options: OpenProjectOptions): Pr
 			backups,
 			snapshots,
 			reconciliation,
+			leftovers,
 			renameNote: {
 				plan: (notePath, newName) => planCodexRename(project, notePath, newName),
 				apply: (notePath, newName) => renameCodexNote(project, notePath, newName, { backups, writer, ...(options.onRewriteProgress ? { onProgress: options.onRewriteProgress } : {}) }),

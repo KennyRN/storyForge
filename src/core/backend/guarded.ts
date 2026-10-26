@@ -4,7 +4,7 @@
  * gave in 0.17.1), then to the raw backend. There is no delete (docs/project-handle.md §4).
  */
 import { foldKey, resolvePath } from "../pathRules";
-import type { Backend, ScanEntry, Stat } from "./types";
+import type { Backend, ScanEntry, Stat, TempLeftover } from "./types";
 import { assertAllowed, type GuardOp } from "./guard";
 
 /** Read-modify-write inside one lock; every write in it still passes the guard. */
@@ -69,6 +69,17 @@ export class GuardedBackend {
 		return this.locked([path], () => this.raw.retire(path));
 	}
 
+	/** The app's own leftover temp files, by name only (a read). */
+	listTempLeftovers(): Promise<TempLeftover[]> {
+		return this.raw.listTempLeftovers();
+	}
+
+	/** Removes one leftover temp file. Only `tempTidy.ts` calls this (test/architecture.test.ts). */
+	removeTemp(path: string, expected?: { size: number; mtimeMs: number }): Promise<void> {
+		assertAllowed({ op: "temp-remove", path });
+		return this.locked([path], () => this.raw.removeTemp(path, expected));
+	}
+
 	// -------------------------------------------- the narrow, caller-restricted operations
 	// (test/architecture.test.ts: only the named module may call each of these.)
 
@@ -97,7 +108,7 @@ export class GuardedBackend {
 	}
 
 	/** Creates a recovery file; fails (EEXIST) if the name is taken. Only `recovery.ts` calls this. */
-	createRecovery(path: string, text: string): Promise<void> {
+	createRecovery(path: string, text: string | Uint8Array): Promise<void> {
 		assertAllowed({ op: "recovery-create", path });
 		return this.locked([path], () => this.raw.createFile(path, text, { op: "recovery-create" }));
 	}

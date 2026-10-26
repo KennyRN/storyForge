@@ -19,6 +19,8 @@ const COMMANDS: &[&str] = &[
     "compare_write",
     "rename",
     "retire",
+    "list_temp_leftovers",
+    "remove_temp",
     "machine_get",
     "machine_set",
     "watch_start",

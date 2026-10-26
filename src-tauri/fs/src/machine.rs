@@ -16,11 +16,12 @@ fn is_hex64(s: &str) -> bool {
 }
 
 /// `window`, `recent`, `computer` (this Mac's random id for session files), `snapshots/<sha256 of a project path>`,
-/// `project-ui/<sha256 of a project path>`, `session/<sha256 of a project path>` (the writing session in progress).
+/// `project-ui/<sha256 of a project path>`, `session/<sha256 of a project path>` (the writing session in progress),
+/// `leftovers/<sha256 of a project path>` (unclassifiable leftover temp files already reported).
 pub fn is_allowed_name(name: &str) -> bool {
     match name.split_once('/') {
         None => name == "window" || name == "recent" || name == "computer",
-        Some((folder, key)) => (folder == "snapshots" || folder == "project-ui" || folder == "session") && is_hex64(key),
+        Some((folder, key)) => (folder == "snapshots" || folder == "project-ui" || folder == "session" || folder == "leftovers") && is_hex64(key),
     }
 }
 

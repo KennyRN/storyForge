@@ -11,6 +11,19 @@ pub const BACKSTAGE_ROOT: &str = "_backstage/storyforge";
 pub const BACKUPS_FOLDER: &str = "_sf-backup";
 pub const EXPORT_ROOT: &str = "_export";
 
+/// The name of a temporary file the app itself makes: `.<target>.<hex id>.tmp` (12 hex digits from the TypeScript
+/// backend, 16 to 40 from the Rust one). The twin of `isTempName` in guard.ts.
+pub fn is_temp_name(name: &str) -> bool {
+    let Some(rest) = name.strip_prefix('.').and_then(|n| n.strip_suffix(".tmp")) else { return false };
+    let Some(dot) = rest.rfind('.') else { return false };
+    let (target, id) = (&rest[..dot], &rest[dot + 1..]);
+    let hex = id.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b));
+    !target.is_empty() && hex && (id.len() == 12 || (16..=40).contains(&id.len()))
+}
+
+/// Where a leftover temp may be removed: beside storyForge's own files, or under `_sf-backup/`. Exact case.
+const TEMP_ROOTS: [&str; 5] = ["_story-library/", "Codex/", "notes/", "_backstage/storyforge/", "_sf-backup/"];
+
 const PROTECTED_ROOTS: [&str; 6] = [LIBRARY_ROOT, CODEX_ROOT, NOTES_ROOT, "_backstage", BACKUPS_FOLDER, EXPORT_ROOT];
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,6 +34,8 @@ pub enum GuardOp {
     CreateFolder(String),
     Rename { from: String, to: String },
     Retire(String),
+    /// Removes one of the app's own leftover temporary files (`.<target>.<hex id>.tmp`). Nothing else.
+    TempRemove(String),
     /// `keys`: the top-level frontmatter keys the edit changes. Codex notes allow exactly `["aliases"]`.
     FrontmatterEdit { path: String, keys: Option<Vec<String>> },
     ProseWrite(String),
@@ -44,6 +59,7 @@ impl GuardOp {
             "create-file" => GuardOp::CreateFile(p()?),
             "create-folder" => GuardOp::CreateFolder(p()?),
             "retire" => GuardOp::Retire(p()?),
+            "temp-remove" => GuardOp::TempRemove(p()?),
             "frontmatter-edit" => GuardOp::FrontmatterEdit { path: p()?, keys },
             "prose-write" => GuardOp::ProseWrite(p()?),
             "link-rewrite" => GuardOp::LinkRewrite(p()?),
@@ -70,6 +86,7 @@ impl GuardOp {
             | GuardOp::CreateFile(p)
             | GuardOp::CreateFolder(p)
             | GuardOp::Retire(p)
+            | GuardOp::TempRemove(p)
             | GuardOp::ProseWrite(p)
             | GuardOp::LinkRewrite(p)
             | GuardOp::BackupCreate(p)
@@ -283,6 +300,21 @@ pub fn check_guard(op: &GuardOp) -> Decision {
             } else {
                 refuse(format!("only backstage metadata is ever retired, not a {}", c.name()))
             }
+        }
+        GuardOp::TempRemove(path) => {
+            let Some(p) = resolve(path) else { return bad(path) };
+            let parts: Vec<&str> = p.split('/').collect();
+            if parts.len() < 2 || !is_temp_name(parts[parts.len() - 1]) {
+                return refuse("only the app's own temporary files (.<name>.<hex id>.tmp) are removed");
+            }
+            if parts[..parts.len() - 1].iter().any(|x| x.starts_with('.')) {
+                return refuse("not inside a hidden folder");
+            }
+            if !TEMP_ROOTS.iter().any(|r| p.starts_with(r)) {
+                let c = classify(&p);
+                return refuse(if c == Class::Other { other_reason(&p) } else { "temporary files are removed only beside storyForge's own files or under _sf-backup/".to_string() });
+            }
+            Decision::Allow
         }
         GuardOp::ProseWrite(path) => {
             let Some(p) = resolve(path) else { return bad(path) };

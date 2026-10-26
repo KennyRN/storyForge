@@ -33,6 +33,15 @@ pub fn is_eager_path(path: &str) -> bool {
     key.ends_with(".md") && !is_hidden_path(path) && eager_roots().iter().any(|r| key.starts_with(&format!("{r}/")))
 }
 
+/// A leftover temporary file, as `list_temp_leftovers` reports it.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct TempLeftover {
+    pub path: String,
+    pub size: u64,
+    #[serde(rename = "mtimeMs")]
+    pub mtime_ms: f64,
+}
+
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct ScanEntry {
     pub path: String,
@@ -495,6 +504,59 @@ impl Project {
             }
         };
         moved.map_err(|e| io_err(&e, to))
+    }
+
+    /// The app's own leftover temporary files (`.<target>.<hex id>.tmp`) inside storyForge's folders and `_sf-backup/`:
+    /// path, size and time, and nothing else. Read-only. Never follows a link, never looks in a hidden folder, and
+    /// never lists `.obsidian/`, `.trash/` or any other folder (they are not in the roots).
+    pub fn list_temp_leftovers(&self) -> FsResult<Vec<TempLeftover>> {
+        let mut out = Vec::new();
+        for root in ["_story-library", "Codex", "notes", "_backstage/storyforge", "_sf-backup"] {
+            self.walk_temps(root, &mut out)?;
+        }
+        out.sort_by(|a, b| a.path.cmp(&b.path));
+        Ok(out)
+    }
+
+    fn walk_temps(&self, rel: &str, out: &mut Vec<TempLeftover>) -> FsResult<()> {
+        let abs = self.root.join(rel);
+        let Ok(rd) = fs::read_dir(&abs) else { return Ok(()) }; // a missing folder has none
+        for entry in rd.filter_map(Result::ok) {
+            let name = entry.file_name().to_string_lossy().to_string();
+            let child = format!("{rel}/{name}");
+            let Ok(meta) = fs::symlink_metadata(entry.path()) else { continue };
+            let ft = meta.file_type();
+            if ft.is_symlink() {
+                continue; // neither followed nor listed
+            }
+            if ft.is_dir() {
+                if !name.starts_with('.') {
+                    self.walk_temps(&child, out)?;
+                }
+            } else if ft.is_file() && crate::guard::is_temp_name(&name) {
+                out.push(TempLeftover { path: child, size: meta.len(), mtime_ms: mtime_ms(&meta) });
+            }
+        }
+        Ok(())
+    }
+
+    /// Removes one leftover temporary file. The guard checks the name and the folder; the file must be a regular
+    /// file inside the project (never a link). With `expected`, it is removed only if its size and modification time
+    /// are still what they were when it was listed; otherwise `ECHANGED` and nothing is removed.
+    pub fn remove_temp(&self, rel: &str, expected: Option<(u64, f64)>) -> FsResult<()> {
+        self.guard(&GuardOp::TempRemove(rel.to_string()), rel)?;
+        let resolved = resolve_path(rel).ok_or_else(|| FsError::new("EACCES", "not a safe project path", Some(rel)))?;
+        let abs = self.inside(&resolved)?;
+        let meta = fs::symlink_metadata(&abs).map_err(|e| io_err(&e, rel))?;
+        if !meta.file_type().is_file() {
+            return Err(FsError::forbidden("only a regular file is removed", rel));
+        }
+        if let Some((size, mtime)) = expected {
+            if meta.len() != size || (mtime_ms(&meta) - mtime).abs() > 0.5 {
+                return Err(FsError::new("ECHANGED", "the file changed since it was listed", Some(rel)));
+            }
+        }
+        fs::remove_file(&abs).map_err(|e| io_err(&e, rel))
     }
 
     /// Moves a backstage file into `.trash/` inside the project, never overwriting what is there.
