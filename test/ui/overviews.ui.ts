@@ -37,6 +37,29 @@ test.describe("the series overview", () => {
 		await shot(page, "numbers-series-overview");
 	});
 
+	test("under an overview the editor takes no focus, no shortcuts and no undo, and saving carries on", async ({ page }) => {
+		await openProject(page);
+		const content = page.locator(".sf-slot--centre .cm-content");
+		await content.click();
+		await page.keyboard.press("End");
+		await page.keyboard.type(" under");
+		const text = () => page.evaluate(() => (window.__app.editors as any).slots.centre.occupant.mounted.view.state.doc.toString() as string);
+		const typed = await text();
+		await flip(page);
+		await tab(page, "series").click();
+		await expect(overview(page)).toBeVisible();
+		await expect(page.locator(".sf-slot--centre")).toHaveAttribute("inert", "");
+		// No focus, and nothing is exposed to assistive technology (inert removes it from the accessibility tree).
+		await content.focus({ timeout: 500 }).catch(() => undefined);
+		expect(await page.evaluate(() => !!document.activeElement?.closest(".sf-slot--centre"))).toBe(false);
+		// Find, bold and undo do nothing to it.
+		for (const combo of ["Meta+f", "Meta+b", "Meta+i", "Meta+z", "Meta+Shift+z"]) await page.keyboard.press(combo);
+		expect(await text()).toBe(typed);
+		await expect(page.locator(".sf-slot--centre .cm-search")).toHaveCount(0);
+		// Saving carries on underneath.
+		await expect.poll(() => page.evaluate(() => window.__preview.read("_story-library/aaa/ch-a1.md"))).toContain(" under");
+	});
+
 	test("clicking a novel shows the novel tab; opening a chapter shows it; the tab again brings the overview back", async ({ page }) => {
 		await openProject(page);
 		await flip(page);
@@ -136,6 +159,31 @@ test.describe("the novel overview", () => {
 		await expect(page.locator(".sf-slot--centre .cm-content")).toBeVisible();
 		await tab(page, "novel").click();
 		await expect(novelOverview(page)).toBeVisible();
+	});
+
+	test("the tooltip shows the word count at once, the plot note's first paragraph joins it, and a changed note replaces it", async ({ page }) => {
+		const card = novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] .sf-bar');
+		const tip = page.getByRole("tooltip");
+		const hover = async () => {
+			await page.mouse.move(0, 0);
+			await expect(tip).toHaveCount(0);
+			await card.hover();
+			await expect(tip).toBeVisible();
+		};
+		await hover();
+		await expect(tip).toHaveText(/^[\d,.]+/); // the count is there at once, whatever the plot read has done
+		// The note is read on the first hover and cached: a later hover shows it.
+		await expect.poll(async () => {
+			await hover();
+			return tip.textContent();
+		}).toMatch(/: Jane reaches the harbour at dawn\.$/);
+		// The next index change clears the cache; the new first paragraph is read on the next hover.
+		const novel = await page.evaluate((f) => window.__preview.read(f), BOOK_A);
+		await outside(page, BOOK_A, novel.replace("plot: Jane reaches the harbour at dawn.", "plot: The tide turns before breakfast.\n"));
+		await expect.poll(async () => {
+			await hover();
+			return tip.textContent();
+		}).toMatch(/: The tide turns before breakfast\.$/);
 	});
 
 	test("the bar's tooltip shows on hover", async ({ page }) => {
