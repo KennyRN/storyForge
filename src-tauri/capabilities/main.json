@@ -32,6 +32,7 @@
     "allow-reveal-in-finder",
     "allow-set-menu-state",
     "allow-quit-ready",
+    "allow-close-progress",
     "core:event:allow-listen",
     "core:event:allow-unlisten",
     "core:window:allow-destroy"

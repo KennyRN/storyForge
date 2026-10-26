@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — Fix 1: quitting from the Dock (0.10.1)
+
+Quitting from the Dock, logging out and shutting down used to end the app without telling the window, losing the last 2 seconds of typing and able to cut a Codex rename off partway. They now run the same close as Cmd+Q. See `docs/quit-paths.md`.
+
+- Fixed: the Dock's Quit, Log Out, Shut Down and the quit Apple event now answer macOS "not yet", run the close, and reply when the window has saved (`applicationShouldTerminate:` added to the application delegate, in `platform.rs`; tao 0.37.2, the newest, does not answer it).
+- Fixed: SIGTERM, SIGHUP and SIGINT run the same close. A second request while a close is under way joins it. The 15 s watchdog and `quit_ready` race for one exit.
+- Changed: the close watchdog fires 15 s after the last progress (a stage of the close finished, or a file of a Codex rename was written), not 15 s after the close began, so a slow rewrite always finishes. New command `close_progress` (no arguments, touches no file); progress is sent from real work only.
+- New: `npm run test:quit` (macOS, outside `npm test`, before every release) drives the built app through each route with unsaved text.
+- Changed: the README's known gap is now force-quit, crash and power loss only.
+
 ## Unreleased — the numbers (0.10.0)
 
 The data that calms the author while writing is back: the series overview, the novel overview and the word-count history, all read-only. Nothing new is written to disk. See `docs/numbers.md` (the design, rulings in §11) and `docs/numbers-report.md`.

@@ -16,9 +16,9 @@ storyForge is a Tauri 2 app (macOS first). The window runs the TypeScript core; 
 
 `npm run ui:preview` serves the interface in a browser at `http://127.0.0.1:1421` (development only, this computer only; it is not part of any build). It runs the real Rust file code over a temporary copy of a synthetic project, so nothing of yours is touched. `npm run test:ui` runs the interface tests in WebKit (the first time: `npx playwright install webkit`), and `npm run ui:shots` rewrites the screenshots in `docs/interface-shots/`. In a development build (`npm run app:dev`), View ▸ Developer ▸ Diagnostics shows how the project opened and what the watcher saw; a release build has no such item.
 
-### Known gap: quitting from the Dock
+### Quitting
 
-Quitting with Cmd+Q, the app menu's Quit or the red window button saves open text first. **Quitting from the Dock's right-click menu does not:** macOS ends the app without telling the window, so text typed in the last 2 seconds (the autosave delay) can be lost, with no recovery file. Everything older is already saved. The fix needs native macOS code beyond the platform module and waits for the real interface.
+Every way of quitting that the system lets an app catch saves open text first: Cmd+Q, the red window button, the Dock's Quit, Log Out and Shut Down, and the signals a terminal sends (`kill`, Ctrl+C). The app stops the quit, saves every open editor, saves its snapshot, and then quits, within 5 seconds. **Force Quit, a crash and a power cut cannot be caught**, so text typed in the last 2 seconds (the autosave delay) can be lost then, with no recovery file; everything older is already saved. `npm run test:quit` checks the routes against the built app (docs/quit-paths.md).
 
 ### Building it (on a Mac)
 

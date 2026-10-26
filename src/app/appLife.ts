@@ -199,7 +199,7 @@ export class AppController {
 			} catch {
 				/* no project.md: format 0 */
 			}
-			const opened = await openProject(info.root, { backend, snapshotStore: new MachineSnapshotStore(this.machine), projectName: basename(info.root), now: this.now, readOnly, ...(this.host.saveDelayMs ? { writer: { saveDelayMs: this.host.saveDelayMs } } : {}) });
+			const opened = await openProject(info.root, { backend, snapshotStore: new MachineSnapshotStore(this.machine), projectName: basename(info.root), now: this.now, readOnly, onRewriteProgress: () => this.closeProgress(), ...(this.host.saveDelayMs ? { writer: { saveDelayMs: this.host.saveDelayMs } } : {}) });
 			const settings = await loadSettings(opened.project, (p) => backend.readOutside(p));
 			const key = sha256Text(info.root);
 			const machineState = await loadMachineProjectState(this.machine, key, settings.pluginPosition);
@@ -352,6 +352,15 @@ export class AppController {
 	// ---------------------------------------------------------------------------------- closing
 
 	/**
+	 * Tells Rust the close is making real progress, so its watchdog counts 15 s from the last one, not from the
+	 * start (decision 33). Called only when a stage or a rewritten file has finished, never from a timer: a stuck
+	 * close sends nothing and is cut off. Silent when no close is under way.
+	 */
+	closeProgress(): void {
+		if (this.shuttingDown) void this.host.invoke("close_progress").catch(() => undefined);
+	}
+
+	/**
 	 * Saves everything and lets go of the project. A link rewrite in progress finishes first; a backup
 	 * not yet written is abandoned cleanly; open editors are flushed within `limitMs`, and anything
 	 * still unsaved after that goes to a recovery file instead of holding the app open.
@@ -366,13 +375,16 @@ export class AppController {
 			this.backupTimer = undefined;
 			// Batches already received are applied; nothing new is.
 			await this.queue.catch(() => undefined);
+			this.closeProgress();
 
 			if (this.activeRewrite) {
 				report.rewriteFinished = true;
 				await this.activeRewrite; // no time limit: half-updated links are worse than a slow quit
+				this.closeProgress();
 			}
 			await running.opened.backups.abandon();
 			report.backupAbandoned = true;
+			this.closeProgress();
 
 			const writer = running.opened.writer;
 			const dirtyBefore = writer.openSessions().filter((s) => s.dirty);
@@ -387,6 +399,7 @@ export class AppController {
 				report.saves = outcome.results.map((r) => ({ path: r.path, kind: r.kind }));
 			}
 
+			this.closeProgress();
 			// The editors are flushed (or recovered); this saves the snapshot and releases the one-project latch.
 			try {
 				const closed = await running.opened.close({ flush: false });

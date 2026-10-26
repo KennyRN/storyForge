@@ -72,6 +72,8 @@ export interface OpenProjectOptions {
 	 * (the project was made by a newer storyForge). The snapshot, outside the project, may still be saved.
 	 */
 	readOnly?: boolean;
+	/** Called as each stage and each file of a Codex rename finishes (see `ApplyRenameOptions.onProgress`). */
+	onRewriteProgress?: () => void;
 }
 
 export interface CloseResult {
@@ -175,7 +177,7 @@ export async function openProject(root: string, options: OpenProjectOptions): Pr
 			reconciliation,
 			renameNote: {
 				plan: (notePath, newName) => planCodexRename(project, notePath, newName),
-				apply: (notePath, newName) => renameCodexNote(project, notePath, newName, { backups, writer }),
+				apply: (notePath, newName) => renameCodexNote(project, notePath, newName, { backups, writer, ...(options.onRewriteProgress ? { onProgress: options.onRewriteProgress } : {}) }),
 			},
 			readOnly,
 			...(snapshotSaveError ? { snapshotSaveError } : {}),

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-close-progress"
+description = "Enables the close_progress command without any pre-configured scope."
+commands.allow = ["close_progress"]
+
+[[permission]]
+identifier = "deny-close-progress"
+description = "Denies the close_progress command without any pre-configured scope."
+commands.deny = ["close_progress"]
