@@ -115,7 +115,7 @@ async function route(name, send, { expectJoin = false } = {}) {
 		if (onDiskEarly.length) fail(`${name}: the marker was already saved before the quit, so this run proves nothing`);
 		const sent = Date.now();
 		await send(child);
-		await until("the app to end", () => exited, 20000);
+		await until(`the app to end after "${name}" (stderr so far: ${JSON.stringify(stderr)})`, () => exited, 20000);
 		const took = exited.at - sent;
 		const closes = (stderr.match(/close requested/g) ?? []).length;
 		const joins = (stderr.match(/already under way/g) ?? []).length;

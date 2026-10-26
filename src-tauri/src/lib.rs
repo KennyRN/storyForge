@@ -252,7 +252,9 @@ fn on_terminate() -> storyforge_fs::platform::Terminate {
         return Terminate::Now;
     }
     if start {
-        request_close(app);
+        start_close(app); // on_terminate already won begin_close: calling request_close would see "already under way" and do nothing
+    } else {
+        eprintln!("storyForge: a close is already under way; joining it");
     }
     Terminate::Later
 }
@@ -266,6 +268,11 @@ fn request_close(app: &tauri::AppHandle) {
         eprintln!("storyForge: a close is already under way; joining it");
         return;
     }
+    start_close(app);
+}
+
+/// Starts the close: the caller has already won `begin_close` (so exactly one close ever starts).
+fn start_close(app: &tauri::AppHandle) {
     eprintln!("storyForge: close requested; asking the window to save");
     save_window_state(app);
     let _ = app.emit("close-requested", ());

@@ -76,13 +76,16 @@ None of the brief's holds was hit: the guard needed no new operation or row; `wo
 
 - **A bare ⌘Z in the browser preview undoes an inert editor.** The inert-editor proof (removing `inert` once) showed that the preview's WebKit applies its own document-level undo even when the editor isn't focused. The real app consumes ⌘Z with its Undo menu item, which acts only on a focused editor, so the test checks that route instead. **Kenny's check should try ⌘Z under an overview in the real app.**
 - **Screenshots caught three things the tests passed:** the stray word "null" at the top of the settings dialog (an old slip from Brief 5, now fixed and tested), the history view pushed 18 px past the dialog's edge so a chapter's number was clipped (fixed, with a test that nothing is wider than the view), and "1 words a minute" and "-0 words a minute" in the session list (now "1 word a minute" and "no pace").
+- **A covered editor now refuses undo and redo itself (decision 36):** a `beforeinput` handler and a `dispatchTransactions` guard, because CodeMirror's history commands skip transaction filters (my first attempt, a filter, did not stop WebKit's undo). A bare ⌘Z under an overview is tested and proved to fail without the guard; the inputs checked are listed in `docs/sessions.md` §13.
 - **The browser preview's clock:** the session tests use Playwright's fake clock, so "pause past the limit" takes milliseconds. The recorder judges the idle limit against the clock, which is what makes that valid.
 - **Machine settings gained two names** in the Rust allow-list (`computer`, `session/<sha>`), with a Rust test; no new command.
 - **The disk-wins edge:** when a conflict replaces the author's unsaved text with the disk's, those words stay in the session's net though they went to a recovery file. Noted in the design; rare.
 
 ## The quit smoke script
 
-`npm run test:quit` now also checks that each route's close wrote a session file naming the chapter, and that it was ended by the close, not recovered. **It has not been run on this build:** the Mac's screen was locked when it was tried, and the script refuses to run then. It needs to be run on an unlocked Mac, with the app built (`npm run app:build`), before the check below.
+`npm run test:quit` also checks that each route's close wrote a session file naming the chapter, ended by the close and not recovered. **Result, on the 0.11.0 build, Mac unlocked, after the fix below: all five routes pass** (Apple-event quit 354 ms, SIGTERM 132 ms, SIGHUP 191 ms, SIGINT 141 ms, a quit during a close 215 ms), each with the typed text in the chapter and a session file written by the close.
+
+**It caught a regression first.** My step-0 refactor of the quit bookkeeping (`quit_state.rs`, to unit-test the "join a close" rule) had the system-quit hook win `begin_close` and then call `request_close`, which saw a close "already under way" and returned without asking the window to save. The Dock's Quit, Log Out and Shut Down would have hung the app (AppKit waiting on a reply that never came). The unit tests covered the state but not that call, so they passed. Fixed (`start_close` is now the one place a close starts; the hook calls it directly), and the smoke script found it on its first run on an unlocked Mac, which is what it is for. A Rust test can't reach the wiring (it needs an `AppHandle`), so the smoke script is the test for it.
 
 ## Kenny's check (from the brief)
 
