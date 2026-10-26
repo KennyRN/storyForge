@@ -104,6 +104,35 @@ describe("the session recorder", () => {
 		expect(ctx.machine.data.get("session/x")).toContain('"cp"');
 	});
 
+	it("nothing at all is written to the project on a keystroke: before the first save the folder is byte-identical", async () => {
+		const ctx = await setup();
+		const s = await ctx.writer.open(CH);
+		const before = snapshot(ctx.root);
+		for (let i = 0; i < 100; i++) {
+			s.setBody(`${s.body} k${i}`);
+			await ctx.advance(10); // a hundred keystrokes inside the save delay
+		}
+		const diff = diffSnapshots(before, snapshot(ctx.root));
+		expect([diff.added, diff.changed, diff.removed]).toEqual([[], [], []]);
+		expect(ctx.recorder.running).toBe(true);
+	});
+
+	it("the word-count history is byte-identical with and without session tracking", async () => {
+		const wc = "_backstage/storyforge/aaa/wordcount.md";
+		const run = async (track: boolean) => {
+			const ctx = await setup();
+			if (!track) ctx.recorder.dispose();
+			const s = await ctx.writer.open(CH);
+			for (let i = 0; i < 5; i++) {
+				s.setBody(`${s.body} typed words number ${i}`);
+				await ctx.advance(3000);
+			}
+			if (track) await ctx.recorder.end();
+			return fs.readFileSync(path.join(ctx.root, wc), "utf8");
+		};
+		expect(await run(true)).toBe(await run(false));
+	});
+
 	it("a Codex note never starts or extends a session", async () => {
 		const ctx = await setup();
 		const note = await ctx.writer.open("Codex/Jane.md");

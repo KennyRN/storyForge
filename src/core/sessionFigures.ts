@@ -3,7 +3,7 @@
  * Worked out each time from the settings, never stored, so changing a setting reclassifies past sessions and no file
  * is rewritten. Nothing here reads or writes the disk.
  */
-import { addDaysISO, mostRecentMondayISO } from "./historyMath";
+import { addDaysISO, mostRecentMondayISO, type DayNet } from "./historyMath";
 import { parseInstant, type SessionRecord } from "./sessions";
 
 export interface SessionSettings {
@@ -83,6 +83,11 @@ export function storytellingDaily(daily: Record<string, number>, excluded: Recor
 	const out = { ...daily };
 	for (const [day, n] of Object.entries(excluded)) out[day] = (out[day] ?? 0) - n;
 	return out;
+}
+
+/** The history's day nets with the excluded sessions' words taken off. */
+export function adjustDayNets(days: readonly DayNet[], excluded: Record<string, number>): DayNet[] {
+	return days.map((d) => ({ date: d.date, net: d.net - (excluded[d.date] ?? 0) }));
 }
 
 /** Today's and this week's storytelling figures, from the history's own today and week nets. */

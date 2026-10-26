@@ -177,6 +177,7 @@ body.sf-codex-drag-active {
 
 /* The stats. */
 .sf-stats {
+	flex-wrap: wrap;
 	display: flex;
 	align-items: center;
 	gap: var(--space-2);
@@ -418,3 +419,7 @@ body.sf-codex-drag-active {
 .sf-archive-open:hover {
 	background: var(--purpose-raised-bg);
 }
+
+/* The live session readout: quiet, on its own line, no animation. */
+.sf-stats-session { flex-basis: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
+.sf-stats-session[hidden] { display: none; }

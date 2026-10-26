@@ -3,7 +3,8 @@
 //
 // For each quit route it starts the BUILT app on a fixture copy, opens the project, types a marker into the
 // editor, sends the route before the 2 s save could fire, and checks that the app ran the ordinary close, ended
-// in time, and that the marker reached the disk (in the chapter, or in a recovery file). The Apple-event route
+// in time, that the marker reached the disk (in the chapter, or in a recovery file), and that the writing session
+// was ended and recorded by the close. The Apple-event route
 // is the run-loop proof: while macOS waits on "terminate later" it runs the main loop in a restricted mode, and
 // the marker only lands if the window's script, its calls into Rust, Rust's file work and quit_ready all ran in it.
 //
@@ -127,6 +128,12 @@ async function route(name, send, { expectJoin = false } = {}) {
 		if (/made no progress for/.test(stderr)) problems.push("the watchdog fired");
 		if (took > 8000) problems.push(`took ${took} ms (limit 8000)`);
 		if (!saved.length) problems.push("the typed text reached neither the chapter nor a recovery file");
+		// Ending the session is a step in the close: its file must be there, naming the chapter that was written in.
+		const sessionsDir = join(project, "_backstage/storyforge/sessions");
+		const sessionFiles = existsSync(sessionsDir) ? readdirSync(sessionsDir) : [];
+		if (sessionFiles.length !== 1) problems.push(`expected one session file, found ${sessionFiles.length}`);
+		else if (!/path: aaa\/ch-a1\.md/.test(readFileSync(join(sessionsDir, sessionFiles[0]), "utf8"))) problems.push("the session file doesn't name the chapter that was written in");
+		else if (/recovered: true/.test(readFileSync(join(sessionsDir, sessionFiles[0]), "utf8"))) problems.push("the session was recovered rather than ended by the close");
 		// A second request must never start a second close (closes === 1 above). Whether it was seen mid-close
 		// depends on timing, so "joined" is reported, not required.
 		const note = expectJoin ? (joins ? "second request joined" : "second request arrived after the close") : "";
