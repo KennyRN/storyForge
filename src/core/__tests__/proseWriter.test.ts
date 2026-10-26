@@ -496,3 +496,47 @@ describe("onSaveResult (the save observer)", () => {
 		expect(kinds).toEqual(["recovery-failed"]);
 	});
 });
+
+describe("onAuthorEdit (the author-edit observer)", () => {
+	it("hears the author's edits with their origin, and never a reload from disk", async () => {
+		const heard: string[] = [];
+		const { writer, project, write } = await setup();
+		writer.onAuthorEdit((e) => void heard.push(`${e.kind}:${e.origin}:${e.before.length}->${e.after.length}`));
+		const a = await writer.open(CH);
+		const before = a.body;
+		a.setBody(`${before} more`);
+		a.setBody(`${before} more more`, "paste");
+		expect(heard).toEqual([`chapter:type:${before.length}->${before.length + 5}`, `chapter:paste:${before.length + 5}->${before.length + 10}`]);
+		await a.save();
+		// an outside change reaches the session as a reload, which is not an edit
+		write(CH, "---\nchapter-order: x\n---\nchanged outside\n");
+		await project.refresh(CH);
+		await writer.onDiskChanged(CH, "---\nchapter-order: x\n---\nchanged outside\n");
+		expect(heard).toHaveLength(2);
+	});
+
+	it("can never change a write's outcome: a listener that throws is caught", async () => {
+		const { writer, read } = await setup();
+		const err = vi.spyOn(console, "error").mockImplementation(() => undefined);
+		writer.onAuthorEdit(() => {
+			throw new Error("a bad listener");
+		});
+		const a = await writer.open(CH);
+		a.setBody("kept anyway");
+		expect((await a.save()).kind).toBe("saved");
+		expect(read(CH)).toContain("kept anyway");
+		expect(err).toHaveBeenCalled();
+		err.mockRestore();
+	});
+
+	it("stops hearing once unsubscribed, and a Codex note's edit says it is a Codex note", async () => {
+		const heard: string[] = [];
+		const { writer } = await setup();
+		const off = writer.onAuthorEdit((e) => void heard.push(e.kind));
+		const note = await writer.open("Codex/Jane.md");
+		note.setBody("a");
+		off();
+		note.setBody("b");
+		expect(heard).toEqual(["codex"]);
+	});
+});

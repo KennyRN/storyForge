@@ -14,6 +14,8 @@ import { ProseWriter, type ProseSession } from "../../src/core/proseWriter";
 import { Project } from "../../src/core/project";
 import { evidenceFromIndex, reconcileAtOpen, reconcileChanges } from "../../src/core/reconciler";
 import { recoverChapterText, recoverCodexText, recoverPrunedEntry } from "../../src/core/recovery";
+import { appendSession } from "../../src/core/sessionFiles";
+import type { SessionRecord } from "../../src/core/sessions";
 import { type Snapshot, buildSnapshot } from "../../src/core/snapshot";
 import type { Ctx, OpSpec } from "../helpers/diskSafety";
 import { ManualScheduler } from "../helpers/scheduler";
@@ -73,7 +75,42 @@ const atOpen = (c: Ctx) => reconcileAtOpen(c.project, st(c).snapshot ?? null, st
 
 const RECOVERED_A3 = "_sf-backup/recovery/aaa/ch-a3 2026-10-23 100000.md";
 
+const SESSION: SessionRecord = {
+	id: "20261025T093000+0000",
+	start: "2026-10-25T09:30:00+00:00",
+	end: "2026-10-25T09:50:00+00:00",
+	day: "2026-10-25",
+	net: 120,
+	chapters: [{ path: "aaa/ch-a1.md", id: "c-a1k3", net: 120 }],
+	unreliable: false,
+	recovered: false,
+};
+const SESSIONS = "_backstage/storyforge/sessions";
+
 export const SAFETY_OPS: OpSpec[] = [
+	// ----------------------------------------------------------------------------- writing sessions
+	{
+		name: "appendSession: the first session of a month creates its one file; wordcount.md and every chapter stay byte-identical",
+		run: (c) => appendSession(c.project, SESSION, "k7x2q9ab"),
+		added: [`${SESSIONS}/2026-10-k7x2q9ab.md`],
+	},
+	{
+		name: "appendSession: a second session appends to that file only",
+		setup: (c) => appendSession(c.project, { ...SESSION, id: "20261024T090000+0000", start: "2026-10-24T09:00:00+00:00", end: "2026-10-24T09:20:00+00:00", day: "2026-10-24" }, "k7x2q9ab").then(() => undefined),
+		run: (c) => appendSession(c.project, SESSION, "k7x2q9ab"),
+		changed: { [`${SESSIONS}/2026-10-k7x2q9ab.md`]: yaml(["sessions"]) },
+	},
+	{
+		name: "appendSession: an unreadable session file is left byte-identical and the session goes to a sibling",
+		setup: async (c) => {
+			fs.mkdirSync(c.abs(SESSIONS), { recursive: true });
+			fs.writeFileSync(c.abs(`${SESSIONS}/2026-10-k7x2q9ab.md`), "---\nsessions: &a []\nlater: *a\n---\nunreadable\n");
+			(c as { project: Project }).project = await Project.open(new NodeFsBackend(c.root));
+		},
+		run: (c) => appendSession(c.project, SESSION, "k7x2q9ab"),
+		added: [`${SESSIONS}/2026-10-k7x2q9ab-2.md`],
+	},
+
 	// ------------------------------------------------------------------------ the prose writer
 	{
 		name: "ProseWriter: save a placed chapter (body only; fingerprint sidecar and word-count history follow)",

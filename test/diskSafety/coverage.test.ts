@@ -52,11 +52,12 @@ import * as linkRewriter from "../../src/core/linkRewriter";
 import * as openProjectModule from "../../src/core/openProject";
 import * as reconciler from "../../src/core/reconciler";
 import * as recovery from "../../src/core/recovery";
+import * as sessionFiles from "../../src/core/sessionFiles";
 import { SAFETY_OPS } from "./safetyOps";
 
 describe("the disk-safety suite covers every safety-core operation", () => {
 	const names = SAFETY_OPS.map((o) => o.name).join("\n") + "\n" + SAFETY_OPS.map((o) => String(o.run)).join("\n");
-	const modules: Record<string, Record<string, unknown>> = { recovery, reconciler, linkRewriter, openProject: openProjectModule, backup };
+	const modules: Record<string, Record<string, unknown>> = { recovery, reconciler, linkRewriter, openProject: openProjectModule, backup, sessionFiles };
 	for (const [moduleName, mod] of Object.entries(modules)) {
 		for (const [fnName, fn] of Object.entries(mod)) {
 			if (typeof fn !== "function" || fn.constructor.name !== "AsyncFunction") continue;

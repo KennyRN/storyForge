@@ -144,7 +144,7 @@ export class EditorHost {
 				return;
 			}
 			const editorHost = el("div", { class: "sf-editor" });
-			const mounted = session ? mountSessionEditor(editorHost, session) : mountReadOnlyEditor(editorHost, readOnlyText ?? "");
+			const mounted = session ? mountSessionEditor(editorHost, session, { covered: () => slot === "centre" && this.model.centreCovered }) : mountReadOnlyEditor(editorHost, readOnlyText ?? "");
 			occupant = { path: session?.path ?? project.entry(path)?.path ?? path, mounted, session, offs: [] };
 			if (session) this.watch(occupant, session);
 			const previous = s.occupant;

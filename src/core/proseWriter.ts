@@ -23,6 +23,7 @@ import { bookFolderNameFromChapterPath, chapterFilenameFromPath, isCodexNotePath
 import { type ProseShape, decideDiskChange, minimalReplacement, parseProseFile, serialiseProseFile } from "./proseFile";
 import type { Project } from "./project";
 import { recoverChapterText, recoverCodexText } from "./recovery";
+import type { EditOrigin } from "./sessions";
 
 export const SAVE_DELAY_MS = 2000;
 
@@ -64,6 +65,21 @@ export type SaveResult =
 export type SaveObserver = (result: SaveResult) => void | Promise<void>;
 
 /** Sent to the editor when a session's text is replaced from disk. */
+/** The author changed a session's text (never a reload from disk). Heard through `ProseWriter.onAuthorEdit`. */
+export interface AuthorEdit {
+	session: ProseSession;
+	path: string;
+	kind: ProseKind;
+	/** The body just before the edit and just after it. */
+	before: string;
+	after: string;
+	/** Where the edit came from; an edit with no origin is typing. */
+	origin: EditOrigin;
+	/** When, in milliseconds (the writer's clock). */
+	at: number;
+}
+export type AuthorEditListener = (edit: AuthorEdit) => void;
+
 export interface ReloadEvent {
 	path: string;
 	cause: "outside-change" | "conflict";
@@ -149,11 +165,13 @@ export class ProseSession {
 		return this.current !== this.savedBody;
 	}
 
-	/** The author changed the body. Starts (or restarts) the save delay. */
-	setBody(body: string): void {
+	/** The author changed the body. Starts (or restarts) the save delay. `origin` says where the edit came from (typing when omitted). */
+	setBody(body: string, origin: EditOrigin = "type"): void {
 		if (this.closed) throw new ProseRefused(this.path, "the session is closed");
+		const before = this.current;
 		this.current = body;
 		this.writer.noteEdited(this);
+		this.writer.noteAuthorEdit(this, before, body, origin);
 	}
 
 	/** Called when the editor's text is replaced from disk. Returns an unsubscribe function. */
@@ -205,6 +223,31 @@ export class ProseWriter {
 				await updateChapterFingerprint(project, c.bookFolderName, c.filename, extractFingerprint(c.text));
 				await recordChapterEdit(project, c.bookFolderName, c.filename, project.wordCount(c.path), this.now());
 			});
+		}
+	}
+
+	private readonly editListeners = new Set<AuthorEditListener>();
+
+	/**
+	 * Hears every edit the author makes through `ProseSession.setBody`: never a reload from disk, a link rewrite,
+	 * reconciliation or a recovery. Like `onSaveResult` it can never change a write's outcome: whatever a listener
+	 * throws is caught and logged. Returns an unsubscribe function.
+	 */
+	onAuthorEdit(listener: AuthorEditListener): () => void {
+		this.editListeners.add(listener);
+		return () => this.editListeners.delete(listener);
+	}
+
+	/** @internal */
+	noteAuthorEdit(session: ProseSession, before: string, after: string, origin: EditOrigin): void {
+		if (this.editListeners.size === 0) return;
+		const edit: AuthorEdit = { session, path: session.path, kind: session.kind, before, after, origin, at: this.now().getTime() };
+		for (const l of this.editListeners) {
+			try {
+				l(edit);
+			} catch (err) {
+				console.error("storyForge: an author-edit listener failed", err);
+			}
 		}
 	}
 

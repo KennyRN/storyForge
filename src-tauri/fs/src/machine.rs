@@ -15,11 +15,12 @@ fn is_hex64(s: &str) -> bool {
     s.len() == 64 && s.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
 }
 
-/// `window`, `recent`, `snapshots/<sha256 of a project path>`, `project-ui/<sha256 of a project path>`.
+/// `window`, `recent`, `computer` (this Mac's random id for session files), `snapshots/<sha256 of a project path>`,
+/// `project-ui/<sha256 of a project path>`, `session/<sha256 of a project path>` (the writing session in progress).
 pub fn is_allowed_name(name: &str) -> bool {
     match name.split_once('/') {
-        None => name == "window" || name == "recent",
-        Some((folder, key)) => (folder == "snapshots" || folder == "project-ui") && is_hex64(key),
+        None => name == "window" || name == "recent" || name == "computer",
+        Some((folder, key)) => (folder == "snapshots" || folder == "project-ui" || folder == "session") && is_hex64(key),
     }
 }
 

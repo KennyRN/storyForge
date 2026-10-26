@@ -14,7 +14,7 @@ import { storytellingCodexClickAction } from "../view/codexOpenTarget";
 import { NoticeCenter } from "./kit/notices";
 import type { EditorHost } from "./editor/editorHost";
 
-export type Topic = "project" | "library" | "codex" | "archive" | "stats" | "settings" | "face" | "notices" | "nav";
+export type Topic = "project" | "library" | "codex" | "archive" | "stats" | "settings" | "face" | "notices" | "nav" | "sessions";
 
 export type Face = "storytelling" | "storyforge";
 /** What the workspace shows on the storyForge face: the open chapter, or the overview of the selected tab. */
@@ -51,7 +51,7 @@ const clampWidth = (n: number, lo: number, hi: number): number => Math.min(hi, M
 export const clampLeft = (n: number): number => clampWidth(n, 200, 480);
 export const clampLore = (n: number): number => clampWidth(n, 280, 640);
 
-const ALL: Topic[] = ["project", "library", "codex", "archive", "stats", "settings", "face"];
+const ALL: Topic[] = ["project", "library", "codex", "archive", "stats", "settings", "face", "sessions"];
 
 export class AppModel {
 	readonly notices = new NoticeCenter();
@@ -65,6 +65,10 @@ export class AppModel {
 	constructor(readonly controller: AppController) {
 		// Everything the controller does on its own (an outside change applied, a project opened) touches all topics.
 		controller.onChange = () => this.touch(...ALL);
+		// A writing session started or ended: the history view and the stats panel redraw.
+		controller.onSessionChange = () => this.touch("sessions", "stats");
+		// Quietly, once: writing is unaffected (docs/sessions.md §8).
+		controller.onSessionFailure = () => this.notices.notify({ text: "Writing sessions couldn't be saved. Your writing is not affected.", key: "sessions-failed" });
 	}
 
 	get running(): Running | null {

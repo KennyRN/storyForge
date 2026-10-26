@@ -1,6 +1,6 @@
 import { NUMBERING_STYLE_OPTIONS, type NumberingStyle } from "../../core/numberingStyle";
 import type { AutomaticBackupFrequency } from "../../core/backup";
-import { setSetting, type ProjectSettings } from "../../app/settings";
+import { SESSION_LIMITS, setSetting, type ProjectSettings } from "../../app/settings";
 import { button } from "../kit/button";
 import { openDialog } from "../kit/dialog";
 import { el } from "../kit/dom";
@@ -36,11 +36,26 @@ export function openSettings(model: AppModel): void {
 		input.addEventListener("change", () => void change(key, toValue(input.value)));
 		return row(label, input, key);
 	};
-	const check = (key: "highlightActiveChapter" | "hideSeriesPane" | "automaticBackup", label: string): HTMLElement => {
+	const check = (key: "highlightActiveChapter" | "hideSeriesPane" | "automaticBackup" | "showSessionReadout", label: string): HTMLElement => {
 		const input = el("input", { attrs: { type: "checkbox", "aria-label": label } });
 		input.checked = settings.values[key];
 		input.disabled = off;
 		input.addEventListener("change", () => void change(key, input.checked));
+		return row(label, input, key);
+	};
+	/** A whole-number field. Committed when it loses focus or Return is pressed; a value outside the range is put back. Blank means off, where `nullable`. */
+	const number = (key: "sessionIdleMinutes" | "sessionMinShownMinutes" | "sessionEditingWpm", label: string, [lo, hi]: readonly [number, number], nullable = false): HTMLElement => {
+		const input = el("input", { class: "sf-field sf-setting-control", attrs: { type: "number", min: String(lo), max: String(hi), step: "1", "aria-label": label, ...(nullable ? { placeholder: "off" } : {}) } });
+		const current = settings.values[key];
+		input.value = current === null ? "" : String(current);
+		input.disabled = off;
+		input.addEventListener("change", () => {
+			const text = input.value.trim();
+			const next = text === "" ? null : Number(text);
+			const ok = next === null ? nullable : Number.isInteger(next) && next >= lo && next <= hi;
+			if (!ok) return void redraw();
+			void change(key, next as never);
+		});
 		return row(label, input, key);
 	};
 	const row = (label: string, control: HTMLElement, key: keyof ProjectSettings): HTMLElement => el("label", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: label }), control, source(key));
@@ -49,7 +64,7 @@ export function openSettings(model: AppModel): void {
 	const redraw = (): void => {
 		const numbering = Object.entries(NUMBERING_STYLE_OPTIONS) as [NumberingStyle, string][];
 		body.replaceChildren(
-			off ? el("p", { class: "sf-muted", text: running.readOnlyReason }) : null!,
+			...(off ? [el("p", { class: "sf-muted", text: running.readOnlyReason })] : []),
 			section("Numbering", [
 				select("seriesNumberingStyle", "Series numbering", numbering, (v) => v as NumberingStyle),
 				select("chapterNumberingStyle", "Chapter numbering", numbering, (v) => v as NumberingStyle),
@@ -72,6 +87,12 @@ export function openSettings(model: AppModel): void {
 					}),
 				),
 			]),
+			section("Sessions", [
+				number("sessionIdleMinutes", "Session idle limit (minutes)", SESSION_LIMITS.idleMinutes),
+				number("sessionMinShownMinutes", "Shortest session shown (minutes)", SESSION_LIMITS.minShownMinutes),
+				number("sessionEditingWpm", "Count as editing below (words per minute)", SESSION_LIMITS.editingWpm, true),
+			]),
+			section("Display", [check("showSessionReadout", "Show the current session in the stats panel")]),
 			section("Interface", [
 				select("autoFocus", "Opens in", [["true", "storytelling"], ["false", "library"]], (v) => v === "true"),
 				check("highlightActiveChapter", "Highlight the active chapter"),

@@ -32,7 +32,7 @@
 .sf-bar--link { cursor: pointer; }
 
 /* The history view. */
-.sf-history { min-width: min(560px, 80vw); display: flex; flex-direction: column; gap: 4px; }
+.sf-history { min-width: min(520px, 70vw); display: flex; flex-direction: column; gap: 4px; }
 .sf-history-stats { display: flex; flex-wrap: wrap; gap: 4px 24px; }
 .sf-history-stat { display: flex; flex-direction: column; font-size: 13px; }
 .sf-history-chapter { display: flex; justify-content: space-between; gap: 16px; font-size: 13px; padding: 2px 0; }
@@ -51,3 +51,11 @@ button.sf-heat-cell { cursor: pointer; }
 .sf-heat--loss-3 { background: var(--purpose-heat-loss-c); }
 .sf-heat--loss-4 { background: var(--purpose-heat-loss-d); }
 .sf-stats-chart { cursor: pointer; }
+
+/* Writing sessions in the history view (docs/sessions.md §9). Words, never colour alone. */
+.sf-history-note { font-size: 12px; padding: 4px 0; }
+.sf-session-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.sf-session { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; font-size: 13px; }
+.sf-session-when { font-variant-numeric: tabular-nums; }
+.sf-session-chapters { flex-basis: 100%; font-size: 12px; }
+.sf-session-tag { border: 1px solid var(--purpose-border); border-radius: 4px; padding: 0 6px; font-size: 12px; color: var(--purpose-text-muted); }

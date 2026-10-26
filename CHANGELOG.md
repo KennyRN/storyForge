@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased — writing sessions (0.11.0)
+
+Each writing session is recorded: when it started and ended, to the second, the words it added to the story, and its pace. Sessions are listed in the history view, and editing or pasted-in sessions are left out of the storytelling figures. This is a deliberate, additive change to the 0.17 disk format (decision 34): one new folder, `_backstage/storyforge/sessions/`, read by nothing else; `format-version` is unchanged. See `docs/sessions.md` (the design, rulings in §10, as built in §12) and `docs/sessions-report.md`.
+
+- New: a session starts at the author's first edit in a chapter and ends at its last edit when 3 minutes (a setting) pass with none, the project closes, the app quits by any route, or the Mac wakes. Only the author's own edits count: never reloads, link rewrites, reconciliation, Codex notes or archived chapters.
+- New: session files, one per month per computer (`<YYYY-MM>-<random id>.md`), written only when a session ends; the session in progress lives in the app's data folder and a crashed one is finished at the next open, marked recovered. A file that can't be read is never rewritten.
+- New: the history view lists a day's sessions (times, length, words, pace, chapters, and the words "editing", "unreliable", "recovered") and the average pace with its number of sessions. Today, this week, the days, the weeks and the heatmaps are the storytelling figures: they leave out editing sessions and sessions with a paste or drop over 30 words. Chapter, novel and series counts and every bar still count every word.
+- New: Sessions settings (idle limit, shortest session shown, count as editing below a pace) and a Display group with the live session readout in the stats panel (off by default).
+- Changed: ending the session is a step in the close path (after the editors flush, before the snapshot), and counts as progress for the watchdog. `ProseWriter.onAuthorEdit` is a new observer (it can never change a write's outcome); the editor says where each edit came from. Machine settings gain `computer` and `session/<sha>`.
+- Fixed: the settings dialog drew the word "null" above its first group when the project was writable (an old slip from Brief 5, caught by a screenshot).
+- Tests: 1,253 core tests, 131 WebKit interface tests and 35 Rust tests, all passing.
+
 ## Unreleased — Fix 1: quitting from the Dock (0.10.1)
 
 Quitting from the Dock, logging out and shutting down used to end the app without telling the window, losing the last 2 seconds of typing and able to cut a Codex rename off partway. They now run the same close as Cmd+Q. See `docs/quit-paths.md`.
