@@ -26,6 +26,12 @@ pub struct AppState {
     watcher: Mutex<Option<Watching>>,
     /// Set when the window has flushed and saved: only then may the app really close.
     quit_ok: AtomicBool,
+    /// A close is under way (the window has been asked to save): a second request joins it and never starts another.
+    closing: AtomicBool,
+    /// macOS asked to terminate and was told "later": the end of the close must reply to it, not exit.
+    terminate_pending: AtomicBool,
+    /// The way out has been taken (by `quit_ready` or the watchdog, whichever came first): it is taken once.
+    quit_done: AtomicBool,
     /// Which of the app's own menu items are enabled, as the window last said: kept so a rebuilt menu (the recent list changed) keeps it.
     menu_enabled: Mutex<HashMap<String, bool>>,
 }
@@ -212,10 +218,39 @@ fn reveal_in_finder(state: State<'_, AppState>, path: String) -> Result<(), FsEr
 
 /// The window has flushed every open editor and saved the snapshot: the app may close now.
 #[tauri::command]
-fn quit_ready(app: tauri::AppHandle, state: State<'_, AppState>) {
+fn quit_ready(app: tauri::AppHandle) {
     eprintln!("storyForge: the window finished saving; quitting");
+    finish_quit(&app);
+}
+
+/// The one way out. If macOS is waiting on a "later" termination, the reply ends the app (and `exit` would be
+/// a second exit path); otherwise the app exits itself. Taken once: `quit_ready` and the watchdog race here.
+fn finish_quit(app: &tauri::AppHandle) {
+    let state = app.state::<AppState>();
+    if state.quit_done.swap(true, Ordering::SeqCst) {
+        return;
+    }
     state.quit_ok.store(true, Ordering::SeqCst);
-    app.exit(0);
+    if state.terminate_pending.load(Ordering::SeqCst) {
+        let _ = app.run_on_main_thread(|| storyforge_fs::platform::reply_to_terminate(true));
+    } else {
+        app.exit(0);
+    }
+}
+
+static APP: std::sync::OnceLock<tauri::AppHandle> = std::sync::OnceLock::new();
+
+/// `applicationShouldTerminate:`, on the main thread: the Dock's Quit, Log Out and Shut Down arrive here.
+fn on_terminate() -> storyforge_fs::platform::Terminate {
+    use storyforge_fs::platform::Terminate;
+    let Some(app) = APP.get() else { return Terminate::Now };
+    let state = app.state::<AppState>();
+    state.terminate_pending.store(true, Ordering::SeqCst);
+    if state.quit_done.load(Ordering::SeqCst) {
+        return Terminate::Now;
+    }
+    request_close(app);
+    Terminate::Later
 }
 
 /// Closing the window or quitting is stopped, and the window is asked to save everything first. If the
@@ -223,6 +258,10 @@ fn quit_ready(app: tauri::AppHandle, state: State<'_, AppState>) {
 const CLOSE_WATCHDOG: Duration = Duration::from_secs(15);
 
 fn request_close(app: &tauri::AppHandle) {
+    if app.state::<AppState>().closing.swap(true, Ordering::SeqCst) {
+        eprintln!("storyForge: a close is already under way; joining it");
+        return;
+    }
     eprintln!("storyForge: close requested; asking the window to save");
     save_window_state(app);
     let _ = app.emit("close-requested", ());
@@ -230,8 +269,7 @@ fn request_close(app: &tauri::AppHandle) {
     std::thread::spawn(move || {
         std::thread::sleep(CLOSE_WATCHDOG);
         eprintln!("storyForge: the window did not answer in time; quitting anyway");
-        app.state::<AppState>().quit_ok.store(true, Ordering::SeqCst);
-        app.exit(0);
+        finish_quit(&app);
     });
 }
 
@@ -397,6 +435,28 @@ fn refresh_menu(app: &tauri::AppHandle) {
     }
 }
 
+/// Makes the Dock's Quit, Log Out, Shut Down and the quit signals run the same close as Cmd+Q. A route that
+/// can't be installed is logged and the app behaves as it did before (docs/quit-paths.md).
+fn install_quit_routes(app: &tauri::AppHandle) {
+    let _ = APP.set(app.clone());
+    if let Err(e) = storyforge_fs::platform::install_terminate_hook(on_terminate) {
+        eprintln!("storyForge: could not hook the system quit ({e}); the Dock's Quit will not save first");
+    }
+    if let Err(e) = storyforge_fs::platform::install_quit_signals() {
+        eprintln!("storyForge: could not hook the quit signals ({e})");
+        return;
+    }
+    let app = app.clone();
+    std::thread::spawn(move || loop {
+        std::thread::sleep(Duration::from_millis(100));
+        if storyforge_fs::platform::take_quit_signal() {
+            eprintln!("storyForge: quit signal received");
+            let handle = app.clone();
+            let _ = app.run_on_main_thread(move || request_close(&handle));
+        }
+    });
+}
+
 pub fn run() {
     tauri::Builder::default()
         // A second launch focuses the first: two copies would be two writers on one folder.
@@ -408,8 +468,9 @@ pub fn run() {
         }))
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
-            app.manage(AppState { project: Mutex::new(None), machine: MachineStore::new(&data_dir), watcher: Mutex::new(None), quit_ok: AtomicBool::new(false), menu_enabled: Mutex::new(HashMap::new()) });
+            app.manage(AppState { project: Mutex::new(None), machine: MachineStore::new(&data_dir), watcher: Mutex::new(None), quit_ok: AtomicBool::new(false), closing: AtomicBool::new(false), terminate_pending: AtomicBool::new(false), quit_done: AtomicBool::new(false), menu_enabled: Mutex::new(HashMap::new()) });
             restore_window_state(app);
+            install_quit_routes(app.handle());
             let menu = build_menu(app.handle())?;
             app.set_menu(menu)?;
             if let Some(w) = app.get_webview_window("main") {

@@ -1,6 +1,6 @@
 {
 	"name": "storyforge",
-	"version": "0.10.0",
+	"version": "0.10.1",
 	"description": "storyForge's data core: a plain TypeScript library over a folder of markdown (the standalone app's engine).",
 	"scripts": {
 		"build": "tsc -noEmit -skipLibCheck",
@@ -13,7 +13,8 @@
 		"app:build": "tauri build --target universal-apple-darwin",
 		"ui:preview": "vite --config vite.preview.config.ts",
 		"test:ui": "playwright test",
-		"ui:shots": "SHOTS=1 playwright test"
+		"ui:shots": "SHOTS=1 playwright test",
+		"test:quit": "node scripts/quit-smoke.mjs"
 	},
 	"license": "MIT",
 	"devDependencies": {

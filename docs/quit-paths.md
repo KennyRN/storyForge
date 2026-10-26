@@ -1,6 +1,6 @@
 # Quit paths (Fix 1)
 
-Status: **draft for H1 review.** Nothing has been changed except this file. It says how the app can be asked to end on macOS, which routes save first, why the others don't, what they lose, and the proposed fix.
+Status: **H1 ruled (decision 31); fix built, see §8.** The sections before §8 are the investigation as submitted. It says how the app can be asked to end on macOS, which routes save first, why the others don't, what they lose, and the proposed fix.
 
 ## 1. How the app quits today
 
@@ -86,3 +86,13 @@ One new route into the existing safe path, plus the signals. No change to how sa
 3. **SIGINT as well as SIGTERM and SIGHUP.** A Terminal launch plus ⌃C is a developer route only; I'd include it, since it's the same handler.
 4. **The unfinished-backup temp file** (§4): if the next open doesn't tidy it, is that in scope for this fix, or its own note?
 5. **The smoke script** uses a temporary `HOME` and runs only on the Mac. Is a script outside `npm test` acceptable, like `npm run test:ui`?
+
+## 8. Rulings (decision 31) and as built
+
+0. **Upstream.** tao 0.37.2 (the newest on crates.io) has no `applicationShouldTerminate:`, so there is no update to prefer. The native method is added.
+1. **`NSTerminateLater` with a reply, as built.** `applicationShouldTerminate:` is added to the application delegate's class by `install_terminate_hook` (`platform.rs`, objc2 runtime, no new dependency). It calls `request_close`, answers "later", and `finish_quit` replies once. A request that arrives while a close is under way joins it (`closing`); `quit_done` makes `quit_ready` and the watchdog race for a single exit, and when macOS is waiting the exit is the reply (never `app.exit` as well). A failed install is logged and the app behaves as before. `src-tauri/tests/quit_hook.rs` fails if tao's version changes from 0.37.1 or its delegate starts answering the method.
+   *Restricted run-loop mode.* **Not yet proven.** `npm run test:quit` is the proof: with a project open and unsaved text, the Apple-event route must land the text on disk, which needs the window's script, its calls into Rust, Rust's file work and `quit_ready` to run while macOS waits. It could not run when this was written (the Mac's screen was locked); the result is recorded in §9.
+2. **The watchdog replies too** (15 s kept), through the same `finish_quit`. **Finding:** a link rewrite *can* still be running when it fires. `shutdownAndQuit` awaits an active rewrite with no time limit (decision 24: half-updated links are worse than a slow quit), but the watchdog is a Rust timer that does not know. A rename of a Codex note linked from thousands of files that takes longer than 15 s would be cut off. Not changed here (the only fix is a new window-to-Rust message, which the interface rules do not allow without a ruling); reported for decision.
+3. **SIGINT in**, with SIGTERM and SIGHUP: the handler only sets a flag; a polling thread (every 100 ms) hands `request_close` to the main thread. A second signal while closing is ignored (`closing`).
+4. **Leftover temporary files: looked at, held.** The app's temp files are `.<name>.<random>.tmp` beside their target, hidden, so the scan never lists them. Tidying on open needs (a) a way to list hidden names, which no Backend call has, and (b) a way to retire a file under `_sf-backup/` or a book folder, which the guard refuses (`retire` is for backstage metadata only). That is a new guard operation, which ruling 4 says to hold on. Nothing is built; the next step is Kenny's ruling on the new operation.
+5. **The smoke script** is `npm run test:quit` (`scripts/quit-smoke.mjs`). It refuses if storyForge is already running, if the screen is locked, or if System Events is not allowed; it checks the temporary HOME by finding the fixture copy in the start screen's recent list (only possible if the app read the temporary data folder) and that the real data folder is unchanged afterwards; it uses copies of `test/fixtures/series` only.
