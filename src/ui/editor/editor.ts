@@ -51,13 +51,22 @@ export interface MountedEditor {
  * Typing goes to `session.setBody`; a reload from disk arrives as the minimal edit and is applied without
  * touching undo history or the caret (decision 21).
  */
-export function mountSessionEditor(parent: HTMLElement, session: ProseSession): MountedEditor {
-	const view = new EditorView({
+export function mountSessionEditor(parent: HTMLElement, session: ProseSession, options: { covered?: () => boolean } = {}): MountedEditor {
+	const view: EditorView = new EditorView({
 		parent,
+		dispatchTransactions: (trs: readonly Transaction[]) => {
+			if (options.covered?.() && trs.some((t) => t.docChanged && !t.annotation(fromWriter))) return;
+			view.update(trs);
+		},
 		state: EditorState.create({
 			doc: session.body,
 			extensions: [
 				...common,
+				// While an overview covers this editor it refuses every change that isn't a reload from disk, whatever its
+				// source (decision 36). Two walls, because the history commands skip transaction filters: the browser's own
+				// input (WebKit's undo and redo, a drop, a spellcheck correction, dictation) is stopped before it touches the
+				// page, and any transaction that still reaches the view is dropped. `inert` keeps focus and keys out as well.
+				EditorView.domEventHandlers({ beforeinput: () => options.covered?.() === true }),
 				EditorView.updateListener.of((update) => {
 					if (!update.docChanged) return;
 					if (update.transactions.some((t) => t.annotation(fromWriter))) return;

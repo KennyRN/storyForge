@@ -202,3 +202,26 @@ What differs from the design above, or was settled while building it.
 - **The history view** shows, for the selected novel, the storytelling figures for today, this week, the days and the weeks, the average pace with its number of sessions, and for a selected day its sessions (start–end as stored, length, words, pace, the chapters touched by current name, and the words "editing", "unreliable", "recovered"). Chapter names follow the chapter's id when it has one.
 - **The live readout** is a quiet line in the stats panel ("session 12:34, 210 words"), redrawn once a second, hidden between sessions, no live region, no animation, never focused.
 - **Not changed:** `wordcount.md` and the history core, the core word counter, the write guard (no new operation, no new row).
+
+## 13. The covered editor refuses changes itself (decision 36)
+
+While an overview covers the workspace the editor stays mounted (decision 28) and is `inert`. Brief 7's proof of that test found that WebKit's own undo still reached it in the browser preview, so the editor now refuses changes itself, whatever their source. Two walls in `src/ui/editor/editor.ts`, because CodeMirror's history commands skip transaction filters:
+
+1. **Before it touches the page:** a `beforeinput` handler cancels every browser-originated input while covered.
+2. **Whatever still reaches the view:** `dispatchTransactions` drops any transaction that changes the document and isn't a reload from disk (annotated `fromWriter`), so reloads, which must go on, still apply.
+
+Inputs checked, with what stops each and where it is tested (`test/ui/overviews.ui.ts`, "under an overview the editor takes no focus…"):
+
+| Input | Stopped by | Tested |
+|---|---|---|
+| Bare ⌘Z and ⇧⌘Z (WebKit's own undo and redo) | wall 1 | yes, by keypress; proved to fail with the guard removed |
+| The Edit menu's Undo and Redo | `EditorHost.undo/redo` act only on a focused editor; an inert one has no focus | yes, the menu route |
+| Typing, ⌘B, ⌘I, ⌘F | `inert` (no focus), and walls 1 and 2 | yes (focus, find panel, text unchanged) |
+| Paste and drop | wall 1 (`insertFromPaste`, `insertFromDrop`), then wall 2 | wall 2 by a programmatic change; the browser events can't be synthesised as trusted input, so wall 1 for them is by construction |
+| Spellcheck and autocorrect replacements, dictation, IME | wall 1 (`insertReplacementText`, `insertFromComposition`, `insertText`) | by construction, as above |
+| Find and replace's Replace | the panel can't open while covered (`EditorHost.find` returns), and wall 2 would drop the change | find panel yes; replace by wall 2 |
+| Any programmatic change (a dispatch from code) | wall 2 | yes |
+| A reload from disk (an outside edit) | allowed: it is not the author's, and must apply | covered by the existing reload and overview tests |
+| Saving what was already typed | unaffected: saving doesn't change the document | yes |
+
+Not checked: input methods that bypass both the DOM and the view (none are known; the editor is the only writer to its document).

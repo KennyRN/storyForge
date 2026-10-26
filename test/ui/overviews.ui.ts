@@ -53,6 +53,14 @@ test.describe("the series overview", () => {
 		await content.focus({ timeout: 500 }).catch(() => undefined);
 		expect(await page.evaluate(() => !!document.activeElement?.closest(".sf-slot--centre"))).toBe(false);
 		// Find, bold and undo do nothing to it.
+		// A bare ⌘Z and ⇧⌘Z reach WebKit's own undo in this preview; the covered editor refuses them itself.
+		await page.keyboard.press("Meta+z");
+		expect(await text(), "bare ⌘Z").toBe(typed);
+		await page.keyboard.press("Meta+Shift+z");
+		expect(await text(), "bare ⇧⌘Z").toBe(typed);
+		// A change from any other source (here a programmatic edit standing in for a drop or a dictated word) is refused too.
+		await page.evaluate(() => (window.__app.editors as any).slots.centre.occupant.mounted.view.dispatch({ changes: { from: 0, insert: "SNEAK" }, userEvent: "input.type" }));
+		expect(await text(), "a change from another source").toBe(typed);
 		// Undo and Redo are the app's menu items, which act on the focused editor only. (A bare ⌘Z keypress in this
 		// browser preview reaches WebKit's own undo, which the real app's menu consumes; so the menu route is tested.)
 		expect(await page.evaluate(() => [(window.__app.editors as any).undo(), (window.__app.editors as any).redo()])).toEqual([false, false]);
