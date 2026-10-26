@@ -7,6 +7,7 @@ use std::time::{Duration, Instant, SystemTime};
 
 use serde_json::{json, Value};
 use storyforge_fs::api::dispatch;
+use quit_state::{Finish, QuitState};
 use storyforge_fs::error::{FsError, FsResult};
 use storyforge_fs::machine::MachineStore;
 use storyforge_fs::ops::Project;
@@ -14,6 +15,8 @@ use storyforge_fs::watch::{Batcher, SleepDetector};
 use std::collections::HashMap;
 use tauri::menu::{Menu, MenuItem, MenuItemKind, PredefinedMenuItem, Submenu};
 use tauri::{Emitter, Manager, State, Theme};
+
+mod quit_state;
 
 const MAX_RECENT: usize = 10;
 
@@ -24,14 +27,8 @@ pub struct AppState {
     project: Mutex<Option<Arc<Project>>>,
     machine: MachineStore,
     watcher: Mutex<Option<Watching>>,
-    /// Set when the window has flushed and saved: only then may the app really close.
-    quit_ok: AtomicBool,
-    /// A close is under way (the window has been asked to save): a second request joins it and never starts another.
-    closing: AtomicBool,
-    /// macOS asked to terminate and was told "later": the end of the close must reply to it, not exit.
-    terminate_pending: AtomicBool,
-    /// The way out has been taken (by `quit_ready` or the watchdog, whichever came first): it is taken once.
-    quit_done: AtomicBool,
+    /// The quit bookkeeping: one close at a time, one exit, one reply to macOS (quit_state.rs).
+    quit: QuitState,
     /// When the close last made progress (it began, or the window said a stage or a rewritten file finished). The watchdog counts from here.
     last_progress: Mutex<Instant>,
     /// Which of the app's own menu items are enabled, as the window last said: kept so a rebuilt menu (the recent list changed) keeps it.
@@ -235,15 +232,12 @@ fn close_progress(state: State<'_, AppState>) {
 /// The one way out. If macOS is waiting on a "later" termination, the reply ends the app (and `exit` would be
 /// a second exit path); otherwise the app exits itself. Taken once: `quit_ready` and the watchdog race here.
 fn finish_quit(app: &tauri::AppHandle) {
-    let state = app.state::<AppState>();
-    if state.quit_done.swap(true, Ordering::SeqCst) {
-        return;
-    }
-    state.quit_ok.store(true, Ordering::SeqCst);
-    if state.terminate_pending.load(Ordering::SeqCst) {
-        let _ = app.run_on_main_thread(|| storyforge_fs::platform::reply_to_terminate(true));
-    } else {
-        app.exit(0);
+    match app.state::<AppState>().quit.finish() {
+        Finish::Skip => {}
+        Finish::Reply => {
+            let _ = app.run_on_main_thread(|| storyforge_fs::platform::reply_to_terminate(true));
+        }
+        Finish::Exit => app.exit(0),
     }
 }
 
@@ -253,21 +247,22 @@ static APP: std::sync::OnceLock<tauri::AppHandle> = std::sync::OnceLock::new();
 fn on_terminate() -> storyforge_fs::platform::Terminate {
     use storyforge_fs::platform::Terminate;
     let Some(app) = APP.get() else { return Terminate::Now };
-    let state = app.state::<AppState>();
-    state.terminate_pending.store(true, Ordering::SeqCst);
-    if state.quit_done.load(Ordering::SeqCst) {
+    let (now, start) = app.state::<AppState>().quit.on_terminate();
+    if now {
         return Terminate::Now;
     }
-    request_close(app);
+    if start {
+        request_close(app);
+    }
     Terminate::Later
 }
 
-/// Closing the window or quitting is stopped, and the window is asked to save everything first. If the
-/// window never answers (it is hung), the app still closes after this long.
+/// Closing the window or quitting is stopped, and the window is asked to save everything first. If the window makes no
+/// progress for this long (it is hung), the app still closes. The count restarts at each `close_progress`.
 const CLOSE_WATCHDOG: Duration = Duration::from_secs(15);
 
 fn request_close(app: &tauri::AppHandle) {
-    if app.state::<AppState>().closing.swap(true, Ordering::SeqCst) {
+    if !app.state::<AppState>().quit.begin_close() {
         eprintln!("storyForge: a close is already under way; joining it");
         return;
     }
@@ -279,7 +274,7 @@ fn request_close(app: &tauri::AppHandle) {
     std::thread::spawn(move || loop {
         // 15 s after the LAST progress: a hung window is still caught, a working rewrite always finishes (decision 24).
         let state = app.state::<AppState>();
-        if state.quit_done.load(Ordering::SeqCst) {
+        if state.quit.is_done() {
             return;
         }
         let deadline = *state.last_progress.lock().unwrap() + CLOSE_WATCHDOG;
@@ -488,7 +483,7 @@ pub fn run() {
         }))
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
-            app.manage(AppState { project: Mutex::new(None), machine: MachineStore::new(&data_dir), watcher: Mutex::new(None), quit_ok: AtomicBool::new(false), closing: AtomicBool::new(false), terminate_pending: AtomicBool::new(false), quit_done: AtomicBool::new(false), last_progress: Mutex::new(Instant::now()), menu_enabled: Mutex::new(HashMap::new()) });
+            app.manage(AppState { project: Mutex::new(None), machine: MachineStore::new(&data_dir), watcher: Mutex::new(None), quit: QuitState::default(), last_progress: Mutex::new(Instant::now()), menu_enabled: Mutex::new(HashMap::new()) });
             restore_window_state(app);
             install_quit_routes(app.handle());
             let menu = build_menu(app.handle())?;
@@ -513,7 +508,7 @@ pub fn run() {
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 let app = window.app_handle();
-                if !app.state::<AppState>().quit_ok.load(Ordering::SeqCst) {
+                if !app.state::<AppState>().quit.is_ok() {
                     api.prevent_close();
                     request_close(app);
                 }
@@ -524,7 +519,7 @@ pub fn run() {
         .run(|app, event| {
             // Cmd+Q and the Dock's Quit arrive here, not as a window close.
             if let tauri::RunEvent::ExitRequested { api, code, .. } = event {
-                if code.is_none() && !app.state::<AppState>().quit_ok.load(Ordering::SeqCst) {
+                if code.is_none() && !app.state::<AppState>().quit.is_ok() {
                     api.prevent_exit();
                     request_close(app);
                 }

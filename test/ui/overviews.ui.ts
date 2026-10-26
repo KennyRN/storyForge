@@ -37,7 +37,7 @@ test.describe("the series overview", () => {
 		await shot(page, "numbers-series-overview");
 	});
 
-	test("under an overview the editor takes no focus, no shortcuts and no undo, and saving carries on", async ({ page }) => {
+	test("under an overview the editor takes no focus, no shortcuts and no menu undo, and saving carries on", async ({ page }) => {
 		await openProject(page);
 		const content = page.locator(".sf-slot--centre .cm-content");
 		await content.click();
@@ -53,8 +53,15 @@ test.describe("the series overview", () => {
 		await content.focus({ timeout: 500 }).catch(() => undefined);
 		expect(await page.evaluate(() => !!document.activeElement?.closest(".sf-slot--centre"))).toBe(false);
 		// Find, bold and undo do nothing to it.
-		for (const combo of ["Meta+f", "Meta+b", "Meta+i", "Meta+z", "Meta+Shift+z"]) await page.keyboard.press(combo);
-		expect(await text()).toBe(typed);
+		// Undo and Redo are the app's menu items, which act on the focused editor only. (A bare ⌘Z keypress in this
+		// browser preview reaches WebKit's own undo, which the real app's menu consumes; so the menu route is tested.)
+		expect(await page.evaluate(() => [(window.__app.editors as any).undo(), (window.__app.editors as any).redo()])).toEqual([false, false]);
+		expect(await text(), "undo and redo").toBe(typed);
+		for (const combo of ["Meta+b", "Meta+i"]) {
+			await page.keyboard.press(combo);
+			expect(await text(), combo).toBe(typed);
+		}
+		await page.keyboard.press("Meta+f");
 		await expect(page.locator(".sf-slot--centre .cm-search")).toHaveCount(0);
 		// Saving carries on underneath.
 		await expect.poll(() => page.evaluate(() => window.__preview.read("_story-library/aaa/ch-a1.md"))).toContain(" under");
