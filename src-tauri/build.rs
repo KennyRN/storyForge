@@ -27,6 +27,7 @@ const COMMANDS: &[&str] = &[
     "reveal_in_finder",
     "set_menu_state",
     "quit_ready",
+    "close_progress",
 ];
 
 fn main() {

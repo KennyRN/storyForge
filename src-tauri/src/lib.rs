@@ -32,6 +32,8 @@ pub struct AppState {
     terminate_pending: AtomicBool,
     /// The way out has been taken (by `quit_ready` or the watchdog, whichever came first): it is taken once.
     quit_done: AtomicBool,
+    /// When the close last made progress (it began, or the window said a stage or a rewritten file finished). The watchdog counts from here.
+    last_progress: Mutex<Instant>,
     /// Which of the app's own menu items are enabled, as the window last said: kept so a rebuilt menu (the recent list changed) keeps it.
     menu_enabled: Mutex<HashMap<String, bool>>,
 }
@@ -223,6 +225,13 @@ fn quit_ready(app: tauri::AppHandle) {
     finish_quit(&app);
 }
 
+/// The window's close made real progress (a stage finished, or a file of a link rewrite was written). It carries
+/// nothing and touches no file: it only moves the watchdog's deadline. Like `set_menu_state`, it cannot read or write the project.
+#[tauri::command]
+fn close_progress(state: State<'_, AppState>) {
+    *state.last_progress.lock().unwrap() = Instant::now();
+}
+
 /// The one way out. If macOS is waiting on a "later" termination, the reply ends the app (and `exit` would be
 /// a second exit path); otherwise the app exits itself. Taken once: `quit_ready` and the watchdog race here.
 fn finish_quit(app: &tauri::AppHandle) {
@@ -266,10 +275,21 @@ fn request_close(app: &tauri::AppHandle) {
     save_window_state(app);
     let _ = app.emit("close-requested", ());
     let app = app.clone();
-    std::thread::spawn(move || {
-        std::thread::sleep(CLOSE_WATCHDOG);
-        eprintln!("storyForge: the window did not answer in time; quitting anyway");
-        finish_quit(&app);
+    *app.state::<AppState>().last_progress.lock().unwrap() = Instant::now();
+    std::thread::spawn(move || loop {
+        // 15 s after the LAST progress: a hung window is still caught, a working rewrite always finishes (decision 24).
+        let state = app.state::<AppState>();
+        if state.quit_done.load(Ordering::SeqCst) {
+            return;
+        }
+        let deadline = *state.last_progress.lock().unwrap() + CLOSE_WATCHDOG;
+        let now = Instant::now();
+        if now >= deadline {
+            eprintln!("storyForge: the window made no progress for {} s; quitting anyway", CLOSE_WATCHDOG.as_secs());
+            finish_quit(&app);
+            return;
+        }
+        std::thread::sleep(deadline - now);
     });
 }
 
@@ -468,7 +488,7 @@ pub fn run() {
         }))
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
-            app.manage(AppState { project: Mutex::new(None), machine: MachineStore::new(&data_dir), watcher: Mutex::new(None), quit_ok: AtomicBool::new(false), closing: AtomicBool::new(false), terminate_pending: AtomicBool::new(false), quit_done: AtomicBool::new(false), menu_enabled: Mutex::new(HashMap::new()) });
+            app.manage(AppState { project: Mutex::new(None), machine: MachineStore::new(&data_dir), watcher: Mutex::new(None), quit_ok: AtomicBool::new(false), closing: AtomicBool::new(false), terminate_pending: AtomicBool::new(false), quit_done: AtomicBool::new(false), last_progress: Mutex::new(Instant::now()), menu_enabled: Mutex::new(HashMap::new()) });
             restore_window_state(app);
             install_quit_routes(app.handle());
             let menu = build_menu(app.handle())?;
@@ -488,7 +508,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             app_info, pick_project, open_recent, recent_projects, project_info, close_project, scan, stat, read_text, read_binary, read_outside, write_text, write_binary,
-            create_file, create_folder, compare_write, rename, retire, machine_get, machine_set, watch_start, watch_stop, download_placeholder, reveal_in_finder, set_menu_state, quit_ready
+            create_file, create_folder, compare_write, rename, retire, machine_get, machine_set, watch_start, watch_stop, download_placeholder, reveal_in_finder, set_menu_state, quit_ready, close_progress
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

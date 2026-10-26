@@ -119,7 +119,7 @@ async function route(name, send, { expectJoin = false } = {}) {
 		const problems = [];
 		if (closes !== 1) problems.push(`expected one "close requested", saw ${closes}`);
 		if (!/finished saving; quitting/.test(stderr)) problems.push("the window never said it finished saving");
-		if (/did not answer in time/.test(stderr)) problems.push("the watchdog fired");
+		if (/made no progress for/.test(stderr)) problems.push("the watchdog fired");
 		if (took > 8000) problems.push(`took ${took} ms (limit 8000)`);
 		if (!saved.length) problems.push("the typed text reached neither the chapter nor a recovery file");
 		// A second request must never start a second close (closes === 1 above). Whether it was seen mid-close

@@ -6,6 +6,7 @@ Quitting from the Dock, logging out and shutting down used to end the app withou
 
 - Fixed: the Dock's Quit, Log Out, Shut Down and the quit Apple event now answer macOS "not yet", run the close, and reply when the window has saved (`applicationShouldTerminate:` added to the application delegate, in `platform.rs`; tao 0.37.2, the newest, does not answer it).
 - Fixed: SIGTERM, SIGHUP and SIGINT run the same close. A second request while a close is under way joins it. The 15 s watchdog and `quit_ready` race for one exit.
+- Changed: the close watchdog fires 15 s after the last progress (a stage of the close finished, or a file of a Codex rename was written), not 15 s after the close began, so a slow rewrite always finishes. New command `close_progress` (no arguments, touches no file); progress is sent from real work only.
 - New: `npm run test:quit` (macOS, outside `npm test`, before every release) drives the built app through each route with unsaved text.
 - Changed: the README's known gap is now force-quit, crash and power loss only.
 

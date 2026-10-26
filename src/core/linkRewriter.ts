@@ -331,6 +331,8 @@ export interface ApplyRenameOptions {
 	backups: BackupService;
 	/** Open editors. Flushed before anything else; reloaded from disk for files that were rewritten. */
 	writer?: RewriteWriter;
+	/** Called as each stage and each file finishes (real work only, never from a timer): the close uses it to know the rewrite is alive. */
+	onProgress?: () => void;
 }
 
 export type RewriteStop = "unchanged" | "flush" | "backup" | "rename";
@@ -467,6 +469,7 @@ export function rewriteFileText(path: string, original: string, spans: readonly 
 export async function applyCodexRename(project: Project, plan: LinkRewritePlan, options: ApplyRenameOptions): Promise<LinkRewriteResult> {
 	if (plan.unchanged) return stopped(plan, "unchanged", undefined, []);
 	const { writer, backups } = options;
+	const progress = () => options.onProgress?.();
 
 	// 1. Flush every open editor. Text that can't be saved or recovered stops the rename.
 	let flushed: SaveResult[] = [];
@@ -488,6 +491,8 @@ export async function applyCodexRename(project: Project, plan: LinkRewritePlan, 
 	} catch (err) {
 		return stopped(plan, "backup", err instanceof Error ? err : new Error(String(err)), flushed);
 	}
+
+	progress();
 
 	// 3. Rename the note. Its editor, if any, was flushed; close it so it doesn't point at the old path.
 	try {
@@ -514,7 +519,9 @@ export async function applyCodexRename(project: Project, plan: LinkRewritePlan, 
 		outsideLinks: plan.outside.linkCount,
 		notifyErrors: [],
 	};
+	progress();
 	for (const file of plan.files) {
+		progress();
 		const path = file.path === plan.notePath ? plan.newPath : file.path;
 		let original: string;
 		try {
@@ -554,6 +561,8 @@ export async function applyCodexRename(project: Project, plan: LinkRewritePlan, 
 		}
 		await project.refresh(path);
 	}
+
+	progress();
 
 	// 5. Re-key the backstage files: codex.md, and the PoV and location references in the novel files.
 	try {

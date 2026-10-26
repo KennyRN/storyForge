@@ -218,6 +218,15 @@ async function linked(extra: Record<string, string> = {}) {
 }
 
 describe("applyCodexRename: end to end", () => {
+	it("reports progress as each stage and each file finishes (the close watchdog counts from the last)", async () => {
+		const { project, backups, writer } = await linked();
+		let calls = 0;
+		const result = await renameCodexNote(project, "Codex/Jane.md", "Janet", { backups, writer, onProgress: () => calls++ });
+		expect(result.status).toBe("done");
+		// after the backup, once before each of five files, and after the files and the rewrite: no timer involved.
+		expect(calls).toBeGreaterThanOrEqual(result.filesUpdated.length + 3);
+	});
+
 	it("backs up, renames, rewrites exactly the planned links, re-keys, and reports", async () => {
 		const { root, project, backups, writer, rd } = await linked();
 		const before = dirSnapshot(root);

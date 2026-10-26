@@ -207,6 +207,26 @@ describe("newestBackupTime", () => {
 		expect(order).toEqual(["rewrite finished", "closed"]);
 	});
 
+	it("close progress is sent from real work during a close, and never otherwise", async () => {
+		const { app, host } = await opened();
+		app.closeProgress();
+		await settle();
+		expect(host.progress).toBe(0); // no close under way: silent
+		let release!: () => void;
+		const gate = new Promise<void>((r) => (release = r));
+		const rewrite = app.runRewrite(async () => {
+			await gate;
+			app.closeProgress(); // a rewritten file finished
+		});
+		const closing = app.teardown();
+		await settle();
+		const waiting = host.progress; // the queue stage finished; the rewrite has not
+		release();
+		await rewrite;
+		await closing;
+		expect(host.progress).toBeGreaterThan(waiting + 1); // the file, then each later stage
+	});
+
 	it("a backup in progress is abandoned cleanly: no partial zip, no temp file", async () => {
 		const { app, running, root } = await opened();
 		let release!: () => void;

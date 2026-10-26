@@ -21,6 +21,8 @@ export class FakeHost implements Host {
 	overrides = new Map<string, (args: unknown) => unknown>();
 	current: { root: string; readOnly: boolean } | null = null;
 	quit = false;
+	/** How many times the window reported close progress. */
+	progress = 0;
 	clock = new Date(2026, 9, 23, 10, 0, 0);
 	timers?: Timers;
 
@@ -68,6 +70,9 @@ export class FakeHost implements Host {
 				return null;
 			case "watch_start":
 			case "watch_stop":
+				return null;
+			case "close_progress":
+				this.progress += 1;
 				return null;
 			case "quit_ready":
 				this.quit = true;
