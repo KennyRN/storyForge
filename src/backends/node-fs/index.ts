@@ -14,7 +14,8 @@ import { constants } from "node:fs";
 import * as fs from "node:fs/promises";
 import * as nodePath from "node:path";
 import { randomBytes } from "node:crypto";
-import { BackendError, type Backend, type BackendErrorCode, type ScanEntry, type Stat } from "../../core/backend/types";
+import { isTempName } from "../../core/backend/guard";
+import { BackendError, type Backend, type BackendErrorCode, type ScanEntry, type Stat, type TempLeftover } from "../../core/backend/types";
 import { resolvePath } from "../../core/pathRules";
 
 const TRASH = ".trash";
@@ -325,6 +326,40 @@ export class NodeFsBackend implements Backend {
 		} catch (err) {
 			throw toBackendError(err, relTo);
 		}
+	}
+
+	async listTempLeftovers(): Promise<TempLeftover[]> {
+		const out: TempLeftover[] = [];
+		const walk = async (rel: string): Promise<void> => {
+			let names: import("node:fs").Dirent[];
+			try {
+				names = await fs.readdir(this.abs(rel), { withFileTypes: true });
+			} catch {
+				return;
+			}
+			for (const d of names) {
+				if (d.isSymbolicLink()) continue;
+				const child = `${rel}/${d.name}`;
+				if (d.isDirectory()) {
+					if (!d.name.startsWith(".")) await walk(child);
+				} else if (d.isFile() && isTempName(d.name)) {
+					const st = await fs.lstat(this.abs(child)).catch(() => null);
+					if (st) out.push({ path: child, size: st.size, mtimeMs: st.mtimeMs });
+				}
+			}
+		};
+		for (const root of ["_story-library", "Codex", "notes", "_backstage/storyforge", "_sf-backup"]) await walk(root);
+		return out.sort((a, b) => (a.path < b.path ? -1 : 1));
+	}
+
+	async removeTemp(path: string, expected?: { size: number; mtimeMs: number }): Promise<void> {
+		const rel = this.rel(path);
+		await this.assertInside(rel);
+		const st = await fs.lstat(this.abs(rel)).catch(() => null);
+		if (!st) throw new BackendError("ENOENT", `no such path: "${rel}"`, rel);
+		if (!st.isFile()) throw new BackendError("EACCES", `only a regular file is removed: "${rel}"`, rel);
+		if (expected && (st.size !== expected.size || Math.abs(st.mtimeMs - expected.mtimeMs) > 0.5)) throw new BackendError("ECHANGED", `changed since it was listed: "${rel}"`, rel);
+		await fs.unlink(this.abs(rel));
 	}
 
 	async retire(path: string): Promise<string> {

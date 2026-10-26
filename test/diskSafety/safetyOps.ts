@@ -15,6 +15,8 @@ import { Project } from "../../src/core/project";
 import { evidenceFromIndex, reconcileAtOpen, reconcileChanges } from "../../src/core/reconciler";
 import { recoverChapterText, recoverCodexText, recoverPrunedEntry } from "../../src/core/recovery";
 import { appendSession } from "../../src/core/sessionFiles";
+import { tidyTemporaryFiles } from "../../src/core/tempTidy";
+import { ID, plantLeftovers } from "../helpers/leftovers";
 import type { SessionRecord } from "../../src/core/sessions";
 import { type Snapshot, buildSnapshot } from "../../src/core/snapshot";
 import type { Ctx, OpSpec } from "../helpers/diskSafety";
@@ -87,7 +89,35 @@ const SESSION: SessionRecord = {
 };
 const SESSIONS = "_backstage/storyforge/sessions";
 
+const TIDY_STAMP = "2026-10-23 100000";
+
 export const SAFETY_OPS: OpSpec[] = [
+	// ----------------------------------------------------------------------- leftover temporary files
+	{
+		name: "tidyTemporaryFiles: removes a partial zip and identical copies, copies the rest into recovery first, and touches nothing else",
+		setup: async (c) => {
+			plantLeftovers(c.root, NOW().getTime());
+			(c as { project: Project }).project = await Project.open(new NodeFsBackend(c.root));
+		},
+		run: (c) => tidyTemporaryFiles(c.project, { now: NOW(), readOnly: false }),
+		removed: [
+			`_sf-backup/.20261020 - fixture.zip.${ID}.tmp`,
+			`_story-library/aaa/.ch-a2.md.${ID}.tmp`,
+			`_story-library/aaa/.ch-a1.md.${ID}.tmp`,
+			`Codex/.Sam.md.${ID}.tmp`,
+			`_backstage/storyforge/aaa/.wordcount.md.${ID}.tmp`,
+			`_story-library/aaa/.cover.png.${ID}.tmp`,
+			`_sf-backup/recovery/aaa/.ch-a3 2026-10-23 100000.md.${ID}.tmp`,
+		],
+		added: [
+			`_sf-backup/recovery/aaa/ch-a1 (leftover ${TIDY_STAMP}).md`,
+			`_sf-backup/recovery/_codex/Sam (leftover ${TIDY_STAMP}).md`,
+			`_sf-backup/recovery/_temp/wordcount (leftover ${TIDY_STAMP}).md`,
+			`_sf-backup/recovery/_temp/cover.png (leftover ${TIDY_STAMP}).md`,
+			`_sf-backup/recovery/aaa/ch-a3 2026-10-23 100000 (leftover ${TIDY_STAMP}).md`,
+		],
+	},
+
 	// ----------------------------------------------------------------------------- writing sessions
 	{
 		name: "appendSession: the first session of a month creates its one file; wordcount.md and every chapter stay byte-identical",

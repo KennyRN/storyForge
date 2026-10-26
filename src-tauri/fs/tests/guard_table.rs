@@ -57,7 +57,7 @@ fn row_ids_are_unique_and_every_operation_has_an_allow_and_a_refuse() {
     let n = ids.len();
     ids.dedup();
     assert_eq!(ids.len(), n);
-    for op in ["write-file", "write-binary", "create-file", "create-folder", "rename", "retire", "frontmatter-edit", "prose-write", "link-rewrite", "backup-create", "recovery-create", "codex-rename"] {
+    for op in ["write-file", "write-binary", "create-file", "create-folder", "rename", "retire", "temp-remove", "frontmatter-edit", "prose-write", "link-rewrite", "backup-create", "recovery-create", "codex-rename"] {
         assert!(table.rows.iter().any(|r| r.op == op && r.expect == "allow" && r.symlink.is_none()), "{op} has no allow row");
         assert!(table.rows.iter().any(|r| r.op == op && r.expect == "refuse" && r.symlink.is_none()), "{op} has no refuse row");
     }

@@ -1,6 +1,6 @@
 {
 	"version": 1,
-	"description": "Write-guard rule table. The TypeScript guard (src/core/backend/guard.ts) and, in Brief 4, the Rust guard must give each row's expected result. Paths are project-relative; \\ is a separator; ops: write-file, write-binary, create-file, create-folder, rename (from/to), retire, frontmatter-edit, prose-write, link-rewrite, backup-create, recovery-create, codex-rename (from/to) (keys = top-level keys the edit changes; Codex notes allow exactly [\"aliases\"]).",
+	"description": "Write-guard rule table. The TypeScript guard (src/core/backend/guard.ts) and, in Brief 4, the Rust guard must give each row's expected result. Paths are project-relative; \\ is a separator; ops: write-file, write-binary, create-file, create-folder, rename (from/to), retire, temp-remove, frontmatter-edit, prose-write, link-rewrite, backup-create, recovery-create, codex-rename (from/to) (keys = top-level keys the edit changes; Codex notes allow exactly [\"aliases\"]).",
 	"rows": [
 		{
 			"id": "write-allowed-1",
@@ -1605,6 +1605,276 @@
 			"path": "_BACKSTAGE/storyforge/project.md",
 			"expect": "refuse",
 			"reason": "a case variant of the backstage folder"
+		},
+		{
+			"id": "temp-chapter-folder",
+			"op": "temp-remove",
+			"path": "_story-library/aaa/.ch-a1.md.a1b2c3d4e5f6.tmp",
+			"expect": "allow",
+			"reason": "a temp beside a chapter, the TypeScript backend's id"
+		},
+		{
+			"id": "temp-chapter-rust-id",
+			"op": "temp-remove",
+			"path": "_story-library/aaa/.ch-a1.md.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "allow",
+			"reason": "the Rust backend's longer id"
+		},
+		{
+			"id": "temp-library-root",
+			"op": "temp-remove",
+			"path": "_story-library/.novel-aaa.md.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "allow",
+			"reason": "a temp beside a library-root file"
+		},
+		{
+			"id": "temp-codex",
+			"op": "temp-remove",
+			"path": "Codex/.Jane.md.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "allow",
+			"reason": "a temp beside a Codex note"
+		},
+		{
+			"id": "temp-notes",
+			"op": "temp-remove",
+			"path": "notes/.idea.md.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "allow",
+			"reason": "a temp beside a note"
+		},
+		{
+			"id": "temp-backstage",
+			"op": "temp-remove",
+			"path": "_backstage/storyforge/aaa/chapters/.ch-a1.md.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "allow",
+			"reason": "a temp under the backstage folder"
+		},
+		{
+			"id": "temp-project-md",
+			"op": "temp-remove",
+			"path": "_backstage/storyforge/.project.md.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "allow",
+			"reason": "a temp beside project.md"
+		},
+		{
+			"id": "temp-sessions",
+			"op": "temp-remove",
+			"path": "_backstage/storyforge/sessions/.2026-10-k7x2q9ab.md.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "allow",
+			"reason": "a temp beside a session file"
+		},
+		{
+			"id": "temp-backup-zip",
+			"op": "temp-remove",
+			"path": "_sf-backup/.20261023 - p.zip.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "allow",
+			"reason": "a backup's temporary zip"
+		},
+		{
+			"id": "temp-recovery",
+			"op": "temp-remove",
+			"path": "_sf-backup/recovery/aaa/.ch-a3 2026-10-23 100000.md.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "allow",
+			"reason": "a temp beside a recovery file"
+		},
+		{
+			"id": "temp-backslash",
+			"op": "temp-remove",
+			"path": "_story-library\\\\aaa\\\\.ch-a1.md.a1b2c3d4e5f6.tmp",
+			"expect": "allow",
+			"reason": "separators are unified, as for every operation"
+		},
+		{
+			"id": "temp-no-dot",
+			"op": "temp-remove",
+			"path": "_story-library/aaa/ch-a1.md.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "refuse",
+			"reason": "a name without the leading dot is not the app's"
+		},
+		{
+			"id": "temp-uppercase-id",
+			"op": "temp-remove",
+			"path": "_story-library/aaa/.ch-a1.md.A1B2C3D4E5F6.tmp",
+			"expect": "refuse",
+			"reason": "the id is lowercase hexadecimal"
+		},
+		{
+			"id": "temp-non-hex-id",
+			"op": "temp-remove",
+			"path": "_story-library/aaa/.ch-a1.md.zzzzzzzzzzzz.tmp",
+			"expect": "refuse",
+			"reason": "a non-hexadecimal id is a near miss"
+		},
+		{
+			"id": "temp-short-id",
+			"op": "temp-remove",
+			"path": "_story-library/aaa/.ch-a1.md.a1b2c3.tmp",
+			"expect": "refuse",
+			"reason": "an id of the wrong length is a near miss"
+		},
+		{
+			"id": "temp-long-id",
+			"op": "temp-remove",
+			"path": "_story-library/aaa/.ch-a1.md.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.tmp",
+			"expect": "refuse",
+			"reason": "an id of the wrong length is a near miss"
+		},
+		{
+			"id": "temp-no-id",
+			"op": "temp-remove",
+			"path": "_story-library/aaa/.x.tmp",
+			"expect": "refuse",
+			"reason": "no id"
+		},
+		{
+			"id": "temp-no-target",
+			"op": "temp-remove",
+			"path": "_story-library/aaa/.a1b2c3d4e5f6.tmp",
+			"expect": "refuse",
+			"reason": "no target name"
+		},
+		{
+			"id": "temp-ds-store",
+			"op": "temp-remove",
+			"path": "_story-library/aaa/.DS_Store",
+			"expect": "refuse",
+			"reason": "never a Finder file"
+		},
+		{
+			"id": "temp-icloud",
+			"op": "temp-remove",
+			"path": "_story-library/aaa/.Jane.md.icloud",
+			"expect": "refuse",
+			"reason": "an iCloud placeholder is never touched"
+		},
+		{
+			"id": "temp-icloud-tmp",
+			"op": "temp-remove",
+			"path": "_story-library/aaa/.Jane.md.19f2a3b4c5d6e7f8a9b0c1d2.tmp.icloud",
+			"expect": "refuse",
+			"reason": "a placeholder for a temp is still a placeholder"
+		},
+		{
+			"id": "temp-obsidian",
+			"op": "temp-remove",
+			"path": ".obsidian/.workspace.json.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "refuse",
+			"reason": "never under .obsidian/"
+		},
+		{
+			"id": "temp-obsidian-plugin",
+			"op": "temp-remove",
+			"path": ".obsidian/plugins/x/.data.json.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "refuse",
+			"reason": "never under .obsidian/"
+		},
+		{
+			"id": "temp-trash",
+			"op": "temp-remove",
+			"path": ".trash/_backstage/storyforge/.a.md.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "refuse",
+			"reason": "never under .trash/"
+		},
+		{
+			"id": "temp-export",
+			"op": "temp-remove",
+			"path": "_export/.out.json.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "refuse",
+			"reason": "_export/ is not storyForge's to tidy"
+		},
+		{
+			"id": "temp-project-root",
+			"op": "temp-remove",
+			"path": ".x.md.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "refuse",
+			"reason": "not in a folder of storyForge's"
+		},
+		{
+			"id": "temp-elsewhere",
+			"op": "temp-remove",
+			"path": "elsewhere/.x.md.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "refuse",
+			"reason": "a folder that is not storyForge's"
+		},
+		{
+			"id": "temp-other-backstage",
+			"op": "temp-remove",
+			"path": "_backstage/titleforge/.x.md.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "refuse",
+			"reason": "only the storyforge backstage folder"
+		},
+		{
+			"id": "temp-hidden-folder",
+			"op": "temp-remove",
+			"path": "_story-library/.hidden/.x.md.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "refuse",
+			"reason": "not inside a hidden folder"
+		},
+		{
+			"id": "temp-real-backup",
+			"op": "temp-remove",
+			"path": "_sf-backup/20261023 - p.zip",
+			"expect": "refuse",
+			"reason": "a real backup is never removed"
+		},
+		{
+			"id": "temp-recovery-file",
+			"op": "temp-remove",
+			"path": "_sf-backup/recovery/aaa/ch-a3 2026-10-23 100000.md",
+			"expect": "refuse",
+			"reason": "a recovery file is never removed"
+		},
+		{
+			"id": "temp-chapter",
+			"op": "temp-remove",
+			"path": "_story-library/aaa/ch-a1.md",
+			"expect": "refuse",
+			"reason": "a chapter is never removed"
+		},
+		{
+			"id": "temp-case-variant",
+			"op": "temp-remove",
+			"path": "_BACKSTAGE/storyforge/.x.md.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "refuse",
+			"reason": "a case variant of the backstage folder"
+		},
+		{
+			"id": "temp-library-case-variant",
+			"op": "temp-remove",
+			"path": "_Story-Library/aaa/.x.md.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "refuse",
+			"reason": "a case variant of the library folder"
+		},
+		{
+			"id": "temp-traversal",
+			"op": "temp-remove",
+			"path": "_story-library/../notes/.x.md.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "allow",
+			"reason": "resolved to notes/, which is allowed"
+		},
+		{
+			"id": "temp-escape",
+			"op": "temp-remove",
+			"path": "_story-library/../../.x.md.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "refuse",
+			"reason": "not a safe relative path"
+		},
+		{
+			"id": "temp-absolute",
+			"op": "temp-remove",
+			"path": "/etc/.x.md.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"expect": "refuse",
+			"reason": "not a safe relative path"
+		},
+		{
+			"id": "temp-symlink-out",
+			"op": "temp-remove",
+			"path": "_story-library/escape/.x.md.19f2a3b4c5d6e7f8a9b0c1d2.tmp",
+			"symlink": {
+				"link": "_story-library/escape",
+				"target": "outside"
+			},
+			"expect": "refuse",
+			"reason": "a folder inside the project is a link to somewhere outside it"
 		}
 	]
 }

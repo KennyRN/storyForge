@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-list-temp-leftovers"
+description = "Enables the list_temp_leftovers command without any pre-configured scope."
+commands.allow = ["list_temp_leftovers"]
+
+[[permission]]
+identifier = "deny-list-temp-leftovers"
+description = "Denies the list_temp_leftovers command without any pre-configured scope."
+commands.deny = ["list_temp_leftovers"]

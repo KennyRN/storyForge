@@ -204,7 +204,7 @@ macro_rules! fs_commands {
         )*
     };
 }
-fs_commands!(scan, stat, read_text, read_binary, read_outside, write_text, write_binary, create_file, create_folder, compare_write, rename, retire, download_placeholder);
+fs_commands!(scan, stat, read_text, read_binary, read_outside, write_text, write_binary, create_file, create_folder, compare_write, rename, retire, download_placeholder, list_temp_leftovers, remove_temp);
 
 /// Shows a file of the open project in Finder. The path is relative to the project folder and checked like a
 /// read; nothing is opened, launched or written.
@@ -503,7 +503,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             app_info, pick_project, open_recent, recent_projects, project_info, close_project, scan, stat, read_text, read_binary, read_outside, write_text, write_binary,
-            create_file, create_folder, compare_write, rename, retire, machine_get, machine_set, watch_start, watch_stop, download_placeholder, reveal_in_finder, set_menu_state, quit_ready, close_progress
+            create_file, create_folder, compare_write, rename, retire, list_temp_leftovers, remove_temp, machine_get, machine_set, watch_start, watch_stop, download_placeholder, reveal_in_finder, set_menu_state, quit_ready, close_progress
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

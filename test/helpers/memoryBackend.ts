@@ -117,6 +117,13 @@ export class MemoryBackend implements Backend {
 			this.setFile(to + p.slice(from.length), c);
 		}
 	}
+	async listTempLeftovers(): Promise<import("../../src/core/backend/types").TempLeftover[]> {
+		return [...this.files.keys()].filter((p) => /\/\.[^/]+\.[0-9a-f]{12,40}\.tmp$/.test(p)).map((path) => ({ path, size: 1, mtimeMs: 1 }));
+	}
+	async removeTemp(path: string): Promise<void> {
+		this.writes.push(`removeTemp:${path}`);
+		this.files.delete(path);
+	}
 	async retire(path: string): Promise<string> {
 		this.writes.push(`retire:${path}`);
 		let target = ".trash/" + path;

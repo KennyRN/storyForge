@@ -54,6 +54,15 @@ pub fn dispatch(project: &Project, cmd: &str, args: &Value) -> FsResult<Value> {
             Ok(Value::Null)
         }
         "download_placeholder" => Ok(json!(project.download_placeholder(str_arg(args, "path")?, crate::ops::DOWNLOAD_TIMEOUT)?)),
+        "list_temp_leftovers" => Ok(json!(project.list_temp_leftovers()?)),
+        "remove_temp" => {
+            let expected = match (args.get("size").and_then(Value::as_u64), args.get("mtimeMs").and_then(Value::as_f64)) {
+                (Some(s), Some(m)) => Some((s, m)),
+                _ => None,
+            };
+            project.remove_temp(str_arg(args, "path")?, expected)?;
+            Ok(Value::Null)
+        }
         "retire" => Ok(json!(project.retire(str_arg(args, "path")?)?)),
         other => Err(FsError::new("UNKNOWN", format!("unknown command {other}"), None)),
     }

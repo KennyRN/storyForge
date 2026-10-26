@@ -24,6 +24,8 @@
     "allow-compare-write",
     "allow-rename",
     "allow-retire",
+    "allow-list-temp-leftovers",
+    "allow-remove-temp",
     "allow-machine-get",
     "allow-machine-set",
     "allow-watch-start",

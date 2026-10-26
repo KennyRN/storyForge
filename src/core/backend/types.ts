@@ -33,7 +33,7 @@ export type CreateIntent = { op: "create-file" | "backup-create" | "recovery-cre
 export type RenameIntent = { op: "rename" | "codex-rename" };
 export type CompareIntent = { op: "prose-write" | "link-rewrite" };
 
-export type BackendErrorCode = "ENOENT" | "EEXIST" | "ENOTDIR" | "EISDIR" | "EACCES" | "UNKNOWN";
+export type BackendErrorCode = "ENOENT" | "EEXIST" | "ENOTDIR" | "EISDIR" | "EACCES" | "ECHANGED" | "UNKNOWN";
 
 export class BackendError extends Error {
 	constructor(
@@ -71,4 +71,20 @@ export interface Backend {
 	rename(from: string, to: string, intent?: RenameIntent): Promise<void>;
 	/** Moves `path` into `.trash/` inside the project, never overwriting what is already there. Returns the new path. */
 	retire(path: string): Promise<string>;
+	/**
+	 * The app's own leftover temporary files (`.<target>.<hex id>.tmp`) inside storyForge's folders and `_sf-backup/`,
+	 * and nothing else: no general listing of hidden files. Read-only. Never follows a link out of the project.
+	 */
+	listTempLeftovers(): Promise<TempLeftover[]>;
+	/**
+	 * Removes one leftover temporary file (the guard's `temp-remove`). With `expected`, only if its size and
+	 * modification time are still what they were when it was listed; otherwise rejects with `ECHANGED`.
+	 */
+	removeTemp(path: string, expected?: { size: number; mtimeMs: number }): Promise<void>;
+}
+
+export interface TempLeftover {
+	path: string;
+	size: number;
+	mtimeMs: number;
 }

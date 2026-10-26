@@ -1,4 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import * as nodePath from "node:path";
+import { plantLeftovers } from "../helpers/leftovers";
 import { openPreview, shot } from "./helpers";
 
 const CH2 = "_story-library/aaa/ch-a2.md";
@@ -152,5 +155,66 @@ test.describe("the screens around the faces", () => {
 		await page.keyboard.press("Enter");
 		await expect(page.getByRole("heading", { name: "storyForge test vault" })).toBeAttached();
 		expect(await page.evaluate(() => window.__preview.read("_story-library/series.md"))).toContain("Keyboard Series");
+	});
+});
+
+test.describe("leftover temporary files at open (docs/temp-tidy.md)", () => {
+	const plant = async (page: Page, options: { readOnly?: boolean } = {}) => {
+		const { root } = await openPreview(page, options);
+		const planted = plantLeftovers(root);
+		return { root, planted };
+	};
+	const startProject = async (page: Page) => {
+		await page.locator("[data-recent='0']").click();
+		await page.waitForFunction(() => !!window.__app?.editors);
+	};
+
+	test("the summary says first, plainly, which words may not have been saved, then the earlier versions, and what was tidied", async ({ page }) => {
+		const { root, planted } = await plant(page);
+		await startProject(page);
+		const d = dialog(page);
+		await expect(d.getByRole("heading", { name: "Changes found when opening" })).toBeVisible();
+		await expect(d.getByText("storyForge tidied up after a save that was interrupted.")).toBeVisible();
+		// words that may not have been saved come first, in their own plain section
+		const first = d.locator(".sf-summary-section").first();
+		await expect(first).toHaveAttribute("aria-label", "Words that may not have been saved");
+		await expect(first).toContainText("may hold words that were never saved");
+		await expect(first).toContainText("ch-a1.md");
+		await expect(first).not.toContainText("wordcount.md"); // not words
+		await expect(d.getByRole("region", { name: "Other files that may not have been saved" })).toContainText("wordcount.md: a save didn't finish");
+		// the older Codex version is mentioned quietly, in its own section
+		await expect(d.getByRole("region", { name: "Earlier versions kept" })).toContainText("Sam.md: an earlier version was kept at _sf-backup/recovery/_codex/");
+		await expect(d.getByRole("region", { name: "Tidied" })).toContainText("2 leftover temporary files were removed");
+		await expect(d.getByRole("region", { name: "Left where they are" })).toContainText("can't be classified");
+		await shot(page, "leftovers-summary");
+		// what the summary says is on disk: every leftover that differed was copied into recovery, byte for byte
+		expect(existsSync(nodePath.join(root, planted.newerProse))).toBe(false);
+		const copy = readdirSync(nodePath.join(root, "_sf-backup/recovery/aaa")).find((n) => n.startsWith("ch-a1 (leftover"));
+		expect(copy).toBeDefined();
+		expect(readFileSync(nodePath.join(root, "_sf-backup/recovery/aaa", copy!), "utf8")).toContain("The newest words, never swapped in.");
+		// no decoy was touched
+		for (const decoy of planted.decoys) expect(readFileSync(nodePath.join(root, decoy), "utf8")).toBe(`decoy ${decoy}`);
+	});
+
+	test("a second open of the same folder says nothing", async ({ page }) => {
+		await plant(page);
+		await startProject(page);
+		await expect(dialog(page)).toBeVisible();
+		await page.getByRole("button", { name: "OK" }).click();
+		await page.reload();
+		await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+		await startProject(page);
+		await expect(dialog(page)).toHaveCount(0);
+	});
+
+	test("in a read-only project the leftovers are reported and nothing is moved", async ({ page }) => {
+		const { root, planted } = await plant(page);
+		// a project made by a newer storyForge opens read-only
+		writeFileSync(nodePath.join(root, "_backstage/storyforge/project.md"), "---\nformat-version: 99\n---\n");
+		await startProject(page);
+		await expect(dialog(page).getByRole("region", { name: "Tidied" })).toContainText("this project is read-only, so nothing was moved or removed");
+		expect(existsSync(nodePath.join(root, planted.newerProse))).toBe(true);
+		expect(readdirSync(nodePath.join(root, "_sf-backup/recovery/aaa")).some((n) => n.includes("(leftover"))).toBe(false);
+		expect(existsSync(nodePath.join(root, planted.zip))).toBe(true);
 	});
 });

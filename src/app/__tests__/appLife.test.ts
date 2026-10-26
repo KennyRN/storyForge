@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { FakeHost, ManualTimers } from "../../../test/helpers/fakeHost";
 import { cleanupFixtures, copyFixture, diffSnapshots, snapshot } from "../../../test/helpers/fixtures";
 import { available } from "../../../test/helpers/rustBridge";
+import { plantLeftovers } from "../../../test/helpers/leftovers";
 import { settle } from "../../../test/helpers/scheduler";
 import { readBookFrontmatter } from "../../core/book";
 import { AppController, newestBackupTime } from "../appLife";
@@ -187,6 +188,30 @@ describe("newestBackupTime", () => {
 		expect(files[0]).toMatch(/^\d{4}-\d{2}-[a-z0-9]{8}\.md$/);
 		expect(fs.readFileSync(path.join(root, "_backstage/storyforge/sessions", files[0]), "utf8")).toContain("aaa/ch-a1.md");
 		expect([...host.machine.keys()].filter((k) => k === "computer")).toHaveLength(1);
+	});
+
+	it("opening a project with leftover temporary files tidies them through the Rust guard, and a second open finds nothing", async () => {
+		let planted!: ReturnType<typeof plantLeftovers>;
+		const { app, host, root, running } = await opened("series", (r) => (planted = plantLeftovers(r, new FakeHost().now().getTime())));
+		const rep = running.opened.leftovers;
+		expect(rep.removed.map((r) => r.path).sort()).toEqual([planted.identical, planted.zip].sort());
+		expect(rep.recovered).toHaveLength(5);
+		expect(rep.left.map((l) => l.path)).toEqual([planted.unclassifiable]);
+		for (const gone of [planted.zip, planted.identical, planted.newerProse, planted.olderCodex, planted.structural, planted.binary, planted.recoveryFile]) expect(fs.existsSync(path.join(root, gone)), gone).toBe(false);
+		for (const kept of [...planted.decoys, planted.young, planted.unclassifiable]) expect(fs.existsSync(path.join(root, kept)), kept).toBe(true);
+		for (const r of rep.recovered) expect(fs.existsSync(path.join(root, r.recoveryPath)), r.recoveryPath).toBe(true);
+		// the unclassifiable one is remembered in the app's data folder, so the next open does not report it again
+		const key = [...host.machine.keys()].find((k) => k.startsWith("leftovers/"));
+		expect(key).toBeDefined();
+		await app.teardown();
+		const host2 = makeHost();
+		host2.machine = host.machine;
+		host2.nextPick = { root };
+		const app2 = track(new AppController(host2));
+		await app2.start();
+		const again = await app2.openDialog("open");
+		if (again.kind !== "opened") throw new Error("not opened");
+		expect(again.running.opened.leftovers).toMatchObject({ removed: [], recovered: [], left: [], newlyReported: [] });
 	});
 
 	it("a read-only project records no session, and the app's data folder gets no in-progress record", async () => {
