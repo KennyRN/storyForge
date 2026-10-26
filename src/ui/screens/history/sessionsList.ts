@@ -14,7 +14,9 @@ export function lengthLabel(minutes: number): string {
 }
 
 export function paceLabel(wpm: number | null): string {
-	return wpm === null ? "no pace" : `${formatWordCount(Math.round(wpm))} words a minute`;
+	if (wpm === null || wpm <= 0) return "no pace";
+	const n = Math.max(1, Math.round(wpm));
+	return `${formatWordCount(n)} ${n === 1 ? "word" : "words"} a minute`;
 }
 
 /** The labels a session carries, in words (never colour alone). */

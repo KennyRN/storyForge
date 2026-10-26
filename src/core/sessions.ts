@@ -109,7 +109,8 @@ export function sessionId(startIso: string): string {
 
 export class SessionTracker {
 	private readonly count: (body: string) => number;
-	private readonly dayOf: (ms: number) => string;
+	private readonly dayOfRaw: (ms: number) => string;
+	private dayMemo = { minute: -1, day: "" };
 	private readonly offsetMinutes: (ms: number) => number;
 	private readonly idleMs: number;
 
@@ -124,8 +125,18 @@ export class SessionTracker {
 	constructor(options: TrackerOptions) {
 		this.idleMs = options.idleMs;
 		this.count = options.count ?? countWords;
-		this.dayOf = options.dayOf ?? ((ms) => todayISOInEngland(new Date(ms)));
+		this.dayOfRaw = options.dayOf ?? ((ms) => todayISOInEngland(new Date(ms)));
 		this.offsetMinutes = options.offsetMinutes ?? localOffsetMinutes;
+	}
+
+	/**
+	 * The day an instant belongs to, remembered per minute: England midnight, and every change of clocks, falls on a
+	 * minute boundary, so a minute never straddles two days. Keeps a keystroke from paying for a date formatter.
+	 */
+	private dayOf(ms: number): string {
+		const minute = Math.floor(ms / 60_000);
+		if (minute !== this.dayMemo.minute) this.dayMemo = { minute, day: this.dayOfRaw(ms) };
+		return this.dayMemo.day;
 	}
 
 	get running(): boolean {

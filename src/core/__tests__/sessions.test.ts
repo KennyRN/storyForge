@@ -330,3 +330,27 @@ describe("the storytelling figures", () => {
 		expect(Object.keys({ excludedByDay, storytellingDaily, storytellingTodayAndWeek })).toHaveLength(3);
 	});
 });
+
+describe("what tracking costs", () => {
+	it("a keystroke in a 10,000-word chapter does no word counting at all, and no date formatting", () => {
+		const calls = { count: 0, day: 0 };
+		const base = Array.from({ length: 10_000 }, (_, i) => `word${i % 50}`).join(" ");
+		const t = new SessionTracker({
+			idleMs: 3 * MIN,
+			count: (b) => (calls.count++, b.split(/\s+/).length),
+			dayOf: (ms) => (calls.day++, new Date(ms).toISOString().slice(0, 10)),
+			offsetMinutes: () => 0,
+		});
+		let body = base;
+		t.edit({ at: T0, chapter: CH, before: body, after: `${body}x`, origin: "type" });
+		body += "x";
+		const afterFirst = { ...calls };
+		for (let i = 1; i <= 2000; i++) {
+			t.edit({ at: T0 + i * 100, chapter: CH, before: body, after: `${body}y`, origin: "type" });
+			body += "y";
+		}
+		expect(calls.count).toBe(afterFirst.count); // not one count in 2,000 keystrokes
+		expect(calls.day).toBeLessThanOrEqual(afterFirst.day + 5); // the day is looked up once a minute, not per keystroke
+		expect(t.net()).toBe(0); // "x" and "y" glued to the last word add no words; counting happens only here
+	});
+});

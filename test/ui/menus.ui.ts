@@ -147,6 +147,7 @@ test.describe("settings", () => {
 		const d = dialog(page);
 		await expect(d.getByRole("heading", { name: "Settings" })).toBeVisible();
 		await expect(d.getByLabel("Series numbering")).toHaveValue("arabic");
+		await expect(d).not.toContainText("null"); // an element left out must not be drawn as the word null
 		await expect(d.locator(".sf-setting-row", { hasText: "Series numbering" })).toContainText("default");
 		await shot(page, "settings");
 		await d.getByRole("button", { name: "Done" }).click();

@@ -52,6 +52,9 @@ test.describe("writing sessions in the history view", () => {
 		await expect(first).toContainText("400 words, 20 words a minute");
 		await expect(first).toContainText("Chapter 1");
 		await expect(list).not.toContainText("11:00");
+		// the day's chapter rows keep their numbers inside the dialog: nothing in the view is wider than the view
+		expect(await page.evaluate(() => { const b = document.querySelector(".sf-dialog-body") as HTMLElement; const r = b.getBoundingClientRect(); return [...b.querySelectorAll("*")].filter((e) => e.getBoundingClientRect().right > r.right + 1).length; })).toBe(0);
+		await list.scrollIntoViewIfNeeded();
 		await shot(page, "sessions-history");
 	});
 
@@ -62,7 +65,8 @@ test.describe("writing sessions in the history view", () => {
 		const row = (time: string) => d.locator(".sf-session", { hasText: time });
 		await expect(row("10:00–10:30").locator(".sf-session-tag")).toHaveText(["unreliable"]);
 		await expect(row("12:00–12:20").locator(".sf-session-tag")).toHaveText(["editing"]);
-		await expect(row("12:00–12:20")).toContainText("net loss of 4 words");
+		await expect(row("12:00–12:20")).toContainText("net loss of 4 words, no pace");
+		await expect(row("10:00–10:30")).toContainText("20 words, 1 word a minute");
 		await expect(row("13:00–13:20").locator(".sf-session-tag")).toHaveText(["recovered"]);
 		await expect(row("09:00–09:20").locator(".sf-session-tag")).toHaveCount(0);
 	});

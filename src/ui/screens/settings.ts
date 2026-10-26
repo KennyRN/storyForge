@@ -64,7 +64,7 @@ export function openSettings(model: AppModel): void {
 	const redraw = (): void => {
 		const numbering = Object.entries(NUMBERING_STYLE_OPTIONS) as [NumberingStyle, string][];
 		body.replaceChildren(
-			off ? el("p", { class: "sf-muted", text: running.readOnlyReason }) : null!,
+			...(off ? [el("p", { class: "sf-muted", text: running.readOnlyReason })] : []),
 			section("Numbering", [
 				select("seriesNumberingStyle", "Series numbering", numbering, (v) => v as NumberingStyle),
 				select("chapterNumberingStyle", "Chapter numbering", numbering, (v) => v as NumberingStyle),
