@@ -5,12 +5,13 @@ use storyforge_fs::ops::Project;
 #[test]
 fn only_the_allow_listed_names_work() {
     let hex = "a".repeat(64);
-    for ok in ["window", "recent"] {
+    for ok in ["window", "recent", "computer"] {
         assert!(is_allowed_name(ok));
     }
     assert!(is_allowed_name(&format!("snapshots/{hex}")));
     assert!(is_allowed_name(&format!("project-ui/{hex}")));
-    for bad in ["", "../x", "snapshots/../x", "snapshots/abc", &format!("snapshots/{}", "A".repeat(64)), &format!("other/{hex}"), "window/x", &format!("snapshots/{hex}/x")] {
+    assert!(is_allowed_name(&format!("session/{hex}")));
+    for bad in ["", "../x", "snapshots/../x", "snapshots/abc", &format!("snapshots/{}", "A".repeat(64)), &format!("other/{hex}"), "window/x", "computer/x", "session/abc", &format!("snapshots/{hex}/x")] {
         assert!(!is_allowed_name(bad), "{bad}");
     }
     let dir = tempfile::tempdir().unwrap();

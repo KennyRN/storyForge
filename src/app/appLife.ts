@@ -24,6 +24,7 @@ import {
 	saveMachineProjectState,
 } from "./settings";
 import { sha256Text } from "../core/hash";
+import { SessionRecorder } from "./sessionRecorder";
 
 /** Flushing open editors at close waits at most this long; after it, whatever is unsaved goes to recovery. */
 export const CLOSE_LIMIT_MS = 5000;
@@ -71,6 +72,8 @@ export interface Running {
 	timings: OpenTimings;
 	/** Why nothing may be written, if so. */
 	readOnlyReason?: string;
+	/** Records writing sessions; absent in a read-only project, which records nothing. */
+	sessions?: SessionRecorder;
 }
 
 export type OpenOutcome = { kind: "opened"; running: Running } | { kind: "cancelled" } | { kind: "not-a-project"; root: string; message: string };
@@ -122,6 +125,10 @@ export class AppController {
 	onBatch?: (batch: Batch, result: BatchResult) => void;
 	onBackup?: (result: BackupResult | Error, trigger: string) => void;
 	onChange?: () => void;
+	/** Called once per open project when writing sessions can't be recorded (writing is unaffected). */
+	onSessionFailure?: (err: Error) => void;
+	/** Called when a writing session starts or ends (the live readout listens). */
+	onSessionChange?: () => void;
 
 	constructor(private readonly host: Host) {
 		this.timers = host.timers ?? defaultTimers;
@@ -214,6 +221,8 @@ export class AppController {
 			};
 			this.current = running;
 			if (!readOnly) {
+				running.sessions = this.startSessions(running, key);
+				await running.sessions.recoverFromCrash().catch(() => 0);
 				await this.host.invoke("watch_start");
 				this.scheduleBackups(running);
 			}
@@ -223,6 +232,53 @@ export class AppController {
 			if (err instanceof NotAProjectError) return { kind: "not-a-project", root: info.root, message: err.message };
 			throw err;
 		}
+	}
+
+	// ----------------------------------------------------------------------------- sessions
+
+	private computerId?: Promise<string>;
+
+	/** This Mac's random id for session file names: made once, kept in machine settings, never the Mac's name. */
+	private computer(): Promise<string> {
+		this.computerId ??= (async () => {
+			const stored = (await this.machine.get("computer").catch(() => null))?.trim();
+			if (stored && /^[a-z0-9]{8}$/.test(stored)) return stored;
+			const bytes = new Uint8Array(8);
+			globalThis.crypto.getRandomValues(bytes);
+			const id = Array.from(bytes, (b) => (b % 36).toString(36)).join("");
+			await this.machine.set("computer", id);
+			return id;
+		})();
+		return this.computerId;
+	}
+
+	private startSessions(running: Running, key: string): SessionRecorder {
+		const recorder = new SessionRecorder({
+			project: running.opened.project,
+			writer: running.opened.writer,
+			machine: this.machine,
+			storeName: `session/${key}`,
+			computer: () => this.computer(),
+			idleMs: () => this.sessionIdleMs(running),
+			timers: this.timers,
+			now: () => this.now().getTime(),
+			onProgress: () => this.closeProgress(),
+			onFailure: (err) => this.onSessionFailure?.(err),
+			onChange: () => this.onSessionChange?.(),
+			// A window that becomes active again (or a Mac that wakes) checks the idle limit against the clock.
+			watchActive: (check) => {
+				if (typeof document === "undefined") return () => undefined;
+				document.addEventListener("visibilitychange", check);
+				window.addEventListener("focus", check);
+				return () => (document.removeEventListener("visibilitychange", check), window.removeEventListener("focus", check));
+			},
+		});
+		recorder.start();
+		return recorder;
+	}
+
+	private sessionIdleMs(_running: Running): number {
+		return 3 * 60_000;
 	}
 
 	// ----------------------------------------------------------------------------- watching
@@ -400,6 +456,12 @@ export class AppController {
 			}
 
 			this.closeProgress();
+			// A writing session ends with the close: after the editors are flushed, before the snapshot. If its file can't
+			// be written the in-progress record stays and is finished at the next open.
+			if (running.sessions) {
+				await running.sessions.end().catch(() => undefined);
+				running.sessions.dispose();
+			}
 			// The editors are flushed (or recovered); this saves the snapshot and releases the one-project latch.
 			try {
 				const closed = await running.opened.close({ flush: false });

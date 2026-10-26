@@ -169,6 +169,68 @@ describe("newestBackupTime", () => {
 		expect(host.quit).toBe(true);
 	});
 
+	it("closing ends the writing session after the editors are flushed and before the snapshot, as progress for the watchdog", async () => {
+		const { app, host, root } = await opened();
+		const a = await app.openFile(`${A}/ch-a1.md`);
+		a.setBody("Typed into chapter one, a few words.");
+		await app.shutdownAndQuit();
+		// the chapter was saved (editors flushed), the session file written (the computer id is made then), and only
+		// then the snapshot (saved in the order of the close path); the session's two progress reports are among the window's close_progress calls
+		expect(fs.readFileSync(path.join(root, `${A}/ch-a1.md`), "utf8")).toBe("Typed into chapter one, a few words.\n");
+		const keys = [...host.machine.keys()];
+		expect(keys.indexOf("computer")).toBeGreaterThan(-1);
+		expect(host.machine.get(keys.find((k) => k.startsWith("session/")) as string)).toBe(""); // nothing left in progress
+		expect(host.calls.filter((c) => c === "close_progress").length).toBeGreaterThanOrEqual(2);
+		expect(host.calls.indexOf("close_progress")).toBeLessThan(host.calls.indexOf("close_project"));
+		const files = fs.readdirSync(path.join(root, "_backstage/storyforge/sessions"));
+		expect(files).toHaveLength(1);
+		expect(files[0]).toMatch(/^\d{4}-\d{2}-[a-z0-9]{8}\.md$/);
+		expect(fs.readFileSync(path.join(root, "_backstage/storyforge/sessions", files[0]), "utf8")).toContain("aaa/ch-a1.md");
+		expect([...host.machine.keys()].filter((k) => k === "computer")).toHaveLength(1);
+	});
+
+	it("a read-only project records no session, and the app's data folder gets no in-progress record", async () => {
+		const root = copyFixture("series");
+		fs.mkdirSync(path.join(root, "_backstage/storyforge"), { recursive: true });
+		fs.writeFileSync(path.join(root, PROJECT_SETTINGS_PATH), "---\nformat-version: 99\n---\n");
+		const host = makeHost();
+		host.nextPick = { root, readOnly: true };
+		const app = track(new AppController(host));
+		await app.start();
+		const outcome = await app.openDialog("open");
+		if (outcome.kind !== "opened") throw new Error("not opened");
+		expect(outcome.running.sessions).toBeUndefined();
+		await app.shutdownAndQuit();
+		expect(fs.existsSync(path.join(root, "_backstage/storyforge/sessions"))).toBe(false);
+		expect([...host.machine.keys()].some((k) => k.startsWith("session/"))).toBe(false);
+	});
+
+	it("a session left unfinished by a crash is finished at the next open, marked recovered", async () => {
+		const { app, host, root, running } = await opened();
+		const a = await app.openFile(`${A}/ch-a1.md`);
+		a.setBody("Typed into chapter one, with several words in it.");
+		await settle();
+		await new Promise((r) => setTimeout(r, 30));
+		const key = [...host.machine.keys()].find((k) => k.startsWith("session/"));
+		expect(key).toBeDefined();
+		const blob = host.machine.get(key as string) as string;
+		expect(blob).toContain('"cp"');
+		// the app dies: nothing is closed; a new run opens the same folder with the same data folder
+		running.sessions?.dispose();
+		await running.opened.close({ flush: false });
+		const host2 = makeHost();
+		host2.machine = host.machine;
+		host2.nextPick = { root };
+		const app2 = track(new AppController(host2));
+		await app2.start();
+		const again = await app2.openDialog("open");
+		if (again.kind !== "opened") throw new Error("not opened");
+		const files = fs.readdirSync(path.join(root, "_backstage/storyforge/sessions"));
+		expect(files).toHaveLength(1);
+		expect(fs.readFileSync(path.join(root, "_backstage/storyforge/sessions", files[0]), "utf8")).toContain("recovered: true");
+		expect(host2.machine.get(key as string)).toBe("");
+	});
+
 	it("if flushing outlasts the limit, the unsaved text is written to recovery files instead, exactly", async () => {
 		const timers = new ManualTimers();
 		const { app, running, root } = await opened("series", undefined, (h) => (h.timers = timers));
