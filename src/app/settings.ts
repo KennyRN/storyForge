@@ -35,6 +35,14 @@ export interface ProjectSettings {
 	codexFactSectionByType: Record<string, string>;
 	seriesNumberingStyle: NumberingStyle;
 	chapterNumberingStyle: NumberingStyle;
+	/** Writing sessions (docs/sessions.md §9): minutes without an edit that end a session. */
+	sessionIdleMinutes: number;
+	/** Sessions shorter than this many minutes are recorded but not listed. 0 lists them all. */
+	sessionMinShownMinutes: number;
+	/** A session slower than this many words a minute counts as editing. `null`: off. */
+	sessionEditingWpm: number | null;
+	/** Show the current session's time and words in the stats panel. */
+	showSessionReadout: boolean;
 }
 
 export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
@@ -47,6 +55,10 @@ export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
 	codexFactSectionByType: { person: "Facts", place: "Facts", populace: "Facts" },
 	seriesNumberingStyle: "arabic",
 	chapterNumberingStyle: "arabic",
+	sessionIdleMinutes: 3,
+	sessionMinShownMinutes: 5,
+	sessionEditingWpm: null,
+	showSessionReadout: false,
 };
 
 type Key = keyof ProjectSettings;
@@ -66,7 +78,18 @@ const FIELDS: Record<Key, { file: string; plugin: string; valid: (v: unknown) =>
 	},
 	seriesNumberingStyle: { file: "series-numbering-style", plugin: "seriesNumberingStyle", valid: (v) => typeof v === "string" && v in NUMBERING_STYLE_OPTIONS },
 	chapterNumberingStyle: { file: "chapter-numbering-style", plugin: "chapterNumberingStyle", valid: (v) => typeof v === "string" && v in NUMBERING_STYLE_OPTIONS },
+	// New in the app: the plugin never had them, so `plugin` names a key that is never there.
+	sessionIdleMinutes: { file: "session-idle-minutes", plugin: "-", valid: (v) => isIntIn(v, 1, 30) },
+	sessionMinShownMinutes: { file: "session-min-shown-minutes", plugin: "-", valid: (v) => isIntIn(v, 0, 60) },
+	sessionEditingWpm: { file: "session-editing-wpm", plugin: "-", valid: (v) => v === null || isIntIn(v, 1, 60) },
+	showSessionReadout: { file: "show-session-readout", plugin: "-", valid: (v) => typeof v === "boolean" },
 };
+
+/** The ranges the settings view offers, so the view and the check agree. */
+export const SESSION_LIMITS = { idleMinutes: [1, 30], minShownMinutes: [0, 60], editingWpm: [1, 60] } as const;
+function isIntIn(v: unknown, lo: number, hi: number): boolean {
+	return typeof v === "number" && Number.isInteger(v) && v >= lo && v <= hi;
+}
 
 export type SettingSource = "project.md" | "data.json" | "default";
 
@@ -164,7 +187,8 @@ export async function setSetting<K extends Key>(project: Project, current: Loade
 				if (current.sources[k] !== "default") fm[FIELDS[k].file] = clone(current.values[k]);
 			}
 		}
-		fm[field.file] = clone(value);
+		if (value === null) delete fm[field.file]; // "off" is the key's absence
+		else fm[field.file] = clone(value);
 	});
 	current.values[key] = clone(value);
 	current.sources[key] = "project.md";

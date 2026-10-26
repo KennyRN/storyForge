@@ -153,6 +153,31 @@ test.describe("settings", () => {
 		expect(await exists(page, PROJECT_MD)).toBe(false);
 	});
 
+	test("the Sessions and Display groups: ranges are kept, an out-of-range value is put back, and the editing threshold can be turned off", async ({ page }) => {
+		await openProject(page);
+		await menu(page, "settings");
+		const d = dialog(page);
+		await expect(d.getByRole("region", { name: "Sessions" })).toBeVisible();
+		await expect(d.getByRole("region", { name: "Display" })).toBeVisible();
+		await expect(d.getByLabel("Session idle limit (minutes)")).toHaveValue("3");
+		await expect(d.getByLabel("Shortest session shown (minutes)")).toHaveValue("5");
+		await expect(d.getByLabel("Count as editing below (words per minute)")).toHaveValue("");
+		await expect(d.getByLabel("Show the current session in the stats panel")).not.toBeChecked();
+		await shot(page, "sessions-settings");
+		await d.getByLabel("Session idle limit (minutes)").fill("99");
+		await d.getByLabel("Session idle limit (minutes)").press("Enter");
+		await expect(d.getByLabel("Session idle limit (minutes)")).toHaveValue("3"); // put back
+		expect(await exists(page, PROJECT_MD)).toBe(false); // and nothing written
+		await d.getByLabel("Session idle limit (minutes)").fill("10");
+		await d.getByLabel("Session idle limit (minutes)").press("Enter");
+		await d.getByLabel("Count as editing below (words per minute)").fill("6");
+		await d.getByLabel("Count as editing below (words per minute)").press("Enter");
+		await expect.poll(() => page.evaluate((p) => window.__preview.read(p).catch(() => ""), PROJECT_MD)).toMatch(/session-idle-minutes: 10[\s\S]*session-editing-wpm: 6|session-editing-wpm: 6[\s\S]*session-idle-minutes: 10/);
+		await d.getByLabel("Count as editing below (words per minute)").fill("");
+		await d.getByLabel("Count as editing below (words per minute)").press("Enter");
+		await expect.poll(() => page.evaluate((p) => window.__preview.read(p).catch(() => ""), PROJECT_MD)).not.toContain("session-editing-wpm");
+	});
+
 	test("a change writes project.md, only that change, and the source becomes 'this project'", async ({ page }) => {
 		await openProject(page);
 		await menu(page, "settings");

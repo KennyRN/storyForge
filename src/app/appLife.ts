@@ -277,8 +277,9 @@ export class AppController {
 		return recorder;
 	}
 
-	private sessionIdleMs(_running: Running): number {
-		return 3 * 60_000;
+	/** The idle limit for the next session to start: the setting as it is now. A running session keeps its own. */
+	private sessionIdleMs(running: Running): number {
+		return running.settings.values.sessionIdleMinutes * 60_000;
 	}
 
 	// ----------------------------------------------------------------------------- watching

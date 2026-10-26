@@ -243,3 +243,49 @@ describe("machine settings", () => {
 		}
 	});
 });
+
+describe("the sessions settings (docs/sessions.md §9)", () => {
+	const put = (root: string, body: string) => {
+		fs.mkdirSync(path.join(root, "_backstage/storyforge"), { recursive: true });
+		fs.writeFileSync(path.join(root, PROJECT_SETTINGS_PATH), `---\nformat-version: 1\n${body}---\n`);
+	};
+
+	it("default to 3 minutes, 5 minutes shown, editing off and the readout off", async () => {
+		const root = copyFixture("series");
+		const s = await loadSettings(await open(root), reader(root));
+		expect(s.values).toMatchObject({ sessionIdleMinutes: 3, sessionMinShownMinutes: 5, sessionEditingWpm: null, showSessionReadout: false });
+		expect(s.sources.sessionIdleMinutes).toBe("default");
+	});
+
+	it("are read from project.md; a value out of range or of the wrong kind falls back to its default", async () => {
+		const root = copyFixture("series");
+		put(root, "session-idle-minutes: 10\nsession-min-shown-minutes: 0\nsession-editing-wpm: 7\nshow-session-readout: true\n");
+		const ok = await loadSettings(await open(root), reader(root));
+		expect(ok.values).toMatchObject({ sessionIdleMinutes: 10, sessionMinShownMinutes: 0, sessionEditingWpm: 7, showSessionReadout: true });
+		expect(ok.sources.sessionIdleMinutes).toBe("project.md");
+		put(root, 'session-idle-minutes: 0\nsession-min-shown-minutes: 61\nsession-editing-wpm: 2.5\nshow-session-readout: "yes"\n');
+		const bad = await loadSettings(await open(root), reader(root));
+		expect(bad.values).toMatchObject({ sessionIdleMinutes: 3, sessionMinShownMinutes: 5, sessionEditingWpm: null, showSessionReadout: false });
+		put(root, "session-idle-minutes: 31\n");
+		expect((await loadSettings(await open(root), reader(root))).values.sessionIdleMinutes).toBe(3);
+		put(root, "session-idle-minutes: 30\n");
+		expect((await loadSettings(await open(root), reader(root))).values.sessionIdleMinutes).toBe(30);
+	});
+
+	it("a change rewrites only that key; turning the editing threshold off removes its key", async () => {
+		const root = copyFixture("series");
+		put(root, "hide-series-pane: true # kept\nsession-editing-wpm: 7\n");
+		const project = await open(root);
+		const s = await loadSettings(project, reader(root));
+		await setSetting(project, s, "sessionIdleMinutes", 8);
+		const text = fs.readFileSync(path.join(root, PROJECT_SETTINGS_PATH), "utf8");
+		expect(text).toContain("hide-series-pane: true # kept");
+		expect(text).toContain("session-idle-minutes: 8");
+		expect(text).toContain("session-editing-wpm: 7");
+		await setSetting(project, s, "sessionEditingWpm", null);
+		const off = fs.readFileSync(path.join(root, PROJECT_SETTINGS_PATH), "utf8");
+		expect(off).not.toContain("session-editing-wpm");
+		expect(off).toContain("hide-series-pane: true # kept");
+		await expect(setSetting(project, s, "sessionIdleMinutes", 99)).rejects.toThrow(/not a valid value/);
+	});
+});
