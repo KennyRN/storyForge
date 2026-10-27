@@ -84,3 +84,7 @@ button.sf-heat-cell { cursor: pointer; }
 .sf-ref-choose { all: unset; cursor: pointer; font-size: 12px; color: var(--purpose-text-muted); border-radius: 3px; padding: 0 4px; margin-left: auto; }
 .sf-ref-choose:hover { color: var(--purpose-accent); }
 .sf-ref-choose:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 2px; }
+
+.sf-section-field { margin: 4px 0 8px 0; font-size: 14px; }
+.sf-section-field[data-duplicate="true"] { color: var(--purpose-text-muted); }
+.sf-overview-row .sf-section-field { margin-left: 0; }

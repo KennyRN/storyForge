@@ -6,6 +6,7 @@ import { computeSeriesNovelBarLayout } from "../../core/seriesNovelBar";
 import { el, fill } from "../kit/dom";
 import type { AppModel } from "../model";
 import { plainBar } from "./bars";
+import { descriptionField, synopsisField } from "./sectionFields";
 import { debounced, redrawKeepingFocus } from "./refresh";
 
 /** The words in a novel's placed chapters, from the index. */
@@ -15,10 +16,12 @@ export function novelWordTotal(model: AppModel, book: string): number {
 	return getBookChapters(project, book).ordered.reduce((sum, c) => sum + project.wordCount(libraryChapterPath(book, c.name)), 0);
 }
 
-/** The series overview: each placed novel with its word-count bar, then the unplaced novels. Read-only. */
+/** The series overview: the description, each placed novel with its word-count bar and synopsis, then the unplaced novels. The description and synopses are the only things written here. */
 export function mountSeriesOverview(host: HTMLElement, model: AppModel): () => void {
 	host.classList.add("sf-overview-body");
 	const draw = (): void => {
+		// A redraw never takes a description or synopsis being typed in: its text isn't saved yet.
+		if (host.contains(document.activeElement) && document.activeElement instanceof HTMLTextAreaElement) return;
 		const running = model.running;
 		if (!running) return fill(host);
 		const project = running.opened.project;
@@ -36,17 +39,17 @@ export function mountSeriesOverview(host: HTMLElement, model: AppModel): () => v
 			const title = titles[i];
 			const row = el("div", { class: "sf-overview-row", attrs: { role: "listitem" } });
 			const name = el("button", { class: "sf-overview-name", text: title, attrs: { type: "button" }, on: { click: () => open(f.name) } });
-			row.append(name, plainBar(title, words, layout[i].fillPercent, layout[i].sliver));
+			row.append(name, plainBar(title, words, layout[i].fillPercent, layout[i].sliver), synopsisField(model, f.name, title));
 			placed.append(row);
 		});
 		if (series.ordered.length === 0) placed.append(el("div", { class: "sf-muted", text: "No novels are placed in the series yet." }));
 		const unplaced = series.unplaced.length
 			? [
 					el("h3", { class: "sf-overview-sub", text: "Unplaced" }),
-					el("div", { class: "sf-overview-list", attrs: { role: "list", "aria-label": "Novels not yet placed" } }, ...series.unplaced.map((f, i) => el("div", { class: "sf-overview-row sf-overview-row--unplaced", attrs: { role: "listitem" } }, el("button", { class: "sf-overview-name", text: titles[series.ordered.length + i], attrs: { type: "button" }, on: { click: () => open(f.name) } })))),
+					el("div", { class: "sf-overview-list", attrs: { role: "list", "aria-label": "Novels not yet placed" } }, ...series.unplaced.map((f, i) => el("div", { class: "sf-overview-row sf-overview-row--unplaced", attrs: { role: "listitem" } }, el("button", { class: "sf-overview-name", text: titles[series.ordered.length + i], attrs: { type: "button" }, on: { click: () => open(f.name) } }), synopsisField(model, f.name, titles[series.ordered.length + i])))),
 				]
 			: [];
-		fill(host, el("h2", { class: "sf-overview-title", text: series.seriesTitle }), placed, ...unplaced);
+		fill(host, el("h2", { class: "sf-overview-title", text: series.seriesTitle }), descriptionField(model), placed, ...unplaced);
 	};
 	draw();
 	const refresh = debounced(() => redrawKeepingFocus(host, draw));

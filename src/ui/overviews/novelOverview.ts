@@ -14,6 +14,7 @@ import type { AppModel } from "../model";
 import { dataBar } from "./bars";
 import { commitPlotNote } from "../../core/fieldWriter";
 import { textField } from "./fieldCommitter";
+import { synopsisField } from "./sectionFields";
 import { debounced, redrawKeepingFocus } from "./refresh";
 
 /** The novel overview: the progress bar (segments, ghost dividers, structure strip), the planned lengths, and a bar-tier card per chapter. */
@@ -188,7 +189,7 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 		const unplacedList = unplaced.length
 			? [el("h3", { class: "sf-overview-sub", text: "Unplaced" }), el("div", { class: "sf-overview-list", attrs: { role: "list", "aria-label": "Chapters not yet placed" } }, ...unplaced.map((c, i) => el("div", { class: "sf-overview-row sf-overview-row--unplaced", attrs: { role: "listitem" } }, el("button", { class: "sf-overview-name", text: titles[ordered.length + i], attrs: { type: "button" }, on: { click: () => open(c.name) } }))))]
 			: [];
-		fill(host, el("h2", { class: "sf-overview-title", text: novelTitle() }), povRow, track, strip, meta, sizeControl, el("div", { class: "sf-overview-list sf-cards", attrs: { role: "list", "aria-label": "Placed chapters with word counts" } }, ...cards), ...unplacedList);
+		fill(host, el("h2", { class: "sf-overview-title", text: novelTitle() }), synopsisField(model, book, novelTitle()), povRow, track, strip, meta, sizeControl, el("div", { class: "sf-overview-list sf-cards", attrs: { role: "list", "aria-label": "Placed chapters with word counts" } }, ...cards), ...unplacedList);
 	};
 	draw();
 	const refresh = debounced(() => redrawKeepingFocus(host, draw));

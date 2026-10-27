@@ -37,6 +37,38 @@ test.describe("the series overview", () => {
 		await shot(page, "numbers-series-overview");
 	});
 
+	test("the series description and a novel's synopsis are written as sections, changing nothing else in the file", async ({ page }) => {
+		await openProject(page);
+		await flip(page);
+		await tab(page, "series").click();
+		const before = await page.evaluate((f) => window.__preview.read(f), "_story-library/series.md");
+		const description = overview(page).getByRole("textbox", { name: "Series description" });
+		await expect(description).toHaveValue("A synthetic series used only for tests.");
+		await description.click();
+		await description.press("Meta+a");
+		await description.pressSequentially("Five books of lanterns.");
+		await overview(page).locator(".sf-overview-title").click();
+		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), "_story-library/series.md")).toBe(before.replace("A synthetic series used only for tests.", "Five books of lanterns."));
+		const novelBefore = await page.evaluate((f) => window.__preview.read(f), "_story-library/novel-aaa.md");
+		const synopsis = overview(page).getByRole("textbox", { name: /^Synopsis of / }).first();
+		await synopsis.click();
+		await synopsis.pressSequentially("Jane finds the harbour.");
+		await overview(page).locator(".sf-overview-title").click();
+		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), "_story-library/novel-aaa.md")).toBe(`${novelBefore.trimEnd()}\n\n## Synopsis\nJane finds the harbour.\n`);
+	});
+
+	test("a synopsis whose heading appears twice shows read-only, with a notice", async ({ page }) => {
+		await openProject(page);
+		const path = "_story-library/novel-aaa.md";
+		const text = await page.evaluate((f) => window.__preview.read(f), path);
+		await outside(page, path, `${text.trimEnd()}\n\n## Synopsis\nOne\n\n## Synopsis\nTwo\n`);
+		await flip(page);
+		await tab(page, "series").click();
+		const field = overview(page).getByRole("textbox", { name: /^Synopsis of / }).first();
+		await expect(field).toHaveAttribute("readonly", "");
+		await expect(page.getByRole("alert")).toContainText("appears more than once");
+	});
+
 	test("under an overview the editor takes no focus, no shortcuts and no menu undo, and saving carries on", async ({ page }) => {
 		await openProject(page);
 		const content = page.locator(".sf-slot--centre .cm-content");

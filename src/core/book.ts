@@ -1,12 +1,13 @@
 import { bookBackstagePath, bookFilePath, libraryBookPath, libraryChapterPath, LIBRARY_ROOT } from "./paths";
 import { resolveOrder, type OrderResult } from "./ordering";
 import { mintId } from "./slug";
+import { FieldConflictError } from "./fieldConflict";
 import { foldKey } from "./pathRules";
 import type { IndexEntry } from "./projectIndex";
 import type { Project } from "./project";
 import type { FrontmatterRecord } from "./frontmatter";
 import { safeCoverExtension, safeCoverFilename } from "./coverImage";
-import { extractSection, splitFrontmatterAndBody, upsertSection } from "./sectionBody";
+import { readSection, splitFrontmatterAndBody, writeSection, SectionDuplicateError, type SectionRead } from "./sectionBody";
 import {
 	collectAllBookIds,
 	getLibraryBookFolders,
@@ -1018,15 +1019,20 @@ export async function createChapter(
 
 const SYNOPSIS_HEADER = "## Synopsis";
 
-/** Reads the book's synopsis from novel.md's body, under a `## Synopsis` heading. Empty string if none exists yet. */
-export async function readBookSynopsis(project: Project, bookFolderName: string): Promise<string> {
-	if (!project.isFile(bookFilePath(bookFolderName))) return "";
+/** Reads the book's synopsis from novel.md's body, under a `## Synopsis` heading. Empty if there is none yet; "duplicate" if the heading appears more than once. */
+export async function readBookSynopsis(project: Project, bookFolderName: string): Promise<SectionRead> {
+	if (!project.isFile(bookFilePath(bookFolderName))) return { status: "ok", text: "" };
 	const { body } = splitFrontmatterAndBody(await project.readText(bookFilePath(bookFolderName)));
-	return extractSection(body, SYNOPSIS_HEADER);
+	return readSection(body, SYNOPSIS_HEADER);
 }
 
-/** Writes the book's synopsis into novel.md's body under a `## Synopsis` heading, leaving the frontmatter and any other body content untouched. */
-export async function writeBookSynopsis(project: Project, bookFolderName: string, synopsis: string): Promise<void> {
+/**
+ * Writes the book's synopsis into novel.md's body under a `## Synopsis` heading and changes nothing
+ * else; empty text removes the section. With `expected`, the write happens only if the section still
+ * holds it, checked in the same lock (else FieldConflictError, nothing written). A duplicated heading
+ * throws SectionDuplicateError.
+ */
+export async function writeBookSynopsis(project: Project, bookFolderName: string, synopsis: string, expected?: string): Promise<void> {
 	const path = bookFilePath(bookFolderName);
 	await project.updateText(path, (current) => {
 		let raw: string;
@@ -1037,7 +1043,13 @@ export async function writeBookSynopsis(project: Project, bookFolderName: string
 			raw = defaultBookContent(bookId, bookTitle, position);
 		}
 		const { frontmatterBlock, body } = splitFrontmatterAndBody(raw);
-		return frontmatterBlock + upsertSection(body, SYNOPSIS_HEADER, synopsis);
+		const now = readSection(body, SYNOPSIS_HEADER);
+		if (now.status === "duplicate") throw new SectionDuplicateError(SYNOPSIS_HEADER);
+		if (expected !== undefined) {
+			if (now.text !== expected) throw new FieldConflictError(now.text);
+			if (now.text === synopsis.trim()) return null;
+		}
+		return frontmatterBlock + writeSection(body, SYNOPSIS_HEADER, synopsis);
 	});
 }
 
@@ -1046,13 +1058,7 @@ export async function readChapterPlot(project: Project, bookFolderName: string, 
 	return getChapterEntry(project, bookFolderName, filename)?.plot ?? "";
 }
 
-/** Thrown from inside a locked write when the field no longer holds what the writer last saw. Nothing has been written. */
-export class FieldConflictError extends Error {
-	constructor(readonly current: string) {
-		super("The field changed on disk since it was last seen.");
-		this.name = "FieldConflictError";
-	}
-}
+export { FieldConflictError };
 
 /**
  * Writes a chapter's plot notes into novel.md's `chapters.<file>.plot` field (backstage
