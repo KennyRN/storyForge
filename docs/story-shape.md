@@ -118,3 +118,32 @@ Unchanged from the brief (§5), with the G1 rekey as its own commit before commi
 6. **New core module `fieldWriter.ts`** and its architecture-test allow-list entry for `createRecovery`. OK?
 7. **Synopsis editable in both the novel and series overviews**, or novel overview only?
 8. Skip importing the plugin's stored card sizes? (I'd skip.)
+
+## 12. H1 rulings (decision 42, on `9bf3a80`)
+
+The survey is accepted. These supersede anything above that differs.
+
+1. **Rename rekeys PoV, location and default PoV.** Approved (finishes decision 10).
+   - Match on the stored `path` (case- and Unicode-insensitive), never the name. Update both `path` and `name` to the new path and title.
+   - The old single-key forms (`pov-path`/`pov-name`, `location-path`/`location-name`) are updated in place, not converted.
+   - Part of the announced rename: the plan counts the novel files whose references change; the pre-rewrite backup covers them.
+   - Compare-then-write, minimal edits. A novel file that can't be rewritten (unreadable frontmatter, or changed since the plan) is skipped and listed; its references show as missing.
+   - Archiving or pruning a note leaves references as they are (shown missing, never dropped).
+   - Renames found at open: if the reconciler already rekeys `Codex.md`, it updates these references the same way and the summary says so. **If the reconciler writes no rekeys today, hold.**
+   - Its own commit before commit 4, with a core test, a disk-safety operation and a test through reconciliation.
+2. **Strict section matching.** A heading matches only a line exactly `## Synopsis` / `## Description` (trailing spaces and CRLF allowed). A section runs to the next line starting `# ` or `## `. More than one match: refuse the write and recover the text. The reader uses the same rule; a duplicated heading shows the field read-only with a notice. Old loose functions removed if nothing else calls them.
+3. **Plot notes keep leading whitespace;** trim the end only. Fuzzer extended to multi-line notes starting with spaces.
+4. **An empty synopsis/description removes the section** (heading and text); everything else byte-identical.
+5. **Covers: two Rust commands, YAML stays in TypeScript.**
+   - `pick_cover(target)`: target is the series or a book code. Open panel; PNG/JPEG/GIF/WebP by first bytes, up to 10 MB; write under a temporary name and sync; retire any existing `cover.<png|jpg|gif|webp>` to `.trash/` always; move the new image in as `cover.<ext>`, create-only. Failure before the last step leaves the old cover. Returns the filename; TypeScript sets `cover-image` (a failure there gives a notice).
+   - `read_cover(target, filename)`: read-only; filename must match `cover.<png|jpg|gif|webp>` exactly; only from that target's backstage folder; capped at 10 MB.
+   - No `clear_cover`: TypeScript clears `cover-image`, then the file is retired through the existing `retire`.
+   - Refusals name the accepted types; HEIC suggests exporting as JPEG.
+   - Both on the allow-list, with an architecture test fixing who may call them; both refused in a read-only project.
+6. **`fieldWriter.ts` approved**, with its `createRecovery` allow-list entry. Comparison inside the same lock as the write; an unchanged value writes nothing. Recovery follows `recovery.ts` naming: plot notes under `recovery/<book>/`, named so they can't be mistaken for chapter text; synopsis and description under a new `recovery/_fields/`. Planned lengths are committed on close too, but a conflict on one only shows a notice, no recovery file.
+7. **Synopsis editable in both overviews,** same committer; the other copy refreshes without taking focus.
+8. **Plugin card sizes are not imported.**
+
+Also: stamping `chapter-id`/`chapter-title` when a plot note is written is fine (0.17.1 behaviour, gives stable ids for session files). A picker still open at quit is discarded.
+
+Next: commit 2 (card sizes); rekey in its own commit before commit 4; the close-commit step runs `npm run test:quit` before it is committed.
