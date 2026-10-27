@@ -215,3 +215,21 @@ As the brief (§5), with one addition in commit 2: the macOS defaults registrati
 6. **Spaced hyphen between numbers:** leave `5 - 3` and also `Chapter 5 - the storm` as typed (the rule can only look left), or only skip when both sides are numbers once known?
 7. **Defaults:** every aid on for a project without the keys?
 8. **`aria`/spoken names** for custom characters: the character plus its code point. Fine?
+
+## 12. H1 rulings (decision 46, on `19278c8`)
+
+The survey is accepted.
+
+1. **Word counter:** left alone. Decision 37's dash sentence reads "the aid doesn't change the count". Whether `word—word` should count as two words is an open item, not part of this brief.
+2. **The Mac's substitutions are switched off for this app, always.** Smart quotes and dashes (the aids replace them), Text Replacements (shortcodes do that job), and automatic spelling correction (invented names must never be "corrected"). **The spellchecker's red underlines stay on;** confirm in the built app that correction is off and underlining works. Registered as per-app defaults in `platform.rs`, for this app only, never written to global settings. **Shipped first, on its own, as 0.12.1** (a live bug in 0.12.0): branch from `main`, check in the built app that none of the four acts any more including inside `[[links]]`, code and comments, run `npm run test:quit` and `npm run test:ui`, merge, push, tag `v0.12.1`, then rebase `typing` onto it.
+3. **Plot notes, synopses and the series description get smart punctuation in this brief,** because turning off the Mac's smart quotes would otherwise take curly quotes away from them. The same rules apply (protected text, one ⌘Z giving back exactly what was typed). **If a plain text field can't meet the undo rule, hold.** Name autocorrect and shortcodes stay out of those fields. Rename, settings and search fields get no aids at all.
+4. **The shortcode popup** is built on `@codemirror/view`'s tooltip, no new dependency, and is accessible: a list a screen reader can read, with the highlighted entry announced.
+5. **Folding approved:** `æ`→`ae`, `œ`→`oe`, accents stripped; `þ`→`th`, `ð`→`th` or `d`, `ƿ`→`w`, `ȝ`→`g`, `y` or `gh`. **Every name is indexed under every form it folds to;** if two names share any form, that form is ambiguous and nothing is changed.
+6. **`cause` and `em` stay** in the starting elision list.
+7. **The spaced hyphen waits for one more character,** as the em dash does: it becomes an en dash when the next character is typed, **unless that character is a digit straight after a number.** `5 - 3` stays; `Chapter 5 - the storm` gets its en dash. (This replaces §4.2's "second space" trigger and the "word before is a number" rule.)
+8. **Every aid on by default.**
+9. **Spoken names:** the starting set gets proper names (ash, ethel, eth, thorn, wynn, yogh); a character the author adds is announced as the character plus its code point.
+
+**Commit order on `typing`, after 0.12.1:** 1 settings; 2 smart punctuation in the editor; 3 smart punctuation in the fields; 4 name autocorrect; 5 shortcodes; 6 the button; 7 docs, the report and `0.13.0`. (The macOS defaults registration is no longer in commit 2: it ships as 0.12.1.)
+
+"Emoji & Symbols" already being in the Edit menu is fine: nothing to build.
