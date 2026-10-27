@@ -6,6 +6,7 @@
 import type { AppController, CoverTarget, OpenOutcome, Running } from "../app/appLife";
 import type { MachineProjectState } from "../app/settings";
 import type { PlotCardTier } from "../core/plotCardTier";
+import type { TypingEditorOptions } from "./editor/typingAids";
 import { getBookChapters, removeBookCover, writeBookCoverName } from "../core/book";
 import { createContinuingChapter } from "../core/chapterCreation";
 import type { CreateProjectOptions } from "../core/openProject";
@@ -243,6 +244,16 @@ export class AppModel {
 		if (left !== undefined) this.nav.leftWidth = clampLeft(left);
 		if (lore !== undefined) this.nav.loreWidth = clampLore(lore);
 		this.persistSoon();
+	}
+
+	private elisionCache: { source: readonly string[]; words: ReadonlySet<string> } = { source: [], words: new Set() };
+
+	/** What the typing aids read at every keystroke: the switches and lists of the open project (docs/typing-aids.md §8). */
+	typingOptions(): TypingEditorOptions {
+		const values = this.running?.settings.values;
+		if (!values) return { smartPunctuation: false, elisions: new Set() };
+		if (this.elisionCache.source !== values.typingElisions) this.elisionCache = { source: values.typingElisions, words: new Set(values.typingElisions.map((w) => w.toLowerCase())) };
+		return { smartPunctuation: values.typingSmartPunctuation, elisions: this.elisionCache.words };
 	}
 
 	cardTier(book: string, file: string): PlotCardTier {

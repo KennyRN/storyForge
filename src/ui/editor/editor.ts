@@ -5,6 +5,7 @@ import { openSearchPanel, search, searchKeymap } from "@codemirror/search";
 import type { ProseSession } from "../../core/proseWriter";
 import type { EditOrigin } from "../../core/sessions";
 import { emphasisKeymap, prose } from "./dressingView";
+import { typingAids, type TypingEditorOptions } from "./typingAids";
 
 /**
  * Where a transaction came from, by CodeMirror's user events. Anything it doesn't name is typing (IME composition and
@@ -51,7 +52,7 @@ export interface MountedEditor {
  * Typing goes to `session.setBody`; a reload from disk arrives as the minimal edit and is applied without
  * touching undo history or the caret (decision 21).
  */
-export function mountSessionEditor(parent: HTMLElement, session: ProseSession, options: { covered?: () => boolean } = {}): MountedEditor {
+export function mountSessionEditor(parent: HTMLElement, session: ProseSession, options: { covered?: () => boolean; typing?: () => TypingEditorOptions } = {}): MountedEditor {
 	const view: EditorView = new EditorView({
 		parent,
 		dispatchTransactions: (trs: readonly Transaction[]) => {
@@ -62,6 +63,8 @@ export function mountSessionEditor(parent: HTMLElement, session: ProseSession, o
 			doc: session.body,
 			extensions: [
 				...common,
+				// The typing aids (docs/typing-aids.md): they only react to the author's own typing, each change its own undo step.
+				...(options.typing ? [typingAids(options.typing)] : []),
 				// While an overview covers this editor it refuses every change that isn't a reload from disk, whatever its
 				// source (decision 36). Two walls, because the history commands skip transaction filters: the browser's own
 				// input (WebKit's undo and redo, a drop, a spellcheck correction, dictation) is stopped before it touches the

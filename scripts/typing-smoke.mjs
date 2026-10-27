@@ -5,8 +5,9 @@
 // and 0.12.0 shipped with all of them acting inside the manuscript, including inside [[links]], code and comments.
 //
 // It starts the BUILT app on a fixture copy, types real keystrokes into a chapter, and reads the editor's own
-// content back through accessibility. Nothing is typed into a real project. Today (before the typing aids) the
-// text must come out exactly as typed; Brief 9 extends this with the aids' own expected results.
+// content back through accessibility. Nothing is typed into a real project. The text must come out exactly as the
+// typing aids make it (and nothing else may have acted on it: the Mac's own substitutions are off, decision 46), and
+// one ⌘Z through the real Edit menu must undo a curl. Each commit of Brief 9 adds the cases for its own aid.
 //
 // It drives the window with System Events: the terminal needs Accessibility permission and the screen must be
 // unlocked. Usage: npm run test:typing [-- path/to/storyForge.app] [--shot path/to/window.png]
@@ -85,13 +86,15 @@ async function until(fn, ms = 15000) {
 }
 const sendKeys = (text) => osa('on run argv\ntell application "System Events" to keystroke (item 1 of argv)\nend run', text);
 
-// What is typed, and what each piece proves. Typed with real keystrokes, so the Mac's text system sees it as typing.
+// What is typed, what the editor must hold after the typing aids (and only the aids), and what each piece proves.
+// Typed with real keystrokes, so the Mac's text system sees it as typing. A case where the editor holds something else
+// means either an aid is wrong or the Mac's own substitutions acted as well.
 const CASES = [
-	["curly quotes and apostrophes", `'Don't say "never" - not yet,' she said.`],
-	["two hyphens and three full stops", "Well--then... and so on..."],
-	["a Text Replacement (omw) and a name typed lazily", "omw aelfric"],
-	["elisions and a decade", "'tis 'em' 90's"],
-	["inside a link, code and a comment", "[[it's]] `don't` %% 'x' -- y %% end"],
+	["curly quotes, an apostrophe and a spaced en dash", `'Don't say "never" - not yet,' she said.`, "‘Don’t say “never” – not yet,’ she said."],
+	["an em dash and an ellipsis", "Well--then... and so on...", "Well—then… and so on…"],
+	["a Text Replacement (omw) is not expanded, and a name is left to the name aid", "omw aelfric", "omw aelfric"],
+	["an elision, a quoted word and a decade", "'tis 'em' 90's", "’tis ‘em’ 90’s"],
+	["nothing inside a link, code or a comment", "[[it's]] `don't` %% 'x' -- y %% end", "[[it's]] `don't` %% 'x' -- y %% end"],
 ];
 
 const dir = realpathSync(mkdtempSync(join(tmpdir(), "sf-typing-")));
@@ -116,17 +119,25 @@ try {
 	if (!(await until(() => find("AXTextArea", "Text", "isfocused") === "found true"))) fail("the editor never took focus");
 	await sleep(400);
 
-	for (const [what, text] of CASES) {
-		const before = valueOf("AXTextArea", "Text") ?? "";
+	let expectedSoFar = "";
+	for (const [what, text, expected] of CASES) {
 		sendKeys(`${text} `);
 		await sleep(500);
+		expectedSoFar += `${expected} `;
 		const after = valueOf("AXTextArea", "Text") ?? "";
-		const added = after.length >= before.length ? after.slice(0, after.length - before.length + 0) : after;
-		// The new text goes in at the caret, which is at the start of the chapter: the editor now begins with everything typed so far.
-		const typedSoFar = CASES.slice(0, CASES.findIndex((c) => c[0] === what) + 1).map((c) => `${c[1]} `).join("");
-		if (!after.startsWith(typedSoFar)) problems.push(`${what}: typed ${JSON.stringify(text)}, the editor holds ${JSON.stringify(after.slice(0, typedSoFar.length))}`);
-		void added;
+		if (!after.startsWith(expectedSoFar)) problems.push(`${what}: typed ${JSON.stringify(text)}, expected ${JSON.stringify(expected)}, the editor holds ${JSON.stringify(after.slice(expectedSoFar.length - expected.length - 1, expectedSoFar.length))}`);
 	}
+
+	// One ⌘Z straight after a curl gives back exactly what was typed (through the real Edit menu).
+	const keystroke = (script) => osa(`tell application "System Events" to ${script}`);
+	sendKeys("don'");
+	await sleep(500);
+	const curled = valueOf("AXTextArea", "Text") ?? "";
+	if (!curled.startsWith(`${expectedSoFar}don’`)) problems.push(`typed don' and the editor holds ${JSON.stringify(curled.slice(expectedSoFar.length, expectedSoFar.length + 6))}, expected don’`);
+	keystroke('keystroke "z" using command down');
+	await sleep(500);
+	const undone = valueOf("AXTextArea", "Text") ?? "";
+	if (!undone.startsWith(`${expectedSoFar}don'`) || undone.startsWith(`${expectedSoFar}don’`)) problems.push(`⌘Z straight after the curl should leave the straight apostrophe; the editor holds ${JSON.stringify(undone.slice(expectedSoFar.length, expectedSoFar.length + 6))}`);
 
 	if (shotAt) {
 		sendKeys("Teh quikc brwon foxx jumpd ovr lazyy dogg. ");
@@ -141,9 +152,9 @@ try {
 	rmSync(dir, { recursive: true, force: true });
 }
 console.log("");
-if (problems.length === 0) console.log("PASS  everything typed came out exactly as typed: the Mac's own substitutions do not act in the editor");
+if (problems.length === 0) console.log("PASS  the typing aids gave exactly the expected text, one ⌘Z undid a curl, and the Mac's own substitutions did not act as well");
 else {
-	console.log("FAIL  the Mac's own text substitutions acted inside the editor");
+	console.log("FAIL  what the editor holds is not what the aids should give (an aid is wrong, or the Mac's own substitutions acted too)");
 	for (const p of problems) console.log(`        - ${p}`);
 	if (stderr.trim()) console.log(`        stderr: ${stderr.trim().slice(0, 300)}`);
 }
