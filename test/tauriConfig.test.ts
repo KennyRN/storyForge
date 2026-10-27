@@ -7,6 +7,13 @@ import { describe, expect, it } from "vitest";
  * anything outside the allow-list, if a file-system, shell, network or dialog plugin appears, or if
  * the content security policy would let the window talk to the network.
  */
+function readdirSyncRecursive(dir: string): string[] {
+	return readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
+		const p = `${dir}/${e.name}`;
+		if (e.isDirectory()) return e.name === "__tests__" ? [] : readdirSyncRecursive(p);
+		return /\.(ts|css|html)$/.test(e.name) ? [readFileSync(p, "utf8")] : [];
+	});
+}
 const root = (p: string) => fileURLToPath(new URL(`../src-tauri/${p}`, import.meta.url));
 const json = (p: string) => JSON.parse(readFileSync(root(p), "utf8"));
 
@@ -67,6 +74,26 @@ describe("the window's permissions", () => {
 		expect(conf.app.windows[0].backgroundColor).toBe("#293136");
 		expect(conf.identifier).toBe("io.github.kennyrn.storyforge");
 		expect(conf.plugins ?? {}).toEqual({});
+	});
+
+	it("the content security policy lets the window draw the image sources the interface really uses, and no more", () => {
+		// The browser preview serves no policy, so only this keeps a cover from being blocked in the built app (0.12.0 shipped
+		// with `img-src 'self' data:` while the cover box drew `blob:` URLs, and showed "No cover" for a cover that was saved).
+		const csp: string = json("tauri.conf.json").app.security.csp;
+		const img = (/img-src([^;]*)/.exec(csp)?.[1] ?? "").trim().split(/\s+/);
+		const ui = readdirSyncRecursive(fileURLToPath(new URL("../src/ui/", import.meta.url)));
+		const used = new Set<string>();
+		for (const text of ui) {
+			if (/URL\.createObjectURL/.test(text)) used.add("blob:");
+			if (/src:\s*["'`]data:/.test(text) || /["'`]data:image/.test(text)) used.add("data:");
+		}
+		expect(used.has("blob:"), "the cover box draws blob: URLs").toBe(true);
+		for (const scheme of used) expect(img, `img-src allows ${scheme}`).toContain(scheme);
+		expect(img.every((s) => ["'self'", "data:", "blob:"].includes(s)), `img-src is only ${img.join(" ")}`).toBe(true);
+		// Nothing else got broader because of it.
+		expect(csp).toContain("default-src 'self'");
+		expect(csp).toMatch(/connect-src ipc: http:\/\/ipc\.localhost;/);
+		expect(/script-src ([^;]*)/.exec(csp)?.[1]).toBe("'self'");
 	});
 
 	it("the first frame is dark before any script runs", () => {

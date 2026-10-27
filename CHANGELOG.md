@@ -11,7 +11,8 @@ The story half of the overviews returns, on top of the numbers. Unlike the numbe
 - Changed: a Codex rename now updates the path and name of chapters' PoV and location references and the default PoV, announces how many novel files will follow, and the open-time summary says so. A deleted or archived note's references are left as they are (they show as missing) instead of being dropped.
 - Changed: `## Synopsis` and `## Description` match only an exact heading line, refuse a duplicate heading (the field shows read-only) and an empty field removes the section. Plot notes keep their leading whitespace.
 - Changed: the close commits any field being edited before the editors flush; one that can't land, or hangs, is rescued into a recovery file. The quit test now runs every route with text typed in a plot note too, and tells "never typed" from "typed and lost".
-- Tests: 1,358 core tests, 151 WebKit interface tests and the Rust tests, all passing.
+- Fixed (found in the first run of the built app): saved covers were never drawn, because the content security policy allowed `img-src 'self' data:` and the cover box draws `blob:` URLs, so the window blocked every one and showed "No cover" with no message. The policy now allows `blob:` for images (nothing else changed), a cover that is recorded but can't be read or drawn says so in a notice, and the cover button is labelled "Change the cover of …" only while an image is really on screen. A test fixes the policy against the image sources the interface uses, and `npm run test:cover` checks the built app draws saved covers (it fails on the old policy).
+- Tests: 1,359 core tests, 153 WebKit interface tests and the Rust tests, all passing.
 
 ## Unreleased — leftover temporary files (0.11.1)
 

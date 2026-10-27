@@ -15,6 +15,7 @@
 		"test:ui": "playwright test",
 		"ui:shots": "SHOTS=1 playwright test",
 		"test:quit": "node scripts/quit-smoke.mjs",
+		"test:cover": "node scripts/cover-smoke.mjs",
 		"fixture:leftovers": "tsx scripts/fixture-leftovers.ts"
 	},
 	"license": "MIT",

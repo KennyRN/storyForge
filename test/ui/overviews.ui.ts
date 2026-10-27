@@ -387,7 +387,7 @@ test.describe("the novel overview", () => {
 		const old = await page.evaluate(() => window.__preview.readBase64("_backstage/storyforge/aaa/cover.png"));
 		await page.evaluate(() => window.__preview.armCover(btoa("<svg/>")));
 		await box.click();
-		await expect(page.getByRole("status").or(page.getByRole("alert"))).toContainText("PNG, JPEG, GIF or WebP");
+		await expect(page.getByRole("status").or(page.getByRole("alert")).filter({ hasText: "PNG, JPEG, GIF or WebP" })).toBeVisible();
 		expect(await page.evaluate(() => window.__preview.readBase64("_backstage/storyforge/aaa/cover.png"))).toBe(old);
 	});
 
@@ -396,6 +396,8 @@ test.describe("the novel overview", () => {
 		const box = o.locator('[data-cover="book:aaa"]');
 		await expect(box).toHaveAttribute("data-state", "placeholder"); // the fixture's cover is not a real picture
 		await expect(box.locator(".sf-cover-placeholder")).toBeVisible();
+		// Never silent: a cover that is recorded but can't be drawn says so.
+		await expect(page.getByRole("status").filter({ hasText: "could not be shown" })).toBeVisible();
 		await o.getByRole("button", { name: /^Remove the cover/ }).click();
 		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).not.toContain("cover-image");
 		await expect(page.evaluate(() => window.__preview.readBase64("_backstage/storyforge/aaa/cover.png"))).rejects.toThrow();
