@@ -15,6 +15,10 @@ export interface PreviewApi {
 	touch(path: string, text: string): Promise<void>;
 	/** Moves a file in the preview's temporary copy, as another program would (for changes made while the app was closed). */
 	rename(from: string, to: string): Promise<void>;
+	/** Arms the next cover picker with an image (base64), as the native open panel would hand it over; null cancels the panel. */
+	armCover(base64: string | null): Promise<void>;
+	/** Reads a file of the preview's project as base64. */
+	readBase64(path: string): Promise<string>;
 	read(path: string): Promise<string>;
 	root(): Promise<string | null>;
 }
@@ -38,6 +42,8 @@ export function createPreviewHost(): Host & { api: PreviewApi } {
 		pick: async (mode) => void (await post("/__preview/pick", { mode })),
 		touch: async (path, text) => void (await post("/__preview/touch", { path, text })),
 		rename: async (from, to) => void (await post("/__preview/rename", { from, to })),
+		armCover: async (base64) => void (await post("/__preview/cover", { base64 })),
+		readBase64: (path) => post("/__preview/read-base64", { path }) as Promise<string>,
 		read: (path) => post("/__preview/read", { path }) as Promise<string>,
 		root: () => post("/__preview/root", {}) as Promise<string | null>,
 	};

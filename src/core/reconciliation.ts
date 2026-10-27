@@ -23,8 +23,8 @@ import {
 	getChapterEntry,
 	insertChapterEntry,
 	readBookFrontmatter,
-	rekeyChapterLocationReferences,
-	rekeyChapterPovReferences,
+	rekeyCodexNoteReferences,
+	type ReferenceRekeyResult,
 	removeChapterEntry,
 	renameChapterEntry,
 	writeBookChapterOrder,
@@ -55,9 +55,8 @@ export async function reconcileDelete(project: Project, path: string): Promise<v
 		return;
 	}
 	if (isCodexNotePath(path)) {
+		// The references to a deleted note are left as they are: they show as missing (decision 42).
 		await rekeyCodexNotePath(project, path, null);
-		await rekeyChapterPovReferences(project, path, null);
-		await rekeyChapterLocationReferences(project, path, null);
 	}
 }
 
@@ -66,11 +65,10 @@ export function isCodexReconciliationPath(path: string): boolean {
 	return path === CODEX_ROOT || isCodexNotePath(path) || path.startsWith(`${CODEX_ROOT}/`);
 }
 
-export async function handleCodexNoteRename(project: Project, oldPath: string, newPath: string): Promise<void> {
+export async function handleCodexNoteRename(project: Project, oldPath: string, newPath: string): Promise<ReferenceRekeyResult> {
 	const rekeyedPath = isCodexNotePath(newPath) ? newPath : null;
 	await rekeyCodexNotePath(project, oldPath, rekeyedPath);
-	await rekeyChapterPovReferences(project, oldPath, rekeyedPath);
-	await rekeyChapterLocationReferences(project, oldPath, rekeyedPath);
+	return rekeyCodexNoteReferences(project, oldPath, rekeyedPath);
 }
 
 export async function handleChapterRename(project: Project, oldPath: string, newPath: string): Promise<void> {

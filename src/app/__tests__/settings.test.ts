@@ -289,3 +289,14 @@ describe("the sessions settings (docs/sessions.md §9)", () => {
 		await expect(setSetting(project, s, "sessionIdleMinutes", 99)).rejects.toThrow(/not a valid value/);
 	});
 });
+
+describe("card sizes in machine state", () => {
+	it("round-trips and drops anything that isn't bar or collapsed", async () => {
+		const mem = new Map<string, string>();
+		const store = { get: async (n: string) => mem.get(n) ?? null, set: async (n: string, t: string) => void mem.set(n, t) };
+		await saveMachineProjectState(store, "k", { selectedNovel: null, selectedObject: null, collapsedCodexFolderIds: [], cardTiers: { "a/b.md": "bar", "a/c.md": "collapsed" } });
+		expect((await loadMachineProjectState(store, "k")).cardTiers).toEqual({ "a/b.md": "bar", "a/c.md": "collapsed" });
+		mem.set("project-ui/k", JSON.stringify({ cardTiers: { x: "extended", y: "bar", z: 3 } }));
+		expect((await loadMachineProjectState(store, "k")).cardTiers).toEqual({ y: "bar" });
+	});
+});

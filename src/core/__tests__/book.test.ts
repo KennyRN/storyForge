@@ -4,8 +4,8 @@ import {
 	getBookChapters,
 	parseCodexRefs,
 	readBookFrontmatter,
-	rekeyChapterLocationReferences,
-	rekeyChapterPovReferences,
+	bookFoldersReferencingNote,
+	rekeyCodexNoteReferences,
 	writeBookCoverImage,
 	writeChapterLocation,
 	writeChapterPlotThread,
@@ -388,7 +388,7 @@ describe("chapter PoV and location lists", () => {
 		expect(readBookFrontmatter(project, BOOK)?.chapters["ch1.md"].location.map((r) => r.name)).toEqual(["Harbour", "Keep"]);
 	});
 
-	it("rekeys a matching PoV path inside the list and the book default", async () => {
+	it("rekeys a matching PoV path inside the list and the book default, updating path and name", async () => {
 		const { project } = await makeBook({
 			"default-pov-path": "Codex/Alice.md",
 			"default-pov-name": "Alice",
@@ -403,45 +403,73 @@ describe("chapter PoV and location lists", () => {
 				},
 			},
 		});
-		await rekeyChapterPovReferences(project, "Codex/Alice.md", "Codex/Alicia.md");
+		const r = await rekeyCodexNoteReferences(project, "Codex/Alice.md", "Codex/Alicia.md");
+		expect(r).toEqual({ updated: [NOVEL], skipped: [] });
 		const fm = readBookFrontmatter(project, BOOK);
 		expect(fm?.defaultPovPath).toBe("Codex/Alicia.md");
 		expect(fm?.chapters["ch1.md"].pov).toEqual([
-			{ path: "Codex/Alicia.md", name: "Alice" },
+			{ path: "Codex/Alicia.md", name: "Alicia" },
 			{ path: "Codex/Bob.md", name: "Bob" },
 		]);
 	});
 
-	it("drops a PoV entry when the Codex note is gone", async () => {
+	it("matches on the stored path ignoring case and Unicode spelling, never on the name", async () => {
 		const { project } = await makeBook({
 			chapters: {
-				"ch1.md": {
-					"chapter-id": "c1",
-					"chapter-title": "Chapter One",
-					pov: [
-						{ path: "Codex/Alice.md", name: "Alice" },
-						{ path: "Codex/Bob.md", name: "Bob" },
-					],
-				},
+				"ch1.md": { "chapter-id": "c1", "chapter-title": "One", pov: [{ path: "codex/ALICE.md", name: "Bob" }] },
+				"ch2.md": { "chapter-id": "c2", "chapter-title": "Two", pov: [{ path: "Codex/Carol.md", name: "Alice" }] },
 			},
 		});
-		await rekeyChapterPovReferences(project, "Codex/Alice.md", null);
-		expect(readBookFrontmatter(project, BOOK)?.chapters["ch1.md"].pov).toEqual([{ path: "Codex/Bob.md", name: "Bob" }]);
+		await rekeyCodexNoteReferences(project, "Codex/Alice.md", "Codex/Alicia.md");
+		const chapters = readBookFrontmatter(project, BOOK)?.chapters;
+		expect(chapters?.["ch1.md"].pov).toEqual([{ path: "Codex/Alicia.md", name: "Alicia" }]);
+		expect(chapters?.["ch2.md"].pov).toEqual([{ path: "Codex/Carol.md", name: "Alice" }]);
+	});
+
+	it("updates the old single-key forms in place and does not convert them", async () => {
+		const { project, chapters } = await makeBook({
+			chapters: { "ch1.md": { "chapter-id": "c1", "chapter-title": "One", "pov-path": "Codex/Alice.md", "pov-name": "Alice", "location-path": "Codex/Harbour.md", "location-name": "Harbour" } },
+		});
+		await rekeyCodexNoteReferences(project, "Codex/Alice.md", "Codex/Alicia.md");
+		await rekeyCodexNoteReferences(project, "Codex/Harbour.md", "Codex/Port.md");
+		const entry = chapters()["ch1.md"];
+		expect(entry).toMatchObject({ "pov-path": "Codex/Alicia.md", "pov-name": "Alicia", "location-path": "Codex/Port.md", "location-name": "Port" });
+		expect(entry.pov).toBeUndefined();
+		expect(entry.location).toBeUndefined();
+	});
+
+	it("leaves a reference alone when the note is archived, pruned or moved out (newPath null)", async () => {
+		const { project, backend } = await makeBook({
+			chapters: { "ch1.md": { "chapter-id": "c1", "chapter-title": "One", pov: [{ path: "Codex/Alice.md", name: "Alice" }, { path: "Codex/Bob.md", name: "Bob" }] } },
+		});
+		const before = backend.files.get(NOVEL);
+		expect(await rekeyCodexNoteReferences(project, "Codex/Alice.md", null)).toEqual({ updated: [], skipped: [] });
+		expect(backend.files.get(NOVEL)).toEqual(before);
+		expect(readBookFrontmatter(project, BOOK)?.chapters["ch1.md"].pov).toHaveLength(2);
 	});
 
 	it("rekeys a location path inside the list", async () => {
 		const { project } = await makeBook({
-			chapters: {
-				"ch1.md": {
-					"chapter-id": "c1",
-					"chapter-title": "Chapter One",
-					location: [{ path: "Codex/Harbour.md", name: "Harbour" }],
-				},
-			},
+			chapters: { "ch1.md": { "chapter-id": "c1", "chapter-title": "Chapter One", location: [{ path: "Codex/Harbour.md", name: "Harbour" }] } },
 		});
-		await rekeyChapterLocationReferences(project, "Codex/Harbour.md", "Codex/Port.md");
-		expect(readBookFrontmatter(project, BOOK)?.chapters["ch1.md"].location).toEqual([{ path: "Codex/Port.md", name: "Harbour" }]);
+		await rekeyCodexNoteReferences(project, "Codex/Harbour.md", "Codex/Port.md");
+		expect(readBookFrontmatter(project, BOOK)?.chapters["ch1.md"].location).toEqual([{ path: "Codex/Port.md", name: "Port" }]);
 	});
+
+	it("skips and lists a novel file whose frontmatter can't be rewritten, touching nothing", async () => {
+		const { project, backend } = await makeBook(
+			{ chapters: { "ch1.md": { "chapter-id": "c1", "chapter-title": "One", pov: [{ path: "Codex/Alice.md", name: "Alice" }] } } },
+		);
+		const original = backend.files.get(NOVEL) as string;
+		// A YAML anchor makes the file unreadable for writes.
+		backend.files.set(NOVEL, original.replace("---\n", "---\nx: &a 1\ny: *a\n"));
+		const before = backend.files.get(NOVEL);
+		const r = await rekeyCodexNoteReferences(project, "Codex/Alice.md", "Codex/Alicia.md");
+		expect(r.updated).toEqual([]);
+		expect(backend.files.get(NOVEL)).toEqual(before);
+		void bookFoldersReferencingNote;
+	});
+
 });
 
 

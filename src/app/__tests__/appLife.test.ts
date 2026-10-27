@@ -314,6 +314,45 @@ describe("newestBackupTime", () => {
 		expect(host.progress).toBeGreaterThan(waiting + 1); // the file, then each later stage
 	});
 
+	it("a field being edited is committed first, before the editors flush, and the close reports progress for it", async () => {
+		const { app, running, host } = await opened();
+		const order: string[] = [];
+		app.registerCloseCommit({
+			commit: async () => {
+				await settle();
+				order.push("field committed");
+			},
+		});
+		const realClose = running.opened.writer.closeAll.bind(running.opened.writer);
+		running.opened.writer.closeAll = async () => (order.push("editors flushed"), realClose());
+		const before = host.progress;
+		await app.teardown();
+		expect(order).toEqual(["field committed", "editors flushed"]);
+		expect(host.progress).toBeGreaterThan(before + 2);
+	});
+
+	it("a field commit that fails or hangs does not stop the close", async () => {
+		const timers = new ManualTimers();
+		const { app, running } = await opened("series", undefined, (h) => (h.timers = timers));
+		const s = await app.openFile(`${A}/ch-a1.md`);
+		s.setBody("Words that must still be saved.");
+		const rescued: string[] = [];
+		app.registerCloseCommit({
+			commit: async () => {
+				throw new Error("the field could not be written");
+			},
+		});
+		app.registerCloseCommit({ commit: () => new Promise(() => undefined), rescue: async () => void rescued.push("hung field rescued") }); // hangs
+		const done = app.teardown();
+		await settle();
+		timers.fireTimeouts();
+		const report = await done;
+		expect(report.saves.map((x) => x.path)).toContain(`${A}/ch-a1.md`);
+		// The hung commit was cut off, and its words were sent to a recovery file by its rescue.
+		expect(rescued).toEqual(["hung field rescued"]);
+		void running;
+	});
+
 	it("a backup in progress is abandoned cleanly: no partial zip, no temp file", async () => {
 		const { app, running, root } = await opened();
 		let release!: () => void;

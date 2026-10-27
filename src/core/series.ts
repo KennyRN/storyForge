@@ -7,7 +7,8 @@ import { mintId } from "./slug";
 import { applyHashNumbering } from "./titleNumbering";
 import type { NumberingStyle } from "./numberingStyle";
 import { safeCoverExtension, safeCoverFilename } from "./coverImage";
-import { extractSection, splitFrontmatterAndBody, upsertSection } from "./sectionBody";
+import { FieldConflictError } from "./fieldConflict";
+import { readSection, splitFrontmatterAndBody, writeSection, SectionDuplicateError, type SectionRead } from "./sectionBody";
 
 export interface SeriesBookEntry {
 	bookId: string;
@@ -169,21 +170,42 @@ export async function writeSeriesCoverImage(project: Project, data: ArrayBuffer,
 	return path;
 }
 
-const DESCRIPTION_HEADER = "## Description";
-
-/** Reads the series' description from series.md's body, under a `## Description` heading. Empty string if none exists yet. */
-export async function readSeriesDescription(project: Project): Promise<string> {
-	if (!project.isFile(seriesFilePath())) return "";
-	const { body } = splitFrontmatterAndBody(await project.readText(seriesFilePath()));
-	return extractSection(body, DESCRIPTION_HEADER);
+/** Records which file is the series' cover (`cover-image`), or clears it with null. The image itself is placed by the Rust cover command. */
+export async function writeSeriesCoverName(project: Project, filename: string | null): Promise<void> {
+	await project.modifyFrontmatter<RawSeriesFrontmatter>(seriesFilePath(), DEFAULT_SERIES_CONTENT, (fm) => {
+		fm["cover-image"] = filename === null ? undefined : filename;
+	});
 }
 
-/** Writes the series' description into series.md's body under a `## Description` heading, leaving the frontmatter and any other body content untouched. */
-export async function writeSeriesDescription(project: Project, description: string): Promise<void> {
+/** Removes the series' cover: `cover-image` is cleared first, then the file is retired to `.trash/` (never deleted). */
+export async function removeSeriesCover(project: Project): Promise<void> {
+	const current = readSeriesFrontmatter(project).coverImage;
+	await writeSeriesCoverName(project, null);
+	const path = current ? `${seriesBackstagePath()}/${current}` : null;
+	if (path && project.exists(path)) await project.retire(path);
+}
+
+const DESCRIPTION_HEADER = "## Description";
+
+/** Reads the series' description from series.md's body, under a `## Description` heading. Empty if there is none yet; "duplicate" if the heading appears more than once. */
+export async function readSeriesDescription(project: Project): Promise<SectionRead> {
+	if (!project.isFile(seriesFilePath())) return { status: "ok", text: "" };
+	const { body } = splitFrontmatterAndBody(await project.readText(seriesFilePath()));
+	return readSection(body, DESCRIPTION_HEADER);
+}
+
+/** Writes the series' description into series.md's body under a `## Description` heading and changes nothing else; empty text removes the section. `expected` works as in writeBookSynopsis. */
+export async function writeSeriesDescription(project: Project, description: string, expected?: string): Promise<void> {
 	const path = seriesFilePath();
 	await project.updateText(path, (current) => {
 		const { frontmatterBlock, body } = splitFrontmatterAndBody(current ?? DEFAULT_SERIES_CONTENT);
-		return frontmatterBlock + upsertSection(body, DESCRIPTION_HEADER, description);
+		const now = readSection(body, DESCRIPTION_HEADER);
+		if (now.status === "duplicate") throw new SectionDuplicateError(DESCRIPTION_HEADER);
+		if (expected !== undefined) {
+			if (now.text !== expected) throw new FieldConflictError(now.text);
+			if (now.text === description.trim()) return null;
+		}
+		return frontmatterBlock + writeSection(body, DESCRIPTION_HEADER, description);
 	});
 }
 

@@ -18,6 +18,7 @@ import type { Project } from "./project";
 export const RECOVERY_ROOT = `${BACKUPS_FOLDER}/recovery`;
 export const CODEX_RECOVERY_FOLDER = "_codex";
 export const PRUNED_RECOVERY_FOLDER = "_pruned";
+export const FIELDS_RECOVERY_FOLDER = "_fields";
 export const TEMP_RECOVERY_FOLDER = "_temp";
 
 export type RecoveryResult = { ok: true; path: string } | { ok: false; error: Error };
@@ -74,6 +75,16 @@ export function recoverChapterText(project: Project, bookFolderName: string, cha
 /** Saves an author's Codex note text that could not be saved. */
 export function recoverCodexText(project: Project, noteBasename: string, text: string, now = new Date()): Promise<RecoveryResult> {
 	return createFirstFree(project, (n) => codexRecoveryPath(noteBasename, now, n), text);
+}
+
+/** Saves a plot note that could not be saved, beside the book's chapter recoveries but named `<chapter> (plot note) <stamp>.md` so it can't be mistaken for chapter text. */
+export function recoverPlotNote(project: Project, bookFolderName: string, chapterBasename: string, text: string, now = new Date()): Promise<RecoveryResult> {
+	return createFirstFree(project, (n) => recoveryName(`${RECOVERY_ROOT}/${safeName(bookFolderName)}`, `${chapterBasename} (plot note)`, now, n), text);
+}
+
+/** Saves a synopsis or series description that could not be saved: `recovery/_fields/<what> <stamp>.md`. */
+export function recoverFieldText(project: Project, what: string, text: string, now = new Date()): Promise<RecoveryResult> {
+	return createFirstFree(project, (n) => recoveryName(`${RECOVERY_ROOT}/${FIELDS_RECOVERY_FOLDER}`, what, now, n), text);
 }
 
 /** The visible name of the copy of a leftover temporary file: `<folder>/<name> (leftover <stamp>).md`, ` 2`, ` 3`... on a clash. */

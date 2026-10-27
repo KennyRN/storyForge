@@ -429,3 +429,25 @@ describe("rewriteFileText: the proof of minimality", () => {
 		expect(out).toBe('---\n# note\nrelated: "[[Janet]]"  # why\nother: 1\n---\nBody [[Janet]]\n');
 	});
 });
+
+describe("planCodexRename: references in novel files", () => {
+	it("counts the novel files whose PoV, location or default PoV name the note, for the announcement", async () => {
+		const withRef = "---\nchapters:\n  ch1.md:\n    chapter-id: c1\n    chapter-title: One\n    pov-path: Codex/Jane.md\n    pov-name: Jane\n---\n";
+		const without = "---\nchapters:\n  ch1.md:\n    chapter-id: c1\n    chapter-title: One\n---\n";
+		const { plan: p } = await plan({
+			"_story-library/aaa": null,
+			"_story-library/bbb": null,
+			"_story-library/novel-aaa.md": withRef,
+			"_story-library/novel-bbb.md": without,
+		});
+		expect(p.referenceFiles).toEqual(["_story-library/novel-aaa.md"]);
+	});
+
+	it("counts a novel file that names the note only as its default PoV", async () => {
+		const { plan: p } = await plan({
+			"_story-library/aaa": null,
+			"_story-library/novel-aaa.md": "---\ndefault-pov-path: Codex/Jane.md\ndefault-pov-name: Jane\n---\n",
+		});
+		expect(p.referenceFiles).toEqual(["_story-library/novel-aaa.md"]);
+	});
+});

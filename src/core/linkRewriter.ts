@@ -17,10 +17,11 @@ import type { BackupService } from "./backup";
 import { editFrontmatter, readFrontmatter, splitFrontmatterSection } from "./frontmatter";
 import { sha256Text } from "./hash";
 import { type RawLink, scanLinks } from "./linkScan";
-import { CODEX_ROOT, LIBRARY_ROOT, NOTES_ROOT, isCodexNotePath } from "./paths";
+import { CODEX_ROOT, LIBRARY_ROOT, NOTES_ROOT, bookFilePath, isCodexNotePath } from "./paths";
 import { baseName, foldKey, parentOf, resolvePath } from "./pathRules";
 import type { Project } from "./project";
 import type { ProseSession, SaveResult } from "./proseWriter";
+import { bookFoldersReferencingNote } from "./book";
 import { handleCodexNoteRename } from "./reconciliation";
 import { sanitizeCodexBasename, uniqueCodexFilename } from "./codex";
 
@@ -92,6 +93,8 @@ export interface LinkRewritePlan {
 	unquotedFrontmatter: { path: string; keyPath: (string | number)[]; text: string }[];
 	/** Files whose frontmatter can't be read safely: links in the body are planned, links in the frontmatter are not. */
 	frontmatterSkipped: string[];
+	/** Novel files whose chapters' PoV or location lists, or default PoV, name this note: they are re-pointed at the new name after the rename (decision 42). */
+	referenceFiles: string[];
 }
 
 const PROSE_ROOTS = [LIBRARY_ROOT, CODEX_ROOT, NOTES_ROOT];
@@ -264,6 +267,7 @@ export async function planCodexRename(project: Project, notePath: string, newNam
 		unreadable: [],
 		frontmatterSkipped: [],
 		unquotedFrontmatter: [],
+		referenceFiles: [],
 	};
 	if (!stem || stem === oldName) return { ...base, unchanged: true };
 	const newFilename = await uniqueCodexFilename(project, stem, entry.path);
@@ -282,7 +286,7 @@ export async function planCodexRename(project: Project, notePath: string, newNam
 	for (const stub of project.index.placeholders()) if (/\.md$/i.test(stub) && foldKey(stripMd(baseName(stub))) === key && stub !== entry.path) sameName.push(stub);
 	const note: NoteIdentity = { path: entry.path, pathKey: foldKey(entry.path), nameKey: key, unique: sameName.length === 0, otherFiles: sameName.sort(), newFilename, newStem };
 
-	const plan: LinkRewritePlan = { ...base, newPath, newName: newStem };
+	const plan: LinkRewritePlan = { ...base, newPath, newName: newStem, referenceFiles: bookFoldersReferencingNote(project, entry.path).map(bookFilePath) };
 	const isProse = (p: string) => PROSE_ROOTS.some((r) => foldKey(p).startsWith(`${r.toLowerCase()}/`));
 	const skipOutside = (p: string) => {
 		const k = foldKey(p);
@@ -359,6 +363,10 @@ export interface LinkRewriteResult {
 	outsideLinks: number;
 	/** Set if `codex.md` or the novel files could not be re-keyed after the rename. */
 	rekeyError?: Error;
+	/** Novel files whose PoV, location or default-PoV references were re-pointed at the new name. */
+	referencesUpdated: string[];
+	/** Novel files that could not be rewritten: left as they were, so their references show as missing. */
+	referencesSkipped: { path: string; reason: string }[];
 	/** Files that were rewritten but could not be reloaded into an open editor. */
 	notifyErrors: { path: string; error: Error }[];
 }
@@ -376,6 +384,8 @@ function stopped(plan: LinkRewritePlan, at: RewriteStop, error: Error | undefine
 		linksUpdated: 0,
 		skippedChanged: [],
 		skippedUnsafe: [],
+		referencesUpdated: [],
+		referencesSkipped: [],
 		ambiguousLeft: plan.ambiguous,
 		outsideLinks: plan.outside.linkCount,
 		notifyErrors: [],
@@ -515,6 +525,8 @@ export async function applyCodexRename(project: Project, plan: LinkRewritePlan, 
 		linksUpdated: 0,
 		skippedChanged: [],
 		skippedUnsafe: [],
+		referencesUpdated: [],
+		referencesSkipped: [],
 		ambiguousLeft: plan.ambiguous,
 		outsideLinks: plan.outside.linkCount,
 		notifyErrors: [],
@@ -566,7 +578,9 @@ export async function applyCodexRename(project: Project, plan: LinkRewritePlan, 
 
 	// 5. Re-key the backstage files: codex.md, and the PoV and location references in the novel files.
 	try {
-		await handleCodexNoteRename(project, plan.notePath, plan.newPath);
+		const rekeyed = await handleCodexNoteRename(project, plan.notePath, plan.newPath);
+		result.referencesUpdated = rekeyed.updated;
+		result.referencesSkipped = rekeyed.skipped;
 	} catch (err) {
 		result.rekeyError = err instanceof Error ? err : new Error(String(err));
 	}

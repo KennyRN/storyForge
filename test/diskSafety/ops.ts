@@ -5,12 +5,13 @@ import * as path from "node:path";
 import type { OpSpec, Ctx } from "../helpers/diskSafety";
 import {
 	archiveChapter, createBook, createChapter, ensureAllChapterEntries, insertChapterEntry, removeChapterEntry, readBookFrontmatter, renameBookTitle, renameChapterEntry, renameChapterTitle,
-	rekeyChapterLocationReferences, rekeyChapterPovReferences, reorderSeriesBooks, syncAllBookReferenceFields, unarchiveChapter,
-	upsertChapterEntry, writeBookArchiveOrder, writeBookChapterOrder, writeBookUnplacedOrder, writeBookCoverImage, writeBookPlannedChapterLength,
+	rekeyCodexNoteReferences, reorderSeriesBooks, syncAllBookReferenceFields, unarchiveChapter,
+	upsertChapterEntry, writeBookArchiveOrder, writeBookChapterOrder, writeBookUnplacedOrder, writeBookCoverImage, writeBookCoverName, removeBookCover, writeBookPlannedChapterLength,
 	writeBookPlannedNovelLength, writeBookSynopsis, writeChapterColor, writeChapterLocation, writeChapterPlot, writeChapterPlotThread,
 	writeChapterPov, writeChapterTags, writeDefaultPov, writeDialogueQuotes, writeNovelTags,
 } from "../../src/core/book";
 import { createContinuingChapter } from "../../src/core/chapterCreation";
+import { commitDescription, commitPlotNote, commitSynopsis } from "../../src/core/fieldWriter";
 import { deleteChapterSidecar, renameChapterSidecar, updateChapterFingerprint } from "../../src/core/chapterSidecar";
 import {
 	addCodexNoteAlias, archiveCodexItem, convertCodexNoteToFolder, createCodexFolder, createCodexNote, ensureVirtualFolder, moveCodexItem,
@@ -25,7 +26,7 @@ import {
 } from "../../src/core/reconciliation";
 import {
 	ensureAllSeriesBookEntries, ensureSeriesFile, renameSeriesBookEntry, upsertSeriesBookEntry, writeSeriesBookColor, writeSeriesBookTitle,
-	writeSeriesCoverImage, writeSeriesDescription, writeSeriesOrder, writeSeriesTitle, writeUnplacedOrder,
+	writeSeriesCoverImage, writeSeriesCoverName, removeSeriesCover, writeSeriesDescription, writeSeriesOrder, writeSeriesTitle, writeUnplacedOrder,
 } from "../../src/core/series";
 import { renameStoryDetailsSidecar, deleteStoryDetailsSidecar } from "../../src/core/storyDetailsSidecar";
 import { ensureTagRegistryFile } from "../../src/core/tagRegistry";
@@ -105,6 +106,15 @@ export const OPS: OpSpec[] = [
 		removed: ["_backstage/storyforge/_series/cover.jpg"],
 	},
 
+	{ name: "writeSeriesCoverName", run: (c) => writeSeriesCoverName(c.project, "cover.png"), changed: { [S]: fm(["cover-image"]) } },
+	{
+		name: "removeSeriesCover (clears the key, retires the file)",
+		run: (c) => removeSeriesCover(c.project),
+		changed: { [S]: fm(["cover-image"]) },
+		added: [".trash/_backstage/storyforge/_series/cover.jpg"],
+		removed: ["_backstage/storyforge/_series/cover.jpg"],
+	},
+
 	// ------------------------------------------------------------------------ novel-<code>.md
 	{ name: "writeBookChapterOrder", run: (c) => writeBookChapterOrder(c.project, "aaa", ["ch-a2.md", "ch-a1.md", "ch-a5.md"]), changed: { [N]: fm(["chapter-order"]) } },
 	{ name: "writeBookUnplacedOrder", run: (c) => writeBookUnplacedOrder(c.project, "aaa", ["ch-a3.md", "ch-a9.md"]), changed: { [N]: fm(["unplaced"]) } },
@@ -118,6 +128,14 @@ export const OPS: OpSpec[] = [
 		run: (c) => writeBookCoverImage(c.project, "aaa", new Uint8Array([9, 9]).buffer, "jpg"),
 		changed: { [N]: fm(["cover-image"]) },
 		added: ["_backstage/storyforge/aaa/cover.jpg", ".trash/_backstage/storyforge/aaa/cover.png"],
+		removed: ["_backstage/storyforge/aaa/cover.png"],
+	},
+	{ name: "writeBookCoverName", run: (c) => writeBookCoverName(c.project, "aaa", "cover.jpg"), changed: { [N]: fm(["cover-image"]) } },
+	{
+		name: "removeBookCover (clears the key, retires the file)",
+		run: (c) => removeBookCover(c.project, "aaa"),
+		changed: { [N]: fm(["cover-image"]) },
+		added: [".trash/_backstage/storyforge/aaa/cover.png"],
 		removed: ["_backstage/storyforge/aaa/cover.png"],
 	},
 	{ name: "archiveChapter", run: (c) => archiveChapter(c.project, "aaa", "ch-a1.md"), changed: { [N]: fm(["chapter-order"], ["unplaced"], ["archive"]) } },
@@ -178,21 +196,53 @@ export const OPS: OpSpec[] = [
 		run: (c) => writeChapterPlot(c.project, "aaa", "ch-a1.md", "A different plot."),
 		changed: { [N]: fm(["chapters", "ch-a1.md", "plot"]) },
 	},
+	// The author's words typed into a field: written when the disk still holds what the field saw; otherwise nothing
+	// is touched and the text lands in exactly one recovery file (docs/story-shape.md §5).
+	{
+		name: "commitPlotNote (the disk is as the field saw it)",
+		run: (c) => commitPlotNote(c.project, "aaa", "ch-a1.md", "Jane reaches the harbour at dawn.", "A new plot note."),
+		changed: { [N]: fm(["chapters", "ch-a1.md", "plot"]) },
+	},
+	{
+		name: "commitPlotNote (a conflict: the file is left byte-identical, the text goes to recovery)",
+		run: (c) => commitPlotNote(c.project, "aaa", "ch-a1.md", "something the field saw earlier", "The author's words."),
+		anyAdded: /^_sf-backup\/recovery\/aaa\/ch-a1 \(plot note\) [^/]+\.md$/,
+	},
+	{
+		name: "commitSynopsis (writes only the section)",
+		run: (c) => commitSynopsis(c.project, "aaa", "", "A synopsis typed in the overview."),
+		changed: { [N]: { format: "text", frontmatterSame: true } },
+	},
+	{
+		name: "commitSynopsis (a conflict: the file is left byte-identical, the text goes to recovery/_fields)",
+		run: (c) => commitSynopsis(c.project, "aaa", "something the field saw earlier", "The author's words."),
+		anyAdded: /^_sf-backup\/recovery\/_fields\/aaa synopsis [^/]+\.md$/,
+	},
+	{
+		name: "commitDescription (writes only the section)",
+		run: (c) => commitDescription(c.project, "A synthetic series used only for tests.", "A description typed in the overview."),
+		changed: { [S]: { format: "text", frontmatterSame: true } },
+	},
+	{
+		name: "commitDescription (a conflict: the file is left byte-identical, the text goes to recovery/_fields)",
+		run: (c) => commitDescription(c.project, "something the field saw earlier", "The author's words."),
+		anyAdded: /^_sf-backup\/recovery\/_fields\/series description [^/]+\.md$/,
+	},
 	{
 		name: "writeBookSynopsis (body only)",
 		run: (c) => writeBookSynopsis(c.project, "aaa", "A synopsis."),
 		changed: { [N]: { format: "text", frontmatterSame: true } },
 	},
 	{
-		name: "rekeyChapterPovReferences",
-		run: (c) => rekeyChapterPovReferences(c.project, "Codex/Jane.md", "Codex/Janet.md"),
+		name: "rekeyCodexNoteReferences (a person)",
+		run: (c) => rekeyCodexNoteReferences(c.project, "Codex/Jane.md", "Codex/Janet.md"),
 		changed: {
-			[N]: fm(["default-pov-path"], ["chapters", "ch-a1.md", "pov"], ["chapters", "ch-a2.md", "pov"], ["chapters", "ch-a2.md", "pov-path"], ["chapters", "ch-a2.md", "pov-name"]),
+			[N]: fm(["default-pov-path"], ["default-pov-name"], ["chapters", "ch-a1.md", "pov"], ["chapters", "ch-a2.md", "pov"], ["chapters", "ch-a2.md", "pov-path"], ["chapters", "ch-a2.md", "pov-name"]),
 		},
 	},
 	{
-		name: "rekeyChapterLocationReferences",
-		run: (c) => rekeyChapterLocationReferences(c.project, "Codex/Harbour.md", "Codex/Port.md"),
+		name: "rekeyCodexNoteReferences (a place)",
+		run: (c) => rekeyCodexNoteReferences(c.project, "Codex/Harbour.md", "Codex/Port.md"),
 		changed: {
 			[N]: fm(["chapters", "ch-a1.md", "location"], ["chapters", "ch-a2.md", "location"], ["chapters", "ch-a2.md", "location-path"], ["chapters", "ch-a2.md", "location-name"]),
 		},
@@ -398,19 +448,14 @@ export const OPS: OpSpec[] = [
 		name: "reconcileDelete: a Codex note deleted in a file manager",
 		setup: (c) => externalDelete(c, "Codex/Jane.md"),
 		run: (c) => reconcileDelete(c.project, "Codex/Jane.md"),
-		changed: {
-			[CODEX]: fm(["folders"], ["types"]),
-			[N]: fm(["default-pov-path"], ["default-pov-name"], ["chapters", "ch-a1.md", "pov"], ["chapters", "ch-a2.md", "pov"], ["chapters", "ch-a2.md", "pov-path"], ["chapters", "ch-a2.md", "pov-name"]),
-		},
+		// The references to it are left as they are, to show as missing (decision 42).
+		changed: { [CODEX]: fm(["folders"], ["types"]) },
 	},
 	{
-		name: "reconcileDelete: a Codex note deleted outside, its references dropped",
+		name: "reconcileDelete: a Codex note deleted outside, its references left",
 		setup: (c) => externalDelete(c, "Codex/Harbour.md"),
 		run: (c) => reconcileDelete(c.project, "Codex/Harbour.md"),
-		changed: {
-			[CODEX]: fm(["folders"], ["types"]),
-			[N]: fm(["chapters", "ch-a1.md", "location"], ["chapters", "ch-a2.md", "location"], ["chapters", "ch-a2.md", "location-path"], ["chapters", "ch-a2.md", "location-name"]),
-		},
+		changed: { [CODEX]: fm(["folders"], ["types"]) },
 	},
 
 	// ---------------------------------------------------------------- operations that must be refused

@@ -48,7 +48,7 @@ export function mountNovelTab(host: HTMLElement, model: AppModel): () => void {
 		const fm = readBookFrontmatter(project, book);
 		const { ordered, unplaced } = getBookChapters(project, book);
 		const numbered = applyHashNumbering([...ordered, ...unplaced].map((c) => chapterDisplayTitle(project, book, c.name)), settings.chapterNumberingStyle);
-		const run = (what: string, action: () => Promise<unknown>) => void model.guard(async () => (await action(), model.touch("library", "nav")), what);
+		const run = (what: string, action: () => Promise<unknown>): Promise<void> => model.guard(async () => (await action(), model.touch("library", "nav")), what).then(() => undefined);
 
 		const row = (name: string, index: number): HTMLElement => {
 			const r = listRow(name, settings.highlightActiveChapter && model.nav.chapter === name);

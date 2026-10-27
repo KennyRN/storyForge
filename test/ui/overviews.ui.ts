@@ -37,6 +37,38 @@ test.describe("the series overview", () => {
 		await shot(page, "numbers-series-overview");
 	});
 
+	test("the series description and a novel's synopsis are written as sections, changing nothing else in the file", async ({ page }) => {
+		await openProject(page);
+		await flip(page);
+		await tab(page, "series").click();
+		const before = await page.evaluate((f) => window.__preview.read(f), "_story-library/series.md");
+		const description = overview(page).getByRole("textbox", { name: "Series description" });
+		await expect(description).toHaveValue("A synthetic series used only for tests.");
+		await description.click();
+		await description.press("Meta+a");
+		await description.pressSequentially("Five books of lanterns.");
+		await overview(page).locator(".sf-overview-title").click();
+		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), "_story-library/series.md")).toBe(before.replace("A synthetic series used only for tests.", "Five books of lanterns."));
+		const novelBefore = await page.evaluate((f) => window.__preview.read(f), "_story-library/novel-aaa.md");
+		const synopsis = overview(page).getByRole("textbox", { name: /^Synopsis of / }).first();
+		await synopsis.click();
+		await synopsis.pressSequentially("Jane finds the harbour.");
+		await overview(page).locator(".sf-overview-title").click();
+		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), "_story-library/novel-aaa.md")).toBe(`${novelBefore.trimEnd()}\n\n## Synopsis\nJane finds the harbour.\n`);
+	});
+
+	test("a synopsis whose heading appears twice shows read-only, with a notice", async ({ page }) => {
+		await openProject(page);
+		const path = "_story-library/novel-aaa.md";
+		const text = await page.evaluate((f) => window.__preview.read(f), path);
+		await outside(page, path, `${text.trimEnd()}\n\n## Synopsis\nOne\n\n## Synopsis\nTwo\n`);
+		await flip(page);
+		await tab(page, "series").click();
+		const field = overview(page).getByRole("textbox", { name: /^Synopsis of / }).first();
+		await expect(field).toHaveAttribute("readonly", "");
+		await expect(page.getByRole("alert")).toContainText("appears more than once");
+	});
+
 	test("under an overview the editor takes no focus, no shortcuts and no menu undo, and saving carries on", async ({ page }) => {
 		await openProject(page);
 		const content = page.locator(".sf-slot--centre .cm-content");
@@ -120,6 +152,8 @@ const outside = async (page: Page, path: string, text: string) => {
 };
 const novelOverview = (page: Page) => page.getByRole("region", { name: "Novel overview" });
 const BOOK_A = "_story-library/novel-aaa.md";
+const ONE_PIXEL_PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+const TINY_GIF = "R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
 const onDisk = (page: Page, p: string) => page.evaluate((x) => window.__preview.read(x), p);
 
 test.describe("the novel overview", () => {
@@ -176,6 +210,45 @@ test.describe("the novel overview", () => {
 		await expect(novelOverview(page)).toBeVisible();
 	});
 
+	test("screenshots for the report: the three sizes and the picker", async ({ page }) => {
+		const o = novelOverview(page);
+		const cards = o.locator(".sf-card");
+		await cards.nth(0).locator(".sf-card-chevron").click();
+		await expect(cards.nth(0)).toHaveAttribute("data-tier", "collapsed");
+		await cards.nth(0).locator(".sf-card-chevron").click();
+		await expect(cards.nth(0)).toHaveAttribute("data-tier", "bar");
+		await cards.nth(1).locator(".sf-card-chevron").click(); // collapsed
+		await expect(cards.nth(1)).toHaveAttribute("data-tier", "collapsed");
+		await expect(cards.nth(2)).toHaveAttribute("data-tier", "extended");
+		await shot(page, "shape-novel-overview-mixed");
+		await o.locator('.sf-size-option[data-size="extended"]').click();
+		await shot(page, "shape-novel-overview-extended");
+		await o.locator('.sf-card[data-chapter="ch-a5.md"]').getByRole("button", { name: /^Choose pov/i }).click();
+		await expect(page.getByRole("dialog")).toBeVisible();
+		await shot(page, "shape-picker");
+	});
+
+	test("the chevron cycles one card's size; the size control sets them all and shows none when mixed; the bar still opens the chapter", async ({ page }) => {
+		const o = novelOverview(page);
+		const card = o.locator(".sf-card").first();
+		const chevron = card.locator(".sf-card-chevron");
+		await expect(card).toHaveAttribute("data-tier", "extended");
+		await chevron.click();
+		await expect(card).toHaveAttribute("data-tier", "collapsed");
+		await chevron.click();
+		await expect(card).toHaveAttribute("data-tier", "bar");
+		// Mixed: no size is selected.
+		await expect(o.locator('.sf-size-option[aria-checked="true"]')).toHaveCount(0);
+		await o.locator('.sf-size-option[data-size="collapsed"]').click();
+		const count = await o.locator(".sf-card").count();
+		await expect(o.locator('.sf-card[data-tier="collapsed"]')).toHaveCount(count);
+		await expect(o.locator('.sf-size-option[data-size="collapsed"]')).toHaveAttribute("aria-checked", "true");
+		await o.locator('.sf-size-option[data-size="extended"]').click();
+		await expect(o.locator('.sf-card[data-tier="extended"]')).toHaveCount(count);
+		await o.locator(".sf-card .sf-bar").first().click();
+		await expect(novelOverview(page)).toHaveCount(0);
+	});
+
 	test("the tooltip shows the word count at once, the plot note's first paragraph joins it, and a changed note replaces it", async ({ page }) => {
 		const card = novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] .sf-bar');
 		const tip = page.getByRole("tooltip");
@@ -201,11 +274,174 @@ test.describe("the novel overview", () => {
 		}).toMatch(/: The tide turns before breakfast\.$/);
 	});
 
+	test("a plot note is committed when it loses focus, keeping a leading space and further lines", async ({ page }) => {
+		const field = novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] .sf-note-field');
+		await expect(field).toHaveValue("Jane reaches the harbour at dawn.");
+		await field.click();
+		await field.press("Meta+a");
+		await field.pressSequentially("  Jane leaves.\nThen the tide: turns.");
+		// Nothing is written while typing.
+		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).not.toContain("Jane leaves.");
+		await novelOverview(page).locator(".sf-overview-title").click();
+		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("Jane leaves.");
+		await expect(field).toHaveValue("  Jane leaves.\nThen the tide: turns.");
+	});
+
+	test("a plot note still being typed in is committed by a close request", async ({ page }) => {
+		const field = novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] .sf-note-field');
+		await field.click();
+		await field.press("Meta+a");
+		await field.pressSequentially("Typed when the app was told to close.");
+		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).not.toContain("Typed when the app");
+		await page.evaluate(() => window.__preview.emit("close-requested"));
+		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("Typed when the app was told to close.");
+	});
+
+	test("a planned length still being typed in is committed by a close request", async ({ page }) => {
+		await novelOverview(page).getByRole("button", { name: "2,500" }).click();
+		const input = novelOverview(page).getByRole("textbox", { name: "Chapter Length" });
+		await input.fill("3,100");
+		await page.evaluate(() => window.__preview.emit("close-requested"));
+		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("planned-chapter-length: 3100");
+	});
+
+	test("a plot note changed on disk while it is being edited is not overwritten: the author's text goes to recovery and a notice says so", async ({ page }) => {
+		const field = novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] .sf-note-field');
+		await field.click();
+		await field.press("Meta+a");
+		await field.pressSequentially("My own words");
+		const novel = await page.evaluate((f) => window.__preview.read(f), BOOK_A);
+		await outside(page, BOOK_A, novel.replace("plot: Jane reaches the harbour at dawn.", "plot: Somebody else.\n"));
+		await novelOverview(page).locator(".sf-overview-title").click();
+		await expect(page.getByRole("alert")).toContainText("changed on disk");
+		await expect(field).toHaveValue("Somebody else.");
+		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("Somebody else.");
+	});
+
+	test("a chapter with no PoV of its own shows the default, muted and labelled, and the default is not written into the chapter", async ({ page }) => {
+		const row = novelOverview(page).locator('.sf-card[data-chapter="ch-a5.md"] [data-row="pov"]');
+		await expect(row.locator(".sf-ref.is-muted")).toHaveText("Jane");
+		await expect(row).toContainText("(default)");
+		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).not.toMatch(/ch-a5\.md:[\s\S]*pov/);
+	});
+
+	test("the PoV picker sets a chapter's PoV, and the default PoV picker sets the default", async ({ page }) => {
+		const o = novelOverview(page);
+		const row = o.locator('.sf-card[data-chapter="ch-a5.md"] [data-row="pov"]');
+		await row.getByRole("button", { name: /Choose pov/i }).click();
+		await page.getByRole("dialog").getByLabel("Sam").check();
+		await page.getByRole("dialog").getByRole("button", { name: "Choose" }).click();
+		await expect(row.locator(".sf-ref")).toHaveText("Sam");
+		await expect(row.locator(".sf-ref.is-muted")).toHaveCount(0);
+		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("Codex%2FSam.md=Sam");
+		await o.getByRole("button", { name: "Choose the default PoV" }).click();
+		await page.getByRole("dialog").getByLabel("Sam").check();
+		await page.getByRole("dialog").getByRole("button", { name: "Choose" }).click();
+		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("default-pov-path: Codex/Sam.md");
+		await expect(o.locator('[data-row="default-pov"] .sf-ref')).toHaveText("Sam");
+	});
+
+	test("a reference to a note that is gone is shown as missing, and stays in the file", async ({ page }) => {
+		const novel = await page.evaluate((f) => window.__preview.read(f), BOOK_A);
+		await outside(page, BOOK_A, novel.replace("v1;Codex%2FJane.md=Jane", "v1;Codex%2FGone.md=Gone"));
+		const ref = novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] [data-row="pov"] .sf-ref');
+		await expect(ref).toHaveText("Gone (missing)");
+		await expect(ref).toHaveClass(/is-muted/);
+		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("Codex%2FGone.md=Gone");
+	});
+
+	test("a name in a PoV row opens that note in the workspace, and the overview comes back from its tab", async ({ page }) => {
+		await novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] [data-row="pov"] .sf-ref').click();
+		await expect(novelOverview(page)).toHaveCount(0);
+		await tab(page, "novel").click();
+		await expect(novelOverview(page)).toBeVisible();
+	});
+
+	test("a cover chosen in the native panel is placed by Rust, recorded in the book's details, and the old one is retired", async ({ page }) => {
+		const o = novelOverview(page);
+		const box = o.locator('[data-cover="book:aaa"]');
+		const oldCover = await page.evaluate(() => window.__preview.readBase64("_backstage/storyforge/aaa/cover.png"));
+		await page.evaluate((b) => window.__preview.armCover(b), ONE_PIXEL_PNG);
+		await box.click();
+		await expect(box).toHaveAttribute("data-state", "image");
+		expect(await page.evaluate(() => window.__preview.readBase64("_backstage/storyforge/aaa/cover.png"))).toBe(ONE_PIXEL_PNG);
+		expect(await page.evaluate(() => window.__preview.readBase64(".trash/_backstage/storyforge/aaa/cover.png"))).toBe(oldCover);
+		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("cover-image: cover.png");
+	});
+
+	test("a cover of another type replaces the old one; a cancelled panel changes nothing", async ({ page }) => {
+		const box = novelOverview(page).locator('[data-cover="book:aaa"]');
+		const before = await page.evaluate((f) => window.__preview.read(f), BOOK_A);
+		await page.evaluate(() => window.__preview.armCover(null));
+		await box.click();
+		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).toBe(before);
+		await page.evaluate((b) => window.__preview.armCover(b), TINY_GIF);
+		await box.click();
+		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("cover-image: cover.gif");
+		await expect(page.evaluate(() => window.__preview.readBase64("_backstage/storyforge/aaa/cover.png"))).rejects.toThrow();
+		expect(await page.evaluate(() => window.__preview.readBase64(".trash/_backstage/storyforge/aaa/cover.png"))).not.toBe("");
+	});
+
+	test("a file that is not an allowed image is refused with the accepted types named, and the old cover stays", async ({ page }) => {
+		const box = novelOverview(page).locator('[data-cover="book:aaa"]');
+		const old = await page.evaluate(() => window.__preview.readBase64("_backstage/storyforge/aaa/cover.png"));
+		await page.evaluate(() => window.__preview.armCover(btoa("<svg/>")));
+		await box.click();
+		await expect(page.getByRole("status").or(page.getByRole("alert")).filter({ hasText: "PNG, JPEG, GIF or WebP" })).toBeVisible();
+		expect(await page.evaluate(() => window.__preview.readBase64("_backstage/storyforge/aaa/cover.png"))).toBe(old);
+	});
+
+	test("a cover that is not a picture the window can show is a placeholder; removing a cover retires its file and clears the key", async ({ page }) => {
+		const o = novelOverview(page);
+		const box = o.locator('[data-cover="book:aaa"]');
+		await expect(box).toHaveAttribute("data-state", "placeholder"); // the fixture's cover is not a real picture
+		await expect(box.locator(".sf-cover-placeholder")).toBeVisible();
+		// Never silent: a cover that is recorded but can't be drawn says so.
+		await expect(page.getByRole("status").filter({ hasText: "could not be shown" })).toBeVisible();
+		await o.getByRole("button", { name: /^Remove the cover/ }).click();
+		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).not.toContain("cover-image");
+		await expect(page.evaluate(() => window.__preview.readBase64("_backstage/storyforge/aaa/cover.png"))).rejects.toThrow();
+		await expect(o.getByRole("button", { name: /^Remove the cover/ })).toHaveCount(0);
+	});
+
+	test("the series cover is chosen from the series overview", async ({ page }) => {
+		await tab(page, "series").click();
+		const box = overview(page).locator('[data-cover="series"]');
+		await page.evaluate((b) => window.__preview.armCover(b), ONE_PIXEL_PNG);
+		await box.click();
+		await expect(box).toHaveAttribute("data-state", "image");
+		await shot(page, "shape-series-overview");
+		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), "_story-library/series.md")).toContain("cover-image: cover.png");
+		expect(await page.evaluate(() => window.__preview.readBase64(".trash/_backstage/storyforge/_series/cover.jpg"))).not.toBe("");
+	});
+
 	test("the bar's tooltip shows on hover", async ({ page }) => {
 		const bar = novelOverview(page).locator(".sf-card .sf-bar").first();
 		await expect(bar).toHaveAttribute("aria-label", /\d/);
 		await bar.hover();
 		await expect(page.getByRole("tooltip")).toBeVisible();
+	});
+});
+
+test.describe("a read-only project's overviews", () => {
+	test("every cover, picker and field is read-only, and the cover panel never opens", async ({ page }) => {
+		await openProject(page);
+		await page.evaluate(() => window.__preview.touch("_backstage/storyforge/project.md", "---\nformat-version: 99\n---\n"));
+		await page.reload();
+		await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+		await page.locator("[data-recent='0']").click();
+		await page.waitForFunction(() => !!window.__app?.editors);
+		await flip(page);
+		await tab(page, "novel").click();
+		const o = novelOverview(page);
+		await expect(o.locator('[data-cover="book:aaa"]')).toBeDisabled();
+		await expect(o.getByRole("button", { name: /^Remove the cover/ })).toHaveCount(0);
+		await expect(o.getByRole("button", { name: "Choose the default PoV" })).toHaveCount(0);
+		await expect(o.getByRole("button", { name: /^Choose pov/i })).toHaveCount(0);
+		for (const field of await o.locator("textarea").all()) await expect(field).toHaveAttribute("readonly", "");
+		await tab(page, "series").click();
+		await expect(overview(page).locator('[data-cover="series"]')).toBeDisabled();
+		await expect(overview(page).getByRole("textbox", { name: "Series description" })).toHaveAttribute("readonly", "");
 	});
 });
 

@@ -42,6 +42,19 @@ test.describe("the screens around the faces", () => {
 		await expect(d).toHaveCount(0);
 	});
 
+	test("a Codex note renamed while the app was closed: the summary says its PoV and location lists followed", async ({ page }) => {
+		await openProject(page);
+		await page.evaluate(() => window.__app.controller.teardown());
+		await page.evaluate(() => window.__preview.rename("Codex/Jane.md", "Codex/Janet.md"));
+		await page.reload();
+		await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+		await page.locator("[data-recent='0']").click();
+		const d = dialog(page);
+		await expect(d.getByText("Codex/Jane.md is now Codex/Janet.md (PoV and location lists in 1 novel file followed it)")).toBeVisible();
+		await shot(page, "shape-summary-references");
+		expect(await onDisk(page, "_story-library/novel-aaa.md")).toContain("default-pov-path: Codex/Janet.md");
+	});
+
 	test.describe("renaming a Codex note", () => {
 		test("the name is checked as it is typed, with the reason", async ({ page }) => {
 			await openProject(page, withLinks(page));
@@ -70,6 +83,7 @@ test.describe("the screens around the faces", () => {
 			await expect(d.locator(".sf-plan-headline")).toHaveText("Renaming updates 4 links in 2 files.");
 			await expect(d.getByText("in notes outside storyForge's folders will not change")).toBeVisible();
 			await expect(d.getByText("A backup is made first")).toBeVisible();
+			await expect(d.getByText("PoV and location lists in 1 novel file will follow the new name.")).toBeVisible();
 			await shot(page, "rename-plan");
 			// nothing has changed yet
 			expect(await onDisk(page, "Codex/Jane.md")).toContain("aliases");
@@ -98,6 +112,12 @@ test.describe("the screens around the faces", () => {
 			expect(await onDisk(page, "Codex/Janet.md")).toContain("custom-key: kept");
 			expect(await onDisk(page, CH2)).toBe("Meet [[Janet]] and [[Janet#Facts|her]] and ![[Janet]].\nA code sample: `[[Jane]]`\n"); // the link in the code sample is left alone
 			expect(await onDisk(page, "Codex/Sam.md")).toBe("Friend of [[Janet]].\n");
+			// The chapters' PoV and the default PoV follow the note, by path and name.
+			const novel = await onDisk(page, "_story-library/novel-aaa.md");
+			expect(novel).toContain("default-pov-path: Codex/Janet.md");
+			expect(novel).toContain("default-pov-name: Janet");
+			expect(novel).toContain("Codex%2FJanet.md=Janet");
+			expect(novel).toContain("pov-path:\n      - Codex/Janet.md");
 			await expect(page.locator(".sf-codex-file", { hasText: "Janet" })).toBeVisible();
 			await expect(page.locator(".sf-codex-file", { hasText: /^Jane$/ })).toHaveCount(0);
 		});

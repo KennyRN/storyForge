@@ -38,6 +38,15 @@ export interface Timers {
 	clearTimeout(handle: unknown): void;
 }
 
+/** Something the close finishes before it flushes the editors: `commit` it, and if that outlasts the limit, `rescue` what it was writing. */
+export interface CloseCommit {
+	commit(): Promise<void>;
+	rescue?(): Promise<void>;
+}
+
+/** Which cover: the series', or a book's by its folder name. Never a path. */
+export type CoverTarget = { kind: "series" } | { kind: "book"; code: string };
+
 export interface Host {
 	invoke: Invoke;
 	/** Subscribes to an app event; resolves to an unsubscribe function. */
@@ -376,6 +385,20 @@ export class AppController {
 		await this.host.invoke("set_menu_state", { enabled });
 	}
 
+	/** Chooses a cover image: Rust shows the open panel, checks the image and installs it (the old cover is retired). Resolves to the new file name, or null if the panel was cancelled. */
+	async pickCover(target: CoverTarget): Promise<string | null> {
+		return (await this.host.invoke("pick_cover", { target })) as string | null;
+	}
+
+	/** Reads a cover image (Rust allows only `cover.<png|jpg|gif|webp>` from the target's own folder, up to 10 MB). */
+	async readCover(target: CoverTarget, filename: string): Promise<Uint8Array> {
+		const b64 = (await this.host.invoke("read_cover", { args: { target, filename } })) as string;
+		const raw = atob(b64);
+		const bytes = new Uint8Array(raw.length);
+		for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+		return bytes;
+	}
+
 	/** Shows a project file in Finder (Rust checks the path and only reveals). */
 	async revealInFinder(path: string): Promise<void> {
 		await this.host.invoke("reveal_in_finder", { path });
@@ -409,6 +432,17 @@ export class AppController {
 		});
 		return run;
 	}
+
+	/**
+	 * Registers something the close must finish before the editors are flushed (a field the author is in the
+	 * middle of editing). Returns the function that removes it.
+	 */
+	registerCloseCommit(entry: CloseCommit): () => void {
+		this.closeCommits.add(entry);
+		return () => void this.closeCommits.delete(entry);
+	}
+
+	private readonly closeCommits = new Set<CloseCommit>();
 
 	async saveMachineState(state: MachineProjectState): Promise<void> {
 		const running = this.requireRunning();
@@ -451,6 +485,17 @@ export class AppController {
 			}
 			await running.opened.backups.abandon();
 			report.backupAbandoned = true;
+			this.closeProgress();
+
+			// Any field the author is in the middle of editing is committed first (a plot note, a synopsis, a planned
+			// length). One that can't land has already sent its text to recovery; the close carries on either way, and
+			// a commit that hangs is given the same limit as the editors.
+			let commitTimer: unknown;
+			const commitTimeout = new Promise<"timeout">((resolve) => (commitTimer = this.timers.setTimeout(() => resolve("timeout"), limitMs)));
+			const committed = await Promise.race([Promise.allSettled([...this.closeCommits].map((c) => c.commit())).then(() => "done" as const), commitTimeout]);
+			this.timers.clearTimeout(commitTimer);
+			// A commit that hangs is cut off, and what it was writing goes to a recovery file instead: never only in the field.
+			if (committed === "timeout") await Promise.allSettled([...this.closeCommits].map((c) => c.rescue?.()));
 			this.closeProgress();
 
 			const writer = running.opened.writer;

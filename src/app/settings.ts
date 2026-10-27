@@ -207,6 +207,8 @@ export interface MachineProjectState {
 	loreWidth?: number;
 	/** View ▸ Show or Hide Lore Slot. */
 	loreHidden?: boolean;
+	/** Chapter card sizes on the novel overview, keyed `<book folder>/<chapter file>`. Extended is the default and isn't stored (decision 41). */
+	cardTiers?: Record<string, "bar" | "collapsed">;
 }
 
 export const DEFAULT_MACHINE_PROJECT_STATE: MachineProjectState = { selectedNovel: null, selectedObject: null, collapsedCodexFolderIds: [] };
@@ -230,10 +232,17 @@ export async function loadMachineProjectState(store: MachineStore, projectKey: s
 			...(typeof parsed.leftWidth === "number" && Number.isFinite(parsed.leftWidth) ? { leftWidth: parsed.leftWidth } : {}),
 			...(typeof parsed.loreWidth === "number" && Number.isFinite(parsed.loreWidth) ? { loreWidth: parsed.loreWidth } : {}),
 			...(parsed.loreHidden === true ? { loreHidden: true } : {}),
+			...(parsed.cardTiers && typeof parsed.cardTiers === "object" ? { cardTiers: cleanCardTiers(parsed.cardTiers) } : {}),
 		};
 	} catch {
 		return base;
 	}
+}
+
+function cleanCardTiers(raw: unknown): Record<string, "bar" | "collapsed"> {
+	const out: Record<string, "bar" | "collapsed"> = {};
+	if (raw && typeof raw === "object") for (const [k, v] of Object.entries(raw)) if (v === "bar" || v === "collapsed") out[k] = v;
+	return out;
 }
 
 export function saveMachineProjectState(store: MachineStore, projectKey: string, state: MachineProjectState): Promise<void> {
