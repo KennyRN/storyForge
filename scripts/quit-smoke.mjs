@@ -65,6 +65,8 @@ const findScript = `on run argv
 					set frontmost to true
 					set focused of e to true
 				end if
+				if act is "isfocused" then return "found " & ((focused of e) as string)
+				if act is "value" then return "found " & ((value of e) as string)
 				return "found " & n
 			end if
 		end repeat
@@ -81,10 +83,17 @@ async function until(what, fn, ms = 20000) {
 	}
 	fail(`timed out waiting for ${what}`);
 }
+/** The field's own content, read back through accessibility (null if it can't be found). */
+const valueOf = (role, prefix) => {
+	const out = find(role, prefix, "value");
+	return out.startsWith("found ") ? out.slice(6) : null;
+};
+const isFocused = (role, prefix) => find(role, prefix, "isfocused") === "found true";
 const sendKeys = (text) => osa('on run argv\ntell application "System Events" to keystroke (item 1 of argv)\nend run', text);
 
 // ---- One route --------------------------------------------------------------------------------------------
 const results = [];
+let notTypedRetries = 0;
 async function route(name, send, { expectJoin = false, target = "chapter" } = {}) {
 	name = target === "plot" ? `${name}, typing in a plot note` : name;
 	const dir = realpathSync(mkdtempSync(join(tmpdir(), "sf-quit-")));
@@ -94,7 +103,9 @@ async function route(name, send, { expectJoin = false, target = "chapter" } = {}
 	const data = join(home, DATA_FOLDER);
 	mkdirSync(data, { recursive: true });
 	writeFileSync(join(data, "recent.json"), JSON.stringify([project]));
-	const marker = `QUITSMOKE${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+	const newMarker = () => `QUITSMOKE${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+	let marker = newMarker();
+	let notTyped = false;
 
 	let stderr = "";
 	const child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: ["ignore", "ignore", "pipe"] });
@@ -116,10 +127,33 @@ async function route(name, send, { expectJoin = false, target = "chapter" } = {}
 			await until("the Flip side button", () => clickAny("Flip side"));
 			await until("the novel tab", () => clickAny("novel"), 8000);
 			await until("a plot note", () => find("AXTextArea", "Plot note for", "focus").startsWith("found"));
-			await sleep(300);
 		}
-		sendKeys(marker);
-		await sleep(150);
+		// Type, then prove the text is in the field before the quit is sent: a run where the keystrokes never landed is
+		// "not typed" and is retried with a new marker, never counted as a pass. Text that landed and is missing after
+		// the quit is a real loss (checked below).
+		const fieldRole = "AXTextArea";
+		const fieldName = target === "plot" ? "Plot note for" : "Text";
+		let typed = false;
+		for (let attempt = 1; attempt <= 4 && !typed; attempt++) {
+			find(fieldRole, fieldName, "focus");
+			await until("the field to have focus", () => isFocused(fieldRole, fieldName), 8000);
+			await sleep(400);
+			marker = newMarker();
+			sendKeys(marker);
+			for (let look = 0; look < 6 && !typed; look++) {
+				await sleep(look === 0 ? 100 : 200);
+				typed = (valueOf(fieldRole, fieldName) ?? "").includes(marker);
+			}
+			if (!typed) {
+				notTypedRetries++;
+				console.log(`  (${name}: attempt ${attempt}: the typed text never reached the field; retrying)`);
+			}
+		}
+		if (!typed) {
+			notTyped = true;
+			results.push({ name, note: "", ok: false, took: 0, problems: ["NOT TYPED: the keystrokes never reached the field in 4 attempts (the test could not run; this is not a pass)"] });
+			return;
+		}
 		const onDiskEarly = grepTree(project, marker);
 		if (onDiskEarly.length) fail(`${name}: the marker was already saved before the quit, so this run proves nothing`);
 		const sent = Date.now();
@@ -136,7 +170,7 @@ async function route(name, send, { expectJoin = false, target = "chapter" } = {}
 		if (!/finished saving; quitting/.test(stderr)) problems.push("the window never said it finished saving");
 		if (/made no progress for/.test(stderr)) problems.push("the watchdog fired");
 		if (took > 8000) problems.push(`took ${took} ms (limit 8000)`);
-		if (!saved.length) problems.push("the typed text reached neither the chapter nor a recovery file");
+		if (!saved.length) problems.push("LOST: the text was in the field before the quit and reached neither the chapter, the novel file nor a recovery file");
 		// Ending the session is a step in the close: its file must be there, naming the chapter that was written in.
 		const sessionsDir = join(project, "_backstage/storyforge/sessions");
 		const sessionFiles = existsSync(sessionsDir) ? readdirSync(sessionsDir) : [];
@@ -188,6 +222,7 @@ for (const target of ["chapter", "plot"]) {
 // ---- Report -----------------------------------------------------------------------------------------------
 const realAfter = existsSync(REAL_DATA) ? JSON.stringify(readdirSync(REAL_DATA).map((n) => [n, statSync(join(REAL_DATA, n)).mtimeMs])) : "";
 console.log("");
+console.log(`"not typed" retries (keystrokes that never reached the field): ${notTypedRetries}`);
 for (const r of results) {
 	console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.name}  (${r.took} ms${r.where ? `, text saved in ${r.where}` : ""}${r.note ? `; ${r.note}` : ""})`);
 	for (const p of r.problems) console.log(`        - ${p}`);

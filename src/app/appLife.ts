@@ -38,6 +38,12 @@ export interface Timers {
 	clearTimeout(handle: unknown): void;
 }
 
+/** Something the close finishes before it flushes the editors: `commit` it, and if that outlasts the limit, `rescue` what it was writing. */
+export interface CloseCommit {
+	commit(): Promise<void>;
+	rescue?(): Promise<void>;
+}
+
 /** Which cover: the series', or a book's by its folder name. Never a path. */
 export type CoverTarget = { kind: "series" } | { kind: "book"; code: string };
 
@@ -431,12 +437,12 @@ export class AppController {
 	 * Registers something the close must finish before the editors are flushed (a field the author is in the
 	 * middle of editing). Returns the function that removes it.
 	 */
-	registerCloseCommit(commit: () => Promise<void>): () => void {
-		this.closeCommits.add(commit);
-		return () => void this.closeCommits.delete(commit);
+	registerCloseCommit(entry: CloseCommit): () => void {
+		this.closeCommits.add(entry);
+		return () => void this.closeCommits.delete(entry);
 	}
 
-	private readonly closeCommits = new Set<() => Promise<void>>();
+	private readonly closeCommits = new Set<CloseCommit>();
 
 	async saveMachineState(state: MachineProjectState): Promise<void> {
 		const running = this.requireRunning();
@@ -486,8 +492,10 @@ export class AppController {
 			// a commit that hangs is given the same limit as the editors.
 			let commitTimer: unknown;
 			const commitTimeout = new Promise<"timeout">((resolve) => (commitTimer = this.timers.setTimeout(() => resolve("timeout"), limitMs)));
-			await Promise.race([Promise.allSettled([...this.closeCommits].map((c) => c())), commitTimeout]);
+			const committed = await Promise.race([Promise.allSettled([...this.closeCommits].map((c) => c.commit())).then(() => "done" as const), commitTimeout]);
 			this.timers.clearTimeout(commitTimer);
+			// A commit that hangs is cut off, and what it was writing goes to a recovery file instead: never only in the field.
+			if (committed === "timeout") await Promise.allSettled([...this.closeCommits].map((c) => c.rescue?.()));
 			this.closeProgress();
 
 			const writer = running.opened.writer;

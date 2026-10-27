@@ -11,6 +11,7 @@ import {
 	writeChapterPov, writeChapterTags, writeDefaultPov, writeDialogueQuotes, writeNovelTags,
 } from "../../src/core/book";
 import { createContinuingChapter } from "../../src/core/chapterCreation";
+import { commitDescription, commitPlotNote, commitSynopsis } from "../../src/core/fieldWriter";
 import { deleteChapterSidecar, renameChapterSidecar, updateChapterFingerprint } from "../../src/core/chapterSidecar";
 import {
 	addCodexNoteAlias, archiveCodexItem, convertCodexNoteToFolder, createCodexFolder, createCodexNote, ensureVirtualFolder, moveCodexItem,
@@ -194,6 +195,38 @@ export const OPS: OpSpec[] = [
 		name: "writeChapterPlot",
 		run: (c) => writeChapterPlot(c.project, "aaa", "ch-a1.md", "A different plot."),
 		changed: { [N]: fm(["chapters", "ch-a1.md", "plot"]) },
+	},
+	// The author's words typed into a field: written when the disk still holds what the field saw; otherwise nothing
+	// is touched and the text lands in exactly one recovery file (docs/story-shape.md §5).
+	{
+		name: "commitPlotNote (the disk is as the field saw it)",
+		run: (c) => commitPlotNote(c.project, "aaa", "ch-a1.md", "Jane reaches the harbour at dawn.", "A new plot note."),
+		changed: { [N]: fm(["chapters", "ch-a1.md", "plot"]) },
+	},
+	{
+		name: "commitPlotNote (a conflict: the file is left byte-identical, the text goes to recovery)",
+		run: (c) => commitPlotNote(c.project, "aaa", "ch-a1.md", "something the field saw earlier", "The author's words."),
+		anyAdded: /^_sf-backup\/recovery\/aaa\/ch-a1 \(plot note\) [^/]+\.md$/,
+	},
+	{
+		name: "commitSynopsis (writes only the section)",
+		run: (c) => commitSynopsis(c.project, "aaa", "", "A synopsis typed in the overview."),
+		changed: { [N]: { format: "text", frontmatterSame: true } },
+	},
+	{
+		name: "commitSynopsis (a conflict: the file is left byte-identical, the text goes to recovery/_fields)",
+		run: (c) => commitSynopsis(c.project, "aaa", "something the field saw earlier", "The author's words."),
+		anyAdded: /^_sf-backup\/recovery\/_fields\/aaa synopsis [^/]+\.md$/,
+	},
+	{
+		name: "commitDescription (writes only the section)",
+		run: (c) => commitDescription(c.project, "A synthetic series used only for tests.", "A description typed in the overview."),
+		changed: { [S]: { format: "text", frontmatterSame: true } },
+	},
+	{
+		name: "commitDescription (a conflict: the file is left byte-identical, the text goes to recovery/_fields)",
+		run: (c) => commitDescription(c.project, "something the field saw earlier", "The author's words."),
+		anyAdded: /^_sf-backup\/recovery\/_fields\/series description [^/]+\.md$/,
 	},
 	{
 		name: "writeBookSynopsis (body only)",

@@ -317,9 +317,11 @@ describe("newestBackupTime", () => {
 	it("a field being edited is committed first, before the editors flush, and the close reports progress for it", async () => {
 		const { app, running, host } = await opened();
 		const order: string[] = [];
-		app.registerCloseCommit(async () => {
-			await settle();
-			order.push("field committed");
+		app.registerCloseCommit({
+			commit: async () => {
+				await settle();
+				order.push("field committed");
+			},
 		});
 		const realClose = running.opened.writer.closeAll.bind(running.opened.writer);
 		running.opened.writer.closeAll = async () => (order.push("editors flushed"), realClose());
@@ -334,15 +336,20 @@ describe("newestBackupTime", () => {
 		const { app, running } = await opened("series", undefined, (h) => (h.timers = timers));
 		const s = await app.openFile(`${A}/ch-a1.md`);
 		s.setBody("Words that must still be saved.");
-		app.registerCloseCommit(async () => {
-			throw new Error("the field could not be written");
+		const rescued: string[] = [];
+		app.registerCloseCommit({
+			commit: async () => {
+				throw new Error("the field could not be written");
+			},
 		});
-		app.registerCloseCommit(() => new Promise(() => undefined)); // hangs
+		app.registerCloseCommit({ commit: () => new Promise(() => undefined), rescue: async () => void rescued.push("hung field rescued") }); // hangs
 		const done = app.teardown();
 		await settle();
 		timers.fireTimeouts();
 		const report = await done;
 		expect(report.saves.map((x) => x.path)).toContain(`${A}/ch-a1.md`);
+		// The hung commit was cut off, and its words were sent to a recovery file by its rescue.
+		expect(rescued).toEqual(["hung field rescued"]);
 		void running;
 	});
 

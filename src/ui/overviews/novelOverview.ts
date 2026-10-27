@@ -12,7 +12,7 @@ import { el, fill } from "../kit/dom";
 import { attachTooltip } from "../kit/tooltip";
 import type { AppModel } from "../model";
 import { dataBar } from "./bars";
-import { commitPlotNote } from "../../core/fieldWriter";
+import { commitPlotNote, rescuePlotNote } from "../../core/fieldWriter";
 import { textField } from "./fieldCommitter";
 import { coverBox, removeCoverButton } from "./cover";
 import { synopsisField } from "./sectionFields";
@@ -173,6 +173,7 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 					readOnly: !!readOnly,
 					read: () => readChapterPlot(project, book, key),
 					commit: (expected, next) => commitPlotNote(project, book, key, expected, next),
+					recover: (text) => rescuePlotNote(project, book, key, text),
 					notify: (n) => model.notices.notify(n),
 					written: (stored) => plots.set(key, stored),
 				});

@@ -7,6 +7,11 @@
 export interface FocusedField {
 	/** Commits the field now and resolves when the write (or its recovery) is done. */
 	flush(): Promise<void>;
+	/**
+	 * The close has given up waiting for `flush`: put the unsaved words in a recovery file. Fields whose loss at
+	 * quit is accepted (the planned lengths, decision 42) leave this out.
+	 */
+	rescue?(): Promise<void>;
 }
 
 const active = new Set<FocusedField>();
@@ -20,4 +25,9 @@ export function registerFocusedField(field: FocusedField): () => void {
 /** Commits every field being edited right now. */
 export async function commitFocusedFields(): Promise<void> {
 	await Promise.all([...active].map((f) => f.flush()));
+}
+
+/** After the close has cut the commits off: every field being edited sends its unsaved words to a recovery file. */
+export async function rescueFocusedFields(): Promise<void> {
+	await Promise.allSettled([...active].map((f) => f.rescue?.()));
 }

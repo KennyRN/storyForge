@@ -10,7 +10,8 @@ import type { Project } from "./project";
 import { type RecoveryResult, recoverFieldText, recoverPlotNote } from "./recovery";
 
 export type FieldResult =
-	| { status: "written" | "unchanged" }
+	| { status: "written" }
+	| { status: "unchanged" }
 	/** The disk changed since the field was seen: nothing written, the text is in `recovery`, `current` is what's on disk now. */
 	| { status: "conflict"; current: string; recovery: RecoveryResult }
 	/** The write was refused or failed (unreadable frontmatter, guard, read-only): the text is in `recovery`. */
@@ -43,3 +44,8 @@ export async function commitDescription(project: Project, expected: string, next
 	if (next.trim() === expected) return { status: "unchanged" };
 	return commit(() => writeSeriesDescription(project, next, expected), () => recoverFieldText(project, "series description", next, now));
 }
+
+/** Saves text from a plot note that could not be written (a throw, or the close cutting the commit off) to a recovery file. */
+export const rescuePlotNote = (project: Project, book: string, filename: string, text: string, now = new Date()): Promise<RecoveryResult> => recoverPlotNote(project, book, filename.replace(/\.md$/i, ""), text, now);
+export const rescueSynopsis = (project: Project, book: string, text: string, now = new Date()): Promise<RecoveryResult> => recoverFieldText(project, `${book} synopsis`, text, now);
+export const rescueDescription = (project: Project, text: string, now = new Date()): Promise<RecoveryResult> => recoverFieldText(project, "series description", text, now);

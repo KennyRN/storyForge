@@ -1,5 +1,5 @@
 import { readBookSynopsis } from "../../core/book";
-import { commitDescription, commitSynopsis } from "../../core/fieldWriter";
+import { commitDescription, commitSynopsis, rescueDescription, rescueSynopsis } from "../../core/fieldWriter";
 import { readSeriesDescription } from "../../core/series";
 import type { SectionRead } from "../../core/sectionBody";
 import { el } from "../kit/dom";
@@ -11,7 +11,7 @@ import { textField } from "./fieldCommitter";
  * It fills from disk once drawn; a heading that appears twice makes it read-only with a notice
  * asking the author to tidy the file (decision 42).
  */
-function sectionField(model: AppModel, options: { label: string; what: string; read: () => Promise<SectionRead>; commit: (expected: string, next: string) => ReturnType<typeof commitSynopsis> }): HTMLElement {
+function sectionField(model: AppModel, options: { label: string; what: string; read: () => Promise<SectionRead>; commit: (expected: string, next: string) => ReturnType<typeof commitSynopsis>; recover: (text: string) => ReturnType<typeof rescueSynopsis> }): HTMLElement {
 	const project = model.running?.opened.project;
 	const field = textField({
 		label: options.label,
@@ -21,6 +21,7 @@ function sectionField(model: AppModel, options: { label: string; what: string; r
 			return r.status === "ok" ? r.text : "";
 		},
 		commit: options.commit,
+		recover: options.recover,
 		notify: (n) => model.notices.notify(n),
 	});
 	field.element.classList.add("sf-section-field");
@@ -43,6 +44,7 @@ export function synopsisField(model: AppModel, book: string, title: string): HTM
 		what: "Synopsis",
 		read: () => readBookSynopsis(project, book),
 		commit: (expected, next) => commitSynopsis(project, book, expected, next),
+		recover: (text) => rescueSynopsis(project, book, text),
 	});
 }
 
@@ -53,5 +55,6 @@ export function descriptionField(model: AppModel): HTMLElement {
 		what: "Description",
 		read: () => readSeriesDescription(project),
 		commit: (expected, next) => commitDescription(project, expected, next),
+		recover: (text) => rescueDescription(project, text),
 	});
 }
