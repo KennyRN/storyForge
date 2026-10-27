@@ -1,4 +1,5 @@
 import type { FieldResult } from "../../core/fieldWriter";
+import { registerFocusedField } from "../commitOnClose";
 import { el } from "../kit/dom";
 import type { NoticeInput } from "../kit/notices";
 
@@ -25,16 +26,6 @@ export interface TextField {
 	element: HTMLTextAreaElement;
 	/** Shows a value from disk, unless the author is in the middle of typing. */
 	show(value: string): void;
-}
-
-interface Active {
-	flush(): Promise<void>;
-}
-const active = new Set<Active>();
-
-/** Commits any field being edited right now. Called by the close path before the editors flush. */
-export async function commitFocusedFields(): Promise<void> {
-	await Promise.all([...active].map((f) => f.flush()));
 }
 
 const stored = (text: string): string => (text.trim() === "" ? "" : text.trimEnd());
@@ -76,10 +67,10 @@ export function textField(spec: FieldSpec): TextField {
 		});
 		return pending;
 	};
-	const me: Active = { flush };
+	let unregister: (() => void) | null = null;
 
 	ta.addEventListener("focus", () => {
-		active.add(me);
+		unregister ??= registerFocusedField({ flush });
 		void spec.read().then((v) => {
 			if (!dirty) seen = v;
 		});
@@ -89,7 +80,10 @@ export function textField(spec: FieldSpec): TextField {
 		grow();
 	});
 	ta.addEventListener("blur", () => {
-		void flush().then(() => active.delete(me));
+		void flush().then(() => {
+			unregister?.();
+			unregister = null;
+		});
 	});
 
 	return {

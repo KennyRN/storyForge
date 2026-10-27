@@ -12,6 +12,7 @@ import type { CreateProjectOptions } from "../core/openProject";
 import { bookBackstagePath, libraryChapterPath, seriesBackstagePath } from "../core/paths";
 import { getSeriesBooks, removeSeriesCover, writeSeriesCoverName } from "../core/series";
 import { storytellingCodexClickAction } from "../view/codexOpenTarget";
+import { commitFocusedFields } from "./commitOnClose";
 import { NoticeCenter } from "./kit/notices";
 import type { EditorHost } from "./editor/editorHost";
 
@@ -68,6 +69,8 @@ export class AppModel {
 	constructor(readonly controller: AppController) {
 		// Everything the controller does on its own (an outside change applied, a project opened) touches all topics.
 		controller.onChange = () => this.touch(...ALL);
+		// A field being edited when the app closes is committed first (docs/story-shape.md §5.3).
+		controller.registerCloseCommit(commitFocusedFields);
 		// A writing session started or ended: the history view and the stats panel redraw.
 		controller.onSessionChange = () => this.touch("sessions", "stats");
 		// Quietly, once: writing is unaffected (docs/sessions.md §8).

@@ -44,7 +44,7 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 		const total = words.reduce((a, b) => a + b, 0);
 		const plannedNovel = fm?.plannedNovelLength ?? null;
 		const plannedChapter = fm?.plannedChapterLength ?? null;
-		const run = (write: () => Promise<void>): void => void model.guard(async () => (await write(), model.touch("library", "nav")), "save the length");
+		const run = (write: () => Promise<void>): Promise<void> => model.guard(async () => (await write(), model.touch("library", "nav")), "save the length").then(() => undefined);
 		const open = (name: string): void => void model.openChapter(book, name);
 
 		const novelTitle = (): string => {

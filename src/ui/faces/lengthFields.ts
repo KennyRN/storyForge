@@ -1,3 +1,4 @@
+import { registerFocusedField } from "../commitOnClose";
 import { el } from "../kit/dom";
 
 export const grouped = (n: number): string => Math.round(n).toLocaleString("en-US");
@@ -14,16 +15,25 @@ export function metaRow(label: string, value: string, options: { title?: string;
 }
 
 /** An inline number field: Enter saves (empty clears), Escape cancels. Digits are grouped as you type. */
-export function numberEditor(label: string, value: number | null, commit: (n: number | null) => void, cancel: () => void): HTMLElement {
+export function numberEditor(label: string, value: number | null, commit: (n: number | null) => void | Promise<void>, cancel: () => void): HTMLElement {
 	const input = el("input", { class: "sf-field sf-meta-input", attrs: { type: "text", inputmode: "numeric", "aria-label": label.replace(/:$/, "") } });
 	input.value = value === null ? "" : grouped(value);
 	let done = false;
+	let pending: Promise<void> = Promise.resolve();
+	// While the field is open the close commits it too, and waits for the write.
+	const unregister = registerFocusedField({
+		flush: async () => {
+			if (input.isConnected) finish(true);
+			await pending;
+		},
+	});
 	const finish = (save: boolean): void => {
 		if (done) return;
 		done = true;
+		unregister();
 		if (!save) return cancel();
 		const digits = input.value.replace(/[^\d]/g, "");
-		commit(digits === "" ? null : Number(digits));
+		pending = Promise.resolve(commit(digits === "" ? null : Number(digits))).catch(() => undefined);
 	};
 	input.addEventListener("input", () => {
 		const digits = input.value.replace(/[^\d]/g, "");
@@ -49,9 +59,9 @@ export function lengthRow(opts: {
 	editing: boolean;
 	startEditing: () => void;
 	stopEditing: () => void;
-	save: (n: number | null) => void;
+	save: (n: number | null) => void | Promise<void>;
 }): HTMLElement {
 	return opts.editing
-		? numberEditor(opts.label, opts.value, (n) => (opts.stopEditing(), opts.save(n)), opts.stopEditing)
+		? numberEditor(opts.label, opts.value, (n) => { opts.stopEditing(); return opts.save(n); }, opts.stopEditing)
 		: metaRow(opts.label, opts.shown, { title: `Set the planned ${opts.which} length`, disabled: !!opts.readOnly, onClick: opts.startEditing });
 }

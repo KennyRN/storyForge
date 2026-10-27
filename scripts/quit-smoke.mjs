@@ -85,7 +85,8 @@ const sendKeys = (text) => osa('on run argv\ntell application "System Events" to
 
 // ---- One route --------------------------------------------------------------------------------------------
 const results = [];
-async function route(name, send, { expectJoin = false } = {}) {
+async function route(name, send, { expectJoin = false, target = "chapter" } = {}) {
+	name = target === "plot" ? `${name}, typing in a plot note` : name;
 	const dir = realpathSync(mkdtempSync(join(tmpdir(), "sf-quit-")));
 	const home = join(dir, "home");
 	const project = join(dir, "proj");
@@ -109,6 +110,14 @@ async function route(name, send, { expectJoin = false } = {}) {
 		find("AXButton", `proj ${dir}`, "click");
 		await until("an editor", () => find("AXTextArea", "Text", "focus").startsWith("found"));
 		await sleep(400);
+		if (target === "plot") {
+			// To the library side, the novel tab, and into a chapter card's plot note: it has focus, nothing has been committed.
+			const clickAny = (name) => ["AXButton", "AXCheckBox", "AXToggle", "AXRadioButton", "AXTab"].some((role) => find(role, name, "click").startsWith("found"));
+			await until("the Flip side button", () => clickAny("Flip side"));
+			await until("the novel tab", () => clickAny("novel"), 8000);
+			await until("a plot note", () => find("AXTextArea", "Plot note for", "focus").startsWith("found"));
+			await sleep(300);
+		}
 		sendKeys(marker);
 		await sleep(150);
 		const onDiskEarly = grepTree(project, marker);
@@ -131,7 +140,9 @@ async function route(name, send, { expectJoin = false } = {}) {
 		// Ending the session is a step in the close: its file must be there, naming the chapter that was written in.
 		const sessionsDir = join(project, "_backstage/storyforge/sessions");
 		const sessionFiles = existsSync(sessionsDir) ? readdirSync(sessionsDir) : [];
-		if (sessionFiles.length !== 1) problems.push(`expected one session file, found ${sessionFiles.length}`);
+		if (target === "plot") {
+			if (!saved.some((f) => f.endsWith("/_story-library/novel-aaa.md"))) problems.push("the plot note was not committed to novel-aaa.md by the close");
+		} else if (sessionFiles.length !== 1) problems.push(`expected one session file, found ${sessionFiles.length}`);
 		else if (!/path: aaa\/ch-a1\.md/.test(readFileSync(join(sessionsDir, sessionFiles[0]), "utf8"))) problems.push("the session file doesn't name the chapter that was written in");
 		else if (/recovered: true/.test(readFileSync(join(sessionsDir, sessionFiles[0]), "utf8"))) problems.push("the session was recovered rather than ended by the close");
 		// A second request must never start a second close (closes === 1 above). Whether it was seen mid-close
@@ -160,15 +171,19 @@ function grepTree(dir, needle) {
 }
 
 const appleQuit = () => osa(`tell application id "${BUNDLE_ID}" to quit`);
-await route("Apple-event quit (the Dock's Quit, Log Out and Shut Down use this route)", () => appleQuit());
-await route("SIGTERM", (c) => c.kill("SIGTERM"));
-await route("SIGHUP", (c) => c.kill("SIGHUP"));
-await route("SIGINT", (c) => c.kill("SIGINT"));
-await route("a quit while a close is under way joins it", async (c) => {
-	c.kill("SIGTERM");
-	await sleep(50);
-	appleQuit();
-}, { expectJoin: true });
+// Every route twice: once with text typed in the chapter editor, once with text typed in a plot note (a field that
+// writes to the project and has focus when the quit arrives).
+for (const target of ["chapter", "plot"]) {
+	await route("Apple-event quit (the Dock's Quit, Log Out and Shut Down use this route)", () => appleQuit(), { target });
+	await route("SIGTERM", (c) => c.kill("SIGTERM"), { target });
+	await route("SIGHUP", (c) => c.kill("SIGHUP"), { target });
+	await route("SIGINT", (c) => c.kill("SIGINT"), { target });
+	await route("a quit while a close is under way joins it", async (c) => {
+		c.kill("SIGTERM");
+		await sleep(50);
+		appleQuit();
+	}, { expectJoin: true, target });
+}
 
 // ---- Report -----------------------------------------------------------------------------------------------
 const realAfter = existsSync(REAL_DATA) ? JSON.stringify(readdirSync(REAL_DATA).map((n) => [n, statSync(join(REAL_DATA, n)).mtimeMs])) : "";

@@ -269,6 +269,24 @@ test.describe("the novel overview", () => {
 		await expect(field).toHaveValue("  Jane leaves.\nThen the tide: turns.");
 	});
 
+	test("a plot note still being typed in is committed by a close request", async ({ page }) => {
+		const field = novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] .sf-note-field');
+		await field.click();
+		await field.press("Meta+a");
+		await field.pressSequentially("Typed when the app was told to close.");
+		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).not.toContain("Typed when the app");
+		await page.evaluate(() => window.__preview.emit("close-requested"));
+		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("Typed when the app was told to close.");
+	});
+
+	test("a planned length still being typed in is committed by a close request", async ({ page }) => {
+		await novelOverview(page).getByRole("button", { name: "2,500" }).click();
+		const input = novelOverview(page).getByRole("textbox", { name: "Chapter Length" });
+		await input.fill("3,100");
+		await page.evaluate(() => window.__preview.emit("close-requested"));
+		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("planned-chapter-length: 3100");
+	});
+
 	test("a plot note changed on disk while it is being edited is not overwritten: the author's text goes to recovery and a notice says so", async ({ page }) => {
 		const field = novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] .sf-note-field');
 		await field.click();

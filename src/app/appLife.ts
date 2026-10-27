@@ -427,6 +427,17 @@ export class AppController {
 		return run;
 	}
 
+	/**
+	 * Registers something the close must finish before the editors are flushed (a field the author is in the
+	 * middle of editing). Returns the function that removes it.
+	 */
+	registerCloseCommit(commit: () => Promise<void>): () => void {
+		this.closeCommits.add(commit);
+		return () => void this.closeCommits.delete(commit);
+	}
+
+	private readonly closeCommits = new Set<() => Promise<void>>();
+
 	async saveMachineState(state: MachineProjectState): Promise<void> {
 		const running = this.requireRunning();
 		running.machineState = state;
@@ -468,6 +479,15 @@ export class AppController {
 			}
 			await running.opened.backups.abandon();
 			report.backupAbandoned = true;
+			this.closeProgress();
+
+			// Any field the author is in the middle of editing is committed first (a plot note, a synopsis, a planned
+			// length). One that can't land has already sent its text to recovery; the close carries on either way, and
+			// a commit that hangs is given the same limit as the editors.
+			let commitTimer: unknown;
+			const commitTimeout = new Promise<"timeout">((resolve) => (commitTimer = this.timers.setTimeout(() => resolve("timeout"), limitMs)));
+			await Promise.race([Promise.allSettled([...this.closeCommits].map((c) => c())), commitTimeout]);
+			this.timers.clearTimeout(commitTimer);
 			this.closeProgress();
 
 			const writer = running.opened.writer;
