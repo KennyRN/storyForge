@@ -5,6 +5,7 @@
  */
 import type { AppController, OpenOutcome, Running } from "../app/appLife";
 import type { MachineProjectState } from "../app/settings";
+import type { PlotCardTier } from "../core/plotCardTier";
 import { getBookChapters } from "../core/book";
 import { createContinuingChapter } from "../core/chapterCreation";
 import type { CreateProjectOptions } from "../core/openProject";
@@ -36,6 +37,8 @@ export interface Nav {
 	loreWidth: number;
 	/** View ▸ Show or Hide Context. */
 	loreHidden: boolean;
+	/** Chapter card sizes, `<book>/<file>`; absent means extended. */
+	cardTiers: Record<string, "bar" | "collapsed">;
 }
 
 /** What Story ▸ Archive and Rename… act on: the last thing the author picked in a list. */
@@ -57,7 +60,7 @@ export class AppModel {
 	readonly notices = new NoticeCenter();
 	/** Set by the shell once the slots exist. */
 	editors: EditorHost | null = null;
-	nav: Nav = { face: "storytelling", forgeTab: "novel", centreView: "chapter", book: null, chapter: null, collapsedCodex: new Set(), leftWidth: DEFAULT_LEFT_WIDTH, loreWidth: DEFAULT_LORE_WIDTH, loreHidden: false };
+	nav: Nav = { face: "storytelling", forgeTab: "novel", centreView: "chapter", book: null, chapter: null, collapsedCodex: new Set(), leftWidth: DEFAULT_LEFT_WIDTH, loreWidth: DEFAULT_LORE_WIDTH, loreHidden: false, cardTiers: {} };
 	selection: Selection | null = null;
 	private persistTimer: ReturnType<typeof setTimeout> | undefined;
 	private listeners = new Map<Topic, Set<() => void>>();
@@ -105,6 +108,7 @@ export class AppModel {
 			leftWidth: clampLeft(machine.leftWidth ?? DEFAULT_LEFT_WIDTH),
 			loreWidth: clampLore(machine.loreWidth ?? DEFAULT_LORE_WIDTH),
 			loreHidden: machine.loreHidden === true,
+			cardTiers: { ...(machine.cardTiers ?? {}) },
 		};
 		this.selection = null;
 	}
@@ -238,6 +242,22 @@ export class AppModel {
 		this.persistSoon();
 	}
 
+	cardTier(book: string, file: string): PlotCardTier {
+		return this.nav.cardTiers[`${book}/${file}`] ?? "extended";
+	}
+
+	/** Sets the size of the given cards; extended is stored as no entry. Navigation state: this computer only. */
+	setCardTiers(book: string, files: string[], tier: PlotCardTier): void {
+		const next = { ...this.nav.cardTiers };
+		for (const f of files) {
+			if (tier === "extended") delete next[`${book}/${f}`];
+			else next[`${book}/${f}`] = tier;
+		}
+		this.nav.cardTiers = next;
+		this.persistSoon();
+		this.touch("nav");
+	}
+
 	/** Where you were is saved a moment after it changes, on this computer only. */
 	persistSoon(): void {
 		clearTimeout(this.persistTimer);
@@ -247,9 +267,9 @@ export class AppModel {
 	async persistNow(): Promise<void> {
 		clearTimeout(this.persistTimer);
 		if (!this.running) return;
-		const { book, chapter, collapsedCodex, leftWidth, loreWidth, loreHidden } = this.nav;
+		const { book, chapter, collapsedCodex, leftWidth, loreWidth, loreHidden, cardTiers } = this.nav;
 		try {
-			await this.controller.saveMachineState({ selectedNovel: book, selectedObject: chapter, collapsedCodexFolderIds: [...collapsedCodex], leftWidth, loreWidth, ...(loreHidden ? { loreHidden } : {}) });
+			await this.controller.saveMachineState({ selectedNovel: book, selectedObject: chapter, collapsedCodexFolderIds: [...collapsedCodex], leftWidth, loreWidth, ...(loreHidden ? { loreHidden } : {}), ...(Object.keys(cardTiers).length ? { cardTiers } : {}) });
 		} catch {
 			/* where you were is a convenience: never worth a notice */
 		}

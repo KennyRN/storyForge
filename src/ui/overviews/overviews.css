@@ -29,6 +29,19 @@
 .sf-overview-meta { margin-bottom: 20px; }
 .sf-cards { gap: 12px; }
 .sf-card { display: flex; flex-direction: column; gap: 6px; }
+.sf-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.sf-card-chevron { all: unset; cursor: pointer; padding: 0 6px; border-radius: 3px; color: var(--purpose-text-muted); line-height: 1.4; }
+.sf-card-chevron[data-tier="bar"] { transform: rotate(-90deg); }
+.sf-card-chevron:hover { color: var(--purpose-accent); }
+.sf-card-chevron:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 2px; }
+.sf-card-rows { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.sf-card-row { display: flex; gap: 8px; }
+.sf-card-plot { font-size: 13px; white-space: pre-wrap; color: var(--purpose-text); }
+.sf-size-control { display: inline-flex; gap: 2px; margin-bottom: 12px; }
+.sf-size-option { all: unset; cursor: pointer; padding: 2px 10px; font-size: 12px; border-radius: 3px; color: var(--purpose-text-muted); }
+.sf-size-option[aria-checked="true"] { color: var(--purpose-accent); }
+.sf-size-option:hover { color: var(--purpose-accent); }
+.sf-size-option:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 2px; }
 .sf-bar--link { cursor: pointer; }
 
 /* The history view. */

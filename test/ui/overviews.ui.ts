@@ -176,6 +176,27 @@ test.describe("the novel overview", () => {
 		await expect(novelOverview(page)).toBeVisible();
 	});
 
+	test("the chevron cycles one card's size; the size control sets them all and shows none when mixed; the bar still opens the chapter", async ({ page }) => {
+		const o = novelOverview(page);
+		const card = o.locator(".sf-card").first();
+		const chevron = card.locator(".sf-card-chevron");
+		await expect(card).toHaveAttribute("data-tier", "extended");
+		await chevron.click();
+		await expect(card).toHaveAttribute("data-tier", "collapsed");
+		await chevron.click();
+		await expect(card).toHaveAttribute("data-tier", "bar");
+		// Mixed: no size is selected.
+		await expect(o.locator('.sf-size-option[aria-checked="true"]')).toHaveCount(0);
+		await o.locator('.sf-size-option[data-size="collapsed"]').click();
+		const count = await o.locator(".sf-card").count();
+		await expect(o.locator('.sf-card[data-tier="collapsed"]')).toHaveCount(count);
+		await expect(o.locator('.sf-size-option[data-size="collapsed"]')).toHaveAttribute("aria-checked", "true");
+		await o.locator('.sf-size-option[data-size="extended"]').click();
+		await expect(o.locator('.sf-card[data-tier="extended"]')).toHaveCount(count);
+		await o.locator(".sf-card .sf-bar").first().click();
+		await expect(novelOverview(page)).toHaveCount(0);
+	});
+
 	test("the tooltip shows the word count at once, the plot note's first paragraph joins it, and a changed note replaces it", async ({ page }) => {
 		const card = novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] .sf-bar');
 		const tip = page.getByRole("tooltip");

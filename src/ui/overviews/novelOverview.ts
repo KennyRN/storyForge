@@ -2,7 +2,7 @@ import { chapterDisplayTitle, getBookChapters, readBookFrontmatter, readChapterP
 import { computeGhostChapterDividerPercents, computeNovelLengthBarLayout, STRUCTURE_GUIDELINE_PERCENTS } from "../../core/novelLengthBar";
 import { libraryChapterPath } from "../../core/paths";
 import { bookDisplayTitle, getSeriesBooks } from "../../core/series";
-import { plotCardTooltip } from "../../core/plotCardTier";
+import { nextPlotCardTier, plotCardTooltip, type PlotCardTier } from "../../core/plotCardTier";
 import { applyHashNumbering } from "../../core/titleNumbering";
 import { formatWordCount } from "../../core/wordCount";
 import { grouped, lengthRow } from "../faces/lengthFields";
@@ -84,10 +84,14 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 			row("chapter", "Chapter Length:", plannedChapter, plannedChapter === null ? "Not set" : grouped(plannedChapter), (n) => writeBookPlannedChapterLength(project, book, n)),
 		);
 
-		// The chapter cards (bar tier)
+		// The chapter cards
 		const scale = Math.max(plannedChapter ?? 0, ...words);
+		const names = ordered.map((c) => c.name);
+		const tiers = names.map((n) => model.cardTier(book, n));
+		const nextLabel: Record<PlotCardTier, string> = { extended: "Show plot note only", collapsed: "Show bar only", bar: "Show all details" };
 		const cards = ordered.map((c, i) => {
 			const key = c.name;
+			const tier = tiers[i];
 			const bar = dataBar({
 				title: titles[i],
 				words: words[i],
@@ -98,12 +102,27 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 			});
 			bar.classList.add("sf-bar--link");
 			bar.addEventListener("click", () => open(key));
-			return el("div", { class: "sf-card", dataset: { chapter: key } }, el("button", { class: "sf-overview-name", text: titles[i], attrs: { type: "button" }, on: { click: () => open(key) } }), bar);
+			const chevron = el("button", { class: "sf-card-chevron", text: "▾", attrs: { type: "button", "aria-label": `${titles[i]}: ${nextLabel[tier]}`, "aria-expanded": String(tier !== "bar") }, on: { click: () => model.setCardTiers(book, [key], nextPlotCardTier(tier)) } });
+			chevron.dataset.tier = tier;
+			const head = el("div", { class: "sf-card-head" }, el("button", { class: "sf-overview-name", text: titles[i], attrs: { type: "button" }, on: { click: () => open(key) } }), chevron);
+			const card = el("div", { class: `sf-card sf-card--${tier}`, dataset: { chapter: key, tier } }, head, bar);
+			if (tier !== "bar") {
+				if (tier === "extended") card.append(el("div", { class: "sf-card-rows" }, el("div", { class: "sf-card-row" }, el("span", { class: "sf-muted", text: "Length" }), el("span", { text: formatWordCount(words[i]) }))));
+				const plot = el("div", { class: "sf-card-plot", dataset: { plot: key } });
+				card.append(plot);
+				void readChapterPlot(project, book, key).then((p) => {
+					plots.set(key, p);
+					plot.textContent = p;
+				});
+			}
+			return card;
 		});
+		const sizeOf = (t: PlotCardTier): boolean => tiers.length > 0 && tiers.every((x) => x === t);
+		const sizeControl = el("div", { class: "sf-size-control", attrs: { role: "radiogroup", "aria-label": "Size of all chapter cards" } }, ...(["bar", "collapsed", "extended"] as const).map((t) => el("button", { class: "sf-size-option", text: t === "bar" ? "Bar" : t === "collapsed" ? "Collapsed" : "Extended", attrs: { type: "button", role: "radio", "aria-checked": String(sizeOf(t)) }, dataset: { size: t }, on: { click: () => model.setCardTiers(book, names, t) } })));
 		const unplacedList = unplaced.length
 			? [el("h3", { class: "sf-overview-sub", text: "Unplaced" }), el("div", { class: "sf-overview-list", attrs: { role: "list", "aria-label": "Chapters not yet placed" } }, ...unplaced.map((c, i) => el("div", { class: "sf-overview-row sf-overview-row--unplaced", attrs: { role: "listitem" } }, el("button", { class: "sf-overview-name", text: titles[ordered.length + i], attrs: { type: "button" }, on: { click: () => open(c.name) } }))))]
 			: [];
-		fill(host, el("h2", { class: "sf-overview-title", text: novelTitle() }), track, strip, meta, el("div", { class: "sf-overview-list sf-cards", attrs: { role: "list", "aria-label": "Placed chapters with word counts" } }, ...cards), ...unplacedList);
+		fill(host, el("h2", { class: "sf-overview-title", text: novelTitle() }), track, strip, meta, sizeControl, el("div", { class: "sf-overview-list sf-cards", attrs: { role: "list", "aria-label": "Placed chapters with word counts" } }, ...cards), ...unplacedList);
 	};
 	draw();
 	const refresh = debounced(() => redrawKeepingFocus(host, draw));
