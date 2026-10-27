@@ -19,6 +19,8 @@ import { NUMBERING_STYLE_OPTIONS, type NumberingStyle } from "../core/numberingS
 import type { Project } from "../core/project";
 import type { SfLayout } from "../layout";
 import { BACKSTAGE_ROOT } from "../core/paths";
+import { DEFAULT_ELISIONS, DEFAULT_SPECIAL_CHARACTERS } from "../core/typing/defaults";
+import { isCharacterList, isElisionList, isNameList, isShortcodeMap } from "../core/typing/lists";
 
 export const PROJECT_SETTINGS_PATH = `${BACKSTAGE_ROOT}/project.md`;
 export const PLUGIN_DATA_PATH = ".obsidian/plugins/storyforge/data.json";
@@ -43,6 +45,23 @@ export interface ProjectSettings {
 	sessionEditingWpm: number | null;
 	/** Show the current session's time and words in the stats panel. */
 	showSessionReadout: boolean;
+	/** The typing aids (docs/typing-aids.md): each has its own switch; the lists belong to the project. */
+	typingSmartPunctuation: boolean;
+	typingNameAutocorrect: boolean;
+	typingShortcodes: boolean;
+	/** Codex names are offered in the shortcode popup too. */
+	typingShortcodeNames: boolean;
+	typingSpecialCharactersButton: boolean;
+	/** Words that begin with an apostrophe (`tis` for `’tis`). */
+	typingElisions: string[];
+	/** Names the autocorrect never puts in place of an all-lower-case word. */
+	typingNameOptOuts: string[];
+	/** Names without a Codex note. */
+	typingWordList: string[];
+	/** Shortcodes: the letters after `~`, and the full text. */
+	typingShortcodeList: Record<string, string>;
+	/** The characters in the palette, in order. */
+	typingSpecialCharacters: string[];
 }
 
 export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
@@ -59,6 +78,16 @@ export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
 	sessionMinShownMinutes: 5,
 	sessionEditingWpm: null,
 	showSessionReadout: false,
+	typingSmartPunctuation: true,
+	typingNameAutocorrect: true,
+	typingShortcodes: true,
+	typingShortcodeNames: true,
+	typingSpecialCharactersButton: true,
+	typingElisions: [...DEFAULT_ELISIONS],
+	typingNameOptOuts: [],
+	typingWordList: [],
+	typingShortcodeList: {},
+	typingSpecialCharacters: [...DEFAULT_SPECIAL_CHARACTERS],
 };
 
 type Key = keyof ProjectSettings;
@@ -83,6 +112,16 @@ const FIELDS: Record<Key, { file: string; plugin: string; valid: (v: unknown) =>
 	sessionMinShownMinutes: { file: "session-min-shown-minutes", plugin: "-", valid: (v) => isIntIn(v, 0, 60) },
 	sessionEditingWpm: { file: "session-editing-wpm", plugin: "-", valid: (v) => v === null || isIntIn(v, 1, 60) },
 	showSessionReadout: { file: "show-session-readout", plugin: "-", valid: (v) => typeof v === "boolean" },
+	typingSmartPunctuation: { file: "typing-smart-punctuation", plugin: "-", valid: (v) => typeof v === "boolean" },
+	typingNameAutocorrect: { file: "typing-name-autocorrect", plugin: "-", valid: (v) => typeof v === "boolean" },
+	typingShortcodes: { file: "typing-shortcodes", plugin: "-", valid: (v) => typeof v === "boolean" },
+	typingShortcodeNames: { file: "typing-shortcode-names", plugin: "-", valid: (v) => typeof v === "boolean" },
+	typingSpecialCharactersButton: { file: "typing-special-characters-button", plugin: "-", valid: (v) => typeof v === "boolean" },
+	typingElisions: { file: "typing-elisions", plugin: "-", valid: isElisionList },
+	typingNameOptOuts: { file: "typing-name-opt-outs", plugin: "-", valid: isNameList },
+	typingWordList: { file: "typing-word-list", plugin: "-", valid: isNameList },
+	typingShortcodeList: { file: "typing-shortcodes-list", plugin: "-", valid: isShortcodeMap },
+	typingSpecialCharacters: { file: "typing-special-characters", plugin: "-", valid: isCharacterList },
 };
 
 /** The ranges the settings view offers, so the view and the check agree. */
