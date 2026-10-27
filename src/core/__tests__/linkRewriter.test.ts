@@ -442,4 +442,12 @@ describe("planCodexRename: references in novel files", () => {
 		});
 		expect(p.referenceFiles).toEqual(["_story-library/novel-aaa.md"]);
 	});
+
+	it("counts a novel file that names the note only as its default PoV", async () => {
+		const { plan: p } = await plan({
+			"_story-library/aaa": null,
+			"_story-library/novel-aaa.md": "---\ndefault-pov-path: Codex/Jane.md\ndefault-pov-name: Jane\n---\n",
+		});
+		expect(p.referenceFiles).toEqual(["_story-library/novel-aaa.md"]);
+	});
 });

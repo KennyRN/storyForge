@@ -1,4 +1,5 @@
-import { chapterDisplayTitle, getBookChapters, readBookFrontmatter, readChapterPlot, writeBookPlannedChapterLength, writeBookPlannedNovelLength } from "../../core/book";
+import { chapterDisplayTitle, getBookChapters, getChapterEntry, readBookFrontmatter, readChapterPlot, writeBookPlannedChapterLength, writeBookPlannedNovelLength, writeChapterLocation, writeChapterPov, writeDefaultPov, type CodexRef } from "../../core/book";
+import { getCodexEntriesByType } from "../../core/codex";
 import { computeGhostChapterDividerPercents, computeNovelLengthBarLayout, STRUCTURE_GUIDELINE_PERCENTS } from "../../core/novelLengthBar";
 import { libraryChapterPath } from "../../core/paths";
 import { bookDisplayTitle, getSeriesBooks } from "../../core/series";
@@ -6,6 +7,7 @@ import { nextPlotCardTier, plotCardTooltip, type PlotCardTier } from "../../core
 import { applyHashNumbering } from "../../core/titleNumbering";
 import { formatWordCount } from "../../core/wordCount";
 import { grouped, lengthRow } from "../faces/lengthFields";
+import { openCodexPicker } from "../kit/codexPicker";
 import { el, fill } from "../kit/dom";
 import { attachTooltip } from "../kit/tooltip";
 import type { AppModel } from "../model";
@@ -49,6 +51,36 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 			const numbered = applyHashNumbering(all.map((f) => bookDisplayTitle(project, f)), settings.seriesNumberingStyle);
 			return numbered[all.indexOf(book)] ?? bookDisplayTitle(project, book);
 		};
+
+		// References to Codex notes: PoV, Location and the default PoV
+		const openNote = (path: string): void => {
+			model.setCentreView("chapter");
+			void model.editors?.open("centre", path);
+		};
+		const noteExists = (path: string): boolean => project.isFile(path);
+		const refButtons = (refs: CodexRef[], muted: boolean): HTMLElement[] =>
+			refs.map((r) => {
+				const missing = !noteExists(r.path);
+				return el("button", { class: `sf-ref${muted || missing ? " is-muted" : ""}`, text: missing ? `${r.name} (missing)` : r.name, attrs: { type: "button", title: missing ? `${r.path} is not in the Codex` : r.path }, on: { click: () => (missing ? undefined : openNote(r.path)) } });
+			});
+		const choose = (what: string, type: string, multi: boolean, current: CodexRef[], save: (chosen: CodexRef[]) => Promise<void>): void =>
+			openCodexPicker({
+				title: what,
+				entries: getCodexEntriesByType(project, type),
+				selected: current,
+				multi,
+				emptyText: type === "person" ? "There are no people in the Codex yet." : "There are no places in the Codex yet.",
+				exists: noteExists,
+				onApply: (chosen) => void model.guard(async () => (await save(chosen), model.touch("library", "nav")), "save the choice"),
+			});
+		const defaultPov: CodexRef[] = fm?.defaultPovPath ? [{ path: fm.defaultPovPath, name: fm.defaultPovName ?? fm.defaultPovPath }] : [];
+		const povRow = el(
+			"div",
+			{ class: "sf-meta-row sf-ref-row", dataset: { row: "default-pov" } },
+			el("span", { class: "sf-meta-label", text: "Default PoV:" }),
+			el("span", { class: "sf-ref-list" }, ...(defaultPov.length ? refButtons(defaultPov, false) : [el("span", { class: "sf-muted", text: "None" })])),
+			readOnly ? null : el("button", { class: "sf-ref-choose", text: "Choose…", attrs: { type: "button", "aria-label": "Choose the default PoV" }, on: { click: () => choose("Default PoV", "person", false, defaultPov, async (c) => writeDefaultPov(project, book, c[0]?.path ?? null, c[0]?.name ?? null)) } }),
+		);
 
 		// The progress bar
 		const layout = computeNovelLengthBarLayout(words, plannedNovel);
@@ -111,7 +143,29 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 			const head = el("div", { class: "sf-card-head" }, el("button", { class: "sf-overview-name", text: titles[i], attrs: { type: "button" }, on: { click: () => open(key) } }), chevron);
 			const card = el("div", { class: `sf-card sf-card--${tier}`, dataset: { chapter: key, tier } }, head, bar);
 			if (tier !== "bar") {
-				if (tier === "extended") card.append(el("div", { class: "sf-card-rows" }, el("div", { class: "sf-card-row" }, el("span", { class: "sf-muted", text: "Length" }), el("span", { text: formatWordCount(words[i]) }))));
+				if (tier === "extended") {
+					const entry = getChapterEntry(project, book, key);
+					const refRow = (label: string, kind: "pov" | "location", refs: CodexRef[], type: string, fallback: CodexRef[]): HTMLElement => {
+						const own = refs.length > 0;
+						const shown = own ? refs : fallback;
+						return el(
+							"div",
+							{ class: "sf-card-row sf-ref-row", dataset: { row: kind } },
+							el("span", { class: "sf-muted", text: label }),
+							el("span", { class: "sf-ref-list" }, ...(shown.length ? refButtons(shown, !own) : [el("span", { class: "sf-muted", text: "None" })]), !own && shown.length ? el("span", { class: "sf-muted", text: "(default)" }) : null),
+							readOnly ? null : el("button", { class: "sf-ref-choose", text: "Choose…", attrs: { type: "button", "aria-label": `Choose ${label.toLowerCase()} for ${titles[i]}` }, on: { click: () => choose(`${label} for ${titles[i]}`, type, true, refs, (c) => (kind === "pov" ? writeChapterPov : writeChapterLocation)(project, book, key, c)) } }),
+						);
+					};
+					card.append(
+						el(
+							"div",
+							{ class: "sf-card-rows" },
+							refRow("PoV", "pov", entry?.pov ?? [], "person", defaultPov),
+							refRow("Location", "location", entry?.location ?? [], "place", []),
+							el("div", { class: "sf-card-row" }, el("span", { class: "sf-muted", text: "Length" }), el("span", { text: formatWordCount(words[i]) })),
+						),
+					);
+				}
 				const field = textField({
 					label: `Plot note for ${titles[i]}`,
 					readOnly: !!readOnly,
@@ -134,7 +188,7 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 		const unplacedList = unplaced.length
 			? [el("h3", { class: "sf-overview-sub", text: "Unplaced" }), el("div", { class: "sf-overview-list", attrs: { role: "list", "aria-label": "Chapters not yet placed" } }, ...unplaced.map((c, i) => el("div", { class: "sf-overview-row sf-overview-row--unplaced", attrs: { role: "listitem" } }, el("button", { class: "sf-overview-name", text: titles[ordered.length + i], attrs: { type: "button" }, on: { click: () => open(c.name) } }))))]
 			: [];
-		fill(host, el("h2", { class: "sf-overview-title", text: novelTitle() }), track, strip, meta, sizeControl, el("div", { class: "sf-overview-list sf-cards", attrs: { role: "list", "aria-label": "Placed chapters with word counts" } }, ...cards), ...unplacedList);
+		fill(host, el("h2", { class: "sf-overview-title", text: novelTitle() }), povRow, track, strip, meta, sizeControl, el("div", { class: "sf-overview-list sf-cards", attrs: { role: "list", "aria-label": "Placed chapters with word counts" } }, ...cards), ...unplacedList);
 	};
 	draw();
 	const refresh = debounced(() => redrawKeepingFocus(host, draw));

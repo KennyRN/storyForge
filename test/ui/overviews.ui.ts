@@ -223,7 +223,7 @@ test.describe("the novel overview", () => {
 	});
 
 	test("a plot note is committed when it loses focus, keeping a leading space and further lines", async ({ page }) => {
-		const field = novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] .sf-field');
+		const field = novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] .sf-note-field');
 		await expect(field).toHaveValue("Jane reaches the harbour at dawn.");
 		await field.click();
 		await field.press("Meta+a");
@@ -236,7 +236,7 @@ test.describe("the novel overview", () => {
 	});
 
 	test("a plot note changed on disk while it is being edited is not overwritten: the author's text goes to recovery and a notice says so", async ({ page }) => {
-		const field = novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] .sf-field');
+		const field = novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] .sf-note-field');
 		await field.click();
 		await field.press("Meta+a");
 		await field.pressSequentially("My own words");
@@ -246,6 +246,45 @@ test.describe("the novel overview", () => {
 		await expect(page.getByRole("alert")).toContainText("changed on disk");
 		await expect(field).toHaveValue("Somebody else.");
 		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("Somebody else.");
+	});
+
+	test("a chapter with no PoV of its own shows the default, muted and labelled, and the default is not written into the chapter", async ({ page }) => {
+		const row = novelOverview(page).locator('.sf-card[data-chapter="ch-a5.md"] [data-row="pov"]');
+		await expect(row.locator(".sf-ref.is-muted")).toHaveText("Jane");
+		await expect(row).toContainText("(default)");
+		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).not.toMatch(/ch-a5\.md:[\s\S]*pov/);
+	});
+
+	test("the PoV picker sets a chapter's PoV, and the default PoV picker sets the default", async ({ page }) => {
+		const o = novelOverview(page);
+		const row = o.locator('.sf-card[data-chapter="ch-a5.md"] [data-row="pov"]');
+		await row.getByRole("button", { name: /Choose pov/i }).click();
+		await page.getByRole("dialog").getByLabel("Sam").check();
+		await page.getByRole("dialog").getByRole("button", { name: "Choose" }).click();
+		await expect(row.locator(".sf-ref")).toHaveText("Sam");
+		await expect(row.locator(".sf-ref.is-muted")).toHaveCount(0);
+		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("Codex%2FSam.md=Sam");
+		await o.getByRole("button", { name: "Choose the default PoV" }).click();
+		await page.getByRole("dialog").getByLabel("Sam").check();
+		await page.getByRole("dialog").getByRole("button", { name: "Choose" }).click();
+		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("default-pov-path: Codex/Sam.md");
+		await expect(o.locator('[data-row="default-pov"] .sf-ref')).toHaveText("Sam");
+	});
+
+	test("a reference to a note that is gone is shown as missing, and stays in the file", async ({ page }) => {
+		const novel = await page.evaluate((f) => window.__preview.read(f), BOOK_A);
+		await outside(page, BOOK_A, novel.replace("v1;Codex%2FJane.md=Jane", "v1;Codex%2FGone.md=Gone"));
+		const ref = novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] [data-row="pov"] .sf-ref');
+		await expect(ref).toHaveText("Gone (missing)");
+		await expect(ref).toHaveClass(/is-muted/);
+		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("Codex%2FGone.md=Gone");
+	});
+
+	test("a name in a PoV row opens that note in the workspace, and the overview comes back from its tab", async ({ page }) => {
+		await novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] [data-row="pov"] .sf-ref').click();
+		await expect(novelOverview(page)).toHaveCount(0);
+		await tab(page, "novel").click();
+		await expect(novelOverview(page)).toBeVisible();
 	});
 
 	test("the bar's tooltip shows on hover", async ({ page }) => {

@@ -40,7 +40,7 @@ export async function commitFocusedFields(): Promise<void> {
 const stored = (text: string): string => (text.trim() === "" ? "" : text.trimEnd());
 
 export function textField(spec: FieldSpec): TextField {
-	const ta = el("textarea", { class: "sf-field", attrs: { "aria-label": spec.label, rows: "1", spellcheck: "true" } });
+	const ta = el("textarea", { class: "sf-note-field", attrs: { "aria-label": spec.label, rows: "1", spellcheck: "true" } });
 	ta.readOnly = spec.readOnly;
 	let seen = "";
 	let dirty = false;
