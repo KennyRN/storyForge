@@ -99,13 +99,14 @@ describe("a Codex note renamed while the app was closed", () => {
 
 	it("with a snapshot: matched, and codex.md and the PoV references follow", async () => {
 		const { project, summary } = await whileClosed(rename);
-		expect(summary.matched).toEqual([{ kind: "codex", tier: 1, from: "Codex/Jane.md", to: "Codex/Janet.md" }]);
+		expect(summary.matched).toEqual([{ kind: "codex", tier: 1, from: "Codex/Jane.md", to: "Codex/Janet.md", referenceFiles: 1 }]);
 		const c = readCodexFrontmatter(project);
 		expect(c.folders["f-cast"].order).toEqual(["Codex/Janet.md", "Codex/Sam.md"]);
 		expect(c.types["Codex/Janet.md"]).toBe("person");
 		expect(c.types["Codex/Jane.md"]).toBeUndefined();
 		expect(readBookFrontmatter(project, "aaa")!.defaultPovPath).toBe("Codex/Janet.md");
 		expect(readBookFrontmatter(project, "aaa")!.chapters["ch-a1.md"].pov.map((r) => r.path)).toEqual(["Codex/Janet.md"]);
+		expect(readBookFrontmatter(project, "aaa")!.defaultPovName).toBe("Janet");
 	});
 
 	it("without a snapshot: recovered, then pruned", async () => {
@@ -117,7 +118,8 @@ describe("a Codex note renamed while the app was closed", () => {
 		expect(rec).toMatchObject({ "codex-note": "Codex/Jane.md", type: "person", folders: [{ id: "f-cast", name: "Cast" }] });
 		expect((rec as { references: unknown[] }).references.length).toBeGreaterThan(0);
 		expect(readCodexFrontmatter(project).types["Codex/Jane.md"]).toBeUndefined();
-		expect(readBookFrontmatter(project, "aaa")!.defaultPovPath).toBeNull();
+		// A note that could not be matched leaves its references as they are: they show as missing, never dropped.
+		expect(readBookFrontmatter(project, "aaa")!.defaultPovPath).toBe("Codex/Jane.md");
 	});
 });
 

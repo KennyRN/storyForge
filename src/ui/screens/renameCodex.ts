@@ -71,6 +71,7 @@ export function openRenameCodex(model: AppModel, notePath: string): void {
 			el("p", { class: "sf-plan-headline", text: plan.totalLinks === 0 ? `“${plan.oldName}” becomes “${plan.newName}”. No links point to it.` : `Renaming updates ${plural(plan.totalLinks, "link")} in ${plural(files.length, "file")}.` }),
 			el("p", { class: "sf-muted", text: "A backup is made first, and anything you have typed is saved." }),
 			list(files.map((f) => `${f.path}: ${plural(f.linkCount, "link")}`), "Files that change"),
+			plan.referenceFiles.length ? el("p", { class: "sf-muted", text: `Chapters' PoV and location lists in ${plural(plan.referenceFiles.length, "novel file")} will follow the new name.` }) : null,
 			list(plan.ambiguous.map((a) => `${a.path}: ${a.text} (also the name of ${a.otherFiles.join(", ")})`), `${plural(plan.ambiguous.length, "link")} could mean another note, and will be left as they are`),
 			plan.outside.linkCount ? list(plan.outside.files.map((f) => `${f.path}: ${plural(f.count, "link")}`), `${plural(plan.outside.linkCount, "link")} in notes outside storyForge's folders will not change`) : null,
 			list(plan.unquotedFrontmatter.map((u) => `${u.path}: ${u.text}`), `${plural(plan.unquotedFrontmatter.length, "value")} written without quotes can't be updated`),
@@ -113,6 +114,7 @@ export function openRenameCodex(model: AppModel, notePath: string): void {
 				list(r.skippedUnsafe.map((u) => `${u.path}: ${u.reason}`), "Files left untouched because the edit could not be made safely"),
 				list(r.ambiguousLeft.map((a) => `${a.path}: ${a.text}`), "Links left as they are"),
 				r.outsideLinks ? el("p", { class: "sf-muted", text: `${plural(r.outsideLinks, "link")} in notes outside storyForge's folders were not changed.` }) : null,
+				list(r.referencesSkipped.map((u) => `${u.path}: ${u.reason}`), "Novel files whose PoV and location lists could not be updated (they will show the old name as missing)"),
 				r.rekeyError ? el("p", { class: "sf-rename-problem", text: `The Codex's own details could not be updated: ${r.rekeyError.message}` }) : null,
 			);
 		}

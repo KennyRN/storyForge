@@ -49,7 +49,7 @@ export function maybeShowReconciliation(model: AppModel): void {
 		section("Words that may not have been saved", unsaved),
 		section("Other files that may not have been saved", unsavedOther),
 		section("Earlier versions kept", earlier),
-		section("Matched", s.matched.map((m) => `${m.from} is now ${m.to}`)),
+		section("Matched", s.matched.map((m) => `${m.from} is now ${m.to}${m.referenceFiles ? ` (PoV and location lists in ${m.referenceFiles} novel ${m.referenceFiles === 1 ? "file" : "files"} followed it)` : ""}`)),
 		section("Pruned", pruned),
 		section("Could not tell which file", s.ambiguous.map((a) => `${a.path} could be ${a.candidates.map(name).join(" or ")}. Nothing was changed.`)),
 		section("Added", s.added),

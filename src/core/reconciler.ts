@@ -73,7 +73,7 @@ export interface Gate {
 }
 
 export interface ReconcileSummary {
-	matched: { kind: "chapter" | "codex" | "book"; tier: 1 | 2 | "folder"; from: string; to: string; crossBook?: boolean }[];
+	matched: { kind: "chapter" | "codex" | "book"; tier: 1 | 2 | "folder"; from: string; to: string; crossBook?: boolean; referenceFiles?: number }[];
 	pruned: { kind: "chapter" | "codex"; path: string; recoveryPath: string }[];
 	ambiguous: { kind: "chapter" | "codex"; path: string; candidates: string[] }[];
 	added: string[];
@@ -392,8 +392,9 @@ export async function reconcileChanges(project: Project, change: ChangeSet, opti
 	}
 	for (const [v, a] of cx.pairs.sort((x, y) => (x[0] < y[0] ? -1 : 1))) {
 		try {
-			await handleCodexNoteRename(project, v, a);
-			summary.matched.push({ kind: "codex", tier: 1, from: v, to: a });
+			const rekeyed = await handleCodexNoteRename(project, v, a);
+			summary.matched.push({ kind: "codex", tier: 1, from: v, to: a, ...(rekeyed.updated.length ? { referenceFiles: rekeyed.updated.length } : {}) });
+			for (const u of rekeyed.skipped) summary.skipped.push({ path: u.path, reason: `its PoV and location lists still name ${v}, which was renamed to ${a}: ${u.reason}` });
 		} catch (err) {
 			summary.skipped.push({ path: v, reason: `matched to ${a} but couldn't re-key its references: ${(err as Error).message}` });
 		}

@@ -1,6 +1,7 @@
 import { bookBackstagePath, bookFilePath, libraryBookPath, libraryChapterPath, LIBRARY_ROOT } from "./paths";
 import { resolveOrder, type OrderResult } from "./ordering";
 import { mintId } from "./slug";
+import { foldKey } from "./pathRules";
 import type { IndexEntry } from "./projectIndex";
 import type { Project } from "./project";
 import type { FrontmatterRecord } from "./frontmatter";
@@ -252,11 +253,6 @@ function stampChapterIdentity(
 	if (typeof entry["chapter-title"] !== "string" || entry["chapter-title"].length === 0) {
 		entry["chapter-title"] = filename.replace(/\.md$/i, "");
 	}
-}
-
-function rekeyCodexRefList(refs: CodexRef[], oldPath: string, newPath: string | null): CodexRef[] {
-	if (newPath === null) return refs.filter((r) => r.path !== oldPath);
-	return refs.map((r) => (r.path === oldPath ? { ...r, path: newPath } : r));
 }
 
 /** The raw, dash-cased on-disk shape of novel.md's frontmatter, as read/written through `project.modifyFrontmatter`. */
@@ -728,51 +724,118 @@ export async function writeNovelTags(project: Project, bookFolderName: string, t
 	});
 }
 
-/** Rewrites any chapter's PoV reference matching `oldPath` to `newPath` (or drops it if `newPath` is null), across every book — called when a Codex person note is renamed/moved. */
-export async function rekeyChapterPovReferences(project: Project, oldPath: string, newPath: string | null): Promise<void> {
-	for (const folder of getLibraryBookFolders(project)) {
-		const fm = readBookFrontmatter(project, folder.name);
-		if (!fm) continue;
-		const hasChapterMatch = Object.values(fm.chapters).some((entry) => entry.pov.some((r) => r.path === oldPath));
-		const hasDefaultMatch = fm.defaultPovPath === oldPath;
-		if (!hasChapterMatch && !hasDefaultMatch) continue;
-		await modifyBookFrontmatter(project, folder.name, (bfm) => {
-			if (bfm["default-pov-path"] === oldPath) {
-				bfm["default-pov-path"] = newPath;
-				bfm["default-pov-name"] = newPath ? bfm["default-pov-name"] : null;
-			}
-			const chapters: Record<string, RawChapterEntry> = bfm.chapters && typeof bfm.chapters === "object" ? bfm.chapters : {};
-			for (const entry of Object.values(chapters)) {
-				if (!isPlainObject(entry)) continue;
-				const current = parseCodexRefs(entry.pov, entry["pov-path"], entry["pov-name"]);
-				const next = rekeyCodexRefList(current, oldPath, newPath);
-				if (next.length === current.length && next.every((r, i) => r.path === current[i].path)) continue;
-				applyCodexRefList(entry, "pov", "pov-path", "pov-name", next);
-			}
-			bfm.chapters = chapters;
+const sameNote = (value: unknown, path: string): boolean => typeof value === "string" && foldKey(value) === foldKey(path);
+
+/** A Codex note's title: its file name without `.md`. */
+const noteTitle = (path: string): string => (path.split("/").pop() ?? path).replace(/\.md$/i, "");
+
+/**
+ * Points one chapter's reference list (PoV or location) at a renamed note, in the form it is already
+ * stored in: the old `*-path` / `*-name` keys stay as they are, the `v1;` scalar stays a `v1;` scalar,
+ * and so on. Matches on the stored path only; updates the path and the name. Returns whether anything changed.
+ */
+function rekeyEntryRefs(entry: Record<string, unknown>, listKey: string, pathKey: string, nameKey: string, oldPath: string, newPath: string, newName: string): boolean {
+	let changed = false;
+	const legacy = entry[pathKey];
+	if (sameNote(legacy, oldPath)) {
+		entry[pathKey] = newPath;
+		entry[nameKey] = newName;
+		changed = true;
+	} else if (Array.isArray(legacy)) {
+		const names: unknown[] = Array.isArray(entry[nameKey]) ? [...(entry[nameKey] as unknown[])] : [];
+		let hit = false;
+		const paths = legacy.map((p, i) => {
+			if (!sameNote(p, oldPath)) return p;
+			hit = true;
+			names[i] = newName;
+			return newPath;
 		});
+		if (hit) {
+			entry[pathKey] = paths;
+			entry[nameKey] = names;
+			changed = true;
+		}
 	}
+	const hitRef = (r: CodexRef): boolean => sameNote(r.path, oldPath);
+	const moved = (r: CodexRef): CodexRef => (hitRef(r) ? { path: newPath, name: newName } : r);
+	const list = entry[listKey];
+	const encoded = decodeCodexRefList(list);
+	if (encoded) {
+		if (encoded.some(hitRef)) {
+			entry[listKey] = encodeCodexRefList(encoded.map(moved));
+			changed = true;
+		}
+	} else if (typeof list === "string" && list.startsWith("[")) {
+		const parsed = parseJsonCodexRefList(list);
+		if (parsed.some(hitRef)) {
+			entry[listKey] = JSON.stringify(parsed.map(moved));
+			changed = true;
+		}
+	} else if (Array.isArray(list)) {
+		if (list.some((r) => isCodexRef(r) && hitRef(r))) {
+			entry[listKey] = list.map((r) => (isCodexRef(r) ? moved(r) : r));
+			changed = true;
+		}
+	} else if (isCodexRef(list) && hitRef(list)) {
+		entry[listKey] = moved(list);
+		changed = true;
+	}
+	return changed;
 }
 
-/** Rewrites any chapter's location reference matching `oldPath` to `newPath` (or drops it if `newPath` is null), across every book — called when a Codex place note is renamed/moved. */
-export async function rekeyChapterLocationReferences(project: Project, oldPath: string, newPath: string | null): Promise<void> {
+/** The novel files whose chapters' PoV or location lists, or default PoV, name the note at `notePath`. Reads the index only. */
+export function bookFoldersReferencingNote(project: Project, notePath: string): string[] {
+	const out: string[] = [];
 	for (const folder of getLibraryBookFolders(project)) {
 		const fm = readBookFrontmatter(project, folder.name);
 		if (!fm) continue;
-		const hasMatch = Object.values(fm.chapters).some((entry) => entry.location.some((r) => r.path === oldPath));
-		if (!hasMatch) continue;
-		await modifyBookFrontmatter(project, folder.name, (bfm) => {
-			const chapters: Record<string, RawChapterEntry> = bfm.chapters && typeof bfm.chapters === "object" ? bfm.chapters : {};
-			for (const entry of Object.values(chapters)) {
-				if (!isPlainObject(entry)) continue;
-				const current = parseCodexRefs(entry.location, entry["location-path"], entry["location-name"]);
-				const next = rekeyCodexRefList(current, oldPath, newPath);
-				if (next.length === current.length && next.every((r, i) => r.path === current[i].path)) continue;
-				applyCodexRefList(entry, "location", "location-path", "location-name", next);
-			}
-			bfm.chapters = chapters;
-		});
+		const hit = (r: CodexRef): boolean => sameNote(r.path, notePath);
+		if (sameNote(fm.defaultPovPath, notePath) || Object.values(fm.chapters).some((e) => e.pov.some(hit) || e.location.some(hit))) out.push(folder.name);
 	}
+	return out;
+}
+
+export interface ReferenceRekeyResult {
+	/** Novel files whose references were changed. */
+	updated: string[];
+	/** Novel files that could not be rewritten (unreadable frontmatter, or a refused write); their references are left as they were and will show as missing. */
+	skipped: { path: string; reason: string }[];
+}
+
+/**
+ * Follows a Codex note's rename in every book: chapters' PoV and location lists and the default PoV
+ * (decision 42). Only a rename does anything: a note that is archived, pruned or moved out of the
+ * Codex (`newPath` null) leaves its references as they are, to show as missing. A file that can't be
+ * rewritten is skipped and listed; nothing is guessed.
+ */
+export async function rekeyCodexNoteReferences(project: Project, oldPath: string, newPath: string | null): Promise<ReferenceRekeyResult> {
+	const result: ReferenceRekeyResult = { updated: [], skipped: [] };
+	if (newPath === null) return result;
+	const newName = noteTitle(newPath);
+	for (const folder of bookFoldersReferencingNote(project, oldPath)) {
+		const path = bookFilePath(folder);
+		try {
+			let changed = false;
+			await modifyBookFrontmatter(project, folder, (bfm) => {
+				changed = false;
+				if (sameNote(bfm["default-pov-path"], oldPath)) {
+					bfm["default-pov-path"] = newPath;
+					bfm["default-pov-name"] = newName;
+					changed = true;
+				}
+				const chapters: Record<string, RawChapterEntry> = bfm.chapters && typeof bfm.chapters === "object" ? bfm.chapters : {};
+				for (const entry of Object.values(chapters)) {
+					if (!isPlainObject(entry)) continue;
+					if (rekeyEntryRefs(entry, "pov", "pov-path", "pov-name", oldPath, newPath, newName)) changed = true;
+					if (rekeyEntryRefs(entry, "location", "location-path", "location-name", oldPath, newPath, newName)) changed = true;
+				}
+			});
+			if (changed) result.updated.push(path);
+		} catch (err) {
+			result.skipped.push({ path, reason: (err as Error).message });
+		}
+	}
+	return result;
 }
 
 /** Rekeys a chapter's `chapters` map entry when its file is renamed outside the plugin. No-op if `oldFilename` isn't present. */

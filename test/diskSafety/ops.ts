@@ -5,7 +5,7 @@ import * as path from "node:path";
 import type { OpSpec, Ctx } from "../helpers/diskSafety";
 import {
 	archiveChapter, createBook, createChapter, ensureAllChapterEntries, insertChapterEntry, removeChapterEntry, readBookFrontmatter, renameBookTitle, renameChapterEntry, renameChapterTitle,
-	rekeyChapterLocationReferences, rekeyChapterPovReferences, reorderSeriesBooks, syncAllBookReferenceFields, unarchiveChapter,
+	rekeyCodexNoteReferences, reorderSeriesBooks, syncAllBookReferenceFields, unarchiveChapter,
 	upsertChapterEntry, writeBookArchiveOrder, writeBookChapterOrder, writeBookUnplacedOrder, writeBookCoverImage, writeBookPlannedChapterLength,
 	writeBookPlannedNovelLength, writeBookSynopsis, writeChapterColor, writeChapterLocation, writeChapterPlot, writeChapterPlotThread,
 	writeChapterPov, writeChapterTags, writeDefaultPov, writeDialogueQuotes, writeNovelTags,
@@ -184,15 +184,15 @@ export const OPS: OpSpec[] = [
 		changed: { [N]: { format: "text", frontmatterSame: true } },
 	},
 	{
-		name: "rekeyChapterPovReferences",
-		run: (c) => rekeyChapterPovReferences(c.project, "Codex/Jane.md", "Codex/Janet.md"),
+		name: "rekeyCodexNoteReferences (a person)",
+		run: (c) => rekeyCodexNoteReferences(c.project, "Codex/Jane.md", "Codex/Janet.md"),
 		changed: {
-			[N]: fm(["default-pov-path"], ["chapters", "ch-a1.md", "pov"], ["chapters", "ch-a2.md", "pov"], ["chapters", "ch-a2.md", "pov-path"], ["chapters", "ch-a2.md", "pov-name"]),
+			[N]: fm(["default-pov-path"], ["default-pov-name"], ["chapters", "ch-a1.md", "pov"], ["chapters", "ch-a2.md", "pov"], ["chapters", "ch-a2.md", "pov-path"], ["chapters", "ch-a2.md", "pov-name"]),
 		},
 	},
 	{
-		name: "rekeyChapterLocationReferences",
-		run: (c) => rekeyChapterLocationReferences(c.project, "Codex/Harbour.md", "Codex/Port.md"),
+		name: "rekeyCodexNoteReferences (a place)",
+		run: (c) => rekeyCodexNoteReferences(c.project, "Codex/Harbour.md", "Codex/Port.md"),
 		changed: {
 			[N]: fm(["chapters", "ch-a1.md", "location"], ["chapters", "ch-a2.md", "location"], ["chapters", "ch-a2.md", "location-path"], ["chapters", "ch-a2.md", "location-name"]),
 		},
@@ -398,19 +398,14 @@ export const OPS: OpSpec[] = [
 		name: "reconcileDelete: a Codex note deleted in a file manager",
 		setup: (c) => externalDelete(c, "Codex/Jane.md"),
 		run: (c) => reconcileDelete(c.project, "Codex/Jane.md"),
-		changed: {
-			[CODEX]: fm(["folders"], ["types"]),
-			[N]: fm(["default-pov-path"], ["default-pov-name"], ["chapters", "ch-a1.md", "pov"], ["chapters", "ch-a2.md", "pov"], ["chapters", "ch-a2.md", "pov-path"], ["chapters", "ch-a2.md", "pov-name"]),
-		},
+		// The references to it are left as they are, to show as missing (decision 42).
+		changed: { [CODEX]: fm(["folders"], ["types"]) },
 	},
 	{
-		name: "reconcileDelete: a Codex note deleted outside, its references dropped",
+		name: "reconcileDelete: a Codex note deleted outside, its references left",
 		setup: (c) => externalDelete(c, "Codex/Harbour.md"),
 		run: (c) => reconcileDelete(c.project, "Codex/Harbour.md"),
-		changed: {
-			[CODEX]: fm(["folders"], ["types"]),
-			[N]: fm(["chapters", "ch-a1.md", "location"], ["chapters", "ch-a2.md", "location"], ["chapters", "ch-a2.md", "location-path"], ["chapters", "ch-a2.md", "location-name"]),
-		},
+		changed: { [CODEX]: fm(["folders"], ["types"]) },
 	},
 
 	// ---------------------------------------------------------------- operations that must be refused
