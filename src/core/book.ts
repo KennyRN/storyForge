@@ -983,17 +983,34 @@ export async function readChapterPlot(project: Project, bookFolderName: string, 
 	return getChapterEntry(project, bookFolderName, filename)?.plot ?? "";
 }
 
+/** Thrown from inside a locked write when the field no longer holds what the writer last saw. Nothing has been written. */
+export class FieldConflictError extends Error {
+	constructor(readonly current: string) {
+		super("The field changed on disk since it was last seen.");
+		this.name = "FieldConflictError";
+	}
+}
+
 /**
  * Writes a chapter's plot notes into novel.md's `chapters.<file>.plot` field (backstage
- * metadata). Empty plot clears the field so the YAML stays easy to read by hand.
+ * metadata). Only the end is trimmed (leading spaces are the author's); a note of nothing but
+ * whitespace clears the field so the YAML stays easy to read by hand. With `expected`, the write
+ * happens only if the stored note still equals it, checked inside the same lock as the write
+ * (else FieldConflictError, nothing written).
  */
-export async function writeChapterPlot(project: Project, bookFolderName: string, filename: string, plot: string): Promise<void> {
-	const trimmed = plot.trim();
+export async function writeChapterPlot(project: Project, bookFolderName: string, filename: string, plot: string, expected?: string): Promise<void> {
+	const trimmed = plot.trimEnd();
+	const value = trimmed.trim() === "" ? "" : trimmed;
 	const { bookId } = resolveBookIdentity(project, bookFolderName);
 	await modifyBookFrontmatter(project, bookFolderName, (fm) => {
 		const chapters: Record<string, RawChapterEntry> = fm.chapters && typeof fm.chapters === "object" ? fm.chapters : {};
 		const existing: RawChapterEntry =
 			chapters[filename] && typeof chapters[filename] === "object" ? chapters[filename] : {};
+		if (expected !== undefined) {
+			const current = typeof existing.plot === "string" ? existing.plot : "";
+			if (current !== expected) throw new FieldConflictError(current);
+			if (current === value) return;
+		}
 		const chapterId: string =
 			typeof existing["chapter-id"] === "string"
 				? existing["chapter-id"]
@@ -1001,7 +1018,7 @@ export async function writeChapterPlot(project: Project, bookFolderName: string,
 		const chapterTitle: string =
 			typeof existing["chapter-title"] === "string" ? existing["chapter-title"] : filename.replace(/\.md$/i, "");
 		const next: RawChapterEntry = { ...existing, "chapter-id": chapterId, "chapter-title": chapterTitle };
-		if (trimmed) next.plot = trimmed;
+		if (value) next.plot = value;
 		else delete next.plot;
 		chapters[filename] = next;
 		fm.chapters = chapters;

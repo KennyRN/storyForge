@@ -10,6 +10,8 @@ import { el, fill } from "../kit/dom";
 import { attachTooltip } from "../kit/tooltip";
 import type { AppModel } from "../model";
 import { dataBar } from "./bars";
+import { commitPlotNote } from "../../core/fieldWriter";
+import { textField } from "./fieldCommitter";
 import { debounced, redrawKeepingFocus } from "./refresh";
 
 /** The novel overview: the progress bar (segments, ghost dividers, structure strip), the planned lengths, and a bar-tier card per chapter. */
@@ -22,6 +24,8 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 	const draw = (): void => {
 		// A redraw never steals focus: leave a field being typed in alone.
 		if (editing !== null && host.contains(document.activeElement) && document.activeElement instanceof HTMLInputElement) return;
+		// Nor a plot note being typed in: its text isn't saved yet.
+		if (host.contains(document.activeElement) && document.activeElement instanceof HTMLTextAreaElement) return;
 		plots = new Map();
 		const running = model.running;
 		const book = model.nav.book;
@@ -108,11 +112,19 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 			const card = el("div", { class: `sf-card sf-card--${tier}`, dataset: { chapter: key, tier } }, head, bar);
 			if (tier !== "bar") {
 				if (tier === "extended") card.append(el("div", { class: "sf-card-rows" }, el("div", { class: "sf-card-row" }, el("span", { class: "sf-muted", text: "Length" }), el("span", { text: formatWordCount(words[i]) }))));
-				const plot = el("div", { class: "sf-card-plot", dataset: { plot: key } });
-				card.append(plot);
+				const field = textField({
+					label: `Plot note for ${titles[i]}`,
+					readOnly: !!readOnly,
+					read: () => readChapterPlot(project, book, key),
+					commit: (expected, next) => commitPlotNote(project, book, key, expected, next),
+					notify: (n) => model.notices.notify(n),
+					written: (stored) => plots.set(key, stored),
+				});
+				field.element.dataset.plot = key;
+				card.append(field.element);
 				void readChapterPlot(project, book, key).then((p) => {
 					plots.set(key, p);
-					plot.textContent = p;
+					field.show(p);
 				});
 			}
 			return card;

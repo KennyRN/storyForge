@@ -76,6 +76,11 @@ export function recoverCodexText(project: Project, noteBasename: string, text: s
 	return createFirstFree(project, (n) => codexRecoveryPath(noteBasename, now, n), text);
 }
 
+/** Saves a plot note that could not be saved, beside the book's chapter recoveries but named `<chapter> (plot note) <stamp>.md` so it can't be mistaken for chapter text. */
+export function recoverPlotNote(project: Project, bookFolderName: string, chapterBasename: string, text: string, now = new Date()): Promise<RecoveryResult> {
+	return createFirstFree(project, (n) => recoveryName(`${RECOVERY_ROOT}/${safeName(bookFolderName)}`, `${chapterBasename} (plot note)`, now, n), text);
+}
+
 /** The visible name of the copy of a leftover temporary file: `<folder>/<name> (leftover <stamp>).md`, ` 2`, ` 3`... on a clash. */
 export function leftoverRecoveryPath(folder: string, name: string, now: Date, n = 1): string {
 	return `${folder}/${safeName(name)} (leftover ${recoveryStamp(now)})${n > 1 ? ` ${n}` : ""}.md`;

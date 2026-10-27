@@ -222,6 +222,32 @@ test.describe("the novel overview", () => {
 		}).toMatch(/: The tide turns before breakfast\.$/);
 	});
 
+	test("a plot note is committed when it loses focus, keeping a leading space and further lines", async ({ page }) => {
+		const field = novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] .sf-field');
+		await expect(field).toHaveValue("Jane reaches the harbour at dawn.");
+		await field.click();
+		await field.press("Meta+a");
+		await field.pressSequentially("  Jane leaves.\nThen the tide: turns.");
+		// Nothing is written while typing.
+		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).not.toContain("Jane leaves.");
+		await novelOverview(page).locator(".sf-overview-title").click();
+		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("Jane leaves.");
+		await expect(field).toHaveValue("  Jane leaves.\nThen the tide: turns.");
+	});
+
+	test("a plot note changed on disk while it is being edited is not overwritten: the author's text goes to recovery and a notice says so", async ({ page }) => {
+		const field = novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] .sf-field');
+		await field.click();
+		await field.press("Meta+a");
+		await field.pressSequentially("My own words");
+		const novel = await page.evaluate((f) => window.__preview.read(f), BOOK_A);
+		await outside(page, BOOK_A, novel.replace("plot: Jane reaches the harbour at dawn.", "plot: Somebody else.\n"));
+		await novelOverview(page).locator(".sf-overview-title").click();
+		await expect(page.getByRole("alert")).toContainText("changed on disk");
+		await expect(field).toHaveValue("Somebody else.");
+		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("Somebody else.");
+	});
+
 	test("the bar's tooltip shows on hover", async ({ page }) => {
 		const bar = novelOverview(page).locator(".sf-card .sf-bar").first();
 		await expect(bar).toHaveAttribute("aria-label", /\d/);
