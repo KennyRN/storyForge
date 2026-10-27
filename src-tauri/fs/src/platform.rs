@@ -164,6 +164,74 @@ pub fn reply_to_terminate(allow: bool) {
     }
 }
 
+/// The per-app text defaults WebKit reads for the editor (decision 46). The Mac's own smart quotes, smart dashes,
+/// Text Replacements and spelling autocorrection would otherwise act inside the manuscript, before any code of ours
+/// and inside `[[links]]`, code and comments; they are off. The red spellcheck underlines are on (they were not in
+/// 0.12.0, where the web view's continuous spellchecking defaulted off).
+#[cfg(target_os = "macos")]
+pub const EDITOR_TEXT_DEFAULTS: [(&std::ffi::CStr, bool); 5] = [
+    (c"WebAutomaticQuoteSubstitutionEnabled", false),
+    (c"WebAutomaticDashSubstitutionEnabled", false),
+    (c"WebAutomaticTextReplacementEnabled", false),
+    (c"WebAutomaticSpellingCorrectionEnabled", false),
+    (c"WebContinuousSpellCheckingEnabled", true),
+];
+
+/// Registers `EDITOR_TEXT_DEFAULTS` as this app's own defaults (`registerDefaults`: in memory, lowest priority, for
+/// this process only). It writes nothing to disk and nothing to the Mac's global settings or any other app, and the
+/// author's own Text Replacements elsewhere are untouched. Call before the first window is created.
+#[cfg(target_os = "macos")]
+pub fn register_editor_text_defaults() -> io::Result<()> {
+    use objc2::runtime::{AnyObject, Bool};
+    use objc2::{class, msg_send};
+    let other = |m: &str| io::Error::new(io::ErrorKind::Other, m.to_string());
+    unsafe {
+        let dict: *mut AnyObject = msg_send![class!(NSMutableDictionary), dictionary];
+        if dict.is_null() {
+            return Err(other("no NSMutableDictionary"));
+        }
+        for (key, on) in EDITOR_TEXT_DEFAULTS {
+            let k: *mut AnyObject = msg_send![class!(NSString), stringWithUTF8String: key.as_ptr()];
+            let v: *mut AnyObject = msg_send![class!(NSNumber), numberWithBool: Bool::new(on)];
+            if k.is_null() || v.is_null() {
+                return Err(other("could not build a default"));
+            }
+            let _: () = msg_send![dict, setObject: v, forKey: k];
+        }
+        let defaults: *mut AnyObject = msg_send![class!(NSUserDefaults), standardUserDefaults];
+        if defaults.is_null() {
+            return Err(other("no NSUserDefaults"));
+        }
+        let _: () = msg_send![defaults, registerDefaults: dict];
+    }
+    Ok(())
+}
+
+/// What the app's defaults answer for one of the editor's text keys, after `register_editor_text_defaults`.
+#[cfg(target_os = "macos")]
+pub fn editor_text_default(key: &std::ffi::CStr) -> Option<bool> {
+    use objc2::runtime::{AnyObject, Bool};
+    use objc2::{class, msg_send};
+    unsafe {
+        let defaults: *mut AnyObject = msg_send![class!(NSUserDefaults), standardUserDefaults];
+        let k: *mut AnyObject = msg_send![class!(NSString), stringWithUTF8String: key.as_ptr()];
+        if defaults.is_null() || k.is_null() {
+            return None;
+        }
+        let present: *mut AnyObject = msg_send![defaults, objectForKey: k];
+        if present.is_null() {
+            return None;
+        }
+        let on: Bool = msg_send![defaults, boolForKey: k];
+        Some(on.as_bool())
+    }
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn register_editor_text_defaults() -> io::Result<()> {
+    Ok(())
+}
+
 #[cfg(not(target_os = "macos"))]
 pub fn install_terminate_hook(_handler: fn() -> Terminate) -> io::Result<()> {
     Err(io::Error::new(io::ErrorKind::Other, "not macOS"))
