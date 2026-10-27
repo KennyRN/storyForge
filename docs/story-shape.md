@@ -147,3 +147,18 @@ The survey is accepted. These supersede anything above that differs.
 Also: stamping `chapter-id`/`chapter-title` when a plot note is written is fine (0.17.1 behaviour, gives stable ids for session files). A picker still open at quit is discarded.
 
 Next: commit 2 (card sizes); rekey in its own commit before commit 4; the close-commit step runs `npm run test:quit` before it is committed.
+
+## 13. As built
+
+What differs from the design above (§1–§11) and from the rulings (§12). The report, `docs/story-shape-report.md`, has the screenshots and the checks.
+
+- **The survey's "hold" was a mistake.** Codex renames and the reconciler already re-pointed chapters' PoV, location and default-PoV references (`rekeyChapterPovReferences` and `rekeyChapterLocationReferences`). §1.2 G1 said they didn't. What was missing was agreement with the rulings, so `rekeyCodexNoteReferences` replaced both: path matching ignoring case and Unicode, path and name updated, old forms kept in place, nothing done for archive, prune or deletion (references show as missing), and a novel file that can't be rewritten skipped and listed. No new kind of write at open.
+- **Recovery for field text** lives in `recovery.ts` (`recoverPlotNote`, `recoverFieldText`) and is reached through `fieldWriter.ts`, so `recovery.ts` stays the only caller of `createRecovery` and the architecture test needed no new entry for it. Plot-note recovery names are `<chapter> (plot note) <stamp>.md`.
+- **`FieldState`** (`src/ui/overviews/fieldState.ts`) holds the field's life without a DOM: what the disk held when the author began, whether there is unwritten text, `flush`, and `rescue`. Added after review of commit 7: a commit that throws, or that the close has to cut off, now sends the author's words to a recovery file. Before that a hung commit left them only in the field.
+- **Covers:** the two commands as ruled; `sf-bridge` (development and tests only) accepts `pick_cover` with a `source` file so the preview can stand in for the open panel. The window never names a path.
+- **Section writes:** `readSection` / `writeSection` in `sectionBody.ts`; text with a line starting `# ` or `## ` is refused (`SectionContentError`) because it would split the section. The old `extractSection` and `upsertSection` are gone.
+- **The synopsis field** is a plain text area filling the cover's height (144 px).
+- **The picker** is a dialog with a filterable checklist (`ui/kit/codexPicker.ts`).
+- **Card sizes** are machine state (`cardTiers`, `<book>/<file>`, extended not stored). The plugin's stored sizes are not imported (ruling 8).
+- **Disk-safety:** operations for the plot-note, synopsis and description commits (a clean write, and a conflict that leaves the file byte-identical and puts the text in exactly one recovery file), the four cover-name functions, and the rekey.
+- **`npm run test:quit`** runs each route twice (chapter, plot note), confirms the typed text reached the field before quitting, and counts "not typed" retries separately from a loss.

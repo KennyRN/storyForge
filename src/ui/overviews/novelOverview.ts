@@ -178,6 +178,7 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 					written: (stored) => plots.set(key, stored),
 				});
 				field.element.dataset.plot = key;
+				field.element.placeholder = "Plot note";
 				card.append(field.element);
 				void readChapterPlot(project, book, key).then((p) => {
 					plots.set(key, p);

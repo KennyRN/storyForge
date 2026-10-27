@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased — the story shape (0.12.0)
+
+The story half of the overviews returns, on top of the numbers. Unlike the numbers, it writes: plot notes, synopses, the series description, PoV and location lists and covers, all into keys, sections and files the 0.17 layout already has. No new key, file or folder; `format-version` is unchanged. See `docs/story-shape.md` (rulings in §12, as built in §13) and `docs/story-shape-report.md`.
+
+- New: chapter cards in three sizes (bar; bar and plot note; bar, PoV, Location, Length and plot note) with a chevron on each card and a size control for all of them (kept per project on this computer). Clicking the bar still opens the chapter.
+- New: plot notes, the novel's synopsis and the series description are written in place, committed when the field loses focus and on every close and quit route; leading spaces survive; a conflict never overwrites: the author's text goes to a recovery file and a notice says so.
+- New: PoV and Location rows with a Codex picker, and the novel's default PoV (shown, muted, on a chapter with no PoV of its own; never written into the chapter). A reference to a note that is gone shows as missing and is never dropped.
+- New: covers for the series and each novel, chosen in the Mac's open panel (`pick_cover`, `read_cover`). The old cover is retired to `.trash/`, never deleted.
+- Changed: a Codex rename now updates the path and name of chapters' PoV and location references and the default PoV, announces how many novel files will follow, and the open-time summary says so. A deleted or archived note's references are left as they are (they show as missing) instead of being dropped.
+- Changed: `## Synopsis` and `## Description` match only an exact heading line, refuse a duplicate heading (the field shows read-only) and an empty field removes the section. Plot notes keep their leading whitespace.
+- Changed: the close commits any field being edited before the editors flush; one that can't land, or hangs, is rescued into a recovery file. The quit test now runs every route with text typed in a plot note too, and tells "never typed" from "typed and lost".
+- Tests: 1,358 core tests, 151 WebKit interface tests and the Rust tests, all passing.
+
 ## Unreleased — leftover temporary files (0.11.1)
 
 When the app saves a file it writes a hidden temporary file beside it and swaps it in. A crash, force-quit or power cut at the wrong instant can leave one behind, and one can hold words that exist nowhere else. At open, storyForge now deals with them safely. See `docs/temp-tidy.md` (the investigation, rulings in §8, as built in §9).

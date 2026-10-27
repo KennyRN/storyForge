@@ -210,6 +210,24 @@ test.describe("the novel overview", () => {
 		await expect(novelOverview(page)).toBeVisible();
 	});
 
+	test("screenshots for the report: the three sizes and the picker", async ({ page }) => {
+		const o = novelOverview(page);
+		const cards = o.locator(".sf-card");
+		await cards.nth(0).locator(".sf-card-chevron").click();
+		await expect(cards.nth(0)).toHaveAttribute("data-tier", "collapsed");
+		await cards.nth(0).locator(".sf-card-chevron").click();
+		await expect(cards.nth(0)).toHaveAttribute("data-tier", "bar");
+		await cards.nth(1).locator(".sf-card-chevron").click(); // collapsed
+		await expect(cards.nth(1)).toHaveAttribute("data-tier", "collapsed");
+		await expect(cards.nth(2)).toHaveAttribute("data-tier", "extended");
+		await shot(page, "shape-novel-overview-mixed");
+		await o.locator('.sf-size-option[data-size="extended"]').click();
+		await shot(page, "shape-novel-overview-extended");
+		await o.locator('.sf-card[data-chapter="ch-a5.md"]').getByRole("button", { name: /^Choose pov/i }).click();
+		await expect(page.getByRole("dialog")).toBeVisible();
+		await shot(page, "shape-picker");
+	});
+
 	test("the chevron cycles one card's size; the size control sets them all and shows none when mixed; the bar still opens the chapter", async ({ page }) => {
 		const o = novelOverview(page);
 		const card = o.locator(".sf-card").first();
@@ -390,6 +408,7 @@ test.describe("the novel overview", () => {
 		await page.evaluate((b) => window.__preview.armCover(b), ONE_PIXEL_PNG);
 		await box.click();
 		await expect(box).toHaveAttribute("data-state", "image");
+		await shot(page, "shape-series-overview");
 		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), "_story-library/series.md")).toContain("cover-image: cover.png");
 		expect(await page.evaluate(() => window.__preview.readBase64(".trash/_backstage/storyforge/_series/cover.jpg"))).not.toBe("");
 	});
