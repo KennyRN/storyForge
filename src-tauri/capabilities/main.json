@@ -26,6 +26,8 @@
     "allow-retire",
     "allow-list-temp-leftovers",
     "allow-remove-temp",
+    "allow-read-cover",
+    "allow-pick-cover",
     "allow-machine-get",
     "allow-machine-set",
     "allow-watch-start",

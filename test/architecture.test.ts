@@ -30,6 +30,9 @@ const RESTRICTED: Record<string, string[]> = {
 	createRecovery: ["core/recovery.ts"],
 	removeTemp: ["core/tempTidy.ts"],
 	writeTextIfUnchanged: ["core/backend/guarded.ts", "backends/node-fs/index.ts"],
+	// The cover commands (decision 42): the picker is reached only from the model, the reader only from the cover box.
+	pickCover: ["ui/model.ts"],
+	readCover: ["ui/overviews/cover.ts"],
 };
 const DEFINERS = new Set(["core/backend/guarded.ts", "core/backend/types.ts", "backends/node-fs/index.ts"]);
 

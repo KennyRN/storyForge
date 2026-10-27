@@ -152,6 +152,8 @@ const outside = async (page: Page, path: string, text: string) => {
 };
 const novelOverview = (page: Page) => page.getByRole("region", { name: "Novel overview" });
 const BOOK_A = "_story-library/novel-aaa.md";
+const ONE_PIXEL_PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+const TINY_GIF = "R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
 const onDisk = (page: Page, p: string) => page.evaluate((x) => window.__preview.read(x), p);
 
 test.describe("the novel overview", () => {
@@ -319,11 +321,88 @@ test.describe("the novel overview", () => {
 		await expect(novelOverview(page)).toBeVisible();
 	});
 
+	test("a cover chosen in the native panel is placed by Rust, recorded in the book's details, and the old one is retired", async ({ page }) => {
+		const o = novelOverview(page);
+		const box = o.locator('[data-cover="book:aaa"]');
+		const oldCover = await page.evaluate(() => window.__preview.readBase64("_backstage/storyforge/aaa/cover.png"));
+		await page.evaluate((b) => window.__preview.armCover(b), ONE_PIXEL_PNG);
+		await box.click();
+		await expect(box).toHaveAttribute("data-state", "image");
+		expect(await page.evaluate(() => window.__preview.readBase64("_backstage/storyforge/aaa/cover.png"))).toBe(ONE_PIXEL_PNG);
+		expect(await page.evaluate(() => window.__preview.readBase64(".trash/_backstage/storyforge/aaa/cover.png"))).toBe(oldCover);
+		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("cover-image: cover.png");
+	});
+
+	test("a cover of another type replaces the old one; a cancelled panel changes nothing", async ({ page }) => {
+		const box = novelOverview(page).locator('[data-cover="book:aaa"]');
+		const before = await page.evaluate((f) => window.__preview.read(f), BOOK_A);
+		await page.evaluate(() => window.__preview.armCover(null));
+		await box.click();
+		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).toBe(before);
+		await page.evaluate((b) => window.__preview.armCover(b), TINY_GIF);
+		await box.click();
+		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("cover-image: cover.gif");
+		await expect(page.evaluate(() => window.__preview.readBase64("_backstage/storyforge/aaa/cover.png"))).rejects.toThrow();
+		expect(await page.evaluate(() => window.__preview.readBase64(".trash/_backstage/storyforge/aaa/cover.png"))).not.toBe("");
+	});
+
+	test("a file that is not an allowed image is refused with the accepted types named, and the old cover stays", async ({ page }) => {
+		const box = novelOverview(page).locator('[data-cover="book:aaa"]');
+		const old = await page.evaluate(() => window.__preview.readBase64("_backstage/storyforge/aaa/cover.png"));
+		await page.evaluate(() => window.__preview.armCover(btoa("<svg/>")));
+		await box.click();
+		await expect(page.getByRole("status").or(page.getByRole("alert"))).toContainText("PNG, JPEG, GIF or WebP");
+		expect(await page.evaluate(() => window.__preview.readBase64("_backstage/storyforge/aaa/cover.png"))).toBe(old);
+	});
+
+	test("a cover that is not a picture the window can show is a placeholder; removing a cover retires its file and clears the key", async ({ page }) => {
+		const o = novelOverview(page);
+		const box = o.locator('[data-cover="book:aaa"]');
+		await expect(box).toHaveAttribute("data-state", "placeholder"); // the fixture's cover is not a real picture
+		await expect(box.locator(".sf-cover-placeholder")).toBeVisible();
+		await o.getByRole("button", { name: /^Remove the cover/ }).click();
+		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).not.toContain("cover-image");
+		await expect(page.evaluate(() => window.__preview.readBase64("_backstage/storyforge/aaa/cover.png"))).rejects.toThrow();
+		await expect(o.getByRole("button", { name: /^Remove the cover/ })).toHaveCount(0);
+	});
+
+	test("the series cover is chosen from the series overview", async ({ page }) => {
+		await tab(page, "series").click();
+		const box = overview(page).locator('[data-cover="series"]');
+		await page.evaluate((b) => window.__preview.armCover(b), ONE_PIXEL_PNG);
+		await box.click();
+		await expect(box).toHaveAttribute("data-state", "image");
+		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), "_story-library/series.md")).toContain("cover-image: cover.png");
+		expect(await page.evaluate(() => window.__preview.readBase64(".trash/_backstage/storyforge/_series/cover.jpg"))).not.toBe("");
+	});
+
 	test("the bar's tooltip shows on hover", async ({ page }) => {
 		const bar = novelOverview(page).locator(".sf-card .sf-bar").first();
 		await expect(bar).toHaveAttribute("aria-label", /\d/);
 		await bar.hover();
 		await expect(page.getByRole("tooltip")).toBeVisible();
+	});
+});
+
+test.describe("a read-only project's overviews", () => {
+	test("every cover, picker and field is read-only, and the cover panel never opens", async ({ page }) => {
+		await openProject(page);
+		await page.evaluate(() => window.__preview.touch("_backstage/storyforge/project.md", "---\nformat-version: 99\n---\n"));
+		await page.reload();
+		await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+		await page.locator("[data-recent='0']").click();
+		await page.waitForFunction(() => !!window.__app?.editors);
+		await flip(page);
+		await tab(page, "novel").click();
+		const o = novelOverview(page);
+		await expect(o.locator('[data-cover="book:aaa"]')).toBeDisabled();
+		await expect(o.getByRole("button", { name: /^Remove the cover/ })).toHaveCount(0);
+		await expect(o.getByRole("button", { name: "Choose the default PoV" })).toHaveCount(0);
+		await expect(o.getByRole("button", { name: /^Choose pov/i })).toHaveCount(0);
+		for (const field of await o.locator("textarea").all()) await expect(field).toHaveAttribute("readonly", "");
+		await tab(page, "series").click();
+		await expect(overview(page).locator('[data-cover="series"]')).toBeDisabled();
+		await expect(overview(page).getByRole("textbox", { name: "Series description" })).toHaveAttribute("readonly", "");
 	});
 });
 

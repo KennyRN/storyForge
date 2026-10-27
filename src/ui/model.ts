@@ -3,14 +3,14 @@
  * controller (open, create, watcher, backups, closing) and the notices, and tells regions which topic
  * changed so each redraws only its own subtree. Editors are never redrawn by a topic.
  */
-import type { AppController, OpenOutcome, Running } from "../app/appLife";
+import type { AppController, CoverTarget, OpenOutcome, Running } from "../app/appLife";
 import type { MachineProjectState } from "../app/settings";
 import type { PlotCardTier } from "../core/plotCardTier";
-import { getBookChapters } from "../core/book";
+import { getBookChapters, removeBookCover, writeBookCoverName } from "../core/book";
 import { createContinuingChapter } from "../core/chapterCreation";
 import type { CreateProjectOptions } from "../core/openProject";
-import { libraryChapterPath } from "../core/paths";
-import { getSeriesBooks } from "../core/series";
+import { bookBackstagePath, libraryChapterPath, seriesBackstagePath } from "../core/paths";
+import { getSeriesBooks, removeSeriesCover, writeSeriesCoverName } from "../core/series";
 import { storytellingCodexClickAction } from "../view/codexOpenTarget";
 import { NoticeCenter } from "./kit/notices";
 import type { EditorHost } from "./editor/editorHost";
@@ -309,6 +309,48 @@ export class AppModel {
 	}
 
 	/** Runs an action; a failure becomes a plain notice that says what could not be done. */
+	private coverFolder(target: CoverTarget): string {
+		return target.kind === "series" ? seriesBackstagePath() : bookBackstagePath(target.code);
+	}
+
+	/** Lets the index see covers that Rust placed or retired (the window doesn't hear about its own picker's writes). */
+	private async refreshCovers(target: CoverTarget): Promise<void> {
+		const project = this.running?.opened.project;
+		if (!project) return;
+		for (const ext of ["png", "jpg", "gif", "webp"]) await project.refresh(`${this.coverFolder(target)}/cover.${ext}`).catch(() => undefined);
+	}
+
+	/** The cover box was clicked: Rust shows the open panel and installs the image (retiring the old cover); the name is recorded here. */
+	async chooseCover(target: CoverTarget): Promise<void> {
+		const running = this.running;
+		if (!running || running.readOnlyReason) return;
+		await this.guard(async () => {
+			const name = await this.controller.pickCover(target);
+			if (!name) return;
+			const project = running.opened.project;
+			await this.refreshCovers(target);
+			try {
+				if (target.kind === "series") await writeSeriesCoverName(project, name);
+				else await writeBookCoverName(project, target.code, name);
+			} catch (e) {
+				this.notices.notify({ text: `The cover image was saved, but it could not be recorded in the project's details: ${(e as Error)?.message ?? String(e)}`, sticky: true });
+			}
+			this.touch("library", "nav");
+		}, "set the cover");
+	}
+
+	/** Clears the cover and retires its file to `.trash/`. */
+	async removeCover(target: CoverTarget): Promise<void> {
+		const running = this.running;
+		if (!running || running.readOnlyReason) return;
+		await this.guard(async () => {
+			if (target.kind === "series") await removeSeriesCover(running.opened.project);
+			else await removeBookCover(running.opened.project, target.code);
+			await this.refreshCovers(target);
+			this.touch("library", "nav");
+		}, "remove the cover");
+	}
+
 	async guard<T>(action: () => Promise<T>, what: string): Promise<T | null> {
 		try {
 			const out = await action();

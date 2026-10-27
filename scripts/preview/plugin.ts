@@ -54,6 +54,8 @@ export function previewHostPlugin(): Plugin {
 	let projectRoot: string | null = null;
 	let pickMode: PickMode = "cancel";
 	let pickReadOnly = false;
+	/** The image the next cover picker will "choose" (the preview has no native open panel); null cancels it. */
+	let pendingCover: string | null = null;
 	const copies: string[] = [];
 
 	const freshCopy = (fixture: string): string => {
@@ -102,6 +104,17 @@ export function previewHostPlugin(): Plugin {
 						case "/__host/invoke": {
 							const cmd = String(body.cmd);
 							if (cmd === "pick_project") armPick();
+							if (cmd === "pick_cover") {
+								const source = pendingCover;
+								pendingCover = null;
+								if (!source) return send(res, 200, { ok: null });
+								const target = (body.payload as { target?: unknown } | undefined)?.target;
+								try {
+									return send(res, 200, { ok: await host.invoke(cmd, { args: { target, source } } as Record<string, unknown>) });
+								} catch (e) {
+									return send(res, 200, { err: e instanceof Error ? { code: "UNKNOWN", message: e.message } : e });
+								}
+							}
 							try {
 								return send(res, 200, { ok: await host.invoke(cmd, body.payload as Record<string, unknown> | undefined) });
 							} catch (e) {
@@ -113,6 +126,15 @@ export function previewHostPlugin(): Plugin {
 						case "/__preview/pick":
 							pickMode = (body.mode as PickMode) ?? "project";
 							return send(res, 200, null);
+						case "/__preview/cover": {
+							// Arms the next cover picker with these bytes (base64); null cancels it.
+							if (body.base64 == null) pendingCover = null;
+							else {
+								pendingCover = path.join(base, `cover-source-${++counter}.bin`);
+								writeFileSync(pendingCover, Buffer.from(String(body.base64), "base64"));
+							}
+							return send(res, 200, null);
+						}
 						case "/__preview/touch": {
 							const root = host.current?.root ?? projectRoot;
 							if (!root) throw new Error("no project");
@@ -133,6 +155,11 @@ export function previewHostPlugin(): Plugin {
 							const root = host.current?.root ?? projectRoot;
 							if (!root) throw new Error("no project");
 							return send(res, 200, readFileSync(path.join(root, String(body.path)), "utf8"));
+						}
+						case "/__preview/read-base64": {
+							const root = host.current?.root ?? projectRoot;
+							if (!root) throw new Error("no project");
+							return send(res, 200, readFileSync(path.join(root, String(body.path))).toString("base64"));
 						}
 						case "/__preview/root":
 							return send(res, 200, host.current?.root ?? projectRoot);

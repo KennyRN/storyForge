@@ -63,6 +63,10 @@ pub fn dispatch(project: &Project, cmd: &str, args: &Value) -> FsResult<Value> {
             project.remove_temp(str_arg(args, "path")?, expected)?;
             Ok(Value::Null)
         }
+        "read_cover" => {
+            let target = args.get("target").cloned().unwrap_or(Value::Null);
+            Ok(json!(STANDARD.encode(project.read_cover(&target, str_arg(args, "filename")?)?)))
+        }
         "retire" => Ok(json!(project.retire(str_arg(args, "path")?)?)),
         other => Err(FsError::new("UNKNOWN", format!("unknown command {other}"), None)),
     }

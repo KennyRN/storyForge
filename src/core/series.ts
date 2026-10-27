@@ -170,6 +170,21 @@ export async function writeSeriesCoverImage(project: Project, data: ArrayBuffer,
 	return path;
 }
 
+/** Records which file is the series' cover (`cover-image`), or clears it with null. The image itself is placed by the Rust cover command. */
+export async function writeSeriesCoverName(project: Project, filename: string | null): Promise<void> {
+	await project.modifyFrontmatter<RawSeriesFrontmatter>(seriesFilePath(), DEFAULT_SERIES_CONTENT, (fm) => {
+		fm["cover-image"] = filename === null ? undefined : filename;
+	});
+}
+
+/** Removes the series' cover: `cover-image` is cleared first, then the file is retired to `.trash/` (never deleted). */
+export async function removeSeriesCover(project: Project): Promise<void> {
+	const current = readSeriesFrontmatter(project).coverImage;
+	await writeSeriesCoverName(project, null);
+	const path = current ? `${seriesBackstagePath()}/${current}` : null;
+	if (path && project.exists(path)) await project.retire(path);
+}
+
 const DESCRIPTION_HEADER = "## Description";
 
 /** Reads the series' description from series.md's body, under a `## Description` heading. Empty if there is none yet; "duplicate" if the heading appears more than once. */

@@ -6,7 +6,7 @@ import type { OpSpec, Ctx } from "../helpers/diskSafety";
 import {
 	archiveChapter, createBook, createChapter, ensureAllChapterEntries, insertChapterEntry, removeChapterEntry, readBookFrontmatter, renameBookTitle, renameChapterEntry, renameChapterTitle,
 	rekeyCodexNoteReferences, reorderSeriesBooks, syncAllBookReferenceFields, unarchiveChapter,
-	upsertChapterEntry, writeBookArchiveOrder, writeBookChapterOrder, writeBookUnplacedOrder, writeBookCoverImage, writeBookPlannedChapterLength,
+	upsertChapterEntry, writeBookArchiveOrder, writeBookChapterOrder, writeBookUnplacedOrder, writeBookCoverImage, writeBookCoverName, removeBookCover, writeBookPlannedChapterLength,
 	writeBookPlannedNovelLength, writeBookSynopsis, writeChapterColor, writeChapterLocation, writeChapterPlot, writeChapterPlotThread,
 	writeChapterPov, writeChapterTags, writeDefaultPov, writeDialogueQuotes, writeNovelTags,
 } from "../../src/core/book";
@@ -25,7 +25,7 @@ import {
 } from "../../src/core/reconciliation";
 import {
 	ensureAllSeriesBookEntries, ensureSeriesFile, renameSeriesBookEntry, upsertSeriesBookEntry, writeSeriesBookColor, writeSeriesBookTitle,
-	writeSeriesCoverImage, writeSeriesDescription, writeSeriesOrder, writeSeriesTitle, writeUnplacedOrder,
+	writeSeriesCoverImage, writeSeriesCoverName, removeSeriesCover, writeSeriesDescription, writeSeriesOrder, writeSeriesTitle, writeUnplacedOrder,
 } from "../../src/core/series";
 import { renameStoryDetailsSidecar, deleteStoryDetailsSidecar } from "../../src/core/storyDetailsSidecar";
 import { ensureTagRegistryFile } from "../../src/core/tagRegistry";
@@ -105,6 +105,15 @@ export const OPS: OpSpec[] = [
 		removed: ["_backstage/storyforge/_series/cover.jpg"],
 	},
 
+	{ name: "writeSeriesCoverName", run: (c) => writeSeriesCoverName(c.project, "cover.png"), changed: { [S]: fm(["cover-image"]) } },
+	{
+		name: "removeSeriesCover (clears the key, retires the file)",
+		run: (c) => removeSeriesCover(c.project),
+		changed: { [S]: fm(["cover-image"]) },
+		added: [".trash/_backstage/storyforge/_series/cover.jpg"],
+		removed: ["_backstage/storyforge/_series/cover.jpg"],
+	},
+
 	// ------------------------------------------------------------------------ novel-<code>.md
 	{ name: "writeBookChapterOrder", run: (c) => writeBookChapterOrder(c.project, "aaa", ["ch-a2.md", "ch-a1.md", "ch-a5.md"]), changed: { [N]: fm(["chapter-order"]) } },
 	{ name: "writeBookUnplacedOrder", run: (c) => writeBookUnplacedOrder(c.project, "aaa", ["ch-a3.md", "ch-a9.md"]), changed: { [N]: fm(["unplaced"]) } },
@@ -118,6 +127,14 @@ export const OPS: OpSpec[] = [
 		run: (c) => writeBookCoverImage(c.project, "aaa", new Uint8Array([9, 9]).buffer, "jpg"),
 		changed: { [N]: fm(["cover-image"]) },
 		added: ["_backstage/storyforge/aaa/cover.jpg", ".trash/_backstage/storyforge/aaa/cover.png"],
+		removed: ["_backstage/storyforge/aaa/cover.png"],
+	},
+	{ name: "writeBookCoverName", run: (c) => writeBookCoverName(c.project, "aaa", "cover.jpg"), changed: { [N]: fm(["cover-image"]) } },
+	{
+		name: "removeBookCover (clears the key, retires the file)",
+		run: (c) => removeBookCover(c.project, "aaa"),
+		changed: { [N]: fm(["cover-image"]) },
+		added: [".trash/_backstage/storyforge/aaa/cover.png"],
 		removed: ["_backstage/storyforge/aaa/cover.png"],
 	},
 	{ name: "archiveChapter", run: (c) => archiveChapter(c.project, "aaa", "ch-a1.md"), changed: { [N]: fm(["chapter-order"], ["unplaced"], ["archive"]) } },

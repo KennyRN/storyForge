@@ -38,6 +38,19 @@ fn main() {
             let args = msg.get("args").cloned().unwrap_or(serde_json::Value::Null);
             match project.as_ref() {
                 None => serde_json::json!({ "id": id, "err": { "code": "UNKNOWN", "message": "no project open" } }),
+                // The browser preview has no native open panel: its server names a test image to take, as the panel would.
+                Some(p) if cmd == "pick_cover" => {
+                    let result = args
+                        .get("source")
+                        .and_then(|v| v.as_str())
+                        .ok_or_else(|| storyforge_fs::error::FsError::new("UNKNOWN", "no image was chosen", None))
+                        .and_then(|src| std::fs::read(src).map_err(|e| storyforge_fs::error::FsError::from_io(&e, src)))
+                        .and_then(|bytes| p.install_cover(args.get("target").unwrap_or(&serde_json::Value::Null), &bytes));
+                    match result {
+                        Ok(name) => serde_json::json!({ "id": id, "ok": name }),
+                        Err(e) => serde_json::json!({ "id": id, "err": e }),
+                    }
+                }
                 Some(p) => match dispatch(p, cmd, &args) {
                     Ok(v) => serde_json::json!({ "id": id, "ok": v }),
                     Err(e) => serde_json::json!({ "id": id, "err": e }),

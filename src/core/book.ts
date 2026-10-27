@@ -484,6 +484,21 @@ export async function writeBookCoverImage(
 	return path;
 }
 
+/** Records which file is the book's cover (`cover-image`), or clears it with null. The image itself is placed by the Rust cover command. */
+export async function writeBookCoverName(project: Project, bookFolderName: string, filename: string | null): Promise<void> {
+	await modifyBookFrontmatter(project, bookFolderName, (fm) => {
+		fm["cover-image"] = filename === null ? undefined : filename;
+	});
+}
+
+/** Removes the book's cover: `cover-image` is cleared first, then the file is retired to `.trash/` (never deleted). */
+export async function removeBookCover(project: Project, bookFolderName: string): Promise<void> {
+	const current = readBookFrontmatter(project, bookFolderName)?.coverImage ?? null;
+	await writeBookCoverName(project, bookFolderName, null);
+	const path = current ? `${bookBackstagePath(bookFolderName)}/${current}` : null;
+	if (path && project.exists(path)) await project.retire(path);
+}
+
 /** Moves a chapter to the archive list, removing it from chapter-order and unplaced. */
 export async function archiveChapter(project: Project, bookFolderName: string, filename: string): Promise<void> {
 	await modifyBookFrontmatter(project, bookFolderName, (fm) => {

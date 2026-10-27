@@ -21,6 +21,8 @@ const COMMANDS: &[&str] = &[
     "retire",
     "list_temp_leftovers",
     "remove_temp",
+    "read_cover",
+    "pick_cover",
     "machine_get",
     "machine_set",
     "watch_start",

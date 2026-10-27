@@ -298,3 +298,129 @@ fn reveal_target_refuses_a_link_that_leaves_the_project() {
     std::os::unix::fs::symlink(outside.path(), dir.path().join("Codex")).unwrap();
     assert!(p.reveal_target("Codex/secret.md").is_err());
 }
+
+// ------------------------------------------------------------------------------------------- covers
+
+mod covers {
+    use super::*;
+    use serde_json::json;
+
+    const PNG: &[u8] = &[0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3, 4];
+    const JPG: &[u8] = &[0xFF, 0xD8, 0xFF, 0xE0, 9, 9, 9, 9];
+
+    fn with_book() -> (TempDir, Project) {
+        let (dir, p) = project();
+        fs::create_dir_all(dir.path().join("_story-library/aaa")).unwrap();
+        (dir, p)
+    }
+    fn book() -> serde_json::Value {
+        json!({ "kind": "book", "code": "aaa" })
+    }
+
+    #[test]
+    fn installs_a_png_by_its_first_bytes_into_the_books_backstage_folder() {
+        let (dir, p) = with_book();
+        assert_eq!(p.install_cover(&book(), PNG).unwrap(), "cover.png");
+        assert_eq!(fs::read(dir.path().join("_backstage/storyforge/aaa/cover.png")).unwrap(), PNG);
+        assert_eq!(p.install_cover(&json!({ "kind": "series" }), JPG).unwrap(), "cover.jpg");
+        assert!(dir.path().join("_backstage/storyforge/_series/cover.jpg").is_file());
+        assert!(leftovers(dir.path()).is_empty());
+    }
+
+    #[test]
+    fn recognises_gif_and_webp() {
+        let (_dir, p) = with_book();
+        assert_eq!(p.install_cover(&book(), b"GIF89a....").unwrap(), "cover.gif");
+        assert_eq!(p.install_cover(&book(), b"RIFF\x00\x00\x00\x00WEBPVP8 ").unwrap(), "cover.webp");
+    }
+
+    #[test]
+    fn refuses_what_is_not_an_allowed_image_and_names_the_accepted_types() {
+        let (dir, p) = with_book();
+        let e = p.install_cover(&book(), b"<svg xmlns='http://www.w3.org/2000/svg'/>").unwrap_err();
+        assert!(e.message.contains("PNG, JPEG, GIF or WebP"), "{}", e.message);
+        let mut heic = vec![0, 0, 0, 24];
+        heic.extend_from_slice(b"ftypheic....");
+        let e = p.install_cover(&book(), &heic).unwrap_err();
+        assert!(e.message.contains("HEIC") && e.message.contains("JPEG"), "{}", e.message);
+        // a name never decides: text called cover.png is still refused
+        assert!(p.install_cover(&book(), b"not really a png").is_err());
+        assert!(!dir.path().join("_backstage").exists());
+    }
+
+    #[test]
+    fn refuses_an_image_over_ten_megabytes() {
+        let (dir, p) = with_book();
+        let mut big = PNG.to_vec();
+        big.resize(10 * 1024 * 1024 + 1, 0);
+        let e = p.install_cover(&book(), &big).unwrap_err();
+        assert!(e.message.contains("10 MB"), "{}", e.message);
+        assert!(!dir.path().join("_backstage").exists());
+        big.truncate(10 * 1024 * 1024);
+        assert!(p.install_cover(&book(), &big).is_ok());
+    }
+
+    #[test]
+    fn accepts_only_the_series_or_a_real_book_code_as_its_target() {
+        let (_dir, p) = with_book();
+        for bad in [json!({ "kind": "book", "code": "../x" }), json!({ "kind": "book", "code": "a/b" }), json!({ "kind": "book", "code": ".hidden" }), json!({ "kind": "book", "code": "_series" }), json!({ "kind": "book", "code": "" }), json!({ "kind": "book", "code": "nope" }), json!({ "kind": "path", "path": "x" }), json!({ "path": "_backstage/x" }), json!(null)] {
+            assert!(p.install_cover(&bad, PNG).is_err(), "{bad}");
+        }
+    }
+
+    #[test]
+    fn always_retires_the_old_cover_even_with_the_same_name() {
+        let (dir, p) = with_book();
+        p.install_cover(&book(), PNG).unwrap();
+        let newer: Vec<u8> = [PNG, b"newer"].concat();
+        p.install_cover(&book(), &newer).unwrap();
+        assert_eq!(fs::read(dir.path().join("_backstage/storyforge/aaa/cover.png")).unwrap(), newer);
+        assert_eq!(fs::read(dir.path().join(".trash/_backstage/storyforge/aaa/cover.png")).unwrap(), PNG);
+        // and a cover of another type is retired too
+        p.install_cover(&book(), JPG).unwrap();
+        assert!(!dir.path().join("_backstage/storyforge/aaa/cover.png").exists());
+        assert_eq!(fs::read(dir.path().join(".trash/_backstage/storyforge/aaa/cover (2).png")).unwrap(), newer);
+        assert!(leftovers(dir.path()).is_empty());
+    }
+
+    #[test]
+    fn a_refused_image_leaves_the_old_cover_where_it_was() {
+        let (dir, p) = with_book();
+        p.install_cover(&book(), PNG).unwrap();
+        assert!(p.install_cover(&book(), b"nope").is_err());
+        assert_eq!(fs::read(dir.path().join("_backstage/storyforge/aaa/cover.png")).unwrap(), PNG);
+        assert!(!dir.path().join(".trash").exists());
+    }
+
+    #[test]
+    fn a_read_only_project_installs_nothing() {
+        let dir = tempfile::tempdir().unwrap();
+        fs::create_dir_all(dir.path().join("_story-library/aaa")).unwrap();
+        let p = Project::open(dir.path(), true).unwrap();
+        assert!(p.install_cover(&book(), PNG).is_err());
+        assert!(!dir.path().join("_backstage").exists());
+    }
+
+    #[test]
+    fn reads_only_an_exact_cover_name_from_the_targets_own_folder() {
+        let (_dir, p) = with_book();
+        p.install_cover(&book(), PNG).unwrap();
+        assert_eq!(p.read_cover(&book(), "cover.png").unwrap(), PNG);
+        for bad in ["../aaa/cover.png", "cover.svg", "Cover.png", "cover.png/", "cover.png.bak", "novel-aaa.md", "", "cover", "/etc/passwd"] {
+            assert!(p.read_cover(&book(), bad).is_err(), "{bad}");
+        }
+        // the series folder is a different target: nothing there
+        assert!(p.read_cover(&json!({ "kind": "series" }), "cover.png").is_err());
+    }
+
+    #[test]
+    fn refuses_to_read_a_cover_over_ten_megabytes() {
+        let (dir, p) = with_book();
+        put(&dir, "_backstage/storyforge/aaa/x", "");
+        let path = dir.path().join("_backstage/storyforge/aaa/cover.png");
+        let mut big = PNG.to_vec();
+        big.resize(10 * 1024 * 1024 + 1, 0);
+        fs::write(path, big).unwrap();
+        assert!(p.read_cover(&book(), "cover.png").is_err());
+    }
+}

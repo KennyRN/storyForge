@@ -87,6 +87,32 @@ async fn pick_project(app: tauri::AppHandle, state: State<'_, AppState>, kind: S
     opened
 }
 
+/// Chooses a cover image. `target` is the series or a book code, never a path. Rust shows the open panel (images
+/// only), reads the chosen file itself, checks it and installs it as `cover.<ext>` (the old cover is retired to
+/// `.trash/`). The window is told only the new file name, or nothing if the panel was cancelled. Refused in a
+/// read-only project, before the panel opens.
+#[tauri::command]
+async fn pick_cover(state: State<'_, AppState>, target: Value) -> Result<Option<String>, FsError> {
+    let project = state.project()?;
+    if project.is_read_only() {
+        return Err(FsError::new("READONLY", "this project was made by a newer storyForge and is open read-only", None));
+    }
+    project.cover_folder(&target)?;
+    let Some(handle) = rfd::AsyncFileDialog::new().set_title("Choose a cover image").add_filter("Images", &["png", "jpg", "jpeg", "gif", "webp"]).pick_file().await else { return Ok(None) };
+    let path = handle.path().to_path_buf();
+    tauri::async_runtime::spawn_blocking(move || {
+        let shown = path.to_string_lossy().to_string();
+        let size = std::fs::metadata(&path).map_err(|e| FsError::from_io(&e, &shown))?.len();
+        if size > storyforge_fs::ops::COVER_MAX_BYTES {
+            return Err(FsError::forbidden("That image is larger than 10 MB. Choose a PNG, JPEG, GIF or WebP image under 10 MB.", ""));
+        }
+        let bytes = std::fs::read(&path).map_err(|e| FsError::from_io(&e, &shown))?;
+        project.install_cover(&target, &bytes).map(Some)
+    })
+    .await
+    .map_err(|e| FsError::new("UNKNOWN", e.to_string(), None))?
+}
+
 /// Opens the `index`th entry of the recent list. The window names an entry, never a path.
 #[tauri::command]
 async fn open_recent(app: tauri::AppHandle, state: State<'_, AppState>, index: usize) -> Result<Value, FsError> {
@@ -204,7 +230,7 @@ macro_rules! fs_commands {
         )*
     };
 }
-fs_commands!(scan, stat, read_text, read_binary, read_outside, write_text, write_binary, create_file, create_folder, compare_write, rename, retire, download_placeholder, list_temp_leftovers, remove_temp);
+fs_commands!(scan, stat, read_text, read_binary, read_outside, read_cover, write_text, write_binary, create_file, create_folder, compare_write, rename, retire, download_placeholder, list_temp_leftovers, remove_temp);
 
 /// Shows a file of the open project in Finder. The path is relative to the project folder and checked like a
 /// read; nothing is opened, launched or written.
@@ -503,7 +529,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             app_info, pick_project, open_recent, recent_projects, project_info, close_project, scan, stat, read_text, read_binary, read_outside, write_text, write_binary,
-            create_file, create_folder, compare_write, rename, retire, list_temp_leftovers, remove_temp, machine_get, machine_set, watch_start, watch_stop, download_placeholder, reveal_in_finder, set_menu_state, quit_ready, close_progress
+            create_file, create_folder, compare_write, rename, retire, list_temp_leftovers, remove_temp, read_cover, pick_cover, machine_get, machine_set, watch_start, watch_stop, download_placeholder, reveal_in_finder, set_menu_state, quit_ready, close_progress
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

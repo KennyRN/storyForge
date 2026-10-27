@@ -587,6 +587,139 @@ impl Project {
     }
 }
 
+/// The largest cover image storyForge will take or show.
+pub const COVER_MAX_BYTES: u64 = 10 * 1024 * 1024;
+/// The accepted cover types, as the extension a cover is saved under.
+pub const COVER_EXTENSIONS: [&str; 4] = ["png", "jpg", "gif", "webp"];
+const BACKSTAGE_ROOT: &str = "_backstage/storyforge";
+const ACCEPTED: &str = "PNG, JPEG, GIF or WebP";
+
+/// Which image type `bytes` is, judged by its first bytes and never by a file name.
+pub fn sniff_image(bytes: &[u8]) -> Option<&'static str> {
+    if bytes.starts_with(&[0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A]) {
+        Some("png")
+    } else if bytes.starts_with(&[0xFF, 0xD8, 0xFF]) {
+        Some("jpg")
+    } else if bytes.starts_with(b"GIF87a") || bytes.starts_with(b"GIF89a") {
+        Some("gif")
+    } else if bytes.len() >= 12 && &bytes[0..4] == b"RIFF" && &bytes[8..12] == b"WEBP" {
+        Some("webp")
+    } else {
+        None
+    }
+}
+
+fn is_heic(bytes: &[u8]) -> bool {
+    bytes.len() >= 12 && &bytes[4..8] == b"ftyp" && [&b"heic"[..], b"heix", b"hevc", b"heim", b"heis", b"mif1", b"msf1"].contains(&&bytes[8..12])
+}
+
+/// Why `bytes` is not an acceptable cover, naming the accepted types.
+pub fn cover_refusal(bytes: &[u8]) -> Option<String> {
+    if bytes.len() as u64 > COVER_MAX_BYTES {
+        return Some(format!("That image is larger than 10 MB. Choose a {ACCEPTED} image under 10 MB."));
+    }
+    if sniff_image(bytes).is_some() {
+        return None;
+    }
+    Some(if is_heic(bytes) {
+        format!("That is a HEIC image. A cover must be {ACCEPTED}: export it as a JPEG first.")
+    } else {
+        format!("That file is not an image storyForge can use. A cover must be {ACCEPTED}.")
+    })
+}
+
+impl Project {
+    /// The backstage folder that holds a cover: `{"kind":"series"}` or `{"kind":"book","code":"<book folder>"}`.
+    /// The window names which cover, never a path; a book must exist in the library.
+    pub fn cover_folder(&self, target: &serde_json::Value) -> FsResult<String> {
+        match target.get("kind").and_then(|v| v.as_str()) {
+            Some("series") => Ok(format!("{BACKSTAGE_ROOT}/_series")),
+            Some("book") => {
+                let code = target.get("code").and_then(|v| v.as_str()).unwrap_or("");
+                let plain = !code.is_empty() && !code.contains(['/', '\\']) && !code.starts_with('.') && code != "_series" && resolve_path(code).as_deref() == Some(code);
+                if !plain {
+                    return Err(FsError::forbidden("not a book code", code));
+                }
+                let library = format!("_story-library/{code}");
+                let abs = self.inside(&library)?;
+                if !fs::metadata(&abs).map(|m| m.is_dir()).unwrap_or(false) {
+                    return Err(FsError::new("ENOENT", "no such book", Some(code)));
+                }
+                Ok(format!("{BACKSTAGE_ROOT}/{code}"))
+            }
+            _ => Err(FsError::forbidden("a cover target is the series or a book code", "")),
+        }
+    }
+
+    /// Puts `bytes` in as the target's cover. The image is checked (type by first bytes, at most 10 MB), written under
+    /// a temporary name and synced; then any existing `cover.<png|jpg|gif|webp>` there is retired to `.trash/`, always,
+    /// and the new image is moved into place as `cover.<ext>`, create-only. Anything that fails before the retiring
+    /// leaves the old cover where it was. Returns the file name; setting `cover-image` is the caller's.
+    pub fn install_cover(&self, target: &serde_json::Value, bytes: &[u8]) -> FsResult<String> {
+        let folder = self.cover_folder(target)?;
+        if let Some(reason) = cover_refusal(bytes) {
+            return Err(FsError::forbidden(reason, &folder));
+        }
+        let ext = sniff_image(bytes).expect("checked above");
+        let final_rel = format!("{folder}/cover.{ext}");
+        self.guard(&GuardOp::CreateFile(final_rel.clone()), &final_rel)?;
+        let final_abs = self.inside(&final_rel)?;
+        if let Some(parent) = final_abs.parent() {
+            fs::create_dir_all(parent).map_err(|e| io_err(&e, &final_rel))?;
+        }
+        let tmp = temp_beside(&final_abs);
+        let written = (|| -> std::io::Result<()> {
+            let mut f = OpenOptions::new().write(true).create_new(true).open(&tmp)?;
+            f.write_all(bytes)?;
+            f.sync_all()
+        })();
+        if let Err(e) = written {
+            let _ = fs::remove_file(&tmp);
+            return Err(io_err(&e, &final_rel));
+        }
+        for old in COVER_EXTENSIONS {
+            let rel = format!("{folder}/cover.{old}");
+            let exists = self.inside(&rel).map(|abs| fs::symlink_metadata(abs).is_ok());
+            match exists {
+                Ok(true) => {
+                    if let Err(e) = self.retire(&rel) {
+                        let _ = fs::remove_file(&tmp);
+                        return Err(e);
+                    }
+                }
+                Ok(false) => {}
+                Err(e) => {
+                    let _ = fs::remove_file(&tmp);
+                    return Err(e);
+                }
+            }
+        }
+        let moved = link_excl(&tmp, &final_abs);
+        let _ = fs::remove_file(&tmp);
+        moved.map_err(|e| io_err(&e, &final_rel))?;
+        Ok(format!("cover.{ext}"))
+    }
+
+    /// Reads a cover image: only `cover.<png|jpg|gif|webp>` exactly, only from the target's own backstage folder,
+    /// at most 10 MB.
+    pub fn read_cover(&self, target: &serde_json::Value, filename: &str) -> FsResult<Vec<u8>> {
+        let ok = COVER_EXTENSIONS.iter().any(|e| filename == format!("cover.{e}"));
+        if !ok {
+            return Err(FsError::forbidden("not a cover file name", filename));
+        }
+        let rel = format!("{}/{filename}", self.cover_folder(target)?);
+        let abs = self.read_target(&rel)?;
+        let meta = fs::symlink_metadata(&abs).map_err(|e| io_err(&e, &rel))?;
+        if !meta.is_file() {
+            return Err(FsError::new("ENOENT", "no such cover", Some(&rel)));
+        }
+        if meta.len() > COVER_MAX_BYTES {
+            return Err(FsError::forbidden("that cover is larger than 10 MB", &rel));
+        }
+        fs::read(&abs).map_err(|e| io_err(&e, &rel))
+    }
+}
+
 fn temp_beside(target: &Path) -> PathBuf {
     let name = target.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
     target.with_file_name(format!(".{name}.{}.tmp", unique_suffix()))
