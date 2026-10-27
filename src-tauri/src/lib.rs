@@ -499,6 +499,10 @@ fn install_quit_routes(app: &tauri::AppHandle) {
 }
 
 pub fn run() {
+    // Before any window exists: the Mac's own text substitutions are off in the editor and spellcheck underlines on (decision 46).
+    if let Err(e) = storyforge_fs::platform::register_editor_text_defaults() {
+        eprintln!("storyForge: could not set the editor's text defaults ({e}); the Mac's own smart quotes and replacements may act in the manuscript");
+    }
     tauri::Builder::default()
         // A second launch focuses the first: two copies would be two writers on one folder.
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {

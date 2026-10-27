@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased — Fix 3: the Mac's own text substitutions (0.12.1)
+
+In 0.12.0 the Mac's own text system acted inside the manuscript editor, before any code of ours and inside text it should never touch. Typing straight quotes gave curly ones, two hyphens became an em dash, three full stops an ellipsis, and the author's own Text Replacements (System Settings, Keyboard) fired: a short code like `omw` became "On my way!". It did all of this inside `[[links]]`, inline code and `%% comments %%` as well, so a curled apostrophe in a link broke the link. The editor already asked for no autocorrection and no autocapitalisation; those attributes don't stop it. Found by typing real keystrokes into the built app while surveying for the typing aids (docs/typing-aids.md §1.2).
+
+- Fixed: at start-up the app registers five WebKit defaults for itself (`platform.rs`: `registerDefaults`, in memory, this app only; nothing is written to disk, to the Mac's global settings, or to any other app, and Text Replacements elsewhere keep working): smart quotes, smart dashes, text replacement and spelling autocorrection are off.
+- Fixed: the red spellcheck underlines were off in 0.12.0 (the web view's continuous spellchecking defaulted off, so a misspelling was never marked). They are on now. A Codex name the Mac doesn't know will be underlined; stopping that is later work.
+- New: `npm run test:typing` (Mac only, built app) types real keystrokes into a chapter of a fixture copy and requires the editor to hold exactly what was typed. It fails on the 0.12.0 build and passes on this one. `--shot` saves a picture of the window to look at the underlines.
+- Check this in Obsidian: a `[[link]]` typed in 0.12.0 may have a curly apostrophe or quote in it and show as unresolved.
+- Tests: 3 new Rust tests for the defaults; 1,359 core tests and 153 WebKit tests unchanged.
+
 ## Unreleased — the story shape (0.12.0)
 
 The story half of the overviews returns, on top of the numbers. Unlike the numbers, it writes: plot notes, synopses, the series description, PoV and location lists and covers, all into keys, sections and files the 0.17 layout already has. No new key, file or folder; `format-version` is unchanged. See `docs/story-shape.md` (rulings in §12, as built in §13) and `docs/story-shape-report.md`.
