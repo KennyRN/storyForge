@@ -24,7 +24,8 @@ const BUNDLE_ID = "io.github.kennyrn.storyforge";
 const DATA_FOLDER = `Library/Application Support/${BUNDLE_ID}`;
 const args = process.argv.slice(2);
 const shotAt = args.includes("--shot") ? args[args.indexOf("--shot") + 1] : null;
-const appArg = args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--shot");
+const fieldShotAt = args.includes("--field-shot") ? args[args.indexOf("--field-shot") + 1] : null;
+const appArg = args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--shot" && args[i - 1] !== "--field-shot");
 const app = resolve(appArg ?? join(root, "src-tauri/target/universal-apple-darwin/release/bundle/macos/storyForge.app"));
 const binary = join(app, "Contents/MacOS/storyforge");
 
@@ -140,11 +141,24 @@ try {
 	if (!undone.startsWith(`${expectedSoFar}don'`) || undone.startsWith(`${expectedSoFar}don’`)) problems.push(`⌘Z straight after the curl should leave the straight apostrophe; the editor holds ${JSON.stringify(undone.slice(expectedSoFar.length, expectedSoFar.length + 6))}`);
 
 	if (shotAt) {
-		sendKeys("Teh quikc brwon foxx jumpd ovr lazyy dogg. ");
+		sendKeys(process.env.SHOT_TEXT || "Teh quikc brwon foxx jumpd ovr lazyy dogg. ");
 		await sleep(2500);
 		const [x, y, w] = osa('tell application "System Events" to tell process "storyforge" to return (position of window 1) & (size of window 1)').stdout.trim().split(", ").map(Number);
 		spawnSync("screencapture", ["-x", "-R", [x, y + 40, Math.min(w, 900), 300].join(","), shotAt]);
 		console.log(`(picture of the app's window: ${shotAt})`);
+	}
+	if (fieldShotAt) {
+		// A plot note is a small editor of its own: the red underlines must appear in it too.
+		const clickAny = (name) => ["AXButton", "AXCheckBox", "AXToggle", "AXRadioButton", "AXTab"].some((role) => find(role, name, "click").startsWith("found"));
+		if (!(await until(() => clickAny("Flip side")))) fail("could not reach the library side");
+		if (!(await until(() => clickAny("novel"), 8000))) fail("could not reach the novel tab");
+		if (!(await until(() => find("AXTextArea", "Plot note for", "focus").startsWith("found")))) fail("no plot note to type in");
+		await sleep(500);
+		sendKeys(process.env.FIELD_TEXT || "Teh quikc brwon foxx jumpd ovr lazyy dogg. Don't - wait...");
+		await sleep(2500);
+		const [x, y, w, h] = osa('tell application "System Events" to tell process "storyforge" to return (position of window 1) & (size of window 1)').stdout.trim().split(", ").map(Number);
+		spawnSync("screencapture", ["-x", "-R", [x, y + 40, Math.min(w, 1100), Math.min(h - 40, 760)].join(","), fieldShotAt]);
+		console.log(`(picture of a plot note: ${fieldShotAt})`);
 	}
 } finally {
 	child.kill("SIGKILL");

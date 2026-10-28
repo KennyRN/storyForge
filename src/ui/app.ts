@@ -1,5 +1,6 @@
 import { AppController, type Host } from "../app/appLife";
 import { mountNotices } from "./kit/notices";
+import { undoRedoFocusedField } from "./commitOnClose";
 import { el, fill } from "./kit/dom";
 import { AppModel } from "./model";
 import { renderStart } from "./screens/start";
@@ -45,6 +46,7 @@ export async function startApp(host: Host, root: HTMLElement): Promise<AppModel>
 	await host.listen("menu", (id) => {
 		if (id !== "undo" && id !== "redo") return;
 		if (model.editors?.[id]()) return;
+		if (undoRedoFocusedField(id)) return; // a plot note, synopsis or description: its own history
 		document.execCommand(id); // a rename or settings field
 	});
 	model.subscribe("project", draw);
