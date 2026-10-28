@@ -14,7 +14,9 @@ export interface AidChange {
 	from: number;
 	to: number;
 	insert: string;
-	kind: "quote" | "apostrophe-before-digit" | "elision" | "en-dash" | "em-dash" | "ellipsis";
+	/** For a name correction: what was typed and what it became, so an undo of it can offer to stop correcting that name. */
+	name?: { spelling: string; original: string; lowercase: boolean };
+	kind: "quote" | "apostrophe-before-digit" | "elision" | "en-dash" | "em-dash" | "ellipsis" | "name";
 }
 
 export interface SmartPunctuationOptions {

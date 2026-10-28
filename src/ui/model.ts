@@ -7,6 +7,10 @@ import type { AppController, CoverTarget, OpenOutcome, Running } from "../app/ap
 import type { MachineProjectState } from "../app/settings";
 import type { PlotCardTier } from "../core/plotCardTier";
 import type { TypingEditorOptions } from "./editor/typingAids";
+import { buildNameIndex, EMPTY_NAMES, type NameIndex } from "../core/typing/names";
+import { collectNameSources } from "../core/typing/nameSources";
+import { withEntry } from "../core/typing/lists";
+import { setSetting } from "../app/settings";
 import { getBookChapters, removeBookCover, writeBookCoverName } from "../core/book";
 import { createContinuingChapter } from "../core/chapterCreation";
 import type { CreateProjectOptions } from "../core/openProject";
@@ -70,6 +74,8 @@ export class AppModel {
 	constructor(readonly controller: AppController) {
 		// Everything the controller does on its own (an outside change applied, a project opened) touches all topics.
 		controller.onChange = () => this.touch(...ALL);
+		// The names the autocorrect knows come from the Codex: collect them again when it or the project changes.
+		this.subscribe(["codex", "project", "library", "archive"], () => void this.namesVersion++);
 		// A field being edited when the app closes is committed first (docs/story-shape.md §5.3).
 		controller.registerCloseCommit({ commit: commitFocusedFields, rescue: rescueFocusedFields });
 		// A writing session started or ended: the history view and the stats panel redraw.
@@ -247,13 +253,65 @@ export class AppModel {
 	}
 
 	private elisionCache: { source: readonly string[]; words: ReadonlySet<string> } = { source: [], words: new Set() };
+	private namesCache: { wordList: readonly string[]; optOuts: readonly string[]; version: number; index: NameIndex } | null = null;
+	/** Bumped whenever the Codex or the project changes, so the names are collected again. */
+	private namesVersion = 0;
+	/** Names already offered "stop correcting this?" in this session: once is enough. */
+	private offeredOptOut = new Set<string>();
 
-	/** What the typing aids read at every keystroke: the switches and lists of the open project (docs/typing-aids.md §8). */
+	/** The names the autocorrect knows (Codex titles and aliases, and the project's word list), rebuilt only when they change. */
+	private nameIndex(): NameIndex {
+		const running = this.running;
+		const values = running?.settings.values;
+		if (!running || !values) return EMPTY_NAMES;
+		const c = this.namesCache;
+		if (c && c.wordList === values.typingWordList && c.optOuts === values.typingNameOptOuts && c.version === this.namesVersion) return c.index;
+		const index = buildNameIndex(collectNameSources(running.opened.project, values.typingWordList), values.typingNameOptOuts);
+		this.namesCache = { wordList: values.typingWordList, optOuts: values.typingNameOptOuts, version: this.namesVersion, index };
+		return index;
+	}
+
+	/**
+	 * What the typing aids in a chapter or Codex note read at every keystroke: the switches and lists of the open project
+	 * (docs/typing-aids.md §8).
+	 */
 	typingOptions(): TypingEditorOptions {
 		const values = this.running?.settings.values;
-		if (!values) return { smartPunctuation: false, elisions: new Set() };
+		if (!values) return { smartPunctuation: false, elisions: new Set(), nameAutocorrect: false, names: EMPTY_NAMES };
 		if (this.elisionCache.source !== values.typingElisions) this.elisionCache = { source: values.typingElisions, words: new Set(values.typingElisions.map((w) => w.toLowerCase())) };
-		return { smartPunctuation: values.typingSmartPunctuation, elisions: this.elisionCache.words };
+		return {
+			smartPunctuation: values.typingSmartPunctuation,
+			elisions: this.elisionCache.words,
+			nameAutocorrect: values.typingNameAutocorrect,
+			names: this.nameIndex(),
+			onLowercaseCorrectionUndone: (name) => this.offerToStopCorrecting(name),
+		};
+	}
+
+	/** In a plot note, synopsis or description only smart punctuation applies (decision 46, ruling 3). */
+	fieldTypingOptions(): TypingEditorOptions {
+		return { ...this.typingOptions(), nameAutocorrect: false, names: EMPTY_NAMES, onLowercaseCorrectionUndone: undefined };
+	}
+
+	/** The author undid a lower-case correction: offer, quietly and once, to stop correcting that name. */
+	private offerToStopCorrecting(name: string): void {
+		const running = this.running;
+		if (!running || running.readOnlyReason || this.offeredOptOut.has(name.toLowerCase())) return;
+		this.offeredOptOut.add(name.toLowerCase());
+		this.notices.notify({
+			text: `Stop correcting “${name}” when it is typed in lower case?`,
+			key: `opt-out-${name}`,
+			actions: [
+				{
+					label: "Stop correcting",
+					onClick: () => void this.guard(async () => {
+						const current = running.settings.values.typingNameOptOuts;
+						await setSetting(running.opened.project, running.settings, "typingNameOptOuts", withEntry(current, name, (s) => s.toLowerCase()));
+						this.touch("settings");
+					}, "save the setting"),
+				},
+			],
+		});
 	}
 
 	cardTier(book: string, file: string): PlotCardTier {

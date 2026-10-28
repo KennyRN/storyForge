@@ -1,5 +1,7 @@
 import { DEFAULT_ELISIONS } from "../defaults";
-import { smartPunctuationChanges, type AidChange } from "../smartPunctuation";
+import { aidChanges } from "../aids";
+import { EMPTY_NAMES, type NameIndex } from "../names";
+import type { AidChange } from "../smartPunctuation";
 
 export interface Simulated {
 	/** The document after everything was typed and every aid applied. */
@@ -14,7 +16,7 @@ export interface Simulated {
  * Types `input` one character at a time after `initial` (text that was already there), applying the smart
  * punctuation aid after each, as the editor does. A newline ends the run, as Return does in the editor.
  */
-export function typeWith(input: string, options: { initial?: string; elisions?: readonly string[] } = {}): Simulated {
+export function typeWith(input: string, options: { initial?: string; elisions?: readonly string[]; names?: NameIndex; smart?: boolean; nameAutocorrect?: boolean } = {}): Simulated {
 	const elisions = new Set((options.elisions ?? DEFAULT_ELISIONS).map((e) => e.toLowerCase()));
 	let doc = options.initial ?? "";
 	let runStart = doc.length;
@@ -26,7 +28,7 @@ export function typeWith(input: string, options: { initial?: string; elisions?: 
 			continue;
 		}
 		doc += ch;
-		const changes = smartPunctuationChanges(doc, runStart, { elisions });
+		const changes = aidChanges(doc, runStart, { elisions, smartPunctuation: options.smart ?? true, names: options.names ?? EMPTY_NAMES, nameAutocorrect: options.nameAutocorrect ?? options.names !== undefined });
 		if (changes.length === 0) continue;
 		const docBefore = doc;
 		let next = doc;

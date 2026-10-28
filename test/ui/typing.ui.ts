@@ -210,3 +210,81 @@ test.describe("smart punctuation in the editor", () => {
 		await expect.poll(() => page.evaluate((p) => window.__preview.read(p), CH1), { timeout: 4000 }).toContain("It’s — well… ’tis.");
 	});
 });
+
+// ------------------------------------------------------------------------------------------------ name autocorrect
+
+async function addToList(page: Page, label: string, entry: string): Promise<void> {
+	await page.evaluate(() => window.__preview.emit("menu", "settings"));
+	const group = dialog(page).locator('section[aria-label="Typing"]');
+	await group.getByLabel(`Add to ${label}`).fill(entry);
+	await group.getByLabel(`Add to ${label}`).press("Enter");
+	await expect(group.getByRole("list", { name: label })).toContainText(entry);
+	await dialog(page).getByRole("button", { name: "Done" }).click();
+	await content(page).click();
+	await page.keyboard.press(`${MOD}+ArrowDown`);
+	await page.keyboard.press("Enter");
+}
+
+test.describe("name autocorrect in the editor", () => {
+	test("a Codex name typed in lower case is corrected when the word is finished, and a possessive is kept", async ({ page }) => {
+		await editorWith(page);
+		await page.keyboard.type("jane and sam. Jane's boat; sam's.");
+		expect(await doc(page)).toBe("Old text.\nJane and Sam. Jane’s boat; Sam’s.");
+	});
+
+	test("a name from the project's word list is corrected too, with its joined letters", async ({ page }) => {
+		await editorWith(page, "");
+		await addToList(page, "Names without a Codex note", "Ælfric");
+		await page.keyboard.type("aelfric rode. Aelfric's horse ");
+		expect(await doc(page)).toBe("\nÆlfric rode. Ælfric’s horse ");
+	});
+
+	test("one ⌘Z gives back what was typed, and offers to stop correcting a name that was typed in lower case", async ({ page }) => {
+		await editorWith(page, "");
+		await page.keyboard.type("sam ");
+		expect(await doc(page)).toBe("Sam ");
+		await page.keyboard.press(`${MOD}+z`);
+		expect(await doc(page)).toBe("sam ");
+		const offer = page.getByRole("status").filter({ hasText: "Stop correcting “Sam”" });
+		await expect(offer).toBeVisible();
+		await offer.getByRole("button", { name: "Stop correcting" }).click();
+		await expect.poll(() => projectMd(page)).toMatch(/typing-name-opt-outs:[\s\S]*Sam/);
+		await content(page).click();
+		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.type("sam, Sam, SAM ");
+		expect(await doc(page)).toBe("sam sam, Sam, Sam "); // lower case left alone, an exact Sam untouched, SAM corrected
+	});
+
+	test("a name opted out of is left alone in lower case, and corrected when it has a capital but no accent", async ({ page }) => {
+		await editorWith(page, "");
+		await addToList(page, "Names without a Codex note", "Red Blossom");
+		await addToList(page, "Names that are also ordinary words", "Red Blossom");
+		await page.keyboard.type("the red blossom fell. Red blossom. ");
+		expect(await doc(page)).toBe("\n\nthe red blossom fell. Red Blossom. ");
+	});
+
+	test("it does not act in a plot note, only smart punctuation does; and the switch turns it off", async ({ page }) => {
+		await editorWith(page, "");
+		await page.keyboard.type("jane ");
+		expect(await doc(page)).toBe("Jane ");
+		await page.evaluate(() => window.__preview.emit("menu", "settings"));
+		await dialog(page).locator('section[aria-label="Typing"]').getByLabel("Correct Codex names as you type them").uncheck();
+		await dialog(page).getByRole("button", { name: "Done" }).click();
+		await content(page).click();
+		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.type("jane ");
+		expect(await doc(page)).toBe("Jane jane ");
+	});
+
+	test("an alias that is a real second name is corrected, and the Codex's own text is never changed", async ({ page }) => {
+		await editorWith(page, "");
+		await outsideChange(page, "Codex/Ælfric.md", "---\naliases:\n  - Ælf\n---\nThe king.\n");
+		await expect.poll(async () => {
+			await content(page).click();
+			await page.keyboard.press(`${MOD}+ArrowDown`);
+			await page.keyboard.type("aelf ");
+			return doc(page);
+		}).toContain("Ælf ");
+		expect(await page.evaluate((p) => window.__preview.read(p), "Codex/Ælfric.md")).toBe("---\naliases:\n  - Ælf\n---\nThe king.\n");
+	});
+});

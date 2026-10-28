@@ -1,13 +1,24 @@
 import { isolateHistory } from "@codemirror/commands";
 import { EditorSelection, StateField, type Extension, type Transaction } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import { smartPunctuationChanges, type AidChange } from "../../core/typing/smartPunctuation";
+import { aidChanges, type AidOptions } from "../../core/typing/aids";
+import type { AidChange } from "../../core/typing/smartPunctuation";
+
+/** A name correction the aid made: where it sits now, what was typed, and what it became. */
+interface Correction {
+	at: number;
+	original: string;
+	spelling: string;
+	lowercase: boolean;
+}
 
 /** What the aids need to know, read afresh at every keystroke so a settings change applies at once. */
-export interface TypingEditorOptions {
-	smartPunctuation: boolean;
-	/** The lower-case words that begin with an apostrophe. */
-	elisions: ReadonlySet<string>;
+export interface TypingEditorOptions extends AidOptions {
+	/**
+	 * The author undid a name correction that had changed an all-lower-case word (the Mac's ⌘Z straight after it):
+	 * the app may offer to stop correcting that name.
+	 */
+	onLowercaseCorrectionUndone?: (name: string) => void;
 }
 
 /**
@@ -99,7 +110,29 @@ function replaceInBrowser(view: EditorView, from: number, to: number, insert: st
 export function typingAids(options: () => TypingEditorOptions): Extension {
 	/** An aid's edit has been made in the page and not yet recorded. */
 	let aiding: { caret: number } | null = null;
+	/** The last name correction, so an undo of it can be recognised (its place moves with later edits). */
+	let lastCorrection: Correction | null = null;
 	const run = makeTypedRun(() => aiding !== null);
+	let pendingCorrection: Correction | null = null;
+
+	/** Follows the last name correction through later edits, and says when it is undone. */
+	const watchCorrection = (update: import("@codemirror/view").ViewUpdate, o: TypingEditorOptions): void => {
+		if (!lastCorrection) return;
+		for (const tr of update.transactions) {
+			if (!tr.docChanged) continue;
+			if (tr.isUserEvent("undo") && update.state.doc.sliceString(lastCorrection.at, lastCorrection.at + lastCorrection.original.length) === lastCorrection.original) {
+				const done = lastCorrection;
+				lastCorrection = null;
+				if (done.lowercase) o.onLowercaseCorrectionUndone?.(done.spelling);
+				return;
+			}
+			if (!(tr.isUserEvent("input.type") || tr.isUserEvent("undo") || tr.isUserEvent("redo"))) {
+				lastCorrection = null; // a paste, a delete, a reload: the place can't be trusted
+				return;
+			}
+			lastCorrection = { ...lastCorrection, at: tr.changes.mapPos(lastCorrection.at, -1) };
+		}
+	};
 
 	return [
 		run,
@@ -108,12 +141,15 @@ export function typingAids(options: () => TypingEditorOptions): Extension {
 			if (!aiding) return false;
 			const { caret } = aiding;
 			aiding = null;
+			lastCorrection = pendingCorrection;
+			pendingCorrection = null;
 			view.dispatch({ changes: { from, to, insert: text }, selection: EditorSelection.cursor(caret), userEvent: AID_EVENT, annotations: isolateHistory.of("full") });
 			return true;
 		}),
 		EditorView.updateListener.of((update) => {
 			const o = options();
-			if (!o.smartPunctuation || update.transactions.length !== 1) return;
+			watchCorrection(update, o);
+			if (!(o.smartPunctuation || o.nameAutocorrect) || update.transactions.length !== 1) return;
 			const tr = update.transactions[0];
 			const view = update.view;
 			if (!typedCharacter(tr) || view.composing || view.compositionStarted) return;
@@ -122,12 +158,19 @@ export function typingAids(options: () => TypingEditorOptions): Extension {
 			const head = sel.main.head;
 			const before = update.state.doc.sliceString(0, head);
 			const runStart = update.state.field(run) ?? head - 1;
-			const changes = smartPunctuationChanges(before, runStart, { elisions: o.elisions });
+			const changes = aidChanges(before, runStart, o);
 			if (changes.length === 0) return;
+			const corrected = changes.find((c) => c.name);
+			if (corrected?.name) {
+				const shiftBefore = changes.filter((c) => c.from < corrected.from).reduce((n, c) => n + c.insert.length - (c.to - c.from), 0);
+				pendingCorrection = { at: corrected.from + shiftBefore, original: corrected.name.original, spelling: corrected.name.spelling, lowercase: corrected.name.lowercase };
+			} else pendingCorrection = null;
 			const state = update.state;
 			const span = oneReplacement(before, changes);
 			const caret = head + (span.insert.length - (span.to - span.from));
 			const viaState = (): void => {
+				lastCorrection = pendingCorrection;
+				pendingCorrection = null;
 				view.dispatch({
 					changes: changes.map((c) => ({ from: c.from, to: c.to, insert: c.insert })),
 					selection: EditorSelection.cursor(head + changes.reduce((n, c) => n + c.insert.length - (c.to - c.from), 0)),

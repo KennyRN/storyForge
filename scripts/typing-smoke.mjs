@@ -93,7 +93,7 @@ const sendKeys = (text) => osa('on run argv\ntell application "System Events" to
 const CASES = [
 	["curly quotes, an apostrophe and a spaced en dash", `'Don't say "never" - not yet,' she said.`, "‘Don’t say “never” – not yet,’ she said."],
 	["an em dash and an ellipsis", "Well--then... and so on...", "Well—then… and so on…"],
-	["a Text Replacement (omw) is not expanded, and a name is left to the name aid", "omw aelfric", "omw aelfric"],
+	["a Text Replacement (omw) is not expanded, and a Codex name in lower case is corrected with its possessive", "omw jane's boat and sam.", "omw Jane’s boat and Sam."],
 	["an elision, a quoted word and a decade", "'tis 'em' 90's", "’tis ‘em’ 90’s"],
 	["nothing inside a link, code or a comment", "[[it's]] `don't` %% 'x' -- y %% end", "[[it's]] `don't` %% 'x' -- y %% end"],
 ];
