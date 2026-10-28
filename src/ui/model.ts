@@ -277,20 +277,23 @@ export class AppModel {
 	 */
 	typingOptions(): TypingEditorOptions {
 		const values = this.running?.settings.values;
-		if (!values) return { smartPunctuation: false, elisions: new Set(), nameAutocorrect: false, names: EMPTY_NAMES };
+		if (!values) return { smartPunctuation: false, elisions: new Set(), nameAutocorrect: false, names: EMPTY_NAMES, shortcodes: false, shortcodeList: {}, shortcodeNames: false };
 		if (this.elisionCache.source !== values.typingElisions) this.elisionCache = { source: values.typingElisions, words: new Set(values.typingElisions.map((w) => w.toLowerCase())) };
 		return {
 			smartPunctuation: values.typingSmartPunctuation,
 			elisions: this.elisionCache.words,
 			nameAutocorrect: values.typingNameAutocorrect,
 			names: this.nameIndex(),
+			shortcodes: values.typingShortcodes,
+			shortcodeList: values.typingShortcodeList,
+			shortcodeNames: values.typingShortcodeNames,
 			onLowercaseCorrectionUndone: (name) => this.offerToStopCorrecting(name),
 		};
 	}
 
 	/** In a plot note, synopsis or description only smart punctuation applies (decision 46, ruling 3). */
 	fieldTypingOptions(): TypingEditorOptions {
-		return { ...this.typingOptions(), nameAutocorrect: false, names: EMPTY_NAMES, onLowercaseCorrectionUndone: undefined };
+		return { ...this.typingOptions(), nameAutocorrect: false, names: EMPTY_NAMES, shortcodes: false, onLowercaseCorrectionUndone: undefined };
 	}
 
 	/** The author undid a lower-case correction: offer, quietly and once, to stop correcting that name. */

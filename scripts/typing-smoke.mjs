@@ -102,6 +102,8 @@ const dir = realpathSync(mkdtempSync(join(tmpdir(), "sf-typing-")));
 const home = join(dir, "home");
 const project = join(dir, "proj");
 cpSync(join(root, "test/fixtures/series"), project, { recursive: true });
+// A project with one shortcode defined, as the author would in settings.
+writeFileSync(join(project, "_backstage/storyforge/project.md"), "---\nformat-version: 1\ntyping-shortcodes-list:\n  th: the Right Honourable\n---\n");
 const data = join(home, DATA_FOLDER);
 mkdirSync(data, { recursive: true });
 writeFileSync(join(data, "recent.json"), JSON.stringify([project]));
@@ -139,6 +141,14 @@ try {
 	await sleep(500);
 	const undone = valueOf("AXTextArea", "Text") ?? "";
 	if (!undone.startsWith(`${expectedSoFar}don'`) || undone.startsWith(`${expectedSoFar}don’`)) problems.push(`⌘Z straight after the curl should leave the straight apostrophe; the editor holds ${JSON.stringify(undone.slice(expectedSoFar.length, expectedSoFar.length + 6))}`);
+
+	// A shortcode: ~ and letters open the popup, the real Tab key puts in the full text.
+	sendKeys(" ~th");
+	await sleep(500);
+	keystroke("key code 48"); // Tab
+	await sleep(600);
+	const expanded = valueOf("AXTextArea", "Text") ?? "";
+	if (!expanded.startsWith(`${expectedSoFar}don' the Right Honourable`)) problems.push(`typed ~th and pressed Tab; the editor holds ${JSON.stringify(expanded.slice(expectedSoFar.length, expectedSoFar.length + 40))}, expected "don' the Right Honourable"`);
 
 	if (shotAt) {
 		sendKeys(process.env.SHOT_TEXT || "Teh quikc brwon foxx jumpd ovr lazyy dogg. ");

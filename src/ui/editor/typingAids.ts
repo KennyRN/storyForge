@@ -3,6 +3,7 @@ import { EditorSelection, StateField, type Extension, type Transaction } from "@
 import { EditorView } from "@codemirror/view";
 import { aidChanges, type AidOptions } from "../../core/typing/aids";
 import type { AidChange } from "../../core/typing/smartPunctuation";
+import { shortcodePopup } from "./shortcodePopup";
 
 /** A name correction the aid made: where it sits now, what was typed, and what it became. */
 interface Correction {
@@ -14,6 +15,10 @@ interface Correction {
 
 /** What the aids need to know, read afresh at every keystroke so a settings change applies at once. */
 export interface TypingEditorOptions extends AidOptions {
+	/** The shortcode popup (docs/typing-aids.md §6), its codes (`th` for `~th`), and whether Codex names are offered in it. */
+	shortcodes: boolean;
+	shortcodeList: Readonly<Record<string, string>>;
+	shortcodeNames: boolean;
 	/**
 	 * The author undid a name correction that had changed an all-lower-case word (the Mac's ⌘Z straight after it):
 	 * the app may offer to stop correcting that name.
@@ -109,7 +114,7 @@ function replaceInBrowser(view: EditorView, from: number, to: number, insert: st
  */
 export function typingAids(options: () => TypingEditorOptions): Extension {
 	/** An aid's edit has been made in the page and not yet recorded. */
-	let aiding: { caret: number } | null = null;
+	let aiding: { caret: number; event: string } | null = null;
 	/** The last name correction, so an undo of it can be recognised (its place moves with later edits). */
 	let lastCorrection: Correction | null = null;
 	const run = makeTypedRun(() => aiding !== null);
@@ -134,16 +139,49 @@ export function typingAids(options: () => TypingEditorOptions): Extension {
 		}
 	};
 
+	/**
+	 * Makes `insert` replace `[from, to)` as the aid's own history step, the way the browser would edit (which keeps
+	 * WebKit's spelling underlines), or through the state if the browser can't.
+	 */
+	const apply = (view: EditorView, span: { from: number; to: number; insert: string }, event: string): void => {
+		const caret = span.from + span.insert.length;
+		const state = view.state;
+		const viaState = (): void => {
+			lastCorrection = pendingCorrection;
+			pendingCorrection = null;
+			view.dispatch({ changes: { from: span.from, to: span.to, insert: span.insert }, selection: EditorSelection.cursor(caret), userEvent: event, annotations: isolateHistory.of("full") });
+		};
+		aiding = { caret, event };
+		if (!replaceInBrowser(view, span.from, span.to, span.insert)) {
+			aiding = null;
+			viaState();
+			return;
+		}
+		setTimeout(() => {
+			if (aiding === null) return;
+			aiding = null;
+			if (view.state === state) viaState();
+		}, 100);
+	};
+
 	return [
 		run,
+		shortcodePopup({
+			options,
+			run,
+			apply: (view, span) => {
+				pendingCorrection = null; // an accepted shortcode is not a name correction
+				apply(view, span, "input.complete");
+			},
+		}),
 		// The browser made the aid's replacement; record it as the aid's own, isolated step.
 		EditorView.inputHandler.of((view, from, to, text) => {
 			if (!aiding) return false;
-			const { caret } = aiding;
+			const { caret, event } = aiding;
 			aiding = null;
 			lastCorrection = pendingCorrection;
 			pendingCorrection = null;
-			view.dispatch({ changes: { from, to, insert: text }, selection: EditorSelection.cursor(caret), userEvent: AID_EVENT, annotations: isolateHistory.of("full") });
+			view.dispatch({ changes: { from, to, insert: text }, selection: EditorSelection.cursor(caret), userEvent: event, annotations: isolateHistory.of("full") });
 			return true;
 		}),
 		EditorView.updateListener.of((update) => {
@@ -167,33 +205,10 @@ export function typingAids(options: () => TypingEditorOptions): Extension {
 			} else pendingCorrection = null;
 			const state = update.state;
 			const span = oneReplacement(before, changes);
-			const caret = head + (span.insert.length - (span.to - span.from));
-			const viaState = (): void => {
-				lastCorrection = pendingCorrection;
-				pendingCorrection = null;
-				view.dispatch({
-					changes: changes.map((c) => ({ from: c.from, to: c.to, insert: c.insert })),
-					selection: EditorSelection.cursor(head + changes.reduce((n, c) => n + c.insert.length - (c.to - c.from), 0)),
-					userEvent: AID_EVENT,
-					annotations: isolateHistory.of("full"),
-				});
-			};
 			// Not from inside the update that typed the character: straight afterwards, before anything is painted.
 			queueMicrotask(() => {
 				if (view.state !== state) return; // something else happened first: leave it alone
-				aiding = { caret };
-				if (!replaceInBrowser(view, span.from, span.to, span.insert)) {
-					aiding = null;
-					viaState();
-					return;
-				}
-				// If the page change never reached `inputHandler`, make the change through the state instead.
-				setTimeout(() => {
-					if (aiding === null) return;
-					aiding = null;
-					const done = view.state.doc.sliceString(span.from, span.from + span.insert.length) === span.insert && view.state !== state;
-					if (!done && view.state === state) viaState();
-				}, 100);
+				apply(view, span, AID_EVENT);
 			});
 		}),
 	];

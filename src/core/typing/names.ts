@@ -57,6 +57,8 @@ interface Entry {
 }
 
 export interface NameIndex {
+	/** Every name with the folded forms of each of its words (for offering names after `~`). */
+	all: readonly { spelling: string; forms: string[][] }[];
 	/** Entries by the folded forms of their last word. */
 	byLast: Map<string, Entry[]>;
 	/** The longest name, in words. */
@@ -66,7 +68,7 @@ export interface NameIndex {
 	size: number;
 }
 
-export const EMPTY_NAMES: NameIndex = { byLast: new Map(), maxWords: 0, exact: new Set(), size: 0 };
+export const EMPTY_NAMES: NameIndex = { all: [], byLast: new Map(), maxWords: 0, exact: new Set(), size: 0 };
 
 const tokensOf = (spelling: string): string[] => spelling.split(/\s+/).filter(Boolean);
 
@@ -94,7 +96,7 @@ export function buildNameIndex(sources: readonly NameSource[], optOuts: Iterable
 		maxWords = Math.max(maxWords, e.tokens.length);
 		for (const form of e.forms[e.forms.length - 1]) byLast.set(form, [...(byLast.get(form) ?? []), e]);
 	}
-	return { byLast, maxWords, exact: new Set(entries.map((e) => e.spelling)), size: entries.length };
+	return { all: entries.map((e) => ({ spelling: e.spelling, forms: e.forms })), byLast, maxWords, exact: new Set(entries.map((e) => e.spelling)), size: entries.length };
 }
 
 export interface NameCorrectionOptions {

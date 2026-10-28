@@ -288,3 +288,159 @@ test.describe("name autocorrect in the editor", () => {
 		expect(await page.evaluate((p) => window.__preview.read(p), "Codex/Ælfric.md")).toBe("---\naliases:\n  - Ælf\n---\nThe king.\n");
 	});
 });
+
+// ------------------------------------------------------------------------------------------------------ shortcodes
+
+async function addShortcode(page: Page, code: string, text: string): Promise<void> {
+	await page.evaluate(() => window.__preview.emit("menu", "settings"));
+	const group = dialog(page).locator('section[aria-label="Typing"]');
+	await group.getByLabel("Shortcode letters").fill(code);
+	await group.getByLabel("Shortcode full text").fill(text);
+	await group.getByLabel("Shortcode full text").press("Enter");
+	await expect(group.getByRole("list", { name: "Shortcodes" })).toContainText(`~${code.replace(/^~/, "")}`);
+	await dialog(page).getByRole("button", { name: "Done" }).click();
+	await content(page).click();
+	await page.keyboard.press(`${MOD}+ArrowDown`);
+	await page.keyboard.press("Enter");
+}
+const popup = (page: Page) => page.getByRole("listbox", { name: "Shortcodes" });
+
+test.describe("shortcodes in the editor", () => {
+	test("~ and the letters offer the code; Tab puts in the full text; one ⌘Z gives back what was typed", async ({ page }) => {
+		await editorWith(page, "");
+		await addShortcode(page, "th", "the Right Honourable");
+		await page.keyboard.type("He met ~th");
+		await expect(popup(page)).toBeVisible();
+		await expect(popup(page).getByRole("option")).toHaveCount(1);
+		await expect(popup(page).getByRole("option", { name: /~th/ })).toContainText("the Right Honourable");
+		await shot(page, "typing-shortcode-popup");
+		await page.keyboard.press("Tab");
+		expect(await doc(page)).toContain("He met the Right Honourable");
+		await expect(popup(page)).toHaveCount(0);
+		await page.keyboard.press(`${MOD}+z`);
+		expect(await doc(page)).toContain("He met ~th");
+		expect(await doc(page)).not.toContain("Right Honourable");
+		await page.keyboard.press(`${MOD}+Shift+z`);
+		expect(await doc(page)).toContain("He met the Right Honourable");
+	});
+
+	test("typing after the accepted text carries on, and a name in it is not corrected behind your back", async ({ page }) => {
+		await editorWith(page, "");
+		await addShortcode(page, "j", "jane");
+		await page.keyboard.type("~j");
+		await page.keyboard.press("Tab");
+		await page.keyboard.type(" smiled ");
+		expect(await doc(page)).toContain("jane smiled "); // what the author defined is what goes in
+	});
+
+	test("Escape dismisses it, and the code is left as typed", async ({ page }) => {
+		await editorWith(page, "");
+		await addShortcode(page, "th", "the Right Honourable");
+		await page.keyboard.type("~th");
+		await expect(popup(page)).toBeVisible();
+		await page.keyboard.press("Escape");
+		await expect(popup(page)).toHaveCount(0);
+		await page.keyboard.type("x");
+		await expect(popup(page)).toHaveCount(0);
+		expect(await doc(page)).toContain("~thx");
+	});
+
+	test("Return always makes a new paragraph, with the popup open or not, and any other key carries on typing", async ({ page }) => {
+		await editorWith(page, "");
+		await addShortcode(page, "th", "the Right Honourable");
+		await page.keyboard.type("~th");
+		await expect(popup(page)).toBeVisible();
+		await page.keyboard.press("Enter");
+		await expect(popup(page)).toHaveCount(0);
+		await page.keyboard.type("next");
+		expect(await doc(page)).toContain("~th\nnext");
+		await page.keyboard.type(" ~t");
+		await expect(popup(page)).toBeVisible();
+		await page.keyboard.type("z");
+		await expect(popup(page)).toHaveCount(0); // no code begins ~tz
+		expect(await doc(page)).toContain("~tz");
+	});
+
+	test("~~, ~ alone, ~ and a digit, and a ~ inside a word, protected text or old text never open it", async ({ page }) => {
+		await editorWith(page, "old ~t");
+		await addShortcode(page, "th", "the Right Honourable");
+		for (const typed of ["~~th", " ~ ", " ~9", " a~th", " [[~th", " `~th"]) {
+			await page.keyboard.type(typed);
+			await expect(popup(page), typed).toHaveCount(0);
+		}
+		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.type("");
+		// old text that was already there: typing the rest of it doesn't open it
+		await editorWith(page, "old ~t");
+		await page.keyboard.type("h");
+		await expect(popup(page)).toHaveCount(0);
+	});
+
+	test("the list is a listbox a screen reader can read: the highlighted entry is announced, and the arrows move it", async ({ page }) => {
+		await editorWith(page, "");
+		await addShortcode(page, "th", "the Right Honourable");
+		await addShortcode(page, "tm", "the Master");
+		await page.keyboard.type("~t");
+		const options = popup(page).getByRole("option");
+		await expect(options).toHaveCount(2);
+		const box = page.getByRole("textbox", { name: "Text" });
+		await expect(box).toHaveAttribute("aria-expanded", "true");
+		await expect(box).toHaveAttribute("aria-haspopup", "listbox");
+		const first = await options.nth(0).getAttribute("id");
+		await expect(box).toHaveAttribute("aria-activedescendant", first!);
+		await expect(options.nth(0)).toHaveAttribute("aria-selected", "true");
+		await page.keyboard.press("ArrowDown");
+		const second = await options.nth(1).getAttribute("id");
+		await expect(box).toHaveAttribute("aria-activedescendant", second!);
+		await expect(options.nth(1)).toHaveAttribute("aria-selected", "true");
+		await expect(options.nth(0)).toHaveAttribute("aria-selected", "false");
+		await page.keyboard.press("Tab");
+		expect(await doc(page)).toContain("the Right Honourable".replace("Right Honourable", "Master"));
+		await expect(box).not.toHaveAttribute("aria-expanded", "true");
+	});
+
+	test("Codex names are offered after ~ too, with their own switch", async ({ page }) => {
+		await editorWith(page, "");
+		await page.keyboard.type("~ja");
+		await expect(popup(page).getByRole("option", { name: /Jane/ })).toContainText("Codex");
+		await page.keyboard.press("Tab");
+		expect(await doc(page)).toBe("Jane");
+		await page.evaluate(() => window.__preview.emit("menu", "settings"));
+		await dialog(page).locator('section[aria-label="Typing"]').getByLabel("Offer Codex names after ~").uncheck();
+		await dialog(page).getByRole("button", { name: "Done" }).click();
+		await content(page).click();
+		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.type(" ~sa");
+		await expect(popup(page)).toHaveCount(0);
+	});
+
+	test("Tab does what it did when there is no popup, and the shortcodes switch turns the popup off", async ({ page }) => {
+		await editorWith(page, "");
+		await addShortcode(page, "th", "the Right Honourable");
+		await page.keyboard.type("abc");
+		await page.keyboard.press("Tab");
+		expect(await doc(page)).toBe("\nabc"); // nothing put in (the new line is from adding the shortcode)
+		await content(page).click();
+		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.evaluate(() => window.__preview.emit("menu", "settings"));
+		await dialog(page).locator('section[aria-label="Typing"]').getByLabel("Shortcodes (~ then Tab)").uncheck();
+		await dialog(page).getByRole("button", { name: "Done" }).click();
+		await content(page).click();
+		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.type(" ~th");
+		await expect(popup(page)).toHaveCount(0);
+	});
+
+	test("it is not offered in a plot note", async ({ page }) => {
+		await editorWith(page, "");
+		await addShortcode(page, "th", "the Right Honourable");
+		await page.evaluate(() => window.__app.setForgeTab("novel"));
+		await page.evaluate(() => window.__app.flipFace());
+		await page.getByRole("tab", { name: "novel" }).click();
+		const field = page.locator('.sf-card[data-chapter="ch-a2.md"] .sf-note-field .cm-content');
+		await field.click();
+		await page.keyboard.type("~th");
+		await expect(popup(page)).toHaveCount(0);
+		expect(await field.evaluate((el) => [...el.querySelectorAll(".cm-line")].map((l) => l.textContent).join("\n"))).toBe("~th");
+	});
+});
