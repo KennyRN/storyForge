@@ -1,5 +1,5 @@
 import { Prec, StateEffect, StateField, type EditorState, type Extension } from "@codemirror/state";
-import { EditorView, keymap, showTooltip, type Tooltip } from "@codemirror/view";
+import { EditorView, ViewPlugin, keymap, showTooltip, tooltips, type Tooltip } from "@codemirror/view";
 import { protectedRanges, touchesProtected } from "../../core/typing/protectedText";
 import { shortcodeEntries, shortcodeTrigger, type ShortcodeEntry } from "../../core/typing/shortcodes";
 import type { TypingEditorOptions } from "./typingAids";
@@ -10,6 +10,12 @@ export interface ShortcodePopupHooks {
 	run: StateField<number | null>;
 	/** Puts `insert` in place of `[from, to)` as the aid's own history step. */
 	apply: (view: EditorView, replacement: { from: number; to: number; insert: string }) => void;
+	/**
+	 * The editor is one of the small field editors of the overviews (decision 53): the popup is drawn in the page's body so
+	 * no card or scrolling clips it, goes above the text when there is no room below, and is dismissed when the field loses
+	 * focus (the code stays as typed).
+	 */
+	field?: boolean;
 }
 
 interface Popup {
@@ -98,7 +104,7 @@ export function shortcodePopup(hooks: ShortcodePopupHooks): Extension {
 		return {
 			pos: p.tilde,
 			above: false,
-			strictSide: true,
+			strictSide: !hooks.field,
 			create: (view) => {
 				const dom = document.createElement("div");
 				dom.className = "sf-shortcode-popup";
@@ -136,7 +142,25 @@ export function shortcodePopup(hooks: ShortcodePopupHooks): Extension {
 		};
 	};
 
+	/** A field that loses focus with the popup open closes it: nothing is accepted, the code stays as typed. */
+	const leaving = ViewPlugin.fromClass(
+		class {
+			update(u: import("@codemirror/view").ViewUpdate): void {
+				if (!u.focusChanged || u.view.hasFocus || !popupFor(u.state)) return;
+				const view = u.view;
+				queueMicrotask(() => {
+					try {
+						if (view.dom.isConnected && !view.hasFocus) view.dispatch({ effects: dismiss.of(null) });
+					} catch {
+						// the field was redrawn or destroyed first: nothing to close
+					}
+				});
+			}
+		},
+	);
+
 	return [
+		...(hooks.field ? [tooltips({ parent: document.body, position: "fixed" }), leaving] : []),
 		selection,
 		dismissed,
 		showTooltip.compute([selection, dismissed, hooks.run, "doc", "selection"], tooltip),

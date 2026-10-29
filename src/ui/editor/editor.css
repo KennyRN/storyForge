@@ -142,6 +142,8 @@
 /* The shortcode popup (a CodeMirror tooltip, docs/typing-aids.md §6): the list sits in the app's own raised surface. */
 /* CodeMirror styles its tooltip with more specific selectors, so these match their weight. */
 .cm-editor .cm-tooltip, .cm-editor .cm-tooltip.cm-tooltip-below, .cm-editor .cm-tooltip.cm-tooltip-above { background: transparent; border: 0; outline: 0; box-shadow: none; }
+/* The popup of a field editor in the overviews is drawn in the page's body (decision 53), outside the editor, so nothing clips it. */
+body > .cm-tooltip, body > .cm-tooltip.cm-tooltip-below, body > .cm-tooltip.cm-tooltip-above { background: transparent; border: 0; outline: 0; box-shadow: none; z-index: 600; }
 .sf-shortcode-popup {
 	min-width: 14em;
 	max-width: 30em;

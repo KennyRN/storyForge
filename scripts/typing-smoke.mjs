@@ -11,6 +11,7 @@
 //
 // It drives the window with System Events: the terminal needs Accessibility permission and the screen must be
 // unlocked. Usage: npm run test:typing [-- path/to/storyForge.app] [--shot path/to/window.png]
+//   --aid-shots <prefix> saves two pictures of a plot note, <prefix>-name.png (a corrected name) and <prefix>-popup.png (an open shortcode popup).
 //   --shot saves a picture of the app's window after typing a misspelled sentence, to look at the red underlines
 //   (they can't be detected through accessibility).
 import { spawn, spawnSync } from "node:child_process";
@@ -25,7 +26,8 @@ const DATA_FOLDER = `Library/Application Support/${BUNDLE_ID}`;
 const args = process.argv.slice(2);
 const shotAt = args.includes("--shot") ? args[args.indexOf("--shot") + 1] : null;
 const fieldShotAt = args.includes("--field-shot") ? args[args.indexOf("--field-shot") + 1] : null;
-const appArg = args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--shot" && args[i - 1] !== "--field-shot");
+const aidShotsAt = args.includes("--aid-shots") ? args[args.indexOf("--aid-shots") + 1] : null;
+const appArg = args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--shot" && args[i - 1] !== "--field-shot" && args[i - 1] !== "--aid-shots");
 const app = resolve(appArg ?? join(root, "src-tauri/target/universal-apple-darwin/release/bundle/macos/storyForge.app"));
 const binary = join(app, "Contents/MacOS/storyforge");
 
@@ -159,6 +161,63 @@ try {
 	const withAsh = valueOf("AXTextArea", "Text") ?? "";
 	if (!withAsh.startsWith(`${expectedSoFar}don' the Right Honourableæ`)) problems.push(`pressed the ash button; the editor holds ${JSON.stringify(withAsh.slice(expectedSoFar.length, expectedSoFar.length + 40))}, expected "don' the Right Honourableæ"`);
 
+	// The field editors (decision 53): a plot note has the name autocorrect and the shortcodes too. Typed into the first
+	// plot note of the novel, with real keystrokes; each aid is read back from the field through accessibility.
+	const clickAny = (name) => ["AXButton", "AXCheckBox", "AXToggle", "AXRadioButton", "AXTab"].some((role) => find(role, name, "click").startsWith("found"));
+	if (!(await until(() => clickAny("Flip side")))) fail("could not reach the library side");
+	if (!(await until(() => clickAny("novel"), 8000))) fail("could not reach the novel tab");
+	if (!(await until(() => find("AXTextArea", "Plot note for", "focus").startsWith("found")))) fail("no plot note to type in");
+	await sleep(500);
+	const note = () => valueOf("AXTextArea", "Plot note for") ?? "";
+	const noteFocused = () => find("AXTextArea", "Plot note for", "isfocused") === "found true";
+	const windowShot = (file) => {
+		const [x, y, w, h] = osa('tell application "System Events" to tell process "storyforge" to return (position of window 1) & (size of window 1)').stdout.trim().split(", ").map(Number);
+		spawnSync("screencapture", ["-x", "-R", [x, y, w, h].join(","), file]);
+	};
+	const key = (script) => osa(`tell application "System Events" to ${script}`);
+	key('keystroke "a" using command down');
+	sendKeys("jane and sam. ");
+	await sleep(500);
+	if (note() !== "Jane and Sam. ") problems.push(`in a plot note: typed "jane and sam. ", the field holds ${JSON.stringify(note())}, expected "Jane and Sam. "`);
+	sendKeys("sam ");
+	await sleep(400);
+	key('keystroke "z" using command down');
+	await sleep(500);
+	if (note() !== "Jane and Sam. sam ") problems.push(`in a plot note: ⌘Z straight after a name correction should leave what was typed; the field holds ${JSON.stringify(note())}`);
+	key('keystroke "z" using command down'); // and the typing of "sam " itself
+	await sleep(300);
+	sendKeys("~th");
+	await sleep(500);
+	if (aidShotsAt) windowShot(`${aidShotsAt}-popup.png`);
+	key("key code 48"); // Tab accepts while the popup shows
+	await sleep(600);
+	if (!note().endsWith("the Right Honourable") || !noteFocused()) problems.push(`in a plot note: typed ~th and pressed Tab; the field holds ${JSON.stringify(note())} (focused: ${noteFocused()})`);
+	key('keystroke "z" using command down');
+	await sleep(500);
+	if (!note().endsWith("~th")) problems.push(`in a plot note: ⌘Z after an accepted shortcode should leave ~th; the field holds ${JSON.stringify(note())}`);
+	sendKeys(" ~th");
+	await sleep(400);
+	key("key code 53"); // Escape dismisses the popup only
+	await sleep(400);
+	if (!note().endsWith("~th ~th") || !noteFocused()) problems.push(`in a plot note: Escape should only dismiss the popup; the field holds ${JSON.stringify(note())} (focused: ${noteFocused()})`);
+	key("key code 36"); // Return makes a new line
+	await sleep(300);
+	if (!note().endsWith("~th ~th\n")) problems.push(`in a plot note: Return should make a new line and accept nothing; the field holds ${JSON.stringify(note())}`);
+	sendKeys("x");
+	await sleep(300);
+	key("key code 48"); // no popup: Tab leaves the field
+	await sleep(600);
+	if (noteFocused() || !note().endsWith("~th ~th\nx")) problems.push(`in a plot note: Tab with no popup should leave the field and put nothing in; the field holds ${JSON.stringify(note())} (focused: ${noteFocused()})`);
+	if (aidShotsAt) {
+		find("AXTextArea", "Plot note for", "focus");
+		await sleep(300);
+		key('keystroke "a" using command down');
+		sendKeys("the harbour was quiet, and jane and sam watched it. ");
+		await sleep(2000);
+		windowShot(`${aidShotsAt}-name.png`);
+		console.log(`(pictures of a plot note: ${aidShotsAt}-name.png, ${aidShotsAt}-popup.png)`);
+	}
+
 	if (shotAt) {
 		sendKeys(process.env.SHOT_TEXT || "Teh quikc brwon foxx jumpd ovr lazyy dogg. ");
 		await sleep(2500);
@@ -168,9 +227,6 @@ try {
 	}
 	if (fieldShotAt) {
 		// A plot note is a small editor of its own: the red underlines must appear in it too.
-		const clickAny = (name) => ["AXButton", "AXCheckBox", "AXToggle", "AXRadioButton", "AXTab"].some((role) => find(role, name, "click").startsWith("found"));
-		if (!(await until(() => clickAny("Flip side")))) fail("could not reach the library side");
-		if (!(await until(() => clickAny("novel"), 8000))) fail("could not reach the novel tab");
 		if (!(await until(() => find("AXTextArea", "Plot note for", "focus").startsWith("found")))) fail("no plot note to type in");
 		await sleep(500);
 		sendKeys(process.env.FIELD_TEXT || "Teh quikc brwon foxx jumpd ovr lazyy dogg. Don't - wait...");
@@ -185,7 +241,7 @@ try {
 	rmSync(dir, { recursive: true, force: true });
 }
 console.log("");
-if (problems.length === 0) console.log("PASS  the typing aids gave exactly the expected text, one ⌘Z undid a curl, and the Mac's own substitutions did not act as well");
+if (problems.length === 0) console.log("PASS  the typing aids gave exactly the expected text in a chapter and in a plot note (a name, a shortcode with Tab, Escape, Return and Tab out), one ⌘Z undid a curl, and the Mac's own substitutions did not act as well");
 else {
 	console.log("FAIL  what the editor holds is not what the aids should give (an aid is wrong, or the Mac's own substitutions acted too)");
 	for (const p of problems) console.log(`        - ${p}`);

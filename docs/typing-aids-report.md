@@ -47,7 +47,7 @@ Version 0.13.0, branch `typing`. Design and rulings: `docs/typing-aids.md` (§12
 - **The aids react to typing and don't intercept it** (§13 of the design doc); they never see composition, dictation or paste.
 - **A keystroke can make two changes, undone together** (a dash it completes and the quote it is).
 - **Return doesn't finish a word:** a name typed lazily and followed directly by Return is not corrected, and an elision at the end of a paragraph isn't converted. Known limit.
-- **Plot notes, the synopsis and the description are small editors, not text areas** (decision 47), with smart punctuation only.
+- **Plot notes, the synopsis and the description are small editors, not text areas** (decision 47), with smart punctuation only (1.1.0, decision 53: all three aids; see `typing-aids.md` §15).
 - **The popup labels Codex names "Codex", not by type.**
 - **The Mac's own substitutions are off in the editor whatever the aid switches say** (decision 46), and the spellcheck underlines are on.
 

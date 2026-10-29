@@ -180,7 +180,7 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 					notify: (n) => model.notices.notify(n),
 					written: (stored) => plots.set(key, stored),
 					placeholder: "Plot note",
-					typing: () => model.fieldTypingOptions(),
+					typing: () => model.typingOptions(),
 				}, bin);
 				field.element.dataset.plot = key;
 				card.append(field.element);

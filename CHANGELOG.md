@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0: name autocorrect and shortcodes in the fields (Fix 4, decision 53)
+
+Plot notes, the novel's synopsis and the series description now have name autocorrect and shortcodes as well as smart punctuation, on the same options as a chapter: the same names, folding and ambiguity rule, possessives kept, opt-outs respected, multi-word names matched whole, nothing inside `[[links]]`, URLs, code, comments or `~~strikethrough~~`, one ⌘Z leaving exactly what was typed (and the offer to stop correcting a name after a lower-case correction is undone). Each aid's existing switch covers the fields; there is no new setting. Chapters and Codex notes already had both and are unchanged. See `docs/typing-aids.md` §15.
+
+- New: **the shortcode popup in a field**: Tab accepts only while it shows (otherwise Tab leaves the field: no trap), Escape dismisses the popup only, Return makes a new line and never accepts. It is drawn in the page's body, so no card or the overview's scrolling clips it; it goes above the text when there is no room below and stays inside the window beside its edge. Leaving the field, or the app closing, with the popup showing leaves the code as typed and the field commits as normal.
+- Changed: a field now corrects a Codex name typed in lower case, as a chapter does (`harbour` in a synopsis becomes `Harbour`).
+- Unchanged: the rename, settings and search boxes take no aids (decision 47); field text is written only through `FieldState` and `fieldWriter.ts`; the field editors never reach the prose writer or the session tracker (the architecture test now covers the popup too, and fixes where the aids may be mounted). No code in the prose writer, the session tracker, the field-writing path, the close path or the disk format changed.
+- Tests: `npm run test:typing` (built app) types into a plot note: a name, ⌘Z, a shortcode with the real Tab key, Escape, Return and Tab out; `--aid-shots` saves pictures of a corrected name and of the open popup.
+
 ## 1.0.0: storyForge 1.0
 
 storyForge is declared 1.0. This release changes no code; it is the version the pre-1.0 check was run on (0.13.1) with its number changed.

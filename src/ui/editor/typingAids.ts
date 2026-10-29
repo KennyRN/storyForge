@@ -110,9 +110,11 @@ function replaceInBrowser(view: EditorView, from: number, to: number, insert: st
  * The smart-punctuation aid for a CodeMirror editor. After a character is typed it asks the pure rules what, if
  * anything, to change, and applies that as **a second transaction**, isolated in the history, so ⌘Z undoes the aid's
  * change alone and leaves exactly what was typed (Brief 9 §1.2). It reacts to typing; it never takes over text input,
- * so composition, dictation, paste, drop, undo and reloads are left entirely alone.
+ * so composition, dictation, paste, drop, undo and reloads are left entirely alone. `field` is for the small editors
+ * of the overviews (decision 53): their shortcode popup is drawn outside the card and the page's scrolling, and goes
+ * when the field loses focus.
  */
-export function typingAids(options: () => TypingEditorOptions): Extension {
+export function typingAids(options: () => TypingEditorOptions, where: { field?: boolean } = {}): Extension {
 	/** An aid's edit has been made in the page and not yet recorded. */
 	let aiding: { caret: number; event: string } | null = null;
 	/** The last name correction, so an undo of it can be recognised (its place moves with later edits). */
@@ -169,6 +171,7 @@ export function typingAids(options: () => TypingEditorOptions): Extension {
 		shortcodePopup({
 			options,
 			run,
+			field: where.field === true,
 			apply: (view, span) => {
 				pendingCorrection = null; // an accepted shortcode is not a name correction
 				apply(view, span, "input.complete");

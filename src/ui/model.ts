@@ -272,8 +272,9 @@ export class AppModel {
 	}
 
 	/**
-	 * What the typing aids in a chapter or Codex note read at every keystroke: the switches and lists of the open project
-	 * (docs/typing-aids.md §8).
+	 * What the typing aids in a chapter, a Codex note, a plot note, the synopsis or the series description read at every
+	 * keystroke: the switches and lists of the open project (docs/typing-aids.md §8; decision 53 put the fields on the same
+	 * options as the chapters). The rename, settings and search boxes take none of it (decision 47).
 	 */
 	typingOptions(): TypingEditorOptions {
 		const values = this.running?.settings.values;
@@ -289,11 +290,6 @@ export class AppModel {
 			shortcodeNames: values.typingShortcodeNames,
 			onLowercaseCorrectionUndone: (name) => this.offerToStopCorrecting(name),
 		};
-	}
-
-	/** In a plot note, synopsis or description only smart punctuation applies (decision 46, ruling 3). */
-	fieldTypingOptions(): TypingEditorOptions {
-		return { ...this.typingOptions(), nameAutocorrect: false, names: EMPTY_NAMES, shortcodes: false, onLowercaseCorrectionUndone: undefined };
 	}
 
 	/** The author undid a lower-case correction: offer, quietly and once, to stop correcting that name. */

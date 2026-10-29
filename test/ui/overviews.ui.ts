@@ -55,9 +55,9 @@ test.describe("the series overview", () => {
 		const novelBefore = await page.evaluate((f) => window.__preview.read(f), "_story-library/novel-aaa.md");
 		const synopsis = overview(page).getByRole("textbox", { name: /^Synopsis of / }).first();
 		await synopsis.click();
-		await synopsis.pressSequentially("Jane finds the harbour.");
+		await synopsis.pressSequentially("Jane finds the harbour."); // "harbour" is a Codex name: the field corrects it as a chapter does (decision 53)
 		await overview(page).locator(".sf-overview-title").click();
-		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), "_story-library/novel-aaa.md")).toBe(`${novelBefore.trimEnd()}\n\n## Synopsis\nJane finds the harbour.\n`);
+		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), "_story-library/novel-aaa.md")).toBe(`${novelBefore.trimEnd()}\n\n## Synopsis\nJane finds the Harbour.\n`);
 	});
 
 	test("a synopsis whose heading appears twice shows read-only, with a notice", async ({ page }) => {

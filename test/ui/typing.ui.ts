@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { openPreview, shot } from "./helpers";
 
 const PROJECT_MD = "_backstage/storyforge/project.md";
@@ -263,7 +263,7 @@ test.describe("name autocorrect in the editor", () => {
 		expect(await doc(page)).toBe("\n\nthe red blossom fell. Red Blossom. ");
 	});
 
-	test("it does not act in a plot note, only smart punctuation does; and the switch turns it off", async ({ page }) => {
+	test("the switch turns it off", async ({ page }) => {
 		await editorWith(page, "");
 		await page.keyboard.type("jane ");
 		expect(await doc(page)).toBe("Jane ");
@@ -430,18 +430,340 @@ test.describe("shortcodes in the editor", () => {
 		await page.keyboard.type(" ~th");
 		await expect(popup(page)).toHaveCount(0);
 	});
+});
 
-	test("it is not offered in a plot note", async ({ page }) => {
-		await editorWith(page, "");
-		await addShortcode(page, "th", "the Right Honourable");
-		await page.evaluate(() => window.__app.setForgeTab("novel"));
-		await page.evaluate(() => window.__app.flipFace());
-		await page.getByRole("tab", { name: "novel" }).click();
-		const field = page.locator('.sf-card[data-chapter="ch-a2.md"] .sf-note-field .cm-content');
-		await field.click();
+// ---------------------------------------------------------------------------------- the aids in the overview fields (decision 53)
+
+const BOOK_A = "_story-library/novel-aaa.md";
+const SERIES = "_story-library/series.md";
+const flipSide = (page: Page) => page.getByRole("button", { name: "Flip side" }).click();
+const lines = (box: Locator): Promise<string> => box.evaluate((el) => [...el.querySelectorAll(".cm-line")].map((l) => l.textContent ?? "").join("\n"));
+
+interface FieldKind {
+	name: string;
+	/** The file the field is written to. */
+	file: string;
+	/** Shows the field and returns its text box. */
+	open: (page: Page) => Promise<Locator>;
+	/** The element that, clicked, takes the focus out of the field without leaving the overview. */
+	away: (page: Page) => Locator;
+}
+const KINDS: FieldKind[] = [
+	{
+		name: "a plot note",
+		file: BOOK_A,
+		open: async (page) => {
+			await flipSide(page);
+			await page.getByRole("tab", { name: "novel" }).click();
+			return page.getByRole("textbox", { name: "Plot note for Chapter 2" });
+		},
+		away: (page) => page.getByRole("region", { name: "Novel overview" }).locator(".sf-overview-title"),
+	},
+	{
+		name: "the novel's synopsis",
+		file: BOOK_A,
+		open: async (page) => {
+			await flipSide(page);
+			await page.getByRole("tab", { name: "novel" }).click();
+			return page.getByRole("region", { name: "Novel overview" }).getByRole("textbox", { name: /^Synopsis of / });
+		},
+		away: (page) => page.getByRole("region", { name: "Novel overview" }).locator(".sf-overview-title"),
+	},
+	{
+		name: "the series description",
+		file: SERIES,
+		open: async (page) => {
+			await flipSide(page);
+			await page.getByRole("tab", { name: "series" }).click();
+			return page.getByRole("region", { name: "Series overview" }).getByRole("textbox", { name: "Series description" });
+		},
+		away: (page) => page.getByRole("region", { name: "Series overview" }).locator(".sf-overview-title"),
+	},
+];
+
+/** The project open, and the typing settings changed (before any overview covers the editor). */
+async function projectWith(page: Page, settings: { codes?: [string, string][]; lists?: [string, string][] } = {}): Promise<void> {
+	await openPreview(page);
+	await page.locator("[data-recent='0']").click();
+	await page.waitForFunction(() => !!window.__app?.editors);
+	if (!settings.codes?.length && !settings.lists?.length) return;
+	await page.evaluate(() => window.__preview.emit("menu", "settings"));
+	const group = dialog(page).locator('section[aria-label="Typing"]');
+	for (const [label, entry] of settings.lists ?? []) {
+		await group.getByLabel(`Add to ${label}`).fill(entry);
+		await group.getByLabel(`Add to ${label}`).press("Enter");
+		await expect(group.getByRole("list", { name: label })).toContainText(entry);
+	}
+	for (const [code, text] of settings.codes ?? []) {
+		await group.getByLabel("Shortcode letters").fill(code);
+		await group.getByLabel("Shortcode full text").fill(text);
+		await group.getByLabel("Shortcode full text").press("Enter");
+		await expect(group.getByRole("list", { name: "Shortcodes" })).toContainText(`~${code}`);
+	}
+	await dialog(page).getByRole("button", { name: "Done" }).click();
+}
+/** Into the field, at the end, on a new line (so the typing is a new run). */
+async function intoField(field: Locator, page: Page): Promise<void> {
+	await field.click();
+	await page.keyboard.press(`${MOD}+ArrowDown`);
+	await page.keyboard.press("Enter");
+}
+const typedPart = async (field: Locator): Promise<string> => (await lines(field)).split("\n").slice(1).join("\n");
+
+for (const kind of KINDS) {
+	test.describe(`name autocorrect in ${kind.name}`, () => {
+		test("a Codex name is corrected when the word is finished, a possessive is kept, a multi-word name matches whole", async ({ page }) => {
+			await projectWith(page, { lists: [["Names without a Codex note", "Ælfric"], ["Names without a Codex note", "Red Blossom"]] });
+			const field = await kind.open(page);
+			await intoField(field, page);
+			await page.keyboard.type("jane and sam. Jane's boat; sam's. aelfric rode. red blossom fell. ");
+			expect(await typedPart(field)).toBe("Jane and Sam. Jane’s boat; Sam’s. Ælfric rode. Red Blossom fell. ");
+			await shot(page, `typing-field-name-${kind.name.replace(/[^a-z]+/gi, "-")}`);
+		});
+
+		test("one ⌘Z gives back exactly what was typed, then offers to stop correcting a name typed in lower case", async ({ page }) => {
+			await projectWith(page);
+			const field = await kind.open(page);
+			await intoField(field, page);
+			await page.keyboard.type("sam ");
+			expect(await typedPart(field)).toBe("Sam ");
+			await page.keyboard.press(`${MOD}+z`);
+			expect(await typedPart(field)).toBe("sam ");
+			await expect(page.getByRole("status").filter({ hasText: "Stop correcting “Sam”" })).toBeVisible();
+			await page.keyboard.press(`${MOD}+Shift+z`);
+			expect(await typedPart(field)).toBe("Sam ");
+		});
+
+		test("a name opted out of is left alone in lower case, and corrected when it has a capital but no accent", async ({ page }) => {
+			await projectWith(page, { lists: [["Names without a Codex note", "Red Blossom"], ["Names that are also ordinary words", "Red Blossom"]] });
+			const field = await kind.open(page);
+			await intoField(field, page);
+			await page.keyboard.type("the red blossom fell. Red blossom. ");
+			expect(await typedPart(field)).toBe("the red blossom fell. Red Blossom. ");
+		});
+
+		test("a name inside a [[link]] is left alone, and the one after it is corrected", async ({ page }) => {
+			await projectWith(page);
+			const field = await kind.open(page);
+			await intoField(field, page);
+			await page.keyboard.type("see [[jane]] and jane ");
+			expect(await typedPart(field)).toBe("see [[jane]] and Jane ");
+		});
+
+		test("the switch covers the field", async ({ page }) => {
+			await projectWith(page);
+			await page.evaluate(() => window.__preview.emit("menu", "settings"));
+			await dialog(page).locator('section[aria-label="Typing"]').getByLabel("Correct Codex names as you type them").uncheck();
+			await dialog(page).getByRole("button", { name: "Done" }).click();
+			const field = await kind.open(page);
+			await intoField(field, page);
+			await page.keyboard.type("jane ");
+			expect(await typedPart(field)).toBe("jane ");
+		});
+	});
+
+	test.describe(`shortcodes in ${kind.name}`, () => {
+		const TH: [string, string][] = [["th", "the Right Honourable"]];
+
+		test("~ and the letters offer the code; Tab puts in the full text; one ⌘Z gives back what was typed, ⇧⌘Z puts it back", async ({ page }) => {
+			await projectWith(page, { codes: TH });
+			const field = await kind.open(page);
+			await intoField(field, page);
+			await page.keyboard.type("He met ~th");
+			await expect(popup(page)).toBeVisible();
+			await expect(popup(page).getByRole("option", { name: /~th/ })).toContainText("the Right Honourable");
+			await expect(field).toHaveAttribute("aria-expanded", "true");
+			await shot(page, `typing-field-shortcode-${kind.name.replace(/[^a-z]+/gi, "-")}`);
+			await page.keyboard.press("Tab");
+			expect(await typedPart(field)).toBe("He met the Right Honourable");
+			await expect(popup(page)).toHaveCount(0);
+			await expect(field).toBeFocused();
+			await page.keyboard.press(`${MOD}+z`);
+			expect(await typedPart(field)).toBe("He met ~th");
+			await page.keyboard.press(`${MOD}+Shift+z`);
+			expect(await typedPart(field)).toBe("He met the Right Honourable");
+		});
+
+		test("Codex names are offered after ~ too; ~~, ~ alone, protected text and struck text never open it", async ({ page }) => {
+			await projectWith(page, { codes: TH });
+			const field = await kind.open(page);
+			await intoField(field, page);
+			await page.keyboard.type("~ja");
+			await expect(popup(page).getByRole("option", { name: /Jane/ })).toContainText("Codex");
+			await page.keyboard.press("Tab");
+			expect(await typedPart(field)).toBe("Jane");
+			for (const typed of [" ~~th", " ~ ", " ~9", " a~th", " [[~th", " `~th", " ~~struck ~th"]) {
+				await page.keyboard.type(typed);
+				await expect(popup(page), typed).toHaveCount(0);
+			}
+		});
+
+		test("Tab leaves the field when no popup shows (no trap), and puts nothing in", async ({ page }) => {
+			await projectWith(page, { codes: TH });
+			const field = await kind.open(page);
+			await intoField(field, page);
+			await page.keyboard.type("abc");
+			await page.keyboard.press("Tab");
+			await expect(field).not.toBeFocused();
+			expect(await typedPart(field)).toBe("abc");
+			// and with a popup that Escape has dismissed
+			await intoField(field, page);
+			await page.keyboard.type("~th");
+			await expect(popup(page)).toBeVisible();
+			await page.keyboard.press("Escape");
+			await page.keyboard.press("Tab");
+			await expect(field).not.toBeFocused();
+			expect(await typedPart(field)).toContain("~th");
+		});
+
+		test("Escape dismisses the popup only: the field keeps its focus and its text, and the overview stays", async ({ page }) => {
+			await projectWith(page, { codes: TH });
+			const field = await kind.open(page);
+			await intoField(field, page);
+			await page.keyboard.type("~th");
+			await expect(popup(page)).toBeVisible();
+			await page.keyboard.press("Escape");
+			await expect(popup(page)).toHaveCount(0);
+			await expect(field).toBeFocused();
+			await page.keyboard.type("x");
+			await expect(popup(page)).toHaveCount(0);
+			expect(await typedPart(field)).toBe("~thx");
+			await expect(kind.away(page)).toBeVisible();
+		});
+
+		test("Return makes a new line and never accepts, with the popup open or not", async ({ page }) => {
+			await projectWith(page, { codes: TH });
+			const field = await kind.open(page);
+			await intoField(field, page);
+			await page.keyboard.type("~th");
+			await expect(popup(page)).toBeVisible();
+			await page.keyboard.press("Enter");
+			await expect(popup(page)).toHaveCount(0);
+			await page.keyboard.type("next");
+			expect(await typedPart(field)).toBe("~th\nnext");
+		});
+
+		test("the popup is drawn outside the card and the scrolling, and stays inside the window beside a field near its edge", async ({ page }) => {
+			await projectWith(page, { codes: TH });
+			await page.evaluate(() => window.__preview.emit("menu", "toggle-lore")); // the context panel away: the overview reaches the window's right edge
+			const field = await kind.open(page);
+			await intoField(field, page);
+			// the caret at the right-hand end of a full line
+			await page.setViewportSize({ width: 900, height: 700 });
+			let height = (await field.boundingBox())!.height;
+			for (let i = 0; i < 100; i++) {
+				await page.keyboard.type("abcd ");
+				const now = (await field.boundingBox())!.height;
+				if (now > height) {
+					for (let k = 0; k < 5; k++) await page.keyboard.press("Backspace");
+					break;
+				}
+				height = now;
+			}
+			await page.keyboard.type("~th");
+			await expect(popup(page)).toBeVisible();
+			let below = (await popup(page).boundingBox())!;
+			await expect.poll(async () => { // settled: the page has finished scrolling the caret into view
+				const now = (await popup(page).boundingBox())!;
+				const same = now.y === below.y && now.x === below.x;
+				below = now;
+				return same;
+			}).toBe(true);
+			// then the window's bottom edge comes up to just under the caret's line: there is no room below, so it must go above
+			await page.setViewportSize({ width: 900, height: Math.round(below.y + 6) });
+			await expect.poll(async () => { const y = (await popup(page).boundingBox())!.y; return y >= 0 && y < below.y - below.height / 2; }).toBe(true);
+			const box = (await popup(page).boundingBox())!;
+			const win = page.viewportSize()!;
+			const fieldBox = (await field.boundingBox())!;
+			expect(fieldBox.x + fieldBox.width, "the field reaches the window's right edge").toBeGreaterThan(win.width - 80);
+			expect(below.x + below.width, "it was at the window's right edge").toBeGreaterThanOrEqual(win.width - 4);
+			expect(box.x).toBeGreaterThanOrEqual(0);
+			expect(box.y).toBeGreaterThanOrEqual(0);
+			expect(box.x + box.width).toBeLessThanOrEqual(win.width);
+			expect(box.y + box.height).toBeLessThanOrEqual(win.height);
+			expect(await popup(page).evaluate((el) => el.closest(".sf-overview, .sf-card, .cm-editor"))).toBeNull(); // not inside anything that clips it
+			// nothing covers it: the element at its centre is the popup
+			expect(await page.evaluate(({ x, y }) => !!document.elementFromPoint(x, y)?.closest(".sf-shortcode-popup"), { x: box.x + box.width / 2, y: box.y + box.height / 2 })).toBe(true);
+			// and it still works from there
+			await page.keyboard.press("Tab");
+			expect(await typedPart(field)).toContain("the Right Honourable");
+		});
+
+		test("leaving the field with the popup showing leaves the code as typed, and the field commits as normal", async ({ page }) => {
+			await projectWith(page, { codes: TH });
+			const field = await kind.open(page);
+			await intoField(field, page);
+			await page.keyboard.type("~th");
+			await expect(popup(page)).toBeVisible();
+			await kind.away(page).click();
+			await expect(popup(page)).toHaveCount(0);
+			expect(await typedPart(field)).toBe("~th");
+			await expect.poll(() => page.evaluate((f) => window.__preview.read(f), kind.file)).toContain("~th");
+			expect(await page.evaluate((f) => window.__preview.read(f), kind.file)).not.toContain("Right Honourable");
+		});
+
+		test("the app closing with the popup showing leaves the code as typed, and the field is committed", async ({ page }) => {
+			await projectWith(page, { codes: TH });
+			const field = await kind.open(page);
+			await intoField(field, page);
+			await page.keyboard.type("~th");
+			await expect(popup(page)).toBeVisible();
+			await page.evaluate(() => window.__preview.emit("close-requested"));
+			await expect.poll(() => page.evaluate((f) => window.__preview.read(f), kind.file)).toContain("~th");
+			expect(await page.evaluate((f) => window.__preview.read(f), kind.file)).not.toContain("Right Honourable");
+		});
+
+		test("the shortcodes switch covers the field", async ({ page }) => {
+			await projectWith(page, { codes: TH });
+			await page.evaluate(() => window.__preview.emit("menu", "settings"));
+			await dialog(page).locator('section[aria-label="Typing"]').getByLabel("Shortcodes (~ then Tab)").uncheck();
+			await dialog(page).getByRole("button", { name: "Done" }).click();
+			const field = await kind.open(page);
+			await intoField(field, page);
+			await page.keyboard.type("~th");
+			await expect(popup(page)).toHaveCount(0);
+			expect(await typedPart(field)).toBe("~th");
+		});
+	});
+}
+
+test.describe("a Codex note in the context panel has both aids, as a chapter does", () => {
+	test("a name is corrected and a shortcode is offered and accepted, with one ⌘Z each", async ({ page }) => {
+		const lastLine = async (box: Locator): Promise<string> => (await lines(box)).split("\n").pop()!;
+		await projectWith(page, { codes: [["th", "the Right Honourable"]] });
+		await page.evaluate(() => window.__app.editors!.open("lore", "Codex/Harbour.md"));
+		const note = page.locator(".sf-slot--lore .cm-content");
+		await note.click();
+		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press("Enter");
+		await page.keyboard.type("sam ");
+		expect(await lastLine(note)).toBe("Sam ");
+		await page.keyboard.press(`${MOD}+z`);
+		expect(await lastLine(note)).toBe("sam ");
 		await page.keyboard.type("~th");
+		await expect(popup(page)).toBeVisible();
+		await page.keyboard.press("Tab");
+		expect(await lastLine(note)).toContain("the Right Honourable");
+		await page.keyboard.press(`${MOD}+z`);
+		expect(await lastLine(note)).toContain("~th");
+	});
+});
+
+test.describe("the plain text boxes take no aids (decision 47)", () => {
+	test("a settings field and the find box leave names, quotes and ~ alone", async ({ page }) => {
+		await projectWith(page, { codes: [["th", "the Right Honourable"]] });
+		await page.evaluate(() => window.__preview.emit("menu", "settings"));
+		const box = dialog(page).locator('section[aria-label="Typing"]').getByLabel("Add to Names without a Codex note");
+		await box.fill("");
+		await box.pressSequentially("jane's ~th");
+		await expect(box).toHaveValue("jane's ~th");
 		await expect(popup(page)).toHaveCount(0);
-		expect(await field.evaluate((el) => [...el.querySelectorAll(".cm-line")].map((l) => l.textContent).join("\n"))).toBe("~th");
+		await dialog(page).getByRole("button", { name: "Done" }).click();
+		await page.evaluate(() => window.__preview.emit("menu", "find"));
+		const find = page.getByRole("textbox", { name: "Find" });
+		await find.pressSequentially("jane's ~th");
+		await expect(find).toHaveValue("jane's ~th");
+		await expect(popup(page)).toHaveCount(0);
 	});
 });
 

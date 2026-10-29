@@ -24,7 +24,7 @@ function sectionField(model: AppModel, bin: FieldBin, options: { label: string; 
 		recover: options.recover,
 		notify: (n) => model.notices.notify(n),
 		placeholder: options.what,
-		typing: () => model.fieldTypingOptions(),
+		typing: () => model.typingOptions(),
 	}, bin);
 	field.element.classList.add("sf-section-field");
 	void options.read().then((r) => {

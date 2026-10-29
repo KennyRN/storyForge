@@ -7,7 +7,7 @@ import { FieldState, type FieldHooks } from "./fieldState";
 
 /**
  * A field of the author's own words that lives in the project's files (a plot note, the synopsis, the description),
- * as a small plain-text CodeMirror editor (decision 47): it has its own undo history and takes the typing aids, so one
+ * as a small plain-text CodeMirror editor (decision 47): it has its own undo history and takes all the typing aids (decision 53), so one
  * ⌘Z gives back exactly what was typed, which a browser text area can't do. Nothing is written while typing: the text
  * is committed when the field loses focus, and on every close route through `commitFocusedFields`; a commit the close
  * has to cut off is rescued into a recovery file. The commit is compare-then-write against what the field last saw on
@@ -19,7 +19,7 @@ import { FieldState, type FieldHooks } from "./fieldState";
 export type FieldSpec = Omit<FieldHooks, "getText" | "setText"> & {
 	readOnly: boolean;
 	placeholder?: string;
-	/** The typing aids' switches and lists, read at every keystroke. Only smart punctuation applies in a field. */
+	/** The typing aids' switches and lists, read at every keystroke (the same as a chapter's, decision 53). */
 	typing: () => TypingEditorOptions;
 };
 
@@ -67,7 +67,7 @@ export function textField(spec: FieldSpec, bin?: FieldBin): TextField {
 				keymap.of([{ key: "Enter", run: insertNewline }, ...historyKeymap, ...defaultKeymap]),
 				...(spec.placeholder ? [placeholder(spec.placeholder)] : []),
 				access.of(attributes()),
-				typingAids(spec.typing),
+				typingAids(spec.typing, { field: true }),
 				EditorView.updateListener.of((update) => {
 					if (update.focusChanged) {
 						if (update.view.hasFocus) onFocus();

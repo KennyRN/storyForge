@@ -83,7 +83,14 @@ describe("architecture: who may call the restricted backend operations", () => {
 			for (const re of FORBIDDEN_CALLS) expect(re.test(text), `${path} uses ${re}`).toBe(false);
 		}
 		// The only editor module they may use is the typing aids, which has no session or writer in it.
-		const aids = files.find((f) => f.path === "ui/editor/typingAids.ts")!;
-		for (const re of [...FORBIDDEN_IMPORTS, ...FORBIDDEN_CALLS]) expect(re.test(valueImportsOnly(aids.text)), `typingAids uses ${re}`).toBe(false);
+		for (const path of ["ui/editor/typingAids.ts", "ui/editor/shortcodePopup.ts"]) {
+			const aids = files.find((f) => f.path === path)!;
+			for (const re of [...FORBIDDEN_IMPORTS, ...FORBIDDEN_CALLS]) expect(re.test(valueImportsOnly(aids.text)), `${path} uses ${re}`).toBe(false);
+		}
+	});
+
+	it("the typing aids are mounted only in the chapter and note editor and in the field editors (decision 53); the rename, settings and search boxes take none", () => {
+		const users = files.filter((f) => /\btypingAids\s*\(/.test(valueImportsOnly(f.text)) && f.path !== "ui/editor/typingAids.ts").map((f) => f.path).sort();
+		expect(users).toEqual(["ui/editor/editor.ts", "ui/overviews/fieldCommitter.ts"]);
 	});
 });
