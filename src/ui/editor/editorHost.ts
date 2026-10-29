@@ -56,6 +56,29 @@ export class EditorHost {
 		return this.slots[slot].occupant?.session ?? null;
 	}
 
+	/** Whether a character can be put in at the centre editor's cursor now, and if not, why (docs/typing-aids.md §7). */
+	insertState(): { ok: true } | { ok: false; reason: string } {
+		const o = this.slots.centre.occupant;
+		if (!o) return { ok: false, reason: "Open a chapter to put a character in." };
+		if (!o.session) return { ok: false, reason: "This text is read-only." };
+		if (this.model.centreCovered) return { ok: false, reason: "Close the overview to put a character in." };
+		return { ok: true };
+	}
+
+	/**
+	 * Puts `text` in at the centre editor's selection, replacing it, as ordinary typing (so the session counts it as
+	 * typing, the aids see it, and one ⌘Z takes it back), then gives the editor focus with the caret just after it.
+	 * The selection survives the editor losing focus, so the author's place is never lost.
+	 */
+	insertAtCursor(text: string): boolean {
+		if (!this.insertState().ok) return false;
+		const view = this.slots.centre.occupant!.mounted.view;
+		const { from, to } = view.state.selection.main;
+		view.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length }, userEvent: "input.type", scrollIntoView: true });
+		view.focus();
+		return true;
+	}
+
 	/** Focuses the editor in a slot. */
 	focus(slot: Slot): void {
 		this.slots[slot].occupant?.mounted.view.focus();

@@ -30,7 +30,8 @@ test.describe("the storytelling face", () => {
 		await expect(page.locator(".sf-stats-value")).toContainText("daily:");
 		await expect(centre(page)).toContainText("Synthetic sentence number 1");
 		await expect(page.locator(".sf-slot--lore")).toBeVisible(); // there from the start, blank
-		await expect(page.locator(".sf-slot--lore")).toBeEmpty();
+		await expect(page.locator(".sf-lore-host")).toBeEmpty(); // nothing in it but the special-characters button beside it
+		await expect(page.getByRole("button", { name: "Special characters", exact: true })).toBeVisible();
 		await shot(page, "storytelling");
 	});
 

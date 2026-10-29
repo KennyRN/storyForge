@@ -444,3 +444,119 @@ test.describe("shortcodes in the editor", () => {
 		expect(await field.evaluate((el) => [...el.querySelectorAll(".cm-line")].map((l) => l.textContent).join("\n"))).toBe("~th");
 	});
 });
+
+// ---------------------------------------------------------------------------------- the special-characters button
+
+const CHARS = (page: Page) => page.getByRole("button", { name: "Special characters", exact: true });
+const palette = (page: Page) => page.getByRole("group", { name: "Special characters" });
+const loreCodex = (page: Page, name: string) => page.locator(".sf-codex-file", { hasText: name });
+
+test.describe("the special-characters button", () => {
+	test("it sits in the bottom-right corner of the blank context panel, and only there", async ({ page }) => {
+		await editorWith(page);
+		await expect(CHARS(page)).toBeVisible();
+		const lore = (await page.locator(".sf-slot--lore").boundingBox())!;
+		const box = (await CHARS(page).boundingBox())!;
+		expect(box.x + box.width).toBeGreaterThan(lore.x + lore.width - 40);
+		expect(box.y + box.height).toBeGreaterThan(lore.y + lore.height - 40);
+		// a Codex entry open in the context panel: not blank, no button
+		await loreCodex(page, "Jane").click();
+		await expect(page.locator(".sf-slot--lore .cm-content")).toBeVisible();
+		await expect(CHARS(page)).toHaveCount(0);
+		await loreCodex(page, "Jane").click(); // clicking it again closes it
+		await expect(CHARS(page)).toBeVisible();
+		// the context panel hidden: no button
+		await page.evaluate(() => window.__preview.emit("menu", "toggle-lore"));
+		await expect(CHARS(page)).toBeHidden();
+		await page.evaluate(() => window.__preview.emit("menu", "toggle-lore"));
+		await expect(CHARS(page)).toBeVisible();
+		await shot(page, "typing-special-characters-button");
+	});
+
+	test("its switch removes it", async ({ page }) => {
+		await editorWith(page);
+		await page.evaluate(() => window.__preview.emit("menu", "settings"));
+		await dialog(page).locator('section[aria-label="Typing"]').getByLabel("Special-characters button in the context panel").uncheck();
+		await dialog(page).getByRole("button", { name: "Done" }).click();
+		await expect(CHARS(page)).toBeHidden();
+	});
+
+	test("the palette lists the project's characters by their spoken names", async ({ page }) => {
+		await editorWith(page);
+		await CHARS(page).click();
+		await expect(palette(page)).toBeVisible();
+		for (const name of ["ash", "capital ash", "ethel", "capital ethel"]) await expect(palette(page).getByRole("button", { name, exact: true })).toBeVisible();
+		await expect(CHARS(page)).toHaveAttribute("aria-expanded", "true");
+		await shot(page, "typing-special-characters-palette");
+	});
+
+	test("a character goes in at the chapter's cursor, replaces a selection, takes no focus on the way, and one ⌘Z takes it back", async ({ page }) => {
+		await editorWith(page, "Hello world");
+		// put the caret after "Hello" (the editor is where the author is)
+		await page.keyboard.press(`${MOD}+ArrowUp`);
+		for (let i = 0; i < 5; i++) await page.keyboard.press("ArrowRight");
+		await CHARS(page).click();
+		// the editor still has focus: opening the palette moved nothing
+		expect(await page.evaluate(() => !!document.activeElement?.closest(".sf-slot--centre"))).toBe(true);
+		await palette(page).getByRole("button", { name: "ash", exact: true }).click();
+		expect(await doc(page)).toBe("Helloæ world\n");
+		await expect(palette(page)).toHaveCount(0);
+		expect(await page.evaluate(() => !!document.activeElement?.closest(".sf-slot--centre"))).toBe(true);
+		await page.keyboard.type("x");
+		expect(await doc(page)).toBe("Helloæx world\n");
+		// a selection is replaced
+		await page.keyboard.press("ArrowRight");
+		for (let i = 0; i < 5; i++) await page.keyboard.press("Shift+ArrowRight");
+		await CHARS(page).click();
+		await palette(page).getByRole("button", { name: "capital ethel", exact: true }).click();
+		expect(await doc(page)).toBe("Helloæx Œ\n");
+		await page.keyboard.press(`${MOD}+z`);
+		expect(await doc(page)).toBe("Helloæx world\n");
+	});
+
+	test("from the keyboard: Enter opens it and moves into the palette, the arrows move, Enter chooses, Escape closes", async ({ page }) => {
+		await editorWith(page, "ab");
+		await CHARS(page).focus();
+		await page.keyboard.press("Enter");
+		await expect(palette(page).getByRole("button", { name: "ash", exact: true })).toBeFocused();
+		await page.keyboard.press("ArrowRight");
+		await expect(palette(page).getByRole("button", { name: "capital ash", exact: true })).toBeFocused();
+		await page.keyboard.press("Escape");
+		await expect(palette(page)).toHaveCount(0);
+		await expect(CHARS(page)).toBeFocused();
+		await page.keyboard.press("Enter");
+		await page.keyboard.press("ArrowRight");
+		await page.keyboard.press("ArrowRight");
+		await page.keyboard.press("Enter");
+		expect(await doc(page)).toBe("ab\nœ"); // at the caret, on the new line
+	});
+
+	test("a character the author added is announced as itself with its code point", async ({ page }) => {
+		await editorWith(page);
+		await page.evaluate(() => window.__preview.emit("menu", "settings"));
+		const group = dialog(page).locator('section[aria-label="Typing"]');
+		await group.getByLabel("Add to Special characters").fill("ø");
+		await group.getByLabel("Add to Special characters").press("Enter");
+		await expect(group.getByRole("list", { name: "Special characters" })).toContainText("ø");
+		await dialog(page).getByRole("button", { name: "Done" }).click();
+		await CHARS(page).click();
+		await expect(palette(page).getByRole("button", { name: "ø, U+00F8", exact: true })).toBeVisible();
+	});
+
+	test("with nothing to put it in, the characters are off and the palette says why", async ({ page }) => {
+		await editorWith(page);
+		// an archived chapter is read-only
+		await page.evaluate((p) => window.__app.editors!.open("centre", p), "_story-library/aaa/ch-a4.md");
+		await CHARS(page).click();
+		await expect(palette(page)).toContainText("This text is read-only.");
+		await expect(palette(page).getByRole("button", { name: "ash", exact: true })).toBeDisabled();
+		await page.keyboard.press("Escape");
+		// an overview covering the editor
+		await page.evaluate((p) => window.__app.editors!.open("centre", p), CH1);
+		await page.getByRole("button", { name: "Flip side" }).click();
+		await page.getByRole("tab", { name: "series" }).click();
+		await CHARS(page).click();
+		await expect(palette(page)).toContainText("Close the overview");
+		await expect(palette(page).getByRole("button", { name: "ash", exact: true })).toBeDisabled();
+	});
+});

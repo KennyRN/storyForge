@@ -150,6 +150,15 @@ try {
 	const expanded = valueOf("AXTextArea", "Text") ?? "";
 	if (!expanded.startsWith(`${expectedSoFar}don' the Right Honourable`)) problems.push(`typed ~th and pressed Tab; the editor holds ${JSON.stringify(expanded.slice(expectedSoFar.length, expectedSoFar.length + 40))}, expected "don' the Right Honourable"`);
 
+	// The special-characters button, with the real pointer-free press: the character lands where the cursor was.
+	const pressAny = (name) => ["AXButton", "AXPopUpButton", "AXMenuButton", "AXCheckBox"].some((role) => find(role, name, "click").startsWith("found"));
+	if (!pressAny("Special characters")) problems.push("no Special characters button in the context panel");
+	await sleep(400);
+	if (!pressAny("ash")) problems.push("the palette has no 'ash' button");
+	await sleep(500);
+	const withAsh = valueOf("AXTextArea", "Text") ?? "";
+	if (!withAsh.startsWith(`${expectedSoFar}don' the Right Honourableæ`)) problems.push(`pressed the ash button; the editor holds ${JSON.stringify(withAsh.slice(expectedSoFar.length, expectedSoFar.length + 40))}, expected "don' the Right Honourableæ"`);
+
 	if (shotAt) {
 		sendKeys(process.env.SHOT_TEXT || "Teh quikc brwon foxx jumpd ovr lazyy dogg. ");
 		await sleep(2500);

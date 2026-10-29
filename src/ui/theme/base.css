@@ -206,7 +206,84 @@ textarea {
 }
 .sf-slot--lore {
 	flex: none;
+	position: relative;
 	background: var(--purpose-panel-bg);
+}
+.sf-lore-host {
+	height: 100%;
+}
+
+/* The special-characters button, in the corner of the blank context panel (docs/typing-aids.md §7). */
+.sf-context-corner {
+	position: absolute;
+	right: var(--space-3);
+	bottom: var(--space-3);
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: var(--space-2);
+}
+.sf-chars-button {
+	all: unset;
+	box-sizing: border-box;
+	width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	font-size: 17px;
+	color: var(--purpose-text-muted);
+	background: var(--purpose-raised-bg);
+	border: 1px solid var(--purpose-border);
+	border-radius: 16px;
+}
+.sf-chars-button:hover,
+.sf-chars-button[aria-expanded="true"] {
+	color: var(--purpose-accent);
+}
+.sf-chars-button:focus-visible,
+.sf-char:focus-visible {
+	outline: 2px solid var(--purpose-focus-ring);
+	outline-offset: 1px;
+}
+.sf-chars-palette {
+	max-width: 240px;
+	padding: var(--space-2);
+	background: var(--purpose-raised-bg);
+	border: 1px solid var(--purpose-border);
+	border-radius: 6px;
+	box-shadow: 0 4px 12px var(--purpose-shadow);
+}
+.sf-chars-reason {
+	margin: 0 0 var(--space-1);
+	font-size: 12px;
+}
+.sf-chars-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+.sf-char {
+	all: unset;
+	box-sizing: border-box;
+	min-width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	font-size: 18px;
+	color: var(--purpose-text);
+	border-radius: 4px;
+}
+.sf-char:hover:not([disabled]) {
+	background: var(--purpose-raised-hover);
+	color: var(--purpose-accent);
+}
+.sf-char[disabled] {
+	opacity: 0.4;
+	cursor: default;
 }
 [hidden] {
 	display: none !important;
