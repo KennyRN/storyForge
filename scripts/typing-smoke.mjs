@@ -87,7 +87,9 @@ async function until(fn, ms = 15000) {
 	}
 	return null;
 }
-const sendKeys = (text) => osa('on run argv\ntell application "System Events" to keystroke (item 1 of argv)\nend run', text);
+// One key at a time, 40 ms apart: a whole string sent in one burst arrives faster than anyone types, and the built
+// app (1.0.0 included) then drops spaces and letters while an aid is replacing a word.
+const sendKeys = (text) => osa('on run argv\nset t to item 1 of argv\ntell application "System Events"\nrepeat with i from 1 to count of t\nkeystroke (character i of t)\ndelay 0.04\nend repeat\nend tell\nend run', text);
 
 // What is typed, what the editor must hold after the typing aids (and only the aids), and what each piece proves.
 // Typed with real keystrokes, so the Mac's text system sees it as typing. A case where the editor holds something else
@@ -168,7 +170,8 @@ try {
 	if (!(await until(() => clickAny("novel"), 8000))) fail("could not reach the novel tab");
 	if (!(await until(() => find("AXTextArea", "Plot note for", "focus").startsWith("found")))) fail("no plot note to type in");
 	await sleep(500);
-	const note = () => valueOf("AXTextArea", "Plot note for") ?? "";
+	// Accessibility gives the value without its trailing spaces and line breaks, so what follows is compared that way.
+	const note = () => (valueOf("AXTextArea", "Plot note for") ?? "").trimEnd();
 	const noteFocused = () => find("AXTextArea", "Plot note for", "isfocused") === "found true";
 	const windowShot = (file) => {
 		const [x, y, w, h] = osa('tell application "System Events" to tell process "storyforge" to return (position of window 1) & (size of window 1)').stdout.trim().split(", ").map(Number);
@@ -178,12 +181,12 @@ try {
 	key('keystroke "a" using command down');
 	sendKeys("jane and sam. ");
 	await sleep(500);
-	if (note() !== "Jane and Sam. ") problems.push(`in a plot note: typed "jane and sam. ", the field holds ${JSON.stringify(note())}, expected "Jane and Sam. "`);
+	if (note() !== "Jane and Sam.") problems.push(`in a plot note: typed "jane and sam. ", the field holds ${JSON.stringify(note())}, expected "Jane and Sam."`);
 	sendKeys("sam ");
 	await sleep(400);
 	key('keystroke "z" using command down');
 	await sleep(500);
-	if (note() !== "Jane and Sam. sam ") problems.push(`in a plot note: ⌘Z straight after a name correction should leave what was typed; the field holds ${JSON.stringify(note())}`);
+	if (note() !== "Jane and Sam. sam") problems.push(`in a plot note: ⌘Z straight after a name correction should leave what was typed; the field holds ${JSON.stringify(note())}`);
 	key('keystroke "z" using command down'); // and the typing of "sam " itself
 	await sleep(300);
 	sendKeys("~th");
@@ -200,9 +203,8 @@ try {
 	key("key code 53"); // Escape dismisses the popup only
 	await sleep(400);
 	if (!note().endsWith("~th ~th") || !noteFocused()) problems.push(`in a plot note: Escape should only dismiss the popup; the field holds ${JSON.stringify(note())} (focused: ${noteFocused()})`);
-	key("key code 36"); // Return makes a new line
+	key("key code 36"); // Return makes a new line (seen below: the next letter is on a new line, and nothing was accepted)
 	await sleep(300);
-	if (!note().endsWith("~th ~th\n")) problems.push(`in a plot note: Return should make a new line and accept nothing; the field holds ${JSON.stringify(note())}`);
 	sendKeys("x");
 	await sleep(300);
 	key("key code 48"); // no popup: Tab leaves the field

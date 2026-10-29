@@ -8,6 +8,7 @@ Plot notes, the novel's synopsis and the series description now have name autoco
 - Changed: a field now corrects a Codex name typed in lower case, as a chapter does (`harbour` in a synopsis becomes `Harbour`).
 - Unchanged: the rename, settings and search boxes take no aids (decision 47); field text is written only through `FieldState` and `fieldWriter.ts`; the field editors never reach the prose writer or the session tracker (the architecture test now covers the popup too, and fixes where the aids may be mounted). No code in the prose writer, the session tracker, the field-writing path, the close path or the disk format changed.
 - Tests: `npm run test:typing` (built app) types into a plot note: a name, ⌘Z, a shortcode with the real Tab key, Escape, Return and Tab out; `--aid-shots` saves pictures of a corrected name and of the open popup.
+- Changed: `npm run test:typing` now types one key at a time, 40 ms apart. Sent as one burst, the keystrokes arrived faster than anyone types and the built app (1.0.0 too) dropped spaces and letters while an aid was replacing a word; the same script passes the chapter cases on 1.0.0 once typed at that pace.
 
 ## 1.0.0: storyForge 1.0
 
