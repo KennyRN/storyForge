@@ -662,17 +662,21 @@ for (const kind of KINDS) {
 			}
 			await page.keyboard.type("~th");
 			await expect(popup(page)).toBeVisible();
-			let below = (await popup(page).boundingBox())!;
-			await expect.poll(async () => { // settled: the page has finished scrolling the caret into view
-				const now = (await popup(page).boundingBox())!;
-				const same = now.y === below.y && now.x === below.x;
-				below = now;
+			// where the caret's line really is, once the page has stopped scrolling it into view
+			const caret = () => page.evaluate(() => { const r = getSelection()!.getRangeAt(0).getBoundingClientRect(); return { top: r.top, bottom: r.bottom, right: r.right }; });
+			let line = await caret();
+			await expect.poll(async () => {
+				await page.waitForTimeout(120);
+				const now = await caret();
+				const same = now.top === line.top && now.bottom === line.bottom;
+				line = now;
 				return same;
 			}).toBe(true);
-			// then the window's bottom edge comes up to just under the caret's line: there is no room below, so it must go above
-			await page.setViewportSize({ width: 900, height: Math.round(below.y + 6) });
-			await expect.poll(async () => { const y = (await popup(page).boundingBox())!.y; return y >= 0 && y < below.y - below.height / 2; }).toBe(true);
-			const box = (await popup(page).boundingBox())!;
+			const below = (await popup(page).boundingBox())!;
+			// then the window's bottom edge comes up to just under that line: there is no room below it, so the popup must go above
+			await page.setViewportSize({ width: 900, height: Math.ceil(line.bottom + 4) });
+			let box!: { x: number; y: number; width: number; height: number };
+			await expect.poll(async () => { const p = await popup(page).boundingBox(); if (p) box = p; return !!p && p.y >= 0 && p.y + p.height <= line.top + 2; }).toBe(true);
 			const win = page.viewportSize()!;
 			const fieldBox = (await field.boundingBox())!;
 			expect(fieldBox.x + fieldBox.width, "the field reaches the window's right edge").toBeGreaterThan(win.width - 80);
