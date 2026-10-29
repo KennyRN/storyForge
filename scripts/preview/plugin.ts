@@ -135,6 +135,8 @@ export function previewHostPlugin(): Plugin {
 							}
 							return send(res, 200, null);
 						}
+						// These two change the file only. The preview has no watcher, so the window never hears of it unless the test also
+						// emits "watch-batch" (AGENTS.md, "Outside edits in the preview"); the built app reloads such edits in about 0.4 s.
 						case "/__preview/touch": {
 							const root = host.current?.root ?? projectRoot;
 							if (!root) throw new Error("no project");
