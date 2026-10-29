@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — Fix 3: dashes in the word count (0.13.1)
+
+An unspaced dash between two words now counts as two words (decision 49; decision 37 had said so, but the counter counted one). Counts, and the word-count history, jump once for chapters that use them: nothing is rewritten, and the next count of each chapter records the new figure. `wordcount.md`, the history format and sessions are unchanged.
+
+- Changed: **the counter** (`src/core/wordCount.ts`): an em dash, an en dash, two or more hyphens, and an ellipsis (`…` or three or more full stops) separate words like a space. A single hyphen still joins (`well-known`, `mother-in-law`). A run with no letter or digit is not a word, so a spaced dash, a lone ellipsis, a bare `-` (a list marker) or `#` (a heading marker) no longer counts as one. A dash between two digits still joins, so `1990–95` and `12–14` are one word, as before.
+- Unchanged: the typing aids never change a count: `--` and `—` count the same, and so do `...` and `…` (the regression test now proves it, including a 6,000-case fuzzer).
+
+
 ## Unreleased — typing aids (0.13.0)
 
 Four aids to the author's own typing. They act only on what is being typed right now: never on text already on the page, and never on pasted, dropped, dictated, undone or reloaded text, or inside `[[links]]`, URLs, code or comments. One ⌘Z always gives back exactly what was typed. Each has its own switch in the new Typing group of the settings, saved in `project.md` (new `typing-*` keys, no `format-version` change). See `docs/typing-aids.md` (rulings in §12, as built in §13) and `docs/typing-aids-report.md`.

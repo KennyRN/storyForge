@@ -249,3 +249,8 @@ What differs from the design above (§1–§11) and from the rulings (§12). The
 - **The button** sits beside the context panel's editor host, not inside it (the host empties and refills its element). Its toggle is made once so it keeps focus across redraws.
 - **The macOS defaults** (`register_editor_text_defaults`) turn off smart quotes, dashes, text replacement and spelling autocorrection and turn on continuous spellchecking, for this app only; shipped as 0.12.1.
 - **"Emoji & Symbols"** was already in the Edit menu (macOS adds it); nothing was built for it.
+
+
+## 14. Update (0.13.1, decision 49)
+
+The open question in §1.1 was ruled: an unspaced dash between two words counts as two. The counter now treats an em dash, an en dash, two or more hyphens and an ellipsis as separators, counts a single hyphen as joining, and ignores a run with no letter or digit; a dash between two digits still joins. The aids stay count-neutral (`--`/`—` and `...`/`…` count alike); the tables in §1.1 describe 0.13.0 and earlier.
