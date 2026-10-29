@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.0.0: storyForge 1.0
+
+storyForge is declared 1.0. This release changes no code; it is the version the pre-1.0 check was run on (0.13.1) with its number changed.
+
+What 1.0 means: every way the app can quit has been proved to save the author's text first, by tests and by Kenny himself. The routes are Cmd+Q, the red button, the Dock's Quit (the quit Apple event), SIGTERM, SIGHUP and SIGINT, and a real Log Out. Each was run with unsaved text in a chapter and in a plot note, and the text was there when the app was opened again.
+
+- Proved by tests, in the built app: `npm run test:quit` (every route, text typed in a chapter and in a plot note), `npm run test:cover` and `npm run test:typing`.
+- Also checked in the built app by accessibility, on a fixture copy: Cmd+Q, the red button and the Dock's Quit each followed by a reopen; covers chosen through the real open panel (a replaced cover goes to `.trash/`); Undo and Redo through the Edit menu in a chapter editor, a rename field and a settings field; which menu items are greyed with no project open, with an overview showing and in a read-only project; Reveal in Finder.
+- Proved by Kenny himself: a real Log Out, with both parts working.
+- Not yet checked by anyone: the titles on the folder pickers ("Open a storyForge project folder", "Choose an empty folder for the new project"). Screenshots exist for Kenny to read.
+- Housekeeping in the same commit: AGENTS.md carries the note on outside edits in the preview and the two standing rules for built-app tests (never touch Kenny's running copy, not even to read it; real mouse clicks only as a last resort, announced first), and the preview server notes beside `/__preview/touch` and `/__preview/rename` that they emit no `watch-batch`.
+
 ## Unreleased — Fix 3: dashes in the word count (0.13.1)
 
 An unspaced dash between two words now counts as two words (decision 49; decision 37 had said so, but the counter counted one). Counts, and the word-count history, jump once for chapters that use them: nothing is rewritten, and the next count of each chapter records the new figure. `wordcount.md`, the history format and sessions are unchanged.
