@@ -233,3 +233,19 @@ The survey is accepted.
 **Commit order on `typing`, after 0.12.1:** 1 settings; 2 smart punctuation in the editor; 3 smart punctuation in the fields; 4 name autocorrect; 5 shortcodes; 6 the button; 7 docs, the report and `0.13.0`. (The macOS defaults registration is no longer in commit 2: it ships as 0.12.1.)
 
 "Emoji & Symbols" already being in the Edit menu is fine: nothing to build.
+
+## 13. As built
+
+What differs from the design above (§1–§11) and from the rulings (§12). The report, `docs/typing-aids-report.md`, has the screenshots and the checks.
+
+- **Aids react to typing, they don't take it over.** The extension (`src/ui/editor/typingAids.ts`) listens to the update that typed a character and, in a microtask before anything is painted, makes the aid's change as a second step. It never uses `inputHandler` to intercept ordinary typing, so composition, dictation, paste, drop, cut, undo, redo and reloads are left alone. `typedRun` is the run field.
+- **The aid's change is made through the browser** (select the range, `execCommand("insertText")`), and `inputHandler` records what the browser did as the aid's own isolated step (`input.type.aid`, or `input.complete` for an accepted shortcode, which also ends the run). Making it through the CodeMirror state worked but made WebKit forget every spelling underline in the paragraph, and toggling `spellcheck` didn't bring them back. If the browser can't make the edit, the state is used.
+- **One keystroke can make two changes** (a dash this keystroke completes, and the quote it is), undone together as one step; a name correction that overlaps a punctuation change is dropped. One replacement ending at the caret is what the browser is asked for.
+- **The spaced hyphen waits for the next character** (ruling 7), as the em dash does; a digit straight after a number leaves `5 - 3` alone. A quote typed straight after `--` or ` - ` completes the dash and takes the right curl.
+- **Return doesn't finish a word.** Return is a command, not a typed character, so a name typed lazily and then followed by Return is not corrected, and an elision at the end of a paragraph isn't converted. Known limit.
+- **Fields** (decision 47): plot notes, the synopsis and the description are small CodeMirror editors (`fieldCommitter.ts`) with `FieldState` unchanged underneath; only smart punctuation applies in them. Mounting 60 extended cards costs about 4 ms more than text areas did (median 39 to 40 ms against 36 ms). The Edit menu's Undo and Redo reach the focused field (`commitOnClose.ts`).
+- **Names** come from every Codex title (archived too), each note's aliases (read only; an alias that is only the plain spelling of its own title is dropped), and the project word list. A title or alias with a character that can't sit in a word (`Zoë Åberg — 日本語`, `Jay: the first`) is left out. Single-letter names are ignored.
+- **The shortcode popup** is labelled `Codex` for names (not by type). It opens only after `~` and at least one letter, typed in the current run.
+- **The button** sits beside the context panel's editor host, not inside it (the host empties and refills its element). Its toggle is made once so it keeps focus across redraws.
+- **The macOS defaults** (`register_editor_text_defaults`) turn off smart quotes, dashes, text replacement and spelling autocorrection and turn on continuous spellchecking, for this app only; shipped as 0.12.1.
+- **"Emoji & Symbols"** was already in the Edit menu (macOS adds it); nothing was built for it.

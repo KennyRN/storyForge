@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased — typing aids (0.13.0)
+
+Four aids to the author's own typing. They act only on what is being typed right now: never on text already on the page, and never on pasted, dropped, dictated, undone or reloaded text, or inside `[[links]]`, URLs, code or comments. One ⌘Z always gives back exactly what was typed. Each has its own switch in the new Typing group of the settings, saved in `project.md` (new `typing-*` keys, no `format-version` change). See `docs/typing-aids.md` (rulings in §12, as built in §13) and `docs/typing-aids-report.md`.
+
+- New: **smart punctuation**: curly quotes and apostrophes by context, `’tis` and `’90s`, a spaced hyphen to an en dash and two hyphens to an em dash (each as the next character is typed), three full stops to an ellipsis. The elision list is the project's.
+- New: **name autocorrect**: a Codex title, an alias or a word-list name typed without its joined letters, accents or capitals (`aelfric` for `Ælfric`) is corrected when the word is finished, if exactly one name matches. Possessives are kept; names that are also words can be opted out (undoing a lower-case correction offers to); multi-word names match whole.
+- New: **shortcodes**: `~` and some letters offer your codes (and Codex names) in a small list; Tab puts in the full text, Escape dismisses, Return still makes a new paragraph. The list is announced to a screen reader.
+- New: **the special-characters button** in the corner of the blank context panel: a palette of your characters (ash, ethel, eth, thorn, wynn, yogh, and any you add) that goes in at the chapter's cursor.
+- Changed: plot notes, the synopsis and the series description are now small plain-text editors with smart punctuation and their own undo (decision 47). They look and behave as before; Edit ▸ Undo and Redo reach them.
+- Fixed (0.12.1, shipped on its own): the Mac's own smart quotes, dashes and text replacements no longer act in the editor (they broke links and code), and spellcheck underlines are on.
+- Fixed: an aid's change used to make WebKit forget every spelling underline in the paragraph; it no longer does.
+- Tests: 1,541 core tests, 192 WebKit interface tests and the Rust tests, all passing; `npm run test:typing` (new, built app), `test:quit` and `test:cover` pass.
+
 ## Unreleased — Fix 3: the Mac's own text substitutions (0.12.1)
 
 In 0.12.0 the Mac's own text system acted inside the manuscript editor, before any code of ours and inside text it should never touch. Typing straight quotes gave curly ones, two hyphens became an em dash, three full stops an ellipsis, and the author's own Text Replacements (System Settings, Keyboard) fired: a short code like `omw` became "On my way!". It did all of this inside `[[links]]`, inline code and `%% comments %%` as well, so a curled apostrophe in a link broke the link. The editor already asked for no autocorrection and no autocapitalisation; those attributes don't stop it. Found by typing real keystrokes into the built app while surveying for the typing aids (docs/typing-aids.md §1.2).
