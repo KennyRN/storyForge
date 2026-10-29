@@ -12,6 +12,9 @@ export interface FocusedField {
 	 * quit is accepted (the planned lengths, decision 42) leave this out.
 	 */
 	rescue?(): Promise<void>;
+	/** Undo and Redo from the Edit menu, for a field that keeps its own history (the CodeMirror fields). */
+	undo?(): boolean;
+	redo?(): boolean;
 }
 
 const active = new Set<FocusedField>();
@@ -30,4 +33,19 @@ export async function commitFocusedFields(): Promise<void> {
 /** After the close has cut the commits off: every field being edited sends its unsaved words to a recovery file. */
 export async function rescueFocusedFields(): Promise<void> {
 	await Promise.allSettled([...active].map((f) => f.rescue?.()));
+}
+
+/**
+ * Edit ▸ Undo or Redo while a field with its own history has focus: acts on that field and says it did, so the menu
+ * doesn't also fall through to the browser's undo (which would change the page behind CodeMirror's back).
+ */
+export function undoRedoFocusedField(which: "undo" | "redo"): boolean {
+	for (const f of active) {
+		const act = f[which];
+		if (act) {
+			act.call(f);
+			return true;
+		}
+	}
+	return false;
 }

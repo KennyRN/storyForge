@@ -300,3 +300,71 @@ describe("card sizes in machine state", () => {
 		expect((await loadMachineProjectState(store, "k")).cardTiers).toEqual({ y: "bar" });
 	});
 });
+
+describe("the typing settings (docs/typing-aids.md §8)", () => {
+	const put = (root: string, body: string) => {
+		fs.mkdirSync(path.join(root, "_backstage/storyforge"), { recursive: true });
+		fs.writeFileSync(path.join(root, PROJECT_SETTINGS_PATH), `---\nformat-version: 1\n${body}---\n`);
+	};
+
+	it("default to every aid on, the starting lists and nothing else", async () => {
+		const root = copyFixture("series");
+		const s = await loadSettings(await open(root), reader(root));
+		expect(s.values).toMatchObject({
+			typingSmartPunctuation: true,
+			typingNameAutocorrect: true,
+			typingShortcodes: true,
+			typingShortcodeNames: true,
+			typingSpecialCharactersButton: true,
+			typingElisions: ["tis", "twas", "twere", "twill", "twould", "em", "til", "cause"],
+			typingNameOptOuts: [],
+			typingWordList: [],
+			typingShortcodeList: {},
+			typingSpecialCharacters: ["æ", "Æ", "œ", "Œ"],
+		});
+		expect(s.sources.typingElisions).toBe("default");
+	});
+
+	it("are read from project.md; a value of the wrong kind or an untidy list falls back to its default", async () => {
+		const root = copyFixture("series");
+		put(root, 'typing-smart-punctuation: false\ntyping-elisions: [tis, ere]\ntyping-name-opt-outs: ["Red Blossom"]\ntyping-shortcodes-list:\n  th: the Right Honourable\ntyping-special-characters: ["ð", "þ"]\n');
+		const ok = await loadSettings(await open(root), reader(root));
+		expect(ok.values).toMatchObject({ typingSmartPunctuation: false, typingElisions: ["tis", "ere"], typingNameOptOuts: ["Red Blossom"], typingShortcodeList: { th: "the Right Honourable" }, typingSpecialCharacters: ["ð", "þ"] });
+		expect(ok.sources.typingElisions).toBe("project.md");
+		put(root, 'typing-smart-punctuation: "yes"\ntyping-elisions: [Tis, tis]\ntyping-shortcodes-list:\n  "~th": x\ntyping-special-characters: ["ae"]\n');
+		const bad = await loadSettings(await open(root), reader(root));
+		expect(bad.values).toMatchObject({ typingSmartPunctuation: true, typingElisions: DEFAULT_PROJECT_SETTINGS.typingElisions, typingShortcodeList: {}, typingSpecialCharacters: ["æ", "Æ", "œ", "Œ"] });
+		expect(bad.sources.typingElisions).toBe("default");
+	});
+
+	it("a change touches only project.md, and only that key, and keeps unknown keys", async () => {
+		const root = copyFixture("series");
+		put(root, "x-future-key: kept # a comment\ntyping-name-autocorrect: false\n");
+		const before = snapshot(root);
+		const project = await open(root);
+		const s = await loadSettings(project, reader(root));
+		await setSetting(project, s, "typingShortcodeList", { th: "the Right Honourable" });
+		await setSetting(project, s, "typingSpecialCharacters", ["æ", "ð"]);
+		const diff = diffSnapshots(before, snapshot(root));
+		expect(diff.changed).toEqual([PROJECT_SETTINGS_PATH]);
+		expect(diff.added).toEqual([]);
+		expect(diff.removed).toEqual([]);
+		const text = fs.readFileSync(path.join(root, PROJECT_SETTINGS_PATH), "utf8");
+		expect(text).toContain("x-future-key: kept # a comment");
+		expect(text).toContain("typing-name-autocorrect: false");
+		expect(text).toContain("th: the Right Honourable");
+		await expect(setSetting(project, s, "typingElisions", ["Not Tidy"])).rejects.toThrow(/not a valid value/);
+		await expect(setSetting(project, s, "typingShortcodeList", { "th": "a", "TH": "b" })).rejects.toThrow(/not a valid value/);
+	});
+
+	it("setting a list to what is already in effect writes nothing, and opening writes nothing", async () => {
+		const root = copyFixture("series");
+		const before = snapshot(root);
+		const project = await open(root);
+		const s = await loadSettings(project, reader(root));
+		await setSetting(project, s, "typingElisions", [...DEFAULT_PROJECT_SETTINGS.typingElisions]);
+		await setSetting(project, s, "typingSmartPunctuation", true);
+		expect(diffSnapshots(before, snapshot(root))).toEqual({ added: [], changed: [], removed: [] });
+		expect(fs.existsSync(path.join(root, PROJECT_SETTINGS_PATH))).toBe(false);
+	});
+});

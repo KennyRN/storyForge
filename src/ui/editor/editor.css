@@ -138,3 +138,23 @@
 .sf-editor .cm-searchMatch-selected {
 	outline: 1px solid var(--purpose-accent);
 }
+
+/* The shortcode popup (a CodeMirror tooltip, docs/typing-aids.md §6): the list sits in the app's own raised surface. */
+/* CodeMirror styles its tooltip with more specific selectors, so these match their weight. */
+.cm-editor .cm-tooltip, .cm-editor .cm-tooltip.cm-tooltip-below, .cm-editor .cm-tooltip.cm-tooltip-above { background: transparent; border: 0; outline: 0; box-shadow: none; }
+.sf-shortcode-popup {
+	min-width: 14em;
+	max-width: 30em;
+	padding: 2px;
+	font-size: 14px;
+	color: var(--purpose-text);
+	background: var(--purpose-raised-bg);
+	border: 1px solid var(--purpose-border);
+	border-radius: 4px;
+	box-shadow: 0 4px 12px var(--purpose-shadow);
+}
+.sf-shortcode-option { display: flex; gap: 12px; align-items: baseline; padding: 3px 8px; border-radius: 3px; cursor: pointer; }
+.sf-shortcode-option.is-selected { background: var(--purpose-raised-hover); }
+.sf-shortcode-option.is-selected .sf-shortcode-label { color: var(--purpose-accent); }
+.sf-shortcode-label { font-weight: 600; }
+.sf-shortcode-text { color: var(--purpose-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

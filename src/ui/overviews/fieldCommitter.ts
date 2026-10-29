@@ -1,59 +1,124 @@
+import { defaultKeymap, history, historyKeymap, insertNewline, redo, undo } from "@codemirror/commands";
+import { Compartment, EditorState, type Extension } from "@codemirror/state";
+import { EditorView, keymap, placeholder } from "@codemirror/view";
 import { registerFocusedField } from "../commitOnClose";
-import { el } from "../kit/dom";
+import { typingAids, type TypingEditorOptions } from "../editor/typingAids";
 import { FieldState, type FieldHooks } from "./fieldState";
 
 /**
- * A text area for a field of the author's own words that lives in the project's files (a plot note, the
- * synopsis, the description). Nothing is written while typing: the text is committed when the field loses
- * focus, and on every close route through `commitFocusedFields`; a commit the close has to cut off is
- * rescued into a recovery file. The commit is compare-then-write against what the field last saw on disk
- * (taken at focus); a conflict or refusal leaves the author's text in a recovery file and says so
- * (docs/story-shape.md §5). The state machine is `FieldState`.
+ * A field of the author's own words that lives in the project's files (a plot note, the synopsis, the description),
+ * as a small plain-text CodeMirror editor (decision 47): it has its own undo history and takes the typing aids, so one
+ * ⌘Z gives back exactly what was typed, which a browser text area can't do. Nothing is written while typing: the text
+ * is committed when the field loses focus, and on every close route through `commitFocusedFields`; a commit the close
+ * has to cut off is rescued into a recovery file. The commit is compare-then-write against what the field last saw on
+ * disk; a conflict or refusal leaves the author's text in a recovery file and says so (docs/story-shape.md §5).
+ *
+ * The state machine is `FieldState`. These editors are **never connected to the prose writer or the session tracker**
+ * (an architecture test fixes it): field text is written only through `FieldState` and `fieldWriter.ts`.
  */
-export type FieldSpec = Omit<FieldHooks, "getText" | "setText"> & { readOnly: boolean };
+export type FieldSpec = Omit<FieldHooks, "getText" | "setText"> & {
+	readOnly: boolean;
+	placeholder?: string;
+	/** The typing aids' switches and lists, read at every keystroke. Only smart punctuation applies in a field. */
+	typing: () => TypingEditorOptions;
+};
 
 export interface TextField {
-	element: HTMLTextAreaElement;
-	/** Shows a value from disk, unless the author is in the middle of typing. */
+	/** The wrapper: put it in the page. The editor inside is the multi-line text box. */
+	element: HTMLElement;
+	/** Shows a value from disk, unless the author is in the middle of typing. Replaces the history when it changes the text. */
 	show(value: string): void;
+	setReadOnly(readOnly: boolean): void;
+	/** The text now in the editor. */
+	text(): string;
+	destroy(): void;
 }
 
-export function textField(spec: FieldSpec): TextField {
-	const ta = el("textarea", { class: "sf-note-field", attrs: { "aria-label": spec.label, rows: "1", spellcheck: "true" } });
-	ta.readOnly = spec.readOnly;
-	const grow = (): void => {
-		ta.style.height = "auto";
-		ta.style.height = `${ta.scrollHeight}px`;
-	};
+/** Fields made by one redraw of a view: destroyed together before the next, so no editor outlives its place on the page. */
+export class FieldBin {
+	private fields: TextField[] = [];
+	add(field: TextField): void {
+		this.fields.push(field);
+	}
+	clear(): void {
+		for (const f of this.fields.splice(0)) f.destroy();
+	}
+}
+
+export function textField(spec: FieldSpec, bin?: FieldBin): TextField {
+	const wrapper = document.createElement("div");
+	wrapper.className = "sf-note-field";
+	let readOnly = spec.readOnly;
+	let applying = false;
+	let unregister: (() => void) | null = null;
+	const access = new Compartment();
+	const attributes = (): Extension => [
+		EditorState.readOnly.of(readOnly),
+		EditorView.contentAttributes.of({ "aria-label": spec.label, spellcheck: "true", autocorrect: "off", autocapitalize: "off", ...(readOnly ? { "aria-readonly": "true" } : {}) }),
+	];
+
+	const makeState = (doc: string): EditorState =>
+		EditorState.create({
+			doc,
+			extensions: [
+				history(),
+				EditorView.lineWrapping,
+				// Plain text: Return is a new line (no auto-indent), and Tab is not bound, so it leaves the field for the next control.
+				keymap.of([{ key: "Enter", run: insertNewline }, ...historyKeymap, ...defaultKeymap]),
+				...(spec.placeholder ? [placeholder(spec.placeholder)] : []),
+				access.of(attributes()),
+				typingAids(spec.typing),
+				EditorView.updateListener.of((update) => {
+					if (update.focusChanged) {
+						if (update.view.hasFocus) onFocus();
+						else onBlur();
+					}
+					if (update.docChanged && !applying) state.edited();
+				}),
+			],
+		});
+
+	const view: EditorView = new EditorView({ parent: wrapper, state: makeState("") });
+	const textNow = (): string => view.state.doc.toString();
 	const state = new FieldState({
 		...spec,
-		getText: () => ta.value,
+		getText: textNow,
 		setText: (text) => {
-			ta.value = text;
-			grow();
+			if (text === textNow()) return;
+			applying = true;
+			view.setState(makeState(text)); // a new state: the undo history starts again, so ⌘Z can never bring back replaced text
+			applying = false;
 		},
 	});
-	let unregister: (() => void) | null = null;
 
-	ta.addEventListener("focus", () => {
-		unregister ??= registerFocusedField({ flush: () => state.flush(), rescue: () => state.rescue() });
+	function onFocus(): void {
+		unregister ??= registerFocusedField({ flush: () => state.flush(), rescue: () => state.rescue(), undo: () => undo(view), redo: () => redo(view) });
 		state.focused();
-	});
-	ta.addEventListener("input", () => {
-		state.edited();
-		grow();
-	});
-	ta.addEventListener("blur", () => {
+	}
+	function onBlur(): void {
 		void state.flush().then(() => {
+			if (view.hasFocus) return;
 			unregister?.();
 			unregister = null;
 		});
-	});
+	}
 
-	return {
-		element: ta,
+	const field: TextField = {
+		element: wrapper,
 		show(value) {
-			if (state.showFromDisk(value, document.activeElement === ta)) requestAnimationFrame(grow);
+			state.showFromDisk(value, view.hasFocus);
+		},
+		setReadOnly(next) {
+			readOnly = next;
+			view.dispatch({ effects: access.reconfigure(attributes()) });
+		},
+		text: textNow,
+		destroy() {
+			unregister?.();
+			unregister = null;
+			view.destroy();
 		},
 	};
+	bin?.add(field);
+	return field;
 }

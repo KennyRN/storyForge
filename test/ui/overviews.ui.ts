@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import * as path from "node:path";
 import { openPreview, shot } from "./helpers";
@@ -20,6 +20,9 @@ async function openProject(page: Page): Promise<string> {
 }
 const flip = (page: Page) => page.getByRole("button", { name: "Flip side" }).click();
 const tab = (page: Page, name: string) => page.getByRole("tab", { name });
+/** The text of a field editor (plot note, synopsis, description) as the lines it shows: they are small CodeMirror editors (decision 47). */
+const fieldText = (box: Locator): Promise<string> => box.evaluate((el) => [...el.querySelectorAll(".cm-line")].map((l) => l.textContent ?? "").join("\n"));
+const plotField = (page: Page, chapter = "ch-a1.md") => page.locator(`.sf-card[data-chapter="${chapter}"] .sf-note-field .cm-content`);
 const overview = (page: Page) => page.getByRole("region", { name: "Series overview" });
 
 test.describe("the series overview", () => {
@@ -43,7 +46,7 @@ test.describe("the series overview", () => {
 		await tab(page, "series").click();
 		const before = await page.evaluate((f) => window.__preview.read(f), "_story-library/series.md");
 		const description = overview(page).getByRole("textbox", { name: "Series description" });
-		await expect(description).toHaveValue("A synthetic series used only for tests.");
+		await expect.poll(() => fieldText(description)).toBe("A synthetic series used only for tests.");
 		await description.click();
 		await description.press("Meta+a");
 		await description.pressSequentially("Five books of lanterns.");
@@ -65,8 +68,13 @@ test.describe("the series overview", () => {
 		await flip(page);
 		await tab(page, "series").click();
 		const field = overview(page).getByRole("textbox", { name: /^Synopsis of / }).first();
-		await expect(field).toHaveAttribute("readonly", "");
+		await expect(field).toHaveAttribute("aria-readonly", "true");
 		await expect(page.getByRole("alert")).toContainText("appears more than once");
+		// Read-only, but still there to select and copy: typing changes nothing.
+		const shown = await fieldText(field);
+		await field.click();
+		await field.pressSequentially("x");
+		expect(await fieldText(field)).toBe(shown);
 	});
 
 	test("under an overview the editor takes no focus, no shortcuts and no menu undo, and saving carries on", async ({ page }) => {
@@ -275,8 +283,8 @@ test.describe("the novel overview", () => {
 	});
 
 	test("a plot note is committed when it loses focus, keeping a leading space and further lines", async ({ page }) => {
-		const field = novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] .sf-note-field');
-		await expect(field).toHaveValue("Jane reaches the harbour at dawn.");
+		const field = plotField(page);
+		await expect.poll(() => fieldText(field)).toBe("Jane reaches the harbour at dawn.");
 		await field.click();
 		await field.press("Meta+a");
 		await field.pressSequentially("  Jane leaves.\nThen the tide: turns.");
@@ -284,11 +292,68 @@ test.describe("the novel overview", () => {
 		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).not.toContain("Jane leaves.");
 		await novelOverview(page).locator(".sf-overview-title").click();
 		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("Jane leaves.");
-		await expect(field).toHaveValue("  Jane leaves.\nThen the tide: turns.");
+		await expect.poll(() => fieldText(field)).toBe("  Jane leaves.\nThen the tide: turns.");
+	});
+
+	test("a plot note is a multi-line text box: announced as one, Return makes a plain new line, Tab leaves it, spellcheck is on", async ({ page }) => {
+		const field = page.getByRole("textbox", { name: "Plot note for Chapter 1" });
+		await expect(field).toHaveAttribute("aria-multiline", "true");
+		await expect(field).toHaveAttribute("spellcheck", "true");
+		await expect(page.getByRole("textbox", { name: "Plot note for Chapter 2" })).toBeVisible();
+		await expect(page.locator('.sf-card[data-chapter="ch-a5.md"] .sf-note-field .cm-placeholder')).toHaveText("Plot note");
+		await field.click();
+		await page.keyboard.press("ControlOrMeta+a");
+		await page.keyboard.type("  indented");
+		await page.keyboard.press("Enter");
+		await page.keyboard.type("next");
+		expect(await fieldText(field)).toBe("  indented\nnext"); // no auto-indent: the new line starts at the left
+		await page.keyboard.press("Tab");
+		expect(await page.evaluate(() => !!document.activeElement?.closest(".sf-note-field"))).toBe(false); // no Tab trap
+	});
+
+	test("the typing aids work in a field: curly quotes and dashes, one ⌘Z gives back what was typed, and they are saved", async ({ page }) => {
+		const field = plotField(page, "ch-a2.md");
+		await field.click();
+		await page.keyboard.type("It's - 'twas...");
+		expect(await fieldText(field)).toBe("It’s – ’twas…");
+		await page.keyboard.press("ControlOrMeta+z");
+		expect(await fieldText(field)).toBe("It’s – ’twas...");
+		await page.keyboard.press("ControlOrMeta+Shift+z");
+		expect(await fieldText(field)).toBe("It’s – ’twas…");
+		await novelOverview(page).locator(".sf-overview-title").click();
+		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("It’s – ’twas…");
+	});
+
+	test("Edit ▸ Undo and Redo reach the focused field's own history", async ({ page }) => {
+		const field = plotField(page);
+		await field.click();
+		await page.keyboard.press("ControlOrMeta+End");
+		await page.keyboard.type(" And more.");
+		expect(await fieldText(field)).toBe("Jane reaches the harbour at dawn. And more.");
+		await page.evaluate(() => window.__preview.emit("menu", "undo"));
+		expect(await fieldText(field)).toBe("Jane reaches the harbour at dawn.");
+		await page.evaluate(() => window.__preview.emit("menu", "redo"));
+		expect(await fieldText(field)).toBe("Jane reaches the harbour at dawn. And more.");
+	});
+
+	test("a field refreshed from disk starts a new history: ⌘Z can't bring back text that was replaced from outside", async ({ page }) => {
+		let field = plotField(page);
+		await field.click();
+		await page.keyboard.press("ControlOrMeta+a");
+		await page.keyboard.type("Mine.");
+		await novelOverview(page).locator(".sf-overview-title").click(); // committed
+		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("Mine.");
+		const novel = await page.evaluate((f) => window.__preview.read(f), BOOK_A);
+		await outside(page, BOOK_A, novel.replace("plot: Mine.", "plot: Theirs.\n"));
+		field = plotField(page);
+		await expect.poll(() => fieldText(field)).toBe("Theirs.");
+		await field.click();
+		await page.keyboard.press("ControlOrMeta+z");
+		expect(await fieldText(field)).toBe("Theirs.");
 	});
 
 	test("a plot note still being typed in is committed by a close request", async ({ page }) => {
-		const field = novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] .sf-note-field');
+		const field = plotField(page);
 		await field.click();
 		await field.press("Meta+a");
 		await field.pressSequentially("Typed when the app was told to close.");
@@ -306,7 +371,7 @@ test.describe("the novel overview", () => {
 	});
 
 	test("a plot note changed on disk while it is being edited is not overwritten: the author's text goes to recovery and a notice says so", async ({ page }) => {
-		const field = novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] .sf-note-field');
+		const field = plotField(page);
 		await field.click();
 		await field.press("Meta+a");
 		await field.pressSequentially("My own words");
@@ -314,7 +379,7 @@ test.describe("the novel overview", () => {
 		await outside(page, BOOK_A, novel.replace("plot: Jane reaches the harbour at dawn.", "plot: Somebody else.\n"));
 		await novelOverview(page).locator(".sf-overview-title").click();
 		await expect(page.getByRole("alert")).toContainText("changed on disk");
-		await expect(field).toHaveValue("Somebody else.");
+		await expect.poll(() => fieldText(field)).toBe("Somebody else.");
 		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("Somebody else.");
 	});
 
@@ -438,10 +503,12 @@ test.describe("a read-only project's overviews", () => {
 		await expect(o.getByRole("button", { name: /^Remove the cover/ })).toHaveCount(0);
 		await expect(o.getByRole("button", { name: "Choose the default PoV" })).toHaveCount(0);
 		await expect(o.getByRole("button", { name: /^Choose pov/i })).toHaveCount(0);
-		for (const field of await o.locator("textarea").all()) await expect(field).toHaveAttribute("readonly", "");
+		const fields = o.locator(".sf-note-field .cm-content");
+		expect(await fields.count()).toBeGreaterThan(0);
+		for (const field of await fields.all()) await expect(field).toHaveAttribute("aria-readonly", "true");
 		await tab(page, "series").click();
 		await expect(overview(page).locator('[data-cover="series"]')).toBeDisabled();
-		await expect(overview(page).getByRole("textbox", { name: "Series description" })).toHaveAttribute("readonly", "");
+		await expect(overview(page).getByRole("textbox", { name: "Series description" })).toHaveAttribute("aria-readonly", "true");
 	});
 });
 

@@ -7,6 +7,7 @@ import { el, fill } from "../kit/dom";
 import type { AppModel } from "../model";
 import { plainBar } from "./bars";
 import { coverBox, removeCoverButton } from "./cover";
+import { FieldBin } from "./fieldCommitter";
 import { descriptionField, synopsisField } from "./sectionFields";
 import { debounced, redrawKeepingFocus } from "./refresh";
 
@@ -20,9 +21,12 @@ export function novelWordTotal(model: AppModel, book: string): number {
 /** The series overview: the description, each placed novel with its word-count bar and synopsis, then the unplaced novels. The description and synopses are the only things written here. */
 export function mountSeriesOverview(host: HTMLElement, model: AppModel): () => void {
 	host.classList.add("sf-overview-body");
+	/** The synopsis and description editors of the current draw. */
+	const bin = new FieldBin();
 	const draw = (): void => {
 		// A redraw never takes a description or synopsis being typed in: its text isn't saved yet.
-		if (host.contains(document.activeElement) && document.activeElement instanceof HTMLTextAreaElement) return;
+		if (document.activeElement instanceof HTMLElement && host.contains(document.activeElement) && document.activeElement.closest(".sf-note-field")) return;
+		bin.clear(); // the editors of the last draw go with it
 		const running = model.running;
 		if (!running) return fill(host);
 		const project = running.opened.project;
@@ -40,17 +44,17 @@ export function mountSeriesOverview(host: HTMLElement, model: AppModel): () => v
 			const title = titles[i];
 			const row = el("div", { class: "sf-overview-row", attrs: { role: "listitem" } });
 			const name = el("button", { class: "sf-overview-name", text: title, attrs: { type: "button" }, on: { click: () => open(f.name) } });
-			row.append(coverBox(model, { kind: "book", code: f.name }, title), el("div", { class: "sf-overview-row-main" }, name, plainBar(title, words, layout[i].fillPercent, layout[i].sliver), synopsisField(model, f.name, title)));
+			row.append(coverBox(model, { kind: "book", code: f.name }, title), el("div", { class: "sf-overview-row-main" }, name, plainBar(title, words, layout[i].fillPercent, layout[i].sliver), synopsisField(model, bin, f.name, title)));
 			placed.append(row);
 		});
 		if (series.ordered.length === 0) placed.append(el("div", { class: "sf-muted", text: "No novels are placed in the series yet." }));
 		const unplaced = series.unplaced.length
 			? [
 					el("h3", { class: "sf-overview-sub", text: "Unplaced" }),
-					el("div", { class: "sf-overview-list", attrs: { role: "list", "aria-label": "Novels not yet placed" } }, ...series.unplaced.map((f, i) => el("div", { class: "sf-overview-row sf-overview-row--unplaced", attrs: { role: "listitem" } }, coverBox(model, { kind: "book", code: f.name }, titles[series.ordered.length + i]), el("div", { class: "sf-overview-row-main" }, el("button", { class: "sf-overview-name", text: titles[series.ordered.length + i], attrs: { type: "button" }, on: { click: () => open(f.name) } }), synopsisField(model, f.name, titles[series.ordered.length + i]))))),
+					el("div", { class: "sf-overview-list", attrs: { role: "list", "aria-label": "Novels not yet placed" } }, ...series.unplaced.map((f, i) => el("div", { class: "sf-overview-row sf-overview-row--unplaced", attrs: { role: "listitem" } }, coverBox(model, { kind: "book", code: f.name }, titles[series.ordered.length + i]), el("div", { class: "sf-overview-row-main" }, el("button", { class: "sf-overview-name", text: titles[series.ordered.length + i], attrs: { type: "button" }, on: { click: () => open(f.name) } }), synopsisField(model, bin, f.name, titles[series.ordered.length + i]))))),
 				]
 			: [];
-		fill(host, el("h2", { class: "sf-overview-title", text: series.seriesTitle }), el("div", { class: "sf-overview-head" }, el("div", { class: "sf-cover-column" }, coverBox(model, { kind: "series" }, series.seriesTitle), removeCoverButton(model, { kind: "series" }, series.seriesTitle)), descriptionField(model)), placed, ...unplaced);
+		fill(host, el("h2", { class: "sf-overview-title", text: series.seriesTitle }), el("div", { class: "sf-overview-head" }, el("div", { class: "sf-cover-column" }, coverBox(model, { kind: "series" }, series.seriesTitle), removeCoverButton(model, { kind: "series" }, series.seriesTitle)), descriptionField(model, bin)), placed, ...unplaced);
 	};
 	draw();
 	const refresh = debounced(() => redrawKeepingFocus(host, draw));
@@ -58,6 +62,7 @@ export function mountSeriesOverview(host: HTMLElement, model: AppModel): () => v
 	return () => {
 		off();
 		refresh.cancel();
+		bin.clear();
 		host.classList.remove("sf-overview-body");
 	};
 }

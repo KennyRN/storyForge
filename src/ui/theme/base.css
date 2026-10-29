@@ -206,7 +206,84 @@ textarea {
 }
 .sf-slot--lore {
 	flex: none;
+	position: relative;
 	background: var(--purpose-panel-bg);
+}
+.sf-lore-host {
+	height: 100%;
+}
+
+/* The special-characters button, in the corner of the blank context panel (docs/typing-aids.md §7). */
+.sf-context-corner {
+	position: absolute;
+	right: var(--space-3);
+	bottom: var(--space-3);
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: var(--space-2);
+}
+.sf-chars-button {
+	all: unset;
+	box-sizing: border-box;
+	width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	font-size: 17px;
+	color: var(--purpose-text-muted);
+	background: var(--purpose-raised-bg);
+	border: 1px solid var(--purpose-border);
+	border-radius: 16px;
+}
+.sf-chars-button:hover,
+.sf-chars-button[aria-expanded="true"] {
+	color: var(--purpose-accent);
+}
+.sf-chars-button:focus-visible,
+.sf-char:focus-visible {
+	outline: 2px solid var(--purpose-focus-ring);
+	outline-offset: 1px;
+}
+.sf-chars-palette {
+	max-width: 240px;
+	padding: var(--space-2);
+	background: var(--purpose-raised-bg);
+	border: 1px solid var(--purpose-border);
+	border-radius: 6px;
+	box-shadow: 0 4px 12px var(--purpose-shadow);
+}
+.sf-chars-reason {
+	margin: 0 0 var(--space-1);
+	font-size: 12px;
+}
+.sf-chars-grid {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+}
+.sf-char {
+	all: unset;
+	box-sizing: border-box;
+	min-width: 32px;
+	height: 32px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	font-size: 18px;
+	color: var(--purpose-text);
+	border-radius: 4px;
+}
+.sf-char:hover:not([disabled]) {
+	background: var(--purpose-raised-hover);
+	color: var(--purpose-accent);
+}
+.sf-char[disabled] {
+	opacity: 0.4;
+	cursor: default;
 }
 [hidden] {
 	display: none !important;
@@ -264,6 +341,67 @@ textarea {
 .sf-setting-control {
 	width: auto;
 	min-width: 12em;
+}
+.sf-list-setting {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-1);
+	padding: var(--space-2) 0;
+}
+.sf-setting-hint {
+	font-size: 12px;
+	margin: 0;
+}
+.sf-chip-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-1);
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+.sf-chip-list--stacked {
+	flex-direction: column;
+}
+.sf-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	padding: 1px 6px;
+	border: 1px solid var(--purpose-border);
+	border-radius: 10px;
+}
+.sf-chip-button {
+	all: unset;
+	cursor: pointer;
+	padding: 0 4px;
+	color: var(--purpose-text-muted);
+	border-radius: 3px;
+}
+.sf-chip-button:hover:not([disabled]) {
+	color: var(--purpose-accent);
+}
+.sf-chip-button[disabled] {
+	opacity: 0.35;
+	cursor: default;
+}
+.sf-chip-button:focus-visible {
+	outline: 2px solid var(--purpose-focus-ring);
+}
+.sf-list-add {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-2);
+	align-items: center;
+}
+.sf-list-add .sf-field {
+	width: auto;
+	flex: 1 1 9em;
+	min-width: 7em;
+}
+.sf-list-add .sf-field::placeholder {
+	color: var(--purpose-text-muted);
+	opacity: 0.7;
 }
 .sf-setting-source {
 	font-size: 12px;

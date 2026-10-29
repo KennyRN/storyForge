@@ -69,4 +69,21 @@ describe("architecture: who may call the restricted backend operations", () => {
 			.map((f) => f.path);
 		expect(offenders).toEqual([]);
 	});
+
+	it("the field editors (plot notes, synopsis, description) can't reach the prose writer, the chapter editor or the session tracker (decision 47)", () => {
+		// Their text is written only through FieldState and fieldWriter.ts; they never start, extend or count in a writing session.
+		const FIELD_FILES = ["ui/overviews/fieldCommitter.ts", "ui/overviews/fieldState.ts", "ui/overviews/sectionFields.ts"];
+		const FORBIDDEN_IMPORTS = [/\/proseWriter["']/, /\/editor\/editor["']/, /\/editor\/editorHost["']/, /\/sessionRecorder["']/, /\/sessions["']/, /\/sessionFiles["']/];
+		const FORBIDDEN_CALLS = [/\.setBody\s*\(/, /\.onAuthorEdit\b/, /\bmountSessionEditor\b/, /\bProseSession\b/, /\bProseWriter\b/];
+		for (const path of FIELD_FILES) {
+			const file = files.find((f) => f.path === path);
+			expect(file, `${path} exists`).toBeDefined();
+			const text = valueImportsOnly(file!.text);
+			for (const re of FORBIDDEN_IMPORTS) expect(re.test(text), `${path} imports ${re}`).toBe(false);
+			for (const re of FORBIDDEN_CALLS) expect(re.test(text), `${path} uses ${re}`).toBe(false);
+		}
+		// The only editor module they may use is the typing aids, which has no session or writer in it.
+		const aids = files.find((f) => f.path === "ui/editor/typingAids.ts")!;
+		for (const re of [...FORBIDDEN_IMPORTS, ...FORBIDDEN_CALLS]) expect(re.test(valueImportsOnly(aids.text)), `typingAids uses ${re}`).toBe(false);
+	});
 });

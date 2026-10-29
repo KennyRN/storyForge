@@ -4,13 +4,14 @@ import { SESSION_LIMITS, setSetting, type ProjectSettings } from "../../app/sett
 import { button } from "../kit/button";
 import { openDialog } from "../kit/dialog";
 import { el } from "../kit/dom";
+import { typingSection } from "./typingSettings";
 import type { AppModel } from "../model";
 
 const SOURCE_WORDS = { "project.md": "this project", "data.json": "the plugin's settings", default: "default" } as const;
 const FREQUENCIES: Record<AutomaticBackupFrequency, string> = { "every-open": "Every time the project opens", daily: "Once a day", weekly: "Once a week" };
 
 /**
- * The settings view (⌘,): numbering, backups and the interface. Each change is written to `project.md` only when
+ * The settings view (⌘,): numbering, backups, sessions, typing and the interface. Each change is written to `project.md` only when
  * the value really changes (decision 23), and each row says, quietly, where its value comes from.
  */
 export function openSettings(model: AppModel): void {
@@ -36,7 +37,7 @@ export function openSettings(model: AppModel): void {
 		input.addEventListener("change", () => void change(key, toValue(input.value)));
 		return row(label, input, key);
 	};
-	const check = (key: "highlightActiveChapter" | "hideSeriesPane" | "automaticBackup" | "showSessionReadout", label: string): HTMLElement => {
+	const check = (key: "highlightActiveChapter" | "hideSeriesPane" | "automaticBackup" | "showSessionReadout" | "typingSmartPunctuation" | "typingNameAutocorrect" | "typingShortcodes" | "typingShortcodeNames" | "typingSpecialCharactersButton", label: string): HTMLElement => {
 		const input = el("input", { attrs: { type: "checkbox", "aria-label": label } });
 		input.checked = settings.values[key];
 		input.disabled = off;
@@ -93,6 +94,7 @@ export function openSettings(model: AppModel): void {
 				number("sessionEditingWpm", "Count as editing below (words per minute)", SESSION_LIMITS.editingWpm, true),
 			]),
 			section("Display", [check("showSessionReadout", "Show the current session in the stats panel")]),
+			section("Typing", typingSection({ settings: settings.values, off, change, check, notify: (text) => model.notices.notify({ text }) })),
 			section("Interface", [
 				select("autoFocus", "Opens in", [["true", "storytelling"], ["false", "library"]], (v) => v === "true"),
 				check("highlightActiveChapter", "Highlight the active chapter"),

@@ -1,4 +1,5 @@
 import { mountOverviewLayer } from "./overviews/layer";
+import { mountCharactersButton } from "./context/charactersButton";
 import { clampLeft, clampLore, type AppModel } from "./model";
 import { EditorHost } from "./editor/editorHost";
 import { el, fill } from "./kit/dom";
@@ -47,6 +48,9 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	const overview = el("div", { class: "sf-overview", attrs: { role: "region" } });
 	const centreWrap = el("div", { class: "sf-centre-wrap" }, centre, overview);
 	const lore = el("aside", { class: "sf-slot sf-slot--lore", attrs: { "aria-label": "Context" } });
+	// The editor host fills and empties its element; the special-characters button lives beside it, not inside it.
+	const loreHost = el("div", { class: "sf-lore-host" });
+	lore.append(loreHost);
 	const apply = (): void => {
 		left.style.width = `${model.nav.leftWidth}px`;
 		lore.style.width = `${model.nav.loreWidth}px`;
@@ -57,7 +61,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	const loreBar = splitter("Resize the context panel", "right", () => model.nav.loreWidth, (w) => (model.setWidths(undefined, clampLore(w)), apply()));
 	fill(host, el("h1", { class: "sf-visually-hidden", text: name }), el("div", { class: "sf-frame" }, left, leftBar, centreWrap, loreBar, lore));
 
-	model.editors = new EditorHost(model, { centre, lore });
+	model.editors = new EditorHost(model, { centre, lore: loreHost });
 	model.editors.onChange = () => {
 		apply();
 		model.touch("nav");
@@ -65,6 +69,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	apply();
 	const offNav = model.subscribe("nav", apply);
 	const overviews = mountOverviewLayer(overview, centre, model);
+	const offCharacters = mountCharactersButton(lore, model);
 
 	fill(left, header, faceHost);
 	let disposeFace: (() => void) | null = null;
@@ -86,6 +91,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	return {
 		dispose() {
 			offNav();
+			offCharacters();
 			overviews();
 			offFace();
 			disposeFace?.();

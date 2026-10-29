@@ -94,6 +94,21 @@ const sendKeys = (text) => osa('on run argv\ntell application "System Events" to
 // ---- One route --------------------------------------------------------------------------------------------
 const results = [];
 let notTypedRetries = 0;
+class EarlySave extends Error {}
+let earlySaveRetries = 0;
+/** Runs a route, retrying (up to three runs) when something else took the focus and the typed text was saved early. */
+async function routeWithRetries(name, send, options = {}) {
+	for (let attempt = 1; attempt <= 3; attempt++) {
+		try {
+			return await route(name, send, options);
+		} catch (e) {
+			if (!(e instanceof EarlySave)) throw e;
+			earlySaveRetries++;
+			console.log(`  (${name}: attempt ${attempt}: the text was saved before the quit, because another app took the focus; retrying)`);
+		}
+	}
+	results.push({ name, note: "", ok: false, took: 0, problems: ["NOT RUN: the typed text was saved before the quit in 3 runs in a row (another app keeps taking the focus: this is not a pass)"] });
+}
 async function route(name, send, { expectJoin = false, target = "chapter" } = {}) {
 	name = target === "plot" ? `${name}, typing in a plot note` : name;
 	const dir = realpathSync(mkdtempSync(join(tmpdir(), "sf-quit-")));
@@ -155,7 +170,9 @@ async function route(name, send, { expectJoin = false, target = "chapter" } = {}
 			return;
 		}
 		const onDiskEarly = grepTree(project, marker);
-		if (onDiskEarly.length) fail(`${name}: the marker was already saved before the quit, so this run proves nothing`);
+		// A field that has lost focus has committed (that is what it should do), so a marker already on disk means the
+		// window lost focus to another app before the quit: this run proves nothing. It is retried, never counted as a pass.
+		if (onDiskEarly.length) throw new EarlySave();
 		const sent = Date.now();
 		await send(child);
 		await until(`the app to end after "${name}" (stderr so far: ${JSON.stringify(stderr)})`, () => exited, 20000);
@@ -208,11 +225,11 @@ const appleQuit = () => osa(`tell application id "${BUNDLE_ID}" to quit`);
 // Every route twice: once with text typed in the chapter editor, once with text typed in a plot note (a field that
 // writes to the project and has focus when the quit arrives).
 for (const target of ["chapter", "plot"]) {
-	await route("Apple-event quit (the Dock's Quit, Log Out and Shut Down use this route)", () => appleQuit(), { target });
-	await route("SIGTERM", (c) => c.kill("SIGTERM"), { target });
-	await route("SIGHUP", (c) => c.kill("SIGHUP"), { target });
-	await route("SIGINT", (c) => c.kill("SIGINT"), { target });
-	await route("a quit while a close is under way joins it", async (c) => {
+	await routeWithRetries("Apple-event quit (the Dock's Quit, Log Out and Shut Down use this route)", () => appleQuit(), { target });
+	await routeWithRetries("SIGTERM", (c) => c.kill("SIGTERM"), { target });
+	await routeWithRetries("SIGHUP", (c) => c.kill("SIGHUP"), { target });
+	await routeWithRetries("SIGINT", (c) => c.kill("SIGINT"), { target });
+	await routeWithRetries("a quit while a close is under way joins it", async (c) => {
 		c.kill("SIGTERM");
 		await sleep(50);
 		appleQuit();
@@ -222,7 +239,7 @@ for (const target of ["chapter", "plot"]) {
 // ---- Report -----------------------------------------------------------------------------------------------
 const realAfter = existsSync(REAL_DATA) ? JSON.stringify(readdirSync(REAL_DATA).map((n) => [n, statSync(join(REAL_DATA, n)).mtimeMs])) : "";
 console.log("");
-console.log(`"not typed" retries (keystrokes that never reached the field): ${notTypedRetries}`);
+console.log(`"not typed" retries (keystrokes that never reached the field): ${notTypedRetries}; "saved early" retries (another app took the focus): ${earlySaveRetries}`);
 for (const r of results) {
 	console.log(`${r.ok ? "PASS" : "FAIL"}  ${r.name}  (${r.took} ms${r.where ? `, text saved in ${r.where}` : ""}${r.note ? `; ${r.note}` : ""})`);
 	for (const p of r.problems) console.log(`        - ${p}`);

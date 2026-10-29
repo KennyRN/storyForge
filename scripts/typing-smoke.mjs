@@ -5,8 +5,9 @@
 // and 0.12.0 shipped with all of them acting inside the manuscript, including inside [[links]], code and comments.
 //
 // It starts the BUILT app on a fixture copy, types real keystrokes into a chapter, and reads the editor's own
-// content back through accessibility. Nothing is typed into a real project. Today (before the typing aids) the
-// text must come out exactly as typed; Brief 9 extends this with the aids' own expected results.
+// content back through accessibility. Nothing is typed into a real project. The text must come out exactly as the
+// typing aids make it (and nothing else may have acted on it: the Mac's own substitutions are off, decision 46), and
+// one ⌘Z through the real Edit menu must undo a curl. Each commit of Brief 9 adds the cases for its own aid.
 //
 // It drives the window with System Events: the terminal needs Accessibility permission and the screen must be
 // unlocked. Usage: npm run test:typing [-- path/to/storyForge.app] [--shot path/to/window.png]
@@ -23,7 +24,8 @@ const BUNDLE_ID = "io.github.kennyrn.storyforge";
 const DATA_FOLDER = `Library/Application Support/${BUNDLE_ID}`;
 const args = process.argv.slice(2);
 const shotAt = args.includes("--shot") ? args[args.indexOf("--shot") + 1] : null;
-const appArg = args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--shot");
+const fieldShotAt = args.includes("--field-shot") ? args[args.indexOf("--field-shot") + 1] : null;
+const appArg = args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--shot" && args[i - 1] !== "--field-shot");
 const app = resolve(appArg ?? join(root, "src-tauri/target/universal-apple-darwin/release/bundle/macos/storyForge.app"));
 const binary = join(app, "Contents/MacOS/storyforge");
 
@@ -85,19 +87,23 @@ async function until(fn, ms = 15000) {
 }
 const sendKeys = (text) => osa('on run argv\ntell application "System Events" to keystroke (item 1 of argv)\nend run', text);
 
-// What is typed, and what each piece proves. Typed with real keystrokes, so the Mac's text system sees it as typing.
+// What is typed, what the editor must hold after the typing aids (and only the aids), and what each piece proves.
+// Typed with real keystrokes, so the Mac's text system sees it as typing. A case where the editor holds something else
+// means either an aid is wrong or the Mac's own substitutions acted as well.
 const CASES = [
-	["curly quotes and apostrophes", `'Don't say "never" - not yet,' she said.`],
-	["two hyphens and three full stops", "Well--then... and so on..."],
-	["a Text Replacement (omw) and a name typed lazily", "omw aelfric"],
-	["elisions and a decade", "'tis 'em' 90's"],
-	["inside a link, code and a comment", "[[it's]] `don't` %% 'x' -- y %% end"],
+	["curly quotes, an apostrophe and a spaced en dash", `'Don't say "never" - not yet,' she said.`, "‘Don’t say “never” – not yet,’ she said."],
+	["an em dash and an ellipsis", "Well--then... and so on...", "Well—then… and so on…"],
+	["a Text Replacement (omw) is not expanded, and a Codex name in lower case is corrected with its possessive", "omw jane's boat and sam.", "omw Jane’s boat and Sam."],
+	["an elision, a quoted word and a decade", "'tis 'em' 90's", "’tis ‘em’ 90’s"],
+	["nothing inside a link, code or a comment", "[[it's]] `don't` %% 'x' -- y %% end", "[[it's]] `don't` %% 'x' -- y %% end"],
 ];
 
 const dir = realpathSync(mkdtempSync(join(tmpdir(), "sf-typing-")));
 const home = join(dir, "home");
 const project = join(dir, "proj");
 cpSync(join(root, "test/fixtures/series"), project, { recursive: true });
+// A project with one shortcode defined, as the author would in settings.
+writeFileSync(join(project, "_backstage/storyforge/project.md"), "---\nformat-version: 1\ntyping-shortcodes-list:\n  th: the Right Honourable\n---\n");
 const data = join(home, DATA_FOLDER);
 mkdirSync(data, { recursive: true });
 writeFileSync(join(data, "recent.json"), JSON.stringify([project]));
@@ -116,24 +122,62 @@ try {
 	if (!(await until(() => find("AXTextArea", "Text", "isfocused") === "found true"))) fail("the editor never took focus");
 	await sleep(400);
 
-	for (const [what, text] of CASES) {
-		const before = valueOf("AXTextArea", "Text") ?? "";
+	let expectedSoFar = "";
+	for (const [what, text, expected] of CASES) {
 		sendKeys(`${text} `);
 		await sleep(500);
+		expectedSoFar += `${expected} `;
 		const after = valueOf("AXTextArea", "Text") ?? "";
-		const added = after.length >= before.length ? after.slice(0, after.length - before.length + 0) : after;
-		// The new text goes in at the caret, which is at the start of the chapter: the editor now begins with everything typed so far.
-		const typedSoFar = CASES.slice(0, CASES.findIndex((c) => c[0] === what) + 1).map((c) => `${c[1]} `).join("");
-		if (!after.startsWith(typedSoFar)) problems.push(`${what}: typed ${JSON.stringify(text)}, the editor holds ${JSON.stringify(after.slice(0, typedSoFar.length))}`);
-		void added;
+		if (!after.startsWith(expectedSoFar)) problems.push(`${what}: typed ${JSON.stringify(text)}, expected ${JSON.stringify(expected)}, the editor holds ${JSON.stringify(after.slice(expectedSoFar.length - expected.length - 1, expectedSoFar.length))}`);
 	}
 
+	// One ⌘Z straight after a curl gives back exactly what was typed (through the real Edit menu).
+	const keystroke = (script) => osa(`tell application "System Events" to ${script}`);
+	sendKeys("don'");
+	await sleep(500);
+	const curled = valueOf("AXTextArea", "Text") ?? "";
+	if (!curled.startsWith(`${expectedSoFar}don’`)) problems.push(`typed don' and the editor holds ${JSON.stringify(curled.slice(expectedSoFar.length, expectedSoFar.length + 6))}, expected don’`);
+	keystroke('keystroke "z" using command down');
+	await sleep(500);
+	const undone = valueOf("AXTextArea", "Text") ?? "";
+	if (!undone.startsWith(`${expectedSoFar}don'`) || undone.startsWith(`${expectedSoFar}don’`)) problems.push(`⌘Z straight after the curl should leave the straight apostrophe; the editor holds ${JSON.stringify(undone.slice(expectedSoFar.length, expectedSoFar.length + 6))}`);
+
+	// A shortcode: ~ and letters open the popup, the real Tab key puts in the full text.
+	sendKeys(" ~th");
+	await sleep(500);
+	keystroke("key code 48"); // Tab
+	await sleep(600);
+	const expanded = valueOf("AXTextArea", "Text") ?? "";
+	if (!expanded.startsWith(`${expectedSoFar}don' the Right Honourable`)) problems.push(`typed ~th and pressed Tab; the editor holds ${JSON.stringify(expanded.slice(expectedSoFar.length, expectedSoFar.length + 40))}, expected "don' the Right Honourable"`);
+
+	// The special-characters button, with the real pointer-free press: the character lands where the cursor was.
+	const pressAny = (name) => ["AXButton", "AXPopUpButton", "AXMenuButton", "AXCheckBox"].some((role) => find(role, name, "click").startsWith("found"));
+	if (!pressAny("Special characters")) problems.push("no Special characters button in the context panel");
+	await sleep(400);
+	if (!pressAny("ash")) problems.push("the palette has no 'ash' button");
+	await sleep(500);
+	const withAsh = valueOf("AXTextArea", "Text") ?? "";
+	if (!withAsh.startsWith(`${expectedSoFar}don' the Right Honourableæ`)) problems.push(`pressed the ash button; the editor holds ${JSON.stringify(withAsh.slice(expectedSoFar.length, expectedSoFar.length + 40))}, expected "don' the Right Honourableæ"`);
+
 	if (shotAt) {
-		sendKeys("Teh quikc brwon foxx jumpd ovr lazyy dogg. ");
+		sendKeys(process.env.SHOT_TEXT || "Teh quikc brwon foxx jumpd ovr lazyy dogg. ");
 		await sleep(2500);
 		const [x, y, w] = osa('tell application "System Events" to tell process "storyforge" to return (position of window 1) & (size of window 1)').stdout.trim().split(", ").map(Number);
 		spawnSync("screencapture", ["-x", "-R", [x, y + 40, Math.min(w, 900), 300].join(","), shotAt]);
 		console.log(`(picture of the app's window: ${shotAt})`);
+	}
+	if (fieldShotAt) {
+		// A plot note is a small editor of its own: the red underlines must appear in it too.
+		const clickAny = (name) => ["AXButton", "AXCheckBox", "AXToggle", "AXRadioButton", "AXTab"].some((role) => find(role, name, "click").startsWith("found"));
+		if (!(await until(() => clickAny("Flip side")))) fail("could not reach the library side");
+		if (!(await until(() => clickAny("novel"), 8000))) fail("could not reach the novel tab");
+		if (!(await until(() => find("AXTextArea", "Plot note for", "focus").startsWith("found")))) fail("no plot note to type in");
+		await sleep(500);
+		sendKeys(process.env.FIELD_TEXT || "Teh quikc brwon foxx jumpd ovr lazyy dogg. Don't - wait...");
+		await sleep(2500);
+		const [x, y, w, h] = osa('tell application "System Events" to tell process "storyforge" to return (position of window 1) & (size of window 1)').stdout.trim().split(", ").map(Number);
+		spawnSync("screencapture", ["-x", "-R", [x, y + 40, Math.min(w, 1100), Math.min(h - 40, 760)].join(","), fieldShotAt]);
+		console.log(`(picture of a plot note: ${fieldShotAt})`);
 	}
 } finally {
 	child.kill("SIGKILL");
@@ -141,9 +185,9 @@ try {
 	rmSync(dir, { recursive: true, force: true });
 }
 console.log("");
-if (problems.length === 0) console.log("PASS  everything typed came out exactly as typed: the Mac's own substitutions do not act in the editor");
+if (problems.length === 0) console.log("PASS  the typing aids gave exactly the expected text, one ⌘Z undid a curl, and the Mac's own substitutions did not act as well");
 else {
-	console.log("FAIL  the Mac's own text substitutions acted inside the editor");
+	console.log("FAIL  what the editor holds is not what the aids should give (an aid is wrong, or the Mac's own substitutions acted too)");
 	for (const p of problems) console.log(`        - ${p}`);
 	if (stderr.trim()) console.log(`        stderr: ${stderr.trim().slice(0, 300)}`);
 }

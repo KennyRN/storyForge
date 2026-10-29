@@ -13,7 +13,7 @@ import { attachTooltip } from "../kit/tooltip";
 import type { AppModel } from "../model";
 import { dataBar } from "./bars";
 import { commitPlotNote, rescuePlotNote } from "../../core/fieldWriter";
-import { textField } from "./fieldCommitter";
+import { FieldBin, textField } from "./fieldCommitter";
 import { coverBox, removeCoverButton } from "./cover";
 import { synopsisField } from "./sectionFields";
 import { debounced, redrawKeepingFocus } from "./refresh";
@@ -22,6 +22,8 @@ import { debounced, redrawKeepingFocus } from "./refresh";
 export function mountNovelOverview(host: HTMLElement, model: AppModel): () => void {
 	host.classList.add("sf-overview-body");
 	let editing: "novel" | "chapter" | null = null;
+	/** The plot note and synopsis editors of the current draw. */
+	const bin = new FieldBin();
 	/** Plot notes read on first hover, kept until the next redraw (the index changed). */
 	let plots = new Map<string, string>();
 
@@ -29,7 +31,8 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 		// A redraw never steals focus: leave a field being typed in alone.
 		if (editing !== null && host.contains(document.activeElement) && document.activeElement instanceof HTMLInputElement) return;
 		// Nor a plot note being typed in: its text isn't saved yet.
-		if (host.contains(document.activeElement) && document.activeElement instanceof HTMLTextAreaElement) return;
+		if (document.activeElement instanceof HTMLElement && host.contains(document.activeElement) && document.activeElement.closest(".sf-note-field")) return;
+		bin.clear(); // the editors of the last draw go with it
 		plots = new Map();
 		const running = model.running;
 		const book = model.nav.book;
@@ -176,9 +179,10 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 					recover: (text) => rescuePlotNote(project, book, key, text),
 					notify: (n) => model.notices.notify(n),
 					written: (stored) => plots.set(key, stored),
-				});
+					placeholder: "Plot note",
+					typing: () => model.fieldTypingOptions(),
+				}, bin);
 				field.element.dataset.plot = key;
-				field.element.placeholder = "Plot note";
 				card.append(field.element);
 				void readChapterPlot(project, book, key).then((p) => {
 					plots.set(key, p);
@@ -192,7 +196,7 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 		const unplacedList = unplaced.length
 			? [el("h3", { class: "sf-overview-sub", text: "Unplaced" }), el("div", { class: "sf-overview-list", attrs: { role: "list", "aria-label": "Chapters not yet placed" } }, ...unplaced.map((c, i) => el("div", { class: "sf-overview-row sf-overview-row--unplaced", attrs: { role: "listitem" } }, el("button", { class: "sf-overview-name", text: titles[ordered.length + i], attrs: { type: "button" }, on: { click: () => open(c.name) } }))))]
 			: [];
-		fill(host, el("h2", { class: "sf-overview-title", text: novelTitle() }), el("div", { class: "sf-overview-head" }, el("div", { class: "sf-cover-column" }, coverBox(model, { kind: "book", code: book }, novelTitle()), removeCoverButton(model, { kind: "book", code: book }, novelTitle())), synopsisField(model, book, novelTitle())), povRow, track, strip, meta, sizeControl, el("div", { class: "sf-overview-list sf-cards", attrs: { role: "list", "aria-label": "Placed chapters with word counts" } }, ...cards), ...unplacedList);
+		fill(host, el("h2", { class: "sf-overview-title", text: novelTitle() }), el("div", { class: "sf-overview-head" }, el("div", { class: "sf-cover-column" }, coverBox(model, { kind: "book", code: book }, novelTitle()), removeCoverButton(model, { kind: "book", code: book }, novelTitle())), synopsisField(model, bin, book, novelTitle())), povRow, track, strip, meta, sizeControl, el("div", { class: "sf-overview-list sf-cards", attrs: { role: "list", "aria-label": "Placed chapters with word counts" } }, ...cards), ...unplacedList);
 	};
 	draw();
 	const refresh = debounced(() => redrawKeepingFocus(host, draw));
@@ -200,6 +204,7 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 	return () => {
 		off();
 		refresh.cancel();
+		bin.clear();
 		host.classList.remove("sf-overview-body");
 	};
 }
