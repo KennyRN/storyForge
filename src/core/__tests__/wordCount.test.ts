@@ -38,6 +38,59 @@ describe("countWords", () => {
 	});
 });
 
+describe("dashes and ellipses (decision 49)", () => {
+	const CASES: [string, number][] = [
+		// separators: em dash, en dash, two hyphens, ellipsis
+		["word—word", 2],
+		["word–word", 2],
+		["word--word", 2],
+		["word---word", 2],
+		["wait…what", 2],
+		["wait...what", 2],
+		["wait....what", 2],
+		["wait..what", 1],
+		["a—b—c", 3],
+		["end of line—", 3],
+		["trailing...", 1],
+		["…and then", 2],
+		// a single hyphen joins
+		["well-known", 1],
+		["mother-in-law", 1],
+		["well-known—word", 2],
+		// a run with no letter or digit is not a word
+		["word – word", 2],
+		["word — word", 2],
+		["word - word", 2],
+		["word -- word", 2],
+		["…", 0],
+		["...", 0],
+		["word … word", 2],
+		["# Heading", 1],
+		["- item", 1],
+		["***", 0],
+		// number ranges are as they always were: one word
+		["1990–95", 1],
+		["1990-95", 1],
+		["1990—95", 1],
+		["1990--95", 1],
+		["pp. 12–14", 2],
+		["12–14", 1],
+		["12 – 14", 2],
+		["a–5", 2],
+		["5–a", 2],
+		["5–", 1],
+		// accents, marks and other scripts are letters
+		["Zoë—Åberg", 2],
+		["日本語—日本語", 2],
+	];
+	for (const [text, words] of CASES) it(`${JSON.stringify(text)} is ${words}`, () => expect(countWords(text)).toBe(words));
+
+	it("a comment's dashes are not counted, and a line's count adds up", () => {
+		expect(countWords("one %% a—b—c %% two—three")).toBe(3);
+		expect(countWords("one—two\n\nthree – four\n")).toBe(4);
+	});
+});
+
 describe("formatWordCount", () => {
 	it("groups thousands and does not append a unit word", () => {
 		expect(formatWordCount(0)).toBe("0");

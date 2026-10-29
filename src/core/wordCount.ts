@@ -1,7 +1,9 @@
 /**
- * Strips YAML frontmatter and %% ... %% comments from raw markdown, then
- * counts words as runs of non-whitespace. The rule is kept deliberately dumb
- * and stable so the word-count graph stays consistent over time.
+ * Strips YAML frontmatter and %% ... %% comments from raw markdown, then counts words (decision 49, 0.13.1):
+ * runs of text between spaces, where an em dash, an en dash, two or more hyphens and an ellipsis (`…` or three or more
+ * dots) act like a space; a single hyphen joins (`well-known` is one word); a run with no letter or digit is not a word
+ * (a spaced dash, a lone ellipsis, a bare `#`); and a dash between two digits joins (`1990–95` is one word, as it always
+ * was). The typing aids swap `--` for `—` and `...` for `…`, which this treats alike, so they never change a count.
  */
 export function stripForCounting(raw: string): string {
 	let text = raw;
@@ -19,10 +21,17 @@ export function stripForCounting(raw: string): string {
 	return text;
 }
 
-/** Counts whitespace-separated words in a single line of text, using the same rule as `countWords`. */
+const SEPARATOR = /—|–|-{2,}|…|\.{3,}/g;
+const DIGIT = /\p{Nd}/u;
+const HAS_LETTER_OR_DIGIT = /[\p{L}\p{N}]/u;
+
+/** Counts words in a single line of text, using the same rule as `countWords`. */
 export function countWordsInLine(text: string): number {
-	const matches = text.trim().match(/\S+/g);
-	return matches ? matches.length : 0;
+	const spaced = text.replace(SEPARATOR, (m, at: number, whole: string) => {
+		const dash = m !== "…" && m[0] !== ".";
+		return dash && DIGIT.test(whole[at - 1] ?? "") && DIGIT.test(whole[at + m.length] ?? "") ? m : " ";
+	});
+	return (spaced.match(/\S+/g) ?? []).filter((w) => HAS_LETTER_OR_DIGIT.test(w)).length;
 }
 
 export function countWords(raw: string): number {
