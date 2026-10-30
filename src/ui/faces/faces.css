@@ -144,20 +144,32 @@
 .sf-codex-folder-header > svg {
 	flex: none;
 }
+.sf-codex-file,
+.sf-codex-folder-header {
+	min-height: 28px;
+}
 /* Every icon is next to the name: 1em after its end (the name is only as wide as its text, until it must be cut), then 6px between icons. */
 .sf-codex-name + svg {
 	margin-left: 1em;
 }
-.sf-codex-name + svg + svg {
-	margin-left: 6px;
+.sf-codex-hit {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: none;
+	width: 28px;
+	height: 28px;
+	margin: -3px 0 -3px calc(1em - 6px); /* the glyph, not the hit area, is 1em after the name */
+	cursor: pointer;
+}
+.sf-codex-hit + svg {
+	margin-left: 0; /* 6px of the hit area are already between the two glyphs */
 }
 /* A folder opens and closes with the mouse only by its icon. */
 .sf-codex-folder-header:not(.sf-codex-lore-folder) {
 	cursor: default;
 }
-.sf-codex-folder-header > svg:first-of-type {
-	cursor: pointer;
-}
+
 /* An open folder's contents hang from a line (a closed folder has none); nested folders have nested lines. */
 .sf-codex-children {
 	position: relative;

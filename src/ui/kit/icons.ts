@@ -24,17 +24,16 @@ import {
 	type IconNode,
 } from "lucide";
 
-/** Tabler Icons (MIT; Icon Licences.md), drawn on the same 24-unit grid and 2-unit stroke as Lucide's, so they sit with them. */
+/** Tabler Icons (MIT; Icon Licences.md; the New Note button's is Tabler's square-rounded-plus-2, kept under the name file-plus), drawn on the same 24-unit grid and 2-unit stroke as Lucide's, so they sit with them. */
 const FOLDER_PLUS: IconNode = [
 	["path", { d: "M12 19h-7a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2h4l3 3h7a2 2 0 0 1 2 2v3.5" }],
 	["path", { d: "M16 19h6" }],
 	["path", { d: "M19 16v6" }],
 ];
 const FILE_PLUS: IconNode = [
-	["path", { d: "M14 3v4a1 1 0 0 0 1 1h4" }],
-	["path", { d: "M17 21h-10a2 2 0 0 1 -2 -2v-14a2 2 0 0 1 2 -2h7l5 5v11a2 2 0 0 1 -2 2" }],
-	["path", { d: "M12 11l0 6" }],
-	["path", { d: "M9 14l6 0" }],
+	["path", { d: "M12.54 20.996c-.176 .004 -.356 .004 -.54 .004c-7.2 0 -9 -1.8 -9 -9s1.8 -9 9 -9s9 1.8 9 9c0 .185 -.001 .366 -.004 .544" }],
+	["path", { d: "M16 19h6" }],
+	["path", { d: "M19 16v6" }],
 ];
 /** The filled folder: the Codex list's folder icon (solid, drawn with fill and no stroke). */
 const FOLDER_FILLED: IconNode = [

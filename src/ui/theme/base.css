@@ -7,7 +7,7 @@
 	--text-ui: 13px;
 	--prose-size: 20px;
 	--prose-line: 1.6;
-	--prose-measure: 38em;
+	--prose-measure: 30em;
 	--space-1: 4px;
 	--space-2: 8px;
 	--space-3: 12px;
@@ -259,6 +259,9 @@ textarea {
 	background: var(--purpose-raised-bg);
 	border: 1px solid var(--purpose-border);
 	border-radius: 16px;
+}
+.sf-chars-button.is-off {
+	opacity: 0.45;
 }
 .sf-chars-button:hover,
 .sf-chars-button[aria-expanded="true"] {

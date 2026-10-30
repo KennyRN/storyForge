@@ -111,6 +111,25 @@ for (const side of SIDES) {
 			expect(await row(page, "Windows").getAttribute("aria-expanded")).toBeNull();
 		});
 
+		test("the folder icon is a comfortable mouse target: square, as tall as the row, a pointer; a click beside the glyph inside it still folds", async ({ page }) => {
+			const cast = row(page, "Cast");
+			const hit = cast.locator(".sf-codex-hit");
+			const [h, r, glyph, cursor] = await Promise.all([hit.boundingBox(), cast.boundingBox(), hit.locator("svg").boundingBox(), hit.evaluate((el) => getComputedStyle(el).cursor)]);
+			expect(h!.width).toBeCloseTo(h!.height, 0);
+			expect(h!.height).toBeGreaterThanOrEqual(r!.height - 1);
+			expect(h!.width).toBeGreaterThan(glyph!.width + 8);
+			expect(cursor).toBe("pointer");
+			// just outside the glyph (its top-left corner of the hit area), well inside the hit area
+			await page.mouse.click(h!.x + 2, h!.y + 2);
+			await expect(cast).toHaveAttribute("aria-expanded", "false");
+			await page.mouse.click(h!.x + h!.width - 2, h!.y + h!.height - 2);
+			await expect(cast).toHaveAttribute("aria-expanded", "true");
+			// and the rest of the row still does nothing with the mouse
+			const name = (await cast.locator(".sf-codex-name").boundingBox())!;
+			await page.mouse.click(name.x + 4, name.y + name.height / 2);
+			await expect(cast).toHaveAttribute("aria-expanded", "true");
+		});
+
 		test("an open folder with nothing in it says it is empty, to the eye and to the screen reader", async ({ page }) => {
 			await page.getByRole("button", { name: "New folder" }).click();
 			await page.getByRole("textbox", { name: "Name of the new folder" }).fill("Ships");

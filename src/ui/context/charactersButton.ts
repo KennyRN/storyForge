@@ -1,13 +1,16 @@
 import { spokenName } from "../../core/typing/characterNames";
+import { insertWriting, onWritingChange, writingState } from "../editor/lastWriting";
 import { el } from "../kit/dom";
 import type { AppModel } from "../model";
 
 /**
- * The special-characters button (docs/typing-aids.md §7): at the right of the context panel's bottom row, only while
- * the panel is blank and the context panel is showing. It opens a small palette of the project's characters; choosing
- * one puts it in at the chapter's cursor (replacing a selection) as if typed, and the author's place is never lost:
- * the button and the palette take no focus from the writing when the mouse is used, and the editor keeps its
- * selection whatever has focus.
+ * The special-characters button (docs/typing-aids.md §7, changed by Brief 10): at the right of the context panel's bottom
+ * row, always, with a note open or not. It opens a small palette of the project's characters; choosing one puts it in at
+ * the selection of the editor the author last wrote in (the chapter, a Codex note, a plot note, the synopsis, the
+ * description: `lastWriting.ts`) as if typed, and the author's place is never lost: the button and the palette take no
+ * focus from the writing when the mouse is used (so a field is not committed by the click), and the editor keeps its
+ * selection whatever has focus. It is greyed when there is nowhere safe: that editor is covered by an overview, is
+ * read-only or has gone.
  */
 export function mountCharactersButton(row: HTMLElement, model: AppModel): () => void {
 	const corner = el("div", { class: "sf-context-corner" });
@@ -38,8 +41,7 @@ export function mountCharactersButton(row: HTMLElement, model: AppModel): () => 
 
 	function draw(): void {
 		const running = model.running;
-		const blank = !!running && model.editors?.pathIn("lore") === null;
-		const shown = blank && running.settings.values.typingSpecialCharactersButton && !model.nav.loreHidden;
+		const shown = !!running && running.settings.values.typingSpecialCharactersButton && !model.nav.loreHidden;
 		corner.hidden = !shown;
 		if (!shown) {
 			open = false;
@@ -48,7 +50,9 @@ export function mountCharactersButton(row: HTMLElement, model: AppModel): () => 
 		}
 		// Keep the palette as it is while the keyboard is inside it.
 		if (open && corner.contains(document.activeElement) && document.activeElement !== toggle) return;
-		const state = model.editors?.insertState() ?? { ok: false as const, reason: "Open a chapter to put a character in." };
+		const { state } = writingState();
+		toggle.classList.toggle("is-off", !state.ok);
+		toggle.title = state.ok ? "Special characters" : `Special characters: ${state.reason}`;
 		const characters = running!.settings.values.typingSpecialCharacters;
 		toggle.setAttribute("aria-expanded", String(open));
 
@@ -63,7 +67,7 @@ export function mountCharactersButton(row: HTMLElement, model: AppModel): () => 
 				b.disabled = !state.ok;
 				b.addEventListener("mousedown", (e) => e.preventDefault());
 				b.addEventListener("click", () => {
-					if (model.editors?.insertAtCursor(ch)) close();
+					if (insertWriting(ch)) close();
 				});
 				b.addEventListener("keydown", (e) => {
 					const all = [...grid.querySelectorAll<HTMLButtonElement>(".sf-char:not([disabled])")];
@@ -95,7 +99,12 @@ export function mountCharactersButton(row: HTMLElement, model: AppModel): () => 
 		if (open && e.target instanceof Node && !corner.contains(e.target)) close();
 	};
 	document.addEventListener("pointerdown", outside, true);
-	const off = model.subscribe(["nav", "settings", "project"], draw);
+	const offModel = model.subscribe(["nav", "settings", "project"], draw);
+	const offWriting = onWritingChange(draw);
+	const off = (): void => {
+		offModel();
+		offWriting();
+	};
 	draw();
 	return () => {
 		off();

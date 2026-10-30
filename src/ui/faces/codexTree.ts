@@ -178,7 +178,8 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 				const label = el("span", { class: "sf-codex-name", text: item.name });
 				// No chevron: the folder's icon, after its name, is what a click on a note-folder toggles; the line beside an open
 				// folder's contents (and the screen reader's "expanded" / "collapsed") says whether it is open.
-				const toggle = icon("folder-filled", 16);
+				// The folder icon is the mouse toggle, so it has a square hit area as tall as the row (the glyph is centred in it).
+				const toggle = el("span", { class: "sf-codex-hit" }, icon("folder-filled", 16));
 				const typeMark = item.path ? typeIcon(item.path) : null;
 				const header = el(
 					"div",

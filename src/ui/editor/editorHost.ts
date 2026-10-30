@@ -3,6 +3,7 @@ import { parseProseFile } from "../../core/proseFile";
 import { foldKey } from "../../core/pathRules";
 import { el, fill } from "../kit/dom";
 import type { AppModel } from "../model";
+import { arriveWriting, resetWriting, setWritingFallback, trackWriting } from "./lastWriting";
 import { mountReadOnlyEditor, mountSessionEditor, type MountedEditor, openFind, openFindReplace, redo, undo } from "./editor";
 import { noticeForOutsideChange, noticesForSave, readOnlyBanner } from "./saveNotices";
 
@@ -31,8 +32,12 @@ export class EditorHost {
 		hosts: Record<Slot, HTMLElement>,
 	) {
 		this.slots = { centre: { host: hosts.centre, occupant: null, opening: 0, pending: null }, lore: { host: hosts.lore, occupant: null, opening: 0, pending: null } };
+		setWritingFallback(() => this.slots.centre.occupant?.mounted.view ?? null);
 		model.subscribe("project", () => {
-			if (!model.running) this.dropAll();
+			if (!model.running) {
+				this.dropAll();
+				resetWriting();
+			}
 		});
 	}
 
@@ -54,29 +59,6 @@ export class EditorHost {
 	/** The session behind a slot's editor (none for a read-only view). */
 	sessionIn(slot: Slot): ProseSession | null {
 		return this.slots[slot].occupant?.session ?? null;
-	}
-
-	/** Whether a character can be put in at the centre editor's cursor now, and if not, why (docs/typing-aids.md §7). */
-	insertState(): { ok: true } | { ok: false; reason: string } {
-		const o = this.slots.centre.occupant;
-		if (!o) return { ok: false, reason: "Open a chapter to put a character in." };
-		if (!o.session) return { ok: false, reason: "This text is read-only." };
-		if (this.model.centreCovered) return { ok: false, reason: "Close the overview to put a character in." };
-		return { ok: true };
-	}
-
-	/**
-	 * Puts `text` in at the centre editor's selection, replacing it, as ordinary typing (so the session counts it as
-	 * typing, the aids see it, and one ⌘Z takes it back), then gives the editor focus with the caret just after it.
-	 * The selection survives the editor losing focus, so the author's place is never lost.
-	 */
-	insertAtCursor(text: string): boolean {
-		if (!this.insertState().ok) return false;
-		const view = this.slots.centre.occupant!.mounted.view;
-		const { from, to } = view.state.selection.main;
-		view.dispatch({ changes: { from, to, insert: text }, selection: { anchor: from + text.length }, userEvent: "input.type", scrollIntoView: true });
-		view.focus();
-		return true;
 	}
 
 	/** Focuses the editor in a slot. */
@@ -169,6 +151,7 @@ export class EditorHost {
 			const editorHost = el("div", { class: "sf-editor" });
 			const mounted = session ? mountSessionEditor(editorHost, session, { covered: () => slot === "centre" && this.model.centreCovered, typing: () => this.model.typingOptions() }) : mountReadOnlyEditor(editorHost, readOnlyText ?? "");
 			occupant = { path: session?.path ?? project.entry(path)?.path ?? path, mounted, session, offs: [] };
+			trackWriting(mounted.view);
 			if (session) this.watch(occupant, session);
 			const previous = s.occupant;
 			s.occupant = occupant;
@@ -176,6 +159,7 @@ export class EditorHost {
 			if (previous) await this.release(previous);
 			this.onChange?.();
 			mounted.view.focus();
+			arriveWriting(mounted.view);
 		} catch (e) {
 			if (token === s.opening) fill(s.host);
 			this.model.notices.notify({ text: `Could not open ${path.slice(path.lastIndexOf("/") + 1)}: ${(e as Error)?.message ?? String(e)}` });
