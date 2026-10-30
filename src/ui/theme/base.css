@@ -1,11 +1,11 @@
 /* Base: reset, type, spacing, focus ring, scrollbars. Colours come from purposes only. */
 :root {
 	--font-ui: -apple-system, system-ui, sans-serif;
-	/* SN Pro for everywhere the author writes, and the Codex list. Whatever the Mac substitutes for a character it lacks
-	   (ƿ Ƿ ȝ Ȝ and a few more, docs/look.md §1) is temporary until the fallback is chosen (decision 56). */
-	--font-prose: "SN Pro", var(--font-ui);
+	/* SN Pro for everywhere the author writes, and the Codex list. Arial, which has a real italic and bold, draws only the
+	   characters SN Pro lacks (ƿ Ƿ ȝ Ȝ ǣ and a few more, docs/look.md §1; decision 57), so nothing is synthesised. */
+	--font-prose: "SN Pro", Arial, var(--font-ui);
 	--text-ui: 13px;
-	--prose-size: 17px;
+	--prose-size: 20px;
 	--prose-line: 1.6;
 	--prose-measure: 38em;
 	--space-1: 4px;

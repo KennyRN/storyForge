@@ -141,12 +141,12 @@ test.describe("the storytelling face", () => {
 			expect(text.startsWith("---\naliases:\n  - J\n  - \"Jay: the first\"\ntags: [hero]\ncustom-key: kept\n---\n")).toBe(true);
 		});
 
-		test("a folder that is also a note opens the note when its row is clicked, and folds when its arrow is", async ({ page }) => {
+		test("a folder that is also a note opens the note when its row is clicked, and folds when its folder icon is", async ({ page }) => {
 			await openProject(page);
 			const row = page.locator(".sf-codex-folder-header", { hasText: "Harbour" });
 			await row.click();
 			await expect(lore(page)).toBeVisible();
-			await row.locator(".sf-codex-toggle").click();
+			await row.locator("svg").first().click(); // the folder icon, after the name: there are no chevrons
 			await expect(page.locator(".sf-codex-file", { hasText: "Harbour" })).toHaveCount(0);
 		});
 	});
@@ -199,10 +199,10 @@ test.describe("the storytelling face", () => {
 			}).toBe(true);
 		});
 
-		test("rows can be reached by keyboard and moved with the arrow keys", async ({ page }) => {
+		test("rows can be reached by keyboard and moved with Option and the arrow keys", async ({ page }) => {
 			await openProject(page);
 			await codexRow(page, "Sam").focus();
-			await page.keyboard.press("ArrowUp");
+			await page.keyboard.press("Alt+ArrowUp"); // the plain arrows move between rows (codex.ui.ts)
 			await expect.poll(async () => {
 				const t = await onDisk(page, CODEX);
 				return t.indexOf("Codex/Sam.md") < t.indexOf("Codex/Jane.md");

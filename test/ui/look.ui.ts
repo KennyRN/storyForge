@@ -47,13 +47,13 @@ test.describe("SN Pro", () => {
 		expect(outside, "requests outside the app").toEqual([]);
 	});
 
-	test("the chapter editor and a Codex note in the context panel are in SN Pro at 17 px / 1.6, ligatures off, and a typed arrow stays as typed", async ({ page }) => {
+	test("the chapter editor and a Codex note in the context panel are in SN Pro at 20 px / 1.6, ligatures off, and a typed arrow stays as typed", async ({ page }) => {
 		await openProject(page);
 		const chapter = page.locator(".sf-slot--centre .cm-scroller");
 		await expectSnPro(chapter, "the chapter");
 		const content = page.locator(".sf-slot--centre .cm-content");
-		expect((await style(content)).size).toBe("17px");
-		expect(parseFloat((await style(content)).line)).toBeCloseTo(17 * 1.6, 1);
+		expect((await style(content)).size).toBe("20px");
+		expect(parseFloat((await style(content)).line)).toBeCloseTo(20 * 1.6, 1);
 		await page.locator(".sf-codex-tree [data-key]").filter({ hasText: "Jane" }).first().click();
 		await expect(page.locator(".sf-slot--lore .cm-content")).toBeVisible();
 		await expectSnPro(page.locator(".sf-slot--lore .cm-scroller"), "the Codex note");

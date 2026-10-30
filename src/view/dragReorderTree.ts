@@ -236,10 +236,13 @@ export function attachCodexDragReorder(
 		if (!draggedKey || !draggedType || !rowByKey.has(draggedKey)) continue;
 
 		rowEl.tabIndex = 0;
+		// Reordering from the keyboard is Option plus an arrow (Brief 10, decision 56): the plain arrows are the tree's own
+		// (move between rows, open, close), done by the list that mounts this.
 		if (!rowEl.hasAttribute("aria-keyshortcuts")) {
-			rowEl.setAttribute("aria-keyshortcuts", "ArrowUp ArrowDown ArrowLeft ArrowRight");
+			rowEl.setAttribute("aria-keyshortcuts", "Alt+ArrowUp Alt+ArrowDown Alt+ArrowLeft Alt+ArrowRight");
 		}
 		rowEl.addEventListener("keydown", (event: KeyboardEvent) => {
+			if (!event.altKey || event.metaKey || event.ctrlKey || event.shiftKey) return;
 			const info = rowByKey.get(draggedKey);
 			if (!info) return;
 

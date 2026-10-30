@@ -9,11 +9,9 @@
 //
 // It drives the window with System Events: the terminal needs Accessibility permission and the screen must be unlocked.
 // Usage: npm run test:look [-- path/to/storyForge.app] [--shots <folder>]
-//   --candidates takes one picture of a local build made with VITE_SF_FONT_CANDIDATES=1 (the fallback candidates beside SN Pro,
-//   decision 56) and does nothing else.
 //   --shots saves pictures of the window: the chapter, a Codex note in the context panel, a plot note, both Codex lists.
 import { spawn, spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -23,7 +21,6 @@ const BUNDLE_ID = "io.github.kennyrn.storyforge";
 const DATA_FOLDER = `Library/Application Support/${BUNDLE_ID}`;
 const args = process.argv.slice(2);
 const shotsAt = args.includes("--shots") ? args[args.indexOf("--shots") + 1] : null;
-const candidates = args.includes("--candidates");
 const appArg = args.find((a, i) => !a.startsWith("--") && args[i - 1] !== "--shots");
 const app = resolve(appArg ?? join(root, "src-tauri/target/universal-apple-darwin/release/bundle/macos/storyForge.app"));
 const binary = join(app, "Contents/MacOS/storyforge");
@@ -68,10 +65,16 @@ const findScript = `on run argv
 					set h to item 2 of sz
 					return "found " & (w as text) & "x" & (h as text)
 				end if
-				if act is "center" then
+				if act is "frame" then
 					set p to position of e
 					set sz to size of e
-					return "found " & (((item 1 of p) + ((item 1 of sz) div 2)) as text) & "," & (((item 2 of p) + ((item 2 of sz) div 2)) as text)
+					return "found " & ((item 1 of p) as text) & "," & ((item 2 of p) as text) & "," & ((item 1 of sz) as text) & "," & ((item 2 of sz) as text)
+				end if
+				if act is "focusrow" then
+					-- a Codex row is the group just before its name in the accessibility tree
+					set frontmost to true
+					set focused of (item (i - 1) of els) to true
+					return "found " & n
 				end if
 				if act is "click" then click e
 				if act is "focus" then
@@ -91,6 +94,10 @@ const widthOf = (role, prefix, nth = 1) => {
 	const out = find(role, prefix, "size", nth);
 	const m = /^found (\d+)x(\d+)$/.exec(out);
 	return m ? Number(m[1]) : null;
+};
+const frameOf = (role, prefix, nth = 1) => {
+	const m = /^found (-?\d+),(-?\d+),(\d+),(\d+)$/.exec(find(role, prefix, "frame", nth));
+	return m ? m.slice(1).map(Number) : null;
 };
 const valueOf = (role, prefix, nth = 1) => {
 	const out = find(role, prefix, "value", nth);
@@ -114,6 +121,9 @@ const dir = realpathSync(mkdtempSync(join(tmpdir(), "sf-look-")));
 const home = join(dir, "home");
 const project = join(dir, "proj");
 cpSync(join(root, "test/fixtures/series"), project, { recursive: true });
+// The wynn and yogh lines are in the chapter on disk: the keystroke tool can't type them (it types an "a"), and what is
+// checked is how they are drawn, not how they are typed.
+appendFileSync(join(project, "_story-library/aaa/ch-a1.md"), "\n\nƿȝƿȝƿȝƿȝƿȝ\n\n*ƿȝƿȝƿȝƿȝƿȝƿ*\n\nThe old letters, upright: ð þ ƿ ȝ ǣ, in *italic: ð þ ƿ ȝ ǣ*, in **bold: ð þ ƿ ȝ ǣ**.\n");
 const data = join(home, DATA_FOLDER);
 mkdirSync(data, { recursive: true });
 writeFileSync(join(data, "recent.json"), JSON.stringify([project]));
@@ -124,6 +134,37 @@ const windowShot = (name) => {
 	if (!shotsAt) return;
 	const [x, y, w, h] = osa('tell application "System Events" to tell process "storyforge" to return (position of window 1) & (size of window 1)').stdout.trim().split(", ").map(Number);
 	spawnSync("screencapture", ["-x", "-R", [x, y, w, h].join(","), join(shotsAt, `${name}.png`)]);
+};
+/**
+ * How far the ink of the upper half of a line sits to the right of the ink of its lower half, in pixels of a 2x picture:
+ * upright letters sit about square (little), italic ones lean forward (more). Read from a screenshot of the line.
+ */
+const inkLean = ([x, y, w, h]) => {
+	const png = join(dir, "lean.png");
+	const bmp = join(dir, "lean.bmp");
+	spawnSync("screencapture", ["-x", "-R", `${x - 2},${y - 2},${w + 4},${h + 4}`, png]);
+	spawnSync("sips", ["-s", "format", "bmp", png, "--out", bmp]);
+	const b = readFileSync(bmp);
+	const start = b.readUInt32LE(10);
+	const W = b.readInt32LE(18);
+	const rawH = b.readInt32LE(22);
+	const H = Math.abs(rawH);
+	const bytes = b.readUInt16LE(28) / 8;
+	const stride = Math.ceil((W * bytes) / 4) * 4;
+	const lum = (px, py) => {
+		const row = rawH > 0 ? H - 1 - py : py; // BMP rows run bottom-up unless the height is negative
+		const o = start + row * stride + px * bytes;
+		return (b[o] + b[o + 1] + b[o + 2]) / 3;
+	};
+	const bg = lum(0, 0);
+	const ink = [];
+	for (let py = 0; py < H; py++) for (let px = 0; px < W; px++) if (Math.abs(lum(px, py) - bg) > 50) ink.push([px, py]);
+	if (ink.length === 0) return 0;
+	const top = Math.min(...ink.map((p) => p[1]));
+	const bottom = Math.max(...ink.map((p) => p[1]));
+	const mid = (top + bottom) / 2;
+	const mean = (pts) => pts.reduce((a, p) => a + p[0], 0) / Math.max(1, pts.length);
+	return mean(ink.filter((p) => p[1] < mid)) - mean(ink.filter((p) => p[1] >= mid));
 };
 const clickAny = (name) => ["AXButton", "AXCheckBox", "AXToggle", "AXRadioButton", "AXTab"].some((role) => find(role, name, "click").startsWith("found"));
 const problems = [];
@@ -142,41 +183,43 @@ try {
 	find("AXButton", `proj ${dir}`, "click");
 	if (!(await until(() => find("AXTextArea", "Text").startsWith("found")))) fail("the project did not open");
 	await sleep(1200);
-	if (candidates) {
-		windowShot("font-candidates");
-		problems.push("--candidates takes the picture only");
-		throw new Error("done");
-	}
 
 	// The Codex list (13 px): "Jane" is 27 px in SN Pro, 29 in the system font; "Harbour" 47 and 49.
 	expectWidth("the Codex list, Jane", widthOf("AXStaticText", "Jane"), 27, 29);
 	expectWidth("the Codex list, Harbour", widthOf("AXStaticText", "Harbour"), 47, 49);
 	windowShot("codex-storytelling-no-note");
 
-	// The chapter: ten "w" upright (137 px) and eleven in italic (the italic file is a real italic, 147 px for ten).
+	// The chapter (20 px): ten "w" upright are 161 px in SN Pro (about 150 in the system font), eleven in italic 191 (the italic file
+	// is a real italic). Then ten wynn and yogh, which SN Pro lacks: Arial draws them, and in italic text Arial Italic, not the
+	// upright (the two have the same widths, so the slant of the ink is measured).
 	find("AXTextArea", "Text", "focus");
 	await sleep(400);
 	key("key code 125 using command down"); // ⌘↓: the end of the chapter
-	key("key code 36");
-	sendKeys("wwwwwwwwww");
-	key("key code 36");
-	sendKeys("*wwwwwwwwwww*");
+	for (const line of ["wwwwwwwwww", "*wwwwwwwwwww*"]) {
+		key("key code 36");
+		sendKeys(line);
+	}
 	key("key code 36");
 	sendKeys("end");
 	await sleep(700);
-	expectWidth("the chapter, upright", widthOf("AXStaticText", "wwwwwwwwww"), 137, 127);
-	expectWidth("the chapter, italic", widthOf("AXStaticText", "wwwwwwwwwww"), 162, 140);
+	expectWidth("the chapter, upright", widthOf("AXStaticText", "wwwwwwwwww"), 161, 150);
+	expectWidth("the chapter, italic", widthOf("AXStaticText", "wwwwwwwwwww"), 191, 160);
+	const upright = frameOf("AXStaticText", "ƿȝƿȝƿȝƿȝƿȝ", 1);
+	const italic = frameOf("AXStaticText", "ƿȝƿȝƿȝƿȝƿȝ", 2);
+	if (!upright || !italic) problems.push("the lines of wynn and yogh were not found through accessibility");
+	else {
+		const lean = inkLean(italic) - inkLean(upright);
+		// Arial Italic leans about 12 degrees: over the height of a letter that is several pixels of difference between the top and the bottom.
+		if (!(lean >= 2)) problems.push(`wynn and yogh inside italic text lean ${lean.toFixed(1)} px (at 2x) more than the upright ones; Arial Italic should lean by several pixels, so the italic is not being drawn`);
+		else console.log(`(wynn and yogh in italic lean ${lean.toFixed(1)} px more than upright: Arial Italic)`);
+	}
 	windowShot("chapter");
 
 	// A Codex note in the context panel.
-	// A Codex row answers only to pointer events (it starts a drag on pointerdown), not to an accessibility press: one real
-	// click with cliclick, on a throwaway copy. (Return on a row, Brief 10 commit 3, will make this unnecessary.)
-	const at = /^found (\d+),(\d+)$/.exec(find("AXStaticText", "Sam", "center"));
-	if (!at) problems.push("could not find Sam in the Codex list");
-	else {
-		key("set frontmost of process \"storyforge\" to true");
-		spawnSync("/opt/homebrew/bin/cliclick", [`c:${at[1]},${at[2]}`]);
-	}
+	// The keyboard: the row is focused through accessibility and Return opens it (no pointer is used anywhere in this script).
+	if (!find("AXStaticText", "Sam", "focusrow").startsWith("found")) problems.push("could not focus Sam in the Codex list");
+	await sleep(300);
+	key("key code 36");
 	await sleep(1200);
 	if (!(await until(() => find("AXTextArea", "Text", "none", 2).startsWith("found"), 8000))) {
 		problems.push("the Codex note did not open in the context panel");
@@ -192,8 +235,8 @@ try {
 		key("key code 36");
 		sendKeys("end");
 		await sleep(700);
-		expectWidth("the Codex note in the context panel, upright", widthOf("AXStaticText", "wwwwwwwwww", 3), 137, 127);
-		expectWidth("the Codex note in the context panel, italic", widthOf("AXStaticText", "wwwwwwwwwww", 2), 162, 140);
+		expectWidth("the Codex note in the context panel, upright", widthOf("AXStaticText", "wwwwwwwwww", 3), 161, 150);
+		expectWidth("the Codex note in the context panel, italic", widthOf("AXStaticText", "wwwwwwwwwww", 2), 191, 160);
 		windowShot("codex-note-in-context-panel");
 	}
 
@@ -212,18 +255,12 @@ try {
 	await sleep(700);
 	expectWidth("a plot note", widthOf("AXStaticText", "wwwwwwwwww", 1), 105, 100);
 	windowShot("plot-note");
-} catch (e) {
-	if (!(candidates && e.message === "done")) throw e;
 } finally {
 	child.kill("SIGKILL");
 	await sleep(300);
 	rmSync(dir, { recursive: true, force: true });
 }
 console.log("");
-if (candidates) {
-	console.log(`(picture: ${join(shotsAt ?? ".", "font-candidates.png")})`);
-	process.exit(0);
-}
 if (problems.length === 0) console.log("PASS  SN Pro is the font drawing in the Codex list (both sides), the chapter, a Codex note in the context panel and a plot note, upright and italic where the surface has an italic (a plot note is plain text, with none), at the widths its shipped files give");
 else {
 	console.log("FAIL  the built app is not drawing what it should");
