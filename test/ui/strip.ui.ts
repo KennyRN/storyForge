@@ -29,6 +29,36 @@ const SIDES = [
 	},
 ];
 
+test.describe("a note that is slow to open", () => {
+	test("does not take the focus from a name box opened after it was asked for, so nothing is created from a half-typed name", async ({ page }) => {
+		await openProject(page);
+		// make the open slow: the note is asked for, then the author starts naming a new note before it has opened
+		await page.evaluate(() => {
+			const controller = window.__app.controller as unknown as { openFile(p: string): Promise<unknown> };
+			const original = controller.openFile.bind(controller);
+			controller.openFile = async (p) => {
+				await new Promise((r) => setTimeout(r, 1200));
+				return original(p);
+			};
+			void window.__app.editors!.open("lore", "Codex/Jane.md");
+		});
+		await page.getByRole("button", { name: "New note" }).click();
+		await noteBox(page).pressSequentially("Ha");
+		await expect(page.locator(".sf-slot--lore .cm-content")).toBeVisible({ timeout: 5000 }); // the note did open
+		await expect(noteBox(page)).toBeFocused(); // and left the box alone
+		await expect(noteBox(page)).toHaveValue("Ha");
+		await page.waitForTimeout(500);
+		expect(await onDisk(page, "Codex/Ha.md")).toBeNull(); // no note made from half a name
+		await page.keyboard.press("Escape");
+	});
+
+	test("a note opened by the keyboard or the mouse still takes the focus", async ({ page }) => {
+		await openProject(page);
+		await page.locator(".sf-codex-tree [data-key]").filter({ hasText: "Jane" }).first().click();
+		await expect(page.locator(".sf-slot--lore .cm-content")).toBeFocused();
+	});
+});
+
 for (const side of SIDES) {
 	test.describe(`the Codex strip, ${side.name}`, () => {
 		test.beforeEach(async ({ page }) => {

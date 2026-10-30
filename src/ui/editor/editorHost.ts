@@ -9,6 +9,9 @@ import { noticeForOutsideChange, noticesForSave, readOnlyBanner } from "./saveNo
 
 export type Slot = "centre" | "lore";
 
+/** A box the author types in: a text field, a name box, an editor. */
+const isTypingPlace = (e: Element | null): boolean => e instanceof HTMLInputElement || e instanceof HTMLTextAreaElement || (e instanceof HTMLElement && e.isContentEditable);
+
 interface Occupant {
 	path: string;
 	mounted: MountedEditor;
@@ -119,6 +122,9 @@ export class EditorHost {
 	private async openIn(slot: Slot, path: string): Promise<void> {
 		const s = this.slots[slot];
 		const token = ++s.opening;
+		// Where the author was typing when this note was asked for: if it is somewhere else by the time the note is open (a name box
+		// opened meanwhile, say), the note opens without taking the focus from there.
+		const typingAtRequest = document.activeElement;
 		const running = this.model.running;
 		if (!running) return;
 		const container = el("div", { class: "sf-editor-pane" });
@@ -155,8 +161,11 @@ export class EditorHost {
 			this.show(s.host, container, banner, editorHost);
 			if (previous) await this.release(previous);
 			this.onChange?.();
-			mounted.view.focus();
-			arriveWriting(mounted.view);
+			const focusMoved = isTypingPlace(document.activeElement) && document.activeElement !== typingAtRequest && !mounted.view.dom.contains(document.activeElement);
+			if (!focusMoved) {
+				mounted.view.focus();
+				arriveWriting(mounted.view);
+			}
 		} catch (e) {
 			if (token === s.opening) fill(s.host);
 			this.model.notices.notify({ text: `Could not open ${path.slice(path.lastIndexOf("/") + 1)}: ${(e as Error)?.message ?? String(e)}` });
