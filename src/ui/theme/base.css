@@ -209,21 +209,41 @@ textarea {
 .sf-slot--lore {
 	flex: none;
 	position: relative;
-	background: var(--purpose-panel-bg);
-}
-.sf-lore-host {
-	height: 100%;
-}
-
-/* The special-characters button, in the corner of the blank context panel (docs/typing-aids.md §7). */
-.sf-context-corner {
-	position: absolute;
-	right: var(--space-3);
-	bottom: var(--space-3);
 	display: flex;
 	flex-direction: column;
-	align-items: flex-end;
-	gap: var(--space-2);
+	background: var(--purpose-panel-bg);
+}
+.sf-slot--lore[hidden] {
+	display: none;
+}
+/* The note's card (Brief 10): the editor sits on the editor's own background, with rounded corners, inside the panel. The
+   margin on all four sides is 10% of the panel's width (padding percentages are of the width, even at the top and bottom),
+   never under 12px; the bottom one is measured from the top of the bottom row, because the row is below this box. */
+.sf-lore-host {
+	flex: 1;
+	min-height: 0;
+	padding: max(12px, 10%);
+}
+.sf-lore-host > .sf-editor-pane {
+	background: var(--purpose-editor-bg);
+	border-radius: 10px;
+	overflow: hidden;
+}
+.sf-lore-host .sf-editor .cm-content {
+	padding: 24px 20px 40px;
+}
+/* The bottom row: always there, with the special-characters button at its right (docs/typing-aids.md §7). */
+.sf-context-row {
+	flex: none;
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	min-height: 56px;
+	padding: var(--space-3);
+}
+.sf-context-corner {
+	position: relative;
+	display: flex;
 }
 .sf-chars-button {
 	all: unset;
@@ -250,6 +270,10 @@ textarea {
 	outline-offset: 1px;
 }
 .sf-chars-palette {
+	position: absolute;
+	right: 0;
+	bottom: calc(100% + var(--space-2));
+	width: max-content;
 	max-width: 240px;
 	padding: var(--space-2);
 	background: var(--purpose-raised-bg);

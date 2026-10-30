@@ -118,8 +118,8 @@ for (const side of SIDES) {
 			await expect(alert).toHaveText("");
 			await page.keyboard.press("Escape");
 			// inside Cast, "Cast" is free (it is a different parent), and a name there is checked against Cast's folders
-			await tree(page).getByRole("treeitem", { name: "Cast", exact: true }).click();
-			await tree(page).getByRole("treeitem", { name: "Cast", exact: true }).click(); // closed, then open again
+			await tree(page).getByRole("treeitem", { name: "Cast", exact: true }).locator("svg").first().click();
+			await tree(page).getByRole("treeitem", { name: "Cast", exact: true }).locator("svg").first().click(); // closed, then open again
 			await page.getByRole("button", { name: "New folder" }).click();
 			await folderBox(page).fill("Cast");
 			await expect(alert).toHaveText("");
@@ -163,7 +163,7 @@ for (const side of SIDES) {
 
 		test("things go at the end of the last folder clicked, and a closed folder opens to show them", async ({ page }) => {
 			const cast = tree(page).getByRole("treeitem", { name: "Cast", exact: true });
-			await cast.click(); // closes Cast, and it is now the target
+			await cast.locator("svg").first().click(); // closes Cast (by its icon), and it is now the target
 			await expect(cast).toHaveAttribute("aria-expanded", "false");
 			await page.getByRole("button", { name: "New note" }).click();
 			await expect(cast).toHaveAttribute("aria-expanded", "true"); // opened, so the new thing is seen

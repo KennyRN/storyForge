@@ -82,7 +82,7 @@ test.describe("the storytelling face", () => {
 		await openProject(page);
 		await page.getByRole("button", { name: "Chapters" }).click();
 		await page.locator(".sf-nav-row").filter({ hasText: "The Storm: Part Two" }).click();
-		await page.locator(".sf-codex-folder-header", { hasText: "Cast" }).click();
+		await page.locator(".sf-codex-folder-header", { hasText: "Cast" }).locator("svg").first().click(); // a folder folds by its icon
 		await expect(codexRow(page, "Jane")).toHaveCount(0);
 		const bar = page.getByRole("separator", { name: "Resize the left panel" });
 		await bar.focus();

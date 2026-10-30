@@ -54,6 +54,21 @@ for (const side of SIDES) {
 				expect(where.icons.length, `${name}: an icon`).toBeGreaterThan(0);
 				for (const left of where.icons) expect(left, `${name}: the icon is after the name`).toBeGreaterThanOrEqual(where.nameRight - 1);
 			}
+			// the first icon is 1em after the end of the name, which is only as wide as its text
+			for (const name of ["Jane", "Windows", "Cast", "Harbour"]) {
+				const g = await row(page, name).evaluate((el) => {
+					const n = el.querySelector(".sf-codex-name") as HTMLElement;
+					const r = document.createRange();
+					r.selectNodeContents(n);
+					const text = r.getBoundingClientRect();
+					return { gap: el.querySelector("svg")!.getBoundingClientRect().left - n.getBoundingClientRect().right, nameIsText: Math.abs(n.getBoundingClientRect().width - text.width) < 1, em: parseFloat(getComputedStyle(el).fontSize) };
+				});
+				expect(g.nameIsText, `${name}: the name is as wide as its text`).toBe(true);
+				expect(g.gap, `${name}: 1em between the name and its icon`).toBeCloseTo(g.em, 0);
+			}
+			// A note with no tag linked has no icon at all; a folder always has its folder icon.
+			expect(await tree(page).locator('[data-key="Codex/NoNewline.md"] svg').count()).toBe(0);
+			expect(await row(page, "Cast").locator("svg").count()).toBe(1);
 			// A folder that is also a note shows its folder icon and then its type icon, both after the name.
 			expect(await row(page, "Harbour").locator("svg").count()).toBe(2);
 			await shot(page, `look-codex-${side.name.replace(/ /g, "-")}`);
@@ -85,10 +100,12 @@ for (const side of SIDES) {
 			const open = await line("Cast");
 			expect(open.shown).toBe(true);
 			expect(open.width).toBe("2px");
-			await cast.click();
+			await cast.click(); // the rest of a plain folder's row does not fold it with the mouse
+			await expect(cast).toHaveAttribute("aria-expanded", "true");
+			await cast.locator("svg").first().click(); // its icon does
 			await expect(cast).toHaveAttribute("aria-expanded", "false");
 			await expect(page.locator(".sf-codex-folder", { has: cast }).locator("> .sf-codex-children")).toHaveCount(0);
-			await cast.click();
+			await cast.locator("svg").first().click();
 			await expect(cast).toHaveAttribute("aria-expanded", "true");
 			// notes are not folders: they carry no expanded state
 			expect(await row(page, "Windows").getAttribute("aria-expanded")).toBeNull();

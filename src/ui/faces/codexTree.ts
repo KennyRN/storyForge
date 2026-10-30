@@ -81,6 +81,8 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 			);
 		}
 		rowInfo = new Map(rows.map((r) => [r.key, r]));
+		// A read-only project has no dragging, and the drag gesture is also what answers a click: a note still opens (and a folder still folds).
+		if (readOnly()) for (const r of treeRows()) r.addEventListener("click", (e) => rowInfo.get(r.dataset.key ?? "")?.onClick?.(e.target));
 		if (!readOnly()) for (const r of treeRows()) attachTooltip(r, "⌥↑ ⌥↓ move this row, ⌥→ nest it, ⌥← bring it out", { hover: false });
 		// One tab stop for the whole tree: the row the keyboard was last on, else the first.
 		const items = treeRows();
@@ -143,7 +145,9 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 			case "Enter":
 			case " ":
 				e.preventDefault();
-				info?.onClick?.(row);
+				// From the keyboard Return opens or closes a plain folder (the mouse needs its icon); a folder that is also a note opens the note.
+				if (isFolder && !row.classList.contains("sf-codex-lore-folder")) toggleFolder(row.dataset.key!);
+				else info?.onClick?.(row);
 				return;
 		}
 	});
@@ -174,7 +178,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 				const label = el("span", { class: "sf-codex-name", text: item.name });
 				// No chevron: the folder's icon, after its name, is what a click on a note-folder toggles; the line beside an open
 				// folder's contents (and the screen reader's "expanded" / "collapsed") says whether it is open.
-				const toggle = icon("folder", 16);
+				const toggle = icon("folder-filled", 16);
 				const typeMark = item.path ? typeIcon(item.path) : null;
 				const header = el(
 					"div",
@@ -194,8 +198,9 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 					onClick: (target) => {
 						targetFolder = item.id;
 						model.select({ kind: "codex-folder", id: item.id, ...(item.path ? { path: item.path } : {}) });
-						if (item.path && !toggle.contains(target as Node)) openEntry(item.path);
-						else toggleFolder(item.id);
+						// With the mouse a folder opens and closes only by its icon; a folder that is also a note opens the note from the rest of its row.
+						if (toggle.contains(target as Node)) toggleFolder(item.id);
+						else if (item.path) openEntry(item.path);
 					},
 				});
 				const items2: MenuItem[] = [
@@ -221,7 +226,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 					"div",
 					{ class: `sf-codex-file${lorePath === item.path ? " is-active" : ""}`, dataset: { key: item.path, type: "file" }, attrs: { role: "treeitem", "aria-level": String(depth + 1), "aria-selected": String(lorePath === item.path) } },
 					el("span", { class: "sf-codex-name", text: item.name }),
-					typeIcon(item.path) ?? icon("file", 16),
+					typeIcon(item.path),
 				);
 				row.style.setProperty("--depth", String(depth));
 				rows.push({
@@ -269,7 +274,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 		const input = el("input", { class: "sf-rename-input", attrs: { type: "text", "aria-label": d.kind === "folder" ? "Name of the new folder" : "Name of the new note", spellcheck: "false", placeholder: d.kind === "folder" ? "New folder" : "New note" } });
 		input.value = d.text;
 		const problem = el("div", { class: "sf-rename-problem", attrs: { role: "alert" } });
-		const row = el("div", { class: "sf-codex-draft" }, el("div", { class: "sf-codex-draft-field" }, input, problem), icon(d.kind === "folder" ? "folder" : "file", 16));
+		const row = el("div", { class: "sf-codex-draft" }, el("div", { class: "sf-codex-draft-field" }, input, problem), d.kind === "folder" ? icon("folder-filled", 16) : null);
 		row.style.setProperty("--depth", String(depth));
 		let settled = false;
 		const finish = (confirm: boolean): void => {

@@ -3,15 +3,15 @@ import { el } from "../kit/dom";
 import type { AppModel } from "../model";
 
 /**
- * The special-characters button (docs/typing-aids.md §7): in the bottom-right corner of the context panel, only while
+ * The special-characters button (docs/typing-aids.md §7): at the right of the context panel's bottom row, only while
  * the panel is blank and the context panel is showing. It opens a small palette of the project's characters; choosing
  * one puts it in at the chapter's cursor (replacing a selection) as if typed, and the author's place is never lost:
  * the button and the palette take no focus from the writing when the mouse is used, and the editor keeps its
  * selection whatever has focus.
  */
-export function mountCharactersButton(lore: HTMLElement, model: AppModel): () => void {
+export function mountCharactersButton(row: HTMLElement, model: AppModel): () => void {
 	const corner = el("div", { class: "sf-context-corner" });
-	lore.append(corner);
+	row.append(corner);
 	let open = false;
 
 	const close = (focusButton = false): void => {
