@@ -17,7 +17,7 @@
 	position: relative;
 	flex: none;
 	width: 1px;
-	background: var(--purpose-border);
+	background: transparent; /* no line: the two background shades divide the panels */
 	cursor: col-resize;
 }
 .sf-splitter::after {
@@ -28,8 +28,7 @@
 	left: -4px;
 	right: -4px;
 }
-.sf-splitter:hover,
-.sf-splitter:focus-visible {
+.sf-splitter:focus-visible { /* the green line shows for the keyboard only */
 	background: var(--purpose-accent);
 }
 
@@ -61,7 +60,6 @@
 /* The navigator. */
 .sf-navigator {
 	padding: var(--space-3) var(--space-3) var(--space-2) var(--space-4);
-	border-bottom: 1px solid var(--purpose-border);
 }
 .sf-nav-novel {
 	font-weight: 600;
@@ -270,7 +268,6 @@ body.sf-codex-drag-active {
 	align-items: center;
 	gap: var(--space-2);
 	padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
-	border-top: 1px solid var(--purpose-border);
 	color: var(--purpose-text-muted);
 }
 .sf-stats-chart {
@@ -288,7 +285,6 @@ body.sf-codex-drag-active {
 	justify-content: space-between;
 	gap: var(--space-2);
 	padding: var(--space-1) var(--space-2) var(--space-1) var(--space-4);
-	border-bottom: 1px solid var(--purpose-border);
 	min-height: 36px;
 }
 .sf-left-name {
@@ -320,7 +316,7 @@ body.sf-codex-drag-active {
 	width: 40px;
 	padding: var(--space-2) 0;
 	align-items: center;
-	border-right: 1px solid var(--purpose-border);
+	border-right: 1px solid transparent; /* keeps its width, so the ink indicator stays where it is */
 }
 .sf-rail .sf-ink-track {
 	right: -1px;
