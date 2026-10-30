@@ -145,7 +145,7 @@ test.describe("the special-characters button: when it is greyed out", () => {
 		await openProject(page);
 		// forget where the author was (what a newly opened project starts with); the chapter is open and visible
 		const module = `/@fs${process.cwd()}/src/ui/editor/lastWriting.ts`; // the preview's own copy of the module the app loaded
-		const forget = () => page.evaluate(async (m) => (await import(/* @vite-ignore */ m)).resetWriting(), module);
+		const forget = () => page.evaluate(async (m) => (await import(/* @vite-ignore */ m)).writingTestHooks.sfWritingTestHookForget(), module);
 		await forget();
 		await expect(CHARS(page)).not.toHaveClass(/is-off/);
 		await pressAsh(page);

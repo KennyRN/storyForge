@@ -50,11 +50,20 @@ export function onWritingChange(fn: () => void): () => void {
 	return () => listeners.delete(fn);
 }
 
-/** Forgets the last place (a project closing). */
-export function resetWriting(): void {
-	last = null;
-	notify();
-}
+/**
+ * For the interface tests only: makes the tracker forget where the author was, so the "no editor focused yet" state can be
+ * reached. It is `undefined` in a production build (the whole object is compiled out; test/releaseBuild.test.ts looks for
+ * its marker), so nothing in the shipped app can call it. A project closing needs no reset: its editors are gone, so the
+ * last place reads as closed until the next editor is opened.
+ */
+export const writingTestHooks = import.meta.env.PROD
+	? undefined
+	: {
+			sfWritingTestHookForget(): void {
+				last = null;
+				notify();
+			},
+		};
 
 /** The editor a character would go into now, and whether it can: not covered by an overview, not read-only, not gone. */
 export function writingState(): { view: EditorView | null; state: WritingState } {

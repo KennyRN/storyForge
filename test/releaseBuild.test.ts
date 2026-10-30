@@ -23,6 +23,10 @@ describe("a release build has no diagnostics", () => {
 				expect(text.includes("storyForge diagnostic"), `${f} contains the diagnostic page`).toBe(false);
 				expect(text.includes("sf-diagnostics"), `${f} contains the diagnostic styles or layer`).toBe(false);
 			}
+			// The tracker's test hook is compiled out of a release: nothing shipped can make the button forget where the author was.
+			for (const f of files.filter((f) => f.endsWith(".js"))) {
+				expect(readFileSync(path.join(out, "assets", f), "utf8").includes("sfWritingTestHookForget"), `${f} contains the writing tracker's test hook`).toBe(false);
+			}
 			// The font is in the bundle, both faces, as files of the app itself.
 			expect(files.filter((f) => /^SNPro-Variable(Regular|Italic).*\.woff2$/.test(f)).length, `assets: ${files.join(", ")}`).toBe(2);
 			expect(files.filter((f) => /diagnostic/i.test(f) && !/no-diagnostics/.test(f)), `assets: ${files.join(", ")}`).toEqual([]);

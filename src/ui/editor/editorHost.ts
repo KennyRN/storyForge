@@ -3,7 +3,7 @@ import { parseProseFile } from "../../core/proseFile";
 import { foldKey } from "../../core/pathRules";
 import { el, fill } from "../kit/dom";
 import type { AppModel } from "../model";
-import { arriveWriting, resetWriting, setWritingFallback, trackWriting } from "./lastWriting";
+import { arriveWriting, setWritingFallback, trackWriting } from "./lastWriting";
 import { mountReadOnlyEditor, mountSessionEditor, type MountedEditor, openFind, openFindReplace, redo, undo } from "./editor";
 import { noticeForOutsideChange, noticesForSave, readOnlyBanner } from "./saveNotices";
 
@@ -34,10 +34,7 @@ export class EditorHost {
 		this.slots = { centre: { host: hosts.centre, occupant: null, opening: 0, pending: null }, lore: { host: hosts.lore, occupant: null, opening: 0, pending: null } };
 		setWritingFallback(() => this.slots.centre.occupant?.mounted.view ?? null);
 		model.subscribe("project", () => {
-			if (!model.running) {
-				this.dropAll();
-				resetWriting();
-			}
+			if (!model.running) this.dropAll();
 		});
 	}
 

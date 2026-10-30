@@ -247,6 +247,12 @@ try {
 	await sleep(800);
 	expectWidth("the library's Codex list, Jane", widthOf("AXStaticText", "Jane"), 27, 29);
 	windowShot("codex-library");
+	// A Codex note opened in the workspace (the library side's entries open there): the keyboard again.
+	if (!find("AXStaticText", "Jane", "focusrow").startsWith("found")) problems.push("could not focus Jane in the library's Codex list");
+	await sleep(300);
+	key("key code 36");
+	await sleep(1200);
+	windowShot("codex-note-in-workspace");
 	if (!(await until(() => clickAny("novel"), 8000))) fail("could not reach the novel tab");
 	if (!(await until(() => find("AXTextArea", "Plot note for", "focus").startsWith("found")))) fail("no plot note to type in");
 	await sleep(500);
