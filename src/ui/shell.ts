@@ -48,9 +48,11 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	const overview = el("div", { class: "sf-overview", attrs: { role: "region" } });
 	const centreWrap = el("div", { class: "sf-centre-wrap" }, centre, overview);
 	const lore = el("aside", { class: "sf-slot sf-slot--lore", attrs: { "aria-label": "Context" } });
-	// The editor host fills and empties its element; the special-characters button lives beside it, not inside it.
+	// The editor host fills and empties its element; the bottom row (the special-characters button) lives below it, not inside it.
+	// A note, when there is one, sits on a card inside the host; the host's padding is the card's margin (10% of the panel's width).
 	const loreHost = el("div", { class: "sf-lore-host" });
-	lore.append(loreHost);
+	const loreRow = el("div", { class: "sf-context-row" });
+	lore.append(loreHost, loreRow);
 	const apply = (): void => {
 		left.style.width = `${model.nav.leftWidth}px`;
 		lore.style.width = `${model.nav.loreWidth}px`;
@@ -69,7 +71,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	apply();
 	const offNav = model.subscribe("nav", apply);
 	const overviews = mountOverviewLayer(overview, centre, model);
-	const offCharacters = mountCharactersButton(lore, model);
+	const offCharacters = mountCharactersButton(loreRow, model);
 
 	fill(left, header, faceHost);
 	let disposeFace: (() => void) | null = null;

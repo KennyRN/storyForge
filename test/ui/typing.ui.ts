@@ -652,10 +652,11 @@ for (const kind of KINDS) {
 			await page.setViewportSize({ width: 900, height: 700 });
 			let height = (await field.boundingBox())!.height;
 			for (let i = 0; i < 100; i++) {
-				await page.keyboard.type("abcd ");
+				await page.keyboard.type("x ");
 				const now = (await field.boundingBox())!.height;
 				if (now > height) {
-					for (let k = 0; k < 5; k++) await page.keyboard.press("Backspace");
+					// the unit that wrapped, and two more, so that "~th" (a word of its own) fits on the line whatever the font's widths
+					for (let k = 0; k < 6; k++) await page.keyboard.press("Backspace");
 					break;
 				}
 				height = now;
@@ -778,17 +779,22 @@ const palette = (page: Page) => page.getByRole("group", { name: "Special charact
 const loreCodex = (page: Page, name: string) => page.locator(".sf-codex-file", { hasText: name });
 
 test.describe("the special-characters button", () => {
-	test("it sits in the bottom-right corner of the blank context panel, and only there", async ({ page }) => {
+	test("it sits at the right of the context panel's bottom row, always: with a note open or not", async ({ page }) => {
 		await editorWith(page);
 		await expect(CHARS(page)).toBeVisible();
 		const lore = (await page.locator(".sf-slot--lore").boundingBox())!;
 		const box = (await CHARS(page).boundingBox())!;
 		expect(box.x + box.width).toBeGreaterThan(lore.x + lore.width - 40);
 		expect(box.y + box.height).toBeGreaterThan(lore.y + lore.height - 40);
-		// a Codex entry open in the context panel: not blank, no button
+		// a Codex entry open in the context panel: the button is still there, in the bottom row below the card
 		await loreCodex(page, "Jane").click();
 		await expect(page.locator(".sf-slot--lore .cm-content")).toBeVisible();
-		await expect(CHARS(page)).toHaveCount(0);
+		await expect(CHARS(page)).toBeVisible();
+		const row = (await page.locator(".sf-context-row").boundingBox())!;
+		const card = (await page.locator(".sf-lore-host > .sf-editor-pane").boundingBox())!;
+		const b2 = (await CHARS(page).boundingBox())!;
+		expect(b2.y).toBeGreaterThanOrEqual(row.y);
+		expect(b2.y).toBeGreaterThanOrEqual(card.y + card.height);
 		await loreCodex(page, "Jane").click(); // clicking it again closes it
 		await expect(CHARS(page)).toBeVisible();
 		// the context panel hidden: no button

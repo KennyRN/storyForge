@@ -3,7 +3,8 @@ import * as path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NodeFsBackend } from "../../backends/node-fs";
 import { cleanupFixtures, copyFixture, diffSnapshots, snapshot } from "../../../test/helpers/fixtures";
-import { ManualScheduler, settle } from "../../../test/helpers/scheduler";
+import { counted } from "../../../test/helpers/countingBackend";
+import { ManualScheduler } from "../../../test/helpers/scheduler";
 import { Project } from "../../core/project";
 import { ProseWriter } from "../../core/proseWriter";
 import { readSessions } from "../../core/sessionFiles";
@@ -32,7 +33,9 @@ class FakeMachine {
 
 async function setup(opts: { idleMin?: number } = {}) {
 	const root = copyFixture("series");
-	const project = await Project.open(new NodeFsBackend(root));
+	const files = counted(new NodeFsBackend(root));
+	const settle = files.settle; // waits for the file work itself, not a fixed real time
+	const project = await Project.open(files.backend);
 	const scheduler = new ManualScheduler();
 	const clock = () => T0 + scheduler.now;
 	const writer = new ProseWriter(project, { scheduler, now: () => new Date(clock()) });
@@ -61,7 +64,7 @@ async function setup(opts: { idleMin?: number } = {}) {
 		scheduler.advance(ms);
 		await settle();
 	};
-	return { root, project, scheduler, writer, machine, recorder, failures, progress, advance, make, setIdle: (m: number) => (idle = m) };
+	return { root, project, scheduler, writer, machine, recorder, failures, progress, advance, settle, make, setIdle: (m: number) => (idle = m) };
 }
 
 /** Types into the chapter a little at a time, like an author. */
@@ -150,7 +153,7 @@ describe("the session recorder", () => {
 			s.setBody(`${s.body} k`);
 			await ctx.advance(100); // 40 keystrokes in 4 seconds
 		}
-		await settle();
+		await ctx.settle();
 		expect(ctx.machine.sets).toBeLessThanOrEqual(2);
 		await ctx.advance(CHECKPOINT_MS);
 		expect(ctx.machine.sets).toBeLessThanOrEqual(3);
@@ -222,7 +225,7 @@ describe("the session recorder", () => {
 		(ctx.scheduler as unknown as { timers: Map<number, unknown> }).timers.clear();
 		ctx.scheduler.now = jumped + 6 * 3600_000;
 		ctx.recorder.checkIdle();
-		await settle();
+		await ctx.settle();
 		expect(ctx.recorder.running).toBe(false);
 		const r = readSessions(ctx.project).sessions[0];
 		expect(r.end).toBe(new Date(T0 + MIN).toISOString().replace(".000Z", "+00:00"));
@@ -248,7 +251,7 @@ describe("the session recorder", () => {
 		(ctx.scheduler as unknown as { timers: Map<number, unknown> }).timers.clear();
 		ctx.scheduler.now += 30 * MIN;
 		s.setBody(`${s.body} after the break`);
-		await settle();
+		await ctx.settle();
 		await ctx.recorder.end();
 		const sessions = readSessions(ctx.project).sessions;
 		expect(sessions).toHaveLength(2);

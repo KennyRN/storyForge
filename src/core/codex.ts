@@ -323,14 +323,33 @@ function isCodexPathOccupied(project: Project, path: string, ignorePath?: string
 	return pathInSet(listCodexMarkdownOnDisk(project), path);
 }
 
+/** A name compared ignoring case and accents ("Élodie" and "elodie" are the same name). */
+export function foldCodexName(name: string): string {
+	return name.trim().normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+}
+
+/**
+ * Whether a new folder or note called `name` would be a second of the same name: a note, among every note in `Codex/`; a
+ * folder, among the folders in the same parent (`null` is the top level). Case and accents are ignored for both.
+ */
+export function codexNameClash(project: Project, kind: "folder" | "note", parentFolderId: string | null, name: string): boolean {
+	const wanted = foldCodexName(name.replace(/\.md$/i, ""));
+	if (kind === "note") {
+		return [...listCodexMarkdownOnDisk(project)].some((path) => foldCodexName(path.slice(path.lastIndexOf("/") + 1).replace(/\.md$/i, "")) === wanted);
+	}
+	const { folders, order } = readCodexFrontmatter(project);
+	const siblings = parentFolderId === null ? order : (folders[parentFolderId]?.order ?? []);
+	return siblings.some((key) => isFolderKey(folders, key) && foldCodexName(folders[key].name) === wanted);
+}
+
 /** Mints a new virtual folder and registers it into `parentFolderId`'s order (or the root's, if null). Returns the new folder id. */
-export async function createCodexFolder(project: Project, parentFolderId: string | null): Promise<string> {
+export async function createCodexFolder(project: Project, parentFolderId: string | null, name = "New Folder"): Promise<string> {
 	let newId = "";
 	await project.modifyFrontmatter<RawCodexFrontmatter>(codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
 		const folders = parseFolders(fm.folders);
 		const order = parseStringArray(fm.order);
-		newId = mintFolderId("New Folder", folders);
-		folders[newId] = { name: "New Folder", order: [] };
+		newId = mintFolderId(name, folders);
+		folders[newId] = { name, order: [] };
 		insertIntoContainer(folders, order, parentFolderId, newId, Number.MAX_SAFE_INTEGER);
 		setFolders(fm, folders);
 		fm.order = order;

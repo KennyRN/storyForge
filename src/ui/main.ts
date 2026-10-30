@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import "./theme/index.css";
 import { startApp } from "./app";
 
+
 // The window's only routes to the outside: this app's own commands and events (capabilities/main.json).
 void startApp(
 	{

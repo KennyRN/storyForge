@@ -82,7 +82,7 @@ test.describe("the storytelling face", () => {
 		await openProject(page);
 		await page.getByRole("button", { name: "Chapters" }).click();
 		await page.locator(".sf-nav-row").filter({ hasText: "The Storm: Part Two" }).click();
-		await page.locator(".sf-codex-folder-header", { hasText: "Cast" }).click();
+		await page.locator(".sf-codex-folder-header", { hasText: "Cast" }).locator("svg").first().click(); // a folder folds by its icon
 		await expect(codexRow(page, "Jane")).toHaveCount(0);
 		const bar = page.getByRole("separator", { name: "Resize the left panel" });
 		await bar.focus();
@@ -141,25 +141,29 @@ test.describe("the storytelling face", () => {
 			expect(text.startsWith("---\naliases:\n  - J\n  - \"Jay: the first\"\ntags: [hero]\ncustom-key: kept\n---\n")).toBe(true);
 		});
 
-		test("a folder that is also a note opens the note when its row is clicked, and folds when its arrow is", async ({ page }) => {
+		test("a folder that is also a note opens the note when its row is clicked, and folds when its folder icon is", async ({ page }) => {
 			await openProject(page);
 			const row = page.locator(".sf-codex-folder-header", { hasText: "Harbour" });
 			await row.click();
 			await expect(lore(page)).toBeVisible();
-			await row.locator(".sf-codex-toggle").click();
+			await row.locator("svg").first().click(); // the folder icon, after the name: there are no chevrons
 			await expect(page.locator(".sf-codex-file", { hasText: "Harbour" })).toHaveCount(0);
 		});
 	});
 
 	test.describe("the Codex pane", () => {
-		test("new file and new folder create entries; a new file opens in the lore slot", async ({ page }) => {
+		test("new folder and new note are named in the list, and a new note opens in the lore slot (the strip: strip.ui.ts)", async ({ page }) => {
 			await openProject(page);
 			await page.getByRole("button", { name: "New folder" }).click();
-			await expect(page.locator(".sf-codex-folder-header", { hasText: "New Folder" })).toBeVisible();
-			await page.getByRole("button", { name: "New file" }).click();
+			await page.getByRole("textbox", { name: "Name of the new folder" }).fill("Ships");
+			await page.keyboard.press("Enter");
+			await expect(page.locator(".sf-codex-folder-header", { hasText: "Ships" })).toBeVisible();
+			await page.getByRole("button", { name: "New note" }).click();
+			await page.getByRole("textbox", { name: "Name of the new note" }).fill("Lantern");
+			await page.keyboard.press("Enter");
 			await expect(lore(page)).toBeVisible();
-			await expect(codexRow(page, "New Note")).toBeVisible();
-			expect(await onDisk(page, "Codex/New Note.md")).toBe("");
+			await expect(codexRow(page, "Lantern")).toBeVisible();
+			expect(await onDisk(page, "Codex/Lantern.md")).toBe("");
 		});
 
 		test("a folder is renamed in place from its context menu", async ({ page }) => {
@@ -199,10 +203,10 @@ test.describe("the storytelling face", () => {
 			}).toBe(true);
 		});
 
-		test("rows can be reached by keyboard and moved with the arrow keys", async ({ page }) => {
+		test("rows can be reached by keyboard and moved with Option and the arrow keys", async ({ page }) => {
 			await openProject(page);
 			await codexRow(page, "Sam").focus();
-			await page.keyboard.press("ArrowUp");
+			await page.keyboard.press("Alt+ArrowUp"); // the plain arrows move between rows (codex.ui.ts)
 			await expect.poll(async () => {
 				const t = await onDisk(page, CODEX);
 				return t.indexOf("Codex/Sam.md") < t.indexOf("Codex/Jane.md");
@@ -243,7 +247,7 @@ test.describe("the storytelling face", () => {
 		await page.locator("[data-recent='0']").click();
 		await page.waitForFunction(() => !!window.__app?.editors);
 		await expect(page.getByRole("button", { name: "Add the next chapter" })).toBeDisabled();
-		await expect(page.getByRole("button", { name: "New file" })).toBeDisabled();
+		await expect(page.getByRole("button", { name: "New note" })).toBeDisabled();
 		await expect(page.getByRole("button", { name: "New folder" })).toBeDisabled();
 		await expect(centre(page)).toHaveAttribute("contenteditable", "false");
 	});

@@ -1,11 +1,13 @@
 /* Base: reset, type, spacing, focus ring, scrollbars. Colours come from purposes only. */
 :root {
 	--font-ui: -apple-system, system-ui, sans-serif;
-	--font-prose: ui-serif, "New York", Georgia, serif;
+	/* SN Pro for everywhere the author writes, and the Codex list. Arial, which has a real italic and bold, draws only the
+	   characters SN Pro lacks (ƿ Ƿ ȝ Ȝ ǣ and a few more, docs/look.md §1; decision 57), so nothing is synthesised. */
+	--font-prose: "SN Pro", Arial, var(--font-ui);
 	--text-ui: 13px;
-	--prose-size: 18px;
-	--prose-line: 1.65;
-	--prose-measure: 38em;
+	--prose-size: 20px;
+	--prose-line: 1.6;
+	--prose-measure: 30em;
 	--space-1: 4px;
 	--space-2: 8px;
 	--space-3: 12px;
@@ -207,21 +209,41 @@ textarea {
 .sf-slot--lore {
 	flex: none;
 	position: relative;
-	background: var(--purpose-panel-bg);
-}
-.sf-lore-host {
-	height: 100%;
-}
-
-/* The special-characters button, in the corner of the blank context panel (docs/typing-aids.md §7). */
-.sf-context-corner {
-	position: absolute;
-	right: var(--space-3);
-	bottom: var(--space-3);
 	display: flex;
 	flex-direction: column;
-	align-items: flex-end;
-	gap: var(--space-2);
+	background: var(--purpose-panel-bg);
+}
+.sf-slot--lore[hidden] {
+	display: none;
+}
+/* The note's card (Brief 10): the editor sits on the editor's own background, with rounded corners, inside the panel. The
+   margin on all four sides is 10% of the panel's width (padding percentages are of the width, even at the top and bottom),
+   never under 12px; the bottom one is measured from the top of the bottom row, because the row is below this box. */
+.sf-lore-host {
+	flex: 1;
+	min-height: 0;
+	padding: max(12px, 10%);
+}
+.sf-lore-host > .sf-editor-pane {
+	background: var(--purpose-editor-bg);
+	border-radius: 10px;
+	overflow: hidden;
+}
+.sf-lore-host .sf-editor .cm-content {
+	padding: 24px 20px 40px;
+}
+/* The bottom row: always there, with the special-characters button at its right (docs/typing-aids.md §7). */
+.sf-context-row {
+	flex: none;
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	min-height: 56px;
+	padding: var(--space-3);
+}
+.sf-context-corner {
+	position: relative;
+	display: flex;
 }
 .sf-chars-button {
 	all: unset;
@@ -238,6 +260,9 @@ textarea {
 	border: 1px solid var(--purpose-border);
 	border-radius: 16px;
 }
+.sf-chars-button.is-off {
+	opacity: 0.45;
+}
 .sf-chars-button:hover,
 .sf-chars-button[aria-expanded="true"] {
 	color: var(--purpose-accent);
@@ -248,6 +273,10 @@ textarea {
 	outline-offset: 1px;
 }
 .sf-chars-palette {
+	position: absolute;
+	right: 0;
+	bottom: calc(100% + var(--space-2));
+	width: max-content;
 	max-width: 240px;
 	padding: var(--space-2);
 	background: var(--purpose-raised-bg);
@@ -406,4 +435,16 @@ textarea {
 .sf-setting-source {
 	font-size: 12px;
 	text-align: right;
+}
+
+/* The author's writing surfaces and the Codex list: no ligatures (what is on screen is what is on disk: SN Pro draws "->"
+   as an arrow), no style set, and never a synthesised slant or weight. */
+.sf-editor .cm-scroller,
+.sf-note-field,
+.sf-section-field,
+.sf-codex-tree {
+	font-family: var(--font-prose);
+	font-variant-ligatures: none;
+	font-feature-settings: "liga" 0, "calt" 0, "ss01" 0;
+	font-synthesis: none;
 }

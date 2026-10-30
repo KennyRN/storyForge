@@ -2,6 +2,7 @@ import { defaultKeymap, history, historyKeymap, insertNewline, redo, undo } from
 import { Compartment, EditorState, type Extension } from "@codemirror/state";
 import { EditorView, keymap, placeholder } from "@codemirror/view";
 import { registerFocusedField } from "../commitOnClose";
+import { trackWriting } from "../editor/lastWriting";
 import { typingAids, type TypingEditorOptions } from "../editor/typingAids";
 import { FieldState, type FieldHooks } from "./fieldState";
 
@@ -79,6 +80,7 @@ export function textField(spec: FieldSpec, bin?: FieldBin): TextField {
 		});
 
 	const view: EditorView = new EditorView({ parent: wrapper, state: makeState("") });
+	trackWriting(view); // the special-characters button puts a character in the field the author last wrote in
 	const textNow = (): string => view.state.doc.toString();
 	const state = new FieldState({
 		...spec,
