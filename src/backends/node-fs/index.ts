@@ -42,6 +42,9 @@ export class NodeFsBackend implements Backend {
 
 	constructor(public readonly root: string) {
 		this.realRoot = fs.realpath(root);
+		// Started now and awaited only when a write needs it: if the folder is gone first (a test's temporary folder removed under
+		// load), the failure belongs to that later await, not to an unhandled rejection. The promise itself still rejects.
+		this.realRoot.catch(() => undefined);
 	}
 
 	// ------------------------------------------------------------------------------ paths

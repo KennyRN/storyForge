@@ -3,7 +3,8 @@ import * as path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { NodeFsBackend } from "../../backends/node-fs";
 import { cleanupFixtures, copyFixture, diffSnapshots, snapshot } from "../../../test/helpers/fixtures";
-import { ManualScheduler, settle } from "../../../test/helpers/scheduler";
+import { counted } from "../../../test/helpers/countingBackend";
+import { ManualScheduler } from "../../../test/helpers/scheduler";
 import { archiveChapter } from "../book";
 import { archiveCodexItem } from "../codex";
 import { Project } from "../project";
@@ -15,13 +16,15 @@ afterEach(cleanupFixtures);
 async function setup(options: ProseWriterOptions = {}, prepare?: (root: string) => void) {
 	const root = copyFixture("series");
 	prepare?.(root);
-	const backend = new NodeFsBackend(root);
+	const files = counted(new NodeFsBackend(root));
+	const backend = files.backend;
+	const settle = files.settle; // waits for the file work itself, not a fixed real time (a fixed 20 ms failed under load)
 	const project = await Project.open(backend);
 	const scheduler = new ManualScheduler();
 	const writer = new ProseWriter(project, { scheduler, now: () => new Date(2026, 9, 23, 10, 0, 0), ...options });
 	const read = (rel: string) => fs.readFileSync(path.join(root, rel), "utf8");
 	const write = (rel: string, text: string) => fs.writeFileSync(path.join(root, rel), text);
-	return { root, project, writer, scheduler, read, write, backend };
+	return { root, project, writer, scheduler, read, write, backend, settle };
 }
 const CH = "_story-library/aaa/ch-a1.md";
 
@@ -88,7 +91,7 @@ describe("sessions", () => {
 
 describe("saving", () => {
 	it("saves 2 s after the last change, writes only the body, and keeps everything else byte-identical", async () => {
-		const { writer, scheduler, read, root } = await setup();
+		const { writer, scheduler, read, root, settle } = await setup();
 		const before = snapshot(root);
 		const s = await writer.open(CH);
 		s.setBody("Brand new text.");
@@ -453,7 +456,7 @@ describe("onSaveResult (the save observer)", () => {
 	});
 
 	it("an observer that throws or rejects never changes the outcome, and later observers still run", async () => {
-		const { writer, read } = await setup();
+		const { writer, read, settle } = await setup();
 		const s = await writer.open(CH);
 		const quiet = console.error;
 		const logged: unknown[][] = [];
