@@ -95,17 +95,11 @@ for (const side of SIDES) {
 		});
 
 		test("an open folder with nothing in it says it is empty, to the eye and to the screen reader", async ({ page }) => {
-			// The new-folder button is on the storytelling side until commit 4 gives the library side its strip.
-			if (side.name === "library side") await flipSide(page);
 			await page.getByRole("button", { name: "New folder" }).click();
-			if (side.name === "library side") {
-				await flipSide(page);
-				await page.getByRole("tab", { name: "codex" }).click();
-			}
-			const folder = row(page, "New Folder");
+			await page.getByRole("textbox", { name: "Name of the new folder" }).fill("Ships");
+			await page.keyboard.press("Enter");
+			const folder = row(page, "Ships");
 			await expect(folder).toBeVisible();
-			await folder.click(); // closes it (it was made open)
-			await folder.click();
 			const empty = tree(page).getByRole("treeitem", { name: "Empty folder" });
 			await expect(empty).toBeVisible();
 			await expect(empty).toHaveText("Empty");

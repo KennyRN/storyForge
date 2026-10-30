@@ -1,4 +1,4 @@
-import { getCodexTypes, archiveCodexItem, codexTypeIcon, convertCodexNoteToFolder, createCodexFolder, createCodexNote, getCodexEntryType, getCodexView, moveCodexItem, readCodexFrontmatter, removeCodexFolder, renameCodexFolder, setCodexEntryType } from "../../core/codex";
+import { getCodexTypes, sanitizeCodexBasename, uniqueCodexFilename, archiveCodexItem, codexTypeIcon, convertCodexNoteToFolder, createCodexFolder, createCodexNote, getCodexEntryType, getCodexView, moveCodexItem, readCodexFrontmatter, removeCodexFolder, renameCodexFolder, setCodexEntryType } from "../../core/codex";
 import { isDescendantFolder, type CodexTreeItem } from "../../core/codexTree";
 import { attachCodexDragReorder, type CodexDragRowInfo } from "../../view/dragReorderTree";
 import { button } from "../kit/button";
@@ -9,7 +9,7 @@ import { attachInlineRename } from "../kit/inlineRename";
 import { attachTooltip } from "../kit/tooltip";
 import { menuPoint, showMenu, type MenuItem } from "../kit/menu";
 import type { AppModel } from "../model";
-import { openRenameCodex } from "../screens/renameCodex";
+import { nameProblem, openRenameCodex } from "../screens/renameCodex";
 
 /** The folder new notes and folders go into: the last folder the author clicked, if it still exists. */
 let targetFolder: string | null = null;
@@ -26,6 +26,9 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 	/** The row the keyboard is on (a tree has one tab stop, and the arrows move within it). Survives a redraw. */
 	let focusKey: string | null = null;
 	let rowInfo = new Map<string, CodexDragRowInfo>();
+	/** A new folder or note being named in place: nothing exists on disk until the name is confirmed (Return); Escape creates nothing. */
+	let draft: { kind: "folder" | "note"; parent: string | null; text: string; focus: boolean } | null = null;
+	let redrawing = false;
 
 	const run = async (what: string, action: () => Promise<unknown>): Promise<void> => {
 		try {
@@ -44,10 +47,19 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 		if (!running) return fill(host);
 		const root = getCodexView(running.opened.project, "codex");
 		const rows: CodexDragRowInfo[] = [];
-		const hadFocus = tree.contains(document.activeElement);
+		const hadFocus = tree.contains(document.activeElement) && !(document.activeElement as HTMLElement | null)?.closest(".sf-codex-draft");
+		redrawing = true;
 		fill(tree);
-		if (!root || root.children.length === 0) tree.append(el("div", { class: "sf-muted sf-codex-empty", text: "Nothing here yet." }));
-		else renderItems(tree, root.children, null, 0, rows);
+		if ((!root || root.children.length === 0) && !draft) tree.append(el("div", { class: "sf-muted sf-codex-empty", text: "Nothing here yet." }));
+		else renderItems(tree, root?.children ?? [], null, 0, rows);
+		redrawing = false;
+		if (draft?.focus) {
+			draft.focus = false;
+			const input = tree.querySelector<HTMLInputElement>(".sf-codex-draft input");
+			input?.focus();
+			input?.select();
+			input?.scrollIntoView({ block: "nearest" });
+		}
 		if (!readOnly()) {
 			const folders = readCodexFrontmatter(running.opened.project).folders;
 			attachCodexDragReorder(
@@ -189,7 +201,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 					const children = el("div", { class: "sf-codex-children", attrs: { role: "group" } });
 					renderItems(children, item.children, item.id, depth + 1, rows);
 					// An open folder with nothing in it says so, in words (the screen reader too).
-					if (item.children.length === 0) children.append(el("div", { class: "sf-codex-folder-empty", text: "Empty", attrs: { role: "treeitem", "aria-disabled": "true", "aria-level": String(depth + 2), "aria-label": "Empty folder" } }));
+					if (item.children.length === 0 && !(draft && draft.parent === item.id)) children.append(el("div", { class: "sf-codex-folder-empty", text: "Empty", attrs: { role: "treeitem", "aria-disabled": "true", "aria-level": String(depth + 2), "aria-label": "Empty folder" } }));
 					wrapper.append(children);
 				}
 				container.append(wrapper);
@@ -224,37 +236,125 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 				container.append(row);
 			}
 		}
+		if (draft && draft.parent === parentKey) container.append(draftRow(depth));
 	}
 
-	const createNote = (): void =>
-		void run("create the note", async () => {
-			const entry = await createCodexNote(project(), validTarget(model), {});
-			model.touch("codex");
-			openEntry(entry.path);
+	/** What is wrong with a typed name for the new thing, in words, or null: the rename's own rules (no [ ] # ^ |, not empty), no character a file name can't hold, no clash with a note that is there. */
+	const draftProblem = (kind: "folder" | "note", typed: string): string | null => {
+		const name = typed.trim();
+		if (!name) return "Type a name.";
+		if (kind === "folder") return null;
+		const p = nameProblem(name, "");
+		if (p) return p;
+		if (sanitizeCodexBasename(name) !== name.replace(/\.md$/i, "")) return "A note name can't contain / \\ ? % * : | \" < >.";
+		if (project().entry(`Codex/${name.replace(/\.md$/i, "")}.md`) || [...rowInfo.keys()].some((k) => k.toLowerCase() === `codex/${name.replace(/\.md$/i, "").toLowerCase()}.md`)) return `There is already a note called “${name}”.`;
+		return null;
+	};
+
+	function draftRow(depth: number): HTMLElement {
+		const d = draft!;
+		const input = el("input", { class: "sf-rename-input", attrs: { type: "text", "aria-label": d.kind === "folder" ? "Name of the new folder" : "Name of the new note", spellcheck: "false", placeholder: d.kind === "folder" ? "New folder" : "New note" } });
+		input.value = d.text;
+		const problem = el("div", { class: "sf-rename-problem", attrs: { role: "alert" } });
+		const row = el("div", { class: "sf-codex-draft" }, el("div", { class: "sf-codex-draft-field" }, input, problem), icon(d.kind === "folder" ? "folder" : "file", 16));
+		row.style.setProperty("--depth", String(depth));
+		let settled = false;
+		const finish = (confirm: boolean): void => {
+			if (settled) return;
+			settled = true;
+			const mine = draft;
+			if (!mine) return;
+			draft = null;
+			const name = input.value.trim();
+			if (confirm && name && !draftProblem(mine.kind, name)) {
+				void run(mine.kind === "folder" ? "create the folder" : "create the note", async () => {
+					if (mine.kind === "folder") {
+						const id = await createCodexFolder(project(), mine.parent, name);
+						focusKey = id;
+					} else {
+						const entry = await createCodexNote(project(), mine.parent, { filename: `${name.replace(/\.md$/i, "")}.md` });
+						model.touch("codex");
+						openEntry(entry.path);
+					}
+				}).then(() => {
+					if (mine.kind === "folder") moveTo(treeRows().find((r) => r.dataset.key === focusKey));
+				});
+			} else draw();
+		};
+		const check = (): string | null => {
+			d.text = input.value;
+			const message = input.value.trim() ? draftProblem(d.kind, input.value) : null;
+			problem.textContent = message ?? "";
+			input.toggleAttribute("aria-invalid", message !== null);
+			return message;
+		};
+		input.addEventListener("input", check);
+		input.addEventListener("keydown", (e) => {
+			e.stopPropagation();
+			if (e.key === "Enter") {
+				e.preventDefault();
+				if (input.value.trim() && !check()) finish(true);
+				else check();
+				if (!input.value.trim()) problem.textContent = "Type a name.";
+			} else if (e.key === "Escape") {
+				e.preventDefault();
+				finish(false);
+			}
 		});
-	const createFolder = (): void => void run("create the folder", () => createCodexFolder(project(), validTarget(model)));
-
-	if (options.header) {
-		const noWriting = readOnly() ? "This project is open read-only." : null;
-		const head = el(
-			"div",
-			{ class: "sf-pane-header" },
-			el("h2", { class: "sf-pane-title", text: "Codex" }),
-			el(
-				"div",
-				{ class: "sf-pane-actions" },
-				button({ icon: "file-plus", name: "New file", tooltip: noWriting ?? "New file", disabled: readOnly(), onClick: createNote }),
-				button({ icon: "folder-plus", name: "New folder", tooltip: noWriting ?? "New folder", disabled: readOnly(), onClick: createFolder }),
-			),
-		);
-		host.classList.add("sf-pane", "sf-codex-pane");
-		fill(host, head, tree);
-	} else {
-		fill(host, tree);
+		// Leaving the box (a click elsewhere) confirms a good name and otherwise creates nothing.
+		input.addEventListener("blur", () => {
+			if (redrawing || !input.isConnected) return;
+			finish(!!input.value.trim() && !draftProblem(d.kind, input.value));
+		});
+		input.addEventListener("pointerdown", (e) => e.stopPropagation());
+		return row;
 	}
+
+	/** The strip's two buttons: the name is typed in the list, in the last folder clicked (opened if it was closed). */
+	const beginDraft = (kind: "folder" | "note"): void => {
+		if (readOnly()) return;
+		const parent = validTarget(model);
+		if (parent && model.nav.collapsedCodex.has(parent)) model.toggleCodexFolder(parent);
+		draft = { kind, parent, text: "", focus: true };
+		draw();
+	};
+
+	// The strip down the list's left edge (the plugin's place for them): New Folder, then New Note beneath it. On the storytelling
+	// side a new note opens in the context panel, on the library side in the workspace.
+	const noWriting = (): string | null => (readOnly() ? "This project is open read-only." : null);
+	const strip = el("div", { class: "sf-codex-strip", attrs: { role: "toolbar", "aria-orientation": "vertical", "aria-label": "Codex actions" } });
+	let stripReadOnly: boolean | null = null;
+	const drawStrip = (): void => {
+		if (stripReadOnly === readOnly()) return; // only the read-only state changes it; redrawing would drop a focused button
+		stripReadOnly = readOnly();
+		fill(
+			strip,
+			button({ icon: "folder-plus", name: "New folder", tooltip: noWriting() ?? "New folder", disabled: readOnly(), kind: "quiet", onClick: () => beginDraft("folder") }),
+			button({ icon: "file-plus", name: "New note", tooltip: noWriting() ?? "New note", disabled: readOnly(), kind: "quiet", onClick: () => beginDraft("note") }),
+		);
+	};
+	// A toolbar is one tab stop with the arrows moving within it.
+	strip.addEventListener("keydown", (e) => {
+		if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+		const buttons = [...strip.querySelectorAll<HTMLButtonElement>("button:not([disabled])")];
+		const at = buttons.indexOf(document.activeElement as HTMLButtonElement);
+		if (at === -1) return;
+		e.preventDefault();
+		buttons[(at + (e.key === "ArrowDown" ? 1 : buttons.length - 1)) % buttons.length].focus();
+	});
+	const body = el("div", { class: "sf-codex-body" }, strip, tree);
+	if (options.header) {
+		host.classList.add("sf-pane", "sf-codex-pane");
+		fill(host, el("div", { class: "sf-pane-header" }, el("h2", { class: "sf-pane-title", text: "Codex" })), body);
+	} else {
+		host.classList.add("sf-codex-pane");
+		fill(host, body);
+	}
+	drawStrip();
 	draw();
 	return model.subscribe(["codex", "project", "nav"], () => {
 		if (!host.isConnected) return;
+		drawStrip();
 		draw();
 	});
 }

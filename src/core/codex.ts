@@ -324,13 +324,13 @@ function isCodexPathOccupied(project: Project, path: string, ignorePath?: string
 }
 
 /** Mints a new virtual folder and registers it into `parentFolderId`'s order (or the root's, if null). Returns the new folder id. */
-export async function createCodexFolder(project: Project, parentFolderId: string | null): Promise<string> {
+export async function createCodexFolder(project: Project, parentFolderId: string | null, name = "New Folder"): Promise<string> {
 	let newId = "";
 	await project.modifyFrontmatter<RawCodexFrontmatter>(codexFilePath(), DEFAULT_CODEX_CONTENT, (fm) => {
 		const folders = parseFolders(fm.folders);
 		const order = parseStringArray(fm.order);
-		newId = mintFolderId("New Folder", folders);
-		folders[newId] = { name: "New Folder", order: [] };
+		newId = mintFolderId(name, folders);
+		folders[newId] = { name, order: [] };
 		insertIntoContainer(folders, order, parentFolderId, newId, Number.MAX_SAFE_INTEGER);
 		setFolders(fm, folders);
 		fm.order = order;

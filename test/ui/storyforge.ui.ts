@@ -94,8 +94,10 @@ test.describe("the library", () => {
 			await flip(page);
 			await tab(page, "codex").click();
 			await expect(page.locator(".sf-codex-tree .sf-codex-file", { hasText: "Jane" })).toBeVisible();
-			await page.getByRole("button", { name: "New file" }).click();
-			await expect(centre(page)).toBeVisible(); // a new note opens in the workspace here
+			await page.getByRole("button", { name: "New note" }).click();
+			await page.getByRole("textbox", { name: "Name of the new note" }).fill("Lantern");
+			await page.keyboard.press("Enter");
+			await expect(centre(page)).toContainText(""); // a new note opens in the workspace here
 			await expect(page.locator(".sf-slot--lore .cm-content")).toHaveCount(0);
 		});
 

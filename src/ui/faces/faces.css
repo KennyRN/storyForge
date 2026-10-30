@@ -166,6 +166,40 @@
 	user-select: none;
 	-webkit-user-select: none;
 }
+/* The strip of buttons down the list's left edge, and the list beside it. */
+.sf-codex-body {
+	display: flex;
+	flex: 1;
+	min-height: 0;
+}
+.sf-codex-strip {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: var(--space-1) 0 0 var(--space-2);
+}
+.sf-codex-body > .sf-codex-tree {
+	flex: 1;
+	min-width: 0;
+}
+/* A new folder or note being named in place. */
+.sf-codex-draft {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 2px 8px 2px calc(8px + var(--depth, 0) * 16px);
+}
+.sf-codex-draft > svg {
+	flex: none;
+	color: var(--purpose-text-muted);
+}
+.sf-codex-draft-field {
+	flex: 1;
+	min-width: 0;
+}
+.sf-codex-draft input {
+	width: 100%;
+}
 .sf-codex-file:focus-visible,
 .sf-codex-folder-header:focus-visible {
 	outline: 2px solid var(--purpose-focus-ring);

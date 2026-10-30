@@ -152,14 +152,18 @@ test.describe("the storytelling face", () => {
 	});
 
 	test.describe("the Codex pane", () => {
-		test("new file and new folder create entries; a new file opens in the lore slot", async ({ page }) => {
+		test("new folder and new note are named in the list, and a new note opens in the lore slot (the strip: strip.ui.ts)", async ({ page }) => {
 			await openProject(page);
 			await page.getByRole("button", { name: "New folder" }).click();
-			await expect(page.locator(".sf-codex-folder-header", { hasText: "New Folder" })).toBeVisible();
-			await page.getByRole("button", { name: "New file" }).click();
+			await page.getByRole("textbox", { name: "Name of the new folder" }).fill("Ships");
+			await page.keyboard.press("Enter");
+			await expect(page.locator(".sf-codex-folder-header", { hasText: "Ships" })).toBeVisible();
+			await page.getByRole("button", { name: "New note" }).click();
+			await page.getByRole("textbox", { name: "Name of the new note" }).fill("Lantern");
+			await page.keyboard.press("Enter");
 			await expect(lore(page)).toBeVisible();
-			await expect(codexRow(page, "New Note")).toBeVisible();
-			expect(await onDisk(page, "Codex/New Note.md")).toBe("");
+			await expect(codexRow(page, "Lantern")).toBeVisible();
+			expect(await onDisk(page, "Codex/Lantern.md")).toBe("");
 		});
 
 		test("a folder is renamed in place from its context menu", async ({ page }) => {
@@ -243,7 +247,7 @@ test.describe("the storytelling face", () => {
 		await page.locator("[data-recent='0']").click();
 		await page.waitForFunction(() => !!window.__app?.editors);
 		await expect(page.getByRole("button", { name: "Add the next chapter" })).toBeDisabled();
-		await expect(page.getByRole("button", { name: "New file" })).toBeDisabled();
+		await expect(page.getByRole("button", { name: "New note" })).toBeDisabled();
 		await expect(page.getByRole("button", { name: "New folder" })).toBeDisabled();
 		await expect(centre(page)).toHaveAttribute("contenteditable", "false");
 	});
