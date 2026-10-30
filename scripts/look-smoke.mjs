@@ -214,6 +214,12 @@ try {
 		else console.log(`(wynn and yogh in italic lean ${lean.toFixed(1)} px more than upright: Arial Italic)`);
 	}
 	windowShot("chapter");
+	// With the context panel hidden (View > Show or Hide Context) the workspace is wide enough for the editor's maximum width (30em: 600 px at 20 px) to show.
+	osa('tell application "System Events" to tell process "storyforge" to click menu item "Show or Hide Context" of menu 1 of menu bar item "View" of menu bar 1');
+	await sleep(700);
+	windowShot("chapter-30em");
+	osa('tell application "System Events" to tell process "storyforge" to click menu item "Show or Hide Context" of menu 1 of menu bar item "View" of menu bar 1');
+	await sleep(700);
 
 	// A Codex note in the context panel.
 	// The keyboard: the row is focused through accessibility and Return opens it (no pointer is used anywhere in this script).
