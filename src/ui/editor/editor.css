@@ -29,8 +29,6 @@
 }
 .sf-editor .cm-scroller {
 	font-family: var(--font-prose);
-	scrollbar-width: thin;
-	scrollbar-color: var(--purpose-border) transparent;
 }
 .sf-editor .cm-content {
 	box-sizing: content-box;

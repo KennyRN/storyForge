@@ -1,3 +1,4 @@
+import { installScrollIndicator } from "./kit/scrollIndicator";
 import { AppController, type Host } from "../app/appLife";
 import { mountNotices } from "./kit/notices";
 import { undoRedoFocusedField } from "./commitOnClose";
@@ -10,6 +11,7 @@ import { mountShell } from "./shell";
 
 /** Builds the interface into `root` over a host (Tauri's, or the browser preview's). */
 export async function startApp(host: Host, root: HTMLElement): Promise<AppModel> {
+	installScrollIndicator();
 	const controller = new AppController(host);
 	const model = new AppModel(controller);
 	const stage = el("div", { class: "sf-stage" });

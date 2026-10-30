@@ -58,20 +58,29 @@ textarea {
 	color: var(--purpose-text-muted);
 }
 
+/* Scrollbars are hidden at rest, whatever the Mac's own setting; kit/scrollIndicator.ts draws a thin one while scrolling. */
+* {
+	scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+	display: none;
+}
 .sf-scroll {
 	overflow: auto;
-	scrollbar-width: thin;
-	scrollbar-color: var(--purpose-border) transparent;
 }
-.sf-scroll::-webkit-scrollbar {
-	width: 10px;
-	height: 10px;
+.sf-scrollbar {
+	position: fixed;
+	z-index: 1000;
+	width: 5px;
+	border-radius: 3px;
+	background: var(--purpose-text-muted);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity var(--motion) ease;
 }
-.sf-scroll::-webkit-scrollbar-thumb {
-	background: var(--purpose-border);
-	border-radius: 5px;
-	border: 2px solid transparent;
-	background-clip: content-box;
+.sf-scrollbar.is-showing {
+	opacity: 0.55;
+	transition-duration: 0ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
