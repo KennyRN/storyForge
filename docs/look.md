@@ -177,3 +177,29 @@ Open questions for you, in the order they'll bite:
 ## 7. The line owed from decision 50
 
 The "earlier read of your running app" (the reload check): in that session nothing of yours was read. The only contact was `pgrep -ix storyforge`, then a single `ps` of the command line of PID 10252, a process I did not start, to see that it was running and where from. I did not look at its windows, accessibility tree, files or data folder, and I left it alone until you quit it. That is within what you confirmed today.
+
+## 8. Rulings at H1 (decision 56)
+
+1. **Fonts:** `SNPro-VariableRegular` with `SNPro-VariableItalic`, unmodified, with `OFL.txt`, recorded in `Font Licences.md`. The combined `SNPro-Variable` is not used. (`SNPro-VariableRegular.woff2` was checked: `wght` axis only, 200–900, no `slnt`.)
+2. **Missing characters:** `ƿ Ƿ ȝ Ȝ` stay in the starting set. **No fallback is named yet; Kenny will choose.** Until then **whatever the Mac substitutes is temporary** (the font stack is `"SN Pro"` then the system sans-serif, nothing more). Candidates are found among the Mac's built-in fonts and shown in the built app at H2 (§9). A second shipped font only if no built-in candidate works.
+3. **An open empty folder:** a faint "Empty" line in muted text (`grey2`), announced as empty to screen readers (commit 3).
+4. **Keyboard:** ↑ ↓ move, → opens or goes in, ← closes or goes to the parent, Return opens or closes. Reordering moves to ⌥ plus the arrows, named in the tooltips and docs (commit 3).
+5. **Name in place:** a new folder or note is named in place straight away; the file or folder is created only when the name is confirmed, Escape cancels and creates nothing (nothing is created as "Untitled" and renamed, which would trigger the link rewrite). The rename rules apply (refused characters, collisions). No typing aids in the box (commit 3).
+6. **Size:** 17 px at 1.6, provisionally. H2 is the first real check.
+7. **Creating into a closed folder opens it.** New items go at the end of the last folder clicked.
+8. **Security policy:** `font-src 'self'` added, with a test, proved in the built app.
+9. **The button:** remembers the last-focused editor (not a position); greyed out when that editor is covered, read-only or gone (commit 6).
+
+## 9. As built, commit 2 (SN Pro)
+
+- **Files:** `src/ui/theme/fonts/SNPro-VariableRegular.woff2`, `SNPro-VariableItalic.woff2`, `OFL.txt`; `src/ui/theme/fonts.css` declares both faces (`font-weight: 200 900`, `font-display: block`). Vite emits them as hashed files in the app's `assets/`; `OFL.txt` is also a bundle resource (it is in `storyForge.app/Contents/Resources/`).
+- **Where:** `--font-prose` is now `"SN Pro", var(--font-ui)`, used by the chapter and Codex-note editors, the plot-note, synopsis and description fields, and the Codex list (`.sf-codex-tree`). Everything else keeps the system sans-serif. `--prose-size` is 17 px and `--prose-line` 1.6.
+- **Rules on those surfaces:** `font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0, "ss01" 0; font-synthesis: none`.
+- **Policy:** `font-src 'self'` inserted before `img-src`; nothing else changed. The old policy had no `font-src` (fonts fell back to `default-src 'self'`), so this states the rule rather than widening it.
+- **Tests:** `test/tauriConfig.test.ts` (font-src, the two files, the weight range, the licence and the resource); `test/releaseBuild.test.ts` (both font files are in the production bundle, the candidates panel is not); `test/ui/look.ui.ts` (7 WebKit tests: both faces load from the app and no request leaves it; the chapter and a Codex note at 17 px / 1.6 with ligatures off; the Codex list on both sides; the three fields; the rest of the interface unchanged); `npm run test:look` (the built app).
+- **`npm run test:look`** starts the built app on a fixture copy with a temporary HOME and reads, through accessibility, the width each line really takes: ten `w` are 137 px in SN Pro and 127 in the system font at 17 px (163 for eleven in italic, where the system font does not change), 105 and 100 at 13 px, and `Jane` is 27 px against 29. The widths are measured from the shipped files in WebKit. It uses **one real mouse click** (`cliclick`, on a Codex row, which answers only to pointer events) until commit 3 makes Return open a row.
+- **Typing test change:** the "near the window edge" test now fills a line with `x ` units instead of `abcd `, because it assumed how wide the old font's letters were (with SN Pro `~th` wrapped to a new line before the popup was measured).
+- **Fallback candidates (decision 56, item 2).** Characters `ƿ Ƿ ȝ Ȝ ǣ`, checked in the Mac's built-in fonts (`/System/Library/Fonts`, `/Supplemental`, `/Library/Fonts`):
+  - **Contain all five:** Arial, Tahoma, Geneva, Lucida Grande, Microsoft Sans Serif (sans-serif); Times New Roman, Baskerville (serif); Courier New (monospace).
+  - **New York does not** have `ƿ Ƿ ȝ Ȝ` (it has `ǣ`); neither does San Francisco. Helvetica and Helvetica Neue have everything except `ƿ`.
+  - They are drawn beside SN Pro, upright, italic and bold, in a line of Codex-style names, by `src/ui/dev/fontCandidates.ts`. That panel exists **only in a build made with `VITE_SF_FONT_CANDIDATES=1`**; the import in `main.ts` is compiled out of every other build and a test checks the production bundle has none of it. It is never shipped.

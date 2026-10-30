@@ -17,6 +17,7 @@
 		"test:quit": "node scripts/quit-smoke.mjs",
 		"test:cover": "node scripts/cover-smoke.mjs",
 		"test:typing": "node scripts/typing-smoke.mjs",
+		"test:look": "node scripts/look-smoke.mjs",
 		"fixture:leftovers": "tsx scripts/fixture-leftovers.ts"
 	},
 	"license": "MIT",

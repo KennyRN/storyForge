@@ -652,10 +652,11 @@ for (const kind of KINDS) {
 			await page.setViewportSize({ width: 900, height: 700 });
 			let height = (await field.boundingBox())!.height;
 			for (let i = 0; i < 100; i++) {
-				await page.keyboard.type("abcd ");
+				await page.keyboard.type("x ");
 				const now = (await field.boundingBox())!.height;
 				if (now > height) {
-					for (let k = 0; k < 5; k++) await page.keyboard.press("Backspace");
+					// the unit that wrapped, and two more, so that "~th" (a word of its own) fits on the line whatever the font's widths
+					for (let k = 0; k < 6; k++) await page.keyboard.press("Backspace");
 					break;
 				}
 				height = now;

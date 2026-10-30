@@ -1,10 +1,12 @@
 /* Base: reset, type, spacing, focus ring, scrollbars. Colours come from purposes only. */
 :root {
 	--font-ui: -apple-system, system-ui, sans-serif;
-	--font-prose: ui-serif, "New York", Georgia, serif;
+	/* SN Pro for everywhere the author writes, and the Codex list. Whatever the Mac substitutes for a character it lacks
+	   (ƿ Ƿ ȝ Ȝ and a few more, docs/look.md §1) is temporary until the fallback is chosen (decision 56). */
+	--font-prose: "SN Pro", var(--font-ui);
 	--text-ui: 13px;
-	--prose-size: 18px;
-	--prose-line: 1.65;
+	--prose-size: 17px;
+	--prose-line: 1.6;
 	--prose-measure: 38em;
 	--space-1: 4px;
 	--space-2: 8px;
@@ -406,4 +408,16 @@ textarea {
 .sf-setting-source {
 	font-size: 12px;
 	text-align: right;
+}
+
+/* The author's writing surfaces and the Codex list: no ligatures (what is on screen is what is on disk: SN Pro draws "->"
+   as an arrow), no style set, and never a synthesised slant or weight. */
+.sf-editor .cm-scroller,
+.sf-note-field,
+.sf-section-field,
+.sf-codex-tree {
+	font-family: var(--font-prose);
+	font-variant-ligatures: none;
+	font-feature-settings: "liga" 0, "calt" 0, "ss01" 0;
+	font-synthesis: none;
 }

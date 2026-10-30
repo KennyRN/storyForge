@@ -1,0 +1,17 @@
+/* SN Pro (SIL Open Font License 1.1, fonts/OFL.txt), shipped inside the app and used unmodified: the upright and the
+   italic variable files, each with the whole weight axis (the files' own default is 200, so the range is declared).
+   font-display: block, so the writing never flashes in another face first. Loaded from the app itself ('self'). */
+@font-face {
+	font-family: "SN Pro";
+	src: url("./fonts/SNPro-VariableRegular.woff2") format("woff2");
+	font-weight: 200 900;
+	font-style: normal;
+	font-display: block;
+}
+@font-face {
+	font-family: "SN Pro";
+	src: url("./fonts/SNPro-VariableItalic.woff2") format("woff2");
+	font-weight: 200 900;
+	font-style: italic;
+	font-display: block;
+}
