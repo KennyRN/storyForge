@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.0: the look, round two (Brief 11, decision 62) — in progress
+
+- Fixed: a note that is slow to open no longer takes the focus from a name box (or any text box) the author started typing in after asking for it, so a half-typed name can never be created by the focus moving away.
+
 ## 1.2.0: the look, round one (Brief 10, decisions 54 to 60)
 
 - New: **SN Pro**, one embedded font, in every place the author writes (the chapter editor, Codex notes in the workspace and the context panel, the plot-note, synopsis and series-description fields) and in the Codex list on both sides. The upright and italic variable files are shipped unmodified inside the app with their licence (`OFL.txt` in the app's Resources, `Font Licences.md`), loaded from the app itself under `font-src 'self'`; the app still makes no network request. Bold comes from the weight axis and italic from the italic file; ligatures (and the `ss01` set) are off and font synthesis is off, so what is on screen is what is on disk. Arial (real italic and bold) draws only the characters SN Pro lacks (`ƿ Ƿ ȝ Ȝ ǣ` and a few more). Everything else keeps the system sans-serif.
@@ -9,7 +13,6 @@
 - New: **the context panel's note sits on a card** (the editor's background, rounded corners, a margin of 10% of the panel's width, never under 12 px) above a **bottom row** that is always there. With no note open there is no card.
 - Changed: **the special-characters button is always shown**, in the bottom row, and puts its character in the editor you last wrote in (the chapter, a Codex note, a plot note, the synopsis or the description), at that editor's own selection, as typing: a chapter counts it as typing, never a paste, and one ⌘Z takes back just the character. Clicking it never takes focus out of a field, so a field is not committed by it. It is greyed out when that editor is covered by an overview, read-only or gone.
 - Fixed: **in a read-only project (for example one made by a newer storyForge) the Codex list could not open a note at all** (present in 1.1.0 and earlier: the click was answered by the drag gesture, which was not attached when read-only). A note now opens and a folder folds.
-- Fixed: a note that is slow to open no longer takes the focus from a name box (or any text box) the author started typing in after asking for it, so a half-typed name can never be created by the focus moving away.
 - Changed: `createCodexFolder` takes an optional name (the default is the old "New Folder"), so a folder is made with its real name rather than made and renamed. No disk format change.
 - Tests: `npm run test:look` (built app, Mac) reads, through accessibility, the real width of lines in the Codex list, the chapter, a Codex note and a plot note to prove SN Pro is what draws them (and that wynn and yogh in italic text are drawn by Arial Italic, by the slant of the ink), and opens a note with the keyboard. The browser-preview suites gain `look`, `codex`, `strip`, `card` and `chars`. The unit test of the session recorder no longer waits a fixed real 20 ms for file work: it waited on a timer under a fake clock, and failed about once in a hundred runs, more under load.
 - Unchanged: the core, the disk format (0.17), the prose writer, the close path and the guard; no new Rust command and no new dependency (the font files are assets; the three Tabler icons are recorded in `Icon Licences.md`).
