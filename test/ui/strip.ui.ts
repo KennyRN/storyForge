@@ -105,6 +105,51 @@ for (const side of SIDES) {
 			expect(await onDisk(page, "Codex/a|b.md")).toBeNull();
 		});
 
+		test("a new folder refuses a name already used by a folder beside it, ignoring case and accents; another parent's is fine", async ({ page }) => {
+			await page.getByRole("button", { name: "New folder" }).click();
+			const alert = page.locator(".sf-codex-draft [role=alert]");
+			for (const typed of ["Cast", "cast", "CÁST ", "Places"]) {
+				await folderBox(page).fill(typed);
+				await expect(alert).toContainText("There is already a folder called");
+				await page.keyboard.press("Enter");
+				await expect(folderBox(page)).toBeVisible(); // still asking
+			}
+			await folderBox(page).fill("Crew"); // free
+			await expect(alert).toHaveText("");
+			await page.keyboard.press("Escape");
+			// inside Cast, "Cast" is free (it is a different parent), and a name there is checked against Cast's folders
+			await tree(page).getByRole("treeitem", { name: "Cast", exact: true }).click();
+			await tree(page).getByRole("treeitem", { name: "Cast", exact: true }).click(); // closed, then open again
+			await page.getByRole("button", { name: "New folder" }).click();
+			await folderBox(page).fill("Cast");
+			await expect(alert).toHaveText("");
+			await page.keyboard.press("Enter");
+			await expect(tree(page).getByRole("treeitem", { name: "Cast", exact: true })).toHaveCount(2);
+			await page.getByRole("button", { name: "New folder" }).click();
+			await folderBox(page).fill("cast");
+			await expect(alert).toContainText("There is already a folder called"); // the new one, now in the target
+			await page.keyboard.press("Escape");
+		});
+
+		test("a redraw of the list while the name box is open keeps the typed text, the caret and the focus", async ({ page }) => {
+			await page.getByRole("button", { name: "New note" }).click();
+			await noteBox(page).pressSequentially("Lant");
+			await page.keyboard.press("ArrowLeft"); // the caret is between "Lan" and "t"
+			const text = (await onDisk(page, CODEX))!;
+			// an outside change to codex.md: the project reloads it and the list is drawn again
+			await page.evaluate(({ path, changed }) => {
+				void window.__preview.touch(path, changed);
+				window.__preview.emit("watch-batch", { paths: [path], rescan: false });
+			}, { path: CODEX, changed: text.replace("x-unknown-key: kept", "x-unknown-key: kept elsewhere") });
+			await expect.poll(async () => (await onDisk(page, CODEX)) ?? "").toContain("kept elsewhere");
+			await page.waitForTimeout(600);
+			await expect(noteBox(page)).toBeFocused();
+			await expect(noteBox(page)).toHaveValue("Lant");
+			await page.keyboard.type("x");
+			await expect(noteBox(page)).toHaveValue("Lanxt"); // the caret was kept
+			await page.keyboard.press("Escape");
+		});
+
 		test("a new folder is made with the name given, never as 'New Folder'", async ({ page }) => {
 			await page.getByRole("button", { name: "New folder" }).click();
 			await folderBox(page).fill("Ships");

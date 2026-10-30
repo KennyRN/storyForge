@@ -1,4 +1,4 @@
-import { getCodexTypes, sanitizeCodexBasename, uniqueCodexFilename, archiveCodexItem, codexTypeIcon, convertCodexNoteToFolder, createCodexFolder, createCodexNote, getCodexEntryType, getCodexView, moveCodexItem, readCodexFrontmatter, removeCodexFolder, renameCodexFolder, setCodexEntryType } from "../../core/codex";
+import { getCodexTypes, codexNameClash, sanitizeCodexBasename, archiveCodexItem, codexTypeIcon, convertCodexNoteToFolder, createCodexFolder, createCodexNote, getCodexEntryType, getCodexView, moveCodexItem, readCodexFrontmatter, removeCodexFolder, renameCodexFolder, setCodexEntryType } from "../../core/codex";
 import { isDescendantFolder, type CodexTreeItem } from "../../core/codexTree";
 import { attachCodexDragReorder, type CodexDragRowInfo } from "../../view/dragReorderTree";
 import { button } from "../kit/button";
@@ -29,6 +29,8 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 	/** A new folder or note being named in place: nothing exists on disk until the name is confirmed (Return); Escape creates nothing. */
 	let draft: { kind: "folder" | "note"; parent: string | null; text: string; focus: boolean } | null = null;
 	let redrawing = false;
+	/** Whether clicking away from the name box confirms a name that passes (as the inline rename does) or cancels. One line to switch. */
+	const BLUR_CONFIRMS = true;
 
 	const run = async (what: string, action: () => Promise<unknown>): Promise<void> => {
 		try {
@@ -48,11 +50,20 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 		const root = getCodexView(running.opened.project, "codex");
 		const rows: CodexDragRowInfo[] = [];
 		const hadFocus = tree.contains(document.activeElement) && !(document.activeElement as HTMLElement | null)?.closest(".sf-codex-draft");
+		const box = tree.querySelector<HTMLInputElement>(".sf-codex-draft input");
+		const boxFocused = !!box && document.activeElement === box;
+		const caret = box ? [box.selectionStart, box.selectionEnd] : [null, null];
 		redrawing = true;
 		fill(tree);
 		if ((!root || root.children.length === 0) && !draft) tree.append(el("div", { class: "sf-muted sf-codex-empty", text: "Nothing here yet." }));
 		else renderItems(tree, root?.children ?? [], null, 0, rows);
 		redrawing = false;
+		if (draft && boxFocused) {
+			// a redraw while the name is being typed (an outside change to the Codex, say) keeps the text, the focus and the caret
+			const input = tree.querySelector<HTMLInputElement>(".sf-codex-draft input");
+			input?.focus({ preventScroll: true });
+			if (input && caret[0] !== null) input.setSelectionRange(caret[0], caret[1] ?? caret[0]);
+		}
 		if (draft?.focus) {
 			draft.focus = false;
 			const input = tree.querySelector<HTMLInputElement>(".sf-codex-draft input");
@@ -240,14 +251,16 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 	}
 
 	/** What is wrong with a typed name for the new thing, in words, or null: the rename's own rules (no [ ] # ^ |, not empty), no character a file name can't hold, no clash with a note that is there. */
-	const draftProblem = (kind: "folder" | "note", typed: string): string | null => {
+	const draftProblem = (kind: "folder" | "note", typed: string, parent: string | null): string | null => {
 		const name = typed.trim();
 		if (!name) return "Type a name.";
-		if (kind === "folder") return null;
-		const p = nameProblem(name, "");
-		if (p) return p;
-		if (sanitizeCodexBasename(name) !== name.replace(/\.md$/i, "")) return "A note name can't contain / \\ ? % * : | \" < >.";
-		if (project().entry(`Codex/${name.replace(/\.md$/i, "")}.md`) || [...rowInfo.keys()].some((k) => k.toLowerCase() === `codex/${name.replace(/\.md$/i, "").toLowerCase()}.md`)) return `There is already a note called “${name}”.`;
+		if (kind === "note") {
+			const p = nameProblem(name, "");
+			if (p) return p;
+			if (sanitizeCodexBasename(name) !== name.replace(/\.md$/i, "")) return "A note name can't contain / \\ ? % * : | \" < >.";
+		}
+		// Case and accents are ignored: a note against every note, a folder against the folders beside it.
+		if (codexNameClash(project(), kind, parent, name)) return kind === "note" ? `There is already a note called “${name}”.` : `There is already a folder called “${name}” here.`;
 		return null;
 	};
 
@@ -266,7 +279,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 			if (!mine) return;
 			draft = null;
 			const name = input.value.trim();
-			if (confirm && name && !draftProblem(mine.kind, name)) {
+			if (confirm && name && !draftProblem(mine.kind, name, mine.parent)) {
 				void run(mine.kind === "folder" ? "create the folder" : "create the note", async () => {
 					if (mine.kind === "folder") {
 						const id = await createCodexFolder(project(), mine.parent, name);
@@ -283,7 +296,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 		};
 		const check = (): string | null => {
 			d.text = input.value;
-			const message = input.value.trim() ? draftProblem(d.kind, input.value) : null;
+			const message = input.value.trim() ? draftProblem(d.kind, input.value, d.parent) : null;
 			problem.textContent = message ?? "";
 			input.toggleAttribute("aria-invalid", message !== null);
 			return message;
@@ -304,7 +317,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 		// Leaving the box (a click elsewhere) confirms a good name and otherwise creates nothing.
 		input.addEventListener("blur", () => {
 			if (redrawing || !input.isConnected) return;
-			finish(!!input.value.trim() && !draftProblem(d.kind, input.value));
+			finish(BLUR_CONFIRMS && !!input.value.trim() && !draftProblem(d.kind, input.value, d.parent));
 		});
 		input.addEventListener("pointerdown", (e) => e.stopPropagation());
 		return row;
