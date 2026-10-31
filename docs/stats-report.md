@@ -42,18 +42,19 @@ All recorded in `Icon Licences.md`. The Heroicons release the files came from wa
 - `npm run test:ui`: 345 passing, 1 skipped as always. The old "switch wordcount" tests and the six "live readout" tests were rewritten for the new design, testing the same behaviour and more; none weakened.
 - Rust tests pass; no Rust changed. `npm run test:quit` wasn't run: the close path isn't touched (decision 38).
 
-## Built-app screenshots
+## Screenshots
 
-From the built 1.4.0 app, on a fixture copy with a temporary `HOME` (Kenny's copy wasn't running), driven through accessibility with real key presses, no mouse clicks. Each has a crop of the section and the whole window (`-window`). In `docs/stats-shots/built/`:
+- **The H1 mock-up** (`docs/stats-shots/mockup.png`) is updated to the decision 71 layout, using the real icon paths.
+- **WebKit preview, all six states, in the decision 71 layout:** `docs/stats-shots/preview/`: readout off; on with no session; during a session; paused; session chosen (words not repeated); chapter chosen. (The day figure reads 10 for five typed words in these: the fixture's `wordcount.md` records 17 words for a chapter that now has 22, so the history catches up by five on the first change. It is a fixture artefact, not a double count.)
+- **Built-app screenshots of the new layout are still to be taken.** The built-app run needs real key presses, and while taking them a macOS **"Install Required" dialog for Xcode's system components appeared over storyForge** (alongside another window), so keystrokes were not reaching the app. I stopped driving the Mac and quit the throwaway copy. Once that dialog is dismissed I'll retake them. Until then the built-app screenshots from the earlier layout (commit `ec20427`, `9fdfd72`) are removed from the repository, since they no longer match.
+- `docs/stats-shots/now-*.png` are the section before the brief.
 
-- `readout-off`: the readout switched off: one row.
-- `readout-on-before-a-session`: readout on, no session yet: clock, `0m`.
-- `readout-on-during-a-session`: three words typed: standard clock, `0m`, 3.
-- `readout-paused`: 66 seconds later: the paused clock, length held, 3.
-- `session-chosen-readout-without-words`: session chosen as the count, after more typing: the number above, the clock and `1m` below, words not repeated.
-- `chapter-chosen`: the chapter count on display.
+## The low session-word count (decision 71, item 4)
 
-`docs/stats-shots/mockup.png` is the H1 mock-up (an approximation); `now-*.png` are the section before the brief.
+- **Lazy counting is not the cause.** `SessionTracker.net()` counts the chapter's current body each time it is called (it caches the count per body), and `live()` calls it; nothing in the recorder lags the typing. In every built-app case I examined, **the readout matched what had reached the chapter**: with the leading space dropped the text read `anything.afew quiet words here`, which is three words more than before, and the readout said 3; with every space dropped (`anything.afewquietwordshere`) it is one word, net 0, and the readout said 0; with the typing landing properly, the session file and the readout both said 5 (seven runs). A session file written after a run that dropped most keys said `net: 0` while the chapter on disk ended in `anything.a`.
+- **The cause was the keystrokes, not the app:** the keystroke tool dropped or glued characters (as in decision 55), and in the last runs another window and a system dialog were taking focus.
+- **Still done, as ruled:** the readout now redraws every 250 ms from a fresh `live()` read (it was once a second), without changing how sessions are counted or recorded; no recorder change was needed beyond `lastEditMs`. A new interface test checks the words match what was typed within 300 ms of the last key, including after deleting.
+- **Not shown:** a repeat under CPU load. Since the cause was found in the evidence, I did not run one; say if you want it.
 
 ## Hold points
 

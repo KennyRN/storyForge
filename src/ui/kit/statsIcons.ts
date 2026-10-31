@@ -89,7 +89,7 @@ const CLOCKS: Record<ClockKind, Solid> = {
 
 /** The history button's icon: 24 px. */
 export const graphIcon = (): SVGElement => draw(GRAPH, 24);
-/** The readout's clock: none ongoing, a session ongoing, or paused. Drawn at 24 px so it sits under the graph icon. */
-export const clockIcon = (kind: ClockKind): SVGElement => draw(CLOCKS[kind], 24);
+/** The readout's clock: none ongoing, a session ongoing, or paused. At its natural 16 px, in the count icon's column. */
+export const clockIcon = (kind: ClockKind): SVGElement => draw(CLOCKS[kind], 16);
 /** The icon of the count on display, at its natural 16 px. */
 export const countIcon = (count: StatsCount): SVGElement => draw(COUNTS[count], 16);

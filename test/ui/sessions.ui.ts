@@ -194,16 +194,17 @@ test.describe("the live readout", () => {
 	const words = (page: Page) => readout(page).locator(".sf-stats-words");
 	const clock = (page: Page) => readout(page).locator(".sf-stats-clock");
 
-	test("with the setting on the row is always there: the clock beneath the graph icon, `0m`, no words, before any session", async ({ page }) => {
+	test("with the setting on the row is always there: the clock beneath the count icon, `0m`, no words, before any session", async ({ page }) => {
 		await start(page, true);
 		await expect(readout(page)).toBeVisible();
 		await expect(clock(page)).toHaveAttribute("data-clock", "idle");
 		await expect(length(page)).toHaveText("0m");
 		await expect(words(page)).toBeHidden();
-		const [graph, clockBox] = await Promise.all([page.locator(".sf-stats-chart").boundingBox(), clock(page).boundingBox()]);
-		expect(clockBox?.y).toBeGreaterThan((graph?.y ?? 0) + (graph?.height ?? 0) - 1); // beneath
-		expect(Math.abs((clockBox?.x ?? 0) - (graph?.x ?? 99))).toBeLessThan(2); // and in line
-		expect(await clock(page).locator("svg").getAttribute("width")).toBe("24");
+		const [graph, count, clockBox] = await Promise.all([page.locator(".sf-stats-chart").boundingBox(), page.locator(".sf-stats-count").boundingBox(), clock(page).boundingBox()]);
+		expect(clockBox?.y).toBeGreaterThan((count?.y ?? 0) + (count?.height ?? 0) - 1); // beneath the count icon
+		expect(Math.abs((clockBox?.x ?? 0) - (count?.x ?? 99))).toBeLessThan(2); // in its column, not the graph icon's
+		expect(Math.abs((count?.y ?? 0) + (count?.height ?? 0) - ((graph?.y ?? 0) + (graph?.height ?? 0)))).toBeLessThan(1.5); // bottoms line up
+		expect(await clock(page).locator("svg").getAttribute("width")).toBe("16"); // its natural size
 		await shot(page, "stats-readout-idle");
 	});
 
@@ -226,6 +227,24 @@ test.describe("the live readout", () => {
 		await expect(clock(page)).toHaveAttribute("data-clock", "session");
 		await expect(length(page)).toHaveText("2m"); // first edit to this one, 2 min 58 s
 		await expect(words(page)).toHaveText("6 words");
+	});
+
+	test("the words follow the typing: they match what was typed within 300 ms of the last key", async ({ page }) => {
+		await start(page, true);
+		await page.keyboard.type(" one two three four five six");
+		await page.clock.runFor(300);
+		await expect(words(page)).toHaveText("6 words");
+		await page.keyboard.type(" seven");
+		await page.clock.runFor(300);
+		await expect(words(page)).toHaveText("7 words");
+		await page.keyboard.press("Backspace");
+		await page.keyboard.press("Backspace");
+		await page.keyboard.press("Backspace");
+		await page.keyboard.press("Backspace");
+		await page.keyboard.press("Backspace");
+		await page.keyboard.press("Backspace");
+		await page.clock.runFor(300);
+		await expect(words(page)).toHaveText("6 words"); // a word deleted takes one off
 	});
 
 	test("when the session ends the row goes back to the standard clock, `0m` and no words", async ({ page }) => {

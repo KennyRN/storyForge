@@ -20,6 +20,9 @@ export const nextCount = (c: StatsCount): StatsCount => STATS_COUNTS[(STATS_COUN
 export const countLabel = (c: StatsCount): string => `Words ${NOUN[c]}`;
 export const countButtonLabel = (c: StatsCount): string => `${countLabel(c)}; press for ${NOUN[nextCount(c)]}`;
 
+/** How often the readout (and the session count) is redrawn: a fresh `live()` read, so the words follow the typing within a quarter of a second. */
+const READOUT_MS = 250;
+
 const figure = (n: number): string => (n < 0 ? netLabel(n) : formatWordCount(n));
 
 /**
@@ -90,7 +93,7 @@ export function mountStats(host: HTMLElement, model: AppModel): () => void {
 	const drawNumber = (): void => {
 		numberText.textContent = figure(current());
 	};
-	const ticker = setInterval(() => (drawReadout(), model.nav.statsCount === "session" && drawNumber()), 1000);
+	const ticker = setInterval(() => (drawReadout(), model.nav.statsCount === "session" && drawNumber()), READOUT_MS);
 
 	const refresh = async (): Promise<void> => {
 		const running = model.running;

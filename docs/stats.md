@@ -110,6 +110,13 @@ Kenny's mapping, as received:
 
 Kenny sent Fluent icons (MIT): **document-text (filled) replaces the Heroicons document** as this chapter's icon; **clock-bill** shows while a session is ongoing; **clock-pause** is the paused clock (now Fluent's, 16 px, instead of Tabler's); **clock** shows when no session is ongoing. All three clocks are drawn at 24 px. He also wanted the pause timing tied to the idle limit; asked what that would show, since the pause and the end of the session would then coincide, he chose **"keep a separate short pause"**: the pause stays at a minute without an edit, and only the icons change. `data-clock` is now `idle`, `session` or `paused`.
 
+## 9b. Rulings on 9fdfd72 (decision 71)
+
+1. The Fluent icons are accepted.
+2. Layout: the clock icons are **16 px**, their natural size; the clock sits **directly beneath the count icon**, in its column, and the space beneath the graph icon stays empty; the count icon's **bottom edge lines up with the graph icon's bottom**, not centred. The mock-up and screenshots were updated.
+3. The pause stays at a minute, separate from the idle limit (decision 70). No setting.
+4. The low session-word count was to be investigated before the merge (below, and `docs/stats-report.md`). The readout redraws every 250 ms from a fresh `live()` read, and a test checks the words match what was typed within 300 ms.
+
 ## 10. As built
 
 Three commits on `stats` after this document: `7d6e0bc` (the counts row), `49fe23b` (the Heroicons author line), `5d084fe` (the readout row), then the version, changelog, `AGENTS.md` and the report.

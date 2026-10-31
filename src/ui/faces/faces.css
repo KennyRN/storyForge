@@ -281,12 +281,13 @@ body.sf-codex-drag-active {
 	cursor: grabbing;
 }
 
-/* The stats (decision 68): one row, all in grey1. */
+/* The stats (decision 68, 71): a grid of the graph icon's column, the count icon's column and the rest. All in grey1. */
 .sf-stats {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: var(--space-2);
+	display: grid;
+	grid-template-columns: 24px 16px 1fr;
+	column-gap: var(--space-2);
+	row-gap: var(--space-2);
+	align-items: end; /* the count icon's bottom edge lines up with the graph icon's */
 	padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
 	color: var(--purpose-stats);
 }
@@ -305,7 +306,7 @@ body.sf-codex-drag-active {
 .sf-stats-chart:focus-visible,
 .sf-stats-count:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 2px; }
 .sf-stats-value {
-	flex: 1;
+	line-height: 16px; /* as tall as the count icon, so the number sits on the same bottom edge */
 	font-variant-numeric: tabular-nums;
 }
 
@@ -541,14 +542,16 @@ body.sf-codex-drag-active {
 	background: var(--purpose-raised-bg);
 }
 
-/* The live session readout (decision 68): its own row beneath the graph icon, in grey1 like the rest of the section. */
+/* The live session readout (decision 68, 71): its own row; the clock sits in the count icon's column (the graph icon's stays empty). */
 .sf-stats-session {
-	flex-basis: 100%;
-	display: flex;
+	grid-column: 1 / -1;
+	display: grid;
+	grid-template-columns: 24px 16px auto auto;
+	column-gap: var(--space-2);
+	justify-content: start;
 	align-items: center;
-	gap: var(--space-2);
 	font-variant-numeric: tabular-nums;
 }
 .sf-stats-session[hidden],
 .sf-stats-words[hidden] { display: none; }
-.sf-stats-clock { display: inline-flex; }
+.sf-stats-clock { grid-column: 2; display: inline-flex; }
