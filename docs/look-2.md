@@ -70,3 +70,17 @@ Today: `scrollbar-width: thin` and `::-webkit-scrollbar` styling on `.sf-scroll`
 
 - Built-app screenshots of each divider and the titles. These need the built app and a fixture with a temporary `HOME`; I have not launched anything. I'll take them once you've seen the above, unless you'd rather I did it first.
 - Reading the core's tree builder for the folder-note duplicate (§2).
+
+## 7. Rulings (decisions 64 and 65) and as built
+
+**H1 rulings (decision 64).** The seven dividers go; the library rail's right border is transparent, not removed (the ink indicator stays exactly where it is); the splitter has no line, only the resize cursor on hover, and the green line on keyboard focus; the window's outer line is the Mac's own frame, so nothing is added; green titles on the storytelling side only; the palette is the theme's own (yellow `#dbbc7f`, aqua `#83c092`, purple `#d699b6` were supplied, the existing five checked with no mismatch); the scrollbar approach in §6 accepted.
+
+**The folder-note duplicate (decision 65).** Reproduced in the `series` fixture: the `Places` folder links `Codex/Harbour.md` and also lists it in its own `order`, so the tree drew it as the folder's row and again inside. The plugin at `5699284` never writes a note into its own folder's `order` (`notes.ts:592` creates `order: []`; `notes.ts:574` puts `[linkedNotePath, ...order]` into the parent when a folder is removed), so the doubled entry comes from hand-edited data or something outside that code. The view now skips a child whose path is the folder's own linked note; the entry stays in `codex.md`, and a reorder keeps it where it is (`src/core/__tests__/codexFolderNote.test.ts`). A folder holding only its own note reads "Empty". No data was tidied.
+
+**As built, and differences from §3 of the brief:**
+- **Scrollbars:** one document-level capture listener and a fixed-position thumb in the page body (`kit/scrollIndicator.ts`); vertical only; the bar is not draggable (optional in the brief). The old `.sf-scroll` and editor scrollbar styling is gone.
+- **Dividers:** as §1. The transparent rail border and the splitter's focus-only line are the two judgement calls.
+- **Codex list:** `--purpose-codex` is one purpose; the row's left edge is `max(0, depth × 16px − 6px)` so a nested highlight starts 2 px right of the folder's line; the strip's icons and the highlight use the same purpose.
+- **Setting:** `codex-colour`, five choices, settings screen swatches as a radio group; applied by `data-codex-colour` on the page.
+- **Titles:** `.sf-left-name` is green only while the storytelling side shows (`data-face` on `.sf-left`); `.sf-nav-novel` exists only there.
+- **No core, disk-format, close-path, Rust or dependency change.** The one core-adjacent change is a test.

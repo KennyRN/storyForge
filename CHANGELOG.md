@@ -1,8 +1,16 @@
 # Changelog
 
-## 1.3.0: the look, round two (Brief 11, decision 62) — in progress
+## 1.3.0: the look, round two (Brief 11, decisions 62 to 66)
 
+- Changed: **scrollbars are hidden at rest, everywhere**, whatever the Mac's own setting. A thin bar shows where you are while something scrolls and fades about a second after it stops (no fade when the Mac's "reduce motion" is on). It never takes clicks; scrolling by trackpad, keys and Page Up and Down is as before.
+- Changed: **no dividing lines between the app's parts**: the two background shades separate the panels. The window's own frame stays, and so do focus rings, the selected tab's marker and the Codex folder lines. The panel splitters keep their drag area and the resize cursor; the green line shows only when one has keyboard focus.
+- Changed: **the Codex list, on both sides**: 16 px text (it was 13); no "Codex" heading (the list is still named Codex for a screen reader); icons, folder lines and text are one colour; **the selected row and the row under the pointer are a block in that colour with the panel's colour on it**; a folder's line is flush with the start of its name, and a row inside a folder is highlighted from just right of that line; **a note that is also a folder is drawn once**, as the folder's row, not again inside its own folder (display only: nothing in `codex.md` changes, and a reorder keeps the entry where it is).
+- Changed: **the strip's two buttons are plain icons** in the Codex colour, with the row highlight on hover. They are still buttons to the keyboard and a screen reader.
+- New: **a Codex colour setting** (Settings, Interface): the default text colour, yellow, aqua, purple or grey, kept in `project.md` (`codex-colour`) only when changed. It recolours both lists at once. A missing or unknown value is the default and is never rewritten. Yellow, aqua and purple join the theme as Everforest's dark foregrounds.
+- Changed: **the project name and the novel's title are in the green accent**, as text only, on the storytelling side.
 - Fixed: a note that is slow to open no longer takes the focus from a name box (or any text box) the author started typing in after asking for it, so a half-typed name can never be created by the focus moving away.
+- Tests: `npm run test:look` reads the Codex list's widths at 16 px (the references were scaled from 13 px). The browser-preview suites gain `scrollbars`, `dividers`, `codexlook` and `titles`, and a core test that a reorder inside a folder holding its own note changes only the moved item's lines.
+- Unchanged: the core, the disk format (0.17), the prose writer, the close path and the guard; no new Rust command, dependency or network request.
 
 ## 1.2.0: the look, round one (Brief 10, decisions 54 to 60)
 

@@ -184,9 +184,9 @@ try {
 	if (!(await until(() => find("AXTextArea", "Text").startsWith("found")))) fail("the project did not open");
 	await sleep(1200);
 
-	// The Codex list (13 px): "Jane" is 27 px in SN Pro, 29 in the system font; "Harbour" 47 and 49.
-	expectWidth("the Codex list, Jane", widthOf("AXStaticText", "Jane"), 27, 29);
-	expectWidth("the Codex list, Harbour", widthOf("AXStaticText", "Harbour"), 47, 49);
+	// The Codex list (16 px since 1.3.0; the references are the 13 px figures scaled by 16/13, and "Jane" measured 33 and "Harbour" 58 in SN Pro): "Jane" is 33 px in SN Pro, about 36 in the system font; "Harbour" 58 and about 60.
+	expectWidth("the Codex list, Jane", widthOf("AXStaticText", "Jane"), 33, 36);
+	expectWidth("the Codex list, Harbour", widthOf("AXStaticText", "Harbour"), 58, 60);
 	windowShot("codex-storytelling-no-note");
 
 	// The chapter (20 px): ten "w" upright are 161 px in SN Pro (about 150 in the system font), eleven in italic 191 (the italic file
@@ -251,7 +251,7 @@ try {
 	await sleep(600);
 	clickAny("codex");
 	await sleep(800);
-	expectWidth("the library's Codex list, Jane", widthOf("AXStaticText", "Jane"), 27, 29);
+	expectWidth("the library's Codex list, Jane", widthOf("AXStaticText", "Jane"), 33, 36);
 	windowShot("codex-library");
 	// A Codex note opened in the workspace (the library side's entries open there): the keyboard again.
 	if (!find("AXStaticText", "Jane", "focusrow").startsWith("found")) problems.push("could not focus Jane in the library's Codex list");
