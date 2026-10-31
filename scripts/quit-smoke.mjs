@@ -15,6 +15,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, 
 import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { guardedTyping } from "./lib/typingGuard.mjs";
 
 const root = resolve(fileURLToPath(import.meta.url), "../..");
 const BUNDLE_ID = "io.github.kennyrn.storyforge";
@@ -89,7 +90,9 @@ const valueOf = (role, prefix) => {
 	return out.startsWith("found ") ? out.slice(6) : null;
 };
 const isFocused = (role, prefix) => find(role, prefix, "isfocused") === "found true";
-const sendKeys = (text) => osa('on run argv\ntell application "System Events" to keystroke (item 1 of argv)\nend run', text);
+// Every keystroke goes through the typing guard (decision 72): nothing is typed unless the test copy is in front with a text box focused.
+const typing = guardedTyping({ osa, fail });
+const sendKeys = typing.sendKeysAtOnce;
 
 // ---- One route --------------------------------------------------------------------------------------------
 const results = [];

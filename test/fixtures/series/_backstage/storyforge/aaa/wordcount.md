@@ -1,13 +1,13 @@
 version: 2
-current: 31
-lifetimeWritten: 40
+current: 32
+lifetimeWritten: 41
 lifetimeRemoved: 9
 chapters:
   ch-a1.md:
-    words: 17
+    words: 22
     archivedWords: null
   ch-a2.md:
-    words: 14
+    words: 10
     archivedWords: null
 daily:
   2026-10-20:

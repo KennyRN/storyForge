@@ -198,17 +198,18 @@ const tagRegistry = lf([
 	"",
 ]);
 
+// Brought up to date with the chapters as the app counts them (22 and 10 words), so a screenshot's day figure shows only what was typed (decision 72). The daily entries are left as they were: tests read them.
 const wordcount = lf([
 	"version: 2",
-	"current: 31",
-	"lifetimeWritten: 40",
+	"current: 32",
+	"lifetimeWritten: 41",
 	"lifetimeRemoved: 9",
 	"chapters:",
 	"  ch-a1.md:",
-	"    words: 17",
+	"    words: 22",
 	"    archivedWords: null",
 	"  ch-a2.md:",
-	"    words: 14",
+	"    words: 10",
 	"    archivedWords: null",
 	"daily:",
 	"  2026-10-20:",
