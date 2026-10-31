@@ -96,6 +96,19 @@ describe("the session recorder", () => {
 		void s;
 	});
 
+	it("live() reports the start, the last edit and the words, and is null between sessions", async () => {
+		const ctx = await setup();
+		expect(ctx.recorder.live()).toBeNull();
+		const s = await typeFor(ctx, 3);
+		expect(ctx.recorder.live()).toEqual({ startMs: T0, lastEditMs: T0 + 2 * MIN, net: 30 });
+		await ctx.advance(MIN); // time passes with no edit: the last edit stays where it was
+		expect(ctx.recorder.live()?.lastEditMs).toBe(T0 + 2 * MIN);
+		s.setBody(`${s.body} one`);
+		expect(ctx.recorder.live()?.lastEditMs).toBe(T0 + 4 * MIN);
+		await ctx.advance(10 * MIN);
+		expect(ctx.recorder.live()).toBeNull();
+	});
+
 	it("writes nothing to the project while a session runs: only the app's data folder is touched", async () => {
 		const ctx = await setup();
 		await ctx.writer.open(CH);

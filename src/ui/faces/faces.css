@@ -541,6 +541,14 @@ body.sf-codex-drag-active {
 	background: var(--purpose-raised-bg);
 }
 
-/* The live session readout: quiet, on its own line, no animation. */
-.sf-stats-session { flex-basis: 100%; font-size: 12px; font-variant-numeric: tabular-nums; }
-.sf-stats-session[hidden] { display: none; }
+/* The live session readout (decision 68): its own row beneath the graph icon, in grey1 like the rest of the section. */
+.sf-stats-session {
+	flex-basis: 100%;
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+	font-variant-numeric: tabular-nums;
+}
+.sf-stats-session[hidden],
+.sf-stats-words[hidden] { display: none; }
+.sf-stats-clock { display: inline-flex; }

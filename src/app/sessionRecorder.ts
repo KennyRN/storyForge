@@ -78,10 +78,10 @@ export class SessionRecorder {
 		return this.tracker?.running ?? false;
 	}
 
-	/** The current session, for the live readout: when it started and the words so far. Null between sessions. */
-	live(): { startMs: number; net: number } | null {
+	/** The current session, for the live readout: when it started, when it was last edited, and the words so far. Null between sessions. Only reports. */
+	live(): { startMs: number; lastEditMs: number; net: number } | null {
 		const t = this.tracker;
-		return t?.running ? { startMs: t.start, net: t.net() } : null;
+		return t?.running ? { startMs: t.start, lastEditMs: t.lastEdit, net: t.net() } : null;
 	}
 
 	// ------------------------------------------------------------------------------------------ edits

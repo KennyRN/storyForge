@@ -4,7 +4,9 @@ import { excludedByDay, storytellingTodayAndWeek } from "../../core/sessionFigur
 import { libraryChapterPath } from "../../core/paths";
 import { formatWordCount } from "../../core/wordCount";
 import { STATS_COUNTS, type StatsCount } from "../../app/settings";
+import { readoutState } from "../../core/sessionReadout";
 import { el } from "../kit/dom";
+import { icon } from "../kit/icons";
 import { countIcon, graphIcon } from "../kit/statsIcons";
 import { attachTooltip } from "../kit/tooltip";
 import type { AppModel } from "../model";
@@ -20,15 +22,6 @@ export const countLabel = (c: StatsCount): string => `Words ${NOUN[c]}`;
 export const countButtonLabel = (c: StatsCount): string => `${countLabel(c)}; press for ${NOUN[nextCount(c)]}`;
 
 const figure = (n: number): string => (n < 0 ? netLabel(n) : formatWordCount(n));
-
-/** `12:34`, or `1:02:03` past the hour: how long the current session has run. */
-export function elapsedLabel(ms: number): string {
-	const total = Math.max(0, Math.floor(ms / 1000));
-	const h = Math.floor(total / 3600);
-	const m = Math.floor((total % 3600) / 60);
-	const sec = String(total % 60).padStart(2, "0");
-	return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${sec}` : `${m}:${sec}`;
-}
 
 /**
  * The stats (decision 68): the graph icon (opens the history view), the icon of the count on display, and its number.
@@ -61,14 +54,30 @@ export function mountStats(host: HTMLElement, model: AppModel): () => void {
 	const numberName = el("span", { class: "sf-visually-hidden" });
 	number.append(numberName, numberText);
 
-	// The live readout (an option, off by default): the session so far, redrawn at most once a second, quietly.
-	const readout = el("span", { class: "sf-stats-session", attrs: { "data-testid": "session-readout" } });
+	// The live readout (an option, off by default; decision 68). With it on the row is always there: the clock, the
+	// session's length so far (first edit to last, so it holds still while paused) and, unless session is the count
+	// on display above, its words. Redrawn once a second, quietly.
+	const clock = el("span", { class: "sf-stats-clock" });
+	const length = el("span", { class: "sf-stats-length" });
+	const words = el("span", { class: "sf-stats-words" });
+	const readout = el("div", { class: "sf-stats-session", attrs: { "data-testid": "session-readout", role: "group", "aria-label": "Current session" } }, clock, length, words);
+	let clockKind: "running" | "paused" | null = null;
 	const drawReadout = (): void => {
 		const on = model.running?.settings.values.showSessionReadout === true;
-		const live = on ? model.running?.sessions?.live() ?? null : null;
-		readout.hidden = !live;
-		if (!live) return void readout.replaceChildren();
-		readout.textContent = `session ${elapsedLabel(Date.now() - live.startMs)}, ${figure(live.net)} words`;
+		readout.hidden = !on;
+		if (!on) return;
+		const state = readoutState(model.running?.sessions?.live() ?? null, Date.now());
+		const kind = state.paused ? "paused" : "running";
+		if (kind !== clockKind) {
+			clockKind = kind;
+			clock.dataset.clock = kind;
+			clock.replaceChildren(icon(state.paused ? "clock-pause" : "clock", 24));
+		}
+		length.textContent = state.length;
+		// The words are shown only while a session runs, and not twice when session is the count above.
+		const show = state.net !== null && model.nav.statsCount !== "session";
+		words.hidden = !show;
+		words.replaceChildren(...(show ? [figure(state.net as number), el("span", { class: "sf-visually-hidden", text: " words" })] : []));
 	};
 
 	const draw = (): void => {
@@ -77,6 +86,7 @@ export function mountStats(host: HTMLElement, model: AppModel): () => void {
 		step.setAttribute("aria-label", countButtonLabel(c));
 		numberName.textContent = `${countLabel(c)}: `;
 		numberText.textContent = figure(current());
+		drawReadout();
 	};
 	const drawNumber = (): void => {
 		numberText.textContent = figure(current());

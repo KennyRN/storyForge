@@ -180,7 +180,7 @@ test.describe("the live readout", () => {
 	const projectMd = "_backstage/storyforge/project.md";
 	const start = async (page: Page, readout: boolean) => {
 		await openPreview(page);
-		await page.evaluate(([p, t]) => window.__preview.touch(p, t), [projectMd, `---\nformat-version: 1\nsession-idle-minutes: 1\nshow-session-readout: ${readout}\n---\n`]);
+		await page.evaluate(([p, t]) => window.__preview.touch(p, t), [projectMd, `---\nformat-version: 1\nsession-idle-minutes: 5\nshow-session-readout: ${readout}\n---\n`]);
 		await page.reload();
 		await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
 		await page.clock.install({ time: new Date("2026-10-26T10:00:00Z") });
@@ -190,27 +190,80 @@ test.describe("the live readout", () => {
 		await page.keyboard.press("End");
 	};
 	const readout = (page: Page) => page.getByTestId("session-readout");
+	const length = (page: Page) => readout(page).locator(".sf-stats-length");
+	const words = (page: Page) => readout(page).locator(".sf-stats-words");
+	const clock = (page: Page) => readout(page).locator(".sf-stats-clock");
 
-	test("with the setting on it shows the session so far, counts up quietly, and goes when the session ends", async ({ page }) => {
+	test("with the setting on the row is always there: the clock beneath the graph icon, `0m`, no words, before any session", async ({ page }) => {
 		await start(page, true);
-		await expect(readout(page)).toBeHidden(); // nothing between sessions
-		await page.keyboard.type(" one two three");
-		await page.clock.runFor(2_000);
 		await expect(readout(page)).toBeVisible();
-		await expect(readout(page)).toHaveText(/^session 0:0[1-3], 3 words$/);
+		await expect(clock(page)).toHaveAttribute("data-clock", "running");
+		await expect(length(page)).toHaveText("0m");
+		await expect(words(page)).toBeHidden();
+		const [graph, clockBox] = await Promise.all([page.locator(".sf-stats-chart").boundingBox(), clock(page).boundingBox()]);
+		expect(clockBox?.y).toBeGreaterThan((graph?.y ?? 0) + (graph?.height ?? 0) - 1); // beneath
+		expect(Math.abs((clockBox?.x ?? 0) - (graph?.x ?? 99))).toBeLessThan(2); // and in line
+		expect(await clock(page).locator("svg").getAttribute("width")).toBe("24");
+		await shot(page, "stats-readout-idle");
+	});
+
+	test("length is first edit to last, in hours and minutes; the clock pauses a minute after the last edit and runs again at the next", async ({ page }) => {
+		await start(page, true);
+		await page.keyboard.type(" one two three");
+		await page.clock.runFor(2 * 60_000 - 5_000);
 		await page.keyboard.type(" four five");
 		await page.clock.runFor(2_000);
-		await expect(readout(page)).toHaveText(/^session 0:0[3-6], 5 words$/);
-		// quiet: no live region, no animation, never focused
+		await expect(length(page)).toHaveText("1m"); // 1 min 55 s from first edit to last
+		await expect(words(page)).toHaveText("5 words");
+		await expect(clock(page)).toHaveAttribute("data-clock", "running");
+		await page.clock.runFor(61_000);
+		await expect(clock(page)).toHaveAttribute("data-clock", "paused");
+		await expect(length(page)).toHaveText("1m"); // holds while paused
+		await expect(words(page)).toHaveText("5 words");
+		await shot(page, "stats-readout-paused");
+		await page.keyboard.type(" six");
+		await page.clock.runFor(1_000);
+		await expect(clock(page)).toHaveAttribute("data-clock", "running");
+		await expect(length(page)).toHaveText("2m"); // first edit to this one, 2 min 58 s
+		await expect(words(page)).toHaveText("6 words");
+	});
+
+	test("when the session ends the row goes back to the standard clock, `0m` and no words", async ({ page }) => {
+		await start(page, true);
+		await page.keyboard.type(" one two three");
+		await page.clock.runFor(61_000);
+		await expect(clock(page)).toHaveAttribute("data-clock", "paused");
+		await page.clock.runFor(6 * 60_000); // past the idle limit
+		await expect(clock(page)).toHaveAttribute("data-clock", "running");
+		await expect(length(page)).toHaveText("0m");
+		await expect(words(page)).toBeHidden();
+	});
+
+	test("with session as the count on display, the words aren't repeated in the row", async ({ page }) => {
+		await start(page, true);
+		await page.locator(".sf-stats-count").click();
+		await page.locator(".sf-stats-count").click(); // day, week, session
+		await page.locator(".sf-slot--centre .cm-content").click(); // a space typed on the focused icon would step it on
+		await page.keyboard.press("End");
+		await page.keyboard.type(" one two three");
+		await page.clock.runFor(2_000);
+		await expect(page.locator(".sf-stats-value")).toHaveText("Words this session: 3");
+		await expect(words(page)).toBeHidden();
+		await expect(length(page)).toHaveText("0m");
+		await shot(page, "stats-readout-session");
+	});
+
+	test("every part of the row is grey1, and it is quiet: no live region, no animation, never focused", async ({ page }) => {
+		await start(page, true);
+		await page.keyboard.type(" one two three");
+		await page.clock.runFor(2_000);
+		for (const loc of [readout(page), clock(page), length(page), words(page)]) expect(await loc.evaluate((e) => getComputedStyle(e).color)).toBe("rgb(133, 146, 137)");
 		expect(await readout(page).getAttribute("aria-live")).toBeNull();
 		expect(await readout(page).evaluate((e) => getComputedStyle(e).animationName + getComputedStyle(e).transitionDuration)).toMatch(/^none0s$/);
 		expect(await page.evaluate(() => document.activeElement?.className ?? "")).toContain("cm-content");
-		await shot(page, "sessions-readout");
-		await page.clock.runFor(90_000);
-		await expect(readout(page)).toBeHidden();
 	});
 
-	test("with the setting off it never shows", async ({ page }) => {
+	test("with the setting off the row isn't drawn", async ({ page }) => {
 		await start(page, false);
 		await page.keyboard.type(" one two three");
 		await page.clock.runFor(3_000);

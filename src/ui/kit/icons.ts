@@ -34,6 +34,17 @@ const FILE_PLUS: IconNode = [
 	["path", { d: "M16 19h6" }],
 	["path", { d: "M19 16v6" }],
 ];
+/** Tabler's clock and clock-pause (MIT; Icon Licences.md): the session readout's standard and paused clocks. */
+const CLOCK: IconNode = [
+	["path", { d: "M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" }],
+	["path", { d: "M12 7v5l3 3" }],
+];
+const CLOCK_PAUSE: IconNode = [
+	["path", { d: "M20.942 13.018a9 9 0 1 0 -7.909 7.922" }],
+	["path", { d: "M12 7v5l2 2" }],
+	["path", { d: "M17 17v5" }],
+	["path", { d: "M21 17v5" }],
+];
 /** The filled folder: the Codex list's folder icon (solid, drawn with fill and no stroke). */
 const FOLDER_FILLED: IconNode = [
 	["path", { d: "M9 3a1 1 0 0 1 .608 .206l.1 .087l2.706 2.707h6.586a3 3 0 0 1 2.995 2.824l.005 .176v8a3 3 0 0 1 -2.824 2.995l-.176 .005h-14a3 3 0 0 1 -2.995 -2.824l-.005 -.176v-11a3 3 0 0 1 2.824 -2.995l.176 -.005h4z" }],
@@ -46,6 +57,8 @@ const ICONS = {
 	switch: ArrowLeftRight,
 	book: BookOpen,
 	check: Check,
+	clock: CLOCK,
+	"clock-pause": CLOCK_PAUSE,
 	"chevron-down": ChevronDown,
 	"chevron-right": ChevronRight,
 	file: File,
