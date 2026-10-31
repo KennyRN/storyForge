@@ -308,6 +308,11 @@ body.sf-codex-drag-active {
 	color: var(--purpose-text-muted);
 	font-size: 12px;
 }
+/* The project's name and the novel's title are the interface accent, as text only (decision 62), on the storytelling side. */
+.sf-left[data-face="storytelling"] .sf-left-name,
+.sf-nav-novel {
+	color: var(--purpose-accent);
+}
 .sf-left-body {
 	flex: 1;
 	min-height: 0;

@@ -80,6 +80,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 		const face = model.nav.face;
 		if (face === shownFace) return;
 		shownFace = face;
+		left.dataset.face = face;
 		disposeFace?.();
 		fill(faceHost);
 		faceHost.className = "sf-left-body";
