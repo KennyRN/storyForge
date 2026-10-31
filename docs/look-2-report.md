@@ -1,6 +1,6 @@
 # Look, round two: report (Brief 11)
 
-**Built app:** storyForge **1.3.0**, built from branch `look-2` (not `main`), reached through the `storyForge.app` link beside the repository (decision 66). The branch is not merged or pushed. `main` and the tag `v1.2.0` are 1.2.0; **`main` has not been rebuilt**: Brief 11 is mid-flight on its branch, so by the standing rule the rebuild of `main` waits until after the merge.
+**Built app:** storyForge **1.3.0**, rebuilt after decision 67 from branch `look-2` (not `main`), reached through the `storyForge.app` link beside the repository (decision 66). The branch is not merged or pushed. `main` and the tag `v1.2.0` are 1.2.0; **`main` has not been rebuilt**: Brief 11 is mid-flight on its branch, so by the standing rule the rebuild of `main` waits until after the merge.
 
 ## What was built (commits 2 to 8)
 
@@ -14,6 +14,7 @@
 | 6 | The Codex colour setting (`codex-colour`), and yellow, aqua and purple in the theme |
 | 7 | The project name and the novel's title in the green accent (storytelling side) |
 | 8 | Docs, this report, the changelog, 1.3.0 |
+| 9 | Kenny's changes after commits 5 and 6 (decision 67): three more Codex colours, the focus ring, the straight nested edge, the line's exact ends, the strip as hover icons |
 
 ## Lines removed and kept
 
@@ -31,14 +32,25 @@ From the theme's own values; `bg_dim` is `#293136`. The ratio is the same as tex
 | Aqua | `#83c092` | 6.25 | yes |
 | Purple | `#d699b6` | 5.73 | yes |
 | Grey (`grey2`) | `#9da9a0` | 5.43 | yes |
+| Green (added by decision 67) | `#a7c080` | 6.61 | yes |
+| Blue (added) | `#7fbbb3` | 6.09 | yes |
+| Orange (added) | `#e69875` | 5.74 | yes |
 
-All pass, so nothing was dropped. The theme's existing `fg`, `red`, `orange`, `green` and `blue` matched the supplied source: no mismatch. No `palette.md` exists in the repository.
+**The strip's resting shades** (decision 67; faint on purpose, Kenny's call to judge in the built app, not blocked on): `bg5` 2.37, yellow's shade 1.74, green's 1.75, blue's 1.76, purple's 1.51 (against `bg_dim`).
+
+All eight Codex colours pass, so nothing was dropped. The theme's existing `fg`, `red`, `orange`, `green` and `blue` matched the supplied source: no mismatch. No `palette.md` exists in the repository.
 
 ## Screenshots (`docs/look-2-shots/`)
 
 Built app (1.3.0, `npm run test:look -- --shots docs/look-2-shots`): `codex-storytelling-no-note.png` (panels without dividers, the green titles, the Codex list, the strip's icons), `codex-library.png` (the library side), the chapter at 30em, a Codex note in the context panel and in the workspace, and a plot note.
-Browser preview, not the built app: `preview-codex-aqua-nested-highlight.png` (the list in aqua, with a nested highlight).
+Browser preview, not the built app: `preview-codex-aqua-nested-highlight.png` (the list in aqua, taken before decision 67, so its corners and strip are the old ones).
 **Not captured in the built app:** the editor mid-scroll with its thin bar, and a built-app picture of a second Codex colour. The bar is covered by preview tests (it appears while scrolling, is gone after, and does not fade under reduced motion); the colour setting by preview tests on both sides. Kenny's check covers both in the real app.
+
+## Decision 67 (Kenny's changes after commits 5 and 6)
+
+Done as one fix-up commit, with the docs updated to match; commit 7 was already done (`d7cf2e1`). Choices, the focus ring, the nested highlight, the line's exact ends and the strip as hover icons are described in `docs/look-2.md` §7. Tests: the focus ring with green chosen (it is the text colour, never the highlight's colour); a nested row's left corners are 0 and the others round, and a top-level row is unchanged; every folder's line measured against its first and last child's box (Cast, Harbour and a nested folder, on both sides), within half a pixel; the strip's colour at rest, on hover, after the pointer leaves and on keyboard focus, with no background or border ever; each of the seven non-default colours recolours the lists and sets the strip's resting shade.
+
+**Built-app screenshots for this change** (`docs/look-2-shots/`, default colour, and `green/` with `LOOK_CODEX_COLOUR=green`): `codex-selected-and-focused.png` (a nested row highlighted, touching its folder's line, with the focus ring; in `green/` the ring is the text colour on the green block), `strip-focused.png` (the icon in the Codex colour, the other at its resting shade), and the other pictures show the strip at rest. **No hovered picture:** a hover needs a real pointer, and `test:look` never uses one (real clicks are a last resort and need warning first). The strip's colour on keyboard focus and on hover is the same rule and is tested with the real mouse in the preview suite.
 
 ## Hold points
 
@@ -55,7 +67,7 @@ Browser preview, not the built app: `preview-codex-aqua-nested-highlight.png` (t
 
 ## Tests
 
-`npm test` 1,601; `npm run test:ui` 334 passed, 1 skipped (as before); the new preview suites are `scrollbars`, `dividers`, `codexlook` and `titles`, plus `codexFolderNote` and the settings cases in `npm test`; `cargo test --workspace` passes; `npm run test:look` passes on the 1.3.0 build. `test:quit` was not needed: the close path is untouched. The `test:cover` and `test:typing` scripts were not run, as nothing they cover changed.
+`npm test` 1,601; `npm run test:ui` 337 passed, 1 skipped (as before); the new preview suites are `scrollbars`, `dividers`, `codexlook` and `titles`, plus `codexFolderNote` and the settings cases in `npm test`; `cargo test --workspace` passes; `npm run test:look` passes on the 1.3.0 build. `test:quit` was not needed: the close path is untouched. The `test:cover` and `test:typing` scripts were not run, as nothing they cover changed.
 
 ## Kenny's check, in the built app, on a copy of a project
 

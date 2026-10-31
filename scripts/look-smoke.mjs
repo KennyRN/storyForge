@@ -124,6 +124,11 @@ cpSync(join(root, "test/fixtures/series"), project, { recursive: true });
 // The wynn and yogh lines are in the chapter on disk: the keystroke tool can't type them (it types an "a"), and what is
 // checked is how they are drawn, not how they are typed.
 appendFileSync(join(project, "_story-library/aaa/ch-a1.md"), "\n\nƿȝƿȝƿȝƿȝƿȝ\n\n*ƿȝƿȝƿȝƿȝƿȝƿ*\n\nThe old letters, upright: ð þ ƿ ȝ ǣ, in *italic: ð þ ƿ ȝ ǣ*, in **bold: ð þ ƿ ȝ ǣ**.\n");
+// LOOK_CODEX_COLOUR=green (or any choice) sets the project's Codex colour, to take the pictures in that colour.
+if (process.env.LOOK_CODEX_COLOUR) {
+	mkdirSync(join(project, "_backstage/storyforge"), { recursive: true });
+	writeFileSync(join(project, "_backstage/storyforge/project.md"), `---\nformat-version: 1\ncodex-colour: ${process.env.LOOK_CODEX_COLOUR}\n---\n`);
+}
 const data = join(home, DATA_FOLDER);
 mkdirSync(data, { recursive: true });
 writeFileSync(join(data, "recent.json"), JSON.stringify([project]));
@@ -244,6 +249,16 @@ try {
 		expectWidth("the Codex note in the context panel, upright", widthOf("AXStaticText", "wwwwwwwwww", 3), 161, 150);
 		expectWidth("the Codex note in the context panel, italic", widthOf("AXStaticText", "wwwwwwwwwww", 2), 191, 160);
 		windowShot("codex-note-in-context-panel");
+		// Sam is selected (highlighted, touching its folder's line). Focus it by the keyboard route (accessibility): the ring on a highlighted row.
+		if (find("AXStaticText", "Sam", "focusrow").startsWith("found")) {
+			await sleep(500);
+			windowShot("codex-selected-and-focused");
+		}
+		// The strip's icon focused: its colour is the Codex colour, as on hover (a hover needs a pointer, which this script never uses).
+		if (find("AXButton", "New folder", "focus").startsWith("found")) {
+			await sleep(500);
+			windowShot("strip-focused");
+		}
 	}
 
 	// The library side's Codex list, and a plot note (13 px: ten "w" is 105 px in SN Pro, 100 in the system font).

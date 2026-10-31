@@ -406,8 +406,11 @@ textarea {
 }
 .sf-swatch-dot--text { background: var(--purpose-codex-choice-text); }
 .sf-swatch-dot--yellow { background: var(--purpose-codex-choice-yellow); }
+.sf-swatch-dot--green { background: var(--purpose-codex-choice-green); }
 .sf-swatch-dot--aqua { background: var(--purpose-codex-choice-aqua); }
+.sf-swatch-dot--blue { background: var(--purpose-codex-choice-blue); }
 .sf-swatch-dot--purple { background: var(--purpose-codex-choice-purple); }
+.sf-swatch-dot--orange { background: var(--purpose-codex-choice-orange); }
 .sf-swatch-dot--grey { background: var(--purpose-codex-choice-grey); }
 .sf-setting-control {
 	width: auto;

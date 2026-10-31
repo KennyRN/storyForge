@@ -27,8 +27,8 @@ export const PLUGIN_DATA_PATH = ".obsidian/plugins/storyforge/data.json";
 /** The highest `format-version` this build understands. A higher one opens the project read-only. */
 export const SUPPORTED_FORMAT = 1;
 
-/** The Codex list's colour (decision 62): the default text colour, or one of Everforest's colours that are not reserved. */
-export const CODEX_COLOURS = ["text", "yellow", "aqua", "purple", "grey"] as const;
+/** The Codex list's colour (decisions 62 and 67): the default text colour, or one of Everforest's foreground colours (not red, which is trouble). Green, blue and orange are reserved elsewhere (decision 8); for the Codex list only, that is amended. */
+export const CODEX_COLOURS = ["text", "yellow", "green", "aqua", "blue", "purple", "orange", "grey"] as const;
 export type CodexColour = (typeof CODEX_COLOURS)[number];
 
 export interface ProjectSettings {
