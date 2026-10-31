@@ -64,3 +64,43 @@ for (const side of SIDES) {
 		});
 	});
 }
+
+for (const side of SIDES) {
+	test.describe(`the Codex strip, ${side.name}`, () => {
+		test.beforeEach(async ({ page }) => { await openProject(page); await side.show(page); });
+
+		test("plain icons in the Codex colour at rest; the row highlight on hover", async ({ page }) => {
+			const btn = page.getByRole("button", { name: "New folder" });
+			const [codex, panel] = await tree(page).evaluate((e) => [getComputedStyle(e).color, getComputedStyle(e.closest(".sf-left")!).backgroundColor]);
+			const rest = await btn.evaluate((e) => { const s = getComputedStyle(e); return { bg: s.backgroundColor, border: s.borderTopColor, color: s.color }; });
+			expect(rest).toEqual({ bg: "rgba(0, 0, 0, 0)", border: "rgba(0, 0, 0, 0)", color: codex });
+			await btn.hover();
+			await expect.poll(() => btn.evaluate((e) => [getComputedStyle(e).backgroundColor, getComputedStyle(e).color])).toEqual([codex, panel]); // after its colour transition
+		});
+
+		test("still buttons: focusable with a tooltip and the focus ring, and ↓ moves between them", async ({ page }) => {
+			const folder = page.getByRole("button", { name: "New folder" });
+			await folder.focus();
+			await page.keyboard.press("Shift+Tab");
+			await page.keyboard.press("Tab"); // by the keyboard, so the focus shows
+			await expect(folder).toBeFocused();
+			await expect(page.getByRole("tooltip")).toHaveText("New folder");
+			expect(await folder.evaluate((e) => getComputedStyle(e).outlineStyle)).not.toBe("none");
+			await page.keyboard.press("ArrowDown");
+			await expect(page.getByRole("button", { name: "New note" })).toBeFocused();
+		});
+	});
+}
+
+test("in a read-only project the strip's icons are greyed out, with the reason as the tooltip", async ({ page }) => {
+	await openPreview(page);
+	await page.evaluate(() => window.__preview.touch("_backstage/storyforge/project.md", "---\nformat-version: 99\n---\n")); // a project made by a newer storyForge
+	await page.locator("[data-recent='0']").click();
+	await page.waitForFunction(() => !!window.__app?.editors);
+	const btn = page.getByRole("button", { name: "New folder" });
+	await expect(btn).toBeDisabled();
+	await btn.hover({ force: true });
+	await page.waitForTimeout(400);
+	expect(await btn.evaluate((e) => getComputedStyle(e).backgroundColor)).toBe("rgba(0, 0, 0, 0)"); // no highlight on a disabled one
+	expect(await btn.evaluate((e) => getComputedStyle(e).opacity)).not.toBe("1");
+});

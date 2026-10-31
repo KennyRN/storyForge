@@ -206,6 +206,18 @@
 	gap: 2px;
 	padding: var(--space-1) 0 0 var(--space-2);
 }
+/* The strip's two buttons are plain icons in the Codex colour: no shape at rest, the row highlight on hover (still buttons to the
+   keyboard and a screen reader, with their tooltips and the accent focus ring). */
+.sf-codex-strip .sf-button {
+	padding: 4px 6px;
+	border-color: transparent;
+	background: transparent;
+	color: var(--purpose-codex);
+}
+.sf-codex-strip .sf-button:hover:not(:disabled) {
+	background: var(--purpose-codex);
+	color: var(--purpose-panel-bg);
+}
 .sf-codex-body > .sf-codex-tree {
 	flex: 1;
 	min-width: 0;
