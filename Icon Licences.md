@@ -74,10 +74,10 @@ This project uses icons from the following third-party, open-source icon sets. A
 
 ## Heroicons
 
-- **Author:** Tailwind Labs (Steve Schoger, Adam Wathan and contributors)
+- **Author:** Tailwind Labs, Inc.
 - **Source:** https://github.com/tailwindlabs/heroicons
 - **Version:** 2.x, the 16 px solid ("micro") set, which first appeared in 2.1.0. The files were supplied by Kenny, who chose them; the exact release they were taken from wasn't recorded.
-- **Licence:** MIT License — *see [MIT License](#mit-license) below*
+- **Licence:** MIT License — *see [MIT License](#mit-license) below; Heroicons' own LICENSE reads "MIT License, Copyright (c) Tailwind Labs, Inc.", the same text*
 
 ---
 
@@ -455,7 +455,7 @@ This project uses icons from the following third-party, open-source icon sets. A
 ```
 MIT License
 
-Copyright (c) respective icon set authors (Heroicons — Tailwind Labs; Famicons — Family; Mynaui Icons — Myna UI; Siemens Industrial Experience Icons — Siemens AG; Mono Icons — Mono Company BV; Tabler Icons — Tabler (Paweł Kuna); Framework7 Icons — Vladimir Kharlampidi; Bootstrap Icons — The Bootstrap Authors; Feather Icon (fe) — Megumi Hano; @icons (at-icons) — Valentin Fossati; Huge Icons — Hugeicons; Akar Icons — Arturo Wibawa; Fluent UI System Icons — Microsoft Corporation; Phosphor Icons — Phosphor Icons; Majesticons — Gerrit Halfmann; Simple Line Icons — Sabbir Ahmed & contributors; Ionicons — Ionic (ionic-team))
+Copyright (c) respective icon set authors (Heroicons — Tailwind Labs, Inc.; Famicons — Family; Mynaui Icons — Myna UI; Siemens Industrial Experience Icons — Siemens AG; Mono Icons — Mono Company BV; Tabler Icons — Tabler (Paweł Kuna); Framework7 Icons — Vladimir Kharlampidi; Bootstrap Icons — The Bootstrap Authors; Feather Icon (fe) — Megumi Hano; @icons (at-icons) — Valentin Fossati; Huge Icons — Hugeicons; Akar Icons — Arturo Wibawa; Fluent UI System Icons — Microsoft Corporation; Phosphor Icons — Phosphor Icons; Majesticons — Gerrit Halfmann; Simple Line Icons — Sabbir Ahmed & contributors; Ionicons — Ionic (ionic-team))
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
