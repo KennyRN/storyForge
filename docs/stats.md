@@ -98,4 +98,23 @@ Kenny's mapping, as received:
 3. Wording: today / this week / this session / this chapter / this novel in names and tooltips?
 4. Is it right for the count icons to be 16 px beside 24 px graph and clock icons (as the brief says "natural size")?
 
-*(Not built. Waiting at H1.)*
+## 9. H1 rulings (decision 69)
+
+1. The five count icons are **Heroicons** (16 px solid), MIT, from Tailwind Labs, Inc. Added to `Icon Licences.md` with source, version and the MIT notice (Kenny supplied the LICENSE; the exact release isn't recorded, and the entry says so).
+2. `SessionRecorder.live()` may gain a read-only `lastEditMs`: it only reports, existing callers are unaffected, and it has a core test. Length so far is `lastEditMs − startMs`; paused is `now − lastEditMs ≥ 60 s`.
+3. Wording: "today", "this week", "this session", "this chapter", "this novel", in the count icon's accessible name and tooltip ("Words today; press for this week").
+4. The count icons stay at their natural 16 px beside the 24 px graph and clock icons. Kenny judges them in the built app.
+5. `grey1` `#859289` joins the theme as a palette role (4.08:1 on `bg_dim`).
+
+## 10. As built
+
+Three commits on `stats` after this document: `7d6e0bc` (the counts row), `49fe23b` (the Heroicons author line), `5d084fe` (the readout row), then the version, changelog, `AGENTS.md` and the report.
+
+- **Differences from §§1–8: none in what was proposed.** The figures come from the same functions as before (§2); session is `live().net`.
+- **Where the code is:** `src/ui/faces/stats.ts` (the section, built once and updated in place so keyboard stepping keeps focus), `src/ui/kit/statsIcons.ts` (graph and counts, drawn in `currentColor`), `src/ui/kit/icons.ts` (the two Tabler clocks), `src/core/sessionReadout.ts` (the length format, `PAUSE_AFTER_MS`, `readoutState`), `src/app/sessionRecorder.ts` (`live()`), `src/app/settings.ts` and `src/ui/model.ts` (`statsCount` in machine state; day isn't stored, an unknown value reads as day).
+- **Colour:** `--ef-grey1` in the theme file, `--purpose-stats` in `purposes.css` (and `tokens.ts`). The files' own fills (`#0F172A`, `black`) became `currentColor`, so the purposes test still holds.
+- **The old `layers` icon and `elapsedLabel` (`mm:ss`) are gone;** the old "Switch wordcount" button is replaced by the count icon.
+- **Not a live region on the row:** the readout row has none (as before); only the number is polite, so a step is announced without a ticking clock being read out.
+- **The pause is seen to the second:** the row redraws on the existing one-second tick, so the clock changes within a second of the minute.
+- **The count icon is a `<button>`,** so a space typed while it has focus steps it on. That is a button's normal behaviour; typing happens in the editor.
+- **Rust, the close path, the guard and the disk format: untouched.**
