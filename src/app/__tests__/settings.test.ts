@@ -368,3 +368,47 @@ describe("the typing settings (docs/typing-aids.md §8)", () => {
 		expect(fs.existsSync(path.join(root, PROJECT_SETTINGS_PATH))).toBe(false);
 	});
 });
+
+describe("the Codex colour (decision 62)", () => {
+	const put = (root: string, body: string) => {
+		fs.mkdirSync(path.join(root, "_backstage/storyforge"), { recursive: true });
+		fs.writeFileSync(path.join(root, PROJECT_SETTINGS_PATH), `---\nformat-version: 1\n${body}---\n`);
+	};
+	it("defaults to the text colour; a known choice is read from project.md; an unknown or wrong-kind value falls back and is never rewritten", async () => {
+		const root = copyFixture("series");
+		expect((await loadSettings(await open(root), reader(root))).values.codexColour).toBe("text");
+		put(root, "codex-colour: purple\n");
+		const ok = await loadSettings(await open(root), reader(root));
+		expect(ok.values.codexColour).toBe("purple");
+		expect(ok.sources.codexColour).toBe("project.md");
+		for (const text of ["codex-colour: red\n", "codex-colour: 4\n", "codex-colour: [aqua]\n"]) {
+			put(root, text);
+			const before = snapshot(root);
+			const bad = await loadSettings(await open(root), reader(root));
+			expect(bad.values.codexColour).toBe("text");
+			expect(bad.sources.codexColour).toBe("default");
+			expect(diffSnapshots(before, snapshot(root)).changed).toEqual([]);
+		}
+	});
+
+	it("setting the default on a project with no project.md writes nothing; a change writes only project.md and only its key", async () => {
+		const plain = copyFixture("series");
+		const plainProject = await open(plain);
+		const plainSettings = await loadSettings(plainProject, reader(plain));
+		const plainBefore = snapshot(plain);
+		await setSetting(plainProject, plainSettings, "codexColour", "text");
+		expect(diffSnapshots(plainBefore, snapshot(plain)).changed).toEqual([]);
+		expect(diffSnapshots(plainBefore, snapshot(plain)).added).toEqual([]);
+
+		const root = copyFixture("series");
+		put(root, "x-future-key: kept\n");
+		const project = await open(root);
+		const s = await loadSettings(project, reader(root));
+		const before = snapshot(root);
+		await setSetting(project, s, "codexColour", "aqua");
+		const text = fs.readFileSync(path.join(root, PROJECT_SETTINGS_PATH), "utf8");
+		expect(text).toContain("codex-colour: aqua");
+		expect(text).toContain("x-future-key: kept");
+		expect(diffSnapshots(before, snapshot(root)).changed).toEqual([PROJECT_SETTINGS_PATH]);
+	});
+});

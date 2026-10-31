@@ -1,6 +1,6 @@
 import { NUMBERING_STYLE_OPTIONS, type NumberingStyle } from "../../core/numberingStyle";
 import type { AutomaticBackupFrequency } from "../../core/backup";
-import { SESSION_LIMITS, setSetting, type ProjectSettings } from "../../app/settings";
+import { CODEX_COLOURS, SESSION_LIMITS, setSetting, type CodexColour, type ProjectSettings } from "../../app/settings";
 import { button } from "../kit/button";
 import { openDialog } from "../kit/dialog";
 import { el } from "../kit/dom";
@@ -8,6 +8,7 @@ import { typingSection } from "./typingSettings";
 import type { AppModel } from "../model";
 
 const SOURCE_WORDS = { "project.md": "this project", "data.json": "the plugin's settings", default: "default" } as const;
+const CODEX_COLOUR_NAMES: Record<CodexColour, string> = { text: "Text", yellow: "Yellow", aqua: "Aqua", purple: "Purple", grey: "Grey" };
 const FREQUENCIES: Record<AutomaticBackupFrequency, string> = { "every-open": "Every time the project opens", daily: "Once a day", weekly: "Once a week" };
 
 /**
@@ -43,6 +44,19 @@ export function openSettings(model: AppModel): void {
 		input.disabled = off;
 		input.addEventListener("change", () => void change(key, input.checked));
 		return row(label, input, key);
+	};
+	/** The Codex colour: named swatches, one chosen (a radio group). */
+	const codexColour = (): HTMLElement => {
+		const group = el("div", { class: "sf-swatches", attrs: { role: "radiogroup", "aria-label": "Codex colour" } });
+		for (const choice of CODEX_COLOURS) {
+			const chosen = settings.values.codexColour === choice;
+			const b = el("button", { class: `sf-swatch${chosen ? " is-chosen" : ""}`, dataset: { choice }, attrs: { type: "button", role: "radio", "aria-checked": String(chosen), "aria-label": CODEX_COLOUR_NAMES[choice] }, }, el("span", { class: `sf-swatch-dot sf-swatch-dot--${choice}` }), CODEX_COLOUR_NAMES[choice]);
+			b.disabled = off;
+			b.addEventListener("click", () => void change("codexColour", choice));
+			group.append(b);
+		}
+		// A div, not the label the other rows use: a click on a label would press the first swatch.
+		return el("div", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: "Codex colour" }), group, source("codexColour"));
 	};
 	/** A whole-number field. Committed when it loses focus or Return is pressed; a value outside the range is put back. Blank means off, where `nullable`. */
 	const number = (key: "sessionIdleMinutes" | "sessionMinShownMinutes" | "sessionEditingWpm", label: string, [lo, hi]: readonly [number, number], nullable = false): HTMLElement => {
@@ -99,6 +113,7 @@ export function openSettings(model: AppModel): void {
 				select("autoFocus", "Opens in", [["true", "storytelling"], ["false", "library"]], (v) => v === "true"),
 				check("highlightActiveChapter", "Highlight the active chapter"),
 				check("hideSeriesPane", "Hide the series pane (for one standalone book)"),
+				codexColour(),
 			]),
 		);
 		body.querySelectorAll("select").forEach((s) => {

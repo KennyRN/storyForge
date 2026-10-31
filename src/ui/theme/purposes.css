@@ -34,6 +34,18 @@
 	--purpose-heat-loss-d: var(--ef-grey0);
 	/* The Codex list's one colour: text, icons, folder lines and the highlight (a setting from commit 6; the default text colour here). */
 	--purpose-codex: var(--purpose-text);
+	/* The Codex colour's choices (the setting `codex-colour`): Everforest's colours that decision 8 does not reserve. */
+	--purpose-codex-choice-text: var(--ef-fg);
+	--purpose-codex-choice-yellow: var(--ef-yellow);
+	--purpose-codex-choice-aqua: var(--ef-aqua);
+	--purpose-codex-choice-purple: var(--ef-purple);
+	--purpose-codex-choice-grey: var(--ef-grey2);
 	--purpose-guide: var(--ef-grey0);
 	--purpose-guide-faint: var(--ef-bg3);
 }
+
+/* The chosen Codex colour (set on the page by the app from the project's setting); missing or unknown means the default text colour. */
+:root[data-codex-colour="yellow"] { --purpose-codex: var(--purpose-codex-choice-yellow); }
+:root[data-codex-colour="aqua"] { --purpose-codex: var(--purpose-codex-choice-aqua); }
+:root[data-codex-colour="purple"] { --purpose-codex: var(--purpose-codex-choice-purple); }
+:root[data-codex-colour="grey"] { --purpose-codex: var(--purpose-codex-choice-grey); }

@@ -104,3 +104,56 @@ test("in a read-only project the strip's icons are greyed out, with the reason a
 	expect(await btn.evaluate((e) => getComputedStyle(e).backgroundColor)).toBe("rgba(0, 0, 0, 0)"); // no highlight on a disabled one
 	expect(await btn.evaluate((e) => getComputedStyle(e).opacity)).not.toBe("1");
 });
+
+// The Codex colour setting (decision 62).
+const PROJECT = "_backstage/storyforge/project.md";
+const tokens: Record<string, string> = { text: "--purpose-codex-choice-text", yellow: "--purpose-codex-choice-yellow", aqua: "--purpose-codex-choice-aqua", purple: "--purpose-codex-choice-purple", grey: "--purpose-codex-choice-grey" };
+const resolved = (page: Page, token: string) => page.evaluate((t) => { const d = document.createElement("i"); d.style.color = `var(${t})`; document.body.append(d); const c = getComputedStyle(d).color; d.remove(); return c; }, token);
+const read = (page: Page, p: string): Promise<string | null> => page.evaluate((x) => window.__preview.read(x).catch(() => null), p);
+
+test.describe("the Codex colour setting", () => {
+	test("each choice recolours the whole list on both sides at once, and is written to project.md only when changed", async ({ page }) => {
+		await openProject(page);
+		expect(await read(page, PROJECT)).toBeNull(); // opening writes nothing
+		const setting = (choice: string) => page.getByRole("radio", { name: new RegExp(`^${choice}$`, "i") });
+		const openSettings = async () => { await page.evaluate(() => window.__preview.emit("menu", "settings")); await expect(page.getByRole("radiogroup", { name: "Codex colour" })).toBeVisible(); };
+		await openSettings();
+		await expect(setting("Text")).toHaveAttribute("aria-checked", "true");
+		for (const choice of ["yellow", "aqua", "purple", "grey"]) {
+			await setting(choice).click();
+			await expect(setting(choice)).toHaveAttribute("aria-checked", "true");
+			const want = await resolved(page, tokens[choice]);
+			// the storytelling list, then (after closing the dialog and flipping) the library list: both read the same page colour
+			expect(await tree(page).evaluate((e) => getComputedStyle(e).color)).toBe(want);
+			expect(await tree(page).locator(".sf-codex-name").first().evaluate((e) => getComputedStyle(e).color)).toBe(want);
+			expect(await tree(page).locator("svg").first().evaluate((e) => getComputedStyle(e).color)).toBe(want);
+			expect(await page.getByRole("button", { name: "New folder" }).evaluate((e) => getComputedStyle(e).color)).toBe(want);
+			await expect.poll(() => read(page, PROJECT)).toContain(`codex-colour: ${choice}`);
+		}
+		// grey is chosen: the library side's list wears it too
+		await page.getByRole("button", { name: "Done" }).click();
+		await page.getByRole("button", { name: "Flip side" }).click();
+		await page.getByRole("tab", { name: "codex" }).click();
+		const grey = await resolved(page, tokens.grey);
+		expect(await tree(page).evaluate((e) => getComputedStyle(e).color)).toBe(grey);
+		expect(await tree(page).locator("svg").first().evaluate((e) => getComputedStyle(e).color)).toBe(grey);
+		expect(await page.getByRole("button", { name: "New folder" }).evaluate((e) => getComputedStyle(e).color)).toBe(grey);
+		// and back to the default
+		await openSettings();
+		await setting("Text").click();
+		await expect.poll(() => read(page, PROJECT)).toContain("codex-colour: text");
+		expect(await tree(page).evaluate((e) => getComputedStyle(e).color)).toBe(await resolved(page, tokens.text));
+	});
+
+	test("an unknown value falls back to the default and the file is not rewritten", async ({ page }) => {
+		await openPreview(page);
+		const original = "---\ncodex-colour: red\n---\n";
+		await page.evaluate((t) => window.__preview.touch("_backstage/storyforge/project.md", t), original);
+		await page.reload();
+		await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+		await page.locator("[data-recent='0']").click();
+		await page.waitForFunction(() => !!window.__app?.editors);
+		expect(await tree(page).evaluate((e) => getComputedStyle(e).color)).toBe(await resolved(page, tokens.text));
+		expect(await read(page, PROJECT)).toBe(original);
+	});
+});

@@ -27,7 +27,13 @@ export const PLUGIN_DATA_PATH = ".obsidian/plugins/storyforge/data.json";
 /** The highest `format-version` this build understands. A higher one opens the project read-only. */
 export const SUPPORTED_FORMAT = 1;
 
+/** The Codex list's colour (decision 62): the default text colour, or one of Everforest's colours that are not reserved. */
+export const CODEX_COLOURS = ["text", "yellow", "aqua", "purple", "grey"] as const;
+export type CodexColour = (typeof CODEX_COLOURS)[number];
+
 export interface ProjectSettings {
+	/** The colour of the Codex list on both sides: text, icons, folder lines, the strip and the highlight. */
+	codexColour: CodexColour;
 	hideSeriesPane: boolean;
 	autoFocus: boolean;
 	layout: SfLayout;
@@ -65,6 +71,7 @@ export interface ProjectSettings {
 }
 
 export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
+	codexColour: "text",
 	hideSeriesPane: false,
 	autoFocus: true,
 	layout: "novelBrowse",
@@ -94,6 +101,7 @@ type Key = keyof ProjectSettings;
 
 /** key in `project.md`, key in the plugin's `data.json`, and how to check a value. */
 const FIELDS: Record<Key, { file: string; plugin: string; valid: (v: unknown) => boolean }> = {
+	codexColour: { file: "codex-colour", plugin: "-", valid: (v) => typeof v === "string" && (CODEX_COLOURS as readonly string[]).includes(v) },
 	hideSeriesPane: { file: "hide-series-pane", plugin: "hideSeriesPane", valid: (v) => typeof v === "boolean" },
 	autoFocus: { file: "auto-focus", plugin: "autoFocus", valid: (v) => typeof v === "boolean" },
 	layout: { file: "layout", plugin: "layout", valid: (v) => typeof v === "string" && (SF_LAYOUTS as string[]).includes(v) },

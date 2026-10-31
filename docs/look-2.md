@@ -50,7 +50,7 @@ Against `bg_dim` `#293136` (text on the panel). The inverted highlight is the sa
 | Purple | `#d699b6` | 5.73 | yes |
 | `grey2` | `#9da9a0` | 5.43 | yes |
 
-All five pass both ways. Yellow, aqua and purple are not in `everforest-soft-dark.css` yet (it holds only the roles used); I took their values from Everforest's Soft Dark palette from memory, **so please confirm `#dbbc7f`, `#83c092`, `#d699b6` against `palette.md` before I add them.** Note that `grey2` is also the muted-text colour, so with it chosen the list's text is the same as muted text elsewhere.
+All five pass both ways. **Ruling (decision 64, item 6 and the palette message):** yellow `#dbbc7f`, aqua `#83c092` and purple `#d699b6` are Everforest's dark foregrounds, the same at every contrast level, and are now palette roles in `everforest-soft-dark.css`. The theme's existing `fg #d3c6aa`, `red #e67e80`, `orange #e69875`, `green #a7c080` and `blue #7fbbb3` were checked against the same source: **no mismatch**. The ratios above were computed from the theme's own values (`bg_dim #293136`, `grey2 #9da9a0`). `grey2` is also the muted-text colour, so with it chosen the list's text matches muted text elsewhere. No `palette.md` exists in the repository.
 
 ## 6. The fading scrollbar
 

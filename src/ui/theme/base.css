@@ -376,6 +376,39 @@ textarea {
 	gap: var(--space-3);
 	padding: var(--space-1) 0;
 }
+.sf-swatches {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--space-1);
+}
+.sf-swatch {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 3px 10px 3px 6px;
+	border: 1px solid var(--purpose-border);
+	border-radius: var(--radius);
+	background: transparent;
+	color: var(--purpose-text);
+	cursor: pointer;
+}
+.sf-swatch.is-chosen {
+	border-color: var(--purpose-accent);
+}
+.sf-swatch:disabled {
+	opacity: 0.6;
+	cursor: default;
+}
+.sf-swatch-dot {
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+}
+.sf-swatch-dot--text { background: var(--purpose-codex-choice-text); }
+.sf-swatch-dot--yellow { background: var(--purpose-codex-choice-yellow); }
+.sf-swatch-dot--aqua { background: var(--purpose-codex-choice-aqua); }
+.sf-swatch-dot--purple { background: var(--purpose-codex-choice-purple); }
+.sf-swatch-dot--grey { background: var(--purpose-codex-choice-grey); }
 .sf-setting-control {
 	width: auto;
 	min-width: 12em;
