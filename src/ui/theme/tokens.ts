@@ -26,6 +26,7 @@ export const PURPOSES = [
 	"heat-loss-c",
 	"heat-loss-d",
 	"guide",
+	"codex",
 	"guide-faint",
 	"scrim",
 	"shadow",

@@ -111,6 +111,8 @@
 .sf-codex-tree {
 	flex: 1;
 	min-height: 0;
+	font-size: 16px;
+	color: var(--purpose-codex);
 	padding: var(--space-1) var(--space-2) var(--space-3);
 }
 .sf-codex-empty {
@@ -121,21 +123,23 @@
 	display: flex;
 	align-items: center;
 	gap: 0;
-	padding: 3px 8px 3px calc(8px + var(--depth, 0) * 16px);
+	/* A row inside a folder is highlighted from just right of that folder's line, not from the panel's edge; its text still starts one step in. */
+	--edge: max(0px, calc(var(--depth, 0) * 16px - 6px));
+	margin-left: var(--edge);
+	padding: 3px 8px 3px calc(8px + var(--depth, 0) * 16px - var(--edge));
 	border-radius: var(--radius);
 	cursor: pointer;
 	user-select: none;
 	-webkit-user-select: none;
 	touch-action: none;
 }
+/* The selected row and the row under the pointer look the same: a block in the Codex colour, the text and icons in the panel's. */
 .sf-codex-folder-header:hover,
-.sf-codex-file:hover {
-	background: var(--purpose-raised-bg);
-}
+.sf-codex-file:hover,
 .sf-codex-folder-header.is-active,
 .sf-codex-file.is-active {
-	background: var(--purpose-raised-bg);
-	color: var(--purpose-accent);
+	background: var(--purpose-codex);
+	color: var(--purpose-panel-bg);
 }
 /* The icon after a name always stays; a long name is the one that is cut short. */
 .sf-codex-file > svg,
@@ -177,10 +181,10 @@
 	position: absolute;
 	top: 0;
 	bottom: 2px;
-	left: calc(8px + var(--depth, 0) * 16px + 5px);
+	left: calc(8px + var(--depth, 0) * 16px); /* flush with the start of the folder's name */
 	width: 2px;
 	border-radius: 1px;
-	background: var(--purpose-guide);
+	background: var(--purpose-codex);
 }
 .sf-codex-folder-empty {
 	padding: 3px 8px 3px calc(8px + (var(--depth, 0) + 1) * 16px);
@@ -238,11 +242,7 @@
 }
 .sf-codex-file .sf-icon,
 .sf-codex-folder-header .sf-icon {
-	color: var(--purpose-text-muted);
-}
-.sf-codex-file.is-active .sf-icon,
-.sf-codex-folder-header.is-active .sf-icon {
-	color: var(--purpose-accent);
+	color: inherit; /* the Codex colour, or the panel's on a highlighted row */
 }
 .sf-dragging {
 	opacity: 0.6;

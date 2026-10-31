@@ -32,6 +32,8 @@
 	--purpose-heat-loss-b: var(--ef-bg4);
 	--purpose-heat-loss-c: color-mix(in srgb, var(--ef-bg4) 50%, var(--ef-grey0));
 	--purpose-heat-loss-d: var(--ef-grey0);
+	/* The Codex list's one colour: text, icons, folder lines and the highlight (a setting from commit 6; the default text colour here). */
+	--purpose-codex: var(--purpose-text);
 	--purpose-guide: var(--ef-grey0);
 	--purpose-guide-faint: var(--ef-bg3);
 }

@@ -39,7 +39,8 @@ test.describe("the storytelling face", () => {
 		await openProject(page);
 		const tree = page.locator(".sf-codex-tree");
 		await expect(tree.locator(".sf-codex-folder-header")).toHaveText(["Cast", "Harbour"]);
-		await expect(tree.locator(".sf-codex-file .sf-codex-name")).toContainText(["Jane", "Sam", "Harbour", "Windows"]);
+		await expect(tree.locator(".sf-codex-file .sf-codex-name")).toContainText(["Jane", "Sam", "Windows"]);
+		await expect(tree.locator(".sf-codex-file", { hasText: "Harbour" })).toHaveCount(0); // the folder's own note is its row, not drawn again (decision 65)
 		await expect(codexRow(page, "Jane").locator("svg").first()).toBeVisible();
 		await expect(tree.getByText("Retired")).toHaveCount(0); // archived
 	});
@@ -147,7 +148,7 @@ test.describe("the storytelling face", () => {
 			await row.click();
 			await expect(lore(page)).toBeVisible();
 			await row.locator("svg").first().click(); // the folder icon, after the name: there are no chevrons
-			await expect(page.locator(".sf-codex-file", { hasText: "Harbour" })).toHaveCount(0);
+			await expect(row).toHaveAttribute("aria-expanded", "false");
 		});
 	});
 
