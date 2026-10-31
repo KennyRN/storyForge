@@ -168,6 +168,9 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 		return id ? customIcon(id) : null;
 	};
 
+	/** What a folder draws: its own linked note is the folder's row, so it is not drawn again among its contents (decision 65). */
+	const shown = (folder: Extract<CodexTreeItem, { type: "folder" }>): CodexTreeItem[] => (folder.path ? folder.children.filter((c) => !(c.type === "file" && c.path === folder.path)) : folder.children);
+
 	function renderItems(container: HTMLElement, items: CodexTreeItem[], parentKey: string | null, depth: number, rows: CodexDragRowInfo[]): void {
 		const lorePath = model.editors?.pathIn(options.opensIn === "workspace" ? "centre" : "lore") ?? null;
 		for (const item of items) {
@@ -216,9 +219,10 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 				wrapper.append(header);
 				if (!collapsed) {
 					const children = el("div", { class: "sf-codex-children", attrs: { role: "group" } });
-					renderItems(children, item.children, item.id, depth + 1, rows);
+					// A note that is also a folder is the folder's row; its own entry in the folder's order is not drawn again (decision 65). Display only: the entry stays in the data.
+					renderItems(children, shown(item), item.id, depth + 1, rows);
 					// An open folder with nothing in it says so, in words (the screen reader too).
-					if (item.children.length === 0 && !(draft && draft.parent === item.id)) children.append(el("div", { class: "sf-codex-folder-empty", text: "Empty", attrs: { role: "treeitem", "aria-disabled": "true", "aria-level": String(depth + 2), "aria-label": "Empty folder" } }));
+					if (shown(item).length === 0 && !(draft && draft.parent === item.id)) children.append(el("div", { class: "sf-codex-folder-empty", text: "Empty", attrs: { role: "treeitem", "aria-disabled": "true", "aria-level": String(depth + 2), "aria-label": "Empty folder" } }));
 					wrapper.append(children);
 				}
 				container.append(wrapper);
@@ -364,7 +368,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 	const body = el("div", { class: "sf-codex-body" }, strip, tree);
 	if (options.header) {
 		host.classList.add("sf-pane", "sf-codex-pane");
-		fill(host, el("div", { class: "sf-pane-header" }, el("h2", { class: "sf-pane-title", text: "Codex" })), body);
+		fill(host, body); // no heading: the list is named "Codex" for assistive technology, and the library side's tab carries the label
 	} else {
 		host.classList.add("sf-codex-pane");
 		fill(host, body);

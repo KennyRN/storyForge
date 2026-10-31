@@ -136,7 +136,7 @@ for (const side of SIDES) {
 			await page.keyboard.press("Enter");
 			const folder = row(page, "Ships");
 			await expect(folder).toBeVisible();
-			const empty = tree(page).getByRole("treeitem", { name: "Empty folder" });
+			const empty = folder.locator("xpath=..").getByRole("treeitem", { name: "Empty folder" }); // Ships' own (Harbour, holding only its own note, reads Empty too)
 			await expect(empty).toBeVisible();
 			await expect(empty).toHaveText("Empty");
 			// in the muted text colour, not the row's

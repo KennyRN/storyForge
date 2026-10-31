@@ -17,7 +17,7 @@
 	position: relative;
 	flex: none;
 	width: 1px;
-	background: var(--purpose-border);
+	background: transparent; /* no line: the two background shades divide the panels */
 	cursor: col-resize;
 }
 .sf-splitter::after {
@@ -28,8 +28,7 @@
 	left: -4px;
 	right: -4px;
 }
-.sf-splitter:hover,
-.sf-splitter:focus-visible {
+.sf-splitter:focus-visible { /* the green line shows for the keyboard only */
 	background: var(--purpose-accent);
 }
 
@@ -61,7 +60,6 @@
 /* The navigator. */
 .sf-navigator {
 	padding: var(--space-3) var(--space-3) var(--space-2) var(--space-4);
-	border-bottom: 1px solid var(--purpose-border);
 }
 .sf-nav-novel {
 	font-weight: 600;
@@ -113,6 +111,8 @@
 .sf-codex-tree {
 	flex: 1;
 	min-height: 0;
+	font-size: 16px;
+	color: var(--purpose-codex);
 	padding: var(--space-1) var(--space-2) var(--space-3);
 }
 .sf-codex-empty {
@@ -123,21 +123,29 @@
 	display: flex;
 	align-items: center;
 	gap: 0;
-	padding: 3px 8px 3px calc(8px + var(--depth, 0) * 16px);
+	/* A row inside a folder is highlighted from just right of that folder's line, not from the panel's edge; its text still starts one step in. */
+	--edge: max(0px, calc(var(--depth, 0) * 16px - 6px));
+	margin-left: var(--edge);
+	padding: 3px 8px 3px calc(8px + var(--depth, 0) * 16px - var(--edge));
 	border-radius: var(--radius);
 	cursor: pointer;
 	user-select: none;
 	-webkit-user-select: none;
 	touch-action: none;
 }
+/* The selected row and the row under the pointer look the same: a block in the Codex colour, the text and icons in the panel's. */
 .sf-codex-folder-header:hover,
-.sf-codex-file:hover {
-	background: var(--purpose-raised-bg);
-}
+.sf-codex-file:hover,
 .sf-codex-folder-header.is-active,
 .sf-codex-file.is-active {
-	background: var(--purpose-raised-bg);
-	color: var(--purpose-accent);
+	background: var(--purpose-codex);
+	color: var(--purpose-panel-bg);
+}
+/* Inside a folder the highlight grows out of the folder's line: its left edge is straight, the other corners stay round. */
+.sf-codex-children .sf-codex-folder-header,
+.sf-codex-children .sf-codex-file {
+	border-top-left-radius: 0;
+	border-bottom-left-radius: 0;
 }
 /* The icon after a name always stays; a long name is the one that is cut short. */
 .sf-codex-file > svg,
@@ -178,11 +186,11 @@
 	content: "";
 	position: absolute;
 	top: 0;
-	bottom: 2px;
-	left: calc(8px + var(--depth, 0) * 16px + 5px);
+	bottom: 0; /* from the top of the first child's box to the bottom of the last child's */
+	left: calc(8px + var(--depth, 0) * 16px); /* flush with the start of the folder's name */
 	width: 2px;
 	border-radius: 1px;
-	background: var(--purpose-guide);
+	background: var(--purpose-codex);
 }
 .sf-codex-folder-empty {
 	padding: 3px 8px 3px calc(8px + (var(--depth, 0) + 1) * 16px);
@@ -203,6 +211,20 @@
 	flex-direction: column;
 	gap: 2px;
 	padding: var(--space-1) 0 0 var(--space-2);
+}
+/* The strip's two buttons are hover icons: no button shape, no block. Only the icon's colour changes, from grey0
+   to the Codex colour, on hover and on keyboard focus (they are still buttons, with their tooltips and the focus ring). */
+.sf-codex-strip .sf-button {
+	padding: 4px 6px;
+	border-color: transparent;
+	background: transparent;
+	color: var(--purpose-codex-rest);
+	transition: color var(--motion);
+}
+.sf-codex-strip .sf-button:hover:not(:disabled),
+.sf-codex-strip .sf-button:focus-visible:not(:disabled) {
+	background: transparent;
+	color: var(--purpose-codex);
 }
 .sf-codex-body > .sf-codex-tree {
 	flex: 1;
@@ -228,7 +250,7 @@
 }
 .sf-codex-file:focus-visible,
 .sf-codex-folder-header:focus-visible {
-	outline: 2px solid var(--purpose-focus-ring);
+	outline: 2px solid var(--purpose-codex-ring);
 	outline-offset: -2px;
 }
 .sf-codex-name {
@@ -240,11 +262,7 @@
 }
 .sf-codex-file .sf-icon,
 .sf-codex-folder-header .sf-icon {
-	color: var(--purpose-text-muted);
-}
-.sf-codex-file.is-active .sf-icon,
-.sf-codex-folder-header.is-active .sf-icon {
-	color: var(--purpose-accent);
+	color: inherit; /* the Codex colour, or the panel's on a highlighted row */
 }
 .sf-dragging {
 	opacity: 0.6;
@@ -270,7 +288,6 @@ body.sf-codex-drag-active {
 	align-items: center;
 	gap: var(--space-2);
 	padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
-	border-top: 1px solid var(--purpose-border);
 	color: var(--purpose-text-muted);
 }
 .sf-stats-chart {
@@ -288,7 +305,6 @@ body.sf-codex-drag-active {
 	justify-content: space-between;
 	gap: var(--space-2);
 	padding: var(--space-1) var(--space-2) var(--space-1) var(--space-4);
-	border-bottom: 1px solid var(--purpose-border);
 	min-height: 36px;
 }
 .sf-left-name {
@@ -299,6 +315,11 @@ body.sf-codex-drag-active {
 	white-space: nowrap;
 	color: var(--purpose-text-muted);
 	font-size: 12px;
+}
+/* The project's name and the novel's title are the interface accent, as text only (decision 62), on the storytelling side. */
+.sf-left[data-face="storytelling"] .sf-left-name,
+.sf-nav-novel {
+	color: var(--purpose-accent);
 }
 .sf-left-body {
 	flex: 1;
@@ -320,7 +341,7 @@ body.sf-codex-drag-active {
 	width: 40px;
 	padding: var(--space-2) 0;
 	align-items: center;
-	border-right: 1px solid var(--purpose-border);
+	border-right: 1px solid transparent; /* keeps its width, so the ink indicator stays where it is */
 }
 .sf-rail .sf-ink-track {
 	right: -1px;

@@ -13,7 +13,6 @@
 	flex: none;
 	padding: var(--space-1) var(--space-4);
 	background: var(--purpose-raised-bg);
-	border-bottom: 1px solid var(--purpose-border);
 	color: var(--purpose-text-muted);
 	font-size: 12px;
 	text-align: center;
@@ -29,8 +28,6 @@
 }
 .sf-editor .cm-scroller {
 	font-family: var(--font-prose);
-	scrollbar-width: thin;
-	scrollbar-color: var(--purpose-border) transparent;
 }
 .sf-editor .cm-content {
 	box-sizing: content-box;
@@ -90,7 +87,6 @@
 .sf-editor .cm-panels {
 	background: var(--purpose-raised-bg);
 	color: var(--purpose-text);
-	border-bottom: 1px solid var(--purpose-border);
 	font-family: var(--font-ui);
 	font-size: var(--text-ui);
 }

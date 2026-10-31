@@ -124,6 +124,11 @@ cpSync(join(root, "test/fixtures/series"), project, { recursive: true });
 // The wynn and yogh lines are in the chapter on disk: the keystroke tool can't type them (it types an "a"), and what is
 // checked is how they are drawn, not how they are typed.
 appendFileSync(join(project, "_story-library/aaa/ch-a1.md"), "\n\nƿȝƿȝƿȝƿȝƿȝ\n\n*ƿȝƿȝƿȝƿȝƿȝƿ*\n\nThe old letters, upright: ð þ ƿ ȝ ǣ, in *italic: ð þ ƿ ȝ ǣ*, in **bold: ð þ ƿ ȝ ǣ**.\n");
+// LOOK_CODEX_COLOUR=green (or any choice) sets the project's Codex colour, to take the pictures in that colour.
+if (process.env.LOOK_CODEX_COLOUR) {
+	mkdirSync(join(project, "_backstage/storyforge"), { recursive: true });
+	writeFileSync(join(project, "_backstage/storyforge/project.md"), `---\nformat-version: 1\ncodex-colour: ${process.env.LOOK_CODEX_COLOUR}\n---\n`);
+}
 const data = join(home, DATA_FOLDER);
 mkdirSync(data, { recursive: true });
 writeFileSync(join(data, "recent.json"), JSON.stringify([project]));
@@ -184,9 +189,9 @@ try {
 	if (!(await until(() => find("AXTextArea", "Text").startsWith("found")))) fail("the project did not open");
 	await sleep(1200);
 
-	// The Codex list (13 px): "Jane" is 27 px in SN Pro, 29 in the system font; "Harbour" 47 and 49.
-	expectWidth("the Codex list, Jane", widthOf("AXStaticText", "Jane"), 27, 29);
-	expectWidth("the Codex list, Harbour", widthOf("AXStaticText", "Harbour"), 47, 49);
+	// The Codex list (16 px since 1.3.0; the references are the 13 px figures scaled by 16/13, and "Jane" measured 33 and "Harbour" 58 in SN Pro): "Jane" is 33 px in SN Pro, about 36 in the system font; "Harbour" 58 and about 60.
+	expectWidth("the Codex list, Jane", widthOf("AXStaticText", "Jane"), 33, 36);
+	expectWidth("the Codex list, Harbour", widthOf("AXStaticText", "Harbour"), 58, 60);
 	windowShot("codex-storytelling-no-note");
 
 	// The chapter (20 px): ten "w" upright are 161 px in SN Pro (about 150 in the system font), eleven in italic 191 (the italic file
@@ -244,6 +249,16 @@ try {
 		expectWidth("the Codex note in the context panel, upright", widthOf("AXStaticText", "wwwwwwwwww", 3), 161, 150);
 		expectWidth("the Codex note in the context panel, italic", widthOf("AXStaticText", "wwwwwwwwwww", 2), 191, 160);
 		windowShot("codex-note-in-context-panel");
+		// Sam is selected (highlighted, touching its folder's line). Focus it by the keyboard route (accessibility): the ring on a highlighted row.
+		if (find("AXStaticText", "Sam", "focusrow").startsWith("found")) {
+			await sleep(500);
+			windowShot("codex-selected-and-focused");
+		}
+		// The strip's icon focused: its colour is the Codex colour, as on hover (a hover needs a pointer, which this script never uses).
+		if (find("AXButton", "New folder", "focus").startsWith("found")) {
+			await sleep(500);
+			windowShot("strip-focused");
+		}
 	}
 
 	// The library side's Codex list, and a plot note (13 px: ten "w" is 105 px in SN Pro, 100 in the system font).
@@ -251,7 +266,7 @@ try {
 	await sleep(600);
 	clickAny("codex");
 	await sleep(800);
-	expectWidth("the library's Codex list, Jane", widthOf("AXStaticText", "Jane"), 27, 29);
+	expectWidth("the library's Codex list, Jane", widthOf("AXStaticText", "Jane"), 33, 36);
 	windowShot("codex-library");
 	// A Codex note opened in the workspace (the library side's entries open there): the keyboard again.
 	if (!find("AXStaticText", "Jane", "focusrow").startsWith("found")) problems.push("could not focus Jane in the library's Codex list");

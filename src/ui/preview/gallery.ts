@@ -1,3 +1,4 @@
+import { installScrollIndicator } from "../kit/scrollIndicator";
 /** The kit on one page, for looking at and testing in WebKit (docs/interface.md §8). */
 import "../theme/index.css";
 import { button } from "../kit/button";
@@ -103,4 +104,5 @@ app.append(
 	noticeHost,
 );
 mountNotices(noticeHost, notices);
+installScrollIndicator();
 document.documentElement.dataset.ready = "true";

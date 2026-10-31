@@ -1,3 +1,4 @@
+import { installScrollIndicator } from "./kit/scrollIndicator";
 import { AppController, type Host } from "../app/appLife";
 import { mountNotices } from "./kit/notices";
 import { undoRedoFocusedField } from "./commitOnClose";
@@ -10,12 +11,18 @@ import { mountShell } from "./shell";
 
 /** Builds the interface into `root` over a host (Tauri's, or the browser preview's). */
 export async function startApp(host: Host, root: HTMLElement): Promise<AppModel> {
+	installScrollIndicator();
 	const controller = new AppController(host);
 	const model = new AppModel(controller);
 	const stage = el("div", { class: "sf-stage" });
 	const notices = el("div");
 	fill(root, stage, notices);
 	mountNotices(notices, model.notices);
+
+	// The Codex colour is a project preference: it recolours both lists at once, and with no project open it is the default.
+	const applyCodexColour = (): void => void (document.documentElement.dataset.codexColour = model.running?.settings.values.codexColour ?? "text");
+	model.subscribe(["settings", "project"], applyCodexColour);
+	applyCodexColour();
 
 	let shown: unknown = undefined;
 	let shell: { dispose(): void } | null = null;
