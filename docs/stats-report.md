@@ -45,8 +45,8 @@ All recorded in `Icon Licences.md`. The Heroicons release the files came from wa
 ## Screenshots
 
 - **The H1 mock-up** (`docs/stats-shots/mockup.png`) is updated to the decision 71 layout, using the real icon paths.
-- **WebKit preview, all six states, in the decision 71 layout:** `docs/stats-shots/preview/`: readout off; on with no session; during a session; paused; session chosen (words not repeated); chapter chosen. (The day figure reads 10 for five typed words in these: the fixture's `wordcount.md` records 17 words for a chapter that now has 22, so the history catches up by five on the first change. It is a fixture artefact, not a double count.)
-- **Built-app screenshots of the new layout are still to be taken.** The built-app run needs real key presses, and while taking them a macOS **"Install Required" dialog for Xcode's system components appeared over storyForge** (alongside another window), so keystrokes were not reaching the app. I stopped driving the Mac and quit the throwaway copy. Once that dialog is dismissed I'll retake them. Until then the built-app screenshots from the earlier layout (commit `ec20427`, `9fdfd72`) are removed from the repository, since they no longer match.
+- **WebKit preview, all six states, in the decision 71 layout:** `docs/stats-shots/preview/`: readout off; on with no session; during a session; paused; session chosen (words not repeated); chapter chosen. (These preview shots were taken before the fixture was brought up to date, so their day figure reads 10 for five typed words: the old fixture recorded 17 words for a chapter of 22, and the history caught up by five on the first change. A fixture artefact, not a double count.)
+- **Built-app screenshots, retaken in the decision 71 layout** from the built 1.4.0 app (confirmed 1.4.0 first), on a fixture copy with a temporary `HOME`, typed through the typing guard (decision 72) so nothing could land outside the test copy. In `docs/stats-shots/built/` (each a crop of the section and the whole window, `-window`): `readout-off`; `readout-on-before-a-session` (plain clock, `0m`); `readout-on-during-a-session` (clock-bill, five words typed); `readout-paused` (clock-pause, length held, five words); `session-chosen-readout-without-words` (session chosen as the count, seven words above; the row has the clock and `1m` and no words); `chapter-chosen`. The day figure reads 5 for the five words typed: the fixture's `wordcount.md` was brought up to date with its chapters (decision 72), so it no longer catches up on the first change.
 - `docs/stats-shots/now-*.png` are the section before the brief.
 
 ## The low session-word count (decision 71, item 4)
@@ -76,3 +76,9 @@ All recorded in `Icon Licences.md`. The Heroicons release the files came from wa
 5. Judge the 16 px count icons beside the 24 px graph and clocks (decision 69, item 4).
 
 *Status: waiting for Kenny's check, or his waiver.*
+
+## The typing guard (decision 72)
+
+Every script that types into the real app (`test:quit`, `test:look`, `test:typing`) now goes through `scripts/lib/typingGuard.mjs`: before each burst of keystrokes the test copy must be the frontmost app, alone, with one of its text boxes focused, or nothing is typed and the script stops saying what was in front. Long strings are typed in chunks of eight with a check before each. All three scripts pass with it on the 1.4.0 build (`test:quit` ten of ten, no "not typed" or "saved early" retries). Two things the guard's first runs found and fixed in the guard itself: the first key typed straight after the check was dropped (a 250 ms settle fixes it), and a chunk starting with `-` (such as `-- y`) was read by `osascript` as an option and silently typed nothing (each chunk now has a leading character that is dropped again). The rule is in `AGENTS.md`.
+
+**One sign found:** a run on 31 October 2026 typed my test text into `~/Desktop/text.txt` (Kenny's file) while the Xcode dialog was in front. Reported to Kenny; the file was not touched.

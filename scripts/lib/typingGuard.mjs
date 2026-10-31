@@ -5,6 +5,7 @@
 import { spawnSync } from "node:child_process";
 
 export const BUNDLE_ID = "io.github.kennyrn.storyforge";
+const SETTLE_MS = 250;
 const TEXT_ROLES = ["AXTextArea", "AXTextField"];
 
 const CHECK = `on run argv
@@ -47,26 +48,28 @@ export function decide(answer, copies, anyFocus = false) {
  * of its own: every one checks first, and none types if the check fails.
  */
 export function guardedTyping({ osa, fail }) {
+	const sleep = (ms) => spawnSync("sleep", [String(ms / 1000)]);
 	const copies = () => spawnSync("pgrep", ["-ix", "storyforge"], { encoding: "utf8" }).stdout.split("\n").filter(Boolean).length;
 	const ready = (anyFocus = false) => decide(osa(CHECK, BUNDLE_ID).stdout, copies(), anyFocus);
 	const assertReady = (what = "typing", anyFocus = false) => {
 		const r = ready(anyFocus);
 		if (!r.ok) fail(`REFUSING TO TYPE (${what}): ${r.why}. Nothing was typed. Dismiss or close whatever is in front, then run again.`);
+		sleep(SETTLE_MS); // the first key typed straight after an accessibility query was being dropped
 	};
-	const sleep = (ms) => spawnSync("sleep", [String(ms / 1000)]);
 	return {
 		ready,
 		assertReady,
 		/** The whole string in one call (the quit script's way), after one check. */
 		sendKeysAtOnce(text) {
 			assertReady("keystrokes");
-			return osa('on run argv\ntell application "System Events" to keystroke (item 1 of argv)\nend run', text);
+			// A leading "x" is added and dropped again: osascript reads an argument starting with "-" (a chunk "-- y") as an option.
+			return osa('on run argv\ntell application "System Events" to keystroke (text 2 thru -1 of (item 1 of argv))\nend run', "x" + text);
 		},
 		/** One key at a time, 40 ms apart, in chunks of eight with a check before each (a dialog can appear mid-word). */
 		sendKeys(text) {
 			for (let i = 0; i < text.length; i += 8) {
 				assertReady("keystrokes");
-				osa('on run argv\nset t to item 1 of argv\ntell application "System Events"\nrepeat with i from 1 to count of t\nkeystroke (character i of t)\ndelay 0.04\nend repeat\nend tell\nend run', text.slice(i, i + 8));
+				osa('on run argv\nset t to item 1 of argv\ntell application "System Events"\nrepeat with i from 2 to count of t\nkeystroke (character i of t)\ndelay 0.04\nend repeat\nend tell\nend run', "x" + text.slice(i, i + 8)); // "x" first: an argument starting with "-" is read as an option
 			}
 		},
 		/** A key code or a keystroke with modifiers, e.g. key("key code 36") or key('keystroke "z" using command down'). */
