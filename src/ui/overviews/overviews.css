@@ -74,7 +74,6 @@ button.sf-heat-cell { cursor: pointer; }
 .sf-heat--loss-2 { background: var(--purpose-heat-loss-b); }
 .sf-heat--loss-3 { background: var(--purpose-heat-loss-c); }
 .sf-heat--loss-4 { background: var(--purpose-heat-loss-d); }
-.sf-stats-chart { cursor: pointer; }
 
 /* Writing sessions in the history view (docs/sessions.md §9). Words, never colour alone. */
 .sf-history-note { font-size: 12px; padding: 4px 0; }

@@ -301,6 +301,22 @@ describe("card sizes in machine state", () => {
 	});
 });
 
+describe("the stats count in machine state", () => {
+	it("is stored only when it isn't day, and an unknown value reads as day", async () => {
+		const mem = new Map<string, string>();
+		const store = { get: async (n: string) => mem.get(n) ?? null, set: async (n: string, t: string) => void mem.set(n, t) };
+		const base = { selectedNovel: null, selectedObject: null, collapsedCodexFolderIds: [] };
+		await saveMachineProjectState(store, "k", { ...base, statsCount: "session" });
+		expect((await loadMachineProjectState(store, "k")).statsCount).toBe("session");
+		for (const bad of ["daily", "", 3, null]) {
+			mem.set("project-ui/k", JSON.stringify({ statsCount: bad }));
+			expect((await loadMachineProjectState(store, "k")).statsCount).toBeUndefined();
+		}
+		mem.set("project-ui/k", JSON.stringify({ statsCount: "day" }));
+		expect((await loadMachineProjectState(store, "k")).statsCount).toBeUndefined();
+	});
+});
+
 describe("the typing settings (docs/typing-aids.md §8)", () => {
 	const put = (root: string, body: string) => {
 		fs.mkdirSync(path.join(root, "_backstage/storyforge"), { recursive: true });

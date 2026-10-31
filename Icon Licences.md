@@ -72,6 +72,15 @@ This project uses icons from the following third-party, open-source icon sets. A
 
 ---
 
+## Heroicons
+
+- **Author:** Tailwind Labs (Steve Schoger, Adam Wathan and contributors)
+- **Source:** https://github.com/tailwindlabs/heroicons
+- **Version:** 2.x, the 16 px solid ("micro") set, which first appeared in 2.1.0. The files were supplied by Kenny, who chose them; the exact release they were taken from wasn't recorded.
+- **Licence:** MIT License — *see [MIT License](#mit-license) below*
+
+---
+
 ## Framework7 Icons
 
 - **Author:** Vladimir Kharlampidi
@@ -441,12 +450,12 @@ This project uses icons from the following third-party, open-source icon sets. A
 
 ## MIT License
 
-*Applies to: Famicons, Mynaui Icons, Siemens Industrial Experience Icons (ix), Mono Icons, Tabler Icons, Framework7 Icons, Bootstrap Icons, Feather Icon (fe), @icons (at-icons), Huge Icons, Akar Icons, Fluent UI System Icons, Phosphor Icons, Majesticons, Simple Line Icons, Ionicons*
+*Applies to: Heroicons, Famicons, Mynaui Icons, Siemens Industrial Experience Icons (ix), Mono Icons, Tabler Icons, Framework7 Icons, Bootstrap Icons, Feather Icon (fe), @icons (at-icons), Huge Icons, Akar Icons, Fluent UI System Icons, Phosphor Icons, Majesticons, Simple Line Icons, Ionicons*
 
 ```
 MIT License
 
-Copyright (c) respective icon set authors (Famicons — Family; Mynaui Icons — Myna UI; Siemens Industrial Experience Icons — Siemens AG; Mono Icons — Mono Company BV; Tabler Icons — Tabler (Paweł Kuna); Framework7 Icons — Vladimir Kharlampidi; Bootstrap Icons — The Bootstrap Authors; Feather Icon (fe) — Megumi Hano; @icons (at-icons) — Valentin Fossati; Huge Icons — Hugeicons; Akar Icons — Arturo Wibawa; Fluent UI System Icons — Microsoft Corporation; Phosphor Icons — Phosphor Icons; Majesticons — Gerrit Halfmann; Simple Line Icons — Sabbir Ahmed & contributors; Ionicons — Ionic (ionic-team))
+Copyright (c) respective icon set authors (Heroicons — Tailwind Labs; Famicons — Family; Mynaui Icons — Myna UI; Siemens Industrial Experience Icons — Siemens AG; Mono Icons — Mono Company BV; Tabler Icons — Tabler (Paweł Kuna); Framework7 Icons — Vladimir Kharlampidi; Bootstrap Icons — The Bootstrap Authors; Feather Icon (fe) — Megumi Hano; @icons (at-icons) — Valentin Fossati; Huge Icons — Hugeicons; Akar Icons — Arturo Wibawa; Fluent UI System Icons — Microsoft Corporation; Phosphor Icons — Phosphor Icons; Majesticons — Gerrit Halfmann; Simple Line Icons — Sabbir Ahmed & contributors; Ionicons — Ionic (ionic-team))
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -506,3 +515,7 @@ THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH RE
 ## Where Tabler Icons are used in the interface
 
 The Codex list's filled folder, the New Folder button's folder-plus and the New Note button's file-plus are Tabler Icons (version 2.4 / 1.0 of those glyphs, MIT; the notice is in the MIT section above). Their paths are in `src/ui/kit/icons.ts`.
+
+## Where Heroicons and Tabler are used in the stats panel
+
+The stats panel's five count icons are Heroicons (16 px solid): calendar-days (today), calendar-date-range (this week), calendar (this session), document (this chapter) and book-open (this novel). Its history button is Tabler's clipboard-data (filled), and the session readout's clocks are Tabler's clock and clock-pause. The files' own fills (`#0F172A`, `black`) are replaced by `currentColor`, so the stats purpose colours them. The paths are in `src/ui/kit/statsIcons.ts` (and, for the clocks, `src/ui/kit/icons.ts`).
