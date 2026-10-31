@@ -69,13 +69,13 @@ for (const side of SIDES) {
 	test.describe(`the Codex strip, ${side.name}`, () => {
 		test.beforeEach(async ({ page }) => { await openProject(page); await side.show(page); });
 
-		test("hover icons: only the icon's colour changes, from the faint resting shade to the Codex colour, on hover and on keyboard focus; never a block or a shape", async ({ page }) => {
+		test("hover icons: only the icon's colour changes, from grey0 to the Codex colour, on hover and on keyboard focus; never a block or a shape", async ({ page }) => {
 			const btn = page.getByRole("button", { name: "New folder" });
 			const codex = await tree(page).evaluate((e) => getComputedStyle(e).color);
 			const rest = await resolved(page, "--purpose-codex-rest");
 			const state = () => btn.evaluate((e) => { const s = getComputedStyle(e); return { bg: s.backgroundColor, border: s.borderTopColor, color: s.color }; });
 			expect(await state()).toEqual({ bg: "rgba(0, 0, 0, 0)", border: "rgba(0, 0, 0, 0)", color: rest });
-			expect(rest).toBe("rgb(93, 107, 102)"); // bg5, #5d6b66
+			expect(rest).toBe("rgb(122, 132, 120)"); // grey0, #7a8478
 			await btn.hover();
 			await expect.poll(state).toEqual({ bg: "rgba(0, 0, 0, 0)", border: "rgba(0, 0, 0, 0)", color: codex });
 			await page.mouse.move(0, 0);
@@ -116,8 +116,8 @@ test("in a read-only project the strip's icons are greyed out, with the reason a
 // The Codex colour setting (decision 62).
 const PROJECT = "_backstage/storyforge/project.md";
 const tokens: Record<string, string> = { text: "--purpose-codex-choice-text", yellow: "--purpose-codex-choice-yellow", green: "--purpose-codex-choice-green", aqua: "--purpose-codex-choice-aqua", blue: "--purpose-codex-choice-blue", purple: "--purpose-codex-choice-purple", orange: "--purpose-codex-choice-orange", grey: "--purpose-codex-choice-grey" };
-// The strip rests on the colour's own Everforest background shade where there is one, else on bg5 (decision 67).
-const rests: Record<string, string> = { text: "rgb(93, 107, 102)", yellow: "rgb(85, 84, 74)", green: "rgb(72, 88, 78)", aqua: "rgb(93, 107, 102)", blue: "rgb(63, 88, 101)", purple: "rgb(78, 73, 83)", orange: "rgb(93, 107, 102)", grey: "rgb(93, 107, 102)" };
+// The strip's icons rest on grey0 (#7a8478) whatever the Codex colour.
+const rests: Record<string, string> = Object.fromEntries(["text", "yellow", "green", "aqua", "blue", "purple", "orange", "grey"].map((c) => [c, "rgb(122, 132, 120)"]));
 const resolved = (page: Page, token: string) => page.evaluate((t) => { const d = document.createElement("i"); d.style.color = `var(${t})`; document.body.append(d); const c = getComputedStyle(d).color; d.remove(); return c; }, token);
 const read = (page: Page, p: string): Promise<string | null> => page.evaluate((x) => window.__preview.read(x).catch(() => null), p);
 
@@ -175,6 +175,7 @@ test.describe("decision 67", () => {
 		await page.getByRole("radio", { name: /^Green$/ }).click();
 		await page.getByRole("button", { name: "Done" }).click();
 		await row(page, "Sam").click(); // selected: highlighted
+		await expect(page.locator(".sf-slot--lore .cm-content")).toBeFocused(); // the note has opened and taken its focus; only then is the row focused
 		await row(page, "Sam").focus();
 		await page.keyboard.press("Shift+Tab");
 		await page.keyboard.press("Tab"); // by the keyboard, so the ring shows

@@ -14,7 +14,7 @@
 | 6 | The Codex colour setting (`codex-colour`), and yellow, aqua and purple in the theme |
 | 7 | The project name and the novel's title in the green accent (storytelling side) |
 | 8 | Docs, this report, the changelog, 1.3.0 |
-| 9 | Kenny's changes after commits 5 and 6 (decision 67): three more Codex colours, the focus ring, the straight nested edge, the line's exact ends, the strip as hover icons |
+| 9 | Kenny's changes after commits 5 and 6 (decision 67): three more Codex colours, the focus ring, the straight nested edge, the line's exact ends, the strip as hover icons (grey0 at rest) |
 
 ## Lines removed and kept
 
@@ -36,7 +36,7 @@ From the theme's own values; `bg_dim` is `#293136`. The ratio is the same as tex
 | Blue (added) | `#7fbbb3` | 6.09 | yes |
 | Orange (added) | `#e69875` | 5.74 | yes |
 
-**The strip's resting shades** (decision 67; faint on purpose, Kenny's call to judge in the built app, not blocked on): `bg5` 2.37, yellow's shade 1.74, green's 1.75, blue's 1.76, purple's 1.51 (against `bg_dim`).
+**The strip's resting colour** (decision 67, as amended): grey0 `#7a8478`, 3.40:1 on `bg_dim`, whatever the Codex colour.
 
 All eight Codex colours pass, so nothing was dropped. The theme's existing `fg`, `red`, `orange`, `green` and `blue` matched the supplied source: no mismatch. No `palette.md` exists in the repository.
 
@@ -48,9 +48,9 @@ Browser preview, not the built app: `preview-codex-aqua-nested-highlight.png` (t
 
 ## Decision 67 (Kenny's changes after commits 5 and 6)
 
-Done as one fix-up commit, with the docs updated to match; commit 7 was already done (`d7cf2e1`). Choices, the focus ring, the nested highlight, the line's exact ends and the strip as hover icons are described in `docs/look-2.md` §7. Tests: the focus ring with green chosen (it is the text colour, never the highlight's colour); a nested row's left corners are 0 and the others round, and a top-level row is unchanged; every folder's line measured against its first and last child's box (Cast, Harbour and a nested folder, on both sides), within half a pixel; the strip's colour at rest, on hover, after the pointer leaves and on keyboard focus, with no background or border ever; each of the seven non-default colours recolours the lists and sets the strip's resting shade.
+Done as one fix-up commit, with the docs updated to match; commit 7 was already done (`d7cf2e1`). Choices, the focus ring, the nested highlight, the line's exact ends and the strip as hover icons are described in `docs/look-2.md` §7. Tests: the focus ring with green chosen (it is the text colour, never the highlight's colour); a nested row's left corners are 0 and the others round, and a top-level row is unchanged; every folder's line measured against its first and last child's box (Cast, Harbour and a nested folder, on both sides), within half a pixel; the strip's colour at rest, on hover, after the pointer leaves and on keyboard focus, with no background or border ever; each of the seven non-default colours recolours the lists, with the strip's icons staying grey0 at rest.
 
-**Built-app screenshots for this change** (`docs/look-2-shots/`, default colour, and `green/` with `LOOK_CODEX_COLOUR=green`): `codex-selected-and-focused.png` (a nested row highlighted, touching its folder's line, with the focus ring; in `green/` the ring is the text colour on the green block), `strip-focused.png` (the icon in the Codex colour, the other at its resting shade), and the other pictures show the strip at rest. **No hovered picture:** a hover needs a real pointer, and `test:look` never uses one (real clicks are a last resort and need warning first). The strip's colour on keyboard focus and on hover is the same rule and is tested with the real mouse in the preview suite.
+**Built-app screenshots for this change** (taken before the resting colour became grey0, so the strip at rest in them is the earlier shade; they need retaking after the next rebuild) (`docs/look-2-shots/`, default colour, and `green/` with `LOOK_CODEX_COLOUR=green`): `codex-selected-and-focused.png` (a nested row highlighted, touching its folder's line, with the focus ring; in `green/` the ring is the text colour on the green block), `strip-focused.png` (the icon in the Codex colour, the other at its resting shade), and the other pictures show the strip at rest. **No hovered picture:** a hover needs a real pointer, and `test:look` never uses one (real clicks are a last resort and need warning first). The strip's colour on keyboard focus and on hover is the same rule and is tested with the real mouse in the preview suite.
 
 ## Hold points
 

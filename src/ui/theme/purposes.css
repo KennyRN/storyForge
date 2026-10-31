@@ -43,20 +43,20 @@
 	--purpose-codex-choice-purple: var(--ef-purple);
 	--purpose-codex-choice-orange: var(--ef-orange);
 	--purpose-codex-choice-grey: var(--ef-grey2);
-	/* The strip's icons at rest (faint on purpose; the Codex colour on hover and focus), and the focus ring on a Codex row. */
-	--purpose-codex-rest: var(--ef-bg5);
+	/* The strip's icons at rest (the Codex colour on hover and focus), and the focus ring on a Codex row. */
+	--purpose-codex-rest: var(--ef-grey0); /* about 3.4:1 on bg_dim, whatever the Codex colour */
 	--purpose-codex-ring: var(--purpose-focus-ring);
 	--purpose-guide: var(--ef-grey0);
 	--purpose-guide-faint: var(--ef-bg3);
 }
 
 /* The chosen Codex colour (set on the page by the app from the project's setting); missing or unknown means the default text colour.
-   A colour that has its own Everforest background shade rests the strip's icons on that shade; the others rest on bg5. The focus ring is the
+   The strip's icons rest on grey0 whatever the colour. The focus ring is the
    accent green, except when the Codex colour is green (it would vanish on the highlight): then it is the text colour. */
-:root[data-codex-colour="yellow"] { --purpose-codex: var(--purpose-codex-choice-yellow); --purpose-codex-rest: var(--ef-bg-yellow); }
-:root[data-codex-colour="green"] { --purpose-codex: var(--purpose-codex-choice-green); --purpose-codex-rest: var(--ef-bg-green); --purpose-codex-ring: var(--purpose-text); }
+:root[data-codex-colour="yellow"] { --purpose-codex: var(--purpose-codex-choice-yellow); }
+:root[data-codex-colour="green"] { --purpose-codex: var(--purpose-codex-choice-green); --purpose-codex-ring: var(--purpose-text); }
 :root[data-codex-colour="aqua"] { --purpose-codex: var(--purpose-codex-choice-aqua); }
-:root[data-codex-colour="blue"] { --purpose-codex: var(--purpose-codex-choice-blue); --purpose-codex-rest: var(--ef-bg-blue); }
-:root[data-codex-colour="purple"] { --purpose-codex: var(--purpose-codex-choice-purple); --purpose-codex-rest: var(--ef-bg-purple); }
+:root[data-codex-colour="blue"] { --purpose-codex: var(--purpose-codex-choice-blue); }
+:root[data-codex-colour="purple"] { --purpose-codex: var(--purpose-codex-choice-purple); }
 :root[data-codex-colour="orange"] { --purpose-codex: var(--purpose-codex-choice-orange); }
 :root[data-codex-colour="grey"] { --purpose-codex: var(--purpose-codex-choice-grey); }

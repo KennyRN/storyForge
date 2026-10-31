@@ -212,8 +212,8 @@
 	gap: 2px;
 	padding: var(--space-1) 0 0 var(--space-2);
 }
-/* The strip's two buttons are hover icons: no button shape, no block. Only the icon's colour changes, from a faint resting
-   shade to the Codex colour, on hover and on keyboard focus (they are still buttons, with their tooltips and the focus ring). */
+/* The strip's two buttons are hover icons: no button shape, no block. Only the icon's colour changes, from grey0
+   to the Codex colour, on hover and on keyboard focus (they are still buttons, with their tooltips and the focus ring). */
 .sf-codex-strip .sf-button {
 	padding: 4px 6px;
 	border-color: transparent;
