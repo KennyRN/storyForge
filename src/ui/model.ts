@@ -4,7 +4,7 @@
  * changed so each redraws only its own subtree. Editors are never redrawn by a topic.
  */
 import type { AppController, CoverTarget, OpenOutcome, Running } from "../app/appLife";
-import type { MachineProjectState } from "../app/settings";
+import type { MachineProjectState, StatsCount } from "../app/settings";
 import type { PlotCardTier } from "../core/plotCardTier";
 import type { TypingEditorOptions } from "./editor/typingAids";
 import { buildNameIndex, EMPTY_NAMES, type NameIndex } from "../core/typing/names";
@@ -45,6 +45,8 @@ export interface Nav {
 	loreHidden: boolean;
 	/** Chapter card sizes, `<book>/<file>`; absent means extended. */
 	cardTiers: Record<string, "bar" | "collapsed">;
+	/** Which count the stats panel shows. */
+	statsCount: StatsCount;
 }
 
 /** What Story ▸ Archive and Rename… act on: the last thing the author picked in a list. */
@@ -66,7 +68,7 @@ export class AppModel {
 	readonly notices = new NoticeCenter();
 	/** Set by the shell once the slots exist. */
 	editors: EditorHost | null = null;
-	nav: Nav = { face: "storytelling", forgeTab: "novel", centreView: "chapter", book: null, chapter: null, collapsedCodex: new Set(), leftWidth: DEFAULT_LEFT_WIDTH, loreWidth: DEFAULT_LORE_WIDTH, loreHidden: false, cardTiers: {} };
+	nav: Nav = { face: "storytelling", forgeTab: "novel", centreView: "chapter", book: null, chapter: null, collapsedCodex: new Set(), leftWidth: DEFAULT_LEFT_WIDTH, loreWidth: DEFAULT_LORE_WIDTH, loreHidden: false, cardTiers: {}, statsCount: "day" };
 	selection: Selection | null = null;
 	private persistTimer: ReturnType<typeof setTimeout> | undefined;
 	private listeners = new Map<Topic, Set<() => void>>();
@@ -119,6 +121,7 @@ export class AppModel {
 			loreWidth: clampLore(machine.loreWidth ?? DEFAULT_LORE_WIDTH),
 			loreHidden: machine.loreHidden === true,
 			cardTiers: { ...(machine.cardTiers ?? {}) },
+			statsCount: machine.statsCount ?? "day",
 		};
 		this.selection = null;
 	}
@@ -329,6 +332,12 @@ export class AppModel {
 		this.touch("nav");
 	}
 
+	/** The stats panel steps to the next count. Navigation state: this computer only, never `project.md`. */
+	setStatsCount(count: StatsCount): void {
+		this.nav.statsCount = count;
+		this.persistSoon();
+	}
+
 	/** Where you were is saved a moment after it changes, on this computer only. */
 	persistSoon(): void {
 		clearTimeout(this.persistTimer);
@@ -338,9 +347,9 @@ export class AppModel {
 	async persistNow(): Promise<void> {
 		clearTimeout(this.persistTimer);
 		if (!this.running) return;
-		const { book, chapter, collapsedCodex, leftWidth, loreWidth, loreHidden, cardTiers } = this.nav;
+		const { book, chapter, collapsedCodex, leftWidth, loreWidth, loreHidden, cardTiers, statsCount } = this.nav;
 		try {
-			await this.controller.saveMachineState({ selectedNovel: book, selectedObject: chapter, collapsedCodexFolderIds: [...collapsedCodex], leftWidth, loreWidth, ...(loreHidden ? { loreHidden } : {}), ...(Object.keys(cardTiers).length ? { cardTiers } : {}) });
+			await this.controller.saveMachineState({ selectedNovel: book, selectedObject: chapter, collapsedCodexFolderIds: [...collapsedCodex], leftWidth, loreWidth, ...(loreHidden ? { loreHidden } : {}), ...(Object.keys(cardTiers).length ? { cardTiers } : {}), ...(statsCount !== "day" ? { statsCount } : {}) });
 		} catch {
 			/* where you were is a convenience: never worth a notice */
 		}

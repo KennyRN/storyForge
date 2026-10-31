@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.4.0: the stats panel (Brief 12, decisions 68 and 69)
+
+- Changed: **the word-count section is one row**: the graph icon (opens the history view), then the icon of the count on display, then its number. **Clicking the count icon steps through day, week, session, chapter and novel** and round again (Return and Space too); its name and tooltip say what is showing and what comes next ("Words today; press for this week"). **Session is new** in the cycle: the current session's net words. The figures themselves are unchanged. Which count shows is remembered for each project on this computer (never in `project.md`); a new project starts on day.
+- Changed: **the live session readout, when switched on (Settings, Display), is always there** instead of appearing and disappearing: a clock directly beneath the count icon (a plain clock with no session, a clock with a bill while one is ongoing), the session's length in hours and minutes (`0m`, `25m`, `1h 05m`), then its words. When session is the count shown above, the words aren't repeated. **After a minute without an edit the clock becomes a clock-pause** until the next edit or the end of the session, and the length holds at the session's length so far, which is what will be recorded. It is a reminder only: nothing about how sessions are recorded changed. When the session ends the row goes back to the standard clock and `0m`.
+- Changed: **the whole section is `grey1`** (about 4.1:1 on the panel, a little under the usual 4.5:1 for text: Kenny's choice). `grey1` joins the theme as Everforest's dark grey. The icons are Heroicons (16 px), Fluent (this chapter's document and the three clocks) and Tabler (the graph), licences in `Icon Licences.md`.
+- Changed: `SessionRecorder.live()` also reports the time of the last edit (read-only; nothing else changed in the recorder or the tracker).
+- Unchanged: the core's figures and maths, the session rules, the disk format (0.17), the prose writer, the close path and the guard; no new Rust command, dependency or network request.
+
 ## 1.3.0: the look, round two (Brief 11, decisions 62 to 66)
 
 - Changed: **scrollbars are hidden at rest, everywhere**, whatever the Mac's own setting. A thin bar shows where you are while something scrolls and fades about a second after it stops (no fade when the Mac's "reduce motion" is on). It never takes clicks; scrolling by trackpad, keys and Page Up and Down is as before.

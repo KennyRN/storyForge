@@ -15,6 +15,7 @@ import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSyn
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { guardedTyping } from "./lib/typingGuard.mjs";
 
 const root = resolve(fileURLToPath(import.meta.url), "../..");
 const BUNDLE_ID = "io.github.kennyrn.storyforge";
@@ -114,7 +115,9 @@ async function until(fn, ms = 15000) {
 }
 // One key at a time, 40 ms apart: a whole string sent in one burst arrives faster than anyone types, and the built
 // app (1.0.0 included) then drops spaces and letters while an aid is replacing a word.
-const sendKeys = (text) => osa('on run argv\nset t to item 1 of argv\ntell application "System Events"\nrepeat with i from 1 to count of t\nkeystroke (character i of t)\ndelay 0.04\nend repeat\nend tell\nend run', text);
+// Every keystroke goes through the typing guard (decision 72): nothing is typed unless the test copy is in front with a text box focused.
+const typing = guardedTyping({ osa, fail });
+const sendKeys = typing.sendKeys;
 
 
 const dir = realpathSync(mkdtempSync(join(tmpdir(), "sf-look-")));
@@ -134,7 +137,7 @@ mkdirSync(data, { recursive: true });
 writeFileSync(join(data, "recent.json"), JSON.stringify([project]));
 if (shotsAt) mkdirSync(shotsAt, { recursive: true });
 
-const key = (script) => osa(`tell application "System Events" to ${script}`);
+const key = typing.key;
 const windowShot = (name) => {
 	if (!shotsAt) return;
 	const [x, y, w, h] = osa('tell application "System Events" to tell process "storyforge" to return (position of window 1) & (size of window 1)').stdout.trim().split(", ").map(Number);
@@ -230,7 +233,7 @@ try {
 	// The keyboard: the row is focused through accessibility and Return opens it (no pointer is used anywhere in this script).
 	if (!find("AXStaticText", "Sam", "focusrow").startsWith("found")) problems.push("could not focus Sam in the Codex list");
 	await sleep(300);
-	key("key code 36");
+	typing.keyOnControl("key code 36");
 	await sleep(1200);
 	if (!(await until(() => find("AXTextArea", "Text", "none", 2).startsWith("found"), 8000))) {
 		problems.push("the Codex note did not open in the context panel");
@@ -271,7 +274,7 @@ try {
 	// A Codex note opened in the workspace (the library side's entries open there): the keyboard again.
 	if (!find("AXStaticText", "Jane", "focusrow").startsWith("found")) problems.push("could not focus Jane in the library's Codex list");
 	await sleep(300);
-	key("key code 36");
+	typing.keyOnControl("key code 36");
 	await sleep(1200);
 	windowShot("codex-note-in-workspace");
 	if (!(await until(() => clickAny("novel"), 8000))) fail("could not reach the novel tab");

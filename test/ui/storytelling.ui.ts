@@ -27,7 +27,7 @@ test.describe("the storytelling face", () => {
 		await expect(page.locator(".sf-nav-novel")).toHaveText("Book 1: The Harbour Wakes");
 		await expect(page.locator(".sf-nav-current-title")).toHaveText("Chapter 1");
 		await expect(page.getByRole("tree", { name: "Codex" })).toBeVisible();
-		await expect(page.locator(".sf-stats-value")).toContainText("daily:");
+		await expect(page.locator(".sf-stats-value")).toContainText("Words today: ");
 		await expect(centre(page)).toContainText("Synthetic sentence number 1");
 		await expect(page.locator(".sf-slot--lore")).toBeVisible(); // there from the start, blank
 		await expect(page.locator(".sf-lore-host")).toBeEmpty(); // nothing in it but the special-characters button beside it
@@ -216,27 +216,79 @@ test.describe("the storytelling face", () => {
 	});
 
 	test.describe("the stats", () => {
-		test("show the daily, weekly, chapter and novel counts one at a time, with a switch", async ({ page }) => {
+		const value = (page: Page) => page.locator(".sf-stats-value");
+		const stepper = (page: Page) => page.locator(".sf-stats-count");
+
+		test("one row: the graph icon, the icon of the count on display, its number; the icon steps day, week, session, chapter, novel", async ({ page }) => {
 			await openProject(page);
-			const value = page.locator(".sf-stats-value");
-			await expect(value).toHaveText(/^daily: /);
-			await page.getByRole("button", { name: "Switch wordcount" }).click();
-			await expect(value).toHaveText(/^weekly: /);
-			await page.getByRole("button", { name: "Switch wordcount" }).click();
-			await expect(value).toHaveText("chapter: 22"); // Chapter 1 has 22 words
-			await page.getByRole("button", { name: "Switch wordcount" }).click();
-			await expect(value).toHaveText(/^novel: \d/);
+			const order = await page.locator(".sf-stats").evaluate((e) => [...e.children].filter((c) => !(c as HTMLElement).hidden).map((c) => c.className));
+			expect(order.slice(0, 3)).toEqual(["sf-stats-chart", "sf-stats-count", "sf-stats-value"]);
+			expect(await page.locator(".sf-stats .sf-stats-count svg").count()).toBe(1);
+			expect(await page.locator(".sf-stats-chart svg").getAttribute("width")).toBe("24");
+			expect(await page.locator(".sf-stats-count svg").getAttribute("width")).toBe("16"); // its natural size
+			await expect(value(page)).toHaveText(/^Words today: -?\d/);
+			await expect(stepper(page)).toHaveAccessibleName("Words today; press for this week");
+			await stepper(page).click();
+			await expect(value(page)).toHaveText(/^Words this week: /);
+			await expect(stepper(page)).toHaveAccessibleName("Words this week; press for this session");
+			await stepper(page).click();
+			await expect(value(page)).toHaveText("Words this session: 0");
+			await stepper(page).click();
+			await expect(value(page)).toHaveText("Words this chapter: 22"); // Chapter 1 has 22 words
+			await stepper(page).click();
+			await expect(value(page)).toHaveText(/^Words this novel: \d/);
+			await expect(stepper(page)).toHaveAccessibleName("Words this novel; press for today");
+			await stepper(page).click();
+			await expect(value(page)).toHaveText(/^Words today: /);
+			await shot(page, "stats-counts");
+		});
+
+		test("Return and Space step the count and focus stays on the icon; its tooltip says the same as its name", async ({ page }) => {
+			await openProject(page);
+			await stepper(page).focus();
+			await page.keyboard.press("Enter");
+			await expect(value(page)).toHaveText(/^Words this week: /);
+			await expect(stepper(page)).toBeFocused();
+			await page.keyboard.press("Space");
+			await expect(value(page)).toHaveText("Words this session: 0");
+			await expect(stepper(page)).toBeFocused();
+			await stepper(page).blur();
+			await stepper(page).focus(); // the tooltip shows at once on keyboard focus
+			await expect(page.getByRole("tooltip")).toHaveText("Words this session; press for this chapter");
+			expect(await value(page).getAttribute("aria-live")).toBe("polite");
+		});
+
+		test("the count on display is remembered per project, and never written to project.md", async ({ page }) => {
+			await openProject(page);
+			const before = await onDisk(page, "_backstage/storyforge/project.md").catch(() => null);
+			await stepper(page).click();
+			await stepper(page).click();
+			await stepper(page).click();
+			await expect(value(page)).toHaveText("Words this chapter: 22");
+			await reopen(page);
+			await expect(value(page)).toHaveText("Words this chapter: 22");
+			expect(await onDisk(page, "_backstage/storyforge/project.md").catch(() => null)).toBe(before);
+		});
+
+		test("the graph icon opens the history view", async ({ page }) => {
+			await openProject(page);
+			await page.getByRole("button", { name: "Open the history" }).click();
+			await expect(page.getByRole("dialog")).toBeVisible();
+		});
+
+		test("the whole section is grey1", async ({ page }) => {
+			await openProject(page);
+			for (const sel of [".sf-stats", ".sf-stats-chart", ".sf-stats-count", ".sf-stats-value"]) expect(await page.locator(sel).evaluate((e) => getComputedStyle(e).color), sel).toBe("rgb(133, 146, 137)");
 		});
 
 		test("the chapter count follows typing once it is saved", async ({ page }) => {
 			await openProject(page);
-			await page.getByRole("button", { name: "Switch wordcount" }).click();
-			await page.getByRole("button", { name: "Switch wordcount" }).click();
-			await expect(page.locator(".sf-stats-value")).toHaveText("chapter: 22");
+			for (let i = 0; i < 3; i++) await stepper(page).click();
+			await expect(value(page)).toHaveText("Words this chapter: 22");
 			await centre(page).click();
 			await page.keyboard.press("ControlOrMeta+ArrowDown");
 			await page.keyboard.type(" three more words");
-			await expect(page.locator(".sf-stats-value")).toHaveText("chapter: 25", { timeout: 6000 });
+			await expect(value(page)).toHaveText("Words this chapter: 25", { timeout: 6000 });
 		});
 	});
 

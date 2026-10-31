@@ -72,6 +72,15 @@ This project uses icons from the following third-party, open-source icon sets. A
 
 ---
 
+## Heroicons
+
+- **Author:** Tailwind Labs, Inc.
+- **Source:** https://github.com/tailwindlabs/heroicons
+- **Version:** 2.x, the 16 px solid ("micro") set, which first appeared in 2.1.0. The files were supplied by Kenny, who chose them; the exact release they were taken from wasn't recorded.
+- **Licence:** MIT License — *see [MIT License](#mit-license) below; Heroicons' own LICENSE reads "MIT License, Copyright (c) Tailwind Labs, Inc.", the same text*
+
+---
+
 ## Framework7 Icons
 
 - **Author:** Vladimir Kharlampidi
@@ -162,6 +171,7 @@ This project uses icons from the following third-party, open-source icon sets. A
 
 - **Author:** Microsoft Corporation
 - **Source:** https://github.com/microsoft/fluentui-system-icons
+- **Used for:** the stats panel's document-text (this chapter) and its three clocks: clock, clock-bill and clock-pause (16 px; see below).
 - **Licence:** MIT License — *see [MIT License](#mit-license) below*
 
 ---
@@ -441,12 +451,12 @@ This project uses icons from the following third-party, open-source icon sets. A
 
 ## MIT License
 
-*Applies to: Famicons, Mynaui Icons, Siemens Industrial Experience Icons (ix), Mono Icons, Tabler Icons, Framework7 Icons, Bootstrap Icons, Feather Icon (fe), @icons (at-icons), Huge Icons, Akar Icons, Fluent UI System Icons, Phosphor Icons, Majesticons, Simple Line Icons, Ionicons*
+*Applies to: Heroicons, Famicons, Mynaui Icons, Siemens Industrial Experience Icons (ix), Mono Icons, Tabler Icons, Framework7 Icons, Bootstrap Icons, Feather Icon (fe), @icons (at-icons), Huge Icons, Akar Icons, Fluent UI System Icons, Phosphor Icons, Majesticons, Simple Line Icons, Ionicons*
 
 ```
 MIT License
 
-Copyright (c) respective icon set authors (Famicons — Family; Mynaui Icons — Myna UI; Siemens Industrial Experience Icons — Siemens AG; Mono Icons — Mono Company BV; Tabler Icons — Tabler (Paweł Kuna); Framework7 Icons — Vladimir Kharlampidi; Bootstrap Icons — The Bootstrap Authors; Feather Icon (fe) — Megumi Hano; @icons (at-icons) — Valentin Fossati; Huge Icons — Hugeicons; Akar Icons — Arturo Wibawa; Fluent UI System Icons — Microsoft Corporation; Phosphor Icons — Phosphor Icons; Majesticons — Gerrit Halfmann; Simple Line Icons — Sabbir Ahmed & contributors; Ionicons — Ionic (ionic-team))
+Copyright (c) respective icon set authors (Heroicons — Tailwind Labs, Inc.; Famicons — Family; Mynaui Icons — Myna UI; Siemens Industrial Experience Icons — Siemens AG; Mono Icons — Mono Company BV; Tabler Icons — Tabler (Paweł Kuna); Framework7 Icons — Vladimir Kharlampidi; Bootstrap Icons — The Bootstrap Authors; Feather Icon (fe) — Megumi Hano; @icons (at-icons) — Valentin Fossati; Huge Icons — Hugeicons; Akar Icons — Arturo Wibawa; Fluent UI System Icons — Microsoft Corporation; Phosphor Icons — Phosphor Icons; Majesticons — Gerrit Halfmann; Simple Line Icons — Sabbir Ahmed & contributors; Ionicons — Ionic (ionic-team))
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -506,3 +516,7 @@ THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH RE
 ## Where Tabler Icons are used in the interface
 
 The Codex list's filled folder, the New Folder button's folder-plus and the New Note button's file-plus are Tabler Icons (version 2.4 / 1.0 of those glyphs, MIT; the notice is in the MIT section above). Their paths are in `src/ui/kit/icons.ts`.
+
+## Where Heroicons, Fluent and Tabler are used in the stats panel
+
+The stats panel's four count icons are Heroicons (16 px solid): calendar-days (today), calendar-date-range (this week), calendar (this session) and book-open (this novel). **This chapter's icon is Fluent's document-text (16 px, filled).** The readout's three clocks are Fluent's, 16 px, drawn at 24 px: **clock** (no session), **clock-bill** (a session is ongoing) and **clock-pause** (paused). Its history button is Tabler's clipboard-data (filled). The files' own fills (`#212121`, `#0F172A`, `black`) are replaced by `currentColor`, so the stats purpose colours them. The paths are in `src/ui/kit/statsIcons.ts`.

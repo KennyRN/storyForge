@@ -19,6 +19,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, write
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { guardedTyping } from "./lib/typingGuard.mjs";
 
 const root = resolve(fileURLToPath(import.meta.url), "../..");
 const BUNDLE_ID = "io.github.kennyrn.storyforge";
@@ -89,7 +90,9 @@ async function until(fn, ms = 15000) {
 }
 // One key at a time, 40 ms apart: a whole string sent in one burst arrives faster than anyone types, and the built
 // app (1.0.0 included) then drops spaces and letters while an aid is replacing a word.
-const sendKeys = (text) => osa('on run argv\nset t to item 1 of argv\ntell application "System Events"\nrepeat with i from 1 to count of t\nkeystroke (character i of t)\ndelay 0.04\nend repeat\nend tell\nend run', text);
+// Every keystroke goes through the typing guard (decision 72): nothing is typed unless the test copy is in front with a text box focused.
+const typing = guardedTyping({ osa, fail });
+const sendKeys = typing.sendKeys;
 
 // What is typed, what the editor must hold after the typing aids (and only the aids), and what each piece proves.
 // Typed with real keystrokes, so the Mac's text system sees it as typing. A case where the editor holds something else
@@ -136,7 +139,7 @@ try {
 	}
 
 	// One ⌘Z straight after a curl gives back exactly what was typed (through the real Edit menu).
-	const keystroke = (script) => osa(`tell application "System Events" to ${script}`);
+	const keystroke = typing.key;
 	sendKeys("don'");
 	await sleep(500);
 	const curled = valueOf("AXTextArea", "Text") ?? "";
@@ -177,7 +180,7 @@ try {
 		const [x, y, w, h] = osa('tell application "System Events" to tell process "storyforge" to return (position of window 1) & (size of window 1)').stdout.trim().split(", ").map(Number);
 		spawnSync("screencapture", ["-x", "-R", [x, y, w, h].join(","), file]);
 	};
-	const key = (script) => osa(`tell application "System Events" to ${script}`);
+	const key = typing.key;
 	key('keystroke "a" using command down');
 	sendKeys("jane and sam. ");
 	await sleep(500);

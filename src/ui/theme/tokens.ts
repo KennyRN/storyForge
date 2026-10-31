@@ -8,6 +8,7 @@ export const PURPOSES = [
 	"decoration",
 	"text",
 	"text-muted",
+	"stats",
 	"accent",
 	"text-on-accent",
 	"focus-ring",

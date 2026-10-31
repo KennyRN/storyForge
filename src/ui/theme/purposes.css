@@ -9,6 +9,8 @@
 	--purpose-decoration: var(--ef-grey0);
 	--purpose-text: var(--ef-fg);
 	--purpose-text-muted: var(--ef-grey2);
+	/* The stats section (decision 68): grey1, about 4.1:1 on bg_dim, Kenny's choice. */
+	--purpose-stats: var(--ef-grey1);
 	--purpose-accent: var(--ef-green);
 	--purpose-text-on-accent: var(--ef-bg-dim);
 	--purpose-focus-ring: var(--ef-green);

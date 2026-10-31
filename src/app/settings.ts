@@ -244,6 +244,10 @@ export async function setSetting<K extends Key>(project: Project, current: Loade
 
 // ------------------------------------------------------------------------- machine settings
 
+/** The stats panel's counts, in the order the count icon steps through them (decision 68). */
+export const STATS_COUNTS = ["day", "week", "session", "chapter", "novel"] as const;
+export type StatsCount = (typeof STATS_COUNTS)[number];
+
 /** Where you were in this project: a position, not a preference, so it stays on this computer. */
 export interface MachineProjectState {
 	selectedNovel: string | null;
@@ -256,6 +260,8 @@ export interface MachineProjectState {
 	loreHidden?: boolean;
 	/** Chapter card sizes on the novel overview, keyed `<book folder>/<chapter file>`. Extended is the default and isn't stored (decision 41). */
 	cardTiers?: Record<string, "bar" | "collapsed">;
+	/** Which count the stats panel shows (decision 68). Day is the default and isn't stored. */
+	statsCount?: StatsCount;
 }
 
 export const DEFAULT_MACHINE_PROJECT_STATE: MachineProjectState = { selectedNovel: null, selectedObject: null, collapsedCodexFolderIds: [] };
@@ -279,6 +285,7 @@ export async function loadMachineProjectState(store: MachineStore, projectKey: s
 			...(typeof parsed.leftWidth === "number" && Number.isFinite(parsed.leftWidth) ? { leftWidth: parsed.leftWidth } : {}),
 			...(typeof parsed.loreWidth === "number" && Number.isFinite(parsed.loreWidth) ? { loreWidth: parsed.loreWidth } : {}),
 			...(parsed.loreHidden === true ? { loreHidden: true } : {}),
+			...(STATS_COUNTS.some((c) => c === parsed.statsCount) && parsed.statsCount !== "day" ? { statsCount: parsed.statsCount as StatsCount } : {}),
 			...(parsed.cardTiers && typeof parsed.cardTiers === "object" ? { cardTiers: cleanCardTiers(parsed.cardTiers) } : {}),
 		};
 	} catch {
