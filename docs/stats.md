@@ -106,6 +106,10 @@ Kenny's mapping, as received:
 4. The count icons stay at their natural 16 px beside the 24 px graph and clock icons. Kenny judges them in the built app.
 5. `grey1` `#859289` joins the theme as a palette role (4.08:1 on `bg_dim`).
 
+## 9a. Icon changes after H1 (Kenny, 31 October 2026)
+
+Kenny sent Fluent icons (MIT): **document-text (filled) replaces the Heroicons document** as this chapter's icon; **clock-bill** shows while a session is ongoing; **clock-pause** is the paused clock (now Fluent's, 16 px, instead of Tabler's); **clock** shows when no session is ongoing. All three clocks are drawn at 24 px. He also wanted the pause timing tied to the idle limit; asked what that would show, since the pause and the end of the session would then coincide, he chose **"keep a separate short pause"**: the pause stays at a minute without an edit, and only the icons change. `data-clock` is now `idle`, `session` or `paused`.
+
 ## 10. As built
 
 Three commits on `stats` after this document: `7d6e0bc` (the counts row), `49fe23b` (the Heroicons author line), `5d084fe` (the readout row), then the version, changelog, `AGENTS.md` and the report.

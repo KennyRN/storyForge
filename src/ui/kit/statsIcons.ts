@@ -1,8 +1,10 @@
 import type { StatsCount } from "../../app/settings";
 
+export type ClockKind = "idle" | "session" | "paused";
+
 /**
  * The stats panel's icons (decision 68, Kenny's own choice). The graph is Tabler's clipboard-data (filled, 24 px grid, MIT);
- * the five counts are Heroicons' 16 px solid ("micro", MIT). Both are drawn solid in the current text colour:
+ * four of the five counts are Heroicons' 16 px solid ("micro", MIT); the chapter's document and the three clocks are Fluent's 16 px (MIT). Both are drawn solid in the current text colour:
  * the files' own fills are replaced by `currentColor`, so the colour comes from the page's purposes (Icon Licences.md).
  */
 interface Solid {
@@ -43,10 +45,10 @@ const COUNTS: Record<StatsCount, Solid> = {
 		box: 16,
 		paths: [{ evenodd: true, d: "M4 1.75C4 1.33579 4.33579 1 4.75 1C5.16421 1 5.5 1.33579 5.5 1.75V3H10.5V1.75C10.5 1.33579 10.8358 1 11.25 1C11.6642 1 12 1.33579 12 1.75V3C13.1046 3 14 3.89543 14 5V12C14 13.1046 13.1046 14 12 14H4C2.89543 14 2 13.1046 2 12V5C2 3.89543 2.89543 3 4 3V1.75ZM4.5 6C3.94772 6 3.5 6.44772 3.5 7V11.5C3.5 12.0523 3.94772 12.5 4.5 12.5H11.5C12.0523 12.5 12.5 12.0523 12.5 11.5V7C12.5 6.44772 12.0523 6 11.5 6H4.5Z" }],
 	},
-	// document
+	// Fluent's document-text, filled (replaces Heroicons' document)
 	chapter: {
 		box: 16,
-		paths: [{ d: "M2.5 3.5C2.5 2.67157 3.17157 2 4 2H8.87868C9.2765 2 9.65804 2.15804 9.93934 2.43934L13.0607 5.56066C13.342 5.84197 13.5 6.2235 13.5 6.62132V12.5C13.5 13.3284 12.8284 14 12 14H4C3.17157 14 2.5 13.3284 2.5 12.5V3.5Z" }],
+		paths: [{ d: "M8 4.5V1H4.5C3.67157 1 3 1.67157 3 2.5V13.5C3 14.3284 3.67157 15 4.5 15H11.5C12.3284 15 13 14.3284 13 13.5V6H9.5C8.67157 6 8 5.32843 8 4.5ZM9 4.5V1.25L12.75 5H9.5C9.22386 5 9 4.77614 9 4.5ZM5.5 8H10.5C10.7761 8 11 8.22386 11 8.5C11 8.77614 10.7761 9 10.5 9H5.5C5.22386 9 5 8.77614 5 8.5C5 8.22386 5.22386 8 5.5 8ZM5 10.5C5 10.2239 5.22386 10 5.5 10H10.5C10.7761 10 11 10.2239 11 10.5C11 10.7761 10.7761 11 10.5 11H5.5C5.22386 11 5 10.7761 5 10.5ZM5.5 12H10.5C10.7761 12 11 12.2239 11 12.5C11 12.7761 10.7761 13 10.5 13H5.5C5.22386 13 5 12.7761 5 12.5C5 12.2239 5.22386 12 5.5 12Z" }],
 	},
 	// book-open
 	novel: {
@@ -76,7 +78,18 @@ function draw(shape: Solid, size: number): SVGElement {
 	return svg;
 }
 
+const CLOCKS: Record<ClockKind, Solid> = {
+	// Fluent's clock (regular): no session
+	idle: { box: 16, paths: [{ d: "M2 8C2 4.68629 4.68629 2 8 2C11.3137 2 14 4.68629 14 8C14 11.3137 11.3137 14 8 14C4.68629 14 2 11.3137 2 8ZM8 1C4.13401 1 1 4.13401 1 8C1 11.866 4.13401 15 8 15C11.866 15 15 11.866 15 8C15 4.13401 11.866 1 8 1ZM8 4.5C8 4.22386 7.77614 4 7.5 4C7.22386 4 7 4.22386 7 4.5V8.5C7 8.77614 7.22386 9 7.5 9H10.5C10.7761 9 11 8.77614 11 8.5C11 8.22386 10.7761 8 10.5 8H8V4.5Z" }] },
+	// Fluent's clock-bill (regular): a session is ongoing
+	session: { box: 16, paths: [{ d: "M15.9994 7C15.9994 10.866 12.8654 14 8.99942 14V13C12.3131 13 14.9994 10.3137 14.9994 7C14.9994 3.68629 12.3131 1 8.99942 1C6.02643 1 3.55846 3.16229 3.08238 6H2.07031C2.55554 2.60771 5.47295 0 8.99942 0C12.8654 0 15.9994 3.13401 15.9994 7ZM7.99942 6.76389C8.37096 7.09643 8.65913 7.52021 8.82872 8H11.4994C11.7756 8 11.9994 7.77614 11.9994 7.5C11.9994 7.22386 11.7756 7 11.4994 7H8.99942V3.5C8.99942 3.22386 8.77557 3 8.49942 3C8.22328 3 7.99942 3.22386 7.99942 3.5V6.76389ZM0 9C0 7.89543 0.895431 7 2 7H6C7.10457 7 8 7.89543 8 9V14C8 15.1046 7.10457 16 6 16H2C0.895431 16 0 15.1046 0 14V9ZM5.5 9H2.5C2.22386 9 2 9.22386 2 9.5C2 9.77614 2.22386 10 2.5 10H5.5C5.77614 10 6 9.77614 6 9.5C6 9.22386 5.77614 9 5.5 9ZM5.5 11H2.5C2.22386 11 2 11.2239 2 11.5C2 11.7761 2.22386 12 2.5 12H5.5C5.77614 12 6 11.7761 6 11.5C6 11.2239 5.77614 11 5.5 11ZM5.5 13H2.5C2.22386 13 2 13.2239 2 13.5C2 13.7761 2.22386 14 2.5 14H5.5C5.77614 14 6 13.7761 6 13.5C6 13.2239 5.77614 13 5.5 13Z" }] },
+	// Fluent's clock-pause (regular): the session is paused (a minute with no edit)
+	paused: { box: 16, paths: [{ d: "M4.5 7C6.98528 7 9 9.01472 9 11.5C9 13.9853 6.98528 16 4.5 16C2.01472 16 0 13.9853 0 11.5C0 9.01472 2.01472 7 4.5 7ZM3 9C2.72386 9 2.5 9.22386 2.5 9.5V13.5C2.5 13.7761 2.72386 14 3 14C3.27614 14 3.5 13.7761 3.5 13.5V9.5C3.5 9.22386 3.27614 9 3 9ZM6 9C5.72386 9 5.5 9.22386 5.5 9.5V13.5C5.5 13.7761 5.72386 14 6 14C6.27614 14 6.5 13.7761 6.5 13.5V9.5C6.5 9.22386 6.27614 9 6 9ZM9 0C12.866 0 16 3.13401 16 7C16 10.7303 13.0821 13.7778 9.4043 13.9873C9.57215 13.657 9.70771 13.3079 9.80664 12.9434C12.7387 12.5492 15 10.04 15 7C15 3.68629 12.3137 1 9 1C5.96025 1 3.45021 3.26071 3.05566 6.19238C2.69118 6.29133 2.34195 6.42688 2.01172 6.59473C2.22165 2.91734 5.27004 0 9 0ZM8.5 3C8.77614 3 9 3.22386 9 3.5V7H11.5C11.7761 7 12 7.22386 12 7.5C12 7.77614 11.7761 8 11.5 8H8.74219C8.51876 7.72951 8.27052 7.48023 8 7.25684V3.5C8 3.22386 8.22386 3 8.5 3Z" }] },
+};
+
 /** The history button's icon: 24 px. */
 export const graphIcon = (): SVGElement => draw(GRAPH, 24);
+/** The readout's clock: none ongoing, a session ongoing, or paused. Drawn at 24 px so it sits under the graph icon. */
+export const clockIcon = (kind: ClockKind): SVGElement => draw(CLOCKS[kind], 24);
 /** The icon of the count on display, at its natural 16 px. */
 export const countIcon = (count: StatsCount): SVGElement => draw(COUNTS[count], 16);

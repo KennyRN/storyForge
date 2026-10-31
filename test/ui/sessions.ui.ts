@@ -197,7 +197,7 @@ test.describe("the live readout", () => {
 	test("with the setting on the row is always there: the clock beneath the graph icon, `0m`, no words, before any session", async ({ page }) => {
 		await start(page, true);
 		await expect(readout(page)).toBeVisible();
-		await expect(clock(page)).toHaveAttribute("data-clock", "running");
+		await expect(clock(page)).toHaveAttribute("data-clock", "idle");
 		await expect(length(page)).toHaveText("0m");
 		await expect(words(page)).toBeHidden();
 		const [graph, clockBox] = await Promise.all([page.locator(".sf-stats-chart").boundingBox(), clock(page).boundingBox()]);
@@ -215,7 +215,7 @@ test.describe("the live readout", () => {
 		await page.clock.runFor(2_000);
 		await expect(length(page)).toHaveText("1m"); // 1 min 55 s from first edit to last
 		await expect(words(page)).toHaveText("5 words");
-		await expect(clock(page)).toHaveAttribute("data-clock", "running");
+		await expect(clock(page)).toHaveAttribute("data-clock", "session");
 		await page.clock.runFor(61_000);
 		await expect(clock(page)).toHaveAttribute("data-clock", "paused");
 		await expect(length(page)).toHaveText("1m"); // holds while paused
@@ -223,7 +223,7 @@ test.describe("the live readout", () => {
 		await shot(page, "stats-readout-paused");
 		await page.keyboard.type(" six");
 		await page.clock.runFor(1_000);
-		await expect(clock(page)).toHaveAttribute("data-clock", "running");
+		await expect(clock(page)).toHaveAttribute("data-clock", "session");
 		await expect(length(page)).toHaveText("2m"); // first edit to this one, 2 min 58 s
 		await expect(words(page)).toHaveText("6 words");
 	});
@@ -234,7 +234,7 @@ test.describe("the live readout", () => {
 		await page.clock.runFor(61_000);
 		await expect(clock(page)).toHaveAttribute("data-clock", "paused");
 		await page.clock.runFor(6 * 60_000); // past the idle limit
-		await expect(clock(page)).toHaveAttribute("data-clock", "running");
+		await expect(clock(page)).toHaveAttribute("data-clock", "idle");
 		await expect(length(page)).toHaveText("0m");
 		await expect(words(page)).toBeHidden();
 	});

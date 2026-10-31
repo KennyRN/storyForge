@@ -6,8 +6,7 @@ import { formatWordCount } from "../../core/wordCount";
 import { STATS_COUNTS, type StatsCount } from "../../app/settings";
 import { readoutState } from "../../core/sessionReadout";
 import { el } from "../kit/dom";
-import { icon } from "../kit/icons";
-import { countIcon, graphIcon } from "../kit/statsIcons";
+import { clockIcon, countIcon, graphIcon, type ClockKind } from "../kit/statsIcons";
 import { attachTooltip } from "../kit/tooltip";
 import type { AppModel } from "../model";
 import { openHistoryDialog } from "../screens/history/historyDialog";
@@ -61,17 +60,17 @@ export function mountStats(host: HTMLElement, model: AppModel): () => void {
 	const length = el("span", { class: "sf-stats-length" });
 	const words = el("span", { class: "sf-stats-words" });
 	const readout = el("div", { class: "sf-stats-session", attrs: { "data-testid": "session-readout", role: "group", "aria-label": "Current session" } }, clock, length, words);
-	let clockKind: "running" | "paused" | null = null;
+	let clockKind: ClockKind | null = null;
 	const drawReadout = (): void => {
 		const on = model.running?.settings.values.showSessionReadout === true;
 		readout.hidden = !on;
 		if (!on) return;
 		const state = readoutState(model.running?.sessions?.live() ?? null, Date.now());
-		const kind = state.paused ? "paused" : "running";
+		const kind: ClockKind = state.net === null ? "idle" : state.paused ? "paused" : "session";
 		if (kind !== clockKind) {
 			clockKind = kind;
 			clock.dataset.clock = kind;
-			clock.replaceChildren(icon(state.paused ? "clock-pause" : "clock", 24));
+			clock.replaceChildren(clockIcon(kind));
 		}
 		length.textContent = state.length;
 		// The words are shown only while a session runs, and not twice when session is the count above.

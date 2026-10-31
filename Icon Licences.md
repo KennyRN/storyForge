@@ -171,6 +171,7 @@ This project uses icons from the following third-party, open-source icon sets. A
 
 - **Author:** Microsoft Corporation
 - **Source:** https://github.com/microsoft/fluentui-system-icons
+- **Used for:** the stats panel's document-text (this chapter) and its three clocks: clock, clock-bill and clock-pause (16 px; see below).
 - **Licence:** MIT License — *see [MIT License](#mit-license) below*
 
 ---
@@ -516,6 +517,6 @@ THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH RE
 
 The Codex list's filled folder, the New Folder button's folder-plus and the New Note button's file-plus are Tabler Icons (version 2.4 / 1.0 of those glyphs, MIT; the notice is in the MIT section above). Their paths are in `src/ui/kit/icons.ts`.
 
-## Where Heroicons and Tabler are used in the stats panel
+## Where Heroicons, Fluent and Tabler are used in the stats panel
 
-The stats panel's five count icons are Heroicons (16 px solid): calendar-days (today), calendar-date-range (this week), calendar (this session), document (this chapter) and book-open (this novel). Its history button is Tabler's clipboard-data (filled), and the session readout's clocks are Tabler's clock and clock-pause. The files' own fills (`#0F172A`, `black`) are replaced by `currentColor`, so the stats purpose colours them. The paths are in `src/ui/kit/statsIcons.ts` (and, for the clocks, `src/ui/kit/icons.ts`).
+The stats panel's four count icons are Heroicons (16 px solid): calendar-days (today), calendar-date-range (this week), calendar (this session) and book-open (this novel). **This chapter's icon is Fluent's document-text (16 px, filled).** The readout's three clocks are Fluent's, 16 px, drawn at 24 px: **clock** (no session), **clock-bill** (a session is ongoing) and **clock-pause** (paused). Its history button is Tabler's clipboard-data (filled). The files' own fills (`#212121`, `#0F172A`, `black`) are replaced by `currentColor`, so the stats purpose colours them. The paths are in `src/ui/kit/statsIcons.ts`.

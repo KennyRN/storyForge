@@ -5,6 +5,7 @@ Built on `stats` (storyForge **1.4.0**, built app from branch `stats`; `main` is
 ## What was built
 
 - **The counts row:** the graph icon (24 px; opens the history view), the icon of the count on display (16 px), its number. Clicking the count icon steps day, week, session, chapter, novel, round again. Which count shows is kept per project in machine settings; day isn't stored; `project.md` is never written (tested).
+- **Icons changed after the first build** (Kenny, see `docs/stats.md` §9a): Fluent's document-text, clock, clock-bill and clock-pause. The pause stays at a minute.
 - **The readout row** (only with the existing setting on, and then always there): the clock (24 px) beneath the graph icon, the length (`0m`, `25m`, `1h 05m`), the words (not repeated when session is the count above). The clock is the paused one from a minute without an edit; the length holds at first-edit-to-last-edit; at the session's end the row goes back to the standard clock and `0m`.
 - **Colour:** the whole section is `grey1` (`#859289`, 4.08:1 on `bg_dim`), tested for every part.
 - **Accessibility:** the count icon is a button named "Words today; press for this week" (and so on), the same in its tooltip; Return and Space step it and focus stays on it; the number is a polite live region whose hidden text names what it counts.
@@ -29,8 +30,9 @@ No figure, maths module, session rule or counter changed.
 | Use | Icon | Set | Licence |
 |---|---|---|---|
 | graph (history) | clipboard-data, filled | Tabler | MIT |
-| today, this week, this session, this chapter, this novel | calendar-days, calendar-date-range, calendar, document, book-open (16 px solid) | Heroicons, Tailwind Labs, Inc. | MIT |
-| clock, paused clock | clock, clock-pause | Tabler | MIT |
+| today, this week, this session, this novel | calendar-days, calendar-date-range, calendar, book-open (16 px solid) | Heroicons, Tailwind Labs, Inc. | MIT |
+| this chapter | document-text (16 px, filled) | Fluent (Microsoft) | MIT |
+| no session, a session ongoing, paused | clock, clock-bill, clock-pause (16 px, drawn at 24) | Fluent (Microsoft) | MIT |
 
 All recorded in `Icon Licences.md`. The Heroicons release the files came from wasn't recorded; the entry says "2.x, the 16 px micro set".
 
