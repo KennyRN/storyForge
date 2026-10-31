@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-// @ts-expect-error: a plain script module
 import { decide } from "../../scripts/lib/typingGuard.mjs";
 
 describe("the typing guard (decision 72)", () => {
