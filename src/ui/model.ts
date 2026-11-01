@@ -3,6 +3,7 @@
  * controller (open, create, watcher, backups, closing) and the notices, and tells regions which topic
  * changed so each redraws only its own subtree. Editors are never redrawn by a topic.
  */
+import { clampPx, convertUnit, displayWidths, DEFAULT_LEFT_WIDTH_PX, DEFAULT_LORE_WIDTH_PX, DEFAULT_WIDTH_UNIT, fromPx, rangeIn, toPx, type Panel, type PanelWidths, type Range, type WidthUnit } from "./panelWidths";
 import type { AppController, CoverTarget, OpenOutcome, Running } from "../app/appLife";
 import type { MachineProjectState, StatsCount } from "../app/settings";
 import type { PlotCardTier } from "../core/plotCardTier";
@@ -39,8 +40,13 @@ export interface Nav {
 	/** The selected chapter's filename. */
 	chapter: string | null;
 	collapsedCodex: Set<string>;
-	leftWidth: number;
+	/** Panel widths in `widthUnit` (Fix 5): the left panel on each side, and the context panel. */
+	storyWidth: number;
+	libraryWidth: number;
 	loreWidth: number;
+	widthUnit: WidthUnit;
+	/** "Keep the panels the same width". */
+	widthsLinked: boolean;
 	/** View ▸ Show or Hide Context. */
 	loreHidden: boolean;
 	/** Chapter card sizes, `<book>/<file>`; absent means extended. */
@@ -56,11 +62,25 @@ export type Selection =
 	| { kind: "codex-folder"; id: string; path?: string }
 	| { kind: "novel"; book: string };
 
-export const DEFAULT_LEFT_WIDTH = 288;
-export const DEFAULT_LORE_WIDTH = 400;
-const clampWidth = (n: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, n));
-export const clampLeft = (n: number): number => clampWidth(n, 200, 480);
-export const clampLore = (n: number): number => clampWidth(n, 280, 640);
+const machineDefaults = (): MachineProjectState => ({ selectedNovel: null, selectedObject: null, collapsedCodexFolderIds: [] });
+
+/**
+ * The stored widths of a project (Fix 5). Before 1.5.0 only `leftWidth` (for both sides) and `loreWidth` were kept, in pixels;
+ * with no switch stored the panels are linked, so all three take the storytelling side's width, shown in percent (decision 77).
+ */
+function initialWidths(m: MachineProjectState, win: number): Pick<Nav, "storyWidth" | "libraryWidth" | "loreWidth" | "widthUnit" | "widthsLinked"> {
+	const unit: WidthUnit = m.widthUnit ?? DEFAULT_WIDTH_UNIT;
+	const linked = m.widthsLinked ?? true;
+	const fresh = m.widthUnit === undefined; // figures are pixels
+	const asPx = (v: number | undefined, fallback: number): number => toPx(v ?? fallback, fresh ? "px" : unit, win);
+	const story = asPx(m.leftWidth, DEFAULT_LEFT_WIDTH_PX);
+	const library = linked ? story : asPx(m.libraryWidth, m.leftWidth === undefined ? DEFAULT_LEFT_WIDTH_PX : story);
+	const lore = linked ? story : asPx(m.loreWidth, DEFAULT_LORE_WIDTH_PX);
+	const out = (px: number, key: Panel): number => fromPx(clampPx(key, linked, px), unit, win);
+	return { storyWidth: out(story, "story"), libraryWidth: out(library, "library"), loreWidth: out(lore, "lore"), widthUnit: unit, widthsLinked: linked };
+}
+
+const windowWidth = (): number => (typeof window !== "undefined" && window.innerWidth > 0 ? window.innerWidth : 1440);
 
 const ALL: Topic[] = ["project", "library", "codex", "archive", "stats", "settings", "face", "sessions"];
 
@@ -68,7 +88,7 @@ export class AppModel {
 	readonly notices = new NoticeCenter();
 	/** Set by the shell once the slots exist. */
 	editors: EditorHost | null = null;
-	nav: Nav = { face: "storytelling", forgeTab: "novel", centreView: "chapter", book: null, chapter: null, collapsedCodex: new Set(), leftWidth: DEFAULT_LEFT_WIDTH, loreWidth: DEFAULT_LORE_WIDTH, loreHidden: false, cardTiers: {}, statsCount: "day" };
+	nav: Nav = { face: "storytelling", forgeTab: "novel", centreView: "chapter", book: null, chapter: null, collapsedCodex: new Set(), ...initialWidths(machineDefaults(), windowWidth()), loreHidden: false, cardTiers: {}, statsCount: "day" };
 	selection: Selection | null = null;
 	private persistTimer: ReturnType<typeof setTimeout> | undefined;
 	private listeners = new Map<Topic, Set<() => void>>();
@@ -117,8 +137,7 @@ export class AppModel {
 			book,
 			chapter,
 			collapsedCodex: new Set(machine.collapsedCodexFolderIds),
-			leftWidth: clampLeft(machine.leftWidth ?? DEFAULT_LEFT_WIDTH),
-			loreWidth: clampLore(machine.loreWidth ?? DEFAULT_LORE_WIDTH),
+			...initialWidths(machine, windowWidth()),
 			loreHidden: machine.loreHidden === true,
 			cardTiers: { ...(machine.cardTiers ?? {}) },
 			statsCount: machine.statsCount ?? "day",
@@ -249,10 +268,56 @@ export class AppModel {
 		this.touch("codex");
 	}
 
-	setWidths(left?: number, lore?: number): void {
-		if (left !== undefined) this.nav.leftWidth = clampLeft(left);
-		if (lore !== undefined) this.nav.loreWidth = clampLore(lore);
+	/** The widths as stored, for the pure functions. */
+	panelWidths(): PanelWidths {
+		const { storyWidth: story, libraryWidth: library, loreWidth: lore, widthUnit: unit, widthsLinked: linked } = this.nav;
+		return { story, library, lore, unit, linked };
+	}
+
+	/** The widths to draw, in pixels, at this window width: narrowed for display if the window is small, stored figures untouched. */
+	displayWidths(win = windowWidth()): { left: number; lore: number } {
+		return displayWidths(this.panelWidths(), this.nav.face, this.nav.loreHidden, win);
+	}
+
+	private storeWidths(w: PanelWidths, notify = true): void {
+		Object.assign(this.nav, { storyWidth: w.story, libraryWidth: w.library, loreWidth: w.lore, widthUnit: w.unit, widthsLinked: w.linked });
 		this.persistSoon();
+		if (notify) this.touch("nav");
+	}
+
+	/** A divider was dragged or keyed: the new width, in pixels, of the left panel on the side shown, or of the context panel. */
+	setPanelWidthPx(panel: "left" | "lore", px: number, win = windowWidth()): void {
+		const w = this.panelWidths();
+		const key: Panel = panel === "lore" ? "lore" : this.nav.face === "storytelling" ? "story" : "library";
+		const value = fromPx(clampPx(key, w.linked, px), w.unit, win);
+		this.storeWidths(w.linked ? { ...w, story: value, library: value, lore: value } : { ...w, [key]: value }, false); // the shell redraws the panels itself while dragging
+	}
+
+	/** A figure typed in settings, in the current unit. Refused, with the range, when outside the limits; nothing is stored then. */
+	commitTypedWidth(panel: Panel | "shared", value: number, win = windowWidth()): { ok: true } | { ok: false; range: Range } {
+		const w = this.panelWidths();
+		const key: Panel = panel === "shared" ? "story" : panel;
+		const range = rangeIn(key, w.linked, w.unit, win);
+		if (!Number.isFinite(value) || value < range.min || value > range.max) return { ok: false, range };
+		const v = w.unit === "px" ? Math.round(value) : Math.round(value * 10) / 10;
+		this.storeWidths(w.linked ? { ...w, story: v, library: v, lore: v } : { ...w, [key]: v });
+		return { ok: true };
+	}
+
+	/** The same-width switch. Turning it on gives all three the width of the left panel on the side shown. */
+	setWidthsLinked(on: boolean): void {
+		const w = this.panelWidths();
+		if (w.linked === on) return;
+		if (!on) return this.storeWidths({ ...w, linked: false });
+		const px = clampPx("story", true, toPx(this.nav.face === "storytelling" ? w.story : w.library, w.unit, windowWidth()));
+		const v = fromPx(px, w.unit, windowWidth());
+		this.storeWidths({ ...w, linked: true, story: v, library: v, lore: v });
+	}
+
+	/** The unit switch: each stored figure is converted at the current window width, so nothing moves. */
+	setWidthUnit(unit: WidthUnit): void {
+		const w = this.panelWidths();
+		if (w.unit !== unit) this.storeWidths(convertUnit(w, unit, windowWidth()));
 	}
 
 	private elisionCache: { source: readonly string[]; words: ReadonlySet<string> } = { source: [], words: new Set() };
@@ -347,9 +412,9 @@ export class AppModel {
 	async persistNow(): Promise<void> {
 		clearTimeout(this.persistTimer);
 		if (!this.running) return;
-		const { book, chapter, collapsedCodex, leftWidth, loreWidth, loreHidden, cardTiers, statsCount } = this.nav;
+		const { book, chapter, collapsedCodex, storyWidth, libraryWidth, loreWidth, widthUnit, widthsLinked, loreHidden, cardTiers, statsCount } = this.nav;
 		try {
-			await this.controller.saveMachineState({ selectedNovel: book, selectedObject: chapter, collapsedCodexFolderIds: [...collapsedCodex], leftWidth, loreWidth, ...(loreHidden ? { loreHidden } : {}), ...(Object.keys(cardTiers).length ? { cardTiers } : {}), ...(statsCount !== "day" ? { statsCount } : {}) });
+			await this.controller.saveMachineState({ selectedNovel: book, selectedObject: chapter, collapsedCodexFolderIds: [...collapsedCodex], leftWidth: storyWidth, libraryWidth, loreWidth, widthUnit, widthsLinked, ...(loreHidden ? { loreHidden } : {}), ...(Object.keys(cardTiers).length ? { cardTiers } : {}), ...(statsCount !== "day" ? { statsCount } : {}) });
 		} catch {
 			/* where you were is a convenience: never worth a notice */
 		}

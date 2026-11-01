@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.0: panel widths (Fix 5, decisions 76 and 77)
+
+- Added: **the side panels' widths can be typed in Settings** (new group, "This Mac, this project") as well as dragged. One stored width per panel, set two ways: dragging or keying a divider changes the figure shown the next time Settings opens; a typed figure (Return or leaving the field) moves the panel behind the dialog. A figure outside the limits is refused with its range, and Escape puts it back.
+- Added: **three widths**: the left panel on the storytelling side, the left panel on the library side (until now one width served both) and the context panel. **"Keep the panels the same width"** (on by default) makes them one; dragging any divider moves all three. Turning it off leaves each where it was; turning it on takes the shown side's left width.
+- Added: **pixels or percent of the window** (percent by default). Changing the unit converts the figures without moving anything; percent panels scale with the window.
+- Changed: **limits**: left panel 200–640 px (was 200–480), context panel 280–640 px, shared range 280–640 px, workspace at least 360 px. A window too small for the set widths narrows the panels for display only (equally while linked; the context panel first when not), and the stored figures never change.
+- Changed: **a project opening for the first time in 1.5.0 has the panels linked, all at the left panel's old width** (288 px by default), shown in percent.
+- Unchanged: the widths live in this computer's settings for each project, never in `project.md`; the core, the disk format, the prose writer, the close path and the guard; no new Rust command, dependency or network request.
+
 ## 1.4.0: the stats panel (Brief 12, decisions 68 and 69)
 
 - Changed: **the word-count section is one row**: the graph icon (opens the history view), then the icon of the count on display, then its number. **Clicking the count icon steps through day, week, session, chapter and novel** and round again (Return and Space too); its name and tooltip say what is showing and what comes next ("Words today; press for this week"). **Session is new** in the cycle: the current session's net words. The figures themselves are unchanged. Which count shows is remembered for each project on this computer (never in `project.md`); a new project starts on day.

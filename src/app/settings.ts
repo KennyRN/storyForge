@@ -255,7 +255,12 @@ export interface MachineProjectState {
 	collapsedCodexFolderIds: string[];
 	/** Panel widths in pixels: screens differ between Macs, so they stay on this computer (decision 26). */
 	leftWidth?: number;
+	/** The library side's left panel (Fix 5). `leftWidth` is the storytelling side's. All in `widthUnit`, or pixels where it is absent (before 1.5.0). */
+	libraryWidth?: number;
 	loreWidth?: number;
+	widthUnit?: "px" | "percent";
+	/** The same-width switch; absent means on. */
+	widthsLinked?: boolean;
 	/** View ▸ Show or Hide Lore Slot. */
 	loreHidden?: boolean;
 	/** Chapter card sizes on the novel overview, keyed `<book folder>/<chapter file>`. Extended is the default and isn't stored (decision 41). */
@@ -284,6 +289,9 @@ export async function loadMachineProjectState(store: MachineStore, projectKey: s
 			collapsedCodexFolderIds: Array.isArray(parsed.collapsedCodexFolderIds) ? parsed.collapsedCodexFolderIds.filter((x): x is string => typeof x === "string") : base.collapsedCodexFolderIds,
 			...(typeof parsed.leftWidth === "number" && Number.isFinite(parsed.leftWidth) ? { leftWidth: parsed.leftWidth } : {}),
 			...(typeof parsed.loreWidth === "number" && Number.isFinite(parsed.loreWidth) ? { loreWidth: parsed.loreWidth } : {}),
+			...(typeof parsed.libraryWidth === "number" && Number.isFinite(parsed.libraryWidth) ? { libraryWidth: parsed.libraryWidth } : {}),
+			...(parsed.widthUnit === "px" || parsed.widthUnit === "percent" ? { widthUnit: parsed.widthUnit } : {}),
+			...(typeof parsed.widthsLinked === "boolean" ? { widthsLinked: parsed.widthsLinked } : {}),
 			...(parsed.loreHidden === true ? { loreHidden: true } : {}),
 			...(STATS_COUNTS.some((c) => c === parsed.statsCount) && parsed.statsCount !== "day" ? { statsCount: parsed.statsCount as StatsCount } : {}),
 			...(parsed.cardTiers && typeof parsed.cardTiers === "object" ? { cardTiers: cleanCardTiers(parsed.cardTiers) } : {}),

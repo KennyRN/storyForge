@@ -317,6 +317,21 @@ describe("the stats count in machine state", () => {
 	});
 });
 
+describe("the panel widths in machine state (Fix 5)", () => {
+	it("keeps the unit, the switch and the library side's width, and ignores bad values", async () => {
+		const mem = new Map<string, string>();
+		const store = { get: async (n: string) => mem.get(n) ?? null, set: async (n: string, t: string) => void mem.set(n, t) };
+		const base = { selectedNovel: null, selectedObject: null, collapsedCodexFolderIds: [] };
+		await saveMachineProjectState(store, "k", { ...base, leftWidth: 20, libraryWidth: 25.5, loreWidth: 30, widthUnit: "percent", widthsLinked: false });
+		expect(await loadMachineProjectState(store, "k")).toMatchObject({ leftWidth: 20, libraryWidth: 25.5, loreWidth: 30, widthUnit: "percent", widthsLinked: false });
+		mem.set("project-ui/k", JSON.stringify({ widthUnit: "em", widthsLinked: "yes", libraryWidth: "wide" }));
+		const bad = await loadMachineProjectState(store, "k");
+		expect(bad.widthUnit).toBeUndefined();
+		expect(bad.widthsLinked).toBeUndefined();
+		expect(bad.libraryWidth).toBeUndefined();
+	});
+});
+
 describe("the typing settings (docs/typing-aids.md §8)", () => {
 	const put = (root: string, body: string) => {
 		fs.mkdirSync(path.join(root, "_backstage/storyforge"), { recursive: true });
