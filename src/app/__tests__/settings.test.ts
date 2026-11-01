@@ -11,7 +11,7 @@ import { Project } from "../../core/project";
 import { sha256Text } from "../../core/hash";
 import { MachineSnapshotStore } from "../machineSnapshots";
 import { buildSnapshot } from "../../core/snapshot";
-import { DEFAULT_PROJECT_SETTINGS, PROJECT_SETTINGS_PATH, type MachineStore, loadMachineProjectState, loadSettings, saveMachineProjectState, setSetting } from "../settings";
+import { APPEARANCE_BASE_PX, DEFAULT_PROJECT_SETTINGS, PROJECT_SETTINGS_PATH, type MachineStore, loadMachineProjectState, loadSettings, saveMachineProjectState, setSetting } from "../settings";
 
 afterEach(cleanupFixtures);
 
@@ -444,44 +444,48 @@ describe("the Codex colour (decision 62)", () => {
 	});
 });
 
-describe("the Appearance settings (decisions 79 to 83) and story-kind (decision 81)", () => {
+describe("the Appearance settings (decisions 79 to 84) and story-kind (decision 81)", () => {
 	const put = (root: string, body: string) => {
 		fs.mkdirSync(path.join(root, "_backstage/storyforge"), { recursive: true });
 		fs.writeFileSync(path.join(root, PROJECT_SETTINGS_PATH), `---\nformat-version: 1\n${body}---\n`);
 	};
-	it("every part starts as its current look: no font, its own weight and size, Softness 0, Wonk off", async () => {
+	it("every part starts as the author's defaults; Fraunces' Softness is 0 and Wonk off", async () => {
 		const root = copyFixture("series");
 		const v = (await loadSettings(await open(root), reader(root))).values;
-		expect([v.appearanceCodexFont, v.appearanceNovelFont, v.appearanceSeriesFont, v.appearanceChapterFont]).toEqual([null, null, null, null]);
-		expect([v.appearanceCodexWeight, v.appearanceCodexSize, v.appearanceNovelWeight, v.appearanceSeriesWeight]).toEqual([400, 1, 600, 500]);
+		expect([v.appearanceCodexFont, v.appearanceCodexWeight, v.appearanceCodexSize]).toEqual(["Atkinson Hyperlegible Next", 400, 1]);
+		expect([v.appearanceNovelFont, v.appearanceNovelWeight, v.appearanceNovelSize]).toEqual(["Inter", 900, 1]);
+		expect([v.appearanceSeriesFont, v.appearanceSeriesWeight, v.appearanceSeriesSize]).toEqual(["Inter", 600, 0.75]);
+		expect([v.appearanceChapterFont, v.appearanceChapterWeight, v.appearanceChapterSize]).toEqual(["SN Pro", 300, 1.375]);
 		expect([v.appearanceCodexSoft, v.appearanceCodexWonk]).toEqual([0, false]);
 		expect(v.storyKind).toBe("series");
 	});
-	it("valid values are read; an unknown font, an out-of-range size or weight, Softness out of range, or a wrong kind falls back and is never rewritten", async () => {
+	it("valid values are read; a font that no longer exists (or 'current look'), an out-of-range size or weight, Softness out of range, or a wrong kind falls back and is never rewritten", async () => {
 		const root = copyFixture("series");
 		put(root, "appearance-codex-font: Fraunces\nappearance-codex-weight: 300\nappearance-codex-size: 1.25\nappearance-codex-soft: 50\nappearance-codex-wonk: true\nappearance-novel-size: 2\nstory-kind: standalone\n");
 		const ok = (await loadSettings(await open(root), reader(root))).values;
 		expect([ok.appearanceCodexFont, ok.appearanceCodexWeight, ok.appearanceCodexSize, ok.appearanceCodexSoft, ok.appearanceCodexWonk, ok.appearanceNovelSize, ok.storyKind]).toEqual(["Fraunces", 300, 1.25, 50, true, 2, "standalone"]);
-		put(root, "appearance-codex-font: Comic Sans\nappearance-codex-weight: 450\nappearance-codex-size: 3\nappearance-codex-soft: 101\nappearance-codex-wonk: yes\nappearance-novel-size: 2.5\nstory-kind: both\n");
+		put(root, "appearance-codex-font: Comic Sans\nappearance-novel-font: null\nappearance-codex-weight: 450\nappearance-codex-size: 3\nappearance-codex-soft: 101\nappearance-codex-wonk: yes\nappearance-novel-size: 2.5\nstory-kind: both\n");
 		const before = snapshot(root);
 		const bad = (await loadSettings(await open(root), reader(root))).values;
-		expect([bad.appearanceCodexFont, bad.appearanceCodexWeight, bad.appearanceCodexSize, bad.appearanceCodexSoft, bad.appearanceCodexWonk, bad.appearanceNovelSize, bad.storyKind]).toEqual([null, 400, 1, 0, false, 0.8125, "series"]);
+		expect([bad.appearanceCodexFont, bad.appearanceNovelFont, bad.appearanceCodexWeight, bad.appearanceCodexSize, bad.appearanceCodexSoft, bad.appearanceCodexWonk, bad.appearanceNovelSize, bad.storyKind]).toEqual(["Atkinson Hyperlegible Next", "Inter", 400, 1, 0, false, 1, "series"]);
 		expect(diffSnapshots(before, snapshot(root)).changed).toEqual([]);
 		// the ranges are per part: the Codex list and the selected chapter stop at 1.75, the titles at 2
 		put(root, "appearance-chapter-size: 1.8\nappearance-series-size: 1.8\n");
 		const ranges = (await loadSettings(await open(root), reader(root))).values;
-		expect([ranges.appearanceChapterSize, ranges.appearanceSeriesSize]).toEqual([0.8125, 1.8]);
+		expect([ranges.appearanceChapterSize, ranges.appearanceSeriesSize]).toEqual([1.375, 1.8]);
 	});
-	it("choosing a font writes only its key; choosing 'current look' again removes it; opening and reading write nothing", async () => {
+	it("choosing a font writes only its key; choosing the default again writes nothing new on a project with no file; reading writes nothing", async () => {
 		const root = copyFixture("series");
 		const project = await open(root);
 		const s = await loadSettings(project, reader(root));
 		const untouched = snapshot(root);
-		await setSetting(project, s, "appearanceCodexFont", null);
+		await setSetting(project, s, "appearanceCodexFont", "Atkinson Hyperlegible Next");
 		expect(diffSnapshots(untouched, snapshot(root)).changed).toEqual([]);
+		expect(fs.existsSync(path.join(root, PROJECT_SETTINGS_PATH))).toBe(false);
 		await setSetting(project, s, "appearanceCodexFont", "Inter");
 		expect(fs.readFileSync(path.join(root, PROJECT_SETTINGS_PATH), "utf8")).toContain("appearance-codex-font: Inter");
-		await setSetting(project, s, "appearanceCodexFont", null);
-		expect(fs.readFileSync(path.join(root, PROJECT_SETTINGS_PATH), "utf8")).not.toContain("appearance-codex-font");
+	});
+	it("the pixel base is one named constant", () => {
+		expect(APPEARANCE_BASE_PX).toBe(16);
 	});
 });

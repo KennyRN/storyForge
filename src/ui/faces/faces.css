@@ -66,7 +66,7 @@
 .sf-nav-lead {
 	display: block;
 	max-width: 100%;
-	margin: 0 0 var(--space-2);
+	margin: 0 0 4px; /* 8px before decision 84: the series name and the novel's name sit about half as far apart */
 	padding: 0;
 	border: 0;
 	background: none;
@@ -170,6 +170,55 @@
 	font-size: var(--ap-codex-size, 16px);
 	font-variation-settings: var(--ap-codex-var, normal);
 }
+/* The Codex list on the storytelling side (decision 84; the library side's codex tab is unchanged):
+   - the line height is a third less (1.4 to 0.9333), and the rows, their highlight, the folder lines and the drag targets follow it;
+   - type and folder icons are 1em, so they follow the Appearance size; the strip's icons don't change;
+   - a name's icon is 0.75em after it (was 1em); the 6px between a folder icon and a type icon stays;
+   - the text of a row inside a folder starts 6px from the folder's line (was 14px), the highlight still starting flush at the line:
+     so a level is 8px deep, not 16px (the line is flush with its folder's name, and the highlight with the line's other edge).
+   The text starts at T(d) = 8 + 8d px at depth d, a nested row is margined by 8d + 2, and the folder's line is at T(d). */
+.sf-left[data-face="storytelling"] .sf-codex-tree {
+	line-height: 0.9333;
+}
+.sf-left[data-face="storytelling"] .sf-codex-folder-header,
+.sf-left[data-face="storytelling"] .sf-codex-file {
+	--edge: max(0px, calc(var(--depth, 0) * 8px + 2px));
+	--hit: max(28px, calc(1em + 12px));
+	min-height: 0;
+	padding: 3px 8px 3px calc(8px + var(--depth, 0) * 8px - var(--edge));
+}
+.sf-left[data-face="storytelling"] .sf-codex-tree svg {
+	width: 1em;
+	height: 1em;
+	margin-block: calc((0.9333em - 1em) / 2); /* a glyph as tall as the text must not make the row taller than its line */
+}
+.sf-left[data-face="storytelling"] .sf-codex-name + svg {
+	margin-left: 0.75em;
+}
+/* The folder icon's hit area: as tall as the row, so it never reaches into the rows above or below, and at least 28px wide.
+   The glyph (1em) is centred in it; the name's gap and the 6px to a type icon are measured to the glyph. */
+.sf-left[data-face="storytelling"] .sf-codex-hit {
+	align-self: stretch;
+	width: var(--hit);
+	height: auto;
+	margin: -3px 0 -3px calc(0.75em - (var(--hit) - 1em) / 2);
+}
+.sf-left[data-face="storytelling"] .sf-codex-hit svg {
+	margin-block: 0;
+}
+.sf-left[data-face="storytelling"] .sf-codex-hit + svg {
+	margin-left: calc(6px - (var(--hit, 28px) - 1em) / 2);
+}
+.sf-left[data-face="storytelling"] .sf-codex-children::before {
+	left: calc(8px + var(--depth, 0) * 8px);
+}
+.sf-left[data-face="storytelling"] .sf-codex-folder-empty {
+	padding-left: calc(8px + (var(--depth, 0) + 1) * 8px);
+}
+.sf-left[data-face="storytelling"] .sf-codex-draft {
+	padding-left: calc(8px + var(--depth, 0) * 8px);
+}
+
 /* The Codex tree. */
 .sf-codex-tree {
 	flex: 1;

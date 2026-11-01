@@ -61,14 +61,20 @@ test.describe("settings sections", () => {
 });
 
 test.describe("Appearance", () => {
-	test("four parts, each with a font, a weight and a size, starting as the current look (no custom properties, nothing written)", async ({ page }) => {
+	test("four parts, each with a font, a weight and a size, starting as the author's defaults (decision 84); no 'current look'; opening writes nothing", async ({ page }) => {
 		await openProject(page);
 		await openSettings(page, "Appearance");
-		for (const part of ["Codex list", "Novel title", "Series name", "Selected chapter"]) {
-			await expect(font(page, part)).toHaveValue("");
-			await expect(dialog(page).getByLabel(`${part} weight`)).toBeDisabled();
+		const want: [string, string, string, string][] = [["Codex list", "Atkinson Hyperlegible Next", "400", "1"], ["Novel title", "Inter", "900", "1"], ["Series name", "Inter", "600", "0.75"], ["Selected chapter", "SN Pro", "300", "1.375"]];
+		for (const [part, f, w, z] of want) {
+			await expect(font(page, part)).toHaveValue(f);
+			await expect(dialog(page).getByLabel(`${part} weight`)).toHaveValue(w);
+			await expect(size(page, part)).toHaveValue(z);
+			expect(await font(page, part).locator("option").allInnerTexts()).toEqual(["SN Pro", "Aleo", "Atkinson Hyperlegible Next", "Courier Prime", "Fraunces", "Inter"]);
 		}
-		expect(await page.evaluate(() => document.documentElement.style.getPropertyValue("--ap-novel-family"))).toBe("");
+		expect(await page.evaluate(() => document.documentElement.style.getPropertyValue("--ap-chapter-size"))).toBe("22px"); // 1.375 rem against the one 16 px base
+		expect(await style(page, ".sf-nav-novel")).toMatchObject({ weight: "900", size: "16px" });
+		expect((await style(page, ".sf-nav-novel")).family).toContain("Inter");
+		expect(await style(page, ".sf-nav-series")).toMatchObject({ weight: "600", size: "12px" });
 		expect(await projectMd(page)).toBe("");
 	});
 
@@ -76,12 +82,12 @@ test.describe("Appearance", () => {
 		await openProject(page);
 		const chapterBefore = await style(page, ".sf-nav-current");
 		await openSettings(page, "Appearance");
-		await font(page, "Novel title").selectOption("Inter");
-		await expect.poll(async () => (await style(page, ".sf-nav-novel")).family).toContain("Inter");
-		expect((await style(page, ".sf-nav-novel")).weight).toBe("600");
+		await font(page, "Novel title").selectOption("Aleo");
+		await expect.poll(async () => (await style(page, ".sf-nav-novel")).family).toContain("Aleo");
+		expect((await style(page, ".sf-nav-novel")).weight).toBe("900"); // the weight goes with the author to the new font
 		expect(await style(page, ".sf-nav-current")).toEqual(chapterBefore);
-		expect((await style(page, ".sf-nav-series")).family).not.toContain("Inter");
-		await expect.poll(() => projectMd(page)).toContain("appearance-novel-font: Inter");
+		expect((await style(page, ".sf-nav-series")).family).toContain("Inter"); // the series name is its own part
+		await expect.poll(() => projectMd(page)).toContain("appearance-novel-font: Aleo");
 		await font(page, "Codex list").selectOption("Aleo");
 		await size(page, "Codex list").fill("1.5");
 		await size(page, "Codex list").press("Enter");
@@ -131,7 +137,6 @@ test.describe("Appearance", () => {
 	test("size: rounded to the nearest 0.125 rem at once, refused with its range outside it, Escape restores, arrows step 0.125 and Shift 0.25", async ({ page }) => {
 		await openProject(page);
 		await openSettings(page, "Appearance");
-		await font(page, "Novel title").selectOption("Inter");
 		const input = size(page, "Novel title");
 		await input.fill("1.3");
 		await input.press("Enter");
@@ -152,6 +157,7 @@ test.describe("Appearance", () => {
 		await expect(size(page, "Novel title")).toHaveValue("1.625");
 		// the chapter and Codex ranges stop at 1.75
 		await font(page, "Selected chapter").selectOption("Aleo");
+		await expect.poll(() => projectMd(page)).toContain("appearance-chapter-font: Aleo"); // the page is drawn again once it has landed
 		await size(page, "Selected chapter").fill("1.8");
 		await size(page, "Selected chapter").press("Enter");
 		await expect(dialog(page).getByRole("alert")).toHaveText("Between 0.75 and 1.75 rem");
@@ -163,20 +169,21 @@ test.describe("Appearance", () => {
 		await font(page, "Series name").selectOption("Courier Prime");
 		const sample = dialog(page).getByRole("img", { name: "Sample of the series name" });
 		await expect.poll(() => sample.evaluate((e) => getComputedStyle(e).fontFamily)).toContain("Courier Prime");
-		expect(await sample.evaluate((e) => getComputedStyle(e).fontSize)).toBe("13px");
+		expect(await sample.evaluate((e) => getComputedStyle(e).fontSize)).toBe("12px"); // 0.75 rem, the series name's default
 		expect((await style(page, ".sf-nav-series")).family).toContain("Courier Prime");
 	});
 
-	test("an unknown font in project.md is the current look and isn't rewritten", async ({ page }) => {
+	test("an unknown font or size in project.md is the default and isn't rewritten", async ({ page }) => {
 		await openPreview(page);
 		await page.evaluate(() => window.__preview.touch("_backstage/storyforge/project.md", "---\nformat-version: 1\nappearance-novel-font: Comic Sans\nappearance-novel-size: 9\n---\n"));
 		await page.reload();
 		await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
 		await page.locator("[data-recent='0']").click();
 		await page.waitForFunction(() => !!window.__app?.editors);
-		expect(await page.evaluate(() => document.documentElement.style.getPropertyValue("--ap-novel-family"))).toBe("");
+		expect(await page.evaluate(() => document.documentElement.style.getPropertyValue("--ap-novel-family"))).toContain("Inter"); // the default
 		await openSettings(page, "Appearance");
-		await expect(font(page, "Novel title")).toHaveValue("");
+		await expect(font(page, "Novel title")).toHaveValue("Inter");
+		await expect(size(page, "Novel title")).toHaveValue("1");
 		expect(await projectMd(page)).toContain("appearance-novel-font: Comic Sans");
 	});
 });

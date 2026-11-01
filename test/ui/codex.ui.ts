@@ -54,7 +54,7 @@ for (const side of SIDES) {
 				expect(where.icons.length, `${name}: an icon`).toBeGreaterThan(0);
 				for (const left of where.icons) expect(left, `${name}: the icon is after the name`).toBeGreaterThanOrEqual(where.nameRight - 1);
 			}
-			// the first icon is 1em after the end of the name, which is only as wide as its text
+			// the first icon is 1em after the end of the name (0.75em on the storytelling side, decision 84), which is only as wide as its text
 			for (const name of ["Jane", "Windows", "Cast", "Harbour"]) {
 				const g = await row(page, name).evaluate((el) => {
 					const n = el.querySelector(".sf-codex-name") as HTMLElement;
@@ -64,7 +64,7 @@ for (const side of SIDES) {
 					return { gap: el.querySelector("svg")!.getBoundingClientRect().left - n.getBoundingClientRect().right, nameIsText: Math.abs(n.getBoundingClientRect().width - text.width) < 1, em: parseFloat(getComputedStyle(el).fontSize) };
 				});
 				expect(g.nameIsText, `${name}: the name is as wide as its text`).toBe(true);
-				expect(g.gap, `${name}: 1em between the name and its icon`).toBeCloseTo(g.em, 0);
+				expect(g.gap, `${name}: the gap between the name and its icon`).toBeCloseTo(side.name.startsWith("storytelling") ? 0.75 * g.em : g.em, 0);
 			}
 			// A note with no tag linked has no icon at all; a folder always has its folder icon.
 			expect(await tree(page).locator('[data-key="Codex/NoNewline.md"] svg').count()).toBe(0);
@@ -111,12 +111,13 @@ for (const side of SIDES) {
 			expect(await row(page, "Windows").getAttribute("aria-expanded")).toBeNull();
 		});
 
-		test("the folder icon is a comfortable mouse target: square, as tall as the row, a pointer; a click beside the glyph inside it still folds", async ({ page }) => {
+		test("the folder icon is a comfortable mouse target: as tall as the row and at least 28px wide, a pointer; a click beside the glyph inside it still folds", async ({ page }) => {
 			const cast = row(page, "Cast");
 			const hit = cast.locator(".sf-codex-hit");
 			const [h, r, glyph, cursor] = await Promise.all([hit.boundingBox(), cast.boundingBox(), hit.locator("svg").boundingBox(), hit.evaluate((el) => getComputedStyle(el).cursor)]);
-			expect(h!.width).toBeCloseTo(h!.height, 0);
+			expect(h!.width).toBeGreaterThanOrEqual(28);
 			expect(h!.height).toBeGreaterThanOrEqual(r!.height - 1);
+			expect(h!.height).toBeLessThanOrEqual(r!.height + 1); // never into the rows above or below
 			expect(h!.width).toBeGreaterThan(glyph!.width + 8);
 			expect(cursor).toBe("pointer");
 			// just outside the glyph (its top-left corner of the hit area), well inside the hit area

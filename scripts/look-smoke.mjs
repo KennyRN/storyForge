@@ -129,10 +129,10 @@ cpSync(join(root, "test/fixtures/series"), project, { recursive: true });
 // checked is how they are drawn, not how they are typed.
 appendFileSync(join(project, "_story-library/aaa/ch-a1.md"), "\n\nƿȝƿȝƿȝƿȝƿȝ\n\n*ƿȝƿȝƿȝƿȝƿȝƿ*\n\nThe old letters, upright: ð þ ƿ ȝ ǣ, in *italic: ð þ ƿ ȝ ǣ*, in **bold: ð þ ƿ ȝ ǣ**.\n");
 // LOOK_CODEX_COLOUR=green (or any choice) sets the project's Codex colour, to take the pictures in that colour.
-if (process.env.LOOK_CODEX_COLOUR) {
-	mkdirSync(join(project, "_backstage/storyforge"), { recursive: true });
-	writeFileSync(join(project, "_backstage/storyforge/project.md"), `---\nformat-version: 1\ncodex-colour: ${process.env.LOOK_CODEX_COLOUR}\n---\n`);
-}
+// The storytelling side's Codex list is the author's choice of font (decision 84): this check is of SN Pro in it, so the project chooses it
+// (400 at 1 rem, the 16 px it was drawn at before).
+mkdirSync(join(project, "_backstage/storyforge"), { recursive: true });
+writeFileSync(join(project, "_backstage/storyforge/project.md"), `---\nformat-version: 1\n${process.env.LOOK_CODEX_COLOUR ? `codex-colour: ${process.env.LOOK_CODEX_COLOUR}\n` : ""}appearance-codex-font: SN Pro\nappearance-codex-weight: 400\nappearance-codex-size: 1\n---\n`);
 const data = join(home, DATA_FOLDER);
 mkdirSync(data, { recursive: true });
 writeFileSync(join(data, "recent.json"), JSON.stringify([project]));
@@ -200,6 +200,14 @@ try {
 	expectWidth("the Codex list, Jane", widthOf("AXStaticText", "Jane"), 33, 36);
 	expectWidth("the Codex list, Harbour", widthOf("AXStaticText", "Harbour"), 58, 60);
 	windowShot("codex-storytelling-no-note");
+	// The navigator, closed and open (the list covers the top of the Codex): an accessibility press on the chapter selector, no keystrokes.
+	windowShot("navigator-closed");
+	if (clickAny("Chapters")) {
+		await sleep(500);
+		windowShot("navigator-open");
+		clickAny("Chapters"); // closes it again
+		await sleep(500);
+	} else problems.push("could not find the chapter selector");
 
 	// The chapter (20 px): ten "w" upright are 161 px in SN Pro (about 150 in the system font), eleven in italic 191 (the italic file
 	// is a real italic). Then ten wynn and yogh, which SN Pro lacks: Arial draws them, and in italic text Arial Italic, not the

@@ -36,9 +36,8 @@ export type CodexColour = (typeof CODEX_COLOURS)[number];
 export type StoryKind = "series" | "standalone";
 
 /**
- * The four parts of the storytelling side whose type the author chooses (decision 79), each with a font (none means the
- * current look: the system font as the part has always been drawn), a weight, a size in rem and, for Fraunces, Softness and
- * Wonk. The defaults are the current look until the author's own choices are set (Brief 13, hold point H2).
+ * The four parts of the storytelling side whose type the author chooses (decision 79), each with a font, a weight, a size in rem and, for Fraunces, Softness and
+ * Wonk. The defaults are the author's own choices (decision 84).
  */
 export const APPEARANCE_PARTS = ["codex", "novel", "series", "chapter"] as const;
 export type AppearancePart = (typeof APPEARANCE_PARTS)[number];
@@ -46,16 +45,18 @@ export type AppearancePart = (typeof APPEARANCE_PARTS)[number];
 export const APPEARANCE_SIZE_RANGE: Record<AppearancePart, readonly [number, number]> = { codex: [0.75, 1.75], novel: [0.75, 2], series: [0.75, 2], chapter: [0.75, 1.75] };
 export const APPEARANCE_SIZE_STEP = 0.125;
 export const APPEARANCE_SIZE_STEP_SHIFT = 0.25;
-/** What each part looks like today: weight and size in rem (the interface text is 13 px, 0.8125 rem). */
-export const APPEARANCE_CURRENT: Record<AppearancePart, { weight: number; size: number }> = {
-	codex: { weight: 400, size: 1 },
-	novel: { weight: 600, size: 0.8125 },
-	series: { weight: 500, size: 0.8125 },
-	chapter: { weight: 400, size: 0.8125 },
+/** The base the Appearance sizes (stored in rem) are drawn against, in pixels. One constant for every size, so a later base-size setting scales them all together. The app's own root font size is not changed. */
+export const APPEARANCE_BASE_PX = 16;
+/** The author's defaults for each part (decision 84): font, weight and size in rem. A stored value that no longer exists falls back to these and is never rewritten. */
+export const APPEARANCE_DEFAULTS: Record<AppearancePart, { font: FontFamily; weight: number; size: number }> = {
+	codex: { font: "Atkinson Hyperlegible Next", weight: 400, size: 1 },
+	novel: { font: "Inter", weight: 900, size: 1 },
+	series: { font: "Inter", weight: 600, size: 0.75 },
+	chapter: { font: "SN Pro", weight: 300, size: 1.375 },
 };
 type Cap<P extends string> = Capitalize<P>;
 export type AppearanceKeys = {
-	[P in AppearancePart as `appearance${Cap<P>}Font`]: FontFamily | null;
+	[P in AppearancePart as `appearance${Cap<P>}Font`]: FontFamily;
 } & {
 	[P in AppearancePart as `appearance${Cap<P>}Weight`]: number;
 } & {
@@ -109,24 +110,24 @@ export interface ProjectSettings extends AppearanceKeys {
 
 export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
 	storyKind: "series",
-	appearanceCodexFont: null,
-	appearanceCodexWeight: 400,
-	appearanceCodexSize: 1,
+	appearanceCodexFont: APPEARANCE_DEFAULTS.codex.font,
+	appearanceCodexWeight: APPEARANCE_DEFAULTS.codex.weight,
+	appearanceCodexSize: APPEARANCE_DEFAULTS.codex.size,
 	appearanceCodexSoft: 0,
 	appearanceCodexWonk: false,
-	appearanceNovelFont: null,
-	appearanceNovelWeight: 600,
-	appearanceNovelSize: 0.8125,
+	appearanceNovelFont: APPEARANCE_DEFAULTS.novel.font,
+	appearanceNovelWeight: APPEARANCE_DEFAULTS.novel.weight,
+	appearanceNovelSize: APPEARANCE_DEFAULTS.novel.size,
 	appearanceNovelSoft: 0,
 	appearanceNovelWonk: false,
-	appearanceSeriesFont: null,
-	appearanceSeriesWeight: 500,
-	appearanceSeriesSize: 0.8125,
+	appearanceSeriesFont: APPEARANCE_DEFAULTS.series.font,
+	appearanceSeriesWeight: APPEARANCE_DEFAULTS.series.weight,
+	appearanceSeriesSize: APPEARANCE_DEFAULTS.series.size,
 	appearanceSeriesSoft: 0,
 	appearanceSeriesWonk: false,
-	appearanceChapterFont: null,
-	appearanceChapterWeight: 400,
-	appearanceChapterSize: 0.8125,
+	appearanceChapterFont: APPEARANCE_DEFAULTS.chapter.font,
+	appearanceChapterWeight: APPEARANCE_DEFAULTS.chapter.weight,
+	appearanceChapterSize: APPEARANCE_DEFAULTS.chapter.size,
 	appearanceChapterSoft: 0,
 	appearanceChapterWonk: false,
 	codexColour: "text",
@@ -159,22 +160,22 @@ type Key = keyof ProjectSettings;
 
 /** key in `project.md`, key in the plugin's `data.json`, and how to check a value. */
 const FIELDS: Record<Key, { file: string; plugin: string; valid: (v: unknown) => boolean }> = {
-	appearanceCodexFont: { file: "appearance-codex-font", plugin: "-", valid: (v) => v === null || isFontFamily(v) },
+	appearanceCodexFont: { file: "appearance-codex-font", plugin: "-", valid: isFontFamily },
 	appearanceCodexWeight: { file: "appearance-codex-weight", plugin: "-", valid: isWeight },
 	appearanceCodexSize: { file: "appearance-codex-size", plugin: "-", valid: (v) => isRemIn(v, APPEARANCE_SIZE_RANGE.codex) },
 	appearanceCodexSoft: { file: "appearance-codex-soft", plugin: "-", valid: (v) => isIntIn(v, 0, 100) },
 	appearanceCodexWonk: { file: "appearance-codex-wonk", plugin: "-", valid: (v) => typeof v === "boolean" },
-	appearanceNovelFont: { file: "appearance-novel-font", plugin: "-", valid: (v) => v === null || isFontFamily(v) },
+	appearanceNovelFont: { file: "appearance-novel-font", plugin: "-", valid: isFontFamily },
 	appearanceNovelWeight: { file: "appearance-novel-weight", plugin: "-", valid: isWeight },
 	appearanceNovelSize: { file: "appearance-novel-size", plugin: "-", valid: (v) => isRemIn(v, APPEARANCE_SIZE_RANGE.novel) },
 	appearanceNovelSoft: { file: "appearance-novel-soft", plugin: "-", valid: (v) => isIntIn(v, 0, 100) },
 	appearanceNovelWonk: { file: "appearance-novel-wonk", plugin: "-", valid: (v) => typeof v === "boolean" },
-	appearanceSeriesFont: { file: "appearance-series-font", plugin: "-", valid: (v) => v === null || isFontFamily(v) },
+	appearanceSeriesFont: { file: "appearance-series-font", plugin: "-", valid: isFontFamily },
 	appearanceSeriesWeight: { file: "appearance-series-weight", plugin: "-", valid: isWeight },
 	appearanceSeriesSize: { file: "appearance-series-size", plugin: "-", valid: (v) => isRemIn(v, APPEARANCE_SIZE_RANGE.series) },
 	appearanceSeriesSoft: { file: "appearance-series-soft", plugin: "-", valid: (v) => isIntIn(v, 0, 100) },
 	appearanceSeriesWonk: { file: "appearance-series-wonk", plugin: "-", valid: (v) => typeof v === "boolean" },
-	appearanceChapterFont: { file: "appearance-chapter-font", plugin: "-", valid: (v) => v === null || isFontFamily(v) },
+	appearanceChapterFont: { file: "appearance-chapter-font", plugin: "-", valid: isFontFamily },
 	appearanceChapterWeight: { file: "appearance-chapter-weight", plugin: "-", valid: isWeight },
 	appearanceChapterSize: { file: "appearance-chapter-size", plugin: "-", valid: (v) => isRemIn(v, APPEARANCE_SIZE_RANGE.chapter) },
 	appearanceChapterSoft: { file: "appearance-chapter-soft", plugin: "-", valid: (v) => isIntIn(v, 0, 100) },

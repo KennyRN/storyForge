@@ -1,6 +1,6 @@
 import { NUMBERING_STYLE_OPTIONS, type NumberingStyle } from "../../core/numberingStyle";
 import type { AutomaticBackupFrequency } from "../../core/backup";
-import { APPEARANCE_PARTS, APPEARANCE_SIZE_RANGE, APPEARANCE_SIZE_STEP, APPEARANCE_SIZE_STEP_SHIFT, CODEX_COLOURS, SESSION_LIMITS, appearanceKey, setSetting, type AppearancePart, type CodexColour, type ProjectSettings, type StoryKind } from "../../app/settings";
+import { APPEARANCE_BASE_PX, APPEARANCE_PARTS, APPEARANCE_SIZE_RANGE, APPEARANCE_SIZE_STEP, APPEARANCE_SIZE_STEP_SHIFT, CODEX_COLOURS, SESSION_LIMITS, appearanceKey, setSetting, type AppearancePart, type CodexColour, type ProjectSettings, type StoryKind } from "../../app/settings";
 import { FAMILY_INFO, FONT_FAMILIES, isFontFamily, nearestWeight, type FontFamily } from "../../core/fontFamilies";
 import { sampleStyle } from "../appearance";
 import { button } from "../kit/button";
@@ -83,41 +83,41 @@ export function openSettings(model: AppModel): void {
 	};
 	const row = (label: string, control: HTMLElement, key: keyof ProjectSettings): HTMLElement => el("label", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: label }), control, source(key));
 
-	/** A size in rem, with its pixel equivalent (the page's base is 16 px). */
-	const remText = (rem: number): string => `${+rem.toFixed(4)} rem (${+(rem * 16).toFixed(1)} px)`;
+	/** A size in rem, with its pixel equivalent against the one named base. */
+	const remText = (rem: number): string => `${+rem.toFixed(4)} rem (${+(rem * APPEARANCE_BASE_PX).toFixed(1)} px)`;
 	const appearancePart = (part: AppearancePart): HTMLElement => {
 		const name = PART_NAMES[part];
 		const [lo, hi] = APPEARANCE_SIZE_RANGE[part];
-		const font = settings.values[appearanceKey(part, "Font")] as FontFamily | null;
+		const font = settings.values[appearanceKey(part, "Font")] as FontFamily;
 		const weightNow = settings.values[appearanceKey(part, "Weight")] as number;
 		const sizeNow = settings.values[appearanceKey(part, "Size")] as number;
 		const fontKey = appearanceKey(part, "Font");
 
-		const fontSelect = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${name} font` } }, el("option", { text: "Current look", attrs: { value: "" } }), ...FONT_FAMILIES.map((f) => el("option", { text: f, attrs: { value: f } })));
-		fontSelect.value = font ?? "";
+		const fontSelect = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${name} font` } }, ...FONT_FAMILIES.map((f) => el("option", { text: f, attrs: { value: f } })));
+		fontSelect.value = font;
 		fontSelect.disabled = off;
 		fontSelect.addEventListener("change", () => {
-			const chosen = isFontFamily(fontSelect.value) ? fontSelect.value : null;
+			const chosen = fontSelect.value as FontFamily;
 			void (async () => {
 				await change(fontKey, chosen as never);
 				// The weight goes with the author to the new font where it has it, else the nearest it does have.
 				const weightKey = appearanceKey(part, "Weight");
 				const kept = settings.values[weightKey] as number; // read now, not when the page was drawn: a weight just chosen may have landed since
-				if (chosen && nearestWeight(chosen, kept) !== kept) await change(weightKey, nearestWeight(chosen, kept) as never);
+				if (nearestWeight(chosen, kept) !== kept) await change(weightKey, nearestWeight(chosen, kept) as never);
 			})();
 		});
 
-		const weights = font ? FAMILY_INFO[font].weights : [weightNow];
+		const weights = FAMILY_INFO[font].weights;
 		const weightSelect = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${name} weight` } }, ...weights.map((w) => el("option", { text: `${WEIGHT_NAMES[w] ?? w} (${w})`, attrs: { value: String(w) } })));
-		weightSelect.value = String(font ? nearestWeight(font, weightNow) : weightNow);
-		weightSelect.disabled = off || !font;
+		weightSelect.value = String(nearestWeight(font, weightNow));
+		weightSelect.disabled = off;
 		weightSelect.addEventListener("change", () => void change(appearanceKey(part, "Weight"), Number(weightSelect.value) as never));
 
 		// The size: committed on Return or leaving the field; rounded to the nearest step at once; refused outside its range; Escape restores.
 		const sizeInput = el("input", { class: "sf-field sf-setting-control", attrs: { type: "text", inputmode: "decimal", "aria-label": `${name} size (rem)` } });
 		const sizeHint = el("span", { class: "sf-muted sf-setting-source", text: remText(sizeNow) });
 		sizeInput.value = String(sizeNow);
-		sizeInput.disabled = off || !font;
+		sizeInput.disabled = off;
 		const refuse = (): void => {
 			sizeInput.value = String(sizeNow);
 			sizeInput.setAttribute("aria-invalid", "true");

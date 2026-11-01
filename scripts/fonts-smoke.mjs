@@ -146,13 +146,12 @@ async function measure(label, keys) {
 const problems = [];
 const check = (ok, what) => (ok ? console.log(`ok   ${what}`) : (problems.push(what), console.log(`FAIL ${what}`)));
 try {
-	const current = await measure("current look", {});
+	const defaults = await measure("the defaults (Atkinson, 400, 1 rem)", {});
 	const families = ["SN Pro", "Aleo", "Atkinson Hyperlegible Next", "Courier Prime", "Fraunces", "Inter"];
 	const drawn = {};
 	for (const f of families) drawn[f] = await measure(f, { font: f, weight: 400, size: 1 });
-	check(drawn["SN Pro"] === current, "SN Pro chosen explicitly draws exactly as the current look (the same file, 400 at 1 rem)");
-	for (const f of families.slice(1)) check(drawn[f] !== current, `${f} draws differently from the current look`);
-	check(new Set(Object.values(drawn)).size === families.length, "every family draws differently from every other");
+	check(drawn["Atkinson Hyperlegible Next"] === defaults, "Atkinson at 400 and 1 rem, chosen explicitly, draws exactly as the defaults do");
+	check(new Set(Object.values(drawn)).size === families.length, "every family draws differently from every other (the Codex list is drawn in the chosen font, not a fallback)");
 	for (const f of ["Aleo", "Atkinson Hyperlegible Next", "Fraunces", "Inter", "SN Pro"]) {
 		const light = await measure(`${f}, weight 200`, { font: f, weight: 200, size: 1 });
 		const heavy = await measure(`${f}, weight 800`, { font: f, weight: 800, size: 1 });
