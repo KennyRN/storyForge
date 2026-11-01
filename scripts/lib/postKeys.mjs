@@ -55,11 +55,12 @@ export function eventForScript(script) {
 export function postScript(pid, event) {
 	if (!Number.isInteger(pid) || pid <= 1) throw new Error(`not a process to post keys to: ${pid}`);
 	return `ObjC.import('CoreGraphics');
+ObjC.import('Foundation');
 for (const down of [true, false]) {
 	const e = $.CGEventCreateKeyboardEvent(null, ${event.code}, down);
 	$.CGEventSetFlags(e, ${event.flags});${event.unicode ? `\n\t$.CGEventKeyboardSetUnicodeString(e, ${event.unicode.length}, [${[...event.unicode].map((c) => c.charCodeAt(0)).join(", ")}]);` : ""}
 	$.CGEventPostToPid(${pid}, e);
-	$.usleep(8000);
+	$.NSThread.sleepForTimeInterval(0.008); // down and up a moment apart; both are always posted
 }`;
 }
 
