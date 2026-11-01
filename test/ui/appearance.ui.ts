@@ -89,6 +89,7 @@ test.describe("Appearance", () => {
 		expect((await style(page, ".sf-nav-series")).family).toContain("Inter"); // the series name is its own part
 		await expect.poll(() => projectMd(page)).toContain("appearance-novel-font: Aleo");
 		await font(page, "Codex list").selectOption("Aleo");
+		await expect.poll(() => projectMd(page)).toContain("appearance-codex-font: Aleo"); // the page is drawn again once it has landed
 		await size(page, "Codex list").fill("1.5");
 		await size(page, "Codex list").press("Enter");
 		await expect.poll(async () => (await style(page, ".sf-codex-tree")).size).toBe("24px");
