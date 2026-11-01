@@ -122,3 +122,11 @@ Real WebKit renders of the new navigator come with commit 3. Today's are in `doc
 5. "Highlight the active chapter": storytelling ignores it (always green); library keeps it?
 6. Fraunces as supplied `.woff2`; Inter as `.ttf` (1.8 MB), or may it be converted?
 7. The settings sections, key names and size ranges in §4–6.
+
+## 10. Ruling on the series-or-standalone setting (decision 81, item 3) and proposed key
+
+Kenny's ruling: the setting lives in `project.md` (not `series.md`, which is in the frozen 0.17 layout), as one key written only when it changes, with no `format-version` change. Missing or unknown means series and is never rewritten, so existing projects don't change. It's changed in settings, in a section for the story's own settings; creating a standalone novel sets it through the same settings route, with no core change. For now it affects only the storytelling side's series line; the library side is untouched. (This replaces the §2 proposal of `hideSeriesPane` or a missing `series-title`, and §9 question 4.)
+
+- **Proposed key: `story-kind`**, values `series` (the default) and `standalone`. In `src/app/settings.ts` as `storyKind`, with `valid: v === "series" || v === "standalone"`; any other value reads as `series`.
+- **Where in settings:** a **Story** section in the §4 list, above Appearance (a short page holding this one choice, a two-option radio, "A series" / "One standalone novel"); the existing "Hide the series pane" check, which is about the library side, stays in General.
+- **Creating a standalone novel:** the new-project screen's route writes `story-kind: standalone` through `settings.set` after the project is created, the same call the settings dialog makes.

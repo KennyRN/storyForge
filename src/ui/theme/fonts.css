@@ -15,3 +15,19 @@
 	font-style: italic;
 	font-display: block;
 }
+
+/* Brief 13: five more families (each SIL OFL 1.1, its licence beside its files, Font Licences.md), shipped unmodified and
+   loaded from the app only. A face is fetched only when something is drawn in it. Each variable file declares its whole
+   weight axis (a file's own default may be anything: Fraunces' is 900). Courier Prime is four static files. */
+@font-face { font-family: "Aleo"; src: url("./fonts/aleo/Aleo-Variable.ttf") format("truetype"); font-weight: 100 900; font-style: normal; font-display: block; }
+@font-face { font-family: "Aleo"; src: url("./fonts/aleo/Aleo-VariableItalic.ttf") format("truetype"); font-weight: 100 900; font-style: italic; font-display: block; }
+@font-face { font-family: "Atkinson Hyperlegible Next"; src: url("./fonts/atkinson/AtkinsonHyperlegibleNext-Variable.ttf") format("truetype"); font-weight: 200 800; font-style: normal; font-display: block; }
+@font-face { font-family: "Atkinson Hyperlegible Next"; src: url("./fonts/atkinson/AtkinsonHyperlegibleNext-VariableItalic.ttf") format("truetype"); font-weight: 200 800; font-style: italic; font-display: block; }
+@font-face { font-family: "Courier Prime"; src: url("./fonts/courier-prime/CourierPrime-Regular.ttf") format("truetype"); font-weight: 400; font-style: normal; font-display: block; }
+@font-face { font-family: "Courier Prime"; src: url("./fonts/courier-prime/CourierPrime-Bold.ttf") format("truetype"); font-weight: 700; font-style: normal; font-display: block; }
+@font-face { font-family: "Courier Prime"; src: url("./fonts/courier-prime/CourierPrime-Italic.ttf") format("truetype"); font-weight: 400; font-style: italic; font-display: block; }
+@font-face { font-family: "Courier Prime"; src: url("./fonts/courier-prime/CourierPrime-BoldItalic.ttf") format("truetype"); font-weight: 700; font-style: italic; font-display: block; }
+@font-face { font-family: "Fraunces"; src: url("./fonts/fraunces/Fraunces-Variable.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: block; }
+@font-face { font-family: "Fraunces"; src: url("./fonts/fraunces/Fraunces-VariableItalic.woff2") format("woff2"); font-weight: 100 900; font-style: italic; font-display: block; }
+@font-face { font-family: "Inter"; src: url("./fonts/inter/InterVariable.ttf") format("truetype"); font-weight: 100 900; font-style: normal; font-display: block; }
+@font-face { font-family: "Inter"; src: url("./fonts/inter/InterVariable-Italic.ttf") format("truetype"); font-weight: 100 900; font-style: italic; font-display: block; }

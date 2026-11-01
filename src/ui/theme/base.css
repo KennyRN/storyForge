@@ -493,3 +493,13 @@ textarea {
 	font-feature-settings: "liga" 0, "calt" 0, "ss01" 0;
 	font-synthesis: none;
 }
+
+/* Any surface drawn in one of the choosable families (Brief 13): what is on screen is what is on disk, so no ligatures or
+   contextual alternates (Inter's "calt", Aleo's and Fraunces' "liga", "dlig"), no style set, no synthesised bold or italic,
+   and optical size following the text size where the font has the axis. */
+.sf-faced {
+	font-variant-ligatures: none;
+	font-feature-settings: "liga" 0, "calt" 0, "dlig" 0, "ss01" 0;
+	font-synthesis: none;
+	font-optical-sizing: auto;
+}
