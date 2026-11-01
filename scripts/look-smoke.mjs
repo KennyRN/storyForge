@@ -144,6 +144,9 @@ if (shotsAt) mkdirSync(shotsAt, { recursive: true });
 const key = typing.key;
 const windowShot = (name) => {
 	if (!shotsAt) return;
+	// The picture is of the screen, so the test copy comes to the front first: nothing of anyone else's may be in it.
+	osa('tell application "System Events" to tell process "storyforge" to set frontmost to true');
+	spawnSync("sleep", ["0.4"]);
 	const [x, y, w, h] = osa('tell application "System Events" to tell process "storyforge" to return (position of window 1) & (size of window 1)').stdout.trim().split(", ").map(Number);
 	spawnSync("screencapture", ["-x", "-R", [x, y, w, h].join(","), join(shotsAt, `${name}.png`)]);
 };
@@ -202,10 +205,11 @@ try {
 	windowShot("codex-storytelling-no-note");
 	// The navigator, closed and open (the list covers the top of the Codex): an accessibility press on the chapter selector, no keystrokes.
 	windowShot("navigator-closed");
-	if (clickAny("Chapters")) {
+	const pressSelector = () => ["AXPopUpButton", "AXButton", "AXMenuButton"].some((role) => find(role, "Chapters", "click").startsWith("found")); // aria-haspopup makes it a pop-up button
+	if (pressSelector()) {
 		await sleep(500);
 		windowShot("navigator-open");
-		clickAny("Chapters"); // closes it again
+		pressSelector(); // closes it again
 		await sleep(500);
 	} else problems.push("could not find the chapter selector");
 
