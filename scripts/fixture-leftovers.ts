@@ -10,7 +10,8 @@ import { fileURLToPath } from "node:url";
 import { plantLeftovers } from "../test/helpers/leftovers";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const target = path.resolve(process.argv[2] ?? path.join(os.homedir(), "Desktop", "storyForge leftovers fixture"));
+// Never among the author's own files (decision 89): the default is a fresh folder in the system's temporary directory.
+const target = path.resolve(process.argv[2] ?? path.join(os.tmpdir(), `storyForge leftovers fixture ${Date.now()}`));
 if (fs.existsSync(target) && fs.readdirSync(target).length > 0) {
 	console.error(`${target} already exists and is not empty. Give another folder, or remove it first.`);
 	process.exit(1);
