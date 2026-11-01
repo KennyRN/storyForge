@@ -51,13 +51,13 @@ const measure = (page: Page) =>
 
 test.describe("the Codex list's spacing on the storytelling side", () => {
 	for (const rem of ["1", "1.5"]) {
-		test(`at ${rem} rem: the line height is a third less, icons are 1em, the name's icon is 0.75em after it, folder and type icons are 6px apart`, async ({ page }) => {
+		test(`at ${rem} rem: the line height is 1, icons are 1em, the name's icon is 0.75em after it, folder and type icons are 6px apart`, async ({ page }) => {
 			await openProject(page);
 			if (rem !== "1") await setCodexSize(page, rem);
 			const m = await measure(page);
 			expect(m.fs).toBeCloseTo(16 * Number(rem), 1);
-			expect(m.lineHeight).toBeCloseTo(1.4 * (2 / 3), 2); // 1.4, a third less
-			expect(m.rowH).toBeCloseTo(m.fs * (1.4 * (2 / 3)) + 6, 0); // the row is its line plus 3px above and below
+			expect(m.lineHeight).toBeCloseTo(1, 2); // it was 1.4
+			expect(m.rowH).toBeCloseTo(m.fs + 6, 0); // the row is its line plus 3px above and below
 			for (const icon of [m.castIcon, m.janeIcon, ...m.harbourIcons]) {
 				expect(icon.w).toBeCloseTo(m.fs, 1);
 				expect(icon.h).toBeCloseTo(m.fs, 1);

@@ -171,14 +171,14 @@
 	font-variation-settings: var(--ap-codex-var, normal);
 }
 /* The Codex list on the storytelling side (decision 84; the library side's codex tab is unchanged):
-   - the line height is a third less (1.4 to 0.9333), and the rows, their highlight, the folder lines and the drag targets follow it;
+   - the line height is 1 (it was 1.4; decision 85), and the rows, their highlight, the folder lines and the drag targets follow it;
    - type and folder icons are 1em, so they follow the Appearance size; the strip's icons don't change;
    - a name's icon is 0.75em after it (was 1em); the 6px between a folder icon and a type icon stays;
    - the text of a row inside a folder starts 6px from the folder's line (was 14px), the highlight still starting flush at the line:
      so a level is 8px deep, not 16px (the line is flush with its folder's name, and the highlight with the line's other edge).
    The text starts at T(d) = 8 + 8d px at depth d, a nested row is margined by 8d + 2, and the folder's line is at T(d). */
 .sf-left[data-face="storytelling"] .sf-codex-tree {
-	line-height: 0.9333;
+	line-height: 1;
 }
 .sf-left[data-face="storytelling"] .sf-codex-folder-header,
 .sf-left[data-face="storytelling"] .sf-codex-file {
@@ -190,7 +190,7 @@
 .sf-left[data-face="storytelling"] .sf-codex-tree svg {
 	width: 1em;
 	height: 1em;
-	margin-block: calc((0.9333em - 1em) / 2); /* a glyph as tall as the text must not make the row taller than its line */
+	margin-block: calc((1em - 1em) / 2); /* a glyph as tall as the line (1em) never makes the row taller than it; kept in this form so the line height has one place to change */
 }
 .sf-left[data-face="storytelling"] .sf-codex-name + svg {
 	margin-left: 0.75em;
