@@ -71,7 +71,13 @@ export function guardedTyping({ osa, fail, pid, post = postToPid, alive = isAliv
 	};
 	/** The check, immediately before one key; the first key after a pause also waits a moment (a key straight after an accessibility query was being dropped). */
 	const assertReady = (what = "typing", anyFocus = false) => {
-		const r = ready(anyFocus);
+		let r = ready(anyFocus);
+		// The test copy's own focus can be between two things for a moment right after a key (the editor re-focusing itself). Only that is
+		// waited out, with nothing sent meanwhile; anything else (another app in front, a quit, a gone process) refuses at once.
+		for (let tries = 0; !r.ok && /^(focus is on|nothing in the test copy has focus)/.test(r.why) && tries < 8; tries++) {
+			sleep(100);
+			r = ready(anyFocus);
+		}
 		if (!r.ok) fail(`REFUSING TO TYPE (${what}): ${r.why}. Nothing was typed. Dismiss or close whatever is in front, then run again.`);
 		if (Date.now() - lastKeyAt > 1000) sleep(SETTLE_MS);
 	};

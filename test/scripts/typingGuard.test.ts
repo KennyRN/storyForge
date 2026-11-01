@@ -86,6 +86,16 @@ describe("the check runs immediately before each key (decision 90, item 2)", () 
 		expect(() => guard.sendKeys("abcd")).toThrow(/REFUSING TO TYPE/);
 		expect(posts.length).toBe(2); // a and b; c was refused and d never tried
 	});
+	it("waits out the test copy's own focus being between two things for a moment (sending nothing), but not anything else", () => {
+		const settle = rig([ok(4242, "AXButton"), ok(4242, "AXButton"), ok()]);
+		settle.guard.key("key code 36");
+		expect(settle.posts.length).toBe(1);
+		expect(settle.osaCalls.length).toBe(3);
+		const other = rig(["front=Finder (com.apple.finder)", ok()]);
+		expect(() => other.guard.key("key code 36")).toThrow(/Finder/);
+		expect(other.osaCalls.length).toBe(1); // no retry for another app in front
+		expect(other.posts).toEqual([]);
+	});
 	it("each key costs one check (not one per burst)", () => {
 		const { guard, osaCalls } = rig(Array(5).fill(ok()));
 		guard.sendKeys("hello");
