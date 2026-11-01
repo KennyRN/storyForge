@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { openPreview } from "./helpers";
-import { FAMILY_INFO, FONT_FAMILIES } from "../../src/ui/theme/fontFamilies";
+import { FAMILY_INFO, FONT_FAMILIES } from "../../src/core/fontFamilies";
 
 // Brief 13, commit 2: each embedded family really loads from the app (a fallback would measure the same as Arial), draws
 // differently at different weights, and Fraunces' Softness and Wonk change its drawing. Nothing in the interface uses them yet.

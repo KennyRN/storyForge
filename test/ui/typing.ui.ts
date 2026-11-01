@@ -9,7 +9,7 @@ async function openTypingSettings(page: Page): Promise<void> {
 	await openPreview(page);
 	await page.locator("[data-recent='0']").click();
 	await page.waitForFunction(() => !!window.__app?.editors);
-	await page.evaluate(() => window.__preview.emit("menu", "settings"));
+	await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
 	await expect(dialog(page).getByRole("heading", { name: "Settings" })).toBeVisible();
 }
 
@@ -171,7 +171,7 @@ test.describe("smart punctuation in the editor", () => {
 
 	test("the switch turns smart punctuation off, and on again", async ({ page }) => {
 		await editorWith(page, "");
-		await page.evaluate(() => window.__preview.emit("menu", "settings"));
+		await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
 		const group = dialog(page).locator('section[aria-label="Typing"]');
 		await group.getByLabel("Curly quotes, dashes and ellipses as you type").uncheck();
 		await expect.poll(() => projectMd(page)).toContain("typing-smart-punctuation: false");
@@ -179,7 +179,7 @@ test.describe("smart punctuation in the editor", () => {
 		await content(page).click();
 		await page.keyboard.type("don't");
 		expect(await doc(page)).toBe("don't");
-		await page.evaluate(() => window.__preview.emit("menu", "settings"));
+		await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
 		await dialog(page).locator('section[aria-label="Typing"]').getByLabel("Curly quotes, dashes and ellipses as you type").check();
 		await dialog(page).getByRole("button", { name: "Done" }).click();
 		await content(page).click();
@@ -192,7 +192,7 @@ test.describe("smart punctuation in the editor", () => {
 		await editorWith(page, "");
 		await page.keyboard.type("'ere ");
 		expect(await doc(page)).toBe("‘ere ");
-		await page.evaluate(() => window.__preview.emit("menu", "settings"));
+		await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
 		const group = dialog(page).locator('section[aria-label="Typing"]');
 		await group.getByLabel("Add to Words that begin with an apostrophe").fill("ere");
 		await group.getByLabel("Add to Words that begin with an apostrophe").press("Enter");
@@ -214,7 +214,7 @@ test.describe("smart punctuation in the editor", () => {
 // ------------------------------------------------------------------------------------------------ name autocorrect
 
 async function addToList(page: Page, label: string, entry: string): Promise<void> {
-	await page.evaluate(() => window.__preview.emit("menu", "settings"));
+	await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
 	const group = dialog(page).locator('section[aria-label="Typing"]');
 	await group.getByLabel(`Add to ${label}`).fill(entry);
 	await group.getByLabel(`Add to ${label}`).press("Enter");
@@ -267,7 +267,7 @@ test.describe("name autocorrect in the editor", () => {
 		await editorWith(page, "");
 		await page.keyboard.type("jane ");
 		expect(await doc(page)).toBe("Jane ");
-		await page.evaluate(() => window.__preview.emit("menu", "settings"));
+		await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
 		await dialog(page).locator('section[aria-label="Typing"]').getByLabel("Correct Codex names as you type them").uncheck();
 		await dialog(page).getByRole("button", { name: "Done" }).click();
 		await content(page).click();
@@ -292,7 +292,7 @@ test.describe("name autocorrect in the editor", () => {
 // ------------------------------------------------------------------------------------------------------ shortcodes
 
 async function addShortcode(page: Page, code: string, text: string): Promise<void> {
-	await page.evaluate(() => window.__preview.emit("menu", "settings"));
+	await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
 	const group = dialog(page).locator('section[aria-label="Typing"]');
 	await group.getByLabel("Shortcode letters").fill(code);
 	await group.getByLabel("Shortcode full text").fill(text);
@@ -405,7 +405,7 @@ test.describe("shortcodes in the editor", () => {
 		await expect(popup(page).getByRole("option", { name: /Jane/ })).toContainText("Codex");
 		await page.keyboard.press("Tab");
 		expect(await doc(page)).toBe("Jane");
-		await page.evaluate(() => window.__preview.emit("menu", "settings"));
+		await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
 		await dialog(page).locator('section[aria-label="Typing"]').getByLabel("Offer Codex names after ~").uncheck();
 		await dialog(page).getByRole("button", { name: "Done" }).click();
 		await content(page).click();
@@ -422,7 +422,7 @@ test.describe("shortcodes in the editor", () => {
 		expect(await doc(page)).toBe("\nabc"); // nothing put in (the new line is from adding the shortcode)
 		await content(page).click();
 		await page.keyboard.press(`${MOD}+ArrowDown`);
-		await page.evaluate(() => window.__preview.emit("menu", "settings"));
+		await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
 		await dialog(page).locator('section[aria-label="Typing"]').getByLabel("Shortcodes (~ then Tab)").uncheck();
 		await dialog(page).getByRole("button", { name: "Done" }).click();
 		await content(page).click();
@@ -487,7 +487,7 @@ async function projectWith(page: Page, settings: { codes?: [string, string][]; l
 	await page.locator("[data-recent='0']").click();
 	await page.waitForFunction(() => !!window.__app?.editors);
 	if (!settings.codes?.length && !settings.lists?.length) return;
-	await page.evaluate(() => window.__preview.emit("menu", "settings"));
+	await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
 	const group = dialog(page).locator('section[aria-label="Typing"]');
 	for (const [label, entry] of settings.lists ?? []) {
 		await group.getByLabel(`Add to ${label}`).fill(entry);
@@ -552,7 +552,7 @@ for (const kind of KINDS) {
 
 		test("the switch covers the field", async ({ page }) => {
 			await projectWith(page);
-			await page.evaluate(() => window.__preview.emit("menu", "settings"));
+			await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
 			await dialog(page).locator('section[aria-label="Typing"]').getByLabel("Correct Codex names as you type them").uncheck();
 			await dialog(page).getByRole("button", { name: "Done" }).click();
 			const field = await kind.open(page);
@@ -721,7 +721,7 @@ for (const kind of KINDS) {
 
 		test("the shortcodes switch covers the field", async ({ page }) => {
 			await projectWith(page, { codes: TH });
-			await page.evaluate(() => window.__preview.emit("menu", "settings"));
+			await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
 			await dialog(page).locator('section[aria-label="Typing"]').getByLabel("Shortcodes (~ then Tab)").uncheck();
 			await dialog(page).getByRole("button", { name: "Done" }).click();
 			const field = await kind.open(page);
@@ -758,7 +758,7 @@ test.describe("a Codex note in the context panel has both aids, as a chapter doe
 test.describe("the plain text boxes take no aids (decision 47)", () => {
 	test("a settings field and the find box leave names, quotes and ~ alone", async ({ page }) => {
 		await projectWith(page, { codes: [["th", "the Right Honourable"]] });
-		await page.evaluate(() => window.__preview.emit("menu", "settings"));
+		await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
 		const box = dialog(page).locator('section[aria-label="Typing"]').getByLabel("Add to Names without a Codex note");
 		await box.fill("");
 		await box.pressSequentially("jane's ~th");
@@ -808,7 +808,7 @@ test.describe("the special-characters button", () => {
 
 	test("its switch removes it", async ({ page }) => {
 		await editorWith(page);
-		await page.evaluate(() => window.__preview.emit("menu", "settings"));
+		await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
 		await dialog(page).locator('section[aria-label="Typing"]').getByLabel("Special-characters button in the context panel").uncheck();
 		await dialog(page).getByRole("button", { name: "Done" }).click();
 		await expect(CHARS(page)).toBeHidden();
@@ -866,7 +866,7 @@ test.describe("the special-characters button", () => {
 
 	test("a character the author added is announced as itself with its code point", async ({ page }) => {
 		await editorWith(page);
-		await page.evaluate(() => window.__preview.emit("menu", "settings"));
+		await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
 		const group = dialog(page).locator('section[aria-label="Typing"]');
 		await group.getByLabel("Add to Special characters").fill("ø");
 		await group.getByLabel("Add to Special characters").press("Enter");

@@ -1,3 +1,4 @@
+import { isFontFamily, type FontFamily } from "../core/fontFamilies";
 /**
  * Settings (decision 23; docs/tauri-shell.md §7).
  *
@@ -34,7 +35,39 @@ export type CodexColour = (typeof CODEX_COLOURS)[number];
 /** One story or a series of them (decision 81): whether the storytelling side shows a series line. Missing or unknown means a series. */
 export type StoryKind = "series" | "standalone";
 
-export interface ProjectSettings {
+/**
+ * The four parts of the storytelling side whose type the author chooses (decision 79), each with a font (none means the
+ * current look: the system font as the part has always been drawn), a weight, a size in rem and, for Fraunces, Softness and
+ * Wonk. The defaults are the current look until the author's own choices are set (Brief 13, hold point H2).
+ */
+export const APPEARANCE_PARTS = ["codex", "novel", "series", "chapter"] as const;
+export type AppearancePart = (typeof APPEARANCE_PARTS)[number];
+/** The size range in rem each part allows (decision 83), and the step the size control moves by. */
+export const APPEARANCE_SIZE_RANGE: Record<AppearancePart, readonly [number, number]> = { codex: [0.75, 1.75], novel: [0.75, 2], series: [0.75, 2], chapter: [0.75, 1.75] };
+export const APPEARANCE_SIZE_STEP = 0.125;
+export const APPEARANCE_SIZE_STEP_SHIFT = 0.25;
+/** What each part looks like today: weight and size in rem (the interface text is 13 px, 0.8125 rem). */
+export const APPEARANCE_CURRENT: Record<AppearancePart, { weight: number; size: number }> = {
+	codex: { weight: 400, size: 1 },
+	novel: { weight: 600, size: 0.8125 },
+	series: { weight: 500, size: 0.8125 },
+	chapter: { weight: 400, size: 0.8125 },
+};
+type Cap<P extends string> = Capitalize<P>;
+export type AppearanceKeys = {
+	[P in AppearancePart as `appearance${Cap<P>}Font`]: FontFamily | null;
+} & {
+	[P in AppearancePart as `appearance${Cap<P>}Weight`]: number;
+} & {
+	[P in AppearancePart as `appearance${Cap<P>}Size`]: number;
+} & {
+	[P in AppearancePart as `appearance${Cap<P>}Soft`]: number;
+} & {
+	[P in AppearancePart as `appearance${Cap<P>}Wonk`]: boolean;
+};
+export const appearanceKey = <S extends "Font" | "Weight" | "Size" | "Soft" | "Wonk">(part: AppearancePart, what: S) => `appearance${part[0].toUpperCase()}${part.slice(1)}${what}` as keyof AppearanceKeys & `appearance${string}${S}`;
+
+export interface ProjectSettings extends AppearanceKeys {
 	storyKind: StoryKind;
 	/** The colour of the Codex list on both sides: text, icons, folder lines, the strip and the highlight. */
 	codexColour: CodexColour;
@@ -76,6 +109,26 @@ export interface ProjectSettings {
 
 export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
 	storyKind: "series",
+	appearanceCodexFont: null,
+	appearanceCodexWeight: 400,
+	appearanceCodexSize: 1,
+	appearanceCodexSoft: 0,
+	appearanceCodexWonk: false,
+	appearanceNovelFont: null,
+	appearanceNovelWeight: 600,
+	appearanceNovelSize: 0.8125,
+	appearanceNovelSoft: 0,
+	appearanceNovelWonk: false,
+	appearanceSeriesFont: null,
+	appearanceSeriesWeight: 500,
+	appearanceSeriesSize: 0.8125,
+	appearanceSeriesSoft: 0,
+	appearanceSeriesWonk: false,
+	appearanceChapterFont: null,
+	appearanceChapterWeight: 400,
+	appearanceChapterSize: 0.8125,
+	appearanceChapterSoft: 0,
+	appearanceChapterWonk: false,
 	codexColour: "text",
 	hideSeriesPane: false,
 	autoFocus: true,
@@ -106,6 +159,26 @@ type Key = keyof ProjectSettings;
 
 /** key in `project.md`, key in the plugin's `data.json`, and how to check a value. */
 const FIELDS: Record<Key, { file: string; plugin: string; valid: (v: unknown) => boolean }> = {
+	appearanceCodexFont: { file: "appearance-codex-font", plugin: "-", valid: (v) => v === null || isFontFamily(v) },
+	appearanceCodexWeight: { file: "appearance-codex-weight", plugin: "-", valid: isWeight },
+	appearanceCodexSize: { file: "appearance-codex-size", plugin: "-", valid: (v) => isRemIn(v, APPEARANCE_SIZE_RANGE.codex) },
+	appearanceCodexSoft: { file: "appearance-codex-soft", plugin: "-", valid: (v) => isIntIn(v, 0, 100) },
+	appearanceCodexWonk: { file: "appearance-codex-wonk", plugin: "-", valid: (v) => typeof v === "boolean" },
+	appearanceNovelFont: { file: "appearance-novel-font", plugin: "-", valid: (v) => v === null || isFontFamily(v) },
+	appearanceNovelWeight: { file: "appearance-novel-weight", plugin: "-", valid: isWeight },
+	appearanceNovelSize: { file: "appearance-novel-size", plugin: "-", valid: (v) => isRemIn(v, APPEARANCE_SIZE_RANGE.novel) },
+	appearanceNovelSoft: { file: "appearance-novel-soft", plugin: "-", valid: (v) => isIntIn(v, 0, 100) },
+	appearanceNovelWonk: { file: "appearance-novel-wonk", plugin: "-", valid: (v) => typeof v === "boolean" },
+	appearanceSeriesFont: { file: "appearance-series-font", plugin: "-", valid: (v) => v === null || isFontFamily(v) },
+	appearanceSeriesWeight: { file: "appearance-series-weight", plugin: "-", valid: isWeight },
+	appearanceSeriesSize: { file: "appearance-series-size", plugin: "-", valid: (v) => isRemIn(v, APPEARANCE_SIZE_RANGE.series) },
+	appearanceSeriesSoft: { file: "appearance-series-soft", plugin: "-", valid: (v) => isIntIn(v, 0, 100) },
+	appearanceSeriesWonk: { file: "appearance-series-wonk", plugin: "-", valid: (v) => typeof v === "boolean" },
+	appearanceChapterFont: { file: "appearance-chapter-font", plugin: "-", valid: (v) => v === null || isFontFamily(v) },
+	appearanceChapterWeight: { file: "appearance-chapter-weight", plugin: "-", valid: isWeight },
+	appearanceChapterSize: { file: "appearance-chapter-size", plugin: "-", valid: (v) => isRemIn(v, APPEARANCE_SIZE_RANGE.chapter) },
+	appearanceChapterSoft: { file: "appearance-chapter-soft", plugin: "-", valid: (v) => isIntIn(v, 0, 100) },
+	appearanceChapterWonk: { file: "appearance-chapter-wonk", plugin: "-", valid: (v) => typeof v === "boolean" },
 	storyKind: { file: "story-kind", plugin: "-", valid: (v) => v === "series" || v === "standalone" },
 	codexColour: { file: "codex-colour", plugin: "-", valid: (v) => typeof v === "string" && (CODEX_COLOURS as readonly string[]).includes(v) },
 	hideSeriesPane: { file: "hide-series-pane", plugin: "hideSeriesPane", valid: (v) => typeof v === "boolean" },
@@ -140,6 +213,12 @@ const FIELDS: Record<Key, { file: string; plugin: string; valid: (v: unknown) =>
 
 /** The ranges the settings view offers, so the view and the check agree. */
 export const SESSION_LIMITS = { idleMinutes: [1, 30], minShownMinutes: [0, 60], editingWpm: [1, 60] } as const;
+function isWeight(v: unknown): boolean {
+	return isIntIn(v, 100, 900) && (v as number) % 100 === 0;
+}
+function isRemIn(v: unknown, [lo, hi]: readonly [number, number]): boolean {
+	return typeof v === "number" && Number.isFinite(v) && v >= lo && v <= hi;
+}
 function isIntIn(v: unknown, lo: number, hi: number): boolean {
 	return typeof v === "number" && Number.isInteger(v) && v >= lo && v <= hi;
 }

@@ -365,6 +365,46 @@ textarea {
 	padding-left: var(--space-4);
 }
 
+/* Settings: a list of sections down the side, one page at a time. */
+.sf-settings {
+	display: grid;
+	grid-template-columns: 9.5em 1fr;
+	gap: var(--space-4);
+	min-height: 22em;
+}
+.sf-settings-tabs {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.sf-settings-tab {
+	padding: 5px 8px;
+	border: 0;
+	border-radius: var(--radius);
+	background: transparent;
+	color: var(--purpose-text-muted);
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+.sf-settings-tab.is-active {
+	color: var(--purpose-accent);
+	background: var(--purpose-raised-bg);
+}
+.sf-settings-page {
+	min-width: 0;
+}
+.sf-sample {
+	margin: var(--space-2) 0 var(--space-1);
+	padding: var(--space-2) var(--space-3);
+	border-radius: var(--radius);
+	background: var(--purpose-raised-bg);
+	color: var(--purpose-text);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
 /* Settings. */
 .sf-settings-section {
 	margin-bottom: var(--space-4);
@@ -497,7 +537,11 @@ textarea {
 /* Any surface drawn in one of the choosable families (Brief 13): what is on screen is what is on disk, so no ligatures or
    contextual alternates (Inter's "calt", Aleo's and Fraunces' "liga", "dlig"), no style set, no synthesised bold or italic,
    and optical size following the text size where the font has the axis. */
-.sf-faced {
+.sf-faced,
+.sf-nav-lead,
+.sf-nav-current,
+.sf-nav-row,
+.sf-sample {
 	font-variant-ligatures: none;
 	font-feature-settings: "liga" 0, "calt" 0, "dlig" 0, "ss01" 0;
 	font-synthesis: none;

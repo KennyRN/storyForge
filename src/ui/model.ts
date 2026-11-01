@@ -449,7 +449,16 @@ export class AppModel {
 	}
 
 	async openProject(kind: "open" | "create", create?: CreateProjectOptions): Promise<OpenOutcome | null> {
-		return this.guard(() => this.controller.openDialog(kind, create), kind === "create" ? "create the project" : "open the project");
+		const outcome = await this.guard(() => this.controller.openDialog(kind, create), kind === "create" ? "create the project" : "open the project");
+		// A standalone novel says so through the same setting the settings view changes (decision 81): no core change.
+		const running = this.running;
+		if (outcome && kind === "create" && create?.standalone && running && !running.readOnlyReason) {
+			await this.guard(async () => {
+				await setSetting(running.opened.project, running.settings, "storyKind", "standalone");
+				this.touch("settings", "nav");
+			}, "record that this is one novel");
+		}
+		return outcome;
 	}
 
 	async openRecent(index: number): Promise<OpenOutcome | null> {

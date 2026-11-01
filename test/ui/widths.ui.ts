@@ -137,7 +137,7 @@ test.describe("panel widths", () => {
 
 	test.describe("in settings", () => {
 		const openSettings = async (page: Page) => {
-			await page.evaluate(() => window.__preview.emit("menu", "settings"));
+			await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "This Mac", exact: true }).click();
 			await expect(page.getByRole("group", { name: "This Mac, this project" }).or(page.locator("section[aria-label='This Mac, this project']"))).toBeVisible();
 		};
 		const group = (page: Page) => page.locator("section[aria-label='This Mac, this project']");
