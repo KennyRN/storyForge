@@ -6,30 +6,31 @@
 // Pure functions (unit-tested) turn the scripts' key descriptions into events; one function posts them.
 import { spawnSync } from "node:child_process";
 
-/** US ANSI key codes. A character with no entry here can't be posted (it is reported, never worked round). */
+/** Key codes of the keys the scripts press by name or in a shortcut (letters, digits, Return, Tab, Escape, arrows). Punctuation is typed by character, not by key. */
 const CODE = {
 	a: 0, s: 1, d: 2, f: 3, h: 4, g: 5, z: 6, x: 7, c: 8, v: 9, b: 11, q: 12, w: 13, e: 14, r: 15, y: 16, t: 17,
 	1: 18, 2: 19, 3: 20, 4: 21, 6: 22, 5: 23, "=": 24, 9: 25, 7: 26, "-": 27, 8: 28, 0: 29, "]": 30, o: 31, u: 32, "[": 33, i: 34, p: 35,
 	l: 37, j: 38, "'": 39, k: 40, ";": 41, "\\": 42, ",": 43, "/": 44, n: 45, m: 46, ".": 47, "`": 50,
 	return: 36, tab: 48, space: 49, delete: 51, escape: 53, left: 123, right: 124, down: 125, up: 126,
 };
-/** Characters typed with Shift, and the unshifted key they sit on. */
-const SHIFTED = { "~": "`", "!": "1", "@": "2", "#": "3", $: "4", "%": "5", "^": "6", "&": "7", "*": "8", "(": "9", ")": "0", _: "-", "+": "=", "{": "[", "}": "]", "|": "\\", ":": ";", '"': "'", "<": ",", ">": ".", "?": "/" };
 export const FLAG = { shift: 0x20000, control: 0x40000, option: 0x80000, command: 0x100000 };
 
 /**
- * The event for one typed character: { code, flags }. A character with no key on a US keyboard (ƿ, ȝ, an accented capital) is typed by a
- * key event that carries the character itself (CGEventKeyboardSetUnicodeString), still posted to the test copy's process alone (decision 91).
- * Only a control character, which has no business being typed, throws.
+ * The event for one typed character: { code, flags, unicode }. Every printable character is typed by a key event that CARRIES the character
+ * itself (CGEventKeyboardSetUnicodeString), never by guessing which physical key makes it: key codes are positions on a keyboard, and the
+ * Mac's layout decides what they type (on the British layout Shift+' is "@" and Shift+2 is a double quote, and the backtick key is
+ * elsewhere), so a table of US key codes typed the wrong characters. A letter keeps its own key code (the letter keys are the same on every
+ * QWERTY layout), so it still looks like a key press. The event is posted to the test copy's process alone (decision 91).
+ * Return and Tab are keys, not characters. Only a control character, which has no business being typed, throws.
  */
 export function eventForChar(ch) {
-	if (ch === " ") return { code: CODE.space, flags: 0 };
 	if (ch === "\n") return { code: CODE.return, flags: 0 };
 	if (ch === "\t") return { code: CODE.tab, flags: 0 };
-	if (ch in CODE && ch.length === 1) return { code: CODE[ch], flags: 0 };
-	if (/^[A-Z]$/.test(ch)) return { code: CODE[ch.toLowerCase()], flags: FLAG.shift };
-	if (ch in SHIFTED) return { code: CODE[SHIFTED[ch]], flags: FLAG.shift };
-	if ([...ch].length === 1 && ch.charCodeAt(0) >= 0x20 && ch.charCodeAt(0) !== 0x7f) return { code: 0, flags: 0, unicode: ch };
+	if (ch === " ") return { code: CODE.space, flags: 0, unicode: " " };
+	if ([...ch].length === 1 && ch.charCodeAt(0) >= 0x20 && ch.charCodeAt(0) !== 0x7f) {
+		const letter = ch.toLowerCase();
+		return { code: /^[a-z]$/i.test(ch) ? CODE[letter] : 0, flags: 0, unicode: ch };
+	}
 	throw new Error(`the character ${JSON.stringify(ch)} can't be typed (a control character)`);
 }
 
@@ -45,8 +46,9 @@ export function eventForScript(script) {
 	if (code) return { code: Number(code[1]), flags };
 	const ks = /^keystroke "(.)"/.exec(script.trim());
 	if (ks) {
-		const e = eventForChar(ks[1]);
-		return { code: e.code, flags: flags | e.flags };
+		// A shortcut is a key plus modifiers (⌘Z): only letters and digits, whose key codes are the same on every layout.
+		if (!/^[a-z0-9]$/i.test(ks[1])) throw new Error(`can't post this shortcut to the test copy (only a letter or digit with modifiers): ${script}`);
+		return { code: CODE[ks[1].toLowerCase()], flags };
 	}
 	throw new Error(`can't post this key to the test copy: ${script}`);
 }

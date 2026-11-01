@@ -117,6 +117,8 @@ export function guardedTyping({ osa, fail, pid, post = postToPid, alive = isAliv
 	return {
 		ready,
 		assertReady,
+		/** What the check sees right now (for a script to print while it is being diagnosed): reads only, sends nothing. */
+		focusNow: () => osa(CHECK, BUNDLE_ID).stdout.trim(),
 		/** The scripts call this just before they quit the test copy: from then on no key is sent. */
 		beginQuit() {
 			quitting = true;

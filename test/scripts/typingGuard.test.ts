@@ -39,18 +39,21 @@ describe("the typing guard's decision (decisions 72 and 90)", () => {
 });
 
 describe("keys are posted to the test copy's own process (decision 90, item 1)", () => {
-	it("maps what the scripts type to key codes, shift and command, and refuses what has no key", () => {
-		expect(eventForChar("a")).toEqual({ code: 0, flags: 0 });
-		expect(eventForChar("A")).toEqual({ code: 0, flags: 0x20000 });
-		expect(eventForChar("~")).toEqual({ code: 50, flags: 0x20000 });
-		expect(eventForChar(" ")).toEqual({ code: 49, flags: 0 });
-		expect(eventForChar("'")).toEqual({ code: 39, flags: 0 });
-		expect(eventForChar("ƿ")).toEqual({ code: 0, flags: 0, unicode: "ƿ" }); // no US key: the event carries the character (decision 91)
-		expect(eventForChar("Ó")).toEqual({ code: 0, flags: 0, unicode: "Ó" });
+	it("types every printable character by an event that carries the character, never by a guessed key position (the British layout's Shift+' is @)", () => {
+		expect(eventForChar("a")).toEqual({ code: 0, flags: 0, unicode: "a" });
+		expect(eventForChar("A")).toEqual({ code: 0, flags: 0, unicode: "A" });
+		for (const ch of ['"', "'", "~", "`", "%", "[", "ƿ", "Ó", "—"]) expect(eventForChar(ch), ch).toEqual({ code: 0, flags: 0, unicode: ch }); // no shift flag, no key code that a layout could read differently
+		expect(eventForChar("b")).toEqual({ code: 11, flags: 0, unicode: "b" }); // a letter keeps its own key
+		expect(eventForChar(" ")).toEqual({ code: 49, flags: 0, unicode: " " });
+		expect(eventForChar("\n")).toEqual({ code: 36, flags: 0 });
 		expect(() => eventForChar("\u0007")).toThrow(/control character/);
+	});
+	it("a shortcut is a key plus modifiers: only letters and digits, whose key codes are the same on every layout; anything else is reported", () => {
 		expect(eventForScript("key code 36")).toEqual({ code: 36, flags: 0 });
 		expect(eventForScript("key code 125 using command down")).toEqual({ code: 125, flags: 0x100000 });
 		expect(eventForScript('keystroke "z" using command down')).toEqual({ code: 6, flags: 0x100000 });
+		expect(eventForScript('keystroke "a" using command down')).toEqual({ code: 0, flags: 0x100000 });
+		expect(() => eventForScript('keystroke "!" using command down')).toThrow(/only a letter or digit/);
 		expect(() => eventForScript('click button "x"')).toThrow(/can't post/);
 	});
 	it("the posted script targets one process and uses neither System Events nor the frontmost app", () => {
@@ -63,7 +66,7 @@ describe("keys are posted to the test copy's own process (decision 90, item 1)",
 		const { guard, posts, osaCalls } = rig([ok(), ok(), ok()]);
 		guard.sendKeys("ab");
 		guard.key("key code 36");
-		expect(posts).toEqual([{ pid: 4242, event: { code: 0, flags: 0 } }, { pid: 4242, event: { code: 11, flags: 0 } }, { pid: 4242, event: { code: 36, flags: 0 } }]);
+		expect(posts).toEqual([{ pid: 4242, event: { code: 0, flags: 0, unicode: "a" } }, { pid: 4242, event: { code: 11, flags: 0, unicode: "b" } }, { pid: 4242, event: { code: 36, flags: 0 } }]);
 		expect(osaCalls.every((s: string) => s.includes("first process whose frontmost"))).toBe(true); // osa is only ever asked the check
 	});
 	it("a character with no US key is typed by an event that carries it, posted to the same process", () => {

@@ -138,13 +138,23 @@ try {
 		sendKeys(`${text} `);
 		await sleep(500);
 		expectedSoFar += `${expected} `;
+		if (process.env.TYPING_TRACE) console.log(`  after "${what.slice(0, 40)}": ${typing.focusNow()}`);
 		const after = valueOf("AXTextArea", "Text") ?? "";
 		if (!after.startsWith(expectedSoFar)) problems.push(`${what}: typed ${JSON.stringify(text)}, expected ${JSON.stringify(expected)}, the editor holds ${JSON.stringify(after.slice(expectedSoFar.length - expected.length - 1, expectedSoFar.length))}`);
 	}
 
 	// One ⌘Z straight after a curl gives back exactly what was typed (through the real Edit menu).
 	const keystroke = typing.key;
-	sendKeys("don'");
+	if (process.env.TYPING_TRACE) for (const ch of "don'") { sendKeys(ch); console.log(`  after ${JSON.stringify(ch)}: ${typing.focusNow()}`); await sleep(300); console.log(`    300 ms later: ${typing.focusNow()}`); }
+	else sendKeys("don'");
+	if (process.env.TYPING_TRACE) {
+		for (const ms of [500, 1000, 1500]) {
+			await sleep(500);
+			console.log(`  ${ms} ms after the apostrophe: ${typing.focusNow()}`);
+		}
+		const id = spawnSync("osascript", ["-l", "JavaScript", "-e", `ObjC.import('CoreGraphics'); const l = ObjC.deepUnwrap(ObjC.castRefToObject($.CGWindowListCopyWindowInfo($.kCGWindowListOptionOnScreenOnly, 0))); const w = l.find((x) => x.kCGWindowOwnerPID === ${child.pid} && x.kCGWindowLayer === 0); w ? String(w.kCGWindowNumber) : ''`], { encoding: "utf8" }).stdout.trim();
+		if (id) spawnSync("screencapture", ["-x", "-o", "-l", id, process.env.TYPING_TRACE_SHOT || "/tmp/typing-trace.png"]);
+	}
 	await sleep(500);
 	const curled = valueOf("AXTextArea", "Text") ?? "";
 	if (!curled.startsWith(`${expectedSoFar}don’`)) problems.push(`typed don' and the editor holds ${JSON.stringify(curled.slice(expectedSoFar.length, expectedSoFar.length + 6))}, expected don’`);
