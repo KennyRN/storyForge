@@ -61,7 +61,7 @@ describe("keys are posted to the test copy's own process (decision 90, item 1)",
 		expect(postArgs(4242, eventForChar("~"))).toEqual(["4242", "0", "0", "~"]);
 		expect(() => postArgs(0, { code: 1, flags: 0 })).toThrow();
 		expect(() => postArgs(1, { code: 1, flags: 0 })).toThrow();
-		const source = readFileSync(new URL("../../scripts/lib/postkey.c", import.meta.url), "utf8");
+		const source = readFileSync(new URL("../../scripts/lib/postkey.c", import.meta.url), "utf8").split("\n").filter((l) => !l.trim().startsWith("//")).join("\n"); // the code, not its comments
 		expect(source).toContain("CGEventPostToPid(pid, e)");
 		expect(source).not.toMatch(/CGEventPost\(|System Events|frontmost|NSWorkspace/);
 	});
