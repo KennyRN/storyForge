@@ -63,7 +63,6 @@ const findScript = `on run argv
 			if r is role_ and n starts with prefix then
 				if act is "click" then click e
 				if act is "focus" then
-					set frontmost to true
 					set focused of e to true
 				end if
 				if act is "isfocused" then return "found " & ((focused of e) as string)
@@ -74,7 +73,11 @@ const findScript = `on run argv
 	end tell
 	return "none"
 end run`;
-const find = (role, prefix, act) => (osa(findScript, role, prefix, act).stdout || "").trim();
+const find = (role, prefix, act) => {
+	// A focus action brings the test copy to the front, by its process id, through the guard (decision 91); nothing else here changes the front window.
+	if (act === "focus" || act === "focusrow") typing.bringToFront();
+	return (osa(findScript, role, prefix, act).stdout || "").trim();
+};
 async function until(what, fn, ms = 20000) {
 	const end = Date.now() + ms;
 	while (Date.now() < end) {

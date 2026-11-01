@@ -17,7 +17,11 @@ const CODE = {
 const SHIFTED = { "~": "`", "!": "1", "@": "2", "#": "3", $: "4", "%": "5", "^": "6", "&": "7", "*": "8", "(": "9", ")": "0", _: "-", "+": "=", "{": "[", "}": "]", "|": "\\", ":": ";", '"': "'", "<": ",", ">": ".", "?": "/" };
 export const FLAG = { shift: 0x20000, control: 0x40000, option: 0x80000, command: 0x100000 };
 
-/** The events for one typed character: { code, flags }. Throws for a character that has no key on a US keyboard. */
+/**
+ * The event for one typed character: { code, flags }. A character with no key on a US keyboard (ƿ, ȝ, an accented capital) is typed by a
+ * key event that carries the character itself (CGEventKeyboardSetUnicodeString), still posted to the test copy's process alone (decision 91).
+ * Only a control character, which has no business being typed, throws.
+ */
 export function eventForChar(ch) {
 	if (ch === " ") return { code: CODE.space, flags: 0 };
 	if (ch === "\n") return { code: CODE.return, flags: 0 };
@@ -25,7 +29,8 @@ export function eventForChar(ch) {
 	if (ch in CODE && ch.length === 1) return { code: CODE[ch], flags: 0 };
 	if (/^[A-Z]$/.test(ch)) return { code: CODE[ch.toLowerCase()], flags: FLAG.shift };
 	if (ch in SHIFTED) return { code: CODE[SHIFTED[ch]], flags: FLAG.shift };
-	throw new Error(`the character ${JSON.stringify(ch)} has no key that can be posted to the test copy`);
+	if ([...ch].length === 1 && ch.charCodeAt(0) >= 0x20 && ch.charCodeAt(0) !== 0x7f) return { code: 0, flags: 0, unicode: ch };
+	throw new Error(`the character ${JSON.stringify(ch)} can't be typed (a control character)`);
 }
 
 /** Turns a scripts' key description (the form they passed System Events) into one event: `key code 36`, `key code 125 using command down`, `keystroke "a" using command down`. */
@@ -52,7 +57,7 @@ export function postScript(pid, event) {
 	return `ObjC.import('CoreGraphics');
 for (const down of [true, false]) {
 	const e = $.CGEventCreateKeyboardEvent(null, ${event.code}, down);
-	$.CGEventSetFlags(e, ${event.flags});
+	$.CGEventSetFlags(e, ${event.flags});${event.unicode ? `\n\t$.CGEventKeyboardSetUnicodeString(e, ${event.unicode.length}, [${[...event.unicode].map((c) => c.charCodeAt(0)).join(", ")}]);` : ""}
 	$.CGEventPostToPid(${pid}, e);
 	$.usleep(8000);
 }`;

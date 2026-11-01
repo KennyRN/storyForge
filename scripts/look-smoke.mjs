@@ -74,13 +74,11 @@ const findScript = `on run argv
 				end if
 				if act is "focusrow" then
 					-- a Codex row is the group just before its name in the accessibility tree
-					set frontmost to true
 					set focused of (item (i - 1) of els) to true
 					return "found " & n
 				end if
 				if act is "click" then click e
 				if act is "focus" then
-					set frontmost to true
 					set focused of e to true
 				end if
 				if act is "isfocused" then return "found " & ((focused of e) as string)
@@ -91,7 +89,11 @@ const findScript = `on run argv
 	end tell
 	return "none"
 end run`;
-const find = (role, prefix, act = "none", nth = 1) => (osa(findScript, role, prefix, act, String(nth)).stdout || "").trim();
+const find = (role, prefix, act = "none", nth = 1) => {
+	// A focus action brings the test copy to the front, by its process id, through the guard (decision 91); nothing else here changes the front window.
+	if (act === "focus" || act === "focusrow") typing.bringToFront();
+	return (osa(findScript, role, prefix, act, String(nth)).stdout || "").trim();
+};
 const widthOf = (role, prefix, nth = 1) => {
 	const out = find(role, prefix, "size", nth);
 	const m = /^found (\d+)x(\d+)$/.exec(out);

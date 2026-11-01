@@ -1,3 +1,4 @@
+import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { decide, guardedTyping } from "../../scripts/lib/typingGuard.mjs";
 import { eventForChar, eventForScript, postScript } from "../../scripts/lib/postKeys.mjs";
@@ -40,7 +41,9 @@ describe("keys are posted to the test copy's own process (decision 90, item 1)",
 		expect(eventForChar("~")).toEqual({ code: 50, flags: 0x20000 });
 		expect(eventForChar(" ")).toEqual({ code: 49, flags: 0 });
 		expect(eventForChar("'")).toEqual({ code: 39, flags: 0 });
-		expect(() => eventForChar("ƿ")).toThrow(/no key that can be posted/);
+		expect(eventForChar("ƿ")).toEqual({ code: 0, flags: 0, unicode: "ƿ" }); // no US key: the event carries the character (decision 91)
+		expect(eventForChar("Ó")).toEqual({ code: 0, flags: 0, unicode: "Ó" });
+		expect(() => eventForChar("\u0007")).toThrow(/control character/);
 		expect(eventForScript("key code 36")).toEqual({ code: 36, flags: 0 });
 		expect(eventForScript("key code 125 using command down")).toEqual({ code: 125, flags: 0x100000 });
 		expect(eventForScript('keystroke "z" using command down')).toEqual({ code: 6, flags: 0x100000 });
@@ -59,10 +62,20 @@ describe("keys are posted to the test copy's own process (decision 90, item 1)",
 		expect(posts).toEqual([{ pid: 4242, event: { code: 0, flags: 0 } }, { pid: 4242, event: { code: 11, flags: 0 } }, { pid: 4242, event: { code: 36, flags: 0 } }]);
 		expect(osaCalls.every((s: string) => s.includes("first process whose frontmost"))).toBe(true); // osa is only ever asked the check
 	});
-	it("a key that can't be posted that way is reported, not worked round", () => {
+	it("a character with no US key is typed by an event that carries it, posted to the same process", () => {
+		const s = postScript(4242, { code: 0, flags: 0, unicode: "ƿ" });
+		expect(s).toContain("CGEventKeyboardSetUnicodeString(e, 1, [447])"); // U+01BF
+		expect(s).toContain("CGEventPostToPid(4242");
+		expect(s).not.toMatch(/System Events|keystroke|frontmost/);
+		const { guard, posts } = rig(Array(3).fill(ok()));
+		guard.sendKeys("aƿ");
+		expect(posts.map((p) => p.pid)).toEqual([4242, 4242]);
+		expect(posts[1].event).toEqual({ code: 0, flags: 0, unicode: "ƿ" });
+	});
+	it("a key description that can't be posted is reported and nothing is sent", () => {
 		const { guard, posts, failures } = rig([ok()]);
-		expect(() => guard.sendKeys("aƿ")).toThrow(/no key that can be posted/);
-		expect(posts).toEqual([]); // the whole text is checked before any key is sent
+		expect(() => guard.key('click button "x"')).toThrow(/can't post/);
+		expect(posts).toEqual([]);
 		expect(failures[0]).toContain("reported, not worked round");
 	});
 });
@@ -109,8 +122,36 @@ describe("no key once the test copy is quitting, or before its window is showing
 	});
 });
 
+describe("changing the front window goes through the guard, by process id (decision 91)", () => {
+	it("brings the test copy to the front by its process id, never by name", () => {
+		const { guard, osaCalls } = rig([ok()]);
+		guard.bringToFront();
+		expect(osaCalls.length).toBe(1);
+		expect(osaCalls[0]).toContain("first process whose unix id is 4242");
+		expect(osaCalls[0]).not.toContain('"storyforge"');
+	});
+	it("is refused whenever the guard would refuse a key (except that the test copy isn't in front yet): quitting, gone, or more than one copy", () => {
+		const q = rig([ok()]);
+		q.guard.beginQuit();
+		expect(() => q.guard.bringToFront()).toThrow(/begun to quit/);
+		expect(() => rig([ok()], false).guard.bringToFront()).toThrow(/no longer running/);
+		expect(() => rig([ok()], true, 2).guard.bringToFront()).toThrow(/2 copies/);
+		expect(q.osaCalls).toEqual([]);
+	});
+	it("no script changes the front window or sends a key any other way", () => {
+		const dir = new URL("../../scripts/", import.meta.url);
+		for (const f of readdirSync(dir).filter((n) => n.endsWith(".mjs"))) {
+			const text = readFileSync(new URL(f, dir), "utf8");
+			expect(text, `${f}: set frontmost`).not.toMatch(/set frontmost to true/);
+			expect(text, `${f}: System Events keystroke`).not.toMatch(/\bkeystroke \(|System Events" to key|to key code/);
+		}
+		const guard = readFileSync(new URL("lib/typingGuard.mjs", dir), "utf8");
+		expect(guard.match(/set frontmost of/g)?.length).toBe(1); // the one place, with its by-pid target and its refusals
+	});
+});
+
 /** A guard with its answers scripted: osa answers the check in turn, post() records, nothing touches the Mac. */
-function rig(answers: string[], alive = true) {
+function rig(answers: string[], alive = true, copies = 1) {
 	const posts: { pid: number; event: unknown }[] = [];
 	const osaCalls: string[] = [];
 	const failures: string[] = [];
@@ -127,7 +168,7 @@ function rig(answers: string[], alive = true) {
 		pid: () => 4242,
 		post: (pid: number, event: unknown) => (posts.push({ pid, event }), { ok: true, error: "" }),
 		alive: () => alive,
-		copiesOf: () => 1,
+		copiesOf: () => copies,
 	});
 	return { guard, posts, osaCalls, failures };
 }

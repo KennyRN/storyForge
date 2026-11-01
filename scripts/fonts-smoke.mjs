@@ -69,13 +69,11 @@ const findScript = `on run argv
 				end if
 				if act is "focusrow" then
 					-- a Codex row is the group just before its name in the accessibility tree
-					set frontmost to true
 					set focused of (item (i - 1) of els) to true
 					return "found " & n
 				end if
 				if act is "click" then click e
 				if act is "focus" then
-					set frontmost to true
 					set focused of e to true
 				end if
 				if act is "isfocused" then return "found " & ((focused of e) as string)

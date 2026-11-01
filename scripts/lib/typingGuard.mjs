@@ -122,6 +122,17 @@ export function guardedTyping({ osa, fail, pid, post = postToPid, alive = isAliv
 		keyOnControl(script) {
 			sendOne(eventFor(script), script, true);
 		},
+		/**
+		 * Brings the test copy to the front, by its process id (never by name): refused whenever the guard would refuse a key for any
+		 * reason other than the test copy not being in front yet (more than one storyForge, the process gone, or it has begun to quit).
+		 */
+		bringToFront() {
+			const p = pid();
+			if (quitting) fail("REFUSING TO CHANGE THE FRONT WINDOW: the test copy has begun to quit.");
+			if (!Number.isInteger(p) || !alive(p)) fail("REFUSING TO CHANGE THE FRONT WINDOW: the test copy is no longer running.");
+			if (copiesOf() !== 1) fail(`REFUSING TO CHANGE THE FRONT WINDOW: ${copiesOf()} copies of storyForge are running; only the throwaway copy may be.`);
+			osa(`tell application "System Events" to set frontmost of (first process whose unix id is ${p}) to true`);
+		},
 		sleep,
 	};
 }
