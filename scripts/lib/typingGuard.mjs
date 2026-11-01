@@ -22,7 +22,16 @@ const CHECK = `on run argv
 			if (count of windows) is 0 then return "nowindow"
 			try
 				set f to value of attribute "AXFocusedUIElement"
-				return "pid=" & (unix id of fp) & ";focus=" & ((value of attribute "AXRole" of f) as string)
+				set d to ""
+				try
+					set d to (value of attribute "AXTitle" of f) as string
+				end try
+				if d is "" then
+					try
+						set d to (value of attribute "AXDescription" of f) as string
+					end try
+				end if
+				return "pid=" & (unix id of fp) & ";focus=" & ((value of attribute "AXRole" of f) as string) & ";name=" & d
 			on error
 				return "nofocus"
 			end try
@@ -45,10 +54,10 @@ export function decide(answer, copies, options = {}) {
 	if (a.startsWith("front=")) return { ok: false, why: `${a.slice(6)} is in front, not the test copy of storyForge` };
 	if (a === "nowindow") return { ok: false, why: "the test copy's window is not showing" };
 	if (a === "nofocus") return { ok: false, why: "nothing in the test copy has focus" };
-	const m = /^pid=(\d+);focus=(.+)$/.exec(a);
+	const m = /^pid=(\d+);focus=([^;]+)(?:;name=(.*))?$/s.exec(a);
 	if (m) {
 		if (pid !== null && Number(m[1]) !== pid) return { ok: false, why: `the frontmost storyForge (process ${m[1]}) is not the test copy (process ${pid})` };
-		return anyFocus || TEXT_ROLES.includes(m[2]) ? { ok: true, why: "" } : { ok: false, why: `focus is on ${m[2]}, not a text box` };
+		return anyFocus || TEXT_ROLES.includes(m[2]) ? { ok: true, why: "" } : { ok: false, why: `focus is on ${m[2]}${m[3] ? ` ("${m[3]}")` : ""}, not a text box` };
 	}
 	return { ok: false, why: `the frontmost check gave no answer (${a || "empty"})` };
 }

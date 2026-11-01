@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { decide, guardedTyping } from "../../scripts/lib/typingGuard.mjs";
 import { eventForChar, eventForScript, postScript } from "../../scripts/lib/postKeys.mjs";
 
-const ok = (pid = 4242, role = "AXTextArea") => `pid=${pid};focus=${role}`;
+const ok = (pid = 4242, role = "AXTextArea", name = "") => `pid=${pid};focus=${role};name=${name}`;
 
 describe("the typing guard's decision (decisions 72 and 90)", () => {
 	it("allows a key only with the one test copy in front (its own process) and a text box focused", () => {
@@ -26,6 +26,10 @@ describe("the typing guard's decision (decisions 72 and 90)", () => {
 		expect(decide("nowindow", 1, { pid: 4242 }).why).toContain("window is not showing");
 		expect(decide(ok(), 0, { pid: 4242 }).ok).toBe(false);
 		expect(decide(ok(), 2, { pid: 4242 }).ok).toBe(false);
+	});
+	it("says what the focus is on when it is not a text box", () => {
+		expect(decide(ok(4242, "AXButton", "Chapters"), 1, { pid: 4242 }).why).toBe('focus is on AXButton ("Chapters"), not a text box');
+		expect(decide("pid=4242;focus=AXButton", 1, { pid: 4242 }).why).toBe("focus is on AXButton, not a text box"); // an older answer without a name still reads
 	});
 	it("refuses a storyForge that isn't the test copy's own process, one that has gone, and one that has begun to quit", () => {
 		expect(decide(ok(999), 1, { pid: 4242 }).ok).toBe(false);
