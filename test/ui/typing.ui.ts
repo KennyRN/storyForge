@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { openPreview, shot } from "./helpers";
+import { openPreview, shot, flipFace } from "./helpers";
 
 const PROJECT_MD = "_backstage/storyforge/project.md";
 const dialog = (page: Page) => page.getByRole("dialog");
@@ -436,7 +436,7 @@ test.describe("shortcodes in the editor", () => {
 
 const BOOK_A = "_story-library/novel-aaa.md";
 const SERIES = "_story-library/series.md";
-const flipSide = (page: Page) => page.getByRole("button", { name: "Flip side" }).click();
+const flipSide = (page: Page) => flipFace(page);
 const lines = (box: Locator): Promise<string> => box.evaluate((el) => [...el.querySelectorAll(".cm-line")].map((l) => l.textContent ?? "").join("\n"));
 
 interface FieldKind {
@@ -886,7 +886,7 @@ test.describe("the special-characters button", () => {
 		await page.keyboard.press("Escape");
 		// an overview covering the editor
 		await page.evaluate((p) => window.__app.editors!.open("centre", p), CH1);
-		await page.getByRole("button", { name: "Flip side" }).click();
+		await flipFace(page);
 		await page.getByRole("tab", { name: "series" }).click();
 		await CHARS(page).click();
 		await expect(palette(page)).toContainText("Close the overview");

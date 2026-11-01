@@ -57,13 +57,27 @@
 	min-height: 0;
 }
 
-/* The navigator. */
+/* The navigator (decisions 79 to 81): the series name, the novel's name, the chapter selector. The list opens over the Codex. */
 .sf-navigator {
+	position: relative;
+	z-index: 2;
 	padding: var(--space-3) var(--space-3) var(--space-2) var(--space-4);
 }
-.sf-nav-novel {
+.sf-nav-lead {
+	display: block;
+	max-width: 100%;
+	margin: 0 0 var(--space-2);
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--purpose-accent);
+	font: inherit;
 	font-weight: 600;
-	margin-bottom: var(--space-2);
+	text-align: left;
+	cursor: pointer;
+}
+.sf-nav-series {
+	font-weight: 500;
 }
 .sf-nav-empty {
 	padding: var(--space-2) 0;
@@ -78,33 +92,63 @@
 	padding: 5px 8px;
 	border: 0;
 	border-radius: var(--radius);
-	background: var(--purpose-raised-bg);
+	background: transparent;
+	color: var(--purpose-text-muted);
+	font: inherit;
 	text-align: left;
 	cursor: pointer;
 }
-.sf-nav-current:hover,
-.sf-nav-row:hover {
-	background: var(--purpose-raised-hover);
+/* Closed, the selector shows the open chapter in the accent; one that isn't in the list is muted, with a quiet note. */
+.sf-nav-current {
+	color: var(--purpose-accent);
+	padding-left: 0;
 }
+.sf-nav-current.is-outside {
+	color: var(--purpose-text-muted);
+}
+.sf-nav-current-title {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.sf-nav-note {
+	font-size: 0.8em;
+	color: var(--purpose-text-muted);
+}
+.sf-nav-row:hover:not(:disabled) {
+	color: var(--purpose-text);
+}
+.sf-nav-select {
+	position: static;
+}
+/* Open: a raised surface over the top of the Codex list, the panel's full width, with no border line. */
 .sf-nav-list {
-	margin: var(--space-1) 0 0;
-	padding: 0;
+	position: absolute;
+	left: 0;
+	right: 0;
+	margin: 0;
+	padding: var(--space-1) var(--space-3) var(--space-2) var(--space-4);
+	max-height: 60vh;
+	overflow-y: auto;
 	list-style: none;
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
+	background: var(--purpose-raised-bg);
+	border-radius: 0 0 var(--radius) var(--radius);
 }
 .sf-nav-row {
-	background: transparent;
 	min-height: 26px;
+	padding-left: 0;
 }
 .sf-nav-row.is-active {
 	color: var(--purpose-accent);
 }
-.sf-nav-add {
-	margin-top: var(--space-2);
-	width: 100%;
-	justify-content: flex-start;
+.sf-nav-add:disabled {
+	opacity: 0.5;
+	cursor: default;
 }
 
 /* The Codex tree. */
@@ -328,11 +372,6 @@ body.sf-codex-drag-active {
 	white-space: nowrap;
 	color: var(--purpose-text-muted);
 	font-size: 12px;
-}
-/* The project's name and the novel's title are the interface accent, as text only (decision 62), on the storytelling side. */
-.sf-left[data-face="storytelling"] .sf-left-name,
-.sf-nav-novel {
-	color: var(--purpose-accent);
 }
 .sf-left-body {
 	flex: 1;

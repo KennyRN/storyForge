@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openPreview, shot } from "./helpers";
+import { openPreview, shot, flipFace } from "./helpers";
 
 const PROJECT_MD = "_backstage/storyforge/project.md";
 const dialog = (page: Page) => page.getByRole("dialog");
@@ -58,7 +58,7 @@ test.describe("the menus", () => {
 		await menu(page, "close-project");
 		await expect(page.getByRole("button", { name: "Open Project…" })).toBeVisible();
 		// the text typed just before closing was saved by the close
-		const path = "_story-library/aaa/" + (await page.evaluate(() => window.__preview.read("_story-library/novel-aaa.md"))).match(/chapter-order:\n(?:  - .*\n)+/)![0].trim().split("\n")[2].replace(/^\s*- /, "");
+		const path = "_story-library/aaa/" + (await page.evaluate(() => window.__preview.read("_story-library/novel-aaa.md"))).match(/chapter-order:\n(?:  - .*\n)+/)![0].trim().split("\n").at(-1)!.replace(/^\s*- /, "");
 		expect(await onDisk(page, path)).toContain("Last words.");
 	});
 
@@ -87,7 +87,7 @@ test.describe("the menus", () => {
 
 	test("Undo and Redo also work in a rename field", async ({ page }) => {
 		await openProject(page);
-		await page.getByRole("button", { name: "Flip side" }).click();
+		await flipFace(page);
 		await page.locator(".sf-row", { hasText: "Chapter 1" }).click({ button: "right" });
 		await page.getByRole("menuitem", { name: "Rename" }).click();
 		const input = page.getByLabel("Name");
@@ -215,7 +215,7 @@ test.describe("settings", () => {
 		await d.getByLabel("Hide the series pane").check();
 		await d.getByLabel("Opens in").selectOption("false");
 		await d.getByRole("button", { name: "Done" }).click();
-		await page.getByRole("button", { name: "Flip side" }).click();
+		await flipFace(page);
 		await expect(page.getByRole("tab")).toHaveCount(3);
 		await expect(page.getByRole("tab", { name: "series" })).toHaveCount(0);
 		await page.reload();

@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import * as path from "node:path";
-import { openPreview, shot } from "./helpers";
+import { openPreview, shot, flipFace } from "./helpers";
 
 function tree(dir: string, base = dir, out: Record<string, string> = {}): Record<string, string> {
 	for (const name of readdirSync(dir)) {
@@ -18,7 +18,7 @@ async function openProject(page: Page): Promise<string> {
 	await page.waitForFunction(() => !!window.__app?.editors);
 	return root;
 }
-const flip = (page: Page) => page.getByRole("button", { name: "Flip side" }).click();
+const flip = (page: Page) => flipFace(page);
 const tab = (page: Page, name: string) => page.getByRole("tab", { name });
 /** The text of a field editor (plot note, synopsis, description) as the lines it shows: they are small CodeMirror editors (decision 47). */
 const fieldText = (box: Locator): Promise<string> => box.evaluate((el) => [...el.querySelectorAll(".cm-line")].map((l) => l.textContent ?? "").join("\n"));

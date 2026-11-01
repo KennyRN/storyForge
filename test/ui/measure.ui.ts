@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { openPreview } from "./helpers";
+import { openPreview, flipFace } from "./helpers";
 
 /**
  * A measurement, not a check: how long the novel overview takes to appear with 60 extended chapter cards
@@ -26,7 +26,7 @@ test(`opening the novel overview with ${CARDS} extended cards`, async ({ page })
 	// The chapters appeared while the app was closed: the opening summary says so. Dismiss it.
 	const ok = page.getByRole("dialog").getByRole("button", { name: "OK" });
 	if (await ok.isVisible({ timeout: 3000 }).catch(() => false)) await ok.click();
-	await page.getByRole("button", { name: "Flip side" }).click();
+	await flipFace(page);
 
 	const times: number[] = [];
 	for (let run = 0; run < 6; run++) {

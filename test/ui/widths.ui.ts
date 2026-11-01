@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openPreview } from "./helpers";
+import { openPreview, flipFace } from "./helpers";
 
 // Fix 5, commit 2: the stored panel widths, the same-width switch, the unit and narrowing for display (decisions 76 and 77).
 
@@ -47,7 +47,7 @@ test.describe("panel widths", () => {
 		await page.keyboard.press("ArrowLeft"); // the context panel grows leftwards: ← widens it
 		w = await widths(page);
 		near(w.lore, before.left + 32);
-		await page.getByRole("button", { name: "Flip side" }).click();
+		await flipFace(page);
 		w = await widths(page);
 		expect(w.left).toBe(w.lore);
 		const s = await stored(page);
@@ -63,10 +63,10 @@ test.describe("panel widths", () => {
 		let w = await widths(page);
 		near(w.left, before.left + 16);
 		expect(w.lore).toBe(before.lore);
-		await page.getByRole("button", { name: "Flip side" }).click();
+		await flipFace(page);
 		w = await widths(page);
 		near(w.left, before.left); // the library side still has its own
-		await page.getByRole("button", { name: "Flip side" }).click();
+		await flipFace(page);
 		near((await widths(page)).left, before.left + 16);
 		// turning it back on takes the shown side's left width
 		await page.evaluate(() => (window.__app as any).setWidthsLinked(true));

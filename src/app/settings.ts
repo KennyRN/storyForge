@@ -31,7 +31,11 @@ export const SUPPORTED_FORMAT = 1;
 export const CODEX_COLOURS = ["text", "yellow", "green", "aqua", "blue", "purple", "orange", "grey"] as const;
 export type CodexColour = (typeof CODEX_COLOURS)[number];
 
+/** One story or a series of them (decision 81): whether the storytelling side shows a series line. Missing or unknown means a series. */
+export type StoryKind = "series" | "standalone";
+
 export interface ProjectSettings {
+	storyKind: StoryKind;
 	/** The colour of the Codex list on both sides: text, icons, folder lines, the strip and the highlight. */
 	codexColour: CodexColour;
 	hideSeriesPane: boolean;
@@ -71,6 +75,7 @@ export interface ProjectSettings {
 }
 
 export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
+	storyKind: "series",
 	codexColour: "text",
 	hideSeriesPane: false,
 	autoFocus: true,
@@ -101,6 +106,7 @@ type Key = keyof ProjectSettings;
 
 /** key in `project.md`, key in the plugin's `data.json`, and how to check a value. */
 const FIELDS: Record<Key, { file: string; plugin: string; valid: (v: unknown) => boolean }> = {
+	storyKind: { file: "story-kind", plugin: "-", valid: (v) => v === "series" || v === "standalone" },
 	codexColour: { file: "codex-colour", plugin: "-", valid: (v) => typeof v === "string" && (CODEX_COLOURS as readonly string[]).includes(v) },
 	hideSeriesPane: { file: "hide-series-pane", plugin: "hideSeriesPane", valid: (v) => typeof v === "boolean" },
 	autoFocus: { file: "auto-focus", plugin: "autoFocus", valid: (v) => typeof v === "boolean" },

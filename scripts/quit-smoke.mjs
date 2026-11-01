@@ -142,7 +142,7 @@ async function route(name, send, { expectJoin = false, target = "chapter" } = {}
 		if (target === "plot") {
 			// To the library side, the novel tab, and into a chapter card's plot note: it has focus, nothing has been committed.
 			const clickAny = (name) => ["AXButton", "AXCheckBox", "AXToggle", "AXRadioButton", "AXTab"].some((role) => find(role, name, "click").startsWith("found"));
-			await until("the Flip side button", () => clickAny("Flip side"));
+			await until("the novel name", () => clickAny("Open the novel on the library side"));
 			await until("the novel tab", () => clickAny("novel"), 8000);
 			await until("a plot note", () => find("AXTextArea", "Plot note for", "focus").startsWith("found"));
 		}

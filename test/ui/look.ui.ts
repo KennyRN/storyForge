@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { openPreview, shot } from "./helpers";
+import { openPreview, shot, flipFace } from "./helpers";
 
 // Brief 10, commit 2: SN Pro in every place the author writes and in the Codex list, and nowhere else. The browser preview
 // serves no security policy, so what the built app really loads is checked by `npm run test:look` (Mac, built app).
@@ -9,7 +9,7 @@ async function openProject(page: Page): Promise<void> {
 	await page.locator("[data-recent='0']").click();
 	await page.waitForFunction(() => !!window.__app?.editors);
 }
-const flipSide = (page: Page) => page.getByRole("button", { name: "Flip side" }).click();
+const flipSide = (page: Page) => flipFace(page);
 
 /** What a surface is really drawn in: the computed family, and the faces the page has actually loaded. */
 async function style(el: Locator) {
@@ -95,7 +95,7 @@ test.describe("SN Pro", () => {
 			["the body", page.locator("body")],
 			["the navigator", page.locator(".sf-nav-novel")],
 			["the stats", page.locator(".sf-stats-value")],
-			["a tab", page.getByRole("button", { name: "Flip side" })],
+			["the chapter selector", page.getByRole("button", { name: "Chapters" })],
 		] as [string, Locator][]) {
 			expect((await style(loc.first())).family, what).not.toContain("SN Pro");
 		}

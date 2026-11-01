@@ -267,7 +267,7 @@ try {
 	}
 
 	// The library side's Codex list, and a plot note (13 px: ten "w" is 105 px in SN Pro, 100 in the system font).
-	if (!(await until(() => clickAny("Flip side")))) fail("could not reach the library side");
+	if (!(await until(() => clickAny("Open the novel on the library side")))) fail("could not reach the library side");
 	await sleep(600);
 	clickAny("codex");
 	await sleep(800);

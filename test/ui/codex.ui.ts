@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { openPreview, shot } from "./helpers";
+import { openPreview, shot, flipFace } from "./helpers";
 
 // Brief 10, commit 3: the Codex list's look and keys, on the storytelling side (entries open in the context panel) and the
 // library side (they open in the workspace). The fixture's Codex: Cast (Jane, Sam), Places (a folder that is also the note
@@ -10,7 +10,7 @@ async function openProject(page: Page): Promise<void> {
 	await page.locator("[data-recent='0']").click();
 	await page.waitForFunction(() => !!window.__app?.editors);
 }
-const flipSide = (page: Page) => page.getByRole("button", { name: "Flip side" }).click();
+const flipSide = (page: Page) => flipFace(page);
 const lore = (page: Page) => page.locator(".sf-slot--lore .cm-content");
 const centre = (page: Page) => page.locator(".sf-slot--centre .cm-content");
 

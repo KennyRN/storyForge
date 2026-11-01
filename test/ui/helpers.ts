@@ -20,3 +20,9 @@ export async function shot(page: Page, name: string): Promise<void> {
 	mkdirSync(dir, { recursive: true });
 	await page.screenshot({ path: path.join(dir, `${name}.png`) });
 }
+
+/** Flips between the sides the way the menu does (View ▸ Flip Side): the storytelling side has no Flip side button (decision 81). */
+export async function flipFace(page: Page): Promise<void> {
+	await page.waitForFunction(() => !!window.__app?.editors); // the menu answers only once a project is open (a button click used to wait for itself)
+	await page.evaluate(() => window.__preview.emit("menu", "flip-face"));
+}

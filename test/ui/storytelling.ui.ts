@@ -66,17 +66,19 @@ test.describe("the storytelling face", () => {
 		await expect.poll(() => page.evaluate(() => window.__app.editors!.pathIn("centre"))).toBe("_story-library/aaa/ch-a2.md");
 	});
 
-	test("'Add the next chapter' appends a chapter after the current one and opens it", async ({ page }) => {
+	test("'Add the next chapter' appends a chapter at the end of the novel and opens it, whichever chapter is open", async ({ page }) => {
 		await openProject(page);
+		await page.getByRole("button", { name: "Chapters" }).click();
 		await page.getByRole("button", { name: "Add the next chapter" }).click();
 		await expect.poll(() => page.evaluate(() => window.__app.editors!.pathIn("centre"))).not.toBe("_story-library/aaa/ch-a1.md");
 		const book = await onDisk(page, BOOK);
 		const order = /chapter-order:\n((?:  - .*\n)+)/.exec(book)![1].trim().split("\n").map((l) => l.replace(/^\s*- /, ""));
 		expect(order).toHaveLength(4);
 		expect(order[0]).toBe("ch-a1.md");
-		expect(order[1]).not.toBe("ch-a2.md"); // after the current chapter (Chapter 1), before the rest
+		expect(order.slice(0, 3)).toEqual(["ch-a1.md", "ch-a2.md", order[2]]); // the rest stay where they were
+		expect(order[3]).not.toBe("ch-a2.md"); // the new one is last, though Chapter 1 is open
 		const opened = await page.evaluate(() => window.__app.editors!.pathIn("centre"));
-		expect(opened).toBe(`_story-library/aaa/${order[1]}`);
+		expect(opened).toBe(`_story-library/aaa/${order[3]}`);
 	});
 
 	test("where you were comes back: the chapter, the panel widths, collapsed Codex folders", async ({ page }) => {
@@ -304,6 +306,7 @@ test.describe("the storytelling face", () => {
 		await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
 		await page.locator("[data-recent='0']").click();
 		await page.waitForFunction(() => !!window.__app?.editors);
+		await page.getByRole("button", { name: "Chapters" }).click();
 		await expect(page.getByRole("button", { name: "Add the next chapter" })).toBeDisabled();
 		await expect(page.getByRole("button", { name: "New note" })).toBeDisabled();
 		await expect(page.getByRole("button", { name: "New folder" })).toBeDisabled();

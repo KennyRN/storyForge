@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { openPreview } from "./helpers";
+import { openPreview, flipFace } from "./helpers";
 
 // Brief 11, commit 4: the Codex list refined (docs/look-2.md, decisions 62 and 65), on both sides. The fixture's Codex: Cast
 // (Jane, Sam), Places (a folder that is also the note Harbour, and whose own order also lists Harbour), Windows, and others.
@@ -11,7 +11,7 @@ async function openProject(page: Page): Promise<void> {
 }
 const SIDES = [
 	{ name: "storytelling side", show: async (_p: Page) => {} },
-	{ name: "library side", show: async (p: Page) => { await p.getByRole("button", { name: "Flip side" }).click(); await p.getByRole("tab", { name: "codex" }).click(); } },
+	{ name: "library side", show: async (p: Page) => { await flipFace(p); await p.getByRole("tab", { name: "codex" }).click(); } },
 ];
 const tree = (p: Page) => p.locator(".sf-codex-tree");
 const row = (p: Page, name: string) => tree(p).locator('[role="treeitem"]').filter({ has: p.locator(".sf-codex-name", { hasText: new RegExp(`^${name}$`) }) });
@@ -142,7 +142,7 @@ test.describe("the Codex colour setting", () => {
 		}
 		// grey is chosen: the library side's list wears it too
 		await page.getByRole("button", { name: "Done" }).click();
-		await page.getByRole("button", { name: "Flip side" }).click();
+		await flipFace(page);
 		await page.getByRole("tab", { name: "codex" }).click();
 		const grey = await resolved(page, tokens.grey);
 		expect(await tree(page).evaluate((e) => getComputedStyle(e).color)).toBe(grey);

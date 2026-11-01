@@ -76,7 +76,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	const overviews = mountOverviewLayer(overview, centre, model);
 	const offCharacters = mountCharactersButton(loreRow, model);
 
-	fill(left, header, faceHost);
+	fill(left, faceHost);
 	let disposeFace: (() => void) | null = null;
 	let shownFace: string | null = null;
 	const drawFace = (): void => {
@@ -84,6 +84,8 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 		if (face === shownFace) return;
 		shownFace = face;
 		left.dataset.face = face;
+		// The storytelling side has no header (decision 81): its titles lead to the library side. The library side keeps its own.
+		fill(left, ...(face === "storyforge" ? [header] : []), faceHost);
 		disposeFace?.();
 		fill(faceHost);
 		faceHost.className = "sf-left-body";

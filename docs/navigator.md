@@ -130,3 +130,32 @@ Kenny's ruling: the setting lives in `project.md` (not `series.md`, which is in 
 - **Proposed key: `story-kind`**, values `series` (the default) and `standalone`. In `src/app/settings.ts` as `storyKind`, with `valid: v === "series" || v === "standalone"`; any other value reads as `series`.
 - **Where in settings:** a **Story** section in the §4 list, above Appearance (a short page holding this one choice, a two-option radio, "A series" / "One standalone novel"); the existing "Hide the series pane" check, which is about the library side, stays in General.
 - **Creating a standalone novel:** the new-project screen's route writes `story-kind: standalone` through `settings.set` after the project is created, the same call the settings dialog makes.
+
+## 11. Rulings (decisions 81 to 83)
+
+**H1 (decision 81).**
+1. The project name leaves the storytelling side with Flip Side; the storytelling side has no header. The library side stays exactly as it is.
+2. "Add the next chapter" is a true append (the end of the novel, not after the open chapter); inserting mid-novel stays possible on the library side by dragging. (File → New Chapter shares the function, so it appends too.)
+3. The storytelling navigator always shows the selected chapter in green, whatever "Highlight the active chapter" says; that setting keeps working on the library side's novel and series tabs.
+4. Inter ships as the supplied `.ttf`, Fraunces as the supplied `.woff2`. No conversion.
+5. Fraunces: every use sets its weight and Wonk explicitly; chosen for a part, it starts with Wonk off and Softness 0 and keeps the weight carried over from the previous font.
+6. Coverage accepted: wynn and yogh fall back to Arial in Aleo, Atkinson Hyperlegible Next, Courier Prime and Fraunces.
+7. Series or standalone: key `story-kind` (`series` or `standalone`) in `project.md`, in a new **Story** section of settings; missing or unknown is `series` and is never rewritten.
+
+**Commit 2 (decision 82).** Accepted; shortening Fraunces' file names is fine; the built-app proof that each family is drawn moves to commit 4.
+
+**§4–6 (decision 83).**
+- **Settings sections:** General (Interface); Story (series or standalone, plus Numbering, which moves here); Appearance (new); Writing (the typing aids); Sessions (Sessions and Display); Backups; This Mac. One page at a time.
+- **Keys** as proposed in §5: `appearance-<part>-font`, `-weight`, `-size` for `codex`, `novel`, `series` and `chapter`, plus `-soft` and `-wonk` (Fraunces). Sizes stored in rem. An unknown or out-of-range value falls back to the default and is never rewritten.
+- **Size ranges:** Codex list and selected chapter 0.75–1.75 rem; novel title and series name 0.75–2 rem. **Step 0.125 rem (2 px), 0.25 rem (4 px) with Shift.** A figure typed within range is rounded to the nearest step and the field shows the rounded figure at once; out of range is refused with the range shown.
+- Commit 4 ends at **H2:** nothing is set as a default until Kenny chooses in the built app.
+
+## 12. Commit 3 as built
+
+- **Header:** drawn per side in `shell.ts`: the library side only. The storytelling side's green project name goes with it (its CSS rule too).
+- **Navigator** (`faces/navigator.ts`): series line (when `storyKind` is `series`; the series title, or "Series" if `series.md` has none), the novel line, then the selector. Both names are buttons ("Open the series / novel on the library side") that call `model.openLibraryTab`, which sets the tab, shows its overview and flips; the editor stays mounted. `story-kind` is read in `app/settings.ts` (no UI for it until commit 4; the new-project screen's series-or-standalone question will set it then).
+- **Dropdown:** the list is absolutely positioned under the selector over the Codex list, the panel's full width, on `--purpose-raised-bg` (`bg1`), no border, `max-height: 60vh`. While open, the Codex and stats sections are `inert` and a capturing `pointerdown` outside closes it (the click goes nowhere). Escape closes and refocuses the selector; ↑ ↓ Home End move; the selected chapter has `aria-current`. It stays a list of buttons (not `listbox`/`option`), so existing names and tests hold.
+- **Unplaced or archived open chapter:** the selector shows it muted with a quiet "unplaced" or "archived".
+- **Looks are unchanged** until commit 4 (the titles still use the old font, weight and size; the series name is the novel title's style at weight 500).
+- **Tests:** `test/ui/navigator.ui.ts` (10); the others changed only where the Flip side button no longer exists on the storytelling side (a `flipFace` helper uses the View ▸ Flip Side menu route) and where "add the next chapter" now appends. The built-app scripts reach the library side through the novel name button.
+- Screenshots: `docs/navigator-shots/new-*.png` (WebKit preview).

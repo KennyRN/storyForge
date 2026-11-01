@@ -167,7 +167,7 @@ try {
 	// The field editors (decision 53): a plot note has the name autocorrect and the shortcodes too. Typed into the first
 	// plot note of the novel, with real keystrokes; each aid is read back from the field through accessibility.
 	const clickAny = (name) => ["AXButton", "AXCheckBox", "AXToggle", "AXRadioButton", "AXTab"].some((role) => find(role, name, "click").startsWith("found"));
-	if (!(await until(() => clickAny("Flip side")))) fail("could not reach the library side");
+	if (!(await until(() => clickAny("Open the novel on the library side")))) fail("could not reach the library side");
 	if (!(await until(() => clickAny("novel"), 8000))) fail("could not reach the novel tab");
 	if (!(await until(() => find("AXTextArea", "Plot note for", "focus").startsWith("found")))) fail("no plot note to type in");
 	await sleep(500);
