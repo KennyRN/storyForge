@@ -91,7 +91,7 @@ async function until(fn, ms = 15000) {
 // One key at a time, 40 ms apart: a whole string sent in one burst arrives faster than anyone types, and the built
 // app (1.0.0 included) then drops spaces and letters while an aid is replacing a word.
 // Every keystroke goes through the typing guard (decision 72): nothing is typed unless the test copy is in front with a text box focused.
-const typing = guardedTyping({ osa, fail });
+const typing = guardedTyping({ osa, fail, pid: () => child.pid }); // keys are posted to the test copy's own process (decision 90)
 const sendKeys = typing.sendKeys;
 
 // What is typed, what the editor must hold after the typing aids (and only the aids), and what each piece proves.

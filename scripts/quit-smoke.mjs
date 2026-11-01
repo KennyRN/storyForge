@@ -91,7 +91,8 @@ const valueOf = (role, prefix) => {
 };
 const isFocused = (role, prefix) => find(role, prefix, "isfocused") === "found true";
 // Every keystroke goes through the typing guard (decision 72): nothing is typed unless the test copy is in front with a text box focused.
-const typing = guardedTyping({ osa, fail });
+let current = null; // the test copy of the route in progress
+const typing = guardedTyping({ osa, fail, pid: () => current?.pid }); // keys are posted to the test copy's own process (decision 90)
 const sendKeys = typing.sendKeysAtOnce;
 
 // ---- One route --------------------------------------------------------------------------------------------
@@ -128,6 +129,8 @@ async function route(name, send, { expectJoin = false, target = "chapter" } = {}
 	let stderr = "";
 	const child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: ["ignore", "ignore", "pipe"] });
 	children.add(child);
+	current = child;
+	typing.reset();
 	child.stderr.on("data", (d) => (stderr += d));
 	let exited = null;
 	child.on("exit", (code, signal) => (exited = { code, signal, at: Date.now() }));
@@ -177,6 +180,7 @@ async function route(name, send, { expectJoin = false, target = "chapter" } = {}
 		// window lost focus to another app before the quit: this run proves nothing. It is retried, never counted as a pass.
 		if (onDiskEarly.length) throw new EarlySave();
 		const sent = Date.now();
+		typing.beginQuit(); // no key is sent to the test copy from here
 		await send(child);
 		await until(`the app to end after "${name}" (stderr so far: ${JSON.stringify(stderr)})`, () => exited, 20000);
 		const took = exited.at - sent;

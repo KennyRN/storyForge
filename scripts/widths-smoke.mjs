@@ -59,7 +59,7 @@ const shot = (name) => {
 };
 const setWindowWidth = (w) => osa(`${proc} to set size of window 1 to {${w}, 800}`);
 const clickMenu = (menu, item) => osa(`${proc} to click menu item "${item}" of menu 1 of menu bar item "${menu}" of menu bar 1`);
-const typing = guardedTyping({ osa, fail });
+const typing = guardedTyping({ osa, fail, pid: () => child.pid }); // keys are posted to the test copy's own process (decision 90)
 const problems = [];
 const check = (ok, what) => (ok ? console.log(`ok   ${what}`) : (problems.push(what), console.log(`FAIL ${what}`)));
 const near = (a, b, d = 2) => a !== null && Math.abs(a - b) <= d;
