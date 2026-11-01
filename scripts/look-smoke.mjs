@@ -10,6 +10,7 @@
 // It drives the window with System Events: the terminal needs Accessibility permission and the screen must be unlocked.
 // Usage: npm run test:look [-- path/to/storyForge.app] [--shots <folder>]
 //   --shots saves pictures of the window: the chapter, a Codex note in the context panel, a plot note, both Codex lists.
+import { createHash } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
 import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -135,6 +136,9 @@ if (process.env.LOOK_CODEX_COLOUR) {
 const data = join(home, DATA_FOLDER);
 mkdirSync(data, { recursive: true });
 writeFileSync(join(data, "recent.json"), JSON.stringify([project]));
+// The context panel's card is measured at the width these checks were written for (400 px). Since 1.5.0 a project with nothing stored opens with the panels linked at 288 px, so the widths are stored here.
+mkdirSync(join(data, "project-ui"), { recursive: true });
+writeFileSync(join(data, "project-ui", `${createHash("sha256").update(project).digest("hex")}.json`), JSON.stringify({ selectedNovel: null, selectedObject: null, collapsedCodexFolderIds: [], leftWidth: 288, loreWidth: 400, widthUnit: "px", widthsLinked: false }));
 if (shotsAt) mkdirSync(shotsAt, { recursive: true });
 
 const key = typing.key;
