@@ -4,11 +4,13 @@
 // BUILT app under a temporary HOME, and reads through accessibility the width the Codex list's names really take. Each family
 // must draw differently from the others and from the current look; a variable font's weight, and Fraunces' Softness and Wonk,
 // must change the drawing; SN Pro chosen explicitly must draw exactly as the current look does (it is the same file).
+// Fraunces draws its wonky n, m and h only at larger optical sizes, so its Softness and Wonk are measured at 1.75 rem.
 // Nothing is typed: only accessibility reads and one click. The screen must be unlocked and the terminal allowed to drive apps.
 //
 // Usage: npm run test:fonts [-- path/to/storyForge.app]
 import { spawn, spawnSync } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { cpSync, readFileSync, existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -110,6 +112,7 @@ const projectMd = join(project, "_backstage/storyforge/project.md");
 const proc = 'tell application "System Events" to tell process "storyforge"';
 
 let child = null;
+let lastPicture = "";
 process.on("exit", () => child?.kill("SIGKILL"));
 /** Starts the built app on this configuration, reads the Codex list's names' widths, and quits it. */
 async function measure(label, keys) {
@@ -122,9 +125,15 @@ async function measure(label, keys) {
 		await sleep(1500);
 		const a = widthOf("NoNewline");
 		const b = widthOf("Windows");
-		if (a === null || b === null) fail(`${label}: no Codex row was found through accessibility`);
-		console.log(`${label.padEnd(34)} NoNewline ${a} px, Windows ${b} px`);
-		return a * 1000 + b;
+		const c = widthOf("Harbour");
+		if (a === null || b === null || c === null) fail(`${label}: no Codex row was found through accessibility`);
+		// Wonk moves glyph shapes but hardly their widths, so the Codex list is also photographed and the picture hashed.
+		const [wx, wy] = osa(`${proc} to return (position of window 1) & (size of window 1)`).stdout.trim().split(", ").map(Number);
+		const png = join(dir, "codex.png");
+		spawnSync("screencapture", ["-x", "-R", [wx, wy + 120, 280, 360].join(","), png]);
+		lastPicture = createHash("sha1").update(readFileSync(png)).digest("hex");
+		console.log(`${label.padEnd(34)} NoNewline ${a} px, Windows ${b} px, Harbour ${c} px`);
+		return (a * 1000 + b) * 1000 + c;
 	} finally {
 		child.kill("SIGTERM");
 		await new Promise((r) => (child.once("exit", r), setTimeout(r, 6000)));
@@ -150,11 +159,16 @@ try {
 		check(light !== heavy, `${f}: weight changes the drawing`);
 	}
 	await measure("Courier Prime, weight 700 (monospaced: same width as 400)", { font: "Courier Prime", weight: 700, size: 1 }); // opens; a width can't tell its bold, so the WebKit tests check the file loads
-	const plain = await measure("Fraunces, Softness 0, Wonk off", { font: "Fraunces", weight: 400, size: 1, soft: 0, wonk: "false" });
-	const soft = await measure("Fraunces, Softness 100", { font: "Fraunces", weight: 400, size: 1, soft: 100, wonk: "false" });
-	const wonk = await measure("Fraunces, Wonk on", { font: "Fraunces", weight: 400, size: 1, soft: 0, wonk: "true" });
+	const plain = await measure("Fraunces, Softness 0, Wonk off", { font: "Fraunces", weight: 400, size: 1.75, soft: 0, wonk: "false" });
+	const plainPicture = lastPicture;
+	const soft = await measure("Fraunces, Softness 100", { font: "Fraunces", weight: 400, size: 1.75, soft: 100, wonk: "false" });
+	const picOff = plainPicture;
+	await measure("Fraunces, Softness 0, Wonk off, again", { font: "Fraunces", weight: 400, size: 1.75, soft: 0, wonk: "false" });
+	check(lastPicture === picOff, "control: the same configuration photographs the same twice");
+	const wonk = await measure("Fraunces, Wonk on", { font: "Fraunces", weight: 400, size: 1.75, soft: 0, wonk: "true" });
+	const picOn = lastPicture;
 	check(soft !== plain, "Fraunces' Softness changes the drawing");
-	check(wonk !== plain, "Fraunces' Wonk changes the drawing");
+	check(picOn !== picOff, "Fraunces' Wonk changes the drawing (its glyphs, which the picture shows; its widths hardly move)");
 	const big = await measure("Inter at 1.5 rem", { font: "Inter", weight: 400, size: 1.5 });
 	check(big > drawn.Inter * 1.3, "a size of 1.5 rem draws larger than 1 rem");
 } finally {

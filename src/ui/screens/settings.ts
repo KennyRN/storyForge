@@ -84,7 +84,7 @@ export function openSettings(model: AppModel): void {
 	const row = (label: string, control: HTMLElement, key: keyof ProjectSettings): HTMLElement => el("label", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: label }), control, source(key));
 
 	/** A size in rem, with its pixel equivalent (the page's base is 16 px). */
-	const remText = (rem: number): string => `${+rem.toFixed(3)} rem (${+(rem * 16).toFixed(1)} px)`;
+	const remText = (rem: number): string => `${+rem.toFixed(4)} rem (${+(rem * 16).toFixed(1)} px)`;
 	const appearancePart = (part: AppearancePart): HTMLElement => {
 		const name = PART_NAMES[part];
 		const [lo, hi] = APPEARANCE_SIZE_RANGE[part];
