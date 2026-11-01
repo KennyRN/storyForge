@@ -152,7 +152,7 @@ test.describe("the storytelling face", () => {
 		test("a folder that is also a note opens the note when its row is clicked, and folds when its folder icon is", async ({ page }) => {
 			await openProject(page);
 			const row = page.locator(".sf-codex-folder-header", { hasText: "Harbour" });
-			await row.click();
+			await row.locator(".sf-codex-name").click(); // the rest of the row (the middle of a narrow row can now be the icon's own hit area)
 			await expect(lore(page)).toBeVisible();
 			await row.locator("svg").first().click(); // the folder icon, after the name: there are no chevrons
 			await expect(row).toHaveAttribute("aria-expanded", "false");
