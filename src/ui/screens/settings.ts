@@ -5,6 +5,7 @@ import { button } from "../kit/button";
 import { openDialog } from "../kit/dialog";
 import { el } from "../kit/dom";
 import { typingSection } from "./typingSettings";
+import { widthsSettings } from "./widthsSettings";
 import type { AppModel } from "../model";
 
 const SOURCE_WORDS = { "project.md": "this project", "data.json": "the plugin's settings", default: "default" } as const;
@@ -115,6 +116,7 @@ export function openSettings(model: AppModel): void {
 				check("hideSeriesPane", "Hide the series pane (for one standalone book)"),
 				codexColour(),
 			]),
+			section("This Mac, this project", [widthsSettings(model)]),
 		);
 		body.querySelectorAll("select").forEach((s) => {
 			if (s.getAttribute("aria-label") === "Opens in") s.value = String(settings.values.autoFocus);

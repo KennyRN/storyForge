@@ -134,4 +134,73 @@ test.describe("panel widths", () => {
 		await page.waitForTimeout(700);
 		expect(await read(page)).toBe(before);
 	});
+
+	test.describe("in settings", () => {
+		const openSettings = async (page: Page) => {
+			await page.evaluate(() => window.__preview.emit("menu", "settings"));
+			await expect(page.getByRole("group", { name: "This Mac, this project" }).or(page.locator("section[aria-label='This Mac, this project']"))).toBeVisible();
+		};
+		const group = (page: Page) => page.locator("section[aria-label='This Mac, this project']");
+
+		test("says plainly that these stay on this Mac, and starts with one figure for all three", async ({ page }) => {
+			await openProject(page);
+			await openSettings(page);
+			await expect(group(page)).toContainText("stay on this Mac, for this project");
+			await expect(group(page).getByLabel("Keep the panels the same width")).toBeChecked();
+			await expect(group(page).locator("input[type=number]")).toHaveCount(1);
+		});
+
+		test("a drag or key shows in settings when reopened; a typed figure moves the panel behind the dialog", async ({ page }) => {
+			await openProject(page);
+			await leftBar(page).focus();
+			await page.keyboard.press("Shift+ArrowRight");
+			const w = await widths(page);
+			await openSettings(page);
+			const field = group(page).locator("input[type=number]");
+			near(Number(await field.inputValue()), (w.left / (await page.evaluate(() => innerWidth))) * 100);
+			await field.fill("30");
+			await field.press("Enter");
+			const after = await widths(page);
+			near(after.left, Math.round((await page.evaluate(() => innerWidth)) * 0.3));
+			expect(after.lore).toBe(after.left);
+		});
+
+		test("an out-of-range figure is refused with its range and stores nothing; Escape puts the figure back", async ({ page }) => {
+			await openProject(page);
+			const set = await stored(page);
+			await openSettings(page);
+			const field = group(page).locator("input[type=number]");
+			await field.fill("3");
+			await field.press("Tab");
+			await expect(group(page)).toContainText("Not allowed");
+			await expect(field).toHaveAttribute("aria-invalid", "true");
+			expect(await stored(page)).toEqual(set);
+			await field.fill("3");
+			await field.press("Escape");
+			expect(Number(await field.inputValue())).toBe(set.story);
+			await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible(); // Escape did not close the dialog
+		});
+
+		test("switching off shows three named figures; the unit switch converts without moving the panels", async ({ page }) => {
+			await openProject(page);
+			await openSettings(page);
+			const before = await widths(page);
+			await group(page).getByLabel("Keep the panels the same width").uncheck();
+			await expect(group(page).locator("input[type=number]")).toHaveCount(3);
+			for (const name of ["Left panel, storytelling side", "Left panel, library side", "Context panel"]) await expect(group(page).getByLabel(new RegExp(name))).toBeVisible();
+			await group(page).getByLabel("Measure panel widths in").selectOption("px");
+			near((await widths(page)).left, before.left);
+			await expect(group(page).getByLabel(/Context panel \(pixels\)/)).toHaveValue(String(before.lore));
+		});
+
+		test("changing the switches in settings writes nothing to project.md", async ({ page }) => {
+			await openProject(page);
+			const before = await read(page);
+			await openSettings(page);
+			await group(page).getByLabel("Measure panel widths in").selectOption("px");
+			await group(page).getByLabel("Keep the panels the same width").uncheck();
+			await page.waitForTimeout(700);
+			expect(await read(page)).toBe(before);
+		});
+	});
 });
