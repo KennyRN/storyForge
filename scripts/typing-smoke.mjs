@@ -119,6 +119,7 @@ mkdirSync(data, { recursive: true });
 writeFileSync(join(data, "recent.json"), JSON.stringify([project]));
 
 const problems = [];
+if (process.env.TYPING_TRACE) process.on("exit", () => problems.length && console.log(`  problems so far:\n    - ${problems.join("\n    - ")}`));
 const child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: "ignore" }); // nothing is read from it, so nothing may be piped to a reader that goes away first
 // The test copy is this script's own child: whichever way the script ends (a refusal included), it goes with it.
 process.on("exit", () => child.kill("SIGKILL"));
@@ -158,6 +159,11 @@ try {
 	await sleep(500);
 	const curled = valueOf("AXTextArea", "Text") ?? "";
 	if (!curled.startsWith(`${expectedSoFar}don’`)) problems.push(`typed don' and the editor holds ${JSON.stringify(curled.slice(expectedSoFar.length, expectedSoFar.length + 6))}, expected don’`);
+	if (process.env.TYPING_TRACE) {
+		console.log(`  just before the first ⌘Z: ${typing.focusNow()}`);
+		const id = spawnSync("osascript", ["-l", "JavaScript", "-e", `ObjC.import('CoreGraphics'); const l = ObjC.deepUnwrap(ObjC.castRefToObject($.CGWindowListCopyWindowInfo($.kCGWindowListOptionOnScreenOnly, 0))); const w = l.find((x) => x.kCGWindowOwnerPID === ${child.pid} && x.kCGWindowLayer === 0); w ? String(w.kCGWindowNumber) : ''`], { encoding: "utf8" }).stdout.trim();
+		if (id) spawnSync("screencapture", ["-x", "-o", "-l", id, (process.env.TYPING_TRACE_SHOT || "/tmp/typing-trace.png").replace(".png", "-before-z.png")]);
+	}
 	keystroke('keystroke "z" using command down');
 	await sleep(500);
 	const undone = valueOf("AXTextArea", "Text") ?? "";

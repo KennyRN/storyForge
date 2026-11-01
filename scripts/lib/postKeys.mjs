@@ -3,8 +3,14 @@
 // launching, quitting or closing a window), the keys act on the Desktop's icons (arrows select, Space opens Quick Look, ⌘↓ or
 // Return opens). CGEventPostToPid delivers an event to one process only, so the worst a stray key can do is nothing.
 //
-// Pure functions (unit-tested) turn the scripts' key descriptions into events; one function posts them.
+// Pure functions (unit-tested) turn the scripts' key descriptions into events; a small C helper (postkey.c, built on demand) posts them,
+// because a character's own text can be set on a key event only through a C pointer, which the scripting bridges cannot pass.
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 /** Key codes of the keys the scripts press by name or in a shortcut (letters, digits, Return, Tab, Escape, arrows). Punctuation is typed by character, not by key. */
 const CODE = {
@@ -53,21 +59,37 @@ export function eventForScript(script) {
 	throw new Error(`can't post this key to the test copy: ${script}`);
 }
 
-/** The JXA (JavaScript for Automation) that posts one key, down then up, to a single process. Contains no System Events and no frontmost app. */
-export function postScript(pid, event) {
+/** The helper's source, and where its compiled copy lives (a temporary folder, named by the source's hash, so it is rebuilt when the source changes). */
+const SOURCE = fileURLToPath(new URL("./postkey.c", import.meta.url));
+export function helperPath() {
+	const hash = createHash("sha1").update(readFileSync(SOURCE)).digest("hex").slice(0, 12);
+	const dir = join(tmpdir(), "storyforge-postkey");
+	const bin = join(dir, `postkey-${hash}`);
+	if (!existsSync(bin)) {
+		mkdirSync(dir, { recursive: true });
+		const r = spawnSync("clang", [SOURCE, "-o", bin, "-framework", "ApplicationServices"], { encoding: "utf8" });
+		if (r.status !== 0) throw new Error(`the key-posting helper could not be built: ${(r.stderr || "").trim()}`);
+	}
+	return bin;
+}
+
+/** The helper's arguments to post one key to a single process. No System Events and no frontmost app anywhere in them. */
+export function postArgs(pid, event) {
 	if (!Number.isInteger(pid) || pid <= 1) throw new Error(`not a process to post keys to: ${pid}`);
-	return `ObjC.import('CoreGraphics');
-ObjC.import('Foundation');
-for (const down of [true, false]) {
-	const e = $.CGEventCreateKeyboardEvent(null, ${event.code}, down);
-	$.CGEventSetFlags(e, ${event.flags});${event.unicode ? `\n\t$.CGEventKeyboardSetUnicodeString(e, ${event.unicode.length}, [${[...event.unicode].map((c) => c.charCodeAt(0)).join(", ")}]);` : ""}
-	$.CGEventPostToPid(${pid}, e);
-	$.NSThread.sleepForTimeInterval(0.008); // down and up a moment apart; both are always posted
-}`;
+	return [String(pid), String(event.code), String(event.flags), ...(event.unicode ? [event.unicode] : [])];
 }
 
 /** Posts one key to the process. Returns { ok, error }. */
 export function postToPid(pid, event) {
-	const r = spawnSync("osascript", ["-l", "JavaScript", "-e", postScript(pid, event)], { encoding: "utf8" });
-	return { ok: r.status === 0, error: (r.stderr || "").trim() };
+	try {
+		const r = spawnSync(helperPath(), postArgs(pid, event), { encoding: "utf8" });
+		return { ok: r.status === 0, error: r.status === 0 ? "" : `the helper exited ${r.status} ${(r.stderr || "").trim()}` };
+	} catch (e) {
+		return { ok: false, error: e.message };
+	}
+}
+
+/** What an event carries, made but not posted (for the tests). */
+export function dryRun(event) {
+	return spawnSync(helperPath(), ["--dry", "0", String(event.code), String(event.flags), ...(event.unicode ? [event.unicode] : [])], { encoding: "utf8" }).stdout.trim();
 }

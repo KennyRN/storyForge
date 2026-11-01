@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { decide, guardedTyping } from "../../scripts/lib/typingGuard.mjs";
-import { eventForChar, eventForScript, postScript } from "../../scripts/lib/postKeys.mjs";
+import { dryRun, eventForChar, eventForScript, postArgs } from "../../scripts/lib/postKeys.mjs";
 
 const ok = (pid = 4242, role = "AXTextArea", name = "") => `pid=${pid};focus=${role};name=${name}`;
 
@@ -56,11 +56,22 @@ describe("keys are posted to the test copy's own process (decision 90, item 1)",
 		expect(() => eventForScript('keystroke "!" using command down')).toThrow(/only a letter or digit/);
 		expect(() => eventForScript('click button "x"')).toThrow(/can't post/);
 	});
-	it("the posted script targets one process and uses neither System Events nor the frontmost app", () => {
-		const s = postScript(4242, { code: 125, flags: 0x100000 });
-		expect(s).toContain("CGEventPostToPid(4242");
-		expect(s).not.toMatch(/System Events|keystroke|frontmost|CGEventPost\(/);
-		expect(() => postScript(0, { code: 1, flags: 0 })).toThrow();
+	it("the helper posts to one process only: its arguments name the pid, and its source has no System Events, no frontmost app and no HID-wide post", () => {
+		expect(postArgs(4242, { code: 125, flags: 0x100000 })).toEqual(["4242", "125", "1048576"]);
+		expect(postArgs(4242, eventForChar("~"))).toEqual(["4242", "0", "0", "~"]);
+		expect(() => postArgs(0, { code: 1, flags: 0 })).toThrow();
+		expect(() => postArgs(1, { code: 1, flags: 0 })).toThrow();
+		const source = readFileSync(new URL("../../scripts/lib/postkey.c", import.meta.url), "utf8");
+		expect(source).toContain("CGEventPostToPid(pid, e)");
+		expect(source).not.toMatch(/CGEventPost\(|System Events|frontmost|NSWorkspace/);
+	});
+	it("a character is carried by the event itself: what the helper builds holds the character, whatever the keyboard layout (checked without posting)", () => {
+		expect(dryRun(eventForChar('"'))).toContain("text=U+0022");
+		expect(dryRun(eventForChar("'"))).toContain("text=U+0027");
+		expect(dryRun(eventForChar("`"))).toContain("text=U+0060");
+		expect(dryRun(eventForChar("ƿ"))).toContain("text=U+01BF");
+		expect(dryRun(eventForChar("Ó"))).toContain("text=U+00D3");
+		expect(dryRun(eventForChar("A"))).toContain("flags=0 text=U+0041"); // no shift flag: the character is the capital itself
 	});
 	it("every key the guard sends goes through post() to the test copy's pid, and none through osa", () => {
 		const { guard, posts, osaCalls } = rig([ok(), ok(), ok()]);
@@ -68,16 +79,6 @@ describe("keys are posted to the test copy's own process (decision 90, item 1)",
 		guard.key("key code 36");
 		expect(posts).toEqual([{ pid: 4242, event: { code: 0, flags: 0, unicode: "a" } }, { pid: 4242, event: { code: 11, flags: 0, unicode: "b" } }, { pid: 4242, event: { code: 36, flags: 0 } }]);
 		expect(osaCalls.every((s: string) => s.includes("first process whose frontmost"))).toBe(true); // osa is only ever asked the check
-	});
-	it("a character with no US key is typed by an event that carries it, posted to the same process", () => {
-		const s = postScript(4242, { code: 0, flags: 0, unicode: "ƿ" });
-		expect(s).toContain("CGEventKeyboardSetUnicodeString(e, 1, [447])"); // U+01BF
-		expect(s).toContain("CGEventPostToPid(4242");
-		expect(s).not.toMatch(/System Events|keystroke|frontmost/);
-		const { guard, posts } = rig(Array(3).fill(ok()));
-		guard.sendKeys("aƿ");
-		expect(posts.map((p) => p.pid)).toEqual([4242, 4242]);
-		expect(posts[1].event).toEqual({ code: 0, flags: 0, unicode: "ƿ" });
 	});
 	it("a key description that can't be posted is reported and nothing is sent", () => {
 		const { guard, posts, failures } = rig([ok()]);
