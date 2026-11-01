@@ -648,7 +648,8 @@ for (const kind of KINDS) {
 			await page.evaluate(() => window.__preview.emit("menu", "toggle-lore")); // the context panel away: the overview reaches the window's right edge
 			const field = await kind.open(page);
 			await intoField(field, page);
-			// the caret at the right-hand end of a full line
+			// the caret at the right-hand end of a full line; the panels are held in pixels so a narrower window doesn't change the geometry this test sets up
+			await page.evaluate(() => (window.__app as any).setWidthUnit("px"));
 			await page.setViewportSize({ width: 900, height: 700 });
 			let height = (await field.boundingBox())!.height;
 			for (let i = 0; i < 100; i++) {

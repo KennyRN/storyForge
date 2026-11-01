@@ -1,6 +1,6 @@
 import { mountOverviewLayer } from "./overviews/layer";
 import { mountCharactersButton } from "./context/charactersButton";
-import { clampLeft, clampLore, type AppModel } from "./model";
+import type { AppModel } from "./model";
 import { EditorHost } from "./editor/editorHost";
 import { el, fill } from "./kit/dom";
 import { mountStorytellingFace } from "./faces/storytelling";
@@ -54,13 +54,14 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	const loreRow = el("div", { class: "sf-context-row" });
 	lore.append(loreHost, loreRow);
 	const apply = (): void => {
-		left.style.width = `${model.nav.leftWidth}px`;
-		lore.style.width = `${model.nav.loreWidth}px`;
+		const shown = model.displayWidths();
+		left.style.width = `${shown.left}px`;
+		lore.style.width = `${shown.lore}px`;
 		lore.hidden = model.nav.loreHidden;
 		loreBar.hidden = model.nav.loreHidden;
 	};
-	const leftBar = splitter("Resize the left panel", "left", () => model.nav.leftWidth, (w) => (model.setWidths(clampLeft(w)), apply()));
-	const loreBar = splitter("Resize the context panel", "right", () => model.nav.loreWidth, (w) => (model.setWidths(undefined, clampLore(w)), apply()));
+	const leftBar = splitter("Resize the left panel", "left", () => model.displayWidths().left, (w) => (model.setPanelWidthPx("left", w), apply()));
+	const loreBar = splitter("Resize the context panel", "right", () => model.displayWidths().lore, (w) => (model.setPanelWidthPx("lore", w), apply()));
 	fill(host, el("h1", { class: "sf-visually-hidden", text: name }), el("div", { class: "sf-frame" }, left, leftBar, centreWrap, loreBar, lore));
 
 	model.editors = new EditorHost(model, { centre, lore: loreHost });
@@ -70,6 +71,8 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	};
 	apply();
 	const offNav = model.subscribe("nav", apply);
+	const offWidthsOnFlip = model.subscribe("face", apply); // the left panel's width is per side
+	window.addEventListener("resize", apply);
 	const overviews = mountOverviewLayer(overview, centre, model);
 	const offCharacters = mountCharactersButton(loreRow, model);
 
@@ -94,6 +97,8 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	return {
 		dispose() {
 			offNav();
+			offWidthsOnFlip();
+			window.removeEventListener("resize", apply);
 			offCharacters();
 			overviews();
 			offFace();

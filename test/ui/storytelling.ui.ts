@@ -89,7 +89,7 @@ test.describe("the storytelling face", () => {
 		await bar.focus();
 		for (let i = 0; i < 5; i++) await page.keyboard.press("ArrowRight");
 		const width = await page.locator(".sf-left").evaluate((e) => e.getBoundingClientRect().width);
-		expect(width).toBeCloseTo(288 + 80, 0);
+		expect(Math.abs(width - (288 + 80))).toBeLessThanOrEqual(1); // percent is kept to a tenth: about a pixel
 		await reopen(page);
 		await expect(page.locator(".sf-nav-current-title")).toHaveText("The Storm: Part Two");
 		await expect(codexRow(page, "Jane")).toHaveCount(0);
@@ -106,8 +106,13 @@ test.describe("the storytelling face", () => {
 		await page.mouse.up();
 		expect(await page.locator(".sf-left").evaluate((e) => e.getBoundingClientRect().width)).toBeCloseTo(388, -1);
 		await bar.focus();
+		// the panels are linked by default, and beside a context panel the window holds them to 460 each; with it hidden the left panel reaches its own limit
 		for (let i = 0; i < 30; i++) await page.keyboard.press("Shift+ArrowRight");
-		expect(await page.locator(".sf-left").evaluate((e) => e.getBoundingClientRect().width)).toBe(480);
+		expect(await page.locator(".sf-left").evaluate((e) => e.getBoundingClientRect().width)).toBe(460);
+		await page.evaluate(() => window.__preview.emit("menu", "toggle-lore"));
+		await bar.focus();
+		for (let i = 0; i < 30; i++) await page.keyboard.press("Shift+ArrowRight");
+		expect(await page.locator(".sf-left").evaluate((e) => e.getBoundingClientRect().width)).toBe(640);
 	});
 
 	test.describe("the lore slot", () => {

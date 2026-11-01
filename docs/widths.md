@@ -71,3 +71,22 @@ Machine settings gain `widthUnit` (`px` or `percent`), `widthsLinked` (a boolean
 3. Shared range of 280–480 px while the switch is on?
 4. The context panel narrowing first in a small window?
 5. Settings stays a modal dialog, so the live link is shown on reopening rather than while dragging?
+
+## 9. Rulings (decision 77)
+
+Kenny agreed each of these. The survey is accepted; the left panel's one stored width becomes two, one per side, applied when the side flips, both starting from the existing `leftWidth`.
+
+1. **Percent is the default unit.**
+2. **The workspace's minimum is 360 px.**
+3. **The left panel's maximum rises from 480 to 640 px** (range 200–640). The context panel stays 280–640. While the same-width switch is on, the shared range is **280–640**. On first opening a project in 1.5.0 the context panel takes the storytelling side's left width (288 px by default); the report says what each fixture does.
+4. **Narrowing in a small window:** switch on, both panels narrow by the same amount so they stay equal; switch off, the context panel gives way first, then the left panel. Stored figures never change.
+5. **Settings stays modal.** A committed figure must visibly move the panel behind the dialog; a dragged width shows in settings the next time it's opened.
+6. **Rounding accepted:** whole pixels, percent to one decimal place; converting the unit stores the width as displayed, so nothing moves.
+
+Note on item 6 and §5: where a panel is narrowed for display, the unit change converts the *stored* figure, not the narrowed one, so narrowing still never rewrites a setting. When nothing is narrowed the two are the same.
+
+## 10. As built (commit 2)
+
+- Pure logic in `src/ui/panelWidths.ts` (limits, conversion, display widths); stored in machine settings as `leftWidth` (storytelling side), `libraryWidth`, `loreWidth`, `widthUnit`, `widthsLinked`.
+- Absent `widthUnit` means pre-1.5.0 pixels: the panels open linked, in percent, all three at `leftWidth` (288 px if none). The converted figures are saved with the next change, not at open.
+- If both minimums plus the workspace minimum exceed the window (under 840 px), the panels stay at their minimums and the workspace is narrower than 360 px.
