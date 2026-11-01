@@ -38,8 +38,9 @@ for (const side of SIDES) {
 			expect(icon).toBe(text);
 		});
 
-		test("the highlight is a block in the Codex colour with the panel's colour on it, for hover and selected alike", async ({ page }) => {
-			const [codex, panel] = await tree(page).evaluate((e) => [getComputedStyle(e).color, getComputedStyle(e.closest(".sf-left")!).backgroundColor]);
+		test("the highlight is a block in the Codex colour with the panel's (the card's, on the storytelling side) colour on it, for hover and selected alike", async ({ page }) => {
+			// On the storytelling side the list is on a card (decision 86), so the colour on the highlight is the card's; on the library side it is the panel's.
+			const [codex, panel] = await tree(page).evaluate((e, onCard) => [getComputedStyle(e).color, getComputedStyle(onCard ? e : e.closest(".sf-left")!).backgroundColor], side.name.startsWith("storytelling"));
 			const jane = row(page, "Jane");
 			expect(await jane.evaluate((e) => getComputedStyle(e).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
 			await jane.hover();

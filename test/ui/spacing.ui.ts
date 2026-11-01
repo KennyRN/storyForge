@@ -121,3 +121,100 @@ test.describe("the Codex list's spacing on the storytelling side", () => {
 		expect(gap).toBe(4);
 	});
 });
+
+// Decision 86: the Codex list on the storytelling side sits on a card.
+test.describe("the Codex card on the storytelling side", () => {
+	const rect = (page: Page, sel: string) => page.locator(sel).first().evaluate((e) => { const b = e.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom, w: b.width, h: b.height }; });
+	const colourOf = (page: Page, purpose: string) => page.evaluate((p) => { const d = document.createElement("i"); d.style.color = `var(${p})`; document.body.append(d); const c = getComputedStyle(d).color; d.remove(); return c; }, purpose);
+
+	test("the card is the editor's background, rounded, with no border; only the list is on it (the strip stays on the panel)", async ({ page }) => {
+		await openProject(page);
+		const card = await page.locator(".sf-left[data-face='storytelling'] .sf-codex-tree").evaluate((e) => { const s = getComputedStyle(e); return { bg: s.backgroundColor, radius: s.borderTopLeftRadius, border: [s.borderTopWidth, s.borderRightWidth, s.borderBottomWidth, s.borderLeftWidth], overflowY: s.overflowY }; });
+		expect(card.bg).toBe(await colourOf(page, "--purpose-editor-bg"));
+		expect(card.radius).toBe("10px");
+		expect(card.border).toEqual(["0px", "0px", "0px", "0px"]);
+		expect(card.overflowY).toMatch(/auto|scroll/); // it scrolls inside the card, clipped by its corners
+		const [strip, tree, panel] = await Promise.all([rect(page, ".sf-codex-strip"), rect(page, ".sf-codex-tree"), rect(page, ".sf-left")]);
+		expect(strip.r).toBeLessThanOrEqual(tree.l); // the strip is beside the card, not on it
+		expect(await page.locator(".sf-codex-strip").evaluate((e) => getComputedStyle(e).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
+		expect(await colourOf(page, "--purpose-panel-bg")).not.toBe(card.bg); // the two shades separate card from panel
+		expect(panel.w).toBeGreaterThan(0);
+	});
+
+	test("its margins are 10% of the panel's width (12px at least) on the top, right and bottom, and follow the panel as it's resized", async ({ page }) => {
+		await openProject(page);
+		const margins = async () => {
+			const [tree, body] = await Promise.all([rect(page, ".sf-codex-tree"), rect(page, ".sf-codex-body")]);
+			return { right: body.r - tree.r, top: tree.t - body.t, bottom: body.b - tree.b, panel: body.w };
+		};
+		const m1 = await margins();
+		expect(m1.right).toBeCloseTo(Math.max(12, m1.panel * 0.1), 0);
+		expect(m1.top).toBeCloseTo(m1.right, 0);
+		expect(m1.bottom).toBeCloseTo(m1.right, 0);
+		const bar = page.getByRole("separator", { name: "Resize the left panel" });
+		await bar.focus();
+		for (let i = 0; i < 6; i++) await page.keyboard.press("ArrowRight");
+		const m2 = await margins();
+		expect(m2.panel).toBeGreaterThan(m1.panel + 50);
+		expect(m2.right).toBeCloseTo(Math.max(12, m2.panel * 0.1), 0);
+		expect(m2.right).toBeGreaterThan(m1.right);
+	});
+
+	test("the highlight keeps 6px from the card's edges with corners that sit inside the card's; inside a folder it starts flush at the line; its text is the card's colour", async ({ page }) => {
+		await openProject(page);
+		await page.getByRole("treeitem", { name: "Windows", exact: true }).first().hover();
+		const m = await page.evaluate(() => {
+			const tree = document.querySelector(".sf-codex-tree")!.getBoundingClientRect();
+			const rows = [...document.querySelectorAll<HTMLElement>(".sf-codex-tree .sf-codex-file, .sf-codex-tree .sf-codex-folder-header")];
+			const first = rows[0].getBoundingClientRect();
+			const win = rows.find((r) => r.textContent!.includes("Windows"))!;
+			const jane = rows.find((r) => r.textContent!.includes("Jane"))!;
+			return {
+				left: first.left - tree.left, top: first.top - tree.top, right: tree.right - first.right,
+				radius: getComputedStyle(rows[0]).borderTopLeftRadius,
+				janeRadii: [getComputedStyle(jane).borderTopLeftRadius, getComputedStyle(jane).borderBottomLeftRadius, getComputedStyle(jane).borderTopRightRadius],
+				hoverColour: getComputedStyle(win).color,
+			};
+		});
+		expect(m.left).toBeCloseTo(6, 0.5);
+		expect(m.top).toBeCloseTo(6, 0.5);
+		expect(m.right).toBeCloseTo(6, 0.5);
+		expect(m.radius).toBe("4px"); // 10px less the 6px inset: concentric with the card
+		expect(m.janeRadii).toEqual(["0px", "0px", "4px"]); // flush at the folder's line
+		expect(m.hoverColour).toBe(await colourOf(page, "--purpose-editor-bg"));
+		const sp = await measure(page);
+		expect(sp.janeRow.l).toBeCloseTo(sp.lineLeft + 2, 0.5); // the card didn't move the line or the highlight apart
+	});
+
+	test("the chapter dropdown opens over the top of the card", async ({ page }) => {
+		await openProject(page);
+		await page.getByRole("button", { name: "Chapters" }).click();
+		const list = await rect(page, ".sf-nav-list");
+		const tree = await rect(page, ".sf-codex-tree");
+		expect(list.b).toBeGreaterThan(tree.t); // it covers the card's top
+		const top = await page.evaluate(([x, y]) => (document.elementFromPoint(x, y) as HTMLElement).closest(".sf-nav-list") !== null, [list.l + list.w / 2, tree.t + 4] as const);
+		expect(top).toBe(true);
+	});
+
+	test("every Codex colour is at least 4.5:1 on the card, and the card's colour on it (the highlight) the same", async ({ page }) => {
+		await openProject(page);
+		const worst = await page.evaluate(() => {
+			const lum = (c: string) => { const [r, g, b] = c.match(/\d+/g)!.slice(0, 3).map((x) => { const v = Number(x) / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+			const ratio = (a: string, b: string) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+			const probe = (v: string) => { const d = document.createElement("i"); d.style.color = `var(${v})`; document.body.append(d); const c = getComputedStyle(d).color; d.remove(); return c; };
+			const card = probe("--purpose-editor-bg");
+			const out: Record<string, number> = {};
+			for (const name of ["text", "yellow", "green", "aqua", "blue", "purple", "orange", "grey"]) out[name] = ratio(probe(`--purpose-codex-choice-${name}`), card);
+			return out;
+		});
+		for (const [name, r] of Object.entries(worst)) expect(r, name).toBeGreaterThanOrEqual(4.5);
+	});
+
+	test("the library side's codex tab has no card", async ({ page }) => {
+		await openProject(page);
+		await flipFace(page);
+		await page.getByRole("tab", { name: "codex" }).click();
+		const s = await page.locator(".sf-codex-tree").evaluate((e) => { const c = getComputedStyle(e); return { bg: c.backgroundColor, radius: c.borderTopLeftRadius, margin: c.marginTop }; });
+		expect(s).toEqual({ bg: "rgba(0, 0, 0, 0)", radius: "0px", margin: "0px" });
+	});
+});

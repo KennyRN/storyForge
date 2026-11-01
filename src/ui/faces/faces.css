@@ -177,12 +177,36 @@
    - the text of a row inside a folder starts 6px from the folder's line (was 14px), the highlight still starting flush at the line:
      so a level is 8px deep, not 16px (the line is flush with its folder's name, and the highlight with the line's other edge).
    The text starts at T(d) = 8 + 8d px at depth d, a nested row is margined by 8d + 2, and the folder's line is at T(d). */
+/* The list sits on a card (decision 86): the editor's background inside the panel's, rounded, no border, margins as the context
+   panel's card (10% of the panel's width, 12px at least, on all four sides, measured from the strip). Only the list is on it:
+   the strip's icons stay on the panel. The list scrolls inside the card, clipped by its corners. The rows' highlight keeps 6px
+   from the card's edges, with corners (4px) that sit inside the card's (10px); inside a folder it still starts flush at the line. */
 .sf-left[data-face="storytelling"] .sf-codex-tree {
 	line-height: 1;
+	margin: max(12px, 10%);
+	background: var(--purpose-editor-bg);
+	border-radius: 10px;
+	padding: 6px;
 }
 .sf-left[data-face="storytelling"] .sf-codex-folder-header,
 .sf-left[data-face="storytelling"] .sf-codex-file {
-	--edge: max(0px, calc(var(--depth, 0) * 8px + 2px));
+	border-radius: 4px;
+}
+.sf-left[data-face="storytelling"] .sf-codex-children .sf-codex-folder-header,
+.sf-left[data-face="storytelling"] .sf-codex-children .sf-codex-file {
+	border-top-left-radius: 0;
+	border-bottom-left-radius: 0;
+}
+/* On the card the highlight's text and icons are the card's own colour (bg0), as the panel's were on the panel. */
+.sf-left[data-face="storytelling"] .sf-codex-folder-header:hover,
+.sf-left[data-face="storytelling"] .sf-codex-file:hover,
+.sf-left[data-face="storytelling"] .sf-codex-folder-header.is-active,
+.sf-left[data-face="storytelling"] .sf-codex-file.is-active {
+	color: var(--purpose-editor-bg);
+}
+.sf-left[data-face="storytelling"] .sf-codex-folder-header,
+.sf-left[data-face="storytelling"] .sf-codex-file {
+	--edge: calc(var(--depth, 0) * 8px + min(var(--depth, 0), 1) * 2px); /* a top-level row has none; a nested one starts 2px after the line */
 	--hit: max(28px, calc(1em + 12px));
 	min-height: 0;
 	padding: 3px 8px 3px calc(8px + var(--depth, 0) * 8px - var(--edge));
