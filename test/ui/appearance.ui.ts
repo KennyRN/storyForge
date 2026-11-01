@@ -80,6 +80,7 @@ test.describe("Appearance", () => {
 
 	test("a font changes only its own part, at once, and is written to project.md; the library side's Codex list keeps SN Pro at 16 px", async ({ page }) => {
 		await openProject(page);
+		await page.waitForFunction(() => document.documentElement.style.getPropertyValue("--ap-chapter-size") !== ""); // the project's own choices are applied
 		const chapterBefore = await style(page, ".sf-nav-current");
 		await openSettings(page, "Appearance");
 		await font(page, "Novel title").selectOption("Aleo");
