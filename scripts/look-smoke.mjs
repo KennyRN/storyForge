@@ -186,9 +186,7 @@ const expectWidth = (what, got, sn, sys) => {
 	if (Math.abs(got - sn) > 2.5) problems.push(`${what}: the line is ${got} px wide; SN Pro gives ${sn} px (the system font gives ${sys} px), so the font is not drawing`);
 };
 
-const child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: ["ignore", "ignore", "pipe"] });
-let stderr = "";
-child.stderr.on("data", (d) => (stderr += d));
+const child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: "ignore" }); // nothing is read from it, so nothing may be piped to a reader that goes away first
 try {
 	if (!(await until(() => find("AXButton", "Open Project").startsWith("found")))) fail("the app's window never appeared");
 	if (!(await until(() => find("AXButton", `proj ${dir}`).startsWith("found"), 8000))) fail("the temporary HOME did not redirect the app's data folder");
@@ -299,6 +297,5 @@ if (problems.length === 0) console.log("PASS  SN Pro is the font drawing in the 
 else {
 	console.log("FAIL  the built app is not drawing what it should");
 	for (const p of problems) console.log(`        - ${p}`);
-	if (stderr.trim()) console.log(`        stderr: ${stderr.trim().slice(0, 300)}`);
 }
 process.exit(problems.length === 0 ? 0 : 1);

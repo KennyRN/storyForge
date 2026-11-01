@@ -83,9 +83,7 @@ const data = join(home, DATA_FOLDER);
 mkdirSync(data, { recursive: true });
 writeFileSync(join(data, "recent.json"), JSON.stringify([project]));
 
-let stderr = "";
-const child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: ["ignore", "ignore", "pipe"] });
-child.stderr.on("data", (d) => (stderr += d));
+const child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: "ignore" }); // nothing is read from it, so nothing may be piped to a reader that goes away first
 const problems = [];
 try {
 	if (!(await until("the window", () => find("AXButton", "Open Project").startsWith("found")))) fail("the app's window never appeared");
@@ -108,6 +106,5 @@ if (problems.length === 0) console.log("PASS  the novel's and the series' saved 
 else {
 	console.log("FAIL  a saved cover is not drawn in the built app");
 	for (const p of problems) console.log(`        - ${p}`);
-	if (stderr.trim()) console.log(`        stderr: ${stderr.trim().slice(0, 400)}`);
 }
 process.exit(problems.length === 0 ? 0 : 1);

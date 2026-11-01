@@ -115,10 +115,8 @@ const data = join(home, DATA_FOLDER);
 mkdirSync(data, { recursive: true });
 writeFileSync(join(data, "recent.json"), JSON.stringify([project]));
 
-const child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: ["ignore", "ignore", "pipe"] });
-let stderr = "";
-child.stderr.on("data", (d) => (stderr += d));
 const problems = [];
+const child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: "ignore" }); // nothing is read from it, so nothing may be piped to a reader that goes away first
 try {
 	if (!(await until(() => find("AXButton", "Open Project").startsWith("found")))) fail("the app's window never appeared");
 	if (!(await until(() => find("AXButton", `proj ${dir}`).startsWith("found"), 8000))) fail("the temporary HOME did not redirect the app's data folder");
@@ -250,6 +248,5 @@ if (problems.length === 0) console.log("PASS  the typing aids gave exactly the e
 else {
 	console.log("FAIL  what the editor holds is not what the aids should give (an aid is wrong, or the Mac's own substitutions acted too)");
 	for (const p of problems) console.log(`        - ${p}`);
-	if (stderr.trim()) console.log(`        stderr: ${stderr.trim().slice(0, 300)}`);
 }
 process.exit(problems.length === 0 ? 0 : 1);
