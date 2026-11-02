@@ -51,8 +51,8 @@ Softness 0 and Wonk off for every part. Nothing is written to `project.md` until
 
 ## Tests
 - `npm test` 1,646; `npm run build` clean.
-- `npm run test:ui` in full: 402 passed, 1 skipped (the usual), 0 failed.
-- Built app (1.5.0 build with the card, then rebuilt as 1.6.0): `test:look --shots`, `test:typing` and `test:fonts` pass (`test:typing` after the C helper; the shortcode popup that failed earlier was the test tool's wrong characters, not the app). `test:quit`, `test:cover` and `test:widths` were not re-run for this brief.
+- `npm run test:ui` in full, after the icons: 404 passed, 1 skipped (the usual), 0 failed (the run before it had one race in the navigator test, which read a style before it was applied; it now waits, and passed 40 of 40 repeats).
+- **Built app 1.6.0, branch `navigator`, through the typing guard, each under `caffeinate -u`:** `test:quit` 10 of 10 routes; `test:look`, `test:typing` and `test:fonts` pass. (The shortcode popup that failed in an earlier `test:typing` was the test tool's wrong characters, not the app.) Crash reports stayed at 7. `test:cover` and `test:widths` were not re-run for this brief.
 - New suites: `navigator`, `appearance`, `fonts`, `spacing` (WebKit), `fontFamilies`, `settings` and the typing guard's 21 unit tests.
 
 ## Screenshots (`docs/navigator-shots/`, `docs/navigator-shots/built/`)
