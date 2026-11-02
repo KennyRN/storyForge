@@ -9,6 +9,7 @@ import { cleanupFixtures, copyFixture, diffSnapshots, snapshot } from "../../../
 import { openProject } from "../../core/openProject";
 import { Project } from "../../core/project";
 import { sha256Text } from "../../core/hash";
+import { variationFor } from "../../ui/appearance";
 import { MachineSnapshotStore } from "../machineSnapshots";
 import { buildSnapshot } from "../../core/snapshot";
 import { APPEARANCE_BASE_PX, DEFAULT_PROJECT_SETTINGS, PROJECT_SETTINGS_PATH, type MachineStore, loadMachineProjectState, loadSettings, refreshSettings, saveMachineProjectState, setSetting } from "../settings";
@@ -616,5 +617,35 @@ describe("refreshSettings: a file that can't be used mid-session (decision 99)",
 		expect(current.frozen).toBe("newer");
 		await expect(setSetting(project, current, "storyKind", "standalone")).rejects.toBeInstanceOf(ReadOnlyProjectError);
 		expect(fs.readFileSync(PROJECT_MD(root), "utf8")).toBe("---\nformat-version: 9\n---\n");
+	});
+});
+
+describe("Fraunces' Softness and Wonk reach the drawing, by both read paths (decision 101)", () => {
+	const KEYS = "appearance-codex-font: Fraunces\nappearance-codex-weight: 400\nappearance-codex-size: 1.75\nappearance-codex-soft: 40\nappearance-codex-wonk: true\n";
+	const write = (root: string, extra: string) => {
+		fs.mkdirSync(path.join(root, "_backstage/storyforge"), { recursive: true });
+		fs.writeFileSync(path.join(root, PROJECT_SETTINGS_PATH), `---\nformat-version: 1\n${extra}---\n`);
+	};
+
+	it("a project opened with Wonk on and Softness set reads both, and the drawing's variation says so", async () => {
+		const root = copyFixture("series");
+		write(root, KEYS);
+		const s = await loadSettings(await open(root), reader(root));
+		expect([s.values.appearanceCodexFont, s.values.appearanceCodexSoft, s.values.appearanceCodexWonk]).toEqual(["Fraunces", 40, true]);
+		expect(variationFor(s.values.appearanceCodexFont, s.values.appearanceCodexSoft, s.values.appearanceCodexWonk)).toBe('"SOFT" 40, "WONK" 1');
+	});
+
+	it("the same through the re-read of an outside change, and through opening the whole project", async () => {
+		const root = copyFixture("series");
+		const project = await open(root);
+		const current = await loadSettings(project, reader(root));
+		write(root, KEYS);
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		const out = await refreshSettings(project, current, reader(root));
+		expect(out.changed).toEqual(expect.arrayContaining(["appearanceCodexFont", "appearanceCodexSoft", "appearanceCodexWonk"]));
+		expect([current.values.appearanceCodexSoft, current.values.appearanceCodexWonk]).toEqual([40, true]);
+		const opened = await openProject(root, { backend: new NodeFsBackend(root), snapshotStore: new MachineSnapshotStore(new MemoryMachine()), projectName: "p" });
+		const s = await loadSettings(opened.project, reader(root));
+		expect([s.values.appearanceCodexSoft, s.values.appearanceCodexWonk]).toEqual([40, true]);
 	});
 });
