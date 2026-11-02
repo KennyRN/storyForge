@@ -9,6 +9,46 @@
 - The Codex card, line height 1.1, both cards ending 12 px above the fixed 64 px stats section.
 - Development tooling: every key posted to the test copy's process and checked before each key; a small C helper typing each character by the event itself.
 
+## The fonts as built
+All six are the SIL Open Font License 1.1, shipped unmodified (Fraunces as the supplied `.woff2`, the rest as supplied; only Fraunces' file names were shortened, as the supplied ones contain brackets). Licences are beside the files and shipped in the app's Resources (`OFL-<family>.txt`); notices in `Font Licences.md`. Loaded from the app only (`font-src 'self'`).
+
+| Family | Files as built (bytes) | Axes (min / default / max) | Real italic | `ƿ Ƿ ȝ Ȝ` |
+|---|---|---|---|---|
+| Aleo | `Aleo-Variable.ttf` 146,636; `-VariableItalic.ttf` 152,620 | wght 100 / 400 / 900 | own file | Arial |
+| Atkinson Hyperlegible Next | `…-Variable.ttf` 113,948; `-VariableItalic.ttf` 123,148 | wght 200 / 400 / 800 | own file | Arial |
+| Courier Prime | Regular 68,304; Bold 69,944; Italic 76,656; Bold Italic 77,544 (static) | none (400 and 700 only) | own files | Arial |
+| Fraunces | `Fraunces-Variable.woff2` 195,068; `-VariableItalic.woff2` 235,736 | opsz 9 / 9 / 144, SOFT 0 / 0 / 100, wght 100 / 900 / 900, WONK 0 / 1 / 1 | own file | Arial |
+| Inter | `InterVariable.ttf` 879,708; `-Italic.ttf` 910,252 | opsz 14 / 14 / 32, wght 100 / 400 / 900 | own file | has them |
+| SN Pro | `SNPro-Variable{Regular,Italic}.woff2` 108,624; 117,248 | wght 200–900 | own file | Arial |
+
+- **Added to the app:** about 3.0 MB (Inter 1.79 MB of it).
+- **Coverage:** all six have the typing aids' characters, `æ Æ œ Œ ð Ð þ Þ`, and the fixtures' accented letters. Wynn and yogh (`ƿ Ƿ ȝ Ȝ`, also `ǣ ǭ ſ`) are missing from all but Inter and go to Arial (real italic and bold). Atkinson has the least Latin Extended coverage; those characters go to Arial in a different design. Japanese is in none: the system font draws it, as before.
+- **Fraunces:** its file defaults to weight 900 and Wonk 1, so every use sets weight, `SOFT` and `WONK` explicitly. Optical size follows the text size on Fraunces and Inter automatically (no control).
+- **Ligatures and alternates** are off on every use (`font-variant-ligatures: none`, `liga`, `calt`, `dlig`, `ss01` zero), font synthesis off.
+
+## The Appearance keys, as written to `project.md`
+Only a changed key is written; an unknown or out-of-range value reads as the default and is never rewritten. For each part `codex`, `novel`, `series` and `chapter`:
+
+```
+appearance-codex-font: Atkinson Hyperlegible Next   # one of the six family names
+appearance-codex-weight: 400                        # a weight the family has
+appearance-codex-size: 1                            # rem; rounded to 0.125; ranges below
+appearance-codex-soft: 0                            # Fraunces only, 0 to 100 (whole numbers)
+appearance-codex-wonk: false                        # Fraunces only, true or false
+story-kind: standalone                              # series (default) or standalone
+```
+Size ranges: Codex list and selected chapter 0.75–1.75 rem; novel title and series name 0.75–2 rem. A rem is drawn as 16 px.
+
+## Kenny's defaults, as set (decision 84)
+| Part | Font | Weight | Size |
+|---|---|---|---|
+| Codex list | Atkinson Hyperlegible Next | 400 | 1 rem |
+| Novel title | Inter | 900 | 1 rem |
+| Series name | Inter | 600 | 0.75 rem |
+| Selected chapter | SN Pro | 300 | 1.375 rem |
+
+Softness 0 and Wonk off for every part. Nothing is written to `project.md` until a setting is changed.
+
 ## Tests
 - `npm test` 1,646; `npm run build` clean.
 - `npm run test:ui` in full: 402 passed, 1 skipped (the usual), 0 failed.
@@ -34,7 +74,13 @@ Preview: current and new navigator, Appearance, Story. Built (the test copy's wi
   - if the outside edit left `project.md` unreadable (bad YAML), the write is refused, as for any unreadable frontmatter.
 
 ## Holds
-H1 and H2 (decisions 81 to 84), then the hold on Mac runs (decision 89, lifted by decision 92).
+- **H1 (decision 81):** the survey's seven questions (header, "Add the next chapter", the selected chapter's colour, font file formats, Fraunces' axes, coverage, series or standalone). Resolved by Kenny's rulings, recorded in `docs/navigator.md` §11.
+- **H2 (commit 4, decision 83 to 84):** the defaults. Stopped for Kenny to choose in the built app; set as in the table above, with "Current look" removed and rem drawn as 16 px.
+- **The hold on Mac runs (decision 89):** keys sent to whatever app was in front reached Kenny's Desktop between the test copy's windows. Stopped every built-app run; found the cause (keys sent to the frontmost app, not the test copy), moved every fixture off the Desktop, and made the scripts post keys to the test copy's process with a check before each key (decisions 90 and 91, unit-tested), then one controlled run (decision 92), which lifted it.
+- No other hold in the brief's list was hit (no YAML construct that couldn't be rewritten minimally, no behaviour change in a kept module).
+
+## Built-app screenshots (§5), `docs/navigator-shots/built/`, the test copy's window only
+`chapter`, `chapter-30em`, `codex-storytelling-no-note`, `codex-note-in-context-panel`, `codex-note-in-workspace`, `codex-selected-and-focused`, `codex-accent-descender-focused`, `codex-library`, `navigator-closed`, `navigator-open`, `plot-note`, `strip-focused`, `storytelling-readout-off`, `storytelling-readout-on`. The stats section with the readout on (no session, during a session, paused) is in `docs/navigator-shots/built/stats-*.png`.
 
 ## Kenny's check (Brief 13 §5)
 Waived for now (decision 94); to come back to.

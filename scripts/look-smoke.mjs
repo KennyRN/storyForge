@@ -230,6 +230,7 @@ try {
 	// The chapter (20 px): ten "w" upright are 161 px in SN Pro (about 150 in the system font), eleven in italic 191 (the italic file
 	// is a real italic). Then ten wynn and yogh, which SN Pro lacks: Arial draws them, and in italic text Arial Italic, not the
 	// upright (the two have the same widths, so the slant of the ink is measured).
+	if (process.env.LOOK_READOUT) windowShot("stats-no-session"); // the readout on, before any edit
 	find("AXTextArea", "Text", "focus");
 	await sleep(400);
 	key("key code 125 using command down"); // ⌘↓: the end of the chapter
@@ -252,6 +253,12 @@ try {
 		else console.log(`(wynn and yogh in italic lean ${lean.toFixed(1)} px more than upright: Arial Italic)`);
 	}
 	windowShot("chapter");
+	if (process.env.LOOK_READOUT) {
+		// The session is ongoing; after a minute without an edit the clock is the paused one (decision 68).
+		windowShot("stats-in-session");
+		await sleep(70000);
+		windowShot("stats-paused");
+	}
 	// With the context panel hidden (View > Show or Hide Context) the workspace is wide enough for the editor's maximum width (30em: 600 px at 20 px) to show.
 	osa('tell application "System Events" to tell process "storyforge" to click menu item "Show or Hide Context" of menu 1 of menu bar item "View" of menu bar 1');
 	await sleep(700);

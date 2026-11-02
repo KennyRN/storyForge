@@ -48,7 +48,7 @@ test.describe("the navigator", () => {
 		await openProject(page);
 		const series = page.getByRole("button", { name: "Open the series on the library side" });
 		const novel = page.getByRole("button", { name: "Open the novel on the library side" });
-		expect(await series.evaluate((e) => getComputedStyle(e).cursor)).toBe("pointer");
+		await expect.poll(() => series.evaluate((e) => getComputedStyle(e).cursor), { message: "the stylesheet has been applied" }).toBe("pointer"); // read once styled: once a full run read it empty
 		await page.locator(".cm-content").first().click();
 		await page.keyboard.type(" unsaved words");
 		await series.click();
