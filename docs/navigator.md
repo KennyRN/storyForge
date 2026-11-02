@@ -172,3 +172,22 @@ Kenny's ruling: the setting lives in `project.md` (not `series.md`, which is in 
 - **Built-app proof** (`npm run test:fonts`, 1.5.0 build on `navigator`): through accessibility, each family draws differently from the others and from the current look; SN Pro chosen explicitly draws exactly as the current look; weight changes the drawing in every variable family; Fraunces' Softness changes it; a larger size draws larger. **Finding for H2: Fraunces' Wonk only reshapes a few letters (n, m, h), and only at larger sizes (it shows from about 28 px; the Codex list's and chapter's maximum is 28 px), and it hardly moves any width.** The script proves it by a picture hash of the Codex list; it will be subtle at normal sizes. Courier Prime's bold has the same width as its regular (monospaced), so only the WebKit test (the file loads) covers it.
 - **Tests:** unit 1,628; `test:ui` 385 passed, 1 skipped; `test/ui/appearance.ui.ts` (10) and `fonts.ui.ts` (5) are new; existing settings tests now pick their page first.
 - **Screenshots:** `docs/navigator-shots/appearance-*.png`, `navigator-appearance-open.png`, `settings-story.png` (WebKit preview).
+
+## 14. Rulings (decisions 84 to 94) and what was built
+
+**Decision 84 (H2).** Rem is applied as pixels, ×16, through one named constant (`APPEARANCE_BASE_PX` in `app/settings.ts`). Defaults: Codex list Atkinson Hyperlegible Next 400, 1 rem; novel title Inter 900, 1 rem; series name Inter 600, 0.75 rem; selected chapter SN Pro 300, 1.375 rem. "Current look" is gone: a part always has a font. Spacing in the Codex list: line height, icons 1em, a name's icon 0.75em after it, 6 px between a folder icon and a type icon, a level 8 px deep, the series name and novel title 4 px apart; every gap in the 2/4/6/12 px family.
+
+**Decision 85.** Commit 5 accepted. Built-app screenshots are of the test copy's window only. The Codex line height is 1 (it had been 0.9333), in its own commit with tests.
+
+**Decision 86 (the card).** On the storytelling side the Codex list sits on a card (the editor's background, `--purpose-editor-bg`, 10 px corners, 6 px padding, the list scrolling inside it, clipped by the corners). Only the list is on it; the strip's icons stay on the panel. The highlight keeps 6 px from the card's edges with 4 px corners; its text is the card's colour. The chapter dropdown opens over the card. Every Codex colour is at least 4.5:1 on the card and the card's colour on it, both ways (tested). The library side has no card.
+
+**Decisions 89 to 92 (the hold).** See the report. In short: keys sent to whatever app was in front could reach Kenny's Desktop between the test copy's windows. Every key is now posted to the test copy's process, checked before each key, and not sent once the app is quitting (`scripts/lib/typingGuard.mjs`, `postKeys.mjs`, `postkey.c`). The C helper types each character by carrying it on the event, not by a US key position (the Mac's layout is British). Development only; never part of the built app.
+
+**Decision 93 (the card's geometry).** The storytelling Codex line height is 1.1 (at 1, accents on capitals were slightly clipped). The card's top and left are where the list's own were before the card (4 px, 8 px); its right keeps the 10% margin (12 px at least). Both cards (Codex, context) end 12 px above the top of the stats section, which is a fixed 64 px (`--stats-h`), measured as if the session readout row were showing, so nothing moves when the readout is switched on or off. The context card's bottom row sits beneath it and is `--stats-h` plus 12 px tall; the same on the library side, so the card doesn't jump on a flip. The "Empty" line stays as it is (3.54:1 on the card; Kenny's choice).
+
+**Decision 94.** The retaken screenshots were looked at and accepted. Kenny's built-app check (Brief 13 §5) is waived for now; he will return to its four steps.
+
+### As built, differences from the plan
+- The series line is shown only when `story-kind` is `series`; the settings page "Story" holds it.
+- The two test fixes in `79ffd63`'s follow-up (`314f08a`): the context card's bottom-margin test now states the new rule; the folder-line test reads once the list has settled (it failed once in sixty).
+- `look-smoke` takes `LOOK_READOUT=1` to start the test copy with the readout on. Rewriting `project.md` while the app is open does not switch it on (see the report).
