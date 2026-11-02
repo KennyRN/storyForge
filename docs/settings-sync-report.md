@@ -66,4 +66,25 @@ The first write after a deletion carries over only values whose source is the pl
 
 - **Trace:** `loadSettings` reads `appearance-codex-soft` and `-wonk` through `FIELDS` into `values` (unchanged by Fix 6); `applyLook` in `ui/app.ts` runs on the `settings` and `project` topics and calls `applyAppearance`, which sets `--ap-codex-var` from `variationFor(font, soft, wonk)`. The re-read only changes keys whose value differs, so an open with the keys already in the file touches nothing.
 - **Unit test** (`2c7c832`): a project opened with Fraunces, Softness 40 and Wonk on reads both and `variationFor` gives `"SOFT" 40, "WONK" 1`, by `loadSettings`, by `refreshSettings`, and through `openProject`. It passes on this branch, so **it did not find a fault in the read path** (it wasn't shown failing, since there was nothing to fix).
-- **Comparison with 1.6.0** (decision 101, step 2): the built 1.6.0 from `main` was built (version read from the bundle: 1.6.0) and `test:fonts` was started on it, but **the screen was locked when it started and the script refused** (nothing was typed or driven). Not yet run.
+- **Comparison with 1.6.0** (decision 102, run with the screen unlocked, under `caffeinate -u`): `test:fonts` on the built **1.6.0 from `main`**: PASS. After rebuilding the branch as **1.6.1** (branch `settings-sync`, `f07004b` and earlier): the first attempt was refused ("the app's window … never appeared", nothing driven; the first launch of a fresh build), the second PASS, with "Fraunces' Wonk changes the drawing" ok. So the two earlier failures (1.6.1 built at `fc30755`) did not reproduce on either build, and **there is no regression**. The cause of those two failures is not proven; the likeliest is that the check photographs a region of the screen, and the Mac was about to lock (the lock refused the next run), so both pictures were the same. The check stays as it is; it is not changed because 1.6.0 passes.
+
+## Built-app results on 1.6.1 (branch `settings-sync`, `f07004b`), through the guard, under `caffeinate -u`
+
+| Check | Result |
+|---|---|
+| `test:fonts` | PASS (second attempt, see above) |
+| `test:settings-sync` (extended, see below) | PASS |
+| `test:quit` (after Close and Reopen was driven) | PASS, every route |
+| `test:cover` | PASS |
+| `test:widths` | PASS, after a script fix: the widths group moved to Settings' "This Mac" page in 1.6.0, so the script failed with "Settings did not show the widths group"; it now chooses that page by its accessibility action |
+| Rust tests (`cargo test --workspace`) | all passed, once |
+| `npm run build`, `npm test` | clean; 1656 passed |
+| `npm run test:ui` (one full run, after all the fixes) | 412 passed, 1 skipped, 0 failed |
+
+## The extended `test:settings-sync`
+
+With the app open on a fixture copy (temporary `HOME`): a plain overwrite switches the session readout on and the Codex colour to green at once; text typed in a chapter (every key through the typing guard) reaches the chapter file; unreadable YAML written from outside gives the notice once (a second unreadable edit gives no second notice), and the open Settings dialog's controls are disabled, then enabled again once the file reads; a newer `format-version` written from outside gives the sticky notice, still there after 6.5 seconds; **Close and Reopen is pressed by its accessibility action** (not a click); the project comes back read-only (the read-only notice), the typed text is in the chapter, and `project.md` is byte for byte what was written. Pictures (window only): `docs/settings-sync-shots/` (`sync-newer-notice`, `sync-reopened-read-only`, `sync-unreadable-settings`, and the earlier three).
+
+- **Order differs from decision 102:** the unreadable stage runs before the newer-format stage. Afterwards the project is read-only, and "a settings change is refused" would then be true for the wrong reason.
+- **The shortcut ⌘, can't be posted** by the key helper (only a letter or digit with modifiers; reported, not worked round), so Settings is opened by pressing the "Settings…" menu item by its accessibility action, after the same guard check as a key. The dialog is closed through its "Done" button (Escape doesn't close it).
+- **Close and Reopen has now been tried in the built app.** The sticky newer-format notice draws with the sticky style's red edge (the existing style for sticky notices); decision 99's "not red" was for the fading notice. Say if you want the sticky one changed.
