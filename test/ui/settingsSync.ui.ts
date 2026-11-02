@@ -13,8 +13,8 @@ async function openProject(page: Page): Promise<void> {
 }
 const outside = (page: Page, text: string) =>
 	page.evaluate(
-		({ path, text }) => {
-			void window.__preview.touch(path, text);
+		async ({ path, text }) => {
+			await window.__preview.touch(path, text); // the file is written before the window is told
 			window.__preview.emit("watch-batch", { paths: [path], rescan: false });
 		},
 		{ path: SETTINGS, text },
@@ -51,7 +51,7 @@ test("changing a setting that was changed elsewhere says so, quietly, and keeps 
 	await outside(page, "---\nformat-version: 1\ncodex-colour: green\nstory-kind: standalone\n---\n");
 	await expect(dialog.getByRole("radio", { name: "Green", exact: true })).toBeChecked();
 	// Elsewhere again, before the window has heard (no batch emitted): the window still holds green.
-	await page.evaluate((p) => void window.__preview.touch(p, "---\nformat-version: 1\ncodex-colour: blue\nstory-kind: series\n---\n"), SETTINGS);
+	await page.evaluate((p) => window.__preview.touch(p, "---\nformat-version: 1\ncodex-colour: blue\nstory-kind: series\n---\n"), SETTINGS);
 	await dialog.getByRole("radio", { name: "Yellow", exact: true }).click();
 	await expect(page.getByRole("status").filter({ hasText: "elsewhere" })).toContainText("Changed “Codex colour” to yellow. It had been changed to blue elsewhere; that change is replaced.");
 	const disk = (await onDisk(page))!;
