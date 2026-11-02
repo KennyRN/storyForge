@@ -174,11 +174,7 @@ export function openSettings(model: AppModel): void {
 				if (Number.isInteger(v) && v >= 0 && v <= 100) void change(appearanceKey(part, "Soft"), v as never);
 				else redraw();
 			});
-			const wonk = el("input", { attrs: { type: "checkbox", "aria-label": `${name} Wonk` } });
-			wonk.checked = settings.values[appearanceKey(part, "Wonk")] as boolean;
-			wonk.disabled = off;
-			wonk.addEventListener("change", () => void change(appearanceKey(part, "Wonk"), wonk.checked as never));
-			rows.push(row("Softness", soft, appearanceKey(part, "Soft")), row("Wonk", wonk, appearanceKey(part, "Wonk")));
+			rows.push(row("Softness", soft, appearanceKey(part, "Soft")));
 		}
 		const sample = el("div", { class: "sf-sample", attrs: { "aria-label": `Sample of the ${name.toLowerCase()}`, role: "img" }, text: PART_SAMPLES[part] });
 		sample.setAttribute("style", sampleStyle(part, settings.values));

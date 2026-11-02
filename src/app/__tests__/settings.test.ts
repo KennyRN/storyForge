@@ -450,25 +450,25 @@ describe("the Appearance settings (decisions 79 to 84) and story-kind (decision 
 		fs.mkdirSync(path.join(root, "_backstage/storyforge"), { recursive: true });
 		fs.writeFileSync(path.join(root, PROJECT_SETTINGS_PATH), `---\nformat-version: 1\n${body}---\n`);
 	};
-	it("every part starts as the author's defaults; Fraunces' Softness is 0 and Wonk off", async () => {
+	it("every part starts as the author's defaults; Fraunces' Softness is 0", async () => {
 		const root = copyFixture("series");
 		const v = (await loadSettings(await open(root), reader(root))).values;
 		expect([v.appearanceCodexFont, v.appearanceCodexWeight, v.appearanceCodexSize]).toEqual(["Atkinson Hyperlegible Next", 400, 1]);
 		expect([v.appearanceNovelFont, v.appearanceNovelWeight, v.appearanceNovelSize]).toEqual(["Inter", 900, 1]);
 		expect([v.appearanceSeriesFont, v.appearanceSeriesWeight, v.appearanceSeriesSize]).toEqual(["Inter", 600, 0.75]);
 		expect([v.appearanceChapterFont, v.appearanceChapterWeight, v.appearanceChapterSize]).toEqual(["SN Pro", 300, 1.375]);
-		expect([v.appearanceCodexSoft, v.appearanceCodexWonk]).toEqual([0, false]);
+		expect(v.appearanceCodexSoft).toBe(0);
 		expect(v.storyKind).toBe("series");
 	});
 	it("valid values are read; a font that no longer exists (or 'current look'), an out-of-range size or weight, Softness out of range, or a wrong kind falls back and is never rewritten", async () => {
 		const root = copyFixture("series");
 		put(root, "appearance-codex-font: Fraunces\nappearance-codex-weight: 300\nappearance-codex-size: 1.25\nappearance-codex-soft: 50\nappearance-codex-wonk: true\nappearance-novel-size: 2\nstory-kind: standalone\n");
 		const ok = (await loadSettings(await open(root), reader(root))).values;
-		expect([ok.appearanceCodexFont, ok.appearanceCodexWeight, ok.appearanceCodexSize, ok.appearanceCodexSoft, ok.appearanceCodexWonk, ok.appearanceNovelSize, ok.storyKind]).toEqual(["Fraunces", 300, 1.25, 50, true, 2, "standalone"]);
+		expect([ok.appearanceCodexFont, ok.appearanceCodexWeight, ok.appearanceCodexSize, ok.appearanceCodexSoft, ok.appearanceNovelSize, ok.storyKind]).toEqual(["Fraunces", 300, 1.25, 50, 2, "standalone"]);
 		put(root, "appearance-codex-font: Comic Sans\nappearance-novel-font: null\nappearance-codex-weight: 450\nappearance-codex-size: 3\nappearance-codex-soft: 101\nappearance-codex-wonk: yes\nappearance-novel-size: 2.5\nstory-kind: both\n");
 		const before = snapshot(root);
 		const bad = (await loadSettings(await open(root), reader(root))).values;
-		expect([bad.appearanceCodexFont, bad.appearanceNovelFont, bad.appearanceCodexWeight, bad.appearanceCodexSize, bad.appearanceCodexSoft, bad.appearanceCodexWonk, bad.appearanceNovelSize, bad.storyKind]).toEqual(["Atkinson Hyperlegible Next", "Inter", 400, 1, 0, false, 1, "series"]);
+		expect([bad.appearanceCodexFont, bad.appearanceNovelFont, bad.appearanceCodexWeight, bad.appearanceCodexSize, bad.appearanceCodexSoft, bad.appearanceNovelSize, bad.storyKind]).toEqual(["Atkinson Hyperlegible Next", "Inter", 400, 1, 0, 1, "series"]);
 		expect(diffSnapshots(before, snapshot(root)).changed).toEqual([]);
 		// the ranges are per part: the Codex list and the selected chapter stop at 1.75, the titles at 2
 		put(root, "appearance-chapter-size: 1.8\nappearance-series-size: 1.8\n");
@@ -620,32 +620,39 @@ describe("refreshSettings: a file that can't be used mid-session (decision 99)",
 	});
 });
 
-describe("Fraunces' Softness and Wonk reach the drawing, by both read paths (decision 101)", () => {
+describe("Fraunces' Softness reaches the drawing and Wonk is always off (decision 103)", () => {
 	const KEYS = "appearance-codex-font: Fraunces\nappearance-codex-weight: 400\nappearance-codex-size: 1.75\nappearance-codex-soft: 40\nappearance-codex-wonk: true\n";
 	const write = (root: string, extra: string) => {
 		fs.mkdirSync(path.join(root, "_backstage/storyforge"), { recursive: true });
 		fs.writeFileSync(path.join(root, PROJECT_SETTINGS_PATH), `---\nformat-version: 1\n${extra}---\n`);
 	};
 
-	it("a project opened with Wonk on and Softness set reads both, and the drawing's variation says so", async () => {
+	it("a project whose project.md has Wonk on still draws Fraunces with Wonk off, and the key is not a setting", async () => {
 		const root = copyFixture("series");
 		write(root, KEYS);
+		const before = snapshot(root);
 		const s = await loadSettings(await open(root), reader(root));
-		expect([s.values.appearanceCodexFont, s.values.appearanceCodexSoft, s.values.appearanceCodexWonk]).toEqual(["Fraunces", 40, true]);
-		expect(variationFor(s.values.appearanceCodexFont, s.values.appearanceCodexSoft, s.values.appearanceCodexWonk)).toBe('"SOFT" 40, "WONK" 1');
+		expect([s.values.appearanceCodexFont, s.values.appearanceCodexSoft]).toEqual(["Fraunces", 40]);
+		expect(Object.keys(s.values).some((k) => /wonk/i.test(k))).toBe(false);
+		expect(variationFor(s.values.appearanceCodexFont, s.values.appearanceCodexSoft)).toBe('"SOFT" 40, "WONK" 0');
+		expect(diffSnapshots(before, snapshot(root))).toEqual({ added: [], changed: [], removed: [] });
 	});
 
-	it("the same through the re-read of an outside change, and through opening the whole project", async () => {
+	it("Softness applies through the re-read and through opening the whole project; a Wonk key arriving or changing is never applied or rewritten", async () => {
 		const root = copyFixture("series");
 		const project = await open(root);
 		const current = await loadSettings(project, reader(root));
 		write(root, KEYS);
 		await project.refresh(PROJECT_SETTINGS_PATH);
 		const out = await refreshSettings(project, current, reader(root));
-		expect(out.changed).toEqual(expect.arrayContaining(["appearanceCodexFont", "appearanceCodexSoft", "appearanceCodexWonk"]));
-		expect([current.values.appearanceCodexSoft, current.values.appearanceCodexWonk]).toEqual([40, true]);
+		expect(out.changed.sort()).toEqual(["appearanceCodexFont", "appearanceCodexSize", "appearanceCodexSoft"]);
+		write(root, KEYS.replace("wonk: true", "wonk: false"));
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		expect((await refreshSettings(project, current, reader(root))).changed).toEqual([]);
+		await setSetting(project, current, "appearanceCodexSoft", 75);
+		expect(fs.readFileSync(path.join(root, PROJECT_SETTINGS_PATH), "utf8")).toContain("appearance-codex-wonk: false");
 		const opened = await openProject(root, { backend: new NodeFsBackend(root), snapshotStore: new MachineSnapshotStore(new MemoryMachine()), projectName: "p" });
 		const s = await loadSettings(opened.project, reader(root));
-		expect([s.values.appearanceCodexSoft, s.values.appearanceCodexWonk]).toEqual([40, true]);
+		expect(s.values.appearanceCodexSoft).toBe(75);
 	});
 });

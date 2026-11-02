@@ -32,7 +32,7 @@ const PARTS: Record<string, string> = { Codex: "Codex list", Novel: "Novel title
 export function settingName(key: string): string {
 	const known = NAMES[key as keyof ProjectSettings];
 	if (known) return known;
-	const m = /^appearance(Codex|Novel|Series|Chapter)(Font|Weight|Size|Soft|Wonk)$/.exec(key);
+	const m = /^appearance(Codex|Novel|Series|Chapter)(Font|Weight|Size|Soft)$/.exec(key);
 	return m ? `${PARTS[m[1]]}: ${m[2].toLowerCase()}` : key;
 }
 

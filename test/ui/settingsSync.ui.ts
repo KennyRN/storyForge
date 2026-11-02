@@ -105,3 +105,11 @@ test.describe("a settings file that can't be used", () => {
 		expect(await onDisk(page)).toBe("---\nformat-version: 9\n---\n");
 	});
 });
+
+test("a Wonk key written from outside is never applied or rewritten: Fraunces is drawn with Wonk off (decision 103)", async ({ page }) => {
+	await openProject(page);
+	const text = "---\nformat-version: 1\nappearance-series-font: Fraunces\nappearance-series-soft: 50\nappearance-series-wonk: true\n---\n";
+	await outside(page, text);
+	await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue("--ap-series-var"))).toBe('"SOFT" 50, "WONK" 0');
+	expect(await onDisk(page)).toBe(text);
+});
