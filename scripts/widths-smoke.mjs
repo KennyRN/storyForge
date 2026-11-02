@@ -113,6 +113,7 @@ const findScript = `on run argv
 					return "found " & n
 				end if
 				if act is "click" then click e
+				if act is "press" then perform action "AXPress" of e
 				if act is "focus" then
 					set focused of e to true
 				end if
@@ -160,6 +161,8 @@ try {
 
 	// Settings from the menu, then a typed figure.
 	clickMenu("storyForge", "Settings…");
+	// Settings has seven pages since 1.6.0: the widths are on "This Mac". The page is chosen by its accessibility action.
+	await until(() => ["AXRadioButton", "AXTab", "AXButton"].some((r) => find(r, "This Mac", "press") === "found"), 8000);
 	if (!(await until(() => find("AXTextField", "Width of all three panels") === "found", 8000))) problems.push("Settings did not show the widths group");
 	else {
 		find("AXTextField", "Width of all three panels", "focus"); // focusing scrolls the group into view

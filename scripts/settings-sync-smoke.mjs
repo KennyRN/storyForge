@@ -2,7 +2,7 @@
 // The settings-sync check in the built app (docs/settings-sync.md, Fix 6): macOS only, outside `npm test`. It starts the BUILT app
 // on a fixture copy with a temporary HOME, then changes project.md from outside (a plain overwrite, as a sync tool does) while
 // the app is open and reads the window through accessibility: the session readout appears at once when switched on from outside,
-// and a setting changed in the app while the file holds another value names the replaced one in a notice. No key is typed.
+// and a setting changed in the app while the file holds another value names the replaced one in a notice. Keys go through the typing guard.
 // Usage: npm run test:settings-sync [-- path/to/storyForge.app] [--shots <folder>]
 import { createHash } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
@@ -72,6 +72,12 @@ const findScript = `on run argv
 					return "found " & n
 				end if
 				if act is "click" then click e
+				-- an accessibility action, not a mouse click (decision 102)
+				if act is "press" then
+					perform action "AXPress" of e
+					return "found " & n
+				end if
+				if act is "enabled" then return "found " & ((enabled of e) as string)
 				if act is "focus" then
 					set focused of e to true
 				end if
@@ -144,6 +150,17 @@ const child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: "i
 process.on("exit", () => child.kill("SIGKILL"));
 for (const sig of ["SIGTERM", "SIGINT", "SIGHUP"]) process.on(sig, () => process.exit(1));
 const hasReadout = () => find("AXGroup", "Current session").startsWith("found");
+const chapterFile = join(project, "_story-library/aaa/ch-a1.md");
+const noticeShown = (prefix, nth = 1) => ["AXStaticText", "AXGroup", "AXButton"].some((r) => find(r, prefix, "none", nth).startsWith("found"));
+const UNREADABLE = "The project’s settings file can";
+const NEWER = "This project was upgraded";
+// The shortcut can't be posted (only a letter or digit with modifiers), so the menu item is pressed by its accessibility action, after the same check as a key.
+const openSettingsDialog = () => {
+	typing.assertReady("opening Settings through the menu", true);
+	osa('tell application "System Events" to tell process "storyforge" to click menu item "Settings…" of menu 1 of menu bar item "storyForge" of menu bar 1');
+};
+const settingControl = () => find("AXCheckBox", "Highlight the active chapter", "enabled");
+const TYPED = "Sync check text.";
 try {
 	if (!(await until(() => find("AXButton", "Open Project").startsWith("found")))) fail("the app's window never appeared");
 	if (!(await until(() => find("AXButton", `proj ${dir}`).startsWith("found"), 8000))) fail("the temporary HOME did not redirect the app's data folder");
@@ -152,28 +169,65 @@ try {
 	await sleep(1200);
 	if (hasReadout()) problems.push("the session readout was showing before anything was switched on");
 	windowShot("sync-before");
-	// Outside: switch the readout on and the Codex colour to green.
-	const before = readFileSync(settingsFile, "utf8");
+	// 1. Outside: switch the readout on and the Codex colour to green.
 	writeFileSync(settingsFile, base("show-session-readout: true\ncodex-colour: green\n"));
 	if (!(await until(() => hasReadout(), 8000))) problems.push("the session readout did not appear after project.md was changed from outside");
 	await sleep(600);
 	windowShot("sync-after-outside-edit");
-	// Outside again, deleted: the last values stay and the file is not recreated by the app.
-	rmSync(settingsFile);
-	await sleep(2500);
-	if (existsSync(settingsFile)) problems.push("project.md came back on its own after it was deleted");
-	if (!hasReadout()) problems.push("the readout went when project.md was deleted: the last values should stay");
-	windowShot("sync-after-delete");
-	void before;
+	const good = readFileSync(settingsFile, "utf8");
+
+	// 2. Type text in the chapter (through the typing guard: nothing is typed unless the test copy is in front with a text box focused).
+	if (!(await until(() => find("AXTextArea", "Text", "focus").startsWith("found")))) fail("no chapter text box to type in");
+	await sleep(400);
+	typing.sendKeys(TYPED);
+	if (!(await until(() => readFileSync(chapterFile, "utf8").includes(TYPED), 10000))) problems.push("the typed text did not reach the chapter on disk");
+
+	// 3. Unreadable YAML from outside: told once, and a settings change is refused (the controls are off). (Done before the newer
+	//    format, in a writable project, so that the refusal is the settings check and not the whole project being read-only.)
+	writeFileSync(settingsFile, "---\nformat-version: 1\nstory-kind: [unclosed\n---\n");
+	if (!(await until(() => noticeShown(UNREADABLE), 8000))) problems.push("no notice that the settings file can't be read");
+	await sleep(1500);
+	if (noticeShown(UNREADABLE, 2)) problems.push("the unreadable-file notice appeared more than once");
+	writeFileSync(settingsFile, "---\nformat-version: 1\nstory-kind: [still unclosed\n---\n");
+	await sleep(2000);
+	if (noticeShown(UNREADABLE, 2)) problems.push("a second unreadable edit gave the notice again");
+	openSettingsDialog();
+	if (!(await until(() => settingControl().startsWith("found"), 8000))) problems.push("the settings dialog did not open");
+	else if (settingControl() !== "found false") problems.push(`while project.md was unreadable the settings controls were still enabled (${settingControl()})`);
+	windowShot("sync-unreadable-settings");
+	if (!find("AXButton", "Done", "press").startsWith("found")) problems.push("no Done button to close Settings"); // Escape does not close this dialog
+	await sleep(600);
+	writeFileSync(settingsFile, good);
+	await sleep(2000);
+	openSettingsDialog();
+	if (!(await until(() => settingControl() === "found true", 8000))) problems.push(`once project.md read again the settings controls did not come back (${settingControl()})`);
+	if (!find("AXButton", "Done", "press").startsWith("found")) problems.push("no Done button to close Settings");
+	await sleep(600);
+
+	// 4. A newer format arriving from outside: a sticky notice; Close and Reopen by its accessibility action; the project comes back
+	//    read-only with the typed text in the chapter and project.md exactly as written.
+	const newer = "---\nformat-version: 9\n---\n";
+	writeFileSync(settingsFile, newer);
+	if (!(await until(() => noticeShown(NEWER), 8000))) problems.push("no notice that the project was upgraded elsewhere");
+	windowShot("sync-newer-notice");
+	await sleep(6500);
+	if (!noticeShown(NEWER)) problems.push("the newer-format notice faded: it should stay until dismissed");
+	if (!find("AXButton", "Close and Reopen", "press").startsWith("found")) problems.push("no Close and Reopen button to press");
+	if (!(await until(() => noticeShown("This project was made by a newer"), 20000))) problems.push("the project did not come back read-only (no read-only notice)");
+	await sleep(800);
+	windowShot("sync-reopened-read-only");
+	if (!readFileSync(chapterFile, "utf8").includes(TYPED)) problems.push("the typed text is not in the chapter after Close and Reopen");
+	if (readFileSync(settingsFile, "utf8") !== newer) problems.push("project.md changed during Close and Reopen");
+	void rmSync;
 } finally {
 	child.kill("SIGKILL");
 	await sleep(300);
 	rmSync(dir, { recursive: true, force: true });
 }
 console.log("");
-if (problems.length === 0) console.log("PASS  an outside change to project.md applies at once in the built app, and a deleted file leaves the last values in place");
+if (problems.length === 0) console.log("PASS  an outside change to project.md applies at once; unreadable YAML is told once and settings are refused; a newer format gives a sticky notice, and Close and Reopen (by its accessibility action) brings the project back read-only with the typed text saved and project.md unchanged");
 else {
-	console.log("FAIL  the built app did not follow project.md");
+	console.log("FAIL  the built app did not follow project.md as it should");
 	for (const p of problems) console.log(`        - ${p}`);
 }
 process.exit(problems.length === 0 ? 0 : 1);
