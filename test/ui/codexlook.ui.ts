@@ -54,9 +54,10 @@ for (const side of SIDES) {
 
 		test("a folder's line is flush with its name, and a nested row's highlight starts at that line", async ({ page }) => {
 			const cast = row(page, "Cast");
-			const nameX = (await box(cast.locator(".sf-codex-name"))).x;
-			const lineLeft = await cast.locator("xpath=..").locator(".sf-codex-children").evaluate((e) => e.getBoundingClientRect().x + parseFloat(getComputedStyle(e, "::before").left));
-			expect(lineLeft).toBeCloseTo(nameX, 0);
+			const nameX = async () => (await box(cast.locator(".sf-codex-name"))).x;
+			const lineAt = () => cast.locator("xpath=..").locator(".sf-codex-children").evaluate((e) => e.getBoundingClientRect().x + parseFloat(getComputedStyle(e, "::before").left));
+			await expect.poll(async () => Math.abs((await lineAt()) - (await nameX())), { message: "layout settles (the fonts land)" }).toBeLessThan(0.5); // read once the list has settled: once in sixty a run read it mid-layout
+			const lineLeft = await lineAt();
 			const jane = (await box(row(page, "Jane"))).x;
 			expect(jane - lineLeft).toBeGreaterThanOrEqual(0);
 			expect(jane - lineLeft).toBeLessThanOrEqual(3);
