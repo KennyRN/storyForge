@@ -144,7 +144,7 @@ writeFileSync(
 // The storytelling side's Codex list is the author's choice of font (decision 84): this check is of SN Pro in it, so the project chooses it
 // (400 at 1 rem, the 16 px it was drawn at before).
 mkdirSync(join(project, "_backstage/storyforge"), { recursive: true });
-writeFileSync(join(project, "_backstage/storyforge/project.md"), `---\nformat-version: 1\n${process.env.LOOK_CODEX_COLOUR ? `codex-colour: ${process.env.LOOK_CODEX_COLOUR}\n` : ""}appearance-codex-font: SN Pro\nappearance-codex-weight: 400\nappearance-codex-size: 1\n---\n`);
+writeFileSync(join(project, "_backstage/storyforge/project.md"), `---\nformat-version: 1\n${process.env.LOOK_CODEX_COLOUR ? `codex-colour: ${process.env.LOOK_CODEX_COLOUR}\n` : ""}appearance-codex-font: SN Pro\nappearance-codex-weight: 400\nappearance-codex-size: 1\n${process.env.LOOK_READOUT ? "show-session-readout: true\n" : ""}---\n`);
 const data = join(home, DATA_FOLDER);
 mkdirSync(data, { recursive: true });
 writeFileSync(join(data, "recent.json"), JSON.stringify([project]));
