@@ -152,6 +152,7 @@ for (const sig of ["SIGTERM", "SIGINT", "SIGHUP"]) process.on(sig, () => process
 const hasReadout = () => find("AXGroup", "Current session").startsWith("found");
 const chapterFile = join(project, "_story-library/aaa/ch-a1.md");
 const noticeShown = (prefix, nth = 1) => ["AXStaticText", "AXGroup", "AXButton"].some((r) => find(r, prefix, "none", nth).startsWith("found"));
+const GONE = "The project’s settings file has gone";
 const UNREADABLE = "The project’s settings file can";
 const NEWER = "This project was upgraded";
 // The shortcut can't be posted (only a letter or digit with modifiers), so the menu item is pressed by its accessibility action, after the same check as a key.
@@ -175,6 +176,18 @@ try {
 	await sleep(600);
 	windowShot("sync-after-outside-edit");
 	const good = readFileSync(settingsFile, "utf8");
+
+	// 1b. Deleted from outside (how the real watcher reports it can only be proved here, the preview has no watcher): the last values stay,
+	//     a notice says settings return to their defaults at the next open, once, and the app does not recreate the file.
+	rmSync(settingsFile);
+	if (!(await until(() => noticeShown(GONE), 8000))) problems.push("no notice that the settings file has gone");
+	await sleep(2500);
+	if (noticeShown(GONE, 2)) problems.push("the deleted-file notice appeared more than once");
+	if (existsSync(settingsFile)) problems.push("project.md came back on its own after it was deleted");
+	if (!hasReadout()) problems.push("the readout went when project.md was deleted: the last values should stay");
+	windowShot("sync-after-delete");
+	writeFileSync(settingsFile, good); // it comes back from outside: read again, nothing said
+	await sleep(1500);
 
 	// 2. Type text in the chapter (through the typing guard: nothing is typed unless the test copy is in front with a text box focused).
 	if (!(await until(() => find("AXTextArea", "Text", "focus").startsWith("found")))) fail("no chapter text box to type in");

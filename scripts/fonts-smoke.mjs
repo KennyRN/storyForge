@@ -2,9 +2,12 @@
 // Brief 13 (docs/navigator.md): the embedded font families in the BUILT app. Mac only, outside `npm test`.
 // For each configuration it writes the Appearance keys into a throwaway copy of the series fixture's project.md, starts the
 // BUILT app under a temporary HOME, and reads through accessibility the width the Codex list's names really take. Each family
-// must draw differently from the others and from the current look; a variable font's weight, and Fraunces' Softness and Wonk,
-// must change the drawing; SN Pro chosen explicitly must draw exactly as the current look does (it is the same file).
-// Fraunces draws its wonky n, m and h only at larger optical sizes, so its Softness and Wonk are measured at 1.75 rem.
+// must draw differently from the others and from the current look; a variable font's weight and Fraunces' Softness
+// must change the drawing (Wonk was removed in 1.6.1); SN Pro chosen explicitly must draw exactly as the current look does (it is the same file).
+// Fraunces draws its wonky n, m and h only at larger optical sizes, so its Softness is measured at 1.75 rem.
+// No picture is taken, and no measurement is trusted, while the screen is locked or the display is dimmed or asleep (decision 103); and when a comparison
+// shows no difference, a control (a size step, known to show) is measured before the check is allowed to fail: if the control shows nothing either, the run is
+// refused, saying the screen may be locked or dimmed, instead of reporting a font fault.
 // Nothing is typed: only accessibility reads and one click. The screen must be unlocked and the terminal allowed to drive apps.
 //
 // Usage: npm run test:fonts [-- path/to/storyForge.app]
@@ -107,6 +110,13 @@ const data = join(home, `Library/Application Support/${BUNDLE_ID}`);
 mkdirSync(data, { recursive: true });
 writeFileSync(join(data, "recent.json"), JSON.stringify([project]));
 const projectMd = join(project, "_backstage/storyforge/project.md");
+/** The screen is unlocked and the display fully on (a dimmed or sleeping display makes pictures and readings unreliable). */
+const screenProblem = () => {
+	if (/CGSSessionScreenIsLocked<\/key>\s*<true\/>/.test(run("sh", ["-c", "ioreg -n Root -d1 -a"]).stdout.replace(/\s+/g, " ").replace(/> </g, "><"))) return "the screen is locked";
+	const state = /"CurrentPowerState"=(\d+)/.exec(run("sh", ["-c", "ioreg -r -n IODisplayWrangler -d 3"]).stdout);
+	if (state && Number(state[1]) < 4) return "the display is dimmed or asleep";
+	return "";
+};
 const proc = 'tell application "System Events" to tell process "storyforge"';
 
 let child = null;
@@ -114,6 +124,8 @@ let lastPicture = "";
 process.on("exit", () => child?.kill("SIGKILL"));
 /** Starts the built app on this configuration, reads the Codex list's names' widths, and quits it. */
 async function measure(label, keys) {
+	const bad = screenProblem();
+	if (bad) fail(`${label}: ${bad}, so nothing is measured or photographed. Wake and unlock the Mac, then run again.`);
 	writeFileSync(projectMd, `---\nformat-version: 1\n${Object.entries(keys).map(([k, v]) => `appearance-codex-${k}: ${v}`).join("\n")}${Object.keys(keys).length ? "\n" : ""}---\n`);
 	child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: "ignore" }); // nothing is read from it, so nothing may be piped to a reader that goes away first
 	try {
@@ -125,7 +137,7 @@ async function measure(label, keys) {
 		const b = widthOf("Windows");
 		const c = widthOf("Harbour");
 		if (a === null || b === null || c === null) fail(`${label}: no Codex row was found through accessibility`);
-		// Wonk moves glyph shapes but hardly their widths, so the Codex list is also photographed and the picture hashed.
+		// The Codex list is also photographed and the picture hashed (the control below: one configuration photographs the same twice).
 		const [wx, wy] = osa(`${proc} to return (position of window 1) & (size of window 1)`).stdout.trim().split(", ").map(Number);
 		const png = join(dir, "codex.png");
 		spawnSync("screencapture", ["-x", "-R", [wx, wy + 120, 280, 360].join(","), png]);
@@ -143,6 +155,16 @@ async function measure(label, keys) {
 
 const problems = [];
 const check = (ok, what) => (ok ? console.log(`ok   ${what}`) : (problems.push(what), console.log(`FAIL ${what}`)));
+/** A size step is known to show: if it shows nothing, the measurements can't be trusted and the run is refused, not failed. */
+const control = async () => {
+	const small = await measure("control: Inter at 1 rem", { font: "Inter", weight: 400, size: 1 });
+	const large = await measure("control: Inter at 1.5 rem", { font: "Inter", weight: 400, size: 1.5 });
+	return large > small * 1.3;
+};
+const compare = async (ok, what) => {
+	if (!ok && !(await control())) fail(`${what}: no difference was shown, and a size step (known to show) showed none either. The screen may be locked or dimmed, so the run is refused instead of failed.`);
+	check(ok, what);
+};
 try {
 	const defaults = await measure("the defaults (Atkinson, 400, 1 rem)", {});
 	const families = ["SN Pro", "Aleo", "Atkinson Hyperlegible Next", "Courier Prime", "Fraunces", "Inter"];
@@ -153,19 +175,16 @@ try {
 	for (const f of ["Aleo", "Atkinson Hyperlegible Next", "Fraunces", "Inter", "SN Pro"]) {
 		const light = await measure(`${f}, weight 200`, { font: f, weight: 200, size: 1 });
 		const heavy = await measure(`${f}, weight 800`, { font: f, weight: 800, size: 1 });
-		check(light !== heavy, `${f}: weight changes the drawing`);
+		await compare(light !== heavy, `${f}: weight changes the drawing`);
 	}
 	await measure("Courier Prime, weight 700 (monospaced: same width as 400)", { font: "Courier Prime", weight: 700, size: 1 }); // opens; a width can't tell its bold, so the WebKit tests check the file loads
-	const plain = await measure("Fraunces, Softness 0, Wonk off", { font: "Fraunces", weight: 400, size: 1.75, soft: 0, wonk: "false" });
+	const plain = await measure("Fraunces, Softness 0", { font: "Fraunces", weight: 400, size: 1.75, soft: 0 });
 	const plainPicture = lastPicture;
-	const soft = await measure("Fraunces, Softness 100", { font: "Fraunces", weight: 400, size: 1.75, soft: 100, wonk: "false" });
+	const soft = await measure("Fraunces, Softness 100", { font: "Fraunces", weight: 400, size: 1.75, soft: 100 });
 	const picOff = plainPicture;
-	await measure("Fraunces, Softness 0, Wonk off, again", { font: "Fraunces", weight: 400, size: 1.75, soft: 0, wonk: "false" });
+	await measure("Fraunces, Softness 0, again", { font: "Fraunces", weight: 400, size: 1.75, soft: 0 });
 	check(lastPicture === picOff, "control: the same configuration photographs the same twice");
-	const wonk = await measure("Fraunces, Wonk on", { font: "Fraunces", weight: 400, size: 1.75, soft: 0, wonk: "true" });
-	const picOn = lastPicture;
-	check(soft !== plain, "Fraunces' Softness changes the drawing");
-	check(picOn !== picOff, "Fraunces' Wonk changes the drawing (its glyphs, which the picture shows; its widths hardly move)");
+	await compare(soft !== plain, "Fraunces' Softness changes the drawing");
 	const big = await measure("Inter at 1.5 rem", { font: "Inter", weight: 400, size: 1.5 });
 	check(big > drawn.Inter * 1.3, "a size of 1.5 rem draws larger than 1 rem");
 } finally {
@@ -175,4 +194,4 @@ if (problems.length) {
 	console.error(`\n${problems.length} problem(s):\n- ${problems.join("\n- ")}`);
 	process.exit(1);
 }
-console.log("\nPASS  each family is drawn in the built app; weight, Softness, Wonk and size change the drawing");
+console.log("\nPASS  each family is drawn in the built app; weight, Softness and size change the drawing");
