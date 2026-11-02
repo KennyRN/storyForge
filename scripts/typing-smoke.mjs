@@ -210,7 +210,15 @@ try {
 	key('keystroke "z" using command down');
 	await sleep(500);
 	if (note() !== "Jane and Sam. sam") problems.push(`in a plot note: ⌘Z straight after a name correction should leave what was typed; the field holds ${JSON.stringify(note())}`);
-	key('keystroke "z" using command down'); // and the typing of "sam " itself
+	// Take back the typing of "sam" itself. How many ⌘Z that takes depends on how the undo history grouped the keys (it varies with timing:
+	// a second ⌘Z may take back only the word, or the word and the space), so it is pressed until the field is as it was, and a space is
+	// typed if one is missing: the shortcode must start after a space, never straight after a letter ("sam~th" is not a shortcode).
+	for (let i = 0; i < 8 && note() !== "Jane and Sam."; i++) {
+		key('keystroke "z" using command down');
+		await sleep(400);
+	}
+	if (note() !== "Jane and Sam.") problems.push(`in a plot note: ⌘Z should take back what was typed after the name correction; the field holds ${JSON.stringify(note())}`);
+	sendKeys(" ");
 	await sleep(300);
 	sendKeys("~th");
 	await sleep(500);
