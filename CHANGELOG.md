@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.1: settings changed elsewhere (Fix 6, decisions 96 to 99)
+
+- New: **`project.md` changed from outside is read again and applied at once** (a sync tool, another Mac, a text editor). Only the settings that differ change; the Codex colour, the Appearance keys, the story kind, numbering, the typing aids and the session readout apply on the spot, the automatic backup at its next check, a new idle limit from the next session, and `layout` and `auto-focus` at the next open. An open Settings dialog follows, except the text box being typed in. Reading never writes, and the app's own writes don't count as outside changes.
+- New: **a change you make is checked against the file.** Your change still wins; if the file held something other than what the window last read, a quiet notice (about 6 seconds, not red, announced to the screen reader) says which setting changed and what value it replaced ("had been changed to … elsewhere"). Other settings changed elsewhere are kept.
+- New: **a settings file the app can't use while the project is open.** Unreadable: the last values stay, settings can't be changed until it reads again, and a notice says so once; the rest of the project carries on. Deleted: the last values stay for the session, a notice says settings return to their defaults when the project next opens, and a later change creates the file with the format marker and that setting only. Newer `format-version`: a sticky notice with "Close and Reopen" (the normal close, every editor saved, then the project reopens read-only); settings can't be changed from then on, and typing still saves.
+- Unchanged: the core, the disk format, the prose writer, the field writers, the close path and the guard; no new Rust command, dependency or network request. This Mac settings are not read from the project folder and are unaffected.
+
 ## 1.6.0: the navigator and Appearance (Brief 13, decisions 81 to 94)
 
 - New: **six embedded fonts**: Aleo, Atkinson Hyperlegible Next, Courier Prime, Fraunces, Inter and SN Pro, shipped with their licences (`Font Licences.md`) and loaded from the app itself; the app still makes no network request.
