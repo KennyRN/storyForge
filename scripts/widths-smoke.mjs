@@ -146,7 +146,9 @@ process.on("exit", () => child.kill("SIGTERM"));
 try {
 	await sleep(1500);
 	typing.bringToFront();
-	if (!(await until(() => find("AXButton", "Open Project") === "found"))) fail("the app's window never appeared");
+	const launched = Date.now();
+	if (!(await until(() => find("AXButton", "Open Project") === "found"))) fail(`the app's window never appeared (waited ${Math.round((Date.now() - launched) / 1000)} s)`);
+	console.log(`window appeared ${((Date.now() - launched) / 1000).toFixed(1)} s after the launch`);
 	if (!(await until(() => find("AXButton", `proj ${dir}`) === "found", 8000))) fail("the temporary HOME did not redirect the app's data folder");
 	osa(`${proc} to set size of window 1 to {1280, 800}`); // before the project opens, so the percent figures are made at this width
 	await sleep(600);
