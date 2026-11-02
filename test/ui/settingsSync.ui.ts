@@ -42,3 +42,19 @@ test.describe("settings changed elsewhere", () => {
 		await expect(standalone).toBeChecked();
 	});
 });
+
+test("changing a setting that was changed elsewhere says so, quietly, and keeps the other outside change", async ({ page }) => {
+	await openProject(page);
+	await page.evaluate(() => window.__preview.emit("menu", "settings"));
+	const dialog = page.getByRole("dialog");
+	await dialog.getByRole("tab", { name: "Appearance", exact: true }).click();
+	await outside(page, "---\nformat-version: 1\ncodex-colour: green\nstory-kind: standalone\n---\n");
+	await expect(dialog.getByRole("radio", { name: "Green", exact: true })).toBeChecked();
+	// Elsewhere again, before the window has heard (no batch emitted): the window still holds green.
+	await page.evaluate((p) => void window.__preview.touch(p, "---\nformat-version: 1\ncodex-colour: blue\nstory-kind: series\n---\n"), SETTINGS);
+	await dialog.getByRole("radio", { name: "Yellow", exact: true }).click();
+	await expect(page.getByRole("status").filter({ hasText: "elsewhere" })).toContainText("Changed “Codex colour” to yellow. It had been changed to blue elsewhere; that change is replaced.");
+	const disk = (await onDisk(page))!;
+	expect(disk).toContain("codex-colour: yellow");
+	expect(disk).toContain("story-kind: series"); // the other outside change is kept
+});

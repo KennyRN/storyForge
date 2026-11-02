@@ -538,3 +538,48 @@ describe("refreshSettings: an outside change to project.md (decision 96)", () =>
 		expect(current.values.storyKind).toBe("standalone");
 	});
 });
+
+describe("setSetting: checked against the file (decision 96)", () => {
+	const PROJECT_MD = (root: string) => path.join(root, PROJECT_SETTINGS_PATH);
+
+	it("the author's value wins, the replaced value is returned, and another key changed elsewhere is kept", async () => {
+		const root = copyFixture("series");
+		const project = await open(root);
+		const current = await loadSettings(project, reader(root));
+		await setSetting(project, current, "codexColour", "green");
+		fs.writeFileSync(PROJECT_MD(root), fs.readFileSync(PROJECT_MD(root), "utf8").replace("green", "blue").replace(/\n---\n$/, "\nstory-kind: standalone\n---\n"));
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		const out = await setSetting(project, current, "codexColour", "yellow");
+		expect(out).toEqual({ key: "codexColour", replaced: "blue" });
+		const text = fs.readFileSync(PROJECT_MD(root), "utf8");
+		expect(text).toContain("codex-colour: yellow");
+		expect(text).toContain("story-kind: standalone");
+	});
+
+	it("says nothing when the file already holds what the window read, or what the author chose", async () => {
+		const root = copyFixture("series");
+		const project = await open(root);
+		const current = await loadSettings(project, reader(root));
+		expect(await setSetting(project, current, "storyKind", "standalone")).toBeNull();
+		fs.writeFileSync(PROJECT_MD(root), fs.readFileSync(PROJECT_MD(root), "utf8").replace("standalone", "series"));
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		expect(await setSetting(project, current, "storyKind", "series")).toBeNull();
+	});
+
+	it("after the file was deleted, a change creates it with the marker and that key only", async () => {
+		const root = copyFixture("series");
+		const project = await open(root);
+		const current = await loadSettings(project, reader(root));
+		await setSetting(project, current, "storyKind", "standalone");
+		await setSetting(project, current, "codexColour", "green");
+		fs.rmSync(PROJECT_MD(root));
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		await refreshSettings(project, current, reader(root));
+		await setSetting(project, current, "showSessionReadout", true);
+		const text = fs.readFileSync(PROJECT_MD(root), "utf8");
+		expect(text).toContain("format-version: 1");
+		expect(text).toContain("show-session-readout: true");
+		expect(text).not.toContain("story-kind");
+		expect(text).not.toContain("codex-colour");
+	});
+});

@@ -32,7 +32,7 @@ export function openSettings(model: AppModel): void {
 
 	const change = async <K extends keyof ProjectSettings>(key: K, value: ProjectSettings[K]): Promise<void> => {
 		await model.guard(async () => {
-			await setSetting(project, settings, key, value);
+			model.reportReplaced(await setSetting(project, settings, key, value), value);
 			model.touch("settings", "library", "nav", "face");
 			redraw();
 		}, "save the setting");

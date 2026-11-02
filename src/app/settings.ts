@@ -331,23 +331,40 @@ export async function refreshSettings(project: Project, current: LoadedSettings,
 
 const DEFAULT_PROJECT_CONTENT = `---\nformat-version: ${SUPPORTED_FORMAT}\n---\n`;
 
+/** What the file held for a key that the window had last read differently: the author's value replaced it (decision 96). */
+export interface SettingReplaced {
+	key: string;
+	/** The value found in the file, as the window would have read it. */
+	replaced: unknown;
+}
+
 /**
  * Changes one setting. Writes `project.md` only if the value actually differs from what is in effect.
  * The first write also carries over the other values in effect (from the plugin's `data.json`), so the
  * project stays whole if it moves without `.obsidian/`. Unknown keys already in the file are kept.
+ *
+ * The write is checked against the file inside the same transaction (decision 96): the author's value wins, and when the file
+ * held something other than what the window last read (changed elsewhere), that value is returned so the caller can say so.
+ * Other keys changed elsewhere are left as they are, and the next re-read brings them in.
  */
-export async function setSetting<K extends Key>(project: Project, current: LoadedSettings, key: K, value: ProjectSettings[K]): Promise<void> {
+export async function setSetting<K extends Key>(project: Project, current: LoadedSettings, key: K, value: ProjectSettings[K]): Promise<SettingReplaced | null> {
 	if (current.readOnly) throw new ReadOnlyProjectError(PROJECT_SETTINGS_PATH, current.readOnlyReason);
 	const field = FIELDS[key];
 	if (!field.valid(value)) throw new Error(`"${String(value)}" is not a valid value for ${key}`);
 	const unchanged = JSON.stringify(current.values[key]) === JSON.stringify(value);
 	const hasFile = project.exists(PROJECT_SETTINGS_PATH);
-	if (unchanged && (hasFile ? current.sources[key] === "project.md" : true)) return;
+	if (unchanged && (hasFile ? current.sources[key] === "project.md" : true)) return null;
+	let replaced: SettingReplaced | null = null;
 	await project.modifyFrontmatter(PROJECT_SETTINGS_PATH, DEFAULT_PROJECT_CONTENT, (fm) => {
+		replaced = null;
 		if (!hasFile) {
+			// A first creation (or a file deleted from outside): the marker and what came from `data.json`, never the deleted file's values.
 			for (const k of Object.keys(FIELDS) as Key[]) {
-				if (current.sources[k] !== "default") fm[FIELDS[k].file] = clone(current.values[k]);
+				if (current.sources[k] === "data.json") fm[FIELDS[k].file] = clone(current.values[k]);
 			}
+		} else {
+			const onDisk = field.file in fm && field.valid(fm[field.file]) ? fm[field.file] : current.sources[key] === "project.md" ? clone(DEFAULT_PROJECT_SETTINGS[key]) : current.values[key];
+			if (JSON.stringify(onDisk) !== JSON.stringify(current.values[key]) && JSON.stringify(onDisk) !== JSON.stringify(value)) replaced = { key, replaced: clone(onDisk) };
 		}
 		if (value === null) delete fm[field.file]; // "off" is the key's absence
 		else fm[field.file] = clone(value);
@@ -355,6 +372,7 @@ export async function setSetting<K extends Key>(project: Project, current: Loade
 	current.values[key] = clone(value);
 	current.sources[key] = "project.md";
 	current.formatVersion = Math.max(current.formatVersion, 1);
+	return replaced;
 }
 
 // ------------------------------------------------------------------------- machine settings

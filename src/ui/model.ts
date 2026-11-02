@@ -11,7 +11,8 @@ import type { TypingEditorOptions } from "./editor/typingAids";
 import { buildNameIndex, EMPTY_NAMES, type NameIndex } from "../core/typing/names";
 import { collectNameSources } from "../core/typing/nameSources";
 import { withEntry } from "../core/typing/lists";
-import { setSetting } from "../app/settings";
+import { type SettingReplaced, setSetting } from "../app/settings";
+import { settingName, settingValue } from "./screens/settingNames";
 import { getBookChapters, removeBookCover, writeBookCoverName } from "../core/book";
 import { createContinuingChapter } from "../core/chapterCreation";
 import type { CreateProjectOptions } from "../core/openProject";
@@ -386,7 +387,8 @@ export class AppModel {
 					label: "Stop correcting",
 					onClick: () => void this.guard(async () => {
 						const current = running.settings.values.typingNameOptOuts;
-						await setSetting(running.opened.project, running.settings, "typingNameOptOuts", withEntry(current, name, (s) => s.toLowerCase()));
+						const next = withEntry(current, name, (s) => s.toLowerCase());
+						this.reportReplaced(await setSetting(running.opened.project, running.settings, "typingNameOptOuts", next), next);
 						this.touch("settings");
 					}, "save the setting"),
 				},
@@ -431,6 +433,13 @@ export class AppModel {
 		} catch {
 			/* where you were is a convenience: never worth a notice */
 		}
+	}
+
+	/** Says so, quietly, when a setting the author just changed replaced a different value written elsewhere (decision 96). */
+	reportReplaced(replaced: SettingReplaced | null, now: unknown): void {
+		if (!replaced) return;
+		const name = settingName(replaced.key);
+		this.notices.notify({ text: `Changed “${name}” to ${settingValue(now)}. It had been changed to ${settingValue(replaced.replaced)} elsewhere; that change is replaced.`, key: `setting-replaced-${replaced.key}`, ms: 6000 });
 	}
 
 	subscribe(topics: Topic | Topic[], listener: () => void): () => void {

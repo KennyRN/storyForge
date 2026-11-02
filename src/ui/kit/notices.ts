@@ -15,6 +15,8 @@ export interface NoticeInput {
 	actions?: NoticeAction[];
 	/** A notice with the same key replaces the earlier one instead of stacking. */
 	key?: string;
+	/** How long a transient notice stays, in milliseconds (default 4 s). */
+	ms?: number;
 	/** A sticky notice that cannot be dismissed yet (recovery failed: the text is still only in the editor). */
 	pinned?: boolean;
 }
@@ -110,7 +112,7 @@ export class NoticeCenter {
 				this.timers.delete(id);
 				this.remove(id);
 				this.emit();
-			}, TRANSIENT_MS),
+			}, this.notices.find((n) => n.id === id)?.ms ?? TRANSIENT_MS),
 		);
 	}
 
