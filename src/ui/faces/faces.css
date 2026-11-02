@@ -171,19 +171,20 @@
 	font-variation-settings: var(--ap-codex-var, normal);
 }
 /* The Codex list on the storytelling side (decision 84; the library side's codex tab is unchanged):
-   - the line height is 1 (it was 1.4; decision 85), and the rows, their highlight, the folder lines and the drag targets follow it;
+   - the line height is 1.1 (it was 1.4; 1 clipped the accents on capitals; decisions 85 and 93), and the rows, their highlight, the folder lines and the drag targets follow it;
    - type and folder icons are 1em, so they follow the Appearance size; the strip's icons don't change;
    - a name's icon is 0.75em after it (was 1em); the 6px between a folder icon and a type icon stays;
    - the text of a row inside a folder starts 6px from the folder's line (was 14px), the highlight still starting flush at the line:
      so a level is 8px deep, not 16px (the line is flush with its folder's name, and the highlight with the line's other edge).
    The text starts at T(d) = 8 + 8d px at depth d, a nested row is margined by 8d + 2, and the folder's line is at T(d). */
-/* The list sits on a card (decision 86): the editor's background inside the panel's, rounded, no border, margins as the context
-   panel's card (10% of the panel's width, 12px at least, on all four sides, measured from the strip). Only the list is on it:
+/* The list sits on a card (decisions 86 and 93): the editor's background inside the panel's, rounded, no border. Its top and left
+   are where the list's own were before the card (4px and 8px); its right is 10% of the body's width, 12px at least; its bottom is
+   12px above the stats section, as the context panel's card's is (the stats section's height is fixed: --stats-h). Only the list is on it:
    the strip's icons stay on the panel. The list scrolls inside the card, clipped by its corners. The rows' highlight keeps 6px
    from the card's edges, with corners (4px) that sit inside the card's (10px); inside a folder it still starts flush at the line. */
 .sf-left[data-face="storytelling"] .sf-codex-tree {
-	line-height: 1;
-	margin: max(12px, 10%);
+	line-height: 1.1;
+	margin: var(--space-1) max(12px, 10%) var(--space-3) var(--space-2);
 	background: var(--purpose-editor-bg);
 	border-radius: 10px;
 	padding: 6px;
@@ -423,6 +424,9 @@ body.sf-codex-drag-active {
 	grid-template-columns: 24px 16px 1fr;
 	column-gap: var(--space-2);
 	row-gap: var(--space-2);
+	align-content: start;
+	box-sizing: border-box;
+	height: var(--stats-h); /* fixed, as if the session readout row were showing, so the cards above never move when it is switched on or off */
 	align-items: end; /* the count icon's bottom edge lines up with the graph icon's */
 	padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
 	color: var(--purpose-stats);

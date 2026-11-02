@@ -12,6 +12,7 @@
 	--space-2: 8px;
 	--space-3: 12px;
 	--space-4: 16px;
+	--stats-h: 64px; /* the stats section: 8 + the graph icon's 24 + 8 + the readout's 16 + 8 */
 	--radius: 6px;
 	--motion: 160ms;
 	--ink-duration: 450ms;
@@ -227,11 +228,12 @@ textarea {
 }
 /* The note's card (Brief 10): the editor sits on the editor's own background, with rounded corners, inside the panel. The
    margin on all four sides is 10% of the panel's width (padding percentages are of the width, even at the top and bottom),
-   never under 12px; the bottom one is measured from the top of the bottom row, because the row is below this box. */
+   never under 12px, except the bottom (decision 93): the card ends 12px above where the stats section starts on the storytelling
+   side, on both faces, so the bottom row below it is as tall as the stats section plus those 12px. */
 .sf-lore-host {
 	flex: 1;
 	min-height: 0;
-	padding: max(12px, 10%);
+	padding: max(12px, 10%) max(12px, 10%) 0;
 }
 .sf-lore-host > .sf-editor-pane {
 	background: var(--purpose-editor-bg);
@@ -247,7 +249,8 @@ textarea {
 	display: flex;
 	justify-content: flex-end;
 	align-items: center;
-	min-height: 56px;
+	box-sizing: border-box;
+	height: calc(var(--stats-h) + var(--space-3));
 	padding: var(--space-3);
 }
 .sf-context-corner {

@@ -51,13 +51,13 @@ const measure = (page: Page) =>
 
 test.describe("the Codex list's spacing on the storytelling side", () => {
 	for (const rem of ["1", "1.5"]) {
-		test(`at ${rem} rem: the line height is 1, icons are 1em, the name's icon is 0.75em after it, folder and type icons are 6px apart`, async ({ page }) => {
+		test(`at ${rem} rem: the line height is 1.1, icons are 1em, the name's icon is 0.75em after it, folder and type icons are 6px apart`, async ({ page }) => {
 			await openProject(page);
 			if (rem !== "1") await setCodexSize(page, rem);
 			const m = await measure(page);
 			expect(m.fs).toBeCloseTo(16 * Number(rem), 1);
-			expect(m.lineHeight).toBeCloseTo(1, 2); // it was 1.4
-			expect(m.rowH).toBeCloseTo(m.fs + 6, 0); // the row is its line plus 3px above and below
+			expect(m.lineHeight).toBeCloseTo(1.1, 2); // it was 1.4, then 1; 1 clipped accents on capitals (decision 93)
+			expect(m.rowH).toBeCloseTo(m.fs * 1.1 + 6, 0); // the row is its line plus 3px above and below
 			for (const icon of [m.castIcon, m.janeIcon, ...m.harbourIcons]) {
 				expect(icon.w).toBeCloseTo(m.fs, 1);
 				expect(icon.h).toBeCloseTo(m.fs, 1);
@@ -141,16 +141,17 @@ test.describe("the Codex card on the storytelling side", () => {
 		expect(panel.w).toBeGreaterThan(0);
 	});
 
-	test("its margins are 10% of the panel's width (12px at least) on the top, right and bottom, and follow the panel as it's resized", async ({ page }) => {
+	test("its top and left are where the list's own were before the card (4px and 8px); its right is 10% of the body's width (12px at least) and follows the panel as it's resized", async ({ page }) => {
 		await openProject(page);
 		const margins = async () => {
 			const [tree, body] = await Promise.all([rect(page, ".sf-codex-tree"), rect(page, ".sf-codex-body")]);
-			return { right: body.r - tree.r, top: tree.t - body.t, bottom: body.b - tree.b, panel: body.w };
+			const strip = await rect(page, ".sf-codex-strip");
+			return { right: body.r - tree.r, top: tree.t - body.t, left: tree.l - strip.r, panel: body.w };
 		};
 		const m1 = await margins();
+		expect(m1.top).toBeCloseTo(4, 0);
+		expect(m1.left).toBeCloseTo(8, 0);
 		expect(m1.right).toBeCloseTo(Math.max(12, m1.panel * 0.1), 0);
-		expect(m1.top).toBeCloseTo(m1.right, 0);
-		expect(m1.bottom).toBeCloseTo(m1.right, 0);
 		const bar = page.getByRole("separator", { name: "Resize the left panel" });
 		await bar.focus();
 		for (let i = 0; i < 6; i++) await page.keyboard.press("ArrowRight");
@@ -158,6 +159,8 @@ test.describe("the Codex card on the storytelling side", () => {
 		expect(m2.panel).toBeGreaterThan(m1.panel + 50);
 		expect(m2.right).toBeCloseTo(Math.max(12, m2.panel * 0.1), 0);
 		expect(m2.right).toBeGreaterThan(m1.right);
+		expect(m2.top).toBeCloseTo(4, 0);
+		expect(m2.left).toBeCloseTo(8, 0);
 	});
 
 	test("the highlight keeps 6px from the card's edges with corners that sit inside the card's; inside a folder it starts flush at the line; its text is the card's colour", async ({ page }) => {
@@ -216,5 +219,62 @@ test.describe("the Codex card on the storytelling side", () => {
 		await page.getByRole("tab", { name: "codex" }).click();
 		const s = await page.locator(".sf-codex-tree").evaluate((e) => { const c = getComputedStyle(e); return { bg: c.backgroundColor, radius: c.borderTopLeftRadius, margin: c.marginTop }; });
 		expect(s).toEqual({ bg: "rgba(0, 0, 0, 0)", radius: "0px", margin: "0px" });
+	});
+
+	// Decision 93: both cards end 12px above the stats section, which is a fixed height, with or without the session readout.
+	const withReadout = async (page: Page, on: boolean) => {
+		await openPreview(page);
+		await page.evaluate((v) => window.__preview.touch("_backstage/storyforge/project.md", `---\nformat-version: 1\nshow-session-readout: ${v}\n---\n`), on);
+		await page.reload();
+		await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+		await page.locator("[data-recent='0']").click();
+		await page.waitForFunction(() => !!window.__app?.editors);
+		await page.waitForTimeout(500);
+	};
+	const bottoms = async (page: Page) => {
+		const [tree, lore, stats, left, loreSlot] = await Promise.all([rect(page, ".sf-codex-tree"), rect(page, ".sf-lore-host"), rect(page, ".sf-stats"), rect(page, ".sf-left"), rect(page, ".sf-slot--lore")]);
+		return { tree: tree.b, lore: lore.b, stats: stats.t, statsH: stats.h, left: left.b, loreSlot: loreSlot.b, loreTop: lore.t };
+	};
+
+	for (const on of [false, true]) {
+		test(`with the session readout ${on ? "on" : "off"}: both cards end together, 12px above the stats section, which is 64px tall`, async ({ page }) => {
+			await withReadout(page, on);
+			const b = await bottoms(page);
+			expect(b.statsH).toBeCloseTo(64, 0);
+			expect(b.tree).toBeCloseTo(b.stats - 12, 0);
+			expect(b.lore).toBeCloseTo(b.stats - 12, 0);
+			expect(b.left).toBeCloseTo(b.loreSlot, 0); // the panels end together, so the two bottoms are comparable
+			// the bottom row, with the special-characters button, is still beneath the card
+			const button = await rect(page, ".sf-chars-button");
+			expect(button.t).toBeGreaterThanOrEqual(b.lore);
+			expect(button.b).toBeLessThanOrEqual(b.loreSlot);
+		});
+	}
+
+	test("switching the readout on or off moves neither card", async ({ page }) => {
+		await withReadout(page, false);
+		const off = await bottoms(page);
+		const offTree = await rect(page, ".sf-codex-tree");
+		await withReadout(page, true);
+		const on = await bottoms(page);
+		const onTree = await rect(page, ".sf-codex-tree");
+		expect(on.tree).toBeCloseTo(off.tree, 1);
+		expect(on.lore).toBeCloseTo(off.lore, 1);
+		expect(on.stats).toBeCloseTo(off.stats, 1);
+		expect(onTree.t).toBeCloseTo(offTree.t, 1);
+	});
+
+	test("the context panel's card does not move when the side flips", async ({ page }) => {
+		await openProject(page);
+		const before = await rect(page, ".sf-lore-host");
+		await flipFace(page);
+		await page.waitForTimeout(300);
+		const after = await rect(page, ".sf-lore-host");
+		expect(after.t).toBeCloseTo(before.t, 1);
+		expect(after.b).toBeCloseTo(before.b, 1);
+		expect(after.l).toBeCloseTo(before.l, 1);
+		expect(after.r).toBeCloseTo(before.r, 1);
+		const left = await rect(page, ".sf-left");
+		expect(after.b).toBeCloseTo(left.b - 64 - 12, 0); // the same bottom as on the storytelling side
 	});
 });
