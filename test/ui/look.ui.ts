@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { openPreview, shot } from "./helpers";
+import { openPreview, shot, flipFace } from "./helpers";
 
 // Brief 10, commit 2: SN Pro in every place the author writes and in the Codex list, and nowhere else. The browser preview
 // serves no security policy, so what the built app really loads is checked by `npm run test:look` (Mac, built app).
@@ -9,7 +9,7 @@ async function openProject(page: Page): Promise<void> {
 	await page.locator("[data-recent='0']").click();
 	await page.waitForFunction(() => !!window.__app?.editors);
 }
-const flipSide = (page: Page) => page.getByRole("button", { name: "Flip side" }).click();
+const flipSide = (page: Page) => flipFace(page);
 
 /** What a surface is really drawn in: the computed family, and the faces the page has actually loaded. */
 async function style(el: Locator) {
@@ -66,7 +66,8 @@ test.describe("SN Pro", () => {
 
 	test("the Codex list, on the storytelling side and on the library side", async ({ page }) => {
 		await openProject(page);
-		await expectSnPro(page.getByRole("tree", { name: "Codex" }), "the storytelling Codex");
+		// The storytelling side's Codex list is the author's choice (default Atkinson Hyperlegible Next, decision 84); SN Pro is the library side's.
+		expect(await page.getByRole("tree", { name: "Codex" }).evaluate((e) => getComputedStyle(e).fontFamily)).toContain("Atkinson Hyperlegible Next");
 		await flipSide(page);
 		await page.getByRole("tab", { name: "codex" }).click();
 		await expectSnPro(page.getByRole("tree", { name: "Codex" }), "the library Codex");
@@ -93,10 +94,9 @@ test.describe("SN Pro", () => {
 		await openProject(page);
 		for (const [what, loc] of [
 			["the body", page.locator("body")],
-			["the navigator", page.locator(".sf-nav-novel")],
+			["the stats", page.locator(".sf-stats")],
 			["the stats", page.locator(".sf-stats-value")],
-			["a tab", page.getByRole("button", { name: "Flip side" })],
-		] as [string, Locator][]) {
+					] as [string, Locator][]) {
 			expect((await style(loc.first())).family, what).not.toContain("SN Pro");
 		}
 		await page.evaluate(() => window.__preview.emit("menu", "settings"));

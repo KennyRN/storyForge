@@ -74,13 +74,11 @@ const findScript = `on run argv
 				end if
 				if act is "focusrow" then
 					-- a Codex row is the group just before its name in the accessibility tree
-					set frontmost to true
 					set focused of (item (i - 1) of els) to true
 					return "found " & n
 				end if
 				if act is "click" then click e
 				if act is "focus" then
-					set frontmost to true
 					set focused of e to true
 				end if
 				if act is "isfocused" then return "found " & ((focused of e) as string)
@@ -91,7 +89,11 @@ const findScript = `on run argv
 	end tell
 	return "none"
 end run`;
-const find = (role, prefix, act = "none", nth = 1) => (osa(findScript, role, prefix, act, String(nth)).stdout || "").trim();
+const find = (role, prefix, act = "none", nth = 1) => {
+	// A focus action brings the test copy to the front, by its process id, through the guard (decision 91); nothing else here changes the front window.
+	if (act === "focus" || act === "focusrow") typing.bringToFront();
+	return (osa(findScript, role, prefix, act, String(nth)).stdout || "").trim();
+};
 const widthOf = (role, prefix, nth = 1) => {
 	const out = find(role, prefix, "size", nth);
 	const m = /^found (\d+)x(\d+)$/.exec(out);
@@ -117,7 +119,7 @@ async function until(fn, ms = 15000) {
 // One key at a time, 40 ms apart: a whole string sent in one burst arrives faster than anyone types, and the built
 // app (1.0.0 included) then drops spaces and letters while an aid is replacing a word.
 // Every keystroke goes through the typing guard (decision 72): nothing is typed unless the test copy is in front with a text box focused.
-const typing = guardedTyping({ osa, fail });
+const typing = guardedTyping({ osa, fail, pid: () => child.pid }); // keys are posted to the test copy's own process (decision 90)
 const sendKeys = typing.sendKeys;
 
 
@@ -128,11 +130,21 @@ cpSync(join(root, "test/fixtures/series"), project, { recursive: true });
 // The wynn and yogh lines are in the chapter on disk: the keystroke tool can't type them (it types an "a"), and what is
 // checked is how they are drawn, not how they are typed.
 appendFileSync(join(project, "_story-library/aaa/ch-a1.md"), "\n\nƿȝƿȝƿȝƿȝƿȝ\n\n*ƿȝƿȝƿȝƿȝƿȝƿ*\n\nThe old letters, upright: ð þ ƿ ȝ ǣ, in *italic: ð þ ƿ ȝ ǣ*, in **bold: ð þ ƿ ȝ ǣ**.\n");
+// The Codex list's spacing is judged on a deep folder and a name with an accented capital and descenders (decision 85): Cast > Houses >
+// Ravens > The Nest > Óswyg is three folders inside Cast.
+writeFileSync(join(project, "Codex/Óswyg.md"), "An accented capital and two descenders.\n");
+const codexPath = join(project, "_backstage/storyforge/codex.md");
+writeFileSync(
+	codexPath,
+	readFileSync(codexPath, "utf8")
+		.replace("      - Codex/Sam.md\n  f-places:", "      - Codex/Sam.md\n      - f-houses\n  f-houses:\n    name: Houses\n    order:\n      - f-ravens\n  f-ravens:\n    name: Ravens\n    order:\n      - f-nest\n  f-nest:\n    name: The Nest\n    order:\n      - Codex/Óswyg.md\n  f-places:")
+		.replace("  Codex/Windows.md: populace\n", "  Codex/Windows.md: populace\n  Codex/Óswyg.md: person\n"),
+);
 // LOOK_CODEX_COLOUR=green (or any choice) sets the project's Codex colour, to take the pictures in that colour.
-if (process.env.LOOK_CODEX_COLOUR) {
-	mkdirSync(join(project, "_backstage/storyforge"), { recursive: true });
-	writeFileSync(join(project, "_backstage/storyforge/project.md"), `---\nformat-version: 1\ncodex-colour: ${process.env.LOOK_CODEX_COLOUR}\n---\n`);
-}
+// The storytelling side's Codex list is the author's choice of font (decision 84): this check is of SN Pro in it, so the project chooses it
+// (400 at 1 rem, the 16 px it was drawn at before).
+mkdirSync(join(project, "_backstage/storyforge"), { recursive: true });
+writeFileSync(join(project, "_backstage/storyforge/project.md"), `---\nformat-version: 1\n${process.env.LOOK_CODEX_COLOUR ? `codex-colour: ${process.env.LOOK_CODEX_COLOUR}\n` : ""}appearance-codex-font: SN Pro\nappearance-codex-weight: 400\nappearance-codex-size: 1\n${process.env.LOOK_READOUT ? "show-session-readout: true\n" : ""}---\n`);
 const data = join(home, DATA_FOLDER);
 mkdirSync(data, { recursive: true });
 writeFileSync(join(data, "recent.json"), JSON.stringify([project]));
@@ -142,10 +154,14 @@ writeFileSync(join(data, "project-ui", `${createHash("sha256").update(project).d
 if (shotsAt) mkdirSync(shotsAt, { recursive: true });
 
 const key = typing.key;
+/** The test copy's window by its window number, so a picture is of that window alone and nothing of anyone else's can be in it. */
+const windowNumber = () =>
+	spawnSync("osascript", ["-l", "JavaScript", "-e", `ObjC.import('CoreGraphics'); const l = ObjC.deepUnwrap(ObjC.castRefToObject($.CGWindowListCopyWindowInfo($.kCGWindowListOptionOnScreenOnly, 0))); const w = l.find((x) => x.kCGWindowOwnerPID === ${child.pid} && x.kCGWindowLayer === 0); w ? String(w.kCGWindowNumber) : ''`], { encoding: "utf8" }).stdout.trim();
 const windowShot = (name) => {
 	if (!shotsAt) return;
-	const [x, y, w, h] = osa('tell application "System Events" to tell process "storyforge" to return (position of window 1) & (size of window 1)').stdout.trim().split(", ").map(Number);
-	spawnSync("screencapture", ["-x", "-R", [x, y, w, h].join(","), join(shotsAt, `${name}.png`)]);
+	const id = windowNumber();
+	if (!id) return void problems.push(`no picture "${name}": the test copy's window wasn't found (a picture is never taken of the screen)`);
+	spawnSync("screencapture", ["-x", "-o", "-l", id, join(shotsAt, `${name}.png`)]);
 };
 /**
  * How far the ink of the upper half of a line sits to the right of the ink of its lower half, in pixels of a 2x picture:
@@ -187,6 +203,9 @@ const expectWidth = (what, got, sn, sys) => {
 };
 
 const child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: "ignore" }); // nothing is read from it, so nothing may be piped to a reader that goes away first
+// The test copy is this script's own child: whichever way the script ends (a refusal included), it goes with it.
+process.on("exit", () => child.kill("SIGKILL"));
+for (const sig of ["SIGTERM", "SIGINT", "SIGHUP"]) process.on(sig, () => process.exit(1)); // so the line above runs when the script is stopped from outside
 try {
 	if (!(await until(() => find("AXButton", "Open Project").startsWith("found")))) fail("the app's window never appeared");
 	if (!(await until(() => find("AXButton", `proj ${dir}`).startsWith("found"), 8000))) fail("the temporary HOME did not redirect the app's data folder");
@@ -198,10 +217,20 @@ try {
 	expectWidth("the Codex list, Jane", widthOf("AXStaticText", "Jane"), 33, 36);
 	expectWidth("the Codex list, Harbour", widthOf("AXStaticText", "Harbour"), 58, 60);
 	windowShot("codex-storytelling-no-note");
+	// The navigator, closed and open (the list covers the top of the Codex): an accessibility press on the chapter selector, no keystrokes.
+	windowShot("navigator-closed");
+	const pressSelector = () => ["AXPopUpButton", "AXButton", "AXMenuButton"].some((role) => find(role, "Chapters", "click").startsWith("found")); // aria-haspopup makes it a pop-up button
+	if (pressSelector()) {
+		await sleep(500);
+		windowShot("navigator-open");
+		pressSelector(); // closes it again
+		await sleep(500);
+	} else problems.push("could not find the chapter selector");
 
 	// The chapter (20 px): ten "w" upright are 161 px in SN Pro (about 150 in the system font), eleven in italic 191 (the italic file
 	// is a real italic). Then ten wynn and yogh, which SN Pro lacks: Arial draws them, and in italic text Arial Italic, not the
 	// upright (the two have the same widths, so the slant of the ink is measured).
+	if (process.env.LOOK_READOUT) windowShot("stats-no-session"); // the readout on, before any edit
 	find("AXTextArea", "Text", "focus");
 	await sleep(400);
 	key("key code 125 using command down"); // ⌘↓: the end of the chapter
@@ -224,6 +253,12 @@ try {
 		else console.log(`(wynn and yogh in italic lean ${lean.toFixed(1)} px more than upright: Arial Italic)`);
 	}
 	windowShot("chapter");
+	if (process.env.LOOK_READOUT) {
+		// The session is ongoing; after a minute without an edit the clock is the paused one (decision 68).
+		windowShot("stats-in-session");
+		await sleep(70000);
+		windowShot("stats-paused");
+	}
 	// With the context panel hidden (View > Show or Hide Context) the workspace is wide enough for the editor's maximum width (30em: 600 px at 20 px) to show.
 	osa('tell application "System Events" to tell process "storyforge" to click menu item "Show or Hide Context" of menu 1 of menu bar item "View" of menu bar 1');
 	await sleep(700);
@@ -259,6 +294,15 @@ try {
 			await sleep(500);
 			windowShot("codex-selected-and-focused");
 		}
+		// A highlighted row with the focus ring and an accented capital and descenders ("Óswyg"), in a folder three levels inside Cast:
+		// any clipping from the line height shows. Opened by the keyboard, then focused again by accessibility.
+		if (find("AXStaticText", "Óswyg", "focusrow").startsWith("found")) {
+			typing.keyOnControl("key code 36");
+			await sleep(1200);
+			find("AXStaticText", "Óswyg", "focusrow");
+			await sleep(500);
+			windowShot("codex-accent-descender-focused");
+		} else problems.push("could not focus Óswyg in the Codex list");
 		// The strip's icon focused: its colour is the Codex colour, as on hover (a hover needs a pointer, which this script never uses).
 		if (find("AXButton", "New folder", "focus").startsWith("found")) {
 			await sleep(500);
@@ -267,7 +311,7 @@ try {
 	}
 
 	// The library side's Codex list, and a plot note (13 px: ten "w" is 105 px in SN Pro, 100 in the system font).
-	if (!(await until(() => clickAny("Flip side")))) fail("could not reach the library side");
+	if (!(await until(() => clickAny("Open the novel on the library side")))) fail("could not reach the library side");
 	await sleep(600);
 	clickAny("codex");
 	await sleep(800);

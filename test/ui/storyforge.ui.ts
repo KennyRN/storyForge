@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openPreview, shot } from "./helpers";
+import { openPreview, shot, flipFace } from "./helpers";
 
 const SERIES = "_story-library/series.md";
 const BOOK_A = "_story-library/novel-aaa.md";
@@ -14,7 +14,7 @@ async function openProject(page: Page, options: Parameters<typeof openPreview>[1
 	await page.locator("[data-recent='0']").click();
 	await page.waitForFunction(() => !!window.__app?.editors);
 }
-const flip = (page: Page) => page.getByRole("button", { name: "Flip side" }).click();
+const flip = (page: Page) => flipFace(page);
 const tab = (page: Page, name: string) => page.getByRole("tab", { name });
 const onDisk = (page: Page, path: string) => page.evaluate((p) => window.__preview.read(p), path);
 const centre = (page: Page) => page.locator(".sf-slot--centre .cm-content");
@@ -230,7 +230,7 @@ test.describe("the library", () => {
 			await page.reload();
 			await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
 			await page.locator("[data-recent='0']").click();
-			await page.getByRole("button", { name: "Flip side" }).click();
+			await flipFace(page);
 			await expect.poll(names).toEqual(["ch-a5.md", "ch-a3.md"]);
 		});
 

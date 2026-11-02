@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openPreview } from "./helpers";
+import { openPreview, flipFace } from "./helpers";
 
 // Brief 10, commit 4: the strip of buttons down the Codex list's left edge, and naming a new folder or note in place
 // (decision 56, rulings 5 and 7): nothing is created until the name is confirmed with Return; Escape creates nothing.
@@ -10,7 +10,7 @@ async function openProject(page: Page): Promise<void> {
 	await page.locator("[data-recent='0']").click();
 	await page.waitForFunction(() => !!window.__app?.editors);
 }
-const flipSide = (page: Page) => page.getByRole("button", { name: "Flip side" }).click();
+const flipSide = (page: Page) => flipFace(page);
 const onDisk = (page: Page, path: string): Promise<string | null> => page.evaluate((p) => window.__preview.read(p).catch(() => null), path);
 const tree = (page: Page) => page.getByRole("tree", { name: "Codex" });
 const noteBox = (page: Page) => page.getByRole("textbox", { name: "Name of the new note" });

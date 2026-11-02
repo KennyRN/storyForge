@@ -63,7 +63,6 @@ const findScript = `on run argv
 			if r is role_ and n starts with prefix then
 				if act is "click" then click e
 				if act is "focus" then
-					set frontmost to true
 					set focused of e to true
 				end if
 				if act is "isfocused" then return "found " & ((focused of e) as string)
@@ -74,7 +73,11 @@ const findScript = `on run argv
 	end tell
 	return "none"
 end run`;
-const find = (role, prefix, act) => (osa(findScript, role, prefix, act).stdout || "").trim();
+const find = (role, prefix, act) => {
+	// A focus action brings the test copy to the front, by its process id, through the guard (decision 91); nothing else here changes the front window.
+	if (act === "focus" || act === "focusrow") typing.bringToFront();
+	return (osa(findScript, role, prefix, act).stdout || "").trim();
+};
 async function until(what, fn, ms = 20000) {
 	const end = Date.now() + ms;
 	while (Date.now() < end) {
@@ -91,7 +94,8 @@ const valueOf = (role, prefix) => {
 };
 const isFocused = (role, prefix) => find(role, prefix, "isfocused") === "found true";
 // Every keystroke goes through the typing guard (decision 72): nothing is typed unless the test copy is in front with a text box focused.
-const typing = guardedTyping({ osa, fail });
+let current = null; // the test copy of the route in progress
+const typing = guardedTyping({ osa, fail, pid: () => current?.pid }); // keys are posted to the test copy's own process (decision 90)
 const sendKeys = typing.sendKeysAtOnce;
 
 // ---- One route --------------------------------------------------------------------------------------------
@@ -128,6 +132,8 @@ async function route(name, send, { expectJoin = false, target = "chapter" } = {}
 	let stderr = "";
 	const child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: ["ignore", "ignore", "pipe"] });
 	children.add(child);
+	current = child;
+	typing.reset();
 	child.stderr.on("data", (d) => (stderr += d));
 	let exited = null;
 	child.on("exit", (code, signal) => (exited = { code, signal, at: Date.now() }));
@@ -142,7 +148,7 @@ async function route(name, send, { expectJoin = false, target = "chapter" } = {}
 		if (target === "plot") {
 			// To the library side, the novel tab, and into a chapter card's plot note: it has focus, nothing has been committed.
 			const clickAny = (name) => ["AXButton", "AXCheckBox", "AXToggle", "AXRadioButton", "AXTab"].some((role) => find(role, name, "click").startsWith("found"));
-			await until("the Flip side button", () => clickAny("Flip side"));
+			await until("the novel name", () => clickAny("Open the novel on the library side"));
 			await until("the novel tab", () => clickAny("novel"), 8000);
 			await until("a plot note", () => find("AXTextArea", "Plot note for", "focus").startsWith("found"));
 		}
@@ -177,6 +183,7 @@ async function route(name, send, { expectJoin = false, target = "chapter" } = {}
 		// window lost focus to another app before the quit: this run proves nothing. It is retried, never counted as a pass.
 		if (onDiskEarly.length) throw new EarlySave();
 		const sent = Date.now();
+		typing.beginQuit(); // no key is sent to the test copy from here
 		await send(child);
 		await until(`the app to end after "${name}" (stderr so far: ${JSON.stringify(stderr)})`, () => exited, 20000);
 		const took = exited.at - sent;

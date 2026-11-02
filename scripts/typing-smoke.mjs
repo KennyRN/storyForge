@@ -63,7 +63,6 @@ const findScript = `on run argv
 			if r is role_ and n starts with prefix then
 				if act is "click" then click e
 				if act is "focus" then
-					set frontmost to true
 					set focused of e to true
 				end if
 				if act is "isfocused" then return "found " & ((focused of e) as string)
@@ -74,7 +73,11 @@ const findScript = `on run argv
 	end tell
 	return "none"
 end run`;
-const find = (role, prefix, act = "none") => (osa(findScript, role, prefix, act).stdout || "").trim();
+const find = (role, prefix, act = "none") => {
+	// A focus action brings the test copy to the front, by its process id, through the guard (decision 91); nothing else here changes the front window.
+	if (act === "focus" || act === "focusrow") typing.bringToFront();
+	return (osa(findScript, role, prefix, act).stdout || "").trim();
+};
 const valueOf = (role, prefix) => {
 	const out = find(role, prefix, "value");
 	return out.startsWith("found ") ? out.slice(6) : null;
@@ -91,7 +94,7 @@ async function until(fn, ms = 15000) {
 // One key at a time, 40 ms apart: a whole string sent in one burst arrives faster than anyone types, and the built
 // app (1.0.0 included) then drops spaces and letters while an aid is replacing a word.
 // Every keystroke goes through the typing guard (decision 72): nothing is typed unless the test copy is in front with a text box focused.
-const typing = guardedTyping({ osa, fail });
+const typing = guardedTyping({ osa, fail, pid: () => child.pid }); // keys are posted to the test copy's own process (decision 90)
 const sendKeys = typing.sendKeys;
 
 // What is typed, what the editor must hold after the typing aids (and only the aids), and what each piece proves.
@@ -116,7 +119,11 @@ mkdirSync(data, { recursive: true });
 writeFileSync(join(data, "recent.json"), JSON.stringify([project]));
 
 const problems = [];
+if (process.env.TYPING_TRACE) process.on("exit", () => problems.length && console.log(`  problems so far:\n    - ${problems.join("\n    - ")}`));
 const child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: "ignore" }); // nothing is read from it, so nothing may be piped to a reader that goes away first
+// The test copy is this script's own child: whichever way the script ends (a refusal included), it goes with it.
+process.on("exit", () => child.kill("SIGKILL"));
+for (const sig of ["SIGTERM", "SIGINT", "SIGHUP"]) process.on(sig, () => process.exit(1)); // so the line above runs when the script is stopped from outside
 try {
 	if (!(await until(() => find("AXButton", "Open Project").startsWith("found")))) fail("the app's window never appeared");
 	if (!(await until(() => find("AXButton", `proj ${dir}`).startsWith("found"), 8000))) fail("the temporary HOME did not redirect the app's data folder");
@@ -132,16 +139,31 @@ try {
 		sendKeys(`${text} `);
 		await sleep(500);
 		expectedSoFar += `${expected} `;
+		if (process.env.TYPING_TRACE) console.log(`  after "${what.slice(0, 40)}": ${typing.focusNow()}`);
 		const after = valueOf("AXTextArea", "Text") ?? "";
 		if (!after.startsWith(expectedSoFar)) problems.push(`${what}: typed ${JSON.stringify(text)}, expected ${JSON.stringify(expected)}, the editor holds ${JSON.stringify(after.slice(expectedSoFar.length - expected.length - 1, expectedSoFar.length))}`);
 	}
 
 	// One ⌘Z straight after a curl gives back exactly what was typed (through the real Edit menu).
 	const keystroke = typing.key;
-	sendKeys("don'");
+	if (process.env.TYPING_TRACE) for (const ch of "don'") { sendKeys(ch); console.log(`  after ${JSON.stringify(ch)}: ${typing.focusNow()}`); await sleep(300); console.log(`    300 ms later: ${typing.focusNow()}`); }
+	else sendKeys("don'");
+	if (process.env.TYPING_TRACE) {
+		for (const ms of [500, 1000, 1500]) {
+			await sleep(500);
+			console.log(`  ${ms} ms after the apostrophe: ${typing.focusNow()}`);
+		}
+		const id = spawnSync("osascript", ["-l", "JavaScript", "-e", `ObjC.import('CoreGraphics'); const l = ObjC.deepUnwrap(ObjC.castRefToObject($.CGWindowListCopyWindowInfo($.kCGWindowListOptionOnScreenOnly, 0))); const w = l.find((x) => x.kCGWindowOwnerPID === ${child.pid} && x.kCGWindowLayer === 0); w ? String(w.kCGWindowNumber) : ''`], { encoding: "utf8" }).stdout.trim();
+		if (id) spawnSync("screencapture", ["-x", "-o", "-l", id, process.env.TYPING_TRACE_SHOT || "/tmp/typing-trace.png"]);
+	}
 	await sleep(500);
 	const curled = valueOf("AXTextArea", "Text") ?? "";
 	if (!curled.startsWith(`${expectedSoFar}don’`)) problems.push(`typed don' and the editor holds ${JSON.stringify(curled.slice(expectedSoFar.length, expectedSoFar.length + 6))}, expected don’`);
+	if (process.env.TYPING_TRACE) {
+		console.log(`  just before the first ⌘Z: ${typing.focusNow()}`);
+		const id = spawnSync("osascript", ["-l", "JavaScript", "-e", `ObjC.import('CoreGraphics'); const l = ObjC.deepUnwrap(ObjC.castRefToObject($.CGWindowListCopyWindowInfo($.kCGWindowListOptionOnScreenOnly, 0))); const w = l.find((x) => x.kCGWindowOwnerPID === ${child.pid} && x.kCGWindowLayer === 0); w ? String(w.kCGWindowNumber) : ''`], { encoding: "utf8" }).stdout.trim();
+		if (id) spawnSync("screencapture", ["-x", "-o", "-l", id, (process.env.TYPING_TRACE_SHOT || "/tmp/typing-trace.png").replace(".png", "-before-z.png")]);
+	}
 	keystroke('keystroke "z" using command down');
 	await sleep(500);
 	const undone = valueOf("AXTextArea", "Text") ?? "";
@@ -167,7 +189,7 @@ try {
 	// The field editors (decision 53): a plot note has the name autocorrect and the shortcodes too. Typed into the first
 	// plot note of the novel, with real keystrokes; each aid is read back from the field through accessibility.
 	const clickAny = (name) => ["AXButton", "AXCheckBox", "AXToggle", "AXRadioButton", "AXTab"].some((role) => find(role, name, "click").startsWith("found"));
-	if (!(await until(() => clickAny("Flip side")))) fail("could not reach the library side");
+	if (!(await until(() => clickAny("Open the novel on the library side")))) fail("could not reach the library side");
 	if (!(await until(() => clickAny("novel"), 8000))) fail("could not reach the novel tab");
 	if (!(await until(() => find("AXTextArea", "Plot note for", "focus").startsWith("found")))) fail("no plot note to type in");
 	await sleep(500);

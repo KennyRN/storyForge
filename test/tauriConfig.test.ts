@@ -103,14 +103,30 @@ describe("the window's permissions", () => {
 		const css = readFileSync(`${dir}fonts.css`, "utf8");
 		// Every source is a relative file inside the app: no URL scheme, no network.
 		const urls = [...css.matchAll(/url\(["']?([^"')]+)["']?\)/g)].map((m) => m[1]);
-		expect(urls.sort()).toEqual(["./fonts/SNPro-VariableItalic.woff2", "./fonts/SNPro-VariableRegular.woff2"]);
+		expect(urls.sort()).toEqual([
+			"./fonts/SNPro-VariableItalic.woff2", "./fonts/SNPro-VariableRegular.woff2",
+			"./fonts/aleo/Aleo-Variable.ttf", "./fonts/aleo/Aleo-VariableItalic.ttf",
+			"./fonts/atkinson/AtkinsonHyperlegibleNext-Variable.ttf", "./fonts/atkinson/AtkinsonHyperlegibleNext-VariableItalic.ttf",
+			"./fonts/courier-prime/CourierPrime-Bold.ttf", "./fonts/courier-prime/CourierPrime-BoldItalic.ttf", "./fonts/courier-prime/CourierPrime-Italic.ttf", "./fonts/courier-prime/CourierPrime-Regular.ttf",
+			"./fonts/fraunces/Fraunces-Variable.woff2", "./fonts/fraunces/Fraunces-VariableItalic.woff2",
+			"./fonts/inter/InterVariable-Italic.ttf", "./fonts/inter/InterVariable.ttf",
+		].sort());
 		for (const u of urls) expect(existsSync(`${dir}${u}`), u).toBe(true);
 		// Both faces carry the whole weight axis (the files' own default is the thinnest), so bold is never synthesised.
-		expect(css.match(/font-weight: 200 900;/g)?.length).toBe(2);
+		expect(css.match(/font-weight: 200 900;/g)?.length).toBe(2); // SN Pro; the others declare their own ranges
+		expect(css.match(/font-weight: 100 900;/g)?.length).toBe(6); // Aleo, Fraunces, Inter (each upright and italic)
 		expect(css).toMatch(/font-style: italic;/);
 		// The licence travels with the app and with the files.
 		expect(existsSync(`${dir}fonts/OFL.txt`)).toBe(true);
-		expect(json("tauri.conf.json").bundle.resources).toEqual({ "../src/ui/theme/fonts/OFL.txt": "OFL.txt" });
+		expect(json("tauri.conf.json").bundle.resources).toEqual({
+			"../src/ui/theme/fonts/OFL.txt": "OFL.txt",
+			"../src/ui/theme/fonts/aleo/OFL.txt": "OFL-Aleo.txt",
+			"../src/ui/theme/fonts/atkinson/OFL.txt": "OFL-Atkinson-Hyperlegible-Next.txt",
+			"../src/ui/theme/fonts/courier-prime/OFL.txt": "OFL-Courier-Prime.txt",
+			"../src/ui/theme/fonts/fraunces/OFL.txt": "OFL-Fraunces.txt",
+			"../src/ui/theme/fonts/inter/OFL.txt": "OFL-Inter.txt",
+		});
+		for (const d of ["aleo", "atkinson", "courier-prime", "fraunces", "inter"]) expect(existsSync(`${dir}fonts/${d}/OFL.txt`), d).toBe(true);
 	});
 
 	it("the first frame is dark before any script runs", () => {

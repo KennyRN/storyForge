@@ -12,6 +12,7 @@
 	--space-2: 8px;
 	--space-3: 12px;
 	--space-4: 16px;
+	--stats-h: 64px; /* the stats section: 8 + the graph icon's 24 + 8 + the readout's 16 + 8 */
 	--radius: 6px;
 	--motion: 160ms;
 	--ink-duration: 450ms;
@@ -227,11 +228,12 @@ textarea {
 }
 /* The note's card (Brief 10): the editor sits on the editor's own background, with rounded corners, inside the panel. The
    margin on all four sides is 10% of the panel's width (padding percentages are of the width, even at the top and bottom),
-   never under 12px; the bottom one is measured from the top of the bottom row, because the row is below this box. */
+   never under 12px, except the bottom (decision 93): the card ends 12px above where the stats section starts on the storytelling
+   side, on both faces, so the bottom row below it is as tall as the stats section plus those 12px. */
 .sf-lore-host {
 	flex: 1;
 	min-height: 0;
-	padding: max(12px, 10%);
+	padding: max(12px, 10%) max(12px, 10%) 0;
 }
 .sf-lore-host > .sf-editor-pane {
 	background: var(--purpose-editor-bg);
@@ -247,7 +249,8 @@ textarea {
 	display: flex;
 	justify-content: flex-end;
 	align-items: center;
-	min-height: 56px;
+	box-sizing: border-box;
+	height: calc(var(--stats-h) + var(--space-3));
 	padding: var(--space-3);
 }
 .sf-context-corner {
@@ -363,6 +366,46 @@ textarea {
 .sf-plan-more ul {
 	margin: var(--space-1) 0 0;
 	padding-left: var(--space-4);
+}
+
+/* Settings: a list of sections down the side, one page at a time. */
+.sf-settings {
+	display: grid;
+	grid-template-columns: 9.5em 1fr;
+	gap: var(--space-4);
+	min-height: 22em;
+}
+.sf-settings-tabs {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.sf-settings-tab {
+	padding: 5px 8px;
+	border: 0;
+	border-radius: var(--radius);
+	background: transparent;
+	color: var(--purpose-text-muted);
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+.sf-settings-tab.is-active {
+	color: var(--purpose-accent);
+	background: var(--purpose-raised-bg);
+}
+.sf-settings-page {
+	min-width: 0;
+}
+.sf-sample {
+	margin: var(--space-2) 0 var(--space-1);
+	padding: var(--space-2) var(--space-3);
+	border-radius: var(--radius);
+	background: var(--purpose-raised-bg);
+	color: var(--purpose-text);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 /* Settings. */
@@ -492,4 +535,18 @@ textarea {
 	font-variant-ligatures: none;
 	font-feature-settings: "liga" 0, "calt" 0, "ss01" 0;
 	font-synthesis: none;
+}
+
+/* Any surface drawn in one of the choosable families (Brief 13): what is on screen is what is on disk, so no ligatures or
+   contextual alternates (Inter's "calt", Aleo's and Fraunces' "liga", "dlig"), no style set, no synthesised bold or italic,
+   and optical size following the text size where the font has the axis. */
+.sf-faced,
+.sf-nav-lead,
+.sf-nav-current,
+.sf-nav-row,
+.sf-sample {
+	font-variant-ligatures: none;
+	font-feature-settings: "liga" 0, "calt" 0, "dlig" 0, "ss01" 0;
+	font-synthesis: none;
+	font-optical-sizing: auto;
 }

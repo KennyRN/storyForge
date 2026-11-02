@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.6.0: the navigator and Appearance (Brief 13, decisions 81 to 94)
+
+- New: **six embedded fonts**: Aleo, Atkinson Hyperlegible Next, Courier Prime, Fraunces, Inter and SN Pro, shipped with their licences (`Font Licences.md`) and loaded from the app itself; the app still makes no network request.
+- New: **Settings ▸ Appearance**: a font, a weight and a size (in rem, 0.125 steps, 0.25 with Shift; a figure outside the range is refused, never clamped) for each of the Codex list, the novel title, the series name and the selected chapter. Fraunces also has Softness and Wonk. Defaults: Codex list Atkinson Hyperlegible Next, novel title Inter 900, series name Inter 600 at 0.75 rem, selected chapter SN Pro 300 at 1.375 rem. Kept in `project.md` only when changed; an unknown value is the default and is never rewritten. The library side is unchanged.
+- Changed: **the storytelling navigator**: no project header (it stays on the library side). The series name and the novel's title are buttons that open their library tabs; the selected chapter, always in green, opens a list of chapters over the Codex list, with "Add the next chapter", which now adds at the end of the novel. A project can be **a series or one standalone novel** (Settings ▸ Story, `story-kind`); a standalone has no series line, and "Just one book" sets it.
+- Changed: **settings has seven pages** (General, Story, Appearance, Writing, Sessions, Backups, This Mac), one at a time. Numbering moved to Story and the Codex colour to Appearance.
+- Changed: **the Codex list on the storytelling side**: a 1.1 line height, tighter spacing (icons 1em, a level 8 px deep), and **a card** (the editor's background, rounded) that the list scrolls inside. The card's top and left sit where the list's were, its right keeps a 10% margin, and **both it and the context panel's card end 12 px above the stats section**, which is a fixed height, so nothing moves when the session readout is switched on or off, or when the side is flipped.
+- Changed: **the word-count section's icons are all Tabler's**, at 16 px as outlines (the graph stays 24 px): calendar-due (today), calendar-week, calendar-clock (session), file-text (chapter), book (novel), and the clocks clock, clock-edit (a session ongoing) and clock-pause. They replace the Heroicons and Fluent ones.
+- Development only: the built-app test scripts post every key to the test copy's process, check before each key, and type each character by the event itself; pictures are of the test copy's window only; runs are wrapped in `caffeinate -u`.
+- Unchanged: the core, the disk format (0.17), the prose writer, the close path and the guard; no new Rust command, dependency or network request.
+
 ## 1.5.0: panel widths (Fix 5, decisions 76 and 77)
 
 - Added: **the side panels' widths can be typed in Settings** (new group, "This Mac, this project") as well as dragged. One stored width per panel, set two ways: dragging or keying a divider changes the figure shown the next time Settings opens; a typed figure (Return or leaving the field) moves the panel behind the dialog. A figure outside the limits is refused with its range, and Escape puts it back.

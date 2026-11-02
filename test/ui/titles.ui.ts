@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openPreview } from "./helpers";
+import { openPreview, flipFace } from "./helpers";
 
 // Brief 11, commit 7: the project name and the novel's title in the green accent, as text only (decisions 62 and 64).
 
@@ -12,10 +12,11 @@ const accent = (page: Page) => page.evaluate(() => { const d = document.createEl
 const look = (l: ReturnType<Page["locator"]>) => l.evaluate((e) => { const s = getComputedStyle(e); return { color: s.color, bg: s.backgroundColor, border: s.borderTopWidth, outline: s.outlineStyle }; });
 
 test.describe("the titles", () => {
-	test("on the storytelling side the project name and the novel's title are green text, with no border or box", async ({ page }) => {
+	test("on the storytelling side the series name and the novel's title are green text, with no border or box, and there is no header", async ({ page }) => {
 		await openProject(page);
 		const want = await accent(page);
-		for (const sel of [".sf-left-name", ".sf-nav-novel"]) {
+		await expect(page.locator(".sf-left-name")).toHaveCount(0);
+		for (const sel of [".sf-nav-series", ".sf-nav-novel"]) {
 			const l = await look(page.locator(sel));
 			expect(l, sel).toEqual({ color: want, bg: "rgba(0, 0, 0, 0)", border: "0px", outline: "none" });
 		}
@@ -23,7 +24,7 @@ test.describe("the titles", () => {
 
 	test("on the library side the project name and the other titles are as they were", async ({ page }) => {
 		await openProject(page);
-		await page.getByRole("button", { name: "Flip side" }).click();
+		await flipFace(page);
 		await expect(page.locator(".sf-left[data-face='storyforge']")).toBeVisible();
 		const want = await accent(page);
 		expect((await look(page.locator(".sf-left-name"))).color).not.toBe(want);

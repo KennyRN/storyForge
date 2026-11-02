@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openPreview, shot } from "./helpers";
+import { openPreview, shot, flipFace } from "./helpers";
 
 const PROJECT_MD = "_backstage/storyforge/project.md";
 const dialog = (page: Page) => page.getByRole("dialog");
@@ -58,7 +58,7 @@ test.describe("the menus", () => {
 		await menu(page, "close-project");
 		await expect(page.getByRole("button", { name: "Open Project…" })).toBeVisible();
 		// the text typed just before closing was saved by the close
-		const path = "_story-library/aaa/" + (await page.evaluate(() => window.__preview.read("_story-library/novel-aaa.md"))).match(/chapter-order:\n(?:  - .*\n)+/)![0].trim().split("\n")[2].replace(/^\s*- /, "");
+		const path = "_story-library/aaa/" + (await page.evaluate(() => window.__preview.read("_story-library/novel-aaa.md"))).match(/chapter-order:\n(?:  - .*\n)+/)![0].trim().split("\n").at(-1)!.replace(/^\s*- /, "");
 		expect(await onDisk(page, path)).toContain("Last words.");
 	});
 
@@ -87,7 +87,7 @@ test.describe("the menus", () => {
 
 	test("Undo and Redo also work in a rename field", async ({ page }) => {
 		await openProject(page);
-		await page.getByRole("button", { name: "Flip side" }).click();
+		await flipFace(page);
 		await page.locator(".sf-row", { hasText: "Chapter 1" }).click({ button: "right" });
 		await page.getByRole("menuitem", { name: "Rename" }).click();
 		const input = page.getByLabel("Name");
@@ -144,6 +144,7 @@ test.describe("settings", () => {
 	test("⌘, opens them; opening and closing writes nothing; each row says where its value comes from", async ({ page }) => {
 		await openProject(page);
 		await menu(page, "settings");
+		await dialog(page).getByRole("tab", { name: "Story", exact: true }).click();
 		const d = dialog(page);
 		await expect(d.getByRole("heading", { name: "Settings" })).toBeVisible();
 		await expect(d.getByLabel("Series numbering")).toHaveValue("arabic");
@@ -157,6 +158,7 @@ test.describe("settings", () => {
 	test("the Sessions and Display groups: ranges are kept, an out-of-range value is put back, and the editing threshold can be turned off", async ({ page }) => {
 		await openProject(page);
 		await menu(page, "settings");
+		await dialog(page).getByRole("tab", { name: "Sessions", exact: true }).click();
 		const d = dialog(page);
 		await expect(d.getByRole("region", { name: "Sessions" })).toBeVisible();
 		await expect(d.getByRole("region", { name: "Display" })).toBeVisible();
@@ -182,6 +184,7 @@ test.describe("settings", () => {
 	test("a change writes project.md, only that change, and the source becomes 'this project'", async ({ page }) => {
 		await openProject(page);
 		await menu(page, "settings");
+		await dialog(page).getByRole("tab", { name: "Story", exact: true }).click();
 		const d = dialog(page);
 		await d.getByLabel("Chapter numbering").selectOption("roman-lower");
 		await expect.poll(async () => ((await exists(page, PROJECT_MD)) ? onDisk(page, PROJECT_MD) : "")).toContain("chapter-numbering-style: roman-lower");
@@ -194,6 +197,7 @@ test.describe("settings", () => {
 		await expect(page.locator(".sf-nav-current-title")).toHaveText("Chapter i");
 		// choosing the value already in effect writes nothing more
 		await menu(page, "settings");
+		await dialog(page).getByRole("tab", { name: "Story", exact: true }).click();
 		const before = await onDisk(page, PROJECT_MD);
 		await dialog(page).getByLabel("Chapter numbering").selectOption("roman-lower");
 		await page.waitForTimeout(300);
@@ -203,6 +207,7 @@ test.describe("settings", () => {
 	test("padded numbering shows 01, 02 as the dropdown says", async ({ page }) => {
 		await openProject(page);
 		await menu(page, "settings");
+		await dialog(page).getByRole("tab", { name: "Story", exact: true }).click();
 		await dialog(page).getByLabel("Chapter numbering").selectOption("arabic-padded");
 		await dialog(page).getByRole("button", { name: "Done" }).click();
 		await expect(page.locator(".sf-nav-current-title")).toHaveText("Chapter 01");
@@ -215,7 +220,7 @@ test.describe("settings", () => {
 		await d.getByLabel("Hide the series pane").check();
 		await d.getByLabel("Opens in").selectOption("false");
 		await d.getByRole("button", { name: "Done" }).click();
-		await page.getByRole("button", { name: "Flip side" }).click();
+		await flipFace(page);
 		await expect(page.getByRole("tab")).toHaveCount(3);
 		await expect(page.getByRole("tab", { name: "series" })).toHaveCount(0);
 		await page.reload();
@@ -230,6 +235,7 @@ test.describe("settings", () => {
 	test("Back up everything now makes the full backup and says where", async ({ page }) => {
 		await openProject(page);
 		await menu(page, "settings");
+		await dialog(page).getByRole("tab", { name: "Backups", exact: true }).click();
 		await dialog(page).getByRole("button", { name: "Back up everything now" }).click();
 		const note = page.getByRole("status").filter({ hasText: /^Backed up \d+ files to _sf-backup\// });
 		await expect(note).toBeVisible();
@@ -240,7 +246,9 @@ test.describe("settings", () => {
 	test("in a read-only project every control is off and says why", async ({ page }) => {
 		await openProject(page, async () => void (await touch(page, PROJECT_MD, "---\nformat-version: 99\n---\n")));
 		await menu(page, "settings");
+		await dialog(page).getByRole("tab", { name: "Story", exact: true }).click();
 		await expect(dialog(page).getByLabel("Series numbering")).toBeDisabled();
+		await dialog(page).getByRole("tab", { name: "Backups", exact: true }).click();
 		await expect(dialog(page).getByRole("button", { name: "Back up everything now" })).toBeDisabled();
 		await expect(dialog(page).getByText(/newer storyForge/)).toBeVisible();
 	});

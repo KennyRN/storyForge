@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openPreview } from "./helpers";
+import { flipFace, openPreview } from "./helpers";
 
 // Brief 11, commit 3: no dividing lines between the app's parts (decision 62, rulings in decision 64).
 
@@ -13,9 +13,16 @@ const lines = (page: Page, sel: string) =>
 	page.locator(sel).first().evaluate((el, s) => { const c = getComputedStyle(el); return s.filter((x) => parseFloat((c as any)[`border${x}Width`]) > 0 && (c as any)[`border${x}Style`] !== "none" && (c as any)[`border${x}Color`] !== "rgba(0, 0, 0, 0)"); }, [...sides]);
 
 test.describe("no dividing lines", () => {
+	test("the storytelling side has no header (decision 81); the library side keeps its own, without a line", async ({ page }) => {
+		await openProject(page);
+		await expect(page.locator(".sf-left-header")).toHaveCount(0);
+		await flipFace(page);
+		expect(await lines(page, ".sf-left-header")).toEqual([]);
+	});
+
 	test("none between the navigator, the Codex, the stats and the left panel's header", async ({ page }) => {
 		await openProject(page);
-		for (const sel of [".sf-navigator", ".sf-stats", ".sf-left-header"]) expect(await lines(page, sel), sel).toEqual([]);
+		for (const sel of [".sf-navigator", ".sf-stats"]) expect(await lines(page, sel), sel).toEqual([]);
 	});
 
 	test("the splitters draw no line at rest or on hover, only the resize cursor; the green line is for the keyboard", async ({ page }) => {
@@ -34,7 +41,7 @@ test.describe("no dividing lines", () => {
 
 	test("the library rail's edge is transparent but keeps its width, so the ink indicator stays put", async ({ page }) => {
 		await openProject(page);
-		await page.getByRole("button", { name: /flip side/i }).first().click();
+		await flipFace(page);
 		const rail = page.locator(".sf-rail");
 		await expect(rail).toBeVisible();
 		const c = await rail.evaluate((el) => { const s = getComputedStyle(el); return { w: parseFloat(s.borderRightWidth), color: s.borderRightColor }; });

@@ -1,3 +1,4 @@
+import { applyAppearance } from "./appearance";
 import { installScrollIndicator } from "./kit/scrollIndicator";
 import { AppController, type Host } from "../app/appLife";
 import { mountNotices } from "./kit/notices";
@@ -21,8 +22,9 @@ export async function startApp(host: Host, root: HTMLElement): Promise<AppModel>
 
 	// The Codex colour is a project preference: it recolours both lists at once, and with no project open it is the default.
 	const applyCodexColour = (): void => void (document.documentElement.dataset.codexColour = model.running?.settings.values.codexColour ?? "text");
-	model.subscribe(["settings", "project"], applyCodexColour);
-	applyCodexColour();
+	const applyLook = (): void => (applyCodexColour(), applyAppearance(model.running?.settings.values));
+	model.subscribe(["settings", "project"], applyLook);
+	applyLook();
 
 	let shown: unknown = undefined;
 	let shell: { dispose(): void } | null = null;

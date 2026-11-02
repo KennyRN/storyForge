@@ -162,7 +162,7 @@ export class AppModel {
 		this.setCentreView("overview");
 	}
 
-	/** File ▸ New Chapter, and the navigator's "add the next chapter": a chapter after the current one, opened. */
+	/** File ▸ New Chapter, and the navigator's "add the next chapter": a chapter at the end of the novel, opened. */
 	async addNextChapter(): Promise<void> {
 		const running = this.running;
 		const { book, chapter } = this.nav;
@@ -170,7 +170,7 @@ export class AppModel {
 		if (running.readOnlyReason) return void this.notices.notify({ text: "This project is open read-only." });
 		if (!book) return void this.notices.notify({ text: "This project has no novel yet." });
 		await this.guard(async () => {
-			const created = await createContinuingChapter(running.opened.project, book, chapter);
+			const created = await createContinuingChapter(running.opened.project, book, null); // a true append (decision 81): the end of the novel, whichever chapter is open
 			this.touch("library", "stats");
 			await this.openChapter(book, created.filename);
 		}, "create the chapter");
@@ -187,6 +187,18 @@ export class AppModel {
 		this.nav.loreHidden = !this.nav.loreHidden;
 		this.persistSoon();
 		this.touch("nav");
+	}
+
+	/** The storytelling side's series and novel names: the library side, on that tab, with its overview in the workspace. */
+	openLibraryTab(tab: "series" | "novel"): void {
+		this.nav.forgeTab = tab; // before the flip: the library side draws its tab when it is mounted
+		if (this.nav.face === "storytelling") {
+			this.forgeCentreView = "overview"; // flipFace restores this one; the editor stays mounted under the overview
+			this.flipFace();
+		} else {
+			this.nav.centreView = "overview";
+			this.touch("nav", "face");
+		}
 	}
 
 	/** Moves between the faces. */
@@ -437,7 +449,16 @@ export class AppModel {
 	}
 
 	async openProject(kind: "open" | "create", create?: CreateProjectOptions): Promise<OpenOutcome | null> {
-		return this.guard(() => this.controller.openDialog(kind, create), kind === "create" ? "create the project" : "open the project");
+		const outcome = await this.guard(() => this.controller.openDialog(kind, create), kind === "create" ? "create the project" : "open the project");
+		// A standalone novel says so through the same setting the settings view changes (decision 81): no core change.
+		const running = this.running;
+		if (outcome && kind === "create" && create?.standalone && running && !running.readOnlyReason) {
+			await this.guard(async () => {
+				await setSetting(running.opened.project, running.settings, "storyKind", "standalone");
+				this.touch("settings", "nav");
+			}, "record that this is one novel");
+		}
+		return outcome;
 	}
 
 	async openRecent(index: number): Promise<OpenOutcome | null> {

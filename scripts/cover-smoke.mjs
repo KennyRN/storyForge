@@ -84,6 +84,9 @@ mkdirSync(data, { recursive: true });
 writeFileSync(join(data, "recent.json"), JSON.stringify([project]));
 
 const child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: "ignore" }); // nothing is read from it, so nothing may be piped to a reader that goes away first
+// The test copy is this script's own child: whichever way the script ends (a refusal included), it goes with it.
+process.on("exit", () => child.kill("SIGKILL"));
+for (const sig of ["SIGTERM", "SIGINT", "SIGHUP"]) process.on(sig, () => process.exit(1)); // so the line above runs when the script is stopped from outside
 const problems = [];
 try {
 	if (!(await until("the window", () => find("AXButton", "Open Project").startsWith("found")))) fail("the app's window never appeared");
@@ -91,7 +94,7 @@ try {
 	find("AXButton", `proj ${dir}`, "click");
 	if (!(await until("an editor", () => find("AXTextArea", "Text").startsWith("found")))) fail("the project did not open");
 	await sleep(500);
-	if (!(await until("the Flip side button", () => clickAny("Flip side")))) fail("could not reach the library side");
+	if (!(await until("the novel name", () => clickAny("Open the novel on the library side")))) fail("could not reach the library side");
 	if (!(await until("the novel tab", () => clickAny("novel"), 8000))) fail("could not reach the novel tab");
 	if (!(await until("the novel's cover", () => find("AXButton", "Change the cover of").startsWith("found"), 6000))) problems.push("the novel overview shows no cover image (saved cover, recorded in novel-aaa.md)");
 	if (!(await until("the series tab", () => clickAny("series"), 8000))) fail("could not reach the series tab");

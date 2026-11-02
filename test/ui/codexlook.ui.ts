@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { openPreview } from "./helpers";
+import { openPreview, flipFace } from "./helpers";
 
 // Brief 11, commit 4: the Codex list refined (docs/look-2.md, decisions 62 and 65), on both sides. The fixture's Codex: Cast
 // (Jane, Sam), Places (a folder that is also the note Harbour, and whose own order also lists Harbour), Windows, and others.
@@ -11,7 +11,7 @@ async function openProject(page: Page): Promise<void> {
 }
 const SIDES = [
 	{ name: "storytelling side", show: async (_p: Page) => {} },
-	{ name: "library side", show: async (p: Page) => { await p.getByRole("button", { name: "Flip side" }).click(); await p.getByRole("tab", { name: "codex" }).click(); } },
+	{ name: "library side", show: async (p: Page) => { await flipFace(p); await p.getByRole("tab", { name: "codex" }).click(); } },
 ];
 const tree = (p: Page) => p.locator(".sf-codex-tree");
 const row = (p: Page, name: string) => tree(p).locator('[role="treeitem"]').filter({ has: p.locator(".sf-codex-name", { hasText: new RegExp(`^${name}$`) }) });
@@ -38,8 +38,9 @@ for (const side of SIDES) {
 			expect(icon).toBe(text);
 		});
 
-		test("the highlight is a block in the Codex colour with the panel's colour on it, for hover and selected alike", async ({ page }) => {
-			const [codex, panel] = await tree(page).evaluate((e) => [getComputedStyle(e).color, getComputedStyle(e.closest(".sf-left")!).backgroundColor]);
+		test("the highlight is a block in the Codex colour with the panel's (the card's, on the storytelling side) colour on it, for hover and selected alike", async ({ page }) => {
+			// On the storytelling side the list is on a card (decision 86), so the colour on the highlight is the card's; on the library side it is the panel's.
+			const [codex, panel] = await tree(page).evaluate((e, onCard) => [getComputedStyle(e).color, getComputedStyle(onCard ? e : e.closest(".sf-left")!).backgroundColor], side.name.startsWith("storytelling"));
 			const jane = row(page, "Jane");
 			expect(await jane.evaluate((e) => getComputedStyle(e).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
 			await jane.hover();
@@ -53,9 +54,10 @@ for (const side of SIDES) {
 
 		test("a folder's line is flush with its name, and a nested row's highlight starts at that line", async ({ page }) => {
 			const cast = row(page, "Cast");
-			const nameX = (await box(cast.locator(".sf-codex-name"))).x;
-			const lineLeft = await cast.locator("xpath=..").locator(".sf-codex-children").evaluate((e) => e.getBoundingClientRect().x + parseFloat(getComputedStyle(e, "::before").left));
-			expect(lineLeft).toBeCloseTo(nameX, 0);
+			const nameX = async () => (await box(cast.locator(".sf-codex-name"))).x;
+			const lineAt = () => cast.locator("xpath=..").locator(".sf-codex-children").evaluate((e) => e.getBoundingClientRect().x + parseFloat(getComputedStyle(e, "::before").left));
+			await expect.poll(async () => Math.abs((await lineAt()) - (await nameX())), { message: "layout settles (the fonts land)" }).toBeLessThan(0.5); // read once the list has settled: once in sixty a run read it mid-layout
+			const lineLeft = await lineAt();
 			const jane = (await box(row(page, "Jane"))).x;
 			expect(jane - lineLeft).toBeGreaterThanOrEqual(0);
 			expect(jane - lineLeft).toBeLessThanOrEqual(3);
@@ -126,7 +128,7 @@ test.describe("the Codex colour setting", () => {
 		await openProject(page);
 		expect(await read(page, PROJECT)).toBeNull(); // opening writes nothing
 		const setting = (choice: string) => page.getByRole("radio", { name: new RegExp(`^${choice}$`, "i") });
-		const openSettings = async () => { await page.evaluate(() => window.__preview.emit("menu", "settings")); await expect(page.getByRole("radiogroup", { name: "Codex colour" })).toBeVisible(); };
+		const openSettings = async () => { await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "Appearance", exact: true }).click(); await expect(page.getByRole("radiogroup", { name: "Codex colour" })).toBeVisible(); };
 		await openSettings();
 		await expect(setting("Text")).toHaveAttribute("aria-checked", "true");
 		for (const choice of ["yellow", "green", "aqua", "blue", "purple", "orange", "grey"]) {
@@ -142,7 +144,7 @@ test.describe("the Codex colour setting", () => {
 		}
 		// grey is chosen: the library side's list wears it too
 		await page.getByRole("button", { name: "Done" }).click();
-		await page.getByRole("button", { name: "Flip side" }).click();
+		await flipFace(page);
 		await page.getByRole("tab", { name: "codex" }).click();
 		const grey = await resolved(page, tokens.grey);
 		expect(await tree(page).evaluate((e) => getComputedStyle(e).color)).toBe(grey);
@@ -171,7 +173,7 @@ test.describe("the Codex colour setting", () => {
 test.describe("decision 67", () => {
 	test("the keyboard focus ring stays visible on a highlighted row with green chosen: it is not the highlight's colour", async ({ page }) => {
 		await openProject(page);
-		await page.evaluate(() => window.__preview.emit("menu", "settings"));
+		await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "Appearance", exact: true }).click();
 		await page.getByRole("radio", { name: /^Green$/ }).click();
 		await page.getByRole("button", { name: "Done" }).click();
 		await row(page, "Sam").click(); // selected: highlighted

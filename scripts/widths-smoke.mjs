@@ -59,7 +59,7 @@ const shot = (name) => {
 };
 const setWindowWidth = (w) => osa(`${proc} to set size of window 1 to {${w}, 800}`);
 const clickMenu = (menu, item) => osa(`${proc} to click menu item "${item}" of menu 1 of menu bar item "${menu}" of menu bar 1`);
-const typing = guardedTyping({ osa, fail });
+const typing = guardedTyping({ osa, fail, pid: () => child.pid }); // keys are posted to the test copy's own process (decision 90)
 const problems = [];
 const check = (ok, what) => (ok ? console.log(`ok   ${what}`) : (problems.push(what), console.log(`FAIL ${what}`)));
 const near = (a, b, d = 2) => a !== null && Math.abs(a - b) <= d;
@@ -109,13 +109,11 @@ const findScript = `on run argv
 				end if
 				if act is "focusrow" then
 					-- a Codex row is the group just before its name in the accessibility tree
-					set frontmost to true
 					set focused of (item (i - 1) of els) to true
 					return "found " & n
 				end if
 				if act is "click" then click e
 				if act is "focus" then
-					set frontmost to true
 					set focused of e to true
 				end if
 				if act is "isfocused" then return "found " & ((focused of e) as string)
@@ -126,7 +124,11 @@ const findScript = `on run argv
 	end tell
 	return "none"
 end run`;
-const find = (role, prefix, act = "none", nth = 1) => (osa(findScript, role, prefix, act, String(nth)).stdout || "").trim().replace(/^found.*/s, "found");
+const find = (role, prefix, act = "none", nth = 1) => {
+	// A focus action brings the test copy to the front, by its process id, through the guard (decision 91); nothing else here changes the front window.
+	if (act === "focus" || act === "focusrow") typing.bringToFront();
+	return (osa(findScript, role, prefix, act, String(nth)).stdout || "").trim().replace(/^found.*/s, "found");
+};
 async function until(fn, ms = 15000) {
 	const end = Date.now() + ms;
 	while (Date.now() < end) {
@@ -142,7 +144,7 @@ const child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: "i
 process.on("exit", () => child.kill("SIGTERM"));
 try {
 	await sleep(1500);
-	osa(`${proc} to set frontmost to true`);
+	typing.bringToFront();
 	if (!(await until(() => find("AXButton", "Open Project") === "found"))) fail("the app's window never appeared");
 	if (!(await until(() => find("AXButton", `proj ${dir}`) === "found", 8000))) fail("the temporary HOME did not redirect the app's data folder");
 	osa(`${proc} to set size of window 1 to {1280, 800}`); // before the project opens, so the percent figures are made at this width

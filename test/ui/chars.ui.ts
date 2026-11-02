@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { openPreview } from "./helpers";
+import { openPreview, flipFace } from "./helpers";
 
 // Brief 10, commit 6: the special-characters button always shows (the bottom row of the context panel) and puts its
 // character in the editor the author last wrote in: the chapter, a Codex note, a plot note, the synopsis or the series
@@ -14,7 +14,7 @@ const palette = (page: Page) => page.getByRole("group", { name: "Special charact
 const ash = (page: Page) => palette(page).getByRole("button", { name: "ash", exact: true });
 const centre = (page: Page) => page.locator(".sf-slot--centre .cm-content");
 const lore = (page: Page) => page.locator(".sf-slot--lore .cm-content");
-const flipSide = (page: Page) => page.getByRole("button", { name: "Flip side" }).click();
+const flipSide = (page: Page) => flipFace(page);
 const onDisk = (page: Page, path: string): Promise<string> => page.evaluate((p) => window.__preview.read(p), path);
 const lines = (box: Locator): Promise<string> => box.evaluate((el) => [...el.querySelectorAll(".cm-line")].map((l) => l.textContent ?? "").join("\n"));
 

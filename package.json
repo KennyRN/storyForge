@@ -1,6 +1,6 @@
 {
 	"name": "storyforge",
-	"version": "1.5.0",
+	"version": "1.6.0",
 	"description": "storyForge's data core: a plain TypeScript library over a folder of markdown (the standalone app's engine).",
 	"scripts": {
 		"build": "tsc -noEmit -skipLibCheck",
@@ -19,6 +19,7 @@
 		"test:typing": "node scripts/typing-smoke.mjs",
 		"test:look": "node scripts/look-smoke.mjs",
 		"test:widths": "node scripts/widths-smoke.mjs",
+		"test:fonts": "node scripts/fonts-smoke.mjs",
 		"fixture:leftovers": "tsx scripts/fixture-leftovers.ts"
 	},
 	"license": "MIT",
