@@ -96,6 +96,7 @@ export class AppModel {
 	constructor(readonly controller: AppController) {
 		// Everything the controller does on its own (an outside change applied, a project opened) touches all topics.
 		controller.onChange = () => this.touch(...ALL);
+		controller.onSettingsChanged = () => this.touch("settings", "library", "nav", "face", "stats");
 		// The names the autocorrect knows come from the Codex: collect them again when it or the project changes.
 		this.subscribe(["codex", "project", "library", "archive"], () => void this.namesVersion++);
 		// A field being edited when the app closes is committed first (docs/story-shape.md §5.3).

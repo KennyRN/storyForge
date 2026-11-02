@@ -21,6 +21,7 @@ import {
 	SUPPORTED_FORMAT,
 	loadMachineProjectState,
 	loadSettings,
+	refreshSettings,
 	saveMachineProjectState,
 } from "./settings";
 import { sha256Text } from "../core/hash";
@@ -132,6 +133,8 @@ export class AppController {
 	readonly machine: TauriMachineStore;
 	/** Called with every applied watcher batch (the diagnostic window logs them). */
 	onBatch?: (batch: Batch, result: BatchResult) => void;
+	/** Settings were re-read after an outside change; these keys now hold different values. */
+	onSettingsChanged?: (keys: string[]) => void;
 	onBackup?: (result: BackupResult | Error, trigger: string) => void;
 	onChange?: () => void;
 	/** Called once per open project when writing sessions can't be recorded (writing is unaffected). */
@@ -312,8 +315,19 @@ export class AppController {
 		if (!running || this.shuttingDown) return;
 		const result = await applyBatch({ project: running.opened.project, writer: running.opened.writer }, batch);
 		running.opened.snapshots?.touch();
+		if (result.rescan || [...result.changed, ...result.appeared, ...result.vanished].includes(PROJECT_SETTINGS_PATH)) await this.rereadSettings(running);
 		this.onBatch?.(batch, result);
 		this.onChange?.();
+	}
+
+	/** `project.md` changed from outside: apply what it now says (decision 96). Reading never writes. */
+	private async rereadSettings(running: Running): Promise<void> {
+		try {
+			const out = await refreshSettings(running.opened.project, running.settings, (p) => running.backend.readOutside(p));
+			if (out.changed.length > 0) this.onSettingsChanged?.(out.changed);
+		} catch (e) {
+			console.error("storyForge: settings re-read failed", e);
+		}
 	}
 
 	/** Waits for every batch received so far to be applied. */

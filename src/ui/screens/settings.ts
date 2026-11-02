@@ -276,5 +276,24 @@ export function openSettings(model: AppModel): void {
 	};
 	const section = (title: string, rows: HTMLElement[], label = title): HTMLElement => el("section", { class: "sf-settings-section", attrs: { "aria-label": label } }, el("h3", { class: "sf-summary-title", text: title }), ...rows);
 	redraw();
-	openDialog({ title: "Settings", body, buttons: [{ label: "Done", kind: "primary" }] });
+	// Settings changed from outside (decision 96): follow them, but never redraw under a text box being typed in.
+	let late = false;
+	const follow = (): void => {
+		const active = document.activeElement;
+		if (active && body.contains(active) && (active instanceof HTMLTextAreaElement || (active instanceof HTMLInputElement && active.type !== "checkbox" && active.type !== "radio"))) {
+			late = true;
+			return;
+		}
+		redraw();
+	};
+	const unsubscribe = model.subscribe("settings", () => {
+		if (late) return;
+		follow();
+	});
+	body.addEventListener("focusout", () => {
+		if (!late) return;
+		late = false;
+		setTimeout(follow, 0);
+	});
+	openDialog({ title: "Settings", body, buttons: [{ label: "Done", kind: "primary" }], onClose: unsubscribe });
 }

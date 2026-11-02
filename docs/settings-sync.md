@@ -93,3 +93,13 @@ No change to the core's data, the prose writer, the field writers or the close p
 3. **Deleted `project.md` (§5): keep the last values and say nothing?**
 4. **The idle limit mid-session (§3, care point 1): leave as it is?**
 5. **An unreadable `project.md` mid-session refusing settings writes only,** not making the whole project read-only as at open: agreed?
+
+## Rulings (decision 99, Kenny agrees)
+
+The survey is accepted: the re-read in `onWatchBatch`, settings updated in place, the dialog redrawn while skipping the field being edited, and the checked write inside `modifyFrontmatter`'s transaction. What applies when (§3) is accepted as listed and goes in the report.
+
+1. **A newer `format-version` arriving while the project is open: option B.** A sticky notice says the project was upgraded elsewhere by a newer storyForge, with a "Close and Reopen" action. The action runs the normal close (every editor saved as usual), then reopens the project read-only, as decision 24 sets. From the moment the newer version is seen, settings writes are refused; typing in chapters and fields still saves until the author closes. Option C is not part of this fix.
+2. **Wording:** "elsewhere", not "another Mac". The notice fades after about 6 seconds, isn't red, and is announced to the screen reader.
+3. **`project.md` deleted from outside:** keep the last values for this session; show a quiet notice once, saying settings return to their defaults when the project next opens. A setting changed afterwards creates `project.md` as at first creation: the `format-version` marker and that key only, without bringing back the deleted values.
+4. **The idle limit mid-session:** left as it is. The new limit applies from the next session.
+5. **Unreadable `project.md` mid-session:** settings writes are refused, with the notice once. The rest of the project carries on; the next open handles it as today.

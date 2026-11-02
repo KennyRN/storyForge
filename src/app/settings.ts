@@ -300,6 +300,35 @@ export async function loadSettings(project: Project, readOutside?: OutsideReader
 	};
 }
 
+export interface SettingsRefresh {
+	/** `ok`: read and applied. `unreadable`, `newer` and `absent`: nothing applied, the last values stay. */
+	state: "ok" | "unreadable" | "newer" | "absent";
+	changed: Key[];
+	formatVersion: number;
+}
+
+/**
+ * Re-reads `project.md` after an outside change and applies it to `current` in place (decision 96). Only keys whose value differs
+ * are replaced, so an unchanged list keeps its identity. Never writes. A file that can't be read, was deleted, or is of a newer
+ * format changes nothing here: the caller decides what to tell the author.
+ */
+export async function refreshSettings(project: Project, current: LoadedSettings, readOutside?: OutsideReader): Promise<SettingsRefresh> {
+	const fresh = await loadSettings(project, readOutside);
+	if (!project.exists(PROJECT_SETTINGS_PATH)) return { state: "absent", changed: [], formatVersion: current.formatVersion };
+	if (fresh.formatVersion > SUPPORTED_FORMAT) return { state: "newer", changed: [], formatVersion: fresh.formatVersion };
+	if (fresh.readOnly) return { state: "unreadable", changed: [], formatVersion: current.formatVersion };
+	const changed: Key[] = [];
+	for (const key of Object.keys(FIELDS) as Key[]) {
+		if (JSON.stringify(current.values[key]) !== JSON.stringify(fresh.values[key])) {
+			(current.values as unknown as Record<string, unknown>)[key] = fresh.values[key];
+			changed.push(key);
+		}
+		current.sources[key] = fresh.sources[key];
+	}
+	current.formatVersion = fresh.formatVersion;
+	return { state: "ok", changed, formatVersion: fresh.formatVersion };
+}
+
 const DEFAULT_PROJECT_CONTENT = `---\nformat-version: ${SUPPORTED_FORMAT}\n---\n`;
 
 /**

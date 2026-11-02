@@ -11,7 +11,7 @@ import { Project } from "../../core/project";
 import { sha256Text } from "../../core/hash";
 import { MachineSnapshotStore } from "../machineSnapshots";
 import { buildSnapshot } from "../../core/snapshot";
-import { APPEARANCE_BASE_PX, DEFAULT_PROJECT_SETTINGS, PROJECT_SETTINGS_PATH, type MachineStore, loadMachineProjectState, loadSettings, saveMachineProjectState, setSetting } from "../settings";
+import { APPEARANCE_BASE_PX, DEFAULT_PROJECT_SETTINGS, PROJECT_SETTINGS_PATH, type MachineStore, loadMachineProjectState, loadSettings, refreshSettings, saveMachineProjectState, setSetting } from "../settings";
 
 afterEach(cleanupFixtures);
 
@@ -487,5 +487,54 @@ describe("the Appearance settings (decisions 79 to 84) and story-kind (decision 
 	});
 	it("the pixel base is one named constant", () => {
 		expect(APPEARANCE_BASE_PX).toBe(16);
+	});
+});
+
+describe("refreshSettings: an outside change to project.md (decision 96)", () => {
+	const PROJECT_MD = (root: string) => path.join(root, PROJECT_SETTINGS_PATH);
+
+	it("applies only the keys that differ, in place, keeps unchanged lists by identity, and writes nothing", async () => {
+		const root = copyFixture("series");
+		const project = await open(root);
+		await setSetting(project, await loadSettings(project, reader(root)), "typingNameOptOuts", ["x"]);
+		const p2 = await open(root);
+		const current = await loadSettings(p2, reader(root));
+		const list = current.values.typingNameOptOuts;
+		fs.writeFileSync(PROJECT_MD(root), fs.readFileSync(PROJECT_MD(root), "utf8").replace(/\n---\n$/, "\nstory-kind: standalone\n---\n"));
+		await p2.refresh(PROJECT_SETTINGS_PATH);
+		const settingsBefore = snapshot(root);
+		const out = await refreshSettings(p2, current, reader(root));
+		expect(out.state).toBe("ok");
+		expect(out.changed).toEqual(["storyKind"]);
+		expect(current.values.storyKind).toBe("standalone");
+		expect(current.values.typingNameOptOuts).toBe(list);
+		expect(diffSnapshots(settingsBefore, snapshot(root))).toEqual({ added: [], changed: [], removed: [] });
+	});
+
+	it("keeps the last values when the file is deleted or can't be read", async () => {
+		const root = copyFixture("series");
+		const project = await open(root);
+		const current = await loadSettings(project, reader(root));
+		await setSetting(project, current, "storyKind", "standalone");
+		fs.writeFileSync(PROJECT_MD(root), "---\nstory-kind: [unclosed\n---\n");
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		expect((await refreshSettings(project, current, reader(root))).state).toBe("unreadable");
+		expect(current.values.storyKind).toBe("standalone");
+		fs.rmSync(PROJECT_MD(root));
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		expect((await refreshSettings(project, current, reader(root))).state).toBe("absent");
+		expect(current.values.storyKind).toBe("standalone");
+	});
+
+	it("reports a newer format without applying it", async () => {
+		const root = copyFixture("series");
+		const project = await open(root);
+		const current = await loadSettings(project, reader(root));
+		await setSetting(project, current, "storyKind", "standalone");
+		fs.writeFileSync(PROJECT_MD(root), "---\nformat-version: 9\nstory-kind: series\n---\n");
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		const out = await refreshSettings(project, current, reader(root));
+		expect(out).toMatchObject({ state: "newer", formatVersion: 9, changed: [] });
+		expect(current.values.storyKind).toBe("standalone");
 	});
 });
