@@ -28,8 +28,10 @@ export function openSettings(model: AppModel): void {
 	if (!running) return void model.notices.notify({ text: "Open a project first." });
 	const project = running.opened.project;
 	const settings = running.settings;
-	const off = !!running.readOnlyReason;
 
+	// Live: a settings file that can't be read, or is from a newer storyForge, switches the controls off while the dialog is open.
+	const isOff = (): boolean => !!running.readOnlyReason || settings.readOnly;
+	let off = isOff();
 	const change = async <K extends keyof ProjectSettings>(key: K, value: ProjectSettings[K]): Promise<void> => {
 		await model.guard(async () => {
 			model.reportReplaced(await setSetting(project, settings, key, value), value);
@@ -186,6 +188,7 @@ export function openSettings(model: AppModel): void {
 	let page: Page = "General";
 	const body = el("div", { class: "sf-settings" });
 	const redraw = (): void => {
+		off = isOff();
 		const numbering = Object.entries(NUMBERING_STYLE_OPTIONS) as [NumberingStyle, string][];
 		const storyKind = (): HTMLElement => {
 			const group = el("div", { class: "sf-swatches", attrs: { role: "radiogroup", "aria-label": "This story is" } });
@@ -268,7 +271,7 @@ export function openSettings(model: AppModel): void {
 				}),
 			);
 		});
-		const panel = el("div", { class: "sf-settings-page", attrs: { id: "sf-settings-page", role: "tabpanel", "aria-label": page } }, ...(off ? [el("p", { class: "sf-muted", text: running.readOnlyReason })] : []), ...pages[page]);
+		const panel = el("div", { class: "sf-settings-page", attrs: { id: "sf-settings-page", role: "tabpanel", "aria-label": page } }, ...(off ? [el("p", { class: "sf-muted", text: running.readOnlyReason ?? settings.readOnlyReason })] : []), ...pages[page]);
 		body.replaceChildren(tabs, panel);
 		body.querySelectorAll("select").forEach((s) => {
 			if (s.getAttribute("aria-label") === "Opens in") s.value = String(settings.values.autoFocus);

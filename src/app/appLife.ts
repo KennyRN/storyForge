@@ -82,6 +82,8 @@ export interface Running {
 	timings: OpenTimings;
 	/** Why nothing may be written, if so. */
 	readOnlyReason?: string;
+	/** The deleted-settings notice has been given and the file hasn't come back. */
+	settingsAbsentTold?: boolean;
 	/** Records writing sessions; absent in a read-only project, which records nothing. */
 	sessions?: SessionRecorder;
 }
@@ -135,6 +137,8 @@ export class AppController {
 	onBatch?: (batch: Batch, result: BatchResult) => void;
 	/** Settings were re-read after an outside change; these keys now hold different values. */
 	onSettingsChanged?: (keys: string[]) => void;
+	/** A re-read found `project.md` unreadable, gone, or from a newer storyForge. Told once per occurrence. */
+	onSettingsProblem?: (kind: "unreadable" | "absent" | "newer", formatVersion: number) => void;
 	onBackup?: (result: BackupResult | Error, trigger: string) => void;
 	onChange?: () => void;
 	/** Called once per open project when writing sessions can't be recorded (writing is unaffected). */
@@ -323,7 +327,16 @@ export class AppController {
 	/** `project.md` changed from outside: apply what it now says (decision 96). Reading never writes. */
 	private async rereadSettings(running: Running): Promise<void> {
 		try {
+			const was = running.settings.frozen;
 			const out = await refreshSettings(running.opened.project, running.settings, (p) => running.backend.readOutside(p));
+			// Each problem is told once, when it begins (decision 99); a file that reads again says nothing.
+			if (out.state === "unreadable" && was !== "unreadable") this.onSettingsProblem?.("unreadable", out.formatVersion);
+			if (out.state === "newer" && was !== "newer") this.onSettingsProblem?.("newer", out.formatVersion);
+			if (out.state === "absent" && !running.settingsAbsentTold) {
+				running.settingsAbsentTold = true;
+				this.onSettingsProblem?.("absent", out.formatVersion);
+			}
+			if (out.state === "ok") running.settingsAbsentTold = false;
 			if (out.changed.length > 0) this.onSettingsChanged?.(out.changed);
 		} catch (e) {
 			console.error("storyForge: settings re-read failed", e);

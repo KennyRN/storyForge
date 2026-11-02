@@ -235,6 +235,11 @@ export interface LoadedSettings {
 	/** The project was made by a newer storyForge: nothing may be written into it. */
 	readOnly: boolean;
 	readOnlyReason?: string;
+	/**
+	 * Set when a re-read after an outside change found the file unreadable or of a newer format (decision 99): settings writes are
+	 * refused (`readOnly`) but the rest of the project carries on. Cleared when the file reads again.
+	 */
+	frozen?: "unreadable" | "newer";
 	/** The plugin's `selectedNovel` / `selectedObject` / `collapsedCodexFolderIds`, as a starting point for machine settings. */
 	pluginPosition: Partial<MachineProjectState>;
 }
@@ -314,9 +319,25 @@ export interface SettingsRefresh {
  */
 export async function refreshSettings(project: Project, current: LoadedSettings, readOutside?: OutsideReader): Promise<SettingsRefresh> {
 	const fresh = await loadSettings(project, readOutside);
+	const freeze = (why: "unreadable" | "newer", reason: string): void => {
+		current.frozen = why;
+		current.readOnly = true;
+		current.readOnlyReason = reason;
+	};
 	if (!project.exists(PROJECT_SETTINGS_PATH)) return { state: "absent", changed: [], formatVersion: current.formatVersion };
-	if (fresh.formatVersion > SUPPORTED_FORMAT) return { state: "newer", changed: [], formatVersion: fresh.formatVersion };
-	if (fresh.readOnly) return { state: "unreadable", changed: [], formatVersion: current.formatVersion };
+	if (fresh.formatVersion > SUPPORTED_FORMAT) {
+		freeze("newer", fresh.readOnlyReason ?? "This project was made by a newer storyForge.");
+		return { state: "newer", changed: [], formatVersion: fresh.formatVersion };
+	}
+	if (fresh.readOnly) {
+		freeze("unreadable", "The project's settings file (project.md) can't be read, so settings can't be changed until it can.");
+		return { state: "unreadable", changed: [], formatVersion: current.formatVersion };
+	}
+	if (current.frozen) {
+		current.frozen = undefined;
+		current.readOnly = false;
+		current.readOnlyReason = undefined;
+	}
 	const changed: Key[] = [];
 	for (const key of Object.keys(FIELDS) as Key[]) {
 		if (JSON.stringify(current.values[key]) !== JSON.stringify(fresh.values[key])) {

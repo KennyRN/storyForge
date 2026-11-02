@@ -58,3 +58,50 @@ test("changing a setting that was changed elsewhere says so, quietly, and keeps 
 	expect(disk).toContain("codex-colour: yellow");
 	expect(disk).toContain("story-kind: series"); // the other outside change is kept
 });
+
+test.describe("a settings file that can't be used", () => {
+	test("unreadable: told once, controls off, and back on when it reads again", async ({ page }) => {
+		await openProject(page);
+		await page.evaluate(() => window.__preview.emit("menu", "settings"));
+		const dialog = page.getByRole("dialog");
+		await dialog.getByRole("tab", { name: "Story", exact: true }).click();
+		await outside(page, "---\nformat-version: 1\nstory-kind: [unclosed\n---\n");
+		await expect(page.getByRole("status").filter({ hasText: "can’t be read" })).toHaveCount(1);
+		await expect(dialog.getByRole("radio", { name: "One standalone novel" })).toBeDisabled();
+		await outside(page, "---\nformat-version: 1\nstory-kind: [still\n---\n"); // still unreadable: not told again
+		await expect(page.getByRole("status").filter({ hasText: "can’t be read" })).toHaveCount(1);
+		await outside(page, "---\nformat-version: 1\nstory-kind: standalone\n---\n");
+		await expect(dialog.getByRole("radio", { name: "One standalone novel" })).toBeEnabled();
+		await expect(dialog.getByRole("radio", { name: "One standalone novel" })).toBeChecked();
+	});
+
+	test("deleted: a quiet notice once, and the last values stay", async ({ page }) => {
+		await openProject(page);
+		await outside(page, "---\nformat-version: 1\ncodex-colour: green\n---\n");
+		await expect(page.locator("html")).toHaveAttribute("data-codex-colour", "green");
+		await page.evaluate(async (p) => {
+			await window.__preview.rename(p, "_backstage/storyforge/project-gone.md");
+			window.__preview.emit("watch-batch", { paths: [p], rescan: false });
+		}, SETTINGS);
+		await expect(page.getByRole("status").filter({ hasText: "return to their defaults" })).toHaveCount(1);
+		await expect(page.locator("html")).toHaveAttribute("data-codex-colour", "green"); // last values stay
+	});
+
+	test("newer format: a sticky notice with Close and Reopen, and settings can't be changed", async ({ page }) => {
+		await openProject(page);
+		await outside(page, "---\nformat-version: 9\n---\n");
+		const notice = page.getByRole("alert").filter({ hasText: "upgraded elsewhere" });
+		await expect(notice).toBeVisible();
+		await expect(notice.getByRole("button", { name: "Close and Reopen" })).toBeVisible();
+		await page.waitForTimeout(7000);
+		await expect(notice).toBeVisible(); // sticky
+	});
+
+	test("Close and Reopen runs the normal close and reopens the project read-only", async ({ page }) => {
+		await openProject(page);
+		await outside(page, "---\nformat-version: 9\n---\n");
+		await page.getByRole("alert").filter({ hasText: "upgraded elsewhere" }).getByRole("button", { name: "Close and Reopen" }).click();
+		await page.waitForFunction(() => !!window.__app?.running?.readOnlyReason);
+		expect(await onDisk(page)).toBe("---\nformat-version: 9\n---\n");
+	});
+});

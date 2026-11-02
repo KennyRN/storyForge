@@ -97,6 +97,18 @@ export class AppModel {
 	constructor(readonly controller: AppController) {
 		// Everything the controller does on its own (an outside change applied, a project opened) touches all topics.
 		controller.onChange = () => this.touch(...ALL);
+		controller.onSettingsProblem = (kind, version) => {
+			if (kind === "unreadable") this.notices.notify({ text: "The project’s settings file can’t be read, so settings stay as they were and can’t be changed until it can.", key: "settings-file", ms: 12000 });
+			else if (kind === "absent") this.notices.notify({ text: "The project’s settings file has gone. Settings stay as they are for now, and return to their defaults when the project next opens.", key: "settings-file", ms: 12000 });
+			else
+				this.notices.notify({
+					text: `This project was upgraded elsewhere by a newer storyForge (format ${version}). Settings can’t be changed now. Close and reopen it to open it read-only; what you have typed is saved first.`,
+					key: "settings-file",
+					sticky: true,
+					actions: [{ label: "Close and Reopen", onClick: () => void this.openRecent(0) }],
+				});
+			this.touch("settings");
+		};
 		controller.onSettingsChanged = () => this.touch("settings", "library", "nav", "face", "stats");
 		// The names the autocorrect knows come from the Codex: collect them again when it or the project changes.
 		this.subscribe(["codex", "project", "library", "archive"], () => void this.namesVersion++);

@@ -583,3 +583,38 @@ describe("setSetting: checked against the file (decision 96)", () => {
 		expect(text).not.toContain("codex-colour");
 	});
 });
+
+describe("refreshSettings: a file that can't be used mid-session (decision 99)", () => {
+	const PROJECT_MD = (root: string) => path.join(root, PROJECT_SETTINGS_PATH);
+
+	it("unreadable: settings writes are refused until it reads again, then the values apply and writes work", async () => {
+		const root = copyFixture("series");
+		const project = await open(root);
+		const current = await loadSettings(project, reader(root));
+		await setSetting(project, current, "storyKind", "standalone");
+		const good = fs.readFileSync(PROJECT_MD(root), "utf8");
+		fs.writeFileSync(PROJECT_MD(root), "---\nstory-kind: [unclosed\n---\n");
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		await refreshSettings(project, current, reader(root));
+		expect(current.frozen).toBe("unreadable");
+		await expect(setSetting(project, current, "codexColour", "green")).rejects.toBeInstanceOf(ReadOnlyProjectError);
+		fs.writeFileSync(PROJECT_MD(root), good.replace("standalone", "series"));
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		expect((await refreshSettings(project, current, reader(root))).changed).toEqual(["storyKind"]);
+		expect(current.frozen).toBeUndefined();
+		expect(current.readOnly).toBe(false);
+		await setSetting(project, current, "codexColour", "green");
+	});
+
+	it("newer: settings writes are refused from the moment it is seen", async () => {
+		const root = copyFixture("series");
+		const project = await open(root);
+		const current = await loadSettings(project, reader(root));
+		fs.writeFileSync(PROJECT_MD(root), "---\nformat-version: 9\n---\n");
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		await refreshSettings(project, current, reader(root));
+		expect(current.frozen).toBe("newer");
+		await expect(setSetting(project, current, "storyKind", "standalone")).rejects.toBeInstanceOf(ReadOnlyProjectError);
+		expect(fs.readFileSync(PROJECT_MD(root), "utf8")).toBe("---\nformat-version: 9\n---\n");
+	});
+});
