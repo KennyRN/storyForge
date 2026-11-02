@@ -198,6 +198,9 @@ test.describe("the storytelling face", () => {
 
 		test("dragging an entry above another reorders it", async ({ page }) => {
 			await openProject(page);
+			// boundingBox() doesn't wait: under load the list isn't always drawn when the project has opened.
+			await expect(codexRow(page, "Sam")).toBeVisible();
+			await expect(codexRow(page, "Jane")).toBeVisible();
 			const sam = (await codexRow(page, "Sam").boundingBox())!;
 			const jane = (await codexRow(page, "Jane").boundingBox())!;
 			await page.mouse.move(sam.x + 60, sam.y + sam.height / 2);
