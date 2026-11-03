@@ -66,11 +66,11 @@ test.describe("SN Pro", () => {
 
 	test("the Codex list, on the storytelling side and on the library side", async ({ page }) => {
 		await openProject(page);
-		// The storytelling side's Codex list is the author's choice (default Atkinson Hyperlegible Next, decision 84); SN Pro is the library side's.
+		// The Codex list is the author's choice (default Atkinson Hyperlegible Next, decision 84), on both sides (the library side took the storytelling side's settings in Fix 7 polish).
 		expect(await page.getByRole("tree", { name: "Codex" }).evaluate((e) => getComputedStyle(e).fontFamily)).toContain("Atkinson Hyperlegible Next");
 		await flipSide(page);
 		await page.getByRole("tab", { name: "codex" }).click();
-		await expectSnPro(page.getByRole("tree", { name: "Codex" }), "the library Codex");
+		expect(await page.getByRole("tree", { name: "Codex" }).evaluate((e) => getComputedStyle(e).fontFamily)).toContain("Atkinson Hyperlegible Next");
 		await shot(page, "look-codex-library");
 	});
 
