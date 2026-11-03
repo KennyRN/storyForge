@@ -2,7 +2,7 @@
 
 ## 1.6.2 (in progress)
 
-- New: **the app icon** is Kenny's own storyForge mark (a cauldron, a leaf and a line), MIT licensed. Source `src-tauri/icons/storyForge.svg`; the icon files are rendered from it without changing the design.
+- New: **the app icon** is Kenny's own storyForge mark (an anvil and a quill), MIT licensed. Source `src-tauri/icons/storyForge.svg`; the icon files are rendered from it without changing the design.
 
 ## 1.6.1: settings changed elsewhere (Fix 6, decisions 96 to 99)
 
