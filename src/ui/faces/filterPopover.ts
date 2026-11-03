@@ -3,7 +3,7 @@ import { customIcon } from "../kit/customIcon";
 import { el } from "../kit/dom";
 import { icon } from "../kit/icons";
 import type { AppModel } from "../model";
-import { clearFilter, toggleType, toggleUntyped, type TypeFilter } from "./codexFilter";
+import { clearFilter, isFiltering, toggleType, toggleUntyped, type TypeFilter } from "./codexFilter";
 
 /**
  * The filter's popover (decision 107): "Show all", then "Untyped", then each type of the registry with its icon and a tick. It is
@@ -34,13 +34,20 @@ export function openFilterPopover(options: { model: AppModel; anchor: HTMLElemen
 		return b;
 	};
 	const refresh = (): void => {
-		for (const [b, checked] of ticks) b.setAttribute("aria-checked", String(checked()));
+		for (const [b, checked] of ticks) {
+			b.setAttribute("aria-checked", String(checked()));
+			b.classList.toggle("is-chosen", checked()); // rule 1: a chosen row is highlighted (and keeps its tick, which doesn't rely on colour)
+		}
+		showAll.classList.toggle("is-chosen", !isFiltering(filter)); // "Show all" is the current choice when no filter is on
+		if (isFiltering(filter)) showAll.removeAttribute("aria-current");
+		else showAll.setAttribute("aria-current", "true");
 	};
 
+	const showAll = row("Show all", { onClick: () => clearFilter(filter) });
 	const popover = el(
 		"div",
 		{ class: "sf-filter-popover", attrs: { role: "menu", "aria-label": options.label } },
-		row("Show all", { onClick: () => clearFilter(filter) }),
+		showAll,
 		row("Untyped", { checked: () => filter.untyped, onClick: () => toggleUntyped(filter) }),
 		...getCodexTypes().map((t) => row(t.label, { checked: () => filter.types.has(t.type), onClick: () => toggleType(filter, t.type), icon: codexTypeIcon(t.type) ? customIcon(codexTypeIcon(t.type)!) : null, indent: !!t.parentId })),
 	);

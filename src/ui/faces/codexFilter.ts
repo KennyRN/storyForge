@@ -61,7 +61,12 @@ export function filteredCodexTree(project: Project, f: TypeFilter): CodexTreeFol
 	return resolveFiltered(folders, order, new Set(real), matches, f.keptFolders);
 }
 
-export function resolveFiltered(folders: CodexFolders, rootOrder: string[], realPaths: ReadonlySet<string>, matches: ReadonlySet<string>, keptFolders: ReadonlySet<string> = new Set()): CodexTreeFolder {
+/**
+ * `plain` is the unfiltered list's own folder rule (the core's `resolveCodexTree`: an empty folder stays, so it can say "Empty", and
+ * only a folder whose contents are all missing from `matches` goes). It exists so a test can prove this module, given every note,
+ * draws exactly what the normal list draws, and fails if the two ever drift apart (decision 107).
+ */
+export function resolveFiltered(folders: CodexFolders, rootOrder: string[], realPaths: ReadonlySet<string>, matches: ReadonlySet<string>, keptFolders: ReadonlySet<string> = new Set(), plain = false): CodexTreeFolder {
 	const build = (order: string[], seen: Set<string>): CodexTreeItem[] => {
 		const out: CodexTreeItem[] = [];
 		for (const key of order) {
@@ -70,7 +75,10 @@ export function resolveFiltered(folders: CodexFolders, rootOrder: string[], real
 				const entry = folders[key];
 				const children = build(entry.order, new Set(seen).add(key));
 				const linked = entry.linkedNotePath && realPaths.has(entry.linkedNotePath) ? entry.linkedNotePath : undefined;
-				if (children.length === 0 && !(linked && matches.has(linked)) && !keptFolders.has(key)) continue;
+				if (plain) {
+					const hasRealContent = [...collectReferencedPaths(folders, entry.order)].some((p) => realPaths.has(p));
+					if (children.length === 0 && hasRealContent) continue;
+				} else if (children.length === 0 && !(linked && matches.has(linked)) && !keptFolders.has(key)) continue;
 				out.push({ type: "folder", id: key, name: linked ? codexBasename(linked) : entry.name, children, path: linked });
 			} else if (matches.has(key) && realPaths.has(key)) out.push({ type: "file", name: codexBasename(key), path: key });
 		}
@@ -80,6 +88,13 @@ export function resolveFiltered(folders: CodexFolders, rootOrder: string[], real
 	const referenced = collectReferencedPaths(folders, rootOrder);
 	for (const path of realPaths) if (matches.has(path) && !referenced.has(path)) children.push({ type: "file", name: codexBasename(path), path });
 	return { type: "folder", id: "", name: "Codex", children };
+}
+
+/** The Codex tree this module draws with no filter set: it must equal the normal list (see `resolveFiltered`'s `plain`). */
+export function plainCodexTree(project: Project): CodexTreeFolder {
+	const { folders, order } = readCodexFrontmatter(project);
+	const real = collectCodexNotes(project);
+	return resolveFiltered(folders, order, new Set(real), new Set(real), new Set(), true);
 }
 
 /** The archived Codex items the filter shows: a note by its own type, a folder if its linked note or anything inside it matches. */

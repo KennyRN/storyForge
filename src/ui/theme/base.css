@@ -327,7 +327,7 @@ html[data-input="pointer"] .sf-splitter:focus-visible {
 	background: var(--purpose-raised-bg);
 	border: 1px solid var(--purpose-border);
 	border-radius: 6px;
-	box-shadow: 0 4px 12px var(--purpose-shadow);
+	box-shadow: var(--floating-shadow);
 }
 .sf-chars-reason {
 	margin: 0 0 var(--space-1);
@@ -423,9 +423,11 @@ html[data-input="pointer"] .sf-splitter:focus-visible {
 	text-align: left;
 	cursor: pointer;
 }
+.sf-settings-tab:hover,
 .sf-settings-tab.is-active {
-	color: var(--purpose-accent);
-	background: var(--purpose-raised-bg);
+	/* Rule 1: the selected section is a highlighted row, hover the same; the dialog's own surface is the text colour on it. */
+	background: var(--purpose-accent);
+	color: var(--purpose-raised-bg);
 }
 .sf-settings-page {
 	min-width: 0;

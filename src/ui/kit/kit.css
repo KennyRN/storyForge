@@ -74,7 +74,7 @@
 	border-radius: var(--radius);
 	background: var(--purpose-raised-bg);
 	border: 1px solid var(--purpose-border);
-	box-shadow: 0 6px 24px var(--purpose-shadow);
+	box-shadow: var(--floating-shadow);
 }
 .sf-menu-item {
 	display: block;
@@ -156,7 +156,7 @@
 	border-radius: var(--radius);
 	background: var(--purpose-raised-bg);
 	border: 1px solid var(--purpose-border);
-	box-shadow: 0 6px 24px var(--purpose-shadow);
+	box-shadow: var(--floating-shadow);
 	pointer-events: auto;
 }
 .sf-notice--sticky {

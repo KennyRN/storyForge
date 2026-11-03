@@ -159,6 +159,10 @@
 	position: relative;
 	margin: 0 max(12px, 10%) 0 calc(var(--space-4) + 30px);
 }
+/* Open, the selector's fill and the dropdown are one joined piece, so the one shadow is drawn round the pair (a filter on both together), with no line across the join. */
+.sf-nav-select:has(.sf-nav-current[aria-expanded="true"]) {
+	filter: var(--floating-shadow-filter);
+}
 /* Open: a raised surface over the top of the Codex list, the panel's full width, with no border line. */
 .sf-nav-list {
 	position: absolute;
@@ -188,7 +192,9 @@
 	height: 1em;
 }
 .sf-nav-row.is-active {
-	color: var(--purpose-accent);
+	/* Rule 1: the selected chapter is a highlighted row, as the hovered one is (and as in the Codex list). */
+	background: var(--purpose-accent);
+	color: var(--purpose-raised-bg);
 }
 .sf-nav-add:disabled {
 	opacity: 0.5;
@@ -525,6 +531,7 @@ body.sf-codex-drag-active {
 	padding: 6px;
 	background: var(--purpose-raised-bg);
 	border-radius: 10px;
+	box-shadow: var(--floating-shadow);
 }
 .sf-navmenu-gap {
 	height: 8px;
@@ -548,9 +555,7 @@ body.sf-codex-drag-active {
 .sf-navmenu-row.is-plain {
 	padding-left: calc(8px + 1.7em); /* the icon's 1.2em and its 0.5em gap, so all the text shares one column */
 }
-.sf-navmenu-row.is-here {
-	color: var(--purpose-accent);
-}
+.sf-navmenu-row.is-here,
 .sf-navmenu-row:hover:not(:disabled) {
 	background: var(--purpose-accent);
 	color: var(--purpose-raised-bg);
@@ -784,7 +789,7 @@ body.sf-codex-drag-active {
 	padding: 6px;
 	background: var(--purpose-raised-bg);
 	border-radius: 10px;
-	box-shadow: 0 6px 24px var(--purpose-shadow);
+	box-shadow: var(--floating-shadow);
 }
 .sf-filter-row {
 	display: flex;
@@ -801,7 +806,8 @@ body.sf-codex-drag-active {
 	cursor: pointer;
 }
 .sf-filter-row:hover,
-.sf-filter-row:focus-visible {
+.sf-filter-row:focus-visible,
+.sf-filter-row.is-chosen {
 	background: var(--purpose-accent);
 	color: var(--purpose-raised-bg);
 }

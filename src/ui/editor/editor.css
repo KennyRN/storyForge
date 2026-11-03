@@ -149,7 +149,7 @@ body > .cm-tooltip, body > .cm-tooltip.cm-tooltip-below, body > .cm-tooltip.cm-t
 	background: var(--purpose-raised-bg);
 	border: 1px solid var(--purpose-border);
 	border-radius: 4px;
-	box-shadow: 0 4px 12px var(--purpose-shadow);
+	box-shadow: var(--floating-shadow);
 }
 .sf-shortcode-option { display: flex; gap: 12px; align-items: baseline; padding: 3px 8px; border-radius: 3px; cursor: pointer; }
 .sf-shortcode-option.is-selected { background: var(--purpose-raised-hover); }

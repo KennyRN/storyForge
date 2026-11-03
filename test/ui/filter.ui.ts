@@ -155,6 +155,43 @@ for (const list of LISTS) {
 			await expect(tree(page).getByRole("treeitem")).toHaveCount(3);
 		});
 
+		test("Show all after filtering gives back exactly the list that was there, rows and Empty lines included", async ({ page }) => {
+			const before = await tree(page).evaluate((e) => (e as HTMLElement).innerText);
+			const rowsBefore = await shownNames(page);
+			await filterButton(page).click();
+			await tick(page, "Person");
+			await tick(page, "Untyped");
+			expect(await shownNames(page)).not.toEqual(rowsBefore);
+			await popover(page).getByRole("menuitem", { name: "Show all" }).click();
+			expect(await shownNames(page)).toEqual(rowsBefore);
+			expect(await tree(page).evaluate((e) => (e as HTMLElement).innerText)).toBe(before);
+		});
+
+		test("the popover is on screen, not cut by the card, at the default width, at the panel's 200 px minimum and in a short window", async ({ page }) => {
+			const onScreen = async (): Promise<void> => {
+				await filterButton(page).click();
+				const [box, view] = await Promise.all([popover(page).boundingBox(), page.evaluate(() => ({ w: window.innerWidth, h: window.innerHeight }))]);
+				expect(box!.x).toBeGreaterThanOrEqual(0);
+				expect(box!.y).toBeGreaterThanOrEqual(0);
+				expect(box!.x + box!.width).toBeLessThanOrEqual(view.w);
+				expect(box!.y + box!.height).toBeLessThanOrEqual(view.h);
+				// not clipped: the point at the middle of each row is the row itself (the card's rounded clip can't cut a popover in the page's body)
+				for (const r of await popover(page).locator("button").all()) {
+					const b = (await r.boundingBox())!;
+					const hit = await page.evaluate(([x, y]) => document.elementFromPoint(x, y)?.closest(".sf-filter-popover") !== null, [b.x + b.width / 2, b.y + b.height / 2]);
+					expect(hit).toBe(true);
+				}
+				await page.keyboard.press("Escape");
+			};
+			await onScreen();
+			await page.evaluate(() => { const m = window.__app as any; Object.assign(m.nav, { widthUnit: "px", widthsLinked: false, libraryWidth: 200, storyWidth: 200 }); m.touch("nav"); });
+			await expect.poll(() => page.locator(".sf-left").evaluate((e) => e.getBoundingClientRect().width)).toBeLessThanOrEqual(201);
+			await onScreen();
+			await page.setViewportSize({ width: 900, height: 420 });
+			await page.waitForTimeout(200);
+			await onScreen();
+		});
+
 		test("a note or folder created while filtered stays shown until the filter next changes", async ({ page }) => {
 			await filterButton(page).click();
 			await tick(page, "Person");

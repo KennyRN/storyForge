@@ -20,6 +20,7 @@ const chevron = (page: Page) => page.getByRole("button", { name: "Navigate" });
 const menu = (page: Page) => page.getByRole("menu", { name: "Navigate" });
 const item = (page: Page, name: string) => menu(page).getByRole("menuitem", { name, exact: true });
 const accent = (page: Page) => page.evaluate(() => { const d = document.createElement("i"); d.style.color = "var(--purpose-accent)"; document.body.append(d); const c = getComputedStyle(d).color; d.remove(); return c; });
+const accentFill = (page: Page) => page.evaluate(() => { const d = document.createElement("i"); d.style.backgroundColor = "var(--purpose-accent)"; document.body.append(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; });
 const outline = (l: ReturnType<Page["locator"]>) => l.evaluate((e) => getComputedStyle(e).outlineStyle);
 
 test.describe("the navigate menu", () => {
@@ -85,18 +86,19 @@ test.describe("the navigate menu", () => {
 		expect(geo.filter((g) => g.svg)).toHaveLength(5);
 	});
 
-	test("where you are is green, on each side and each tab; every item does its job from both sides", async ({ page }) => {
+	test("where you are is a highlighted row (rule 1), on each side and each tab; every item does its job from both sides", async ({ page }) => {
 		await openProject(page);
-		const green = await accent(page);
+		const green = await accent(page); // the accent fill, the surface's colour on it
+		const fill = (l: ReturnType<typeof item>) => l.evaluate((e) => getComputedStyle(e).backgroundColor);
 		await chevron(page).click();
-		await expect(item(page, "Storytelling")).toHaveCSS("color", green);
-		await expect(item(page, "Codex")).not.toHaveCSS("color", green);
+		expect(await fill(item(page, "Storytelling"))).toBe(await accentFill(page));
+		expect(await fill(item(page, "Codex"))).not.toBe(await accentFill(page));
 		await item(page, "Series").click();
 		await expect(page.getByRole("tab", { name: "series", selected: true })).toBeVisible();
 		await expect(page.locator(".sf-overview")).toBeVisible();
 		await chevron(page).click();
-		await expect(item(page, "Series")).toHaveCSS("color", green);
-		await expect(item(page, "Storytelling")).not.toHaveCSS("color", green);
+		expect(await fill(item(page, "Series"))).toBe(await accentFill(page));
+		expect(await fill(item(page, "Storytelling"))).not.toBe(await accentFill(page));
 		await item(page, "Codex").click();
 		await expect(page.getByRole("tab", { name: "codex", selected: true })).toBeVisible();
 		await chevron(page).click();
