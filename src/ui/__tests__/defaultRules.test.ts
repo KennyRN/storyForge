@@ -94,3 +94,16 @@ describe("rule 1: a selected text row is highlighted as in the Codex list", () =
 		}
 	});
 });
+
+describe("rule 2 gains: unselected rows in floating menus are muted", () => {
+	const body = (sel: string) => all.find((x) => x.selector === sel)!.body;
+	it("the Navigate menu's and the filter popover's rows are drawn in the muted colour, and the lit states replace it", () => {
+		for (const sel of [".sf-navmenu-row", ".sf-filter-row"]) expect(body(sel), sel).toMatch(/(^|[;\s])color:\s*var\(--purpose-text-muted\)/);
+	});
+	it("a greyed-out row is dimmer than an ordinary muted row", () => {
+		const m = body(".sf-navmenu-row:disabled").match(/opacity:\s*([\d.]+)/);
+		expect(m, "opacity set").toBeTruthy();
+		expect(Number(m![1])).toBeLessThanOrEqual(0.5);
+	});
+});
+

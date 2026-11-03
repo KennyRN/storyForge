@@ -130,6 +130,10 @@ test.describe("the navigate menu", () => {
 		await openProject(page, true);
 		await chevron(page).click();
 		await expect(item(page, "Back Up Now")).toBeDisabled();
+		// clearly dimmer than an ordinary muted row (same colour, half the strength)
+		const opacity = (n: string) => item(page, n).evaluate((e) => Number(getComputedStyle(e).opacity));
+		expect(await opacity("Back Up Now")).toBeLessThanOrEqual(0.5);
+		expect(await opacity("Codex")).toBe(1);
 		await expect(item(page, "Back Up Now")).toHaveAttribute("title", "This project is open read-only.");
 		await expect(item(page, "Change Project")).toBeEnabled();
 	});

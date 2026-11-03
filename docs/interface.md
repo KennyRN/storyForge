@@ -407,3 +407,9 @@ Kenny's design. Both are **defaults**: a new list or menu follows them unless Ke
 - **The chapter selector and its dropdown are one joined piece** (decision 97): while the list is open the shadow is drawn round the pair as one silhouette (`--floating-shadow-filter`, a drop-shadow of the same size, defined beside the first), so there is no shadow line across the join.
 - **Exception, by name:** the modal dialog keeps its own deeper shadow (it is not a menu or popover).
 
+**Rule 2 gains: unselected rows in floating menus are muted** (Kenny, 3 November 2026; a default like the others).
+- Unselected rows of a floating menu (the Navigate menu, the filter popover, and any future one) are drawn in `--purpose-text-muted` (`grey2`), text and icon, as the chapter list's unselected chapters already are (decision 80). The current or selected row keeps rule 1's green block; hover looks the same as before.
+- Not affected: the Codex lists (their Codex colour) and the Settings section list (not a floating menu). The older generic context menu (`.sf-menu`) is not changed by this.
+- **Greyed-out rows** (Back Up Now in a read-only project) are the muted colour at half strength (`opacity: 0.5`), so they read as clearly dimmer than an ordinary muted row; the reason stays as the tooltip.
+- **Contrast** (the theme's values): `grey2` `#9DA9A0` on `bg1` `#3A464C` is 3.99:1, the same as the chapter list's today. Kenny's to keep, as with the stats' `grey1` (decision 68). A greyed-out row is about 2.1:1 on purpose: it is unavailable.
+

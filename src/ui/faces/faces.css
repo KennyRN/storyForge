@@ -546,7 +546,7 @@ body.sf-codex-drag-active {
 	border: 0;
 	border-radius: 4px; /* the chapter list's and the Codex rows' shape */
 	background: transparent;
-	color: var(--purpose-text);
+	color: var(--purpose-text-muted); /* rule 2 gains: unselected rows in floating menus are muted (decision 80's grey2) */
 	font: inherit;
 	text-align: left;
 	cursor: pointer;
@@ -565,7 +565,7 @@ body.sf-codex-drag-active {
 }
 .sf-navmenu-row:disabled {
 	color: var(--purpose-text-muted);
-	opacity: 0.6;
+	opacity: 0.5; /* dimmer than an ordinary muted row */
 	cursor: default;
 }
 .sf-left-body {
@@ -813,7 +813,7 @@ body.sf-codex-drag-active {
 	border: 0;
 	border-radius: 4px;
 	background: transparent;
-	color: var(--purpose-text);
+	color: var(--purpose-text-muted);
 	font: inherit;
 	text-align: left;
 	cursor: pointer;

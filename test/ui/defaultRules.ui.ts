@@ -57,6 +57,8 @@ test.describe("rule 1: a selected text row is highlighted", () => {
 		await lit(here, "the Navigate menu's current place");
 		const other = page.getByRole("menuitem", { name: "Codex", exact: true });
 		expect(await style(other, "background-color")).not.toBe(accent); // not selected, not hovered
+		const muted = await resolved(page, "color", "var(--purpose-text-muted)");
+		expect(await style(other, "color"), "an unselected Navigate row is muted").toBe(muted);
 		await other.hover();
 		await lit(other, "hover is the same"); // decision 62
 		await page.keyboard.press("Escape");
@@ -87,6 +89,7 @@ test.describe("rule 1: a selected text row is highlighted", () => {
 			expect(await style(r.locator(".sf-filter-tick"), "visibility")).toBe("visible"); // the tick stays: it doesn't rely on colour
 		}
 		expect(await style(pop.getByRole("menuitem", { name: "Show all" }), "background-color")).not.toBe(accent);
+		expect(await style(pop.getByRole("menuitem", { name: "Show all" }), "color"), "an unticked filter row is muted").toBe(await resolved(page, "color", "var(--purpose-text-muted)"));
 		expect(await style(pop.getByRole("menuitemcheckbox", { name: "Populace", exact: true }), "background-color")).not.toBe(accent);
 		await flipFace(page); // (keeps the page honest: the highlight rule is not tied to the side)
 	});
