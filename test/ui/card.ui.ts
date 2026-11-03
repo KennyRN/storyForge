@@ -31,7 +31,7 @@ test.describe("the context panel's card", () => {
 		await shot(page, "look-card");
 	});
 
-	test("the margin is 10% of the panel's width on the left, right and top, and follows a resize; the bottom row sits directly beneath the card, which ends 12px above where the stats section starts (decision 93)", async ({ page }) => {
+	test("the margin is 10% of the panel's width on the left and right (the top is the title bar's band and a fixed gap), and follows a resize; the bottom row sits directly beneath the card, which ends 12px above where the stats section starts (decision 93)", async ({ page }) => {
 		await openProject(page);
 		await openNote(page);
 		for (const grow of [0, 60]) {
@@ -44,7 +44,7 @@ test.describe("the context panel's card", () => {
 			const m = Math.max(12, p.w * 0.1);
 			expect(c.x - p.x, "left").toBeCloseTo(m, 0);
 			expect(p.r - c.r, "right").toBeCloseTo(m, 0);
-			expect(c.y - p.y, "top").toBeCloseTo(m, 0);
+			expect(c.y - p.y, "top: the title bar's band and the one top line's gap").toBeCloseTo(28 + 20, 0);
 			expect(r.y - c.b, "the bottom row is directly beneath the card").toBeCloseTo(0, 0);
 			expect(p.b - c.b, "bottom: the stats section's height and 12px").toBeCloseTo(64 + 12, 0);
 		}

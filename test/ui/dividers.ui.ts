@@ -13,11 +13,11 @@ const lines = (page: Page, sel: string) =>
 	page.locator(sel).first().evaluate((el, s) => { const c = getComputedStyle(el); return s.filter((x) => parseFloat((c as any)[`border${x}Width`]) > 0 && (c as any)[`border${x}Style`] !== "none" && (c as any)[`border${x}Color`] !== "rgba(0, 0, 0, 0)"); }, [...sides]);
 
 test.describe("no dividing lines", () => {
-	test("the storytelling side has no header (decision 81); the library side keeps its own, without a line", async ({ page }) => {
+	test("neither side has a header (the project's name is in the navigate menu)", async ({ page }) => {
 		await openProject(page);
 		await expect(page.locator(".sf-left-header")).toHaveCount(0);
 		await flipFace(page);
-		expect(await lines(page, ".sf-left-header")).toEqual([]);
+		await expect(page.locator(".sf-left-header")).toHaveCount(0);
 	});
 
 	test("none between the navigator, the Codex, the stats and the left panel's header", async ({ page }) => {
@@ -39,13 +39,13 @@ test.describe("no dividing lines", () => {
 		expect(await bg()).not.toBe("rgba(0, 0, 0, 0)");
 	});
 
-	test("the library rail's edge is transparent but keeps its width, so the ink indicator stays put", async ({ page }) => {
+	test("the library's tab row has no dividing line, and the left rail is gone", async ({ page }) => {
 		await openProject(page);
 		await flipFace(page);
 		const rail = page.locator(".sf-rail");
 		await expect(rail).toBeVisible();
-		const c = await rail.evaluate((el) => { const s = getComputedStyle(el); return { w: parseFloat(s.borderRightWidth), color: s.borderRightColor }; });
-		expect(c.w).toBe(1);
-		expect(c.color).toBe("rgba(0, 0, 0, 0)");
+		const c = await rail.evaluate((el) => { const s = getComputedStyle(el); return { w: parseFloat(s.borderRightWidth) + parseFloat(s.borderBottomWidth), flex: s.flexDirection }; });
+		expect(c.w).toBe(0);
+		expect(c.flex).toBe("row");
 	});
 });

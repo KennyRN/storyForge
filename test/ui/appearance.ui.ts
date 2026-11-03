@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { flipFace, openPreview } from "./helpers";
+import { flipFace, openPreview, openSettingsDialog } from "./helpers";
 
 // Brief 13, commit 4: the settings sections and the Appearance page (decisions 79 to 83).
 
@@ -10,7 +10,7 @@ async function openProject(page: Page): Promise<void> {
 }
 const dialog = (page: Page) => page.getByRole("dialog");
 async function openSettings(page: Page, section?: string): Promise<void> {
-	await page.evaluate(() => window.__preview.emit("menu", "settings"));
+	await openSettingsDialog(page);
 	await expect(dialog(page)).toBeVisible();
 	if (section) await dialog(page).getByRole("tab", { name: section, exact: true }).click();
 }
@@ -78,7 +78,7 @@ test.describe("Appearance", () => {
 		expect(await projectMd(page)).toBe("");
 	});
 
-	test("a font changes only its own part, at once, and is written to project.md; the library side's Codex list keeps SN Pro at 16 px", async ({ page }) => {
+	test("a font changes only its own part, at once, and is written to project.md; the library side's Codex list follows it (Fix 7 polish: it takes the storytelling list's settings)", async ({ page }) => {
 		await openProject(page);
 		await page.waitForFunction(() => document.documentElement.style.getPropertyValue("--ap-chapter-size") !== ""); // the project's own choices are applied
 		const chapterBefore = await style(page, ".sf-nav-current");
@@ -99,8 +99,8 @@ test.describe("Appearance", () => {
 		await flipFace(page);
 		await page.getByRole("tab", { name: "codex" }).click();
 		const lib = await style(page, ".sf-codex-tree");
-		expect(lib.family).toContain("SN Pro");
-		expect(lib.size).toBe("16px");
+		expect(lib.family).toContain("Aleo");
+		expect(lib.size).toBe("24px");
 	});
 
 	test("weights: Courier Prime offers regular and bold only; changing font keeps the weight where the font has it, else the nearest", async ({ page }) => {
@@ -170,7 +170,7 @@ test.describe("Appearance", () => {
 		const sample = dialog(page).getByRole("img", { name: "Sample of the series name" });
 		await expect.poll(() => sample.evaluate((e) => getComputedStyle(e).fontFamily)).toContain("Courier Prime");
 		expect(await sample.evaluate((e) => getComputedStyle(e).fontSize)).toBe("12px"); // 0.75 rem, the series name's default
-		expect((await style(page, ".sf-nav-series")).family).toContain("Courier Prime");
+		await expect.poll(async () => (await style(page, ".sf-nav-series")).family).toContain("Courier Prime"); // the page applies it as the write lands: poll, like the sample above
 	});
 
 	test("an unknown font or size in project.md is the default and isn't rewritten", async ({ page }) => {

@@ -27,7 +27,7 @@ test.describe("the titles", () => {
 		await flipFace(page);
 		await expect(page.locator(".sf-left[data-face='storyforge']")).toBeVisible();
 		const want = await accent(page);
-		expect((await look(page.locator(".sf-left-name"))).color).not.toBe(want);
+		await expect(page.locator(".sf-left-name")).toHaveCount(0); // the project's name is in the navigate menu now
 		await page.getByRole("tab", { name: "novel" }).click();
 		for (const sel of [".sf-left-body .sf-pane-title", ".sf-left-body h2", ".sf-left-body h3"]) {
 			const n = await page.locator(sel).count();

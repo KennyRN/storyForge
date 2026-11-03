@@ -1,6 +1,5 @@
-import { disposeInkSliders, inkSlider } from "../kit/ink";
 import { el, fill } from "../kit/dom";
-import { icon, type IconName } from "../kit/icons";
+import { navIcon, type NavIconName } from "../kit/navIcons";
 import { attachTooltip } from "../kit/tooltip";
 import type { AppModel, ForgeTab } from "../model";
 import { mountArchiveTab } from "./archiveTab";
@@ -8,20 +7,20 @@ import { mountCodexTree } from "./codexTree";
 import { mountNovelTab } from "./novelTab";
 import { mountSeriesTab } from "./seriesTab";
 
-const TABS: { id: ForgeTab; label: string; icon: IconName }[] = [
-	{ id: "codex", label: "codex", icon: "globe" },
-	{ id: "series", label: "series", icon: "library" },
-	{ id: "novel", label: "novel", icon: "book" },
+const TABS: { id: ForgeTab; label: string; icon: NavIconName }[] = [
+	// From the window's outer edge inwards: archive outermost, then novel, series and codex; the storytelling flip follows them.
 	{ id: "archive", label: "archive", icon: "archive" },
+	{ id: "novel", label: "novel", icon: "novel" },
+	{ id: "series", label: "series", icon: "series" },
+	{ id: "codex", label: "codex", icon: "codex" },
 ];
 
-/** The storyForge face's left panel: four tabs (codex, series, novel, archive) down an icon rail with the ink indicator, and the tab's pane beside it. */
+/** The storyForge face's left panel: four tabs (archive, novel, series, codex, from the outer edge) and the storytelling flip, as Kenny's 32 px icons across the top line, spread evenly. The selected tab shows in the accent colour (grey0 at rest, the text colour on hover); there is no ink bar. The tab's pane is below. */
 export function mountStoryForgeFace(host: HTMLElement, model: AppModel): () => void {
 	host.classList.add("sf-face", "sf-face--storyforge");
-	const rail = el("div", { class: "sf-rail", attrs: { role: "tablist", "aria-orientation": "vertical", "aria-label": "Library" } });
+	const rail = el("div", { class: "sf-rail", attrs: { role: "tablist", "aria-orientation": "horizontal", "aria-label": "Library" } });
 	const pane = el("div", { class: "sf-forge-tab", attrs: { role: "tabpanel" } });
 	fill(host, el("div", { class: "sf-forge" }, rail, pane));
-	const ink = inkSlider("forge-rail");
 	let disposePane: (() => void) | null = null;
 	let shown: ForgeTab | null = null;
 
@@ -34,7 +33,6 @@ export function mountStoryForgeFace(host: HTMLElement, model: AppModel): () => v
 			if (overviewTab) model.setCentreView("overview");
 			return;
 		}
-		ink.capture();
 		model.nav.forgeTab = tab;
 		if (overviewTab) model.nav.centreView = "overview";
 		model.touch("nav");
@@ -57,20 +55,23 @@ export function mountStoryForgeFace(host: HTMLElement, model: AppModel): () => v
 					on: {
 						click: () => select(t.id),
 						keydown: (e) => {
-							const next = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
+							const next = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
 							if (!next) return;
 							e.preventDefault();
 							select(list[(i + next + list.length) % list.length].id, true);
 						},
 					},
 				},
-				icon(t.icon, 18),
+				navIcon(t.icon, "32px"),
 			);
 			attachTooltip(tab, t.label);
 			rail.append(tab);
 			if (active && focus) queueMicrotask(() => tab.focus());
 		}
-		ink.mount({ container: rail, buttons: ".sf-tab", variant: "rail" });
+		// The storytelling flip: a button, not a tab (it flips the side, as ⌘\ does). It is never the selected one.
+		const flip = el("button", { class: "sf-tab sf-tab--flip", attrs: { type: "button", "aria-label": "storytelling" }, on: { click: () => model.flipFace() } }, navIcon("storytelling", "32px"));
+		attachTooltip(flip, "storytelling");
+		rail.append(flip);
 	};
 
 	const drawPane = (): void => {
@@ -100,13 +101,11 @@ export function mountStoryForgeFace(host: HTMLElement, model: AppModel): () => v
 			return;
 		}
 		if (shown === model.nav.forgeTab) return;
-		ink.capture();
 		drawRail();
 		drawPane();
 	});
 	return () => {
 		offSync();
 		disposePane?.();
-		disposeInkSliders(["forge-rail"]);
 	};
 }

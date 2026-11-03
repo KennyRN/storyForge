@@ -39,7 +39,6 @@ test.describe("the library", () => {
 		await expect(page.getByRole("tablist", { name: "Library" })).toBeVisible();
 		await expect(page.locator(".sf-slot--lore .cm-content")).toBeVisible();
 		await expect(centre(page)).toContainText("Synthetic sentence number 1");
-		await expect(page.getByRole("button", { name: "Flip side" })).toHaveAttribute("aria-pressed", "true");
 		await flip(page);
 		await expect(page.locator(".sf-nav-novel")).toBeVisible();
 		await expect(page.locator(".sf-slot--lore .cm-content")).toBeVisible();
@@ -50,28 +49,66 @@ test.describe("the library", () => {
 		await flip(page);
 		const tabs = page.getByRole("tab");
 		await expect(tabs).toHaveCount(4);
-		await expect(tabs.nth(0)).toHaveAttribute("aria-label", "codex");
-		await expect(tabs.nth(1)).toHaveAttribute("aria-label", "series");
-		await expect(tabs.nth(2)).toHaveAttribute("aria-label", "novel");
-		await expect(tabs.nth(3)).toHaveAttribute("aria-label", "archive");
+		// from the window's outer edge: archive, novel, series, codex; the storytelling flip follows
+		await expect(tabs.nth(0)).toHaveAttribute("aria-label", "archive");
+		await expect(tabs.nth(1)).toHaveAttribute("aria-label", "novel");
+		await expect(tabs.nth(2)).toHaveAttribute("aria-label", "series");
+		await expect(tabs.nth(3)).toHaveAttribute("aria-label", "codex");
 		await expect(tab(page, "novel")).toHaveAttribute("aria-selected", "true");
-		await expect(page.locator(".sf-rail .sf-ink-bar")).toBeAttached();
-		const before = (await page.locator(".sf-rail .sf-ink-bar").evaluate((e) => e.getBoundingClientRect().top));
+		// the tabs lie across the top and the ink bar is under the selected icon
+		const tops = await Promise.all([0, 1, 2, 3].map((i) => tabs.nth(i).evaluate((e) => e.getBoundingClientRect().top)));
+		expect(new Set(tops.map(Math.round)).size, "one row").toBe(1);
+		// selection is the colour alone: no ink bar, and the screen reader's selected state follows the choice
+		await expect(page.locator(".sf-tabbar-ink, .sf-ink-track")).toHaveCount(0);
+		await expect(tab(page, "novel")).toHaveAttribute("aria-selected", "true");
 		await tab(page, "archive").click();
-		await expect.poll(() => page.locator(".sf-rail .sf-ink-bar").evaluate((e) => e.getBoundingClientRect().top)).toBeGreaterThan(before);
+		await expect(tab(page, "archive")).toHaveAttribute("aria-selected", "true");
+		await expect(tab(page, "novel")).toHaveAttribute("aria-selected", "false");
+		// evenly spread: the gaps between the icons match
+		const all = page.locator(".sf-rail .sf-tab");
+		await expect(all).toHaveCount(5);
+		const lefts = await Promise.all([0, 1, 2, 3, 4].map((i) => all.nth(i).evaluate((e) => { const r = e.getBoundingClientRect(); return { l: r.left, r: r.right }; })));
+		const gaps = [1, 2, 3, 4].map((i) => lefts[i].l - lefts[i - 1].r);
+		expect(Math.max(...gaps) - Math.min(...gaps)).toBeLessThan(1.5);
+		// 32 px icons, and the flip is a button: no tab role
+		for (let i = 0; i < 5; i++) {
+			const sz = await all.nth(i).locator("svg").evaluate((e) => { const r = e.getBoundingClientRect(); return [r.width, r.height]; });
+			expect(sz).toEqual([32, 32]);
+		}
+		const flipButton = page.getByRole("button", { name: "storytelling", exact: true });
+		await expect(flipButton).toHaveAttribute("aria-label", "storytelling");
+		await expect(flipButton).not.toHaveAttribute("role", "tab");
+		// colours: unselected grey0 (the strip icons' resting colour), selected and hovered the accent (hover and selected look the same, decision 62)
+		const col = (l: ReturnType<typeof page.locator>) => l.evaluate((e) => getComputedStyle(e).color);
+		const purpose = (v: string) => page.evaluate((x) => { const d = document.createElement("i"); d.style.color = `var(--purpose-${x})`; document.body.append(d); const c = getComputedStyle(d).color; d.remove(); return c; }, v);
+		expect(await col(tab(page, "codex"))).toBe(await purpose("codex-rest"));
+		expect(await col(tab(page, "archive"))).toBe(await purpose("accent"));
+		await tab(page, "codex").hover();
+		expect(await col(tab(page, "codex"))).toBe(await purpose("accent"));
+		await page.mouse.move(700, 700); // the colour goes when the pointer leaves
+		expect(await col(tab(page, "codex"))).toBe(await purpose("codex-rest"));
+		const flipBtn = page.getByRole("button", { name: "storytelling", exact: true });
+		expect(await col(flipBtn)).toBe(await purpose("codex-rest"));
+		await flipBtn.hover();
+		expect(await col(flipBtn)).toBe(await purpose("accent"));
+		await expect(flipBtn).not.toHaveAttribute("aria-selected", /.*/);
+		await page.mouse.move(700, 700);
+		// the flip flips the side
+		await flipButton.click();
+		await expect(page.getByRole("tablist")).toBeHidden();
 		await shot(page, "storyforge-archive");
 	});
 
-	test("the tabs are reachable with the keyboard (arrows move between them)", async ({ page }) => {
+	test("the tabs are reachable with the keyboard (left and right arrows move between them)", async ({ page }) => {
 		await openProject(page);
 		await flip(page);
 		await tab(page, "novel").focus();
-		await page.keyboard.press("ArrowUp");
+		await page.keyboard.press("ArrowRight");
 		await expect(tab(page, "series")).toBeFocused();
 		await expect(tab(page, "series")).toHaveAttribute("aria-selected", "true");
-		await page.keyboard.press("ArrowUp");
+		await page.keyboard.press("ArrowRight");
 		await expect(tab(page, "codex")).toBeFocused();
-		await page.keyboard.press("ArrowUp"); // wraps
+		await page.keyboard.press("ArrowRight"); // wraps among the tabs (the flip is not one)
 		await expect(tab(page, "archive")).toBeFocused();
 	});
 
@@ -101,13 +138,14 @@ test.describe("the library", () => {
 			await expect(page.locator(".sf-slot--lore .cm-content")).toHaveCount(0);
 		});
 
-		test("an entry opens in the workspace, not the context; flipping back to storytelling puts the chapter back", async ({ page }) => {
+		test("an entry opens in the workspace, not the context; flipping back to storytelling shows the chapter, still open", async ({ page }) => {
 			await openProject(page);
 			await flip(page);
 			await tab(page, "codex").click();
 			await page.locator(".sf-codex-file", { hasText: "Jane" }).click();
-			await expect(page.locator(".sf-slot--centre .cm-content")).toContainText(/\S/);
-			expect(await page.evaluate(() => window.__app.editors!.pathIn("centre"))).toBe("Codex/Jane.md");
+			await expect(page.locator(".sf-slot--library:not([hidden]) .cm-content")).toContainText(/\S/);
+			expect(await page.evaluate(() => window.__app.editors!.pathIn("codex"))).toBe("Codex/Jane.md");
+			expect(await page.evaluate(() => window.__app.editors!.pathIn("centre"))).toBe("_story-library/aaa/ch-a1.md"); // the chapter stays open underneath
 			expect(await page.evaluate(() => window.__app.editors!.pathIn("lore"))).toBeNull();
 			await expect(page.locator(".sf-codex-file", { hasText: "Jane" })).toHaveClass(/is-active/);
 			await flip(page);
@@ -300,7 +338,7 @@ test.describe("the library", () => {
 		test("clicking an archived chapter shows it read-only with its banner", async ({ page }) => {
 			await page.getByRole("button", { name: "日本語の章", exact: true }).click();
 			await expect(page.getByRole("note")).toHaveText("Archived. Unarchive it to edit.");
-			await expect(centre(page)).toHaveAttribute("contenteditable", "false");
+			await expect(page.locator(".sf-slot--library:not([hidden]) .cm-content")).toHaveAttribute("contenteditable", "false");
 		});
 	});
 
@@ -313,4 +351,20 @@ test.describe("the library", () => {
 		await tab(page, "archive").click();
 		await expect(page.getByRole("button", { name: /Unarchive/ }).first()).toBeDisabled();
 	});
+});
+
+test("the five 32 px icons fit the narrowest left panel without overflowing", async ({ page }) => {
+	await openProject(page);
+	await flip(page);
+	// 200 px is the left panel's own minimum (the same-width switch holds it at 280 by default), so it is stored unlinked, in pixels
+	await page.evaluate(() => { const m = window.__app as any; Object.assign(m.nav, { widthUnit: "px", widthsLinked: false, libraryWidth: 200 }); m.touch("nav"); });
+	for (const t of ["archive", "novel", "series", "codex"]) await page.getByRole("tab", { name: t }).click(); // a tab click keeps the stored width
+	const r = await page.evaluate(() => {
+		const rail = document.querySelector(".sf-rail")!;
+		const last = document.querySelector(".sf-tab--flip")!.getBoundingClientRect();
+		return { width: rail.getBoundingClientRect().width, scroll: rail.scrollWidth, right: last.right, railRight: rail.getBoundingClientRect().right };
+	});
+	expect(r.width).toBeLessThanOrEqual(201);
+	expect(r.scroll).toBeLessThanOrEqual(Math.ceil(r.width));
+	expect(r.right).toBeLessThanOrEqual(r.railRight);
 });

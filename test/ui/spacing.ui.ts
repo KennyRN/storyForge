@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { flipFace, openPreview } from "./helpers";
+import { flipFace, openPreview, openSettingsDialog } from "./helpers";
 
 // Brief 13, commit 5 (decision 84): the Codex list's spacing on the storytelling side. The library side's codex tab is unchanged.
 
@@ -10,7 +10,7 @@ async function openProject(page: Page): Promise<void> {
 	await page.waitForTimeout(500);
 }
 const setCodexSize = async (page: Page, rem: string) => {
-	await page.evaluate(() => window.__preview.emit("menu", "settings"));
+	await openSettingsDialog(page);
 	await page.getByRole("dialog").getByRole("tab", { name: "Appearance", exact: true }).click();
 	await page.getByRole("dialog").getByLabel("Codex list size (rem)").fill(rem);
 	await page.getByRole("dialog").getByLabel("Codex list size (rem)").press("Enter");
@@ -91,19 +91,21 @@ test.describe("the Codex list's spacing on the storytelling side", () => {
 		expect(m.container.b).toBeCloseTo(m.samRow.b, 0.5);
 	});
 
-	test("the library side's codex tab is unchanged: 1.4 line height, 28px rows, 16px icons, 1em after the name, 14px between line and text", async ({ page }) => {
+	test("the library side's codex tab has the storytelling list's measures: the same line height, rows, icons, gap after the name and line-to-text distance", async ({ page }) => {
 		await openProject(page);
+		await page.waitForTimeout(400);
+		const story = await measure(page);
 		await flipFace(page);
 		await page.getByRole("tab", { name: "codex" }).click();
 		await page.waitForTimeout(400);
 		const m = await measure(page);
-		expect(m.fs).toBe(16);
-		expect(m.lineHeight).toBeCloseTo(1.4, 2);
-		expect(m.rowH).toBeGreaterThanOrEqual(28);
-		expect(m.castIcon.w).toBe(16);
-		expect(m.janeIcon.w).toBe(16);
-		expect(m.nameToTypeGlyph).toBeCloseTo(16, 0.5);
-		expect(m.janeName.l - (m.lineLeft + 2)).toBeCloseTo(14, 0.5);
+		expect(m.fs).toBe(story.fs);
+		expect(m.lineHeight).toBeCloseTo(story.lineHeight, 2);
+		expect(m.rowH).toBeCloseTo(story.rowH, 0);
+		expect(m.castIcon.w).toBe(story.castIcon.w);
+		expect(m.janeIcon.w).toBe(story.janeIcon.w);
+		expect(m.nameToTypeGlyph).toBeCloseTo(story.nameToTypeGlyph, 0.5);
+		expect(m.janeName.l - (m.lineLeft + 2)).toBeCloseTo(story.janeName.l - (story.lineLeft + 2), 0.5);
 	});
 
 	test("the strip's icons keep their size on both sides", async ({ page }) => {
@@ -213,12 +215,14 @@ test.describe("the Codex card on the storytelling side", () => {
 		for (const [name, r] of Object.entries(worst)) expect(r, name).toBeGreaterThanOrEqual(4.5);
 	});
 
-	test("the library side's codex tab has no card", async ({ page }) => {
+	test("the library side's codex tab has the same card (Fix 7 polish)", async ({ page }) => {
 		await openProject(page);
+		const read = () => page.locator(".sf-codex-tree").evaluate((e) => { const c = getComputedStyle(e); return { bg: c.backgroundColor, radius: c.borderTopLeftRadius, margin: c.marginTop, pad: c.paddingTop }; });
+		const story = await read();
 		await flipFace(page);
 		await page.getByRole("tab", { name: "codex" }).click();
-		const s = await page.locator(".sf-codex-tree").evaluate((e) => { const c = getComputedStyle(e); return { bg: c.backgroundColor, radius: c.borderTopLeftRadius, margin: c.marginTop }; });
-		expect(s).toEqual({ bg: "rgba(0, 0, 0, 0)", radius: "0px", margin: "0px" });
+		expect(await read()).toEqual(story);
+		expect(story.radius).toBe("10px");
 	});
 
 	// Decision 93: both cards end 12px above the stats section, which is a fixed height, with or without the session readout.

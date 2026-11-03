@@ -77,5 +77,7 @@ export const graphIcon = (): SVGElement => draw(GRAPH, 24);
 export const clockIcon = (kind: ClockKind): SVGElement => draw(CLOCKS[kind], 16);
 /** The icon of the count on display, 16 px. */
 export const countIcon = (count: StatsCount): SVGElement => draw(COUNTS[count], 16);
+/** The left panel's navigate menu chevron: Tabler's chevron-down (outline, 2 px stroke, MIT), sized by the caller (the menu draws it at 1em). */
+export const chevronDownIcon = (size = 16): SVGElement => draw(outline("M6 9l6 6l6 -6"), size);
 /** The chapter list's "add the next chapter" button: Tabler's square-rounded-plus (filled, MIT), 16 px, in the current text colour. */
 export const addChapterIcon = (): SVGElement => draw(ADD_CHAPTER, 16);

@@ -1,3 +1,4 @@
+import { installInputMode } from "../kit/inputMode";
 import { installScrollIndicator } from "../kit/scrollIndicator";
 /** The kit on one page, for looking at and testing in WebKit (docs/interface.md §8). */
 import "../theme/index.css";
@@ -105,4 +106,5 @@ app.append(
 );
 mountNotices(noticeHost, notices);
 installScrollIndicator();
+installInputMode();
 document.documentElement.dataset.ready = "true";

@@ -223,7 +223,7 @@ for (const side of SIDES) {
 			await tree(page).getByRole("treeitem", { name: "Windows", exact: true }).click(); // clicks elsewhere
 			await expect.poll(() => onDisk(page, "Codex/Brooch.md")).toBe("");
 			// the new note then opens, and the focus moves into it: wait for that, or it lands on the next box (a real click is never this quick)
-			await page.waitForFunction(() => ["centre", "lore"].some((s) => window.__app.editors!.pathIn(s as "centre" | "lore")?.endsWith("Brooch.md")));
+			await page.waitForFunction(() => ["centre", "lore", "codex"].some((s) => window.__app.editors!.pathIn(s as "centre" | "lore" | "codex")?.endsWith("Brooch.md")));
 			await expect(page.locator(".sf-codex-draft")).toHaveCount(0);
 			await page.getByRole("button", { name: "New note" }).click();
 			await noteBox(page).fill("Jane"); // refused: a note is there

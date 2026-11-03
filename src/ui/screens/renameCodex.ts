@@ -86,8 +86,8 @@ export function openRenameCodex(model: AppModel, notePath: string): void {
 	const apply = async (plan: LinkRewritePlan): Promise<void> => {
 		dialog.setButtons([{ label: "Renaming…", disabled: true }]);
 		const editors = model.editors;
-		const wasInLore = editors?.where(notePath) === "lore";
 		const slot = editors?.where(notePath);
+		const wasInSlot = slot && slot !== "centre" ? slot : null; // a note: the context panel or a library tab's workspace
 		if (slot) await editors?.close(slot); // the note's own editor: saved and closed before the file moves
 		let result: LinkRewriteResult;
 		try {
@@ -96,7 +96,7 @@ export function openRenameCodex(model: AppModel, notePath: string): void {
 			return showResult(plan, undefined, e as Error);
 		}
 		model.touch("codex", "library", "archive", "nav");
-		if (result.status === "done" && wasInLore) await editors?.open("lore", result.newPath);
+		if (result.status === "done" && wasInSlot) await editors?.open(wasInSlot, result.newPath);
 		showResult(plan, result);
 	};
 

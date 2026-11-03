@@ -99,13 +99,13 @@ test.describe("the navigator", () => {
 		await series.click();
 		await expect(page.getByRole("tab", { name: "series", selected: true })).toBeVisible();
 		await expect(page.locator(".sf-overview")).toBeVisible();
-		await expect(page.getByRole("button", { name: "Flip side" })).toHaveAttribute("aria-pressed", "true"); // the library side keeps it
+		await expect(page.getByRole("button", { name: "Flip side" })).toHaveCount(0); // gone: the navigate menu and ⌘\\ flip
 		await flipFace(page);
 		await expect(page.locator(".sf-nav-series")).toBeVisible();
 		await expect(page.locator(".cm-content").first()).toContainText("unsaved words");
 		await novel.click();
 		await expect(page.getByRole("tab", { name: "novel", selected: true })).toBeVisible();
-		await expect(page.locator(".sf-left-name")).toBeVisible(); // the library side's header is as it was
+		await expect(page.locator(".sf-left-name")).toHaveCount(0); // the library side's header is gone too
 	});
 
 	test.describe("the chapter dropdown", () => {
@@ -143,10 +143,14 @@ test.describe("the navigator", () => {
 			expect(await colourOf(rows.nth(1))).toBe(await colour(page, "--purpose-text-muted"));
 			await expect(rows.nth(0)).toHaveAttribute("aria-current", "true");
 			await rows.nth(1).hover();
-			expect(await colourOf(rows.nth(1))).toBe(await colour(page, "--purpose-accent")); // hover takes the selected chapter's colour
+			const raised = await page.evaluate(() => { const d = document.createElement("i"); d.style.color = "var(--purpose-raised-bg)"; document.body.append(d); const c = getComputedStyle(d).color; d.remove(); return c; });
+			const blockOf = (l: ReturnType<Page["locator"]>) => l.evaluate((e) => getComputedStyle(e).backgroundColor);
+			expect(await colourOf(rows.nth(1))).toBe(raised); // hover: a block in the selected chapter's colour, the list's colour on it
+			expect(await blockOf(rows.nth(1))).toBe(await colour(page, "--purpose-accent"));
 			expect(await colourOf(rows.nth(3))).toBe(await colour(page, "--purpose-text-muted"));
 			await rows.nth(3).hover();
-			expect(await colourOf(rows.nth(3))).toBe(await colour(page, "--purpose-accent"));
+			expect(await colourOf(rows.nth(3))).toBe(raised);
+			expect(await blockOf(rows.nth(3))).toBe(await colour(page, "--purpose-accent"));
 			await expect(page.getByText("add the next chapter", { exact: true })).toBeVisible(); // its tooltip
 			await rows.nth(2).focus();
 			await page.keyboard.press("ArrowDown");

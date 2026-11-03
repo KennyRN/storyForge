@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { openPreview, flipFace } from "./helpers";
+import { openPreview, flipFace, openSettingsDialog } from "./helpers";
 
 // Brief 11, commit 4: the Codex list refined (docs/look-2.md, decisions 62 and 65), on both sides. The fixture's Codex: Cast
 // (Jane, Sam), Places (a folder that is also the note Harbour, and whose own order also lists Harbour), Windows, and others.
@@ -39,8 +39,8 @@ for (const side of SIDES) {
 		});
 
 		test("the highlight is a block in the Codex colour with the panel's (the card's, on the storytelling side) colour on it, for hover and selected alike", async ({ page }) => {
-			// On the storytelling side the list is on a card (decision 86), so the colour on the highlight is the card's; on the library side it is the panel's.
-			const [codex, panel] = await tree(page).evaluate((e, onCard) => [getComputedStyle(e).color, getComputedStyle(onCard ? e : e.closest(".sf-left")!).backgroundColor], side.name.startsWith("storytelling"));
+			// The list is on a card on both sides (decision 86, and the library side from Fix 7 polish), so the colour on the highlight is the card's.
+			const [codex, panel] = await tree(page).evaluate((e, onCard) => [getComputedStyle(e).color, getComputedStyle(onCard ? e : e.closest(".sf-left")!).backgroundColor], true); // the library side's list is on the same card now (Fix 7 polish)
 			const jane = row(page, "Jane");
 			expect(await jane.evaluate((e) => getComputedStyle(e).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
 			await jane.hover();
@@ -128,7 +128,7 @@ test.describe("the Codex colour setting", () => {
 		await openProject(page);
 		expect(await read(page, PROJECT)).toBeNull(); // opening writes nothing
 		const setting = (choice: string) => page.getByRole("radio", { name: new RegExp(`^${choice}$`, "i") });
-		const openSettings = async () => { await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "Appearance", exact: true }).click(); await expect(page.getByRole("radiogroup", { name: "Codex colour" })).toBeVisible(); };
+		const openSettings = async () => { await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Appearance", exact: true }).click(); await expect(page.getByRole("radiogroup", { name: "Codex colour" })).toBeVisible(); };
 		await openSettings();
 		await expect(setting("Text")).toHaveAttribute("aria-checked", "true");
 		for (const choice of ["yellow", "green", "aqua", "blue", "purple", "orange", "grey"]) {
@@ -173,7 +173,7 @@ test.describe("the Codex colour setting", () => {
 test.describe("decision 67", () => {
 	test("the keyboard focus ring stays visible on a highlighted row with green chosen: it is not the highlight's colour", async ({ page }) => {
 		await openProject(page);
-		await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "Appearance", exact: true }).click();
+		await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Appearance", exact: true }).click();
 		await page.getByRole("radio", { name: /^Green$/ }).click();
 		await page.getByRole("button", { name: "Done" }).click();
 		await row(page, "Sam").click(); // selected: highlighted

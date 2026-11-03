@@ -13,9 +13,10 @@ export function mountOverviewLayer(layer: HTMLElement, centre: HTMLElement, mode
 	let disposeBody: (() => void) | null = null;
 
 	const draw = (): void => {
-		const want = model.centreCovered ? (model.nav.forgeTab === "series" ? "series" : "novel") : null;
+		const overviewShown = model.centreCovered && !model.libraryTabHasLayer;
+		const want = overviewShown ? (model.nav.forgeTab === "series" ? "series" : "novel") : null;
 		layer.hidden = want === null;
-		centre.toggleAttribute("inert", want !== null);
+		centre.toggleAttribute("inert", model.centreCovered);
 		if (want === shown) return;
 		shown = want;
 		disposeBody?.();
@@ -31,4 +32,23 @@ export function mountOverviewLayer(layer: HTMLElement, centre: HTMLElement, mode
 		off();
 		disposeBody?.();
 	};
+}
+
+/**
+ * The workspace of the library side's Codex and Archive tabs: a covering layer, like the overviews, holding that tab's own editor
+ * slot (the selected entry) or nothing. Nothing is closed or reopened by showing or hiding it: the editors stay mounted, only
+ * hidden, and the chapter's editor stays open and inert underneath while it shows.
+ */
+export function mountLibraryLayer(layer: HTMLElement, hosts: Record<"codex" | "archive", HTMLElement>, model: AppModel): () => void {
+	const draw = (): void => {
+		const on = model.nav.face === "storyforge" && model.libraryTabHasLayer;
+		layer.hidden = !on;
+		for (const tab of ["codex", "archive"] as const) {
+			const show = on && model.nav.forgeTab === tab;
+			hosts[tab].hidden = !show;
+			hosts[tab].toggleAttribute("inert", !show);
+		}
+	};
+	draw();
+	return model.subscribe(["nav", "face", "project"], draw);
 }

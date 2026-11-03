@@ -204,13 +204,14 @@ export class AppModel {
 	}
 
 	/** The storytelling side's series and novel names: the library side, on that tab, with its overview in the workspace. */
-	openLibraryTab(tab: "series" | "novel"): void {
+	openLibraryTab(tab: ForgeTab): void {
+		const overviewTab = tab === "series" || tab === "novel";
 		this.nav.forgeTab = tab; // before the flip: the library side draws its tab when it is mounted
 		if (this.nav.face === "storytelling") {
-			this.forgeCentreView = "overview"; // flipFace restores this one; the editor stays mounted under the overview
+			if (overviewTab) this.forgeCentreView = "overview"; // flipFace restores this one; the editor stays mounted under the overview
 			this.flipFace();
 		} else {
-			this.nav.centreView = "overview";
+			if (overviewTab) this.nav.centreView = "overview";
 			this.touch("nav", "face");
 		}
 	}
@@ -236,7 +237,18 @@ export class AppModel {
 
 	/** True while an overview covers the workspace (the editor underneath is inert). */
 	get centreCovered(): boolean {
-		return this.nav.face === "storyforge" && this.nav.centreView === "overview" && (this.nav.forgeTab === "series" || this.nav.forgeTab === "novel");
+		return this.nav.face === "storyforge" && (this.libraryTabHasLayer || (this.nav.centreView === "overview" && (this.nav.forgeTab === "series" || this.nav.forgeTab === "novel")));
+	}
+
+	/** The library side's Codex and Archive tabs: the workspace is a layer showing that tab's selected entry, or blank. */
+	get libraryTabHasLayer(): boolean {
+		return this.nav.forgeTab === "codex" || this.nav.forgeTab === "archive";
+	}
+
+	/** An entry is being opened in a library tab's workspace: make sure that tab is the one showing. */
+	showLibraryEntry(tab: "codex" | "archive"): void {
+		if (this.nav.forgeTab === tab && this.nav.face === "storyforge") return;
+		this.openLibraryTab(tab);
 	}
 
 	/** Puts the selected chapter back in the workspace if something else (a Codex note opened from the library) is there. */

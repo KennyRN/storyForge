@@ -59,8 +59,7 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 
 		// References to Codex notes: PoV, Location and the default PoV
 		const openNote = (path: string): void => {
-			model.setCentreView("chapter");
-			void model.editors?.open("centre", path);
+			void model.editors?.open("codex", path); // a Codex note shows in the library side's Codex workspace, not over the chapter
 		};
 		const noteExists = (path: string): boolean => project.isFile(path);
 		const refButtons = (refs: CodexRef[], muted: boolean): HTMLElement[] =>

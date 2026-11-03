@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openPreview } from "./helpers";
+import { openPreview, openSettingsDialog } from "./helpers";
 
 // Fix 6, commit 2: project.md changed from outside is re-read and applied at once (decision 96). The preview has no watcher,
 // so the test writes the file and emits the batch (docs: outside edits in the preview).
@@ -32,7 +32,7 @@ test.describe("settings changed elsewhere", () => {
 
 	test("an open settings dialog follows an outside change", async ({ page }) => {
 		await openProject(page);
-		await page.evaluate(() => window.__preview.emit("menu", "settings"));
+		await openSettingsDialog(page);
 		const dialog = page.getByRole("dialog");
 		await expect(dialog).toBeVisible();
 		await dialog.getByRole("tab", { name: "Story", exact: true }).click();
@@ -45,7 +45,7 @@ test.describe("settings changed elsewhere", () => {
 
 test("changing a setting that was changed elsewhere says so, quietly, and keeps the other outside change", async ({ page }) => {
 	await openProject(page);
-	await page.evaluate(() => window.__preview.emit("menu", "settings"));
+	await openSettingsDialog(page);
 	const dialog = page.getByRole("dialog");
 	await dialog.getByRole("tab", { name: "Appearance", exact: true }).click();
 	await outside(page, "---\nformat-version: 1\ncodex-colour: green\nstory-kind: standalone\n---\n");
@@ -62,7 +62,7 @@ test("changing a setting that was changed elsewhere says so, quietly, and keeps 
 test.describe("a settings file that can't be used", () => {
 	test("unreadable: told once, controls off, and back on when it reads again", async ({ page }) => {
 		await openProject(page);
-		await page.evaluate(() => window.__preview.emit("menu", "settings"));
+		await openSettingsDialog(page);
 		const dialog = page.getByRole("dialog");
 		await dialog.getByRole("tab", { name: "Story", exact: true }).click();
 		await outside(page, "---\nformat-version: 1\nstory-kind: [unclosed\n---\n");

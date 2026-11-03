@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openPreview, flipFace } from "./helpers";
+import { openPreview, flipFace, openSettingsDialog } from "./helpers";
 
 // Fix 5, commit 2: the stored panel widths, the same-width switch, the unit and narrowing for display (decisions 76 and 77).
 
@@ -137,7 +137,7 @@ test.describe("panel widths", () => {
 
 	test.describe("in settings", () => {
 		const openSettings = async (page: Page) => {
-			await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "This Mac", exact: true }).click();
+			await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "This Mac", exact: true }).click();
 			await expect(page.getByRole("group", { name: "This Mac, this project" }).or(page.locator("section[aria-label='This Mac, this project']"))).toBeVisible();
 		};
 		const group = (page: Page) => page.locator("section[aria-label='This Mac, this project']");

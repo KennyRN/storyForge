@@ -21,7 +21,7 @@ const json = (p: string) => JSON.parse(readFileSync(root(p), "utf8"));
 const manifest = readFileSync(root("build.rs"), "utf8");
 const commands = [...(/const COMMANDS: &\[&str\] = &\[([^\]]*)\]/.exec(manifest)?.[1].matchAll(/"([a-z_]+)"/g) ?? [])].map((m) => m[1]);
 
-const CORE_ALLOWED = new Set(["core:event:allow-listen", "core:event:allow-unlisten", "core:window:allow-destroy"]);
+const CORE_ALLOWED = new Set(["core:event:allow-listen", "core:event:allow-unlisten", "core:window:allow-destroy", "core:window:allow-start-dragging", "core:window:allow-internal-toggle-maximize"]);
 
 describe("the window's permissions", () => {
 	const files = readdirSync(root("capabilities")).filter((f) => f.endsWith(".json"));

@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.6.3: the navigator's icons and the library's tab row (polish after Fix 7)
+
+- New: **Kenny's own navigator icons** (volcanicMole, based on Tabler Icons, MIT): Storytelling, Codex, Series, Novel and Archive, in the Navigate menu (1.2em before the text) and across the top of the library side.
+- New: **the left panel's Navigate menu**: a chevron at the right end of the top band, on both sides, opening Storytelling, the four library tabs, Back Up Now and Change Project, with where you are in green.
+- Changed: **the library's tabs go across the top** (32 px icons: Archive, Novel, Series, Codex, from the window's outer edge), with the Storytelling icon as a flip (as ⌘\ does). The selected tab shows by colour alone (green; grey at rest, green again on hover, as in the Codex list), so there is no ink bar, and the ink indicator's code is removed. The left rail is gone. Left and right arrows move between the tabs.
+- Changed: **the workspace belongs to the side**: the library's Codex and Archive tabs cover the chapter with their own entry or a blank; the chapter's editor stays open and inert underneath; archived items open in the Archive tab.
+- Changed: **the library's Codex list** takes the storytelling list's Appearance font, weight, size, spacing and card.
+- Changed: **the chapter selector's rows** are shaped like the Codex rows, the hovered row is a block in the accent colour, and its text lines up with the Codex list's; "add the next chapter" is an icon.
+- Changed: **focus rings are for the keyboard only**, and the title bar is invisible (the panels run to the top, with one top line).
+- Fixed: **a change made in Settings while an earlier one is still saving is no longer lost.** When a write landed, the dialog redrew every control, so text being typed in another box was dropped. Now every redraw (after the dialog's own write or after the file changed elsewhere) leaves alone the control in use: a text box keeps its text, caret and focus, and a control whose change is still being saved isn't replaced under the click; once that change lands it shows the stored value.
+- Unchanged: the core, the disk format, the prose writer, the close path (Change Project goes through it) and the guard; no new Rust command, dependency or network request.
+
 ## 1.6.2: the chapter selector (Fix 7, decision 97) and the app icon
 
 - New: **the app icon** is Kenny's own storyForge mark (an anvil and a quill), MIT licensed. Source `src-tauri/icons/storyForge.svg`; the icon files are rendered from it without changing the design.
