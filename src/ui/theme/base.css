@@ -233,7 +233,7 @@ html[data-input="pointer"] .sf-splitter:focus-visible {
 .sf-library-layer {
 	position: absolute;
 	inset: var(--band-h) 0 0 0;
-	background: var(--purpose-editor-bg);
+	background: var(--purpose-panel-bg); /* the library side is not a working area: bg_dim; a Codex entry or an archived item opened here is a card on bg0 (Brief 14 §1.8) */
 	color: var(--purpose-text);
 }
 .sf-library-layer[hidden],
@@ -242,7 +242,18 @@ html[data-input="pointer"] .sf-splitter:focus-visible {
 }
 .sf-slot--library {
 	height: 100%;
+	box-sizing: border-box;
+	padding: var(--top-gap) 32px 12px; /* the card starts on the shared top line */
+	background: var(--purpose-panel-bg);
+}
+.sf-slot--library > .sf-editor-pane {
 	background: var(--purpose-editor-bg);
+	border-radius: 10px;
+	overflow: hidden;
+}
+/* On the library side the strip of the workspace under the title band is bg_dim too (the layers over the chapter editor start below it). */
+.sf-frame:has(.sf-left[data-face="storyforge"]) .sf-centre-wrap {
+	background: var(--purpose-panel-bg);
 }
 .sf-slot--centre {
 	height: 100%;

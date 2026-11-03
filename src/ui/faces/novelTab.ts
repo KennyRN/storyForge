@@ -72,10 +72,10 @@ export function mountNovelTab(host: HTMLElement, model: AppModel): () => void {
 			}
 			return r;
 		};
-		const placedList = el("div", { class: "sf-list", attrs: { role: "list", "aria-label": "Placed chapters" } });
+		const placedList = el("div", { class: "sf-list sf-chapter-list", attrs: { role: "list", "aria-label": "Placed chapters" } });
 		ordered.forEach((c, i) => placedList.append(row(c.name, i)));
 		if (ordered.length === 0) placedList.append(el("div", { class: "sf-muted sf-empty-inline", text: "Drag a chapter here to sequence it." }));
-		const unplacedList = el("div", { class: "sf-list sf-unplaced-list", attrs: { role: "list", "aria-label": "Unplaced chapters" } });
+		const unplacedList = el("div", { class: "sf-list sf-unplaced-list sf-chapter-list", attrs: { role: "list", "aria-label": "Unplaced chapters" } });
 		unplaced.forEach((c, i) => unplacedList.append(row(c.name, ordered.length + i)));
 
 		// Planned lengths and the default PoV

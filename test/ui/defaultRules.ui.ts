@@ -132,7 +132,8 @@ test.describe("rule 1: highlighted rows touch, as in the Codex list", () => {
 			await touch(placed, `the ${tab} pane`);
 			const selected = page.locator(".sf-forge-pane .sf-row.is-selected").first();
 			expect(await style(selected, "background-color"), `${tab}: the accent fill`).toBe(await resolved(page, "background-color", "var(--purpose-accent)"));
-			expect(await style(selected, "color"), `${tab}: the panel's colour on it`).toBe(await resolved(page, "color", "var(--purpose-panel-bg)"));
+			// the surface's colour on it: the Novel tab's list is on a card (bg0), the series pane's is on the panel (bg_dim)
+			expect(await style(selected, "color"), `${tab}: the surface's colour on it`).toBe(await resolved(page, "color", tab === "novel" ? "var(--purpose-editor-bg)" : "var(--purpose-panel-bg)"));
 		}
 	});
 

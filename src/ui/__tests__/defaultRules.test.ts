@@ -76,7 +76,8 @@ describe("rule 1: a selected text row is highlighted as in the Codex list", () =
 			[".sf-settings-tab:hover, .sf-settings-tab.is-active", SURFACE],
 			[".sf-filter-row:hover, .sf-filter-row:focus-visible, .sf-filter-row.is-chosen", SURFACE],
 			[".sf-shortcode-option.is-selected", SURFACE],
-			[".sf-row:hover, .sf-row.is-selected", "--purpose-panel-bg"], // the library panes sit on the panel
+			[".sf-row:hover, .sf-row.is-selected", "--purpose-panel-bg"], // the series and archive panes sit on the panel
+			[".sf-chapter-list .sf-row:hover, .sf-chapter-list .sf-row.is-selected", "--purpose-editor-bg"], // the Novel tab's lists sit on cards
 		] as const) {
 			const r = all.find((x) => x.selector === sel);
 			expect(r, sel).toBeTruthy();

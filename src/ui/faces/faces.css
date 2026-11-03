@@ -717,6 +717,20 @@ body.sf-codex-drag-active {
 .sf-unplaced-list .sf-row.is-selected {
 	color: var(--purpose-panel-bg);
 }
+/* The Novel tab's placed list and unplaced list are each on a card, as the Codex list is (decision 86; Brief 14 §1.8): bg0, 10px corners, no border,
+   the rows 6px in from its edges. On the card the highlight's text is the card's own colour (bg0). The series and archive panes' lists are not on cards. */
+.sf-chapter-list {
+	background: var(--purpose-editor-bg);
+	border-radius: 10px;
+	padding: 6px;
+	margin-block: 0;
+}
+.sf-chapter-list:empty { min-height: 24px; } /* still a place to drop a chapter */
+.sf-chapter-list .sf-row:hover,
+.sf-chapter-list .sf-row.is-selected {
+	background: var(--purpose-accent);
+	color: var(--purpose-editor-bg);
+}
 
 .sf-meta {
 	display: flex;

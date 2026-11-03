@@ -31,7 +31,7 @@
 .sf-bar-marker { position: absolute; top: 0; bottom: 0; margin-left: -1px; height: 100%; stroke: var(--purpose-data-fill); }
 
 /* The layer over the workspace. */
-.sf-overview { position: absolute; inset: var(--band-h) 0 0 0; overflow: auto; background: var(--purpose-editor-bg); color: var(--purpose-text); }
+.sf-overview { position: absolute; inset: var(--band-h) 0 0 0; overflow: auto; background: var(--purpose-panel-bg); /* the library side is for looking: bg_dim, and only the places where you work are cards on bg0 (Brief 14 §1.8) */ color: var(--purpose-text); }
 .sf-overview-body { padding: 24px 32px; max-width: 880px; }
 .sf-overview-title { font-size: 20px; font-weight: 600; margin: 0 0 20px; }
 .sf-overview-sub { font-size: 13px; font-weight: 600; color: var(--purpose-text-muted); margin: 24px 0 8px; }
@@ -65,6 +65,9 @@
 .sf-note-field .cm-placeholder { color: var(--purpose-text-muted); opacity: 0.7; }
 .sf-note-field .cm-selectionBackground, .sf-note-field .cm-editor.cm-focused .cm-selectionBackground { background: var(--purpose-selection); }
 .sf-bar--link { cursor: pointer; }
+/* The novel's synopsis and the series' description (and each novel's synopsis in the series overview) are places you write: cards on bg0, 10px corners, no border. */
+.sf-overview .sf-note-field { background: var(--purpose-editor-bg); border: 0; border-radius: 10px; margin-left: 0; }
+.sf-overview .sf-note-field .cm-content { padding: 8px 12px; }
 
 /* The history view. */
 .sf-history { min-width: min(520px, 70vw); display: flex; flex-direction: column; gap: 4px; }
