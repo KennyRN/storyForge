@@ -41,12 +41,12 @@ test.describe("the navigate menu", () => {
 		expect((await chevron(page).boundingBox())!.x).toBeGreaterThan(before + 20);
 	});
 
-	test("the menu holds Storytelling, the four tabs, a gap, Back Up Now, a gap and Change Project, with no project name", async ({ page }) => {
+	test("the menu holds Storytelling, the four tabs, a gap, Back Up Now, a gap and Open Project, with no project name", async ({ page }) => {
 		await openProject(page);
 		await chevron(page).click();
 		await expect(menu(page)).toBeVisible();
 		const rows = await menu(page).getByRole("menuitem").allInnerTexts();
-		expect(rows).toEqual(["Storytelling", "Codex", "Series", "Novel", "Archive", "Back Up Now", "Change Project"]);
+		expect(rows).toEqual(["Storytelling", "Codex", "Series", "Novel", "Archive", "Back Up Now", "Open Project"]);
 		await expect(menu(page).locator(".sf-navmenu-name")).toHaveCount(0);
 		await expect(menu(page).getByRole("separator")).toHaveCount(2);
 		const order = await menu(page).evaluate((m) => Array.from(m.children).map((c) => c.getAttribute("role")));
@@ -54,36 +54,35 @@ test.describe("the navigate menu", () => {
 		expect(await menu(page).evaluate((e) => { const s = getComputedStyle(e); return [s.borderTopWidth, s.backgroundColor]; })).toEqual(["0px", await page.evaluate(() => { const d = document.createElement("i"); d.style.background = "var(--purpose-raised-bg)"; document.body.append(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; })]);
 	});
 
-	test("the five rows carry Kenny's icons at 1.2em, 0.5em before the text, the text's baseline 0.1em above the icon's bottom; the two plain rows' text lines up in the same column; icons take the row's colour", async ({ page }) => {
+	test("the seven rows carry Kenny's icons at 32px, 0.5em before the text, the middle of the text's capital height on the icon's middle; all the text lines up in the one column; icons take the row's colour (decision 106, amended in 1.6.5)", async ({ page }) => {
 		await openProject(page);
 		await chevron(page).click();
 		const geo = await menu(page).evaluate((m) => Array.from(m.querySelectorAll<HTMLElement>("[role=menuitem]")).map((row) => {
-			const svg = row.querySelector("svg");
+			const svg = row.querySelector("svg")!;
+			const label = row.querySelector<HTMLElement>(".sf-navmenu-label")!;
 			const range = document.createRange();
-			const textNode = Array.from(row.childNodes).find((n) => n.nodeType === Node.TEXT_NODE)!;
-			range.selectNodeContents(textNode);
+			range.selectNodeContents(label.firstChild!);
 			const t = range.getBoundingClientRect();
-			const probe = document.createElement("span");
-			probe.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline";
-			row.append(probe);
-			const baseline = probe.getBoundingClientRect().bottom;
-			probe.remove();
-			const em = parseFloat(getComputedStyle(row).fontSize);
-			const s = svg?.getBoundingClientRect();
-			return { label: row.textContent, em, textLeft: t.left, baseline, svg: s ? { w: s.width, h: s.height, right: s.right, bottom: s.bottom } : null, fill: svg ? getComputedStyle(svg).fill : null, color: getComputedStyle(row).color };
+			// The label's box is trimmed to its capital height (text-box: trim-both cap alphabetic), so its middle is the capitals' middle.
+			const box = label.getBoundingClientRect();
+			const cs = getComputedStyle(row);
+			const ctx = document.createElement("canvas").getContext("2d")!;
+			ctx.font = `${cs.fontStyle} ${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+			const cap = ctx.measureText("H").actualBoundingBoxAscent;
+			const s = svg.getBoundingClientRect();
+			return { label: row.textContent, em: parseFloat(cs.fontSize), textLeft: t.left, capMid: (box.top + box.bottom) / 2, capBox: box.height, cap, iconMid: (s.top + s.bottom) / 2, svg: { w: s.width, h: s.height, right: s.right }, fill: getComputedStyle(svg).fill, color: cs.color };
 		}));
 		const column = geo[0].textLeft;
 		for (const g of geo) {
 			expect(Math.abs(g.textLeft - column), `${g.label}: one text column`).toBeLessThan(1);
-			if (!g.svg) continue;
-			expect(g.svg.w).toBeCloseTo(1.2 * g.em, 0);
-			expect(g.svg.h).toBeCloseTo(1.2 * g.em, 0);
+			expect(g.svg.w).toBeCloseTo(32, 0);
+			expect(g.svg.h).toBeCloseTo(32, 0);
 			expect(g.textLeft - g.svg.right, `${g.label}: the gap`).toBeCloseTo(0.5 * g.em, 0);
-			expect(g.svg.bottom - g.baseline, `${g.label}: baseline above the icon's bottom`).toBeCloseTo(0.1 * g.em, 0);
+			expect(Math.abs(g.capMid - g.iconMid), `${g.label}: capital height centred on the icon`).toBeLessThan(0.75);
+			expect(Math.abs(g.capBox - g.cap), `${g.label}: the label's box is its capital height`).toBeLessThan(1);
 			expect(g.fill, `${g.label}: the row's colour`).toBe(g.color);
 		}
-		expect(geo.filter((g) => !g.svg).map((g) => g.label)).toEqual(["Back Up Now", "Change Project"]);
-		expect(geo.filter((g) => g.svg)).toHaveLength(5);
+		expect(geo).toHaveLength(7);
 	});
 
 	test("where you are is a highlighted row (rule 1), on each side and each tab; every item does its job from both sides", async ({ page }) => {
@@ -115,13 +114,13 @@ test.describe("the navigate menu", () => {
 		await expect(page.getByRole("tab", { name: "archive", selected: true })).toBeVisible();
 	});
 
-	test("Back Up Now does what File's does; Change Project closes through the normal close and reaches the start screen", async ({ page }) => {
+	test("Back Up Now does what File's does; Open Project closes through the normal close and reaches the start screen", async ({ page }) => {
 		await openProject(page);
 		await chevron(page).click();
 		await item(page, "Back Up Now").click();
 		await expect(page.getByText(/Backed up \d+ files/)).toBeVisible();
 		await chevron(page).click();
-		await item(page, "Change Project").click();
+		await item(page, "Open Project").click();
 		await expect(page.getByRole("button", { name: "Open Project…" })).toBeVisible();
 		await expect(page.locator(".sf-left")).toHaveCount(0);
 	});
@@ -135,7 +134,7 @@ test.describe("the navigate menu", () => {
 		expect(await opacity("Back Up Now")).toBeLessThanOrEqual(0.5);
 		expect(await opacity("Codex")).toBe(1);
 		await expect(item(page, "Back Up Now")).toHaveAttribute("title", "This project is open read-only.");
-		await expect(item(page, "Change Project")).toBeEnabled();
+		await expect(item(page, "Open Project")).toBeEnabled();
 	});
 
 	test("keys: ↓ and ↑ move, Return chooses, Escape closes and returns focus to the chevron, with its ring", async ({ page }) => {
@@ -148,7 +147,7 @@ test.describe("the navigate menu", () => {
 		await page.keyboard.press("ArrowUp");
 		await expect(item(page, "Storytelling")).toBeFocused();
 		await page.keyboard.press("End");
-		await expect(item(page, "Change Project")).toBeFocused();
+		await expect(item(page, "Open Project")).toBeFocused();
 		await page.keyboard.press("Escape");
 		await expect(menu(page)).toHaveCount(0);
 		await expect(chevron(page)).toBeFocused();
@@ -219,7 +218,7 @@ test.describe("the chapter list's rows, the add button and the title bar", () =>
 		expect(under).toEqual([]);
 	});
 
-	test("one top line: the series name, the context card, the workspace's first line and (on the library side) its first tab start at the same height", async ({ page }) => {
+	test("one top line: the series name, the context card, the workspace's first line start at the same height; the library side's first tab sits 4px above it", async ({ page }) => {
 		await openProject(page);
 		await page.locator(".sf-codex-tree [data-key]").filter({ hasText: "Jane" }).first().click();
 		await expect(page.locator(".sf-lore-host > .sf-editor-pane")).toBeVisible();
@@ -229,7 +228,7 @@ test.describe("the chapter list's rows, the add button and the title bar", () =>
 		expect(await top(".sf-lore-host > .sf-editor-pane")).toBeCloseTo(want, 0);
 		expect(await top(".sf-slot--centre .cm-line")).toBeCloseTo(want, 0);
 		await flipFace(page);
-		expect(await top(".sf-tab")).toBeCloseTo(want, 0);
+		expect(await top(".sf-tab")).toBeCloseTo(44, 0); // 28 + 16: 4px above the shared line, accepted
 	});
 
 	test("the chapter list's and the closed selector's text start where the Codex list's does", async ({ page }) => {
