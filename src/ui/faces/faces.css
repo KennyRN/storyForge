@@ -575,7 +575,7 @@ body.sf-codex-drag-active {
 .sf-tabbar-ink {
 	position: absolute;
 	left: 0;
-	bottom: 6px;
+	top: 0;
 	height: 2px;
 	background: var(--purpose-accent);
 	transition: transform var(--ink-duration) cubic-bezier(0.65, 0, 0.35, 1);
@@ -593,7 +593,7 @@ body.sf-codex-drag-active {
 	border: 0;
 	border-radius: var(--radius);
 	background: transparent;
-	color: var(--purpose-text-muted);
+	color: var(--purpose-codex-rest); /* grey0, the strip icons' resting colour (decision 67) */
 	cursor: pointer;
 }
 .sf-tab:hover {
@@ -624,10 +624,10 @@ body.sf-codex-drag-active {
 .sf-forge-body {
 	flex: 1;
 	min-height: 0;
-	padding: var(--top-gap) var(--space-3) var(--space-4) var(--space-3);
+	padding: var(--space-1) var(--space-3) var(--space-4) var(--space-3); /* starts where the Codex card's top is, so nothing jumps between tabs */
 }
 .sf-series-title {
-	padding: var(--space-3) var(--space-4) var(--space-1);
+	padding: var(--space-1) var(--space-4) var(--space-1); /* its text starts where the Codex card's top is */
 	font-weight: 600;
 }
 .sf-empty-inline {

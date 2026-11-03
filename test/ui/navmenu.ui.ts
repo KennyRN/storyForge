@@ -326,3 +326,20 @@ test.describe("the library side's tabs and Codex", () => {
 		expect(strip!.x + strip!.width).toBeLessThanOrEqual(tree!.x + 1);
 	});
 });
+
+test("the panes under the tab row start where the Codex card's top is, so nothing jumps between tabs", async ({ page }) => {
+	await openProject(page);
+	await flipFace(page);
+	const top = async (name: string) => {
+		await page.getByRole("tab", { name }).click();
+		await page.waitForTimeout(150);
+		return page.evaluate(() => {
+			const pane = document.querySelector(".sf-forge-tab")!;
+			const first = pane.querySelector(".sf-codex-tree, .sf-series-title, .sf-forge-body > *")!;
+			const text = first.querySelector(".sf-series-title-text, .sf-row, .sf-codex-file") ?? first;
+			return (first.classList.contains("sf-series-title") ? text : first).getBoundingClientRect().top;
+		});
+	};
+	const card = await top("codex");
+	for (const t of ["series", "novel", "archive"]) expect(Math.abs((await top(t)) - card), t).toBeLessThan(6);
+});

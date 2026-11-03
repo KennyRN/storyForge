@@ -49,10 +49,11 @@ test.describe("the library", () => {
 		await flip(page);
 		const tabs = page.getByRole("tab");
 		await expect(tabs).toHaveCount(4);
-		await expect(tabs.nth(0)).toHaveAttribute("aria-label", "codex");
-		await expect(tabs.nth(1)).toHaveAttribute("aria-label", "series");
-		await expect(tabs.nth(2)).toHaveAttribute("aria-label", "novel");
-		await expect(tabs.nth(3)).toHaveAttribute("aria-label", "archive");
+		// from the window's outer edge: archive, novel, series, codex; the storytelling flip follows
+		await expect(tabs.nth(0)).toHaveAttribute("aria-label", "archive");
+		await expect(tabs.nth(1)).toHaveAttribute("aria-label", "novel");
+		await expect(tabs.nth(2)).toHaveAttribute("aria-label", "series");
+		await expect(tabs.nth(3)).toHaveAttribute("aria-label", "codex");
 		await expect(tab(page, "novel")).toHaveAttribute("aria-selected", "true");
 		// the tabs lie across the top and the ink bar is under the selected icon
 		const x = (sel: string) => page.locator(sel).evaluate((e) => { const r = e.getBoundingClientRect(); return { l: r.left, w: r.width, t: r.top, b: r.bottom }; });
@@ -70,9 +71,31 @@ test.describe("the library", () => {
 		await tab(page, "archive").click();
 		await underNovel("archive");
 		// evenly spread: the gaps between the icons match
-		const lefts = await Promise.all([0, 1, 2, 3].map((i) => tabs.nth(i).evaluate((e) => { const r = e.getBoundingClientRect(); return { l: r.left, r: r.right }; })));
-		const gaps = [1, 2, 3].map((i) => lefts[i].l - lefts[i - 1].r);
+		const all = page.locator(".sf-rail .sf-tab");
+		await expect(all).toHaveCount(5);
+		const lefts = await Promise.all([0, 1, 2, 3, 4].map((i) => all.nth(i).evaluate((e) => { const r = e.getBoundingClientRect(); return { l: r.left, r: r.right }; })));
+		const gaps = [1, 2, 3, 4].map((i) => lefts[i].l - lefts[i - 1].r);
 		expect(Math.max(...gaps) - Math.min(...gaps)).toBeLessThan(1.5);
+		// 24 px icons, the bar 6px below the icon's bottom, and the flip is a button: no tab role, and the bar is never under it
+		for (let i = 0; i < 5; i++) {
+			const sz = await all.nth(i).locator("svg").evaluate((e) => { const r = e.getBoundingClientRect(); return [r.width, r.height]; });
+			expect(sz).toEqual([24, 24]);
+		}
+		const gapBar = await page.evaluate(() => document.querySelector(".sf-tabbar-ink")!.getBoundingClientRect().top - document.querySelector(".sf-tab.is-active svg")!.getBoundingClientRect().bottom);
+		expect(gapBar).toBeCloseTo(6, 0);
+		const flipButton = page.getByRole("button", { name: "storytelling", exact: true });
+		await expect(flipButton).toHaveAttribute("aria-label", "storytelling");
+		await expect(flipButton).not.toHaveAttribute("role", "tab");
+		// colours: unselected grey0 (the strip icons' resting colour), selected the accent, hovered the text colour
+		const col = (l: ReturnType<typeof page.locator>) => l.evaluate((e) => getComputedStyle(e).color);
+		const purpose = (v: string) => page.evaluate((x) => { const d = document.createElement("i"); d.style.color = `var(--purpose-${x})`; document.body.append(d); const c = getComputedStyle(d).color; d.remove(); return c; }, v);
+		expect(await col(tab(page, "codex"))).toBe(await purpose("codex-rest"));
+		expect(await col(tab(page, "archive"))).toBe(await purpose("accent"));
+		await tab(page, "codex").hover();
+		expect(await col(tab(page, "codex"))).toBe(await purpose("text"));
+		// the flip flips the side and the bar stays under the tab it was
+		await flipButton.click();
+		await expect(page.getByRole("tablist")).toBeHidden();
 		await shot(page, "storyforge-archive");
 	});
 
@@ -80,12 +103,12 @@ test.describe("the library", () => {
 		await openProject(page);
 		await flip(page);
 		await tab(page, "novel").focus();
-		await page.keyboard.press("ArrowLeft");
+		await page.keyboard.press("ArrowRight");
 		await expect(tab(page, "series")).toBeFocused();
 		await expect(tab(page, "series")).toHaveAttribute("aria-selected", "true");
-		await page.keyboard.press("ArrowLeft");
+		await page.keyboard.press("ArrowRight");
 		await expect(tab(page, "codex")).toBeFocused();
-		await page.keyboard.press("ArrowLeft"); // wraps
+		await page.keyboard.press("ArrowRight"); // wraps among the tabs (the flip is not one)
 		await expect(tab(page, "archive")).toBeFocused();
 	});
 
