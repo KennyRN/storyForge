@@ -40,8 +40,8 @@ export function mountNavMenu(host: HTMLElement, model: AppModel): { button: HTML
 		const onForge = model.nav.face === "storyforge";
 		const rows: HTMLButtonElement[] = [];
 		const item = (label: string, action: () => void, opts: { here?: boolean; disabled?: string | boolean; icon?: NavIconName } = {}): HTMLButtonElement => {
-			const row = el("button", { class: `sf-navmenu-row${opts.here ? " is-here" : ""}`, attrs: { type: "button", role: "menuitem", tabindex: "-1", ...(opts.here ? { "aria-current": "true" } : {}) }, text: label });
-			// Kenny's icon at 32px (the library tabs' size) before the text (the text's baseline 0.1em above its bottom edge, 0.5em between); every row has one.
+			const row = el("button", { class: `sf-navmenu-row${opts.here ? " is-here" : ""}`, attrs: { type: "button", role: "menuitem", tabindex: "-1", ...(opts.here ? { "aria-current": "true" } : {}) } }, el("span", { class: "sf-navmenu-label", text: label }));
+			// Kenny's icon at 32px (the library tabs' size) before the text (the middle of the text's capital height on the icon's middle, 0.5em between); every row has one.
 			if (opts.icon) row.prepend(navIcon(opts.icon, "32px"));
 			if (opts.disabled) {
 				row.disabled = true;

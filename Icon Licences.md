@@ -538,3 +538,5 @@ The five navigator icons (**storytelling**, **codex**, **series**, **novel** and
 The filter by type button in the Codex strip, under New Folder and New Note, on both Codex lists and the Archive tab, is Tabler's **filter** (version 3.32; outline, 2 px stroke, three rounded lines; MIT, the notice is in the MIT section above), supplied by Kenny. Its paths are in `src/ui/kit/icons.ts`.
 
 **1.6.5 changes:** the codex icon is now Kenny's rounded globe ("volcanicMole's Rounded Globe"); the archive icon is the artwork the codex used to have (the sunset). Every Navigate menu row has an icon, so the text-only column rule is gone.
+
+**1.6.5, second change:** the Open Project icon is a badge with the arrow's stroke and the two bars' strokes knocked out of it together, through a mask (`cut` in `navIconShapes.ts`); the file's filled path, which held a halo around them, is not used. Kenny may redraw it later. Navigate menu text is centred on its icon (the middle of the capital height on the icon's middle; decision 106's baseline rule is replaced).

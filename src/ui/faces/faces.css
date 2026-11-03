@@ -540,7 +540,8 @@ body.sf-codex-drag-active {
 	height: 10px; /* 8px, and the 2px that each side of it was */
 }
 .sf-navmenu-row {
-	display: block;
+	display: flex;
+	align-items: center; /* the icon's middle is the row's middle; the label's capital height is centred on it (below) */
 	width: 100%;
 	padding: 4px 8px; /* 3px and half the 2px gap that was between rows */
 	border: 0;
@@ -552,8 +553,11 @@ body.sf-codex-drag-active {
 	cursor: pointer;
 }
 .sf-navmenu-row .sf-navicon {
-	vertical-align: -0.1em; /* the text's baseline sits 0.1em above the icon's bottom edge */
+	flex: none;
 	margin-right: 0.5em;
+}
+.sf-navmenu-label {
+	text-box: trim-both cap alphabetic; /* the label's box is its capital height, so centring the box centres the capitals (decision 106 amended) */
 }
 .sf-navmenu-row.is-here,
 .sf-navmenu-row:hover:not(:disabled) {
