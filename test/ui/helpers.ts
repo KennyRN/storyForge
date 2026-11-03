@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import * as path from "node:path";
 
@@ -25,4 +25,16 @@ export async function shot(page: Page, name: string): Promise<void> {
 export async function flipFace(page: Page): Promise<void> {
 	await page.waitForFunction(() => !!window.__app?.editors); // the menu answers only once a project is open (a button click used to wait for itself)
 	await page.evaluate(() => window.__preview.emit("menu", "flip-face"));
+}
+
+/**
+ * Opens Settings the way the menu does (⌘,) and waits for the dialog to finish opening before anything is clicked: the General page, which
+ * it opens on, is drawn and its tab is the selected one. (The dialog has no readiness signal of its own; its first page's content is the
+ * observable one.) There is no fixed delay and no retry: a click lost at human speed would still show.
+ */
+export async function openSettingsDialog(page: Page): Promise<void> {
+	await page.evaluate(() => window.__preview.emit("menu", "settings"));
+	const d = page.getByRole("dialog");
+	await expect(d.getByRole("tab", { name: "General", exact: true })).toHaveAttribute("aria-selected", "true");
+	await expect(d.getByLabel("Highlight the active chapter")).toBeVisible();
 }

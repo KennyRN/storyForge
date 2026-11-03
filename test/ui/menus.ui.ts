@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openPreview, shot, flipFace } from "./helpers";
+import { openPreview, shot, flipFace, openSettingsDialog } from "./helpers";
 
 const PROJECT_MD = "_backstage/storyforge/project.md";
 const dialog = (page: Page) => page.getByRole("dialog");
@@ -143,7 +143,7 @@ test.describe("the menus", () => {
 test.describe("settings", () => {
 	test("⌘, opens them; opening and closing writes nothing; each row says where its value comes from", async ({ page }) => {
 		await openProject(page);
-		await menu(page, "settings");
+		await openSettingsDialog(page);
 		await dialog(page).getByRole("tab", { name: "Story", exact: true }).click();
 		const d = dialog(page);
 		await expect(d.getByRole("heading", { name: "Settings" })).toBeVisible();
@@ -157,7 +157,7 @@ test.describe("settings", () => {
 
 	test("the Sessions and Display groups: ranges are kept, an out-of-range value is put back, and the editing threshold can be turned off", async ({ page }) => {
 		await openProject(page);
-		await menu(page, "settings");
+		await openSettingsDialog(page);
 		await dialog(page).getByRole("tab", { name: "Sessions", exact: true }).click();
 		const d = dialog(page);
 		await expect(d.getByRole("region", { name: "Sessions" })).toBeVisible();
@@ -183,7 +183,7 @@ test.describe("settings", () => {
 
 	test("a change writes project.md, only that change, and the source becomes 'this project'", async ({ page }) => {
 		await openProject(page);
-		await menu(page, "settings");
+		await openSettingsDialog(page);
 		await dialog(page).getByRole("tab", { name: "Story", exact: true }).click();
 		const d = dialog(page);
 		await d.getByLabel("Chapter numbering").selectOption("roman-lower");
@@ -196,7 +196,7 @@ test.describe("settings", () => {
 		// the navigator now numbers chapters in lower-case roman
 		await expect(page.locator(".sf-nav-current-title")).toHaveText("Chapter i");
 		// choosing the value already in effect writes nothing more
-		await menu(page, "settings");
+		await openSettingsDialog(page);
 		await dialog(page).getByRole("tab", { name: "Story", exact: true }).click();
 		const before = await onDisk(page, PROJECT_MD);
 		await dialog(page).getByLabel("Chapter numbering").selectOption("roman-lower");
@@ -206,7 +206,7 @@ test.describe("settings", () => {
 
 	test("padded numbering shows 01, 02 as the dropdown says", async ({ page }) => {
 		await openProject(page);
-		await menu(page, "settings");
+		await openSettingsDialog(page);
 		await dialog(page).getByRole("tab", { name: "Story", exact: true }).click();
 		await dialog(page).getByLabel("Chapter numbering").selectOption("arabic-padded");
 		await dialog(page).getByRole("button", { name: "Done" }).click();
@@ -215,7 +215,7 @@ test.describe("settings", () => {
 
 	test("the interface settings take effect: hide the series pane, highlighting, the face the app opens in", async ({ page }) => {
 		await openProject(page);
-		await menu(page, "settings");
+		await openSettingsDialog(page);
 		const d = dialog(page);
 		await d.getByLabel("Hide the series pane").check();
 		await d.getByLabel("Opens in").selectOption("false");
@@ -234,7 +234,7 @@ test.describe("settings", () => {
 
 	test("Back up everything now makes the full backup and says where", async ({ page }) => {
 		await openProject(page);
-		await menu(page, "settings");
+		await openSettingsDialog(page);
 		await dialog(page).getByRole("tab", { name: "Backups", exact: true }).click();
 		await dialog(page).getByRole("button", { name: "Back up everything now" }).click();
 		const note = page.getByRole("status").filter({ hasText: /^Backed up \d+ files to _sf-backup\// });
@@ -245,7 +245,7 @@ test.describe("settings", () => {
 
 	test("in a read-only project every control is off and says why", async ({ page }) => {
 		await openProject(page, async () => void (await touch(page, PROJECT_MD, "---\nformat-version: 99\n---\n")));
-		await menu(page, "settings");
+		await openSettingsDialog(page);
 		await dialog(page).getByRole("tab", { name: "Story", exact: true }).click();
 		await expect(dialog(page).getByLabel("Series numbering")).toBeDisabled();
 		await dialog(page).getByRole("tab", { name: "Backups", exact: true }).click();

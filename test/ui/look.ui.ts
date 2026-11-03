@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { openPreview, shot, flipFace } from "./helpers";
+import { openPreview, shot, flipFace, openSettingsDialog } from "./helpers";
 
 // Brief 10, commit 2: SN Pro in every place the author writes and in the Codex list, and nowhere else. The browser preview
 // serves no security policy, so what the built app really loads is checked by `npm run test:look` (Mac, built app).
@@ -99,7 +99,7 @@ test.describe("SN Pro", () => {
 					] as [string, Locator][]) {
 			expect((await style(loc.first())).family, what).not.toContain("SN Pro");
 		}
-		await page.evaluate(() => window.__preview.emit("menu", "settings"));
+		await openSettingsDialog(page);
 		const dlg = page.getByRole("dialog");
 		await expect(dlg).toBeVisible();
 		expect((await style(dlg)).family).not.toContain("SN Pro");

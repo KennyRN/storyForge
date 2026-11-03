@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { flipFace, openPreview } from "./helpers";
+import { flipFace, openPreview, openSettingsDialog } from "./helpers";
 
 // Brief 13, commit 4: the settings sections and the Appearance page (decisions 79 to 83).
 
@@ -10,7 +10,7 @@ async function openProject(page: Page): Promise<void> {
 }
 const dialog = (page: Page) => page.getByRole("dialog");
 async function openSettings(page: Page, section?: string): Promise<void> {
-	await page.evaluate(() => window.__preview.emit("menu", "settings"));
+	await openSettingsDialog(page);
 	await expect(dialog(page)).toBeVisible();
 	if (section) await dialog(page).getByRole("tab", { name: section, exact: true }).click();
 }

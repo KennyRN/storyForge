@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openPreview } from "./helpers";
+import { openPreview, openSettingsDialog } from "./helpers";
 
 // A change made in Settings while an earlier one is still being saved is never lost (decision 96's rule, for the dialog's own writes too):
 // when a write lands the dialog redraws everything except the controls in use.
@@ -12,7 +12,7 @@ async function openSettings(page: Page, tab: string): Promise<void> {
 	await openPreview(page);
 	await page.locator("[data-recent='0']").click();
 	await page.waitForFunction(() => !!window.__app?.editors);
-	await page.evaluate(() => window.__preview.emit("menu", "settings"));
+	await openSettingsDialog(page);
 	await dialog(page).getByRole("tab", { name: tab, exact: true }).click();
 }
 

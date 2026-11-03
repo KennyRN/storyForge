@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { flipFace, openPreview } from "./helpers";
+import { flipFace, openPreview, openSettingsDialog } from "./helpers";
 
 // Brief 13, commit 5 (decision 84): the Codex list's spacing on the storytelling side. The library side's codex tab is unchanged.
 
@@ -10,7 +10,7 @@ async function openProject(page: Page): Promise<void> {
 	await page.waitForTimeout(500);
 }
 const setCodexSize = async (page: Page, rem: string) => {
-	await page.evaluate(() => window.__preview.emit("menu", "settings"));
+	await openSettingsDialog(page);
 	await page.getByRole("dialog").getByRole("tab", { name: "Appearance", exact: true }).click();
 	await page.getByRole("dialog").getByLabel("Codex list size (rem)").fill(rem);
 	await page.getByRole("dialog").getByLabel("Codex list size (rem)").press("Enter");

@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { openPreview, flipFace } from "./helpers";
+import { openPreview, flipFace, openSettingsDialog } from "./helpers";
 
 // Brief 11, commit 4: the Codex list refined (docs/look-2.md, decisions 62 and 65), on both sides. The fixture's Codex: Cast
 // (Jane, Sam), Places (a folder that is also the note Harbour, and whose own order also lists Harbour), Windows, and others.
@@ -128,7 +128,7 @@ test.describe("the Codex colour setting", () => {
 		await openProject(page);
 		expect(await read(page, PROJECT)).toBeNull(); // opening writes nothing
 		const setting = (choice: string) => page.getByRole("radio", { name: new RegExp(`^${choice}$`, "i") });
-		const openSettings = async () => { await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "Appearance", exact: true }).click(); await expect(page.getByRole("radiogroup", { name: "Codex colour" })).toBeVisible(); };
+		const openSettings = async () => { await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Appearance", exact: true }).click(); await expect(page.getByRole("radiogroup", { name: "Codex colour" })).toBeVisible(); };
 		await openSettings();
 		await expect(setting("Text")).toHaveAttribute("aria-checked", "true");
 		for (const choice of ["yellow", "green", "aqua", "blue", "purple", "orange", "grey"]) {
@@ -173,7 +173,7 @@ test.describe("the Codex colour setting", () => {
 test.describe("decision 67", () => {
 	test("the keyboard focus ring stays visible on a highlighted row with green chosen: it is not the highlight's colour", async ({ page }) => {
 		await openProject(page);
-		await page.evaluate(() => window.__preview.emit("menu", "settings")); await page.getByRole("dialog").getByRole("tab", { name: "Appearance", exact: true }).click();
+		await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Appearance", exact: true }).click();
 		await page.getByRole("radio", { name: /^Green$/ }).click();
 		await page.getByRole("button", { name: "Done" }).click();
 		await row(page, "Sam").click(); // selected: highlighted
