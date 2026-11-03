@@ -71,4 +71,29 @@ test.describe("settings: a change made while an earlier one is saving", () => {
 		await expect(hide).toBeChecked();
 		await expect(highlight).not.toBeChecked();
 	});
+
+	test("a box put back in the page commits once on Return, not twice", async ({ page }) => {
+		await openSettings(page, "Sessions");
+		const d = dialog(page);
+		const idle = d.getByLabel("Session idle limit (minutes)");
+		const wpm = d.getByLabel("Count as editing below (words per minute)");
+		const gate = await holdWrites(page);
+		await idle.fill("10");
+		await idle.press("Enter");
+		await expect.poll(gate.held).toBe(1);
+		await wpm.fill("6");
+		gate.release();
+		await expect.poll(() => read(page)).toContain("session-idle-minutes: 10");
+		await expect(wpm).toBeFocused(); // it has been put back in the page
+		const writes: string[] = [];
+		await page.route("**/__host/invoke", async (route) => {
+			const body = route.request().postData() ?? "";
+			if (body.includes("project.md") && !/"cmd":"(stat|read_text)"/.test(body)) writes.push(body);
+			await route.fallback();
+		});
+		await wpm.press("Enter");
+		await expect.poll(() => read(page)).toContain("session-editing-wpm: 6");
+		await page.waitForTimeout(500);
+		expect(writes, "one write for one commit").toHaveLength(1);
+	});
 });
