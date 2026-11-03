@@ -9,6 +9,7 @@
 - Changed: **the library's Codex list** takes the storytelling list's Appearance font, weight, size, spacing and card.
 - Changed: **the chapter selector's rows** are shaped like the Codex rows, the hovered row is a block in the accent colour, and its text lines up with the Codex list's; "add the next chapter" is an icon.
 - Changed: **focus rings are for the keyboard only**, and the title bar is invisible (the panels run to the top, with one top line).
+- Fixed: **a change made in Settings while an earlier one is still saving is no longer lost.** When a write landed, the dialog redrew every control, so text being typed in another box was dropped. Now every redraw (after the dialog's own write or after the file changed elsewhere) leaves alone the control in use: a text box keeps its text, caret and focus, and a control whose change is still being saved isn't replaced under the click; once that change lands it shows the stored value.
 - Unchanged: the core, the disk format, the prose writer, the close path (Change Project goes through it) and the guard; no new Rust command, dependency or network request.
 
 ## 1.6.2: the chapter selector (Fix 7, decision 97) and the app icon

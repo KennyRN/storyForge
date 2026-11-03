@@ -32,12 +32,29 @@ export function openSettings(model: AppModel): void {
 	// Live: a settings file that can't be read, or is from a newer storyForge, switches the controls off while the dialog is open.
 	const isOff = (): boolean => !!running.readOnlyReason || settings.readOnly;
 	let off = isOff();
+	// One rule for every redraw (decisions 96 and 99, and the dialog's own writes): everything is rebuilt except the controls in use. A text
+	// box with focus and text not yet committed keeps its text, caret and focus; a control whose own change is still being saved isn't
+	// replaced under the person's hand. Once that change lands the control shows the stored value, like the rest.
+	const pending = new Set<HTMLElement>(); // controls whose own change is being saved
+	const committed = new WeakMap<HTMLElement, string>(); // what a text box held when its change was made
+	let started: HTMLElement | null = null; // the control whose event is being handled right now (set for the handler's synchronous part)
+	const isControl = (n: unknown): n is HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement => n instanceof HTMLInputElement || n instanceof HTMLSelectElement || n instanceof HTMLTextAreaElement;
+	const isTextBox = (n: unknown): n is HTMLInputElement | HTMLTextAreaElement => n instanceof HTMLTextAreaElement || (n instanceof HTMLInputElement && n.type !== "checkbox" && n.type !== "radio" && n.type !== "button");
 	const change = async <K extends keyof ProjectSettings>(key: K, value: ProjectSettings[K]): Promise<void> => {
-		await model.guard(async () => {
-			model.reportReplaced(await setSetting(project, settings, key, value), value);
-			model.touch("settings", "library", "nav", "face");
+		const origin = started;
+		if (origin) {
+			pending.add(origin);
+			if (isTextBox(origin)) committed.set(origin, origin.value);
+		}
+		try {
+			await model.guard(async () => {
+				model.reportReplaced(await setSetting(project, settings, key, value), value);
+				model.touch("settings", "library", "nav", "face");
+			}, "save the setting");
+		} finally {
+			if (origin) pending.delete(origin);
 			redraw();
-		}, "save the setting");
+		}
 	};
 	const source = (key: keyof ProjectSettings): HTMLElement => el("span", { class: "sf-muted sf-setting-source", text: SOURCE_WORDS[settings.sources[key]] });
 
@@ -78,7 +95,7 @@ export function openSettings(model: AppModel): void {
 			const text = input.value.trim();
 			const next = text === "" ? null : Number(text);
 			const ok = next === null ? nullable : Number.isInteger(next) && next >= lo && next <= hi;
-			if (!ok) return void redraw();
+			if (!ok) return (committed.set(input, input.value), void redraw()); // refused: the box is put back, not kept as typed
 			void change(key, next as never);
 		});
 		return row(label, input, key);
@@ -172,7 +189,7 @@ export function openSettings(model: AppModel): void {
 			soft.addEventListener("change", () => {
 				const v = Number(soft.value);
 				if (Number.isInteger(v) && v >= 0 && v <= 100) void change(appearanceKey(part, "Soft"), v as never);
-				else redraw();
+				else (committed.set(soft, soft.value), redraw()); // refused: put back
 			});
 			rows.push(row("Softness", soft, appearanceKey(part, "Soft")));
 		}
@@ -183,7 +200,42 @@ export function openSettings(model: AppModel): void {
 
 	let page: Page = "General";
 	const body = el("div", { class: "sf-settings" });
+	// Which control an event came from, for the synchronous part of its handler (change() reads it): a change, a click or Return in a box.
+	for (const type of ["change", "click", "keydown"]) {
+		body.addEventListener(type, (e) => {
+			started = e.target as HTMLElement;
+			setTimeout(() => (started = null), 0);
+		}, true);
+	}
+	let heldBack = false; // a text box being typed in was left as it was: redraw once it loses focus
+	let rebuilding = false;
+	// Putting a focused box back in the page makes the browser forget what it held when focus began, so it would no longer announce a
+	// change on Return or when focus leaves. A box put back therefore announces its own: if its text differs from what it had when
+	// it was last focused or committed.
+	const focusValue = new WeakMap<HTMLElement, string>();
+	body.addEventListener("focusin", (e) => { if (!rebuilding && isTextBox(e.target)) focusValue.set(e.target, e.target.value); }, true);
+	const armed = new WeakSet<HTMLElement>();
+	const armChange = (box: HTMLInputElement | HTMLTextAreaElement): void => {
+		if (armed.has(box)) return;
+		armed.add(box);
+		const fire = (): void => {
+			if (box.value === focusValue.get(box)) return;
+			focusValue.set(box, box.value);
+			box.dispatchEvent(new Event("change", { bubbles: true }));
+		};
+		const onKey = (e: Event): void => { if ((e as KeyboardEvent).key === "Enter") fire(); };
+		box.addEventListener("keydown", onKey);
+		box.addEventListener("focusout", () => (box.removeEventListener("keydown", onKey), armed.delete(box), fire()), { once: true });
+	};
+	/** The controls the next redraw leaves alone. */
+	const inUse = (): HTMLElement[] => {
+		const kept = new Set<HTMLElement>([...pending].filter((c) => body.contains(c)));
+		const a = document.activeElement;
+		if (isTextBox(a) && body.contains(a) && committed.get(a) !== a.value) kept.add(a);
+		return [...kept];
+	};
 	const redraw = (): void => {
+		started = null;
 		off = isOff();
 		const numbering = Object.entries(NUMBERING_STYLE_OPTIONS) as [NumberingStyle, string][];
 		const storyKind = (): HTMLElement => {
@@ -268,31 +320,38 @@ export function openSettings(model: AppModel): void {
 			);
 		});
 		const panel = el("div", { class: "sf-settings-page", attrs: { id: "sf-settings-page", role: "tabpanel", "aria-label": page } }, ...(off ? [el("p", { class: "sf-muted", text: running.readOnlyReason ?? settings.readOnlyReason })] : []), ...pages[page]);
+		// The controls in use go back in place of their new twins (found by tag, type and name), with focus and caret.
+		const keep = inUse().filter((c) => isControl(c));
+		const focused = document.activeElement;
+		const caret = isTextBox(focused) ? { from: focused.selectionStart, to: focused.selectionEnd } : null;
+		const twins: [HTMLElement, HTMLElement][] = [];
+		for (const old of keep) {
+			const label = old.getAttribute("aria-label");
+			const twin = label ? [...panel.querySelectorAll<HTMLElement>(old.tagName)].find((n) => n.getAttribute("aria-label") === label && (n as HTMLInputElement).type === (old as HTMLInputElement).type) : undefined;
+			if (twin) twins.push([old, twin]);
+		}
+		rebuilding = true;
+		for (const [old, twin] of twins) twin.replaceWith(old);
 		body.replaceChildren(tabs, panel);
 		body.querySelectorAll("select").forEach((s) => {
-			if (s.getAttribute("aria-label") === "Opens in") s.value = String(settings.values.autoFocus);
+			if (s.getAttribute("aria-label") === "Opens in" && !twins.some(([old]) => old === s)) s.value = String(settings.values.autoFocus);
 		});
+		if (twins.some(([old]) => old === focused)) {
+			(focused as HTMLElement).focus();
+			if (caret && caret.from !== null && caret.to !== null) try { (focused as HTMLInputElement).setSelectionRange(caret.from, caret.to); } catch { /* a number box has no caret to put back */ }
+		}
+		rebuilding = false;
+		for (const [old] of twins) if (isTextBox(old)) armChange(old);
+		heldBack = twins.some(([old]) => isTextBox(old) && old === focused);
 	};
 	const section = (title: string, rows: HTMLElement[], label = title): HTMLElement => el("section", { class: "sf-settings-section", attrs: { "aria-label": label } }, el("h3", { class: "sf-summary-title", text: title }), ...rows);
 	redraw();
-	// Settings changed from outside (decision 96): follow them, but never redraw under a text box being typed in.
-	let late = false;
-	const follow = (): void => {
-		const active = document.activeElement;
-		if (active && body.contains(active) && (active instanceof HTMLTextAreaElement || (active instanceof HTMLInputElement && active.type !== "checkbox" && active.type !== "radio"))) {
-			late = true;
-			return;
-		}
-		redraw();
-	};
-	const unsubscribe = model.subscribe("settings", () => {
-		if (late) return;
-		follow();
-	});
+	// Settings changed from outside (decision 96) redraw by the same rule: a text box being typed in is left as it is until it loses focus.
+	const unsubscribe = model.subscribe("settings", redraw);
 	body.addEventListener("focusout", () => {
-		if (!late) return;
-		late = false;
-		setTimeout(follow, 0);
+		if (rebuilding || !heldBack) return;
+		heldBack = false;
+		setTimeout(redraw, 0);
 	});
 	openDialog({ title: "Settings", body, buttons: [{ label: "Done", kind: "primary" }], onClose: unsubscribe });
 }
