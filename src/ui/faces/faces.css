@@ -556,7 +556,7 @@ body.sf-codex-drag-active {
 	margin-right: 0.5em;
 }
 .sf-navmenu-row.is-plain {
-	padding-left: calc(8px + 1.7em); /* the icon's 1.2em and its 0.5em gap, so all the text shares one column */
+	padding-left: calc(8px + 32px + 0.5em); /* the icon's 32px and its 0.5em gap, so all the text shares one column */
 }
 .sf-navmenu-row.is-here,
 .sf-navmenu-row:hover:not(:disabled) {
@@ -586,7 +586,7 @@ body.sf-codex-drag-active {
 	display: flex;
 	justify-content: space-around;
 	align-items: center;
-	padding: var(--top-gap) 4px 8px; /* the icons sit on the shared top line */
+	padding: 16px 4px 12px; /* the icons' tops sit 16px below the title band (44px, 4px above the shared top line, accepted); 4px more below keeps the panes level with the Codex card */
 }
 .sf-tab {
 	display: inline-flex;

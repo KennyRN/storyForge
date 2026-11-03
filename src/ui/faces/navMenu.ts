@@ -7,9 +7,9 @@ import type { AppModel, ForgeTab } from "../model";
 
 /**
  * The left panel's menu (Fix 7 polish, item 6): a chevron at the right end of the panel's top band, on both sides, opening where you
- * steer from: the storytelling side, the four library tabs, then Back Up Now and Change
+ * steer from: the storytelling side, the four library tabs, then Back Up Now and Open
  * Project, each after a gap. Where you are is green. It is drawn in the panel, on the raised surface with no border, and its rows take the chapter
- * list's shape. Back Up Now and Change Project are the File menu's own items (`handleMenu`), so the reasons and the close are the same.
+ * list's shape. Back Up Now and Open Project are the File menu's own items (`handleMenu`), so the reasons and the close are the same.
  */
 export function mountNavMenu(host: HTMLElement, model: AppModel): { button: HTMLElement; dispose(): void } {
 	let menu: HTMLElement | null = null;
@@ -41,8 +41,8 @@ export function mountNavMenu(host: HTMLElement, model: AppModel): { button: HTML
 		const rows: HTMLButtonElement[] = [];
 		const item = (label: string, action: () => void, opts: { here?: boolean; disabled?: string | boolean; icon?: NavIconName } = {}): HTMLButtonElement => {
 			const row = el("button", { class: `sf-navmenu-row${opts.here ? " is-here" : ""}`, attrs: { type: "button", role: "menuitem", tabindex: "-1", ...(opts.here ? { "aria-current": "true" } : {}) }, text: label });
-			// Kenny's icon at 1.2em before the text (the text's baseline 0.1em above its bottom edge, 0.5em between); a row without one is indented to the same text column.
-			if (opts.icon) row.prepend(navIcon(opts.icon, "1.2em"));
+			// Kenny's icon at 32px (the library tabs' size) before the text (the text's baseline 0.1em above its bottom edge, 0.5em between); a row without one is indented to the same text column.
+			if (opts.icon) row.prepend(navIcon(opts.icon, "32px"));
 			else row.classList.add("is-plain");
 			if (opts.disabled) {
 				row.disabled = true;
@@ -64,7 +64,7 @@ export function mountNavMenu(host: HTMLElement, model: AppModel): { button: HTML
 			el("div", { class: "sf-navmenu-gap", attrs: { role: "separator" } }),
 			item("Back Up Now", () => void handleMenu(model, "backup-now"), { disabled: state["backup-now"] ? false : readOnly || true }),
 			el("div", { class: "sf-navmenu-gap", attrs: { role: "separator" } }),
-			item("Change Project", () => void handleMenu(model, "close-project")),
+			item("Open Project", () => void handleMenu(model, "close-project")),
 		);
 		host.append(menu);
 		button.setAttribute("aria-expanded", "true");
