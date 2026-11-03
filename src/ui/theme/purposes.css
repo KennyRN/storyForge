@@ -26,6 +26,8 @@
 	/* The numbers (v1.1). */
 	--purpose-data-fill: var(--ef-blue);
 	--purpose-data-overrun: var(--ef-orange);
+	/* Text over the data fill: bg_dim on blue (Brief 14; the chapter's name over its bar, dark over the fill and light over the track). */
+	--purpose-text-on-data: var(--ef-bg-dim);
 	--purpose-bar-track: var(--ef-bg2);
 	/* The notch between fill and overrun: about 6:1 against both blue and orange. */
 	--purpose-bar-notch: var(--ef-bg-dim);

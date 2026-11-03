@@ -2,9 +2,18 @@
 .sf-bar { position: relative; height: 12px; border-radius: 3px; background: var(--purpose-bar-track); overflow: hidden; }
 .sf-bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--purpose-data-fill); }
 .sf-bar--sliver::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--purpose-data-fill); }
-.sf-bar-over { position: absolute; top: 0; bottom: 0; background: var(--purpose-data-overrun); }
-.sf-bar-notch { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--purpose-bar-notch); }
-.sf-bar-marker { position: absolute; top: 0; bottom: 0; margin-left: -1px; height: 100%; stroke: var(--purpose-text); }
+.sf-bar--chapter { height: 24px; }
+/* Overrun: 2px dots in the bar's own colour on a staggered 8px by 4px lattice (rows at 2, 6 ... 22px of the 24), flush with the fill: half dots at the seam. */
+.sf-bar-dots {
+	position: absolute; top: 0; bottom: 0;
+	background-image: radial-gradient(circle at 2px 2px, var(--purpose-data-fill) 1px, transparent 1.25px), radial-gradient(circle at 6px 6px, var(--purpose-data-fill) 1px, transparent 1.25px);
+	background-size: 8px 8px;
+	background-position: -2px 0;
+}
+/* The chapter's name over its bar: the light text over the whole bar, the dark text over the fill only (clipped inline to its width). */
+.sf-bar-name { position: absolute; inset: 0; padding: 0 8px; line-height: 24px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--purpose-text); pointer-events: none; }
+.sf-bar-name--on-fill { color: var(--purpose-text-on-data); user-select: none; -webkit-user-select: none; }
+.sf-bar-marker { position: absolute; top: 0; bottom: 0; margin-left: -1px; height: 100%; stroke: var(--purpose-data-fill); }
 
 /* The layer over the workspace. */
 .sf-overview { position: absolute; inset: var(--band-h) 0 0 0; overflow: auto; background: var(--purpose-editor-bg); color: var(--purpose-text); }

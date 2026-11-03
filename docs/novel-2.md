@@ -61,6 +61,11 @@ Also: the card's PoV and Location rows, the "Length" row and the per-card plot n
 - Context panel (`bg_dim`): PoV, Location (on the panel); the plot note on a `bg0` card; the chapter's text on a `bg0` card, read-only, scrolling inside it.
 - Left pane: Default PoV, Novel Length and Chapter Length as now; the placed list and the unplaced list each on a `bg0` card, the chosen chapter highlighted.
 
-## Rulings
+## Rulings (3 November 2026)
 
-(Kenny to fill in: A bar height; B dots under the name; C name length; D dead tier code; E highlight with the setting off.)
+H1 accepted. **A** chapter bars about 24 px (series bars stay 12 px; new sizes on a chapter-bar class only). **B** Kenny judges the dots under the name on screen: commit 1 is built and its screenshots are in `docs/novel-2-shots/`; commit 2 waits for his look. **C** a long name is one line, "…" at the bar's full width, full name in the tooltip. **D** delete the card-size code and its tests, but pass the stored `cardTiers` through untouched on every save (a test proves it). **E** the chosen chapter is always highlighted in the left pane's placed list; report every place the "Highlight the active chapter" setting still affects.
+
+## As built
+
+**Commit 1, the bars.** `dataBar` (`ui/overviews/bars.ts`) with a `name` draws a chapter bar (`.sf-bar--chapter`, 24 px): the data colour only, a dashed marker in that colour short of the target, and past it dots in that colour from the target to the word count, flush with the fill (a CSS lattice of 2 px dots on 8 by 4 px, half dots at the seam, whole dots only at the right edge: the width is 4n+1, by `round()`). No notch, no orange. The name is drawn twice in the same place: dark (`--purpose-text-on-data`, bg_dim) clipped to the fill's width, and light over the whole bar; only the bar carries the label. One line, `text-overflow: ellipsis` at the bar's full width; the tooltip is the full name, then the count and the plot note's first paragraph. The name button above each bar is gone (the chevron and the card's other parts stay until commit 2). `--purpose-data-overrun` is no longer used by any bar. The series overview's bars are unchanged. Tests: `test/ui/novelBars.ui.ts` (height, two layers, contrast by measurement: dark on blue and light on the track both at least 4.5:1, dots and marker in the bar's colour, no gap, whole dots, no notch, a long name, the tooltip).
+

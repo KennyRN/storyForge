@@ -68,30 +68,42 @@ export interface DataBarOptions {
 	words: number;
 	target: number | null;
 	scale?: number;
+	/** The chapter's name, drawn over the bar (Brief 14): one line, cut short with "…" at the bar's full width. */
+	name?: string;
 	/** Tooltip text, read each time it shows; defaults to the word count. */
 	tooltip?: string | (() => string);
 	/** Called when the pointer or keyboard first reaches the bar (to start a lazy read). */
 	onHover?: () => void;
 }
 
-/** The data bar: blue fill, a dashed marker short of the target, orange beyond it with a notch at the target. */
+/**
+ * The chapter bar: the data colour (blue) only. A dashed marker in that colour short of the target; past it, dots in that colour
+ * from the target to the word count, flush with the fill (pattern, not colour, says "over"). The name is drawn over it twice, the
+ * same text in the same place: dark, clipped to the fill's width, and light over the whole bar underneath, so it reads over the fill
+ * and over the track (no single colour does both). Only the light layer is read aloud and selectable; the bar carries the label.
+ */
 export function dataBar(opts: DataBarOptions): HTMLElement {
 	const state = computeDataBarState(opts.words, opts.target, opts.scale);
-	const bar = el("div", { class: `sf-bar sf-bar--${state.kind}`, attrs: { role: "img", "aria-label": dataBarLabel(opts.title, opts.words, opts.target, state) } });
+	const bar = el("div", { class: `sf-bar sf-bar--${state.kind}${opts.name !== undefined ? " sf-bar--chapter" : ""}`, attrs: { role: "img", "aria-label": dataBarLabel(opts.title, opts.words, opts.target, state) } });
 	if (state.kind !== "sliver") {
 		const fill = el("div", { class: "sf-bar-fill" });
 		fill.style.width = `${state.fillPercent}%`;
 		bar.append(fill);
 	}
 	if (state.kind === "over") {
-		const over = el("div", { class: "sf-bar-over" });
-		over.style.left = `${state.targetPercent}%`;
-		over.style.width = `${state.overPercent - state.targetPercent}%`;
-		const notch = el("div", { class: "sf-bar-notch" });
-		notch.style.left = `${state.targetPercent}%`;
-		bar.append(over, notch);
+		const dots = el("div", { class: "sf-bar-dots", attrs: { "aria-hidden": "true" } });
+		dots.style.left = `${state.targetPercent}%`;
+		// Whole dots only: the last one is kept if its centre is at or before the edge (a column every 4px, so the width is 4n+1).
+		dots.style.width = `calc(round(down, calc(${state.overPercent - state.targetPercent}% - 1px), 4px) + 1px)`;
+		bar.append(dots);
 	}
 	if (state.kind === "under") bar.append(marker(state.targetPercent));
+	if (opts.name !== undefined) {
+		const light = el("div", { class: "sf-bar-name", text: opts.name, attrs: { "aria-hidden": "true" } });
+		const dark = el("div", { class: "sf-bar-name sf-bar-name--on-fill", text: opts.name, attrs: { "aria-hidden": "true" } });
+		dark.style.clipPath = `inset(0 ${100 - (state.kind === "sliver" ? 0 : state.fillPercent)}% 0 0)`;
+		bar.append(light, dark);
+	}
 	attachTooltip(bar, opts.tooltip ?? formatWordCount(opts.words));
 	if (opts.onHover) for (const type of ["pointerenter", "focus"]) bar.addEventListener(type, opts.onHover, { once: true });
 	return bar;

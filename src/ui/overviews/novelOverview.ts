@@ -137,14 +137,15 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 				words: words[i],
 				target: plannedChapter,
 				scale,
-				tooltip: () => plotCardTooltip(words[i], plots.get(key) ?? ""),
+				name: titles[i],
+				tooltip: () => `${titles[i]}\n${plotCardTooltip(words[i], plots.get(key) ?? "")}`,
 				onHover: () => void readChapterPlot(project, book, key).then((p) => plots.set(key, p)),
 			});
 			bar.classList.add("sf-bar--link");
 			bar.addEventListener("click", () => open(key));
 			const chevron = el("button", { class: "sf-card-chevron", text: "▾", attrs: { type: "button", "aria-label": `${titles[i]}: ${nextLabel[tier]}`, "aria-expanded": String(tier !== "bar") }, on: { click: () => model.setCardTiers(book, [key], nextPlotCardTier(tier)) } });
 			chevron.dataset.tier = tier;
-			const head = el("div", { class: "sf-card-head" }, el("button", { class: "sf-overview-name", text: titles[i], attrs: { type: "button" }, on: { click: () => open(key) } }), chevron);
+			const head = el("div", { class: "sf-card-head" }, chevron);
 			const card = el("div", { class: `sf-card sf-card--${tier}`, dataset: { chapter: key, tier } }, head, bar);
 			if (tier !== "bar") {
 				if (tier === "extended") {

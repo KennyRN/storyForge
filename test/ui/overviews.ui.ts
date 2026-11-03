@@ -192,14 +192,14 @@ test.describe("the novel overview", () => {
 		await expect(o.locator(".sf-progress-ghost")).toHaveCount(0);
 	});
 
-	test("a chapter past its plan shows orange beyond the marker; under it shows the dashed marker", async ({ page }) => {
+	test("a chapter past its plan shows dots beyond the target, in the bar's colour, with no notch; under it shows the dashed marker", async ({ page }) => {
 		const o = novelOverview(page);
 		await expect(o.locator(".sf-bar--under .sf-bar-marker").first()).toBeAttached();
 		await o.getByRole("button", { name: "2,500" }).click();
 		await page.keyboard.type("1");
 		await page.keyboard.press("Enter");
-		await expect(o.locator(".sf-bar--over .sf-bar-over").first()).toBeAttached();
-		await expect(o.locator(".sf-bar--over .sf-bar-notch").first()).toBeAttached();
+		await expect(o.locator(".sf-bar--over .sf-bar-dots").first()).toBeAttached();
+		await expect(o.locator(".sf-bar-notch, .sf-bar-over")).toHaveCount(0);
 		await expect(o.locator(".sf-bar-marker")).toHaveCount(0);
 	});
 
@@ -267,7 +267,7 @@ test.describe("the novel overview", () => {
 			await expect(tip).toBeVisible();
 		};
 		await hover();
-		await expect(tip).toHaveText(/^[\d,.]+/); // the count is there at once, whatever the plot read has done
+		await expect(tip).toHaveText(/^Chapter 1\s+[\d,.]+/); // the full name, then the count, at once, whatever the plot read has done
 		// The note is read on the first hover and cached: a later hover shows it.
 		await expect.poll(async () => {
 			await hover();
@@ -576,12 +576,12 @@ test.describe("live refresh", () => {
 		await openProject(page);
 		await flip(page);
 		await tab(page, "novel").click();
-		const name = novelOverview(page).locator(".sf-card .sf-overview-name").nth(1);
+		const name = novelOverview(page).locator(".sf-card .sf-card-chevron").nth(1); // the card's one control (the name moved onto the bar)
 		await name.focus();
 		const text = await page.evaluate(() => window.__preview.read("_story-library/aaa/ch-a1.md"));
 		await outside(page, "_story-library/aaa/ch-a1.md", `${text.trimEnd()} more words here\n`);
 		await page.waitForTimeout(700);
-		await expect(novelOverview(page).locator(".sf-card .sf-overview-name").nth(1)).toBeFocused();
+		await expect(novelOverview(page).locator(".sf-card .sf-card-chevron").nth(1)).toBeFocused();
 	});
 
 	test("the open history view follows an outside change", async ({ page }) => {
