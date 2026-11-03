@@ -6,7 +6,6 @@
 import { clampPx, convertUnit, displayWidths, DEFAULT_LEFT_WIDTH_PX, DEFAULT_LORE_WIDTH_PX, DEFAULT_WIDTH_UNIT, fromPx, rangeIn, toPx, type Panel, type PanelWidths, type Range, type WidthUnit } from "./panelWidths";
 import type { AppController, CoverTarget, OpenOutcome, Running } from "../app/appLife";
 import type { MachineProjectState, StatsCount } from "../app/settings";
-import type { PlotCardTier } from "../core/plotCardTier";
 import type { TypingEditorOptions } from "./editor/typingAids";
 import { buildNameIndex, EMPTY_NAMES, type NameIndex } from "../core/typing/names";
 import { collectNameSources } from "../core/typing/nameSources";
@@ -50,8 +49,8 @@ export interface Nav {
 	widthsLinked: boolean;
 	/** View ▸ Show or Hide Context. */
 	loreHidden: boolean;
-	/** Chapter card sizes, `<book>/<file>`; absent means extended. */
-	cardTiers: Record<string, "bar" | "collapsed">;
+	/** The chapter card sizes of 1.6 and earlier: no longer used (Brief 14), carried through every save exactly as read, never interpreted or rewritten. */
+	cardTiers?: unknown;
 	/** Which count the stats panel shows. */
 	statsCount: StatsCount;
 }
@@ -153,7 +152,7 @@ export class AppModel {
 			collapsedCodex: new Set(machine.collapsedCodexFolderIds),
 			...initialWidths(machine, windowWidth()),
 			loreHidden: machine.loreHidden === true,
-			cardTiers: { ...(machine.cardTiers ?? {}) },
+			...(machine.cardTiers !== undefined ? { cardTiers: machine.cardTiers } : {}),
 			statsCount: machine.statsCount ?? "day",
 		};
 		this.selection = null;
@@ -420,22 +419,6 @@ export class AppModel {
 		});
 	}
 
-	cardTier(book: string, file: string): PlotCardTier {
-		return this.nav.cardTiers[`${book}/${file}`] ?? "extended";
-	}
-
-	/** Sets the size of the given cards; extended is stored as no entry. Navigation state: this computer only. */
-	setCardTiers(book: string, files: string[], tier: PlotCardTier): void {
-		const next = { ...this.nav.cardTiers };
-		for (const f of files) {
-			if (tier === "extended") delete next[`${book}/${f}`];
-			else next[`${book}/${f}`] = tier;
-		}
-		this.nav.cardTiers = next;
-		this.persistSoon();
-		this.touch("nav");
-	}
-
 	/** The stats panel steps to the next count. Navigation state: this computer only, never `project.md`. */
 	setStatsCount(count: StatsCount): void {
 		this.nav.statsCount = count;
@@ -453,7 +436,7 @@ export class AppModel {
 		if (!this.running) return;
 		const { book, chapter, collapsedCodex, storyWidth, libraryWidth, loreWidth, widthUnit, widthsLinked, loreHidden, cardTiers, statsCount } = this.nav;
 		try {
-			await this.controller.saveMachineState({ selectedNovel: book, selectedObject: chapter, collapsedCodexFolderIds: [...collapsedCodex], leftWidth: storyWidth, libraryWidth, loreWidth, widthUnit, widthsLinked, ...(loreHidden ? { loreHidden } : {}), ...(Object.keys(cardTiers).length ? { cardTiers } : {}), ...(statsCount !== "day" ? { statsCount } : {}) });
+			await this.controller.saveMachineState({ selectedNovel: book, selectedObject: chapter, collapsedCodexFolderIds: [...collapsedCodex], leftWidth: storyWidth, libraryWidth, loreWidth, widthUnit, widthsLinked, ...(loreHidden ? { loreHidden } : {}), ...(cardTiers !== undefined ? { cardTiers } : {}), ...(statsCount !== "day" ? { statsCount } : {}) });
 		} catch {
 			/* where you were is a convenience: never worth a notice */
 		}

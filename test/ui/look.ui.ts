@@ -75,7 +75,7 @@ test.describe("SN Pro", () => {
 	});
 
 	for (const [name, tab, box] of [
-		["a plot note", "novel", (page: Page) => page.getByRole("textbox", { name: "Plot note for Chapter 2" })],
+		// Brief 14: the plot note left the cards for the context panel (commit 4), where its entry is put back here.
 		["the synopsis", "novel", (page: Page) => page.getByRole("region", { name: "Novel overview" }).getByRole("textbox", { name: /^Synopsis of / })],
 		["the series description", "series", (page: Page) => page.getByRole("region", { name: "Series overview" }).getByRole("textbox", { name: "Series description" })],
 	] as const) {

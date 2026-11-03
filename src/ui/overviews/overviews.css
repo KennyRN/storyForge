@@ -51,16 +51,8 @@
 .sf-progress-ghost { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--purpose-guide-faint); }
 .sf-structure-strip { position: relative; height: 4px; margin: 4px 0 16px; background: var(--purpose-guide-faint); border-radius: 2px; }
 .sf-structure-mark { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--purpose-guide); }
-.sf-overview-meta { margin-bottom: 20px; }
 .sf-cards { gap: 12px; }
 .sf-card { display: flex; flex-direction: column; gap: 6px; }
-.sf-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.sf-card-chevron { all: unset; cursor: pointer; padding: 0 6px; border-radius: 3px; color: var(--purpose-text-muted); line-height: 1.4; }
-.sf-card-chevron[data-tier="bar"] { transform: rotate(-90deg); }
-.sf-card-chevron:hover { color: var(--purpose-accent); }
-.sf-card-chevron:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 2px; }
-.sf-card-rows { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
-.sf-card-row { display: flex; gap: 8px; }
 /* A field of the author's words: a small plain-text editor (decision 47), dressed as the text areas were. */
 .sf-note-field { box-sizing: border-box; display: flex; width: 100%; font-size: 13px; line-height: 1.5; color: var(--purpose-text); border: 1px solid transparent; border-radius: 3px; margin-left: -6px; }
 .sf-note-field:hover { border-color: var(--purpose-border); }
@@ -72,11 +64,6 @@
 .sf-note-field .cm-line { padding: 0; }
 .sf-note-field .cm-placeholder { color: var(--purpose-text-muted); opacity: 0.7; }
 .sf-note-field .cm-selectionBackground, .sf-note-field .cm-editor.cm-focused .cm-selectionBackground { background: var(--purpose-selection); }
-.sf-size-control { display: inline-flex; gap: 2px; margin-bottom: 12px; }
-.sf-size-option { all: unset; cursor: pointer; padding: 2px 10px; font-size: 12px; border-radius: 3px; color: var(--purpose-text-muted); }
-.sf-size-option[aria-checked="true"] { color: var(--purpose-accent); }
-.sf-size-option:hover { color: var(--purpose-accent); }
-.sf-size-option:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 2px; }
 .sf-bar--link { cursor: pointer; }
 
 /* The history view. */
@@ -135,4 +122,3 @@ button.sf-heat-cell { cursor: pointer; }
 .sf-cover-remove { all: unset; cursor: pointer; font-size: 12px; color: var(--purpose-text-muted); border-radius: 3px; }
 .sf-cover-remove:hover { color: var(--purpose-accent); }
 .sf-cover-remove:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 2px; }
-.sf-ref-row[data-row="default-pov"] { margin-bottom: 14px; }

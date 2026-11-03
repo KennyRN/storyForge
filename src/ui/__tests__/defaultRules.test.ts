@@ -57,7 +57,6 @@ const SELECTED = /is-here|is-active|is-chosen|is-selected|aria-selected="true"|a
 const SELECTION_EXCEPTIONS: Record<string, string> = {
 	".sf-button.is-active": "an icon button, not a text row",
 	".sf-swatch.is-chosen": "a colour swatch in a group, not a text row",
-	'.sf-size-option[aria-checked="true"]': "a card-size button in the overview, not a text row",
 	".sf-tab:hover, .sf-tab.is-active": "the library's tab icons (icons stay hover icons)",
 };
 describe("rule 1: a selected text row is highlighted as in the Codex list", () => {

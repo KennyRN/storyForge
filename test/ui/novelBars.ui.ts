@@ -1,4 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
+import { readdirSync, readFileSync, statSync } from "node:fs";
+import * as path from "node:path";
 import { flipFace, openPreview } from "./helpers";
 
 // Brief 14, commit 1: the chapter bars return to the plugin's look (docs/novel-2.md): one colour, 34 px, the name drawn once over the bar
@@ -13,8 +15,10 @@ async function openNovel(page: Page): Promise<void> {
 	await expect(overview(page)).toBeVisible();
 }
 const overview = (page: Page) => page.getByRole("region", { name: "Novel overview" });
+/** The planned chapter length is set in the left pane (the workspace no longer shows it: Brief 14 §1.5). */
+const chapterLengthRow = (page: Page) => page.locator(".sf-left .sf-meta-row", { hasText: "Chapter Length" });
 const setChapterLength = async (page: Page, n: number) => {
-	await overview(page).getByRole("button", { name: /^[\d,]+$|Not set/ }).first().click();
+	await chapterLengthRow(page).getByRole("button").click();
 	await page.keyboard.type(String(n));
 	await page.keyboard.press("Enter");
 };
@@ -42,7 +46,7 @@ test.describe("the chapter bars", () => {
 			await expect(bar.locator(".sf-bar-name").first()).toHaveAttribute("aria-hidden", "true");
 			await expect(bar.locator(".sf-bar-name--clear")).toHaveCount(await bar.evaluate((b) => (b.classList.contains("sf-bar--over") || b.classList.contains("sf-bar--under") ? 1 : 0)));
 		}
-		await expect(overview(page).locator(".sf-card-head .sf-overview-name")).toHaveCount(0); // the name is no longer above the bar
+		await expect(overview(page).locator(".sf-card-head, .sf-card-chevron, .sf-overview-name")).toHaveCount(0); // the name is on the bar, and nothing else is on the card
 		await page.getByRole("tab", { name: "series" }).click();
 		const plain = page.getByRole("region", { name: "Series overview" }).locator(".sf-bar").first();
 		expect((await plain.boundingBox())!.height).toBeCloseTo(12, 0);
@@ -247,11 +251,11 @@ test.describe("the ghost chapter dividers", () => {
 		await setChapterLength(page, 1);
 		await expect(overview(page).locator(".sf-card .sf-bar").first()).toBeVisible();
 		// the window is still alive and the overview drew: a bounded time, where it used to build about 80,000 dividers and stop responding
-		await expect.poll(() => page.evaluate(() => document.querySelectorAll(".sf-overview-meta").length), { timeout: 5000 }).toBeGreaterThan(0);
+		await expect.poll(() => page.evaluate(() => document.querySelectorAll(".sf-card").length), { timeout: 5000 }).toBeGreaterThan(0);
 		expect(Date.now() - t0, "prompt").toBeLessThan(8000);
 		await expect(ghosts(page)).toHaveCount(0);
-		await overview(page).locator(".sf-overview-meta button").last().click(); // and the field opens again (it hung here before)
-		await expect(overview(page).getByRole("textbox", { name: "Chapter Length" })).toBeVisible();
+		await chapterLengthRow(page).getByRole("button").click(); // and the field opens again (it hung here before)
+		await expect(chapterLengthRow(page).getByRole("textbox", { name: "Chapter Length" })).toBeVisible();
 	});
 
 	test("dividers appear once the spacing allows, and follow the bar's width", async ({ page }) => {
@@ -271,5 +275,66 @@ test.describe("the ghost chapter dividers", () => {
 		await page.setViewportSize(size); // and back: none again
 		await expect(ghosts(page)).toHaveCount(0);
 	});
+});
+
+// Brief 14, commit 2 (§1.2, §1.3, §1.5): the cards are bars only, placed chapters only, and the header holds no lengths or PoV.
+test.describe("the novel overview's cards and header", () => {
+	test.beforeEach(async ({ page }) => openNovel(page));
+
+	test("each chapter card is just its bar: no chevron, no size control, no details, no plot note", async ({ page }) => {
+		const cards = overview(page).locator(".sf-card");
+		expect(await cards.count()).toBeGreaterThan(1);
+		for (let i = 0; i < (await cards.count()); i++) {
+			await expect(cards.nth(i).locator("> *")).toHaveCount(1);
+			await expect(cards.nth(i).locator("> .sf-bar")).toHaveCount(1);
+		}
+		await expect(overview(page).locator(".sf-card-chevron, .sf-size-control, .sf-size-option, .sf-note-field[data-plot], .sf-ref-row, .sf-card-rows")).toHaveCount(0);
+		await expect(overview(page).getByRole("button", { name: /Show (all details|bar only|plot note only)/ })).toHaveCount(0);
+	});
+
+	test("the word-count tooltip stays", async ({ page }) => {
+		await overview(page).locator(".sf-card .sf-bar").first().hover();
+		await expect(page.getByRole("tooltip")).toContainText(/\d/);
+	});
+
+	test("only placed chapters are shown; the unplaced ones stay in the left pane's list", async ({ page }) => {
+		const placed = await page.locator(".sf-left [aria-label='Placed chapters'] > *").count();
+		await expect(overview(page).locator(".sf-card")).toHaveCount(placed);
+		await expect(overview(page).getByText("Unplaced")).toHaveCount(0);
+		await expect(overview(page).getByText("Unplaced idea")).toHaveCount(0);
+		await expect(page.locator(".sf-left").getByText("Unplaced idea")).toBeVisible();
+	});
+
+	test("the workspace shows no default PoV, novel length or chapter length; the left pane still does", async ({ page }) => {
+		for (const label of ["Default PoV", "Novel Length", "Chapter Length"]) {
+			await expect(overview(page).getByText(label)).toHaveCount(0);
+			await expect(page.locator(".sf-left .sf-meta-row", { hasText: label })).toBeVisible();
+		}
+		await expect(overview(page).locator(".sf-overview-meta, .sf-meta-row")).toHaveCount(0);
+	});
+});
+
+const tree = (dir: string, base = dir, out: Record<string, string> = {}): Record<string, string> => {
+	for (const name of readdirSync(dir)) {
+		const full = path.join(dir, name);
+		if (statSync(full).isDirectory()) tree(full, base, out);
+		else out[path.relative(base, full)] = readFileSync(full).toString("base64");
+	}
+	return out;
+};
+
+test("opening and browsing the novel tab leaves the project folder byte-identical", async ({ page }) => {
+	const { root } = await openPreview(page);
+	await page.locator("[data-recent='0']").click();
+	await page.waitForFunction(() => !!window.__app?.editors);
+	const before = tree(root);
+	await flipFace(page);
+	await page.getByRole("tab", { name: "novel" }).click();
+	await expect(overview(page)).toBeVisible();
+	await overview(page).locator(".sf-card .sf-bar").first().hover();
+	await page.getByRole("tab", { name: "series" }).click();
+	await page.getByRole("tab", { name: "novel" }).click();
+	await expect(overview(page)).toBeVisible();
+	expect(tree(root)).toEqual(before);
 });
 

@@ -407,8 +407,8 @@ export interface MachineProjectState {
 	widthsLinked?: boolean;
 	/** View ▸ Show or Hide Lore Slot. */
 	loreHidden?: boolean;
-	/** Chapter card sizes on the novel overview, keyed `<book folder>/<chapter file>`. Extended is the default and isn't stored (decision 41). */
-	cardTiers?: Record<string, "bar" | "collapsed">;
+	/** The chapter card sizes of 1.6 and earlier (decision 41, retired in 1.7.0). No longer used: read exactly as stored and written back unchanged on every save, never interpreted, cleaned or dropped. */
+	cardTiers?: unknown;
 	/** Which count the stats panel shows (decision 68). Day is the default and isn't stored. */
 	statsCount?: StatsCount;
 }
@@ -438,17 +438,11 @@ export async function loadMachineProjectState(store: MachineStore, projectKey: s
 			...(typeof parsed.widthsLinked === "boolean" ? { widthsLinked: parsed.widthsLinked } : {}),
 			...(parsed.loreHidden === true ? { loreHidden: true } : {}),
 			...(STATS_COUNTS.some((c) => c === parsed.statsCount) && parsed.statsCount !== "day" ? { statsCount: parsed.statsCount as StatsCount } : {}),
-			...(parsed.cardTiers && typeof parsed.cardTiers === "object" ? { cardTiers: cleanCardTiers(parsed.cardTiers) } : {}),
+			...("cardTiers" in parsed ? { cardTiers: parsed.cardTiers } : {}),
 		};
 	} catch {
 		return base;
 	}
-}
-
-function cleanCardTiers(raw: unknown): Record<string, "bar" | "collapsed"> {
-	const out: Record<string, "bar" | "collapsed"> = {};
-	if (raw && typeof raw === "object") for (const [k, v] of Object.entries(raw)) if (v === "bar" || v === "collapsed") out[k] = v;
-	return out;
 }
 
 export function saveMachineProjectState(store: MachineStore, projectKey: string, state: MachineProjectState): Promise<void> {

@@ -449,16 +449,7 @@ interface FieldKind {
 	away: (page: Page) => Locator;
 }
 const KINDS: FieldKind[] = [
-	{
-		name: "a plot note",
-		file: BOOK_A,
-		open: async (page) => {
-			await flipSide(page);
-			await page.getByRole("tab", { name: "novel" }).click();
-			return page.getByRole("textbox", { name: "Plot note for Chapter 2" });
-		},
-		away: (page) => page.getByRole("region", { name: "Novel overview" }).locator(".sf-overview-title"),
-	},
+	// Brief 14: the plot note left the cards for the context panel (commit 4), where its kind is put back here.
 	{
 		name: "the novel's synopsis",
 		file: BOOK_A,

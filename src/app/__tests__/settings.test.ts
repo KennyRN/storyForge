@@ -291,14 +291,30 @@ describe("the sessions settings (docs/sessions.md §9)", () => {
 	});
 });
 
-describe("card sizes in machine state", () => {
-	it("round-trips and drops anything that isn't bar or collapsed", async () => {
+describe("card sizes in machine state (retired in 1.7.0, carried through untouched)", () => {
+	const setup = () => {
 		const mem = new Map<string, string>();
 		const store = { get: async (n: string) => mem.get(n) ?? null, set: async (n: string, t: string) => void mem.set(n, t) };
-		await saveMachineProjectState(store, "k", { selectedNovel: null, selectedObject: null, collapsedCodexFolderIds: [], cardTiers: { "a/b.md": "bar", "a/c.md": "collapsed" } });
-		expect((await loadMachineProjectState(store, "k")).cardTiers).toEqual({ "a/b.md": "bar", "a/c.md": "collapsed" });
-		mem.set("project-ui/k", JSON.stringify({ cardTiers: { x: "extended", y: "bar", z: 3 } }));
-		expect((await loadMachineProjectState(store, "k")).cardTiers).toEqual({ y: "bar" });
+		return { mem, store };
+	};
+	it("comes back exactly as stored, whatever it holds, through a load and a save", async () => {
+		for (const stored of [{ "a/b.md": "bar", "a/c.md": "collapsed" }, { x: "extended", y: "bar", z: 3 }, {}, [], "text", 7, null]) {
+			const { mem, store } = setup();
+			mem.set("project-ui/k", JSON.stringify({ selectedNovel: "n", cardTiers: stored }));
+			const loaded = await loadMachineProjectState(store, "k");
+			expect(loaded.cardTiers).toEqual(stored);
+			await saveMachineProjectState(store, "k", { ...loaded, selectedObject: "ch.md" }); // a save for another reason
+			expect(JSON.parse(mem.get("project-ui/k")!).cardTiers).toEqual(stored);
+			expect((await loadMachineProjectState(store, "k")).cardTiers).toEqual(stored);
+		}
+	});
+	it("is not added when it was never stored", async () => {
+		const { mem, store } = setup();
+		mem.set("project-ui/k", JSON.stringify({ selectedNovel: "n" }));
+		const loaded = await loadMachineProjectState(store, "k");
+		expect("cardTiers" in loaded).toBe(false);
+		await saveMachineProjectState(store, "k", loaded);
+		expect("cardTiers" in JSON.parse(mem.get("project-ui/k")!)).toBe(false);
 	});
 });
 
