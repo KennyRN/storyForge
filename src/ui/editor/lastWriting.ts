@@ -45,6 +45,9 @@ export function setWritingFallback(fn: () => EditorView | null): void {
 	fallback = fn;
 }
 
+/** A place the author writes in was removed from the page (the context panel's plot note): the button re-reads where they are. */
+export const writingPlaceGone = (): void => notify();
+
 export function onWritingChange(fn: () => void): () => void {
 	listeners.add(fn);
 	return () => listeners.delete(fn);

@@ -1,4 +1,4 @@
-import { Annotation, EditorState, Transaction } from "@codemirror/state";
+import { Annotation, EditorState, Transaction, type ChangeSet } from "@codemirror/state";
 import { EditorView, drawSelection, keymap } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, redo, undo } from "@codemirror/commands";
 import { openSearchPanel, search, searchKeymap } from "@codemirror/search";
@@ -52,7 +52,10 @@ export interface MountedEditor {
  * Typing goes to `session.setBody`; a reload from disk arrives as the minimal edit and is applied without
  * touching undo history or the caret (decision 21).
  */
-export function mountSessionEditor(parent: HTMLElement, session: ProseSession, options: { covered?: () => boolean; typing?: () => TypingEditorOptions } = {}): MountedEditor {
+/** Tells a watcher (the context panel's read-only copy of the chapter) that the document changed: the change, and the length it applies to. */
+export type TextUpdate = (changes: ChangeSet, lengthBefore: number) => void;
+
+export function mountSessionEditor(parent: HTMLElement, session: ProseSession, options: { covered?: () => boolean; typing?: () => TypingEditorOptions; onUpdate?: TextUpdate } = {}): MountedEditor {
 	const view: EditorView = new EditorView({
 		parent,
 		dispatchTransactions: (trs: readonly Transaction[]) => {
@@ -72,6 +75,8 @@ export function mountSessionEditor(parent: HTMLElement, session: ProseSession, o
 				EditorView.domEventHandlers({ beforeinput: () => options.covered?.() === true }),
 				EditorView.updateListener.of((update) => {
 					if (!update.docChanged) return;
+					// Every change to the document, the author's or a reload from disk, is also told to a watcher of the text (a read-only view).
+					options.onUpdate?.(update.changes, update.startState.doc.length);
 					if (update.transactions.some((t) => t.annotation(fromWriter))) return;
 					session.setBody(update.state.doc.toString(), originOfUpdate(update.transactions));
 				}),
@@ -95,10 +100,10 @@ export function mountSessionEditor(parent: HTMLElement, session: ProseSession, o
 }
 
 /** A read-only view of text that has no session (an archived note, a project made by a newer storyForge). */
-export function mountReadOnlyEditor(parent: HTMLElement, body: string): MountedEditor {
+export function mountReadOnlyEditor(parent: HTMLElement, body: string, options: { onUpdate?: TextUpdate } = {}): MountedEditor {
 	const view = new EditorView({
 		parent,
-		state: EditorState.create({ doc: body, extensions: [...common, EditorState.readOnly.of(true), EditorView.editable.of(false)] }),
+		state: EditorState.create({ doc: body, extensions: [...common, EditorState.readOnly.of(true), EditorView.editable.of(false), EditorView.updateListener.of((u) => u.docChanged && options.onUpdate?.(u.changes, u.startState.doc.length))] }),
 	});
 	return { view, destroy: () => view.destroy() };
 }

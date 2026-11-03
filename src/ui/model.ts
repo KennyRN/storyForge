@@ -279,6 +279,20 @@ export class AppModel {
 		await this.editors?.open("centre", libraryChapterPath(book, filename));
 	}
 
+	/**
+	 * Chooses a chapter from the library side (Brief 14 §1.7): it becomes the chapter being written, shown by the context panel here and by
+	 * the storytelling side's editor when you flip. The editor switches by the same route as `openChapter` (the open chapter saved, the new
+	 * one opened), but the library side keeps the view it has: an overview stays up, and the editor under it stays inert.
+	 */
+	async chooseChapter(book: string, filename: string): Promise<void> {
+		this.nav.book = book;
+		this.nav.chapter = filename;
+		this.select({ kind: "chapter", book, filename });
+		this.persistSoon();
+		this.touch("nav", "stats");
+		await this.editors?.open("centre", libraryChapterPath(book, filename), { reveal: false });
+	}
+
 	/** Opens the selected chapter in the centre, if the centre is empty (opening a project, or the selection changing under it). */
 	async ensureCentre(): Promise<void> {
 		const path = this.currentChapterPath();

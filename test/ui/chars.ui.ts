@@ -89,7 +89,7 @@ test.describe("the special-characters button: where it puts the character", () =
 });
 
 const FIELDS = [
-	// Brief 14: the plot note left the cards for the context panel (commit 4), where its entry is put back here.
+	{ name: "a plot note", file: BOOK, tab: "novel", box: (p: Page) => p.getByRole("textbox", { name: "Plot note for Chapter 1" }) }, // in the context panel (Brief 14): the chosen chapter's
 	{ name: "the synopsis", file: BOOK, tab: "novel", box: (p: Page) => p.getByRole("region", { name: "Novel overview" }).getByRole("textbox", { name: /^Synopsis of / }), },
 	{ name: "the series description", file: SERIES, tab: "series", box: (p: Page) => p.getByRole("region", { name: "Series overview" }).getByRole("textbox", { name: "Series description" }) },
 ] as const;

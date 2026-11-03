@@ -270,10 +270,12 @@ test.describe("the Codex card on the storytelling side", () => {
 
 	test("the context panel's card does not move when the side flips", async ({ page }) => {
 		await openProject(page);
-		const before = await rect(page, ".sf-lore-host");
+		// on the library side's novel tab the panel holds the chosen chapter (Brief 14), in the same box as the note's slot
+		const shown = ".sf-lore-host:not([hidden]), .sf-chapter-context:not([hidden])";
+		const before = await rect(page, shown);
 		await flipFace(page);
 		await page.waitForTimeout(300);
-		const after = await rect(page, ".sf-lore-host");
+		const after = await rect(page, shown);
 		expect(after.t).toBeCloseTo(before.t, 1);
 		expect(after.b).toBeCloseTo(before.b, 1);
 		expect(after.l).toBeCloseTo(before.l, 1);

@@ -37,7 +37,13 @@ test.describe("the library", () => {
 		await expect(page.locator(".sf-slot--lore .cm-content")).toBeVisible();
 		await flip(page);
 		await expect(page.getByRole("tablist", { name: "Library" })).toBeVisible();
-		await expect(page.locator(".sf-slot--lore .cm-content")).toBeVisible();
+		// the Codex note stays open in its slot (mounted, not closed); on the novel tab the panel shows the chosen chapter instead (Brief 14 §1.6), on the other tabs the note
+		await expect(page.locator(".sf-lore-host .cm-content")).toHaveCount(1);
+		await expect(page.locator(".sf-lore-host")).toBeHidden();
+		await expect(page.locator(".sf-chapter-context")).toBeVisible();
+		await page.getByRole("tab", { name: "codex" }).click();
+		await expect(page.locator(".sf-lore-host .cm-content")).toBeVisible();
+		await page.getByRole("tab", { name: "novel" }).click();
 		await expect(centre(page)).toContainText("Synthetic sentence number 1");
 		await flip(page);
 		await expect(page.locator(".sf-nav-novel")).toBeVisible();

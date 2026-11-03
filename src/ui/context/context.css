@@ -1,0 +1,25 @@
+/* The context panel on the library side's novel tab (Brief 14 §1.6): the chosen chapter's PoV and Location on the panel's own background,
+   then its plot note and its text, each on a working card (bg0, 10px corners, no border: the Codex note's card look). */
+.sf-lore-host[hidden],
+.sf-chapter-context[hidden] { display: none; }
+.sf-chapter-context {
+	flex: 1;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: var(--top-gap) max(12px, 10%) 0;
+}
+.sf-chapter-rows { flex: none; display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.sf-chapter-rows .sf-card-row { display: flex; gap: 8px; }
+.sf-ctx-card { background: var(--purpose-editor-bg); border-radius: 10px; overflow: hidden; box-sizing: border-box; }
+.sf-ctx-plot { flex: none; max-height: 35%; overflow: auto; padding: 8px 6px; }
+.sf-ctx-text { flex: 1; min-height: 0; overflow: auto; }
+.sf-chapter-text .cm-editor { height: auto; background: transparent; color: var(--purpose-text); }
+.sf-chapter-text .cm-editor.cm-focused { outline: none; }
+.sf-chapter-text .cm-scroller { overflow: visible; font-family: var(--font-prose); }
+.sf-chapter-text .cm-content { padding: 16px 16px 24px; font-size: 15px; line-height: 1.5; cursor: text; }
+.sf-chapter-text .cm-line { padding: 0; }
+.sf-chapter-text .cm-selectionBackground,
+.sf-chapter-text .cm-editor.cm-focused .cm-selectionBackground { background: var(--purpose-selection); }
+.sf-chapter-text:focus-within { outline: 2px solid var(--purpose-focus-ring); outline-offset: -2px; border-radius: 10px; }

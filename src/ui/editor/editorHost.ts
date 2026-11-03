@@ -4,7 +4,7 @@ import { foldKey } from "../../core/pathRules";
 import { el, fill } from "../kit/dom";
 import type { AppModel } from "../model";
 import { arriveWriting, setWritingFallback, trackWriting } from "./lastWriting";
-import { mountReadOnlyEditor, mountSessionEditor, type MountedEditor, openFind, openFindReplace, redo, undo } from "./editor";
+import { mountReadOnlyEditor, mountSessionEditor, type MountedEditor, type TextUpdate, openFind, openFindReplace, redo, undo } from "./editor";
 import { noticeForOutsideChange, noticesForSave, readOnlyBanner } from "./saveNotices";
 
 /**
@@ -35,6 +35,10 @@ export class EditorHost {
 	private endingsShown = new Set<string>();
 	/** Called when a slot's occupant changes (the shell shows or hides the lore slot). */
 	onChange: (() => void) | null = null;
+	/** Watchers of a file's text (the context panel's read-only chapter): told every change to the document of whichever editor holds it. */
+	private textWatchers = new Map<string, Set<{ update: TextUpdate; reset: (text: string) => void }>>();
+	/** Called each time an occupant of any slot changes, for the watchers above to find the editor that now holds their file. */
+	private occupantListeners = new Set<() => void>();
 
 	constructor(
 		private readonly model: AppModel,
@@ -45,6 +49,41 @@ export class EditorHost {
 		model.subscribe("project", () => {
 			if (!model.running) this.dropAll();
 		});
+	}
+
+	/**
+	 * Watches the text of `path`, as the editor holding it has it now (the open session's current text, not the file on disk, so words
+	 * typed but not yet saved are there). `reset` gives the whole text (when the watch starts, when the editor holding the file changes
+	 * or is closed) and `update` each change after it. This only reads: it never reaches the session, the writer or the tracker.
+	 * Returns the function that stops the watch.
+	 */
+	watchText(path: string, watcher: { update: TextUpdate; reset: (text: string | null) => void }): () => void {
+		const key = this.keyOf(path);
+		let set = this.textWatchers.get(key);
+		if (!set) this.textWatchers.set(key, (set = new Set()));
+		const entry = { update: watcher.update, reset: (t: string) => watcher.reset(t) };
+		set.add(entry);
+		const sync = (): void => watcher.reset(this.liveText(path));
+		sync();
+		this.occupantListeners.add(sync);
+		return () => {
+			set!.delete(entry);
+			this.occupantListeners.delete(sync);
+		};
+	}
+
+	/** The text now in the editor that holds `path`, or null when none does. */
+	liveText(path: string): string | null {
+		const slot = this.where(path);
+		return slot ? this.slots[slot].occupant!.mounted.view.state.doc.toString() : null;
+	}
+
+	private emitText(path: string, changes: Parameters<TextUpdate>[0], lengthBefore: number): void {
+		for (const w of this.textWatchers.get(this.keyOf(path)) ?? []) w.update(changes, lengthBefore);
+	}
+
+	private occupantChanged(): void {
+		for (const fn of [...this.occupantListeners]) fn();
 	}
 
 	/** The path held in a slot, as the project spells it, or null. */
@@ -96,13 +135,17 @@ export class EditorHost {
 		(replace ? openFindReplace : openFind)(f.view);
 	}
 
-	/** Opens `path` in `slot`, or focuses the editor that already has it. */
-	async open(slot: Slot, path: string): Promise<void> {
-		if (slot === "centre") this.model.setCentreView("chapter");
+	/**
+	 * Opens `path` in `slot`, or focuses the editor that already has it. `reveal: false` (the library side choosing a chapter, Brief 14 §1.7)
+	 * switches the slot's file by the same route (the open one saved, the new one opened) without showing the chapter view or taking the focus.
+	 */
+	async open(slot: Slot, path: string, options: { reveal?: boolean } = {}): Promise<void> {
+		const reveal = options.reveal !== false;
+		if (slot === "centre" && reveal) this.model.setCentreView("chapter");
 		else if (slot === "codex" || slot === "archive") this.model.showLibraryEntry(slot);
 		const have = this.where(path);
 		if (have === slot) {
-			this.focus(have);
+			if (reveal) this.focus(have);
 			return;
 		}
 		// One file, one editor: the chapter's stays where it is and is focused, and so does a note already held by the centre or the
@@ -111,7 +154,7 @@ export class EditorHost {
 		const library = (s: Slot | null): boolean => s === "codex" || s === "archive";
 		if (have && (library(have) || library(slot)) && have !== "centre") await this.close(have);
 		else if (have) {
-			this.focus(have);
+			if (reveal) this.focus(have);
 			return;
 		}
 		const s = this.slots[slot];
@@ -121,21 +164,21 @@ export class EditorHost {
 			if (p && p.key === this.keyOf(path)) {
 				await p.done;
 				const now = this.where(path);
-				if (now) this.focus(now);
+				if (now && reveal) this.focus(now);
 				return;
 			}
 		}
 		let finish!: () => void;
 		s.pending = { key: this.keyOf(path), done: new Promise<void>((resolve) => (finish = resolve)) };
 		try {
-			await this.openIn(slot, path);
+			await this.openIn(slot, path, reveal);
 		} finally {
 			s.pending = null;
 			finish();
 		}
 	}
 
-	private async openIn(slot: Slot, path: string): Promise<void> {
+	private async openIn(slot: Slot, path: string, reveal: boolean): Promise<void> {
 		const s = this.slots[slot];
 		const token = ++s.opening;
 		// Where the author was typing when this note was asked for: if it is somewhere else by the time the note is open (a name box
@@ -168,7 +211,7 @@ export class EditorHost {
 				return;
 			}
 			const editorHost = el("div", { class: "sf-editor" });
-			const mounted = session ? mountSessionEditor(editorHost, session, { covered: () => (slot === "centre" ? this.model.centreCovered : slot === "codex" || slot === "archive" ? !(this.model.nav.face === "storyforge" && this.model.nav.forgeTab === slot) : false), typing: () => this.model.typingOptions() }) : mountReadOnlyEditor(editorHost, readOnlyText ?? "");
+			const mounted = session ? mountSessionEditor(editorHost, session, { covered: () => (slot === "centre" ? this.model.centreCovered : slot === "codex" || slot === "archive" ? !(this.model.nav.face === "storyforge" && this.model.nav.forgeTab === slot) : false), typing: () => this.model.typingOptions(), onUpdate: (c, n) => this.emitText(path, c, n) }) : mountReadOnlyEditor(editorHost, readOnlyText ?? "", { onUpdate: (c, n) => this.emitText(path, c, n) });
 			occupant = { path: session?.path ?? project.entry(path)?.path ?? path, mounted, session, offs: [] };
 			trackWriting(mounted.view);
 			if (session) this.watch(occupant, session);
@@ -177,8 +220,9 @@ export class EditorHost {
 			this.show(s.host, container, banner, editorHost);
 			if (previous) await this.release(previous);
 			this.onChange?.();
+			this.occupantChanged();
 			const focusMoved = isTypingPlace(document.activeElement) && document.activeElement !== typingAtRequest && !mounted.view.dom.contains(document.activeElement);
-			if (!focusMoved) {
+			if (!focusMoved && reveal) {
 				mounted.view.focus();
 				arriveWriting(mounted.view);
 			}
@@ -197,6 +241,7 @@ export class EditorHost {
 		fill(s.host);
 		if (o) await this.release(o);
 		this.onChange?.();
+		this.occupantChanged();
 	}
 
 	private show(host: HTMLElement, pane: HTMLElement, banner: string | undefined, editor?: HTMLElement): void {
@@ -244,6 +289,7 @@ export class EditorHost {
 			}
 		}
 		this.onChange?.();
+		this.occupantChanged();
 	}
 
 	private keyOf(path: string): string {

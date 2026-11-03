@@ -89,6 +89,19 @@ describe("architecture: who may call the restricted backend operations", () => {
 		}
 	});
 
+	it("the context panel's read-only chapter text can't reach the prose writer, the chapter editor or the session tracker (Brief 14 §1.6)", () => {
+		// It only reads: the editor that holds the chapter tells it each change (EditorHost.watchText), and it holds no session.
+		const file = files.find((f) => f.path === "ui/context/chapterText.ts");
+		expect(file, "ui/context/chapterText.ts exists").toBeDefined();
+		const text = valueImportsOnly(file!.text);
+		const FORBIDDEN_IMPORTS = [/\/proseWriter["']/, /\/editor\/editor["']/, /\/editor\/editorHost["']/, /\/sessionRecorder["']/, /\/sessions["']/, /\/sessionFiles["']/, /\/typingAids["']/, /\/fieldWriter["']/];
+		const FORBIDDEN_CALLS = [/\.setBody\s*\(/, /\.onAuthorEdit\b/, /\bmountSessionEditor\b/, /\bProseSession\b/, /\bProseWriter\b/, /\.sessionIn\s*\(/, /\bopenFile\b/];
+		for (const re of FORBIDDEN_IMPORTS) expect(re.test(text), `chapterText.ts imports ${re}`).toBe(false);
+		for (const re of FORBIDDEN_CALLS) expect(re.test(text), `chapterText.ts uses ${re}`).toBe(false);
+		// And the one thing it asks the editor host for is the text: watchText and liveText.
+		expect([...new Set([...text.matchAll(/model\.editors\??\.(\w+)/g)].map((m) => m[1]))].sort()).toEqual(["liveText", "watchText"]);
+	});
+
 	it("the typing aids are mounted only in the chapter and note editor and in the field editors (decision 53); the rename, settings and search boxes take none", () => {
 		const users = files.filter((f) => /\btypingAids\s*\(/.test(valueImportsOnly(f.text)) && f.path !== "ui/editor/typingAids.ts").map((f) => f.path).sort();
 		expect(users).toEqual(["ui/editor/editor.ts", "ui/overviews/fieldCommitter.ts"]);

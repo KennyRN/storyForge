@@ -22,7 +22,6 @@ const flip = (page: Page) => flipFace(page);
 const tab = (page: Page, name: string) => page.getByRole("tab", { name });
 /** The text of a field editor (plot note, synopsis, description) as the lines it shows: they are small CodeMirror editors (decision 47). */
 const fieldText = (box: Locator): Promise<string> => box.evaluate((el) => [...el.querySelectorAll(".cm-line")].map((l) => l.textContent ?? "").join("\n"));
-const plotField = (page: Page, chapter = "ch-a1.md") => page.locator(`.sf-card[data-chapter="${chapter}"] .sf-note-field .cm-content`);
 const overview = (page: Page) => page.getByRole("region", { name: "Series overview" });
 /** A planned length's value in the left pane (the workspace no longer shows them: Brief 14 §1.5). */
 const leftLength = (page: Page, label: string) => page.locator(".sf-left .sf-meta-row", { hasText: label }).getByRole("button");
@@ -210,12 +209,11 @@ test.describe("the novel overview", () => {
 		await expect(o.locator(".sf-bar-marker")).toHaveCount(0);
 	});
 
-	test("clicking a bar opens the chapter; the tab again brings the overview back", async ({ page }) => {
-		await novelOverview(page).locator(".sf-card .sf-bar").first().click();
-		await expect(novelOverview(page)).toBeHidden();
-		await expect(page.locator(".sf-slot--centre .cm-content")).toBeVisible();
-		await tab(page, "novel").click();
+	test("clicking a bar chooses the chapter (Brief 14 §1.7): the overview stays up and the editor beneath stays inert (the chosen-chapter tests are in chapterContext.ui.ts)", async ({ page }) => {
+		await novelOverview(page).locator(".sf-card .sf-bar").nth(1).click();
 		await expect(novelOverview(page)).toBeVisible();
+		await expect(page.locator(".sf-slot--centre")).toHaveAttribute("inert", "");
+		await expect(page.getByRole("textbox", { name: /^Plot note for The Storm/ })).toBeVisible();
 	});
 
 	test("the tooltip shows the word count at once, the plot note's first paragraph joins it, and a changed note replaces it", async ({ page }) => {
@@ -243,155 +241,12 @@ test.describe("the novel overview", () => {
 		}).toMatch(/: The tide turns before breakfast\.$/);
 	});
 
-	// Brief 14: the plot note, PoV and Location left the cards for the context panel (commit 4), where this test is re-homed.
-	test.fixme("a plot note is committed when it loses focus, keeping a leading space and further lines", async ({ page }) => {
-		const field = plotField(page);
-		await expect.poll(() => fieldText(field)).toBe("Jane reaches the harbour at dawn.");
-		await field.click();
-		await field.press("Meta+a");
-		await field.pressSequentially("  Jane leaves.\nThen the tide: turns.");
-		// Nothing is written while typing.
-		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).not.toContain("Jane leaves.");
-		await novelOverview(page).locator(".sf-overview-title").click();
-		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("Jane leaves.");
-		await expect.poll(() => fieldText(field)).toBe("  Jane leaves.\nThen the tide: turns.");
-	});
-
-	// Brief 14: the plot note, PoV and Location left the cards for the context panel (commit 4), where this test is re-homed.
-	test.fixme("a plot note is a multi-line text box: announced as one, Return makes a plain new line, Tab leaves it, spellcheck is on", async ({ page }) => {
-		const field = page.getByRole("textbox", { name: "Plot note for Chapter 1" });
-		await expect(field).toHaveAttribute("aria-multiline", "true");
-		await expect(field).toHaveAttribute("spellcheck", "true");
-		await expect(page.getByRole("textbox", { name: "Plot note for Chapter 2" })).toBeVisible();
-		await expect(page.locator('.sf-card[data-chapter="ch-a5.md"] .sf-note-field .cm-placeholder')).toHaveText("Plot note");
-		await field.click();
-		await page.keyboard.press("ControlOrMeta+a");
-		await page.keyboard.type("  indented");
-		await page.keyboard.press("Enter");
-		await page.keyboard.type("next");
-		expect(await fieldText(field)).toBe("  indented\nnext"); // no auto-indent: the new line starts at the left
-		await page.keyboard.press("Tab");
-		expect(await page.evaluate(() => !!document.activeElement?.closest(".sf-note-field"))).toBe(false); // no Tab trap
-	});
-
-	// Brief 14: the plot note, PoV and Location left the cards for the context panel (commit 4), where this test is re-homed.
-	test.fixme("the typing aids work in a field: curly quotes and dashes, one ⌘Z gives back what was typed, and they are saved", async ({ page }) => {
-		const field = plotField(page, "ch-a2.md");
-		await field.click();
-		await page.keyboard.type("It's - 'twas...");
-		expect(await fieldText(field)).toBe("It’s – ’twas…");
-		await page.keyboard.press("ControlOrMeta+z");
-		expect(await fieldText(field)).toBe("It’s – ’twas...");
-		await page.keyboard.press("ControlOrMeta+Shift+z");
-		expect(await fieldText(field)).toBe("It’s – ’twas…");
-		await novelOverview(page).locator(".sf-overview-title").click();
-		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("It’s – ’twas…");
-	});
-
-	// Brief 14: the plot note, PoV and Location left the cards for the context panel (commit 4), where this test is re-homed.
-	test.fixme("Edit ▸ Undo and Redo reach the focused field's own history", async ({ page }) => {
-		const field = plotField(page);
-		await field.click();
-		await page.keyboard.press("ControlOrMeta+End");
-		await page.keyboard.type(" And more.");
-		expect(await fieldText(field)).toBe("Jane reaches the harbour at dawn. And more.");
-		await page.evaluate(() => window.__preview.emit("menu", "undo"));
-		expect(await fieldText(field)).toBe("Jane reaches the harbour at dawn.");
-		await page.evaluate(() => window.__preview.emit("menu", "redo"));
-		expect(await fieldText(field)).toBe("Jane reaches the harbour at dawn. And more.");
-	});
-
-	// Brief 14: the plot note, PoV and Location left the cards for the context panel (commit 4), where this test is re-homed.
-	test.fixme("a field refreshed from disk starts a new history: ⌘Z can't bring back text that was replaced from outside", async ({ page }) => {
-		let field = plotField(page);
-		await field.click();
-		await page.keyboard.press("ControlOrMeta+a");
-		await page.keyboard.type("Mine.");
-		await novelOverview(page).locator(".sf-overview-title").click(); // committed
-		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("Mine.");
-		const novel = await page.evaluate((f) => window.__preview.read(f), BOOK_A);
-		await outside(page, BOOK_A, novel.replace("plot: Mine.", "plot: Theirs.\n"));
-		field = plotField(page);
-		await expect.poll(() => fieldText(field)).toBe("Theirs.");
-		await field.click();
-		await page.keyboard.press("ControlOrMeta+z");
-		expect(await fieldText(field)).toBe("Theirs.");
-	});
-
-	// Brief 14: the plot note, PoV and Location left the cards for the context panel (commit 4), where this test is re-homed.
-	test.fixme("a plot note still being typed in is committed by a close request", async ({ page }) => {
-		const field = plotField(page);
-		await field.click();
-		await field.press("Meta+a");
-		await field.pressSequentially("Typed when the app was told to close.");
-		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).not.toContain("Typed when the app");
-		await page.evaluate(() => window.__preview.emit("close-requested"));
-		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("Typed when the app was told to close.");
-	});
-
 	test("a planned length still being typed in is committed by a close request", async ({ page }) => {
 		await leftLength(page, "Chapter Length").click();
 		const input = page.locator(".sf-left").getByRole("textbox", { name: "Chapter Length" });
 		await input.fill("3,100");
 		await page.evaluate(() => window.__preview.emit("close-requested"));
 		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("planned-chapter-length: 3100");
-	});
-
-	// Brief 14: the plot note, PoV and Location left the cards for the context panel (commit 4), where this test is re-homed.
-	test.fixme("a plot note changed on disk while it is being edited is not overwritten: the author's text goes to recovery and a notice says so", async ({ page }) => {
-		const field = plotField(page);
-		await field.click();
-		await field.press("Meta+a");
-		await field.pressSequentially("My own words");
-		const novel = await page.evaluate((f) => window.__preview.read(f), BOOK_A);
-		await outside(page, BOOK_A, novel.replace("plot: Jane reaches the harbour at dawn.", "plot: Somebody else.\n"));
-		await novelOverview(page).locator(".sf-overview-title").click();
-		await expect(page.getByRole("alert")).toContainText("changed on disk");
-		await expect.poll(() => fieldText(field)).toBe("Somebody else.");
-		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("Somebody else.");
-	});
-
-	// Brief 14: the plot note, PoV and Location left the cards for the context panel (commit 4), where this test is re-homed.
-	test.fixme("a chapter with no PoV of its own shows the default, muted and labelled, and the default is not written into the chapter", async ({ page }) => {
-		const row = novelOverview(page).locator('.sf-card[data-chapter="ch-a5.md"] [data-row="pov"]');
-		await expect(row.locator(".sf-ref.is-muted")).toHaveText("Jane");
-		await expect(row).toContainText("(default)");
-		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).not.toMatch(/ch-a5\.md:[\s\S]*pov/);
-	});
-
-	// Brief 14: the plot note, PoV and Location left the cards for the context panel (commit 4), where this test is re-homed.
-	test.fixme("the PoV picker sets a chapter's PoV, and the default PoV picker sets the default", async ({ page }) => {
-		const o = novelOverview(page);
-		const row = o.locator('.sf-card[data-chapter="ch-a5.md"] [data-row="pov"]');
-		await row.getByRole("button", { name: /Choose pov/i }).click();
-		await page.getByRole("dialog").getByLabel("Sam").check();
-		await page.getByRole("dialog").getByRole("button", { name: "Choose" }).click();
-		await expect(row.locator(".sf-ref")).toHaveText("Sam");
-		await expect(row.locator(".sf-ref.is-muted")).toHaveCount(0);
-		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("Codex%2FSam.md=Sam");
-		await o.getByRole("button", { name: "Choose the default PoV" }).click();
-		await page.getByRole("dialog").getByLabel("Sam").check();
-		await page.getByRole("dialog").getByRole("button", { name: "Choose" }).click();
-		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("default-pov-path: Codex/Sam.md");
-		await expect(o.locator('[data-row="default-pov"] .sf-ref')).toHaveText("Sam");
-	});
-
-	// Brief 14: the plot note, PoV and Location left the cards for the context panel (commit 4), where this test is re-homed.
-	test.fixme("a reference to a note that is gone is shown as missing, and stays in the file", async ({ page }) => {
-		const novel = await page.evaluate((f) => window.__preview.read(f), BOOK_A);
-		await outside(page, BOOK_A, novel.replace("v1;Codex%2FJane.md=Jane", "v1;Codex%2FGone.md=Gone"));
-		const ref = novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] [data-row="pov"] .sf-ref');
-		await expect(ref).toHaveText("Gone (missing)");
-		await expect(ref).toHaveClass(/is-muted/);
-		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("Codex%2FGone.md=Gone");
-	});
-
-	// Brief 14: the plot note, PoV and Location left the cards for the context panel (commit 4), where this test is re-homed.
-	test.fixme("a name in a PoV row opens that note in the workspace, and the overview comes back from its tab", async ({ page }) => {
-		await novelOverview(page).locator('.sf-card[data-chapter="ch-a1.md"] [data-row="pov"] .sf-ref').click();
-		await expect(novelOverview(page)).toHaveCount(0);
-		await tab(page, "novel").click();
-		await expect(novelOverview(page)).toBeVisible();
 	});
 
 	test("a cover chosen in the native panel is placed by Rust, recorded in the book's details, and the old one is retired", async ({ page }) => {

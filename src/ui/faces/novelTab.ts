@@ -51,14 +51,14 @@ export function mountNovelTab(host: HTMLElement, model: AppModel): () => void {
 		const run = (what: string, action: () => Promise<unknown>): Promise<void> => model.guard(async () => (await action(), model.touch("library", "nav")), what).then(() => undefined);
 
 		const row = (name: string, index: number): HTMLElement => {
-			const r = listRow(name, settings.highlightActiveChapter && model.nav.chapter === name);
+			const r = listRow(name, model.nav.chapter === name); // the chosen chapter is always marked (Brief 14 ruling E, whatever "Highlight the active chapter" says)
 			const label = rowTitle(r, numbered[index]);
 			r.addEventListener("click", (e) => {
 				if ((e.target as HTMLElement).closest(".sf-drag-handle, input")) return;
-				void model.openChapter(book, name);
+				void model.chooseChapter(book, name);
 			});
 			r.addEventListener("keydown", (e) => {
-				if (e.target === r && e.key === "Enter") void model.openChapter(book, name);
+				if (e.target === r && e.key === "Enter") void model.chooseChapter(book, name);
 			});
 			if (!readOnly) {
 				attachInlineRename({

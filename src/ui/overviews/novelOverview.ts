@@ -45,7 +45,7 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 		const total = words.reduce((a, b) => a + b, 0);
 		const plannedNovel = fm?.plannedNovelLength ?? null;
 		const plannedChapter = fm?.plannedChapterLength ?? null;
-		const open = (name: string): void => void model.openChapter(book, name);
+		const open = (name: string): void => void model.chooseChapter(book, name); // choosing: the overview stays up (Brief 14 §1.7)
 
 		const novelTitle = (): string => {
 			const series = getSeriesBooks(project);

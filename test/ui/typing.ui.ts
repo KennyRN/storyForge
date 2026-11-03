@@ -449,7 +449,16 @@ interface FieldKind {
 	away: (page: Page) => Locator;
 }
 const KINDS: FieldKind[] = [
-	// Brief 14: the plot note left the cards for the context panel (commit 4), where its kind is put back here.
+	{
+		name: "a plot note",
+		file: BOOK_A,
+		open: async (page) => {
+			await flipSide(page);
+			await page.getByRole("tab", { name: "novel" }).click();
+			return page.getByRole("textbox", { name: "Plot note for Chapter 1" }); // in the context panel (Brief 14): the chosen chapter's
+		},
+		away: (page) => page.getByRole("region", { name: "Novel overview" }).locator(".sf-overview-title"),
+	},
 	{
 		name: "the novel's synopsis",
 		file: BOOK_A,
@@ -636,7 +645,8 @@ for (const kind of KINDS) {
 
 		test("the popup is drawn outside the card and the scrolling, and stays inside the window beside a field near its edge", async ({ page }) => {
 			await projectWith(page, { codes: TH });
-			await page.evaluate(() => window.__preview.emit("menu", "toggle-lore")); // the context panel away: the overview reaches the window's right edge
+			// the context panel away, so the overview reaches the window's right edge; the plot note is in the context panel itself (Brief 14), which is at the right edge already
+			if (kind.name !== "a plot note") await page.evaluate(() => window.__preview.emit("menu", "toggle-lore"));
 			const field = await kind.open(page);
 			await intoField(field, page);
 			// the caret at the right-hand end of a full line; the panels are held in pixels so a narrower window doesn't change the geometry this test sets up
@@ -678,7 +688,7 @@ for (const kind of KINDS) {
 			expect(box.y).toBeGreaterThanOrEqual(0);
 			expect(box.x + box.width).toBeLessThanOrEqual(win.width);
 			expect(box.y + box.height).toBeLessThanOrEqual(win.height);
-			expect(await popup(page).evaluate((el) => el.closest(".sf-overview, .sf-card, .cm-editor"))).toBeNull(); // not inside anything that clips it
+			expect(await popup(page).evaluate((el) => el.closest(".sf-overview, .sf-card, .sf-ctx-card, .cm-editor"))).toBeNull(); // not inside anything that clips it
 			// nothing covers it: the element at its centre is the popup
 			expect(await page.evaluate(({ x, y }) => !!document.elementFromPoint(x, y)?.closest(".sf-shortcode-popup"), { x: box.x + box.width / 2, y: box.y + box.height / 2 })).toBe(true);
 			// and it still works from there

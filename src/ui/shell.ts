@@ -1,5 +1,6 @@
 import { mountLibraryLayer, mountOverviewLayer } from "./overviews/layer";
 import { mountCharactersButton } from "./context/charactersButton";
+import { mountChapterContext, showsChosenChapter } from "./context/chapterContext";
 import type { AppModel } from "./model";
 import { EditorHost } from "./editor/editorHost";
 import { el, fill } from "./kit/dom";
@@ -58,12 +59,15 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	// A note, when there is one, sits on a card inside the host; the host's padding is the card's margin (10% of the panel's width).
 	const loreHost = el("div", { class: "sf-lore-host" });
 	const loreRow = el("div", { class: "sf-context-row" });
-	lore.append(loreHost, loreRow);
+	// On the library side's novel tab the chosen chapter replaces the note here (Brief 14 §1.6); on every other tab the panel is unchanged.
+	const chapterHost = el("div", { class: "sf-chapter-context" });
+	lore.append(loreHost, chapterHost, loreRow);
 	const apply = (): void => {
 		const shown = model.displayWidths();
 		left.style.width = `${shown.left}px`;
 		lore.style.width = `${shown.lore}px`;
 		lore.hidden = model.nav.loreHidden;
+		loreHost.hidden = showsChosenChapter(model);
 		loreBar.hidden = model.nav.loreHidden;
 	};
 	const leftBar = splitter("Resize the left panel", "left", () => model.displayWidths().left, (w) => (model.setPanelWidthPx("left", w), apply()));
@@ -82,6 +86,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	const overviews = mountOverviewLayer(overview, centre, model);
 	const libraryLayer = mountLibraryLayer(library, libraryHosts, model);
 	const offCharacters = mountCharactersButton(loreRow, model);
+	const offChapterContext = mountChapterContext(chapterHost, model);
 
 	fill(left, navMenu.button, faceHost);
 	let disposeFace: (() => void) | null = null;
@@ -108,6 +113,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 			offWidthsOnFlip();
 			window.removeEventListener("resize", apply);
 			offCharacters();
+			offChapterContext();
 			overviews();
 			libraryLayer();
 			offFace();
