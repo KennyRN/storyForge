@@ -131,7 +131,7 @@ test.describe("the navigator", () => {
 			expect(await page.locator("section[aria-label='Codex']").evaluate((e) => (e as HTMLElement).inert)).toBe(false);
 		});
 
-		test("holds the placed chapters only, in order, then 'Add the next chapter'; selected is green, the rest muted, hover takes the selected colour, the focus ring shows", async ({ page }) => {
+		test("holds the placed chapters only, in order, then 'Add the next chapter'; the selected chapter is a highlighted row (rule 1), the rest muted, hover looks the same, the focus ring shows", async ({ page }) => {
 			await openProject(page);
 			await selector(page).click();
 			const rows = page.locator(".sf-nav-list .sf-nav-row");
@@ -139,12 +139,15 @@ test.describe("the navigator", () => {
 			expect(await rows.nth(3).getAttribute("aria-label")).toBe("Add the next chapter");
 			expect(await rows.nth(3).locator("svg").count()).toBe(1);
 			await expect(page.locator(".sf-nav-list")).not.toContainText("Unplaced idea");
-			expect(await colourOf(rows.nth(0))).toBe(await colour(page, "--purpose-accent"));
-			expect(await colourOf(rows.nth(1))).toBe(await colour(page, "--purpose-text-muted"));
-			await expect(rows.nth(0)).toHaveAttribute("aria-current", "true");
-			await rows.nth(1).hover();
 			const raised = await page.evaluate(() => { const d = document.createElement("i"); d.style.color = "var(--purpose-raised-bg)"; document.body.append(d); const c = getComputedStyle(d).color; d.remove(); return c; });
 			const blockOf = (l: ReturnType<Page["locator"]>) => l.evaluate((e) => getComputedStyle(e).backgroundColor);
+			// rule 1: the selected chapter is a row in the accent with the list's own colour on it, as a hovered one is
+			expect(await blockOf(rows.nth(0))).toBe(await colour(page, "--purpose-accent"));
+			expect(await colourOf(rows.nth(0))).toBe(raised);
+			expect(await colourOf(rows.nth(1))).toBe(await colour(page, "--purpose-text-muted"));
+			expect(await blockOf(rows.nth(1))).toBe("rgba(0, 0, 0, 0)");
+			await expect(rows.nth(0)).toHaveAttribute("aria-current", "true");
+			await rows.nth(1).hover();
 			expect(await colourOf(rows.nth(1))).toBe(raised); // hover: a block in the selected chapter's colour, the list's colour on it
 			expect(await blockOf(rows.nth(1))).toBe(await colour(page, "--purpose-accent"));
 			expect(await colourOf(rows.nth(3))).toBe(await colour(page, "--purpose-text-muted"));
@@ -195,7 +198,7 @@ test.describe("the navigator", () => {
 			await expect(page.locator(".sf-nav-row.is-active")).toHaveCount(0);
 		});
 
-		test("with 'Highlight the active chapter' off the selected chapter is still green here", async ({ page }) => {
+		test("with 'Highlight the active chapter' off the selected chapter is still a highlighted row here", async ({ page }) => {
 			await openPreview(page);
 			await page.evaluate(() => window.__preview.touch("_backstage/storyforge/project.md", "---\nformat-version: 1\nhighlight-active-chapter: false\n---\n"));
 			await page.reload();
@@ -203,7 +206,7 @@ test.describe("the navigator", () => {
 			await page.locator("[data-recent='0']").click();
 			await page.waitForFunction(() => !!window.__app?.editors);
 			await selector(page).click();
-			expect(await colourOf(page.locator(".sf-nav-row").first())).toBe(await colour(page, "--purpose-accent"));
+			expect(await page.locator(".sf-nav-row").first().evaluate((e) => getComputedStyle(e).backgroundColor)).toBe(await colour(page, "--purpose-accent"));
 		});
 
 		test("reduced motion: nothing animates", async ({ page }) => {

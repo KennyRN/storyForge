@@ -10,6 +10,8 @@ import { attachTooltip } from "../kit/tooltip";
 import { menuPoint, showMenu, type MenuItem } from "../kit/menu";
 import type { AppModel } from "../model";
 import { nameProblem, openRenameCodex } from "../screens/renameCodex";
+import { filteredCodexTree, filterFor, isFiltering } from "./codexFilter";
+import { openFilterPopover } from "./filterPopover";
 
 /** The folder new notes and folders go into: the last folder the author clicked, if it still exists. */
 let targetFolder: string | null = null;
@@ -23,6 +25,9 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 	/** Storytelling: an entry opens in the context panel (a second click closes it). Library: it opens in the workspace. */
 	const openEntry = (path: string): void => void (options.opensIn === "workspace" ? model.editors?.open("codex", path) : model.toggleLore(path));
 	const tree = el("div", { class: "sf-codex-tree sf-scroll", attrs: { role: "tree", "aria-label": "Codex" } });
+	/** This list's own filter by type (decision 107): session only, never written. */
+	const filter = () => filterFor(model.running!, options.opensIn === "workspace" ? "codex-library" : "codex-storytelling");
+	const filtering = (): boolean => !!model.running && isFiltering(filter());
 	/** The row the keyboard is on (a tree has one tab stop, and the arrows move within it). Survives a redraw. */
 	let focusKey: string | null = null;
 	let rowInfo = new Map<string, CodexDragRowInfo>();
@@ -47,7 +52,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 	const draw = (): void => {
 		const running = model.running;
 		if (!running) return fill(host);
-		const root = getCodexView(running.opened.project, "codex");
+		const root = filtering() ? filteredCodexTree(running.opened.project, filter()) : getCodexView(running.opened.project, "codex");
 		const rows: CodexDragRowInfo[] = [];
 		const hadFocus = tree.contains(document.activeElement) && !(document.activeElement as HTMLElement | null)?.closest(".sf-codex-draft");
 		const box = tree.querySelector<HTMLInputElement>(".sf-codex-draft input");
@@ -55,7 +60,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 		const caret = box ? [box.selectionStart, box.selectionEnd] : [null, null];
 		redrawing = true;
 		fill(tree);
-		if ((!root || root.children.length === 0) && !draft) tree.append(el("div", { class: "sf-muted sf-codex-empty", text: "Nothing here yet." }));
+		if ((!root || root.children.length === 0) && !draft) tree.append(el("div", { class: "sf-muted sf-codex-empty", text: filtering() ? "Nothing matches the filter." : "Nothing here yet." }));
 		else renderItems(tree, root?.children ?? [], null, 0, rows);
 		redrawing = false;
 		if (draft && boxFocused) {
@@ -222,7 +227,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 					// A note that is also a folder is the folder's row; its own entry in the folder's order is not drawn again (decision 65). Display only: the entry stays in the data.
 					renderItems(children, shown(item), item.id, depth + 1, rows);
 					// An open folder with nothing in it says so, in words (the screen reader too).
-					if (shown(item).length === 0 && !(draft && draft.parent === item.id)) children.append(el("div", { class: "sf-codex-folder-empty", text: "Empty", attrs: { role: "treeitem", "aria-disabled": "true", "aria-level": String(depth + 2), "aria-label": "Empty folder" } }));
+					if (shown(item).length === 0 && !filtering() && !(draft && draft.parent === item.id)) children.append(el("div", { class: "sf-codex-folder-empty", text: "Empty", attrs: { role: "treeitem", "aria-disabled": "true", "aria-level": String(depth + 2), "aria-label": "Empty folder" } }));
 					wrapper.append(children);
 				}
 				container.append(wrapper);
@@ -293,9 +298,11 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 				void run(mine.kind === "folder" ? "create the folder" : "create the note", async () => {
 					if (mine.kind === "folder") {
 						const id = await createCodexFolder(project(), mine.parent, name);
+						if (filtering()) filter().keptFolders.add(id); // stays shown until the filter next changes
 						focusKey = id;
 					} else {
 						const entry = await createCodexNote(project(), mine.parent, { filename: `${name.replace(/\.md$/i, "")}.md` });
+						if (filtering()) filter().keptNotes.add(entry.path); // stays shown until the filter next changes
 						model.touch("codex");
 						openEntry(entry.path);
 					}
@@ -347,6 +354,21 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 	const noWriting = (): string | null => (readOnly() ? "This project is open read-only." : null);
 	const strip = el("div", { class: "sf-codex-strip", attrs: { role: "toolbar", "aria-orientation": "vertical", "aria-label": "Codex actions" } });
 	let stripReadOnly: boolean | null = null;
+	// The filter by type: a third icon under the other two, on in the Codex colour while anything is chosen. Filtering only reads, so it works in a read-only project too.
+	let closeFilter: (() => void) | null = null;
+	const filterButton = button({
+		icon: "filter",
+		name: "Filter by type",
+		tooltip: "filter by type",
+		kind: "quiet",
+		onClick: () => {
+			if (closeFilter) return closeFilter();
+			closeFilter = openFilterPopover({ model, anchor: filterButton, filter: filter(), label: "Filter by type", onChange: () => (paintFilterButton(), draw()), onClose: () => (closeFilter = null) });
+		},
+	});
+	filterButton.setAttribute("aria-haspopup", "menu");
+	filterButton.setAttribute("aria-expanded", "false");
+	const paintFilterButton = (): void => void filterButton.classList.toggle("is-filtering", filtering());
 	const drawStrip = (): void => {
 		if (stripReadOnly === readOnly()) return; // only the read-only state changes it; redrawing would drop a focused button
 		stripReadOnly = readOnly();
@@ -354,6 +376,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 			strip,
 			button({ icon: "folder-plus", name: "New folder", tooltip: noWriting() ?? "New folder", disabled: readOnly(), kind: "quiet", onClick: () => beginDraft("folder") }),
 			button({ icon: "file-plus", name: "New note", tooltip: noWriting() ?? "New note", disabled: readOnly(), kind: "quiet", onClick: () => beginDraft("note") }),
+			filterButton,
 		);
 	};
 	// A toolbar is one tab stop with the arrows moving within it.
@@ -374,12 +397,15 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 		fill(host, body);
 	}
 	drawStrip();
+	paintFilterButton();
 	draw();
-	return model.subscribe(["codex", "project", "nav"], () => {
+	const off = model.subscribe(["codex", "project", "nav"], () => {
 		if (!host.isConnected) return;
 		drawStrip();
+		paintFilterButton();
 		draw();
 	});
+	return () => (closeFilter?.(), off());
 }
 
 function validTarget(model: AppModel): string | null {

@@ -327,7 +327,7 @@ html[data-input="pointer"] .sf-splitter:focus-visible {
 	background: var(--purpose-raised-bg);
 	border: 1px solid var(--purpose-border);
 	border-radius: 6px;
-	box-shadow: 0 4px 12px var(--purpose-shadow);
+	box-shadow: var(--floating-shadow);
 }
 .sf-chars-reason {
 	margin: 0 0 var(--space-1);
@@ -411,10 +411,11 @@ html[data-input="pointer"] .sf-splitter:focus-visible {
 .sf-settings-tabs {
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: 0; /* rule 1: highlighted rows touch */
+	margin-block: -1px; /* the first and last rows' text stays where it was */
 }
 .sf-settings-tab {
-	padding: 5px 8px;
+	padding: 6px 8px; /* 5px and half the 2px gap that was between rows */
 	border: 0;
 	border-radius: var(--radius);
 	background: transparent;
@@ -423,9 +424,11 @@ html[data-input="pointer"] .sf-splitter:focus-visible {
 	text-align: left;
 	cursor: pointer;
 }
+.sf-settings-tab:hover,
 .sf-settings-tab.is-active {
-	color: var(--purpose-accent);
-	background: var(--purpose-raised-bg);
+	/* Rule 1: the selected section is a highlighted row, hover the same; the dialog's own surface is the text colour on it. */
+	background: var(--purpose-accent);
+	color: var(--purpose-raised-bg);
 }
 .sf-settings-page {
 	min-width: 0;

@@ -23,6 +23,13 @@ import {
 	type IconNode,
 } from "lucide";
 
+/** Tabler's `filter` (MIT; Icon Licences.md; supplied by Kenny): the Codex strip's filter by type. */
+const FILTER: IconNode = [
+	["path", { d: "M4 6h16" }],
+	["path", { d: "M6 12h12" }],
+	["path", { d: "M9 18h6" }],
+];
+
 /** Tabler Icons (MIT; Icon Licences.md; the New Note button's is Tabler's square-rounded-plus-2, kept under the name file-plus), drawn on the same 24-unit grid and 2-unit stroke as Lucide's, so they sit with them. */
 const FOLDER_PLUS: IconNode = [
 	["path", { d: "M12 19h-7a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2h4l3 3h7a2 2 0 0 1 2 2v3.5" }],
@@ -58,6 +65,7 @@ const ICONS = {
 	grip: GripVertical,
 	info: Info,
 	library: Library,
+	filter: FILTER,
 	"panel-right": PanelRight,
 	pencil: Pencil,
 	plus: Plus,

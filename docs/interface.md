@@ -386,3 +386,30 @@ Where this document says "face" it means a side of the left panel; "the storyFor
 - In the library's codex tab, clicking an entry opens it in the **workspace**, not the context panel; only on the storytelling side does an entry open in the context panel. Flipping back to storytelling puts the selected chapter back in the workspace. The archive tab's Codex items open in the workspace too.
 - **Padded numbering is two digits at least** ("01 02 03", as the dropdown shows it), wider once the sequence needs it. 0.17.1 padded only to the sequence's own width, so a book of nine showed "1"; this is a deliberate change to `formatNumber`, with its test.
 - **A chapter dropped into the unplaced list stays where it was dropped.** The unplaced chapters are ordered by `unplaced:` in the novel file (the 0.17 key already there); `writeBookUnplacedOrder` saves it, `getBookChapters` follows it, and any chapter the list doesn't name follows in its old order. Covered by a core test and the disk-safety suite.
+
+## Default rules for selection and floating menus (3 November 2026)
+
+Kenny's design. Both are **defaults**: a new list or menu follows them unless Kenny names an exception, and each exception is recorded by name (`src/ui/__tests__/defaultRules.test.ts` holds the list, and fails on a new one that doesn't follow the rule).
+
+**Rule 1: a selected text row is highlighted as in the Codex list.**
+- It applies to any list of text rows where one is the current choice: the Navigate menu, the filter popover, the chapter list and the Settings section list. The Codex lists already follow it, in their own colour (the Codex colour setting).
+- **The look:** the Codex rows' shape (6 px in from the surface's edges, 4 px corners), filled in the interface accent (green), with the text and its icon in the surface's own background colour. **Hover looks the same as selected** (decision 62).
+- **Highlighted rows touch, as in the Codex list:** no gap between rows, so a highlight meets the one above and below it (each row keeps its 4 px corners, as the Codex list draws them). A row's own padding carries what the gap was (half above, half below), so the text stays exactly where it was; the first and last rows are nudged back by the same amount, and the group separators (the Navigate menu's) keep their full distance. Adjacent ticked types in the filter popover are touching blocks.
+- **Not icons:** the library tabs, the Codex strip and other icons stay hover icons.
+- **The filter popover:** every ticked type is highlighted and keeps its tick (several can be chosen, and a tick doesn't rely on colour); "Show all" is highlighted when no filter is on.
+- **Screen readers:** the selected, current and checked states are unchanged.
+- **Contrast** (the theme's values; the same figure either way round): accent green on `bg_dim` 6.61:1, on `bg0` (editor, Codex card) 5.62:1, on `bg1` (the raised surface every menu, popover and dialog is on) 4.86:1, on `bg2` 4.22:1. Everything the rule applies to is on `bg1`; `bg2` is the one shade under 4.5:1 and is not used for it.
+- **Converted too** (Kenny, 3 November 2026): the library Series, Novel and Archive panes' rows (the panel's own colour on the accent) and the shortcode popup's selected option. Kenny can name either as an exception after seeing it.
+- **Exceptions, by name:** the colour swatches, the overview's card-size buttons and icon buttons (not text rows); the library's tab icons.
+
+**Rule 2: every floating surface has the same shadow.**
+- It applies to anything that opens over the window: the chapter dropdown, the Navigate menu, the filter popover, the special-characters popover, the shortcode popup, context menus and notices. All use `--floating-shadow` (`0 4px 12px` of `--purpose-shadow`), defined once in `theme/purposes.css`; no shadow is written out elsewhere. The raised `bg1` surface has no border.
+- **The chapter selector and its dropdown are one joined piece** (decision 97): while the list is open the shadow is drawn round the pair as one silhouette (`--floating-shadow-filter`, a drop-shadow of the same size, defined beside the first), so there is no shadow line across the join.
+- **Exception, by name:** the modal dialog keeps its own deeper shadow (it is not a menu or popover).
+
+**Rule 2 gains: unselected rows in floating menus are muted** (Kenny, 3 November 2026; a default like the others).
+- Unselected rows of a floating menu (the Navigate menu, the filter popover, and any future one) are drawn in `--purpose-text-muted` (`grey2`), text and icon, as the chapter list's unselected chapters already are (decision 80). The current or selected row keeps rule 1's green block; hover looks the same as before.
+- Not affected: the Codex lists (their Codex colour) and the Settings section list (not a floating menu). The older generic context menu (`.sf-menu`) is not changed by this.
+- **Greyed-out rows** (Back Up Now in a read-only project) are the muted colour at half strength (`opacity: 0.5`), so they read as clearly dimmer than an ordinary muted row; the reason stays as the tooltip.
+- **Contrast** (the theme's values): `grey2` `#9DA9A0` on `bg1` `#3A464C` is 3.99:1, the same as the chapter list's today. Kenny's to keep, as with the stats' `grey1` (decision 68). A greyed-out row is about 2.1:1 on purpose: it is unavailable.
+

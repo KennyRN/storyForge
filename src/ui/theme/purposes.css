@@ -18,6 +18,11 @@
 	--purpose-trouble: var(--ef-red);
 	--purpose-scrim: rgb(0 0 0 / 0.45);
 	--purpose-shadow: rgb(0 0 0 / 0.4);
+	/* Rule 2: every floating surface (menus, popovers, the chapter dropdown, the shortcode popup, notices) has this one shadow. The second is
+	   the same shadow for a piece drawn as one silhouette from two boxes (the chapter selector and its dropdown): a drop-shadow's blur is
+	   half a box-shadow's. Change them together. The modal dialog's own, deeper shadow is the one named exception. */
+	--floating-shadow: 0 4px 12px var(--purpose-shadow);
+	--floating-shadow-filter: drop-shadow(0 4px 6px var(--purpose-shadow));
 	/* The numbers (v1.1). */
 	--purpose-data-fill: var(--ef-blue);
 	--purpose-data-overrun: var(--ef-orange);

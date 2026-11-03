@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.6.4: the Codex filter by type (decision 107), and two default design rules
+
+- New: **a filter by type** on both Codex lists and the Archive tab: a third icon in the strip (Tabler's filter) opening a popover of Show all, Untyped and the project's types (icon, name and a tick; a nested type under its parent). A note shows if it has any ticked type (or is untyped, when Untyped is ticked); a folder shows if anything inside it, or its own note, matches; nothing matching goes, an empty folder too, and there's no "Empty" line while filtering. The icon takes the Codex colour while a filter is on. **The filter is for the session only and per list**: it is never written to disk, and every open starts unfiltered. A note or folder you create while filtering stays shown until the filter next changes. Nothing in the core or on disk changed.
+- Changed (default rule 1): **a selected text row is highlighted as in the Codex list** (the accent fill, the surface's colour on it, hover the same) in the Navigate menu, the filter popover, the chapter list, the Settings section list, the library's Series, Novel and Archive panes and the shortcode popup's selected option. **Highlighted rows touch**, as in the Codex list; each row's padding carries what the gap was, so no text moved (measured: 0.0 px).
+- Changed (default rule 2): **every floating surface has one shared shadow** (`0 4px 12px`); the chapter selector and its dropdown keep one joined silhouette. The modal dialog keeps its own deeper shadow.
+- Changed (rule 2 gains): **unselected rows in floating menus are muted** (the Navigate menu and the filter popover; `grey2` on `bg1` is 3.99:1, as the chapter list's). The current row keeps its green block; greyed-out rows (Back Up Now in a read-only project) are dimmer still.
+- Fixed: **the shortcode popup was drawn bare in 1.6.3** (no raised surface, no border, no shadow, because the editor's tooltip rules zeroed them). It now has the raised surface and the shared shadow.
+- Unchanged: the core, the disk format, the prose writer, the close path and the guard; no new Rust command, dependency or network request.
+
 ## 1.6.3: the navigator's icons and the library's tab row (polish after Fix 7)
 
 - New: **Kenny's own navigator icons** (volcanicMole, based on Tabler Icons, MIT): Storytelling, Codex, Series, Novel and Archive, in the Navigate menu (1.2em before the text) and across the top of the library side.

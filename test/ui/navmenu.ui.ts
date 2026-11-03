@@ -20,6 +20,7 @@ const chevron = (page: Page) => page.getByRole("button", { name: "Navigate" });
 const menu = (page: Page) => page.getByRole("menu", { name: "Navigate" });
 const item = (page: Page, name: string) => menu(page).getByRole("menuitem", { name, exact: true });
 const accent = (page: Page) => page.evaluate(() => { const d = document.createElement("i"); d.style.color = "var(--purpose-accent)"; document.body.append(d); const c = getComputedStyle(d).color; d.remove(); return c; });
+const accentFill = (page: Page) => page.evaluate(() => { const d = document.createElement("i"); d.style.backgroundColor = "var(--purpose-accent)"; document.body.append(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; });
 const outline = (l: ReturnType<Page["locator"]>) => l.evaluate((e) => getComputedStyle(e).outlineStyle);
 
 test.describe("the navigate menu", () => {
@@ -85,18 +86,19 @@ test.describe("the navigate menu", () => {
 		expect(geo.filter((g) => g.svg)).toHaveLength(5);
 	});
 
-	test("where you are is green, on each side and each tab; every item does its job from both sides", async ({ page }) => {
+	test("where you are is a highlighted row (rule 1), on each side and each tab; every item does its job from both sides", async ({ page }) => {
 		await openProject(page);
-		const green = await accent(page);
+		const green = await accent(page); // the accent fill, the surface's colour on it
+		const fill = (l: ReturnType<typeof item>) => l.evaluate((e) => getComputedStyle(e).backgroundColor);
 		await chevron(page).click();
-		await expect(item(page, "Storytelling")).toHaveCSS("color", green);
-		await expect(item(page, "Codex")).not.toHaveCSS("color", green);
+		expect(await fill(item(page, "Storytelling"))).toBe(await accentFill(page));
+		expect(await fill(item(page, "Codex"))).not.toBe(await accentFill(page));
 		await item(page, "Series").click();
 		await expect(page.getByRole("tab", { name: "series", selected: true })).toBeVisible();
 		await expect(page.locator(".sf-overview")).toBeVisible();
 		await chevron(page).click();
-		await expect(item(page, "Series")).toHaveCSS("color", green);
-		await expect(item(page, "Storytelling")).not.toHaveCSS("color", green);
+		expect(await fill(item(page, "Series"))).toBe(await accentFill(page));
+		expect(await fill(item(page, "Storytelling"))).not.toBe(await accentFill(page));
 		await item(page, "Codex").click();
 		await expect(page.getByRole("tab", { name: "codex", selected: true })).toBeVisible();
 		await chevron(page).click();
@@ -128,6 +130,10 @@ test.describe("the navigate menu", () => {
 		await openProject(page, true);
 		await chevron(page).click();
 		await expect(item(page, "Back Up Now")).toBeDisabled();
+		// clearly dimmer than an ordinary muted row (same colour, half the strength)
+		const opacity = (n: string) => item(page, n).evaluate((e) => Number(getComputedStyle(e).opacity));
+		expect(await opacity("Back Up Now")).toBeLessThanOrEqual(0.5);
+		expect(await opacity("Codex")).toBe(1);
 		await expect(item(page, "Back Up Now")).toHaveAttribute("title", "This project is open read-only.");
 		await expect(item(page, "Change Project")).toBeEnabled();
 	});
@@ -184,7 +190,7 @@ test.describe("focus rings are for the keyboard", () => {
 });
 
 test.describe("the chapter list's rows, the add button and the title bar", () => {
-	test("rows are 6px in from the dropdown's edges with 4px corners and a Codex row's 3px padding; the add row is centred, its icon 1em", async ({ page }) => {
+	test("rows are 6px in from the dropdown's edges with 4px corners and a Codex row's padding (3px, plus half the 2px gap that rule 1 folded in, so the rows touch); the add row is centred, its icon 1em", async ({ page }) => {
 		await openProject(page);
 		await page.getByRole("button", { name: "Chapters" }).click();
 		const list = page.locator(".sf-nav-list");
@@ -193,7 +199,7 @@ test.describe("the chapter list's rows, the add button and the title bar", () =>
 		expect(r!.x - l!.x).toBeCloseTo(6, 0);
 		expect(l!.x + l!.width - (r!.x + r!.width)).toBeCloseTo(6, 0);
 		const s = await row.evaluate((e) => { const c = getComputedStyle(e); return [c.paddingTop, c.paddingBottom, c.borderTopLeftRadius]; });
-		expect(s).toEqual(["3px", "3px", "4px"]);
+		expect(s).toEqual(["4px", "4px", "4px"]); // 3px and half the 2px gap that was between rows: the rows touch, the text has not moved
 		const add = page.getByRole("button", { name: "Add the next chapter" });
 		const [a, i, size] = await Promise.all([add.boundingBox(), add.locator("svg").boundingBox(), add.evaluate((e) => parseFloat(getComputedStyle(e).fontSize))]);
 		expect(i!.width).toBeCloseTo(size, 0);
