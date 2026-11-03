@@ -1,4 +1,5 @@
 import { el } from "../kit/dom";
+import { navIcon, type NavIconName } from "../kit/navIcons";
 import { chevronDownIcon } from "../kit/statsIcons";
 import { attachTooltip } from "../kit/tooltip";
 import { handleMenu, menuState } from "../menu";
@@ -38,8 +39,11 @@ export function mountNavMenu(host: HTMLElement, model: AppModel): { button: HTML
 		const hideSeries = !!running.settings.values.hideSeriesPane;
 		const onForge = model.nav.face === "storyforge";
 		const rows: HTMLButtonElement[] = [];
-		const item = (label: string, action: () => void, opts: { here?: boolean; disabled?: string | boolean } = {}): HTMLButtonElement => {
+		const item = (label: string, action: () => void, opts: { here?: boolean; disabled?: string | boolean; icon?: NavIconName } = {}): HTMLButtonElement => {
 			const row = el("button", { class: `sf-navmenu-row${opts.here ? " is-here" : ""}`, attrs: { type: "button", role: "menuitem", tabindex: "-1", ...(opts.here ? { "aria-current": "true" } : {}) }, text: label });
+			// Kenny's icon at 1.2em before the text (the text's baseline 0.1em above its bottom edge, 0.5em between); a row without one is indented to the same text column.
+			if (opts.icon) row.prepend(navIcon(opts.icon, "1.2em"));
+			else row.classList.add("is-plain");
 			if (opts.disabled) {
 				row.disabled = true;
 				if (typeof opts.disabled === "string") row.title = opts.disabled;
@@ -47,12 +51,12 @@ export function mountNavMenu(host: HTMLElement, model: AppModel): { button: HTML
 			rows.push(row);
 			return row;
 		};
-		const tab = (id: ForgeTab, label: string): HTMLButtonElement => item(label, () => model.openLibraryTab(id), { here: onForge && model.nav.forgeTab === id });
+		const tab = (id: ForgeTab, label: string): HTMLButtonElement => item(label, () => model.openLibraryTab(id), { here: onForge && model.nav.forgeTab === id, icon: id });
 		const readOnly = running.readOnlyReason ? "This project is open read-only." : "";
 		menu = el(
 			"div",
 			{ class: "sf-navmenu", attrs: { role: "menu", "aria-label": "Navigate" } },
-			item("Storytelling", () => model.flipFace(), { here: !onForge }),
+			item("Storytelling", () => model.flipFace(), { here: !onForge, icon: "storytelling" }),
 			tab("codex", "Codex"),
 			...(hideSeries ? [] : [tab("series", "Series")]),
 			tab("novel", "Novel"),

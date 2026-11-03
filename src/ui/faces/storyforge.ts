@@ -1,6 +1,5 @@
-import { disposeInkSliders, inkSlider } from "../kit/ink";
 import { el, fill } from "../kit/dom";
-import { icon, type IconName } from "../kit/icons";
+import { navIcon, type NavIconName } from "../kit/navIcons";
 import { attachTooltip } from "../kit/tooltip";
 import type { AppModel, ForgeTab } from "../model";
 import { mountArchiveTab } from "./archiveTab";
@@ -8,20 +7,19 @@ import { mountCodexTree } from "./codexTree";
 import { mountNovelTab } from "./novelTab";
 import { mountSeriesTab } from "./seriesTab";
 
-const TABS: { id: ForgeTab; label: string; icon: IconName }[] = [
-	{ id: "codex", label: "codex", icon: "globe" },
-	{ id: "series", label: "series", icon: "library" },
-	{ id: "novel", label: "novel", icon: "book" },
+const TABS: { id: ForgeTab; label: string; icon: NavIconName }[] = [
+	{ id: "codex", label: "codex", icon: "codex" },
+	{ id: "series", label: "series", icon: "series" },
+	{ id: "novel", label: "novel", icon: "novel" },
 	{ id: "archive", label: "archive", icon: "archive" },
 ];
 
-/** The storyForge face's left panel: four tabs (codex, series, novel, archive) down an icon rail with the ink indicator, and the tab's pane beside it. */
+/** The storyForge face's left panel: four tabs (codex, series, novel, archive) as Kenny's icons across the top line, spread evenly, with an ink bar under the selected one, and the tab's pane below. */
 export function mountStoryForgeFace(host: HTMLElement, model: AppModel): () => void {
 	host.classList.add("sf-face", "sf-face--storyforge");
-	const rail = el("div", { class: "sf-rail", attrs: { role: "tablist", "aria-orientation": "vertical", "aria-label": "Library" } });
+	const rail = el("div", { class: "sf-rail", attrs: { role: "tablist", "aria-orientation": "horizontal", "aria-label": "Library" } });
 	const pane = el("div", { class: "sf-forge-tab", attrs: { role: "tabpanel" } });
 	fill(host, el("div", { class: "sf-forge" }, rail, pane));
-	const ink = inkSlider("forge-rail");
 	let disposePane: (() => void) | null = null;
 	let shown: ForgeTab | null = null;
 
@@ -34,7 +32,6 @@ export function mountStoryForgeFace(host: HTMLElement, model: AppModel): () => v
 			if (overviewTab) model.setCentreView("overview");
 			return;
 		}
-		ink.capture();
 		model.nav.forgeTab = tab;
 		if (overviewTab) model.nav.centreView = "overview";
 		model.touch("nav");
@@ -42,8 +39,27 @@ export function mountStoryForgeFace(host: HTMLElement, model: AppModel): () => v
 		drawPane();
 	};
 
+	// The ink bar under the selected icon: it slides along when the selection moves (the row is rebuilt on every change, so the bar is kept).
+	const bar = el("div", { class: "sf-tabbar-ink", attrs: { "aria-hidden": "true" } });
+	let inked = false;
+	const placeInk = (): void => {
+		const at = rail.querySelector<HTMLElement>(".sf-tab.is-active svg");
+		if (!at) return void bar.classList.add("is-off");
+		const r = at.getBoundingClientRect();
+		const box = rail.getBoundingClientRect();
+		bar.classList.remove("is-off");
+		bar.style.width = `${r.width}px`;
+		if (!inked) bar.classList.add("is-instant");
+		bar.style.transform = `translateX(${r.left - box.left}px)`;
+		if (!inked) (void bar.offsetWidth, bar.classList.remove("is-instant"));
+		inked = true;
+	};
+	const ro = new ResizeObserver(() => bar.classList.contains("is-off") || placeInk());
+	ro.observe(rail);
+
 	const drawRail = (focus = false): void => {
-		fill(rail);
+		for (const old of rail.querySelectorAll(".sf-tab")) old.remove(); // the bar stays in the document, so its slide isn't cut off
+		if (!bar.isConnected) rail.append(bar);
 		const list = tabs();
 		if (!list.some((t) => t.id === model.nav.forgeTab)) model.nav.forgeTab = "novel";
 		for (const [i, t] of list.entries()) {
@@ -57,20 +73,20 @@ export function mountStoryForgeFace(host: HTMLElement, model: AppModel): () => v
 					on: {
 						click: () => select(t.id),
 						keydown: (e) => {
-							const next = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
+							const next = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
 							if (!next) return;
 							e.preventDefault();
 							select(list[(i + next + list.length) % list.length].id, true);
 						},
 					},
 				},
-				icon(t.icon, 18),
+				navIcon(t.icon, "20px"),
 			);
 			attachTooltip(tab, t.label);
 			rail.append(tab);
 			if (active && focus) queueMicrotask(() => tab.focus());
 		}
-		ink.mount({ container: rail, buttons: ".sf-tab", variant: "rail" });
+		placeInk();
 	};
 
 	const drawPane = (): void => {
@@ -100,13 +116,12 @@ export function mountStoryForgeFace(host: HTMLElement, model: AppModel): () => v
 			return;
 		}
 		if (shown === model.nav.forgeTab) return;
-		ink.capture();
 		drawRail();
 		drawPane();
 	});
 	return () => {
 		offSync();
 		disposePane?.();
-		disposeInkSliders(["forge-rail"]);
+		ro.disconnect();
 	};
 }

@@ -51,6 +51,38 @@ test.describe("the navigate menu", () => {
 		expect(await menu(page).evaluate((e) => { const s = getComputedStyle(e); return [s.borderTopWidth, s.backgroundColor]; })).toEqual(["0px", await page.evaluate(() => { const d = document.createElement("i"); d.style.background = "var(--purpose-raised-bg)"; document.body.append(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; })]);
 	});
 
+	test("the five rows carry Kenny's icons at 1.2em, 0.5em before the text, the text's baseline 0.1em above the icon's bottom; the two plain rows' text lines up in the same column; icons take the row's colour", async ({ page }) => {
+		await openProject(page);
+		await chevron(page).click();
+		const geo = await menu(page).evaluate((m) => Array.from(m.querySelectorAll<HTMLElement>("[role=menuitem]")).map((row) => {
+			const svg = row.querySelector("svg");
+			const range = document.createRange();
+			const textNode = Array.from(row.childNodes).find((n) => n.nodeType === Node.TEXT_NODE)!;
+			range.selectNodeContents(textNode);
+			const t = range.getBoundingClientRect();
+			const probe = document.createElement("span");
+			probe.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline";
+			row.append(probe);
+			const baseline = probe.getBoundingClientRect().bottom;
+			probe.remove();
+			const em = parseFloat(getComputedStyle(row).fontSize);
+			const s = svg?.getBoundingClientRect();
+			return { label: row.textContent, em, textLeft: t.left, baseline, svg: s ? { w: s.width, h: s.height, right: s.right, bottom: s.bottom } : null, fill: svg ? getComputedStyle(svg).fill : null, color: getComputedStyle(row).color };
+		}));
+		const column = geo[0].textLeft;
+		for (const g of geo) {
+			expect(Math.abs(g.textLeft - column), `${g.label}: one text column`).toBeLessThan(1);
+			if (!g.svg) continue;
+			expect(g.svg.w).toBeCloseTo(1.2 * g.em, 0);
+			expect(g.svg.h).toBeCloseTo(1.2 * g.em, 0);
+			expect(g.textLeft - g.svg.right, `${g.label}: the gap`).toBeCloseTo(0.5 * g.em, 0);
+			expect(g.svg.bottom - g.baseline, `${g.label}: baseline above the icon's bottom`).toBeCloseTo(0.1 * g.em, 0);
+			expect(g.fill, `${g.label}: the row's colour`).toBe(g.color);
+		}
+		expect(geo.filter((g) => !g.svg).map((g) => g.label)).toEqual(["Back Up Now", "Change Project"]);
+		expect(geo.filter((g) => g.svg)).toHaveLength(5);
+	});
+
 	test("where you are is green, on each side and each tab; every item does its job from both sides", async ({ page }) => {
 		await openProject(page);
 		const green = await accent(page);
@@ -242,5 +274,55 @@ test.describe("the workspace belongs to the side", () => {
 		await expect(layer(page)).toBeVisible(); // the library side comes back to its Codex tab, blank as it was
 		await flipFace(page);
 		await expect(page.locator(".sf-slot--centre .cm-content")).toContainText("unsaved words");
+	});
+});
+
+test.describe("the library side's tabs and Codex", () => {
+	test("a Codex note typed in the context panel arrives in the library's Codex workspace, and back, with no conflict and no recovery file", async ({ page }) => {
+		await openProject(page);
+		await page.locator(".sf-codex-tree [data-key]").filter({ hasText: "Jane" }).first().click();
+		const lore = page.locator(".sf-lore-host .cm-content");
+		await expect(lore).toBeVisible();
+		await lore.click();
+		await page.keyboard.press("ControlOrMeta+End");
+		await page.keyboard.type(" moved words");
+		await flipFace(page);
+		await page.getByRole("tab", { name: "codex" }).click();
+		await page.locator(".sf-codex-file", { hasText: "Jane" }).first().click();
+		const there = page.locator(".sf-library-layer .sf-slot--library:not([hidden]) .cm-content");
+		await expect(there).toContainText("moved words");
+		await expect(page.getByRole("alert")).toHaveCount(0);
+		await there.click();
+		await page.keyboard.press("ControlOrMeta+End");
+		await page.keyboard.type(" and back");
+		await flipFace(page);
+		await page.locator(".sf-codex-tree [data-key]").filter({ hasText: "Jane" }).first().click();
+		await expect(page.locator(".sf-lore-host .cm-content")).toContainText("moved words and back");
+		await expect(page.getByRole("alert")).toHaveCount(0);
+		await expect.poll(() => page.evaluate(() => window.__preview.read("Codex/Jane.md"))).toContain("moved words and back");
+		const root = (await page.evaluate(() => window.__preview.root()))!;
+		const { readdirSync, existsSync } = await import("node:fs");
+		const rec = `${root}/_sf-backup/recovery`;
+		expect(existsSync(rec) ? readdirSync(rec, { recursive: true }) : []).toEqual([]);
+	});
+
+	test("the library's Codex list is on a card with the storytelling side's font, size, line height and icon gap, the strip outside it", async ({ page }) => {
+		await openProject(page);
+		const read = () => page.locator(".sf-codex-tree").first().evaluate((t) => {
+			const s = getComputedStyle(t);
+			const row = t.querySelector(".sf-codex-file")!;
+			const name = row.querySelector(".sf-codex-name")!.getBoundingClientRect();
+			const icon = row.querySelector("svg")?.getBoundingClientRect();
+			return { family: s.fontFamily, size: s.fontSize, weight: s.fontWeight, line: getComputedStyle(row).lineHeight, bg: s.backgroundColor, radius: s.borderRadius, gap: icon ? icon.left - name.right : null, iconW: icon?.width ?? null };
+		});
+		const story = await read();
+		await flipFace(page);
+		await page.getByRole("tab", { name: "codex" }).click();
+		const library = await read();
+		expect(library).toEqual(story);
+		expect(library.radius).toBe("10px");
+		const strip = await page.locator(".sf-codex-strip").boundingBox();
+		const tree = await page.locator(".sf-codex-tree").boundingBox();
+		expect(strip!.x + strip!.width).toBeLessThanOrEqual(tree!.x + 1);
 	});
 });

@@ -195,8 +195,8 @@
 	cursor: default;
 }
 
-/* The Codex list on the storytelling side only (the library side's stays SN Pro at 16 px): the author's choice, if there is one. */
-.sf-left[data-face="storytelling"] .sf-codex-tree {
+/* The Codex list, on both sides (the library side takes the storytelling side's settings, amending decisions 79 and 86): the author's Appearance choice, if there is one. */
+.sf-left .sf-codex-tree {
 	font-family: var(--ap-codex-family, var(--font-prose));
 	font-weight: var(--ap-codex-weight, 400);
 	font-size: var(--ap-codex-size, 16px);
@@ -214,65 +214,65 @@
    12px above the stats section, as the context panel's card's is (the stats section's height is fixed: --stats-h). Only the list is on it:
    the strip's icons stay on the panel. The list scrolls inside the card, clipped by its corners. The rows' highlight keeps 6px
    from the card's edges, with corners (4px) that sit inside the card's (10px); inside a folder it still starts flush at the line. */
-.sf-left[data-face="storytelling"] .sf-codex-tree {
+.sf-left .sf-codex-tree {
 	line-height: 1.1;
 	margin: var(--space-1) max(12px, 10%) var(--space-3) var(--space-2);
 	background: var(--purpose-editor-bg);
 	border-radius: 10px;
 	padding: 6px;
 }
-.sf-left[data-face="storytelling"] .sf-codex-folder-header,
-.sf-left[data-face="storytelling"] .sf-codex-file {
+.sf-left .sf-codex-folder-header,
+.sf-left .sf-codex-file {
 	border-radius: 4px;
 }
-.sf-left[data-face="storytelling"] .sf-codex-children .sf-codex-folder-header,
-.sf-left[data-face="storytelling"] .sf-codex-children .sf-codex-file {
+.sf-left .sf-codex-children .sf-codex-folder-header,
+.sf-left .sf-codex-children .sf-codex-file {
 	border-top-left-radius: 0;
 	border-bottom-left-radius: 0;
 }
 /* On the card the highlight's text and icons are the card's own colour (bg0), as the panel's were on the panel. */
-.sf-left[data-face="storytelling"] .sf-codex-folder-header:hover,
-.sf-left[data-face="storytelling"] .sf-codex-file:hover,
-.sf-left[data-face="storytelling"] .sf-codex-folder-header.is-active,
-.sf-left[data-face="storytelling"] .sf-codex-file.is-active {
+.sf-left .sf-codex-folder-header:hover,
+.sf-left .sf-codex-file:hover,
+.sf-left .sf-codex-folder-header.is-active,
+.sf-left .sf-codex-file.is-active {
 	color: var(--purpose-editor-bg);
 }
-.sf-left[data-face="storytelling"] .sf-codex-folder-header,
-.sf-left[data-face="storytelling"] .sf-codex-file {
+.sf-left .sf-codex-folder-header,
+.sf-left .sf-codex-file {
 	--edge: calc(var(--depth, 0) * 8px + min(var(--depth, 0), 1) * 2px); /* a top-level row has none; a nested one starts 2px after the line */
 	--hit: max(28px, calc(1em + 12px));
 	min-height: 0;
 	padding: 3px 8px 3px calc(8px + var(--depth, 0) * 8px - var(--edge));
 }
-.sf-left[data-face="storytelling"] .sf-codex-tree svg {
+.sf-left .sf-codex-tree svg {
 	width: 1em;
 	height: 1em;
 	margin-block: calc((1em - 1em) / 2); /* a glyph as tall as the line (1em) never makes the row taller than it; kept in this form so the line height has one place to change */
 }
-.sf-left[data-face="storytelling"] .sf-codex-name + svg {
+.sf-left .sf-codex-name + svg {
 	margin-left: 0.75em;
 }
 /* The folder icon's hit area: as tall as the row, so it never reaches into the rows above or below, and at least 28px wide.
    The glyph (1em) is centred in it; the name's gap and the 6px to a type icon are measured to the glyph. */
-.sf-left[data-face="storytelling"] .sf-codex-hit {
+.sf-left .sf-codex-hit {
 	align-self: stretch;
 	width: var(--hit);
 	height: auto;
 	margin: -3px 0 -3px calc(0.75em - (var(--hit) - 1em) / 2);
 }
-.sf-left[data-face="storytelling"] .sf-codex-hit svg {
+.sf-left .sf-codex-hit svg {
 	margin-block: 0;
 }
-.sf-left[data-face="storytelling"] .sf-codex-hit + svg {
+.sf-left .sf-codex-hit + svg {
 	margin-left: calc(6px - (var(--hit, 28px) - 1em) / 2);
 }
-.sf-left[data-face="storytelling"] .sf-codex-children::before {
+.sf-left .sf-codex-children::before {
 	left: calc(8px + var(--depth, 0) * 8px);
 }
-.sf-left[data-face="storytelling"] .sf-codex-folder-empty {
+.sf-left .sf-codex-folder-empty {
 	padding-left: calc(8px + (var(--depth, 0) + 1) * 8px);
 }
-.sf-left[data-face="storytelling"] .sf-codex-draft {
+.sf-left .sf-codex-draft {
 	padding-left: calc(8px + var(--depth, 0) * 8px);
 }
 
@@ -533,6 +533,13 @@ body.sf-codex-drag-active {
 	text-align: left;
 	cursor: pointer;
 }
+.sf-navmenu-row .sf-navicon {
+	vertical-align: -0.1em; /* the text's baseline sits 0.1em above the icon's bottom edge */
+	margin-right: 0.5em;
+}
+.sf-navmenu-row.is-plain {
+	padding-left: calc(8px + 1.7em); /* the icon's 1.2em and its 0.5em gap, so all the text shares one column */
+}
 .sf-navmenu-row.is-here {
 	color: var(--purpose-accent);
 }
@@ -555,22 +562,30 @@ body.sf-codex-drag-active {
 	flex: 1;
 	min-height: 0;
 	display: flex;
+	flex-direction: column;
 }
 .sf-rail {
 	position: relative;
 	flex: none;
 	display: flex;
-	flex-direction: column;
-	gap: var(--space-1);
-	width: 40px;
-	padding: var(--top-gap) 0 var(--space-2);
+	justify-content: space-around;
 	align-items: center;
-	border-right: 1px solid transparent; /* keeps its width, so the ink indicator stays where it is */
+	padding: var(--top-gap) var(--space-2) 14px; /* the icons sit on the shared top line; the ink bar lives in the gap beneath them */
 }
-.sf-rail .sf-ink-track {
-	right: -1px;
-	left: auto;
-	height: 100%;
+.sf-tabbar-ink {
+	position: absolute;
+	left: 0;
+	bottom: 6px;
+	height: 2px;
+	background: var(--purpose-accent);
+	transition: transform var(--ink-duration) cubic-bezier(0.65, 0, 0.35, 1);
+	pointer-events: none;
+}
+.sf-tabbar-ink.is-instant {
+	transition: none;
+}
+.sf-tabbar-ink.is-off {
+	display: none;
 }
 .sf-tab {
 	display: inline-flex;

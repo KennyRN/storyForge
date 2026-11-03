@@ -39,13 +39,13 @@ test.describe("no dividing lines", () => {
 		expect(await bg()).not.toBe("rgba(0, 0, 0, 0)");
 	});
 
-	test("the library rail's edge is transparent but keeps its width, so the ink indicator stays put", async ({ page }) => {
+	test("the library's tab row has no dividing line, and the left rail is gone", async ({ page }) => {
 		await openProject(page);
 		await flipFace(page);
 		const rail = page.locator(".sf-rail");
 		await expect(rail).toBeVisible();
-		const c = await rail.evaluate((el) => { const s = getComputedStyle(el); return { w: parseFloat(s.borderRightWidth), color: s.borderRightColor }; });
-		expect(c.w).toBe(1);
-		expect(c.color).toBe("rgba(0, 0, 0, 0)");
+		const c = await rail.evaluate((el) => { const s = getComputedStyle(el); return { w: parseFloat(s.borderRightWidth) + parseFloat(s.borderBottomWidth), flex: s.flexDirection }; });
+		expect(c.w).toBe(0);
+		expect(c.flex).toBe("row");
 	});
 });

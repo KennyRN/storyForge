@@ -54,23 +54,38 @@ test.describe("the library", () => {
 		await expect(tabs.nth(2)).toHaveAttribute("aria-label", "novel");
 		await expect(tabs.nth(3)).toHaveAttribute("aria-label", "archive");
 		await expect(tab(page, "novel")).toHaveAttribute("aria-selected", "true");
-		await expect(page.locator(".sf-rail .sf-ink-bar")).toBeAttached();
-		const before = (await page.locator(".sf-rail .sf-ink-bar").evaluate((e) => e.getBoundingClientRect().top));
+		// the tabs lie across the top and the ink bar is under the selected icon
+		const x = (sel: string) => page.locator(sel).evaluate((e) => { const r = e.getBoundingClientRect(); return { l: r.left, w: r.width, t: r.top, b: r.bottom }; });
+		const tops = await Promise.all([0, 1, 2, 3].map((i) => tabs.nth(i).evaluate((e) => e.getBoundingClientRect().top)));
+		expect(new Set(tops.map(Math.round)).size, "one row").toBe(1);
+		await expect(page.locator(".sf-rail .sf-tabbar-ink")).toBeAttached();
+		const underNovel = async (name: string) => {
+			const icon = await tab(page, name).locator("svg").evaluate((e) => { const r = e.getBoundingClientRect(); return { l: r.left, w: r.width, b: r.bottom }; });
+			await expect.poll(async () => (await x(".sf-tabbar-ink")).l).toBeCloseTo(icon.l, 0);
+			const bar = await x(".sf-tabbar-ink");
+			expect(bar.w).toBeCloseTo(icon.w, 0);
+			expect(bar.t, "under the icon").toBeGreaterThan(icon.b);
+		};
+		await underNovel("novel");
 		await tab(page, "archive").click();
-		await expect.poll(() => page.locator(".sf-rail .sf-ink-bar").evaluate((e) => e.getBoundingClientRect().top)).toBeGreaterThan(before);
+		await underNovel("archive");
+		// evenly spread: the gaps between the icons match
+		const lefts = await Promise.all([0, 1, 2, 3].map((i) => tabs.nth(i).evaluate((e) => { const r = e.getBoundingClientRect(); return { l: r.left, r: r.right }; })));
+		const gaps = [1, 2, 3].map((i) => lefts[i].l - lefts[i - 1].r);
+		expect(Math.max(...gaps) - Math.min(...gaps)).toBeLessThan(1.5);
 		await shot(page, "storyforge-archive");
 	});
 
-	test("the tabs are reachable with the keyboard (arrows move between them)", async ({ page }) => {
+	test("the tabs are reachable with the keyboard (left and right arrows move between them)", async ({ page }) => {
 		await openProject(page);
 		await flip(page);
 		await tab(page, "novel").focus();
-		await page.keyboard.press("ArrowUp");
+		await page.keyboard.press("ArrowLeft");
 		await expect(tab(page, "series")).toBeFocused();
 		await expect(tab(page, "series")).toHaveAttribute("aria-selected", "true");
-		await page.keyboard.press("ArrowUp");
+		await page.keyboard.press("ArrowLeft");
 		await expect(tab(page, "codex")).toBeFocused();
-		await page.keyboard.press("ArrowUp"); // wraps
+		await page.keyboard.press("ArrowLeft"); // wraps
 		await expect(tab(page, "archive")).toBeFocused();
 	});
 

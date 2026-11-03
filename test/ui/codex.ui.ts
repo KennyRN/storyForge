@@ -54,7 +54,7 @@ for (const side of SIDES) {
 				expect(where.icons.length, `${name}: an icon`).toBeGreaterThan(0);
 				for (const left of where.icons) expect(left, `${name}: the icon is after the name`).toBeGreaterThanOrEqual(where.nameRight - 1);
 			}
-			// the first icon is 1em after the end of the name (0.75em on the storytelling side, decision 84), which is only as wide as its text
+			// the first icon is 1em after the end of the name (0.75em on both sides: the library side took the storytelling side's settings, Fix 7 polish), which is only as wide as its text
 			for (const name of ["Jane", "Windows", "Cast", "Harbour"]) {
 				const g = await row(page, name).evaluate((el) => {
 					const n = el.querySelector(".sf-codex-name") as HTMLElement;
@@ -64,7 +64,7 @@ for (const side of SIDES) {
 					return { gap: el.querySelector("svg")!.getBoundingClientRect().left - n.getBoundingClientRect().right, nameIsText: Math.abs(n.getBoundingClientRect().width - text.width) < 1, em: parseFloat(getComputedStyle(el).fontSize) };
 				});
 				expect(g.nameIsText, `${name}: the name is as wide as its text`).toBe(true);
-				expect(g.gap, `${name}: the gap between the name and its icon`).toBeCloseTo(side.name.startsWith("storytelling") ? 0.75 * g.em : g.em, 0);
+				expect(g.gap, `${name}: the gap between the name and its icon`).toBeCloseTo(0.75 * g.em, 0);
 			}
 			// A note with no tag linked has no icon at all; a folder always has its folder icon.
 			expect(await tree(page).locator('[data-key="Codex/NoNewline.md"] svg').count()).toBe(0);
