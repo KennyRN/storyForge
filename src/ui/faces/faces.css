@@ -581,9 +581,7 @@ body.sf-codex-drag-active {
 	color: var(--purpose-codex-rest); /* grey0, the strip icons' resting colour (decision 67) */
 	cursor: pointer;
 }
-.sf-tab:hover {
-	color: var(--purpose-text);
-}
+.sf-tab:hover,
 .sf-tab.is-active {
 	color: var(--purpose-accent);
 }

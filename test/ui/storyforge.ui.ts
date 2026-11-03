@@ -78,14 +78,22 @@ test.describe("the library", () => {
 		const flipButton = page.getByRole("button", { name: "storytelling", exact: true });
 		await expect(flipButton).toHaveAttribute("aria-label", "storytelling");
 		await expect(flipButton).not.toHaveAttribute("role", "tab");
-		// colours: unselected grey0 (the strip icons' resting colour), selected the accent, hovered the text colour
+		// colours: unselected grey0 (the strip icons' resting colour), selected and hovered the accent (hover and selected look the same, decision 62)
 		const col = (l: ReturnType<typeof page.locator>) => l.evaluate((e) => getComputedStyle(e).color);
 		const purpose = (v: string) => page.evaluate((x) => { const d = document.createElement("i"); d.style.color = `var(--purpose-${x})`; document.body.append(d); const c = getComputedStyle(d).color; d.remove(); return c; }, v);
 		expect(await col(tab(page, "codex"))).toBe(await purpose("codex-rest"));
 		expect(await col(tab(page, "archive"))).toBe(await purpose("accent"));
 		await tab(page, "codex").hover();
-		expect(await col(tab(page, "codex"))).toBe(await purpose("text"));
-		// the flip flips the side and the bar stays under the tab it was
+		expect(await col(tab(page, "codex"))).toBe(await purpose("accent"));
+		await page.mouse.move(700, 700); // the colour goes when the pointer leaves
+		expect(await col(tab(page, "codex"))).toBe(await purpose("codex-rest"));
+		const flipBtn = page.getByRole("button", { name: "storytelling", exact: true });
+		expect(await col(flipBtn)).toBe(await purpose("codex-rest"));
+		await flipBtn.hover();
+		expect(await col(flipBtn)).toBe(await purpose("accent"));
+		await expect(flipBtn).not.toHaveAttribute("aria-selected", /.*/);
+		await page.mouse.move(700, 700);
+		// the flip flips the side
 		await flipButton.click();
 		await expect(page.getByRole("tablist")).toBeHidden();
 		await shot(page, "storyforge-archive");
