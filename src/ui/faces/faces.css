@@ -555,9 +555,6 @@ body.sf-codex-drag-active {
 	vertical-align: -0.1em; /* the text's baseline sits 0.1em above the icon's bottom edge */
 	margin-right: 0.5em;
 }
-.sf-navmenu-row.is-plain {
-	padding-left: calc(8px + 32px + 0.5em); /* the icon's 32px and its 0.5em gap, so all the text shares one column */
-}
 .sf-navmenu-row.is-here,
 .sf-navmenu-row:hover:not(:disabled) {
 	background: var(--purpose-accent);

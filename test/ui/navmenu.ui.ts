@@ -54,7 +54,7 @@ test.describe("the navigate menu", () => {
 		expect(await menu(page).evaluate((e) => { const s = getComputedStyle(e); return [s.borderTopWidth, s.backgroundColor]; })).toEqual(["0px", await page.evaluate(() => { const d = document.createElement("i"); d.style.background = "var(--purpose-raised-bg)"; document.body.append(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; })]);
 	});
 
-	test("the five rows carry Kenny's icons at 32px, 0.5em before the text, the text's baseline 0.1em above the icon's bottom; the two plain rows' text lines up in the same column; icons take the row's colour", async ({ page }) => {
+	test("the seven rows carry Kenny's icons at 32px, 0.5em before the text, the text's baseline 0.1em above the icon's bottom; all the text lines up in the one column; icons take the row's colour", async ({ page }) => {
 		await openProject(page);
 		await chevron(page).click();
 		const geo = await menu(page).evaluate((m) => Array.from(m.querySelectorAll<HTMLElement>("[role=menuitem]")).map((row) => {
@@ -82,8 +82,8 @@ test.describe("the navigate menu", () => {
 			expect(g.svg.bottom - g.baseline, `${g.label}: baseline above the icon's bottom`).toBeCloseTo(0.1 * g.em, 0);
 			expect(g.fill, `${g.label}: the row's colour`).toBe(g.color);
 		}
-		expect(geo.filter((g) => !g.svg).map((g) => g.label)).toEqual(["Back Up Now", "Open Project"]);
-		expect(geo.filter((g) => g.svg)).toHaveLength(5);
+		expect(geo.filter((g) => !g.svg)).toHaveLength(0);
+		expect(geo.filter((g) => g.svg)).toHaveLength(7);
 	});
 
 	test("where you are is a highlighted row (rule 1), on each side and each tab; every item does its job from both sides", async ({ page }) => {

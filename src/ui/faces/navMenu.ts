@@ -41,9 +41,8 @@ export function mountNavMenu(host: HTMLElement, model: AppModel): { button: HTML
 		const rows: HTMLButtonElement[] = [];
 		const item = (label: string, action: () => void, opts: { here?: boolean; disabled?: string | boolean; icon?: NavIconName } = {}): HTMLButtonElement => {
 			const row = el("button", { class: `sf-navmenu-row${opts.here ? " is-here" : ""}`, attrs: { type: "button", role: "menuitem", tabindex: "-1", ...(opts.here ? { "aria-current": "true" } : {}) }, text: label });
-			// Kenny's icon at 32px (the library tabs' size) before the text (the text's baseline 0.1em above its bottom edge, 0.5em between); a row without one is indented to the same text column.
+			// Kenny's icon at 32px (the library tabs' size) before the text (the text's baseline 0.1em above its bottom edge, 0.5em between); every row has one.
 			if (opts.icon) row.prepend(navIcon(opts.icon, "32px"));
-			else row.classList.add("is-plain");
 			if (opts.disabled) {
 				row.disabled = true;
 				if (typeof opts.disabled === "string") row.title = opts.disabled;
@@ -62,9 +61,9 @@ export function mountNavMenu(host: HTMLElement, model: AppModel): { button: HTML
 			tab("novel", "Novel"),
 			tab("archive", "Archive"),
 			el("div", { class: "sf-navmenu-gap", attrs: { role: "separator" } }),
-			item("Back Up Now", () => void handleMenu(model, "backup-now"), { disabled: state["backup-now"] ? false : readOnly || true }),
+			item("Back Up Now", () => void handleMenu(model, "backup-now"), { disabled: state["backup-now"] ? false : readOnly || true, icon: "backup" }),
 			el("div", { class: "sf-navmenu-gap", attrs: { role: "separator" } }),
-			item("Open Project", () => void handleMenu(model, "close-project")),
+			item("Open Project", () => void handleMenu(model, "close-project"), { icon: "open" }),
 		);
 		host.append(menu);
 		button.setAttribute("aria-expanded", "true");
