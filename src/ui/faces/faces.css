@@ -570,7 +570,7 @@ body.sf-codex-drag-active {
 	display: flex;
 	justify-content: space-around;
 	align-items: center;
-	padding: var(--top-gap) var(--space-2) 14px; /* the icons sit on the shared top line; the ink bar lives in the gap beneath them */
+	padding: var(--top-gap) 4px 14px; /* the icons sit on the shared top line; the ink bar lives in the gap beneath them */
 }
 .sf-tabbar-ink {
 	position: absolute;
@@ -589,7 +589,7 @@ body.sf-codex-drag-active {
 }
 .sf-tab {
 	display: inline-flex;
-	padding: 6px;
+	padding: 3px; /* five 32 px icons still fit the narrowest left panel (200 px) */
 	border: 0;
 	border-radius: var(--radius);
 	background: transparent;

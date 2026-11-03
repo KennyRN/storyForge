@@ -15,7 +15,7 @@ const TABS: { id: ForgeTab; label: string; icon: NavIconName }[] = [
 	{ id: "codex", label: "codex", icon: "codex" },
 ];
 
-/** The storyForge face's left panel: four tabs (archive, novel, series, codex, from the outer edge) and the storytelling flip, as Kenny's 24 px icons across the top line, spread evenly, with an ink bar under the selected tab (never under the flip), and the tab's pane below. */
+/** The storyForge face's left panel: four tabs (archive, novel, series, codex, from the outer edge) and the storytelling flip, as Kenny's 32 px icons across the top line, spread evenly, with an ink bar under the selected tab (never under the flip), and the tab's pane below. */
 export function mountStoryForgeFace(host: HTMLElement, model: AppModel): () => void {
 	host.classList.add("sf-face", "sf-face--storyforge");
 	const rail = el("div", { class: "sf-rail", attrs: { role: "tablist", "aria-orientation": "horizontal", "aria-label": "Library" } });
@@ -82,14 +82,14 @@ export function mountStoryForgeFace(host: HTMLElement, model: AppModel): () => v
 						},
 					},
 				},
-				navIcon(t.icon, "24px"),
+				navIcon(t.icon, "32px"),
 			);
 			attachTooltip(tab, t.label);
 			rail.append(tab);
 			if (active && focus) queueMicrotask(() => tab.focus());
 		}
 		// The storytelling flip: a button, not a tab (it flips the side, as ⌘\ does), so the ink bar is never under it.
-		const flip = el("button", { class: "sf-tab sf-tab--flip", attrs: { type: "button", "aria-label": "storytelling" }, on: { click: () => model.flipFace() } }, navIcon("storytelling", "24px"));
+		const flip = el("button", { class: "sf-tab sf-tab--flip", attrs: { type: "button", "aria-label": "storytelling" }, on: { click: () => model.flipFace() } }, navIcon("storytelling", "32px"));
 		attachTooltip(flip, "storytelling");
 		rail.append(flip);
 		placeInk();

@@ -76,10 +76,10 @@ test.describe("the library", () => {
 		const lefts = await Promise.all([0, 1, 2, 3, 4].map((i) => all.nth(i).evaluate((e) => { const r = e.getBoundingClientRect(); return { l: r.left, r: r.right }; })));
 		const gaps = [1, 2, 3, 4].map((i) => lefts[i].l - lefts[i - 1].r);
 		expect(Math.max(...gaps) - Math.min(...gaps)).toBeLessThan(1.5);
-		// 24 px icons, the bar 6px below the icon's bottom, and the flip is a button: no tab role, and the bar is never under it
+		// 32 px icons, the bar 6px below the icon's bottom, and the flip is a button: no tab role, and the bar is never under it
 		for (let i = 0; i < 5; i++) {
 			const sz = await all.nth(i).locator("svg").evaluate((e) => { const r = e.getBoundingClientRect(); return [r.width, r.height]; });
-			expect(sz).toEqual([24, 24]);
+			expect(sz).toEqual([32, 32]);
 		}
 		const gapBar = await page.evaluate(() => document.querySelector(".sf-tabbar-ink")!.getBoundingClientRect().top - document.querySelector(".sf-tab.is-active svg")!.getBoundingClientRect().bottom);
 		expect(gapBar).toBeCloseTo(6, 0);
@@ -351,4 +351,21 @@ test.describe("the library", () => {
 		await tab(page, "archive").click();
 		await expect(page.getByRole("button", { name: /Unarchive/ }).first()).toBeDisabled();
 	});
+});
+
+test("the five 32 px icons fit the narrowest left panel without overflowing", async ({ page }) => {
+	await openProject(page);
+	await flip(page);
+	// 200 px is the left panel's own minimum (the same-width switch holds it at 280 by default), so the width is set directly
+	const r = await page.evaluate(() => {
+		const left = document.querySelector<HTMLElement>(".sf-left")!;
+		left.style.width = "200px";
+		left.style.flex = "none";
+		const rail = document.querySelector(".sf-rail")!;
+		const last = document.querySelector(".sf-tab--flip")!.getBoundingClientRect();
+		return { width: rail.getBoundingClientRect().width, scroll: rail.scrollWidth, right: last.right, railRight: rail.getBoundingClientRect().right };
+	});
+	expect(r.width).toBeLessThanOrEqual(201);
+	expect(r.scroll).toBeLessThanOrEqual(Math.ceil(r.width));
+	expect(r.right).toBeLessThanOrEqual(r.railRight);
 });
