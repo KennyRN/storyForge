@@ -4,15 +4,15 @@
 .sf-bar--sliver::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--purpose-data-fill); }
 .sf-bar--chapter { height: 34px; /* the plugin's bar height (Brief 14, Kenny's look) */ }
 /* Overrun: solid 2px dots in the bar's own colour on the plugin's staggered lattice (8px columns, rows 4px apart, nine of them: centres 1, 5 ... 33 of the 34px, flush with both edges), half dots at the seam with the fill.
-   The plugin drew each as a 2px div with a solid background; here the shape is a mask (an SVG with crisp edges, no anti-aliasing, so each dot is whole device pixels at full colour) over a solid data-colour background,
-   not a soft gradient. The element's left edge and width are snapped to whole CSS pixels in bars.ts. */
+   The plugin drew each as a 2px round div with a solid background; here the shape is a round mask (an SVG circle, radius 1.1px so that on a 2x screen its centre 2 by 2 device pixels are fully covered and only the edge pixels are anti-aliased)
+   over a solid data-colour background, not a soft gradient. The element's left edge and width are snapped to whole CSS pixels in bars.ts, so every dot's centre lands on a device pixel boundary. */
 .sf-bar-dots {
 	position: absolute; top: 0; bottom: 0;
 	background: var(--purpose-data-fill);
-	-webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Ccircle cx='0' cy='1' r='1'/%3E%3Ccircle cx='8' cy='1' r='1'/%3E%3Ccircle cx='4' cy='5' r='1'/%3E%3C/svg%3E");
+	-webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Ccircle cx='0' cy='1' r='1.1'/%3E%3Ccircle cx='8' cy='1' r='1.1'/%3E%3Ccircle cx='4' cy='5' r='1.1'/%3E%3C/svg%3E");
 	-webkit-mask-size: 8px 8px;
 	-webkit-mask-repeat: repeat;
-	mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Ccircle cx='0' cy='1' r='1'/%3E%3Ccircle cx='8' cy='1' r='1'/%3E%3Ccircle cx='4' cy='5' r='1'/%3E%3C/svg%3E");
+	mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8'%3E%3Ccircle cx='0' cy='1' r='1.1'/%3E%3Ccircle cx='8' cy='1' r='1.1'/%3E%3Ccircle cx='4' cy='5' r='1.1'/%3E%3C/svg%3E");
 	mask-size: 8px 8px;
 	mask-repeat: repeat;
 }

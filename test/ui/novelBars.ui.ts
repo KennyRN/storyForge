@@ -141,15 +141,19 @@ test.describe("the chapter bars", () => {
 		expect(r.dotsInside, "no blue (dot) pixel between the stroke and 5px from a letter").toBe(0);
 	});
 
-	test("the dots are drawn solid, at full colour, with no blended pixels, starting on a whole CSS pixel", async ({ page }) => {
+	test("each dot is round with a solid centre: its centre device pixels are the full data colour; only edge pixels are blended", async ({ page }) => {
 		await setChapterLength(page, 3);
 		await page.mouse.move(2, 2);
 		const bar = overview(page).locator(".sf-card .sf-bar--over").first(); // Chapter 1: dots from the target to its end, its name short at the left
+		const dots = bar.locator(".sf-bar-dots");
+		const left = await dots.evaluate((e) => e.getBoundingClientRect().left);
+		expect(Math.abs(left - Math.round(left)), "the dots start on a whole CSS pixel").toBeLessThan(0.01);
 		const colours = await page.evaluate(() => { const c = (v: string) => { const i = document.createElement("i"); i.style.color = v; document.body.append(i); const x = getComputedStyle(i).color; i.remove(); return x; }; return { blue: c("var(--purpose-data-fill)"), track: c("var(--purpose-bar-track)") }; });
-		const png = (await bar.screenshot()).toString("base64");
+		const png = (await dots.screenshot()).toString("base64");
 		const r = await page.evaluate(async ({ png, colours }) => {
 			const rgb = (s: string) => (s.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
-			const [blue, track] = [rgb(colours.blue), rgb(colours.track)];
+			const blue = rgb(colours.blue);
+			const track = rgb(colours.track);
 			const img = new Image();
 			img.src = "data:image/png;base64," + png;
 			await img.decode();
@@ -159,21 +163,45 @@ test.describe("the chapter bars", () => {
 			const x = c.getContext("2d")!;
 			x.drawImage(img, 0, 0);
 			const { data, width: W, height: H } = x.getImageData(0, 0, c.width, c.height);
-			const near = (i: number, col: number[]) => Math.abs(data[i] - col[0]) + Math.abs(data[i + 1] - col[1]) + Math.abs(data[i + 2] - col[2]) <= 6;
-			let blueCount = 0;
-			let blended = 0;
-			// the middle of the bar, well clear of the name and of the bar's own edges
-			for (let y = 3; y < H - 3; y++) {
-				for (let px = Math.floor(W * 0.5); px < W - 6; px++) {
-					const i = (y * W + px) * 4;
-					if (near(i, blue)) blueCount++;
-					else if (!near(i, track)) blended++;
+			const dpr = W / (document.querySelector(".sf-bar-dots") as HTMLElement).getBoundingClientRect().width;
+			const near = (px: number, py: number, col: number[]) => { const i = (py * W + px) * 4; return Math.abs(data[i] - col[0]) + Math.abs(data[i + 1] - col[1]) + Math.abs(data[i + 2] - col[2]) <= 6; };
+			let centres = 0;
+			let solid = 0;
+			let corners = 0;
+			const block = (bx: number, by: number) => [[bx, by], [bx + 1, by], [bx, by + 1], [bx + 1, by + 1]].every(([a, b]) => near(a, b, blue));
+			// the lattice: centres at (8k, 1 + 8m) and (4 + 8k, 5 + 8m) CSS px from the dots' left edge and top (the top can sit between device pixels, so each
+			// dot's solid 2 by 2 centre is looked for within a device pixel of where it should be); whole dots only (skip the half dots at the seam and the ends)
+			for (const [ox, oy] of [[0, 1], [4, 5]]) {
+				for (let cx = ox + 16; cx < W / dpr - 16; cx += 8) {
+					for (let cy = oy; cy < 34 - 1; cy += 8) {
+						const px = Math.round(cx * dpr);
+						const py = Math.round(cy * dpr);
+						if (py < 4 || py > H - 4) continue;
+						centres++;
+						let found: [number, number] | null = null;
+						for (let dy = -2; dy <= 1 && !found; dy++) for (let dx = -2; dx <= 1 && !found; dx++) if (block(px + dx, py + dy)) found = [px + dx, py + dy];
+						if (!found) continue;
+						solid++;
+						// round, not square: the full-colour pixels of this dot (flood-filled from its centre) have a bounding box whose four corners are anti-aliased
+						const seen = new Set<string>();
+						const queue: [number, number][] = [found];
+						let [x0, y0, x1, y1] = [found[0], found[1], found[0], found[1]];
+						while (queue.length) {
+							const [qx, qy] = queue.pop()!;
+							if (seen.has(qx + "," + qy) || Math.abs(qx - px) > 5 || Math.abs(qy - py) > 5 || !near(qx, qy, blue)) continue;
+							seen.add(qx + "," + qy);
+							[x0, y0, x1, y1] = [Math.min(x0, qx), Math.min(y0, qy), Math.max(x1, qx), Math.max(y1, qy)];
+							queue.push([qx + 1, qy], [qx - 1, qy], [qx, qy + 1], [qx, qy - 1]);
+						}
+						if ([[x0, y0], [x1, y0], [x0, y1], [x1, y1]].every(([a, b]) => !near(a, b, blue))) corners++;
+					}
 				}
 			}
-			return { blueCount, blended };
+			return { centres, solid, corners, track: near(0, 0, track) };
 		}, { png, colours });
-		expect(r.blueCount, "dots are there").toBeGreaterThan(500);
-		expect(r.blended, "every pixel is the data colour or the track, none in between").toBe(0);
+		expect(r.centres, "dots were found").toBeGreaterThan(100);
+		expect(r.solid, "every dot's centre pixels are the full data colour").toBe(r.centres);
+		expect(r.corners, "the dots are round: their corner pixels are not full colour").toBe(r.centres);
 	});
 
 	test("past its plan: dots in the bar's own colour flush with the fill, no notch, no orange; short of it: the dashed marker in the bar's colour", async ({ page }) => {
