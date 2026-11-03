@@ -1,7 +1,7 @@
 import { getBookChapters, numberedChapterTitle } from "../../core/book";
 import { numberedBookTitle, readSeriesFrontmatter } from "../../core/series";
 import { el, fill } from "../kit/dom";
-import { icon } from "../kit/icons";
+import { addChapterIcon } from "../kit/statsIcons";
 import { attachTooltip } from "../kit/tooltip";
 import type { AppModel } from "../model";
 
@@ -68,7 +68,6 @@ export function mountNavigator(host: HTMLElement, model: AppModel): () => void {
 			},
 			el("span", { class: "sf-nav-current-title", text: chapter ? title(chapter) : "No chapter yet" }),
 			outside ? el("span", { class: "sf-nav-note", text: outside }) : null,
-			icon(expanded ? "chevron-down" : "chevron-right", 14),
 		);
 
 		const list = el("ul", { class: "sf-nav-list sf-scroll", attrs: { role: "list", "aria-label": "Chapters of this novel" } });
@@ -90,10 +89,10 @@ export function mountNavigator(host: HTMLElement, model: AppModel): () => void {
 		}
 		const add = el("button", {
 			class: "sf-nav-row sf-nav-add",
-			attrs: { type: "button", ...(noWriting ? { disabled: "", title: noWriting } : {}) },
+			attrs: { type: "button", "aria-label": "Add the next chapter", ...(noWriting ? { disabled: "", title: noWriting } : {}) },
 			on: { click: () => (close(false), void model.addNextChapter()) },
-			text: "Add the next chapter",
-		});
+		}, addChapterIcon());
+		if (!noWriting) attachTooltip(add, "add the next chapter");
 		list.append(el("li", {}, add));
 		list.addEventListener("keydown", (e) => {
 			const items = Array.from(list.querySelectorAll<HTMLButtonElement>("button:not([disabled])"));
