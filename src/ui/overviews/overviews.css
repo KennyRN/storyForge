@@ -2,17 +2,23 @@
 .sf-bar { position: relative; height: 12px; border-radius: 3px; background: var(--purpose-bar-track); overflow: hidden; }
 .sf-bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--purpose-data-fill); }
 .sf-bar--sliver::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--purpose-data-fill); }
-.sf-bar--chapter { height: 24px; }
-/* Overrun: 2px dots in the bar's own colour on a staggered 8px by 4px lattice (rows at 2, 6 ... 22px of the 24), flush with the fill: half dots at the seam. */
+.sf-bar--chapter { height: 34px; /* the plugin's bar height (Brief 14, Kenny's look) */ }
+/* Overrun: 2px dots in the bar's own colour on the plugin's staggered lattice (8px columns, rows 4px apart, nine of them: centres 1, 5 ... 33 of the 34px, flush with both edges), half dots at the seam with the fill. */
 .sf-bar-dots {
 	position: absolute; top: 0; bottom: 0;
-	background-image: radial-gradient(circle at 2px 2px, var(--purpose-data-fill) 1px, transparent 1.25px), radial-gradient(circle at 6px 6px, var(--purpose-data-fill) 1px, transparent 1.25px);
+	background-image: radial-gradient(circle at 0 1px, var(--purpose-data-fill) 1px, transparent 1.25px), radial-gradient(circle at 4px 5px, var(--purpose-data-fill) 1px, transparent 1.25px);
 	background-size: 8px 8px;
-	background-position: -2px 0;
 }
-/* The chapter's name over its bar: the dark text over the fill and the light text over the rest, each clipped inline at the fill's edge so they never overlap. */
-.sf-bar-name { position: absolute; inset: 0; padding: 0 8px; line-height: 24px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--purpose-text); pointer-events: none; }
-.sf-bar-name--on-fill { color: var(--purpose-text-on-data); user-select: none; -webkit-user-select: none; }
+/* The chapter's name over its bar, as the plugin drew it: 600 weight, 15px (an assumption: the plugin's 1em of Obsidian's interface text), 4px 6px of padding, pinned to the bar's bottom.
+   Dark text with an outer stroke in the data colour, 4px wide beyond the letters (an 8px centred stroke painted under the fill), round joins: it reads as part of the name, over the fill,
+   the dots and the empty track alike, and no dot touches a letter. The text's box carries 4px of padding (cancelled by a margin) so the stroke is inside it, never clipped by the ellipsis. */
+.sf-bar-name { position: absolute; inset: 0; padding: 4px 6px; display: flex; align-items: flex-end; pointer-events: none; }
+.sf-bar-name-text {
+	display: block; box-sizing: border-box; max-width: calc(100% + 8px); min-width: 0; padding: 4px; margin: -4px;
+	line-height: 1.2; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+	color: var(--purpose-text-on-data);
+	-webkit-text-stroke: 8px var(--purpose-data-fill); paint-order: stroke fill; stroke-linejoin: round; stroke-linecap: round;
+}
 .sf-bar-marker { position: absolute; top: 0; bottom: 0; margin-left: -1px; height: 100%; stroke: var(--purpose-data-fill); }
 
 /* The layer over the workspace. */

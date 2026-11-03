@@ -99,13 +99,8 @@ export function dataBar(opts: DataBarOptions): HTMLElement {
 	}
 	if (state.kind === "under") bar.append(marker(state.targetPercent));
 	if (opts.name !== undefined) {
-		const light = el("div", { class: "sf-bar-name", text: opts.name, attrs: { "aria-hidden": "true" } });
-		const dark = el("div", { class: "sf-bar-name sf-bar-name--on-fill", text: opts.name, attrs: { "aria-hidden": "true" } });
-		// The two layers meet at the fill's edge and never overlap: dark to the left of it, light to the right.
-		const fillPercent = state.kind === "sliver" ? 0 : state.fillPercent;
-		dark.style.clipPath = `inset(0 ${100 - fillPercent}% 0 0)`;
-		light.style.clipPath = `inset(0 0 0 ${fillPercent}%)`;
-		bar.append(light, dark);
+		// One layer of dark text on a data-blue backing, over the fill, the dots and the empty track alike.
+		bar.append(el("div", { class: "sf-bar-name", attrs: { "aria-hidden": "true" } }, el("span", { class: "sf-bar-name-text", text: opts.name })));
 	}
 	attachTooltip(bar, opts.tooltip ?? formatWordCount(opts.words));
 	if (opts.onHover) for (const type of ["pointerenter", "focus"]) bar.addEventListener(type, opts.onHover, { once: true });
