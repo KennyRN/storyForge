@@ -117,20 +117,18 @@ test.describe("Appearance", () => {
 		await expect.poll(() => projectMd(page)).toContain("appearance-chapter-weight: 700");
 	});
 
-	test("Fraunces shows Softness and Wonk, starting at 0 and off; they reach the drawing; other fonts hide them", async ({ page }) => {
+	test("Fraunces shows Softness only (no Wonk control), starting at 0; Softness reaches the drawing with Wonk always off; other fonts hide it", async ({ page }) => {
 		await openProject(page);
 		await openSettings(page, "Appearance");
 		await expect(dialog(page).getByLabel("Series name Softness (0 to 100)")).toHaveCount(0);
 		await font(page, "Series name").selectOption("Fraunces");
 		const soft = dialog(page).getByLabel("Series name Softness (0 to 100)");
-		const wonk = dialog(page).getByLabel("Series name Wonk");
 		await expect(soft).toHaveValue("0");
-		await expect(wonk).not.toBeChecked();
+		await expect(dialog(page).getByLabel("Series name Wonk")).toHaveCount(0);
 		await expect.poll(async () => (await style(page, ".sf-nav-series")).variation).toMatch(/"SOFT" 0, "WONK" 0/);
 		await soft.fill("50");
 		await soft.press("Tab");
-		await dialog(page).getByLabel("Series name Wonk").check();
-		await expect.poll(async () => (await style(page, ".sf-nav-series")).variation).toMatch(/"SOFT" 50, "WONK" 1/);
+		await expect.poll(async () => (await style(page, ".sf-nav-series")).variation).toMatch(/"SOFT" 50, "WONK" 0/);
 		await font(page, "Series name").selectOption("Inter");
 		await expect(dialog(page).getByLabel("Series name Softness (0 to 100)")).toHaveCount(0);
 		expect(await projectMd(page)).toContain("appearance-series-soft: 50"); // kept, unused

@@ -4,9 +4,9 @@ import { FAMILY_INFO, nearestWeight } from "../core/fontFamilies";
 /** A size in rem as pixels against the one named base (the page's own root size is 13 px, so the CSS `rem` unit isn't used). */
 export const px = (rem: number): string => `${+(rem * APPEARANCE_BASE_PX).toFixed(2)}px`;
 
-/** The font-variation-settings a family needs: Fraunces' Softness and Wonk (always explicit, never the file's own default), none for the rest. */
-export function variationFor(family: string, soft: number, wonk: boolean): string {
-	return family === "Fraunces" ? `"SOFT" ${soft}, "WONK" ${wonk ? 1 : 0}` : "normal";
+/** The font-variation-settings a family needs: Fraunces' Softness, and Wonk always off (set explicitly: the file's own default is on; the control was removed in 1.6.1), none for the rest. */
+export function variationFor(family: string, soft: number): string {
+	return family === "Fraunces" ? `"SOFT" ${soft}, "WONK" 0` : "normal";
 }
 
 /**
@@ -26,7 +26,7 @@ export function applyAppearance(settings: ProjectSettings | undefined, root: HTM
 		root.style.setProperty(names[0], FAMILY_INFO[font].css);
 		root.style.setProperty(names[1], String(weight));
 		root.style.setProperty(names[2], px(settings[appearanceKey(part, "Size")]));
-		root.style.setProperty(names[3], variationFor(font, settings[appearanceKey(part, "Soft")], settings[appearanceKey(part, "Wonk")]));
+		root.style.setProperty(names[3], variationFor(font, settings[appearanceKey(part, "Soft")]));
 	}
 }
 
@@ -34,5 +34,5 @@ export function applyAppearance(settings: ProjectSettings | undefined, root: HTM
 export function sampleStyle(part: AppearancePart, settings: ProjectSettings): string {
 	const font = settings[appearanceKey(part, "Font")];
 	const weight = nearestWeight(font, settings[appearanceKey(part, "Weight")]);
-	return `font-family: ${FAMILY_INFO[font].css}; font-weight: ${weight}; font-size: ${px(settings[appearanceKey(part, "Size")])}; font-variation-settings: ${variationFor(font, settings[appearanceKey(part, "Soft")], settings[appearanceKey(part, "Wonk")])};`;
+	return `font-family: ${FAMILY_INFO[font].css}; font-weight: ${weight}; font-size: ${px(settings[appearanceKey(part, "Size")])}; font-variation-settings: ${variationFor(font, settings[appearanceKey(part, "Soft")])};`;
 }

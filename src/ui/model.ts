@@ -11,7 +11,8 @@ import type { TypingEditorOptions } from "./editor/typingAids";
 import { buildNameIndex, EMPTY_NAMES, type NameIndex } from "../core/typing/names";
 import { collectNameSources } from "../core/typing/nameSources";
 import { withEntry } from "../core/typing/lists";
-import { setSetting } from "../app/settings";
+import { type SettingReplaced, setSetting } from "../app/settings";
+import { settingName, settingValue } from "./screens/settingNames";
 import { getBookChapters, removeBookCover, writeBookCoverName } from "../core/book";
 import { createContinuingChapter } from "../core/chapterCreation";
 import type { CreateProjectOptions } from "../core/openProject";
@@ -96,6 +97,19 @@ export class AppModel {
 	constructor(readonly controller: AppController) {
 		// Everything the controller does on its own (an outside change applied, a project opened) touches all topics.
 		controller.onChange = () => this.touch(...ALL);
+		controller.onSettingsProblem = (kind, version) => {
+			if (kind === "unreadable") this.notices.notify({ text: "The project’s settings file can’t be read, so settings stay as they were and can’t be changed until it can.", key: "settings-file", ms: 12000 });
+			else if (kind === "absent") this.notices.notify({ text: "The project’s settings file has gone. Settings stay as they are for now, and return to their defaults when the project next opens.", key: "settings-file", ms: 12000 });
+			else
+				this.notices.notify({
+					text: `This project was upgraded elsewhere by a newer storyForge (format ${version}). Settings can’t be changed now. Close and reopen it to open it read-only; what you have typed is saved first.`,
+					key: "settings-file",
+					sticky: true,
+					actions: [{ label: "Close and Reopen", onClick: () => void this.openRecent(0) }],
+				});
+			this.touch("settings");
+		};
+		controller.onSettingsChanged = () => this.touch("settings", "library", "nav", "face", "stats");
 		// The names the autocorrect knows come from the Codex: collect them again when it or the project changes.
 		this.subscribe(["codex", "project", "library", "archive"], () => void this.namesVersion++);
 		// A field being edited when the app closes is committed first (docs/story-shape.md §5.3).
@@ -385,7 +399,8 @@ export class AppModel {
 					label: "Stop correcting",
 					onClick: () => void this.guard(async () => {
 						const current = running.settings.values.typingNameOptOuts;
-						await setSetting(running.opened.project, running.settings, "typingNameOptOuts", withEntry(current, name, (s) => s.toLowerCase()));
+						const next = withEntry(current, name, (s) => s.toLowerCase());
+						this.reportReplaced(await setSetting(running.opened.project, running.settings, "typingNameOptOuts", next), next);
 						this.touch("settings");
 					}, "save the setting"),
 				},
@@ -430,6 +445,13 @@ export class AppModel {
 		} catch {
 			/* where you were is a convenience: never worth a notice */
 		}
+	}
+
+	/** Says so, quietly, when a setting the author just changed replaced a different value written elsewhere (decision 96). */
+	reportReplaced(replaced: SettingReplaced | null, now: unknown): void {
+		if (!replaced) return;
+		const name = settingName(replaced.key);
+		this.notices.notify({ text: `Changed “${name}” to ${settingValue(now)}. It had been changed to ${settingValue(replaced.replaced)} elsewhere; that change is replaced.`, key: `setting-replaced-${replaced.key}`, ms: 6000 });
 	}
 
 	subscribe(topics: Topic | Topic[], listener: () => void): () => void {

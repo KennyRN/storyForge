@@ -37,7 +37,7 @@ export type StoryKind = "series" | "standalone";
 
 /**
  * The four parts of the storytelling side whose type the author chooses (decision 79), each with a font, a weight, a size in rem and, for Fraunces, Softness and
- * Wonk. The defaults are the author's own choices (decision 84).
+ * (Wonk was removed in 1.6.1: the drawing always sets it off, and an `appearance-<part>-wonk` key already on disk is never read or rewritten). The defaults are the author's own choices (decision 84).
  */
 export const APPEARANCE_PARTS = ["codex", "novel", "series", "chapter"] as const;
 export type AppearancePart = (typeof APPEARANCE_PARTS)[number];
@@ -63,10 +63,8 @@ export type AppearanceKeys = {
 	[P in AppearancePart as `appearance${Cap<P>}Size`]: number;
 } & {
 	[P in AppearancePart as `appearance${Cap<P>}Soft`]: number;
-} & {
-	[P in AppearancePart as `appearance${Cap<P>}Wonk`]: boolean;
 };
-export const appearanceKey = <S extends "Font" | "Weight" | "Size" | "Soft" | "Wonk">(part: AppearancePart, what: S) => `appearance${part[0].toUpperCase()}${part.slice(1)}${what}` as keyof AppearanceKeys & `appearance${string}${S}`;
+export const appearanceKey = <S extends "Font" | "Weight" | "Size" | "Soft">(part: AppearancePart, what: S) => `appearance${part[0].toUpperCase()}${part.slice(1)}${what}` as keyof AppearanceKeys & `appearance${string}${S}`;
 
 export interface ProjectSettings extends AppearanceKeys {
 	storyKind: StoryKind;
@@ -114,22 +112,18 @@ export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
 	appearanceCodexWeight: APPEARANCE_DEFAULTS.codex.weight,
 	appearanceCodexSize: APPEARANCE_DEFAULTS.codex.size,
 	appearanceCodexSoft: 0,
-	appearanceCodexWonk: false,
 	appearanceNovelFont: APPEARANCE_DEFAULTS.novel.font,
 	appearanceNovelWeight: APPEARANCE_DEFAULTS.novel.weight,
 	appearanceNovelSize: APPEARANCE_DEFAULTS.novel.size,
 	appearanceNovelSoft: 0,
-	appearanceNovelWonk: false,
 	appearanceSeriesFont: APPEARANCE_DEFAULTS.series.font,
 	appearanceSeriesWeight: APPEARANCE_DEFAULTS.series.weight,
 	appearanceSeriesSize: APPEARANCE_DEFAULTS.series.size,
 	appearanceSeriesSoft: 0,
-	appearanceSeriesWonk: false,
 	appearanceChapterFont: APPEARANCE_DEFAULTS.chapter.font,
 	appearanceChapterWeight: APPEARANCE_DEFAULTS.chapter.weight,
 	appearanceChapterSize: APPEARANCE_DEFAULTS.chapter.size,
 	appearanceChapterSoft: 0,
-	appearanceChapterWonk: false,
 	codexColour: "text",
 	hideSeriesPane: false,
 	autoFocus: true,
@@ -164,22 +158,18 @@ const FIELDS: Record<Key, { file: string; plugin: string; valid: (v: unknown) =>
 	appearanceCodexWeight: { file: "appearance-codex-weight", plugin: "-", valid: isWeight },
 	appearanceCodexSize: { file: "appearance-codex-size", plugin: "-", valid: (v) => isRemIn(v, APPEARANCE_SIZE_RANGE.codex) },
 	appearanceCodexSoft: { file: "appearance-codex-soft", plugin: "-", valid: (v) => isIntIn(v, 0, 100) },
-	appearanceCodexWonk: { file: "appearance-codex-wonk", plugin: "-", valid: (v) => typeof v === "boolean" },
 	appearanceNovelFont: { file: "appearance-novel-font", plugin: "-", valid: isFontFamily },
 	appearanceNovelWeight: { file: "appearance-novel-weight", plugin: "-", valid: isWeight },
 	appearanceNovelSize: { file: "appearance-novel-size", plugin: "-", valid: (v) => isRemIn(v, APPEARANCE_SIZE_RANGE.novel) },
 	appearanceNovelSoft: { file: "appearance-novel-soft", plugin: "-", valid: (v) => isIntIn(v, 0, 100) },
-	appearanceNovelWonk: { file: "appearance-novel-wonk", plugin: "-", valid: (v) => typeof v === "boolean" },
 	appearanceSeriesFont: { file: "appearance-series-font", plugin: "-", valid: isFontFamily },
 	appearanceSeriesWeight: { file: "appearance-series-weight", plugin: "-", valid: isWeight },
 	appearanceSeriesSize: { file: "appearance-series-size", plugin: "-", valid: (v) => isRemIn(v, APPEARANCE_SIZE_RANGE.series) },
 	appearanceSeriesSoft: { file: "appearance-series-soft", plugin: "-", valid: (v) => isIntIn(v, 0, 100) },
-	appearanceSeriesWonk: { file: "appearance-series-wonk", plugin: "-", valid: (v) => typeof v === "boolean" },
 	appearanceChapterFont: { file: "appearance-chapter-font", plugin: "-", valid: isFontFamily },
 	appearanceChapterWeight: { file: "appearance-chapter-weight", plugin: "-", valid: isWeight },
 	appearanceChapterSize: { file: "appearance-chapter-size", plugin: "-", valid: (v) => isRemIn(v, APPEARANCE_SIZE_RANGE.chapter) },
 	appearanceChapterSoft: { file: "appearance-chapter-soft", plugin: "-", valid: (v) => isIntIn(v, 0, 100) },
-	appearanceChapterWonk: { file: "appearance-chapter-wonk", plugin: "-", valid: (v) => typeof v === "boolean" },
 	storyKind: { file: "story-kind", plugin: "-", valid: (v) => v === "series" || v === "standalone" },
 	codexColour: { file: "codex-colour", plugin: "-", valid: (v) => typeof v === "string" && (CODEX_COLOURS as readonly string[]).includes(v) },
 	hideSeriesPane: { file: "hide-series-pane", plugin: "hideSeriesPane", valid: (v) => typeof v === "boolean" },
@@ -235,6 +225,11 @@ export interface LoadedSettings {
 	/** The project was made by a newer storyForge: nothing may be written into it. */
 	readOnly: boolean;
 	readOnlyReason?: string;
+	/**
+	 * Set when a re-read after an outside change found the file unreadable or of a newer format (decision 99): settings writes are
+	 * refused (`readOnly`) but the rest of the project carries on. Cleared when the file reads again.
+	 */
+	frozen?: "unreadable" | "newer";
 	/** The plugin's `selectedNovel` / `selectedObject` / `collapsedCodexFolderIds`, as a starting point for machine settings. */
 	pluginPosition: Partial<MachineProjectState>;
 }
@@ -300,25 +295,87 @@ export async function loadSettings(project: Project, readOutside?: OutsideReader
 	};
 }
 
+export interface SettingsRefresh {
+	/** `ok`: read and applied. `unreadable`, `newer` and `absent`: nothing applied, the last values stay. */
+	state: "ok" | "unreadable" | "newer" | "absent";
+	changed: Key[];
+	formatVersion: number;
+}
+
+/**
+ * Re-reads `project.md` after an outside change and applies it to `current` in place (decision 96). Only keys whose value differs
+ * are replaced, so an unchanged list keeps its identity. Never writes. A file that can't be read, was deleted, or is of a newer
+ * format changes nothing here: the caller decides what to tell the author.
+ */
+export async function refreshSettings(project: Project, current: LoadedSettings, readOutside?: OutsideReader): Promise<SettingsRefresh> {
+	const fresh = await loadSettings(project, readOutside);
+	const freeze = (why: "unreadable" | "newer", reason: string): void => {
+		current.frozen = why;
+		current.readOnly = true;
+		current.readOnlyReason = reason;
+	};
+	if (!project.exists(PROJECT_SETTINGS_PATH)) return { state: "absent", changed: [], formatVersion: current.formatVersion };
+	if (fresh.formatVersion > SUPPORTED_FORMAT) {
+		freeze("newer", fresh.readOnlyReason ?? "This project was made by a newer storyForge.");
+		return { state: "newer", changed: [], formatVersion: fresh.formatVersion };
+	}
+	if (fresh.readOnly) {
+		freeze("unreadable", "The project's settings file (project.md) can't be read, so settings can't be changed until it can.");
+		return { state: "unreadable", changed: [], formatVersion: current.formatVersion };
+	}
+	if (current.frozen) {
+		current.frozen = undefined;
+		current.readOnly = false;
+		current.readOnlyReason = undefined;
+	}
+	const changed: Key[] = [];
+	for (const key of Object.keys(FIELDS) as Key[]) {
+		if (JSON.stringify(current.values[key]) !== JSON.stringify(fresh.values[key])) {
+			(current.values as unknown as Record<string, unknown>)[key] = fresh.values[key];
+			changed.push(key);
+		}
+		current.sources[key] = fresh.sources[key];
+	}
+	current.formatVersion = fresh.formatVersion;
+	return { state: "ok", changed, formatVersion: fresh.formatVersion };
+}
+
 const DEFAULT_PROJECT_CONTENT = `---\nformat-version: ${SUPPORTED_FORMAT}\n---\n`;
+
+/** What the file held for a key that the window had last read differently: the author's value replaced it (decision 96). */
+export interface SettingReplaced {
+	key: string;
+	/** The value found in the file, as the window would have read it. */
+	replaced: unknown;
+}
 
 /**
  * Changes one setting. Writes `project.md` only if the value actually differs from what is in effect.
  * The first write also carries over the other values in effect (from the plugin's `data.json`), so the
  * project stays whole if it moves without `.obsidian/`. Unknown keys already in the file are kept.
+ *
+ * The write is checked against the file inside the same transaction (decision 96): the author's value wins, and when the file
+ * held something other than what the window last read (changed elsewhere), that value is returned so the caller can say so.
+ * Other keys changed elsewhere are left as they are, and the next re-read brings them in.
  */
-export async function setSetting<K extends Key>(project: Project, current: LoadedSettings, key: K, value: ProjectSettings[K]): Promise<void> {
+export async function setSetting<K extends Key>(project: Project, current: LoadedSettings, key: K, value: ProjectSettings[K]): Promise<SettingReplaced | null> {
 	if (current.readOnly) throw new ReadOnlyProjectError(PROJECT_SETTINGS_PATH, current.readOnlyReason);
 	const field = FIELDS[key];
 	if (!field.valid(value)) throw new Error(`"${String(value)}" is not a valid value for ${key}`);
 	const unchanged = JSON.stringify(current.values[key]) === JSON.stringify(value);
 	const hasFile = project.exists(PROJECT_SETTINGS_PATH);
-	if (unchanged && (hasFile ? current.sources[key] === "project.md" : true)) return;
+	if (unchanged && (hasFile ? current.sources[key] === "project.md" : true)) return null;
+	let replaced: SettingReplaced | null = null;
 	await project.modifyFrontmatter(PROJECT_SETTINGS_PATH, DEFAULT_PROJECT_CONTENT, (fm) => {
+		replaced = null;
 		if (!hasFile) {
+			// A first creation (or a file deleted from outside): the marker and what came from `data.json`, never the deleted file's values.
 			for (const k of Object.keys(FIELDS) as Key[]) {
-				if (current.sources[k] !== "default") fm[FIELDS[k].file] = clone(current.values[k]);
+				if (current.sources[k] === "data.json") fm[FIELDS[k].file] = clone(current.values[k]);
 			}
+		} else {
+			const onDisk = field.file in fm && field.valid(fm[field.file]) ? fm[field.file] : current.sources[key] === "project.md" ? clone(DEFAULT_PROJECT_SETTINGS[key]) : current.values[key];
+			if (JSON.stringify(onDisk) !== JSON.stringify(current.values[key]) && JSON.stringify(onDisk) !== JSON.stringify(value)) replaced = { key, replaced: clone(onDisk) };
 		}
 		if (value === null) delete fm[field.file]; // "off" is the key's absence
 		else fm[field.file] = clone(value);
@@ -326,6 +383,7 @@ export async function setSetting<K extends Key>(project: Project, current: Loade
 	current.values[key] = clone(value);
 	current.sources[key] = "project.md";
 	current.formatVersion = Math.max(current.formatVersion, 1);
+	return replaced;
 }
 
 // ------------------------------------------------------------------------- machine settings

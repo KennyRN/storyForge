@@ -113,6 +113,7 @@ const findScript = `on run argv
 					return "found " & n
 				end if
 				if act is "click" then click e
+				if act is "press" then perform action "AXPress" of e
 				if act is "focus" then
 					set focused of e to true
 				end if
@@ -145,7 +146,9 @@ process.on("exit", () => child.kill("SIGTERM"));
 try {
 	await sleep(1500);
 	typing.bringToFront();
-	if (!(await until(() => find("AXButton", "Open Project") === "found"))) fail("the app's window never appeared");
+	const launched = Date.now();
+	if (!(await until(() => find("AXButton", "Open Project") === "found"))) fail(`the app's window never appeared (waited ${Math.round((Date.now() - launched) / 1000)} s)`);
+	console.log(`window appeared ${((Date.now() - launched) / 1000).toFixed(1)} s after the launch`);
 	if (!(await until(() => find("AXButton", `proj ${dir}`) === "found", 8000))) fail("the temporary HOME did not redirect the app's data folder");
 	osa(`${proc} to set size of window 1 to {1280, 800}`); // before the project opens, so the percent figures are made at this width
 	await sleep(600);
@@ -160,6 +163,8 @@ try {
 
 	// Settings from the menu, then a typed figure.
 	clickMenu("storyForge", "Settings…");
+	// Settings has seven pages since 1.6.0: the widths are on "This Mac". The page is chosen by its accessibility action.
+	await until(() => ["AXRadioButton", "AXTab", "AXButton"].some((r) => find(r, "This Mac", "press") === "found"), 8000);
 	if (!(await until(() => find("AXTextField", "Width of all three panels") === "found", 8000))) problems.push("Settings did not show the widths group");
 	else {
 		find("AXTextField", "Width of all three panels", "focus"); // focusing scrolls the group into view

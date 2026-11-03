@@ -9,9 +9,10 @@ import { cleanupFixtures, copyFixture, diffSnapshots, snapshot } from "../../../
 import { openProject } from "../../core/openProject";
 import { Project } from "../../core/project";
 import { sha256Text } from "../../core/hash";
+import { variationFor } from "../../ui/appearance";
 import { MachineSnapshotStore } from "../machineSnapshots";
 import { buildSnapshot } from "../../core/snapshot";
-import { APPEARANCE_BASE_PX, DEFAULT_PROJECT_SETTINGS, PROJECT_SETTINGS_PATH, type MachineStore, loadMachineProjectState, loadSettings, saveMachineProjectState, setSetting } from "../settings";
+import { APPEARANCE_BASE_PX, DEFAULT_PROJECT_SETTINGS, PROJECT_SETTINGS_PATH, type MachineStore, loadMachineProjectState, loadSettings, refreshSettings, saveMachineProjectState, setSetting } from "../settings";
 
 afterEach(cleanupFixtures);
 
@@ -449,25 +450,25 @@ describe("the Appearance settings (decisions 79 to 84) and story-kind (decision 
 		fs.mkdirSync(path.join(root, "_backstage/storyforge"), { recursive: true });
 		fs.writeFileSync(path.join(root, PROJECT_SETTINGS_PATH), `---\nformat-version: 1\n${body}---\n`);
 	};
-	it("every part starts as the author's defaults; Fraunces' Softness is 0 and Wonk off", async () => {
+	it("every part starts as the author's defaults; Fraunces' Softness is 0", async () => {
 		const root = copyFixture("series");
 		const v = (await loadSettings(await open(root), reader(root))).values;
 		expect([v.appearanceCodexFont, v.appearanceCodexWeight, v.appearanceCodexSize]).toEqual(["Atkinson Hyperlegible Next", 400, 1]);
 		expect([v.appearanceNovelFont, v.appearanceNovelWeight, v.appearanceNovelSize]).toEqual(["Inter", 900, 1]);
 		expect([v.appearanceSeriesFont, v.appearanceSeriesWeight, v.appearanceSeriesSize]).toEqual(["Inter", 600, 0.75]);
 		expect([v.appearanceChapterFont, v.appearanceChapterWeight, v.appearanceChapterSize]).toEqual(["SN Pro", 300, 1.375]);
-		expect([v.appearanceCodexSoft, v.appearanceCodexWonk]).toEqual([0, false]);
+		expect(v.appearanceCodexSoft).toBe(0);
 		expect(v.storyKind).toBe("series");
 	});
 	it("valid values are read; a font that no longer exists (or 'current look'), an out-of-range size or weight, Softness out of range, or a wrong kind falls back and is never rewritten", async () => {
 		const root = copyFixture("series");
 		put(root, "appearance-codex-font: Fraunces\nappearance-codex-weight: 300\nappearance-codex-size: 1.25\nappearance-codex-soft: 50\nappearance-codex-wonk: true\nappearance-novel-size: 2\nstory-kind: standalone\n");
 		const ok = (await loadSettings(await open(root), reader(root))).values;
-		expect([ok.appearanceCodexFont, ok.appearanceCodexWeight, ok.appearanceCodexSize, ok.appearanceCodexSoft, ok.appearanceCodexWonk, ok.appearanceNovelSize, ok.storyKind]).toEqual(["Fraunces", 300, 1.25, 50, true, 2, "standalone"]);
+		expect([ok.appearanceCodexFont, ok.appearanceCodexWeight, ok.appearanceCodexSize, ok.appearanceCodexSoft, ok.appearanceNovelSize, ok.storyKind]).toEqual(["Fraunces", 300, 1.25, 50, 2, "standalone"]);
 		put(root, "appearance-codex-font: Comic Sans\nappearance-novel-font: null\nappearance-codex-weight: 450\nappearance-codex-size: 3\nappearance-codex-soft: 101\nappearance-codex-wonk: yes\nappearance-novel-size: 2.5\nstory-kind: both\n");
 		const before = snapshot(root);
 		const bad = (await loadSettings(await open(root), reader(root))).values;
-		expect([bad.appearanceCodexFont, bad.appearanceNovelFont, bad.appearanceCodexWeight, bad.appearanceCodexSize, bad.appearanceCodexSoft, bad.appearanceCodexWonk, bad.appearanceNovelSize, bad.storyKind]).toEqual(["Atkinson Hyperlegible Next", "Inter", 400, 1, 0, false, 1, "series"]);
+		expect([bad.appearanceCodexFont, bad.appearanceNovelFont, bad.appearanceCodexWeight, bad.appearanceCodexSize, bad.appearanceCodexSoft, bad.appearanceNovelSize, bad.storyKind]).toEqual(["Atkinson Hyperlegible Next", "Inter", 400, 1, 0, 1, "series"]);
 		expect(diffSnapshots(before, snapshot(root)).changed).toEqual([]);
 		// the ranges are per part: the Codex list and the selected chapter stop at 1.75, the titles at 2
 		put(root, "appearance-chapter-size: 1.8\nappearance-series-size: 1.8\n");
@@ -487,5 +488,171 @@ describe("the Appearance settings (decisions 79 to 84) and story-kind (decision 
 	});
 	it("the pixel base is one named constant", () => {
 		expect(APPEARANCE_BASE_PX).toBe(16);
+	});
+});
+
+describe("refreshSettings: an outside change to project.md (decision 96)", () => {
+	const PROJECT_MD = (root: string) => path.join(root, PROJECT_SETTINGS_PATH);
+
+	it("applies only the keys that differ, in place, keeps unchanged lists by identity, and writes nothing", async () => {
+		const root = copyFixture("series");
+		const project = await open(root);
+		await setSetting(project, await loadSettings(project, reader(root)), "typingNameOptOuts", ["x"]);
+		const p2 = await open(root);
+		const current = await loadSettings(p2, reader(root));
+		const list = current.values.typingNameOptOuts;
+		fs.writeFileSync(PROJECT_MD(root), fs.readFileSync(PROJECT_MD(root), "utf8").replace(/\n---\n$/, "\nstory-kind: standalone\n---\n"));
+		await p2.refresh(PROJECT_SETTINGS_PATH);
+		const settingsBefore = snapshot(root);
+		const out = await refreshSettings(p2, current, reader(root));
+		expect(out.state).toBe("ok");
+		expect(out.changed).toEqual(["storyKind"]);
+		expect(current.values.storyKind).toBe("standalone");
+		expect(current.values.typingNameOptOuts).toBe(list);
+		expect(diffSnapshots(settingsBefore, snapshot(root))).toEqual({ added: [], changed: [], removed: [] });
+	});
+
+	it("keeps the last values when the file is deleted or can't be read", async () => {
+		const root = copyFixture("series");
+		const project = await open(root);
+		const current = await loadSettings(project, reader(root));
+		await setSetting(project, current, "storyKind", "standalone");
+		fs.writeFileSync(PROJECT_MD(root), "---\nstory-kind: [unclosed\n---\n");
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		expect((await refreshSettings(project, current, reader(root))).state).toBe("unreadable");
+		expect(current.values.storyKind).toBe("standalone");
+		fs.rmSync(PROJECT_MD(root));
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		expect((await refreshSettings(project, current, reader(root))).state).toBe("absent");
+		expect(current.values.storyKind).toBe("standalone");
+	});
+
+	it("reports a newer format without applying it", async () => {
+		const root = copyFixture("series");
+		const project = await open(root);
+		const current = await loadSettings(project, reader(root));
+		await setSetting(project, current, "storyKind", "standalone");
+		fs.writeFileSync(PROJECT_MD(root), "---\nformat-version: 9\nstory-kind: series\n---\n");
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		const out = await refreshSettings(project, current, reader(root));
+		expect(out).toMatchObject({ state: "newer", formatVersion: 9, changed: [] });
+		expect(current.values.storyKind).toBe("standalone");
+	});
+});
+
+describe("setSetting: checked against the file (decision 96)", () => {
+	const PROJECT_MD = (root: string) => path.join(root, PROJECT_SETTINGS_PATH);
+
+	it("the author's value wins, the replaced value is returned, and another key changed elsewhere is kept", async () => {
+		const root = copyFixture("series");
+		const project = await open(root);
+		const current = await loadSettings(project, reader(root));
+		await setSetting(project, current, "codexColour", "green");
+		fs.writeFileSync(PROJECT_MD(root), fs.readFileSync(PROJECT_MD(root), "utf8").replace("green", "blue").replace(/\n---\n$/, "\nstory-kind: standalone\n---\n"));
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		const out = await setSetting(project, current, "codexColour", "yellow");
+		expect(out).toEqual({ key: "codexColour", replaced: "blue" });
+		const text = fs.readFileSync(PROJECT_MD(root), "utf8");
+		expect(text).toContain("codex-colour: yellow");
+		expect(text).toContain("story-kind: standalone");
+	});
+
+	it("says nothing when the file already holds what the window read, or what the author chose", async () => {
+		const root = copyFixture("series");
+		const project = await open(root);
+		const current = await loadSettings(project, reader(root));
+		expect(await setSetting(project, current, "storyKind", "standalone")).toBeNull();
+		fs.writeFileSync(PROJECT_MD(root), fs.readFileSync(PROJECT_MD(root), "utf8").replace("standalone", "series"));
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		expect(await setSetting(project, current, "storyKind", "series")).toBeNull();
+	});
+
+	it("after the file was deleted, a change creates it with the marker and that key only", async () => {
+		const root = copyFixture("series");
+		const project = await open(root);
+		const current = await loadSettings(project, reader(root));
+		await setSetting(project, current, "storyKind", "standalone");
+		await setSetting(project, current, "codexColour", "green");
+		fs.rmSync(PROJECT_MD(root));
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		await refreshSettings(project, current, reader(root));
+		await setSetting(project, current, "showSessionReadout", true);
+		const text = fs.readFileSync(PROJECT_MD(root), "utf8");
+		expect(text).toContain("format-version: 1");
+		expect(text).toContain("show-session-readout: true");
+		expect(text).not.toContain("story-kind");
+		expect(text).not.toContain("codex-colour");
+	});
+});
+
+describe("refreshSettings: a file that can't be used mid-session (decision 99)", () => {
+	const PROJECT_MD = (root: string) => path.join(root, PROJECT_SETTINGS_PATH);
+
+	it("unreadable: settings writes are refused until it reads again, then the values apply and writes work", async () => {
+		const root = copyFixture("series");
+		const project = await open(root);
+		const current = await loadSettings(project, reader(root));
+		await setSetting(project, current, "storyKind", "standalone");
+		const good = fs.readFileSync(PROJECT_MD(root), "utf8");
+		fs.writeFileSync(PROJECT_MD(root), "---\nstory-kind: [unclosed\n---\n");
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		await refreshSettings(project, current, reader(root));
+		expect(current.frozen).toBe("unreadable");
+		await expect(setSetting(project, current, "codexColour", "green")).rejects.toBeInstanceOf(ReadOnlyProjectError);
+		fs.writeFileSync(PROJECT_MD(root), good.replace("standalone", "series"));
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		expect((await refreshSettings(project, current, reader(root))).changed).toEqual(["storyKind"]);
+		expect(current.frozen).toBeUndefined();
+		expect(current.readOnly).toBe(false);
+		await setSetting(project, current, "codexColour", "green");
+	});
+
+	it("newer: settings writes are refused from the moment it is seen", async () => {
+		const root = copyFixture("series");
+		const project = await open(root);
+		const current = await loadSettings(project, reader(root));
+		fs.writeFileSync(PROJECT_MD(root), "---\nformat-version: 9\n---\n");
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		await refreshSettings(project, current, reader(root));
+		expect(current.frozen).toBe("newer");
+		await expect(setSetting(project, current, "storyKind", "standalone")).rejects.toBeInstanceOf(ReadOnlyProjectError);
+		expect(fs.readFileSync(PROJECT_MD(root), "utf8")).toBe("---\nformat-version: 9\n---\n");
+	});
+});
+
+describe("Fraunces' Softness reaches the drawing and Wonk is always off (decision 103)", () => {
+	const KEYS = "appearance-codex-font: Fraunces\nappearance-codex-weight: 400\nappearance-codex-size: 1.75\nappearance-codex-soft: 40\nappearance-codex-wonk: true\n";
+	const write = (root: string, extra: string) => {
+		fs.mkdirSync(path.join(root, "_backstage/storyforge"), { recursive: true });
+		fs.writeFileSync(path.join(root, PROJECT_SETTINGS_PATH), `---\nformat-version: 1\n${extra}---\n`);
+	};
+
+	it("a project whose project.md has Wonk on still draws Fraunces with Wonk off, and the key is not a setting", async () => {
+		const root = copyFixture("series");
+		write(root, KEYS);
+		const before = snapshot(root);
+		const s = await loadSettings(await open(root), reader(root));
+		expect([s.values.appearanceCodexFont, s.values.appearanceCodexSoft]).toEqual(["Fraunces", 40]);
+		expect(Object.keys(s.values).some((k) => /wonk/i.test(k))).toBe(false);
+		expect(variationFor(s.values.appearanceCodexFont, s.values.appearanceCodexSoft)).toBe('"SOFT" 40, "WONK" 0');
+		expect(diffSnapshots(before, snapshot(root))).toEqual({ added: [], changed: [], removed: [] });
+	});
+
+	it("Softness applies through the re-read and through opening the whole project; a Wonk key arriving or changing is never applied or rewritten", async () => {
+		const root = copyFixture("series");
+		const project = await open(root);
+		const current = await loadSettings(project, reader(root));
+		write(root, KEYS);
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		const out = await refreshSettings(project, current, reader(root));
+		expect(out.changed.sort()).toEqual(["appearanceCodexFont", "appearanceCodexSize", "appearanceCodexSoft"]);
+		write(root, KEYS.replace("wonk: true", "wonk: false"));
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		expect((await refreshSettings(project, current, reader(root))).changed).toEqual([]);
+		await setSetting(project, current, "appearanceCodexSoft", 75);
+		expect(fs.readFileSync(path.join(root, PROJECT_SETTINGS_PATH), "utf8")).toContain("appearance-codex-wonk: false");
+		const opened = await openProject(root, { backend: new NodeFsBackend(root), snapshotStore: new MachineSnapshotStore(new MemoryMachine()), projectName: "p" });
+		const s = await loadSettings(opened.project, reader(root));
+		expect(s.values.appearanceCodexSoft).toBe(75);
 	});
 });

@@ -28,11 +28,13 @@ export function openSettings(model: AppModel): void {
 	if (!running) return void model.notices.notify({ text: "Open a project first." });
 	const project = running.opened.project;
 	const settings = running.settings;
-	const off = !!running.readOnlyReason;
 
+	// Live: a settings file that can't be read, or is from a newer storyForge, switches the controls off while the dialog is open.
+	const isOff = (): boolean => !!running.readOnlyReason || settings.readOnly;
+	let off = isOff();
 	const change = async <K extends keyof ProjectSettings>(key: K, value: ProjectSettings[K]): Promise<void> => {
 		await model.guard(async () => {
-			await setSetting(project, settings, key, value);
+			model.reportReplaced(await setSetting(project, settings, key, value), value);
 			model.touch("settings", "library", "nav", "face");
 			redraw();
 		}, "save the setting");
@@ -172,11 +174,7 @@ export function openSettings(model: AppModel): void {
 				if (Number.isInteger(v) && v >= 0 && v <= 100) void change(appearanceKey(part, "Soft"), v as never);
 				else redraw();
 			});
-			const wonk = el("input", { attrs: { type: "checkbox", "aria-label": `${name} Wonk` } });
-			wonk.checked = settings.values[appearanceKey(part, "Wonk")] as boolean;
-			wonk.disabled = off;
-			wonk.addEventListener("change", () => void change(appearanceKey(part, "Wonk"), wonk.checked as never));
-			rows.push(row("Softness", soft, appearanceKey(part, "Soft")), row("Wonk", wonk, appearanceKey(part, "Wonk")));
+			rows.push(row("Softness", soft, appearanceKey(part, "Soft")));
 		}
 		const sample = el("div", { class: "sf-sample", attrs: { "aria-label": `Sample of the ${name.toLowerCase()}`, role: "img" }, text: PART_SAMPLES[part] });
 		sample.setAttribute("style", sampleStyle(part, settings.values));
@@ -186,6 +184,7 @@ export function openSettings(model: AppModel): void {
 	let page: Page = "General";
 	const body = el("div", { class: "sf-settings" });
 	const redraw = (): void => {
+		off = isOff();
 		const numbering = Object.entries(NUMBERING_STYLE_OPTIONS) as [NumberingStyle, string][];
 		const storyKind = (): HTMLElement => {
 			const group = el("div", { class: "sf-swatches", attrs: { role: "radiogroup", "aria-label": "This story is" } });
@@ -268,7 +267,7 @@ export function openSettings(model: AppModel): void {
 				}),
 			);
 		});
-		const panel = el("div", { class: "sf-settings-page", attrs: { id: "sf-settings-page", role: "tabpanel", "aria-label": page } }, ...(off ? [el("p", { class: "sf-muted", text: running.readOnlyReason })] : []), ...pages[page]);
+		const panel = el("div", { class: "sf-settings-page", attrs: { id: "sf-settings-page", role: "tabpanel", "aria-label": page } }, ...(off ? [el("p", { class: "sf-muted", text: running.readOnlyReason ?? settings.readOnlyReason })] : []), ...pages[page]);
 		body.replaceChildren(tabs, panel);
 		body.querySelectorAll("select").forEach((s) => {
 			if (s.getAttribute("aria-label") === "Opens in") s.value = String(settings.values.autoFocus);
@@ -276,5 +275,24 @@ export function openSettings(model: AppModel): void {
 	};
 	const section = (title: string, rows: HTMLElement[], label = title): HTMLElement => el("section", { class: "sf-settings-section", attrs: { "aria-label": label } }, el("h3", { class: "sf-summary-title", text: title }), ...rows);
 	redraw();
-	openDialog({ title: "Settings", body, buttons: [{ label: "Done", kind: "primary" }] });
+	// Settings changed from outside (decision 96): follow them, but never redraw under a text box being typed in.
+	let late = false;
+	const follow = (): void => {
+		const active = document.activeElement;
+		if (active && body.contains(active) && (active instanceof HTMLTextAreaElement || (active instanceof HTMLInputElement && active.type !== "checkbox" && active.type !== "radio"))) {
+			late = true;
+			return;
+		}
+		redraw();
+	};
+	const unsubscribe = model.subscribe("settings", () => {
+		if (late) return;
+		follow();
+	});
+	body.addEventListener("focusout", () => {
+		if (!late) return;
+		late = false;
+		setTimeout(follow, 0);
+	});
+	openDialog({ title: "Settings", body, buttons: [{ label: "Done", kind: "primary" }], onClose: unsubscribe });
 }
