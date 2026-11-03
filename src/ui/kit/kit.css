@@ -94,6 +94,20 @@
 	color: var(--purpose-text-muted);
 	cursor: default;
 }
+.sf-menu--rows {
+	/* The default rules (decision 110) for a menu of text rows: no border, the shared shadow, unselected rows muted, the highlighted row (hover or keyboard) the accent fill with the surface's colour on it, rows touching. */
+	border: 0;
+	padding: 5px 6px;
+	border-radius: 10px;
+}
+.sf-menu--rows .sf-menu-item {
+	color: var(--purpose-text-muted);
+}
+.sf-menu--rows .sf-menu-item:hover,
+.sf-menu--rows .sf-menu-item:focus-visible {
+	background: var(--purpose-accent);
+	color: var(--purpose-raised-bg);
+}
 .sf-menu-separator {
 	height: 1px;
 	margin: var(--space-1) 0;

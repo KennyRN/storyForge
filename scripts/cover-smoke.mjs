@@ -96,9 +96,9 @@ try {
 	await sleep(500);
 	if (!(await until("the novel name", () => clickAny("Open the novel on the library side")))) fail("could not reach the library side");
 	if (!(await until("the novel tab", () => clickAny("novel"), 8000))) fail("could not reach the novel tab");
-	if (!(await until("the novel's cover", () => find("AXButton", "Change the cover of").startsWith("found"), 6000))) problems.push("the novel overview shows no cover image (saved cover, recorded in novel-aaa.md)");
+	if (!(await until("the novel's cover", () => find("AXButton", "Change or remove the cover of").startsWith("found"), 6000))) problems.push("the novel overview shows no cover image (saved cover, recorded in novel-aaa.md)");
 	if (!(await until("the series tab", () => clickAny("series"), 8000))) fail("could not reach the series tab");
-	if (!(await until("the series' cover", () => find("AXButton", "Change the cover of").startsWith("found"), 6000))) problems.push("the series overview shows no cover image (saved cover, recorded in series.md)");
+	if (!(await until("the series' cover", () => find("AXButton", "Change or remove the cover of").startsWith("found"), 6000))) problems.push("the series overview shows no cover image (saved cover, recorded in series.md)");
 } finally {
 	child.kill("SIGKILL");
 	await sleep(300);

@@ -3,6 +3,7 @@ import { readBookFrontmatter } from "../../core/book";
 import { bookBackstagePath, seriesBackstagePath } from "../../core/paths";
 import { readSeriesFrontmatter } from "../../core/series";
 import { el } from "../kit/dom";
+import { menuPoint, showMenu } from "../kit/menu";
 import type { AppModel } from "../model";
 
 const MIME: Record<string, string> = { png: "image/png", jpg: "image/jpeg", gif: "image/gif", webp: "image/webp" };
@@ -14,7 +15,10 @@ const reported = new Set<string>();
 
 /**
  * A cover: the image if there is one that Rust will read, otherwise a placeholder (a missing, unreadable or
- * unrecognised image is never an error). Clicking it asks Rust to show the open panel; the window never names a path.
+ * unrecognised image is never an error). It is a button. With no cover recorded, clicking it asks Rust to show the open panel (the
+ * window never names a path); with one, it opens a small floating menu, Change Cover… and Remove Cover (Brief 14 §1.4), reachable by
+ * keyboard (Return or Space on the button, then the arrow keys). Remove Cover clears `cover-image` and retires the file to `.trash/`
+ * (recoverable, so no confirmation).
  */
 export function coverBox(model: AppModel, target: CoverTarget, title: string): HTMLElement {
 	const running = model.running;
@@ -28,11 +32,23 @@ export function coverBox(model: AppModel, target: CoverTarget, title: string): H
 
 	const box = el("button", { class: "sf-cover", attrs: { type: "button", "aria-label": `Choose a cover for ${title}` }, dataset: { cover: targetKey(target) } });
 	box.disabled = readOnly;
-	box.addEventListener("click", () => void model.chooseCover(target));
+	const recorded = !!name;
+	if (recorded) box.setAttribute("aria-haspopup", "menu");
+	box.addEventListener("click", () => {
+		if (!recorded) return void model.chooseCover(target);
+		showMenu(
+			[
+				{ label: "Change Cover…", onSelect: () => model.chooseCover(target) },
+				{ label: "Remove Cover", onSelect: () => model.removeCover(target) },
+			],
+			menuPoint(box),
+			{ className: "sf-menu--rows", label: `Cover of ${title}` },
+		);
+	});
 	const placeholder = (): void => {
 		box.replaceChildren(el("span", { class: "sf-cover-placeholder sf-muted", text: "No cover" }));
 		box.dataset.state = "placeholder";
-		box.setAttribute("aria-label", `Choose a cover for ${title}`);
+		box.setAttribute("aria-label", recorded ? `Change or remove the cover of ${title}` : `Choose a cover for ${title}`);
 	};
 	/** A cover that is recorded but can't be shown is never a silent "No cover": a notice says what failed (once per version). */
 	const failed = (version: string, why: string): void => {
@@ -52,7 +68,7 @@ export function coverBox(model: AppModel, target: CoverTarget, title: string): H
 			box.replaceChildren(img);
 			box.dataset.state = "image";
 			// The label says what is true: a cover is on screen. (A button's children are not exposed, so this is also how a check sees it.)
-			box.setAttribute("aria-label", `Change the cover of ${title}`);
+			box.setAttribute("aria-label", `Change or remove the cover of ${title}`);
 		};
 		const key = targetKey(target);
 		const cached = shown.get(key);
@@ -71,14 +87,4 @@ export function coverBox(model: AppModel, target: CoverTarget, title: string): H
 		}
 	}
 	return box;
-}
-
-/** A small "Remove cover" button, shown only when there is a cover and the project can be written. */
-export function removeCoverButton(model: AppModel, target: CoverTarget, title: string): HTMLElement | null {
-	const running = model.running;
-	const project = running?.opened.project;
-	if (!running || !project || running.readOnlyReason) return null;
-	const name = target.kind === "series" ? readSeriesFrontmatter(project).coverImage : (readBookFrontmatter(project, target.code)?.coverImage ?? null);
-	if (!name) return null;
-	return el("button", { class: "sf-cover-remove", text: "Remove cover", attrs: { type: "button", "aria-label": `Remove the cover of ${title}` }, on: { click: () => void model.removeCover(target) } });
 }

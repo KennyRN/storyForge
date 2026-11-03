@@ -111,7 +111,7 @@ button.sf-heat-cell { cursor: pointer; }
 .sf-overview-head { display: flex; gap: 16px; align-items: stretch; margin-bottom: 12px; }
 .sf-overview-head .sf-section-field { flex: 1; min-height: 144px; margin: 0; }
 .sf-overview-head .sf-section-field .cm-editor { min-height: 144px; }
-.sf-cover-column { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; flex: none; }
+.sf-cover-column { display: flex; flex-direction: column; align-items: flex-start; flex: none; }
 .sf-cover { all: unset; box-sizing: border-box; flex: none; width: 96px; height: 144px; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; border: 1px dashed var(--purpose-border); border-radius: 4px; background: var(--purpose-raised-bg); }
 .sf-cover[data-state="image"] { border-style: solid; }
 .sf-cover:hover:not(:disabled) { border-color: var(--purpose-accent); }
@@ -119,6 +119,3 @@ button.sf-heat-cell { cursor: pointer; }
 .sf-cover:disabled { cursor: default; }
 .sf-cover-image { width: 100%; height: 100%; object-fit: cover; }
 .sf-cover-placeholder { font-size: 12px; }
-.sf-cover-remove { all: unset; cursor: pointer; font-size: 12px; color: var(--purpose-text-muted); border-radius: 3px; }
-.sf-cover-remove:hover { color: var(--purpose-accent); }
-.sf-cover-remove:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 2px; }

@@ -71,6 +71,7 @@ describe("rule 1: a selected text row is highlighted as in the Codex list", () =
 		const SURFACE = "--purpose-raised-bg";
 		for (const [sel, surface] of [
 			[".sf-navmenu-row.is-here, .sf-navmenu-row:hover:not(:disabled)", SURFACE],
+			[".sf-menu--rows .sf-menu-item:hover, .sf-menu--rows .sf-menu-item:focus-visible", SURFACE],
 			[".sf-nav-row.is-active", SURFACE],
 			[".sf-settings-tab:hover, .sf-settings-tab.is-active", SURFACE],
 			[".sf-filter-row:hover, .sf-filter-row:focus-visible, .sf-filter-row.is-chosen", SURFACE],
@@ -97,7 +98,7 @@ describe("rule 1: a selected text row is highlighted as in the Codex list", () =
 describe("rule 2 gains: unselected rows in floating menus are muted", () => {
 	const body = (sel: string) => all.find((x) => x.selector === sel)!.body;
 	it("the Navigate menu's and the filter popover's rows are drawn in the muted colour, and the lit states replace it", () => {
-		for (const sel of [".sf-navmenu-row", ".sf-filter-row"]) expect(body(sel), sel).toMatch(/(^|[;\s])color:\s*var\(--purpose-text-muted\)/);
+		for (const sel of [".sf-navmenu-row", ".sf-filter-row", ".sf-menu--rows .sf-menu-item"]) expect(body(sel), sel).toMatch(/(^|[;\s])color:\s*var\(--purpose-text-muted\)/);
 	});
 	it("a greyed-out row is dimmer than an ordinary muted row", () => {
 		const m = body(".sf-navmenu-row:disabled").match(/opacity:\s*([\d.]+)/);

@@ -156,6 +156,11 @@ test.describe("the series overview", () => {
 	});
 });
 
+/** A cover that is recorded: clicking it opens the cover menu, and Change Cover… asks Rust to show the open panel. */
+const changeCover = async (page: Page, box: Locator) => {
+	await box.click();
+	await page.getByRole("menuitem", { name: "Change Cover…" }).click();
+};
 const outside = async (page: Page, path: string, text: string) => {
 	await page.evaluate(([p, t]) => window.__preview.touch(p, t), [path, text]);
 	await page.evaluate((p) => window.__preview.emit("watch-batch", { paths: [p], rescan: false }), path);
@@ -394,7 +399,7 @@ test.describe("the novel overview", () => {
 		const box = o.locator('[data-cover="book:aaa"]');
 		const oldCover = await page.evaluate(() => window.__preview.readBase64("_backstage/storyforge/aaa/cover.png"));
 		await page.evaluate((b) => window.__preview.armCover(b), ONE_PIXEL_PNG);
-		await box.click();
+		await changeCover(page, box);
 		await expect(box).toHaveAttribute("data-state", "image");
 		expect(await page.evaluate(() => window.__preview.readBase64("_backstage/storyforge/aaa/cover.png"))).toBe(ONE_PIXEL_PNG);
 		expect(await page.evaluate(() => window.__preview.readBase64(".trash/_backstage/storyforge/aaa/cover.png"))).toBe(oldCover);
@@ -405,10 +410,10 @@ test.describe("the novel overview", () => {
 		const box = novelOverview(page).locator('[data-cover="book:aaa"]');
 		const before = await page.evaluate((f) => window.__preview.read(f), BOOK_A);
 		await page.evaluate(() => window.__preview.armCover(null));
-		await box.click();
+		await changeCover(page, box);
 		expect(await page.evaluate((f) => window.__preview.read(f), BOOK_A)).toBe(before);
 		await page.evaluate((b) => window.__preview.armCover(b), TINY_GIF);
-		await box.click();
+		await changeCover(page, box);
 		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).toContain("cover-image: cover.gif");
 		await expect(page.evaluate(() => window.__preview.readBase64("_backstage/storyforge/aaa/cover.png"))).rejects.toThrow();
 		expect(await page.evaluate(() => window.__preview.readBase64(".trash/_backstage/storyforge/aaa/cover.png"))).not.toBe("");
@@ -418,7 +423,7 @@ test.describe("the novel overview", () => {
 		const box = novelOverview(page).locator('[data-cover="book:aaa"]');
 		const old = await page.evaluate(() => window.__preview.readBase64("_backstage/storyforge/aaa/cover.png"));
 		await page.evaluate(() => window.__preview.armCover(btoa("<svg/>")));
-		await box.click();
+		await changeCover(page, box);
 		await expect(page.getByRole("status").or(page.getByRole("alert")).filter({ hasText: "PNG, JPEG, GIF or WebP" })).toBeVisible();
 		expect(await page.evaluate(() => window.__preview.readBase64("_backstage/storyforge/aaa/cover.png"))).toBe(old);
 	});
@@ -430,17 +435,18 @@ test.describe("the novel overview", () => {
 		await expect(box.locator(".sf-cover-placeholder")).toBeVisible();
 		// Never silent: a cover that is recorded but can't be drawn says so.
 		await expect(page.getByRole("status").filter({ hasText: "could not be shown" })).toBeVisible();
-		await o.getByRole("button", { name: /^Remove the cover/ }).click();
+		await box.click();
+		await page.getByRole("menuitem", { name: "Remove Cover" }).click();
 		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).not.toContain("cover-image");
 		await expect(page.evaluate(() => window.__preview.readBase64("_backstage/storyforge/aaa/cover.png"))).rejects.toThrow();
-		await expect(o.getByRole("button", { name: /^Remove the cover/ })).toHaveCount(0);
+		expect(await page.evaluate(() => window.__preview.readBase64(".trash/_backstage/storyforge/aaa/cover.png"))).not.toBe(""); // retired, recoverable
 	});
 
 	test("the series cover is chosen from the series overview", async ({ page }) => {
 		await tab(page, "series").click();
 		const box = overview(page).locator('[data-cover="series"]');
 		await page.evaluate((b) => window.__preview.armCover(b), ONE_PIXEL_PNG);
-		await box.click();
+		await changeCover(page, box);
 		await expect(box).toHaveAttribute("data-state", "image");
 		await shot(page, "shape-series-overview");
 		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), "_story-library/series.md")).toContain("cover-image: cover.png");
@@ -467,7 +473,6 @@ test.describe("a read-only project's overviews", () => {
 		await tab(page, "novel").click();
 		const o = novelOverview(page);
 		await expect(o.locator('[data-cover="book:aaa"]')).toBeDisabled();
-		await expect(o.getByRole("button", { name: /^Remove the cover/ })).toHaveCount(0);
 		await expect(o.getByRole("button", { name: "Choose the default PoV" })).toHaveCount(0);
 		await expect(o.getByRole("button", { name: /^Choose pov/i })).toHaveCount(0);
 		const fields = o.locator(".sf-note-field .cm-content");

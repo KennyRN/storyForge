@@ -21,11 +21,11 @@ export function nextEnabledIndex(items: readonly MenuItem[], from: number, dir: 
 let open: { close: () => void } | null = null;
 
 /** A context menu or small picker drawn in the page. Arrow keys move, Enter selects, Escape closes; focus returns to where it was. */
-export function showMenu(items: MenuItem[], at: { x: number; y: number }): void {
+export function showMenu(items: MenuItem[], at: { x: number; y: number }, options: { className?: string; label?: string } = {}): void {
 	open?.close();
 	const returnTo = document.activeElement as HTMLElement | null;
 	const rows: (HTMLElement | null)[] = [];
-	const menu = el("div", { class: "sf-menu", attrs: { role: "menu", tabindex: "-1" } });
+	const menu = el("div", { class: `sf-menu${options.className ? ` ${options.className}` : ""}`, attrs: { role: "menu", tabindex: "-1", ...(options.label ? { "aria-label": options.label } : {}) } });
 	let current = -1;
 
 	const focusRow = (i: number): void => {
