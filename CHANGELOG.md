@@ -1,9 +1,9 @@
 # Changelog
 
-## 1.6.2 (in progress)
+## 1.6.2: the chapter selector (Fix 7, decision 97) and the app icon
 
 - New: **the app icon** is Kenny's own storyForge mark (an anvil and a quill), MIT licensed. Source `src-tauri/icons/storyForge.svg`; the icon files are rendered from it without changing the design.
-- Changed: **the chapter selector** (decision 97): no chevron, no fill at rest, a `bg1` fill with 10 px corners on hover and while the list is open, its edges lined up with the Codex card's; open, the selector and its list are one raised piece (square where they join). Keyboard focus shows the green ring and no fill. Styling only.
+- Changed: **the chapter selector** (decision 97): no chevron, no fill at rest, a `bg1` fill with 10 px corners on hover and while the list is open, its edges lined up with the Codex card's; open, the selector and its list are one raised piece (square where they join). Keyboard focus shows the green ring and no fill. The hovered chapter takes the selected chapter's colour. "Add the next chapter" is now Tabler's square-rounded-plus icon (muted, the same hover colour as the chapters, tooltip "add the next chapter"; its screen-reader name is unchanged). Styling only.
 
 ## 1.6.1: settings changed elsewhere (Fix 6, decisions 96 to 99)
 

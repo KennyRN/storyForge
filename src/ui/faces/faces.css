@@ -145,7 +145,7 @@
 	color: var(--purpose-text-muted);
 }
 .sf-nav-row:hover:not(:disabled) {
-	color: var(--purpose-text);
+	color: var(--purpose-accent); /* the hovered chapter takes the selected chapter's colour; the add icon too */
 }
 .sf-nav-select {
 	/* The fill's edges are the Codex card's: its left is the strip's width plus 8px (30px past the lines' own margin), its right

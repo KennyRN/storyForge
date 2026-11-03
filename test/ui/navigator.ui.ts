@@ -131,17 +131,23 @@ test.describe("the navigator", () => {
 			expect(await page.locator("section[aria-label='Codex']").evaluate((e) => (e as HTMLElement).inert)).toBe(false);
 		});
 
-		test("holds the placed chapters only, in order, then 'Add the next chapter'; selected is green, the rest muted, hover brightens, the focus ring shows", async ({ page }) => {
+		test("holds the placed chapters only, in order, then 'Add the next chapter'; selected is green, the rest muted, hover takes the selected colour, the focus ring shows", async ({ page }) => {
 			await openProject(page);
 			await selector(page).click();
 			const rows = page.locator(".sf-nav-list .sf-nav-row");
-			expect(await rows.allInnerTexts()).toEqual(["Chapter 1", "The Storm: Part Two", "Chapter 2", "Add the next chapter"]);
+			expect(await rows.allInnerTexts()).toEqual(["Chapter 1", "The Storm: Part Two", "Chapter 2", ""]);
+			expect(await rows.nth(3).getAttribute("aria-label")).toBe("Add the next chapter");
+			expect(await rows.nth(3).locator("svg").count()).toBe(1);
 			await expect(page.locator(".sf-nav-list")).not.toContainText("Unplaced idea");
 			expect(await colourOf(rows.nth(0))).toBe(await colour(page, "--purpose-accent"));
 			expect(await colourOf(rows.nth(1))).toBe(await colour(page, "--purpose-text-muted"));
 			await expect(rows.nth(0)).toHaveAttribute("aria-current", "true");
 			await rows.nth(1).hover();
-			expect(await colourOf(rows.nth(1))).toBe(await colour(page, "--purpose-text"));
+			expect(await colourOf(rows.nth(1))).toBe(await colour(page, "--purpose-accent")); // hover takes the selected chapter's colour
+			expect(await colourOf(rows.nth(3))).toBe(await colour(page, "--purpose-text-muted"));
+			await rows.nth(3).hover();
+			expect(await colourOf(rows.nth(3))).toBe(await colour(page, "--purpose-accent"));
+			await expect(page.getByText("add the next chapter", { exact: true })).toBeVisible(); // its tooltip
 			await rows.nth(2).focus();
 			await page.keyboard.press("ArrowDown");
 			await expect(rows.nth(3)).toBeFocused();
