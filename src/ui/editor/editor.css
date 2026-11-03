@@ -33,7 +33,7 @@
 	box-sizing: content-box;
 	max-width: var(--prose-measure);
 	margin: 0 auto;
-	padding: 40px 28px 30vh;
+	padding: var(--top-gap) 28px 30vh;
 	font-size: var(--prose-size);
 	line-height: var(--prose-line);
 	caret-color: var(--purpose-accent);

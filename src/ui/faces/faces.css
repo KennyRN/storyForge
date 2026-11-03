@@ -1,9 +1,11 @@
 /* The frame and the storytelling face. Purposes only. */
 .sf-left {
 	flex: none;
+	position: relative;
 	display: flex;
 	flex-direction: column;
 	min-height: 0;
+	padding-top: var(--band-h);
 	background: var(--purpose-panel-bg);
 }
 .sf-face > section:nth-child(2) {
@@ -36,7 +38,7 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: var(--space-2) var(--space-3) var(--space-1) var(--space-4);
+	padding: var(--top-gap) var(--space-3) var(--space-1) var(--space-4);
 }
 .sf-pane-title {
 	margin: 0;
@@ -62,7 +64,7 @@
 	position: relative;
 	z-index: 2;
 	/* No side padding: the lines and the selector are margined, so the selector's fill can use the Codex card's own edges (decision 97). */
-	padding: var(--space-3) 0 var(--space-2);
+	padding: var(--top-gap) 0 var(--space-2);
 }
 .sf-nav-lead {
 	display: block;
@@ -153,7 +155,7 @@
 	/* The fill's edges are the Codex card's: its left is the strip's width plus 8px (30px past the lines' own margin), its right
 	   is the card's (10% of the panel's width, 12px at least). */
 	--nav-radius: 10px;
-	--nav-pad: 10px;
+	--nav-pad: 14px; /* the list's 6px plus a row's 8px: the closed title sits where the list's text does */
 	position: relative;
 	margin: 0 max(12px, 10%) 0 calc(var(--space-4) + 30px);
 }
@@ -163,7 +165,7 @@
 	left: 0;
 	right: 0;
 	margin: 0;
-	padding: var(--space-1) var(--nav-pad) var(--space-2);
+	padding: 0 6px 6px; /* the highlight is 6px in from the dropdown's edges, as in the Codex card */
 	max-height: 60vh;
 	overflow-y: auto;
 	list-style: none;
@@ -174,8 +176,16 @@
 	border-radius: 0 0 var(--nav-radius) var(--nav-radius);
 }
 .sf-nav-row {
-	min-height: 26px;
-	padding-left: 0;
+	/* The Codex rows' shape (decision 88): 3px above and below, 8px at the sides, 4px corners. */
+	padding: 3px 8px;
+	border-radius: 4px;
+}
+.sf-nav-add {
+	justify-content: center;
+}
+.sf-nav-add svg {
+	width: 1em; /* the Codex icons' rule (decision 84): the selected chapter's size, not a fixed 16px */
+	height: 1em;
 }
 .sf-nav-row.is-active {
 	color: var(--purpose-accent);
@@ -472,24 +482,77 @@ body.sf-codex-drag-active {
 	font-variant-numeric: tabular-nums;
 }
 
-/* The header over the left panel, and the storyForge face. */
-.sf-left-header {
-	flex: none;
-	display: flex;
+/* The storyForge face. */
+/* The left panel's menu (Fix 7 polish, item 6): the chevron at the right end of the top band, level with the traffic lights. */
+.sf-navmenu-button {
+	position: absolute;
+	top: 0;
+	right: var(--space-2);
+	z-index: 5; /* over the title bar's drag band */
+	height: var(--band-h);
+	display: inline-flex;
 	align-items: center;
-	justify-content: space-between;
-	gap: var(--space-2);
-	padding: var(--space-1) var(--space-2) var(--space-1) var(--space-4);
-	min-height: 36px;
+	padding: 0 6px;
+	border: 0;
+	border-radius: var(--radius);
+	background: transparent;
+	color: var(--purpose-text-muted);
+	font-size: 13px;
+	cursor: pointer;
 }
-.sf-left-name {
-	flex: 1;
-	min-width: 0;
+.sf-navmenu-button:hover,
+.sf-navmenu-button[aria-expanded="true"] {
+	color: var(--purpose-text);
+}
+.sf-navmenu {
+	position: absolute;
+	top: var(--band-h);
+	right: var(--space-2);
+	z-index: 6;
+	min-width: 200px;
+	max-width: calc(100% - 16px);
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 6px;
+	background: var(--purpose-raised-bg);
+	border-radius: 10px;
+}
+.sf-navmenu-name {
+	padding: 3px 8px;
+	color: var(--purpose-text-muted);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	user-select: none;
+	-webkit-user-select: none;
+}
+.sf-navmenu-gap {
+	height: 8px;
+}
+.sf-navmenu-row {
+	display: block;
+	width: 100%;
+	padding: 3px 8px;
+	border: 0;
+	border-radius: 4px; /* the chapter list's and the Codex rows' shape */
+	background: transparent;
+	color: var(--purpose-text);
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+.sf-navmenu-row.is-here {
+	color: var(--purpose-accent);
+}
+.sf-navmenu-row:hover:not(:disabled) {
+	background: var(--purpose-accent);
+	color: var(--purpose-raised-bg);
+}
+.sf-navmenu-row:disabled {
 	color: var(--purpose-text-muted);
-	font-size: 12px;
+	opacity: 0.6;
+	cursor: default;
 }
 .sf-left-body {
 	flex: 1;
@@ -509,7 +572,7 @@ body.sf-codex-drag-active {
 	flex-direction: column;
 	gap: var(--space-1);
 	width: 40px;
-	padding: var(--space-2) 0;
+	padding: var(--top-gap) 0 var(--space-2);
 	align-items: center;
 	border-right: 1px solid transparent; /* keeps its width, so the ink indicator stays where it is */
 }
@@ -555,7 +618,7 @@ body.sf-codex-drag-active {
 .sf-forge-body {
 	flex: 1;
 	min-height: 0;
-	padding: var(--space-2) var(--space-3) var(--space-4) var(--space-3);
+	padding: var(--top-gap) var(--space-3) var(--space-4) var(--space-3);
 }
 .sf-series-title {
 	padding: var(--space-3) var(--space-4) var(--space-1);

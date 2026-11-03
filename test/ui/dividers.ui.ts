@@ -13,11 +13,11 @@ const lines = (page: Page, sel: string) =>
 	page.locator(sel).first().evaluate((el, s) => { const c = getComputedStyle(el); return s.filter((x) => parseFloat((c as any)[`border${x}Width`]) > 0 && (c as any)[`border${x}Style`] !== "none" && (c as any)[`border${x}Color`] !== "rgba(0, 0, 0, 0)"); }, [...sides]);
 
 test.describe("no dividing lines", () => {
-	test("the storytelling side has no header (decision 81); the library side keeps its own, without a line", async ({ page }) => {
+	test("neither side has a header (the project's name is in the navigate menu)", async ({ page }) => {
 		await openProject(page);
 		await expect(page.locator(".sf-left-header")).toHaveCount(0);
 		await flipFace(page);
-		expect(await lines(page, ".sf-left-header")).toEqual([]);
+		await expect(page.locator(".sf-left-header")).toHaveCount(0);
 	});
 
 	test("none between the navigator, the Codex, the stats and the left panel's header", async ({ page }) => {

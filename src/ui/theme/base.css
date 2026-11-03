@@ -14,6 +14,8 @@
 	--space-4: 16px;
 	--stats-h: 64px; /* the stats section: 8 + the graph icon's 24 + 8 + the readout's 16 + 8 */
 	--radius: 6px;
+	--band-h: 28px; /* the invisible title bar's band: the traffic lights sit in it, the panels' backgrounds run up behind it */
+	--top-gap: 20px; /* from the band's bottom to the one top line the three panels' first things start on */
 	--motion: 160ms;
 	--ink-duration: 450ms;
 }
@@ -49,6 +51,13 @@ textarea {
 :focus-visible {
 	outline: 2px solid var(--purpose-focus-ring);
 	outline-offset: 1px;
+}
+/* Rings are for the keyboard: after a click or a touch no control shows one (a text box still does; it is where you type). */
+html[data-input="pointer"] :focus-visible:not(input):not(textarea):not([contenteditable]):not(.cm-content) {
+	outline: none !important;
+}
+html[data-input="pointer"] .sf-splitter:focus-visible {
+	background: transparent;
 }
 
 ::selection {
@@ -201,6 +210,15 @@ textarea {
 	display: flex;
 	height: 100%;
 }
+/* The invisible title bar: an empty band across the top that drags the window (Tauri's drag region), with no title drawn. */
+.sf-titlebar {
+	position: fixed;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: var(--band-h);
+	z-index: 4;
+}
 .sf-slot {
 	min-width: 0;
 	min-height: 0;
@@ -211,6 +229,8 @@ textarea {
 	min-width: 0;
 	height: 100%;
 	position: relative;
+	padding-top: var(--band-h);
+	background: var(--purpose-editor-bg);
 }
 .sf-slot--centre {
 	height: 100%;
@@ -221,6 +241,7 @@ textarea {
 	position: relative;
 	display: flex;
 	flex-direction: column;
+	padding-top: var(--band-h);
 	background: var(--purpose-panel-bg);
 }
 .sf-slot--lore[hidden] {
@@ -233,7 +254,7 @@ textarea {
 .sf-lore-host {
 	flex: 1;
 	min-height: 0;
-	padding: max(12px, 10%) max(12px, 10%) 0;
+	padding: var(--top-gap) max(12px, 10%) 0;
 }
 .sf-lore-host > .sf-editor-pane {
 	background: var(--purpose-editor-bg);

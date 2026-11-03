@@ -99,13 +99,13 @@ test.describe("the navigator", () => {
 		await series.click();
 		await expect(page.getByRole("tab", { name: "series", selected: true })).toBeVisible();
 		await expect(page.locator(".sf-overview")).toBeVisible();
-		await expect(page.getByRole("button", { name: "Flip side" })).toHaveAttribute("aria-pressed", "true"); // the library side keeps it
+		await expect(page.getByRole("button", { name: "Flip side" })).toHaveCount(0); // gone: the navigate menu and ⌘\\ flip
 		await flipFace(page);
 		await expect(page.locator(".sf-nav-series")).toBeVisible();
 		await expect(page.locator(".cm-content").first()).toContainText("unsaved words");
 		await novel.click();
 		await expect(page.getByRole("tab", { name: "novel", selected: true })).toBeVisible();
-		await expect(page.locator(".sf-left-name")).toBeVisible(); // the library side's header is as it was
+		await expect(page.locator(".sf-left-name")).toHaveCount(0); // the library side's header is gone too
 	});
 
 	test.describe("the chapter dropdown", () => {

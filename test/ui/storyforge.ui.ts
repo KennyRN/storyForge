@@ -39,7 +39,6 @@ test.describe("the library", () => {
 		await expect(page.getByRole("tablist", { name: "Library" })).toBeVisible();
 		await expect(page.locator(".sf-slot--lore .cm-content")).toBeVisible();
 		await expect(centre(page)).toContainText("Synthetic sentence number 1");
-		await expect(page.getByRole("button", { name: "Flip side" })).toHaveAttribute("aria-pressed", "true");
 		await flip(page);
 		await expect(page.locator(".sf-nav-novel")).toBeVisible();
 		await expect(page.locator(".sf-slot--lore .cm-content")).toBeVisible();

@@ -5,8 +5,7 @@ import { EditorHost } from "./editor/editorHost";
 import { el, fill } from "./kit/dom";
 import { mountStorytellingFace } from "./faces/storytelling";
 import { mountStoryForgeFace } from "./faces/storyforge";
-import { button } from "./kit/button";
-import { icon } from "./kit/icons";
+import { mountNavMenu } from "./faces/navMenu";
 
 /** A vertical splitter: drag, or use ← → when focused; reports the new width of the panel it sizes. */
 function splitter(label: string, side: "left" | "right", get: () => number, set: (w: number) => void): HTMLElement {
@@ -42,8 +41,8 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	const name = model.running?.root.slice((model.running?.root.lastIndexOf("/") ?? -1) + 1) ?? "storyForge";
 	const left = el("nav", { class: "sf-left", attrs: { "aria-label": "Library" } });
 	const faceHost = el("div", { class: "sf-left-body" });
-	const flip = button({ icon: "switch", name: "Flip side", tooltip: "Flip side", onClick: () => model.flipFace() });
-	const header = el("div", { class: "sf-left-header" }, el("span", { class: "sf-left-name", text: name }), flip);
+	const navMenu = mountNavMenu(left, model);
+	const titlebar = el("div", { class: "sf-titlebar", attrs: { "data-tauri-drag-region": "" } });
 	const centre = el("section", { class: "sf-slot sf-slot--centre", attrs: { "aria-label": "Workspace" } });
 	const overview = el("div", { class: "sf-overview", attrs: { role: "region" } });
 	const centreWrap = el("div", { class: "sf-centre-wrap" }, centre, overview);
@@ -62,7 +61,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	};
 	const leftBar = splitter("Resize the left panel", "left", () => model.displayWidths().left, (w) => (model.setPanelWidthPx("left", w), apply()));
 	const loreBar = splitter("Resize the context panel", "right", () => model.displayWidths().lore, (w) => (model.setPanelWidthPx("lore", w), apply()));
-	fill(host, el("h1", { class: "sf-visually-hidden", text: name }), el("div", { class: "sf-frame" }, left, leftBar, centreWrap, loreBar, lore));
+	fill(host, el("h1", { class: "sf-visually-hidden", text: name }), titlebar, el("div", { class: "sf-frame" }, left, leftBar, centreWrap, loreBar, lore));
 
 	model.editors = new EditorHost(model, { centre, lore: loreHost });
 	model.editors.onChange = () => {
@@ -76,7 +75,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	const overviews = mountOverviewLayer(overview, centre, model);
 	const offCharacters = mountCharactersButton(loreRow, model);
 
-	fill(left, faceHost);
+	fill(left, navMenu.button, faceHost);
 	let disposeFace: (() => void) | null = null;
 	let shownFace: string | null = null;
 	const drawFace = (): void => {
@@ -84,12 +83,11 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 		if (face === shownFace) return;
 		shownFace = face;
 		left.dataset.face = face;
-		// The storytelling side has no header (decision 81): its titles lead to the library side. The library side keeps its own.
-		fill(left, ...(face === "storyforge" ? [header] : []), faceHost);
+		// Neither side has a header: the top band holds the traffic lights and the menu's chevron, and the project's name is in the menu.
+		fill(left, navMenu.button, faceHost);
 		disposeFace?.();
 		fill(faceHost);
 		faceHost.className = "sf-left-body";
-		flip.setAttribute("aria-pressed", String(face === "storyforge"));
 		left.setAttribute("aria-label", face === "storytelling" ? "Storytelling" : "Library");
 		disposeFace = face === "storytelling" ? mountStorytellingFace(faceHost, model) : mountStoryForgeFace(faceHost, model);
 	};
@@ -104,6 +102,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 			offCharacters();
 			overviews();
 			offFace();
+			navMenu.dispose();
 			disposeFace?.();
 		},
 	};

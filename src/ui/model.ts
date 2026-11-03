@@ -204,13 +204,14 @@ export class AppModel {
 	}
 
 	/** The storytelling side's series and novel names: the library side, on that tab, with its overview in the workspace. */
-	openLibraryTab(tab: "series" | "novel"): void {
+	openLibraryTab(tab: ForgeTab): void {
+		const overviewTab = tab === "series" || tab === "novel";
 		this.nav.forgeTab = tab; // before the flip: the library side draws its tab when it is mounted
 		if (this.nav.face === "storytelling") {
-			this.forgeCentreView = "overview"; // flipFace restores this one; the editor stays mounted under the overview
+			if (overviewTab) this.forgeCentreView = "overview"; // flipFace restores this one; the editor stays mounted under the overview
 			this.flipFace();
 		} else {
-			this.nav.centreView = "overview";
+			if (overviewTab) this.nav.centreView = "overview";
 			this.touch("nav", "face");
 		}
 	}

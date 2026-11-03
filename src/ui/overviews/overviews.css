@@ -7,7 +7,7 @@
 .sf-bar-marker { position: absolute; top: 0; bottom: 0; margin-left: -1px; height: 100%; stroke: var(--purpose-text); }
 
 /* The layer over the workspace. */
-.sf-overview { position: absolute; inset: 0; overflow: auto; background: var(--purpose-editor-bg); color: var(--purpose-text); }
+.sf-overview { position: absolute; inset: var(--band-h) 0 0 0; overflow: auto; background: var(--purpose-editor-bg); color: var(--purpose-text); }
 .sf-overview-body { padding: 24px 32px; max-width: 880px; }
 .sf-overview-title { font-size: 20px; font-weight: 600; margin: 0 0 20px; }
 .sf-overview-sub { font-size: 13px; font-weight: 600; color: var(--purpose-text-muted); margin: 24px 0 8px; }
