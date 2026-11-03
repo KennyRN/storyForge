@@ -395,6 +395,14 @@
 	background: transparent;
 	color: var(--purpose-codex);
 }
+/* The filter by type (decision 107): on, the icon is in the Codex colour; off, it rests like its neighbours. */
+.sf-codex-strip .sf-button.is-filtering {
+	color: var(--purpose-codex);
+}
+.sf-codex-body > .sf-forge-body {
+	flex: 1;
+	min-width: 0;
+}
 .sf-codex-body > .sf-codex-tree {
 	flex: 1;
 	min-width: 0;
@@ -764,3 +772,55 @@ body.sf-codex-drag-active {
 .sf-stats-session[hidden],
 .sf-stats-words[hidden] { display: none; }
 .sf-stats-clock { grid-column: 2; display: inline-flex; }
+
+/* The filter's popover: the raised surface, the chapter list's and the Navigate menu's rows, a tick at the end. */
+.sf-filter-popover {
+	position: fixed;
+	z-index: 40;
+	min-width: 200px;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 6px;
+	background: var(--purpose-raised-bg);
+	border-radius: 10px;
+	box-shadow: 0 6px 24px var(--purpose-shadow);
+}
+.sf-filter-row {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+	width: 100%;
+	padding: 3px 8px;
+	border: 0;
+	border-radius: 4px;
+	background: transparent;
+	color: var(--purpose-text);
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+.sf-filter-row:hover,
+.sf-filter-row:focus-visible {
+	background: var(--purpose-accent);
+	color: var(--purpose-raised-bg);
+}
+.sf-filter-mark {
+	display: inline-flex;
+	flex: none;
+	width: 1.2em;
+	justify-content: center;
+}
+.sf-filter-mark.is-nested {
+	margin-left: 1em;
+}
+.sf-filter-name {
+	flex: 1;
+}
+.sf-filter-tick {
+	display: inline-flex;
+	visibility: hidden;
+}
+.sf-filter-row[aria-checked="true"] .sf-filter-tick {
+	visibility: visible;
+}

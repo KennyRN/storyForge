@@ -66,17 +66,19 @@ for (const side of SIDES) {
 			await side.show(page);
 		});
 
-		test("two icon buttons down the list's left edge, New Folder above New Note, each with a tooltip", async ({ page }) => {
+		test("three icon buttons down the list's left edge, New Folder above New Note above the filter by type (decision 107), each with a tooltip", async ({ page }) => {
 			const strip = page.getByRole("toolbar", { name: "Codex actions" });
 			await expect(strip).toBeVisible();
 			const buttons = strip.getByRole("button");
-			await expect(buttons).toHaveCount(2);
+			await expect(buttons).toHaveCount(3);
 			await expect(buttons.nth(0)).toHaveAccessibleName("New folder");
 			await expect(buttons.nth(1)).toHaveAccessibleName("New note");
-			const [s, t, b0, b1] = await Promise.all([strip.boundingBox(), tree(page).boundingBox(), buttons.nth(0).boundingBox(), buttons.nth(1).boundingBox()]);
+			await expect(buttons.nth(2)).toHaveAccessibleName("Filter by type");
+			const [s, t, b0, b1, b2] = await Promise.all([strip.boundingBox(), tree(page).boundingBox(), buttons.nth(0).boundingBox(), buttons.nth(1).boundingBox(), buttons.nth(2).boundingBox()]);
 			expect(s!.x + s!.width).toBeLessThanOrEqual(t!.x + 1); // the strip is at the list's left edge
 			expect(b0!.y).toBeLessThan(b1!.y);
-			// from the keyboard: focus shows a tooltip and the accent focus ring; the arrows move between the two
+			expect(b1!.y).toBeLessThan(b2!.y);
+			// from the keyboard: focus shows a tooltip and the accent focus ring; the arrows move between them
 			await page.keyboard.press("Tab");
 			await buttons.nth(0).focus();
 			await page.keyboard.press("ArrowDown");
