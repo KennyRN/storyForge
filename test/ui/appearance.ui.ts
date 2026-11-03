@@ -170,7 +170,7 @@ test.describe("Appearance", () => {
 		const sample = dialog(page).getByRole("img", { name: "Sample of the series name" });
 		await expect.poll(() => sample.evaluate((e) => getComputedStyle(e).fontFamily)).toContain("Courier Prime");
 		expect(await sample.evaluate((e) => getComputedStyle(e).fontSize)).toBe("12px"); // 0.75 rem, the series name's default
-		expect((await style(page, ".sf-nav-series")).family).toContain("Courier Prime");
+		await expect.poll(async () => (await style(page, ".sf-nav-series")).family).toContain("Courier Prime"); // the page applies it as the write lands: poll, like the sample above
 	});
 
 	test("an unknown font or size in project.md is the default and isn't rewritten", async ({ page }) => {
