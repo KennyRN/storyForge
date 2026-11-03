@@ -236,3 +236,40 @@ test.describe("the chapter bars", () => {
 		await expect(page.getByRole("tooltip")).toContainText("The Storm: Part Two");
 	});
 });
+
+// The ghost chapter dividers (docs/novel-2.md): drawn only where adjacent ones would be at least 4px apart at the bar's width now, none below that.
+test.describe("the ghost chapter dividers", () => {
+	test.beforeEach(async ({ page }) => openNovel(page));
+	const ghosts = (page: Page) => overview(page).locator(".sf-progress-ghost");
+
+	test("a Chapter Length of 1 with a Novel Length of 80,000 renders promptly with no dividers", async ({ page }) => {
+		const t0 = Date.now();
+		await setChapterLength(page, 1);
+		await expect(overview(page).locator(".sf-card .sf-bar").first()).toBeVisible();
+		// the window is still alive and the overview drew: a bounded time, where it used to build about 80,000 dividers and stop responding
+		await expect.poll(() => page.evaluate(() => document.querySelectorAll(".sf-overview-meta").length), { timeout: 5000 }).toBeGreaterThan(0);
+		expect(Date.now() - t0, "prompt").toBeLessThan(8000);
+		await expect(ghosts(page)).toHaveCount(0);
+		await overview(page).locator(".sf-overview-meta button").last().click(); // and the field opens again (it hung here before)
+		await expect(overview(page).getByRole("textbox", { name: "Chapter Length" })).toBeVisible();
+	});
+
+	test("dividers appear once the spacing allows, and follow the bar's width", async ({ page }) => {
+		await setChapterLength(page, 2500); // 31 dividers, about 15px apart
+		await expect(ghosts(page)).toHaveCount(31);
+		const gap = await ghosts(page).evaluateAll((all) => { const xs = all.map((g) => g.getBoundingClientRect().left); return Math.min(...xs.slice(1).map((x, i) => x - xs[i])); });
+		expect(gap).toBeGreaterThanOrEqual(4);
+		await setChapterLength(page, 400); // 199 dividers, 0.5% apart: under 4px at the bar's width here, over it on a wide enough window
+		const width = await overview(page).locator(".sf-progress").evaluate((e) => e.getBoundingClientRect().width);
+		expect(width * 0.005, "this window is narrower than the 4px spacing needs").toBeLessThan(4);
+		await expect(ghosts(page)).toHaveCount(0);
+		const size = page.viewportSize()!;
+		await page.setViewportSize({ width: Math.ceil(size.width * 2.4), height: size.height }); // the bar is now about 4px per divider wide
+		await expect(ghosts(page)).not.toHaveCount(0);
+		const wide = await ghosts(page).evaluateAll((all) => { const xs = all.map((g) => g.getBoundingClientRect().left); return Math.min(...xs.slice(1).map((x, i) => x - xs[i])); });
+		expect(wide).toBeGreaterThanOrEqual(3.9);
+		await page.setViewportSize(size); // and back: none again
+		await expect(ghosts(page)).toHaveCount(0);
+	});
+});
+

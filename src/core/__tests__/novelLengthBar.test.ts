@@ -118,4 +118,14 @@ describe("computeGhostChapterDividerPercents", () => {
 		expect(computeGhostChapterDividerPercents(0, null, 2500, 10000)).toEqual([]);
 		expect(computeGhostChapterDividerPercents(0, 10000, null, 10000)).toEqual([]);
 	});
+
+	it("has none at all when adjacent dividers would be closer than the minimum spacing, without building them", () => {
+		// chapters of 1 word in 80,000 would be 80,000 dividers 0.00125% apart; with a 0.5% minimum there are none, at once.
+		expect(computeGhostChapterDividerPercents(44, 80000, 1, 80000, 0.5)).toEqual([]);
+		// chapters of 2,500 are 3.125% apart: all kept at a 0.5% minimum, none at a 4% one.
+		expect(computeGhostChapterDividerPercents(0, 80000, 2500, 80000, 0.5)).toHaveLength(31);
+		expect(computeGhostChapterDividerPercents(0, 80000, 2500, 80000, 4)).toEqual([]);
+		// no minimum given: as before.
+		expect(computeGhostChapterDividerPercents(0, 10000, 2500, 10000)).toEqual([25, 50, 75]);
+	});
 });

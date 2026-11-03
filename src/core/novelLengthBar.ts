@@ -72,14 +72,18 @@ export const STRUCTURE_GUIDELINE_PERCENTS = [10, 20, 35, 50, 65, 80, 90];
  * `plannedChapterLength` words, stopping short of the planned novel length (a partial remainder
  * becomes the final ghost chapter). Empty once the words written reach the planned length, or when
  * either length is unset. Returned as 0-100 percents of `scale` (computeNovelLengthBarLayout's).
+ * `minSpacingPercent` (optional): none at all when adjacent dividers would be closer than this many percent of the bar (the
+ * chapter length is a small fraction of the scale), decided before any is made, so a tiny chapter length never builds tens of thousands.
  */
 export function computeGhostChapterDividerPercents(
 	totalWritten: number,
 	plannedNovelLength: number | null,
 	plannedChapterLength: number | null,
 	scale: number,
+	minSpacingPercent = 0,
 ): number[] {
 	if (!plannedNovelLength || !plannedChapterLength || plannedChapterLength <= 0 || scale <= 0) return [];
+	if ((plannedChapterLength / scale) * 100 < minSpacingPercent) return [];
 	const percents: number[] = [];
 	for (let k = 1; totalWritten + k * plannedChapterLength < plannedNovelLength; k++) {
 		percents.push(((totalWritten + k * plannedChapterLength) / scale) * 100);

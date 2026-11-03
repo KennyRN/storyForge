@@ -27,7 +27,12 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 	/** Plot notes read on first hover, kept until the next redraw (the index changed). */
 	let plots = new Map<string, string>();
 
+	/** The least gap between two ghost chapter dividers, in px. */
+	const GHOST_MIN_GAP_PX = 4;
+	let ghostWatch: ResizeObserver | null = null;
 	const draw = (): void => {
+		ghostWatch?.disconnect();
+		ghostWatch = null;
 		// A redraw never steals focus: leave a field being typed in alone.
 		if (editing !== null && host.contains(document.activeElement) && document.activeElement instanceof HTMLInputElement) return;
 		// Nor a plot note being typed in: its text isn't saved yet.
@@ -102,11 +107,18 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 			d.style.left = `${pct}%`;
 			track.append(d);
 		}
-		for (const pct of computeGhostChapterDividerPercents(total, plannedNovel, plannedChapter, layout.scale)) {
-			const g = el("span", { class: "sf-progress-ghost", attrs: { "aria-hidden": "true" } });
-			g.style.left = `${pct}%`;
-			track.append(g);
-		}
+		// The ghost chapter dividers are drawn only where adjacent ones would be at least GHOST_MIN_GAP_PX apart at the bar's width now, and none below
+		// that, redrawn when the bar is resized (a tiny chapter length would otherwise build tens of thousands of them).
+		const drawGhosts = (): void => {
+			track.querySelectorAll(".sf-progress-ghost").forEach((g) => g.remove());
+			const width = track.getBoundingClientRect().width;
+			if (width <= 0) return;
+			for (const pct of computeGhostChapterDividerPercents(total, plannedNovel, plannedChapter, layout.scale, (GHOST_MIN_GAP_PX / width) * 100)) {
+				const g = el("span", { class: "sf-progress-ghost", attrs: { "aria-hidden": "true" } });
+				g.style.left = `${pct}%`;
+				track.append(g);
+			}
+		};
 		const strip = el("div", { class: "sf-structure-strip", attrs: { role: "img", "aria-label": `Story structure guide marks at ${STRUCTURE_GUIDELINE_PERCENTS.join(", ")} per cent` } });
 		for (const pct of STRUCTURE_GUIDELINE_PERCENTS) {
 			const m = el("span", { class: "sf-structure-mark" });
@@ -197,12 +209,18 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 			? [el("h3", { class: "sf-overview-sub", text: "Unplaced" }), el("div", { class: "sf-overview-list", attrs: { role: "list", "aria-label": "Chapters not yet placed" } }, ...unplaced.map((c, i) => el("div", { class: "sf-overview-row sf-overview-row--unplaced", attrs: { role: "listitem" } }, el("button", { class: "sf-overview-name", text: titles[ordered.length + i], attrs: { type: "button" }, on: { click: () => open(c.name) } }))))]
 			: [];
 		fill(host, el("h2", { class: "sf-overview-title", text: novelTitle() }), el("div", { class: "sf-overview-head" }, el("div", { class: "sf-cover-column" }, coverBox(model, { kind: "book", code: book }, novelTitle()), removeCoverButton(model, { kind: "book", code: book }, novelTitle())), synopsisField(model, bin, book, novelTitle())), povRow, track, strip, meta, sizeControl, el("div", { class: "sf-overview-list sf-cards", attrs: { role: "list", "aria-label": "Placed chapters with word counts" } }, ...cards), ...unplacedList);
+		drawGhosts();
+		if (typeof ResizeObserver !== "undefined") {
+			ghostWatch = new ResizeObserver(drawGhosts);
+			ghostWatch.observe(track);
+		}
 	};
 	draw();
 	const refresh = debounced(() => redrawKeepingFocus(host, draw));
 	const off = model.subscribe(["library", "stats", "project", "archive", "nav"], refresh);
 	return () => {
 		off();
+		ghostWatch?.disconnect();
 		refresh.cancel();
 		bin.clear();
 		host.classList.remove("sf-overview-body");
