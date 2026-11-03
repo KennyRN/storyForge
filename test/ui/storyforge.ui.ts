@@ -356,11 +356,10 @@ test.describe("the library", () => {
 test("the five 32 px icons fit the narrowest left panel without overflowing", async ({ page }) => {
 	await openProject(page);
 	await flip(page);
-	// 200 px is the left panel's own minimum (the same-width switch holds it at 280 by default), so the width is set directly
+	// 200 px is the left panel's own minimum (the same-width switch holds it at 280 by default), so it is stored unlinked, in pixels
+	await page.evaluate(() => { const m = window.__app as any; Object.assign(m.nav, { widthUnit: "px", widthsLinked: false, libraryWidth: 200 }); m.touch("nav"); });
+	for (const t of ["archive", "novel", "series", "codex"]) await page.getByRole("tab", { name: t }).click(); // a tab click keeps the stored width
 	const r = await page.evaluate(() => {
-		const left = document.querySelector<HTMLElement>(".sf-left")!;
-		left.style.width = "200px";
-		left.style.flex = "none";
 		const rail = document.querySelector(".sf-rail")!;
 		const last = document.querySelector(".sf-tab--flip")!.getBoundingClientRect();
 		return { width: rail.getBoundingClientRect().width, scroll: rail.scrollWidth, right: last.right, railRight: rail.getBoundingClientRect().right };

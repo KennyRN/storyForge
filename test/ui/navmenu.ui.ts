@@ -14,6 +14,8 @@ async function openProject(page: Page, readOnly = false): Promise<void> {
 	await page.locator("[data-recent='0']").click();
 	await page.waitForFunction(() => !!window.__app?.editors);
 }
+/** Sets the library side's left panel to its 200 px minimum through the stored setting (unlinked, in pixels), as a person would in Settings; the shell applies it from there and keeps it across tab clicks. */
+const storeNarrowLibrary = (page: Page) => page.evaluate(() => { const m = window.__app as any; Object.assign(m.nav, { widthUnit: "px", widthsLinked: false, libraryWidth: 200 }); m.touch("nav"); });
 const chevron = (page: Page) => page.getByRole("button", { name: "Navigate" });
 const menu = (page: Page) => page.getByRole("menu", { name: "Navigate" });
 const item = (page: Page, name: string) => menu(page).getByRole("menuitem", { name, exact: true });
@@ -333,8 +335,6 @@ test("the panes under the tab row start where the Codex card's top is, so nothin
 	let narrow = false;
 	const top = async (name: string) => {
 		await page.getByRole("tab", { name }).click();
-		// the panel puts its own width back when the tab changes, so the minimum is applied after the click
-		if (narrow) await page.evaluate(() => { const left = document.querySelector<HTMLElement>(".sf-left")!; left.style.width = "200px"; left.style.flex = "none"; });
 		await page.waitForTimeout(150);
 		return page.evaluate(() => {
 			const pane = document.querySelector(".sf-forge-tab")!;
@@ -346,6 +346,7 @@ test("the panes under the tab row start where the Codex card's top is, so nothin
 	// at the default width and at the panel's 200 px minimum
 	for (const width of [null, "200px"]) {
 		narrow = width !== null;
+		if (narrow) await storeNarrowLibrary(page);
 		const card = await top("codex");
 		for (const t of ["series", "novel", "archive"]) expect(Math.abs((await top(t)) - card), `${t} at ${width ?? "default"}`).toBeLessThan(6);
 		if (narrow) expect(await page.locator(".sf-left").evaluate((e) => e.getBoundingClientRect().width)).toBeLessThanOrEqual(201);
