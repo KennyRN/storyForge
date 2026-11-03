@@ -519,7 +519,7 @@ body.sf-codex-drag-active {
 }
 .sf-navmenu-button:hover,
 .sf-navmenu-button[aria-expanded="true"] {
-	color: var(--purpose-text);
+	color: var(--purpose-accent);
 }
 .sf-navmenu {
 	position: absolute;
@@ -701,7 +701,7 @@ body.sf-codex-drag-active {
 	cursor: pointer;
 }
 .sf-zone-fold:hover {
-	color: var(--purpose-text);
+	color: var(--purpose-accent);
 }
 .sf-zone-label {
 	flex: 1;

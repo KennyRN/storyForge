@@ -48,7 +48,7 @@
 	color: var(--purpose-text-muted);
 }
 .sf-button--icon:hover:not(:disabled) {
-	color: var(--purpose-text);
+	color: var(--purpose-accent);
 }
 .sf-button.is-active {
 	color: var(--purpose-accent);

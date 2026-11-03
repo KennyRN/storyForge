@@ -23,6 +23,18 @@ const accent = (page: Page) => page.evaluate(() => { const d = document.createEl
 const accentFill = (page: Page) => page.evaluate(() => { const d = document.createElement("i"); d.style.backgroundColor = "var(--purpose-accent)"; document.body.append(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; });
 const outline = (l: ReturnType<Page["locator"]>) => l.evaluate((e) => getComputedStyle(e).outlineStyle);
 
+test.describe("the navigate menu's chevron", () => {
+	test("is the interface accent (green) on hover, like the other icon buttons, and the muted colour at rest", async ({ page }) => {
+		await openProject(page);
+		await page.mouse.move(0, 0);
+		const colour = (l: ReturnType<Page["locator"]>) => l.evaluate((e) => getComputedStyle(e).color);
+		const probe = (v: string) => page.evaluate((x) => { const d = document.createElement("i"); d.style.color = x; document.body.append(d); const c = getComputedStyle(d).color; d.remove(); return c; }, v);
+		expect(await colour(chevron(page))).toBe(await probe("var(--purpose-text-muted)"));
+		await chevron(page).hover();
+		expect(await colour(chevron(page))).toBe(await probe("var(--purpose-accent)"));
+	});
+});
+
 test.describe("the navigate menu", () => {
 	test("the chevron is in the left panel's top band, at its right end, on both sides, named Navigate, and follows a resize", async ({ page }) => {
 		await openProject(page);

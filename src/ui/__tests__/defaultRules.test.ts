@@ -107,3 +107,18 @@ describe("rule 2 gains: unselected rows in floating menus are muted", () => {
 	});
 });
 
+// Icon buttons turn the interface accent (green) on hover, never the text colour (1.7.0). The Codex strip's icons are the named exception: they take the Codex colour (decision 67).
+describe("icon buttons turn green on hover", () => {
+	it("the Navigate chevron, the fold chevrons and every icon-only button use the accent on hover, not the text colour", () => {
+		for (const sel of [".sf-navmenu-button:hover, .sf-navmenu-button[aria-expanded=\"true\"]", ".sf-zone-fold:hover", ".sf-button--icon:hover:not(:disabled)"]) {
+			const r = all.find((x) => x.selector === sel);
+			expect(r, sel).toBeTruthy();
+			expect(r!.body, sel).toMatch(/(^|[;\s])color:\s*var\(--purpose-accent\)/);
+		}
+	});
+
+	it("no other hover rule colours a button with the plain text colour, except the quiet text button", () => {
+		const bad = all.filter((r) => /:hover/.test(r.selector) && /(^|[;\s])color:\s*var\(--purpose-text\)/.test(r.body) && !/sf-button--quiet/.test(r.selector)).map((r) => `${r.file}: ${r.selector}`);
+		expect(bad).toEqual([]);
+	});
+});
