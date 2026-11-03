@@ -531,8 +531,12 @@ Every icon in the stats panel is a Tabler Icon (MIT; the notice is in the MIT se
 
 ## Where Kenny's own icons are used (the navigator)
 
-The five navigator icons (**storytelling**, **codex**, **series**, **novel** and **archive**) are Kenny's own work, signed volcanicMole, and are based on Tabler Icons (MIT; the notice is in the MIT section above, which stays with them). Each is a solid rounded badge with the glyph cut out and no stroke, on a 24 px grid; they take the current text colour. They are used in the Navigate menu (1.2em, before the text) and across the top of the library side as its four tabs. The paths are in `src/ui/kit/navIconShapes.ts`; `src/ui/kit/navIcons.ts` draws them. (The library's tabs used Lucide's globe, library, book and archive until this change; the Lucide section above stays because other parts of the app still use Lucide.)
+The five navigator icons (**storytelling**, **codex**, **series**, **novel** and **archive**) and the Navigate menu's two (**backup**, a shield with a tick, and **open**, a left arrow with lines; 1.6.5) are Kenny's own work, signed volcanicMole, and are based on Tabler Icons (MIT; the notice is in the MIT section above, which stays with them). Each is a solid rounded badge with the glyph cut out and no stroke, on a 24 px grid; they take the current text colour. They are used in the Navigate menu (32 px, before the text) and across the top of the library side as its four tabs. The paths are in `src/ui/kit/navIconShapes.ts`; `src/ui/kit/navIcons.ts` draws them. (The library's tabs used Lucide's globe, library, book and archive until this change; the Lucide section above stays because other parts of the app still use Lucide.)
 
 ## Where Tabler's `filter` is used (the Codex filter by type)
 
 The filter by type button in the Codex strip, under New Folder and New Note, on both Codex lists and the Archive tab, is Tabler's **filter** (version 3.32; outline, 2 px stroke, three rounded lines; MIT, the notice is in the MIT section above), supplied by Kenny. Its paths are in `src/ui/kit/icons.ts`.
+
+**1.6.5 changes:** the codex icon is now Kenny's rounded globe ("volcanicMole's Rounded Globe"); the archive icon is the artwork the codex used to have (the sunset). Every Navigate menu row has an icon, so the text-only column rule is gone.
+
+**1.6.5, second change:** the Open Project icon is a badge with the arrow's stroke and the two bars' strokes knocked out of it together, through a mask (`cut` in `navIconShapes.ts`); the file's filled path, which held a halo around them, is not used. Kenny may redraw it later. Navigate menu text is centred on its icon (the middle of the capital height on the icon's middle; decision 106's baseline rule is replaced).
