@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import * as path from "node:path";
-import { flipFace, openPreview } from "./helpers";
+import { flipFace, openPreview, openSettingsDialog } from "./helpers";
 
 // Brief 14, commit 4 (§1.6, §1.7): on the library side's novel tab the context panel shows the chosen chapter: PoV, Location, the plot note
 // and the chapter's text, read-only; and one chosen chapter is shared by both sides. The plot-note and PoV tests that lived on the overview's
@@ -305,10 +305,25 @@ test.describe("one chosen chapter, shared by both sides", () => {
 		await expect(page.getByRole("textbox", { name: /^Plot note for The Storm/ })).toBeVisible();
 	});
 
-	test("the chosen chapter is highlighted whatever 'Highlight the active chapter' says", async ({ page }) => {
-		await page.evaluate(() => { const m = window.__app as any; m.running.settings.values.highlightActiveChapter = false; m.touch("nav", "library"); });
+	test("the chosen chapter is always highlighted: the 'Highlight the active chapter' setting is retired, and a stored key is never read or rewritten", async ({ page }) => {
+		const MD = "_backstage/storyforge/project.md";
+		await page.evaluate((f) => window.__preview.touch(f, "---\nformat-version: 1\nhighlight-active-chapter: false\n---\n"), MD);
+		await page.reload();
+		await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+		await page.locator("[data-recent='0']").click();
+		await page.waitForFunction(() => !!window.__app?.editors);
 		await toNovelTab(page);
 		await expect(placedRow(page, "Chapter 1").first()).toHaveClass(/is-active|is-selected|is-chosen/);
+		await page.getByRole("tab", { name: "series" }).click();
+		await expect(page.locator(".sf-left .is-active, .sf-left .is-selected, .sf-left .is-chosen").first()).toBeVisible(); // the chosen novel too
+		// another setting changes through the dialog: the stored key stays exactly as it was, and the dialog has no control for it
+		await openSettingsDialog(page);
+		const d = page.getByRole("dialog");
+		await d.getByLabel("Hide the series pane (for one standalone book)").check();
+		await expect.poll(() => read(page, MD)).toContain("hide-series-pane: true");
+		expect(await read(page, MD)).toContain("highlight-active-chapter: false");
+		await expect(d.getByLabel("Highlight the active chapter")).toHaveCount(0);
+		await page.keyboard.press("Escape");
 	});
 
 	test("clicking the novel name on the storytelling side lands on the novel tab with the chapter being written marked and shown", async ({ page }) => {

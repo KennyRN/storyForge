@@ -28,7 +28,7 @@ export function mountSeriesTab(host: HTMLElement, model: AppModel): () => void {
 
 		const row = (folder: string, index: number, unplaced: boolean): HTMLElement => {
 			const selected = model.nav.book === folder;
-			const r = listRow(folder, selected && settings.highlightActiveChapter);
+			const r = listRow(folder, selected) // the chosen novel is always marked (the "Highlight the active chapter" setting was retired in 1.7.0);
 			const label = rowTitle(r, numbered[index], unplaced);
 			r.addEventListener("click", (e) => {
 				if ((e.target as HTMLElement).closest(".sf-drag-handle, input")) return;

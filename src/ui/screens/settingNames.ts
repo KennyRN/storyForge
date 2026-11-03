@@ -6,7 +6,6 @@ const NAMES: Partial<Record<keyof ProjectSettings, string>> = {
 	hideSeriesPane: "Hide the series pane",
 	autoFocus: "Opens in",
 	layout: "Layout",
-	highlightActiveChapter: "Highlight the active chapter",
 	automaticBackup: "Automatic backups",
 	automaticBackupFrequency: "Backup frequency",
 	seriesNumberingStyle: "Series numbering",

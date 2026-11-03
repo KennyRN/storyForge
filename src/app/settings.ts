@@ -73,7 +73,6 @@ export interface ProjectSettings extends AppearanceKeys {
 	hideSeriesPane: boolean;
 	autoFocus: boolean;
 	layout: SfLayout;
-	highlightActiveChapter: boolean;
 	automaticBackup: boolean;
 	automaticBackupFrequency: AutomaticBackupFrequency;
 	codexFactSectionByType: Record<string, string>;
@@ -128,7 +127,6 @@ export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
 	hideSeriesPane: false,
 	autoFocus: true,
 	layout: "novelBrowse",
-	highlightActiveChapter: true,
 	automaticBackup: false,
 	automaticBackupFrequency: "daily",
 	codexFactSectionByType: { person: "Facts", place: "Facts", populace: "Facts" },
@@ -175,7 +173,6 @@ const FIELDS: Record<Key, { file: string; plugin: string; valid: (v: unknown) =>
 	hideSeriesPane: { file: "hide-series-pane", plugin: "hideSeriesPane", valid: (v) => typeof v === "boolean" },
 	autoFocus: { file: "auto-focus", plugin: "autoFocus", valid: (v) => typeof v === "boolean" },
 	layout: { file: "layout", plugin: "layout", valid: (v) => typeof v === "string" && (SF_LAYOUTS as string[]).includes(v) },
-	highlightActiveChapter: { file: "highlight-active-chapter", plugin: "highlightActiveChapter", valid: (v) => typeof v === "boolean" },
 	automaticBackup: { file: "automatic-backup", plugin: "automaticBackupEnabled", valid: (v) => typeof v === "boolean" },
 	automaticBackupFrequency: { file: "automatic-backup-frequency", plugin: "automaticBackupFrequency", valid: (v) => v === "every-open" || v === "daily" || v === "weekly" },
 	codexFactSectionByType: {

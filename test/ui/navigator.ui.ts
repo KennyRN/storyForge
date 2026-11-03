@@ -198,7 +198,7 @@ test.describe("the navigator", () => {
 			await expect(page.locator(".sf-nav-row.is-active")).toHaveCount(0);
 		});
 
-		test("with 'Highlight the active chapter' off the selected chapter is still a highlighted row here", async ({ page }) => {
+		test("a stored 'highlight-active-chapter: false' (the retired setting) is never read: the selected chapter is a highlighted row here", async ({ page }) => {
 			await openPreview(page);
 			await page.evaluate(() => window.__preview.touch("_backstage/storyforge/project.md", "---\nformat-version: 1\nhighlight-active-chapter: false\n---\n"));
 			await page.reload();

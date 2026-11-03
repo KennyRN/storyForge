@@ -36,5 +36,5 @@ export async function openSettingsDialog(page: Page): Promise<void> {
 	await page.evaluate(() => window.__preview.emit("menu", "settings"));
 	const d = page.getByRole("dialog");
 	await expect(d.getByRole("tab", { name: "General", exact: true })).toHaveAttribute("aria-selected", "true");
-	await expect(d.getByLabel("Highlight the active chapter")).toBeVisible();
+	await expect(d.getByLabel("Hide the series pane (for one standalone book)")).toBeVisible();
 }

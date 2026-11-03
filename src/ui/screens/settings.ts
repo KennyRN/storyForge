@@ -65,7 +65,7 @@ export function openSettings(model: AppModel): void {
 		input.addEventListener("change", () => void change(key, toValue(input.value)));
 		return row(label, input, key);
 	};
-	const check = (key: "highlightActiveChapter" | "hideSeriesPane" | "automaticBackup" | "showSessionReadout" | "typingSmartPunctuation" | "typingNameAutocorrect" | "typingShortcodes" | "typingShortcodeNames" | "typingSpecialCharactersButton", label: string): HTMLElement => {
+	const check = (key: "hideSeriesPane" | "automaticBackup" | "showSessionReadout" | "typingSmartPunctuation" | "typingNameAutocorrect" | "typingShortcodes" | "typingShortcodeNames" | "typingSpecialCharactersButton", label: string): HTMLElement => {
 		const input = el("input", { attrs: { type: "checkbox", "aria-label": label } });
 		input.checked = settings.values[key];
 		input.disabled = off;
@@ -253,7 +253,6 @@ export function openSettings(model: AppModel): void {
 			General: [
 				section("Interface", [
 					select("autoFocus", "Opens in", [["true", "storytelling"], ["false", "library"]], (v) => v === "true"),
-					check("highlightActiveChapter", "Highlight the active chapter"),
 					check("hideSeriesPane", "Hide the series pane (for one standalone book)"),
 				]),
 			],

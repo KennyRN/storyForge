@@ -124,7 +124,7 @@ describe("format 1: project.md", () => {
 			expect(s.sources.layout).toBe("default");
 			expect(diffSnapshots(before, snapshot(root))).toEqual({ added: [], removed: [], changed: [] });
 			// a change to another setting keeps the old text in the file as it was
-			await setSetting(project, s, "highlightActiveChapter", false);
+			await setSetting(project, s, "hideSeriesPane", true);
 			expect(fs.readFileSync(path.join(root, PROJECT_SETTINGS_PATH), "utf8")).toContain(`layout: ${value}`);
 		}
 	});

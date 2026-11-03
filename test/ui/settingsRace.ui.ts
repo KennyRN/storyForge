@@ -53,23 +53,23 @@ test.describe("settings: a change made while an earlier one is saving", () => {
 	test("two quick toggles on different controls while a write is pending: the second isn't replaced under the click, and both land", async ({ page }) => {
 		await openSettings(page, "General");
 		const d = dialog(page);
-		const highlight = d.getByLabel("Highlight the active chapter");
+		const opens = d.getByLabel("Opens in"); // (a select: the dialog's other control on this page)
 		const hide = d.getByLabel("Hide the series pane (for one standalone book)");
-		await expect(highlight).toBeChecked();
+		await expect(opens).toHaveValue("true");
 		await expect(hide).not.toBeChecked();
 		const gate = await holdWrites(page);
-		await highlight.uncheck();
+		await opens.selectOption("false");
 		await expect.poll(gate.held).toBe(1);
 		await hide.check(); // its write waits behind the first
 		gate.releaseOne(); // the first lands, and the dialog redraws, while the second write is still pending (held in turn)
-		await expect.poll(() => read(page)).toContain("highlight-active-chapter: false");
+		await expect.poll(() => read(page)).toContain("auto-focus: false");
 		await expect.poll(gate.held).toBe(1); // the second write is under way
 		await expect(hide).toBeChecked(); // not replaced under the click: it still shows what was chosen
-		await expect(highlight).not.toBeChecked(); // the first one shows its stored value
+		await expect(opens).toHaveValue("false"); // the first one shows its stored value
 		gate.release();
 		await expect.poll(() => read(page)).toContain("hide-series-pane: true");
 		await expect(hide).toBeChecked();
-		await expect(highlight).not.toBeChecked();
+		await expect(opens).toHaveValue("false");
 	});
 
 	test("a box put back in the page commits once on Return, not twice", async ({ page }) => {

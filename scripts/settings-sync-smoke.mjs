@@ -160,7 +160,7 @@ const openSettingsDialog = () => {
 	typing.assertReady("opening Settings through the menu", true);
 	osa('tell application "System Events" to tell process "storyforge" to click menu item "Settings…" of menu 1 of menu bar item "storyForge" of menu bar 1');
 };
-const settingControl = () => find("AXCheckBox", "Highlight the active chapter", "enabled");
+const settingControl = () => find("AXCheckBox", "Hide the series pane", "enabled");
 const TYPED = "Sync check text.";
 try {
 	if (!(await until(() => find("AXButton", "Open Project").startsWith("found")))) fail("the app's window never appeared");
