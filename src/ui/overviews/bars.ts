@@ -79,8 +79,8 @@ export interface DataBarOptions {
 /**
  * The chapter bar: the data colour (blue) only. A dashed marker in that colour short of the target; past it, dots in that colour
  * from the target to the word count, flush with the fill (pattern, not colour, says "over"). The name is drawn over it twice, the
- * same text in the same place: dark, clipped to the fill's width, and light over the whole bar underneath, so it reads over the fill
- * and over the track (no single colour does both). Only the light layer is read aloud and selectable; the bar carries the label.
+ * same text in the same place: dark, clipped to the fill's width, and light, clipped to the rest of the bar, so it reads over the fill
+ * and over the track (no single colour does both) and the layers never overlap. Both are hidden from a screen reader; the bar carries the label.
  */
 export function dataBar(opts: DataBarOptions): HTMLElement {
 	const state = computeDataBarState(opts.words, opts.target, opts.scale);
@@ -101,7 +101,10 @@ export function dataBar(opts: DataBarOptions): HTMLElement {
 	if (opts.name !== undefined) {
 		const light = el("div", { class: "sf-bar-name", text: opts.name, attrs: { "aria-hidden": "true" } });
 		const dark = el("div", { class: "sf-bar-name sf-bar-name--on-fill", text: opts.name, attrs: { "aria-hidden": "true" } });
-		dark.style.clipPath = `inset(0 ${100 - (state.kind === "sliver" ? 0 : state.fillPercent)}% 0 0)`;
+		// The two layers meet at the fill's edge and never overlap: dark to the left of it, light to the right.
+		const fillPercent = state.kind === "sliver" ? 0 : state.fillPercent;
+		dark.style.clipPath = `inset(0 ${100 - fillPercent}% 0 0)`;
+		light.style.clipPath = `inset(0 0 0 ${fillPercent}%)`;
 		bar.append(light, dark);
 	}
 	attachTooltip(bar, opts.tooltip ?? formatWordCount(opts.words));

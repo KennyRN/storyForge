@@ -10,7 +10,7 @@
 	background-size: 8px 8px;
 	background-position: -2px 0;
 }
-/* The chapter's name over its bar: the light text over the whole bar, the dark text over the fill only (clipped inline to its width). */
+/* The chapter's name over its bar: the dark text over the fill and the light text over the rest, each clipped inline at the fill's edge so they never overlap. */
 .sf-bar-name { position: absolute; inset: 0; padding: 0 8px; line-height: 24px; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--purpose-text); pointer-events: none; }
 .sf-bar-name--on-fill { color: var(--purpose-text-on-data); user-select: none; -webkit-user-select: none; }
 .sf-bar-marker { position: absolute; top: 0; bottom: 0; margin-left: -1px; height: 100%; stroke: var(--purpose-data-fill); }

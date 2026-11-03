@@ -58,10 +58,20 @@ test.describe("the chapter bars", () => {
 		});
 		expect(contrast(m.dark, m.fill), "dark text on the blue fill").toBeGreaterThanOrEqual(4.5);
 		expect(contrast(m.light, m.track), "light text on the track").toBeGreaterThanOrEqual(4.5);
-		// The dark layer is clipped to the fill's width, the light layer is the whole bar.
+		// The dark layer is clipped to the fill's width, the light layer to the rest of the bar: they meet at the fill's edge and never overlap.
 		const clip = await bar.locator(".sf-bar-name--on-fill").evaluate((e) => e.style.clipPath);
 		const fillPct = await bar.locator(".sf-bar-fill").evaluate((e) => parseFloat(e.style.width));
 		expect(parseFloat(clip.match(/inset\(0(?:px)? ([\d.]+)%/)![1])).toBeCloseTo(100 - fillPct, 1);
+		const lightClip = await bar.locator(".sf-bar-name:not(.sf-bar-name--on-fill)").evaluate((e) => e.style.clipPath);
+		expect(parseFloat(lightClip.match(/inset\(0(?:px)? 0(?:px)? 0(?:px)? ([\d.]+)%/)![1])).toBeCloseTo(fillPct, 1);
+		// Measured: no pixel column is covered by both layers.
+		const spans = await bar.evaluate((b) => {
+			const ends = (q: string) => { const e = b.querySelector<HTMLElement>(q)!; const r = e.getBoundingClientRect(); const n = (e.style.clipPath.match(/[\d.]+/g) ?? []).map(Number); return { r, right: n[1], left: n[3] }; };
+			const dark = ends(".sf-bar-name--on-fill");
+			const light = ends(".sf-bar-name:not(.sf-bar-name--on-fill)");
+			return [[dark.r.left, dark.r.left + dark.r.width * (1 - dark.right / 100)], [light.r.left + light.r.width * (light.left / 100), light.r.right]];
+		});
+		expect(spans[0][1], "the dark layer ends where the light one starts").toBeCloseTo(spans[1][0], 0);
 	});
 
 	test("past its plan: dots in the bar's own colour flush with the fill, no notch, no orange; short of it: the dashed marker in the bar's colour", async ({ page }) => {
