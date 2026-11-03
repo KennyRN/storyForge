@@ -1,7 +1,6 @@
 import { getBookChapters, numberedChapterTitle } from "../../core/book";
 import { numberedBookTitle, readSeriesFrontmatter } from "../../core/series";
 import { el, fill } from "../kit/dom";
-import { icon } from "../kit/icons";
 import { attachTooltip } from "../kit/tooltip";
 import type { AppModel } from "../model";
 
@@ -68,7 +67,6 @@ export function mountNavigator(host: HTMLElement, model: AppModel): () => void {
 			},
 			el("span", { class: "sf-nav-current-title", text: chapter ? title(chapter) : "No chapter yet" }),
 			outside ? el("span", { class: "sf-nav-note", text: outside }) : null,
-			icon(expanded ? "chevron-down" : "chevron-right", 14),
 		);
 
 		const list = el("ul", { class: "sf-nav-list sf-scroll", attrs: { role: "list", "aria-label": "Chapters of this novel" } });
