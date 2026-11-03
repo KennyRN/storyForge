@@ -1,5 +1,5 @@
 import { el } from "../kit/dom";
-import { icon } from "../kit/icons";
+import { chevronDownIcon } from "../kit/statsIcons";
 import { attachTooltip } from "../kit/tooltip";
 import { handleMenu, menuState } from "../menu";
 import type { AppModel, ForgeTab } from "../model";
@@ -15,7 +15,7 @@ export function mountNavMenu(host: HTMLElement, model: AppModel): { button: HTML
 	let off: (() => void) | null = null;
 
 	const button = el("button", { class: "sf-navmenu-button", attrs: { type: "button", "aria-label": "Navigate", "aria-haspopup": "menu", "aria-expanded": "false" } });
-	const chevron = icon("chevron-down", 13);
+	const chevron = chevronDownIcon(13);
 	chevron.style.width = "1em";
 	chevron.style.height = "1em";
 	button.append(chevron);
