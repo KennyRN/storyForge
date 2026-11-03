@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.2 (in progress)
+
+- New: **the app icon** is Kenny's own storyForge mark (a cauldron, a leaf and a line), MIT licensed. Source `src-tauri/icons/storyForge.svg`; the icon files are rendered from it without changing the design.
+
 ## 1.6.1: settings changed elsewhere (Fix 6, decisions 96 to 99)
 
 - New: **`project.md` changed from outside is read again and applied at once** (a sync tool, another Mac, a text editor). Only the settings that differ change; the Codex colour, the Appearance keys, the story kind, numbering, the typing aids and the session readout apply on the spot, the automatic backup at its next check, a new idle limit from the next session, and `layout` and `auto-focus` at the next open. An open Settings dialog follows, except the text box being typed in. Reading never writes, and the app's own writes don't count as outside changes.

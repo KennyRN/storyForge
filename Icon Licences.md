@@ -4,6 +4,14 @@ This project uses icons from the following third-party, open-source icon sets. A
 
 ---
 
+## storyForge app icon
+
+- **Author:** Kenny (volcanicMole), made with Claude; Kenny's own work
+- **Source:** `src-tauri/icons/storyForge.svg` (the PNGs and `icon.icns` in the same folder are rendered from it, unaltered)
+- **Licence:** MIT License — *see [MIT License](#mit-license) below*
+
+---
+
 ## Mage Icons
 
 - **Author:** Mage Icons
