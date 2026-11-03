@@ -232,6 +232,20 @@ html[data-input="pointer"] .sf-splitter:focus-visible {
 	padding-top: var(--band-h);
 	background: var(--purpose-editor-bg);
 }
+.sf-library-layer {
+	position: absolute;
+	inset: var(--band-h) 0 0 0;
+	background: var(--purpose-editor-bg);
+	color: var(--purpose-text);
+}
+.sf-library-layer[hidden],
+.sf-slot--library[hidden] {
+	display: none;
+}
+.sf-slot--library {
+	height: 100%;
+	background: var(--purpose-editor-bg);
+}
 .sf-slot--centre {
 	height: 100%;
 	background: var(--purpose-editor-bg);

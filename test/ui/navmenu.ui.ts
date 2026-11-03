@@ -38,14 +38,16 @@ test.describe("the navigate menu", () => {
 		expect((await chevron(page).boundingBox())!.x).toBeGreaterThan(before + 20);
 	});
 
-	test("the menu holds the project's name (quiet, not a control), Storytelling, the four tabs, a gap, Back Up Now and Change Project", async ({ page }) => {
+	test("the menu holds Storytelling, the four tabs, a gap, Back Up Now, a gap and Change Project, with no project name", async ({ page }) => {
 		await openProject(page);
 		await chevron(page).click();
 		await expect(menu(page)).toBeVisible();
 		const rows = await menu(page).getByRole("menuitem").allInnerTexts();
 		expect(rows).toEqual(["Storytelling", "Codex", "Series", "Novel", "Archive", "Back Up Now", "Change Project"]);
-		await expect(menu(page).locator(".sf-navmenu-name")).not.toHaveText("");
-		await expect(menu(page).getByRole("separator")).toHaveCount(1);
+		await expect(menu(page).locator(".sf-navmenu-name")).toHaveCount(0);
+		await expect(menu(page).getByRole("separator")).toHaveCount(2);
+		const order = await menu(page).evaluate((m) => Array.from(m.children).map((c) => c.getAttribute("role")));
+		expect(order).toEqual(["menuitem", "menuitem", "menuitem", "menuitem", "menuitem", "separator", "menuitem", "separator", "menuitem"]);
 		expect(await menu(page).evaluate((e) => { const s = getComputedStyle(e); return [s.borderTopWidth, s.backgroundColor]; })).toEqual(["0px", await page.evaluate(() => { const d = document.createElement("i"); d.style.background = "var(--purpose-raised-bg)"; document.body.append(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; })]);
 	});
 
@@ -188,5 +190,57 @@ test.describe("the chapter list's rows, the add button and the title bar", () =>
 		expect(await top(".sf-slot--centre .cm-line")).toBeCloseTo(want, 0);
 		await flipFace(page);
 		expect(await top(".sf-tab")).toBeCloseTo(want, 0);
+	});
+
+	test("the chapter list's and the closed selector's text start where the Codex list's does", async ({ page }) => {
+		await openProject(page);
+		await page.getByRole("button", { name: "Chapters" }).click();
+		const left = (sel: string) => page.locator(sel).first().evaluate((e) => { const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT); let n: Node | null; while ((n = w.nextNode())) if (n.textContent!.trim()) { const r = document.createRange(); r.setStart(n, 0); r.setEnd(n, 1); return r.getBoundingClientRect().left; } return -1; });
+		const codex = await left(".sf-codex-tree .sf-codex-folder-header, .sf-codex-tree .sf-codex-file");
+		expect(Math.abs((await left(".sf-nav-current-title")) - codex)).toBeLessThan(1);
+		expect(Math.abs((await left(".sf-nav-row")) - codex)).toBeLessThan(1);
+	});
+});
+
+test.describe("the workspace belongs to the side", () => {
+	const layer = (page: Page) => page.locator(".sf-library-layer");
+	const shown = (page: Page) => page.locator(".sf-library-layer .sf-slot--library:not([hidden]) .cm-content");
+	const typed = async (page: Page) => {
+		await page.locator(".sf-slot--centre .cm-content").first().click();
+		await page.keyboard.type(" unsaved words");
+	};
+
+	test("Codex and Archive tabs cover the chapter with their own entry or a blank; the chapter's editor stays open and inert underneath", async ({ page }) => {
+		await openProject(page);
+		await typed(page);
+		await flipFace(page);
+		await page.getByRole("tab", { name: "codex" }).click();
+		await expect(layer(page)).toBeVisible();
+		await expect(shown(page)).toHaveCount(0); // blank: nothing selected
+		await expect(page.locator(".sf-slot--centre")).toHaveAttribute("inert", "");
+		await page.locator(".sf-codex-file", { hasText: "Jane" }).first().click();
+		await expect(shown(page)).toContainText("Jane");
+		await page.getByRole("tab", { name: "archive" }).click();
+		await expect(shown(page)).toHaveCount(0); // the Codex entry doesn't show on the Archive tab
+		await page.getByRole("tab", { name: "codex" }).click();
+		await expect(shown(page)).toContainText("Jane"); // each tab remembers its own
+		await page.getByRole("tab", { name: "novel" }).click();
+		await expect(layer(page)).toBeHidden();
+		await expect(page.locator(".sf-overview")).toBeVisible();
+	});
+
+	test("flipping swaps the workspace both ways without closing the chapter: its unsaved text survives, over a blank Codex tab too", async ({ page }) => {
+		await openProject(page);
+		await typed(page);
+		await flipFace(page);
+		await page.getByRole("tab", { name: "codex" }).click();
+		await flipFace(page); // back to the storytelling side
+		await expect(layer(page)).toBeHidden();
+		await expect(page.locator(".sf-slot--centre")).not.toHaveAttribute("inert", "");
+		await expect(page.locator(".sf-slot--centre .cm-content")).toContainText("unsaved words");
+		await flipFace(page);
+		await expect(layer(page)).toBeVisible(); // the library side comes back to its Codex tab, blank as it was
+		await flipFace(page);
+		await expect(page.locator(".sf-slot--centre .cm-content")).toContainText("unsaved words");
 	});
 });

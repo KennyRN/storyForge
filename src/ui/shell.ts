@@ -1,4 +1,4 @@
-import { mountOverviewLayer } from "./overviews/layer";
+import { mountLibraryLayer, mountOverviewLayer } from "./overviews/layer";
 import { mountCharactersButton } from "./context/charactersButton";
 import type { AppModel } from "./model";
 import { EditorHost } from "./editor/editorHost";
@@ -45,7 +45,14 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	const titlebar = el("div", { class: "sf-titlebar", attrs: { "data-tauri-drag-region": "" } });
 	const centre = el("section", { class: "sf-slot sf-slot--centre", attrs: { "aria-label": "Workspace" } });
 	const overview = el("div", { class: "sf-overview", attrs: { role: "region" } });
-	const centreWrap = el("div", { class: "sf-centre-wrap" }, centre, overview);
+	// The library side's Codex and Archive tabs show their selected entry (or nothing) in a layer over the chapter, which stays open underneath.
+	const library = el("div", { class: "sf-library-layer" });
+	const libraryHosts = {
+		codex: el("div", { class: "sf-slot sf-slot--library", attrs: { "aria-label": "Codex entry" } }),
+		archive: el("div", { class: "sf-slot sf-slot--library", attrs: { "aria-label": "Archived item" } }),
+	};
+	library.append(libraryHosts.codex, libraryHosts.archive);
+	const centreWrap = el("div", { class: "sf-centre-wrap" }, centre, overview, library);
 	const lore = el("aside", { class: "sf-slot sf-slot--lore", attrs: { "aria-label": "Context" } });
 	// The editor host fills and empties its element; the bottom row (the special-characters button) lives below it, not inside it.
 	// A note, when there is one, sits on a card inside the host; the host's padding is the card's margin (10% of the panel's width).
@@ -63,7 +70,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	const loreBar = splitter("Resize the context panel", "right", () => model.displayWidths().lore, (w) => (model.setPanelWidthPx("lore", w), apply()));
 	fill(host, el("h1", { class: "sf-visually-hidden", text: name }), titlebar, el("div", { class: "sf-frame" }, left, leftBar, centreWrap, loreBar, lore));
 
-	model.editors = new EditorHost(model, { centre, lore: loreHost });
+	model.editors = new EditorHost(model, { centre, lore: loreHost, ...libraryHosts });
 	model.editors.onChange = () => {
 		apply();
 		model.touch("nav");
@@ -73,6 +80,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	const offWidthsOnFlip = model.subscribe("face", apply); // the left panel's width is per side
 	window.addEventListener("resize", apply);
 	const overviews = mountOverviewLayer(overview, centre, model);
+	const libraryLayer = mountLibraryLayer(library, libraryHosts, model);
 	const offCharacters = mountCharactersButton(loreRow, model);
 
 	fill(left, navMenu.button, faceHost);
@@ -101,6 +109,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 			window.removeEventListener("resize", apply);
 			offCharacters();
 			overviews();
+			libraryLayer();
 			offFace();
 			navMenu.dispose();
 			disposeFace?.();

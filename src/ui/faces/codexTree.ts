@@ -21,7 +21,7 @@ let targetFolder: string | null = null;
  */
 export function mountCodexTree(host: HTMLElement, model: AppModel, options: { header: boolean; opensIn: "context" | "workspace" }): () => void {
 	/** Storytelling: an entry opens in the context panel (a second click closes it). Library: it opens in the workspace. */
-	const openEntry = (path: string): void => void (options.opensIn === "workspace" ? model.editors?.open("centre", path) : model.toggleLore(path));
+	const openEntry = (path: string): void => void (options.opensIn === "workspace" ? model.editors?.open("codex", path) : model.toggleLore(path));
 	const tree = el("div", { class: "sf-codex-tree sf-scroll", attrs: { role: "tree", "aria-label": "Codex" } });
 	/** The row the keyboard is on (a tree has one tab stop, and the arrows move within it). Survives a redraw. */
 	let focusKey: string | null = null;
@@ -172,7 +172,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 	const shown = (folder: Extract<CodexTreeItem, { type: "folder" }>): CodexTreeItem[] => (folder.path ? folder.children.filter((c) => !(c.type === "file" && c.path === folder.path)) : folder.children);
 
 	function renderItems(container: HTMLElement, items: CodexTreeItem[], parentKey: string | null, depth: number, rows: CodexDragRowInfo[]): void {
-		const lorePath = model.editors?.pathIn(options.opensIn === "workspace" ? "centre" : "lore") ?? null;
+		const lorePath = model.editors?.pathIn(options.opensIn === "workspace" ? "codex" : "lore") ?? null;
 		for (const item of items) {
 			if (item.type === "folder") {
 				const collapsed = model.nav.collapsedCodex.has(item.id);

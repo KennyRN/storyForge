@@ -7,7 +7,13 @@ import { arriveWriting, setWritingFallback, trackWriting } from "./lastWriting";
 import { mountReadOnlyEditor, mountSessionEditor, type MountedEditor, openFind, openFindReplace, redo, undo } from "./editor";
 import { noticeForOutsideChange, noticesForSave, readOnlyBanner } from "./saveNotices";
 
-export type Slot = "centre" | "lore";
+/**
+ * The editor slots: the chapter's (centre: the storytelling side's workspace) and the context panel's (lore), and one for each library
+ * tab that shows an entry in the workspace (codex, archive). The library ones sit in a layer over the workspace; the chapter's editor
+ * stays open underneath, inert (decision 28, 36), and nothing is closed or reopened by flipping between the sides.
+ */
+export type Slot = "centre" | "lore" | "codex" | "archive";
+export const SLOTS: readonly Slot[] = ["centre", "lore", "codex", "archive"];
 
 /** A box the author types in: a text field, a name box, an editor. */
 const isTypingPlace = (e: Element | null): boolean => e instanceof HTMLInputElement || e instanceof HTMLTextAreaElement || (e instanceof HTMLElement && e.isContentEditable);
@@ -20,7 +26,7 @@ interface Occupant {
 }
 
 /**
- * Owns the two editor slots, centre and lore, each holding at most one occupant (docs/interface.md §1.2).
+ * Owns the editor slots (centre, lore, codex, archive), each holding at most one occupant (docs/interface.md §1.2).
  * One file, one editor: opening a file that already has an editor focuses it, in whichever slot holds it.
  * Prose reaches the disk only through the `ProseSession` each editor holds.
  */
@@ -34,7 +40,7 @@ export class EditorHost {
 		private readonly model: AppModel,
 		hosts: Record<Slot, HTMLElement>,
 	) {
-		this.slots = { centre: { host: hosts.centre, occupant: null, opening: 0, pending: null }, lore: { host: hosts.lore, occupant: null, opening: 0, pending: null } };
+		this.slots = Object.fromEntries(SLOTS.map((s) => [s, { host: hosts[s], occupant: null, opening: 0, pending: null }])) as EditorHost["slots"];
 		setWritingFallback(() => this.slots.centre.occupant?.mounted.view ?? null);
 		model.subscribe("project", () => {
 			if (!model.running) this.dropAll();
@@ -49,7 +55,7 @@ export class EditorHost {
 	/** Which slot holds `path`, if any. */
 	where(path: string): Slot | null {
 		const key = this.keyOf(path);
-		for (const slot of ["centre", "lore"] as const) {
+		for (const slot of SLOTS) {
 			const o = this.slots[slot].occupant;
 			if (o && foldKey(o.path) === key) return slot;
 		}
@@ -68,7 +74,7 @@ export class EditorHost {
 
 	/** The editor (or read-only view) the keyboard is in, for Undo, Redo and Find from the menu. */
 	private focused(): MountedEditor | null {
-		for (const slot of ["centre", "lore"] as const) {
+		for (const slot of SLOTS) {
 			const o = this.slots[slot].occupant;
 			if (o?.mounted.view.hasFocus) return o.mounted;
 		}
@@ -93,14 +99,24 @@ export class EditorHost {
 	/** Opens `path` in `slot`, or focuses the editor that already has it. */
 	async open(slot: Slot, path: string): Promise<void> {
 		if (slot === "centre") this.model.setCentreView("chapter");
+		else if (slot === "codex" || slot === "archive") this.model.showLibraryEntry(slot);
 		const have = this.where(path);
-		if (have) {
+		if (have === slot) {
+			this.focus(have);
+			return;
+		}
+		// One file, one editor: the chapter's stays where it is and is focused, and so does a note already held by the centre or the
+		// context panel; but a note that a library tab's workspace holds, or that one is asked to show, moves: it is saved and closed
+		// in the other slot first, then opens here (a hidden editor can't be the one focused).
+		const library = (s: Slot | null): boolean => s === "codex" || s === "archive";
+		if (have && (library(have) || library(slot)) && have !== "centre") await this.close(have);
+		else if (have) {
 			this.focus(have);
 			return;
 		}
 		const s = this.slots[slot];
 		// The same file asked for twice while it is still opening (a click during start-up): one open, not two fighting over one session.
-		for (const other of ["centre", "lore"] as const) {
+		for (const other of SLOTS) {
 			const p = this.slots[other].pending;
 			if (p && p.key === this.keyOf(path)) {
 				await p.done;
@@ -152,7 +168,7 @@ export class EditorHost {
 				return;
 			}
 			const editorHost = el("div", { class: "sf-editor" });
-			const mounted = session ? mountSessionEditor(editorHost, session, { covered: () => slot === "centre" && this.model.centreCovered, typing: () => this.model.typingOptions() }) : mountReadOnlyEditor(editorHost, readOnlyText ?? "");
+			const mounted = session ? mountSessionEditor(editorHost, session, { covered: () => (slot === "centre" ? this.model.centreCovered : slot === "codex" || slot === "archive" ? !(this.model.nav.face === "storyforge" && this.model.nav.forgeTab === slot) : false), typing: () => this.model.typingOptions() }) : mountReadOnlyEditor(editorHost, readOnlyText ?? "");
 			occupant = { path: session?.path ?? project.entry(path)?.path ?? path, mounted, session, offs: [] };
 			trackWriting(mounted.view);
 			if (session) this.watch(occupant, session);
@@ -216,7 +232,7 @@ export class EditorHost {
 	}
 
 	private dropAll(): void {
-		for (const slot of ["centre", "lore"] as const) {
+		for (const slot of SLOTS) {
 			const s = this.slots[slot];
 			s.opening++;
 			const o = s.occupant;

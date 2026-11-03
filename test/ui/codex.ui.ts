@@ -26,7 +26,7 @@ const SIDES = [
 			await flipSide(page);
 			await page.getByRole("tab", { name: "codex" }).click();
 		},
-		opened: (page: Page) => centre(page),
+		opened: (page: Page) => page.locator(".sf-slot--library:not([hidden]) .cm-content"),
 	},
 ];
 

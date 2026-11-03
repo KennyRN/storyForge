@@ -518,15 +518,6 @@ body.sf-codex-drag-active {
 	background: var(--purpose-raised-bg);
 	border-radius: 10px;
 }
-.sf-navmenu-name {
-	padding: 3px 8px;
-	color: var(--purpose-text-muted);
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	user-select: none;
-	-webkit-user-select: none;
-}
 .sf-navmenu-gap {
 	height: 8px;
 }

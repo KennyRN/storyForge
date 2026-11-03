@@ -100,13 +100,14 @@ test.describe("the library", () => {
 			await expect(page.locator(".sf-slot--lore .cm-content")).toHaveCount(0);
 		});
 
-		test("an entry opens in the workspace, not the context; flipping back to storytelling puts the chapter back", async ({ page }) => {
+		test("an entry opens in the workspace, not the context; flipping back to storytelling shows the chapter, still open", async ({ page }) => {
 			await openProject(page);
 			await flip(page);
 			await tab(page, "codex").click();
 			await page.locator(".sf-codex-file", { hasText: "Jane" }).click();
-			await expect(page.locator(".sf-slot--centre .cm-content")).toContainText(/\S/);
-			expect(await page.evaluate(() => window.__app.editors!.pathIn("centre"))).toBe("Codex/Jane.md");
+			await expect(page.locator(".sf-slot--library:not([hidden]) .cm-content")).toContainText(/\S/);
+			expect(await page.evaluate(() => window.__app.editors!.pathIn("codex"))).toBe("Codex/Jane.md");
+			expect(await page.evaluate(() => window.__app.editors!.pathIn("centre"))).toBe("_story-library/aaa/ch-a1.md"); // the chapter stays open underneath
 			expect(await page.evaluate(() => window.__app.editors!.pathIn("lore"))).toBeNull();
 			await expect(page.locator(".sf-codex-file", { hasText: "Jane" })).toHaveClass(/is-active/);
 			await flip(page);
@@ -299,7 +300,7 @@ test.describe("the library", () => {
 		test("clicking an archived chapter shows it read-only with its banner", async ({ page }) => {
 			await page.getByRole("button", { name: "日本語の章", exact: true }).click();
 			await expect(page.getByRole("note")).toHaveText("Archived. Unarchive it to edit.");
-			await expect(centre(page)).toHaveAttribute("contenteditable", "false");
+			await expect(page.locator(".sf-slot--library:not([hidden]) .cm-content")).toHaveAttribute("contenteditable", "false");
 		});
 	});
 

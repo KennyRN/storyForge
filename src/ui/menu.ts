@@ -77,7 +77,8 @@ async function archiveSelection(model: AppModel): Promise<void> {
 		else if (sel.kind === "codex-note" || sel.kind === "codex-folder") {
 			const key = sel.kind === "codex-note" ? sel.path : sel.id;
 			const shown = sel.kind === "codex-note" ? sel.path : sel.path;
-			if (shown && model.editors?.where(shown) === "lore") await model.editors.close("lore");
+			const held = shown ? model.editors?.where(shown) : null;
+			if (held && held !== "centre") await model.editors?.close(held);
 			await archiveCodexItem(project, key);
 			model.selection = null;
 			model.touch("codex", "archive", "nav");

@@ -6,8 +6,8 @@ import type { AppModel, ForgeTab } from "../model";
 
 /**
  * The left panel's menu (Fix 7 polish, item 6): a chevron at the right end of the panel's top band, on both sides, opening where you
- * steer from: the project's name (quiet, not a control), the storytelling side, the four library tabs, then Back Up Now and Change
- * Project. Where you are is green. It is drawn in the panel, on the raised surface with no border, and its rows take the chapter
+ * steer from: the storytelling side, the four library tabs, then Back Up Now and Change
+ * Project, each after a gap. Where you are is green. It is drawn in the panel, on the raised surface with no border, and its rows take the chapter
  * list's shape. Back Up Now and Change Project are the File menu's own items (`handleMenu`), so the reasons and the close are the same.
  */
 export function mountNavMenu(host: HTMLElement, model: AppModel): { button: HTMLElement; dispose(): void } {
@@ -34,7 +34,6 @@ export function mountNavMenu(host: HTMLElement, model: AppModel): { button: HTML
 	const open = (): void => {
 		const running = model.running;
 		if (!running || menu) return;
-		const name = running.root.slice(running.root.lastIndexOf("/") + 1);
 		const state = menuState(model);
 		const hideSeries = !!running.settings.values.hideSeriesPane;
 		const onForge = model.nav.face === "storyforge";
@@ -53,7 +52,6 @@ export function mountNavMenu(host: HTMLElement, model: AppModel): { button: HTML
 		menu = el(
 			"div",
 			{ class: "sf-navmenu", attrs: { role: "menu", "aria-label": "Navigate" } },
-			el("div", { class: "sf-navmenu-name", attrs: { role: "presentation" }, text: name }),
 			item("Storytelling", () => model.flipFace(), { here: !onForge }),
 			tab("codex", "Codex"),
 			...(hideSeries ? [] : [tab("series", "Series")]),
@@ -61,6 +59,7 @@ export function mountNavMenu(host: HTMLElement, model: AppModel): { button: HTML
 			tab("archive", "Archive"),
 			el("div", { class: "sf-navmenu-gap", attrs: { role: "separator" } }),
 			item("Back Up Now", () => void handleMenu(model, "backup-now"), { disabled: state["backup-now"] ? false : readOnly || true }),
+			el("div", { class: "sf-navmenu-gap", attrs: { role: "separator" } }),
 			item("Change Project", () => void handleMenu(model, "close-project")),
 		);
 		host.append(menu);
