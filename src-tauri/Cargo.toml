@@ -1,6 +1,6 @@
 [package]
 name = "storyforge"
-version = "1.6.4"
+version = "1.6.5"
 description = "storyForge: a desktop app over a folder of markdown"
 edition = "2021"
 license = "MIT"

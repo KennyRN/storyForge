@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.5: the Navigate menu's icons and the library's tab row (polish)
+
+- Changed: **the Navigate menu's icons are 32 px**, the library tabs' size, and the rows grow to fit. **The menu's text is centred on its icon** (the middle of the capital height on the icon's middle, measured within 0.25 px in every row), replacing 1.6.3's "baseline 0.1em above the icon's bottom", which put the text at the foot of a 32 px icon.
+- New: **Kenny's own icons** (volcanicMole, based on Tabler Icons, MIT): a rounded globe for **Codex** (in the menu and the tab row), the sunset (the Codex's old icon) for **Archive**, a shield with a tick for **Back Up Now** and a left arrow with lines for **Open Project**. The arrow's stroke and its two bars are knocked out of the badge together with it. Every menu row now has an icon, so the text-only column rule is gone.
+- Changed: **Change Project is now Open Project** in the Navigate menu. Its route is unchanged: the normal close, then the start screen.
+- Changed: **the library's tab icons sit 16 px below the title band** (44 px, 4 px above the window's shared top line, accepted); the panes below still start level with the Codex card's top.
+- Unchanged: the core, the disk format, the prose writer, the close path and the guard; no new Rust command, dependency or network request.
+
 ## 1.6.4: the Codex filter by type (decision 107), and two default design rules
 
 - New: **a filter by type** on both Codex lists and the Archive tab: a third icon in the strip (Tabler's filter) opening a popover of Show all, Untyped and the project's types (icon, name and a tick; a nested type under its parent). A note shows if it has any ticked type (or is untyped, when Untyped is ticked); a folder shows if anything inside it, or its own note, matches; nothing matching goes, an empty folder too, and there's no "Empty" line while filtering. The icon takes the Codex colour while a filter is on. **The filter is for the session only and per list**: it is never written to disk, and every open starts unfiltered. A note or folder you create while filtering stays shown until the filter next changes. Nothing in the core or on disk changed.
