@@ -3,22 +3,31 @@
 .sf-bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--purpose-data-fill); }
 .sf-bar--sliver::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--purpose-data-fill); }
 .sf-bar--chapter { height: 34px; /* the plugin's bar height (Brief 14, Kenny's look) */ }
-/* Overrun: 2px dots in the bar's own colour on the plugin's staggered lattice (8px columns, rows 4px apart, nine of them: centres 1, 5 ... 33 of the 34px, flush with both edges), half dots at the seam with the fill. */
+/* Overrun: solid 2px dots in the bar's own colour on the plugin's staggered lattice (8px columns, rows 4px apart, nine of them: centres 1, 5 ... 33 of the 34px, flush with both edges), half dots at the seam with the fill.
+   The plugin drew each as a 2px div with a solid background; here the shape is a mask (an SVG with crisp edges, no anti-aliasing, so each dot is whole device pixels at full colour) over a solid data-colour background,
+   not a soft gradient. The element's left edge and width are snapped to whole CSS pixels in bars.ts. */
 .sf-bar-dots {
 	position: absolute; top: 0; bottom: 0;
-	background-image: radial-gradient(circle at 0 1px, var(--purpose-data-fill) 1px, transparent 1.25px), radial-gradient(circle at 4px 5px, var(--purpose-data-fill) 1px, transparent 1.25px);
-	background-size: 8px 8px;
+	background: var(--purpose-data-fill);
+	-webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Ccircle cx='0' cy='1' r='1'/%3E%3Ccircle cx='8' cy='1' r='1'/%3E%3Ccircle cx='4' cy='5' r='1'/%3E%3C/svg%3E");
+	-webkit-mask-size: 8px 8px;
+	-webkit-mask-repeat: repeat;
+	mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Ccircle cx='0' cy='1' r='1'/%3E%3Ccircle cx='8' cy='1' r='1'/%3E%3Ccircle cx='4' cy='5' r='1'/%3E%3C/svg%3E");
+	mask-size: 8px 8px;
+	mask-repeat: repeat;
 }
-/* The chapter's name over its bar, as the plugin drew it: 600 weight, 15px (an assumption: the plugin's 1em of Obsidian's interface text), 4px 6px of padding, pinned to the bar's bottom.
-   Dark text with an outer stroke in the data colour, 4px wide beyond the letters (an 8px centred stroke painted under the fill), round joins: it reads as part of the name, over the fill,
-   the dots and the empty track alike, and no dot touches a letter. The text's box carries 4px of padding (cancelled by a margin) so the stroke is inside it, never clipped by the ellipsis. */
-.sf-bar-name { position: absolute; inset: 0; padding: 4px 6px; display: flex; align-items: flex-end; pointer-events: none; }
+/* The chapter's name over its bar, as the plugin drew it: 600 weight, 15px (an assumption: the plugin's 1em of Obsidian's interface text), 6px at the sides, in the lower middle of the bar, clear of its edge.
+   Dark text with an outer stroke in the data colour, 2px beyond the letters (a 4px centred stroke painted under the fill), round joins: it reads as part of the name over the fill, the dots and the empty track alike.
+   The clearance layer is the same text, transparent, stroked 10px in the track's colour (2px of stroke and 3px of clearance beyond the letters), clipped inline to start at the fill's edge: it knocks the dots out round every letter.
+   The text's box carries 5px of padding (cancelled by a margin) so a stroke is always inside it, never clipped by the ellipsis. */
+.sf-bar-name { position: absolute; inset: 0; padding: 6px 6px 2px; display: flex; align-items: center; pointer-events: none; }
 .sf-bar-name-text {
-	display: block; box-sizing: border-box; max-width: calc(100% + 8px); min-width: 0; padding: 4px; margin: -4px;
+	display: block; box-sizing: border-box; max-width: calc(100% + 10px); min-width: 0; padding: 5px; margin: -5px;
 	line-height: 1.2; font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 	color: var(--purpose-text-on-data);
-	-webkit-text-stroke: 8px var(--purpose-data-fill); paint-order: stroke fill; stroke-linejoin: round; stroke-linecap: round;
+	-webkit-text-stroke: 4px var(--purpose-data-fill); paint-order: stroke fill; stroke-linejoin: round; stroke-linecap: round;
 }
+.sf-bar-name--clear .sf-bar-name-text { color: transparent; -webkit-text-stroke: 10px var(--purpose-bar-track); }
 .sf-bar-marker { position: absolute; top: 0; bottom: 0; margin-left: -1px; height: 100%; stroke: var(--purpose-data-fill); }
 
 /* The layer over the workspace. */
