@@ -17,7 +17,6 @@
 	--band-h: 28px; /* the invisible title bar's band: the traffic lights sit in it, the panels' backgrounds run up behind it */
 	--top-gap: 20px; /* from the band's bottom to the one top line the three panels' first things start on */
 	--motion: 160ms;
-	--ink-duration: 450ms;
 }
 
 *,
@@ -96,7 +95,6 @@ html[data-input="pointer"] .sf-splitter:focus-visible {
 @media (prefers-reduced-motion: reduce) {
 	:root {
 		--motion: 0ms;
-		--ink-duration: 0ms;
 	}
 	*,
 	*::before,

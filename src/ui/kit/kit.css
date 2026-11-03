@@ -187,31 +187,6 @@
 	display: none;
 }
 
-/* The ink indicator (ported from inkSlider; the bar is the interface accent). */
-.sf-ink-track {
-	--sf-ink-thickness: 2px;
-	position: absolute;
-	top: 0;
-	width: var(--sf-ink-thickness);
-	overflow: hidden;
-	pointer-events: none;
-}
-.sf-ink-bar {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 100%;
-	background: var(--purpose-accent);
-	transition: transform var(--ink-duration) cubic-bezier(0.65, 0, 0.35, 1);
-}
-.sf-ink-bar.is-instant {
-	transition: none;
-}
-.sf-ink-track--rail {
-	left: 0;
-	height: 100%;
-}
-
 .sf-picker { display: flex; flex-direction: column; gap: 8px; min-width: 260px; }
 .sf-picker-filter { font: inherit; padding: 4px 6px; color: var(--purpose-text); background: var(--purpose-raised-bg); border: 1px solid var(--purpose-border); border-radius: 3px; }
 .sf-picker-filter:focus-visible { outline: 2px solid var(--purpose-focus-ring); }

@@ -570,22 +570,7 @@ body.sf-codex-drag-active {
 	display: flex;
 	justify-content: space-around;
 	align-items: center;
-	padding: var(--top-gap) 4px 14px; /* the icons sit on the shared top line; the ink bar lives in the gap beneath them */
-}
-.sf-tabbar-ink {
-	position: absolute;
-	left: 0;
-	top: 0;
-	height: 2px;
-	background: var(--purpose-accent);
-	transition: transform var(--ink-duration) cubic-bezier(0.65, 0, 0.35, 1);
-	pointer-events: none;
-}
-.sf-tabbar-ink.is-instant {
-	transition: none;
-}
-.sf-tabbar-ink.is-off {
-	display: none;
+	padding: var(--top-gap) 4px 8px; /* the icons sit on the shared top line */
 }
 .sf-tab {
 	display: inline-flex;

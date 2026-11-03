@@ -56,33 +56,25 @@ test.describe("the library", () => {
 		await expect(tabs.nth(3)).toHaveAttribute("aria-label", "codex");
 		await expect(tab(page, "novel")).toHaveAttribute("aria-selected", "true");
 		// the tabs lie across the top and the ink bar is under the selected icon
-		const x = (sel: string) => page.locator(sel).evaluate((e) => { const r = e.getBoundingClientRect(); return { l: r.left, w: r.width, t: r.top, b: r.bottom }; });
 		const tops = await Promise.all([0, 1, 2, 3].map((i) => tabs.nth(i).evaluate((e) => e.getBoundingClientRect().top)));
 		expect(new Set(tops.map(Math.round)).size, "one row").toBe(1);
-		await expect(page.locator(".sf-rail .sf-tabbar-ink")).toBeAttached();
-		const underNovel = async (name: string) => {
-			const icon = await tab(page, name).locator("svg").evaluate((e) => { const r = e.getBoundingClientRect(); return { l: r.left, w: r.width, b: r.bottom }; });
-			await expect.poll(async () => (await x(".sf-tabbar-ink")).l).toBeCloseTo(icon.l, 0);
-			const bar = await x(".sf-tabbar-ink");
-			expect(bar.w).toBeCloseTo(icon.w, 0);
-			expect(bar.t, "under the icon").toBeGreaterThan(icon.b);
-		};
-		await underNovel("novel");
+		// selection is the colour alone: no ink bar, and the screen reader's selected state follows the choice
+		await expect(page.locator(".sf-tabbar-ink, .sf-ink-track")).toHaveCount(0);
+		await expect(tab(page, "novel")).toHaveAttribute("aria-selected", "true");
 		await tab(page, "archive").click();
-		await underNovel("archive");
+		await expect(tab(page, "archive")).toHaveAttribute("aria-selected", "true");
+		await expect(tab(page, "novel")).toHaveAttribute("aria-selected", "false");
 		// evenly spread: the gaps between the icons match
 		const all = page.locator(".sf-rail .sf-tab");
 		await expect(all).toHaveCount(5);
 		const lefts = await Promise.all([0, 1, 2, 3, 4].map((i) => all.nth(i).evaluate((e) => { const r = e.getBoundingClientRect(); return { l: r.left, r: r.right }; })));
 		const gaps = [1, 2, 3, 4].map((i) => lefts[i].l - lefts[i - 1].r);
 		expect(Math.max(...gaps) - Math.min(...gaps)).toBeLessThan(1.5);
-		// 32 px icons, the bar 6px below the icon's bottom, and the flip is a button: no tab role, and the bar is never under it
+		// 32 px icons, and the flip is a button: no tab role
 		for (let i = 0; i < 5; i++) {
 			const sz = await all.nth(i).locator("svg").evaluate((e) => { const r = e.getBoundingClientRect(); return [r.width, r.height]; });
 			expect(sz).toEqual([32, 32]);
 		}
-		const gapBar = await page.evaluate(() => document.querySelector(".sf-tabbar-ink")!.getBoundingClientRect().top - document.querySelector(".sf-tab.is-active svg")!.getBoundingClientRect().bottom);
-		expect(gapBar).toBeCloseTo(6, 0);
 		const flipButton = page.getByRole("button", { name: "storytelling", exact: true });
 		await expect(flipButton).toHaveAttribute("aria-label", "storytelling");
 		await expect(flipButton).not.toHaveAttribute("role", "tab");

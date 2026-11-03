@@ -19,7 +19,9 @@ storyForge's own implementation is written from Obsidian's public API (`Workspac
 
 A different, more commonly vendored technique — constructing a standalone CodeMirror editor not backed by a real file — was documented publicly by **Fevol**, crediting **mgmeyers** of the Kanban plugin for the original prototype-resolution work. storyForge does not use this technique: it isn't file-backed (persisting it would mean the plugin calling `vault.modify` directly on a chapter body, which storyForge's write-guard tenet forbids), so it doesn't fit here. Noted for completeness, since it's the technique most often associated with "an editor embedded in a plugin's own view."
 
-## Ink Slider (sliding indicator on storyForge's icon rails)
+## Ink Slider (sliding indicator on storyForge's icon rails; no longer in the app)
+
+*Removed in 1.6.3: the library's tab row no longer has an ink bar, and nothing else used it. This entry stays as the record of what the code was adapted from.*
 
 `src/view/inkSlider.ts` and the `.sf-ink-track` / `.sf-ink-bar` rules in `styles.css` adapt the "Ink Slider" CSS tab pattern, in which a solid bar slides beneath the active tab, its position and size measured from the active element rather than assumed and re-aligned when the layout resizes. storyForge turns it vertical, so the bar slides beside the selected icon on the Notebook and Archive source rails, every codex index's #tag rail and the storyTelling sidebar's continuous-mode toggle, and keeps the original's easing curve (`cubic-bezier(0.65, 0, 0.35, 1)`) and 0.45s duration.
 

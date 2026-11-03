@@ -4,7 +4,7 @@
 
 - New: **Kenny's own navigator icons** (volcanicMole, based on Tabler Icons, MIT): Storytelling, Codex, Series, Novel and Archive, in the Navigate menu (1.2em before the text) and across the top of the library side.
 - New: **the left panel's Navigate menu**: a chevron at the right end of the top band, on both sides, opening Storytelling, the four library tabs, Back Up Now and Change Project, with where you are in green.
-- Changed: **the library's tabs go across the top** (32 px icons: Archive, Novel, Series, Codex, from the window's outer edge), with the Storytelling icon as a flip (as ⌘\ does) and an ink bar under the selected tab. The left rail is gone. Left and right arrows move between the tabs.
+- Changed: **the library's tabs go across the top** (32 px icons: Archive, Novel, Series, Codex, from the window's outer edge), with the Storytelling icon as a flip (as ⌘\ does). The selected tab shows by colour alone (green; grey at rest), so there is no ink bar, and the ink indicator's code is removed. The left rail is gone. Left and right arrows move between the tabs.
 - Changed: **the workspace belongs to the side**: the library's Codex and Archive tabs cover the chapter with their own entry or a blank; the chapter's editor stays open and inert underneath; archived items open in the Archive tab.
 - Changed: **the library's Codex list** takes the storytelling list's Appearance font, weight, size, spacing and card.
 - Changed: **the chapter selector's rows** are shaped like the Codex rows, the hovered row is a block in the accent colour, and its text lines up with the Codex list's; "add the next chapter" is an icon.

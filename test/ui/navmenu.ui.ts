@@ -330,8 +330,11 @@ test.describe("the library side's tabs and Codex", () => {
 test("the panes under the tab row start where the Codex card's top is, so nothing jumps between tabs", async ({ page }) => {
 	await openProject(page);
 	await flipFace(page);
+	let narrow = false;
 	const top = async (name: string) => {
 		await page.getByRole("tab", { name }).click();
+		// the panel puts its own width back when the tab changes, so the minimum is applied after the click
+		if (narrow) await page.evaluate(() => { const left = document.querySelector<HTMLElement>(".sf-left")!; left.style.width = "200px"; left.style.flex = "none"; });
 		await page.waitForTimeout(150);
 		return page.evaluate(() => {
 			const pane = document.querySelector(".sf-forge-tab")!;
@@ -340,6 +343,11 @@ test("the panes under the tab row start where the Codex card's top is, so nothin
 			return (first.classList.contains("sf-series-title") ? text : first).getBoundingClientRect().top;
 		});
 	};
-	const card = await top("codex");
-	for (const t of ["series", "novel", "archive"]) expect(Math.abs((await top(t)) - card), t).toBeLessThan(6);
+	// at the default width and at the panel's 200 px minimum
+	for (const width of [null, "200px"]) {
+		narrow = width !== null;
+		const card = await top("codex");
+		for (const t of ["series", "novel", "archive"]) expect(Math.abs((await top(t)) - card), `${t} at ${width ?? "default"}`).toBeLessThan(6);
+		if (narrow) expect(await page.locator(".sf-left").evaluate((e) => e.getBoundingClientRect().width)).toBeLessThanOrEqual(201);
+	}
 });
