@@ -394,11 +394,13 @@ Kenny's design. Both are **defaults**: a new list or menu follows them unless Ke
 **Rule 1: a selected text row is highlighted as in the Codex list.**
 - It applies to any list of text rows where one is the current choice: the Navigate menu, the filter popover, the chapter list and the Settings section list. The Codex lists already follow it, in their own colour (the Codex colour setting).
 - **The look:** the Codex rows' shape (6 px in from the surface's edges, 4 px corners), filled in the interface accent (green), with the text and its icon in the surface's own background colour. **Hover looks the same as selected** (decision 62).
+- **Highlighted rows touch, as in the Codex list:** no gap between rows, so a highlight meets the one above and below it (each row keeps its 4 px corners, as the Codex list draws them). A row's own padding carries what the gap was (half above, half below), so the text stays exactly where it was; the first and last rows are nudged back by the same amount, and the group separators (the Navigate menu's) keep their full distance. Adjacent ticked types in the filter popover are touching blocks.
 - **Not icons:** the library tabs, the Codex strip and other icons stay hover icons.
 - **The filter popover:** every ticked type is highlighted and keeps its tick (several can be chosen, and a tick doesn't rely on colour); "Show all" is highlighted when no filter is on.
 - **Screen readers:** the selected, current and checked states are unchanged.
 - **Contrast** (the theme's values; the same figure either way round): accent green on `bg_dim` 6.61:1, on `bg0` (editor, Codex card) 5.62:1, on `bg1` (the raised surface every menu, popover and dialog is on) 4.86:1, on `bg2` 4.22:1. Everything the rule applies to is on `bg1`; `bg2` is the one shade under 4.5:1 and is not used for it.
-- **Exceptions, by name:** the colour swatches, the overview's card-size buttons and icon buttons (not text rows); the library's tab icons. **Not yet converted, for Kenny to rule on:** the library Series, Novel and Archive panes' rows (`.sf-row.is-selected`) and the shortcode popup's selected option.
+- **Converted too** (Kenny, 3 November 2026): the library Series, Novel and Archive panes' rows (the panel's own colour on the accent) and the shortcode popup's selected option. Kenny can name either as an exception after seeing it.
+- **Exceptions, by name:** the colour swatches, the overview's card-size buttons and icon buttons (not text rows); the library's tab icons.
 
 **Rule 2: every floating surface has the same shadow.**
 - It applies to anything that opens over the window: the chapter dropdown, the Navigate menu, the filter popover, the special-characters popover, the shortcode popup, context menus and notices. All use `--floating-shadow` (`0 4px 12px` of `--purpose-shadow`), defined once in `theme/purposes.css`; no shadow is written out elsewhere. The raised `bg1` surface has no border.

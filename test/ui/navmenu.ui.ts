@@ -186,7 +186,7 @@ test.describe("focus rings are for the keyboard", () => {
 });
 
 test.describe("the chapter list's rows, the add button and the title bar", () => {
-	test("rows are 6px in from the dropdown's edges with 4px corners and a Codex row's 3px padding; the add row is centred, its icon 1em", async ({ page }) => {
+	test("rows are 6px in from the dropdown's edges with 4px corners and a Codex row's padding (3px, plus half the 2px gap that rule 1 folded in, so the rows touch); the add row is centred, its icon 1em", async ({ page }) => {
 		await openProject(page);
 		await page.getByRole("button", { name: "Chapters" }).click();
 		const list = page.locator(".sf-nav-list");
@@ -195,7 +195,7 @@ test.describe("the chapter list's rows, the add button and the title bar", () =>
 		expect(r!.x - l!.x).toBeCloseTo(6, 0);
 		expect(l!.x + l!.width - (r!.x + r!.width)).toBeCloseTo(6, 0);
 		const s = await row.evaluate((e) => { const c = getComputedStyle(e); return [c.paddingTop, c.paddingBottom, c.borderTopLeftRadius]; });
-		expect(s).toEqual(["3px", "3px", "4px"]);
+		expect(s).toEqual(["4px", "4px", "4px"]); // 3px and half the 2px gap that was between rows: the rows touch, the text has not moved
 		const add = page.getByRole("button", { name: "Add the next chapter" });
 		const [a, i, size] = await Promise.all([add.boundingBox(), add.locator("svg").boundingBox(), add.evaluate((e) => parseFloat(getComputedStyle(e).fontSize))]);
 		expect(i!.width).toBeCloseTo(size, 0);

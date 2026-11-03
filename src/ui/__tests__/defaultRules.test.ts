@@ -4,7 +4,8 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 // Two default rules (Kenny, 3 November 2026; docs/interface.md and AGENTS.md). New lists and menus follow them unless an exception is named here.
-//   Rule 1: a selected text row is highlighted as in the Codex list: an accent fill, the surface's own colour on it, hover the same.
+//   Rule 1: a selected text row is highlighted as in the Codex list: an accent fill, the surface's own colour on it, hover the same, and
+//           highlighted rows touch (no gap between rows: each row's own padding carries what the gap was).
 //   Rule 2: every floating surface has the one shared shadow (`--floating-shadow`, or `--floating-shadow-filter` for a joined silhouette).
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -58,9 +59,6 @@ const SELECTION_EXCEPTIONS: Record<string, string> = {
 	".sf-swatch.is-chosen": "a colour swatch in a group, not a text row",
 	'.sf-size-option[aria-checked="true"]': "a card-size button in the overview, not a text row",
 	".sf-tab:hover, .sf-tab.is-active": "the library's tab icons (icons stay hover icons)",
-	// Not yet converted, for Kenny to rule on (named here so a new list can't slip in beside them):
-	".sf-row.is-selected": "PENDING: the library Series, Novel and Archive panes' rows (Kenny named only the menus, the filter, the chapter list and the Settings list)",
-	".sf-shortcode-option.is-selected .sf-shortcode-label": "PENDING: the shortcode popup's selected option",
 };
 describe("rule 1: a selected text row is highlighted as in the Codex list", () => {
 	it("a selected state that colours text with the accent also fills the row with it, unless it is a named exception", () => {
@@ -71,11 +69,28 @@ describe("rule 1: a selected text row is highlighted as in the Codex list", () =
 	});
 
 	it("the rows that follow the rule put the surface's colour on the accent fill", () => {
-		for (const sel of [".sf-navmenu-row.is-here, .sf-navmenu-row:hover:not(:disabled)", ".sf-nav-row.is-active", ".sf-settings-tab:hover, .sf-settings-tab.is-active", ".sf-filter-row:hover, .sf-filter-row:focus-visible, .sf-filter-row.is-chosen"]) {
+		const SURFACE = "--purpose-raised-bg";
+		for (const [sel, surface] of [
+			[".sf-navmenu-row.is-here, .sf-navmenu-row:hover:not(:disabled)", SURFACE],
+			[".sf-nav-row.is-active", SURFACE],
+			[".sf-settings-tab:hover, .sf-settings-tab.is-active", SURFACE],
+			[".sf-filter-row:hover, .sf-filter-row:focus-visible, .sf-filter-row.is-chosen", SURFACE],
+			[".sf-shortcode-option.is-selected", SURFACE],
+			[".sf-row:hover, .sf-row.is-selected", "--purpose-panel-bg"], // the library panes sit on the panel
+		] as const) {
 			const r = all.find((x) => x.selector === sel);
 			expect(r, sel).toBeTruthy();
-			expect(r!.body).toMatch(/background:\s*var\(--purpose-accent\)/);
-			expect(r!.body).toMatch(/color:\s*var\(--purpose-raised-bg\)/);
+			expect(r!.body, sel).toMatch(/background:\s*var\(--purpose-accent\)/);
+			expect(r!.body, sel).toMatch(new RegExp(`color:\\s*var\\(${surface}\\)`));
+		}
+	});
+
+	it("highlighted rows touch: no list under the rule has a gap between its rows", () => {
+		const LISTS = [".sf-navmenu", ".sf-filter-popover", ".sf-nav-list", ".sf-settings-tabs", ".sf-list"];
+		for (const sel of LISTS) {
+			const r = all.filter((x) => x.selector === sel);
+			expect(r.length, sel).toBeGreaterThan(0);
+			for (const x of r) expect(x.body, `${sel}: rows touch`).not.toMatch(/(^|[;\s])gap:(?!\s*0\s*;)/);
 		}
 	});
 });

@@ -169,20 +169,23 @@
 	left: 0;
 	right: 0;
 	margin: 0;
-	padding: 0 6px 6px; /* the highlight is 6px in from the dropdown's edges, as in the Codex card */
+	padding: 0 6px 5px; /* the highlight is 6px in from the dropdown's edges, as in the Codex card */
 	max-height: 60vh;
 	overflow-y: auto;
 	list-style: none;
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: 0; /* rule 1: highlighted rows touch */
 	background: var(--purpose-raised-bg);
 	border-radius: 0 0 var(--nav-radius) var(--nav-radius);
 }
 .sf-nav-row {
-	/* The Codex rows' shape (decision 88): 3px above and below, 8px at the sides, 4px corners. */
-	padding: 3px 8px;
+	/* The Codex rows' shape (decision 88): 3px above and below (plus half the 2px gap that was between rows, now none), 8px at the sides, 4px corners. */
+	padding: 4px 8px;
 	border-radius: 4px;
+}
+.sf-nav-list > :first-child {
+	margin-top: -1px; /* the first row's text stays where it was */
 }
 .sf-nav-add {
 	justify-content: center;
@@ -527,19 +530,19 @@ body.sf-codex-drag-active {
 	max-width: calc(100% - 16px);
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
-	padding: 6px;
+	gap: 0; /* rule 1: highlighted rows touch; each row's own padding carries what the gap was */
+	padding: 5px 6px;
 	background: var(--purpose-raised-bg);
 	border-radius: 10px;
 	box-shadow: var(--floating-shadow);
 }
 .sf-navmenu-gap {
-	height: 8px;
+	height: 10px; /* 8px, and the 2px that each side of it was */
 }
 .sf-navmenu-row {
 	display: block;
 	width: 100%;
-	padding: 3px 8px;
+	padding: 4px 8px; /* 3px and half the 2px gap that was between rows */
 	border: 0;
 	border-radius: 4px; /* the chapter list's and the Codex rows' shape */
 	background: transparent;
@@ -633,22 +636,28 @@ body.sf-codex-drag-active {
 .sf-list {
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: 0; /* rule 1: highlighted rows touch; each row's own padding carries what the gap was */
+	margin-block: -1px; /* the first and last rows' text stays where it was */
 }
 .sf-row {
 	display: flex;
 	align-items: center;
 	gap: var(--space-1);
-	padding: 4px 6px;
+	padding: 5px 6px; /* 4px and half the 2px gap that was between rows */
 	border-radius: var(--radius);
 	cursor: pointer;
 }
-.sf-row:hover {
-	background: var(--purpose-raised-bg);
-}
+/* Rule 1: the selected row is highlighted as in the Codex list, hover the same; the panel's own colour is on the accent. */
+.sf-row:hover,
 .sf-row.is-selected {
-	background: var(--purpose-raised-bg);
-	color: var(--purpose-accent);
+	background: var(--purpose-accent);
+	color: var(--purpose-panel-bg);
+}
+.sf-row:hover .sf-row-subtitle,
+.sf-row.is-selected .sf-row-subtitle,
+.sf-row:hover .sf-drag-handle,
+.sf-row.is-selected .sf-drag-handle {
+	color: inherit;
 }
 .sf-drag-handle {
 	display: inline-flex;
@@ -702,6 +711,10 @@ body.sf-codex-drag-active {
 }
 .sf-unplaced-list .sf-row {
 	color: var(--purpose-text-muted);
+}
+.sf-unplaced-list .sf-row:hover,
+.sf-unplaced-list .sf-row.is-selected {
+	color: var(--purpose-panel-bg);
 }
 
 .sf-meta {
@@ -785,8 +798,8 @@ body.sf-codex-drag-active {
 	min-width: 200px;
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
-	padding: 6px;
+	gap: 0; /* rule 1: highlighted rows touch (adjacent ticked types join as blocks) */
+	padding: 5px 6px;
 	background: var(--purpose-raised-bg);
 	border-radius: 10px;
 	box-shadow: var(--floating-shadow);
@@ -796,7 +809,7 @@ body.sf-codex-drag-active {
 	align-items: center;
 	gap: 0.5em;
 	width: 100%;
-	padding: 3px 8px;
+	padding: 4px 8px;
 	border: 0;
 	border-radius: 4px;
 	background: transparent;

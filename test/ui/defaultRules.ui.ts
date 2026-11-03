@@ -91,3 +91,65 @@ test.describe("rule 1: a selected text row is highlighted", () => {
 		await flipFace(page); // (keeps the page honest: the highlight rule is not tied to the side)
 	});
 });
+
+test.describe("rule 1: highlighted rows touch, as in the Codex list", () => {
+	/** Every pair of neighbouring rows meets: no gap, no overlap. */
+	const touch = async (rows: Locator, what: string): Promise<void> => {
+		const boxes = await rows.evaluateAll((els) => els.map((e) => { const r = e.getBoundingClientRect(); return [r.top, r.bottom]; }));
+		expect(boxes.length, `${what}: rows`).toBeGreaterThan(1);
+		for (let i = 1; i < boxes.length; i++) expect(Math.abs(boxes[i][0] - boxes[i - 1][1]), `${what}: row ${i} meets the one above`).toBeLessThan(0.6);
+	};
+
+	test("the filter popover's adjacent ticked types are touching blocks, and so are the rows of the Navigate menu, the chapter list and the Settings list", async ({ page }) => {
+		await openProject(page);
+		await page.getByRole("button", { name: "Filter by type" }).click();
+		const pop = page.getByRole("menu", { name: "Filter by type" });
+		await pop.getByRole("menuitemcheckbox", { name: "Person", exact: true }).click();
+		await pop.getByRole("menuitemcheckbox", { name: "Place", exact: true }).click();
+		await touch(pop.locator("button"), "the filter popover");
+		const [a, b] = await Promise.all([pop.getByRole("menuitemcheckbox", { name: "Person", exact: true }).boundingBox(), pop.getByRole("menuitemcheckbox", { name: "Place", exact: true }).boundingBox()]);
+		expect(Math.abs(b!.y - (a!.y + a!.height))).toBeLessThan(0.6); // the two ticked, highlighted rows meet
+		await page.keyboard.press("Escape");
+		await chevron(page).click();
+		await touch(page.getByRole("menu", { name: "Navigate" }).getByRole("menuitem").filter({ hasText: /^(Storytelling|Codex|Series|Novel|Archive)$/ }), "the Navigate menu");
+		await page.keyboard.press("Escape");
+		await page.getByRole("button", { name: "Chapters" }).click();
+		await touch(page.locator(".sf-nav-list .sf-nav-row"), "the chapter list");
+		await page.keyboard.press("Escape");
+		await openSettingsDialog(page);
+		await touch(page.getByRole("dialog").getByRole("tab"), "the Settings section list");
+	});
+
+	test("the library panes' rows touch, and the selected one is highlighted as the others are", async ({ page }) => {
+		await openProject(page);
+		await flipFace(page);
+		for (const tab of ["novel", "series"]) {
+			await page.getByRole("tab", { name: tab }).click();
+			const placed = page.locator(".sf-forge-pane .sf-list").first().locator(".sf-row");
+			await touch(placed, `the ${tab} pane`);
+			const selected = page.locator(".sf-forge-pane .sf-row.is-selected").first();
+			expect(await style(selected, "background-color"), `${tab}: the accent fill`).toBe(await resolved(page, "background-color", "var(--purpose-accent)"));
+			expect(await style(selected, "color"), `${tab}: the panel's colour on it`).toBe(await resolved(page, "color", "var(--purpose-panel-bg)"));
+		}
+	});
+
+	test("the shortcode popup's selected option is highlighted the same way, and its options touch", async ({ page }) => {
+		await openPreview(page);
+		await page.evaluate(() => window.__preview.touch("_backstage/storyforge/project.md", "---\nformat-version: 1\ntyping-shortcodes-list:\n  th: the Right Honourable\n  tm: the Most Noble\n---\n"));
+		await page.reload();
+		await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+		await page.locator("[data-recent='0']").click();
+		await page.waitForFunction(() => !!window.__app?.editors);
+		await page.locator(".sf-slot--centre .cm-content").click();
+		await page.keyboard.press("ControlOrMeta+End");
+		await page.keyboard.type(" He met ~t");
+		const options = page.locator(".sf-shortcode-option");
+		await expect(options.first()).toBeVisible();
+		const selected = page.locator(".sf-shortcode-option.is-selected");
+		expect(await style(selected, "background-color")).toBe(await resolved(page, "background-color", "var(--purpose-accent)"));
+		expect(await style(selected, "color")).toBe(await resolved(page, "color", "var(--purpose-raised-bg)"));
+		await touch(options, "the shortcode popup");
+		// rule 2: the popup really has the shared shadow on screen (CodeMirror's own tooltip rules zero it on the wrapper, not on the popup)
+		expect(await style(page.locator(".sf-shortcode-popup"), "box-shadow")).toBe(await resolved(page, "box-shadow", "var(--floating-shadow)"));
+	});
+});

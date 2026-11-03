@@ -411,10 +411,11 @@ html[data-input="pointer"] .sf-splitter:focus-visible {
 .sf-settings-tabs {
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: 0; /* rule 1: highlighted rows touch */
+	margin-block: -1px; /* the first and last rows' text stays where it was */
 }
 .sf-settings-tab {
-	padding: 5px 8px;
+	padding: 6px 8px; /* 5px and half the 2px gap that was between rows */
 	border: 0;
 	border-radius: var(--radius);
 	background: transparent;
