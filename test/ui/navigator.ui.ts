@@ -143,10 +143,14 @@ test.describe("the navigator", () => {
 			expect(await colourOf(rows.nth(1))).toBe(await colour(page, "--purpose-text-muted"));
 			await expect(rows.nth(0)).toHaveAttribute("aria-current", "true");
 			await rows.nth(1).hover();
-			expect(await colourOf(rows.nth(1))).toBe(await colour(page, "--purpose-accent")); // hover takes the selected chapter's colour
+			const raised = await page.evaluate(() => { const d = document.createElement("i"); d.style.color = "var(--purpose-raised-bg)"; document.body.append(d); const c = getComputedStyle(d).color; d.remove(); return c; });
+			const blockOf = (l: ReturnType<Page["locator"]>) => l.evaluate((e) => getComputedStyle(e).backgroundColor);
+			expect(await colourOf(rows.nth(1))).toBe(raised); // hover: a block in the selected chapter's colour, the list's colour on it
+			expect(await blockOf(rows.nth(1))).toBe(await colour(page, "--purpose-accent"));
 			expect(await colourOf(rows.nth(3))).toBe(await colour(page, "--purpose-text-muted"));
 			await rows.nth(3).hover();
-			expect(await colourOf(rows.nth(3))).toBe(await colour(page, "--purpose-accent"));
+			expect(await colourOf(rows.nth(3))).toBe(raised);
+			expect(await blockOf(rows.nth(3))).toBe(await colour(page, "--purpose-accent"));
 			await expect(page.getByText("add the next chapter", { exact: true })).toBeVisible(); // its tooltip
 			await rows.nth(2).focus();
 			await page.keyboard.press("ArrowDown");
