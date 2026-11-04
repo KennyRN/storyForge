@@ -79,3 +79,33 @@ After your answers I'll start commit 1 (the frame and the solid bar).
 - **Older versions.** Run against `v1.7.0`'s own code in a throwaway worktree: a `project.md` holding `data-colour: red` and an unknown key survives an unrelated settings write (`story-kind`) byte for byte, as the Wonk keys did in 1.6.1. 1.7.0 and earlier read only the keys they know and rewrite by splicing, so a 1.8.0 project opened by them keeps its colour. The same test is in 1.8.0's suite for its own writer.
 - The existing tests that clicked a swatch by its bare name (Yellow, Purple) now name the Codex colour group first, because both groups have swatches of the same names.
 - **Still to run:** the full `npm run test:ui`, `npm run test:settings-sync` (built app) and the full sweep (a minor version), none yet; Kenny's look; the merge waits for his go-ahead.
+
+## Kenny's look, the keyboard-focus finding and the 1.8.0 sweep
+
+**Kenny's look** at 1.8.0 (window-only pictures of the preview, then the built app): good.
+
+**The full `npm run test:ui`** (518 tests, run once before the fixes below): 507 passed, 10 failed.
+- One was ours: `codexlook.ui.ts:127` picked a swatch by its bare name, and the data colour added a second group of swatches with the same names. Test-only fix (scoped to the Codex colour group), proved by its own file passing.
+- Nine were keyboard-focus tests (`codexlook` ×4, `kit` ×3, `navigator`, `storytelling`). The same nine failed on a worktree of `v1.7.0`, so not this change.
+- **Cause (environment, not code):** `AppleKeyboardUIMode` is 0 on Kenny's Mac, deliberately (it stops focus boxes that got in the way of typing). With it at 0, plain Tab in WebKit reaches only text boxes and lists, not buttons or links. A bare page with no storyForge code showed it (Tab from an input: `body, input, body, input`); **Option-Tab reached the buttons and the link**. The OS (26.6.2 since 29 August), Playwright (1.64.1) and its WebKit build (webkit-2370, 23 October) had not changed since the run that passed; the setting's value yesterday could not be read, so the setting having been different then is an inference.
+- **Fix (test-only, 21cf5f9):** those tests press `Alt+Tab` and `Alt+Shift+Tab` where they need a control. `codexlook`, `kit`, `navigator` and `storytelling` pass together (63 of 63) with the setting still 0. **The whole of `test:ui` was not re-run after this**; only those four files and the ones from commits 1 and 3 (`appearance`, `settingsSync`, `novelBars`, `overviews`, the last four at 62 passed before the fix and unchanged by it).
+- No built-app script relies on plain Tab reaching a button (`typing-smoke`'s Tab is the shortcode popup's accept key in a text box, and "Tab leaves the field"), so none changed.
+- **New pre-flight:** `guardedTyping` reads Full Keyboard Access (`com.apple.universalaccess`, read-only) at start and, if it is on and not suspended by Pass-Through Mode, sends nothing and asks Kenny to suspend it. Unit-tested. At the sweep: Full Keyboard Access `keyboardAccessEnabled` 1 with `keyboardAccessPassthroughMode` 1 (suspended), `AppleKeyboardUIMode` 0. Recorded in `AGENTS.md`.
+
+**The sweep** (Kenny away; 4 November 2026, 13:41 to 14:22; built app `storyForge_1.8.0_universal`, built from 3097388, nothing under `src/` or `src-tauri/` changed after; `caffeinate -d -i -s` tied to the driver; `pgrep` checked before every script; the driver stops on any `test:quit`, `npm test` or Rust failure):
+
+| Script | Round 1 | Round 2 | Round 3 |
+|---|---|---|---|
+| `npm test` (includes the disk-safety suite) | 1679 passed | | |
+| `cargo test --workspace` | passed | | |
+| `test:quit` (safety) | pass | pass | pass |
+| `test:settings-sync` | pass | pass | pass |
+| `test:cover` | pass | pass | pass |
+| `test:typing` | pass | pass | pass |
+| `test:look` | pass | pass | pass |
+| `test:widths` | pass | pass | pass |
+| `test:fonts` | pass | pass | pass |
+
+Every script passed every time, with no retries and no refused starts. The first-launch "window never appeared" item from the 1.7.0 sweep did not occur. The Settings Escape and lost Writing-tab click items logged for 1.7.1 were not part of this brief and were not touched.
+
+**Not done:** the merge and the tag, which wait for Kenny's go-ahead. The sweep covers the built app only; the full `test:ui` was not repeated after the test-only fixes (see above).
