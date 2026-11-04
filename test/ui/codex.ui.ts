@@ -67,10 +67,10 @@ for (const side of SIDES) {
 				expect(g.gap, `${name}: the gap between the name and its icon`).toBeCloseTo(0.75 * g.em, 0);
 			}
 			// A note with no tag linked has no icon at all; a folder always has its folder icon.
-			expect(await tree(page).locator('[data-key="Codex/NoNewline.md"] svg').count()).toBe(0);
-			expect(await row(page, "Cast").locator("svg").count()).toBe(1);
+			await expect(tree(page).locator('[data-key="Codex/NoNewline.md"] svg')).toHaveCount(0);
+			await expect(row(page, "Cast").locator("svg")).toHaveCount(1);
 			// A folder that is also a note shows its folder icon and then its type icon, both after the name.
-			expect(await row(page, "Harbour").locator("svg").count()).toBe(2);
+			await expect(row(page, "Harbour").locator("svg")).toHaveCount(2);
 			await shot(page, `look-codex-${side.name.replace(/ /g, "-")}`);
 		});
 
@@ -108,7 +108,7 @@ for (const side of SIDES) {
 			await cast.locator("svg").first().click();
 			await expect(cast).toHaveAttribute("aria-expanded", "true");
 			// notes are not folders: they carry no expanded state
-			expect(await row(page, "Windows").getAttribute("aria-expanded")).toBeNull();
+			await expect(row(page, "Windows")).not.toHaveAttribute("aria-expanded", /.*/);
 		});
 
 		test("the folder icon is a comfortable mouse target: as tall as the row and at least 28px wide, a pointer; a click beside the glyph inside it still folds", async ({ page }) => {

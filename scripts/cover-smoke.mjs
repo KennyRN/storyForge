@@ -58,6 +58,9 @@ const findScript = `on run argv
 	return "none"
 end run`;
 const find = (role, prefix, act = "none") => (osa(findScript, role, prefix, act).stdout || "").trim();
+// The cover is a button that opens a menu (Brief 14), which the accessibility tree may report as a pop-up button: look under both. A drawn cover's name is
+// "Change or remove the cover of <title>"; a recorded cover that is not on screen adds "(no picture is shown)" (the placeholder), so that is not a pass.
+const drawnCover = () => ["AXButton", "AXPopUpButton", "AXMenuButton"].some((role) => { const r = find(role, "Change or remove the cover of"); return r.startsWith("found") && !r.includes("no picture is shown"); });
 const clickAny = (name) => ["AXButton", "AXCheckBox", "AXToggle", "AXRadioButton", "AXTab"].some((role) => find(role, name, "click").startsWith("found"));
 async function until(what, fn, ms = 15000) {
 	const end = Date.now() + ms;
@@ -96,9 +99,9 @@ try {
 	await sleep(500);
 	if (!(await until("the novel name", () => clickAny("Open the novel on the library side")))) fail("could not reach the library side");
 	if (!(await until("the novel tab", () => clickAny("novel"), 8000))) fail("could not reach the novel tab");
-	if (!(await until("the novel's cover", () => find("AXButton", "Change or remove the cover of").startsWith("found"), 6000))) problems.push("the novel overview shows no cover image (saved cover, recorded in novel-aaa.md)");
+	if (!(await until("the novel's cover", () => drawnCover(), 6000))) problems.push("the novel overview shows no cover image (saved cover, recorded in novel-aaa.md)");
 	if (!(await until("the series tab", () => clickAny("series"), 8000))) fail("could not reach the series tab");
-	if (!(await until("the series' cover", () => find("AXButton", "Change or remove the cover of").startsWith("found"), 6000))) problems.push("the series overview shows no cover image (saved cover, recorded in series.md)");
+	if (!(await until("the series' cover", () => drawnCover(), 6000))) problems.push("the series overview shows no cover image (saved cover, recorded in series.md)");
 } finally {
 	child.kill("SIGKILL");
 	await sleep(300);

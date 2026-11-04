@@ -183,7 +183,7 @@ test.describe("the novel overview", () => {
 		const withWords = await o.locator(".sf-card .sf-bar:not(.sf-bar--sliver)").count();
 		await expect(o.locator(".sf-progress-seg")).toHaveCount(withWords);
 		expect(withWords).toBeGreaterThan(0);
-		expect(await o.locator(".sf-progress-ghost").count()).toBeGreaterThan(0);
+		await expect.poll(() => o.locator(".sf-progress-ghost").count()).toBeGreaterThan(0);
 		await expect(o.locator(".sf-structure-mark")).toHaveCount(7);
 		await expect(o.getByRole("heading", { level: 2 })).toContainText("Book 1:");
 		await shot(page, "numbers-novel-overview");
@@ -331,7 +331,7 @@ test.describe("a read-only project's overviews", () => {
 		await expect(o.getByRole("button", { name: "Choose the default PoV" })).toHaveCount(0);
 		await expect(o.getByRole("button", { name: /^Choose pov/i })).toHaveCount(0);
 		const fields = o.locator(".sf-note-field .cm-content");
-		expect(await fields.count()).toBeGreaterThan(0);
+		await expect.poll(() => fields.count()).toBeGreaterThan(0);
 		for (const field of await fields.all()) await expect(field).toHaveAttribute("aria-readonly", "true");
 		await tab(page, "series").click();
 		await expect(overview(page).locator('[data-cover="series"]')).toBeDisabled();

@@ -38,7 +38,7 @@ test.describe("the chapter bars", () => {
 
 	test("34 px high with the name drawn once over the bar, one line, bottom-pinned; the series overview's bars stay 12 px", async ({ page }) => {
 		const bars = overview(page).locator(".sf-card .sf-bar");
-		expect(await bars.count()).toBeGreaterThan(1);
+		await expect.poll(() => bars.count()).toBeGreaterThan(1);
 		for (let i = 0; i < (await bars.count()); i++) {
 			const bar = bars.nth(i);
 			expect((await bar.boundingBox())!.height).toBeCloseTo(34, 0);
@@ -283,7 +283,7 @@ test.describe("the novel overview's cards and header", () => {
 
 	test("each chapter card is just its bar: no chevron, no size control, no details, no plot note", async ({ page }) => {
 		const cards = overview(page).locator(".sf-card");
-		expect(await cards.count()).toBeGreaterThan(1);
+		await expect.poll(() => cards.count()).toBeGreaterThan(1);
 		for (let i = 0; i < (await cards.count()); i++) {
 			await expect(cards.nth(i).locator("> *")).toHaveCount(1);
 			await expect(cards.nth(i).locator("> .sf-bar")).toHaveCount(1);

@@ -31,13 +31,22 @@ for (const which of ["novel", "series"] as const) {
 		test("is a button named for what it does, with a menu behind it; no Remove cover link", async ({ page }) => {
 			const box = cover(page);
 			await expect(box).toHaveAttribute("aria-haspopup", "menu");
-			await expect(box).toHaveAttribute("aria-label", /^Change or remove the cover of /);
+			// the fixture's cover is not a picture the window can draw: a recorded cover that is not on screen says so (the cover-smoke script relies on it)
+			await expect(box).toHaveAttribute("aria-label", /^Change or remove the cover of .* \(no picture is shown\)$/);
 			await expect(page.getByRole("button", { name: /^Remove (the )?cover/i })).toHaveCount(0);
 			await expect(page.getByText("Remove cover", { exact: true })).toHaveCount(0);
 			await box.click();
 			await expect(menu(page)).toBeVisible();
 			await expect(menu(page).getByRole("menuitem")).toHaveText(["Change Cover…", "Remove Cover"]);
 			await expect(menu(page)).toHaveAccessibleName(/^Cover of /);
+		});
+
+		test("a recorded cover that is drawn is named without the 'no picture' note", async ({ page }) => {
+			await page.evaluate((b) => window.__preview.armCover(b), ONE_PIXEL_PNG);
+			await cover(page).click();
+			await page.getByRole("menuitem", { name: "Change Cover…" }).click();
+			await expect(cover(page)).toHaveAttribute("data-state", "image");
+			await expect(cover(page)).toHaveAttribute("aria-label", /^Change or remove the cover of (?!.*no picture is shown)/);
 		});
 
 		test("the menu follows the default rules: no border, the shared shadow, muted rows, the highlighted row an accent block", async ({ page }) => {

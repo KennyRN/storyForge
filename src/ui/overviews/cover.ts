@@ -48,7 +48,8 @@ export function coverBox(model: AppModel, target: CoverTarget, title: string): H
 	const placeholder = (): void => {
 		box.replaceChildren(el("span", { class: "sf-cover-placeholder sf-muted", text: "No cover" }));
 		box.dataset.state = "placeholder";
-		box.setAttribute("aria-label", recorded ? `Change or remove the cover of ${title}` : `Choose a cover for ${title}`);
+		// A recorded cover whose picture is not on screen (still being read, missing or unreadable) says so: the name is how a check, and a screen reader, tells a drawn cover from a placeholder.
+		box.setAttribute("aria-label", recorded ? `Change or remove the cover of ${title} (no picture is shown)` : `Choose a cover for ${title}`);
 	};
 	/** A cover that is recorded but can't be shown is never a silent "No cover": a notice says what failed (once per version). */
 	const failed = (version: string, why: string): void => {

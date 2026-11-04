@@ -130,7 +130,7 @@ for (const list of LISTS) {
 		});
 
 		test("folders: one with a match inside shows, an empty folder and a folder with nothing matching go, and there is no Empty line", async ({ page }) => {
-			expect(await tree(page).getByText("Empty", { exact: true }).count()).toBe(1); // unfiltered, the note-folder says so
+			await expect(tree(page).getByText("Empty", { exact: true })).toHaveCount(1); // unfiltered, the note-folder says so
 			await filterButton(page).click();
 			await tick(page, "Place");
 			expect(await shownNames(page)).toEqual(["Harbour"]);

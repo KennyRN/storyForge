@@ -204,7 +204,7 @@ test.describe("the live readout", () => {
 		expect(clockBox?.y).toBeGreaterThan((count?.y ?? 0) + (count?.height ?? 0) - 1); // beneath the count icon
 		expect(Math.abs((clockBox?.x ?? 0) - (count?.x ?? 99))).toBeLessThan(2); // in its column, not the graph icon's
 		expect(Math.abs((count?.y ?? 0) + (count?.height ?? 0) - ((graph?.y ?? 0) + (graph?.height ?? 0)))).toBeLessThan(1.5); // bottoms line up
-		expect(await clock(page).locator("svg").getAttribute("width")).toBe("16"); // its natural size
+		await expect(clock(page).locator("svg")).toHaveAttribute("width", "16"); // its natural size
 		await shot(page, "stats-readout-idle");
 	});
 
@@ -277,7 +277,7 @@ test.describe("the live readout", () => {
 		await page.keyboard.type(" one two three");
 		await page.clock.runFor(2_000);
 		for (const loc of [readout(page), clock(page), length(page), words(page)]) expect(await loc.evaluate((e) => getComputedStyle(e).color)).toBe("rgb(133, 146, 137)");
-		expect(await readout(page).getAttribute("aria-live")).toBeNull();
+		await expect(readout(page)).not.toHaveAttribute("aria-live", /.*/);
 		expect(await readout(page).evaluate((e) => getComputedStyle(e).animationName + getComputedStyle(e).transitionDuration)).toMatch(/^none0s$/);
 		expect(await page.evaluate(() => document.activeElement?.className ?? "")).toContain("cm-content");
 	});

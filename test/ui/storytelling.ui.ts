@@ -233,9 +233,9 @@ test.describe("the storytelling face", () => {
 			await openProject(page);
 			const order = await page.locator(".sf-stats").evaluate((e) => [...e.children].filter((c) => !(c as HTMLElement).hidden).map((c) => c.className));
 			expect(order.slice(0, 3)).toEqual(["sf-stats-chart", "sf-stats-count", "sf-stats-value"]);
-			expect(await page.locator(".sf-stats .sf-stats-count svg").count()).toBe(1);
-			expect(await page.locator(".sf-stats-chart svg").getAttribute("width")).toBe("24");
-			expect(await page.locator(".sf-stats-count svg").getAttribute("width")).toBe("16"); // its natural size
+			await expect(page.locator(".sf-stats .sf-stats-count svg")).toHaveCount(1);
+			await expect(page.locator(".sf-stats-chart svg")).toHaveAttribute("width", "24");
+			await expect(page.locator(".sf-stats-count svg")).toHaveAttribute("width", "16"); // its natural size
 			await expect(value(page)).toHaveText(/^Words today: -?\d/);
 			await expect(stepper(page)).toHaveAccessibleName("Words today; press for this week");
 			await stepper(page).click();
@@ -265,7 +265,7 @@ test.describe("the storytelling face", () => {
 			await stepper(page).blur();
 			await stepper(page).focus(); // the tooltip shows at once on keyboard focus
 			await expect(page.getByRole("tooltip")).toHaveText("Words this session; press for this chapter");
-			expect(await value(page).getAttribute("aria-live")).toBe("polite");
+			await expect(value(page)).toHaveAttribute("aria-live", "polite");
 		});
 
 		test("the count on display is remembered per project, and never written to project.md", async ({ page }) => {

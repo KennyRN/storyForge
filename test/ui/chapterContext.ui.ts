@@ -101,7 +101,7 @@ test.describe("the context panel on the novel tab", () => {
 		await text.click();
 		await page.keyboard.type("nothing typed here");
 		await page.keyboard.press("Delete");
-		expect(await text.innerText()).toBe(before);
+		await expect.poll(() => text.innerText()).toBe(before); // (a waiting read: the text is unchanged after the typing)
 		expect(await read(page, CH1)).not.toContain("nothing typed here");
 		// selectable: a triple click selects a line, and the selection is the text
 		await text.locator(".cm-line").first().click({ clickCount: 3 });

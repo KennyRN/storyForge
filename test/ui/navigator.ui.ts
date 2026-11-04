@@ -20,7 +20,7 @@ test.describe("the navigator", () => {
 		const fill = () => cur.evaluate((e) => getComputedStyle(e).backgroundColor);
 		const clear = "rgba(0, 0, 0, 0)";
 		const bg1 = await colour(page, "--purpose-raised-bg").then(async () => page.evaluate(() => { const d = document.createElement("i"); d.style.background = "var(--purpose-raised-bg)"; document.body.append(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; }));
-		expect(await cur.locator("svg").count()).toBe(0);
+		await expect(cur.locator("svg")).toHaveCount(0);
 		expect(await fill()).toBe(clear);
 		await page.mouse.move(600, 600);
 		await cur.hover();
@@ -136,8 +136,8 @@ test.describe("the navigator", () => {
 			await selector(page).click();
 			const rows = page.locator(".sf-nav-list .sf-nav-row");
 			expect(await rows.allInnerTexts()).toEqual(["Chapter 1", "The Storm: Part Two", "Chapter 2", ""]);
-			expect(await rows.nth(3).getAttribute("aria-label")).toBe("Add the next chapter");
-			expect(await rows.nth(3).locator("svg").count()).toBe(1);
+			await expect(rows.nth(3)).toHaveAttribute("aria-label", "Add the next chapter");
+			await expect(rows.nth(3).locator("svg")).toHaveCount(1);
 			await expect(page.locator(".sf-nav-list")).not.toContainText("Unplaced idea");
 			const raised = await page.evaluate(() => { const d = document.createElement("i"); d.style.color = "var(--purpose-raised-bg)"; document.body.append(d); const c = getComputedStyle(d).color; d.remove(); return c; });
 			const blockOf = (l: ReturnType<Page["locator"]>) => l.evaluate((e) => getComputedStyle(e).backgroundColor);
