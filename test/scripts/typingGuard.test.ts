@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { decide, guardedTyping } from "../../scripts/lib/typingGuard.mjs";
+import { decide, fullKeyboardAccessActive, guardedTyping, readFullKeyboardAccess } from "../../scripts/lib/typingGuard.mjs";
 import { dryRun, eventForChar, eventForScript, postArgs } from "../../scripts/lib/postKeys.mjs";
 
 const ok = (pid = 4242, role = "AXTextArea", name = "") => `pid=${pid};focus=${role};name=${name}`;
@@ -187,6 +187,26 @@ function rig(answers: string[], alive = true, copies = 1) {
 		post: (pid: number, event: unknown) => (posts.push({ pid, event }), { ok: true, error: "" }),
 		alive: () => alive,
 		copiesOf: () => copies,
+		keyboardAccess: () => ({ enabled: false, passthrough: false }),
 	});
 	return { guard, posts, osaCalls, failures };
 }
+
+describe("Full Keyboard Access pre-flight", () => {
+	it("is active only when on and not suspended by Pass-Through Mode", () => {
+		expect(fullKeyboardAccessActive({ enabled: false, passthrough: false })).toBe(false);
+		expect(fullKeyboardAccessActive({ enabled: true, passthrough: false })).toBe(true);
+		expect(fullKeyboardAccessActive({ enabled: true, passthrough: true })).toBe(false);
+		expect(fullKeyboardAccessActive({ enabled: false, passthrough: true })).toBe(false);
+	});
+	it("reads the two universalaccess keys, read-only, and treats anything unreadable as off", () => {
+		const calls: string[][] = [];
+		const run = (_c: string, a: string[]) => (calls.push(a), { stdout: a[2] === "keyboardAccessEnabled" ? "1\n" : "" });
+		expect(readFullKeyboardAccess(run as never)).toEqual({ enabled: true, passthrough: false });
+		expect(calls.every((a) => a[0] === "read")).toBe(true);
+	});
+	it("a script that types stops, saying what to do, before any key, when it is active", () => {
+		const fail = (m: string) => { throw new Error(m); };
+		expect(() => guardedTyping({ osa: () => ({ stdout: "" }), fail, pid: () => 1, keyboardAccess: () => ({ enabled: true, passthrough: false }) })).toThrow(/Full Keyboard Access is active.*Pass-Through Mode/s);
+	});
+});

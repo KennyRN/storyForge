@@ -63,6 +63,20 @@ export function decide(answer, copies, options = {}) {
 }
 
 /**
+ * Full Keyboard Access (System Settings ▸ Accessibility ▸ Keyboard) is active when it is on and not suspended by Pass-Through Mode
+ * (Control-Option-Command-P). While it is active it can intercept keys meant for the app, so a script that sends keystrokes stops first.
+ * Kenny's Mac has plain keyboard navigation off (AppleKeyboardUIMode 0) on purpose: that is not this, and nothing here reads or changes it.
+ */
+export function fullKeyboardAccessActive({ enabled, passthrough }) {
+	return enabled === true && passthrough !== true;
+}
+/** What the Mac says now, read-only: `defaults read com.apple.universalaccess`. A value that can't be read counts as off. */
+export function readFullKeyboardAccess(run = spawnSync) {
+	const one = (key) => run("defaults", ["read", "com.apple.universalaccess", key], { encoding: "utf8" }).stdout?.trim() === "1";
+	return { enabled: one("keyboardAccessEnabled"), passthrough: one("keyboardAccessPassthroughMode") };
+}
+
+/**
  * `osa` is the script's own osascript runner, `fail` its own exit, `pid` gives the test copy's process id (its own child),
  * `post` (default: a real post) sends one key event to that process. Returns the typing helpers the script uses in place of its own.
  *
@@ -70,7 +84,8 @@ export function decide(answer, copies, options = {}) {
  * EACH key, not only before a burst. No key is sent once `beginQuit()` has been called, once the process is gone, before its window is
  * showing, or unless a text box has focus (a control, for `keyOnControl`).
  */
-export function guardedTyping({ osa, fail, pid, post = postToPid, alive = isAlive, copiesOf = copies }) {
+export function guardedTyping({ osa, fail, pid, post = postToPid, alive = isAlive, copiesOf = copies, keyboardAccess = readFullKeyboardAccess }) {
+	if (fullKeyboardAccessActive(keyboardAccess())) fail("REFUSING TO TYPE: Full Keyboard Access is active (System Settings > Accessibility > Keyboard) and can intercept keys. Nothing was typed. Ask Kenny to suspend it (Pass-Through Mode, Control-Option-Command-P), then run again.");
 	const sleep = (ms) => spawnSync("sleep", [String(ms / 1000)]);
 	let quitting = false;
 	let lastKeyAt = 0;
