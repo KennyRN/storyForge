@@ -108,4 +108,4 @@ After your answers I'll start commit 1 (the frame and the solid bar).
 
 Every script passed every time, with no retries and no refused starts. The first-launch "window never appeared" item from the 1.7.0 sweep did not occur. The Settings Escape and lost Writing-tab click items logged for 1.7.1 were not part of this brief and were not touched.
 
-**Not done:** the merge and the tag, which wait for Kenny's go-ahead. The sweep covers the built app only; the full `test:ui` was not repeated after the test-only fixes (see above).
+**Ruling (Kenny, under decision 108):** no further full `test:ui` run is needed. The test-only fixes are proved by their own files, and the full run counts as clean for everything else. **Kenny gave the go-ahead for 1.8.0**: merged to `main` and tagged `v1.8.0`.
