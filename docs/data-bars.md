@@ -63,3 +63,19 @@ The choice: (a) no minimum, as the brief reads, honest but cramped at 300% or mo
 3. Extreme overruns: no minimum frame (a) or a minimum (b), and what percentage?
 
 After your answers I'll start commit 1 (the frame and the solid bar).
+
+## Rulings (Kenny, after H1)
+
+1. The heatmaps keep blue, through their own named purpose (`--purpose-heat-base`), not `--ef-blue` directly.
+2. `--purpose-data-overrun` is retired.
+3. No minimum frame width: bar length stays true; the 300% case is accepted.
+4. The overrun bar's own frame end showing only as the rim above and below is accepted.
+5. The mock-up folder (`docs/data-bars-mockups/`) stays untracked and is deleted before the merge.
+
+## As built
+
+- **Commit 1 (`2e3b417`):** `bars.ts` (`computeDataBarState` now gives `ratio` and `framed`; `frameWidthPercent`), `overviews.css`, `novelOverview.ts` (one frame width for all bars), the removals of §4 and `--purpose-data-frame` added. The name's colour, size, weight, position and cut-off went in with it (the stroke could not be removed without drawing the name), so there is no separate commit for §1.4; its tests are in `test/ui/novelBars.ui.ts`. Tests: frames end at the same x and follow §1.2 (chapter lengths 4, 15 and 100000), a bar at, past and short of its target, no frame with no length, the name's contrast measured on the bar and the frame, 19 px / 700, the cut-off at the further end less 8 px, and nothing drawing dots, a marker, a clearance layer or a stroke. The pure sums are in `src/ui/__tests__/bars.test.ts` (80, 100, 210%; 115%; 300% with no minimum).
+- **Commit 3 (`d2dde7e`):** `data-colour` / `dataColour` in `app/settings.ts` (`DATA_COLOURS`), the Appearance swatch row (the existing swatch control), `data-data-colour` on the page, and the colour mapping in `purposes.css`. Tests: the reader (no key is blue with the folder byte-identical; the five names; red, green, a hex value and other kinds draw blue and are not rewritten), the writer (only on change, as a role name, nothing else touched), an unrelated write leaving the key alone, an outside change applying live (unit and preview), and the measured contrast of bg_dim on each of the five colours (4.5:1 or more) and on the frame (3:1 or more).
+- **Older versions.** Run against `v1.7.0`'s own code in a throwaway worktree: a `project.md` holding `data-colour: red` and an unknown key survives an unrelated settings write (`story-kind`) byte for byte, as the Wonk keys did in 1.6.1. 1.7.0 and earlier read only the keys they know and rewrite by splicing, so a 1.8.0 project opened by them keeps its colour. The same test is in 1.8.0's suite for its own writer.
+- The existing tests that clicked a swatch by its bare name (Yellow, Purple) now name the Codex colour group first, because both groups have swatches of the same names.
+- **Still to run:** the full `npm run test:ui`, `npm run test:settings-sync` (built app) and the full sweep (a minor version), none yet; Kenny's look; the merge waits for his go-ahead.

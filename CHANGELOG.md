@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.0: the data bars (Brief 15)
+
+- Changed: **the chapter bars are solid bars in a grey0 frame.** The bar is 34 px with rounded ends in the data colour; the frame is 4 px larger on every side, and its inner width is the chapter's planned length. Short of the target the grey left over shows the shortfall; at the target the bar meets the frame's edge; past it the bar runs on, solid, out through the frame's end. The target is a shape, so nothing relies on colour alone. **Every frame is the same width** and they shrink together by the longest overrun (no minimum), so their ends line up down the page. A chapter with no length set has no frame. The dots, the dashed marker, the clearance and the outline round the name are gone.
+- Changed: **the name on a bar is one colour** (bg_dim, 19 px at 700, no outline), cut short with "…" at the further of the frame's inner end and the bar's end.
+- New: **the data colour is a project setting**: yellow, aqua, blue (the default, so existing projects look as they did), orange or purple, chosen in Settings ▸ Appearance and kept in `project.md` as `data-colour` (the colour's role name, written only when you change it; red, green and unknown values draw blue and are never rewritten). It applies to the chapter bars, the series bars and the novel's progress bar, and follows an outside change at once. The history heatmaps stay blue.
+- Removed: the orange overrun colour (`--purpose-data-overrun`), unused since 1.7.0.
+
 ## 1.7.0: the novel tab, round two (Brief 14)
 
 **The idea: the library side is for looking, and only the places where you work get the working background.**
