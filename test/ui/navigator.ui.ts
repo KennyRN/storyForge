@@ -50,7 +50,7 @@ test.describe("the navigator", () => {
 		await openProject(page);
 		await page.mouse.move(600, 600);
 		await page.locator(".sf-nav-novel").focus();
-		await page.keyboard.press("Tab");
+		await page.keyboard.press("Alt+Tab");
 		const cur = page.locator(".sf-nav-current");
 		await expect(cur).toBeFocused();
 		expect(await cur.evaluate((e) => getComputedStyle(e).backgroundColor)).toBe("rgba(0, 0, 0, 0)");

@@ -60,8 +60,8 @@ test.describe("the storytelling face", () => {
 		await openProject(page);
 		await page.getByRole("button", { name: "Chapters" }).focus();
 		await page.keyboard.press("Enter");
-		await page.keyboard.press("Tab");
-		await page.keyboard.press("Tab");
+		await page.keyboard.press("Alt+Tab");
+		await page.keyboard.press("Alt+Tab");
 		await page.keyboard.press("Enter");
 		await expect.poll(() => page.evaluate(() => window.__app.editors!.pathIn("centre"))).toBe("_story-library/aaa/ch-a2.md");
 	});
