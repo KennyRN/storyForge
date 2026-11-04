@@ -198,15 +198,14 @@ test.describe("the novel overview", () => {
 		await expect(o.locator(".sf-progress-ghost")).toHaveCount(0);
 	});
 
-	test("a chapter past its plan shows dots beyond the target, in the bar's colour, with no notch; under it shows the dashed marker", async ({ page }) => {
+	test("a chapter past its plan runs on solid beyond its frame; under it, the frame's grey is left over (Brief 15)", async ({ page }) => {
 		const o = novelOverview(page);
-		await expect(o.locator(".sf-bar--under .sf-bar-marker").first()).toBeAttached();
+		await expect(o.locator(".sf-bar--under .sf-bar-frame").first()).toBeAttached();
 		await leftLength(page, "Chapter Length").click();
 		await page.keyboard.type("1");
 		await page.keyboard.press("Enter");
-		await expect(o.locator(".sf-bar--over .sf-bar-dots").first()).toBeAttached();
-		await expect(o.locator(".sf-bar-notch, .sf-bar-over")).toHaveCount(0);
-		await expect(o.locator(".sf-bar-marker")).toHaveCount(0);
+		await expect(o.locator(".sf-bar--over .sf-bar-fill").first()).toBeAttached();
+		await expect(o.locator(".sf-bar-notch, .sf-bar-over, .sf-bar-marker, .sf-bar-dots")).toHaveCount(0);
 	});
 
 	test("clicking a bar chooses the chapter (Brief 14 §1.7): the overview stays up and the editor beneath stays inert (the chosen-chapter tests are in chapterContext.ui.ts)", async ({ page }) => {

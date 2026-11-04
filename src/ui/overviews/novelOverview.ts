@@ -9,7 +9,7 @@ import { grouped } from "../faces/lengthFields";
 import { el, fill } from "../kit/dom";
 import { attachTooltip } from "../kit/tooltip";
 import type { AppModel } from "../model";
-import { dataBar } from "./bars";
+import { dataBar, frameWidthPercent } from "./bars";
 import { FieldBin } from "./fieldCommitter";
 import { coverBox } from "./cover";
 import { synopsisField } from "./sectionFields";
@@ -90,7 +90,8 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 		}
 
 		// The chapter bars: one per placed chapter, the bar and nothing else (the unplaced chapters stay in the left pane's list)
-		const scale = Math.max(plannedChapter ?? 0, ...words);
+		const scale = Math.max(...words, 0);
+		const framePercent = frameWidthPercent(words, plannedChapter);
 		const cards = ordered.map((c, i) => {
 			const key = c.name;
 			const bar = dataBar({
@@ -98,6 +99,7 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 				words: words[i],
 				target: plannedChapter,
 				scale,
+				framePercent,
 				name: titles[i],
 				tooltip: () => `${titles[i]}\n${plotCardTooltip(words[i], plots.get(key) ?? "")}`,
 				onHover: () => void readChapterPlot(project, book, key).then((p) => plots.set(key, p)),

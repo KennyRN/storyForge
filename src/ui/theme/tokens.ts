@@ -15,7 +15,7 @@ export const PURPOSES = [
 	"selection",
 	"trouble",
 	"data-fill",
-	"data-overrun",
+	"data-frame",
 	"text-on-data",
 	"bar-track",
 	"bar-notch",
