@@ -123,3 +123,15 @@ describe("icon buttons turn green on hover", () => {
 		expect(bad).toEqual([]);
 	});
 });
+
+// Brief 14's contrast ruling: hints use grey2 at full strength. A placeholder and the Codex list's "Empty" line carry no extra opacity (4.61:1 on bg0, not 3.07 and 3.54).
+// "No cover" (grey2 on bg1, 3.99:1) is an accepted exception, like decision 110's muted rows.
+describe("hints are grey2 at full strength", () => {
+	it("a placeholder and the Codex list's Empty line have no opacity of their own", () => {
+		for (const sel of [".sf-note-field .cm-placeholder", ".sf-codex-folder-empty"]) {
+			const rules = all.filter((r) => r.selector === sel);
+			expect(rules.length, sel).toBeGreaterThan(0);
+			for (const r of rules) expect(r.body, sel).not.toMatch(/opacity\s*:/);
+		}
+	});
+});

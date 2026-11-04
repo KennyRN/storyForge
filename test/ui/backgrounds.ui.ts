@@ -78,3 +78,28 @@ test.describe("the library side's backgrounds", () => {
 		expect(top).toBeCloseTo(48, 0);
 	});
 });
+
+test("hints are grey2 at full strength: a placeholder and the Codex list's Empty line are at least 4.5:1 on their card (no extra opacity)", async ({ page }) => {
+	await open(page);
+	await flipFace(page);
+	await page.getByRole("tab", { name: "novel" }).click();
+	await expect(page.locator(".sf-overview .cm-placeholder").first()).toBeVisible();
+	const measure = (sel: string) => page.locator(sel).first().evaluate((e) => {
+		let opacity = 1;
+		for (let n: Element | null = e; n; n = n.parentElement) opacity *= parseFloat(getComputedStyle(n).opacity);
+		const rgb = (c: string) => (c.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number);
+		let bg = "rgba(0, 0, 0, 0)";
+		for (let n: Element | null = e; n; n = n.parentElement) { bg = getComputedStyle(n).backgroundColor; if (!/rgba\(.*, 0\)/.test(bg) && bg !== "transparent") break; }
+		const lum = (c: number[]) => { const f = (v: number) => (v / 255 <= 0.03928 ? v / 255 / 12.92 : ((v / 255 + 0.055) / 1.055) ** 2.4); return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+		const [hi, lo] = [lum(rgb(getComputedStyle(e).color)), lum(rgb(bg))].sort((a, b) => b - a);
+		return { opacity, ratio: (hi + 0.05) / (lo + 0.05) };
+	});
+	const placeholder = await measure(".sf-overview .cm-placeholder");
+	expect(placeholder.opacity).toBe(1);
+	expect(placeholder.ratio).toBeGreaterThanOrEqual(4.5);
+	await page.getByRole("tab", { name: "codex" }).click();
+	const empty = await measure(".sf-codex-folder-empty");
+	expect(empty.opacity).toBe(1);
+	expect(empty.ratio).toBeGreaterThanOrEqual(4.5);
+});
+
