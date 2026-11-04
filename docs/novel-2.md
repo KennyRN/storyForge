@@ -185,3 +185,46 @@ Ships as `1.7.0` from `novel-2` (cut from `v1.6.4`, with the 1.6.5 fix merged in
 14. **1.6.5, merged first** (it shipped before this brief's commits): the Navigate menu's 32 px icons centred on their text, Kenny's four new icons (globe, sunset, shield, left arrow with lines), "Open Project", the tab icons 16 px below the title band.
 
 **Not in this brief:** a change to the disk format (none: no new key, file or format change), the prose writer, the close path, the write guard, the session files, any Rust command, any dependency.
+
+
+## Morning report (4 November 2026, the 1.7.0 run)
+
+**Nothing stopped the run.** Kenny's copy of storyForge was not running before any build or run (`pgrep` each time; the sweep script checks before every run). The Mac was kept awake with the same assertion as before, `caffeinate -d -i -s -w <the Claude Code process>` (still live from the earlier run, tied to this process, no timeout). Not merged, not tagged; `main` was not touched; `novel-2` is pushed as a backup.
+
+**Commits since the look at commit 5 (on `novel-2`):**
+- `e28bd72` the retired "Highlight the active chapter" setting (before the look, for the record).
+- `8b19ee1` the contrast rulings: placeholders and the Codex "Empty" line at full grey2 (4.61:1); "No cover" kept as an accepted exception.
+- `ebdc160` commit 6: version 1.7.0, `CHANGELOG.md`, `AGENTS.md`, and the as-built record of every ruling (above).
+- `5026aa9` the sweep fixes (below).
+- the commit that holds this report.
+
+**Tests:** `npm test` 1671 passed, typecheck clean. **The full `npm run test:ui` on the final 1.7.0 build: 513 passed, 1 skipped (the opt-in `MEASURE=1` measurement), 0 failed** (judged under decision 108: nothing failed). An earlier full run on the first 1.7.0 build (before the sweep fixes): 511 passed, 1 skipped, 0 failed.
+
+**The full sweep (decision 104), every built-app script, three runs each, run twice (first on the first 1.7.0 build, then again, in full, on the final binary after the one app change below):**
+
+| Script | First build | Final build |
+|---|---|---|
+| `test:quit` (safety: all ten routes, with text in the chapter and in a plot note) | 3 of 3 pass | **3 of 3 pass** |
+| `test:cover` | **0 of 3** (see below) | **3 of 3 pass** |
+| `test:typing` | 3 of 3 pass | **3 of 3 pass** |
+| `test:look` | 3 of 3 pass | **3 of 3 pass** |
+| `test:settings-sync` | 3 of 3 pass | **3 of 3 pass** |
+| `test:widths` | 3 of 3 pass | **3 of 3 pass** |
+| `test:fonts` | 3 of 3 pass | **3 of 3 pass** |
+
+(The first-build `test:cover` result is the change's, not a flake: it failed identically in all three runs, in 33 s.) **`test:quit` passed all ten routes in all six runs, so no safety test failed.**
+
+**The one failure and its fix (`5026aa9`).** `test:cover` found no cover. Two causes, both from this brief's cover menu: the cover is now a button with a menu (`aria-haspopup="menu"`), which the accessibility tree reports under another role than the script looked for; and the script told a drawn cover from a placeholder by the button's *name*, which my change had made the same in both states. The fix is small and an improvement for a screen reader as well: **a recorded cover that is not on screen is named "Change or remove the cover of X (no picture is shown)"**; a drawn one has no such note. `cover-smoke.mjs` looks under the button and the pop-up button roles and counts only a drawn cover. A UI test covers both names. This was the only change to the app after commit 6, so the final binary was rebuilt (1.7.0) and the whole sweep and the full UI suite were run again on it.
+
+**The "next full sweep" list (decisions part 2's Open section):**
+1. **The lost Writing-tab click, with its trace and a dialog event log.** *Did not reproduce.* In the preview, twelve opens of Settings, each with the Writing tab clicked as soon as it existed, with an event log of pointer, click and focus events and the dialog's appearance: the dialog is in the page at 5 ms with focus already placed in its first control ("Opens in"; so it does place initial focus now), and the first click on Writing lands at about 37 ms (pointerdown, focus, click, selected tab within 2 ms). No click was lost. The 11 ms figure in the decision record is from the built app; it is not reachable from a Playwright run, and the built-app scripts all use `openSettingsDialog`'s wait. **But the log exposed a real bug**, below.
+2. **The `test:typing` focus failure at the plot-note shortcode stage.** *Did not recur:* six passes in six runs (the plot note is now in the context panel, which the script reaches through the novel tab as before). Kenny's by-hand `~th` control can't be done overnight and still stands.
+3. **The first-launch "window never appeared".** *Timed:* on the first launch after a fresh build (a throwaway `HOME`) the window appeared after **3.46 s**; on the second and third launches after **0.27 s** (process seen at the same moment as the window). So a fresh, unnotarised build costs about 3.2 s once (macOS checking the new binary), which is what a short first wait trips on. `test:widths` passed six of six, including as the first built-app script after a fresh build.
+4. **The `caffeinate` flags: settled.** `man caffeinate`: `-d` display, `-i` idle sleep, `-s` system sleep (on AC power only), `-u` declares the user active but holds only **5 seconds without `-t`**, `-t` cannot be used with `-w`, and `-w <pid>` ties the assertion to a process. So the flags are **`-d -i -s -w <pid>`** (`pmset -g assertions` shows the display, system and idle assertions held), tied to the run, with `-u` left out.
+5. **Single reads in the suite that should wait.** Audited by pattern across `test/ui`: 11 immediate `.count()` reads, 7 `getAttribute` reads and 1 `innerText` read taken straight after an action were turned into waiting assertions (`toHaveCount`, `toHaveAttribute`, `expect.poll`), in eight files; all still pass. About 100 `evaluate` reads of computed style or geometry and 39 `boundingBox` reads remain; they follow a settled layout and none has failed in any of the runs this brief, so they were left (listed here for a later pass).
+
+**A real bug found on the way (not fixed: Kenny's call, as the open item said):** **in Settings, Escape does nothing after a tab has been clicked with the mouse.** Pressed straight after the dialog opens (focus in a control), Escape closes it; after a click on a tab the page redraws, the focused tab is removed, focus falls to the page body, and the dialog's Escape handler (on its overlay) never sees the key. Reopening Settings then **stacks a second dialog** (the log showed two tab lists). A person using the mouse hits this. The small fix is a document-level Escape handler that closes the topmost dialog, or restoring focus to the selected tab after a redraw; it is not made here because it is outside Brief 14. This explains the open item "Escape in Settings: Escape didn't close the dialog under the test script": the script clicked a tab first.
+
+**Where the app is:** `src-tauri/target/universal-apple-darwin/release/bundle/macos/storyForge.app` (the `.dmg` beside it), built from `novel-2`; it reports **1.7.0**; no source has changed since it was built (checked by file times). **Space:** Cargo's clean before this build removed 1.7 GiB (the folder was 1.75 GB after the previous round's clean); free space on the Mac is about 14 GB.
+
+**Left for Kenny:** the go-ahead to merge `novel-2` into `main` and tag `v1.7.0` (a minor version: the full sweep above has run on the final binary), and a decision on the Settings Escape fix.
