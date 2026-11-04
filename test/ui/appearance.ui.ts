@@ -54,9 +54,49 @@ test.describe("settings sections", () => {
 		await openSettings(page);
 		await expect(dialog(page).getByRole("radiogroup", { name: "Codex colour" })).toHaveCount(0);
 		await dialog(page).getByRole("tab", { name: "Appearance" }).click();
-		await dialog(page).getByRole("radio", { name: "Purple" }).click();
+		await dialog(page).getByRole("radiogroup", { name: "Codex colour" }).getByRole("radio", { name: "Purple" }).click();
 		await expect(page.locator("html")).toHaveAttribute("data-codex-colour", "purple");
 		expect(await projectMd(page)).toContain("codex-colour: purple");
+	});
+});
+
+test.describe("the data colour (Brief 15)", () => {
+	const group = (page: Page) => dialog(page).getByRole("radiogroup", { name: "Data colour" });
+
+	test("five swatches on the Appearance page, blue chosen; opening writes nothing; choosing one writes its role name and recolours the bars at once", async ({ page }) => {
+		await openProject(page);
+		await openSettings(page, "Appearance");
+		await expect(group(page).getByRole("radio")).toHaveText(["Yellow", "Aqua", "Blue", "Orange", "Purple"]);
+		await expect(group(page).getByRole("radio", { name: "Blue" })).toHaveAttribute("aria-checked", "true");
+		expect(await projectMd(page)).toBe("");
+		await group(page).getByRole("radio", { name: "Yellow" }).click();
+		await expect.poll(() => projectMd(page)).toContain("data-colour: yellow");
+		await expect(page.locator("html")).toHaveAttribute("data-data-colour", "yellow");
+		await expect(group(page).getByRole("radio", { name: "Yellow" })).toHaveAttribute("aria-checked", "true");
+	});
+
+	test("bg_dim on each of the five colours is 4.5:1 or more, and on the frame's grey0 3:1 or more, by measurement; the heatmap keeps blue", async ({ page }) => {
+		await openProject(page);
+		const lum = (c: string): number => {
+			const [r, g, b] = (c.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number).map((v) => { const s = v / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4; });
+			return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+		};
+		const ratio = (a: string, b: string): number => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05); };
+		const colours = await page.evaluate(() => {
+			const probe = (v: string): string => { const i = document.createElement("i"); i.style.color = `var(${v})`; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; };
+			const out: Record<string, { fill: string; text: string; frame: string; heat: string }> = {};
+			for (const c of ["yellow", "aqua", "blue", "orange", "purple"]) {
+				document.documentElement.dataset.dataColour = c;
+				out[c] = { fill: probe("--purpose-data-fill"), text: probe("--purpose-text-on-data"), frame: probe("--purpose-data-frame"), heat: probe("--purpose-heat-d") };
+			}
+			return out;
+		});
+		expect(new Set(Object.values(colours).map((c) => c.fill)).size).toBe(5);
+		for (const [name, c] of Object.entries(colours)) {
+			expect(ratio(c.text, c.fill), `${name}: name on the bar`).toBeGreaterThanOrEqual(4.5);
+			expect(ratio(c.text, c.frame), `${name}: name on the frame`).toBeGreaterThanOrEqual(3);
+			expect(c.heat, `${name}: the heatmap does not follow`).toBe(colours.blue.fill);
+		}
 	});
 });
 

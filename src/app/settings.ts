@@ -32,6 +32,10 @@ export const SUPPORTED_FORMAT = 1;
 export const CODEX_COLOURS = ["text", "yellow", "green", "aqua", "blue", "purple", "orange", "grey"] as const;
 export type CodexColour = (typeof CODEX_COLOURS)[number];
 
+/** The data colour (Brief 15, amending decision 8): one per project, chosen by the author, for every data bar. Stored as the role name. Red is trouble and green is the accent, so neither is offered. */
+export const DATA_COLOURS = ["yellow", "aqua", "blue", "orange", "purple"] as const;
+export type DataColour = (typeof DATA_COLOURS)[number];
+
 /** One story or a series of them (decision 81): whether the storytelling side shows a series line. Missing or unknown means a series. */
 export type StoryKind = "series" | "standalone";
 
@@ -70,6 +74,8 @@ export interface ProjectSettings extends AppearanceKeys {
 	storyKind: StoryKind;
 	/** The colour of the Codex list on both sides: text, icons, folder lines, the strip and the highlight. */
 	codexColour: CodexColour;
+	/** The colour of the data bars (chapter, series and the novel's progress segments). */
+	dataColour: DataColour;
 	hideSeriesPane: boolean;
 	autoFocus: boolean;
 	layout: SfLayout;
@@ -124,6 +130,7 @@ export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
 	appearanceChapterSize: APPEARANCE_DEFAULTS.chapter.size,
 	appearanceChapterSoft: 0,
 	codexColour: "text",
+	dataColour: "blue",
 	hideSeriesPane: false,
 	autoFocus: true,
 	layout: "novelBrowse",
@@ -170,6 +177,7 @@ const FIELDS: Record<Key, { file: string; plugin: string; valid: (v: unknown) =>
 	appearanceChapterSoft: { file: "appearance-chapter-soft", plugin: "-", valid: (v) => isIntIn(v, 0, 100) },
 	storyKind: { file: "story-kind", plugin: "-", valid: (v) => v === "series" || v === "standalone" },
 	codexColour: { file: "codex-colour", plugin: "-", valid: (v) => typeof v === "string" && (CODEX_COLOURS as readonly string[]).includes(v) },
+	dataColour: { file: "data-colour", plugin: "-", valid: (v) => typeof v === "string" && (DATA_COLOURS as readonly string[]).includes(v) },
 	hideSeriesPane: { file: "hide-series-pane", plugin: "hideSeriesPane", valid: (v) => typeof v === "boolean" },
 	autoFocus: { file: "auto-focus", plugin: "autoFocus", valid: (v) => typeof v === "boolean" },
 	layout: { file: "layout", plugin: "layout", valid: (v) => typeof v === "string" && (SF_LAYOUTS as string[]).includes(v) },

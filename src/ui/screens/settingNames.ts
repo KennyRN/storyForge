@@ -3,6 +3,7 @@ import type { ProjectSettings } from "../../app/settings";
 const NAMES: Partial<Record<keyof ProjectSettings, string>> = {
 	storyKind: "This story is",
 	codexColour: "Codex colour",
+	dataColour: "Data colour",
 	hideSeriesPane: "Hide the series pane",
 	autoFocus: "Opens in",
 	layout: "Layout",

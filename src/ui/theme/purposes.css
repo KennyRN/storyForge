@@ -33,10 +33,11 @@
 	/* The notch between fill and overrun: about 6:1 against both blue and orange. */
 	--purpose-bar-notch: var(--ef-bg-dim);
 	/* Heatmap steps run from the track towards the data fill. */
-	--purpose-heat-a: color-mix(in srgb, var(--ef-bg2) 75%, var(--ef-blue));
-	--purpose-heat-b: color-mix(in srgb, var(--ef-bg2) 50%, var(--ef-blue));
-	--purpose-heat-c: color-mix(in srgb, var(--ef-bg2) 25%, var(--ef-blue));
-	--purpose-heat-d: var(--ef-blue);
+	--purpose-heat-base: var(--ef-blue); /* their own purpose (Brief 15): blue whatever the data colour */
+	--purpose-heat-a: color-mix(in srgb, var(--ef-bg2) 75%, var(--purpose-heat-base));
+	--purpose-heat-b: color-mix(in srgb, var(--ef-bg2) 50%, var(--purpose-heat-base));
+	--purpose-heat-c: color-mix(in srgb, var(--ef-bg2) 25%, var(--purpose-heat-base));
+	--purpose-heat-d: var(--purpose-heat-base);
 	/* Net-loss days: neutral greys, never trouble. */
 	--purpose-heat-loss-a: var(--ef-bg3);
 	--purpose-heat-loss-b: var(--ef-bg4);
@@ -70,3 +71,9 @@
 :root[data-codex-colour="purple"] { --purpose-codex: var(--purpose-codex-choice-purple); }
 :root[data-codex-colour="orange"] { --purpose-codex: var(--purpose-codex-choice-orange); }
 :root[data-codex-colour="grey"] { --purpose-codex: var(--purpose-codex-choice-grey); }
+
+/* The chosen data colour (the setting `data-colour`, set on the page by the app); missing, unknown or excluded means blue. bg_dim on each is 5.7:1 or more. */
+:root[data-data-colour="yellow"] { --purpose-data-fill: var(--ef-yellow); }
+:root[data-data-colour="aqua"] { --purpose-data-fill: var(--ef-aqua); }
+:root[data-data-colour="orange"] { --purpose-data-fill: var(--ef-orange); }
+:root[data-data-colour="purple"] { --purpose-data-fill: var(--ef-purple); }

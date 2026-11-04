@@ -24,7 +24,8 @@ export async function startApp(host: Host, root: HTMLElement): Promise<AppModel>
 
 	// The Codex colour is a project preference: it recolours both lists at once, and with no project open it is the default.
 	const applyCodexColour = (): void => void (document.documentElement.dataset.codexColour = model.running?.settings.values.codexColour ?? "text");
-	const applyLook = (): void => (applyCodexColour(), applyAppearance(model.running?.settings.values));
+	const applyDataColour = (): void => void (document.documentElement.dataset.dataColour = model.running?.settings.values.dataColour ?? "blue");
+	const applyLook = (): void => (applyCodexColour(), applyDataColour(), applyAppearance(model.running?.settings.values));
 	model.subscribe(["settings", "project"], applyLook);
 	applyLook();
 

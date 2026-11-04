@@ -22,6 +22,18 @@ const outside = (page: Page, text: string) =>
 const onDisk = (page: Page): Promise<string | null> => page.evaluate((p) => window.__preview.read(p), SETTINGS);
 
 test.describe("settings changed elsewhere", () => {
+	test("an outside change to the data colour applies at once, and the re-read writes nothing; a hand-edited red draws blue", async ({ page }) => {
+		await openProject(page);
+		const text = "---\nformat-version: 1\ndata-colour: purple\n---\n";
+		await outside(page, text);
+		await expect(page.locator("html")).toHaveAttribute("data-data-colour", "purple");
+		expect(await onDisk(page)).toBe(text);
+		const red = "---\nformat-version: 1\ndata-colour: red\n---\n";
+		await outside(page, red);
+		await expect(page.locator("html")).toHaveAttribute("data-data-colour", "blue");
+		expect(await onDisk(page)).toBe(red);
+	});
+
 	test("an outside change to the Codex colour applies at once, and the re-read writes nothing", async ({ page }) => {
 		await openProject(page);
 		const text = "---\nformat-version: 1\ncodex-colour: green\n---\n";
@@ -52,7 +64,7 @@ test("changing a setting that was changed elsewhere says so, quietly, and keeps 
 	await expect(dialog.getByRole("radio", { name: "Green", exact: true })).toBeChecked();
 	// Elsewhere again, before the window has heard (no batch emitted): the window still holds green.
 	await page.evaluate((p) => window.__preview.touch(p, "---\nformat-version: 1\ncodex-colour: blue\nstory-kind: series\n---\n"), SETTINGS);
-	await dialog.getByRole("radio", { name: "Yellow", exact: true }).click();
+	await dialog.getByRole("radiogroup", { name: "Codex colour" }).getByRole("radio", { name: "Yellow", exact: true }).click();
 	await expect(page.getByRole("status").filter({ hasText: "elsewhere" })).toContainText("Changed “Codex colour” to yellow. It had been changed to blue elsewhere; that change is replaced.");
 	const disk = (await onDisk(page))!;
 	expect(disk).toContain("codex-colour: yellow");

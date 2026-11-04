@@ -672,3 +672,80 @@ describe("Fraunces' Softness reaches the drawing and Wonk is always off (decisio
 		expect(s.values.appearanceCodexSoft).toBe(75);
 	});
 });
+
+describe("the data colour (Brief 15)", () => {
+	const PROJECT_MD = (root: string) => path.join(root, PROJECT_SETTINGS_PATH);
+	const put = (root: string, body: string) => {
+		fs.mkdirSync(path.join(root, "_backstage/storyforge"), { recursive: true });
+		fs.writeFileSync(PROJECT_MD(root), `---\nformat-version: 1\n${body}---\n`);
+	};
+	it("is blue with no key; opening such a project leaves the folder byte-identical", async () => {
+		const root = copyFixture("series");
+		const before = snapshot(root);
+		const s = await loadSettings(await open(root), reader(root));
+		expect(s.values.dataColour).toBe("blue");
+		expect(s.sources.dataColour).toBe("default");
+		expect(diffSnapshots(before, snapshot(root))).toMatchObject({ changed: [], added: [] });
+	});
+
+	it("reads the five role names; red, green, hex values and other kinds draw blue and are never rewritten", async () => {
+		const root = copyFixture("series");
+		for (const c of ["yellow", "aqua", "blue", "orange", "purple"]) {
+			put(root, `data-colour: ${c}\n`);
+			expect((await loadSettings(await open(root), reader(root))).values.dataColour).toBe(c);
+		}
+		for (const text of ["data-colour: red\n", "data-colour: green\n", "data-colour: '#e67e80'\n", "data-colour: 4\n", "data-colour: [aqua]\n"]) {
+			put(root, text);
+			const before = snapshot(root);
+			const bad = await loadSettings(await open(root), reader(root));
+			expect(bad.values.dataColour).toBe("blue");
+			expect(bad.sources.dataColour).toBe("default");
+			expect(diffSnapshots(before, snapshot(root)).changed).toEqual([]);
+		}
+	});
+
+	it("is written only on a change, as the role name, and nothing else changes", async () => {
+		const plain = copyFixture("series");
+		const plainProject = await open(plain);
+		const plainSettings = await loadSettings(plainProject, reader(plain));
+		const plainBefore = snapshot(plain);
+		await setSetting(plainProject, plainSettings, "dataColour", "blue");
+		expect(diffSnapshots(plainBefore, snapshot(plain))).toMatchObject({ changed: [], added: [] });
+
+		const root = copyFixture("series");
+		put(root, "x-future-key: kept\n");
+		const project = await open(root);
+		const s = await loadSettings(project, reader(root));
+		const before = snapshot(root);
+		await setSetting(project, s, "dataColour", "purple");
+		const text = fs.readFileSync(PROJECT_MD(root), "utf8");
+		expect(text).toContain("data-colour: purple");
+		expect(text).not.toMatch(/#[0-9a-f]{6}/i);
+		expect(text).toContain("x-future-key: kept");
+		expect(diffSnapshots(before, snapshot(root)).changed).toEqual([PROJECT_SETTINGS_PATH]);
+	});
+
+	it("an unrelated settings write leaves an unknown or excluded data-colour value untouched (as an older build's writer does)", async () => {
+		const root = copyFixture("series");
+		put(root, "data-colour: red\nx-future-key: kept\n");
+		const project = await open(root);
+		const s = await loadSettings(project, reader(root));
+		await setSetting(project, s, "storyKind", "standalone");
+		const text = fs.readFileSync(PROJECT_MD(root), "utf8");
+		expect(text).toContain("data-colour: red\nx-future-key: kept\n");
+		expect(text).toContain("story-kind: standalone");
+	});
+
+	it("an outside change applies live, through the re-read", async () => {
+		const root = copyFixture("series");
+		put(root, "data-colour: aqua\n");
+		const project = await open(root);
+		const current = await loadSettings(project, reader(root));
+		expect(current.values.dataColour).toBe("aqua");
+		put(root, "data-colour: orange\n");
+		await project.refresh(PROJECT_SETTINGS_PATH);
+		const out = await refreshSettings(project, current, reader(root));
+		expect(out.changed).toEqual(["dataColour"]);
+		expect(current.values.dataColour).toBe("orange");
+	});
+});

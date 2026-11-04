@@ -19,6 +19,7 @@ export const PURPOSES = [
 	"text-on-data",
 	"bar-track",
 	"bar-notch",
+	"heat-base",
 	"heat-a",
 	"heat-b",
 	"heat-c",
