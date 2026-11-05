@@ -83,7 +83,13 @@ export function mountProjectCards(host: HTMLElement, model: AppModel): () => voi
 		const url = view.cover ? coverUrl(view.cover) : null;
 		if (url) {
 			urls.push(url);
-			fill(image, el("img", { attrs: { src: url, alt: "", draggable: "false" } }));
+			const img = el("img", { attrs: { src: url, alt: "", draggable: "false" } });
+			// An image the browser can't draw counts as no cover, like a missing file: the no-cover icon takes its place, with no report here.
+			img.addEventListener("error", () => {
+				fill(image, photoIcon());
+				image.classList.add("is-empty");
+			});
+			fill(image, img);
 			image.classList.remove("is-empty");
 		} else {
 			fill(image, photoIcon());

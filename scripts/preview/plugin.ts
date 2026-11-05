@@ -165,7 +165,7 @@ export function previewHostPlugin(): Plugin {
 						}
 						// The recent list for the start screen's cards: copies of fixtures (with files written or removed), and folders that are gone.
 						case "/__preview/recent": {
-							const entries = (body.entries as { fixture?: string; missing?: boolean; files?: Record<string, string>; remove?: string[]; folder?: string }[]) ?? [];
+							const entries = (body.entries as { fixture?: string; missing?: boolean; files?: Record<string, string>; binary?: Record<string, string>; remove?: string[]; folder?: string }[]) ?? [];
 							const paths = entries.map((e) => {
 								if (e.missing) return path.join(base, `gone-${++counter}`, e.folder ?? "Gone Project");
 								const dest = freshCopy(e.fixture ?? "series");
@@ -175,6 +175,7 @@ export function previewHostPlugin(): Plugin {
 									mkdirSync(path.dirname(path.join(named, rel)), { recursive: true });
 									writeFileSync(path.join(named, rel), text);
 								}
+								for (const [rel, b64] of Object.entries(e.binary ?? {})) writeFileSync(path.join(named, rel), Buffer.from(b64, "base64"));
 								for (const rel of e.remove ?? []) rmSync(path.join(named, rel), { force: true });
 								return named;
 							});

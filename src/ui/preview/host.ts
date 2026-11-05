@@ -33,6 +33,8 @@ export interface RecentEntry {
 	missing?: boolean;
 	/** Files written into the copy before it is listed (project-relative path to text). */
 	files?: Record<string, string>;
+	/** Files written as bytes (base64), for images: the fixtures' own cover files are not real images. */
+	binary?: Record<string, string>;
 	/** Files removed from the copy. */
 	remove?: string[];
 	/** The folder's own name (default: the preview's usual one). */

@@ -5,6 +5,10 @@ import { openPreview, shot } from "./helpers";
 
 // Brief 16: the start screen's project cards (docs/project-cards.md). Details come from the real Rust code through the preview's bridge.
 
+/** A real 1 x 1 PNG (the fixtures' cover files are not real images, so a card would show the no-cover icon for them). */
+const PNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+const REAL_COVERS = { "_backstage/storyforge/_series/cover.jpg": PNG, "_backstage/storyforge/aaa/cover.png": PNG };
+
 const cards = (page: Page) => page.locator("button.sf-project-card");
 const card = (page: Page, i: number) => page.locator(`button.sf-project-card[data-recent='${i}']`);
 const state = (page: Page) => page.evaluate(() => window.__preview.recentState());
@@ -19,7 +23,7 @@ async function start(page: Page, entries: Parameters<Window["__preview"]["setRec
 
 test.describe("the project cards", () => {
 	test("a series project: the series cover on top, the series title, and the folder under it with the home folder as ~", async ({ page }) => {
-		await start(page, [{ fixture: "series" }]);
+		await start(page, [{ fixture: "series", binary: REAL_COVERS }]);
 		await expect(card(page, 0).locator(".sf-project-card-name")).toHaveText("The Lantern Cycle");
 		await expect(card(page, 0).locator(".sf-project-card-image img")).toBeVisible(); // the fixture's series cover
 		await expect(card(page, 0)).toHaveAttribute("title", /storyForge test vault$/); // the full path is the tooltip
@@ -30,7 +34,7 @@ test.describe("the project cards", () => {
 	test("with no series cover the first novel's cover is shown, and with neither the no-cover icon, named No cover", async ({ page }) => {
 		await start(page, [
 			// series.md records no cover;
-			{ fixture: "series", files: { "_story-library/series.md": readFileSync("test/fixtures/series/_story-library/series.md", "utf8").replace("cover-image: cover.jpg\n", "")  } }, // the fixture's first book (aaa) records cover.png and has the file
+			{ fixture: "series", binary: REAL_COVERS, files: { "_story-library/series.md": readFileSync("test/fixtures/series/_story-library/series.md", "utf8").replace("cover-image: cover.jpg\n", "") } }, // the fixture's first book (aaa) records cover.png and has the file
 			// neither: no recorded cover anywhere
 			{ fixture: "series", files: { "_story-library/series.md": readFileSync("test/fixtures/series/_story-library/series.md", "utf8").replace("cover-image: cover.jpg\n", "") }, remove: ["_backstage/storyforge/aaa/cover.png", "_backstage/storyforge/_series/cover.jpg"] },
 		]);
@@ -43,6 +47,14 @@ test.describe("the project cards", () => {
 		await start(page, [{ fixture: "series", remove: ["_backstage/storyforge/_series/cover.jpg", "_backstage/storyforge/aaa/cover.png"] }]);
 		await expect(card(page, 0).locator(".sf-project-card-name")).toHaveText("The Lantern Cycle");
 		await expect(card(page, 0).locator(".sf-project-card-image.is-empty")).toBeVisible();
+		await expect(page.getByRole("alert")).toHaveCount(0);
+	});
+
+	test("a cover the browser can't draw counts as no cover: the icon takes its place, quietly", async ({ page }) => {
+		// The fixture's cover files are not real images, so the browser can't draw them (a real project's are).
+		await start(page, [{ fixture: "series" }]);
+		await expect(card(page, 0).locator(".sf-project-card-image.is-empty")).toBeVisible();
+		await expect(card(page, 0).locator('svg[aria-label="No cover"]')).toBeVisible();
 		await expect(page.getByRole("alert")).toHaveCount(0);
 	});
 
@@ -168,7 +180,7 @@ test.describe("the project cards", () => {
 	});
 
 	test("the image fills the card's frame, cropped and centred", async ({ page }) => {
-		await start(page, [{ fixture: "series" }]);
+		await start(page, [{ fixture: "series", binary: REAL_COVERS }]);
 		const img = card(page, 0).locator(".sf-project-card-image img");
 		await expect(img).toHaveCSS("object-fit", "cover");
 		await expect(img).toHaveCSS("object-position", "50% 50%");
