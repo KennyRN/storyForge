@@ -69,7 +69,7 @@ export async function startApp(host: Host, root: HTMLElement): Promise<AppModel>
 		const writer = running.opened.writer;
 		offChapter?.();
 		offChapter = writer.onChapterChanged(() => model.touch("stats"));
-		if (running.readOnlyReason) model.notices.notify({ key: "read-only", sticky: true, text: running.readOnlyReason });
+		if (running.readOnlyReason) model.notices.notify({ kind: "warning", key: "read-only", sticky: true, text: running.readOnlyReason });
 		maybeShowReconciliation(model);
 	};
 	// Edit ▸ Undo and Redo are app menu items (the native ones would not reach CodeMirror's own history): they act on what is focused.

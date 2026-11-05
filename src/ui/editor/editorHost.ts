@@ -228,7 +228,7 @@ export class EditorHost {
 			}
 		} catch (e) {
 			if (token === s.opening) fill(s.host);
-			this.model.notices.notify({ text: `Could not open ${path.slice(path.lastIndexOf("/") + 1)}: ${(e as Error)?.message ?? String(e)}` });
+			this.model.notices.notify({ kind: "error", text: `Could not open ${path.slice(path.lastIndexOf("/") + 1)}: ${(e as Error)?.message ?? String(e)}` });
 		}
 	}
 

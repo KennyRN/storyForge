@@ -70,7 +70,7 @@ test.describe("the series overview", () => {
 		await tab(page, "series").click();
 		const field = overview(page).getByRole("textbox", { name: /^Synopsis of / }).first();
 		await expect(field).toHaveAttribute("aria-readonly", "true");
-		await expect(page.getByRole("alert")).toContainText("appears more than once");
+		await expect(page.getByRole("alert").filter({ hasText: "appears more than once" })).toBeVisible(); // by its text: the fixtures' own covers raise error notices too (Brief 17)
 		// Read-only, but still there to select and copy: typing changes nothing.
 		const shown = await fieldText(field);
 		await field.click();
@@ -288,7 +288,7 @@ test.describe("the novel overview", () => {
 		await expect(box).toHaveAttribute("data-state", "placeholder"); // the fixture's cover is not a real picture
 		await expect(box.locator(".sf-cover-placeholder")).toBeVisible();
 		// Never silent: a cover that is recorded but can't be drawn says so.
-		await expect(page.getByRole("status").filter({ hasText: "could not be shown" })).toBeVisible();
+		await expect(page.getByRole("alert").filter({ hasText: "could not be shown" }).first()).toBeVisible(); // an error: announced as an alert (Brief 17)
 		await box.click();
 		await page.getByRole("menuitem", { name: "Remove Cover" }).click();
 		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), BOOK_A)).not.toContain("cover-image");

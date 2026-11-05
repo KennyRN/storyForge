@@ -42,7 +42,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 			await action();
 			model.touch("codex");
 		} catch (e) {
-			model.notices.notify({ text: `Could not ${what}: ${(e as Error)?.message ?? String(e)}` });
+			model.notices.notify({ kind: "error", text: `Could not ${what}: ${(e as Error)?.message ?? String(e)}` });
 		}
 	};
 

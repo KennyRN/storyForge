@@ -29,8 +29,8 @@ describe("NoticeCenter", () => {
 	it("a transient notice fades after four seconds; a sticky one stays until dismissed", () => {
 		const t = fakeTimers();
 		const c = new NoticeCenter(t);
-		c.notify({ text: "Chapter created" });
-		const sticky = c.notify({ text: "Conflict", sticky: true });
+		c.notify({ kind: "information", text: "Chapter created" });
+		const sticky = c.notify({ kind: "information", text: "Conflict", sticky: true });
 		t.advance(3999);
 		expect(c.all()).toHaveLength(2);
 		t.advance(1);
@@ -44,7 +44,7 @@ describe("NoticeCenter", () => {
 	it("hovering holds a transient notice; leaving restarts the timer", () => {
 		const t = fakeTimers();
 		const c = new NoticeCenter(t);
-		const id = c.notify({ text: "hello" });
+		const id = c.notify({ kind: "information", text: "hello" });
 		c.hold(id);
 		t.advance(10_000);
 		expect(c.all()).toHaveLength(1);
@@ -55,14 +55,14 @@ describe("NoticeCenter", () => {
 
 	it("a notice with the same key replaces the earlier one", () => {
 		const c = new NoticeCenter(fakeTimers());
-		c.notify({ text: "first", key: "k", sticky: true });
-		c.notify({ text: "second", key: "k", sticky: true });
+		c.notify({ kind: "information", text: "first", key: "k", sticky: true });
+		c.notify({ kind: "information", text: "second", key: "k", sticky: true });
 		expect(c.all().map((n) => n.text)).toEqual(["second"]);
 	});
 
 	it("a pinned notice cannot be dismissed until it is unpinned", () => {
 		const c = new NoticeCenter(fakeTimers());
-		const id = c.notify({ text: "Could not save", key: "chapter-3", sticky: true, pinned: true });
+		const id = c.notify({ kind: "information", text: "Could not save", key: "chapter-3", sticky: true, pinned: true });
 		c.dismiss(id);
 		expect(c.all()).toHaveLength(1);
 		c.unpin("chapter-3");
@@ -72,15 +72,15 @@ describe("NoticeCenter", () => {
 
 	it("at most five show; transient ones are dropped first, older stickies fold into a count", () => {
 		const c = new NoticeCenter(fakeTimers());
-		for (let i = 0; i < 7; i++) c.notify({ text: `sticky ${i}`, sticky: true });
+		for (let i = 0; i < 7; i++) c.notify({ kind: "information", text: `sticky ${i}`, sticky: true });
 		let v = c.view();
 		expect(v.shown).toHaveLength(MAX_VISIBLE);
 		expect(v.hiddenSticky).toBe(2);
 		expect(v.shown[v.shown.length - 1].text).toBe("sticky 6");
 
 		const d = new NoticeCenter(fakeTimers());
-		for (let i = 0; i < 4; i++) d.notify({ text: `sticky ${i}`, sticky: true });
-		for (let i = 0; i < 3; i++) d.notify({ text: `soon ${i}` });
+		for (let i = 0; i < 4; i++) d.notify({ kind: "information", text: `sticky ${i}`, sticky: true });
+		for (let i = 0; i < 3; i++) d.notify({ kind: "information", text: `soon ${i}` });
 		v = d.view();
 		expect(v.shown.filter((n) => !n.sticky)).toHaveLength(1);
 		expect(v.hiddenSticky).toBe(0);
@@ -90,10 +90,10 @@ describe("NoticeCenter", () => {
 		const c = new NoticeCenter(fakeTimers());
 		let n = 0;
 		const off = c.subscribe(() => n++);
-		const id = c.notify({ text: "a", sticky: true });
+		const id = c.notify({ kind: "information", text: "a", sticky: true });
 		c.dismiss(id);
 		off();
-		c.notify({ text: "b" });
+		c.notify({ kind: "information", text: "b" });
 		expect(n).toBe(2);
 	});
 });

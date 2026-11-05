@@ -81,6 +81,7 @@ export class FieldState {
 					this.seen = result.current;
 				}
 				this.hooks.notify({
+					kind: "error",
 					text: result.status === "conflict" ? `${this.hooks.label} changed on disk while you were editing it, so your text was not saved over it. ${where}` : `${this.hooks.label} could not be saved. ${where}`,
 					sticky: true,
 					pinned: !result.recovery.ok,
@@ -97,6 +98,7 @@ export class FieldState {
 		if (text === null) return;
 		const result = await this.hooks.recover(text).catch((e: Error): RecoveryResult => ({ ok: false, error: e }));
 		this.hooks.notify({
+			kind: "error",
 			text: result.ok ? `${this.hooks.label} could not be saved before closing. Your text is saved in ${result.path}.` : `${this.hooks.label} could not be saved before closing, or to a recovery file.`,
 			sticky: true,
 			pinned: !result.ok,

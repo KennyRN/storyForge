@@ -32,7 +32,7 @@ function sectionField(model: AppModel, bin: FieldBin, options: { label: string; 
 			field.setReadOnly(true);
 			field.element.dataset.duplicate = "true";
 			field.element.title = "This heading appears more than once in the file";
-			model.notices.notify({ text: `${options.label} can't be edited here: its heading appears more than once in the file. Tidy the file in Obsidian.`, key: `duplicate-${options.label}`, sticky: true });
+			model.notices.notify({ kind: "warning", text: `${options.label} can't be edited here: its heading appears more than once in the file. Tidy the file in Obsidian.`, key: `duplicate-${options.label}`, sticky: true });
 		} else field.show(r.text);
 	});
 	return field.element;

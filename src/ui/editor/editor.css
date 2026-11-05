@@ -13,7 +13,7 @@
 	flex: none;
 	padding: var(--space-1) var(--space-4);
 	background: var(--purpose-raised-bg);
-	color: var(--purpose-text-muted);
+	color: var(--purpose-text); /* a state, not a message, so it stays neutral; its text is fg now (it was grey2, 3.99:1 at 12 px) */
 	font-size: 12px;
 	text-align: center;
 }

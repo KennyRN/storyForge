@@ -41,7 +41,7 @@ export function reorderable(model: AppModel, zones: DragZone[], write: (keys: Re
 				await write(keys);
 				model.touch("library");
 			} catch (e) {
-				model.notices.notify({ text: `Could not save the new order: ${(e as Error)?.message ?? String(e)}` });
+				model.notices.notify({ kind: "error", text: `Could not save the new order: ${(e as Error)?.message ?? String(e)}` });
 				redraw();
 			}
 		})();

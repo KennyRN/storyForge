@@ -28,7 +28,7 @@ export function openRenameCodex(model: AppModel, notePath: string): void {
 	if (bringForward("rename")) return;
 	const running = model.running;
 	if (!running) return;
-	if (running.readOnlyReason) return void model.notices.notify({ text: "This project is open read-only, so nothing can be renamed." });
+	if (running.readOnlyReason) return void model.notices.notify({ kind: "warning", text: "This project is open read-only, so nothing can be renamed." });
 	const current = baseName(notePath);
 
 	const input = el("input", { class: "sf-field", attrs: { type: "text", "aria-label": "New name", spellcheck: "false" } });

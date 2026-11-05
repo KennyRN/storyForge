@@ -57,7 +57,7 @@ export function coverBox(model: AppModel, target: CoverTarget, title: string): H
 		const key = `${targetKey(target)}|${version}`;
 		if (reported.has(key)) return;
 		reported.add(key);
-		model.notices.notify({ text: `The cover of ${title} could not be shown: ${why}`, key: `cover-${targetKey(target)}` });
+		model.notices.notify({ kind: "error", text: `The cover of ${title} could not be shown: ${why}`, key: `cover-${targetKey(target)}` });
 	};
 	placeholder();
 	if (readable && entry && name) {

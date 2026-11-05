@@ -97,10 +97,11 @@ export class AppModel {
 		// Everything the controller does on its own (an outside change applied, a project opened) touches all topics.
 		controller.onChange = () => this.touch(...ALL);
 		controller.onSettingsProblem = (kind, version) => {
-			if (kind === "unreadable") this.notices.notify({ text: "The project’s settings file can’t be read, so settings stay as they were and can’t be changed until it can.", key: "settings-file", ms: 12000 });
-			else if (kind === "absent") this.notices.notify({ text: "The project’s settings file has gone. Settings stay as they are for now, and return to their defaults when the project next opens.", key: "settings-file", ms: 12000 });
+			if (kind === "unreadable") this.notices.notify({ kind: "warning", text: "The project’s settings file can’t be read, so settings stay as they were and can’t be changed until it can.", key: "settings-file", ms: 12000 });
+			else if (kind === "absent") this.notices.notify({ kind: "warning", text: "The project’s settings file has gone. Settings stay as they are for now, and return to their defaults when the project next opens.", key: "settings-file", ms: 12000 });
 			else
 				this.notices.notify({
+					kind: "warning",
 					text: `This project was upgraded elsewhere by a newer storyForge (format ${version}). Settings can’t be changed now. Close and reopen it to open it read-only; what you have typed is saved first.`,
 					key: "settings-file",
 					sticky: true,
@@ -116,7 +117,7 @@ export class AppModel {
 		// A writing session started or ended: the history view and the stats panel redraw.
 		controller.onSessionChange = () => this.touch("sessions", "stats");
 		// Quietly, once: writing is unaffected (docs/sessions.md §8).
-		controller.onSessionFailure = () => this.notices.notify({ text: "Writing sessions couldn't be saved. Your writing is not affected.", key: "sessions-failed" });
+		controller.onSessionFailure = () => this.notices.notify({ kind: "error", text: "Writing sessions couldn't be saved. Your writing is not affected.", key: "sessions-failed" });
 	}
 
 	get running(): Running | null {
@@ -179,9 +180,9 @@ export class AppModel {
 	async addNextChapter(): Promise<void> {
 		const running = this.running;
 		const { book, chapter } = this.nav;
-		if (!running) return void this.notices.notify({ text: "Open a project first." });
-		if (running.readOnlyReason) return void this.notices.notify({ text: "This project is open read-only." });
-		if (!book) return void this.notices.notify({ text: "This project has no novel yet." });
+		if (!running) return void this.notices.notify({ kind: "warning", text: "Open a project first." });
+		if (running.readOnlyReason) return void this.notices.notify({ kind: "warning", text: "This project is open read-only." });
+		if (!book) return void this.notices.notify({ kind: "warning", text: "This project has no novel yet." });
 		await this.guard(async () => {
 			const created = await createContinuingChapter(running.opened.project, book, null); // a true append (decision 81): the end of the novel, whichever chapter is open
 			this.touch("library", "stats");
@@ -417,6 +418,7 @@ export class AppModel {
 		if (!running || running.readOnlyReason || this.offeredOptOut.has(name.toLowerCase())) return;
 		this.offeredOptOut.add(name.toLowerCase());
 		this.notices.notify({
+			kind: "information",
 			text: `Stop correcting “${name}” when it is typed in lower case?`,
 			key: `opt-out-${name}`,
 			actions: [
@@ -460,7 +462,7 @@ export class AppModel {
 	reportReplaced(replaced: SettingReplaced | null, now: unknown): void {
 		if (!replaced) return;
 		const name = settingName(replaced.key);
-		this.notices.notify({ text: `Changed “${name}” to ${settingValue(now)}. It had been changed to ${settingValue(replaced.replaced)} elsewhere; that change is replaced.`, key: `setting-replaced-${replaced.key}`, ms: 6000 });
+		this.notices.notify({ kind: "information", text: `Changed “${name}” to ${settingValue(now)}. It had been changed to ${settingValue(replaced.replaced)} elsewhere; that change is replaced.`, key: `setting-replaced-${replaced.key}`, ms: 6000 });
 	}
 
 	subscribe(topics: Topic | Topic[], listener: () => void): () => void {
@@ -513,7 +515,7 @@ export class AppModel {
 		try {
 			await this.controller.revealInFinder(path);
 		} catch (e) {
-			this.notices.notify({ text: `Could not show the file in Finder: ${(e as Error)?.message ?? String(e)}` });
+			this.notices.notify({ kind: "error", text: `Could not show the file in Finder: ${(e as Error)?.message ?? String(e)}` });
 		}
 	}
 
@@ -542,7 +544,7 @@ export class AppModel {
 				if (target.kind === "series") await writeSeriesCoverName(project, name);
 				else await writeBookCoverName(project, target.code, name);
 			} catch (e) {
-				this.notices.notify({ text: `The cover image was saved, but it could not be recorded in the project's details: ${(e as Error)?.message ?? String(e)}`, sticky: true });
+				this.notices.notify({ kind: "error", text: `The cover image was saved, but it could not be recorded in the project's details: ${(e as Error)?.message ?? String(e)}`, sticky: true });
 			}
 			this.touch("library", "nav");
 		}, "set the cover");
@@ -564,11 +566,11 @@ export class AppModel {
 		try {
 			const out = await action();
 			if (out && typeof out === "object" && "kind" in out && (out as { kind: string }).kind === "not-a-project") {
-				this.notices.notify({ text: (out as unknown as { message: string }).message });
+				this.notices.notify({ kind: "warning", text: (out as unknown as { message: string }).message });
 			}
 			return out;
 		} catch (e) {
-			this.notices.notify({ text: `Could not ${what}: ${(e as Error)?.message ?? String(e)}` });
+			this.notices.notify({ kind: "error", text: `Could not ${what}: ${(e as Error)?.message ?? String(e)}` });
 			return null;
 		}
 	}

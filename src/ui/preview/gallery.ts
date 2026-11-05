@@ -80,7 +80,7 @@ app.append(
 				return b;
 			})(),
 			(() => {
-				const b = button({ label: "Transient notice", onClick: () => notices.notify({ text: "Chapter created" }) });
+				const b = button({ label: "Transient notice", onClick: () => notices.notify({ kind: "success", text: "Chapter created" }) });
 				b.id = "notify-transient";
 				return b;
 			})(),
@@ -89,6 +89,7 @@ app.append(
 					label: "Sticky notice",
 					onClick: () =>
 						notices.notify({
+							kind: "error",
 							text: "Chapter 3 changed on disk while you were typing. Your text is saved at _sf-backup/recovery/aaa/ch-a1.md.",
 							sticky: true,
 							actions: [{ label: "Reveal", onClick: () => void (log.textContent = "revealed"), dismiss: false }],

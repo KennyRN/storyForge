@@ -161,6 +161,8 @@
 	width: min(520px, calc(100vw - 32px));
 	pointer-events: none;
 }
+/* A notice (Brief 17): a tinted fill, a 3 px edge in its kind's colour and an icon before the words; no 1 px border (the shared shadow stays, decision 110's rule 2).
+   The muted "n more notices" row stays neutral. Red means something failed. */
 .sf-notice {
 	display: flex;
 	align-items: center;
@@ -169,12 +171,45 @@
 	padding: var(--space-2) var(--space-3);
 	border-radius: var(--radius);
 	background: var(--purpose-raised-bg);
-	border: 1px solid var(--purpose-border);
 	box-shadow: var(--floating-shadow);
 	pointer-events: auto;
 }
-.sf-notice--sticky {
-	border-left: 3px solid var(--purpose-trouble);
+.sf-notice-icon {
+	flex: none;
+	align-self: flex-start;
+	margin-top: 1px;
+}
+.sf-notice-text {
+	flex: 1;
+	min-width: 0;
+}
+.sf-notice--error {
+	background: var(--purpose-notice-error-fill);
+	border-left: 3px solid var(--purpose-notice-error-edge);
+	color: var(--purpose-text);
+}
+.sf-notice--error .sf-notice-icon { color: var(--purpose-notice-error-edge); }
+.sf-notice--warning {
+	background: var(--purpose-notice-warning-fill);
+	border-left: 3px solid var(--purpose-notice-warning-edge);
+	color: var(--purpose-text);
+}
+.sf-notice--warning .sf-notice-icon { color: var(--purpose-notice-warning-edge); }
+.sf-notice--information {
+	background: var(--purpose-notice-information-fill);
+	border-left: 3px solid var(--purpose-notice-information-edge);
+	color: var(--purpose-text);
+}
+.sf-notice--information .sf-notice-icon { color: var(--purpose-notice-information-edge); }
+.sf-notice--success {
+	background: var(--purpose-notice-success-fill);
+	border-left: 3px solid var(--purpose-notice-success-edge);
+	color: var(--purpose-text);
+}
+.sf-notice--success .sf-notice-icon { color: var(--purpose-notice-success-edge); }
+/* A notice's buttons are in the text colour on every tint (the muted grey is 3.1 to 3.6:1 on them). */
+.sf-notice .sf-button--quiet {
+	color: var(--purpose-text);
 }
 .sf-notice-actions {
 	display: flex;

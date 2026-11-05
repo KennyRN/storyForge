@@ -1,5 +1,7 @@
 import { el, fill } from "./dom";
 import { button } from "./button";
+import { noticeIcon, type NoticeKind } from "./noticeIcons";
+export type { NoticeKind } from "./noticeIcons";
 
 export interface NoticeAction {
 	label: string;
@@ -9,6 +11,12 @@ export interface NoticeAction {
 }
 
 export interface NoticeInput {
+	/**
+	 * What kind of message it is (Brief 17, decision 122), which sets its tint, its edge and its icon. **Error:** something failed. **Warning:** you were
+	 * stopped, or something is wrong but nothing is lost (every refusal). **Information:** something was done for you or you are told something.
+	 * **Success:** something you asked for was done. Red means something failed.
+	 */
+	kind: NoticeKind;
 	text: string;
 	/** Sticky notices are for anything about the author's words: they stay until dismissed. */
 	sticky?: boolean;
@@ -140,10 +148,13 @@ export function mountNotices(host: HTMLElement, center: NoticeCenter): void {
 				el(
 					"div",
 					{
-						class: `sf-notice${n.sticky ? " sf-notice--sticky" : ""}`,
-						attrs: { role: n.sticky ? "alert" : "status" },
+						class: `sf-notice sf-notice--${n.kind}${n.sticky ? " sf-notice--sticky" : ""}`,
+						dataset: { kind: n.kind },
+						// Errors, and any sticky notice, are announced at once; the rest politely.
+						attrs: { role: n.kind === "error" || n.sticky ? "alert" : "status" },
 						on: { pointerenter: () => center.hold(n.id), pointerleave: () => center.release(n.id) },
 					},
+					noticeIcon(n.kind),
 					el("div", { class: "sf-notice-text", text: n.text }),
 					el(
 						"div",

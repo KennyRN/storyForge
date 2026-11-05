@@ -29,7 +29,7 @@ const FREQUENCIES: Record<AutomaticBackupFrequency, string> = { "every-open": "E
 export function openSettings(model: AppModel): void {
 	if (bringForward("settings")) return;
 	const running = model.running;
-	if (!running) return void model.notices.notify({ text: "Open a project first." });
+	if (!running) return void model.notices.notify({ kind: "warning", text: "Open a project first." });
 	const project = running.opened.project;
 	const settings = running.settings;
 
@@ -318,7 +318,7 @@ export function openSettings(model: AppModel): void {
 				]),
 			],
 			Appearance: [...APPEARANCE_PARTS.map(appearancePart), section("Codex colour", [codexColour()]), section("Data colour", [dataColour()]), section("Text colours", textColours())],
-			Writing: [section("Typing", typingSection({ settings: settings.values, off, change, check, notify: (text) => model.notices.notify({ text }) }))],
+			Writing: [section("Typing", typingSection({ settings: settings.values, off, change, check, notify: (text) => model.notices.notify({ kind: "warning", text }) }))],
 			Sessions: [
 				section("Sessions", [
 					number("sessionIdleMinutes", "Session idle limit (minutes)", SESSION_LIMITS.idleMinutes),
@@ -341,7 +341,7 @@ export function openSettings(model: AppModel): void {
 							onClick: () =>
 								void model.guard(async () => {
 									const result = await model.controller.manualBackup("full");
-									model.notices.notify({ text: `Backed up ${result.fileCount} files to ${result.path}.`, actions: [{ label: "Reveal", onClick: () => void model.reveal(result.path), dismiss: false }] });
+									model.notices.notify({ kind: "success", text: `Backed up ${result.fileCount} files to ${result.path}.`, actions: [{ label: "Reveal", onClick: () => void model.reveal(result.path), dismiss: false }] });
 								}, "back up"),
 						}),
 					),

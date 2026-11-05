@@ -122,6 +122,12 @@ html[data-input="pointer"] .sf-splitter:focus-visible {
 .sf-field:focus-visible {
 	border-color: var(--purpose-accent);
 }
+/* Every text box marked invalid draws the red border (the rename box already did; the Settings size box and the panel width boxes were marked and showed nothing). */
+.sf-field[aria-invalid="true"],
+.sf-field[aria-invalid="true"]:focus-visible,
+input[aria-invalid="true"] {
+	border-color: var(--purpose-trouble);
+}
 
 .sf-stage {
 	height: 100%;

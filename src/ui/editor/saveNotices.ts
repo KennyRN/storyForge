@@ -34,21 +34,21 @@ export function noticesForSave(result: SaveResult, ctx: NoticeContext): SaveOutc
 			break;
 		case "saved":
 			clear = troubleKeys(result.path);
-			if (result.backup && !result.backup.ok) show.push({ key: `backup:${result.path}`, sticky: true, text: `The backup before saving ${name} failed. Your text was saved.` });
-			if (result.normalizedLineEndings) show.push({ key: `endings:${result.path}`, text: `${name} had mixed line endings, so they were made consistent.` });
+			if (result.backup && !result.backup.ok) show.push({ kind: "warning", key: `backup:${result.path}`, sticky: true, text: `The backup before saving ${name} failed. Your text was saved.` });
+			if (result.normalizedLineEndings) show.push({ kind: "information", key: `endings:${result.path}`, text: `${name} had mixed line endings, so they were made consistent.` });
 			break;
 		case "conflict":
-			show.push({ key: `conflict:${result.path}`, sticky: true, text: `${name} changed on disk while you were typing. The file on disk is kept, and your text is saved at ${result.recoveryPath}.`, actions: revealAction(result.recoveryPath, ctx) });
+			show.push({ kind: "error", key: `conflict:${result.path}`, sticky: true, text: `${name} changed on disk while you were typing. The file on disk is kept, and your text is saved at ${result.recoveryPath}.`, actions: revealAction(result.recoveryPath, ctx) });
 			break;
 		case "refused":
-			show.push({ key: `refused:${result.path}`, sticky: true, text: `storyForge could not save ${name}: ${result.reason}. Your text is saved at ${result.recoveryPath}.`, actions: revealAction(result.recoveryPath, ctx) });
+			show.push({ kind: "error", key: `refused:${result.path}`, sticky: true, text: `storyForge could not save ${name}: ${result.reason}. Your text is saved at ${result.recoveryPath}.`, actions: revealAction(result.recoveryPath, ctx) });
 			break;
 		case "error":
-			if (result.recoveryPath) show.push({ key: `error:${result.path}`, sticky: true, text: `${name} could not be saved (${result.error.message}). Your text is saved at ${result.recoveryPath}.`, actions: revealAction(result.recoveryPath, ctx) });
-			else show.push({ key: `error:${result.path}`, sticky: true, text: `${name} could not be saved (${result.error.message}). Your text is still in the editor, and storyForge will try again.` });
+			if (result.recoveryPath) show.push({ kind: "error", key: `error:${result.path}`, sticky: true, text: `${name} could not be saved (${result.error.message}). Your text is saved at ${result.recoveryPath}.`, actions: revealAction(result.recoveryPath, ctx) });
+			else show.push({ kind: "error", key: `error:${result.path}`, sticky: true, text: `${name} could not be saved (${result.error.message}). Your text is still in the editor, and storyForge will try again.` });
 			break;
 		case "recovery-failed":
-			show.push({ key: `recovery-failed:${result.path}`, sticky: true, pinned: true, text: `${name} could not be saved, and no copy could be kept. Your text is still in the editor.` });
+			show.push({ kind: "error", key: `recovery-failed:${result.path}`, sticky: true, pinned: true, text: `${name} could not be saved, and no copy could be kept. Your text is still in the editor.` });
 			break;
 	}
 	return { show, clear };
@@ -56,7 +56,7 @@ export function noticesForSave(result: SaveResult, ctx: NoticeContext): SaveOutc
 
 /** The notice for an outside change that arrived over unsaved text (the writer kept the author's text in a recovery file). */
 export function noticeForOutsideChange(path: string, recoveryPath: string, ctx: NoticeContext): NoticeInput {
-	return { key: `outside:${path}`, sticky: true, text: `${nameOf(path)} changed on disk while you had unsaved text. The new version is shown, and your text is saved at ${recoveryPath}.`, actions: revealAction(recoveryPath, ctx) };
+	return { kind: "error", key: `outside:${path}`, sticky: true, text: `${nameOf(path)} changed on disk while you had unsaved text. The new version is shown, and your text is saved at ${recoveryPath}.`, actions: revealAction(recoveryPath, ctx) };
 }
 
 /** The quiet banner above a read-only editor, from the writer's reason. */

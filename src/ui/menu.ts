@@ -44,7 +44,7 @@ function renameSelection(model: AppModel): void {
 	const f2 = (selector: string): void => {
 		requestAnimationFrame(() => {
 			const row = document.querySelector<HTMLElement>(selector);
-			if (!row) return void model.notices.notify({ text: "That item isn't showing. Open its tab and try again." });
+			if (!row) return void model.notices.notify({ kind: "warning", text: "That item isn't showing. Open its tab and try again." });
 			row.focus();
 			row.dispatchEvent(new KeyboardEvent("keydown", { key: "F2", bubbles: true }));
 		});
@@ -93,7 +93,7 @@ let closeDiagnostics: (() => void) | undefined;
 export function handleMenu(model: AppModel, id: string): boolean {
 	const requireProject = (): boolean => {
 		if (model.running) return true;
-		model.notices.notify({ text: "Open a project first." });
+		model.notices.notify({ kind: "warning", text: "Open a project first." });
 		return false;
 	};
 	switch (id) {
@@ -139,7 +139,7 @@ export function handleMenu(model: AppModel, id: string): boolean {
 		case "backup-now":
 			void model.guard(async () => {
 				const result = await model.controller.manualBackup("scope");
-				model.notices.notify({ text: `Backed up ${result.fileCount} files to ${result.path}.`, actions: [{ label: "Reveal", onClick: () => void model.reveal(result.path), dismiss: false }] });
+				model.notices.notify({ kind: "success", text: `Backed up ${result.fileCount} files to ${result.path}.`, actions: [{ label: "Reveal", onClick: () => void model.reveal(result.path), dismiss: false }] });
 			}, "back up");
 			return true;
 		case "clear-recent":

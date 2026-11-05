@@ -211,10 +211,10 @@ test.describe("the context panel on the novel tab", () => {
 		const novel = await read(page, BOOK_A);
 		await outside(page, BOOK_A, novel.replace("plot: Jane reaches the harbour at dawn.", "plot: Somebody else.\n"));
 		await overview(page).locator(".sf-overview-title").click();
-		await expect(page.getByRole("alert")).toContainText("changed on disk");
+		await expect(page.getByRole("alert").filter({ hasText: "changed on disk" })).toBeVisible();
 		await expect.poll(() => fieldText(field)).toBe("Somebody else.");
 		expect(await read(page, BOOK_A)).toContain("Somebody else.");
-		await expect(page.getByRole("alert")).toContainText("recovery"); // the notice names where the author's text went (as it did on the card)
+		await expect(page.getByRole("alert").filter({ hasText: "changed on disk" })).toContainText("recovery"); // the notice names where the author's text went (as it did on the card)
 	});
 
 	test("words typed in a plot note are never lost when the chosen chapter changes: they are saved to the chapter they belong to first", async ({ page }) => {
