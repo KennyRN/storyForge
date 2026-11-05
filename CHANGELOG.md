@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.10.0: the colour round and the type styles (Briefs 17 and 18)
+
+- Changed: **the selection is the app's colour** in every editing surface (the chapter, notes, plot notes, the synopsis and description, the read-only chapter text): plum by default, or blue, green, yellow or grey (Settings ▸ Appearance ▸ Text colours); a neutral grey when the editor or the window isn't active. It had been drawing CodeMirror's own lilac.
+- New: **find matches** are a grey fill with a dashed outline, the current one with an orange outline.
+- New: **`==highlight==`** is drawn as a highlight (yellow by default, or aqua, blue, orange or purple) with the markers hidden away from the caret. Only the plain `==x==` is confirmed against Obsidian; the other cases follow rules that are marked unconfirmed. **Bold, italic and bold italic** can each take a colour of their own (the text colour by default). The plot note, synopsis and description show the same dressing; the text on disk is untouched.
+- Changed: **notices come in four kinds**: error, warning, information, success, each with a tinted fill, a coloured edge and its own icon. **Red now means something failed**: refusals, the read-only banner and the newer-format notice are warnings. The read-only banner's text is the plain text colour, and every invalid text box has a red border.
+- New: **the type styles.** Every piece of text is one of a small set of styles (Display, Title, Heading, Small heading, Body, Body bold, Hint, Bar name; Prose, Reading and Fields for writing; and the Navigator's four), each with a font, weight and size you can change in Settings ▸ Appearance, which now has three groups (Interface, Navigator, Writing). **Two base fonts**, the Interface font and the Writing font, are what a style follows unless it names its own. The interface no longer uses the system font: it is SN Pro until you choose. The Fields (plot note, synopsis, description) are 14 px.
+- Changed: **Sofia Sans replaces Inter**, in three widths (standard, semi condensed, condensed), each its own family with a real italic and its whole weight range (to 1000). A stored `Inter` draws the default and is never rewritten.
+- Under the hood: no style sheet names a font, a size or a weight of its own any more (a test fails on one); the notice kinds are required on every notice.
+
 ## 1.9.0: the project cards (Brief 16)
 
 - New: **the start screen shows your recent projects as cards**: each with its image (the series' cover, else the first novel's, else a rounded photo icon for no cover), its name (the series title, or a single-novel project's book title, else the folder's name) and where it lives (your own home folder as `~`, long paths cut in the middle, the full path as the tooltip). One click opens a project. The screen is the dim background with the cards on the working colour; Open Project… and New Project… stay in place while the cards scroll; hovering a card turns its edge green.

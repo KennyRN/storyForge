@@ -72,3 +72,26 @@ Also: `sofia-navigator.png` (the novel title at 900 and the series name at 600 i
 3. **The size ranges** (§4): right?
 4. **The special-characters button and its characters** (17 and 18 px): leave as glyph sizes outside the styles?
 5. **Sofia Sans:** is it right to copy the Normal-width files from `Fonts/Sofia Sans/` into the repo? I won't touch your folder.
+
+## 8. Rulings (H1, 5 November 2026)
+
+- **Body bold** is its own Interface style: 600 at 13 px, following the Interface font, changeable like the others. It is the series title, the project card's name and state words, the plan headline and the shortcode label. No relative `bolder`.
+- **Fields** is 14 px: the plot note, the synopsis and the description (`.sf-section-field` too). Only the overview names go to Body's 13 px.
+- **Named exceptions** in the static test: the prose headings (`em`), the dressing's emphasis weights (bold 700, the markers' 400), the special-characters button and its characters (17 and 18 px), `.sf-nav-note` (see below) and the library side's Codex list (16 px).
+- The Interface font is SN Pro until Kenny chooses at his look (SN Pro or Atkinson Hyperlegible Next). Sofia Sans is bundled in three widths, each its own family.
+
+## 9. As built (1.10.0)
+
+**Core.** `core/typeStyles.ts` is the table: Display 28/600, Title 20/600, Heading 15/600, Small heading 12/600, Body 13/400, Body bold 13/600, Hint 12/400, Bar name 19/700 (fixed: the font only) for the Interface; Prose 20, Reading 15, Fields 14 (all 400) for the Writing font; sizes in pixels with the ranges of §4. Two base fonts, **Interface** and **Writing** (default SN Pro for both), are what a style follows until it names its own font (`base`).
+
+**Settings** (`project.md`, written only on change, an unknown or out-of-range value reads as the default and is never rewritten): `appearance-interface-font`, `appearance-writing-font`, and for each style `appearance-<style>-font|weight|size|soft` (`display`, `title`, `heading`, `small-heading`, `body`, `body-bold`, `hint`, `bar-name`, `prose`, `reading`, `fields`). The style's font is a family or `base`. The weight is the resolved family's nearest real weight (Sofia Sans runs to 1000, so the stored weights now allow 100 to 1000). The Navigator's four parts keep their own keys and ranges (rem, as in decisions 79 to 84) and gain `base` as a font (the Interface font in the Settings list).
+
+**Drawing.** `applyAppearance` sets `--font-interface`, `--font-writing` and, for every style, `--ts-<style>-family|weight|size|var` on the page (and with no project open applies the defaults). The defaults before that are `theme/typeStyles.css`, which a test keeps equal to the table. Every text rule in `src/ui/**/*.css` writes `font-family`, `font-weight`, `font-size` and `font-variation-settings` as `var(--ts-…)` (or `var(--ap-…)` for a Navigator part); `src/ui/__tests__/typeStyles.test.ts` fails on any other font, size or weight (proved by breaking a rule), on `font:` other than `inherit`, and on a system font; the exceptions are named there.
+
+**`.sf-nav-note`** is a named exception, not Hint: it is 0.8 of the line it sits in, so it scales with the Navigator's Selected chapter style (the one it belongs to). Hint would be a fixed 12 px whatever that part's size.
+
+**Settings ▸ Appearance** is in three groups, **Interface** (the Interface font, then the eight styles), **Navigator** (the four parts) and **Writing** (the Writing font, then Prose, Reading, Fields), then Codex colour, Data colour and Text colours. A style row is its font (first option: the base font), weight, size in pixels (committed on Return or blur, refused outside its range with the range shown, Escape puts it back) and a sample.
+
+**Letter-spacing and case** are not part of the style: the pane titles and zone labels keep their 0.04em and lowercase in their own rules (the overview and summary headings were never spaced).
+
+**Tests.** `typeStyles.test.ts` (the static test and the defaults), `typeStyles.ui.ts` (the three groups, the bases following, ranges, weights, samples), settings tests for the 46 new keys, `look.ui.ts` and `appearance.ui.ts` updated for the Interface font (SN Pro first, Arial then the system's as the fallback). `npm run test:look` now also changes the Writing font from outside and checks the fields move; `npm run test:fonts` checks that the Interface font moves a style that follows it and not one that names its own, that a size moves a style and that the Writing font leaves the interface alone (the start screen's card name is the probe). Both are untested in the built app until the sweep.
