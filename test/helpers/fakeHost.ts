@@ -20,6 +20,8 @@ export class FakeHost implements Host {
 	/** Scripted overrides: a command name to a function. */
 	overrides = new Map<string, (args: unknown) => unknown>();
 	current: { root: string; readOnly: boolean } | null = null;
+	/** What `peek_recent` last listed for each recent entry, as Rust keeps it: so `peek_recent_book` can refuse a list that changed. */
+	private peeked = new Map<number, { root: string; folders: string[] }>();
 	quit = false;
 	/** How many times the window reported close progress. */
 	progress = 0;
@@ -64,6 +66,27 @@ export class FakeHost implements Host {
 				const root = this.current.root;
 				this.recent = [root, ...this.recent.filter((r) => r !== root)].slice(0, 10);
 				return null;
+			}
+			case "peek_recent": {
+				const index = (payload as { index: number }).index;
+				const root = this.recent[index];
+				if (root === undefined) throw { code: "ENOENT", message: "no such recent project" };
+				const out = (await RustBridge.peekRoot(root)) as { bookFolders: string[] };
+				this.peeked.set(index, { root, folders: out.bookFolders });
+				return out;
+			}
+			case "peek_recent_book": {
+				const { index, position } = payload as { index: number; position: number };
+				const root = this.recent[index];
+				if (root === undefined) throw { code: "ENOENT", message: "no such recent project" };
+				const listed = this.peeked.get(index);
+				if (!listed || listed.root !== root) throw { code: "CHANGED", message: "the recent list changed; look again" };
+				const bridge = await RustBridge.open(root, true);
+				try {
+					return await bridge.invoke("peek_book", { args: { position, expected: listed.folders } });
+				} finally {
+					bridge.close();
+				}
 			}
 			case "recent_projects":
 				return this.recent;

@@ -68,6 +68,13 @@ pub fn dispatch(project: &Project, cmd: &str, args: &Value) -> FsResult<Value> {
             Ok(json!(STANDARD.encode(project.read_cover(&target, str_arg(args, "filename")?)?)))
         }
         "retire" => Ok(json!(project.retire(str_arg(args, "path")?)?)),
+        // Read only, for the start screen's cards (the app reaches these through `peek_recent`, which takes an index, never a path).
+        "peek_summary" => Ok(project.peek_summary()),
+        "peek_book" => {
+            let position = args.get("position").and_then(|v| v.as_u64()).ok_or_else(|| FsError::new("UNKNOWN", "missing position", None))? as usize;
+            let expected: Vec<String> = args.get("expected").and_then(|v| v.as_array()).map(|a| a.iter().filter_map(|x| x.as_str().map(str::to_string)).collect()).unwrap_or_default();
+            project.peek_book(position, &expected)
+        }
         other => Err(FsError::new("UNKNOWN", format!("unknown command {other}"), None)),
     }
 }

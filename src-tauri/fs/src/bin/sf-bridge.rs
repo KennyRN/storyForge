@@ -24,7 +24,14 @@ fn main() {
                 continue;
             }
         };
-        let reply = if let Some(root) = msg.get("open").and_then(|v| v.as_str()) {
+        // The preview's stand-in for `peek_recent`: a folder named by its path (the preview's server names it; the app never does), no project needed.
+        let reply = if let Some(root) = msg.get("peekRoot").and_then(|v| v.as_str()) {
+            let id = msg.get("id").cloned().unwrap_or(serde_json::Value::Null);
+            match storyforge_fs::ops::peek_root(std::path::Path::new(root)) {
+                Ok(v) => serde_json::json!({ "id": id, "ok": v }),
+                Err(e) => serde_json::json!({ "id": id, "err": e }),
+            }
+        } else if let Some(root) = msg.get("open").and_then(|v| v.as_str()) {
             match Project::open(std::path::Path::new(root), msg.get("readOnly").and_then(|v| v.as_bool()).unwrap_or(false)) {
                 Ok(p) => {
                     project = Some(p);

@@ -10,6 +10,8 @@
     "allow-pick-project",
     "allow-open-recent",
     "allow-remember-project",
+    "allow-peek-recent",
+    "allow-peek-recent-book",
     "allow-recent-projects",
     "allow-project-info",
     "allow-close-project",

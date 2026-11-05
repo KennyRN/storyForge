@@ -78,6 +78,19 @@ export class RustBridge {
 		return bridge;
 	}
 
+	/** The preview's stand-in for `peek_recent`: the summary of a folder by its path (no project needed), from the very code the app runs. */
+	static peekRoot(root: string): Promise<unknown> {
+		const bridge = new RustBridge();
+		return new Promise((resolve, reject) => {
+			const id = bridge.nextId++;
+			bridge.pending.set(id, {
+				resolve: (v) => (bridge.close(), resolve(v)),
+				reject: (e) => (bridge.close(), reject(e)),
+			});
+			bridge.child.stdin.write(JSON.stringify({ id, peekRoot: root }) + "\n");
+		});
+	}
+
 	/** Shaped like Tauri's `invoke`: `(command, { args })`. */
 	readonly invoke: Invoke = (cmd, payload) =>
 		new Promise((resolve, reject) => {

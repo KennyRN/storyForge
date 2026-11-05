@@ -29,3 +29,8 @@ pub fn forget(mut list: Vec<String>, index: usize) -> Option<Vec<String>> {
 pub fn to_text(list: &[String]) -> String {
     serde_json::to_string(list).unwrap_or_default()
 }
+
+/// The `index`th entry, if there is one. Every command that uses the list takes an index, never a path.
+pub fn at(list: &[String], index: usize) -> Option<&String> {
+    list.get(index)
+}

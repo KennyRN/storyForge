@@ -3,6 +3,7 @@
  * schedule, iCloud downloads, and closing without losing a word. The host (Tauri, or a fake in the
  * tests) supplies `invoke`, events and timers; everything else is the tested core.
  */
+import type { PeekBook, PeekResult } from "../core/projectCard";
 import { TauriBackend, TauriMachineStore, type Invoke } from "../backends/tauri";
 import { BackupAbandonedError, type BackupResult, type BackupService, isBackupDue } from "../core/backup";
 import { readFrontmatter } from "../core/frontmatter";
@@ -174,6 +175,16 @@ export class AppController {
 
 	recent(): Promise<string[]> {
 		return this.host.invoke("recent_projects") as Promise<string[]>;
+	}
+
+	/** What a start-screen card needs about the `index`th recent project (Brief 16): read only; the window names an entry, never a path. */
+	peekRecent(index: number): Promise<PeekResult> {
+		return this.host.invoke("peek_recent", { index }) as Promise<PeekResult>;
+	}
+
+	/** The book at `position` in the folder list `peekRecent` returned for that entry; refused if the folder changed since. Read only. */
+	peekRecentBook(index: number, position: number): Promise<PeekBook> {
+		return this.host.invoke("peek_recent_book", { index, position }) as Promise<PeekBook>;
 	}
 
 	/** The picker. Opening another project saves everything in the current one first. */

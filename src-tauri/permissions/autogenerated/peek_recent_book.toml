@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-peek-recent-book"
+description = "Enables the peek_recent_book command without any pre-configured scope."
+commands.allow = ["peek_recent_book"]
+
+[[permission]]
+identifier = "deny-peek-recent-book"
+description = "Denies the peek_recent_book command without any pre-configured scope."
+commands.deny = ["peek_recent_book"]

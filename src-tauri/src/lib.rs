@@ -32,6 +32,9 @@ pub struct AppState {
     last_progress: Mutex<Instant>,
     /// Which of the app's own menu items are enabled, as the window last said: kept so a rebuilt menu (the recent list changed) keeps it.
     menu_enabled: Mutex<HashMap<String, bool>>,
+    /// What `peek_recent` last listed for each recent entry (its folder and its sorted book folders), so `peek_recent_book` can check that the
+    /// folder it lists again still has the same book at that position. Display information only; never used as a path.
+    peeked: Mutex<HashMap<usize, (String, Vec<String>)>>,
 }
 
 /// A running watcher: dropping it (and setting `stop`) ends it.
@@ -117,6 +120,37 @@ async fn open_recent(app: tauri::AppHandle, state: State<'_, AppState>, index: u
     let opened = state.open(&PathBuf::from(root));
     refresh_menu(&app);
     opened
+}
+
+/// What the start screen's card for the `index`th recent entry needs: whether the folder is there, whether it holds `_story-library`, the texts of
+/// `project.md` and `series.md`, the sorted book folders (display information) and the series cover if it has one. Read only: it writes nothing,
+/// changes nothing in the list, attaches no project, starts no session and takes no lock. The window names an entry, never a path.
+#[tauri::command]
+async fn peek_recent(state: State<'_, AppState>, index: usize) -> Result<Value, FsError> {
+    let list = state.recent();
+    let root = storyforge_fs::recent::at(&list, index).ok_or_else(|| FsError::new("ENOENT", "no such recent project", None))?.clone();
+    let shown = root.clone();
+    let out = tauri::async_runtime::spawn_blocking(move || storyforge_fs::ops::peek_root(&PathBuf::from(shown)))
+        .await
+        .map_err(|e| FsError::new("UNKNOWN", e.to_string(), None))??;
+    let folders: Vec<String> = out.get("bookFolders").and_then(|v| v.as_array()).map(|a| a.iter().filter_map(|x| x.as_str().map(str::to_string)).collect()).unwrap_or_default();
+    state.peeked.lock().unwrap().insert(index, (root, folders));
+    Ok(out)
+}
+
+/// The book at `position` in the folder list `peek_recent` returned for entry `index`: its own file and its cover. The folder is listed again and
+/// the name at `position` must still be the one that was listed, or this is refused. Read only. The window names a position, never a name or path.
+#[tauri::command]
+async fn peek_recent_book(state: State<'_, AppState>, index: usize, position: usize) -> Result<Value, FsError> {
+    let list = state.recent();
+    let root = storyforge_fs::recent::at(&list, index).ok_or_else(|| FsError::new("ENOENT", "no such recent project", None))?.clone();
+    let listed = match state.peeked.lock().unwrap().get(&index) {
+        Some((r, folders)) if *r == root => folders.clone(),
+        _ => return Err(FsError::new("CHANGED", "the recent list changed; look again", None)),
+    };
+    tauri::async_runtime::spawn_blocking(move || Project::open(&PathBuf::from(root), true)?.peek_book(position, &listed))
+        .await
+        .map_err(|e| FsError::new("UNKNOWN", e.to_string(), None))?
 }
 
 /// Puts the project Rust holds open on the recent list, once the window has opened it as a project. It takes no path: it records only the
@@ -520,7 +554,7 @@ pub fn run() {
         }))
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
-            app.manage(AppState { project: Mutex::new(None), machine: MachineStore::new(&data_dir), watcher: Mutex::new(None), quit: QuitState::default(), last_progress: Mutex::new(Instant::now()), menu_enabled: Mutex::new(HashMap::new()) });
+            app.manage(AppState { project: Mutex::new(None), machine: MachineStore::new(&data_dir), watcher: Mutex::new(None), quit: QuitState::default(), last_progress: Mutex::new(Instant::now()), menu_enabled: Mutex::new(HashMap::new()), peeked: Mutex::new(HashMap::new()) });
             restore_window_state(app);
             install_quit_routes(app.handle());
             let menu = build_menu(app.handle())?;
@@ -539,7 +573,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            app_info, pick_project, open_recent, remember_project, recent_projects, project_info, close_project, scan, stat, read_text, read_binary, read_outside, write_text, write_binary,
+            app_info, pick_project, open_recent, remember_project, peek_recent, peek_recent_book, recent_projects, project_info, close_project, scan, stat, read_text, read_binary, read_outside, write_text, write_binary,
             create_file, create_folder, compare_write, rename, retire, list_temp_leftovers, remove_temp, read_cover, pick_cover, machine_get, machine_set, watch_start, watch_stop, download_placeholder, reveal_in_finder, set_menu_state, quit_ready, close_progress
         ])
         .on_window_event(|window, event| {

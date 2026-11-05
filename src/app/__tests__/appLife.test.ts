@@ -10,6 +10,7 @@ import { settle } from "../../../test/helpers/scheduler";
 import { readBookFrontmatter } from "../../core/book";
 import { AppController, newestBackupTime } from "../appLife";
 import { PROJECT_SETTINGS_PATH } from "../settings";
+import { finishCard, planCard } from "../../core/projectCard";
 
 const hosts: FakeHost[] = [];
 const apps: AppController[] = [];
@@ -408,6 +409,39 @@ describe("newestBackupTime", () => {
 		expect(cancelled.kind).toBe("opened");
 		expect(app.running?.root).toBe(second);
 		void running;
+	});
+
+	it("peeking at the recent entries (Brief 16): a card's details come from the real Rust code, an index is all that is named, and nothing is written", async () => {
+		const root = copyFixture("series");
+		const gone = path.join(tmp(), "gone");
+		const notes = tmp();
+		const host = makeHost();
+		host.recent = [root, gone, notes];
+		const app = track(new AppController(host));
+		await app.start();
+		const before = snapshot(root);
+		const beforeRecent = [...host.recent];
+		// A project: the card's name, the books in the core's order, and no failure.
+		const peek = await app.peekRecent(0);
+		const plan = planCard(peek, "series");
+		expect(plan).toMatchObject({ state: "ok", name: "The Lantern Cycle", firstBook: { folder: "aaa" } });
+		expect(peek.bookFolders).toEqual(["aaa", "bbb", "ccc"]);
+		// The first novel, asked about by position only.
+		const book = await app.peekRecentBook(0, plan.firstBook!.position);
+		expect(book.folder).toBe("aaa");
+		expect(finishCard(plan, book).state).toBe("ok");
+		// A folder that is gone, and a folder that is not a project, say so.
+		expect(planCard(await app.peekRecent(1), "gone").state).toBe("not-found");
+		expect(planCard(await app.peekRecent(2), "notes").state).toBe("not-a-project");
+		// An index that isn't in the list is refused.
+		await expect(app.peekRecent(3)).rejects.toMatchObject({ code: "ENOENT" });
+		// The folder changes between the two calls: refused, and the card keeps what it had.
+		fs.renameSync(path.join(root, "_story-library/aaa"), path.join(root, "_story-library/aab"));
+		await expect(app.peekRecentBook(0, 0)).rejects.toMatchObject({ code: "CHANGED" });
+		fs.renameSync(path.join(root, "_story-library/aab"), path.join(root, "_story-library/aaa"));
+		// Nothing was written, and the list is as it was.
+		expect(diffSnapshots(before, snapshot(root))).toEqual({ added: [], removed: [], changed: [] });
+		expect(host.recent).toEqual(beforeRecent);
 	});
 
 	it("an empty folder is not opened as a project, and is never seeded by opening", async () => {

@@ -799,3 +799,91 @@ impl Project {
         Ok(false)
     }
 }
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Peeking at a project that is not open (Brief 16, docs/project-cards.md). Read only: nothing is written, no lock is taken, nothing is
+// attached. The start screen's cards use it for a name and an image. It reads only `project.md`, `series.md`, one book's own file, and
+// at most one cover image (the series' own, else the first placed book's), with `read_cover`'s exact name check and its size limit.
+
+/// Larger than this, a `project.md` / `series.md` / novel file isn't read for a card: it is treated as unreadable.
+const PEEK_TEXT_MAX_BYTES: u64 = 1024 * 1024;
+
+impl Project {
+    fn peek_text(&self, rel: &str) -> Option<String> {
+        let abs = self.read_target(rel).ok()?;
+        let meta = fs::symlink_metadata(&abs).ok()?;
+        if !meta.is_file() || meta.len() > PEEK_TEXT_MAX_BYTES {
+            return None;
+        }
+        self.read_text(rel).ok()
+    }
+
+    /// The first cover this target has (`cover.png`, `cover.jpg`, ...), as the file name and its bytes in base64.
+    fn peek_cover(&self, target: &serde_json::Value) -> Option<serde_json::Value> {
+        use base64::{engine::general_purpose::STANDARD, Engine};
+        for ext in COVER_EXTENSIONS {
+            let filename = format!("cover.{ext}");
+            if let Ok(bytes) = self.read_cover(target, &filename) {
+                return Some(serde_json::json!({ "filename": filename, "base64": STANDARD.encode(bytes) }));
+            }
+        }
+        None
+    }
+
+    /// The book folders under `_story-library` (plain names of real folders), sorted. Display information: the window orders them.
+    pub fn peek_book_folders(&self) -> Vec<String> {
+        let Ok(dir) = self.read_target("_story-library") else { return vec![] };
+        let Ok(entries) = fs::read_dir(&dir) else { return vec![] };
+        let mut names: Vec<String> = entries
+            .flatten()
+            .filter(|e| fs::symlink_metadata(e.path()).map(|m| m.is_dir()).unwrap_or(false))
+            .filter_map(|e| e.file_name().into_string().ok())
+            .filter(|n| !n.starts_with('.') && n != "_series" && resolve_path(n).as_deref() == Some(n.as_str()))
+            .collect();
+        names.sort();
+        names
+    }
+
+    /// What a card needs to know that `project.md`, `series.md` and the folder list can tell. Never fails.
+    pub fn peek_summary(&self) -> serde_json::Value {
+        let has_library = self.read_target("_story-library").ok().and_then(|p| fs::symlink_metadata(p).ok()).map(|m| m.is_dir()).unwrap_or(false);
+        if !has_library {
+            return serde_json::json!({ "exists": true, "hasLibrary": false, "projectMd": null, "seriesMd": null, "bookFolders": [], "seriesCover": null });
+        }
+        serde_json::json!({
+            "exists": true,
+            "hasLibrary": true,
+            "projectMd": self.peek_text("_backstage/storyforge/project.md"),
+            "seriesMd": self.peek_text("_story-library/series.md"),
+            "bookFolders": self.peek_book_folders(),
+            "seriesCover": self.peek_cover(&serde_json::json!({ "kind": "series" })),
+        })
+    }
+
+    /// The book at `position` in the sorted folder list: its own file and its cover. `expected` is the list the window was given; the folder
+    /// is listed again, and if the name at `position` is no longer the one that was listed (the folder changed in between) this is refused.
+    pub fn peek_book(&self, position: usize, expected: &[String]) -> FsResult<serde_json::Value> {
+        let now = self.peek_book_folders();
+        let name = now.get(position).ok_or_else(|| FsError::new("ENOENT", "no such book", None))?;
+        if expected.get(position) != Some(name) {
+            return Err(FsError::new("CHANGED", "the books in this project changed", None));
+        }
+        Ok(serde_json::json!({
+            "folder": name,
+            "novelMd": self.peek_text(&format!("_story-library/novel-{name}.md")),
+            "cover": self.peek_cover(&serde_json::json!({ "kind": "book", "code": name })),
+        }))
+    }
+}
+
+/// The summary for a folder by its path (the recent list's entry), whether or not it still exists. A folder that is gone, or is not a folder,
+/// is "not found"; one that can't be looked at for another reason is an error (the card stays as drawn). Opens read-only.
+pub fn peek_root(root: &Path) -> FsResult<serde_json::Value> {
+    match fs::metadata(root) {
+        Err(e) if e.kind() == ErrorKind::NotFound => return Ok(serde_json::json!({ "exists": false, "hasLibrary": false, "projectMd": null, "seriesMd": null, "bookFolders": [], "seriesCover": null })),
+        Err(e) => return Err(FsError::from_io(&e, "")),
+        Ok(m) if !m.is_dir() => return Ok(serde_json::json!({ "exists": false, "hasLibrary": false, "projectMd": null, "seriesMd": null, "bookFolders": [], "seriesCover": null })),
+        Ok(_) => {}
+    }
+    Ok(Project::open(root, true)?.peek_summary())
+}
