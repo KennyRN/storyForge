@@ -290,3 +290,45 @@ test.describe("bold, italic and bold italic colours", () => {
 		expect(await css(content.locator(".sf-em:not(.sf-strong):not(.sf-marker)"), "color")).toBe(COLOURS.aqua);
 	});
 });
+
+test.describe("the field editors (plot note, synopsis, description) get the dressing", () => {
+	const BOOK_A = "_story-library/novel-aaa.md";
+	const note = (page: Page) => page.locator(".sf-chapter-context .sf-note-field .cm-content");
+
+	test("emphasis, highlights and their colours show, the markers hide away from the caret; the saved text is the typed text, byte for byte", async ({ page }) => {
+		await openProject(page);
+		await outside(page, "---\nformat-version: 1\nbold-colour: aqua\nhighlight-colour: orange\n---\n");
+		await toContextPanel(page);
+		const typed = "Jane finds the **lantern** and *quietly* ==checks the ledger==\nthen leaves";
+		await note(page).click();
+		await page.keyboard.press("Meta+a");
+		await page.keyboard.type(typed);
+		await expect(note(page).locator(".sf-strong")).toHaveText("lantern");
+		await expect(note(page).locator(".sf-em")).toHaveText("quietly");
+		await expect(note(page).locator(".sf-highlight")).toHaveText("checks the ledger");
+		expect(await note(page).locator(".sf-strong").evaluate((e) => getComputedStyle(e).color)).toBe("rgb(131, 192, 146)"); // aqua
+		expect(await note(page).locator(".sf-highlight").evaluate((e) => getComputedStyle(e).backgroundColor)).toBe("rgb(230, 152, 117)"); // orange
+		// The caret is on line 2: line 1's markers are hidden; on line 1 they show.
+		await expect(note(page).locator(".cm-line").first()).toHaveText("Jane finds the lantern and quietly checks the ledger");
+		await page.keyboard.press("ArrowUp");
+		await expect(note(page).locator(".cm-line").first()).toHaveText(typed.split("\n")[0]);
+		// Commit on blur: the file holds exactly what was typed, markers and all (the dressing is display only).
+		await page.locator(".sf-chapter-context .sf-chapter-text .cm-content").click();
+		await expect.poll(() => page.evaluate((p) => window.__preview.read(p), BOOK_A)).toContain("**lantern** and *quietly* ==checks the ledger==");
+		expect(await page.evaluate((p) => window.__preview.read(p), BOOK_A)).toContain("then leaves");
+		// The field's own text (what FieldState holds) is the raw text, not the dressed one.
+		expect(await note(page).evaluate((e) => [...e.querySelectorAll(".cm-line")].map((l) => l.textContent).join("\n"))).toContain("then leaves");
+	});
+
+	test("the typing aids and the commit on blur still work in a dressed field", async ({ page }) => {
+		await openProject(page);
+		await toContextPanel(page);
+		await note(page).click();
+		await page.keyboard.press("Meta+a");
+		await page.keyboard.type("He said \"hello\" -- then *left*");
+		await expect.poll(() => note(page).evaluate((e) => e.textContent)).toContain("“hello”"); // smart quotes
+		await page.locator(".sf-chapter-context .sf-chapter-text .cm-content").click();
+		await expect.poll(() => page.evaluate((p) => window.__preview.read(p), BOOK_A)).toContain("“hello”");
+		expect(await page.evaluate((p) => window.__preview.read(p), BOOK_A)).toContain("*left*");
+	});
+});

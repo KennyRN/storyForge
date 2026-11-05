@@ -3,6 +3,7 @@ import { Compartment, EditorState, type Extension } from "@codemirror/state";
 import { EditorView, keymap, placeholder } from "@codemirror/view";
 import { registerFocusedField } from "../commitOnClose";
 import { trackWriting } from "../editor/lastWriting";
+import { prose } from "../editor/dressingView";
 import { typingAids, type TypingEditorOptions } from "../editor/typingAids";
 import { FieldState, type FieldHooks } from "./fieldState";
 
@@ -68,6 +69,9 @@ export function textField(spec: FieldSpec, bin?: FieldBin): TextField {
 				keymap.of([{ key: "Enter", run: insertNewline }, ...historyKeymap, ...defaultKeymap]),
 				...(spec.placeholder ? [placeholder(spec.placeholder)] : []),
 				access.of(attributes()),
+				// The same light dressing as the chapter editor (Brief 17): emphasis, highlights, their colours and the hidden markers. Display only: it adds
+				// decorations, never changes the document, so what FieldState compares and writes is untouched (decision 47).
+				prose(),
 				typingAids(spec.typing, { field: true }),
 				EditorView.updateListener.of((update) => {
 					if (update.focusChanged) {
