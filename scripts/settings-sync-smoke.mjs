@@ -177,6 +177,20 @@ try {
 	windowShot("sync-after-outside-edit");
 	const good = readFileSync(settingsFile, "utf8");
 
+	// 1a. Fix 8: Settings opens with focus inside; a tab pressed by its accessibility action, then Escape, closes it. (A real mouse click is
+	//     not used; the preview tests cover the pointer. This shows the built app's window.)
+	openSettingsDialog();
+	if (!(await until(() => settingControl().startsWith("found"), 8000))) problems.push("the settings dialog did not open");
+	await sleep(500);
+	windowShot("modal-settings-opened");
+	const pressed = ["AXRadioButton", "AXButton", "AXTab"].some((r) => find(r, "Writing", "press").startsWith("found"));
+	if (!pressed) problems.push("no Writing tab to press");
+	await sleep(600);
+	windowShot("modal-settings-after-tab-press");
+	typing.keyOnControl("key code 53");
+	if (!(await until(() => !settingControl().startsWith("found"), 4000))) problems.push("Escape did not close Settings after a tab was pressed");
+	await sleep(400);
+
 	// 1b. Deleted from outside (how the real watcher reports it can only be proved here, the preview has no watcher): the last values stay,
 	//     a notice says settings return to their defaults at the next open, once, and the app does not recreate the file.
 	rmSync(settingsFile);
