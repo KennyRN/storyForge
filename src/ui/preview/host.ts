@@ -21,6 +21,22 @@ export interface PreviewApi {
 	readBase64(path: string): Promise<string>;
 	read(path: string): Promise<string>;
 	root(): Promise<string | null>;
+	/** Sets the recent list (the start screen's cards) to fresh copies of fixtures, folders that are gone, and so on; returns their paths. */
+	setRecent(entries: RecentEntry[]): Promise<string[]>;
+	/** The recent list and the names the window gave the Open Recent menu, as the host holds them. */
+	recentState(): Promise<{ recent: string[]; names: [string, string][] }>;
+}
+
+/** One entry of the preview's recent list: a copy of a fixture (with files written or removed first), or a folder that is not there. */
+export interface RecentEntry {
+	fixture?: string;
+	missing?: boolean;
+	/** Files written into the copy before it is listed (project-relative path to text). */
+	files?: Record<string, string>;
+	/** Files removed from the copy. */
+	remove?: string[];
+	/** The folder's own name (default: the preview's usual one). */
+	folder?: string;
 }
 
 async function post(url: string, body: unknown): Promise<unknown> {
@@ -46,6 +62,8 @@ export function createPreviewHost(): Host & { api: PreviewApi } {
 		readBase64: (path) => post("/__preview/read-base64", { path }) as Promise<string>,
 		read: (path) => post("/__preview/read", { path }) as Promise<string>,
 		root: () => post("/__preview/root", {}) as Promise<string | null>,
+		setRecent: (entries) => post("/__preview/recent", { entries }) as Promise<string[]>,
+		recentState: () => post("/__preview/recent-state", {}) as Promise<{ recent: string[]; names: [string, string][] }>,
 	};
 	return {
 		api,

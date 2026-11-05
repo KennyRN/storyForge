@@ -163,6 +163,26 @@ export function previewHostPlugin(): Plugin {
 							if (!root) throw new Error("no project");
 							return send(res, 200, readFileSync(path.join(root, String(body.path))).toString("base64"));
 						}
+						// The recent list for the start screen's cards: copies of fixtures (with files written or removed), and folders that are gone.
+						case "/__preview/recent": {
+							const entries = (body.entries as { fixture?: string; missing?: boolean; files?: Record<string, string>; remove?: string[]; folder?: string }[]) ?? [];
+							const paths = entries.map((e) => {
+								if (e.missing) return path.join(base, `gone-${++counter}`, e.folder ?? "Gone Project");
+								const dest = freshCopy(e.fixture ?? "series");
+								const named = e.folder ? path.join(path.dirname(dest), e.folder) : dest;
+								if (named !== dest) renameSync(dest, named);
+								for (const [rel, text] of Object.entries(e.files ?? {})) {
+									mkdirSync(path.dirname(path.join(named, rel)), { recursive: true });
+									writeFileSync(path.join(named, rel), text);
+								}
+								for (const rel of e.remove ?? []) rmSync(path.join(named, rel), { force: true });
+								return named;
+							});
+							host.recent = paths;
+							return send(res, 200, paths);
+						}
+						case "/__preview/recent-state":
+							return send(res, 200, { recent: host.recent, names: host.recentNames });
 						case "/__preview/root":
 							return send(res, 200, host.current?.root ?? projectRoot);
 						default:

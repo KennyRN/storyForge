@@ -32,17 +32,20 @@ export async function startApp(host: Host, root: HTMLElement): Promise<AppModel>
 	let shown: unknown = undefined;
 	let shell: { dispose(): void } | null = null;
 	let offChapter: (() => void) | null = null;
+	let offStart: (() => void) | null = null;
 	const draw = (): void => {
 		const running = model.running;
 		// The controller touches every topic when it applies an outside change: only a different project (or none) redraws the stage.
 		if (running === shown) return;
 		shown = running;
+		offStart?.();
+		offStart = null;
 		if (!running) {
 			shell?.dispose();
 			shell = null;
 			offChapter?.();
 			offChapter = null;
-			renderStart(stage, model);
+			offStart = renderStart(stage, model);
 			return;
 		}
 		shell?.dispose();
