@@ -366,14 +366,18 @@ export function openSettings(model: AppModel): void {
 		if (pointerDown) return void (redrawWaiting = true);
 		redrawNow();
 	};
+	let holdTimer: ReturnType<typeof setTimeout> | undefined;
+	const HOLD_LIMIT_MS = 1500; // an outside change is never held back longer than this, whatever happens to the pointer
 	const release = (): void => {
+		clearTimeout(holdTimer);
 		if (!pointerDown) return;
 		pointerDown = false;
 		if (redrawWaiting) setTimeout(() => ((redrawWaiting = false), redraw()), 0);
 	};
-	body.addEventListener("pointerdown", () => (pointerDown = true), true);
-	window.addEventListener("pointerup", release, true);
+	body.addEventListener("pointerdown", () => ((pointerDown = true), clearTimeout(holdTimer), (holdTimer = setTimeout(release, HOLD_LIMIT_MS))), true);
+	window.addEventListener("pointerup", release, true); // anywhere, including outside the window while the button is held
 	window.addEventListener("pointercancel", release, true);
+	window.addEventListener("blur", release);
 	redrawNow();
 	// Settings changed from outside (decision 96) redraw by the same rule: a text box being typed in is left as it is until it loses focus.
 	const unsubscribe = model.subscribe("settings", redraw);
@@ -388,6 +392,6 @@ export function openSettings(model: AppModel): void {
 		body,
 		buttons: [{ label: "Done", kind: "primary" }],
 		focus: (panel) => panel.querySelector<HTMLElement>(".sf-settings-tab.is-active"),
-		onClose: () => (unsubscribe(), window.removeEventListener("pointerup", release, true), window.removeEventListener("pointercancel", release, true)),
+		onClose: () => (unsubscribe(), clearTimeout(holdTimer), window.removeEventListener("pointerup", release, true), window.removeEventListener("pointercancel", release, true), window.removeEventListener("blur", release)),
 	});
 }

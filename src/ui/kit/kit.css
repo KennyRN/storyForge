@@ -208,3 +208,14 @@
 .sf-picker-row { display: flex; gap: 8px; align-items: center; padding: 3px 4px; border-radius: 3px; cursor: pointer; }
 .sf-picker-row:hover { background: var(--purpose-raised-hover); }
 .sf-picker-row.is-missing { color: var(--purpose-text-muted); }
+
+/* Fix 8: the wrap stops at each end of a modal dialog. They draw nothing and take no space. */
+.sf-dialog-sentinel {
+	position: fixed;
+	width: 1px;
+	height: 1px;
+	opacity: 0;
+	padding: 0;
+	border: 0;
+	pointer-events: none;
+}

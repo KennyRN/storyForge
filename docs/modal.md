@@ -78,7 +78,7 @@ Settings is the only dialog that needs more than the shared piece (a stable key 
 
 **The shape (as proposed in §1.5, with these differences):**
 - One shared piece, `kit/dialog.ts`. Keys: Escape and Tab are handled by one `document` listener in the bubble phase, so a menu or inline edit that stops the key takes it first (the Settings size box and the width boxes keep "Escape puts the figure back").
-- **Tab is managed by the dialog itself**, so plain Tab and Option-Tab both cycle every enabled control (a radio group is one stop). A native sheet does the same.
+- **Tab is left to WebKit (Kenny's ruling after the first stop).** WebKit decides what each key reaches: plain Tab, text boxes and lists; Option-Tab, everything. The dialog does not read the Mac's setting. It only keeps focus inside and wraps, for both keys, with a visually hidden text box at each end (`.sf-dialog-sentinel`, `aria-hidden`): reaching one sends focus to the other end, and the browser's own next step from there is the first (or last) control that key reaches. **The wrap therefore passes through one invisible stop.** Plain Tab is tested on text boxes only; Option-Tab on controls.
 - **`inert`** is set on everything behind except the notices (they sit above dialogs on purpose, so a backup notice stays clickable). Notices are therefore reachable by the mouse but not by Tab from inside a dialog.
 - **Redraws:** focus is restored by what a control is (tag, role, type and label or text). WebKit sends no `focusout` for a removed node, so a `MutationObserver` on the dialog does it. A text box in use is left to Settings' own rule (decision 109).
 - **Escape's route:** a button labelled Cancel; else the sole Done, Close or OK; else the dialog just closes (Rename's Back step). Ignored while every button is disabled (a rename running).
@@ -90,6 +90,13 @@ Settings is the only dialog that needs more than the shared piece (a stable key 
 - Escape bug: confirmed as in §1.3. A click redraws, the pressed tab goes, and focus falls to the body. The new tests fail without the change at the Escape step.
 - Lost click: **not reproduced**, so not proved. The fix (a redraw waits for pointer release) and a test that holds the pointer down across an outside-change redraw and fifty open-and-click cycles both pass; the redraw-during-click test fails on v1.8.0 in the setup stage along with the rest, so it shows the fix works, not that this was the original cause.
 
-**Tests:** `npm test` 1,679. `npm run test:ui`: 526 passed, 1 skipped (the opt-in `MEASURE=1` run), 0 failed, on the final code. The first full run had one failure, `appearance.ui.ts` "size: rounded…", which was the change's: the dialog's focus restore interfered with a size box mid-redraw. Fixed in `dialog.ts` (a text box in use is left alone), proved by four passes of its own file; it passes on v1.8.0. New file: `test/ui/modal.ui.ts` (9 tests, all failing without the change).
+**The held redraw** (Settings): a redraw requested while the pointer is down inside the dialog waits, and runs just after the release. The hold ends on pointer up anywhere (a window-level listener, so also outside the window), on pointer cancel, on window blur and after 1.5 s at most. Only the redraw waits; no write is ever held. Tested for each ending.
+
+**Known limits:**
+- A notice (sticky or not) cannot be reached by Tab while a dialog is open; it stays clickable (Kenny: accepted).
+- Escape at Rename's Back step closes the dialog (the Cancel route); a test proves it renames and writes nothing (Kenny: accepted).
+- The wrap goes through one invisible stop (above).
+
+**Tests:** `npm test` 1,679. `npm run test:ui`: 526 passed, 1 skipped (the opt-in `MEASURE=1` run), 0 failed, on the final code. The first full run had one failure, `appearance.ui.ts` "size: rounded…", which was the change's: the dialog's focus restore interfered with a size box mid-redraw. Fixed in `dialog.ts` (a text box in use is left alone), proved by four passes of its own file; it passes on v1.8.0. New file: `test/ui/modal.ui.ts` (15 tests; the first nine all fail without the change).
 
 **Not run:** `test:settings-sync` (it refuses beside Kenny's copy). Its Settings stage now closes with Escape (`keyOnControl`, key code 53), which is untested.

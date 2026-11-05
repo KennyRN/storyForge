@@ -88,16 +88,6 @@ function install(): void {
 			e.preventDefault();
 			e.stopPropagation();
 			top.escape();
-		} else if (e.key === "Tab") {
-			const target = e.target as Node | null;
-			// A floating menu or popup drawn in the page body has its own keys.
-			if (target instanceof Element && target !== document.body && target !== document.documentElement && !top.overlay.contains(target)) return;
-			const items = tabStops(top.panel);
-			e.preventDefault();
-			if (items.length === 0) return void top.panel.focus();
-			const at = items.indexOf(document.activeElement as HTMLElement);
-			const next = at < 0 ? (e.shiftKey ? items.length - 1 : 0) : (at + (e.shiftKey ? -1 : 1) + items.length) % items.length;
-			items[next].focus();
 		}
 	});
 }
@@ -125,7 +115,24 @@ export function openDialog(options: DialogOptions): OpenDialog {
 		el("div", { class: "sf-dialog-body sf-scroll" }, options.body),
 		buttons,
 	);
-	const overlay = el("div", { class: "sf-dialog-overlay" }, panel);
+	// Tab is left to WebKit, which decides what each key reaches (plain Tab: text boxes and lists; Option-Tab: everything). The dialog only
+	// keeps focus inside and wraps: a text box at each end is a stop that sends focus to the other end, and the browser's own next step
+	// from there is the first (or last) control that key reaches. The wrap passes through one such stop, which draws nothing.
+	const sentinel = (): HTMLInputElement => el("input", { class: "sf-dialog-sentinel", attrs: { type: "text", readonly: "", tabindex: "0", "aria-hidden": "true" } });
+	const startStop = sentinel();
+	const endStop = sentinel();
+	let moving = false;
+	const jump = (to: HTMLElement): void => {
+		moving = true;
+		to.focus({ preventScroll: true });
+		moving = false;
+	};
+	startStop.addEventListener("focus", () => moving || jump(endStop));
+	endStop.addEventListener("focus", () => moving || jump(startStop));
+	// From a stop, the key that would leave the dialog goes to the other stop instead.
+	startStop.addEventListener("keydown", (e) => e.key === "Tab" && e.shiftKey && (e.preventDefault(), jump(endStop)));
+	endStop.addEventListener("keydown", (e) => e.key === "Tab" && !e.shiftKey && (e.preventDefault(), jump(startStop)));
+	const overlay = el("div", { class: "sf-dialog-overlay" }, startStop, panel, endStop);
 	let closed = false;
 	let current: DialogButton[] = options.buttons;
 	let lastStop = "";

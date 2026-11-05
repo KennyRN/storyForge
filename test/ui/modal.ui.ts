@@ -11,7 +11,7 @@ async function openProject(page: Page): Promise<void> {
 	await page.waitForFunction(() => !!window.__app?.editors);
 }
 const dialogs = (page: Page) => page.getByRole("dialog");
-const insideDialog = (page: Page) => page.evaluate(() => !!document.activeElement?.closest(".sf-dialog"));
+const insideDialog = (page: Page) => page.evaluate(() => !!document.activeElement?.closest(".sf-dialog-overlay"));
 const openHistory = (page: Page) => page.getByRole("button", { name: /history/i }).first().click();
 
 test.describe("modal dialogs", () => {
@@ -142,4 +142,73 @@ test.describe("modal dialogs", () => {
 		await expect(dialogs(page).getByRole("radio", { name: "One standalone novel" })).not.toBeChecked();
 		await expect(tab).toBeFocused();
 	});
+
+	test("plain Tab, on text boxes, stays inside and wraps both ways (WebKit decides what it reaches)", async ({ page }) => {
+		await openProject(page);
+		await openSettingsDialog(page);
+		await dialogs(page).getByRole("tab", { name: "Sessions", exact: true }).click();
+		await dialogs(page).getByLabel("Session idle limit (minutes)").focus();
+		for (let i = 0; i < 14; i++) {
+			await page.keyboard.press("Tab");
+			expect(await insideDialog(page)).toBe(true);
+		}
+		for (let i = 0; i < 14; i++) {
+			await page.keyboard.press("Shift+Tab");
+			expect(await insideDialog(page)).toBe(true);
+		}
+		const names = new Set<string>();
+		for (let i = 0; i < 14; i++) {
+			await page.keyboard.press("Tab");
+			names.add(await page.evaluate(() => document.activeElement?.getAttribute("aria-label") ?? "(stop)"));
+		}
+		expect(names.has("Session idle limit (minutes)")).toBe(true); // it came round again
+	});
+
+	test("Escape at Rename's Back step renames nothing and writes nothing", async ({ page }) => {
+		await openPreview(page);
+		await page.evaluate(() => window.__preview.touch("_story-library/aaa/ch-a2.md", "Meet [[Jane]].\n"));
+		await page.reload();
+		await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+		await page.locator("[data-recent='0']").click();
+		await page.waitForFunction(() => !!window.__app?.editors);
+		const read = (p: string) => page.evaluate((x) => window.__preview.read(x).catch(() => "(none)"), p);
+		const before = [await read("Codex/Jane.md"), await read("_story-library/aaa/ch-a2.md"), await read("_story-library/novel-aaa.md")];
+		await page.locator(".sf-codex-file", { hasText: "Jane" }).click({ button: "right" });
+		await page.getByRole("menuitem", { name: "Rename…" }).click();
+		await dialogs(page).getByLabel("New name").fill("Janet");
+		await dialogs(page).getByRole("button", { name: "Next" }).click();
+		await expect(dialogs(page).getByRole("button", { name: "Back" })).toBeVisible();
+		await page.keyboard.press("Escape");
+		await expect(dialogs(page)).toHaveCount(0);
+		expect([await read("Codex/Jane.md"), await read("_story-library/aaa/ch-a2.md"), await read("_story-library/novel-aaa.md")]).toEqual(before);
+		expect(await read("Codex/Janet.md")).toBe("(none)");
+		await expect(page.locator(".sf-codex-file", { hasText: "Janet" })).toHaveCount(0);
+	});
+
+	// The hold on Settings' redraw (Fix 8): only the redraw waits, and it always ends.
+	for (const how of ["pointer up outside the window", "pointer cancel", "window blur", "the time limit"] as const) {
+		test(`a redraw held by a pressed tab ends on ${how}`, async ({ page }) => {
+			await openProject(page);
+			await openSettingsDialog(page);
+			await dialogs(page).getByRole("tab", { name: "Story", exact: true }).click();
+			const standalone = dialogs(page).getByRole("radio", { name: "One standalone novel" });
+			await expect(standalone).not.toBeChecked();
+			const box = (await dialogs(page).getByRole("tab", { name: "Story", exact: true }).boundingBox())!;
+			await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+			await page.mouse.down();
+			await page.evaluate(async (p) => {
+				await window.__preview.touch(p, "---\nformat-version: 1\nstory-kind: standalone\n---\n");
+				window.__preview.emit("watch-batch", { paths: [p], rescan: false });
+			}, SETTINGS);
+			await page.waitForTimeout(300);
+			await expect(standalone).not.toBeChecked(); // held while the pointer is down
+			if (how === "pointer up outside the window") {
+				await page.mouse.move(-20, -20);
+				await page.mouse.up();
+			} else if (how === "pointer cancel") await page.evaluate(() => window.dispatchEvent(new Event("pointercancel")));
+			else if (how === "window blur") await page.evaluate(() => window.dispatchEvent(new Event("blur")));
+			await expect(standalone).toBeChecked({ timeout: how === "the time limit" ? 4000 : 1500 });
+			if (how !== "pointer up outside the window") await page.mouse.up();
+		});
+	}
 });
