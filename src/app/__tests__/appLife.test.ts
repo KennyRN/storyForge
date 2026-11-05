@@ -444,6 +444,17 @@ describe("newestBackupTime", () => {
 		expect(host.recent).toEqual(beforeRecent);
 	});
 
+	it("the display path: only the current user's own home folder becomes ~, nothing else (Brief 16)", async () => {
+		const host = makeHost();
+		host.home = "/Users/kenny";
+		host.recent = ["/Users/kenny/Storytelling/Lantern", "/Users/Shared/Stories/Lantern", "/Users/alex/Novel", "/Users/kennyx/Novel", "/Volumes/Archive/Novel", "/Users/kenny"];
+		const app = track(new AppController(host));
+		await app.start();
+		expect(await app.recentDisplay()).toEqual(["~/Storytelling/Lantern", "/Users/Shared/Stories/Lantern", "/Users/alex/Novel", "/Users/kennyx/Novel", "/Volumes/Archive/Novel", "~"]);
+		host.home = null;
+		expect(await app.recentDisplay()).toEqual(host.recent);
+	});
+
 	it("Remove from List and Clear Menu change only the recent list: every project folder is left byte for byte as it was (Brief 16)", async () => {
 		const a = copyFixture("series");
 		const b = copyFixture("series");

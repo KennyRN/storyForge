@@ -25,7 +25,12 @@ fn main() {
             }
         };
         // The preview's stand-in for `peek_recent`: a folder named by its path (the preview's server names it; the app never does), no project needed.
-        let reply = if let Some(root) = msg.get("peekRoot").and_then(|v| v.as_str()) {
+        // The preview's stand-in for `recent_display`: the list's paths with a given home shortened to ~ (the app uses the current user's HOME).
+        let reply = if let Some(list) = msg.get("displayPaths").and_then(|v| v.as_array()) {
+            let id = msg.get("id").cloned().unwrap_or(serde_json::Value::Null);
+            let list: Vec<String> = list.iter().filter_map(|x| x.as_str().map(str::to_string)).collect();
+            serde_json::json!({ "id": id, "ok": storyforge_fs::recent::display_paths(&list, msg.get("home").and_then(|v| v.as_str())) })
+        } else if let Some(root) = msg.get("peekRoot").and_then(|v| v.as_str()) {
             let id = msg.get("id").cloned().unwrap_or(serde_json::Value::Null);
             match storyforge_fs::ops::peek_root(std::path::Path::new(root)) {
                 Ok(v) => serde_json::json!({ "id": id, "ok": v }),

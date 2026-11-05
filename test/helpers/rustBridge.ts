@@ -91,6 +91,19 @@ export class RustBridge {
 		});
 	}
 
+	/** The preview's stand-in for `recent_display`: the list with `home` (the "current user's" home) shortened to ~, by the code the app runs. */
+	static displayPaths(list: string[], home: string | null): Promise<string[]> {
+		const bridge = new RustBridge();
+		return new Promise((resolve, reject) => {
+			const id = bridge.nextId++;
+			bridge.pending.set(id, {
+				resolve: (v) => (bridge.close(), resolve(v as string[])),
+				reject: (e) => (bridge.close(), reject(e)),
+			});
+			bridge.child.stdin.write(JSON.stringify({ id, displayPaths: list, home }) + "\n");
+		});
+	}
+
 	/** Shaped like Tauri's `invoke`: `(command, { args })`. */
 	readonly invoke: Invoke = (cmd, payload) =>
 		new Promise((resolve, reject) => {

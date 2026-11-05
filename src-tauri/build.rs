@@ -10,6 +10,7 @@ const COMMANDS: &[&str] = &[
     "forget_recent",
     "clear_recent",
     "set_recent_names",
+    "recent_display",
     "recent_projects",
     "project_info",
     "close_project",

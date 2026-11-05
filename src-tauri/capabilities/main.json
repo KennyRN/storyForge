@@ -15,6 +15,7 @@
     "allow-forget-recent",
     "allow-clear-recent",
     "allow-set-recent-names",
+    "allow-recent-display",
     "allow-recent-projects",
     "allow-project-info",
     "allow-close-project",

@@ -57,6 +57,8 @@ export function previewHostPlugin(): Plugin {
 	/** The image the next cover picker will "choose" (the preview has no native open panel); null cancels it. */
 	let pendingCover: string | null = null;
 	const copies: string[] = [];
+	// The preview's "home folder" is its own temporary folder, so the cards' paths show a `~` there, as they do under a real home.
+	host.home = base;
 
 	const freshCopy = (fixture: string): string => {
 		const dest = path.join(base, `${fixture}-${++counter}`, "storyForge test vault");
@@ -68,6 +70,8 @@ export function previewHostPlugin(): Plugin {
 
 	const reset = (o: ResetOptions = {}): { root: string } => {
 		host.close();
+		host.overrides.delete("peek_recent"); // a hung peek and the call count belong to one test
+		host.calls = [];
 		host.machine.clear();
 		host.current = null;
 		host.quit = false;
@@ -183,7 +187,12 @@ export function previewHostPlugin(): Plugin {
 							return send(res, 200, paths);
 						}
 						case "/__preview/recent-state":
-							return send(res, 200, { recent: host.recent, names: host.recentNames });
+							return send(res, 200, { recent: host.recent, names: host.recentNames, peekBookCalls: host.calls.filter((c) => c === "peek_recent_book").length });
+						// A peek that never answers, as one on an offline network drive would not (nothing else may wait for it).
+						case "/__preview/hang-peeks":
+							if (body.on) host.overrides.set("peek_recent", () => new Promise(() => undefined));
+							else host.overrides.delete("peek_recent");
+							return send(res, 200, null);
 						case "/__preview/root":
 							return send(res, 200, host.current?.root ?? projectRoot);
 						default:

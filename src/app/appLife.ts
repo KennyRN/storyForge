@@ -177,6 +177,11 @@ export class AppController {
 		return this.host.invoke("recent_projects") as Promise<string[]>;
 	}
 
+	/** The recent list's paths as the start screen shows them: Rust shortens the current user's own home folder to `~` and nothing else. */
+	recentDisplay(): Promise<string[]> {
+		return this.host.invoke("recent_display") as Promise<string[]>;
+	}
+
 	/** What a start-screen card needs about the `index`th recent project (Brief 16): read only; the window names an entry, never a path. */
 	peekRecent(index: number): Promise<PeekResult> {
 		return this.host.invoke("peek_recent", { index }) as Promise<PeekResult>;

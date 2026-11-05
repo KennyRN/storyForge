@@ -63,3 +63,28 @@ fn a_name_is_cleaned_and_length_capped_and_is_never_a_path() {
     let out = match_names(&list, &entries(&[("A", "  Two\nLines\u{7}  ")])).unwrap();
     assert_eq!(out[0], "TwoLines");
 }
+
+use storyforge_fs::recent::{display_path, display_paths};
+
+#[test]
+fn only_the_current_users_own_home_is_shortened_to_a_tilde() {
+    let home = Some("/Users/kenny");
+    assert_eq!(display_path("/Users/kenny", home), "~");
+    assert_eq!(display_path("/Users/kenny/Storytelling/Lantern", home), "~/Storytelling/Lantern");
+    // Not the home folder: shown in full.
+    assert_eq!(display_path("/Users/Shared/Stories/Lantern", home), "/Users/Shared/Stories/Lantern");
+    assert_eq!(display_path("/Users/alex/Documents/Novel", home), "/Users/alex/Documents/Novel");
+    assert_eq!(display_path("/Users/kennyx/Novel", home), "/Users/kennyx/Novel"); // a name that only starts the same way
+    assert_eq!(display_path("/Volumes/Archive/Novel", home), "/Volumes/Archive/Novel");
+    // A trailing slash on the home folder changes nothing; no home, or an empty one, shortens nothing.
+    assert_eq!(display_path("/Users/kenny/Novel", Some("/Users/kenny/")), "~/Novel");
+    assert_eq!(display_path("/Users/kenny/Novel", None), "/Users/kenny/Novel");
+    assert_eq!(display_path("/Users/kenny/Novel", Some("")), "/Users/kenny/Novel");
+    assert_eq!(display_path("/Users/kenny/Novel", Some("/")), "/Users/kenny/Novel");
+}
+
+#[test]
+fn display_paths_keep_the_lists_order() {
+    let list = l(&["/Users/kenny/A", "/Users/Shared/B", "/Users/kenny"]);
+    assert_eq!(display_paths(&list, Some("/Users/kenny")), l(&["~/A", "/Users/Shared/B", "~"]));
+}

@@ -44,7 +44,7 @@ export interface CardPlan {
 	cover: PeekCover | null;
 	/** The first placed book, found by the core's ordering; null when there is none. */
 	firstBook: { position: number; folder: string } | null;
-	/** True when the series has no cover and there is a first book to ask about. */
+	/** True when there is a first book to ask about: always for a single-novel project (its title is its novel's), and for a series only when it has no cover of its own. */
 	needsBook: boolean;
 	standalone: boolean;
 }
@@ -87,7 +87,7 @@ export function planCard(peek: PeekResult, folderName: string): CardPlan {
 		name = entry && typeof entry === "object" ? nonEmpty((entry as Record<string, unknown>)["book-title"]) : null;
 	} else name = nonEmpty(series?.["series-title"]);
 
-	return { state: "ok", name: name ?? folderName, nameFound: name !== null, cover, firstBook, needsBook: cover === null && firstBook !== null, standalone };
+	return { state: "ok", name: name ?? folderName, nameFound: name !== null, cover, firstBook, needsBook: firstBook !== null && (standalone || cover === null), standalone };
 }
 
 /**

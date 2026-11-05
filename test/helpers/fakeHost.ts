@@ -20,6 +20,8 @@ export class FakeHost implements Host {
 	/** Scripted overrides: a command name to a function. */
 	overrides = new Map<string, (args: unknown) => unknown>();
 	current: { root: string; readOnly: boolean } | null = null;
+	/** The "current user's" home folder, for the display paths (the app uses the real HOME). */
+	home: string | null = null;
 	/** What `peek_recent` last listed for each recent entry, as Rust keeps it: so `peek_recent_book` can refuse a list that changed. */
 	/** The labels the window last gave the Open Recent menu. */
 	recentNames: [string, string][] = [];
@@ -105,6 +107,8 @@ export class FakeHost implements Host {
 			case "set_recent_names":
 				this.recentNames = (payload as { entries: [string, string][] }).entries;
 				return null;
+			case "recent_display":
+				return RustBridge.displayPaths(this.recent, this.home);
 			case "recent_projects":
 				return this.recent;
 			case "project_info":

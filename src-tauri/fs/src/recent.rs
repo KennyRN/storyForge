@@ -35,6 +35,26 @@ pub fn at(list: &[String], index: usize) -> Option<&String> {
     list.get(index)
 }
 
+/// A folder's path as the start screen shows it: **the current user's own home folder** written as `~`, and nothing else. Only a path that is
+/// the home folder, or inside it (a `/` follows it), is shortened; `/Users/Shared`, another user's folder, or a folder whose name merely starts
+/// the same way (`/Users/kennyx` against home `/Users/kenny`) is shown in full. With no known home nothing is shortened. The window never works
+/// this out for itself: it is told the display path (decision 24 lets it be told a path for display).
+pub fn display_path(path: &str, home: Option<&str>) -> String {
+    let Some(home) = home.map(|h| h.trim_end_matches('/')).filter(|h| !h.is_empty()) else { return path.to_string() };
+    if path == home {
+        return "~".to_string();
+    }
+    match path.strip_prefix(home) {
+        Some(rest) if rest.starts_with('/') => format!("~{rest}"),
+        _ => path.to_string(),
+    }
+}
+
+/// `display_path` for every entry of the list, in the list's order.
+pub fn display_paths(list: &[String], home: Option<&str>) -> Vec<String> {
+    list.iter().map(|p| display_path(p, home)).collect()
+}
+
 /// The longest label the menu takes from the window.
 pub const NAME_MAX_CHARS: usize = 80;
 

@@ -4,7 +4,7 @@
  * index) and fills itself in when its answer arrives, so a slow or offline drive never holds the screen up and one card never waits for another.
  * One click opens a project; Remove from List takes only the entry, never the project.
  */
-import { finishCard, planCard, type CardState, type CardView, type PeekCover } from "../../core/projectCard";
+import { finishCard, planCard, type CardPlan, type CardState, type CardView, type PeekCover } from "../../core/projectCard";
 import { el, fill } from "../kit/dom";
 import { showMenu, menuPoint } from "../kit/menu";
 import { photoIcon } from "../kit/photoIcon";
@@ -16,13 +16,11 @@ const PATH_MAX = 28;
 
 export const baseName = (p: string): string => p.slice(p.lastIndexOf("/") + 1) || p;
 
-/** The path as shown: the home folder is `~` (macOS home folders are /Users/<name>), and a long one is cut in the middle. The full path is the tooltip. */
-export function shownPath(path: string): string {
-	const home = /^\/Users\/[^/]+/.exec(path)?.[0];
-	const tilde = home ? `~${path.slice(home.length)}` : path;
-	if (tilde.length <= PATH_MAX) return tilde;
+/** The display path, cut in the middle with "…" when it is long. (Rust has already shortened the real home folder to `~`: the window never infers it.) */
+export function shownPath(display: string): string {
+	if (display.length <= PATH_MAX) return display;
 	const head = Math.ceil((PATH_MAX - 1) * 0.42);
-	return `${tilde.slice(0, head)}…${tilde.slice(tilde.length - (PATH_MAX - 1 - head))}`;
+	return `${display.slice(0, head)}…${display.slice(display.length - (PATH_MAX - 1 - head))}`;
 }
 
 const STATE_WORDS: Record<Exclude<CardState, "ok">, string> = { "not-found": "Not found", "not-a-project": "Not a project" };
@@ -67,7 +65,8 @@ export function mountProjectCards(host: HTMLElement, model: AppModel): () => voi
 		await model.forgetRecent(index);
 	};
 
-	const paint = (card: HTMLButtonElement, path: string, view: CardView): void => {
+	/** `onUndrawable`: what to do when the image can't be drawn (default: the no-cover icon). A series cover that can't be drawn moves on to the first novel's, as a missing one does. */
+	const paint = (card: HTMLButtonElement, path: string, view: CardView, onUndrawable?: () => void): void => {
 		const image = card.querySelector<HTMLElement>(".sf-project-card-image")!;
 		const name = card.querySelector<HTMLElement>(".sf-project-card-name")!;
 		const state = card.querySelector<HTMLElement>(".sf-project-card-state")!;
@@ -86,6 +85,7 @@ export function mountProjectCards(host: HTMLElement, model: AppModel): () => voi
 			const img = el("img", { attrs: { src: url, alt: "", draggable: "false" } });
 			// An image the browser can't draw counts as no cover, like a missing file: the no-cover icon takes its place, with no report here.
 			img.addEventListener("error", () => {
+				if (onUndrawable) return onUndrawable();
 				fill(image, photoIcon());
 				image.classList.add("is-empty");
 			});
@@ -104,11 +104,15 @@ export function mountProjectCards(host: HTMLElement, model: AppModel): () => voi
 			const peek = await model.controller.peekRecent(index);
 			if (mine !== generation) return;
 			const plan = planCard(peek, baseName(path));
-			paint(card, path, { state: plan.state, name: plan.name, cover: plan.cover });
-			if (!plan.needsBook || !plan.firstBook) return;
-			const book = await model.controller.peekRecentBook(index, plan.firstBook.position).catch(() => null); // a book that changed since is ignored
-			if (mine !== generation) return;
-			paint(card, path, finishCard(plan, book));
+			/** The first book's own file and cover (a position only; a book that changed since is ignored). The series' cover, if it can't be drawn, is dropped first. */
+			const askBook = async (from: CardPlan): Promise<void> => {
+				if (!from.firstBook) return;
+				const book = await model.controller.peekRecentBook(index, from.firstBook.position).catch(() => null);
+				if (mine !== generation) return;
+				paint(card, path, finishCard(from, book), from.cover ? () => void askBook({ ...from, cover: null }) : undefined);
+			};
+			paint(card, path, { state: plan.state, name: plan.name, cover: plan.cover }, plan.cover && plan.firstBook ? () => void askBook({ ...plan, cover: null }) : undefined);
+			if (plan.needsBook) await askBook(plan);
 		} catch {
 			/* it stays as drawn: the folder's name, no image, and still clickable */
 		}
@@ -117,6 +121,8 @@ export function mountProjectCards(host: HTMLElement, model: AppModel): () => voi
 	const draw = async (): Promise<void> => {
 		const mine = ++generation;
 		const recent = await model.controller.recent();
+		// Rust shortens the real home folder to ~ (the window never infers it); if that can't be had, the full path shows.
+		const display = await model.controller.recentDisplay().catch(() => recent);
 		if (mine !== generation) return;
 		for (const u of urls.splice(0)) URL.revokeObjectURL(u);
 		paths = recent;
@@ -129,7 +135,7 @@ export function mountProjectCards(host: HTMLElement, model: AppModel): () => voi
 					"button",
 					{ class: "sf-project-card", attrs: { type: "button", title: path, "aria-label": baseName(path) }, dataset: { recent: String(i) } },
 					el("div", { class: "sf-project-card-image is-empty" }, photoIcon()),
-					el("div", { class: "sf-project-card-text" }, el("span", { class: "sf-project-card-name", text: baseName(path) }), el("span", { class: "sf-project-card-path", text: shownPath(path) }), el("span", { class: "sf-project-card-state", attrs: { hidden: "" } })),
+					el("div", { class: "sf-project-card-text" }, el("span", { class: "sf-project-card-name", text: baseName(path) }), el("span", { class: "sf-project-card-path", text: shownPath(display[i] ?? path) }), el("span", { class: "sf-project-card-state", attrs: { hidden: "" } })),
 				);
 				card.addEventListener("click", () => {
 					if (card.getAttribute("aria-disabled") === "true") return; // not found, or not a project: nothing to open

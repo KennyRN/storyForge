@@ -164,6 +164,13 @@ async fn peek_recent_book(state: State<'_, AppState>, index: usize, position: us
         .map_err(|e| FsError::new("UNKNOWN", e.to_string(), None))?
 }
 
+/// The recent list's paths as the start screen shows them, in the list's order: the current user's own home folder shortened to `~` and nothing
+/// else (`/Users/Shared` and other users' folders stay in full). Read only: string work on the list, no file is touched. For display only.
+#[tauri::command]
+fn recent_display(state: State<'_, AppState>) -> Vec<String> {
+    storyforge_fs::recent::display_paths(&state.recent(), std::env::var("HOME").ok().as_deref())
+}
+
 /// Removes the `index`th entry from the recent list. It writes only `recent.json` in the app's data folder, never a project, and rebuilds the
 /// Open Recent menu (decision 121's amendment: these commands may write the app's own recent list, and nothing else).
 #[tauri::command]
@@ -615,7 +622,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            app_info, pick_project, open_recent, remember_project, peek_recent, peek_recent_book, forget_recent, clear_recent, set_recent_names, recent_projects, project_info, close_project, scan, stat, read_text, read_binary, read_outside, write_text, write_binary,
+            app_info, pick_project, open_recent, remember_project, peek_recent, peek_recent_book, forget_recent, clear_recent, set_recent_names, recent_projects, recent_display, project_info, close_project, scan, stat, read_text, read_binary, read_outside, write_text, write_binary,
             create_file, create_folder, compare_write, rename, retire, list_temp_leftovers, remove_temp, read_cover, pick_cover, machine_get, machine_set, watch_start, watch_stop, download_placeholder, reveal_in_finder, set_menu_state, quit_ready, close_progress
         ])
         .on_window_event(|window, event| {

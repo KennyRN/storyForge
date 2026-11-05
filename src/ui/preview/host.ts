@@ -24,7 +24,9 @@ export interface PreviewApi {
 	/** Sets the recent list (the start screen's cards) to fresh copies of fixtures, folders that are gone, and so on; returns their paths. */
 	setRecent(entries: RecentEntry[]): Promise<string[]>;
 	/** The recent list and the names the window gave the Open Recent menu, as the host holds them. */
-	recentState(): Promise<{ recent: string[]; names: [string, string][] }>;
+	recentState(): Promise<{ recent: string[]; names: [string, string][]; peekBookCalls: number }>;
+	/** Makes every `peek_recent` from now on never answer (an offline drive), or lets them answer again. */
+	hangPeeks(on: boolean): Promise<void>;
 }
 
 /** One entry of the preview's recent list: a copy of a fixture (with files written or removed first), or a folder that is not there. */
@@ -65,7 +67,8 @@ export function createPreviewHost(): Host & { api: PreviewApi } {
 		read: (path) => post("/__preview/read", { path }) as Promise<string>,
 		root: () => post("/__preview/root", {}) as Promise<string | null>,
 		setRecent: (entries) => post("/__preview/recent", { entries }) as Promise<string[]>,
-		recentState: () => post("/__preview/recent-state", {}) as Promise<{ recent: string[]; names: [string, string][] }>,
+		recentState: () => post("/__preview/recent-state", {}) as Promise<{ recent: string[]; names: [string, string][]; peekBookCalls: number }>,
+		hangPeeks: async (on) => void (await post("/__preview/hang-peeks", { on })),
 	};
 	return {
 		api,

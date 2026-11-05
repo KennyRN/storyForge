@@ -27,7 +27,8 @@ test.describe("the project cards", () => {
 		await expect(card(page, 0).locator(".sf-project-card-name")).toHaveText("The Lantern Cycle");
 		await expect(card(page, 0).locator(".sf-project-card-image img")).toBeVisible(); // the fixture's series cover
 		await expect(card(page, 0)).toHaveAttribute("title", /storyForge test vault$/); // the full path is the tooltip
-		await expect(card(page, 0).locator(".sf-project-card-path")).toBeVisible();
+		await expect(card(page, 0).locator(".sf-project-card-path")).toHaveText(/^~\//); // Rust shortened the "home" (the preview's own folder) to ~
+		await expect(card(page, 0)).not.toHaveAttribute("title", /^~/); // the tooltip is the full path
 		await shot(page, "project-cards-one");
 	});
 
@@ -56,6 +57,77 @@ test.describe("the project cards", () => {
 		await expect(card(page, 0).locator(".sf-project-card-image.is-empty")).toBeVisible();
 		await expect(card(page, 0).locator('svg[aria-label="No cover"]')).toBeVisible();
 		await expect(page.getByRole("alert")).toHaveCount(0);
+	});
+
+	test("a single-novel project asks for its novel (its title) even when the series has a cover, and shows the series cover; a series with a cover doesn't ask", async ({ page }) => {
+		await start(page, [{ fixture: "series", binary: REAL_COVERS, files: { "_backstage/storyforge/project.md": "---\nformat-version: 1\nstory-kind: standalone\n---\n" } }]);
+		await expect(card(page, 0).locator(".sf-project-card-name")).toHaveText("Book #: The Harbour Wakes");
+		await expect(card(page, 0).locator(".sf-project-card-image img")).toBeVisible(); // the series cover, not the icon
+		expect((await state(page)).peekBookCalls).toBe(1);
+		await start(page, [{ fixture: "series", binary: REAL_COVERS }]);
+		await expect(card(page, 0).locator(".sf-project-card-name")).toHaveText("The Lantern Cycle");
+		await expect(card(page, 0).locator(".sf-project-card-image img")).toBeVisible();
+		await page.waitForTimeout(300);
+		expect((await state(page)).peekBookCalls).toBe(0); // a series with its own cover never asks for a book
+	});
+
+	test("a series cover that can't be drawn moves on to the first novel's cover, as a missing one does", async ({ page }) => {
+		// The series cover (the fixture's own file) is not a real image; the first book's is.
+		await start(page, [{ fixture: "series", binary: { "_backstage/storyforge/aaa/cover.png": PNG } }]);
+		const img = card(page, 0).locator(".sf-project-card-image img");
+		await expect(img).toBeVisible();
+		await expect.poll(() => img.evaluate((e: HTMLImageElement) => e.complete && e.naturalWidth)).toBe(1); // it really drew
+		await expect(card(page, 0).locator(".sf-project-card-image.is-empty")).toHaveCount(0);
+		expect((await state(page)).peekBookCalls).toBe(1);
+		// Both undrawable: the icon, quietly.
+		await start(page, [{ fixture: "series" }]);
+		await expect(card(page, 0).locator(".sf-project-card-image.is-empty")).toBeVisible();
+		await expect(page.getByRole("alert")).toHaveCount(0);
+	});
+
+	test.describe("a peek that never answers (an offline drive) holds nothing up", () => {
+		test("the card stays drawn and clickable, and opens the project", async ({ page }) => {
+			await openPreview(page, { recent: false });
+			await page.evaluate(() => window.__preview.hangPeeks(true));
+			await page.evaluate(() => window.__preview.setRecent([{ fixture: "series", folder: "Slow Drive" }]));
+			await page.reload();
+			await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+			await expect(card(page, 0).locator(".sf-project-card-name")).toHaveText("Slow Drive"); // drawn at once from the list, as the folder's name
+			await page.waitForTimeout(1500); // longer than any peek would take; it is still waiting
+			await expect(card(page, 0).locator(".sf-project-card-name")).toHaveText("Slow Drive");
+			expect(await card(page, 0).getAttribute("aria-disabled")).not.toBe("true");
+			await card(page, 0).click();
+			await expect(page.getByRole("heading", { name: "Slow Drive" })).toBeVisible(); // open_recent was not held up
+		});
+
+		test("forget_recent, Clear Menu and the other buttons work while a peek hangs", async ({ page }) => {
+			await openPreview(page, { recent: false });
+			await page.evaluate(() => window.__preview.hangPeeks(true));
+			await page.evaluate(() => window.__preview.setRecent([{ fixture: "series", folder: "One" }, { fixture: "series", folder: "Two" }, { fixture: "series", folder: "Three" }]));
+			await page.reload();
+			await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+			await expect(cards(page)).toHaveCount(3);
+			await card(page, 0).focus();
+			await page.keyboard.press("Delete"); // forget_recent while three peeks are still pending
+			await expect(cards(page)).toHaveCount(2);
+			await expect(page.getByRole("button", { name: "Open Project…" })).toBeEnabled();
+			await page.evaluate(() => window.__preview.emit("menu", "clear-recent")); // the menu's own item, still answered
+			await expect(cards(page)).toHaveCount(0);
+		});
+
+		test("Back Up and the menus work in a project opened while another card's peek still hangs", async ({ page }) => {
+			await openPreview(page, { recent: false });
+			await page.evaluate(() => window.__preview.hangPeeks(true));
+			await page.evaluate(() => window.__preview.setRecent([{ fixture: "series", folder: "Opens" }, { fixture: "series", folder: "Never Answers" }]));
+			await page.reload();
+			await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+			await card(page, 0).click();
+			await page.waitForFunction(() => !!window.__app?.editors);
+			await page.evaluate(() => window.__preview.emit("menu", "backup-now"));
+			await expect(page.getByRole("status").filter({ hasText: /^Backed up \d+ files/ })).toBeVisible();
+			await page.evaluate(() => window.__preview.emit("menu", "flip-face"));
+			await expect(page.locator('.sf-left[data-face="storyforge"]')).toBeVisible();
+		});
 	});
 
 	test("a single-novel project is named by its book's title", async ({ page }) => {
