@@ -1,7 +1,7 @@
 import type { CodexRef } from "../../core/book";
 import { foldKey } from "../../core/pathRules";
 import { el, fill } from "./dom";
-import { openDialog } from "./dialog";
+import { bringForward, openDialog } from "./dialog";
 
 export interface CodexPickerOptions {
 	title: string;
@@ -20,6 +20,7 @@ export interface CodexPickerOptions {
 
 /** A dialog with a filterable checklist of Codex entries. Applying hands back the chosen references in order; closing any other way discards. */
 export function openCodexPicker(options: CodexPickerOptions): void {
+	if (bringForward("codex-picker")) return;
 	let chosen: CodexRef[] = options.selected.map((r) => ({ ...r }));
 	const isChosen = (path: string): boolean => chosen.some((r) => foldKey(r.path) === foldKey(path));
 	const rows: { path: string; name: string; missing: boolean }[] = [
@@ -52,6 +53,8 @@ export function openCodexPicker(options: CodexPickerOptions): void {
 	draw();
 	const dialog = openDialog({
 		title: options.title,
+		key: "codex-picker",
+		focus: () => (rows.length ? filter : null),
 		body: el("div", { class: "sf-picker" }, rows.length ? filter : null, list),
 		buttons: [{ label: "Cancel", kind: "quiet" }, { label: "Choose", kind: "primary", onClick: () => options.onApply(chosen), disabled: rows.length === 0 }],
 	});

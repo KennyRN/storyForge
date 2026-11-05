@@ -6,7 +6,7 @@ import { libraryChapterPath } from "../../../core/paths";
 import { applyHashNumbering } from "../../../core/titleNumbering";
 import { formatWordCount } from "../../../core/wordCount";
 import { el, fill } from "../../kit/dom";
-import { openDialog } from "../../kit/dialog";
+import { bringForward, openDialog } from "../../kit/dialog";
 import type { AppModel } from "../../model";
 import { debounced } from "../../overviews/refresh";
 import { chapterNamer, sessionContext, sessionsInBook } from "../../sessionsContext";
@@ -15,6 +15,7 @@ import { paceLabel, sessionsList } from "./sessionsList";
 
 /** The word-count history: series total, this novel's summary, day and week heatmaps, and a day's chapters. Read-only. */
 export function openHistoryDialog(model: AppModel): void {
+	if (bringForward("history")) return;
 	const running = model.running;
 	if (!running) return;
 	const body = el("div", { class: "sf-history" });
@@ -98,6 +99,6 @@ export function openHistoryDialog(model: AppModel): void {
 
 	const refresh = debounced(() => void draw());
 	const offs = [model.subscribe(["stats", "library", "project", "sessions"], refresh), () => refresh.cancel()];
-	openDialog({ title: "Word count history", body, buttons: [{ label: "Close", kind: "primary" }], onClose: () => offs.forEach((o) => o()) });
+	openDialog({ title: "Word count history", key: "history", body, buttons: [{ label: "Close", kind: "primary" }], onClose: () => offs.forEach((o) => o()) });
 	void draw();
 }

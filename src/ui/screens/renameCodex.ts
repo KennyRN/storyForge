@@ -1,6 +1,6 @@
 import type { LinkRewritePlan, LinkRewriteResult } from "../../core/linkRewriter";
 import { button } from "../kit/button";
-import { openDialog, type OpenDialog } from "../kit/dialog";
+import { bringForward, openDialog, type OpenDialog } from "../kit/dialog";
 import { el, fill } from "../kit/dom";
 import type { AppModel } from "../model";
 
@@ -25,6 +25,7 @@ const list = (items: string[], title: string): HTMLElement | null =>
 
 /** The rename dialog (docs/interface.md §6.4): the name, then the plan (what will and won't change), then the result. */
 export function openRenameCodex(model: AppModel, notePath: string): void {
+	if (bringForward("rename")) return;
 	const running = model.running;
 	if (!running) return;
 	if (running.readOnlyReason) return void model.notices.notify({ text: "This project is open read-only, so nothing can be renamed." });
@@ -122,6 +123,6 @@ export function openRenameCodex(model: AppModel, notePath: string): void {
 		dialog.setButtons([{ label: "Done", kind: "primary" }]);
 	};
 
-	dialog = openDialog({ title: "Rename note", body, buttons: [] });
+	dialog = openDialog({ title: "Rename note", key: "rename", body, buttons: [] });
 	stepName();
 }

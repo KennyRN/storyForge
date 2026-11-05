@@ -1,9 +1,10 @@
 import { el } from "../kit/dom";
-import { openDialog } from "../kit/dialog";
+import { bringForward, openDialog } from "../kit/dialog";
 import type { AppModel } from "../model";
 
 /** The plugin's onboarding question: a series or one standalone book; then the folder picker, then `createProject`. */
 export function openNewProject(model: AppModel): void {
+	if (bringForward("new-project")) return;
 	const input = el("input", { class: "sf-field", attrs: { type: "text", placeholder: "Series name", "aria-label": "Series name" } });
 	const body = el("div", {}, el("p", { text: "Are you writing a series, or a single standalone book?" }), input);
 	let dialog: ReturnType<typeof openDialog>;
@@ -19,6 +20,8 @@ export function openNewProject(model: AppModel): void {
 	};
 	dialog = openDialog({
 		title: "Welcome to storyForge",
+		key: "new-project",
+		focus: () => input,
 		body,
 		buttons: [
 			{ label: "Cancel", kind: "quiet" },
