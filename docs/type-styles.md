@@ -77,7 +77,7 @@ Also: `sofia-navigator.png` (the novel title at 900 and the series name at 600 i
 
 - **Body bold** is its own Interface style: 600 at 13 px, following the Interface font, changeable like the others. It is the series title, the project card's name and state words, the plan headline and the shortcode label. No relative `bolder`.
 - **Fields** is 14 px: the plot note, the synopsis and the description (`.sf-section-field` too). Only the overview names go to Body's 13 px.
-- **Named exceptions** in the static test: the prose headings (`em`), the dressing's emphasis weights (bold 700, the markers' 400), the special-characters button and its characters (17 and 18 px), `.sf-nav-note` (see below) and the library side's Codex list (16 px).
+- **Named exceptions** in the static test: the prose headings (`em`), the dressing's emphasis weights (bold 700, the markers' 400), the special-characters button and its characters (17 and 18 px) and `.sf-nav-note` (see below); the library side's Codex list is the Codex list style, no exception.
 - The Interface font is SN Pro until Kenny chooses at his look (SN Pro or Atkinson Hyperlegible Next). Sofia Sans is bundled in three widths, each its own family.
 
 ## 9. As built (1.10.0)

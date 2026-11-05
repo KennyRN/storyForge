@@ -690,9 +690,9 @@ input[aria-invalid="true"] {
 	font-synthesis: none;
 }
 
-/* The library side's Codex list follows the Writing font (the storytelling side's is the Navigator's own part). */
+/* The Codex list, wherever it is drawn, is the Navigator's Codex list style. */
 .sf-codex-tree {
-	font-family: var(--font-writing);
+	font-family: var(--ap-codex-family);
 }
 
 /* Any surface drawn in one of the choosable families (Brief 13): what is on screen is what is on disk, so no ligatures or

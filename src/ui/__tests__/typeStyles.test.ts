@@ -21,13 +21,12 @@ const kebab = (id: string): string => id.replace(/[A-Z]/g, (c) => `-${c.toLowerC
 /**
  * The named exceptions, each with its reason (Kenny's rulings, 1.10.0): the prose headings are in em of the Prose style and the dressing's emphasis weights are real
  * bold and the marker's regular; the special-characters button and its characters draw a glyph, not words; the navigator's note is 0.8 of the line it sits in, so it
- * scales with the Navigator style; the library side's Codex list keeps its 16 px.
+ * scales with the Navigator style.
  */
 const EXCEPTIONS: Record<string, string[]> = {
 	".sf-chars-button": ["font-size"],
 	".sf-char": ["font-size"],
 	".sf-nav-note": ["font-size"],
-	".sf-codex-tree": ["font-size"],
 	".sf-heading-text": ["font-weight"],
 	".sf-heading-1": ["font-size"],
 	".sf-heading-2": ["font-size"],
