@@ -191,6 +191,7 @@ export function openDialog(options: DialogOptions): OpenDialog {
 		if (closed || stack[stack.length - 1]?.overlay !== overlay) return;
 		const a = document.activeElement;
 		if (a && a !== document.body && a !== document.documentElement) return;
+		if (/^(INPUT\|[^|]*\|(text|number|search|)\||TEXTAREA\|)/.test(lastStop)) return; // a box in use is kept by its dialog's own redraw rule (decision 109)
 		(Array.from(panel.querySelectorAll<HTMLElement>("button, input, select, textarea, [tabindex]")).find((n) => lastStop && identity(n) === lastStop) ?? panel).focus({ preventScroll: true });
 	};
 	overlay.addEventListener("focusout", (e) => {
