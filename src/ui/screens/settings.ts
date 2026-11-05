@@ -4,7 +4,7 @@ import { APPEARANCE_BASE_PX, APPEARANCE_PARTS, APPEARANCE_SIZE_RANGE, APPEARANCE
 import { FAMILY_INFO, FONT_FAMILIES, isFontFamily, nearestWeight, type FontFamily } from "../../core/fontFamilies";
 import { sampleStyle } from "../appearance";
 import { button } from "../kit/button";
-import { openDialog } from "../kit/dialog";
+import { bringForward, openDialog } from "../kit/dialog";
 import { el } from "../kit/dom";
 import { typingSection } from "./typingSettings";
 import { widthsSettings } from "./widthsSettings";
@@ -25,6 +25,7 @@ const FREQUENCIES: Record<AutomaticBackupFrequency, string> = { "every-open": "E
  * the value really changes (decision 23), and each row says, quietly, where its value comes from.
  */
 export function openSettings(model: AppModel): void {
+	if (bringForward("settings")) return;
 	const running = model.running;
 	if (!running) return void model.notices.notify({ text: "Open a project first." });
 	const project = running.opened.project;
@@ -247,7 +248,7 @@ export function openSettings(model: AppModel): void {
 		if (isTextBox(a) && body.contains(a) && committed.get(a) !== a.value) kept.add(a);
 		return [...kept];
 	};
-	const redraw = (): void => {
+	const redrawNow = (): void => {
 		started = null;
 		off = isOff();
 		const numbering = Object.entries(NUMBERING_STYLE_OPTIONS) as [NumberingStyle, string][];
@@ -357,7 +358,23 @@ export function openSettings(model: AppModel): void {
 		heldBack = twins.some(([old]) => isTextBox(old) && old === focused);
 	};
 	const section = (title: string, rows: HTMLElement[], label = title): HTMLElement => el("section", { class: "sf-settings-section", attrs: { "aria-label": label } }, el("h3", { class: "sf-summary-title", text: title }), ...rows);
-	redraw();
+	// A redraw never lands between the pointer going down on a control and coming up (Fix 8): the pressed tab would be replaced and the
+	// click would land on nothing. It waits for the release, and runs just after the click.
+	let pointerDown = false;
+	let redrawWaiting = false;
+	const redraw = (): void => {
+		if (pointerDown) return void (redrawWaiting = true);
+		redrawNow();
+	};
+	const release = (): void => {
+		if (!pointerDown) return;
+		pointerDown = false;
+		if (redrawWaiting) setTimeout(() => ((redrawWaiting = false), redraw()), 0);
+	};
+	body.addEventListener("pointerdown", () => (pointerDown = true), true);
+	window.addEventListener("pointerup", release, true);
+	window.addEventListener("pointercancel", release, true);
+	redrawNow();
 	// Settings changed from outside (decision 96) redraw by the same rule: a text box being typed in is left as it is until it loses focus.
 	const unsubscribe = model.subscribe("settings", redraw);
 	body.addEventListener("focusout", () => {
@@ -365,5 +382,12 @@ export function openSettings(model: AppModel): void {
 		heldBack = false;
 		setTimeout(redraw, 0);
 	});
-	openDialog({ title: "Settings", body, buttons: [{ label: "Done", kind: "primary" }], onClose: unsubscribe });
+	openDialog({
+		title: "Settings",
+		key: "settings",
+		body,
+		buttons: [{ label: "Done", kind: "primary" }],
+		focus: (panel) => panel.querySelector<HTMLElement>(".sf-settings-tab.is-active"),
+		onClose: () => (unsubscribe(), window.removeEventListener("pointerup", release, true), window.removeEventListener("pointercancel", release, true)),
+	});
 }
