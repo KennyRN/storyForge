@@ -61,7 +61,7 @@ test.describe("the project cards", () => {
 
 	test("a single-novel project asks for its novel (its title) even when the series has a cover, and shows the series cover; a series with a cover doesn't ask", async ({ page }) => {
 		await start(page, [{ fixture: "series", binary: REAL_COVERS, files: { "_backstage/storyforge/project.md": "---\nformat-version: 1\nstory-kind: standalone\n---\n" } }]);
-		await expect(card(page, 0).locator(".sf-project-card-name")).toHaveText("Book #: The Harbour Wakes");
+		await expect(card(page, 0).locator(".sf-project-card-name")).toHaveText("Book 1: The Harbour Wakes");
 		await expect(card(page, 0).locator(".sf-project-card-image img")).toBeVisible(); // the series cover, not the icon
 		expect((await state(page)).peekBookCalls).toBe(1);
 		await start(page, [{ fixture: "series", binary: REAL_COVERS }]);
@@ -132,7 +132,7 @@ test.describe("the project cards", () => {
 
 	test("a single-novel project is named by its book's title", async ({ page }) => {
 		await start(page, [{ fixture: "series", files: { "_backstage/storyforge/project.md": "---\nformat-version: 1\nstory-kind: standalone\n---\n" } }]);
-		await expect(card(page, 0).locator(".sf-project-card-name")).toHaveText("Book #: The Harbour Wakes");
+		await expect(card(page, 0).locator(".sf-project-card-name")).toHaveText("Book 1: The Harbour Wakes");
 	});
 
 	test("an unreadable series.md gives the folder's name and no image, never a failure", async ({ page }) => {

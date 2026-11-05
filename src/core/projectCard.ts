@@ -5,7 +5,8 @@
  */
 import { safeCoverFilename } from "./coverImage";
 import { readFrontmatter } from "./frontmatter";
-import { resolveOrder } from "./ordering";
+import { NUMBERING_STYLE_OPTIONS, type NumberingStyle } from "./numberingStyle";
+import { numberedBookTitleIn, orderBookMembers, seriesFrontmatterFromData, type RawSeriesFrontmatter } from "./series";
 
 export interface PeekCover {
 	/** Exactly `cover.<ext>`, as Rust checked. */
@@ -38,8 +39,6 @@ export interface CardPlan {
 	state: CardState;
 	/** The name to show now. */
 	name: string;
-	/** Whether `name` came from the project's own files (not the folder's name). */
-	nameFound: boolean;
 	/** The image to show now: the series' own cover, when it has one. */
 	cover: PeekCover | null;
 	/** The first placed book, found by the core's ordering; null when there is none. */
@@ -64,16 +63,17 @@ const nonEmpty = (v: unknown): string | null => (typeof v === "string" && v.trim
 
 /** The card as far as `peek_recent` alone can tell. `folderName` is the project folder's own name (the fallback for every name). */
 export function planCard(peek: PeekResult, folderName: string): CardPlan {
-	const plain = (state: CardState): CardPlan => ({ state, name: folderName, nameFound: false, cover: null, firstBook: null, needsBook: false, standalone: false });
+	const plain = (state: CardState): CardPlan => ({ state, name: folderName, cover: null, firstBook: null, needsBook: false, standalone: false });
 	if (!peek.exists) return plain("not-found");
 	if (!peek.hasLibrary) return plain("not-a-project");
 
 	const project = dataOf(peek.projectMd);
 	const series = dataOf(peek.seriesMd);
 	const standalone = project?.["story-kind"] === "standalone";
-	const order = Array.isArray(series?.order) ? (series.order as unknown[]).filter((v): v is string => typeof v === "string") : [];
-	const placed = resolveOrder(peek.bookFolders, order, (f) => f).ordered;
-	const first = placed[0] ?? null;
+	// The library's own reading of series.md and its own ordering (core/series.ts), so a card names a novel exactly as the library does.
+	const fm = seriesFrontmatterFromData(series as RawSeriesFrontmatter | null);
+	const { ordered, unplaced } = orderBookMembers(peek.bookFolders, (f) => f, fm.order, fm.unplacedOrder);
+	const first = ordered[0] ?? null;
 	const firstBook = first === null ? null : { position: peek.bookFolders.indexOf(first), folder: first };
 
 	// A recorded cover whose file is missing, unreadable or a different file counts as no cover.
@@ -82,12 +82,14 @@ export function planCard(peek: PeekResult, folderName: string): CardPlan {
 
 	let name: string | null;
 	if (standalone) {
-		const books = series?.books;
-		const entry = firstBook && books && typeof books === "object" ? (books as Record<string, unknown>)[firstBook.folder] : null;
-		name = entry && typeof entry === "object" ? nonEmpty((entry as Record<string, unknown>)["book-title"]) : null;
+		// The novel's title as the library shows it (series.md's recorded title, "#" resolved to its number by the project's numbering style); the
+		// novel's own file isn't consulted for it, the library doesn't either.
+		const style = project?.["series-numbering-style"];
+		const numbering: NumberingStyle = typeof style === "string" && style in NUMBERING_STYLE_OPTIONS ? (style as NumberingStyle) : "arabic";
+		name = firstBook ? nonEmpty(numberedBookTitleIn(fm.books, [...ordered, ...unplaced], firstBook.folder, numbering)) : null;
 	} else name = nonEmpty(series?.["series-title"]);
 
-	return { state: "ok", name: name ?? folderName, nameFound: name !== null, cover, firstBook, needsBook: firstBook !== null && (standalone || cover === null), standalone };
+	return { state: "ok", name: name ?? folderName, cover, firstBook, needsBook: firstBook !== null && (standalone || cover === null), standalone };
 }
 
 /**
@@ -95,15 +97,10 @@ export function planCard(peek: PeekResult, folderName: string): CardPlan {
  * between the two calls) is ignored: the card keeps what the plan had.
  */
 export function finishCard(plan: CardPlan, book: PeekBook | null): CardView {
-	let { name, cover } = plan;
-	if (book && plan.firstBook && book.folder === plan.firstBook.folder) {
-		const novel = dataOf(book.novelMd);
-		if (cover === null && book.cover) {
-			const recorded = safeCoverFilename(novel?.["cover-image"]);
-			if (recorded !== null && book.cover.filename === recorded) cover = book.cover;
-		}
-		// A single-novel project's name is its book's title: series.md's own entry came first, the book's own reference is the fallback.
-		if (plan.standalone && !plan.nameFound) name = nonEmpty(novel?.["book-title-reference"]) ?? name;
+	let { cover } = plan;
+	if (book && plan.firstBook && book.folder === plan.firstBook.folder && cover === null && book.cover) {
+		const recorded = safeCoverFilename(dataOf(book.novelMd)?.["cover-image"]);
+		if (recorded !== null && book.cover.filename === recorded) cover = book.cover;
 	}
-	return { state: plan.state, name, cover };
+	return { state: plan.state, name: plan.name, cover };
 }

@@ -74,12 +74,8 @@ function parseBooksMap(raw: unknown): Record<string, SeriesBookEntry> {
 	return result;
 }
 
-export function readSeriesFrontmatter(project: Project): SeriesFrontmatter {
-	const file = project.entry(seriesFilePath());
-	if (!file) {
-		return { seriesId: "", seriesTitle: "Series", order: [], unplacedOrder: [], books: {}, coverImage: null };
-	}
-	const fm = project.frontmatter(seriesFilePath());
+/** series.md's frontmatter data (null: none, or unreadable) as a `SeriesFrontmatter`. Pure: the library reads it from the open project, and a start-screen card from the text a peek returns, by this one function. */
+export function seriesFrontmatterFromData(fm: RawSeriesFrontmatter | null | undefined): SeriesFrontmatter {
 	const order = Array.isArray(fm?.order) ? fm.order.filter((v: unknown): v is string => typeof v === "string") : [];
 	const unplacedOrder = Array.isArray(fm?.["unplaced-order"])
 		? fm["unplaced-order"].filter((v: unknown): v is string => typeof v === "string")
@@ -91,15 +87,31 @@ export function readSeriesFrontmatter(project: Project): SeriesFrontmatter {
 	return { seriesId, seriesTitle, order, unplacedOrder, books, coverImage };
 }
 
-export function getSeriesBooks(project: Project): OrderResult<IndexEntry> & { seriesTitle: string } {
-	const folders = getLibraryBookFolders(project);
-	const { seriesTitle, order, unplacedOrder } = readSeriesFrontmatter(project);
-	const { ordered, unplaced } = resolveOrder(folders, order, (folder) => folder.name);
+export function readSeriesFrontmatter(project: Project): SeriesFrontmatter {
+	const file = project.entry(seriesFilePath());
+	if (!file) {
+		return { seriesId: "", seriesTitle: "Series", order: [], unplacedOrder: [], books: {}, coverImage: null };
+	}
+	return seriesFrontmatterFromData(project.frontmatter(seriesFilePath()) as RawSeriesFrontmatter | null);
+}
+
+/**
+ * The books in display order: those in `order` first, then the unplaced ones in their own sequence (`unplacedOrder`), anything in neither trailing in
+ * natural order. Pure: `getSeriesBooks` uses it on the library's folders, and a start-screen card on the folder names a peek returns.
+ */
+export function orderBookMembers<T>(members: T[], keyOf: (member: T) => string, order: string[], unplacedOrder: string[]): OrderResult<T> {
+	const { ordered, unplaced } = resolveOrder(members, order, keyOf);
 	// Unplaced books have no slot in `order` (that's what makes them unplaced) — sort them by their
 	// own separately-persisted sequence instead, via the same resolveOrder primitive: anything not
 	// yet in unplacedOrder (e.g. a freshly created book) just trails after in natural order.
-	const { ordered: unplacedSorted, unplaced: unplacedRest } = resolveOrder(unplaced, unplacedOrder, (folder) => folder.name);
-	return { seriesTitle, ordered, unplaced: [...unplacedSorted, ...unplacedRest] };
+	const { ordered: unplacedSorted, unplaced: unplacedRest } = resolveOrder(unplaced, unplacedOrder, keyOf);
+	return { ordered, unplaced: [...unplacedSorted, ...unplacedRest] };
+}
+
+export function getSeriesBooks(project: Project): OrderResult<IndexEntry> & { seriesTitle: string } {
+	const folders = getLibraryBookFolders(project);
+	const { seriesTitle, order, unplacedOrder } = readSeriesFrontmatter(project);
+	return { seriesTitle, ...orderBookMembers(folders, (folder) => folder.name, order, unplacedOrder) };
 }
 
 export function getSeriesBookEntry(project: Project, folderName: string): SeriesBookEntry | null {
@@ -124,11 +136,18 @@ export function numberedBookTitle(
 	style: NumberingStyle = "arabic",
 ): string {
 	const { ordered, unplaced } = prefetched ?? getSeriesBooks(project);
-	const sequence = [...ordered, ...unplaced];
-	const idx = sequence.findIndex((folder) => folder.name === bookFolderName);
-	if (idx === -1) return bookDisplayTitle(project, bookFolderName);
-	const numbered = applyHashNumbering(sequence.map((folder) => bookDisplayTitle(project, folder.name)), style);
-	return numbered[idx];
+	return numberedBookTitleIn(readSeriesFrontmatter(project).books, [...ordered, ...unplaced].map((folder) => folder.name), bookFolderName, style);
+}
+
+/**
+ * A book's title as the library shows it: `series.md`'s recorded title (a book entry needs a book-id; without one, or a title, the folder's name), with "#"
+ * resolved to its number among the "#"-titled books of `sequence` (the display order). Pure: the one rule, used by the library and by a start-screen card.
+ */
+export function numberedBookTitleIn(books: Record<string, SeriesBookEntry>, sequence: string[], bookFolderName: string, style: NumberingStyle = "arabic"): string {
+	const title = (folder: string): string => books[folder]?.bookTitle ?? folder;
+	const idx = sequence.indexOf(bookFolderName);
+	if (idx === -1) return title(bookFolderName);
+	return applyHashNumbering(sequence.map(title), style)[idx];
 }
 
 export function collectAllBookIds(project: Project): string[] {

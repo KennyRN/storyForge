@@ -60,9 +60,17 @@ describe("the project card", () => {
 		expect(finishCard(plan, stale)).toEqual({ state: "ok", name: "S", cover: null });
 	});
 
-	it("a single-novel project with no title in series.md takes its book's own reference", () => {
-		const plan = planCard(peek({ projectMd: "---\nstory-kind: standalone\n---\n", seriesMd: "---\norder:\n  - aaa\n---\n" }), "folder");
-		expect(plan.name).toBe("folder");
-		expect(finishCard(plan, { folder: "aaa", novelMd: "---\nbook-title-reference: \"Own Title\"\n---\n", cover: null }).name).toBe("Own Title");
+	it("a single-novel project is named as the library names its novel: series.md's title, # numbered by the project's style, never the novel file's own reference", () => {
+		const one = (titles: string, extra = "") => peek({ projectMd: `---\nstory-kind: standalone\n${extra}---\n`, seriesMd: `---\norder:\n  - aaa\nbooks:\n  aaa:\n    book-id: b1\n    book-title: ${titles}\n---\n`, bookFolders: ["aaa"] });
+		expect(planCard(one('"Book #: The Harbour Wakes"'), "folder").name).toBe("Book 1: The Harbour Wakes"); // # becomes its number
+		expect(planCard(one('"Book #: The Harbour Wakes"', "series-numbering-style: roman-upper\n"), "folder").name).toBe("Book I: The Harbour Wakes");
+		expect(planCard(one('"Book #: The Harbour Wakes"', "series-numbering-style: no-such-style\n"), "folder").name).toBe("Book 1: The Harbour Wakes"); // an unknown style is the default
+		expect(planCard(one("Plain Title"), "folder").name).toBe("Plain Title");
+		// No title, or an entry without a book-id: the folder's name, as the library does; the novel's own reference is never used.
+		const noEntry = peek({ projectMd: "---\nstory-kind: standalone\n---\n", seriesMd: "---\norder:\n  - aaa\nbooks:\n  aaa:\n    book-title: Orphan\n---\n", bookFolders: ["aaa"] });
+		expect(planCard(noEntry, "folder").name).toBe("aaa"); // the book's folder name (the library's fallback)
+		expect(planCard(peek({ projectMd: "---\nstory-kind: standalone\n---\n", seriesMd: "---\norder:\n  - aaa\n---\n", bookFolders: ["aaa"] }), "folder").name).toBe("aaa");
+		const plan = planCard(noEntry, "folder");
+		expect(finishCard(plan, { folder: "aaa", novelMd: "---\nbook-title-reference: \"Own Title\"\n---\n", cover: null }).name).toBe("aaa");
 	});
 });
