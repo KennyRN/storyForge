@@ -537,6 +537,10 @@ The five navigator icons (**storytelling**, **codex**, **series**, **novel** and
 
 The **no-cover icon** ("volcanicMole's Rounded Photo": a rounded photo, a solid shape on a 24 px grid) is Kenny's own work, signed volcanicMole, and is based on Tabler Icons (MIT; the notice is in the MIT section above, which stays with it), as his other icons are. It is drawn on a start-screen project card that has no cover (the series' own, nor its first novel's), centred in the image's place in the decoration grey, and named "No cover" for the screen reader. Its path is in `src/ui/kit/photoIcon.ts`.
 
+## Where the four notice icons are used (1.10.0)
+
+The notices' four icons are Tabler Icons, chosen and supplied by Kenny (MIT; the notice is in the MIT section above, which stays with them): **error** is `alert-triangle` (version 2.3), **warning** is `alert-square-rounded` (2.15), **information** is `info-square-rounded` (2.2) and **success** is `square-rounded-check` (2.2), all the filled forms on a 24 px grid. They are drawn in each notice's edge colour before its words, each with a name for the screen reader ("Error", "Warning", "Information", "Done"). The paths are in `src/ui/kit/noticeIcons.ts`. (Kenny has not said the licence line differs from Tabler's own, so it is recorded as Tabler's; he may change it.)
+
 ## Where Tabler's `filter` is used (the Codex filter by type)
 
 The filter by type button in the Codex strip, under New Folder and New Note, on both Codex lists and the Archive tab, is Tabler's **filter** (version 3.32; outline, 2 px stroke, three rounded lines; MIT, the notice is in the MIT section above), supplied by Kenny. Its paths are in `src/ui/kit/icons.ts`.
