@@ -5,8 +5,8 @@ import { openPreview, shot } from "./helpers";
 
 // Brief 16: the start screen's project cards (docs/project-cards.md). Details come from the real Rust code through the preview's bridge.
 
-const cards = (page: Page) => page.locator("button.sf-card");
-const card = (page: Page, i: number) => page.locator(`button.sf-card[data-recent='${i}']`);
+const cards = (page: Page) => page.locator("button.sf-project-card");
+const card = (page: Page, i: number) => page.locator(`button.sf-project-card[data-recent='${i}']`);
 const state = (page: Page) => page.evaluate(() => window.__preview.recentState());
 
 async function start(page: Page, entries: Parameters<Window["__preview"]["setRecent"]>[0]): Promise<string[]> {
@@ -20,10 +20,10 @@ async function start(page: Page, entries: Parameters<Window["__preview"]["setRec
 test.describe("the project cards", () => {
 	test("a series project: the series cover on top, the series title, and the folder under it with the home folder as ~", async ({ page }) => {
 		await start(page, [{ fixture: "series" }]);
-		await expect(card(page, 0).locator(".sf-card-name")).toHaveText("The Lantern Cycle");
-		await expect(card(page, 0).locator(".sf-card-image img")).toBeVisible(); // the fixture's series cover
+		await expect(card(page, 0).locator(".sf-project-card-name")).toHaveText("The Lantern Cycle");
+		await expect(card(page, 0).locator(".sf-project-card-image img")).toBeVisible(); // the fixture's series cover
 		await expect(card(page, 0)).toHaveAttribute("title", /storyForge test vault$/); // the full path is the tooltip
-		await expect(card(page, 0).locator(".sf-card-path")).toBeVisible();
+		await expect(card(page, 0).locator(".sf-project-card-path")).toBeVisible();
 		await shot(page, "project-cards-one");
 	});
 
@@ -34,33 +34,33 @@ test.describe("the project cards", () => {
 			// neither: no recorded cover anywhere
 			{ fixture: "series", files: { "_story-library/series.md": readFileSync("test/fixtures/series/_story-library/series.md", "utf8").replace("cover-image: cover.jpg\n", "") }, remove: ["_backstage/storyforge/aaa/cover.png", "_backstage/storyforge/_series/cover.jpg"] },
 		]);
-		await expect(card(page, 0).locator(".sf-card-image img")).toBeVisible();
-		await expect(card(page, 1).locator(".sf-card-image.is-empty")).toBeVisible();
+		await expect(card(page, 0).locator(".sf-project-card-image img")).toBeVisible();
+		await expect(card(page, 1).locator(".sf-project-card-image.is-empty")).toBeVisible();
 		await expect(card(page, 1).locator('svg[aria-label="No cover"]')).toBeVisible(); // the icon is named No cover
 	});
 
 	test("a recorded cover whose file is missing counts as no cover, quietly", async ({ page }) => {
 		await start(page, [{ fixture: "series", remove: ["_backstage/storyforge/_series/cover.jpg", "_backstage/storyforge/aaa/cover.png"] }]);
-		await expect(card(page, 0).locator(".sf-card-name")).toHaveText("The Lantern Cycle");
-		await expect(card(page, 0).locator(".sf-card-image.is-empty")).toBeVisible();
+		await expect(card(page, 0).locator(".sf-project-card-name")).toHaveText("The Lantern Cycle");
+		await expect(card(page, 0).locator(".sf-project-card-image.is-empty")).toBeVisible();
 		await expect(page.getByRole("alert")).toHaveCount(0);
 	});
 
 	test("a single-novel project is named by its book's title", async ({ page }) => {
 		await start(page, [{ fixture: "series", files: { "_backstage/storyforge/project.md": "---\nformat-version: 1\nstory-kind: standalone\n---\n" } }]);
-		await expect(card(page, 0).locator(".sf-card-name")).toHaveText("Book #: The Harbour Wakes");
+		await expect(card(page, 0).locator(".sf-project-card-name")).toHaveText("Book #: The Harbour Wakes");
 	});
 
 	test("an unreadable series.md gives the folder's name and no image, never a failure", async ({ page }) => {
 		await start(page, [{ fixture: "series", folder: "Mystery", files: { "_story-library/series.md": "---\nseries-title: [unclosed\n---\n" } }]);
-		await expect(card(page, 0).locator(".sf-card-name")).toHaveText("Mystery");
-		await expect(card(page, 0).locator(".sf-card-image.is-empty")).toBeVisible();
+		await expect(card(page, 0).locator(".sf-project-card-name")).toHaveText("Mystery");
+		await expect(card(page, 0).locator(".sf-project-card-image.is-empty")).toBeVisible();
 	});
 
 	test("Not found and Not a project say so in words, are dimmed, heard by the screen reader, and do nothing when clicked", async ({ page }) => {
 		await start(page, [{ missing: true, folder: "Old Draft" }, { fixture: "empty", folder: "Notes" }]);
-		await expect(card(page, 0).locator(".sf-card-state")).toHaveText("Not found");
-		await expect(card(page, 1).locator(".sf-card-state")).toHaveText("Not a project");
+		await expect(card(page, 0).locator(".sf-project-card-state")).toHaveText("Not found");
+		await expect(card(page, 1).locator(".sf-project-card-state")).toHaveText("Not a project");
 		await expect(page.getByRole("button", { name: "Old Draft, Not found" })).toBeVisible();
 		await expect(page.getByRole("button", { name: "Notes, Not a project" })).toBeVisible();
 		expect(Number(await card(page, 0).evaluate((e) => getComputedStyle(e).opacity))).toBeLessThan(1);
@@ -143,7 +143,7 @@ test.describe("the project cards", () => {
 
 	test("the Open Recent menu is given the cards' names, by position", async ({ page }) => {
 		await start(page, [{ fixture: "series", folder: "One" }, { missing: true, folder: "Old Draft" }]);
-		await expect(card(page, 0).locator(".sf-card-name")).toHaveText("The Lantern Cycle");
+		await expect(card(page, 0).locator(".sf-project-card-name")).toHaveText("The Lantern Cycle");
 		await expect.poll(async () => (await state(page)).names).toEqual([["One", "The Lantern Cycle"], ["Old Draft", "Old Draft"]]);
 	});
 
@@ -169,7 +169,7 @@ test.describe("the project cards", () => {
 
 	test("the image fills the card's frame, cropped and centred", async ({ page }) => {
 		await start(page, [{ fixture: "series" }]);
-		const img = card(page, 0).locator(".sf-card-image img");
+		const img = card(page, 0).locator(".sf-project-card-image img");
 		await expect(img).toHaveCSS("object-fit", "cover");
 		await expect(img).toHaveCSS("object-position", "50% 50%");
 	});

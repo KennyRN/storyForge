@@ -161,7 +161,7 @@ html[data-input="pointer"] .sf-splitter:focus-visible {
 	overflow-y: auto;
 	padding: var(--space-3) 28px 28px;
 }
-.sf-cards {
+.sf-project-cards {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
 	gap: 16px;
@@ -171,12 +171,12 @@ html[data-input="pointer"] .sf-splitter:focus-visible {
 	padding: 0;
 	list-style: none;
 }
-.sf-cards-item {
+.sf-project-cards-item {
 	display: flex;
 	min-width: 0;
 }
 /* A card: bg0, 10 px corners, no border at rest (the 2 px border is reserved, transparent, so a hover moves nothing), the image on top. */
-.sf-card {
+.sf-project-card {
 	display: flex;
 	flex-direction: column;
 	width: 100%;
@@ -190,17 +190,17 @@ html[data-input="pointer"] .sf-splitter:focus-visible {
 	cursor: pointer;
 	overflow: hidden;
 }
-.sf-card:hover {
+.sf-project-card:hover {
 	border-color: var(--purpose-accent);
 }
-.sf-card.is-unavailable {
+.sf-project-card.is-unavailable {
 	opacity: 0.55;
 	cursor: default;
 }
-.sf-card.is-unavailable:hover {
+.sf-project-card.is-unavailable:hover {
 	border-color: transparent;
 }
-.sf-card-image {
+.sf-project-card-image {
 	aspect-ratio: 3 / 4;
 	margin: 8px 8px 0;
 	border-radius: 6px;
@@ -209,36 +209,36 @@ html[data-input="pointer"] .sf-splitter:focus-visible {
 	display: grid;
 	place-items: center;
 }
-.sf-card-image img {
+.sf-project-card-image img {
 	width: 100%;
 	height: 100%;
 	object-fit: cover; /* crop to fill, centred (Kenny) */
 	object-position: center;
 	display: block;
 }
-.sf-card-image.is-empty {
+.sf-project-card-image.is-empty {
 	color: var(--purpose-decoration);
 }
-.sf-card-text {
+.sf-project-card-text {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
 	min-width: 0;
 	padding: 8px 10px 10px;
 }
-.sf-card-name {
+.sf-project-card-name {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 	font-weight: 600;
 }
-.sf-card-path {
+.sf-project-card-path {
 	overflow: hidden;
 	white-space: nowrap;
 	font-size: 12px;
 	color: var(--purpose-text-muted);
 }
-.sf-card-state {
+.sf-project-card-state {
 	font-size: 12px;
 	font-weight: 600;
 }

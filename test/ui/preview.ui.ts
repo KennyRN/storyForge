@@ -7,7 +7,7 @@ test.describe("the preview and the start screen", () => {
 		await expect(page.getByRole("button", { name: "Open Project…" })).toBeVisible();
 		await expect(page.getByRole("button", { name: "New Project…" })).toBeVisible();
 		await expect(page.getByRole("list", { name: "Recent projects" }).getByRole("button")).toHaveCount(1);
-		await expect(page.locator(".sf-card-name")).toHaveText("The Lantern Cycle"); // the series' title, once the card's details arrive (Brief 16)
+		await expect(page.locator(".sf-project-card-name")).toHaveText("The Lantern Cycle"); // the series' title, once the card's details arrive (Brief 16)
 		await shot(page, "start");
 	});
 

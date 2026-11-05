@@ -40,7 +40,7 @@ function coverUrl(cover: PeekCover): string | null {
 
 /** Draws the cards into `host` and keeps them current; returns what to call when the screen goes. */
 export function mountProjectCards(host: HTMLElement, model: AppModel): () => void {
-	const list = el("ul", { class: "sf-cards", attrs: { "aria-label": "Recent projects" } });
+	const list = el("ul", { class: "sf-project-cards", attrs: { "aria-label": "Recent projects" } });
 	fill(host, list);
 	let generation = 0;
 	let urls: string[] = [];
@@ -48,6 +48,8 @@ export function mountProjectCards(host: HTMLElement, model: AppModel): () => voi
 	/** What each project's card last showed, by path, so a redraw (after a removal) is instant and only new entries ask. */
 	const views = new Map<string, CardView>();
 	let namesTimer = false;
+	/** After Delete removes a card, focus goes to the card that took its place, once the list is drawn again. */
+	let refocus: number | null = null;
 
 	const sendNames = (): void => {
 		if (namesTimer) return;
@@ -59,16 +61,16 @@ export function mountProjectCards(host: HTMLElement, model: AppModel): () => voi
 		});
 	};
 
-	const cards = (): HTMLButtonElement[] => Array.from(list.querySelectorAll<HTMLButtonElement>("button.sf-card"));
+	const cards = (): HTMLButtonElement[] => Array.from(list.querySelectorAll<HTMLButtonElement>("button.sf-project-card"));
 
 	const remove = async (index: number): Promise<void> => {
 		await model.forgetRecent(index);
 	};
 
 	const paint = (card: HTMLButtonElement, path: string, view: CardView): void => {
-		const image = card.querySelector<HTMLElement>(".sf-card-image")!;
-		const name = card.querySelector<HTMLElement>(".sf-card-name")!;
-		const state = card.querySelector<HTMLElement>(".sf-card-state")!;
+		const image = card.querySelector<HTMLElement>(".sf-project-card-image")!;
+		const name = card.querySelector<HTMLElement>(".sf-project-card-name")!;
+		const state = card.querySelector<HTMLElement>(".sf-project-card-state")!;
 		const blocked = view.state !== "ok";
 		name.textContent = view.name;
 		state.textContent = blocked ? STATE_WORDS[view.state as Exclude<CardState, "ok">] : "";
@@ -119,9 +121,9 @@ export function mountProjectCards(host: HTMLElement, model: AppModel): () => voi
 			...recent.map((path, i) => {
 				const card = el(
 					"button",
-					{ class: "sf-card", attrs: { type: "button", title: path, "aria-label": baseName(path) }, dataset: { recent: String(i) } },
-					el("div", { class: "sf-card-image is-empty" }, photoIcon()),
-					el("div", { class: "sf-card-text" }, el("span", { class: "sf-card-name", text: baseName(path) }), el("span", { class: "sf-card-path", text: shownPath(path) }), el("span", { class: "sf-card-state", attrs: { hidden: "" } })),
+					{ class: "sf-project-card", attrs: { type: "button", title: path, "aria-label": baseName(path) }, dataset: { recent: String(i) } },
+					el("div", { class: "sf-project-card-image is-empty" }, photoIcon()),
+					el("div", { class: "sf-project-card-text" }, el("span", { class: "sf-project-card-name", text: baseName(path) }), el("span", { class: "sf-project-card-path", text: shownPath(path) }), el("span", { class: "sf-project-card-state", attrs: { hidden: "" } })),
 				);
 				card.addEventListener("click", () => {
 					if (card.getAttribute("aria-disabled") === "true") return; // not found, or not a project: nothing to open
@@ -131,7 +133,7 @@ export function mountProjectCards(host: HTMLElement, model: AppModel): () => voi
 					e.preventDefault();
 					showMenu([{ label: "Remove from List", onSelect: () => void remove(i) }], menuPoint(e), { label: "Project" });
 				});
-				return el("li", { class: "sf-cards-item" }, card);
+				return el("li", { class: "sf-project-cards-item" }, card);
 			}),
 		);
 		cards().forEach((card, i) => {
@@ -139,12 +141,16 @@ export function mountProjectCards(host: HTMLElement, model: AppModel): () => voi
 			if (known) paint(card, recent[i], known);
 			else void ask(card, i, recent[i], mine);
 		});
+		if (refocus !== null) {
+			cards()[Math.min(refocus, cards().length - 1)]?.focus();
+			refocus = null;
+		}
 	};
 
 	// Arrows move between cards (left and right by one, up and down to the card nearest above or below), Return opens (a button's own), Delete
 	// removes the entry, and Shift-F10 or Control-Return opens the context menu: the cards are buttons in one list.
 	list.addEventListener("keydown", (e) => {
-		const card = (e.target as HTMLElement).closest<HTMLButtonElement>("button.sf-card");
+		const card = (e.target as HTMLElement).closest<HTMLButtonElement>("button.sf-project-card");
 		if (!card) return;
 		const all = cards();
 		const at = all.indexOf(card);
@@ -167,7 +173,8 @@ export function mountProjectCards(host: HTMLElement, model: AppModel): () => voi
 			row.sort((a, b) => Math.abs(a.getBoundingClientRect().left - r.left) - Math.abs(b.getBoundingClientRect().left - r.left));
 			row[0]?.focus();
 		} else if (e.key === "Delete" || e.key === "Backspace") {
-			void remove(index).then(() => void requestAnimationFrame(() => cards()[Math.min(at, cards().length - 1)]?.focus()));
+			refocus = at;
+			void remove(index);
 		} else if ((e.key === "F10" && e.shiftKey) || (e.key === "Enter" && e.ctrlKey)) {
 			showMenu([{ label: "Remove from List", onSelect: () => void remove(index) }], menuPoint(card), { label: "Project" });
 		} else return;
