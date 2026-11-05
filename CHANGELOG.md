@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.1: one way for dialogs to behave (Fix 8)
+
+- Fixed: **Escape closes Settings after a tab has been clicked with the mouse.** It did nothing, because the click redrew the page, the clicked tab was replaced and focus fell to the page body, where the dialog never saw the key. Every dialog now listens for Escape for the whole window, and focus never falls to the body: a click inside a dialog focuses what was clicked, and a redraw puts focus back on the same control.
+- Fixed: **pressing ⌘, again no longer opens a second Settings dialog.** Opening a dialog that is already open (Settings, the history view, New Project, Rename, the Codex picker) brings that one forward.
+- Fixed: **a click straight after Settings opens, or during a redraw, can no longer be lost.** Settings holds a redraw until the pointer is released, so the tab you pressed is never replaced under the click. (Nothing was ever written or lost by it.)
+- New: **every dialog opens with focus inside it** (Settings on the selected section; the others on their first box, or their main button), **Tab and Option-Tab cycle within it and wrap**, the window behind is out of reach of the keyboard, the pointer and the screen reader, and **closing returns focus to where it was** (or to the chapter editor, or the left panel's list, if that has gone). Escape takes the same route as Cancel (Done, where there is no Cancel); a text box with typed text commits exactly once.
+- Not changed: what any dialog shows, writes or does. Notices stay clickable above a dialog.
+
 ## 1.8.0: the data bars (Brief 15)
 
 - Changed: **the chapter bars are solid bars in a grey0 frame.** The bar is 34 px with rounded ends in the data colour; the frame is 4 px larger on every side, and its inner width is the chapter's planned length. Short of the target the grey left over shows the shortfall; at the target the bar meets the frame's edge; past it the bar runs on, solid, out through the frame's end. The target is a shape, so nothing relies on colour alone. **Every frame is the same width** and they shrink together by the longest overrun (no minimum), so their ends line up down the page. A chapter with no length set has no frame. The dots, the dashed marker, the clearance and the outline round the name are gone.

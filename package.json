@@ -1,6 +1,6 @@
 {
 	"name": "storyforge",
-	"version": "1.8.0",
+	"version": "1.8.1",
 	"description": "storyForge's data core: a plain TypeScript library over a folder of markdown (the standalone app's engine).",
 	"scripts": {
 		"build": "tsc -noEmit -skipLibCheck",

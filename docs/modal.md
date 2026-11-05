@@ -71,3 +71,25 @@ Settings is the only dialog that needs more than the shared piece (a stable key 
 
 - A storyForge process (pid 41549, the built app under `src-tauri/target/…/release/bundle/`) is running. It is presumably Kenny's copy. I have not touched it and will build nothing until it is closed (decision 66). The survey and the code and test work in commits 2 and 3 do not need a build; the `test:ui` run uses the preview.
 - `src/diagnostic/diagnostics.ts` handles Escape too; it is a development-build overlay and I have not surveyed it as a dialog.
+
+## 2. As built
+
+**Version 1.8.1, branch `modal-focus`.** The built app has **not** been built or checked (Kenny's copy was running, decision 66); everything below is proved in the WebKit preview.
+
+**The shape (as proposed in §1.5, with these differences):**
+- One shared piece, `kit/dialog.ts`. Keys: Escape and Tab are handled by one `document` listener in the bubble phase, so a menu or inline edit that stops the key takes it first (the Settings size box and the width boxes keep "Escape puts the figure back").
+- **Tab is managed by the dialog itself**, so plain Tab and Option-Tab both cycle every enabled control (a radio group is one stop). A native sheet does the same.
+- **`inert`** is set on everything behind except the notices (they sit above dialogs on purpose, so a backup notice stays clickable). Notices are therefore reachable by the mouse but not by Tab from inside a dialog.
+- **Redraws:** focus is restored by what a control is (tag, role, type and label or text). WebKit sends no `focusout` for a removed node, so a `MutationObserver` on the dialog does it. A text box in use is left to Settings' own rule (decision 109).
+- **Escape's route:** a button labelled Cancel; else the sole Done, Close or OK; else the dialog just closes (Rename's Back step). Ignored while every button is disabled (a rename running).
+- **Closing** blurs the control in use first, so a typed value commits once by the same route as Done, then focus returns to the opener, else the chapter editor or the left panel.
+
+**Dialogs and starting points:** Settings, the selected section; history, its primary button (Close); Welcome, the series name box; Rename, its name box; Codex picker, its filter box (else Cancel); Changes found, OK. Keys: `settings`, `history`, `new-project`, `rename`, `codex-picker`.
+
+**The causes, as found:**
+- Escape bug: confirmed as in §1.3. A click redraws, the pressed tab goes, and focus falls to the body. The new tests fail without the change at the Escape step.
+- Lost click: **not reproduced**, so not proved. The fix (a redraw waits for pointer release) and a test that holds the pointer down across an outside-change redraw and fifty open-and-click cycles both pass; the redraw-during-click test fails on v1.8.0 in the setup stage along with the rest, so it shows the fix works, not that this was the original cause.
+
+**Tests:** `npm test` 1,679. `npm run test:ui`: 526 passed, 1 skipped (the opt-in `MEASURE=1` run), 0 failed, on the final code. The first full run had one failure, `appearance.ui.ts` "size: rounded…", which was the change's: the dialog's focus restore interfered with a size box mid-redraw. Fixed in `dialog.ts` (a text box in use is left alone), proved by four passes of its own file; it passes on v1.8.0. New file: `test/ui/modal.ui.ts` (9 tests, all failing without the change).
+
+**Not run:** `test:settings-sync` (it refuses beside Kenny's copy). Its Settings stage now closes with Escape (`keyOnControl`, key code 53), which is untested.

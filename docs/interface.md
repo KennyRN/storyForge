@@ -413,3 +413,13 @@ Kenny's design. Both are **defaults**: a new list or menu follows them unless Ke
 - **Greyed-out rows** (Back Up Now in a read-only project) are the muted colour at half strength (`opacity: 0.5`), so they read as clearly dimmer than an ordinary muted row; the reason stays as the tooltip.
 - **Contrast** (the theme's values): `grey2` `#9DA9A0` on `bg1` `#3A464C` is 3.99:1, the same as the chapter list's today. Kenny's to keep, as with the stats' `grey1` (decision 68). A greyed-out row is about 2.1:1 on purpose: it is unavailable.
 
+
+## Default for modal dialogs (5 November 2026, Fix 8, decision 119)
+
+Kenny's design. A **default**: every new modal dialog goes through `openDialog` (`src/ui/kit/dialog.ts`) and so behaves like this, unless Kenny names an exception. Floating menus and popovers keep their own behaviour.
+
+- **Opening:** focus moves in (Settings: the selected section; others: `focus` option, else the first text box, else the primary button, never a confirming or destructive one). The dialog is `role="dialog"`, `aria-modal`, named by its title. The rest of the page, apart from the notices, is `inert`.
+- **Inside:** Tab and Option-Tab cycle the dialog's controls and wrap (Shift reverses). A click inside focuses what was clicked, else the dialog; focus never falls to the page body, and a redraw puts it back on the same control (found by what it is).
+- **Escape** closes the topmost dialog by its Cancel route (Done where there is no Cancel), never a confirming action; a menu or inline edit open inside it takes the first Escape. It is ignored while every button is disabled (a rename running).
+- **One copy:** pass a `key`; opening a dialog whose key is open brings it forward (`bringForward`).
+- **Closing** returns focus to the opener, else the chapter editor (storytelling side) or the left panel's list. The control in use is left first, so typed text commits exactly once.
