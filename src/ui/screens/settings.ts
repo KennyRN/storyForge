@@ -1,8 +1,9 @@
 import { NUMBERING_STYLE_OPTIONS, type NumberingStyle } from "../../core/numberingStyle";
 import type { AutomaticBackupFrequency } from "../../core/backup";
-import { APPEARANCE_BASE_PX, APPEARANCE_PARTS, APPEARANCE_SIZE_RANGE, APPEARANCE_SIZE_STEP, APPEARANCE_SIZE_STEP_SHIFT, CODEX_COLOURS, DATA_COLOURS, EMPHASIS_COLOURS, HIGHLIGHT_COLOURS, SELECTION_COLOURS, SESSION_LIMITS, appearanceKey, setSetting, type AppearancePart, type CodexColour, type DataColour, type EmphasisColour, type SelectionColour, type ProjectSettings, type StoryKind } from "../../app/settings";
+import { APPEARANCE_BASE_PX, APPEARANCE_PARTS, APPEARANCE_SIZE_RANGE, APPEARANCE_SIZE_STEP, APPEARANCE_SIZE_STEP_SHIFT, CODEX_COLOURS, DATA_COLOURS, EMPHASIS_COLOURS, HIGHLIGHT_COLOURS, SELECTION_COLOURS, SESSION_LIMITS, appearanceKey, typeKey, setSetting, type AppearancePart, type CodexColour, type DataColour, type EmphasisColour, type SelectionColour, type ProjectSettings, type StoryKind } from "../../app/settings";
 import { FAMILY_INFO, FONT_FAMILIES, isFontFamily, nearestWeight, type FontFamily } from "../../core/fontFamilies";
-import { sampleStyle } from "../appearance";
+import { sampleStyle, styleLook } from "../appearance";
+import { FOLLOW, INTERFACE_STYLES, WRITING_STYLES, resolvedFont, type TypeStyle } from "../../core/typeStyles";
 import { button } from "../kit/button";
 import { bringForward, openDialog } from "../kit/dialog";
 import { el } from "../kit/dom";
@@ -161,18 +162,20 @@ export function openSettings(model: AppModel): void {
 	const appearancePart = (part: AppearancePart): HTMLElement => {
 		const name = PART_NAMES[part];
 		const [lo, hi] = APPEARANCE_SIZE_RANGE[part];
-		const font = settings.values[appearanceKey(part, "Font")] as FontFamily;
+		const fontNow = settings.values[appearanceKey(part, "Font")];
+		const font = resolvedFont(fontNow, settings.values.typeInterfaceFont);
 		const weightNow = settings.values[appearanceKey(part, "Weight")] as number;
 		const sizeNow = settings.values[appearanceKey(part, "Size")] as number;
 		const fontKey = appearanceKey(part, "Font");
 
-		const fontSelect = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${name} font` } }, ...FONT_FAMILIES.map((f) => el("option", { text: f, attrs: { value: f } })));
-		fontSelect.value = font;
+		const fontSelect = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${name} font` } }, el("option", { text: "Interface font", attrs: { value: FOLLOW } }), ...FONT_FAMILIES.map((f) => el("option", { text: f, attrs: { value: f } })));
+		fontSelect.value = fontNow;
 		fontSelect.disabled = off;
 		fontSelect.addEventListener("change", () => {
-			const chosen = fontSelect.value as FontFamily;
+			const picked = fontSelect.value as FontFamily | typeof FOLLOW;
+			const chosen = resolvedFont(picked, settings.values.typeInterfaceFont);
 			void (async () => {
-				await change(fontKey, chosen as never);
+				await change(fontKey, picked as never);
 				// The weight goes with the author to the new font where it has it, else the nearest it does have.
 				const weightKey = appearanceKey(part, "Weight");
 				const kept = settings.values[weightKey] as number; // read now, not when the page was drawn: a weight just chosen may have landed since
@@ -252,6 +255,106 @@ export function openSettings(model: AppModel): void {
 		return section(name, [...rows, sample], `Appearance: ${name}`);
 	};
 
+	/** One of the two base fonts (Brief 18): the Interface font or the Writing font, which every style that names none of its own follows. */
+	const baseFont = (which: "Interface" | "Writing"): HTMLElement => {
+		const key = which === "Interface" ? "typeInterfaceFont" : "typeWritingFont";
+		const select = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${which} font` } }, ...FONT_FAMILIES.map((f) => el("option", { text: f, attrs: { value: f } })));
+		select.value = settings.values[key];
+		select.disabled = off;
+		select.addEventListener("change", () => void change(key, select.value as never));
+		return section(`${which} font`, [row("Font", select, key), el("p", { class: "sf-muted sf-setting-hint", text: which === "Interface" ? "Every part of the app's own text that has no font of its own below." : "The chapter and note editors, the fields and the reading text." })], `Appearance: ${which} font`);
+	};
+	/** One type style: its font (or the base font), weight and size in pixels, and a sample drawn as it will be. */
+	const typeStyle = (style: TypeStyle): HTMLElement => {
+		const name = style.name;
+		const baseName = style.base === "interface" ? "Interface font" : "Writing font";
+		const fontKey = typeKey(style.id as never, "Font");
+		const weightKey = typeKey(style.id as never, "Weight");
+		const sizeKey = typeKey(style.id as never, "Size");
+		const softKey = typeKey(style.id as never, "Soft");
+		const base = style.base === "interface" ? settings.values.typeInterfaceFont : settings.values.typeWritingFont;
+		const fontNow = settings.values[fontKey] as FontFamily | typeof FOLLOW;
+		const family = resolvedFont(fontNow, base);
+		const fontSelect = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${name} font` } }, el("option", { text: baseName, attrs: { value: FOLLOW } }), ...FONT_FAMILIES.map((f) => el("option", { text: f, attrs: { value: f } })));
+		fontSelect.value = fontNow;
+		fontSelect.disabled = off;
+		fontSelect.addEventListener("change", () => {
+			const picked = fontSelect.value as FontFamily | typeof FOLLOW;
+			const chosen = resolvedFont(picked, style.base === "interface" ? settings.values.typeInterfaceFont : settings.values.typeWritingFont);
+			void (async () => {
+				await change(fontKey, picked as never);
+				const kept = settings.values[weightKey] as number;
+				if (nearestWeight(chosen, kept) !== kept) await change(weightKey, nearestWeight(chosen, kept) as never);
+			})();
+		});
+		const rows: HTMLElement[] = [row("Font", fontSelect, fontKey)];
+		if (!style.fixed) {
+			const weightSelect = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${name} weight` } }, ...FAMILY_INFO[family].weights.map((w) => el("option", { text: `${WEIGHT_NAMES[w] ?? w} (${w})`, attrs: { value: String(w) } })));
+			weightSelect.value = String(nearestWeight(family, settings.values[weightKey] as number));
+			weightSelect.disabled = off;
+			weightSelect.addEventListener("change", () => void change(weightKey, Number(weightSelect.value) as never));
+			rows.push(row("Weight", weightSelect, weightKey));
+			const [lo, hi] = style.range;
+			const sizeNow = settings.values[sizeKey] as number;
+			const sizeInput = el("input", { class: "sf-field sf-setting-control", attrs: { type: "text", inputmode: "numeric", "aria-label": `${name} size (px)` } });
+			const sizeHint = el("span", { class: "sf-muted sf-setting-source", text: `${lo} to ${hi} px` });
+			sizeInput.value = String(sizeNow);
+			sizeInput.disabled = off;
+			const reset = (): void => {
+				sizeInput.value = String(sizeNow);
+				sizeInput.removeAttribute("aria-invalid");
+				sizeHint.removeAttribute("role");
+				sizeHint.textContent = `${lo} to ${hi} px`;
+			};
+			const commitSize = (): void => {
+				const typed = Number(sizeInput.value.trim());
+				if (sizeInput.value.trim() === "" || !Number.isInteger(typed) || typed < lo || typed > hi) {
+					sizeInput.value = String(sizeNow);
+					sizeInput.setAttribute("aria-invalid", "true");
+					sizeHint.setAttribute("role", "alert");
+					sizeHint.textContent = `Between ${lo} and ${hi} px`;
+					return;
+				}
+				reset();
+				sizeInput.value = String(typed);
+				if (typed !== sizeNow) void change(sizeKey, typed as never);
+			};
+			sizeInput.addEventListener("change", commitSize);
+			sizeInput.addEventListener("keydown", (e) => {
+				if (e.key === "Enter") {
+					e.preventDefault();
+					commitSize();
+				} else if (e.key === "Escape") {
+					e.stopPropagation(); // put the figure back without closing the dialog
+					reset();
+				} else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+					e.preventDefault();
+					const from = Number(sizeInput.value);
+					const next = Math.min(hi, Math.max(lo, (Number.isFinite(from) ? Math.round(from) : sizeNow) + (e.key === "ArrowUp" ? 1 : -1)));
+					sizeInput.value = String(next);
+					commitSize();
+				}
+			});
+			rows.push(el("label", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: "Size" }), sizeInput, sizeHint));
+			if (family === "Fraunces") {
+				const soft = el("input", { class: "sf-field sf-setting-control", attrs: { type: "number", min: "0", max: "100", step: "25", "aria-label": `${name} Softness (0 to 100)` } });
+				soft.value = String(settings.values[softKey]);
+				soft.disabled = off;
+				soft.addEventListener("change", () => {
+					const v = Number(soft.value);
+					if (Number.isInteger(v) && v >= 0 && v <= 100) void change(softKey, v as never);
+					else (committed.set(soft, soft.value), redraw());
+				});
+				rows.push(row("Softness", soft, softKey));
+			}
+		}
+		const look = styleLook(style, settings.values);
+		const sample = el("div", { class: "sf-sample", attrs: { "aria-label": `Sample of the ${name.toLowerCase()} style`, role: "img" }, text: style.sample });
+		sample.setAttribute("style", `font-family: ${look.family}; font-weight: ${look.weight}; font-size: ${look.size}; font-variation-settings: ${look.variation};`);
+		return section(name, [...rows, sample], `Appearance: ${name}`);
+	};
+	const group = (title: string, children: HTMLElement[]): HTMLElement => el("div", { class: "sf-settings-group", attrs: { role: "group", "aria-label": title } }, el("h2", { class: "sf-settings-group-title", text: title }), ...children);
+
 	let page: Page = "General";
 	const body = el("div", { class: "sf-settings" });
 	// Which control an event came from, for the synchronous part of its handler (change() reads it): a change, a click or Return in a box.
@@ -317,7 +420,7 @@ export function openSettings(model: AppModel): void {
 					select("chapterNumberingStyle", "Chapter numbering", numbering, (v) => v as NumberingStyle),
 				]),
 			],
-			Appearance: [...APPEARANCE_PARTS.map(appearancePart), section("Codex colour", [codexColour()]), section("Data colour", [dataColour()]), section("Text colours", textColours())],
+			Appearance: [group("Interface", [baseFont("Interface"), ...INTERFACE_STYLES.map(typeStyle)]), group("Navigator", APPEARANCE_PARTS.map(appearancePart)), group("Writing", [baseFont("Writing"), ...WRITING_STYLES.map(typeStyle)]), section("Codex colour", [codexColour()]), section("Data colour", [dataColour()]), section("Text colours", textColours())],
 			Writing: [section("Typing", typingSection({ settings: settings.values, off, change, check, notify: (text) => model.notices.notify({ kind: "warning", text }) }))],
 			Sessions: [
 				section("Sessions", [

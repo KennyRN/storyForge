@@ -1,4 +1,5 @@
 import type { ProjectSettings } from "../../app/settings";
+import { TYPE_STYLES } from "../../core/typeStyles";
 
 const NAMES: Partial<Record<keyof ProjectSettings, string>> = {
 	storyKind: "This story is",
@@ -38,7 +39,12 @@ export function settingName(key: string): string {
 	const known = NAMES[key as keyof ProjectSettings];
 	if (known) return known;
 	const m = /^appearance(Codex|Novel|Series|Chapter)(Font|Weight|Size|Soft)$/.exec(key);
-	return m ? `${PARTS[m[1]]}: ${m[2].toLowerCase()}` : key;
+	if (m) return `${PARTS[m[1]]}: ${m[2].toLowerCase()}`;
+	if (key === "typeInterfaceFont") return "Interface font";
+	if (key === "typeWritingFont") return "Writing font";
+	const t = /^type([A-Z][A-Za-z]*?)(Font|Weight|Size|Soft)$/.exec(key);
+	const style = t && TYPE_STYLES.find((s) => s.id.toLowerCase() === t[1].toLowerCase());
+	return t && style ? `${style.name}: ${t[2].toLowerCase()}` : key;
 }
 
 /** A value as a person reads it. */
