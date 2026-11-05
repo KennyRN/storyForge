@@ -93,8 +93,8 @@ for (const sig of ["SIGTERM", "SIGINT", "SIGHUP"]) process.on(sig, () => process
 const problems = [];
 try {
 	if (!(await until("the window", () => find("AXButton", "Open Project").startsWith("found")))) fail("the app's window never appeared");
-	if (!(await until("the temporary project", () => find("AXButton", `proj ${dir}`).startsWith("found"), 8000))) fail("the temporary HOME did not redirect the app's data folder");
-	find("AXButton", `proj ${dir}`, "click");
+	if (!(await until("the temporary project", () => find("AXButton", "The Lantern Cycle").startsWith("found"), 8000))) fail("the temporary HOME did not redirect the app's data folder");
+	find("AXButton", "The Lantern Cycle", "click");
 	if (!(await until("an editor", () => find("AXTextArea", "Text").startsWith("found")))) fail("the project did not open");
 	await sleep(500);
 	if (!(await until("the novel name", () => clickAny("Open the novel on the library side")))) fail("could not reach the library side");

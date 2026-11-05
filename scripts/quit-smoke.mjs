@@ -141,8 +141,8 @@ async function route(name, send, { expectJoin = false, target = "chapter" } = {}
 	try {
 		await until("the window", () => find("AXButton", "Open Project", "none").startsWith("found"));
 		// The temporary HOME really redirects the app's data folder: the start screen lists OUR fixture copy.
-		await until("the temporary recent project (HOME redirect)", () => find("AXButton", `proj ${dir}`, "none").startsWith("found"), 8000);
-		find("AXButton", `proj ${dir}`, "click");
+		await until("the temporary recent project (HOME redirect)", () => find("AXButton", "The Lantern Cycle", "none").startsWith("found"), 8000);
+		find("AXButton", "The Lantern Cycle", "click");
 		await until("an editor", () => find("AXTextArea", "Text", "focus").startsWith("found"));
 		await sleep(400);
 		if (target === "plot") {

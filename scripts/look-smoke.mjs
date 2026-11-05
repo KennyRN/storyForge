@@ -208,8 +208,8 @@ process.on("exit", () => child.kill("SIGKILL"));
 for (const sig of ["SIGTERM", "SIGINT", "SIGHUP"]) process.on(sig, () => process.exit(1)); // so the line above runs when the script is stopped from outside
 try {
 	if (!(await until(() => find("AXButton", "Open Project").startsWith("found")))) fail("the app's window never appeared");
-	if (!(await until(() => find("AXButton", `proj ${dir}`).startsWith("found"), 8000))) fail("the temporary HOME did not redirect the app's data folder");
-	find("AXButton", `proj ${dir}`, "click");
+	if (!(await until(() => find("AXButton", "The Lantern Cycle").startsWith("found"), 8000))) fail("the temporary HOME did not redirect the app's data folder");
+	find("AXButton", "The Lantern Cycle", "click");
 	if (!(await until(() => find("AXTextArea", "Text").startsWith("found")))) fail("the project did not open");
 	await sleep(1200);
 

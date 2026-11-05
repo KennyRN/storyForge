@@ -129,8 +129,8 @@ async function measure(label, keys) {
 	writeFileSync(projectMd, `---\nformat-version: 1\n${Object.entries(keys).map(([k, v]) => `appearance-codex-${k}: ${v}`).join("\n")}${Object.keys(keys).length ? "\n" : ""}---\n`);
 	child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: "ignore" }); // nothing is read from it, so nothing may be piped to a reader that goes away first
 	try {
-		if (!(await until(() => find("AXButton", `proj ${dir}`).startsWith("found")))) fail("the app's window, or the temporary HOME's recent list, never appeared");
-		find("AXButton", `proj ${dir}`, "click");
+		if (!(await until(() => find("AXButton", "The Lantern Cycle").startsWith("found")))) fail("the app's window, or the temporary HOME's recent list, never appeared");
+		find("AXButton", "The Lantern Cycle", "click");
 		if (!(await until(() => find("AXTextArea", "Text").startsWith("found")))) fail("the project did not open");
 		await sleep(1500);
 		const a = widthOf("NoNewline");

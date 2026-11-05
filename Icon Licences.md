@@ -533,6 +533,10 @@ Every icon in the stats panel is a Tabler Icon (MIT; the notice is in the MIT se
 
 The five navigator icons (**storytelling**, **codex**, **series**, **novel** and **archive**) and the Navigate menu's two (**backup**, a shield with a tick, and **open**, a left arrow with lines; 1.6.5) are Kenny's own work, signed volcanicMole, and are based on Tabler Icons (MIT; the notice is in the MIT section above, which stays with them). Each is a solid rounded badge with the glyph cut out and no stroke, on a 24 px grid; they take the current text colour. They are used in the Navigate menu (32 px, before the text) and across the top of the library side as its four tabs. The paths are in `src/ui/kit/navIconShapes.ts`; `src/ui/kit/navIcons.ts` draws them. (The library's tabs used Lucide's globe, library, book and archive until this change; the Lucide section above stays because other parts of the app still use Lucide.)
 
+## Where Kenny's no-cover icon is used (the project cards, 1.9.0)
+
+The **no-cover icon** ("volcanicMole's Rounded Photo": a rounded photo, a solid shape on a 24 px grid) is Kenny's own work, signed volcanicMole, and is based on Tabler Icons (MIT; the notice is in the MIT section above, which stays with it), as his other icons are. It is drawn on a start-screen project card that has no cover (the series' own, nor its first novel's), centred in the image's place in the decoration grey, and named "No cover" for the screen reader. Its path is in `src/ui/kit/photoIcon.ts`.
+
 ## Where Tabler's `filter` is used (the Codex filter by type)
 
 The filter by type button in the Codex strip, under New Folder and New Note, on both Codex lists and the Archive tab, is Tabler's **filter** (version 3.32; outline, 2 px stroke, three rounded lines; MIT, the notice is in the MIT section above), supplied by Kenny. Its paths are in `src/ui/kit/icons.ts`.
