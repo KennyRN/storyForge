@@ -427,3 +427,7 @@ Kenny's design. A **default**: every new modal dialog goes through `openDialog` 
 - **Escape** closes the topmost dialog by its Cancel route (Done where there is no Cancel), never a confirming action; a menu or inline edit open inside it takes the first Escape. It is ignored while every button is disabled (a rename running).
 - **One copy:** pass a `key`; opening a dialog whose key is open brings it forward (`bringForward`).
 - **Closing** returns focus to the opener, else the chapter editor (storytelling side) or the left panel's list. The control in use is left first, so typed text commits exactly once.
+
+## The type styles (1.10.0)
+
+Every piece of text in the interface is drawn by a named type style, from `core/typeStyles.ts` through `--ts-<style>-*` custom properties (`docs/type-styles.md`). No style sheet names a font, a size or a weight of its own (a test fails on one); the Interface font and the Writing font are the two base fonts, and the app's own text is never the system font. Settings ▸ Appearance holds them in three groups: Interface, Navigator, Writing.
