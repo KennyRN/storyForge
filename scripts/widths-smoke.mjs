@@ -175,11 +175,13 @@ try {
 		typing.key("key code 36");
 		await sleep(700);
 		const w = windowFrame()[2];
+		shot("3-typed-30-percent");
+		// The page behind a dialog is inert since 1.8.1 (Fix 8: out of reach of the keyboard, the pointer and the screen reader), so its splitters are no
+		// longer in the accessibility tree while Settings is open: the panels are measured once the dialog has closed. They moved behind it all the same.
+		find("AXButton", "Done", "click"); // close the dialog
+		await sleep(700);
 		check(near(widthOfPanel("Storytelling"), w * 0.3, 3), "a typed 30% moved the left panel behind the dialog");
 		check(near(widthOfPanel("Context"), w * 0.3, 3), "…and the context panel with it (linked)");
-		shot("3-typed-30-percent");
-		find("AXButton", "Done", "click"); // close the dialog
-		await sleep(500);
 	}
 
 	// Percent scales with the window.
