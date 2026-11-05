@@ -179,6 +179,8 @@ try {
 
 	// 1a. Fix 8: Settings opens with focus inside; a tab pressed by its accessibility action, then Escape, closes it. (A real mouse click is
 	//     not used; the preview tests cover the pointer. This shows the built app's window.)
+	typing.bringToFront(); // by process id, through the guard: nothing else may have taken the front since the stages above
+	await sleep(300);
 	openSettingsDialog();
 	if (!(await until(() => settingControl().startsWith("found"), 8000))) problems.push("the settings dialog did not open");
 	await sleep(500);
