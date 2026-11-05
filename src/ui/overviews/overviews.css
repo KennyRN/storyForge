@@ -50,7 +50,8 @@
 .sf-note-field .cm-content { padding: 4px 6px; caret-color: var(--purpose-text); }
 .sf-note-field .cm-line { padding: 0; }
 .sf-note-field .cm-placeholder { color: var(--purpose-text-muted); } /* grey2 at full strength (4.61:1 on bg0), no extra opacity (Brief 14 contrast ruling) */
-.sf-note-field .cm-selectionBackground, .sf-note-field .cm-editor.cm-focused .cm-selectionBackground { background: var(--purpose-selection); }
+.sf-note-field .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground { background: var(--purpose-selection); } /* the whole path, to outweigh CodeMirror's own (Brief 17) */
+.sf-note-field .cm-editor:not(.cm-focused) > .cm-scroller > .cm-selectionLayer .cm-selectionBackground { background: var(--purpose-selection-inactive); }
 .sf-bar--link { cursor: pointer; }
 /* The novel's synopsis and the series' description (and each novel's synopsis in the series overview) are places you write: cards on bg0, 10px corners, no border. */
 .sf-overview .sf-note-field { background: var(--purpose-editor-bg); border: 0; border-radius: 10px; margin-left: 0; }

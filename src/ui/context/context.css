@@ -20,6 +20,6 @@
 .sf-chapter-text .cm-scroller { overflow: visible; font-family: var(--font-prose); }
 .sf-chapter-text .cm-content { padding: 16px 16px 24px; font-size: 15px; line-height: 1.5; cursor: text; }
 .sf-chapter-text .cm-line { padding: 0; }
-.sf-chapter-text .cm-selectionBackground,
-.sf-chapter-text .cm-editor.cm-focused .cm-selectionBackground { background: var(--purpose-selection); }
+.sf-chapter-text .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground { background: var(--purpose-selection); } /* the whole path, to outweigh CodeMirror's own (Brief 17) */
+.sf-chapter-text .cm-editor:not(.cm-focused) > .cm-scroller > .cm-selectionLayer .cm-selectionBackground { background: var(--purpose-selection-inactive); }
 .sf-chapter-text:focus-within { outline: 2px solid var(--purpose-focus-ring); outline-offset: -2px; border-radius: 10px; }

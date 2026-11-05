@@ -44,9 +44,13 @@
 .sf-editor .cm-cursor {
 	border-left-color: var(--purpose-accent);
 }
-.sf-editor .cm-selectionBackground,
-.sf-editor .cm-focused .cm-selectionBackground {
+/* The selection (Brief 17): CodeMirror's own rule for a focused editor (`&light.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground`, a pale lavender) has
+   five classes, so the app's rule states the whole path with the surface's class in front (six) and wins in every surface. Without focus it is neutral bg2. */
+.sf-editor .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
 	background: var(--purpose-selection);
+}
+.sf-editor .cm-editor:not(.cm-focused) > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
+	background: var(--purpose-selection-inactive);
 }
 
 /* The dressing. */
@@ -127,12 +131,15 @@
 	border-color: transparent;
 	color: var(--purpose-text-muted);
 }
+/* Find matches (Brief 17): a bg2 fill with a dashed outline; the current match the same fill with an orange outline. Never the selection's colour nor a highlight's. */
 .sf-editor .cm-searchMatch {
-	background: var(--purpose-selection);
+	background: var(--purpose-find-match);
+	outline: 1px dashed var(--purpose-find-match-outline);
 	border-radius: 2px;
 }
-.sf-editor .cm-searchMatch-selected {
-	outline: 1px solid var(--purpose-accent);
+.sf-editor .cm-searchMatch.cm-searchMatch-selected {
+	background: var(--purpose-find-match);
+	outline: 2px solid var(--purpose-find-current);
 }
 
 /* The shortcode popup (a CodeMirror tooltip, docs/typing-aids.md §6): the list sits in the app's own raised surface. */

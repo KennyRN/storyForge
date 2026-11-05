@@ -62,6 +62,11 @@ html[data-input="pointer"] .sf-splitter:focus-visible {
 ::selection {
 	background: var(--purpose-selection);
 }
+/* The window not active: neutral bg2, as Mac apps draw it. The app records the window's state on the page (`data-window`, from the window's focus and
+   blur), not WebKit's `::selection:window-inactive`, which the production CSS minifier refuses. */
+:root[data-window="inactive"] ::selection {
+	background: var(--purpose-selection-inactive);
+}
 
 .sf-muted {
 	color: var(--purpose-text-muted);
@@ -663,3 +668,22 @@ html[data-input="pointer"] .sf-splitter:focus-visible {
 	font-synthesis: none;
 	font-optical-sizing: auto;
 }
+
+/* The sample line in Settings ▸ Appearance ▸ Text colours (Brief 17): the dressing's own classes, so a choice shows as it will in the editor. */
+.sf-text-sample {
+	padding: 8px 10px;
+	margin-bottom: var(--space-2);
+	border-radius: 6px;
+	background: var(--purpose-editor-bg);
+	font-family: var(--font-prose);
+	font-size: 16px;
+	line-height: 1.6;
+}
+.sf-sample-selected {
+	background: var(--purpose-selection);
+}
+.sf-swatch-dot--sel-plum { background: var(--purpose-selection-choice-plum); }
+.sf-swatch-dot--sel-blue { background: var(--purpose-selection-choice-blue); }
+.sf-swatch-dot--sel-green { background: var(--purpose-selection-choice-green); }
+.sf-swatch-dot--sel-yellow { background: var(--purpose-selection-choice-yellow); }
+.sf-swatch-dot--sel-grey { background: var(--purpose-selection-choice-grey); }

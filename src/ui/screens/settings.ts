@@ -1,6 +1,6 @@
 import { NUMBERING_STYLE_OPTIONS, type NumberingStyle } from "../../core/numberingStyle";
 import type { AutomaticBackupFrequency } from "../../core/backup";
-import { APPEARANCE_BASE_PX, APPEARANCE_PARTS, APPEARANCE_SIZE_RANGE, APPEARANCE_SIZE_STEP, APPEARANCE_SIZE_STEP_SHIFT, CODEX_COLOURS, DATA_COLOURS, SESSION_LIMITS, appearanceKey, setSetting, type AppearancePart, type CodexColour, type DataColour, type ProjectSettings, type StoryKind } from "../../app/settings";
+import { APPEARANCE_BASE_PX, APPEARANCE_PARTS, APPEARANCE_SIZE_RANGE, APPEARANCE_SIZE_STEP, APPEARANCE_SIZE_STEP_SHIFT, CODEX_COLOURS, DATA_COLOURS, EMPHASIS_COLOURS, HIGHLIGHT_COLOURS, SELECTION_COLOURS, SESSION_LIMITS, appearanceKey, setSetting, type AppearancePart, type CodexColour, type DataColour, type EmphasisColour, type SelectionColour, type ProjectSettings, type StoryKind } from "../../app/settings";
 import { FAMILY_INFO, FONT_FAMILIES, isFontFamily, nearestWeight, type FontFamily } from "../../core/fontFamilies";
 import { sampleStyle } from "../appearance";
 import { button } from "../kit/button";
@@ -13,6 +13,8 @@ import type { AppModel } from "../model";
 const SOURCE_WORDS = { "project.md": "this project", "data.json": "the plugin's settings", default: "default" } as const;
 const DATA_COLOUR_NAMES: Record<DataColour, string> = { yellow: "Yellow", aqua: "Aqua", blue: "Blue", orange: "Orange", purple: "Purple" };
 const CODEX_COLOUR_NAMES: Record<CodexColour, string> = { text: "Text", yellow: "Yellow", green: "Green", aqua: "Aqua", blue: "Blue", purple: "Purple", orange: "Orange", grey: "Grey" };
+const SELECTION_COLOUR_NAMES: Record<SelectionColour, string> = { plum: "Plum", blue: "Blue", green: "Green", yellow: "Yellow", grey: "Grey" };
+const EMPHASIS_COLOUR_NAMES: Record<EmphasisColour, string> = { text: "Text colour", ...DATA_COLOUR_NAMES };
 const PART_NAMES: Record<AppearancePart, string> = { codex: "Codex list", novel: "Novel title", series: "Series name", chapter: "Selected chapter" };
 const PART_SAMPLES: Record<AppearancePart, string> = { codex: "Cast · Jane Harbour · Ælfric", novel: "Book 1: The Harbour Wakes", series: "The Lantern Cycle", chapter: "Chapter 1: The Storm" };
 const WEIGHT_NAMES: Record<number, string> = { 100: "Thin", 200: "Extra light", 300: "Light", 400: "Regular", 500: "Medium", 600: "Semibold", 700: "Bold", 800: "Extra bold", 900: "Black" };
@@ -98,6 +100,44 @@ export function openSettings(model: AppModel): void {
 			group.append(b);
 		}
 		return el("div", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: "Data colour" }), group, source("dataColour"));
+	};
+	/** One of the text colours (Brief 17): named swatches, one chosen (a radio group), like the data colour. */
+	const swatchRow = <K extends "selectionColour" | "highlightColour" | "boldColour" | "italicColour" | "boldItalicColour">(key: K, label: string, choices: readonly string[], names: Record<string, string>, dot: (choice: string) => string): HTMLElement => {
+		const group = el("div", { class: "sf-swatches", attrs: { role: "radiogroup", "aria-label": label } });
+		for (const choice of choices) {
+			const chosen = settings.values[key] === choice;
+			const b = el("button", { class: `sf-swatch${chosen ? " is-chosen" : ""}`, dataset: { choice }, attrs: { type: "button", role: "radio", "aria-checked": String(chosen), "aria-label": names[choice] } }, el("span", { class: `sf-swatch-dot ${dot(choice)}` }), names[choice]);
+			b.disabled = off;
+			b.addEventListener("click", () => void change(key, choice as ProjectSettings[K]));
+			group.append(b);
+		}
+		return el("div", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: label }), group, source(key));
+	};
+	/** The text colours group: a sample line (the dressing's own classes, so a choice shows as it will in the editor) above five rows. */
+	const textColours = (): HTMLElement[] => {
+		const sample = el(
+			"div",
+			{ class: "sf-text-sample", attrs: { role: "group", "aria-label": "Sample of the text colours" } },
+			"Plain, ",
+			el("span", { class: "sf-strong", text: "bold" }),
+			", ",
+			el("span", { class: "sf-em", text: "italic" }),
+			", ",
+			el("span", { class: "sf-strong sf-em", text: "bold italic" }),
+			", ",
+			el("span", { class: "sf-highlight", text: "highlighted" }),
+			" and ",
+			el("span", { class: "sf-sample-selected", text: "selected" }),
+			" text.",
+		);
+		return [
+			sample,
+			swatchRow("selectionColour", "Selection colour", SELECTION_COLOURS, SELECTION_COLOUR_NAMES, (c) => `sf-swatch-dot--sel-${c}`),
+			swatchRow("highlightColour", "Highlight colour", HIGHLIGHT_COLOURS, DATA_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`),
+			swatchRow("boldColour", "Bold colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`),
+			swatchRow("italicColour", "Italic colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`),
+			swatchRow("boldItalicColour", "Bold italic colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`),
+		];
 	};
 	/** A whole-number field. Committed when it loses focus or Return is pressed; a value outside the range is put back. Blank means off, where `nullable`. */
 	const number = (key: "sessionIdleMinutes" | "sessionMinShownMinutes" | "sessionEditingWpm", label: string, [lo, hi]: readonly [number, number], nullable = false): HTMLElement => {
@@ -277,7 +317,7 @@ export function openSettings(model: AppModel): void {
 					select("chapterNumberingStyle", "Chapter numbering", numbering, (v) => v as NumberingStyle),
 				]),
 			],
-			Appearance: [...APPEARANCE_PARTS.map(appearancePart), section("Codex colour", [codexColour()]), section("Data colour", [dataColour()])],
+			Appearance: [...APPEARANCE_PARTS.map(appearancePart), section("Codex colour", [codexColour()]), section("Data colour", [dataColour()]), section("Text colours", textColours())],
 			Writing: [section("Typing", typingSection({ settings: settings.values, off, change, check, notify: (text) => model.notices.notify({ text }) }))],
 			Sessions: [
 				section("Sessions", [

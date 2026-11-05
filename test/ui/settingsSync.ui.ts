@@ -61,7 +61,8 @@ test("changing a setting that was changed elsewhere says so, quietly, and keeps 
 	const dialog = page.getByRole("dialog");
 	await dialog.getByRole("tab", { name: "Appearance", exact: true }).click();
 	await outside(page, "---\nformat-version: 1\ncodex-colour: green\nstory-kind: standalone\n---\n");
-	await expect(dialog.getByRole("radio", { name: "Green", exact: true })).toBeChecked();
+	// names its group first (decision 117): the Selection colour group has a Green too
+	await expect(dialog.getByRole("radiogroup", { name: "Codex colour", exact: true }).getByRole("radio", { name: "Green", exact: true })).toBeChecked();
 	// Elsewhere again, before the window has heard (no batch emitted): the window still holds green.
 	await page.evaluate((p) => window.__preview.touch(p, "---\nformat-version: 1\ncodex-colour: blue\nstory-kind: series\n---\n"), SETTINGS);
 	await dialog.getByRole("radiogroup", { name: "Codex colour" }).getByRole("radio", { name: "Yellow", exact: true }).click();

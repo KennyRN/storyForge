@@ -36,6 +36,14 @@ export type CodexColour = (typeof CODEX_COLOURS)[number];
 export const DATA_COLOURS = ["yellow", "aqua", "blue", "orange", "purple"] as const;
 export type DataColour = (typeof DATA_COLOURS)[number];
 
+/** The text colours (Brief 17, decision 122), each stored as a role name like `data-colour`. The selection: plum (Everforest's visual background, the default), blue, green, yellow or grey (red is trouble). The highlight and the three emphasis colours take the same five colours as the data bars (red and green are excluded, decision 8); an emphasis colour may also be "text" (none: the text colour). */
+export const SELECTION_COLOURS = ["plum", "blue", "green", "yellow", "grey"] as const;
+export type SelectionColour = (typeof SELECTION_COLOURS)[number];
+export const HIGHLIGHT_COLOURS = DATA_COLOURS;
+export type HighlightColour = (typeof HIGHLIGHT_COLOURS)[number];
+export const EMPHASIS_COLOURS = ["text", ...DATA_COLOURS] as const;
+export type EmphasisColour = (typeof EMPHASIS_COLOURS)[number];
+
 /** One story or a series of them (decision 81): whether the storytelling side shows a series line. Missing or unknown means a series. */
 export type StoryKind = "series" | "standalone";
 
@@ -76,6 +84,12 @@ export interface ProjectSettings extends AppearanceKeys {
 	codexColour: CodexColour;
 	/** The colour of the data bars (chapter, series and the novel's progress segments). */
 	dataColour: DataColour;
+	/** The text colours (Brief 17): the selection, the `==highlight==`, and bold, italic and bold italic. */
+	selectionColour: SelectionColour;
+	highlightColour: HighlightColour;
+	boldColour: EmphasisColour;
+	italicColour: EmphasisColour;
+	boldItalicColour: EmphasisColour;
 	hideSeriesPane: boolean;
 	autoFocus: boolean;
 	layout: SfLayout;
@@ -131,6 +145,11 @@ export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
 	appearanceChapterSoft: 0,
 	codexColour: "text",
 	dataColour: "blue",
+	selectionColour: "plum",
+	highlightColour: "yellow",
+	boldColour: "text",
+	italicColour: "text",
+	boldItalicColour: "text",
 	hideSeriesPane: false,
 	autoFocus: true,
 	layout: "novelBrowse",
@@ -178,6 +197,11 @@ const FIELDS: Record<Key, { file: string; plugin: string; valid: (v: unknown) =>
 	storyKind: { file: "story-kind", plugin: "-", valid: (v) => v === "series" || v === "standalone" },
 	codexColour: { file: "codex-colour", plugin: "-", valid: (v) => typeof v === "string" && (CODEX_COLOURS as readonly string[]).includes(v) },
 	dataColour: { file: "data-colour", plugin: "-", valid: (v) => typeof v === "string" && (DATA_COLOURS as readonly string[]).includes(v) },
+	selectionColour: { file: "selection-colour", plugin: "-", valid: (v) => typeof v === "string" && (SELECTION_COLOURS as readonly string[]).includes(v) },
+	highlightColour: { file: "highlight-colour", plugin: "-", valid: (v) => typeof v === "string" && (HIGHLIGHT_COLOURS as readonly string[]).includes(v) },
+	boldColour: { file: "bold-colour", plugin: "-", valid: (v) => typeof v === "string" && (EMPHASIS_COLOURS as readonly string[]).includes(v) },
+	italicColour: { file: "italic-colour", plugin: "-", valid: (v) => typeof v === "string" && (EMPHASIS_COLOURS as readonly string[]).includes(v) },
+	boldItalicColour: { file: "bold-italic-colour", plugin: "-", valid: (v) => typeof v === "string" && (EMPHASIS_COLOURS as readonly string[]).includes(v) },
 	hideSeriesPane: { file: "hide-series-pane", plugin: "hideSeriesPane", valid: (v) => typeof v === "boolean" },
 	autoFocus: { file: "auto-focus", plugin: "autoFocus", valid: (v) => typeof v === "boolean" },
 	layout: { file: "layout", plugin: "layout", valid: (v) => typeof v === "string" && (SF_LAYOUTS as string[]).includes(v) },

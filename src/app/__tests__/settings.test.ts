@@ -749,3 +749,77 @@ describe("the data colour (Brief 15)", () => {
 		expect(current.values.dataColour).toBe("orange");
 	});
 });
+
+describe("the text colours (Brief 17): selection, highlight, bold, italic and bold italic", () => {
+	const PROJECT_MD = (root: string) => path.join(root, PROJECT_SETTINGS_PATH);
+	const put = (root: string, body: string) => {
+		fs.mkdirSync(path.join(root, "_backstage/storyforge"), { recursive: true });
+		fs.writeFileSync(PROJECT_MD(root), `---\nformat-version: 1\n${body}---\n`);
+	};
+	// The key, the setting, its default, what it accepts, and what it must not (excluded or unknown: draws the default, never rewritten).
+	const CASES = [
+		{ file: "selection-colour", key: "selectionColour", def: "plum", ok: ["plum", "blue", "green", "yellow", "grey"], bad: ["red", "aqua", "orange", "purple", "text", "'#5c3f4f'", "4", "[blue]"] },
+		{ file: "highlight-colour", key: "highlightColour", def: "yellow", ok: ["yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "plum", "text", "'#dbbc7f'", "4"] },
+		{ file: "bold-colour", key: "boldColour", def: "text", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },
+		{ file: "italic-colour", key: "italicColour", def: "text", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },
+		{ file: "bold-italic-colour", key: "boldItalicColour", def: "text", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },
+	] as const;
+
+	it("every key has its default with no key at all; opening such a project leaves the folder byte-identical", async () => {
+		const root = copyFixture("series");
+		const before = snapshot(root);
+		const s = await loadSettings(await open(root), reader(root));
+		for (const c of CASES) {
+			expect(s.values[c.key]).toBe(c.def);
+			expect(s.sources[c.key]).toBe("default");
+		}
+		expect(diffSnapshots(before, snapshot(root))).toMatchObject({ changed: [], added: [] });
+	});
+
+	for (const c of CASES) {
+		it(`${c.file}: reads its role names; an unknown or excluded value draws the default and is never rewritten`, async () => {
+			const root = copyFixture("series");
+			for (const ok of c.ok) {
+				put(root, `${c.file}: ${ok}\n`);
+				expect((await loadSettings(await open(root), reader(root))).values[c.key]).toBe(ok);
+			}
+			for (const bad of c.bad) {
+				put(root, `${c.file}: ${bad}\n`);
+				const before = snapshot(root);
+				const s = await loadSettings(await open(root), reader(root));
+				expect(s.values[c.key]).toBe(c.def);
+				expect(s.sources[c.key]).toBe("default");
+				expect(diffSnapshots(before, snapshot(root)).changed).toEqual([]);
+			}
+		});
+
+		it(`${c.file}: written only on a change, as the role name; an unrelated write leaves a bad value alone; an outside change applies live`, async () => {
+			const root = copyFixture("series");
+			const project = await open(root);
+			const s = await loadSettings(project, reader(root));
+			const before = snapshot(root);
+			await setSetting(project, s, c.key, c.def as never); // the same value: nothing is written
+			expect(diffSnapshots(before, snapshot(root))).toMatchObject({ changed: [], added: [] });
+			const other = c.ok.find((v) => v !== c.def)!;
+			await setSetting(project, s, c.key, other as never);
+			expect(fs.readFileSync(PROJECT_MD(root), "utf8")).toContain(`${c.file}: ${other}`);
+			// an excluded value in the file survives an unrelated write
+			const root2 = copyFixture("series");
+			put(root2, `${c.file}: red\nx-future-key: kept\n`);
+			const p2 = await open(root2);
+			const s2 = await loadSettings(p2, reader(root2));
+			await setSetting(p2, s2, "storyKind", "standalone");
+			expect(fs.readFileSync(PROJECT_MD(root2), "utf8")).toContain(`${c.file}: red\nx-future-key: kept\n`);
+			// an outside change applies through the re-read
+			const root3 = copyFixture("series");
+			put(root3, `${c.file}: ${c.ok[1]}\n`);
+			const p3 = await open(root3);
+			const s3 = await loadSettings(p3, reader(root3));
+			put(root3, `${c.file}: ${c.ok[2]}\n`);
+			await p3.refresh(PROJECT_SETTINGS_PATH);
+			const out = await refreshSettings(p3, s3, reader(root3));
+			expect(out.changed).toEqual([c.key]);
+			expect(s3.values[c.key]).toBe(c.ok[2]);
+		});
+	}
+});
