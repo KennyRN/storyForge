@@ -123,10 +123,10 @@ let child = null;
 let lastPicture = "";
 process.on("exit", () => child?.kill("SIGKILL"));
 /** Starts the built app on this configuration, reads the Codex list's names' widths, and quits it. */
-async function measure(label, keys) {
+async function measure(label, keys, raw = []) {
 	const bad = screenProblem();
 	if (bad) fail(`${label}: ${bad}, so nothing is measured or photographed. Wake and unlock the Mac, then run again.`);
-	writeFileSync(projectMd, `---\nformat-version: 1\n${Object.entries(keys).map(([k, v]) => `appearance-codex-${k}: ${v}`).join("\n")}${Object.keys(keys).length ? "\n" : ""}---\n`);
+	writeFileSync(projectMd, `---\nformat-version: 1\n${[...Object.entries(keys).map(([k, v]) => `appearance-codex-${k}: ${v}`), ...raw].join("\n")}${Object.keys(keys).length + raw.length ? "\n" : ""}---\n`);
 	child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: "ignore" }); // nothing is read from it, so nothing may be piped to a reader that goes away first
 	try {
 		if (!(await until(() => find("AXButton", "The Lantern Cycle").startsWith("found")))) fail("the app's window, or the temporary HOME's recent list, never appeared");
@@ -144,32 +144,6 @@ async function measure(label, keys) {
 		lastPicture = createHash("sha1").update(readFileSync(png)).digest("hex");
 		console.log(`${label.padEnd(34)} NoNewline ${a} px, Windows ${b} px, Harbour ${c} px`);
 		return (a * 1000 + b) * 1000 + c;
-	} finally {
-		child.kill("SIGTERM");
-		await new Promise((r) => (child.once("exit", r), setTimeout(r, 6000)));
-		child.kill("SIGKILL");
-		child = null;
-		await sleep(500);
-	}
-}
-
-/**
- * The type styles (Brief 18): the start screen's title ("storyForge") is the Display style, which follows the Interface font unless it names its own
- * (a card's own text is not exposed through accessibility, so the title is the probe).
- * Writes the lines into project.md, opens the app to the start screen and reads that name's width, then quits.
- */
-async function measureTitle(label, lines) {
-	const bad = screenProblem();
-	if (bad) fail(`${label}: ${bad}, so nothing is measured. Wake and unlock the Mac, then run again.`);
-	writeFileSync(projectMd, `---\nformat-version: 1\n${lines.join("\n")}${lines.length ? "\n" : ""}---\n`);
-	child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: "ignore" });
-	try {
-		if (!(await until(() => find("AXButton", "The Lantern Cycle").startsWith("found")))) fail("the app's window, or the temporary HOME's recent list, never appeared");
-		await sleep(1200);
-		const w = widthOf("storyForge");
-		if (w === null) fail(`${label}: the start title was not found as text through accessibility`);
-		console.log(`${label.padEnd(58)} start title ${w} px`);
-		return w;
 	} finally {
 		child.kill("SIGTERM");
 		await new Promise((r) => (child.once("exit", r), setTimeout(r, 6000)));
@@ -214,17 +188,17 @@ try {
 	await compare(soft !== plain, "Fraunces' Softness changes the drawing");
 	const big = await measure("Sofia Sans at 1.5 rem", { font: "Sofia Sans", weight: 400, size: 1.5 });
 	check(big > drawn["Sofia Sans"] * 1.3, "a size of 1.5 rem draws larger than 1 rem");
-	// The two base fonts and the styles that follow them (Brief 18). The start title is Display (600 at 28 px, following the Interface font).
-	const follows = await measureTitle("the Interface font: SN Pro (the default), start title", []);
-	const aleo = await measureTitle("the Interface font: Aleo, start title", ["appearance-interface-font: Aleo"]);
-	await compare(aleo !== follows, "changing the Interface font changes a style that follows it (Display, the start title)");
-	const own = await measureTitle("Display names Courier Prime, Interface font Aleo", ["appearance-interface-font: Aleo", "appearance-display-font: Courier Prime"]);
-	const ownTwice = await measureTitle("Display names Courier Prime, Interface font Atkinson", ["appearance-interface-font: Atkinson Hyperlegible Next", "appearance-display-font: Courier Prime"]);
-	check(own === ownTwice, "a style that names its own font does not move when the Interface font does");
-	const sized = await measureTitle("Display at 36 px", ["appearance-display-size: 36"]);
-	check(sized > follows * 1.15, "a style's size changes the drawing (Display at 36 px against 28)");
-	const writing = await measureTitle("the Writing font changed to Aleo (the interface must not move)", ["appearance-writing-font: Aleo"]);
-	check(writing === follows, "the Writing font leaves the interface's styles alone");
+	// The two base fonts (Brief 18). The Codex list is a Navigator part that can follow the Interface font; its widths are what is read. (The start screen
+	// draws the defaults whatever project.md holds, and a card's text is not exposed through accessibility, so it can't be the probe.)
+	const follows = await measure("the Codex list follows the Interface font (SN Pro)", { font: "base", weight: 400, size: 1 });
+	check(follows === drawn["SN Pro"], "a Codex list that follows the Interface font draws in it (SN Pro, the default)");
+	const aleo = await measure("the Interface font changed to Aleo", { font: "base", weight: 400, size: 1 }, ["appearance-interface-font: Aleo"]);
+	check(aleo === drawn.Aleo, "changing the Interface font changes a part that follows it (it draws exactly as Aleo does)");
+	const ownA = await measure("Codex names Courier Prime, Interface font Aleo", { font: "Courier Prime", weight: 400, size: 1 }, ["appearance-interface-font: Aleo"]);
+	const ownB = await measure("Codex names Courier Prime, Interface font Atkinson", { font: "Courier Prime", weight: 400, size: 1 }, ["appearance-interface-font: Atkinson Hyperlegible Next"]);
+	check(ownA === ownB && ownA === drawn["Courier Prime"], "a part that names its own font does not move when the Interface font does");
+	const writing = await measure("the Writing font changed to Aleo (the interface must not move)", { font: "base", weight: 400, size: 1 }, ["appearance-writing-font: Aleo"]);
+	check(writing === follows, "the Writing font leaves the interface alone");
 } finally {
 	rmSync(dir, { recursive: true, force: true });
 }
