@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en-GB"><head><meta charset="utf-8"><title>Colour round mock-up</title>
+<link rel="stylesheet" href="../../src/ui/theme/index.css">
+<style>
+/* A throwaway mock-up (Brief 17, H1): the dressing, the selections and the notices drawn with the app's theme and the proposed new tokens. Not app code. */
+:root{--bg-red:#59464c;--bg-yellow:#55544a;--bg-green:#48584e;--bg-blue:#3f5865;--y:#dbbc7f;--aq:#83c092;--bl:#7fbbb3;--or:#e69875;--pu:#d699b6;--rd:#e67e80;--gn:#a7c080}
+html,body{margin:0;background:var(--purpose-panel-bg);color:var(--purpose-text);font:13px/1.4 "SN Pro",Arial,sans-serif}
+.page{padding:20px;width:760px}
+h4{margin:18px 0 8px;font:600 12px "SN Pro";letter-spacing:.04em;color:var(--purpose-text-muted)}
+.surface{background:var(--purpose-editor-bg);border-radius:10px;padding:14px 18px;font:20px/1.6 "SN Pro";margin-bottom:8px}
+.surface.small{font-size:14px;line-height:1.5;padding:10px 14px}
+.row{display:flex;gap:12px;flex-wrap:wrap}.row .surface{flex:1 1 340px;margin:0}
+.lab{font:12px "SN Pro";color:var(--purpose-text-muted);margin-bottom:4px}
+b{font-weight:700}i{font-style:italic}
+.sel{background:var(--s,#5c3f4f)}.selOff{background:#434f55}
+.hl{background:var(--h,#dbbc7f);color:#333c43;border-radius:2px;padding:0 1px}
+.mk{color:var(--purpose-text-muted);font-weight:400;font-style:normal}
+.find{background:#434f55;outline:1px dashed var(--purpose-text-muted);border-radius:2px}.findCur{background:#434f55;outline:2px solid #e69875;border-radius:2px}
+.n{display:flex;align-items:flex-start;gap:10px;margin:6px 0;padding:8px 12px;border-radius:6px;background:var(--f);border-left:3px solid var(--e);box-shadow:var(--floating-shadow);width:560px}
+.n svg{width:18px;height:18px;flex:none;margin-top:1px;stroke:var(--e);fill:none;stroke-width:2}
+.n .t{flex:1}.n .btn{color:var(--purpose-text-muted);padding:0 8px}
+.banner{background:var(--purpose-raised-bg);padding:6px 12px;border-radius:6px;width:560px}
+.inp{display:inline-block;border:1px solid var(--purpose-border);border-radius:6px;background:var(--purpose-raised-bg);padding:4px 8px;width:120px}.inp.bad{border-color:var(--purpose-trouble)}
+.sw{display:inline-block;width:20px;height:20px;border-radius:5px;margin-right:6px;vertical-align:middle;border:2px solid transparent}.sw.on{border-color:var(--purpose-accent)}
+.setrow{display:flex;align-items:center;gap:12px;padding:6px 0}.setrow .l{width:210px}
+</style></head><body><div class="page">
+<h4 id="a">THE CHAPTER EDITOR: A SELECTION IN EACH COLOUR, AND UNFOCUSED</h4>
+<div class="row" id="sels"></div>
+<h4>THE HIGHLIGHT IN EACH OF ITS FIVE COLOURS, AND EMPHASIS IN A FEW COLOURS</h4>
+<div class="surface" id="hls"></div><div class="surface" id="ems"></div>
+<h4>A FIND IN PROGRESS (MATCHES AND THE CURRENT ONE)</h4>
+<div class="surface" id="find">The <span class="find">lantern</span> swung; she lit the <span class="findCur">lantern</span> and a third <span class="find">lantern</span> beyond the quay.</div>
+<h4>A SELECTION OVER A HIGHLIGHT: THREE WAYS</h4>
+<div class="row" id="over"></div>
+<h4>THE PLOT NOTE WITH THE DRESSING (A FIELD EDITOR, 14 px)</h4>
+<div class="surface small">Jane reaches the harbour at <b>dawn</b> and finds the <i>lantern</i> gone. <span class="hl">Check the ledger.</span> <b><i>Nothing</i></b> is as she left it.</div>
+<h4>THE FOUR KINDS OF NOTICE (STAND-IN ICONS), STICKY AND TRANSIENT</h4>
+<div id="notices"></div>
+<h4>THE READ-ONLY BANNER (TEXT NOW fg), AND AN INVALID SIZE BOX</h4>
+<div class="banner">This project is open read-only.</div><div style="margin-top:8px"><span class="inp bad">9</span> <span style="color:var(--purpose-trouble)">Between 0.75 and 2 rem</span></div>
+<h4>SETTINGS ▸ APPEARANCE ▸ TEXT COLOURS (WITH A SAMPLE LINE)</h4>
+<div class="surface small" id="appearance"></div>
+</div>
+<script>
+const q=(id)=>document.getElementById(id);
+const sels={"plum (default)":"#5c3f4f","blue":"#3f5865","green":"#48584e","yellow":"#55544a","grey":"#4d5960"};
+for(const [n,c] of Object.entries(sels)) q("sels").insertAdjacentHTML("beforeend",`<div class="surface" style="--s:${c}"><div class="lab">${n}, focused</div>The harbour <span class="sel">woke <b>slowly; she had</b> not</span> slept, and the <i>lantern</i>.</div>`);
+q("sels").insertAdjacentHTML("beforeend",`<div class="surface"><div class="lab">any choice, editor unfocused (neutral bg2)</div>The harbour <span class="selOff">woke <b>slowly; she had</b> not</span> slept, and the <i>lantern</i>.</div>`);
+const hc={yellow:"#dbbc7f",aqua:"#83c092",blue:"#7fbbb3",orange:"#e69875",purple:"#d699b6"};
+q("hls").innerHTML=Object.entries(hc).map(([n,c])=>`<span class="hl" style="--h:${c}">${n}</span> `).join("  ")+`<br>with the markers shown on the caret's line: <span class="mk">==</span><span class="hl">highlighted <b>bold</b> and <i>italic</i></span><span class="mk">==</span>`;
+q("ems").innerHTML=`<div class="lab">emphasis colours (colour is added to the real 700 and the real italic): none · yellow · aqua · blue · orange · purple</div>`+["inherit",...Object.values(hc)].map(c=>`<b style="color:${c}">bold</b> <i style="color:${c}">italic</i> <b><i style="color:${c}">both</i></b> &nbsp; `).join("<br>");
+q("over").innerHTML=`<div class="surface"><div class="lab">A: the selection colour wins inside a highlight; text in fg (recommended)</div>The <span class="hl">check <span class="sel" style="background:#5c3f4f;color:#d3c6aa">the ledger twice</span> before</span> dawn.</div>
+<div class="surface"><div class="lab">B: the highlight keeps its fill, the selection shows as an underline</div>The <span class="hl">check <span style="box-shadow:inset 0 -3px #5c3f4f;border-bottom:3px solid #5c3f4f">the ledger twice</span> before</span> dawn.</div>
+<div class="surface"><div class="lab">C: today's problem: a solid fill hides the selection layer behind it</div>The <span class="hl">check the ledger twice before</span> dawn.</div>`;
+const ic={error:'<circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.5"/>',warning:'<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.5"/>',information:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8v.5"/>',success:'<circle cx="12" cy="12" r="9"/><path d="M8 12.5l3 3 5-6"/>'};
+const k=[["error","bg-red","rd","Chapter 1 changed on disk while you were typing. The file on disk is kept, and your text is saved at recovery/aaa/Chapter 1.md.",true],["warning","bg-yellow","y","The backup before saving Chapter 1 failed. Your text was saved.",true],["information","bg-blue","bl","Chapter 1 had mixed line endings, so they were made consistent.",false],["success","bg-green","gn","Backed up 24 files to _sf-backup/20261105 - storyForge test vault.zip.",false]];
+q("notices").innerHTML=k.map(([n,f,e,t,s])=>`<div class="n" style="--f:var(--${f});--e:var(--${e})"><svg viewBox="0 0 24 24" role="img" aria-label="${n}">${ic[n]}</svg><div class="t">${t}</div>${s?'<span class="btn">Reveal</span><span class="btn">Dismiss</span>':''}</div>`).join("");
+q("appearance").innerHTML=`<div style="margin-bottom:10px"><b>Sample:</b> plain, <b>bold</b>, <i>italic</i>, <b><i>bold italic</i></b>, <span class="hl">highlighted</span> and <span class="sel">selected</span> text.</div>`+["Selection colour","Highlight colour","Bold colour","Italic colour","Bold italic colour"].map((l,i)=>`<div class="setrow"><span class="l">${l}</span>${(i?["text",...Object.keys(hc)]:Object.keys(sels).slice(0,5)).map((n,j)=>`<span class="sw ${j===0?'on':''}" style="background:${i===0?Object.values(sels)[j]:i===1?Object.values(hc)[j]:j===0?'#d3c6aa':Object.values(hc)[j-1]}" title="${n}"></span>`).join("")}</div>`).join("");
+</script></body></html>
