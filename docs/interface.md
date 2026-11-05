@@ -387,6 +387,10 @@ Where this document says "face" it means a side of the left panel; "the storyFor
 - **Padded numbering is two digits at least** ("01 02 03", as the dropdown shows it), wider once the sequence needs it. 0.17.1 padded only to the sequence's own width, so a book of nine showed "1"; this is a deliberate change to `formatNumber`, with its test.
 - **A chapter dropped into the unplaced list stays where it was dropped.** The unplaced chapters are ordered by `unplaced:` in the novel file (the 0.17 key already there); `writeBookUnplacedOrder` saves it, `getBookChapters` follows it, and any chapter the list doesn't name follows in its old order. Covered by a core test and the disk-safety suite.
 
+## The colour round (1.10.0, Brief 17, decision 122)
+
+See `docs/colours.md` for the survey, the rulings and §As built. In short: the selection (the app's colour with focus, bg2 without, a setting), `==highlight==`, bold, italic and bold italic colours, the dressing in the field editors, and four kinds of notice with a tint, an edge and an icon. Red means something failed.
+
 ## Default rules for selection and floating menus (3 November 2026)
 
 Kenny's design. Both are **defaults**: a new list or menu follows them unless Kenny names an exception, and each exception is recorded by name (`src/ui/__tests__/defaultRules.test.ts` holds the list, and fails on a new one that doesn't follow the rule).
