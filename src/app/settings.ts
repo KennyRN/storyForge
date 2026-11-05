@@ -62,8 +62,8 @@ export const APPEARANCE_BASE_PX = 16;
 /** The author's defaults for each part (decision 84): font, weight and size in rem. A stored value that no longer exists falls back to these and is never rewritten. */
 export const APPEARANCE_DEFAULTS: Record<AppearancePart, { font: FontFamily; weight: number; size: number }> = {
 	codex: { font: "Atkinson Hyperlegible Next", weight: 400, size: 1 },
-	novel: { font: "Inter", weight: 900, size: 1 },
-	series: { font: "Inter", weight: 600, size: 0.75 },
+	novel: { font: "Sofia Sans", weight: 900, size: 1 },
+	series: { font: "Sofia Sans", weight: 600, size: 0.75 },
 	chapter: { font: "SN Pro", weight: 300, size: 1.375 },
 };
 type Cap<P extends string> = Capitalize<P>;

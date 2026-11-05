@@ -2,7 +2,7 @@
  * The families the author can choose for the storytelling side's four parts (decision 79), with what each file really has
  * (docs/navigator.md §1, read from the files with fontTools). Pure data and two small functions.
  */
-export const FONT_FAMILIES = ["SN Pro", "Aleo", "Atkinson Hyperlegible Next", "Courier Prime", "Fraunces", "Inter"] as const;
+export const FONT_FAMILIES = ["SN Pro", "Aleo", "Atkinson Hyperlegible Next", "Courier Prime", "Fraunces", "Sofia Sans", "Sofia Sans Semi Condensed", "Sofia Sans Condensed"] as const;
 export type FontFamily = (typeof FONT_FAMILIES)[number];
 
 export interface FamilyInfo {
@@ -23,7 +23,10 @@ export const FAMILY_INFO: Record<FontFamily, FamilyInfo> = {
 	"Atkinson Hyperlegible Next": { weights: hundreds(200, 800), softWonk: false, css: `"Atkinson Hyperlegible Next", ${FALLBACK}` },
 	"Courier Prime": { weights: [400, 700], softWonk: false, css: `"Courier Prime", ${FALLBACK}` },
 	Fraunces: { weights: hundreds(100, 900), softWonk: true, css: `"Fraunces", ${FALLBACK}` },
-	Inter: { weights: hundreds(100, 900), softWonk: false, css: `"Inter", ${FALLBACK}` },
+	// Sofia Sans (1.10.0, in Inter's place): three widths, each its own family with a real italic; the variable axis runs 1 to 1000, offered in hundreds.
+	"Sofia Sans": { weights: hundreds(100, 1000), softWonk: false, css: `"Sofia Sans", ${FALLBACK}` },
+	"Sofia Sans Semi Condensed": { weights: hundreds(100, 1000), softWonk: false, css: `"Sofia Sans Semi Condensed", ${FALLBACK}` },
+	"Sofia Sans Condensed": { weights: hundreds(100, 1000), softWonk: false, css: `"Sofia Sans Condensed", ${FALLBACK}` },
 };
 
 export function isFontFamily(v: unknown): v is FontFamily {

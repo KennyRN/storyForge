@@ -78,13 +78,38 @@ test.describe("the embedded font families", () => {
 		expect(wonk).not.toBeCloseTo(plain, 1);
 	});
 
-	test("optical size follows the text size where the font has it (Fraunces, Inter)", async ({ page }) => {
+	test("optical size follows the text size where the font has it (Fraunces)", async ({ page }) => {
 		await openPreview(page);
-		await page.evaluate(() => Promise.all(["Fraunces", "Inter"].map((f) => document.fonts.load(`40px "${f}"`))));
-		for (const f of ["Fraunces", "Inter"] as const) {
+		await page.evaluate(() => Promise.all(["Fraunces"].map((f) => document.fonts.load(`40px "${f}"`))));
+		for (const f of ["Fraunces"] as const) {
 			const per = async (px: number, auto: boolean) =>
 				(await probe(page, `font-family: ${FAMILY_INFO[f].css}; font-size: ${px}px; font-optical-sizing: ${auto ? "auto" : "none"};`)).w / px;
 			expect(await per(40, true), f).not.toBeCloseTo(await per(40, false), 3);
+		}
+	});
+
+	test("Sofia Sans draws in three widths that differ from each other and from every other family, upright and in its real italic (Brief 18)", async ({ page }) => {
+		await openPreview(page);
+		const sample = "Harbour illumination wynn ƿ — ŋ";
+		await page.evaluate(() => Promise.all(["Sofia Sans", "Sofia Sans Semi Condensed", "Sofia Sans Condensed", "SN Pro", "Aleo", "Atkinson Hyperlegible Next", "Courier Prime", "Fraunces"].map((f) => document.fonts.load(`40px "${f}"`))));
+		// Several samples, because two families can coincide on one string: every pair must differ on at least one.
+		const samples = [sample, "Quill and anvil: 1234567890", "mmmmmmmm WWWW iiiiiiii", "The lantern swung, and she lit it again."];
+		const profile: Record<string, number[]> = {};
+		for (const f of FONT_FAMILIES) profile[f] = await Promise.all(samples.map(async (t) => (await probe(page, `font-family: ${FAMILY_INFO[f].css}; font-weight: 400;`, t)).w));
+		const widths: Record<string, number> = Object.fromEntries(FONT_FAMILIES.map((f) => [f, profile[f][0]]));
+		const names = Object.keys(profile);
+		for (let i = 0; i < names.length; i++) for (let j = i + 1; j < names.length; j++) expect(profile[names[i]].some((w, k) => Math.abs(w - profile[names[j]][k]) > 0.5), `${names[i]} and ${names[j]}`).toBe(true);
+		expect(widths["Sofia Sans Condensed"]).toBeLessThan(widths["Sofia Sans Semi Condensed"]);
+		expect(widths["Sofia Sans Semi Condensed"]).toBeLessThan(widths["Sofia Sans"]);
+		// the whole weight range: 100 and 900 differ, as do 900 and 1000
+		const at = async (w: number) => (await probe(page, `font-family: ${FAMILY_INFO["Sofia Sans"].css}; font-weight: ${w};`, sample)).w;
+		expect(await at(900)).toBeGreaterThan(await at(100));
+		expect(await at(1000)).toBeGreaterThan(await at(900));
+		// a real italic: it has its own widths (a synthesised slant would measure the same as upright), and nothing is synthesised
+		for (const f of ["Sofia Sans", "Sofia Sans Semi Condensed", "Sofia Sans Condensed"] as const) {
+			const up = await probe(page, `font-family: ${FAMILY_INFO[f].css}; font-style: normal;`, sample);
+			const it = await probe(page, `font-family: ${FAMILY_INFO[f].css}; font-style: italic;`, sample);
+			expect(Math.abs(up.w - it.w), `${f} italic`).toBeGreaterThan(0.2);
 		}
 	});
 });

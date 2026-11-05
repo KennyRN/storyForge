@@ -157,8 +157,8 @@ const problems = [];
 const check = (ok, what) => (ok ? console.log(`ok   ${what}`) : (problems.push(what), console.log(`FAIL ${what}`)));
 /** A size step is known to show: if it shows nothing, the measurements can't be trusted and the run is refused, not failed. */
 const control = async () => {
-	const small = await measure("control: Inter at 1 rem", { font: "Inter", weight: 400, size: 1 });
-	const large = await measure("control: Inter at 1.5 rem", { font: "Inter", weight: 400, size: 1.5 });
+	const small = await measure("control: Sofia Sans at 1 rem", { font: "Sofia Sans", weight: 400, size: 1 });
+	const large = await measure("control: Sofia Sans at 1.5 rem", { font: "Sofia Sans", weight: 400, size: 1.5 });
 	return large > small * 1.3;
 };
 const compare = async (ok, what) => {
@@ -167,12 +167,13 @@ const compare = async (ok, what) => {
 };
 try {
 	const defaults = await measure("the defaults (Atkinson, 400, 1 rem)", {});
-	const families = ["SN Pro", "Aleo", "Atkinson Hyperlegible Next", "Courier Prime", "Fraunces", "Inter"];
+	const families = ["SN Pro", "Aleo", "Atkinson Hyperlegible Next", "Courier Prime", "Fraunces", "Sofia Sans", "Sofia Sans Semi Condensed", "Sofia Sans Condensed"];
 	const drawn = {};
 	for (const f of families) drawn[f] = await measure(f, { font: f, weight: 400, size: 1 });
 	check(drawn["Atkinson Hyperlegible Next"] === defaults, "Atkinson at 400 and 1 rem, chosen explicitly, draws exactly as the defaults do");
-	check(new Set(Object.values(drawn)).size === families.length, "every family draws differently from every other (the Codex list is drawn in the chosen font, not a fallback)");
-	for (const f of ["Aleo", "Atkinson Hyperlegible Next", "Fraunces", "Inter", "SN Pro"]) {
+	check(new Set(Object.values(drawn)).size === families.length, "every family draws differently from every other, the three Sofia Sans widths included (the Codex list is drawn in the chosen font, not a fallback)");
+	check(drawn["Sofia Sans Condensed"] < drawn["Sofia Sans Semi Condensed"] && drawn["Sofia Sans Semi Condensed"] < drawn["Sofia Sans"], "the Sofia Sans widths run condensed, semi condensed, standard (each its own family)");
+	for (const f of ["Aleo", "Atkinson Hyperlegible Next", "Fraunces", "Sofia Sans", "Sofia Sans Semi Condensed", "Sofia Sans Condensed", "SN Pro"]) {
 		const light = await measure(`${f}, weight 200`, { font: f, weight: 200, size: 1 });
 		const heavy = await measure(`${f}, weight 800`, { font: f, weight: 800, size: 1 });
 		await compare(light !== heavy, `${f}: weight changes the drawing`);
@@ -185,8 +186,8 @@ try {
 	await measure("Fraunces, Softness 0, again", { font: "Fraunces", weight: 400, size: 1.75, soft: 0 });
 	check(lastPicture === picOff, "control: the same configuration photographs the same twice");
 	await compare(soft !== plain, "Fraunces' Softness changes the drawing");
-	const big = await measure("Inter at 1.5 rem", { font: "Inter", weight: 400, size: 1.5 });
-	check(big > drawn.Inter * 1.3, "a size of 1.5 rem draws larger than 1 rem");
+	const big = await measure("Sofia Sans at 1.5 rem", { font: "Sofia Sans", weight: 400, size: 1.5 });
+	check(big > drawn["Sofia Sans"] * 1.3, "a size of 1.5 rem draws larger than 1 rem");
 } finally {
 	rmSync(dir, { recursive: true, force: true });
 }

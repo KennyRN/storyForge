@@ -104,16 +104,16 @@ test.describe("Appearance", () => {
 	test("four parts, each with a font, a weight and a size, starting as the author's defaults (decision 84); no 'current look'; opening writes nothing", async ({ page }) => {
 		await openProject(page);
 		await openSettings(page, "Appearance");
-		const want: [string, string, string, string][] = [["Codex list", "Atkinson Hyperlegible Next", "400", "1"], ["Novel title", "Inter", "900", "1"], ["Series name", "Inter", "600", "0.75"], ["Selected chapter", "SN Pro", "300", "1.375"]];
+		const want: [string, string, string, string][] = [["Codex list", "Atkinson Hyperlegible Next", "400", "1"], ["Novel title", "Sofia Sans", "900", "1"], ["Series name", "Sofia Sans", "600", "0.75"], ["Selected chapter", "SN Pro", "300", "1.375"]];
 		for (const [part, f, w, z] of want) {
 			await expect(font(page, part)).toHaveValue(f);
 			await expect(dialog(page).getByLabel(`${part} weight`)).toHaveValue(w);
 			await expect(size(page, part)).toHaveValue(z);
-			expect(await font(page, part).locator("option").allInnerTexts()).toEqual(["SN Pro", "Aleo", "Atkinson Hyperlegible Next", "Courier Prime", "Fraunces", "Inter"]);
+			expect(await font(page, part).locator("option").allInnerTexts()).toEqual(["SN Pro", "Aleo", "Atkinson Hyperlegible Next", "Courier Prime", "Fraunces", "Sofia Sans", "Sofia Sans Semi Condensed", "Sofia Sans Condensed"]);
 		}
 		expect(await page.evaluate(() => document.documentElement.style.getPropertyValue("--ap-chapter-size"))).toBe("22px"); // 1.375 rem against the one 16 px base
 		expect(await style(page, ".sf-nav-novel")).toMatchObject({ weight: "900", size: "16px" });
-		expect((await style(page, ".sf-nav-novel")).family).toContain("Inter");
+		expect((await style(page, ".sf-nav-novel")).family).toContain("Sofia Sans");
 		expect(await style(page, ".sf-nav-series")).toMatchObject({ weight: "600", size: "12px" });
 		expect(await projectMd(page)).toBe("");
 	});
@@ -127,7 +127,7 @@ test.describe("Appearance", () => {
 		await expect.poll(async () => (await style(page, ".sf-nav-novel")).family).toContain("Aleo");
 		expect((await style(page, ".sf-nav-novel")).weight).toBe("900"); // the weight goes with the author to the new font
 		expect(await style(page, ".sf-nav-current")).toEqual(chapterBefore);
-		expect((await style(page, ".sf-nav-series")).family).toContain("Inter"); // the series name is its own part
+		expect((await style(page, ".sf-nav-series")).family).toContain("Sofia Sans"); // the series name is its own part
 		await expect.poll(() => projectMd(page)).toContain("appearance-novel-font: Aleo");
 		await font(page, "Codex list").selectOption("Aleo");
 		await expect.poll(() => projectMd(page)).toContain("appearance-codex-font: Aleo"); // the page is drawn again once it has landed
@@ -147,7 +147,7 @@ test.describe("Appearance", () => {
 		await openProject(page);
 		await openSettings(page, "Appearance");
 		const weight = dialog(page).getByLabel("Selected chapter weight");
-		await font(page, "Selected chapter").selectOption("Inter");
+		await font(page, "Selected chapter").selectOption("Sofia Sans");
 		await weight.selectOption("800");
 		await font(page, "Selected chapter").selectOption("Atkinson Hyperlegible Next");
 		await expect(weight).toHaveValue("800");
@@ -169,7 +169,7 @@ test.describe("Appearance", () => {
 		await soft.fill("50");
 		await soft.press("Tab");
 		await expect.poll(async () => (await style(page, ".sf-nav-series")).variation).toMatch(/"SOFT" 50, "WONK" 0/);
-		await font(page, "Series name").selectOption("Inter");
+		await font(page, "Series name").selectOption("Sofia Sans Condensed");
 		await expect(dialog(page).getByLabel("Series name Softness (0 to 100)")).toHaveCount(0);
 		expect(await projectMd(page)).toContain("appearance-series-soft: 50"); // kept, unused
 	});
@@ -220,9 +220,9 @@ test.describe("Appearance", () => {
 		await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
 		await page.locator("[data-recent='0']").click();
 		await page.waitForFunction(() => !!window.__app?.editors);
-		expect(await page.evaluate(() => document.documentElement.style.getPropertyValue("--ap-novel-family"))).toContain("Inter"); // the default
+		expect(await page.evaluate(() => document.documentElement.style.getPropertyValue("--ap-novel-family"))).toContain("Sofia Sans"); // the default
 		await openSettings(page, "Appearance");
-		await expect(font(page, "Novel title")).toHaveValue("Inter");
+		await expect(font(page, "Novel title")).toHaveValue("Sofia Sans");
 		await expect(size(page, "Novel title")).toHaveValue("1");
 		expect(await projectMd(page)).toContain("appearance-novel-font: Comic Sans");
 	});

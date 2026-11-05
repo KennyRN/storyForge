@@ -40,7 +40,7 @@
       "../src/ui/theme/fonts/atkinson/OFL.txt": "OFL-Atkinson-Hyperlegible-Next.txt",
       "../src/ui/theme/fonts/courier-prime/OFL.txt": "OFL-Courier-Prime.txt",
       "../src/ui/theme/fonts/fraunces/OFL.txt": "OFL-Fraunces.txt",
-      "../src/ui/theme/fonts/inter/OFL.txt": "OFL-Inter.txt"
+      "../src/ui/theme/fonts/sofia-sans/OFL.txt": "OFL-Sofia-Sans.txt"
     },
     "macOS": { "minimumSystemVersion": "11.0", "signingIdentity": "-", "files": { "Resources/Assets.car": "./icons/Assets.car" } }
   }

@@ -470,8 +470,8 @@ describe("the Appearance settings (decisions 79 to 84) and story-kind (decision 
 		const root = copyFixture("series");
 		const v = (await loadSettings(await open(root), reader(root))).values;
 		expect([v.appearanceCodexFont, v.appearanceCodexWeight, v.appearanceCodexSize]).toEqual(["Atkinson Hyperlegible Next", 400, 1]);
-		expect([v.appearanceNovelFont, v.appearanceNovelWeight, v.appearanceNovelSize]).toEqual(["Inter", 900, 1]);
-		expect([v.appearanceSeriesFont, v.appearanceSeriesWeight, v.appearanceSeriesSize]).toEqual(["Inter", 600, 0.75]);
+		expect([v.appearanceNovelFont, v.appearanceNovelWeight, v.appearanceNovelSize]).toEqual(["Sofia Sans", 900, 1]);
+		expect([v.appearanceSeriesFont, v.appearanceSeriesWeight, v.appearanceSeriesSize]).toEqual(["Sofia Sans", 600, 0.75]);
 		expect([v.appearanceChapterFont, v.appearanceChapterWeight, v.appearanceChapterSize]).toEqual(["SN Pro", 300, 1.375]);
 		expect(v.appearanceCodexSoft).toBe(0);
 		expect(v.storyKind).toBe("series");
@@ -484,7 +484,7 @@ describe("the Appearance settings (decisions 79 to 84) and story-kind (decision 
 		put(root, "appearance-codex-font: Comic Sans\nappearance-novel-font: null\nappearance-codex-weight: 450\nappearance-codex-size: 3\nappearance-codex-soft: 101\nappearance-codex-wonk: yes\nappearance-novel-size: 2.5\nstory-kind: both\n");
 		const before = snapshot(root);
 		const bad = (await loadSettings(await open(root), reader(root))).values;
-		expect([bad.appearanceCodexFont, bad.appearanceNovelFont, bad.appearanceCodexWeight, bad.appearanceCodexSize, bad.appearanceCodexSoft, bad.appearanceNovelSize, bad.storyKind]).toEqual(["Atkinson Hyperlegible Next", "Inter", 400, 1, 0, 1, "series"]);
+		expect([bad.appearanceCodexFont, bad.appearanceNovelFont, bad.appearanceCodexWeight, bad.appearanceCodexSize, bad.appearanceCodexSoft, bad.appearanceNovelSize, bad.storyKind]).toEqual(["Atkinson Hyperlegible Next", "Sofia Sans", 400, 1, 0, 1, "series"]);
 		expect(diffSnapshots(before, snapshot(root)).changed).toEqual([]);
 		// the ranges are per part: the Codex list and the selected chapter stop at 1.75, the titles at 2
 		put(root, "appearance-chapter-size: 1.8\nappearance-series-size: 1.8\n");
@@ -499,8 +499,8 @@ describe("the Appearance settings (decisions 79 to 84) and story-kind (decision 
 		await setSetting(project, s, "appearanceCodexFont", "Atkinson Hyperlegible Next");
 		expect(diffSnapshots(untouched, snapshot(root)).changed).toEqual([]);
 		expect(fs.existsSync(path.join(root, PROJECT_SETTINGS_PATH))).toBe(false);
-		await setSetting(project, s, "appearanceCodexFont", "Inter");
-		expect(fs.readFileSync(path.join(root, PROJECT_SETTINGS_PATH), "utf8")).toContain("appearance-codex-font: Inter");
+		await setSetting(project, s, "appearanceCodexFont", "Sofia Sans Condensed");
+		expect(fs.readFileSync(path.join(root, PROJECT_SETTINGS_PATH), "utf8")).toContain("appearance-codex-font: Sofia Sans Condensed");
 	});
 	it("the pixel base is one named constant", () => {
 		expect(APPEARANCE_BASE_PX).toBe(16);
@@ -822,4 +822,34 @@ describe("the text colours (Brief 17): selection, highlight, bold, italic and bo
 			expect(s3.values[c.key]).toBe(c.ok[2]);
 		});
 	}
+});
+
+describe("Inter is gone and Sofia Sans takes its place (Brief 18)", () => {
+	const put = (root: string, body: string) => {
+		fs.mkdirSync(path.join(root, "_backstage/storyforge"), { recursive: true });
+		fs.writeFileSync(path.join(root, PROJECT_SETTINGS_PATH), `---\nformat-version: 1\n${body}---\n`);
+	};
+	it("a stored Inter draws that part's default and the key is never rewritten", async () => {
+		const root = copyFixture("series");
+		put(root, "appearance-novel-font: Inter\nappearance-series-font: Inter\nappearance-codex-font: Inter\nx-future-key: kept\n");
+		const before = snapshot(root);
+		const project = await open(root);
+		const s = await loadSettings(project, reader(root));
+		expect([s.values.appearanceNovelFont, s.values.appearanceSeriesFont, s.values.appearanceCodexFont]).toEqual(["Sofia Sans", "Sofia Sans", "Atkinson Hyperlegible Next"]);
+		expect(diffSnapshots(before, snapshot(root)).changed).toEqual([]);
+		// an unrelated write leaves the old value alone too
+		await setSetting(project, s, "storyKind", "standalone");
+		const text = fs.readFileSync(path.join(root, PROJECT_SETTINGS_PATH), "utf8");
+		expect(text).toContain("appearance-novel-font: Inter");
+		expect(text).toContain("appearance-codex-font: Inter\nx-future-key: kept");
+	});
+	it("the three Sofia Sans widths are each their own family, with the whole weight range", async () => {
+		const { FONT_FAMILIES, FAMILY_INFO } = await import("../../core/fontFamilies");
+		for (const f of ["Sofia Sans", "Sofia Sans Semi Condensed", "Sofia Sans Condensed"] as const) {
+			expect(FONT_FAMILIES).toContain(f);
+			expect(FAMILY_INFO[f].weights).toEqual([100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]);
+			expect(FAMILY_INFO[f].css.startsWith(`"${f}",`)).toBe(true);
+		}
+		expect(FONT_FAMILIES as readonly string[]).not.toContain("Inter");
+	});
 });
