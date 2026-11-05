@@ -8,6 +8,11 @@
 	--ef-bg3: #4d5960;
 	--ef-bg4: #555f66;
 	--ef-bg-visual: #5c3f4f;
+	/* The four tinted backgrounds of Everforest's Soft Dark palette (the notices' fills, and selection choices): values confirmed against the published palette. */
+	--ef-bg-red: #59464c;
+	--ef-bg-yellow: #55544a;
+	--ef-bg-green: #48584e;
+	--ef-bg-blue: #3f5865;
 	--ef-fg: #d3c6aa;
 	--ef-red: #e67e80;
 	--ef-orange: #e69875;

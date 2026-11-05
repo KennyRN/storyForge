@@ -2,7 +2,7 @@
 
 This project's colour palette is derived from the following third-party, open-source theme. Attribution and licence details are below, followed by the full licence text.
 
-The palette values are reproduced from the theme's canonical source. Of its named variants, the app's built-in theme is Soft Dark.
+The palette values are reproduced from the theme's canonical source. (1.10.0 adds the four tinted backgrounds of the Soft Dark variant: bg_red, bg_yellow, bg_green and bg_blue, from the same published palette, for the notices and the selection choices.) Of its named variants, the app's built-in theme is Soft Dark.
 
 ---
 
