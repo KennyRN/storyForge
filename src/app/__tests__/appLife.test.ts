@@ -444,6 +444,26 @@ describe("newestBackupTime", () => {
 		expect(host.recent).toEqual(beforeRecent);
 	});
 
+	it("Remove from List and Clear Menu change only the recent list: every project folder is left byte for byte as it was (Brief 16)", async () => {
+		const a = copyFixture("series");
+		const b = copyFixture("series");
+		const host = makeHost();
+		host.recent = [a, b];
+		const app = track(new AppController(host));
+		await app.start();
+		const before = [snapshot(a), snapshot(b)];
+		await app.forgetRecent(0);
+		expect(host.recent).toEqual([b]);
+		await expect(app.forgetRecent(5)).rejects.toMatchObject({ code: "ENOENT" }); // an index that isn't in the list
+		expect(host.recent).toEqual([b]);
+		await app.setRecentNames([["x", "A name"]]);
+		expect(host.recentNames).toEqual([["x", "A name"]]);
+		await app.clearRecent();
+		expect(host.recent).toEqual([]);
+		expect(diffSnapshots(before[0], snapshot(a))).toEqual({ added: [], removed: [], changed: [] });
+		expect(diffSnapshots(before[1], snapshot(b))).toEqual({ added: [], removed: [], changed: [] });
+	});
+
 	it("an empty folder is not opened as a project, and is never seeded by opening", async () => {
 		const root = tmp();
 		const host = makeHost();

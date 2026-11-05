@@ -21,6 +21,8 @@ export class FakeHost implements Host {
 	overrides = new Map<string, (args: unknown) => unknown>();
 	current: { root: string; readOnly: boolean } | null = null;
 	/** What `peek_recent` last listed for each recent entry, as Rust keeps it: so `peek_recent_book` can refuse a list that changed. */
+	/** The labels the window last gave the Open Recent menu. */
+	recentNames: [string, string][] = [];
 	private peeked = new Map<number, { root: string; folders: string[] }>();
 	quit = false;
 	/** How many times the window reported close progress. */
@@ -65,6 +67,7 @@ export class FakeHost implements Host {
 				if (!this.current) throw { code: "UNKNOWN", message: "no project is open" };
 				const root = this.current.root;
 				this.recent = [root, ...this.recent.filter((r) => r !== root)].slice(0, 10);
+				this.peeked.clear();
 				return null;
 			}
 			case "peek_recent": {
@@ -88,6 +91,20 @@ export class FakeHost implements Host {
 					bridge.close();
 				}
 			}
+			case "forget_recent": {
+				const index = (payload as { index: number }).index;
+				if (index < 0 || index >= this.recent.length) throw { code: "ENOENT", message: "no such recent project" };
+				this.recent = this.recent.filter((_, i) => i !== index);
+				this.peeked.clear();
+				return null;
+			}
+			case "clear_recent":
+				this.recent = [];
+				this.peeked.clear();
+				return null;
+			case "set_recent_names":
+				this.recentNames = (payload as { entries: [string, string][] }).entries;
+				return null;
 			case "recent_projects":
 				return this.recent;
 			case "project_info":

@@ -142,6 +142,9 @@ export function handleMenu(model: AppModel, id: string): boolean {
 				model.notices.notify({ text: `Backed up ${result.fileCount} files to ${result.path}.`, actions: [{ label: "Reveal", onClick: () => void model.reveal(result.path), dismiss: false }] });
 			}, "back up");
 			return true;
+		case "clear-recent":
+			void model.clearRecent();
+			return true;
 		default:
 			if (id.startsWith("recent:")) {
 				void model.openRecent(Number(id.slice(7)));

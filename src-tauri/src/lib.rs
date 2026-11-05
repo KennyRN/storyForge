@@ -35,6 +35,8 @@ pub struct AppState {
     /// What `peek_recent` last listed for each recent entry (its folder and its sorted book folders), so `peek_recent_book` can check that the
     /// folder it lists again still has the same book at that position. Display information only; never used as a path.
     peeked: Mutex<HashMap<usize, (String, Vec<String>)>>,
+    /// The labels the window gave the Open Recent menu, with the list they were matched to. Used only while the list is still that list.
+    recent_names: Mutex<Option<(Vec<String>, Vec<String>)>>,
 }
 
 /// A running watcher: dropping it (and setting `stop`) ends it.
@@ -54,6 +56,15 @@ impl AppState {
 
     fn save_recent(&self, list: &[String]) {
         let _ = self.machine.set("recent", &storyforge_fs::recent::to_text(list));
+        self.peeked.lock().unwrap().clear();
+    }
+
+    /// The menu's label for each entry: the window's name for it while those names are still for this list, else the folder's own name.
+    fn recent_labels(&self, list: &[String]) -> Vec<String> {
+        match &*self.recent_names.lock().unwrap() {
+            Some((roots, names)) if roots == list => names.clone(),
+            _ => list.iter().map(|r| storyforge_fs::recent::folder_name(r)).collect(),
+        }
     }
 
     /// Opens the folder as the project Rust holds. It is **not** put on the recent list here: a folder joins the list only once the window
@@ -151,6 +162,34 @@ async fn peek_recent_book(state: State<'_, AppState>, index: usize, position: us
     tauri::async_runtime::spawn_blocking(move || Project::open(&PathBuf::from(root), true)?.peek_book(position, &listed))
         .await
         .map_err(|e| FsError::new("UNKNOWN", e.to_string(), None))?
+}
+
+/// Removes the `index`th entry from the recent list. It writes only `recent.json` in the app's data folder, never a project, and rebuilds the
+/// Open Recent menu (decision 121's amendment: these commands may write the app's own recent list, and nothing else).
+#[tauri::command]
+fn forget_recent(app: tauri::AppHandle, state: State<'_, AppState>, index: usize) -> Result<(), FsError> {
+    let list = storyforge_fs::recent::forget(state.recent(), index).ok_or_else(|| FsError::new("ENOENT", "no such recent project", None))?;
+    state.save_recent(&list);
+    refresh_menu(&app);
+    Ok(())
+}
+
+/// Empties the recent list (File ▸ Open Recent ▸ Clear Menu). Writes only `recent.json`; rebuilds the menu.
+#[tauri::command]
+fn clear_recent(app: tauri::AppHandle, state: State<'_, AppState>) {
+    state.save_recent(&[]);
+    refresh_menu(&app);
+}
+
+/// Gives the Open Recent menu the names the window shows on its cards. Labels only: matched to the list by position, each entry carrying the
+/// folder name the window saw there (so a list that has changed since is ignored), cleaned and length-capped. Never used as a path. It sets
+/// the app's own menu items and touches no file.
+#[tauri::command]
+fn set_recent_names(app: tauri::AppHandle, state: State<'_, AppState>, entries: Vec<(String, String)>) {
+    let list = state.recent();
+    let Some(names) = storyforge_fs::recent::match_names(&list, &entries) else { return };
+    *state.recent_names.lock().unwrap() = Some((list, names));
+    refresh_menu(&app);
 }
 
 /// Puts the project Rust holds open on the recent list, once the window has opened it as a project. It takes no path: it records only the
@@ -420,10 +459,13 @@ fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     if recent.is_empty() {
         recent_menu.append(&MenuItem::with_id(app, "recent-none", "No Recent Projects", false, None::<&str>)?)?;
     }
-    for (i, root) in recent.iter().enumerate() {
-        let name = std::path::Path::new(root).file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| root.clone());
-        recent_menu.append(&MenuItem::with_id(app, format!("recent:{i}"), name, true, None::<&str>)?)?;
+    let labels = state.recent_labels(&recent);
+    for (i, label) in labels.iter().enumerate() {
+        recent_menu.append(&MenuItem::with_id(app, format!("recent:{i}"), label, true, None::<&str>)?)?;
     }
+    recent_menu.append(&PredefinedMenuItem::separator(app)?)?;
+    // The Mac's own "Clear Menu": it empties the whole list, with no confirmation (the projects are never touched).
+    recent_menu.append(&MenuItem::with_id(app, "clear-recent", "Clear Menu", !recent.is_empty(), None::<&str>)?)?;
     let file = Submenu::with_items(
         app,
         "File",
@@ -554,7 +596,7 @@ pub fn run() {
         }))
         .setup(|app| {
             let data_dir = app.path().app_data_dir()?;
-            app.manage(AppState { project: Mutex::new(None), machine: MachineStore::new(&data_dir), watcher: Mutex::new(None), quit: QuitState::default(), last_progress: Mutex::new(Instant::now()), menu_enabled: Mutex::new(HashMap::new()), peeked: Mutex::new(HashMap::new()) });
+            app.manage(AppState { project: Mutex::new(None), machine: MachineStore::new(&data_dir), watcher: Mutex::new(None), quit: QuitState::default(), last_progress: Mutex::new(Instant::now()), menu_enabled: Mutex::new(HashMap::new()), peeked: Mutex::new(HashMap::new()), recent_names: Mutex::new(None) });
             restore_window_state(app);
             install_quit_routes(app.handle());
             let menu = build_menu(app.handle())?;
@@ -573,7 +615,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            app_info, pick_project, open_recent, remember_project, peek_recent, peek_recent_book, recent_projects, project_info, close_project, scan, stat, read_text, read_binary, read_outside, write_text, write_binary,
+            app_info, pick_project, open_recent, remember_project, peek_recent, peek_recent_book, forget_recent, clear_recent, set_recent_names, recent_projects, project_info, close_project, scan, stat, read_text, read_binary, read_outside, write_text, write_binary,
             create_file, create_folder, compare_write, rename, retire, list_temp_leftovers, remove_temp, read_cover, pick_cover, machine_get, machine_set, watch_start, watch_stop, download_placeholder, reveal_in_finder, set_menu_state, quit_ready, close_progress
         ])
         .on_window_event(|window, event| {

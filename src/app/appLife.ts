@@ -187,6 +187,21 @@ export class AppController {
 		return this.host.invoke("peek_recent_book", { index, position }) as Promise<PeekBook>;
 	}
 
+	/** Removes the `index`th entry from the recent list (Remove from List). Writes only the app's own recent list, never the project. */
+	async forgetRecent(index: number): Promise<void> {
+		await this.host.invoke("forget_recent", { index });
+	}
+
+	/** Empties the recent list (File ▸ Open Recent ▸ Clear Menu). */
+	async clearRecent(): Promise<void> {
+		await this.host.invoke("clear_recent");
+	}
+
+	/** The names the cards show, for the Open Recent menu's labels: `[folder name, name]` per entry, in the list's order. Labels only. */
+	async setRecentNames(entries: [string, string][]): Promise<void> {
+		await this.host.invoke("set_recent_names", { entries });
+	}
+
 	/** The picker. Opening another project saves everything in the current one first. */
 	async openDialog(kind: "open" | "create", create?: CreateProjectOptions): Promise<OpenOutcome> {
 		const hadProject = this.current !== null;

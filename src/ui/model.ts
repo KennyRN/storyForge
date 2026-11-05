@@ -22,7 +22,7 @@ import { commitFocusedFields, rescueFocusedFields } from "./commitOnClose";
 import { NoticeCenter } from "./kit/notices";
 import type { EditorHost } from "./editor/editorHost";
 
-export type Topic = "project" | "library" | "codex" | "archive" | "stats" | "settings" | "face" | "notices" | "nav" | "sessions";
+export type Topic = "recent" | "project" | "library" | "codex" | "archive" | "stats" | "settings" | "face" | "notices" | "nav" | "sessions";
 
 export type Face = "storytelling" | "storyforge";
 /** What the workspace shows on the storyForge face: the open chapter, or the overview of the selected tab. */
@@ -490,6 +490,18 @@ export class AppModel {
 			}, "record that this is one novel");
 		}
 		return outcome;
+	}
+
+	/** Remove from List: the entry only, never the project. No confirmation. */
+	async forgetRecent(index: number): Promise<void> {
+		await this.guard(() => this.controller.forgetRecent(index), "remove the project from the list");
+		this.touch("recent");
+	}
+
+	/** Clear Menu: the whole list. The projects are never touched. */
+	async clearRecent(): Promise<void> {
+		await this.guard(() => this.controller.clearRecent(), "clear the list");
+		this.touch("recent");
 	}
 
 	async openRecent(index: number): Promise<OpenOutcome | null> {

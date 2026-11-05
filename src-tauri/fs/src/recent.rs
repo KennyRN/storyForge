@@ -34,3 +34,34 @@ pub fn to_text(list: &[String]) -> String {
 pub fn at(list: &[String], index: usize) -> Option<&String> {
     list.get(index)
 }
+
+/// The longest label the menu takes from the window.
+pub const NAME_MAX_CHARS: usize = 80;
+
+/// The folder's own name, as the menu shows it when it has nothing better.
+pub fn folder_name(root: &str) -> String {
+    std::path::Path::new(root).file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| root.to_string())
+}
+
+fn clean_name(name: &str) -> String {
+    let cleaned: String = name.chars().filter(|c| !c.is_control()).collect();
+    cleaned.trim().chars().take(NAME_MAX_CHARS).collect()
+}
+
+/// The labels the window worked out for the cards, matched to the list **by position** and only if they are still for this list: the same
+/// number of entries, and each entry's folder name is the one the window saw at that position. Anything else, and nothing is used (the menu
+/// keeps the folders' own names). A label is a label only: control characters removed, at most `NAME_MAX_CHARS` characters, never a path.
+pub fn match_names(list: &[String], given: &[(String, String)]) -> Option<Vec<String>> {
+    if given.len() != list.len() {
+        return None;
+    }
+    let mut out = Vec::with_capacity(list.len());
+    for (root, (folder, name)) in list.iter().zip(given) {
+        if *folder != folder_name(root) {
+            return None;
+        }
+        let cleaned = clean_name(name);
+        out.push(if cleaned.is_empty() { folder.clone() } else { cleaned });
+    }
+    Some(out)
+}
