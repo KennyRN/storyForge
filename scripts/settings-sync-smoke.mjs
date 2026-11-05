@@ -208,7 +208,10 @@ try {
 	if (!(await until(() => settingControl().startsWith("found"), 8000))) problems.push("the settings dialog did not open");
 	else if (settingControl() !== "found false") problems.push(`while project.md was unreadable the settings controls were still enabled (${settingControl()})`);
 	windowShot("sync-unreadable-settings");
-	if (!find("AXButton", "Done", "press").startsWith("found")) problems.push("no Done button to close Settings"); // Escape does not close this dialog
+	// Escape closes Settings (Fix 8, decision 119; this stage used Done only because Escape failed, decision 103). The key goes to the test
+	// copy's own process through the guard: focus starts on the selected section, which is not a text box, so it is `keyOnControl`.
+	typing.keyOnControl("key code 53");
+	if (!(await until(() => !settingControl().startsWith("found"), 4000))) problems.push("Escape did not close Settings");
 	await sleep(600);
 	writeFileSync(settingsFile, good);
 	await sleep(2000);
