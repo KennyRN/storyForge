@@ -54,11 +54,18 @@
 }
 
 /* The dressing. */
+/* Emphasis (Brief 17): a colour is added to the real weight and the real italic face, never a replacement (nothing is synthesised), and each of bold, italic and
+   bold italic has its own (the text colour by default). The markers stay muted, upright and at weight 400. */
 .sf-em {
 	font-style: italic;
+	color: var(--purpose-emphasis-italic);
 }
 .sf-strong {
 	font-weight: 700;
+	color: var(--purpose-emphasis-bold);
+}
+.sf-strong.sf-em {
+	color: var(--purpose-emphasis-bold-italic);
 }
 /* ==highlight== (Brief 17): a solid fill in the chosen colour with bg0 text; the part under a selection has no fill (the selection layer shows) and fg text. */
 .sf-highlight {
@@ -79,7 +86,10 @@
 	color: var(--purpose-text-muted);
 	opacity: 0.8;
 }
-.sf-marker {
+.sf-marker,
+.sf-marker.sf-em,
+.sf-marker.sf-strong,
+.sf-marker.sf-strong.sf-em {
 	color: var(--purpose-text-muted);
 	font-style: normal;
 	font-weight: 400;

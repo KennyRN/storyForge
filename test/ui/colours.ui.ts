@@ -229,3 +229,64 @@ test.describe("==highlight==", () => {
 		expect(await bg(layer)).toBe(PLUM);
 	});
 });
+
+test.describe("bold, italic and bold italic colours", () => {
+	const FG = "rgb(211, 198, 170)";
+	const MUTED = "rgb(157, 169, 160)";
+	const COLOURS: Record<string, string> = { yellow: "rgb(219, 188, 127)", aqua: "rgb(131, 192, 146)", blue: "rgb(127, 187, 179)", orange: "rgb(230, 152, 117)", purple: "rgb(214, 153, 182)" };
+	const css = (loc: Locator, prop: string) => loc.first().evaluate((e, p) => getComputedStyle(e).getPropertyValue(p), prop);
+	async function write(page: Page, text: string): Promise<Locator> {
+		const content = page.locator(".sf-slot--centre .cm-content");
+		await content.click();
+		await page.keyboard.press("Meta+a");
+		await page.keyboard.type(text);
+		return content;
+	}
+
+	test('"Text colour" draws as before: fg, a real 700 and a real italic', async ({ page }) => {
+		await openProject(page);
+		const content = await write(page, "a **bold** and *italic* and ***both*** x\nplain");
+		for (const [sel, weight, style] of [[".sf-strong:not(.sf-em)", "700", "normal"], [".sf-em:not(.sf-strong)", "400", "italic"], [".sf-strong.sf-em", "700", "italic"]] as const) {
+			const span = content.locator(sel);
+			expect(await css(span, "color"), sel).toBe(FG);
+			expect(await css(span, "font-weight"), sel).toBe(weight);
+			expect(await css(span, "font-style"), sel).toBe(style);
+			expect(await css(span, "font-synthesis-weight"), sel).toBe("none"); // nothing is synthesised
+			expect(await css(span, "font-synthesis-style"), sel).toBe("none");
+		}
+	});
+
+	for (const [key, selector, other] of [["bold-colour", ".sf-strong:not(.sf-em)", ".sf-em:not(.sf-strong)"], ["italic-colour", ".sf-em:not(.sf-strong)", ".sf-strong:not(.sf-em)"], ["bold-italic-colour", ".sf-strong.sf-em", ".sf-strong:not(.sf-em)"]] as const) {
+		test(`${key}: each of the five colours applies to its own kind only; red, green and unknown draw the text colour; weight and italic are unchanged`, async ({ page }) => {
+			await openProject(page);
+			const content = await write(page, "a **bold** and *italic* and ***both*** x\nplain");
+			for (const [name, rgb] of Object.entries(COLOURS)) {
+				await outside(page, `---\nformat-version: 1\n${key}: ${name}\n---\n`);
+				await expect(page.locator("html")).toHaveAttribute(`data-${key}`, name);
+				await expect.poll(() => css(content.locator(selector), "color")).toBe(rgb);
+				expect(await css(content.locator(other), "color")).toBe(FG); // bold italic doesn't mix the other two
+			}
+			for (const bad of ["red", "green", "grey"]) {
+				await outside(page, `---\nformat-version: 1\n${key}: ${bad}\n---\n`);
+				await expect.poll(() => css(content.locator(selector), "color")).toBe(FG);
+			}
+			expect(await css(content.locator(".sf-strong:not(.sf-em)"), "font-weight")).toBe("700");
+			expect(await css(content.locator(".sf-em:not(.sf-strong)"), "font-style")).toBe("italic");
+		});
+	}
+
+	test("the markers stay muted, upright and at weight 400 whatever the colours; selected text keeps its colour", async ({ page }) => {
+		await openProject(page);
+		await outside(page, "---\nformat-version: 1\nbold-colour: yellow\nitalic-colour: aqua\nbold-italic-colour: purple\n---\n");
+		const content = await write(page, "a **bold** and *italic* and ***both*** x");
+		for (const sel of [".sf-marker.sf-strong:not(.sf-em)", ".sf-marker.sf-em:not(.sf-strong)", ".sf-marker.sf-strong.sf-em"]) {
+			const marker = content.locator(sel).first();
+			expect(await css(marker, "color"), sel).toBe(MUTED);
+			expect(await css(marker, "font-weight"), sel).toBe("400");
+			expect(await css(marker, "font-style"), sel).toBe("normal");
+		}
+		await page.keyboard.press("Meta+a"); // everything selected: the emphasis colours stay
+		expect(await css(content.locator(".sf-strong:not(.sf-em):not(.sf-marker)"), "color")).toBe(COLOURS.yellow);
+		expect(await css(content.locator(".sf-em:not(.sf-strong):not(.sf-marker)"), "color")).toBe(COLOURS.aqua);
+	});
+});
