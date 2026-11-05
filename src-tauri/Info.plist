@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Fix 9: the compiled icon (Resources/Assets.car, made by scripts/icon/compile-assets.sh) is named here; icon.icns is the fallback for macOS 11 to 15. -->
+	<key>CFBundleIconName</key>
+	<string>storyForge</string>
+</dict>
+</plist>

@@ -1,0 +1,34 @@
+{
+  "fill": {
+    "solid": "srgb:0.20000,0.23529,0.26275,1.00000"
+  },
+  "groups": [
+    {
+      "layers": [
+        {
+          "image-name": "quill.svg",
+          "name": "quill",
+          "glass": true
+        },
+        {
+          "image-name": "anvil.svg",
+          "name": "anvil",
+          "glass": true
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.5
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": [
+      "macOS"
+    ]
+  }
+}
