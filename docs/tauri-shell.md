@@ -37,6 +37,11 @@ All paths are project-relative with `/`; Rust resolves each against the fixed ro
 |---|---|
 | `pick_project(kind)` | native folder picker (open / create); sets the root; returns the absolute path |
 | `open_recent(index)` / `recent_projects()` | recent list (machine settings) |
+| `remember_project()` | **writes only `recent.json`** (decision 121's amendment): puts the project Rust holds open first on the recent list. Takes no argument and no path; the window calls it once an open has succeeded, so a folder that is not a project never joins the list (Brief 16, 1.9.0) |
+| `peek_recent(index)` | **read only** (Brief 16): for the `index`th recent entry, whether the folder is there and holds `_story-library`, the texts of `project.md` and `series.md`, the sorted book folders and the series cover (`cover.<ext>` exactly, at most 10 MB). Opens read-only (`Project::open(root, true)`): no write, no lock, no project attached, no session. An index, never a path |
+| `peek_recent_book(index, position)` | **read only**: the book at `position` in the list `peek_recent` returned: its own file and its cover. Rust lists the folder again and refuses (`CHANGED`) if the name at `position` is no longer the one it listed. A position, never a name or path |
+| `forget_recent(index)` / `clear_recent()` | **write only `recent.json`** (decision 121's amendment): remove one entry, or empty the list (File ▸ Open Recent ▸ Clear Menu); rebuild the menu. Never a project |
+| `set_recent_names(entries)` | sets the app's own menu items: labels for Open Recent from the cards' names, matched by position, only while they are for the same list, cleaned and capped at 80 characters, never a path. Touches no file |
 | `scan()` | **one call** returning every non-hidden entry (path, kind, size, mtime, `placeholder` flag) and, for markdown under storyForge's eager folders, the text (decision 18). Hidden entries are returned too (the backend contract's `scan` includes them) but without text. |
 | `stat(path)` | kind/size/mtime or null |
 | `read_text(path)`, `read_binary(path)` | one file |

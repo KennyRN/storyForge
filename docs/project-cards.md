@@ -75,3 +75,15 @@ Notes from the pictures:
 5. **Image:** crop to fill (recommended), or fit whole?
 6. **Hover:** green border (recommended), or green fill?
 7. **The no-cover icon (H2):** please send it; I build with the stand-in until it arrives.
+
+## 8. As built (1.9.0)
+
+Rulings that shaped the build (decision 126, relayed by Kenny): the first book is found with the core's `resolveOrder`, not a Rust reader; `peek_recent(i)` also returns the sorted book folders and `peek_recent_book(i, k)` takes a position (called only when the series has no cover); `remember_project` (no argument, called when the window's open succeeds); `set_recent_names` strictly as labels; Delete, Shift-F10 or Control-Return for removal; crop to fill and a green hover border; Open Project… and New Project… stay in place while the cards scroll.
+
+- **Rust:** `src-tauri/fs/src/recent.rs` (the list rules, tested in `tests/recent.rs`), `Project::peek_summary` / `peek_book` and `peek_root` in `ops.rs` (tested in `tests/peek.rs`: missing folder, no library, covers by exact name and the 10 MB limit, malformed or oversized texts never fail, a changed folder between the two calls is refused, nothing is written, a linked book folder is not listed), and the commands in `src/lib.rs`. `peek_recent_book` checks the folder against the list `peek_recent` returned for that entry, which Rust holds in memory; "the name at k still matches" is that comparison.
+- **Menu labels:** `set_recent_names(entries)` takes `[folder name, name]` per entry. Rust uses a label only while the folder names still match the list by position (so a list that changed since is ignored), cleaned and at most 80 characters. The cards' names reach the menu a moment after they arrive.
+- **Window:** `core/projectCard.ts` (pure: `planCard`, `finishCard`, tested), `screens/projectCards.ts`, `screens/start.ts`, `kit/photoIcon.ts` (Kenny's icon, his path unchanged). The preview has `setRecent` and `recentState` for tests, and the fake host stands in for the five commands (running the real Rust code for the peeks).
+- **Speed:** nothing waits: cards draw from the list at once and each peeks on its own. I did not add a 5 second give-up: a slow card simply stays as drawn (the folder's name, no image, clickable) until its answer comes; a late answer is used. Rust runs each peek on a blocking worker, so a hung drive stalls only its own.
+- **Path display:** the home folder is recognised as `/Users/<name>` (the window has no other way to know it); a path over 28 characters is cut in the middle.
+- **Built-app scripts:** they now find the recent project by its card's name ("The Lantern Cycle", the fixture's series title) instead of the old row's "proj <folder>".
+- **Known small things:** a standalone project whose title is missing from `series.md` and which has a series cover takes the folder's name (the book is asked about only when the series has no cover, as ruled).

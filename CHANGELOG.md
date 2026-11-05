@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.9.0: the project cards (Brief 16)
+
+- New: **the start screen shows your recent projects as cards**: each with its image (the series' cover, else the first novel's, else a rounded photo icon for no cover), its name (the series title, or a single-novel project's book title, else the folder's name) and where it lives (`~` for your home folder, long paths cut in the middle, the full path as the tooltip). One click opens a project. The screen is the dim background with the cards on the working colour; Open Project… and New Project… stay in place while the cards scroll; hovering a card turns its edge green.
+- New: **a project that can't be found says so**: a folder that is gone is dimmed and says "Not found", and a folder with no `_story-library` says "Not a project"; clicking either does nothing, and they can be removed.
+- New: **Remove from List** (right-click a card, Shift-F10 or Control-Return, or Delete on a focused card) removes only the entry, never the project, with no confirmation; **File ▸ Open Recent ▸ Clear Menu** empties the list. Open Recent shows the same names as the cards.
+- Fixed: **a folder that isn't a project no longer joins the recent list.** A folder is remembered only once it has opened as a project (New Project still is; a folder that isn't a project, or is in a layout older than 0.17, is not).
+- Under the hood: five small Rust commands. `peek_recent` and `peek_recent_book` read only (an index and a position, never a path; nothing is written, no project attached). `remember_project`, `forget_recent` and `clear_recent` write only the app's own recent list; `set_recent_names` sets the menu's labels. The cards find the first novel with the core's own ordering.
+
 ## 1.8.2: the app icon, new artwork (Fix 9)
 
 - New: **the app icon** is Kenny's new artwork (an anvil and a quill, green on the dark slate), built for macOS Tahoe as an Icon Composer document (`src-tauri/icons/storyForge.icon`, two layers, Icon Composer's default glass effects, the appearances derived by macOS), at 70% of the square. On macOS 11 to 15 it is a full 16 to 1024 px `icon.icns` on Apple's macOS 11 template. The PNGs are the same artwork as a rounded tile.
