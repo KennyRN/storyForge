@@ -153,6 +153,31 @@ async function measure(label, keys) {
 	}
 }
 
+/**
+ * The type styles (Brief 18): the start screen's card name is the Body bold style, which follows the Interface font unless it names its own.
+ * Writes the lines into project.md, opens the app to the start screen and reads that name's width, then quits.
+ */
+async function measureCardName(label, lines) {
+	const bad = screenProblem();
+	if (bad) fail(`${label}: ${bad}, so nothing is measured. Wake and unlock the Mac, then run again.`);
+	writeFileSync(projectMd, `---\nformat-version: 1\n${lines.join("\n")}${lines.length ? "\n" : ""}---\n`);
+	child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: "ignore" });
+	try {
+		if (!(await until(() => find("AXButton", "The Lantern Cycle").startsWith("found")))) fail("the app's window, or the temporary HOME's recent list, never appeared");
+		await sleep(1200);
+		const w = widthOf("The Lantern Cycle");
+		if (w === null) fail(`${label}: the card's name was not found as text through accessibility`);
+		console.log(`${label.padEnd(58)} card name ${w} px`);
+		return w;
+	} finally {
+		child.kill("SIGTERM");
+		await new Promise((r) => (child.once("exit", r), setTimeout(r, 6000)));
+		child.kill("SIGKILL");
+		child = null;
+		await sleep(500);
+	}
+}
+
 const problems = [];
 const check = (ok, what) => (ok ? console.log(`ok   ${what}`) : (problems.push(what), console.log(`FAIL ${what}`)));
 /** A size step is known to show: if it shows nothing, the measurements can't be trusted and the run is refused, not failed. */
@@ -188,6 +213,17 @@ try {
 	await compare(soft !== plain, "Fraunces' Softness changes the drawing");
 	const big = await measure("Sofia Sans at 1.5 rem", { font: "Sofia Sans", weight: 400, size: 1.5 });
 	check(big > drawn["Sofia Sans"] * 1.3, "a size of 1.5 rem draws larger than 1 rem");
+	// The two base fonts and the styles that follow them (Brief 18). The card's name is Body bold (600 at 13 px, following the Interface font).
+	const follows = await measureCardName("the Interface font: SN Pro (the default), card name", []);
+	const aleo = await measureCardName("the Interface font: Aleo, card name", ["appearance-interface-font: Aleo"]);
+	await compare(aleo !== follows, "changing the Interface font changes a style that follows it (Body bold, the card's name)");
+	const own = await measureCardName("Body bold names Courier Prime, Interface font Aleo", ["appearance-interface-font: Aleo", "appearance-body-bold-font: Courier Prime"]);
+	const ownTwice = await measureCardName("Body bold names Courier Prime, Interface font Atkinson", ["appearance-interface-font: Atkinson Hyperlegible Next", "appearance-body-bold-font: Courier Prime"]);
+	check(own === ownTwice, "a style that names its own font does not move when the Interface font does");
+	const sized = await measureCardName("Body bold at 16 px", ["appearance-body-bold-size: 16"]);
+	check(sized > follows * 1.15, "a style's size changes the drawing (Body bold at 16 px against 13)");
+	const writing = await measureCardName("the Writing font changed to Aleo (the interface must not move)", ["appearance-writing-font: Aleo"]);
+	check(writing === follows, "the Writing font leaves the interface's styles alone");
 } finally {
 	rmSync(dir, { recursive: true, force: true });
 }

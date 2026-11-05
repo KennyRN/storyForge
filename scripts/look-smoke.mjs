@@ -310,7 +310,7 @@ try {
 		}
 	}
 
-	// The library side's Codex list, and a plot note (13 px: ten "w" is 105 px in SN Pro, 100 in the system font).
+	// The library side's Codex list, and a plot note (Fields style, 14 px since 1.10.0: ten "w" is 105 px at 13 px in SN Pro, so 113 at 14).
 	if (!(await until(() => clickAny("Open the novel on the library side")))) fail("could not reach the library side");
 	await sleep(600);
 	clickAny("codex");
@@ -329,15 +329,23 @@ try {
 	key('keystroke "a" using command down');
 	sendKeys("wwwwwwwwww");
 	await sleep(700);
-	expectWidth("a plot note", widthOf("AXStaticText", "wwwwwwwwww", 1), 105, 100);
+	expectWidth("a plot note", widthOf("AXStaticText", "wwwwwwwwww", 1), 113, 108);
 	windowShot("plot-note");
+	// The Writing font (Brief 18): changed outside (the file, which the app reads live), it changes the writing surfaces and nothing else.
+	writeFileSync(join(project, "_backstage/storyforge/project.md"), `---\nformat-version: 1\n${process.env.LOOK_CODEX_COLOUR ? `codex-colour: ${process.env.LOOK_CODEX_COLOUR}\n` : ""}appearance-codex-font: SN Pro\nappearance-codex-weight: 400\nappearance-codex-size: 1\nappearance-writing-font: Courier Prime\n${process.env.LOOK_READOUT ? "show-session-readout: true\n" : ""}---\n`);
+	await sleep(2500);
+	const changed = widthOf("AXStaticText", "wwwwwwwwww", 1);
+	if (changed === null) problems.push("the plot note's line was not found after the Writing font changed");
+	else if (Math.abs(changed - 113) < 8) problems.push(`the plot note's line is still ${changed} px wide after the Writing font was set to Courier Prime (SN Pro gave 113): the Writing font is not reaching the fields`);
+	else console.log(`(the plot note's ten "w" went from 113 px to ${changed} px with the Writing font set to Courier Prime)`);
+	windowShot("plot-note-courier");
 } finally {
 	child.kill("SIGKILL");
 	await sleep(300);
 	rmSync(dir, { recursive: true, force: true });
 }
 console.log("");
-if (problems.length === 0) console.log("PASS  SN Pro is the font drawing in the Codex list (both sides), the chapter, a Codex note in the context panel and a plot note, upright and italic where the surface has an italic (a plot note is plain text, with none), at the widths its shipped files give");
+if (problems.length === 0) console.log("PASS  SN Pro (the default Writing font) is drawing in the Codex list (both sides), the chapter, a Codex note in the context panel and a plot note, upright and italic where the surface has an italic (a plot note is plain text, with none), at the widths its shipped files give; and the Writing font, changed in project.md, changes the fields");
 else {
 	console.log("FAIL  the built app is not drawing what it should");
 	for (const p of problems) console.log(`        - ${p}`);
