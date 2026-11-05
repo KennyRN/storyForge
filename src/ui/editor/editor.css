@@ -60,6 +60,21 @@
 .sf-strong {
 	font-weight: 700;
 }
+/* ==highlight== (Brief 17): a solid fill in the chosen colour with bg0 text; the part under a selection has no fill (the selection layer shows) and fg text. */
+.sf-highlight {
+	background: var(--purpose-highlight-fill);
+	color: var(--purpose-highlight-text);
+	border-radius: 2px;
+}
+.sf-highlight-selected {
+	color: var(--purpose-text);
+}
+/* Emphasis inside a highlight reads in bg0 too, keeping its weight and italic. */
+.sf-in-highlight.sf-strong,
+.sf-in-highlight.sf-em,
+.sf-in-highlight.sf-strong.sf-em {
+	color: var(--purpose-highlight-text);
+}
 .sf-comment {
 	color: var(--purpose-text-muted);
 	opacity: 0.8;

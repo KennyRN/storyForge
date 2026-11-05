@@ -153,3 +153,79 @@ test.describe("Settings ▸ Appearance ▸ Text colours", () => {
 		expect(await names("Italic colour")).toEqual(["Text colour", "Yellow", "Aqua", "Blue", "Orange", "Purple"]);
 	});
 });
+
+test.describe("==highlight==", () => {
+	const YELLOW = "rgb(219, 188, 127)";
+	const BG0 = "rgb(51, 60, 67)";
+	const FG = "rgb(211, 198, 170)";
+	async function write(page: Page, text: string): Promise<Locator> {
+		const content = page.locator(".sf-slot--centre .cm-content");
+		await content.click();
+		await page.keyboard.press("Meta+a");
+		await page.keyboard.type(text);
+		return content;
+	}
+	const css = (loc: Locator, prop: string) => loc.first().evaluate((e, p) => getComputedStyle(e).getPropertyValue(p), prop);
+
+	test("a solid fill in the chosen colour with bg0 text; the == markers hide away from the caret and show on its line", async ({ page }) => {
+		await openProject(page);
+		const content = await write(page, "A ==marked words== here\nplain line");
+		const hl = content.locator(".sf-highlight");
+		await expect(hl).toHaveText("marked words");
+		expect(await css(hl, "background-color")).toBe(YELLOW);
+		expect(await css(hl, "color")).toBe(BG0);
+		const line1 = content.locator(".cm-line").first();
+		await expect(line1).toHaveText("A marked words here"); // the caret is on line 2: the markers are hidden
+		await page.keyboard.press("ArrowUp");
+		await expect(line1).toHaveText("A ==marked words== here"); // on the caret's line they show, muted, with no fill
+		expect(await css(line1.locator(".sf-marker").first(), "background-color")).toBe("rgba(0, 0, 0, 0)");
+	});
+
+	test("each of the five colours, as a setting; an excluded or unknown one draws yellow", async ({ page }) => {
+		await openProject(page);
+		const content = await write(page, "A ==marked== word\nplain");
+		const fills: Record<string, string> = { yellow: YELLOW, aqua: "rgb(131, 192, 146)", blue: "rgb(127, 187, 179)", orange: "rgb(230, 152, 117)", purple: "rgb(214, 153, 182)" };
+		for (const [name, rgb] of Object.entries(fills)) {
+			await outside(page, `---\nformat-version: 1\nhighlight-colour: ${name}\n---\n`);
+			await expect(page.locator("html")).toHaveAttribute("data-highlight-colour", name);
+			await expect.poll(() => css(content.locator(".sf-highlight"), "background-color")).toBe(rgb);
+			expect(await css(content.locator(".sf-highlight"), "color")).toBe(BG0);
+		}
+		for (const bad of ["red", "green", "grey"]) {
+			await outside(page, `---\nformat-version: 1\nhighlight-colour: ${bad}\n---\n`);
+			await expect.poll(() => css(content.locator(".sf-highlight"), "background-color")).toBe(YELLOW);
+		}
+	});
+
+	test("emphasis inside a highlight keeps its weight and italic and reads in bg0", async ({ page }) => {
+		await openProject(page);
+		const content = await write(page, "A ==some **bold** and *italic* text== here\nplain");
+		const bold = content.locator(".sf-in-highlight.sf-strong");
+		const ital = content.locator(".sf-in-highlight.sf-em");
+		await expect(bold).toHaveText("bold");
+		await expect(ital).toHaveText("italic");
+		expect(await css(bold, "font-weight")).toBe("700");
+		expect(await css(ital, "font-style")).toBe("italic");
+		expect(await css(bold, "color")).toBe(BG0);
+		expect(await css(ital, "color")).toBe(BG0);
+	});
+
+	test("a selection over a highlight stays visible: the highlight gives way under it, with the text in fg (option A)", async ({ page }) => {
+		await openProject(page);
+		const content = await write(page, "A ==marked words== here\nplain");
+		await page.keyboard.press("ArrowUp");
+		await page.keyboard.press("Home");
+		for (let i = 0; i < 6; i++) await page.keyboard.press("ArrowRight"); // after "A ==ma"
+		await page.keyboard.press("Shift+ArrowRight");
+		await page.keyboard.press("Shift+ArrowRight");
+		await page.keyboard.press("Shift+ArrowRight");
+		const selected = content.locator(".sf-highlight-selected");
+		await expect(selected).toHaveCount(1);
+		expect(await css(selected, "background-color")).toBe("rgba(0, 0, 0, 0)"); // no fill: the selection layer behind shows
+		expect(await css(selected, "color")).toBe(FG);
+		await expect(content.locator(".sf-highlight").first()).toBeVisible(); // the rest keeps its fill
+		const layer = page.locator(".sf-slot--centre .cm-selectionBackground").first();
+		await expect(layer).toBeVisible();
+		expect(await bg(layer)).toBe(PLUM);
+	});
+});

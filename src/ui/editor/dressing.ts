@@ -1,3 +1,4 @@
+import { protectedRanges } from "../../core/typing/protectedText";
 import { EditorSelection, type EditorState, type TransactionSpec } from "@codemirror/state";
 
 /**
@@ -110,6 +111,45 @@ export function scanEmphasis(line: string): EmphasisSpan[] {
 	const out: EmphasisSpan[] = [];
 	scanRange(line, 0, line.length, out);
 	return out.sort((a, b) => a.from - b.from);
+}
+
+/**
+ * `==highlight==` spans in one line (Brief 17). **The rules are unconfirmed**: they are the common ones (markdown-it's `mark`), pending Kenny's report of
+ * what Obsidian draws (docs/colours.md §4; only the plain `==x==` is confirmed). Inline, one line; the opening `==` is not preceded or followed by another
+ * `=` and is not followed by a space; the closing `==` is not preceded by a space and not followed by another `=`; the content is not empty; neither marker
+ * sits inside code, a link or a URL (`protectedRanges`); a span does not nest. Each span runs from the opening marker to the end of the closing one.
+ */
+export function scanHighlights(line: string): { from: number; to: number }[] {
+	const protectedAt = protectedRanges(line);
+	const inProtected = (from: number, to: number): boolean => protectedAt.some(([a, b]) => from < b && to > a);
+	const out: { from: number; to: number }[] = [];
+	let i = 0;
+	while (i < line.length - 3) {
+		if (line[i] !== "=" || line[i + 1] !== "=" || line[i - 1] === "=" || line[i + 2] === "=" || /\s/.test(line[i + 2] ?? " ") || inProtected(i, i + 2)) {
+			i++;
+			continue;
+		}
+		let j = i + 3;
+		let close = -1;
+		while (j < line.length - 1) {
+			if (line[j] === "=" && line[j + 1] === "=" && line[j + 2] !== "=" && !/\s/.test(line[j - 1]) && line[j - 1] !== "=" && !inProtected(j, j + 2)) {
+				close = j;
+				break;
+			}
+			j++;
+		}
+		if (close === -1) {
+			i++;
+			continue;
+		}
+		if (inProtected(i, close + 2)) {
+			i = close + 2;
+			continue;
+		}
+		out.push({ from: i, to: close + 2 });
+		i = close + 2;
+	}
+	return out;
 }
 
 /** A heading line's level and where its marker (the `#`s and the space after them) ends, or null. */
