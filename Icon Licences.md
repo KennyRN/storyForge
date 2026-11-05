@@ -7,7 +7,7 @@ This project uses icons from the following third-party, open-source icon sets. A
 ## storyForge app icon
 
 - **Author:** Kenny (volcanicMole), made with Claude; Kenny's own work
-- **Source:** `src-tauri/icons/storyForge.svg` (the PNGs and `icon.icns` in the same folder are rendered from it, unaltered)
+- **Source:** `src-tauri/icons/storyForge.svg` (Kenny's artwork on Tabler's 24 px grid, committed unchanged in 1.8.2; the new icon of 1.8.2 is built from it, with the shapes and colours unchanged). `src-tauri/icons/storyForge.icon` (an Icon Composer document: two layers, the anvil and the quill, on the fill `#333C43`), `Assets.car` (compiled from it), `icon.icns` and the PNGs in the same folder are all made from the artwork by `scripts/icon/`
 - **Licence:** MIT License — *see [MIT License](#mit-license) below*
 
 ---

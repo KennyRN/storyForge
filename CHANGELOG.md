@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.8.2: the app icon, new artwork (Fix 9)
+
+- New: **the app icon** is Kenny's new artwork (an anvil and a quill, green on the dark slate), built for macOS Tahoe as an Icon Composer document (`src-tauri/icons/storyForge.icon`, two layers, Icon Composer's default glass effects, the appearances derived by macOS), at 70% of the square. On macOS 11 to 15 it is a full 16 to 1024 px `icon.icns` on Apple's macOS 11 template. The PNGs are the same artwork as a rounded tile.
+- Changed: the compiled icon (`Assets.car`) is made by `scripts/icon/compile-assets.sh` and committed beside its `.icon`, and copied into the app by the bundle configuration, because Tauri's own `actool` step failed on this Mac. `src-tauri/Info.plist` names the icon.
+- The icon's layers and scripts: `scripts/icon/` (`gen.py`, `tiles.mjs`, `icns.mjs`, `cmp.mjs`).
+
 ## 1.8.1: one way for dialogs to behave (Fix 8)
 
 - Fixed: **Escape closes Settings after a tab has been clicked with the mouse.** It did nothing, because the click redrew the page, the clicked tab was replaced and focus fell to the page body, where the dialog never saw the key. Every dialog now listens for Escape for the whole window, and focus never falls to the body: a click inside a dialog focuses what was clicked, and a redraw puts focus back on the same control.
