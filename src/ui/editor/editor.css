@@ -14,7 +14,10 @@
 	padding: var(--space-1) var(--space-4);
 	background: var(--purpose-raised-bg);
 	color: var(--purpose-text); /* a state, not a message, so it stays neutral; its text is fg now (it was grey2, 3.99:1 at 12 px) */
-	font-size: 12px;
+	font-family: var(--ts-hint-family);
+	font-weight: var(--ts-hint-weight);
+	font-size: var(--ts-hint-size);
+	font-variation-settings: var(--ts-hint-var);
 	text-align: center;
 }
 
@@ -27,14 +30,16 @@
 	outline: none;
 }
 .sf-editor .cm-scroller {
-	font-family: var(--font-prose);
+	font-family: var(--ts-prose-family);
+	font-weight: var(--ts-prose-weight);
+	font-variation-settings: var(--ts-prose-var);
 }
 .sf-editor .cm-content {
 	box-sizing: content-box;
 	max-width: var(--prose-measure);
 	margin: 0 auto;
 	padding: var(--top-gap) 28px 30vh;
-	font-size: var(--prose-size);
+	font-size: var(--ts-prose-size);
 	line-height: var(--prose-line);
 	caret-color: var(--purpose-accent);
 }
@@ -116,8 +121,10 @@
 .sf-editor .cm-panels {
 	background: var(--purpose-raised-bg);
 	color: var(--purpose-text);
-	font-family: var(--font-ui);
-	font-size: var(--text-ui);
+	font-family: var(--ts-body-family);
+	font-weight: var(--ts-body-weight);
+	font-size: var(--ts-body-size);
+	font-variation-settings: var(--ts-body-var);
 }
 .sf-editor .cm-search {
 	display: flex;
@@ -176,7 +183,10 @@ body > .cm-tooltip, body > .cm-tooltip.cm-tooltip-below, body > .cm-tooltip.cm-t
 	min-width: 14em;
 	max-width: 30em;
 	padding: 2px;
-	font-size: 14px;
+	font-family: var(--ts-body-family);
+	font-weight: var(--ts-body-weight);
+	font-size: var(--ts-body-size);
+	font-variation-settings: var(--ts-body-var);
 	color: var(--purpose-text);
 	background: var(--purpose-raised-bg);
 	border: 1px solid var(--purpose-border);
@@ -193,5 +203,5 @@ body > .cm-tooltip.sf-shortcode-popup, body > .cm-tooltip.sf-shortcode-popup.cm-
 .sf-shortcode-option { display: flex; gap: 12px; align-items: baseline; padding: 3px 8px; border-radius: 3px; cursor: pointer; }
 .sf-shortcode-option.is-selected { background: var(--purpose-accent); color: var(--purpose-raised-bg); } /* rule 1: the selected option is highlighted as in the Codex list, the popup's own surface on it */
 .sf-shortcode-option.is-selected .sf-shortcode-text { color: inherit; }
-.sf-shortcode-label { font-weight: 600; }
+.sf-shortcode-label { font-family: var(--ts-body-bold-family); font-weight: var(--ts-body-bold-weight); font-size: var(--ts-body-bold-size); font-variation-settings: var(--ts-body-bold-var); }
 .sf-shortcode-text { color: var(--purpose-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

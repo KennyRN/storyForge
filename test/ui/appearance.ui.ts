@@ -109,7 +109,7 @@ test.describe("Appearance", () => {
 			await expect(font(page, part)).toHaveValue(f);
 			await expect(dialog(page).getByLabel(`${part} weight`)).toHaveValue(w);
 			await expect(size(page, part)).toHaveValue(z);
-			expect(await font(page, part).locator("option").allInnerTexts()).toEqual(["SN Pro", "Aleo", "Atkinson Hyperlegible Next", "Courier Prime", "Fraunces", "Sofia Sans", "Sofia Sans Semi Condensed", "Sofia Sans Condensed"]);
+			expect(await font(page, part).locator("option").allInnerTexts()).toEqual(["Interface font", "SN Pro", "Aleo", "Atkinson Hyperlegible Next", "Courier Prime", "Fraunces", "Sofia Sans", "Sofia Sans Semi Condensed", "Sofia Sans Condensed"]);
 		}
 		expect(await page.evaluate(() => document.documentElement.style.getPropertyValue("--ap-chapter-size"))).toBe("22px"); // 1.375 rem against the one 16 px base
 		expect(await style(page, ".sf-nav-novel")).toMatchObject({ weight: "900", size: "16px" });

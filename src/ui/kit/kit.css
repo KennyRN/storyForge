@@ -135,8 +135,10 @@
 .sf-dialog-title {
 	margin: 0;
 	padding: var(--space-4) var(--space-4) var(--space-2);
-	font-size: 15px;
-	font-weight: 600;
+	font-family: var(--ts-heading-family);
+	font-weight: var(--ts-heading-weight);
+	font-size: var(--ts-heading-size);
+	font-variation-settings: var(--ts-heading-var);
 }
 .sf-dialog-body {
 	padding: var(--space-2) var(--space-4);
@@ -230,7 +232,10 @@
 }
 .sf-rename-problem {
 	color: var(--purpose-text-muted);
-	font-size: 12px;
+	font-family: var(--ts-hint-family);
+	font-weight: var(--ts-hint-weight);
+	font-size: var(--ts-hint-size);
+	font-variation-settings: var(--ts-hint-var);
 }
 .sf-rename-problem:empty {
 	display: none;

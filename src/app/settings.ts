@@ -1,4 +1,5 @@
 import { isFontFamily, type FontFamily } from "../core/fontFamilies";
+import { BASE_DEFAULTS, FOLLOW, TYPE_STYLES, isStyleFont, isStyleSize, type StyleFont, type TypeStyleId } from "../core/typeStyles";
 /**
  * Settings (decision 23; docs/tauri-shell.md §7).
  *
@@ -68,7 +69,7 @@ export const APPEARANCE_DEFAULTS: Record<AppearancePart, { font: FontFamily; wei
 };
 type Cap<P extends string> = Capitalize<P>;
 export type AppearanceKeys = {
-	[P in AppearancePart as `appearance${Cap<P>}Font`]: FontFamily;
+	[P in AppearancePart as `appearance${Cap<P>}Font`]: StyleFont;
 } & {
 	[P in AppearancePart as `appearance${Cap<P>}Weight`]: number;
 } & {
@@ -78,7 +79,41 @@ export type AppearanceKeys = {
 };
 export const appearanceKey = <S extends "Font" | "Weight" | "Size" | "Soft">(part: AppearancePart, what: S) => `appearance${part[0].toUpperCase()}${part.slice(1)}${what}` as keyof AppearanceKeys & `appearance${string}${S}`;
 
-export interface ProjectSettings extends AppearanceKeys {
+
+/** The type styles' keys (Brief 18): the two base fonts, then font, weight, size (pixels) and Softness for each style. `type<Style><What>`, stored as `appearance-<style>-<what>`. */
+type StyleCap<I extends string> = Capitalize<I>;
+export type TypeStyleKeys = { typeInterfaceFont: FontFamily; typeWritingFont: FontFamily } & {
+	[I in TypeStyleId as `type${StyleCap<I>}Font`]: StyleFont;
+} & {
+	[I in TypeStyleId as `type${StyleCap<I>}Weight`]: number;
+} & {
+	[I in TypeStyleId as `type${StyleCap<I>}Size`]: number;
+} & {
+	[I in TypeStyleId as `type${StyleCap<I>}Soft`]: number;
+};
+export const typeKey = (id: TypeStyleId, what: "Font" | "Weight" | "Size" | "Soft") => `type${id[0].toUpperCase()}${id.slice(1)}${what}` as keyof TypeStyleKeys;
+const kebab = (id: string): string => id.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
+const typeDefaults = (): Record<string, unknown> => {
+	const out: Record<string, unknown> = { typeInterfaceFont: BASE_DEFAULTS.interface, typeWritingFont: BASE_DEFAULTS.writing };
+	for (const s of TYPE_STYLES) Object.assign(out, { [typeKey(s.id, "Font")]: FOLLOW, [typeKey(s.id, "Weight")]: s.weight, [typeKey(s.id, "Size")]: s.size, [typeKey(s.id, "Soft")]: 0 });
+	return out;
+};
+const typeFields = (): Record<string, { file: string; plugin: string; valid: (v: unknown) => boolean }> => {
+	const out: Record<string, { file: string; plugin: string; valid: (v: unknown) => boolean }> = {
+		typeInterfaceFont: { file: "appearance-interface-font", plugin: "-", valid: isFontFamily },
+		typeWritingFont: { file: "appearance-writing-font", plugin: "-", valid: isFontFamily },
+	};
+	for (const s of TYPE_STYLES) {
+		const f = `appearance-${kebab(s.id)}`;
+		out[typeKey(s.id, "Font")] = { file: `${f}-font`, plugin: "-", valid: isStyleFont };
+		out[typeKey(s.id, "Weight")] = { file: `${f}-weight`, plugin: "-", valid: isWeight };
+		out[typeKey(s.id, "Size")] = { file: `${f}-size`, plugin: "-", valid: (v) => isStyleSize(s.id, v) };
+		out[typeKey(s.id, "Soft")] = { file: `${f}-soft`, plugin: "-", valid: (v) => isIntIn(v, 0, 100) };
+	}
+	return out;
+};
+
+export interface ProjectSettings extends AppearanceKeys, TypeStyleKeys {
 	storyKind: StoryKind;
 	/** The colour of the Codex list on both sides: text, icons, folder lines, the strip and the highlight. */
 	codexColour: CodexColour;
@@ -127,6 +162,7 @@ export interface ProjectSettings extends AppearanceKeys {
 
 export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
 	storyKind: "series",
+	...(typeDefaults() as unknown as TypeStyleKeys),
 	appearanceCodexFont: APPEARANCE_DEFAULTS.codex.font,
 	appearanceCodexWeight: APPEARANCE_DEFAULTS.codex.weight,
 	appearanceCodexSize: APPEARANCE_DEFAULTS.codex.size,
@@ -178,22 +214,23 @@ type Key = keyof ProjectSettings;
 
 /** key in `project.md`, key in the plugin's `data.json`, and how to check a value. */
 const FIELDS: Record<Key, { file: string; plugin: string; valid: (v: unknown) => boolean }> = {
-	appearanceCodexFont: { file: "appearance-codex-font", plugin: "-", valid: isFontFamily },
+	appearanceCodexFont: { file: "appearance-codex-font", plugin: "-", valid: isStyleFont },
 	appearanceCodexWeight: { file: "appearance-codex-weight", plugin: "-", valid: isWeight },
 	appearanceCodexSize: { file: "appearance-codex-size", plugin: "-", valid: (v) => isRemIn(v, APPEARANCE_SIZE_RANGE.codex) },
 	appearanceCodexSoft: { file: "appearance-codex-soft", plugin: "-", valid: (v) => isIntIn(v, 0, 100) },
-	appearanceNovelFont: { file: "appearance-novel-font", plugin: "-", valid: isFontFamily },
+	appearanceNovelFont: { file: "appearance-novel-font", plugin: "-", valid: isStyleFont },
 	appearanceNovelWeight: { file: "appearance-novel-weight", plugin: "-", valid: isWeight },
 	appearanceNovelSize: { file: "appearance-novel-size", plugin: "-", valid: (v) => isRemIn(v, APPEARANCE_SIZE_RANGE.novel) },
 	appearanceNovelSoft: { file: "appearance-novel-soft", plugin: "-", valid: (v) => isIntIn(v, 0, 100) },
-	appearanceSeriesFont: { file: "appearance-series-font", plugin: "-", valid: isFontFamily },
+	appearanceSeriesFont: { file: "appearance-series-font", plugin: "-", valid: isStyleFont },
 	appearanceSeriesWeight: { file: "appearance-series-weight", plugin: "-", valid: isWeight },
 	appearanceSeriesSize: { file: "appearance-series-size", plugin: "-", valid: (v) => isRemIn(v, APPEARANCE_SIZE_RANGE.series) },
 	appearanceSeriesSoft: { file: "appearance-series-soft", plugin: "-", valid: (v) => isIntIn(v, 0, 100) },
-	appearanceChapterFont: { file: "appearance-chapter-font", plugin: "-", valid: isFontFamily },
+	appearanceChapterFont: { file: "appearance-chapter-font", plugin: "-", valid: isStyleFont },
 	appearanceChapterWeight: { file: "appearance-chapter-weight", plugin: "-", valid: isWeight },
 	appearanceChapterSize: { file: "appearance-chapter-size", plugin: "-", valid: (v) => isRemIn(v, APPEARANCE_SIZE_RANGE.chapter) },
 	appearanceChapterSoft: { file: "appearance-chapter-soft", plugin: "-", valid: (v) => isIntIn(v, 0, 100) },
+	...(typeFields() as Record<keyof TypeStyleKeys, { file: string; plugin: string; valid: (v: unknown) => boolean }>),
 	storyKind: { file: "story-kind", plugin: "-", valid: (v) => v === "series" || v === "standalone" },
 	codexColour: { file: "codex-colour", plugin: "-", valid: (v) => typeof v === "string" && (CODEX_COLOURS as readonly string[]).includes(v) },
 	dataColour: { file: "data-colour", plugin: "-", valid: (v) => typeof v === "string" && (DATA_COLOURS as readonly string[]).includes(v) },
@@ -234,7 +271,7 @@ const FIELDS: Record<Key, { file: string; plugin: string; valid: (v: unknown) =>
 /** The ranges the settings view offers, so the view and the check agree. */
 export const SESSION_LIMITS = { idleMinutes: [1, 30], minShownMinutes: [0, 60], editingWpm: [1, 60] } as const;
 function isWeight(v: unknown): boolean {
-	return isIntIn(v, 100, 900) && (v as number) % 100 === 0;
+	return isIntIn(v, 100, 1000) && (v as number) % 100 === 0;
 }
 function isRemIn(v: unknown, [lo, hi]: readonly [number, number]): boolean {
 	return typeof v === "number" && Number.isFinite(v) && v >= lo && v <= hi;

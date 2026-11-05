@@ -1,11 +1,6 @@
 /* Base: reset, type, spacing, focus ring, scrollbars. Colours come from purposes only. */
 :root {
-	--font-ui: -apple-system, system-ui, sans-serif;
-	/* SN Pro for everywhere the author writes, and the Codex list. Arial, which has a real italic and bold, draws only the
-	   characters SN Pro lacks (ƿ Ƿ ȝ Ȝ ǣ and a few more, docs/look.md §1; decision 57), so nothing is synthesised. */
-	--font-prose: "SN Pro", Arial, var(--font-ui);
-	--text-ui: 13px;
-	--prose-size: 20px;
+	/* The two base fonts and every type style's own variables are in theme/typeStyles.css and set by applyAppearance (Brief 18). */
 	--prose-line: 1.6;
 	--prose-measure: 30em;
 	--space-1: 4px;
@@ -31,7 +26,11 @@ body {
 	height: 100%;
 	background: var(--purpose-panel-bg);
 	color: var(--purpose-text);
-	font: var(--text-ui) / 1.4 var(--font-ui);
+	font-family: var(--ts-body-family);
+	font-weight: var(--ts-body-weight);
+	font-size: var(--ts-body-size);
+	font-variation-settings: var(--ts-body-var);
+	line-height: 1.4;
 	-webkit-font-smoothing: antialiased;
 	overflow: hidden;
 }
@@ -159,8 +158,10 @@ input[aria-invalid="true"] {
 }
 .sf-start-title {
 	margin: 0;
-	font-size: 28px;
-	font-weight: 600;
+	font-family: var(--ts-display-family);
+	font-weight: var(--ts-display-weight);
+	font-size: var(--ts-display-size);
+	font-variation-settings: var(--ts-display-var);
 }
 .sf-start-actions {
 	display: flex;
@@ -241,17 +242,25 @@ input[aria-invalid="true"] {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	font-weight: 600;
+	font-family: var(--ts-body-bold-family);
+	font-weight: var(--ts-body-bold-weight);
+	font-size: var(--ts-body-bold-size);
+	font-variation-settings: var(--ts-body-bold-var);
 }
 .sf-project-card-path {
 	overflow: hidden;
 	white-space: nowrap;
-	font-size: 12px;
+	font-family: var(--ts-hint-family);
+	font-weight: var(--ts-hint-weight);
+	font-size: var(--ts-hint-size);
+	font-variation-settings: var(--ts-hint-var);
 	color: var(--purpose-text-muted);
 }
 .sf-project-card-state {
-	font-size: 12px;
-	font-weight: 600;
+	font-family: var(--ts-body-bold-family);
+	font-weight: var(--ts-body-bold-weight);
+	font-size: var(--ts-body-bold-size);
+	font-variation-settings: var(--ts-body-bold-var);
 }
 
 /* The kit gallery (preview only). */
@@ -419,7 +428,10 @@ input[aria-invalid="true"] {
 }
 .sf-chars-reason {
 	margin: 0 0 var(--space-1);
-	font-size: 12px;
+	font-family: var(--ts-hint-family);
+	font-weight: var(--ts-hint-weight);
+	font-size: var(--ts-hint-size);
+	font-variation-settings: var(--ts-hint-var);
 }
 .sf-chars-grid {
 	display: flex;
@@ -462,13 +474,22 @@ input[aria-invalid="true"] {
 }
 .sf-summary-title {
 	margin: 0 0 var(--space-1);
-	font-size: 12px;
-	font-weight: 600;
+	font-family: var(--ts-small-heading-family);
+	font-weight: var(--ts-small-heading-weight);
+	font-size: var(--ts-small-heading-size);
+	font-variation-settings: var(--ts-small-heading-var);
 	color: var(--purpose-text-muted);
 }
 .sf-summary-list {
 	margin: 0;
 	padding-left: var(--space-4);
+}
+.sf-settings-group-title {
+	margin: var(--space-4) 0 0;
+	font-family: var(--ts-title-family);
+	font-weight: var(--ts-title-weight);
+	font-size: var(--ts-title-size);
+	font-variation-settings: var(--ts-title-var);
 }
 .sf-summary-row {
 	display: flex;
@@ -478,7 +499,10 @@ input[aria-invalid="true"] {
 }
 .sf-plan-headline {
 	margin: 0 0 var(--space-2);
-	font-weight: 600;
+	font-family: var(--ts-body-bold-family);
+	font-weight: var(--ts-body-bold-weight);
+	font-size: var(--ts-body-bold-size);
+	font-variation-settings: var(--ts-body-bold-var);
 }
 .sf-plan-more summary {
 	cursor: pointer;
@@ -590,7 +614,10 @@ input[aria-invalid="true"] {
 	padding: var(--space-2) 0;
 }
 .sf-setting-hint {
-	font-size: 12px;
+	font-family: var(--ts-hint-family);
+	font-weight: var(--ts-hint-weight);
+	font-size: var(--ts-hint-size);
+	font-variation-settings: var(--ts-hint-var);
 	margin: 0;
 }
 .sf-chip-list {
@@ -645,7 +672,10 @@ input[aria-invalid="true"] {
 	opacity: 0.7;
 }
 .sf-setting-source {
-	font-size: 12px;
+	font-family: var(--ts-hint-family);
+	font-weight: var(--ts-hint-weight);
+	font-size: var(--ts-hint-size);
+	font-variation-settings: var(--ts-hint-var);
 	text-align: right;
 }
 
@@ -655,10 +685,14 @@ input[aria-invalid="true"] {
 .sf-note-field,
 .sf-section-field,
 .sf-codex-tree {
-	font-family: var(--font-prose);
 	font-variant-ligatures: none;
 	font-feature-settings: "liga" 0, "calt" 0, "ss01" 0;
 	font-synthesis: none;
+}
+
+/* The library side's Codex list follows the Writing font (the storytelling side's is the Navigator's own part). */
+.sf-codex-tree {
+	font-family: var(--font-writing);
 }
 
 /* Any surface drawn in one of the choosable families (Brief 13): what is on screen is what is on disk, so no ligatures or
@@ -681,8 +715,10 @@ input[aria-invalid="true"] {
 	margin-bottom: var(--space-2);
 	border-radius: 6px;
 	background: var(--purpose-editor-bg);
-	font-family: var(--font-prose);
-	font-size: 16px;
+	font-family: var(--ts-reading-family);
+	font-weight: var(--ts-reading-weight);
+	font-size: var(--ts-reading-size);
+	font-variation-settings: var(--ts-reading-var);
 	line-height: 1.6;
 }
 .sf-sample-selected {

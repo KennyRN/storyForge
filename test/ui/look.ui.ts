@@ -90,18 +90,21 @@ test.describe("SN Pro", () => {
 		});
 	}
 
-	test("the rest of the interface keeps the system sans-serif", async ({ page }) => {
+	test("the rest of the interface follows the Interface font, not the Writing font (Brief 18: SN Pro until the author chooses, never the system font)", async ({ page }) => {
 		await openProject(page);
+		const interfaceFamily = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--font-interface").trim());
 		for (const [what, loc] of [
 			["the body", page.locator("body")],
 			["the stats", page.locator(".sf-stats")],
 			["the stats", page.locator(".sf-stats-value")],
-					] as [string, Locator][]) {
-			expect((await style(loc.first())).family, what).not.toContain("SN Pro");
+		] as [string, Locator][]) {
+			const family = (await style(loc.first())).family;
+			expect(family, what).toMatch(/^"?SN Pro"?/); // first, with Arial then the system's as the fallback for characters it lacks: never the system font itself
 		}
 		await openSettingsDialog(page);
 		const dlg = page.getByRole("dialog");
 		await expect(dlg).toBeVisible();
-		expect((await style(dlg)).family).not.toContain("SN Pro");
+		expect((await style(dlg)).family).toContain("SN Pro");
+		expect(interfaceFamily).toMatch(/^"SN Pro"/);
 	});
 });

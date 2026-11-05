@@ -42,8 +42,10 @@
 }
 .sf-pane-title {
 	margin: 0;
-	font-size: 12px;
-	font-weight: 600;
+	font-family: var(--ts-small-heading-family);
+	font-weight: var(--ts-small-heading-weight);
+	font-size: var(--ts-small-heading-size);
+	font-variation-settings: var(--ts-small-heading-var);
 	letter-spacing: 0.04em;
 	text-transform: lowercase;
 	color: var(--purpose-text-muted);
@@ -78,15 +80,15 @@
 	text-align: left;
 	cursor: pointer;
 	/* Each part's own choice (Appearance, decision 79); with none chosen, the current look. */
-	font-family: var(--ap-novel-family, inherit);
-	font-weight: var(--ap-novel-weight, 600);
-	font-size: var(--ap-novel-size, inherit);
+	font-family: var(--ap-novel-family);
+	font-weight: var(--ap-novel-weight);
+	font-size: var(--ap-novel-size);
 	font-variation-settings: var(--ap-novel-var, normal);
 }
 .sf-nav-series {
-	font-family: var(--ap-series-family, inherit);
-	font-weight: var(--ap-series-weight, 500);
-	font-size: var(--ap-series-size, inherit);
+	font-family: var(--ap-series-family);
+	font-weight: var(--ap-series-weight);
+	font-size: var(--ap-series-size);
 	font-variation-settings: var(--ap-series-var, normal);
 }
 .sf-nav-empty {
@@ -108,9 +110,9 @@
 	text-align: left;
 	cursor: pointer;
 	/* The selected chapter's font, weight and size: the closed selector and the list alike. */
-	font-family: var(--ap-chapter-family, inherit);
-	font-weight: var(--ap-chapter-weight, 400);
-	font-size: var(--ap-chapter-size, inherit);
+	font-family: var(--ap-chapter-family);
+	font-weight: var(--ap-chapter-weight);
+	font-size: var(--ap-chapter-size);
 	font-variation-settings: var(--ap-chapter-var, normal);
 }
 /* Closed, the selector shows the open chapter in the accent; one that isn't in the list is muted, with a quiet note. */
@@ -206,9 +208,9 @@
 
 /* The Codex list, on both sides (the library side takes the storytelling side's settings, amending decisions 79 and 86): the author's Appearance choice, if there is one. */
 .sf-left .sf-codex-tree {
-	font-family: var(--ap-codex-family, var(--font-prose));
-	font-weight: var(--ap-codex-weight, 400);
-	font-size: var(--ap-codex-size, 16px);
+	font-family: var(--ap-codex-family);
+	font-weight: var(--ap-codex-weight);
+	font-size: var(--ap-codex-size);
 	font-variation-settings: var(--ap-codex-var, normal);
 }
 /* The Codex list on the storytelling side (decision 84; the library side's codex tab is unchanged):
@@ -513,7 +515,10 @@ body.sf-codex-drag-active {
 	border-radius: var(--radius);
 	background: transparent;
 	color: var(--purpose-text-muted);
-	font-size: 13px;
+	font-family: var(--ts-body-family);
+	font-weight: var(--ts-body-weight);
+	font-size: var(--ts-body-size);
+	font-variation-settings: var(--ts-body-var);
 	cursor: pointer;
 }
 .sf-navmenu-button:hover,
@@ -627,7 +632,10 @@ body.sf-codex-drag-active {
 }
 .sf-series-title {
 	padding: var(--space-1) var(--space-4) var(--space-1); /* its text starts where the Codex card's top is */
-	font-weight: 600;
+	font-family: var(--ts-body-bold-family);
+	font-weight: var(--ts-body-bold-weight);
+	font-size: var(--ts-body-bold-size);
+	font-variation-settings: var(--ts-body-bold-var);
 }
 .sf-empty-inline {
 	padding: var(--space-2) var(--space-2);
@@ -677,7 +685,10 @@ body.sf-codex-drag-active {
 }
 .sf-row-subtitle {
 	color: var(--purpose-text-muted);
-	font-size: 12px;
+	font-family: var(--ts-hint-family);
+	font-weight: var(--ts-hint-weight);
+	font-size: var(--ts-hint-size);
+	font-variation-settings: var(--ts-hint-var);
 }
 .sf-zone-header {
 	display: flex;
@@ -705,8 +716,10 @@ body.sf-codex-drag-active {
 .sf-zone-label {
 	flex: 1;
 	margin: 0;
-	font-size: 12px;
-	font-weight: 600;
+	font-family: var(--ts-small-heading-family);
+	font-weight: var(--ts-small-heading-weight);
+	font-size: var(--ts-small-heading-size);
+	font-variation-settings: var(--ts-small-heading-var);
 	letter-spacing: 0.04em;
 }
 .sf-unplaced-list .sf-row {

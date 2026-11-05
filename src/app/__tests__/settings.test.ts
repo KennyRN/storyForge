@@ -853,3 +853,38 @@ describe("Inter is gone and Sofia Sans takes its place (Brief 18)", () => {
 		expect(FONT_FAMILIES as readonly string[]).not.toContain("Inter");
 	});
 });
+
+describe("the type styles' settings (Brief 18)", () => {
+	const put = (root: string, body: string) => {
+		fs.mkdirSync(path.join(root, "_backstage/storyforge"), { recursive: true });
+		fs.writeFileSync(path.join(root, PROJECT_SETTINGS_PATH), `---\nformat-version: 1\n${body}---\n`);
+	};
+	it("the defaults are the table's, both base fonts SN Pro, every style following its base", () => {
+		const v = DEFAULT_PROJECT_SETTINGS;
+		expect([v.typeInterfaceFont, v.typeWritingFont]).toEqual(["SN Pro", "SN Pro"]);
+		expect([v.typeBodyFont, v.typeBodyWeight, v.typeBodySize]).toEqual(["base", 400, 13]);
+		expect([v.typeBodyBoldWeight, v.typeBodyBoldSize]).toEqual([600, 13]);
+		expect([v.typeFieldsSize, v.typeProseSize, v.typeReadingSize]).toEqual([14, 20, 15]);
+		expect([v.typeDisplaySize, v.typeTitleSize, v.typeHeadingSize, v.typeSmallHeadingSize, v.typeHintSize, v.typeBarNameSize]).toEqual([28, 20, 15, 12, 12, 19]);
+	});
+	it("valid values are read from their `appearance-…` keys; unknown or out-of-range ones draw the default and are never rewritten", async () => {
+		const root = copyFixture("series");
+		put(root, "appearance-interface-font: Aleo\nappearance-body-size: 14\nappearance-hint-size: 30\nappearance-display-font: Inter\nappearance-body-bold-font: Fraunces\nappearance-small-heading-weight: 500\nx-future-key: kept\n");
+		const before = snapshot(root);
+		const project = await open(root);
+		const s = await loadSettings(project, reader(root));
+		expect([s.values.typeInterfaceFont, s.values.typeBodySize, s.values.typeHintSize, s.values.typeDisplayFont, s.values.typeBodyBoldFont, s.values.typeSmallHeadingWeight]).toEqual(["Aleo", 14, 12, "base", "Fraunces", 500]);
+		expect(diffSnapshots(before, snapshot(root)).changed).toEqual([]);
+		await setSetting(project, s, "typeWritingFont", "Aleo");
+		const text = fs.readFileSync(path.join(root, PROJECT_SETTINGS_PATH), "utf8");
+		expect(text).toContain("appearance-writing-font: Aleo");
+		expect(text).toContain("appearance-hint-size: 30");
+		expect(text).toContain("x-future-key: kept");
+	});
+	it("a Navigator part can follow the Interface font, and a stored Inter still draws its default", async () => {
+		const root = copyFixture("series");
+		put(root, "appearance-codex-font: base\nappearance-novel-font: Inter\n");
+		const s = await loadSettings(await open(root), reader(root));
+		expect([s.values.appearanceCodexFont, s.values.appearanceNovelFont]).toEqual(["base", "Sofia Sans"]);
+	});
+});

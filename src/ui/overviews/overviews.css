@@ -15,17 +15,17 @@
    at the further of the frame's inner end and the bar's end. It never reaches the bare page, where bg_dim on bg_dim could not be read. */
 .sf-bar-name { position: absolute; top: 4px; left: 12px; height: 34px; padding-top: 4px; box-sizing: border-box; display: flex; align-items: center; pointer-events: none; max-width: calc(max(var(--sf-inner), var(--sf-barw)) - 16px); }
 .sf-bar--plain .sf-bar-name { top: 0; left: 8px; }
-.sf-bar-name-text { display: block; min-width: 0; line-height: 1.2; font-size: 19px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--purpose-text-on-data); }
+.sf-bar-name-text { display: block; min-width: 0; line-height: 1.2; font-family: var(--ts-bar-name-family); font-weight: var(--ts-bar-name-weight); font-size: var(--ts-bar-name-size); font-variation-settings: var(--ts-bar-name-var); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--purpose-text-on-data); }
 
 /* The layer over the workspace. */
 .sf-overview { position: absolute; inset: var(--band-h) 0 0 0; overflow: auto; background: var(--purpose-panel-bg); /* the library side is for looking: bg_dim, and only the places where you work are cards on bg0 (Brief 14 §1.8) */ color: var(--purpose-text); }
 .sf-overview-body { padding: 24px 32px; max-width: 880px; }
-.sf-overview-title { font-size: 20px; font-weight: 600; margin: 0 0 20px; }
-.sf-overview-sub { font-size: 13px; font-weight: 600; color: var(--purpose-text-muted); margin: 24px 0 8px; }
+.sf-overview-title { font-family: var(--ts-title-family); font-weight: var(--ts-title-weight); font-size: var(--ts-title-size); font-variation-settings: var(--ts-title-var); margin: 0 0 20px; }
+.sf-overview-sub { font-family: var(--ts-small-heading-family); font-weight: var(--ts-small-heading-weight); font-size: var(--ts-small-heading-size); font-variation-settings: var(--ts-small-heading-var); color: var(--purpose-text-muted); margin: 24px 0 8px; }
 .sf-overview-list { display: flex; flex-direction: column; gap: 14px; }
 .sf-overview-row { display: flex; flex-direction: row; gap: 12px; align-items: flex-start; }
 .sf-overview-row-main { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
-.sf-overview-name { all: unset; cursor: pointer; font-size: 14px; border-radius: 3px; }
+.sf-overview-name { all: unset; cursor: pointer; font-family: var(--ts-body-family); font-weight: var(--ts-body-weight); font-size: var(--ts-body-size); font-variation-settings: var(--ts-body-var); border-radius: 3px; }
 .sf-overview-name:hover { color: var(--purpose-accent); }
 .sf-overview-name:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 2px; }
 .sf-overview-row--unplaced .sf-overview-name { color: var(--purpose-text-muted); }
@@ -41,7 +41,7 @@
 .sf-cards { gap: 12px; }
 .sf-card { display: flex; flex-direction: column; gap: 6px; }
 /* A field of the author's words: a small plain-text editor (decision 47), dressed as the text areas were. */
-.sf-note-field { box-sizing: border-box; display: flex; width: 100%; font-size: 13px; line-height: 1.5; color: var(--purpose-text); border: 1px solid transparent; border-radius: 3px; margin-left: -6px; }
+.sf-note-field { box-sizing: border-box; display: flex; width: 100%; font-family: var(--ts-fields-family); font-weight: var(--ts-fields-weight); font-size: var(--ts-fields-size); font-variation-settings: var(--ts-fields-var); line-height: 1.5; color: var(--purpose-text); border: 1px solid transparent; border-radius: 3px; margin-left: -6px; }
 .sf-note-field:hover { border-color: var(--purpose-border); }
 .sf-note-field:focus-within { outline: 2px solid var(--purpose-focus-ring); outline-offset: 0; }
 .sf-note-field .cm-editor { flex: 1; min-width: 0; background: transparent; color: inherit; font: inherit; }
@@ -60,8 +60,8 @@
 /* The history view. */
 .sf-history { min-width: min(520px, 70vw); display: flex; flex-direction: column; gap: 4px; }
 .sf-history-stats { display: flex; flex-wrap: wrap; gap: 4px 24px; }
-.sf-history-stat { display: flex; flex-direction: column; font-size: 13px; }
-.sf-history-chapter { display: flex; justify-content: space-between; gap: 16px; font-size: 13px; padding: 2px 0; }
+.sf-history-stat { display: flex; flex-direction: column; font-family: var(--ts-body-family); font-weight: var(--ts-body-weight); font-size: var(--ts-body-size); font-variation-settings: var(--ts-body-var); }
+.sf-history-chapter { display: flex; justify-content: space-between; gap: 16px; font-family: var(--ts-body-family); font-weight: var(--ts-body-weight); font-size: var(--ts-body-size); font-variation-settings: var(--ts-body-var); padding: 2px 0; }
 .sf-heat-grid { display: flex; flex-direction: column; gap: 3px; }
 .sf-heat-row { display: flex; gap: 3px; }
 .sf-heat-cell { all: unset; box-sizing: border-box; width: 14px; height: 14px; border-radius: 3px; background: var(--purpose-bar-track); }
@@ -78,12 +78,12 @@ button.sf-heat-cell { cursor: pointer; }
 .sf-heat--loss-4 { background: var(--purpose-heat-loss-d); }
 
 /* Writing sessions in the history view (docs/sessions.md §9). Words, never colour alone. */
-.sf-history-note { font-size: 12px; padding: 4px 0; }
+.sf-history-note { font-family: var(--ts-hint-family); font-weight: var(--ts-hint-weight); font-size: var(--ts-hint-size); font-variation-settings: var(--ts-hint-var); padding: 4px 0; }
 .sf-session-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
-.sf-session { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; font-size: 13px; }
+.sf-session { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; font-family: var(--ts-body-family); font-weight: var(--ts-body-weight); font-size: var(--ts-body-size); font-variation-settings: var(--ts-body-var); }
 .sf-session-when { font-variant-numeric: tabular-nums; }
-.sf-session-chapters { flex-basis: 100%; font-size: 12px; }
-.sf-session-tag { border: 1px solid var(--purpose-border); border-radius: 4px; padding: 0 6px; font-size: 12px; color: var(--purpose-text-muted); }
+.sf-session-chapters { flex-basis: 100%; font-family: var(--ts-hint-family); font-weight: var(--ts-hint-weight); font-size: var(--ts-hint-size); font-variation-settings: var(--ts-hint-var); }
+.sf-session-tag { border: 1px solid var(--purpose-border); border-radius: 4px; padding: 0 6px; font-family: var(--ts-hint-family); font-weight: var(--ts-hint-weight); font-size: var(--ts-hint-size); font-variation-settings: var(--ts-hint-var); color: var(--purpose-text-muted); }
 
 .sf-ref-row { align-items: baseline; flex-wrap: wrap; }
 .sf-ref-list { display: inline-flex; flex-wrap: wrap; gap: 4px 10px; }
@@ -91,11 +91,11 @@ button.sf-heat-cell { cursor: pointer; }
 .sf-ref:hover { color: var(--purpose-accent); }
 .sf-ref:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 2px; }
 .sf-ref.is-muted { color: var(--purpose-text-muted); }
-.sf-ref-choose { all: unset; cursor: pointer; font-size: 12px; color: var(--purpose-text-muted); border-radius: 3px; padding: 0 4px; margin-left: auto; }
+.sf-ref-choose { all: unset; cursor: pointer; font-family: var(--ts-hint-family); font-weight: var(--ts-hint-weight); font-size: var(--ts-hint-size); font-variation-settings: var(--ts-hint-var); color: var(--purpose-text-muted); border-radius: 3px; padding: 0 4px; margin-left: auto; }
 .sf-ref-choose:hover { color: var(--purpose-accent); }
 .sf-ref-choose:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 2px; }
 
-.sf-section-field { margin: 4px 0 8px 0; font-size: 14px; }
+.sf-section-field { margin: 4px 0 8px 0; font-family: var(--ts-fields-family); font-weight: var(--ts-fields-weight); font-size: var(--ts-fields-size); font-variation-settings: var(--ts-fields-var); }
 .sf-section-field[data-duplicate="true"] { color: var(--purpose-text-muted); }
 .sf-overview-row .sf-section-field { margin-left: 0; }
 
@@ -109,4 +109,4 @@ button.sf-heat-cell { cursor: pointer; }
 .sf-cover:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 2px; }
 .sf-cover:disabled { cursor: default; }
 .sf-cover-image { width: 100%; height: 100%; object-fit: cover; }
-.sf-cover-placeholder { font-size: 12px; }
+.sf-cover-placeholder { font-family: var(--ts-hint-family); font-weight: var(--ts-hint-weight); font-size: var(--ts-hint-size); font-variation-settings: var(--ts-hint-var); }
