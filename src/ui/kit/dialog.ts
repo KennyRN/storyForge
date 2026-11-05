@@ -132,7 +132,9 @@ export function openDialog(options: DialogOptions): OpenDialog {
 	// From a stop, the key that would leave the dialog goes to the other stop instead.
 	startStop.addEventListener("keydown", (e) => e.key === "Tab" && e.shiftKey && (e.preventDefault(), jump(endStop)));
 	endStop.addEventListener("keydown", (e) => e.key === "Tab" && !e.shiftKey && (e.preventDefault(), jump(startStop)));
-	const overlay = el("div", { class: "sf-dialog-overlay" }, startStop, panel, endStop);
+	panel.prepend(startStop);
+	panel.append(endStop);
+	const overlay = el("div", { class: "sf-dialog-overlay" }, panel);
 	let closed = false;
 	let current: DialogButton[] = options.buttons;
 	let lastStop = "";
