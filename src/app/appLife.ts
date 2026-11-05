@@ -246,6 +246,8 @@ export class AppController {
 				...(readOnly ? { readOnlyReason: settings.readOnlyReason ?? "This project is open read-only." } : {}),
 			};
 			this.current = running;
+			// Only now is it a project that opened: the recent list takes it (a refused folder never gets here). Failing to record it never fails the open.
+			await this.host.invoke("remember_project").catch(() => undefined);
 			if (!readOnly) {
 				running.sessions = this.startSessions(running, key);
 				await running.sessions.recoverFromCrash().catch(() => 0);

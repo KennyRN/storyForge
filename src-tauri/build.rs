@@ -4,6 +4,7 @@ const COMMANDS: &[&str] = &[
     "app_info",
     "pick_project",
     "open_recent",
+    "remember_project",
     "recent_projects",
     "project_info",
     "close_project",

@@ -421,6 +421,43 @@ describe("newestBackupTime", () => {
 		expect(fs.readdirSync(root)).toEqual([]);
 	});
 
+	it("the recent list takes a folder only once it has opened as a project (Brief 16)", async () => {
+		// Not a project: refused, and not remembered.
+		const empty = tmp();
+		const h1 = makeHost();
+		h1.nextPick = { root: empty };
+		const a1 = track(new AppController(h1));
+		await a1.start();
+		expect((await a1.openDialog("open")).kind).toBe("not-a-project");
+		expect(h1.recent).toEqual([]);
+		await a1.teardown();
+		// A pre-0.17 layout: refused (it throws), and not remembered.
+		const legacy = copyFixture("pre-0.17");
+		const h2 = makeHost();
+		h2.nextPick = { root: legacy };
+		const a2 = track(new AppController(h2));
+		await a2.start();
+		await expect(a2.openDialog("open")).rejects.toThrow();
+		expect(h2.recent).toEqual([]);
+		// A real project: remembered, first, once. New Project is remembered too.
+		const real = copyFixture("series");
+		const h3 = makeHost();
+		h3.recent = ["/older"];
+		h3.nextPick = { root: real };
+		const a3 = track(new AppController(h3));
+		await a3.start();
+		expect((await a3.openDialog("open")).kind).toBe("opened");
+		expect(h3.recent).toEqual([real, "/older"]);
+		await a3.teardown();
+		const fresh = tmp();
+		const h4 = makeHost();
+		h4.nextPick = { root: fresh };
+		const a4 = track(new AppController(h4));
+		await a4.start();
+		expect((await a4.openDialog("create", { seriesTitle: "New One" })).kind).toBe("opened");
+		expect(h4.recent).toEqual([fresh]);
+	});
+
 	it("creating a project from an empty folder creates the first-run layout and opens it", async () => {
 		const root = tmp();
 		const host = makeHost();

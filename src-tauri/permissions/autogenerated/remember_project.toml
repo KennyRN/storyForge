@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-remember-project"
+description = "Enables the remember_project command without any pre-configured scope."
+commands.allow = ["remember_project"]
+
+[[permission]]
+identifier = "deny-remember-project"
+description = "Denies the remember_project command without any pre-configured scope."
+commands.deny = ["remember_project"]

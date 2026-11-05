@@ -51,13 +51,19 @@ export class FakeHost implements Host {
 				this.nextPick = null;
 				if (!pick) return null;
 				await this.attach(pick.root, pick.readOnly ?? false);
-				this.recent = [pick.root, ...this.recent.filter((r) => r !== pick.root)];
 				return { root: pick.root, readOnly: pick.readOnly ?? false };
 			}
 			case "open_recent": {
 				const root = this.recent[(payload as { index: number }).index];
 				await this.attach(root);
 				return { root, readOnly: false };
+			}
+			case "remember_project": {
+				// As Rust does: the project held open goes first on the list, once, at most ten.
+				if (!this.current) throw { code: "UNKNOWN", message: "no project is open" };
+				const root = this.current.root;
+				this.recent = [root, ...this.recent.filter((r) => r !== root)].slice(0, 10);
+				return null;
 			}
 			case "recent_projects":
 				return this.recent;

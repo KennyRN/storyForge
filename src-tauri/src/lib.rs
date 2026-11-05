@@ -18,7 +18,6 @@ use tauri::{Emitter, Manager, State, Theme};
 
 mod quit_state;
 
-const MAX_RECENT: usize = 10;
 
 /// What the app holds about the open project. The folder is chosen by the native picker (or the recent
 /// list) in Rust and stays here: the window can be told the path to display, but can never send a path
@@ -47,21 +46,18 @@ impl AppState {
     }
 
     fn recent(&self) -> Vec<String> {
-        self.machine.get("recent").ok().flatten().and_then(|t| serde_json::from_str::<Vec<String>>(&t).ok()).unwrap_or_default()
+        storyforge_fs::recent::parse(self.machine.get("recent").ok().flatten().as_deref())
     }
 
-    fn remember(&self, root: &str) {
-        let mut list = self.recent();
-        list.retain(|r| r != root);
-        list.insert(0, root.to_string());
-        list.truncate(MAX_RECENT);
-        let _ = self.machine.set("recent", &serde_json::to_string(&list).unwrap_or_default());
+    fn save_recent(&self, list: &[String]) {
+        let _ = self.machine.set("recent", &storyforge_fs::recent::to_text(list));
     }
 
+    /// Opens the folder as the project Rust holds. It is **not** put on the recent list here: a folder joins the list only once the window
+    /// has opened it as a project (`remember_project`), so a folder that is not a project, or is in an older layout, never does.
     fn open(&self, root: &std::path::Path) -> FsResult<Value> {
         let project = Project::open_checked(root)?;
         let info = project_summary(&project);
-        self.remember(&project.root().to_string_lossy());
         *self.project.lock().unwrap() = Some(Arc::new(project));
         Ok(info)
     }
@@ -121,6 +117,17 @@ async fn open_recent(app: tauri::AppHandle, state: State<'_, AppState>, index: u
     let opened = state.open(&PathBuf::from(root));
     refresh_menu(&app);
     opened
+}
+
+/// Puts the project Rust holds open on the recent list, once the window has opened it as a project. It takes no path: it records only the
+/// folder Rust itself holds (decision 24). It writes only `recent.json` in the app's data folder (decision 121's amendment).
+#[tauri::command]
+fn remember_project(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<(), FsError> {
+    let root = state.project()?.root().to_string_lossy().to_string();
+    let list = storyforge_fs::recent::remember(state.recent(), &root);
+    state.save_recent(&list);
+    refresh_menu(&app);
+    Ok(())
 }
 
 /// The window says which of the app's own menu items apply now (no project open, nothing selected, a read-only
@@ -532,7 +539,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            app_info, pick_project, open_recent, recent_projects, project_info, close_project, scan, stat, read_text, read_binary, read_outside, write_text, write_binary,
+            app_info, pick_project, open_recent, remember_project, recent_projects, project_info, close_project, scan, stat, read_text, read_binary, read_outside, write_text, write_binary,
             create_file, create_folder, compare_write, rename, retire, list_temp_leftovers, remove_temp, read_cover, pick_cover, machine_get, machine_set, watch_start, watch_stop, download_placeholder, reveal_in_finder, set_menu_state, quit_ready, close_progress
         ])
         .on_window_event(|window, event| {
