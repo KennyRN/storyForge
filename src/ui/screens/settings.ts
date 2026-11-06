@@ -8,7 +8,7 @@ import { FOLLOW, styleOf, resolvedFont, type TypeStyle, type TypeStyleId } from 
 import { getBookChapters, numberedChapterTitle, readBookFrontmatter } from "../../core/book";
 import { numberedBookTitle, readSeriesFrontmatter } from "../../core/series";
 import { button } from "../kit/button";
-import { navIcon } from "../kit/navIcons";
+import { navIcon, type NavIconName } from "../kit/navIcons";
 import { bringForward, openDialog } from "../kit/dialog";
 import { el } from "../kit/dom";
 import { typingSection } from "./typingSettings";
@@ -32,6 +32,8 @@ const APPEARANCE_PAGES = ["interface", "library mode", "storytelling mode", "wri
 const GENERAL_PAGES = ["general", "story", "this computer"] as const;
 const WRITING_PAGES = ["typing behaviours", "names", "shortcodes", "special characters"] as const;
 const SUB_PAGES: Partial<Record<Page, readonly string[]>> = { General: GENERAL_PAGES, Appearance: APPEARANCE_PAGES, Writing: WRITING_PAGES };
+/** Each entry of the left-hand list has Kenny's icon (volcanicMole's Rounded Settings, Layout Dashboard, Keyboard and Clipboard Data, and the Back Up shield). */
+const SETTINGS_ICONS: Partial<Record<Page, NavIconName>> = { General: "settings", Appearance: "dashboard", Writing: "keyboard", Sessions: "clipboard", Backups: "backup" };
 const FREQUENCIES: Record<AutomaticBackupFrequency, string> = { "every-open": "Every time the project opens", daily: "Once a day", weekly: "Once a week" };
 
 /**
@@ -502,7 +504,7 @@ export function openSettings(model: AppModel): void {
 					class: `sf-settings-tab${active ? " is-active" : ""}`,
 					dataset: { page: p },
 					attrs: { type: "button", role: "tab", "aria-selected": String(active), "aria-controls": "sf-settings-page", tabindex: active ? "0" : "-1" },
-					...(p === "Backups" ? {} : { text: p }),
+					...(SETTINGS_ICONS[p] ? {} : { text: p }),
 					on: {
 						click: () => (p !== page && (subPage = SUB_PAGES[p]?.[0] ?? ""), (page = p), redraw()),
 						keydown: (e) => {
@@ -515,7 +517,7 @@ export function openSettings(model: AppModel): void {
 							body.querySelector<HTMLElement>(".sf-settings-tab.is-active")?.focus();
 						},
 					},
-				}, ...(p === "Backups" ? [navIcon("backup", "32px"), el("span", { class: "sf-settings-tab-label", text: p })] : [])), // Kenny's Back Up icon, as in the Navigate menu (the other entries get icons next round)
+				}, ...(SETTINGS_ICONS[p] ? [navIcon(SETTINGS_ICONS[p]!, "32px"), el("span", { class: "sf-settings-tab-label", text: p })] : [])), // Kenny's icons, drawn as in the Navigate menu
 			);
 		});
 		const subList = SUB_PAGES[page] ?? [];

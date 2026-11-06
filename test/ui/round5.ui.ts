@@ -89,7 +89,7 @@ test("the novel tab's plot note, synopsis and read-only chapter text draw no foc
 	expect(await desc.evaluate((e) => getComputedStyle(e).outlineStyle)).toBe("solid");
 });
 
-test("Settings ▸ Backups has the Back Up icon before its text, in its row's colour, and the surface colour when selected", async ({ page }) => {
+test("Settings' left-hand list has Kenny's icons (Backups: the Back Up shield) before the text, in its row's colour, and the surface colour when selected", async ({ page }) => {
 	await openProject(page);
 	await openSettingsDialog(page);
 	const tab = dialog(page).getByRole("tab", { name: "Backups", exact: true });
@@ -103,7 +103,7 @@ test("Settings ▸ Backups has the Back Up icon before its text, in its row's co
 	const surface = await page.evaluate(() => { const i = document.createElement("i"); i.style.color = "var(--purpose-raised-bg)"; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; });
 	expect(await colour(tab.locator("svg"))).toBe(surface);
 	expect(await colour(tab)).toBe(surface);
-	await expect(dialog(page).getByRole("tab", { name: "General", exact: true }).locator("svg")).toHaveCount(0); // the others get icons next round
+	for (const name of ["General", "Appearance", "Writing", "Sessions", "Backups"]) await expect(dialog(page).getByRole("tab", { name, exact: true }).locator("svg"), name).toHaveCount(1); // every entry has Kenny's icon
 });
 
 test("no page of Settings has a header inside it, and Writing has four sub-pages", async ({ page }) => {
