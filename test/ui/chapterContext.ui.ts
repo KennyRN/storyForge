@@ -74,15 +74,17 @@ test.describe("the context panel on the novel tab", () => {
 		expect(await page.locator(".sf-slot--lore").evaluate((e) => getComputedStyle(e).backgroundColor)).toBe(await probe("var(--purpose-panel-bg)"));
 	});
 
-	test("the Codex note's slot is hidden here, and on every other tab, and on the storytelling side, the panel is as it was", async ({ page }) => {
+	test("the Codex note's slot is hidden on the whole library side (Brief 19 §4), and on the storytelling side the panel is as it was", async ({ page }) => {
 		await expect(page.locator(".sf-lore-host")).toBeHidden();
 		await page.getByRole("tab", { name: "codex" }).click();
 		await expect(panel(page)).toBeHidden();
-		await expect(page.locator(".sf-lore-host")).toBeVisible();
+		await expect(page.locator(".sf-lore-host")).toBeHidden();
 		await page.getByRole("tab", { name: "series" }).click();
 		await expect(panel(page)).toBeHidden();
+		await expect(page.locator(".sf-lore-host")).toBeHidden();
 		await page.getByRole("tab", { name: "archive" }).click();
 		await expect(panel(page)).toBeHidden();
+		await expect(page.locator(".sf-lore-host")).toBeHidden();
 		await flipFace(page);
 		await expect(panel(page)).toBeHidden();
 		await expect(page.locator(".sf-lore-host")).toBeVisible();
@@ -354,5 +356,27 @@ test.describe("one chosen chapter, shared by both sides", () => {
 		await page.getByRole("tab", { name: "novel" }).click();
 		await expect(overview(page)).toBeVisible();
 		expect(tree(root)).toEqual(before);
+	});
+
+	test("a Codex note open on the storytelling side stays out of the library side's panel, and flipping back finds it with unsaved text intact (Brief 19 §4)", async ({ page }) => {
+		const root = await openProject(page);
+		await page.evaluate(() => (window.__app as any).toggleLore("Codex/Windows.md"));
+		const note = page.locator(".sf-lore-host .cm-content");
+		await expect(note).toBeVisible();
+		await note.click();
+		await page.keyboard.type("UNSAVEDWORDS");
+		for (const tab of ["codex", "series", "archive", "novel"]) {
+			await flipFace(page);
+			await page.getByRole("tab", { name: tab }).click();
+			await expect(page.locator(".sf-lore-host")).toBeHidden();
+			await expect(page.locator(".sf-lore-host")).toHaveJSProperty("inert", true);
+			await flipFace(page);
+			await expect(page.locator(".sf-lore-host")).toBeVisible();
+			await expect(page.locator(".sf-lore-host")).toHaveJSProperty("inert", false);
+			await expect(note).toContainText("UNSAVEDWORDS");
+		}
+		await page.waitForTimeout(1500);
+		const files = Object.keys(tree(root));
+		expect(files.filter((f) => f.includes("recovery") || f.includes("conflict"))).toEqual([]);
 	});
 });

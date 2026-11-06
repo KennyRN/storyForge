@@ -42,7 +42,8 @@ test.describe("the library", () => {
 		await expect(page.locator(".sf-lore-host")).toBeHidden();
 		await expect(page.locator(".sf-chapter-context")).toBeVisible();
 		await page.getByRole("tab", { name: "codex" }).click();
-		await expect(page.locator(".sf-lore-host .cm-content")).toBeVisible();
+		await expect(page.locator(".sf-lore-host")).toBeHidden(); // the note belongs to the storytelling side (Brief 19 §4)
+		await expect(page.locator(".sf-lore-host .cm-content")).toHaveCount(1);
 		await page.getByRole("tab", { name: "novel" }).click();
 		await expect(centre(page)).toContainText("Synthetic sentence number 1");
 		await flip(page);

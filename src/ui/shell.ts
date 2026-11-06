@@ -1,6 +1,7 @@
 import { mountLibraryLayer, mountOverviewLayer } from "./overviews/layer";
 import { mountCharactersButton } from "./context/charactersButton";
-import { mountChapterContext, showsChosenChapter } from "./context/chapterContext";
+import { mountChapterContext } from "./context/chapterContext";
+import { contextMode } from "./context/contextMode";
 import type { AppModel } from "./model";
 import { EditorHost } from "./editor/editorHost";
 import { el, fill } from "./kit/dom";
@@ -69,7 +70,10 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 		// Try-out (round five): the storytelling editor is a card; its top and bottom margins equal the gap between the Codex card and the editor (the card's right margin, 10% of the panel, 12px at least).
 		document.documentElement.style.setProperty("--sf-card-gap", `${Math.max(12, Math.round(shown.left * 0.1))}px`);
 		lore.hidden = model.nav.loreHidden;
-		loreHost.hidden = showsChosenChapter(model);
+		// The note belongs to the storytelling side: on the library side it stays open, hidden and inert, so flipping back finds it as it was (Brief 19 §4).
+		const noteShows = contextMode(model) === "note";
+		loreHost.hidden = !noteShows;
+		loreHost.inert = !noteShows;
 		loreBar.hidden = model.nav.loreHidden;
 	};
 	const leftBar = splitter("Resize the left panel", "left", () => model.displayWidths().left, (w) => (model.setPanelWidthPx("left", w), apply()));
