@@ -10,6 +10,8 @@
 	--stats-h: 64px; /* the stats section: 8 + the graph icon's 24 + 8 + the readout's 16 + 8 */
 	--radius: 6px;
 	--band-h: 28px; /* the invisible title bar's band: the traffic lights sit in it, the panels' backgrounds run up behind it */
+	--gap: 28px; /* the one gap between boxes (Brief 19 §3): the window's sides, between panels (half on each side of a panel's edge), above and below; it never follows a panel's width */
+	--half-gap: 14px;
 	--top-gap: 20px; /* from the band's bottom to the one top line the three panels' first things start on */
 	--motion: 160ms;
 }
@@ -330,7 +332,7 @@ input[aria-invalid="true"] {
 .sf-slot--library {
 	height: 100%;
 	box-sizing: border-box;
-	padding: var(--top-gap) 32px 12px; /* the card starts on the shared top line */
+	padding: 0 var(--half-gap) 12px; /* the card starts at the title band's foot, 28px from the window's top */
 	background: var(--purpose-panel-bg);
 }
 .sf-slot--library > .sf-editor-pane {
@@ -347,14 +349,14 @@ input[aria-invalid="true"] {
 	background: var(--purpose-editor-bg);
 }
 /* A try-out (round five): on the storytelling side the chapter editor is a bg0 card on bg_dim. Left and right it meets the panels as it did; top and bottom it is as far
-   from the title band's foot and the window's foot as the Codex card is from the editor (--sf-card-gap); its corners are the library Codex page's panel's (10px). */
+   from the title band's foot and the window's foot as the Codex card is from the editor (--gap); its corners are the library Codex page's panel's (10px). */
 .sf-frame:has(.sf-left[data-face="storytelling"]) .sf-centre-wrap {
 	background: var(--purpose-panel-bg);
 }
 .sf-frame:has(.sf-left[data-face="storytelling"]) .sf-slot--centre {
 	box-sizing: border-box;
-	height: calc(100% - 2 * var(--sf-card-gap, 12px));
-	margin-block: var(--sf-card-gap, 12px);
+	height: calc(100% - var(--stats-h) - var(--space-3)); /* its foot is the Codex cards' (12px above the stats section); its top is the title band's foot, 28px from the window's top */
+	margin: 0 var(--half-gap);
 	border-radius: 10px;
 	overflow: hidden;
 }
@@ -376,7 +378,7 @@ input[aria-invalid="true"] {
 .sf-lore-host {
 	flex: 1;
 	min-height: 0;
-	padding: var(--top-gap) max(12px, 10%) 0;
+	padding: 0 var(--gap) 0 var(--half-gap); /* the card's top is the title band's foot (28px from the window's top), its right the window's 28px */
 }
 .sf-lore-host > .sf-editor-pane {
 	background: var(--purpose-editor-bg);

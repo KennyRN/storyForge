@@ -69,19 +69,18 @@ test.describe("the library side's backgrounds", () => {
 		expect((await style(page.locator(".sf-slot--centre"), ["background-color"]))[0]).toBe(await probe(page, BG0));
 		await dim(page, page.locator(".sf-left"), "the left panel");
 		await dim(page, page.locator(".sf-centre-wrap"), "the strip around the editor card"); // bg_dim shows round the card, under the title band and at the window's foot
-		const gap = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sf-card-gap")));
 		const [card, wrap] = await page.evaluate(() => { const r = (s: string) => { const b = document.querySelector(s)!.getBoundingClientRect(); return { top: b.top, bottom: b.bottom }; }; return [r(".sf-slot--centre"), r(".sf-centre-wrap")]; });
-		expect(card.top - (wrap.top + 28)).toBeCloseTo(gap, 0); // from the band's foot
-		expect(wrap.bottom - card.bottom).toBeCloseTo(gap, 0); // from the window's foot
+		expect(card.top - (wrap.top + 28)).toBeCloseTo(0, 0); // it starts at the band's foot, 28px from the window's top (Brief 19 §3)
+		expect(wrap.bottom - card.bottom).toBeCloseTo(76, 0); // its foot is the Codex cards': 12px above the stats section (64px)
 		expect((await style(page.locator(".sf-slot--centre"), ["border-top-left-radius"]))[0]).toBe("10px");
 	});
 
-	test("the first lines of the cards start on the shared top line (48px)", async ({ page }) => {
+	test("the library's Codex entry card starts at the title band's foot (28px: Brief 19 §3)", async ({ page }) => {
 		await flipFace(page);
 		await page.getByRole("tab", { name: "codex" }).click();
 		await page.locator(".sf-codex-file", { hasText: "Jane" }).first().click();
 		const top = await page.locator(".sf-slot--library:not([hidden]) .sf-editor-pane").evaluate((e) => e.getBoundingClientRect().top);
-		expect(top).toBeCloseTo(48, 0);
+		expect(top).toBeCloseTo(28, 0);
 	});
 });
 

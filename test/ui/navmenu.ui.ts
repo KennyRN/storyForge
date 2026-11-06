@@ -230,17 +230,17 @@ test.describe("the chapter list's rows, the add button and the title bar", () =>
 		expect(under).toEqual([]);
 	});
 
-	test("one top line: the series name, the context card, the workspace's first line start at the same height; the library side's first tab sits 4px above it", async ({ page }) => {
+	test("one top line: the series name and the chapter's first line start at the same height (the boxes start at 28px: Brief 19); the library side's first tab sits 4px above it", async ({ page }) => {
 		await openProject(page);
 		await page.locator(".sf-codex-tree [data-key]").filter({ hasText: "Jane" }).first().click();
 		await expect(page.locator(".sf-lore-host > .sf-editor-pane")).toBeVisible();
 		const top = (sel: string) => page.locator(sel).first().evaluate((e) => e.getBoundingClientRect().top);
 		const want = await top(".sf-nav-series");
 		expect(want).toBeCloseTo(48, 0);
-		expect(await top(".sf-lore-host > .sf-editor-pane")).toBeCloseTo(want, 0);
-		// the storytelling editor is a card since the round-five try-out: its text starts below its card's gap (the gap is the Codex card's right margin, 10% of the panel)
-		const gap = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sf-card-gap")));
-		expect(await top(".sf-slot--centre .cm-line")).toBeCloseTo(28 + gap + 20, 0); // the band, the gap, the editor's own top padding (--top-gap)
+		// Brief 19 §3 (amending decision 106's top line for the boxes): the context card and the chapter box start 28px from the window's top, clearing the title band
+		expect(await top(".sf-lore-host > .sf-editor-pane")).toBeCloseTo(28, 0);
+		expect(await top(".sf-slot--centre")).toBeCloseTo(28, 0);
+		expect(await top(".sf-slot--centre .cm-line")).toBeCloseTo(want, 0); // the chapter's text is on the one top line again: the band, then the editor's own top padding (--top-gap)
 		await flipFace(page);
 		expect(await top(".sf-tab")).toBeCloseTo(44, 0); // 28 + 16: 4px above the shared line, accepted
 	});

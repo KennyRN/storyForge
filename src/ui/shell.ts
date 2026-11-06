@@ -58,7 +58,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	const centreWrap = el("div", { class: "sf-centre-wrap" }, centre, overview, library);
 	const lore = el("aside", { class: "sf-slot sf-slot--lore", attrs: { "aria-label": "Context" } });
 	// The editor host fills and empties its element; the bottom row (the special-characters button) lives below it, not inside it.
-	// A note, when there is one, sits on a card inside the host; the host's padding is the card's margin (10% of the panel's width).
+	// A note, when there is one, sits on a card inside the host; the host's padding is the card's margin (the one gap, `--gap`).
 	const loreHost = el("div", { class: "sf-lore-host" });
 	const loreRow = el("div", { class: "sf-context-row" });
 	// On the library side's novel tab the chosen chapter replaces the note here (Brief 14 §1.6); on every other tab the panel is unchanged.
@@ -69,8 +69,6 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 		const shown = model.displayWidths();
 		left.style.width = `${shown.left}px`;
 		lore.style.width = `${shown.lore}px`;
-		// Try-out (round five): the storytelling editor is a card; its top and bottom margins equal the gap between the Codex card and the editor (the card's right margin, 10% of the panel, 12px at least).
-		document.documentElement.style.setProperty("--sf-card-gap", `${Math.max(12, Math.round(shown.left * 0.1))}px`);
 		lore.hidden = model.nav.loreHidden;
 		// The note belongs to the storytelling side: on the library side it stays open, hidden and inert, so flipping back finds it as it was (Brief 19 §4).
 		const noteShows = contextMode(model) === "note";

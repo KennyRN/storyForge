@@ -159,7 +159,7 @@
 	--nav-radius: 10px;
 	--nav-pad: 14px; /* the list's 6px plus a row's 8px: the closed title sits where the list's text does */
 	position: relative;
-	margin: 0 max(12px, 10%) 0 calc(var(--space-4) + 30px);
+	margin: 0 var(--half-gap) 0 calc(var(--space-4) + 30px);
 }
 /* Open, the selector's fill and the dropdown are one joined piece, so the one shadow is drawn round the pair (a filter on both together), with no line across the join. */
 .sf-select:has(.sf-select-current[aria-expanded="true"]) {
@@ -250,7 +250,7 @@
    from the card's edges, with corners (4px) that sit inside the card's (10px); inside a folder it still starts flush at the line. */
 .sf-left .sf-codex-tree {
 	line-height: 1.1;
-	margin: var(--space-1) max(12px, 10%) var(--space-3) var(--space-2);
+	margin: var(--space-1) var(--half-gap) var(--space-3) var(--space-2);
 	background: var(--purpose-editor-bg);
 	border-radius: 10px;
 	padding: 6px;
@@ -651,7 +651,7 @@ body.sf-codex-drag-active {
 .sf-forge-body {
 	flex: 1;
 	min-height: 0;
-	padding: var(--space-1) var(--space-3) var(--space-4) var(--space-3); /* starts where the Codex card's top is, so nothing jumps between tabs */
+	padding: var(--space-1) var(--half-gap) var(--space-4) var(--space-3); /* starts where the Codex card's top is, so nothing jumps between tabs */
 }
 .sf-series-title {
 	padding: var(--space-1) var(--space-4) var(--space-1); /* its text starts where the Codex card's top is */

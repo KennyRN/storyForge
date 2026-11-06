@@ -31,7 +31,7 @@ test.describe("the context panel's card", () => {
 		await shot(page, "look-card");
 	});
 
-	test("the margin is 10% of the panel's width on the left and right (the top is the title bar's band and a fixed gap), and follows a resize; the bottom row sits directly beneath the card, which ends 12px above where the stats section starts (decision 93)", async ({ page }) => {
+	test("the margins are fixed (Brief 19 §3: 14px to the panel's edge, 28px to the window's, 28px from the window's top) and don't follow a resize; the bottom row sits directly beneath the card, which ends 12px above where the stats section starts (decision 93)", async ({ page }) => {
 		await openProject(page);
 		await openNote(page);
 		for (const grow of [0, 60]) {
@@ -41,23 +41,12 @@ test.describe("the context panel's card", () => {
 				for (let i = 0; i < 6; i++) await page.keyboard.press("Shift+ArrowLeft"); // wider (the bar is on the panel's left)
 			}
 			const [p, c, r] = await Promise.all([rect(panel(page)), rect(card(page)), rect(row(page))]);
-			const m = Math.max(12, p.w * 0.1);
-			expect(c.x - p.x, "left").toBeCloseTo(m, 0);
-			expect(p.r - c.r, "right").toBeCloseTo(m, 0);
-			expect(c.y - p.y, "top: the title bar's band and the one top line's gap").toBeCloseTo(28 + 20, 0);
+			expect(c.x - p.x, "left: half the gap to the chapter box").toBeCloseTo(14, 0);
+			expect(p.r - c.r, "right: the window's 28px").toBeCloseTo(28, 0);
+			expect(c.y - p.y, "top: the title bar's band, 28px from the window's top").toBeCloseTo(28, 0);
 			expect(r.y - c.b, "the bottom row is directly beneath the card").toBeCloseTo(0, 0);
 			expect(p.b - c.b, "bottom: the stats section's height and 12px").toBeCloseTo(64 + 12, 0);
 		}
-	});
-
-	test("a narrow panel keeps a margin of 12px, not 10%", async ({ page }) => {
-		await openProject(page);
-		await openNote(page);
-		await panel(page).evaluate((el) => ((el as HTMLElement).style.width = "100px")); // narrower than the panel can be dragged: the rule itself
-		const [p, c] = await Promise.all([rect(panel(page)), rect(card(page))]);
-		expect(p.w).toBeCloseTo(100, 0);
-		expect(c.x - p.x).toBeCloseTo(12, 0);
-		expect(p.r - c.r).toBeCloseTo(12, 0);
 	});
 
 	test("with no note open there is no card, and the bottom row is still there", async ({ page }) => {

@@ -143,7 +143,7 @@ test.describe("the Codex card on the storytelling side", () => {
 		expect(panel.w).toBeGreaterThan(0);
 	});
 
-	test("its top and left are where the list's own were before the card (4px and 8px); its right is 10% of the body's width (12px at least) and follows the panel as it's resized", async ({ page }) => {
+	test("its top and left are where the list's own were before the card (4px and 8px); its right is half the one gap (14px) whatever the panel's width (Brief 19 §3)", async ({ page }) => {
 		await openProject(page);
 		const margins = async () => {
 			const [tree, body] = await Promise.all([rect(page, ".sf-codex-tree"), rect(page, ".sf-codex-body")]);
@@ -153,14 +153,13 @@ test.describe("the Codex card on the storytelling side", () => {
 		const m1 = await margins();
 		expect(m1.top).toBeCloseTo(4, 0);
 		expect(m1.left).toBeCloseTo(8, 0);
-		expect(m1.right).toBeCloseTo(Math.max(12, m1.panel * 0.1), 0);
+		expect(m1.right).toBeCloseTo(14, 0);
 		const bar = page.getByRole("separator", { name: "Resize the left panel" });
 		await bar.focus();
 		for (let i = 0; i < 6; i++) await page.keyboard.press("ArrowRight");
 		const m2 = await margins();
 		expect(m2.panel).toBeGreaterThan(m1.panel + 50);
-		expect(m2.right).toBeCloseTo(Math.max(12, m2.panel * 0.1), 0);
-		expect(m2.right).toBeGreaterThan(m1.right);
+		expect(m2.right).toBeCloseTo(14, 0);
 		expect(m2.top).toBeCloseTo(4, 0);
 		expect(m2.left).toBeCloseTo(8, 0);
 	});

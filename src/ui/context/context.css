@@ -8,7 +8,7 @@
 	display: flex;
 	flex-direction: column;
 	gap: 12px;
-	padding: var(--top-gap) max(12px, 10%) 0;
+	padding: 0 var(--gap) 0 var(--half-gap);
 }
 .sf-chapter-rows { flex: none; display: flex; flex-direction: column; gap: 2px; font-family: var(--ts-body-family); font-weight: var(--ts-body-weight); font-size: var(--ts-body-size); font-variation-settings: var(--ts-body-var); }
 .sf-chapter-rows .sf-card-row { display: flex; gap: 8px; }
@@ -32,7 +32,7 @@
 	flex-direction: column;
 	gap: 12px;
 	overflow: auto;
-	padding: var(--top-gap) max(12px, 10%) 12px;
+	padding: 0 var(--gap) 12px var(--half-gap);
 }
 .sf-novel-ctx-head { display: flex; gap: 12px; align-items: flex-start; }
 .sf-novel-ctx-meta { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
