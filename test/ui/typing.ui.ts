@@ -709,7 +709,8 @@ for (const kind of KINDS) {
 			const win = page.viewportSize()!;
 			const fieldBox = (await field.boundingBox())!;
 			expect(fieldBox.x + fieldBox.width, "the field reaches the window's right edge").toBeGreaterThan(win.width - 80);
-			expect(below.x + below.width, "it was at the window's right edge").toBeGreaterThanOrEqual(win.width - 4);
+			// Brief 19: the overviews fill their pane, so the line's end no longer leaves the popup overflowing: it is inside the window (clamped where it would not be), not necessarily flush with the edge
+			expect(below.x + below.width, "it was inside the window").toBeLessThanOrEqual(win.width);
 			expect(box.x).toBeGreaterThanOrEqual(0);
 			expect(box.y).toBeGreaterThanOrEqual(0);
 			expect(box.x + box.width).toBeLessThanOrEqual(win.width);
