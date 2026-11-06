@@ -125,6 +125,8 @@ export interface ProjectSettings extends AppearanceKeys, TypeStyleKeys {
 	boldColour: EmphasisColour;
 	italicColour: EmphasisColour;
 	boldItalicColour: EmphasisColour;
+	/** The small headings' colour (round three): the text colour (default) or one of the five. */
+	smallHeadingColour: EmphasisColour;
 	hideSeriesPane: boolean;
 	autoFocus: boolean;
 	layout: SfLayout;
@@ -186,6 +188,7 @@ export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
 	boldColour: "orange",
 	italicColour: "orange",
 	boldItalicColour: "orange",
+	smallHeadingColour: "text",
 	hideSeriesPane: false,
 	autoFocus: true,
 	layout: "novelBrowse",
@@ -238,6 +241,7 @@ const FIELDS: Record<Key, { file: string; plugin: string; valid: (v: unknown) =>
 	highlightColour: { file: "highlight-colour", plugin: "-", valid: (v) => typeof v === "string" && (HIGHLIGHT_COLOURS as readonly string[]).includes(v) },
 	boldColour: { file: "bold-colour", plugin: "-", valid: (v) => typeof v === "string" && (EMPHASIS_COLOURS as readonly string[]).includes(v) },
 	italicColour: { file: "italic-colour", plugin: "-", valid: (v) => typeof v === "string" && (EMPHASIS_COLOURS as readonly string[]).includes(v) },
+	smallHeadingColour: { file: "small-heading-colour", plugin: "-", valid: (v) => typeof v === "string" && (EMPHASIS_COLOURS as readonly string[]).includes(v) },
 	boldItalicColour: { file: "bold-italic-colour", plugin: "-", valid: (v) => typeof v === "string" && (EMPHASIS_COLOURS as readonly string[]).includes(v) },
 	hideSeriesPane: { file: "hide-series-pane", plugin: "hideSeriesPane", valid: (v) => typeof v === "boolean" },
 	autoFocus: { file: "auto-focus", plugin: "autoFocus", valid: (v) => typeof v === "boolean" },

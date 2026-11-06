@@ -48,7 +48,7 @@
 	font-variation-settings: var(--ts-small-heading-var);
 	letter-spacing: 0.04em;
 	text-transform: lowercase;
-	color: var(--purpose-text-muted);
+	color: var(--purpose-small-heading);
 }
 .sf-pane-actions {
 	display: flex;
@@ -721,6 +721,7 @@ body.sf-codex-drag-active {
 	font-size: var(--ts-small-heading-size);
 	font-variation-settings: var(--ts-small-heading-var);
 	letter-spacing: 0.04em;
+	color: var(--purpose-small-heading);
 }
 .sf-unplaced-list .sf-row {
 	color: var(--purpose-text-muted);

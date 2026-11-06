@@ -9,7 +9,7 @@ async function openProject(page: Page): Promise<void> {
 	await page.waitForFunction(() => !!window.__app?.editors);
 }
 const dialog = (page: Page) => page.getByRole("dialog");
-async function openSettings(page: Page, section?: string, sub = "Navigator"): Promise<void> {
+async function openSettings(page: Page, section?: string, sub = "storytelling mode"): Promise<void> {
 	await openSettingsDialog(page);
 	await expect(dialog(page)).toBeVisible();
 	if (section) await dialog(page).getByRole("tab", { name: section, exact: true }).click();
@@ -55,7 +55,7 @@ test.describe("settings sections", () => {
 		await openSettings(page);
 		await expect(dialog(page).getByRole("radiogroup", { name: "Codex colour" })).toHaveCount(0);
 		await dialog(page).getByRole("tab", { name: "Appearance" }).click();
-		await dialog(page).getByRole("tab", { name: "Text colours", exact: true }).click();
+		await dialog(page).getByRole("tab", { name: "storytelling mode", exact: true }).click();
 		await dialog(page).getByRole("radiogroup", { name: "Codex colour" }).getByRole("radio", { name: "Purple" }).click();
 		await expect(page.locator("html")).toHaveAttribute("data-codex-colour", "purple");
 		expect(await projectMd(page)).toContain("codex-colour: purple");
@@ -67,7 +67,7 @@ test.describe("the data colour (Brief 15)", () => {
 
 	test("five swatches on the Appearance page, blue chosen; opening writes nothing; choosing one writes its role name and recolours the bars at once", async ({ page }) => {
 		await openProject(page);
-		await openSettings(page, "Appearance", "Text colours");
+		await openSettings(page, "Appearance", "library mode");
 		expect(await group(page).getByRole("radio").evaluateAll((els) => els.map((e) => [e.getAttribute("aria-label"), e.getAttribute("title"), (e.textContent ?? "").trim()]))).toEqual(["Yellow", "Aqua", "Blue", "Orange", "Purple"].map((n) => [n, n, ""])); // unnamed squares: the name is for the screen reader and the tooltip
 		await expect(group(page).getByRole("radio", { name: "Blue" })).toHaveAttribute("aria-checked", "true");
 		expect(await projectMd(page)).toBe("");
@@ -182,12 +182,12 @@ test.describe("Appearance", () => {
 		await expect(slider).toHaveAttribute("min", "0.75");
 		await expect(slider).toHaveAttribute("max", "2");
 		await expect(slider).toHaveAttribute("step", "0.125");
-		const novel = dialog(page).locator('section[aria-label="Appearance: Novel title"]');
+		const novel = dialog(page).getByLabel("Novel title size (rem)").locator("xpath=..");
 		await expect(novel.getByText("1 rem (16 px)")).toBeVisible();
 		// a drag: input events preview (the value, the sample, the page) and write nothing; release saves once
 		await slider.evaluate((e: HTMLInputElement) => { e.value = "1.5"; e.dispatchEvent(new Event("input", { bubbles: true })); });
 		await expect(novel.getByText("1.5 rem (24 px)")).toBeVisible();
-		expect(await dialog(page).getByRole("img", { name: "Sample of the novel title" }).evaluate((e) => getComputedStyle(e).fontSize)).toBe("24px");
+		expect(await dialog(page).getByRole("img", { name: "Sample of the novel title" }).locator("div").evaluate((e) => getComputedStyle(e).fontSize)).toBe("24px");
 		expect(await style(page, ".sf-nav-novel")).toMatchObject({ size: "24px" });
 		expect(await projectMd(page)).toBe("");
 		await slider.evaluate((e: HTMLInputElement) => e.dispatchEvent(new Event("change", { bubbles: true })));
@@ -209,7 +209,7 @@ test.describe("Appearance", () => {
 		await openProject(page);
 		await openSettings(page, "Appearance");
 		await font(page, "Series name").selectOption("Courier Prime");
-		const sample = dialog(page).getByRole("img", { name: "Sample of the series name" });
+		const sample = dialog(page).getByRole("img", { name: "Sample of the series name" }).locator("div");
 		await expect.poll(() => sample.evaluate((e) => getComputedStyle(e).fontFamily)).toContain("Courier Prime");
 		expect(await sample.evaluate((e) => getComputedStyle(e).fontSize)).toBe("12px"); // 0.75 rem, the series name's default
 		await expect.poll(async () => (await style(page, ".sf-nav-series")).family).toContain("Courier Prime"); // the page applies it as the write lands: poll, like the sample above

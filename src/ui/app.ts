@@ -34,6 +34,7 @@ export async function startApp(host: Host, root: HTMLElement): Promise<AppModel>
 		d.boldColour = v?.boldColour ?? "orange";
 		d.italicColour = v?.italicColour ?? "orange";
 		d.boldItalicColour = v?.boldItalicColour ?? "orange";
+		d.smallHeadingColour = v?.smallHeadingColour ?? "text";
 	};
 	// Whether the window is active, for the selection's neutral grey when it is not (theme/base.css).
 	const markWindow = (): void => void (document.documentElement.dataset.window = document.hasFocus() ? "active" : "inactive");

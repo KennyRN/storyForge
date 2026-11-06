@@ -60,7 +60,7 @@ test("changing a setting that was changed elsewhere says so, quietly, and keeps 
 	await openSettingsDialog(page);
 	const dialog = page.getByRole("dialog");
 	await dialog.getByRole("tab", { name: "Appearance", exact: true }).click();
-	await dialog.getByRole("tab", { name: "Text colours", exact: true }).click();
+	await dialog.getByRole("tab", { name: "storytelling mode", exact: true }).click();
 	await outside(page, "---\nformat-version: 1\ncodex-colour: green\nstory-kind: standalone\n---\n");
 	// names its group first (decision 117): the Selection colour group has a Green too
 	await expect(dialog.getByRole("radiogroup", { name: "Codex colour", exact: true }).getByRole("radio", { name: "Green", exact: true })).toBeChecked();

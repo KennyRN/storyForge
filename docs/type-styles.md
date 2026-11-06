@@ -109,3 +109,11 @@ Also: `sofia-navigator.png` (the novel title at 900 and the series name at 600 i
 - **Colour swatches are unnamed squares** (name for the screen reader and as a tooltip; the chosen one has an outline ring).
 - **Sizes are sliders** over the style's range (pixels, or rem at 0.125 steps with Shift 0.25 for the Navigator's parts): a drag previews live, release saves once. A hand-edited out-of-range value still draws the default and is never rewritten.
 - **Defaults:** selection blue; bold, italic and bold italic orange; highlight yellow; Interface font SN Pro. Stored values are unchanged ("text" and "plum" are still choices).
+
+## 12. Look, third round (1.10.0)
+
+- **Sub-pages** (lower case): *interface* (the Interface font; Body with Body bold under it; Small heading and its colour; Hint; Dialog heading, the style `heading` renamed), *library mode* (Title, Bar name, the data colour), *storytelling mode* (Series name, Novel title, Selected chapter, Codex list, the Codex colour), *writing* (the Writing font, Prose, Reading, Fields), *text colours* (the five).
+- **One grid** per sub-page: name, font, weight, size (slider and value), preview, a column each, lined up; an absent control leaves its cell empty. In a narrow window (the page under 900 px) the previews drop below their row.
+- **Body bold has only a weight**: its font, Softness and size are Body's; its stored `appearance-body-bold-font|size|soft` keys are never read.
+- **Previews** are drawn in the style's real colour on its real background, in text of the kind the style is used for, with the open project's own series, novel and chapter names; the Codex list's preview uses fixed example names.
+- **Small heading:** size 11 to 18 px; a colour setting `small-heading-colour` (text colour by default, replacing the muted grey; yellow, aqua, blue, orange, purple), applied to the pane titles, zone labels, overview sub-headings and summary titles. Contrast (WCAG) on bg_dim / bg1: text 7.83 / 5.75, yellow 7.25 / 5.33, aqua 6.25 / 4.59, blue 6.09 / 4.47, orange 5.74 / 4.22, purple 5.73 / 4.21 (the old grey2: 5.43 / 3.99).

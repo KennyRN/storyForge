@@ -762,6 +762,7 @@ describe("the text colours (Brief 17): selection, highlight, bold, italic and bo
 		{ file: "highlight-colour", key: "highlightColour", def: "yellow", ok: ["yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "plum", "text", "'#dbbc7f'", "4"] },
 		{ file: "bold-colour", key: "boldColour", def: "orange", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },
 		{ file: "italic-colour", key: "italicColour", def: "orange", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },
+		{ file: "small-heading-colour", key: "smallHeadingColour", def: "text", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },
 		{ file: "bold-italic-colour", key: "boldItalicColour", def: "orange", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },
 	] as const;
 

@@ -128,7 +128,7 @@ test.describe("the Codex colour setting", () => {
 		await openProject(page);
 		expect(await read(page, PROJECT)).toBeNull(); // opening writes nothing
 		const setting = (choice: string) => page.getByRole("radiogroup", { name: "Codex colour" }).getByRole("radio", { name: new RegExp(`^${choice}$`, "i") });
-		const openSettings = async () => { await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Appearance", exact: true }).click(); await page.getByRole("dialog").getByRole("tab", { name: "Text colours", exact: true }).click(); await expect(page.getByRole("radiogroup", { name: "Codex colour" })).toBeVisible(); };
+		const openSettings = async () => { await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Appearance", exact: true }).click(); await page.getByRole("dialog").getByRole("tab", { name: "storytelling mode", exact: true }).click(); await expect(page.getByRole("radiogroup", { name: "Codex colour" })).toBeVisible(); };
 		await openSettings();
 		await expect(setting("Text")).toHaveAttribute("aria-checked", "true");
 		for (const choice of ["yellow", "green", "aqua", "blue", "purple", "orange", "grey"]) {
@@ -173,7 +173,7 @@ test.describe("the Codex colour setting", () => {
 test.describe("decision 67", () => {
 	test("the keyboard focus ring stays visible on a highlighted row with green chosen: it is not the highlight's colour", async ({ page }) => {
 		await openProject(page);
-		await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Appearance", exact: true }).click(); await page.getByRole("dialog").getByRole("tab", { name: "Text colours", exact: true }).click();
+		await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Appearance", exact: true }).click(); await page.getByRole("dialog").getByRole("tab", { name: "storytelling mode", exact: true }).click();
 		await page.getByRole("radiogroup", { name: "Codex colour", exact: true }).getByRole("radio", { name: /^Green$/ }).click(); // names its group first (decision 117): the Selection colour group has a Green too
 		await page.getByRole("button", { name: "Done" }).click();
 		await row(page, "Sam").click(); // selected: highlighted

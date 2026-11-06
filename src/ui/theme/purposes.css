@@ -79,6 +79,7 @@
 	--purpose-emphasis-bold: var(--purpose-colour-choice-orange);
 	--purpose-emphasis-italic: var(--purpose-colour-choice-orange);
 	--purpose-emphasis-bold-italic: var(--purpose-colour-choice-orange);
+	--purpose-small-heading: var(--purpose-text); /* round three: the text colour, not the muted grey; a setting */
 	/* The four kinds of notice: a tinted fill and a 3 px edge. Red means something failed (decision 122). */
 	--purpose-notice-error-fill: var(--ef-bg-red);
 	--purpose-notice-error-edge: var(--ef-red);
@@ -137,3 +138,9 @@
 :root[data-bold-italic-colour="blue"] { --purpose-emphasis-bold-italic: var(--purpose-colour-choice-blue); }
 :root[data-bold-italic-colour="orange"] { --purpose-emphasis-bold-italic: var(--purpose-colour-choice-orange); }
 :root[data-bold-italic-colour="purple"] { --purpose-emphasis-bold-italic: var(--purpose-colour-choice-purple); }
+
+:root[data-small-heading-colour="yellow"] { --purpose-small-heading: var(--purpose-colour-choice-yellow); }
+:root[data-small-heading-colour="aqua"] { --purpose-small-heading: var(--purpose-colour-choice-aqua); }
+:root[data-small-heading-colour="blue"] { --purpose-small-heading: var(--purpose-colour-choice-blue); }
+:root[data-small-heading-colour="orange"] { --purpose-small-heading: var(--purpose-colour-choice-orange); }
+:root[data-small-heading-colour="purple"] { --purpose-small-heading: var(--purpose-colour-choice-purple); }

@@ -32,6 +32,7 @@ export const PURPOSES = [
 	"emphasis-bold",
 	"emphasis-italic",
 	"emphasis-bold-italic",
+	"small-heading",
 	"notice-error-fill",
 	"notice-error-edge",
 	"notice-warning-fill",

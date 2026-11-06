@@ -30,8 +30,8 @@ export interface TypeStyle {
 export const TYPE_STYLES = [
 	{ id: "display", name: "Display", base: "interface", weight: 600, size: 28, range: [20, 40], sample: "Welcome to storyForge" },
 	{ id: "title", name: "Title", base: "interface", weight: 600, size: 20, range: [16, 28], sample: "The Lantern Cycle" },
-	{ id: "heading", name: "Heading", base: "interface", weight: 600, size: 15, range: [13, 22], sample: "Rename note" },
-	{ id: "smallHeading", name: "Small heading", base: "interface", weight: 600, size: 12, range: [11, 16], sample: "Placed" },
+	{ id: "heading", name: "Dialog heading", base: "interface", weight: 600, size: 15, range: [13, 22], sample: "Settings" },
+	{ id: "smallHeading", name: "Small heading", base: "interface", weight: 600, size: 12, range: [11, 18], sample: "Placed" },
 	{ id: "body", name: "Body", base: "interface", weight: 400, size: 13, range: [11, 16], sample: "Chapter 1: The Storm" },
 	{ id: "bodyBold", name: "Body bold", base: "interface", weight: 600, size: 13, range: [11, 16], sample: "Book 1: The Harbour Wakes" },
 	{ id: "hint", name: "Hint", base: "interface", weight: 400, size: 12, range: [11, 14], sample: "Nothing here yet" },
@@ -42,9 +42,6 @@ export const TYPE_STYLES = [
 ] as const satisfies readonly TypeStyle[];
 export type TypeStyleId = (typeof TYPE_STYLES)[number]["id"];
 export const INTERFACE_STYLES = TYPE_STYLES.filter((s) => s.base === "interface");
-/** Settings ▸ Appearance: Interface: System, then Interface: Display text. Display is drawn only by the start screen, which has no project open, so it has no row (its stored keys are never read or rewritten). */
-export const SYSTEM_STYLE_IDS = ["body", "bodyBold", "smallHeading", "hint"] as const;
-export const DISPLAY_TEXT_STYLE_IDS = ["title", "heading", "barName"] as const;
 export const WRITING_STYLES = TYPE_STYLES.filter((s) => s.base === "writing");
 
 /** The base fonts' defaults: SN Pro for both until the author chooses (decision 123); a stored value that no longer exists draws the default. */

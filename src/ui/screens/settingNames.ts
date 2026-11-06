@@ -10,6 +10,7 @@ const NAMES: Partial<Record<keyof ProjectSettings, string>> = {
 	boldColour: "Bold colour",
 	italicColour: "Italic colour",
 	boldItalicColour: "Bold italic colour",
+	smallHeadingColour: "Small heading colour",
 	hideSeriesPane: "Hide the series pane",
 	autoFocus: "Opens in",
 	layout: "Layout",

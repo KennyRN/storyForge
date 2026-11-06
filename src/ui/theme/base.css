@@ -478,7 +478,7 @@ input[aria-invalid="true"] {
 	font-weight: var(--ts-small-heading-weight);
 	font-size: var(--ts-small-heading-size);
 	font-variation-settings: var(--ts-small-heading-var);
-	color: var(--purpose-text-muted);
+	color: var(--purpose-small-heading);
 }
 .sf-summary-list {
 	margin: 0;
@@ -549,7 +549,7 @@ input[aria-invalid="true"] {
 	color: var(--purpose-raised-bg);
 }
 .sf-dialog:has(.sf-settings) {
-	width: min(900px, calc(100vw - 32px)); /* room for a style's sample beside its controls */
+	width: min(1160px, calc(100vw - 32px)); /* room for the grid: name, font, weight, size, preview */
 }
 .sf-settings-pane {
 	display: flex;
@@ -579,11 +579,96 @@ input[aria-invalid="true"] {
 	color: var(--purpose-raised-bg);
 }
 .sf-settings-page {
+	container: sfpage / inline-size;
 	flex: 1;
 	min-width: 0;
 	min-height: 0;
 	overflow-y: auto;
 }
+.sf-grid {
+	display: grid;
+	grid-template-columns: max-content max-content max-content max-content minmax(14em, 1fr);
+	align-items: center;
+	gap: var(--space-2) var(--space-3);
+}
+.sf-grid-name {
+	white-space: nowrap;
+}
+.sf-grid-span {
+	grid-column: 2 / 5;
+	min-width: 0;
+}
+.sf-grid-font,
+.sf-grid-weight,
+.sf-grid-size,
+.sf-grid-preview {
+	min-width: 0;
+}
+.sf-grid-font .sf-setting-control,
+.sf-grid-weight .sf-setting-control {
+	width: 100%;
+}
+.sf-size-cell {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+.sf-size-cell .sf-slider {
+	width: 8em;
+	flex: none;
+}
+.sf-size-cell .sf-setting-source {
+	min-width: 9em;
+	white-space: nowrap;
+	text-align: left;
+}
+.sf-grid-hint {
+	white-space: normal;
+}
+/* A narrow window: the previews drop below their row rather than overflow. */
+@container sfpage (max-width: 900px) {
+	.sf-grid {
+		grid-template-columns: max-content repeat(3, minmax(0, 1fr));
+	}
+	.sf-grid .sf-setting-control {
+		min-width: 0;
+	}
+	.sf-size-cell .sf-slider {
+		flex: 1;
+		width: auto;
+		min-width: 3em;
+	}
+	.sf-size-cell .sf-setting-source {
+		min-width: 0;
+		white-space: normal;
+	}
+	.sf-grid-preview {
+		grid-column: 1 / -1;
+	}
+	.sf-grid-preview:empty {
+		display: none;
+	}
+}
+/* A preview: the style in the colour and on the background it really has. */
+.sf-preview {
+	padding: 6px 10px;
+	border-radius: 6px;
+	min-width: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	color: var(--purpose-text);
+	font-variant-ligatures: none;
+	font-synthesis: none;
+}
+.sf-preview--panel { background: var(--purpose-panel-bg); }
+.sf-preview--card { background: var(--purpose-editor-bg); }
+.sf-preview--raised { background: var(--purpose-raised-bg); }
+.sf-preview--small-heading { background: var(--purpose-panel-bg); color: var(--purpose-small-heading); }
+.sf-preview--hint { background: var(--purpose-panel-bg); color: var(--purpose-text-muted); }
+.sf-preview--bar { background: var(--purpose-data-fill); color: var(--purpose-text-on-data); border-radius: 4px; }
+.sf-preview-accent { color: var(--purpose-accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sf-preview-codex { color: var(--purpose-codex); background: var(--purpose-editor-bg); border-radius: 10px; padding: 6px 10px; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sf-style {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) 15em;

@@ -3,7 +3,9 @@ import type { AutomaticBackupFrequency } from "../../core/backup";
 import { APPEARANCE_BASE_PX, APPEARANCE_PARTS, APPEARANCE_SIZE_RANGE, APPEARANCE_SIZE_STEP, APPEARANCE_SIZE_STEP_SHIFT, CODEX_COLOURS, DATA_COLOURS, EMPHASIS_COLOURS, HIGHLIGHT_COLOURS, SELECTION_COLOURS, SESSION_LIMITS, appearanceKey, typeKey, setSetting, type AppearancePart, type CodexColour, type DataColour, type EmphasisColour, type SelectionColour, type ProjectSettings, type StoryKind } from "../../app/settings";
 import { FAMILY_INFO, FONT_FAMILIES, isFontFamily, nearestWeight, type FontFamily } from "../../core/fontFamilies";
 import { px, sampleStyle, styleLook } from "../appearance";
-import { DISPLAY_TEXT_STYLE_IDS, FOLLOW, SYSTEM_STYLE_IDS, WRITING_STYLES, styleOf, resolvedFont, type TypeStyle } from "../../core/typeStyles";
+import { FOLLOW, styleOf, resolvedFont, type TypeStyle, type TypeStyleId } from "../../core/typeStyles";
+import { numberedChapterTitle } from "../../core/book";
+import { numberedBookTitle, readSeriesFrontmatter } from "../../core/series";
 import { button } from "../kit/button";
 import { bringForward, openDialog } from "../kit/dialog";
 import { el } from "../kit/dom";
@@ -22,7 +24,7 @@ const WEIGHT_NAMES: Record<number, string> = { 100: "Thin", 200: "Extra light", 
 const PAGES = ["General", "Story", "Appearance", "Writing", "Sessions", "Backups", "This Mac"] as const;
 type Page = (typeof PAGES)[number];
 /** Appearance is one entry with sub-pages across the top of its pane (round two). */
-const APPEARANCE_PAGES = ["Interface: System", "Interface: Display text", "Navigator", "Writing", "Text colours"] as const;
+const APPEARANCE_PAGES = ["interface", "library mode", "storytelling mode", "writing", "text colours"] as const;
 type AppearancePage = (typeof APPEARANCE_PAGES)[number];
 const FREQUENCIES: Record<AutomaticBackupFrequency, string> = { "every-open": "Every time the project opens", daily: "Once a day", weekly: "Once a week" };
 
@@ -80,44 +82,32 @@ export function openSettings(model: AppModel): void {
 		input.addEventListener("change", () => void change(key, input.checked));
 		return row(label, input, key);
 	};
-	/** The Codex colour: named swatches, one chosen (a radio group). */
-	const codexColour = (): HTMLElement => {
-		const group = el("div", { class: "sf-swatches", attrs: { role: "radiogroup", "aria-label": "Codex colour" } });
-		for (const choice of CODEX_COLOURS) {
-			const chosen = settings.values.codexColour === choice;
-			const b = el("button", { class: `sf-swatch sf-swatch--colour${chosen ? " is-chosen" : ""}`, dataset: { choice }, attrs: { type: "button", role: "radio", "aria-checked": String(chosen), "aria-label": CODEX_COLOUR_NAMES[choice], title: CODEX_COLOUR_NAMES[choice] } }, el("span", { class: `sf-swatch-dot sf-swatch-dot--${choice}` }));
-			b.disabled = off;
-			b.addEventListener("click", () => void change("codexColour", choice));
-			group.append(b);
-		}
-		// A div, not the label the other rows use: a click on a label would press the first swatch.
-		return el("div", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: "Codex colour" }), group, source("codexColour"));
-	};
-	/** The data colour: the same swatches, five choices (Brief 15). */
-	const dataColour = (): HTMLElement => {
-		const group = el("div", { class: "sf-swatches", attrs: { role: "radiogroup", "aria-label": "Data colour" } });
-		for (const choice of DATA_COLOURS) {
-			const chosen = settings.values.dataColour === choice;
-			const b = el("button", { class: `sf-swatch sf-swatch--colour${chosen ? " is-chosen" : ""}`, dataset: { choice }, attrs: { type: "button", role: "radio", "aria-checked": String(chosen), "aria-label": DATA_COLOUR_NAMES[choice], title: DATA_COLOUR_NAMES[choice] } }, el("span", { class: `sf-swatch-dot sf-swatch-dot--${choice}` }));
-			b.disabled = off;
-			b.addEventListener("click", () => void change("dataColour", choice));
-			group.append(b);
-		}
-		return el("div", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: "Data colour" }), group, source("dataColour"));
-	};
-	/** One of the text colours (Brief 17): named swatches, one chosen (a radio group), like the data colour. */
-	const swatchRow = <K extends "selectionColour" | "highlightColour" | "boldColour" | "italicColour" | "boldItalicColour">(key: K, label: string, choices: readonly string[], names: Record<string, string>, dot: (choice: string) => string): HTMLElement => {
+	/** Unnamed colour squares, one chosen (a radio group): the name is for the screen reader and the tooltip; the chosen one has a ring. */
+	const swatches = (key: "codexColour" | "dataColour" | "selectionColour" | "highlightColour" | "boldColour" | "italicColour" | "boldItalicColour" | "smallHeadingColour", label: string, choices: readonly string[], names: Record<string, string>, dot: (choice: string) => string): HTMLElement => {
 		const group = el("div", { class: "sf-swatches", attrs: { role: "radiogroup", "aria-label": label } });
 		for (const choice of choices) {
 			const chosen = settings.values[key] === choice;
 			const b = el("button", { class: `sf-swatch sf-swatch--colour${chosen ? " is-chosen" : ""}`, dataset: { choice }, attrs: { type: "button", role: "radio", "aria-checked": String(chosen), "aria-label": names[choice], title: names[choice] } }, el("span", { class: `sf-swatch-dot ${dot(choice)}` }));
 			b.disabled = off;
-			b.addEventListener("click", () => void change(key, choice as ProjectSettings[K]));
+			b.addEventListener("click", () => void change(key, choice as never));
 			group.append(b);
 		}
-		return el("div", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: label }), group, source(key));
+		return group;
 	};
-	/** The text colours group: a sample line (the dressing's own classes, so a choice shows as it will in the editor) above five rows. */
+	/** A row of the Appearance grid: the name, then the cells for the font, weight, size and preview (null: empty). A swatch row spans the font to size cells. */
+	const gridRow = (name: string, cells: (HTMLElement | null)[], span = false): HTMLElement[] => {
+		const [font, weight, size, preview] = cells;
+		const cell = (c: HTMLElement | null, cls: string): HTMLElement => (c ? (c.classList.add(cls), c) : el("div", { class: cls }));
+		const label = el("div", { class: "sf-grid-name", text: name });
+		return span ? [label, cell(font, "sf-grid-span"), cell(preview ?? null, "sf-grid-preview")] : [label, cell(font, "sf-grid-font"), cell(weight, "sf-grid-weight"), cell(size, "sf-grid-size"), cell(preview, "sf-grid-preview")];
+	};
+	const colourRow = (name: string, control: HTMLElement): HTMLElement[] => gridRow(name, [control, null, null, null], true);
+	const codexColour = (): HTMLElement[] => colourRow("Codex colour", swatches("codexColour", "Codex colour", CODEX_COLOURS, CODEX_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`));
+	const dataColour = (): HTMLElement[] => colourRow("Data colour", swatches("dataColour", "Data colour", DATA_COLOURS, DATA_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`));
+	const smallHeadingColour = (): HTMLElement[] => colourRow("Small heading colour", swatches("smallHeadingColour", "Small heading colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`));
+	const swatchRow = (key: "selectionColour" | "highlightColour" | "boldColour" | "italicColour" | "boldItalicColour", label: string, choices: readonly string[], names: Record<string, string>, dot: (choice: string) => string): HTMLElement =>
+		el("div", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: label }), swatches(key, label, choices, names, dot), source(key));
+	/** The text colours page: five rows with a sample line (the dressing's own classes, so a choice shows as it will in the editor) beside them. */
 	const textColours = (): HTMLElement[] => {
 		const sample = el(
 			"div",
@@ -137,11 +127,11 @@ export function openSettings(model: AppModel): void {
 		return [
 			el("div", { class: "sf-style sf-style--colours" },
 				el("div", { class: "sf-style-controls" },
-			swatchRow("selectionColour", "Selection colour", SELECTION_COLOURS, SELECTION_COLOUR_NAMES, (c) => `sf-swatch-dot--sel-${c}`),
-			swatchRow("highlightColour", "Highlight colour", HIGHLIGHT_COLOURS, DATA_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`),
-			swatchRow("boldColour", "Bold colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`),
-			swatchRow("italicColour", "Italic colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`),
-			swatchRow("boldItalicColour", "Bold italic colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`),
+					swatchRow("selectionColour", "Selection colour", SELECTION_COLOURS, SELECTION_COLOUR_NAMES, (c) => `sf-swatch-dot--sel-${c}`),
+					swatchRow("highlightColour", "Highlight colour", HIGHLIGHT_COLOURS, DATA_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`),
+					swatchRow("boldColour", "Bold colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`),
+					swatchRow("italicColour", "Italic colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`),
+					swatchRow("boldItalicColour", "Bold italic colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`),
 				),
 				sample,
 			),
@@ -195,12 +185,107 @@ export function openSettings(model: AppModel): void {
 		}
 		return [slider, value];
 	};
-	/** A style's controls in one column and its sample in the next, lined up with them. */
-	const styled = (name: string, rows: HTMLElement[], sample: HTMLElement): HTMLElement => section(name, [el("div", { class: "sf-style" }, el("div", { class: "sf-style-controls" }, ...rows), sample)], `Appearance: ${name}`);
+	/** The names the previews use: the open project's own where there are any. */
+	const names = (): { series: string; novel: string; chapter: string } => {
+		const book = model.nav.book;
+		const chapter = model.nav.chapter;
+		const safe = <T,>(f: () => T, fallback: T): T => { try { return f(); } catch { return fallback; } };
+		return {
+			series: safe(() => readSeriesFrontmatter(project).seriesTitle, "The Lantern Cycle"),
+			novel: safe(() => (book ? numberedBookTitle(project, book, undefined, settings.values.seriesNumberingStyle) : "Book 1"), "Book 1"),
+			chapter: safe(() => (book && chapter ? numberedChapterTitle(project, book, chapter, settings.values.chapterNumberingStyle) : "Chapter 1"), "Chapter 1"),
+		};
+	};
+	/** A preview: the style drawn in the colour and on the background it really has, in text of the kind it is used for. */
+	const preview = (name: string, text: string, where: string, font: string, inner?: HTMLElement): HTMLElement => {
+		const box = el("div", { class: `sf-preview sf-preview--${where}`, attrs: { role: "img", "aria-label": `Sample of the ${name.toLowerCase()} style` } }, inner ?? text);
+		box.setAttribute("style", font);
+		return box;
+	};
+	const fontOf = (look: { family: string; weight: number; size: string; variation: string }): string => `font-family: ${look.family}; font-weight: ${look.weight}; font-size: ${look.size}; font-variation-settings: ${look.variation};`;
+	const previewText = (style: TypeStyle): { text: string; where: string } => {
+		const n = names();
+		switch (style.id) {
+			case "body": return { text: "Back Up Now · Open Project… · Hide the series pane", where: "panel" };
+			case "bodyBold": return { text: n.series, where: "panel" };
+			case "smallHeading": return { text: "storytelling · placed", where: "small-heading" };
+			case "hint": return { text: "Between 0.75 and 2 rem", where: "hint" };
+			case "heading": return { text: "Settings", where: "raised" };
+			case "title": return { text: "Series overview", where: "panel" };
+			case "barName": return { text: n.chapter, where: "bar" };
+			default: return { text: style.sample, where: "card" };
+		}
+	};
+	/** Which family a style's weights come from: its own, and for Body bold Body's. */
+	const familyOf = (style: TypeStyle): FontFamily => styleLook(style, settings.values).name;
+	/** One type style as grid cells: its name, font (or the base font), weight, size and a preview. A style without one of them leaves that cell empty. */
+	const typeStyle = (style: TypeStyle): HTMLElement[] => {
+		const name = style.name;
+		const baseName = style.base === "interface" ? "Interface font" : "Writing font";
+		const fontKey = typeKey(style.id as never, "Font");
+		const weightKey = typeKey(style.id as never, "Weight");
+		const sizeKey = typeKey(style.id as never, "Size");
+		const softKey = typeKey(style.id as never, "Soft");
+		const followsBody = style.id === "bodyBold"; // only a weight of its own: Body's font and size
+		const base = style.base === "interface" ? settings.values.typeInterfaceFont : settings.values.typeWritingFont;
+		const fontNow = settings.values[fontKey] as FontFamily | typeof FOLLOW;
+		const family = familyOf(style);
+		const { text, where } = previewText(style);
+		const look = styleLook(style, settings.values);
+		const sampleEl = preview(name, text, where, fontOf(look));
 
+		let fontCell: HTMLElement | null = null;
+		if (!followsBody) {
+			const fontSelect = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${name} font` } }, el("option", { text: baseName, attrs: { value: FOLLOW } }), ...FONT_FAMILIES.map((f) => el("option", { text: f, attrs: { value: f } })));
+			fontSelect.value = fontNow;
+			fontSelect.disabled = off;
+			fontSelect.addEventListener("change", () => {
+				const picked = fontSelect.value as FontFamily | typeof FOLLOW;
+				const chosen = resolvedFont(picked, style.base === "interface" ? settings.values.typeInterfaceFont : settings.values.typeWritingFont);
+				void (async () => {
+					await change(fontKey, picked as never);
+					const kept = settings.values[weightKey] as number;
+					if (nearestWeight(chosen, kept) !== kept) await change(weightKey, nearestWeight(chosen, kept) as never);
+				})();
+			});
+			fontCell = fontSelect;
+		}
+		let weightCell: HTMLElement | null = null;
+		let sizeCell: HTMLElement | null = null;
+		if (!style.fixed) {
+			const weightSelect = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${name} weight` } }, ...FAMILY_INFO[family].weights.map((w) => el("option", { text: `${WEIGHT_NAMES[w] ?? w} (${w})`, attrs: { value: String(w) } })));
+			weightSelect.value = String(nearestWeight(family, settings.values[weightKey] as number));
+			weightSelect.disabled = off;
+			weightSelect.addEventListener("change", () => void change(weightKey, Number(weightSelect.value) as never));
+			weightCell = weightSelect;
+			if (!followsBody) {
+				const [lo, hi] = style.range;
+				const [slider, hint] = sizeSlider({
+					label: `${name} size (px)`, lo, hi, step: 1, now: settings.values[sizeKey] as number, text: (v) => `${v} px`,
+					commit: (next) => void change(sizeKey, next as never),
+					preview: (v) => { sampleEl.style.fontSize = `${v}px`; document.documentElement.style.setProperty(`--ts-${style.id.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}-size`, `${v}px`); },
+				});
+				sizeCell = el("div", { class: "sf-size-cell" }, slider, hint);
+			}
+		}
+		const rows = gridRow(name, [fontCell, weightCell, sizeCell, sampleEl]);
+		if (family === "Fraunces" && !style.fixed && !followsBody) {
+			const soft = el("input", { class: "sf-field sf-setting-control", attrs: { type: "number", min: "0", max: "100", step: "25", "aria-label": `${name} Softness (0 to 100)` } });
+			soft.value = String(settings.values[softKey]);
+			soft.disabled = off;
+			soft.addEventListener("change", () => {
+				const v = Number(soft.value);
+				if (Number.isInteger(v) && v >= 0 && v <= 100) void change(softKey, v as never);
+				else (committed.set(soft, soft.value), redraw());
+			});
+			rows.push(...gridRow(`${name} Softness`, [null, soft, null, null]));
+		}
+		return rows;
+	};
 	/** A size in rem, with its pixel equivalent against the one named base. */
 	const remText = (rem: number): string => `${+rem.toFixed(4)} rem (${+(rem * APPEARANCE_BASE_PX).toFixed(1)} px)`;
-	const appearancePart = (part: AppearancePart): HTMLElement => {
+	/** One of the Navigator's parts (now "storytelling mode"), on the same grid; its size is in rem. */
+	const appearancePart = (part: AppearancePart): HTMLElement[] => {
 		const name = PART_NAMES[part];
 		const [lo, hi] = APPEARANCE_SIZE_RANGE[part];
 		const fontNow = settings.values[appearanceKey(part, "Font")];
@@ -223,24 +308,25 @@ export function openSettings(model: AppModel): void {
 				if (nearestWeight(chosen, kept) !== kept) await change(weightKey, nearestWeight(chosen, kept) as never);
 			})();
 		});
-
-		const weights = FAMILY_INFO[font].weights;
-		const weightSelect = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${name} weight` } }, ...weights.map((w) => el("option", { text: `${WEIGHT_NAMES[w] ?? w} (${w})`, attrs: { value: String(w) } })));
+		const weightSelect = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${name} weight` } }, ...FAMILY_INFO[font].weights.map((w) => el("option", { text: `${WEIGHT_NAMES[w] ?? w} (${w})`, attrs: { value: String(w) } })));
 		weightSelect.value = String(nearestWeight(font, weightNow));
 		weightSelect.disabled = off;
 		weightSelect.addEventListener("change", () => void change(appearanceKey(part, "Weight"), Number(weightSelect.value) as never));
 
-		const sampleEl = el("div", { class: "sf-sample", attrs: { "aria-label": `Sample of the ${name.toLowerCase()}`, role: "img" }, text: PART_SAMPLES[part] });
+		const n = names();
+		const text = part === "series" ? n.series : part === "novel" ? n.novel : part === "chapter" ? n.chapter : "Cast · Jane Harbour · Ælfric";
+		const sampleEl = el("div", { class: "sf-preview sf-preview--panel" });
+		const inner = el("div", { class: part === "codex" ? "sf-preview-codex" : "sf-preview-accent", text });
+		inner.setAttribute("style", sampleStyle(part, settings.values));
+		sampleEl.append(inner);
+		sampleEl.setAttribute("role", "img");
+		sampleEl.setAttribute("aria-label", `Sample of the ${name.toLowerCase()}`);
 		const [sizeSliderEl, sizeHint] = sizeSlider({
 			label: `${name} size (rem)`, lo, hi, step: APPEARANCE_SIZE_STEP, shiftStep: APPEARANCE_SIZE_STEP_SHIFT, now: sizeNow, text: remText,
 			commit: (next) => void change(appearanceKey(part, "Size"), next as never),
-			preview: (v) => { sampleEl.style.fontSize = px(v); document.documentElement.style.setProperty(`--ap-${part}-size`, px(v)); },
+			preview: (v) => { inner.style.fontSize = px(v); document.documentElement.style.setProperty(`--ap-${part}-size`, px(v)); },
 		});
-		const rows: HTMLElement[] = [
-			row("Font", fontSelect, fontKey),
-			row("Weight", weightSelect, appearanceKey(part, "Weight")),
-			el("label", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: "Size" }), sizeSliderEl, sizeHint),
-		];
+		const rows = gridRow(name, [fontSelect, weightSelect, el("div", { class: "sf-size-cell" }, sizeSliderEl, sizeHint), sampleEl]);
 		if (font === "Fraunces") {
 			const soft = el("input", { class: "sf-field sf-setting-control", attrs: { type: "number", min: "0", max: "100", step: "25", "aria-label": `${name} Softness (0 to 100)` } });
 			soft.value = String(settings.values[appearanceKey(part, "Soft")]);
@@ -250,76 +336,21 @@ export function openSettings(model: AppModel): void {
 				if (Number.isInteger(v) && v >= 0 && v <= 100) void change(appearanceKey(part, "Soft"), v as never);
 				else (committed.set(soft, soft.value), redraw()); // refused: put back
 			});
-			rows.push(row("Softness", soft, appearanceKey(part, "Soft")));
+			rows.push(...gridRow(`${name} Softness`, [null, soft, null, null]));
 		}
-		sampleEl.setAttribute("style", sampleStyle(part, settings.values));
-		return styled(name, rows, sampleEl);
+		return rows;
 	};
-
 	/** One of the two base fonts (Brief 18): the Interface font or the Writing font, which every style that names none of its own follows. */
-	const baseFont = (which: "Interface" | "Writing"): HTMLElement => {
+	const baseFont = (which: "Interface" | "Writing"): HTMLElement[] => {
 		const key = which === "Interface" ? "typeInterfaceFont" : "typeWritingFont";
 		const select = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${which} font` } }, ...FONT_FAMILIES.map((f) => el("option", { text: f, attrs: { value: f } })));
 		select.value = settings.values[key];
 		select.disabled = off;
 		select.addEventListener("change", () => void change(key, select.value as never));
-		return section(`${which} font`, [row("Font", select, key), el("p", { class: "sf-muted sf-setting-hint", text: which === "Interface" ? "Every part of the app's own text that has no font of its own below." : "The chapter and note editors, the fields and the reading text." })], `Appearance: ${which} font`);
+		return gridRow(`${which} font`, [select, null, null, el("div", { class: "sf-muted sf-grid-hint", text: which === "Interface" ? "Every part of the app's own text that has no font of its own below." : "The chapter and note editors, the fields and the reading text." })]);
 	};
-	/** One type style: its font (or the base font), weight and size in pixels, and a sample drawn as it will be. */
-	const typeStyle = (style: TypeStyle): HTMLElement => {
-		const name = style.name;
-		const baseName = style.base === "interface" ? "Interface font" : "Writing font";
-		const fontKey = typeKey(style.id as never, "Font");
-		const weightKey = typeKey(style.id as never, "Weight");
-		const sizeKey = typeKey(style.id as never, "Size");
-		const softKey = typeKey(style.id as never, "Soft");
-		const base = style.base === "interface" ? settings.values.typeInterfaceFont : settings.values.typeWritingFont;
-		const fontNow = settings.values[fontKey] as FontFamily | typeof FOLLOW;
-		const family = resolvedFont(fontNow, base);
-		const fontSelect = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${name} font` } }, el("option", { text: baseName, attrs: { value: FOLLOW } }), ...FONT_FAMILIES.map((f) => el("option", { text: f, attrs: { value: f } })));
-		fontSelect.value = fontNow;
-		fontSelect.disabled = off;
-		fontSelect.addEventListener("change", () => {
-			const picked = fontSelect.value as FontFamily | typeof FOLLOW;
-			const chosen = resolvedFont(picked, style.base === "interface" ? settings.values.typeInterfaceFont : settings.values.typeWritingFont);
-			void (async () => {
-				await change(fontKey, picked as never);
-				const kept = settings.values[weightKey] as number;
-				if (nearestWeight(chosen, kept) !== kept) await change(weightKey, nearestWeight(chosen, kept) as never);
-			})();
-		});
-		const rows: HTMLElement[] = [row("Font", fontSelect, fontKey)];
-		const sampleEl = el("div", { class: "sf-sample", attrs: { "aria-label": `Sample of the ${name.toLowerCase()} style`, role: "img" }, text: style.sample });
-		if (!style.fixed) {
-			const weightSelect = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${name} weight` } }, ...FAMILY_INFO[family].weights.map((w) => el("option", { text: `${WEIGHT_NAMES[w] ?? w} (${w})`, attrs: { value: String(w) } })));
-			weightSelect.value = String(nearestWeight(family, settings.values[weightKey] as number));
-			weightSelect.disabled = off;
-			weightSelect.addEventListener("change", () => void change(weightKey, Number(weightSelect.value) as never));
-			rows.push(row("Weight", weightSelect, weightKey));
-			const [lo, hi] = style.range;
-			const sizeNow = settings.values[sizeKey] as number;
-			const [slider, hint] = sizeSlider({
-				label: `${name} size (px)`, lo, hi, step: 1, now: sizeNow, text: (v) => `${v} px`,
-				commit: (next) => void change(sizeKey, next as never),
-				preview: (v) => { sampleEl.style.fontSize = `${v}px`; document.documentElement.style.setProperty(`--ts-${style.id.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}-size`, `${v}px`); },
-			});
-			rows.push(el("label", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: "Size" }), slider, hint));
-			if (family === "Fraunces") {
-				const soft = el("input", { class: "sf-field sf-setting-control", attrs: { type: "number", min: "0", max: "100", step: "25", "aria-label": `${name} Softness (0 to 100)` } });
-				soft.value = String(settings.values[softKey]);
-				soft.disabled = off;
-				soft.addEventListener("change", () => {
-					const v = Number(soft.value);
-					if (Number.isInteger(v) && v >= 0 && v <= 100) void change(softKey, v as never);
-					else (committed.set(soft, soft.value), redraw());
-				});
-				rows.push(row("Softness", soft, softKey));
-			}
-		}
-		const look = styleLook(style, settings.values);
-		sampleEl.setAttribute("style", `font-family: ${look.family}; font-weight: ${look.weight}; font-size: ${look.size}; font-variation-settings: ${look.variation};`);
-		return styled(name, rows, sampleEl);
-	};
+	const grid = (...groups: HTMLElement[][]): HTMLElement[] => [el("div", { class: "sf-grid" }, ...groups.flat())];
+	const styles = (...ids: TypeStyleId[]): HTMLElement[][] => ids.map((id) => typeStyle(styleOf(id)));
 
 	let page: Page = "General";
 	let appearancePage: AppearancePage = APPEARANCE_PAGES[0];
@@ -388,11 +419,11 @@ export function openSettings(model: AppModel): void {
 				]),
 			],
 			Appearance: {
-				"Interface: System": [baseFont("Interface"), ...SYSTEM_STYLE_IDS.map((id) => typeStyle(styleOf(id)))],
-				"Interface: Display text": DISPLAY_TEXT_STYLE_IDS.map((id) => typeStyle(styleOf(id))),
-				Navigator: APPEARANCE_PARTS.map(appearancePart),
-				Writing: [baseFont("Writing"), ...WRITING_STYLES.map(typeStyle)],
-				"Text colours": [section("Text colours", textColours()), section("Codex colour", [codexColour()]), section("Data colour", [dataColour()])],
+				interface: grid(baseFont("Interface"), ...styles("body", "bodyBold", "smallHeading"), smallHeadingColour(), ...styles("hint", "heading")),
+				"library mode": grid(...styles("title", "barName"), dataColour()),
+				"storytelling mode": grid(...(["series", "novel", "chapter", "codex"] as const).map(appearancePart), codexColour()),
+				writing: grid(baseFont("Writing"), ...styles("prose", "reading", "fields")),
+				"text colours": textColours(),
 			}[appearancePage],
 			Writing: [section("Typing", typingSection({ settings: settings.values, off, change, check, notify: (text) => model.notices.notify({ kind: "warning", text }) }))],
 			Sessions: [

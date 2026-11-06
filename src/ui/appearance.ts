@@ -55,14 +55,16 @@ const kebabId = (id: string): string => id.replace(/[A-Z]/g, (c) => `-${c.toLowe
 
 /** What a style draws as: its family (CSS), weight, size and variation settings. */
 export function styleLook(style: TypeStyle, settings: ProjectSettings): { name: FontFamily; family: string; weight: number; size: string; variation: string } {
-	const name = resolvedFont(settings[typeKey(style.id as never, "Font")] as never, style.base === "interface" ? settings.typeInterfaceFont : settings.typeWritingFont);
+	// Body bold has only a weight of its own: its font, Softness and size are Body's (round three; its stored font and size keys are never read).
+	const from = style.id === "bodyBold" ? { ...style, id: "body" } : style;
+	const name = resolvedFont(settings[typeKey(from.id as never, "Font")] as never, style.base === "interface" ? settings.typeInterfaceFont : settings.typeWritingFont);
 	const fixed = style.fixed === true;
 	return {
 		name,
 		family: FAMILY_INFO[name].css,
 		weight: fixed ? style.weight : nearestWeight(name, settings[typeKey(style.id as never, "Weight")] as number),
-		size: `${fixed ? style.size : (settings[typeKey(style.id as never, "Size")] as number)}px`,
-		variation: variationFor(name, settings[typeKey(style.id as never, "Soft")] as number),
+		size: `${fixed ? style.size : (settings[typeKey(from.id as never, "Size")] as number)}px`,
+		variation: variationFor(name, settings[typeKey(from.id as never, "Soft")] as number),
 	};
 }
 

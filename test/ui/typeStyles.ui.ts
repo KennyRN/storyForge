@@ -19,30 +19,39 @@ const projectMd = (page: Page) => page.evaluate(() => window.__preview.read("_ba
 const look = (page: Page, sel: string) => page.locator(sel).first().evaluate((e) => { const s = getComputedStyle(e); return { family: s.fontFamily, weight: s.fontWeight, size: s.fontSize }; });
 
 test.describe("type styles", () => {
-	test("Appearance is one entry with five sub-pages, opening on Interface: System; each names its styles", async ({ page }) => {
+	test("Appearance is one entry with five sub-pages, opening on interface; each names its styles; Body bold has only a weight, Bar name only a font", async ({ page }) => {
 		await openProject(page);
 		await openAppearance(page);
 		const subs = dialog(page).locator(".sf-settings-subtabs").getByRole("tab");
-		expect(await subs.allInnerTexts()).toEqual(["Interface: System", "Interface: Display text", "Navigator", "Writing", "Text colours"]);
-		await expect(subtab(page, "Interface: System")).toHaveAttribute("aria-selected", "true");
+		expect(await subs.allInnerTexts()).toEqual(["interface", "library mode", "storytelling mode", "writing", "text colours"]);
+		await expect(subtab(page, "interface")).toHaveAttribute("aria-selected", "true");
 		await expect(dialog(page).getByRole("tab", { name: "Appearance", exact: true })).toHaveCount(1);
 		const wanted: Record<string, string[]> = {
-			"Interface: System": ["Body", "Body bold", "Small heading", "Hint"],
-			"Interface: Display text": ["Title", "Heading", "Bar name"],
-			Writing: ["Prose", "Reading", "Fields"],
+			interface: ["Body", "Small heading", "Hint", "Dialog heading"],
+			"library mode": ["Title", "Bar name"],
+			"storytelling mode": ["Series name", "Novel title", "Selected chapter", "Codex list"],
+			writing: ["Prose", "Reading", "Fields"],
 		};
 		for (const [sub, names] of Object.entries(wanted)) {
 			await subtab(page, sub).click();
 			for (const name of names) await expect(dialog(page).getByLabel(`${name} font`, { exact: true }), `${sub}: ${name}`).toHaveCount(1);
 			await expect(dialog(page).getByLabel("Display font", { exact: true })).toHaveCount(0); // the start screen only: no project is open there
 		}
-		await subtab(page, "Interface: System").click();
+		await subtab(page, "interface").click();
 		await expect(dialog(page).getByLabel("Interface font", { exact: true })).toHaveValue("SN Pro");
-		await subtab(page, "Writing").click();
+		await expect(dialog(page).getByLabel("Body bold weight", { exact: true })).toHaveValue("600");
+		await expect(dialog(page).getByLabel("Body bold font", { exact: true })).toHaveCount(0); // Body's font and size
+		await expect(dialog(page).getByLabel("Body bold size (px)", { exact: true })).toHaveCount(0);
+		await expect(dialog(page).getByLabel("Small heading size (px)", { exact: true })).toHaveAttribute("max", "18");
+		await expect(dialog(page).getByRole("radiogroup", { name: "Small heading colour", exact: true })).toBeVisible();
+		await subtab(page, "writing").click();
 		await expect(dialog(page).getByLabel("Writing font", { exact: true })).toHaveValue("SN Pro");
 		await expect(dialog(page).getByLabel("Fields size (px)", { exact: true })).toHaveValue("14");
-		await subtab(page, "Interface: Display text").click();
+		await subtab(page, "library mode").click();
 		await expect(dialog(page).getByLabel("Bar name weight", { exact: true })).toHaveCount(0); // fixed: the font only
+		await expect(dialog(page).getByRole("radiogroup", { name: "Data colour", exact: true })).toBeVisible();
+		await subtab(page, "storytelling mode").click();
+		await expect(dialog(page).getByRole("radiogroup", { name: "Codex colour", exact: true })).toBeVisible();
 		expect(await projectMd(page)).toBe("");
 	});
 
@@ -50,46 +59,83 @@ test.describe("type styles", () => {
 		await page.setViewportSize({ width: 1100, height: 520 });
 		await openProject(page);
 		await openAppearance(page);
-		const first = subtab(page, "Interface: System");
-		await first.focus();
+		await subtab(page, "interface").focus();
 		await page.keyboard.press("ArrowRight");
-		await expect(subtab(page, "Interface: Display text")).toBeFocused();
-		await expect(subtab(page, "Interface: Display text")).toHaveAttribute("aria-selected", "true");
+		await expect(subtab(page, "library mode")).toBeFocused();
+		await expect(subtab(page, "library mode")).toHaveAttribute("aria-selected", "true");
 		await page.keyboard.press("ArrowLeft");
 		await page.keyboard.press("ArrowLeft");
-		await expect(subtab(page, "Text colours")).toBeFocused(); // wraps
-		await subtab(page, "Writing").click();
+		await expect(subtab(page, "text colours")).toBeFocused(); // wraps
+		await subtab(page, "writing").click();
+		await subtab(page, "interface").click();
 		const pane = dialog(page).locator(".sf-settings-page");
 		await pane.evaluate((e) => (e.scrollTop = 200));
 		const row = dialog(page).locator(".sf-settings-subtabs");
 		const top = (await row.boundingBox())!.y;
 		await pane.evaluate((e) => (e.scrollTop = 250));
 		expect((await row.boundingBox())!.y).toBe(top);
-		await subtab(page, "Navigator").click();
+		await subtab(page, "storytelling mode").click();
 		expect(await dialog(page).locator(".sf-settings-page").evaluate((e) => e.scrollTop)).toBe(0);
 	});
 
-	test("each style's sample sits in its own column, to the right of its controls", async ({ page }) => {
+	test("the grid: a column per kind of control lined up down the page, a preview beside each row, previews dropping below in a narrow window", async ({ page }) => {
 		await openProject(page);
 		await openAppearance(page);
-		const controls = (await dialog(page).locator(".sf-style-controls").first().boundingBox())!;
+		const x = async (label: string) => (await dialog(page).getByLabel(label, { exact: true }).boundingBox())!;
+		expect((await x("Body font")).x).toBeCloseTo((await x("Hint font")).x, 0);
+		expect((await x("Body weight")).x).toBeCloseTo((await x("Small heading weight")).x, 0);
+		expect((await x("Body size (px)")).x).toBeCloseTo((await x("Hint size (px)")).x, 0);
+		const fontBox = await x("Body font");
 		const sample = (await dialog(page).getByRole("img", { name: "Sample of the body style" }).boundingBox())!;
-		expect(sample.x).toBeGreaterThanOrEqual(controls.x + controls.width);
-		expect(sample.y).toBeGreaterThanOrEqual(controls.y - 1);
-		expect(sample.y + sample.height).toBeLessThanOrEqual(controls.y + controls.height + 1);
+		expect(sample.x).toBeGreaterThan(fontBox.x + fontBox.width);
+		expect(Math.abs(sample.y + sample.height / 2 - (fontBox.y + fontBox.height / 2))).toBeLessThan(12); // lined up with its row
+		await page.setViewportSize({ width: 800, height: 700 });
+		const narrow = (await dialog(page).getByRole("img", { name: "Sample of the body style" }).boundingBox())!;
+		const dlg = (await dialog(page).boundingBox())!;
+		expect(narrow.x + narrow.width).toBeLessThanOrEqual(dlg.x + dlg.width); // never overflowing
+		expect(narrow.y).toBeGreaterThan((await x("Body font")).y + 10); // dropped below its row
+	});
+
+	test("the previews show each style as it really appears: its colour on its background, in text of its own kind", async ({ page }) => {
+		await openProject(page);
+		await openAppearance(page);
+		const colour = (name: string) => dialog(page).getByRole("img", { name }).evaluate((e) => { const s = getComputedStyle(e); return [s.color, s.backgroundColor]; });
+		const token = (v: string) => page.evaluate((n) => { const i = document.createElement("i"); i.style.color = `var(${n})`; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; }, v);
+		expect(await colour("Sample of the hint style")).toEqual([await token("--purpose-text-muted"), await token("--purpose-panel-bg")]);
+		expect(await colour("Sample of the small heading style")).toEqual([await token("--purpose-text"), await token("--purpose-panel-bg")]);
+		expect(await dialog(page).getByRole("img", { name: "Sample of the dialog heading style" }).textContent()).toBe("Settings");
+		expect(await dialog(page).getByRole("img", { name: "Sample of the body style" }).textContent()).toBe("Back Up Now · Open Project… · Hide the series pane");
+		await subtab(page, "library mode").click();
+		expect(await colour("Sample of the bar name style")).toEqual([await token("--purpose-text-on-data"), await token("--purpose-data-fill")]);
+		await subtab(page, "storytelling mode").click();
+		const series = dialog(page).getByRole("img", { name: "Sample of the series name" }).locator(".sf-preview-accent");
+		expect(await series.evaluate((e) => getComputedStyle(e).color)).toBe(await token("--purpose-accent"));
+		const codex = dialog(page).getByRole("img", { name: "Sample of the codex list" }).locator(".sf-preview-codex");
+		expect(await codex.evaluate((e) => [getComputedStyle(e).color, getComputedStyle(e).backgroundColor])).toEqual([await token("--purpose-codex"), await token("--purpose-editor-bg")]);
+	});
+
+	test("Small heading has a colour: written as a role name, applied to the page's small headings; the default is the text colour", async ({ page }) => {
+		await openProject(page);
+		await openAppearance(page);
+		const group = dialog(page).getByRole("radiogroup", { name: "Small heading colour", exact: true });
+		expect(await group.getByRole("radio").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")))).toEqual(["Text colour", "Yellow", "Aqua", "Blue", "Orange", "Purple"]);
+		await expect(group.getByRole("radio", { name: "Text colour" })).toHaveAttribute("aria-checked", "true");
+		await group.getByRole("radio", { name: "Aqua" }).click();
+		await expect.poll(() => projectMd(page)).toContain("small-heading-colour: aqua");
+		await expect(page.locator("html")).toHaveAttribute("data-small-heading-colour", "aqua");
+		const token = await page.evaluate(() => { const i = document.createElement("i"); i.style.color = "var(--purpose-colour-choice-aqua)"; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; });
+		await expect.poll(() => dialog(page).getByRole("img", { name: "Sample of the small heading style" }).evaluate((e) => getComputedStyle(e).color)).toBe(token);
 	});
 
 	test("the Interface font changes every style that follows it and none that names its own; the Writing font leaves the interface alone", async ({ page }) => {
 		await openProject(page);
 		await openAppearance(page);
-		await subtab(page, "Interface: Display text").click();
-		await dialog(page).getByLabel("Heading font", { exact: true }).selectOption("Courier Prime"); // names its own
-		await subtab(page, "Interface: System").click();
+		await dialog(page).getByLabel("Dialog heading font", { exact: true }).selectOption("Courier Prime"); // names its own
 		await dialog(page).getByLabel("Interface font", { exact: true }).selectOption("Aleo");
 		await expect.poll(async () => (await look(page, "body")).family).toContain("Aleo");
 		expect((await look(page, ".sf-dialog-title")).family).toContain("Courier Prime");
 		expect((await look(page, ".sf-editor .cm-content")).family).toContain("SN Pro");
-		await subtab(page, "Writing").click();
+		await subtab(page, "writing").click();
 		await dialog(page).getByLabel("Writing font", { exact: true }).selectOption("Atkinson Hyperlegible Next");
 		await expect.poll(async () => (await look(page, ".sf-editor .cm-content")).family).toContain("Atkinson Hyperlegible Next");
 		expect((await look(page, "body")).family).toContain("Aleo");
@@ -102,7 +148,7 @@ test.describe("type styles", () => {
 		const body = dialog(page).getByLabel("Body size (px)", { exact: true });
 		await expect(body).toHaveAttribute("min", "11");
 		await expect(body).toHaveAttribute("max", "16");
-		const value = dialog(page).locator('section[aria-label="Appearance: Body"]').getByText(/ px$/);
+		const value = body.locator("xpath=following-sibling::span");
 		await expect(value).toHaveText("13 px");
 		await body.evaluate((e: HTMLInputElement) => { e.value = "15"; e.dispatchEvent(new Event("input", { bubbles: true })); });
 		await expect(value).toHaveText("15 px");
@@ -114,17 +160,17 @@ test.describe("type styles", () => {
 		expect(await body.inputValue()).toBe("16"); // nothing outside the range can be set
 	});
 
-	test("the weights offered are the resolved family's own, and Body bold is its own style", async ({ page }) => {
+	test("the weights offered are the resolved family's own; Body bold follows Body's font", async ({ page }) => {
 		await openProject(page);
 		await openAppearance(page);
 		await expect(dialog(page).getByLabel("Body bold weight", { exact: true })).toHaveValue("600");
-		await dialog(page).getByLabel("Body bold font", { exact: true }).selectOption("Courier Prime");
+		await dialog(page).getByLabel("Body font", { exact: true }).selectOption("Courier Prime");
 		await expect.poll(async () => dialog(page).getByLabel("Body bold weight", { exact: true }).locator("option").allInnerTexts()).toEqual(["Regular (400)", "Bold (700)"]);
 	});
 
 	test("a sample of each style is drawn as it will be", async ({ page }) => {
 		await openProject(page);
-		await openAppearance(page, "Interface: Display text");
+		await openAppearance(page, "library mode");
 		const sample = dialog(page).getByRole("img", { name: "Sample of the title style" });
 		await expect(sample).toBeVisible();
 		expect((await sample.evaluate((e) => getComputedStyle(e).fontSize))).toBe("20px");
@@ -149,7 +195,7 @@ test.describe("type styles", () => {
 		await dialog(page).getByLabel("Body size (px)", { exact: true }).evaluate((e: HTMLInputElement) => { e.value = "14"; e.dispatchEvent(new Event("input", { bubbles: true })); e.dispatchEvent(new Event("change", { bubbles: true })); });
 		await expect.poll(() => projectMd(page)).toContain("appearance-body-size: 14");
 		expect(await pane.evaluate((e) => e.scrollTop)).toBe(held);
-		await subtab(page, "Writing").click();
+		await subtab(page, "writing").click();
 		expect(await dialog(page).locator(".sf-settings-page").evaluate((e) => e.scrollTop)).toBe(0);
 	});
 });

@@ -137,8 +137,8 @@ test.describe("Settings ▸ Appearance ▸ Text colours", () => {
 		await openSettingsDialog(page);
 		const d = page.getByRole("dialog");
 		await d.getByRole("tab", { name: "Appearance", exact: true }).click();
-		await d.getByRole("tab", { name: "Text colours", exact: true }).click();
-		const group = d.locator('section[aria-label="Text colours"]');
+		await d.getByRole("tab", { name: "text colours", exact: true }).click();
+		const group = d.locator(".sf-settings-page");
 		await expect(group.getByRole("group", { name: "Sample of the text colours" })).toBeVisible();
 		for (const name of ["Selection colour", "Highlight colour", "Bold colour", "Italic colour", "Bold italic colour"]) await expect(group.getByRole("radiogroup", { name, exact: true })).toBeVisible();
 		// names its group first (decision 117): the Codex and data groups have swatches of the same names

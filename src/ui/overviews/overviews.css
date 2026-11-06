@@ -21,7 +21,7 @@
 .sf-overview { position: absolute; inset: var(--band-h) 0 0 0; overflow: auto; background: var(--purpose-panel-bg); /* the library side is for looking: bg_dim, and only the places where you work are cards on bg0 (Brief 14 §1.8) */ color: var(--purpose-text); }
 .sf-overview-body { padding: 24px 32px; max-width: 880px; }
 .sf-overview-title { font-family: var(--ts-title-family); font-weight: var(--ts-title-weight); font-size: var(--ts-title-size); font-variation-settings: var(--ts-title-var); margin: 0 0 20px; }
-.sf-overview-sub { font-family: var(--ts-small-heading-family); font-weight: var(--ts-small-heading-weight); font-size: var(--ts-small-heading-size); font-variation-settings: var(--ts-small-heading-var); color: var(--purpose-text-muted); margin: 24px 0 8px; }
+.sf-overview-sub { font-family: var(--ts-small-heading-family); font-weight: var(--ts-small-heading-weight); font-size: var(--ts-small-heading-size); font-variation-settings: var(--ts-small-heading-var); color: var(--purpose-small-heading); margin: 24px 0 8px; }
 .sf-overview-list { display: flex; flex-direction: column; gap: 14px; }
 .sf-overview-row { display: flex; flex-direction: row; gap: 12px; align-items: flex-start; }
 .sf-overview-row-main { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
