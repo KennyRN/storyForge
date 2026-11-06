@@ -206,7 +206,7 @@ test.describe("the library's small changes (round five)", () => {
 		expect(synopsis).toEqual(await pad(".sf-chapter-text .cm-content"));
 	});
 
-	test("the no-cover icon is half the box's width, centred, cut out in the colour of what the box sits on, on a grey1 box", async ({ page }) => {
+	test("the no-cover icon is half the box's width, centred, cut out in the colour of what the box sits on, on a bg2 box", async ({ page }) => {
 		await openPreview(page);
 		const card = page.locator(".sf-project-card-image.is-empty").first();
 		if (await card.count()) {
