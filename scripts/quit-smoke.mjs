@@ -117,7 +117,7 @@ async function routeWithRetries(name, send, options = {}) {
 	results.push({ name, note: "", ok: false, took: 0, problems: ["NOT RUN: the typed text was saved before the quit in 3 runs in a row (another app keeps taking the focus: this is not a pass)"] });
 }
 async function route(name, send, { expectJoin = false, target = "chapter" } = {}) {
-	name = target === "plot" ? `${name}, typing in a plot note` : name;
+	name = target === "plot" ? `${name}, typing in a plot note` : target === "synopsis" ? `${name}, typing in a synopsis` : name;
 	const dir = realpathSync(mkdtempSync(join(tmpdir(), "sf-quit-")));
 	const home = join(dir, "home");
 	const project = join(dir, "proj");
@@ -152,11 +152,19 @@ async function route(name, send, { expectJoin = false, target = "chapter" } = {}
 			await until("the novel tab", () => clickAny("novel"), 8000);
 			await until("a plot note", () => find("AXTextArea", "Plot note for", "focus").startsWith("found"));
 		}
+		if (target === "synopsis") {
+			// To the library side, the series tab, and into the synopsis of the chosen novel, in the context panel (Brief 19): it has focus, nothing has been committed.
+			const clickAny = (name) => ["AXButton", "AXCheckBox", "AXToggle", "AXRadioButton", "AXTab"].some((role) => find(role, name, "click").startsWith("found"));
+			await until("the novel name", () => clickAny("Open the novel on the library side"));
+			await until("the series tab", () => clickAny("series"), 8000);
+			await until("the first novel", () => find("AXButton", "Book 1", "click").startsWith("found"), 8000);
+			await until("a synopsis", () => find("AXTextArea", "Synopsis of", "focus").startsWith("found"));
+		}
 		// Type, then prove the text is in the field before the quit is sent: a run where the keystrokes never landed is
 		// "not typed" and is retried with a new marker, never counted as a pass. Text that landed and is missing after
 		// the quit is a real loss (checked below).
 		const fieldRole = "AXTextArea";
-		const fieldName = target === "plot" ? "Plot note for" : "Text";
+		const fieldName = target === "plot" ? "Plot note for" : target === "synopsis" ? "Synopsis of" : "Text";
 		let typed = false;
 		for (let attempt = 1; attempt <= 4 && !typed; attempt++) {
 			find(fieldRole, fieldName, "focus");
@@ -201,8 +209,8 @@ async function route(name, send, { expectJoin = false, target = "chapter" } = {}
 		// Ending the session is a step in the close: its file must be there, naming the chapter that was written in.
 		const sessionsDir = join(project, "_backstage/storyforge/sessions");
 		const sessionFiles = existsSync(sessionsDir) ? readdirSync(sessionsDir) : [];
-		if (target === "plot") {
-			if (!saved.some((f) => f.endsWith("/_story-library/novel-aaa.md"))) problems.push("the plot note was not committed to novel-aaa.md by the close");
+		if (target === "plot" || target === "synopsis") {
+			if (!saved.some((f) => f.endsWith("/_story-library/novel-aaa.md"))) problems.push(`the ${target === "plot" ? "plot note" : "synopsis"} was not committed to novel-aaa.md by the close`);
 		} else if (sessionFiles.length !== 1) problems.push(`expected one session file, found ${sessionFiles.length}`);
 		else if (!/path: aaa\/ch-a1\.md/.test(readFileSync(join(sessionsDir, sessionFiles[0]), "utf8"))) problems.push("the session file doesn't name the chapter that was written in");
 		else if (/recovered: true/.test(readFileSync(join(sessionsDir, sessionFiles[0]), "utf8"))) problems.push("the session was recovered rather than ended by the close");
@@ -232,9 +240,9 @@ function grepTree(dir, needle) {
 }
 
 const appleQuit = () => osa(`tell application id "${BUNDLE_ID}" to quit`);
-// Every route twice: once with text typed in the chapter editor, once with text typed in a plot note (a field that
+// Every route twice: once with text typed in the chapter editor, once with text typed in a plot note and once in a synopsis (a field that
 // writes to the project and has focus when the quit arrives).
-for (const target of ["chapter", "plot"]) {
+for (const target of ["chapter", "plot", "synopsis"]) {
 	await routeWithRetries("Apple-event quit (the Dock's Quit, Log Out and Shut Down use this route)", () => appleQuit(), { target });
 	await routeWithRetries("SIGTERM", (c) => c.kill("SIGTERM"), { target });
 	await routeWithRetries("SIGHUP", (c) => c.kill("SIGHUP"), { target });

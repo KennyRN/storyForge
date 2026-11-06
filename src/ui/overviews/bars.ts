@@ -69,6 +69,8 @@ export interface DataBarOptions {
 	tooltip?: string | (() => string);
 	/** Called when the pointer or keyboard first reaches the bar (to start a lazy read). */
 	onHover?: () => void;
+	/** False draws no name over the bar (the context panel's chapters, Brief 19): the title stays the tooltip and the accessible name. */
+	labelled?: boolean;
 }
 
 /**
@@ -92,7 +94,7 @@ export function dataBar(opts: DataBarOptions): HTMLElement {
 			bar.append(el("div", { class: "sf-bar-frame", attrs: { "aria-hidden": "true" } }));
 		}
 		bar.append(el("div", { class: "sf-bar-fill" }));
-		bar.append(el("div", { class: "sf-bar-name", attrs: { "aria-hidden": "true" } }, el("span", { class: "sf-bar-name-text", text: opts.name })));
+		if (opts.labelled !== false) bar.append(el("div", { class: "sf-bar-name", attrs: { "aria-hidden": "true" } }, el("span", { class: "sf-bar-name-text", text: opts.name })));
 	} else if (state.kind !== "sliver") {
 		const fill = el("div", { class: "sf-bar-fill" });
 		fill.style.width = `${state.fillPercent}%`;

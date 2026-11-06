@@ -1,6 +1,7 @@
 import { mountLibraryLayer, mountOverviewLayer } from "./overviews/layer";
 import { mountCharactersButton } from "./context/charactersButton";
 import { mountChapterContext } from "./context/chapterContext";
+import { mountNovelContext } from "./context/novelContext";
 import { contextMode } from "./context/contextMode";
 import type { AppModel } from "./model";
 import { EditorHost } from "./editor/editorHost";
@@ -62,7 +63,8 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	const loreRow = el("div", { class: "sf-context-row" });
 	// On the library side's novel tab the chosen chapter replaces the note here (Brief 14 §1.6); on every other tab the panel is unchanged.
 	const chapterHost = el("div", { class: "sf-chapter-context" });
-	lore.append(loreHost, chapterHost, loreRow);
+	const novelHost = el("div", { class: "sf-novel-context" }); // the series tab's chosen novel (Brief 19 §1.3)
+	lore.append(loreHost, chapterHost, novelHost, loreRow);
 	const apply = (): void => {
 		const shown = model.displayWidths();
 		left.style.width = `${shown.left}px`;
@@ -93,6 +95,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	const libraryLayer = mountLibraryLayer(library, libraryHosts, model);
 	const offCharacters = mountCharactersButton(loreRow, model);
 	const offChapterContext = mountChapterContext(chapterHost, model);
+	const offNovelContext = mountNovelContext(novelHost, model);
 
 	fill(left, navMenu.button, faceHost);
 	let disposeFace: (() => void) | null = null;
@@ -120,6 +123,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 			window.removeEventListener("resize", apply);
 			offCharacters();
 			offChapterContext();
+			offNovelContext();
 			overviews();
 			libraryLayer();
 			offFace();
