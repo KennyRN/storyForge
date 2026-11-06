@@ -37,7 +37,7 @@ export type CodexColour = (typeof CODEX_COLOURS)[number];
 export const DATA_COLOURS = ["yellow", "aqua", "blue", "orange", "purple"] as const;
 export type DataColour = (typeof DATA_COLOURS)[number];
 
-/** The text colours (Brief 17, decision 122), each stored as a role name like `data-colour`. The selection: plum (Everforest's visual background, the default), blue, green, yellow or grey (red is trouble). The highlight and the three emphasis colours take the same five colours as the data bars (red and green are excluded, decision 8); an emphasis colour may also be "text" (none: the text colour). */
+/** The text colours (Brief 17, decision 122), each stored as a role name like `data-colour`. The selection: blue (the default), plum (Everforest's visual background), green, yellow or grey (red is trouble). The highlight and the three emphasis colours take the same five colours as the data bars (red and green are excluded, decision 8); an emphasis colour may also be "text" (none: the text colour). */
 export const SELECTION_COLOURS = ["plum", "blue", "green", "yellow", "grey"] as const;
 export type SelectionColour = (typeof SELECTION_COLOURS)[number];
 export const HIGHLIGHT_COLOURS = DATA_COLOURS;
@@ -181,11 +181,11 @@ export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
 	appearanceChapterSoft: 0,
 	codexColour: "text",
 	dataColour: "blue",
-	selectionColour: "plum",
+	selectionColour: "blue",
 	highlightColour: "yellow",
-	boldColour: "text",
-	italicColour: "text",
-	boldItalicColour: "text",
+	boldColour: "orange",
+	italicColour: "orange",
+	boldItalicColour: "orange",
 	hideSeriesPane: false,
 	autoFocus: true,
 	layout: "novelBrowse",

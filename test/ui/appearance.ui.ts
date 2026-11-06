@@ -9,10 +9,11 @@ async function openProject(page: Page): Promise<void> {
 	await page.waitForFunction(() => !!window.__app?.editors);
 }
 const dialog = (page: Page) => page.getByRole("dialog");
-async function openSettings(page: Page, section?: string): Promise<void> {
+async function openSettings(page: Page, section?: string, sub = "Navigator"): Promise<void> {
 	await openSettingsDialog(page);
 	await expect(dialog(page)).toBeVisible();
 	if (section) await dialog(page).getByRole("tab", { name: section, exact: true }).click();
+	if (section === "Appearance") await dialog(page).getByRole("tab", { name: sub, exact: true }).click(); // Appearance's sub-pages (round two)
 }
 const projectMd = (page: Page) => page.evaluate(() => window.__preview.read("_backstage/storyforge/project.md").catch(() => ""));
 const style = (page: Page, sel: string) => page.locator(sel).first().evaluate((e) => { const s = getComputedStyle(e); return { family: s.fontFamily, weight: s.fontWeight, size: s.fontSize, variation: s.fontVariationSettings }; });
@@ -54,6 +55,7 @@ test.describe("settings sections", () => {
 		await openSettings(page);
 		await expect(dialog(page).getByRole("radiogroup", { name: "Codex colour" })).toHaveCount(0);
 		await dialog(page).getByRole("tab", { name: "Appearance" }).click();
+		await dialog(page).getByRole("tab", { name: "Text colours", exact: true }).click();
 		await dialog(page).getByRole("radiogroup", { name: "Codex colour" }).getByRole("radio", { name: "Purple" }).click();
 		await expect(page.locator("html")).toHaveAttribute("data-codex-colour", "purple");
 		expect(await projectMd(page)).toContain("codex-colour: purple");
@@ -65,8 +67,8 @@ test.describe("the data colour (Brief 15)", () => {
 
 	test("five swatches on the Appearance page, blue chosen; opening writes nothing; choosing one writes its role name and recolours the bars at once", async ({ page }) => {
 		await openProject(page);
-		await openSettings(page, "Appearance");
-		await expect(group(page).getByRole("radio")).toHaveText(["Yellow", "Aqua", "Blue", "Orange", "Purple"]);
+		await openSettings(page, "Appearance", "Text colours");
+		expect(await group(page).getByRole("radio").evaluateAll((els) => els.map((e) => [e.getAttribute("aria-label"), e.getAttribute("title"), (e.textContent ?? "").trim()]))).toEqual(["Yellow", "Aqua", "Blue", "Orange", "Purple"].map((n) => [n, n, ""])); // unnamed squares: the name is for the screen reader and the tooltip
 		await expect(group(page).getByRole("radio", { name: "Blue" })).toHaveAttribute("aria-checked", "true");
 		expect(await projectMd(page)).toBe("");
 		await group(page).getByRole("radio", { name: "Yellow" }).click();
@@ -132,7 +134,6 @@ test.describe("Appearance", () => {
 		await font(page, "Codex list").selectOption("Aleo");
 		await expect.poll(() => projectMd(page)).toContain("appearance-codex-font: Aleo"); // the page is drawn again once it has landed
 		await size(page, "Codex list").fill("1.5");
-		await size(page, "Codex list").press("Enter");
 		await expect.poll(async () => (await style(page, ".sf-codex-tree")).size).toBe("24px");
 		expect((await style(page, ".sf-codex-tree")).family).toContain("Aleo");
 		await dialog(page).getByRole("button", { name: "Done" }).click();
@@ -174,33 +175,34 @@ test.describe("Appearance", () => {
 		expect(await projectMd(page)).toContain("appearance-series-soft: 50"); // kept, unused
 	});
 
-	test("size: rounded to the nearest 0.125 rem at once, refused with its range outside it, Escape restores, arrows step 0.125 and Shift 0.25", async ({ page }) => {
+	test("size is a slider over the part's range: a drag previews live and saves once on release, the arrows step 0.125 and Shift 0.25, nothing outside the range can be set", async ({ page }) => {
 		await openProject(page);
 		await openSettings(page, "Appearance");
-		const input = size(page, "Novel title");
-		await input.fill("1.3");
-		await input.press("Enter");
-		await expect(input).toHaveValue("1.25");
-		await expect(dialog(page).getByText("1.25 rem (20 px)")).toBeVisible();
-		await expect.poll(() => projectMd(page)).toContain("appearance-novel-size: 1.25");
-		await input.fill("2.5");
-		await input.press("Enter");
-		await expect(input).toHaveValue("1.25"); // put back, never clamped
-		await expect(dialog(page).getByRole("alert")).toHaveText("Between 0.75 and 2 rem");
-		await input.fill("1.9");
-		await input.press("Escape");
-		await expect(dialog(page)).toBeVisible(); // Escape didn't close the dialog
-		await expect(input).toHaveValue("1.25");
-		await input.press("ArrowUp");
-		await expect(size(page, "Novel title")).toHaveValue("1.375");
-		await size(page, "Novel title").press("Shift+ArrowUp");
-		await expect(size(page, "Novel title")).toHaveValue("1.625");
+		const slider = size(page, "Novel title");
+		await expect(slider).toHaveAttribute("min", "0.75");
+		await expect(slider).toHaveAttribute("max", "2");
+		await expect(slider).toHaveAttribute("step", "0.125");
+		const novel = dialog(page).locator('section[aria-label="Appearance: Novel title"]');
+		await expect(novel.getByText("1 rem (16 px)")).toBeVisible();
+		// a drag: input events preview (the value, the sample, the page) and write nothing; release saves once
+		await slider.evaluate((e: HTMLInputElement) => { e.value = "1.5"; e.dispatchEvent(new Event("input", { bubbles: true })); });
+		await expect(novel.getByText("1.5 rem (24 px)")).toBeVisible();
+		expect(await dialog(page).getByRole("img", { name: "Sample of the novel title" }).evaluate((e) => getComputedStyle(e).fontSize)).toBe("24px");
+		expect(await style(page, ".sf-nav-novel")).toMatchObject({ size: "24px" });
+		expect(await projectMd(page)).toBe("");
+		await slider.evaluate((e: HTMLInputElement) => e.dispatchEvent(new Event("change", { bubbles: true })));
+		await expect.poll(() => projectMd(page)).toContain("appearance-novel-size: 1.5");
+		// out of range: the slider holds it to its ends
+		await slider.evaluate((e: HTMLInputElement) => { e.value = "5"; });
+		expect(await slider.inputValue()).toBe("2");
+		await slider.focus();
+		await slider.press("ArrowLeft");
+		await expect.poll(() => projectMd(page)).toContain("appearance-novel-size: 1.875"); // from the slider's end, 2, one step back
+		await size(page, "Novel title").press("Shift+ArrowLeft");
+		await expect.poll(() => projectMd(page)).toContain("appearance-novel-size: 1.625");
+		await expect(size(page, "Novel title")).toBeFocused(); // a key redraws the page; focus stays on the slider
 		// the chapter and Codex ranges stop at 1.75
-		await font(page, "Selected chapter").selectOption("Aleo");
-		await expect.poll(() => projectMd(page)).toContain("appearance-chapter-font: Aleo"); // the page is drawn again once it has landed
-		await size(page, "Selected chapter").fill("1.8");
-		await size(page, "Selected chapter").press("Enter");
-		await expect(dialog(page).getByRole("alert")).toHaveText("Between 0.75 and 1.75 rem");
+		await expect(size(page, "Selected chapter")).toHaveAttribute("max", "1.75");
 	});
 
 	test("a sample line per part follows its font, weight and size; the real title follows too", async ({ page }) => {

@@ -758,11 +758,11 @@ describe("the text colours (Brief 17): selection, highlight, bold, italic and bo
 	};
 	// The key, the setting, its default, what it accepts, and what it must not (excluded or unknown: draws the default, never rewritten).
 	const CASES = [
-		{ file: "selection-colour", key: "selectionColour", def: "plum", ok: ["plum", "blue", "green", "yellow", "grey"], bad: ["red", "aqua", "orange", "purple", "text", "'#5c3f4f'", "4", "[blue]"] },
+		{ file: "selection-colour", key: "selectionColour", def: "blue", ok: ["plum", "blue", "green", "yellow", "grey"], bad: ["red", "aqua", "orange", "purple", "text", "'#5c3f4f'", "4", "[blue]"] },
 		{ file: "highlight-colour", key: "highlightColour", def: "yellow", ok: ["yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "plum", "text", "'#dbbc7f'", "4"] },
-		{ file: "bold-colour", key: "boldColour", def: "text", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },
-		{ file: "italic-colour", key: "italicColour", def: "text", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },
-		{ file: "bold-italic-colour", key: "boldItalicColour", def: "text", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },
+		{ file: "bold-colour", key: "boldColour", def: "orange", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },
+		{ file: "italic-colour", key: "italicColour", def: "orange", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },
+		{ file: "bold-italic-colour", key: "boldItalicColour", def: "orange", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },
 	] as const;
 
 	it("every key has its default with no key at all; opening such a project leaves the folder byte-identical", async () => {

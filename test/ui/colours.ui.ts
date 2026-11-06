@@ -4,6 +4,7 @@ import { flipFace, openPreview, openSettingsDialog } from "./helpers";
 // Brief 17 (decision 122): the colour round. The selection (the bug and the setting), find matches, the Text colours in Settings.
 
 const SETTINGS = "_backstage/storyforge/project.md";
+const BLUE = "rgb(63, 88, 101)"; // the default selection (round two)
 const PLUM = "rgb(92, 63, 79)";
 const BG2 = "rgb(67, 79, 85)";
 const CM_FOCUSED_BUG = "rgb(215, 212, 240)"; // CodeMirror's own, #d7d4f0
@@ -54,7 +55,7 @@ test.describe("the selection", () => {
 		await page.locator(".sf-slot--centre .cm-content").click();
 		await page.keyboard.press("Meta+a");
 		await expect(sel.first()).toBeVisible();
-		expect(await bg(sel)).toBe(PLUM);
+		expect(await bg(sel)).toBe(BLUE);
 		expect(await bg(sel)).not.toBe(CM_FOCUSED_BUG);
 		await page.locator(".sf-slot--centre .cm-content").evaluate((e) => (e as HTMLElement).blur());
 		await expect.poll(() => bg(sel)).toBe(BG2);
@@ -66,17 +67,17 @@ test.describe("the selection", () => {
 		const text = page.locator(".sf-chapter-context .sf-chapter-text");
 		await text.locator(".cm-content").click({ clickCount: 3 }); // a triple click selects a line (this text has no select-all key)
 		await page.waitForTimeout(200);
-		expect(await pixels(page, text, [92, 63, 79])).toBeGreaterThan(300); // the plum fill behind the selected line
+		expect(await pixels(page, text, [63, 88, 101])).toBeGreaterThan(300); // the blue fill behind the selected line
 		expect(await pixels(page, text, [215, 212, 240])).toBe(0); // never CodeMirror's
 		// A plot note draws the browser's own selection (it has no selection layer): the page's ::selection.
 		const line = page.locator(".sf-chapter-context .sf-note-field .cm-line").first();
 		await line.click({ clickCount: 3 });
-		expect(await line.evaluate((e) => getComputedStyle(e, "::selection").backgroundColor)).toBe(PLUM);
+		expect(await line.evaluate((e) => getComputedStyle(e, "::selection").backgroundColor)).toBe(BLUE);
 	});
 
-	test("each choice applies with focus in every surface; an unknown or excluded value draws plum", async ({ page }) => {
+	test("each choice applies with focus in every surface; an unknown or excluded value draws blue", async ({ page }) => {
 		await openProject(page);
-		const choices: Record<string, string> = { blue: "rgb(63, 88, 101)", green: "rgb(72, 88, 78)", yellow: "rgb(85, 84, 74)", grey: "rgb(77, 89, 96)" };
+		const choices: Record<string, string> = { plum: PLUM, green: "rgb(72, 88, 78)", yellow: "rgb(85, 84, 74)", grey: "rgb(77, 89, 96)" };
 		const sel = page.locator(".sf-slot--centre .cm-selectionBackground");
 		await page.locator(".sf-slot--centre .cm-content").click();
 		for (const [name, rgb] of Object.entries(choices)) {
@@ -90,7 +91,7 @@ test.describe("the selection", () => {
 			await outside(page, `---\nformat-version: 1\nselection-colour: ${bad}\n---\n`);
 			await page.locator(".sf-slot--centre .cm-content").click();
 			await page.keyboard.press("Meta+a");
-			await expect.poll(() => bg(sel)).toBe(PLUM);
+			await expect.poll(() => bg(sel)).toBe(BLUE);
 		}
 	});
 
@@ -98,7 +99,7 @@ test.describe("the selection", () => {
 		await openProject(page);
 		const selectionOf = () => page.evaluate(() => getComputedStyle(document.querySelector(".sf-nav-lead") ?? document.body, "::selection").backgroundColor);
 		await page.evaluate(() => { document.documentElement.dataset.window = "active"; });
-		expect(await selectionOf()).toBe(PLUM);
+		expect(await selectionOf()).toBe(BLUE);
 		await outside(page, "---\nformat-version: 1\nselection-colour: green\n---\n");
 		await expect.poll(selectionOf).toBe("rgb(72, 88, 78)");
 		// The app marks the page when the window loses or gets focus; inactive, the same text draws neutral bg2.
@@ -126,7 +127,7 @@ test.describe("find matches", () => {
 		expect(await others.evaluate((e) => getComputedStyle(e).outlineStyle)).toBe("dashed");
 		expect(await current.evaluate((e) => getComputedStyle(e).outlineStyle)).toBe("solid");
 		expect(await current.evaluate((e) => getComputedStyle(e).outlineColor)).toBe("rgb(230, 152, 117)"); // orange
-		expect(await bg(others)).not.toBe(PLUM);
+		expect(await bg(others)).not.toBe(BLUE);
 	});
 });
 
@@ -136,19 +137,28 @@ test.describe("Settings ▸ Appearance ▸ Text colours", () => {
 		await openSettingsDialog(page);
 		const d = page.getByRole("dialog");
 		await d.getByRole("tab", { name: "Appearance", exact: true }).click();
+		await d.getByRole("tab", { name: "Text colours", exact: true }).click();
 		const group = d.locator('section[aria-label="Text colours"]');
 		await expect(group.getByRole("group", { name: "Sample of the text colours" })).toBeVisible();
 		for (const name of ["Selection colour", "Highlight colour", "Bold colour", "Italic colour", "Bold italic colour"]) await expect(group.getByRole("radiogroup", { name, exact: true })).toBeVisible();
 		// names its group first (decision 117): the Codex and data groups have swatches of the same names
-		await group.getByRole("radiogroup", { name: "Selection colour", exact: true }).getByRole("radio", { name: "Blue" }).click();
-		await expect.poll(() => page.evaluate((p) => window.__preview.read(p).catch(() => ""), SETTINGS)).toContain("selection-colour: blue");
-		await expect(page.locator("html")).toHaveAttribute("data-selection-colour", "blue");
+		await group.getByRole("radiogroup", { name: "Selection colour", exact: true }).getByRole("radio", { name: "Green" }).click();
+		await expect.poll(() => page.evaluate((p) => window.__preview.read(p).catch(() => ""), SETTINGS)).toContain("selection-colour: green");
+		await expect(page.locator("html")).toHaveAttribute("data-selection-colour", "green");
 		await group.getByRole("radiogroup", { name: "Bold colour", exact: true }).getByRole("radio", { name: "Aqua" }).click();
 		await expect(page.locator("html")).toHaveAttribute("data-bold-colour", "aqua");
 		expect(await page.evaluate((p) => window.__preview.read(p), SETTINGS)).toContain("bold-colour: aqua");
 		// the choices of each row: red and green are never offered
 		const names = async (n: string) => group.getByRole("radiogroup", { name: n, exact: true }).getByRole("radio").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
 		expect(await names("Selection colour")).toEqual(["Plum", "Blue", "Green", "Yellow", "Grey"]);
+		// unnamed squares: no visible name, the name kept for the screen reader and as a tooltip; the chosen one has a ring
+		const swatch = group.getByRole("radiogroup", { name: "Italic colour", exact: true }).getByRole("radio", { name: "Text colour" });
+		expect(((await swatch.textContent()) ?? "").trim()).toBe("");
+		await expect(swatch).toHaveAttribute("title", "Text colour");
+		expect(await swatch.evaluate((e) => [e.getBoundingClientRect().width, e.getBoundingClientRect().height])).toEqual([24, 24]);
+		await group.getByRole("radiogroup", { name: "Italic colour", exact: true }).getByRole("radio", { name: "Orange" }).click(); // the default: nothing to write
+		const chosen = group.getByRole("radiogroup", { name: "Italic colour", exact: true }).getByRole("radio", { checked: true });
+		expect(await chosen.evaluate((e) => getComputedStyle(e).outlineStyle)).toBe("solid");
 		expect(await names("Highlight colour")).toEqual(["Yellow", "Aqua", "Blue", "Orange", "Purple"]);
 		expect(await names("Italic colour")).toEqual(["Text colour", "Yellow", "Aqua", "Blue", "Orange", "Purple"]);
 	});
@@ -226,7 +236,7 @@ test.describe("==highlight==", () => {
 		await expect(content.locator(".sf-highlight").first()).toBeVisible(); // the rest keeps its fill
 		const layer = page.locator(".sf-slot--centre .cm-selectionBackground").first();
 		await expect(layer).toBeVisible();
-		expect(await bg(layer)).toBe(PLUM);
+		expect(await bg(layer)).toBe(BLUE);
 	});
 });
 
@@ -245,6 +255,8 @@ test.describe("bold, italic and bold italic colours", () => {
 
 	test('"Text colour" draws as before: fg, a real 700 and a real italic', async ({ page }) => {
 		await openProject(page);
+		await outside(page, "---\nformat-version: 1\nbold-colour: text\nitalic-colour: text\nbold-italic-colour: text\n---\n");
+		await expect(page.locator("html")).toHaveAttribute("data-bold-italic-colour", "text");
 		const content = await write(page, "a **bold** and *italic* and ***both*** x\nplain");
 		for (const [sel, weight, style] of [[".sf-strong:not(.sf-em)", "700", "normal"], [".sf-em:not(.sf-strong)", "400", "italic"], [".sf-strong.sf-em", "700", "italic"]] as const) {
 			const span = content.locator(sel);
@@ -257,18 +269,18 @@ test.describe("bold, italic and bold italic colours", () => {
 	});
 
 	for (const [key, selector, other] of [["bold-colour", ".sf-strong:not(.sf-em)", ".sf-em:not(.sf-strong)"], ["italic-colour", ".sf-em:not(.sf-strong)", ".sf-strong:not(.sf-em)"], ["bold-italic-colour", ".sf-strong.sf-em", ".sf-strong:not(.sf-em)"]] as const) {
-		test(`${key}: each of the five colours applies to its own kind only; red, green and unknown draw the text colour; weight and italic are unchanged`, async ({ page }) => {
+		test(`${key}: each of the five colours applies to its own kind only; red, green and unknown draw the default orange; weight and italic are unchanged`, async ({ page }) => {
 			await openProject(page);
 			const content = await write(page, "a **bold** and *italic* and ***both*** x\nplain");
 			for (const [name, rgb] of Object.entries(COLOURS)) {
 				await outside(page, `---\nformat-version: 1\n${key}: ${name}\n---\n`);
 				await expect(page.locator("html")).toHaveAttribute(`data-${key}`, name);
 				await expect.poll(() => css(content.locator(selector), "color")).toBe(rgb);
-				expect(await css(content.locator(other), "color")).toBe(FG); // bold italic doesn't mix the other two
+				expect(await css(content.locator(other), "color")).toBe(COLOURS.orange); // the other kinds keep their own (the default, orange): no mixing
 			}
 			for (const bad of ["red", "green", "grey"]) {
 				await outside(page, `---\nformat-version: 1\n${key}: ${bad}\n---\n`);
-				await expect.poll(() => css(content.locator(selector), "color")).toBe(FG);
+				await expect.poll(() => css(content.locator(selector), "color")).toBe(COLOURS.orange); // draws the default
 			}
 			expect(await css(content.locator(".sf-strong:not(.sf-em)"), "font-weight")).toBe("700");
 			expect(await css(content.locator(".sf-em:not(.sf-strong)"), "font-style")).toBe("italic");

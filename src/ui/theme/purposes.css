@@ -14,7 +14,7 @@
 	--purpose-accent: var(--ef-green);
 	--purpose-text-on-accent: var(--ef-bg-dim);
 	--purpose-focus-ring: var(--ef-green);
-	--purpose-selection: var(--ef-bg-visual);
+	--purpose-selection: var(--purpose-selection-choice-blue);
 	--purpose-trouble: var(--ef-red);
 	--purpose-scrim: rgb(0 0 0 / 0.45);
 	--purpose-shadow: rgb(0 0 0 / 0.4);
@@ -57,7 +57,7 @@
 	/* The strip's icons at rest (the Codex colour on hover and focus), and the focus ring on a Codex row. */
 	--purpose-codex-rest: var(--ef-grey0); /* about 3.4:1 on bg_dim, whatever the Codex colour */
 	--purpose-codex-ring: var(--purpose-focus-ring);
-	/* The colour round (Brief 17, decision 122). The selection: a setting (`selection-colour`, default plum), and neutral bg2 when the editor or window is not active. */
+	/* The colour round (Brief 17, decision 122). The selection: a setting (`selection-colour`, default blue), and neutral bg2 when the editor or window is not active. */
 	--purpose-selection-choice-plum: var(--ef-bg-visual);
 	--purpose-selection-choice-blue: var(--ef-bg-blue);
 	--purpose-selection-choice-green: var(--ef-bg-green);
@@ -76,9 +76,9 @@
 	--purpose-colour-choice-purple: var(--ef-purple);
 	--purpose-highlight-fill: var(--purpose-colour-choice-yellow);
 	--purpose-highlight-text: var(--ef-bg0);
-	--purpose-emphasis-bold: var(--purpose-text);
-	--purpose-emphasis-italic: var(--purpose-text);
-	--purpose-emphasis-bold-italic: var(--purpose-text);
+	--purpose-emphasis-bold: var(--purpose-colour-choice-orange);
+	--purpose-emphasis-italic: var(--purpose-colour-choice-orange);
+	--purpose-emphasis-bold-italic: var(--purpose-colour-choice-orange);
 	/* The four kinds of notice: a tinted fill and a 3 px edge. Red means something failed (decision 122). */
 	--purpose-notice-error-fill: var(--ef-bg-red);
 	--purpose-notice-error-edge: var(--ef-red);
@@ -109,8 +109,8 @@
 :root[data-data-colour="orange"] { --purpose-data-fill: var(--ef-orange); }
 :root[data-data-colour="purple"] { --purpose-data-fill: var(--ef-purple); }
 
-/* The chosen text colours (the five settings, set on the page by the app); missing, unknown or excluded values draw the defaults (plum, yellow, the text colour). */
-:root[data-selection-colour="blue"] { --purpose-selection: var(--purpose-selection-choice-blue); }
+/* The chosen text colours (the five settings, set on the page by the app); missing, unknown or excluded values draw the defaults (blue, yellow, orange). */
+:root[data-selection-colour="plum"] { --purpose-selection: var(--purpose-selection-choice-plum); }
 :root[data-selection-colour="green"] { --purpose-selection: var(--purpose-selection-choice-green); }
 :root[data-selection-colour="yellow"] { --purpose-selection: var(--purpose-selection-choice-yellow); }
 :root[data-selection-colour="grey"] { --purpose-selection: var(--purpose-selection-choice-grey); }
@@ -119,16 +119,19 @@
 :root[data-highlight-colour="blue"] { --purpose-highlight-fill: var(--purpose-colour-choice-blue); }
 :root[data-highlight-colour="orange"] { --purpose-highlight-fill: var(--purpose-colour-choice-orange); }
 :root[data-highlight-colour="purple"] { --purpose-highlight-fill: var(--purpose-colour-choice-purple); }
+:root[data-bold-colour="text"] { --purpose-emphasis-bold: var(--purpose-text); }
 :root[data-bold-colour="yellow"] { --purpose-emphasis-bold: var(--purpose-colour-choice-yellow); }
 :root[data-bold-colour="aqua"] { --purpose-emphasis-bold: var(--purpose-colour-choice-aqua); }
 :root[data-bold-colour="blue"] { --purpose-emphasis-bold: var(--purpose-colour-choice-blue); }
 :root[data-bold-colour="orange"] { --purpose-emphasis-bold: var(--purpose-colour-choice-orange); }
 :root[data-bold-colour="purple"] { --purpose-emphasis-bold: var(--purpose-colour-choice-purple); }
+:root[data-italic-colour="text"] { --purpose-emphasis-italic: var(--purpose-text); }
 :root[data-italic-colour="yellow"] { --purpose-emphasis-italic: var(--purpose-colour-choice-yellow); }
 :root[data-italic-colour="aqua"] { --purpose-emphasis-italic: var(--purpose-colour-choice-aqua); }
 :root[data-italic-colour="blue"] { --purpose-emphasis-italic: var(--purpose-colour-choice-blue); }
 :root[data-italic-colour="orange"] { --purpose-emphasis-italic: var(--purpose-colour-choice-orange); }
 :root[data-italic-colour="purple"] { --purpose-emphasis-italic: var(--purpose-colour-choice-purple); }
+:root[data-bold-italic-colour="text"] { --purpose-emphasis-bold-italic: var(--purpose-text); }
 :root[data-bold-italic-colour="yellow"] { --purpose-emphasis-bold-italic: var(--purpose-colour-choice-yellow); }
 :root[data-bold-italic-colour="aqua"] { --purpose-emphasis-bold-italic: var(--purpose-colour-choice-aqua); }
 :root[data-bold-italic-colour="blue"] { --purpose-emphasis-bold-italic: var(--purpose-colour-choice-blue); }

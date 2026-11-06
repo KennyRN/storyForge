@@ -102,16 +102,10 @@ test.describe("the two small fixes", () => {
 		else expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--purpose-text"))).not.toBe("");
 	});
 
-	test("every invalid text box draws the red border: the Settings size box and a panel width box", async ({ page }) => {
+	test("every invalid text box draws the red border: a panel width box (the Settings sizes are sliders now, which can't be invalid)", async ({ page }) => {
 		await openProject(page);
 		await openSettingsDialog(page);
 		const d = page.getByRole("dialog");
-		await d.getByRole("tab", { name: "Appearance", exact: true }).click();
-		const size = d.getByLabel("Novel title size (rem)");
-		await size.fill("9");
-		await size.press("Enter");
-		await expect(size).toHaveAttribute("aria-invalid", "true");
-		expect(await size.evaluate((e) => getComputedStyle(e).borderTopColor)).toBe("rgb(230, 126, 128)"); // red
 		await d.getByRole("tab", { name: "This Mac", exact: true }).click();
 		const width = d.getByLabel(/Width of all three panels/);
 		await width.fill("5");

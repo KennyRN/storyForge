@@ -2,7 +2,7 @@ import { NUMBERING_STYLE_OPTIONS, type NumberingStyle } from "../../core/numberi
 import type { AutomaticBackupFrequency } from "../../core/backup";
 import { APPEARANCE_BASE_PX, APPEARANCE_PARTS, APPEARANCE_SIZE_RANGE, APPEARANCE_SIZE_STEP, APPEARANCE_SIZE_STEP_SHIFT, CODEX_COLOURS, DATA_COLOURS, EMPHASIS_COLOURS, HIGHLIGHT_COLOURS, SELECTION_COLOURS, SESSION_LIMITS, appearanceKey, typeKey, setSetting, type AppearancePart, type CodexColour, type DataColour, type EmphasisColour, type SelectionColour, type ProjectSettings, type StoryKind } from "../../app/settings";
 import { FAMILY_INFO, FONT_FAMILIES, isFontFamily, nearestWeight, type FontFamily } from "../../core/fontFamilies";
-import { sampleStyle, styleLook } from "../appearance";
+import { px, sampleStyle, styleLook } from "../appearance";
 import { DISPLAY_TEXT_STYLE_IDS, FOLLOW, SYSTEM_STYLE_IDS, WRITING_STYLES, styleOf, resolvedFont, type TypeStyle } from "../../core/typeStyles";
 import { button } from "../kit/button";
 import { bringForward, openDialog } from "../kit/dialog";
@@ -21,6 +21,9 @@ const PART_SAMPLES: Record<AppearancePart, string> = { codex: "Cast · Jane Harb
 const WEIGHT_NAMES: Record<number, string> = { 100: "Thin", 200: "Extra light", 300: "Light", 400: "Regular", 500: "Medium", 600: "Semibold", 700: "Bold", 800: "Extra bold", 900: "Black" };
 const PAGES = ["General", "Story", "Appearance", "Writing", "Sessions", "Backups", "This Mac"] as const;
 type Page = (typeof PAGES)[number];
+/** Appearance is one entry with sub-pages across the top of its pane (round two). */
+const APPEARANCE_PAGES = ["Interface: System", "Interface: Display text", "Navigator", "Writing", "Text colours"] as const;
+type AppearancePage = (typeof APPEARANCE_PAGES)[number];
 const FREQUENCIES: Record<AutomaticBackupFrequency, string> = { "every-open": "Every time the project opens", daily: "Once a day", weekly: "Once a week" };
 
 /**
@@ -82,7 +85,7 @@ export function openSettings(model: AppModel): void {
 		const group = el("div", { class: "sf-swatches", attrs: { role: "radiogroup", "aria-label": "Codex colour" } });
 		for (const choice of CODEX_COLOURS) {
 			const chosen = settings.values.codexColour === choice;
-			const b = el("button", { class: `sf-swatch${chosen ? " is-chosen" : ""}`, dataset: { choice }, attrs: { type: "button", role: "radio", "aria-checked": String(chosen), "aria-label": CODEX_COLOUR_NAMES[choice] }, }, el("span", { class: `sf-swatch-dot sf-swatch-dot--${choice}` }), CODEX_COLOUR_NAMES[choice]);
+			const b = el("button", { class: `sf-swatch sf-swatch--colour${chosen ? " is-chosen" : ""}`, dataset: { choice }, attrs: { type: "button", role: "radio", "aria-checked": String(chosen), "aria-label": CODEX_COLOUR_NAMES[choice], title: CODEX_COLOUR_NAMES[choice] } }, el("span", { class: `sf-swatch-dot sf-swatch-dot--${choice}` }));
 			b.disabled = off;
 			b.addEventListener("click", () => void change("codexColour", choice));
 			group.append(b);
@@ -95,7 +98,7 @@ export function openSettings(model: AppModel): void {
 		const group = el("div", { class: "sf-swatches", attrs: { role: "radiogroup", "aria-label": "Data colour" } });
 		for (const choice of DATA_COLOURS) {
 			const chosen = settings.values.dataColour === choice;
-			const b = el("button", { class: `sf-swatch${chosen ? " is-chosen" : ""}`, dataset: { choice }, attrs: { type: "button", role: "radio", "aria-checked": String(chosen), "aria-label": DATA_COLOUR_NAMES[choice] } }, el("span", { class: `sf-swatch-dot sf-swatch-dot--${choice}` }), DATA_COLOUR_NAMES[choice]);
+			const b = el("button", { class: `sf-swatch sf-swatch--colour${chosen ? " is-chosen" : ""}`, dataset: { choice }, attrs: { type: "button", role: "radio", "aria-checked": String(chosen), "aria-label": DATA_COLOUR_NAMES[choice], title: DATA_COLOUR_NAMES[choice] } }, el("span", { class: `sf-swatch-dot sf-swatch-dot--${choice}` }));
 			b.disabled = off;
 			b.addEventListener("click", () => void change("dataColour", choice));
 			group.append(b);
@@ -107,7 +110,7 @@ export function openSettings(model: AppModel): void {
 		const group = el("div", { class: "sf-swatches", attrs: { role: "radiogroup", "aria-label": label } });
 		for (const choice of choices) {
 			const chosen = settings.values[key] === choice;
-			const b = el("button", { class: `sf-swatch${chosen ? " is-chosen" : ""}`, dataset: { choice }, attrs: { type: "button", role: "radio", "aria-checked": String(chosen), "aria-label": names[choice] } }, el("span", { class: `sf-swatch-dot ${dot(choice)}` }), names[choice]);
+			const b = el("button", { class: `sf-swatch sf-swatch--colour${chosen ? " is-chosen" : ""}`, dataset: { choice }, attrs: { type: "button", role: "radio", "aria-checked": String(chosen), "aria-label": names[choice], title: names[choice] } }, el("span", { class: `sf-swatch-dot ${dot(choice)}` }));
 			b.disabled = off;
 			b.addEventListener("click", () => void change(key, choice as ProjectSettings[K]));
 			group.append(b);
@@ -132,12 +135,16 @@ export function openSettings(model: AppModel): void {
 			" text.",
 		);
 		return [
-			sample,
+			el("div", { class: "sf-style sf-style--colours" },
+				el("div", { class: "sf-style-controls" },
 			swatchRow("selectionColour", "Selection colour", SELECTION_COLOURS, SELECTION_COLOUR_NAMES, (c) => `sf-swatch-dot--sel-${c}`),
 			swatchRow("highlightColour", "Highlight colour", HIGHLIGHT_COLOURS, DATA_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`),
 			swatchRow("boldColour", "Bold colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`),
 			swatchRow("italicColour", "Italic colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`),
 			swatchRow("boldItalicColour", "Bold italic colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`),
+				),
+				sample,
+			),
 		];
 	};
 	/** A whole-number field. Committed when it loses focus or Return is pressed; a value outside the range is put back. Blank means off, where `nullable`. */
@@ -156,6 +163,40 @@ export function openSettings(model: AppModel): void {
 		return row(label, input, key);
 	};
 	const row = (label: string, control: HTMLElement, key: keyof ProjectSettings): HTMLElement => el("label", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: label }), control, source(key));
+
+	/**
+	 * A size slider (round two): a drag previews live (the value beside it, the sample and the page) and the size is saved once, on release;
+	 * the arrow keys step by `step` and, where `shiftStep` is given, Shift steps by that. Out-of-range figures can't be entered.
+	 */
+	const sizeSlider = (o: { label: string; lo: number; hi: number; step: number; shiftStep?: number; now: number; text: (v: number) => string; commit: (v: number) => void; preview: (v: number) => void }): [HTMLInputElement, HTMLElement] => {
+		const slider = el("input", { class: "sf-slider sf-setting-control", attrs: { type: "range", min: String(o.lo), max: String(o.hi), step: String(o.step), "aria-label": o.label, "aria-valuetext": o.text(o.now) } });
+		const value = el("span", { class: "sf-muted sf-setting-source", text: o.text(o.now) });
+		slider.value = String(o.now);
+		slider.disabled = off;
+		const read = (): number => Math.round(Number(slider.value) * 1000) / 1000;
+		slider.addEventListener("input", () => {
+			value.textContent = o.text(read());
+			slider.setAttribute("aria-valuetext", o.text(read()));
+			o.preview(read());
+		});
+		slider.addEventListener("change", () => {
+			if (read() !== o.now) o.commit(read());
+		});
+		if (o.shiftStep) {
+			const shiftStep = o.shiftStep;
+			slider.addEventListener("keydown", (e) => {
+				const dir = e.key === "ArrowRight" || e.key === "ArrowUp" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowDown" ? -1 : 0;
+				if (!e.shiftKey || !dir) return;
+				e.preventDefault();
+				slider.value = String(Math.min(o.hi, Math.max(o.lo, Math.round((read() + dir * shiftStep) * 1000) / 1000)));
+				slider.dispatchEvent(new Event("input", { bubbles: true }));
+				slider.dispatchEvent(new Event("change", { bubbles: true }));
+			});
+		}
+		return [slider, value];
+	};
+	/** A style's controls in one column and its sample in the next, lined up with them. */
+	const styled = (name: string, rows: HTMLElement[], sample: HTMLElement): HTMLElement => section(name, [el("div", { class: "sf-style" }, el("div", { class: "sf-style-controls" }, ...rows), sample)], `Appearance: ${name}`);
 
 	/** A size in rem, with its pixel equivalent against the one named base. */
 	const remText = (rem: number): string => `${+rem.toFixed(4)} rem (${+(rem * APPEARANCE_BASE_PX).toFixed(1)} px)`;
@@ -189,55 +230,16 @@ export function openSettings(model: AppModel): void {
 		weightSelect.disabled = off;
 		weightSelect.addEventListener("change", () => void change(appearanceKey(part, "Weight"), Number(weightSelect.value) as never));
 
-		// The size: committed on Return or leaving the field; rounded to the nearest step at once; refused outside its range; Escape restores.
-		const sizeInput = el("input", { class: "sf-field sf-setting-control", attrs: { type: "text", inputmode: "decimal", "aria-label": `${name} size (rem)` } });
-		const sizeHint = el("span", { class: "sf-muted sf-setting-source", text: remText(sizeNow) });
-		sizeInput.value = String(sizeNow);
-		sizeInput.disabled = off;
-		const refuse = (): void => {
-			sizeInput.value = String(sizeNow);
-			sizeInput.setAttribute("aria-invalid", "true");
-			sizeHint.setAttribute("role", "alert");
-			sizeHint.textContent = `Between ${lo} and ${hi} rem`;
-		};
-		const commitSize = (): void => {
-			const text = sizeInput.value.trim().replace(",", ".");
-			const typed = text === "" ? Number.NaN : Number(text);
-			if (!Number.isFinite(typed) || typed < lo || typed > hi) return refuse();
-			const rounded = Math.round(Math.round(typed / APPEARANCE_SIZE_STEP) * APPEARANCE_SIZE_STEP * 1000) / 1000;
-			const next = Math.min(hi, Math.max(lo, rounded));
-			sizeInput.value = String(next); // the rounded figure at once
-			sizeInput.removeAttribute("aria-invalid");
-			sizeHint.removeAttribute("role");
-			sizeHint.textContent = remText(next);
-			if (next !== sizeNow) void change(appearanceKey(part, "Size"), next as never);
-		};
-		sizeInput.addEventListener("change", commitSize);
-		sizeInput.addEventListener("keydown", (e) => {
-			if (e.key === "Enter") {
-				e.preventDefault();
-				commitSize();
-			} else if (e.key === "Escape") {
-				e.stopPropagation(); // put the figure back without closing the dialog
-				sizeInput.value = String(sizeNow);
-				sizeInput.removeAttribute("aria-invalid");
-				sizeHint.removeAttribute("role");
-				sizeHint.textContent = remText(sizeNow);
-			} else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-				e.preventDefault();
-				const step = e.shiftKey ? APPEARANCE_SIZE_STEP_SHIFT : APPEARANCE_SIZE_STEP;
-				const base = Number(sizeInput.value.replace(",", "."));
-				const from = Number.isFinite(base) ? base : sizeNow;
-				const next = Math.min(hi, Math.max(lo, Math.round((from + (e.key === "ArrowUp" ? step : -step)) * 1000) / 1000));
-				sizeInput.value = String(next);
-				commitSize();
-			}
+		const sampleEl = el("div", { class: "sf-sample", attrs: { "aria-label": `Sample of the ${name.toLowerCase()}`, role: "img" }, text: PART_SAMPLES[part] });
+		const [sizeSliderEl, sizeHint] = sizeSlider({
+			label: `${name} size (rem)`, lo, hi, step: APPEARANCE_SIZE_STEP, shiftStep: APPEARANCE_SIZE_STEP_SHIFT, now: sizeNow, text: remText,
+			commit: (next) => void change(appearanceKey(part, "Size"), next as never),
+			preview: (v) => { sampleEl.style.fontSize = px(v); document.documentElement.style.setProperty(`--ap-${part}-size`, px(v)); },
 		});
-
 		const rows: HTMLElement[] = [
 			row("Font", fontSelect, fontKey),
 			row("Weight", weightSelect, appearanceKey(part, "Weight")),
-			el("label", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: "Size" }), sizeInput, sizeHint),
+			el("label", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: "Size" }), sizeSliderEl, sizeHint),
 		];
 		if (font === "Fraunces") {
 			const soft = el("input", { class: "sf-field sf-setting-control", attrs: { type: "number", min: "0", max: "100", step: "25", "aria-label": `${name} Softness (0 to 100)` } });
@@ -250,9 +252,8 @@ export function openSettings(model: AppModel): void {
 			});
 			rows.push(row("Softness", soft, appearanceKey(part, "Soft")));
 		}
-		const sample = el("div", { class: "sf-sample", attrs: { "aria-label": `Sample of the ${name.toLowerCase()}`, role: "img" }, text: PART_SAMPLES[part] });
-		sample.setAttribute("style", sampleStyle(part, settings.values));
-		return section(name, [...rows, sample], `Appearance: ${name}`);
+		sampleEl.setAttribute("style", sampleStyle(part, settings.values));
+		return styled(name, rows, sampleEl);
 	};
 
 	/** One of the two base fonts (Brief 18): the Interface font or the Writing font, which every style that names none of its own follows. */
@@ -288,6 +289,7 @@ export function openSettings(model: AppModel): void {
 			})();
 		});
 		const rows: HTMLElement[] = [row("Font", fontSelect, fontKey)];
+		const sampleEl = el("div", { class: "sf-sample", attrs: { "aria-label": `Sample of the ${name.toLowerCase()} style`, role: "img" }, text: style.sample });
 		if (!style.fixed) {
 			const weightSelect = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${name} weight` } }, ...FAMILY_INFO[family].weights.map((w) => el("option", { text: `${WEIGHT_NAMES[w] ?? w} (${w})`, attrs: { value: String(w) } })));
 			weightSelect.value = String(nearestWeight(family, settings.values[weightKey] as number));
@@ -296,46 +298,12 @@ export function openSettings(model: AppModel): void {
 			rows.push(row("Weight", weightSelect, weightKey));
 			const [lo, hi] = style.range;
 			const sizeNow = settings.values[sizeKey] as number;
-			const sizeInput = el("input", { class: "sf-field sf-setting-control", attrs: { type: "text", inputmode: "numeric", "aria-label": `${name} size (px)` } });
-			const sizeHint = el("span", { class: "sf-muted sf-setting-source", text: `${lo} to ${hi} px` });
-			sizeInput.value = String(sizeNow);
-			sizeInput.disabled = off;
-			const reset = (): void => {
-				sizeInput.value = String(sizeNow);
-				sizeInput.removeAttribute("aria-invalid");
-				sizeHint.removeAttribute("role");
-				sizeHint.textContent = `${lo} to ${hi} px`;
-			};
-			const commitSize = (): void => {
-				const typed = Number(sizeInput.value.trim());
-				if (sizeInput.value.trim() === "" || !Number.isInteger(typed) || typed < lo || typed > hi) {
-					sizeInput.value = String(sizeNow);
-					sizeInput.setAttribute("aria-invalid", "true");
-					sizeHint.setAttribute("role", "alert");
-					sizeHint.textContent = `Between ${lo} and ${hi} px`;
-					return;
-				}
-				reset();
-				sizeInput.value = String(typed);
-				if (typed !== sizeNow) void change(sizeKey, typed as never);
-			};
-			sizeInput.addEventListener("change", commitSize);
-			sizeInput.addEventListener("keydown", (e) => {
-				if (e.key === "Enter") {
-					e.preventDefault();
-					commitSize();
-				} else if (e.key === "Escape") {
-					e.stopPropagation(); // put the figure back without closing the dialog
-					reset();
-				} else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
-					e.preventDefault();
-					const from = Number(sizeInput.value);
-					const next = Math.min(hi, Math.max(lo, (Number.isFinite(from) ? Math.round(from) : sizeNow) + (e.key === "ArrowUp" ? 1 : -1)));
-					sizeInput.value = String(next);
-					commitSize();
-				}
+			const [slider, hint] = sizeSlider({
+				label: `${name} size (px)`, lo, hi, step: 1, now: sizeNow, text: (v) => `${v} px`,
+				commit: (next) => void change(sizeKey, next as never),
+				preview: (v) => { sampleEl.style.fontSize = `${v}px`; document.documentElement.style.setProperty(`--ts-${style.id.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}-size`, `${v}px`); },
 			});
-			rows.push(el("label", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: "Size" }), sizeInput, sizeHint));
+			rows.push(el("label", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: "Size" }), slider, hint));
 			if (family === "Fraunces") {
 				const soft = el("input", { class: "sf-field sf-setting-control", attrs: { type: "number", min: "0", max: "100", step: "25", "aria-label": `${name} Softness (0 to 100)` } });
 				soft.value = String(settings.values[softKey]);
@@ -349,13 +317,12 @@ export function openSettings(model: AppModel): void {
 			}
 		}
 		const look = styleLook(style, settings.values);
-		const sample = el("div", { class: "sf-sample", attrs: { "aria-label": `Sample of the ${name.toLowerCase()} style`, role: "img" }, text: style.sample });
-		sample.setAttribute("style", `font-family: ${look.family}; font-weight: ${look.weight}; font-size: ${look.size}; font-variation-settings: ${look.variation};`);
-		return section(name, [...rows, sample], `Appearance: ${name}`);
+		sampleEl.setAttribute("style", `font-family: ${look.family}; font-weight: ${look.weight}; font-size: ${look.size}; font-variation-settings: ${look.variation};`);
+		return styled(name, rows, sampleEl);
 	};
-	const group = (title: string, children: HTMLElement[]): HTMLElement => el("div", { class: "sf-settings-group", attrs: { role: "group", "aria-label": title } }, el("h2", { class: "sf-settings-group-title", text: title }), ...children);
 
 	let page: Page = "General";
+	let appearancePage: AppearancePage = APPEARANCE_PAGES[0];
 	const body = el("div", { class: "sf-settings" });
 	// Which control an event came from, for the synchronous part of its handler (change() reads it): a change, a click or Return in a box.
 	for (const type of ["change", "click", "keydown"]) {
@@ -420,7 +387,13 @@ export function openSettings(model: AppModel): void {
 					select("chapterNumberingStyle", "Chapter numbering", numbering, (v) => v as NumberingStyle),
 				]),
 			],
-			Appearance: [group("Interface: System", [baseFont("Interface"), ...SYSTEM_STYLE_IDS.map((id) => typeStyle(styleOf(id)))]), group("Interface: Display text", DISPLAY_TEXT_STYLE_IDS.map((id) => typeStyle(styleOf(id)))), group("Navigator", APPEARANCE_PARTS.map(appearancePart)), group("Writing", [baseFont("Writing"), ...WRITING_STYLES.map(typeStyle)]), section("Codex colour", [codexColour()]), section("Data colour", [dataColour()]), section("Text colours", textColours())],
+			Appearance: {
+				"Interface: System": [baseFont("Interface"), ...SYSTEM_STYLE_IDS.map((id) => typeStyle(styleOf(id)))],
+				"Interface: Display text": DISPLAY_TEXT_STYLE_IDS.map((id) => typeStyle(styleOf(id))),
+				Navigator: APPEARANCE_PARTS.map(appearancePart),
+				Writing: [baseFont("Writing"), ...WRITING_STYLES.map(typeStyle)],
+				"Text colours": [section("Text colours", textColours()), section("Codex colour", [codexColour()]), section("Data colour", [dataColour()])],
+			}[appearancePage],
 			Writing: [section("Typing", typingSection({ settings: settings.values, off, change, check, notify: (text) => model.notices.notify({ kind: "warning", text }) }))],
 			Sessions: [
 				section("Sessions", [
@@ -462,12 +435,13 @@ export function openSettings(model: AppModel): void {
 					attrs: { type: "button", role: "tab", "aria-selected": String(active), "aria-controls": "sf-settings-page", tabindex: active ? "0" : "-1" },
 					text: p,
 					on: {
-						click: () => ((page = p), redraw()),
+						click: () => (p !== page && (appearancePage = APPEARANCE_PAGES[0]), (page = p), redraw()),
 						keydown: (e) => {
 							const next = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
 							if (!next) return;
 							e.preventDefault();
 							page = PAGES[(i + next + PAGES.length) % PAGES.length];
+							appearancePage = APPEARANCE_PAGES[0];
 							redraw();
 							body.querySelector<HTMLElement>(".sf-settings-tab.is-active")?.focus();
 						},
@@ -475,7 +449,31 @@ export function openSettings(model: AppModel): void {
 				}),
 			);
 		});
-		const panel = el("div", { class: "sf-settings-page sf-scroll", attrs: { id: "sf-settings-page", role: "tabpanel", "aria-label": page } }, ...(off ? [el("p", { class: "sf-muted", text: running.readOnlyReason ?? settings.readOnlyReason })] : []), ...pages[page]);
+		const subtabs = el("div", { class: "sf-settings-subtabs", attrs: { role: "tablist", "aria-label": "Appearance" } });
+		APPEARANCE_PAGES.forEach((p, i) => {
+			const active = p === appearancePage;
+			subtabs.append(
+				el("button", {
+					class: `sf-settings-subtab${active ? " is-active" : ""}`,
+					dataset: { subpage: p },
+					attrs: { type: "button", role: "tab", "aria-selected": String(active), "aria-controls": "sf-settings-page", tabindex: active ? "0" : "-1" },
+					text: p,
+					on: {
+						click: () => ((appearancePage = p), redraw(), body.querySelector<HTMLElement>(".sf-settings-subtab.is-active")?.focus()),
+						keydown: (e) => {
+							const next = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+							if (!next) return;
+							e.preventDefault();
+							appearancePage = APPEARANCE_PAGES[(i + next + APPEARANCE_PAGES.length) % APPEARANCE_PAGES.length];
+							redraw();
+							body.querySelector<HTMLElement>(".sf-settings-subtab.is-active")?.focus();
+						},
+					},
+				}),
+			);
+		});
+		const pageKey = page === "Appearance" ? `Appearance/${appearancePage}` : page;
+		const panel = el("div", { class: "sf-settings-page sf-scroll", dataset: { key: pageKey }, attrs: { id: "sf-settings-page", role: "tabpanel", "aria-label": page === "Appearance" ? appearancePage : page } }, ...(off ? [el("p", { class: "sf-muted", text: running.readOnlyReason ?? settings.readOnlyReason })] : []), ...pages[page]);
 		// The controls in use go back in place of their new twins (found by tag, type and name), with focus and caret.
 		const keep = inUse().filter((c) => isControl(c));
 		const focused = document.activeElement;
@@ -489,16 +487,19 @@ export function openSettings(model: AppModel): void {
 		rebuilding = true;
 		for (const [old, twin] of twins) twin.replaceWith(old);
 		const before = body.querySelector<HTMLElement>(".sf-settings-page");
-		const scroll = before && before.getAttribute("aria-label") === page ? before.scrollTop : 0;
-		body.replaceChildren(tabs, panel);
+		const scroll = before && before.dataset.key === pageKey ? before.scrollTop : 0;
+		const slider = document.activeElement instanceof HTMLInputElement && document.activeElement.type === "range" && body.contains(document.activeElement) ? document.activeElement.getAttribute("aria-label") : null;
+		body.replaceChildren(tabs, el("div", { class: "sf-settings-pane" }, ...(page === "Appearance" ? [subtabs] : []), panel));
+		if (slider) panel.querySelector<HTMLElement>(`input[type=range][aria-label="${slider}"]`)?.focus({ preventScroll: true }); // a key on a slider redraws the page: focus stays on its slider
 		panel.scrollTop = scroll;
 		body.querySelectorAll("select").forEach((s) => {
 			if (s.getAttribute("aria-label") === "Opens in" && !twins.some(([old]) => old === s)) s.value = String(settings.values.autoFocus);
 		});
 		if (twins.some(([old]) => old === focused)) {
-			(focused as HTMLElement).focus();
+			(focused as HTMLElement).focus({ preventScroll: true });
 			if (caret && caret.from !== null && caret.to !== null) try { (focused as HTMLInputElement).setSelectionRange(caret.from, caret.to); } catch { /* a number box has no caret to put back */ }
 		}
+		panel.scrollTop = scroll; // focus above can move the page; the author's place is kept
 		rebuilding = false;
 		for (const [old] of twins) if (isTextBox(old)) armChange(old);
 		heldBack = twins.some(([old]) => isTextBox(old) && old === focused);

@@ -12,8 +12,8 @@ async function openProject(page: Page): Promise<void> {
 const setCodexSize = async (page: Page, rem: string) => {
 	await openSettingsDialog(page);
 	await page.getByRole("dialog").getByRole("tab", { name: "Appearance", exact: true }).click();
+	await page.getByRole("dialog").getByRole("tab", { name: "Navigator", exact: true }).click();
 	await page.getByRole("dialog").getByLabel("Codex list size (rem)").fill(rem);
-	await page.getByRole("dialog").getByLabel("Codex list size (rem)").press("Enter");
 	await expect.poll(() => page.evaluate(() => window.__preview.read("_backstage/storyforge/project.md").catch(() => ""))).toContain("appearance-codex-size");
 	await page.getByRole("dialog").getByRole("button", { name: "Done" }).click();
 };

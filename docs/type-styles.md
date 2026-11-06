@@ -101,3 +101,11 @@ Also: `sofia-navigator.png` (the novel title at 900 and the series name at 600 i
 - **Display has no row in Settings.** Its only use is the start screen's title, which is drawn with no project open and so always at the default; a per-project setting could never show. The style stays at its default (28 px, 600, Interface font); stored `appearance-display-*` keys are left on disk and nothing writes them.
 - **Appearance's Interface group is two:** *Interface: System* (the Interface font, Body, Body bold, Small heading, Hint) and *Interface: Display text* (Title, Heading, Bar name).
 - **Settings scrolls on the right only:** the section list and Done stay still; the page keeps its scroll through redraws and a newly chosen section starts at the top.
+
+## 11. Look, second round (1.10.0)
+
+- **Appearance is one entry with five sub-pages** across the top of its pane (Interface: System, Interface: Display text, Navigator, Writing, Text colours); it opens on Interface: System, the arrow keys move between them, choosing one starts it at the top, and the row stays put while the page scrolls. The Codex colour and Data colour rows sit on the Text colours sub-page (no other sub-page fitted them).
+- **Samples are in a second column** beside each style's controls; the Settings dialog is wider (900 px) to make room.
+- **Colour swatches are unnamed squares** (name for the screen reader and as a tooltip; the chosen one has an outline ring).
+- **Sizes are sliders** over the style's range (pixels, or rem at 0.125 steps with Shift 0.25 for the Navigator's parts): a drag previews live, release saves once. A hand-edited out-of-range value still draws the default and is never rewritten.
+- **Defaults:** selection blue; bold, italic and bold italic orange; highlight yellow; Interface font SN Pro. Stored values are unchanged ("text" and "plum" are still choices).
