@@ -19,18 +19,18 @@ const projectMd = (page: Page) => page.evaluate(() => window.__preview.read("_ba
 const look = (page: Page, sel: string) => page.locator(sel).first().evaluate((e) => { const s = getComputedStyle(e); return { family: s.fontFamily, weight: s.fontWeight, size: s.fontSize }; });
 
 test.describe("type styles", () => {
-	test("Appearance is one entry with five sub-pages, opening on interface; each names its styles; Body bold has only a weight, Bar name only a font", async ({ page }) => {
+	test("Appearance is one entry with four sub-pages, opening on interface; each names its styles; Body bold has only a weight, Bar name only a font", async ({ page }) => {
 		await openProject(page);
 		await openAppearance(page);
 		const subs = dialog(page).locator(".sf-settings-subtabs").getByRole("tab");
-		expect(await subs.allInnerTexts()).toEqual(["interface", "library mode", "storytelling mode", "writing", "text colours"]);
+		expect(await subs.allInnerTexts()).toEqual(["interface", "library mode", "storytelling mode", "writing"]);
 		await expect(subtab(page, "interface")).toHaveAttribute("aria-selected", "true");
 		await expect(dialog(page).getByRole("tab", { name: "Appearance", exact: true })).toHaveCount(1);
 		const wanted: Record<string, string[]> = {
 			interface: ["Body", "Small heading", "Hint", "Dialog heading"],
 			"library mode": ["Title", "Bar name"],
 			"storytelling mode": ["Series name", "Novel title", "Selected chapter", "Codex list"],
-			writing: ["Prose", "Reading", "Fields"],
+			writing: ["chapter", "read-only context fields", "context and library fields"],
 		};
 		for (const [sub, names] of Object.entries(wanted)) {
 			await subtab(page, sub).click();
@@ -46,7 +46,7 @@ test.describe("type styles", () => {
 		await expect(dialog(page).getByRole("radiogroup", { name: "Small heading colour", exact: true })).toBeVisible();
 		await subtab(page, "writing").click();
 		await expect(dialog(page).getByLabel("Writing font", { exact: true })).toHaveValue("SN Pro");
-		await expect(dialog(page).getByLabel("Fields size (px)", { exact: true })).toHaveValue("14");
+		await expect(dialog(page).getByLabel("context and library fields size (px)", { exact: true })).toHaveValue("14");
 		await subtab(page, "library mode").click();
 		await expect(dialog(page).getByLabel("Bar name weight", { exact: true })).toHaveCount(0); // fixed: the font only
 		await expect(dialog(page).getByRole("radiogroup", { name: "Data colour", exact: true })).toBeVisible();
@@ -64,8 +64,9 @@ test.describe("type styles", () => {
 		await expect(subtab(page, "library mode")).toBeFocused();
 		await expect(subtab(page, "library mode")).toHaveAttribute("aria-selected", "true");
 		await page.keyboard.press("ArrowLeft");
+		await expect(subtab(page, "interface")).toBeFocused();
 		await page.keyboard.press("ArrowLeft");
-		await expect(subtab(page, "text colours")).toBeFocused(); // wraps
+		await expect(subtab(page, "writing")).toBeFocused(); // wraps
 		await subtab(page, "writing").click();
 		await subtab(page, "interface").click();
 		const pane = dialog(page).locator(".sf-settings-page");
@@ -148,10 +149,9 @@ test.describe("type styles", () => {
 		const body = dialog(page).getByLabel("Body size (px)", { exact: true });
 		await expect(body).toHaveAttribute("min", "11");
 		await expect(body).toHaveAttribute("max", "16");
-		const value = body.locator("xpath=following-sibling::span");
-		await expect(value).toHaveText("13 px");
+		await expect(body).toHaveAttribute("aria-valuetext", "13 px");
 		await body.evaluate((e: HTMLInputElement) => { e.value = "15"; e.dispatchEvent(new Event("input", { bubbles: true })); });
-		await expect(value).toHaveText("15 px");
+		await expect(body).toHaveAttribute("aria-valuetext", "15 px");
 		expect((await look(page, ".sf-settings-tab")).size).toBe("15px"); // the page previews
 		expect(await projectMd(page)).toBe("");
 		await body.evaluate((e: HTMLInputElement) => e.dispatchEvent(new Event("change", { bubbles: true })));
@@ -197,5 +197,33 @@ test.describe("type styles", () => {
 		expect(await pane.evaluate((e) => e.scrollTop)).toBe(held);
 		await subtab(page, "writing").click();
 		expect(await dialog(page).locator(".sf-settings-page").evaluate((e) => e.scrollTop)).toBe(0);
+	});
+
+	test("a colour sits directly under its style with no name repeated; no size readout or source text; the Codex preview shows the real entries; text colours follow the writing styles", async ({ page }) => {
+		await openProject(page);
+		await openAppearance(page);
+		const below = async (style: string, group: string) => {
+			const a = (await dialog(page).getByLabel(`${style} size (px)`, { exact: true }).or(dialog(page).getByLabel(`${style} size (rem)`, { exact: true })).boundingBox())!;
+			const g = (await dialog(page).getByRole("radiogroup", { name: group, exact: true }).boundingBox())!;
+			expect(g.y).toBeGreaterThan(a.y);
+			expect(g.y - a.y).toBeLessThan(70); // the next row down, not further
+		};
+		await below("Small heading", "Small heading colour");
+		await expect(dialog(page).getByText("Small heading colour", { exact: true })).toHaveCount(0); // no heading or name repeated
+		await expect(dialog(page).getByText("default", { exact: true })).toHaveCount(0);
+		expect(await dialog(page).getByLabel("Body size (px)", { exact: true }).locator("xpath=following-sibling::*").count()).toBe(0); // no readout beside the slider
+		await subtab(page, "library mode").click();
+		const barFont = (await dialog(page).getByLabel("Bar name font", { exact: true }).boundingBox())!;
+		const data = (await dialog(page).getByRole("radiogroup", { name: "Data colour", exact: true }).boundingBox())!;
+		expect(data.y - barFont.y).toBeLessThan(70); // directly under Bar name
+		await subtab(page, "storytelling mode").click();
+		await below("Codex list", "Codex colour");
+		const rows = await dialog(page).getByRole("img", { name: "Sample of the codex list" }).locator(".sf-preview-codex-row").allInnerTexts();
+		expect(rows.length).toBeGreaterThan(0);
+		expect(rows).toContain("Harbour"); // the fixture's own entry, not an example name
+		await subtab(page, "writing").click();
+		await expect(dialog(page).getByRole("radiogroup", { name: "Selection colour", exact: true })).toBeVisible();
+		const lastStyle = (await dialog(page).getByLabel("context and library fields size (px)", { exact: true }).boundingBox())!;
+		expect((await dialog(page).getByRole("radiogroup", { name: "Selection colour", exact: true }).boundingBox())!.y).toBeGreaterThan(lastStyle.y);
 	});
 });

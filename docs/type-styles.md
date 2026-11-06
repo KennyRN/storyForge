@@ -117,3 +117,11 @@ Also: `sofia-navigator.png` (the novel title at 900 and the series name at 600 i
 - **Body bold has only a weight**: its font, Softness and size are Body's; its stored `appearance-body-bold-font|size|soft` keys are never read.
 - **Previews** are drawn in the style's real colour on its real background, in text of the kind the style is used for, with the open project's own series, novel and chapter names; the Codex list's preview uses fixed example names.
 - **Small heading:** size 11 to 18 px; a colour setting `small-heading-colour` (text colour by default, replacing the muted grey; yellow, aqua, blue, orange, purple), applied to the pane titles, zone labels, overview sub-headings and summary titles. Contrast (WCAG) on bg_dim / bg1: text 7.83 / 5.75, yellow 7.25 / 5.33, aqua 6.25 / 4.59, blue 6.09 / 4.47, orange 5.74 / 4.22, purple 5.73 / 4.21 (the old grey2: 5.43 / 3.99).
+
+## 13. Look, fourth round (1.10.0)
+
+- **Accepted exceptions (Kenny, round three):** Small heading's blue (4.47:1), orange (4.22:1) and purple (4.21:1) on bg1 (the summary dialog) are under 4.5:1 for small text and are kept. All pass on bg_dim.
+- **Four sub-pages** (the text colours moved into *writing*, as a group after the writing styles): interface, library mode, storytelling mode, writing.
+- **A colour sits with its style:** Small heading's colour under Small heading, the Codex colour under Codex list, the data colour under Bar name; the row repeats no name. The size readout column and the "where it is saved" words are gone; the slider's value is its `aria-valuetext`.
+- **The writing styles' labels** (lower case): Prose is *chapter*, Reading is *read-only context fields*, Fields is *context and library fields*. Their keys in `project.md` (`appearance-prose-*`, `-reading-*`, `-fields-*`) are unchanged.
+- **The Codex list preview** shows the project's first four top-level Codex entries in the list's own order; the examples (Cast, Jane Harbour, Ælfric) only for an empty Codex.

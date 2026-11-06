@@ -36,9 +36,9 @@ export const TYPE_STYLES = [
 	{ id: "bodyBold", name: "Body bold", base: "interface", weight: 600, size: 13, range: [11, 16], sample: "Book 1: The Harbour Wakes" },
 	{ id: "hint", name: "Hint", base: "interface", weight: 400, size: 12, range: [11, 14], sample: "Nothing here yet" },
 	{ id: "barName", name: "Bar name", base: "interface", weight: 700, size: 19, fixed: true, range: [19, 19], sample: "The Storm" },
-	{ id: "prose", name: "Prose", base: "writing", weight: 400, size: 20, range: [14, 32], sample: "The harbour woke slowly." },
-	{ id: "reading", name: "Reading", base: "writing", weight: 400, size: 15, range: [12, 22], sample: "The harbour woke slowly." },
-	{ id: "fields", name: "Fields", base: "writing", weight: 400, size: 14, range: [11, 20], sample: "A plot note, a synopsis, a description." },
+	{ id: "prose", name: "chapter", base: "writing", weight: 400, size: 20, range: [14, 32], sample: "The harbour woke slowly." },
+	{ id: "reading", name: "read-only context fields", base: "writing", weight: 400, size: 15, range: [12, 22], sample: "The harbour woke slowly." },
+	{ id: "fields", name: "context and library fields", base: "writing", weight: 400, size: 14, range: [11, 20], sample: "A plot note, a synopsis, a description." },
 ] as const satisfies readonly TypeStyle[];
 export type TypeStyleId = (typeof TYPE_STYLES)[number]["id"];
 export const INTERFACE_STYLES = TYPE_STYLES.filter((s) => s.base === "interface");

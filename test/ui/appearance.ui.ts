@@ -182,11 +182,10 @@ test.describe("Appearance", () => {
 		await expect(slider).toHaveAttribute("min", "0.75");
 		await expect(slider).toHaveAttribute("max", "2");
 		await expect(slider).toHaveAttribute("step", "0.125");
-		const novel = dialog(page).getByLabel("Novel title size (rem)").locator("xpath=..");
-		await expect(novel.getByText("1 rem (16 px)")).toBeVisible();
+		await expect(slider).toHaveAttribute("aria-valuetext", "1 rem (16 px)"); // the value is kept for the screen reader only
 		// a drag: input events preview (the value, the sample, the page) and write nothing; release saves once
 		await slider.evaluate((e: HTMLInputElement) => { e.value = "1.5"; e.dispatchEvent(new Event("input", { bubbles: true })); });
-		await expect(novel.getByText("1.5 rem (24 px)")).toBeVisible();
+		await expect(slider).toHaveAttribute("aria-valuetext", "1.5 rem (24 px)");
 		expect(await dialog(page).getByRole("img", { name: "Sample of the novel title" }).locator("div").evaluate((e) => getComputedStyle(e).fontSize)).toBe("24px");
 		expect(await style(page, ".sf-nav-novel")).toMatchObject({ size: "24px" });
 		expect(await projectMd(page)).toBe("");

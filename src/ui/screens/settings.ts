@@ -3,6 +3,7 @@ import type { AutomaticBackupFrequency } from "../../core/backup";
 import { APPEARANCE_BASE_PX, APPEARANCE_PARTS, APPEARANCE_SIZE_RANGE, APPEARANCE_SIZE_STEP, APPEARANCE_SIZE_STEP_SHIFT, CODEX_COLOURS, DATA_COLOURS, EMPHASIS_COLOURS, HIGHLIGHT_COLOURS, SELECTION_COLOURS, SESSION_LIMITS, appearanceKey, typeKey, setSetting, type AppearancePart, type CodexColour, type DataColour, type EmphasisColour, type SelectionColour, type ProjectSettings, type StoryKind } from "../../app/settings";
 import { FAMILY_INFO, FONT_FAMILIES, isFontFamily, nearestWeight, type FontFamily } from "../../core/fontFamilies";
 import { px, sampleStyle, styleLook } from "../appearance";
+import { getCodexView } from "../../core/codex";
 import { FOLLOW, styleOf, resolvedFont, type TypeStyle, type TypeStyleId } from "../../core/typeStyles";
 import { numberedChapterTitle } from "../../core/book";
 import { numberedBookTitle, readSeriesFrontmatter } from "../../core/series";
@@ -24,7 +25,7 @@ const WEIGHT_NAMES: Record<number, string> = { 100: "Thin", 200: "Extra light", 
 const PAGES = ["General", "Story", "Appearance", "Writing", "Sessions", "Backups", "This Mac"] as const;
 type Page = (typeof PAGES)[number];
 /** Appearance is one entry with sub-pages across the top of its pane (round two). */
-const APPEARANCE_PAGES = ["interface", "library mode", "storytelling mode", "writing", "text colours"] as const;
+const APPEARANCE_PAGES = ["interface", "library mode", "storytelling mode", "writing"] as const;
 type AppearancePage = (typeof APPEARANCE_PAGES)[number];
 const FREQUENCIES: Record<AutomaticBackupFrequency, string> = { "every-open": "Every time the project opens", daily: "Once a day", weekly: "Once a week" };
 
@@ -101,12 +102,12 @@ export function openSettings(model: AppModel): void {
 		const label = el("div", { class: "sf-grid-name", text: name });
 		return span ? [label, cell(font, "sf-grid-span"), cell(preview ?? null, "sf-grid-preview")] : [label, cell(font, "sf-grid-font"), cell(weight, "sf-grid-weight"), cell(size, "sf-grid-size"), cell(preview, "sf-grid-preview")];
 	};
-	const colourRow = (name: string, control: HTMLElement): HTMLElement[] => gridRow(name, [control, null, null, null], true);
-	const codexColour = (): HTMLElement[] => colourRow("Codex colour", swatches("codexColour", "Codex colour", CODEX_COLOURS, CODEX_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`));
-	const dataColour = (): HTMLElement[] => colourRow("Data colour", swatches("dataColour", "Data colour", DATA_COLOURS, DATA_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`));
-	const smallHeadingColour = (): HTMLElement[] => colourRow("Small heading colour", swatches("smallHeadingColour", "Small heading colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`));
+	const colourRow = (control: HTMLElement): HTMLElement[] => gridRow("", [control, null, null, null], true); // sits under its style: no name repeated
+	const codexColour = (): HTMLElement[] => colourRow(swatches("codexColour", "Codex colour", CODEX_COLOURS, CODEX_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`));
+	const dataColour = (): HTMLElement[] => colourRow(swatches("dataColour", "Data colour", DATA_COLOURS, DATA_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`));
+	const smallHeadingColour = (): HTMLElement[] => colourRow(swatches("smallHeadingColour", "Small heading colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`));
 	const swatchRow = (key: "selectionColour" | "highlightColour" | "boldColour" | "italicColour" | "boldItalicColour", label: string, choices: readonly string[], names: Record<string, string>, dot: (choice: string) => string): HTMLElement =>
-		el("div", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: label }), swatches(key, label, choices, names, dot), source(key));
+		el("div", { class: "sf-setting-row sf-setting-row--colour" }, el("span", { class: "sf-setting-label", text: label }), swatches(key, label, choices, names, dot));
 	/** The text colours page: five rows with a sample line (the dressing's own classes, so a choice shows as it will in the editor) beside them. */
 	const textColours = (): HTMLElement[] => {
 		const sample = el(
@@ -196,6 +197,14 @@ export function openSettings(model: AppModel): void {
 			chapter: safe(() => (book && chapter ? numberedChapterTitle(project, book, chapter, settings.values.chapterNumberingStyle) : "Chapter 1"), "Chapter 1"),
 		};
 	};
+	/** The first few entries of the project's Codex, in the list's own order; examples only for an empty Codex. */
+	const codexNames = (): string[] => {
+		try {
+			const real = (getCodexView(project, "codex")?.children ?? []).map((c) => c.name).slice(0, 4);
+			if (real.length) return real;
+		} catch { /* an unreadable Codex: the examples */ }
+		return ["Cast", "Jane Harbour", "Ælfric"];
+	};
 	/** A preview: the style drawn in the colour and on the background it really has, in text of the kind it is used for. */
 	const preview = (name: string, text: string, where: string, font: string, inner?: HTMLElement): HTMLElement => {
 		const box = el("div", { class: `sf-preview sf-preview--${where}`, attrs: { role: "img", "aria-label": `Sample of the ${name.toLowerCase()} style` } }, inner ?? text);
@@ -265,7 +274,7 @@ export function openSettings(model: AppModel): void {
 					commit: (next) => void change(sizeKey, next as never),
 					preview: (v) => { sampleEl.style.fontSize = `${v}px`; document.documentElement.style.setProperty(`--ts-${style.id.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}-size`, `${v}px`); },
 				});
-				sizeCell = el("div", { class: "sf-size-cell" }, slider, hint);
+				sizeCell = el("div", { class: "sf-size-cell" }, slider); void hint;
 			}
 		}
 		const rows = gridRow(name, [fontCell, weightCell, sizeCell, sampleEl]);
@@ -314,19 +323,20 @@ export function openSettings(model: AppModel): void {
 		weightSelect.addEventListener("change", () => void change(appearanceKey(part, "Weight"), Number(weightSelect.value) as never));
 
 		const n = names();
-		const text = part === "series" ? n.series : part === "novel" ? n.novel : part === "chapter" ? n.chapter : "Cast · Jane Harbour · Ælfric";
+		const text = part === "series" ? n.series : part === "novel" ? n.novel : part === "chapter" ? n.chapter : "";
 		const sampleEl = el("div", { class: "sf-preview sf-preview--panel" });
 		const inner = el("div", { class: part === "codex" ? "sf-preview-codex" : "sf-preview-accent", text });
+		if (part === "codex") for (const entry of codexNames()) inner.append(el("div", { class: "sf-preview-codex-row", text: entry }));
 		inner.setAttribute("style", sampleStyle(part, settings.values));
 		sampleEl.append(inner);
 		sampleEl.setAttribute("role", "img");
 		sampleEl.setAttribute("aria-label", `Sample of the ${name.toLowerCase()}`);
-		const [sizeSliderEl, sizeHint] = sizeSlider({
+		const [sizeSliderEl] = sizeSlider({
 			label: `${name} size (rem)`, lo, hi, step: APPEARANCE_SIZE_STEP, shiftStep: APPEARANCE_SIZE_STEP_SHIFT, now: sizeNow, text: remText,
 			commit: (next) => void change(appearanceKey(part, "Size"), next as never),
 			preview: (v) => { inner.style.fontSize = px(v); document.documentElement.style.setProperty(`--ap-${part}-size`, px(v)); },
 		});
-		const rows = gridRow(name, [fontSelect, weightSelect, el("div", { class: "sf-size-cell" }, sizeSliderEl, sizeHint), sampleEl]);
+		const rows = gridRow(name, [fontSelect, weightSelect, el("div", { class: "sf-size-cell" }, sizeSliderEl), sampleEl]);
 		if (font === "Fraunces") {
 			const soft = el("input", { class: "sf-field sf-setting-control", attrs: { type: "number", min: "0", max: "100", step: "25", "aria-label": `${name} Softness (0 to 100)` } });
 			soft.value = String(settings.values[appearanceKey(part, "Soft")]);
@@ -421,9 +431,8 @@ export function openSettings(model: AppModel): void {
 			Appearance: {
 				interface: grid(baseFont("Interface"), ...styles("body", "bodyBold", "smallHeading"), smallHeadingColour(), ...styles("hint", "heading")),
 				"library mode": grid(...styles("title", "barName"), dataColour()),
-				"storytelling mode": grid(...(["series", "novel", "chapter", "codex"] as const).map(appearancePart), codexColour()),
-				writing: grid(baseFont("Writing"), ...styles("prose", "reading", "fields")),
-				"text colours": textColours(),
+				"storytelling mode": grid(...(["series", "novel", "chapter"] as const).map(appearancePart), appearancePart("codex"), codexColour()),
+				writing: [...grid(baseFont("Writing"), ...styles("prose", "reading", "fields")), section("Text colours", textColours())],
 			}[appearancePage],
 			Writing: [section("Typing", typingSection({ settings: settings.values, off, change, check, notify: (text) => model.notices.notify({ kind: "warning", text }) }))],
 			Sessions: [
