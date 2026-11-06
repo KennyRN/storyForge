@@ -95,3 +95,9 @@ Also: `sofia-navigator.png` (the novel title at 900 and the series name at 600 i
 **Letter-spacing and case** are not part of the style: the pane titles and zone labels keep their 0.04em and lowercase in their own rules (the overview and summary headings were never spaced).
 
 **Tests.** `typeStyles.test.ts` (the static test and the defaults), `typeStyles.ui.ts` (the three groups, the bases following, ranges, weights, samples), settings tests for the 46 new keys, `look.ui.ts` and `appearance.ui.ts` updated for the Interface font (SN Pro first, Arial then the system's as the fallback). `npm run test:look` now also changes the Writing font from outside and checks the fields move; `npm run test:fonts` checks that the Interface font moves a style that follows it and not one that names its own, that a size moves a style and that the Writing font leaves the interface alone (the Codex list, set to follow the Interface font, is the probe: the start screen draws the defaults whatever project.md holds, and a card's text is not exposed to accessibility). Both are untested in the built app until the sweep.
+
+## 10. Look, first round (1.10.0)
+
+- **Display has no row in Settings.** Its only use is the start screen's title, which is drawn with no project open and so always at the default; a per-project setting could never show. The style stays at its default (28 px, 600, Interface font); stored `appearance-display-*` keys are left on disk and nothing writes them.
+- **Appearance's Interface group is two:** *Interface: System* (the Interface font, Body, Body bold, Small heading, Hint) and *Interface: Display text* (Title, Heading, Bar name).
+- **Settings scrolls on the right only:** the section list and Done stay still; the page keeps its scroll through redraws and a newly chosen section starts at the top.

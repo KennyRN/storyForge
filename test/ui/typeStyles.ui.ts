@@ -21,8 +21,9 @@ test.describe("type styles", () => {
 		await openProject(page);
 		await openAppearance(page);
 		const groups = dialog(page).getByRole("group").filter({ has: page.locator("h2.sf-settings-group-title") });
-		expect(await groups.locator("h2.sf-settings-group-title").allInnerTexts()).toEqual(["Interface", "Navigator", "Writing"]);
-		for (const name of ["Display", "Title", "Heading", "Small heading", "Body", "Body bold", "Hint", "Bar name", "Prose", "Reading", "Fields"]) {
+		expect(await groups.locator("h2.sf-settings-group-title").allInnerTexts()).toEqual(["Interface: System", "Interface: Display text", "Navigator", "Writing"]);
+		await expect(dialog(page).getByLabel("Display font", { exact: true })).toHaveCount(0); // the start screen only: no project is open there
+		for (const name of ["Title", "Heading", "Small heading", "Body", "Body bold", "Hint", "Bar name", "Prose", "Reading", "Fields"]) {
 			await expect(dialog(page).getByLabel(`${name} font`, { exact: true }), name).toHaveCount(1);
 		}
 		await expect(dialog(page).getByLabel("Interface font", { exact: true })).toHaveValue("SN Pro");
@@ -72,9 +73,29 @@ test.describe("type styles", () => {
 	test("a sample of each style is drawn as it will be", async ({ page }) => {
 		await openProject(page);
 		await openAppearance(page);
-		const sample = dialog(page).getByRole("img", { name: "Sample of the display style" });
+		const sample = dialog(page).getByRole("img", { name: "Sample of the title style" });
 		await expect(sample).toBeVisible();
-		expect((await sample.evaluate((e) => getComputedStyle(e).fontSize))).toBe("28px");
+		expect((await sample.evaluate((e) => getComputedStyle(e).fontSize))).toBe("20px");
 		void flipFace;
+	});
+
+	test("Settings scrolls on the right only; the page keeps its place through a redraw and a new section starts at the top", async ({ page }) => {
+		await page.setViewportSize({ width: 1100, height: 520 });
+		await openProject(page);
+		await openAppearance(page);
+		const pane = dialog(page).locator(".sf-settings-page");
+		const tabs = dialog(page).locator(".sf-settings-tabs");
+		expect(await pane.evaluate((e) => e.scrollHeight > e.clientHeight)).toBe(true);
+		expect(await dialog(page).locator(".sf-dialog-body").evaluate((e) => e.scrollHeight <= e.clientHeight + 1)).toBe(true);
+		const tabTop = (await tabs.boundingBox())!.y;
+		await pane.evaluate((e) => (e.scrollTop = 300));
+		expect((await tabs.boundingBox())!.y).toBe(tabTop);
+		await expect(dialog(page).getByRole("button", { name: "Done" })).toBeInViewport();
+		await dialog(page).getByLabel("Body size (px)", { exact: true }).fill("14");
+		await dialog(page).getByLabel("Body size (px)", { exact: true }).press("Enter");
+		await expect.poll(() => projectMd(page)).toContain("appearance-body-size: 14");
+		expect(await pane.evaluate((e) => e.scrollTop)).toBeGreaterThan(200);
+		await dialog(page).getByRole("tab", { name: "Writing", exact: true }).click();
+		expect(await dialog(page).locator(".sf-settings-page").evaluate((e) => e.scrollTop)).toBe(0);
 	});
 });

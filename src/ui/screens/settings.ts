@@ -3,7 +3,7 @@ import type { AutomaticBackupFrequency } from "../../core/backup";
 import { APPEARANCE_BASE_PX, APPEARANCE_PARTS, APPEARANCE_SIZE_RANGE, APPEARANCE_SIZE_STEP, APPEARANCE_SIZE_STEP_SHIFT, CODEX_COLOURS, DATA_COLOURS, EMPHASIS_COLOURS, HIGHLIGHT_COLOURS, SELECTION_COLOURS, SESSION_LIMITS, appearanceKey, typeKey, setSetting, type AppearancePart, type CodexColour, type DataColour, type EmphasisColour, type SelectionColour, type ProjectSettings, type StoryKind } from "../../app/settings";
 import { FAMILY_INFO, FONT_FAMILIES, isFontFamily, nearestWeight, type FontFamily } from "../../core/fontFamilies";
 import { sampleStyle, styleLook } from "../appearance";
-import { FOLLOW, INTERFACE_STYLES, WRITING_STYLES, resolvedFont, type TypeStyle } from "../../core/typeStyles";
+import { DISPLAY_TEXT_STYLE_IDS, FOLLOW, SYSTEM_STYLE_IDS, WRITING_STYLES, styleOf, resolvedFont, type TypeStyle } from "../../core/typeStyles";
 import { button } from "../kit/button";
 import { bringForward, openDialog } from "../kit/dialog";
 import { el } from "../kit/dom";
@@ -420,7 +420,7 @@ export function openSettings(model: AppModel): void {
 					select("chapterNumberingStyle", "Chapter numbering", numbering, (v) => v as NumberingStyle),
 				]),
 			],
-			Appearance: [group("Interface", [baseFont("Interface"), ...INTERFACE_STYLES.map(typeStyle)]), group("Navigator", APPEARANCE_PARTS.map(appearancePart)), group("Writing", [baseFont("Writing"), ...WRITING_STYLES.map(typeStyle)]), section("Codex colour", [codexColour()]), section("Data colour", [dataColour()]), section("Text colours", textColours())],
+			Appearance: [group("Interface: System", [baseFont("Interface"), ...SYSTEM_STYLE_IDS.map((id) => typeStyle(styleOf(id)))]), group("Interface: Display text", DISPLAY_TEXT_STYLE_IDS.map((id) => typeStyle(styleOf(id)))), group("Navigator", APPEARANCE_PARTS.map(appearancePart)), group("Writing", [baseFont("Writing"), ...WRITING_STYLES.map(typeStyle)]), section("Codex colour", [codexColour()]), section("Data colour", [dataColour()]), section("Text colours", textColours())],
 			Writing: [section("Typing", typingSection({ settings: settings.values, off, change, check, notify: (text) => model.notices.notify({ kind: "warning", text }) }))],
 			Sessions: [
 				section("Sessions", [
@@ -475,7 +475,7 @@ export function openSettings(model: AppModel): void {
 				}),
 			);
 		});
-		const panel = el("div", { class: "sf-settings-page", attrs: { id: "sf-settings-page", role: "tabpanel", "aria-label": page } }, ...(off ? [el("p", { class: "sf-muted", text: running.readOnlyReason ?? settings.readOnlyReason })] : []), ...pages[page]);
+		const panel = el("div", { class: "sf-settings-page sf-scroll", attrs: { id: "sf-settings-page", role: "tabpanel", "aria-label": page } }, ...(off ? [el("p", { class: "sf-muted", text: running.readOnlyReason ?? settings.readOnlyReason })] : []), ...pages[page]);
 		// The controls in use go back in place of their new twins (found by tag, type and name), with focus and caret.
 		const keep = inUse().filter((c) => isControl(c));
 		const focused = document.activeElement;
@@ -488,7 +488,10 @@ export function openSettings(model: AppModel): void {
 		}
 		rebuilding = true;
 		for (const [old, twin] of twins) twin.replaceWith(old);
+		const before = body.querySelector<HTMLElement>(".sf-settings-page");
+		const scroll = before && before.getAttribute("aria-label") === page ? before.scrollTop : 0;
 		body.replaceChildren(tabs, panel);
+		panel.scrollTop = scroll;
 		body.querySelectorAll("select").forEach((s) => {
 			if (s.getAttribute("aria-label") === "Opens in" && !twins.some(([old]) => old === s)) s.value = String(settings.values.autoFocus);
 		});

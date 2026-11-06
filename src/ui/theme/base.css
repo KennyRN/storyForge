@@ -518,12 +518,18 @@ input[aria-invalid="true"] {
 	display: grid;
 	grid-template-columns: 9.5em 1fr;
 	gap: var(--space-4);
-	min-height: 22em;
+	/* Only the page scrolls: the list of sections and the dialog's buttons stay put. */
+	height: min(36em, calc(100vh - 200px));
+	min-height: 0;
+}
+.sf-dialog-body:has(> .sf-settings) {
+	overflow: hidden;
 }
 .sf-settings-tabs {
 	display: flex;
 	flex-direction: column;
 	gap: 0; /* rule 1: highlighted rows touch */
+	align-self: start;
 	margin-block: -1px; /* the first and last rows' text stays where it was */
 }
 .sf-settings-tab {
@@ -544,6 +550,8 @@ input[aria-invalid="true"] {
 }
 .sf-settings-page {
 	min-width: 0;
+	min-height: 0;
+	overflow-y: auto;
 }
 .sf-sample {
 	margin: var(--space-2) 0 var(--space-1);
