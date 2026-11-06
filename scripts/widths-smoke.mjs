@@ -165,9 +165,9 @@ try {
 	clickMenu("storyForge", "Settings…");
 	// Since 1.10.0 General is one entry with three sub-pages, and the widths are on its "this computer" sub-page (lower case: it says they are kept on this computer). Settings opens on General, so the sub-page is chosen by its accessibility action.
 	await until(() => ["AXRadioButton", "AXTab", "AXButton"].some((r) => find(r, "this computer", "press") === "found"), 8000);
-	if (!(await until(() => find("AXTextField", "storytelling side panels") === "found", 8000))) problems.push("Settings did not show the widths group");
+	if (!(await until(() => find("AXTextField", "storytelling, left and right panel width") === "found", 8000))) problems.push("Settings did not show the widths group");
 	else {
-		find("AXTextField", "storytelling side panels", "focus"); // focusing scrolls the group into view
+		find("AXTextField", "storytelling, left and right panel width", "focus"); // focusing scrolls the group into view
 		await sleep(500);
 		shot("2-settings-group");
 		typing.key('keystroke "a" using command down');

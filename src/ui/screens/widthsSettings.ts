@@ -1,5 +1,7 @@
 import { isNarrowed, rangeIn, type Panel } from "../panelWidths";
 import { el } from "../kit/dom";
+import { navIcon } from "../kit/navIcons";
+import { panelIcon } from "../kit/panelIcons";
 import { WIDTH_VIEWS, type AppModel, type WidthView } from "../model";
 
 /**
@@ -15,24 +17,27 @@ export function widthsSettings(model: AppModel): HTMLElement {
 	const draw = (): void => {
 		const unitNow = model.nav.widthUnit;
 		const unitWord = unitNow === "px" ? "px" : "%";
-		const note = el("p", { class: "sf-muted", text: "These stay on this computer, for this project. Unlike the rest of this dialog, they don't travel with the story. Each set is the widths of the left panel and the context panel only, never the central workspace." });
+		const note = el("p", { class: "sf-muted", text: "These stay on this computer, for this project. Unlike the rest of this dialog, they don't travel with the story. Each group is the widths of the left panel and the right panel only, never the central workspace." });
 
 		const linked = el("input", { attrs: { type: "checkbox", "aria-label": "Keep the panels the same width" } });
 		linked.checked = model.nav.widthsLinked;
 		linked.addEventListener("change", () => (model.setWidthsLinked(linked.checked), draw()));
+		// Inside the storytelling group: it applies to the storytelling widths only.
+		const linkedRow = el("label", { class: "sf-setting-row sf-width-linked" }, el("span", { class: "sf-setting-label", text: "Keep the panels the same width" }), linked);
 
 		const unit = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": "Measure panel widths in" } }, el("option", { text: "Percent of the window", attrs: { value: "percent" } }), el("option", { text: "Pixels", attrs: { value: "px" } }));
 		unit.value = unitNow;
 		unit.addEventListener("change", () => (model.setWidthUnit(unit.value === "px" ? "px" : "percent"), draw()));
 
-		const figure = (label: string, view: WidthView, panel: Panel | "shared", stored: number): HTMLElement => {
+		/** One width field: it has no text label (its column's icon marks it), so it keeps a full name for the screen reader and as a tooltip. */
+		const figure = (name: string, view: WidthView, panel: Panel | "shared", stored: number): HTMLElement => {
 			const w = model.panelWidths(view);
 			const range = rangeIn(panel === "shared" ? "story" : panel, w.linked, w.unit, win());
 			const rangeText = `${range.min}–${range.max} ${unitWord}`;
 			const step = w.unit === "px" ? "1" : "0.1";
-			const input = el("input", { class: "sf-field sf-setting-control", attrs: { type: "number", min: String(range.min), max: String(range.max), step, "aria-label": `${label} (${w.unit === "px" ? "pixels" : "percent of the window"})` } });
+			const input = el("input", { class: "sf-field sf-setting-control sf-width-field", attrs: { type: "number", min: String(range.min), max: String(range.max), step, "aria-label": name, title: `${name} (${w.unit === "px" ? "pixels" : "percent of the window"})` } });
 			input.value = String(stored);
-			const hint = el("span", { class: "sf-muted sf-setting-source", text: rangeText });
+			const hint = el("span", { class: "sf-muted sf-width-hint", text: rangeText });
 			input.addEventListener("keydown", (e) => {
 				if (e.key === "Escape") {
 					input.value = String(stored);
@@ -47,21 +52,24 @@ export function widthsSettings(model: AppModel): HTMLElement {
 				input.setAttribute("aria-invalid", "true");
 				hint.textContent = `Not allowed: use ${rangeText}`;
 			});
-			return el("label", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: label }), input, hint);
+			return el("div", { class: "sf-width-cell" }, input, hint);
 		};
 
+		/** A view's group: its icon and a plain word (ordinary text, not a header or a button), then the two columns. */
 		const set = (view: WidthView): HTMLElement => {
 			const w = model.panelWidths(view);
-			const rows = w.linked
-				? [figure(`${view} side panels`, view, "shared", w.story)]
-				: [figure(`${view} left panel`, view, "story", w.story), figure(`${view} context panel`, view, "lore", w.lore)];
-			return el("div", { class: "sf-width-set", attrs: { role: "group", "aria-label": `${view} panel widths` } }, el("p", { class: "sf-width-set-name", text: `${view} panel widths` }), ...rows);
+			const label = el("div", { class: "sf-width-view" }, navIcon(view, "32px"), el("span", { class: "sf-width-view-label", text: view }));
+			const head = (...icons: SVGElement[]): HTMLElement => el("div", { class: "sf-width-colhead" }, ...icons);
+			// Linked (the storytelling set only): one figure for both panels, marked by both icons.
+			const body = w.linked
+				? [head(panelIcon("left"), panelIcon("right")), figure(`${view}, left and right panel width`, view, "shared", w.story)]
+				: [head(panelIcon("left")), head(panelIcon("right")), figure(`${view}, left panel width`, view, "story", w.story), figure(`${view}, right panel width`, view, "lore", w.lore)];
+			return el("div", { class: "sf-width-set", attrs: { role: "group", "aria-label": view } }, label, ...(view === "storytelling" ? [linkedRow] : []), el("div", { class: `sf-width-grid${w.linked ? " is-linked" : ""}` }, ...body));
 		};
 		const narrow = isNarrowed(model.panelWidths(), "storytelling", model.nav.loreHidden, win()) ? [el("p", { class: "sf-muted", text: "The panels are narrower than this in the current window." })] : [];
 
 		root.replaceChildren(
 			note,
-			el("label", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: "Keep the panels the same width" }), linked),
 			el("label", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: "Measure widths in" }), unit),
 			...WIDTH_VIEWS.map(set),
 			...narrow,

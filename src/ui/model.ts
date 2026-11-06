@@ -85,12 +85,13 @@ function initialWidths(m: MachineProjectState, win: number): Pick<Nav, "storyWid
 	const out = (px: number, key: Panel): number => fromPx(clampPx(key, linked, px), unit, win);
 	const [storyOut, libraryOut, loreOut] = [out(story, "story"), out(library, "library"), out(lore, "lore")];
 	// Round five: today's widths are the starting values of all three sets; a set already stored is read as it is (in the stored unit).
-	const set = (s: ViewWidths | undefined, left: number): ViewWidths => (s ? { left: fromPx(clampPx("story", linked, toPx(s.left, unit, win)), unit, win), lore: fromPx(clampPx("lore", linked, toPx(s.lore, unit, win)), unit, win) } : { left, lore: loreOut });
+	// The same-width switch is the storytelling set's alone (round five); series and novel are always two figures.
+	const set = (s: ViewWidths | undefined, left: number, linkedSet: boolean): ViewWidths => (s ? { left: fromPx(clampPx("story", linkedSet, toPx(s.left, unit, win)), unit, win), lore: fromPx(clampPx("lore", linkedSet, toPx(s.lore, unit, win)), unit, win) } : { left, lore: loreOut });
 	return {
 		storyWidth: storyOut,
 		libraryWidth: libraryOut,
 		loreWidth: loreOut,
-		viewWidths: { storytelling: set(m.storytellingWidths, storyOut), series: set(m.seriesWidths, libraryOut), novel: set(m.novelWidths, libraryOut) },
+		viewWidths: { storytelling: set(m.storytellingWidths, storyOut, linked), series: set(m.seriesWidths, libraryOut, false), novel: set(m.novelWidths, libraryOut, false) },
 		widthUnit: unit,
 		widthsLinked: linked,
 	};
@@ -352,7 +353,7 @@ export class AppModel {
 	/** The widths of one view as stored, for the pure functions (`story` is the left panel, `lore` the context panel). The current view's by default. */
 	panelWidths(view: WidthView | "codex" = this.widthView()): PanelWidths {
 		const s = this.widthSet(view);
-		return { story: s.left, library: s.left, lore: s.lore, unit: this.nav.widthUnit, linked: this.nav.widthsLinked };
+		return { story: s.left, library: s.left, lore: s.lore, unit: this.nav.widthUnit, linked: view === "storytelling" && this.nav.widthsLinked }; // the same-width switch is the storytelling set's alone
 	}
 
 	/** The widths to draw, in pixels, at this window width: narrowed for display if the window is small, stored figures untouched. */
@@ -362,7 +363,8 @@ export class AppModel {
 
 	private storeWidths(w: PanelWidths, view: WidthView | "codex" = this.widthView(), notify = true): void {
 		this.putWidthSet(view, { left: w.story, lore: w.lore });
-		Object.assign(this.nav, { widthUnit: w.unit, widthsLinked: w.linked });
+		this.nav.widthUnit = w.unit;
+		if (view === "storytelling") this.nav.widthsLinked = w.linked;
 		this.persistSoon();
 		if (notify) this.touch("nav");
 	}
@@ -386,17 +388,15 @@ export class AppModel {
 		return { ok: true };
 	}
 
-	/** The same-width switch. Turning it on gives each view's context panel the width of its left panel. */
+	/** The same-width switch, the storytelling set's alone. Turning it on gives the storytelling context panel the width of its left panel. */
 	setWidthsLinked(on: boolean): void {
 		if (this.nav.widthsLinked === on) return;
 		this.nav.widthsLinked = on;
 		if (on) {
 			const win = windowWidth();
-			for (const view of [...WIDTH_VIEWS, "codex" as const]) {
-				const s = this.widthSet(view);
-				const v = fromPx(clampPx("story", true, toPx(s.left, this.nav.widthUnit, win)), this.nav.widthUnit, win);
-				this.putWidthSet(view, { left: v, lore: v });
-			}
+			const s = this.widthSet("storytelling");
+			const v = fromPx(clampPx("story", true, toPx(s.left, this.nav.widthUnit, win)), this.nav.widthUnit, win);
+			this.putWidthSet("storytelling", { left: v, lore: v });
 		}
 		this.persistSoon();
 		this.touch("nav");

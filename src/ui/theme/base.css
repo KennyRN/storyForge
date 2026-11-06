@@ -926,10 +926,47 @@ input[aria-invalid="true"] {
 .sf-width-set {
 	margin-top: var(--space-3);
 }
-.sf-width-set-name {
-	margin: 0 0 var(--space-1);
-	font-family: var(--ts-body-bold-family);
-	font-weight: var(--ts-body-bold-weight);
-	font-size: var(--ts-body-bold-size);
-	font-variation-settings: var(--ts-body-bold-var);
+.sf-width-view {
+	display: flex;
+	align-items: center;
+	gap: 0.5em;
+	color: var(--purpose-text);
+	/* An icon and a word, like a Settings list entry; ordinary text, not a button. */
+}
+.sf-width-view-label {
+	text-box: trim-both cap alphabetic;
+}
+.sf-width-grid {
+	display: grid;
+	grid-template-columns: max-content max-content;
+	gap: var(--space-1) var(--space-4);
+	justify-content: start;
+	margin: var(--space-1) 0 0 calc(32px + 0.5em);
+}
+.sf-width-grid.is-linked {
+	grid-template-columns: max-content;
+}
+.sf-width-colhead {
+	display: flex;
+	gap: var(--space-1);
+	color: var(--purpose-text-muted);
+}
+.sf-width-cell {
+	display: flex;
+	align-items: center;
+	gap: var(--space-2);
+}
+.sf-width-field {
+	min-width: 0;
+	width: 7em;
+}
+.sf-width-hint {
+	font-family: var(--ts-hint-family);
+	font-weight: var(--ts-hint-weight);
+	font-size: var(--ts-hint-size);
+	font-variation-settings: var(--ts-hint-var);
+}
+.sf-width-linked {
+	margin-left: calc(32px + 0.5em);
+	grid-template-columns: max-content auto;
 }

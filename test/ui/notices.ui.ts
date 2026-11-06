@@ -108,7 +108,7 @@ test.describe("the two small fixes", () => {
 		const d = page.getByRole("dialog");
 		await d.getByRole("tab", { name: "General", exact: true }).click();
 		await d.getByRole("tab", { name: "this computer", exact: true }).click();
-		const width = d.getByLabel(/storytelling side panels/);
+		const width = d.getByLabel("storytelling, left and right panel width", { exact: true });
 		await width.fill("5");
 		await width.press("Enter");
 		await expect(width).toHaveAttribute("aria-invalid", "true");
