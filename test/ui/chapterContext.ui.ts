@@ -294,7 +294,7 @@ test.describe("one chosen chapter, shared by both sides", () => {
 		await flipFace(page); // flipping shows it
 		await expect(centreText(page)).toContainText("Opening line of a second chapter"); // chapter 2's text, in the one editor
 		expect(await page.evaluate(() => (window.__app as any).nav.chapter)).toBe("ch-a2.md");
-		await expect(page.locator(".sf-nav-current-title")).toContainText("The Storm");
+		await expect(page.locator(".sf-select-current-title")).toContainText("The Storm");
 	});
 
 	test("choosing from the left pane's placed list does the same, and the chosen row is highlighted", async ({ page }) => {

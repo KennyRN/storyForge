@@ -511,6 +511,8 @@ export interface MachineProjectState {
 	cardTiers?: unknown;
 	/** Which count the stats panel shows (decision 68). Day is the default and isn't stored. */
 	statsCount?: StatsCount;
+	/** The last chapter written in each novel, by novel folder (Brief 19): where "Write this novel" reopens. A position, so it stays on this computer, never in the project. */
+	lastChapters?: Record<string, string>;
 }
 
 export const DEFAULT_MACHINE_PROJECT_STATE: MachineProjectState = { selectedNovel: null, selectedObject: null, collapsedCodexFolderIds: [] };
@@ -543,6 +545,7 @@ export async function loadMachineProjectState(store: MachineStore, projectKey: s
 			...(isViewWidths(parsed.archiveWidths) ? { archiveWidths: { left: parsed.archiveWidths.left, lore: parsed.archiveWidths.lore } } : {}),
 			...(parsed.loreHidden === true ? { loreHidden: true } : {}),
 			...(STATS_COUNTS.some((c) => c === parsed.statsCount) && parsed.statsCount !== "day" ? { statsCount: parsed.statsCount as StatsCount } : {}),
+			...(parsed.lastChapters && typeof parsed.lastChapters === "object" && !Array.isArray(parsed.lastChapters) ? { lastChapters: Object.fromEntries(Object.entries(parsed.lastChapters).filter(([, v]) => typeof v === "string")) as Record<string, string> } : {}),
 			...("cardTiers" in parsed ? { cardTiers: parsed.cardTiers } : {}),
 		};
 	} catch {

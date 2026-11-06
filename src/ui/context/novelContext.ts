@@ -9,6 +9,8 @@ import { writingPlaceGone } from "../editor/lastWriting";
 import { metaRow } from "../faces/lengthFields";
 import { el } from "../kit/dom";
 import { attachInlineRename } from "../kit/inlineRename";
+import { pencilIcon } from "../kit/statsIcons";
+import { attachTooltip } from "../kit/tooltip";
 import { menuPoint, showMenu } from "../kit/menu";
 import type { AppModel } from "../model";
 import { dataBar, frameWidthPercent } from "../overviews/bars";
@@ -73,7 +75,10 @@ export function mountNovelContext(host: HTMLElement, model: AppModel): () => voi
 				);
 			},
 		});
-		const head = el("div", { class: "sf-novel-ctx-head" }, coverBox(model, { kind: "book", code: book }, title), el("div", { class: "sf-novel-ctx-meta" }, titleRow, povRow));
+		// "Write this novel" (route 2, §1.4): a hover icon beside the title, distinct from the title's own rename. It makes this novel the one being written.
+		const write = el("button", { class: "sf-hover-icon sf-novel-ctx-write", attrs: { type: "button", "aria-label": `Write this novel: ${title}` }, on: { click: () => void model.writeNovel(book) } }, pencilIcon());
+		attachTooltip(write, "Write this novel");
+		const head = el("div", { class: "sf-novel-ctx-head" }, coverBox(model, { kind: "book", code: book }, title), el("div", { class: "sf-novel-ctx-meta" }, el("div", { class: "sf-novel-ctx-titlerow" }, titleRow, write), povRow));
 		const synopsis = el("div", { class: "sf-ctx-card sf-ctx-synopsis" }, synopsisField(model, bin, book, title));
 
 		const { ordered, unplaced } = getBookChapters(project, book);

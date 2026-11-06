@@ -39,7 +39,8 @@ export function mountNovelTab(host: HTMLElement, model: AppModel): () => void {
 	const draw = (): void => {
 		if (isDragInProgress()) return;
 		const running = model.running;
-		const book = model.nav.book;
+		const book = model.shownBook; // the library's chosen novel, else the one being written (Brief 19)
+		const written = model.nav.book === book;
 		if (!running || !book) return fill(host, el("div", { class: "sf-muted sf-empty-inline", text: "Open a chapter to get started." }));
 		const project = running.opened.project;
 		const settings = running.settings.values;
@@ -50,7 +51,7 @@ export function mountNovelTab(host: HTMLElement, model: AppModel): () => void {
 		const run = (what: string, action: () => Promise<unknown>): Promise<void> => model.guard(async () => (await action(), model.touch("library", "nav")), what).then(() => undefined);
 
 		const row = (name: string, index: number): HTMLElement => {
-			const r = listRow(name, model.nav.chapter === name); // the chosen chapter is always marked (the "Highlight the active chapter" setting was retired in 1.7.0; a stored key is never read)
+			const r = listRow(name, written && model.nav.chapter === name); // the chosen chapter is always marked (the "Highlight the active chapter" setting was retired in 1.7.0; a stored key is never read)
 			const label = rowTitle(r, numbered[index]);
 			r.addEventListener("click", (e) => {
 				if ((e.target as HTMLElement).closest(".sf-drag-handle, input")) return;

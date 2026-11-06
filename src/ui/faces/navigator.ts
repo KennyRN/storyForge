@@ -3,6 +3,7 @@ import { numberedBookTitle, readSeriesFrontmatter } from "../../core/series";
 import { el, fill } from "../kit/dom";
 import { addChapterIcon } from "../kit/statsIcons";
 import { attachTooltip } from "../kit/tooltip";
+import { mountSelectList, type SelectState } from "../kit/selectList";
 import type { AppModel } from "../model";
 
 /**
@@ -11,26 +12,19 @@ import type { AppModel } from "../model";
  * the novel's placed chapters only, with "add the next chapter" (a true append) as its last item.
  */
 export function mountNavigator(host: HTMLElement, model: AppModel): () => void {
-	let expanded = false;
+	const state: SelectState = { expanded: false };
 	let shownBook: string | null = null;
-	let refocus = false;
-	let offOutside: (() => void) | null = null;
+	let selector: { dispose(): void } | null = null;
 	host.classList.add("sf-pane", "sf-navigator");
 
 	/** Everything else in the left panel can't be reached while the list is open: a click outside only closes it. */
 	const setBehind = (inert: boolean): void => {
 		for (const sibling of Array.from(host.parentElement?.children ?? [])) if (sibling !== host) (sibling as HTMLElement).inert = inert;
 	};
-	const close = (focus: boolean): void => {
-		if (!expanded) return;
-		expanded = false;
-		refocus = focus;
-		draw();
-	};
 
 	const draw = (): void => {
-		offOutside?.();
-		offOutside = null;
+		selector?.dispose();
+		selector = null;
 		setBehind(false);
 		const running = model.running;
 		if (!running) return fill(host);
@@ -38,7 +32,7 @@ export function mountNavigator(host: HTMLElement, model: AppModel): () => void {
 		const settings = running.settings.values;
 		const { book, chapter } = model.nav;
 		if (book !== shownBook) {
-			expanded = false;
+			state.expanded = false;
 			shownBook = book;
 		}
 		if (!book) {
@@ -52,78 +46,41 @@ export function mountNavigator(host: HTMLElement, model: AppModel): () => void {
 		const outside = chapter && !placed ? (chapters.unplaced.some((c) => c.name === chapter) ? "unplaced" : "archived") : null;
 
 		const lead = (cls: string, text: string, label: string, tab: "series" | "novel"): HTMLElement => {
-			const b = el("button", { class: `sf-nav-lead ${cls}`, attrs: { type: "button", "aria-label": label }, text, on: { click: () => model.openLibraryTab(tab) } });
+			const b = el("button", { class: `sf-nav-lead ${cls}`, attrs: { type: "button", "aria-label": label }, text, on: { click: () => model.openLibraryTab(tab, { resetChoice: tab === "novel" }) } });
 			attachTooltip(b, label);
 			return b;
 		};
 		const seriesLine = settings.storyKind === "series" ? lead("sf-nav-series", readSeriesFrontmatter(project).seriesTitle, "Open the series on the library side", "series") : null;
 		const novelLine = lead("sf-nav-novel", numberedBookTitle(project, book, undefined, settings.seriesNumberingStyle), "Open the novel on the library side", "novel");
 
-		const current = el(
-			"button",
-			{
-				class: `sf-nav-current${outside ? " is-outside" : ""}`,
-				attrs: { type: "button", "aria-expanded": String(expanded), "aria-haspopup": "true", "aria-label": "Chapters" },
-				on: { click: () => ((expanded = !expanded), (refocus = true), draw()) },
-			},
-			el("span", { class: "sf-nav-current-title", text: chapter ? title(chapter) : "No chapter yet" }),
-			outside ? el("span", { class: "sf-nav-note", text: outside }) : null,
-		);
-
-		const list = el("ul", { class: "sf-nav-list sf-scroll", attrs: { role: "list", "aria-label": "Chapters of this novel" } });
-		for (const c of chapters.ordered) {
-			const selected = c.name === chapter;
-			list.append(
-				el(
-					"li",
-					{},
-					el("button", {
-						class: `sf-nav-row${selected ? " is-active" : ""}`,
-						dataset: { filename: c.name },
-						attrs: { type: "button", ...(selected ? { "aria-current": "true" } : {}) },
-						text: title(c.name),
-						on: { click: () => (close(false), void model.openChapter(book, c.name)) },
-					}),
-				),
-			);
-		}
+		// "Add the next chapter" (a true append) is the list's last item.
 		const add = el("button", {
-			class: "sf-nav-row sf-nav-add",
+			class: "sf-select-row sf-select-add",
 			attrs: { type: "button", "aria-label": "Add the next chapter", ...(noWriting ? { disabled: "", title: noWriting } : {}) },
-			on: { click: () => (close(false), void model.addNextChapter()) },
+			on: { click: () => (state.expanded = false, setBehind(false), void model.addNextChapter()) },
 		}, addChapterIcon());
 		if (!noWriting) attachTooltip(add, "add the next chapter");
-		list.append(el("li", {}, add));
-		list.addEventListener("keydown", (e) => {
-			const items = Array.from(list.querySelectorAll<HTMLButtonElement>("button:not([disabled])"));
-			const at = items.indexOf(document.activeElement as HTMLButtonElement);
-			const to = e.key === "ArrowDown" ? at + 1 : e.key === "ArrowUp" ? at - 1 : e.key === "Home" ? 0 : e.key === "End" ? items.length - 1 : null;
-			if (to === null) return;
-			e.preventDefault();
-			items[Math.max(0, Math.min(items.length - 1, to))]?.focus();
-		});
 
-		const select = el("div", { class: "sf-nav-select" }, current, expanded ? list : null);
-		fill(host, seriesLine, novelLine, select);
-		if (expanded) {
-			list.style.top = `${current.offsetTop + current.offsetHeight}px`;
-			setBehind(true);
-			const away = (e: Event): void => {
-				if (!(e.target instanceof Node) || !select.contains(e.target)) close(false);
-			};
-			const key = (e: KeyboardEvent): void => {
-				if (e.key === "Escape") (e.stopPropagation(), close(true));
-			};
-			document.addEventListener("pointerdown", away, true);
-			host.addEventListener("keydown", key);
-			offOutside = () => (document.removeEventListener("pointerdown", away, true), host.removeEventListener("keydown", key));
-		}
-		if (refocus) {
-			refocus = false;
-			host.querySelector<HTMLElement>(".sf-nav-current")?.focus(); // the redraw replaced the button the keyboard was on
-		}
+		const selectHost = el("div", { class: "sf-select-host" });
+		fill(host, seriesLine, novelLine, selectHost);
+		selector = mountSelectList(
+			selectHost,
+			() => ({
+				title: chapter ? title(chapter) : "No chapter yet",
+				note: outside,
+				outside: !!outside,
+				label: "Chapters",
+				listLabel: "Chapters of this novel",
+				rows: chapters.ordered.map((c) => ({ key: c.name, text: title(c.name), active: c.name === chapter, dataset: { filename: c.name } })),
+				footer: [add],
+				onChoose: (name) => void model.openChapter(book, name),
+			}),
+			state,
+			{ onToggled: setBehind, modifier: "sf-select--chapters" },
+		);
+		setBehind(state.expanded);
 	};
 	draw();
 	const off = model.subscribe(["library", "nav", "project", "settings"], () => host.isConnected && draw());
-	return () => (off(), offOutside?.(), setBehind(false));
+	return () => (off(), selector?.dispose(), setBehind(false));
 }

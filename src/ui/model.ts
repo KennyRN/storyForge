@@ -39,6 +39,8 @@ export interface Nav {
 	book: string | null;
 	/** The library side's chosen novel (Brief 19, decisions 140 and 143): chosen on the series tab or the novel tab's selector, shown in the context panel. Session only; it never changes `book`, and is cleared only when the novel being written changes. */
 	libraryBook: string | null;
+	/** The last chapter written in each novel (by folder), remembered on this computer for "Write this novel" (Brief 19). */
+	lastChapters: Record<string, string>;
 	/** The selected chapter's filename. */
 	chapter: string | null;
 	collapsedCodex: Set<string>;
@@ -107,7 +109,7 @@ export class AppModel {
 	readonly notices = new NoticeCenter();
 	/** Set by the shell once the slots exist. */
 	editors: EditorHost | null = null;
-	nav: Nav = { face: "storytelling", forgeTab: "novel", centreView: "chapter", book: null, libraryBook: null, chapter: null, collapsedCodex: new Set(), ...initialWidths(machineDefaults(), windowWidth()), loreHidden: false, cardTiers: {}, statsCount: "day" };
+	nav: Nav = { face: "storytelling", forgeTab: "novel", centreView: "chapter", book: null, libraryBook: null, lastChapters: {}, chapter: null, collapsedCodex: new Set(), ...initialWidths(machineDefaults(), windowWidth()), loreHidden: false, cardTiers: {}, statsCount: "day" };
 	selection: Selection | null = null;
 	private persistTimer: ReturnType<typeof setTimeout> | undefined;
 	private listeners = new Map<Topic, Set<() => void>>();
@@ -169,6 +171,7 @@ export class AppModel {
 			centreView: "chapter",
 			book,
 			libraryBook: null,
+			lastChapters: { ...(machine.lastChapters ?? {}) },
 			chapter,
 			collapsedCodex: new Set(machine.collapsedCodexFolderIds),
 			...initialWidths(machine, windowWidth()),
@@ -176,6 +179,7 @@ export class AppModel {
 			...(machine.cardTiers !== undefined ? { cardTiers: machine.cardTiers } : {}),
 			statsCount: machine.statsCount ?? "day",
 		};
+		if (book && chapter) this.nav.lastChapters[book] ??= chapter;
 		this.selection = null;
 	}
 
@@ -196,6 +200,7 @@ export class AppModel {
 		if (this.nav.book !== book) this.nav.libraryBook = null;
 		this.nav.book = book;
 		this.nav.chapter = chapter;
+		if (chapter) this.nav.lastChapters[book] = chapter;
 	}
 
 	/** File ▸ New Chapter, and the navigator's "add the next chapter": a chapter at the end of the novel, opened. */
@@ -225,8 +230,30 @@ export class AppModel {
 		this.touch("nav");
 	}
 
-	/** The storytelling side's series and novel names: the library side, on that tab, with its overview in the workspace. */
-	openLibraryTab(tab: ForgeTab): void {
+	/**
+	 * "Write this novel" (Brief 19 §1.4, route 2): the library's chosen novel becomes the one being written, reopening the last chapter written in it (or its
+	 * first placed chapter when that one is gone or there is none), by the same save-and-open route as choosing a chapter; the novel tab shows it.
+	 */
+	async writeNovel(book: string): Promise<void> {
+		const running = this.running;
+		if (!running) return;
+		const chapters = getBookChapters(running.opened.project, book);
+		const names = [...chapters.ordered, ...chapters.unplaced].map((c) => c.name);
+		const remembered = this.nav.lastChapters[book];
+		const chapter = remembered && names.includes(remembered) ? remembered : (chapters.ordered[0]?.name ?? null);
+		if (chapter) await this.chooseChapter(book, chapter);
+		else {
+			this.setWritten(book, null);
+			this.touch("nav", "stats");
+		}
+		this.nav.forgeTab = "novel";
+		this.nav.centreView = "overview";
+		this.touch("nav", "face");
+	}
+
+	/** The storytelling side's series and novel names: the library side, on that tab, with its overview in the workspace. The novel name also resets the library's chosen novel to the one being written (`resetChoice`). */
+	openLibraryTab(tab: ForgeTab, options: { resetChoice?: boolean } = {}): void {
+		if (options.resetChoice) this.nav.libraryBook = this.nav.book;
 		const overviewTab = tab === "series" || tab === "novel";
 		this.nav.forgeTab = tab; // before the flip: the library side draws its tab when it is mounted
 		if (this.nav.face === "storytelling") {
@@ -501,9 +528,9 @@ export class AppModel {
 	async persistNow(): Promise<void> {
 		clearTimeout(this.persistTimer);
 		if (!this.running) return;
-		const { book, chapter, collapsedCodex, storyWidth, libraryWidth, loreWidth, viewWidths, widthUnit, widthsLinked, loreHidden, cardTiers, statsCount } = this.nav;
+		const { book, chapter, collapsedCodex, storyWidth, libraryWidth, loreWidth, viewWidths, widthUnit, widthsLinked, loreHidden, cardTiers, statsCount, lastChapters } = this.nav;
 		try {
-			await this.controller.saveMachineState({ selectedNovel: book, selectedObject: chapter, collapsedCodexFolderIds: [...collapsedCodex], leftWidth: storyWidth, libraryWidth, loreWidth, widthUnit, widthsLinked, storytellingWidths: viewWidths.storytelling, seriesWidths: viewWidths.series, novelWidths: viewWidths.novel, codexWidths: viewWidths.codex, archiveWidths: viewWidths.archive, ...(loreHidden ? { loreHidden } : {}), ...(cardTiers !== undefined ? { cardTiers } : {}), ...(statsCount !== "day" ? { statsCount } : {}) });
+			await this.controller.saveMachineState({ selectedNovel: book, selectedObject: chapter, collapsedCodexFolderIds: [...collapsedCodex], leftWidth: storyWidth, libraryWidth, loreWidth, widthUnit, widthsLinked, storytellingWidths: viewWidths.storytelling, seriesWidths: viewWidths.series, novelWidths: viewWidths.novel, codexWidths: viewWidths.codex, archiveWidths: viewWidths.archive, ...(loreHidden ? { loreHidden } : {}), ...(cardTiers !== undefined ? { cardTiers } : {}), ...(statsCount !== "day" ? { statsCount } : {}), ...(Object.keys(lastChapters).length ? { lastChapters } : {}) });
 		} catch {
 			/* where you were is a convenience: never worth a notice */
 		}

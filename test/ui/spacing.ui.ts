@@ -194,10 +194,10 @@ test.describe("the Codex card on the storytelling side", () => {
 	test("the chapter dropdown opens over the top of the card", async ({ page }) => {
 		await openProject(page);
 		await page.getByRole("button", { name: "Chapters" }).click();
-		const list = await rect(page, ".sf-nav-list");
+		const list = await rect(page, ".sf-select-list");
 		const tree = await rect(page, ".sf-codex-tree");
 		expect(list.b).toBeGreaterThan(tree.t); // it covers the card's top
-		const top = await page.evaluate(([x, y]) => (document.elementFromPoint(x, y) as HTMLElement).closest(".sf-nav-list") !== null, [list.l + list.w / 2, tree.t + 4] as const);
+		const top = await page.evaluate(([x, y]) => (document.elementFromPoint(x, y) as HTMLElement).closest(".sf-select-list") !== null, [list.l + list.w / 2, tree.t + 4] as const);
 		expect(top).toBe(true);
 	});
 

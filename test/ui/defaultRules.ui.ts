@@ -33,10 +33,10 @@ test.describe("rule 2: one shadow for every floating surface", () => {
 		await page.keyboard.press("Escape");
 		// the chapter selector and its dropdown are one piece: the shadow is a filter round the pair, and neither box has its own
 		await page.getByRole("button", { name: "Chapters" }).click();
-		const select = page.locator(".sf-nav-select");
+		const select = page.locator(".sf-select");
 		expect(await style(select, "filter")).toBe(await resolved(page, "filter", "var(--floating-shadow-filter)"));
-		expect(await style(page.locator(".sf-nav-list"), "box-shadow")).toBe("none");
-		expect(await style(page.locator(".sf-nav-current"), "box-shadow")).toBe("none");
+		expect(await style(page.locator(".sf-select-list"), "box-shadow")).toBe("none");
+		expect(await style(page.locator(".sf-select-current"), "box-shadow")).toBe("none");
 		await page.keyboard.press("Escape");
 		expect(await style(select, "filter")).toBe("none"); // closed, no shadow
 	});
@@ -64,7 +64,7 @@ test.describe("rule 1: a selected text row is highlighted", () => {
 		await page.keyboard.press("Escape");
 		// the chapter list
 		await page.getByRole("button", { name: "Chapters" }).click();
-		const chosen = page.locator(".sf-nav-row.is-active");
+		const chosen = page.locator(".sf-select-row.is-active");
 		await lit(chosen, "the chapter list's selected chapter");
 		await page.keyboard.press("Escape");
 		// the Settings section list
@@ -117,7 +117,7 @@ test.describe("rule 1: highlighted rows touch, as in the Codex list", () => {
 		await touch(page.getByRole("menu", { name: "Navigate" }).getByRole("menuitem").filter({ hasText: /^(Storytelling|Codex|Series|Novel|Archive)$/ }), "the Navigate menu");
 		await page.keyboard.press("Escape");
 		await page.getByRole("button", { name: "Chapters" }).click();
-		await touch(page.locator(".sf-nav-list .sf-nav-row"), "the chapter list");
+		await touch(page.locator(".sf-select-list .sf-select-row"), "the chapter list");
 		await page.keyboard.press("Escape");
 		await openSettingsDialog(page);
 		await touch(page.getByRole("dialog").locator(".sf-settings-tabs").getByRole("tab"), "the Settings section list");

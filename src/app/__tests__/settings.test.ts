@@ -200,6 +200,13 @@ describe("machine settings", () => {
 		expect([bad.storytellingWidths, bad.seriesWidths, bad.novelWidths, bad.leftWidth]).toEqual([undefined, undefined, undefined, 9]);
 		store.map.set(`project-ui/${key}`, "{ broken");
 		expect((await loadMachineProjectState(store, key)).selectedNovel).toBeNull();
+		// Brief 19: the last chapter written in each novel is kept on this computer, and read back only where well formed
+		await saveMachineProjectState(store, key, { selectedNovel: null, selectedObject: null, collapsedCodexFolderIds: [], lastChapters: { aaa: "ch-a2.md", bbb: "ch-b1.md" } });
+		expect((await loadMachineProjectState(store, key)).lastChapters).toEqual({ aaa: "ch-a2.md", bbb: "ch-b1.md" });
+		store.map.set(`project-ui/${key}`, JSON.stringify({ lastChapters: { aaa: 4, bbb: "ch-b1.md" } }));
+		expect((await loadMachineProjectState(store, key)).lastChapters).toEqual({ bbb: "ch-b1.md" });
+		store.map.set(`project-ui/${key}`, JSON.stringify({ lastChapters: ["x"] }));
+		expect((await loadMachineProjectState(store, key)).lastChapters).toBeUndefined();
 	});
 
 	it("the snapshot round-trips through machine settings, keyed by the project path", async () => {

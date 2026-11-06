@@ -94,8 +94,8 @@
 .sf-nav-empty {
 	padding: var(--space-2) 0;
 }
-.sf-nav-current,
-.sf-nav-row {
+.sf-select-current,
+.sf-select-row {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -116,28 +116,28 @@
 	font-variation-settings: var(--ap-chapter-var, normal);
 }
 /* Closed, the selector shows the open chapter in the accent; one that isn't in the list is muted, with a quiet note. */
-.sf-nav-current {
+.sf-select-current {
 	color: var(--purpose-accent);
 	padding-left: var(--nav-pad);
 	border-radius: var(--nav-radius);
 }
 /* Decision 97: no chevron and no fill at rest; the bg1 fill on hover and while the list is open, with the cards' corners; focus alone
    gives no fill, only the green ring. Open, the selector and the list are one raised piece: square where they join. */
-.sf-nav-current:hover,
-.sf-nav-current[aria-expanded="true"] {
+.sf-select-current:hover,
+.sf-select-current[aria-expanded="true"] {
 	background: var(--purpose-raised-bg);
 }
-.sf-nav-current[aria-expanded="true"] {
+.sf-select-current[aria-expanded="true"] {
 	border-radius: var(--nav-radius) var(--nav-radius) 0 0;
 }
-.sf-nav-current:focus-visible {
+.sf-select-current:focus-visible {
 	outline: 2px solid var(--purpose-accent);
 	outline-offset: 1px;
 }
-.sf-nav-current.is-outside {
+.sf-select-current.is-outside {
 	color: var(--purpose-text-muted);
 }
-.sf-nav-current-title {
+.sf-select-current-title {
 	flex: 1;
 	min-width: 0;
 	overflow: hidden;
@@ -148,12 +148,12 @@
 	font-size: 0.8em;
 	color: var(--purpose-text-muted);
 }
-.sf-nav-row:hover:not(:disabled) {
+.sf-select-row:hover:not(:disabled) {
 	/* Like the Codex list: the hovered row is a block in the selected chapter's colour with the list's own colour on it, selected or not; the add icon too. */
 	background: var(--purpose-accent);
 	color: var(--purpose-raised-bg);
 }
-.sf-nav-select {
+.sf-select--chapters {
 	/* The fill's edges are the Codex card's: its left is the strip's width plus 8px (30px past the lines' own margin), its right
 	   is the card's (10% of the panel's width, 12px at least). */
 	--nav-radius: 10px;
@@ -162,11 +162,11 @@
 	margin: 0 max(12px, 10%) 0 calc(var(--space-4) + 30px);
 }
 /* Open, the selector's fill and the dropdown are one joined piece, so the one shadow is drawn round the pair (a filter on both together), with no line across the join. */
-.sf-nav-select:has(.sf-nav-current[aria-expanded="true"]) {
+.sf-select:has(.sf-select-current[aria-expanded="true"]) {
 	filter: var(--floating-shadow-filter);
 }
 /* Open: a raised surface over the top of the Codex list, the panel's full width, with no border line. */
-.sf-nav-list {
+.sf-select-list {
 	position: absolute;
 	left: 0;
 	right: 0;
@@ -181,27 +181,50 @@
 	background: var(--purpose-raised-bg);
 	border-radius: 0 0 var(--nav-radius) var(--nav-radius);
 }
-.sf-nav-row {
+.sf-select-row {
 	/* The Codex rows' shape (decision 88): 3px above and below (plus half the 2px gap that was between rows, now none), 8px at the sides, 4px corners. */
 	padding: 4px 8px;
 	border-radius: 4px;
 }
-.sf-nav-list > :first-child {
+.sf-select-list > :first-child {
 	margin-top: -1px; /* the first row's text stays where it was */
 }
-.sf-nav-add {
+.sf-select-add {
 	justify-content: center;
 }
-.sf-nav-add svg {
+.sf-select-row.is-muted:not(.is-active) {
+	opacity: 0.8;
+}
+.sf-select-separator {
+	height: 1px;
+	margin: 4px 8px;
+	background: var(--purpose-border);
+}
+/* The novel tab's novel selector (Brief 19 §1.4): the overview's title style, the same joined piece. */
+.sf-select--title {
+	--ap-chapter-family: var(--ts-title-family); /* the selector's text takes the overview title's style here, not the selected chapter's */
+	--ap-chapter-weight: var(--ts-title-weight);
+	--ap-chapter-size: var(--ts-title-size);
+	--ap-chapter-var: var(--ts-title-var);
+	--nav-radius: 10px;
+	--nav-pad: 8px;
+	position: relative;
+	display: inline-block;
+	max-width: 100%;
+	margin-bottom: 20px;
+}
+.sf-select--title .sf-select-current { color: var(--purpose-text); width: auto; max-width: 100%; }
+.sf-select--title .sf-select-list { min-width: 100%; width: max-content; max-width: 90vw; right: auto; }
+.sf-select-add svg {
 	width: 1em; /* the Codex icons' rule (decision 84): the selected chapter's size, not a fixed 16px */
 	height: 1em;
 }
-.sf-nav-row.is-active {
+.sf-select-row.is-active {
 	/* Rule 1: the selected chapter is a highlighted row, as the hovered one is (and as in the Codex list). */
 	background: var(--purpose-accent);
 	color: var(--purpose-raised-bg);
 }
-.sf-nav-add:disabled {
+.sf-select-add:disabled {
 	opacity: 0.5;
 	cursor: default;
 }

@@ -14,6 +14,7 @@ import { coverBox } from "./cover";
 import { synopsisField } from "./sectionFields";
 import { debounced, redrawKeepingFocus } from "./refresh";
 import { buildNovelProgress } from "./novelProgress";
+import { mountSelectList, type SelectState } from "../kit/selectList";
 
 /** The novel overview: the progress bar (segments, ghost dividers, structure strip) and a bar per placed chapter (Brief 14: the planned lengths, the default PoV and the chapters' details are not shown here). */
 export function mountNovelOverview(host: HTMLElement, model: AppModel): () => void {
@@ -24,6 +25,8 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 	let plots = new Map<string, string>();
 
 	let ghostWatch: ResizeObserver | null = null;
+	let selector: { dispose(): void } | null = null;
+	const selectState: SelectState = { expanded: false };
 	const draw = (): void => {
 		ghostWatch?.disconnect();
 		ghostWatch = null;
@@ -32,7 +35,7 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 		bin.clear(); // the editors of the last draw go with it
 		plots = new Map();
 		const running = model.running;
-		const book = model.nav.book;
+		const book = model.shownBook; // the library's chosen novel, else the one being written (Brief 19)
 		if (!running || !book) return fill(host, el("div", { class: "sf-muted", text: "Select a novel." }));
 		const project = running.opened.project;
 		const settings = running.settings.values;
@@ -74,7 +77,31 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 			bar.addEventListener("click", () => open(key));
 			return el("div", { class: "sf-card", dataset: { chapter: key } }, bar);
 		});
-		fill(host, el("h2", { class: "sf-overview-title", text: novelTitle() }), el("div", { class: "sf-overview-head" }, el("div", { class: "sf-cover-column" }, coverBox(model, { kind: "book", code: book }, novelTitle())), synopsisField(model, bin, book, novelTitle())), track, strip, el("div", { class: "sf-overview-list sf-cards", attrs: { role: "list", "aria-label": "Placed chapters with word counts" } }, ...cards));
+		// The novel's name is the novel selector (Brief 19 §1.4): the series' novels, placed then unplaced. A standalone project has one novel, so its name is plain text.
+		selector?.dispose();
+		selector = null;
+		const heading = el("h2", { class: "sf-overview-title" });
+		if (settings.storyKind === "standalone") heading.textContent = novelTitle();
+		else {
+			const series = getSeriesBooks(project);
+			const folders = [...series.ordered, ...series.unplaced].map((f) => f.name);
+			const numbered = applyHashNumbering(folders.map((f) => bookDisplayTitle(project, f)), settings.seriesNumberingStyle);
+			const host2 = el("div", { class: "sf-select-host" });
+			heading.append(host2);
+			selector = mountSelectList(
+				host2,
+				() => ({
+					title: novelTitle(),
+					label: "Novels",
+					listLabel: "Novels of this series",
+					rows: folders.map((f, i) => ({ key: f, text: numbered[i], active: f === book, muted: i >= series.ordered.length, separatorBefore: series.unplaced.length > 0 && i === series.ordered.length, dataset: { book: f } })),
+					onChoose: (f) => model.chooseNovel(f),
+				}),
+				selectState,
+				{ modifier: "sf-select--title" },
+			);
+		}
+		fill(host, heading, el("div", { class: "sf-overview-head" }, el("div", { class: "sf-cover-column" }, coverBox(model, { kind: "book", code: book }, novelTitle())), synopsisField(model, bin, book, novelTitle())), track, strip, el("div", { class: "sf-overview-list sf-cards", attrs: { role: "list", "aria-label": "Placed chapters with word counts" } }, ...cards));
 		drawGhosts();
 		if (typeof ResizeObserver !== "undefined") {
 			ghostWatch = new ResizeObserver(drawGhosts);
@@ -87,6 +114,7 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 	return () => {
 		off();
 		ghostWatch?.disconnect();
+		selector?.dispose();
 		refresh.cancel();
 		bin.clear();
 		host.classList.remove("sf-overview-body");

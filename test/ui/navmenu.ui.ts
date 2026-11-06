@@ -184,8 +184,8 @@ test.describe("focus rings are for the keyboard", () => {
 		const selector = page.getByRole("button", { name: "Chapters" });
 		await selector.click();
 		expect(await outline(selector)).toBe("none");
-		await page.locator(".sf-nav-row", { hasText: "Chapter 2" }).click();
-		await expect(page.locator(".sf-nav-current-title")).toHaveText("Chapter 2");
+		await page.locator(".sf-select-row", { hasText: "Chapter 2" }).click();
+		await expect(page.locator(".sf-select-current-title")).toHaveText("Chapter 2");
 		expect(await outline(selector)).toBe("none"); // the redraw gave it focus again after the click
 		await selector.click();
 		await page.keyboard.press("Escape");
@@ -204,8 +204,8 @@ test.describe("the chapter list's rows, the add button and the title bar", () =>
 	test("rows are 6px in from the dropdown's edges with 4px corners and a Codex row's padding (3px, plus half the 2px gap that rule 1 folded in, so the rows touch); the add row is centred, its icon 1em", async ({ page }) => {
 		await openProject(page);
 		await page.getByRole("button", { name: "Chapters" }).click();
-		const list = page.locator(".sf-nav-list");
-		const row = page.locator(".sf-nav-row").first();
+		const list = page.locator(".sf-select-list");
+		const row = page.locator(".sf-select-row").first();
 		const [l, r] = await Promise.all([list.boundingBox(), row.boundingBox()]);
 		expect(r!.x - l!.x).toBeCloseTo(6, 0);
 		expect(l!.x + l!.width - (r!.x + r!.width)).toBeCloseTo(6, 0);
@@ -250,8 +250,8 @@ test.describe("the chapter list's rows, the add button and the title bar", () =>
 		await page.getByRole("button", { name: "Chapters" }).click();
 		const left = (sel: string) => page.locator(sel).first().evaluate((e) => { const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT); let n: Node | null; while ((n = w.nextNode())) if (n.textContent!.trim()) { const r = document.createRange(); r.setStart(n, 0); r.setEnd(n, 1); return r.getBoundingClientRect().left; } return -1; });
 		const codex = await left(".sf-codex-tree .sf-codex-folder-header, .sf-codex-tree .sf-codex-file");
-		expect(Math.abs((await left(".sf-nav-current-title")) - codex)).toBeLessThan(1);
-		expect(Math.abs((await left(".sf-nav-row")) - codex)).toBeLessThan(1);
+		expect(Math.abs((await left(".sf-select-current-title")) - codex)).toBeLessThan(1);
+		expect(Math.abs((await left(".sf-select-row")) - codex)).toBeLessThan(1);
 	});
 });
 

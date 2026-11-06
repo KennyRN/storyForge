@@ -143,7 +143,7 @@ test.describe("the screens around the faces", () => {
 		test("text typed in a chapter that links to the note is saved first, not lost", async ({ page }) => {
 			await openProject(page, withLinks(page));
 			await page.getByRole("button", { name: "Chapters" }).click();
-			await page.locator(".sf-nav-row", { hasText: "The Storm" }).click();
+			await page.locator(".sf-select-row", { hasText: "The Storm" }).click();
 			await page.locator(".sf-slot--centre .cm-content").click();
 			await page.keyboard.press("ControlOrMeta+ArrowDown");
 			await page.keyboard.type(" Typed just now.");

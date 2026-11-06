@@ -33,7 +33,7 @@ test.describe("the menus", () => {
 		expect(open["close-project"] && open["find"] && open["flip-face"] && open["settings"] && open["backup-now"]).toBe(true);
 		expect(open["archive"]).toBe(false); // nothing picked yet
 		await page.getByRole("button", { name: "Chapters" }).click();
-		await page.locator(".sf-nav-row", { hasText: "The Storm" }).click();
+		await page.locator(".sf-select-row", { hasText: "The Storm" }).click();
 		await expect.poll(async () => (await lastState(page))?.["archive"]).toBe(true);
 	});
 
@@ -118,7 +118,7 @@ test.describe("the menus", () => {
 		await menu(page, "archive"); // the picked Codex note
 		await expect(page.locator(".sf-codex-file", { hasText: "Windows" })).toHaveCount(0);
 		await page.getByRole("button", { name: "Chapters" }).click();
-		await page.locator(".sf-nav-row", { hasText: "The Storm" }).click();
+		await page.locator(".sf-select-row", { hasText: "The Storm" }).click();
 		await menu(page, "archive");
 		await expect.poll(() => onDisk(page, "_story-library/novel-aaa.md")).toMatch(/archive:\n  - ch-a4\.md\n  - ch-a2\.md/);
 		await menu(page, "backup-now");
@@ -128,7 +128,7 @@ test.describe("the menus", () => {
 	test("Story: Rename… on a chapter starts the inline rename on the novel tab", async ({ page }) => {
 		await openProject(page);
 		await page.getByRole("button", { name: "Chapters" }).click();
-		await page.locator(".sf-nav-row", { hasText: "The Storm" }).click();
+		await page.locator(".sf-select-row", { hasText: "The Storm" }).click();
 		await menu(page, "rename");
 		await expect(page.getByLabel("Name")).toHaveValue("The Storm: Part Two");
 	});
@@ -196,7 +196,7 @@ test.describe("settings", () => {
 		await expect(d.locator(".sf-setting-row", { hasText: "Chapter numbering" })).toContainText("this project");
 		await d.getByRole("button", { name: "Done" }).click();
 		// the navigator now numbers chapters in lower-case roman
-		await expect(page.locator(".sf-nav-current-title")).toHaveText("Chapter i");
+		await expect(page.locator(".sf-select-current-title")).toHaveText("Chapter i");
 		// choosing the value already in effect writes nothing more
 		await openSettingsDialog(page);
 		await dialog(page).getByRole("tab", { name: "General", exact: true }).click();
@@ -214,7 +214,7 @@ test.describe("settings", () => {
 		await dialog(page).getByRole("tab", { name: "story", exact: true }).click();
 		await dialog(page).getByLabel("Chapter numbering").selectOption("arabic-padded");
 		await dialog(page).getByRole("button", { name: "Done" }).click();
-		await expect(page.locator(".sf-nav-current-title")).toHaveText("Chapter 01");
+		await expect(page.locator(".sf-select-current-title")).toHaveText("Chapter 01");
 	});
 
 	test("the interface settings take effect: hide the series pane, highlighting, the face the app opens in", async ({ page }) => {

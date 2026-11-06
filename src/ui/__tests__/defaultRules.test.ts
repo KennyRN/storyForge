@@ -46,9 +46,9 @@ describe("rule 2: every floating surface has the one shared shadow", () => {
 	});
 
 	it("the chapter selector and its dropdown are drawn round as one piece, with no shadow of their own", () => {
-		const joined = all.find((r) => r.selector.includes(".sf-nav-select:has(") && /filter:\s*var\(--floating-shadow-filter\)/.test(r.body));
+		const joined = all.find((r) => r.selector.includes(".sf-select:has(") && /filter:\s*var\(--floating-shadow-filter\)/.test(r.body));
 		expect(joined).toBeTruthy();
-		for (const sel of [".sf-nav-list", ".sf-nav-current"]) expect(all.filter((r) => r.selector === sel).some((r) => /box-shadow:\s*(?!none)/.test(r.body))).toBe(false);
+		for (const sel of [".sf-select-list", ".sf-select-current"]) expect(all.filter((r) => r.selector === sel).some((r) => /box-shadow:\s*(?!none)/.test(r.body))).toBe(false);
 	});
 });
 
@@ -72,7 +72,7 @@ describe("rule 1: a selected text row is highlighted as in the Codex list", () =
 		for (const [sel, surface] of [
 			[".sf-navmenu-row.is-here, .sf-navmenu-row:hover:not(:disabled)", SURFACE],
 			[".sf-menu--rows .sf-menu-item:hover, .sf-menu--rows .sf-menu-item:focus-visible", SURFACE],
-			[".sf-nav-row.is-active", SURFACE],
+			[".sf-select-row.is-active", SURFACE],
 			[".sf-settings-tab:hover, .sf-settings-tab.is-active", SURFACE],
 			[".sf-filter-row:hover, .sf-filter-row:focus-visible, .sf-filter-row.is-chosen", SURFACE],
 			[".sf-shortcode-option.is-selected", SURFACE],
@@ -98,7 +98,7 @@ describe("rule 1: a selected text row is highlighted as in the Codex list", () =
 	});
 
 	it("highlighted rows touch: no list under the rule has a gap between its rows", () => {
-		const LISTS = [".sf-navmenu", ".sf-filter-popover", ".sf-nav-list", ".sf-settings-tabs", ".sf-list"];
+		const LISTS = [".sf-navmenu", ".sf-filter-popover", ".sf-select-list", ".sf-settings-tabs", ".sf-list"];
 		for (const sel of LISTS) {
 			const r = all.filter((x) => x.selector === sel);
 			expect(r.length, sel).toBeGreaterThan(0);

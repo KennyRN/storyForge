@@ -897,8 +897,8 @@ input[aria-invalid="true"] {
    and optical size following the text size where the font has the axis. */
 .sf-faced,
 .sf-nav-lead,
-.sf-nav-current,
-.sf-nav-row,
+.sf-select-current,
+.sf-select-row,
 .sf-sample {
 	font-variant-ligatures: none;
 	font-feature-settings: "liga" 0, "calt" 0, "dlig" 0, "ss01" 0;

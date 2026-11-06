@@ -16,7 +16,7 @@ test.describe("the navigator", () => {
 	// Fix 7 (decision 97): the selector has no chevron and no fill at rest; a bg1 fill on hover and while open, on the Codex card's edges.
 	test("the selector has no chevron, no fill at rest, and a bg1 fill with the cards' corners on hover and while open, lined up with the Codex card", async ({ page }) => {
 		await openProject(page);
-		const cur = page.locator(".sf-nav-current");
+		const cur = page.locator(".sf-select-current");
 		const fill = () => cur.evaluate((e) => getComputedStyle(e).backgroundColor);
 		const clear = "rgba(0, 0, 0, 0)";
 		const bg1 = await colour(page, "--purpose-raised-bg").then(async () => page.evaluate(() => { const d = document.createElement("i"); d.style.background = "var(--purpose-raised-bg)"; document.body.append(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; }));
@@ -35,11 +35,11 @@ test.describe("the navigator", () => {
 		expect(await fill()).toBe(bg1);
 		expect(await cur.evaluate((e) => getComputedStyle(e).borderBottomLeftRadius)).toBe("0px");
 		expect(await cur.evaluate((e) => getComputedStyle(e).borderTopRightRadius)).toBe("10px");
-		const list = page.locator(".sf-nav-list");
+		const list = page.locator(".sf-select-list");
 		expect(await list.evaluate((e) => getComputedStyle(e).backgroundColor)).toBe(bg1);
 		expect(await list.evaluate((e) => getComputedStyle(e).borderTopLeftRadius)).toBe("0px");
 		expect(await list.evaluate((e) => getComputedStyle(e).borderBottomRightRadius)).toBe("10px");
-		for (const e of [await edges(".sf-nav-current"), await edges(".sf-nav-list")]) {
+		for (const e of [await edges(".sf-select-current"), await edges(".sf-select-list")]) {
 			expect(Math.abs(e[0] - card[0])).toBeLessThan(1);
 			expect(Math.abs(e[1] - card[1])).toBeLessThan(1);
 		}
@@ -51,7 +51,7 @@ test.describe("the navigator", () => {
 		await page.mouse.move(600, 600);
 		await page.locator(".sf-nav-novel").focus();
 		await page.keyboard.press("Alt+Tab");
-		const cur = page.locator(".sf-nav-current");
+		const cur = page.locator(".sf-select-current");
 		await expect(cur).toBeFocused();
 		expect(await cur.evaluate((e) => getComputedStyle(e).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
 		expect(await cur.evaluate((e) => getComputedStyle(e).outlineColor)).toBe(await colour(page, "--purpose-accent"));
@@ -60,7 +60,7 @@ test.describe("the navigator", () => {
 
 	test("shows the series name, the novel's name and the chapter selector, in that order, with no header and no Flip side", async ({ page }) => {
 		await openProject(page);
-		const tops = await Promise.all([".sf-nav-series", ".sf-nav-novel", ".sf-nav-current"].map((s) => page.locator(s).evaluate((e) => e.getBoundingClientRect().top)));
+		const tops = await Promise.all([".sf-nav-series", ".sf-nav-novel", ".sf-select-current"].map((s) => page.locator(s).evaluate((e) => e.getBoundingClientRect().top)));
 		expect(tops[0]).toBeLessThan(tops[1]);
 		expect(tops[1]).toBeLessThan(tops[2]);
 		await expect(page.locator(".sf-left-header")).toHaveCount(0);
@@ -68,7 +68,7 @@ test.describe("the navigator", () => {
 		const green = await colour(page, "--purpose-accent");
 		expect(await colourOf(page.locator(".sf-nav-series"))).toBe(green);
 		expect(await colourOf(page.locator(".sf-nav-novel"))).toBe(green);
-		expect(await colourOf(page.locator(".sf-nav-current"))).toBe(green);
+		expect(await colourOf(page.locator(".sf-select-current"))).toBe(green);
 	});
 
 	test("a standalone novel (story-kind: standalone) has no series line; an unknown value is a series and isn't rewritten", async ({ page }) => {
@@ -122,7 +122,7 @@ test.describe("the navigator", () => {
 			expect(l!.x).toBeCloseTo(card!.x, 0);
 			expect(l!.width).toBeCloseTo(card!.width, 0);
 			expect(await list.evaluate((e) => { const s = getComputedStyle(e); return [s.borderTopWidth, s.borderBottomWidth, s.backgroundColor]; })).toEqual(["0px", "0px", await colour(page, "--purpose-raised-bg")]);
-			const covered = await page.evaluate(() => { const r = document.querySelector(".sf-nav-list")!.getBoundingClientRect(); const c = document.querySelector("section[aria-label='Codex']")!.getBoundingClientRect(); return r.bottom > c.top; });
+			const covered = await page.evaluate(() => { const r = document.querySelector(".sf-select-list")!.getBoundingClientRect(); const c = document.querySelector("section[aria-label='Codex']")!.getBoundingClientRect(); return r.bottom > c.top; });
 			expect(covered).toBe(true);
 			expect(await page.locator("section[aria-label='Codex']").evaluate((e) => (e as HTMLElement).inert)).toBe(true);
 			await page.locator("section[aria-label='Codex'] [role='treeitem']").first().click({ force: true });
@@ -134,11 +134,11 @@ test.describe("the navigator", () => {
 		test("holds the placed chapters only, in order, then 'Add the next chapter'; the selected chapter is a highlighted row (rule 1), the rest muted, hover looks the same, the focus ring shows", async ({ page }) => {
 			await openProject(page);
 			await selector(page).click();
-			const rows = page.locator(".sf-nav-list .sf-nav-row");
+			const rows = page.locator(".sf-select-list .sf-select-row");
 			expect(await rows.allInnerTexts()).toEqual(["Chapter 1", "The Storm: Part Two", "Chapter 2", ""]);
 			await expect(rows.nth(3)).toHaveAttribute("aria-label", "Add the next chapter");
 			await expect(rows.nth(3).locator("svg")).toHaveCount(1);
-			await expect(page.locator(".sf-nav-list")).not.toContainText("Unplaced idea");
+			await expect(page.locator(".sf-select-list")).not.toContainText("Unplaced idea");
 			const raised = await page.evaluate(() => { const d = document.createElement("i"); d.style.color = "var(--purpose-raised-bg)"; document.body.append(d); const c = getComputedStyle(d).color; d.remove(); return c; });
 			const blockOf = (l: ReturnType<Page["locator"]>) => l.evaluate((e) => getComputedStyle(e).backgroundColor);
 			// rule 1: the selected chapter is a row in the accent with the list's own colour on it, as a hovered one is
@@ -166,11 +166,11 @@ test.describe("the navigator", () => {
 		test("choosing a chapter opens it and closes the list; Escape closes it and returns focus to the selector", async ({ page }) => {
 			await openProject(page);
 			await selector(page).click();
-			await page.locator(".sf-nav-row", { hasText: "The Storm" }).click();
+			await page.locator(".sf-select-row", { hasText: "The Storm" }).click();
 			await expect(page.getByRole("list", { name: "Chapters of this novel" })).toHaveCount(0);
-			await expect(page.locator(".sf-nav-current-title")).toHaveText("The Storm: Part Two");
+			await expect(page.locator(".sf-select-current-title")).toHaveText("The Storm: Part Two");
 			await selector(page).click();
-			await page.locator(".sf-nav-row").first().focus();
+			await page.locator(".sf-select-row").first().focus();
 			await page.keyboard.press("Escape");
 			await expect(page.getByRole("list", { name: "Chapters of this novel" })).toHaveCount(0);
 			await expect(selector(page)).toBeFocused();
@@ -179,7 +179,7 @@ test.describe("the navigator", () => {
 		test("'Add the next chapter' is last, appends at the end whichever chapter is open, opens it and closes the list", async ({ page }) => {
 			await openProject(page);
 			await selector(page).click();
-			await page.locator(".sf-nav-row", { hasText: "The Storm" }).click();
+			await page.locator(".sf-select-row", { hasText: "The Storm" }).click();
 			await selector(page).click();
 			await page.getByRole("button", { name: "Add the next chapter" }).click();
 			await expect(page.getByRole("list", { name: "Chapters of this novel" })).toHaveCount(0);
@@ -193,9 +193,9 @@ test.describe("the navigator", () => {
 			await openProject(page);
 			await page.evaluate(() => window.__app.openChapter("aaa", "ch-a3.md"));
 			await expect(page.locator(".sf-nav-note")).toHaveText("unplaced");
-			expect(await colourOf(page.locator(".sf-nav-current"))).toBe(await colour(page, "--purpose-text-muted"));
+			expect(await colourOf(page.locator(".sf-select-current"))).toBe(await colour(page, "--purpose-text-muted"));
 			await selector(page).click();
-			await expect(page.locator(".sf-nav-row.is-active")).toHaveCount(0);
+			await expect(page.locator(".sf-select-row.is-active")).toHaveCount(0);
 		});
 
 		test("a stored 'highlight-active-chapter: false' (the retired setting) is never read: the selected chapter is a highlighted row here", async ({ page }) => {
@@ -206,14 +206,14 @@ test.describe("the navigator", () => {
 			await page.locator("[data-recent='0']").click();
 			await page.waitForFunction(() => !!window.__app?.editors);
 			await selector(page).click();
-			expect(await page.locator(".sf-nav-row").first().evaluate((e) => getComputedStyle(e).backgroundColor)).toBe(await colour(page, "--purpose-accent"));
+			expect(await page.locator(".sf-select-row").first().evaluate((e) => getComputedStyle(e).backgroundColor)).toBe(await colour(page, "--purpose-accent"));
 		});
 
 		test("reduced motion: nothing animates", async ({ page }) => {
 			await page.emulateMedia({ reducedMotion: "reduce" });
 			await openProject(page);
 			await selector(page).click();
-			expect(await page.locator(".sf-nav-list").evaluate((e) => getComputedStyle(e).animationName)).toBe("none");
+			expect(await page.locator(".sf-select-list").evaluate((e) => getComputedStyle(e).animationName)).toBe("none");
 		});
 	});
 });

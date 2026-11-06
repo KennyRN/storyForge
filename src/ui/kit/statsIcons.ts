@@ -81,3 +81,6 @@ export const countIcon = (count: StatsCount): SVGElement => draw(COUNTS[count], 
 export const chevronDownIcon = (size = 16): SVGElement => draw(outline("M6 9l6 6l6 -6"), size);
 /** The chapter list's "add the next chapter" button: Tabler's square-rounded-plus (filled, MIT), 16 px, in the current text colour. */
 export const addChapterIcon = (): SVGElement => draw(ADD_CHAPTER, 16);
+
+/** "Write this novel": Tabler's pencil (outline, 2 px stroke, MIT), 16 px, until Kenny supplies his own. */
+export const pencilIcon = (): SVGElement => draw(outline("M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4", "M13.5 6.5l4 4"), 16);
