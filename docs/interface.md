@@ -431,3 +431,7 @@ Kenny's design. A **default**: every new modal dialog goes through `openDialog` 
 ## The type styles (1.10.0)
 
 Every piece of text in the interface is drawn by a named type style, from `core/typeStyles.ts` through `--ts-<style>-*` custom properties (`docs/type-styles.md`). No style sheet names a font, a size or a weight of its own (a test fails on one); the Interface font and the Writing font are the two base fonts, and the app's own text is never the system font. Settings ▸ Appearance holds them in three groups: Interface, Navigator, Writing.
+
+## Brief 19: the series page, the novel selector, sidebar widths and the one gap (1.11.0)
+
+See `docs/series-2.md`. In short: the library's chosen novel (`nav.libraryBook`) is separate from the novel being written (`nav.book`); the series tab's context panel shows it; the novel tab follows it; `kit/selectList.ts` is the one select list (the chapter selector and the novel selector); Settings' sidebar widths are percentage sliders; the gap between boxes is the one fixed `--gap` (28 px).

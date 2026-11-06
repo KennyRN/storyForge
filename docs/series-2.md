@@ -140,3 +140,31 @@ One rule: **`--gap`** = the one figure, used for the window's sides, between pan
 5. **Settings:** the muted hints in H1.5 (4, 5, 7): which go? Does the unit select stay once widths are sliders?
 6. **Keep-same-width on three rows** makes `widthsLinked` per view in machine state. OK?
 7. **Clicking a chapter bar in the panel:** the earlier survey suggested doing nothing (unlabelled bars are easy to hit by mistake); the brief doesn't say. Default: nothing.
+
+---
+
+# Brief 19, rulings and as built (1.11.0)
+
+## Rulings (H1, 6 November 2026)
+Gap: one fixed 28 px (nothing follows a panel's width). Novel selector on the novel overview's heading, extracted into `kit/selectList.ts` with the navigator's tests updated to the new class names, not weakened. "Write this novel": Tabler's pencil until Kenny supplies an icon. `lastChapters` in the per-project machine settings; a missing chapter falls back to the first placed chapter. Sidebar widths are percentages: the "Measure widths in" select goes; a px width converts to its percentage once, at the first slider use, with nothing written before. Hints that only repeat their label go; those that say something stay (listed below). `widthsLinked` per view, offered on storytelling, codex and archive. Chapter bars in the panel: a click does nothing, the hover shows the name. The chosen novel is cleared only when the novel being written changes, not when another chapter of the same novel is chosen.
+
+## As built
+1. **The bug:** `contextMode()`; the lore host is hidden and inert on the whole library side.
+2. **The series page:** `chooseNovel`, `nav.libraryBook`, `shownBook`; the central pane has no synopses and marks the chosen novel (`is-chosen`).
+3. **The panel's novel:** `context/novelContext.ts`; `overviews/novelProgress.ts` is shared with the novel overview; `dataBar({ labelled: false })`.
+4. **The routes:** `kit/selectList.ts` (the class names `sf-nav-select|list|row|current|add` became `sf-select*`; an arrow key on the button opens the list and moves into it); `model.writeNovel`; `nav.lastChapters`; `openLibraryTab(tab, { resetChoice })`.
+5. **Settings:** `GENERAL_PAGES = ["general", "sidebar widths"]`; `seriesPaneHidden`; sliders; `widthsLinkedViews`.
+6. **The gap:** `--gap` and `--half-gap`.
+
+## Differences and decisions made while building
+- **The three boxes' common foot** is 12 px above the stats section (76 px from the window's foot), the Codex index card's existing foot (decision 93): the chapter box's foot moved up from 29 px above the window's foot. The storytelling chapter box's bottom margin is therefore not 28 px.
+- **The gap is 14 px on each side of a panel's edge** (28 px in all), so the Placed box's right edge, the workspace's content and the context boxes all keep to it. The overviews no longer have a maximum width (880 px), so the gutters are equal at every width; the series overview's list rows are wider on a wide window.
+- **The library's Codex and Archive workspace card now starts at the title band** (28 px from the window's top), as the storytelling boxes do; a test that said 48 px was updated.
+- **The same-width switch** is a per-view machine setting (`widthsLinkedViews` for series, novel, codex and archive; `widthsLinked` stays the storytelling set's). Only storytelling, codex and archive offer it.
+- **"Hide the series pane":** the settings writer switches it off when a series is chosen (two writes, each compare-then-write); `seriesPaneHidden` ignores a stored `true` while a series.
+- **`test:settings-sync`** now uses the "Opens in" selector as its disabled-control probe (the checkbox it used is only drawn for a standalone story); **`test:widths`** sets the slider's value through the accessibility API and was not run against the built app when it was written.
+- **The title band's pointer events and the list of rows** are otherwise as before.
+
+## Settings hints, for Kenny's look
+- **Removed (repeated their label or said where a value came from):** every "this project" / "default" / "the plugin's settings" marker; the sidebar widths' range text and "Not allowed" messages; the "Measure widths in" select; the widths note's second sentence ("Each row is the widths of the left panel and the right panel only…"); "for this project" in the first sentence.
+- **Kept (they say something the label doesn't):** the "bar" and "rail" tags beside the two swatch rows; the Interface and Writing fonts' hints; the widths note ("These stay on this computer. Unlike the rest of this dialog, they don't travel with the story.") and "The panels are narrower than this in the current window."; the Writing page's hints (the Mac's own aids are off; "Type ~ and the letters, then Tab…"; the elisions, names and special-characters lists' hints).

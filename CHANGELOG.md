@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.11.0: the series page, and tidying up (Brief 19)
+
+- Changed: **the series page.** The central pane always shows the series (its cover, title, description and novels); clicking a novel only **chooses** it, for the library: the series tab, the novel tab and the context panel follow, and what you are writing, the chapter and the editor are untouched. The context panel on the series tab shows the chosen novel: its cover, title, default PoV, synopsis, progress bar and its chapters as bars without names (a bar's name is its tooltip; a click does nothing). The synopses moved there from the central pane.
+- New: **two ways to write another novel.** The novel tab shows the chosen novel; choosing one of its chapters makes it what you are writing. **Write this novel** (a pencil beside the title in the context panel) reopens the last chapter you had open in it, or its first placed chapter. The novel's name on the novel tab is now a **novel selector**, built from the same code as the chapter selector. The last chapter per novel is kept on this computer, never in the project.
+- Fixed: **the context panel belongs to its side and tab.** A Codex note open on the storytelling side no longer shows on the library side's Series, Codex and Archive tabs; it stays open, hidden, and flipping back finds it as it was.
+- Changed: **Settings tidied.** General's two pages are one. **Sidebar widths** are percentage sliders (their limits are built in, so there is no range text and no unit choice; a width stored in pixels is converted once, when a slider is first used), and "Keep panels the same width" is offered on the storytelling, Codex and Archive rows. No row says where its value comes from. A single control sits next to its label. "Hide the series pane" shows only for a standalone story, is switched off by choosing a series, and is ignored while the project is a series.
+- Changed: **one gap, 28 px,** between boxes everywhere; it no longer follows a panel's width. The chapter box and the context panel's Codex card start 28 px from the window's top and all three boxes end on one line; the novel tab's gutters are equal at every width. The library's Codex page's card also starts at the title band.
+- Under the hood: `kit/selectList.ts` is the one select list; `context/contextMode.ts` decides what the panel shows; the novel's progress bar is `overviews/novelProgress.ts`; `lastChapters` and `widthsLinkedViews` are machine settings, and `test:quit` has a synopsis case.
+
 ## 1.10.0: the colour round and the type styles (Briefs 17 and 18)
 
 - Changed: **the selection is the app's colour** in every editing surface (the chapter, notes, plot notes, the synopsis and description, the read-only chapter text): plum by default, or blue, green, yellow or grey (Settings ▸ Appearance ▸ Text colours); a neutral grey when the editor or the window isn't active. It had been drawing CodeMirror's own lilac.
