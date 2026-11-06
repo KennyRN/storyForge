@@ -77,11 +77,22 @@ describe("rule 1: a selected text row is highlighted as in the Codex list", () =
 			[".sf-filter-row:hover, .sf-filter-row:focus-visible, .sf-filter-row.is-chosen", SURFACE],
 			[".sf-shortcode-option.is-selected", SURFACE],
 			[".sf-row:hover, .sf-row.is-selected", "--purpose-panel-bg"], // the series and archive panes sit on the panel
-			[".sf-chapter-list .sf-row:hover, .sf-chapter-list .sf-row.is-selected", "--purpose-editor-bg"], // the Novel tab's lists sit on cards
 		] as const) {
 			const r = all.find((x) => x.selector === sel);
 			expect(r, sel).toBeTruthy();
 			expect(r!.body, sel).toMatch(/background:\s*var\(--purpose-accent\)/);
+			expect(r!.body, sel).toMatch(new RegExp(`color:\\s*var\\(${surface}\\)`));
+		}
+	});
+
+	it("the Novel tab's two lists take their own colour for the highlight, as the Codex list takes the Codex colour (round five, a named exception), with the surface's colour on it", () => {
+		for (const [sel, own, surface] of [
+			[".sf-chapter-list .sf-row:hover, .sf-chapter-list .sf-row.is-selected", "--purpose-placed", "--purpose-editor-bg"], // Placed sits on a card
+			[".sf-chapter-list.sf-unplaced-list .sf-row:hover, .sf-chapter-list.sf-unplaced-list .sf-row.is-selected", "--purpose-unplaced", "--purpose-panel-bg"], // Unplaced sits on bg_dim
+		] as const) {
+			const r = all.find((x) => x.selector === sel);
+			expect(r, sel).toBeTruthy();
+			expect(r!.body, sel).toMatch(new RegExp(`background:\\s*var\\(${own}\\)`));
 			expect(r!.body, sel).toMatch(new RegExp(`color:\\s*var\\(${surface}\\)`));
 		}
 	});

@@ -35,6 +35,12 @@ export async function startApp(host: Host, root: HTMLElement): Promise<AppModel>
 		d.italicColour = v?.italicColour ?? "orange";
 		d.boldItalicColour = v?.boldItalicColour ?? "orange";
 		d.smallHeadingColour = v?.smallHeadingColour ?? "text";
+		d.libraryHeaderColour = v?.libraryHeaderColour ?? "text";
+		d.placedColour = v?.placedColour ?? "green";
+		d.unplacedColour = v?.unplacedColour ?? "green";
+		d.dataLabelColour = v?.dataLabelColour ?? "muted";
+		d.dataValueColour = v?.dataValueColour ?? "text";
+		d.railColour = v?.railColour ?? "grey0"; // a rail the same colour as the bar draws grey0 (theme/purposes.css)
 	};
 	// Whether the window is active, for the selection's neutral grey when it is not (theme/base.css).
 	const markWindow = (): void => void (document.documentElement.dataset.window = document.hasFocus() ? "active" : "inactive");

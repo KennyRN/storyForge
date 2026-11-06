@@ -10,7 +10,13 @@ const NAMES: Partial<Record<keyof ProjectSettings, string>> = {
 	boldColour: "Bold colour",
 	italicColour: "Italic colour",
 	boldItalicColour: "Bold italic colour",
-	smallHeadingColour: "Small heading colour",
+	smallHeadingColour: "small heading colour",
+	libraryHeaderColour: "library header colour",
+	placedColour: "placed colour",
+	unplacedColour: "unplaced colour",
+	dataLabelColour: "data label colour",
+	dataValueColour: "data colour (value)",
+	railColour: "rail colour",
 	hideSeriesPane: "Hide the series pane",
 	autoFocus: "Opens in",
 	layout: "Layout",
@@ -39,11 +45,11 @@ const PARTS: Record<string, string> = { Codex: "Codex list", Novel: "Novel title
 export function settingName(key: string): string {
 	const known = NAMES[key as keyof ProjectSettings];
 	if (known) return known;
-	const m = /^appearance(Codex|Novel|Series|Chapter)(Font|Weight|Size|Soft)$/.exec(key);
+	const m = /^appearance(Codex|Novel|Series|Chapter)(Font|Weight|Size)$/.exec(key);
 	if (m) return `${PARTS[m[1]]}: ${m[2].toLowerCase()}`;
 	if (key === "typeInterfaceFont") return "Interface font";
 	if (key === "typeWritingFont") return "Writing font";
-	const t = /^type([A-Z][A-Za-z]*?)(Font|Weight|Size|Soft)$/.exec(key);
+	const t = /^type([A-Z][A-Za-z]*?)(Font|Weight|Size)$/.exec(key);
 	const style = t && TYPE_STYLES.find((s) => s.id.toLowerCase() === t[1].toLowerCase());
 	return t && style ? `${style.name}: ${t[2].toLowerCase()}` : key;
 }

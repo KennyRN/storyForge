@@ -24,7 +24,7 @@ const novelTab = async (page: Page) => { await flipFace(page); await page.getByR
 test.describe("the library side's backgrounds", () => {
 	test.beforeEach(async ({ page }) => open(page));
 
-	test("the novel tab: the left panel, the workspace and the context panel are bg_dim; the synopsis, the plot note, the chapter's text and the two lists are cards on bg0", async ({ page }) => {
+	test("the novel tab: the left panel, the workspace and the context panel are bg_dim; the synopsis, the plot note, the chapter's text and the placed list is a card on bg0 (the unplaced list is not)", async ({ page }) => {
 		await novelTab(page);
 		await dim(page, page.locator(".sf-left"), "the left panel");
 		await dim(page, page.getByRole("region", { name: "Novel overview" }), "the workspace");
@@ -34,7 +34,8 @@ test.describe("the library side's backgrounds", () => {
 		await card(page, page.locator(".sf-ctx-plot"), "the plot note");
 		await card(page, page.locator(".sf-ctx-text"), "the chapter's text");
 		await card(page, page.locator("[aria-label='Placed chapters']"), "the placed list");
-		await card(page, page.locator("[aria-label='Unplaced chapters']"), "the unplaced list");
+		// round five: Unplaced is no longer on a working card; it sits on bg_dim (amending Brief 14 §1.8)
+		expect((await style(page.locator("[aria-label='Unplaced chapters']"), ["background-color"]))[0], "the unplaced list").toBe("rgba(0, 0, 0, 0)");
 		// the overview's other parts sit on bg_dim, with no card of their own: the title, the cover's row, the bars' cards
 		for (const q of [".sf-overview-title", ".sf-card", ".sf-cards"]) expect((await style(page.getByRole("region", { name: "Novel overview" }).locator(q).first(), ["background-color"]))[0], q).toBe("rgba(0, 0, 0, 0)");
 	});

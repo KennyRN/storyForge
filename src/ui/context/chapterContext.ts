@@ -72,8 +72,8 @@ export function mountChapterContext(host: HTMLElement, model: AppModel): () => v
 			return el(
 				"div",
 				{ class: "sf-card-row sf-ref-row", dataset: { row: kind } },
-				el("span", { class: "sf-muted", text: label }),
-				el("span", { class: "sf-ref-list" }, ...(list.length ? refs(project, list, !hasOwn) : [el("span", { class: "sf-muted", text: "None" })]), !hasOwn && list.length ? el("span", { class: "sf-muted", text: "(default)" }) : null),
+				el("span", { class: "sf-data-label", text: label }),
+				el("span", { class: "sf-ref-list sf-data-value" }, ...(list.length ? refs(project, list, !hasOwn) : [el("span", { class: "sf-muted", text: "None" })]), !hasOwn && list.length ? el("span", { class: "sf-muted", text: "(default)" }) : null),
 				readOnly ? null : el("button", { class: "sf-ref-choose", text: "Choose…", attrs: { type: "button", "aria-label": `Choose ${label.toLowerCase()} for ${title}` }, on: { click: () => choose(`${label} for ${title}`, type, own, (c) => (kind === "pov" ? writeChapterPov : writeChapterLocation)(project, book, file, c)) } }),
 			);
 		};

@@ -301,9 +301,21 @@ test.describe("the library", () => {
 			await expect(page.getByRole("listitem").filter({ hasText: "Chapter #" })).toBeVisible();
 		});
 
-		test("folding the placed list keeps its order safe when an unplaced chapter is dragged", async ({ page }) => {
-			await page.getByRole("button", { name: "Placed Chapters", exact: true }).click();
-			await expect(page.getByRole("list", { name: "Placed chapters", exact: true })).toHaveCount(0);
+		test("the Placed and Unplaced headers have no chevrons; Placed can't be collapsed; Unplaced collapses and expands from its header, a button with its expanded state", async ({ page }) => {
+			await expect(page.getByRole("button", { name: "Placed Chapters", exact: true })).toHaveCount(0); // a plain heading, not a button
+			await expect(page.getByRole("heading", { name: "Placed Chapters", exact: true })).toBeVisible();
+			const unplaced = page.getByRole("button", { name: "Unplaced Chapters", exact: true });
+			await expect(unplaced).toHaveAttribute("aria-expanded", "true");
+			await expect(page.locator(".sf-zone-header svg.sf-icon, .sf-zone-fold svg")).toHaveCount(1); // only the New chapter button's plus: no chevron
+			await unplaced.click();
+			await expect(unplaced).toHaveAttribute("aria-expanded", "false");
+			await expect(page.getByRole("list", { name: "Unplaced chapters", exact: true })).toHaveCount(0);
+			await expect(page.getByRole("list", { name: "Placed chapters", exact: true })).toBeVisible();
+			await unplaced.click();
+			await expect(page.getByRole("list", { name: "Unplaced chapters", exact: true })).toBeVisible();
+		});
+
+		test("creating a chapter leaves the placed order as it was", async ({ page }) => {
 			await page.getByRole("button", { name: "New chapter" }).click();
 			const book = await onDisk(page, BOOK_A);
 			expect(book).toContain("  - ch-a1.md\n  - ch-a2.md\n  - ch-a5.md");

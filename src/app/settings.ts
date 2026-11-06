@@ -45,6 +45,13 @@ export type HighlightColour = (typeof HIGHLIGHT_COLOURS)[number];
 export const EMPHASIS_COLOURS = ["text", ...DATA_COLOURS] as const;
 export type EmphasisColour = (typeof EMPHASIS_COLOURS)[number];
 
+/** The data label's and the data's colours (round five): the text colour, the muted grey, or one of the five. */
+export const LABEL_COLOURS = ["text", "muted", ...DATA_COLOURS] as const;
+export type LabelColour = (typeof LABEL_COLOURS)[number];
+/** The bar's rail (the frame round a chapter bar): grey0 (the default), grey1, grey2 or one of the five; never the bar's own colour. */
+export const RAIL_COLOURS = ["grey0", "grey1", "grey2", ...DATA_COLOURS] as const;
+export type RailColour = (typeof RAIL_COLOURS)[number];
+
 /** One story or a series of them (decision 81): whether the storytelling side shows a series line. Missing or unknown means a series. */
 export type StoryKind = "series" | "standalone";
 
@@ -75,9 +82,8 @@ export type AppearanceKeys = {
 } & {
 	[P in AppearancePart as `appearance${Cap<P>}Size`]: number;
 } & {
-	[P in AppearancePart as `appearance${Cap<P>}Soft`]: number;
 };
-export const appearanceKey = <S extends "Font" | "Weight" | "Size" | "Soft">(part: AppearancePart, what: S) => `appearance${part[0].toUpperCase()}${part.slice(1)}${what}` as keyof AppearanceKeys & `appearance${string}${S}`;
+export const appearanceKey = <S extends "Font" | "Weight" | "Size">(part: AppearancePart, what: S) => `appearance${part[0].toUpperCase()}${part.slice(1)}${what}` as keyof AppearanceKeys & `appearance${string}${S}`;
 
 
 /** The type styles' keys (Brief 18): the two base fonts, then font, weight, size (pixels) and Softness for each style. `type<Style><What>`, stored as `appearance-<style>-<what>`. */
@@ -88,14 +94,12 @@ export type TypeStyleKeys = { typeInterfaceFont: FontFamily; typeWritingFont: Fo
 	[I in TypeStyleId as `type${StyleCap<I>}Weight`]: number;
 } & {
 	[I in TypeStyleId as `type${StyleCap<I>}Size`]: number;
-} & {
-	[I in TypeStyleId as `type${StyleCap<I>}Soft`]: number;
 };
-export const typeKey = (id: TypeStyleId, what: "Font" | "Weight" | "Size" | "Soft") => `type${id[0].toUpperCase()}${id.slice(1)}${what}` as keyof TypeStyleKeys;
+export const typeKey = (id: TypeStyleId, what: "Font" | "Weight" | "Size") => `type${id[0].toUpperCase()}${id.slice(1)}${what}` as keyof TypeStyleKeys;
 const kebab = (id: string): string => id.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`);
 const typeDefaults = (): Record<string, unknown> => {
 	const out: Record<string, unknown> = { typeInterfaceFont: BASE_DEFAULTS.interface, typeWritingFont: BASE_DEFAULTS.writing };
-	for (const s of TYPE_STYLES) Object.assign(out, { [typeKey(s.id, "Font")]: FOLLOW, [typeKey(s.id, "Weight")]: s.weight, [typeKey(s.id, "Size")]: s.size, [typeKey(s.id, "Soft")]: 0 });
+	for (const s of TYPE_STYLES) Object.assign(out, { [typeKey(s.id, "Font")]: FOLLOW, [typeKey(s.id, "Weight")]: s.weight, [typeKey(s.id, "Size")]: s.size });
 	return out;
 };
 const typeFields = (): Record<string, { file: string; plugin: string; valid: (v: unknown) => boolean }> => {
@@ -108,7 +112,6 @@ const typeFields = (): Record<string, { file: string; plugin: string; valid: (v:
 		out[typeKey(s.id, "Font")] = { file: `${f}-font`, plugin: "-", valid: isStyleFont };
 		out[typeKey(s.id, "Weight")] = { file: `${f}-weight`, plugin: "-", valid: isWeight };
 		out[typeKey(s.id, "Size")] = { file: `${f}-size`, plugin: "-", valid: (v) => isStyleSize(s.id, v) };
-		out[typeKey(s.id, "Soft")] = { file: `${f}-soft`, plugin: "-", valid: (v) => isIntIn(v, 0, 100) };
 	}
 	return out;
 };
@@ -127,6 +130,16 @@ export interface ProjectSettings extends AppearanceKeys, TypeStyleKeys {
 	boldItalicColour: EmphasisColour;
 	/** The small headings' colour (round three): the text colour (default) or one of the five. */
 	smallHeadingColour: EmphasisColour;
+	/** The library side's headers (Placed Chapters, Unplaced Chapters, Unplaced Novels, the archive's): the text colour or one of the five. */
+	libraryHeaderColour: EmphasisColour;
+	/** The novel tab's two chapter lists: each has a colour, for its rows' text and their highlight, as the Codex list has the Codex colour. */
+	placedColour: CodexColour;
+	unplacedColour: CodexColour;
+	/** The label before a colon (Default PoV, PoV, Location) and the value after it. */
+	dataLabelColour: LabelColour;
+	dataValueColour: LabelColour;
+	/** The rail round a chapter bar. */
+	railColour: RailColour;
 	hideSeriesPane: boolean;
 	autoFocus: boolean;
 	layout: SfLayout;
@@ -168,19 +181,15 @@ export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
 	appearanceCodexFont: APPEARANCE_DEFAULTS.codex.font,
 	appearanceCodexWeight: APPEARANCE_DEFAULTS.codex.weight,
 	appearanceCodexSize: APPEARANCE_DEFAULTS.codex.size,
-	appearanceCodexSoft: 0,
 	appearanceNovelFont: APPEARANCE_DEFAULTS.novel.font,
 	appearanceNovelWeight: APPEARANCE_DEFAULTS.novel.weight,
 	appearanceNovelSize: APPEARANCE_DEFAULTS.novel.size,
-	appearanceNovelSoft: 0,
 	appearanceSeriesFont: APPEARANCE_DEFAULTS.series.font,
 	appearanceSeriesWeight: APPEARANCE_DEFAULTS.series.weight,
 	appearanceSeriesSize: APPEARANCE_DEFAULTS.series.size,
-	appearanceSeriesSoft: 0,
 	appearanceChapterFont: APPEARANCE_DEFAULTS.chapter.font,
 	appearanceChapterWeight: APPEARANCE_DEFAULTS.chapter.weight,
 	appearanceChapterSize: APPEARANCE_DEFAULTS.chapter.size,
-	appearanceChapterSoft: 0,
 	codexColour: "text",
 	dataColour: "blue",
 	selectionColour: "blue",
@@ -189,6 +198,12 @@ export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
 	italicColour: "orange",
 	boldItalicColour: "orange",
 	smallHeadingColour: "text",
+	libraryHeaderColour: "text",
+	placedColour: "green",
+	unplacedColour: "green",
+	dataLabelColour: "muted",
+	dataValueColour: "text",
+	railColour: "grey0",
 	hideSeriesPane: false,
 	autoFocus: true,
 	layout: "novelBrowse",
@@ -220,19 +235,15 @@ const FIELDS: Record<Key, { file: string; plugin: string; valid: (v: unknown) =>
 	appearanceCodexFont: { file: "appearance-codex-font", plugin: "-", valid: isStyleFont },
 	appearanceCodexWeight: { file: "appearance-codex-weight", plugin: "-", valid: isWeight },
 	appearanceCodexSize: { file: "appearance-codex-size", plugin: "-", valid: (v) => isRemIn(v, APPEARANCE_SIZE_RANGE.codex) },
-	appearanceCodexSoft: { file: "appearance-codex-soft", plugin: "-", valid: (v) => isIntIn(v, 0, 100) },
 	appearanceNovelFont: { file: "appearance-novel-font", plugin: "-", valid: isStyleFont },
 	appearanceNovelWeight: { file: "appearance-novel-weight", plugin: "-", valid: isWeight },
 	appearanceNovelSize: { file: "appearance-novel-size", plugin: "-", valid: (v) => isRemIn(v, APPEARANCE_SIZE_RANGE.novel) },
-	appearanceNovelSoft: { file: "appearance-novel-soft", plugin: "-", valid: (v) => isIntIn(v, 0, 100) },
 	appearanceSeriesFont: { file: "appearance-series-font", plugin: "-", valid: isStyleFont },
 	appearanceSeriesWeight: { file: "appearance-series-weight", plugin: "-", valid: isWeight },
 	appearanceSeriesSize: { file: "appearance-series-size", plugin: "-", valid: (v) => isRemIn(v, APPEARANCE_SIZE_RANGE.series) },
-	appearanceSeriesSoft: { file: "appearance-series-soft", plugin: "-", valid: (v) => isIntIn(v, 0, 100) },
 	appearanceChapterFont: { file: "appearance-chapter-font", plugin: "-", valid: isStyleFont },
 	appearanceChapterWeight: { file: "appearance-chapter-weight", plugin: "-", valid: isWeight },
 	appearanceChapterSize: { file: "appearance-chapter-size", plugin: "-", valid: (v) => isRemIn(v, APPEARANCE_SIZE_RANGE.chapter) },
-	appearanceChapterSoft: { file: "appearance-chapter-soft", plugin: "-", valid: (v) => isIntIn(v, 0, 100) },
 	...(typeFields() as Record<keyof TypeStyleKeys, { file: string; plugin: string; valid: (v: unknown) => boolean }>),
 	storyKind: { file: "story-kind", plugin: "-", valid: (v) => v === "series" || v === "standalone" },
 	codexColour: { file: "codex-colour", plugin: "-", valid: (v) => typeof v === "string" && (CODEX_COLOURS as readonly string[]).includes(v) },
@@ -241,6 +252,12 @@ const FIELDS: Record<Key, { file: string; plugin: string; valid: (v: unknown) =>
 	highlightColour: { file: "highlight-colour", plugin: "-", valid: (v) => typeof v === "string" && (HIGHLIGHT_COLOURS as readonly string[]).includes(v) },
 	boldColour: { file: "bold-colour", plugin: "-", valid: (v) => typeof v === "string" && (EMPHASIS_COLOURS as readonly string[]).includes(v) },
 	italicColour: { file: "italic-colour", plugin: "-", valid: (v) => typeof v === "string" && (EMPHASIS_COLOURS as readonly string[]).includes(v) },
+	libraryHeaderColour: { file: "library-header-colour", plugin: "-", valid: (v) => typeof v === "string" && (EMPHASIS_COLOURS as readonly string[]).includes(v) },
+	placedColour: { file: "placed-colour", plugin: "-", valid: (v) => typeof v === "string" && (CODEX_COLOURS as readonly string[]).includes(v) },
+	unplacedColour: { file: "unplaced-colour", plugin: "-", valid: (v) => typeof v === "string" && (CODEX_COLOURS as readonly string[]).includes(v) },
+	dataLabelColour: { file: "data-label-colour", plugin: "-", valid: (v) => typeof v === "string" && (LABEL_COLOURS as readonly string[]).includes(v) },
+	dataValueColour: { file: "data-value-colour", plugin: "-", valid: (v) => typeof v === "string" && (LABEL_COLOURS as readonly string[]).includes(v) },
+	railColour: { file: "rail-colour", plugin: "-", valid: (v) => typeof v === "string" && (RAIL_COLOURS as readonly string[]).includes(v) },
 	smallHeadingColour: { file: "small-heading-colour", plugin: "-", valid: (v) => typeof v === "string" && (EMPHASIS_COLOURS as readonly string[]).includes(v) },
 	boldItalicColour: { file: "bold-italic-colour", plugin: "-", valid: (v) => typeof v === "string" && (EMPHASIS_COLOURS as readonly string[]).includes(v) },
 	hideSeriesPane: { file: "hide-series-pane", plugin: "hideSeriesPane", valid: (v) => typeof v === "boolean" },

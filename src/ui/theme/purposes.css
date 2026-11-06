@@ -79,6 +79,14 @@
 	--purpose-emphasis-bold: var(--purpose-colour-choice-orange);
 	--purpose-emphasis-italic: var(--purpose-colour-choice-orange);
 	--purpose-emphasis-bold-italic: var(--purpose-colour-choice-orange);
+	--purpose-library-header: var(--purpose-text);
+	--purpose-placed: var(--ef-green); /* round five: the novel tab's two lists each have a colour, green until chosen */
+	--purpose-unplaced: var(--ef-green);
+	--purpose-data-label: var(--purpose-text-muted); /* the label before a colon: today's muted grey */
+	--purpose-data-value: var(--purpose-text);
+	--purpose-rail-choice-low: var(--ef-grey0);
+	--purpose-rail-choice-mid: var(--ef-grey1);
+	--purpose-rail-choice-high: var(--ef-grey2);
 	--purpose-small-heading: var(--purpose-text); /* round three: the text colour, not the muted grey; a setting */
 	/* The four kinds of notice: a tinted fill and a 3 px edge. Red means something failed (decision 122). */
 	--purpose-notice-error-fill: var(--ef-bg-red);
@@ -144,3 +152,47 @@
 :root[data-small-heading-colour="blue"] { --purpose-small-heading: var(--purpose-colour-choice-blue); }
 :root[data-small-heading-colour="orange"] { --purpose-small-heading: var(--purpose-colour-choice-orange); }
 :root[data-small-heading-colour="purple"] { --purpose-small-heading: var(--purpose-colour-choice-purple); }
+
+/* Round five: the library header, the two chapter lists, the data label and value, and the bar's rail. Missing, unknown or excluded values draw the defaults. */
+:root[data-library-header-colour="yellow"] { --purpose-library-header: var(--purpose-colour-choice-yellow); }
+:root[data-library-header-colour="aqua"] { --purpose-library-header: var(--purpose-colour-choice-aqua); }
+:root[data-library-header-colour="blue"] { --purpose-library-header: var(--purpose-colour-choice-blue); }
+:root[data-library-header-colour="orange"] { --purpose-library-header: var(--purpose-colour-choice-orange); }
+:root[data-library-header-colour="purple"] { --purpose-library-header: var(--purpose-colour-choice-purple); }
+:root[data-data-label-colour="yellow"] { --purpose-data-label: var(--purpose-colour-choice-yellow); }
+:root[data-data-value-colour="yellow"] { --purpose-data-value: var(--purpose-colour-choice-yellow); }
+:root[data-data-label-colour="aqua"] { --purpose-data-label: var(--purpose-colour-choice-aqua); }
+:root[data-data-value-colour="aqua"] { --purpose-data-value: var(--purpose-colour-choice-aqua); }
+:root[data-data-label-colour="blue"] { --purpose-data-label: var(--purpose-colour-choice-blue); }
+:root[data-data-value-colour="blue"] { --purpose-data-value: var(--purpose-colour-choice-blue); }
+:root[data-data-label-colour="orange"] { --purpose-data-label: var(--purpose-colour-choice-orange); }
+:root[data-data-value-colour="orange"] { --purpose-data-value: var(--purpose-colour-choice-orange); }
+:root[data-data-label-colour="purple"] { --purpose-data-label: var(--purpose-colour-choice-purple); }
+:root[data-data-value-colour="purple"] { --purpose-data-value: var(--purpose-colour-choice-purple); }
+:root[data-data-label-colour="text"] { --purpose-data-label: var(--purpose-text); }
+:root[data-data-value-colour="muted"] { --purpose-data-value: var(--purpose-text-muted); }
+:root[data-data-label-colour="muted"] { --purpose-data-label: var(--purpose-text-muted); }
+:root[data-data-value-colour="text"] { --purpose-data-value: var(--purpose-text); }
+:root[data-placed-colour="text"] { --purpose-placed: var(--purpose-codex-choice-text); }
+:root[data-placed-colour="yellow"] { --purpose-placed: var(--purpose-codex-choice-yellow); }
+:root[data-placed-colour="green"] { --purpose-placed: var(--purpose-codex-choice-green); }
+:root[data-placed-colour="aqua"] { --purpose-placed: var(--purpose-codex-choice-aqua); }
+:root[data-placed-colour="blue"] { --purpose-placed: var(--purpose-codex-choice-blue); }
+:root[data-placed-colour="purple"] { --purpose-placed: var(--purpose-codex-choice-purple); }
+:root[data-placed-colour="orange"] { --purpose-placed: var(--purpose-codex-choice-orange); }
+:root[data-placed-colour="grey"] { --purpose-placed: var(--purpose-codex-choice-grey); }
+:root[data-unplaced-colour="text"] { --purpose-unplaced: var(--purpose-codex-choice-text); }
+:root[data-unplaced-colour="yellow"] { --purpose-unplaced: var(--purpose-codex-choice-yellow); }
+:root[data-unplaced-colour="green"] { --purpose-unplaced: var(--purpose-codex-choice-green); }
+:root[data-unplaced-colour="aqua"] { --purpose-unplaced: var(--purpose-codex-choice-aqua); }
+:root[data-unplaced-colour="blue"] { --purpose-unplaced: var(--purpose-codex-choice-blue); }
+:root[data-unplaced-colour="purple"] { --purpose-unplaced: var(--purpose-codex-choice-purple); }
+:root[data-unplaced-colour="orange"] { --purpose-unplaced: var(--purpose-codex-choice-orange); }
+:root[data-unplaced-colour="grey"] { --purpose-unplaced: var(--purpose-codex-choice-grey); }
+:root[data-rail-colour="grey1"] { --purpose-data-frame: var(--ef-grey1); }
+:root[data-rail-colour="grey2"] { --purpose-data-frame: var(--ef-grey2); }
+:root[data-rail-colour="yellow"]:not([data-data-colour="yellow"]) { --purpose-data-frame: var(--purpose-colour-choice-yellow); }
+:root[data-rail-colour="aqua"]:not([data-data-colour="aqua"]) { --purpose-data-frame: var(--purpose-colour-choice-aqua); }
+:root[data-rail-colour="blue"]:not([data-data-colour="blue"]) { --purpose-data-frame: var(--purpose-colour-choice-blue); }
+:root[data-rail-colour="orange"]:not([data-data-colour="orange"]) { --purpose-data-frame: var(--purpose-colour-choice-orange); }
+:root[data-rail-colour="purple"]:not([data-data-colour="purple"]) { --purpose-data-frame: var(--purpose-colour-choice-purple); }

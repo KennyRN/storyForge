@@ -32,7 +32,6 @@ export async function archiveChapterAndTidy(model: AppModel, book: string, filen
 
 /** The novel tab: the placed and unplaced chapters of the selected novel, the planned lengths and the default PoV. */
 export function mountNovelTab(host: HTMLElement, model: AppModel): () => void {
-	let placedFolded = false;
 	let unplacedFolded = false;
 	let editing: "novel" | "chapter" | null = null;
 	host.classList.add("sf-pane", "sf-forge-pane");
@@ -114,16 +113,16 @@ export function mountNovelTab(host: HTMLElement, model: AppModel): () => void {
 				"div",
 				{ class: "sf-forge-body sf-scroll" },
 				meta,
-				el("div", { class: "sf-placed-zone" }, zoneHeader("Placed Chapters", placedFolded, () => ((placedFolded = !placedFolded), draw())), placedFolded ? null : placedList),
-				el("div", { class: "sf-unplaced-zone" }, zoneHeader("Unplaced Chapters", unplacedFolded, () => ((unplacedFolded = !unplacedFolded), draw()), { name: "New chapter", disabled: !!readOnly, reason: "This project is open read-only.", onCreate: () => run("create the chapter", () => createChapter(project, book)) }), unplacedFolded ? null : unplacedList),
+				el("div", { class: "sf-placed-zone" }, zoneHeader("Placed Chapters", false, () => undefined, undefined, { chevron: false, foldable: false }), placedList),
+				el("div", { class: "sf-unplaced-zone" }, zoneHeader("Unplaced Chapters", unplacedFolded, () => ((unplacedFolded = !unplacedFolded), draw()), { name: "New chapter", disabled: !!readOnly, reason: "This project is open read-only.", onCreate: () => run("create the chapter", () => createChapter(project, book)) }, { chevron: false }), unplacedFolded ? null : unplacedList),
 			),
 		);
 		if (!readOnly) {
 			reorderable(
 				model,
-				[...(placedFolded ? [] : [{ key: "ordered", container: placedList }]), ...(unplacedFolded ? [] : [{ key: "unplaced", container: unplacedList }])],
+				[{ key: "ordered", container: placedList }, ...(unplacedFolded ? [] : [{ key: "unplaced", container: unplacedList }])],
 				async (keys) => {
-					// With the placed list folded there is no "ordered" zone: nothing to write, rather than an empty order.
+					// The placed list can't be folded; the check stays for a zone that is absent.
 					if (keys.ordered) await writeBookChapterOrder(project, book, keys.ordered.filter(Boolean));
 					// ...and the unplaced list as it was left, so a chapter dropped at the top of it stays at the top.
 					if (keys.unplaced) await writeBookUnplacedOrder(project, book, keys.unplaced.filter(Boolean));

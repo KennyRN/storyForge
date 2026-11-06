@@ -716,12 +716,19 @@ body.sf-codex-drag-active {
 .sf-zone-label {
 	flex: 1;
 	margin: 0;
-	font-family: var(--ts-small-heading-family);
-	font-weight: var(--ts-small-heading-weight);
-	font-size: var(--ts-small-heading-size);
-	font-variation-settings: var(--ts-small-heading-var);
+	font-family: var(--ts-library-header-family);
+	font-weight: var(--ts-library-header-weight);
+	font-size: var(--ts-library-header-size);
+	font-variation-settings: var(--ts-library-header-var);
 	letter-spacing: 0.04em;
-	color: var(--purpose-small-heading);
+	color: var(--purpose-library-header);
+}
+/* The Placed header isn't a button (it can't be collapsed) and neither header has a chevron: the label is padded as the button's was. */
+.sf-zone-header > .sf-zone-label {
+	padding: 6px 4px;
+}
+.sf-zone-fold .sf-zone-label {
+	flex: none;
 }
 .sf-unplaced-list .sf-row {
 	color: var(--purpose-text-muted);
@@ -739,10 +746,33 @@ body.sf-codex-drag-active {
 	margin-block: 0;
 }
 .sf-chapter-list:empty { min-height: 24px; } /* still a place to drop a chapter */
+.sf-chapter-list .sf-row {
+	font-family: var(--ts-placed-family);
+	font-weight: var(--ts-placed-weight);
+	font-size: var(--ts-placed-size);
+	font-variation-settings: var(--ts-placed-var);
+	color: var(--purpose-placed);
+}
 .sf-chapter-list .sf-row:hover,
 .sf-chapter-list .sf-row.is-selected {
-	background: var(--purpose-accent);
+	background: var(--purpose-placed);
 	color: var(--purpose-editor-bg);
+}
+/* Unplaced is not on a working card (Brief 14 §1.8 amended, round five): it sits on bg_dim, with its own font and colour. */
+.sf-chapter-list.sf-unplaced-list {
+	background: transparent;
+}
+.sf-chapter-list.sf-unplaced-list .sf-row {
+	font-family: var(--ts-unplaced-family);
+	font-weight: var(--ts-unplaced-weight);
+	font-size: var(--ts-unplaced-size);
+	font-variation-settings: var(--ts-unplaced-var);
+	color: var(--purpose-unplaced);
+}
+.sf-chapter-list.sf-unplaced-list .sf-row:hover,
+.sf-chapter-list.sf-unplaced-list .sf-row.is-selected {
+	background: var(--purpose-unplaced);
+	color: var(--purpose-panel-bg);
 }
 
 .sf-meta {
@@ -758,14 +788,34 @@ body.sf-codex-drag-active {
 	gap: var(--space-2);
 }
 .sf-meta-label {
-	color: var(--purpose-text-muted);
+	color: var(--purpose-data-label);
+}
+.sf-meta-label,
+.sf-data-label {
+	font-family: var(--ts-data-label-family);
+	font-weight: var(--ts-data-label-weight);
+	font-size: var(--ts-data-label-size);
+	font-variation-settings: var(--ts-data-label-var);
+}
+.sf-data-label {
+	color: var(--purpose-data-label);
+}
+.sf-meta-value,
+.sf-data-value {
+	font-family: var(--ts-data-family);
+	font-weight: var(--ts-data-weight);
+	font-size: var(--ts-data-size);
+	font-variation-settings: var(--ts-data-var);
+}
+.sf-data-value {
+	color: var(--purpose-data-value);
 }
 .sf-meta-value {
 	padding: 2px 6px;
 	border: 0;
 	border-radius: 4px;
 	background: transparent;
-	color: var(--purpose-text);
+	color: var(--purpose-data-value);
 	cursor: pointer;
 }
 .sf-meta-value:hover:not(:disabled) {

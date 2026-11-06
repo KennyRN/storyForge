@@ -17,8 +17,8 @@ async function openSettings(page: Page, section?: string, sub = "storytelling mo
 }
 const projectMd = (page: Page) => page.evaluate(() => window.__preview.read("_backstage/storyforge/project.md").catch(() => ""));
 const style = (page: Page, sel: string) => page.locator(sel).first().evaluate((e) => { const s = getComputedStyle(e); return { family: s.fontFamily, weight: s.fontWeight, size: s.fontSize, variation: s.fontVariationSettings }; });
-const font = (page: Page, part: string) => dialog(page).getByLabel(`${part} font`);
-const size = (page: Page, part: string) => dialog(page).getByLabel(`${part} size (rem)`);
+const font = (page: Page, part: string) => dialog(page).getByLabel(`${part.toLowerCase()} font`);
+const size = (page: Page, part: string) => dialog(page).getByLabel(`${part.toLowerCase()} size (rem)`);
 
 test.describe("settings sections", () => {
 	test("a list of sections down the side, one page at a time, and opening settings writes nothing", async ({ page }) => {
@@ -53,17 +53,17 @@ test.describe("settings sections", () => {
 	test("Codex colour is on the Appearance page, not General, and works from there", async ({ page }) => {
 		await openProject(page);
 		await openSettings(page);
-		await expect(dialog(page).getByRole("radiogroup", { name: "Codex colour" })).toHaveCount(0);
+		await expect(dialog(page).getByRole("radiogroup", { name: "codex colour" })).toHaveCount(0);
 		await dialog(page).getByRole("tab", { name: "Appearance" }).click();
 		await dialog(page).getByRole("tab", { name: "storytelling mode", exact: true }).click();
-		await dialog(page).getByRole("radiogroup", { name: "Codex colour" }).getByRole("radio", { name: "Purple" }).click();
+		await dialog(page).getByRole("radiogroup", { name: "codex colour" }).getByRole("radio", { name: "Purple" }).click();
 		await expect(page.locator("html")).toHaveAttribute("data-codex-colour", "purple");
 		expect(await projectMd(page)).toContain("codex-colour: purple");
 	});
 });
 
 test.describe("the data colour (Brief 15)", () => {
-	const group = (page: Page) => dialog(page).getByRole("radiogroup", { name: "Data colour" });
+	const group = (page: Page) => dialog(page).getByRole("radiogroup", { name: "bar colour" });
 
 	test("five swatches on the Appearance page, blue chosen; opening writes nothing; choosing one writes its role name and recolours the bars at once", async ({ page }) => {
 		await openProject(page);
@@ -109,7 +109,7 @@ test.describe("Appearance", () => {
 		const want: [string, string, string, string][] = [["Codex list", "Atkinson Hyperlegible Next", "400", "1"], ["Novel title", "Sofia Sans", "900", "1"], ["Series name", "Sofia Sans", "600", "0.75"], ["Selected chapter", "SN Pro", "300", "1.375"]];
 		for (const [part, f, w, z] of want) {
 			await expect(font(page, part)).toHaveValue(f);
-			await expect(dialog(page).getByLabel(`${part} weight`)).toHaveValue(w);
+			await expect(dialog(page).getByLabel(`${part.toLowerCase()} weight`)).toHaveValue(w);
 			await expect(size(page, part)).toHaveValue(z);
 			expect(await font(page, part).locator("option").allInnerTexts()).toEqual(["Interface font", "SN Pro", "Aleo", "Atkinson Hyperlegible Next", "Courier Prime", "Fraunces", "Sofia Sans", "Sofia Sans Semi Condensed", "Sofia Sans Condensed"]);
 		}
@@ -147,7 +147,7 @@ test.describe("Appearance", () => {
 	test("weights: Courier Prime offers regular and bold only; changing font keeps the weight where the font has it, else the nearest", async ({ page }) => {
 		await openProject(page);
 		await openSettings(page, "Appearance");
-		const weight = dialog(page).getByLabel("Selected chapter weight");
+		const weight = dialog(page).getByLabel("selected chapter weight");
 		await font(page, "Selected chapter").selectOption("Sofia Sans");
 		await weight.selectOption("800");
 		await font(page, "Selected chapter").selectOption("Atkinson Hyperlegible Next");
@@ -158,21 +158,14 @@ test.describe("Appearance", () => {
 		await expect.poll(() => projectMd(page)).toContain("appearance-chapter-weight: 700");
 	});
 
-	test("Fraunces shows Softness only (no Wonk control), starting at 0; Softness reaches the drawing with Wonk always off; other fonts hide it", async ({ page }) => {
+	test("Fraunces has no Softness control (removed in 1.10.0, as Wonk was in 1.6.1) and is always drawn at Softness 0 with Wonk off", async ({ page }) => {
 		await openProject(page);
 		await openSettings(page, "Appearance");
-		await expect(dialog(page).getByLabel("Series name Softness (0 to 100)")).toHaveCount(0);
 		await font(page, "Series name").selectOption("Fraunces");
-		const soft = dialog(page).getByLabel("Series name Softness (0 to 100)");
-		await expect(soft).toHaveValue("0");
-		await expect(dialog(page).getByLabel("Series name Wonk")).toHaveCount(0);
+		await expect(dialog(page).getByLabel(/Softness|Wonk/)).toHaveCount(0);
 		await expect.poll(async () => (await style(page, ".sf-nav-series")).variation).toMatch(/"SOFT" 0, "WONK" 0/);
-		await soft.fill("50");
-		await soft.press("Tab");
-		await expect.poll(async () => (await style(page, ".sf-nav-series")).variation).toMatch(/"SOFT" 50, "WONK" 0/);
 		await font(page, "Series name").selectOption("Sofia Sans Condensed");
-		await expect(dialog(page).getByLabel("Series name Softness (0 to 100)")).toHaveCount(0);
-		expect(await projectMd(page)).toContain("appearance-series-soft: 50"); // kept, unused
+		expect((await projectMd(page)).includes("soft")).toBe(false); // nothing is written for it
 	});
 
 	test("size is a slider over the part's range: a drag previews live and saves once on release, the arrows step 0.125 and Shift 0.25, nothing outside the range can be set", async ({ page }) => {

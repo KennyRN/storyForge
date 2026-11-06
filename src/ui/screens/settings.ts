@@ -1,11 +1,11 @@
 import { NUMBERING_STYLE_OPTIONS, type NumberingStyle } from "../../core/numberingStyle";
 import type { AutomaticBackupFrequency } from "../../core/backup";
-import { APPEARANCE_BASE_PX, APPEARANCE_PARTS, APPEARANCE_SIZE_RANGE, APPEARANCE_SIZE_STEP, APPEARANCE_SIZE_STEP_SHIFT, CODEX_COLOURS, DATA_COLOURS, EMPHASIS_COLOURS, HIGHLIGHT_COLOURS, SELECTION_COLOURS, SESSION_LIMITS, appearanceKey, typeKey, setSetting, type AppearancePart, type CodexColour, type DataColour, type EmphasisColour, type SelectionColour, type ProjectSettings, type StoryKind } from "../../app/settings";
+import { APPEARANCE_BASE_PX, APPEARANCE_PARTS, APPEARANCE_SIZE_RANGE, APPEARANCE_SIZE_STEP, APPEARANCE_SIZE_STEP_SHIFT, CODEX_COLOURS, DATA_COLOURS, EMPHASIS_COLOURS, HIGHLIGHT_COLOURS, LABEL_COLOURS, RAIL_COLOURS, SELECTION_COLOURS, SESSION_LIMITS, appearanceKey, typeKey, setSetting, type AppearancePart, type CodexColour, type DataColour, type EmphasisColour, type LabelColour, type RailColour, type SelectionColour, type ProjectSettings, type StoryKind } from "../../app/settings";
 import { FAMILY_INFO, FONT_FAMILIES, isFontFamily, nearestWeight, type FontFamily } from "../../core/fontFamilies";
 import { px, sampleStyle, styleLook } from "../appearance";
 import { getCodexView } from "../../core/codex";
 import { FOLLOW, styleOf, resolvedFont, type TypeStyle, type TypeStyleId } from "../../core/typeStyles";
-import { numberedChapterTitle } from "../../core/book";
+import { getBookChapters, numberedChapterTitle, readBookFrontmatter } from "../../core/book";
 import { numberedBookTitle, readSeriesFrontmatter } from "../../core/series";
 import { button } from "../kit/button";
 import { bringForward, openDialog } from "../kit/dialog";
@@ -19,7 +19,9 @@ const DATA_COLOUR_NAMES: Record<DataColour, string> = { yellow: "Yellow", aqua: 
 const CODEX_COLOUR_NAMES: Record<CodexColour, string> = { text: "Text", yellow: "Yellow", green: "Green", aqua: "Aqua", blue: "Blue", purple: "Purple", orange: "Orange", grey: "Grey" };
 const SELECTION_COLOUR_NAMES: Record<SelectionColour, string> = { plum: "Plum", blue: "Blue", green: "Green", yellow: "Yellow", grey: "Grey" };
 const EMPHASIS_COLOUR_NAMES: Record<EmphasisColour, string> = { text: "Text colour", ...DATA_COLOUR_NAMES };
-const PART_NAMES: Record<AppearancePart, string> = { codex: "Codex list", novel: "Novel title", series: "Series name", chapter: "Selected chapter" };
+const PART_NAMES: Record<AppearancePart, string> = { codex: "codex list", novel: "novel title", series: "series name", chapter: "selected chapter" };
+const LABEL_COLOUR_NAMES: Record<LabelColour, string> = { text: "Text colour", muted: "Muted grey", ...DATA_COLOUR_NAMES };
+const RAIL_COLOUR_NAMES: Record<RailColour, string> = { grey0: "Grey 0 (the default)", grey1: "Grey 1", grey2: "Grey 2", ...DATA_COLOUR_NAMES };
 const PART_SAMPLES: Record<AppearancePart, string> = { codex: "Cast · Jane Harbour · Ælfric", novel: "Book 1: The Harbour Wakes", series: "The Lantern Cycle", chapter: "Chapter 1: The Storm" };
 const WEIGHT_NAMES: Record<number, string> = { 100: "Thin", 200: "Extra light", 300: "Light", 400: "Regular", 500: "Medium", 600: "Semibold", 700: "Bold", 800: "Extra bold", 900: "Black" };
 const PAGES = ["General", "Story", "Appearance", "Writing", "Sessions", "Backups", "This Mac"] as const;
@@ -84,28 +86,39 @@ export function openSettings(model: AppModel): void {
 		return row(label, input, key);
 	};
 	/** Unnamed colour squares, one chosen (a radio group): the name is for the screen reader and the tooltip; the chosen one has a ring. */
-	const swatches = (key: "codexColour" | "dataColour" | "selectionColour" | "highlightColour" | "boldColour" | "italicColour" | "boldItalicColour" | "smallHeadingColour", label: string, choices: readonly string[], names: Record<string, string>, dot: (choice: string) => string): HTMLElement => {
+	const swatches = (key: "codexColour" | "dataColour" | "selectionColour" | "highlightColour" | "boldColour" | "italicColour" | "boldItalicColour" | "smallHeadingColour" | "libraryHeaderColour" | "placedColour" | "unplacedColour" | "dataLabelColour" | "dataValueColour" | "railColour", label: string, choices: readonly string[], names: Record<string, string>, dot: (choice: string) => string, unavailable?: (choice: string) => boolean): HTMLElement => {
 		const group = el("div", { class: "sf-swatches", attrs: { role: "radiogroup", "aria-label": label } });
 		for (const choice of choices) {
 			const chosen = settings.values[key] === choice;
 			const b = el("button", { class: `sf-swatch sf-swatch--colour${chosen ? " is-chosen" : ""}`, dataset: { choice }, attrs: { type: "button", role: "radio", "aria-checked": String(chosen), "aria-label": names[choice], title: names[choice] } }, el("span", { class: `sf-swatch-dot ${dot(choice)}` }));
-			b.disabled = off;
+			b.disabled = off || !!unavailable?.(choice);
+			if (unavailable?.(choice)) b.title = `${names[choice]}: the bar's own colour`;
 			b.addEventListener("click", () => void change(key, choice as never));
 			group.append(b);
 		}
 		return group;
 	};
 	/** A row of the Appearance grid: the name, then the cells for the font, weight, size and preview (null: empty). A swatch row spans the font to size cells. */
-	const gridRow = (name: string, cells: (HTMLElement | null)[], span = false): HTMLElement[] => {
+	const gridRow = (name: string, cells: (HTMLElement | null)[], span = false, omitPreview = false): HTMLElement[] => {
 		const [font, weight, size, preview] = cells;
 		const cell = (c: HTMLElement | null, cls: string): HTMLElement => (c ? (c.classList.add(cls), c) : el("div", { class: cls }));
 		const label = el("div", { class: "sf-grid-name", text: name });
-		return span ? [label, cell(font, "sf-grid-span"), cell(preview ?? null, "sf-grid-preview")] : [label, cell(font, "sf-grid-font"), cell(weight, "sf-grid-weight"), cell(size, "sf-grid-size"), cell(preview, "sf-grid-preview")];
+		const tail = omitPreview ? [] : [cell(preview ?? null, "sf-grid-preview")]; // a row under a shared preview leaves its cell out
+		return span ? [label, cell(font, "sf-grid-span"), ...tail] : [label, cell(font, "sf-grid-font"), cell(weight, "sf-grid-weight"), cell(size, "sf-grid-size"), ...tail];
 	};
-	const colourRow = (control: HTMLElement): HTMLElement[] => gridRow("", [control, null, null, null], true); // sits under its style: no name repeated
-	const codexColour = (): HTMLElement[] => colourRow(swatches("codexColour", "Codex colour", CODEX_COLOURS, CODEX_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`));
-	const dataColour = (): HTMLElement[] => colourRow(swatches("dataColour", "Data colour", DATA_COLOURS, DATA_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`));
-	const smallHeadingColour = (): HTMLElement[] => colourRow(swatches("smallHeadingColour", "Small heading colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`));
+	// A style's own colour sits directly under its row, with no name repeated (the bar has two, so they are named).
+	const colourRow = (control: HTMLElement, name = "", omitPreview = false): HTMLElement[] => gridRow(name, [control, null, null, null], true, omitPreview);
+	const dot = (c: string): string => `sf-swatch-dot--${c}`;
+	const codexColour = (): HTMLElement[] => colourRow(swatches("codexColour", "codex colour", CODEX_COLOURS, CODEX_COLOUR_NAMES, dot));
+	const barColour = (): HTMLElement[] => colourRow(swatches("dataColour", "bar colour", DATA_COLOURS, DATA_COLOUR_NAMES, dot), "bar colour");
+	const railColour = (): HTMLElement[] => colourRow(swatches("railColour", "rail colour", RAIL_COLOURS, RAIL_COLOUR_NAMES, (c) => (c.startsWith("grey") ? `sf-swatch-dot--rail-${c}` : dot(c)), (c) => c === settings.values.dataColour), "rail colour");
+	const smallHeadingColour = (): HTMLElement[] => colourRow(swatches("smallHeadingColour", "small heading colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, dot));
+	const libraryHeaderColour = (): HTMLElement[] => colourRow(swatches("libraryHeaderColour", "library header colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, dot));
+	const placedColour = (): HTMLElement[] => colourRow(swatches("placedColour", "placed colour", CODEX_COLOURS, CODEX_COLOUR_NAMES, dot));
+	const unplacedColour = (): HTMLElement[] => colourRow(swatches("unplacedColour", "unplaced colour", CODEX_COLOURS, CODEX_COLOUR_NAMES, dot));
+	const labelDot = (c: string): string => (c === "muted" ? "sf-swatch-dot--muted" : dot(c));
+	const dataLabelColour = (): HTMLElement[] => colourRow(swatches("dataLabelColour", "data label colour", LABEL_COLOURS, LABEL_COLOUR_NAMES, labelDot), "", true);
+	const dataValueColour = (): HTMLElement[] => colourRow(swatches("dataValueColour", "data colour", LABEL_COLOURS, LABEL_COLOUR_NAMES, labelDot), "", true);
 	const swatchRow = (key: "selectionColour" | "highlightColour" | "boldColour" | "italicColour" | "boldItalicColour", label: string, choices: readonly string[], names: Record<string, string>, dot: (choice: string) => string): HTMLElement =>
 		el("div", { class: "sf-setting-row sf-setting-row--colour" }, el("span", { class: "sf-setting-label", text: label }), swatches(key, label, choices, names, dot));
 	/** The text colours page: five rows with a sample line (the dressing's own classes, so a choice shows as it will in the editor) beside them. */
@@ -221,27 +234,57 @@ export function openSettings(model: AppModel): void {
 			case "hint": return { text: "Between 0.75 and 2 rem", where: "hint" };
 			case "heading": return { text: "Settings", where: "raised" };
 			case "title": return { text: "Series overview", where: "panel" };
-			case "barName": return { text: n.chapter, where: "bar" };
+			case "libraryHeader": return { text: "Placed Chapters · Unplaced Chapters", where: "library-header" };
 			default: return { text: style.sample, where: "card" };
 		}
+	};
+	/** The chapters the list previews show: the open novel's own, else examples. */
+	const chapterNames = (placed: boolean): string[] => {
+		try {
+			const book = model.nav.book;
+			if (book) {
+				const { ordered, unplaced } = getBookChapters(project, book);
+				const list = (placed ? ordered : unplaced).slice(0, 3).map((c) => numberedChapterTitle(project, book, c.name, settings.values.chapterNumberingStyle));
+				if (list.length) return list;
+			}
+		} catch { /* the examples */ }
+		return placed ? ["Chapter 1: The Storm", "Chapter 2: The Harbour Wakes"] : ["Chapter 9: The Return", "Chapter 10: Loose ends"];
+	};
+	/** The styles whose preview is built from the app's own classes, so a drag of their slider shows on it at once. */
+	const customPreview = (style: TypeStyle): HTMLElement | null => {
+		const frame = (name: string, where: string, ...kids: HTMLElement[]): HTMLElement => el("div", { class: `sf-preview sf-preview--${where}`, attrs: { role: "img", "aria-label": `Sample of the ${name} style` } }, ...kids);
+		if (style.id === "placed" || style.id === "unplaced") {
+			const rows = chapterNames(style.id === "placed").slice(0, 2).map((t, i) => el("div", { class: `sf-preview-row sf-preview-row--${style.id}${i === 1 ? " is-selected" : ""}`, text: t }));
+			return frame(style.name, style.id === "placed" ? "card" : "panel", ...rows);
+		}
+		if (style.id === "barName") {
+			const demo = el("div", { class: "sf-bar-demo" }, el("div", { class: "sf-bar-demo-rail" }), el("div", { class: "sf-bar-demo-fill" }), el("span", { class: "sf-bar-name-text sf-bar-demo-name", text: names().chapter }));
+			return frame(style.name, "panel", demo);
+		}
+		return null;
+	};
+	/** The data label and the data share one preview: "Default PoV: Jane Harbour", with the project's own value where there is one. */
+	const dataPreview = (): HTMLElement => {
+		let value = "Jane Harbour";
+		try { const book = model.nav.book; const fm = book ? readBookFrontmatter(project, book) : null; if (fm?.defaultPovPath) value = fm.defaultPovName ?? value; } catch { /* the example */ }
+		return el("div", { class: "sf-preview sf-preview--panel sf-grid-preview--tall", attrs: { role: "img", "aria-label": "Sample of the data label and data styles" } }, el("span", { class: "sf-data-label", text: "Default PoV: " }), el("span", { class: "sf-data-value", text: value }));
 	};
 	/** Which family a style's weights come from: its own, and for Body bold Body's. */
 	const familyOf = (style: TypeStyle): FontFamily => styleLook(style, settings.values).name;
 	/** One type style as grid cells: its name, font (or the base font), weight, size and a preview. A style without one of them leaves that cell empty. */
-	const typeStyle = (style: TypeStyle): HTMLElement[] => {
+	const typeStyle = (style: TypeStyle, shared?: { preview?: HTMLElement; omit?: boolean }): HTMLElement[] => {
 		const name = style.name;
 		const baseName = style.base === "interface" ? "Interface font" : "Writing font";
 		const fontKey = typeKey(style.id as never, "Font");
 		const weightKey = typeKey(style.id as never, "Weight");
 		const sizeKey = typeKey(style.id as never, "Size");
-		const softKey = typeKey(style.id as never, "Soft");
 		const followsBody = style.id === "bodyBold"; // only a weight of its own: Body's font and size
 		const base = style.base === "interface" ? settings.values.typeInterfaceFont : settings.values.typeWritingFont;
 		const fontNow = settings.values[fontKey] as FontFamily | typeof FOLLOW;
 		const family = familyOf(style);
 		const { text, where } = previewText(style);
 		const look = styleLook(style, settings.values);
-		const sampleEl = preview(name, text, where, fontOf(look));
+		const sampleEl = shared?.preview ?? customPreview(style) ?? preview(name, text, where, fontOf(look));
 
 		let fontCell: HTMLElement | null = null;
 		if (!followsBody) {
@@ -272,23 +315,12 @@ export function openSettings(model: AppModel): void {
 				const [slider, hint] = sizeSlider({
 					label: `${name} size (px)`, lo, hi, step: 1, now: settings.values[sizeKey] as number, text: (v) => `${v} px`,
 					commit: (next) => void change(sizeKey, next as never),
-					preview: (v) => { sampleEl.style.fontSize = `${v}px`; document.documentElement.style.setProperty(`--ts-${style.id.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}-size`, `${v}px`); },
+					preview: (v) => { if (!shared && !["placed", "unplaced", "barName", "dataLabel", "data"].includes(style.id)) sampleEl.style.fontSize = `${v}px`; document.documentElement.style.setProperty(`--ts-${style.id.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}-size`, `${v}px`); },
 				});
 				sizeCell = el("div", { class: "sf-size-cell" }, slider); void hint;
 			}
 		}
-		const rows = gridRow(name, [fontCell, weightCell, sizeCell, sampleEl]);
-		if (family === "Fraunces" && !style.fixed && !followsBody) {
-			const soft = el("input", { class: "sf-field sf-setting-control", attrs: { type: "number", min: "0", max: "100", step: "25", "aria-label": `${name} Softness (0 to 100)` } });
-			soft.value = String(settings.values[softKey]);
-			soft.disabled = off;
-			soft.addEventListener("change", () => {
-				const v = Number(soft.value);
-				if (Number.isInteger(v) && v >= 0 && v <= 100) void change(softKey, v as never);
-				else (committed.set(soft, soft.value), redraw());
-			});
-			rows.push(...gridRow(`${name} Softness`, [null, soft, null, null]));
-		}
+		const rows = gridRow(name, [fontCell, weightCell, sizeCell, sampleEl], false, shared?.omit);
 		return rows;
 	};
 	/** A size in rem, with its pixel equivalent against the one named base. */
@@ -337,27 +369,16 @@ export function openSettings(model: AppModel): void {
 			preview: (v) => { inner.style.fontSize = px(v); document.documentElement.style.setProperty(`--ap-${part}-size`, px(v)); },
 		});
 		const rows = gridRow(name, [fontSelect, weightSelect, el("div", { class: "sf-size-cell" }, sizeSliderEl), sampleEl]);
-		if (font === "Fraunces") {
-			const soft = el("input", { class: "sf-field sf-setting-control", attrs: { type: "number", min: "0", max: "100", step: "25", "aria-label": `${name} Softness (0 to 100)` } });
-			soft.value = String(settings.values[appearanceKey(part, "Soft")]);
-			soft.disabled = off;
-			soft.addEventListener("change", () => {
-				const v = Number(soft.value);
-				if (Number.isInteger(v) && v >= 0 && v <= 100) void change(appearanceKey(part, "Soft"), v as never);
-				else (committed.set(soft, soft.value), redraw()); // refused: put back
-			});
-			rows.push(...gridRow(`${name} Softness`, [null, soft, null, null]));
-		}
 		return rows;
 	};
 	/** One of the two base fonts (Brief 18): the Interface font or the Writing font, which every style that names none of its own follows. */
 	const baseFont = (which: "Interface" | "Writing"): HTMLElement[] => {
 		const key = which === "Interface" ? "typeInterfaceFont" : "typeWritingFont";
-		const select = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${which} font` } }, ...FONT_FAMILIES.map((f) => el("option", { text: f, attrs: { value: f } })));
+		const select = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${which.toLowerCase()} font` } }, ...FONT_FAMILIES.map((f) => el("option", { text: f, attrs: { value: f } })));
 		select.value = settings.values[key];
 		select.disabled = off;
 		select.addEventListener("change", () => void change(key, select.value as never));
-		return gridRow(`${which} font`, [select, null, null, el("div", { class: "sf-muted sf-grid-hint", text: which === "Interface" ? "Every part of the app's own text that has no font of its own below." : "The chapter and note editors, the fields and the reading text." })]);
+		return gridRow(`${which.toLowerCase()} font`, [select, null, null, el("div", { class: "sf-muted sf-grid-hint", text: which === "Interface" ? "Every part of the app's own text that has no font of its own below." : "The chapter and note editors, the fields and the reading text." })]);
 	};
 	const grid = (...groups: HTMLElement[][]): HTMLElement[] => [el("div", { class: "sf-grid" }, ...groups.flat())];
 	const styles = (...ids: TypeStyleId[]): HTMLElement[][] => ids.map((id) => typeStyle(styleOf(id)));
@@ -430,7 +451,12 @@ export function openSettings(model: AppModel): void {
 			],
 			Appearance: {
 				interface: grid(baseFont("Interface"), ...styles("body", "bodyBold", "smallHeading"), smallHeadingColour(), ...styles("hint", "heading")),
-				"library mode": grid(...styles("title", "barName"), dataColour()),
+				"library mode": grid(
+					...styles("title", "libraryHeader"), libraryHeaderColour(),
+					...styles("placed"), placedColour(), ...styles("unplaced"), unplacedColour(),
+					typeStyle(styleOf("dataLabel"), { preview: dataPreview() }), dataLabelColour(), typeStyle(styleOf("data"), { omit: true }), dataValueColour(),
+					...styles("barName"), barColour(), railColour(),
+				),
 				"storytelling mode": grid(...(["series", "novel", "chapter"] as const).map(appearancePart), appearancePart("codex"), codexColour()),
 				writing: [...grid(baseFont("Writing"), ...styles("prose", "reading", "fields")), section("Text colours", textColours())],
 			}[appearancePage],

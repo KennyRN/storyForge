@@ -185,7 +185,7 @@ try {
 	const picOff = plainPicture;
 	await measure("Fraunces, Softness 0, again", { font: "Fraunces", weight: 400, size: 1.75, soft: 0 });
 	check(lastPicture === picOff, "control: the same configuration photographs the same twice");
-	await compare(soft !== plain, "Fraunces' Softness changes the drawing");
+	check(soft === plain, "a stored Softness is never read (1.10.0): Fraunces draws the same whatever the key holds");
 	const big = await measure("Sofia Sans at 1.5 rem", { font: "Sofia Sans", weight: 400, size: 1.5 });
 	check(big > drawn["Sofia Sans"] * 1.3, "a size of 1.5 rem draws larger than 1 rem");
 	// The two base fonts (Brief 18). The Codex list is a Navigator part that can follow the Interface font; its widths are what is read. (The start screen
@@ -206,4 +206,4 @@ if (problems.length) {
 	console.error(`\n${problems.length} problem(s):\n- ${problems.join("\n- ")}`);
 	process.exit(1);
 }
-console.log("\nPASS  each family is drawn in the built app; weight, Softness and size change the drawing");
+console.log("\nPASS  each family is drawn in the built app; weight and size change the drawing; a stored Softness does not");

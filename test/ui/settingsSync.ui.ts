@@ -63,10 +63,10 @@ test("changing a setting that was changed elsewhere says so, quietly, and keeps 
 	await dialog.getByRole("tab", { name: "storytelling mode", exact: true }).click();
 	await outside(page, "---\nformat-version: 1\ncodex-colour: green\nstory-kind: standalone\n---\n");
 	// names its group first (decision 117): the Selection colour group has a Green too
-	await expect(dialog.getByRole("radiogroup", { name: "Codex colour", exact: true }).getByRole("radio", { name: "Green", exact: true })).toBeChecked();
+	await expect(dialog.getByRole("radiogroup", { name: "codex colour", exact: true }).getByRole("radio", { name: "Green", exact: true })).toBeChecked();
 	// Elsewhere again, before the window has heard (no batch emitted): the window still holds green.
 	await page.evaluate((p) => window.__preview.touch(p, "---\nformat-version: 1\ncodex-colour: blue\nstory-kind: series\n---\n"), SETTINGS);
-	await dialog.getByRole("radiogroup", { name: "Codex colour" }).getByRole("radio", { name: "Yellow", exact: true }).click();
+	await dialog.getByRole("radiogroup", { name: "codex colour" }).getByRole("radio", { name: "Yellow", exact: true }).click();
 	await expect(page.getByRole("status").filter({ hasText: "elsewhere" })).toContainText("Changed “Codex colour” to yellow. It had been changed to blue elsewhere; that change is replaced.");
 	const disk = (await onDisk(page))!;
 	expect(disk).toContain("codex-colour: yellow");
@@ -120,10 +120,10 @@ test.describe("a settings file that can't be used", () => {
 	});
 });
 
-test("a Wonk key written from outside is never applied or rewritten: Fraunces is drawn with Wonk off (decision 103)", async ({ page }) => {
+test("a Wonk or Softness key written from outside is never applied or rewritten: Fraunces is drawn with Wonk off (decision 103)", async ({ page }) => {
 	await openProject(page);
 	const text = "---\nformat-version: 1\nappearance-series-font: Fraunces\nappearance-series-soft: 50\nappearance-series-wonk: true\n---\n";
 	await outside(page, text);
-	await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue("--ap-series-var"))).toBe('"SOFT" 50, "WONK" 0');
+	await expect.poll(() => page.evaluate(() => document.documentElement.style.getPropertyValue("--ap-series-var"))).toBe('"SOFT" 0, "WONK" 0'); // Softness is never read either (1.10.0)
 	expect(await onDisk(page)).toBe(text);
 });

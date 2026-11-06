@@ -473,18 +473,17 @@ describe("the Appearance settings (decisions 79 to 84) and story-kind (decision 
 		expect([v.appearanceNovelFont, v.appearanceNovelWeight, v.appearanceNovelSize]).toEqual(["Sofia Sans", 900, 1]);
 		expect([v.appearanceSeriesFont, v.appearanceSeriesWeight, v.appearanceSeriesSize]).toEqual(["Sofia Sans", 600, 0.75]);
 		expect([v.appearanceChapterFont, v.appearanceChapterWeight, v.appearanceChapterSize]).toEqual(["SN Pro", 300, 1.375]);
-		expect(v.appearanceCodexSoft).toBe(0);
 		expect(v.storyKind).toBe("series");
 	});
-	it("valid values are read; a font that no longer exists (or 'current look'), an out-of-range size or weight, Softness out of range, or a wrong kind falls back and is never rewritten", async () => {
+	it("valid values are read; a font that no longer exists (or 'current look'), an out-of-range size or weight, or a wrong kind falls back and is never rewritten", async () => {
 		const root = copyFixture("series");
 		put(root, "appearance-codex-font: Fraunces\nappearance-codex-weight: 300\nappearance-codex-size: 1.25\nappearance-codex-soft: 50\nappearance-codex-wonk: true\nappearance-novel-size: 2\nstory-kind: standalone\n");
 		const ok = (await loadSettings(await open(root), reader(root))).values;
-		expect([ok.appearanceCodexFont, ok.appearanceCodexWeight, ok.appearanceCodexSize, ok.appearanceCodexSoft, ok.appearanceNovelSize, ok.storyKind]).toEqual(["Fraunces", 300, 1.25, 50, 2, "standalone"]);
+		expect([ok.appearanceCodexFont, ok.appearanceCodexWeight, ok.appearanceCodexSize, ok.appearanceNovelSize, ok.storyKind]).toEqual(["Fraunces", 300, 1.25, 2, "standalone"]);
 		put(root, "appearance-codex-font: Comic Sans\nappearance-novel-font: null\nappearance-codex-weight: 450\nappearance-codex-size: 3\nappearance-codex-soft: 101\nappearance-codex-wonk: yes\nappearance-novel-size: 2.5\nstory-kind: both\n");
 		const before = snapshot(root);
 		const bad = (await loadSettings(await open(root), reader(root))).values;
-		expect([bad.appearanceCodexFont, bad.appearanceNovelFont, bad.appearanceCodexWeight, bad.appearanceCodexSize, bad.appearanceCodexSoft, bad.appearanceNovelSize, bad.storyKind]).toEqual(["Atkinson Hyperlegible Next", "Sofia Sans", 400, 1, 0, 1, "series"]);
+		expect([bad.appearanceCodexFont, bad.appearanceNovelFont, bad.appearanceCodexWeight, bad.appearanceCodexSize, bad.appearanceNovelSize, bad.storyKind]).toEqual(["Atkinson Hyperlegible Next", "Sofia Sans", 400, 1, 1, "series"]);
 		expect(diffSnapshots(before, snapshot(root)).changed).toEqual([]);
 		// the ranges are per part: the Codex list and the selected chapter stop at 1.75, the titles at 2
 		put(root, "appearance-chapter-size: 1.8\nappearance-series-size: 1.8\n");
@@ -643,33 +642,32 @@ describe("Fraunces' Softness reaches the drawing and Wonk is always off (decisio
 		fs.writeFileSync(path.join(root, PROJECT_SETTINGS_PATH), `---\nformat-version: 1\n${extra}---\n`);
 	};
 
-	it("a project whose project.md has Wonk on still draws Fraunces with Wonk off, and the key is not a setting", async () => {
+	it("a project whose project.md has Wonk or Softness set still draws Fraunces at Softness 0 with Wonk off, and neither key is a setting", async () => {
 		const root = copyFixture("series");
 		write(root, KEYS);
 		const before = snapshot(root);
 		const s = await loadSettings(await open(root), reader(root));
-		expect([s.values.appearanceCodexFont, s.values.appearanceCodexSoft]).toEqual(["Fraunces", 40]);
-		expect(Object.keys(s.values).some((k) => /wonk/i.test(k))).toBe(false);
-		expect(variationFor(s.values.appearanceCodexFont, s.values.appearanceCodexSoft)).toBe('"SOFT" 40, "WONK" 0');
+		expect([s.values.appearanceCodexFont, s.values.appearanceCodexSize]).toEqual(["Fraunces", 1.75]);
+		expect(Object.keys(s.values).some((k) => /wonk|soft/i.test(k))).toBe(false);
+		expect(variationFor(s.values.appearanceCodexFont)).toBe('"SOFT" 0, "WONK" 0');
 		expect(diffSnapshots(before, snapshot(root))).toEqual({ added: [], changed: [], removed: [] });
 	});
 
-	it("Softness applies through the re-read and through opening the whole project; a Wonk key arriving or changing is never applied or rewritten", async () => {
+	it("a Softness or Wonk key arriving or changing is never applied or rewritten", async () => {
 		const root = copyFixture("series");
 		const project = await open(root);
 		const current = await loadSettings(project, reader(root));
 		write(root, KEYS);
 		await project.refresh(PROJECT_SETTINGS_PATH);
 		const out = await refreshSettings(project, current, reader(root));
-		expect(out.changed.sort()).toEqual(["appearanceCodexFont", "appearanceCodexSize", "appearanceCodexSoft"]);
-		write(root, KEYS.replace("wonk: true", "wonk: false"));
+		expect(out.changed.sort()).toEqual(["appearanceCodexFont", "appearanceCodexSize"]);
+		write(root, KEYS.replace("wonk: true", "wonk: false").replace("soft: 40", "soft: 90"));
 		await project.refresh(PROJECT_SETTINGS_PATH);
 		expect((await refreshSettings(project, current, reader(root))).changed).toEqual([]);
-		await setSetting(project, current, "appearanceCodexSoft", 75);
-		expect(fs.readFileSync(path.join(root, PROJECT_SETTINGS_PATH), "utf8")).toContain("appearance-codex-wonk: false");
-		const opened = await openProject(root, { backend: new NodeFsBackend(root), snapshotStore: new MachineSnapshotStore(new MemoryMachine()), projectName: "p" });
-		const s = await loadSettings(opened.project, reader(root));
-		expect(s.values.appearanceCodexSoft).toBe(75);
+		await setSetting(project, current, "appearanceCodexSize", 1.5);
+		const written = fs.readFileSync(path.join(root, PROJECT_SETTINGS_PATH), "utf8");
+		expect(written).toContain("appearance-codex-wonk: false");
+		expect(written).toContain("appearance-codex-soft: 90");
 	});
 });
 
@@ -763,6 +761,12 @@ describe("the text colours (Brief 17): selection, highlight, bold, italic and bo
 		{ file: "bold-colour", key: "boldColour", def: "orange", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },
 		{ file: "italic-colour", key: "italicColour", def: "orange", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },
 		{ file: "small-heading-colour", key: "smallHeadingColour", def: "text", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },
+		{ file: "library-header-colour", key: "libraryHeaderColour", def: "text", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "muted", "4"] },
+		{ file: "placed-colour", key: "placedColour", def: "green", ok: ["text", "yellow", "green", "aqua", "blue", "purple", "orange", "grey"], bad: ["red", "muted", "grey0", "'#a7c080'", "4"] },
+		{ file: "unplaced-colour", key: "unplacedColour", def: "green", ok: ["text", "yellow", "green", "aqua", "blue", "purple", "orange", "grey"], bad: ["red", "muted", "grey0", "4"] },
+		{ file: "data-label-colour", key: "dataLabelColour", def: "muted", ok: ["text", "muted", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "4"] },
+		{ file: "data-value-colour", key: "dataValueColour", def: "text", ok: ["text", "muted", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "4"] },
+		{ file: "rail-colour", key: "railColour", def: "grey0", ok: ["grey0", "grey1", "grey2", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "text", "4"] },
 		{ file: "bold-italic-colour", key: "boldItalicColour", def: "orange", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },
 	] as const;
 

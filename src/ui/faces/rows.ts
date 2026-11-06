@@ -22,8 +22,12 @@ export function rowTitle(row: HTMLElement, display: string, brackets = false): H
 }
 
 /** A section header that folds its list (Placed Chapters, Unplaced Chapters, Unplaced Novels), with an optional "new" button beside the fold control (not inside it). */
-export function zoneHeader(label: string, hidden: boolean, onToggle: () => void, create?: { name: string; onCreate: () => void; disabled?: boolean; reason?: string }): HTMLElement {
-	const fold = el("button", { class: "sf-zone-fold", attrs: { type: "button", "aria-expanded": String(!hidden) }, on: { click: onToggle } }, icon(hidden ? "chevron-right" : "chevron-down", 14), el("span", { class: "sf-zone-label", text: label }));
+export function zoneHeader(label: string, hidden: boolean, onToggle: () => void, create?: { name: string; onCreate: () => void; disabled?: boolean; reason?: string }, options: { chevron?: boolean; foldable?: boolean } = {}): HTMLElement {
+	// Round five (the novel tab): no chevron; the Placed header is a plain heading (it can't be collapsed); the Unplaced header stays a button, with its expanded state.
+	const fold =
+		options.foldable === false
+			? el("h3", { class: "sf-zone-label", text: label })
+			: el("button", { class: "sf-zone-fold", attrs: { type: "button", "aria-expanded": String(!hidden) }, on: { click: onToggle } }, ...(options.chevron === false ? [] : [icon(hidden ? "chevron-right" : "chevron-down", 14)]), el("span", { class: "sf-zone-label", text: label }));
 	const header = el("div", { class: `sf-zone-header${hidden ? " is-folded" : ""}` }, fold);
 	if (create && !hidden) {
 		const add = el("button", { class: "sf-button sf-button--icon sf-zone-add", attrs: { type: "button", "aria-label": create.name, title: create.disabled ? (create.reason ?? create.name) : create.name }, on: { click: () => create.onCreate() } }, icon("plus", 14));
