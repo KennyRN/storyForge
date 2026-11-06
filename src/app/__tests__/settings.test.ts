@@ -870,7 +870,7 @@ describe("the type styles' settings (Brief 18)", () => {
 		expect([v.typeBodyFont, v.typeBodyWeight, v.typeBodySize]).toEqual(["base", 400, 13]);
 		expect([v.typeBodyBoldWeight, v.typeBodyBoldSize]).toEqual([600, 13]);
 		expect([v.typeFieldsSize, v.typeProseSize, v.typeReadingSize]).toEqual([14, 20, 15]);
-		expect([v.typeDisplaySize, v.typeTitleSize, v.typeHeadingSize, v.typeSmallHeadingSize, v.typeHintSize, v.typeBarNameSize]).toEqual([28, 20, 15, 12, 12, 19]);
+		expect([v.typeDisplaySize, v.typeTitleSize, v.typeSmallHeadingSize, v.typeHintSize, v.typeBarNameSize]).toEqual([28, 20, 12, 12, 19]);
 	});
 	it("valid values are read from their `appearance-…` keys; unknown or out-of-range ones draw the default and are never rewritten", async () => {
 		const root = copyFixture("series");

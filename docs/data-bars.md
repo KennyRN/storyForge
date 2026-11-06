@@ -109,3 +109,7 @@ After your answers I'll start commit 1 (the frame and the solid bar).
 Every script passed every time, with no retries and no refused starts. The first-launch "window never appeared" item from the 1.7.0 sweep did not occur. The Settings Escape and lost Writing-tab click items logged for 1.7.1 were not part of this brief and were not touched.
 
 **Ruling (Kenny, under decision 108):** no further full `test:ui` run is needed. The test-only fixes are proved by their own files, and the full run counts as clean for everything else. **Kenny gave the go-ahead for 1.8.0**: merged to `main` and tagged `v1.8.0`.
+
+## Round five (1.10.0): the rail's corners
+
+The rail (the frame round a chapter bar) has the bar's own corner radius, 4 px, in the app and in the Appearance preview; the concentric corners of §1 (the rail's radius was the bar's plus 4 px) are replaced. The rail's colour is a setting (`rail-colour`: grey0 by default, grey1, grey2 or one of the five data colours, never the bar's own).

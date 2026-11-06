@@ -533,6 +533,8 @@ input[aria-invalid="true"] {
 	margin-block: -1px; /* the first and last rows' text stays where it was */
 }
 .sf-settings-tab {
+	display: flex;
+	align-items: center;
 	padding: 6px 8px; /* 5px and half the 2px gap that was between rows */
 	border: 0;
 	border-radius: var(--radius);
@@ -541,6 +543,13 @@ input[aria-invalid="true"] {
 	font: inherit;
 	text-align: left;
 	cursor: pointer;
+}
+.sf-settings-tab .sf-navicon {
+	flex: none;
+	margin-right: 0.5em;
+}
+.sf-settings-tab-label {
+	text-box: trim-both cap alphabetic; /* as the Navigate menu's label: the capitals are centred on the icon */
 }
 .sf-settings-tab:hover,
 .sf-settings-tab.is-active {
@@ -587,56 +596,56 @@ input[aria-invalid="true"] {
 }
 .sf-grid {
 	display: grid;
-	grid-template-columns: max-content max-content max-content max-content minmax(14em, 1fr);
-	align-items: center;
-	gap: var(--space-2) var(--space-3);
+	/* Round five: one row per style, three columns all aligned to the top of the row: the name, the options (stacked) and the preview. */
+	grid-template-columns: max-content max-content minmax(14em, 1fr);
+	align-items: start;
+	gap: var(--space-4) var(--space-3);
 }
 .sf-grid-name {
 	white-space: nowrap;
+	padding-top: 6px; /* the first line of the options is a select, 6px taller than the text */
 }
-.sf-grid-span {
-	grid-column: 2 / 5;
+.sf-grid-options {
+	display: flex;
+	flex-direction: column;
+	gap: var(--space-2);
 	min-width: 0;
 }
-.sf-grid-font,
-.sf-grid-weight,
-.sf-grid-size,
-.sf-grid-preview {
-	min-width: 0;
-}
-.sf-grid-font .sf-setting-control,
-.sf-grid-weight .sf-setting-control {
-	width: 100%;
-}
-.sf-size-cell {
+.sf-options-line {
 	display: flex;
 	align-items: center;
 	gap: var(--space-2);
 }
-.sf-size-cell .sf-slider {
+.sf-options-tag {
+	min-width: 2.6em;
+}
+.sf-grid-preview {
+	min-width: 0;
+}
+.sf-options-line .sf-setting-control {
 	width: 12em;
-	flex: none;
+	min-width: 0;
+}
+.sf-size-cell {
+	display: flex;
+	align-items: center;
+}
+.sf-size-cell .sf-slider {
+	width: 100%;
+	max-width: 25em;
 }
 .sf-grid-hint {
 	white-space: normal;
 }
 /* A narrow window: the previews drop below their row rather than overflow. */
-@container sfpage (max-width: 900px) {
+@container sfpage (max-width: 760px) {
 	.sf-grid {
-		grid-template-columns: max-content repeat(3, minmax(0, 1fr));
-	}
-	.sf-grid .sf-setting-control {
-		min-width: 0;
-	}
-	.sf-size-cell .sf-slider {
-		flex: 1;
-		width: auto;
-		min-width: 3em;
+		grid-template-columns: max-content minmax(0, 1fr);
 	}
 	.sf-grid-preview {
 		grid-column: 1 / -1;
 	}
-	.sf-grid-preview--tall {
+	.sf-grid .sf-grid-preview--tall {
 		grid-row: auto;
 	}
 	.sf-grid-preview:empty {
@@ -662,7 +671,7 @@ input[aria-invalid="true"] {
 .sf-preview--hint { background: var(--purpose-panel-bg); color: var(--purpose-text-muted); }
 
 .sf-preview--library-header { background: var(--purpose-panel-bg); color: var(--purpose-library-header); letter-spacing: 0.04em; }
-.sf-grid-preview--tall { grid-row: span 4; align-self: start; }
+.sf-grid-preview--tall { grid-row: span 2; align-self: start; }
 .sf-preview-row { padding: 5px 6px; border-radius: var(--radius); overflow: hidden; text-overflow: ellipsis; }
 .sf-preview-row--placed { font-family: var(--ts-placed-family); font-weight: var(--ts-placed-weight); font-size: var(--ts-placed-size); font-variation-settings: var(--ts-placed-var); color: var(--purpose-placed); }
 .sf-preview-row--placed.is-selected { background: var(--purpose-placed); color: var(--purpose-editor-bg); }
@@ -670,7 +679,7 @@ input[aria-invalid="true"] {
 .sf-preview-row--unplaced.is-selected { background: var(--purpose-unplaced); color: var(--purpose-panel-bg); }
 /* A complete data bar: the rail, a partial bar in it and the chapter's name across both. */
 .sf-bar-demo { position: relative; height: 42px; }
-.sf-bar-demo-rail { position: absolute; inset: 0; border-radius: 8px; background: var(--purpose-data-frame); }
+.sf-bar-demo-rail { position: absolute; inset: 0; border-radius: 4px; background: var(--purpose-data-frame); }
 .sf-bar-demo-fill { position: absolute; top: 4px; left: 4px; height: 34px; width: 55%; border-radius: 4px; background: var(--purpose-data-fill); }
 .sf-bar-demo-name { position: absolute; left: 14px; right: 14px; bottom: 8px; }
 .sf-preview-accent { color: var(--purpose-accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

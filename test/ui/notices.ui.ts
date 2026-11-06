@@ -106,7 +106,8 @@ test.describe("the two small fixes", () => {
 		await openProject(page);
 		await openSettingsDialog(page);
 		const d = page.getByRole("dialog");
-		await d.getByRole("tab", { name: "This Mac", exact: true }).click();
+		await d.getByRole("tab", { name: "General", exact: true }).click();
+		await d.getByRole("tab", { name: "this Mac", exact: true }).click();
 		const width = d.getByLabel(/Width of all three panels/);
 		await width.fill("5");
 		await width.press("Enter");

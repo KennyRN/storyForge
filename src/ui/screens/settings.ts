@@ -8,6 +8,7 @@ import { FOLLOW, styleOf, resolvedFont, type TypeStyle, type TypeStyleId } from 
 import { getBookChapters, numberedChapterTitle, readBookFrontmatter } from "../../core/book";
 import { numberedBookTitle, readSeriesFrontmatter } from "../../core/series";
 import { button } from "../kit/button";
+import { navIcon } from "../kit/navIcons";
 import { bringForward, openDialog } from "../kit/dialog";
 import { el } from "../kit/dom";
 import { typingSection } from "./typingSettings";
@@ -24,11 +25,12 @@ const LABEL_COLOUR_NAMES: Record<LabelColour, string> = { text: "Text colour", m
 const RAIL_COLOUR_NAMES: Record<RailColour, string> = { grey0: "Grey 0 (the default)", grey1: "Grey 1", grey2: "Grey 2", ...DATA_COLOUR_NAMES };
 const PART_SAMPLES: Record<AppearancePart, string> = { codex: "Cast · Jane Harbour · Ælfric", novel: "Book 1: The Harbour Wakes", series: "The Lantern Cycle", chapter: "Chapter 1: The Storm" };
 const WEIGHT_NAMES: Record<number, string> = { 100: "Thin", 200: "Extra light", 300: "Light", 400: "Regular", 500: "Medium", 600: "Semibold", 700: "Bold", 800: "Extra bold", 900: "Black" };
-const PAGES = ["General", "Story", "Appearance", "Writing", "Sessions", "Backups", "This Mac"] as const;
+const PAGES = ["General", "Appearance", "Writing", "Sessions", "Backups"] as const;
 type Page = (typeof PAGES)[number];
-/** Appearance is one entry with sub-pages across the top of its pane (round two). */
+/** General and Appearance are single entries with sub-pages across the top of their panes (round two; General's in round five: "this Mac" says those settings are kept on this Mac). */
 const APPEARANCE_PAGES = ["interface", "library mode", "storytelling mode", "writing"] as const;
-type AppearancePage = (typeof APPEARANCE_PAGES)[number];
+const GENERAL_PAGES = ["general", "story", "this Mac"] as const;
+const SUB_PAGES: Partial<Record<Page, readonly string[]>> = { General: GENERAL_PAGES, Appearance: APPEARANCE_PAGES };
 const FREQUENCIES: Record<AutomaticBackupFrequency, string> = { "every-open": "Every time the project opens", daily: "Once a day", weekly: "Once a week" };
 
 /**
@@ -98,27 +100,25 @@ export function openSettings(model: AppModel): void {
 		}
 		return group;
 	};
-	/** A row of the Appearance grid: the name, then the cells for the font, weight, size and preview (null: empty). A swatch row spans the font to size cells. */
-	const gridRow = (name: string, cells: (HTMLElement | null)[], span = false, omitPreview = false): HTMLElement[] => {
-		const [font, weight, size, preview] = cells;
-		const cell = (c: HTMLElement | null, cls: string): HTMLElement => (c ? (c.classList.add(cls), c) : el("div", { class: cls }));
-		const label = el("div", { class: "sf-grid-name", text: name });
-		const tail = omitPreview ? [] : [cell(preview ?? null, "sf-grid-preview")]; // a row under a shared preview leaves its cell out
-		return span ? [label, cell(font, "sf-grid-span"), ...tail] : [label, cell(font, "sf-grid-font"), cell(weight, "sf-grid-weight"), cell(size, "sf-grid-size"), ...tail];
+	/** One Appearance style (round five): a row of three columns, all aligned to its top: the name, the options (stacked: font and weight on one line, the size slider, the colour swatches) and the preview. */
+	const gridRow = (name: string, lines: (HTMLElement | null)[], preview: HTMLElement | null, omitPreview = false): HTMLElement[] => {
+		const options = el("div", { class: "sf-grid-options" }, ...lines.filter((l): l is HTMLElement => !!l));
+		const tail = omitPreview ? [] : [preview ? (preview.classList.add("sf-grid-preview"), preview) : el("div", { class: "sf-grid-preview" })]; // a row beside a shared preview leaves its cell out
+		return [el("div", { class: "sf-grid-name", text: name }), options, ...tail];
 	};
-	// A style's own colour sits directly under its row, with no name repeated (the bar has two, so they are named).
-	const colourRow = (control: HTMLElement, name = "", omitPreview = false): HTMLElement[] => gridRow(name, [control, null, null, null], true, omitPreview);
+	const line = (...cells: (HTMLElement | null)[]): HTMLElement => el("div", { class: "sf-options-line" }, ...cells.filter((c): c is HTMLElement => !!c));
 	const dot = (c: string): string => `sf-swatch-dot--${c}`;
-	const codexColour = (): HTMLElement[] => colourRow(swatches("codexColour", "codex colour", CODEX_COLOURS, CODEX_COLOUR_NAMES, dot));
-	const barColour = (): HTMLElement[] => colourRow(swatches("dataColour", "bar colour", DATA_COLOURS, DATA_COLOUR_NAMES, dot), "bar colour");
-	const railColour = (): HTMLElement[] => colourRow(swatches("railColour", "rail colour", RAIL_COLOURS, RAIL_COLOUR_NAMES, (c) => (c.startsWith("grey") ? `sf-swatch-dot--rail-${c}` : dot(c)), (c) => c === settings.values.dataColour), "rail colour");
-	const smallHeadingColour = (): HTMLElement[] => colourRow(swatches("smallHeadingColour", "small heading colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, dot));
-	const libraryHeaderColour = (): HTMLElement[] => colourRow(swatches("libraryHeaderColour", "library header colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, dot));
-	const placedColour = (): HTMLElement[] => colourRow(swatches("placedColour", "placed colour", CODEX_COLOURS, CODEX_COLOUR_NAMES, dot));
-	const unplacedColour = (): HTMLElement[] => colourRow(swatches("unplacedColour", "unplaced colour", CODEX_COLOURS, CODEX_COLOUR_NAMES, dot));
+	const codexColour = (): HTMLElement => swatches("codexColour", "codex colour", CODEX_COLOURS, CODEX_COLOUR_NAMES, dot);
+	const tagged = (tag: string, group: HTMLElement): HTMLElement => line(el("span", { class: "sf-muted sf-options-tag", text: tag }), group); // the bar has two swatch rows, so they are tagged
+	const barColour = (): HTMLElement => tagged("bar", swatches("dataColour", "bar colour", DATA_COLOURS, DATA_COLOUR_NAMES, dot));
+	const railColour = (): HTMLElement => tagged("rail", swatches("railColour", "rail colour", RAIL_COLOURS, RAIL_COLOUR_NAMES, (c) => (c.startsWith("grey") ? `sf-swatch-dot--rail-${c}` : dot(c)), (c) => c === settings.values.dataColour));
+	const smallHeadingColour = (): HTMLElement => swatches("smallHeadingColour", "small heading colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, dot);
+	const libraryHeaderColour = (): HTMLElement => swatches("libraryHeaderColour", "library header colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, dot);
+	const placedColour = (): HTMLElement => swatches("placedColour", "placed colour", CODEX_COLOURS, CODEX_COLOUR_NAMES, dot);
+	const unplacedColour = (): HTMLElement => swatches("unplacedColour", "unplaced colour", CODEX_COLOURS, CODEX_COLOUR_NAMES, dot);
 	const labelDot = (c: string): string => (c === "muted" ? "sf-swatch-dot--muted" : dot(c));
-	const dataLabelColour = (): HTMLElement[] => colourRow(swatches("dataLabelColour", "data label colour", LABEL_COLOURS, LABEL_COLOUR_NAMES, labelDot), "", true);
-	const dataValueColour = (): HTMLElement[] => colourRow(swatches("dataValueColour", "data colour", LABEL_COLOURS, LABEL_COLOUR_NAMES, labelDot), "", true);
+	const dataLabelColour = (): HTMLElement => swatches("dataLabelColour", "data label colour", LABEL_COLOURS, LABEL_COLOUR_NAMES, labelDot);
+	const dataValueColour = (): HTMLElement => swatches("dataValueColour", "data colour", LABEL_COLOURS, LABEL_COLOUR_NAMES, labelDot);
 	const swatchRow = (key: "selectionColour" | "highlightColour" | "boldColour" | "italicColour" | "boldItalicColour", label: string, choices: readonly string[], names: Record<string, string>, dot: (choice: string) => string): HTMLElement =>
 		el("div", { class: "sf-setting-row sf-setting-row--colour" }, el("span", { class: "sf-setting-label", text: label }), swatches(key, label, choices, names, dot));
 	/** The text colours page: five rows with a sample line (the dressing's own classes, so a choice shows as it will in the editor) beside them. */
@@ -272,7 +272,7 @@ export function openSettings(model: AppModel): void {
 	/** Which family a style's weights come from: its own, and for Body bold Body's. */
 	const familyOf = (style: TypeStyle): FontFamily => styleLook(style, settings.values).name;
 	/** One type style as grid cells: its name, font (or the base font), weight, size and a preview. A style without one of them leaves that cell empty. */
-	const typeStyle = (style: TypeStyle, shared?: { preview?: HTMLElement; omit?: boolean }): HTMLElement[] => {
+	const typeStyle = (style: TypeStyle, shared?: { preview?: HTMLElement; omit?: boolean; extra?: HTMLElement[] }): HTMLElement[] => {
 		const name = style.name;
 		const baseName = style.base === "interface" ? "Interface font" : "Writing font";
 		const fontKey = typeKey(style.id as never, "Font");
@@ -320,13 +320,12 @@ export function openSettings(model: AppModel): void {
 				sizeCell = el("div", { class: "sf-size-cell" }, slider); void hint;
 			}
 		}
-		const rows = gridRow(name, [fontCell, weightCell, sizeCell, sampleEl], false, shared?.omit);
-		return rows;
+		return gridRow(name, [line(fontCell, weightCell), sizeCell, ...(shared?.extra ?? [])], sampleEl, shared?.omit);
 	};
 	/** A size in rem, with its pixel equivalent against the one named base. */
 	const remText = (rem: number): string => `${+rem.toFixed(4)} rem (${+(rem * APPEARANCE_BASE_PX).toFixed(1)} px)`;
 	/** One of the Navigator's parts (now "storytelling mode"), on the same grid; its size is in rem. */
-	const appearancePart = (part: AppearancePart): HTMLElement[] => {
+	const appearancePart = (part: AppearancePart, extra: HTMLElement[] = []): HTMLElement[] => {
 		const name = PART_NAMES[part];
 		const [lo, hi] = APPEARANCE_SIZE_RANGE[part];
 		const fontNow = settings.values[appearanceKey(part, "Font")];
@@ -368,7 +367,7 @@ export function openSettings(model: AppModel): void {
 			commit: (next) => void change(appearanceKey(part, "Size"), next as never),
 			preview: (v) => { inner.style.fontSize = px(v); document.documentElement.style.setProperty(`--ap-${part}-size`, px(v)); },
 		});
-		const rows = gridRow(name, [fontSelect, weightSelect, el("div", { class: "sf-size-cell" }, sizeSliderEl), sampleEl]);
+		const rows = gridRow(name, [line(fontSelect, weightSelect), el("div", { class: "sf-size-cell" }, sizeSliderEl), ...extra], sampleEl);
 		return rows;
 	};
 	/** One of the two base fonts (Brief 18): the Interface font or the Writing font, which every style that names none of its own follows. */
@@ -378,13 +377,13 @@ export function openSettings(model: AppModel): void {
 		select.value = settings.values[key];
 		select.disabled = off;
 		select.addEventListener("change", () => void change(key, select.value as never));
-		return gridRow(`${which.toLowerCase()} font`, [select, null, null, el("div", { class: "sf-muted sf-grid-hint", text: which === "Interface" ? "Every part of the app's own text that has no font of its own below." : "The chapter and note editors, the fields and the reading text." })]);
+		return gridRow(`${which.toLowerCase()} font`, [line(select)], el("div", { class: "sf-muted sf-grid-hint", text: which === "Interface" ? "Every part of the app's own text that has no font of its own below." : "The chapter and note editors, the fields and the reading text." }));
 	};
 	const grid = (...groups: HTMLElement[][]): HTMLElement[] => [el("div", { class: "sf-grid" }, ...groups.flat())];
 	const styles = (...ids: TypeStyleId[]): HTMLElement[][] => ids.map((id) => typeStyle(styleOf(id)));
 
 	let page: Page = "General";
-	let appearancePage: AppearancePage = APPEARANCE_PAGES[0];
+	let subPage: string = GENERAL_PAGES[0]; // the sub-page of the page shown (General or Appearance); the first when a page is chosen
 	const body = el("div", { class: "sf-settings" });
 	// Which control an event came from, for the synchronous part of its handler (change() reads it): a change, a click or Return in a box.
 	for (const type of ["change", "click", "keydown"]) {
@@ -435,31 +434,35 @@ export function openSettings(model: AppModel): void {
 			}
 			return el("div", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: "This story is" }), group, source("storyKind"));
 		};
+		const pick = (m: Record<string, HTMLElement[]>): HTMLElement[] => m[subPage] ?? []; // the sub-page of General or Appearance
 		const pages: Record<Page, HTMLElement[]> = {
-			General: [
-				section("Interface", [
-					select("autoFocus", "Opens in", [["true", "storytelling"], ["false", "library"]], (v) => v === "true"),
-					check("hideSeriesPane", "Hide the series pane (for one standalone book)"),
-				]),
-			],
-			Story: [
-				section("Story", [storyKind()]),
-				section("Numbering", [
-					select("seriesNumberingStyle", "Series numbering", numbering, (v) => v as NumberingStyle),
-					select("chapterNumberingStyle", "Chapter numbering", numbering, (v) => v as NumberingStyle),
-				]),
-			],
-			Appearance: {
-				interface: grid(baseFont("Interface"), ...styles("body", "bodyBold", "smallHeading"), smallHeadingColour(), ...styles("hint", "heading")),
+			General: pick({
+				general: [
+					section("Interface", [
+						select("autoFocus", "Opens in", [["true", "storytelling"], ["false", "library"]], (v) => v === "true"),
+						check("hideSeriesPane", "Hide the series pane (for one standalone book)"),
+					]),
+				],
+				story: [
+					section("Story", [storyKind()]),
+					section("Numbering", [
+						select("seriesNumberingStyle", "Series numbering", numbering, (v) => v as NumberingStyle),
+						select("chapterNumberingStyle", "Chapter numbering", numbering, (v) => v as NumberingStyle),
+					]),
+				],
+				"this Mac": [section("This Mac, this project", [widthsSettings(model)])],
+			}),
+			Appearance: pick({
+				interface: grid(baseFont("Interface"), ...styles("body", "bodyBold"), typeStyle(styleOf("smallHeading"), { extra: [smallHeadingColour()] }), ...styles("hint")),
 				"library mode": grid(
-					...styles("title", "libraryHeader"), libraryHeaderColour(),
-					...styles("placed"), placedColour(), ...styles("unplaced"), unplacedColour(),
-					typeStyle(styleOf("dataLabel"), { preview: dataPreview() }), dataLabelColour(), typeStyle(styleOf("data"), { omit: true }), dataValueColour(),
-					...styles("barName"), barColour(), railColour(),
+					...styles("title"), typeStyle(styleOf("libraryHeader"), { extra: [libraryHeaderColour()] }),
+					typeStyle(styleOf("placed"), { extra: [placedColour()] }), typeStyle(styleOf("unplaced"), { extra: [unplacedColour()] }),
+					typeStyle(styleOf("dataLabel"), { preview: dataPreview(), extra: [dataLabelColour()] }), typeStyle(styleOf("data"), { omit: true, extra: [dataValueColour()] }),
+					typeStyle(styleOf("barName"), { extra: [barColour(), railColour()] }),
 				),
-				"storytelling mode": grid(...(["series", "novel", "chapter"] as const).map(appearancePart), appearancePart("codex"), codexColour()),
+				"storytelling mode": grid(...(["series", "novel", "chapter"] as const).map((p) => appearancePart(p)), appearancePart("codex", [codexColour()])),
 				writing: [...grid(baseFont("Writing"), ...styles("prose", "reading", "fields")), section("Text colours", textColours())],
-			}[appearancePage],
+			}),
 			Writing: [section("Typing", typingSection({ settings: settings.values, off, change, check, notify: (text) => model.notices.notify({ kind: "warning", text }) }))],
 			Sessions: [
 				section("Sessions", [
@@ -489,7 +492,6 @@ export function openSettings(model: AppModel): void {
 					),
 				]),
 			],
-			"This Mac": [section("This Mac, this project", [widthsSettings(model)])],
 		};
 		const tabs = el("div", { class: "sf-settings-tabs", attrs: { role: "tablist", "aria-orientation": "vertical", "aria-label": "Settings sections" } });
 		PAGES.forEach((p, i) => {
@@ -499,25 +501,26 @@ export function openSettings(model: AppModel): void {
 					class: `sf-settings-tab${active ? " is-active" : ""}`,
 					dataset: { page: p },
 					attrs: { type: "button", role: "tab", "aria-selected": String(active), "aria-controls": "sf-settings-page", tabindex: active ? "0" : "-1" },
-					text: p,
+					...(p === "Backups" ? {} : { text: p }),
 					on: {
-						click: () => (p !== page && (appearancePage = APPEARANCE_PAGES[0]), (page = p), redraw()),
+						click: () => (p !== page && (subPage = SUB_PAGES[p]?.[0] ?? ""), (page = p), redraw()),
 						keydown: (e) => {
 							const next = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0;
 							if (!next) return;
 							e.preventDefault();
 							page = PAGES[(i + next + PAGES.length) % PAGES.length];
-							appearancePage = APPEARANCE_PAGES[0];
+							subPage = SUB_PAGES[page]?.[0] ?? "";
 							redraw();
 							body.querySelector<HTMLElement>(".sf-settings-tab.is-active")?.focus();
 						},
 					},
-				}),
+				}, ...(p === "Backups" ? [navIcon("backup", "32px"), el("span", { class: "sf-settings-tab-label", text: p })] : [])), // Kenny's Back Up icon, as in the Navigate menu (the other entries get icons next round)
 			);
 		});
-		const subtabs = el("div", { class: "sf-settings-subtabs", attrs: { role: "tablist", "aria-label": "Appearance" } });
-		APPEARANCE_PAGES.forEach((p, i) => {
-			const active = p === appearancePage;
+		const subList = SUB_PAGES[page] ?? [];
+		const subtabs = el("div", { class: "sf-settings-subtabs", attrs: { role: "tablist", "aria-label": page } });
+		subList.forEach((p, i) => {
+			const active = p === subPage;
 			subtabs.append(
 				el("button", {
 					class: `sf-settings-subtab${active ? " is-active" : ""}`,
@@ -525,12 +528,12 @@ export function openSettings(model: AppModel): void {
 					attrs: { type: "button", role: "tab", "aria-selected": String(active), "aria-controls": "sf-settings-page", tabindex: active ? "0" : "-1" },
 					text: p,
 					on: {
-						click: () => ((appearancePage = p), redraw(), body.querySelector<HTMLElement>(".sf-settings-subtab.is-active")?.focus()),
+						click: () => ((subPage = p), redraw(), body.querySelector<HTMLElement>(".sf-settings-subtab.is-active")?.focus()),
 						keydown: (e) => {
 							const next = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
 							if (!next) return;
 							e.preventDefault();
-							appearancePage = APPEARANCE_PAGES[(i + next + APPEARANCE_PAGES.length) % APPEARANCE_PAGES.length];
+							subPage = subList[(i + next + subList.length) % subList.length];
 							redraw();
 							body.querySelector<HTMLElement>(".sf-settings-subtab.is-active")?.focus();
 						},
@@ -538,8 +541,8 @@ export function openSettings(model: AppModel): void {
 				}),
 			);
 		});
-		const pageKey = page === "Appearance" ? `Appearance/${appearancePage}` : page;
-		const panel = el("div", { class: "sf-settings-page sf-scroll", dataset: { key: pageKey }, attrs: { id: "sf-settings-page", role: "tabpanel", "aria-label": page === "Appearance" ? appearancePage : page } }, ...(off ? [el("p", { class: "sf-muted", text: running.readOnlyReason ?? settings.readOnlyReason })] : []), ...pages[page]);
+		const pageKey = subList.length ? `${page}/${subPage}` : page;
+		const panel = el("div", { class: "sf-settings-page sf-scroll", dataset: { key: pageKey }, attrs: { id: "sf-settings-page", role: "tabpanel", "aria-label": subList.length ? subPage : page } }, ...(off ? [el("p", { class: "sf-muted", text: running.readOnlyReason ?? settings.readOnlyReason })] : []), ...pages[page]);
 		// The controls in use go back in place of their new twins (found by tag, type and name), with focus and caret.
 		const keep = inUse().filter((c) => isControl(c));
 		const focused = document.activeElement;
@@ -555,7 +558,7 @@ export function openSettings(model: AppModel): void {
 		const before = body.querySelector<HTMLElement>(".sf-settings-page");
 		const scroll = before && before.dataset.key === pageKey ? before.scrollTop : 0;
 		const slider = document.activeElement instanceof HTMLInputElement && document.activeElement.type === "range" && body.contains(document.activeElement) ? document.activeElement.getAttribute("aria-label") : null;
-		body.replaceChildren(tabs, el("div", { class: "sf-settings-pane" }, ...(page === "Appearance" ? [subtabs] : []), panel));
+		body.replaceChildren(tabs, el("div", { class: "sf-settings-pane" }, ...(subList.length ? [subtabs] : []), panel));
 		if (slider) panel.querySelector<HTMLElement>(`input[type=range][aria-label="${slider}"]`)?.focus({ preventScroll: true }); // a key on a slider redraws the page: focus stays on its slider
 		panel.scrollTop = scroll;
 		body.querySelectorAll("select").forEach((s) => {

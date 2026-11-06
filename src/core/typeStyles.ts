@@ -30,7 +30,6 @@ export interface TypeStyle {
 export const TYPE_STYLES = [
 	{ id: "display", name: "display", base: "interface", weight: 600, size: 28, range: [20, 40], sample: "Welcome to storyForge" },
 	{ id: "title", name: "title", base: "interface", weight: 600, size: 20, range: [16, 28], sample: "The Lantern Cycle" },
-	{ id: "heading", name: "dialog heading", base: "interface", weight: 600, size: 15, range: [13, 22], sample: "Settings" },
 	{ id: "smallHeading", name: "small heading", base: "interface", weight: 600, size: 12, range: [11, 18], sample: "Placed" },
 	{ id: "body", name: "body", base: "interface", weight: 400, size: 13, range: [11, 16], sample: "Chapter 1: The Storm" },
 	{ id: "libraryHeader", name: "library header", base: "interface", weight: 600, size: 12, range: [11, 18], sample: "Placed Chapters" },

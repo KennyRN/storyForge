@@ -52,7 +52,7 @@ test.describe("the chapter bars", () => {
 			expect(g.frame!.height).toBeCloseTo(42, 0);
 			expect(g.fill!.top - g.frame!.top, "the frame is 4px larger on every side").toBeCloseTo(4, 0);
 			expect(g.radius).toBe("4px");
-			expect(g.frameRadius, "concentric: the bar's radius plus 4px").toBe("8px");
+			expect(g.frameRadius, "the rail has the bar's own radius (round five; it was the bar's plus 4px)").toBe(g.radius);
 			await expect(bars(page).nth(i).locator(".sf-bar-name")).toHaveCount(1);
 			await expect(bars(page).nth(i).locator(".sf-bar-name")).toHaveAttribute("aria-hidden", "true");
 		}

@@ -24,9 +24,23 @@ test.describe("modal dialogs", () => {
 		expect(await page.evaluate(() => document.documentElement.dataset.input)).not.toBe("keyboard"); // decision 106: no ring after a mouse-less, key-less open
 	});
 
+	test("no dialog has a visible title; each keeps its name for the screen reader", async ({ page }) => {
+		await openProject(page);
+		await openSettingsDialog(page);
+		await expect(dialogs(page)).toHaveAttribute("aria-label", "Settings");
+		await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
+		await expect(dialogs(page).locator(".sf-dialog-title")).toHaveCount(0);
+		await expect(dialogs(page).getByRole("heading", { name: "Settings", exact: true })).toHaveCount(0);
+		await page.keyboard.press("Escape");
+		await expect(dialogs(page)).toHaveCount(0);
+		await openHistory(page);
+		await expect(page.getByRole("dialog", { name: "Word count history" })).toBeVisible();
+		await expect(dialogs(page).locator(".sf-dialog-title")).toHaveCount(0);
+	});
+
 	test("after clicking each tab with the mouse, focus is inside the dialog and Escape closes it", async ({ page }) => {
 		await openProject(page);
-		for (const name of ["General", "Story", "Appearance", "Writing", "Sessions", "Backups", "This Mac"]) {
+		for (const name of ["General", "story", "this Mac", "Appearance", "Writing", "Sessions", "Backups"]) {
 			await openSettingsDialog(page);
 			await dialogs(page).getByRole("tab", { name, exact: true }).click();
 			await expect(dialogs(page).getByRole("tab", { name, exact: true })).toHaveAttribute("aria-selected", "true");
@@ -62,7 +76,8 @@ test.describe("modal dialogs", () => {
 	test("opening Settings again brings the one dialog forward", async ({ page }) => {
 		await openProject(page);
 		await openSettingsDialog(page);
-		await dialogs(page).getByRole("tab", { name: "Story", exact: true }).click();
+		await dialogs(page).getByRole("tab", { name: "General", exact: true }).click();
+		await dialogs(page).getByRole("tab", { name: "story", exact: true }).click();
 		await page.evaluate(() => window.__preview.emit("menu", "settings"));
 		await page.evaluate(() => window.__preview.emit("menu", "settings"));
 		await expect(dialogs(page)).toHaveCount(1);
@@ -124,7 +139,7 @@ test.describe("modal dialogs", () => {
 	test("a click on a tab while an outside change redraws still lands, and focus stays on the same control", async ({ page }) => {
 		await openProject(page);
 		await openSettingsDialog(page);
-		const tab = dialogs(page).getByRole("tab", { name: "Story", exact: true });
+		const tab = dialogs(page).getByRole("tab", { name: "story", exact: true });
 		const box = (await tab.boundingBox())!;
 		await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
 		await page.mouse.down();
@@ -190,10 +205,11 @@ test.describe("modal dialogs", () => {
 		test(`a redraw held by a pressed tab ends on ${how}`, async ({ page }) => {
 			await openProject(page);
 			await openSettingsDialog(page);
-			await dialogs(page).getByRole("tab", { name: "Story", exact: true }).click();
+			await dialogs(page).getByRole("tab", { name: "General", exact: true }).click();
+		await dialogs(page).getByRole("tab", { name: "story", exact: true }).click();
 			const standalone = dialogs(page).getByRole("radio", { name: "One standalone novel" });
 			await expect(standalone).not.toBeChecked();
-			const box = (await dialogs(page).getByRole("tab", { name: "Story", exact: true }).boundingBox())!;
+			const box = (await dialogs(page).getByRole("tab", { name: "story", exact: true }).boundingBox())!;
 			await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
 			await page.mouse.down();
 			await page.evaluate(async (p) => {

@@ -35,7 +35,7 @@ test.describe("the screens around the faces", () => {
 		});
 		const d = dialog(page);
 		await expect(d).toBeVisible();
-		await expect(d.getByRole("heading", { name: "Changes found when opening" })).toBeVisible();
+		await expect(page.getByRole("dialog", { name: "Changes found when opening" })).toBeVisible();
 		await expect(d.getByText("ch-new.md")).toBeVisible();
 		await shot(page, "summary");
 		await d.getByRole("button", { name: "OK" }).click();
@@ -193,7 +193,7 @@ test.describe("leftover temporary files at open (docs/temp-tidy.md)", () => {
 		const { root, planted } = await plant(page);
 		await startProject(page);
 		const d = dialog(page);
-		await expect(d.getByRole("heading", { name: "Changes found when opening" })).toBeVisible();
+		await expect(page.getByRole("dialog", { name: "Changes found when opening" })).toBeVisible();
 		await expect(d.getByText("storyForge tidied up after a save that was interrupted.")).toBeVisible();
 		// words that may not have been saved come first, in their own plain section
 		const first = d.locator(".sf-summary-section").first();

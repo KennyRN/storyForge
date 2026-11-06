@@ -47,7 +47,8 @@ test.describe("settings changed elsewhere", () => {
 		await openSettingsDialog(page);
 		const dialog = page.getByRole("dialog");
 		await expect(dialog).toBeVisible();
-		await dialog.getByRole("tab", { name: "Story", exact: true }).click();
+		await dialog.getByRole("tab", { name: "General", exact: true }).click();
+		await dialog.getByRole("tab", { name: "story", exact: true }).click();
 		const standalone = dialog.getByRole("radio", { name: "One standalone novel" });
 		await expect(standalone).not.toBeChecked();
 		await outside(page, "---\nformat-version: 1\nstory-kind: standalone\n---\n");
@@ -78,7 +79,8 @@ test.describe("a settings file that can't be used", () => {
 		await openProject(page);
 		await openSettingsDialog(page);
 		const dialog = page.getByRole("dialog");
-		await dialog.getByRole("tab", { name: "Story", exact: true }).click();
+		await dialog.getByRole("tab", { name: "General", exact: true }).click();
+		await dialog.getByRole("tab", { name: "story", exact: true }).click();
 		await outside(page, "---\nformat-version: 1\nstory-kind: [unclosed\n---\n");
 		await expect(page.getByRole("status").filter({ hasText: "can’t be read" })).toHaveCount(1);
 		await expect(dialog.getByRole("radio", { name: "One standalone novel" })).toBeDisabled();

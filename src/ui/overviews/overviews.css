@@ -7,7 +7,7 @@
    and --sf-frame (the frame's, a percentage of the row, the same for every chapter). With no target there is no frame (.sf-bar--plain). */
 .sf-bar--chapter { height: 42px; border-radius: 0; background: none; overflow: visible; }
 .sf-bar--chapter.sf-bar--plain { height: 34px; }
-.sf-bar-frame { position: absolute; top: 0; left: 0; height: 42px; width: var(--sf-frame); border-radius: 8px; background: var(--purpose-data-frame); }
+.sf-bar-frame { position: absolute; top: 0; left: 0; height: 42px; width: var(--sf-frame); border-radius: 4px; /* the bar's own radius (round five; it was the bar's plus 4px) */ background: var(--purpose-data-frame); }
 .sf-bar--chapter .sf-bar-fill { inset: auto; top: 4px; left: 4px; height: 34px; width: var(--sf-barw); border-radius: 4px; }
 .sf-bar--chapter.sf-bar--plain .sf-bar-fill { top: 0; left: 0; }
 .sf-bar--chapter.sf-bar--sliver::before { content: none; }
@@ -44,6 +44,8 @@
 .sf-note-field { box-sizing: border-box; display: flex; width: 100%; font-family: var(--ts-fields-family); font-weight: var(--ts-fields-weight); font-size: var(--ts-fields-size); font-variation-settings: var(--ts-fields-var); line-height: 1.5; color: var(--purpose-text); border: 1px solid transparent; border-radius: 3px; margin-left: -6px; }
 .sf-note-field:hover { border-color: var(--purpose-border); }
 .sf-note-field:focus-within { outline: 2px solid var(--purpose-focus-ring); outline-offset: 0; }
+/* Round five: the novel tab's writing fields (the novel's synopsis, the plot note) draw no focus ring: the caret marks focus. The series description keeps its ring. */
+.sf-ctx-plot .sf-note-field:focus-within, [aria-label="Novel overview"] .sf-note-field:focus-within { outline: none; }
 .sf-note-field .cm-editor { flex: 1; min-width: 0; background: transparent; color: inherit; font: inherit; }
 .sf-note-field .cm-editor.cm-focused { outline: none; }
 .sf-note-field .cm-scroller { overflow: visible; font-family: inherit; line-height: inherit; }

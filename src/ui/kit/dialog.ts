@@ -106,12 +106,10 @@ export function openDialog(options: DialogOptions): OpenDialog {
 	}
 	install();
 	const returnTo = document.activeElement as HTMLElement | null;
-	const titleId = `sf-dialog-title-${Math.random().toString(36).slice(2)}`;
 	const buttons = el("div", { class: "sf-dialog-buttons" });
 	const panel = el(
 		"div",
-		{ class: "sf-dialog", attrs: { role: "dialog", "aria-modal": "true", "aria-labelledby": titleId, tabindex: "-1" } },
-		el("h2", { class: "sf-dialog-title", text: options.title, attrs: { id: titleId } }),
+		{ class: "sf-dialog", attrs: { role: "dialog", "aria-modal": "true", "aria-label": options.title, tabindex: "-1" } },
 		el("div", { class: "sf-dialog-body sf-scroll" }, options.body),
 		buttons,
 	);

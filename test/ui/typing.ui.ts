@@ -10,7 +10,7 @@ async function openTypingSettings(page: Page): Promise<void> {
 	await page.locator("[data-recent='0']").click();
 	await page.waitForFunction(() => !!window.__app?.editors);
 	await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
-	await expect(dialog(page).getByRole("heading", { name: "Settings" })).toBeVisible();
+	await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
 }
 
 test.describe("the Typing settings", () => {

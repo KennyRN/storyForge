@@ -9,11 +9,11 @@ async function openProject(page: Page): Promise<void> {
 	await page.waitForFunction(() => !!window.__app?.editors);
 }
 const dialog = (page: Page) => page.getByRole("dialog");
-async function openSettings(page: Page, section?: string, sub = "storytelling mode"): Promise<void> {
+async function openSettings(page: Page, section?: string, sub = section === "Appearance" ? "storytelling mode" : ""): Promise<void> {
 	await openSettingsDialog(page);
 	await expect(dialog(page)).toBeVisible();
 	if (section) await dialog(page).getByRole("tab", { name: section, exact: true }).click();
-	if (section === "Appearance") await dialog(page).getByRole("tab", { name: sub, exact: true }).click(); // Appearance's sub-pages (round two)
+	if (sub) await dialog(page).getByRole("tab", { name: sub, exact: true }).click(); // the sub-pages of Appearance (round two) and General (round five)
 }
 const projectMd = (page: Page) => page.evaluate(() => window.__preview.read("_backstage/storyforge/project.md").catch(() => ""));
 const style = (page: Page, sel: string) => page.locator(sel).first().evaluate((e) => { const s = getComputedStyle(e); return { family: s.fontFamily, weight: s.fontWeight, size: s.fontSize, variation: s.fontVariationSettings }; });
@@ -24,22 +24,23 @@ test.describe("settings sections", () => {
 	test("a list of sections down the side, one page at a time, and opening settings writes nothing", async ({ page }) => {
 		await openProject(page);
 		await openSettings(page);
-		const tabs = dialog(page).getByRole("tab");
-		expect(await tabs.allInnerTexts()).toEqual(["General", "Story", "Appearance", "Writing", "Sessions", "Backups", "This Mac"]);
-		await expect(dialog(page).getByRole("tab", { name: "General" })).toHaveAttribute("aria-selected", "true");
+		const tabs = dialog(page).locator(".sf-settings-tabs").getByRole("tab");
+		expect(await tabs.allInnerTexts()).toEqual(["General", "Appearance", "Writing", "Sessions", "Backups"]);
+		expect(await dialog(page).locator(".sf-settings-subtabs").getByRole("tab").allInnerTexts()).toEqual(["general", "story", "this Mac"]); // General is one entry with three sub-pages
+		await expect(dialog(page).getByRole("tab", { name: "General", exact: true })).toHaveAttribute("aria-selected", "true");
 		await expect(dialog(page).getByRole("tabpanel")).toHaveCount(1);
 		await expect(dialog(page).getByLabel("Opens in")).toBeVisible();
-		await expect(dialog(page).getByLabel("Series numbering")).toHaveCount(0); // that's the Story page
-		await dialog(page).getByRole("tab", { name: "Story" }).focus();
+		await expect(dialog(page).getByLabel("Series numbering")).toHaveCount(0); // that's the story sub-page
+		await dialog(page).getByRole("tab", { name: "General", exact: true }).focus();
 		await page.keyboard.press("ArrowDown");
 		await expect(dialog(page).getByRole("tab", { name: "Appearance" })).toHaveAttribute("aria-selected", "true");
 		await expect(dialog(page).getByRole("tab", { name: "Appearance" })).toBeFocused();
 		expect(await projectMd(page)).toBe("");
 	});
 
-	test("Story holds the series-or-standalone choice and Numbering; choosing standalone writes story-kind and drops the series line", async ({ page }) => {
+	test("the story sub-page holds the series-or-standalone choice and Numbering; choosing standalone writes story-kind and drops the series line", async ({ page }) => {
 		await openProject(page);
-		await openSettings(page, "Story");
+		await openSettings(page, "General", "story");
 		await expect(dialog(page).getByLabel("Series numbering")).toBeVisible();
 		await expect(dialog(page).getByLabel("Chapter numbering")).toBeVisible();
 		await expect(page.locator(".sf-nav-series")).toBeVisible();

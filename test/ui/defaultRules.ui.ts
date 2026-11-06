@@ -120,7 +120,7 @@ test.describe("rule 1: highlighted rows touch, as in the Codex list", () => {
 		await touch(page.locator(".sf-nav-list .sf-nav-row"), "the chapter list");
 		await page.keyboard.press("Escape");
 		await openSettingsDialog(page);
-		await touch(page.getByRole("dialog").getByRole("tab"), "the Settings section list");
+		await touch(page.getByRole("dialog").locator(".sf-settings-tabs").getByRole("tab"), "the Settings section list");
 	});
 
 	test("the library panes' rows touch, and the selected one is highlighted as the others are", async ({ page }) => {

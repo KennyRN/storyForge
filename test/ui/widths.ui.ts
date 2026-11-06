@@ -137,7 +137,7 @@ test.describe("panel widths", () => {
 
 	test.describe("in settings", () => {
 		const openSettings = async (page: Page) => {
-			await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "This Mac", exact: true }).click();
+			await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "this Mac", exact: true }).click();
 			await expect(page.getByRole("group", { name: "This Mac, this project" }).or(page.locator("section[aria-label='This Mac, this project']"))).toBeVisible();
 		};
 		const group = (page: Page) => page.locator("section[aria-label='This Mac, this project']");
@@ -178,7 +178,7 @@ test.describe("panel widths", () => {
 			await field.fill("3");
 			await field.press("Escape");
 			expect(Number(await field.inputValue())).toBe(set.story);
-			await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible(); // Escape did not close the dialog
+			await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible(); // Escape did not close the dialog
 		});
 
 		test("switching off shows three named figures; the unit switch converts without moving the panels", async ({ page }) => {

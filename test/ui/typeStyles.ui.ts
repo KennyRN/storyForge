@@ -27,7 +27,7 @@ test.describe("type styles", () => {
 		await expect(subtab(page, "interface")).toHaveAttribute("aria-selected", "true");
 		await expect(dialog(page).getByRole("tab", { name: "Appearance", exact: true })).toHaveCount(1);
 		const wanted: Record<string, string[]> = {
-			interface: ["body", "small heading", "hint", "dialog heading"],
+			interface: ["body", "small heading", "hint"],
 			"library mode": ["title", "library header", "placed", "unplaced", "data label", "data", "data bar"],
 			"storytelling mode": ["series name", "novel title", "selected chapter", "codex list"],
 			writing: ["chapter", "read-only context fields", "context and library fields"],
@@ -104,7 +104,6 @@ test.describe("type styles", () => {
 		const token = (v: string) => page.evaluate((n) => { const i = document.createElement("i"); i.style.color = `var(${n})`; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; }, v);
 		expect(await colour("Sample of the hint style")).toEqual([await token("--purpose-text-muted"), await token("--purpose-panel-bg")]);
 		expect(await colour("Sample of the small heading style")).toEqual([await token("--purpose-text"), await token("--purpose-panel-bg")]);
-		expect(await dialog(page).getByRole("img", { name: "Sample of the dialog heading style" }).textContent()).toBe("Settings");
 		expect(await dialog(page).getByRole("img", { name: "Sample of the body style" }).textContent()).toBe("Back Up Now · Open Project… · Hide the series pane");
 		await subtab(page, "library mode").click();
 		const bar = dialog(page).getByRole("img", { name: "Sample of the data bar style" });
@@ -134,10 +133,10 @@ test.describe("type styles", () => {
 	test("the Interface font changes every style that follows it and none that names its own; the Writing font leaves the interface alone", async ({ page }) => {
 		await openProject(page);
 		await openAppearance(page);
-		await dialog(page).getByLabel("dialog heading font", { exact: true }).selectOption("Courier Prime"); // names its own
+		await dialog(page).getByLabel("hint font", { exact: true }).selectOption("Courier Prime"); // names its own
 		await dialog(page).getByLabel("interface font", { exact: true }).selectOption("Aleo");
 		await expect.poll(async () => (await look(page, "body")).family).toContain("Aleo");
-		expect((await look(page, ".sf-dialog-title")).family).toContain("Courier Prime");
+		expect(await page.evaluate(() => document.documentElement.style.getPropertyValue("--ts-hint-family"))).toContain("Courier Prime");
 		expect((await look(page, ".sf-editor .cm-content")).family).toContain("SN Pro");
 		await subtab(page, "writing").click();
 		await dialog(page).getByLabel("writing font", { exact: true }).selectOption("Atkinson Hyperlegible Next");
@@ -181,7 +180,7 @@ test.describe("type styles", () => {
 	});
 
 	test("Settings scrolls on the right only; the page keeps its place through a redraw and a new section starts at the top", async ({ page }) => {
-		await page.setViewportSize({ width: 1100, height: 520 });
+		await page.setViewportSize({ width: 1100, height: 440 });
 		await openProject(page);
 		await openAppearance(page);
 		const pane = dialog(page).locator(".sf-settings-page");
@@ -194,9 +193,9 @@ test.describe("type styles", () => {
 		expect(held).toBeGreaterThan(0);
 		expect((await tabs.boundingBox())!.y).toBe(tabTop);
 		await expect(dialog(page).getByRole("button", { name: "Done" })).toBeInViewport();
-		// not fill(): Playwright scrolls the control into view first, which would move the page
-		await dialog(page).getByLabel("body size (px)", { exact: true }).evaluate((e: HTMLInputElement) => { e.value = "14"; e.dispatchEvent(new Event("input", { bubbles: true })); e.dispatchEvent(new Event("change", { bubbles: true })); });
-		await expect.poll(() => projectMd(page)).toContain("appearance-body-size: 14");
+		// a change that doesn't alter the dialog's size (the pane's height is in em, so a new size would change the scroll limit)
+		await dialog(page).getByLabel("body weight", { exact: true }).evaluate((e: HTMLSelectElement) => { e.value = "500"; e.dispatchEvent(new Event("change", { bubbles: true })); });
+		await expect.poll(() => projectMd(page)).toContain("appearance-body-weight: 500");
 		expect(await pane.evaluate((e) => e.scrollTop)).toBe(held);
 		await subtab(page, "writing").click();
 		expect(await dialog(page).locator(".sf-settings-page").evaluate((e) => e.scrollTop)).toBe(0);
