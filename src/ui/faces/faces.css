@@ -851,8 +851,11 @@ body.sf-codex-drag-active {
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
-.sf-archive-open:hover {
-	background: var(--purpose-raised-bg);
+/* The selected item and the one under the pointer are a block in the Codex colour with the panel's colour on it, as a Codex row is. */
+.sf-archive-open:hover,
+.sf-archive-open.is-active {
+	background: var(--purpose-codex);
+	color: var(--purpose-panel-bg);
 }
 
 /* The live session readout (decision 68, 71): its own row; the clock sits in the count icon's column (the graph icon's stays empty). */

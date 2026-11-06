@@ -45,7 +45,7 @@ export interface Nav {
 	libraryWidth: number;
 	loreWidth: number;
 	widthUnit: WidthUnit;
-	/** Round five: the side panels' widths (left and context) per view, in `widthUnit`. The Codex and Archive tabs keep the pair `libraryWidth` and `loreWidth`. */
+	/** Round five: the side panels' widths (left and context) per view, in `widthUnit`. */
 	viewWidths: Record<WidthView, ViewWidths>;
 	/** "Keep the panels the same width". */
 	widthsLinked: boolean;
@@ -64,9 +64,9 @@ export type Selection =
 	| { kind: "codex-folder"; id: string; path?: string }
 	| { kind: "novel"; book: string };
 
-/** The views that have their own side-panel widths (round five). The Codex and Archive tabs are "codex": they keep the older pair. */
-export type WidthView = "storytelling" | "series" | "novel";
-export const WIDTH_VIEWS: readonly WidthView[] = ["storytelling", "series", "novel"];
+/** The views that have their own side-panel widths (round five): the storytelling side and the library side's four tabs. */
+export type WidthView = "storytelling" | "series" | "novel" | "codex" | "archive";
+export const WIDTH_VIEWS: readonly WidthView[] = ["storytelling", "series", "novel", "codex", "archive"];
 
 const machineDefaults = (): MachineProjectState => ({ selectedNovel: null, selectedObject: null, collapsedCodexFolderIds: [] });
 
@@ -91,7 +91,7 @@ function initialWidths(m: MachineProjectState, win: number): Pick<Nav, "storyWid
 		storyWidth: storyOut,
 		libraryWidth: libraryOut,
 		loreWidth: loreOut,
-		viewWidths: { storytelling: set(m.storytellingWidths, storyOut, linked), series: set(m.seriesWidths, libraryOut, false), novel: set(m.novelWidths, libraryOut, false) },
+		viewWidths: { storytelling: set(m.storytellingWidths, storyOut, linked), series: set(m.seriesWidths, libraryOut, false), novel: set(m.novelWidths, libraryOut, false), codex: set(m.codexWidths, libraryOut, false), archive: set(m.archiveWidths, libraryOut, false) },
 		widthUnit: unit,
 		widthsLinked: linked,
 	};
@@ -337,21 +337,20 @@ export class AppModel {
 		this.touch("codex");
 	}
 
-	/** The view whose side-panel widths apply now: the storytelling side, the library side's series tab or novel tab, or (the Codex and Archive tabs) the older library pair. */
-	widthView(): WidthView | "codex" {
+	/** The view whose side-panel widths apply now: the storytelling side, or the library side's series, novel, Codex or Archive tab. */
+	widthView(): WidthView {
 		if (this.nav.face === "storytelling") return "storytelling";
-		return this.nav.forgeTab === "series" || this.nav.forgeTab === "novel" ? this.nav.forgeTab : "codex";
+		return this.nav.forgeTab === "series" || this.nav.forgeTab === "novel" || this.nav.forgeTab === "archive" ? this.nav.forgeTab : "codex";
 	}
-	private widthSet(view: WidthView | "codex"): ViewWidths {
-		return view === "codex" ? { left: this.nav.libraryWidth, lore: this.nav.loreWidth } : this.nav.viewWidths[view];
+	private widthSet(view: WidthView): ViewWidths {
+		return this.nav.viewWidths[view];
 	}
-	private putWidthSet(view: WidthView | "codex", s: ViewWidths): void {
-		if (view === "codex") Object.assign(this.nav, { libraryWidth: s.left, loreWidth: s.lore });
-		else this.nav.viewWidths[view] = { left: s.left, lore: s.lore };
+	private putWidthSet(view: WidthView, s: ViewWidths): void {
+		this.nav.viewWidths[view] = { left: s.left, lore: s.lore };
 	}
 
 	/** The widths of one view as stored, for the pure functions (`story` is the left panel, `lore` the context panel). The current view's by default. */
-	panelWidths(view: WidthView | "codex" = this.widthView()): PanelWidths {
+	panelWidths(view: WidthView = this.widthView()): PanelWidths {
 		const s = this.widthSet(view);
 		return { story: s.left, library: s.left, lore: s.lore, unit: this.nav.widthUnit, linked: view === "storytelling" && this.nav.widthsLinked }; // the same-width switch is the storytelling set's alone
 	}
@@ -361,7 +360,7 @@ export class AppModel {
 		return displayWidths(this.panelWidths(), "storytelling", this.nav.loreHidden, win);
 	}
 
-	private storeWidths(w: PanelWidths, view: WidthView | "codex" = this.widthView(), notify = true): void {
+	private storeWidths(w: PanelWidths, view: WidthView = this.widthView(), notify = true): void {
 		this.putWidthSet(view, { left: w.story, lore: w.lore });
 		this.nav.widthUnit = w.unit;
 		if (view === "storytelling") this.nav.widthsLinked = w.linked;
@@ -408,11 +407,14 @@ export class AppModel {
 		if (old === unit) return;
 		const win = windowWidth();
 		const c = (v: number): number => fromPx(toPx(v, old, win), unit, win);
-		for (const view of [...WIDTH_VIEWS, "codex" as const]) {
+		for (const view of WIDTH_VIEWS) {
 			const s = this.widthSet(view);
 			this.putWidthSet(view, { left: c(s.left), lore: c(s.lore) });
 		}
-		this.nav.storyWidth = c(this.nav.storyWidth); // the older storytelling key stays coherent with the unit; it no longer drives a panel
+		// The older keys stay coherent with the unit; none of them drives a panel any more.
+		this.nav.storyWidth = c(this.nav.storyWidth);
+		this.nav.libraryWidth = c(this.nav.libraryWidth);
+		this.nav.loreWidth = c(this.nav.loreWidth);
 		this.nav.widthUnit = unit;
 		this.persistSoon();
 		this.touch("nav");
@@ -498,7 +500,7 @@ export class AppModel {
 		if (!this.running) return;
 		const { book, chapter, collapsedCodex, storyWidth, libraryWidth, loreWidth, viewWidths, widthUnit, widthsLinked, loreHidden, cardTiers, statsCount } = this.nav;
 		try {
-			await this.controller.saveMachineState({ selectedNovel: book, selectedObject: chapter, collapsedCodexFolderIds: [...collapsedCodex], leftWidth: storyWidth, libraryWidth, loreWidth, widthUnit, widthsLinked, storytellingWidths: viewWidths.storytelling, seriesWidths: viewWidths.series, novelWidths: viewWidths.novel, ...(loreHidden ? { loreHidden } : {}), ...(cardTiers !== undefined ? { cardTiers } : {}), ...(statsCount !== "day" ? { statsCount } : {}) });
+			await this.controller.saveMachineState({ selectedNovel: book, selectedObject: chapter, collapsedCodexFolderIds: [...collapsedCodex], leftWidth: storyWidth, libraryWidth, loreWidth, widthUnit, widthsLinked, storytellingWidths: viewWidths.storytelling, seriesWidths: viewWidths.series, novelWidths: viewWidths.novel, codexWidths: viewWidths.codex, archiveWidths: viewWidths.archive, ...(loreHidden ? { loreHidden } : {}), ...(cardTiers !== undefined ? { cardTiers } : {}), ...(statsCount !== "day" ? { statsCount } : {}) });
 		} catch {
 			/* where you were is a convenience: never worth a notice */
 		}

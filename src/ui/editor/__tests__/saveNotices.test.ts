@@ -63,10 +63,10 @@ describe("what the author is told about a save", () => {
 		expect(n.text).toContain("r.md");
 	});
 
-	it("the read-only banners are quiet and say why", () => {
-		expect(readOnlyBanner("the chapter is archived (archived chapters are read-only until un-archived)")).toBe("Archived. Unarchive it to edit.");
-		expect(readOnlyBanner("the project is open read-only (it was made by a newer storyForge)")).toBe("This project was made by a newer storyForge. Update the app to edit it.");
-		expect(readOnlyBanner("the file is stored in iCloud and has not been downloaded yet")).toBe("Downloading from iCloud…");
-		expect(readOnlyBanner("something else")).toBe("Read-only: something else");
+	it("the read-only banners say why, and are notices of their kind", () => {
+		expect(readOnlyBanner("the chapter is archived (archived chapters are read-only until un-archived)")).toEqual({ kind: "warning", text: "Archived. Unarchive it to edit." });
+		expect(readOnlyBanner("the project is open read-only (it was made by a newer storyForge)")).toEqual({ kind: "warning", text: "This project was made by a newer storyForge. Update the app to edit it." });
+		expect(readOnlyBanner("the file is stored in iCloud and has not been downloaded yet")).toEqual({ kind: "information", text: "Downloading from iCloud…" });
+		expect(readOnlyBanner("something else")).toEqual({ kind: "warning", text: "Read-only: something else" });
 	});
 });

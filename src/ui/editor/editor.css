@@ -11,15 +11,31 @@
 }
 .sf-editor-banner {
 	flex: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--space-2);
 	padding: var(--space-1) var(--space-4);
 	background: var(--purpose-raised-bg);
-	color: var(--purpose-text); /* a state, not a message, so it stays neutral; its text is fg now (it was grey2, 3.99:1 at 12 px) */
+	color: var(--purpose-text); /* fg on the tint (it was grey2, 3.99:1 at 12 px) */
 	font-family: var(--ts-hint-family);
 	font-weight: var(--ts-hint-weight);
 	font-size: var(--ts-hint-size);
 	font-variation-settings: var(--ts-hint-var);
 	text-align: center;
 }
+/* The banner is a notice of its kind (round five, decision 122): a tinted fill, a 3 px edge and the kind's icon. */
+.sf-editor-banner--warning {
+	background: var(--purpose-notice-warning-fill);
+	border-left: 3px solid var(--purpose-notice-warning-edge);
+}
+.sf-editor-banner--warning .sf-notice-icon { color: var(--purpose-notice-warning-edge); }
+.sf-editor-banner--information {
+	background: var(--purpose-notice-information-fill);
+	border-left: 3px solid var(--purpose-notice-information-edge);
+}
+.sf-editor-banner--information .sf-notice-icon { color: var(--purpose-notice-information-edge); }
+.sf-editor-banner .sf-notice-icon { flex: none; }
 
 .sf-editor .cm-editor {
 	height: 100%;

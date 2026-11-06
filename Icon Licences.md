@@ -552,3 +552,5 @@ The filter by type button in the Codex strip, under New Folder and New Note, on 
 **1.10.0:** the Settings list's four icons (**settings**, a cog; **dashboard**, four panels; **keyboard**; **clipboard**, a clipboard with bars) are Kenny's own work, signed volcanicMole ("Rounded Settings", "Rounded Layout Dashboard", "Rounded Keyboard" and "Rounded Clipboard Data"), based on Tabler Icons (MIT; the notice is in the MIT section above, which stays with them). They are drawn as the Back Up shield is (32 px, before the text, in the row's colour). The paths are in `src/ui/kit/navIconShapes.ts`.
 
 **1.10.0 (panel widths):** the two column icons of Settings ▸ General ▸ this computer are Tabler's filled `layout-sidebar` (left panel) and `layout-sidebar-right` (right panel), MIT (the notice is in the MIT section above), supplied by Kenny and unchanged. Their paths are in `src/ui/kit/panelIcons.ts`.
+
+**1.10.0 (Unarchive):** the Unarchive button's icon is Tabler's filled `sunrise` (MIT; the notice is in the MIT section above), supplied by Kenny and unchanged, in place of Lucide's archive-restore. Its paths are in `src/ui/kit/unarchiveIcon.ts`.

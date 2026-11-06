@@ -120,3 +120,39 @@ test("no page of Settings has a header inside it, and Writing has four sub-pages
 		}
 	}
 });
+
+test.describe("the archive tab and the banner", () => {
+	const token = (page: Page, v: string) => page.evaluate((n) => { const i = document.createElement("i"); i.style.color = `var(${n})`; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; }, v);
+
+	test("the selected archived item is a block in the Codex colour; the list is on bg_dim, not a card; Unarchive is the sunrise icon", async ({ page }) => {
+		await openProject(page);
+		await flipFace(page);
+		await page.getByRole("tab", { name: "archive" }).click();
+		const list = page.locator(".sf-codex-body > .sf-forge-body");
+		expect(await list.evaluate((e) => getComputedStyle(e).backgroundColor)).toBe("rgba(0, 0, 0, 0)"); // bg_dim shows through: no card
+		const first = page.locator(".sf-archive-open").first();
+		await first.click();
+		await expect(first).toHaveClass(/is-active/);
+		await expect(first).toHaveAttribute("aria-pressed", "true");
+		expect(await first.evaluate((e) => getComputedStyle(e).backgroundColor)).toBe(await token(page, "--purpose-codex"));
+		expect(await first.evaluate((e) => getComputedStyle(e).color)).toBe(await token(page, "--purpose-panel-bg"));
+		await expect(page.locator(".sf-archive-open.is-active")).toHaveCount(1);
+		const unarchive = page.getByRole("button", { name: /^Unarchive / }).first();
+		await expect(unarchive.locator("svg path")).toHaveCount(8); // the sunrise's eight shapes
+	});
+
+	test("the archived banner is a warning: bg_yellow, the warning icon and its text, the kind's edge", async ({ page }) => {
+		await openProject(page);
+		await flipFace(page);
+		await page.getByRole("tab", { name: "archive" }).click();
+		await page.locator(".sf-archive-open").first().click();
+		const banner = page.locator(".sf-slot--library:not([hidden]) .sf-editor-banner");
+		await expect(banner).toBeVisible();
+		await expect(banner).toHaveClass(/sf-editor-banner--warning/);
+		await expect(banner).toContainText("Archived. Unarchive it to edit.");
+		await expect(banner.getByRole("img", { name: "Warning" })).toBeVisible();
+		expect(await banner.evaluate((e) => getComputedStyle(e).backgroundColor)).toBe(await token(page, "--purpose-notice-warning-fill"));
+		expect(await banner.evaluate((e) => getComputedStyle(e).color)).toBe(await token(page, "--purpose-text"));
+		expect(await banner.locator("svg").evaluate((e) => getComputedStyle(e).color)).toBe(await token(page, "--purpose-notice-warning-edge"));
+	});
+});

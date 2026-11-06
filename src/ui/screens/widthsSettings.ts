@@ -17,13 +17,11 @@ export function widthsSettings(model: AppModel): HTMLElement {
 	const draw = (): void => {
 		const unitNow = model.nav.widthUnit;
 		const unitWord = unitNow === "px" ? "px" : "%";
-		const note = el("p", { class: "sf-muted", text: "These stay on this computer, for this project. Unlike the rest of this dialog, they don't travel with the story. Each group is the widths of the left panel and the right panel only, never the central workspace." });
+		const note = el("p", { class: "sf-muted", text: "These stay on this computer, for this project. Unlike the rest of this dialog, they don't travel with the story. Each row is the widths of the left panel and the right panel only, never the central workspace." });
 
-		const linked = el("input", { attrs: { type: "checkbox", "aria-label": "Keep the panels the same width" } });
+		const linked = el("input", { attrs: { type: "checkbox", "aria-label": "Keep panels the same width" } });
 		linked.checked = model.nav.widthsLinked;
 		linked.addEventListener("change", () => (model.setWidthsLinked(linked.checked), draw()));
-		// Inside the storytelling group: it applies to the storytelling widths only.
-		const linkedRow = el("label", { class: "sf-setting-row sf-width-linked" }, el("span", { class: "sf-setting-label", text: "Keep the panels the same width" }), linked);
 
 		const unit = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": "Measure panel widths in" } }, el("option", { text: "Percent of the window", attrs: { value: "percent" } }), el("option", { text: "Pixels", attrs: { value: "px" } }));
 		unit.value = unitNow;
@@ -55,23 +53,28 @@ export function widthsSettings(model: AppModel): HTMLElement {
 			return el("div", { class: "sf-width-cell" }, input, hint);
 		};
 
-		/** A view's group: its icon and a plain word (ordinary text, not a header or a button), then the two columns. */
-		const set = (view: WidthView): HTMLElement => {
+		/** A view's row: its icon and a plain word (body text, not a header), the left panel's width, the right panel's and the width options. */
+		const row = (view: WidthView): HTMLElement => {
 			const w = model.panelWidths(view);
-			const label = el("div", { class: "sf-width-view" }, navIcon(view, "32px"), el("span", { class: "sf-width-view-label", text: view }));
-			const head = (...icons: SVGElement[]): HTMLElement => el("div", { class: "sf-width-colhead" }, ...icons);
-			// Linked (the storytelling set only): one figure for both panels, marked by both icons.
-			const body = w.linked
-				? [head(panelIcon("left"), panelIcon("right")), figure(`${view}, left and right panel width`, view, "shared", w.story)]
-				: [head(panelIcon("left")), head(panelIcon("right")), figure(`${view}, left panel width`, view, "story", w.story), figure(`${view}, right panel width`, view, "lore", w.lore)];
-			return el("div", { class: "sf-width-set", attrs: { role: "group", "aria-label": view } }, label, ...(view === "storytelling" ? [linkedRow] : []), el("div", { class: `sf-width-grid${w.linked ? " is-linked" : ""}` }, ...body));
+			const name = el("th", { class: "sf-width-view", attrs: { scope: "row" } }, el("span", { class: "sf-width-view-inner" }, navIcon(view, "32px"), el("span", { class: "sf-width-view-label", text: view })));
+			// The same-width switch is the storytelling row's alone; with it on, one figure covers both panels.
+			const left = w.linked ? figure(`${view}, left and right panel width`, view, "shared", w.story) : figure(`${view}, left panel width`, view, "story", w.story);
+			const right = w.linked ? null : figure(`${view}, right panel width`, view, "lore", w.lore);
+			const options = view === "storytelling" ? el("label", { class: "sf-width-linked" }, linked, el("span", { text: "Keep panels the same width" })) : null;
+			return el("tr", { class: "sf-width-row", dataset: { view } }, name, el("td", {}, left), el("td", {}, ...(right ? [right] : [])), el("td", {}, ...(options ? [options] : [])));
 		};
+		const table = el(
+			"table",
+			{ class: "sf-width-table", attrs: { "aria-label": "Side panel widths" } },
+			el("thead", {}, el("tr", {}, el("th", { attrs: { "aria-label": "region" } }), el("th", { class: "sf-width-colhead", attrs: { "aria-label": "left panel width", title: "left panel width" } }, panelIcon("left")), el("th", { class: "sf-width-colhead", attrs: { "aria-label": "right panel width", title: "right panel width" } }, panelIcon("right")), el("th", { attrs: { "aria-label": "width options" } }))),
+			el("tbody", {}, ...WIDTH_VIEWS.map(row)),
+		);
 		const narrow = isNarrowed(model.panelWidths(), "storytelling", model.nav.loreHidden, win()) ? [el("p", { class: "sf-muted", text: "The panels are narrower than this in the current window." })] : [];
 
 		root.replaceChildren(
 			note,
 			el("label", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: "Measure widths in" }), unit),
-			...WIDTH_VIEWS.map(set),
+			table,
 			...narrow,
 		);
 	};

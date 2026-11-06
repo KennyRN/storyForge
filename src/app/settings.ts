@@ -498,10 +498,13 @@ export interface MachineProjectState {
 	widthUnit?: "px" | "percent";
 	/** The same-width switch; absent means on. */
 	widthsLinked?: boolean;
-	/** Round five: the side panels' widths per view (the left panel and the context panel, in `widthUnit`), seeded from the keys above when absent. The Codex and Archive tabs keep using `libraryWidth` and `loreWidth`. */
+	/** Round five: the side panels' widths per view (the left panel and the context panel, in `widthUnit`), seeded from the keys above when absent. */
 	storytellingWidths?: ViewWidths;
 	seriesWidths?: ViewWidths;
 	novelWidths?: ViewWidths;
+	/** The Codex and Archive tabs have their own sets too (round five), starting from `libraryWidth` and `loreWidth`. */
+	codexWidths?: ViewWidths;
+	archiveWidths?: ViewWidths;
 	/** View ▸ Show or Hide Lore Slot. */
 	loreHidden?: boolean;
 	/** The chapter card sizes of 1.6 and earlier (decision 41, retired in 1.7.0). No longer used: read exactly as stored and written back unchanged on every save, never interpreted, cleaned or dropped. */
@@ -536,6 +539,8 @@ export async function loadMachineProjectState(store: MachineStore, projectKey: s
 			...(isViewWidths(parsed.storytellingWidths) ? { storytellingWidths: { left: parsed.storytellingWidths.left, lore: parsed.storytellingWidths.lore } } : {}),
 			...(isViewWidths(parsed.seriesWidths) ? { seriesWidths: { left: parsed.seriesWidths.left, lore: parsed.seriesWidths.lore } } : {}),
 			...(isViewWidths(parsed.novelWidths) ? { novelWidths: { left: parsed.novelWidths.left, lore: parsed.novelWidths.lore } } : {}),
+			...(isViewWidths(parsed.codexWidths) ? { codexWidths: { left: parsed.codexWidths.left, lore: parsed.codexWidths.lore } } : {}),
+			...(isViewWidths(parsed.archiveWidths) ? { archiveWidths: { left: parsed.archiveWidths.left, lore: parsed.archiveWidths.lore } } : {}),
 			...(parsed.loreHidden === true ? { loreHidden: true } : {}),
 			...(STATS_COUNTS.some((c) => c === parsed.statsCount) && parsed.statsCount !== "day" ? { statsCount: parsed.statsCount as StatsCount } : {}),
 			...("cardTiers" in parsed ? { cardTiers: parsed.cardTiers } : {}),

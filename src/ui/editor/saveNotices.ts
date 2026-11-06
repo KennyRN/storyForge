@@ -59,10 +59,18 @@ export function noticeForOutsideChange(path: string, recoveryPath: string, ctx: 
 	return { kind: "error", key: `outside:${path}`, sticky: true, text: `${nameOf(path)} changed on disk while you had unsaved text. The new version is shown, and your text is saved at ${recoveryPath}.`, actions: revealAction(recoveryPath, ctx) };
 }
 
-/** The quiet banner above a read-only editor, from the writer's reason. */
-export function readOnlyBanner(reason: string): string {
-	if (/newer storyForge/i.test(reason)) return "This project was made by a newer storyForge. Update the app to edit it.";
-	if (/archived/i.test(reason)) return "Archived. Unarchive it to edit.";
-	if (/icloud/i.test(reason)) return "Downloading from iCloud…";
-	return `Read-only: ${reason}`;
+/**
+ * The banner above a read-only editor, from the writer's reason, as a notice of its kind (decision 122): the newer-format, archived and read-only states are
+ * warnings (you were stopped; nothing is lost), "Downloading from iCloud…" is information.
+ */
+export type BannerKind = "warning" | "information";
+export interface Banner {
+	text: string;
+	kind: BannerKind;
+}
+export function readOnlyBanner(reason: string): Banner {
+	if (/newer storyForge/i.test(reason)) return { text: "This project was made by a newer storyForge. Update the app to edit it.", kind: "warning" };
+	if (/archived/i.test(reason)) return { text: "Archived. Unarchive it to edit.", kind: "warning" };
+	if (/icloud/i.test(reason)) return { text: "Downloading from iCloud…", kind: "information" };
+	return { text: `Read-only: ${reason}`, kind: "warning" };
 }

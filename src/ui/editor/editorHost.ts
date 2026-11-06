@@ -5,7 +5,8 @@ import { el, fill } from "../kit/dom";
 import type { AppModel } from "../model";
 import { arriveWriting, setWritingFallback, trackWriting } from "./lastWriting";
 import { mountReadOnlyEditor, mountSessionEditor, type MountedEditor, type TextUpdate, openFind, openFindReplace, redo, undo } from "./editor";
-import { noticeForOutsideChange, noticesForSave, readOnlyBanner } from "./saveNotices";
+import { noticeForOutsideChange, noticesForSave, readOnlyBanner, type Banner } from "./saveNotices";
+import { noticeIcon } from "../kit/noticeIcons";
 
 /**
  * The editor slots: the chapter's (centre: the storytelling side's workspace) and the context panel's (lore), and one for each library
@@ -190,11 +191,11 @@ export class EditorHost {
 		let occupant: Occupant | null = null;
 		const project = running.opened.project;
 		if (project.isPlaceholder(path)) {
-			this.show(s.host, container, "Downloading from iCloud…");
+			this.show(s.host, container, readOnlyBanner("iCloud"));
 		}
 		try {
 			let session: ProseSession | undefined;
-			let banner: string | undefined;
+			let banner: Banner | undefined;
 			let readOnlyText: string | undefined;
 			try {
 				session = await this.model.controller.openFile(path);
@@ -244,8 +245,8 @@ export class EditorHost {
 		this.occupantChanged();
 	}
 
-	private show(host: HTMLElement, pane: HTMLElement, banner: string | undefined, editor?: HTMLElement): void {
-		fill(pane, banner ? el("div", { class: "sf-editor-banner", attrs: { role: "note" }, text: banner }) : null, editor);
+	private show(host: HTMLElement, pane: HTMLElement, banner: Banner | undefined, editor?: HTMLElement): void {
+		fill(pane, banner ? el("div", { class: `sf-editor-banner sf-editor-banner--${banner.kind}`, attrs: { role: "note" } }, noticeIcon(banner.kind, 16), el("span", { class: "sf-editor-banner-text", text: banner.text })) : null, editor);
 		fill(host, pane);
 	}
 

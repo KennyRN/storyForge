@@ -30,7 +30,7 @@ test.describe("panel widths", () => {
 		await openProject(page);
 		const s = await stored(page);
 		expect(s).toMatchObject({ unit: "percent", linked: true });
-		for (const v of ["storytelling", "series", "novel"]) expect(s.sets[v]).toEqual({ left: s.oldStory, lore: s.oldStory });
+		for (const v of ["storytelling", "series", "novel", "codex", "archive"]) expect(s.sets[v]).toEqual({ left: s.oldStory, lore: s.oldStory });
 		expect(s.legacy).toEqual({ left: s.oldStory, lore: s.oldStory });
 		const w = await widths(page);
 		expect(w.left).toBe(w.lore);
@@ -65,23 +65,27 @@ test.describe("panel widths", () => {
 		expect(s.sets.series.left).not.toBe(s.sets.storytelling.left);
 	});
 
-	test("the Codex and Archive tabs keep the older library pair, shared between them, apart from the series and novel sets", async ({ page }) => {
+	test("the Codex and Archive tabs each have their own set, starting from the older library pair; the old keys are left as they were", async ({ page }) => {
 		await openProject(page);
+		const first = await stored(page);
 		await flipFace(page);
 		const before = await widths(page);
 		await tab(page, "codex");
 		await leftBar(page).focus();
 		await page.keyboard.press("ArrowRight");
-		const codex = await widths(page);
-		near(codex.left, before.left + 16);
+		near((await widths(page)).left, before.left + 16);
 		await tab(page, "archive");
-		near((await widths(page)).left, before.left + 16); // the same pair
+		near((await widths(page)).left, before.left); // the archive set did not move
 		await tab(page, "novel");
-		near((await widths(page)).left, before.left); // the novel set did not move
+		near((await widths(page)).left, before.left);
 		await tab(page, "series");
 		near((await widths(page)).left, before.left);
+		await tab(page, "codex");
+		near((await widths(page)).left, before.left + 16);
 		const s = await stored(page);
-		expect(s.legacy.left).toBeGreaterThan(s.sets.novel.left);
+		expect(s.sets.codex.left).toBeGreaterThan(s.sets.archive.left);
+		expect(s.sets.archive).toEqual(first.sets.archive);
+		expect(s.legacy).toEqual(first.legacy); // libraryWidth and loreWidth are left as they were
 	});
 
 	test("unlinked, a set's left panel and context panel change on their own", async ({ page }) => {
@@ -146,7 +150,7 @@ test.describe("panel widths", () => {
 	test("typed figures are refused outside the limits and change nothing; the limits apply to each set", async ({ page }) => {
 		await openProject(page);
 		const set = await stored(page);
-		for (const view of ["storytelling", "series", "novel"]) {
+		for (const view of ["storytelling", "series", "novel", "codex", "archive"]) {
 			const bad = await page.evaluate((v) => (window.__app as any).commitTypedWidth(v, "shared", 1), view);
 			expect(bad.ok, view).toBe(false);
 			const tooWide = await page.evaluate((v) => (window.__app as any).commitTypedWidth(v, "shared", 99), view);
@@ -177,42 +181,46 @@ test.describe("panel widths", () => {
 			await expect(page.locator("section[aria-label='This computer, this project']")).toBeVisible();
 		};
 		const group = (page: Page) => page.locator("section[aria-label='This computer, this project']");
-		const view = (page: Page, v: string) => group(page).getByRole("group", { name: v, exact: true });
-		const sets = ["storytelling", "series", "novel"] as const;
+		const table = (page: Page) => group(page).getByRole("table", { name: "Side panel widths" });
+		const view = (page: Page, v: string) => table(page).locator(`tr[data-view='${v}']`);
+		const sets = ["storytelling", "series", "novel", "codex", "archive"] as const;
 
-		test("says plainly that these stay on this computer, shows the three views by their icon and word, and the switch only in the storytelling group", async ({ page }) => {
+		test("one table: region, left, right and width options, headed once by two icons; a row per region with its icon and a plain word", async ({ page }) => {
 			await openProject(page);
 			await openSettings(page);
 			await expect(group(page)).toContainText("stay on this computer, for this project");
 			await expect(group(page)).toContainText("never the central workspace");
+			await expect(table(page).locator("thead svg")).toHaveCount(2); // the left and right sidebar icons, once
+			await expect(table(page).locator("thead")).toHaveText("");
+			await expect(table(page).locator("tbody tr")).toHaveCount(5);
 			for (const v of sets) {
-				await expect(view(page, v)).toBeVisible();
-				await expect(view(page, v).locator(".sf-width-view svg")).toHaveCount(1); // the view's own icon
-				await expect(view(page, v).locator(".sf-width-view-label")).toHaveText(v); // a plain word: no "panel widths"
+				await expect(view(page, v).locator(".sf-width-view svg")).toHaveCount(1); // the region's own icon
+				await expect(view(page, v).locator(".sf-width-view-label")).toHaveText(v);
 				await expect(view(page, v).getByRole("heading")).toHaveCount(0);
-				await expect(view(page, v).getByRole("button")).toHaveCount(0); // not buttons
+				await expect(view(page, v).getByRole("button")).toHaveCount(0);
 			}
-			await expect(view(page, "storytelling").getByLabel("Keep the panels the same width")).toBeChecked();
-			for (const v of ["series", "novel"]) await expect(view(page, v).getByLabel("Keep the panels the same width")).toHaveCount(0);
-			await expect(group(page).getByLabel("Keep the panels the same width")).toHaveCount(1);
-			// linked: one figure for the storytelling panels, two for each of the others
+			// the switch sits in the storytelling row's options cell; the other rows leave it empty
+			await expect(view(page, "storytelling").getByLabel("Keep panels the same width")).toBeChecked();
+			await expect(group(page).getByLabel("Keep panels the same width")).toHaveCount(1);
+			for (const v of sets.slice(1)) await expect(view(page, v).locator("td").last()).toBeEmpty();
+			// linked: one figure for storytelling, two for each of the others
 			await expect(view(page, "storytelling").locator("input[type=number]")).toHaveCount(1);
-			for (const v of ["series", "novel"]) await expect(view(page, v).locator("input[type=number]")).toHaveCount(2);
+			for (const v of sets.slice(1)) await expect(view(page, v).locator("input[type=number]")).toHaveCount(2);
 		});
 
-		test("each width has a full name for the screen reader and a tooltip, and its column is marked by an icon, not text", async ({ page }) => {
+		test("each width has a full name for the screen reader and a tooltip", async ({ page }) => {
 			await openProject(page);
 			await openSettings(page);
-			for (const v of ["series", "novel"]) {
+			for (const v of sets.slice(1)) {
 				for (const side of ["left", "right"]) {
 					const f = view(page, v).getByLabel(`${v}, ${side} panel width`, { exact: true });
 					await expect(f).toBeVisible();
 					await expect(f).toHaveAttribute("title", new RegExp(`^${v}, ${side} panel width`));
 				}
-				await expect(view(page, v).locator(".sf-width-colhead svg")).toHaveCount(2); // the left and right sidebar icons
-				await expect(view(page, v).locator(".sf-width-colhead")).toHaveText(["", ""]);
 			}
 			await expect(view(page, "storytelling").getByLabel("storytelling, left and right panel width", { exact: true })).toBeVisible();
+			await expect(table(page).getByRole("columnheader", { name: "left panel width" })).toBeVisible();
+			await expect(table(page).getByRole("columnheader", { name: "right panel width" })).toBeVisible();
 		});
 
 		test("a drag or key shows in settings when reopened; a typed figure moves the panel behind the dialog", async ({ page }) => {
@@ -228,13 +236,11 @@ test.describe("panel widths", () => {
 			const after = await widths(page);
 			near(after.left, Math.round((await page.evaluate(() => innerWidth)) * 0.3));
 			expect(after.lore).toBe(after.left);
-			// the other two sets did not move
 			const s = await stored(page);
-			expect(s.sets.series.left).toBe(s.oldStory);
-			expect(s.sets.novel.left).toBe(s.oldStory);
+			for (const v of sets.slice(1)) expect(s.sets[v].left, v).toBe(s.oldStory);
 		});
 
-		test("an out-of-range figure is refused with its range and stores nothing, in each view; Escape puts the figure back", async ({ page }) => {
+		test("an out-of-range figure is refused with its range and stores nothing, in each row; Escape puts the figure back", async ({ page }) => {
 			await openProject(page);
 			const set = await stored(page);
 			await openSettings(page);
@@ -256,15 +262,13 @@ test.describe("panel widths", () => {
 			await openProject(page);
 			await openSettings(page);
 			const before = await widths(page);
-			await view(page, "storytelling").getByLabel("Keep the panels the same width").uncheck();
+			await view(page, "storytelling").getByLabel("Keep panels the same width").uncheck();
 			await expect(view(page, "storytelling").locator("input[type=number]")).toHaveCount(2);
-			await expect(group(page).locator("input[type=number]")).toHaveCount(6);
+			await expect(table(page).locator("input[type=number]")).toHaveCount(10);
 			await group(page).getByLabel("Measure panel widths in").selectOption("px");
 			near((await widths(page)).left, before.left);
 			await expect(group(page).getByLabel("storytelling, right panel width", { exact: true })).toHaveValue(String(before.lore));
-			const s = await stored(page);
-			expect(s.linked).toBe(false);
-			expect(s.sets.series.left).toBe(s.sets.series.lore); // series and novel were never linked: only seeded equal
+			expect((await stored(page)).linked).toBe(false);
 		});
 
 		test("changing the switches in settings writes nothing to project.md", async ({ page }) => {
@@ -272,7 +276,7 @@ test.describe("panel widths", () => {
 			const before = await read(page);
 			await openSettings(page);
 			await group(page).getByLabel("Measure panel widths in").selectOption("px");
-			await view(page, "storytelling").getByLabel("Keep the panels the same width").uncheck();
+			await view(page, "storytelling").getByLabel("Keep panels the same width").uncheck();
 			await page.waitForTimeout(700);
 			expect(await read(page)).toBe(before);
 		});
