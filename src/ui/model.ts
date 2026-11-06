@@ -35,8 +35,10 @@ export interface Nav {
 	forgeTab: ForgeTab;
 	/** Not persisted: the app opens on the chapter. */
 	centreView: CentreView;
-	/** The selected novel's folder name. */
+	/** The novel being written: the selected novel's folder name. */
 	book: string | null;
+	/** The library side's chosen novel (Brief 19, decisions 140 and 143): chosen on the series tab or the novel tab's selector, shown in the context panel. Session only; it never changes `book`, and is cleared only when the novel being written changes. */
+	libraryBook: string | null;
 	/** The selected chapter's filename. */
 	chapter: string | null;
 	collapsedCodex: Set<string>;
@@ -105,7 +107,7 @@ export class AppModel {
 	readonly notices = new NoticeCenter();
 	/** Set by the shell once the slots exist. */
 	editors: EditorHost | null = null;
-	nav: Nav = { face: "storytelling", forgeTab: "novel", centreView: "chapter", book: null, chapter: null, collapsedCodex: new Set(), ...initialWidths(machineDefaults(), windowWidth()), loreHidden: false, cardTiers: {}, statsCount: "day" };
+	nav: Nav = { face: "storytelling", forgeTab: "novel", centreView: "chapter", book: null, libraryBook: null, chapter: null, collapsedCodex: new Set(), ...initialWidths(machineDefaults(), windowWidth()), loreHidden: false, cardTiers: {}, statsCount: "day" };
 	selection: Selection | null = null;
 	private persistTimer: ReturnType<typeof setTimeout> | undefined;
 	private listeners = new Map<Topic, Set<() => void>>();
@@ -166,6 +168,7 @@ export class AppModel {
 			forgeTab: settings.layout === "codex" ? "codex" : settings.layout === "seriesBrowse" ? "series" : "novel",
 			centreView: "chapter",
 			book,
+			libraryBook: null,
 			chapter,
 			collapsedCodex: new Set(machine.collapsedCodexFolderIds),
 			...initialWidths(machine, windowWidth()),
@@ -176,21 +179,23 @@ export class AppModel {
 		this.selection = null;
 	}
 
-	/** Selects a novel (from the series tab): its last chapter, or its first, becomes the selection, and the novel tab shows it. */
-	async selectBook(book: string): Promise<void> {
-		const running = this.running;
-		if (!running) return;
-		const chapters = getBookChapters(running.opened.project, book);
-		const first = chapters.ordered[0]?.name ?? chapters.unplaced[0]?.name ?? null;
+	/** Chooses a novel on the library side (the series tab, or the novel tab's selector): it is shown in the context panel and nothing else changes. `nav.book`, the chapter and the editor are untouched (decision 143, option A). */
+	chooseNovel(book: string): void {
+		if (this.nav.libraryBook === book) return;
+		this.nav.libraryBook = book;
+		this.select({ kind: "novel", book });
+	}
+
+	/** The novel the library side shows: the chosen one, else the one being written. */
+	get shownBook(): string | null {
+		return this.nav.libraryBook ?? this.nav.book;
+	}
+
+	/** Sets the novel and chapter being written. The library's chosen novel is cleared only when the novel changes, not when another chapter of the same novel is chosen. */
+	private setWritten(book: string, chapter: string | null): void {
+		if (this.nav.book !== book) this.nav.libraryBook = null;
 		this.nav.book = book;
-		this.nav.chapter = first;
-		this.nav.forgeTab = "novel";
-		this.persistSoon();
-		this.touch("nav", "stats", "library", "face");
-		const path = this.currentChapterPath();
-		if (path) await this.editors?.open("centre", path);
-		// Choosing a novel shows its overview, not its chapter (the chapter stays open underneath).
-		this.setCentreView("overview");
+		this.nav.chapter = chapter;
 	}
 
 	/** File ▸ New Chapter, and the navigator's "add the next chapter": a chapter at the end of the novel, opened. */
@@ -288,8 +293,7 @@ export class AppModel {
 
 	/** Selects a chapter and opens it in the centre. */
 	async openChapter(book: string, filename: string): Promise<void> {
-		this.nav.book = book;
-		this.nav.chapter = filename;
+		this.setWritten(book, filename);
 		this.select({ kind: "chapter", book, filename });
 		this.persistSoon();
 		this.setCentreView("chapter");
@@ -303,8 +307,7 @@ export class AppModel {
 	 * one opened), but the library side keeps the view it has: an overview stays up, and the editor under it stays inert.
 	 */
 	async chooseChapter(book: string, filename: string): Promise<void> {
-		this.nav.book = book;
-		this.nav.chapter = filename;
+		this.setWritten(book, filename);
 		this.select({ kind: "chapter", book, filename });
 		this.persistSoon();
 		this.touch("nav", "stats");

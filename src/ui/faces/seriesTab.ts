@@ -27,13 +27,12 @@ export function mountSeriesTab(host: HTMLElement, model: AppModel): () => void {
 		if (!readOnly) attachInlineRename({ row: titleRow, label: titleText, getCurrentTitle: () => getSeriesBooks(project).seriesTitle, onCommit: (name) => writeSeriesTitle(project, name).then(() => model.touch("library")) });
 
 		const row = (folder: string, index: number, unplaced: boolean): HTMLElement => {
-			const selected = model.nav.book === folder;
+			const selected = model.nav.libraryBook === folder; // the library's chosen novel, never the one being written (Brief 19)
 			const r = listRow(folder, selected) // the chosen novel is always marked (the "Highlight the active chapter" setting was retired in 1.7.0);
 			const label = rowTitle(r, numbered[index], unplaced);
 			r.addEventListener("click", (e) => {
 				if ((e.target as HTMLElement).closest(".sf-drag-handle, input")) return;
-				model.select({ kind: "novel", book: folder });
-				void model.selectBook(folder);
+				model.chooseNovel(folder);
 			});
 			if (!readOnly) attachInlineRename({ row: r, label, getCurrentTitle: () => bookDisplayTitle(project, folder), onCommit: (name) => renameBookTitle(project, folder, name).then(() => model.touch("library", "nav")), doubleClick: false });
 			return r;

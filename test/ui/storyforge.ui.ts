@@ -192,12 +192,30 @@ test.describe("the library", () => {
 			expect(await onDisk(page, SERIES)).toContain("x-unknown-note: kept by every rewrite");
 		});
 
-		test("clicking a novel selects it and shows its chapters on the novel tab", async ({ page }) => {
+		test("clicking a novel only chooses it for the library: the series tab stays, and the novel being written and the editor are untouched (Brief 19, decision 143)", async ({ page }) => {
+			const before = await page.evaluate(() => ({ book: window.__app.nav.book, chapter: window.__app.nav.chapter, shown: window.__app.editors!.pathIn("centre") }));
 			await page.locator(".sf-row", { hasText: "Book 2" }).click();
-			await expect(tab(page, "novel")).toHaveAttribute("aria-selected", "true");
-			await expect(page.locator(".sf-row")).toHaveCount(1);
-			await expect(centre(page)).toContainText(/\S/);
-			expect(await page.evaluate(() => window.__app.nav.book)).toBe("bbb");
+			await expect(tab(page, "series")).toHaveAttribute("aria-selected", "true");
+			await expect(page.locator(".sf-row", { hasText: "Book 2" })).toHaveClass(/is-selected/);
+			expect(await page.evaluate(() => window.__app.nav.libraryBook)).toBe("bbb");
+			expect(await page.evaluate(() => ({ book: window.__app.nav.book, chapter: window.__app.nav.chapter, shown: window.__app.editors!.pathIn("centre") }))).toEqual(before);
+			// the central pane's row for it is marked too
+			await expect(page.locator('.sf-overview-row[data-book="bbb"]')).toHaveClass(/is-chosen/);
+			await page.locator(".sf-overview-row", { hasText: "Book 1" }).locator(".sf-overview-name").click();
+			expect(await page.evaluate(() => window.__app.nav.libraryBook)).toBe("aaa");
+			expect(await page.evaluate(() => window.__app.nav.book)).toBe(before.book);
+		});
+
+		test("the chosen novel is cleared only when the novel being written changes, not when another chapter of the same novel is chosen", async ({ page }) => {
+			const nav = () => page.evaluate(() => ({ book: window.__app.nav.book, libraryBook: window.__app.nav.libraryBook }));
+			expect((await nav()).book).toBe("aaa");
+			await page.evaluate(() => window.__app.chooseNovel("bbb"));
+			await page.evaluate(() => window.__app.chooseChapter("aaa", "ch-a2.md")); // another chapter of the novel being written
+			expect(await nav()).toEqual({ book: "aaa", libraryBook: "bbb" });
+			await page.evaluate(() => window.__app.openChapter("aaa", "ch-a1.md"));
+			expect(await nav()).toEqual({ book: "aaa", libraryBook: "bbb" });
+			await page.evaluate(() => window.__app.chooseChapter("bbb", "ch-b1.md")); // the novel being written changes
+			expect(await nav()).toEqual({ book: "bbb", libraryBook: null });
 		});
 
 		test("a novel is renamed inline and a new one is created among the unplaced", async ({ page }) => {

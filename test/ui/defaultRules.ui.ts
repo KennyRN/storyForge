@@ -130,6 +130,7 @@ test.describe("rule 1: highlighted rows touch, as in the Codex list", () => {
 			await page.getByRole("tab", { name: tab }).click();
 			const placed = page.locator(".sf-forge-pane .sf-list").first().locator(".sf-row");
 			await touch(placed, `the ${tab} pane`);
+			if (tab === "series") await placed.first().click(); // the series tab marks only the library's chosen novel (Brief 19)
 			const selected = page.locator(".sf-forge-pane .sf-row.is-selected").first();
 			expect(await style(selected, "background-color"), `${tab}: the accent fill`).toBe(await resolved(page, "background-color", "var(--purpose-accent)"));
 			// the surface's colour on it: the Novel tab's list is on a card (bg0), the series pane's is on the panel (bg_dim)

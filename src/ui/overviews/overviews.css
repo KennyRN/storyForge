@@ -27,6 +27,8 @@
 .sf-overview-row-main { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
 .sf-overview-name { all: unset; cursor: pointer; font-family: var(--ts-body-family); font-weight: var(--ts-body-weight); font-size: var(--ts-body-size); font-variation-settings: var(--ts-body-var); border-radius: 3px; }
 .sf-overview-name:hover { color: var(--purpose-accent); }
+/* The chosen novel (rule 1): the accent fill with the surface's colour on it. */
+.sf-overview-row.is-chosen .sf-overview-name { background: var(--purpose-accent); color: var(--purpose-panel-bg); padding: 2px 8px; margin-left: -8px; border-radius: 4px; }
 .sf-overview-name:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 2px; }
 .sf-overview-row--unplaced .sf-overview-name { color: var(--purpose-text-muted); }
 
