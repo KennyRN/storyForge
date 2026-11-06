@@ -23,7 +23,9 @@ export function mountSeriesOverview(host: HTMLElement, model: AppModel): () => v
 	host.classList.add("sf-overview-body");
 	/** The synopsis and description editors of the current draw. */
 	const bin = new FieldBin();
+	let disposed = false; // a redraw scheduled before the layer swapped this overview out must never write into the layer's next one
 	const draw = (): void => {
+		if (disposed) return;
 		// A redraw never takes a description or synopsis being typed in: its text isn't saved yet.
 		if (document.activeElement instanceof HTMLElement && host.contains(document.activeElement) && document.activeElement.closest(".sf-note-field")) return;
 		bin.clear(); // the editors of the last draw go with it
@@ -67,6 +69,7 @@ export function mountSeriesOverview(host: HTMLElement, model: AppModel): () => v
 	const off = model.subscribe(["library", "stats", "project", "archive"], refresh);
 	const offNav = model.subscribe("nav", mark);
 	return () => {
+		disposed = true;
 		off();
 		offNav();
 		refresh.cancel();

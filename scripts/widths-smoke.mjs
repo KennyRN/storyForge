@@ -112,9 +112,9 @@ const findScript = `on run argv
 					set focused of (item (i - 1) of els) to true
 					return "found " & n
 				end if
-				if act starts with "set:" then
-					-- a slider (Brief 19): its value is set through the accessibility API; the page hears it as the slider being moved
-					set value of e to ((text 5 thru -1 of act) as number)
+				if act is "increment" then
+					-- a slider (Brief 19): one step up, as the accessibility API's own action; the page hears it as the slider being moved
+					perform action "AXIncrement" of e
 					return "found " & n
 				end if
 				if act is "click" then click e
@@ -175,8 +175,12 @@ try {
 		find("AXSlider", "storytelling, left and right panel width", "focus"); // focusing scrolls the group into view
 		await sleep(500);
 		shot("2-settings-group");
-		find("AXSlider", "storytelling, left and right panel width", "set:30"); // no keys are sent: a slider isn't a text box, so the typing guard has nothing to confirm
-		await sleep(700);
+		// no keys are sent (a slider isn't a text box, so the typing guard has nothing to confirm): the slider's own increment action, a half percent a step, from about 22.5 % to 30 %
+		for (let i = 0; i < 15; i++) {
+			find("AXSlider", "storytelling, left and right panel width", "increment");
+			await sleep(250);
+		}
+		await sleep(500);
 		const w = windowFrame()[2];
 		shot("3-typed-30-percent");
 		// The page behind a dialog is inert since 1.8.1 (Fix 8: out of reach of the keyboard, the pointer and the screen reader), so its splitters are no

@@ -157,7 +157,7 @@ async function route(name, send, { expectJoin = false, target = "chapter" } = {}
 			const clickAny = (name) => ["AXButton", "AXCheckBox", "AXToggle", "AXRadioButton", "AXTab"].some((role) => find(role, name, "click").startsWith("found"));
 			await until("the novel name", () => clickAny("Open the novel on the library side"));
 			await until("the series tab", () => clickAny("series"), 8000);
-			await until("the first novel", () => find("AXButton", "Book 1", "click").startsWith("found"), 8000);
+			// the novel's name on the storytelling side chose the novel being written (Book 1) for the library: its synopsis is in the context panel already
 			await until("a synopsis", () => find("AXTextArea", "Synopsis of", "focus").startsWith("found"));
 		}
 		// Type, then prove the text is in the field before the quit is sent: a run where the keystrokes never landed is
@@ -242,7 +242,7 @@ function grepTree(dir, needle) {
 const appleQuit = () => osa(`tell application id "${BUNDLE_ID}" to quit`);
 // Every route twice: once with text typed in the chapter editor, once with text typed in a plot note and once in a synopsis (a field that
 // writes to the project and has focus when the quit arrives).
-for (const target of ["chapter", "plot", "synopsis"]) {
+for (const target of (process.env.QUIT_TARGETS ?? "chapter,plot,synopsis").split(",")) {
 	await routeWithRetries("Apple-event quit (the Dock's Quit, Log Out and Shut Down use this route)", () => appleQuit(), { target });
 	await routeWithRetries("SIGTERM", (c) => c.kill("SIGTERM"), { target });
 	await routeWithRetries("SIGHUP", (c) => c.kill("SIGHUP"), { target });

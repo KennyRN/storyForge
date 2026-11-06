@@ -143,3 +143,13 @@ test.describe("Write this novel", () => {
 		await expect.poll(() => read(page, "_story-library/aaa/ch-a1.md")).toContain("WRITENOVELTEXT");
 	});
 });
+
+test("going from the novel tab to the series tab shows the series overview, not a late redraw of the novel's", async ({ page }) => {
+	await openProject(page);
+	await page.getByRole("button", { name: "Open the novel on the library side" }).click();
+	await expect(page.getByRole("region", { name: "Novel overview" })).toBeVisible();
+	await page.getByRole("tab", { name: "series" }).click();
+	await page.waitForTimeout(800); // longer than the overviews' redraw delay
+	await expect(page.getByRole("region", { name: "Series overview" }).locator(".sf-overview-title")).toHaveText("The Lantern Cycle");
+	await expect(page.locator(".sf-overview .sf-select")).toHaveCount(0);
+});

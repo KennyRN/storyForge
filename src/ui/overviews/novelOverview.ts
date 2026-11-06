@@ -27,7 +27,9 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 	let ghostWatch: ResizeObserver | null = null;
 	let selector: { dispose(): void } | null = null;
 	const selectState: SelectState = { expanded: false };
+	let disposed = false; // a redraw scheduled before the layer swapped this overview out must never write into the layer's next one
 	const draw = (): void => {
+		if (disposed) return;
 		ghostWatch?.disconnect();
 		ghostWatch = null;
 		// A redraw never takes the synopsis being typed in: its text isn't saved yet.
@@ -112,6 +114,7 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 	const refresh = debounced(() => redrawKeepingFocus(host, draw));
 	const off = model.subscribe(["library", "stats", "project", "archive", "nav"], refresh);
 	return () => {
+		disposed = true;
 		off();
 		ghostWatch?.disconnect();
 		selector?.dispose();
