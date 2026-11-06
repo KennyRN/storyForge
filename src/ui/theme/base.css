@@ -921,3 +921,15 @@ input[aria-invalid="true"] {
 .sf-setting-row--colour {
 	grid-template-columns: 11em auto;
 }
+
+/* Settings ▸ General ▸ this computer: the three sets of side-panel widths (round five). */
+.sf-width-set {
+	margin-top: var(--space-3);
+}
+.sf-width-set-name {
+	margin: 0 0 var(--space-1);
+	font-family: var(--ts-body-bold-family);
+	font-weight: var(--ts-body-bold-weight);
+	font-size: var(--ts-body-bold-size);
+	font-variation-settings: var(--ts-body-bold-var);
+}

@@ -40,7 +40,7 @@ test.describe("modal dialogs", () => {
 
 	test("after clicking each tab with the mouse, focus is inside the dialog and Escape closes it", async ({ page }) => {
 		await openProject(page);
-		for (const name of ["General", "story", "this Mac", "Appearance", "Writing", "Sessions", "Backups"]) {
+		for (const name of ["General", "story", "this computer", "Appearance", "Writing", "Sessions", "Backups"]) {
 			await openSettingsDialog(page);
 			await dialogs(page).getByRole("tab", { name, exact: true }).click();
 			await expect(dialogs(page).getByRole("tab", { name, exact: true })).toHaveAttribute("aria-selected", "true");

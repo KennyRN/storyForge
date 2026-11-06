@@ -5,7 +5,7 @@
  */
 import { clampPx, convertUnit, displayWidths, DEFAULT_LEFT_WIDTH_PX, DEFAULT_LORE_WIDTH_PX, DEFAULT_WIDTH_UNIT, fromPx, rangeIn, toPx, type Panel, type PanelWidths, type Range, type WidthUnit } from "./panelWidths";
 import type { AppController, CoverTarget, OpenOutcome, Running } from "../app/appLife";
-import type { MachineProjectState, StatsCount } from "../app/settings";
+import type { MachineProjectState, StatsCount, ViewWidths } from "../app/settings";
 import type { TypingEditorOptions } from "./editor/typingAids";
 import { buildNameIndex, EMPTY_NAMES, type NameIndex } from "../core/typing/names";
 import { collectNameSources } from "../core/typing/nameSources";
@@ -45,6 +45,8 @@ export interface Nav {
 	libraryWidth: number;
 	loreWidth: number;
 	widthUnit: WidthUnit;
+	/** Round five: the side panels' widths (left and context) per view, in `widthUnit`. The Codex and Archive tabs keep the pair `libraryWidth` and `loreWidth`. */
+	viewWidths: Record<WidthView, ViewWidths>;
 	/** "Keep the panels the same width". */
 	widthsLinked: boolean;
 	/** View ▸ Show or Hide Context. */
@@ -62,13 +64,17 @@ export type Selection =
 	| { kind: "codex-folder"; id: string; path?: string }
 	| { kind: "novel"; book: string };
 
+/** The views that have their own side-panel widths (round five). The Codex and Archive tabs are "codex": they keep the older pair. */
+export type WidthView = "storytelling" | "series" | "novel";
+export const WIDTH_VIEWS: readonly WidthView[] = ["storytelling", "series", "novel"];
+
 const machineDefaults = (): MachineProjectState => ({ selectedNovel: null, selectedObject: null, collapsedCodexFolderIds: [] });
 
 /**
  * The stored widths of a project (Fix 5). Before 1.5.0 only `leftWidth` (for both sides) and `loreWidth` were kept, in pixels;
  * with no switch stored the panels are linked, so all three take the storytelling side's width, shown in percent (decision 77).
  */
-function initialWidths(m: MachineProjectState, win: number): Pick<Nav, "storyWidth" | "libraryWidth" | "loreWidth" | "widthUnit" | "widthsLinked"> {
+function initialWidths(m: MachineProjectState, win: number): Pick<Nav, "storyWidth" | "libraryWidth" | "loreWidth" | "viewWidths" | "widthUnit" | "widthsLinked"> {
 	const unit: WidthUnit = m.widthUnit ?? DEFAULT_WIDTH_UNIT;
 	const linked = m.widthsLinked ?? true;
 	const fresh = m.widthUnit === undefined; // figures are pixels
@@ -77,7 +83,17 @@ function initialWidths(m: MachineProjectState, win: number): Pick<Nav, "storyWid
 	const library = linked ? story : asPx(m.libraryWidth, m.leftWidth === undefined ? DEFAULT_LEFT_WIDTH_PX : story);
 	const lore = linked ? story : asPx(m.loreWidth, DEFAULT_LORE_WIDTH_PX);
 	const out = (px: number, key: Panel): number => fromPx(clampPx(key, linked, px), unit, win);
-	return { storyWidth: out(story, "story"), libraryWidth: out(library, "library"), loreWidth: out(lore, "lore"), widthUnit: unit, widthsLinked: linked };
+	const [storyOut, libraryOut, loreOut] = [out(story, "story"), out(library, "library"), out(lore, "lore")];
+	// Round five: today's widths are the starting values of all three sets; a set already stored is read as it is (in the stored unit).
+	const set = (s: ViewWidths | undefined, left: number): ViewWidths => (s ? { left: fromPx(clampPx("story", linked, toPx(s.left, unit, win)), unit, win), lore: fromPx(clampPx("lore", linked, toPx(s.lore, unit, win)), unit, win) } : { left, lore: loreOut });
+	return {
+		storyWidth: storyOut,
+		libraryWidth: libraryOut,
+		loreWidth: loreOut,
+		viewWidths: { storytelling: set(m.storytellingWidths, storyOut), series: set(m.seriesWidths, libraryOut), novel: set(m.novelWidths, libraryOut) },
+		widthUnit: unit,
+		widthsLinked: linked,
+	};
 }
 
 const windowWidth = (): number => (typeof window !== "undefined" && window.innerWidth > 0 ? window.innerWidth : 1440);
@@ -320,56 +336,86 @@ export class AppModel {
 		this.touch("codex");
 	}
 
-	/** The widths as stored, for the pure functions. */
-	panelWidths(): PanelWidths {
-		const { storyWidth: story, libraryWidth: library, loreWidth: lore, widthUnit: unit, widthsLinked: linked } = this.nav;
-		return { story, library, lore, unit, linked };
+	/** The view whose side-panel widths apply now: the storytelling side, the library side's series tab or novel tab, or (the Codex and Archive tabs) the older library pair. */
+	widthView(): WidthView | "codex" {
+		if (this.nav.face === "storytelling") return "storytelling";
+		return this.nav.forgeTab === "series" || this.nav.forgeTab === "novel" ? this.nav.forgeTab : "codex";
+	}
+	private widthSet(view: WidthView | "codex"): ViewWidths {
+		return view === "codex" ? { left: this.nav.libraryWidth, lore: this.nav.loreWidth } : this.nav.viewWidths[view];
+	}
+	private putWidthSet(view: WidthView | "codex", s: ViewWidths): void {
+		if (view === "codex") Object.assign(this.nav, { libraryWidth: s.left, loreWidth: s.lore });
+		else this.nav.viewWidths[view] = { left: s.left, lore: s.lore };
+	}
+
+	/** The widths of one view as stored, for the pure functions (`story` is the left panel, `lore` the context panel). The current view's by default. */
+	panelWidths(view: WidthView | "codex" = this.widthView()): PanelWidths {
+		const s = this.widthSet(view);
+		return { story: s.left, library: s.left, lore: s.lore, unit: this.nav.widthUnit, linked: this.nav.widthsLinked };
 	}
 
 	/** The widths to draw, in pixels, at this window width: narrowed for display if the window is small, stored figures untouched. */
 	displayWidths(win = windowWidth()): { left: number; lore: number } {
-		return displayWidths(this.panelWidths(), this.nav.face, this.nav.loreHidden, win);
+		return displayWidths(this.panelWidths(), "storytelling", this.nav.loreHidden, win);
 	}
 
-	private storeWidths(w: PanelWidths, notify = true): void {
-		Object.assign(this.nav, { storyWidth: w.story, libraryWidth: w.library, loreWidth: w.lore, widthUnit: w.unit, widthsLinked: w.linked });
+	private storeWidths(w: PanelWidths, view: WidthView | "codex" = this.widthView(), notify = true): void {
+		this.putWidthSet(view, { left: w.story, lore: w.lore });
+		Object.assign(this.nav, { widthUnit: w.unit, widthsLinked: w.linked });
 		this.persistSoon();
 		if (notify) this.touch("nav");
 	}
 
-	/** A divider was dragged or keyed: the new width, in pixels, of the left panel on the side shown, or of the context panel. */
+	/** A divider was dragged or keyed: the new width, in pixels, of the left panel or of the context panel, set for the view shown. */
 	setPanelWidthPx(panel: "left" | "lore", px: number, win = windowWidth()): void {
 		const w = this.panelWidths();
-		const key: Panel = panel === "lore" ? "lore" : this.nav.face === "storytelling" ? "story" : "library";
+		const key: Panel = panel === "lore" ? "lore" : "story";
 		const value = fromPx(clampPx(key, w.linked, px), w.unit, win);
-		this.storeWidths(w.linked ? { ...w, story: value, library: value, lore: value } : { ...w, [key]: value }, false); // the shell redraws the panels itself while dragging
+		this.storeWidths(w.linked ? { ...w, story: value, library: value, lore: value } : { ...w, [key]: value }, this.widthView(), false); // the shell redraws the panels itself while dragging
 	}
 
-	/** A figure typed in settings, in the current unit. Refused, with the range, when outside the limits; nothing is stored then. */
-	commitTypedWidth(panel: Panel | "shared", value: number, win = windowWidth()): { ok: true } | { ok: false; range: Range } {
-		const w = this.panelWidths();
-		const key: Panel = panel === "shared" ? "story" : panel;
+	/** A figure typed in settings for one view, in the current unit. Refused, with the range, when outside the limits; nothing is stored then. */
+	commitTypedWidth(view: WidthView, panel: "left" | "lore" | "shared", value: number, win = windowWidth()): { ok: true } | { ok: false; range: Range } {
+		const w = this.panelWidths(view);
+		const key: Panel = panel === "lore" ? "lore" : "story";
 		const range = rangeIn(key, w.linked, w.unit, win);
 		if (!Number.isFinite(value) || value < range.min || value > range.max) return { ok: false, range };
 		const v = w.unit === "px" ? Math.round(value) : Math.round(value * 10) / 10;
-		this.storeWidths(w.linked ? { ...w, story: v, library: v, lore: v } : { ...w, [key]: v });
+		this.storeWidths(w.linked ? { ...w, story: v, library: v, lore: v } : { ...w, [key === "lore" ? "lore" : "story"]: v, ...(key === "story" ? { library: v } : {}) }, view);
 		return { ok: true };
 	}
 
-	/** The same-width switch. Turning it on gives all three the width of the left panel on the side shown. */
+	/** The same-width switch. Turning it on gives each view's context panel the width of its left panel. */
 	setWidthsLinked(on: boolean): void {
-		const w = this.panelWidths();
-		if (w.linked === on) return;
-		if (!on) return this.storeWidths({ ...w, linked: false });
-		const px = clampPx("story", true, toPx(this.nav.face === "storytelling" ? w.story : w.library, w.unit, windowWidth()));
-		const v = fromPx(px, w.unit, windowWidth());
-		this.storeWidths({ ...w, linked: true, story: v, library: v, lore: v });
+		if (this.nav.widthsLinked === on) return;
+		this.nav.widthsLinked = on;
+		if (on) {
+			const win = windowWidth();
+			for (const view of [...WIDTH_VIEWS, "codex" as const]) {
+				const s = this.widthSet(view);
+				const v = fromPx(clampPx("story", true, toPx(s.left, this.nav.widthUnit, win)), this.nav.widthUnit, win);
+				this.putWidthSet(view, { left: v, lore: v });
+			}
+		}
+		this.persistSoon();
+		this.touch("nav");
 	}
 
-	/** The unit switch: each stored figure is converted at the current window width, so nothing moves. */
+	/** The unit switch: each stored figure, in every view, is converted at the current window width, so nothing moves. */
 	setWidthUnit(unit: WidthUnit): void {
-		const w = this.panelWidths();
-		if (w.unit !== unit) this.storeWidths(convertUnit(w, unit, windowWidth()));
+		const old = this.nav.widthUnit;
+		if (old === unit) return;
+		const win = windowWidth();
+		const c = (v: number): number => fromPx(toPx(v, old, win), unit, win);
+		for (const view of [...WIDTH_VIEWS, "codex" as const]) {
+			const s = this.widthSet(view);
+			this.putWidthSet(view, { left: c(s.left), lore: c(s.lore) });
+		}
+		this.nav.storyWidth = c(this.nav.storyWidth); // the older storytelling key stays coherent with the unit; it no longer drives a panel
+		this.nav.widthUnit = unit;
+		this.persistSoon();
+		this.touch("nav");
 	}
 
 	private elisionCache: { source: readonly string[]; words: ReadonlySet<string> } = { source: [], words: new Set() };
@@ -450,9 +496,9 @@ export class AppModel {
 	async persistNow(): Promise<void> {
 		clearTimeout(this.persistTimer);
 		if (!this.running) return;
-		const { book, chapter, collapsedCodex, storyWidth, libraryWidth, loreWidth, widthUnit, widthsLinked, loreHidden, cardTiers, statsCount } = this.nav;
+		const { book, chapter, collapsedCodex, storyWidth, libraryWidth, loreWidth, viewWidths, widthUnit, widthsLinked, loreHidden, cardTiers, statsCount } = this.nav;
 		try {
-			await this.controller.saveMachineState({ selectedNovel: book, selectedObject: chapter, collapsedCodexFolderIds: [...collapsedCodex], leftWidth: storyWidth, libraryWidth, loreWidth, widthUnit, widthsLinked, ...(loreHidden ? { loreHidden } : {}), ...(cardTiers !== undefined ? { cardTiers } : {}), ...(statsCount !== "day" ? { statsCount } : {}) });
+			await this.controller.saveMachineState({ selectedNovel: book, selectedObject: chapter, collapsedCodexFolderIds: [...collapsedCodex], leftWidth: storyWidth, libraryWidth, loreWidth, widthUnit, widthsLinked, storytellingWidths: viewWidths.storytelling, seriesWidths: viewWidths.series, novelWidths: viewWidths.novel, ...(loreHidden ? { loreHidden } : {}), ...(cardTiers !== undefined ? { cardTiers } : {}), ...(statsCount !== "day" ? { statsCount } : {}) });
 		} catch {
 			/* where you were is a convenience: never worth a notice */
 		}

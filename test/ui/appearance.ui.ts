@@ -26,7 +26,7 @@ test.describe("settings sections", () => {
 		await openSettings(page);
 		const tabs = dialog(page).locator(".sf-settings-tabs").getByRole("tab");
 		expect(await tabs.allInnerTexts()).toEqual(["General", "Appearance", "Writing", "Sessions", "Backups"]);
-		expect(await dialog(page).locator(".sf-settings-subtabs").getByRole("tab").allInnerTexts()).toEqual(["general", "story", "this Mac"]); // General is one entry with three sub-pages
+		expect(await dialog(page).locator(".sf-settings-subtabs").getByRole("tab").allInnerTexts()).toEqual(["general", "story", "this computer"]); // General is one entry with three sub-pages
 		await expect(dialog(page).getByRole("tab", { name: "General", exact: true })).toHaveAttribute("aria-selected", "true");
 		await expect(dialog(page).getByRole("tabpanel")).toHaveCount(1);
 		await expect(dialog(page).getByLabel("Opens in")).toBeVisible();

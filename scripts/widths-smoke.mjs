@@ -163,11 +163,11 @@ try {
 
 	// Settings from the menu, then a typed figure.
 	clickMenu("storyForge", "Settings…");
-	// Since 1.10.0 General is one entry with three sub-pages, and the widths are on its "this Mac" sub-page (lower case: it says they are kept on this Mac). Settings opens on General, so the sub-page is chosen by its accessibility action.
-	await until(() => ["AXRadioButton", "AXTab", "AXButton"].some((r) => find(r, "this Mac", "press") === "found"), 8000);
-	if (!(await until(() => find("AXTextField", "Width of all three panels") === "found", 8000))) problems.push("Settings did not show the widths group");
+	// Since 1.10.0 General is one entry with three sub-pages, and the widths are on its "this computer" sub-page (lower case: it says they are kept on this computer). Settings opens on General, so the sub-page is chosen by its accessibility action.
+	await until(() => ["AXRadioButton", "AXTab", "AXButton"].some((r) => find(r, "this computer", "press") === "found"), 8000);
+	if (!(await until(() => find("AXTextField", "storytelling side panels") === "found", 8000))) problems.push("Settings did not show the widths group");
 	else {
-		find("AXTextField", "Width of all three panels", "focus"); // focusing scrolls the group into view
+		find("AXTextField", "storytelling side panels", "focus"); // focusing scrolls the group into view
 		await sleep(500);
 		shot("2-settings-group");
 		typing.key('keystroke "a" using command down');
@@ -181,7 +181,7 @@ try {
 		find("AXButton", "Done", "click"); // close the dialog
 		await sleep(700);
 		check(near(widthOfPanel("Storytelling"), w * 0.3, 3), "a typed 30% moved the left panel behind the dialog");
-		check(near(widthOfPanel("Context"), w * 0.3, 3), "…and the context panel with it (linked)");
+		check(near(widthOfPanel("Context"), w * 0.3, 3), "…and the storytelling set's context panel with it (linked: round five, one set per view)");
 	}
 
 	// Percent scales with the window.

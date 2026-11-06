@@ -479,6 +479,12 @@ export async function setSetting<K extends Key>(project: Project, current: Loade
 export const STATS_COUNTS = ["day", "week", "session", "chapter", "novel"] as const;
 export type StatsCount = (typeof STATS_COUNTS)[number];
 
+export interface ViewWidths {
+	left: number;
+	lore: number;
+}
+const isViewWidths = (v: unknown): v is ViewWidths => !!v && typeof v === "object" && typeof (v as ViewWidths).left === "number" && Number.isFinite((v as ViewWidths).left) && typeof (v as ViewWidths).lore === "number" && Number.isFinite((v as ViewWidths).lore);
+
 /** Where you were in this project: a position, not a preference, so it stays on this computer. */
 export interface MachineProjectState {
 	selectedNovel: string | null;
@@ -492,6 +498,10 @@ export interface MachineProjectState {
 	widthUnit?: "px" | "percent";
 	/** The same-width switch; absent means on. */
 	widthsLinked?: boolean;
+	/** Round five: the side panels' widths per view (the left panel and the context panel, in `widthUnit`), seeded from the keys above when absent. The Codex and Archive tabs keep using `libraryWidth` and `loreWidth`. */
+	storytellingWidths?: ViewWidths;
+	seriesWidths?: ViewWidths;
+	novelWidths?: ViewWidths;
 	/** View ▸ Show or Hide Lore Slot. */
 	loreHidden?: boolean;
 	/** The chapter card sizes of 1.6 and earlier (decision 41, retired in 1.7.0). No longer used: read exactly as stored and written back unchanged on every save, never interpreted, cleaned or dropped. */
@@ -523,6 +533,9 @@ export async function loadMachineProjectState(store: MachineStore, projectKey: s
 			...(typeof parsed.libraryWidth === "number" && Number.isFinite(parsed.libraryWidth) ? { libraryWidth: parsed.libraryWidth } : {}),
 			...(parsed.widthUnit === "px" || parsed.widthUnit === "percent" ? { widthUnit: parsed.widthUnit } : {}),
 			...(typeof parsed.widthsLinked === "boolean" ? { widthsLinked: parsed.widthsLinked } : {}),
+			...(isViewWidths(parsed.storytellingWidths) ? { storytellingWidths: { left: parsed.storytellingWidths.left, lore: parsed.storytellingWidths.lore } } : {}),
+			...(isViewWidths(parsed.seriesWidths) ? { seriesWidths: { left: parsed.seriesWidths.left, lore: parsed.seriesWidths.lore } } : {}),
+			...(isViewWidths(parsed.novelWidths) ? { novelWidths: { left: parsed.novelWidths.left, lore: parsed.novelWidths.lore } } : {}),
 			...(parsed.loreHidden === true ? { loreHidden: true } : {}),
 			...(STATS_COUNTS.some((c) => c === parsed.statsCount) && parsed.statsCount !== "day" ? { statsCount: parsed.statsCount as StatsCount } : {}),
 			...("cardTiers" in parsed ? { cardTiers: parsed.cardTiers } : {}),

@@ -32,7 +32,7 @@ interface ListOptions {
 }
 
 /** The Typing group: five switches, and the lists the aids use (docs/typing-aids.md §8). */
-export function typingSection(ctx: TypingContext): HTMLElement[] {
+export function typingSection(ctx: TypingContext): Record<string, HTMLElement[]> {
 	const { settings, off } = ctx;
 
 	const listEditor = (o: ListOptions): HTMLElement => {
@@ -117,26 +117,35 @@ export function typingSection(ctx: TypingContext): HTMLElement[] {
 		);
 	};
 
-	return [
-		el("p", { class: "sf-muted sf-setting-hint", text: "The Mac's own smart quotes, dashes, text replacements and autocorrection are off in the editor, so only these aids change what you type." }),
-		ctx.check("typingSmartPunctuation", "Curly quotes, dashes and ellipses as you type"),
-		ctx.check("typingNameAutocorrect", "Correct Codex names as you type them"),
-		ctx.check("typingShortcodes", "Shortcodes (~ then Tab)"),
-		ctx.check("typingShortcodeNames", "Offer Codex names after ~"),
-		ctx.check("typingSpecialCharactersButton", "Special-characters button in the context panel"),
-		listEditor({ key: "typingElisions", label: "Words that begin with an apostrophe", hint: "’tis, ’twas, ’em: the opening quote becomes an apostrophe.", placeholder: "tis", normalise: normaliseElision, refusal: "An elision is letters only, such as tis or twas.", fold: (s) => s, extra: [button({ label: "Restore the starting list", disabled: off, onClick: () => void ctx.change("typingElisions", [...DEFAULT_ELISIONS]) })] }),
-		listEditor({ key: "typingWordList", label: "Names without a Codex note", hint: "Corrected the same way as Codex names.", placeholder: "Ælfric", normalise: normaliseName, refusal: "A name is one line, without [ ] # ^ |.", fold: (s) => s.toLowerCase() }),
-		listEditor({ key: "typingNameOptOuts", label: "Names that are also ordinary words", hint: "Never put in place of an all-lower-case word: “the red blossom fell” stays as typed.", placeholder: "Red Blossom", normalise: normaliseName, refusal: "A name is one line, without [ ] # ^ |.", fold: (s) => s.toLowerCase() }),
-		shortcodes(),
-		listEditor({
-			key: "typingSpecialCharacters",
-			label: "Special characters",
-			hint: "In the palette, in this order.",
-			placeholder: "ð",
-			normalise: normaliseSpecialCharacter,
-			refusal: "A special character is a single visible character.",
-			reorder: true,
-			extra: [button({ label: "Add the Old English group", disabled: off, onClick: () => void ctx.change("typingSpecialCharacters", OLD_ENGLISH_GROUP.reduce((acc, c) => withEntry(acc, c), [...settings.typingSpecialCharacters])) })],
-		}),
-	];
+	// Sub-pages of Writing (round five): the typing behaviours, the names, the shortcodes and the special characters.
+	return {
+		"typing behaviours": [
+			el("p", { class: "sf-muted sf-setting-hint", text: "The Mac's own smart quotes, dashes, text replacements and autocorrection are off in the editor, so only these aids change what you type." }),
+			ctx.check("typingSmartPunctuation", "Curly quotes, dashes and ellipses as you type"),
+			listEditor({ key: "typingElisions", label: "Words that begin with an apostrophe", hint: "’tis, ’twas, ’em: the opening quote becomes an apostrophe.", placeholder: "tis", normalise: normaliseElision, refusal: "An elision is letters only, such as tis or twas.", fold: (s) => s, extra: [button({ label: "Restore the starting list", disabled: off, onClick: () => void ctx.change("typingElisions", [...DEFAULT_ELISIONS]) })] }),
+		],
+		names: [
+			ctx.check("typingNameAutocorrect", "Correct Codex names as you type them"),
+			listEditor({ key: "typingWordList", label: "Names without a Codex note", hint: "Corrected the same way as Codex names.", placeholder: "Ælfric", normalise: normaliseName, refusal: "A name is one line, without [ ] # ^ |.", fold: (s) => s.toLowerCase() }),
+			listEditor({ key: "typingNameOptOuts", label: "Names that are also ordinary words", hint: "Never put in place of an all-lower-case word: “the red blossom fell” stays as typed.", placeholder: "Red Blossom", normalise: normaliseName, refusal: "A name is one line, without [ ] # ^ |.", fold: (s) => s.toLowerCase() }),
+		],
+		shortcodes: [
+			ctx.check("typingShortcodes", "Shortcodes (~ then Tab)"),
+			ctx.check("typingShortcodeNames", "Offer Codex names after ~"),
+			shortcodes(),
+		],
+		"special characters": [
+			ctx.check("typingSpecialCharactersButton", "Special-characters button in the context panel"),
+			listEditor({
+				key: "typingSpecialCharacters",
+				label: "Special characters",
+				hint: "In the palette, in this order.",
+				placeholder: "ð",
+				normalise: normaliseSpecialCharacter,
+				refusal: "A special character is a single visible character.",
+				reorder: true,
+				extra: [button({ label: "Add the Old English group", disabled: off, onClick: () => void ctx.change("typingSpecialCharacters", OLD_ENGLISH_GROUP.reduce((acc, c) => withEntry(acc, c), [...settings.typingSpecialCharacters])) })],
+			}),
+		],
+	};
 }

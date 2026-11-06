@@ -29,8 +29,9 @@ const PAGES = ["General", "Appearance", "Writing", "Sessions", "Backups"] as con
 type Page = (typeof PAGES)[number];
 /** General and Appearance are single entries with sub-pages across the top of their panes (round two; General's in round five: "this Mac" says those settings are kept on this Mac). */
 const APPEARANCE_PAGES = ["interface", "library mode", "storytelling mode", "writing"] as const;
-const GENERAL_PAGES = ["general", "story", "this Mac"] as const;
-const SUB_PAGES: Partial<Record<Page, readonly string[]>> = { General: GENERAL_PAGES, Appearance: APPEARANCE_PAGES };
+const GENERAL_PAGES = ["general", "story", "this computer"] as const;
+const WRITING_PAGES = ["typing behaviours", "names", "shortcodes", "special characters"] as const;
+const SUB_PAGES: Partial<Record<Page, readonly string[]>> = { General: GENERAL_PAGES, Appearance: APPEARANCE_PAGES, Writing: WRITING_PAGES };
 const FREQUENCIES: Record<AutomaticBackupFrequency, string> = { "every-open": "Every time the project opens", daily: "Once a day", weekly: "Once a week" };
 
 /**
@@ -450,7 +451,7 @@ export function openSettings(model: AppModel): void {
 						select("chapterNumberingStyle", "Chapter numbering", numbering, (v) => v as NumberingStyle),
 					]),
 				],
-				"this Mac": [section("This Mac, this project", [widthsSettings(model)])],
+				"this computer": [section("This computer, this project", [widthsSettings(model)])],
 			}),
 			Appearance: pick({
 				interface: grid(baseFont("Interface"), ...styles("body", "bodyBold"), typeStyle(styleOf("smallHeading"), { extra: [smallHeadingColour()] }), ...styles("hint")),
@@ -463,7 +464,7 @@ export function openSettings(model: AppModel): void {
 				"storytelling mode": grid(...(["series", "novel", "chapter"] as const).map((p) => appearancePart(p)), appearancePart("codex", [codexColour()])),
 				writing: [...grid(baseFont("Writing"), ...styles("prose", "reading", "fields")), section("Text colours", textColours())],
 			}),
-			Writing: [section("Typing", typingSection({ settings: settings.values, off, change, check, notify: (text) => model.notices.notify({ kind: "warning", text }) }))],
+			Writing: pick(Object.fromEntries(Object.entries(typingSection({ settings: settings.values, off, change, check, notify: (text) => model.notices.notify({ kind: "warning", text }) })).map(([k, v]) => [k, [section("Typing", v)]]))),
 			Sessions: [
 				section("Sessions", [
 					number("sessionIdleMinutes", "Session idle limit (minutes)", SESSION_LIMITS.idleMinutes),
@@ -573,7 +574,8 @@ export function openSettings(model: AppModel): void {
 		for (const [old] of twins) if (isTextBox(old)) armChange(old);
 		heldBack = twins.some(([old]) => isTextBox(old) && old === focused);
 	};
-	const section = (title: string, rows: HTMLElement[], label = title): HTMLElement => el("section", { class: "sf-settings-section", attrs: { "aria-label": label } }, el("h3", { class: "sf-summary-title", text: title }), ...rows);
+	// No headers inside Settings' pages (round five): the sub-page buttons name them. The section keeps its name for the screen reader.
+	const section = (title: string, rows: HTMLElement[], label = title): HTMLElement => el("section", { class: "sf-settings-section", attrs: { "aria-label": label } }, ...rows);
 	// A redraw never lands between the pointer going down on a control and coming up (Fix 8): the pressed tab would be replaced and the
 	// click would land on nothing. It waits for the release, and runs just after the click.
 	let pointerDown = false;

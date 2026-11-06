@@ -191,6 +191,13 @@ describe("machine settings", () => {
 		expect(await loadMachineProjectState(store, key, { selectedNovel: "aaa" })).toEqual({ selectedNovel: "aaa", selectedObject: null, collapsedCodexFolderIds: [] });
 		await saveMachineProjectState(store, key, { selectedNovel: "bbb", selectedObject: "ch-b1.md", collapsedCodexFolderIds: ["f-cast"] });
 		expect(await loadMachineProjectState(store, key, { selectedNovel: "aaa" })).toEqual({ selectedNovel: "bbb", selectedObject: "ch-b1.md", collapsedCodexFolderIds: ["f-cast"] });
+		// round five: the three sets of side-panel widths are kept, and read back only when well formed
+		await saveMachineProjectState(store, key, { selectedNovel: null, selectedObject: null, collapsedCodexFolderIds: [], leftWidth: 25, libraryWidth: 26, loreWidth: 27, widthUnit: "percent", storytellingWidths: { left: 20, lore: 30 }, seriesWidths: { left: 21, lore: 31 }, novelWidths: { left: 22, lore: 32 } });
+		const wide = await loadMachineProjectState(store, key);
+		expect([wide.storytellingWidths, wide.seriesWidths, wide.novelWidths, wide.leftWidth, wide.libraryWidth, wide.loreWidth]).toEqual([{ left: 20, lore: 30 }, { left: 21, lore: 31 }, { left: 22, lore: 32 }, 25, 26, 27]);
+		store.map.set(`project-ui/${key}`, JSON.stringify({ storytellingWidths: { left: "x", lore: 3 }, seriesWidths: 4, leftWidth: 9 }));
+		const bad = await loadMachineProjectState(store, key);
+		expect([bad.storytellingWidths, bad.seriesWidths, bad.novelWidths, bad.leftWidth]).toEqual([undefined, undefined, undefined, 9]);
 		store.map.set(`project-ui/${key}`, "{ broken");
 		expect((await loadMachineProjectState(store, key)).selectedNovel).toBeNull();
 	});

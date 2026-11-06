@@ -11,15 +11,15 @@ async function openProject(page: Page): Promise<void> {
 const dialog = (page: Page) => page.getByRole("dialog");
 const sub = (page: Page, name: string) => dialog(page).locator(".sf-settings-subtabs").getByRole("tab", { name, exact: true });
 
-test("Settings opens on General's first sub-page; General has general, story and this Mac; each starts at the top", async ({ page }) => {
+test("Settings opens on General's first sub-page; General has general, story and this computer; each starts at the top", async ({ page }) => {
 	await page.setViewportSize({ width: 1100, height: 440 });
 	await openProject(page);
 	await openSettingsDialog(page);
 	await expect(sub(page, "general")).toHaveAttribute("aria-selected", "true");
 	await expect(dialog(page).getByLabel("Opens in")).toBeVisible();
-	expect(await dialog(page).locator(".sf-settings-subtabs").getByRole("tab").allInnerTexts()).toEqual(["general", "story", "this Mac"]);
-	await sub(page, "this Mac").click();
-	await expect(dialog(page).locator("section[aria-label='This Mac, this project']")).toBeVisible();
+	expect(await dialog(page).locator(".sf-settings-subtabs").getByRole("tab").allInnerTexts()).toEqual(["general", "story", "this computer"]);
+	await sub(page, "this computer").click();
+	await expect(dialog(page).locator("section[aria-label='This computer, this project']")).toBeVisible();
 	await dialog(page).locator(".sf-settings-page").evaluate((e) => (e.scrollTop = 50));
 	await sub(page, "story").click();
 	await expect(dialog(page).getByLabel("Series numbering")).toBeVisible();
@@ -104,4 +104,19 @@ test("Settings ▸ Backups has the Back Up icon before its text, in its row's co
 	expect(await colour(tab.locator("svg"))).toBe(surface);
 	expect(await colour(tab)).toBe(surface);
 	await expect(dialog(page).getByRole("tab", { name: "General", exact: true }).locator("svg")).toHaveCount(0); // the others get icons next round
+});
+
+test("no page of Settings has a header inside it, and Writing has four sub-pages", async ({ page }) => {
+	await openProject(page);
+	await openSettingsDialog(page);
+	const subs: Record<string, string[]> = { General: ["general", "story", "this computer"], Appearance: ["interface", "library mode", "storytelling mode", "writing"], Writing: ["typing behaviours", "names", "shortcodes", "special characters"], Sessions: [], Backups: [] };
+	for (const [top, list] of Object.entries(subs)) {
+		await dialog(page).getByRole("tab", { name: top, exact: true }).click();
+		if (top === "Writing") expect(await dialog(page).locator(".sf-settings-subtabs").getByRole("tab").allInnerTexts()).toEqual(list);
+		for (const s of list.length ? list : [""]) {
+			if (s) await sub(page, s).click();
+			await expect(dialog(page).locator(".sf-settings-page").getByRole("heading"), `${top} ${s}`).toHaveCount(0);
+			await expect(dialog(page).locator(".sf-settings-page .sf-summary-title"), `${top} ${s}`).toHaveCount(0);
+		}
+	}
 });

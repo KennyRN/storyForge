@@ -90,3 +90,7 @@ Note on item 6 and §5: where a panel is narrowed for display, the unit change c
 - Pure logic in `src/ui/panelWidths.ts` (limits, conversion, display widths); stored in machine settings as `leftWidth` (storytelling side), `libraryWidth`, `loreWidth`, `widthUnit`, `widthsLinked`.
 - Absent `widthUnit` means pre-1.5.0 pixels: the panels open linked, in percent, all three at `leftWidth` (288 px if none). The converted figures are saved with the next change, not at open.
 - If both minimums plus the workspace minimum exceed the window (under 840 px), the panels stay at their minimums and the workspace is narrower than 360 px.
+
+## Round five (1.10.0): one set of side-panel widths per view
+
+See `docs/type-styles.md` §16. The widths are now three sets (storytelling, series, novel), each `{ left, lore }`, plus the older pair kept for the Codex and Archive tabs; the same-width switch and the unit are global. A project's first open in 1.10.0 seeds the storytelling set from `leftWidth` and `loreWidth` and the series and novel sets from `libraryWidth` and `loreWidth` (all linked, in percent, 288 px, when nothing was stored).
