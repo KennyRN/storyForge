@@ -12,7 +12,7 @@ import { sha256Text } from "../../core/hash";
 import { variationFor } from "../../ui/appearance";
 import { MachineSnapshotStore } from "../machineSnapshots";
 import { buildSnapshot } from "../../core/snapshot";
-import { APPEARANCE_BASE_PX, DEFAULT_PROJECT_SETTINGS, PROJECT_SETTINGS_PATH, type MachineStore, loadMachineProjectState, loadSettings, refreshSettings, saveMachineProjectState, setSetting } from "../settings";
+import { seriesPaneHidden, APPEARANCE_BASE_PX, DEFAULT_PROJECT_SETTINGS, PROJECT_SETTINGS_PATH, type MachineStore, loadMachineProjectState, loadSettings, refreshSettings, saveMachineProjectState, setSetting } from "../settings";
 
 afterEach(cleanupFixtures);
 
@@ -205,6 +205,11 @@ describe("machine settings", () => {
 		expect((await loadMachineProjectState(store, key)).lastChapters).toEqual({ aaa: "ch-a2.md", bbb: "ch-b1.md" });
 		store.map.set(`project-ui/${key}`, JSON.stringify({ lastChapters: { aaa: 4, bbb: "ch-b1.md" } }));
 		expect((await loadMachineProjectState(store, key)).lastChapters).toEqual({ bbb: "ch-b1.md" });
+		// the same-width switch of the other views that offer it, kept only where well formed
+		await saveMachineProjectState(store, key, { selectedNovel: null, selectedObject: null, collapsedCodexFolderIds: [], widthsLinkedViews: { codex: true, archive: false } });
+		expect((await loadMachineProjectState(store, key)).widthsLinkedViews).toEqual({ codex: true, archive: false });
+		store.map.set(`project-ui/${key}`, JSON.stringify({ widthsLinkedViews: { codex: "yes", archive: true, nonsense: true } }));
+		expect((await loadMachineProjectState(store, key)).widthsLinkedViews).toEqual({ archive: true });
 		store.map.set(`project-ui/${key}`, JSON.stringify({ lastChapters: ["x"] }));
 		expect((await loadMachineProjectState(store, key)).lastChapters).toBeUndefined();
 	});
@@ -905,5 +910,13 @@ describe("the type styles' settings (Brief 18)", () => {
 		put(root, "appearance-codex-font: base\nappearance-novel-font: Inter\n");
 		const s = await loadSettings(await open(root), reader(root));
 		expect([s.values.appearanceCodexFont, s.values.appearanceNovelFont]).toEqual(["base", "Sofia Sans"]);
+	});
+});
+
+describe("the series pane is hidden only by a standalone story (Brief 19)", () => {
+	it("ignores the stored setting while the project is a series", () => {
+		expect(seriesPaneHidden({ hideSeriesPane: true, storyKind: "series" })).toBe(false);
+		expect(seriesPaneHidden({ hideSeriesPane: true, storyKind: "standalone" })).toBe(true);
+		expect(seriesPaneHidden({ hideSeriesPane: false, storyKind: "standalone" })).toBe(false);
 	});
 });

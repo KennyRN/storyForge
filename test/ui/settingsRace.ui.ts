@@ -54,7 +54,9 @@ test.describe("settings: a change made while an earlier one is saving", () => {
 		await openSettings(page, "General");
 		const d = dialog(page);
 		const opens = d.getByLabel("Opens in"); // (a select: the dialog's other control on this page)
+		await d.getByRole("radio", { name: "One standalone novel" }).click(); // only a standalone story can hide the series pane (Brief 19)
 		const hide = d.getByLabel("Hide the series pane (for one standalone book)");
+		await expect(hide).toBeVisible();
 		await expect(opens).toHaveValue("true");
 		await expect(hide).not.toBeChecked();
 		const gate = await holdWrites(page);

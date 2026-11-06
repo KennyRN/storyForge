@@ -102,16 +102,19 @@ test.describe("the two small fixes", () => {
 		else expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--purpose-text"))).not.toBe("");
 	});
 
-	test("every invalid text box draws the red border: a panel width box (the Settings sizes are sliders now, which can't be invalid)", async ({ page }) => {
+	test("every invalid text box draws the red border (the Settings sizes and widths are sliders now, which can't be invalid, so a field is marked by hand)", async ({ page }) => {
 		await openProject(page);
 		await openSettingsDialog(page);
 		const d = page.getByRole("dialog");
-		await d.getByRole("tab", { name: "General", exact: true }).click();
-		await d.getByRole("tab", { name: "this computer", exact: true }).click();
-		const width = d.getByLabel("storytelling, left and right panel width", { exact: true });
-		await width.fill("5");
-		await width.press("Enter");
-		await expect(width).toHaveAttribute("aria-invalid", "true");
-		expect(await width.evaluate((e) => getComputedStyle(e).borderTopColor)).toBe("rgb(230, 126, 128)");
+		const border = await d.evaluate((root) => {
+			const input = document.createElement("input");
+			input.className = "sf-field";
+			input.setAttribute("aria-invalid", "true");
+			root.append(input);
+			const c = getComputedStyle(input).borderTopColor;
+			input.remove();
+			return c;
+		});
+		expect(border).toBe("rgb(230, 126, 128)");
 	});
 });

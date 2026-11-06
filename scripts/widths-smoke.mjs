@@ -112,6 +112,11 @@ const findScript = `on run argv
 					set focused of (item (i - 1) of els) to true
 					return "found " & n
 				end if
+				if act starts with "set:" then
+					-- a slider (Brief 19): its value is set through the accessibility API; the page hears it as the slider being moved
+					set value of e to ((text 5 thru -1 of act) as number)
+					return "found " & n
+				end if
 				if act is "click" then click e
 				if act is "press" then perform action "AXPress" of e
 				if act is "focus" then
@@ -163,16 +168,14 @@ try {
 
 	// Settings from the menu, then a typed figure.
 	clickMenu("storyForge", "Settings…");
-	// Since 1.10.0 General is one entry with three sub-pages, and the widths are on its "this computer" sub-page (lower case: it says they are kept on this computer). Settings opens on General, so the sub-page is chosen by its accessibility action.
-	await until(() => ["AXRadioButton", "AXTab", "AXButton"].some((r) => find(r, "this computer", "press") === "found"), 8000);
-	if (!(await until(() => find("AXTextField", "storytelling, left and right panel width") === "found", 8000))) problems.push("Settings did not show the widths group");
+	// Since Brief 19 General has two sub-pages and the widths are on "sidebar widths", as sliders (percent of the window). Settings opens on General, so the sub-page is chosen by its accessibility action.
+	await until(() => ["AXRadioButton", "AXTab", "AXButton"].some((r) => find(r, "sidebar widths", "press") === "found"), 8000);
+	if (!(await until(() => find("AXSlider", "storytelling, left and right panel width") === "found", 8000))) problems.push("Settings did not show the widths group");
 	else {
-		find("AXTextField", "storytelling, left and right panel width", "focus"); // focusing scrolls the group into view
+		find("AXSlider", "storytelling, left and right panel width", "focus"); // focusing scrolls the group into view
 		await sleep(500);
 		shot("2-settings-group");
-		typing.key('keystroke "a" using command down');
-		typing.sendKeys("30");
-		typing.key("key code 36");
+		find("AXSlider", "storytelling, left and right panel width", "set:30"); // no keys are sent: a slider isn't a text box, so the typing guard has nothing to confirm
 		await sleep(700);
 		const w = windowFrame()[2];
 		shot("3-typed-30-percent");
@@ -180,7 +183,7 @@ try {
 		// longer in the accessibility tree while Settings is open: the panels are measured once the dialog has closed. They moved behind it all the same.
 		find("AXButton", "Done", "click"); // close the dialog
 		await sleep(700);
-		check(near(widthOfPanel("Storytelling"), w * 0.3, 3), "a typed 30% moved the left panel behind the dialog");
+		check(near(widthOfPanel("Storytelling"), w * 0.3, 3), "a slider set to 30% moved the left panel behind the dialog");
 		check(near(widthOfPanel("Context"), w * 0.3, 3), "…and the storytelling set's context panel with it (linked: round five, one set per view)");
 	}
 

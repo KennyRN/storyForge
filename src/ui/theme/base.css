@@ -736,7 +736,8 @@ input[aria-invalid="true"] {
 }
 .sf-setting-row {
 	display: grid;
-	grid-template-columns: 1fr auto 9em;
+	grid-template-columns: 14em auto; /* the control stays close to its label (Brief 19) */
+	justify-content: start;
 	align-items: center;
 	gap: var(--space-3);
 	padding: var(--space-1) 0;
@@ -868,13 +869,6 @@ input[aria-invalid="true"] {
 	color: var(--purpose-text-muted);
 	opacity: 0.7;
 }
-.sf-setting-source {
-	font-family: var(--ts-hint-family);
-	font-weight: var(--ts-hint-weight);
-	font-size: var(--ts-hint-size);
-	font-variation-settings: var(--ts-hint-var);
-	text-align: right;
-}
 
 /* The author's writing surfaces and the Codex list: no ligatures (what is on screen is what is on disk: SN Pro draws "->"
    as an arrow), no style set, and never a synthesised slant or weight. */
@@ -968,15 +962,9 @@ input[aria-invalid="true"] {
 	align-items: center;
 	gap: var(--space-2);
 }
-.sf-width-field {
+.sf-width-slider {
 	min-width: 0;
-	width: 7em;
-}
-.sf-width-hint {
-	font-family: var(--ts-hint-family);
-	font-weight: var(--ts-hint-weight);
-	font-size: var(--ts-hint-size);
-	font-variation-settings: var(--ts-hint-var);
+	width: 9em;
 }
 .sf-width-linked {
 	display: flex;

@@ -26,11 +26,11 @@ test.describe("settings sections", () => {
 		await openSettings(page);
 		const tabs = dialog(page).locator(".sf-settings-tabs").getByRole("tab");
 		expect(await tabs.allInnerTexts()).toEqual(["General", "Appearance", "Writing", "Sessions", "Backups"]);
-		expect(await dialog(page).locator(".sf-settings-subtabs").getByRole("tab").allInnerTexts()).toEqual(["general", "story", "this computer"]); // General is one entry with three sub-pages
+		expect(await dialog(page).locator(".sf-settings-subtabs").getByRole("tab").allInnerTexts()).toEqual(["general", "sidebar widths"]); // General is one entry with three sub-pages
 		await expect(dialog(page).getByRole("tab", { name: "General", exact: true })).toHaveAttribute("aria-selected", "true");
 		await expect(dialog(page).getByRole("tabpanel")).toHaveCount(1);
 		await expect(dialog(page).getByLabel("Opens in")).toBeVisible();
-		await expect(dialog(page).getByLabel("Series numbering")).toHaveCount(0); // that's the story sub-page
+		await expect(dialog(page).getByLabel("Series numbering")).toBeVisible(); // general and story are one sub-page (Brief 19)
 		await dialog(page).getByRole("tab", { name: "General", exact: true }).focus();
 		await page.keyboard.press("ArrowDown");
 		await expect(dialog(page).getByRole("tab", { name: "Appearance" })).toHaveAttribute("aria-selected", "true");
@@ -38,9 +38,9 @@ test.describe("settings sections", () => {
 		expect(await projectMd(page)).toBe("");
 	});
 
-	test("the story sub-page holds the series-or-standalone choice and Numbering; choosing standalone writes story-kind and drops the series line", async ({ page }) => {
+	test("the general sub-page holds the series-or-standalone choice and Numbering; choosing standalone writes story-kind and drops the series line", async ({ page }) => {
 		await openProject(page);
-		await openSettings(page, "General", "story");
+		await openSettings(page, "General", "general");
 		await expect(dialog(page).getByLabel("Series numbering")).toBeVisible();
 		await expect(dialog(page).getByLabel("Chapter numbering")).toBeVisible();
 		await expect(page.locator(".sf-nav-series")).toBeVisible();

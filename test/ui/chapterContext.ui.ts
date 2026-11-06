@@ -321,6 +321,7 @@ test.describe("one chosen chapter, shared by both sides", () => {
 		// another setting changes through the dialog: the stored key stays exactly as it was, and the dialog has no control for it
 		await openSettingsDialog(page);
 		const d = page.getByRole("dialog");
+		await d.getByRole("radio", { name: "One standalone novel" }).click(); // only a standalone story can hide the series pane (Brief 19)
 		await d.getByLabel("Hide the series pane (for one standalone book)").check();
 		await expect.poll(() => read(page, MD)).toContain("hide-series-pane: true");
 		expect(await read(page, MD)).toContain("highlight-active-chapter: false");

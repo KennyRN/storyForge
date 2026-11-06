@@ -1,3 +1,4 @@
+import { seriesPaneHidden } from "../../app/settings";
 import { el } from "../kit/dom";
 import { navIcon, type NavIconName } from "../kit/navIcons";
 import { chevronDownIcon } from "../kit/statsIcons";
@@ -36,7 +37,7 @@ export function mountNavMenu(host: HTMLElement, model: AppModel): { button: HTML
 		const running = model.running;
 		if (!running || menu) return;
 		const state = menuState(model);
-		const hideSeries = !!running.settings.values.hideSeriesPane;
+		const hideSeries = seriesPaneHidden(running.settings.values);
 		const onForge = model.nav.face === "storyforge";
 		const rows: HTMLButtonElement[] = [];
 		const item = (label: string, action: () => void, opts: { here?: boolean; disabled?: string | boolean; icon?: NavIconName } = {}): HTMLButtonElement => {

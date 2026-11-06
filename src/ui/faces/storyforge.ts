@@ -1,3 +1,4 @@
+import { seriesPaneHidden } from "../../app/settings";
 import { el, fill } from "../kit/dom";
 import { navIcon, type NavIconName } from "../kit/navIcons";
 import { attachTooltip } from "../kit/tooltip";
@@ -25,7 +26,7 @@ export function mountStoryForgeFace(host: HTMLElement, model: AppModel): () => v
 	let shown: ForgeTab | null = null;
 
 	/** The tabs shown: "Hide series pane" (for a standalone book) leaves the series tab out. */
-	const tabs = (): typeof TABS => (model.running?.settings.values.hideSeriesPane ? TABS.filter((t) => t.id !== "series") : TABS);
+	const tabs = (): typeof TABS => ((model.running && seriesPaneHidden(model.running.settings.values)) ? TABS.filter((t) => t.id !== "series") : TABS);
 
 	const select = (tab: ForgeTab, focus = false): void => {
 		const overviewTab = tab === "series" || tab === "novel";

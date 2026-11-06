@@ -141,16 +141,17 @@ test.describe("the menus", () => {
 });
 
 test.describe("settings", () => {
-	test("⌘, opens them; opening and closing writes nothing; each row says where its value comes from", async ({ page }) => {
+	test("⌘, opens them; opening and closing writes nothing; no row says where its value comes from (Brief 19)", async ({ page }) => {
 		await openProject(page);
 		await openSettingsDialog(page);
 		await dialog(page).getByRole("tab", { name: "General", exact: true }).click();
-		await dialog(page).getByRole("tab", { name: "story", exact: true }).click();
+		await dialog(page).getByRole("tab", { name: "general", exact: true }).click();
 		const d = dialog(page);
 		await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
 		await expect(d.getByLabel("Series numbering")).toHaveValue("arabic");
 		await expect(d).not.toContainText("null"); // an element left out must not be drawn as the word null
-		await expect(d.locator(".sf-setting-row", { hasText: "Series numbering" })).toContainText("default");
+		await expect(d.locator(".sf-setting-row", { hasText: "Series numbering" })).not.toContainText("default");
+		await expect(d).not.toContainText("this project");
 		await shot(page, "settings");
 		await d.getByRole("button", { name: "Done" }).click();
 		expect(await exists(page, PROJECT_MD)).toBe(false);
@@ -182,25 +183,25 @@ test.describe("settings", () => {
 		await expect.poll(() => page.evaluate((p) => window.__preview.read(p).catch(() => ""), PROJECT_MD)).not.toContain("session-editing-wpm");
 	});
 
-	test("a change writes project.md, only that change, and the source becomes 'this project'", async ({ page }) => {
+	test("a change writes project.md, only that change", async ({ page }) => {
 		await openProject(page);
 		await openSettingsDialog(page);
 		await dialog(page).getByRole("tab", { name: "General", exact: true }).click();
-		await dialog(page).getByRole("tab", { name: "story", exact: true }).click();
+		await dialog(page).getByRole("tab", { name: "general", exact: true }).click();
 		const d = dialog(page);
 		await d.getByLabel("Chapter numbering").selectOption("roman-lower");
 		await expect.poll(async () => ((await exists(page, PROJECT_MD)) ? onDisk(page, PROJECT_MD) : "")).toContain("chapter-numbering-style: roman-lower");
 		const text = await onDisk(page, PROJECT_MD);
 		expect(text).toMatch(/^---\nformat-version: 1\n/);
 		expect(text).not.toContain("series-numbering-style");
-		await expect(d.locator(".sf-setting-row", { hasText: "Chapter numbering" })).toContainText("this project");
+		await expect(d.locator(".sf-setting-row", { hasText: "Chapter numbering" })).not.toContainText("this project");
 		await d.getByRole("button", { name: "Done" }).click();
 		// the navigator now numbers chapters in lower-case roman
 		await expect(page.locator(".sf-select-current-title")).toHaveText("Chapter i");
 		// choosing the value already in effect writes nothing more
 		await openSettingsDialog(page);
 		await dialog(page).getByRole("tab", { name: "General", exact: true }).click();
-		await dialog(page).getByRole("tab", { name: "story", exact: true }).click();
+		await dialog(page).getByRole("tab", { name: "general", exact: true }).click();
 		const before = await onDisk(page, PROJECT_MD);
 		await dialog(page).getByLabel("Chapter numbering").selectOption("roman-lower");
 		await page.waitForTimeout(300);
@@ -211,7 +212,7 @@ test.describe("settings", () => {
 		await openProject(page);
 		await openSettingsDialog(page);
 		await dialog(page).getByRole("tab", { name: "General", exact: true }).click();
-		await dialog(page).getByRole("tab", { name: "story", exact: true }).click();
+		await dialog(page).getByRole("tab", { name: "general", exact: true }).click();
 		await dialog(page).getByLabel("Chapter numbering").selectOption("arabic-padded");
 		await dialog(page).getByRole("button", { name: "Done" }).click();
 		await expect(page.locator(".sf-select-current-title")).toHaveText("Chapter 01");
@@ -221,6 +222,7 @@ test.describe("settings", () => {
 		await openProject(page);
 		await openSettingsDialog(page);
 		const d = dialog(page);
+		await d.getByRole("radio", { name: "One standalone novel" }).click(); // only a standalone story can hide the series pane (Brief 19)
 		await d.getByLabel("Hide the series pane").check();
 		await d.getByLabel("Opens in").selectOption("false");
 		await d.getByRole("button", { name: "Done" }).click();
@@ -251,7 +253,7 @@ test.describe("settings", () => {
 		await openProject(page, async () => void (await touch(page, PROJECT_MD, "---\nformat-version: 99\n---\n")));
 		await openSettingsDialog(page);
 		await dialog(page).getByRole("tab", { name: "General", exact: true }).click();
-		await dialog(page).getByRole("tab", { name: "story", exact: true }).click();
+		await dialog(page).getByRole("tab", { name: "general", exact: true }).click();
 		await expect(dialog(page).getByLabel("Series numbering")).toBeDisabled();
 		await dialog(page).getByRole("tab", { name: "Backups", exact: true }).click();
 		await expect(dialog(page).getByRole("button", { name: "Back up everything now" })).toBeDisabled();

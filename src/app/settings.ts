@@ -498,6 +498,8 @@ export interface MachineProjectState {
 	widthUnit?: "px" | "percent";
 	/** The same-width switch; absent means on. */
 	widthsLinked?: boolean;
+	/** Brief 19: the same-width switch for the other views that offer it (the Codex and Archive rows; `widthsLinked` stays the storytelling set's). Absent means off. */
+	widthsLinkedViews?: Partial<Record<"series" | "novel" | "codex" | "archive", boolean>>;
 	/** Round five: the side panels' widths per view (the left panel and the context panel, in `widthUnit`), seeded from the keys above when absent. */
 	storytellingWidths?: ViewWidths;
 	seriesWidths?: ViewWidths;
@@ -538,6 +540,7 @@ export async function loadMachineProjectState(store: MachineStore, projectKey: s
 			...(typeof parsed.libraryWidth === "number" && Number.isFinite(parsed.libraryWidth) ? { libraryWidth: parsed.libraryWidth } : {}),
 			...(parsed.widthUnit === "px" || parsed.widthUnit === "percent" ? { widthUnit: parsed.widthUnit } : {}),
 			...(typeof parsed.widthsLinked === "boolean" ? { widthsLinked: parsed.widthsLinked } : {}),
+			...(parsed.widthsLinkedViews && typeof parsed.widthsLinkedViews === "object" && !Array.isArray(parsed.widthsLinkedViews) ? { widthsLinkedViews: Object.fromEntries((["series", "novel", "codex", "archive"] as const).filter((v) => typeof (parsed.widthsLinkedViews as Record<string, unknown>)[v] === "boolean").map((v) => [v, (parsed.widthsLinkedViews as Record<string, boolean>)[v]])) } : {}),
 			...(isViewWidths(parsed.storytellingWidths) ? { storytellingWidths: { left: parsed.storytellingWidths.left, lore: parsed.storytellingWidths.lore } } : {}),
 			...(isViewWidths(parsed.seriesWidths) ? { seriesWidths: { left: parsed.seriesWidths.left, lore: parsed.seriesWidths.lore } } : {}),
 			...(isViewWidths(parsed.novelWidths) ? { novelWidths: { left: parsed.novelWidths.left, lore: parsed.novelWidths.lore } } : {}),
@@ -556,3 +559,6 @@ export async function loadMachineProjectState(store: MachineStore, projectKey: s
 export function saveMachineProjectState(store: MachineStore, projectKey: string, state: MachineProjectState): Promise<void> {
 	return store.set(`project-ui/${projectKey}`, JSON.stringify(state));
 }
+
+/** Whether the series pane is hidden: only a standalone story can hide it. While the project is a series the stored setting is ignored, whatever it holds, so an outside change never makes the app write anything (Brief 19). */
+export const seriesPaneHidden = (v: Pick<ProjectSettings, "hideSeriesPane" | "storyKind">): boolean => v.hideSeriesPane && v.storyKind === "standalone";

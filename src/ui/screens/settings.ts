@@ -15,7 +15,6 @@ import { typingSection } from "./typingSettings";
 import { widthsSettings } from "./widthsSettings";
 import type { AppModel } from "../model";
 
-const SOURCE_WORDS = { "project.md": "this project", "data.json": "the plugin's settings", default: "default" } as const;
 const DATA_COLOUR_NAMES: Record<DataColour, string> = { yellow: "Yellow", aqua: "Aqua", blue: "Blue", orange: "Orange", purple: "Purple" };
 const CODEX_COLOUR_NAMES: Record<CodexColour, string> = { text: "Text", yellow: "Yellow", green: "Green", aqua: "Aqua", blue: "Blue", purple: "Purple", orange: "Orange", grey: "Grey" };
 const SELECTION_COLOUR_NAMES: Record<SelectionColour, string> = { plum: "Plum", blue: "Blue", green: "Green", yellow: "Yellow", grey: "Grey" };
@@ -29,7 +28,7 @@ const PAGES = ["General", "Appearance", "Writing", "Sessions", "Backups"] as con
 type Page = (typeof PAGES)[number];
 /** General and Appearance are single entries with sub-pages across the top of their panes (round two; General's in round five: "this Mac" says those settings are kept on this Mac). */
 const APPEARANCE_PAGES = ["interface", "library mode", "storytelling mode", "writing"] as const;
-const GENERAL_PAGES = ["general", "story", "this computer"] as const;
+const GENERAL_PAGES = ["general", "sidebar widths"] as const;
 const WRITING_PAGES = ["typing behaviours", "names", "shortcodes", "special characters"] as const;
 const SUB_PAGES: Partial<Record<Page, readonly string[]>> = { General: GENERAL_PAGES, Appearance: APPEARANCE_PAGES, Writing: WRITING_PAGES };
 /** Each entry of the left-hand list has Kenny's icon (volcanicMole's Rounded Settings, Layout Dashboard, Keyboard and Clipboard Data, and the Back Up shield). */
@@ -74,7 +73,6 @@ export function openSettings(model: AppModel): void {
 			redraw();
 		}
 	};
-	const source = (key: keyof ProjectSettings): HTMLElement => el("span", { class: "sf-muted sf-setting-source", text: SOURCE_WORDS[settings.sources[key]] });
 
 	const select = <K extends keyof ProjectSettings>(key: K, label: string, options: [string, string][], toValue: (v: string) => ProjectSettings[K]): HTMLElement => {
 		const input = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": label } }, ...options.map(([value, text]) => el("option", { text, attrs: { value } })));
@@ -169,7 +167,7 @@ export function openSettings(model: AppModel): void {
 		});
 		return row(label, input, key);
 	};
-	const row = (label: string, control: HTMLElement, key: keyof ProjectSettings): HTMLElement => el("label", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: label }), control, source(key));
+	const row = (label: string, control: HTMLElement, key: keyof ProjectSettings): HTMLElement => el("label", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: label }), control);
 
 	/**
 	 * A size slider (round two): a drag previews live (the value beside it, the sample and the page) and the size is saved once, on release;
@@ -432,10 +430,10 @@ export function openSettings(model: AppModel): void {
 				const chosen = settings.values.storyKind === choice;
 				const b = el("button", { class: `sf-swatch${chosen ? " is-chosen" : ""}`, dataset: { choice }, attrs: { type: "button", role: "radio", "aria-checked": String(chosen) }, text });
 				b.disabled = off;
-				b.addEventListener("click", () => void change("storyKind", choice));
+				b.addEventListener("click", () => void change("storyKind", choice).then(() => (choice === "series" && settings.values.hideSeriesPane ? change("hideSeriesPane", false) : undefined))); // a series always shows its series pane: switching to one switches the hiding off (Brief 19)
 				group.append(b);
 			}
-			return el("div", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: "This story is" }), group, source("storyKind"));
+			return el("div", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: "This story is" }), group);
 		};
 		const pick = (m: Record<string, HTMLElement[]>): HTMLElement[] => m[subPage] ?? []; // the sub-page of General or Appearance
 		const pages: Record<Page, HTMLElement[]> = {
@@ -443,17 +441,15 @@ export function openSettings(model: AppModel): void {
 				general: [
 					section("Interface", [
 						select("autoFocus", "Opens in", [["true", "storytelling"], ["false", "library"]], (v) => v === "true"),
-						check("hideSeriesPane", "Hide the series pane (for one standalone book)"),
+						...(settings.values.storyKind === "standalone" ? [check("hideSeriesPane", "Hide the series pane (for one standalone book)")] : []), // only a standalone story can hide it (Brief 19)
 					]),
-				],
-				story: [
 					section("Story", [storyKind()]),
 					section("Numbering", [
 						select("seriesNumberingStyle", "Series numbering", numbering, (v) => v as NumberingStyle),
 						select("chapterNumberingStyle", "Chapter numbering", numbering, (v) => v as NumberingStyle),
 					]),
 				],
-				"this computer": [section("This computer, this project", [widthsSettings(model)])],
+				"sidebar widths": [section("Sidebar widths", [widthsSettings(model)])],
 			}),
 			Appearance: pick({
 				interface: grid(baseFont("Interface"), ...styles("body", "bodyBold"), typeStyle(styleOf("smallHeading"), { extra: [smallHeadingColour()] }), ...styles("hint")),

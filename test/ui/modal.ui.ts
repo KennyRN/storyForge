@@ -40,7 +40,7 @@ test.describe("modal dialogs", () => {
 
 	test("after clicking each tab with the mouse, focus is inside the dialog and Escape closes it", async ({ page }) => {
 		await openProject(page);
-		for (const name of ["General", "story", "this computer", "Appearance", "Writing", "Sessions", "Backups"]) {
+		for (const name of ["General", "sidebar widths", "Appearance", "Writing", "Sessions", "Backups"]) {
 			await openSettingsDialog(page);
 			await dialogs(page).getByRole("tab", { name, exact: true }).click();
 			await expect(dialogs(page).getByRole("tab", { name, exact: true })).toHaveAttribute("aria-selected", "true");
@@ -77,7 +77,7 @@ test.describe("modal dialogs", () => {
 		await openProject(page);
 		await openSettingsDialog(page);
 		await dialogs(page).getByRole("tab", { name: "General", exact: true }).click();
-		await dialogs(page).getByRole("tab", { name: "story", exact: true }).click();
+		await dialogs(page).getByRole("tab", { name: "general", exact: true }).click();
 		await page.evaluate(() => window.__preview.emit("menu", "settings"));
 		await page.evaluate(() => window.__preview.emit("menu", "settings"));
 		await expect(dialogs(page)).toHaveCount(1);
@@ -139,7 +139,7 @@ test.describe("modal dialogs", () => {
 	test("a click on a tab while an outside change redraws still lands, and focus stays on the same control", async ({ page }) => {
 		await openProject(page);
 		await openSettingsDialog(page);
-		const tab = dialogs(page).getByRole("tab", { name: "story", exact: true });
+		const tab = dialogs(page).getByRole("tab", { name: "general", exact: true });
 		const box = (await tab.boundingBox())!;
 		await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
 		await page.mouse.down();
@@ -206,10 +206,10 @@ test.describe("modal dialogs", () => {
 			await openProject(page);
 			await openSettingsDialog(page);
 			await dialogs(page).getByRole("tab", { name: "General", exact: true }).click();
-		await dialogs(page).getByRole("tab", { name: "story", exact: true }).click();
+		await dialogs(page).getByRole("tab", { name: "general", exact: true }).click();
 			const standalone = dialogs(page).getByRole("radio", { name: "One standalone novel" });
 			await expect(standalone).not.toBeChecked();
-			const box = (await dialogs(page).getByRole("tab", { name: "story", exact: true }).boundingBox())!;
+			const box = (await dialogs(page).getByRole("tab", { name: "general", exact: true }).boundingBox())!;
 			await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
 			await page.mouse.down();
 			await page.evaluate(async (p) => {

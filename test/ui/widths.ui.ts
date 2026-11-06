@@ -177,10 +177,10 @@ test.describe("panel widths", () => {
 
 	test.describe("in settings", () => {
 		const openSettings = async (page: Page) => {
-			await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "this computer", exact: true }).click();
-			await expect(page.locator("section[aria-label='This computer, this project']")).toBeVisible();
+			await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "sidebar widths", exact: true }).click();
+			await expect(page.locator("section[aria-label='Sidebar widths']")).toBeVisible();
 		};
-		const group = (page: Page) => page.locator("section[aria-label='This computer, this project']");
+		const group = (page: Page) => page.locator("section[aria-label='Sidebar widths']");
 		const table = (page: Page) => group(page).getByRole("table", { name: "Side panel widths" });
 		const view = (page: Page, v: string) => table(page).locator(`tr[data-view='${v}']`);
 		const sets = ["storytelling", "series", "novel", "codex", "archive"] as const;
@@ -188,8 +188,7 @@ test.describe("panel widths", () => {
 		test("one table: region, left, right and width options, headed once by two icons; a row per region with its icon and a plain word", async ({ page }) => {
 			await openProject(page);
 			await openSettings(page);
-			await expect(group(page)).toContainText("stay on this computer, for this project");
-			await expect(group(page)).toContainText("never the central workspace");
+			await expect(group(page)).toContainText("stay on this computer");
 			await expect(table(page).locator("thead svg")).toHaveCount(2); // the left and right sidebar icons, once
 			await expect(table(page).locator("thead")).toHaveText("");
 			await expect(table(page).locator("tbody tr")).toHaveCount(5);
@@ -199,13 +198,19 @@ test.describe("panel widths", () => {
 				await expect(view(page, v).getByRole("heading")).toHaveCount(0);
 				await expect(view(page, v).getByRole("button")).toHaveCount(0);
 			}
-			// the switch sits in the storytelling row's options cell; the other rows leave it empty
-			await expect(view(page, "storytelling").getByLabel("Keep panels the same width")).toBeChecked();
-			await expect(group(page).getByLabel("Keep panels the same width")).toHaveCount(1);
-			for (const v of sets.slice(1)) await expect(view(page, v).locator("td").last()).toBeEmpty();
-			// linked: one figure for storytelling, two for each of the others
-			await expect(view(page, "storytelling").locator("input[type=number]")).toHaveCount(1);
-			for (const v of sets.slice(1)) await expect(view(page, v).locator("input[type=number]")).toHaveCount(2);
+			// the switch is offered on the storytelling, codex and archive rows (Brief 19); series and novel leave the cell empty
+			await expect(view(page, "storytelling").getByLabel("Keep panels the same width", { exact: true })).toBeChecked();
+			await expect(view(page, "codex").getByLabel("Keep panels the same width (codex)", { exact: true })).not.toBeChecked();
+			await expect(view(page, "archive").getByLabel("Keep panels the same width (archive)", { exact: true })).not.toBeChecked();
+			await expect(table(page).locator("input[type=checkbox]")).toHaveCount(3);
+			for (const v of ["series", "novel"]) await expect(view(page, v).locator("td").last()).toBeEmpty();
+			// linked: one slider for storytelling, two for each of the others; no number boxes, no range text, no unit select
+			await expect(view(page, "storytelling").locator("input[type=range]")).toHaveCount(1);
+			for (const v of sets.slice(1)) await expect(view(page, v).locator("input[type=range]")).toHaveCount(2);
+			await expect(table(page).locator("input[type=number]")).toHaveCount(0);
+			await expect(group(page)).not.toContainText("Not allowed");
+			await expect(group(page)).not.toContainText(/\d+\.?\d*\s*[–-]\s*\d+/);
+			await expect(group(page).getByLabel("Measure panel widths in")).toHaveCount(0);
 		});
 
 		test("each width has a full name for the screen reader and a tooltip", async ({ page }) => {
@@ -223,16 +228,15 @@ test.describe("panel widths", () => {
 			await expect(table(page).getByRole("columnheader", { name: "right panel width" })).toBeVisible();
 		});
 
-		test("a drag or key shows in settings when reopened; a typed figure moves the panel behind the dialog", async ({ page }) => {
+		test("a drag or key shows in settings when reopened; a slider moves the panel behind the dialog", async ({ page }) => {
 			await openProject(page);
 			await leftBar(page).focus();
 			await page.keyboard.press("Shift+ArrowRight");
 			const w = await widths(page);
 			await openSettings(page);
-			const field = view(page, "storytelling").locator("input[type=number]");
+			const field = view(page, "storytelling").locator("input[type=range]");
 			near(Number(await field.inputValue()), (w.left / (await page.evaluate(() => innerWidth))) * 100);
 			await field.fill("30");
-			await field.press("Enter");
 			const after = await widths(page);
 			near(after.left, Math.round((await page.evaluate(() => innerWidth)) * 0.3));
 			expect(after.lore).toBe(after.left);
@@ -240,43 +244,45 @@ test.describe("panel widths", () => {
 			for (const v of sets.slice(1)) expect(s.sets[v].left, v).toBe(s.oldStory);
 		});
 
-		test("an out-of-range figure is refused with its range and stores nothing, in each row; Escape puts the figure back", async ({ page }) => {
+		test("a slider keeps within its limits, gives its value to the screen reader, and Escape on it doesn't close the dialog", async ({ page }) => {
 			await openProject(page);
-			const set = await stored(page);
 			await openSettings(page);
+			const win = await page.evaluate(() => innerWidth);
 			for (const v of sets) {
-				const field = view(page, v).locator("input[type=number]").first();
-				await field.fill("3");
-				await field.press("Tab");
-				await expect(view(page, v)).toContainText("Not allowed");
-				await expect(field).toHaveAttribute("aria-invalid", "true");
-				expect(await stored(page)).toEqual(set);
-				await field.fill("3");
-				await field.press("Escape");
-				expect(Number(await field.inputValue())).toBe(set.sets[v].left);
+				const field = view(page, v).locator("input[type=range]").first();
+				const min = Number(await field.getAttribute("min"));
+				const max = Number(await field.getAttribute("max"));
+				expect(min * win / 100).toBeGreaterThanOrEqual(199);
+				expect(max * win / 100).toBeLessThanOrEqual(641);
+				await expect(field).toHaveAttribute("aria-valuetext", /percent of the window$/);
 			}
-			await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible(); // Escape did not close the dialog
+			await view(page, "storytelling").locator("input[type=range]").press("Escape");
+			await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
 		});
 
-		test("switching the storytelling pair off shows two figures there; the unit switch converts without moving the panels", async ({ page }) => {
+		test("the same-width switch is per view: switching the codex row on gives it one slider, and a stored pixel width is converted once, at the first use", async ({ page }) => {
 			await openProject(page);
+			await page.evaluate(() => { const a = window.__app as any; a.setWidthUnit("px"); });
+			await page.waitForTimeout(700);
+			const before = await read(page);
 			await openSettings(page);
-			const before = await widths(page);
-			await view(page, "storytelling").getByLabel("Keep panels the same width").uncheck();
-			await expect(view(page, "storytelling").locator("input[type=number]")).toHaveCount(2);
-			await expect(table(page).locator("input[type=number]")).toHaveCount(10);
-			await group(page).getByLabel("Measure panel widths in").selectOption("px");
-			near((await widths(page)).left, before.left);
-			await expect(group(page).getByLabel("storytelling, right panel width", { exact: true })).toHaveValue(String(before.lore));
-			expect((await stored(page)).linked).toBe(false);
+			// nothing is written by opening Settings or reading a px width as its percentage
+			expect(await page.evaluate(() => (window.__app as any).nav.widthUnit)).toBe("px");
+			await view(page, "codex").getByLabel("Keep panels the same width (codex)", { exact: true }).check();
+			await expect(view(page, "codex").locator("input[type=range]")).toHaveCount(1);
+			expect((await stored(page)).linked).toBe(true); // the storytelling set's own is untouched
+			expect(await page.evaluate(() => (window.__app as any).nav.linkedViews)).toEqual({ codex: true });
+			await view(page, "novel").locator("input[type=range]").first().fill("22");
+			expect(await page.evaluate(() => (window.__app as any).nav.widthUnit)).toBe("percent"); // converted at the first slider use
+			expect(await read(page)).toBe(before); // project.md never involved
 		});
 
 		test("changing the switches in settings writes nothing to project.md", async ({ page }) => {
 			await openProject(page);
 			const before = await read(page);
 			await openSettings(page);
-			await group(page).getByLabel("Measure panel widths in").selectOption("px");
-			await view(page, "storytelling").getByLabel("Keep panels the same width").uncheck();
+			await view(page, "storytelling").getByLabel("Keep panels the same width", { exact: true }).uncheck();
+			await view(page, "storytelling").locator("input[type=range]").first().fill("25");
 			await page.waitForTimeout(700);
 			expect(await read(page)).toBe(before);
 		});
