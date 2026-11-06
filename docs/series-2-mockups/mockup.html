@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en-GB"><head><meta charset="utf-8"><title>Series page mock-up</title>
+<link rel="stylesheet" href="../../src/ui/theme/index.css">
+<style>
+/* Throwaway mock-up (Brief 19, H1). Not app code: borrows the app's theme tokens. ?case=series|series-none|novel-other|selector|story-follow|story-fixed|gutters|settings */
+html,body{margin:0;height:100%;background:var(--purpose-panel-bg);color:var(--purpose-text);font:13px/1.4 "SN Pro",Arial,sans-serif}
+.win{display:flex;height:100vh;--g:29px}
+.left{width:288px;padding-top:28px;box-sizing:border-box;position:relative}
+.right{width:288px;padding:28px var(--g) 0;box-sizing:border-box;display:flex;flex-direction:column;gap:var(--g)}
+.centre{flex:1;position:relative;padding:var(--g)}
+.card{background:var(--purpose-editor-bg);border-radius:10px;box-sizing:border-box;padding:14px 16px}
+.muted{color:var(--purpose-text-muted)} .acc{color:var(--purpose-accent)}
+.tabs{display:flex;justify-content:space-around;padding:16px 8px}.tabs i{width:32px;height:32px;border-radius:50%;background:var(--purpose-raised-bg);display:block}.tabs i.on{background:var(--purpose-accent)}
+.row{display:flex;gap:8px;padding:5px 10px;border-radius:4px}.row.sel{background:var(--purpose-accent);color:var(--purpose-panel-bg)}
+.h{font-weight:600;font-size:12px;color:var(--purpose-small-heading);margin:14px 12px 6px}
+.cover{width:96px;height:144px;background:var(--purpose-cover-empty);border-radius:4px;flex:none}
+.bar{height:34px;border-radius:4px;background:var(--purpose-data-fill);margin:6px 0}
+.rail{height:42px;border-radius:4px;background:var(--purpose-data-frame);padding:4px;box-sizing:border-box}
+.pbar{height:12px;border-radius:3px;background:var(--purpose-bar-track);overflow:hidden}.pbar b{display:block;height:100%;background:var(--purpose-data-fill)}
+.dd{position:absolute;z-index:3;background:var(--purpose-raised-bg);box-shadow:var(--floating-shadow);border-radius:6px;padding:4px 6px;min-width:230px}
+.gapline{position:absolute;background:#e67e80;opacity:.85;color:#000;font-size:11px;display:flex;align-items:center;justify-content:center}
+h2{margin:0 0 12px;font-size:26px}
+.flex{display:flex;gap:16px}
+</style></head><body><div id="r"></div>
+<script>
+const c=new URLSearchParams(location.search).get("case")||"series";
+const tabs=(on)=>`<div class="tabs">${["a","c","s","n","w"].map(t=>`<i class="${t==on?"on":""}"></i>`).join("")}</div>`;
+const novels=(sel)=>["Book 1: The Harbour Wakes","Book 2: The Lantern Burns","Book 3: Ash and Salt"].map((n,i)=>`<div class="row ${sel===i?"sel":""}">${n}</div>`).join("");
+const ctxNovel=()=>`<div class="flex" style="gap:12px"><div class="cover"></div><div><div style="font-weight:700;font-size:16px">Book 2: The Lantern Burns <span class="acc" title="Write this novel">▸✎</span></div><div><span class="muted">Default PoV:</span> Jane</div></div></div>
+<div class="card" style="height:120px">Synopsis: the lamps fail one by one…</div>
+<div><div class="pbar"><b style="width:58%"></b></div></div>
+${[70,95,100,40,12].map(w=>`<div class="rail"><div class="bar" style="width:${w}%;margin:0;height:34px"></div></div>`).join("")}`;
+const seriesCentre=`<div class="flex"><div class="cover"></div><div><h2>The Lantern Cycle</h2><div class="card" style="min-height:96px">Description of the series, written by the author.</div></div></div>
+<div class="h" style="margin-left:0">Novels</div>${[0,1,2].map(i=>`<div class="flex" style="margin-bottom:12px"><div class="cover" style="width:64px;height:96px"></div><div style="flex:1"><div style="font-weight:600">${["Book 1: The Harbour Wakes","Book 2: The Lantern Burns","Book 3: Ash and Salt"][i]}</div><div class="pbar"><b style="width:${[100,58,10][i]}%"></b></div></div></div>`).join("")}`;
+const lib=(tab,sel,centre,right)=>`<div class="win"><div class="left">${tabs(tab)}<div class="h">Novels</div>${novels(sel)}<div class="h">Unplaced Novels</div><div class="row muted">Spin-off idea</div></div><div class="centre">${centre}</div><div class="right">${right}</div></div>`;
+const story=(g,topFromWindow)=>`<div class="win" style="--g:${g}px"><div class="left" style="padding-top:28px"><div class="acc" style="padding:20px 22px;font-weight:700">Book 2: The Lantern Burns</div><div class="card" style="margin:0 var(--g);height:calc(100% - 28px - 100px - 76px)">Codex list</div></div><div class="centre" style="padding:${topFromWindow?g:g+28}px ${g}px ${g}px"><div class="card" style="height:100%">Chapter text</div><div class="gapline" style="left:0;top:0;width:${g}px;height:${topFromWindow?g:g+28}px">${topFromWindow?g:g+28}</div></div><div class="right" style="padding-top:${topFromWindow?g:g+28}px"><div class="card" style="flex:1">Codex card (context)</div></div></div>`;
+let h="";
+if(c=="series")h=lib("s",1,seriesCentre,ctxNovel());
+if(c=="series-none")h=lib("s",-1,seriesCentre,`<div class="muted" style="padding:12px">Nothing chosen: the panel is empty.</div>`);
+if(c=="novel-other")h=lib("n",1,`<div class="card">Synopsis of the novel being written…</div>`,`<div class="muted" style="padding:12px">Book 2 is shown but isn't being written. Choose one of its chapters to write it.</div>`);
+if(c=="selector")h=lib("n",1,`<div style="position:relative"><button style="all:unset;font-size:22px;font-weight:700;background:var(--purpose-raised-bg);padding:4px 10px;border-radius:6px 6px 0 0">Book 2: The Lantern Burns</button><div class="dd" style="top:40px;left:0;border-radius:0 6px 6px 6px"><div class="row muted">Book 1: The Harbour Wakes</div><div class="row sel">Book 2: The Lantern Burns</div><div class="row muted">Book 3: Ash and Salt</div><div style="height:1px;background:var(--purpose-border);margin:4px 0"></div><div class="row muted">Spin-off idea (unplaced)</div></div></div><div class="card" style="margin-top:200px">Synopsis</div>`,"");
+if(c=="story-follow")h=story(29,true);
+if(c=="story-fixed")h=story(24,true);
+if(c=="gutters")h=lib("n",1,`<div class="flex"><div class="cover"></div><div style="flex:1"><div class="card" style="height:150px">Synopsis</div></div></div>`,`<div class="card" style="height:70px">Plot note</div><div class="card" style="flex:1">Chapter text</div>`).replace('class="win"','class="win" style="--g:24px"');
+if(c=="settings")h=`<div class="win" style="justify-content:center;align-items:center"><div class="card" style="width:760px;padding:24px"><b>General</b> · sidebar widths<table style="width:100%;margin-top:14px;border-spacing:0 10px">${["storytelling","series","novel","codex","archive"].map((v,i)=>`<tr><td style="width:130px">${v}</td><td><input type="range" style="width:150px" aria-label="${v} left"></td><td><input type="range" style="width:150px"></td><td>${i==0||i>=3?"☐ Keep panels the same width":""}</td></tr>`).join("")}</table><div class="muted" style="margin-top:8px">No range text; each slider's value is read to the screen reader.</div></div></div>`;
+document.getElementById("r").innerHTML=h;
+</script></body></html>

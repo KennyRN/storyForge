@@ -53,3 +53,90 @@ Recommendation: **B**, because the app already has one chosen novel and one chos
 ## 7. Hold points for the build
 
 The close path (every field the panel mounts must register and rescue like the plot note), the disk-safety suite, `test:quit` with text typed in the synopsis in the panel, `test:cover`, and the sessions rules (switching the novel must not end or count a session: nothing is typed in the switch).
+
+---
+
+# Brief 19, H1: survey and mock-up (no build)
+
+Branch `series-2`, cut from `main` at `v1.10.0`. Nothing in `src/` changed. Mock-up: `docs/series-2-mockups/mockup.html` (the app's theme tokens, not app code; `?case=` picks a case) with its PNGs; `now-*.png` and `measure.json` are the app as it is today, measured in the preview at 1440×900. §6 of the survey above (option A or B) is settled by decision 143: **A**.
+
+## H1.1 The series page, and every `selectBook` call
+
+`selectBook` is defined in `model.ts` and called from exactly two places: `seriesOverview.ts` (the name button in each novel row, placed and unplaced) and `seriesTab.ts` (a click on a row in the left pane's novel list). Each also calls `model.select({kind:"novel"})` first. Today it sets `nav.book`, `nav.chapter` (first chapter), `forgeTab = "novel"`, opens that chapter, and shows the novel overview.
+
+| Call | Becomes |
+|---|---|
+| central pane's novel name | `model.chooseNovel(folder)`: sets the library chosen novel only |
+| left pane's novel row | the same |
+| (new) "Write this novel" | the old `selectBook`, minus the forced first chapter: reopen the last chapter in that novel |
+
+**Proposed state:** `nav.libraryBook` (string | null), session only. `nav.book` stays the novel being written. `chooseNovel` touches `"nav"` only: no editor call, no `persistSoon`, no session effect. The central pane's rows lose `synopsisField` (it moves to the panel); each row keeps cover, title, word-count bar.
+
+## H1.2 How the two choices interact
+
+- The novel tab shows `nav.libraryBook ?? nav.book`. The left pane's novel tab (`novelTab.ts`) and `novelOverview.ts` read the shown novel, not `nav.book`.
+- **Shown ≠ written:** the left pane lists the shown novel's chapters with **no row highlighted** (the highlight is `nav.chapter` only when `nav.book === shown`), and the context panel is empty (`showsChosenChapter` also requires `shown === nav.book`). Choosing a chapter calls `chooseChapter(shown, file)`, which already sets `nav.book`; it then also clears nothing, since the two are equal again.
+- **The storytelling side's novel-name click** (`openLibraryTab("novel")`) sets `nav.libraryBook = nav.book` first.
+- **Other `nav.book` changes** (`openChapter`, `addNextChapter`, archive tidy) set `libraryBook = null`, so a stale choice never survives writing elsewhere. Needs one test.
+- **Novel selector.** Today the novel tab has no novel name in its left pane; the novel's name is the `h2` in `novelOverview.ts` (the workspace). Proposal: the `h2` becomes the selector's button, so it is where the name already is. The navigator's selector (`faces/navigator.ts`) is a closure over one `draw()` that mixes the button, the list, outside-click and Escape handling, and the focus return. **Sharing:** extract `kit/selectList.ts` (`mountSelectList({ items, current, label, onChoose, extraRows, separatorBefore })`), which owns the button, the joined list, the shadow, arrows/Home/End/Return/Escape, outside click and focus return; the navigator becomes its first user (its "add the next chapter" row is `extraRows`), the novel selector its second. Its CSS (`.sf-nav-select`, `.sf-nav-current`, `.sf-nav-row`) is renamed to neutral classes. The navigator's `setBehind` (inert siblings) is navigator-specific and stays a hook. Risk: the navigator's tests (`navigator.ui.ts`) pin the current classes; they would be updated, not loosened.
+- **List arrangement (proposal):** placed novels in series order, a separator, then unplaced ones muted, as the chapter list does. The current one highlighted (rule 1); others muted. A standalone project (`storyKind === "standalone"`) renders plain text.
+
+## H1.3 "Write this novel"
+
+- **Icon:** a hover icon (muted at rest, accent on hover, like the add icons) beside the title in the panel, named "Write this novel", tooltip "Write this novel". I suggest Tabler `pencil-bolt` or a quill-and-arrow; **Kenny may supply one.** The mock-up shows a placeholder glyph.
+- **Where the last chapter per novel lives:** machine settings, per project (app data folder), as `selectedNovel`/`selectedObject` already are: a new `lastChapters: Record<string, string>` in `MachineProjectState`, written on `persistSoon` whenever `nav.chapter` changes. Never in the project. The key must be carried through saves and read leniently (unknown book or missing chapter falls back to the first placed chapter). **This is new machine state, not a project key.**
+
+## H1.4 The close path
+
+The synopsis in the panel is the same `synopsisField`/`textField` with the same `FieldBin`; `registerCloseCommit` registers while it has focus wherever it is mounted, so the close sequence is unchanged. What must be added: the panel calls `commitFocusedFields()` before rebuilding for another chosen novel (as `chapterContext.ts` does), and a rebuild is refused while the field has focus with unsaved text (`seriesOverview.ts` already has that guard). `test:quit`: add a case typing in the synopsis in the series tab's panel next to the existing chapter and plot-note cases; the other nine routes are unchanged. Cover and default-PoV writes are not typed text and are not close-committed.
+
+## H1.5 Settings
+
+- **"this computer" holds only the widths table:** a note paragraph ("These stay on this computer…", muted), the "Measure widths in" select, the table, and a narrowed-window note. Nothing else needs a new home. The unit select stays; I propose it moves with the table onto "sidebar widths". **To confirm:** if sliders replace typed figures, is the unit select still wanted? Sliders in percent only would drop it.
+- **Muted lines in Settings** (`sf-muted`): (1) `source()` after every row built by `row()` and `storyKind()`: "this project", "the plugin's settings", "default" — **source markers, go**; (2) `sizeSlider`'s value span (`sf-setting-source`, already used as a readout): decision 133 removed the visible readout, so check it is hidden, and drop the class; (3) `sf-options-tag` "bar" / "rail" tags above swatches: labels, **kept** unless Kenny says otherwise; (4) `sf-grid-hint` under the Interface and Writing fonts ("Every part of the app's own text…", "The chapter and note editors…"): **hints, listed for Kenny**; (5) widths note paragraph and the "narrower" note: **hints, listed**; (6) `sf-width-hint` range text and "Not allowed: use…": **go with the sliders**; (7) typing page: `sf-setting-hint` on the shortcode explanation ("Type ~ and the letters, then Tab…"), the Mac's-own-aids paragraph and the list settings' hints: **hints, listed**; "None" in empty lists is content, kept; (8) the read-only paragraph at the top of a page when settings are off: a state message, kept.
+- **Merged general sub-page:** `GENERAL_PAGES` becomes `["general", "this computer"→"sidebar widths"]`; the page holds Interface (Opens in, Hide series pane), Story (This story is) and Numbering. The "story" sub-page is removed.
+- **Hide the series pane:** `check("hideSeriesPane")` is drawn only when `storyKind === "standalone"`. Switching `storyKind` to `series` writes `hide-series-pane` false through the same settings writer, in the same `change()` (two writes, each compare-then-write). The consumers (`storyforge.ts` tabs, `navMenu.ts`) read `hideSeriesPane && storyKind === "standalone"`, so a stored `true` is ignored while a series, and an outside change to `story-kind` (Fix 6) writes nothing.
+- **Layout:** `.sf-setting-row` is a flex row with the control pushed to the right edge; a single-control row should use `justify-content: flex-start` with a fixed label width (e.g. 14em) so the control sits next to its label.
+- **Width sliders:** one range input per cell, min/max from `rangeIn()`, step 1 (px) or 0.5 (%), `aria-valuetext` giving the value with its unit, saved on release through `commitTypedWidth` (the existing check stays the single authority). Keep-same-width on storytelling, codex and archive means `widthsLinked` becomes per view: **a data change** (`widthsLinked` is a single machine setting today; it would become a set per view, with the old one carried to all three that had it). Flag for Kenny.
+
+## H1.6 The gaps
+
+Measured today (1440×900, left panel 288 px; `--sf-card-gap` = max(12, 10% of left) = 29 px):
+
+| Where | Today |
+|---|---|
+| storytelling chapter box | top 57 (28 band + 29), left/right 29 from the panels, foot 871 (900 − 29) |
+| storytelling Codex card (left) | foot 824, which is 12 above the stats section (836); side margins 29 |
+| context panel top | `--top-gap` 20 under the band = 48; side margins `max(12px, 10%)` of the panel |
+| novel tab, left Placed box ↔ workspace | 12 px list margin + the overview's 32 px padding = 45 |
+| novel tab, workspace synopsis ↔ context boxes | the overview's right edge + the panel's 29 px margin ≈ 74 |
+
+One rule: **`--gap`** = the one figure, used for the window's sides, between panels, and above and below boxes; the band counts inside it (top of a box at `--gap` from the window's top, with the traffic lights in the margin).
+
+- **Option 1, following:** `--gap = max(12, 10% of the left panel)` as now (29 px here). The chapter box's top moves from 57 to 29; the context Codex card's top from 48 to 29; feet all at `900 − 29`... **but** the Codex card's foot is fixed at 12 above the stats (decision 93), so to line up the feet the stats section's top must sit at `--gap` above the foot as well (stats is a fixed 64 px). Everything moves with the panel's width.
+- **Option 2, fixed:** `--gap = 20 px` (the existing `--top-gap`). Same alignment, constant at every width; the 10% rule goes (the context panel's note margins and the chapter box change from 29 to 20 here). Simpler to test (one figure), nothing moves as a divider is dragged.
+- **Recommendation: option 2.** A gap that grows with a panel makes the boxes shift while dragging and means the novel tab's two gutters can only be equal at one width. **Kenny rules.**
+- Novel tab gutters at the chosen figure: the overview's side padding and the panel's margin both become `--gap` (the Placed box already sits `--gap` from the window's edge).
+- Mock-up: `story-follow.png` (29) and `story-fixed.png` (20), `gutters.png`.
+
+## H1.7 The bug: how the context panel decides what to show
+
+`shell.ts`'s `apply()` hides the Codex-note host (`loreHost`) **only** when `showsChosenChapter(model)` (library side, novel tab). The `lore` slot's editor belongs to the storytelling side, but nothing hides it on the library side's series, codex and archive tabs, so a storytelling Codex note stays drawn there (and is live, editable). The library layer for codex/archive is a different host (`libraryHosts`) in the workspace, so it is not affected. The fix, in one place:
+
+- `loreHost.hidden = model.nav.face === "storyforge"` (a library side never shows the storytelling note), `inert` while hidden (the editor stays mounted, so nothing typed is lost), and the panel's content chosen by one function `contextShows(model): "note" | "chapter" | "novel" | "empty"` (storytelling → note; library novel tab → chapter; series tab → novel; codex, archive → empty).
+- The panel's bottom row (special-characters button) stays; `lastWriting` already greys when the editor is covered.
+- A flip-with-unsaved-text test reuses the decision 106 route.
+
+## H1.8 Mock-up (`docs/series-2-mockups/`)
+
+`series.png` (a novel chosen), `series-none.png`, `novel-other.png` (shown, not being written), `selector.png`, `story-follow.png`, `story-fixed.png`, `gutters.png`, `settings.png`. Drawn from the app's tokens, so colours are real; layout and proportions are approximate, and the bars in the panel are the real bar colours and shapes without names.
+
+## H1.9 For Kenny
+
+1. **Gap: following (10%, 29 px here) or fixed (20 px)?** Recommended: fixed.
+2. **Selector placement:** the novel overview's `h2` becomes the selector. OK?
+3. **"Write this novel" icon:** supply one, or accept a Tabler pencil.
+4. **Last chapter per novel** as machine state (`lastChapters`). OK?
+5. **Settings:** the muted hints in H1.5 (4, 5, 7): which go? Does the unit select stay once widths are sliders?
+6. **Keep-same-width on three rows** makes `widthsLinked` per view in machine state. OK?
+7. **Clicking a chapter bar in the panel:** the earlier survey suggested doing nothing (unlabelled bars are easy to hit by mistake); the brief doesn't say. Default: nothing.
