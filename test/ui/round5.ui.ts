@@ -156,3 +156,76 @@ test.describe("the archive tab and the banner", () => {
 		expect(await banner.locator("svg").evaluate((e) => getComputedStyle(e).color)).toBe(await token(page, "--purpose-notice-warning-edge"));
 	});
 });
+
+test.describe("the library's small changes (round five)", () => {
+	const token = (page: Page, v: string) => page.evaluate((n) => { const i = document.createElement("i"); i.style.color = `var(${n})`; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; }, v);
+
+	test("Unarchive is a hover icon: muted at rest; on hover a rounded square as tall as the row's highlight in the Codex colour with the panel's colour on the icon; still named", async ({ page }) => {
+		await openProject(page);
+		await flipFace(page);
+		await page.getByRole("tab", { name: "archive" }).click();
+		const row = page.locator(".sf-archive-row").first();
+		const button = row.getByRole("button", { name: /^Unarchive / });
+		await expect(button).toBeVisible();
+		expect(await button.evaluate((e) => [getComputedStyle(e).backgroundColor, getComputedStyle(e).color])).toEqual(["rgba(0, 0, 0, 0)", await token(page, "--purpose-text-muted")]);
+		await button.hover();
+		await expect.poll(() => button.evaluate((e) => getComputedStyle(e).backgroundColor)).toBe(await token(page, "--purpose-codex"));
+		expect(await button.evaluate((e) => getComputedStyle(e).color)).toBe(await token(page, "--purpose-panel-bg"));
+		const [b, o] = await Promise.all([button.boundingBox(), row.locator(".sf-archive-open").boundingBox()]);
+		expect(Math.abs(b!.height - o!.height)).toBeLessThan(1.5);
+		expect(Math.abs(b!.width - b!.height)).toBeLessThan(1.5); // a square
+	});
+
+	test("the unplaced novels have no chevron and fold from their header; the add icons are hover icons in the header's colour", async ({ page }) => {
+		await openProject(page);
+		await flipFace(page);
+		await page.getByRole("tab", { name: "series" }).click();
+		const header = page.getByRole("button", { name: "Unplaced Novels", exact: true });
+		await expect(header).toHaveAttribute("aria-expanded", "true");
+		await expect(header.locator("svg")).toHaveCount(0); // no chevron
+		const add = page.getByRole("button", { name: "New novel" });
+		expect(await add.evaluate((e) => getComputedStyle(e).color)).toBe(await token(page, "--purpose-text-muted"));
+		await add.hover();
+		await expect.poll(() => add.evaluate((e) => getComputedStyle(e).color)).toBe(await token(page, "--purpose-library-header"));
+		await header.click();
+		await expect(header).toHaveAttribute("aria-expanded", "false");
+		await expect(page.getByRole("list", { name: "Unplaced novels" })).toHaveCount(0);
+		// the chapters' header too
+		await page.getByRole("tab", { name: "novel" }).click();
+		const addChapter = page.getByRole("button", { name: "New chapter" });
+		expect(await addChapter.evaluate((e) => getComputedStyle(e).color)).toBe(await token(page, "--purpose-text-muted"));
+	});
+
+	test("the novel tab's synopsis has the read-only chapter text's padding, in px", async ({ page }) => {
+		await openProject(page);
+		await flipFace(page);
+		await page.getByRole("tab", { name: "novel" }).click();
+		const pad = (sel: string) => page.locator(sel).first().evaluate((e) => { const s = getComputedStyle(e); return [s.paddingTop, s.paddingRight, s.paddingBottom, s.paddingLeft]; });
+		const synopsis = await pad('[aria-label="Novel overview"] .sf-note-field .cm-content');
+		expect(synopsis).toEqual(["16px", "16px", "24px", "16px"]);
+		expect(synopsis).toEqual(await pad(".sf-chapter-text .cm-content"));
+	});
+
+	test("the no-cover icon is half the box's width, centred, cut out in the colour of what the box sits on, on a grey1 box", async ({ page }) => {
+		await openPreview(page);
+		const card = page.locator(".sf-project-card-image.is-empty").first();
+		if (await card.count()) {
+			const [box, svg] = await Promise.all([card.boundingBox(), card.getByRole("img", { name: "No cover" }).boundingBox()]);
+			expect(Math.abs(svg!.width - box!.width / 2)).toBeLessThan(1.5);
+			expect(Math.abs(svg!.x + svg!.width / 2 - (box!.x + box!.width / 2))).toBeLessThan(1.5);
+			expect(await card.evaluate((e) => getComputedStyle(e).backgroundColor)).toBe(await token(page, "--purpose-cover-empty"));
+			expect(await card.evaluate((e) => getComputedStyle(e).color)).toBe(await token(page, "--purpose-editor-bg")); // the card is bg0
+		}
+		await page.locator("[data-recent='0']").click();
+		await page.waitForFunction(() => !!window.__app?.editors);
+		await flipFace(page);
+		await page.getByRole("tab", { name: "series" }).click();
+		const cover = page.locator('[data-cover="series"]').first();
+		await expect(cover).toHaveAttribute("data-state", "placeholder");
+		const [box, svg] = await Promise.all([cover.boundingBox(), cover.getByRole("img", { name: "No cover" }).boundingBox()]);
+		expect(Math.abs(svg!.width - box!.width / 2)).toBeLessThan(1.5);
+		expect(Math.abs(svg!.x + svg!.width / 2 - (box!.x + box!.width / 2))).toBeLessThan(1.5);
+		expect(await cover.evaluate((e) => getComputedStyle(e).backgroundColor)).toBe(await token(page, "--purpose-cover-empty"));
+		expect(await cover.evaluate((e) => getComputedStyle(e).color)).toBe(await token(page, "--purpose-panel-bg")); // the overview is bg_dim
+	});
+});

@@ -55,11 +55,11 @@ test.describe("the library", () => {
 		await flip(page);
 		const tabs = page.getByRole("tab");
 		await expect(tabs).toHaveCount(4);
-		// from the window's outer edge: archive, novel, series, codex; the storytelling flip follows
+		// left to right (round five): archive, codex, series, novel; the storytelling flip follows
 		await expect(tabs.nth(0)).toHaveAttribute("aria-label", "archive");
-		await expect(tabs.nth(1)).toHaveAttribute("aria-label", "novel");
+		await expect(tabs.nth(1)).toHaveAttribute("aria-label", "codex");
 		await expect(tabs.nth(2)).toHaveAttribute("aria-label", "series");
-		await expect(tabs.nth(3)).toHaveAttribute("aria-label", "codex");
+		await expect(tabs.nth(3)).toHaveAttribute("aria-label", "novel");
 		await expect(tab(page, "novel")).toHaveAttribute("aria-selected", "true");
 		// the tabs lie across the top and the ink bar is under the selected icon
 		const tops = await Promise.all([0, 1, 2, 3].map((i) => tabs.nth(i).evaluate((e) => e.getBoundingClientRect().top)));
@@ -108,13 +108,17 @@ test.describe("the library", () => {
 	test("the tabs are reachable with the keyboard (left and right arrows move between them)", async ({ page }) => {
 		await openProject(page);
 		await flip(page);
-		await tab(page, "novel").focus();
-		await page.keyboard.press("ArrowRight");
+		await tab(page, "novel").focus(); // left to right: archive, codex, series, novel
+		await page.keyboard.press("ArrowLeft");
 		await expect(tab(page, "series")).toBeFocused();
 		await expect(tab(page, "series")).toHaveAttribute("aria-selected", "true");
-		await page.keyboard.press("ArrowRight");
+		await page.keyboard.press("ArrowLeft");
 		await expect(tab(page, "codex")).toBeFocused();
-		await page.keyboard.press("ArrowRight"); // wraps among the tabs (the flip is not one)
+		await page.keyboard.press("ArrowLeft");
+		await expect(tab(page, "archive")).toBeFocused();
+		await page.keyboard.press("ArrowLeft"); // wraps among the tabs (the flip is not one)
+		await expect(tab(page, "novel")).toBeFocused();
+		await page.keyboard.press("ArrowRight");
 		await expect(tab(page, "archive")).toBeFocused();
 	});
 

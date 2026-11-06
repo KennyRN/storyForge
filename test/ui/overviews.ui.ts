@@ -286,7 +286,7 @@ test.describe("the novel overview", () => {
 		const o = novelOverview(page);
 		const box = o.locator('[data-cover="book:aaa"]');
 		await expect(box).toHaveAttribute("data-state", "placeholder"); // the fixture's cover is not a real picture
-		await expect(box.locator(".sf-cover-placeholder")).toBeVisible();
+		await expect(box.getByRole("img", { name: "No cover" })).toBeVisible(); // the no-cover icon, named for the screen reader
 		// Never silent: a cover that is recorded but can't be drawn says so.
 		await expect(page.getByRole("alert").filter({ hasText: "could not be shown" }).first()).toBeVisible(); // an error: announced as an alert (Brief 17)
 		await box.click();

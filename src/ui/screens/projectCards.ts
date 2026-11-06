@@ -86,13 +86,13 @@ export function mountProjectCards(host: HTMLElement, model: AppModel): () => voi
 			// An image the browser can't draw counts as no cover, like a missing file: the no-cover icon takes its place, with no report here.
 			img.addEventListener("error", () => {
 				if (onUndrawable) return onUndrawable();
-				fill(image, photoIcon());
+				fill(image, photoIcon("50%"));
 				image.classList.add("is-empty");
 			});
 			fill(image, img);
 			image.classList.remove("is-empty");
 		} else {
-			fill(image, photoIcon());
+			fill(image, photoIcon("50%"));
 			image.classList.add("is-empty");
 		}
 		views.set(path, view);
@@ -134,7 +134,7 @@ export function mountProjectCards(host: HTMLElement, model: AppModel): () => voi
 				const card = el(
 					"button",
 					{ class: "sf-project-card", attrs: { type: "button", title: path, "aria-label": baseName(path) }, dataset: { recent: String(i) } },
-					el("div", { class: "sf-project-card-image is-empty" }, photoIcon()),
+					el("div", { class: "sf-project-card-image is-empty" }, photoIcon("50%")),
 					el("div", { class: "sf-project-card-text" }, el("span", { class: "sf-project-card-name", text: baseName(path) }), el("span", { class: "sf-project-card-path", text: shownPath(display[i] ?? path) }), el("span", { class: "sf-project-card-state", attrs: { hidden: "" } })),
 				);
 				card.addEventListener("click", () => {

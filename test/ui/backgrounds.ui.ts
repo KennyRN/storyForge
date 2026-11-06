@@ -65,10 +65,15 @@ test.describe("the library side's backgrounds", () => {
 		if (await archived.count()) await card(page, archived, "the archived item");
 	});
 
-	test("the storytelling side is unchanged: the chapter editor stays on bg0, the left panel on bg_dim", async ({ page }) => {
+	test("the storytelling side's chapter editor is a bg0 card on bg_dim (a try-out, round five), the left panel on bg_dim", async ({ page }) => {
 		expect((await style(page.locator(".sf-slot--centre"), ["background-color"]))[0]).toBe(await probe(page, BG0));
 		await dim(page, page.locator(".sf-left"), "the left panel");
-		expect((await style(page.locator(".sf-centre-wrap"), ["background-color"]))[0]).toBe(await probe(page, BG0)); // the strip under the title band is the editor's colour here
+		await dim(page, page.locator(".sf-centre-wrap"), "the strip around the editor card"); // bg_dim shows round the card, under the title band and at the window's foot
+		const gap = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sf-card-gap")));
+		const [card, wrap] = await page.evaluate(() => { const r = (s: string) => { const b = document.querySelector(s)!.getBoundingClientRect(); return { top: b.top, bottom: b.bottom }; }; return [r(".sf-slot--centre"), r(".sf-centre-wrap")]; });
+		expect(card.top - (wrap.top + 28)).toBeCloseTo(gap, 0); // from the band's foot
+		expect(wrap.bottom - card.bottom).toBeCloseTo(gap, 0); // from the window's foot
+		expect((await style(page.locator(".sf-slot--centre"), ["border-top-left-radius"]))[0]).toBe("10px");
 	});
 
 	test("the first lines of the cards start on the shared top line (48px)", async ({ page }) => {

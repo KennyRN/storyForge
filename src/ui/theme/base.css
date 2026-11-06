@@ -229,7 +229,8 @@ input[aria-invalid="true"] {
 	display: block;
 }
 .sf-project-card-image.is-empty {
-	color: var(--purpose-decoration);
+	background: var(--purpose-cover-empty);
+	color: var(--purpose-editor-bg); /* the card is bg0: the no-cover icon is cut out of the grey1 box in it */
 }
 .sf-project-card-text {
 	display: flex;
@@ -344,6 +345,18 @@ input[aria-invalid="true"] {
 .sf-slot--centre {
 	height: 100%;
 	background: var(--purpose-editor-bg);
+}
+/* A try-out (round five): on the storytelling side the chapter editor is a bg0 card on bg_dim. Left and right it meets the panels as it did; top and bottom it is as far
+   from the title band's foot and the window's foot as the Codex card is from the editor (--sf-card-gap); its corners are the library Codex page's panel's (10px). */
+.sf-frame:has(.sf-left[data-face="storytelling"]) .sf-centre-wrap {
+	background: var(--purpose-panel-bg);
+}
+.sf-frame:has(.sf-left[data-face="storytelling"]) .sf-slot--centre {
+	box-sizing: border-box;
+	height: calc(100% - 2 * var(--sf-card-gap, 12px));
+	margin-block: var(--sf-card-gap, 12px);
+	border-radius: 10px;
+	overflow: hidden;
 }
 .sf-slot--lore {
 	flex: none;

@@ -3,6 +3,7 @@ import { makeReorderable, type DragZone } from "../../view/dragReorder";
 import { isDragInProgress } from "../../view/dragLock";
 import { el } from "../kit/dom";
 import { icon } from "../kit/icons";
+import { addChapterIcon } from "../kit/statsIcons";
 import type { AppModel } from "../model";
 
 export { isDragInProgress };
@@ -30,7 +31,7 @@ export function zoneHeader(label: string, hidden: boolean, onToggle: () => void,
 			: el("button", { class: "sf-zone-fold", attrs: { type: "button", "aria-expanded": String(!hidden) }, on: { click: onToggle } }, ...(options.chevron === false ? [] : [icon(hidden ? "chevron-right" : "chevron-down", 14)]), el("span", { class: "sf-zone-label", text: label }));
 	const header = el("div", { class: `sf-zone-header${hidden ? " is-folded" : ""}` }, fold);
 	if (create && !hidden) {
-		const add = el("button", { class: "sf-button sf-button--icon sf-zone-add", attrs: { type: "button", "aria-label": create.name, title: create.disabled ? (create.reason ?? create.name) : create.name }, on: { click: () => create.onCreate() } }, icon("plus", 14));
+		const add = el("button", { class: "sf-button sf-button--icon sf-zone-add", attrs: { type: "button", "aria-label": create.name, title: create.disabled ? (create.reason ?? create.name) : create.name }, on: { click: () => create.onCreate() } }, addChapterIcon());
 		add.disabled = !!create.disabled;
 		header.append(add);
 	}

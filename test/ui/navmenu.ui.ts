@@ -238,7 +238,9 @@ test.describe("the chapter list's rows, the add button and the title bar", () =>
 		const want = await top(".sf-nav-series");
 		expect(want).toBeCloseTo(48, 0);
 		expect(await top(".sf-lore-host > .sf-editor-pane")).toBeCloseTo(want, 0);
-		expect(await top(".sf-slot--centre .cm-line")).toBeCloseTo(want, 0);
+		// the storytelling editor is a card since the round-five try-out: its text starts below its card's gap (the gap is the Codex card's right margin, 10% of the panel)
+		const gap = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--sf-card-gap")));
+		expect(await top(".sf-slot--centre .cm-line")).toBeCloseTo(28 + gap + 20, 0); // the band, the gap, the editor's own top padding (--top-gap)
 		await flipFace(page);
 		expect(await top(".sf-tab")).toBeCloseTo(44, 0); // 28 + 16: 4px above the shared line, accepted
 	});

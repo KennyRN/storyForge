@@ -33,6 +33,7 @@ export const PURPOSES = [
 	"emphasis-italic",
 	"emphasis-bold-italic",
 	"small-heading",
+	"cover-empty",
 	"library-header",
 	"placed",
 	"unplaced",

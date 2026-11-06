@@ -26,6 +26,8 @@
 	/* The numbers (v1.1). */
 	--purpose-data-fill: var(--ef-blue);
 	/* The chapter bar's frame (Brief 15): grey0, 3.40:1 on bg_dim, the shape that shows the planned length. */
+	/* An empty cover box (round five): grey1, with the no-cover icon cut out of it in the colour of the background it sits on. */
+	--purpose-cover-empty: var(--ef-grey1);
 	--purpose-data-frame: var(--ef-grey0);
 	/* Text over the data fill: bg_dim on blue (Brief 14; the chapter's name over its bar, dark over the fill and light over the track). */
 	--purpose-text-on-data: var(--ef-bg-dim);

@@ -2,6 +2,7 @@ import type { CoverTarget } from "../../app/appLife";
 import { readBookFrontmatter } from "../../core/book";
 import { bookBackstagePath, seriesBackstagePath } from "../../core/paths";
 import { readSeriesFrontmatter } from "../../core/series";
+import { photoIcon } from "../kit/photoIcon";
 import { el } from "../kit/dom";
 import { menuPoint, showMenu } from "../kit/menu";
 import type { AppModel } from "../model";
@@ -46,7 +47,7 @@ export function coverBox(model: AppModel, target: CoverTarget, title: string): H
 		);
 	});
 	const placeholder = (): void => {
-		box.replaceChildren(el("span", { class: "sf-cover-placeholder sf-muted", text: "No cover" }));
+		box.replaceChildren(photoIcon("50%")); // half the box's width, centred, a cut-out in the colour of what the box sits on; its name for the screen reader is "No cover"
 		box.dataset.state = "placeholder";
 		// A recorded cover whose picture is not on screen (still being read, missing or unreadable) says so: the name is how a check, and a screen reader, tells a drawn cover from a placeholder.
 		box.setAttribute("aria-label", recorded ? `Change or remove the cover of ${title} (no picture is shown)` : `Choose a cover for ${title}`);

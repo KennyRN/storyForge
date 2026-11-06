@@ -730,6 +730,18 @@ body.sf-codex-drag-active {
 .sf-zone-fold .sf-zone-label {
 	flex: none;
 }
+.sf-zone-header .sf-zone-add {
+	/* A hover icon (round five): the storytelling side's rounded-square plus, muted at rest, the colour of its header on hover; still a named button. */
+	border-color: transparent;
+	background: transparent;
+	color: var(--purpose-text-muted);
+	transition: color var(--motion);
+}
+.sf-zone-header .sf-zone-add:hover:not(:disabled),
+.sf-zone-header .sf-zone-add:focus-visible:not(:disabled) {
+	background: transparent;
+	color: var(--purpose-library-header);
+}
 .sf-unplaced-list .sf-row {
 	color: var(--purpose-text-muted);
 }
@@ -850,6 +862,24 @@ body.sf-codex-drag-active {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+}
+/* Unarchive is a hover icon, not a button's look (round five): muted at rest; on hover a rounded square as tall as the row's highlight, in the Codex colour, with the icon in the panel's colour. It is still a named control. */
+.sf-archive-row .sf-button {
+	align-self: stretch;
+	width: calc(1lh + 8px); /* the row's height (a line plus the 4px above and below), so the square is as tall as the highlight */
+	flex: none;
+	padding: 0;
+	justify-content: center;
+	border-color: transparent;
+	border-radius: var(--radius);
+	background: transparent;
+	color: var(--purpose-text-muted);
+	transition: color var(--motion), background var(--motion);
+}
+.sf-archive-row .sf-button:hover:not(:disabled),
+.sf-archive-row .sf-button:focus-visible:not(:disabled) {
+	background: var(--purpose-codex);
+	color: var(--purpose-panel-bg);
 }
 /* The selected item and the one under the pointer are a block in the Codex colour with the panel's colour on it, as a Codex row is. */
 .sf-archive-open:hover,

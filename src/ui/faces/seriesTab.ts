@@ -48,7 +48,7 @@ export function mountSeriesTab(host: HTMLElement, model: AppModel): () => void {
 		fill(
 			host,
 			titleRow,
-			el("div", { class: "sf-forge-body sf-scroll" }, placed, el("div", { class: "sf-unplaced-zone" }, zoneHeader("Unplaced Novels", unplacedFolded, () => ((unplacedFolded = !unplacedFolded), draw()), { name: "New novel", disabled: !!readOnly, reason: "This project is open read-only.", onCreate: () => run("create the novel", () => createBook(project)) }), unplacedFolded ? null : unplacedList)),
+			el("div", { class: "sf-forge-body sf-scroll" }, placed, el("div", { class: "sf-unplaced-zone" }, zoneHeader("Unplaced Novels", unplacedFolded, () => ((unplacedFolded = !unplacedFolded), draw()), { name: "New novel", disabled: !!readOnly, reason: "This project is open read-only.", onCreate: () => run("create the novel", () => createBook(project)) }, { chevron: false }), unplacedFolded ? null : unplacedList)),
 		);
 		if (!readOnly) {
 			reorderable(

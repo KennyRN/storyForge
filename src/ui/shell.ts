@@ -66,6 +66,8 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 		const shown = model.displayWidths();
 		left.style.width = `${shown.left}px`;
 		lore.style.width = `${shown.lore}px`;
+		// Try-out (round five): the storytelling editor is a card; its top and bottom margins equal the gap between the Codex card and the editor (the card's right margin, 10% of the panel, 12px at least).
+		document.documentElement.style.setProperty("--sf-card-gap", `${Math.max(12, Math.round(shown.left * 0.1))}px`);
 		lore.hidden = model.nav.loreHidden;
 		loreHost.hidden = showsChosenChapter(model);
 		loreBar.hidden = model.nav.loreHidden;

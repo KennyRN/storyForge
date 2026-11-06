@@ -58,6 +58,8 @@
 /* The novel's synopsis and the series' description (and each novel's synopsis in the series overview) are places you write: cards on bg0, 10px corners, no border. */
 .sf-overview .sf-note-field { background: var(--purpose-editor-bg); border: 0; border-radius: 10px; margin-left: 0; }
 .sf-overview .sf-note-field .cm-content { padding: 8px 12px; }
+/* The novel tab's synopsis takes the read-only chapter text's inner padding, in px, never scaling with the text's size (round five). */
+[aria-label="Novel overview"] .sf-note-field .cm-content { padding: 16px 16px 24px; }
 
 /* The history view. */
 .sf-history { min-width: min(520px, 70vw); display: flex; flex-direction: column; gap: 4px; }
@@ -107,6 +109,9 @@ button.sf-heat-cell { cursor: pointer; }
 .sf-cover-column { display: flex; flex-direction: column; align-items: flex-start; flex: none; }
 .sf-cover { all: unset; box-sizing: border-box; flex: none; width: 96px; height: 144px; display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; border: 1px dashed var(--purpose-border); border-radius: 4px; background: var(--purpose-raised-bg); }
 .sf-cover[data-state="image"] { border-style: solid; }
+.sf-cover[data-state="placeholder"] { border-style: solid; border-color: transparent; background: var(--purpose-cover-empty); color: var(--purpose-panel-bg); } /* the cover box sits on bg_dim: the icon is cut out in it */
+.sf-cover[data-state="placeholder"]:hover:not(:disabled) { border-color: var(--purpose-accent); }
+.sf-cover .sf-icon { flex: none; }
 .sf-cover:hover:not(:disabled) { border-color: var(--purpose-accent); }
 .sf-cover:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 2px; }
 .sf-cover:disabled { cursor: default; }

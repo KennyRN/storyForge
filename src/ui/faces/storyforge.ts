@@ -8,14 +8,14 @@ import { mountNovelTab } from "./novelTab";
 import { mountSeriesTab } from "./seriesTab";
 
 const TABS: { id: ForgeTab; label: string; icon: NavIconName }[] = [
-	// From the window's outer edge inwards: archive outermost, then novel, series and codex; the storytelling flip follows them.
+	// Left to right (round five, replacing decision 106's order): archive, codex, series, novel; the storytelling flip follows them.
 	{ id: "archive", label: "archive", icon: "archive" },
-	{ id: "novel", label: "novel", icon: "novel" },
-	{ id: "series", label: "series", icon: "series" },
 	{ id: "codex", label: "codex", icon: "codex" },
+	{ id: "series", label: "series", icon: "series" },
+	{ id: "novel", label: "novel", icon: "novel" },
 ];
 
-/** The storyForge face's left panel: four tabs (archive, novel, series, codex, from the outer edge) and the storytelling flip, as Kenny's 32 px icons across the top line, spread evenly. The selected tab shows in the accent colour (grey0 at rest, the text colour on hover); there is no ink bar. The tab's pane is below. */
+/** The storyForge face's left panel: four tabs (archive, codex, series, novel, left to right) and the storytelling flip, as Kenny's 32 px icons across the top line, spread evenly. The selected tab shows in the accent colour (grey0 at rest, the text colour on hover); there is no ink bar. The tab's pane is below. */
 export function mountStoryForgeFace(host: HTMLElement, model: AppModel): () => void {
 	host.classList.add("sf-face", "sf-face--storyforge");
 	const rail = el("div", { class: "sf-rail", attrs: { role: "tablist", "aria-orientation": "horizontal", "aria-label": "Library" } });
