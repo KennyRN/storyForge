@@ -88,9 +88,8 @@ test.describe("the series tab's context panel", () => {
 			expect(m.progress).toBe(20);
 			expect(m.strip).toBe(4);
 			expect(m.bars.every((b) => b > 0)).toBe(true);
-			await panel(page).evaluate((p) => void (p.scrollTop = p.scrollHeight)); // the panel scrolls far enough to show the last chapter bar
-			const last = await panel(page).evaluate((p) => { const b = [...p.querySelectorAll(".sf-novel-ctx-bars .sf-bar")].at(-1)!.getBoundingClientRect(); const r = p.getBoundingClientRect(); return b.height > 0 && b.top >= r.top - 1 && b.bottom <= r.bottom + 1; });
-			expect(last).toBe(true);
+			// the panel scrolls far enough to show the last chapter bar (polled: the panel's own layout settles over a frame or two after a width change)
+			await expect.poll(() => panel(page).evaluate((p) => { p.scrollTop = p.scrollHeight; const b = [...p.querySelectorAll(".sf-novel-ctx-bars .sf-bar")].at(-1)!.getBoundingClientRect(); const r = p.getBoundingClientRect(); return b.height > 0 && b.top >= r.top - 1 && b.bottom <= r.bottom + 1; })).toBe(true);
 		};
 		await check(); // the default width
 		await page.evaluate(() => (window.__app as any).commitTypedWidth("series", "lore", 22)); // the minimum (280 px of 1280)

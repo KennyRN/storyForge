@@ -117,21 +117,25 @@ test.describe("§3 the novel page", () => {
 });
 
 test.describe("§4 the series page", () => {
-	test("§4.1 and §4.3 the cover is level with the series description, and the title and default PoV end 12px above it", async ({ page }) => {
+	test("§4.1 and §4.3 (ruling) the cover is level with the series description, the novel title is on the tabs' line, and the default PoV is below the cover block", async ({ page }) => {
 		await open(page, "series");
 		await page.locator(".sf-overview-row[data-book='aaa'] .sf-overview-name").click();
 		const cover = page.locator(".sf-novel-ctx-head > .sf-cover");
 		await expect(cover).toBeVisible();
 		await expect.poll(async () => Math.abs((await box(cover)).y - (await box(page.locator(".sf-overview-head .sf-section-field"))).y)).toBeLessThan(1);
-		const meta = await box(page.locator(".sf-novel-ctx-meta"));
+		// the ruling: the novel title is on the tabs' line, the same as the central pane's series title; nothing rises above the 48px line
+		const base = (loc: Locator) => loc.evaluate((t) => { const p = document.createElement("span"); p.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline"; t.append(p); const y = p.getBoundingClientRect().bottom; p.remove(); return y; });
+		const titleBase = await base(page.locator(".sf-novel-ctx-title-text"));
+		const centralBase = await base(page.locator(".sf-overview-title"));
+		expect(Math.abs(titleBase - centralBase)).toBeLessThan(1);
+		const title = await box(page.locator(".sf-novel-ctx-title-text"));
+		expect(title.y).toBeGreaterThanOrEqual(48);
+		expect(await panel(page).getAttribute("data-align-short-by")).toBe("0"); // the cover is not short of its line
 		const c = await box(cover);
-		expect(Math.round(c.y - (meta.y + meta.height))).toBe(12);
-		// the figures for Kenny: where the title rises to against the 48px top line
-		const short = await panel(page).getAttribute("data-align-short-by");
-		console.log("series ctx: meta top", meta.y, "cover top", c.y, "short by", short);
-		expect(short).toBe("0");
-		// §4.3's stop: the title and default PoV rise above the 48px line (35.5px at the default size); recorded for Kenny, not asserted away.
-		expect(Math.round(c.y - (meta.y + meta.height))).toBe(12);
+		const pov = await box(page.locator(".sf-novel-context .sf-meta-row"));
+		const head = await box(page.locator(".sf-novel-ctx-head"));
+		expect(pov.y).toBeGreaterThanOrEqual(head.y + head.height); // the default PoV is below the cover and synopsis block
+		expect(c.y).toBeGreaterThan(title.y + title.height);
 	});
 
 	test("§4.2 the synopsis is beside the cover when the panel is wide, and under it, level with the first novel's cover, when it is narrow", async ({ page }) => {
@@ -216,6 +220,16 @@ test.describe("§4 the series page", () => {
 	});
 });
 
+test.describe("unplaced novels on the series page", () => {
+	test("an unplaced novel's synopsis is as before: edited in the context panel, with no box in the central list", async ({ page }) => {
+		await open(page, "series");
+		const row = page.locator(".sf-overview-row--unplaced").first();
+		await expect(row.locator(".sf-synopsis-box")).toHaveCount(0);
+		await row.locator(".sf-overview-name").click();
+		await expect(panel(page).getByRole("textbox", { name: /^Synopsis of / })).toBeVisible();
+	});
+});
+
 test.describe("§6 the storytelling side", () => {
 	test("§6.1 the novel name is a selector listing the placed novels only; the series name still opens the series tab", async ({ page }) => {
 		await open(page);
@@ -255,7 +269,8 @@ test.describe("§6 the storytelling side", () => {
 		expect(Math.round(t.x)).toBe(16);
 		expect(f.x).toBeLessThan(t.x);
 		expect(f.y).toBeLessThan(t.y);
-		console.log("novel fill top", f.y, "series name bottom", s.y + s.height, "text top", t.y);
+		expect(f.y).toBeGreaterThanOrEqual(s.y + s.height - 0.5); // the fill clears the series name
+		expect(Math.round(t.y * 10) / 10).toBe(68.8); // and the text did not move
 	});
 
 	test("§6.1 a standalone project shows no selector; its name is a plain label", async ({ page }) => {

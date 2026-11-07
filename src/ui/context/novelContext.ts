@@ -47,7 +47,23 @@ export function mountNovelContext(host: HTMLElement, model: AppModel): () => voi
 	const grid = trackRestingGrid(host, () => {
 		const cover = host.querySelector<HTMLElement>(".sf-novel-ctx-head > .sf-cover");
 		const description = document.querySelector<HTMLElement>(".sf-overview .sf-overview-head .sf-section-field");
-		return cover && description ? { anchor: cover, target: description } : null;
+		return cover && description ? { anchor: cover, target: description, shift: host.querySelector<HTMLElement>(".sf-novel-ctx-head") ?? undefined } : null;
+	}, () => {
+		// The novel's title is on the tabs' line: its baseline is level with the central pane's series title, which sits on the tabs' line (§3.1).
+		const meta = host.querySelector<HTMLElement>(".sf-novel-ctx-meta");
+		const text = host.querySelector<HTMLElement>(".sf-novel-ctx-title-text");
+		const central = document.querySelector<HTMLElement>(".sf-overview .sf-overview-title");
+		if (!meta || !text || !central) return;
+		const baseline = (e: HTMLElement): number => {
+			const probe = document.createElement("span");
+			probe.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline";
+			(e.querySelector<HTMLElement>(".sf-select-current-title") ?? e).append(probe);
+			const y = probe.getBoundingClientRect().bottom;
+			probe.remove();
+			return y;
+		};
+		meta.style.marginTop = "0px";
+		meta.style.marginTop = `${Math.max(0, Math.round((baseline(central) - baseline(text)) * 100) / 100)}px`;
 	});
 	const stack = (): void => {
 		const cover = host.querySelector<HTMLElement>(".sf-novel-ctx-head > .sf-cover");
@@ -106,7 +122,7 @@ export function mountNovelContext(host: HTMLElement, model: AppModel): () => voi
 		const write = el("button", { class: "sf-hover-icon sf-novel-ctx-write", attrs: { type: "button", "aria-label": `Write this novel: ${title}` }, on: { click: () => void model.writeNovel(book) } }, pencilIcon());
 		attachTooltip(write, "Write this novel");
 		// The title and default PoV sit above, 12px clear of the cover and synopsis (the column's gap); the synopsis is beside the cover, or under it when the panel is too narrow (flex wrap).
-		const meta = el("div", { class: "sf-novel-ctx-meta" }, el("div", { class: "sf-novel-ctx-titlerow" }, titleRow, write), povRow);
+		const meta = el("div", { class: "sf-novel-ctx-meta" }, el("div", { class: "sf-novel-ctx-titlerow" }, titleRow, write));
 		const synopsis = el("div", { class: "sf-ctx-card sf-ctx-synopsis" }, synopsisField(model, bin, book, title));
 		const head = el("div", { class: "sf-novel-ctx-head" }, coverBox(model, { kind: "book", code: book }, title), synopsis);
 
@@ -124,7 +140,7 @@ export function mountNovelContext(host: HTMLElement, model: AppModel): () => voi
 			{ class: "sf-novel-ctx-bars", attrs: { role: "list", "aria-label": `Chapters of ${title}` } },
 			...ordered.map((c, i) => el("div", { class: "sf-card", attrs: { role: "listitem" }, dataset: { chapter: c.name } }, dataBar({ title: titles[i], words: words[i], target: plannedChapter, scale, targets, name: titles[i], labelled: false, compact: true, tooltip: `${titles[i]}\n${formatWordCount(words[i])}` }))),
 		);
-		host.replaceChildren(meta, head, progress.joined, bars);
+		host.replaceChildren(meta, head, povRow, progress.joined, bars); // the default PoV sits below the cover and synopsis, above the chapter bars (Tweaks 1 part 2, §4.3 ruling)
 		progress.drawGhosts();
 		if (typeof ResizeObserver !== "undefined") {
 			ghostWatch = new ResizeObserver(progress.drawGhosts);

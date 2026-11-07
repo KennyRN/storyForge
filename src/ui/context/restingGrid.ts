@@ -7,7 +7,7 @@
  * `anchor` is the panel's own element that has to sit level with `target`, an element of the central pane. The panel's top padding moves it there; if the
  * anchor would have to rise above the panel's top it stays at the top and `data-align-short-by` says by how much.
  */
-export function trackRestingGrid(host: HTMLElement, find: () => { anchor: HTMLElement; target: HTMLElement } | null): { align(): void; dispose(): void } {
+export function trackRestingGrid(host: HTMLElement, find: () => { anchor: HTMLElement; target: HTMLElement; /** The element moved by a top margin instead of the host's padding. */ shift?: HTMLElement } | null, prepare?: () => void): { align(): void; dispose(): void } {
 	let frame = 0;
 	let watched: HTMLElement | null = null;
 	const resize = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => soon()) : null;
@@ -23,11 +23,13 @@ export function trackRestingGrid(host: HTMLElement, find: () => { anchor: HTMLEl
 		const overview = document.querySelector<HTMLElement>(".sf-overview");
 		watch(overview);
 		if (host.hidden) return;
+		prepare?.();
 		const found = overview ? find() : null;
 		if (!overview || !found) return;
-		host.style.paddingTop = "0px";
+		const move = (px: number): void => void (found.shift ? (found.shift.style.marginTop = `${px}px`) : (host.style.paddingTop = `${px}px`));
+		move(0);
 		const need = found.target.getBoundingClientRect().top + overview.scrollTop - found.anchor.getBoundingClientRect().top;
-		host.style.paddingTop = `${Math.max(0, Math.round(need * 100) / 100)}px`;
+		move(Math.max(0, Math.round(need * 100) / 100));
 		host.dataset.alignShortBy = need < 0 ? String(Math.round(-need)) : "0";
 	};
 	const soon = (): void => {

@@ -231,9 +231,9 @@
 	display: block;
 	width: fit-content;
 	max-width: calc(100% - var(--space-3));
-	margin: -5px 0 -1px calc(var(--space-4) - var(--nav-pad)); /* the fill's own 5px of padding is taken off the margins, so the text keeps its place */
+	margin: -4px 0 -1px calc(var(--space-4) - var(--nav-pad)); /* the fill is 4px above the text (not the usual 5), so it clears the series name's line; the text keeps its place */
 }
-.sf-select--novelname .sf-select-current { width: auto; max-width: 100%; }
+.sf-select--novelname .sf-select-current { width: auto; max-width: 100%; padding-top: 4px; }
 .sf-select--novelname .sf-select-list { left: -6px; min-width: calc(100% + 6px); width: max-content; max-width: 90vw; right: auto; }
 .sf-select-add svg {
 	width: 1em; /* the Codex icons' rule (decision 84): the selected chapter's size, not a fixed 16px */
