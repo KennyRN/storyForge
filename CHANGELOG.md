@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.11.2: the bars (Fix 11)
+
+- Fixed: **bars no longer shrink to nothing when a chapter far overruns its target.** The frames never go below a third of the row; a chapter past three times its target runs to the row's end with a cut end (a V bitten out of it, its corners softened), and its tooltip and name give the true target. The frame's padding is no longer scaled, so the longest bar ends exactly at the row's end.
+- Changed: **empty chapters show no mark.** A chapter or novel with no words draws no fill and no sliver, on the novel tab, in the context panel and on the series page; a planned length's rail still shows.
+- Changed: **very short bars stay visible.** Any words written draw at least 3 px, and the novel's progress bar is never under 3 px (its segments stay true to scale).
+- Changed: **the rail takes a background colour** (Background 1 to 4; Background 2, the no-cover box's colour, by default). A rail colour stored by an earlier version (a grey or a data colour) draws the default and is left as it is. The chapter names stay dark across the bar and the rail.
+- Changed: **a swatch that can't be chosen is crossed out**, not dimmed: a line in the surface's colour runs from its top-right corner to its bottom-left, and its tooltip says why.
+- Under the hood: the shared bar code (`chapterScale`, `MIN_FILL_PX`, `MAX_SCALE`) and a geometry test file measured at every width of the context panel.
+
 ## 1.11.1: the context panel's bars, and the Interface font (Fix 10)
 
 - Fixed: **the series page's context panel showed no progress bar** (and no structure marks under it) when the chosen novel's synopsis and chapters were taller than the panel: they were squeezed to nothing, and came back only when the panel was dragged wide enough for the content to fit. Everything in the panel now keeps its height, and the panel scrolls.
