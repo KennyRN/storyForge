@@ -102,6 +102,8 @@ export function buildNameIndex(sources: readonly NameSource[], optOuts: Iterable
 export interface NameCorrectionOptions {
 	/** Smart punctuation is on: a kept possessive's apostrophe is curled. */
 	smartPunctuation: boolean;
+	/** The protected ranges, from the editor's parse tree; with none given they are parsed from `before`. */
+	protect?: readonly [number, number][];
 }
 
 const isLetter = (ch: string | undefined): boolean => ch !== undefined && /[\p{L}\p{M}]/u.test(ch);
@@ -215,6 +217,6 @@ export function nameCorrection(before: string, runStart: number, index: NameInde
 	if (!change) return null;
 	// A name typed exactly as a known spelling is the author's choice, whatever else it folds to.
 	if (index.exact.has(before.slice(change.from, change.to))) return null;
-	const ranges = protectedRanges(before);
+	const ranges = options.protect ?? protectedRanges(before);
 	return touchesProtected(ranges, change.from, change.to) || touchesProtected(ranges, col - 1) ? null : change;
 }

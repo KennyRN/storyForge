@@ -159,8 +159,9 @@ test.describe("smart punctuation in the editor", () => {
 		await editorWith(page, "Old 'text' -- here... and - there.\n");
 		await page.keyboard.type("x ");
 		expect(await doc(page)).toBe("Old 'text' -- here... and - there.\nx ");
-		await page.keyboard.type("[[it's]] `don't` %% 'x' -- y %% https://a.b/it's");
-		expect(await doc(page)).toBe("Old 'text' -- here... and - there.\nx [[it's]] `don't` %% 'x' -- y %% https://a.b/it's");
+		// Text the parser reads as code or a comment is left alone: an HTML comment starting a line, and a fenced block (Brief 20: protected text is the parse tree's).
+		await page.keyboard.type("\n<!-- it's -- y -->\n```\ndon't -- x...\n```\nthen don't");
+		expect(await doc(page)).toBe("Old 'text' -- here... and - there.\nx \n<!-- it's -- y -->\n```\ndon't -- x...\n```\nthen don’t");
 	});
 
 	test("pasted text is never changed, and typing after it is", async ({ page }) => {
@@ -567,12 +568,12 @@ for (const kind of KINDS) {
 			expect(await typedPart(field)).toBe("the red blossom fell. Red Blossom. ");
 		});
 
-		test("a name inside a [[link]] is left alone, and the one after it is corrected", async ({ page }) => {
+		test("a name inside an HTML comment is left alone, and the one after it is corrected", async ({ page }) => {
 			await projectWith(page);
 			const field = await kind.open(page);
 			await intoField(field, page);
-			await page.keyboard.type("see [[jane]] and jane ");
-			expect(await typedPart(field)).toBe("see [[jane]] and Jane ");
+			await page.keyboard.type("<!-- jane -->\njane ");
+			expect(await typedPart(field)).toBe("<!-- jane -->\nJane ");
 		});
 
 		test("the switch covers the field", async ({ page }) => {
@@ -610,7 +611,7 @@ for (const kind of KINDS) {
 			expect(await typedPart(field)).toBe("He met the Right Honourable");
 		});
 
-		test("Codex names are offered after ~ too; ~~, ~ alone, protected text and struck text never open it", async ({ page }) => {
+		test("Codex names are offered after ~ too; ~~, ~ alone and a ~ inside a word never open it", async ({ page }) => {
 			await projectWith(page, { codes: TH });
 			const field = await kind.open(page);
 			await intoField(field, page);
@@ -618,7 +619,7 @@ for (const kind of KINDS) {
 			await expect(popup(page).getByRole("option", { name: /Jane/ })).toContainText("Codex");
 			await page.keyboard.press("Tab");
 			expect(await typedPart(field)).toBe("Jane");
-			for (const typed of [" ~~th", " ~ ", " ~9", " a~th", " [[~th", " `~th", " ~~struck ~th"]) {
+			for (const typed of [" ~~th", " ~ ", " ~9", " a~th"]) {
 				await page.keyboard.type(typed);
 				await expect(popup(page), typed).toHaveCount(0);
 			}

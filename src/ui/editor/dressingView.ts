@@ -1,10 +1,10 @@
-import { Language, defineLanguageFacet, syntaxTree } from "@codemirror/language";
+import { syntaxTree } from "@codemirror/language";
 import type { Extension, Range } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from "@codemirror/view";
-import { markdownParser } from "../../core/markdownTree";
 import { alertIcon, type AlertKind } from "../kit/noticeIcons";
 import { ALERT_NAMES, dressingPlan, type PlanItem } from "./dressingPlan";
 import { toggleEmphasis } from "./dressing";
+import { markdownLanguage } from "./markdownLanguage";
 
 /**
  * The prose dressing (decisions 25, 149 and 157; Brief 20): GitHub Flavored Markdown, read from the parse tree
@@ -15,8 +15,6 @@ import { toggleEmphasis } from "./dressing";
  * The classes are storyForge's own (`sf-em`, `sf-strong`, `sf-marker`, `sf-heading`, `sf-quote`, `sf-alert-*` and the
  * rest), styled from the purposes in editor.css.
  */
-
-const markdownLanguage = new Language(defineLanguageFacet(), markdownParser, [], "storyforge-markdown");
 
 const HIDE = Decoration.replace({});
 const markCache = new Map<string, Decoration>();

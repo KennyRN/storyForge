@@ -67,9 +67,10 @@ const CASES: [string, string][] = [
 	["red ", "Red "],
 	["a zoe ", "a zoe "], // half a name is not a name
 	// protected text
-	["[[aelfric]] ", "[[aelfric]] "],
+	["[[aelfric]] ", "[[Ælfric]] "], // plain text now (decision 157)
 	["`aelfric` ", "`aelfric` "],
-	["%% aelfric %% ", "%% aelfric %% "],
+	["%% aelfric %% ", "%% Ælfric %% "], // plain text now (decision 157)
+	["<!-- aelfric --> ", "<!-- aelfric --> "],
 	["see https://x.y/aelfric ", "see https://x.y/aelfric "],
 	["~aelfric ", "~aelfric "], // a shortcode in progress
 	["```\naelfric \n```", "```\naelfric \n```"],

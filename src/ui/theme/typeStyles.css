@@ -2,7 +2,7 @@
    before a project is open. `src/ui/__tests__/typeStyles.test.ts` keeps them equal to the table in core/typeStyles.ts. */
 :root {
 	--font-interface: "Atkinson Hyperlegible Next", Arial, -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
-	--font-code: "Courier Prime", ui-monospace, Menlo, monospace; /* the dressing's code (Brief 20): an embedded monospace face, never a setting */
+	--font-code: "Sono", ui-monospace, Menlo, monospace; /* the dressing's code (Brief 20, Kenny's choice): Sono, embedded, MONO pinned to 1 by the code rules, never a setting */
 	--font-writing: "SN Pro", Arial, -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
 	--ts-display-family: var(--font-interface);
 	--ts-display-weight: 600;

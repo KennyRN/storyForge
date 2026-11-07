@@ -40,7 +40,7 @@ const CASES: [string, string, string?][] = [
 	["  - an indented list item", "  - an indented list item"],
 	["-- ", "-- "],
 	["|--|--|", "|--|--|"],
-	["| - | - |", "| - | - |"],
+	["| a | b |\n| - | - |", "| a | b |\n| - | - |"], // the alignment row of a table (the parser needs the header row above it)
 	["1990-95", "1990-95"],
 	["well-known", "well-known"],
 	// a dash completed by a quote, and the quote it is
@@ -54,14 +54,18 @@ const CASES: [string, string, string?][] = [
 	// all together
 	["'Don't say \"never\" - not yet,' she said.", "‘Don’t say “never” – not yet,’ she said."],
 	// protected text: links, embeds, code, comments, URLs
-	["[[it's]]", "[[it's]]"],
-	["![[it's|a 'b']]", "![[it's|a 'b']]"],
-	["[[it's", "[[it's"], // still open
+	// `[[x]]` and `%% %%` are plain text now (decision 157): they are curled like any other words.
+	["[[it's]]", "[[it’s]]"],
 	["[[it]] it's", "[[it]] it’s"],
-	["`don't` and don't", "`don't` and don’t"],
-	["``a ` b 'c'`` 'd'", "``a ` b 'c'`` ‘d’"],
-	["%% 'x' -- y... %% 'z'", "%% 'x' -- y... %% ‘z’"],
-	["%% a\n 'b' -- c %% 'd'", "%% a\n 'b' -- c %% ‘d’"],
+	["%% 'x' -- y... %% 'z'", "%% ‘x’ — y… %% ‘z’"],
+	// Code is protected once the parser reads it as code, that is when it is closed (Brief 20, ruling: protected text reads the parse tree only).
+	["`don't` and don't", "`don’t` and don’t"], // typed one character at a time, the apostrophe comes before the closing backtick
+	["a `don't` and\nx `ok` don't", "a `don’t` and\nx `ok` don’t"],
+	// An HTML comment that starts a line is a comment to the end (the parser's reading of an unclosed one).
+	// (Text after `-->` on that same line belongs to the HTML block too, as on GitHub, so it is left alone.)
+	["<!-- 'x' -- y... --> 'z'", "<!-- 'x' -- y... --> 'z'"],
+	["<!-- a\n 'b' -- c --> 'd'", "<!-- a\n 'b' -- c --> 'd'"],
+	["<!-- a --> 'b'\n\n'c'", "<!-- a --> 'b'\n\n‘c’"],
 	["see https://a.b/it's -- now", "see https://a.b/it's — now"],
 	["[x's](https://a.b/it's) 'y'", "[x’s](https://a.b/it's) ‘y’"],
 	["```\nit's -- a...\n```\nit's", "```\nit's -- a...\n```\nit’s"],
@@ -119,21 +123,25 @@ describe("smart punctuation: one undo gives back exactly what was typed", () => 
 
 describe("protected text", () => {
 	const at = (text: string, needle: string): number => text.indexOf(needle);
-	it("finds links, embeds, code, comments, URLs, link targets and fences", () => {
-		const text = "a [[l's]] b ![[e]] `c's` %% d's %% https://x.y/z's [t](u's) e's";
+	it("finds code, HTML comments, URLs, link targets and fences", () => {
+		const text = "a `c's` b <span x=\"y's\"> https://x.y/z's [t](u's) e's\n\n<!-- d's -->";
 		const ranges = protectedRanges(text);
-		for (const needle of ["l's", "![[e", "c's", "d's", "https://x.y/z", "u's"]) expect(touchesProtected(ranges, at(text, needle)), needle).toBe(true);
+		for (const needle of ["c's", "y's", "https://x.y/z", "u's", "d's"]) expect(touchesProtected(ranges, at(text, needle)), needle).toBe(true);
 		expect(touchesProtected(ranges, at(text, "e's") + 1)).toBe(false);
-		expect(touchesProtected(ranges, at(text, "t](") + 0)).toBe(false);
+		expect(touchesProtected(ranges, at(text, "t](") + 0)).toBe(false); // a link's text is prose
 	});
-	it("an unclosed opener protects to the end", () => {
-		for (const open of ["[[ab", "![[ab", "`ab", "%% ab", "[x](ab"]) {
-			const ranges = protectedRanges(`go ${open}`);
-			expect(touchesProtected(ranges, `go ${open}`.length - 1), open).toBe(true);
+	it("an unclosed fence, or a comment that starts a line, protects to the end; other unclosed openers don't until closed", () => {
+		for (const open of ["```\nab", "<!-- ab"]) {
+			const text = `go\n\n${open}`;
+			expect(touchesProtected(protectedRanges(text), text.length - 1), open).toBe(true);
+		}
+		for (const open of ["`ab", "[x](ab", "go <!-- ab"]) {
+			const text = `go ${open}`;
+			expect(touchesProtected(protectedRanges(text), text.length - 1), open).toBe(false);
 		}
 	});
 	it("a closed one no longer does", () => {
-		const text = "[[ab]] cd";
+		const text = "`ab` cd";
 		expect(touchesProtected(protectedRanges(text), text.length - 1)).toBe(false);
 	});
 	it("fences and table separator rows", () => {

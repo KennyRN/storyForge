@@ -10,7 +10,6 @@ const CHAPTER = "_story-library/aaa/ch-a1.md";
 const SETTINGS = "_backstage/storyforge/project.md";
 const MOD = "Meta";
 
-/** The comment line: typed in stage 2, once protected text reads the parse tree (until then the typing aids turn the `--` in `<!--` into a dash). */
 const COMMENT = "<!-- a comment -->";
 
 /** Every dressed element, in the text the author types (no quote marks, dashes or names: the typing aids have nothing to act on). */
@@ -46,6 +45,8 @@ const doc = (heading: string): string => [
 	"|1|2|",
 	"",
 	"***",
+	"",
+	COMMENT,
 	"",
 	"A footnote[^1] here",
 	"",
@@ -144,7 +145,7 @@ test.describe("the GFM dressing is display only, in every editor", () => {
 
 	test("opening a project with every element in a chapter writes nothing (the dressing never edits)", async ({ page }) => {
 		await openPreview(page);
-		await page.evaluate(async ({ path, text }) => void (await window.__preview.touch(path, text)), { path: CHAPTER, text: TYPED + "\n\n" + COMMENT + "\n" });
+		await page.evaluate(async ({ path, text }) => void (await window.__preview.touch(path, text)), { path: CHAPTER, text: TYPED + "\n" });
 		const before = await onDisk(page, CHAPTER);
 		await page.locator("[data-recent='0']").click();
 		await page.waitForFunction(() => !!window.__app?.editors);
@@ -167,5 +168,69 @@ test.describe("the GFM dressing is display only, in every editor", () => {
 		await expect(page.locator("html")).not.toHaveAttribute("data-highlight-colour", /.*/);
 		await page.waitForTimeout(800);
 		expect(await onDisk(page, SETTINGS)).toBe(text);
+	});
+});
+
+test.describe("the typing aids read the parse tree", () => {
+	test("a long chapter just opened: an aid waits at most 20 ms for the parse and, if it hasn't reached the caret, changes nothing; once it has, the aid works", async ({ page }) => {
+		await openPreview(page);
+		const long = "A line of prose with *emphasis* and a [link](x.md) in it, again and again.\n\n".repeat(60000); // about 4.5 MB
+		await page.evaluate(async ({ path, text }) => void (await window.__preview.touch(path, text)), { path: CHAPTER, text: long });
+		await page.locator("[data-recent='0']").click();
+		await page.waitForFunction(() => !!window.__app?.editors);
+		const content = page.locator(".sf-slot--centre .cm-content");
+		await content.click();
+		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press("Enter");
+		await page.keyboard.type("it's");
+		// Straight at once, if the parse hadn't reached the end: never a wrong change.
+		const last = async (): Promise<string> => (await content.locator(".cm-line").last().textContent()) ?? "";
+		const first = await last();
+		expect(["it's", "it’s"]).toContain(first);
+		// Given time, the parse reaches the caret and the aid works again.
+		await page.waitForTimeout(6000);
+		await page.keyboard.press("Enter");
+		await page.keyboard.type("it's");
+		await expect.poll(last).toBe("it’s");
+	});
+
+	test("a comment typed on its own line, and code with an apostrophe in it once closed, are left alone", async ({ page }) => {
+		await openProject(page);
+		const content = page.locator(".sf-slot--centre .cm-content");
+		await content.click();
+		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press("Enter");
+		await page.keyboard.type("<!-- it's -- done -->");
+		await page.keyboard.press("Enter");
+		await page.keyboard.type("x `a's` y it's");
+		await expect.poll(async () => (await content.locator(".cm-line").allTextContents()).slice(-2)).toEqual(["<!-- it's -- done -->", "x `a’s` y it’s"]);
+	});
+});
+
+test.describe("code is drawn in Sono", () => {
+	test("embedded, with MONO pinned to 1, and the weight of the text around it (inside bold too)", async ({ page }) => {
+		await openPreview(page);
+		await page.evaluate(async ({ path, text }) => void (await window.__preview.touch(path, text)), { path: CHAPTER, text: "Plain `code` here, **bold `code` bold**.\n\n```\nfenced\n```\n\nlast line\n" });
+		await page.locator("[data-recent='0']").click();
+		await page.waitForFunction(() => !!window.__app?.editors);
+		const content = page.locator(".sf-slot--centre .cm-content");
+		await content.click();
+		await page.keyboard.press(`${MOD}+ArrowDown`); // off the first line, so its markers are hidden
+		await page.evaluate(() => document.fonts.load('300 16px "Sono"'));
+		expect(await page.evaluate(() => document.fonts.check('300 16px "Sono"'))).toBe(true); // the embedded file is loaded (a missing file would make this false)
+		const style = (loc: Locator) => loc.first().evaluate((e) => {
+			const s = getComputedStyle(e);
+			return { family: s.fontFamily.split(",")[0].replace(/"/g, "").trim(), weight: s.fontWeight, variation: s.fontVariationSettings, size: parseFloat(s.fontSize), parentWeight: getComputedStyle(e.parentElement!).fontWeight, parentSize: parseFloat(getComputedStyle(e.parentElement!).fontSize) };
+		});
+		const plain = await style(content.locator(".sf-code").first());
+		expect(plain.family).toBe("Sono");
+		expect(plain.variation).toContain("MONO");
+		expect(plain.weight).toBe(plain.parentWeight); // the text's own weight: 300 in the chapter
+		expect(plain.size).toBeCloseTo(plain.parentSize * 0.9, 0); // relative: it follows the Writing size
+		const inBold = await style(content.locator(".sf-strong .sf-code"));
+		expect(inBold.weight).toBe("700");
+		const fence = await style(content.locator(".sf-codeblock").first());
+		expect(fence.family).toBe("Sono");
+		expect(fence.variation).toContain("MONO");
 	});
 });

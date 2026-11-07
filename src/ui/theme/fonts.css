@@ -37,3 +37,8 @@
 @font-face { font-family: "Sofia Sans Semi Condensed"; src: url("./fonts/sofia-sans/SofiaSansSemiCondensed-VariableItalic.ttf") format("truetype"); font-weight: 1 1000; font-style: italic; font-display: block; }
 @font-face { font-family: "Sofia Sans Condensed"; src: url("./fonts/sofia-sans/SofiaSansCondensed-Variable.ttf") format("truetype"); font-weight: 1 1000; font-style: normal; font-display: block; }
 @font-face { font-family: "Sofia Sans Condensed"; src: url("./fonts/sofia-sans/SofiaSansCondensed-VariableItalic.ttf") format("truetype"); font-weight: 1 1000; font-style: italic; font-display: block; }
+
+/* Brief 20: Sono (SIL OFL 1.1, fonts/sono/OFL.txt), Kenny's choice for the dressing's code only (never one of the Appearance fonts), shipped
+   unmodified: one variable file with a weight axis (200 to 800; the file's own default is 200, so the range is declared) and a MONO axis (0 to 1).
+   The code rules pin MONO to 1 (`font-variation-settings`) and inherit the weight of the text around them. */
+@font-face { font-family: "Sono"; src: url("./fonts/sono/Sono-Variable.ttf") format("truetype"); font-weight: 200 800; font-style: normal; font-display: block; }

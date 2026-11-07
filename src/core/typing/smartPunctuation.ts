@@ -22,6 +22,8 @@ export interface AidChange {
 export interface SmartPunctuationOptions {
 	/** The lower-case words that begin with an apostrophe (`tis`), from the project's list. */
 	elisions: ReadonlySet<string>;
+	/** The protected ranges, from the editor's parse tree; with none given they are parsed from `before`. */
+	protect?: readonly [number, number][];
 }
 
 const OPENERS = "([{";
@@ -53,7 +55,7 @@ export function smartPunctuationChanges(before: string, runStart: number, option
 		// Two hyphens become an em dash once the next character is typed (so `---` is never touched).
 		found.push({ from: col - 3, to: col - 1, insert: "—", kind: "em-dash" });
 		prevForQuote = "—";
-	} else if (c !== "-" && !isSpace(c) && col >= 4 && before.slice(col - 4, col - 1) === " - " && before[col - 5] !== "-" && inRun(col - 3) && !isListMarker(before, col - 3) && !(isDigit(c) && endsWithNumber(before, col - 4))) {
+	} else if (c !== "-" && !isSpace(c) && col >= 4 && before.slice(col - 4, col - 1) === " - " && before[col - 5] !== "-" && inRun(col - 3) && !isListMarker(before, col - 3) && !onlyRuleChars(before, col) && !(isDigit(c) && endsWithNumber(before, col - 4))) {
 		// A spaced hyphen becomes an en dash once the next character is typed, unless it is a digit right after a number (5 - 3).
 		found.push({ from: col - 3, to: col - 2, insert: "–", kind: "en-dash" });
 	}
@@ -79,7 +81,7 @@ export function smartPunctuationChanges(before: string, runStart: number, option
 	}
 
 	if (found.length === 0) return [];
-	const ranges = protectedRanges(before);
+	const ranges = options.protect ?? protectedRanges(before);
 	if (touchesProtected(ranges, col - 1)) return [];
 	return found.filter((ch) => !touchesProtected(ranges, ch.from, ch.to)).sort((x, y) => x.from - y.from);
 }

@@ -34,3 +34,14 @@ Chosen by the author for the storytelling side (docs/navigator.md). Each is lice
 | Fraunces | Copyright 2018 The Fraunces Project Authors | https://github.com/undercasetype/Fraunces | `fraunces/Fraunces-Variable.woff2`, `Fraunces-VariableItalic.woff2` |
 | Sofia Sans, Sofia Sans Semi Condensed, Sofia Sans Condensed | Copyright 2019 The Sofia Sans Project Authors (no Reserved Font Name) | https://github.com/lettersoup/Sofia-Sans | `sofia-sans/SofiaSans{,SemiCondensed,Condensed}-Variable.ttf` and `-VariableItalic.ttf` (six files, variable weight axis 1 to 1000, real italics; the Extra Condensed width is not bundled) |
 | ~~Inter~~ | Copyright (c) 2016 The Inter Project Authors | https://github.com/rsms/inter | **Removed in 1.10.0** (its files, its `@font-face` and its place in every font list; Sofia Sans takes its defaults). A project that stored `Inter` for a part draws that part's default and the key is never rewritten. |
+
+## Brief 20: Sono (the dressing's code)
+
+Chosen by Kenny (7 November 2026) as the face for code in every editor, replacing Courier Prime for that use (Courier Prime stays one of the Appearance fonts). **SIL Open Font License, Version 1.1** (`src/ui/theme/fonts/sono/OFL.txt`), shipped exactly as supplied (unmodified; the file is renamed).
+
+| Family | Copyright | Source | Files |
+|---|---|---|---|
+| Sono | Copyright 2020 The Sono Project Authors | https://github.com/sursly/sono (taken from https://github.com/google/fonts/tree/main/ofl/sono) | `sono/Sono-Variable.ttf` (`Sono[MONO,wght].ttf`: a weight axis 200 to 800 and a MONO axis 0 to 1) |
+
+Used only through `--font-code`, with `font-variation-settings: "MONO" 1` and the weight of the surrounding text. It is not in the Appearance font lists.
+

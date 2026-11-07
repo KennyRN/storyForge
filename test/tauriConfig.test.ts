@@ -109,7 +109,7 @@ describe("the window's permissions", () => {
 			"./fonts/atkinson/AtkinsonHyperlegibleNext-Variable.ttf", "./fonts/atkinson/AtkinsonHyperlegibleNext-VariableItalic.ttf",
 			"./fonts/courier-prime/CourierPrime-Bold.ttf", "./fonts/courier-prime/CourierPrime-BoldItalic.ttf", "./fonts/courier-prime/CourierPrime-Italic.ttf", "./fonts/courier-prime/CourierPrime-Regular.ttf",
 			"./fonts/fraunces/Fraunces-Variable.woff2", "./fonts/fraunces/Fraunces-VariableItalic.woff2",
-			"./fonts/sofia-sans/SofiaSans-Variable.ttf", "./fonts/sofia-sans/SofiaSans-VariableItalic.ttf",
+			"./fonts/sono/Sono-Variable.ttf", "./fonts/sofia-sans/SofiaSans-Variable.ttf", "./fonts/sofia-sans/SofiaSans-VariableItalic.ttf",
 			"./fonts/sofia-sans/SofiaSansCondensed-Variable.ttf", "./fonts/sofia-sans/SofiaSansCondensed-VariableItalic.ttf",
 			"./fonts/sofia-sans/SofiaSansSemiCondensed-Variable.ttf", "./fonts/sofia-sans/SofiaSansSemiCondensed-VariableItalic.ttf",
 		].sort());

@@ -164,16 +164,24 @@ Section 6 is redrawn at 2x with the rail's own end marked by a tick: at 150% the
 - **Pictures from the built app** (`scripts/gfm-shots.mjs`, a throwaway copy with a temporary HOME; `screencapture -l` of its window only; the one key sent, Return on a focused Codex row, goes through the typing guard): `docs/gfm-mockups/chapter.png` and `codex-note.png` (the chapter on the left with every dressed element, a Codex note on the right with the five alerts, a `[!SECRET]` plain quote, and `==x==` and `[[x]]` as plain text).
 
 ### 9.1 The dressing's sizes, and the stage 1 look (7 November 2026)
-Kenny's rulings: the table's pipes and alignment row take the colour of a hidden marker shown on the caret line (they already do, `rgb(157, 169, 160)`, the muted purpose; pinned now by `gfm.ui.ts`); alert icons are Tabler's native **24 px** in every editor; **the five type-style exceptions are accepted**; a new embedded font needs a ruling first next time. **Courier Prime** was not a new embedding: it is one of the eight Appearance fonts, already shipped and licensed (`Font Licences.md`), so the code face stays as built (`--font-code`); Kenny's answer to keep or replace it came back as "Other" with no text, so nothing changed, and he can still say to switch to `ui-monospace`.
+Kenny's rulings: the table's pipes and alignment row take the colour of a hidden marker shown on the caret line (they already do, `rgb(157, 169, 160)`, the muted purpose; pinned now by `gfm.ui.ts`); alert icons are Tabler's native **24 px** in every editor; **the five type-style exceptions are accepted**; a new embedded font needs a ruling first next time. **The code face is Sono** (Kenny's choice, replacing Courier Prime for code; Courier Prime stays one of the Appearance fonts): the variable file is embedded unmodified (`fonts/sono/Sono-Variable.ttf`, weight axis 200 to 800, MONO axis 0 to 1), `font-variation-settings: "MONO" 1` pins the MONO axis, and the code rules set no weight, so they take the weight of the text around them (300 in the chapter, 700 inside bold). Its OFL licence is recorded in `Font Licences.md` and beside the file. **A new embedded font needs a ruling first, next time.**
 
 The sizes are relative (em, of the Writing size), except the icon's native 24 px:
 
 | Rule | Value |
 |---|---|
 | `.sf-heading-1` / `-2` / `-3` to `-6` | 1.5em, 1.25em, 1.1em |
-| `.sf-code`, `.sf-codeblock` | 0.9em (code inline: also 0.2em of side padding and a 4px radius) |
+| `.sf-code`, `.sf-codeblock` | font size 0.9em of the Writing size (inline code also has 0.2em of side padding and a 4px radius); weight inherited, MONO 1 |
 | `.sf-footnote-def` | 0.9em |
 | `.sf-alert-label` | weight 600 (the size is the line's own) |
 | `.sf-table-head` | weight 600 |
 | `.sf-alert-icon` | 24px (native) |
 | alert box padding | 14px at the sides, 8px above the first line and below the last (px; the box's own spacing, not text) |
+
+## 10. As built, build stage 2a (protected text on the tree)
+
+- **Protected text reads the parse tree only** (`core/typing/protectedText.ts`; the editor passes its own incremental tree through `ui/editor/protection.ts`): inline and fenced code, link targets and titles, bare URLs and autolinks, HTML tags and comments, footnote labels, link-reference definitions and a table's alignment row. The old line scan is `test/legacy/lineScanProtectedText.ts`, used only by `protectedAgreement.test.ts`, which lists every disagreement on the fixtures (the two HTML comments, which only the tree knows).
+- **The 20 ms wait:** `protectedAt` asks `ensureSyntaxTree` for the parse up to the caret within 20 ms; if it hasn't reached it, the aid (smart punctuation, name autocorrect, the shortcode popup) does nothing for that keystroke. Tested: a unit test with a 7 MB document and no budget (null), and `gfm.ui.ts` on a 4.5 MB chapter just opened (the apostrophe is straight or curled, never wrong, and curls once the parse has caught up).
+- **Code is Sono** (embedded, MONO pinned to 1, weight inherited; sizes in § 9.1). Licence in `Font Licences.md`.
+- **A consequence to rule on:** an unclosed construct the parser doesn't read as one is not protected until it is closed, so the apostrophe in `` `don't` `` and in a URL like `https://a.b/it's`, typed character by character, is curled before the closing backtick or the end of the URL, and the `--` of a `<!--` typed in the *middle* of a line becomes a dash before the closing `-->` (a comment starting its line, and an unclosed fenced block, are protected to the end, as the parser reads them). One ⌘Z undoes the aid's change. The old scan protected an unclosed opener to the caret. **Proposal, if Kenny wants it back:** the aids also treat an unclosed backtick, link target or `<!--` earlier on the caret's own line as protected to the caret, a small rule beside the tree, never replacing it.
+- A table's alignment row is only a table's once its header row is above it, and the en dash rule now also skips a line made of only hyphens, spaces, pipes and colons (as the em dash rule already did), so `| - | - |` typed under a header isn't dashed on the way.

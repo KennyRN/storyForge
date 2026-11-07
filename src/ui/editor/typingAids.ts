@@ -2,6 +2,7 @@ import { isolateHistory } from "@codemirror/commands";
 import { EditorSelection, StateField, type Extension, type Transaction } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { aidChanges, type AidOptions } from "../../core/typing/aids";
+import { protectedAt } from "./protection";
 import type { AidChange } from "../../core/typing/smartPunctuation";
 import { shortcodePopup } from "./shortcodePopup";
 
@@ -199,7 +200,9 @@ export function typingAids(options: () => TypingEditorOptions, where: { field?: 
 			const head = sel.main.head;
 			const before = update.state.doc.sliceString(0, head);
 			const runStart = update.state.field(run) ?? head - 1;
-			const changes = aidChanges(before, runStart, o);
+			const protect = protectedAt(update.state, head);
+			if (!protect) return; // the parse hasn't reached the caret: nothing is changed for this keystroke
+			const changes = aidChanges(before, runStart, { ...o, protect: protect as [number, number][] });
 			if (changes.length === 0) return;
 			const corrected = changes.find((c) => c.name);
 			if (corrected?.name) {

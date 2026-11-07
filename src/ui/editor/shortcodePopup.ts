@@ -1,6 +1,7 @@
 import { Prec, StateEffect, StateField, type EditorState, type Extension } from "@codemirror/state";
 import { EditorView, ViewPlugin, keymap, showTooltip, tooltips, type Tooltip } from "@codemirror/view";
-import { protectedRanges, touchesProtected } from "../../core/typing/protectedText";
+import { touchesProtected } from "../../core/typing/protectedText";
+import { protectedAt } from "./protection";
 import { shortcodeEntries, shortcodeTrigger, type ShortcodeEntry } from "../../core/typing/shortcodes";
 import type { TypingEditorOptions } from "./typingAids";
 
@@ -73,7 +74,8 @@ export function shortcodePopup(hooks: ShortcodePopupHooks): Extension {
 		const tilde = line.from + t.tilde;
 		const runStart = state.field(hooks.run);
 		if (runStart === null || tilde < runStart) return null; // only text typed right now
-		if (touchesProtected(protectedRanges(state.sliceDoc(0, sel.head)), tilde)) return null;
+		const protect = protectedAt(state, sel.head);
+		if (!protect || touchesProtected(protect, tilde)) return null; // no parse yet, or protected text: no popup
 		return { tilde, head: sel.head, query: t.query };
 	}
 	const currentTilde = (state: EditorState): number | null => trigger(state)?.tilde ?? null;

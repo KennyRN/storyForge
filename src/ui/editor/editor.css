@@ -91,9 +91,11 @@
 .sf-strike {
 	text-decoration: line-through;
 }
+/* Code is Sono with its MONO axis pinned to 1, and no weight of its own: it takes the weight of the text around it (300 in the chapter, 700 inside bold). */
 .sf-code,
 .sf-codeblock {
 	font-family: var(--font-code);
+	font-variation-settings: "MONO" 1;
 	background: var(--purpose-code-bg);
 }
 .sf-code {
