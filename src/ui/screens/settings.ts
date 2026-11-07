@@ -49,6 +49,8 @@ export function openSettings(model: AppModel): void {
 	// Live: a settings file that can't be read, or is from a newer storyForge, switches the controls off while the dialog is open.
 	const isOff = (): boolean => !!running.readOnlyReason || settings.readOnly;
 	let off = isOff();
+	/** Why every control is off: the reason a swatch's tooltip gives (decision 159). */
+	const unavailableReason = (): string => running.readOnlyReason ?? "this project's settings can't be changed";
 	// One rule for every redraw (decisions 96 and 99, and the dialog's own writes): everything is rebuilt except the controls in use. A text
 	// box with focus and text not yet committed keeps its text, caret and focus; a control whose own change is still being saved isn't
 	// replaced under the person's hand. Once that change lands the control shows the stored value, like the rest.
@@ -95,7 +97,7 @@ export function openSettings(model: AppModel): void {
 			const chosen = settings.values[key] === choice;
 			const b = el("button", { class: `sf-swatch sf-swatch--colour${chosen ? " is-chosen" : ""}`, dataset: { choice }, attrs: { type: "button", role: "radio", "aria-checked": String(chosen), "aria-label": names[choice], title: names[choice] } }, el("span", { class: `sf-swatch-dot ${dot(choice)}` }));
 			b.disabled = off || !!unavailable?.(choice);
-			if (unavailable?.(choice)) b.title = `${names[choice]}: the bar's own colour`;
+			if (b.disabled) b.title = `${names[choice]}: unavailable, ${unavailable?.(choice) ? "the bar's own colour" : unavailableReason()}`; // a swatch that can't be chosen is crossed out, not muted (decision 159), and says why
 			b.addEventListener("click", () => void change(key, choice as never));
 			group.append(b);
 		}
@@ -430,6 +432,7 @@ export function openSettings(model: AppModel): void {
 				const chosen = settings.values.storyKind === choice;
 				const b = el("button", { class: `sf-swatch${chosen ? " is-chosen" : ""}`, dataset: { choice }, attrs: { type: "button", role: "radio", "aria-checked": String(chosen) }, text });
 				b.disabled = off;
+				if (off) b.title = `${text}: unavailable, ${unavailableReason()}`;
 				b.addEventListener("click", () => void change("storyKind", choice).then(() => (choice === "series" && settings.values.hideSeriesPane ? change("hideSeriesPane", false) : undefined))); // a series always shows its series pane: switching to one switches the hiding off (Brief 19)
 				group.append(b);
 			}

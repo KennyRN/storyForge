@@ -7,7 +7,7 @@ import { flipFace, openPreview } from "./helpers";
 // novel tab (a wide row) and in the series tab's context panel (a narrow one, from its minimum width to its default).
 
 /** Opens the first novel with `words.length` placed chapters of exactly those word counts and the given planned chapter length. */
-async function open(page: Page, words: number[], target: number | null, tab: "novel" | "series"): Promise<void> {
+async function open(page: Page, words: number[], target: number | null, tab: "novel" | "series"): Promise<string> {
 	const { root } = await openPreview(page);
 	const novel = path.join(root, "_story-library/novel-aaa.md");
 	const names = words.map((_, i) => `ch-geo${String(i + 1).padStart(2, "0")}.md`);
@@ -22,6 +22,7 @@ async function open(page: Page, words: number[], target: number | null, tab: "no
 	await page.getByRole("tab", { name: tab }).click();
 	if (tab === "series") await page.locator(".sf-forge-pane .sf-row", { hasText: "Book 1" }).click();
 	else await expect(page.getByRole("region", { name: "Novel overview" })).toBeVisible();
+	return root;
 }
 
 /** The geometry of every chapter bar on the page: its row, frame and fill. */
@@ -62,11 +63,18 @@ test.describe("no words, no fill (decision 153)", () => {
 		expect(bars[1].frameW).toBeNull();
 		expect(bars[1].fillW).toBe(0);
 	});
-	test("an empty novel on the series page has no bar fill", async ({ page }) => {
-		await open(page, [10], 100, "novel");
+	test("a novel with no words has no bar fill on the series page, and a novel with words has one", async ({ page }) => {
+		const { root } = await openPreview(page);
+		writeFileSync(path.join(root, "_story-library/bbb/ch-b1.md"), ""); // Book 2's only chapter: no words
+		await page.locator("[data-recent='0']").click();
+		await page.waitForFunction(() => !!window.__app?.editors);
+		await flipFace(page);
 		await page.getByRole("tab", { name: "series" }).click();
-		const fills = await page.locator(".sf-overview-row .sf-bar").evaluateAll((bs) => bs.map((b) => ({ empty: b.classList.contains("sf-bar--empty"), fills: b.querySelectorAll(".sf-bar-fill").length })));
-		for (const f of fills) expect(f.empty ? f.fills : 1).toBe(f.empty ? 0 : 1);
+		const rows = await page.locator(".sf-overview-row:not(.sf-overview-row--unplaced)").evaluateAll((rs) => rs.map((r) => ({ title: r.textContent ?? "", empty: !!r.querySelector(".sf-bar--empty"), fills: r.querySelectorAll(".sf-bar-fill").length })));
+		const book2 = rows.find((r) => r.title.includes("Book 2"))!;
+		const book1 = rows.find((r) => r.title.includes("Book 1"))!;
+		expect(book2).toMatchObject({ empty: true, fills: 0 }); // no words: no fill and no sliver
+		expect(book1).toMatchObject({ empty: false, fills: 1 });
 	});
 });
 
