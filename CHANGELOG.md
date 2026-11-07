@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.11.1: the context panel's bars, and the Interface font (Fix 10)
+
+- Fixed: **the series page's context panel showed no progress bar** (and no structure marks under it) when the chosen novel's synopsis and chapters were taller than the panel: they were squeezed to nothing, and came back only when the panel was dragged wide enough for the content to fit. Everything in the panel now keeps its height, and the panel scrolls.
+- Changed: **the interface's default font is now Atkinson Hyperlegible Next** (it was SN Pro). The Writing font stays SN Pro. A project that has stored an Interface font, SN Pro included, keeps it; nothing is written.
+- Under the hood: a test that `==a==b==` highlights `==a==` only; the `==highlight==` rules are marked confirmed against Obsidian.
+
 ## 1.11.0: the series page, and tidying up (Brief 19)
 
 - Changed: **the series page.** The central pane always shows the series (its cover, title, description and novels); clicking a novel only **chooses** it, for the library: the series tab, the novel tab and the context panel follow, and what you are writing, the chapter and the editor are untouched. The context panel on the series tab shows the chosen novel: its cover, title, default PoV, synopsis, progress bar and its chapters as bars without names (a bar's name is its tooltip; a click does nothing). The synopses moved there from the central pane.
