@@ -67,7 +67,7 @@ class AlertLabelWidget extends WidgetType {
 	toDOM(): HTMLElement {
 		const span = document.createElement("span");
 		span.className = "sf-alert-label";
-		span.append(alertIcon(this.alert, 18), document.createTextNode(ALERT_NAMES[this.alert]));
+		span.append(alertIcon(this.alert), document.createTextNode(ALERT_NAMES[this.alert]));
 		return span;
 	}
 	ignoreEvent(): boolean {

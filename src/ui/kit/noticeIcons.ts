@@ -47,7 +47,8 @@ const ALERT_PATH: Record<AlertKind, string> = {
 	caution: PATHS.error,
 };
 
-export function alertIcon(kind: AlertKind, size = 18): SVGElement {
+/** Tabler's native 24 px (Kenny's choice, 7 November 2026), in every editor. */
+export function alertIcon(kind: AlertKind, size = 24): SVGElement {
 	const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 	svg.setAttribute("viewBox", "0 0 24 24");
 	svg.setAttribute("width", String(size));

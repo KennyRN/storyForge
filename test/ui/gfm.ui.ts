@@ -98,6 +98,14 @@ test.describe("the GFM dressing is display only, in every editor", () => {
 		for (const cls of [".sf-heading", ".sf-quote", ".sf-code", ".sf-footnote-ref", ".sf-table-head", ".sf-hr", ".sf-glyph-task-open", ".sf-glyph-task-done", ".sf-link"]) await expect(content.locator(cls).first(), cls).toBeVisible();
 		for (const kind of ["note", "tip", "important", "warning", "caution"]) await expect(content.locator(`.cm-line.sf-alert-${kind}`).first(), kind).toBeVisible();
 		await expect(content.locator(".sf-alert-label")).toHaveCount(5);
+		// The alert icons are Tabler's native 24 px; a table's pipes and alignment row take the colour of a hidden marker shown on the caret's line (muted).
+		expect(await content.locator(".sf-alert-icon").first().evaluate((e) => [e.getBoundingClientRect().width, e.getBoundingClientRect().height])).toEqual([24, 24]);
+		const MUTED = "rgb(157, 169, 160)";
+		const table = content.locator(".cm-line", { hasText: "|-|-|" });
+		expect(await table.locator(".sf-marker").first().evaluate((e) => getComputedStyle(e).color)).toBe(MUTED);
+		await table.click();
+		await page.keyboard.press("Home");
+		expect(await table.locator(".sf-marker").first().evaluate((e) => getComputedStyle(e).color)).toBe(MUTED);
 		// ==x== and [[x]] are plain text (decision 157).
 		await expect(content.locator(".sf-highlight")).toHaveCount(0);
 		await expect(content.locator(".cm-line").last()).toHaveText("==not a highlight== and [[not a link]]");

@@ -162,3 +162,18 @@ Section 6 is redrawn at 2x with the rail's own end marked by a tick: at 150% the
 - **Found:** the typing aids turn the `--` in a typed `<!--` into a dash, because protected text still reads lines, not the tree. Fixed in stage 2; the test types the comment line then.
 - **Named type-style exceptions added** (`typeStyles.test.ts`): `.sf-code`, `.sf-codeblock` and `.sf-footnote-def` (font size, a fraction of the prose size), `.sf-table-head` and `.sf-alert-label` (font weight); and the embedded monospace face `--font-code` (Courier Prime).
 - **Pictures from the built app** (`scripts/gfm-shots.mjs`, a throwaway copy with a temporary HOME; `screencapture -l` of its window only; the one key sent, Return on a focused Codex row, goes through the typing guard): `docs/gfm-mockups/chapter.png` and `codex-note.png` (the chapter on the left with every dressed element, a Codex note on the right with the five alerts, a `[!SECRET]` plain quote, and `==x==` and `[[x]]` as plain text).
+
+### 9.1 The dressing's sizes, and the stage 1 look (7 November 2026)
+Kenny's rulings: the table's pipes and alignment row take the colour of a hidden marker shown on the caret line (they already do, `rgb(157, 169, 160)`, the muted purpose; pinned now by `gfm.ui.ts`); alert icons are Tabler's native **24 px** in every editor; **the five type-style exceptions are accepted**; a new embedded font needs a ruling first next time. **Courier Prime** was not a new embedding: it is one of the eight Appearance fonts, already shipped and licensed (`Font Licences.md`), so the code face stays as built (`--font-code`); Kenny's answer to keep or replace it came back as "Other" with no text, so nothing changed, and he can still say to switch to `ui-monospace`.
+
+The sizes are relative (em, of the Writing size), except the icon's native 24 px:
+
+| Rule | Value |
+|---|---|
+| `.sf-heading-1` / `-2` / `-3` to `-6` | 1.5em, 1.25em, 1.1em |
+| `.sf-code`, `.sf-codeblock` | 0.9em (code inline: also 0.2em of side padding and a 4px radius) |
+| `.sf-footnote-def` | 0.9em |
+| `.sf-alert-label` | weight 600 (the size is the line's own) |
+| `.sf-table-head` | weight 600 |
+| `.sf-alert-icon` | 24px (native) |
+| alert box padding | 14px at the sides, 8px above the first line and below the last (px; the box's own spacing, not text) |
