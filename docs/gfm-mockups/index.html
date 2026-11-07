@@ -1,0 +1,67 @@
+<!doctype html><meta charset="utf-8"><title>Brief 20 mock-up</title>
+<style>
+:root{--fg:#d3c6aa;--dim:#293136;--bg0:#333c43;--bg1:#3a464c;--bg2:#434f55;--g1:#859289;--g2:#9da9a0;--red:#e67e80;--yellow:#dbbc7f;--green:#a7c080;--blue:#7fbbb3;--purple:#d699b6;--aqua:#83c092}
+body{margin:0;background:var(--dim);color:var(--fg);font:15px/1.5 system-ui,sans-serif;padding:28px}
+h2{font-size:15px;color:var(--g2);margin:28px 0 8px}
+.card{background:var(--bg0);border-radius:10px;padding:18px 28px;max-width:640px;font-size:20px;line-height:1.6;font-weight:300}
+.m{color:var(--g1)}.h{font-weight:700}.h1{font-size:1.5em}.s{text-decoration:line-through}
+.q{border-left:3px solid var(--g1);padding-left:14px;color:var(--g2)}
+.code{font-family:ui-monospace,monospace;font-size:.85em;background:var(--bg1);border-radius:4px;padding:0 4px}
+pre.code{padding:8px 12px;margin:6px 0}
+.cm{color:var(--g1);font-style:italic}
+table{border-collapse:collapse;font-size:.9em}td,th{border:1px solid var(--bg2);padding:2px 12px}th{background:var(--bg1)}
+.al{border-left:3px solid;border-radius:6px;padding:8px 14px;margin:8px 0;font-size:18px;font-weight:400}
+.al b{display:block;font-size:.85em}
+.note{background:#3f5865;border-color:var(--blue)}.tip{background:#48584e;border-color:var(--green)}.imp{background:#544f5a;border-color:var(--purple)}.warn{background:#55544a;border-color:var(--yellow)}.cau{background:#59464c;border-color:var(--red)}
+.note b{color:var(--blue)}.tip b{color:var(--green)}.imp b{color:var(--purple)}.warn b{color:var(--yellow)}.cau b{color:var(--red)}
+.live{color:var(--aqua);text-decoration:underline}.dead{color:var(--g1);text-decoration:underline dotted;cursor:not-allowed}
+.pop{display:inline-block;background:var(--bg1);box-shadow:0 4px 14px #0008;border-radius:8px;padding:4px 0;font-size:15px;font-weight:400;min-width:230px}
+.pop div{padding:2px 12px;color:var(--g2)}.pop .sel{background:var(--aqua);color:var(--dim)}
+.tt{font-size:13px;background:var(--bg1);padding:2px 8px;border-radius:5px;margin-left:8px;font-weight:400;color:var(--fg)}
+.strip{max-width:640px;height:76px;position:relative}
+.rail{position:absolute;left:0;right:0;top:32px;height:12px;border-radius:6px;background:var(--bg0)}
+.bar{position:absolute;left:2px;top:2px;height:8px;border-radius:4px;background:var(--blue)}
+.lbl{font-size:12px;color:var(--g2)}
+.plain{opacity:1;color:var(--fg)}
+</style>
+<h2>1. A chapter: every dressed element (caret on the last line, so its markers show)</h2>
+<div class="card">
+<div class="h h1"><span class="m">## </span>Scene one</div>
+<div>Plain, <b>bold</b>, <i>italic</i>, <b><i>both</i></b>, <span class="s">struck</span>, <span class="code">code</span>, and a <span class="live">Jane Harbour</span> link.<sup class="live">1</sup></div>
+<div class="q">A block quote, the bar in grey.</div>
+<div>• a bullet &nbsp; 1. a number &nbsp; ☐ a task &nbsp; ☑ <span class="s">done</span></div>
+<pre class="code">fenced code
+stays plain</pre>
+<table><tr><th>Name</th><th>Age</th></tr><tr><td>Jane</td><td>31</td></tr></table>
+<div class="m" style="text-align:center">* * *</div>
+<div class="cm">&lt;!-- an HTML comment, dimmed --&gt;</div>
+<div class="m" style="font-size:.8em">1. Footnote text. (definition, muted)</div>
+<div>Caret line: <span class="m">[</span>Jane Harbour<span class="m">](../../Codex/Jane%20Harbour.md)</span>|</div>
+</div>
+<h2>2. The five alerts (fg on tint: NOTE 4.45, TIP 4.47, IMPORTANT 4.70, WARNING 4.51, CAUTION 5.17; decision 122)</h2>
+<div class="card">
+<div class="al note"><b>Note</b>Useful information, even when skimming.</div>
+<div class="al tip"><b>Tip</b>Helpful advice for doing things better.</div>
+<div class="al imp"><b>Important</b>Key information needed to succeed.</div>
+<div class="al warn"><b>Warning</b>Urgent, needs immediate attention.</div>
+<div class="al cau"><b>Caution</b>Negative potential consequences.</div>
+<div class="q">[!SECRET] shows as an ordinary quote, first line plain.</div>
+</div>
+<h2>3. Typing [[ : the suggestions</h2>
+<div class="card" style="font-size:18px">She walked to meet [[Ja<br><div class="pop"><div class="sel">Jane Harbour</div><div>Jane's Cottage</div><div>Sammy (alias of Sam)</div></div></div>
+<h2>4. Links: live and muted, with tooltips</h2>
+<div class="card" style="font-size:18px">
+<div><span class="live">Jane Harbour</span><span class="tt">⌘-click to open</span></div>
+<div><span class="dead">Chapter 3</span><span class="tt">a chapter, not a Codex entry</span></div>
+<div><span class="dead">Notes</span><span class="tt">not a Codex entry</span></div>
+<div><span class="dead">Lost</span><span class="tt">no such entry</span></div>
+<div><span class="dead">example.com</span><span class="tt">the app doesn't open web links</span></div>
+</div>
+<h2>5. Old syntax, now plain text (no conversion offered)</h2>
+<div class="card plain" style="font-size:18px">[[Jane]] &nbsp; ![[map.png]] &nbsp; ==marked== &nbsp; %% hidden %%</div>
+<h2>6. The chapter length bar (picture only; rail 12 px, bar 8 px, 2 px inset; rail is bg0)</h2>
+<div class="lbl">0% (rail only)</div><div class="strip"><div class="rail"></div></div>
+<div class="lbl">about 50%</div><div class="strip"><div class="rail"><div class="bar" style="width:calc(50% - 2px)"></div></div></div>
+<div class="lbl">100%</div><div class="strip"><div class="rail"><div class="bar" style="right:2px"></div></div></div>
+<div class="lbl">150% (rail shortened to 2/3; bar runs to the row's end)</div><div class="strip"><div class="rail" style="right:33.3%"><div class="bar" style="right:2px"></div></div><div class="bar" style="left:2px;top:34px;width:calc(100% - 2px)"></div></div>
+<div class="lbl">beyond 300% (rail a third; cut V end, 3 px rounded)</div><div class="strip"><div class="rail" style="right:66.6%"></div><div class="bar" style="left:2px;top:34px;width:calc(100% - 2px);clip-path:polygon(0 0,100% 0,calc(100% - 7px) 50%,100% 100%,0 100%)"></div></div>
