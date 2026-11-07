@@ -785,7 +785,7 @@ describe("the text colours (Brief 17): selection, highlight, bold, italic and bo
 		{ file: "unplaced-colour", key: "unplacedColour", def: "green", ok: ["text", "yellow", "green", "aqua", "blue", "purple", "orange", "grey"], bad: ["red", "muted", "grey0", "4"] },
 		{ file: "data-label-colour", key: "dataLabelColour", def: "muted", ok: ["text", "muted", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "4"] },
 		{ file: "data-value-colour", key: "dataValueColour", def: "text", ok: ["text", "muted", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "4"] },
-		{ file: "rail-colour", key: "railColour", def: "grey0", ok: ["grey0", "grey1", "grey2", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "text", "4"] },
+		{ file: "rail-colour", key: "railColour", def: "bg2", ok: ["bg1", "bg2", "bg3", "bg4"], bad: ["grey0", "grey1", "grey2", "yellow", "aqua", "blue", "orange", "purple", "red", "green", "grey", "text", "bg5", "4"] }, // a stored grey or data colour (1.11.1 and earlier) draws the default (decision 155)
 		{ file: "bold-italic-colour", key: "boldItalicColour", def: "orange", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },
 	] as const;
 

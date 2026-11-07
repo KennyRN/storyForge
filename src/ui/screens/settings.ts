@@ -21,7 +21,7 @@ const SELECTION_COLOUR_NAMES: Record<SelectionColour, string> = { plum: "Plum", 
 const EMPHASIS_COLOUR_NAMES: Record<EmphasisColour, string> = { text: "Text colour", ...DATA_COLOUR_NAMES };
 const PART_NAMES: Record<AppearancePart, string> = { codex: "codex list", novel: "novel title", series: "series name", chapter: "selected chapter" };
 const LABEL_COLOUR_NAMES: Record<LabelColour, string> = { text: "Text colour", muted: "Muted grey", ...DATA_COLOUR_NAMES };
-const RAIL_COLOUR_NAMES: Record<RailColour, string> = { grey0: "Grey 0 (the default)", grey1: "Grey 1", grey2: "Grey 2", ...DATA_COLOUR_NAMES };
+const RAIL_COLOUR_NAMES: Record<RailColour, string> = { bg1: "Background 1", bg2: "Background 2 (the default)", bg3: "Background 3", bg4: "Background 4" };
 const PART_SAMPLES: Record<AppearancePart, string> = { codex: "Cast · Jane Harbour · Ælfric", novel: "Book 1: The Harbour Wakes", series: "The Lantern Cycle", chapter: "Chapter 1: The Storm" };
 const WEIGHT_NAMES: Record<number, string> = { 100: "Thin", 200: "Extra light", 300: "Light", 400: "Regular", 500: "Medium", 600: "Semibold", 700: "Bold", 800: "Extra bold", 900: "Black" };
 const PAGES = ["General", "Appearance", "Writing", "Sessions", "Backups"] as const;
@@ -112,7 +112,7 @@ export function openSettings(model: AppModel): void {
 	const codexColour = (): HTMLElement => swatches("codexColour", "codex colour", CODEX_COLOURS, CODEX_COLOUR_NAMES, dot);
 	const tagged = (tag: string, group: HTMLElement): HTMLElement => line(el("span", { class: "sf-muted sf-options-tag", text: tag }), group); // the bar has two swatch rows, so they are tagged
 	const barColour = (): HTMLElement => tagged("bar", swatches("dataColour", "bar colour", DATA_COLOURS, DATA_COLOUR_NAMES, dot));
-	const railColour = (): HTMLElement => tagged("rail", swatches("railColour", "rail colour", RAIL_COLOURS, RAIL_COLOUR_NAMES, (c) => (c.startsWith("grey") ? `sf-swatch-dot--rail-${c}` : dot(c)), (c) => c === settings.values.dataColour));
+	const railColour = (): HTMLElement => tagged("rail", swatches("railColour", "rail colour", RAIL_COLOURS, RAIL_COLOUR_NAMES, (c) => `sf-swatch-dot--rail-${c}`));
 	const smallHeadingColour = (): HTMLElement => swatches("smallHeadingColour", "small heading colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, dot);
 	const libraryHeaderColour = (): HTMLElement => swatches("libraryHeaderColour", "library header colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, dot);
 	const placedColour = (): HTMLElement => swatches("placedColour", "placed colour", CODEX_COLOURS, CODEX_COLOUR_NAMES, dot);

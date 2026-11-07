@@ -97,7 +97,8 @@ test.describe("the data colour (Brief 15)", () => {
 		expect(new Set(Object.values(colours).map((c) => c.fill)).size).toBe(5);
 		for (const [name, c] of Object.entries(colours)) {
 			expect(ratio(c.text, c.fill), `${name}: name on the bar`).toBeGreaterThanOrEqual(4.5);
-			expect(ratio(c.text, c.frame), `${name}: name on the frame`).toBeGreaterThanOrEqual(3);
+			// Fix 11: the rail is now bg2 (decision 155), so bg_dim over it is about 1.6:1 until the names are settled at the stop (Fix 11 §2), when this becomes their assertion
+			expect(ratio(c.text, c.frame), `${name}: name on the default rail (pending the names)`).toBeCloseTo(1.57, 1);
 			expect(c.heat, `${name}: the heatmap does not follow`).toBe(colours.blue.fill);
 		}
 	});

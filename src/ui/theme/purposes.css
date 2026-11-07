@@ -25,10 +25,10 @@
 	--floating-shadow-filter: drop-shadow(0 4px 6px var(--purpose-shadow));
 	/* The numbers (v1.1). */
 	--purpose-data-fill: var(--ef-blue);
-	/* The chapter bar's frame (Brief 15): grey0, 3.40:1 on bg_dim, the shape that shows the planned length. */
+	/* The chapter bar's rail (decision 155): the no-cover box's fill by default (below 3:1 on bg_dim, accepted: the target is in the tooltip and the name), or another background colour. */
 	/* An empty cover box (round five): a quiet holding shape, bg2 (Kenny's pick of bg2, bg3 and bg4), with the no-cover icon cut out of it in the colour of the background it sits on. Decorative: under 3:1 is accepted; its name "No cover" carries the meaning. */
 	--purpose-cover-empty: var(--ef-bg2);
-	--purpose-data-frame: var(--ef-grey0);
+	--purpose-data-frame: var(--purpose-cover-empty);
 	/* Text over the data fill: bg_dim on blue (Brief 14; the chapter's name over its bar, dark over the fill and light over the track). */
 	--purpose-text-on-data: var(--ef-bg-dim);
 	--purpose-bar-track: var(--ef-bg2);
@@ -86,9 +86,10 @@
 	--purpose-unplaced: var(--ef-green);
 	--purpose-data-label: var(--purpose-text-muted); /* the label before a colon: today's muted grey */
 	--purpose-data-value: var(--purpose-text);
-	--purpose-rail-choice-low: var(--ef-grey0);
-	--purpose-rail-choice-mid: var(--ef-grey1);
-	--purpose-rail-choice-high: var(--ef-grey2);
+	--purpose-rail-choice-one: var(--ef-bg1);
+	--purpose-rail-choice-two: var(--ef-bg2);
+	--purpose-rail-choice-three: var(--ef-bg3);
+	--purpose-rail-choice-four: var(--ef-bg4);
 	--purpose-small-heading: var(--purpose-text); /* round three: the text colour, not the muted grey; a setting */
 	/* The four kinds of notice: a tinted fill and a 3 px edge. Red means something failed (decision 122). */
 	--purpose-notice-error-fill: var(--ef-bg-red);
@@ -191,10 +192,7 @@
 :root[data-unplaced-colour="purple"] { --purpose-unplaced: var(--purpose-codex-choice-purple); }
 :root[data-unplaced-colour="orange"] { --purpose-unplaced: var(--purpose-codex-choice-orange); }
 :root[data-unplaced-colour="grey"] { --purpose-unplaced: var(--purpose-codex-choice-grey); }
-:root[data-rail-colour="grey1"] { --purpose-data-frame: var(--ef-grey1); }
-:root[data-rail-colour="grey2"] { --purpose-data-frame: var(--ef-grey2); }
-:root[data-rail-colour="yellow"]:not([data-data-colour="yellow"]) { --purpose-data-frame: var(--purpose-colour-choice-yellow); }
-:root[data-rail-colour="aqua"]:not([data-data-colour="aqua"]) { --purpose-data-frame: var(--purpose-colour-choice-aqua); }
-:root[data-rail-colour="blue"]:not([data-data-colour="blue"]) { --purpose-data-frame: var(--purpose-colour-choice-blue); }
-:root[data-rail-colour="orange"]:not([data-data-colour="orange"]) { --purpose-data-frame: var(--purpose-colour-choice-orange); }
-:root[data-rail-colour="purple"]:not([data-data-colour="purple"]) { --purpose-data-frame: var(--purpose-colour-choice-purple); }
+:root[data-rail-colour="bg1"] { --purpose-data-frame: var(--purpose-rail-choice-one); }
+:root[data-rail-colour="bg2"] { --purpose-data-frame: var(--purpose-rail-choice-two); }
+:root[data-rail-colour="bg3"] { --purpose-data-frame: var(--purpose-rail-choice-three); }
+:root[data-rail-colour="bg4"] { --purpose-data-frame: var(--purpose-rail-choice-four); }

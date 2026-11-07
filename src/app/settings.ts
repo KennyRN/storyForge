@@ -48,8 +48,8 @@ export type EmphasisColour = (typeof EMPHASIS_COLOURS)[number];
 /** The data label's and the data's colours (round five): the text colour, the muted grey, or one of the five. */
 export const LABEL_COLOURS = ["text", "muted", ...DATA_COLOURS] as const;
 export type LabelColour = (typeof LABEL_COLOURS)[number];
-/** The bar's rail (the frame round a chapter bar): grey0 (the default), grey1, grey2 or one of the five; never the bar's own colour. */
-export const RAIL_COLOURS = ["grey0", "grey1", "grey2", ...DATA_COLOURS] as const;
+/** The bar's rail (the frame round a chapter bar): a background colour only, bg1 to bg4 (Everforest has no bg5), bg2 by default, the no-cover box's fill (decision 155). A stored grey or data colour (1.11.1 and earlier) draws the default and is never rewritten. */
+export const RAIL_COLOURS = ["bg1", "bg2", "bg3", "bg4"] as const;
 export type RailColour = (typeof RAIL_COLOURS)[number];
 
 /** One story or a series of them (decision 81): whether the storytelling side shows a series line. Missing or unknown means a series. */
@@ -203,7 +203,7 @@ export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
 	unplacedColour: "green",
 	dataLabelColour: "muted",
 	dataValueColour: "text",
-	railColour: "grey0",
+	railColour: "bg2",
 	hideSeriesPane: false,
 	autoFocus: true,
 	layout: "novelBrowse",

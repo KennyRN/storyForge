@@ -250,19 +250,31 @@ test.describe("type styles", () => {
 		expect(await defaults("unplaced colour")).toBe("Green");
 		expect(await defaults("data label colour")).toBe("Muted grey");
 		expect(await defaults("data colour")).toBe("Text colour");
-		expect(await defaults("rail colour")).toBe("Grey 0 (the default)");
+		expect(await defaults("rail colour")).toBe("Background 2 (the default)");
 		expect(await dialog(page).getByRole("radiogroup", { name: "data label colour", exact: true }).getByRole("radio").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")))).toEqual(["Text colour", "Muted grey", "Yellow", "Aqua", "Blue", "Orange", "Purple"]);
-		// the rail row disables the bar's own colour; the bar colour is blue by default
-		await expect(dialog(page).getByRole("radiogroup", { name: "rail colour", exact: true }).getByRole("radio", { name: "Blue" })).toBeDisabled();
-		await dialog(page).getByRole("radiogroup", { name: "rail colour", exact: true }).getByRole("radio", { name: "Grey 2" }).click();
-		await expect.poll(() => projectMd(page)).toContain("rail-colour: grey2");
-		await expect(page.locator("html")).toHaveAttribute("data-rail-colour", "grey2");
-		const frame = await page.evaluate(() => { const i = document.createElement("i"); i.style.color = "var(--purpose-rail-choice-high)"; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; });
+		// the rail takes a background colour only (decision 155): bg1 to bg4, none of the greys or the data colours
+		expect(await dialog(page).getByRole("radiogroup", { name: "rail colour", exact: true }).getByRole("radio").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")))).toEqual(["Background 1", "Background 2 (the default)", "Background 3", "Background 4"]);
+		await dialog(page).getByRole("radiogroup", { name: "rail colour", exact: true }).getByRole("radio", { name: "Background 4" }).click();
+		await expect.poll(() => projectMd(page)).toContain("rail-colour: bg4");
+		await expect(page.locator("html")).toHaveAttribute("data-rail-colour", "bg4");
+		const frame = await page.evaluate(() => { const i = document.createElement("i"); i.style.color = "var(--purpose-rail-choice-four)"; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; });
 		expect(await dialog(page).getByRole("img", { name: "Sample of the data bar style" }).locator(".sf-bar-demo-rail").evaluate((e) => getComputedStyle(e).backgroundColor)).toBe(frame);
-		// choosing the rail's colour as the bar colour draws the default rail, writing nothing more
+		// the bar's own colour no longer limits the rail: every background colour stays available
 		await dialog(page).getByRole("radiogroup", { name: "bar colour", exact: true }).getByRole("radio", { name: "Yellow" }).click();
 		await expect.poll(() => projectMd(page)).toContain("data-colour: yellow");
-		await expect(dialog(page).getByRole("radiogroup", { name: "rail colour", exact: true }).getByRole("radio", { name: "Yellow" })).toBeDisabled();
+		await expect(dialog(page).getByRole("radiogroup", { name: "rail colour", exact: true }).getByRole("radio", { name: "Background 1" })).toBeEnabled();
+	});
+
+	test("a rail colour stored by 1.11.1 or earlier (a grey, a data colour) draws the default and is not rewritten (decision 155)", async ({ page }) => {
+		await openProject(page);
+		const before = await projectMd(page);
+		for (const stored of ["grey1", "yellow"]) {
+			await page.evaluate((v) => window.__preview.touch("_backstage/storyforge/project.md", `---\nformat-version: 1\nrail-colour: ${v}\n---\n`), stored);
+			await page.evaluate(() => window.__preview.emit("watch-batch", { paths: ["_backstage/storyforge/project.md"], rescan: false }));
+			await expect(page.locator("html")).toHaveAttribute("data-rail-colour", "bg2");
+			expect(await projectMd(page)).toContain(`rail-colour: ${stored}`); // read, never rewritten
+		}
+		expect(before).not.toContain("rail-colour: grey1");
 	});
 
 	test("the library header, the two lists and the data label and value colours reach the left pane and the context panel", async ({ page }) => {

@@ -918,9 +918,10 @@ input[aria-invalid="true"] {
 	background: var(--purpose-selection);
 }
 .sf-swatch-dot--muted { background: var(--purpose-text-muted); }
-.sf-swatch-dot--rail-grey0 { background: var(--purpose-rail-choice-low); }
-.sf-swatch-dot--rail-grey1 { background: var(--purpose-rail-choice-mid); }
-.sf-swatch-dot--rail-grey2 { background: var(--purpose-rail-choice-high); }
+.sf-swatch-dot--rail-bg1 { background: var(--purpose-rail-choice-one); }
+.sf-swatch-dot--rail-bg2 { background: var(--purpose-rail-choice-two); }
+.sf-swatch-dot--rail-bg3 { background: var(--purpose-rail-choice-three); }
+.sf-swatch-dot--rail-bg4 { background: var(--purpose-rail-choice-four); }
 .sf-swatch-dot--sel-plum { background: var(--purpose-selection-choice-plum); }
 .sf-swatch-dot--sel-blue { background: var(--purpose-selection-choice-blue); }
 .sf-swatch-dot--sel-green { background: var(--purpose-selection-choice-green); }

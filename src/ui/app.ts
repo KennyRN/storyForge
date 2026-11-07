@@ -40,7 +40,7 @@ export async function startApp(host: Host, root: HTMLElement): Promise<AppModel>
 		d.unplacedColour = v?.unplacedColour ?? "green";
 		d.dataLabelColour = v?.dataLabelColour ?? "muted";
 		d.dataValueColour = v?.dataValueColour ?? "text";
-		d.railColour = v?.railColour ?? "grey0"; // a rail the same colour as the bar draws grey0 (theme/purposes.css)
+		d.railColour = v?.railColour ?? "bg2"; // the default rail is the no-cover box's fill (theme/purposes.css)
 	};
 	// Whether the window is active, for the selection's neutral grey when it is not (theme/base.css).
 	const markWindow = (): void => void (document.documentElement.dataset.window = document.hasFocus() ? "active" : "inactive");
