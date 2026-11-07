@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
 import { flipFace, openPreview } from "./helpers";
 
@@ -23,6 +23,23 @@ async function openProject(page: Page): Promise<string> {
 	await flipFace(page);
 	await page.getByRole("tab", { name: "series" }).click();
 	return root;
+}
+/**
+ * A novel shaped past the longest of Kenny's (read-only look, 7 November 2026: his longest has 8 chapters and no synopsis): 30 placed chapters and a long synopsis,
+ * so the panel's content is taller than a low window. The first test below uses the plain fixture, where everything fits.
+ */
+async function openBig(page: Page): Promise<void> {
+	const { root } = await openPreview(page);
+	const novel = path.join(root, "_story-library/novel-aaa.md");
+	const names = Array.from({ length: 30 }, (_, i) => `ch-big${String(i + 1).padStart(2, "0")}.md`);
+	mkdirSync(path.join(root, "_story-library/aaa"), { recursive: true });
+	for (const [i, n] of names.entries()) writeFileSync(path.join(root, "_story-library/aaa", n), `Synthetic sentence ${i} walks across the page.\n`.repeat(3 + i));
+	const fm = readFileSync(novel, "utf8").replace(/chapter-order:\n(  - .*\n)+/, `chapter-order:\n${names.map((n) => `  - ${n}\n`).join("")}`);
+	writeFileSync(novel, `${fm.trimEnd()}\n\n## Synopsis\n\n${"A long synthetic synopsis sentence that fills several lines of a narrow panel. ".repeat(12)}\n`);
+	await page.locator("[data-recent='0']").click();
+	await page.waitForFunction(() => !!window.__app?.editors);
+	await flipFace(page);
+	await page.getByRole("tab", { name: "series" }).click();
 }
 const panel = (page: Page) => page.locator(".sf-novel-context");
 const synopsis = (page: Page) => panel(page).getByRole("textbox", { name: /^Synopsis of / });
@@ -54,6 +71,32 @@ test.describe("the series tab's context panel", () => {
 		await expect(panel(page).locator(".sf-novel-ctx-title")).toContainText("Book 2");
 	});
 
+
+	test("the progress bar and every chapter bar keep their height when the content is taller than the panel, at the default and the minimum width (decision 152)", async ({ page }) => {
+		await page.setViewportSize({ width: 1280, height: 340 });
+		await openBig(page);
+		await choose(page, "Book 1");
+		const bars = panel(page).locator(".sf-novel-ctx-bars .sf-bar");
+		await expect(bars).toHaveCount(30);
+		const heights = () => panel(page).evaluate((p) => {
+			const h = (s: string) => Math.round(p.querySelector(s)!.getBoundingClientRect().height);
+			return { overflows: p.scrollHeight > p.clientHeight, progress: h(".sf-progress"), strip: h(".sf-structure-strip"), bars: [...p.querySelectorAll(".sf-novel-ctx-bars .sf-bar")].map((b) => Math.round(b.getBoundingClientRect().height)) };
+		});
+		const check = async (): Promise<void> => {
+			const m = await heights();
+			expect(m.overflows).toBe(true); // the case under test: the content is taller than the panel
+			expect(m.progress).toBe(20);
+			expect(m.strip).toBe(4);
+			expect(m.bars.every((b) => b > 0)).toBe(true);
+			await panel(page).evaluate((p) => void (p.scrollTop = p.scrollHeight)); // the panel scrolls far enough to show the last chapter bar
+			const last = await panel(page).evaluate((p) => { const b = [...p.querySelectorAll(".sf-novel-ctx-bars .sf-bar")].at(-1)!.getBoundingClientRect(); const r = p.getBoundingClientRect(); return b.height > 0 && b.top >= r.top - 1 && b.bottom <= r.bottom + 1; });
+			expect(last).toBe(true);
+		};
+		await check(); // the default width
+		await page.evaluate(() => (window.__app as any).commitTypedWidth("series", "lore", 22)); // the minimum (280 px of 1280)
+		await expect.poll(() => panel(page).evaluate((p) => Math.round(p.getBoundingClientRect().width))).toBeLessThan(300);
+		await check();
+	});
 	test("other tabs and the storytelling side show nothing of it", async ({ page }) => {
 		await openProject(page);
 		await choose(page, "Book 1");

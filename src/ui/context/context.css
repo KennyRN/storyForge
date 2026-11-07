@@ -34,6 +34,9 @@
 	overflow: auto;
 	padding: 0 var(--gap) 12px var(--half-gap);
 }
+/* A scrolling column never squeezes what is in it (decision 152): the progress bar and the structure strip have a fixed height and overflow: hidden, so their
+   automatic minimum is 0 and they were squeezed to nothing when the content was taller than the panel. Every child keeps its natural height; the panel scrolls. */
+.sf-novel-context > * { flex: none; }
 .sf-novel-ctx-head { display: flex; gap: 12px; align-items: flex-start; }
 .sf-novel-ctx-meta { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
 .sf-novel-ctx-title { font-family: var(--ts-title-family); font-weight: var(--ts-title-weight); font-size: var(--ts-body-size); font-variation-settings: var(--ts-title-var); }
