@@ -158,7 +158,7 @@ test.describe("Settings ▸ Appearance ▸ Text colours", () => {
 		expect(await swatch.evaluate((e) => [e.getBoundingClientRect().width, e.getBoundingClientRect().height])).toEqual([24, 24]);
 		await group.getByRole("radiogroup", { name: "Italic colour", exact: true }).getByRole("radio", { name: "Orange" }).click(); // the default: nothing to write
 		const chosen = group.getByRole("radiogroup", { name: "Italic colour", exact: true }).getByRole("radio", { checked: true });
-		expect(await chosen.evaluate((e) => getComputedStyle(e).outlineStyle)).toBe("solid");
+		await expect.poll(() => chosen.evaluate((e) => getComputedStyle(e).outlineStyle)).toBe("solid"); // waits for the focus ring to be drawn after the click (decision 108)
 		expect(await names("Highlight colour")).toEqual(["Yellow", "Aqua", "Blue", "Orange", "Purple"]);
 		expect(await names("Italic colour")).toEqual(["Text colour", "Yellow", "Aqua", "Blue", "Orange", "Purple"]);
 	});
