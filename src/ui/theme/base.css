@@ -787,11 +787,15 @@ input[aria-invalid="true"] {
 	padding: 4px;
 }
 .sf-swatch:disabled {
+	opacity: 0.6; /* the ordinary disabled look: the text chips (A series, One standalone novel) keep it; colour swatches are crossed out instead (decision 159) */
 	cursor: default;
 }
-/* A swatch that can't be chosen (decision 159): not muted; a line in the surface's background colour crosses it from its top-right corner to its bottom-left. The swatches live on the dialog's raised surface. */
+.sf-swatch--colour:disabled {
+	opacity: 1;
+}
+/* A colour swatch that can't be chosen (decision 159): not muted; a line in the surface's background colour crosses it from its top-right corner to its bottom-left. The swatches live on the dialog's raised surface. */
 .sf-swatch { position: relative; }
-.sf-swatch:disabled::after {
+.sf-swatch--colour:disabled::after {
 	content: "";
 	position: absolute;
 	inset: 0;

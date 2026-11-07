@@ -432,7 +432,6 @@ export function openSettings(model: AppModel): void {
 				const chosen = settings.values.storyKind === choice;
 				const b = el("button", { class: `sf-swatch${chosen ? " is-chosen" : ""}`, dataset: { choice }, attrs: { type: "button", role: "radio", "aria-checked": String(chosen) }, text });
 				b.disabled = off;
-				if (off) b.title = `${text}: unavailable, ${unavailableReason()}`;
 				b.addEventListener("click", () => void change("storyKind", choice).then(() => (choice === "series" && settings.values.hideSeriesPane ? change("hideSeriesPane", false) : undefined))); // a series always shows its series pane: switching to one switches the hiding off (Brief 19)
 				group.append(b);
 			}

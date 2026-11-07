@@ -5,7 +5,7 @@ import { openPreview, openSettingsDialog } from "./helpers";
 // and its name and tooltip still say it is unavailable, with the reason. Today that is every swatch in a project whose settings can't be changed.
 
 test.describe("a swatch that can't be chosen (decision 159)", () => {
-	test("in a read-only project every swatch is crossed out, not muted, and says why", async ({ page }) => {
+	test("in a read-only project every colour swatch is crossed out, not muted, and says why; the text chips keep the ordinary disabled look", async ({ page }) => {
 		await openPreview(page, { readOnly: true });
 		await page.evaluate(() => window.__preview.touch("_backstage/storyforge/project.md", "---\nformat-version: 99\n---\n")); // made by a newer storyForge: the project opens read-only
 		await page.reload();
@@ -14,15 +14,13 @@ test.describe("a swatch that can't be chosen (decision 159)", () => {
 		await page.waitForFunction(() => !!window.__app?.editors);
 		await openSettingsDialog(page);
 		const dialog = page.getByRole("dialog");
+		// the text chips are not colours: they keep the ordinary disabled look, with no line across them
 		const chips = dialog.getByRole("radio", { name: /A series|One standalone novel/ });
 		await expect(chips).toHaveCount(2);
 		for (const chip of await chips.all()) {
 			await expect(chip).toBeDisabled();
-			const s = await chip.evaluate((e) => { const a = getComputedStyle(e, "::after"); const surface = getComputedStyle(document.documentElement).getPropertyValue("--purpose-raised-bg").trim(); return { opacity: getComputedStyle(e).opacity, content: a.content, image: a.backgroundImage, position: a.position, title: e.getAttribute("title") ?? "" , surface }; });
-			expect(s.opacity, "not muted").toBe("1");
-			expect(s.content).not.toBe("none");
-			expect(s.image, "a diagonal from the top-right to the bottom-left").toContain("linear-gradient(to right bottom");
-			expect(s.title).toMatch(/unavailable, /);
+			const s = await chip.evaluate((e) => ({ opacity: getComputedStyle(e).opacity, content: getComputedStyle(e, "::after").content }));
+			expect(s).toEqual({ opacity: "0.6", content: "none" });
 		}
 		await dialog.getByRole("tab", { name: "Appearance", exact: true }).click();
 		await dialog.locator(".sf-settings-subtabs").getByRole("tab", { name: "library mode", exact: true }).click();
