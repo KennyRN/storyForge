@@ -118,6 +118,11 @@ describe("scanHighlights", () => {
 		expect(marks("a ==b== ==c==")).toEqual(["==b==", "==c=="]);
 	});
 
+	it("==a==b== highlights ==a== only, with b== plain (docs/colours.md §4 case 3, confirmed against Obsidian on 7 November 2026)", () => {
+		expect(marks("==a==b==")).toEqual(["==a=="]);
+		expect(marks("x ==a==b== y")).toEqual(["==a=="]);
+	});
+
 	it("emphasis may sit inside, and touch, a highlight", () => {
 		expect(marks("==**a**==")).toEqual(["==**a**=="]);
 		expect(marks("==a *b* c==")).toEqual(["==a *b* c=="]);
