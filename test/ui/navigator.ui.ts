@@ -39,10 +39,12 @@ test.describe("the navigator", () => {
 		expect(await list.evaluate((e) => getComputedStyle(e).backgroundColor)).toBe(bg1);
 		expect(await list.evaluate((e) => getComputedStyle(e).borderTopLeftRadius)).toBe("0px");
 		expect(await list.evaluate((e) => getComputedStyle(e).borderBottomRightRadius)).toBe("10px");
+		// Tweaks 1, §1.3: the selector's text lines up with the Codex card's left edge, so the fill and the list stick out to the left by the 14px padding; their right edge is still the card's.
 		for (const e of [await edges(".sf-select-current"), await edges(".sf-select-list")]) {
-			expect(Math.abs(e[0] - card[0])).toBeLessThan(1);
+			expect(Math.abs(e[0] - (card[0] - 14))).toBeLessThan(1);
 			expect(Math.abs(e[1] - card[1])).toBeLessThan(1);
 		}
+		expect(Math.abs((await edges(".sf-select-current-title"))[0] - card[0])).toBeLessThan(1);
 		await expect(cur).toHaveAttribute("aria-expanded", "true");
 	});
 
@@ -119,8 +121,9 @@ test.describe("the navigator", () => {
 			expect(await codexTop()).toBe(before);
 			// Decision 97: the list's edges are the Codex card's, not the panel's.
 			const [l, card] = await Promise.all([list.boundingBox(), page.locator(".sf-left[data-face='storytelling'] .sf-codex-tree").boundingBox()]);
-			expect(l!.x).toBeCloseTo(card!.x, 0);
-			expect(l!.width).toBeCloseTo(card!.width, 0);
+			// Tweaks 1, §1.3 (amending decision 97): the list sticks out to the left of the card by the selector's padding (14px), so the selector's text lines up with the card's edge; its right edge is the card's.
+			expect(l!.x).toBeCloseTo(card!.x - 14, 0);
+			expect(l!.x + l!.width).toBeCloseTo(card!.x + card!.width, 0);
 			expect(await list.evaluate((e) => { const s = getComputedStyle(e); return [s.borderTopWidth, s.borderBottomWidth, s.backgroundColor]; })).toEqual(["0px", "0px", await colour(page, "--purpose-raised-bg")]);
 			const covered = await page.evaluate(() => { const r = document.querySelector(".sf-select-list")!.getBoundingClientRect(); const c = document.querySelector("section[aria-label='Codex']")!.getBoundingClientRect(); return r.bottom > c.top; });
 			expect(covered).toBe(true);

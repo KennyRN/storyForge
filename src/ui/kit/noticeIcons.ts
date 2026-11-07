@@ -18,6 +18,9 @@ const PATHS: Record<NoticeKind, string> = {
 /** The name the screen reader hears for each kind's icon. */
 export const NOTICE_ICON_NAMES: Record<NoticeKind, string> = { error: "Error", warning: "Warning", information: "Information", success: "Done" };
 
+/** A notice icon's path, for a picture that draws it its own way (the cover that can't be shown). */
+export const noticePath = (kind: NoticeKind): string => PATHS[kind];
+
 export function noticeIcon(kind: NoticeKind, size = 20): SVGElement {
 	const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
 	svg.setAttribute("viewBox", "0 0 24 24");

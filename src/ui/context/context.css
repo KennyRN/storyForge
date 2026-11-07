@@ -13,12 +13,14 @@
 .sf-chapter-rows { flex: none; display: flex; flex-direction: column; gap: 2px; font-family: var(--ts-body-family); font-weight: var(--ts-body-weight); font-size: var(--ts-body-size); font-variation-settings: var(--ts-body-var); }
 .sf-chapter-rows .sf-card-row { display: flex; gap: 8px; }
 .sf-ctx-card { background: var(--purpose-editor-bg); border-radius: 10px; overflow: hidden; box-sizing: border-box; }
-.sf-ctx-plot { flex: none; max-height: 35%; overflow: auto; padding: 8px 6px; }
+.sf-ctx-plot { flex: none; max-height: 35%; overflow: auto; padding: 8px 0; }
+.sf-ctx-plot .sf-note-field { margin-left: 0; border: 0; } /* the field's own -6px margin and 1px border put the text 7px in; the card's inset is the one shared value */
+.sf-ctx-plot .sf-note-field .cm-content { padding: 4px var(--card-text-inset); }
 .sf-ctx-text { flex: 1; min-height: 0; overflow: auto; }
 .sf-chapter-text .cm-editor { height: auto; background: transparent; color: var(--purpose-text); }
 .sf-chapter-text .cm-editor.cm-focused { outline: none; }
 .sf-chapter-text .cm-scroller { overflow: visible; font-family: var(--ts-reading-family); font-weight: var(--ts-reading-weight); font-variation-settings: var(--ts-reading-var); }
-.sf-chapter-text .cm-content { padding: 16px 16px 24px; font-family: var(--ts-reading-family); font-weight: var(--ts-reading-weight); font-size: var(--ts-reading-size); font-variation-settings: var(--ts-reading-var); line-height: 1.5; cursor: text; }
+.sf-chapter-text .cm-content { padding: 16px var(--card-text-inset) 24px; font-family: var(--ts-reading-family); font-weight: var(--ts-reading-weight); font-size: var(--ts-reading-size); font-variation-settings: var(--ts-reading-var); line-height: 1.5; cursor: text; }
 .sf-chapter-text .cm-line { padding: 0; }
 .sf-chapter-text .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground { background: var(--purpose-selection); } /* the whole path, to outweigh CodeMirror's own (Brief 17) */
 .sf-chapter-text .cm-editor:not(.cm-focused) > .cm-scroller > .cm-selectionLayer .cm-selectionBackground { background: var(--purpose-selection-inactive); }
@@ -41,8 +43,8 @@
 .sf-novel-ctx-meta { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
 .sf-novel-ctx-title { font-family: var(--ts-title-family); font-weight: var(--ts-title-weight); font-size: var(--ts-body-size); font-variation-settings: var(--ts-title-var); }
 .sf-ctx-synopsis { flex: none; }
-.sf-ctx-synopsis .sf-note-field { background: transparent; border-radius: 0; }
-.sf-ctx-synopsis .sf-note-field .cm-content { padding: 8px 12px; }
+.sf-ctx-synopsis .sf-note-field { background: transparent; border-radius: 0; margin-left: 0; border: 0; }
+.sf-ctx-synopsis .sf-note-field .cm-content { padding: 8px var(--card-text-inset); }
 .sf-novel-ctx-bars { display: flex; flex-direction: column; gap: 6px; }
 .sf-novel-ctx-titlerow { display: flex; align-items: flex-start; gap: 6px; }
 .sf-novel-ctx-titlerow .sf-novel-ctx-title { flex: 1; min-width: 0; }

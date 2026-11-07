@@ -34,6 +34,7 @@ export const PURPOSES = [
 	"alert-caution-edge",
 	"quote-edge",
 	"length-bar",
+	"cover-error",
 	"length-rail",
 	"code-bg",
 	"link",

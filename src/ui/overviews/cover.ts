@@ -2,6 +2,7 @@ import type { CoverTarget } from "../../app/appLife";
 import { readBookFrontmatter } from "../../core/book";
 import { bookBackstagePath, seriesBackstagePath } from "../../core/paths";
 import { readSeriesFrontmatter } from "../../core/series";
+import { coverErrorIcon } from "../kit/coverErrorIcon";
 import { photoIcon } from "../kit/photoIcon";
 import { el } from "../kit/dom";
 import { menuPoint, showMenu } from "../kit/menu";
@@ -46,6 +47,12 @@ export function coverBox(model: AppModel, target: CoverTarget, title: string): H
 			{ className: "sf-menu--rows", label: `Cover of ${title}` },
 		);
 	});
+	/** A cover that is recorded but can't be shown (Tweaks 1, §1.8): a `bg_red` box with the "!" rounded square cut out of it, in the cover's shape; the colour is the signal. */
+	const errorState = (): void => {
+		box.replaceChildren(coverErrorIcon("50%"));
+		box.dataset.state = "error";
+		box.setAttribute("aria-label", `The cover of ${title} could not be shown. Change or remove it`);
+	};
 	const placeholder = (): void => {
 		box.replaceChildren(photoIcon("50%")); // half the box's width, centred, a cut-out in the colour of what the box sits on; its name for the screen reader is "No cover"
 		box.dataset.state = "placeholder";
@@ -54,13 +61,14 @@ export function coverBox(model: AppModel, target: CoverTarget, title: string): H
 	};
 	/** A cover that is recorded but can't be shown is never a silent "No cover": a notice says what failed (once per version). */
 	const failed = (version: string, why: string): void => {
-		placeholder();
+		errorState();
 		const key = `${targetKey(target)}|${version}`;
 		if (reported.has(key)) return;
 		reported.add(key);
 		model.notices.notify({ kind: "error", text: `The cover of ${title} could not be shown: ${why}`, key: `cover-${targetKey(target)}` });
 	};
-	placeholder();
+	if (recorded && !readable) errorState(); // a recorded cover whose file is missing, or isn't a name the app reads: the same red box (no new notice: none was given before)
+	else placeholder();
 	if (readable && entry && name) {
 		const version = `${name}|${entry.size}|${entry.mtimeMs}`;
 		const show = (url: string): void => {

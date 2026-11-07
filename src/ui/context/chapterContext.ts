@@ -142,13 +142,45 @@ export function mountChapterContext(host: HTMLElement, model: AppModel): () => v
 		}
 		build(path, book, chapter);
 	};
+	/**
+	 * The chapter information box's top is level with the top of the novel synopsis box in the centre pane (Tweaks 1, §1.6), worked out live from the layout,
+	 * never a fixed figure, with the centre pane scrolled to its top (it stays put when the pane scrolls). The PoV and Location rows sit above it, 12px clear
+	 * (the column's gap). If they would have to rise above the panel's top line the box stays where it is: the rows are never squeezed or pushed over it.
+	 */
+	let frame = 0;
+	const align = (): void => {
+		frame = 0;
+		const plot = host.querySelector<HTMLElement>(".sf-ctx-plot");
+		const overview = document.querySelector<HTMLElement>(".sf-overview");
+		const synopsis = overview?.querySelector<HTMLElement>(".sf-overview-head .sf-section-field");
+		if (host.hidden || !plot || !overview || !synopsis) return;
+		host.style.paddingTop = "0px";
+		const need = synopsis.getBoundingClientRect().top + overview.scrollTop - plot.getBoundingClientRect().top;
+		host.style.paddingTop = `${Math.max(0, Math.round(need * 100) / 100)}px`;
+		host.dataset.alignShortBy = need < 0 ? String(Math.round(-need)) : "0";
+	};
+	const alignSoon = (): void => {
+		if (!frame) frame = requestAnimationFrame(align);
+	};
+	const overviewEl = document.querySelector<HTMLElement>(".sf-overview");
+	const resize = typeof ResizeObserver !== "undefined" ? new ResizeObserver(alignSoon) : null;
+	const mutation = typeof MutationObserver !== "undefined" ? new MutationObserver(alignSoon) : null;
+	if (overviewEl) {
+		resize?.observe(overviewEl);
+		mutation?.observe(overviewEl, { childList: true, subtree: true });
+	}
+	resize?.observe(host);
+	window.addEventListener("resize", alignSoon);
 	const schedule = (): void => {
-		drawing = drawing.then(draw).catch(() => undefined);
+		drawing = drawing.then(draw).then(alignSoon).catch(() => undefined);
 	};
 	schedule();
 	const off = model.subscribe(["nav", "face", "library", "project"], schedule);
 	return () => {
 		off();
+		resize?.disconnect();
+		mutation?.disconnect();
+		window.removeEventListener("resize", alignSoon);
 		void drawing.then(() => {
 			clear();
 			host.classList.remove("sf-chapter-context");

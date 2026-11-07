@@ -216,6 +216,11 @@ test.describe("the library's small changes (round five)", () => {
 			expect(await card.evaluate((e) => getComputedStyle(e).backgroundColor)).toBe(await token(page, "--purpose-cover-empty"));
 			expect(await card.evaluate((e) => getComputedStyle(e).color)).toBe(await token(page, "--purpose-editor-bg")); // the card is bg0
 		}
+		// A series with no cover recorded: the no-cover icon (a recorded cover that can't be shown is the red box, Tweaks 1, §1.8).
+		await page.evaluate(async () => {
+			const text = await window.__preview.read("_story-library/series.md");
+			await window.__preview.touch("_story-library/series.md", text.replace(/cover-image:.*\n/, ""));
+		});
 		await page.locator("[data-recent='0']").click();
 		await page.waitForFunction(() => !!window.__app?.editors);
 		await flipFace(page);

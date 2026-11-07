@@ -7,6 +7,7 @@
 import { finishCard, planCard, type CardPlan, type CardState, type CardView, type PeekCover } from "../../core/projectCard";
 import { el, fill } from "../kit/dom";
 import { showMenu, menuPoint } from "../kit/menu";
+import { coverErrorIcon } from "../kit/coverErrorIcon";
 import { photoIcon } from "../kit/photoIcon";
 import type { AppModel } from "../model";
 
@@ -83,16 +84,22 @@ export function mountProjectCards(host: HTMLElement, model: AppModel): () => voi
 		if (url) {
 			urls.push(url);
 			const img = el("img", { attrs: { src: url, alt: "", draggable: "false" } });
-			// An image the browser can't draw counts as no cover, like a missing file: the no-cover icon takes its place, with no report here.
+			// An image the browser can't draw moves on to the first novel's cover when there is one; with none left it is a cover that can't be shown (Tweaks 1, §1.8):
+			// the red box with the "!" cut out (a missing file still counts as no cover, with no report here).
 			img.addEventListener("error", () => {
 				if (onUndrawable) return onUndrawable();
-				fill(image, photoIcon("50%"));
-				image.classList.add("is-empty");
+				fill(image, coverErrorIcon("50%"));
+				image.classList.remove("is-empty");
+				image.classList.add("is-error");
+				image.setAttribute("title", "The cover could not be shown");
 			});
 			fill(image, img);
-			image.classList.remove("is-empty");
+			image.classList.remove("is-empty", "is-error");
+			image.removeAttribute("title");
 		} else {
 			fill(image, photoIcon("50%"));
+			image.classList.remove("is-error");
+			image.removeAttribute("title");
 			image.classList.add("is-empty");
 		}
 		views.set(path, view);

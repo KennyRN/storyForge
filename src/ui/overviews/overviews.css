@@ -20,7 +20,7 @@
 /* The layer over the workspace. */
 .sf-overview { position: absolute; inset: var(--band-h) 0 0 0; overflow: auto; background: var(--purpose-panel-bg); /* the library side is for looking: bg_dim, and only the places where you work are cards on bg0 (Brief 14 §1.8) */ color: var(--purpose-text); }
 .sf-overview-body { padding: 24px var(--half-gap); } /* fills its pane (Brief 19 §3): the gutters either side are the one gap at every width */
-.sf-overview-title { font-family: var(--ts-title-family); font-weight: var(--ts-title-weight); font-size: var(--ts-title-size); font-variation-settings: var(--ts-title-var); margin: 0 0 20px; }
+.sf-overview-title { font-family: var(--ts-title-family); font-weight: var(--ts-title-weight); font-size: var(--ts-title-size); font-variation-settings: var(--ts-title-var); margin: 0 0 12px; display: flow-root; } /* 12px between the title's box and what is beneath it (Tweaks 1, §1.2); its top margin is set live so its baseline sits on the tabs' line (§1.1) */
 .sf-overview-sub { font-family: var(--ts-small-heading-family); font-weight: var(--ts-small-heading-weight); font-size: var(--ts-small-heading-size); font-variation-settings: var(--ts-small-heading-var); color: var(--purpose-small-heading); margin: 24px 0 8px; }
 .sf-overview-list { display: flex; flex-direction: column; gap: 14px; }
 .sf-overview-row { display: flex; flex-direction: row; gap: 12px; align-items: flex-start; }
@@ -60,9 +60,9 @@
 .sf-bar--link { cursor: pointer; }
 /* The novel's synopsis and the series' description (and each novel's synopsis in the series overview) are places you write: cards on bg0, 10px corners, no border. */
 .sf-overview .sf-note-field { background: var(--purpose-editor-bg); border: 0; border-radius: 10px; margin-left: 0; }
-.sf-overview .sf-note-field .cm-content { padding: 8px 12px; }
+.sf-overview .sf-note-field .cm-content { padding: 8px var(--card-text-inset); }
 /* The novel tab's synopsis takes the read-only chapter text's inner padding, in px, never scaling with the text's size (round five). */
-[aria-label="Novel overview"] .sf-note-field .cm-content { padding: 16px 16px 24px; }
+[aria-label="Novel overview"] .sf-note-field .cm-content { padding: 16px var(--card-text-inset) 24px; }
 
 /* The history view. */
 .sf-history { min-width: min(520px, 70vw); display: flex; flex-direction: column; gap: 4px; }
@@ -114,6 +114,8 @@ button.sf-heat-cell { cursor: pointer; }
 .sf-cover[data-state="image"] { border-style: solid; }
 .sf-cover[data-state="placeholder"] { border-style: solid; border-color: transparent; background: var(--purpose-cover-empty); color: var(--purpose-panel-bg); } /* the cover box sits on bg_dim: the icon is cut out in it */
 .sf-cover[data-state="placeholder"]:hover:not(:disabled) { border-color: var(--purpose-accent); }
+.sf-cover[data-state="error"] { border-style: solid; border-color: transparent; background: var(--purpose-cover-error); color: var(--purpose-panel-bg); } /* a cover that can't be shown: bg_red, the "!" cut out in the colour of what the box sits on (bg_dim) */
+.sf-cover[data-state="error"]:hover:not(:disabled) { border-color: var(--purpose-accent); }
 .sf-cover .sf-icon { flex: none; }
 .sf-cover:hover:not(:disabled) { border-color: var(--purpose-accent); }
 .sf-cover:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 2px; }

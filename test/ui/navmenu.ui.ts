@@ -245,11 +245,11 @@ test.describe("the chapter list's rows, the add button and the title bar", () =>
 		expect(await top(".sf-tab")).toBeCloseTo(44, 0); // 28 + 16: 4px above the shared line, accepted
 	});
 
-	test("the chapter list's and the closed selector's text start where the Codex list's does", async ({ page }) => {
+	test("the chapter list's and the closed selector's text start at the Codex card's left edge (Tweaks 1, §1.3, amending decision 97)", async ({ page }) => {
 		await openProject(page);
 		await page.getByRole("button", { name: "Chapters" }).click();
 		const left = (sel: string) => page.locator(sel).first().evaluate((e) => { const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT); let n: Node | null; while ((n = w.nextNode())) if (n.textContent!.trim()) { const r = document.createRange(); r.setStart(n, 0); r.setEnd(n, 1); return r.getBoundingClientRect().left; } return -1; });
-		const codex = await left(".sf-codex-tree .sf-codex-folder-header, .sf-codex-tree .sf-codex-file");
+		const codex = await page.locator(".sf-left[data-face='storytelling'] .sf-codex-tree").evaluate((e) => e.getBoundingClientRect().left);
 		expect(Math.abs((await left(".sf-select-current-title")) - codex)).toBeLessThan(1);
 		expect(Math.abs((await left(".sf-select-row")) - codex)).toBeLessThan(1);
 	});

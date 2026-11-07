@@ -10,6 +10,7 @@ import { coverBox } from "./cover";
 import { FieldBin } from "./fieldCommitter";
 import { descriptionField } from "./sectionFields";
 import { debounced, redrawKeepingFocus } from "./refresh";
+import { trackTitleLine } from "./titleLine";
 
 /** The words in a novel's placed chapters, from the index. */
 export function novelWordTotal(model: AppModel, book: string): number {
@@ -23,6 +24,7 @@ export function mountSeriesOverview(host: HTMLElement, model: AppModel): () => v
 	host.classList.add("sf-overview-body");
 	/** The synopsis and description editors of the current draw. */
 	const bin = new FieldBin();
+	let titleLine: ReturnType<typeof trackTitleLine> | null = null;
 	let disposed = false; // a redraw scheduled before the layer swapped this overview out must never write into the layer's next one
 	const draw = (): void => {
 		if (disposed) return;
@@ -54,7 +56,9 @@ export function mountSeriesOverview(host: HTMLElement, model: AppModel): () => v
 				]
 			: [];
 		fill(host, el("h2", { class: "sf-overview-title", text: series.seriesTitle }), el("div", { class: "sf-overview-head" }, el("div", { class: "sf-cover-column" }, coverBox(model, { kind: "series" }, series.seriesTitle)), descriptionField(model, bin)), placed, ...unplaced);
+		titleLine?.apply(); // the title sits on the tabs' line (Tweaks 1, §1.1)
 	};
+	titleLine = trackTitleLine(host, model);
 	draw();
 	// The chosen novel is marked in place (rule 1), without redrawing the covers: it is navigation, not data.
 	const mark = (): void => {
@@ -72,6 +76,7 @@ export function mountSeriesOverview(host: HTMLElement, model: AppModel): () => v
 		disposed = true;
 		off();
 		offNav();
+		titleLine?.dispose();
 		refresh.cancel();
 		bin.clear();
 		host.classList.remove("sf-overview-body");

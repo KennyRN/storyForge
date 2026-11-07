@@ -10,6 +10,8 @@
 	--stats-h: 64px; /* the stats section: 8 + the graph icon's 24 + 8 + the readout's 16 + 8 */
 	--radius: 6px;
 	--band-h: 28px; /* the invisible title bar's band: the traffic lights sit in it, the panels' backgrounds run up behind it */
+	--card-text-inset: 16px; /* the one inset of a working card's text from the card's left edge, in px whatever the font or size: the plot note, the read-only chapter text, the synopsis and the series description (Tweaks 1, §1.7; 16 rather than 17 or 18 because the app's spacing runs in steps of 4; amends decision 139's figure) */
+	--z-float: 50; /* an open list or floating menu that isn't fixed to the window sits above everything on the page (Tweaks 1, §1.5); the fixed ones (menus, tooltips, dialogs, notices) are 800 and up */
 	--gap: 28px; /* the one gap between boxes (Brief 19 §3): the window's sides, between panels (half on each side of a panel's edge), above and below; it never follows a panel's width */
 	--half-gap: 14px;
 	--top-gap: 20px; /* from the band's bottom to the one top line the three panels' first things start on */
@@ -233,6 +235,10 @@ input[aria-invalid="true"] {
 .sf-project-card-image.is-empty {
 	background: var(--purpose-cover-empty);
 	color: var(--purpose-editor-bg); /* the card is bg0: the no-cover icon is cut out of the grey1 box in it */
+}
+.sf-project-card-image.is-error {
+	background: var(--purpose-cover-error);
+	color: var(--purpose-editor-bg); /* a cover that can't be drawn: bg_red, the "!" cut out in the card's colour */
 }
 .sf-project-card-text {
 	display: flex;

@@ -51,11 +51,12 @@ test.describe("the project cards", () => {
 		await expect(page.getByRole("alert")).toHaveCount(0);
 	});
 
-	test("a cover the browser can't draw counts as no cover: the icon takes its place, quietly", async ({ page }) => {
+	test("a cover the browser can't draw is a red box with the exclamation mark cut out, quietly", async ({ page }) => {
 		// The fixture's cover files are not real images, so the browser can't draw them (a real project's are).
 		await start(page, [{ fixture: "series" }]);
-		await expect(card(page, 0).locator(".sf-project-card-image.is-empty")).toBeVisible();
-		await expect(card(page, 0).locator('svg[aria-label="No cover"]')).toBeVisible();
+		// Tweaks 1, §1.8: a recorded cover that can't be drawn, with nothing to fall back to, is the red box with the "!" cut out (still quiet: no report here).
+		await expect(card(page, 0).locator(".sf-project-card-image.is-error")).toBeVisible();
+		await expect(card(page, 0).locator('svg[aria-label="The cover could not be shown"]')).toBeVisible();
 		await expect(page.getByRole("alert")).toHaveCount(0);
 	});
 
@@ -79,9 +80,9 @@ test.describe("the project cards", () => {
 		await expect.poll(() => img.evaluate((e: HTMLImageElement) => e.complete && e.naturalWidth)).toBe(1); // it really drew
 		await expect(card(page, 0).locator(".sf-project-card-image.is-empty")).toHaveCount(0);
 		expect((await state(page)).peekBookCalls).toBe(1);
-		// Both undrawable: the icon, quietly.
+		// Both undrawable: the red box with the "!", quietly.
 		await start(page, [{ fixture: "series" }]);
-		await expect(card(page, 0).locator(".sf-project-card-image.is-empty")).toBeVisible();
+		await expect(card(page, 0).locator(".sf-project-card-image.is-error")).toBeVisible();
 		await expect(page.getByRole("alert")).toHaveCount(0);
 	});
 

@@ -154,20 +154,22 @@
 	color: var(--purpose-raised-bg);
 }
 .sf-select--chapters {
-	/* The fill's edges are the Codex card's: its left is the strip's width plus 8px (30px past the lines' own margin), its right
-	   is the card's (10% of the panel's width, 12px at least). */
+	/* The text's left is the Codex card's (the strip's width plus 8px, 30px past the lines' own margin); the fill sticks out to its left by the padding, its right is the card's (12px at least from the panel's edge). */
 	--nav-radius: 10px;
 	--nav-pad: 14px; /* the list's 6px plus a row's 8px: the closed title sits where the list's text does */
 	position: relative;
-	margin: 0 var(--half-gap) 0 calc(var(--space-4) + 30px);
+	margin: 0 var(--half-gap) 0 calc(var(--space-4) + 30px - var(--nav-pad)); /* the selector's text lines up with the Codex card's left edge (Tweaks 1, §1.3); the fill sticks out to its left */
 }
 /* Open, the selector's fill and the dropdown are one joined piece, so the one shadow is drawn round the pair (a filter on both together), with no line across the join. */
 .sf-select:has(.sf-select-current[aria-expanded="true"]) {
 	filter: var(--floating-shadow-filter);
+	z-index: var(--z-float); /* an open list is never covered (Tweaks 1, §1.5): the synopsis field's label showed over it */
 }
+.sf-select { position: relative; }
 /* Open: a raised surface over the top of the Codex list, the panel's full width, with no border line. */
 .sf-select-list {
 	position: absolute;
+	z-index: var(--z-float);
 	left: 0;
 	right: 0;
 	margin: 0;
@@ -209,12 +211,13 @@
 	--nav-radius: 10px;
 	--nav-pad: 8px;
 	position: relative;
-	display: inline-block;
+	display: block;
+	width: fit-content;
 	max-width: 100%;
-	margin-bottom: 20px;
+	margin-left: calc(-1 * var(--nav-pad)); /* the title's text, not its fill, lines up with the cover and the content beneath (Tweaks 1, §1.3); the fill sticks out to the left */
 }
 .sf-select--title .sf-select-current { color: var(--purpose-text); width: auto; max-width: 100%; }
-.sf-select--title .sf-select-list { min-width: 100%; width: max-content; max-width: 90vw; right: auto; }
+.sf-select--title .sf-select-list { left: -6px; min-width: calc(100% + 6px); width: max-content; max-width: 90vw; right: auto; } /* the highlighted row starts where the closed fill does (6px in from the list), so its text lines up with the title's */
 .sf-select-add svg {
 	width: 1em; /* the Codex icons' rule (decision 84): the selected chapter's size, not a fixed 16px */
 	height: 1em;
@@ -552,7 +555,7 @@ body.sf-codex-drag-active {
 	position: absolute;
 	top: var(--band-h);
 	right: var(--space-2);
-	z-index: 6;
+	z-index: var(--z-float);
 	min-width: 200px;
 	max-width: calc(100% - 16px);
 	display: flex;

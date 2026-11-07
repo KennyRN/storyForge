@@ -13,6 +13,7 @@ import { FieldBin } from "./fieldCommitter";
 import { coverBox } from "./cover";
 import { synopsisField } from "./sectionFields";
 import { debounced, redrawKeepingFocus } from "./refresh";
+import { trackTitleLine } from "./titleLine";
 import { buildNovelProgress } from "./novelProgress";
 import { mountSelectList, type SelectState } from "../kit/selectList";
 
@@ -26,6 +27,7 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 
 	let ghostWatch: ResizeObserver | null = null;
 	let selector: { dispose(): void } | null = null;
+	let titleLine: ReturnType<typeof trackTitleLine> | null = null;
 	const selectState: SelectState = { expanded: false };
 	let disposed = false; // a redraw scheduled before the layer swapped this overview out must never write into the layer's next one
 	const draw = (): void => {
@@ -86,7 +88,8 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 		if (settings.storyKind === "standalone") heading.textContent = novelTitle();
 		else {
 			const series = getSeriesBooks(project);
-			const folders = [...series.ordered, ...series.unplaced].map((f) => f.name);
+			// The selector lists the placed novels only (Tweaks 1, §1.4); an unplaced novel's page, reached from the series page, keeps its title here with no row highlighted.
+			const folders = series.ordered.map((f) => f.name);
 			const numbered = applyHashNumbering(folders.map((f) => bookDisplayTitle(project, f)), settings.seriesNumberingStyle);
 			const host2 = el("div", { class: "sf-select-host" });
 			heading.append(host2);
@@ -96,7 +99,7 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 					title: novelTitle(),
 					label: "Novels",
 					listLabel: "Novels of this series",
-					rows: folders.map((f, i) => ({ key: f, text: numbered[i], active: f === book, muted: i >= series.ordered.length, separatorBefore: series.unplaced.length > 0 && i === series.ordered.length, dataset: { book: f } })),
+					rows: folders.map((f, i) => ({ key: f, text: numbered[i], active: f === book, dataset: { book: f } })),
 					onChoose: (f) => model.chooseNovel(f),
 				}),
 				selectState,
@@ -105,11 +108,13 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 		}
 		fill(host, heading, el("div", { class: "sf-overview-head" }, el("div", { class: "sf-cover-column" }, coverBox(model, { kind: "book", code: book }, novelTitle())), synopsisField(model, bin, book, novelTitle())), track, strip, el("div", { class: "sf-overview-list sf-cards", attrs: { role: "list", "aria-label": "Placed chapters with word counts" } }, ...cards));
 		drawGhosts();
+		titleLine?.apply(); // the title sits on the tabs' line (Tweaks 1, §1.1)
 		if (typeof ResizeObserver !== "undefined") {
 			ghostWatch = new ResizeObserver(drawGhosts);
 			ghostWatch.observe(track);
 		}
 	};
+	titleLine = trackTitleLine(host, model);
 	draw();
 	const refresh = debounced(() => redrawKeepingFocus(host, draw));
 	const off = model.subscribe(["library", "stats", "project", "archive", "nav"], refresh);
@@ -118,6 +123,7 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 		off();
 		ghostWatch?.disconnect();
 		selector?.dispose();
+		titleLine?.dispose();
 		refresh.cancel();
 		bin.clear();
 		host.classList.remove("sf-overview-body");

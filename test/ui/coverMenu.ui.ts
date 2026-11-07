@@ -31,8 +31,9 @@ for (const which of ["novel", "series"] as const) {
 		test("is a button named for what it does, with a menu behind it; no Remove cover link", async ({ page }) => {
 			const box = cover(page);
 			await expect(box).toHaveAttribute("aria-haspopup", "menu");
-			// the fixture's cover is not a picture the window can draw: a recorded cover that is not on screen says so (the cover-smoke script relies on it)
-			await expect(box).toHaveAttribute("aria-label", /^Change or remove the cover of .* \(no picture is shown\)$/);
+			// the fixture's cover is not a picture the window can draw: a recorded cover that can't be shown says so, as a red box (Tweaks 1, §1.8); the cover-smoke script relies on the name not starting "Change or remove the cover of"
+			await expect(box).toHaveAttribute("data-state", "error");
+			await expect(box).toHaveAttribute("aria-label", /^The cover of .* could not be shown\. Change or remove it$/);
 			await expect(page.getByRole("button", { name: /^Remove (the )?cover/i })).toHaveCount(0);
 			await expect(page.getByText("Remove cover", { exact: true })).toHaveCount(0);
 			await box.click();

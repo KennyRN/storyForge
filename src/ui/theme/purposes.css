@@ -28,6 +28,7 @@
 	/* The chapter bar's rail (decision 155): the no-cover box's fill by default (below 3:1 on bg_dim, accepted: the target is in the tooltip and the name), or another background colour. */
 	/* An empty cover box (round five): a quiet holding shape, bg2 (Kenny's pick of bg2, bg3 and bg4), with the no-cover icon cut out of it in the colour of the background it sits on. Decorative: under 3:1 is accepted; its name "No cover" carries the meaning. */
 	--purpose-cover-empty: var(--ef-bg2);
+	--purpose-cover-error: var(--ef-bg-red); /* a cover that can't be shown (Tweaks 1): the notices' error tint; the colour is the signal */
 	--purpose-data-frame: var(--purpose-cover-empty);
 	/* Text over the data fill: bg_dim on blue (Brief 14; the chapter's name over its bar, dark over the fill and light over the track). */
 	--purpose-text-on-data: var(--ef-bg-dim);
