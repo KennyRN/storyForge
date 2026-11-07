@@ -75,14 +75,17 @@ test.describe("selectors line up with the content beneath", () => {
 		expect((await rect(page.locator(".sf-select-list"))).x).toBeLessThan(cover.x - 6);
 	});
 
-	test("the storytelling side: the chapter selector's text is the Codex card's left edge, the fill and list stick out to its left, and nothing is cut off", async ({ page }) => {
+	test("the storytelling side (Tweaks 2 §1.6): the chapter selector's fill is the Codex card's edge and its text is on the entries' text; nothing is cut off", async ({ page }) => {
 		await open(page, "storytelling");
 		const card = await rect(page.locator(".sf-left[data-face='storytelling'] .sf-codex-tree"));
 		const text = await rect(page.locator(".sf-select--chapters .sf-select-current-title"));
 		const fill = await rect(page.locator(".sf-select--chapters .sf-select-current"));
 		const panel = await rect(page.locator(".sf-left"));
-		expect(Math.abs(text.x - card.x)).toBeLessThan(1);
-		expect(fill.x).toBeLessThan(card.x);
+		const entry = await page.locator(".sf-left .sf-codex-name").first().evaluate((e) => { const r = document.createRange(); r.selectNodeContents(e); return r.getBoundingClientRect().left; });
+		const first = await page.locator(".sf-select--chapters .sf-select-current-title").evaluate((e) => { const r = document.createRange(); r.selectNodeContents(e); return r.getBoundingClientRect().left; });
+		expect(Math.abs(fill.x - card.x)).toBeLessThan(1);
+		expect(Math.abs(first - entry)).toBeLessThan(1);
+		void text;
 		expect(fill.x).toBeGreaterThanOrEqual(panel.x); // not cut off by the panel's edge
 	});
 });

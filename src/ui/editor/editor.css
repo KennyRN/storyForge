@@ -11,6 +11,8 @@
 }
 .sf-editor-banner {
 	flex: none;
+	box-sizing: border-box;
+	min-height: var(--banner-h);
 	display: flex;
 	align-items: center;
 	justify-content: center;

@@ -56,10 +56,11 @@
 .sf-ctx-synopsis { flex: none; }
 .sf-ctx-synopsis .sf-note-field { background: transparent; border-radius: 0; margin-left: 0; border: 0; }
 .sf-ctx-synopsis .sf-note-field .cm-content { padding: 8px var(--card-text-inset); }
+.sf-novel-context .sf-progress-joined { margin-bottom: 0; } /* 12px (the column's gap) from the bar and strip to the first chapter's rail (Tweaks 2 §1.11) */
 .sf-novel-ctx-bars { display: flex; flex-direction: column; gap: 4px; } /* the rails 4px apart (Tweaks 1 part 2, §4.4) */
 .sf-novel-ctx-titlerow { display: flex; align-items: flex-start; gap: 6px; }
 .sf-novel-ctx-titlerow .sf-novel-ctx-title { flex: 1; min-width: 0; }
 /* A hover icon (Brief 19): muted at rest, the accent on hover and keyboard focus; the colour is all that changes. */
-.sf-novel-ctx-write { all: unset; box-sizing: border-box; flex: none; cursor: pointer; color: var(--purpose-text-muted); border-radius: 4px; padding: 2px; display: inline-flex; }
-.sf-novel-ctx-write:hover:not(:disabled), .sf-novel-ctx-write:focus-visible { color: var(--purpose-accent); }
+.sf-novel-ctx-write { all: unset; box-sizing: border-box; flex: none; cursor: pointer; color: var(--purpose-codex-rest); border-radius: 4px; padding: 2px; display: inline-flex; }
+.sf-novel-ctx-write:hover:not(:disabled) { color: var(--purpose-text); } /* the library tabs' resting colour at rest; the novel title's colour on hover (Tweaks 2 §1.10: a named exception to "icon buttons turn green") */
 .sf-novel-ctx-write:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 1px; }

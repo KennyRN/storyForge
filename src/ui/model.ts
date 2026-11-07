@@ -202,6 +202,31 @@ export class AppModel {
 		return this.nav.libraryBook ?? this.nav.book;
 	}
 
+	/**
+	 * A click (or Return, or Space) on the library side's chosen Codex entry or archived item again deselects it (Tweaks 2 §1.5): the page goes back to its empty state. A note with
+	 * unsaved text is saved first, by the editors' own close route (as when switching to another entry). Any other entry opens as before.
+	 */
+	async toggleLibrarySlot(slot: "codex" | "archive", path: string): Promise<void> {
+		const editors = this.editors;
+		if (!editors) return;
+		const showing = editors.pathIn(slot);
+		if (showing && this.canonical(showing) === this.canonical(path)) await editors.close(slot);
+		else await editors.open(slot, path);
+		this.touch("nav", "codex", "archive");
+	}
+
+	/**
+	 * The chapter the novel tab shows (Tweaks 2 §1.8): the chosen one (`nav.chapter`, the one being worked on) when the novel shown is the one being written, else the shown
+	 * novel's first placed chapter, so something is always chosen there. An automatic choice only shows: `nav.chapter` and the storytelling side change only when the author clicks a chapter.
+	 */
+	get shownChapter(): string | null {
+		const book = this.shownBook;
+		const running = this.running;
+		if (!book || !running) return null;
+		if (this.nav.book === book && this.nav.chapter) return this.nav.chapter;
+		return getBookChapters(running.opened.project, book).ordered[0]?.name ?? null;
+	}
+
 	/** Sets the novel and chapter being written. The library's chosen novel is cleared only when the novel changes, not when another chapter of the same novel is chosen. */
 	private setWritten(book: string, chapter: string | null): void {
 		if (this.nav.book !== book) this.nav.libraryBook = null;
@@ -248,13 +273,13 @@ export class AppModel {
 		const names = [...chapters.ordered, ...chapters.unplaced].map((c) => c.name);
 		const remembered = this.nav.lastChapters[book];
 		const chapter = remembered && names.includes(remembered) ? remembered : (chapters.ordered[0]?.name ?? null);
+		this.nav.forgeTab = "novel"; // first: the series tab's context panel must not choose a novel again in between (Tweaks 2 §1.8)
+		this.nav.centreView = "overview";
 		if (chapter) await this.chooseChapter(book, chapter);
 		else {
 			this.setWritten(book, null);
 			this.touch("nav", "stats");
 		}
-		this.nav.forgeTab = "novel";
-		this.nav.centreView = "overview";
 		this.touch("nav", "face");
 	}
 

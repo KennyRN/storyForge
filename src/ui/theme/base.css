@@ -13,6 +13,7 @@
 	--card-text-inset: 16px; /* the one inset of a working card's text from the card's left edge, in px whatever the font or size: the plot note, the read-only chapter text, the synopsis and the series description (Tweaks 1, §1.7; 16 rather than 17 or 18 because the app's spacing runs in steps of 4; amends decision 139's figure) */
 	--shape-radius: 4px; --strip-h: 4px; /* the progress bar and structure strip as one shape: the outer corners' radius, and the strip's height (never under the radius or 4px; Tweaks 1 part 2, §3.4) */
 	--codex-strip-w: 38px; /* the Codex strip's width: 8px of padding and a 30px button. The card begins --space-2 after it, and the chapter selector's text sits on the card's left edge (Tweaks 1 part 2, §6.2; decision 93's 8px is measured from the strip) */
+	--banner-h: 30px; /* the archived banner's height, and the blank strip's (Tweaks 2 §1.4) */
 	--label-gap: 8px; /* label to value, in every label-and-value row (Tweaks 1 part 2, §3.3; the figure the context panel's PoV and Location rows had) */
 	--z-float: 50; /* an open list or floating menu that isn't fixed to the window sits above everything on the page (Tweaks 1, §1.5); the fixed ones (menus, tooltips, dialogs, notices) are 800 and up */
 	--gap: 28px; /* the one gap between boxes (Brief 19 §3): the window's sides, between panels (half on each side of a panel's edge), above and below; it never follows a panel's width */
@@ -341,8 +342,21 @@ input[aria-invalid="true"] {
 .sf-slot--library {
 	height: 100%;
 	box-sizing: border-box;
-	padding: 0 var(--half-gap) 12px; /* the card starts at the title band's foot, 28px from the window's top */
+	padding: max(0px, calc(var(--tabs-top, var(--band-h)) - var(--band-h))) var(--half-gap) 12px; /* the library Codex and Archive pages start at the tabs' squares' top (Tweaks 2 §1.2, §1.4; amends decision 145's 28px here); the storytelling side keeps 28px */
 	background: var(--purpose-panel-bg);
+}
+/* With nothing chosen the page is the empty card (Tweaks 2 §1.4, §1.5); on the Archive tab the archived banner's strip is in place but blank: the tint only, no text, no icon, no edge.
+   It is drawn by the page's own pseudo-element, so it is never in the accessibility tree; choosing an item fills the real banner in, the same height (--banner-h). */
+.sf-slot--library:empty::before {
+	content: "";
+	display: block;
+	height: 100%;
+	box-sizing: border-box;
+	background: var(--purpose-editor-bg);
+	border-radius: 10px;
+}
+.sf-slot--library[aria-label="Archived item"]:empty::before {
+	background: linear-gradient(var(--purpose-notice-warning-fill), var(--purpose-notice-warning-fill)) top / 100% var(--banner-h) no-repeat, var(--purpose-editor-bg);
 }
 .sf-slot--library > .sf-editor-pane {
 	background: var(--purpose-editor-bg);
@@ -400,6 +414,7 @@ input[aria-invalid="true"] {
 /* The bottom row: always there, with the special-characters button at its right (docs/typing-aids.md §7). */
 .sf-context-row {
 	flex: none;
+	margin-top: auto; /* at the panel's foot whether or not anything else is in the panel (Tweaks 2 §1.3) */
 	display: flex;
 	justify-content: flex-end;
 	align-items: center;

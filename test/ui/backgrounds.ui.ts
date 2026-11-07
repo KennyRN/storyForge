@@ -75,12 +75,13 @@ test.describe("the library side's backgrounds", () => {
 		expect((await style(page.locator(".sf-slot--centre"), ["border-top-left-radius"]))[0]).toBe("10px");
 	});
 
-	test("the library's Codex entry card starts at the title band's foot (28px: Brief 19 §3)", async ({ page }) => {
+	test("the library's Codex entry card starts at the tabs' squares' top (Tweaks 2 §1.2; it was the title band's foot, 28px, Brief 19 §3)", async ({ page }) => {
 		await flipFace(page);
 		await page.getByRole("tab", { name: "codex" }).click();
 		await page.locator(".sf-codex-file", { hasText: "Jane" }).first().click();
 		const top = await page.locator(".sf-slot--library:not([hidden]) .sf-editor-pane").evaluate((e) => e.getBoundingClientRect().top);
-		expect(top).toBeCloseTo(28, 0);
+		const squares = await page.evaluate(() => { const r = [...document.querySelectorAll(".sf-rail .sf-tab svg > path")].map((p) => p.getBoundingClientRect().top).sort((a, b) => a - b); return r[Math.floor(r.length / 2)]; });
+		expect(Math.abs(top - squares)).toBeLessThan(1);
 	});
 });
 

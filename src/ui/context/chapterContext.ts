@@ -117,8 +117,9 @@ export function mountChapterContext(host: HTMLElement, model: AppModel): () => v
 
 	const draw = async (): Promise<void> => {
 		const running = model.running;
-		const { book, chapter } = model.nav;
-		const path = running && showsChosenChapter(model) && book && chapter && model.shownBook === book ? libraryChapterPath(book, chapter) : null;
+		const book = model.shownBook;
+		const chapter = model.shownChapter; // an automatic choice (the first placed chapter) only shows; the chapter being written is unchanged (Tweaks 2 §1.8)
+		const path = running && showsChosenChapter(model) && book && chapter ? libraryChapterPath(book, chapter) : null;
 		const exists = !!(path && running!.opened.project.entry(path));
 		if (!path || !exists || !book || !chapter) {
 			// Not on the novel tab, or no chapter chosen: blank. A plot note being typed in is committed before it goes.

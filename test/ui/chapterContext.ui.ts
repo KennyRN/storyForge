@@ -90,9 +90,12 @@ test.describe("the context panel on the novel tab", () => {
 		await expect(page.locator(".sf-lore-host")).toBeVisible();
 	});
 
-	test("with no chapter chosen the panel is blank", async ({ page }) => {
+	test("with no chapter chosen the first placed chapter shows (Tweaks 2 §1.8), and the chapter being written is not changed", async ({ page }) => {
 		await page.evaluate(() => { const m = window.__app as any; m.nav.chapter = null; m.touch("nav"); });
-		await expect(panel(page).locator("*")).toHaveCount(0);
+		await expect(page.getByRole("textbox", { name: /^Plot note for / })).toBeVisible();
+		expect(await page.evaluate(() => (window.__app as any).nav.chapter)).toBeNull(); // an automatic choice only shows
+		await page.evaluate(() => (window.__app as any).chooseChapter("aaa", "ch-a2.md")); // a click still switches it
+		expect(await page.evaluate(() => (window.__app as any).nav.chapter)).toBe("ch-a2.md");
 	});
 
 	test("the chapter's text is read-only: not editable, selectable and copyable, and typing in it changes nothing", async ({ page }) => {

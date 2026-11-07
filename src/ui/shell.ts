@@ -1,5 +1,6 @@
 import { mountLibraryLayer, mountOverviewLayer } from "./overviews/layer";
 import { mountCharactersButton } from "./context/charactersButton";
+import { mountTabsLine } from "./tabsLine";
 import { mountChapterContext } from "./context/chapterContext";
 import { mountChapterLengthBar } from "./faces/chapterLengthBar";
 import { mountNovelContext } from "./context/novelContext";
@@ -93,6 +94,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	window.addEventListener("resize", apply);
 	const overviews = mountOverviewLayer(overview, centre, model);
 	const libraryLayer = mountLibraryLayer(library, libraryHosts, model);
+	const offTabsLine = mountTabsLine(model);
 	const offCharacters = mountCharactersButton(loreRow, model);
 	const offLengthBar = mountChapterLengthBar(lengthBar, model);
 	const offChapterContext = mountChapterContext(chapterHost, model);
@@ -123,6 +125,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 			offWidthsOnFlip();
 			window.removeEventListener("resize", apply);
 			offCharacters();
+			offTabsLine();
 			offChapterContext();
 			offLengthBar();
 			offNovelContext();

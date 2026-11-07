@@ -65,7 +65,7 @@ export function mountArchiveTab(host: HTMLElement, model: AppModel): () => void 
 						"div",
 						{ attrs: { role: "list" } },
 						...list.map((c) =>
-							row(formatSingleLine(c.chapterTitle), libraryChapterPath(book, c.filename), () => void model.editors?.open("archive", libraryChapterPath(book, c.filename)), () =>
+							row(formatSingleLine(c.chapterTitle), libraryChapterPath(book, c.filename), () => void model.toggleLibrarySlot("archive", libraryChapterPath(book, c.filename)), () =>
 								run("unarchive the chapter", async () => {
 									await unarchiveChapter(project, book, c.filename);
 									await recordChapterUnarchive(project, book, c.filename);
@@ -87,7 +87,7 @@ export function mountArchiveTab(host: HTMLElement, model: AppModel): () => void 
 						{ attrs: { role: "list" } },
 						...(codex.length === 0 ? [el("div", { class: "sf-muted sf-empty-inline", text: "Nothing archived matches the filter." })] : []),
 						...codex.map((c) =>
-							row(c.type === "folder" ? `${c.name} (folder with ${c.childCount ?? 0} children)` : c.name, c.key, () => c.type === "file" && void model.editors?.open("archive", c.key), () => run("unarchive the Codex item", () => unarchiveCodexItem(project, c.key))),
+							row(c.type === "folder" ? `${c.name} (folder with ${c.childCount ?? 0} children)` : c.name, c.key, () => c.type === "file" && void model.toggleLibrarySlot("archive", c.key), () => run("unarchive the Codex item", () => unarchiveCodexItem(project, c.key))),
 						),
 					),
 				),

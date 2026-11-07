@@ -41,7 +41,9 @@ export function mountCharactersButton(row: HTMLElement, model: AppModel): () => 
 
 	function draw(): void {
 		const running = model.running;
-		const shown = !!running && running.settings.values.typingSpecialCharactersButton && !model.nav.loreHidden;
+		// The Archive tab has no button: archived items are read-only, so it could never insert anything there (Tweaks 2 §1.3).
+		const onArchive = model.nav.face === "storyforge" && model.nav.forgeTab === "archive";
+		const shown = !!running && running.settings.values.typingSpecialCharactersButton && !model.nav.loreHidden && !onArchive;
 		corner.hidden = !shown;
 		if (!shown) {
 			open = false;

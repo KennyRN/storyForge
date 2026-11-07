@@ -9,7 +9,7 @@ import { writingPlaceGone } from "../editor/lastWriting";
 import { metaRow } from "../faces/lengthFields";
 import { el } from "../kit/dom";
 import { attachInlineRename } from "../kit/inlineRename";
-import { pencilIcon } from "../kit/statsIcons";
+import { navIcon } from "../kit/navIcons";
 import { attachTooltip } from "../kit/tooltip";
 import { menuPoint, showMenu } from "../kit/menu";
 import type { AppModel } from "../model";
@@ -63,7 +63,7 @@ export function mountNovelContext(host: HTMLElement, model: AppModel): () => voi
 			return y;
 		};
 		meta.style.marginTop = "0px";
-		meta.style.marginTop = `${Math.max(0, Math.round((baseline(central) - baseline(text)) * 100) / 100)}px`;
+		meta.style.marginTop = `${Math.max(0, Math.round((baseline(central) - baseline(text)) * 100) / 100)}px`; // the central title sits on the shared tabs line (`tabsLine.ts`), so level with it is on that line
 	});
 	const stack = (): void => {
 		const cover = host.querySelector<HTMLElement>(".sf-novel-ctx-head > .sf-cover");
@@ -74,7 +74,19 @@ export function mountNovelContext(host: HTMLElement, model: AppModel): () => voi
 		synopsis.style.marginTop = "0px";
 		const stacked = synopsis.getBoundingClientRect().left < cover.getBoundingClientRect().right;
 		host.dataset.synopsis = stacked ? "under" : "beside";
-		if (!stacked || !first || !overview) return;
+		if (!stacked) {
+			// Beside the cover its top is 12px below the default PoV text's baseline (Tweaks 2 §1.9; it was 12px below the PoV row's bottom).
+			const value = host.querySelector<HTMLElement>(".sf-novel-ctx-head > .sf-meta-row .sf-meta-value");
+			if (!value) return;
+			const probe = document.createElement("span");
+			probe.style.cssText = "display:inline-block;width:0;height:0;vertical-align:baseline";
+			value.append(probe);
+			const baseline = probe.getBoundingClientRect().bottom;
+			probe.remove();
+			synopsis.style.marginTop = `${Math.round((baseline + 12 - synopsis.getBoundingClientRect().top) * 100) / 100}px`;
+			return;
+		}
+		if (!first || !overview) return;
 		const want = first.getBoundingClientRect().top + overview.scrollTop - overview.getBoundingClientRect().top - (synopsis.getBoundingClientRect().top - overview.getBoundingClientRect().top);
 		synopsis.style.marginTop = `${Math.max(0, Math.round(want * 100) / 100)}px`;
 	};
@@ -118,9 +130,9 @@ export function mountNovelContext(host: HTMLElement, model: AppModel): () => voi
 				);
 			},
 		});
-		// "Write this novel" (route 2, §1.4): a hover icon beside the title, distinct from the title's own rename. It makes this novel the one being written.
-		const write = el("button", { class: "sf-hover-icon sf-novel-ctx-write", attrs: { type: "button", "aria-label": `Write this novel: ${title}` }, on: { click: () => void model.writeNovel(book) } }, pencilIcon());
-		attachTooltip(write, "Write this novel");
+		// "tell this story" (route 2, §1.4; Kenny's storytelling tab icon since 1.12.2, decision 144 ended): a hover icon beside the title, distinct from the title's own rename. It makes this novel the one being written.
+		const write = el("button", { class: "sf-hover-icon sf-novel-ctx-write", attrs: { type: "button", "aria-label": `tell this story: ${title}` }, on: { click: () => void model.writeNovel(book) } }, navIcon("storytelling", "16px"));
+		attachTooltip(write, "tell this story");
 		// The title and default PoV sit above, 12px clear of the cover and synopsis (the column's gap); the synopsis is beside the cover, or under it when the panel is too narrow (flex wrap).
 		const meta = el("div", { class: "sf-novel-ctx-meta" }, el("div", { class: "sf-novel-ctx-titlerow" }, titleRow, write));
 		const synopsis = el("div", { class: "sf-ctx-card sf-ctx-synopsis" }, synopsisField(model, bin, book, title));
@@ -154,6 +166,11 @@ export function mountNovelContext(host: HTMLElement, model: AppModel): () => voi
 	const draw = async (): Promise<void> => {
 		const running = model.running;
 		const book = model.nav.libraryBook;
+		if (running && !book && showsChosenNovel(model)) {
+			// Something is always chosen on the series page (Tweaks 2 §1.8): with no novel chosen, the first placed one is. The novel being written is untouched.
+			const first = getSeriesBooks(running.opened.project).ordered[0]?.name;
+			if (first) return void model.chooseNovel(first);
+		}
 		const exists = !!(running && book && showsChosenNovel(model) && running.opened.project.entry(bookFilePath(book)));
 		if (!exists || !book) {
 			// Not on the series tab, or none chosen: blank. A synopsis being typed in is committed before it goes.

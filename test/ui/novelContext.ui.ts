@@ -48,10 +48,11 @@ const read = (page: Page, f: string) => page.evaluate((x) => window.__preview.re
 const choose = (page: Page, name: string) => page.locator(".sf-forge-pane .sf-row", { hasText: name }).click();
 
 test.describe("the series tab's context panel", () => {
-	test("is blank with no novel chosen, and shows the chosen novel: cover, title, default PoV, synopsis, progress and unlabelled chapter bars", async ({ page }) => {
+	test("with no novel chosen the first placed one is chosen (Tweaks 2 §1.8) and the novel being written is untouched; it shows cover, title, default PoV, synopsis, progress and unlabelled chapter bars", async ({ page }) => {
 		await openProject(page);
 		await expect(panel(page)).toBeVisible();
-		await expect(panel(page)).toBeEmpty();
+		await expect(panel(page).locator(".sf-novel-ctx-title")).toContainText("Book 1"); // chosen automatically
+		expect(await page.evaluate(() => (window.__app as any).nav.book)).toBe("aaa");
 		await choose(page, "Book 1");
 		await expect(panel(page).locator(".sf-cover")).toBeVisible();
 		await expect(panel(page).locator(".sf-novel-ctx-title")).toContainText("Book 1");

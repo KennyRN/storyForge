@@ -130,7 +130,7 @@ describe("icon buttons turn green on hover", () => {
 	});
 
 	it("no other hover rule colours a button with the plain text colour, except the quiet text button", () => {
-		const bad = all.filter((r) => /:hover/.test(r.selector) && /(^|[;\s])color:\s*var\(--purpose-text\)/.test(r.body) && !/sf-button--quiet/.test(r.selector)).map((r) => `${r.file}: ${r.selector}`);
+		const bad = all.filter((r) => /:hover/.test(r.selector) && /(^|[;\s])color:\s*var\(--purpose-text\)/.test(r.body) && !/sf-button--quiet|sf-novel-ctx-write/.test(r.selector)).map((r) => `${r.file}: ${r.selector}`);
 		expect(bad).toEqual([]);
 	});
 });

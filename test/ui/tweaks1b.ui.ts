@@ -137,7 +137,7 @@ test.describe("§4 the series page", () => {
 		expect(pov.x).toBeGreaterThanOrEqual(c.x + c.width); // the default PoV is beside the cover, to its right
 		expect(Math.abs(pov.y - c.y)).toBeLessThan(6); // level with the cover's top (the button's own padding aside)
 		const syn = await box(page.locator(".sf-novel-ctx-head > .sf-ctx-synopsis"));
-		expect(Math.round(syn.y - (pov.y + pov.height))).toBe(12); // the synopsis, beside the cover, 12px under the PoV
+		expect(syn.y).toBeGreaterThan(pov.y); // the synopsis, beside the cover, under the PoV (its exact place, 12px below the text's baseline, is in tweaks2.ui.ts)
 		expect(c.y).toBeGreaterThan(title.y + title.height);
 	});
 
@@ -307,15 +307,16 @@ test.describe("§6 the storytelling side", () => {
 		await expect(page.locator("button.sf-nav-novel")).toHaveCount(0);
 	});
 
-	test("§6.2 the chapter selector's text is on the Codex card's outer left edge and the fill sticks out to its left, from one strip width", async ({ page }) => {
+	test("§6.2 / Tweaks 2 §1.6 the chapter selector's fill is the Codex card's edge and its text is on the entries' text, from one strip width", async ({ page }) => {
 		await open(page);
 		const card = await box(page.locator(".sf-left[data-face='storytelling'] .sf-codex-tree"));
 		const text = await box(page.locator(".sf-select--chapters .sf-select-current-title"));
 		const fill = await box(page.locator(".sf-select--chapters .sf-select-current"));
 		const strip = await box(page.locator(".sf-left[data-face='storytelling'] .sf-codex-strip"));
 		const panel = await box(page.locator(".sf-left"));
-		expect(Math.abs(text.x - card.x)).toBeLessThan(0.5);
-		expect(fill.x).toBeLessThan(card.x);
+		const entry = await page.locator(".sf-left .sf-codex-name").first().evaluate((e) => { const r = document.createRange(); r.selectNodeContents(e); return r.getBoundingClientRect().left; });
+		expect(Math.abs(text.x - entry)).toBeLessThan(0.5); // text on text
+		expect(Math.abs(fill.x - card.x)).toBeLessThan(0.5); // box on box
 		expect(fill.x).toBeGreaterThanOrEqual(panel.x);
 		expect(Math.round(strip.width)).toBe(38);
 		expect(Math.round(card.x - (strip.x + strip.width))).toBe(8); // decision 93's 8px is the card's distance from the strip; from the panel's edge it is 46
@@ -323,7 +324,7 @@ test.describe("§6 the storytelling side", () => {
 		await page.addStyleTag({ content: ":root { --codex-strip-w: 50px; }" });
 		const card2 = await box(page.locator(".sf-left[data-face='storytelling'] .sf-codex-tree"));
 		const text2 = await box(page.locator(".sf-select--chapters .sf-select-current-title"));
-		expect(Math.abs(text2.x - card2.x)).toBeLessThan(0.5);
+		expect(Math.abs(text2.x - card2.x - 14)).toBeLessThan(0.5);
 		expect(card2.x).toBeGreaterThan(card.x + 10);
 	});
 });

@@ -23,7 +23,7 @@ let targetFolder: string | null = null;
  */
 export function mountCodexTree(host: HTMLElement, model: AppModel, options: { header: boolean; opensIn: "context" | "workspace" }): () => void {
 	/** Storytelling: an entry opens in the context panel (a second click closes it). Library: it opens in the workspace. */
-	const openEntry = (path: string): void => void (options.opensIn === "workspace" ? model.editors?.open("codex", path) : model.toggleLore(path));
+	const openEntry = (path: string): void => void (options.opensIn === "workspace" ? model.toggleLibrarySlot("codex", path) : model.toggleLore(path));
 	const tree = el("div", { class: "sf-codex-tree sf-scroll", attrs: { role: "tree", "aria-label": "Codex" } });
 	/** This list's own filter by type (decision 107): session only, never written. */
 	const filter = () => filterFor(model.running!, options.opensIn === "workspace" ? "codex-library" : "codex-storytelling");

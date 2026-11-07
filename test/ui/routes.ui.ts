@@ -73,11 +73,11 @@ test.describe("the novel tab follows the series tab's choice", () => {
 		await page.locator(".sf-forge-pane .sf-row", { hasText: "Book 2" }).click();
 	});
 
-	test("it shows the chosen novel; until a chapter is chosen the context panel is empty and no chapter is highlighted", async ({ page }) => {
+	test("it shows the chosen novel; until a chapter is clicked its first placed chapter shows (Tweaks 2 §1.8) and what is being written is unchanged", async ({ page }) => {
 		await tab(page, "novel").click();
 		await expect(selectorButton(page)).toContainText("Book 2");
-		await expect(page.locator(".sf-chapter-context")).toBeEmpty();
-		await expect(page.locator(".sf-forge-pane .sf-row.is-selected")).toHaveCount(0);
+		await expect(page.locator(".sf-chapter-context .sf-ctx-plot")).toBeVisible();
+		await expect(page.locator(".sf-forge-pane .sf-row.is-selected")).toHaveCount(1);
 		expect((await nav(page)).book).toBe("aaa");
 	});
 
@@ -106,7 +106,7 @@ test.describe("the novel tab follows the series tab's choice", () => {
 	});
 });
 
-test.describe("Write this novel", () => {
+test.describe("tell this story", () => {
 	test.beforeEach(async ({ page }) => {
 		await openProject(page);
 		await flipFace(page);
@@ -117,7 +117,7 @@ test.describe("Write this novel", () => {
 		await page.evaluate(() => window.__app.chooseChapter("aaa", "ch-a2.md"));
 		await page.evaluate(() => window.__app.chooseChapter("bbb", "ch-b1.md"));
 		await page.evaluate(() => window.__app.chooseNovel("aaa"));
-		await page.getByRole("button", { name: /^Write this novel/ }).click();
+		await page.getByRole("button", { name: /^tell this story/ }).click();
 		await expect(tab(page, "novel")).toHaveAttribute("aria-selected", "true");
 		await expect.poll(() => nav(page)).toEqual({ book: "aaa", chapter: "ch-a2.md", libraryBook: null });
 		await expect(page.locator(".sf-chapter-context")).not.toBeEmpty();
@@ -125,7 +125,7 @@ test.describe("Write this novel", () => {
 
 	test("with no remembered chapter, or one that no longer exists, it reopens the novel's first placed chapter", async ({ page }) => {
 		await page.evaluate(() => { window.__app.nav.lastChapters.bbb = "gone.md"; window.__app.chooseNovel("bbb"); });
-		await page.getByRole("button", { name: /^Write this novel/ }).click();
+		await page.getByRole("button", { name: /^tell this story/ }).click();
 		await expect.poll(() => nav(page)).toMatchObject({ book: "bbb", chapter: "ch-b1.md" });
 	});
 
@@ -137,7 +137,7 @@ test.describe("Write this novel", () => {
 		await page.keyboard.type(" WRITENOVELTEXT");
 		await flipFace(page);
 		await page.evaluate(() => window.__app.chooseNovel("bbb"));
-		await page.getByRole("button", { name: /^Write this novel/ }).click();
+		await page.getByRole("button", { name: /^tell this story/ }).click();
 		await expect.poll(() => read(page, "_story-library/aaa/ch-a1.md")).toContain("WRITENOVELTEXT");
 	});
 });

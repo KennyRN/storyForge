@@ -154,11 +154,11 @@
 	color: var(--purpose-raised-bg);
 }
 .sf-select--chapters {
-	/* The text's left is the Codex card's (the strip's width plus 8px, 30px past the lines' own margin); the fill sticks out to its left by the padding, its right is the card's (12px at least from the panel's edge). */
+	/* Box on box, text on text (Tweaks 2 §1.6): the fill is the Codex card's width, and the chapter name's first letter is where the entries' first letters are (the card's 6px plus a row's 8px). */
 	--nav-radius: 10px;
 	--nav-pad: 14px; /* the list's 6px plus a row's 8px: the closed title sits where the list's text does */
 	position: relative;
-	margin: 0 var(--half-gap) 0 calc(var(--codex-strip-w) + var(--space-2) - var(--nav-pad)); /* the selector's text lines up with the Codex card's left edge (Tweaks 1, §1.3); the fill sticks out to its left */
+	margin: 0 var(--half-gap) 0 calc(var(--codex-strip-w) + var(--space-2)); /* box on box: the fill starts at the Codex card's left edge, and the text, --nav-pad in, is where the entries' text is (Tweaks 2 §1.6) */ /* the selector's text lines up with the Codex card's left edge (Tweaks 1, §1.3); the fill sticks out to its left */
 }
 /* Open, the selector's fill and the dropdown are one joined piece, so the one shadow is drawn round the pair (a filter on both together), with no line across the join. */
 .sf-select:has(.sf-select-current[aria-expanded="true"]) {

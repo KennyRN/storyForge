@@ -215,7 +215,7 @@ test.describe("the library", () => {
 			await page.evaluate(() => window.__app.openChapter("aaa", "ch-a1.md"));
 			expect(await nav()).toEqual({ book: "aaa", libraryBook: "bbb" });
 			await page.evaluate(() => window.__app.chooseChapter("bbb", "ch-b1.md")); // the novel being written changes
-			expect(await nav()).toEqual({ book: "bbb", libraryBook: null });
+			expect(await nav()).toEqual({ book: "bbb", libraryBook: "aaa" }); // cleared, then the series tab chose its first placed novel (Tweaks 2 §1.8)
 		});
 
 		test("a novel is renamed inline and a new one is created among the unplaced", async ({ page }) => {

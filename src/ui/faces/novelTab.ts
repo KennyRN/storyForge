@@ -51,7 +51,7 @@ export function mountNovelTab(host: HTMLElement, model: AppModel): () => void {
 		const run = (what: string, action: () => Promise<unknown>): Promise<void> => model.guard(async () => (await action(), model.touch("library", "nav")), what).then(() => undefined);
 
 		const row = (name: string, index: number): HTMLElement => {
-			const r = listRow(name, written && model.nav.chapter === name); // the chosen chapter is always marked (the "Highlight the active chapter" setting was retired in 1.7.0; a stored key is never read)
+			const r = listRow(name, model.shownChapter === name); // the chosen chapter is always marked (the "Highlight the active chapter" setting was retired in 1.7.0; a stored key is never read)
 			const label = rowTitle(r, numbered[index]);
 			r.addEventListener("click", (e) => {
 				if ((e.target as HTMLElement).closest(".sf-drag-handle, input")) return;
