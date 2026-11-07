@@ -106,7 +106,8 @@ const CASES = [
 	["a Text Replacement (omw) is not expanded, and a Codex name in lower case is corrected with its possessive", "omw jane's boat and sam.", "omw Jane’s boat and Sam."],
 	["an elision, a quoted word and a decade", "'tis 'em' 90's", "’tis ‘em’ 90’s"],
 	// Protected text (Brief 20): the markdown parse tree's, with the unclosed-line rule beside it (from an unclosed backtick, link target, address or <!-- to the caret). `[[x]]` and `%%` are plain text now.
-	["nothing inside code, a link target, a web address or a comment", "`don't` [t](u's) https://a.b/it's <!-- 'x' -- y --> end", "`don't` [t](u's) https://a.b/it's <!-- 'x' -- y --> end"],
+	["nothing inside code, a link target, a web address or a comment", "`don't` [t](u's) https://a.b/it's <!-- 'x' -- y --> end", "`don't` [t](u's) https://a.b/it's <!-- 'x' -- y --> end", { whenLeft: "don't t https://a.b/it's <!-- 'x' -- y --> end" }],
+	["a comment that starts its line is the tree's", "<!-- it's 'x' -- y -->", "<!-- it's 'x' -- y -->", { ownLine: true }],
 ];
 
 const dir = realpathSync(mkdtempSync(join(tmpdir(), "sf-typing-")));
@@ -136,17 +137,23 @@ try {
 	await sleep(400);
 
 	let expectedSoFar = "";
+	let previous = null;
 	for (const [what, text, expected, options] of CASES) {
 		if (options?.ownLine) {
 			typing.key("key code 36"); // Return: a comment is a comment only at the start of a line
 			expectedSoFar += "\n";
 		}
+		// The accessibility value is the dressed text: once the caret leaves a line the dressing hides its markers (the backticks, `[` and `](…)` of code and a link), so
+		// what the editor then holds is what `whenLeft` says. The text on disk is unchanged (test/ui/gfm.ui.ts proves it); this is only how the window shows it.
+		if (options?.ownLine && previous?.whenLeft) expectedSoFar = expectedSoFar.replace(previous.expected + " \n", previous.whenLeft + " \n");
 		sendKeys(options?.ownLine ? text : `${text} `);
 		if (options?.ownLine) typing.key("key code 36");
 		await sleep(500);
 		expectedSoFar += options?.ownLine ? `${expected}\n` : `${expected} `;
+		previous = { expected, whenLeft: options?.whenLeft };
 		if (process.env.TYPING_TRACE) console.log(`  after "${what.slice(0, 40)}": ${typing.focusNow()}`);
 		const after = valueOf("AXTextArea", "Text") ?? "";
+		if (process.env.TYPING_DEBUG) console.log(`  after "${what.slice(0, 30)}": ${JSON.stringify(after.slice(0, expectedSoFar.length + 20))}\n     expected ${JSON.stringify(expectedSoFar)}`);
 		if (!after.startsWith(expectedSoFar)) problems.push(`${what}: typed ${JSON.stringify(text)}, expected ${JSON.stringify(expected)}, the editor holds ${JSON.stringify(after.slice(expectedSoFar.length - expected.length - 1, expectedSoFar.length))}`);
 	}
 
