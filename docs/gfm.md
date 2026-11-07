@@ -151,3 +151,14 @@ Files that hold links: chapters (`_story-library/<book>/<ch>.md`), Codex notes (
 
 ### 8.7 The mock-up, fixed
 Section 6 is redrawn at 2x with the rail's own end marked by a tick: at 150% the rail ends two thirds along and the bar runs on to the row's end; beyond 300% the rail is a third and the bar has the cut V. The earlier version hid the rail behind the bar.
+
+## 9. As built, build stage 1 (the dressing)
+
+- **The tree:** `core/markdownTree.ts` (`@lezer/markdown` with GFM, the footnote extension, indented code removed per decision 22); `ui/editor/dressingPlan.ts` plans the decorations from it (DOM-free, tested), `dressingView.ts` draws them and dispatches no change.
+- **Alerts:** GitHub's rule as probed (§ 8.1), a display rule over a top-level block quote; the label and icon replace `[!TYPE]` away from the caret's line and the marker shows, muted, on it. TIP is `square-rounded-check` (the same shape as the success notice's) and IMPORTANT `square-rounded-arrow-right`, both Kenny's.
+- **Bold italic** is one span on the inner text with both classes, so its colour setting still applies (`***x***`, `_**x**_`).
+- **Retired:** `==highlight==` (dressing, `highlight-colour` setting, its purposes and CSS, its rows in Settings); the stored key is never read and stays in `project.md` through every write (`test/ui/gfm.ui.ts`, `settings.test.ts`).
+- **Proof that the dressing changes no saved byte:** `test/ui/gfm.ui.ts` types a document holding every element into the chapter, a Codex note, the plot note, the synopsis and the series description, walks the caret over every line, and checks the saved file holds exactly what was typed; a chapter holding every element is opened and nothing is written.
+- **Found:** the typing aids turn the `--` in a typed `<!--` into a dash, because protected text still reads lines, not the tree. Fixed in stage 2; the test types the comment line then.
+- **Named type-style exceptions added** (`typeStyles.test.ts`): `.sf-code`, `.sf-codeblock` and `.sf-footnote-def` (font size, a fraction of the prose size), `.sf-table-head` and `.sf-alert-label` (font weight); and the embedded monospace face `--font-code` (Courier Prime).
+- **Pictures from the built app** (`scripts/gfm-shots.mjs`, a throwaway copy with a temporary HOME; `screencapture -l` of its window only; the one key sent, Return on a focused Codex row, goes through the typing guard): `docs/gfm-mockups/chapter.png` and `codex-note.png` (the chapter on the left with every dressed element, a Codex note on the right with the five alerts, a `[!SECRET]` plain quote, and `==x==` and `[[x]]` as plain text).
