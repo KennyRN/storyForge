@@ -21,7 +21,7 @@ describe("fixtures", () => {
 		expect(index.frontmatter("Codex/Zoë Åberg — 日本語.md".normalize("NFC"))).toEqual({ aliases: ["Zoe"] });
 		expect(index.get("elsewhere/readme.md")?.frontmatterState).toBeUndefined(); // outside storyForge's folders: not read
 		expect(index.get("_story-library/ccc")?.kind).toBe("folder");
-		expect(index.wordCount("_story-library/aaa/ch-a2.md")).toBe(10); // %%comment%% stripped
+		expect(index.wordCount("_story-library/aaa/ch-a2.md")).toBe(10); // <!--comment--> stripped
 	});
 
 	it("the empty fixture has no visible entries", async () => {

@@ -121,7 +121,7 @@ describe("what counts", () => {
 	it("uses the app's one word counter, comments included", () => {
 		const t = tracker();
 		const a = author(t, CH, "one two");
-		a.do(T0, "one two %% a hidden comment of seven words here %% three", "type");
+		a.do(T0, "one two <!-- a hidden comment of seven words here --> three", "type");
 		expect(t.finish()!.net).toBe(1);
 	});
 });

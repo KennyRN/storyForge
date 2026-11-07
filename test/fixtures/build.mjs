@@ -244,7 +244,7 @@ const full = {
 	"_story-library/novel-bbb.md": novelBbb,
 	"_story-library/novel-ccc.md": novelCcc,
 	"_story-library/aaa/ch-a1.md": prose(2),
-	"_story-library/aaa/ch-a2.md": lf(["Opening line of a second chapter %%a hidden comment%% continues here.", "", "It ends.",]),
+	"_story-library/aaa/ch-a2.md": lf(["Opening line of a second chapter <!--a hidden comment--> continues here.", "", "It ends.",]),
 	"_story-library/aaa/ch-a3.md": prose(1),
 	"_story-library/aaa/ch-a4.md": prose(3),
 	"_story-library/aaa/ch-a5.md": "A chapter with no trailing newline at the end of the file",

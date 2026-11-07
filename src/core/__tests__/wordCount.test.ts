@@ -12,8 +12,8 @@ describe("stripForCounting", () => {
 		expect(stripForCounting(raw)).toBe(raw);
 	});
 
-	it("strips %% ... %% comments, including multi-line ones", () => {
-		const raw = "Before. %% cut this\nand this %% After.";
+	it("strips <!-- ... --> comments, including multi-line ones", () => {
+		const raw = "Before. <!-- cut this\nand this --> After.";
 		expect(stripForCounting(raw)).toBe("Before.  After.");
 	});
 
@@ -34,7 +34,7 @@ describe("countWords", () => {
 	});
 
 	it("ignores stripped comments when counting", () => {
-		expect(countWords("one %% two three %% four")).toBe(2);
+		expect(countWords("one <!-- two three --> four")).toBe(2);
 	});
 });
 
@@ -86,7 +86,7 @@ describe("dashes and ellipses (decision 49)", () => {
 	for (const [text, words] of CASES) it(`${JSON.stringify(text)} is ${words}`, () => expect(countWords(text)).toBe(words));
 
 	it("a comment's dashes are not counted, and a line's count adds up", () => {
-		expect(countWords("one %% a—b—c %% two—three")).toBe(3);
+		expect(countWords("one <!-- a—b—c --> two—three")).toBe(3);
 		expect(countWords("one—two\n\nthree – four\n")).toBe(4);
 	});
 });

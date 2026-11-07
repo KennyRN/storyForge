@@ -1,5 +1,5 @@
 /**
- * Strips YAML frontmatter and %% ... %% comments from raw markdown, then counts words (decision 49, 0.13.1):
+ * Strips YAML frontmatter and <!-- ... --> comments from raw markdown, then counts words (decision 49, 0.13.1):
  * runs of text between spaces, where an em dash, an en dash, two or more hyphens and an ellipsis (`…` or three or more
  * dots) act like a space; a single hyphen joins (`well-known` is one word); a run with no letter or digit is not a word
  * (a spaced dash, a lone ellipsis, a bare `#`); and a dash between two digits joins (`1990–95` is one word, as it always
@@ -16,7 +16,7 @@ export function stripForCounting(raw: string): string {
 		}
 	}
 
-	text = text.replace(/%%[\s\S]*?%%/g, "");
+	text = text.replace(/<!--[\s\S]*?-->/g, "");
 
 	return text;
 }
