@@ -71,3 +71,14 @@ describe("formatSingleLine", () => {
 		expect(formatSingleLine("// Subtitle only")).toBe("Subtitle only");
 	});
 });
+
+describe("withoutUnresolvedHash", () => {
+	it("drops the \"Book #:\" part of a title whose # has no number, and leaves every other title alone", async () => {
+		const { withoutUnresolvedHash } = await import("../titleNumbering");
+		expect(withoutUnresolvedHash("Book #: The Harbour Wakes")).toBe("The Harbour Wakes");
+		expect(withoutUnresolvedHash("Book # - Dawn")).toBe("Dawn");
+		expect(withoutUnresolvedHash("Book #")).toBe("Book");
+		expect(withoutUnresolvedHash("The Harbour Wakes")).toBe("The Harbour Wakes");
+		expect(withoutUnresolvedHash("Book 1: The Harbour Wakes")).toBe("Book 1: The Harbour Wakes");
+	});
+});

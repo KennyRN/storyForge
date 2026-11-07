@@ -94,16 +94,47 @@ test.describe("§1.5 clicking the chosen item again deselects it", () => {
 		await row.focus();
 		await page.keyboard.press("Enter"); // by key
 		await expect.poll(() => page.evaluate(() => (window.__app as any).editors.pathIn("codex"))).toBeNull();
+		await row.click();
+		await expect.poll(() => page.evaluate(() => (window.__app as any).editors.pathIn("codex"))).toBe("Codex/NoNewline.md");
+		await row.focus();
+		await page.keyboard.press("Space"); // and Space
+		await expect.poll(() => page.evaluate(() => (window.__app as any).editors.pathIn("codex"))).toBeNull();
 	});
-	test("on the Archive tab the same toggle goes back to the ready-drawn page", async ({ page }) => {
+	test("on the Archive tab the same toggle goes back to the ready-drawn page, by click, Return and Space", async ({ page }) => {
 		await open(page, "archive");
-		const none = await page.locator(".sf-archive-open").count();
-		test.skip(none === 0, "the fixture has nothing archived");
-		const item = page.locator(".sf-archive-open").first();
+		const item = page.locator(".sf-archive-open", { hasText: "Retired" });
+		const shown = () => page.evaluate(() => (window.__app as any).editors.pathIn("archive"));
 		await item.click();
-		await expect.poll(() => page.evaluate(() => (window.__app as any).editors.pathIn("archive"))).not.toBeNull();
+		await expect.poll(shown).toBe("Codex/Retired.md");
+		await item.click(); // click
+		await expect.poll(shown).toBeNull();
 		await item.click();
-		await expect.poll(() => page.evaluate(() => (window.__app as any).editors.pathIn("archive"))).toBeNull();
+		await expect.poll(shown).toBe("Codex/Retired.md");
+		await item.focus();
+		await page.keyboard.press("Enter"); // Return
+		await expect.poll(shown).toBeNull();
+		await item.click();
+		await expect.poll(shown).toBe("Codex/Retired.md");
+		await item.focus();
+		await page.keyboard.press("Space"); // Space
+		await expect.poll(shown).toBeNull();
+		const blank = await page.evaluate(() => getComputedStyle(document.querySelector('.sf-slot--library[aria-label="Archived item"]')!, "::before").backgroundImage);
+		expect(blank).toContain("linear-gradient");
+	});
+	test("the filled-in banner is exactly the blank strip's height", async ({ page }) => {
+		await open(page, "archive");
+		await page.locator(".sf-archive-open", { hasText: "Retired" }).click();
+		const banner = page.locator('.sf-slot--library[aria-label="Archived item"] .sf-editor-banner');
+		await expect(banner).toBeVisible();
+		const strip = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--banner-h")));
+		const h = await banner.evaluate((e) => e.getBoundingClientRect().height);
+		expect(h).toBe(strip);
+	});
+	test("the Archive list's novel heading is numbered as everywhere else", async ({ page }) => {
+		await open(page, "archive");
+		const heading = page.locator(".sf-archive-section h3", { hasText: "Harbour Wakes" });
+		await expect(heading).toHaveText("Book 1: The Harbour Wakes");
+		await expect(page.locator(".sf-archive-section h3")).not.toContainText("#");
 	});
 });
 

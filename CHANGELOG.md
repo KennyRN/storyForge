@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.12.2: Tweaks 2 (the Codex and Archive tabs)
+
+- Changed: **the Codex and Archive pages line up with the tabs:** they start at the top of the tabs' drawn squares, measured once and shared with the titles' baseline.
+- Fixed: **the special-characters button stays in the bottom corner** of the context panel on the Codex tab, and it is gone from the Archive tab (archived items are read-only).
+- Changed: **the Archive page is ready-drawn:** with nothing chosen it is the empty card with the archived banner's strip in place, blank; choosing an item fills the banner in at the same height. The Codex tab's empty page is the empty card too.
+- Changed: **clicking a chosen Codex entry or archived item again deselects it** (Return and Space do the same); unsaved text is saved first.
+- Fixed: **the Archive list's novel heading is numbered** like every other place ("Book 1: The Harbour Wakes", not "Book #: …"); a book with no number to take shows its title without the "Book #:" part.
+- Changed: **the chapter selector lines up with the Codex index:** its fill is the card's width and the chapter's name starts where the entries' names do.
+- Changed: **"tell this story"** (was "Write this novel"), lowercase, with the storytelling tab icon in place of the pencil.
+- Changed: **something is always chosen:** the series page chooses its first placed novel and the novel page shows its first placed chapter when none is chosen (browsing never changes what is being written).
+- Changed: **the series panel:** the synopsis sits 12px below the default PoV's baseline beside the cover, and the chapter bars start 12px under the progress bar.
+
 ## 1.12.1: Tweaks 1 (the novel page, the series page, the selectors)
 
 - Changed: **titles sit on the tabs' line** on the novel and series pages (the baseline is level with the bottom of the tabs' drawn boxes), 12px above what is beneath; the series page's context panel puts the novel's title on the same line, with the default PoV beside the cover, level with its top, and the synopsis 12px under it (or under the cover when the panel is narrow).

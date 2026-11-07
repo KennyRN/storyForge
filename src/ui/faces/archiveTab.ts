@@ -2,7 +2,8 @@ import { getArchivedChapters, unarchiveChapter } from "../../core/book";
 import { getArchivedCodexItems, unarchiveCodexItem } from "../../core/codex";
 import { recordChapterUnarchive } from "../../core/history";
 import { libraryChapterPath } from "../../core/paths";
-import { formatSingleLine } from "../../core/titleNumbering";
+import { numberedBookTitle } from "../../core/series";
+import { formatSingleLine, withoutUnresolvedHash } from "../../core/titleNumbering";
 import { unarchiveIcon } from "../kit/unarchiveIcon";
 import { button } from "../kit/button";
 import { el, fill } from "../kit/dom";
@@ -56,11 +57,13 @@ export function mountArchiveTab(host: HTMLElement, model: AppModel): () => void 
 
 		const sections: HTMLElement[] = [];
 		for (const [book, list] of byBook) {
+			// The novel's title is numbered as everywhere else (the project's numbering style); a book with no number to take shows its title without the "Book #:" part.
+			const bookTitle = withoutUnresolvedHash(numberedBookTitle(project, book, undefined, running.settings.values.seriesNumberingStyle));
 			sections.push(
 				el(
 					"section",
-					{ class: "sf-archive-section", attrs: { "aria-label": `Archived chapters of ${list[0].bookTitle}` } },
-					el("h3", { class: "sf-zone-label", text: formatSingleLine(list[0].bookTitle) }),
+					{ class: "sf-archive-section", attrs: { "aria-label": `Archived chapters of ${formatSingleLine(bookTitle)}` } },
+					el("h3", { class: "sf-zone-label", text: formatSingleLine(bookTitle) }),
 					el(
 						"div",
 						{ attrs: { role: "list" } },

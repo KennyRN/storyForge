@@ -18,6 +18,16 @@ export function applyHashNumbering(titles: string[], style: NumberingStyle = "ar
 	});
 }
 
+/**
+ * A title whose "#" has no number to take (the book is not in the series' sequence, so the counter never reached it) is shown without its "Book #:" part:
+ * "Book #: The Harbour Wakes" reads "The Harbour Wakes". A title with no "#" is unchanged.
+ */
+export function withoutUnresolvedHash(title: string): string {
+	if (!title.includes("#")) return title;
+	const rest = title.replace(/^\s*[^#:]*#\s*[:.\-–—]*\s*/, "");
+	return rest.trim() ? rest : title.split("#").join("").trim();
+}
+
 export interface SplitTitle {
 	title: string;
 	subtitle: string | null;
