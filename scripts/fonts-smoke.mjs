@@ -190,8 +190,8 @@ try {
 	check(big > drawn["Sofia Sans"] * 1.3, "a size of 1.5 rem draws larger than 1 rem");
 	// The two base fonts (Brief 18). The Codex list is a Navigator part that can follow the Interface font; its widths are what is read. (The start screen
 	// draws the defaults whatever project.md holds, and a card's text is not exposed through accessibility, so it can't be the probe.)
-	const follows = await measure("the Codex list follows the Interface font (SN Pro)", { font: "base", weight: 400, size: 1 });
-	check(follows === drawn["SN Pro"], "a Codex list that follows the Interface font draws in it (SN Pro, the default)");
+	const follows = await measure("the Codex list follows the Interface font (Atkinson Hyperlegible Next, the default since 1.11.1)", { font: "base", weight: 400, size: 1 });
+	check(follows === drawn["Atkinson Hyperlegible Next"], "a Codex list that follows the Interface font draws in it (Atkinson Hyperlegible Next, the default)");
 	const aleo = await measure("the Interface font changed to Aleo", { font: "base", weight: 400, size: 1 }, ["appearance-interface-font: Aleo"]);
 	check(aleo === drawn.Aleo, "changing the Interface font changes a part that follows it (it draws exactly as Aleo does)");
 	const ownA = await measure("Codex names Courier Prime, Interface font Aleo", { font: "Courier Prime", weight: 400, size: 1 }, ["appearance-interface-font: Aleo"]);
