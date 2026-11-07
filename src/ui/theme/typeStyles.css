@@ -1,7 +1,7 @@
 /* The type styles' defaults (Brief 18, decision 123). applyAppearance sets the same custom properties from the project's settings; these are what a page draws
    before a project is open. `src/ui/__tests__/typeStyles.test.ts` keeps them equal to the table in core/typeStyles.ts. */
 :root {
-	--font-interface: "SN Pro", Arial, -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+	--font-interface: "Atkinson Hyperlegible Next", Arial, -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
 	--font-writing: "SN Pro", Arial, -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
 	--ts-display-family: var(--font-interface);
 	--ts-display-weight: 600;

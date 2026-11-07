@@ -883,9 +883,9 @@ describe("the type styles' settings (Brief 18)", () => {
 		fs.mkdirSync(path.join(root, "_backstage/storyforge"), { recursive: true });
 		fs.writeFileSync(path.join(root, PROJECT_SETTINGS_PATH), `---\nformat-version: 1\n${body}---\n`);
 	};
-	it("the defaults are the table's, both base fonts SN Pro, every style following its base", () => {
+	it("the defaults are the table's, the Interface font Atkinson Hyperlegible Next (decision 147) and the Writing font SN Pro, every style following its base", () => {
 		const v = DEFAULT_PROJECT_SETTINGS;
-		expect([v.typeInterfaceFont, v.typeWritingFont]).toEqual(["SN Pro", "SN Pro"]);
+		expect([v.typeInterfaceFont, v.typeWritingFont]).toEqual(["Atkinson Hyperlegible Next", "SN Pro"]);
 		expect([v.typeBodyFont, v.typeBodyWeight, v.typeBodySize]).toEqual(["base", 400, 13]);
 		expect([v.typeBodyBoldWeight, v.typeBodyBoldSize]).toEqual([600, 13]);
 		expect([v.typeFieldsSize, v.typeProseSize, v.typeReadingSize]).toEqual([14, 20, 15]);

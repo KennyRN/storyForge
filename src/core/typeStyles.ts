@@ -48,8 +48,8 @@ export type TypeStyleId = (typeof TYPE_STYLES)[number]["id"];
 export const INTERFACE_STYLES = TYPE_STYLES.filter((s) => s.base === "interface");
 export const WRITING_STYLES = TYPE_STYLES.filter((s) => s.base === "writing");
 
-/** The base fonts' defaults: SN Pro for both until the author chooses (decision 123); a stored value that no longer exists draws the default. */
-export const BASE_DEFAULTS: Record<BaseFont, FontFamily> = { interface: "SN Pro", writing: "SN Pro" };
+/** The base fonts' defaults: Atkinson Hyperlegible Next for the Interface (decision 147, from 1.11.1; it was SN Pro) and SN Pro for Writing; a stored value that no longer exists draws the default. */
+export const BASE_DEFAULTS: Record<BaseFont, FontFamily> = { interface: "Atkinson Hyperlegible Next", writing: "SN Pro" };
 
 export const styleOf = (id: string): TypeStyle => TYPE_STYLES.find((s) => s.id === id) as TypeStyle;
 export const isStyleFont = (v: unknown): v is StyleFont => v === FOLLOW || isFontFamily(v);

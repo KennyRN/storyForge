@@ -38,7 +38,7 @@ test.describe("type styles", () => {
 			await expect(dialog(page).getByLabel("Display font", { exact: true })).toHaveCount(0); // the start screen only: no project is open there
 		}
 		await subtab(page, "interface").click();
-		await expect(dialog(page).getByLabel("interface font", { exact: true })).toHaveValue("SN Pro");
+		await expect(dialog(page).getByLabel("interface font", { exact: true })).toHaveValue("Atkinson Hyperlegible Next");
 		await expect(dialog(page).getByLabel("body bold weight", { exact: true })).toHaveValue("600");
 		await expect(dialog(page).getByLabel("body bold font", { exact: true })).toHaveCount(0); // Body's font and size
 		await expect(dialog(page).getByLabel("body bold size (px)", { exact: true })).toHaveCount(0);
