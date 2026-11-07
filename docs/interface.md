@@ -435,3 +435,15 @@ Every piece of text in the interface is drawn by a named type style, from `core/
 ## Brief 19: the series page, the novel selector, sidebar widths and the one gap (1.11.0)
 
 See `docs/series-2.md`. In short: the library's chosen novel (`nav.libraryBook`) is separate from the novel being written (`nav.book`); the series tab's context panel shows it; the novel tab follows it; `kit/selectList.ts` is the one select list (the chapter selector and the novel selector); Settings' sidebar widths are percentage sliders; the gap between boxes is the one fixed `--gap` (28 px).
+
+
+## Default rule: a swatch that can't be chosen (decision 159, 7 November 2026)
+
+Kenny's design; a default like the two above, and a new swatch follows it unless he names an exception.
+- **It is not muted.** A swatch that can't be chosen keeps its full colour (no `opacity`).
+- **A line crosses it** from its top-right corner to its bottom-left: 2 px, in the surface's background colour (`--purpose-raised-bg`, the Settings dialog's own), drawn by `.sf-swatch:disabled::after` in `theme/base.css`. It follows the swatch's own corners.
+- **It still says so:** the button is disabled (so a screen reader says it is unavailable), and its tooltip reads "<name>: unavailable, <reason>".
+- **Every swatch that can't be chosen today** (the list Kenny asked for):
+  - **Every swatch in Settings when the project's settings can't be changed** (the project is read-only, made by a newer storyForge, or its settings file is unreadable or frozen mid-session): the colour swatches of Appearance (Codex, bar, rail, library header, placed, unplaced, data label and value, small heading) and of the text colours (selection, highlight, bold, italic, bold italic), and the two text swatches "A series" and "One standalone novel" under General. The reason is the project's own read-only reason.
+  - **Retired in 1.11.2:** the rail swatch equal to the bar's own colour (the rail no longer offers data colours, decision 155), so nothing is crossed out in an ordinary project.
+- **Test:** `test/ui/swatches.ui.ts` (a read-only project's swatches are crossed out, not muted, with the surface-coloured diagonal and the reason; an ordinary project's are not).
