@@ -159,7 +159,7 @@ test.describe("the novel overview", () => {
 
 	test("segments only for chapters with words; ghost dividers with both plans; seven structure marks", async ({ page }) => {
 		const o = novelOverview(page);
-		const withWords = await o.locator(".sf-card .sf-bar:not(.sf-bar--sliver)").count();
+		const withWords = await o.locator(".sf-card .sf-bar:not(.sf-bar--empty)").count();
 		await expect(o.locator(".sf-progress-seg")).toHaveCount(withWords);
 		expect(withWords).toBeGreaterThan(0);
 		await expect.poll(() => o.locator(".sf-progress-ghost").count()).toBeGreaterThan(0);

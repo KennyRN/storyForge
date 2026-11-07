@@ -4,7 +4,7 @@ import { attachTooltip } from "../kit/tooltip";
 
 /** How a data bar is drawn. Pure, so the table in docs/numbers.md §5 is testable without a DOM. */
 export interface DataBarState {
-	kind: "sliver" | "fill" | "under" | "over";
+	kind: "empty" | "fill" | "under" | "over";
 	/** 0-100: the fill's width as a share of the bar's scale (a bar with no target, which has no frame). */
 	fillPercent: number;
 	/** Words ÷ target: 1 at the target (Decision 28's rounding), 0 with no words or no target. The fill's width in the frame's inner width. */
@@ -38,7 +38,7 @@ export function computeDataBarState(words: number, target: number | null, scale?
 	const hasTarget = target !== null && target > 0;
 	const full = Math.max(scale ?? 0, words);
 	const pct = (n: number): number => (full > 0 ? Math.min(100, Math.max(0, (n / full) * 100)) : 0);
-	if (words <= 0) return { kind: "sliver", fillPercent: 0, ratio: 0, framed: hasTarget, cut: false };
+	if (words <= 0) return { kind: "empty", fillPercent: 0, ratio: 0, framed: hasTarget, cut: false }; // no words, no fill (decision 153); a planned length keeps its rail
 	if (!hasTarget) return { kind: "fill", fillPercent: pct(words), ratio: 0, framed: false, cut: false };
 	const rounded = roundToSignificantFigures(words, significantFigures(target));
 	if (rounded === target) return { kind: "fill", fillPercent: 0, ratio: 1, framed: true, cut: false };
@@ -95,15 +95,15 @@ export function dataBar(opts: DataBarOptions): HTMLElement {
 		const scale = Math.max(1, opts.targets ?? 1);
 		const inner = scale > 1 ? `calc((100% - 4px) / ${scale})` : "calc(100% - 8px)";
 		bar.style.setProperty("--sf-inner", state.framed ? inner : "0px");
-		bar.style.setProperty("--sf-barw", state.kind === "sliver" ? "3px" : state.framed ? `min(calc(var(--sf-inner) * ${state.ratio}), calc(100% - 4px))` : `${state.fillPercent}%`);
+		bar.style.setProperty("--sf-barw", state.framed ? `min(calc(var(--sf-inner) * ${state.ratio}), calc(100% - 4px))` : `${state.fillPercent}%`);
 		if (state.framed) {
 			bar.style.setProperty("--sf-frame", scale > 1 ? "min(100%, calc(var(--sf-inner) + 8px))" : "100%");
 			bar.append(el("div", { class: "sf-bar-frame", attrs: { "aria-hidden": "true" } }));
 		}
 		if (state.cut) bar.classList.add("sf-bar--cut");
-		bar.append(el("div", { class: "sf-bar-fill" }));
+		if (state.kind !== "empty") bar.append(el("div", { class: "sf-bar-fill" }));
 		if (opts.labelled !== false) bar.append(el("div", { class: "sf-bar-name", attrs: { "aria-hidden": "true" } }, el("span", { class: "sf-bar-name-text", text: opts.name })));
-	} else if (state.kind !== "sliver") {
+	} else if (state.kind !== "empty") {
 		const fill = el("div", { class: "sf-bar-fill" });
 		fill.style.width = `${state.fillPercent}%`;
 		bar.append(fill);
@@ -115,10 +115,10 @@ export function dataBar(opts: DataBarOptions): HTMLElement {
 	return bar;
 }
 
-/** The series overview's bar: only a fill (or the sliver), no target. */
-export function plainBar(title: string, words: number, fillPercent: number, sliver: boolean): HTMLElement {
-	const bar = el("div", { class: `sf-bar ${sliver ? "sf-bar--sliver" : "sf-bar--fill"}`, attrs: { role: "img", "aria-label": `${title}: ${formatWordCount(words)}` } });
-	if (!sliver) {
+/** The series overview's bar: only a fill, no target; a novel with no words has none (decision 153). */
+export function plainBar(title: string, words: number, fillPercent: number): HTMLElement {
+	const bar = el("div", { class: `sf-bar ${words > 0 ? "sf-bar--fill" : "sf-bar--empty"}`, attrs: { role: "img", "aria-label": `${title}: ${formatWordCount(words)}` } });
+	if (words > 0) {
 		const fill = el("div", { class: "sf-bar-fill" });
 		fill.style.width = `${fillPercent}%`;
 		bar.append(fill);

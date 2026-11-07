@@ -41,7 +41,7 @@ test.describe("the chapter bars", () => {
 	const geometry = (bar: ReturnType<typeof bars>) =>
 		bar.evaluate((b) => {
 			const box = (sel: string) => { const e = b.querySelector(sel); if (!e) return null; const r = e.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, height: r.height }; };
-			return { bar: box(":scope"), frame: box(".sf-bar-frame"), fill: box(".sf-bar-fill"), name: box(".sf-bar-name-text"), kind: [...b.classList].find((c) => /^sf-bar--(sliver|fill|under|over)$/.test(c)), radius: getComputedStyle(b.querySelector(".sf-bar-fill")!).borderTopLeftRadius, frameRadius: b.querySelector(".sf-bar-frame") ? getComputedStyle(b.querySelector(".sf-bar-frame")!).borderTopLeftRadius : null };
+			return { bar: box(":scope"), frame: box(".sf-bar-frame"), fill: box(".sf-bar-fill"), name: box(".sf-bar-name-text"), kind: [...b.classList].find((c) => /^sf-bar--(empty|fill|under|over)$/.test(c)), radius: getComputedStyle(b.querySelector(".sf-bar-fill")!).borderTopLeftRadius, frameRadius: b.querySelector(".sf-bar-frame") ? getComputedStyle(b.querySelector(".sf-bar-frame")!).borderTopLeftRadius : null };
 		});
 
 	test("a solid 34 px bar in a 42 px frame, the name drawn once over it; the series overview's bars stay 12 px", async ({ page }) => {

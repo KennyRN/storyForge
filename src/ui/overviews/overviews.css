@@ -1,7 +1,6 @@
 /* Bars: the data bar and its parts. Colours by purpose only. */
 .sf-bar { position: relative; height: 12px; border-radius: 3px; background: var(--purpose-bar-track); overflow: hidden; }
 .sf-bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--purpose-data-fill); }
-.sf-bar--sliver::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--purpose-data-fill); }
 /* The chapter bar (Brief 15): a solid bar, 34px, with rounded ends, in a grey0 frame 4px larger on every side (radius 4 + 4: concentric). The frame's inner width is the chapter's
    planned length, so its end shows the target by shape; past it the bar runs on, solid, out of the frame. bars.ts sets --sf-inner (the frame's inner width), --sf-barw (the bar's)
    and --sf-frame (the frame's, a percentage of the row, the same for every chapter). With no target there is no frame (.sf-bar--plain). */
@@ -12,7 +11,6 @@
 .sf-bar--chapter.sf-bar--plain .sf-bar-fill { top: 0; left: 0; }
 /* A chapter past three times its target (decision 154): the bar runs to the row's end and its end is cut, a V bitten out of it, so overrun never relies on colour alone. */
 .sf-bar--cut .sf-bar-fill { border-radius: 4px 0 0 4px; clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 50%, 100% 100%, 0 100%); }
-.sf-bar--chapter.sf-bar--sliver::before { content: none; }
 /* The chapter's name: bg_dim, 19px at 700 (large text: 3:1 is the standard, and on the grey0 frame it is 3.40:1), in the lower middle of the bar, 8px in from each end, cut short with "…"
    at the further of the frame's inner end and the bar's end. It never reaches the bare page, where bg_dim on bg_dim could not be read. */
 .sf-bar-name { position: absolute; top: 4px; left: 12px; height: 34px; padding-top: 4px; box-sizing: border-box; display: flex; align-items: center; pointer-events: none; max-width: calc(max(var(--sf-inner), var(--sf-barw)) - 16px); }

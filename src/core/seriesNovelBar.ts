@@ -7,11 +7,8 @@
  */
 
 export interface SeriesNovelBarEntry {
-	/** 0-100 — this novel's total against the longest placed novel's. Always 0 for a sliver. */
+	/** 0-100 — this novel's total against the longest placed novel's. 0 for a novel with no words, which has no fill at all (decision 153). */
 	fillPercent: number;
-	/** True when the novel has no words yet — drawn as a fixed 3px sliver at the start rather than
-	 * a percentage fill, as chapter cards are. */
-	sliver: boolean;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -20,14 +17,10 @@ function clamp(value: number, min: number, max: number): number {
 
 /**
  * One entry per total, in the same order. The scale is the largest total; when every total is 0
- * the scale is 0 and every entry is a sliver — the division is skipped entirely in that case,
+ * the scale is 0 and every entry is empty — the division is skipped entirely in that case,
  * never performed against zero.
  */
 export function computeSeriesNovelBarLayout(totals: number[]): SeriesNovelBarEntry[] {
 	const scale = Math.max(0, ...totals);
-	return totals.map((total) => {
-		const sliver = total <= 0;
-		const fillPercent = !sliver && scale > 0 ? clamp((total / scale) * 100, 0, 100) : 0;
-		return { fillPercent, sliver };
-	});
+	return totals.map((total) => ({ fillPercent: total > 0 && scale > 0 ? clamp((total / scale) * 100, 0, 100) : 0 }));
 }

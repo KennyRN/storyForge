@@ -45,3 +45,27 @@ test.describe("the chapter bars' geometry (Fix 11)", () => {
 		});
 	}
 });
+
+test.describe("no words, no fill (decision 153)", () => {
+	for (const tab of ["novel", "series"] as const) {
+		test(`on the ${tab === "novel" ? "novel tab" : "series tab's panel"} an empty chapter has no fill and no sliver, and keeps its rail`, async ({ page }) => {
+			await open(page, [200, 0, 100], 250, tab);
+			const bars = await measure(page, tab);
+			expect(bars.map((b) => b.fillW > 0)).toEqual([true, false, true]); // the empty chapter draws nothing
+			expect(bars[1].frameW).toBeGreaterThan(0); // its rail (the planned length) still shows
+			expect(await page.locator(tab === "novel" ? ".sf-overview .sf-bar--sliver" : ".sf-novel-ctx-bars .sf-bar--sliver").count()).toBe(0);
+		});
+	}
+	test("with no planned length an empty chapter has no rail and no fill", async ({ page }) => {
+		await open(page, [200, 0], null, "novel");
+		const bars = await measure(page, "novel");
+		expect(bars[1].frameW).toBeNull();
+		expect(bars[1].fillW).toBe(0);
+	});
+	test("an empty novel on the series page has no bar fill", async ({ page }) => {
+		await open(page, [10], 100, "novel");
+		await page.getByRole("tab", { name: "series" }).click();
+		const fills = await page.locator(".sf-overview-row .sf-bar").evaluateAll((bs) => bs.map((b) => ({ empty: b.classList.contains("sf-bar--empty"), fills: b.querySelectorAll(".sf-bar-fill").length })));
+		for (const f of fills) expect(f.empty ? f.fills : 1).toBe(f.empty ? 0 : 1);
+	});
+});

@@ -11,9 +11,9 @@ describe("data bar state", () => {
 		expect(roundToSignificantFigures(1493, 2)).toBe(1500);
 		expect(roundToSignificantFigures(1449, 2)).toBe(1400);
 	});
-	it("draws no words as a sliver, in a frame when there is a target", () => {
-		expect(computeDataBarState(0, 1500)).toMatchObject({ kind: "sliver", framed: true });
-		expect(computeDataBarState(0, null)).toMatchObject({ kind: "sliver", framed: false });
+	it("draws no words as nothing (no sliver, decision 153), keeping the rail when there is a target", () => {
+		expect(computeDataBarState(0, 1500)).toMatchObject({ kind: "empty", fillPercent: 0, ratio: 0, framed: true });
+		expect(computeDataBarState(0, null)).toMatchObject({ kind: "empty", fillPercent: 0, framed: false });
 	});
 	it("draws no target as a plain fill against the scale, with no frame", () => {
 		expect(computeDataBarState(800, null)).toMatchObject({ kind: "fill", framed: false, fillPercent: 100 });
