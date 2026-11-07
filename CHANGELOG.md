@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.12.0: GitHub Flavored Markdown (Brief 20)
+
+- Changed: **the app's markdown is GitHub Flavored Markdown** in every editor (chapters, Codex notes, plot notes, the synopsis and the series description), read from a real markdown parse and drawn with the markers hidden away from the caret's line: headings, bold, italic and bold italic, strikethrough, code and fenced code (in Sono), block quotes, bullets, task boxes, tables (muted pipes), scene breaks, footnotes and links. Indented paragraphs stay prose. Nothing the dressing draws is ever written: what is saved is what was typed.
+- New: **GitHub's five alerts** (`[!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`) as coloured boxes with an icon and a name, by GitHub's own rule (a top-level quote, the marker alone on its first line in any case, a body after it); anything else stays an ordinary quote.
+- New: **Codex links.** Typing `[[` offers every Codex entry that isn't archived, aliases included; Tab writes a standard link, `[Jane Harbour](../../Codex/Jane%20Harbour.md)`, relative to the file it is in. A link to a Codex entry opens on ⌘-click or ⌘-Return; every other link is muted with a tooltip saying why. Renaming an entry updates these links and their text when it was the old name.
+- New: **the chapter length bar**, a picture under the chapter box showing the open chapter against its planned length, with its own colour in Settings ▸ Appearance ▸ storytelling mode.
+- Changed: **`==highlight==` is gone** (and its colour setting; a stored `highlight-colour` is left in the file and never read). `[[wiki links]]`, `![[embeds]]` and `%% comments %%` are plain text now; comments are `<!-- HTML comments -->`. Nothing is converted for you.
+- Changed: **typing aids read the parse**, with a rule beside it that protects text from an unclosed backtick, link target, `<!--` or web address to the caret on the caret's line.
+- Under the hood: `@lezer/markdown` and `@codemirror/language`; `core/markdownTree.ts`, `core/codexLinks.ts`, `ui/editor/dressingPlan.ts`; the link scanner and rewriter read markdown links only (their fuzzer rebuilt); Sono (OFL) embedded for code; the TIP and IMPORTANT icons are Kenny's.
+
 ## 1.11.2: the bars (Fix 11)
 
 - Fixed: **bars no longer shrink to nothing when a chapter far overruns its target.** The frames never go below a third of the row; a chapter past three times its target runs to the row's end with a cut end (a V bitten out of it, its corners softened), and its tooltip and name give the true target. The frame's padding is no longer scaled, so the longest bar ends exactly at the row's end.
