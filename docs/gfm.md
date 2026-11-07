@@ -142,9 +142,9 @@ Files that hold links: chapters (`_story-library/<book>/<ch>.md`), Codex notes (
 
 ### 8.5 Tables, tasks, keys, images, icons
 - **Tables:** muted pipes and alignment row for 1.12.0. **A grid goes to Future** (the mock-up's gridded table is withdrawn as an option). **No click-to-tick.**
-- **⌘-Return opens a link.** I checked for clashes: the menu items in `src/ui/menu.ts` and the editor's keymap don't bind ⌘-Return (to be confirmed by a test that lists the key bindings at build).
+- **⌘-Return opens a link.** I searched `src/` and `src-tauri/src/` for any ⌘/Mod-Enter or Return binding (CodeMirror key names, menu accelerators, `metaKey` with Enter) and found none, so it clashes with nothing today. CodeMirror's default keymap isn't searched here, so a test at build lists the live bindings to confirm.
 - **Images: they move to an images brief.** `read_cover(target, filename)` takes only the series or a book code and an exact `cover.<ext>` name, and reads from that book's backstage folder. Reading a file named in a link's path would need a new Rust command, so by the ruling, showing and inserting both move to the images brief. Nothing in 1.12.0.
-- **Icons (H2, supplied by Kenny, both Tabler 2.2, filled):** **TIP is `square-rounded-check`, IMPORTANT is `square-rounded-arrow-right`.** They are recorded in `Icon Licences.md` at the build; NOTE, WARNING and CAUTION keep the notice icons. They are final, not stand-ins. The SVGs are saved in `docs/gfm-mockups/icons/`.
+- **Icons (H2, supplied by Kenny, both Tabler 2.2, filled):** **TIP is `square-rounded-check`, IMPORTANT is `square-rounded-arrow-right`.** They are recorded in `Icon Licences.md` at the build; NOTE, WARNING and CAUTION keep the notice icons. They are final, not stand-ins. The SVG files were pasted into the session and are not saved in the repo yet; the build adds them to `kit/noticeIcons.ts`.
 
 ### 8.6 The chapter bar's vertical place
 **Centred in the strip: the rail's top 32 px from the strip's top (the strip is 76 px, so 32 px above and below the 12 px rail), the bar 2 px inside it.** Centred keeps it equally clear of the chapter box above and the stats section below, whatever the window's height; nothing else lives in the strip. Aligned left and right with the chapter box.
