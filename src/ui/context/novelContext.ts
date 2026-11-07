@@ -72,7 +72,7 @@ export function mountNovelContext(host: HTMLElement, model: AppModel): () => voi
 		const overview = document.querySelector<HTMLElement>(".sf-overview");
 		if (!cover || !synopsis) return;
 		synopsis.style.marginTop = "0px";
-		const stacked = synopsis.getBoundingClientRect().top >= cover.getBoundingClientRect().bottom - 1;
+		const stacked = synopsis.getBoundingClientRect().left < cover.getBoundingClientRect().right;
 		host.dataset.synopsis = stacked ? "under" : "beside";
 		if (!stacked || !first || !overview) return;
 		const want = first.getBoundingClientRect().top + overview.scrollTop - overview.getBoundingClientRect().top - (synopsis.getBoundingClientRect().top - overview.getBoundingClientRect().top);
@@ -124,7 +124,7 @@ export function mountNovelContext(host: HTMLElement, model: AppModel): () => voi
 		// The title and default PoV sit above, 12px clear of the cover and synopsis (the column's gap); the synopsis is beside the cover, or under it when the panel is too narrow (flex wrap).
 		const meta = el("div", { class: "sf-novel-ctx-meta" }, el("div", { class: "sf-novel-ctx-titlerow" }, titleRow, write));
 		const synopsis = el("div", { class: "sf-ctx-card sf-ctx-synopsis" }, synopsisField(model, bin, book, title));
-		const head = el("div", { class: "sf-novel-ctx-head" }, coverBox(model, { kind: "book", code: book }, title), synopsis);
+		const head = el("div", { class: "sf-novel-ctx-head" }, coverBox(model, { kind: "book", code: book }, title), povRow, synopsis);
 
 		const { ordered, unplaced } = getBookChapters(project, book);
 		const names = [...ordered, ...unplaced].map((c) => c.name);
@@ -140,7 +140,7 @@ export function mountNovelContext(host: HTMLElement, model: AppModel): () => voi
 			{ class: "sf-novel-ctx-bars", attrs: { role: "list", "aria-label": `Chapters of ${title}` } },
 			...ordered.map((c, i) => el("div", { class: "sf-card", attrs: { role: "listitem" }, dataset: { chapter: c.name } }, dataBar({ title: titles[i], words: words[i], target: plannedChapter, scale, targets, name: titles[i], labelled: false, compact: true, tooltip: `${titles[i]}\n${formatWordCount(words[i])}` }))),
 		);
-		host.replaceChildren(meta, head, povRow, progress.joined, bars); // the default PoV sits below the cover and synopsis, above the chapter bars (Tweaks 1 part 2, §4.3 ruling)
+		host.replaceChildren(meta, head, progress.joined, bars);
 		progress.drawGhosts();
 		if (typeof ResizeObserver !== "undefined") {
 			ghostWatch = new ResizeObserver(progress.drawGhosts);

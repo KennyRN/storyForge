@@ -117,9 +117,10 @@ test.describe("§3 the novel page", () => {
 });
 
 test.describe("§4 the series page", () => {
-	test("§4.1 and §4.3 (ruling) the cover is level with the series description, the novel title is on the tabs' line, and the default PoV is below the cover block", async ({ page }) => {
-		await open(page, "series");
+	test("§4.1 and §4.3 (ruling) the cover is level with the series description, the novel title is on the tabs' line, and the default PoV is beside the cover, the synopsis 12px under it", async ({ page }) => {
+		await open(page, "series", { width: 1600 });
 		await page.locator(".sf-overview-row[data-book='aaa'] .sf-overview-name").click();
+		await page.evaluate(() => (window.__app as any).commitTypedWidth("series", "lore", 40));
 		const cover = page.locator(".sf-novel-ctx-head > .sf-cover");
 		await expect(cover).toBeVisible();
 		await expect.poll(async () => Math.abs((await box(cover)).y - (await box(page.locator(".sf-overview-head .sf-section-field"))).y)).toBeLessThan(1);
@@ -132,9 +133,11 @@ test.describe("§4 the series page", () => {
 		expect(title.y).toBeGreaterThanOrEqual(48);
 		expect(await panel(page).getAttribute("data-align-short-by")).toBe("0"); // the cover is not short of its line
 		const c = await box(cover);
-		const pov = await box(page.locator(".sf-novel-context .sf-meta-row"));
-		const head = await box(page.locator(".sf-novel-ctx-head"));
-		expect(pov.y).toBeGreaterThanOrEqual(head.y + head.height); // the default PoV is below the cover and synopsis block
+		const pov = await box(page.locator(".sf-novel-ctx-head > .sf-meta-row"));
+		expect(pov.x).toBeGreaterThanOrEqual(c.x + c.width); // the default PoV is beside the cover, to its right
+		expect(Math.abs(pov.y - c.y)).toBeLessThan(6); // level with the cover's top (the button's own padding aside)
+		const syn = await box(page.locator(".sf-novel-ctx-head > .sf-ctx-synopsis"));
+		expect(Math.round(syn.y - (pov.y + pov.height))).toBe(12); // the synopsis, beside the cover, 12px under the PoV
 		expect(c.y).toBeGreaterThan(title.y + title.height);
 	});
 
@@ -146,10 +149,15 @@ test.describe("§4 the series page", () => {
 		const cover = page.locator(".sf-novel-ctx-head > .sf-cover");
 		await page.evaluate(() => (window.__app as any).commitTypedWidth("series", "lore", 40)); // wide enough for cover and synopsis side by side
 		await expect.poll(async () => (await box(syn)).x).toBeGreaterThan((await box(cover)).x + (await box(cover)).width);
-		expect(Math.abs((await box(syn)).y - (await box(cover)).y)).toBeLessThan(1);
+		expect((await box(syn)).y).toBeGreaterThan((await box(cover)).y); // beside the cover, under the default PoV
 		// narrow: the panel's minimum
 		await page.evaluate(() => (window.__app as any).commitTypedWidth("series", "lore", 22));
 		await expect.poll(async () => (await box(syn)).y).toBeGreaterThan((await box(cover)).y + 100);
+		const pov = await box(page.locator(".sf-novel-ctx-head > .sf-meta-row"));
+		const valueRight = await page.locator(".sf-novel-ctx-head > .sf-meta-row").evaluate((r) => r.scrollWidth <= r.clientWidth + 1);
+		expect(pov.x).toBeGreaterThanOrEqual((await box(cover)).x + (await box(cover)).width); // the PoV stays beside the cover
+		expect(valueRight).toBe(true); // and fits there at the minimum width
+		console.log("min width: pov box", JSON.stringify(pov), "cover", JSON.stringify(await box(cover)));
 		const first = await box(page.locator(".sf-overview .sf-overview-row .sf-cover").first());
 		const c = await box(cover);
 		const s = await box(syn);
@@ -217,6 +225,20 @@ test.describe("§4 the series page", () => {
 		expect(m.radius).toBe("4px");
 		expect(m.barH).toBe(20);
 		expect(m.stripH).toBe(4);
+	});
+});
+
+test.describe("the default PoV beside the cover at the panel's minimum width (§4.3 ruling)", () => {
+	test("at the minimum width (280px) the PoV still sits beside the cover and fits", async ({ page }) => {
+		await open(page, "series", { width: 1280 });
+		await page.locator(".sf-overview-row[data-book='aaa'] .sf-overview-name").click();
+		await page.evaluate(() => (window.__app as any).commitTypedWidth("series", "lore", 1)); // clamped to the minimum
+		const row = page.locator(".sf-novel-ctx-head > .sf-meta-row");
+		await expect(row).toBeVisible();
+		const m = await page.evaluate(() => { const p = document.querySelector(".sf-novel-context")!.getBoundingClientRect(); const r = document.querySelector(".sf-novel-ctx-head > .sf-meta-row")!; const c = document.querySelector(".sf-novel-ctx-head > .sf-cover")!.getBoundingClientRect(); const b = r.getBoundingClientRect(); return { panel: Math.round(p.width), povLeft: b.left, coverRight: c.right, fits: r.scrollWidth <= r.clientWidth + 1, lines: Math.round(b.height) }; });
+		console.log("min width:", JSON.stringify(m));
+		expect(m.povLeft).toBeGreaterThanOrEqual(m.coverRight);
+		expect(m.fits).toBe(true);
 	});
 });
 

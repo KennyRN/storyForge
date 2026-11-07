@@ -39,8 +39,18 @@
 /* A scrolling column never squeezes what is in it (decision 152): the progress bar and the structure strip have a fixed height and overflow: hidden, so their
    automatic minimum is 0 and they were squeezed to nothing when the content was taller than the panel. Every child keeps its natural height; the panel scrolls. */
 .sf-novel-context > * { flex: none; }
-.sf-novel-ctx-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; } /* the synopsis beside the cover; under it when its column would be under 220px (the panel under 328px of content: 96 + 12 + 220), Tweaks 1 part 2, §4.2 */
-.sf-novel-ctx-head > .sf-ctx-synopsis { flex: 1 1 220px; min-width: 0; min-height: 144px; }
+/* The cover, with the default PoV beside it (to its right, level with the cover's top) and the synopsis 12px under the PoV; when the panel is under 328px of content
+   (96 + 12 + a 220px synopsis column) the synopsis goes under the cover and the PoV stays beside it (Tweaks 1 part 2, §4.2 and the §4.3 ruling). */
+.sf-novel-context { container-type: inline-size; }
+.sf-novel-ctx-head { display: grid; grid-template-columns: 96px minmax(0, 1fr); grid-template-rows: min-content 1fr; column-gap: 12px; row-gap: 12px; align-items: start; }
+.sf-novel-ctx-head > .sf-cover { grid-column: 1; grid-row: 1 / span 2; }
+.sf-novel-ctx-head > .sf-meta-row { grid-column: 2; grid-row: 1; min-width: 0; }
+.sf-novel-ctx-head > .sf-ctx-synopsis { grid-column: 2; grid-row: 2; min-width: 0; min-height: 96px; align-self: stretch; }
+@container (max-width: 327px) { /* a container query measures the content box: under 328px */
+	.sf-novel-ctx-head { grid-template-rows: auto auto; }
+	.sf-novel-ctx-head > .sf-cover { grid-row: 1; }
+	.sf-novel-ctx-head > .sf-ctx-synopsis { grid-column: 1 / -1; min-height: 144px; }
+}
 .sf-novel-ctx-meta { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .sf-novel-ctx-title { font-family: var(--ts-title-family); font-weight: var(--ts-title-weight); font-size: var(--ts-body-size); font-variation-settings: var(--ts-title-var); }
 .sf-ctx-synopsis { flex: none; }
