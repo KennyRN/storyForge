@@ -369,7 +369,7 @@ test.describe("Codex links", () => {
 		await expect.poll(() => page.evaluate(() => window.__app.editors!.pathIn("lore"))).toBe("Codex/Sam.md");
 	});
 
-	test("a link in a field is relative to the file the field is stored in, and on the library side following it opens the Codex tab", async ({ page }) => {
+	test("a link in a field is relative to the file the field is stored in, and on the library side it is dressed as a link but inert (Tweaks 1 part 2, §2)", async ({ page }) => {
 		await open(page, "x\n");
 		await toNovelTab(page);
 		const box = page.getByRole("textbox", { name: "Plot note for Chapter 1" });
@@ -379,11 +379,14 @@ test.describe("Codex links", () => {
 		await page.keyboard.type("[[sam");
 		await expect(popup(page).getByRole("option", { name: /Sam/ })).toBeVisible();
 		await page.keyboard.press("Tab");
-		await expect(box.locator(".sf-link-live")).toHaveText("Sam");
+		await expect(box.locator(".sf-link", { hasText: "Sam" })).toHaveCount(1);
+		await expect(box.locator(".sf-link-live, .sf-link-muted")).toHaveCount(0); // dressed as a link, not live, no tooltip
 		await expect(box.locator(".cm-line").last()).toHaveText("[Sam](../Codex/Sam.md)"); // the plot note is stored in the novel file: one level up (the caret's line shows the whole link)
-		await box.locator(".sf-link-live").first().click({ modifiers: ["Meta"] });
-		await expect.poll(() => page.evaluate(() => window.__app.editors!.pathIn("codex"))).toBe("Codex/Sam.md");
-		await expect(page.getByRole("tab", { name: "codex", selected: true })).toBeVisible();
+		await box.locator(".sf-link").first().click({ modifiers: ["Meta"] });
+		await page.keyboard.press(`${MOD}+Enter`);
+		await page.waitForTimeout(300);
+		expect(await page.evaluate(() => window.__app.editors!.pathIn("codex"))).toBeFalsy(); // nothing opened
+		await expect(page.getByRole("tab", { name: "novel", selected: true })).toBeVisible();
 	});
 });
 

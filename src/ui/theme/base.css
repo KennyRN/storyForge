@@ -11,6 +11,9 @@
 	--radius: 6px;
 	--band-h: 28px; /* the invisible title bar's band: the traffic lights sit in it, the panels' backgrounds run up behind it */
 	--card-text-inset: 16px; /* the one inset of a working card's text from the card's left edge, in px whatever the font or size: the plot note, the read-only chapter text, the synopsis and the series description (Tweaks 1, §1.7; 16 rather than 17 or 18 because the app's spacing runs in steps of 4; amends decision 139's figure) */
+	--shape-radius: 4px; --strip-h: 4px; /* the progress bar and structure strip as one shape: the outer corners' radius, and the strip's height (never under the radius or 4px; Tweaks 1 part 2, §3.4) */
+	--codex-strip-w: 38px; /* the Codex strip's width: 8px of padding and a 30px button. The card begins --space-2 after it, and the chapter selector's text sits on the card's left edge (Tweaks 1 part 2, §6.2; decision 93's 8px is measured from the strip) */
+	--label-gap: 8px; /* label to value, in every label-and-value row (Tweaks 1 part 2, §3.3; the figure the context panel's PoV and Location rows had) */
 	--z-float: 50; /* an open list or floating menu that isn't fixed to the window sits above everything on the page (Tweaks 1, §1.5); the fixed ones (menus, tooltips, dialogs, notices) are 800 and up */
 	--gap: 28px; /* the one gap between boxes (Brief 19 §3): the window's sides, between panels (half on each side of a panel's edge), above and below; it never follows a panel's width */
 	--half-gap: 14px;

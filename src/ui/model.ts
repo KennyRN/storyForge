@@ -258,6 +258,24 @@ export class AppModel {
 		this.touch("nav", "face");
 	}
 
+	/**
+	 * The storytelling side's novel selector (Tweaks 1 part 2, §6.1): makes `book` the novel being written, staying on the storytelling side. The open chapter is saved
+	 * first by the editors' own route (`openChapter`), then the novel's last open chapter opens, or its first placed chapter, as "Write this novel" does.
+	 */
+	async switchNovel(book: string): Promise<void> {
+		const running = this.running;
+		if (!running || book === this.nav.book) return;
+		const chapters = getBookChapters(running.opened.project, book);
+		const names = [...chapters.ordered, ...chapters.unplaced].map((c) => c.name);
+		const remembered = this.nav.lastChapters[book];
+		const chapter = remembered && names.includes(remembered) ? remembered : (chapters.ordered[0]?.name ?? null);
+		if (chapter) await this.openChapter(book, chapter);
+		else {
+			this.setWritten(book, null);
+			this.touch("nav", "stats");
+		}
+	}
+
 	/** The storytelling side's series and novel names: the library side, on that tab, with its overview in the workspace. The novel name also resets the library's chosen novel to the one being written (`resetChoice`). */
 	openLibraryTab(tab: ForgeTab, options: { resetChoice?: boolean } = {}): void {
 		if (options.resetChoice) this.nav.libraryBook = this.nav.book;
@@ -368,10 +386,11 @@ export class AppModel {
 	 * What an editor needs for Codex links (Brief 20): the file its text is stored in (a link is relative to it), the project's
 	 * Codex entries and how a target resolves, and how a live link opens.
 	 */
-	codexLinksFor(fromFile: string): EditorLinks {
+	codexLinksFor(fromFile: string, live = true): EditorLinks {
 		const project = () => this.running!.opened.project;
 		return {
 			fromFile,
+			live,
 			entries: () => (this.running ? collectCodexLinkEntries(project()) : []),
 			world: () => linkWorldOf(project()),
 			open: (path) => void this.followCodexLink(path),

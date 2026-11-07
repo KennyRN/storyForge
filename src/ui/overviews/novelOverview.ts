@@ -60,7 +60,7 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 		};
 
 		// The progress bar
-		const { track, strip, drawGhosts } = buildNovelProgress({ titles, names: ordered.map((c) => c.name), words, plannedNovel, plannedChapter, open });
+		const { track, joined, drawGhosts } = buildNovelProgress({ titles, names: ordered.map((c) => c.name), words, plannedNovel, plannedChapter, open });
 
 		// The chapter bars: one per placed chapter, the bar and nothing else (the unplaced chapters stay in the left pane's list)
 		const scale = Math.max(...words, 0);
@@ -106,7 +106,7 @@ export function mountNovelOverview(host: HTMLElement, model: AppModel): () => vo
 				{ modifier: "sf-select--title" },
 			);
 		}
-		fill(host, heading, el("div", { class: "sf-overview-head" }, el("div", { class: "sf-cover-column" }, coverBox(model, { kind: "book", code: book }, novelTitle())), synopsisField(model, bin, book, novelTitle())), track, strip, el("div", { class: "sf-overview-list sf-cards", attrs: { role: "list", "aria-label": "Placed chapters with word counts" } }, ...cards));
+		fill(host, heading, el("div", { class: "sf-overview-head" }, el("div", { class: "sf-cover-column" }, coverBox(model, { kind: "book", code: book }, novelTitle())), synopsisField(model, bin, book, novelTitle())), joined, el("div", { class: "sf-overview-list sf-cards", attrs: { role: "list", "aria-label": "Placed chapters with word counts" } }, ...cards));
 		drawGhosts();
 		titleLine?.apply(); // the title sits on the tabs' line (Tweaks 1, §1.1)
 		if (typeof ResizeObserver !== "undefined") {

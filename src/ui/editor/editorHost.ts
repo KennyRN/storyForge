@@ -212,7 +212,7 @@ export class EditorHost {
 				return;
 			}
 			const editorHost = el("div", { class: "sf-editor" });
-			const mounted = session ? mountSessionEditor(editorHost, session, { covered: () => (slot === "centre" ? this.model.centreCovered : slot === "codex" || slot === "archive" ? !(this.model.nav.face === "storyforge" && this.model.nav.forgeTab === slot) : false), typing: () => this.model.typingOptions(), links: this.model.codexLinksFor(project.entry(path)?.path ?? path), onUpdate: (c, n) => this.emitText(path, c, n) }) : mountReadOnlyEditor(editorHost, readOnlyText ?? "", { onUpdate: (c, n) => this.emitText(path, c, n) });
+			const mounted = session ? mountSessionEditor(editorHost, session, { covered: () => (slot === "centre" ? this.model.centreCovered : slot === "codex" || slot === "archive" ? !(this.model.nav.face === "storyforge" && this.model.nav.forgeTab === slot) : false), typing: () => this.model.typingOptions(), links: this.model.codexLinksFor(project.entry(path)?.path ?? path, slot !== "archive"), onUpdate: (c, n) => this.emitText(path, c, n) }) : mountReadOnlyEditor(editorHost, readOnlyText ?? "", { onUpdate: (c, n) => this.emitText(path, c, n) });
 			occupant = { path: session?.path ?? project.entry(path)?.path ?? path, mounted, session, offs: [] };
 			trackWriting(mounted.view);
 			if (session) this.watch(occupant, session);

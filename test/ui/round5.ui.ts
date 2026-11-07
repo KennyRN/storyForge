@@ -184,7 +184,7 @@ test.describe("the library's small changes (round five)", () => {
 		await expect(header).toHaveAttribute("aria-expanded", "true");
 		await expect(header.locator("svg")).toHaveCount(0); // no chevron
 		const add = page.getByRole("button", { name: "New novel" });
-		expect(await add.evaluate((e) => getComputedStyle(e).color)).toBe(await token(page, "--purpose-text-muted"));
+		expect(await add.evaluate((e) => getComputedStyle(e).color)).toBe(await token(page, "--purpose-codex-rest")); // the unselected tabs' colour (Tweaks 1 part 2, §3.5)
 		await add.hover();
 		await expect.poll(() => add.evaluate((e) => getComputedStyle(e).color)).toBe(await token(page, "--purpose-library-header"));
 		await header.click();
@@ -193,7 +193,7 @@ test.describe("the library's small changes (round five)", () => {
 		// the chapters' header too
 		await page.getByRole("tab", { name: "novel" }).click();
 		const addChapter = page.getByRole("button", { name: "New chapter" });
-		expect(await addChapter.evaluate((e) => getComputedStyle(e).color)).toBe(await token(page, "--purpose-text-muted"));
+		expect(await addChapter.evaluate((e) => getComputedStyle(e).color)).toBe(await token(page, "--purpose-codex-rest"));
 	});
 
 	test("the novel tab's synopsis has the read-only chapter text's padding, in px", async ({ page }) => {

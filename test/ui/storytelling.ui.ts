@@ -25,7 +25,7 @@ test.describe("the storytelling face", () => {
 	test("opens with the navigator, the Codex and the stats on the left, and the chapter in the centre", async ({ page }) => {
 		await openProject(page);
 		await expect(page.locator(".sf-nav-novel")).toHaveText("Book 1: The Harbour Wakes");
-		await expect(page.locator(".sf-select-current-title")).toHaveText("Chapter 1");
+		await expect(page.locator(".sf-select--chapters .sf-select-current-title")).toHaveText("Chapter 1");
 		await expect(page.getByRole("tree", { name: "Codex" })).toBeVisible();
 		await expect(page.locator(".sf-stats-value")).toContainText("Words today: ");
 		await expect(centre(page)).toContainText("Synthetic sentence number 1");
@@ -52,7 +52,7 @@ test.describe("the storytelling face", () => {
 		await expect(rows).toHaveCount(4); // three placed and one unplaced
 		await rows.filter({ hasText: "The Storm: Part Two" }).click();
 		await expect(centre(page)).toContainText("Opening line of a second chapter");
-		await expect(page.locator(".sf-select-current-title")).toHaveText("The Storm: Part Two");
+		await expect(page.locator(".sf-select--chapters .sf-select-current-title")).toHaveText("The Storm: Part Two");
 		expect(await page.evaluate(() => window.__app.editors!.pathIn("centre"))).toBe("_story-library/aaa/ch-a2.md");
 	});
 
@@ -93,7 +93,7 @@ test.describe("the storytelling face", () => {
 		const width = await page.locator(".sf-left").evaluate((e) => e.getBoundingClientRect().width);
 		expect(Math.abs(width - (288 + 80))).toBeLessThanOrEqual(1); // percent is kept to a tenth: about a pixel
 		await reopen(page);
-		await expect(page.locator(".sf-select-current-title")).toHaveText("The Storm: Part Two");
+		await expect(page.locator(".sf-select--chapters .sf-select-current-title")).toHaveText("The Storm: Part Two");
 		await expect(codexRow(page, "Jane")).toHaveCount(0);
 		expect(await page.locator(".sf-left").evaluate((e) => e.getBoundingClientRect().width)).toBeCloseTo(width, 0);
 	});

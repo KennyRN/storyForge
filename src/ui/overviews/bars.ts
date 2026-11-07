@@ -79,6 +79,8 @@ export interface DataBarOptions {
 	onHover?: () => void;
 	/** False draws no name over the bar (the context panel's chapters, Brief 19): the title stays the tooltip and the accessible name. */
 	labelled?: boolean;
+	/** The context panel's chapters (Tweaks 1 part 2, §4.4): an 8px bar in a 12px rail, 2px in all round, the chapter length bar's proportions (decision 160). */
+	compact?: boolean;
 }
 
 /**
@@ -91,16 +93,17 @@ export interface DataBarOptions {
 export function dataBar(opts: DataBarOptions): HTMLElement {
 	const state = computeDataBarState(opts.words, opts.target, opts.scale);
 	const chapter = opts.name !== undefined;
-	const bar = el("div", { class: `sf-bar sf-bar--${state.kind}${chapter ? " sf-bar--chapter" : ""}${chapter && !state.framed ? " sf-bar--plain" : ""}`, attrs: { role: "img", "aria-label": dataBarLabel(opts.title, opts.words, opts.target, state) } });
+	const pad = opts.compact ? 2 : 4; // the frame's padding round the bar
+	const bar = el("div", { class: `sf-bar sf-bar--${state.kind}${chapter ? " sf-bar--chapter" : ""}${chapter && opts.compact ? " sf-bar--compact" : ""}${chapter && !state.framed ? " sf-bar--plain" : ""}`, attrs: { role: "img", "aria-label": dataBarLabel(opts.title, opts.words, opts.target, state) } });
 	if (chapter) {
 		// Fix 11: with no chapter past its target (scale 1) the frame is the row and the bar is a share of its inner width; past it (scale > 1) the frames are the row divided
 		// by the scale (a third at the most) and the longest bar, which runs out of its frame, ends exactly at the row's end (the 4px at the bar's start is the frame's padding).
 		const scale = Math.max(1, opts.targets ?? 1);
-		const inner = scale > 1 ? `calc((100% - 4px) / ${scale})` : "calc(100% - 8px)";
+		const inner = scale > 1 ? `calc((100% - ${pad}px) / ${scale})` : `calc(100% - ${pad * 2}px)`;
 		bar.style.setProperty("--sf-inner", state.framed ? inner : "0px");
-		bar.style.setProperty("--sf-barw", state.framed ? `min(calc(var(--sf-inner) * ${state.ratio}), calc(100% - 4px))` : `${state.fillPercent}%`);
+		bar.style.setProperty("--sf-barw", state.framed ? `min(calc(var(--sf-inner) * ${state.ratio}), calc(100% - ${pad}px))` : `${state.fillPercent}%`);
 		if (state.framed) {
-			bar.style.setProperty("--sf-frame", scale > 1 ? "min(100%, calc(var(--sf-inner) + 8px))" : "100%");
+			bar.style.setProperty("--sf-frame", scale > 1 ? `min(100%, calc(var(--sf-inner) + ${pad * 2}px))` : "100%");
 			bar.append(el("div", { class: "sf-bar-frame", attrs: { "aria-hidden": "true" } }));
 		}
 		if (state.cut) bar.classList.add("sf-bar--cut");

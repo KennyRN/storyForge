@@ -197,7 +197,7 @@ test.describe("settings", () => {
 		await expect(d.locator(".sf-setting-row", { hasText: "Chapter numbering" })).not.toContainText("this project");
 		await d.getByRole("button", { name: "Done" }).click();
 		// the navigator now numbers chapters in lower-case roman
-		await expect(page.locator(".sf-select-current-title")).toHaveText("Chapter i");
+		await expect(page.locator(".sf-select--chapters .sf-select-current-title")).toHaveText("Chapter i");
 		// choosing the value already in effect writes nothing more
 		await openSettingsDialog(page);
 		await dialog(page).getByRole("tab", { name: "General", exact: true }).click();
@@ -215,7 +215,7 @@ test.describe("settings", () => {
 		await dialog(page).getByRole("tab", { name: "general", exact: true }).click();
 		await dialog(page).getByLabel("Chapter numbering").selectOption("arabic-padded");
 		await dialog(page).getByRole("button", { name: "Done" }).click();
-		await expect(page.locator(".sf-select-current-title")).toHaveText("Chapter 01");
+		await expect(page.locator(".sf-select--chapters .sf-select-current-title")).toHaveText("Chapter 01");
 	});
 
 	test("the interface settings take effect: hide the series pane, highlighting, the face the app opens in", async ({ page }) => {

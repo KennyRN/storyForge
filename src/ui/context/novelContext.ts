@@ -19,6 +19,7 @@ import { FieldBin } from "../overviews/fieldCommitter";
 import { buildNovelProgress } from "../overviews/novelProgress";
 import { debounced } from "../overviews/refresh";
 import { synopsisField } from "../overviews/sectionFields";
+import { trackRestingGrid } from "./restingGrid";
 import { contextMode } from "./contextMode";
 
 /** Whether the context panel shows the library's chosen novel: on the library side's series tab. */
@@ -37,6 +38,32 @@ export function mountNovelContext(host: HTMLElement, model: AppModel): () => voi
 	const bin = new FieldBin();
 	let ghostWatch: ResizeObserver | null = null;
 	let drawing: Promise<void> = Promise.resolve();
+
+	/**
+	 * The resting grid (Tweaks 1 part 2, §1, §4.1, §4.2): the cover's top is level with the top of the series description box in the centre pane. Stacked under the
+	 * cover (the panel too narrow for them side by side) the synopsis's top is level with the first novel's cover in the centre pane's list, or 12px under the
+	 * panel's cover if that is lower, so it never overlaps.
+	 */
+	const grid = trackRestingGrid(host, () => {
+		const cover = host.querySelector<HTMLElement>(".sf-novel-ctx-head > .sf-cover");
+		const description = document.querySelector<HTMLElement>(".sf-overview .sf-overview-head .sf-section-field");
+		return cover && description ? { anchor: cover, target: description } : null;
+	});
+	const stack = (): void => {
+		const cover = host.querySelector<HTMLElement>(".sf-novel-ctx-head > .sf-cover");
+		const synopsis = host.querySelector<HTMLElement>(".sf-novel-ctx-head > .sf-ctx-synopsis");
+		const first = document.querySelector<HTMLElement>(".sf-overview .sf-overview-row .sf-cover");
+		const overview = document.querySelector<HTMLElement>(".sf-overview");
+		if (!cover || !synopsis) return;
+		synopsis.style.marginTop = "0px";
+		const stacked = synopsis.getBoundingClientRect().top >= cover.getBoundingClientRect().bottom - 1;
+		host.dataset.synopsis = stacked ? "under" : "beside";
+		if (!stacked || !first || !overview) return;
+		const want = first.getBoundingClientRect().top + overview.scrollTop - overview.getBoundingClientRect().top - (synopsis.getBoundingClientRect().top - overview.getBoundingClientRect().top);
+		synopsis.style.marginTop = `${Math.max(0, Math.round(want * 100) / 100)}px`;
+	};
+	const stackWatch = typeof ResizeObserver !== "undefined" ? new ResizeObserver(() => requestAnimationFrame(stack)) : null;
+	stackWatch?.observe(host);
 
 	const clear = (): void => {
 		ghostWatch?.disconnect();
@@ -78,8 +105,10 @@ export function mountNovelContext(host: HTMLElement, model: AppModel): () => voi
 		// "Write this novel" (route 2, §1.4): a hover icon beside the title, distinct from the title's own rename. It makes this novel the one being written.
 		const write = el("button", { class: "sf-hover-icon sf-novel-ctx-write", attrs: { type: "button", "aria-label": `Write this novel: ${title}` }, on: { click: () => void model.writeNovel(book) } }, pencilIcon());
 		attachTooltip(write, "Write this novel");
-		const head = el("div", { class: "sf-novel-ctx-head" }, coverBox(model, { kind: "book", code: book }, title), el("div", { class: "sf-novel-ctx-meta" }, el("div", { class: "sf-novel-ctx-titlerow" }, titleRow, write), povRow));
+		// The title and default PoV sit above, 12px clear of the cover and synopsis (the column's gap); the synopsis is beside the cover, or under it when the panel is too narrow (flex wrap).
+		const meta = el("div", { class: "sf-novel-ctx-meta" }, el("div", { class: "sf-novel-ctx-titlerow" }, titleRow, write), povRow);
 		const synopsis = el("div", { class: "sf-ctx-card sf-ctx-synopsis" }, synopsisField(model, bin, book, title));
+		const head = el("div", { class: "sf-novel-ctx-head" }, coverBox(model, { kind: "book", code: book }, title), synopsis);
 
 		const { ordered, unplaced } = getBookChapters(project, book);
 		const names = [...ordered, ...unplaced].map((c) => c.name);
@@ -93,15 +122,17 @@ export function mountNovelContext(host: HTMLElement, model: AppModel): () => voi
 		const bars = el(
 			"div",
 			{ class: "sf-novel-ctx-bars", attrs: { role: "list", "aria-label": `Chapters of ${title}` } },
-			...ordered.map((c, i) => el("div", { class: "sf-card", attrs: { role: "listitem" }, dataset: { chapter: c.name } }, dataBar({ title: titles[i], words: words[i], target: plannedChapter, scale, targets, name: titles[i], labelled: false, tooltip: `${titles[i]}\n${formatWordCount(words[i])}` }))),
+			...ordered.map((c, i) => el("div", { class: "sf-card", attrs: { role: "listitem" }, dataset: { chapter: c.name } }, dataBar({ title: titles[i], words: words[i], target: plannedChapter, scale, targets, name: titles[i], labelled: false, compact: true, tooltip: `${titles[i]}\n${formatWordCount(words[i])}` }))),
 		);
-		host.replaceChildren(head, synopsis, progress.track, progress.strip, bars);
+		host.replaceChildren(meta, head, progress.joined, bars);
 		progress.drawGhosts();
 		if (typeof ResizeObserver !== "undefined") {
 			ghostWatch = new ResizeObserver(progress.drawGhosts);
 			ghostWatch.observe(progress.track);
 		}
 		shown = book;
+		grid.align();
+		requestAnimationFrame(stack);
 	};
 
 	const draw = async (): Promise<void> => {
@@ -134,6 +165,8 @@ export function mountNovelContext(host: HTMLElement, model: AppModel): () => voi
 	const offNav = model.subscribe(["nav", "face"], schedule);
 	const offData = model.subscribe(["library", "stats", "project", "archive"], refresh);
 	return () => {
+		grid.dispose();
+		stackWatch?.disconnect();
 		offNav();
 		offData();
 		refresh.cancel();

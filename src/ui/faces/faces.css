@@ -158,7 +158,7 @@
 	--nav-radius: 10px;
 	--nav-pad: 14px; /* the list's 6px plus a row's 8px: the closed title sits where the list's text does */
 	position: relative;
-	margin: 0 var(--half-gap) 0 calc(var(--space-4) + 30px - var(--nav-pad)); /* the selector's text lines up with the Codex card's left edge (Tweaks 1, §1.3); the fill sticks out to its left */
+	margin: 0 var(--half-gap) 0 calc(var(--codex-strip-w) + var(--space-2) - var(--nav-pad)); /* the selector's text lines up with the Codex card's left edge (Tweaks 1, §1.3); the fill sticks out to its left */
 }
 /* Open, the selector's fill and the dropdown are one joined piece, so the one shadow is drawn round the pair (a filter on both together), with no line across the join. */
 .sf-select:has(.sf-select-current[aria-expanded="true"]) {
@@ -218,6 +218,23 @@
 }
 .sf-select--title .sf-select-current { color: var(--purpose-text); width: auto; max-width: 100%; }
 .sf-select--title .sf-select-list { left: -6px; min-width: calc(100% + 6px); width: max-content; max-width: 90vw; right: auto; } /* the highlighted row starts where the closed fill does (6px in from the list), so its text lines up with the title's */
+.sf-nav-plain { cursor: default; }
+/* The storytelling side's novel selector (Tweaks 1 part 2, §6.1): the novel name's text stays where it was (16px in, on the series name's row beneath it); the fill grows round it, 5px above and below. */
+.sf-select--novelname {
+	--ap-chapter-family: var(--ap-novel-family);
+	--ap-chapter-weight: var(--ap-novel-weight);
+	--ap-chapter-size: var(--ap-novel-size);
+	--ap-chapter-var: var(--ap-novel-var, normal);
+	--nav-radius: 10px;
+	--nav-pad: 8px;
+	position: relative;
+	display: block;
+	width: fit-content;
+	max-width: calc(100% - var(--space-3));
+	margin: -5px 0 -1px calc(var(--space-4) - var(--nav-pad)); /* the fill's own 5px of padding is taken off the margins, so the text keeps its place */
+}
+.sf-select--novelname .sf-select-current { width: auto; max-width: 100%; }
+.sf-select--novelname .sf-select-list { left: -6px; min-width: calc(100% + 6px); width: max-content; max-width: 90vw; right: auto; }
 .sf-select-add svg {
 	width: 1em; /* the Codex icons' rule (decision 84): the selected chapter's size, not a fixed 16px */
 	height: 1em;
@@ -416,6 +433,9 @@
 	flex-direction: column;
 	gap: 2px;
 	padding: var(--space-1) 0 0 var(--space-2);
+	box-sizing: border-box;
+	width: var(--codex-strip-w); /* one figure, so the Codex card's left edge and the chapter selector's text follow the strip together (Tweaks 1 part 2, §6.2) */
+	flex: none;
 }
 /* The strip's two buttons are hover icons: no button shape, no block. Only the icon's colour changes, from grey0
    to the Codex colour, on hover and on keyboard focus (they are still buttons, with their tooltips and the focus ring). */
@@ -760,7 +780,7 @@ body.sf-codex-drag-active {
 	/* A hover icon (round five): the storytelling side's rounded-square plus, muted at rest, the colour of its header on hover; still a named button. */
 	border-color: transparent;
 	background: transparent;
-	color: var(--purpose-text-muted);
+	color: var(--purpose-codex-rest); /* the unselected tabs' resting colour (Tweaks 1 part 2, §3.5) */
 	transition: color var(--motion);
 }
 .sf-zone-header .sf-zone-add:hover:not(:disabled),
@@ -819,11 +839,18 @@ body.sf-codex-drag-active {
 	gap: var(--space-1);
 	padding: var(--space-1) var(--space-1) var(--space-2);
 }
+/* One gap between a label and its value, in every label-and-value row (Tweaks 1 part 2, §3.3): the value's text starts --label-gap after the label's;
+   the button's own 6px padding is taken off the margin so the hover box reaches back and the text sits at the gap. */
 .sf-meta-row {
 	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--space-2);
+	align-items: baseline;
+	justify-content: flex-start;
+	gap: var(--label-gap);
+}
+.sf-meta-row > .sf-meta-value {
+	margin-left: -6px;
+	min-width: 0;
+	text-align: left;
 }
 .sf-meta-label {
 	color: var(--purpose-data-label);

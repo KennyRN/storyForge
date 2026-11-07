@@ -125,12 +125,12 @@ test.describe("Appearance", () => {
 	test("a font changes only its own part, at once, and is written to project.md; the library side's Codex list follows it (Fix 7 polish: it takes the storytelling list's settings)", async ({ page }) => {
 		await openProject(page);
 		await page.waitForFunction(() => document.documentElement.style.getPropertyValue("--ap-chapter-size") !== ""); // the project's own choices are applied
-		const chapterBefore = await style(page, ".sf-select-current");
+		const chapterBefore = await style(page, ".sf-select--chapters .sf-select-current");
 		await openSettings(page, "Appearance");
 		await font(page, "Novel title").selectOption("Aleo");
 		await expect.poll(async () => (await style(page, ".sf-nav-novel")).family).toContain("Aleo");
 		expect((await style(page, ".sf-nav-novel")).weight).toBe("900"); // the weight goes with the author to the new font
-		expect(await style(page, ".sf-select-current")).toEqual(chapterBefore);
+		expect(await style(page, ".sf-select--chapters .sf-select-current")).toEqual(chapterBefore);
 		expect((await style(page, ".sf-nav-series")).family).toContain("Sofia Sans"); // the series name is its own part
 		await expect.poll(() => projectMd(page)).toContain("appearance-novel-font: Aleo");
 		await font(page, "Codex list").selectOption("Aleo");

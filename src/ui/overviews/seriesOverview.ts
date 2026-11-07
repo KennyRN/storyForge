@@ -10,6 +10,7 @@ import { coverBox } from "./cover";
 import { FieldBin } from "./fieldCommitter";
 import { descriptionField } from "./sectionFields";
 import { debounced, redrawKeepingFocus } from "./refresh";
+import { synopsisBox } from "./synopsisBox";
 import { trackTitleLine } from "./titleLine";
 
 /** The words in a novel's placed chapters, from the index. */
@@ -45,7 +46,7 @@ export function mountSeriesOverview(host: HTMLElement, model: AppModel): () => v
 			const title = titles[i];
 			const row = el("div", { class: "sf-overview-row", dataset: { book: f.name }, attrs: { role: "listitem" } });
 			const name = el("button", { class: "sf-overview-name", text: title, attrs: { type: "button" }, on: { click: () => open(f.name) } });
-			row.append(coverBox(model, { kind: "book", code: f.name }, title), el("div", { class: "sf-overview-row-main" }, name, plainBar(title, words, layout[i].fillPercent)));
+			row.append(coverBox(model, { kind: "book", code: f.name }, title), el("div", { class: "sf-overview-row-main" }, name, plainBar(title, words, layout[i].fillPercent), synopsisBox(model, f.name, title)));
 			placed.append(row);
 		});
 		if (series.ordered.length === 0) placed.append(el("div", { class: "sf-muted", text: "No novels are placed in the series yet." }));

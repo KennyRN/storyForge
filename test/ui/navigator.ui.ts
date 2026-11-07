@@ -16,7 +16,7 @@ test.describe("the navigator", () => {
 	// Fix 7 (decision 97): the selector has no chevron and no fill at rest; a bg1 fill on hover and while open, on the Codex card's edges.
 	test("the selector has no chevron, no fill at rest, and a bg1 fill with the cards' corners on hover and while open, lined up with the Codex card", async ({ page }) => {
 		await openProject(page);
-		const cur = page.locator(".sf-select-current");
+		const cur = page.locator(".sf-select--chapters .sf-select-current");
 		const fill = () => cur.evaluate((e) => getComputedStyle(e).backgroundColor);
 		const clear = "rgba(0, 0, 0, 0)";
 		const bg1 = await colour(page, "--purpose-raised-bg").then(async () => page.evaluate(() => { const d = document.createElement("i"); d.style.background = "var(--purpose-raised-bg)"; document.body.append(d); const c = getComputedStyle(d).backgroundColor; d.remove(); return c; }));
@@ -40,20 +40,20 @@ test.describe("the navigator", () => {
 		expect(await list.evaluate((e) => getComputedStyle(e).borderTopLeftRadius)).toBe("0px");
 		expect(await list.evaluate((e) => getComputedStyle(e).borderBottomRightRadius)).toBe("10px");
 		// Tweaks 1, §1.3: the selector's text lines up with the Codex card's left edge, so the fill and the list stick out to the left by the 14px padding; their right edge is still the card's.
-		for (const e of [await edges(".sf-select-current"), await edges(".sf-select-list")]) {
+		for (const e of [await edges(".sf-select--chapters .sf-select-current"), await edges(".sf-select-list")]) {
 			expect(Math.abs(e[0] - (card[0] - 14))).toBeLessThan(1);
 			expect(Math.abs(e[1] - card[1])).toBeLessThan(1);
 		}
-		expect(Math.abs((await edges(".sf-select-current-title"))[0] - card[0])).toBeLessThan(1);
+		expect(Math.abs((await edges(".sf-select--chapters .sf-select-current-title"))[0] - card[0])).toBeLessThan(1);
 		await expect(cur).toHaveAttribute("aria-expanded", "true");
 	});
 
 	test("keyboard focus alone gives the selector the green ring and no fill", async ({ page }) => {
 		await openProject(page);
 		await page.mouse.move(600, 600);
-		await page.locator(".sf-nav-novel").focus();
+		await page.locator(".sf-select--novelname .sf-select-current").focus(); // the novel selector first, then the chapter selector
 		await page.keyboard.press("Alt+Tab");
-		const cur = page.locator(".sf-select-current");
+		const cur = page.locator(".sf-select--chapters .sf-select-current");
 		await expect(cur).toBeFocused();
 		expect(await cur.evaluate((e) => getComputedStyle(e).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
 		expect(await cur.evaluate((e) => getComputedStyle(e).outlineColor)).toBe(await colour(page, "--purpose-accent"));
@@ -62,7 +62,7 @@ test.describe("the navigator", () => {
 
 	test("shows the series name, the novel's name and the chapter selector, in that order, with no header and no Flip side", async ({ page }) => {
 		await openProject(page);
-		const tops = await Promise.all([".sf-nav-series", ".sf-nav-novel", ".sf-select-current"].map((s) => page.locator(s).evaluate((e) => e.getBoundingClientRect().top)));
+		const tops = await Promise.all([".sf-nav-series", ".sf-nav-novel", ".sf-select--chapters .sf-select-current"].map((s) => page.locator(s).evaluate((e) => e.getBoundingClientRect().top)));
 		expect(tops[0]).toBeLessThan(tops[1]);
 		expect(tops[1]).toBeLessThan(tops[2]);
 		await expect(page.locator(".sf-left-header")).toHaveCount(0);
@@ -70,7 +70,7 @@ test.describe("the navigator", () => {
 		const green = await colour(page, "--purpose-accent");
 		expect(await colourOf(page.locator(".sf-nav-series"))).toBe(green);
 		expect(await colourOf(page.locator(".sf-nav-novel"))).toBe(green);
-		expect(await colourOf(page.locator(".sf-select-current"))).toBe(green);
+		expect(await colourOf(page.locator(".sf-select--chapters .sf-select-current"))).toBe(green);
 	});
 
 	test("a standalone novel (story-kind: standalone) has no series line; an unknown value is a series and isn't rewritten", async ({ page }) => {
@@ -94,7 +94,7 @@ test.describe("the navigator", () => {
 	test("the series and novel names are buttons that flip to the library side's tabs, the chapter's editor and text kept; ⌘\\ flips back", async ({ page }) => {
 		await openProject(page);
 		const series = page.getByRole("button", { name: "Open the series on the library side" });
-		const novel = page.getByRole("button", { name: "Open the novel on the library side" });
+		const novel = page.getByRole("button", { name: "Novels" }); // a selector since Tweaks 1 part 2 (§6.1): it opens a list, not the novel tab
 		await expect.poll(() => series.evaluate((e) => getComputedStyle(e).cursor), { message: "the stylesheet has been applied" }).toBe("pointer"); // read once styled: once a full run read it empty
 		await page.locator(".cm-content").first().click();
 		await page.keyboard.type(" unsaved words");
@@ -106,6 +106,9 @@ test.describe("the navigator", () => {
 		await expect(page.locator(".sf-nav-series")).toBeVisible();
 		await expect(page.locator(".cm-content").first()).toContainText("unsaved words");
 		await novel.click();
+		await expect(page.locator(".sf-select-list")).toBeVisible();
+		await page.keyboard.press("Escape");
+		await page.evaluate(() => (window.__app as any).openLibraryTab("novel", { resetChoice: true }));
 		await expect(page.getByRole("tab", { name: "novel", selected: true })).toBeVisible();
 		await expect(page.locator(".sf-left-name")).toHaveCount(0); // the library side's header is gone too
 	});
@@ -171,7 +174,7 @@ test.describe("the navigator", () => {
 			await selector(page).click();
 			await page.locator(".sf-select-row", { hasText: "The Storm" }).click();
 			await expect(page.getByRole("list", { name: "Chapters of this novel" })).toHaveCount(0);
-			await expect(page.locator(".sf-select-current-title")).toHaveText("The Storm: Part Two");
+			await expect(page.locator(".sf-select--chapters .sf-select-current-title")).toHaveText("The Storm: Part Two");
 			await selector(page).click();
 			await page.locator(".sf-select-row").first().focus();
 			await page.keyboard.press("Escape");
@@ -196,7 +199,7 @@ test.describe("the navigator", () => {
 			await openProject(page);
 			await page.evaluate(() => window.__app.openChapter("aaa", "ch-a3.md"));
 			await expect(page.locator(".sf-nav-note")).toHaveText("unplaced");
-			expect(await colourOf(page.locator(".sf-select-current"))).toBe(await colour(page, "--purpose-text-muted"));
+			expect(await colourOf(page.locator(".sf-select--chapters .sf-select-current"))).toBe(await colour(page, "--purpose-text-muted"));
 			await selector(page).click();
 			await expect(page.locator(".sf-select-row.is-active")).toHaveCount(0);
 		});

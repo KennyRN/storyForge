@@ -20,17 +20,15 @@ test.describe("the novel selector on the novel tab", () => {
 		await tab(page, "novel").click();
 	});
 
-	test("opens from the novel's name, lists the placed novels then the unplaced, and marks the current one", async ({ page }) => {
+	test("opens from the novel's name, lists the placed novels only (Tweaks 1, §1.4), and marks the current one", async ({ page }) => {
 		await expect(selectorButton(page)).toContainText("Book 1");
 		await selectorButton(page).click();
 		const rows = page.locator(".sf-overview .sf-select-row");
-		await expect(rows).toHaveCount(3);
+		await expect(rows).toHaveCount(2);
 		await expect(rows.nth(0)).toContainText("Book 1");
 		await expect(rows.nth(0)).toHaveClass(/is-active/);
 		await expect(rows.nth(1)).toContainText("Book 2");
-		await expect(rows.nth(2)).toContainText("Spare Draft");
-		await expect(rows.nth(2)).toHaveClass(/is-muted/);
-		await expect(page.locator(".sf-overview .sf-select-separator")).toHaveCount(1); // between the placed novels and the unplaced
+		await expect(page.locator(".sf-overview .sf-select-separator")).toHaveCount(0);
 	});
 
 	test("works by keyboard: arrows move, Return chooses, Escape closes; choosing changes the library's novel and never the one being written", async ({ page }) => {
@@ -99,9 +97,9 @@ test.describe("the novel tab follows the series tab's choice", () => {
 		await expect(page.locator(".sf-chapter-context")).not.toBeEmpty();
 	});
 
-	test("the storytelling side's novel name lands on the novel tab showing the novel being written, and resets the choice to it", async ({ page }) => {
+	test("the library's novel tab shows the novel being written, and the model's route from the storytelling side resets the choice to it (the novel name there is now a selector, Tweaks 1 part 2, §6.1)", async ({ page }) => {
 		await flipFace(page);
-		await page.locator(".sf-nav-novel").click();
+		await page.evaluate(() => (window.__app as any).openLibraryTab("novel", { resetChoice: true }));
 		await expect(tab(page, "novel")).toHaveAttribute("aria-selected", "true");
 		await expect(selectorButton(page)).toContainText("Book 1");
 		expect(await nav(page)).toMatchObject({ book: "aaa", libraryBook: "aaa" });
@@ -146,7 +144,7 @@ test.describe("Write this novel", () => {
 
 test("going from the novel tab to the series tab shows the series overview, not a late redraw of the novel's", async ({ page }) => {
 	await openProject(page);
-	await page.getByRole("button", { name: "Open the novel on the library side" }).click();
+	await page.evaluate(() => (window.__app as any).openLibraryTab("novel", { resetChoice: true }));
 	await expect(page.getByRole("region", { name: "Novel overview" })).toBeVisible();
 	await page.getByRole("tab", { name: "series" }).click();
 	await page.waitForTimeout(800); // longer than the overviews' redraw delay

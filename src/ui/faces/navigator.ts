@@ -1,5 +1,6 @@
 import { getBookChapters, numberedChapterTitle } from "../../core/book";
-import { numberedBookTitle, readSeriesFrontmatter } from "../../core/series";
+import { bookDisplayTitle, getSeriesBooks, numberedBookTitle, readSeriesFrontmatter } from "../../core/series";
+import { applyHashNumbering } from "../../core/titleNumbering";
 import { el, fill } from "../kit/dom";
 import { addChapterIcon } from "../kit/statsIcons";
 import { attachTooltip } from "../kit/tooltip";
@@ -13,8 +14,10 @@ import type { AppModel } from "../model";
  */
 export function mountNavigator(host: HTMLElement, model: AppModel): () => void {
 	const state: SelectState = { expanded: false };
+	const novelState: SelectState = { expanded: false };
 	let shownBook: string | null = null;
 	let selector: { dispose(): void } | null = null;
+	let novelSelector: { dispose(): void } | null = null;
 	host.classList.add("sf-pane", "sf-navigator");
 
 	/** Everything else in the left panel can't be reached while the list is open: a click outside only closes it. */
@@ -25,6 +28,8 @@ export function mountNavigator(host: HTMLElement, model: AppModel): () => void {
 	const draw = (): void => {
 		selector?.dispose();
 		selector = null;
+		novelSelector?.dispose();
+		novelSelector = null;
 		setBehind(false);
 		const running = model.running;
 		if (!running) return fill(host);
@@ -33,6 +38,7 @@ export function mountNavigator(host: HTMLElement, model: AppModel): () => void {
 		const { book, chapter } = model.nav;
 		if (book !== shownBook) {
 			state.expanded = false;
+			novelState.expanded = false;
 			shownBook = book;
 		}
 		if (!book) {
@@ -51,7 +57,10 @@ export function mountNavigator(host: HTMLElement, model: AppModel): () => void {
 			return b;
 		};
 		const seriesLine = settings.storyKind === "series" ? lead("sf-nav-series", readSeriesFrontmatter(project).seriesTitle, "Open the series on the library side", "series") : null;
-		const novelLine = lead("sf-nav-novel", numberedBookTitle(project, book, undefined, settings.seriesNumberingStyle), "Open the novel on the library side", "novel");
+		const novelName = numberedBookTitle(project, book, undefined, settings.seriesNumberingStyle);
+		// A standalone project has no selector: its novel's name is a plain label. In a series the name is the novel selector (Tweaks 1 part 2, §6.1), listing the placed novels only.
+		const novelHost = el("div", { class: "sf-select-host sf-nav-novel-host" });
+		const novelLine = settings.storyKind === "series" ? novelHost : el("div", { class: "sf-nav-lead sf-nav-novel sf-nav-plain", text: novelName });
 
 		// "Add the next chapter" (a true append) is the list's last item.
 		const add = el("button", {
@@ -78,9 +87,26 @@ export function mountNavigator(host: HTMLElement, model: AppModel): () => void {
 			state,
 			{ onToggled: setBehind, modifier: "sf-select--chapters" },
 		);
-		setBehind(state.expanded);
+		if (settings.storyKind === "series") {
+			const series = getSeriesBooks(project);
+			const folders = series.ordered.map((f) => f.name);
+			const numbered = applyHashNumbering(folders.map((f) => bookDisplayTitle(project, f)), settings.seriesNumberingStyle);
+			novelSelector = mountSelectList(
+				novelHost,
+				() => ({
+					title: novelName,
+					label: "Novels",
+					listLabel: "Novels of this series",
+					rows: folders.map((f, i) => ({ key: f, text: numbered[i], active: f === book, dataset: { book: f } })), // an unplaced novel being written highlights no row
+					onChoose: (f) => void model.switchNovel(f),
+				}),
+				novelState,
+				{ onToggled: setBehind, modifier: "sf-select--novelname", titleClass: "sf-nav-novel" },
+			);
+		}
+		setBehind(state.expanded || novelState.expanded);
 	};
 	draw();
 	const off = model.subscribe(["library", "nav", "project", "settings"], () => host.isConnected && draw());
-	return () => (off(), selector?.dispose(), setBehind(false));
+	return () => (off(), selector?.dispose(), novelSelector?.dispose(), setBehind(false));
 }

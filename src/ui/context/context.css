@@ -10,8 +10,8 @@
 	gap: 12px;
 	padding: 0 var(--gap) 0 var(--half-gap);
 }
+.sf-chapter-rows .sf-meta-value { padding-top: 0; padding-bottom: 0; } /* the rows stay as tall as they were, so the pair still clears the panel's top line */
 .sf-chapter-rows { flex: none; display: flex; flex-direction: column; gap: 2px; font-family: var(--ts-body-family); font-weight: var(--ts-body-weight); font-size: var(--ts-body-size); font-variation-settings: var(--ts-body-var); }
-.sf-chapter-rows .sf-card-row { display: flex; gap: 8px; }
 .sf-ctx-card { background: var(--purpose-editor-bg); border-radius: 10px; overflow: hidden; box-sizing: border-box; }
 .sf-ctx-plot { flex: none; max-height: 35%; overflow: auto; padding: 8px 0; }
 .sf-ctx-plot .sf-note-field { margin-left: 0; border: 0; } /* the field's own -6px margin and 1px border put the text 7px in; the card's inset is the one shared value */
@@ -39,13 +39,14 @@
 /* A scrolling column never squeezes what is in it (decision 152): the progress bar and the structure strip have a fixed height and overflow: hidden, so their
    automatic minimum is 0 and they were squeezed to nothing when the content was taller than the panel. Every child keeps its natural height; the panel scrolls. */
 .sf-novel-context > * { flex: none; }
-.sf-novel-ctx-head { display: flex; gap: 12px; align-items: flex-start; }
-.sf-novel-ctx-meta { display: flex; flex-direction: column; gap: 6px; min-width: 0; flex: 1; }
+.sf-novel-ctx-head { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; } /* the synopsis beside the cover; under it when its column would be under 220px (the panel under 328px of content: 96 + 12 + 220), Tweaks 1 part 2, §4.2 */
+.sf-novel-ctx-head > .sf-ctx-synopsis { flex: 1 1 220px; min-width: 0; min-height: 144px; }
+.sf-novel-ctx-meta { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .sf-novel-ctx-title { font-family: var(--ts-title-family); font-weight: var(--ts-title-weight); font-size: var(--ts-body-size); font-variation-settings: var(--ts-title-var); }
 .sf-ctx-synopsis { flex: none; }
 .sf-ctx-synopsis .sf-note-field { background: transparent; border-radius: 0; margin-left: 0; border: 0; }
 .sf-ctx-synopsis .sf-note-field .cm-content { padding: 8px var(--card-text-inset); }
-.sf-novel-ctx-bars { display: flex; flex-direction: column; gap: 6px; }
+.sf-novel-ctx-bars { display: flex; flex-direction: column; gap: 4px; } /* the rails 4px apart (Tweaks 1 part 2, §4.4) */
 .sf-novel-ctx-titlerow { display: flex; align-items: flex-start; gap: 6px; }
 .sf-novel-ctx-titlerow .sf-novel-ctx-title { flex: 1; min-width: 0; }
 /* A hover icon (Brief 19): muted at rest, the accent on hover and keyboard focus; the colour is all that changes. */

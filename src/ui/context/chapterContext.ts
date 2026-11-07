@@ -7,8 +7,10 @@ import { commitFocusedFields } from "../commitOnClose";
 import { writingPlaceGone } from "../editor/lastWriting";
 import { openCodexPicker } from "../kit/codexPicker";
 import { el } from "../kit/dom";
+import { metaRow } from "../faces/lengthFields";
 import type { AppModel } from "../model";
 import { FieldBin, textField, type TextField } from "../overviews/fieldCommitter";
+import { trackRestingGrid } from "./restingGrid";
 import { mountChapterText, type ChapterText } from "./chapterText";
 
 /** Whether the context panel shows the chosen chapter: on the library side's novel tab. Everywhere else it is the Codex note, as before. */
@@ -37,17 +39,6 @@ export function mountChapterContext(host: HTMLElement, model: AppModel): () => v
 		writingPlaceGone(); // the special-characters button re-reads where the author was
 	};
 
-	const refs = (project: NonNullable<AppModel["running"]>["opened"]["project"], list: CodexRef[], muted: boolean): HTMLElement[] =>
-		list.map((r) => {
-			const missing = !project.isFile(r.path);
-			return el("button", {
-				class: `sf-ref${muted || missing ? " is-muted" : ""}`,
-				text: missing ? `${r.name} (missing)` : r.name,
-				attrs: { type: "button", title: missing ? `${r.path} is not in the Codex` : r.path },
-				on: { click: () => (missing ? undefined : void model.editors?.open("codex", r.path)) }, // a Codex note shows in the library side's Codex workspace
-			});
-		});
-
 	/** The PoV and Location rows (rebuilt whenever the library changes). */
 	const buildRows = (book: string, file: string, title: string): HTMLElement => {
 		const running = model.running!;
@@ -66,16 +57,28 @@ export function mountChapterContext(host: HTMLElement, model: AppModel): () => v
 				exists: (p) => project.isFile(p),
 				onApply: (chosen) => void model.guard(async () => (await save(chosen), model.touch("library", "nav")), "save the choice"),
 			});
+		/** PoV or Location: a button like the default PoV's, showing the chosen names (plain labels: they open nothing, §2). */
 		const row = (label: string, kind: "pov" | "location", own: CodexRef[], type: string, fallback: CodexRef[]): HTMLElement => {
 			const hasOwn = own.length > 0;
 			const list = hasOwn ? own : fallback;
-			return el(
-				"div",
-				{ class: "sf-card-row sf-ref-row", dataset: { row: kind } },
-				el("span", { class: "sf-data-label", text: label }),
-				el("span", { class: "sf-ref-list sf-data-value" }, ...(list.length ? refs(project, list, !hasOwn) : [el("span", { class: "sf-muted", text: "None" })]), !hasOwn && list.length ? el("span", { class: "sf-muted", text: "(default)" }) : null),
-				readOnly ? null : el("button", { class: "sf-ref-choose", text: "Choose…", attrs: { type: "button", "aria-label": `Choose ${label.toLowerCase()} for ${title}` }, on: { click: () => choose(`${label} for ${title}`, type, own, (c) => (kind === "pov" ? writeChapterPov : writeChapterLocation)(project, book, file, c)) } }),
-			);
+			const pieces: Node[] = [];
+			list.forEach((r, i) => {
+				const missing = !project.isFile(r.path);
+				const muted = !hasOwn || missing;
+				if (i > 0) pieces.push(document.createTextNode(", "));
+				pieces.push(el("span", { class: muted ? "sf-muted" : "", text: missing ? `${r.name} (missing)` : r.name, attrs: missing ? { title: `${r.path} is not in the Codex` } : {} }));
+			});
+			if (!list.length) pieces.push(el("span", { class: "sf-muted", text: "None" }));
+			else if (!hasOwn) pieces.push(document.createTextNode(" "), el("span", { class: "sf-muted", text: "(default)" }));
+			const names = list.length ? list.map((r) => r.name).join(", ") + (hasOwn ? "" : " (default)") : "None";
+			return metaRow(`${label}:`, names, {
+				content: pieces,
+				dataRow: kind,
+				disabled: !!readOnly,
+				title: kind === "pov" ? "Choose the point-of-view characters" : "Choose the locations",
+				name: `${label} for ${title}: ${names}. Choose`,
+				onClick: () => choose(`${label} for ${title}`, type, own, (c) => (kind === "pov" ? writeChapterPov : writeChapterLocation)(project, book, file, c)),
+			});
 		};
 		return el("div", { class: "sf-card-rows sf-chapter-rows" }, row("PoV", "pov", entry?.pov ?? [], "person", defaultPov), row("Location", "location", entry?.location ?? [], "place", []));
 	};
@@ -99,7 +102,7 @@ export function mountChapterContext(host: HTMLElement, model: AppModel): () => v
 				notify: (n) => model.notices.notify(n),
 				placeholder: "Plot note",
 				typing: () => model.typingOptions(),
-				links: model.codexLinksFor(bookFilePath(book)), // the plot note is stored in the novel file
+				links: model.codexLinksFor(bookFilePath(book), false), // the plot note is stored in the novel file
 			},
 			bin,
 		);
@@ -143,34 +146,16 @@ export function mountChapterContext(host: HTMLElement, model: AppModel): () => v
 		build(path, book, chapter);
 	};
 	/**
-	 * The chapter information box's top is level with the top of the novel synopsis box in the centre pane (Tweaks 1, §1.6), worked out live from the layout,
-	 * never a fixed figure, with the centre pane scrolled to its top (it stays put when the pane scrolls). The PoV and Location rows sit above it, 12px clear
-	 * (the column's gap). If they would have to rise above the panel's top line the box stays where it is: the rows are never squeezed or pushed over it.
+	 * The chapter information box's top is level with the top of the novel synopsis box in the centre pane (Tweaks 1, §1.6), worked out live from the layout on the
+	 * resting grid (`restingGrid.ts`): never a fixed figure, and never following the pane's scrolling. The PoV and Location rows sit above it, 12px clear. If they
+	 * would have to rise above the panel's top line the box stays where it is: the rows are never squeezed or pushed over it.
 	 */
-	let frame = 0;
-	const align = (): void => {
-		frame = 0;
+	const grid = trackRestingGrid(host, () => {
 		const plot = host.querySelector<HTMLElement>(".sf-ctx-plot");
-		const overview = document.querySelector<HTMLElement>(".sf-overview");
-		const synopsis = overview?.querySelector<HTMLElement>(".sf-overview-head .sf-section-field");
-		if (host.hidden || !plot || !overview || !synopsis) return;
-		host.style.paddingTop = "0px";
-		const need = synopsis.getBoundingClientRect().top + overview.scrollTop - plot.getBoundingClientRect().top;
-		host.style.paddingTop = `${Math.max(0, Math.round(need * 100) / 100)}px`;
-		host.dataset.alignShortBy = need < 0 ? String(Math.round(-need)) : "0";
-	};
-	const alignSoon = (): void => {
-		if (!frame) frame = requestAnimationFrame(align);
-	};
-	const overviewEl = document.querySelector<HTMLElement>(".sf-overview");
-	const resize = typeof ResizeObserver !== "undefined" ? new ResizeObserver(alignSoon) : null;
-	const mutation = typeof MutationObserver !== "undefined" ? new MutationObserver(alignSoon) : null;
-	if (overviewEl) {
-		resize?.observe(overviewEl);
-		mutation?.observe(overviewEl, { childList: true, subtree: true });
-	}
-	resize?.observe(host);
-	window.addEventListener("resize", alignSoon);
+		const synopsis = document.querySelector<HTMLElement>(".sf-overview .sf-overview-head .sf-section-field");
+		return plot && synopsis ? { anchor: plot, target: synopsis } : null;
+	});
+	const alignSoon = grid.align;
 	const schedule = (): void => {
 		drawing = drawing.then(draw).then(alignSoon).catch(() => undefined);
 	};
@@ -178,9 +163,7 @@ export function mountChapterContext(host: HTMLElement, model: AppModel): () => v
 	const off = model.subscribe(["nav", "face", "library", "project"], schedule);
 	return () => {
 		off();
-		resize?.disconnect();
-		mutation?.disconnect();
-		window.removeEventListener("resize", alignSoon);
+		grid.dispose();
 		void drawing.then(() => {
 			clear();
 			host.classList.remove("sf-chapter-context");

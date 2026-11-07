@@ -235,43 +235,45 @@ test.describe("the context panel on the novel tab", () => {
 		await expect.poll(() => fieldText(plot(page))).toBe("Typed, then the chapter changed.");
 	});
 
-	test("a chapter with no PoV of its own shows the default, muted and labelled, and the default is not written into the chapter", async ({ page }) => {
+	test("a chapter with no PoV of its own shows the default, muted and labelled, on the PoV button, and the default is not written into the chapter", async ({ page }) => {
 		await choose(page, "ch-a5.md");
 		const row = panel(page).locator('[data-row="pov"]');
-		await expect(row.locator(".sf-ref.is-muted")).toHaveText("Jane");
+		await expect(row.locator(".sf-meta-value .sf-muted").first()).toHaveText("Jane");
 		await expect(row).toContainText("(default)");
 		expect(await read(page, BOOK_A)).not.toMatch(/ch-a5\.md:[\s\S]*pov/);
 	});
 
-	test("the PoV picker sets a chapter's PoV, with the same write as before; the default PoV is set in the left pane", async ({ page }) => {
+	test("PoV and Location are buttons: several can be chosen, the names are shown comma-separated, and the writes are the same bytes as before (decisions 42 and 43)", async ({ page }) => {
 		await choose(page, "ch-a5.md");
 		const row = panel(page).locator('[data-row="pov"]');
-		await row.getByRole("button", { name: /Choose pov/i }).click();
+		await row.getByRole("button").click();
 		await page.getByRole("dialog").getByLabel("Sam").check();
+		await page.getByRole("dialog").getByLabel("Jane").check();
 		await page.getByRole("dialog").getByRole("button", { name: "Choose" }).click();
-		await expect(row.locator(".sf-ref")).toHaveText("Sam");
-		await expect(row.locator(".sf-ref.is-muted")).toHaveCount(0);
-		expect(await read(page, BOOK_A)).toContain("Codex%2FSam.md=Sam");
+		await expect(row.locator(".sf-meta-value")).toContainText("Sam, Jane");
+		await expect(row.locator(".sf-meta-value .sf-muted")).toHaveCount(0);
+		const disk = await read(page, BOOK_A);
+		expect(disk).toContain("Codex%2FSam.md=Sam");
+		expect(disk).toContain("Codex%2FJane.md=Jane");
+		await expect(page.locator(".sf-ref-choose")).toHaveCount(0); // the "Choose…" links are gone
 		await page.locator(".sf-left .sf-meta-row", { hasText: "Default PoV" }).getByRole("button").click();
 		await page.getByRole("menuitem", { name: "Sam" }).click();
 		await expect.poll(() => read(page, BOOK_A)).toContain("default-pov-path: Codex/Sam.md");
 	});
 
-	test("a reference to a note that is gone is shown as missing, and stays in the file", async ({ page }) => {
+	test("a reference to a note that is gone is shown as missing, muted, and stays in the file", async ({ page }) => {
 		const novel = await read(page, BOOK_A);
 		await outside(page, BOOK_A, novel.replace("v1;Codex%2FJane.md=Jane", "v1;Codex%2FGone.md=Gone"));
-		const ref = panel(page).locator('[data-row="pov"] .sf-ref');
+		const ref = panel(page).locator('[data-row="pov"] .sf-meta-value .sf-muted');
 		await expect(ref).toHaveText("Gone (missing)");
-		await expect(ref).toHaveClass(/is-muted/);
 		expect(await read(page, BOOK_A)).toContain("Codex%2FGone.md=Gone");
 	});
 
-	test("a name in the PoV row opens that note in the workspace, and the overview comes back from its tab", async ({ page }) => {
-		await panel(page).locator('[data-row="pov"] .sf-ref').click();
-		await expect(overview(page)).toHaveCount(0);
-		await expect(page.getByRole("tab", { name: "codex", selected: true })).toBeVisible().catch(() => undefined);
-		await page.getByRole("tab", { name: "novel" }).click();
+	test("a name in the PoV button opens nothing (Codex entries open only on the Codex tab and the storytelling side)", async ({ page }) => {
+		await panel(page).locator('[data-row="pov"] .sf-meta-value').click(); // opens the picker, not a note
+		await page.keyboard.press("Escape");
 		await expect(overview(page)).toBeVisible();
+		expect(await page.evaluate(() => (window.__app as any).editors.pathIn("codex"))).toBeFalsy();
 	});
 });
 
@@ -294,7 +296,7 @@ test.describe("one chosen chapter, shared by both sides", () => {
 		await flipFace(page); // flipping shows it
 		await expect(centreText(page)).toContainText("Opening line of a second chapter"); // chapter 2's text, in the one editor
 		expect(await page.evaluate(() => (window.__app as any).nav.chapter)).toBe("ch-a2.md");
-		await expect(page.locator(".sf-select-current-title")).toContainText("The Storm");
+		await expect(page.locator(".sf-select--chapters .sf-select-current-title")).toContainText("The Storm");
 	});
 
 	test("choosing from the left pane's placed list does the same, and the chosen row is highlighted", async ({ page }) => {
@@ -330,7 +332,7 @@ test.describe("one chosen chapter, shared by both sides", () => {
 	});
 
 	test("clicking the novel name on the storytelling side lands on the novel tab with the chapter being written marked and shown", async ({ page }) => {
-		await page.getByRole("button", { name: "Open the novel on the library side" }).click();
+		await page.evaluate(() => (window.__app as any).openLibraryTab("novel", { resetChoice: true })); // the novel name on the storytelling side is a selector now (§6.1)
 		await expect(page.getByRole("tab", { name: "novel", selected: true })).toBeVisible();
 		await expect(placedRow(page, "Chapter 1").first()).toHaveClass(/is-active|is-selected|is-chosen/);
 		await expect(page.getByRole("textbox", { name: /^Plot note for Chapter 1/ })).toBeVisible();

@@ -33,10 +33,10 @@ test.describe("rule 2: one shadow for every floating surface", () => {
 		await page.keyboard.press("Escape");
 		// the chapter selector and its dropdown are one piece: the shadow is a filter round the pair, and neither box has its own
 		await page.getByRole("button", { name: "Chapters" }).click();
-		const select = page.locator(".sf-select");
+		const select = page.locator(".sf-select--chapters");
 		expect(await style(select, "filter")).toBe(await resolved(page, "filter", "var(--floating-shadow-filter)"));
 		expect(await style(page.locator(".sf-select-list"), "box-shadow")).toBe("none");
-		expect(await style(page.locator(".sf-select-current"), "box-shadow")).toBe("none");
+		expect(await style(page.locator(".sf-select--chapters .sf-select-current"), "box-shadow")).toBe("none");
 		await page.keyboard.press("Escape");
 		expect(await style(select, "filter")).toBe("none"); // closed, no shadow
 	});

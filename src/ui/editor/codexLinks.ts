@@ -17,6 +17,8 @@ export interface EditorLinks {
 	world(): LinkWorld;
 	/** Opens a Codex entry: in the context panel on the storytelling side, in the Codex tab on the library side. */
 	open(path: string): void;
+	/** False where no Codex entry may be opened (Tweaks 1 part 2, §2: the novel, series and archive pages): links are dressed as links but inert. */
+	live?: boolean;
 }
 
 export const linksFacet = Facet.define<EditorLinks, EditorLinks | null>({ combine: (v) => v[0] ?? null });
@@ -24,7 +26,7 @@ export const linksFacet = Facet.define<EditorLinks, EditorLinks | null>({ combin
 /** What a link's target is in this editor, or undefined when the editor has no links hooks (a plain link is then just drawn as a link). */
 export const classifierOf = (state: EditorState): ((target: string) => LinkTarget) | undefined => {
 	const links = state.facet(linksFacet);
-	return links ? (target) => classifyLinkTarget(links.fromFile, target, links.world()) : undefined;
+	return links && links.live !== false ? (target) => classifyLinkTarget(links.fromFile, target, links.world()) : undefined;
 };
 
 interface Popup {
@@ -180,7 +182,7 @@ export function codexLinks(links: EditorLinks, hooks: CodexLinkHooks | null): Ex
 			if (!link) return false;
 			event.preventDefault();
 			const target = classifyLinkTarget(links.fromFile, link.target, links.world());
-			if (target.kind === "codex") links.open(target.path);
+			if (target.kind === "codex" && links.live !== false) links.open(target.path);
 			return true;
 		},
 	});
@@ -191,7 +193,7 @@ export function codexLinks(links: EditorLinks, hooks: CodexLinkHooks | null): Ex
 		const link = linkAt(view.state, sel.head);
 		if (!link) return false;
 		const target = classifyLinkTarget(links.fromFile, link.target, links.world());
-		if (target.kind === "codex") links.open(target.path);
+		if (target.kind === "codex" && links.live !== false) links.open(target.path);
 		return true;
 	};
 

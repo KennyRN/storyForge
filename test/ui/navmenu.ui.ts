@@ -185,7 +185,7 @@ test.describe("focus rings are for the keyboard", () => {
 		await selector.click();
 		expect(await outline(selector)).toBe("none");
 		await page.locator(".sf-select-row", { hasText: "Chapter 2" }).click();
-		await expect(page.locator(".sf-select-current-title")).toHaveText("Chapter 2");
+		await expect(page.locator(".sf-select--chapters .sf-select-current-title")).toHaveText("Chapter 2");
 		expect(await outline(selector)).toBe("none"); // the redraw gave it focus again after the click
 		await selector.click();
 		await page.keyboard.press("Escape");
@@ -250,7 +250,7 @@ test.describe("the chapter list's rows, the add button and the title bar", () =>
 		await page.getByRole("button", { name: "Chapters" }).click();
 		const left = (sel: string) => page.locator(sel).first().evaluate((e) => { const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT); let n: Node | null; while ((n = w.nextNode())) if (n.textContent!.trim()) { const r = document.createRange(); r.setStart(n, 0); r.setEnd(n, 1); return r.getBoundingClientRect().left; } return -1; });
 		const codex = await page.locator(".sf-left[data-face='storytelling'] .sf-codex-tree").evaluate((e) => e.getBoundingClientRect().left);
-		expect(Math.abs((await left(".sf-select-current-title")) - codex)).toBeLessThan(1);
+		expect(Math.abs((await left(".sf-select--chapters .sf-select-current-title")) - codex)).toBeLessThan(1);
 		expect(Math.abs((await left(".sf-select-row")) - codex)).toBeLessThan(1);
 	});
 });

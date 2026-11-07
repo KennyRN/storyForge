@@ -11,6 +11,8 @@ const GHOST_MIN_GAP_PX = 4;
 export interface NovelProgress {
 	track: HTMLElement;
 	strip: HTMLElement;
+	/** The bar and the strip as one shape (Tweaks 1 part 2, §3.4): no gap between them; only the four outer corners are rounded. Put this in the page, not the two parts. */
+	joined: HTMLElement;
 	/** Redraws the ghost dividers for the bar's width now; the caller calls it after the bar is in the page and when it is resized. */
 	drawGhosts(): void;
 }
@@ -65,5 +67,6 @@ export function buildNovelProgress(o: { titles: string[]; names: string[]; words
 		m.style.left = `${pct}%`;
 		strip.append(m);
 	}
-	return { track, strip, drawGhosts };
+	const joined = el("div", { class: "sf-progress-joined" }, track, strip);
+	return { track, strip, joined, drawGhosts };
 }

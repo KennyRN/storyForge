@@ -26,7 +26,7 @@ function sectionField(model: AppModel, bin: FieldBin, options: { storedIn: strin
 		notify: (n) => model.notices.notify(n),
 		placeholder: options.what,
 		typing: () => model.typingOptions(),
-		links: model.codexLinksFor(options.storedIn),
+		links: model.codexLinksFor(options.storedIn, false),
 	}, bin);
 	field.element.classList.add("sf-section-field");
 	void options.read().then((r) => {

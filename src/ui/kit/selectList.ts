@@ -43,7 +43,7 @@ export function mountSelectList(
 	host: HTMLElement,
 	options: () => SelectListOptions,
 	state: SelectState,
-	hooks: { modifier?: string; /** Called whenever the list opens or closes (the navigator makes the rest of its panel inert while it is open). */ onToggled?: (expanded: boolean) => void } = {},
+	hooks: { modifier?: string; /** An extra class on the closed selector's text (the storytelling side's novel name keeps `sf-nav-novel`). */ titleClass?: string; /** Called whenever the list opens or closes (the navigator makes the rest of its panel inert while it is open). */ onToggled?: (expanded: boolean) => void } = {},
 ): { render(): void; dispose(): void } {
 	let offOutside: (() => void) | null = null;
 	let refocus = false;
@@ -83,7 +83,7 @@ export function mountSelectList(
 					},
 				},
 			},
-			el("span", { class: "sf-select-current-title", text: o.title }),
+			el("span", { class: `sf-select-current-title${hooks.titleClass ? ` ${hooks.titleClass}` : ""}`, text: o.title }),
 			o.note ? el("span", { class: "sf-nav-note", text: o.note }) : null,
 		);
 		const list = el("ul", { class: "sf-select-list sf-scroll", attrs: { role: "list", "aria-label": o.listLabel } });

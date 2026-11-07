@@ -3,10 +3,16 @@ import { el } from "../kit/dom";
 
 export const grouped = (n: number): string => Math.round(n).toLocaleString("en-US");
 
-export function metaRow(label: string, value: string, options: { title?: string; disabled?: boolean; onClick?: (anchor: HTMLElement) => void }): HTMLElement {
+/**
+ * A label and its value (Tweaks 1 part 2, §3.3): every such row uses the one gap `--label-gap`. `options.content` replaces the value's text with
+ * styled pieces (the context panel's PoV and Location names, some muted); `options.name` gives the button a longer accessible name.
+ */
+export function metaRow(label: string, value: string, options: { title?: string; disabled?: boolean; onClick?: (anchor: HTMLElement) => void; content?: Node[]; name?: string; dataRow?: string }): HTMLElement {
 	const row = el("div", { class: "sf-meta-row" }, el("span", { class: "sf-meta-label", text: label }));
+	if (options.dataRow) row.dataset.row = options.dataRow;
 	if (options.onClick) {
-		const b = el("button", { class: "sf-meta-value", attrs: { type: "button", title: options.title ?? "" }, text: value });
+		const b = el("button", { class: "sf-meta-value", attrs: { type: "button", title: options.title ?? "", ...(options.name ? { "aria-label": options.name } : {}) }, ...(options.content ? {} : { text: value }) });
+		if (options.content) b.append(...options.content);
 		b.disabled = !!options.disabled;
 		b.addEventListener("click", () => options.onClick!(b));
 		row.append(b);

@@ -31,7 +31,7 @@ async function baselineOf(title: Locator): Promise<number> {
 		return y;
 	});
 }
-const tabBottom = (page: Page) => page.locator(".sf-rail .sf-tab").first().evaluate((e) => e.getBoundingClientRect().bottom);
+const tabBottom = (page: Page) => page.locator(".sf-rail .sf-tab svg > path").first().evaluate((e) => e.getBoundingClientRect().bottom);
 const setProject = (page: Page, text: string) =>
 	page.evaluate(async ({ path, text }) => {
 		await window.__preview.touch(path, text);
@@ -78,8 +78,8 @@ test.describe("selectors line up with the content beneath", () => {
 	test("the storytelling side: the chapter selector's text is the Codex card's left edge, the fill and list stick out to its left, and nothing is cut off", async ({ page }) => {
 		await open(page, "storytelling");
 		const card = await rect(page.locator(".sf-left[data-face='storytelling'] .sf-codex-tree"));
-		const text = await rect(page.locator(".sf-select-current-title"));
-		const fill = await rect(page.locator(".sf-select-current"));
+		const text = await rect(page.locator(".sf-select--chapters .sf-select-current-title"));
+		const fill = await rect(page.locator(".sf-select--chapters .sf-select-current"));
 		const panel = await rect(page.locator(".sf-left"));
 		expect(Math.abs(text.x - card.x)).toBeLessThan(1);
 		expect(fill.x).toBeLessThan(card.x);

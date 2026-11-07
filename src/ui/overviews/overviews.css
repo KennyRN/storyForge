@@ -11,6 +11,13 @@
 .sf-bar--chapter.sf-bar--plain .sf-bar-fill { top: 0; left: 0; }
 /* A chapter past three times its target (decision 154): the bar runs to the row's end and its end is cut, a V bitten out of it with softened corners, so overrun never relies on colour alone. */
 .sf-bar--cut .sf-bar-fill { border-radius: 4px 0 0 4px; clip-path: polygon(0 0, calc(100% - 5.25px) 0.00px, calc(100% - 4.02px) 0.26px, calc(100% - 3.01px) 1.00px, calc(100% - 2.39px) 2.09px, calc(100% - 2.26px) 3.33px, calc(100% - 2.66px) 4.52px, calc(100% - 9.11px) 15.48px, calc(100% - 9.37px) 16.06px, calc(100% - 9.50px) 16.68px, calc(100% - 9.50px) 17.32px, calc(100% - 9.37px) 17.94px, calc(100% - 9.11px) 18.52px, calc(100% - 2.66px) 29.48px, calc(100% - 2.26px) 30.67px, calc(100% - 2.39px) 31.91px, calc(100% - 3.01px) 33.00px, calc(100% - 4.02px) 33.74px, calc(100% - 5.25px) 34.00px, 0 100%); } /* the V, 10px deep, its two tips and its point rounded with a 3px radius (decision 158; a corner of about 65 degrees at 4px would blunt the tip, 3px keeps it crisp and soft); the bar is 34px high */
+/* The context panel's chapters (Tweaks 1 part 2, §4.4): the chapter length bar's proportions (decision 160), an 8px bar in a 12px rail, 2px in all round; bars.ts sets the 2px padding in the geometry. */
+.sf-bar--chapter.sf-bar--compact { height: 12px; }
+.sf-bar--chapter.sf-bar--compact.sf-bar--plain { height: 8px; }
+.sf-bar--compact .sf-bar-frame { height: 12px; border-radius: 6px; }
+.sf-bar--chapter.sf-bar--compact .sf-bar-fill { top: 2px; left: 2px; height: 8px; border-radius: 4px; }
+.sf-bar--chapter.sf-bar--compact.sf-bar--plain .sf-bar-fill { top: 0; left: 0; }
+.sf-bar--compact.sf-bar--cut .sf-bar-fill { border-radius: 4px 0 0 4px; clip-path: polygon(0 0, calc(100% - 2.41px) 0.00px, calc(100% - 1.26px) 0.19px, calc(100% - 1.03px) 0.76px, calc(100% - 1.71px) 1.71px, calc(100% - 3.29px) 3.29px, calc(100% - 3.61px) 3.76px, calc(100% - 3.61px) 4.24px, calc(100% - 3.29px) 4.71px, calc(100% - 1.71px) 6.29px, calc(100% - 1.03px) 7.24px, calc(100% - 1.26px) 7.81px, calc(100% - 2.41px) 8.00px, 0 100%); }
 /* The chapter's name: bg_dim, 19px at 700 (large text: 3:1 is the standard, and on the grey0 frame it is 3.40:1), in the lower middle of the bar, 8px in from each end, cut short with "…"
    at the further of the frame's inner end and the bar's end. It never reaches the bare page, where bg_dim on bg_dim could not be read. */
 .sf-bar-name { position: absolute; top: 4px; left: 12px; height: 34px; padding-top: 4px; box-sizing: border-box; display: flex; align-items: center; pointer-events: none; max-width: calc(max(var(--sf-inner), var(--sf-barw)) - 16px); }
@@ -25,23 +32,33 @@
 .sf-overview-list { display: flex; flex-direction: column; gap: 14px; }
 .sf-overview-row { display: flex; flex-direction: row; gap: 12px; align-items: flex-start; }
 .sf-overview-row-main { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
-.sf-overview-name { all: unset; cursor: pointer; font-family: var(--ts-body-family); font-weight: var(--ts-body-weight); font-size: var(--ts-body-size); font-variation-settings: var(--ts-body-var); border-radius: 3px; }
+/* Placed novels (Tweaks 1 part 2, §4.5): the column is as tall as the cover; the highlight runs to the column's end and the bar and synopsis end 8px short of it, so the gaps at both ends are equal; the synopsis box is a fixed size, 6px under the bar, down to the cover's bottom. */
+.sf-overview-row:not(.sf-overview-row--unplaced) .sf-overview-row-main { height: 144px; }
+.sf-overview-row-main > .sf-bar { margin-right: 8px; flex: none; }
+.sf-synopsis-box { flex: 1 1 0; min-height: 0; margin-right: 8px; overflow: auto; box-sizing: border-box; background: var(--purpose-editor-bg); border-radius: 10px; padding: 8px 0; font-family: var(--ts-reading-family); font-weight: var(--ts-reading-weight); font-size: var(--ts-reading-size); font-variation-settings: var(--ts-reading-var); }
+.sf-synopsis-box:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 2px; }
+.sf-synopsis-box .cm-editor { height: auto; background: transparent; color: var(--purpose-text); }
+.sf-synopsis-box .cm-scroller { overflow: visible; font-family: inherit; }
+.sf-synopsis-box .cm-content { padding: 0 var(--card-text-inset); font-family: inherit; font-size: inherit; }
+.sf-synopsis-box .sf-muted { display: block; padding: 0 var(--card-text-inset); }
+.sf-overview-name { all: unset; display: block; cursor: pointer; font-family: var(--ts-body-family); font-weight: var(--ts-body-weight); font-size: var(--ts-body-size); font-variation-settings: var(--ts-body-var); border-radius: 3px; }
 .sf-overview-name:hover { color: var(--purpose-accent); }
 /* The chosen novel (rule 1): the accent fill with the surface's colour on it. */
-.sf-overview-row.is-chosen .sf-overview-name { background: var(--purpose-accent); color: var(--purpose-panel-bg); padding: 2px 8px; margin-left: -8px; border-radius: 4px; }
+.sf-overview-row.is-chosen .sf-overview-name { background: var(--purpose-accent); color: var(--purpose-panel-bg); padding: 2px 8px; margin-left: -8px; width: calc(100% + 8px); box-sizing: border-box; border-radius: 4px; }
 .sf-overview-name:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 2px; }
 .sf-overview-row--unplaced .sf-overview-name { color: var(--purpose-text-muted); }
 
 /* The novel overview. */
-.sf-progress { position: relative; height: 20px; border-radius: 3px; background: var(--purpose-bar-track); overflow: hidden; }
+.sf-progress-joined { flex: none; margin-bottom: 16px; }
+.sf-progress { position: relative; height: 20px; border-radius: var(--shape-radius) var(--shape-radius) 0 0; background: var(--purpose-bar-track); overflow: hidden; }
 .sf-progress-floor { position: absolute; top: 0; bottom: 0; left: 0; background: var(--purpose-data-fill); } /* under the segments: the whole fill is never under 3px */
 .sf-progress-seg { all: unset; position: absolute; top: 0; bottom: 0; background: var(--purpose-data-fill); cursor: pointer; }
 .sf-progress-seg:focus-visible { outline: 2px solid var(--purpose-text); outline-offset: -2px; }
 .sf-progress-divider { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--purpose-bar-notch); }
 .sf-progress-ghost { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--purpose-guide-faint); }
-.sf-structure-strip { position: relative; height: 4px; margin: 4px 0 16px; background: var(--purpose-guide-faint); border-radius: 2px; }
+.sf-structure-strip { position: relative; height: var(--strip-h); margin: 0; background: var(--purpose-guide-faint); border-radius: 0 0 var(--shape-radius) var(--shape-radius); overflow: hidden; } /* the strip is as tall as the corner radius, at least 4px, so the corners fit (§3.4) */
 .sf-structure-mark { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--purpose-guide); }
-.sf-cards { gap: 12px; }
+.sf-cards { gap: 8px; } /* the rails of the chapter bars, 8px apart (Tweaks 1 part 2, §3.6) */
 .sf-card { display: flex; flex-direction: column; gap: 6px; }
 /* A field of the author's words: a small plain-text editor (decision 47), dressed as the text areas were. */
 .sf-note-field { box-sizing: border-box; display: flex; width: 100%; font-family: var(--ts-fields-family); font-weight: var(--ts-fields-weight); font-size: var(--ts-fields-size); font-variation-settings: var(--ts-fields-var); line-height: 1.5; color: var(--purpose-text); border: 1px solid transparent; border-radius: 3px; margin-left: -6px; }
@@ -92,15 +109,6 @@ button.sf-heat-cell { cursor: pointer; }
 .sf-session-chapters { flex-basis: 100%; font-family: var(--ts-hint-family); font-weight: var(--ts-hint-weight); font-size: var(--ts-hint-size); font-variation-settings: var(--ts-hint-var); }
 .sf-session-tag { border: 1px solid var(--purpose-border); border-radius: 4px; padding: 0 6px; font-family: var(--ts-hint-family); font-weight: var(--ts-hint-weight); font-size: var(--ts-hint-size); font-variation-settings: var(--ts-hint-var); color: var(--purpose-text-muted); }
 
-.sf-ref-row { align-items: baseline; flex-wrap: wrap; }
-.sf-ref-list { display: inline-flex; flex-wrap: wrap; gap: 4px 10px; }
-.sf-ref { all: unset; cursor: pointer; border-radius: 3px; }
-.sf-ref:hover { color: var(--purpose-accent); }
-.sf-ref:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 2px; }
-.sf-ref.is-muted { color: var(--purpose-text-muted); }
-.sf-ref-choose { all: unset; cursor: pointer; font-family: var(--ts-hint-family); font-weight: var(--ts-hint-weight); font-size: var(--ts-hint-size); font-variation-settings: var(--ts-hint-var); color: var(--purpose-text-muted); border-radius: 3px; padding: 0 4px; margin-left: auto; }
-.sf-ref-choose:hover { color: var(--purpose-accent); }
-.sf-ref-choose:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 2px; }
 
 .sf-section-field { margin: 4px 0 8px 0; font-family: var(--ts-fields-family); font-weight: var(--ts-fields-weight); font-size: var(--ts-fields-size); font-variation-settings: var(--ts-fields-var); }
 .sf-section-field[data-duplicate="true"] { color: var(--purpose-text-muted); }
