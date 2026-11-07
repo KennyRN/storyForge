@@ -134,7 +134,7 @@ test.describe("§1.5 clicking the chosen item again deselects it", () => {
 		await open(page, "archive");
 		const heading = page.locator(".sf-archive-section h3", { hasText: "Harbour Wakes" });
 		await expect(heading).toHaveText("Book 1: The Harbour Wakes");
-		await expect(page.locator(".sf-archive-section h3")).not.toContainText("#");
+		expect((await page.locator(".sf-archive-section h3").allTextContents()).join(" ")).not.toContain("#");
 	});
 });
 
