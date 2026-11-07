@@ -1,0 +1,64 @@
+<!doctype html><meta charset=utf-8><title>Fix 11 mock-up</title>
+<style>
+:root{--bgdim:#293136;--bg0:#333c43;--bg1:#3a464c;--bg2:#434f55;--bg3:#4d5960;--bg4:#555f66;--fg:#d3c6aa;--grey2:#9da9a0;--grey1:#859289;--blue:#7fbbb3}
+*{box-sizing:border-box}body{margin:0;background:var(--bgdim);color:var(--fg);font:13px/1.4 "Atkinson Hyperlegible Next",Arial,sans-serif;padding:24px}
+h1{font-size:18px;margin:0 0 4px}h2{font-size:14px;margin:26px 0 6px;color:var(--grey2)}p{margin:2px 0 10px;color:var(--grey2);max-width:900px}
+.grid{display:flex;gap:40px;flex-wrap:wrap}.col{width:246px}.col.wide{width:674px}
+.label{font-size:11px;color:var(--grey1);margin:6px 0 2px}
+.bar{position:relative;height:42px;margin-bottom:6px}.bar.plain{height:34px}
+.frame{position:absolute;top:0;left:0;height:42px;border-radius:4px}
+.fill{position:absolute;top:4px;left:4px;height:34px;border-radius:4px;background:var(--blue);min-width:3px}
+.plain .fill{top:0;left:0}
+.cut .fill{border-radius:4px 0 0 4px;clip-path:polygon(0 0,100% 0,calc(100% - 8px) 50%,100% 100%,0 100%)}
+.name{position:absolute;top:4px;height:34px;display:flex;align-items:center;font-weight:700;font-size:19px;white-space:nowrap;padding-top:4px}
+.plain .name{top:0}
+.swatches{display:flex;gap:18px;flex-wrap:wrap}.sw{width:246px}
+</style><body>
+<h1>Fix 11 mock-up: the rail, the cut end, and the names</h1>
+<p>Everforest Soft Dark. Bars sit on bg_dim (the library side). Rows are 246 px (the context panel at its default) unless marked wide (the novel tab, 674 px). Fills are blue; the rail is shown in each background colour.</p>
+<div id=root></div>
+<script>
+const W=246, P={dim:'#293136',fg:'#d3c6aa',grey2:'#9da9a0'};
+function geom(row,words,target,S){ // the app's geometry
+  const ratio=target?words/target:0; const inner=S>1?(row-4)/S:row-8; const frame=S>1?Math.min(row,inner+8):row;
+  let fill=target?Math.min(inner*ratio,row-4):0; if(words>0) fill=Math.max(3,fill); if(!words) fill=0;
+  return {inner,frame,fill,cut:ratio>3,ratio};
+}
+function bar(row,words,target,S,railVar,nameMode,name,withRail=true){
+  const g=target?geom(row,words,target,S):{inner:0,frame:0,fill:words>0?Math.max(3,Math.min(row,row*words/2500)):0,cut:false,ratio:0};
+  const el=document.createElement('div'); el.className='bar'+(target?'':' plain')+(g.cut?' cut':''); el.style.width=row+'px';
+  if(target&&withRail){const f=document.createElement('div');f.className='frame';f.style.width=g.frame+'px';f.style.background=`var(${railVar})`;el.append(f);}
+  if(g.fill>0){const f=document.createElement('div');f.className='fill';f.style.width=g.fill+'px';el.append(f);}
+  const left=target?12:8, fillEnd=(target?4:0)+g.fill, railEnd=target?4+g.inner:0;
+  const add=(txt,color,clip,maxw)=>{const n=document.createElement('div');n.className='name';n.style.left=left+'px';n.style.color=color;n.style.maxWidth=Math.max(0,maxw)+'px';n.style.overflow='hidden';n.style.textOverflow='ellipsis';n.textContent=txt;if(clip)n.style.clipPath=clip;el.append(n);return n;};
+  const textW=(()=>{const c=document.createElement('canvas').getContext('2d');c.font='700 19px "Atkinson Hyperlegible Next",Arial';return c.measureText(name).width})();
+  if(nameMode==='today'){add(name,P.dim,null,Math.max(railEnd,fillEnd)-16);}
+  if(nameMode==='A'){ // two-tone: bg_dim over the fill, light over the rail or bare page; cut at the further of the rail's inner end and the bar's end
+    const maxw=Math.max(railEnd,fillEnd,textW+left)-left; const cutAt=fillEnd-left;
+    add(name,P.dim,`inset(0 ${Math.max(0,maxw-cutAt)}px 0 0)`,maxw); add(name,P.fg,`inset(0 0 0 ${Math.max(0,cutAt)}px)`,maxw);}
+  if(nameMode==='B'){ if(textW+16<=fillEnd-left+8&&g.fill>0){add(name,P.dim,null,fillEnd-16);} else {const n=document.createElement('div');n.className='name';n.style.left=(fillEnd+8)+'px';n.style.color=P.grey2;n.style.maxWidth=Math.max(0,row-fillEnd-12)+'px';n.style.overflow='hidden';n.style.textOverflow='ellipsis';n.textContent=name;el.append(n);}}
+  return el;
+}
+function section(title,note){const r=document.getElementById('root');const h=document.createElement('h2');h.textContent=title;r.append(h);if(note){const p=document.createElement('p');p.textContent=note;r.append(p);}const g=document.createElement('div');g.className='grid';r.append(g);return g;}
+function col(g,label,cls=''){const c=document.createElement('div');c.className='col '+cls;const l=document.createElement('div');l.className='label';l.textContent=label;c.append(l);g.append(c);return c;}
+const rails=[['--bg1','bg1 (1.36:1 on bg_dim)'],['--bg2','bg2, the default (1.57:1)'],['--bg3','bg3 (1.84:1)'],['--bg4','bg4 (2.03:1)']];
+const vault=[[42,'Chapter 1'],[756,'Chapter 2'],[220,'Chapter 3'],[10,'Chapter 4'],[0,'Chapter 5'],[1,'Chapter 6']], T=25, S=3;
+const ord=[[2100,'Chapter 1'],[2450,'Chapter 2'],[2600,'Chapter 3'],[1800,'Chapter 4'],[0,'Chapter 5'],[3,'Chapter 6']], T2=2500, S2=2600/2500;
+{const g=section('1. The rail, in each background colour','The test vault\'s shape (a 25-word target; chapters of 42, 756, 220, 10, 0 and 1 words) at the context panel\'s width. Chapter 2 is 3,024% of its target: it runs to the row\'s end with the cut end. Frames are a third of the row. Chapters 4 and 6 are short but visible; chapter 5 is empty: its rail, no fill.');
+ for(const [v,l] of rails){const c=col(g,l);for(const [w,n] of vault)c.append(bar(W,w,T,S,v,'today',n));}}
+{const g=section('2. An ordinary shape (a 2,500-word target; chapters near it)','No chapter is far past its target: the frames are almost the row; the longest chapter (104%) ends at the row\'s end. Chapter 6 has 3 words: the 3 px minimum.');
+ for(const [v,l] of rails.slice(1,3)){const c=col(g,l);for(const [w,n] of ord)c.append(bar(W,w,T2,S2,v,'today',n));}
+ const c=col(g,'bg2 on the novel tab (674 px)','wide');for(const [w,n] of ord)c.append(bar(674,w,T2,S2,'--bg2','today',n));}
+{const g=section('3. The cut end','A chapter past 300% of its target runs to the row\'s end; its end has a V bitten out, a shape, so overrun never depends on colour. Its tooltip and screen-reader name give the true words and target ("756 words, over its plan of 25 words"). Shown: 300% (not cut), 301% (cut), 3,024% (cut).');
+ const c=col(g,'bg2, 246 px');for(const [w,n] of [[75,'300%'],[75.3,'301%'],[756,'3,024%']])c.append(bar(W,w,25,3,'--bg2','today',n));
+ const d=col(g,'bg2, 674 px','wide');for(const [w,n] of [[75,'300%'],[75.3,'301%'],[756,'3,024%']])d.append(bar(674,w,25,3,'--bg2','today',n));}
+for(const mode of [['today','Today\'s names (bg_dim everywhere): the problem','bg_dim over the bg2 rail is 1.57:1, and over the bare page it is invisible (bg_dim on bg_dim). This is what the current build does.'],['A','Option A: two-tone','bg_dim (6.09:1) where the name crosses the fill, fg (4.99:1 on bg2; 5.75 on bg1, 4.27 on bg3, 3.87 on bg4; 7.83 on the bare page) where it crosses the rail or the bare page. The colour changes mid-letter at the fill\'s end. With fg the name stays readable on every rail; on blue it would be 1.29:1, which is why the part over the fill stays dark.'],['B','Option B: beside the bar','The name sits inside the fill when it fits (bg_dim on blue, 6.09:1); otherwise it starts after the bar\'s end in grey2 (3.46:1 on bg2; 3.99 on bg1; 2.96 on bg3; 2.68 on bg4; 5.43 on the bare page). Never two colours in one word. Short and empty chapters show their name on the rail.']]){
+ const g=section(mode[1],mode[2]);
+ const cases=[['full (100%)',2500,1],['partial (60%)',1500,1],['short (4%)',100,1],['empty',0,1]];
+ const c1=col(g,'lengths set: 2,500-word target, bg2 rail');for(const [l,w] of cases){c1.append(bar(W,w,2500,1,'--bg2',mode[0],'Chapter name'));}
+ const c2=col(g,'no lengths set (no rail)');for(const [l,w] of cases){c2.append(bar(W,w||0,0,1,'--bg2',mode[0],'Chapter name'));}
+ const c3=col(g,'vault shape (25-word target)');for(const [w,n] of vault)c3.append(bar(W,w,T,S,'--bg2',mode[0],n));}
+{const g=section('C. Option C: above the bar','The name on its own line in grey2 (5.43:1 on the bare page; the bar beneath carries no text). Contrast never depends on the rail. Costs 22 px of height per chapter (a 64 px row instead of 42).');
+ const c=col(g,'lengths set, bg2 rail');for(const [w,n] of [[2500,'Chapter name (full)'],[1500,'Chapter name (partial)'],[100,'Chapter name (short)'],[0,'Chapter name (empty)']]){const t=document.createElement('div');t.textContent=n;t.style.cssText='color:#9da9a0;font-weight:700;font-size:15px;margin:2px 0 3px 4px';c.append(t);c.append(bar(W,w,2500,1,'--bg2','none',n));}
+ const d=col(g,'no lengths (no rail)');for(const [w,n] of [[2500,'Chapter name (full)'],[1500,'Chapter name (partial)'],[100,'Chapter name (short)'],[0,'Chapter name (empty)']]){const t=document.createElement('div');t.textContent=n;t.style.cssText='color:#9da9a0;font-weight:700;font-size:15px;margin:2px 0 3px 4px';d.append(t);d.append(bar(W,w,0,1,'--bg2','none',n));}}
+</script>
