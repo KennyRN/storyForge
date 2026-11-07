@@ -35,7 +35,7 @@ Written 7 November 2026, on branch `gfm` (from `main` at `739fe14`). Read only: 
 - **Proposal: `@lezer/markdown` plus `@codemirror/language`**, as approved. `@lezer/markdown` exports the `GFM` extension set (tables, task lists, strikethrough, autolinks) and the `Footnote`-less base. `@codemirror/language` supplies `syntaxTree`, `ensureSyntaxTree` and the parse scheduling. I found **no need for `lang-markdown`**: the dressing needs only the tree, not its keymap, its fenced-code language loading or its completions. A `@lezer/highlight` dependency isn't needed either, since the dressing makes its own decorations from node names.
 - **Footnotes aren't in the GFM set.** Proposal: a small custom `MarkdownConfig` (about 40 lines): a block parser for `[^id]: text` lines (with 4-space continuation) and an inline parser for `[^id]`, giving two node types. Dressing: the reference as superscript-like text in the link colour, the definition's `[^id]:` marker muted. No behaviour (no jumping between them) in this brief.
 - **Alerts aren't a parser feature.** Proposal: no parser change. The tree gives a `Blockquote`; the dressing checks that its **first line matches `^>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*$`** and, if so, draws the box. Anything else after `> [!` is the ordinary quote. This is a display rule over an unchanged tree, so nothing saved changes.
-- **GitHub's rules for alerts** (read from GitHub's docs on 7 November 2026): five types, syntax as above, "a Markdown extension based on the blockquote syntax", and **"alerts cannot be nested within other elements"** (so an alert inside a list or another quote is not one; I'd match that: only a top-level blockquote counts). **Not stated by GitHub:** case sensitivity, text after the marker on its line, unknown types (the docs show only uppercase and always put text on the next line). **Proposal where GitHub is silent: uppercase only, and nothing may follow the marker on its line**, which is the strictest reading and matches every documented example; a variant would then show as a plain quote, never as a wrong box. Kenny can ask for looser.
+- **GitHub's rules for alerts** (read from GitHub's docs on 7 November 2026): five types, syntax as above, "a Markdown extension based on the blockquote syntax", and **"alerts cannot be nested within other elements"** (so an alert inside a list or another quote is not one; I'd match that: only a top-level blockquote counts). **Not stated by GitHub:** case sensitivity, text after the marker on its line, unknown types (the docs show only uppercase and always put text on the next line). *(Superseded by § 8: GitHub was probed and the rules below are GitHub's own.)*
 - **Moving other code onto the same parser (proposals, none built):**
   - **Word count:** a parse of the whole text is more than counting needs. Propose it **stays a regex** but strips HTML comments instead of `%%` (`<!--[\s\S]*?-->`), kept pure and cheap, since it runs on every keystroke and in `npm run check`.
   - **Link scan and rewriter:** these read **files that aren't open in an editor** and are tested by a fuzzer. Proposal: **don't move them in this brief.** Change the scan to recognise inline `[text](target)` only (dropping `[[ ]]`), keep its hand-written scanner, and keep the fuzzer. Moving the rewriter onto `@lezer/markdown` would be allowed only if the existing fuzzer (`linkRewriterFuzz.test.ts`) still proves that no byte outside the planned spans changes; I'd rather not risk that for a gain of exact code-span handling.
@@ -89,3 +89,65 @@ Measured as WCAG 2 contrast on flat sRGB: `--ef-fg` `#d3c6aa` on the tint, and t
 5. Tables: muted pipes only, or a grid; task boxes without click-to-tick; the open-link key (§6).
 6. Images: show only in 1.12.0, insert later (§6).
 7. TIP and IMPORTANT icons (H2).
+
+## 8. Round two (rulings of 7 November 2026, and what they found)
+
+### 8.1 GitHub's rendering, probed
+One file pushed to a private throwaway repo (`KennyRN/sf-gfm-probe-throwaway`) and read back as GitHub's own rendered HTML (`Accept: application/vnd.github.html+json`). **Match GitHub:**
+
+| Case | GitHub renders |
+|---|---|
+| `> [!NOTE]` then a body line | an alert |
+| `> [!note]` (lowercase) | **an alert: the marker is case-insensitive** |
+| `> [!NOTE] text after the marker` | **a plain quote**, the marker as plain text |
+| `> [!FOO]` (unknown type) | a plain quote |
+| `> [!TIP]` alone, no body | **a plain quote** (an empty alert is not one) |
+| an alert inside a list item | a plain quote (it can't nest) |
+| an alert inside another quote | a plain quote |
+| `[x](../Codex/Jane%20Harbour.md)` | a link |
+| `[x](<../Codex/Jane Harbour.md>)` | a link (its href is the `%20` form) |
+| `[x](../Codex/Jane Harbour.md)` (a raw space) | **not a link**, plain text |
+| `[^1]` and `[^1]: …` | a footnote, with a back-link |
+
+So **the display rule is: a top-level block quote whose first line is exactly `[!TYPE]` (any case, nothing else on the line) with at least one more line in the quote.** This replaces my uppercase-only proposal. The link form is **confirmed: a relative path with `%20`** (angle brackets also work, and the rewriter may read them, but the app writes `%20`; a raw space is never written or treated as a link). **The throwaway repo could not be deleted**: my token lacks the `delete_repo` scope, which needs an interactive `gh auth refresh -h github.com -s delete_repo`. It is private and holds only the probe file; Kenny can delete it in the repository's Settings, or run that command and `gh repo delete KennyRN/sf-gfm-probe-throwaway`.
+
+### 8.2 Which actions move a file that can hold links
+Files that hold links: chapters (`_story-library/<book>/<ch>.md`), Codex notes (`Codex/<name>.md`), and the fields' files: the synopsis (`_story-library/novel-<book>.md`), the series description (`_story-library/series.md`) and plot notes (`_backstage/storyforge/<book>/chapters/<ch>.md`). **A link in a field is relative to the file that stores the field.** The paths to a Codex note, from each:
+
+| Written in | Link to a Codex note |
+|---|---|
+| a chapter | `../../Codex/X.md` |
+| a Codex note | `X.md` |
+| the synopsis (`novel-<book>.md`) or the series description | `../Codex/X.md` |
+| a plot note | `../../../../Codex/X.md` |
+
+| Action | Moves a file? | Do its outgoing links keep working? |
+|---|---|---|
+| Archive, unarchive, move a Codex item, rename or remove a Codex folder, convert a note to a folder | **No.** `codex.md` only: Codex folders are virtual, notes stay flat in `Codex/` | Yes, nothing moved |
+| Reorder chapters or books, rename a book's or chapter's title | No (titles live in the sidecars and `series.md`; files keep their ids) | Yes |
+| **Rename a Codex note** (`renameNote`) | Yes, but within `Codex/` | Yes: the folder is the same, so its own links still resolve. Incoming links are the rewriter's job (now `[text](path)` only) |
+| Cross-book chapter move (found by the reconciler after the files move outside the app) | Yes, between `_story-library/<book>/` folders | Yes: same depth; its sidecars move with it |
+| Book folder rename outside the app (reconciler) | Yes | Yes: same depth |
+| A chapter or Codex note renamed outside the app | Yes, same folder | Yes for its own links; links *to* a renamed Codex note are not rewritten by the reconciler (it never writes prose), so they show as "no such entry" until the author fixes them |
+| A file moved by the author **to a different depth** outside the app (a Codex note into a real subfolder, say) | Yes | **No.** The reconciler won't rewrite prose. |
+
+**Fix proposed for the last row (and only that):** do nothing to the text. The links show muted as "no such entry", which is true, and the author sees them. **Optional, for Kenny:** the reconciliation summary could list the moved files whose relative links now point nowhere, so nothing is silent; it would write nothing. **Recovery copies** (`_sf-backup/recovery/…`) hold text copied out of its folder, so their relative links won't resolve; they are copies to read, not live files. One more place: **text shown away from its file** (the series tab's synopsis in the context panel, the read-only chapter text) is resolved from its source file, never from where it is drawn.
+
+### 8.3 The rename and the old forms
+`[[X]]`, embeds and unquoted `[[X]]` frontmatter values are no longer read by the rewriter (decision 157), so `LinkForm`'s `wikilink` and `embed`, the "unquoted" report and its test cases go. **The unreadable-frontmatter check stays**, and `linkRewriterFuzz.test.ts` must still pass.
+
+### 8.4 Comments, protected text and the aids
+- **The word count stays a regex** (HTML comments). **A test** compares it with the parser's comment spans across every fixture, with `<!--` inside code and an unclosed `<!--` among the cases; any disagreement is listed in the report.
+- **Protected text uses only the parse tree at runtime.** The old line scan survives only in tests this release, as a check on the fixtures; disagreements listed. The 20 ms wait is accepted, **tested on a long chapter just after it opens.**
+
+### 8.5 Tables, tasks, keys, images, icons
+- **Tables:** muted pipes and alignment row for 1.12.0. **A grid goes to Future** (the mock-up's gridded table is withdrawn as an option). **No click-to-tick.**
+- **⌘-Return opens a link.** I checked for clashes: the menu items in `src/ui/menu.ts` and the editor's keymap don't bind ⌘-Return (to be confirmed by a test that lists the key bindings at build).
+- **Images: they move to an images brief.** `read_cover(target, filename)` takes only the series or a book code and an exact `cover.<ext>` name, and reads from that book's backstage folder. Reading a file named in a link's path would need a new Rust command, so by the ruling, showing and inserting both move to the images brief. Nothing in 1.12.0.
+- **Icons (H2, supplied by Kenny, both Tabler 2.2, filled):** **TIP is `square-rounded-check`, IMPORTANT is `square-rounded-arrow-right`.** They are recorded in `Icon Licences.md` at the build; NOTE, WARNING and CAUTION keep the notice icons. They are final, not stand-ins. The SVGs are saved in `docs/gfm-mockups/icons/`.
+
+### 8.6 The chapter bar's vertical place
+**Centred in the strip: the rail's top 32 px from the strip's top (the strip is 76 px, so 32 px above and below the 12 px rail), the bar 2 px inside it.** Centred keeps it equally clear of the chapter box above and the stats section below, whatever the window's height; nothing else lives in the strip. Aligned left and right with the chapter box.
+
+### 8.7 The mock-up, fixed
+Section 6 is redrawn at 2x with the rail's own end marked by a tick: at 150% the rail ends two thirds along and the bar runs on to the row's end; beyond 300% the rail is a third and the bar has the cut V. The earlier version hid the rail behind the bar.

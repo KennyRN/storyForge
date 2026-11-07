@@ -59,9 +59,12 @@ stays plain</pre>
 </div>
 <h2>5. Old syntax, now plain text (no conversion offered)</h2>
 <div class="card plain" style="font-size:18px">[[Jane]] &nbsp; ![[map.png]] &nbsp; ==marked== &nbsp; %% hidden %%</div>
-<h2>6. The chapter length bar (picture only; rail 12 px, bar 8 px, 2 px inset; rail is bg0)</h2>
-<div class="lbl">0% (rail only)</div><div class="strip"><div class="rail"></div></div>
+<h2>6. The chapter length bar (picture only; rail 12 px, bar 8 px, 2 px inset; rail is bg0). Drawn at 2x so the 2 px of rail show; the rail's own end is marked with a tick</h2>
+<style>.z{zoom:2;max-width:320px}.z .strip{max-width:320px}.tick{position:absolute;top:26px;width:1px;height:24px;background:var(--g1)}</style>
+<div class="z">
+<div class="lbl">0%: the rail only</div><div class="strip"><div class="rail"></div></div>
 <div class="lbl">about 50%</div><div class="strip"><div class="rail"><div class="bar" style="width:calc(50% - 2px)"></div></div></div>
-<div class="lbl">100%</div><div class="strip"><div class="rail"><div class="bar" style="right:2px"></div></div></div>
-<div class="lbl">150% (rail shortened to 2/3; bar runs to the row's end)</div><div class="strip"><div class="rail" style="right:33.3%"><div class="bar" style="right:2px"></div></div><div class="bar" style="left:2px;top:34px;width:calc(100% - 2px)"></div></div>
-<div class="lbl">beyond 300% (rail a third; cut V end, 3 px rounded)</div><div class="strip"><div class="rail" style="right:66.6%"></div><div class="bar" style="left:2px;top:34px;width:calc(100% - 2px);clip-path:polygon(0 0,100% 0,calc(100% - 7px) 50%,100% 100%,0 100%)"></div></div>
+<div class="lbl">100%: the bar meets the rail's inner edge</div><div class="strip"><div class="rail"><div class="bar" style="right:2px"></div></div></div>
+<div class="lbl">150%: rail shortened to two thirds (tick), the bar runs on to the row's end</div><div class="strip"><div class="rail" style="right:33.34%"></div><div class="tick" style="left:66.66%"></div><div class="bar" style="left:2px;top:34px;width:calc(100% - 2px)"></div></div>
+<div class="lbl">beyond 300%: rail a third (tick), bar to the end with the cut V</div><div class="strip"><div class="rail" style="right:66.66%"></div><div class="tick" style="left:33.34%"></div><div class="bar" style="left:2px;top:34px;width:calc(100% - 2px);clip-path:polygon(0 0,100% 0,calc(100% - 7px) 50%,100% 100%,0 100%)"></div></div>
+</div>
