@@ -15,8 +15,9 @@ import { guardedTyping } from "./lib/typingGuard.mjs";
 const root = resolve(fileURLToPath(import.meta.url), "../..");
 const BUNDLE_ID = "io.github.kennyrn.storyforge";
 const args = process.argv.slice(2);
-const out = resolve(args[0] ?? fail("give a folder for the pictures"));
-const app = resolve(args[1] ?? join(root, "src-tauri/target/universal-apple-darwin/release/bundle/macos/storyForge.app"));
+const positional = args.filter((a) => !a.startsWith("--"));
+const out = resolve(positional[0] ?? fail("give a folder for the pictures"));
+const app = resolve(positional[1] ?? join(root, "src-tauri/target/universal-apple-darwin/release/bundle/macos/storyForge.app"));
 const binary = join(app, "Contents/MacOS/storyforge");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const run = (cmd, a) => spawnSync(cmd, a, { encoding: "utf8" });
@@ -148,31 +149,56 @@ async function until(fn, ms = 15000) {
 	}
 	return false;
 }
-const child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: "ignore" });
-process.on("exit", () => child.kill("SIGKILL"));
-for (const sig of ["SIGTERM", "SIGINT", "SIGHUP"]) process.on(sig, () => process.exit(1));
-const windowNumber = () =>
-	spawnSync("osascript", ["-l", "JavaScript", "-e", `ObjC.import('CoreGraphics'); const l = ObjC.deepUnwrap(ObjC.castRefToObject($.CGWindowListCopyWindowInfo($.kCGWindowListOptionOnScreenOnly, 0))); const w = l.find((x) => x.kCGWindowOwnerPID === ${child.pid} && x.kCGWindowLayer === 0); w ? String(w.kCGWindowNumber) : ''`], { encoding: "utf8" }).stdout.trim();
-const shot = (name) => {
-	const id = windowNumber();
-	if (!id) fail(`no picture "${name}": the test copy's window wasn't found`);
-	spawnSync("screencapture", ["-x", "-o", "-l", id, join(out, `${name}.png`)]);
-	console.log(`saved ${name}.png`);
-};
+/** Starts the built app on the throwaway copy, opens the project by an accessibility press, runs `fn(shot, child)`, and ends the test copy. */
+async function withApp(fn) {
+	const child = spawn(binary, [], { env: { ...process.env, HOME: home }, stdio: "ignore" });
+	const ended = new Promise((r) => child.once("exit", r));
+	process.once("exit", () => child.kill("SIGKILL"));
+	for (const sig of ["SIGTERM", "SIGINT", "SIGHUP"]) process.once(sig, () => process.exit(1));
+	const windowNumber = () =>
+		spawnSync("osascript", ["-l", "JavaScript", "-e", `ObjC.import('CoreGraphics'); const l = ObjC.deepUnwrap(ObjC.castRefToObject($.CGWindowListCopyWindowInfo($.kCGWindowListOptionOnScreenOnly, 0))); const w = l.find((x) => x.kCGWindowOwnerPID === ${child.pid} && x.kCGWindowLayer === 0); w ? String(w.kCGWindowNumber) : ''`], { encoding: "utf8" }).stdout.trim();
+	const shot = (name) => {
+		const id = windowNumber();
+		if (!id) fail(`no picture "${name}": the test copy's window wasn't found`);
+		spawnSync("screencapture", ["-x", "-o", "-l", id, join(out, `${name}.png`)]);
+		console.log(`saved ${name}.png`);
+	};
+	try {
+		if (!(await until(() => press("AXButton", "The Lantern Cycle")))) fail("the app's window or the project card never appeared");
+		await sleep(2500);
+		resize(1200, 1400);
+		await sleep(1200);
+		await fn(shot, child);
+	} finally {
+		child.kill();
+		await Promise.race([ended, sleep(5000)]);
+		if (child.exitCode === null) child.kill("SIGKILL");
+	}
+}
 
-if (!(await until(() => press("AXButton", "The Lantern Cycle")))) fail("the app's window or the project card never appeared");
-await sleep(2500);
-resize(1200, 1400);
-await sleep(1200);
-shot("chapter");
-// The one key sent (Return on the focused Codex row) goes through the typing guard: to the test copy's own process, only while it is in front and alone.
-const typing = guardedTyping({ osa, fail, pid: () => child.pid });
-typing.bringToFront();
-if (focusRow("Harbour")) {
-	await sleep(400);
-	typing.keyOnControl("key code 36");
-	await sleep(1800);
-	shot("codex-note");
-} else console.log("could not open the Codex note by accessibility; only the chapter was taken");
-child.kill();
+if (args.includes("--bars")) {
+	// The chapter length bar at 0%, about half, 100%, 150% and beyond 300% (the book's planned chapter length is 2,500 words).
+	const words = (n) => Array.from({ length: n }, () => "word").join(" ") + "\n";
+	for (const [name, n] of [["bar-0", 0], ["bar-50", 1250], ["bar-100", 2500], ["bar-150", 3750], ["bar-over-300", 9000]]) {
+		writeFileSync(join(project, "_story-library/aaa/ch-a1.md"), words(n));
+		await withApp(async (shot) => {
+			await sleep(1200);
+			shot(name);
+		});
+	}
+} else {
+	writeFileSync(join(project, "_story-library/aaa/ch-a1.md"), CHAPTER);
+	await withApp(async (shot, child) => {
+		shot("chapter");
+		// The one key sent (Return on a focused Codex row) goes through the typing guard: to the test copy's own process, only while it is in front and alone.
+		const typing = guardedTyping({ osa, fail, pid: () => child.pid });
+		typing.bringToFront();
+		if (focusRow("Harbour")) {
+			await sleep(400);
+			typing.keyOnControl("key code 36");
+			await sleep(1800);
+			shot("codex-note");
+		} else console.log("could not open the Codex note by accessibility; only the chapter was taken");
+	});
+}
 console.log(`pictures are in ${out}`);

@@ -105,8 +105,8 @@ const CASES = [
 	["an em dash and an ellipsis", "Well--then... and so on...", "Well—then… and so on…"],
 	["a Text Replacement (omw) is not expanded, and a Codex name in lower case is corrected with its possessive", "omw jane's boat and sam.", "omw Jane’s boat and Sam."],
 	["an elision, a quoted word and a decade", "'tis 'em' 90's", "’tis ‘em’ 90’s"],
-	// Protected text is the markdown parse tree's (Brief 20): an HTML comment that starts its line is a comment, and nothing inside it is touched. (`[[x]]` and `%%` are plain text now.)
-	["nothing inside an HTML comment that starts its line", "<!-- it's 'x' -- y -->", "<!-- it's 'x' -- y -->", { ownLine: true }],
+	// Protected text (Brief 20): the markdown parse tree's, with the unclosed-line rule beside it (from an unclosed backtick, link target, address or <!-- to the caret). `[[x]]` and `%%` are plain text now.
+	["nothing inside code, a link target, a web address or a comment", "`don't` [t](u's) https://a.b/it's <!-- 'x' -- y --> end", "`don't` [t](u's) https://a.b/it's <!-- 'x' -- y --> end"],
 ];
 
 const dir = realpathSync(mkdtempSync(join(tmpdir(), "sf-typing-")));

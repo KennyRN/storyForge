@@ -194,7 +194,7 @@ test.describe("the typing aids read the parse tree", () => {
 		await expect.poll(last).toBe("it’s");
 	});
 
-	test("a comment typed on its own line, and code with an apostrophe in it once closed, are left alone", async ({ page }) => {
+	test("a comment typed on its own line, and code with an apostrophe in it, are left alone as typed", async ({ page }) => {
 		await openProject(page);
 		const content = page.locator(".sf-slot--centre .cm-content");
 		await content.click();
@@ -203,7 +203,7 @@ test.describe("the typing aids read the parse tree", () => {
 		await page.keyboard.type("<!-- it's -- done -->");
 		await page.keyboard.press("Enter");
 		await page.keyboard.type("x `a's` y it's");
-		await expect.poll(async () => (await content.locator(".cm-line").allTextContents()).slice(-2)).toEqual(["<!-- it's -- done -->", "x `a’s` y it’s"]);
+		await expect.poll(async () => (await content.locator(".cm-line").allTextContents()).slice(-2)).toEqual(["<!-- it's -- done -->", "x `a's` y it’s"]);
 	});
 });
 
@@ -286,6 +286,9 @@ test.describe("Codex links", () => {
 	test("nothing is offered inside code or a comment, nor for a [[ that was already there", async ({ page }) => {
 		await open(page, "Old [[sa\n");
 		await atEnd(page);
+		await page.keyboard.type("`[[sa"); // inside an unclosed backtick (the unclosed-line rule)
+		await expect(popup(page)).toHaveCount(0);
+		await page.keyboard.press("Enter");
 		await page.keyboard.type("```");
 		await page.keyboard.press("Enter");
 		await page.keyboard.type("[[sa"); // inside a fenced block
@@ -403,6 +406,8 @@ test.describe("the chapter length bar (decision 160)", () => {
 		expect(await strip(page).evaluate((e) => e.textContent)).toBe("");
 		await expect(strip(page)).toHaveAttribute("role", "img");
 		await expect(strip(page)).toHaveAttribute("aria-label", "Chapter length: 1,250 of 2,500 words");
+		// a visible bar's name is never the planned-length field's: an exact lookup of "Chapter Length" finds nothing here
+		await expect(page.getByLabel("Chapter Length", { exact: true })).toHaveCount(0);
 		expect(await strip(page).getAttribute("title")).toBeNull();
 		const rail = await box(strip(page).locator(".sf-length-rail"));
 		const fill = await box(strip(page).locator(".sf-length-fill"));

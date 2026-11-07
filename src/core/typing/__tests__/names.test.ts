@@ -71,6 +71,9 @@ const CASES: [string, string][] = [
 	["`aelfric` ", "`aelfric` "],
 	["%% aelfric %% ", "%% Ælfric %% "], // plain text now (decision 157)
 	["<!-- aelfric --> ", "<!-- aelfric --> "],
+	["`aelfric ", "`aelfric "], // an unclosed backtick protects to the caret (the unclosed-line rule)
+	["[x](aelfric ", "[x](aelfric "],
+	["see https://a.b/aelfric ", "see https://a.b/aelfric "],
 	["see https://x.y/aelfric ", "see https://x.y/aelfric "],
 	["~aelfric ", "~aelfric "], // a shortcode in progress
 	["```\naelfric \n```", "```\naelfric \n```"],

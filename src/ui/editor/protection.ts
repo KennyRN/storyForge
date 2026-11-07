@@ -1,6 +1,6 @@
 import { ensureSyntaxTree } from "@codemirror/language";
 import type { EditorState } from "@codemirror/state";
-import { protectedRangesFromTree, type Range } from "../../core/typing/protectedText";
+import { protectedRangesFromTree, unclosedOnLine, type Range } from "../../core/typing/protectedText";
 
 /** How long an aid will wait for the parse to reach the caret (Kenny's ruling, Brief 20): a keystroke can't wait longer than this. */
 export const PARSE_BUDGET_MS = 20;
@@ -12,5 +12,8 @@ export const PARSE_BUDGET_MS = 20;
  */
 export function protectedAt(state: EditorState, head: number, budget = PARSE_BUDGET_MS): Range[] | null {
 	const tree = ensureSyntaxTree(state, head, budget);
-	return tree ? protectedRangesFromTree(tree, (a, b) => state.sliceDoc(a, b)) : null;
+	if (!tree) return null;
+	// The tree's ranges, and beside them (only adding) the caret's own line from an unclosed opener to the caret.
+	const line = state.doc.lineAt(head);
+	return [...protectedRangesFromTree(tree, (a, b) => state.sliceDoc(a, b)), ...unclosedOnLine(state.sliceDoc(line.from, head), line.from)];
 }

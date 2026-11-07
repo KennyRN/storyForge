@@ -263,12 +263,12 @@ test.describe("the library", () => {
 		test("a planned length is edited in place; empty clears it", async ({ page }) => {
 			await page.locator(".sf-meta-row", { hasText: "Chapter Length" }).getByRole("button").click();
 			await expect(page.locator(".sf-meta-row", { hasText: "Average" })).toBeVisible();
-			await page.getByLabel("Chapter Length").fill("3500");
-			await expect(page.getByLabel("Chapter Length")).toHaveValue("3,500");
+			await page.getByLabel("Chapter Length", { exact: true }).fill("3500");
+			await expect(page.getByLabel("Chapter Length", { exact: true })).toHaveValue("3,500");
 			await page.keyboard.press("Enter");
 			await expect.poll(() => onDisk(page, BOOK_A)).toContain("planned-chapter-length: 3500");
 			await page.locator(".sf-meta-row", { hasText: "Chapter Length" }).getByRole("button").click();
-			await page.getByLabel("Chapter Length").fill("");
+			await page.getByLabel("Chapter Length", { exact: true }).fill("");
 			await page.keyboard.press("Enter");
 			await expect.poll(async () => (await onDisk(page, BOOK_A)).includes("planned-chapter-length")).toBe(false);
 		});

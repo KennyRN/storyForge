@@ -162,6 +162,9 @@ test.describe("smart punctuation in the editor", () => {
 		// Text the parser reads as code or a comment is left alone: an HTML comment starting a line, and a fenced block (Brief 20: protected text is the parse tree's).
 		await page.keyboard.type("\n<!-- it's -- y -->\n```\ndon't -- x...\n```\nthen don't");
 		expect(await doc(page)).toBe("Old 'text' -- here... and - there.\nx \n<!-- it's -- y -->\n```\ndon't -- x...\n```\nthen don’t");
+		// and what is typed a character at a time on the caret's own line, from an unclosed opener: code, a link target, an address, a comment (the unclosed-line rule)
+		await page.keyboard.type("\nx `don't` [t](u's) https://a.b/it's www.c.d/it's <!-- it's -- y --> end don't");
+		expect(await doc(page)).toContain("\nx `don't` [t](u's) https://a.b/it's www.c.d/it's <!-- it's -- y --> end don’t");
 	});
 
 	test("pasted text is never changed, and typing after it is", async ({ page }) => {
@@ -611,7 +614,7 @@ for (const kind of KINDS) {
 			expect(await typedPart(field)).toBe("He met the Right Honourable");
 		});
 
-		test("Codex names are offered after ~ too; ~~, ~ alone and a ~ inside a word never open it", async ({ page }) => {
+		test("Codex names are offered after ~ too; ~~, ~ alone, a ~ inside a word and protected text (an unclosed backtick, address or link target) never open it", async ({ page }) => {
 			await projectWith(page, { codes: TH });
 			const field = await kind.open(page);
 			await intoField(field, page);
@@ -619,7 +622,7 @@ for (const kind of KINDS) {
 			await expect(popup(page).getByRole("option", { name: /Jane/ })).toContainText("Codex");
 			await page.keyboard.press("Tab");
 			expect(await typedPart(field)).toBe("Jane");
-			for (const typed of [" ~~th", " ~ ", " ~9", " a~th"]) {
+			for (const typed of [" ~~th", " ~ ", " ~9", " a~th", " `~th", " https://a.b/~th", " [t](~th"]) {
 				await page.keyboard.type(typed);
 				await expect(popup(page), typed).toHaveCount(0);
 			}
