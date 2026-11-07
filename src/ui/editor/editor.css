@@ -110,6 +110,14 @@
 	color: var(--purpose-link);
 	text-decoration: underline;
 }
+/* Codex links (Brief 20): a live one reads as a link and opens on ⌘-click or ⌘-Return; every other link is muted, with a tooltip saying why. */
+.sf-link-live {
+	cursor: default;
+}
+.sf-link-muted {
+	color: var(--purpose-text-muted);
+	text-decoration: underline dotted;
+}
 .sf-weblink {
 	color: var(--purpose-text-muted);
 	text-decoration: underline dotted;

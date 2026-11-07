@@ -7,6 +7,9 @@ import { clampPx, convertUnit, displayWidths, DEFAULT_LEFT_WIDTH_PX, DEFAULT_LOR
 import type { AppController, CoverTarget, OpenOutcome, Running } from "../app/appLife";
 import type { MachineProjectState, StatsCount, ViewWidths } from "../app/settings";
 import type { TypingEditorOptions } from "./editor/typingAids";
+import type { EditorLinks } from "./editor/codexLinks";
+import { collectCodexLinkEntries, linkWorldOf } from "../core/codexLinkSource";
+import { isCodexNoteArchived } from "../core/codex";
 import { buildNameIndex, EMPTY_NAMES, type NameIndex } from "../core/typing/names";
 import { collectNameSources } from "../core/typing/nameSources";
 import { withEntry } from "../core/typing/lists";
@@ -359,6 +362,38 @@ export class AppModel {
 		if (storytellingCodexClickAction(showing ? this.canonical(showing) : null, this.canonical(path)) === "close") await editors.close("lore");
 		else await editors.open("lore", path);
 		this.touch("nav");
+	}
+
+	/**
+	 * What an editor needs for Codex links (Brief 20): the file its text is stored in (a link is relative to it), the project's
+	 * Codex entries and how a target resolves, and how a live link opens.
+	 */
+	codexLinksFor(fromFile: string): EditorLinks {
+		const project = () => this.running!.opened.project;
+		return {
+			fromFile,
+			entries: () => (this.running ? collectCodexLinkEntries(project()) : []),
+			world: () => linkWorldOf(project()),
+			open: (path) => void this.followCodexLink(path),
+		};
+	}
+
+	/**
+	 * Opens the Codex entry a live link points at (decision 151): on the storytelling side in the context panel (replacing what is there,
+	 * with no Back for now), on the library side in the Codex tab with the entry open in its workspace (an archived one in the Archive tab,
+	 * where it opens read-only).
+	 */
+	async followCodexLink(path: string): Promise<void> {
+		const editors = this.editors;
+		const running = this.running;
+		if (!editors || !running) return;
+		const archived = isCodexNoteArchived(running.opened.project, path);
+		if (this.nav.face === "storyforge") {
+			await editors.open(archived ? "archive" : "codex", path);
+		} else {
+			await editors.open("lore", path);
+			this.touch("nav");
+		}
 	}
 
 	private canonical(path: string): string {

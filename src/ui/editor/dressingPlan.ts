@@ -1,4 +1,5 @@
 import type { Tree } from "@lezer/common";
+import { LINK_TOOLTIPS, type LinkTarget } from "../../core/codexLinks";
 import { alerts, type AlertKind } from "../../core/markdownTree";
 
 /**
@@ -12,14 +13,14 @@ import { alerts, type AlertKind } from "../../core/markdownTree";
  */
 export type PlanItem =
 	| { t: "line"; at: number; cls: string }
-	| { t: "mark"; from: number; to: number; cls: string }
+	| { t: "mark"; from: number; to: number; cls: string; attrs?: Record<string, string> }
 	| { t: "hide"; from: number; to: number }
 	| { t: "widget"; from: number; to: number; kind: "bullet" | "task-open" | "task-done" }
 	| { t: "alert"; from: number; to: number; alert: AlertKind };
 
 export const ALERT_NAMES: Record<AlertKind, string> = { note: "Note", tip: "Tip", important: "Important", warning: "Warning", caution: "Caution" };
 
-export function dressingPlan(tree: Tree, text: string, isActive: (pos: number) => boolean, range?: { from: number; to: number }): PlanItem[] {
+export function dressingPlan(tree: Tree, text: string, isActive: (pos: number) => boolean, range?: { from: number; to: number }, classify?: (target: string) => LinkTarget): PlanItem[] {
 	const out: PlanItem[] = [];
 	const lineStart = (pos: number): number => text.lastIndexOf("\n", pos - 1) + 1;
 	const lineEnd = (pos: number): number => {
@@ -169,15 +170,22 @@ export function dressingPlan(tree: Tree, text: string, isActive: (pos: number) =
 				return false;
 			} else if (name === "Link" && node.node.parent?.name !== "Image") {
 				const marks: { from: number; to: number }[] = [];
-				let hasUrl = false;
+				let url: { from: number; to: number } | null = null;
 				for (let c = node.node.firstChild; c; c = c.nextSibling) {
 					if (c.name === "LinkMark") marks.push(c);
-					if (c.name === "URL") hasUrl = true;
+					if (c.name === "URL") url = c;
 				}
+				const hasUrl = url !== null;
 				// Only a link with a target is dressed; `[text]` alone (a reference, an alert's marker) stays plain.
 				if (hasUrl && marks.length >= 3) {
 					const [open, close] = marks;
-					if (close.from > open.to) out.push({ t: "mark", from: open.to, to: close.from, cls: "sf-link" });
+					if (close.from > open.to) {
+						// A link to a Codex entry is live (⌘-click opens it); every other link is muted, with a tooltip that says why.
+						const target = classify && url ? classify(text.slice(url.from, url.to)) : null;
+						if (!target) out.push({ t: "mark", from: open.to, to: close.from, cls: "sf-link" });
+						else if (target.kind === "codex") out.push({ t: "mark", from: open.to, to: close.from, cls: "sf-link sf-link-live", attrs: { "data-codex-path": target.path, ...(target.archived ? { title: "an archived entry: it opens read-only" } : {}) } });
+						else out.push({ t: "mark", from: open.to, to: close.from, cls: "sf-link sf-link-muted", attrs: { title: LINK_TOOLTIPS[target.kind] } });
+					}
 					marker(open.from, open.to);
 					// From `]` to the end of the link: the brackets, the path and any title, away from the caret.
 					if (isActive(close.from)) muted(close.from, to);

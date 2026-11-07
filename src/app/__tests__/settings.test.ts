@@ -775,6 +775,7 @@ describe("the text colours (Brief 17): selection, bold, italic and bold italic",
 	};
 	// The key, the setting, its default, what it accepts, and what it must not (excluded or unknown: draws the default, never rewritten).
 	const CASES = [
+		{ file: "chapter-bar-colour", key: "chapterBarColour", def: "data", ok: ["data", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "text", "'#dbbc7f'", "4"] },
 		{ file: "selection-colour", key: "selectionColour", def: "blue", ok: ["plum", "blue", "green", "yellow", "grey"], bad: ["red", "aqua", "orange", "purple", "text", "'#5c3f4f'", "4", "[blue]"] },
 		{ file: "bold-colour", key: "boldColour", def: "orange", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },
 		{ file: "italic-colour", key: "italicColour", def: "orange", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },

@@ -5,6 +5,7 @@ import { openSearchPanel, search, searchKeymap } from "@codemirror/search";
 import type { ProseSession } from "../../core/proseWriter";
 import type { EditOrigin } from "../../core/sessions";
 import { emphasisKeymap, prose } from "./dressingView";
+import { codexLinks, type EditorLinks } from "./codexLinks";
 import { typingAids, type TypingEditorOptions } from "./typingAids";
 
 /**
@@ -55,7 +56,7 @@ export interface MountedEditor {
 /** Tells a watcher (the context panel's read-only copy of the chapter) that the document changed: the change, and the length it applies to. */
 export type TextUpdate = (changes: ChangeSet, lengthBefore: number) => void;
 
-export function mountSessionEditor(parent: HTMLElement, session: ProseSession, options: { covered?: () => boolean; typing?: () => TypingEditorOptions; onUpdate?: TextUpdate } = {}): MountedEditor {
+export function mountSessionEditor(parent: HTMLElement, session: ProseSession, options: { covered?: () => boolean; typing?: () => TypingEditorOptions; links?: EditorLinks; onUpdate?: TextUpdate } = {}): MountedEditor {
 	const view: EditorView = new EditorView({
 		parent,
 		dispatchTransactions: (trs: readonly Transaction[]) => {
@@ -67,7 +68,7 @@ export function mountSessionEditor(parent: HTMLElement, session: ProseSession, o
 			extensions: [
 				...common,
 				// The typing aids (docs/typing-aids.md): they only react to the author's own typing, each change its own undo step.
-				...(options.typing ? [typingAids(options.typing)] : []),
+				...(options.typing ? [typingAids(options.typing, { links: options.links })] : options.links ? [codexLinks(options.links, null)] : []),
 				// While an overview covers this editor it refuses every change that isn't a reload from disk, whatever its
 				// source (decision 36). Two walls, because the history commands skip transaction filters: the browser's own
 				// input (WebKit's undo and redo, a drop, a spellcheck correction, dictation) is stopped before it touches the

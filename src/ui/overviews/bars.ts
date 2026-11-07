@@ -129,3 +129,26 @@ export function plainBar(title: string, words: number, fillPercent: number): HTM
 	attachTooltip(bar, formatWordCount(words));
 	return bar;
 }
+
+/**
+ * The chapter length bar under the chapter box (Brief 20, decision 160), worked out with the data bars' own rules: no target means nothing is shown;
+ * no words is the rail only (decision 153); any words draw at least 3px; overrun shortens the rail to a third at the most (decision 154) and the bar
+ * runs on to the row's end; past three times the target the bar's end is cut (decision 158).
+ */
+export interface ChapterLengthBarState {
+	shown: boolean;
+	kind: DataBarState["kind"];
+	/** Words ÷ target (1 at the target, by decision 28's rounding). */
+	ratio: number;
+	/** How many targets wide the row is: the rail is the row divided by this. */
+	scale: number;
+	cut: boolean;
+	/** The name a screen reader hears: the bar itself carries no text. */
+	label: string;
+}
+
+export function chapterLengthBarState(words: number, target: number | null): ChapterLengthBarState {
+	if (target === null || !(target > 0)) return { shown: false, kind: "empty", ratio: 0, scale: 1, cut: false, label: "" };
+	const state = computeDataBarState(words, target);
+	return { shown: true, kind: state.kind, ratio: state.ratio, scale: chapterScale([words], target), cut: state.cut, label: `Chapter length: ${formatWordCount(words)} of ${formatWordCount(target)} words` };
+}

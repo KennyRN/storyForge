@@ -111,6 +111,8 @@
 	--purpose-alert-caution-edge: var(--ef-red);
 	/* The rest of the dressing: block quotes, code, links, tables, scene breaks. */
 	--purpose-quote-edge: var(--ef-grey1);
+	--purpose-length-bar: var(--purpose-data-fill); /* the chapter length bar under the chapter box; the data colour unless a setting names another */
+	--purpose-length-rail: var(--ef-bg0); /* its rail: the working background */
 	--purpose-code-bg: var(--ef-bg1);
 	--purpose-link: var(--ef-aqua);
 	--purpose-table-head: var(--purpose-text);
@@ -131,6 +133,12 @@
 
 /* The chosen data colour (the setting `data-colour`, set on the page by the app); missing, unknown or excluded means blue. bg_dim on each is 5.7:1 or more. */
 :root[data-data-colour="yellow"] { --purpose-data-fill: var(--ef-yellow); }
+/* The chapter length bar's fill (Brief 20): the data colour until the author chooses one of the five. */
+:root[data-chapter-bar-colour="yellow"] { --purpose-length-bar: var(--ef-yellow); }
+:root[data-chapter-bar-colour="aqua"] { --purpose-length-bar: var(--ef-aqua); }
+:root[data-chapter-bar-colour="blue"] { --purpose-length-bar: var(--ef-blue); }
+:root[data-chapter-bar-colour="orange"] { --purpose-length-bar: var(--ef-orange); }
+:root[data-chapter-bar-colour="purple"] { --purpose-length-bar: var(--ef-purple); }
 :root[data-data-colour="aqua"] { --purpose-data-fill: var(--ef-aqua); }
 :root[data-data-colour="orange"] { --purpose-data-fill: var(--ef-orange); }
 :root[data-data-colour="purple"] { --purpose-data-fill: var(--ef-purple); }

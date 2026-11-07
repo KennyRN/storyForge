@@ -5,6 +5,7 @@ const NAMES: Partial<Record<keyof ProjectSettings, string>> = {
 	storyKind: "This story is",
 	codexColour: "Codex colour",
 	dataColour: "Data colour",
+	chapterBarColour: "Chapter length bar colour",
 	selectionColour: "Selection colour",
 	boldColour: "Bold colour",
 	italicColour: "Italic colour",

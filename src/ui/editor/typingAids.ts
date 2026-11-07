@@ -3,6 +3,7 @@ import { EditorSelection, StateField, type Extension, type Transaction } from "@
 import { EditorView } from "@codemirror/view";
 import { aidChanges, type AidOptions } from "../../core/typing/aids";
 import { protectedAt } from "./protection";
+import { codexLinks, type EditorLinks } from "./codexLinks";
 import type { AidChange } from "../../core/typing/smartPunctuation";
 import { shortcodePopup } from "./shortcodePopup";
 
@@ -115,7 +116,7 @@ function replaceInBrowser(view: EditorView, from: number, to: number, insert: st
  * of the overviews (decision 53): their shortcode popup is drawn outside the card and the page's scrolling, and goes
  * when the field loses focus.
  */
-export function typingAids(options: () => TypingEditorOptions, where: { field?: boolean } = {}): Extension {
+export function typingAids(options: () => TypingEditorOptions, where: { field?: boolean; links?: EditorLinks } = {}): Extension {
 	/** An aid's edit has been made in the page and not yet recorded. */
 	let aiding: { caret: number; event: string } | null = null;
 	/** The last name correction, so an undo of it can be recognised (its place moves with later edits). */
@@ -169,6 +170,19 @@ export function typingAids(options: () => TypingEditorOptions, where: { field?: 
 
 	return [
 		run,
+		// `[[` offers the Codex entries (Brief 20); an accepted one is the aid's own history step, like a shortcode.
+		...(where.links
+			? [
+					codexLinks(where.links, {
+						run,
+						field: where.field === true,
+						apply: (view, span) => {
+							pendingCorrection = null;
+							apply(view, span, "input.complete");
+						},
+					}),
+				]
+			: []),
 		shortcodePopup({
 			options,
 			run,

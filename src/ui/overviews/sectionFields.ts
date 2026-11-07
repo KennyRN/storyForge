@@ -2,6 +2,7 @@ import { readBookSynopsis } from "../../core/book";
 import { commitDescription, commitSynopsis, rescueDescription, rescueSynopsis } from "../../core/fieldWriter";
 import { readSeriesDescription } from "../../core/series";
 import type { SectionRead } from "../../core/sectionBody";
+import { bookFilePath, seriesFilePath } from "../../core/paths";
 import { el } from "../kit/dom";
 import type { AppModel } from "../model";
 import { FieldBin, textField } from "./fieldCommitter";
@@ -11,7 +12,7 @@ import { FieldBin, textField } from "./fieldCommitter";
  * It fills from disk once drawn; a heading that appears twice makes it read-only with a notice
  * asking the author to tidy the file (decision 42).
  */
-function sectionField(model: AppModel, bin: FieldBin, options: { label: string; what: string; read: () => Promise<SectionRead>; commit: (expected: string, next: string) => ReturnType<typeof commitSynopsis>; recover: (text: string) => ReturnType<typeof rescueSynopsis> }): HTMLElement {
+function sectionField(model: AppModel, bin: FieldBin, options: { storedIn: string; label: string; what: string; read: () => Promise<SectionRead>; commit: (expected: string, next: string) => ReturnType<typeof commitSynopsis>; recover: (text: string) => ReturnType<typeof rescueSynopsis> }): HTMLElement {
 	const project = model.running?.opened.project;
 	const field = textField({
 		label: options.label,
@@ -25,6 +26,7 @@ function sectionField(model: AppModel, bin: FieldBin, options: { label: string; 
 		notify: (n) => model.notices.notify(n),
 		placeholder: options.what,
 		typing: () => model.typingOptions(),
+		links: model.codexLinksFor(options.storedIn),
 	}, bin);
 	field.element.classList.add("sf-section-field");
 	void options.read().then((r) => {
@@ -41,6 +43,7 @@ function sectionField(model: AppModel, bin: FieldBin, options: { label: string; 
 export function synopsisField(model: AppModel, bin: FieldBin, book: string, title: string): HTMLElement {
 	const project = model.running!.opened.project;
 	return sectionField(model, bin, {
+		storedIn: bookFilePath(book),
 		label: `Synopsis of ${title}`,
 		what: "Synopsis",
 		read: () => readBookSynopsis(project, book),
@@ -52,6 +55,7 @@ export function synopsisField(model: AppModel, bin: FieldBin, book: string, titl
 export function descriptionField(model: AppModel, bin: FieldBin): HTMLElement {
 	const project = model.running!.opened.project;
 	return sectionField(model, bin, {
+		storedIn: seriesFilePath(),
 		label: "Series description",
 		what: "Description",
 		read: () => readSeriesDescription(project),

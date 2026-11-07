@@ -977,3 +977,12 @@ body.sf-codex-drag-active {
 .sf-filter-row[aria-checked="true"] .sf-filter-tick {
 	visibility: visible;
 }
+
+/* The chapter length bar (Brief 20, decision 160): in the strip under the chapter box (the stats section's height and the 12px above it), aligned with the box's edges,
+   centred vertically. A 12px rail on the working background, an 8px bar 2px in from its edges, the same radius on both; any words draw at least 3px (decision 153). */
+.sf-length-strip { position: absolute; left: var(--half-gap); right: var(--half-gap); bottom: 0; height: calc(var(--stats-h) + var(--space-3)); pointer-events: none; }
+.sf-length-strip[hidden] { display: none; }
+.sf-length-rail { position: absolute; left: 0; top: 32px; height: 12px; width: var(--lb-rail, 100%); border-radius: 6px; background: var(--purpose-length-rail); }
+.sf-length-fill { position: absolute; left: 2px; top: 34px; height: 8px; width: var(--lb-bar, 0); min-width: 3px; border-radius: 4px; background: var(--purpose-length-bar); }
+.sf-length-fill[hidden] { display: none; }
+.sf-length-fill--cut { border-radius: 4px 0 0 4px; clip-path: polygon(0 0, calc(100% - 2.41px) 0.00px, calc(100% - 1.26px) 0.19px, calc(100% - 1.03px) 0.76px, calc(100% - 1.71px) 1.71px, calc(100% - 3.29px) 3.29px, calc(100% - 3.61px) 3.76px, calc(100% - 3.61px) 4.24px, calc(100% - 3.29px) 4.71px, calc(100% - 1.71px) 6.29px, calc(100% - 1.03px) 7.24px, calc(100% - 1.26px) 7.81px, calc(100% - 2.41px) 8.00px, 0 100%); } /* the V, 4px deep, its tips and point softened (decision 158's idea at this bar's 8px height) */

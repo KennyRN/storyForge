@@ -1,6 +1,6 @@
 import { NUMBERING_STYLE_OPTIONS, type NumberingStyle } from "../../core/numberingStyle";
 import type { AutomaticBackupFrequency } from "../../core/backup";
-import { APPEARANCE_BASE_PX, APPEARANCE_PARTS, APPEARANCE_SIZE_RANGE, APPEARANCE_SIZE_STEP, APPEARANCE_SIZE_STEP_SHIFT, CODEX_COLOURS, DATA_COLOURS, EMPHASIS_COLOURS, LABEL_COLOURS, RAIL_COLOURS, SELECTION_COLOURS, SESSION_LIMITS, appearanceKey, typeKey, setSetting, type AppearancePart, type CodexColour, type DataColour, type EmphasisColour, type LabelColour, type RailColour, type SelectionColour, type ProjectSettings, type StoryKind } from "../../app/settings";
+import { APPEARANCE_BASE_PX, APPEARANCE_PARTS, APPEARANCE_SIZE_RANGE, APPEARANCE_SIZE_STEP, APPEARANCE_SIZE_STEP_SHIFT, CHAPTER_BAR_COLOURS, CODEX_COLOURS, DATA_COLOURS, EMPHASIS_COLOURS, LABEL_COLOURS, RAIL_COLOURS, SELECTION_COLOURS, SESSION_LIMITS, appearanceKey, typeKey, setSetting, type AppearancePart, type ChapterBarColour, type CodexColour, type DataColour, type EmphasisColour, type LabelColour, type RailColour, type SelectionColour, type ProjectSettings, type StoryKind } from "../../app/settings";
 import { FAMILY_INFO, FONT_FAMILIES, isFontFamily, nearestWeight, type FontFamily } from "../../core/fontFamilies";
 import { px, sampleStyle, styleLook } from "../appearance";
 import { getCodexView } from "../../core/codex";
@@ -16,6 +16,7 @@ import { widthsSettings } from "./widthsSettings";
 import type { AppModel } from "../model";
 
 const DATA_COLOUR_NAMES: Record<DataColour, string> = { yellow: "Yellow", aqua: "Aqua", blue: "Blue", orange: "Orange", purple: "Purple" };
+const CHAPTER_BAR_COLOUR_NAMES: Record<ChapterBarColour, string> = { data: "Same as the data bars", ...DATA_COLOUR_NAMES };
 const CODEX_COLOUR_NAMES: Record<CodexColour, string> = { text: "Text", yellow: "Yellow", green: "Green", aqua: "Aqua", blue: "Blue", purple: "Purple", orange: "Orange", grey: "Grey" };
 const SELECTION_COLOUR_NAMES: Record<SelectionColour, string> = { plum: "Plum", blue: "Blue", green: "Green", yellow: "Yellow", grey: "Grey" };
 const EMPHASIS_COLOUR_NAMES: Record<EmphasisColour, string> = { text: "Text colour", ...DATA_COLOUR_NAMES };
@@ -91,7 +92,7 @@ export function openSettings(model: AppModel): void {
 		return row(label, input, key);
 	};
 	/** Unnamed colour squares, one chosen (a radio group): the name is for the screen reader and the tooltip; the chosen one has a ring. */
-	const swatches = (key: "codexColour" | "dataColour" | "selectionColour" | "boldColour" | "italicColour" | "boldItalicColour" | "smallHeadingColour" | "libraryHeaderColour" | "placedColour" | "unplacedColour" | "dataLabelColour" | "dataValueColour" | "railColour", label: string, choices: readonly string[], names: Record<string, string>, dot: (choice: string) => string, unavailable?: (choice: string) => boolean): HTMLElement => {
+	const swatches = (key: "codexColour" | "dataColour" | "chapterBarColour" | "selectionColour" | "boldColour" | "italicColour" | "boldItalicColour" | "smallHeadingColour" | "libraryHeaderColour" | "placedColour" | "unplacedColour" | "dataLabelColour" | "dataValueColour" | "railColour", label: string, choices: readonly string[], names: Record<string, string>, dot: (choice: string) => string, unavailable?: (choice: string) => boolean): HTMLElement => {
 		const group = el("div", { class: "sf-swatches", attrs: { role: "radiogroup", "aria-label": label } });
 		for (const choice of choices) {
 			const chosen = settings.values[key] === choice;
@@ -115,6 +116,7 @@ export function openSettings(model: AppModel): void {
 	const tagged = (tag: string, group: HTMLElement): HTMLElement => line(el("span", { class: "sf-muted sf-options-tag", text: tag }), group); // the bar has two swatch rows, so they are tagged
 	const barColour = (): HTMLElement => tagged("bar", swatches("dataColour", "bar colour", DATA_COLOURS, DATA_COLOUR_NAMES, dot));
 	const railColour = (): HTMLElement => tagged("rail", swatches("railColour", "rail colour", RAIL_COLOURS, RAIL_COLOUR_NAMES, (c) => `sf-swatch-dot--rail-${c}`));
+	const chapterBarColour = (): HTMLElement => swatches("chapterBarColour", "chapter length bar colour", CHAPTER_BAR_COLOURS, CHAPTER_BAR_COLOUR_NAMES, dot);
 	const smallHeadingColour = (): HTMLElement => swatches("smallHeadingColour", "small heading colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, dot);
 	const libraryHeaderColour = (): HTMLElement => swatches("libraryHeaderColour", "library header colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, dot);
 	const placedColour = (): HTMLElement => swatches("placedColour", "placed colour", CODEX_COLOURS, CODEX_COLOUR_NAMES, dot);
@@ -459,7 +461,7 @@ export function openSettings(model: AppModel): void {
 					typeStyle(styleOf("dataLabel"), { preview: dataPreview(), extra: [dataLabelColour()] }), typeStyle(styleOf("data"), { omit: true, extra: [dataValueColour()] }),
 					typeStyle(styleOf("barName"), { extra: [barColour(), railColour()] }),
 				),
-				"storytelling mode": grid(...(["series", "novel", "chapter"] as const).map((p) => appearancePart(p)), appearancePart("codex", [codexColour()])),
+				"storytelling mode": grid(...(["series", "novel", "chapter"] as const).map((p) => appearancePart(p)), appearancePart("codex", [codexColour()]), gridRow("Chapter length bar", [line(chapterBarColour())], null, true)),
 				writing: [...grid(baseFont("Writing"), ...styles("prose", "reading", "fields")), section("Text colours", textColours())],
 			}),
 			Writing: pick(Object.fromEntries(Object.entries(typingSection({ settings: settings.values, off, change, check, notify: (text) => model.notices.notify({ kind: "warning", text }) })).map(([k, v]) => [k, [section("Typing", v)]]))),

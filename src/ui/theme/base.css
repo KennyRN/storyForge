@@ -809,6 +809,7 @@ input[aria-invalid="true"] {
 	border-radius: 50%;
 }
 .sf-swatch-dot--text { background: var(--purpose-codex-choice-text); }
+.sf-swatch-dot--data { background: var(--purpose-data-fill); }
 .sf-swatch-dot--yellow { background: var(--purpose-codex-choice-yellow); }
 .sf-swatch-dot--green { background: var(--purpose-codex-choice-green); }
 .sf-swatch-dot--aqua { background: var(--purpose-codex-choice-aqua); }

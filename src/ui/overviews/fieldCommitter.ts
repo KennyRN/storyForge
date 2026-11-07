@@ -4,6 +4,7 @@ import { EditorView, keymap, placeholder } from "@codemirror/view";
 import { registerFocusedField } from "../commitOnClose";
 import { trackWriting } from "../editor/lastWriting";
 import { prose } from "../editor/dressingView";
+import type { EditorLinks } from "../editor/codexLinks";
 import { typingAids, type TypingEditorOptions } from "../editor/typingAids";
 import { FieldState, type FieldHooks } from "./fieldState";
 
@@ -23,6 +24,8 @@ export type FieldSpec = Omit<FieldHooks, "getText" | "setText"> & {
 	placeholder?: string;
 	/** The typing aids' switches and lists, read at every keystroke (the same as a chapter's, decision 53). */
 	typing: () => TypingEditorOptions;
+	/** Codex links in this field (Brief 20): relative to the file the field is stored in. */
+	links?: EditorLinks;
 };
 
 export interface TextField {
@@ -72,7 +75,7 @@ export function textField(spec: FieldSpec, bin?: FieldBin): TextField {
 				// The same light dressing as the chapter editor (Brief 17): emphasis, highlights, their colours and the hidden markers. Display only: it adds
 				// decorations, never changes the document, so what FieldState compares and writes is untouched (decision 47).
 				prose(),
-				typingAids(spec.typing, { field: true }),
+				typingAids(spec.typing, { field: true, links: spec.links }),
 				EditorView.updateListener.of((update) => {
 					if (update.focusChanged) {
 						if (update.view.hasFocus) onFocus();

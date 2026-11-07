@@ -398,8 +398,8 @@ export const SAFETY_OPS: OpSpec[] = [
 	{
 		name: "renameCodexNote: backup, rename, rewrite, re-key",
 		setup: async (c) => {
-			fs.writeFileSync(c.abs(`${A}/ch-a1.md`), "Jane walked into [[Jane]]'s house.\nSee [x](Codex/Jane.md).\n");
-			fs.writeFileSync(c.abs("notes/idea.md"), fs.readFileSync(c.abs("notes/idea.md"), "utf8") + "\nAbout [[Jane|her]].\n");
+			fs.writeFileSync(c.abs(`${A}/ch-a1.md`), "Jane walked into [Jane](../../Codex/Jane.md)'s house.\nSee [x](../../Codex/Jane.md).\n");
+			fs.writeFileSync(c.abs("notes/idea.md"), fs.readFileSync(c.abs("notes/idea.md"), "utf8") + "\nAbout [her](../Codex/Jane.md).\n");
 			(c as { project: Project }).project = await Project.open(new NodeFsBackend(c.root));
 		},
 		run: (c) => renameCodexNote(c.project, "Codex/Jane.md", "Janet", { backups: backupsOf(c) }),

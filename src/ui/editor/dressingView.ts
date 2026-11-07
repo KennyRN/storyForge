@@ -4,6 +4,7 @@ import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet, typ
 import { alertIcon, type AlertKind } from "../kit/noticeIcons";
 import { ALERT_NAMES, dressingPlan, type PlanItem } from "./dressingPlan";
 import { toggleEmphasis } from "./dressing";
+import { classifierOf } from "./codexLinks";
 import { markdownLanguage } from "./markdownLanguage";
 
 /**
@@ -78,7 +79,8 @@ function toDecoration(item: PlanItem): Range<Decoration> | null {
 		case "line":
 			return line(item.cls).range(item.at);
 		case "mark":
-			return item.to > item.from ? mark(item.cls).range(item.from, item.to) : null;
+			if (item.to <= item.from) return null;
+			return (item.attrs ? Decoration.mark({ class: item.cls, attributes: item.attrs }) : mark(item.cls)).range(item.from, item.to);
 		case "hide":
 			return item.to > item.from ? HIDE.range(item.from, item.to) : null;
 		case "widget":
@@ -111,11 +113,12 @@ class DressingPlugin {
 		const decos: Range<Decoration>[] = [];
 		const text = doc.toString();
 		const tree = syntaxTree(state);
+		const classify = classifierOf(state);
 		for (const visible of view.visibleRanges) {
 			// A construct that starts above the viewport still has to be drawn, so the plan covers whole lines.
 			const from = doc.lineAt(visible.from).from;
 			const to = doc.lineAt(visible.to).to;
-			for (const item of dressingPlan(tree, text, isActive, { from, to })) {
+			for (const item of dressingPlan(tree, text, isActive, { from, to }, classify)) {
 				const d = toDecoration(item);
 				if (d) decos.push(d);
 			}

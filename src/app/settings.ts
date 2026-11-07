@@ -37,6 +37,10 @@ export type CodexColour = (typeof CODEX_COLOURS)[number];
 export const DATA_COLOURS = ["yellow", "aqua", "blue", "orange", "purple"] as const;
 export type DataColour = (typeof DATA_COLOURS)[number];
 
+/** The chapter length bar's colour (Brief 20, decision 160): `data` (the default, the project's data colour as it is now) or one of the five. Stored as the role name, written only on a change. */
+export const CHAPTER_BAR_COLOURS = ["data", ...DATA_COLOURS] as const;
+export type ChapterBarColour = (typeof CHAPTER_BAR_COLOURS)[number];
+
 /** The text colours (Brief 17, decision 122), each stored as a role name like `data-colour`. The selection: blue (the default), plum (Everforest's visual background), green, yellow or grey (red is trouble). The highlight and the three emphasis colours take the same five colours as the data bars (red and green are excluded, decision 8); an emphasis colour may also be "text" (none: the text colour). */
 export const SELECTION_COLOURS = ["plum", "blue", "green", "yellow", "grey"] as const;
 export type SelectionColour = (typeof SELECTION_COLOURS)[number];
@@ -137,6 +141,8 @@ export interface ProjectSettings extends AppearanceKeys, TypeStyleKeys {
 	dataValueColour: LabelColour;
 	/** The rail round a chapter bar. */
 	railColour: RailColour;
+	/** The chapter length bar under the chapter box on the storytelling side (Brief 20). */
+	chapterBarColour: ChapterBarColour;
 	hideSeriesPane: boolean;
 	autoFocus: boolean;
 	layout: SfLayout;
@@ -200,6 +206,7 @@ export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
 	dataLabelColour: "muted",
 	dataValueColour: "text",
 	railColour: "bg2",
+	chapterBarColour: "data",
 	hideSeriesPane: false,
 	autoFocus: true,
 	layout: "novelBrowse",
@@ -252,6 +259,7 @@ const FIELDS: Record<Key, { file: string; plugin: string; valid: (v: unknown) =>
 	unplacedColour: { file: "unplaced-colour", plugin: "-", valid: (v) => typeof v === "string" && (CODEX_COLOURS as readonly string[]).includes(v) },
 	dataLabelColour: { file: "data-label-colour", plugin: "-", valid: (v) => typeof v === "string" && (LABEL_COLOURS as readonly string[]).includes(v) },
 	dataValueColour: { file: "data-value-colour", plugin: "-", valid: (v) => typeof v === "string" && (LABEL_COLOURS as readonly string[]).includes(v) },
+	chapterBarColour: { file: "chapter-bar-colour", plugin: "-", valid: (v) => typeof v === "string" && (CHAPTER_BAR_COLOURS as readonly string[]).includes(v) },
 	railColour: { file: "rail-colour", plugin: "-", valid: (v) => typeof v === "string" && (RAIL_COLOURS as readonly string[]).includes(v) },
 	smallHeadingColour: { file: "small-heading-colour", plugin: "-", valid: (v) => typeof v === "string" && (EMPHASIS_COLOURS as readonly string[]).includes(v) },
 	boldItalicColour: { file: "bold-italic-colour", plugin: "-", valid: (v) => typeof v === "string" && (EMPHASIS_COLOURS as readonly string[]).includes(v) },

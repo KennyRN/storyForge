@@ -30,6 +30,7 @@ export async function startApp(host: Host, root: HTMLElement): Promise<AppModel>
 		const v = model.running?.settings.values;
 		const d = document.documentElement.dataset;
 		d.selectionColour = v?.selectionColour ?? "blue";
+		d.chapterBarColour = v?.chapterBarColour ?? "data";
 		d.boldColour = v?.boldColour ?? "orange";
 		d.italicColour = v?.italicColour ?? "orange";
 		d.boldItalicColour = v?.boldItalicColour ?? "orange";

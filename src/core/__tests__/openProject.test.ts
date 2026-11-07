@@ -198,7 +198,7 @@ describe("createProject", () => {
 describe("renameNote (the front door to the link rewriter)", () => {
 	it("plans without writing, then renames and rewrites through the writer's own flush and a backup", async () => {
 		const root = copyFixture("series");
-		fs.writeFileSync(path.join(root, "Codex/Sam.md"), "Friend of [[Jane]].\n");
+		fs.writeFileSync(path.join(root, "Codex/Sam.md"), "Friend of [Jane](Jane.md).\n");
 		const opened = await openProject(root, { backend: new NodeFsBackend(root) });
 		try {
 			const before = dirSnapshot(root);
@@ -207,7 +207,7 @@ describe("renameNote (the front door to the link rewriter)", () => {
 			expect(diffSnapshots(before, dirSnapshot(root))).toEqual({ added: [], removed: [], changed: [] });
 			const result = await opened.renameNote.apply("Codex/Jane.md", "Janet");
 			expect(result.status).toBe("done");
-			expect(fs.readFileSync(path.join(root, "Codex/Sam.md"), "utf8")).toBe("Friend of [[Janet]].\n");
+			expect(fs.readFileSync(path.join(root, "Codex/Sam.md"), "utf8")).toBe("Friend of [Janet](Janet.md).\n");
 			expect(result.backupPath).toBeTruthy();
 		} finally {
 			await opened.close();

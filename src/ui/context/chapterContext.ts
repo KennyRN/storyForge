@@ -1,7 +1,7 @@
 import { chapterDisplayTitle, getBookChapters, getChapterEntry, readBookFrontmatter, readChapterPlot, writeChapterLocation, writeChapterPov, type CodexRef } from "../../core/book";
 import { getCodexEntriesByType } from "../../core/codex";
 import { commitPlotNote, rescuePlotNote } from "../../core/fieldWriter";
-import { libraryChapterPath } from "../../core/paths";
+import { bookFilePath, libraryChapterPath } from "../../core/paths";
 import { applyHashNumbering } from "../../core/titleNumbering";
 import { commitFocusedFields } from "../commitOnClose";
 import { writingPlaceGone } from "../editor/lastWriting";
@@ -99,6 +99,7 @@ export function mountChapterContext(host: HTMLElement, model: AppModel): () => v
 				notify: (n) => model.notices.notify(n),
 				placeholder: "Plot note",
 				typing: () => model.typingOptions(),
+				links: model.codexLinksFor(bookFilePath(book)), // the plot note is stored in the novel file
 			},
 			bin,
 		);

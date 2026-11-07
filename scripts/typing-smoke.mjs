@@ -105,7 +105,8 @@ const CASES = [
 	["an em dash and an ellipsis", "Well--then... and so on...", "Well—then… and so on…"],
 	["a Text Replacement (omw) is not expanded, and a Codex name in lower case is corrected with its possessive", "omw jane's boat and sam.", "omw Jane’s boat and Sam."],
 	["an elision, a quoted word and a decade", "'tis 'em' 90's", "’tis ‘em’ 90’s"],
-	["nothing inside a link, code or a comment", "[[it's]] `don't` %% 'x' -- y %% end", "[[it's]] `don't` %% 'x' -- y %% end"],
+	// Protected text is the markdown parse tree's (Brief 20): an HTML comment that starts its line is a comment, and nothing inside it is touched. (`[[x]]` and `%%` are plain text now.)
+	["nothing inside an HTML comment that starts its line", "<!-- it's 'x' -- y -->", "<!-- it's 'x' -- y -->", { ownLine: true }],
 ];
 
 const dir = realpathSync(mkdtempSync(join(tmpdir(), "sf-typing-")));
@@ -135,10 +136,15 @@ try {
 	await sleep(400);
 
 	let expectedSoFar = "";
-	for (const [what, text, expected] of CASES) {
-		sendKeys(`${text} `);
+	for (const [what, text, expected, options] of CASES) {
+		if (options?.ownLine) {
+			typing.key("key code 36"); // Return: a comment is a comment only at the start of a line
+			expectedSoFar += "\n";
+		}
+		sendKeys(options?.ownLine ? text : `${text} `);
+		if (options?.ownLine) typing.key("key code 36");
 		await sleep(500);
-		expectedSoFar += `${expected} `;
+		expectedSoFar += options?.ownLine ? `${expected}\n` : `${expected} `;
 		if (process.env.TYPING_TRACE) console.log(`  after "${what.slice(0, 40)}": ${typing.focusNow()}`);
 		const after = valueOf("AXTextArea", "Text") ?? "";
 		if (!after.startsWith(expectedSoFar)) problems.push(`${what}: typed ${JSON.stringify(text)}, expected ${JSON.stringify(expected)}, the editor holds ${JSON.stringify(after.slice(expectedSoFar.length - expected.length - 1, expectedSoFar.length))}`);

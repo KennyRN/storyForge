@@ -41,7 +41,7 @@ Chosen by Kenny (7 November 2026) as the face for code in every editor, replacin
 
 | Family | Copyright | Source | Files |
 |---|---|---|---|
-| Sono | Copyright 2020 The Sono Project Authors | https://github.com/sursly/sono (taken from https://github.com/google/fonts/tree/main/ofl/sono) | `sono/Sono-Variable.ttf` (`Sono[MONO,wght].ttf`: a weight axis 200 to 800 and a MONO axis 0 to 1) |
+| Sono | Copyright 2020 The Sono Project Authors | https://github.com/sursly/sono (the Google Fonts download Kenny supplied, `Fonts/Sono/Sono-VariableFont_MONO,wght.ttf` with its `OFL.txt`) | `sono/Sono-Variable.ttf` (the same file, renamed: a weight axis 200 to 800 and a MONO axis 0 to 1) |
 
 Used only through `--font-code`, with `font-variation-settings: "MONO" 1` and the weight of the surrounding text. It is not in the Appearance font lists.
 

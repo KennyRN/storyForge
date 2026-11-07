@@ -1,6 +1,6 @@
 /**
  * A fuzzer for the link rewriter, in the style of the frontmatter fuzzer: random markdown containing
- * links, code, comments and frontmatter. Each document is built together with the text it must
+ * markdown links (relative ones too), code, HTML comments and frontmatter, with the old `[[wiki]]` forms as plain text that must never change. Each document is built together with the text it must
  * become. After a rewrite every byte outside the planned spans is identical, every planned span is
  * replaced, and the result is exactly the expected text.
  */
@@ -33,10 +33,7 @@ interface Pair {
 }
 
 class Gen {
-	constructor(
-		private r: () => number,
-		private ambiguous: boolean,
-	) {}
+	constructor(private r: () => number) {}
 	pick<T>(xs: readonly T[]): T {
 		return xs[Math.floor(this.r() * xs.length)];
 	}
@@ -48,54 +45,50 @@ class Gen {
 		return Array.from({ length: n }, () => this.pick(WORDS)).join(" ");
 	}
 
-	/** A link that must be rewritten (unless it's a bare link and the name is ambiguous). */
+	/** A link that must be rewritten (and, where its text was the old name, whose text must follow). */
 	link(): Pair {
-		const suffix = this.pick(["", "", "#Early life", "#^abc12", "#Early life|Her", "|Her", "|", "|200"]);
-		const emb = this.chance(0.2) ? "!" : "";
 		switch (Math.floor(this.r() * 6)) {
 			case 0: {
-				const bare = `${emb}[[${OLD}${suffix}]]`;
-				return this.ambiguous ? { orig: bare, exp: bare, spans: 0 } : { orig: bare, exp: `${emb}[[${NEW}${suffix}]]`, spans: 1 };
+				const title = this.pick(["", ' "Title"', " 'Title'"]);
+				return { orig: `[${OLD}](Codex/${OLD}.md${title})`, exp: `[${NEW}](Codex/${NEW_ENC}.md${title})`, spans: 2 };
 			}
 			case 1: {
-				const ext = this.pick(["", ".md"]);
-				return { orig: `${emb}[[Codex/${OLD}${ext}${suffix}]]`, exp: `${emb}[[Codex/${NEW}${ext}${suffix}]]`, spans: 1 };
-			}
-			case 2: {
 				const frag = this.pick(["", "#Intro", "#Early%20life"]);
 				const title = this.pick(["", ' "Title"', " 'Title'"]);
-				const bang = this.chance(0.2) ? "!" : "";
 				const text = this.words().replace(/[\[\]]/g, "");
-				return { orig: `${bang}[${text}](Codex/${OLD}.md${frag}${title})`, exp: `${bang}[${text}](Codex/${NEW_ENC}.md${frag}${title})`, spans: 1 };
+				return { orig: `[${text}](Codex/${OLD}.md${frag}${title})`, exp: `[${text}](Codex/${NEW_ENC}.md${frag}${title})`, spans: 1 };
 			}
-			case 3:
+			case 2:
 				return { orig: `[a link](<Codex/${OLD}.md>)`, exp: `[a link](<Codex/${NEW}.md>)`, spans: 1 };
-			case 4: {
-				const bare = `[[${OLD.toLowerCase()}${suffix}]]`; // different capitalisation
-				return this.ambiguous ? { orig: bare, exp: bare, spans: 0 } : { orig: bare, exp: `[[${NEW}${suffix}]]`, spans: 1 };
+			case 3: {
+				// relative to the file (notes/doc.md): one level up
+				const text = this.pick([OLD, "her", "the harbour"]);
+				return { orig: `[${text}](../Codex/${OLD}.md)`, exp: `[${text === OLD ? NEW : text}](../Codex/${NEW_ENC}.md)`, spans: text === OLD ? 2 : 1 };
 			}
+			case 4:
+				return { orig: `![${OLD}](Codex/${OLD}.md)`, exp: `![${OLD}](Codex/${NEW_ENC}.md)`, spans: 1 }; // an image: only its target
 			default:
 				return { orig: `[x](Codex/${OLD}%20.md)`, exp: `[x](Codex/${OLD}%20.md)`, spans: 0 }; // another file's name: untouched
 		}
 	}
-	/** Links that must never change. */
+	/** Links and text that must never change: other notes, URLs, and the old plain-text forms (decision 157). */
 	decoy(): string {
-		return this.pick(["[[Sam]]", "[[Janet]]", "[[Jane Eyre#h|x]]", "[s](Codex/Sam.md)", "[u](https://example.com/Codex/Jane.md)", "[[#Heading]]", "[[]]", "[[Codex/Samuel]]", "![[Sam|100]]"]);
+		return this.pick(["[[Sam]]", "[[Jane]]", "[[Codex/Jane]]", "![[Jane|100]]", "[s](Codex/Sam.md)", "[u](https://example.com/Codex/Jane.md)", "[h](#Heading)", "[[Jane Eyre#h|x]]", "[]()", "[[]]"]);
 	}
-	/** Text that hides links in code or comments. */
+	/** Text that hides links in code or HTML comments. */
 	hidden(): string {
-		const l = () => this.pick([`[[${OLD}]]`, `[[Codex/${OLD}]]`, `[a](Codex/${OLD}.md)`, `![[${OLD}]]`]);
+		const l = () => this.pick([`[a](Codex/${OLD}.md)`, `[${OLD}](Codex/${OLD}.md)`, `![i](Codex/${OLD}.md)`, `[b](../Codex/${OLD}.md)`]);
 		switch (Math.floor(this.r() * 5)) {
 			case 0:
 				return `\`${l()}\``;
 			case 1:
-				return `%% ${l()} ${this.words()} %%`;
+				return `<!-- ${l()} ${this.words().replace(/-->|<!--/g, "")} -->`;
 			case 2:
 				return `\n\`\`\`${this.pick(["", "md", "js"])}\n${l()}\n${this.words()}\n${l()}\n\`\`\`\n`;
 			case 3:
 				return `\n~~~\n${l()}\n~~~\n`;
 			default:
-				return `%%\n${l()}\n${l()}\n%%`;
+				return `<!--\n${l()}\n${l()}\n-->`;
 		}
 	}
 	bodyPiece(): Pair {
@@ -140,21 +133,21 @@ class Gen {
 		for (let i = 0; i < n; i++) {
 			switch (Math.floor(this.r() * 7)) {
 				case 0:
-					lines.push([`# a comment with [[${OLD}]] that is not a value`, `# a comment with [[${OLD}]] that is not a value`]);
+					lines.push([`# a comment with [${OLD}](Codex/${OLD}.md) that is not a value`, `# a comment with [${OLD}](Codex/${OLD}.md) that is not a value`]);
 					break;
 				case 1:
-					lines.push([`related${i}: "see [[${OLD}]] and [[Sam]]"`, this.ambiguous ? `related${i}: "see [[${OLD}]] and [[Sam]]"` : `related${i}: "see [[${NEW}]] and [[Sam]]"`]);
-					if (!this.ambiguous) spans++;
+					lines.push([`related${i}: "see [${OLD}](Codex/${OLD}.md) and [Sam](Codex/Sam.md)"`, `related${i}: "see [${NEW}](Codex/${NEW_ENC}.md) and [Sam](Codex/Sam.md)"`]);
+					spans += 2;
 					break;
 				case 2:
-					lines.push([`path${i}: 'x [[Codex/${OLD}.md|J]]'`, `path${i}: "x [[Codex/${NEW}.md|J]]"`]);
+					lines.push([`path${i}: 'x [J](Codex/${OLD}.md)'`, `path${i}: "x [J](Codex/${NEW_ENC}.md)"`]);
 					spans++;
 					break;
 				case 3:
-					lines.push([`note${i}: "[[Sam]]"   # trailing [[${OLD}]]`, `note${i}: "[[Sam]]"   # trailing [[${OLD}]]`]);
+					lines.push([`note${i}: "[Sam](Codex/Sam.md)"   # trailing [${OLD}](Codex/${OLD}.md)`, `note${i}: "[Sam](Codex/Sam.md)"   # trailing [${OLD}](Codex/${OLD}.md)`]);
 					break;
 				case 4:
-					lines.push([`flow${i}: [[${OLD}]]`, `flow${i}: [[${OLD}]]`]); // an unquoted [[ ]] is a nested list, not a link
+					lines.push([`flow${i}: [[${OLD}]]`, `flow${i}: [[${OLD}]]`]); // an unquoted [[ ]] is a nested list, and plain text since decision 157
 					break;
 				case 5:
 					lines.push([`n${i}: ${this.pick(["1", "true", "plain words", "~"])}`, ""]);
@@ -162,8 +155,8 @@ class Gen {
 					break;
 				default: {
 					hasList = true;
-					const l1 = `  - "[[Codex/${OLD}]]"`;
-					lines.push([`list${i}:\n${l1}\n  - plain`, `list${i}:\n  - "[[Codex/${NEW}]]"\n  - plain`]);
+					const l1 = `  - "[x](Codex/${OLD}.md)"`;
+					lines.push([`list${i}:\n${l1}\n  - plain`, `list${i}:\n  - "[x](Codex/${NEW_ENC}.md)"\n  - plain`]);
 					spans++;
 				}
 			}
@@ -182,8 +175,7 @@ function firstDiff(a: string, b: string): string {
 
 function build(seed: number) {
 	const r = rng(seed);
-	const ambiguous = r() < 0.3;
-	const g = new Gen(r, ambiguous);
+	const g = new Gen(r);
 	const fm = g.frontmatter();
 	const body = g.body();
 	let orig = fm.orig + body.orig;
@@ -193,7 +185,7 @@ function build(seed: number) {
 		orig = orig.replace(/\n/g, "\r\n");
 		exp = exp.replace(/\n/g, "\r\n");
 	}
-	return { orig, exp, spans: fm.spans + body.spans, ambiguous, hasList: fm.hasList };
+	return { orig, exp, spans: fm.spans + body.spans, hasList: fm.hasList };
 }
 
 describe("link rewriter fuzzer", () => {
@@ -203,7 +195,6 @@ describe("link rewriter fuzzer", () => {
 		for (let seed = 1; seed <= 3000; seed++) {
 			const doc = build(seed);
 			const files: Record<string, string | null> = { "Codex/Jane.md": "x", "notes/doc.md": doc.orig };
-			if (doc.ambiguous) files["notes/Jane.md"] = "twin";
 			const { project } = await memoryProject(files);
 			const plan = await planCodexRename(project, "Codex/Jane.md", NEW);
 			const planned = plan.files.find((f) => f.path === "notes/doc.md");
@@ -247,7 +238,6 @@ describe("link rewriter fuzzer", () => {
 		for (let seed = 5001; seed <= 5150; seed++) {
 			const doc = build(seed);
 			const files: Record<string, string | null> = { "Codex/Jane.md": "x", "notes/doc.md": doc.orig, "_story-library/aaa/ch.md": doc.orig.replace(/---[\s\S]*?---\r?\n/, "") };
-			if (doc.ambiguous) files["notes/Jane.md"] = "twin";
 			const { project, backend } = await memoryProject(files);
 			const backups = new BackupService(project, { projectName: "fuzz", now: () => new Date(2026, 0, 1) });
 			const plan = await planCodexRename(project, "Codex/Jane.md", NEW);

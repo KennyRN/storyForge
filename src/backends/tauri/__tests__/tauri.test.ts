@@ -72,7 +72,7 @@ suite("TauriBackend over the Rust code", () => {
 			s.setBody("Typed through the prose writer.");
 			await s.save();
 			const note = await opened.writer.open("Codex/Sam.md");
-			note.setBody("Sam, as [[Jane]] sees him.");
+			note.setBody("Sam, as [Jane](Jane.md) sees him.");
 			await note.save();
 			const result = await renameCodexNote(opened.project, "Codex/Jane.md", "Janet", { backups: opened.backups, writer: opened.writer });
 			await opened.close();
@@ -94,7 +94,7 @@ suite("TauriBackend over the Rust code", () => {
 				if (k.endsWith(".zip")) continue; // zip bytes carry file times
 				expect(sb.get(k), k).toBe(v);
 			}
-			expect(fs.readFileSync(`${b}/Codex/Sam.md`, "utf8")).toContain("[[Janet]]");
+			expect(fs.readFileSync(`${b}/Codex/Sam.md`, "utf8")).toContain("[Janet](Janet.md)");
 		} finally {
 			bridge.close();
 		}

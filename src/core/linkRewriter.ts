@@ -4,12 +4,13 @@
  * happens: `planCodexRename` (reads only) and `applyCodexRename` (backup, rename, rewrite, re-key).
  * This module is the only caller of `linkRewrite` and `codexRename` (test/architecture.test.ts).
  *
- * Which links count as pointing at the note:
- * - **Path-qualified links always count**: `[[Codex/X]]`, `[[Codex/X.md]]`, `[text](Codex/X.md)`.
- * - A **bare** `[[X]]` counts only if `Codex/X.md` is the only markdown file in the whole project with
- *   that basename (case-insensitive, Unicode-normalised). Otherwise it is **ambiguous**: left alone
- *   and listed. This is stricter than Obsidian's own resolution on purpose: categorical, never wrong.
- * - Links inside code blocks, inline code and `%% comments %%` never count (see linkScan.ts).
+ * Which links count as pointing at the note (Brief 20, decision 157: standard markdown links only):
+ * - **A markdown link whose path resolves to the note**: `[text](Codex/X.md)`, `[text](../../Codex/X.md)`, `%20` or `<angle>`
+ *   destinations, from the root or relative to the file holding the link. Only the file name in the path is replaced, so the
+ *   directories (and so a relative link's depth) are untouched. **The link's text follows when it is exactly the old name**; any
+ *   other text the author wrote is kept.
+ * - `[[wiki links]]`, `![[embeds]]` and unquoted `[[X]]` frontmatter values are plain text now: not read, not rewritten, not listed.
+ * - Links inside code blocks, inline code and `<!-- HTML comments -->` never count (see linkScan.ts).
  * - Links in other markdown files outside storyForge's folders are counted, read-only, so the
  *   interface can say they will not be updated.
  */
@@ -32,7 +33,7 @@ export class NotACodexNoteError extends Error {
 	}
 }
 
-/** The new name contains characters a link can't carry (`[[Janet #2]]` would mean a heading in "Janet "). Nothing was changed. */
+/** The new name contains characters a link can't carry (`#` would start a fragment in the link). Nothing was changed. */
 export class UnlinkableNameError extends Error {
 	constructor(public readonly name: string, public readonly chars: string[]) {
 		super(`The name "${name}" contains ${chars.map((c) => `"${c}"`).join(" ")}, which links can't carry, so the note can't be renamed to it. Choose a name without them.`);
@@ -50,6 +51,8 @@ export interface LinkSpan {
 	old: string;
 	new: string;
 	form: PlannedLinkForm;
+	/** `text`: the link's text following the rename; otherwise (or absent) the file name in the link's target. */
+	part?: "text";
 	/** Frontmatter only: where the string value sits in the parsed frontmatter. */
 	keyPath?: (string | number)[];
 }
@@ -62,17 +65,6 @@ export interface PlannedFile {
 	linkCount: number;
 }
 
-export interface AmbiguousLink {
-	path: string;
-	/** The link as written. */
-	text: string;
-	region: "body" | "frontmatter";
-	start: number;
-	end: number;
-	/** The other markdown files sharing the note's basename. */
-	otherFiles: string[];
-}
-
 export interface LinkRewritePlan {
 	/** Nothing to do: the new name resolves to the note's own. */
 	unchanged: boolean;
@@ -82,15 +74,12 @@ export interface LinkRewritePlan {
 	newName: string;
 	files: PlannedFile[];
 	totalLinks: number;
-	ambiguous: AmbiguousLink[];
 	/** Links in other markdown files (outside `_story-library/`, `Codex/`, `notes/`); counted, never updated. */
 	outside: { linkCount: number; files: { path: string; count: number }[] };
 	/** Files in storyForge's folders that are iCloud placeholders: their links could not be seen. */
 	notDownloaded: string[];
 	/** Files that could not be read, so their links could not be seen. */
 	unreadable: { path: string; reason: string }[];
-	/** Frontmatter values written unquoted as `[[X]]` (YAML reads them as a nested list, not a link) that name this note. Not rewritten; listed so the announcement isn't silent about them. */
-	unquotedFrontmatter: { path: string; keyPath: (string | number)[]; text: string }[];
 	/** Files whose frontmatter can't be read safely: links in the body are planned, links in the frontmatter are not. */
 	frontmatterSkipped: string[];
 	/** Novel files whose chapters' PoV or location lists, or default PoV, name this note: they are re-pointed at the new name after the rename (decision 42). */
@@ -103,15 +92,13 @@ const UNLINKABLE = /[\[\]#^|]/g;
 interface NoteIdentity {
 	path: string;
 	pathKey: string;
-	/** Folded basename without extension. */
-	nameKey: string;
-	unique: boolean;
-	otherFiles: string[];
+	/** The note's old name (its basename without the extension), which a link's text follows when it is exactly that. */
+	oldName: string;
 	newFilename: string;
 	newStem: string;
 }
 
-type Resolution = { kind: "match"; segStart: number; segEnd: number; oldSeg: string; newSeg: string } | { kind: "ambiguous" } | null;
+type Resolution = { kind: "match"; segStart: number; segEnd: number; oldSeg: string; newSeg: string } | null;
 
 const stripMd = (s: string) => s.replace(/\.md$/i, "");
 
@@ -123,26 +110,7 @@ function encodeMarkdownSegment(stem: string, ext: string, angle: boolean): strin
 /** Decides whether `link` (found in `fromFile`) points at the note, and which part of it to replace. */
 function resolveLink(link: RawLink, fromFile: string, note: NoteIdentity, allowRelative: boolean): Resolution {
 	const raw = link.target;
-	if (link.form === "wikilink" || link.form === "embed") {
-		const lead = raw.length - raw.trimStart().length;
-		const t = raw.trim();
-		const hasExt = /\.md$/i.test(t);
-		const noExt = hasExt ? t.slice(0, -3) : t;
-		const slash = noExt.lastIndexOf("/");
-		const nameStart = slash + 1;
-		const stem = noExt.slice(nameStart);
-		const segStart = lead + nameStart;
-		const segEnd = lead + t.length;
-		const ext = hasExt ? t.slice(-3) : "";
-		const make = (): Resolution => ({ kind: "match", segStart, segEnd, oldSeg: t.slice(nameStart), newSeg: note.newStem + ext });
-		if (slash !== -1) {
-			const resolved = resolvePath(`${noExt}.md`);
-			return resolved !== null && foldKey(resolved) === note.pathKey ? make() : null;
-		}
-		if (foldKey(stem) !== note.nameKey) return null;
-		return note.unique ? make() : { kind: "ambiguous" };
-	}
-	// markdown links: always path-qualified
+	// markdown links are always path-qualified
 	if (/^[a-z][a-z0-9+.-]*:/i.test(raw)) return null; // a URL
 	const cut = raw.search(/[#?]/);
 	const pathPart = cut === -1 ? raw : raw.slice(0, cut);
@@ -175,37 +143,21 @@ function collectStrings(value: unknown, keyPath: (string | number)[], out: { key
 	else if (value && typeof value === "object") for (const [k, v] of Object.entries(value)) collectStrings(v, [...keyPath, k], out);
 }
 
-/** Finds `[[name]]` as YAML reads it when unquoted: a list holding a list holding one string. */
-function collectNested(value: unknown, keyPath: (string | number)[], found: (keyPath: (string | number)[], name: string) => void): void {
-	if (Array.isArray(value)) {
-		if (value.length === 1 && Array.isArray(value[0]) && value[0].length === 1 && typeof value[0][0] === "string") found(keyPath, value[0][0]);
-		else value.forEach((v, i) => collectNested(v, [...keyPath, i], found));
-	} else if (value && typeof value === "object") for (const [k, v] of Object.entries(value)) collectNested(v, [...keyPath, k], found);
-}
-
 interface FileScan {
 	spans: LinkSpan[];
-	ambiguous: AmbiguousLink[];
 	frontmatterSkipped: boolean;
-	unquoted: { keyPath: (string | number)[]; text: string }[];
 }
 
 /** Finds the links in one file's text that point at the note. */
 function scanFile(path: string, text: string, note: NoteIdentity): FileScan {
 	const spans: LinkSpan[] = [];
-	const ambiguous: AmbiguousLink[] = [];
 	let frontmatterSkipped = false;
-	const unquoted: FileScan["unquoted"] = [];
 	const section = splitFrontmatterSection(text);
 	const bodyStart = section ? section.frontmatter.length : 0;
 
 	const take = (link: RawLink, source: string, offset: number, region: LinkSpan["region"], keyPath?: (string | number)[]) => {
 		const res = resolveLink(link, path, note, true);
 		if (!res) return;
-		if (res.kind === "ambiguous") {
-			ambiguous.push({ path, text: source.slice(link.start, link.end), region, start: offset + link.start, end: offset + link.end, otherFiles: note.otherFiles });
-			return;
-		}
 		spans.push({
 			region,
 			start: offset + link.targetStart + res.segStart,
@@ -215,6 +167,10 @@ function scanFile(path: string, text: string, note: NoteIdentity): FileScan {
 			form: link.form,
 			...(keyPath ? { keyPath } : {}),
 		});
+		// The link's text follows the rename when it was exactly the old name; anything else the author wrote is kept.
+		if (link.form === "markdown" && source.slice(link.textStart, link.textEnd) === note.oldName) {
+			spans.push({ region, start: offset + link.textStart, end: offset + link.textEnd, old: note.oldName, new: note.newStem, form: link.form, part: "text", ...(keyPath ? { keyPath } : {}) });
+		}
 	};
 
 	if (section) {
@@ -223,17 +179,13 @@ function scanFile(path: string, text: string, note: NoteIdentity): FileScan {
 			const strings: { keyPath: (string | number)[]; text: string }[] = [];
 			collectStrings(fm.data, [], strings);
 			for (const s of strings) for (const link of scanLinks(s.text, { protect: false })) take(link, s.text, 0, "frontmatter", s.keyPath);
-			collectNested(fm.data, [], (keyPath, name) => {
-				const link: RawLink = { form: "wikilink", start: 0, end: 0, target: name, targetStart: 0, targetEnd: name.length };
-				if (resolveLink(link, path, note, true)) unquoted.push({ keyPath, text: `[[${name}]]` });
-			});
 		} else if (fm.state === "unreadable" && /\[\[|\]\(/.test(section.frontmatter)) {
 			frontmatterSkipped = true;
 		}
 	}
 	const body = text.slice(bodyStart);
 	for (const link of scanLinks(body)) take(link, body, bodyStart, "body");
-	return { spans, ambiguous, frontmatterSkipped, unquoted };
+	return { spans, frontmatterSkipped };
 }
 
 /**
@@ -261,12 +213,10 @@ export async function planCodexRename(project: Project, notePath: string, newNam
 		newName: oldName,
 		files: [],
 		totalLinks: 0,
-		ambiguous: [],
 		outside: { linkCount: 0, files: [] },
 		notDownloaded: [],
 		unreadable: [],
 		frontmatterSkipped: [],
-		unquotedFrontmatter: [],
 		referenceFiles: [],
 	};
 	if (!stem || stem === oldName) return { ...base, unchanged: true };
@@ -277,14 +227,7 @@ export async function planCodexRename(project: Project, notePath: string, newNam
 	const badUnique = newStem.match(UNLINKABLE);
 	if (badUnique) throw new UnlinkableNameError(newStem, [...new Set(badUnique)]);
 
-	// Who else is called "<old name>.md"?
-	const key = foldKey(oldName);
-	const sameName = project.index
-		.all()
-		.filter((e) => e.kind === "file" && e.extension === "md" && foldKey(stripMd(baseName(e.path))) === key && e.path !== entry.path)
-		.map((e) => e.path);
-	for (const stub of project.index.placeholders()) if (/\.md$/i.test(stub) && foldKey(stripMd(baseName(stub))) === key && stub !== entry.path) sameName.push(stub);
-	const note: NoteIdentity = { path: entry.path, pathKey: foldKey(entry.path), nameKey: key, unique: sameName.length === 0, otherFiles: sameName.sort(), newFilename, newStem };
+	const note: NoteIdentity = { path: entry.path, pathKey: foldKey(entry.path), oldName, newFilename, newStem };
 
 	const plan: LinkRewritePlan = { ...base, newPath, newName: newStem, referenceFiles: bookFoldersReferencingNote(project, entry.path).map(bookFilePath) };
 	const isProse = (p: string) => PROSE_ROOTS.some((r) => foldKey(p).startsWith(`${r.toLowerCase()}/`));
@@ -307,14 +250,13 @@ export async function planCodexRename(project: Project, notePath: string, newNam
 			continue;
 		}
 		const found = scanFile(e.path, text, note);
-		plan.ambiguous.push(...found.ambiguous.filter(() => inProse));
 		if (found.frontmatterSkipped && inProse) plan.frontmatterSkipped.push(e.path);
-		if (inProse) for (const u of found.unquoted) plan.unquotedFrontmatter.push({ path: e.path, ...u });
 		if (inProse) {
-			if (found.spans.length > 0) plan.files.push({ path: e.path, hash: sha256Text(text), spans: found.spans, linkCount: found.spans.length });
+			if (found.spans.length > 0) plan.files.push({ path: e.path, hash: sha256Text(text), spans: found.spans, linkCount: found.spans.filter((x) => x.part !== "text").length });
 		} else if (found.spans.length > 0) {
-			plan.outside.files.push({ path: e.path, count: found.spans.length });
-			plan.outside.linkCount += found.spans.length;
+			const count = found.spans.filter((x) => x.part !== "text").length;
+			plan.outside.files.push({ path: e.path, count });
+			plan.outside.linkCount += count;
 		}
 	}
 	for (const stub of project.index.placeholders()) if (isProse(stub) && /\.md$/i.test(stub)) plan.notDownloaded.push(stub);
@@ -357,8 +299,6 @@ export interface LinkRewriteResult {
 	skippedChanged: string[];
 	/** Files whose rewrite could not be proven minimal or could not be made: left untouched. */
 	skippedUnsafe: { path: string; reason: string }[];
-	/** Bare links left alone because another file has the same name. */
-	ambiguousLeft: AmbiguousLink[];
 	/** Links in markdown files outside storyForge's folders: not updated. */
 	outsideLinks: number;
 	/** Set if `codex.md` or the novel files could not be re-keyed after the rename. */
@@ -386,7 +326,6 @@ function stopped(plan: LinkRewritePlan, at: RewriteStop, error: Error | undefine
 		skippedUnsafe: [],
 		referencesUpdated: [],
 		referencesSkipped: [],
-		ambiguousLeft: plan.ambiguous,
 		outsideLinks: plan.outside.linkCount,
 		notifyErrors: [],
 	};
@@ -527,7 +466,6 @@ export async function applyCodexRename(project: Project, plan: LinkRewritePlan, 
 		skippedUnsafe: [],
 		referencesUpdated: [],
 		referencesSkipped: [],
-		ambiguousLeft: plan.ambiguous,
 		outsideLinks: plan.outside.linkCount,
 		notifyErrors: [],
 	};

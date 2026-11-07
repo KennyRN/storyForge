@@ -1,6 +1,7 @@
 import { mountLibraryLayer, mountOverviewLayer } from "./overviews/layer";
 import { mountCharactersButton } from "./context/charactersButton";
 import { mountChapterContext } from "./context/chapterContext";
+import { mountChapterLengthBar } from "./faces/chapterLengthBar";
 import { mountNovelContext } from "./context/novelContext";
 import { contextMode } from "./context/contextMode";
 import type { AppModel } from "./model";
@@ -55,7 +56,8 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 		archive: el("div", { class: "sf-slot sf-slot--library", attrs: { "aria-label": "Archived item" } }),
 	};
 	library.append(libraryHosts.codex, libraryHosts.archive);
-	const centreWrap = el("div", { class: "sf-centre-wrap" }, centre, overview, library);
+	const lengthBar = el("div", {});
+	const centreWrap = el("div", { class: "sf-centre-wrap" }, centre, overview, library, lengthBar);
 	const lore = el("aside", { class: "sf-slot sf-slot--lore", attrs: { "aria-label": "Context" } });
 	// The editor host fills and empties its element; the bottom row (the special-characters button) lives below it, not inside it.
 	// A note, when there is one, sits on a card inside the host; the host's padding is the card's margin (the one gap, `--gap`).
@@ -92,6 +94,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 	const overviews = mountOverviewLayer(overview, centre, model);
 	const libraryLayer = mountLibraryLayer(library, libraryHosts, model);
 	const offCharacters = mountCharactersButton(loreRow, model);
+	const offLengthBar = mountChapterLengthBar(lengthBar, model);
 	const offChapterContext = mountChapterContext(chapterHost, model);
 	const offNovelContext = mountNovelContext(novelHost, model);
 
@@ -121,6 +124,7 @@ export function mountShell(host: HTMLElement, model: AppModel): { dispose(): voi
 			window.removeEventListener("resize", apply);
 			offCharacters();
 			offChapterContext();
+			offLengthBar();
 			offNovelContext();
 			overviews();
 			libraryLayer();

@@ -1,16 +1,16 @@
 /**
  * Finding links in markdown text, for the link rewriter (docs/safety-core.md §9). Pure: no I/O.
  *
- * Recognised: wikilinks `[[X]]` with `#heading`, `#^block` and `|display` in any combination;
- * embeds `![[X]]`; markdown links `[text](Codex/X.md)` (also `![alt](...)`), with `%20`-style
- * encoding, `<angle-bracket>` destinations and optional titles.
+ * Recognised: markdown links `[text](Codex/X.md)` (also `![alt](...)`), with `%20`-style
+ * encoding, `<angle-bracket>` destinations and optional titles. `[[wiki links]]` and `![[embeds]]` are
+ * plain text since Brief 20 (decision 157): they are not read, not reported and not rewritten.
  *
- * Never reported: anything inside fenced code blocks, inline code, or `%% comments %%`. When in doubt
+ * Never reported: anything inside fenced code blocks, inline code, or `<!-- HTML comments -->`. When in doubt
  * the scanner treats text as protected (an unclosed fence or comment runs to the end of the text):
  * a link that isn't rewritten is listed and harmless, a changed code sample is wrong.
  */
 
-export type LinkForm = "wikilink" | "embed" | "markdown" | "markdown-embed";
+export type LinkForm = "markdown" | "markdown-embed";
 
 export interface RawLink {
 	form: LinkForm;
@@ -21,7 +21,10 @@ export interface RawLink {
 	target: string;
 	targetStart: number;
 	targetEnd: number;
-	/** Markdown links only: the destination was written `<like this>`. */
+	/** Where the link's text (inside the brackets) sits. */
+	textStart: number;
+	textEnd: number;
+	/** The destination was written `<like this>`. */
 	angle?: boolean;
 }
 
@@ -57,9 +60,9 @@ export function protectedRanges(text: string): [number, number][] {
 				ranges.push([i, close + run]);
 				i = close + run;
 			}
-		} else if (c === "%" && text[i + 1] === "%") {
-			const close = text.indexOf("%%", i + 2);
-			const end = close === -1 ? n : close + 2;
+		} else if (c === "<" && text.startsWith("<!--", i)) {
+			const close = text.indexOf("-->", i + 4);
+			const end = close === -1 ? n : close + 3;
 			ranges.push([i, end]);
 			i = end;
 		} else {
@@ -137,16 +140,9 @@ export function scanLinks(text: string, options: { protect?: boolean } = {}): Ra
 			continue;
 		}
 		const limit = r < ranges.length ? ranges[r][0] : n; // links may not run into protected text
-		const bang = text[i] === "!" && (text[i + 1] === "[" || text.startsWith("[[", i + 1));
+		const bang = text[i] === "!" && text[i + 1] === "[";
 		const at = bang ? i + 1 : i;
-		if (text.startsWith("[[", at)) {
-			const link = parseWikilink(text, at, limit);
-			if (link) {
-				links.push({ ...link, form: bang ? "embed" : "wikilink", start: i });
-				i = link.end;
-				continue;
-			}
-		} else if (text[at] === "[") {
+		if (text[at] === "[") {
 			const link = parseMarkdownLink(text, at, limit);
 			if (link) {
 				links.push({ ...link, form: bang ? "markdown-embed" : "markdown", start: i });
@@ -157,19 +153,6 @@ export function scanLinks(text: string, options: { protect?: boolean } = {}): Ra
 		i++;
 	}
 	return links;
-}
-
-function parseWikilink(text: string, at: number, limit: number): Omit<RawLink, "form" | "start"> | null {
-	let j = at + 2;
-	while (j < limit && text[j] !== "]" && text[j] !== "[" && text[j] !== "\n") j++;
-	if (text[j] !== "]" || text[j + 1] !== "]" || j + 2 > limit) return null;
-	const inner = text.slice(at + 2, j);
-	let cut = inner.search(/[#|]/);
-	if (cut === -1) cut = inner.length;
-	else if (inner[cut] === "|" && inner[cut - 1] === "\\") cut--; // an escaped pipe inside a table
-	const target = inner.slice(0, cut);
-	if (target.trim() === "") return null;
-	return { end: j + 2, target, targetStart: at + 2, targetEnd: at + 2 + cut };
 }
 
 function parseMarkdownLink(text: string, at: number, limit: number): Omit<RawLink, "form" | "start"> | null {
@@ -237,5 +220,5 @@ function parseMarkdownLink(text: string, at: number, limit: number): Omit<RawLin
 	if (text[k] !== ")" || k >= limit) return null;
 	target = text.slice(targetStart, targetEnd);
 	if (target === "") return null;
-	return { end: k + 1, target, targetStart, targetEnd, ...(angle ? { angle } : {}) };
+	return { end: k + 1, target, targetStart, targetEnd, textStart: at + 1, textEnd: j, ...(angle ? { angle } : {}) };
 }

@@ -19,8 +19,8 @@ async function openProject(page: Page, prepare?: () => Promise<void>): Promise<v
 	await page.waitForFunction(() => !!window.__app?.editors);
 }
 const withLinks = (page: Page) => async () => {
-	await page.evaluate(() => window.__preview.touch("_story-library/aaa/ch-a2.md", "Meet [[Jane]] and [[Jane#Facts|her]] and ![[Jane]].\nA code sample: `[[Jane]]`\n"));
-	await page.evaluate(() => window.__preview.touch("Codex/Sam.md", "Friend of [[Jane]].\n"));
+	await page.evaluate(() => window.__preview.touch("_story-library/aaa/ch-a2.md", "Meet [Jane](../../Codex/Jane.md) and [her](../../Codex/Jane.md#Facts) and ![Jane](../../Codex/Jane.md).\nA code sample: `[Jane](../../Codex/Jane.md)`\n"));
+	await page.evaluate(() => window.__preview.touch("Codex/Sam.md", "Friend of [Jane](Jane.md).\n"));
 };
 
 test.describe("the screens around the faces", () => {
@@ -74,7 +74,7 @@ test.describe("the screens around the faces", () => {
 
 		test("the plan shows its counts and what will not change before anything changes", async ({ page }) => {
 			await openProject(page, withLinks(page));
-			await page.evaluate(() => window.__preview.touch("elsewhere/readme.md", "A link outside storyForge's folders: [[Jane]].\n"));
+			await page.evaluate(() => window.__preview.touch("elsewhere/readme.md", "A link outside storyForge's folders: [Jane](../Codex/Jane.md).\n"));
 			await page.locator(".sf-codex-file", { hasText: "Jane" }).click({ button: "right" });
 			await page.getByRole("menuitem", { name: "Rename…" }).click();
 			const d = dialog(page);
@@ -87,7 +87,7 @@ test.describe("the screens around the faces", () => {
 			await shot(page, "rename-plan");
 			// nothing has changed yet
 			expect(await onDisk(page, "Codex/Jane.md")).toContain("aliases");
-			expect(await onDisk(page, CH2)).toContain("[[Jane]]");
+			expect(await onDisk(page, CH2)).toContain("(../../Codex/Jane.md)");
 			await d.getByRole("button", { name: "Back" }).click();
 			await expect(d.getByLabel("New name")).toHaveValue("Janet");
 			await d.getByRole("button", { name: "Cancel" }).click();
@@ -110,8 +110,8 @@ test.describe("the screens around the faces", () => {
 			await shot(page, "rename-result");
 			await d.getByRole("button", { name: "Done" }).click();
 			expect(await onDisk(page, "Codex/Janet.md")).toContain("custom-key: kept");
-			expect(await onDisk(page, CH2)).toBe("Meet [[Janet]] and [[Janet#Facts|her]] and ![[Janet]].\nA code sample: `[[Jane]]`\n"); // the link in the code sample is left alone
-			expect(await onDisk(page, "Codex/Sam.md")).toBe("Friend of [[Janet]].\n");
+			expect(await onDisk(page, CH2)).toBe("Meet [Janet](../../Codex/Janet.md) and [her](../../Codex/Janet.md#Facts) and ![Jane](../../Codex/Janet.md).\nA code sample: `[Jane](../../Codex/Jane.md)`\n"); // the link in the code sample is left alone
+			expect(await onDisk(page, "Codex/Sam.md")).toBe("Friend of [Janet](Janet.md).\n");
 			// The chapters' PoV and the default PoV follow the note, by path and name.
 			const novel = await onDisk(page, "_story-library/novel-aaa.md");
 			expect(novel).toContain("default-pov-path: Codex/Janet.md");
@@ -156,7 +156,7 @@ test.describe("the screens around the faces", () => {
 			await dialog(page).getByRole("button", { name: "Done" }).click();
 			const text = await onDisk(page, CH2);
 			expect(text).toContain("Typed just now.");
-			expect(text).toContain("[[Janet]]");
+			expect(text).toContain("[Janet](../../Codex/Janet.md)");
 		});
 
 		test("in a read-only project nothing can be renamed", async ({ page }) => {
