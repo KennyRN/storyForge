@@ -78,7 +78,16 @@ test.describe("the chapter bars", () => {
 		await setChapterLength(page, 4); // everything in the fixture is far past 4 words
 		const over = await geometry(overview(page).locator(".sf-bar--over").first());
 		expect(over.fill!.right, "past the target: out through the frame's end").toBeGreaterThanOrEqual(over.frame!.right - 4 - 0.5);
-		await expect(overview(page).locator(".sf-bar--over").first().locator(".sf-bar-fill")).toHaveCSS("border-top-right-radius", "4px"); // rounded end beyond the frame
+		// far past three times the target (Fix 11, decision 154): the bar runs to the row's end and its end is cut
+		await expect(overview(page).locator(".sf-bar--over").first()).toHaveClass(/sf-bar--cut/);
+		await expect(overview(page).locator(".sf-bar--over").first().locator(".sf-bar-fill")).not.toHaveCSS("clip-path", "none");
+		// past the target but not three times it: a rounded end beyond the frame
+		const firstWords = Number(((await bars(page).first().getAttribute("aria-label")) ?? "").match(/: ([\d,]+)/)?.[1]?.replace(/,/g, "") ?? 0);
+		await setChapterLength(page, Math.max(1, Math.round(firstWords / 2)));
+		const twice = bars(page).first();
+		await expect(twice).toHaveClass(/sf-bar--over/);
+		await expect(twice).not.toHaveClass(/sf-bar--cut/);
+		await expect(twice.locator(".sf-bar-fill")).toHaveCSS("border-top-right-radius", "4px");
 		await setChapterLength(page, 100000);
 		const under = await geometry(overview(page).locator(".sf-bar--under").first());
 		expect(under.fill!.right, "short of the target: the frame's grey is left over").toBeLessThan(under.frame!.right - 4);

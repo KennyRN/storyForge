@@ -10,6 +10,8 @@
 .sf-bar-frame { position: absolute; top: 0; left: 0; height: 42px; width: var(--sf-frame); border-radius: 4px; /* the bar's own radius (round five; it was the bar's plus 4px) */ background: var(--purpose-data-frame); }
 .sf-bar--chapter .sf-bar-fill { inset: auto; top: 4px; left: 4px; height: 34px; width: var(--sf-barw); border-radius: 4px; }
 .sf-bar--chapter.sf-bar--plain .sf-bar-fill { top: 0; left: 0; }
+/* A chapter past three times its target (decision 154): the bar runs to the row's end and its end is cut, a V bitten out of it, so overrun never relies on colour alone. */
+.sf-bar--cut .sf-bar-fill { border-radius: 4px 0 0 4px; clip-path: polygon(0 0, 100% 0, calc(100% - 8px) 50%, 100% 100%, 0 100%); }
 .sf-bar--chapter.sf-bar--sliver::before { content: none; }
 /* The chapter's name: bg_dim, 19px at 700 (large text: 3:1 is the standard, and on the grey0 frame it is 3.40:1), in the lower middle of the bar, 8px in from each end, cut short with "…"
    at the further of the frame's inner end and the bar's end. It never reaches the bare page, where bg_dim on bg_dim could not be read. */

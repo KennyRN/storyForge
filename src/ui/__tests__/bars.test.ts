@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeDataBarState, frameWidthPercent, roundToSignificantFigures, significantFigures } from "../overviews/bars";
+import { computeDataBarState, chapterScale, MAX_SCALE, roundToSignificantFigures, significantFigures } from "../overviews/bars";
 
 describe("data bar state", () => {
 	it("counts a target's significant figures", () => {
@@ -30,12 +30,21 @@ describe("data bar state", () => {
 	it("draws over the target as more than the frame", () => {
 		expect(computeDataBarState(3000, 1500)).toMatchObject({ kind: "over", ratio: 2 });
 	});
-	it("sizes every frame by the longest overrun (Brief 15 §1.2)", () => {
-		expect(frameWidthPercent([700, 1000, 1400], 1500)).toBe(100); // none over: the row
-		expect(frameWidthPercent([1200, 1500, 3150], 1500)).toBeCloseTo(100 / 2.1, 6); // 80, 100, 210%
-		expect(frameWidthPercent([1200, 1500, 1725], 1500)).toBeCloseTo(100 / 1.15, 6);
-		expect(frameWidthPercent([4500], 1500)).toBeCloseTo(100 / 3, 6); // no minimum
-		expect(frameWidthPercent([4500], null)).toBe(100);
-		expect(frameWidthPercent([], 1500)).toBe(100);
+	it("scales every frame by the longest overrun, to a third of the row at the most (Brief 15 §1.2, Fix 11 decision 154)", () => {
+		expect(chapterScale([700, 1000, 1400], 1500)).toBe(1); // none over: the row
+		expect(chapterScale([1200, 1500, 3150], 1500)).toBeCloseTo(2.1, 6); // 80, 100, 210%
+		expect(chapterScale([1200, 1500, 1725], 1500)).toBeCloseTo(1.15, 6);
+		expect(chapterScale([4500], 1500)).toBe(3); // exactly 300%: a third of the row
+		expect(chapterScale([45000], 1500)).toBe(MAX_SCALE); // the floor: never below a third
+		expect(chapterScale([756, 42, 10, 0], 25)).toBe(MAX_SCALE);
+		expect(chapterScale([4500], null)).toBe(1);
+		expect(chapterScale([], 1500)).toBe(1);
+	});
+	it("a chapter past three times its target is cut; up to three times it is not", () => {
+		expect(computeDataBarState(4500, 1500)).toMatchObject({ kind: "over", cut: false });
+		expect(computeDataBarState(4501, 1500)).toMatchObject({ cut: true });
+		expect(computeDataBarState(756, 25)).toMatchObject({ cut: true });
+		expect(computeDataBarState(0, 25).cut).toBe(false);
+		expect(computeDataBarState(750, 1500).cut).toBe(false);
 	});
 });

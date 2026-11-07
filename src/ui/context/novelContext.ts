@@ -13,7 +13,7 @@ import { pencilIcon } from "../kit/statsIcons";
 import { attachTooltip } from "../kit/tooltip";
 import { menuPoint, showMenu } from "../kit/menu";
 import type { AppModel } from "../model";
-import { dataBar, frameWidthPercent } from "../overviews/bars";
+import { dataBar, chapterScale } from "../overviews/bars";
 import { coverBox } from "../overviews/cover";
 import { FieldBin } from "../overviews/fieldCommitter";
 import { buildNovelProgress } from "../overviews/novelProgress";
@@ -89,11 +89,11 @@ export function mountNovelContext(host: HTMLElement, model: AppModel): () => voi
 		const plannedChapter = fm?.plannedChapterLength ?? null;
 		const progress = buildNovelProgress({ titles, names: ordered.map((c) => c.name), words, plannedNovel, plannedChapter });
 		const scale = Math.max(...words, 0);
-		const framePercent = frameWidthPercent(words, plannedChapter);
+		const targets = chapterScale(words, plannedChapter);
 		const bars = el(
 			"div",
 			{ class: "sf-novel-ctx-bars", attrs: { role: "list", "aria-label": `Chapters of ${title}` } },
-			...ordered.map((c, i) => el("div", { class: "sf-card", attrs: { role: "listitem" }, dataset: { chapter: c.name } }, dataBar({ title: titles[i], words: words[i], target: plannedChapter, scale, framePercent, name: titles[i], labelled: false, tooltip: `${titles[i]}\n${formatWordCount(words[i])}` }))),
+			...ordered.map((c, i) => el("div", { class: "sf-card", attrs: { role: "listitem" }, dataset: { chapter: c.name } }, dataBar({ title: titles[i], words: words[i], target: plannedChapter, scale, targets, name: titles[i], labelled: false, tooltip: `${titles[i]}\n${formatWordCount(words[i])}` }))),
 		);
 		host.replaceChildren(head, synopsis, progress.track, progress.strip, bars);
 		progress.drawGhosts();
