@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.12.1: Tweaks 1 (the novel page, the series page, the selectors)
+
+- Changed: **titles sit on the tabs' line** on the novel and series pages (the baseline is level with the bottom of the tabs' drawn boxes), 12px above what is beneath; the series page's context panel puts the novel's title on the same line, with the default PoV below the cover and synopsis.
+- Changed: **PoV and Location are buttons** in the context panel, like the default PoV: pick several people or places; the names are shown comma-separated and wrap; the default shows muted; a missing entry stays and shows muted. The "Choose…" links are gone. What is written is unchanged.
+- Changed: **Codex entries open only on the Codex tab and on the storytelling side.** On the novel, series and archive pages no name opens a note, and Codex links in text there are dressed as links but do nothing.
+- Changed: **one gap between a label and its value** (8px) in every label-and-value row; the progress bar and the structure strip are **one shape** with square join and rounded outer corners; the + boxes rest in the tabs' muted colour; the chapter bars' rails are 8px apart.
+- Changed: **the series page.** The context panel's cover is level with the series description; the synopsis sits beside the cover, or under it when the panel is narrow (under 328px of content); its chapter bars are 8px bars in 12px rails. In the central list each placed novel has a fixed-size, read-only synopsis box under its bar, down to the cover's bottom, which scrolls by keyboard and then hands on to the page.
+- Changed: **the storytelling side's novel name is a selector** of the placed novels: choosing one saves the open chapter, then opens that novel's last chapter (or its first). A standalone story shows a plain name. The novel selector in the library lists placed novels only; the selectors' lists are never covered; the plot box is level with the synopsis; one 16px inset in every card; a cover that can't be shown has a red box with a mark.
+- Fixed: the chapter selector's text and the Codex card's left edge follow one strip width.
+
 ## 1.12.0: GitHub Flavored Markdown (Brief 20)
 
 - Changed: **the app's markdown is GitHub Flavored Markdown** in every editor (chapters, Codex notes, plot notes, the synopsis and the series description), read from a real markdown parse and drawn with the markers hidden away from the caret's line: headings, bold, italic and bold italic, strikethrough, code and fenced code (in Sono), block quotes, bullets, task boxes, tables (muted pipes), scene breaks, footnotes and links. Indented paragraphs stay prose. Nothing the dressing draws is ever written: what is saved is what was typed.
