@@ -3,6 +3,7 @@ import { formatWordCount } from "../../core/wordCount";
 import { grouped } from "../faces/lengthFields";
 import { el } from "../kit/dom";
 import { attachTooltip } from "../kit/tooltip";
+import { MIN_FILL_PX } from "./bars";
 
 /** The least gap between two ghost chapter dividers, in px. */
 const GHOST_MIN_GAP_PX = 4;
@@ -23,6 +24,13 @@ export function buildNovelProgress(o: { titles: string[]; names: string[]; words
 	const total = words.reduce((a, b) => a + b, 0);
 	const layout = computeNovelLengthBarLayout(words, plannedNovel);
 	const track = el("div", { class: "sf-progress", attrs: { role: "group", "aria-label": `Novel progress: ${formatWordCount(total)}${plannedNovel ? ` of ${grouped(plannedNovel)}` : ""}` } });
+	// The whole fill is at least 3px wide when the novel has any words (decision 153); the segments within it stay true to scale, so 30 short chapters do not overstate the total.
+	if (total > 0) {
+		const filled = layout.segments.reduce((sum, seg) => sum + seg.widthPercent, 0);
+		const floor = el("span", { class: "sf-progress-floor", attrs: { "aria-hidden": "true" } });
+		floor.style.width = `max(${MIN_FILL_PX}px, ${filled}%)`;
+		track.append(floor);
+	}
 	for (const seg of layout.segments) {
 		const label = `${o.titles[seg.chapterIndex]}: ${formatWordCount(words[seg.chapterIndex])}`;
 		const name = o.names[seg.chapterIndex];

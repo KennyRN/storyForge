@@ -18,6 +18,9 @@ export interface DataBarState {
 /** The most the frames shrink for an overrun (decision 154): a third of the row. A chapter past this many times its target runs to the row's end, cut. */
 export const MAX_SCALE = 3;
 
+/** Any words written draw at least this wide (decision 153): a short chapter is never a fraction of a pixel. Bars of this width or more are as they were (the CSS `min-width` on `.sf-bar-fill`, which this names). */
+export const MIN_FILL_PX = 3;
+
 /** Rounds `n` to `figures` significant figures. */
 export function roundToSignificantFigures(n: number, figures: number): number {
 	if (n <= 0 || figures < 1) return n;

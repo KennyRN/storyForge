@@ -1,6 +1,6 @@
 /* Bars: the data bar and its parts. Colours by purpose only. */
 .sf-bar { position: relative; height: 12px; border-radius: 3px; background: var(--purpose-bar-track); overflow: hidden; }
-.sf-bar-fill { position: absolute; inset: 0 auto 0 0; background: var(--purpose-data-fill); }
+.sf-bar-fill { position: absolute; inset: 0 auto 0 0; min-width: 3px; /* MIN_FILL_PX: any words written show (decision 153) */ background: var(--purpose-data-fill); }
 /* The chapter bar (Brief 15): a solid bar, 34px, with rounded ends, in a grey0 frame 4px larger on every side (radius 4 + 4: concentric). The frame's inner width is the chapter's
    planned length, so its end shows the target by shape; past it the bar runs on, solid, out of the frame. bars.ts sets --sf-inner (the frame's inner width), --sf-barw (the bar's)
    and --sf-frame (the frame's, a percentage of the row, the same for every chapter). With no target there is no frame (.sf-bar--plain). */
@@ -34,6 +34,7 @@
 
 /* The novel overview. */
 .sf-progress { position: relative; height: 20px; border-radius: 3px; background: var(--purpose-bar-track); overflow: hidden; }
+.sf-progress-floor { position: absolute; top: 0; bottom: 0; left: 0; background: var(--purpose-data-fill); } /* under the segments: the whole fill is never under 3px */
 .sf-progress-seg { all: unset; position: absolute; top: 0; bottom: 0; background: var(--purpose-data-fill); cursor: pointer; }
 .sf-progress-seg:focus-visible { outline: 2px solid var(--purpose-text); outline-offset: -2px; }
 .sf-progress-divider { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--purpose-bar-notch); }

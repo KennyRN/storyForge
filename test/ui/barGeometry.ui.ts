@@ -69,3 +69,59 @@ test.describe("no words, no fill (decision 153)", () => {
 		for (const f of fills) expect(f.empty ? f.fills : 1).toBe(f.empty ? 0 : 1);
 	});
 });
+
+// Kenny's test vault's shape: a 25-word chapter target against chapters of 10 to 756 words, one empty (decisions 153 and 154); and an ordinary shape.
+const VAULT_SHAPE = { words: [42, 756, 220, 10, 0, 1], target: 25 };
+const ORDINARY_SHAPE = { words: [2100, 2450, 2600, 1800, 0, 3], target: 2500 }; // the last: a few words, a fraction of a pixel by scale
+
+/** What must hold of every chapter bar at one width. */
+async function expectDrawn(page: Page, tab: "novel" | "series", words: number[], target: number): Promise<void> {
+	const bars = await measure(page, tab);
+	expect(bars.length).toBe(words.length);
+	const ratios = words.map((w) => w / target);
+	for (const [i, b] of bars.entries()) {
+		const label = `chapter ${i + 1} (${words[i]} words), row ${Math.round(b.rowW)}px`;
+		expect(b.frameW, `${label}: a frame at least a third of the row`).toBeGreaterThanOrEqual(b.rowW / 3 - 1);
+		expect(b.frameRight! - b.rowLeft, `${label}: the frame fits the row`).toBeLessThanOrEqual(b.rowW + 0.5);
+		if (words[i] === 0) {
+			expect(b.fillW, `${label}: no fill`).toBe(0);
+			continue;
+		}
+		expect(b.fillW, `${label}: a fill at least 3px wide`).toBeGreaterThanOrEqual(3 - 0.01);
+		expect(b.fillH, `${label}: a fill with height`).toBeGreaterThan(0);
+		expect(b.fillRight! - b.rowLeft, `${label}: the fill fits the row`).toBeLessThanOrEqual(b.rowW + 0.5);
+	}
+	const li = ratios.indexOf(Math.max(...ratios));
+	if (ratios[li] > 1) expect(bars[li].fillRight, "the longest bar ends at the row's end (or at the cut end)").toBeCloseTo(bars[li].rowRight, 0);
+}
+
+test.describe("realistic numbers at every width (decisions 153 and 154)", () => {
+	for (const [name, shape] of [["a 25-word target against chapters of 10 to 756 words", VAULT_SHAPE], ["an ordinary shape", ORDINARY_SHAPE]] as const) {
+		test(`the context panel, from its minimum width to its default, with ${name}`, async ({ page }) => {
+			await page.setViewportSize({ width: 1280, height: 700 });
+			await open(page, shape.words, shape.target, "series");
+			const widths = await page.evaluate(() => [22, 23, 24, 25, 26, 28, 30, 33, 36, 40].map((p) => p));
+			for (const pc of widths) {
+				await page.evaluate((p) => (window.__app as any).commitTypedWidth("series", "lore", p), pc);
+				await expect.poll(() => page.locator(".sf-novel-ctx-bars").evaluate((e) => Math.round(e.getBoundingClientRect().width))).toBeGreaterThan(150);
+				await expectDrawn(page, "series", shape.words, shape.target);
+			}
+		});
+		test(`the novel tab with ${name}`, async ({ page }) => {
+			await open(page, shape.words, shape.target, "novel");
+			await expectDrawn(page, "novel", shape.words, shape.target);
+		});
+	}
+	test("the novel progress bar's whole fill is at least 3px when the novel has words; its segments stay true to scale", async ({ page }) => {
+		await page.setViewportSize({ width: 1280, height: 700 });
+		await open(page, VAULT_SHAPE.words, VAULT_SHAPE.target, "series"); // 1,029 words against a planned 80,000: about 1.3% of the bar
+		const m = await page.locator(".sf-novel-context .sf-progress").evaluate((t) => {
+			const w = t.getBoundingClientRect().width;
+			const floor = t.querySelector(".sf-progress-floor")!.getBoundingClientRect().width;
+			const segs = [...t.querySelectorAll(".sf-progress-seg")].map((s) => s.getBoundingClientRect().width);
+			return { w, floor, segs, segSum: segs.reduce((a, b) => a + b, 0) };
+		});
+		expect(m.floor).toBeGreaterThanOrEqual(3 - 0.01);
+		expect(m.segSum / m.w, "the segments are 1,029 of 80,000, not stretched to 3px").toBeCloseTo(1029 / 80000, 3);
+	});
+});
