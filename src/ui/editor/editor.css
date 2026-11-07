@@ -88,21 +88,103 @@
 .sf-strong.sf-em {
 	color: var(--purpose-emphasis-bold-italic);
 }
-/* ==highlight== (Brief 17): a solid fill in the chosen colour with bg0 text; the part under a selection has no fill (the selection layer shows) and fg text. */
-.sf-highlight {
-	background: var(--purpose-highlight-fill);
-	color: var(--purpose-highlight-text);
-	border-radius: 2px;
+.sf-strike {
+	text-decoration: line-through;
 }
-.sf-highlight-selected {
+.sf-code,
+.sf-codeblock {
+	font-family: var(--font-code);
+	background: var(--purpose-code-bg);
+}
+.sf-code {
+	font-size: 0.9em;
+	border-radius: 4px;
+	padding: 0 0.2em;
+}
+.sf-codeblock {
+	font-size: 0.9em;
+}
+.sf-link {
+	color: var(--purpose-link);
+	text-decoration: underline;
+}
+.sf-weblink {
+	color: var(--purpose-text-muted);
+	text-decoration: underline dotted;
+}
+.sf-footnote-ref {
+	color: var(--purpose-link);
+	text-decoration: underline;
+}
+.sf-footnote-def {
+	color: var(--purpose-text-muted);
+	font-size: 0.9em;
+}
+.sf-table-head {
+	font-weight: 600;
+}
+.sf-hr {
+	text-align: center;
+}
+.sf-task-done {
+	color: var(--purpose-text-muted);
+	text-decoration: line-through;
+}
+.sf-glyph {
+	display: inline-block;
+	text-align: center;
+	color: var(--purpose-text-muted);
+}
+.sf-glyph-task-open,
+.sf-glyph-task-done {
+	width: 0.9em;
+	height: 0.9em;
+	border: 2px solid var(--purpose-text-muted);
+	border-radius: 3px;
+	vertical-align: -0.1em;
+	box-sizing: border-box;
+}
+.sf-glyph-task-done {
+	background: var(--purpose-text-muted);
+}
+/* Block quotes: a grey bar down the left, the text a step quieter. */
+.sf-editor .cm-line.sf-quote {
+	border-left: 3px solid var(--purpose-quote-edge);
+	padding-left: 14px;
+	color: var(--purpose-text-muted);
+}
+/* The five alerts (Brief 20): the notice look, a tint, a 3 px edge in the alert's colour and the text in fg; the first line is the icon and name. */
+.sf-editor .cm-line.sf-alert {
 	color: var(--purpose-text);
+	padding-left: 14px;
+	padding-right: 14px;
 }
-/* Emphasis inside a highlight reads in bg0 too, keeping its weight and italic. */
-.sf-in-highlight.sf-strong,
-.sf-in-highlight.sf-em,
-.sf-in-highlight.sf-strong.sf-em {
-	color: var(--purpose-highlight-text);
+.sf-editor .cm-line.sf-alert-first {
+	padding-top: 8px;
+	border-top-right-radius: 6px;
+	border-top-left-radius: 6px;
 }
+.sf-editor .cm-line.sf-alert-last {
+	padding-bottom: 8px;
+	border-bottom-right-radius: 6px;
+	border-bottom-left-radius: 6px;
+}
+.sf-editor .cm-line.sf-alert-note { background: var(--purpose-alert-note-fill); border-left-color: var(--purpose-alert-note-edge); }
+.sf-editor .cm-line.sf-alert-tip { background: var(--purpose-alert-tip-fill); border-left-color: var(--purpose-alert-tip-edge); }
+.sf-editor .cm-line.sf-alert-important { background: var(--purpose-alert-important-fill); border-left-color: var(--purpose-alert-important-edge); }
+.sf-editor .cm-line.sf-alert-warning { background: var(--purpose-alert-warning-fill); border-left-color: var(--purpose-alert-warning-edge); }
+.sf-editor .cm-line.sf-alert-caution { background: var(--purpose-alert-caution-fill); border-left-color: var(--purpose-alert-caution-edge); }
+.sf-alert-label {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	font-weight: 600;
+}
+.sf-alert-note .sf-alert-label { color: var(--purpose-alert-note-edge); }
+.sf-alert-tip .sf-alert-label { color: var(--purpose-alert-tip-edge); }
+.sf-alert-important .sf-alert-label { color: var(--purpose-alert-important-edge); }
+.sf-alert-warning .sf-alert-label { color: var(--purpose-alert-warning-edge); }
+.sf-alert-caution .sf-alert-label { color: var(--purpose-alert-caution-edge); }
 .sf-comment {
 	color: var(--purpose-text-muted);
 	opacity: 0.8;

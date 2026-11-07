@@ -70,14 +70,12 @@
 	--purpose-find-match: var(--ef-bg2);
 	--purpose-find-match-outline: var(--ef-grey1);
 	--purpose-find-current: var(--ef-orange);
-	/* ==highlight== (a setting, default yellow): a solid fill with bg0 text. Emphasis colours (settings, default the text colour) take the same five. Red and green are excluded (decision 8). */
+	/* Emphasis colours (settings, default the text colour) take the same five. Red and green are excluded (decision 8). */
 	--purpose-colour-choice-yellow: var(--ef-yellow);
 	--purpose-colour-choice-aqua: var(--ef-aqua);
 	--purpose-colour-choice-blue: var(--ef-blue);
 	--purpose-colour-choice-orange: var(--ef-orange);
 	--purpose-colour-choice-purple: var(--ef-purple);
-	--purpose-highlight-fill: var(--purpose-colour-choice-yellow);
-	--purpose-highlight-text: var(--ef-bg0);
 	--purpose-emphasis-bold: var(--purpose-colour-choice-orange);
 	--purpose-emphasis-italic: var(--purpose-colour-choice-orange);
 	--purpose-emphasis-bold-italic: var(--purpose-colour-choice-orange);
@@ -100,6 +98,22 @@
 	--purpose-notice-information-edge: var(--ef-blue);
 	--purpose-notice-success-fill: var(--ef-bg-green);
 	--purpose-notice-success-edge: var(--ef-green);
+	/* The five alerts (Brief 20, decision 157): the notice tints, and IMPORTANT's own purple. fg on each tint: note 4.45, tip 4.47, important 4.70, warning 4.51, caution 5.17 (decision 122). */
+	--purpose-alert-note-fill: var(--ef-bg-blue);
+	--purpose-alert-note-edge: var(--ef-blue);
+	--purpose-alert-tip-fill: var(--ef-bg-green);
+	--purpose-alert-tip-edge: var(--ef-green);
+	--purpose-alert-important-fill: var(--ef-bg-purple);
+	--purpose-alert-important-edge: var(--ef-purple);
+	--purpose-alert-warning-fill: var(--ef-bg-yellow);
+	--purpose-alert-warning-edge: var(--ef-yellow);
+	--purpose-alert-caution-fill: var(--ef-bg-red);
+	--purpose-alert-caution-edge: var(--ef-red);
+	/* The rest of the dressing: block quotes, code, links, tables, scene breaks. */
+	--purpose-quote-edge: var(--ef-grey1);
+	--purpose-code-bg: var(--ef-bg1);
+	--purpose-link: var(--ef-aqua);
+	--purpose-table-head: var(--purpose-text);
 	--purpose-guide: var(--ef-grey0);
 	--purpose-guide-faint: var(--ef-bg3);
 }
@@ -126,11 +140,6 @@
 :root[data-selection-colour="green"] { --purpose-selection: var(--purpose-selection-choice-green); }
 :root[data-selection-colour="yellow"] { --purpose-selection: var(--purpose-selection-choice-yellow); }
 :root[data-selection-colour="grey"] { --purpose-selection: var(--purpose-selection-choice-grey); }
-:root[data-highlight-colour="yellow"] { --purpose-highlight-fill: var(--purpose-colour-choice-yellow); }
-:root[data-highlight-colour="aqua"] { --purpose-highlight-fill: var(--purpose-colour-choice-aqua); }
-:root[data-highlight-colour="blue"] { --purpose-highlight-fill: var(--purpose-colour-choice-blue); }
-:root[data-highlight-colour="orange"] { --purpose-highlight-fill: var(--purpose-colour-choice-orange); }
-:root[data-highlight-colour="purple"] { --purpose-highlight-fill: var(--purpose-colour-choice-purple); }
 :root[data-bold-colour="text"] { --purpose-emphasis-bold: var(--purpose-text); }
 :root[data-bold-colour="yellow"] { --purpose-emphasis-bold: var(--purpose-colour-choice-yellow); }
 :root[data-bold-colour="aqua"] { --purpose-emphasis-bold: var(--purpose-colour-choice-aqua); }

@@ -40,8 +40,6 @@ export type DataColour = (typeof DATA_COLOURS)[number];
 /** The text colours (Brief 17, decision 122), each stored as a role name like `data-colour`. The selection: blue (the default), plum (Everforest's visual background), green, yellow or grey (red is trouble). The highlight and the three emphasis colours take the same five colours as the data bars (red and green are excluded, decision 8); an emphasis colour may also be "text" (none: the text colour). */
 export const SELECTION_COLOURS = ["plum", "blue", "green", "yellow", "grey"] as const;
 export type SelectionColour = (typeof SELECTION_COLOURS)[number];
-export const HIGHLIGHT_COLOURS = DATA_COLOURS;
-export type HighlightColour = (typeof HIGHLIGHT_COLOURS)[number];
 export const EMPHASIS_COLOURS = ["text", ...DATA_COLOURS] as const;
 export type EmphasisColour = (typeof EMPHASIS_COLOURS)[number];
 
@@ -122,9 +120,8 @@ export interface ProjectSettings extends AppearanceKeys, TypeStyleKeys {
 	codexColour: CodexColour;
 	/** The colour of the data bars (chapter, series and the novel's progress segments). */
 	dataColour: DataColour;
-	/** The text colours (Brief 17): the selection, the `==highlight==`, and bold, italic and bold italic. */
+	/** The text colours (Brief 17): the selection, and bold, italic and bold italic. */
 	selectionColour: SelectionColour;
-	highlightColour: HighlightColour;
 	boldColour: EmphasisColour;
 	italicColour: EmphasisColour;
 	boldItalicColour: EmphasisColour;
@@ -193,7 +190,6 @@ export const DEFAULT_PROJECT_SETTINGS: ProjectSettings = {
 	codexColour: "text",
 	dataColour: "blue",
 	selectionColour: "blue",
-	highlightColour: "yellow",
 	boldColour: "orange",
 	italicColour: "orange",
 	boldItalicColour: "orange",
@@ -249,7 +245,6 @@ const FIELDS: Record<Key, { file: string; plugin: string; valid: (v: unknown) =>
 	codexColour: { file: "codex-colour", plugin: "-", valid: (v) => typeof v === "string" && (CODEX_COLOURS as readonly string[]).includes(v) },
 	dataColour: { file: "data-colour", plugin: "-", valid: (v) => typeof v === "string" && (DATA_COLOURS as readonly string[]).includes(v) },
 	selectionColour: { file: "selection-colour", plugin: "-", valid: (v) => typeof v === "string" && (SELECTION_COLOURS as readonly string[]).includes(v) },
-	highlightColour: { file: "highlight-colour", plugin: "-", valid: (v) => typeof v === "string" && (HIGHLIGHT_COLOURS as readonly string[]).includes(v) },
 	boldColour: { file: "bold-colour", plugin: "-", valid: (v) => typeof v === "string" && (EMPHASIS_COLOURS as readonly string[]).includes(v) },
 	italicColour: { file: "italic-colour", plugin: "-", valid: (v) => typeof v === "string" && (EMPHASIS_COLOURS as readonly string[]).includes(v) },
 	libraryHeaderColour: { file: "library-header-colour", plugin: "-", valid: (v) => typeof v === "string" && (EMPHASIS_COLOURS as readonly string[]).includes(v) },

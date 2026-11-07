@@ -1,6 +1,6 @@
 import { NUMBERING_STYLE_OPTIONS, type NumberingStyle } from "../../core/numberingStyle";
 import type { AutomaticBackupFrequency } from "../../core/backup";
-import { APPEARANCE_BASE_PX, APPEARANCE_PARTS, APPEARANCE_SIZE_RANGE, APPEARANCE_SIZE_STEP, APPEARANCE_SIZE_STEP_SHIFT, CODEX_COLOURS, DATA_COLOURS, EMPHASIS_COLOURS, HIGHLIGHT_COLOURS, LABEL_COLOURS, RAIL_COLOURS, SELECTION_COLOURS, SESSION_LIMITS, appearanceKey, typeKey, setSetting, type AppearancePart, type CodexColour, type DataColour, type EmphasisColour, type LabelColour, type RailColour, type SelectionColour, type ProjectSettings, type StoryKind } from "../../app/settings";
+import { APPEARANCE_BASE_PX, APPEARANCE_PARTS, APPEARANCE_SIZE_RANGE, APPEARANCE_SIZE_STEP, APPEARANCE_SIZE_STEP_SHIFT, CODEX_COLOURS, DATA_COLOURS, EMPHASIS_COLOURS, LABEL_COLOURS, RAIL_COLOURS, SELECTION_COLOURS, SESSION_LIMITS, appearanceKey, typeKey, setSetting, type AppearancePart, type CodexColour, type DataColour, type EmphasisColour, type LabelColour, type RailColour, type SelectionColour, type ProjectSettings, type StoryKind } from "../../app/settings";
 import { FAMILY_INFO, FONT_FAMILIES, isFontFamily, nearestWeight, type FontFamily } from "../../core/fontFamilies";
 import { px, sampleStyle, styleLook } from "../appearance";
 import { getCodexView } from "../../core/codex";
@@ -91,7 +91,7 @@ export function openSettings(model: AppModel): void {
 		return row(label, input, key);
 	};
 	/** Unnamed colour squares, one chosen (a radio group): the name is for the screen reader and the tooltip; the chosen one has a ring. */
-	const swatches = (key: "codexColour" | "dataColour" | "selectionColour" | "highlightColour" | "boldColour" | "italicColour" | "boldItalicColour" | "smallHeadingColour" | "libraryHeaderColour" | "placedColour" | "unplacedColour" | "dataLabelColour" | "dataValueColour" | "railColour", label: string, choices: readonly string[], names: Record<string, string>, dot: (choice: string) => string, unavailable?: (choice: string) => boolean): HTMLElement => {
+	const swatches = (key: "codexColour" | "dataColour" | "selectionColour" | "boldColour" | "italicColour" | "boldItalicColour" | "smallHeadingColour" | "libraryHeaderColour" | "placedColour" | "unplacedColour" | "dataLabelColour" | "dataValueColour" | "railColour", label: string, choices: readonly string[], names: Record<string, string>, dot: (choice: string) => string, unavailable?: (choice: string) => boolean): HTMLElement => {
 		const group = el("div", { class: "sf-swatches", attrs: { role: "radiogroup", "aria-label": label } });
 		for (const choice of choices) {
 			const chosen = settings.values[key] === choice;
@@ -122,7 +122,7 @@ export function openSettings(model: AppModel): void {
 	const labelDot = (c: string): string => (c === "muted" ? "sf-swatch-dot--muted" : dot(c));
 	const dataLabelColour = (): HTMLElement => swatches("dataLabelColour", "data label colour", LABEL_COLOURS, LABEL_COLOUR_NAMES, labelDot);
 	const dataValueColour = (): HTMLElement => swatches("dataValueColour", "data colour", LABEL_COLOURS, LABEL_COLOUR_NAMES, labelDot);
-	const swatchRow = (key: "selectionColour" | "highlightColour" | "boldColour" | "italicColour" | "boldItalicColour", label: string, choices: readonly string[], names: Record<string, string>, dot: (choice: string) => string): HTMLElement =>
+	const swatchRow = (key: "selectionColour" | "boldColour" | "italicColour" | "boldItalicColour", label: string, choices: readonly string[], names: Record<string, string>, dot: (choice: string) => string): HTMLElement =>
 		el("div", { class: "sf-setting-row sf-setting-row--colour" }, el("span", { class: "sf-setting-label", text: label }), swatches(key, label, choices, names, dot));
 	/** The text colours page: five rows with a sample line (the dressing's own classes, so a choice shows as it will in the editor) beside them. */
 	const textColours = (): HTMLElement[] => {
@@ -136,7 +136,6 @@ export function openSettings(model: AppModel): void {
 			", ",
 			el("span", { class: "sf-strong sf-em", text: "bold italic" }),
 			", ",
-			el("span", { class: "sf-highlight", text: "highlighted" }),
 			" and ",
 			el("span", { class: "sf-sample-selected", text: "selected" }),
 			" text.",
@@ -145,7 +144,6 @@ export function openSettings(model: AppModel): void {
 			el("div", { class: "sf-style sf-style--colours" },
 				el("div", { class: "sf-style-controls" },
 					swatchRow("selectionColour", "Selection colour", SELECTION_COLOURS, SELECTION_COLOUR_NAMES, (c) => `sf-swatch-dot--sel-${c}`),
-					swatchRow("highlightColour", "Highlight colour", HIGHLIGHT_COLOURS, DATA_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`),
 					swatchRow("boldColour", "Bold colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`),
 					swatchRow("italicColour", "Italic colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`),
 					swatchRow("boldItalicColour", "Bold italic colour", EMPHASIS_COLOURS, EMPHASIS_COLOUR_NAMES, (c) => `sf-swatch-dot--${c}`),

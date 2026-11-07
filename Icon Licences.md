@@ -556,3 +556,5 @@ The filter by type button in the Codex strip, under New Folder and New Note, on 
 **1.10.0 (Unarchive):** the Unarchive button's icon is Tabler's filled `sunrise` (MIT; the notice is in the MIT section above), supplied by Kenny and unchanged, in place of Lucide's archive-restore. Its paths are in `src/ui/kit/unarchiveIcon.ts`.
 
 **1.11.0 ("Write this novel"):** the icon beside the chosen novel's title in the context panel is Tabler's outline `pencil` (MIT; the notice is in the MIT section above), unchanged, until Kenny supplies his own. Its paths are in `src/ui/kit/statsIcons.ts`.
+
+**1.12.0 (alerts):** the five alerts' icons. NOTE, WARNING and CAUTION use the notice icons (information, warning, error, above). **TIP is Tabler's filled `square-rounded-check` and IMPORTANT is Tabler's filled `square-rounded-arrow-right`** (version 2.2, MIT; the notice is in the MIT section above), both supplied by Kenny and unchanged. TIP's shape is the same as the success notice's. The paths are in `src/ui/kit/noticeIcons.ts`.

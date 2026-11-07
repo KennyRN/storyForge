@@ -767,7 +767,7 @@ describe("the data colour (Brief 15)", () => {
 	});
 });
 
-describe("the text colours (Brief 17): selection, highlight, bold, italic and bold italic", () => {
+describe("the text colours (Brief 17): selection, bold, italic and bold italic", () => {
 	const PROJECT_MD = (root: string) => path.join(root, PROJECT_SETTINGS_PATH);
 	const put = (root: string, body: string) => {
 		fs.mkdirSync(path.join(root, "_backstage/storyforge"), { recursive: true });
@@ -776,7 +776,6 @@ describe("the text colours (Brief 17): selection, highlight, bold, italic and bo
 	// The key, the setting, its default, what it accepts, and what it must not (excluded or unknown: draws the default, never rewritten).
 	const CASES = [
 		{ file: "selection-colour", key: "selectionColour", def: "blue", ok: ["plum", "blue", "green", "yellow", "grey"], bad: ["red", "aqua", "orange", "purple", "text", "'#5c3f4f'", "4", "[blue]"] },
-		{ file: "highlight-colour", key: "highlightColour", def: "yellow", ok: ["yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "plum", "text", "'#dbbc7f'", "4"] },
 		{ file: "bold-colour", key: "boldColour", def: "orange", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },
 		{ file: "italic-colour", key: "italicColour", def: "orange", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },
 		{ file: "small-heading-colour", key: "smallHeadingColour", def: "text", ok: ["text", "yellow", "aqua", "blue", "orange", "purple"], bad: ["red", "green", "grey", "'#dbbc7f'", "4"] },
@@ -798,6 +797,18 @@ describe("the text colours (Brief 17): selection, highlight, bold, italic and bo
 			expect(s.sources[c.key]).toBe("default");
 		}
 		expect(diffSnapshots(before, snapshot(root))).toMatchObject({ changed: [], added: [] });
+	});
+
+	it("the retired highlight-colour key (decision 157) is never read, and is left on disk through an unrelated write", async () => {
+		const root = copyFixture("series");
+		put(root, "highlight-colour: orange\n");
+		const project = await open(root);
+		const before = snapshot(root);
+		const s = await loadSettings(project, reader(root));
+		expect(Object.keys(s.values)).not.toContain("highlightColour");
+		expect(diffSnapshots(before, snapshot(root))).toMatchObject({ changed: [], added: [] });
+		await setSetting(project, s, "hideSeriesPane", true);
+		expect(fs.readFileSync(PROJECT_MD(root), "utf8")).toContain("highlight-colour: orange");
 	});
 
 	for (const c of CASES) {

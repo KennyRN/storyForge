@@ -45,7 +45,13 @@ const Footnote: MarkdownConfig = {
 	],
 };
 
-export const markdownParser = parser.configure([GFM, Footnote]);
+/**
+ * Indented code is switched off (decision 22: fiction is often indented, and an indented paragraph after a blank
+ * line must stay prose). GitHub would draw such a paragraph as code; the app deliberately does not.
+ */
+const NoIndentedCode: MarkdownConfig = { remove: ["IndentedCode"] };
+
+export const markdownParser = parser.configure([GFM, Footnote, NoIndentedCode]);
 
 export function parseMarkdown(text: string): Tree {
 	return markdownParser.parse(text);

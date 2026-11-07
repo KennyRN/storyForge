@@ -22,6 +22,15 @@ describe("the footnote extension", () => {
 	});
 });
 
+describe("indented text", () => {
+	it("an indented paragraph after a blank line is prose, never code (decision 22)", () => {
+		expect(names("First.\n\n    indented paragraph\n\n\tTabbed one")).not.toContain("CodeBlock");
+	});
+	it("fenced code is still code", () => {
+		expect(names("```\ncode\n```")).toContain("FencedCode");
+	});
+});
+
 describe("comments", () => {
 	const spans = (t: string) => commentSpans(parseMarkdown(t)).map((s) => t.slice(s.from, s.to));
 	it("finds inline and block HTML comments, across lines", () => {

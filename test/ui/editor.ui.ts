@@ -66,7 +66,7 @@ test.describe("the editor", () => {
 	});
 
 	test.describe("the dressing", () => {
-		const text = "# A heading\n\nSome *italic* and **bold** text and ***both***.\n\nA %% hidden %% note.\n\nLast line, with [[a link]] left alone.\n";
+		const text = "# A heading\n\nSome *italic* and **bold** text and ***both***.\n\nA <!-- hidden --> note.\n\nLast line, with [[a link]] left alone.\n";
 
 		test.beforeEach(async ({ page }) => {
 			await openProject(page);
@@ -81,7 +81,7 @@ test.describe("the editor", () => {
 			await page.keyboard.press("ControlOrMeta+ArrowUp");
 			await expect(lines(page).nth(0)).toHaveText("# A heading");
 			await expect(lines(page).nth(2)).toHaveText("Some italic and bold text and both.");
-			await expect(lines(page).nth(4)).toHaveText("A %% hidden %% note."); // comments are dimmed, not hidden
+			await expect(lines(page).nth(4)).toHaveText("A <!-- hidden --> note."); // comments are dimmed, not hidden
 			await shot(page, "editor-dressing");
 			// move onto the emphasis line: its markers show
 			await page.keyboard.press("ArrowDown");
@@ -90,7 +90,7 @@ test.describe("the editor", () => {
 			await expect(lines(page).nth(0)).toHaveText("A heading");
 		});
 
-		test("emphasis and headings are styled; comments are dimmed; links stay plain source", async ({ page }) => {
+		test("emphasis and headings are styled; comments are dimmed; the old [[wiki link]] stays plain text", async ({ page }) => {
 			await content(page).click();
 			await page.keyboard.press("ControlOrMeta+ArrowDown");
 			await expect(page.locator(".sf-em", { hasText: "italic" })).toBeVisible();

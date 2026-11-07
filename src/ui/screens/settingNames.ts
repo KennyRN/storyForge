@@ -6,7 +6,6 @@ const NAMES: Partial<Record<keyof ProjectSettings, string>> = {
 	codexColour: "Codex colour",
 	dataColour: "Data colour",
 	selectionColour: "Selection colour",
-	highlightColour: "Highlight colour",
 	boldColour: "Bold colour",
 	italicColour: "Italic colour",
 	boldItalicColour: "Bold italic colour",

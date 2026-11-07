@@ -11,6 +11,8 @@
 	/* The four tinted backgrounds of Everforest's Soft Dark palette (the notices' fills, and selection choices): values confirmed against the published palette. */
 	--ef-bg-red: #59464c;
 	--ef-bg-yellow: #55544a;
+	/* Everforest has no purple tint: this is 20% of --ef-purple mixed into bg0, for the IMPORTANT alert (Brief 20; fg on it 4.70:1). */
+	--ef-bg-purple: #544f5a;
 	--ef-bg-green: #48584e;
 	--ef-bg-blue: #3f5865;
 	--ef-fg: #d3c6aa;

@@ -39,8 +39,14 @@ const EXCEPTIONS: Record<string, string[]> = {
 	".sf-marker.sf-em": ["font-weight"],
 	".sf-marker.sf-strong": ["font-weight"],
 	".sf-marker.sf-strong.sf-em": ["font-weight"],
+	// Brief 20: the code face is the embedded monospace (`--font-code`) at a fixed fraction of the prose size; a table's header row is bold like the headings.
+	".sf-code": ["font-size"],
+	".sf-codeblock": ["font-size"],
+	".sf-table-head": ["font-weight"],
+	".sf-alert-label": ["font-weight"],
+	".sf-footnote-def": ["font-size"],
 };
-const allowedValue = /^(var\(--(?:ts|ap)-[a-z-]+\)|var\(--font-(?:interface|writing)\)|inherit|normal)$/;
+const allowedValue = /^(var\(--(?:ts|ap)-[a-z-]+\)|var\(--font-(?:interface|writing|code)\)|inherit|normal)$/;
 
 interface Decl {
 	file: string;

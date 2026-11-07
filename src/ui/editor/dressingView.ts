@@ -1,115 +1,125 @@
+import { Language, defineLanguageFacet, syntaxTree } from "@codemirror/language";
 import type { Extension, Range } from "@codemirror/state";
-import { Decoration, EditorView, ViewPlugin, type DecorationSet, type ViewUpdate } from "@codemirror/view";
-import { scanComments, scanEmphasis, scanHighlights, scanHeading, toggleEmphasis, type EmphasisKind } from "./dressing";
+import { Decoration, EditorView, ViewPlugin, WidgetType, type DecorationSet, type ViewUpdate } from "@codemirror/view";
+import { markdownParser } from "../../core/markdownTree";
+import { alertIcon, type AlertKind } from "../kit/noticeIcons";
+import { ALERT_NAMES, dressingPlan, type PlanItem } from "./dressingPlan";
+import { toggleEmphasis } from "./dressing";
 
 /**
- * The prose dressing (decision 25), ported from 0.17.1's manuscript editor and simplified because one
- * file is one editor: emphasis styled with its markers hidden, heading lines styled with their `#` markers
- * hidden, except on any line holding the caret or a selection, where the markers show so they can be
- * edited; `%% %%` comments dimmed. Nothing else is rendered. Only visible lines are decorated; comments
- * can span lines, so they are scanned over the whole text and cached until it changes.
+ * The prose dressing (decisions 25, 149 and 157; Brief 20): GitHub Flavored Markdown, read from the parse tree
+ * (`@lezer/markdown`, `core/markdownTree.ts`) and drawn as decorations. Markers are hidden except on any line
+ * holding the caret or a selection, where they show so they can be edited. **Display only**: the plan is a list
+ * of decorations and this file dispatches no change, so what is saved is what was typed.
  *
- * The classes are storyForge's own (`sf-em`, `sf-strong`, `sf-marker`, `sf-heading`, `sf-comment`), styled
- * from the purposes in editor.css.
+ * The classes are storyForge's own (`sf-em`, `sf-strong`, `sf-marker`, `sf-heading`, `sf-quote`, `sf-alert-*` and the
+ * rest), styled from the purposes in editor.css.
  */
 
-const HIDE = Decoration.replace({});
-const COMMENT = Decoration.mark({ class: "sf-comment" });
-const CONTENT: Record<EmphasisKind, Decoration> = {
-	em: Decoration.mark({ class: "sf-em" }),
-	strong: Decoration.mark({ class: "sf-strong" }),
-	"strong-em": Decoration.mark({ class: "sf-strong sf-em" }),
-};
-const MARKER: Record<EmphasisKind, Decoration> = {
-	em: Decoration.mark({ class: "sf-marker sf-em" }),
-	strong: Decoration.mark({ class: "sf-marker sf-strong" }),
-	"strong-em": Decoration.mark({ class: "sf-marker sf-strong sf-em" }),
-};
-/** `==highlight==` (Brief 17): a solid fill with bg0 text; the part under a selection gives way (option A) so the selection layer behind the text shows, with the text in fg. */
-const HIGHLIGHT = Decoration.mark({ class: "sf-highlight" });
-const HIGHLIGHT_SELECTED = Decoration.mark({ class: "sf-highlight-selected" });
-const HIGHLIGHT_MARKER = Decoration.mark({ class: "sf-marker" });
-/** Emphasis wholly inside the unselected part of a highlight: its text is bg0 too, so it always reads on the fill (its weight and italic are kept). */
-const CONTENT_IN_HIGHLIGHT: Record<EmphasisKind, Decoration> = {
-	em: Decoration.mark({ class: "sf-em sf-in-highlight" }),
-	strong: Decoration.mark({ class: "sf-strong sf-in-highlight" }),
-	"strong-em": Decoration.mark({ class: "sf-strong sf-em sf-in-highlight" }),
-};
-const headingLine = (level: number) => Decoration.line({ class: `sf-heading sf-heading-${level}` });
-const headingText = (level: number) => Decoration.mark({ class: `sf-heading-text sf-heading-${level}` });
-const headingMarker = (level: number) => Decoration.mark({ class: `sf-marker sf-heading-text sf-heading-${level}` });
+const markdownLanguage = new Language(defineLanguageFacet(), markdownParser, [], "storyforge-markdown");
 
-type Span = { from: number; to: number };
+const HIDE = Decoration.replace({});
+const markCache = new Map<string, Decoration>();
+const mark = (cls: string): Decoration => {
+	let d = markCache.get(cls);
+	if (!d) markCache.set(cls, (d = Decoration.mark({ class: cls })));
+	return d;
+};
+const lineCache = new Map<string, Decoration>();
+const line = (cls: string): Decoration => {
+	let d = lineCache.get(cls);
+	if (!d) lineCache.set(cls, (d = Decoration.line({ class: cls })));
+	return d;
+};
+
+/** A glyph drawn in place of a bullet or a task box. It takes the place of the marker's characters and never joins the text. */
+class GlyphWidget extends WidgetType {
+	constructor(private readonly kind: "bullet" | "task-open" | "task-done") {
+		super();
+	}
+	eq(other: GlyphWidget): boolean {
+		return other.kind === this.kind;
+	}
+	toDOM(): HTMLElement {
+		const span = document.createElement("span");
+		span.className = `sf-glyph sf-glyph-${this.kind}`;
+		if (this.kind === "bullet") span.textContent = "•";
+		else {
+			span.setAttribute("role", "img");
+			span.setAttribute("aria-label", this.kind === "task-done" ? "Done" : "Not done");
+		}
+		return span;
+	}
+	ignoreEvent(): boolean {
+		return false;
+	}
+}
+const GLYPHS = { bullet: Decoration.replace({ widget: new GlyphWidget("bullet") }), "task-open": Decoration.replace({ widget: new GlyphWidget("task-open") }), "task-done": Decoration.replace({ widget: new GlyphWidget("task-done") }) };
+
+/** An alert's first line, `[!NOTE]`, drawn as its icon and name. */
+class AlertLabelWidget extends WidgetType {
+	constructor(private readonly alert: AlertKind) {
+		super();
+	}
+	eq(other: AlertLabelWidget): boolean {
+		return other.alert === this.alert;
+	}
+	toDOM(): HTMLElement {
+		const span = document.createElement("span");
+		span.className = "sf-alert-label";
+		span.append(alertIcon(this.alert, 18), document.createTextNode(ALERT_NAMES[this.alert]));
+		return span;
+	}
+	ignoreEvent(): boolean {
+		return false;
+	}
+}
+
+function toDecoration(item: PlanItem): Range<Decoration> | null {
+	switch (item.t) {
+		case "line":
+			return line(item.cls).range(item.at);
+		case "mark":
+			return item.to > item.from ? mark(item.cls).range(item.from, item.to) : null;
+		case "hide":
+			return item.to > item.from ? HIDE.range(item.from, item.to) : null;
+		case "widget":
+			return GLYPHS[item.kind].range(item.from, item.to);
+		case "alert":
+			return Decoration.replace({ widget: new AlertLabelWidget(item.alert) }).range(item.from, item.to);
+	}
+}
 
 class DressingPlugin {
 	decorations: DecorationSet;
-	private comments: Span[];
 
 	constructor(view: EditorView) {
-		this.comments = scanComments(view.state.doc.toString());
 		this.decorations = this.build(view);
 	}
 
 	update(update: ViewUpdate): void {
-		if (update.docChanged) this.comments = scanComments(update.state.doc.toString());
-		if (update.docChanged || update.viewportChanged || update.selectionSet) this.decorations = this.build(update.view);
+		const treeChanged = syntaxTree(update.state) !== syntaxTree(update.startState);
+		if (update.docChanged || update.viewportChanged || update.selectionSet || treeChanged) this.decorations = this.build(update.view);
 	}
 
 	private build(view: EditorView): DecorationSet {
 		const { state } = view;
 		const { doc } = state;
 		const selected = state.selection.ranges.map((r) => ({ from: doc.lineAt(r.from).number, to: doc.lineAt(r.to).number }));
-		const isActive = (lineNumber: number) => selected.some((s) => lineNumber >= s.from && lineNumber <= s.to);
+		const isActive = (pos: number): boolean => {
+			const n = doc.lineAt(Math.min(pos, doc.length)).number;
+			return selected.some((s) => n >= s.from && n <= s.to);
+		};
 		const decos: Range<Decoration>[] = [];
-		const selections = state.selection.ranges.filter((r) => !r.empty);
-
+		const text = doc.toString();
+		const tree = syntaxTree(state);
 		for (const visible of view.visibleRanges) {
-			let pos = visible.from;
-			while (pos <= visible.to) {
-				const line = doc.lineAt(pos);
-				pos = line.to + 1;
-				const active = isActive(line.number);
-				const comments = this.comments.map((c) => ({ from: Math.max(c.from, line.from), to: Math.min(c.to, line.to) })).filter((c) => c.to > c.from);
-				for (const c of comments) decos.push(COMMENT.range(c.from, c.to));
-
-				const heading = scanHeading(line.text);
-				if (heading) {
-					const markerEnd = line.from + heading.markerEnd;
-					decos.push(headingLine(heading.level).range(line.from));
-					decos.push((active ? headingMarker(heading.level) : HIDE).range(line.from, markerEnd));
-					if (line.to > markerEnd) decos.push(headingText(heading.level).range(markerEnd, line.to));
-				}
-
-				// Highlights first: the unselected parts of their content, which emphasis inside them is checked against.
-				const unselected: Span[] = [];
-				for (const h of scanHighlights(line.text)) {
-					const from = line.from + h.from;
-					const to = line.from + h.to;
-					if (comments.some((c) => from < c.to && to > c.from)) continue;
-					const inner = { from: from + 2, to: to - 2 };
-					const marker = active ? HIGHLIGHT_MARKER : HIDE;
-					decos.push(marker.range(from, inner.from), marker.range(inner.to, to));
-					let cursor = inner.from;
-					const cuts = selections.map((r) => ({ from: Math.max(r.from, inner.from), to: Math.min(r.to, inner.to) })).filter((c) => c.to > c.from).sort((a, b) => a.from - b.from);
-					for (const c of cuts) {
-						if (c.from > cursor) unselected.push({ from: cursor, to: c.from });
-						decos.push(HIGHLIGHT_SELECTED.range(c.from, c.to));
-						cursor = Math.max(cursor, c.to);
-					}
-					if (cursor < inner.to) unselected.push({ from: cursor, to: inner.to });
-				}
-				for (const part of unselected) decos.push(HIGHLIGHT.range(part.from, part.to));
-
-				for (const span of scanEmphasis(line.text)) {
-					const from = line.from + span.from;
-					const to = line.from + span.to;
-					if (comments.some((c) => from < c.to && to > c.from)) continue;
-					const inner = { from: from + span.marker, to: to - span.marker };
-					const inHighlight = unselected.some((p) => inner.from >= p.from && inner.to <= p.to);
-					if (inner.to > inner.from) decos.push((inHighlight ? CONTENT_IN_HIGHLIGHT : CONTENT)[span.kind].range(inner.from, inner.to));
-					const marker = active ? MARKER[span.kind] : HIDE;
-					decos.push(marker.range(from, inner.from), marker.range(inner.to, to));
-				}
+			// A construct that starts above the viewport still has to be drawn, so the plan covers whole lines.
+			const from = doc.lineAt(visible.from).from;
+			const to = doc.lineAt(visible.to).to;
+			for (const item of dressingPlan(tree, text, isActive, { from, to })) {
+				const d = toDecoration(item);
+				if (d) decos.push(d);
 			}
 		}
 		return Decoration.set(decos, true);
@@ -131,5 +141,5 @@ export const emphasisKeymap = [
 ];
 
 export function prose(): Extension {
-	return ViewPlugin.fromClass(DressingPlugin, { decorations: (v) => v.decorations });
+	return [markdownLanguage.extension, ViewPlugin.fromClass(DressingPlugin, { decorations: (v) => v.decorations })];
 }
