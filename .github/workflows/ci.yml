@@ -54,5 +54,5 @@ jobs:
 
       - name: Test (Rust)
         if: ${{ !cancelled() }} # run even when the TypeScript tests failed, so the Windows list is complete
-        run: cargo test --workspace
+        run: cargo test --workspace --no-fail-fast
         working-directory: src-tauri

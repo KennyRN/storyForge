@@ -11,10 +11,12 @@ pub fn link_dir(target: &Path, link: &Path) -> io::Result<()> {
 
 #[cfg(windows)]
 pub fn link_dir(target: &Path, link: &Path) -> io::Result<()> {
-    let status = std::process::Command::new("cmd").arg("/C").arg("mklink").arg("/J").arg(link).arg(target).output()?;
+    // mklink wants backslashes; the tests build paths with "/".
+    let back = |p: &Path| p.to_string_lossy().replace('/', "\\");
+    let status = std::process::Command::new("cmd").arg("/C").arg("mklink").arg("/J").arg(back(link)).arg(back(target)).output()?;
     if status.status.success() {
         Ok(())
     } else {
-        Err(io::Error::new(io::ErrorKind::Other, String::from_utf8_lossy(&status.stdout).to_string()))
+        Err(io::Error::new(io::ErrorKind::Other, format!("{}{}", String::from_utf8_lossy(&status.stdout), String::from_utf8_lossy(&status.stderr))))
     }
 }
