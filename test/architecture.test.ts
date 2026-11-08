@@ -19,7 +19,7 @@ function walk(dir: string): string[] {
 }
 /** Source with `import type ...` statements removed: importing a type grants no power. */
 const valueImportsOnly = (text: string) => text.replace(/import\s+type\s+[^;]*?from\s+["'][^"']*["'];?/g, "");
-const files = walk(SRC).map((p) => ({ path: relative(SRC, p), text: readFileSync(p, "utf8") }));
+const files = walk(SRC).map((p) => ({ path: relative(SRC, p).replace(/\\/g, "/"), text: readFileSync(p, "utf8") }));
 
 /** Calls of `.name(` anywhere in src, outside the defining and allowed files. */
 const RESTRICTED: Record<string, string[]> = {

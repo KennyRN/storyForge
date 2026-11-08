@@ -38,7 +38,8 @@ describe("the typing guard's decision (decisions 72 and 90)", () => {
 	});
 });
 
-describe("keys are posted to the test copy's own process (decision 90, item 1)", () => {
+// The key-posting helper is Mac-only (ApplicationServices): its tests run on the Mac.
+describe.skipIf(process.platform !== "darwin")("keys are posted to the test copy's own process (decision 90, item 1)", () => {
 	it("types every printable character by an event that carries the character, never by a guessed key position (the British layout's Shift+' is @)", () => {
 		expect(eventForChar("a")).toEqual({ code: 0, flags: 0, unicode: "a" });
 		expect(eventForChar("A")).toEqual({ code: 0, flags: 0, unicode: "A" });

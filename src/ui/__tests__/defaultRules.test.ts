@@ -16,7 +16,7 @@ const css = (dir: string): string[] =>
 	});
 const rules = (file: string): { selector: string; body: string }[] =>
 	[...readFileSync(file, "utf8").matchAll(/([^{}]+)\{([^{}]*)\}/g)].map((m) => ({ selector: m[1].replace(/\/\*[\s\S]*?\*\//g, "").trim().replace(/\s+/g, " "), body: m[2] }));
-const all = css(root).flatMap((f) => rules(f).map((r) => ({ ...r, file: path.relative(root, f) })));
+const all = css(root).flatMap((f) => rules(f).map((r) => ({ ...r, file: path.relative(root, f).replace(/\\/g, "/") })));
 
 // Rule 2: the only shadows written out in full are the named exceptions.
 const SHADOW_EXCEPTIONS: Record<string, string> = {

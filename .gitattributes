@@ -1,0 +1,20 @@
+# Text is stored and checked out with LF everywhere, so the fixtures and the tests that compare bytes behave the
+# same on Windows as on the Mac (Brief 22). Binary files are never touched.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.icns binary
+*.car binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.zip binary
+
+# Files that are CRLF on purpose, kept byte for byte: the fonts' licences (unmodified) and the CRLF fixture.
+src/ui/theme/fonts/**/OFL.txt -text
+test/fixtures/series/Codex/Windows.md -text

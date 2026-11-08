@@ -15,7 +15,7 @@ describe("a release build has no diagnostics", () => {
 	it("the window's production bundle does not contain the diagnostic page", () => {
 		const out = mkdtempSync(path.join(os.tmpdir(), "sf-release-"));
 		try {
-			execFileSync("npx", ["vite", "build", "--outDir", out, "--emptyOutDir"], { cwd: repo, stdio: "pipe", env: { ...process.env, NODE_ENV: "production" } });
+			execFileSync(process.execPath, [path.join(repo, "node_modules/vite/bin/vite.js"), "build", "--outDir", out, "--emptyOutDir"], { cwd: repo, stdio: "pipe", env: { ...process.env, NODE_ENV: "production" } });
 			const files = readdirSync(path.join(out, "assets"));
 			expect(files.some((f) => f.endsWith(".js"))).toBe(true);
 			for (const f of files) {

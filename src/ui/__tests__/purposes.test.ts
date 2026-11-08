@@ -16,7 +16,7 @@ function files(dir: string): string[] {
 
 const all = files(uiRoot);
 const inTheme = (f: string): boolean => f.includes(`${path.sep}theme${path.sep}`);
-const rel = (f: string): string => path.relative(uiRoot, f);
+const rel = (f: string): string => path.relative(uiRoot, f).replace(/\\/g, "/");
 
 describe("colours come from named purposes only", () => {
 	it("finds the interface's files", () => {

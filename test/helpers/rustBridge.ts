@@ -11,12 +11,14 @@ import { fileURLToPath } from "node:url";
 import type { Invoke } from "../../src/backends/tauri";
 
 const repo = fileURLToPath(new URL("../..", import.meta.url));
-const bridgePath = path.join(repo, "src-tauri/target/debug/sf-bridge");
+const EXE = process.platform === "win32" ? ".exe" : "";
+const bridgePath = path.join(repo, `src-tauri/target/debug/sf-bridge${EXE}`);
 
 export function cargoPath(): string | null {
-	for (const candidate of [path.join(os.homedir(), ".cargo/bin/cargo"), "/usr/local/bin/cargo", "/opt/homebrew/bin/cargo"]) if (existsSync(candidate)) return candidate;
+	for (const candidate of [path.join(os.homedir(), `.cargo/bin/cargo${EXE}`), "/usr/local/bin/cargo", "/opt/homebrew/bin/cargo"]) if (existsSync(candidate)) return candidate;
 	try {
-		return execFileSync("which", ["cargo"], { encoding: "utf8" }).trim() || null;
+		// `where` on Windows, `which` elsewhere; the first line is the first match.
+		return execFileSync(process.platform === "win32" ? "where" : "which", ["cargo"], { encoding: "utf8" }).split(/\r?\n/)[0].trim() || null;
 	} catch {
 		return null;
 	}
@@ -29,7 +31,7 @@ export function available(): boolean {
 export function buildBridge(): boolean {
 	const cargo = cargoPath();
 	if (!cargo) return false;
-	execFileSync(cargo, ["build", "-p", "storyforge-fs", "--bin", "sf-bridge", "--quiet"], { cwd: path.join(repo, "src-tauri"), stdio: "inherit", env: { ...process.env, PATH: `${path.dirname(cargo)}:${process.env.PATH ?? ""}` } });
+	execFileSync(cargo, ["build", "-p", "storyforge-fs", "--bin", "sf-bridge", "--quiet"], { cwd: path.join(repo, "src-tauri"), stdio: "inherit", env: { ...process.env, PATH: `${path.dirname(cargo)}${path.delimiter}${process.env.PATH ?? ""}` } });
 	return existsSync(bridgePath);
 }
 
