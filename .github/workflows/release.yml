@@ -1,0 +1,81 @@
+name: Release
+
+# On a release tag (v*), GitHub builds the universal Mac app, signs it with Apple's free ad-hoc signature
+# (the "-" identity in tauri.conf.json: no Apple account, no secrets), attests every download with GitHub's
+# build-provenance action, and makes a DRAFT release. It never publishes: the author does that himself.
+# A manual run makes a draft of the current version, to try the pipeline.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mac:
+    name: Mac build (draft release)
+    runs-on: macos-latest
+    permissions:
+      contents: write      # the draft release and its files
+      id-token: write      # the attestation's signing identity
+      attestations: write  # the attestation itself
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Rust targets for the universal build
+        run: rustup target add aarch64-apple-darwin x86_64-apple-darwin
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: The version, and the release notes (install notes, then this version's changelog)
+        id: notes
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          {
+            echo "body<<NOTES_EOF"
+            echo "## Installing on a Mac"
+            echo
+            echo "This app is signed with an ad-hoc signature, not by Apple, so macOS will not open it the first time."
+            echo "Open the .dmg, drag storyForge to Applications, then open it once. When macOS refuses, go to"
+            echo "System Settings > Privacy & Security, scroll to the message about storyForge and choose **Open Anyway**."
+            echo "It asks once; after that the app opens normally. See the README for how to check a download is genuine."
+            echo
+            echo "## What changed in $VERSION"
+            echo
+            awk -v v="## $VERSION" 'index($0, v) == 1 { on = 1; next } on && /^## / { exit } on { print }' CHANGELOG.md
+            echo "NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build, sign (ad hoc) and draft the release
+        id: tauri
+        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # action-v1.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: v${{ steps.notes.outputs.version }}
+          releaseName: storyForge ${{ steps.notes.outputs.version }}
+          releaseBody: ${{ steps.notes.outputs.body }}
+          releaseDraft: true
+          prerelease: false
+          args: --target universal-apple-darwin
+
+      - name: Attest the downloads
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
