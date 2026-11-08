@@ -187,7 +187,7 @@ Rulings given by Kenny after H1: line endings approved (a consistent file keeps 
 
 ### Chromium triage (first run: 700 pass, 40 fail)
 
-All 40 failures were reading the first run's log; none is a data-safety failure. Causes:
+None of the 40 is a data-safety failure (read from the first run's log). Causes:
 
 - **Test-side, fixed:** tests that hard-coded `Meta` (⌘A, ⌘Z, ⌘B/⌘I, ⌘-click, ⌘-Return) now use `ControlOrMeta`, and the start card's `~/` expectation accepts `~\`. The Mac run of those files passes. (about 22 tests)
 - **Test-side, left:** tests that reach buttons with Option-Tab, which on Windows is an operating-system shortcut (`kit.ui.ts` 117, `modal.ui.ts` 54, `navigator.ui.ts` 51, the Codex strip's focus tests). They need a Windows variant of the helper, not an app change.

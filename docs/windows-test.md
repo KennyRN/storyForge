@@ -21,7 +21,7 @@ Tick each step; write down anything odd, with a screenshot.
 - [ ] **A name Windows doesn't allow.** Try a new note called `NUL`, then one called `What?`. Each should be refused with a sentence saying why.
 - [ ] **Archive and unarchive** a Codex entry.
 - [ ] **A setting.** In Settings change the data colour; it changes at once and stays after a restart.
-- [ ] **Back up.** Story ▸ Back Up Now. Find the backup: File Explorer, the project folder, `_sf-backup`. (Story ▸ Show in File Explorer, if present, should open it.)
+- [ ] **Back up.** Story ▸ Back Up Now. Find the backup in File Explorer: the project folder, then `_sf-backup`.
 - [ ] **Notepad.** Close the chapter's editor view. Open the chapter's file (in `_story-library`) in Notepad, change a word, save. storyForge should pick up the change within a second or two without asking.
 - [ ] **A file in use.** Open another chapter file in Notepad and leave it open, then type in that chapter in storyForge. The words should still save.
 - [ ] **Shutting down.** Type a few words in a chapter, then immediately choose Start ▸ Power ▸ Shut down (or Sign out). After starting again, open the project: are the words there?
