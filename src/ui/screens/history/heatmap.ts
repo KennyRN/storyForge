@@ -88,13 +88,38 @@ export function dayHeatmap(opts: DayHeatmapOptions): HTMLElement {
 	return grid;
 }
 
-/** One row of weeks. */
-export function weekHeatmap(weeks: WeekNet[], maxAbs: number): HTMLElement {
+export interface WeekHeatmapOptions {
+	weeks: WeekNet[];
+	maxAbs: number;
+	selected: string | null;
+	onSelect: (weekStart: string) => void;
+}
+
+/** One row of weeks, each square twice the height of a day's (CSS). A week can be chosen (a button); the arrow keys move between weeks. */
+export function weekHeatmap(opts: WeekHeatmapOptions): HTMLElement {
+	const { weeks } = opts;
 	const row = el("div", { class: "sf-heat-row sf-heat-weeks", attrs: { role: "row" } });
 	const grid = el("div", { class: "sf-heat-grid", attrs: { role: "grid", "aria-label": "Words per week" } }, row);
+	const focusable = opts.selected && weeks.some((w) => w.weekStart === opts.selected) ? opts.selected : weeks[weeks.length - 1]?.weekStart;
 	weeks.forEach((w, i) => {
 		const label = weekLabel(w.weekStart, w.net);
-		const cell = el("span", { class: `sf-heat-cell ${heatClass(w.net, maxAbs)}`, attrs: { role: "gridcell", tabindex: i === weeks.length - 1 ? "0" : "-1", "aria-label": label } });
+		const cell = el("button", {
+			class: `sf-heat-cell ${heatClass(w.net, opts.maxAbs)}`,
+			dataset: { week: w.weekStart },
+			attrs: { type: "button", role: "gridcell", "aria-label": label, "aria-selected": String(opts.selected === w.weekStart), tabindex: w.weekStart === focusable ? "0" : "-1" },
+			on: {
+				click: () => opts.onSelect(w.weekStart),
+				keydown: (e) => {
+					const move = e.key === "ArrowLeft" ? -1 : e.key === "ArrowRight" ? 1 : 0;
+					const next = move ? weeks[i + move] : undefined;
+					if (!next) return;
+					e.preventDefault();
+					(e.currentTarget as HTMLElement).tabIndex = -1;
+					const target = row.querySelector<HTMLElement>(`[data-week="${next.weekStart}"]`);
+					if (target) (target.tabIndex = 0), target.focus();
+				},
+			},
+		});
 		attachTooltip(cell, label);
 		row.append(cell);
 	});

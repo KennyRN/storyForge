@@ -418,6 +418,19 @@ export function defaultHeatmapRange(todayISO: string): { fromISO: string; toISO:
 	return { fromISO, toISO: todayISO };
 }
 
+/**
+ * The Monday of the week the heat maps start in (Tweaks 3 §1.4): the week of the stored start date when there is a readable one (an ISO date), else the week of the
+ * earliest day with a recorded word or a session for what the map covers, else the default window's first week. An unreadable stored date draws the fallback and is
+ * never rewritten. Pure.
+ */
+export function heatmapStartMonday(todayISO: string, recordedDays: readonly string[], stored?: string | null): string {
+	const iso = (s: string): boolean => /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(`${s}T12:00:00Z`));
+	if (stored && iso(stored) && stored <= todayISO) return mostRecentMondayISO(stored);
+	const days = recordedDays.filter((d) => iso(d) && d <= todayISO).sort();
+	if (days.length) return mostRecentMondayISO(days[0]);
+	return defaultHeatmapRange(todayISO).fromISO;
+}
+
 /** Read chapter word count from the library file (for archive hooks). */
 export async function readChapterWordCount(
 	project: Project,

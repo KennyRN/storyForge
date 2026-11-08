@@ -1,4 +1,5 @@
 import { fromPx, isNarrowed, rangeIn, toPx, type Panel } from "../panelWidths";
+import { settingLabel } from "./settingNames";
 import { el } from "../kit/dom";
 import { navIcon } from "../kit/navIcons";
 import { panelIcon } from "../kit/panelIcons";
@@ -48,16 +49,16 @@ export function widthsSettings(model: AppModel): HTMLElement {
 			const right = w.linked ? null : figure(`${view}, right panel width`, view, "lore", w.lore);
 			let options: HTMLElement | null = null;
 			if (SWITCH.includes(view)) {
-				const linked = el("input", { attrs: { type: "checkbox", "aria-label": view === "storytelling" ? "Keep panels the same width" : `Keep panels the same width (${view})` } });
+				const linked = el("input", { attrs: { type: "checkbox", "aria-label": view === "storytelling" ? settingLabel("Keep panels the same width") : settingLabel(`Keep panels the same width (${view})`) } });
 				linked.checked = w.linked;
 				linked.addEventListener("change", () => (model.setWidthsLinked(linked.checked, view), draw()));
-				options = el("label", { class: "sf-width-linked" }, linked, el("span", { text: "Keep panels the same width" }));
+				options = el("label", { class: "sf-width-linked" }, linked, el("span", { text: settingLabel("Keep panels the same width") }));
 			}
 			return el("tr", { class: "sf-width-row", dataset: { view } }, name, el("td", {}, left), el("td", {}, ...(right ? [right] : [])), el("td", {}, ...(options ? [options] : [])));
 		};
 		const table = el(
 			"table",
-			{ class: "sf-width-table", attrs: { "aria-label": "Side panel widths" } },
+			{ class: "sf-width-table", attrs: { "aria-label": settingLabel("Side panel widths") } },
 			el("thead", {}, el("tr", {}, el("th", { attrs: { "aria-label": "region" } }), el("th", { class: "sf-width-colhead", attrs: { "aria-label": "left panel width", title: "left panel width" } }, panelIcon("left")), el("th", { class: "sf-width-colhead", attrs: { "aria-label": "right panel width", title: "right panel width" } }, panelIcon("right")), el("th", { attrs: { "aria-label": "width options" } }))),
 			el("tbody", {}, ...WIDTH_VIEWS.map(row)),
 		);

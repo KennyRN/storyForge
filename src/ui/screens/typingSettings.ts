@@ -1,4 +1,5 @@
 import { DEFAULT_ELISIONS, OLD_ENGLISH_GROUP } from "../../core/typing/defaults";
+import { settingLabel } from "./settingNames";
 import { moved, normaliseElision, normaliseName, normaliseShortcodeCode, normaliseShortcodeText, normaliseSpecialCharacter, withEntry, withoutEntry } from "../../core/typing/lists";
 import type { ProjectSettings } from "../../app/settings";
 import { button } from "../kit/button";
@@ -37,7 +38,7 @@ export function typingSection(ctx: TypingContext): Record<string, HTMLElement[]>
 
 	const listEditor = (o: ListOptions): HTMLElement => {
 		const items = settings[o.key];
-		const list = el("ul", { class: "sf-chip-list", attrs: { "aria-label": o.label } });
+		const list = el("ul", { class: "sf-chip-list", attrs: { "aria-label": settingLabel(o.label) } });
 		items.forEach((item, i) => {
 			const chip = el("li", { class: "sf-chip" }, el("span", { class: "sf-chip-text", text: o.describe ? o.describe(item) : item }));
 			if (o.reorder && !off) {
@@ -50,7 +51,7 @@ export function typingSection(ctx: TypingContext): Record<string, HTMLElement[]>
 			list.append(chip);
 		});
 		if (items.length === 0) list.append(el("li", { class: "sf-muted", text: "None" }));
-		const input = el("input", { class: "sf-field", attrs: { type: "text", "aria-label": `Add to ${o.label}`, placeholder: o.placeholder } });
+		const input = el("input", { class: "sf-field", attrs: { type: "text", "aria-label": `Add to ${settingLabel(o.label)}`, placeholder: o.placeholder } });
 		input.disabled = off;
 		const add = (): void => {
 			const entry = o.normalise(input.value);
@@ -65,13 +66,13 @@ export function typingSection(ctx: TypingContext): Record<string, HTMLElement[]>
 			}
 		});
 		const adder = el("div", { class: "sf-list-add" }, input, button({ label: "Add", disabled: off, onClick: add }), ...(o.extra ?? []));
-		return el("div", { class: "sf-list-setting" }, el("span", { class: "sf-setting-label", text: o.label }), el("span", { class: "sf-muted sf-setting-hint", text: o.hint }), list, adder);
+		return el("div", { class: "sf-list-setting" }, el("span", { class: "sf-setting-label", text: settingLabel(o.label) }), el("span", { class: "sf-muted sf-setting-hint", text: o.hint }), list, adder);
 	};
 
 	/** The shortcodes: each a code and its full text. */
 	const shortcodes = (): HTMLElement => {
 		const map = settings.typingShortcodeList;
-		const list = el("ul", { class: "sf-chip-list sf-chip-list--stacked", attrs: { "aria-label": "Shortcodes" } });
+		const list = el("ul", { class: "sf-chip-list sf-chip-list--stacked", attrs: { "aria-label": settingLabel("Shortcodes") } });
 		for (const [code, text] of Object.entries(map)) {
 			const chip = el("li", { class: "sf-chip" }, el("span", { class: "sf-chip-text", text: `~${code}  →  ${text}` }));
 			if (!off) {
@@ -110,7 +111,7 @@ export function typingSection(ctx: TypingContext): Record<string, HTMLElement[]>
 		return el(
 			"div",
 			{ class: "sf-list-setting" },
-			el("span", { class: "sf-setting-label", text: "Shortcodes" }),
+			el("span", { class: "sf-setting-label", text: settingLabel("Shortcodes") }),
 			el("span", { class: "sf-muted sf-setting-hint", text: "Type ~ and the letters, then Tab, to put in the full text." }),
 			list,
 			el("div", { class: "sf-list-add" }, code, full, button({ label: "Add", disabled: off, onClick: add })),

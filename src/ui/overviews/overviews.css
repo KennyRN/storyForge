@@ -82,15 +82,29 @@
 [aria-label="Novel overview"] .sf-note-field .cm-content { padding: 16px var(--card-text-inset) 24px; }
 
 /* The history view. */
-.sf-history { min-width: min(520px, 70vw); display: flex; flex-direction: column; gap: 4px; }
+/* The word-count history (Tweaks 3 §1.3, §1.4, §1.6): a fixed size that shrinks to fit a small window, never spilling off it; margins of 16px all round (the top was 38px: 8px of the dialog's own padding and the first heading's 24px of margin). */
+.sf-dialog:has(.sf-history) { width: min(800px, calc(100vw - 32px)); }
+.sf-dialog:has(.sf-history) .sf-dialog-body { padding: var(--space-4); overflow: hidden; }
+.sf-history { width: 100%; height: min(620px, calc(100vh - 190px)); min-height: 240px; display: flex; flex-direction: column; gap: 12px; }
+.sf-history .sf-overview-sub { margin: 0 0 4px; }
+.sf-history-tabs, .sf-history-subtabs { display: flex; gap: 4px; flex: none; }
+.sf-history-tab { all: unset; box-sizing: border-box; cursor: pointer; padding: 4px 10px; border-radius: 4px; color: var(--purpose-text-muted); font-family: var(--ts-body-family); font-weight: var(--ts-body-weight); font-size: var(--ts-body-size); font-variation-settings: var(--ts-body-var); }
+.sf-history-tab:hover, .sf-history-tab.is-chosen { background: var(--purpose-accent); color: var(--purpose-raised-bg); } /* a selected text row is highlighted as in the Codex list (default rule 1) */
+.sf-history-tab:focus-visible { outline: 2px solid var(--purpose-focus-ring); outline-offset: 1px; }
+.sf-history-panel { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; }
+.sf-history-pane { flex: 1; min-height: 0; overflow: auto; }
+.sf-history-day-head { margin: 12px 0 4px; font-family: var(--ts-small-heading-family); font-weight: var(--ts-small-heading-weight); font-size: var(--ts-body-size); font-variation-settings: var(--ts-small-heading-var); color: var(--purpose-small-heading); }
+.sf-heat-card { flex: none; background: var(--purpose-heat-bg); border-radius: 10px; padding: 12px; min-width: 0; }
+.sf-heat-scroll { overflow-x: auto; overflow-y: hidden; padding: 2px; } /* a long history scrolls sideways inside the fixed modal, opening at the latest weeks */
 .sf-history-stats { display: flex; flex-wrap: wrap; gap: 4px 24px; }
 .sf-history-stat { display: flex; flex-direction: column; font-family: var(--ts-body-family); font-weight: var(--ts-body-weight); font-size: var(--ts-body-size); font-variation-settings: var(--ts-body-var); }
 .sf-history-chapter { display: flex; justify-content: space-between; gap: 16px; font-family: var(--ts-body-family); font-weight: var(--ts-body-weight); font-size: var(--ts-body-size); font-variation-settings: var(--ts-body-var); padding: 2px 0; }
 .sf-heat-grid { display: flex; flex-direction: column; gap: 3px; }
 .sf-heat-row { display: flex; gap: 3px; }
-.sf-heat-cell { all: unset; box-sizing: border-box; width: 14px; height: 14px; border-radius: 3px; background: var(--purpose-bar-track); }
+.sf-heat-cell { all: unset; box-sizing: border-box; flex: none; width: 14px; height: 14px; border-radius: 3px; background: var(--purpose-bar-track); }
 button.sf-heat-cell { cursor: pointer; }
-.sf-heat-cell:focus-visible, .sf-heat-cell[aria-selected="true"] { outline: 2px solid var(--purpose-text); outline-offset: 1px; }
+.sf-heat-weeks .sf-heat-cell { height: 28px; } /* a week's square is twice the height of a day's (Tweaks 3 §1.4) */
+.sf-heat-cell:focus-visible, .sf-heat-cell[aria-selected="true"] { outline: 2px solid var(--purpose-heat-ring); outline-offset: 1px; } /* the chosen square's ring is green: the app's selected purpose */
 .sf-heat--none { background: none; }
 .sf-heat--1 { background: var(--purpose-heat-a); }
 .sf-heat--2 { background: var(--purpose-heat-b); }

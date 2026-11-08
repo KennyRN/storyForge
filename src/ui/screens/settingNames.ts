@@ -1,4 +1,5 @@
 import type { ProjectSettings } from "../../app/settings";
+import { FONT_FAMILIES } from "../../core/fontFamilies";
 import { TYPE_STYLES } from "../../core/typeStyles";
 
 const NAMES: Partial<Record<keyof ProjectSettings, string>> = {
@@ -62,4 +63,18 @@ export function settingValue(value: unknown): string {
 	if (Array.isArray(value)) return `${value.length} ${value.length === 1 ? "entry" : "entries"}`;
 	if (typeof value === "object") return `${Object.keys(value).length} entries`;
 	return String(value);
+}
+
+/** Proper names and abbreviations Settings keeps as written (Tweaks 3 §1.2): font families, Everforest, Tabler, PoV. */
+const KEPT_NAMES = [...FONT_FAMILIES, "Everforest", "Tabler", "PoV"].sort((a, b) => b.length - a.length);
+
+/**
+ * A Settings label, in lowercase (Tweaks 3 §1.2): every row label and group heading, and the screen-reader name that follows it. Proper names (font families,
+ * Everforest, Tabler) and abbreviations such as PoV keep their case.
+ */
+export function settingLabel(text: string): string {
+	const kept: string[] = [];
+	let marked = text;
+	for (const name of KEPT_NAMES) marked = marked.split(name).join(`\u0000${kept.push(name) - 1}\u0000`);
+	return marked.toLowerCase().replace(/\u0000(\d+)\u0000/g, (_, i: string) => kept[Number(i)]);
 }

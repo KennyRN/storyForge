@@ -137,3 +137,14 @@ describe("concurrent writes", () => {
 		expect(backend.files.has(bookWordCountFilePath("BookB"))).toBe(true);
 	});
 });
+
+describe("heatmapStartMonday (Tweaks 3 §1.4)", () => {
+	it("starts in the week of a stored date, else of the earliest recorded day, else the default window", async () => {
+		const { heatmapStartMonday } = await import("../history");
+		expect(heatmapStartMonday("2026-11-08", ["2026-10-14", "2026-09-30"], "2026-08-05")).toBe("2026-08-03"); // the stored date's Monday
+		expect(heatmapStartMonday("2026-11-08", ["2026-10-14", "2026-09-30"], null)).toBe("2026-09-28"); // earliest recorded
+		expect(heatmapStartMonday("2026-11-08", ["2026-10-14", "2026-09-30"], "not a date")).toBe("2026-09-28"); // unreadable: the fallback
+		expect(heatmapStartMonday("2026-11-08", [], null)).toBe("2026-07-20"); // the default 16 weeks (the Monday of this week less 15 weeks)
+		expect(heatmapStartMonday("2026-11-08", ["2027-01-01"], null)).toBe("2026-07-20"); // a day in the future is not a record
+	});
+});

@@ -1,4 +1,5 @@
 import { NUMBERING_STYLE_OPTIONS, type NumberingStyle } from "../../core/numberingStyle";
+import { settingLabel } from "./settingNames";
 import type { AutomaticBackupFrequency } from "../../core/backup";
 import { APPEARANCE_BASE_PX, APPEARANCE_PARTS, APPEARANCE_SIZE_RANGE, APPEARANCE_SIZE_STEP, APPEARANCE_SIZE_STEP_SHIFT, CHAPTER_BAR_COLOURS, CODEX_COLOURS, DATA_COLOURS, EMPHASIS_COLOURS, LABEL_COLOURS, RAIL_COLOURS, SELECTION_COLOURS, SESSION_LIMITS, appearanceKey, typeKey, setSetting, type AppearancePart, type ChapterBarColour, type CodexColour, type DataColour, type EmphasisColour, type LabelColour, type RailColour, type SelectionColour, type ProjectSettings, type StoryKind } from "../../app/settings";
 import { FAMILY_INFO, FONT_FAMILIES, isFontFamily, nearestWeight, type FontFamily } from "../../core/fontFamilies";
@@ -78,14 +79,14 @@ export function openSettings(model: AppModel): void {
 	};
 
 	const select = <K extends keyof ProjectSettings>(key: K, label: string, options: [string, string][], toValue: (v: string) => ProjectSettings[K]): HTMLElement => {
-		const input = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": label } }, ...options.map(([value, text]) => el("option", { text, attrs: { value } })));
+		const input = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": settingLabel(label) } }, ...options.map(([value, text]) => el("option", { text, attrs: { value } })));
 		input.value = String(settings.values[key]);
 		input.disabled = off;
 		input.addEventListener("change", () => void change(key, toValue(input.value)));
 		return row(label, input, key);
 	};
 	const check = (key: "hideSeriesPane" | "automaticBackup" | "showSessionReadout" | "typingSmartPunctuation" | "typingNameAutocorrect" | "typingShortcodes" | "typingShortcodeNames" | "typingSpecialCharactersButton", label: string): HTMLElement => {
-		const input = el("input", { attrs: { type: "checkbox", "aria-label": label } });
+		const input = el("input", { attrs: { type: "checkbox", "aria-label": settingLabel(label) } });
 		input.checked = settings.values[key];
 		input.disabled = off;
 		input.addEventListener("change", () => void change(key, input.checked));
@@ -108,7 +109,7 @@ export function openSettings(model: AppModel): void {
 	const gridRow = (name: string, lines: (HTMLElement | null)[], preview: HTMLElement | null, omitPreview = false): HTMLElement[] => {
 		const options = el("div", { class: "sf-grid-options" }, ...lines.filter((l): l is HTMLElement => !!l));
 		const tail = omitPreview ? [] : [preview ? (preview.classList.add("sf-grid-preview"), preview) : el("div", { class: "sf-grid-preview" })]; // a row beside a shared preview leaves its cell out
-		return [el("div", { class: "sf-grid-name", text: name }), options, ...tail];
+		return [el("div", { class: "sf-grid-name", text: settingLabel(name) }), options, ...tail];
 	};
 	const line = (...cells: (HTMLElement | null)[]): HTMLElement => el("div", { class: "sf-options-line" }, ...cells.filter((c): c is HTMLElement => !!c));
 	const dot = (c: string): string => `sf-swatch-dot--${c}`;
@@ -125,7 +126,7 @@ export function openSettings(model: AppModel): void {
 	const dataLabelColour = (): HTMLElement => swatches("dataLabelColour", "data label colour", LABEL_COLOURS, LABEL_COLOUR_NAMES, labelDot);
 	const dataValueColour = (): HTMLElement => swatches("dataValueColour", "data colour", LABEL_COLOURS, LABEL_COLOUR_NAMES, labelDot);
 	const swatchRow = (key: "selectionColour" | "boldColour" | "italicColour" | "boldItalicColour", label: string, choices: readonly string[], names: Record<string, string>, dot: (choice: string) => string): HTMLElement =>
-		el("div", { class: "sf-setting-row sf-setting-row--colour" }, el("span", { class: "sf-setting-label", text: label }), swatches(key, label, choices, names, dot));
+		el("div", { class: "sf-setting-row sf-setting-row--colour" }, el("span", { class: "sf-setting-label", text: settingLabel(label) }), swatches(key, settingLabel(label), choices, names, dot));
 	/** The text colours page: five rows with a sample line (the dressing's own classes, so a choice shows as it will in the editor) beside them. */
 	const textColours = (): HTMLElement[] => {
 		const sample = el(
@@ -156,7 +157,7 @@ export function openSettings(model: AppModel): void {
 	};
 	/** A whole-number field. Committed when it loses focus or Return is pressed; a value outside the range is put back. Blank means off, where `nullable`. */
 	const number = (key: "sessionIdleMinutes" | "sessionMinShownMinutes" | "sessionEditingWpm", label: string, [lo, hi]: readonly [number, number], nullable = false): HTMLElement => {
-		const input = el("input", { class: "sf-field sf-setting-control", attrs: { type: "number", min: String(lo), max: String(hi), step: "1", "aria-label": label, ...(nullable ? { placeholder: "off" } : {}) } });
+		const input = el("input", { class: "sf-field sf-setting-control", attrs: { type: "number", min: String(lo), max: String(hi), step: "1", "aria-label": settingLabel(label), ...(nullable ? { placeholder: "off" } : {}) } });
 		const current = settings.values[key];
 		input.value = current === null ? "" : String(current);
 		input.disabled = off;
@@ -169,7 +170,7 @@ export function openSettings(model: AppModel): void {
 		});
 		return row(label, input, key);
 	};
-	const row = (label: string, control: HTMLElement, key: keyof ProjectSettings): HTMLElement => el("label", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: label }), control);
+	const row = (label: string, control: HTMLElement, key: keyof ProjectSettings): HTMLElement => el("label", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: settingLabel(label) }), control);
 
 	/**
 	 * A size slider (round two): a drag previews live (the value beside it, the sample and the page) and the size is saved once, on release;
@@ -427,7 +428,7 @@ export function openSettings(model: AppModel): void {
 		off = isOff();
 		const numbering = Object.entries(NUMBERING_STYLE_OPTIONS) as [NumberingStyle, string][];
 		const storyKind = (): HTMLElement => {
-			const group = el("div", { class: "sf-swatches", attrs: { role: "radiogroup", "aria-label": "This story is" } });
+			const group = el("div", { class: "sf-swatches", attrs: { role: "radiogroup", "aria-label": settingLabel("This story is") } });
 			for (const [choice, text] of [["series", "A series"], ["standalone", "One standalone novel"]] as [StoryKind, string][]) {
 				const chosen = settings.values.storyKind === choice;
 				const b = el("button", { class: `sf-swatch${chosen ? " is-chosen" : ""}`, dataset: { choice }, attrs: { type: "button", role: "radio", "aria-checked": String(chosen) }, text });
@@ -435,7 +436,7 @@ export function openSettings(model: AppModel): void {
 				b.addEventListener("click", () => void change("storyKind", choice).then(() => (choice === "series" && settings.values.hideSeriesPane ? change("hideSeriesPane", false) : undefined))); // a series always shows its series pane: switching to one switches the hiding off (Brief 19)
 				group.append(b);
 			}
-			return el("div", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: "This story is" }), group);
+			return el("div", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: settingLabel("This story is") }), group);
 		};
 		const pick = (m: Record<string, HTMLElement[]>): HTMLElement[] => m[subPage] ?? []; // the sub-page of General or Appearance
 		const pages: Record<Page, HTMLElement[]> = {
@@ -480,7 +481,7 @@ export function openSettings(model: AppModel): void {
 					el(
 						"div",
 						{ class: "sf-setting-row" },
-						el("span", { class: "sf-setting-label", text: "Everything in the project folder" }),
+						el("span", { class: "sf-setting-label", text: settingLabel("Everything in the project folder") }),
 						button({
 							label: "Back up everything now",
 							disabled: off,
@@ -575,7 +576,7 @@ export function openSettings(model: AppModel): void {
 		heldBack = twins.some(([old]) => isTextBox(old) && old === focused);
 	};
 	// No headers inside Settings' pages (round five): the sub-page buttons name them. The section keeps its name for the screen reader.
-	const section = (title: string, rows: HTMLElement[], label = title): HTMLElement => el("section", { class: "sf-settings-section", attrs: { "aria-label": label } }, ...rows);
+	const section = (title: string, rows: HTMLElement[], label = title): HTMLElement => el("section", { class: "sf-settings-section", attrs: { "aria-label": settingLabel(label) } }, ...rows);
 	// A redraw never lands between the pointer going down on a control and coming up (Fix 8): the pressed tab would be replaced and the
 	// click would land on nothing. It waits for the release, and runs just after the click.
 	let pointerDown = false;

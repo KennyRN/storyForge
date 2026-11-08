@@ -36,6 +36,8 @@
 	/* The notch between fill and overrun: about 6:1 against both blue and orange. */
 	--purpose-bar-notch: var(--ef-bg-dim);
 	/* Heatmap steps run from the track towards the data fill. */
+	--purpose-heat-bg: var(--ef-bg-dim); /* the card behind each heat map (Tweaks 3 §1.4): the steps are 1.57 to 6.09:1 on it, the ring 6.61:1 */
+	--purpose-heat-ring: var(--purpose-accent); /* the chosen square's ring: green, the app's selected purpose */
 	--purpose-heat-base: var(--ef-blue); /* their own purpose (Brief 15): blue whatever the data colour */
 	--purpose-heat-a: color-mix(in srgb, var(--ef-bg2) 75%, var(--purpose-heat-base));
 	--purpose-heat-b: color-mix(in srgb, var(--ef-bg2) 50%, var(--purpose-heat-base));
