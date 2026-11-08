@@ -435,17 +435,13 @@ input[aria-invalid="true"] {
 	height: 24px;
 	display: flex;
 	cursor: pointer;
-	color: var(--purpose-chars); /* the icon is filled: at rest the button's own background colour (bg1) */
+	color: var(--purpose-chars); /* the icon is filled, in bg4 at rest, on hover and while the palette is open: no colour change */
 }
 .sf-chars-button .sf-chars-icon { display: block; }
 .sf-chars-button.is-off {
 	color: transparent; /* disabled: hollow, an outline in the border colour, plainly different from the solid rest (Tweaks 3 §1.7) */
 }
 .sf-chars-button.is-off .sf-chars-icon path { stroke: var(--purpose-chars-off); stroke-width: 0.9; }
-.sf-chars-button:hover,
-.sf-chars-button[aria-expanded="true"] {
-	color: var(--purpose-chars-active); /* the brightest theme background, bg4 */
-}
 .sf-chars-button.is-off:hover,
 .sf-chars-button.is-off[aria-expanded="true"] {
 	color: transparent;

@@ -222,13 +222,13 @@ test.describe("§1.7 the special-characters icon", () => {
 		await page.evaluate(() => { const m = window.__app as any; m.nav.loreHidden = true; m.touch("nav"); });
 		await expect(page.getByRole("button", { name: "Special characters" })).toHaveCount(0); // with the panel hidden there is no button
 	});
-	test("colours: the button's background colour at rest, the brightest theme background on hover and while open, a hollow outline when disabled", async ({ page }) => {
+	test("colours: the brightest theme background (bg4) at rest, with no change on hover or while open (Brief 21 §1.8), a hollow bg3 outline when disabled", async ({ page }) => {
 		await openWith(page);
 		const b = page.getByRole("button", { name: "Special characters" });
 		const probe = (v: string) => page.evaluate((n) => { const i = document.createElement("i"); i.style.color = `var(${n})`; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; }, v);
-		expect(await b.evaluate((e) => getComputedStyle(e).color)).toBe(await probe("--ef-bg1"));
+		expect(await b.evaluate((e) => getComputedStyle(e).color)).toBe(await probe("--ef-bg4"));
 		await b.hover();
-		await expect.poll(() => b.evaluate((e) => getComputedStyle(e).color)).toBe(await probe("--ef-bg4"));
+		await expect.poll(() => b.evaluate((e) => getComputedStyle(e).color)).toBe(await probe("--ef-bg4")); // no change on hover
 		await page.mouse.move(200, 200);
 		await b.click();
 		await expect(b).toHaveAttribute("aria-expanded", "true");

@@ -73,7 +73,6 @@ export const PURPOSES = [
 	"bar-track",
 	"bar-notch",
 	"chars",
-	"chars-active",
 	"chars-off",
 	"heat-bg",
 	"heat-ring",

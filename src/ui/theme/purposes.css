@@ -36,8 +36,7 @@
 	/* The notch between fill and overrun: about 6:1 against both blue and orange. */
 	--purpose-bar-notch: var(--ef-bg-dim);
 	/* Heatmap steps run from the track towards the data fill. */
-	--purpose-chars: var(--ef-bg1); /* the special-characters icon at rest: the button's background colour as it was (1.36:1 on the panel's bg_dim) */
-	--purpose-chars-active: var(--ef-bg4); /* on hover and while the palette is open: the brightest theme background (2.03:1 on bg_dim) */
+	--purpose-chars: var(--ef-bg4); /* the special-characters icon, at rest and on hover and while the palette is open alike: the brightest theme background (2.03:1 on bg_dim; 1.8.0 / Brief 21 §1.8) */
 	--purpose-chars-off: var(--ef-bg3); /* disabled: a hollow outline (1.84:1 on bg_dim) */
 	--purpose-heat-bg: var(--ef-bg-dim); /* the card behind each heat map (Tweaks 3 §1.4): the steps are 1.57 to 6.09:1 on it, the ring 6.61:1 */
 	--purpose-heat-ring: var(--purpose-accent); /* the chosen square's ring: green, the app's selected purpose */
