@@ -138,7 +138,7 @@ test.describe("Settings ▸ Appearance ▸ Text colours", () => {
 		const d = page.getByRole("dialog");
 		await d.getByRole("tab", { name: "Appearance", exact: true }).click();
 		await d.getByRole("tab", { name: "writing", exact: true }).click();
-		const group = d.locator('section[aria-label="Text colours"]');
+		const group = d.locator('section[aria-label="text colours"]');
 		await expect(group.getByRole("group", { name: "Sample of the text colours" })).toBeVisible();
 		for (const name of ["Selection colour", "Bold colour", "Italic colour", "Bold italic colour"]) await expect(group.getByRole("radiogroup", { name, exact: true })).toBeVisible();
 		// names its group first (decision 117): the Codex and data groups have swatches of the same names

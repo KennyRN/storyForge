@@ -176,7 +176,7 @@ test.describe("modal dialogs", () => {
 			await page.keyboard.press("Tab");
 			names.add(await page.evaluate(() => document.activeElement?.getAttribute("aria-label") ?? "(stop)"));
 		}
-		expect(names.has("Session idle limit (minutes)")).toBe(true); // it came round again
+		expect(names.has("session idle limit (minutes)")).toBe(true); // it came round again
 	});
 
 	test("Escape at Rename's Back step renames nothing and writes nothing", async ({ page }) => {

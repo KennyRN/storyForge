@@ -178,10 +178,10 @@ test.describe("panel widths", () => {
 	test.describe("in settings", () => {
 		const openSettings = async (page: Page) => {
 			await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "sidebar widths", exact: true }).click();
-			await expect(page.locator("section[aria-label='Sidebar widths']")).toBeVisible();
+			await expect(page.locator("section[aria-label='sidebar widths']")).toBeVisible();
 		};
-		const group = (page: Page) => page.locator("section[aria-label='Sidebar widths']");
-		const table = (page: Page) => group(page).getByRole("table", { name: "Side panel widths" });
+		const group = (page: Page) => page.locator("section[aria-label='sidebar widths']");
+		const table = (page: Page) => group(page).getByRole("table", { name: "side panel widths" });
 		const view = (page: Page, v: string) => table(page).locator(`tr[data-view='${v}']`);
 		const sets = ["storytelling", "series", "novel", "codex", "archive"] as const;
 
@@ -199,9 +199,9 @@ test.describe("panel widths", () => {
 				await expect(view(page, v).getByRole("button")).toHaveCount(0);
 			}
 			// the switch is offered on the storytelling, codex and archive rows (Brief 19); series and novel leave the cell empty
-			await expect(view(page, "storytelling").getByLabel("Keep panels the same width", { exact: true })).toBeChecked();
-			await expect(view(page, "codex").getByLabel("Keep panels the same width (codex)", { exact: true })).not.toBeChecked();
-			await expect(view(page, "archive").getByLabel("Keep panels the same width (archive)", { exact: true })).not.toBeChecked();
+			await expect(view(page, "storytelling").getByLabel("keep panels the same width", { exact: true })).toBeChecked();
+			await expect(view(page, "codex").getByLabel("keep panels the same width (codex)", { exact: true })).not.toBeChecked();
+			await expect(view(page, "archive").getByLabel("keep panels the same width (archive)", { exact: true })).not.toBeChecked();
 			await expect(table(page).locator("input[type=checkbox]")).toHaveCount(3);
 			for (const v of ["series", "novel"]) await expect(view(page, v).locator("td").last()).toBeEmpty();
 			// linked: one slider for storytelling, two for each of the others; no number boxes, no range text, no unit select
@@ -268,7 +268,7 @@ test.describe("panel widths", () => {
 			await openSettings(page);
 			// nothing is written by opening Settings or reading a px width as its percentage
 			expect(await page.evaluate(() => (window.__app as any).nav.widthUnit)).toBe("px");
-			await view(page, "codex").getByLabel("Keep panels the same width (codex)", { exact: true }).check();
+			await view(page, "codex").getByLabel("keep panels the same width (codex)", { exact: true }).check();
 			await expect(view(page, "codex").locator("input[type=range]")).toHaveCount(1);
 			expect((await stored(page)).linked).toBe(true); // the storytelling set's own is untouched
 			expect(await page.evaluate(() => (window.__app as any).nav.linkedViews)).toEqual({ codex: true });
@@ -281,7 +281,7 @@ test.describe("panel widths", () => {
 			await openProject(page);
 			const before = await read(page);
 			await openSettings(page);
-			await view(page, "storytelling").getByLabel("Keep panels the same width", { exact: true }).uncheck();
+			await view(page, "storytelling").getByLabel("keep panels the same width", { exact: true }).uncheck();
 			await view(page, "storytelling").locator("input[type=range]").first().fill("25");
 			await page.waitForTimeout(700);
 			expect(await read(page)).toBe(before);

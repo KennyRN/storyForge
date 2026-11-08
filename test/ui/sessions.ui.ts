@@ -78,7 +78,7 @@ test.describe("writing sessions in the history view", () => {
 		await expect(d.getByRole("gridcell", { name: /Tuesday 20 October: 9\b/ })).toBeVisible();
 		await d.getByRole("gridcell", { name: /Tuesday 20 October/ }).click();
 		await expect(d.locator(".sf-history-chapter")).toContainText("25");
-		await expect(d.locator(".sf-history-day .sf-history-note")).toContainText("16 words written in editing or unreliable sessions are left out");
+		await expect(d.locator(".sf-history-pane .sf-history-note")).toContainText("16 words written in editing or unreliable sessions are left out");
 	});
 
 	test("the average pace is drawn from qualifying sessions only, and says how many", async ({ page }) => {

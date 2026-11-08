@@ -326,7 +326,8 @@ test.describe("the history view", () => {
 	test("shows the totals and a number for every day; clicking a day lists its chapters", async ({ page }) => {
 		await openProject(page);
 		const dialog = await openHistory(page);
-		await expect(dialog.getByText("All novels")).toBeVisible();
+		await expect(dialog.getByRole("heading", { name: "The Lantern Cycle" })).toBeVisible(); // the series total sits under the series name (Tweaks 3 §1.3)
+		await expect(dialog.getByRole("heading", { name: "Book 1: The Harbour Wakes" })).toBeVisible(); // and the novel under its numbered title
 		await expect(dialog.getByRole("gridcell", { name: /Tuesday 20 October: 25/ })).toBeVisible();
 		await dialog.getByRole("gridcell", { name: /Tuesday 20 October/ }).click();
 		await expect(dialog.locator(".sf-history-chapter")).toHaveCount(1);
