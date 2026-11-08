@@ -1,8 +1,8 @@
 name: CI
 
-# The tests on every push and pull request: the Mac run must pass; the Windows run is reported but does not
-# block until Brief 22 (it is an early warning of where the core trips up on Windows). No built-app scripts
-# here: they stay on the author's Mac.
+# The tests on every push and pull request: the Mac and Windows runs both must pass (Windows is blocking since
+# Brief 22). The interface tests in Chromium on Windows are reported only until their failures are triaged.
+# No built-app scripts here: they stay on the author's Mac.
 
 on:
   push:
@@ -19,15 +19,12 @@ jobs:
   test:
     name: test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.report-only }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: macos-latest
-            report-only: false
           - os: windows-latest
-            report-only: true
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -56,3 +53,29 @@ jobs:
         if: ${{ !cancelled() }} # run even when the TypeScript tests failed, so the Windows list is complete
         run: cargo test --workspace --no-fail-fast
         working-directory: src-tauri
+
+  # The interface tests (test/ui) in Chromium on Windows: the nearest automatic check of WebView2's drawing. Reported only.
+  ui-chromium:
+    name: interface tests (Chromium, windows-latest)
+    runs-on: windows-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: npx playwright install chromium
+
+      - name: Interface tests
+        run: npm run test:ui
+        env:
+          SF_BROWSER: chromium
