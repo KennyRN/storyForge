@@ -132,7 +132,7 @@ test.describe("the context panel on the novel tab", () => {
 	test("a plot note is committed when it loses focus, keeping a leading space and further lines", async ({ page }) => {
 		const field = plot(page);
 		await field.click();
-		await field.press("Meta+a");
+		await field.press("ControlOrMeta+a");
 		await field.pressSequentially("  Jane leaves.\nThen the tide: turns.");
 		expect(await read(page, BOOK_A)).not.toContain("Jane leaves."); // nothing is written while typing
 		await overview(page).locator(".sf-overview-title").click();
@@ -201,7 +201,7 @@ test.describe("the context panel on the novel tab", () => {
 	test("a plot note still being typed in is committed by a close request", async ({ page }) => {
 		const field = plot(page);
 		await field.click();
-		await field.press("Meta+a");
+		await field.press("ControlOrMeta+a");
 		await field.pressSequentially("Typed when the app was told to close.");
 		expect(await read(page, BOOK_A)).not.toContain("Typed when the app");
 		await page.evaluate(() => window.__preview.emit("close-requested"));
@@ -211,7 +211,7 @@ test.describe("the context panel on the novel tab", () => {
 	test("a plot note changed on disk while it is being edited is not overwritten: the author's text goes to recovery and a notice says so", async ({ page }) => {
 		const field = plot(page);
 		await field.click();
-		await field.press("Meta+a");
+		await field.press("ControlOrMeta+a");
 		await field.pressSequentially("My own words");
 		const novel = await read(page, BOOK_A);
 		await outside(page, BOOK_A, novel.replace("plot: Jane reaches the harbour at dawn.", "plot: Somebody else.\n"));
@@ -225,7 +225,7 @@ test.describe("the context panel on the novel tab", () => {
 	test("words typed in a plot note are never lost when the chosen chapter changes: they are saved to the chapter they belong to first", async ({ page }) => {
 		const field = plot(page);
 		await field.click();
-		await field.press("Meta+a");
+		await field.press("ControlOrMeta+a");
 		await field.pressSequentially("Typed, then the chapter changed.");
 		expect(await read(page, BOOK_A)).not.toContain("Typed, then the chapter changed.");
 		// the chosen chapter changes with the field still focused and unsaved (no blur: as when it changes from elsewhere)

@@ -27,7 +27,7 @@ test.describe("the project cards", () => {
 		await expect(card(page, 0).locator(".sf-project-card-name")).toHaveText("The Lantern Cycle");
 		await expect(card(page, 0).locator(".sf-project-card-image img")).toBeVisible(); // the fixture's series cover
 		await expect(card(page, 0)).toHaveAttribute("title", /storyForge test vault$/); // the full path is the tooltip
-		await expect(card(page, 0).locator(".sf-project-card-path")).toHaveText(/^~\//); // Rust shortened the "home" (the preview's own folder) to ~
+		await expect(card(page, 0).locator(".sf-project-card-path")).toHaveText(/^~[\\/]/); // Rust shortened the "home" (the preview's own folder) to ~
 		await expect(card(page, 0)).not.toHaveAttribute("title", /^~/); // the tooltip is the full path
 		await shot(page, "project-cards-one");
 	});

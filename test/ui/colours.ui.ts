@@ -53,7 +53,7 @@ test.describe("the selection", () => {
 		await openProject(page);
 		const sel = page.locator(".sf-slot--centre .cm-selectionBackground");
 		await page.locator(".sf-slot--centre .cm-content").click();
-		await page.keyboard.press("Meta+a");
+		await page.keyboard.press("ControlOrMeta+a");
 		await expect(sel.first()).toBeVisible();
 		expect(await bg(sel)).toBe(BLUE);
 		expect(await bg(sel)).not.toBe(CM_FOCUSED_BUG);
@@ -84,13 +84,13 @@ test.describe("the selection", () => {
 			await outside(page, `---\nformat-version: 1\nselection-colour: ${name}\n---\n`);
 			await expect(page.locator("html")).toHaveAttribute("data-selection-colour", name);
 			await page.locator(".sf-slot--centre .cm-content").click();
-			await page.keyboard.press("Meta+a");
+			await page.keyboard.press("ControlOrMeta+a");
 			await expect.poll(() => bg(sel)).toBe(rgb);
 		}
 		for (const bad of ["red", "orange", "text"]) {
 			await outside(page, `---\nformat-version: 1\nselection-colour: ${bad}\n---\n`);
 			await page.locator(".sf-slot--centre .cm-content").click();
-			await page.keyboard.press("Meta+a");
+			await page.keyboard.press("ControlOrMeta+a");
 			await expect.poll(() => bg(sel)).toBe(BLUE);
 		}
 	});
@@ -171,7 +171,7 @@ test.describe("bold, italic and bold italic colours", () => {
 	async function write(page: Page, text: string): Promise<Locator> {
 		const content = page.locator(".sf-slot--centre .cm-content");
 		await content.click();
-		await page.keyboard.press("Meta+a");
+		await page.keyboard.press("ControlOrMeta+a");
 		await page.keyboard.type(text);
 		return content;
 	}
@@ -220,7 +220,7 @@ test.describe("bold, italic and bold italic colours", () => {
 			expect(await css(marker, "font-weight"), sel).toBe("400");
 			expect(await css(marker, "font-style"), sel).toBe("normal");
 		}
-		await page.keyboard.press("Meta+a"); // everything selected: the emphasis colours stay
+		await page.keyboard.press("ControlOrMeta+a"); // everything selected: the emphasis colours stay
 		expect(await css(content.locator(".sf-strong:not(.sf-em):not(.sf-marker)"), "color")).toBe(COLOURS.yellow);
 		expect(await css(content.locator(".sf-em:not(.sf-strong):not(.sf-marker)"), "color")).toBe(COLOURS.aqua);
 	});
@@ -236,7 +236,7 @@ test.describe("the field editors (plot note, synopsis, description) get the dres
 		await toContextPanel(page);
 		const typed = "Jane finds the **lantern** and *quietly* ==checks the ledger==\nthen leaves";
 		await note(page).click();
-		await page.keyboard.press("Meta+a");
+		await page.keyboard.press("ControlOrMeta+a");
 		await page.keyboard.type(typed);
 		await expect(note(page).locator(".sf-strong")).toHaveText("lantern");
 		await expect(note(page).locator(".sf-em")).toHaveText("quietly");
@@ -258,7 +258,7 @@ test.describe("the field editors (plot note, synopsis, description) get the dres
 		await openProject(page);
 		await toContextPanel(page);
 		await note(page).click();
-		await page.keyboard.press("Meta+a");
+		await page.keyboard.press("ControlOrMeta+a");
 		await page.keyboard.type("He said \"hello\" -- then *left*");
 		await expect.poll(() => note(page).evaluate((e) => e.textContent)).toContain("“hello”"); // smart quotes
 		await page.locator(".sf-chapter-context .sf-chapter-text .cm-content").click();

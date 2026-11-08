@@ -49,7 +49,7 @@ test.describe("the series overview", () => {
 		const description = overview(page).getByRole("textbox", { name: "Series description" });
 		await expect.poll(() => fieldText(description)).toBe("A synthetic series used only for tests.");
 		await description.click();
-		await description.press("Meta+a");
+		await description.press("ControlOrMeta+a");
 		await description.pressSequentially("Five books of lanterns.");
 		await overview(page).locator(".sf-overview-title").click();
 		await expect.poll(() => page.evaluate((f) => window.__preview.read(f), "_story-library/series.md")).toBe(before.replace("A synthetic series used only for tests.", "Five books of lanterns."));
@@ -72,9 +72,9 @@ test.describe("the series overview", () => {
 		expect(await page.evaluate(() => !!document.activeElement?.closest(".sf-slot--centre"))).toBe(false);
 		// Find, bold and undo do nothing to it.
 		// A bare ⌘Z and ⇧⌘Z reach WebKit's own undo in this preview; the covered editor refuses them itself.
-		await page.keyboard.press("Meta+z");
+		await page.keyboard.press("ControlOrMeta+z");
 		expect(await text(), "bare ⌘Z").toBe(typed);
-		await page.keyboard.press("Meta+Shift+z");
+		await page.keyboard.press("ControlOrMeta+Shift+z");
 		expect(await text(), "bare ⇧⌘Z").toBe(typed);
 		// A change from any other source (here a programmatic edit standing in for a drop or a dictated word) is refused too.
 		await page.evaluate(() => (window.__app.editors as any).slots.centre.occupant.mounted.view.dispatch({ changes: { from: 0, insert: "SNEAK" }, userEvent: "input.type" }));
@@ -83,11 +83,11 @@ test.describe("the series overview", () => {
 		// browser preview reaches WebKit's own undo, which the real app's menu consumes; so the menu route is tested.)
 		expect(await page.evaluate(() => [(window.__app.editors as any).undo(), (window.__app.editors as any).redo()])).toEqual([false, false]);
 		expect(await text(), "undo and redo").toBe(typed);
-		for (const combo of ["Meta+b", "Meta+i"]) {
+		for (const combo of ["ControlOrMeta+b", "ControlOrMeta+i"]) {
 			await page.keyboard.press(combo);
 			expect(await text(), combo).toBe(typed);
 		}
-		await page.keyboard.press("Meta+f");
+		await page.keyboard.press("ControlOrMeta+f");
 		await expect(page.locator(".sf-slot--centre .cm-search")).toHaveCount(0);
 		// Saving carries on underneath.
 		await expect.poll(() => page.evaluate(() => window.__preview.read("_story-library/aaa/ch-a1.md"))).toContain(" under");

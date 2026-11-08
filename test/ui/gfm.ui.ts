@@ -8,7 +8,7 @@ const BOOK_A = "_story-library/novel-aaa.md";
 const SERIES = "_story-library/series.md";
 const CHAPTER = "_story-library/aaa/ch-a1.md";
 const SETTINGS = "_backstage/storyforge/project.md";
-const MOD = "Meta";
+const MOD = "ControlOrMeta";
 
 const COMMENT = "<!-- a comment -->";
 
@@ -328,11 +328,11 @@ test.describe("Codex links", () => {
 		expect(await page.evaluate(() => window.__app.editors!.pathIn("lore"))).toBeNull();
 		await content(page).locator(".sf-link-live", { hasText: "Sam" }).click();
 		expect(await page.evaluate(() => window.__app.editors!.pathIn("lore"))).toBeNull(); // a plain click
-		await content(page).locator(".sf-link-live", { hasText: "Sam" }).click({ modifiers: ["Meta"] });
+		await content(page).locator(".sf-link-live", { hasText: "Sam" }).click({ modifiers: ["ControlOrMeta"] });
 		await expect.poll(() => page.evaluate(() => window.__app.editors!.pathIn("lore"))).toBe("Codex/Sam.md");
 		await page.locator(".sf-slot--centre .cm-content").click();
 		await page.keyboard.press(`${MOD}+ArrowDown`);
-		await content(page).locator(".sf-link-muted", { hasText: "Ch" }).click({ modifiers: ["Meta"] });
+		await content(page).locator(".sf-link-muted", { hasText: "Ch" }).click({ modifiers: ["ControlOrMeta"] });
 		expect(await page.evaluate(() => window.__app.editors!.pathIn("lore"))).toBe("Codex/Sam.md"); // unchanged
 	});
 
@@ -365,7 +365,7 @@ test.describe("Codex links", () => {
 		await page.evaluate(() => window.__app.editors!.open("lore", "Codex/Harbour.md"));
 		const note = page.locator(".sf-slot--lore .cm-content");
 		await expect(note.locator(".sf-link-live", { hasText: "Sam" })).toBeVisible();
-		await note.locator(".sf-link-live", { hasText: "Sam" }).click({ modifiers: ["Meta"] });
+		await note.locator(".sf-link-live", { hasText: "Sam" }).click({ modifiers: ["ControlOrMeta"] });
 		await expect.poll(() => page.evaluate(() => window.__app.editors!.pathIn("lore"))).toBe("Codex/Sam.md");
 	});
 
@@ -382,7 +382,7 @@ test.describe("Codex links", () => {
 		await expect(box.locator(".sf-link", { hasText: "Sam" })).toHaveCount(1);
 		await expect(box.locator(".sf-link-live, .sf-link-muted")).toHaveCount(0); // dressed as a link, not live, no tooltip
 		await expect(box.locator(".cm-line").last()).toHaveText("[Sam](../Codex/Sam.md)"); // the plot note is stored in the novel file: one level up (the caret's line shows the whole link)
-		await box.locator(".sf-link").first().click({ modifiers: ["Meta"] });
+		await box.locator(".sf-link").first().click({ modifiers: ["ControlOrMeta"] });
 		await page.keyboard.press(`${MOD}+Enter`);
 		await page.waitForTimeout(300);
 		expect(await page.evaluate(() => window.__app.editors!.pathIn("codex"))).toBeFalsy(); // nothing opened
