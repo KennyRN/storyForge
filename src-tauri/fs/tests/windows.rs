@@ -160,3 +160,18 @@ fn a_junction_that_leaves_the_project_is_refused_like_a_symbolic_link() {
     assert!(p.write_text("escape/new.md", "x", "write-file", None).is_err());
     assert!(!outside.join("new.md").exists());
 }
+
+#[test]
+fn line_endings_are_never_converted_behind_the_authors_back() {
+    let (dir, p) = project();
+    // A new file is written exactly as given: LF stays LF (Windows adds nothing).
+    p.write_text("_backstage/storyforge/new.md", "a\nb\n", "write-file", None).unwrap();
+    assert_eq!(fs::read(dir.path().join("_backstage/storyforge/new.md")).unwrap(), b"a\nb\n");
+    // An LF file stays LF when rewritten.
+    p.write_text("_backstage/storyforge/new.md", "a\nb\nc\n", "write-file", None).unwrap();
+    assert_eq!(fs::read(dir.path().join("_backstage/storyforge/new.md")).unwrap(), b"a\nb\nc\n");
+    // A CRLF file stays CRLF when LF text is written into it.
+    put(&dir, "_backstage/storyforge/crlf.md", "a\r\nb\r\n");
+    p.write_text("_backstage/storyforge/crlf.md", "a\nb\nc\n", "write-file", None).unwrap();
+    assert_eq!(fs::read(dir.path().join("_backstage/storyforge/crlf.md")).unwrap(), b"a\r\nb\r\nc\r\n");
+}

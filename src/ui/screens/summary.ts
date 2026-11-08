@@ -1,4 +1,5 @@
 import { summaryIsEmpty, type ReconcileSummary } from "../../core/reconciler";
+import { unusableOnWindows } from "../../core/windowsNames";
 import { targetNameOf, tidyHappened } from "../../core/tempTidy";
 import { button } from "../kit/button";
 import { openDialog } from "../kit/dialog";
@@ -25,7 +26,9 @@ export function maybeShowReconciliation(model: AppModel): void {
 	if (!running) return;
 	const s: ReconcileSummary = running.opened.reconciliation;
 	const tidy = running.opened.leftovers;
-	if (summaryIsEmpty(s) && !tidyHappened(tidy)) return;
+	// Names already in the project that Windows couldn't hold: listed, never renamed (Brief 22, ruling 2).
+	const unusable = unusableOnWindows(running.opened.project.index);
+	if (summaryIsEmpty(s) && !tidyHappened(tidy) && !unusable.length) return;
 
 	const section = (title: string, rows: (HTMLElement | string)[]): HTMLElement | null => (rows.length ? el("section", { class: "sf-summary-section", attrs: { "aria-label": title } }, el("h3", { class: "sf-summary-title", text: title }), el("ul", { class: "sf-summary-list" }, ...rows.map((r) => el("li", {}, r)))) : null);
 
@@ -45,7 +48,7 @@ export function maybeShowReconciliation(model: AppModel): void {
 	const body = el(
 		"div",
 		{ class: "sf-summary" },
-		el("p", { class: "sf-muted", text: summaryIsEmpty(s) ? "storyForge tidied up after a save that was interrupted." : "storyForge found changes made while it was closed." }),
+		el("p", { class: "sf-muted", text: summaryIsEmpty(s) && !tidyHappened(tidy) ? "Nothing was changed." : summaryIsEmpty(s) ? "storyForge tidied up after a save that was interrupted." : "storyForge found changes made while it was closed." }),
 		section("Words that may not have been saved", unsaved),
 		section("Other files that may not have been saved", unsavedOther),
 		section("Earlier versions kept", earlier),
@@ -57,6 +60,7 @@ export function maybeShowReconciliation(model: AppModel): void {
 		section("Not looked at", s.skipped.map((k) => `${k.path}: ${k.reason}`)),
 		section("Tidied", [...tidied, ...readOnlyFound]),
 		section("Left where they are", stayed),
+		section("Can't be used on Windows", unusable.map((u) => `${u.path}: ${u.reason}. It stays as it is; a copy of this project on Windows would not have it.`)),
 	);
 	openDialog({ title: "Changes found when opening", body, buttons: [{ label: "OK", kind: "primary" }] });
 }
