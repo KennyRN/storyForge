@@ -591,6 +591,19 @@ fn install_quit_routes(app: &tauri::AppHandle) {
     if let Err(e) = storyforge_fs::platform::install_terminate_hook(on_terminate) {
         eprintln!("storyForge: could not hook the system quit ({e}); the Dock's Quit will not save first");
     }
+    // Windows log-off and shutdown (the Mac's twin is the terminate hook above).
+    #[cfg(windows)]
+    if let Err(e) = storyforge_fs::platform::install_end_session_hook(
+        || {
+            if let Some(app) = APP.get() {
+                let handle = app.clone();
+                let _ = app.run_on_main_thread(move || request_close(&handle));
+            }
+        },
+        || APP.get().map_or(true, |app| app.state::<AppState>().quit.is_done()),
+    ) {
+        eprintln!("storyForge: could not hook Windows shutdown ({e}); a shutdown will not save first");
+    }
     if let Err(e) = storyforge_fs::platform::install_quit_signals() {
         eprintln!("storyForge: could not hook the quit signals ({e})");
         return;

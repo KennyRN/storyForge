@@ -336,3 +336,83 @@ pub fn install_quit_signals() -> io::Result<()> {
 pub fn take_quit_signal() -> bool {
     false
 }
+
+// ---- Windows log-off and shutdown (Brief 22, ruling "Shutdown") ---------------------------------------------------
+//
+// Windows tells every program that a log-off or shutdown is coming (`WM_QUERYENDSESSION`) and, once it is certain,
+// that it is happening (`WM_ENDSESSION`), after which it ends the program within seconds. A small hidden window on its
+// own thread listens: on the query it starts the app's ordinary close (the same one as the red button) and says so to
+// Windows; on the real thing it waits a few seconds, at most, for that close to finish. It never holds the shutdown up
+// for longer than that, and a hung window is not waited for.
+
+#[cfg(windows)]
+static END_SESSION_HOOKS: std::sync::OnceLock<(fn(), fn() -> bool)> = std::sync::OnceLock::new();
+
+/// How long a real log-off or shutdown waits for the close to finish. Windows allows a few seconds in all.
+#[cfg(windows)]
+const END_SESSION_WAIT_MS: u64 = 4000;
+
+#[cfg(windows)]
+unsafe extern "system" fn end_session_proc(
+    hwnd: windows_sys::Win32::Foundation::HWND,
+    msg: u32,
+    wparam: windows_sys::Win32::Foundation::WPARAM,
+    lparam: windows_sys::Win32::Foundation::LPARAM,
+) -> windows_sys::Win32::Foundation::LRESULT {
+    use windows_sys::Win32::System::Shutdown::{ShutdownBlockReasonCreate, ShutdownBlockReasonDestroy};
+    use windows_sys::Win32::UI::WindowsAndMessaging::{DefWindowProcW, WM_ENDSESSION, WM_QUERYENDSESSION};
+    match msg {
+        WM_QUERYENDSESSION => {
+            let reason: Vec<u16> = "storyForge is saving your writing".encode_utf16().chain(std::iter::once(0)).collect();
+            ShutdownBlockReasonCreate(hwnd, reason.as_ptr());
+            if let Some((start_close, _)) = END_SESSION_HOOKS.get() {
+                start_close();
+            }
+            1 // agree: the close is under way
+        }
+        WM_ENDSESSION => {
+            if wparam != 0 {
+                if let Some((_, is_done)) = END_SESSION_HOOKS.get() {
+                    let started = std::time::Instant::now();
+                    while !is_done() && started.elapsed() < std::time::Duration::from_millis(END_SESSION_WAIT_MS) {
+                        std::thread::sleep(std::time::Duration::from_millis(25));
+                    }
+                }
+            }
+            ShutdownBlockReasonDestroy(hwnd);
+            0
+        }
+        _ => DefWindowProcW(hwnd, msg, wparam, lparam),
+    }
+}
+
+/// Starts the listener. `start_close` runs the app's ordinary close (it must be quick and must not block);
+/// `is_done` says whether that close has finished.
+#[cfg(windows)]
+pub fn install_end_session_hook(start_close: fn(), is_done: fn() -> bool) -> io::Result<()> {
+    use windows_sys::Win32::System::LibraryLoader::GetModuleHandleW;
+    use windows_sys::Win32::UI::WindowsAndMessaging::{CreateWindowExW, DispatchMessageW, GetMessageW, RegisterClassW, TranslateMessage, MSG, WNDCLASSW};
+    END_SESSION_HOOKS.set((start_close, is_done)).map_err(|_| io::Error::new(io::ErrorKind::Other, "the end-session hook is already installed"))?;
+    std::thread::Builder::new().name("end-session".into()).spawn(|| unsafe {
+        let class: Vec<u16> = "StoryForgeEndSession".encode_utf16().chain(std::iter::once(0)).collect();
+        let instance = GetModuleHandleW(std::ptr::null());
+        let mut wc: WNDCLASSW = std::mem::zeroed();
+        wc.lpfnWndProc = Some(end_session_proc);
+        wc.hInstance = instance;
+        wc.lpszClassName = class.as_ptr();
+        if RegisterClassW(&wc) == 0 {
+            return;
+        }
+        // A hidden top-level window (a message-only window is not told about the end of the session).
+        let hwnd = CreateWindowExW(0, class.as_ptr(), class.as_ptr(), 0, 0, 0, 0, 0, std::ptr::null_mut(), std::ptr::null_mut(), instance, std::ptr::null());
+        if hwnd.is_null() {
+            return;
+        }
+        let mut msg: MSG = std::mem::zeroed();
+        while GetMessageW(&mut msg, std::ptr::null_mut(), 0, 0) > 0 {
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
+    })?;
+    Ok(())
+}

@@ -26,7 +26,7 @@ objc2-foundation = { version = "0.3", default-features = false, features = ["std
 
 # Windows only, never compiled on the Mac: the exclusive move (Brief 22, §3.4).
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Storage_FileSystem", "Win32_UI_WindowsAndMessaging", "Win32_System_LibraryLoader", "Win32_System_Shutdown", "Win32_Graphics_Gdi"] }
 
 [dev-dependencies]
 tempfile = "3"
