@@ -24,7 +24,6 @@ const kebab = (id: string): string => id.replace(/[A-Z]/g, (c) => `-${c.toLowerC
  * scales with the Navigator style.
  */
 const EXCEPTIONS: Record<string, string[]> = {
-	".sf-chars-button": ["font-size"],
 	".sf-char": ["font-size"],
 	".sf-nav-note": ["font-size"],
 	".sf-heading-text": ["font-weight"],

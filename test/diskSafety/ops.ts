@@ -26,7 +26,7 @@ import {
 } from "../../src/core/reconciliation";
 import {
 	ensureAllSeriesBookEntries, ensureSeriesFile, renameSeriesBookEntry, upsertSeriesBookEntry, writeSeriesBookColor, writeSeriesBookTitle,
-	writeSeriesCoverImage, writeSeriesCoverName, removeSeriesCover, writeSeriesDescription, writeSeriesOrder, writeSeriesTitle, writeUnplacedOrder,
+	writeSeriesCoverImage, writeSeriesCoverName, removeSeriesCover, writeSeriesDescription, writeSeriesOrder, writeSeriesTitle, writeProjectStarted, writeUnplacedOrder,
 } from "../../src/core/series";
 import { renameStoryDetailsSidecar, deleteStoryDetailsSidecar } from "../../src/core/storyDetailsSidecar";
 import { ensureTagRegistryFile } from "../../src/core/tagRegistry";
@@ -57,6 +57,7 @@ const SAM = { path: "Codex/Sam.md", name: "Sam" };
 export const OPS: OpSpec[] = [
 	// ------------------------------------------------------------------------------- series.md
 	{ name: "writeSeriesTitle", run: (c) => writeSeriesTitle(c.project, "New Title"), changed: { [S]: fm(["series-title"]) } },
+	{ name: "writeProjectStarted", run: (c) => writeProjectStarted(c.project, "2026-11-08"), changed: { [S]: fm(["project-started"]) } },
 	{ name: "writeSeriesOrder", run: (c) => writeSeriesOrder(c.project, ["bbb", "aaa"]), changed: { [S]: fm(["order"]) } },
 	{ name: "writeSeriesOrder (unchanged writes nothing)", run: (c) => writeSeriesOrder(c.project, ["aaa", "bbb"]) },
 	{ name: "writeUnplacedOrder (unchanged writes nothing)", run: (c) => writeUnplacedOrder(c.project, ["ccc"]) },
