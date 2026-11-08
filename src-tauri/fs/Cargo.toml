@@ -3,6 +3,7 @@ name = "storyforge-fs"
 version = "1.7.0"
 edition = "2021"
 license = "MIT"
+authors = ["volcanicMole"]
 publish = false
 description = "storyForge's file-system side: path rules, the write guard, containment, and the disk operations. No Tauri dependency, so it builds and tests anywhere."
 

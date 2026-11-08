@@ -24,6 +24,7 @@
 		"fixture:leftovers": "tsx scripts/fixture-leftovers.ts"
 	},
 	"license": "MIT",
+	"author": "volcanicMole",
 	"devDependencies": {
 		"@playwright/test": "^1.64.1",
 		"@tauri-apps/cli": "^2.12.4",
