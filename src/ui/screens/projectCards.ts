@@ -4,6 +4,7 @@
  * index) and fills itself in when its answer arrives, so a slow or offline drive never holds the screen up and one card never waits for another.
  * One click opens a project; Remove from List takes only the entry, never the project.
  */
+import { folderName } from "../platform";
 import { finishCard, planCard, type CardPlan, type CardState, type CardView, type PeekCover } from "../../core/projectCard";
 import { el, fill } from "../kit/dom";
 import { showMenu, menuPoint } from "../kit/menu";
@@ -15,7 +16,7 @@ const MIME: Record<string, string> = { png: "image/png", jpg: "image/jpeg", gif:
 /** A path longer than this is cut in the middle with "…". */
 const PATH_MAX = 28;
 
-export const baseName = (p: string): string => p.slice(p.lastIndexOf("/") + 1) || p;
+export const baseName = (p: string): string => folderName(p);
 
 /** The display path, cut in the middle with "…" when it is long. (Rust has already shortened the real home folder to `~`: the window never infers it.) */
 export function shownPath(display: string): string {

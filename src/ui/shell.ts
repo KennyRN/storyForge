@@ -1,4 +1,5 @@
 import { mountLibraryLayer, mountOverviewLayer } from "./overviews/layer";
+import { folderName } from "./platform";
 import { mountCharactersButton } from "./context/charactersButton";
 import { mountTabsLine } from "./tabsLine";
 import { mountChapterContext } from "./context/chapterContext";
@@ -43,7 +44,7 @@ function splitter(label: string, side: "left" | "right", get: () => number, set:
 
 /** The frame: the left panel (a face), the centre chapter editor and the lore slot, with splitters. */
 export function mountShell(host: HTMLElement, model: AppModel): { dispose(): void } {
-	const name = model.running?.root.slice((model.running?.root.lastIndexOf("/") ?? -1) + 1) ?? "storyForge";
+	const name = model.running ? folderName(model.running.root) : "storyForge";
 	const left = el("nav", { class: "sf-left", attrs: { "aria-label": "Library" } });
 	const faceHost = el("div", { class: "sf-left-body" });
 	const navMenu = mountNavMenu(left, model);

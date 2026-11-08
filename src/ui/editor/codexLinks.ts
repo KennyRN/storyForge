@@ -1,4 +1,5 @@
 import { syntaxTree } from "@codemirror/language";
+import { primaryModifier } from "../platform";
 import { Facet, Prec, StateEffect, StateField, type EditorState, type Extension } from "@codemirror/state";
 import { EditorView, ViewPlugin, keymap, showTooltip, tooltips, type Tooltip, type ViewUpdate } from "@codemirror/view";
 import { classifyLinkTarget, codexLinkMarkdown, suggestCodexEntries, type CodexLinkEntry, type LinkTarget, type LinkWorld, type Suggestion } from "../../core/codexLinks";
@@ -175,7 +176,7 @@ export function codexLinks(links: EditorLinks, hooks: CodexLinkHooks | null): Ex
 	/** ⌘-click opens a live link; a plain click is left to the editor, so a link's text can still be edited. */
 	const click = EditorView.domEventHandlers({
 		mousedown(event, view) {
-			if (!event.metaKey) return false;
+			if (!primaryModifier(event)) return false;
 			const pos = view.posAtCoords({ x: event.clientX, y: event.clientY });
 			if (pos === null) return false;
 			const link = linkAt(view.state, pos);

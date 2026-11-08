@@ -40,12 +40,15 @@ pub fn at(list: &[String], index: usize) -> Option<&String> {
 /// the same way (`/Users/samx` against home `/Users/sam`) is shown in full. With no known home nothing is shortened. The window never works
 /// this out for itself: it is told the display path (decision 24 lets it be told a path for display).
 pub fn display_path(path: &str, home: Option<&str>) -> String {
-    let Some(home) = home.map(|h| h.trim_end_matches('/')).filter(|h| !h.is_empty()) else { return path.to_string() };
-    if path == home {
+    // Windows paths use "\\" and compare without regard to case (C:\Users\Sam against c:\users\sam); elsewhere only "/" separates.
+    let is_sep = |c: char| c == '/' || (cfg!(windows) && c == '\\');
+    let Some(home) = home.map(|h| h.trim_end_matches(is_sep)).filter(|h| !h.is_empty()) else { return path.to_string() };
+    let same = |a: &str, b: &str| if cfg!(windows) { a.eq_ignore_ascii_case(b) } else { a == b };
+    if same(path, home) {
         return "~".to_string();
     }
-    match path.strip_prefix(home) {
-        Some(rest) if rest.starts_with('/') => format!("~{rest}"),
+    match path.get(..home.len()) {
+        Some(head) if same(head, home) && path[home.len()..].starts_with(is_sep) => format!("~{}", &path[home.len()..]),
         _ => path.to_string(),
     }
 }

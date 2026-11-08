@@ -88,3 +88,13 @@ fn display_paths_keep_the_lists_order() {
     let list = l(&["/Users/sam/A", "/Users/Shared/B", "/Users/sam"]);
     assert_eq!(display_paths(&list, Some("/Users/sam")), l(&["~/A", "/Users/Shared/B", "~"]));
 }
+
+#[cfg(windows)]
+#[test]
+fn a_windows_home_is_shortened_with_either_case_and_backslashes() {
+    let home = Some(r"C:\Users\Sam");
+    assert_eq!(display_path(r"C:\Users\Sam", home), "~");
+    assert_eq!(display_path(r"c:\users\sam\Writing\Lantern", home), r"~\Writing\Lantern");
+    assert_eq!(display_path(r"C:\Users\Samuel\Lantern", home), r"C:\Users\Samuel\Lantern"); // another folder that starts the same way
+    assert_eq!(display_path(r"D:\Writing\Lantern", home), r"D:\Writing\Lantern");
+}

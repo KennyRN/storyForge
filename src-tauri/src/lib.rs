@@ -168,7 +168,7 @@ async fn peek_recent_book(state: State<'_, AppState>, index: usize, position: us
 /// else (`/Users/Shared` and other users' folders stay in full). Read only: string work on the list, no file is touched. For display only.
 #[tauri::command]
 fn recent_display(state: State<'_, AppState>) -> Vec<String> {
-    storyforge_fs::recent::display_paths(&state.recent(), std::env::var("HOME").ok().as_deref())
+    storyforge_fs::recent::display_paths(&state.recent(), std::env::var(if cfg!(windows) { "USERPROFILE" } else { "HOME" }).ok().as_deref())
 }
 
 /// Removes the `index`th entry from the recent list. It writes only `recent.json` in the app's data folder, never a project, and rebuilds the
@@ -440,7 +440,12 @@ fn item(app: &tauri::AppHandle, id: &str, label: &str, accel: Option<&str>) -> t
 fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
     // Not the predefined Quit, Undo and Redo: Quit would end the app without letting the window save first, and
     // the predefined Undo and Redo act on the web view's own history, which CodeMirror does not use.
+    // Windows has no application menu: Settings and Exit go in File, About in Help (Brief 22, §5). The Mac's menu is unchanged.
+    #[cfg(target_os = "macos")]
     let quit = item(app, "quit", "Quit storyForge", Some("CmdOrCtrl+Q"))?;
+    #[cfg(not(target_os = "macos"))]
+    let quit = item(app, "quit", "Exit", None)?;
+    #[cfg(target_os = "macos")]
     let app_menu = Submenu::with_items(
         app,
         "storyForge",
@@ -487,6 +492,13 @@ fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
             &item(app, "close-project", "Close Project", None)?,
         ],
     )?;
+    #[cfg(not(target_os = "macos"))]
+    {
+        file.append(&PredefinedMenuItem::separator(app)?)?;
+        file.append(&item(app, "settings", "Settings…", Some("CmdOrCtrl+,"))?)?;
+        file.append(&PredefinedMenuItem::separator(app)?)?;
+        file.append(&quit)?;
+    }
     let edit = Submenu::with_items(
         app,
         "Edit",
@@ -527,7 +539,13 @@ fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         true,
         &[&PredefinedMenuItem::minimize(app, None)?, &PredefinedMenuItem::maximize(app, None)?, &PredefinedMenuItem::close_window(app, None)?],
     )?;
-    Menu::with_items(app, &[&app_menu, &file, &edit, &view, &story, &window])
+    #[cfg(target_os = "macos")]
+    return Menu::with_items(app, &[&app_menu, &file, &edit, &view, &story, &window]);
+    #[cfg(not(target_os = "macos"))]
+    {
+        let help = Submenu::with_items(app, "Help", true, &[&PredefinedMenuItem::about(app, None, None)?])?;
+        Menu::with_items(app, &[&file, &edit, &view, &story, &window, &help])
+    }
 }
 
 fn apply_items(items: Vec<MenuItemKind<tauri::Wry>>, enabled: &HashMap<String, bool>) {
@@ -602,6 +620,10 @@ pub fn run() {
             }
         }))
         .setup(|app| {
+            // Windows: local (not roaming) app data, because snapshots, sessions and the recent list belong to this computer.
+            #[cfg(windows)]
+            let data_dir = app.path().app_local_data_dir()?;
+            #[cfg(not(windows))]
             let data_dir = app.path().app_data_dir()?;
             app.manage(AppState { project: Mutex::new(None), machine: MachineStore::new(&data_dir), watcher: Mutex::new(None), quit: QuitState::default(), last_progress: Mutex::new(Instant::now()), menu_enabled: Mutex::new(HashMap::new()), peeked: Mutex::new(HashMap::new()), recent_names: Mutex::new(None) });
             restore_window_state(app);

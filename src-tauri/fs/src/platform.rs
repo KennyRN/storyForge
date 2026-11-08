@@ -124,7 +124,17 @@ pub fn reveal(path: &Path) -> io::Result<bool> {
     }
 }
 
-#[cfg(not(target_os = "macos"))]
+/// Windows: File Explorer with the file selected (`explorer /select,`). Explorer answers with exit code 1 even when it
+/// worked, so only a failure to start it is an error. It only reveals: nothing is opened or written.
+#[cfg(windows)]
+pub fn reveal(path: &Path) -> io::Result<bool> {
+    use std::os::windows::process::CommandExt;
+    let shown = path.to_string_lossy().replace('/', "\\");
+    std::process::Command::new("explorer.exe").raw_arg(format!("/select,\"{shown}\"")).spawn()?;
+    Ok(true)
+}
+
+#[cfg(all(not(target_os = "macos"), not(windows)))]
 pub fn reveal(_path: &Path) -> io::Result<bool> {
     Ok(false)
 }
