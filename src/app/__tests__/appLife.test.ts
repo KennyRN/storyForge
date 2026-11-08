@@ -446,11 +446,11 @@ describe("newestBackupTime", () => {
 
 	it("the display path: only the current user's own home folder becomes ~, nothing else (Brief 16)", async () => {
 		const host = makeHost();
-		host.home = "/Users/kenny";
-		host.recent = ["/Users/kenny/Storytelling/Lantern", "/Users/Shared/Stories/Lantern", "/Users/alex/Novel", "/Users/kennyx/Novel", "/Volumes/Archive/Novel", "/Users/kenny"];
+		host.home = "/Users/sam";
+		host.recent = ["/Users/sam/Storytelling/Lantern", "/Users/Shared/Stories/Lantern", "/Users/alex/Novel", "/Users/samx/Novel", "/Volumes/Archive/Novel", "/Users/sam"];
 		const app = track(new AppController(host));
 		await app.start();
-		expect(await app.recentDisplay()).toEqual(["~/Storytelling/Lantern", "/Users/Shared/Stories/Lantern", "/Users/alex/Novel", "/Users/kennyx/Novel", "/Volumes/Archive/Novel", "~"]);
+		expect(await app.recentDisplay()).toEqual(["~/Storytelling/Lantern", "/Users/Shared/Stories/Lantern", "/Users/alex/Novel", "/Users/samx/Novel", "/Volumes/Archive/Novel", "~"]);
 		host.home = null;
 		expect(await app.recentDisplay()).toEqual(host.recent);
 	});

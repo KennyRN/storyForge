@@ -37,7 +37,7 @@ pub fn at(list: &[String], index: usize) -> Option<&String> {
 
 /// A folder's path as the start screen shows it: **the current user's own home folder** written as `~`, and nothing else. Only a path that is
 /// the home folder, or inside it (a `/` follows it), is shortened; `/Users/Shared`, another user's folder, or a folder whose name merely starts
-/// the same way (`/Users/kennyx` against home `/Users/kenny`) is shown in full. With no known home nothing is shortened. The window never works
+/// the same way (`/Users/samx` against home `/Users/sam`) is shown in full. With no known home nothing is shortened. The window never works
 /// this out for itself: it is told the display path (decision 24 lets it be told a path for display).
 pub fn display_path(path: &str, home: Option<&str>) -> String {
     let Some(home) = home.map(|h| h.trim_end_matches('/')).filter(|h| !h.is_empty()) else { return path.to_string() };

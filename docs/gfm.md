@@ -20,13 +20,13 @@ Written 7 November 2026, on branch `gfm` (from `main` at `739fe14`). Read only: 
 
 | Project | Wiki links | Embeds | `%%` | `==` | Callouts | `](….md)` | `<!--` | Aliases |
 |---|---|---|---|---|---|---|---|---|
-| The Way of the Nameless | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
-| 100 - Story Playground copy | 1 | 0 | 0 | 0 | 0 | 1 | 2 | 0 |
+| Project A (a novel) | 0 | 0 | 0 | 0 | 0 | 0 | 1 | 0 |
+| Project B (a copy of a series) | 1 | 0 | 0 | 0 | 0 | 1 | 2 | 0 |
 | forgeForge vault | 2 | 0 | 1 | 0 | 0 | 1 | 12 | 0 |
 | storyForge test vault | 0 | 0 | 1 | 9 lines | 0 | 0 | 3 | 6 notes |
 
 - **Every hit is Obsidian's stock text, a plugin's generated block, or a synthetic fixture.** None is the author's writing. The conversion is dropped (Kenny); the one stray `[[create a link]]` is fixed by hand.
-- **The one `](….md)` link is a web URL** (`https://help.obsidian.md/Plugins/Importer`, in the Playground's Welcome note), not a relative project link. It is not evidence of the relative form (§4).
+- **The one `](….md)` link is a web URL** (`https://help.obsidian.md/Plugins/Importer`, in a copied vault's Welcome note), not a relative project link. It is not evidence of the relative form (§4).
 - **Test-vault fixtures to update, not writing to protect:** `_story-library/aaa/ch-a1.md` (the nine `==` lines, with the tests of §1.5) and `ch-a2.md` (`%%a hidden comment%%`, with §1.6's tests). They go or become HTML-comment cases when those tests are retired; `fixtures/build.mjs` regenerates the synthetic ones. The six aliased notes (`Jane`, `Windows`, `Sam` (`aliases: Sammy`), `NoNewline`, `Zoë Åberg — 日本語`, and `Retired` with `aliases: []`) are the alias tests' material.
 
 ## 3. The parser

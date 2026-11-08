@@ -69,7 +69,7 @@ Settings is the only dialog that needs more than the shared piece (a stable key 
 
 ### 1.7 Notes
 
-- A storyForge process (pid 41549, the built app under `src-tauri/target/…/release/bundle/`) is running. It is presumably Kenny's copy. I have not touched it and will build nothing until it is closed (decision 66). The survey and the code and test work in commits 2 and 3 do not need a build; the `test:ui` run uses the preview.
+- A storyForge process (the built app under `src-tauri/target/…/release/bundle/`) is running. It is presumably Kenny's copy. I have not touched it and will build nothing until it is closed (decision 66). The survey and the code and test work in commits 2 and 3 do not need a build; the `test:ui` run uses the preview.
 - `src/diagnostic/diagnostics.ts` handles Escape too; it is a development-build overlay and I have not surveyed it as a dialog.
 
 ## 2. As built

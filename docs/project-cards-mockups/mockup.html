@@ -63,7 +63,7 @@ for (const c of list) {
   const card = document.createElement("button");
   card.className = "card" + (c.state ? " dim" : "") + (hoverKey === c.k ? " hover" : "");
   card.setAttribute("aria-label", c.state ? `${c.name}, ${c.state}` : c.name);
-  card.title = c.path.replace(/^~/, "/Users/kenny");
+  card.title = c.path.replace(/^~/, "/Users/sam");
   const mid = c.path.length > 34 ? c.path.slice(0, 15) + "…" + c.path.slice(-17) : c.path;
   card.innerHTML = `<div class="img">${c.img ? `<img alt="" src="${c.img}">` : photo}</div><div class="text"><span class="name">${c.name}</span><span class="path">${mid}</span>${c.state ? `<span class="state">${c.state}</span>` : ""}</div>`;
   if (menuKey === c.k) {
