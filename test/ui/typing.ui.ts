@@ -908,7 +908,7 @@ test.describe("the special-characters button", () => {
 		await group.getByLabel("Add to Special characters").press("Enter");
 		await expect(group.getByRole("list", { name: "Special characters" })).toContainText("ø");
 		await dialog(page).getByRole("button", { name: "Done" }).click();
-		await CHARS(page).click();
+		await CHARS(page).click({ force: true }); // aria-disabled when off (Tweaks 3 §1.7): it still opens the palette
 		await expect(palette(page).getByRole("button", { name: "ø, U+00F8", exact: true })).toBeVisible();
 	});
 
@@ -916,7 +916,7 @@ test.describe("the special-characters button", () => {
 		await editorWith(page);
 		// an archived chapter is read-only
 		await page.evaluate((p) => window.__app.editors!.open("centre", p), "_story-library/aaa/ch-a4.md");
-		await CHARS(page).click();
+		await CHARS(page).click({ force: true }); // aria-disabled when off (Tweaks 3 §1.7): it still opens the palette
 		await expect(palette(page)).toContainText("This text is read-only.");
 		await expect(palette(page).getByRole("button", { name: "ash", exact: true })).toBeDisabled();
 		await page.keyboard.press("Escape");
@@ -924,7 +924,7 @@ test.describe("the special-characters button", () => {
 		await page.evaluate((p) => window.__app.editors!.open("centre", p), CH1);
 		await flipFace(page);
 		await page.getByRole("tab", { name: "series" }).click();
-		await CHARS(page).click();
+		await CHARS(page).click({ force: true }); // aria-disabled when off (Tweaks 3 §1.7): it still opens the palette
 		await expect(palette(page)).toContainText("Close the overview");
 		await expect(palette(page).getByRole("button", { name: "ash", exact: true })).toBeDisabled();
 	});
