@@ -185,13 +185,13 @@ Rulings given by Kenny after H1: line endings approved (a consistent file keeps 
 | `npm run test:ui` (WebKit, 740) | passes | n/a |
 | `test:ui` in Chromium | n/a | see below |
 
-### Chromium triage (first run: 700 pass, 40 fail)
+### Chromium triage
 
-None of the 40 is a data-safety failure (read from the first run's log). Causes:
+First run: 700 pass, 40 fail. After the test-side fixes below: **710 pass, 30 fail** (reported only; none is a data-safety failure, read from the log).
 
-- **Test-side, fixed:** tests that hard-coded `Meta` (⌘A, ⌘Z, ⌘B/⌘I, ⌘-click, ⌘-Return) now use `ControlOrMeta`, and the start card's `~/` expectation accepts `~\`. The Mac run of those files passes. (about 22 tests)
-- **Test-side, left:** tests that reach buttons with Option-Tab, which on Windows is an operating-system shortcut (`kit.ui.ts` 117, `modal.ui.ts` 54, `navigator.ui.ts` 51, the Codex strip's focus tests). They need a Windows variant of the helper, not an app change.
-- **Possibly the app, to look at once the first group is gone:** the typing-aid undo tests (one ⌘Z gives back what was typed) and the special-characters button, which depend on `execCommand("insertText")` and Chromium's undo grouping; the selection colour. These can only be settled by a person typing in the real app on Windows.
+- **Fixed (test-side):** tests that hard-coded `Meta` (⌘A, ⌘Z, ⌘B/⌘I, ⌘-click, ⌘-Return) now use `ControlOrMeta`, and the start card's `~/` expectation accepts `~\`. The Mac run of those files passes. 10 tests.
+- **Test-side, not yet changed (10):** keyboard-focus tests that reach buttons with Option-Tab, which Windows uses for its own switcher (`kit.ui.ts:117`, `modal.ui.ts:54`, `navigator.ui.ts:51`, `storytelling.ui.ts:59`, `tweaks2.ui.ts:220`, `codexlook.ui.ts` 74, 91 (both sides) and 174). They need a Windows way to move focus, not an app change. Two `settingsRace.ui.ts` tests are timing-sensitive and also unexamined.
+- **Undecided (17):** `typing.ui.ts` (the aids' one-⌘Z undo and the shortcode popup), `chars.ui.ts`, `editor.ui.ts` 27/78/104/153, `chapterContext.ui.ts:160`, `gfm.ui.ts` 175 and 339. They may be the tests (key handling that differs in Chromium on Windows) or Chromium's undo grouping against `execCommand("insertText")`. Playwright's Chromium is not WebView2, and the app's own typing aids can only be settled by a person typing in the real Windows app, so they are on the friend's list.
 
 ## What only the friend can check
 
