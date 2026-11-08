@@ -153,3 +153,50 @@ A sample project of invented text (a series with two short novels, a Codex of si
 2. The safety core (§3) with its tests, until the Windows run passes with the bridge built; then the run becomes blocking.
 3. The Mac-only parts and the display, as ruled.
 4. **H2**, then the preview build.
+
+---
+
+# As built (H2): the port up to the first Windows build
+
+Rulings given by Kenny after H1: line endings approved (a consistent file keeps its endings; new files are LF everywhere; decision 22 kept for mixed endings); new names approved; `windows-sys` approved (Windows only); the installer fetches WebView2 if missing; `test/ui` in Chromium on Windows, reported only until triaged; machine settings in local app data; shutdown attempted briefly; the Mac unchanged except ruling 2; the deny-writers open and the native exclusive move approved.
+
+## What changed, in the order of the brief
+
+1. **The CI fixes.** `.gitattributes` (LF text everywhere; the four font licences and the CRLF fixture are `-text`, kept byte for byte); `toPosix` where tests compare `path.relative`; `vite` run by `node` (no `npx`); the Mac key-posting helper's tests skip off the Mac; `icons/icon.ico` (seven sizes, from the 1024 px icon; in `tauri.conf.json`'s icon list).
+2. **Ruling 0.** `test/helpers/rustBridge.ts` finds `cargo` (`where` on Windows), uses the platform's path delimiter and `.exe`; `test/globalSetup.ts` **throws when `CI` is set and the bridge is not built**, so a missing bridge fails CI on every platform and the safety suites cannot silently skip. On the Windows run the bridge suites (`contract`, `tauri`, `appLife`, `settings`, 17 + 4 + 29 + 81 tests) now run and pass. The only skips left are the Mac key-posting helper's six tests.
+3. **The safety core on Windows** (`src-tauri/fs/src/platform.rs`, `ops.rs`):
+   - `rename_excl`: `MoveFileExW` without the replace flag. Atomic, exclusive, no hard link and no second name. Files and folders.
+   - `retry_sharing` / `replace_file`: the last step of every atomic write (and machine settings) waits out a program holding the file (sharing violation, lock violation, access denied) for about two seconds, then fails as before; the temp file is removed, nothing is lost. **Reads wait too** (`read_bytes`, the compare's read, and the read that decides whether a file is CRLF: without it a held file would have lost its CRLF). On the Mac `retry_sharing` is one call: nothing changes.
+   - `compare_write`: the target is opened with other writers denied (`FILE_SHARE_READ | FILE_SHARE_DELETE`), compared and replaced while held; if the replace cannot be done while held it falls back to the stat-checked path.
+   - Case-only renames: `same_path` (canonical paths) stands in for the inode comparison.
+   - **Junctions** (what OneDrive and some tools make) are refused as links; Rust's `is_symlink` already reports them (tested with a real junction on the runner).
+   - Unix-symlink tests are gated to Unix, with a `link_dir` helper that makes a junction on Windows; `fs/tests/windows.rs` (Windows only) covers exclusive and case-only renames, a file held briefly (save and compare), held for good (fails, loses nothing, leaves no temp file), a conflict, the writer-denying open, CRLF kept, new files LF, and a junction.
+4. **Names (ruling 2).** `sanitizeCodexBasename` also drops a trailing dot or space; `isReservedFileName` refuses CON, PRN, AUX, NUL, COM1 to COM9, LPT1 to LPT9 (with or without an extension) in the new-note box, in the rename box, and as a backstop in the core (`UnusableNameError`; `uniqueCodexFilename` never makes one). The characters `< > : " | ? *` were already refused. **Existing** names Windows can't hold are listed in the summary shown after opening ("Can't be used on Windows"), never renamed (`core/windowsNames.ts`). Note for Kenny: the list is shown on the Mac too, at every open of a project that has such a name, because that is where such names exist; say if it should be shown once, or only in Settings.
+5. **The Mac-only parts.** Menu: Windows has no app menu (Settings and Exit are in File, About in Help; the Mac's menu is untouched, `cfg`-gated). "Show in File Explorer" (`explorer /select,`). Home folder display uses `USERPROFILE`, either separator, case-insensitive on Windows only. Project names come from backslash paths (`folderName`: the shell's title and the cards). Machine settings in `%LOCALAPPDATA%` (`app_local_data_dir`). ⌘-click is Ctrl-click on Windows (`primaryModifier`; ⌘-Return is CodeMirror's `Mod-Enter`, already Ctrl). **Shutdown:** a hidden window on its own thread answers `WM_QUERYENDSESSION` (starts the ordinary close, and says why with `ShutdownBlockReasonCreate`) and waits at most four seconds on `WM_ENDSESSION`. **Unproved**; it is on the friend's list.
+6. **The display.** `test/ui` runs in Chromium on the Windows runner (`SF_BROWSER=chromium`, `ui-chromium` job in `ci.yml`, reported only).
+
+## What passes, and where
+
+| | Mac | Windows runner |
+|---|---|---|
+| `npm run build`, `npm test` (1810 tests) | passes | passes (6 skipped: the Mac helper) |
+| Rust bridge suites (disk safety through the real Rust code) | passes | **passes, running** |
+| `cargo test --workspace` (incl. `windows.rs`) | passes | passes |
+| `npm run test:ui` (WebKit, 740) | passes | n/a |
+| `test:ui` in Chromium | n/a | see below |
+
+### Chromium triage (first run: 700 pass, 40 fail)
+
+All 40 failures were reading the first run's log; none is a data-safety failure. Causes:
+
+- **Test-side, fixed:** tests that hard-coded `Meta` (⌘A, ⌘Z, ⌘B/⌘I, ⌘-click, ⌘-Return) now use `ControlOrMeta`, and the start card's `~/` expectation accepts `~\`. The Mac run of those files passes. (about 22 tests)
+- **Test-side, left:** tests that reach buttons with Option-Tab, which on Windows is an operating-system shortcut (`kit.ui.ts` 117, `modal.ui.ts` 54, `navigator.ui.ts` 51, the Codex strip's focus tests). They need a Windows variant of the helper, not an app change.
+- **Possibly the app, to look at once the first group is gone:** the typing-aid undo tests (one ⌘Z gives back what was typed) and the special-characters button, which depend on `execCommand("insertText")` and Chromium's undo grouping; the selection colour. These can only be settled by a person typing in the real app on Windows.
+
+## What only the friend can check
+
+Installing; WebView2; the title bar and menu on Windows (the 28 px band and the traffic-light space are still drawn; they hold the left panel's menu chevron, and the layout against the Windows title bar is unseen); the ClearType look of the fonts; the red spelling underlines; typing aids and their undo in WebView2; File Explorer reveal; OneDrive folders; **shutdown with a chapter just typed**; Notepad's change being picked up (the watcher on Windows).
+
+## Not done yet (after H2)
+
+The installer and the Windows job of `release.yml`; the README steps; the changelog and version; the Mac's three-round built-app sweep (a minor version, decision 104); `bundle.windows` in `tauri.conf.json` (NSIS, per-user, `downloadBootstrapper` for WebView2).
