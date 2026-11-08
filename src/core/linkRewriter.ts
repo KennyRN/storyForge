@@ -24,7 +24,7 @@ import type { Project } from "./project";
 import type { ProseSession, SaveResult } from "./proseWriter";
 import { bookFoldersReferencingNote } from "./book";
 import { handleCodexNoteRename } from "./reconciliation";
-import { sanitizeCodexBasename, uniqueCodexFilename } from "./codex";
+import { isReservedFileName, sanitizeCodexBasename, UnusableNameError, uniqueCodexFilename } from "./codex";
 
 export class NotACodexNoteError extends Error {
 	constructor(public readonly path: string, reason: string) {
@@ -200,6 +200,7 @@ export async function planCodexRename(project: Project, notePath: string, newNam
 	if (project.isPlaceholder(entry.path)) throw new NotACodexNoteError(notePath, "it is stored in iCloud and has not been downloaded");
 
 	const stem = sanitizeCodexBasename(newName);
+	if (isReservedFileName(stem)) throw new UnusableNameError(stem);
 	// Checked on the name as typed: the sanitiser would silently drop a `|`, but the author should be told.
 	const typed = newName.trim().replace(/\.md$/i, "");
 	const bad = typed.match(UNLINKABLE);

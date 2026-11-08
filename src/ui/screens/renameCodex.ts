@@ -1,3 +1,4 @@
+import { isReservedFileName, RESERVED_NAME_EXPLANATION } from "../../core/codex";
 import type { LinkRewritePlan, LinkRewriteResult } from "../../core/linkRewriter";
 import { button } from "../kit/button";
 import { bringForward, openDialog, type OpenDialog } from "../kit/dialog";
@@ -14,6 +15,7 @@ export function nameProblem(typed: string, current: string): string | null {
 	const name = typed.trim().replace(/\.md$/i, "");
 	if (!name) return "Type a name.";
 	if (UNLINKABLE.test(name)) return UNLINKABLE_EXPLANATION;
+	if (isReservedFileName(name)) return RESERVED_NAME_EXPLANATION;
 	if (name === current) return "That is the note's name already.";
 	return null;
 }

@@ -31,52 +31,67 @@ fn temps(dir: &TempDir, rel: &str) -> Vec<String> {
 #[test]
 fn a_rename_never_replaces_and_leaves_one_name() {
     let (dir, p) = project();
-    put(&dir, "Codex/A.md", "a");
-    put(&dir, "Codex/B.md", "b");
-    let err = p.rename("rename", "Codex/A.md", "Codex/B.md").unwrap_err();
+    put(&dir, "_backstage/storyforge/A.md", "a");
+    put(&dir, "_backstage/storyforge/B.md", "b");
+    let err = p.rename("rename", "_backstage/storyforge/A.md", "_backstage/storyforge/B.md").unwrap_err();
     assert_eq!(err.code, "EEXIST");
-    assert_eq!((get(&dir, "Codex/A.md"), get(&dir, "Codex/B.md")), ("a".into(), "b".into()));
-    p.rename("rename", "Codex/A.md", "Codex/C.md").unwrap();
-    assert!(!dir.path().join("Codex/A.md").exists());
-    assert_eq!(get(&dir, "Codex/C.md"), "a");
+    assert_eq!((get(&dir, "_backstage/storyforge/A.md"), get(&dir, "_backstage/storyforge/B.md")), ("a".into(), "b".into()));
+    p.rename("rename", "_backstage/storyforge/A.md", "_backstage/storyforge/C.md").unwrap();
+    assert!(!dir.path().join("_backstage/storyforge/A.md").exists());
+    assert_eq!(get(&dir, "_backstage/storyforge/C.md"), "a");
 }
 
 #[test]
 fn a_case_only_rename_works_and_leaves_one_file() {
     let (dir, p) = project();
-    put(&dir, "Codex/jane.md", "j");
-    p.rename("rename", "Codex/jane.md", "Codex/Jane.md").unwrap();
-    let names: Vec<String> = fs::read_dir(dir.path().join("Codex")).unwrap().flatten().map(|e| e.file_name().to_string_lossy().to_string()).collect();
+    put(&dir, "_backstage/storyforge/jane.md", "j");
+    p.rename("rename", "_backstage/storyforge/jane.md", "_backstage/storyforge/Jane.md").unwrap();
+    let names: Vec<String> = fs::read_dir(dir.path().join("_backstage/storyforge")).unwrap().flatten().map(|e| e.file_name().to_string_lossy().to_string()).collect();
     assert_eq!(names, vec!["Jane.md".to_string()]);
-    assert!(temps(&dir, "Codex").is_empty());
+    assert!(temps(&dir, "_backstage/storyforge").is_empty());
 }
 
 #[test]
 fn a_folder_renames_exclusively_too() {
     let (dir, p) = project();
-    put(&dir, "Codex/Old/x.md", "x");
-    p.rename("rename", "Codex/Old", "Codex/New").unwrap();
-    assert_eq!(get(&dir, "Codex/New/x.md"), "x");
-    put(&dir, "Codex/Other/y.md", "y");
-    assert!(p.rename("rename", "Codex/Other", "Codex/New").is_err());
-    assert_eq!(get(&dir, "Codex/Other/y.md"), "y");
+    put(&dir, "_backstage/storyforge/Old/x.md", "x");
+    p.rename("rename", "_backstage/storyforge/Old", "_backstage/storyforge/New").unwrap();
+    assert_eq!(get(&dir, "_backstage/storyforge/New/x.md"), "x");
+    put(&dir, "_backstage/storyforge/Other/y.md", "y");
+    assert!(p.rename("rename", "_backstage/storyforge/Other", "_backstage/storyforge/New").is_err());
+    assert_eq!(get(&dir, "_backstage/storyforge/Other/y.md"), "y");
 }
 
 #[test]
 fn a_save_waits_out_a_program_that_has_the_file_for_a_moment() {
     let (dir, p) = project();
-    put(&dir, "_story-library/aaa/ch.md", "old\n");
-    let path = dir.path().join("_story-library/aaa/ch.md");
+    put(&dir, "_backstage/storyforge/note.md", "old\n");
+    let path = dir.path().join("_backstage/storyforge/note.md");
     // Antivirus, the indexer or a sync client: it opens the file denying every share, then lets go.
     let holder = OpenOptions::new().read(true).share_mode(0).open(&path).unwrap();
     let release = thread::spawn(move || {
         thread::sleep(Duration::from_millis(400));
         drop(holder);
     });
-    p.write_text("_story-library/aaa/ch.md", "new\n", "write-file", None).unwrap();
+    p.write_text("_backstage/storyforge/note.md", "new\n", "write-file", None).unwrap();
     release.join().unwrap();
-    assert_eq!(get(&dir, "_story-library/aaa/ch.md"), "new\n");
-    assert!(temps(&dir, "_story-library/aaa").is_empty());
+    assert_eq!(get(&dir, "_backstage/storyforge/note.md"), "new\n");
+    assert!(temps(&dir, "_backstage/storyforge").is_empty());
+}
+
+#[test]
+fn a_save_into_a_crlf_file_keeps_crlf_even_when_the_file_is_briefly_held() {
+    let (dir, p) = project();
+    put(&dir, "_backstage/storyforge/crlf.md", "one\r\ntwo\r\n");
+    let path = dir.path().join("_backstage/storyforge/crlf.md");
+    let holder = OpenOptions::new().read(true).share_mode(0).open(&path).unwrap();
+    let release = thread::spawn(move || {
+        thread::sleep(Duration::from_millis(300));
+        drop(holder);
+    });
+    p.write_text("_backstage/storyforge/crlf.md", "one\ntwo\nthree\n", "write-file", None).unwrap();
+    release.join().unwrap();
+    assert_eq!(get(&dir, "_backstage/storyforge/crlf.md"), "one\r\ntwo\r\nthree\r\n");
 }
 
 #[test]

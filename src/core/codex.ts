@@ -279,9 +279,22 @@ export function sanitizeCodexBasename(raw: string): string {
 		.replace(CODEX_BASENAME_UNSAFE, "")
 		.replace(/\s+/g, " ")
 		.trim()
-		.replace(/^\.+/, "");
+		.replace(/^\.+/, "")
+		.replace(/[. ]+$/, ""); // Windows silently drops a trailing dot or space (Brief 22, ruling 2)
 	if (!stripped) return "";
 	return stripped;
+}
+
+/** Names Windows reserves for devices (`CON`, `NUL.md`, `COM1`…), whatever the extension: a file can't be made with one. */
+const RESERVED_WINDOWS_NAME = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$/i;
+export const isReservedFileName = (stem: string): boolean => RESERVED_WINDOWS_NAME.test(stem.trim());
+export const RESERVED_NAME_EXPLANATION = "That name is reserved by Windows (CON, PRN, AUX, NUL, COM1 to COM9, LPT1 to LPT9), so a project using it couldn't be opened there. Choose another.";
+/** Thrown when a rename is asked to use a name Windows can't hold. The interface checks first; this is the backstop. */
+export class UnusableNameError extends Error {
+	constructor(readonly name: string) {
+		super(RESERVED_NAME_EXPLANATION);
+		this.name = "UnusableNameError";
+	}
 }
 
 function sameVaultPath(a: string, b: string): boolean {
@@ -311,7 +324,8 @@ export async function uniqueCodexFilename(
 	baseName: string,
 	ignorePath?: string,
 ): Promise<string> {
-	const stem = sanitizeCodexBasename(baseName) || "New Note";
+	let stem = sanitizeCodexBasename(baseName) || "New Note";
+	if (isReservedFileName(stem)) stem = `${stem} note`; // never make a file Windows can't hold
 	if (!isCodexPathOccupied(project, `${CODEX_ROOT}/${stem}.md`, ignorePath)) return `${stem}.md`;
 	let n = 2;
 	while (isCodexPathOccupied(project, `${CODEX_ROOT}/${stem} ${n}.md`, ignorePath)) n++;

@@ -272,7 +272,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 		if (kind === "note") {
 			const p = nameProblem(name, "");
 			if (p) return p;
-			if (sanitizeCodexBasename(name) !== name.replace(/\.md$/i, "")) return "A note name can't contain / \\ ? % * : | \" < >.";
+			if (sanitizeCodexBasename(name) !== name.replace(/\.md$/i, "")) return "A note name can't contain / \\ ? % * : | \" < >, or end in a dot or a space.";
 		}
 		// Case and accents are ignored: a note against every note, a folder against the folders beside it.
 		if (codexNameClash(project(), kind, parent, name)) return kind === "note" ? `There is already a note called “${name}”.` : `There is already a folder called “${name}” here.`;

@@ -226,7 +226,7 @@ impl Project {
 
     pub fn read_bytes(&self, rel: &str) -> FsResult<Vec<u8>> {
         let abs = self.read_target(rel)?;
-        fs::read(&abs).map_err(|e| io_err(&e, rel))
+        platform::retry_sharing(|| fs::read(&abs)).map_err(|e| io_err(&e, rel))
     }
 
     pub fn read_text(&self, rel: &str) -> FsResult<String> {
@@ -280,7 +280,7 @@ impl Project {
         if let Ok(meta) = fs::metadata(&abs) {
             perms = Some(meta.permissions());
             if !text.contains("\r\n") && text.contains('\n') {
-                if let Ok(existing) = fs::read(&abs) {
+                if let Ok(existing) = platform::retry_sharing(|| fs::read(&abs)) {
                     if let Some(i) = existing.iter().position(|b| *b == b'\n') {
                         if i > 0 && existing[i - 1] == b'\r' {
                             out = text.replace('\n', "\r\n");
@@ -349,7 +349,7 @@ impl Project {
         if !before_meta.is_file() {
             return Err(FsError::new("EISDIR", "not a file", Some(rel)));
         }
-        let current = fs::read(&abs).map_err(|e| io_err(&e, rel))?;
+        let current = platform::retry_sharing(|| fs::read(&abs)).map_err(|e| io_err(&e, rel))?;
         if current != expected.as_bytes() {
             return Ok(CompareOutcome { outcome: "conflict", late_write_recovery: None });
         }
