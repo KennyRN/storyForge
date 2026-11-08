@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.12.3: Tweaks 3 (Settings labels and the word count modal)
+
+- Changed: **every label in Settings is lowercase**: the left-hand list, row labels, group headings, the choices in the dropdowns and the screen-reader names (font families, Everforest, Tabler and PoV keep their case). Body bold's weight sits under Body's.
+- Changed: **the word count modal has two tabs, overview and stats.** Overview shows the series total under the series' name and the novel under its numbered title (a standalone project, one summary) with both heat maps; stats has days and weeks, each with its heat map above and the chosen day's chapters and sessions, or the chosen week's sessions grouped by day, in their own scrolling pane. A fixed size, 16px margins, remembered until the app quits.
+- Changed: **the heat maps:** a week's square is twice the height of a day's, the chosen square's ring is green, each map sits on a rounded background, the first column is the week the history starts in (no empty weeks before it), and a long history scrolls sideways, opening at the latest weeks.
+- Fixed: **the series' "words now" is never less than a novel's**: both are the words on the page, from the index.
+- New: **start dates.** A new project records `project-started` in `series.md`, and each new novel `book-started` in its own file (ISO dates, England's local time), only when the app creates it: opening a project writes nothing, and older projects are never back-filled.
+- Changed: **the special-characters button is Kenny's own icon**, 24px, in the bottom-right corner (not on the Archive tab; hollow when it can't be used).
+
 ## 1.12.2: Tweaks 2 (the Codex and Archive tabs)
 
 - Changed: **the Codex and Archive pages line up with the tabs:** they start at the top of the tabs' drawn squares, measured once and shared with the titles' baseline.
