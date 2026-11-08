@@ -53,5 +53,6 @@ jobs:
         run: npm test
 
       - name: Test (Rust)
+        if: ${{ !cancelled() }} # run even when the TypeScript tests failed, so the Windows list is complete
         run: cargo test --workspace
         working-directory: src-tauri
