@@ -24,6 +24,10 @@ libc = "0.2"
 objc2 = "0.6"
 objc2-foundation = { version = "0.3", default-features = false, features = ["std", "NSFileManager", "NSURL", "NSString", "NSError"] }
 
+# Windows only, never compiled on the Mac: the exclusive move (Brief 22, §3.4).
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }
+
 [dev-dependencies]
 tempfile = "3"
 notify = "8"

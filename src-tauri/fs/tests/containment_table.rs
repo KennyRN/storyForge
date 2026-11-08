@@ -1,3 +1,4 @@
+#![cfg(unix)] // file and dangling links need rights Windows users do not have; the junction cases are in windows.rs
 //! The rows of `test/guard-spec/guard.json` that carry a `symlink`: the guard's decision on the path,
 //! and the containment walk on a real folder. The TypeScript twin is in `guard.test.ts`.
 #![cfg(unix)]

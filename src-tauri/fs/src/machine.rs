@@ -57,7 +57,7 @@ impl MachineStore {
             let mut f = OpenOptions::new().write(true).create(true).truncate(true).open(&tmp)?;
             f.write_all(text.as_bytes())?;
             f.sync_all()?;
-            fs::rename(&tmp, &path)
+            crate::platform::replace_file(&tmp, &path)
         })();
         if let Err(e) = result {
             let _ = fs::remove_file(&tmp);

@@ -40,9 +40,57 @@ pub fn swap(_a: &Path, _b: &Path) -> io::Result<bool> {
     Ok(false)
 }
 
-#[cfg(not(target_os = "macos"))]
+#[cfg(all(not(target_os = "macos"), not(windows)))]
 pub fn rename_excl(_from: &Path, _to: &Path) -> io::Result<bool> {
     Ok(false)
+}
+
+/// Windows: a move that never replaces (`MoveFileExW` without `MOVEFILE_REPLACE_EXISTING`), atomic on one volume, so
+/// the exclusive create and the exclusive rename need no hard link and no second name (Brief 22, §3.4).
+#[cfg(windows)]
+pub fn rename_excl(from: &Path, to: &Path) -> io::Result<bool> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::Storage::FileSystem::MoveFileExW;
+    let wide = |p: &Path| p.as_os_str().encode_wide().chain(std::iter::once(0)).collect::<Vec<u16>>();
+    let (a, b) = (wide(from), wide(to));
+    // SAFETY: both buffers are NUL-terminated and live for the call.
+    retry_sharing(|| if unsafe { MoveFileExW(a.as_ptr(), b.as_ptr(), 0) } != 0 { Ok(()) } else { Err(io::Error::last_os_error()) })?;
+    Ok(true)
+}
+
+/// Whether another program is holding a file for a moment: antivirus, the search indexer, a sync client, an editor
+/// that has it open. Windows reports it as a sharing or lock violation, or as "access denied".
+#[cfg(windows)]
+fn is_sharing_error(e: &io::Error) -> bool {
+    e.kind() == io::ErrorKind::PermissionDenied || matches!(e.raw_os_error(), Some(5) | Some(32) | Some(33))
+}
+
+/// Runs `f`, and on Windows tries again a few times (about two seconds in all) while another program holds the file.
+/// Any other error, and the last sharing error, is returned as it came. Elsewhere it is one call: the Mac never retries.
+pub fn retry_sharing<T>(mut f: impl FnMut() -> io::Result<T>) -> io::Result<T> {
+    #[cfg(windows)]
+    {
+        for ms in [10u64, 20, 40, 80, 160, 300, 300, 300, 300, 300] {
+            match f() {
+                Err(e) if is_sharing_error(&e) => std::thread::sleep(std::time::Duration::from_millis(ms)),
+                other => return other,
+            }
+        }
+    }
+    f()
+}
+
+/// Renames `from` over `to`, replacing it (the last step of every atomic write). On Windows it waits out a program
+/// that has the target open for a moment (`retry_sharing`); elsewhere it is `fs::rename`.
+pub fn replace_file(from: &Path, to: &Path) -> io::Result<()> {
+    retry_sharing(|| std::fs::rename(from, to))
+}
+
+/// Whether two existing paths are the same file or folder. A case-only rename on a case-insensitive file system names
+/// the same one twice. Unix compares inodes (done by the caller); Windows compares the canonical paths.
+#[cfg(windows)]
+pub fn same_path(a: &Path, b: &Path) -> bool {
+    matches!((std::fs::canonicalize(a), std::fs::canonicalize(b)), (Ok(x), Ok(y)) if x == y)
 }
 
 /// Asks macOS to download an iCloud file that has not been downloaded (`startDownloadingUbiquitousItem`).

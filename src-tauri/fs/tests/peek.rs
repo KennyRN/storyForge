@@ -1,4 +1,5 @@
 //! Brief 16: peeking at a project that is not open. Read only, display information, never a failure for a malformed file.
+mod common;
 use std::fs;
 use std::path::Path;
 use storyforge_fs::ops::{peek_root, Project, COVER_MAX_BYTES};
@@ -148,7 +149,7 @@ fn a_book_folder_that_is_a_link_leaving_the_project_is_not_listed() {
     let dir = tempdir().unwrap();
     project(dir.path());
     let outside = tempdir().unwrap();
-    std::os::unix::fs::symlink(outside.path(), dir.path().join("_story-library/escape")).unwrap();
+    common::link_dir(outside.path(), &dir.path().join("_story-library/escape")).unwrap();
     let out = peek_root(dir.path()).unwrap();
     assert_eq!(out["bookFolders"], serde_json::json!(["aaa", "bbb"]));
 }

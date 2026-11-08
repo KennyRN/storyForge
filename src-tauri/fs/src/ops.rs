@@ -260,7 +260,7 @@ impl Project {
             if let Some(p) = perms {
                 fs::set_permissions(&tmp, p)?;
             }
-            fs::rename(&tmp, abs)
+            platform::replace_file(&tmp, abs)
         })();
         if let Err(e) = result {
             let _ = fs::remove_file(&tmp); // our own temp file
@@ -438,13 +438,32 @@ impl Project {
         if let Some(h) = &self.hooks.before_swap {
             let _ = h; // already run by the caller
         }
+        // Windows (Brief 22, §3.2): there is no atomic exchange, so hold the target open with other writers denied
+        // while it is compared and replaced. A program that tries to save in the gap gets a sharing violation, not a
+        // lost write. If the replace cannot be done while we hold it, fall through to the plain stat-checked path.
+        #[cfg(windows)]
+        {
+            use std::os::windows::fs::OpenOptionsExt;
+            if let Ok(mut held) = platform::retry_sharing(|| OpenOptions::new().read(true).share_mode(0x1 | 0x4).open(abs)) {
+                let mut bytes = Vec::new();
+                let read_ok = held.read_to_end(&mut bytes).is_ok();
+                let identity_now = held.metadata().ok().map(|m| identity(&m));
+                if !read_ok || bytes != expected.as_bytes() || identity_now.as_ref() != Some(before) {
+                    let _ = fs::remove_file(tmp);
+                    return Ok(CompareOutcome { outcome: "conflict", late_write_recovery: None });
+                }
+                if platform::replace_file(tmp, abs).is_ok() {
+                    return Ok(CompareOutcome { outcome: "written", late_write_recovery: None });
+                }
+            }
+        }
         let again = fs::read(abs).ok();
         let meta_again = fs::symlink_metadata(abs).ok().map(|m| identity(&m));
         if again.as_deref() != Some(expected.as_bytes()) || meta_again.as_ref() != Some(before) {
             let _ = fs::remove_file(tmp);
             return Ok(CompareOutcome { outcome: "conflict", late_write_recovery: None });
         }
-        if let Err(e) = fs::rename(tmp, abs) {
+        if let Err(e) = platform::replace_file(tmp, abs) {
             let _ = fs::remove_file(tmp);
             return Err(io_err(&e, rel));
         }
@@ -469,12 +488,15 @@ impl Project {
             fs::create_dir_all(parent).map_err(|e| io_err(&e, to))?;
         }
         if let Ok(dst_meta) = fs::symlink_metadata(&dst) {
+            let _ = &dst_meta; // compared by inode on Unix only
             #[cfg(unix)]
             let same = {
                 use std::os::unix::fs::MetadataExt;
                 dst_meta.ino() == src_meta.ino() && dst_meta.dev() == src_meta.dev()
             };
-            #[cfg(not(unix))]
+            #[cfg(windows)]
+            let same = platform::same_path(&src, &dst);
+            #[cfg(not(any(unix, windows)))]
             let same = false;
             if !same {
                 return Err(FsError::new("EEXIST", format!("\"{to}\" already exists"), Some(to)));

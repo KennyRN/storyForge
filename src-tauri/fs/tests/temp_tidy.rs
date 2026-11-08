@@ -1,7 +1,8 @@
 //! `list_temp_leftovers` and `remove_temp` (docs/temp-tidy.md): the only way the window can find or remove the
 //! app's own leftover temporary files.
 use std::fs;
-use std::os::unix::fs::symlink;
+mod common;
+use common::link_dir;
 use storyforge_fs::ops::Project;
 use tempfile::TempDir;
 
@@ -65,8 +66,9 @@ fn never_follows_a_link_out_of_the_project_or_lists_one() {
     let outside = tempfile::tempdir().unwrap();
     fs::write(outside.path().join(format!(".x.md.{ID}.tmp")), "outside").unwrap();
     fs::create_dir_all(dir.path().join("_story-library")).unwrap();
-    symlink(outside.path(), dir.path().join("_story-library/escape")).unwrap();
-    symlink(outside.path().join(format!(".x.md.{ID}.tmp")), dir.path().join(format!("Codex-link.tmp"))).ok();
+    link_dir(outside.path(), &dir.path().join("_story-library/escape")).unwrap();
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(outside.path().join(format!(".x.md.{ID}.tmp")), dir.path().join("Codex-link.tmp")).ok();
     assert!(p.list_temp_leftovers().unwrap().is_empty());
     // and a removal through the link is refused, the outside file untouched
     let err = p.remove_temp(&format!("_story-library/escape/.x.md.{ID}.tmp"), None).unwrap_err();
