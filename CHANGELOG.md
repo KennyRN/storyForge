@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.12.4: going public (the first release built by GitHub)
+
+- Changed: **the special-characters icon is brighter at rest** (the theme's brightest background, `bg4`), and no longer changes colour on hover or while its palette is open.
+- New: **this release is built and signed by GitHub**, not on a Mac of the author's: a universal Mac app with Apple's free ad-hoc signature, offered as a single `.dmg` with a signed build-provenance attestation (see the README for how to check it).
+- Changed: **the project is public under the MIT licence**, with a README for new readers, the author named `volcanicMole`, and its history cleaned of personal details. `docs/history-map.md` maps the commit hashes in older notes to the new ones.
+
 ## 1.12.3: Tweaks 3 (Settings labels and the word count modal)
 
 - Changed: **every label in Settings is lowercase**: the left-hand list, row labels, group headings, the choices in the dropdowns and the screen-reader names (font families, Everforest, Tabler and PoV keep their case). Body bold's weight sits under Body's.
