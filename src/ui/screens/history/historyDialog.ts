@@ -1,4 +1,4 @@
-import { chapterDisplayTitle, getBookChapters } from "../../../core/book";
+import { chapterDisplayTitle, getBookChapters, readBookFrontmatter } from "../../../core/book";
 import { dayNetsFromStats, getBookWordStats, getProjectWordStats, heatmapStartMonday, weekNetsFromDayNets, type BookWordStats, type ProjectWordStats } from "../../../core/history";
 import { addDaysISO, todayISOInEngland } from "../../../core/historyMath";
 import { adjustDayNets, averagePace, excludedByDay, storytellingTodayAndWeek } from "../../../core/sessionFigures";
@@ -7,6 +7,7 @@ import { libraryChapterPath } from "../../../core/paths";
 import { numberedBookTitle, readSeriesFrontmatter } from "../../../core/series";
 import { applyHashNumbering } from "../../../core/titleNumbering";
 import { formatWordCount } from "../../../core/wordCount";
+import { novelWordsNow, seriesWordsNow } from "../../../core/wordTotals";
 import { el, fill } from "../../kit/dom";
 import { bringForward, openDialog } from "../../kit/dialog";
 import type { AppModel } from "../../model";
@@ -90,8 +91,12 @@ export function openHistoryDialog(model: AppModel): void {
 		const bookSessions = book && sessions ? sessionsInBook(sessions.read.sessions, book) : [];
 		const excluded = book && sessions ? excludedByDay(sessions.read.sessions, sessions.settings, book) : {};
 		// The maps start in the week of the earliest recorded word or session for the novel (a stored start date is the first choice once there is one).
-		const recorded = [...Object.keys(stats?.daily ?? {}), ...bookSessions.map((r) => r.day)];
-		const fromISO = heatmapStartMonday(today, recorded, null);
+		// A day with nothing recorded (no net change, no chapter changed) is not a record, so a stray empty entry never pads the map's left.
+		const recorded = [...Object.entries(stats?.daily ?? {}).filter(([, e]) => e.net !== 0 || Object.values(e.chapters ?? {}).some((n) => n !== 0)).map(([d]) => d), ...bookSessions.map((r) => r.day)];
+		const fromISO = heatmapStartMonday(today, recorded, book ? readBookFrontmatter(project, book)?.started : null);
+		// "Words now" is the words on the page, from the index, at both levels (the series' is the sum of its novels' and never less than one).
+		const nowNovel = book ? novelWordsNow(project, book) : 0;
+		const nowSeries = seriesWordsNow(project);
 		const days = stats ? adjustDayNets(dayNetsFromStats(stats, fromISO, today), excluded) : [];
 		const weeks = weekNetsFromDayNets(days);
 		const max = heatScale(days, weeks);
@@ -153,10 +158,10 @@ export function openHistoryDialog(model: AppModel): void {
 				const inRange = bookSessions.filter((r) => r.day >= fromISO && r.day <= today);
 				const average = sessions ? averagePace(inRange, sessions.settings) : { wpm: null, sessions: 0 };
 				const averageLabel = average.wpm === null ? "no sessions yet" : `${paceLabel(average.wpm)} (${average.sessions} ${average.sessions === 1 ? "session" : "sessions"})`;
-				return el("div", { class: "sf-history-stats" }, stat("Words now", formatWordCount(s.current)), stat("Today", netLabel(f.today)), stat("This week", netLabel(f.week)), stat("Average pace", averageLabel), stat("Written, ever", formatWordCount(s.lifetimeWritten)), stat("Removed, ever", formatWordCount(s.lifetimeRemoved)));
+				return el("div", { class: "sf-history-stats" }, stat("Words now", formatWordCount(nowNovel)), stat("Today", netLabel(f.today)), stat("This week", netLabel(f.week)), stat("Average pace", averageLabel), stat("Written, ever", formatWordCount(s.lifetimeWritten)), stat("Removed, ever", formatWordCount(s.lifetimeRemoved)));
 			};
 			// A series shows its total under the series' name, then the novel's figures under its numbered title; a standalone project shows one summary.
-			if (!standalone) parts.push(el("h3", { class: "sf-overview-sub", text: seriesTitle }), el("div", { class: "sf-history-stats" }, stat("Words now", formatWordCount(all?.current ?? 0)), stat("Written, ever", formatWordCount(all?.lifetimeWritten ?? 0)), stat("Removed, ever", formatWordCount(all?.lifetimeRemoved ?? 0))));
+			if (!standalone) parts.push(el("h3", { class: "sf-overview-sub", text: seriesTitle }), el("div", { class: "sf-history-stats" }, stat("Words now", formatWordCount(nowSeries)), stat("Written, ever", formatWordCount(all?.lifetimeWritten ?? 0)), stat("Removed, ever", formatWordCount(all?.lifetimeRemoved ?? 0))));
 			if (stats && book) {
 				parts.push(el("h3", { class: "sf-overview-sub", text: novelTitle }), figures(stats));
 				parts.push(

@@ -40,10 +40,11 @@ test.describe("modal dialogs", () => {
 
 	test("after clicking each tab with the mouse, focus is inside the dialog and Escape closes it", async ({ page }) => {
 		await openProject(page);
-		for (const name of ["General", "sidebar widths", "Appearance", "Writing", "Sessions", "Backups"]) {
+		for (const name of ["general", "sidebar widths", "appearance", "writing", "sessions", "backups"]) {
 			await openSettingsDialog(page);
-			await dialogs(page).getByRole("tab", { name, exact: true }).click();
-			await expect(dialogs(page).getByRole("tab", { name, exact: true })).toHaveAttribute("aria-selected", "true");
+			const where = name === "sidebar widths" ? ".sf-settings-subtabs" : ".sf-settings-tabs";
+			await dialogs(page).locator(where).getByRole("tab", { name, exact: true }).click();
+			await expect(dialogs(page).locator(where).getByRole("tab", { name, exact: true })).toHaveAttribute("aria-selected", "true");
 			expect(await insideDialog(page)).toBe(true);
 			await page.keyboard.press("Escape");
 			await expect(dialogs(page)).toHaveCount(0);
@@ -76,8 +77,8 @@ test.describe("modal dialogs", () => {
 	test("opening Settings again brings the one dialog forward", async ({ page }) => {
 		await openProject(page);
 		await openSettingsDialog(page);
-		await dialogs(page).getByRole("tab", { name: "General", exact: true }).click();
-		await dialogs(page).getByRole("tab", { name: "general", exact: true }).click();
+		await dialogs(page).locator(".sf-settings-tabs").getByRole("tab", { name: "general", exact: true }).click();
+		await dialogs(page).locator(".sf-settings-subtabs").getByRole("tab", { name: "general", exact: true }).click();
 		await page.evaluate(() => window.__preview.emit("menu", "settings"));
 		await page.evaluate(() => window.__preview.emit("menu", "settings"));
 		await expect(dialogs(page)).toHaveCount(1);
@@ -116,7 +117,7 @@ test.describe("modal dialogs", () => {
 	test("Escape in a text box with uncommitted text commits it exactly once", async ({ page }) => {
 		await openProject(page);
 		await openSettingsDialog(page);
-		await dialogs(page).getByRole("tab", { name: "Sessions", exact: true }).click();
+		await dialogs(page).getByRole("tab", { name: "sessions", exact: true }).click();
 		const box = dialogs(page).getByLabel("Session idle limit (minutes)");
 		await box.focus();
 		await box.fill("7");
@@ -129,8 +130,8 @@ test.describe("modal dialogs", () => {
 		await openProject(page);
 		for (let i = 0; i < 50; i++) {
 			await page.evaluate(() => window.__preview.emit("menu", "settings"));
-			await dialogs(page).getByRole("tab", { name: "Writing", exact: true }).click();
-			await expect(dialogs(page).getByRole("tab", { name: "Writing", exact: true })).toHaveAttribute("aria-selected", "true");
+			await dialogs(page).locator(".sf-settings-tabs").getByRole("tab", { name: "writing", exact: true }).click();
+			await expect(dialogs(page).locator(".sf-settings-tabs").getByRole("tab", { name: "writing", exact: true })).toHaveAttribute("aria-selected", "true");
 			await page.keyboard.press("Escape");
 			await expect(dialogs(page)).toHaveCount(0);
 		}
@@ -139,7 +140,7 @@ test.describe("modal dialogs", () => {
 	test("a click on a tab while an outside change redraws still lands, and focus stays on the same control", async ({ page }) => {
 		await openProject(page);
 		await openSettingsDialog(page);
-		const tab = dialogs(page).getByRole("tab", { name: "general", exact: true });
+		const tab = dialogs(page).locator(".sf-settings-tabs").getByRole("tab", { name: "general", exact: true }); // the left-hand list's tab (the page tab and the sub-tab are both named general now)
 		const box = (await tab.boundingBox())!;
 		await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
 		await page.mouse.down();
@@ -161,7 +162,7 @@ test.describe("modal dialogs", () => {
 	test("plain Tab, on text boxes, stays inside and wraps both ways (WebKit decides what it reaches)", async ({ page }) => {
 		await openProject(page);
 		await openSettingsDialog(page);
-		await dialogs(page).getByRole("tab", { name: "Sessions", exact: true }).click();
+		await dialogs(page).getByRole("tab", { name: "sessions", exact: true }).click();
 		await dialogs(page).getByLabel("Session idle limit (minutes)").focus();
 		for (let i = 0; i < 14; i++) {
 			await page.keyboard.press("Tab");
@@ -205,11 +206,11 @@ test.describe("modal dialogs", () => {
 		test(`a redraw held by a pressed tab ends on ${how}`, async ({ page }) => {
 			await openProject(page);
 			await openSettingsDialog(page);
-			await dialogs(page).getByRole("tab", { name: "General", exact: true }).click();
-		await dialogs(page).getByRole("tab", { name: "general", exact: true }).click();
+			await dialogs(page).locator(".sf-settings-tabs").getByRole("tab", { name: "general", exact: true }).click();
+		await dialogs(page).locator(".sf-settings-subtabs").getByRole("tab", { name: "general", exact: true }).click();
 			const standalone = dialogs(page).getByRole("radio", { name: "One standalone novel" });
 			await expect(standalone).not.toBeChecked();
-			const box = (await dialogs(page).getByRole("tab", { name: "general", exact: true }).boundingBox())!;
+			const box = (await dialogs(page).locator(".sf-settings-subtabs").getByRole("tab", { name: "general", exact: true }).boundingBox())!;
 			await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
 			await page.mouse.down();
 			await page.evaluate(async (p) => {

@@ -22,7 +22,7 @@ test.describe("a swatch that can't be chosen (decision 159)", () => {
 			const s = await chip.evaluate((e) => ({ opacity: getComputedStyle(e).opacity, content: getComputedStyle(e, "::after").content }));
 			expect(s).toEqual({ opacity: "0.6", content: "none" });
 		}
-		await dialog.getByRole("tab", { name: "Appearance", exact: true }).click();
+		await dialog.getByRole("tab", { name: "appearance", exact: true }).click();
 		await dialog.locator(".sf-settings-subtabs").getByRole("tab", { name: "library mode", exact: true }).click();
 		const colour = dialog.getByRole("radiogroup", { name: "rail colour", exact: true }).getByRole("radio").first();
 		await expect(colour).toBeDisabled();
@@ -40,7 +40,7 @@ test.describe("a swatch that can't be chosen (decision 159)", () => {
 		await page.waitForFunction(() => !!window.__app?.editors);
 		await openSettingsDialog(page);
 		const dialog = page.getByRole("dialog");
-		await dialog.getByRole("tab", { name: "Appearance", exact: true }).click();
+		await dialog.getByRole("tab", { name: "appearance", exact: true }).click();
 		await dialog.locator(".sf-settings-subtabs").getByRole("tab", { name: "library mode", exact: true }).click();
 		for (const swatch of await dialog.locator(".sf-swatch").all()) {
 			await expect(swatch).toBeEnabled();

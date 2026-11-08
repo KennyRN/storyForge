@@ -12,7 +12,7 @@ const dialog = (page: Page) => page.getByRole("dialog");
 const subtab = (page: Page, name: string) => dialog(page).locator(".sf-settings-subtabs").getByRole("tab", { name, exact: true });
 async function openAppearance(page: Page, sub?: string): Promise<void> {
 	await openSettingsDialog(page);
-	await dialog(page).getByRole("tab", { name: "Appearance", exact: true }).click();
+	await dialog(page).getByRole("tab", { name: "appearance", exact: true }).click();
 	if (sub) await subtab(page, sub).click();
 }
 const projectMd = (page: Page) => page.evaluate(() => window.__preview.read("_backstage/storyforge/project.md").catch(() => ""));
@@ -25,7 +25,7 @@ test.describe("type styles", () => {
 		const subs = dialog(page).locator(".sf-settings-subtabs").getByRole("tab");
 		expect(await subs.allInnerTexts()).toEqual(["interface", "library mode", "storytelling mode", "writing"]);
 		await expect(subtab(page, "interface")).toHaveAttribute("aria-selected", "true");
-		await expect(dialog(page).getByRole("tab", { name: "Appearance", exact: true })).toHaveCount(1);
+		await expect(dialog(page).getByRole("tab", { name: "appearance", exact: true })).toHaveCount(1);
 		const wanted: Record<string, string[]> = {
 			interface: ["body", "small heading", "hint"],
 			"library mode": ["title", "library header", "placed", "unplaced", "data label", "data", "data bar"],
@@ -167,7 +167,7 @@ test.describe("type styles", () => {
 		await openAppearance(page);
 		await expect(dialog(page).getByLabel("body bold weight", { exact: true })).toHaveValue("600");
 		await dialog(page).getByLabel("body font", { exact: true }).selectOption("Courier Prime");
-		await expect.poll(async () => dialog(page).getByLabel("body bold weight", { exact: true }).locator("option").allInnerTexts()).toEqual(["Regular (400)", "Bold (700)"]);
+		await expect.poll(async () => dialog(page).getByLabel("body bold weight", { exact: true }).locator("option").allInnerTexts()).toEqual(["regular (400)", "bold (700)"]);
 	});
 
 	test("a sample of each style is drawn as it will be", async ({ page }) => {
@@ -224,9 +224,9 @@ test.describe("type styles", () => {
 		expect(rows.length).toBeGreaterThan(0);
 		expect(rows).toContain("Harbour"); // the fixture's own entry, not an example name
 		await subtab(page, "writing").click();
-		await expect(dialog(page).getByRole("radiogroup", { name: "Selection colour", exact: true })).toBeVisible();
+		await expect(dialog(page).getByRole("radiogroup", { name: "selection colour", exact: true })).toBeVisible();
 		const lastStyle = (await dialog(page).getByLabel("context and library fields size (px)", { exact: true }).boundingBox())!;
-		expect((await dialog(page).getByRole("radiogroup", { name: "Selection colour", exact: true }).boundingBox())!.y).toBeGreaterThan(lastStyle.y);
+		expect((await dialog(page).getByRole("radiogroup", { name: "selection colour", exact: true }).boundingBox())!.y).toBeGreaterThan(lastStyle.y);
 	});
 
 	test("library mode: title, library header, placed, unplaced, data label, data, data bar, in that order, each colour directly under its row; data label and data share one preview", async ({ page }) => {

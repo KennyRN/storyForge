@@ -1,6 +1,7 @@
 import { bookBackstagePath, bookFilePath, libraryBookPath, libraryChapterPath, LIBRARY_ROOT } from "./paths";
 import { resolveOrder, type OrderResult } from "./ordering";
 import { mintId } from "./slug";
+import { todayISOInEngland } from "./historyMath";
 import { FieldConflictError } from "./fieldConflict";
 import { foldKey } from "./pathRules";
 import type { IndexEntry } from "./projectIndex";
@@ -14,6 +15,7 @@ import {
 	getSeriesBookEntry,
 	getSeriesBooks,
 	getSeriesOrderPosition,
+	readableISODate,
 	readSeriesFrontmatter,
 	upsertSeriesBookEntry,
 	writeSeriesBookTitle,
@@ -69,6 +71,8 @@ export interface BookFrontmatter {
 	 * in the plugin currently reads them. */
 	plannedNovelLength: number | null;
 	plannedChapterLength: number | null;
+	/** The day the novel was started (`book-started`, an ISO date), or null when absent or unreadable. */
+	started: string | null;
 	chapterOrder: string[];
 	unplaced: string[];
 	archive: string[];
@@ -271,6 +275,8 @@ export interface RawBookFrontmatter extends FrontmatterRecord {
 	"default-pov-name"?: unknown;
 	"planned-novel-length"?: unknown;
 	"planned-chapter-length"?: unknown;
+	/** The day the novel was started (an ISO date in England's local time), written only by `createBook`. */
+	"book-started"?: unknown;
 	/** Deliberately not the bare key "tags" — that collides with Obsidian's own native tag-pane frontmatter key. */
 	"novel-tags"?: unknown;
 }
@@ -353,6 +359,7 @@ export function readBookFrontmatter(project: Project, bookFolderName: string): B
 			goalDaily: typeof fm?.goal_daily === "number" ? fm.goal_daily : null,
 			plannedNovelLength: typeof fm?.["planned-novel-length"] === "number" ? fm["planned-novel-length"] : null,
 			plannedChapterLength: typeof fm?.["planned-chapter-length"] === "number" ? fm["planned-chapter-length"] : null,
+			started: readableISODate(fm?.["book-started"]),
 			chapterOrder,
 			unplaced,
 			archive,
@@ -981,7 +988,7 @@ const DEFAULT_BOOK_TITLE = "Novel #";
  * lands in Unplaced instead, same as a new chapter does, so the writer
  * decides where it belongs in the sequence.
  */
-export async function createBook(project: Project, initialTitle?: string): Promise<{ folderName: string; bookId: string }> {
+export async function createBook(project: Project, initialTitle?: string, now: Date = new Date()): Promise<{ folderName: string; bookId: string }> {
 	const { order, books } = readSeriesFrontmatter(project);
 	const existingFolders = getLibraryBookFolders(project);
 	const candidateSpace = new Set<string>([
@@ -1002,6 +1009,10 @@ export async function createBook(project: Project, initialTitle?: string): Promi
 	await ensureLibraryBookFolder(project, folderName);
 	await upsertSeriesBookEntry(project, folderName, bookId, bookTitle, { appendToOrder: isFirstBook });
 	await writeBookReferenceFields(project, folderName, bookId, bookTitle, position);
+	// The day the novel was started (Tweaks 3 §1.5): written here and nowhere else, never on opening, never back-filled.
+	await modifyBookFrontmatter(project, folderName, (fm) => {
+		fm["book-started"] = todayISOInEngland(now);
+	});
 
 	return { folderName, bookId };
 }

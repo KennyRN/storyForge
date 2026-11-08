@@ -31,6 +31,8 @@ export interface SeriesFrontmatter {
 	books: Record<string, SeriesBookEntry>;
 	/** Bare filename of the series' own cover image under `seriesBackstagePath()`, or null if unset. */
 	coverImage: string | null;
+	/** The date the project was created, an ISO date in England's local time (`project-started`), written only by `createProject`; null when absent or unreadable (the heat maps fall back to the earliest recorded word or session). */
+	projectStarted: string | null;
 }
 
 /** The raw, dash-cased on-disk shape of a `books` map entry, before `parseBooksMap` sanitizes it. */
@@ -50,6 +52,12 @@ export interface RawSeriesFrontmatter extends FrontmatterRecord {
 	"series-title"?: unknown;
 	"series-id"?: unknown;
 	"cover-image"?: unknown;
+	"project-started"?: unknown;
+}
+
+/** An ISO calendar date (`2026-11-08`), or null for anything else: an unreadable start date draws the fallback and is never rewritten. */
+export function readableISODate(v: unknown): string | null {
+	return typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(`${v}T12:00:00Z`)) ? v : null;
 }
 
 export const DEFAULT_SERIES_CONTENT = `---\nseries-title: Series\norder:\nbooks:\n---\n`;
@@ -84,13 +92,13 @@ export function seriesFrontmatterFromData(fm: RawSeriesFrontmatter | null | unde
 	const seriesTitle = typeof fm?.["series-title"] === "string" ? fm["series-title"] : "Series";
 	const books = parseBooksMap(fm?.books);
 	const coverImage = safeCoverFilename(fm?.["cover-image"]);
-	return { seriesId, seriesTitle, order, unplacedOrder, books, coverImage };
+	return { seriesId, seriesTitle, order, unplacedOrder, books, coverImage, projectStarted: readableISODate(fm?.["project-started"]) };
 }
 
 export function readSeriesFrontmatter(project: Project): SeriesFrontmatter {
 	const file = project.entry(seriesFilePath());
 	if (!file) {
-		return { seriesId: "", seriesTitle: "Series", order: [], unplacedOrder: [], books: {}, coverImage: null };
+		return { seriesId: "", seriesTitle: "Series", order: [], unplacedOrder: [], books: {}, coverImage: null, projectStarted: null };
 	}
 	return seriesFrontmatterFromData(project.frontmatter(seriesFilePath()) as RawSeriesFrontmatter | null);
 }
@@ -160,6 +168,13 @@ export function getSeriesOrderPosition(project: Project, folderName: string): nu
 	const sequence = [...ordered, ...unplaced];
 	const index = sequence.findIndex((folder) => folder.name === folderName);
 	return index === -1 ? null : index + 1;
+}
+
+/** Records the day the project was created (Tweaks 3 §1.5): called only by `createProject`, never on opening and never back-filled. */
+export async function writeProjectStarted(project: Project, dateISO: string): Promise<void> {
+	await project.modifyFrontmatter<RawSeriesFrontmatter>(seriesFilePath(), DEFAULT_SERIES_CONTENT, (fm) => {
+		fm["project-started"] = dateISO;
+	});
 }
 
 export async function writeSeriesTitle(project: Project, newTitle: string): Promise<void> {

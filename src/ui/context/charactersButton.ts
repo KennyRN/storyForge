@@ -1,6 +1,7 @@
 import { spokenName } from "../../core/typing/characterNames";
 import { insertWriting, onWritingChange, writingState } from "../editor/lastWriting";
 import { el } from "../kit/dom";
+import { specialCharsIcon } from "../kit/specialCharsIcon";
 import type { AppModel } from "../model";
 
 /**
@@ -27,9 +28,9 @@ export function mountCharactersButton(row: HTMLElement, model: AppModel): () => 
 	// The button itself is made once, so it keeps focus across redraws.
 	const toggle = el("button", {
 		class: "sf-chars-button",
-		text: "æ",
 		attrs: { type: "button", "aria-label": "Special characters", "aria-haspopup": "true", "aria-expanded": "false", title: "Special characters" },
 	});
+	toggle.append(specialCharsIcon("24px")); // Kenny's own icon (Tweaks 3 §1.7)
 	// Pressing it must not take the editor's focus: the chapter keeps its selection and its place.
 	toggle.addEventListener("mousedown", (e) => e.preventDefault());
 	toggle.addEventListener("click", (e) => {
@@ -54,6 +55,7 @@ export function mountCharactersButton(row: HTMLElement, model: AppModel): () => 
 		if (open && corner.contains(document.activeElement) && document.activeElement !== toggle) return;
 		const { state } = writingState();
 		toggle.classList.toggle("is-off", !state.ok);
+		toggle.setAttribute("aria-disabled", String(!state.ok)); // disabled for the screen reader too; its reason is the tooltip (it still opens the palette, which says why)
 		toggle.title = state.ok ? "Special characters" : `Special characters: ${state.reason}`;
 		const characters = running!.settings.values.typingSpecialCharacters;
 		toggle.setAttribute("aria-expanded", String(open));
@@ -101,7 +103,7 @@ export function mountCharactersButton(row: HTMLElement, model: AppModel): () => 
 		if (open && e.target instanceof Node && !corner.contains(e.target)) close();
 	};
 	document.addEventListener("pointerdown", outside, true);
-	const offModel = model.subscribe(["nav", "settings", "project"], draw);
+	const offModel = model.subscribe(["nav", "face", "settings", "project"], draw);
 	const offWriting = onWritingChange(draw);
 	const off = (): void => {
 		offModel();

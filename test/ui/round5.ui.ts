@@ -19,21 +19,21 @@ test("Settings opens on General's first sub-page; General has general and sideba
 	await expect(dialog(page).getByLabel("Opens in")).toBeVisible();
 	expect(await dialog(page).locator(".sf-settings-subtabs").getByRole("tab").allInnerTexts()).toEqual(["general", "sidebar widths"]);
 	await sub(page, "sidebar widths").click();
-	await expect(dialog(page).locator("section[aria-label='Sidebar widths']")).toBeVisible();
+	await expect(dialog(page).locator("section[aria-label='sidebar widths']")).toBeVisible();
 	await dialog(page).locator(".sf-settings-page").evaluate((e) => (e.scrollTop = 50));
 	await sub(page, "general").click();
 	await expect(dialog(page).getByLabel("Series numbering")).toBeVisible();
 	expect(await dialog(page).locator(".sf-settings-page").evaluate((e) => e.scrollTop)).toBe(0);
 	// leaving General and coming back lands on its first sub-page again
-	await dialog(page).getByRole("tab", { name: "Backups", exact: true }).click();
-	await dialog(page).getByRole("tab", { name: "General", exact: true }).click();
+	await dialog(page).getByRole("tab", { name: "backups", exact: true }).click();
+	await dialog(page).locator(".sf-settings-tabs").getByRole("tab", { name: "general", exact: true }).click();
 	await expect(sub(page, "general")).toHaveAttribute("aria-selected", "true");
 });
 
 test("each Appearance style is one row of three columns aligned to the top: name, options (font and weight on one line, the size, the colours) and the preview", async ({ page }) => {
 	await openProject(page);
 	await openSettingsDialog(page);
-	await dialog(page).getByRole("tab", { name: "Appearance", exact: true }).click();
+	await dialog(page).getByRole("tab", { name: "appearance", exact: true }).click();
 	const y = async (l: ReturnType<Page["locator"]>) => (await l.boundingBox())!;
 	const d = dialog(page);
 	const name = d.locator(".sf-grid-name", { hasText: /^small heading$/ });
@@ -62,7 +62,7 @@ test("the rail has the bar's own corner radius, in the app and in the preview", 
 	const radii = await page.locator(".sf-bar--chapter").first().evaluate((b) => [getComputedStyle(b.querySelector(".sf-bar-fill")!).borderTopLeftRadius, getComputedStyle(b.querySelector(".sf-bar-frame")!).borderTopLeftRadius]);
 	expect(radii[1]).toBe(radii[0]);
 	await openSettingsDialog(page);
-	await dialog(page).getByRole("tab", { name: "Appearance", exact: true }).click();
+	await dialog(page).getByRole("tab", { name: "appearance", exact: true }).click();
 	await sub(page, "library mode").click();
 	const demo = dialog(page).getByRole("img", { name: "Sample of the data bar style" });
 	const dr = await demo.evaluate((e) => [getComputedStyle(e.querySelector(".sf-bar-demo-fill")!).borderTopLeftRadius, getComputedStyle(e.querySelector(".sf-bar-demo-rail")!).borderTopLeftRadius]);
@@ -92,7 +92,7 @@ test("the novel tab's plot note, synopsis and read-only chapter text draw no foc
 test("Settings' left-hand list has Kenny's icons (Backups: the Back Up shield) before the text, in its row's colour, and the surface colour when selected", async ({ page }) => {
 	await openProject(page);
 	await openSettingsDialog(page);
-	const tab = dialog(page).getByRole("tab", { name: "Backups", exact: true });
+	const tab = dialog(page).locator(".sf-settings-tabs").getByRole("tab", { name: "backups", exact: true });
 	await expect(tab.locator("svg")).toHaveCount(1);
 	const icon = (await tab.locator("svg").boundingBox())!;
 	const label = (await tab.locator(".sf-settings-tab-label").boundingBox())!;
@@ -103,7 +103,7 @@ test("Settings' left-hand list has Kenny's icons (Backups: the Back Up shield) b
 	const surface = await page.evaluate(() => { const i = document.createElement("i"); i.style.color = "var(--purpose-raised-bg)"; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; });
 	expect(await colour(tab.locator("svg"))).toBe(surface);
 	expect(await colour(tab)).toBe(surface);
-	for (const name of ["General", "Appearance", "Writing", "Sessions", "Backups"]) await expect(dialog(page).getByRole("tab", { name, exact: true }).locator("svg"), name).toHaveCount(1); // every entry has Kenny's icon
+	for (const name of ["general", "appearance", "writing", "sessions", "backups"]) await expect(dialog(page).locator(".sf-settings-tabs").getByRole("tab", { name, exact: true }).locator("svg"), name).toHaveCount(1); // every entry has Kenny's icon
 });
 
 test("no page of Settings has a header inside it, and Writing has four sub-pages", async ({ page }) => {
@@ -111,7 +111,7 @@ test("no page of Settings has a header inside it, and Writing has four sub-pages
 	await openSettingsDialog(page);
 	const subs: Record<string, string[]> = { General: ["general", "sidebar widths"], Appearance: ["interface", "library mode", "storytelling mode", "writing"], Writing: ["typing behaviours", "names", "shortcodes", "special characters"], Sessions: [], Backups: [] };
 	for (const [top, list] of Object.entries(subs)) {
-		await dialog(page).getByRole("tab", { name: top, exact: true }).click();
+		await dialog(page).locator(".sf-settings-tabs").getByRole("tab", { name: top.toLowerCase(), exact: true }).click();
 		if (top === "Writing") expect(await dialog(page).locator(".sf-settings-subtabs").getByRole("tab").allInnerTexts()).toEqual(list);
 		for (const s of list.length ? list : [""]) {
 			if (s) await sub(page, s).click();

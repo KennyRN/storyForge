@@ -128,7 +128,7 @@ for (const f of FIELDS) {
 test.describe("the special-characters button: when it is greyed out", () => {
 	const off = async (page: Page, reason: RegExp) => {
 		await expect(CHARS(page)).toHaveClass(/is-off/);
-		await CHARS(page).click();
+		await CHARS(page).click({ force: true }); // aria-disabled: it still opens the palette, which says why (Tweaks 3 §1.7)
 		await expect(palette(page)).toContainText(reason);
 		await expect(ash(page)).toBeDisabled();
 		await page.keyboard.press("Escape");

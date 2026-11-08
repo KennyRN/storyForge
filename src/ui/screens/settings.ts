@@ -79,7 +79,7 @@ export function openSettings(model: AppModel): void {
 	};
 
 	const select = <K extends keyof ProjectSettings>(key: K, label: string, options: [string, string][], toValue: (v: string) => ProjectSettings[K]): HTMLElement => {
-		const input = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": settingLabel(label) } }, ...options.map(([value, text]) => el("option", { text, attrs: { value } })));
+		const input = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": settingLabel(label) } }, ...options.map(([value, text]) => el("option", { text: settingLabel(text), attrs: { value } })));
 		input.value = String(settings.values[key]);
 		input.disabled = off;
 		input.addEventListener("change", () => void change(key, toValue(input.value)));
@@ -292,7 +292,7 @@ export function openSettings(model: AppModel): void {
 
 		let fontCell: HTMLElement | null = null;
 		if (!followsBody) {
-			const fontSelect = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${name} font` } }, el("option", { text: baseName, attrs: { value: FOLLOW } }), ...FONT_FAMILIES.map((f) => el("option", { text: f, attrs: { value: f } })));
+			const fontSelect = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${name} font` } }, el("option", { text: settingLabel(baseName), attrs: { value: FOLLOW } }), ...FONT_FAMILIES.map((f) => el("option", { text: f, attrs: { value: f } })));
 			fontSelect.value = fontNow;
 			fontSelect.disabled = off;
 			fontSelect.addEventListener("change", () => {
@@ -309,7 +309,7 @@ export function openSettings(model: AppModel): void {
 		let weightCell: HTMLElement | null = null;
 		let sizeCell: HTMLElement | null = null;
 		if (!style.fixed) {
-			const weightSelect = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${name} weight` } }, ...FAMILY_INFO[family].weights.map((w) => el("option", { text: `${WEIGHT_NAMES[w] ?? w} (${w})`, attrs: { value: String(w) } })));
+			const weightSelect = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${name} weight` } }, ...FAMILY_INFO[family].weights.map((w) => el("option", { text: settingLabel(`${WEIGHT_NAMES[w] ?? w} (${w})`), attrs: { value: String(w) } })));
 			weightSelect.value = String(nearestWeight(family, settings.values[weightKey] as number));
 			weightSelect.disabled = off;
 			weightSelect.addEventListener("change", () => void change(weightKey, Number(weightSelect.value) as never));
@@ -324,7 +324,7 @@ export function openSettings(model: AppModel): void {
 				sizeCell = el("div", { class: "sf-size-cell" }, slider); void hint;
 			}
 		}
-		return gridRow(name, [line(fontCell, weightCell), sizeCell, ...(shared?.extra ?? [])], sampleEl, shared?.omit);
+		return gridRow(name, [line(fontCell ?? (followsBody ? el("div", { class: "sf-options-spacer", attrs: { "aria-hidden": "true" } }) : null), weightCell), sizeCell, ...(shared?.extra ?? [])], sampleEl, shared?.omit);
 	};
 	/** A size in rem, with its pixel equivalent against the one named base. */
 	const remText = (rem: number): string => `${+rem.toFixed(4)} rem (${+(rem * APPEARANCE_BASE_PX).toFixed(1)} px)`;
@@ -338,7 +338,7 @@ export function openSettings(model: AppModel): void {
 		const sizeNow = settings.values[appearanceKey(part, "Size")] as number;
 		const fontKey = appearanceKey(part, "Font");
 
-		const fontSelect = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${name} font` } }, el("option", { text: "Interface font", attrs: { value: FOLLOW } }), ...FONT_FAMILIES.map((f) => el("option", { text: f, attrs: { value: f } })));
+		const fontSelect = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${name} font` } }, el("option", { text: settingLabel("Interface font"), attrs: { value: FOLLOW } }), ...FONT_FAMILIES.map((f) => el("option", { text: f, attrs: { value: f } })));
 		fontSelect.value = fontNow;
 		fontSelect.disabled = off;
 		fontSelect.addEventListener("change", () => {
@@ -352,7 +352,7 @@ export function openSettings(model: AppModel): void {
 				if (nearestWeight(chosen, kept) !== kept) await change(weightKey, nearestWeight(chosen, kept) as never);
 			})();
 		});
-		const weightSelect = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${name} weight` } }, ...FAMILY_INFO[font].weights.map((w) => el("option", { text: `${WEIGHT_NAMES[w] ?? w} (${w})`, attrs: { value: String(w) } })));
+		const weightSelect = el("select", { class: "sf-field sf-setting-control", attrs: { "aria-label": `${name} weight` } }, ...FAMILY_INFO[font].weights.map((w) => el("option", { text: settingLabel(`${WEIGHT_NAMES[w] ?? w} (${w})`), attrs: { value: String(w) } })));
 		weightSelect.value = String(nearestWeight(font, weightNow));
 		weightSelect.disabled = off;
 		weightSelect.addEventListener("change", () => void change(appearanceKey(part, "Weight"), Number(weightSelect.value) as never));
@@ -503,7 +503,7 @@ export function openSettings(model: AppModel): void {
 					class: `sf-settings-tab${active ? " is-active" : ""}`,
 					dataset: { page: p },
 					attrs: { type: "button", role: "tab", "aria-selected": String(active), "aria-controls": "sf-settings-page", tabindex: active ? "0" : "-1" },
-					...(SETTINGS_ICONS[p] ? {} : { text: p }),
+					...(SETTINGS_ICONS[p] ? {} : { text: settingLabel(p) }),
 					on: {
 						click: () => (p !== page && (subPage = SUB_PAGES[p]?.[0] ?? ""), (page = p), redraw()),
 						keydown: (e) => {
@@ -516,11 +516,11 @@ export function openSettings(model: AppModel): void {
 							body.querySelector<HTMLElement>(".sf-settings-tab.is-active")?.focus();
 						},
 					},
-				}, ...(SETTINGS_ICONS[p] ? [navIcon(SETTINGS_ICONS[p]!, "32px"), el("span", { class: "sf-settings-tab-label", text: p })] : [])), // Kenny's icons, drawn as in the Navigate menu
+				}, ...(SETTINGS_ICONS[p] ? [navIcon(SETTINGS_ICONS[p]!, "32px"), el("span", { class: "sf-settings-tab-label", text: settingLabel(p) })] : [])), // Kenny's icons, drawn as in the Navigate menu
 			);
 		});
 		const subList = SUB_PAGES[page] ?? [];
-		const subtabs = el("div", { class: "sf-settings-subtabs", attrs: { role: "tablist", "aria-label": page } });
+		const subtabs = el("div", { class: "sf-settings-subtabs", attrs: { role: "tablist", "aria-label": settingLabel(page) } });
 		subList.forEach((p, i) => {
 			const active = p === subPage;
 			subtabs.append(
@@ -564,7 +564,7 @@ export function openSettings(model: AppModel): void {
 		if (slider) panel.querySelector<HTMLElement>(`input[type=range][aria-label="${slider}"]`)?.focus({ preventScroll: true }); // a key on a slider redraws the page: focus stays on its slider
 		panel.scrollTop = scroll;
 		body.querySelectorAll("select").forEach((s) => {
-			if (s.getAttribute("aria-label") === "Opens in" && !twins.some(([old]) => old === s)) s.value = String(settings.values.autoFocus);
+			if (s.getAttribute("aria-label") === settingLabel("Opens in") && !twins.some(([old]) => old === s)) s.value = String(settings.values.autoFocus);
 		});
 		if (twins.some(([old]) => old === focused)) {
 			(focused as HTMLElement).focus({ preventScroll: true });

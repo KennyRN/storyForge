@@ -420,7 +420,9 @@ input[aria-invalid="true"] {
 	align-items: center;
 	box-sizing: border-box;
 	height: calc(var(--stats-h) + var(--space-3));
-	padding: var(--space-3);
+	/* The special-characters icon's drawn box starts 12px from the window's right and bottom edges: its 24px element sits 10px in (the icon has 2px of space inside its square). This figure is for this icon only, not a page default (Tweaks 3 §1.7). */
+	align-items: flex-end;
+	padding: 0 10px 10px 0;
 }
 .sf-context-corner {
 	position: relative;
@@ -429,24 +431,24 @@ input[aria-invalid="true"] {
 .sf-chars-button {
 	all: unset;
 	box-sizing: border-box;
-	width: 32px;
-	height: 32px;
+	width: 24px;
+	height: 24px;
 	display: flex;
-	align-items: center;
-	justify-content: center;
 	cursor: pointer;
-	font-size: 17px;
-	color: var(--purpose-text-muted);
-	background: var(--purpose-raised-bg);
-	border: 1px solid var(--purpose-border);
-	border-radius: 16px;
+	color: var(--purpose-chars); /* the icon is filled: at rest the button's own background colour (bg1) */
 }
+.sf-chars-button .sf-chars-icon { display: block; }
 .sf-chars-button.is-off {
-	opacity: 0.45;
+	color: transparent; /* disabled: hollow, an outline in the border colour, plainly different from the solid rest (Tweaks 3 §1.7) */
 }
+.sf-chars-button.is-off .sf-chars-icon path { stroke: var(--purpose-chars-off); stroke-width: 0.9; }
 .sf-chars-button:hover,
 .sf-chars-button[aria-expanded="true"] {
-	color: var(--purpose-accent);
+	color: var(--purpose-chars-active); /* the brightest theme background, bg4 */
+}
+.sf-chars-button.is-off:hover,
+.sf-chars-button.is-off[aria-expanded="true"] {
+	color: transparent;
 }
 .sf-chars-button:focus-visible,
 .sf-char:focus-visible {
@@ -655,6 +657,7 @@ input[aria-invalid="true"] {
 	align-items: center;
 	gap: var(--space-2);
 }
+.sf-options-spacer { width: 12em; flex: none; } /* Body bold follows the Interface font: its font column is empty, so its weight sits under Body's (Tweaks 3 §1.1) */
 .sf-options-tag {
 	min-width: 2.6em;
 }

@@ -47,8 +47,8 @@ test.describe("settings changed elsewhere", () => {
 		await openSettingsDialog(page);
 		const dialog = page.getByRole("dialog");
 		await expect(dialog).toBeVisible();
-		await dialog.getByRole("tab", { name: "General", exact: true }).click();
-		await dialog.getByRole("tab", { name: "general", exact: true }).click();
+		await dialog.locator(".sf-settings-tabs").getByRole("tab", { name: "general", exact: true }).click();
+		await dialog.locator(".sf-settings-subtabs").getByRole("tab", { name: "general", exact: true }).click();
 		const standalone = dialog.getByRole("radio", { name: "One standalone novel" });
 		await expect(standalone).not.toBeChecked();
 		await outside(page, "---\nformat-version: 1\nstory-kind: standalone\n---\n");
@@ -60,7 +60,7 @@ test("changing a setting that was changed elsewhere says so, quietly, and keeps 
 	await openProject(page);
 	await openSettingsDialog(page);
 	const dialog = page.getByRole("dialog");
-	await dialog.getByRole("tab", { name: "Appearance", exact: true }).click();
+	await dialog.getByRole("tab", { name: "appearance", exact: true }).click();
 	await dialog.getByRole("tab", { name: "storytelling mode", exact: true }).click();
 	await outside(page, "---\nformat-version: 1\ncodex-colour: green\nstory-kind: standalone\n---\n");
 	// names its group first (decision 117): the Selection colour group has a Green too
@@ -79,8 +79,8 @@ test.describe("a settings file that can't be used", () => {
 		await openProject(page);
 		await openSettingsDialog(page);
 		const dialog = page.getByRole("dialog");
-		await dialog.getByRole("tab", { name: "General", exact: true }).click();
-		await dialog.getByRole("tab", { name: "general", exact: true }).click();
+		await dialog.locator(".sf-settings-tabs").getByRole("tab", { name: "general", exact: true }).click();
+		await dialog.locator(".sf-settings-subtabs").getByRole("tab", { name: "general", exact: true }).click();
 		await outside(page, "---\nformat-version: 1\nstory-kind: [unclosed\n---\n");
 		await expect(page.getByRole("status").filter({ hasText: "can’t be read" })).toHaveCount(1);
 		await expect(dialog.getByRole("radio", { name: "One standalone novel" })).toBeDisabled();

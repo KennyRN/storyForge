@@ -67,7 +67,7 @@ test("no 'default', 'this project' or settings-source text in any page of Settin
 	const d = dialog(page);
 	await expect(d.locator(".sf-settings-subtabs").getByRole("tab")).toHaveText(["general", "sidebar widths"]);
 	for (const top of ["General", "Appearance", "Writing", "Sessions", "Backups"]) {
-		await d.getByRole("tab", { name: top, exact: true }).click();
+		await d.locator(".sf-settings-tabs").getByRole("tab", { name: top.toLowerCase(), exact: true }).click();
 		const subs = await d.locator(".sf-settings-subtabs").getByRole("tab").allInnerTexts();
 		for (const s of subs.length ? subs : [""]) {
 			if (s) await d.locator(".sf-settings-subtabs").getByRole("tab", { name: s, exact: true }).click();

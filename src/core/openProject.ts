@@ -28,7 +28,8 @@ import { LIBRARY_ROOT, CODEX_ROOT, NOTES_ROOT } from "./paths";
 import { type BackupOutcome, ProseWriter, type ProseWriterOptions, type SaveResult } from "./proseWriter";
 import { Project } from "./project";
 import { computeGates, emptySummary, reconcileAtOpen, type ReconcileSummary } from "./reconciler";
-import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders, writeSeriesTitle } from "./series";
+import { ensureAllSeriesBookEntries, ensureSeriesFile, getLibraryBookFolders, writeProjectStarted, writeSeriesTitle } from "./series";
+import { todayISOInEngland } from "./historyMath";
 import { SnapshotKeeper, type SnapshotStore } from "./snapshot";
 import { ensureTagRegistryFile, loadCodexTypesIntoRegistry } from "./tagRegistry";
 
@@ -214,6 +215,8 @@ export interface CreateProjectOptions {
 	seriesTitle: string;
 	/** A single book: the book takes the series title as its own title. */
 	standalone?: boolean;
+	/** The clock, for tests: the project's and its first novel's start date are this day in England. */
+	now?: Date;
 }
 
 /**
@@ -234,7 +237,8 @@ export async function createProject(backend: Backend, root: string, options: Cre
 	for (const folder of [LIBRARY_ROOT, CODEX_ROOT, NOTES_ROOT]) await project.createFolder(folder);
 	await ensureSeriesFile(project);
 	await writeSeriesTitle(project, options.seriesTitle);
-	const { folderName } = await createBook(project);
+	await writeProjectStarted(project, todayISOInEngland(options.now)); // the day the project was created (Tweaks 3 §1.5): written here and nowhere else
+	const { folderName } = await createBook(project, undefined, options.now);
 	if (options.standalone) await renameBookTitle(project, folderName, options.seriesTitle);
 	const { filename } = await createChapter(project, folderName);
 	await writeBookChapterOrder(project, folderName, [filename]);

@@ -35,6 +35,6 @@ export async function flipFace(page: Page): Promise<void> {
 export async function openSettingsDialog(page: Page): Promise<void> {
 	await page.evaluate(() => window.__preview.emit("menu", "settings"));
 	const d = page.getByRole("dialog");
-	await expect(d.getByRole("tab", { name: "General", exact: true })).toHaveAttribute("aria-selected", "true");
+	await expect(d.locator(".sf-settings-tabs").getByRole("tab", { name: "general", exact: true })).toHaveAttribute("aria-selected", "true");
 	await expect(d.getByLabel("Opens in")).toBeVisible();
 }

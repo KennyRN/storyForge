@@ -69,8 +69,8 @@ test.describe("rule 1: a selected text row is highlighted", () => {
 		await page.keyboard.press("Escape");
 		// the Settings section list
 		await openSettingsDialog(page);
-		await lit(page.getByRole("dialog").getByRole("tab", { name: "General", exact: true }), "the Settings section list's selected section");
-		const writing = page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true });
+		await lit(page.getByRole("dialog").locator(".sf-settings-tabs").getByRole("tab", { name: "general", exact: true }), "the Settings section list's selected section");
+		const writing = page.getByRole("dialog").locator(".sf-settings-tabs").getByRole("tab", { name: "writing", exact: true });
 		expect(await style(writing, "background-color")).not.toBe(accent);
 		await writing.hover();
 		await lit(writing, "hover is the same");

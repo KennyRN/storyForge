@@ -6,7 +6,7 @@
 // Usage: npm run test:settings-sync [-- path/to/storyForge.app] [--shots <folder>]
 import { createHash } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
-import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -132,6 +132,21 @@ mkdirSync(join(project, "_backstage/storyforge"), { recursive: true });
 const settingsFile = join(project, "_backstage/storyforge/project.md");
 const base = (extra) => `---\nformat-version: 1\n${extra}---\n`;
 writeFileSync(settingsFile, base(""));
+// Start dates (Tweaks 3 §1.5): the copy carries `project-started` in series.md and `book-started` in the novel's own file, as a project made by 1.12.3 does.
+// The app opening it must write nothing (checked below, byte for byte, before anything is changed from outside).
+const seriesFile = join(project, "_story-library/series.md");
+const novelFile = join(project, "_story-library/novel-aaa.md");
+writeFileSync(seriesFile, readFileSync(seriesFile, "utf8").replace("---\n", "---\nproject-started: 2026-03-04\n"));
+writeFileSync(novelFile, readFileSync(novelFile, "utf8").replace("---\n", "---\nbook-started: 2026-03-04\n"));
+const treeHash = (dirPath, out = {}, base_ = dirPath) => {
+	for (const e of readdirSync(dirPath, { withFileTypes: true })) {
+		const full = join(dirPath, e.name);
+		if (e.isDirectory()) treeHash(full, out, base_);
+		else out[full.slice(base_.length)] = createHash("sha256").update(readFileSync(full)).digest("hex");
+	}
+	return out;
+};
+const beforeOpen = treeHash(project);
 const data = join(home, DATA_FOLDER);
 mkdirSync(data, { recursive: true });
 writeFileSync(join(data, "recent.json"), JSON.stringify([project]));
@@ -169,6 +184,11 @@ try {
 	find("AXButton", "The Lantern Cycle", "click");
 	if (!(await until(() => find("AXTextArea", "Text").startsWith("found")))) fail("the project did not open");
 	await sleep(1200);
+	// Opening wrote nothing: every file in the project is byte for byte what it was before the app opened it (the start-date keys included).
+	const afterOpen = treeHash(project);
+	const changed = [...new Set([...Object.keys(beforeOpen), ...Object.keys(afterOpen)])].filter((k) => beforeOpen[k] !== afterOpen[k]);
+	if (changed.length) problems.push(`opening the project wrote to it: ${changed.join(", ")}`);
+	else console.log("opening the project (with project-started and book-started in it) wrote nothing: every file byte for byte as before");
 	if (hasReadout()) problems.push("the session readout was showing before anything was switched on");
 	windowShot("sync-before");
 	// 1. Outside: switch the readout on and the Codex colour to green.
@@ -251,6 +271,7 @@ try {
 	windowShot("sync-reopened-read-only");
 	if (!readFileSync(chapterFile, "utf8").includes(TYPED)) problems.push("the typed text is not in the chapter after Close and Reopen");
 	if (readFileSync(settingsFile, "utf8") !== newer) problems.push("project.md changed during Close and Reopen");
+	if (!readFileSync(seriesFile, "utf8").includes("project-started: 2026-03-04") || !readFileSync(novelFile, "utf8").includes("book-started: 2026-03-04")) problems.push("a start-date key was lost");
 	void rmSync;
 } finally {
 	child.kill("SIGKILL");

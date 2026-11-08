@@ -144,8 +144,8 @@ test.describe("settings", () => {
 	test("⌘, opens them; opening and closing writes nothing; no row says where its value comes from (Brief 19)", async ({ page }) => {
 		await openProject(page);
 		await openSettingsDialog(page);
-		await dialog(page).getByRole("tab", { name: "General", exact: true }).click();
-		await dialog(page).getByRole("tab", { name: "general", exact: true }).click();
+		await dialog(page).locator(".sf-settings-tabs").getByRole("tab", { name: "general", exact: true }).click();
+		await dialog(page).locator(".sf-settings-subtabs").getByRole("tab", { name: "general", exact: true }).click();
 		const d = dialog(page);
 		await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
 		await expect(d.getByLabel("Series numbering")).toHaveValue("arabic");
@@ -160,9 +160,9 @@ test.describe("settings", () => {
 	test("the Sessions and Display groups: ranges are kept, an out-of-range value is put back, and the editing threshold can be turned off", async ({ page }) => {
 		await openProject(page);
 		await openSettingsDialog(page);
-		await dialog(page).getByRole("tab", { name: "Sessions", exact: true }).click();
+		await dialog(page).getByRole("tab", { name: "sessions", exact: true }).click();
 		const d = dialog(page);
-		await expect(d.getByRole("region", { name: "Sessions" })).toBeVisible();
+		await expect(d.getByRole("region", { name: "sessions" })).toBeVisible();
 		await expect(d.getByRole("region", { name: "Display" })).toBeVisible();
 		await expect(d.getByLabel("Session idle limit (minutes)")).toHaveValue("3");
 		await expect(d.getByLabel("Shortest session shown (minutes)")).toHaveValue("5");
@@ -186,8 +186,8 @@ test.describe("settings", () => {
 	test("a change writes project.md, only that change", async ({ page }) => {
 		await openProject(page);
 		await openSettingsDialog(page);
-		await dialog(page).getByRole("tab", { name: "General", exact: true }).click();
-		await dialog(page).getByRole("tab", { name: "general", exact: true }).click();
+		await dialog(page).locator(".sf-settings-tabs").getByRole("tab", { name: "general", exact: true }).click();
+		await dialog(page).locator(".sf-settings-subtabs").getByRole("tab", { name: "general", exact: true }).click();
 		const d = dialog(page);
 		await d.getByLabel("Chapter numbering").selectOption("roman-lower");
 		await expect.poll(async () => ((await exists(page, PROJECT_MD)) ? onDisk(page, PROJECT_MD) : "")).toContain("chapter-numbering-style: roman-lower");
@@ -200,8 +200,8 @@ test.describe("settings", () => {
 		await expect(page.locator(".sf-select--chapters .sf-select-current-title")).toHaveText("Chapter i");
 		// choosing the value already in effect writes nothing more
 		await openSettingsDialog(page);
-		await dialog(page).getByRole("tab", { name: "General", exact: true }).click();
-		await dialog(page).getByRole("tab", { name: "general", exact: true }).click();
+		await dialog(page).locator(".sf-settings-tabs").getByRole("tab", { name: "general", exact: true }).click();
+		await dialog(page).locator(".sf-settings-subtabs").getByRole("tab", { name: "general", exact: true }).click();
 		const before = await onDisk(page, PROJECT_MD);
 		await dialog(page).getByLabel("Chapter numbering").selectOption("roman-lower");
 		await page.waitForTimeout(300);
@@ -211,8 +211,8 @@ test.describe("settings", () => {
 	test("padded numbering shows 01, 02 as the dropdown says", async ({ page }) => {
 		await openProject(page);
 		await openSettingsDialog(page);
-		await dialog(page).getByRole("tab", { name: "General", exact: true }).click();
-		await dialog(page).getByRole("tab", { name: "general", exact: true }).click();
+		await dialog(page).locator(".sf-settings-tabs").getByRole("tab", { name: "general", exact: true }).click();
+		await dialog(page).locator(".sf-settings-subtabs").getByRole("tab", { name: "general", exact: true }).click();
 		await dialog(page).getByLabel("Chapter numbering").selectOption("arabic-padded");
 		await dialog(page).getByRole("button", { name: "Done" }).click();
 		await expect(page.locator(".sf-select--chapters .sf-select-current-title")).toHaveText("Chapter 01");
@@ -241,7 +241,7 @@ test.describe("settings", () => {
 	test("Back up everything now makes the full backup and says where", async ({ page }) => {
 		await openProject(page);
 		await openSettingsDialog(page);
-		await dialog(page).getByRole("tab", { name: "Backups", exact: true }).click();
+		await dialog(page).getByRole("tab", { name: "backups", exact: true }).click();
 		await dialog(page).getByRole("button", { name: "Back up everything now" }).click();
 		const note = page.getByRole("status").filter({ hasText: /^Backed up \d+ files to _sf-backup\// });
 		await expect(note).toBeVisible();
@@ -252,10 +252,10 @@ test.describe("settings", () => {
 	test("in a read-only project every control is off and says why", async ({ page }) => {
 		await openProject(page, async () => void (await touch(page, PROJECT_MD, "---\nformat-version: 99\n---\n")));
 		await openSettingsDialog(page);
-		await dialog(page).getByRole("tab", { name: "General", exact: true }).click();
-		await dialog(page).getByRole("tab", { name: "general", exact: true }).click();
+		await dialog(page).locator(".sf-settings-tabs").getByRole("tab", { name: "general", exact: true }).click();
+		await dialog(page).locator(".sf-settings-subtabs").getByRole("tab", { name: "general", exact: true }).click();
 		await expect(dialog(page).getByLabel("Series numbering")).toBeDisabled();
-		await dialog(page).getByRole("tab", { name: "Backups", exact: true }).click();
+		await dialog(page).getByRole("tab", { name: "backups", exact: true }).click();
 		await expect(dialog(page).getByRole("button", { name: "Back up everything now" })).toBeDisabled();
 		await expect(dialog(page).getByText(/newer storyForge/)).toBeVisible();
 	});

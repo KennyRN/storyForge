@@ -14,7 +14,7 @@ async function openTypingSettings(page: Page): Promise<void> {
 	await openPreview(page);
 	await page.locator("[data-recent='0']").click();
 	await page.waitForFunction(() => !!window.__app?.editors);
-	await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
+	await openSettingsDialog(page); await page.getByRole("dialog").locator(".sf-settings-tabs").getByRole("tab", { name: "writing", exact: true }).click();
 	await expect(page.getByRole("dialog", { name: "Settings" })).toBeVisible();
 }
 
@@ -190,7 +190,7 @@ test.describe("smart punctuation in the editor", () => {
 
 	test("the switch turns smart punctuation off, and on again", async ({ page }) => {
 		await editorWith(page, "");
-		await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
+		await openSettingsDialog(page); await page.getByRole("dialog").locator(".sf-settings-tabs").getByRole("tab", { name: "writing", exact: true }).click();
 		const group = dialog(page).locator('section[aria-label="typing"]');
 		await typingPage(page, "typing behaviours");
 		await group.getByLabel("Curly quotes, dashes and ellipses as you type").uncheck();
@@ -199,7 +199,7 @@ test.describe("smart punctuation in the editor", () => {
 		await content(page).click();
 		await page.keyboard.type("don't");
 		expect(await doc(page)).toBe("don't");
-		await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
+		await openSettingsDialog(page); await page.getByRole("dialog").locator(".sf-settings-tabs").getByRole("tab", { name: "writing", exact: true }).click();
 		await typingPage(page, "typing behaviours");
 		await dialog(page).locator('section[aria-label="typing"]').getByLabel("Curly quotes, dashes and ellipses as you type").check();
 		await dialog(page).getByRole("button", { name: "Done" }).click();
@@ -213,7 +213,7 @@ test.describe("smart punctuation in the editor", () => {
 		await editorWith(page, "");
 		await page.keyboard.type("'ere ");
 		expect(await doc(page)).toBe("‘ere ");
-		await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
+		await openSettingsDialog(page); await page.getByRole("dialog").locator(".sf-settings-tabs").getByRole("tab", { name: "writing", exact: true }).click();
 		const group = dialog(page).locator('section[aria-label="typing"]');
 		await typingPage(page, "typing behaviours");
 		await group.getByLabel("Add to Words that begin with an apostrophe").fill("ere");
@@ -236,7 +236,7 @@ test.describe("smart punctuation in the editor", () => {
 // ------------------------------------------------------------------------------------------------ name autocorrect
 
 async function addToList(page: Page, label: string, entry: string): Promise<void> {
-	await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
+	await openSettingsDialog(page); await page.getByRole("dialog").locator(".sf-settings-tabs").getByRole("tab", { name: "writing", exact: true }).click();
 	const group = dialog(page).locator('section[aria-label="typing"]');
 	await typingPage(page, listPage(label));
 	await group.getByLabel(`Add to ${label}`).fill(entry);
@@ -290,7 +290,7 @@ test.describe("name autocorrect in the editor", () => {
 		await editorWith(page, "");
 		await page.keyboard.type("jane ");
 		expect(await doc(page)).toBe("Jane ");
-		await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
+		await openSettingsDialog(page); await page.getByRole("dialog").locator(".sf-settings-tabs").getByRole("tab", { name: "writing", exact: true }).click();
 		await typingPage(page, "names");
 		await dialog(page).locator('section[aria-label="typing"]').getByLabel("Correct Codex names as you type them").uncheck();
 		await dialog(page).getByRole("button", { name: "Done" }).click();
@@ -316,7 +316,7 @@ test.describe("name autocorrect in the editor", () => {
 // ------------------------------------------------------------------------------------------------------ shortcodes
 
 async function addShortcode(page: Page, code: string, text: string): Promise<void> {
-	await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
+	await openSettingsDialog(page); await page.getByRole("dialog").locator(".sf-settings-tabs").getByRole("tab", { name: "writing", exact: true }).click();
 	const group = dialog(page).locator('section[aria-label="typing"]');
 	await typingPage(page, "shortcodes");
 	await group.getByLabel("Shortcode letters").fill(code);
@@ -430,7 +430,7 @@ test.describe("shortcodes in the editor", () => {
 		await expect(popup(page).getByRole("option", { name: /Jane/ })).toContainText("Codex");
 		await page.keyboard.press("Tab");
 		expect(await doc(page)).toBe("Jane");
-		await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
+		await openSettingsDialog(page); await page.getByRole("dialog").locator(".sf-settings-tabs").getByRole("tab", { name: "writing", exact: true }).click();
 		await typingPage(page, "shortcodes");
 		await dialog(page).locator('section[aria-label="typing"]').getByLabel("Offer Codex names after ~").uncheck();
 		await dialog(page).getByRole("button", { name: "Done" }).click();
@@ -448,7 +448,7 @@ test.describe("shortcodes in the editor", () => {
 		expect(await doc(page)).toBe("\nabc"); // nothing put in (the new line is from adding the shortcode)
 		await content(page).click();
 		await page.keyboard.press(`${MOD}+ArrowDown`);
-		await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
+		await openSettingsDialog(page); await page.getByRole("dialog").locator(".sf-settings-tabs").getByRole("tab", { name: "writing", exact: true }).click();
 		await typingPage(page, "shortcodes");
 		await dialog(page).locator('section[aria-label="typing"]').getByLabel("Shortcodes (~ then Tab)").uncheck();
 		await dialog(page).getByRole("button", { name: "Done" }).click();
@@ -514,7 +514,7 @@ async function projectWith(page: Page, settings: { codes?: [string, string][]; l
 	await page.locator("[data-recent='0']").click();
 	await page.waitForFunction(() => !!window.__app?.editors);
 	if (!settings.codes?.length && !settings.lists?.length) return;
-	await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
+	await openSettingsDialog(page); await page.getByRole("dialog").locator(".sf-settings-tabs").getByRole("tab", { name: "writing", exact: true }).click();
 	const group = dialog(page).locator('section[aria-label="typing"]');
 	for (const [label, entry] of settings.lists ?? []) {
 		await typingPage(page, listPage(label));
@@ -581,7 +581,7 @@ for (const kind of KINDS) {
 
 		test("the switch covers the field", async ({ page }) => {
 			await projectWith(page);
-			await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
+			await openSettingsDialog(page); await page.getByRole("dialog").locator(".sf-settings-tabs").getByRole("tab", { name: "writing", exact: true }).click();
 			await typingPage(page, "names");
 			await dialog(page).locator('section[aria-label="typing"]').getByLabel("Correct Codex names as you type them").uncheck();
 			await dialog(page).getByRole("button", { name: "Done" }).click();
@@ -753,7 +753,7 @@ for (const kind of KINDS) {
 
 		test("the shortcodes switch covers the field", async ({ page }) => {
 			await projectWith(page, { codes: TH });
-			await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
+			await openSettingsDialog(page); await page.getByRole("dialog").locator(".sf-settings-tabs").getByRole("tab", { name: "writing", exact: true }).click();
 			await typingPage(page, "shortcodes");
 			await dialog(page).locator('section[aria-label="typing"]').getByLabel("Shortcodes (~ then Tab)").uncheck();
 			await dialog(page).getByRole("button", { name: "Done" }).click();
@@ -791,7 +791,7 @@ test.describe("a Codex note in the context panel has both aids, as a chapter doe
 test.describe("the plain text boxes take no aids (decision 47)", () => {
 	test("a settings field and the find box leave names, quotes and ~ alone", async ({ page }) => {
 		await projectWith(page, { codes: [["th", "the Right Honourable"]] });
-		await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
+		await openSettingsDialog(page); await page.getByRole("dialog").locator(".sf-settings-tabs").getByRole("tab", { name: "writing", exact: true }).click();
 		await typingPage(page, "names");
 		const box = dialog(page).locator('section[aria-label="typing"]').getByLabel("Add to Names without a Codex note");
 		await box.fill("");
@@ -842,7 +842,7 @@ test.describe("the special-characters button", () => {
 
 	test("its switch removes it", async ({ page }) => {
 		await editorWith(page);
-		await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
+		await openSettingsDialog(page); await page.getByRole("dialog").locator(".sf-settings-tabs").getByRole("tab", { name: "writing", exact: true }).click();
 		await typingPage(page, "special characters");
 		await dialog(page).locator('section[aria-label="typing"]').getByLabel("Special-characters button in the context panel").uncheck();
 		await dialog(page).getByRole("button", { name: "Done" }).click();
@@ -901,7 +901,7 @@ test.describe("the special-characters button", () => {
 
 	test("a character the author added is announced as itself with its code point", async ({ page }) => {
 		await editorWith(page);
-		await openSettingsDialog(page); await page.getByRole("dialog").getByRole("tab", { name: "Writing", exact: true }).click();
+		await openSettingsDialog(page); await page.getByRole("dialog").locator(".sf-settings-tabs").getByRole("tab", { name: "writing", exact: true }).click();
 		const group = dialog(page).locator('section[aria-label="typing"]');
 		await typingPage(page, "special characters");
 		await group.getByLabel("Add to Special characters").fill("ø");

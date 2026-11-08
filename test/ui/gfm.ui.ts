@@ -518,7 +518,7 @@ test.describe("the chapter length bar (decision 160)", () => {
 	test("Settings ▸ Appearance ▸ storytelling mode has its swatches, the data colour's five and 'same as the data bars'", async ({ page }) => {
 		await openWith(page, 100);
 		await openSettingsDialog(page);
-		await page.getByRole("dialog").getByRole("tab", { name: "Appearance", exact: true }).click();
+		await page.getByRole("dialog").getByRole("tab", { name: "appearance", exact: true }).click();
 		await page.getByRole("dialog").getByRole("tab", { name: "storytelling mode", exact: true }).click();
 		const group = page.getByRole("radiogroup", { name: "chapter length bar colour" });
 		await expect(group.getByRole("radio")).toHaveCount(6);

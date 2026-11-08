@@ -13,7 +13,7 @@ async function openSettings(page: Page, tab: string): Promise<void> {
 	await page.locator("[data-recent='0']").click();
 	await page.waitForFunction(() => !!window.__app?.editors);
 	await openSettingsDialog(page);
-	await dialog(page).getByRole("tab", { name: tab, exact: true }).click();
+	await dialog(page).locator(".sf-settings-tabs").getByRole("tab", { name: tab.toLowerCase(), exact: true }).click();
 }
 
 /** Holds every write to project.md (not the reads) until `release()`, so a save can be "still in progress" for as long as the test likes. */

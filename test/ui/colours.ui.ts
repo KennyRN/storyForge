@@ -136,30 +136,30 @@ test.describe("Settings ▸ Appearance ▸ Text colours", () => {
 		await openProject(page);
 		await openSettingsDialog(page);
 		const d = page.getByRole("dialog");
-		await d.getByRole("tab", { name: "Appearance", exact: true }).click();
-		await d.getByRole("tab", { name: "writing", exact: true }).click();
+		await d.getByRole("tab", { name: "appearance", exact: true }).click();
+		await d.locator(".sf-settings-subtabs").getByRole("tab", { name: "writing", exact: true }).click();
 		const group = d.locator('section[aria-label="text colours"]');
 		await expect(group.getByRole("group", { name: "Sample of the text colours" })).toBeVisible();
-		for (const name of ["Selection colour", "Bold colour", "Italic colour", "Bold italic colour"]) await expect(group.getByRole("radiogroup", { name, exact: true })).toBeVisible();
+		for (const name of ["selection colour", "bold colour", "italic colour", "bold italic colour"]) await expect(group.getByRole("radiogroup", { name, exact: true })).toBeVisible();
 		// names its group first (decision 117): the Codex and data groups have swatches of the same names
-		await group.getByRole("radiogroup", { name: "Selection colour", exact: true }).getByRole("radio", { name: "Green" }).click();
+		await group.getByRole("radiogroup", { name: "selection colour", exact: true }).getByRole("radio", { name: "Green" }).click();
 		await expect.poll(() => page.evaluate((p) => window.__preview.read(p).catch(() => ""), SETTINGS)).toContain("selection-colour: green");
 		await expect(page.locator("html")).toHaveAttribute("data-selection-colour", "green");
-		await group.getByRole("radiogroup", { name: "Bold colour", exact: true }).getByRole("radio", { name: "Aqua" }).click();
+		await group.getByRole("radiogroup", { name: "bold colour", exact: true }).getByRole("radio", { name: "Aqua" }).click();
 		await expect(page.locator("html")).toHaveAttribute("data-bold-colour", "aqua");
 		expect(await page.evaluate((p) => window.__preview.read(p), SETTINGS)).toContain("bold-colour: aqua");
 		// the choices of each row: red and green are never offered
 		const names = async (n: string) => group.getByRole("radiogroup", { name: n, exact: true }).getByRole("radio").evaluateAll((els) => els.map((e) => e.getAttribute("aria-label")));
-		expect(await names("Selection colour")).toEqual(["Plum", "Blue", "Green", "Yellow", "Grey"]);
+		expect(await names("selection colour")).toEqual(["Plum", "Blue", "Green", "Yellow", "Grey"]);
 		// unnamed squares: no visible name, the name kept for the screen reader and as a tooltip; the chosen one has a ring
-		const swatch = group.getByRole("radiogroup", { name: "Italic colour", exact: true }).getByRole("radio", { name: "Text colour" });
+		const swatch = group.getByRole("radiogroup", { name: "italic colour", exact: true }).getByRole("radio", { name: "Text colour" });
 		expect(((await swatch.textContent()) ?? "").trim()).toBe("");
 		await expect(swatch).toHaveAttribute("title", "Text colour");
 		expect(await swatch.evaluate((e) => [e.getBoundingClientRect().width, e.getBoundingClientRect().height])).toEqual([24, 24]);
-		await group.getByRole("radiogroup", { name: "Italic colour", exact: true }).getByRole("radio", { name: "Orange" }).click(); // the default: nothing to write
-		const chosen = group.getByRole("radiogroup", { name: "Italic colour", exact: true }).getByRole("radio", { checked: true });
+		await group.getByRole("radiogroup", { name: "italic colour", exact: true }).getByRole("radio", { name: "Orange" }).click(); // the default: nothing to write
+		const chosen = group.getByRole("radiogroup", { name: "italic colour", exact: true }).getByRole("radio", { checked: true });
 		await expect.poll(() => chosen.evaluate((e) => getComputedStyle(e).outlineStyle)).toBe("solid"); // waits for the focus ring to be drawn after the click (decision 108)
-		expect(await names("Italic colour")).toEqual(["Text colour", "Yellow", "Aqua", "Blue", "Orange", "Purple"]);
+		expect(await names("italic colour")).toEqual(["Text colour", "Yellow", "Aqua", "Blue", "Orange", "Purple"]);
 	});
 });
 

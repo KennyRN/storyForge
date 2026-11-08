@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openPreview, openSettingsDialog } from "./helpers";
+import { flipFace, openPreview, openSettingsDialog } from "./helpers";
 
 // Tweaks 3 (1.12.3): Settings' labels, and the word count modal in two tabs. Figures are measured from the page.
 
@@ -34,11 +34,14 @@ test.describe("§1.1 and §1.2 Settings", () => {
 		await openWith(page);
 		await openSettingsDialog(page);
 		const dlg = page.getByRole("dialog");
-		const subs: Record<string, string[]> = { General: ["general", "sidebar widths"], Appearance: ["interface", "library mode", "storytelling mode", "writing"], Writing: [], Sessions: [], Backups: [] };
+		expect(await dlg.locator(".sf-settings-tabs").getByRole("tab").allInnerTexts()).toEqual(["general", "appearance", "writing", "sessions", "backups"]); // the left-hand list too
+		const subs: Record<string, string[]> = { general: ["general", "sidebar widths"], appearance: ["interface", "library mode", "storytelling mode", "writing"], writing: [], sessions: [], backups: [] };
 		for (const [pg, list] of Object.entries(subs)) {
-			await dlg.getByRole("tab", { name: pg, exact: true }).click();
+			await dlg.locator(".sf-settings-tabs").getByRole("tab", { name: pg, exact: true }).click();
 			for (const s of list.length ? list : [""]) {
-				if (s) await dlg.getByRole("tab", { name: s, exact: true }).click();
+				if (s) await dlg.locator(".sf-settings-subtabs").getByRole("tab", { name: s, exact: true }).click();
+				const options = await dlg.evaluate((d) => [...(d.querySelector('[role="tabpanel"]') ?? d).querySelectorAll("select option")].map((o) => o.textContent ?? ""));
+				for (const o of options.filter((x) => !/^(SN Pro|Aleo|Atkinson Hyperlegible Next|Courier Prime|Fraunces|Sofia Sans( Semi Condensed| Condensed)?)$/.test(x))) expect(o, `${pg}/${s} option: ${o}`).toBe(o.replace(/\b(?!PoV\b|Everforest\b|Tabler\b|SN Pro\b|Aleo\b|Fraunces\b|Atkinson Hyperlegible Next\b|Courier Prime\b|Sofia Sans\b|Semi Condensed\b|Condensed\b)([A-Z])/g, (c) => c.toLowerCase()));
 				const labels = await dlg.evaluate((d) => {
 					const panel = d.querySelector('[role="tabpanel"]') ?? d;
 					const text = [...panel.querySelectorAll(".sf-setting-label, .sf-grid-name")].map((e) => (e.textContent ?? "").trim());
@@ -48,13 +51,21 @@ test.describe("§1.1 and §1.2 Settings", () => {
 				for (const l of labels) expect(l, `${pg}/${s}: ${l}`).toBe(l.replace(/\b(?!PoV\b|Everforest\b|Tabler\b|SN Pro\b|Aleo\b|Fraunces\b|Atkinson Hyperlegible Next\b|Courier Prime\b|Sofia Sans\b)([A-Z])/g, (c) => c.toLowerCase()));
 			}
 		}
-		await dlg.getByRole("tab", { name: "Appearance", exact: true }).click();
-		await dlg.getByRole("tab", { name: "interface", exact: true }).click();
+		await dlg.locator(".sf-settings-tabs").getByRole("tab", { name: "appearance", exact: true }).click();
+		await dlg.locator(".sf-settings-subtabs").getByRole("tab", { name: "interface", exact: true }).click();
 		const names = await dlg.locator(".sf-grid-name").allTextContents();
 		expect(names.indexOf("body bold")).toBe(names.indexOf("body") + 1);
-		await dlg.getByRole("tab", { name: "writing", exact: true }).click();
+		// Body bold's weight select is in the weight column, directly under Body's; its font column is empty (it follows the Interface font)
+		const x = async (label: string) => (await dlg.getByLabel(label, { exact: true }).boundingBox())!;
+		const bodyWeight = await x("body weight");
+		const boldWeight = await x("body bold weight");
+		expect(Math.abs(bodyWeight.x - boldWeight.x)).toBeLessThan(1);
+		expect(boldWeight.y).toBeGreaterThan(bodyWeight.y);
+		await expect(dlg.getByLabel("body bold font", { exact: true })).toHaveCount(0);
+		expect(await dlg.getByLabel("body bold weight", { exact: true }).locator("option").first().innerText()).toMatch(/^[a-z]/); // the choices are lowercase too
+		await dlg.locator(".sf-settings-subtabs").getByRole("tab", { name: "writing", exact: true }).click();
 		for (const l of ["selection colour", "bold colour", "italic colour", "bold italic colour"]) await expect(dlg.getByRole("radiogroup", { name: l, exact: true })).toBeVisible();
-		await dlg.getByRole("tab", { name: "storytelling mode", exact: true }).click();
+		await dlg.locator(".sf-settings-subtabs").getByRole("tab", { name: "storytelling mode", exact: true }).click();
 		await expect(dlg.locator(".sf-grid-name", { hasText: "chapter length bar" })).toBeVisible();
 	});
 });
@@ -187,5 +198,79 @@ test.describe("§1.4 the heat maps", () => {
 		const d = await history(page);
 		const first = await d.locator('.sf-heat-grid .sf-heat-row .sf-heat-cell[data-date]').first().getAttribute("data-date");
 		expect(first).toBe("2026-10-19"); // the fixture's first recorded day is 20 October 2026, a Tuesday
+	});
+});
+
+test.describe("§1.7 the special-characters icon", () => {
+	test("it is Kenny's icon at 24px, its drawn box 12px from the window's right and bottom, and not on the Archive tab or with the panel hidden", async ({ page }) => {
+		await page.setViewportSize({ width: 1280, height: 900 });
+		await openWith(page);
+		const b = page.getByRole("button", { name: "Special characters" });
+		await expect(b.locator("svg.sf-chars-icon")).toHaveCount(1);
+		const m = await page.evaluate(() => { const el = document.querySelector(".sf-chars-button")!.getBoundingClientRect(); const box = document.querySelector(".sf-chars-icon path")!.getBoundingClientRect(); return { w: el.width, h: el.height, right: innerWidth - el.right, bottom: innerHeight - el.bottom, boxRight: innerWidth - box.right, boxBottom: innerHeight - box.bottom }; });
+		expect(m).toMatchObject({ w: 24, h: 24, right: 10, bottom: 10, boxRight: 12, boxBottom: 12 });
+		// the Codex page's box shares the icon's bottom line: 12px above the window's foot
+		await page.evaluate(() => (window.__app as any).flipFace());
+		await page.getByRole("tab", { name: "codex" }).click();
+		await page.locator(".sf-codex-file", { hasText: "Jane" }).first().click();
+		await expect(page.locator(".sf-slot--library:not([hidden]) .sf-editor-pane")).toBeVisible();
+		const pane = await page.evaluate(() => innerHeight - document.querySelector(".sf-slot--library:not([hidden]) .sf-editor-pane")!.getBoundingClientRect().bottom);
+		expect(pane).toBe(12);
+		await page.getByRole("tab", { name: "archive" }).click();
+		await expect(page.getByRole("button", { name: "Special characters" })).toHaveCount(0);
+		await page.getByRole("tab", { name: "codex" }).click();
+		await page.evaluate(() => { const m = window.__app as any; m.nav.loreHidden = true; m.touch("nav"); });
+		await expect(page.getByRole("button", { name: "Special characters" })).toHaveCount(0); // with the panel hidden there is no button
+	});
+	test("colours: the button's background colour at rest, the brightest theme background on hover and while open, a hollow outline when disabled", async ({ page }) => {
+		await openWith(page);
+		const b = page.getByRole("button", { name: "Special characters" });
+		const probe = (v: string) => page.evaluate((n) => { const i = document.createElement("i"); i.style.color = `var(${n})`; document.body.append(i); const c = getComputedStyle(i).color; i.remove(); return c; }, v);
+		expect(await b.evaluate((e) => getComputedStyle(e).color)).toBe(await probe("--ef-bg1"));
+		await b.hover();
+		await expect.poll(() => b.evaluate((e) => getComputedStyle(e).color)).toBe(await probe("--ef-bg4"));
+		await page.mouse.move(200, 200);
+		await b.click();
+		await expect(b).toHaveAttribute("aria-expanded", "true");
+		await page.mouse.move(200, 200);
+		expect(await b.evaluate((e) => getComputedStyle(e).color)).toBe(await probe("--ef-bg4")); // while the palette is open
+		await b.click(); // closes the palette
+		await expect(b).toHaveAttribute("aria-expanded", "false");
+		await page.mouse.move(200, 200);
+		// disabled: the writing place is covered (the library side), so the button is off for the screen reader, hollow, and says why in its tooltip
+		await flipFace(page);
+		await page.getByRole("tab", { name: "series" }).click();
+		await expect(b).toHaveAttribute("aria-disabled", "true");
+		const off = await b.evaluate((e) => ({ fill: getComputedStyle(e).color, stroke: getComputedStyle(e.querySelector("path")!).stroke, title: e.getAttribute("title") }));
+		expect(off.fill).toBe("rgba(0, 0, 0, 0)");
+		expect(off.stroke).toBe(await probe("--ef-bg3"));
+		expect(off.title).toMatch(/^Special characters: /);
+	});
+});
+
+test.describe("§1.4 no padding before the first recorded week", () => {
+	test("an empty entry long ago is not a record: the first column is the first week with something recorded", async ({ page }) => {
+		await openPreview(page);
+		const text = await page.evaluate((p) => window.__preview.read(p), WORDCOUNT);
+		await page.evaluate(([p, t]) => window.__preview.touch(p, t), [WORDCOUNT, text.replace("daily:\n", "daily:\n  2024-02-05:\n    net: 0\n    chapters:\n      ch-a1.md: 0\n")]);
+		await page.reload();
+		await page.waitForFunction(() => document.documentElement.dataset.ready === "true");
+		await page.locator("[data-recent='0']").click();
+		await page.waitForFunction(() => !!window.__app?.editors);
+		const d = await history(page);
+		expect(await d.locator(".sf-heat-grid .sf-heat-row .sf-heat-cell[data-date]").first().getAttribute("data-date")).toBe("2026-10-19");
+		// a short history is a short map, from the left with no padding
+		const columns = await d.locator(".sf-heat-grid").first().locator(".sf-heat-row").first().locator(".sf-heat-cell").count();
+		expect(columns).toBeLessThanOrEqual(5); // 19 October to this week: a handful of weeks, not a hundred
+	});
+});
+
+test.describe("words now, from the index at both levels", () => {
+	test("the series' words now is never less than the novel's, and both are the words on the page", async ({ page }) => {
+		await openWith(page);
+		const d = await history(page);
+		const nums = await d.locator(".sf-history-stat", { hasText: "Words now" }).evaluateAll((els) => els.map((e) => Number((e.lastElementChild!.textContent ?? "").replace(/,/g, ""))));
+		expect(nums).toHaveLength(2);
+		expect(nums[0]).toBeGreaterThanOrEqual(nums[1]); // the series first, then the novel
 	});
 });

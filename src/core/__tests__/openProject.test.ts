@@ -10,6 +10,7 @@ import * as codex from "../codex";
 import { LegacyLayoutError } from "../project";
 import { NotAProjectError, ProjectAlreadyOpenError, ProjectFolderNotEmptyError, type OpenedProject, createProject, openProject } from "../openProject";
 import { readBookFrontmatter } from "../book";
+import { readSeriesFrontmatter } from "../series";
 import * as reconciliation from "../reconciliation";
 
 const opened: OpenedProject[] = [];
@@ -212,5 +213,57 @@ describe("renameNote (the front door to the link rewriter)", () => {
 		} finally {
 			await opened.close();
 		}
+	});
+});
+
+describe("start dates (Tweaks 3 §1.5)", () => {
+	it("createProject records the project's and its first novel's start date in England's local time, createBook a later novel's; nothing else writes one", async () => {
+		const root = tmp();
+		// 23:30 UTC on 1 July is half past midnight on 2 July in England (BST)
+		await createProject(new NodeFsBackend(root), root, { seriesTitle: "Dates", now: new Date("2026-07-01T23:30:00Z") });
+		const o = await openIt(root);
+		expect(readSeriesFrontmatter(o.project).projectStarted).toBe("2026-07-02");
+		expect(readBookFrontmatter(o.project, "aaa")!.started).toBe("2026-07-02");
+		expect(fs.readFileSync(path.join(root, "_story-library/series.md"), "utf8")).toContain("project-started: 2026-07-02");
+		expect(fs.readFileSync(path.join(root, "_story-library/novel-aaa.md"), "utf8")).toContain("book-started: 2026-07-02");
+		const second = await book.createBook(o.project, "Two", new Date("2026-11-08T12:00:00Z"));
+		expect(readBookFrontmatter(o.project, second.folderName)!.started).toBe("2026-11-08");
+		expect(readSeriesFrontmatter(o.project).projectStarted).toBe("2026-07-02"); // the project's date is written once
+	});
+
+	it("opening a project writes nothing, with the keys or without; writes keep the keys and never back-fill an older project", async () => {
+		const root = tmp();
+		await createProject(new NodeFsBackend(root), root, { seriesTitle: "Keep", now: new Date("2026-03-04T12:00:00Z") });
+		await closeAll();
+		const settled = dirSnapshot(root);
+		const o = await openIt(root);
+		await closeAll();
+		await openIt(root);
+		await closeAll();
+		expect(diffSnapshots(settled, dirSnapshot(root))).toEqual({ added: [], removed: [], changed: [] }); // opening wrote nothing, byte for byte
+		const again = await openIt(root);
+		await book.renameBookTitle(again.project, "aaa", "A new title");
+		await book.writeBookChapterOrder(again.project, "aaa", []);
+		expect(readSeriesFrontmatter(again.project).projectStarted).toBe("2026-03-04"); // the keys survive writes
+		expect(readBookFrontmatter(again.project, "aaa")!.started).toBe("2026-03-04");
+		await closeAll();
+		// an older project: no keys, and opening and writing back-fills none
+		const old = copyFixture("series");
+		const o2 = await openIt(old);
+		await book.renameBookTitle(o2.project, "aaa", "Renamed");
+		expect(readSeriesFrontmatter(o2.project).projectStarted).toBeNull();
+		expect(readBookFrontmatter(o2.project, "aaa")!.started).toBeNull();
+		expect(fs.readFileSync(path.join(old, "_story-library/series.md"), "utf8")).not.toContain("project-started");
+		expect(fs.readFileSync(path.join(old, "_story-library/novel-aaa.md"), "utf8")).not.toContain("book-started");
+	});
+
+	it("an unreadable date draws the fallback and is never rewritten", async () => {
+		const root = copyFixture("series");
+		const f = path.join(root, "_story-library/novel-aaa.md");
+		fs.writeFileSync(f, fs.readFileSync(f, "utf8").replace("---\n", "---\nbook-started: next tuesday\n"));
+		const o = await openIt(root);
+		expect(readBookFrontmatter(o.project, "aaa")!.started).toBeNull();
+		await book.renameBookTitle(o.project, "aaa", "Renamed");
+		expect(fs.readFileSync(f, "utf8")).toContain("book-started: next tuesday");
 	});
 });

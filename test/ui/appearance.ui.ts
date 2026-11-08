@@ -12,8 +12,8 @@ const dialog = (page: Page) => page.getByRole("dialog");
 async function openSettings(page: Page, section?: string, sub = section === "Appearance" ? "storytelling mode" : ""): Promise<void> {
 	await openSettingsDialog(page);
 	await expect(dialog(page)).toBeVisible();
-	if (section) await dialog(page).getByRole("tab", { name: section, exact: true }).click();
-	if (sub) await dialog(page).getByRole("tab", { name: sub, exact: true }).click(); // the sub-pages of Appearance (round two) and General (round five)
+	if (section) await dialog(page).locator(".sf-settings-tabs").getByRole("tab", { name: section.toLowerCase(), exact: true }).click();
+	if (sub) await dialog(page).locator(".sf-settings-subtabs").getByRole("tab", { name: sub, exact: true }).click(); // the sub-pages of Appearance (round two) and General (round five)
 }
 const projectMd = (page: Page) => page.evaluate(() => window.__preview.read("_backstage/storyforge/project.md").catch(() => ""));
 const style = (page: Page, sel: string) => page.locator(sel).first().evaluate((e) => { const s = getComputedStyle(e); return { family: s.fontFamily, weight: s.fontWeight, size: s.fontSize, variation: s.fontVariationSettings }; });
@@ -25,13 +25,13 @@ test.describe("settings sections", () => {
 		await openProject(page);
 		await openSettings(page);
 		const tabs = dialog(page).locator(".sf-settings-tabs").getByRole("tab");
-		expect(await tabs.allInnerTexts()).toEqual(["General", "Appearance", "Writing", "Sessions", "Backups"]);
+		expect(await tabs.allInnerTexts()).toEqual(["general", "appearance", "writing", "sessions", "backups"]);
 		expect(await dialog(page).locator(".sf-settings-subtabs").getByRole("tab").allInnerTexts()).toEqual(["general", "sidebar widths"]); // General is one entry with three sub-pages
-		await expect(dialog(page).getByRole("tab", { name: "General", exact: true })).toHaveAttribute("aria-selected", "true");
+		await expect(dialog(page).locator(".sf-settings-tabs").getByRole("tab", { name: "general", exact: true })).toHaveAttribute("aria-selected", "true");
 		await expect(dialog(page).getByRole("tabpanel")).toHaveCount(1);
 		await expect(dialog(page).getByLabel("Opens in")).toBeVisible();
 		await expect(dialog(page).getByLabel("Series numbering")).toBeVisible(); // general and story are one sub-page (Brief 19)
-		await dialog(page).getByRole("tab", { name: "General", exact: true }).focus();
+		await dialog(page).locator(".sf-settings-tabs").getByRole("tab", { name: "general", exact: true }).focus();
 		await page.keyboard.press("ArrowDown");
 		await expect(dialog(page).getByRole("tab", { name: "Appearance" })).toHaveAttribute("aria-selected", "true");
 		await expect(dialog(page).getByRole("tab", { name: "Appearance" })).toBeFocused();
@@ -113,7 +113,7 @@ test.describe("Appearance", () => {
 			await expect(font(page, part)).toHaveValue(f);
 			await expect(dialog(page).getByLabel(`${part.toLowerCase()} weight`)).toHaveValue(w);
 			await expect(size(page, part)).toHaveValue(z);
-			expect(await font(page, part).locator("option").allInnerTexts()).toEqual(["Interface font", "SN Pro", "Aleo", "Atkinson Hyperlegible Next", "Courier Prime", "Fraunces", "Sofia Sans", "Sofia Sans Semi Condensed", "Sofia Sans Condensed"]);
+			expect(await font(page, part).locator("option").allInnerTexts()).toEqual(["interface font", "SN Pro", "Aleo", "Atkinson Hyperlegible Next", "Courier Prime", "Fraunces", "Sofia Sans", "Sofia Sans Semi Condensed", "Sofia Sans Condensed"]);
 		}
 		expect(await page.evaluate(() => document.documentElement.style.getPropertyValue("--ap-chapter-size"))).toBe("22px"); // 1.375 rem against the one 16 px base
 		expect(await style(page, ".sf-nav-novel")).toMatchObject({ weight: "900", size: "16px" });
