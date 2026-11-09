@@ -54,4 +54,5 @@ export const SHIFT_TAB = chromium ? "Shift+Tab" : "Alt+Shift+Tab";
 export const DOC_START = chromium ? "Control+Home" : "Meta+ArrowUp";
 export const DOC_END = chromium ? "Control+End" : "Meta+ArrowDown";
 export const LINE_START = chromium ? "Home" : "Meta+ArrowLeft";
+export const SELECT_WORD_RIGHT = chromium ? "Control+Shift+ArrowRight" : "Shift+Alt+ArrowRight";
 export const WORD_RIGHT = chromium ? "Control+ArrowRight" : "Alt+ArrowRight";

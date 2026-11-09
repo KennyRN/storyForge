@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { DOC_END, DOC_START, LINE_START, openPreview, shot } from "./helpers";
+import { SELECT_WORD_RIGHT, DOC_END, DOC_START, LINE_START, openPreview, shot } from "./helpers";
 
 const CH1 = "_story-library/aaa/ch-a1.md";
 const CH2 = "_story-library/aaa/ch-a2.md";
@@ -105,7 +105,7 @@ test.describe("the editor", () => {
 			await content(page).click();
 			await page.keyboard.press(DOC_END);
 			await page.keyboard.press(LINE_START);
-			await page.keyboard.press("Shift+Alt+ArrowRight");
+			await page.keyboard.press(SELECT_WORD_RIGHT);
 			await page.keyboard.press(`${MOD}+b`);
 			await expect(lines(page).nth(6)).toHaveText("**Last** line, with [[a link]] left alone.");
 			await page.keyboard.press(`${MOD}+b`);

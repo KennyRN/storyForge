@@ -550,6 +550,7 @@ export function openSettings(model: AppModel): void {
 		// The controls in use go back in place of their new twins (found by tag, type and name), with focus and caret.
 		const keep = inUse().filter((c) => isControl(c));
 		const focused = document.activeElement;
+		const focusedInBody = !!focused && body.contains(focused);
 		const caret = isTextBox(focused) ? { from: focused.selectionStart, to: focused.selectionEnd } : null;
 		const twins: [HTMLElement, HTMLElement][] = [];
 		for (const old of keep) {
@@ -571,6 +572,16 @@ export function openSettings(model: AppModel): void {
 		if (twins.some(([old]) => old === focused)) {
 			(focused as HTMLElement).focus({ preventScroll: true });
 			if (caret && caret.from !== null && caret.to !== null) try { (focused as HTMLInputElement).setSelectionRange(caret.from, caret.to); } catch { /* a number box has no caret to put back */ }
+		}
+		else if (focusedInBody && isControl(focused)) {
+			// A control that has just finished saving is redrawn like any other, and the page must not lose the author's place (decision 119):
+			// focus goes to its new twin, found by tag, type and name. (Chromium drops focus to the page here; WebKit's timing hid it.)
+			const label = focused.getAttribute("aria-label");
+			const next = label ? [...panel.querySelectorAll<HTMLElement>(focused.tagName)].find((n) => n.getAttribute("aria-label") === label && (n as HTMLInputElement).type === focused.type) : undefined;
+			if (next) {
+				next.focus({ preventScroll: true });
+				if (caret && caret.from !== null && caret.to !== null) try { (next as HTMLInputElement).setSelectionRange(caret.from, caret.to); } catch { /* a number box has no caret to put back */ }
+			}
 		}
 		panel.scrollTop = scroll; // focus above can move the page; the author's place is kept
 		rebuilding = false;
