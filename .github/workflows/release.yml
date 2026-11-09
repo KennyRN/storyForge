@@ -117,41 +117,42 @@ jobs:
         shell: bash
         run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
-      - name: Build the installer and add it to the draft release (unsigned, per user, labelled as a preview)
-        id: tauri
-        uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # action-v1.0.0
+      - name: Build the installer (unsigned, per user)
+        run: npx tauri build --bundles nsis
+
+      - name: Name it as a preview
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tagName: v${{ steps.version.outputs.version }}
-          releaseName: storyForge ${{ steps.version.outputs.version }}
-          releaseDraft: true
-          prerelease: false
-          assetNamePattern: storyForge_[version]_windows-preview_[arch]-setup[ext]
-          args: --bundles nsis
+          VERSION: ${{ steps.version.outputs.version }}
+        run: cp "src-tauri/target/release/bundle/nsis/storyForge_${VERSION}_x64-setup.exe" "storyForge_${VERSION}_windows-preview_x64-setup.exe"
 
       - name: Attest the installer
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
-          subject-path: src-tauri/target/release/bundle/nsis/*.exe
+          subject-path: storyForge_${{ steps.version.outputs.version }}_windows-preview_x64-setup.exe
 
       - name: "The sample project (invented text, made from scratch, no test files)"
-        shell: pwsh
+        shell: bash
         run: |
           node scripts/sample-project.mjs "sample/storyForge sample project"
-          Compress-Archive -Path "sample/storyForge sample project" -DestinationPath storyForge-sample-project.zip
+          # Python writes the names as UTF-8 and says so in the zip, so "Zoë Åberg" arrives intact on Windows
+          # (PowerShell's Compress-Archive does not).
+          python -c "import os, zipfile; z = zipfile.ZipFile('storyForge-sample-project.zip', 'w', zipfile.ZIP_DEFLATED); [z.write(os.path.join(d, f), os.path.relpath(os.path.join(d, f), 'sample')) for d, _, fs in os.walk('sample') for f in sorted(fs)]; z.close()"
 
       - name: Attest the sample project
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-path: storyForge-sample-project.zip
 
-      - name: Add the sample project to the draft release
+      - name: Add both to the draft release
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_ID: ${{ steps.tauri.outputs.releaseId }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          gh api --method POST -H "Content-Type: application/zip" \
-            "https://uploads.github.com/repos/${{ github.repository }}/releases/${RELEASE_ID}/assets?name=storyForge-sample-project.zip" \
-            --input storyForge-sample-project.zip
+          RELEASE_ID=$(gh api "repos/${{ github.repository }}/releases?per_page=30" --jq "map(select(.tag_name == \"v${VERSION}\"))[0].id")
+          test -n "$RELEASE_ID"
+          for f in "storyForge_${VERSION}_windows-preview_x64-setup.exe" storyForge-sample-project.zip; do
+            gh api --method POST -H "Content-Type: application/octet-stream" \
+              "https://uploads.github.com/repos/${{ github.repository }}/releases/${RELEASE_ID}/assets?name=${f}" --input "$f"
+          done
