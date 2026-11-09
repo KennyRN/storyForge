@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { flipFace, openPreview } from "./helpers";
+import { BAND, flipFace, openPreview } from "./helpers";
 
 // Brief 19, commit 6 (§3): one fixed gap, 28 px, between boxes everywhere. Nothing moves when a divider is dragged.
 
@@ -27,8 +27,8 @@ for (const size of [{ width: 1440, height: 900 }, { width: 1100, height: 760 }])
 			const chapter = await box(page, ".sf-slot--centre");
 			const note = await box(page, ".sf-lore-host > .sf-editor-pane");
 			const codex = await box(page, ".sf-left .sf-codex-tree");
-			near(chapter.t, GAP, "the chapter box's top");
-			near(note.t, GAP, "the context card's top");
+			near(chapter.t, BAND, "the chapter box's top");
+			near(note.t, BAND, "the context card's top");
 			near(chapter.b, codex.b, "the chapter box's foot and the Codex index card's");
 			near(note.b, codex.b, "the context card's foot and the Codex index card's");
 			// the gaps between the boxes, and to the window's edge

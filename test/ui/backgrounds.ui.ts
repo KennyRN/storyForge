@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { flipFace, openPreview } from "./helpers";
+import { BAND, flipFace, openPreview } from "./helpers";
 
 // Brief 14, commit 5 (§1.8): the library side is for looking, so all of it is bg_dim (the left panel, the workspace, the context panel); only the
 // places where you work are cards on bg0 (10px corners, no border): the novel's synopsis, the series description, the context panel's plot note and
@@ -70,7 +70,7 @@ test.describe("the library side's backgrounds", () => {
 		await dim(page, page.locator(".sf-left"), "the left panel");
 		await dim(page, page.locator(".sf-centre-wrap"), "the strip around the editor card"); // bg_dim shows round the card, under the title band and at the window's foot
 		const [card, wrap] = await page.evaluate(() => { const r = (s: string) => { const b = document.querySelector(s)!.getBoundingClientRect(); return { top: b.top, bottom: b.bottom }; }; return [r(".sf-slot--centre"), r(".sf-centre-wrap")]; });
-		expect(card.top - (wrap.top + 28)).toBeCloseTo(0, 0); // it starts at the band's foot, 28px from the window's top (Brief 19 §3)
+		expect(card.top - (wrap.top + BAND)).toBeCloseTo(0, 0); // it starts at the band's foot, 28px from the window's top (Brief 19 §3)
 		expect(wrap.bottom - card.bottom).toBeCloseTo(76, 0); // its foot is the Codex cards': 12px above the stats section (64px)
 		expect((await style(page.locator(".sf-slot--centre"), ["border-top-left-radius"]))[0]).toBe("10px");
 	});

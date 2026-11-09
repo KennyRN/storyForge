@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { flipFace, openPreview } from "./helpers";
+import { BAND, flipFace, openPreview } from "./helpers";
 
 // Fix 7 polish (try-out): focus rings for the keyboard only, the chapter list's row shape, the add button, the invisible title bar,
 // the one top line, and the left panel's navigate menu (decisions 104, 105).
@@ -218,6 +218,7 @@ test.describe("the chapter list's rows, the add button and the title bar", () =>
 	});
 
 	test("the title bar is an empty draggable band the traffic lights sit in; the panels run to the top; nothing interactive sits under it", async ({ page }) => {
+		test.skip(BAND === 0, "Windows has no title band: the 28 px offsets here are the Mac's");
 		await openProject(page);
 		const bar = page.locator(".sf-titlebar");
 		await expect(bar).toHaveAttribute("data-tauri-drag-region", "");
@@ -231,6 +232,7 @@ test.describe("the chapter list's rows, the add button and the title bar", () =>
 	});
 
 	test("one top line: the series name and the chapter's first line start at the same height (the boxes start at 28px: Brief 19); the library side's first tab sits 4px above it", async ({ page }) => {
+		test.skip(BAND === 0, "Windows has no title band: the 28 px offsets here are the Mac's");
 		await openProject(page);
 		await page.locator(".sf-codex-tree [data-key]").filter({ hasText: "Jane" }).first().click();
 		await expect(page.locator(".sf-lore-host > .sf-editor-pane")).toBeVisible();

@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { openPreview, shot, flipFace, openSettingsDialog } from "./helpers";
+import { DOC_END, DOC_START, REDO, flipFace, openPreview, openSettingsDialog, shot } from "./helpers";
 
 const PROJECT_MD = "_backstage/storyforge/project.md";
 const dialog = (page: Page) => page.getByRole("dialog");
@@ -115,7 +115,7 @@ async function editorWith(page: Page, text = "Old text.\n"): Promise<void> {
 	await outsideChange(page, CH1, text);
 	await page.evaluate((p) => window.__app.editors!.open("centre", p), CH1);
 	await content(page).click();
-	await page.keyboard.press(`${MOD}+ArrowDown`);
+	await page.keyboard.press(DOC_END);
 	if (text !== "") await page.keyboard.press("Enter"); // a new line: the typing starts a new run
 }
 
@@ -133,7 +133,7 @@ test.describe("smart punctuation in the editor", () => {
 		expect(await doc(page)).toBe("don’");
 		await page.keyboard.press(`${MOD}+z`);
 		expect(await doc(page)).toBe("don'");
-		await page.keyboard.press(`${MOD}+Shift+z`);
+		await page.keyboard.press(REDO);
 		expect(await doc(page)).toBe("don’");
 		await page.keyboard.press(`${MOD}+z`);
 		await page.keyboard.press(`${MOD}+z`); // the typing itself
@@ -204,7 +204,7 @@ test.describe("smart punctuation in the editor", () => {
 		await dialog(page).locator('section[aria-label="typing"]').getByLabel("Curly quotes, dashes and ellipses as you type").check();
 		await dialog(page).getByRole("button", { name: "Done" }).click();
 		await content(page).click();
-		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.type(" can't");
 		expect(await doc(page)).toBe("don't can’t");
 	});
@@ -221,7 +221,7 @@ test.describe("smart punctuation in the editor", () => {
 		await expect(group.getByRole("list", { name: "Words that begin with an apostrophe" })).toContainText("ere");
 		await dialog(page).getByRole("button", { name: "Done" }).click();
 		await content(page).click();
-		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.type("'ere ");
 		expect(await doc(page)).toBe("‘ere ’ere ");
 	});
@@ -244,7 +244,7 @@ async function addToList(page: Page, label: string, entry: string): Promise<void
 	await expect(group.getByRole("list", { name: label })).toContainText(entry);
 	await dialog(page).getByRole("button", { name: "Done" }).click();
 	await content(page).click();
-	await page.keyboard.press(`${MOD}+ArrowDown`);
+	await page.keyboard.press(DOC_END);
 	await page.keyboard.press("Enter");
 }
 
@@ -273,7 +273,7 @@ test.describe("name autocorrect in the editor", () => {
 		await offer.getByRole("button", { name: "Stop correcting" }).click();
 		await expect.poll(() => projectMd(page)).toMatch(/typing-name-opt-outs:[\s\S]*Sam/);
 		await content(page).click();
-		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.type("sam, Sam, SAM ");
 		expect(await doc(page)).toBe("sam sam, Sam, Sam "); // lower case left alone, an exact Sam untouched, SAM corrected
 	});
@@ -295,7 +295,7 @@ test.describe("name autocorrect in the editor", () => {
 		await dialog(page).locator('section[aria-label="typing"]').getByLabel("Correct Codex names as you type them").uncheck();
 		await dialog(page).getByRole("button", { name: "Done" }).click();
 		await content(page).click();
-		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.type("jane ");
 		expect(await doc(page)).toBe("Jane jane ");
 	});
@@ -305,7 +305,7 @@ test.describe("name autocorrect in the editor", () => {
 		await outsideChange(page, "Codex/Ælfric.md", "---\naliases:\n  - Ælf\n---\nThe king.\n");
 		await expect.poll(async () => {
 			await content(page).click();
-			await page.keyboard.press(`${MOD}+ArrowDown`);
+			await page.keyboard.press(DOC_END);
 			await page.keyboard.type("aelf ");
 			return doc(page);
 		}).toContain("Ælf ");
@@ -325,7 +325,7 @@ async function addShortcode(page: Page, code: string, text: string): Promise<voi
 	await expect(group.getByRole("list", { name: "Shortcodes" })).toContainText(`~${code.replace(/^~/, "")}`);
 	await dialog(page).getByRole("button", { name: "Done" }).click();
 	await content(page).click();
-	await page.keyboard.press(`${MOD}+ArrowDown`);
+	await page.keyboard.press(DOC_END);
 	await page.keyboard.press("Enter");
 }
 const popup = (page: Page) => page.getByRole("listbox", { name: "Shortcodes" });
@@ -345,7 +345,7 @@ test.describe("shortcodes in the editor", () => {
 		await page.keyboard.press(`${MOD}+z`);
 		expect(await doc(page)).toContain("He met ~th");
 		expect(await doc(page)).not.toContain("Right Honourable");
-		await page.keyboard.press(`${MOD}+Shift+z`);
+		await page.keyboard.press(REDO);
 		expect(await doc(page)).toContain("He met the Right Honourable");
 	});
 
@@ -393,7 +393,7 @@ test.describe("shortcodes in the editor", () => {
 			await page.keyboard.type(typed);
 			await expect(popup(page), typed).toHaveCount(0);
 		}
-		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.type("");
 		// old text that was already there: typing the rest of it doesn't open it
 		await editorWith(page, "old ~t");
@@ -435,7 +435,7 @@ test.describe("shortcodes in the editor", () => {
 		await dialog(page).locator('section[aria-label="typing"]').getByLabel("Offer Codex names after ~").uncheck();
 		await dialog(page).getByRole("button", { name: "Done" }).click();
 		await content(page).click();
-		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.type(" ~sa");
 		await expect(popup(page)).toHaveCount(0);
 	});
@@ -447,13 +447,13 @@ test.describe("shortcodes in the editor", () => {
 		await page.keyboard.press("Tab");
 		expect(await doc(page)).toBe("\nabc"); // nothing put in (the new line is from adding the shortcode)
 		await content(page).click();
-		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press(DOC_END);
 		await openSettingsDialog(page); await page.getByRole("dialog").locator(".sf-settings-tabs").getByRole("tab", { name: "writing", exact: true }).click();
 		await typingPage(page, "shortcodes");
 		await dialog(page).locator('section[aria-label="typing"]').getByLabel("Shortcodes (~ then Tab)").uncheck();
 		await dialog(page).getByRole("button", { name: "Done" }).click();
 		await content(page).click();
-		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.type(" ~th");
 		await expect(popup(page)).toHaveCount(0);
 	});
@@ -534,7 +534,7 @@ async function projectWith(page: Page, settings: { codes?: [string, string][]; l
 /** Into the field, at the end, on a new line (so the typing is a new run). */
 async function intoField(field: Locator, page: Page): Promise<void> {
 	await field.click();
-	await page.keyboard.press(`${MOD}+ArrowDown`);
+	await page.keyboard.press(DOC_END);
 	await page.keyboard.press("Enter");
 }
 const typedPart = async (field: Locator): Promise<string> => (await lines(field)).split("\n").slice(1).join("\n");
@@ -559,7 +559,7 @@ for (const kind of KINDS) {
 			await page.keyboard.press(`${MOD}+z`);
 			expect(await typedPart(field)).toBe("sam ");
 			await expect(page.getByRole("status").filter({ hasText: "Stop correcting “Sam”" })).toBeVisible();
-			await page.keyboard.press(`${MOD}+Shift+z`);
+			await page.keyboard.press(REDO);
 			expect(await typedPart(field)).toBe("Sam ");
 		});
 
@@ -610,7 +610,7 @@ for (const kind of KINDS) {
 			await expect(field).toBeFocused();
 			await page.keyboard.press(`${MOD}+z`);
 			expect(await typedPart(field)).toBe("He met ~th");
-			await page.keyboard.press(`${MOD}+Shift+z`);
+			await page.keyboard.press(REDO);
 			expect(await typedPart(field)).toBe("He met the Right Honourable");
 		});
 
@@ -773,7 +773,7 @@ test.describe("a Codex note in the context panel has both aids, as a chapter doe
 		await page.evaluate(() => window.__app.editors!.open("lore", "Codex/Harbour.md"));
 		const note = page.locator(".sf-slot--lore .cm-content");
 		await note.click();
-		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.press("Enter");
 		await page.keyboard.type("sam ");
 		expect(await lastLine(note)).toBe("Sam ");
@@ -861,7 +861,7 @@ test.describe("the special-characters button", () => {
 	test("a character goes in at the chapter's cursor, replaces a selection, takes no focus on the way, and one ⌘Z takes it back", async ({ page }) => {
 		await editorWith(page, "Hello world");
 		// put the caret after "Hello" (the editor is where the author is)
-		await page.keyboard.press(`${MOD}+ArrowUp`);
+		await page.keyboard.press(DOC_START);
 		for (let i = 0; i < 5; i++) await page.keyboard.press("ArrowRight");
 		await CHARS(page).click();
 		// the editor still has focus: opening the palette moved nothing

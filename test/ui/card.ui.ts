@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { DOC_END, openPreview, shot } from "./helpers";
+import { BAND, DOC_END, openPreview, shot } from "./helpers";
 
 // Brief 10, commit 5: the context panel's card and bottom row (docs/look.md §3.3).
 
@@ -43,7 +43,7 @@ test.describe("the context panel's card", () => {
 			const [p, c, r] = await Promise.all([rect(panel(page)), rect(card(page)), rect(row(page))]);
 			expect(c.x - p.x, "left: half the gap to the chapter box").toBeCloseTo(14, 0);
 			expect(p.r - c.r, "right: the window's 28px").toBeCloseTo(28, 0);
-			expect(c.y - p.y, "top: the title bar's band, 28px from the window's top").toBeCloseTo(28, 0);
+			expect(c.y - p.y, "top: the title bar's band, 28px from the window's top").toBeCloseTo(BAND, 0);
 			expect(r.y - c.b, "the bottom row is directly beneath the card").toBeCloseTo(0, 0);
 			expect(p.b - c.b, "bottom: the stats section's height and 12px").toBeCloseTo(64 + 12, 0);
 		}

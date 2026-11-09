@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { openPreview, flipFace } from "./helpers";
+import { DOC_END, DOC_START, flipFace, openPreview } from "./helpers";
 
 // Brief 10, commit 6: the special-characters button always shows (the bottom row of the context panel) and puts its
 // character in the editor the author last wrote in: the chapter, a Codex note, a plot note, the synopsis or the series
@@ -30,7 +30,7 @@ async function pressAsh(page: Page): Promise<void> {
 }
 const endOf = async (box: Locator, page: Page) => {
 	await box.click();
-	await page.keyboard.press(`${MOD}+ArrowDown`);
+	await page.keyboard.press(DOC_END);
 };
 
 test.describe("the special-characters button: where it puts the character", () => {
@@ -80,7 +80,7 @@ test.describe("the special-characters button: where it puts the character", () =
 	test("it goes in at the selection, replacing it, wherever the caret was left", async ({ page }) => {
 		await openProject(page);
 		await centre(page).click();
-		await page.keyboard.press(`${MOD}+ArrowUp`);
+		await page.keyboard.press(DOC_START);
 		await page.keyboard.press("Shift+ArrowRight");
 		await page.keyboard.press("Shift+ArrowRight"); // "Sy" is selected
 		await pressAsh(page);

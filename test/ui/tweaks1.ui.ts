@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { flipFace, openPreview } from "./helpers";
+import { BAND, flipFace, openPreview } from "./helpers";
 
 // Tweaks 1 (decision 170): the novel page, the selectors and the cover's error state. Figures are measured from the page, never assumed.
 
@@ -142,6 +142,7 @@ test.describe("the context panel on the novel page", () => {
 	const synopsisTop = async (page: Page) => (await rect(page.locator(".sf-overview-head .sf-section-field"))).y;
 
 	test("the chapter information box's top is level with the synopsis box's, and the PoV and Location rows sit 12px above it", async ({ page }) => {
+		test.skip(BAND === 0, "Windows has no title band: the 28 px offsets here are the Mac's");
 		await open(page, "novel");
 		await expect.poll(async () => Math.abs((await plotTop(page)) - (await synopsisTop(page)))).toBeLessThan(1);
 		const rows = await rect(page.locator(".sf-chapter-rows"));

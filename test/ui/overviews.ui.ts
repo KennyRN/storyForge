@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import * as path from "node:path";
-import { openPreview, shot, flipFace } from "./helpers";
+import { REDO, flipFace, openPreview, shot } from "./helpers";
 
 function tree(dir: string, base = dir, out: Record<string, string> = {}): Record<string, string> {
 	for (const name of readdirSync(dir)) {
@@ -74,7 +74,7 @@ test.describe("the series overview", () => {
 		// A bare ⌘Z and ⇧⌘Z reach WebKit's own undo in this preview; the covered editor refuses them itself.
 		await page.keyboard.press("ControlOrMeta+z");
 		expect(await text(), "bare ⌘Z").toBe(typed);
-		await page.keyboard.press("ControlOrMeta+Shift+z");
+		await page.keyboard.press(REDO);
 		expect(await text(), "bare ⇧⌘Z").toBe(typed);
 		// A change from any other source (here a programmatic edit standing in for a drop or a dictated word) is refused too.
 		await page.evaluate(() => (window.__app.editors as any).slots.centre.occupant.mounted.view.dispatch({ changes: { from: 0, insert: "SNEAK" }, userEvent: "input.type" }));

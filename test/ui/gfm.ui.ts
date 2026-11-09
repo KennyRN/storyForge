@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { parse } from "yaml";
-import { flipFace, openPreview, openSettingsDialog } from "./helpers";
+import { DOC_END, DOC_START, flipFace, openPreview, openSettingsDialog } from "./helpers";
 
 // Brief 20, build 1 (decisions 149 and 157): the GFM dressing in every editor, and the proof that it is display only.
 
@@ -68,7 +68,7 @@ const lastLineOf = (s: string): string => s.split("\n").pop()!;
 /** Types the document, moves the caret through every line (so each takes its turn as the active one), and checks the file holds exactly what was typed. */
 async function typeAndCheck(page: Page, box: Locator, path: string, contains: boolean, away: () => Promise<void>, typed = TYPED, read: (disk: string) => string = (d) => d): Promise<void> {
 	await box.click();
-	await page.keyboard.press(`${MOD}+ArrowDown`);
+	await page.keyboard.press(DOC_END);
 	await page.keyboard.press("Enter");
 	await page.keyboard.type(typed);
 	for (let i = 0; i < typed.split("\n").length + 2; i++) await page.keyboard.press("ArrowUp");
@@ -94,7 +94,7 @@ test.describe("the GFM dressing is display only, in every editor", () => {
 		await openProject(page);
 		const content = page.locator(".sf-slot--centre .cm-content");
 		await typeAndCheck(page, content, CHAPTER, false, async () => void (await page.keyboard.press("Escape")));
-		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press(DOC_END);
 		// With the caret on the last line, the others are dressed.
 		for (const cls of [".sf-heading", ".sf-quote", ".sf-code", ".sf-footnote-ref", ".sf-table-head", ".sf-hr", ".sf-glyph-task-open", ".sf-glyph-task-done", ".sf-link"]) await expect(content.locator(cls).first(), cls).toBeVisible();
 		for (const kind of ["note", "tip", "important", "warning", "caution"]) await expect(content.locator(`.cm-line.sf-alert-${kind}`).first(), kind).toBeVisible();
@@ -151,7 +151,7 @@ test.describe("the GFM dressing is display only, in every editor", () => {
 		await page.waitForFunction(() => !!window.__app?.editors);
 		await expect(page.locator(".sf-slot--centre .cm-content .sf-alert-label").first()).toBeVisible();
 		await page.locator(".sf-slot--centre .cm-content").click();
-		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.press("ArrowUp");
 		await expect(page.locator(".sf-slot--centre .cm-content .sf-comment")).toHaveText(COMMENT);
 		await page.waitForTimeout(1500);
@@ -180,7 +180,7 @@ test.describe("the typing aids read the parse tree", () => {
 		await page.waitForFunction(() => !!window.__app?.editors);
 		const content = page.locator(".sf-slot--centre .cm-content");
 		await content.click();
-		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.press("Enter");
 		await page.keyboard.type("it's");
 		// Straight at once, if the parse hadn't reached the end: never a wrong change.
@@ -198,7 +198,7 @@ test.describe("the typing aids read the parse tree", () => {
 		await openProject(page);
 		const content = page.locator(".sf-slot--centre .cm-content");
 		await content.click();
-		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.press("Enter");
 		await page.keyboard.type("<!-- it's -- done -->");
 		await page.keyboard.press("Enter");
@@ -215,7 +215,7 @@ test.describe("code is drawn in Sono", () => {
 		await page.waitForFunction(() => !!window.__app?.editors);
 		const content = page.locator(".sf-slot--centre .cm-content");
 		await content.click();
-		await page.keyboard.press(`${MOD}+ArrowDown`); // off the first line, so its markers are hidden
+		await page.keyboard.press(DOC_END); // off the first line, so its markers are hidden
 		await page.evaluate(() => document.fonts.load('300 16px "Sono"'));
 		expect(await page.evaluate(() => document.fonts.check('300 16px "Sono"'))).toBe(true); // the embedded file is loaded (a missing file would make this false)
 		const style = (loc: Locator) => loc.first().evaluate((e) => {
@@ -248,7 +248,7 @@ test.describe("Codex links", () => {
 	}
 	async function atEnd(page: Page): Promise<void> {
 		await content(page).click();
-		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.press("Enter");
 	}
 
@@ -309,7 +309,7 @@ test.describe("Codex links", () => {
 		const text = ["[Sam](../../Codex/Sam.md)", "[Ch](ch-a2.md)", "[Idea](../../notes/idea.md)", "[Gone](../../Codex/Nobody.md)", "[Web](https://example.com/x)", "[Old](../../Codex/Retired.md)", "end"].join("\n\n");
 		await open(page, text);
 		await content(page).click();
-		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press(DOC_END);
 		const tip = async (name: string): Promise<string | null> => content(page).locator(".sf-link", { hasText: name }).first().getAttribute("title");
 		await expect(content(page).locator(".sf-link-live")).toHaveCount(2); // Sam and the archived Retired
 		await expect(content(page).locator(".sf-link-live", { hasText: "Sam" })).toHaveAttribute("data-codex-path", "Codex/Sam.md");
@@ -324,14 +324,14 @@ test.describe("Codex links", () => {
 	test("⌘-click opens a live link in the context panel; a plain click only places the caret; a muted link does nothing", async ({ page }) => {
 		await open(page, "A [Sam](../../Codex/Sam.md) and [Ch](ch-a2.md).\n\nend\n");
 		await content(page).click();
-		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press(DOC_END);
 		expect(await page.evaluate(() => window.__app.editors!.pathIn("lore"))).toBeNull();
 		await content(page).locator(".sf-link-live", { hasText: "Sam" }).click();
 		expect(await page.evaluate(() => window.__app.editors!.pathIn("lore"))).toBeNull(); // a plain click
 		await content(page).locator(".sf-link-live", { hasText: "Sam" }).click({ modifiers: ["ControlOrMeta"] });
 		await expect.poll(() => page.evaluate(() => window.__app.editors!.pathIn("lore"))).toBe("Codex/Sam.md");
 		await page.locator(".sf-slot--centre .cm-content").click();
-		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press(DOC_END);
 		await content(page).locator(".sf-link-muted", { hasText: "Ch" }).click({ modifiers: ["ControlOrMeta"] });
 		expect(await page.evaluate(() => window.__app.editors!.pathIn("lore"))).toBe("Codex/Sam.md"); // unchanged
 	});
@@ -340,7 +340,7 @@ test.describe("Codex links", () => {
 		await open(page, "A [Sam](../../Codex/Sam.md) and [Ch](ch-a2.md).\n\nplain words\n");
 		await content(page).click();
 		const caretIn = async (needle: string): Promise<void> => {
-			await page.keyboard.press(`${MOD}+ArrowUp`);
+			await page.keyboard.press(DOC_START);
 			const n = (await content(page).locator(".cm-line").first().textContent())!.indexOf(needle) + 1;
 			await page.keyboard.press("Home");
 			for (let i = 0; i < n; i++) await page.keyboard.press("ArrowRight");
@@ -353,7 +353,7 @@ test.describe("Codex links", () => {
 		await caretIn("Ch]");
 		await page.keyboard.press(`${MOD}+Enter`);
 		expect(await docOf(page)).toBe(before); // muted: nothing happens, no blank line
-		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.press("ArrowUp");
 		await page.keyboard.press(`${MOD}+Enter`);
 		expect((await docOf(page)).split("\n").length).toBe(before.split("\n").length + 1); // elsewhere: the usual blank line
@@ -374,7 +374,7 @@ test.describe("Codex links", () => {
 		await toNovelTab(page);
 		const box = page.getByRole("textbox", { name: "Plot note for Chapter 1" });
 		await box.click();
-		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.press("Enter");
 		await page.keyboard.type("[[sam");
 		await expect(popup(page).getByRole("option", { name: /Sam/ })).toBeVisible();
@@ -485,7 +485,7 @@ test.describe("the chapter length bar (decision 160)", () => {
 		await openWith(page, 10);
 		const before = (await box(strip(page).locator(".sf-length-fill"))).width;
 		await page.locator(".sf-slot--centre .cm-content").click();
-		await page.keyboard.press(`${MOD}+ArrowDown`);
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.type(" more words typed right now to make the chapter longer than it was before");
 		await expect.poll(async () => (await box(strip(page).locator(".sf-length-fill"))).width).toBeGreaterThan(before);
 		await expect(strip(page)).toHaveAttribute("aria-label", /^Chapter length: 2\d of 2,500 words$/);

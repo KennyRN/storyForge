@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import * as path from "node:path";
-import { flipFace, openPreview, openSettingsDialog } from "./helpers";
+import { REDO, flipFace, openPreview, openSettingsDialog } from "./helpers";
 
 // Brief 14, commit 4 (§1.6, §1.7): on the library side's novel tab the context panel shows the chosen chapter: PoV, Location, the plot note
 // and the chapter's text, read-only; and one chosen chapter is shared by both sides. The plot-note and PoV tests that lived on the overview's
@@ -165,7 +165,7 @@ test.describe("the context panel on the novel tab", () => {
 		expect(await fieldText(field)).toBe("It’s – ’twas…");
 		await page.keyboard.press("ControlOrMeta+z");
 		expect(await fieldText(field)).toBe("It’s – ’twas...");
-		await page.keyboard.press("ControlOrMeta+Shift+z");
+		await page.keyboard.press(REDO);
 		expect(await fieldText(field)).toBe("It’s – ’twas…");
 		await overview(page).locator(".sf-overview-title").click();
 		await expect.poll(() => read(page, BOOK_A)).toContain("It’s – ’twas…");
