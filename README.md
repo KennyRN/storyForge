@@ -19,7 +19,8 @@ The Windows version is a **preview**: it has been tested by automatic tests on a
 
 1. Download `storyForge_<version>_windows-preview_x64-setup.exe` from the [releases page](../../releases).
 2. Run it. It installs for your own account only and needs no administrator rights. If Windows doesn't have Microsoft's WebView2 (Windows 11 does, and most Windows 10 machines), the installer fetches it: that is the installer's one network request, and storyForge itself makes none.
-3. Windows shows **"Windows protected your PC"**, because the installer isn't signed by a paid certificate. Choose **More info**, then **Run anyway**.
+3. Windows shows **"Windows protected your PC"**, because the installer isn't signed by a paid certificate. Choose **More info**: the dialog then names the file and says **"Publisher: Unknown publisher"**, which is expected for this installer. Then choose **Run anyway**.
+4. **If there is no "Run anyway" button, stop and tell Kenny** (open an issue or message him). Do not turn off SmartScreen or Smart App Control for storyForge, and do not change any security setting to get past it: the preview is not worth that.
 
 ## Checking a download is genuine
 

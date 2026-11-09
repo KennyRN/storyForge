@@ -45,8 +45,8 @@ export async function openSettingsDialog(page: Page): Promise<void> {
  * reaches buttons (WebKit needs Option-Tab, which is WebKit's own behaviour and not an app shortcut).
  */
 const chromium = process.env.SF_BROWSER === "chromium";
-/** The invisible title bar's band: 28 px on the Mac, none on Windows (Brief 22). */
-export const BAND = chromium && (process.platform === "win32" || !!process.env.SF_WINDOWS_UA) ? 0 : 28;
+/** The invisible title bar's band: 28 px on the Mac, 12 px on Windows (Brief 22). */
+export const BAND = chromium && (process.platform === "win32" || !!process.env.SF_WINDOWS_UA) ? 12 : 28;
 /** Redo: a real keyboard sends an upper-case Z with Shift held; Playwright's "Shift+z" sends a lower-case one, which CodeMirror reads as plain Ctrl-Z. */
 export const REDO = chromium ? "Control+Shift+Z" : "ControlOrMeta+Shift+z";
 export const TAB = chromium ? "Tab" : "Alt+Tab";

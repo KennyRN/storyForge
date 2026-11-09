@@ -435,6 +435,15 @@ fn item(app: &tauri::AppHandle, id: &str, label: &str, accel: Option<&str>) -> t
     MenuItem::with_id(app, id, label, true, accel)
 }
 
+#[cfg(target_os = "macos")]
+const UNDO_KEY: Option<&str> = Some("CmdOrCtrl+Z");
+#[cfg(target_os = "macos")]
+const REDO_KEY: Option<&str> = Some("Shift+CmdOrCtrl+Z");
+#[cfg(not(target_os = "macos"))]
+const UNDO_KEY: Option<&str> = None;
+#[cfg(not(target_os = "macos"))]
+const REDO_KEY: Option<&str> = None;
+
 /// The menu bar (docs/interface.md §7). Items that act on the window emit the `menu` event with their id; the
 /// window decides what to do (Rust never opens a path on its own initiative). Quit is handled here.
 fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
@@ -504,8 +513,11 @@ fn build_menu(app: &tauri::AppHandle) -> tauri::Result<Menu<tauri::Wry>> {
         "Edit",
         true,
         &[
-            &item(app, "undo", "Undo", Some("CmdOrCtrl+Z"))?,
-            &item(app, "redo", "Redo", Some("Shift+CmdOrCtrl+Z"))?,
+            // Undo and redo: on the Mac the menu's key equivalents take ⌘Z and ⇧⌘Z before the page sees them. On Windows the keys
+            // belong to the editor's own keymaps (Ctrl-Z, Ctrl-Y and Ctrl-Shift-Z, with preventDefault), so these items carry no
+            // accelerator there and a keystroke can never reach both routes; clicking the item is the menu's route.
+            &item(app, "undo", "Undo", UNDO_KEY)?,
+            &item(app, "redo", "Redo", REDO_KEY)?,
             &PredefinedMenuItem::separator(app)?,
             &PredefinedMenuItem::cut(app, None)?,
             &PredefinedMenuItem::copy(app, None)?,

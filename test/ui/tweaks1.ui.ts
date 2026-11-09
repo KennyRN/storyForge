@@ -142,7 +142,7 @@ test.describe("the context panel on the novel page", () => {
 	const synopsisTop = async (page: Page) => (await rect(page.locator(".sf-overview-head .sf-section-field"))).y;
 
 	test("the chapter information box's top is level with the synopsis box's, and the PoV and Location rows sit 12px above it", async ({ page }) => {
-		test.skip(BAND === 0, "Windows has no title band: the 28 px offsets here are the Mac's");
+		test.skip(BAND !== 28, "Windows has no title band (12 px gap instead): the 28 px offsets here are the Mac's");
 		await open(page, "novel");
 		await expect.poll(async () => Math.abs((await plotTop(page)) - (await synopsisTop(page)))).toBeLessThan(1);
 		const rows = await rect(page.locator(".sf-chapter-rows"));

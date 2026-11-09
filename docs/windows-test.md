@@ -5,7 +5,7 @@ Thank you for trying this. It is a **preview**: the Mac version has been used fo
 ## Before you start
 
 1. Download the installer and the sample project (`storyForge-sample-project.zip`) from the release page.
-2. Windows will say **"Windows protected your PC"** because the installer is not signed. Choose **More info**, then **Run anyway**. The installer needs no administrator rights.
+2. Windows will say **"Windows protected your PC"** because the installer is not signed. Choose **More info**: it names the file and says **"Publisher: Unknown publisher"**, which is expected. Then choose **Run anyway**. **If there is no "Run anyway" button, stop and tell Kenny.** Never turn off SmartScreen or Smart App Control for storyForge. The installer needs no administrator rights.
 3. Unzip the sample project somewhere ordinary, for example your Documents folder (not a folder OneDrive is syncing for the first part of the test).
 
 ## The test
@@ -43,7 +43,7 @@ Made from scratch by `scripts/sample-project.mjs`; every word is invented. **Not
 ## Things to look at that the automatic tests cannot judge
 
 - The look of the text: Windows draws fonts differently from the Mac. Does anything look too heavy, cut off or misaligned?
-- The top of the window: Windows' own title bar is used, and the panels start right under it. Does the top of the panels feel cramped against the bar?
+- The top of the window: Windows' own title bar is used, and everything starts 12 px below it (as the window ends 12 px above its foot). Does it look right?
 - Red underlines under misspelt words in the chapter.
-- Typing: curly quotes, `--` becoming a dash, `~th` offering "the Right Honourable…" and Tab accepting it. Press Ctrl+Z straight after one of these: you should get back exactly what you typed. Then Ctrl+Shift+Z or Ctrl+Y: the correction again.
+- Typing: curly quotes, `--` becoming a dash, `~th` offering "the Right Honourable…" and Tab accepting it. Press Ctrl+Z straight after one of these: you should get back exactly what you typed (one step, once). Then Ctrl+Y, and again Ctrl+Z and Ctrl+Shift+Z: each should redo or undo **one** step, never two. This is a confirmation, not a hunt: you are only checking that a step is never taken twice. Also try Edit ▸ Undo and Edit ▸ Redo from the menu with the mouse.
 - Ctrl+click on a link to a Codex entry, and Ctrl+Return with the cursor on it, open the entry (on the Codex tab and the storytelling side).
