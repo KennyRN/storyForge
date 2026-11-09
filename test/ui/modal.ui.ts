@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openPreview, openSettingsDialog } from "./helpers";
+import { SHIFT_TAB, TAB, openPreview, openSettingsDialog } from "./helpers";
 
 // Fix 8 (decision 119): one way for dialogs to behave. Keys are Option-Tab (decision 118): plain Tab skips buttons on Kenny's Mac.
 
@@ -56,18 +56,18 @@ test.describe("modal dialogs", () => {
 		await openSettingsDialog(page);
 		const seen = new Set<string>();
 		for (let i = 0; i < 40; i++) {
-			await page.keyboard.press("Alt+Tab");
+			await page.keyboard.press(TAB);
 			expect(await insideDialog(page)).toBe(true);
 			seen.add(await page.evaluate(() => `${document.activeElement?.tagName}|${document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.textContent}`));
 		}
 		expect(seen.size).toBeGreaterThan(3);
 		for (let i = 0; i < 40; i++) {
-			await page.keyboard.press("Alt+Shift+Tab");
+			await page.keyboard.press(SHIFT_TAB);
 			expect(await insideDialog(page)).toBe(true);
 		}
 		// Done is the last stop; one more wraps to the first.
 		await page.getByRole("button", { name: "Done" }).focus();
-		await page.keyboard.press("Alt+Tab");
+		await page.keyboard.press(TAB);
 		expect(await insideDialog(page)).toBe(true);
 		await expect(page.getByRole("button", { name: "Done" })).not.toBeFocused();
 		// The page behind is out of reach.
@@ -93,7 +93,7 @@ test.describe("modal dialogs", () => {
 		await page.evaluate(() => document.querySelector<HTMLElement>(".sf-stats-chart")?.click()); // asked again, even though the page is inert
 		await expect(dialogs(page)).toHaveCount(1);
 		for (let i = 0; i < 12; i++) {
-			await page.keyboard.press("Alt+Tab");
+			await page.keyboard.press(TAB);
 			expect(await insideDialog(page)).toBe(true);
 		}
 		await page.keyboard.press("Escape");

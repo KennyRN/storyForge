@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openPreview, shot } from "./helpers";
+import { DOC_END, openPreview, shot } from "./helpers";
 
 // Brief 10, commit 5: the context panel's card and bottom row (docs/look.md §3.3).
 
@@ -80,7 +80,7 @@ test.describe("the context panel's card", () => {
 		const before = await rect(card(page));
 		const content = page.locator(".sf-slot--lore .cm-content");
 		await content.click();
-		await page.keyboard.press("ControlOrMeta+ArrowDown");
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.insertText(`\n${"A_very_long_unbroken_word_that_has_to_wrap_somewhere ".repeat(4)}\n${"line\n".repeat(80)}`);
 		const m = await page.locator(".sf-slot--lore .cm-scroller").evaluate((el) => ({ scrolls: el.scrollHeight > el.clientHeight + 50, wide: el.scrollWidth > el.clientWidth + 1 }));
 		expect(m.scrolls).toBe(true);

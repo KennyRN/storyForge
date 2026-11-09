@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { shot } from "./helpers";
+import { SHIFT_TAB, TAB, shot } from "./helpers";
 
 test.beforeEach(async ({ page }) => {
 	await page.goto("/gallery.html");
@@ -15,10 +15,10 @@ test.describe("the kit", () => {
 	test("an icon-only button has a tooltip and an accessible name; the tooltip shows on keyboard focus", async ({ page }) => {
 		const b = page.locator("#icon-button");
 		await expect(b).toHaveAccessibleName("Settings");
-		await page.keyboard.press("Alt+Tab");
+		await page.keyboard.press(TAB);
 		await page.locator("#icon-button").focus();
-		await page.keyboard.press("Alt+Shift+Tab");
-		await page.keyboard.press("Alt+Tab");
+		await page.keyboard.press(SHIFT_TAB);
+		await page.keyboard.press(TAB);
 		await expect(page.getByRole("tooltip")).toHaveText("Settings");
 		await page.keyboard.press("Escape");
 		await expect(page.getByRole("tooltip")).toHaveCount(0);
@@ -55,7 +55,7 @@ test.describe("the kit", () => {
 		await expect(dialog).toBeVisible();
 		await expect(dialog.getByLabel("Name")).toBeFocused();
 		for (let i = 0; i < 6; i++) {
-			await page.keyboard.press("Alt+Tab");
+			await page.keyboard.press(TAB);
 			expect(await page.evaluate(() => !!document.activeElement?.closest(".sf-dialog"))).toBe(true);
 		}
 		await page.keyboard.press("Escape");
@@ -117,7 +117,7 @@ test.describe("the kit", () => {
 	test("every control in the gallery is reachable with Tab, and shows a focus ring", async ({ page }) => {
 		const names: string[] = [];
 		for (let i = 0; i < 14; i++) {
-			await page.keyboard.press("Alt+Tab");
+			await page.keyboard.press(TAB);
 			const info = await page.evaluate(() => {
 				const a = document.activeElement as HTMLElement | null;
 				return a && a !== document.body ? { tag: a.tagName, name: a.getAttribute("aria-label") ?? a.textContent ?? a.id, ring: getComputedStyle(a).outlineStyle !== "none" } : null;

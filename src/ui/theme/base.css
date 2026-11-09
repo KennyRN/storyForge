@@ -308,6 +308,14 @@ input[aria-invalid="true"] {
 	height: 100%;
 }
 /* The invisible title bar: an empty band across the top that drags the window (Tauri's drag region), with no title drawn. */
+/* Windows has its own title bar and no traffic lights: the band and the drag region go, and the panels start at the top (Brief 22). The menu's chevron keeps a 28 px box of its own. */
+:root[data-platform="windows"] {
+	--band-h: 0px;
+	--chevron-h: 28px;
+}
+:root[data-platform="windows"] .sf-titlebar {
+	display: none;
+}
 .sf-titlebar {
 	position: fixed;
 	top: 0;

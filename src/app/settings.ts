@@ -518,6 +518,8 @@ export interface MachineProjectState {
 	statsCount?: StatsCount;
 	/** The last chapter written in each novel, by novel folder (Brief 19): where "Write this novel" reopens. A position, so it stays on this computer, never in the project. */
 	lastChapters?: Record<string, string>;
+	/** Brief 22: the paths of the names Windows can't hold that the author has already been told about, so the list is shown again only when new ones appear. */
+	windowsNamesSeen?: string[];
 }
 
 export const DEFAULT_MACHINE_PROJECT_STATE: MachineProjectState = { selectedNovel: null, selectedObject: null, collapsedCodexFolderIds: [] };
@@ -552,6 +554,7 @@ export async function loadMachineProjectState(store: MachineStore, projectKey: s
 			...(parsed.loreHidden === true ? { loreHidden: true } : {}),
 			...(STATS_COUNTS.some((c) => c === parsed.statsCount) && parsed.statsCount !== "day" ? { statsCount: parsed.statsCount as StatsCount } : {}),
 			...(parsed.lastChapters && typeof parsed.lastChapters === "object" && !Array.isArray(parsed.lastChapters) ? { lastChapters: Object.fromEntries(Object.entries(parsed.lastChapters).filter(([, v]) => typeof v === "string")) as Record<string, string> } : {}),
+			...(Array.isArray(parsed.windowsNamesSeen) ? { windowsNamesSeen: parsed.windowsNamesSeen.filter((v: unknown) => typeof v === "string") as string[] } : {}),
 			...("cardTiers" in parsed ? { cardTiers: parsed.cardTiers } : {}),
 		};
 	} catch {

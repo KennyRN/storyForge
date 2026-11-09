@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { flipFace, openPreview } from "./helpers";
+import { BAND, SHIFT_TAB, TAB, flipFace, openPreview } from "./helpers";
 
 // Tweaks 2 (1.12.2): the Codex and Archive tabs, and the selectors. Figures are measured from the page.
 
@@ -25,7 +25,7 @@ test.describe("§1.1 and §1.2 the tabs' squares, measured once", () => {
 		expect(Math.abs((await top("Archived item")) - sq.top)).toBeLessThan(1);
 		await flipFace(page);
 		const centre = await page.evaluate(() => document.querySelector(".sf-slot--centre")!.getBoundingClientRect().top);
-		expect(centre).toBe(28);
+		expect(centre).toBe(BAND);
 	});
 	test("the title's baseline is on the same squares' bottom, after the layout changes", async ({ page }) => {
 		await open(page, "novel");
@@ -233,8 +233,8 @@ test.describe("the series panel (§1.9 to §1.11)", () => {
 		await expect.poll(() => b.evaluate((e) => getComputedStyle(e).color)).toBe(title);
 		await page.mouse.move(600, 600);
 		await page.locator(".sf-novel-ctx-write").focus();
-		await page.keyboard.press("Alt+Shift+Tab");
-		await page.keyboard.press("Alt+Tab");
+		await page.keyboard.press(SHIFT_TAB);
+		await page.keyboard.press(TAB);
 		await expect(b).toBeFocused();
 		expect(await b.evaluate((e) => getComputedStyle(e).outlineStyle)).not.toBe("none"); // the focus ring shows for the keyboard
 	});

@@ -101,6 +101,23 @@ for (const side of SIDES) {
 			expect(await onDisk(page, CODEX)).toContain("Codex/Lantern.md");
 		});
 
+		test("Windows (Brief 22): a trailing dot is trimmed in the box first, and nothing is made until the next Return; a reserved name is refused", async ({ page }) => {
+			await page.getByRole("button", { name: "New note" }).click();
+			await noteBox(page).fill("Lantern.");
+			await page.keyboard.press("Enter");
+			await expect(noteBox(page)).toHaveValue("Lantern"); // the box shows the trimmed name
+			await expect(page.locator(".sf-codex-draft [role=alert]")).toContainText("Press Return to create “Lantern”");
+			expect(await onDisk(page, "Codex/Lantern.md")).toBeNull(); // still nothing made
+			await page.keyboard.press("Enter");
+			await expect(tree(page).getByRole("treeitem", { name: "Lantern", exact: true })).toBeVisible();
+			expect(await onDisk(page, "Codex/Lantern.md")).toBe("");
+			await page.getByRole("button", { name: "New note" }).click();
+			await noteBox(page).fill("NUL");
+			await expect(page.locator(".sf-codex-draft [role=alert]")).toContainText("reserved by Windows");
+			await page.keyboard.press("Enter");
+			expect(await onDisk(page, "Codex/NUL.md")).toBeNull();
+		});
+
 		test("Escape creates nothing, for a note and for a folder", async ({ page }) => {
 			const before = await onDisk(page, CODEX);
 			await page.getByRole("button", { name: "New note" }).click();

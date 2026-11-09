@@ -1,6 +1,7 @@
 import { Annotation, EditorState, Transaction, type ChangeSet } from "@codemirror/state";
 import { EditorView, drawSelection, keymap } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, redo, undo } from "@codemirror/commands";
+import { redoKeymap } from "./redoKeymap";
 import { openSearchPanel, search, searchKeymap } from "@codemirror/search";
 import type { ProseSession } from "../../core/proseWriter";
 import type { EditOrigin } from "../../core/sessions";
@@ -40,7 +41,7 @@ const common = [
 	EditorView.contentAttributes.of({ spellcheck: "true", autocorrect: "off", autocapitalize: "off", "aria-label": "Text" }),
 	search({ top: true }),
 	prose(),
-	keymap.of([...emphasisKeymap, ...searchKeymap, ...historyKeymap, ...defaultKeymap]),
+	keymap.of([...emphasisKeymap, ...searchKeymap, ...redoKeymap, ...historyKeymap, ...defaultKeymap]),
 ];
 
 export interface MountedEditor {

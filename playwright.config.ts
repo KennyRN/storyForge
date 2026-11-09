@@ -11,7 +11,7 @@ export default defineConfig({
 	fullyParallel: false,
 	workers: 1,
 	reporter: [["list"]],
-	use: { baseURL: "http://127.0.0.1:1421", ...(chromium ? devices["Desktop Chrome"] : devices["Desktop Safari"]), viewport: { width: 1280, height: 800 }, reducedMotion: "no-preference", trace: "retain-on-failure", screenshot: "only-on-failure" },
+	use: { baseURL: "http://127.0.0.1:1421", ...(chromium ? devices["Desktop Chrome"] : devices["Desktop Safari"]), viewport: { width: 1280, height: 800 }, reducedMotion: "no-preference", ...(process.env.SF_WINDOWS_UA ? { userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36" } : {}), trace: "retain-on-failure", screenshot: "only-on-failure" },
 	projects: [{ name: chromium ? "chromium" : "webkit" }],
 	webServer: { command: "npx vite --config vite.preview.config.ts", url: "http://127.0.0.1:1421/index.html", reuseExistingServer: true, timeout: 120_000, env: { VITE_CONFIG_NATIVE_IGNORE_WARNING: "true" } },
 });

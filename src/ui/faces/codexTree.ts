@@ -266,13 +266,17 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 	}
 
 	/** What is wrong with a typed name for the new thing, in words, or null: the rename's own rules (no [ ] # ^ |, not empty), no character a file name can't hold, no clash with a note that is there. */
+	/** A trailing dot or space can't be in a Windows file name: it is removed, and the box shows the name without it before anything is created (Brief 22). */
+	const TRAILING = /[. ]+$/;
+	const trimmedNote = (typed: string): string => typed.trim().replace(/\.md$/i, "").replace(TRAILING, "");
+	const needsTrim = (kind: "folder" | "note", typed: string): boolean => kind === "note" && trimmedNote(typed) !== typed.trim().replace(/\.md$/i, "");
 	const draftProblem = (kind: "folder" | "note", typed: string, parent: string | null): string | null => {
 		const name = typed.trim();
 		if (!name) return "Type a name.";
 		if (kind === "note") {
 			const p = nameProblem(name, "");
 			if (p) return p;
-			if (sanitizeCodexBasename(name) !== name.replace(/\.md$/i, "")) return "A note name can't contain / \\ ? % * : | \" < >, or end in a dot or a space.";
+			if (sanitizeCodexBasename(name) !== name.replace(/\.md$/i, "").replace(TRAILING, "")) return "A note name can't contain / \\ ? % * : | \" < >, or end in a dot or a space.";
 		}
 		// Case and accents are ignored: a note against every note, a folder against the folders beside it.
 		if (codexNameClash(project(), kind, parent, name)) return kind === "note" ? `There is already a note called “${name}”.` : `There is already a folder called “${name}” here.`;
@@ -294,7 +298,7 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 			if (!mine) return;
 			draft = null;
 			const name = input.value.trim();
-			if (confirm && name && !draftProblem(mine.kind, name, mine.parent)) {
+			if (confirm && name && !draftProblem(mine.kind, name, mine.parent) && !needsTrim(mine.kind, name)) {
 				void run(mine.kind === "folder" ? "create the folder" : "create the note", async () => {
 					if (mine.kind === "folder") {
 						const id = await createCodexFolder(project(), mine.parent, name);
@@ -323,6 +327,13 @@ export function mountCodexTree(host: HTMLElement, model: AppModel, options: { he
 			e.stopPropagation();
 			if (e.key === "Enter") {
 				e.preventDefault();
+				if (input.value.trim() && !check() && needsTrim(d.kind, input.value)) {
+					// Show the trimmed name first; the next Return creates it.
+					input.value = trimmedNote(input.value);
+					d.text = input.value;
+					problem.textContent = `A file name can't end in a dot or a space, so they were removed. Press Return to create “${input.value}”.`;
+					return;
+				}
 				if (input.value.trim() && !check()) finish(true);
 				else check();
 				if (!input.value.trim()) problem.textContent = "Type a name.";

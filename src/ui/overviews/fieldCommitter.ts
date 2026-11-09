@@ -1,4 +1,5 @@
 import { defaultKeymap, history, historyKeymap, insertNewline, redo, undo } from "@codemirror/commands";
+import { redoKeymap } from "../editor/redoKeymap";
 import { Compartment, EditorState, type Extension } from "@codemirror/state";
 import { EditorView, keymap, placeholder } from "@codemirror/view";
 import { registerFocusedField } from "../commitOnClose";
@@ -69,7 +70,7 @@ export function textField(spec: FieldSpec, bin?: FieldBin): TextField {
 				history(),
 				EditorView.lineWrapping,
 				// Plain text: Return is a new line (no auto-indent), and Tab is not bound, so it leaves the field for the next control.
-				keymap.of([{ key: "Enter", run: insertNewline }, ...historyKeymap, ...defaultKeymap]),
+				keymap.of([{ key: "Enter", run: insertNewline }, ...redoKeymap, ...historyKeymap, ...defaultKeymap]),
 				...(spec.placeholder ? [placeholder(spec.placeholder)] : []),
 				access.of(attributes()),
 				// The same light dressing as the chapter editor (Brief 17): emphasis, highlights, their colours and the hidden markers. Display only: it adds

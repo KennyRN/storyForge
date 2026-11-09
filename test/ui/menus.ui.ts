@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openPreview, shot, flipFace, openSettingsDialog } from "./helpers";
+import { DOC_START, flipFace, openPreview, openSettingsDialog, shot } from "./helpers";
 
 const PROJECT_MD = "_backstage/storyforge/project.md";
 const dialog = (page: Page) => page.getByRole("dialog");
@@ -71,7 +71,7 @@ test.describe("the menus", () => {
 	test("Edit: Undo and Redo act on the editor; Find and Find and Replace open its panel", async ({ page }) => {
 		await openProject(page);
 		await centre(page).click();
-		await page.keyboard.press("ControlOrMeta+ArrowUp");
+		await page.keyboard.press(DOC_START);
 		await page.keyboard.type("XYZ");
 		await expect(page.locator(".sf-slot--centre .cm-line").first()).toContainText("XYZ");
 		await menu(page, "undo");

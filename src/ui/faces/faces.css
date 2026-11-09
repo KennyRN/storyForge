@@ -553,7 +553,7 @@ body.sf-codex-drag-active {
 	top: 0;
 	right: var(--space-2);
 	z-index: 5; /* over the title bar's drag band */
-	height: var(--band-h);
+	height: var(--chevron-h, var(--band-h));
 	display: inline-flex;
 	align-items: center;
 	padding: 0 6px;
@@ -573,7 +573,7 @@ body.sf-codex-drag-active {
 }
 .sf-navmenu {
 	position: absolute;
-	top: var(--band-h);
+	top: var(--chevron-h, var(--band-h));
 	right: var(--space-2);
 	z-index: var(--z-float);
 	min-width: 200px;

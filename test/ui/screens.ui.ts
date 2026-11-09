@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import * as nodePath from "node:path";
 import { plantLeftovers } from "../helpers/leftovers";
-import { openPreview, shot } from "./helpers";
+import { DOC_END, openPreview, shot } from "./helpers";
 
 const CH2 = "_story-library/aaa/ch-a2.md";
 const dialog = (page: Page) => page.getByRole("dialog");
@@ -126,7 +126,7 @@ test.describe("the screens around the faces", () => {
 			await openProject(page, withLinks(page));
 			await page.locator(".sf-codex-file", { hasText: "Sam" }).click();
 			await page.locator(".sf-slot--lore .cm-content").click();
-			await page.keyboard.press("ControlOrMeta+ArrowDown");
+			await page.keyboard.press(DOC_END);
 			await page.keyboard.type(" Unsaved words.");
 			await page.locator(".sf-codex-file", { hasText: "Sam" }).click({ button: "right" });
 			await page.getByRole("menuitem", { name: "Rename…" }).click();
@@ -145,7 +145,7 @@ test.describe("the screens around the faces", () => {
 			await page.getByRole("button", { name: "Chapters" }).click();
 			await page.locator(".sf-select-row", { hasText: "The Storm" }).click();
 			await page.locator(".sf-slot--centre .cm-content").click();
-			await page.keyboard.press("ControlOrMeta+ArrowDown");
+			await page.keyboard.press(DOC_END);
 			await page.keyboard.type(" Typed just now.");
 			await page.locator(".sf-codex-file", { hasText: "Jane" }).click({ button: "right" });
 			await page.getByRole("menuitem", { name: "Rename…" }).click();

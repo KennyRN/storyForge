@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { openPreview, flipFace, openSettingsDialog } from "./helpers";
+import { SHIFT_TAB, TAB, flipFace, openPreview, openSettingsDialog } from "./helpers";
 
 // Brief 11, commit 4: the Codex list refined (docs/look-2.md, decisions 62 and 65), on both sides. The fixture's Codex: Cast
 // (Jane, Sam), Places (a folder that is also the note Harbour, and whose own order also lists Harbour), Windows, and others.
@@ -83,16 +83,16 @@ for (const side of SIDES) {
 			await page.mouse.move(0, 0);
 			await expect.poll(state).toEqual({ bg: "rgba(0, 0, 0, 0)", border: "rgba(0, 0, 0, 0)", color: rest });
 			await btn.focus();
-			await page.keyboard.press("Alt+Shift+Tab");
-			await page.keyboard.press("Alt+Tab"); // by the keyboard, so the focus shows
+			await page.keyboard.press(SHIFT_TAB);
+			await page.keyboard.press(TAB); // by the keyboard, so the focus shows
 			await expect.poll(state).toEqual({ bg: "rgba(0, 0, 0, 0)", border: "rgba(0, 0, 0, 0)", color: codex });
 		});
 
 		test("still buttons: focusable with a tooltip and the focus ring, and ↓ moves between them", async ({ page }) => {
 			const folder = page.getByRole("button", { name: "New folder" });
 			await folder.focus();
-			await page.keyboard.press("Alt+Shift+Tab");
-			await page.keyboard.press("Alt+Tab"); // by the keyboard, so the focus shows
+			await page.keyboard.press(SHIFT_TAB);
+			await page.keyboard.press(TAB); // by the keyboard, so the focus shows
 			await expect(folder).toBeFocused();
 			await expect(page.getByRole("tooltip")).toHaveText("New folder");
 			expect(await folder.evaluate((e) => getComputedStyle(e).outlineStyle)).not.toBe("none");
@@ -179,8 +179,8 @@ test.describe("decision 67", () => {
 		await row(page, "Sam").click(); // selected: highlighted
 		await expect(page.locator(".sf-slot--lore .cm-content")).toBeFocused(); // the note has opened and taken its focus; only then is the row focused
 		await row(page, "Sam").focus();
-		await page.keyboard.press("Alt+Shift+Tab");
-		await page.keyboard.press("Alt+Tab"); // by the keyboard, so the ring shows
+		await page.keyboard.press(SHIFT_TAB);
+		await page.keyboard.press(TAB); // by the keyboard, so the ring shows
 		await expect(row(page, "Sam")).toBeFocused();
 		const [ring, block, text] = await row(page, "Sam").evaluate((e) => { const s = getComputedStyle(e); return [s.outlineColor, s.backgroundColor, getComputedStyle(e.querySelector(".sf-codex-name")!).color]; });
 		expect(await row(page, "Sam").evaluate((e) => getComputedStyle(e).outlineStyle)).toBe("solid");

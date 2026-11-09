@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { flipFace, openPreview } from "./helpers";
+import { TAB, flipFace, openPreview } from "./helpers";
 
 // Brief 13, commit 3: the navigator (decisions 79 to 81).
 
@@ -52,7 +52,7 @@ test.describe("the navigator", () => {
 		await openProject(page);
 		await page.mouse.move(600, 600);
 		await page.locator(".sf-select--novelname .sf-select-current").focus(); // the novel selector first, then the chapter selector
-		await page.keyboard.press("Alt+Tab");
+		await page.keyboard.press(TAB);
 		const cur = page.locator(".sf-select--chapters .sf-select-current");
 		await expect(cur).toBeFocused();
 		expect(await cur.evaluate((e) => getComputedStyle(e).backgroundColor)).toBe("rgba(0, 0, 0, 0)");

@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { readFileSync, writeFileSync } from "node:fs";
 import * as path from "node:path";
-import { flipFace, openPreview } from "./helpers";
+import { BAND, flipFace, openPreview } from "./helpers";
 
 // Tweaks 1, part 2 (Kenny's look): the resting grid, where Codex entries open, the shared label gap, the joined progress bar and strip, the series page and the
 // storytelling side's novel selector. Figures are measured from the page.
@@ -130,7 +130,7 @@ test.describe("§4 the series page", () => {
 		const centralBase = await base(page.locator(".sf-overview-title"));
 		expect(Math.abs(titleBase - centralBase)).toBeLessThan(1);
 		const title = await box(page.locator(".sf-novel-ctx-title-text"));
-		expect(title.y).toBeGreaterThanOrEqual(48);
+		expect(title.y).toBeGreaterThanOrEqual(20 + BAND);
 		expect(await panel(page).getAttribute("data-align-short-by")).toBe("0"); // the cover is not short of its line
 		const c = await box(cover);
 		const pov = await box(page.locator(".sf-novel-ctx-head > .sf-meta-row"));
@@ -292,7 +292,7 @@ test.describe("§6 the storytelling side", () => {
 		expect(f.x).toBeLessThan(t.x);
 		expect(f.y).toBeLessThan(t.y);
 		expect(f.y).toBeGreaterThanOrEqual(s.y + s.height - 0.5); // the fill clears the series name
-		expect(Math.round(t.y * 10) / 10).toBe(68.8); // and the text did not move
+		expect(Math.round(t.y * 10) / 10).toBe(Math.round((40.8 + BAND) * 10) / 10); // and the text did not move
 	});
 
 	test("§6.1 a standalone project shows no selector; its name is a plain label", async ({ page }) => {

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openPreview, shot } from "./helpers";
+import { DOC_END, TAB, openPreview, shot } from "./helpers";
 
 const CODEX = "_backstage/storyforge/codex.md";
 const BOOK = "_story-library/novel-aaa.md";
@@ -60,8 +60,8 @@ test.describe("the storytelling face", () => {
 		await openProject(page);
 		await page.getByRole("button", { name: "Chapters" }).focus();
 		await page.keyboard.press("Enter");
-		await page.keyboard.press("Alt+Tab");
-		await page.keyboard.press("Alt+Tab");
+		await page.keyboard.press(TAB);
+		await page.keyboard.press(TAB);
 		await page.keyboard.press("Enter");
 		await expect.poll(() => page.evaluate(() => window.__app.editors!.pathIn("centre"))).toBe("_story-library/aaa/ch-a2.md");
 	});
@@ -142,7 +142,7 @@ test.describe("the storytelling face", () => {
 			await openProject(page);
 			await codexRow(page, "Jane").click();
 			await lore(page).click();
-			await page.keyboard.press("ControlOrMeta+ArrowDown");
+			await page.keyboard.press(DOC_END);
 			await page.keyboard.type(" Written beside the chapter.");
 			await expect.poll(() => onDisk(page, "Codex/Jane.md"), { timeout: 4000 }).toContain("Written beside the chapter.");
 			const text = await onDisk(page, "Codex/Jane.md");
@@ -296,7 +296,7 @@ test.describe("the storytelling face", () => {
 			for (let i = 0; i < 3; i++) await stepper(page).click();
 			await expect(value(page)).toHaveText("Words this chapter: 22");
 			await centre(page).click();
-			await page.keyboard.press("ControlOrMeta+ArrowDown");
+			await page.keyboard.press(DOC_END);
 			await page.keyboard.type(" three more words");
 			await expect(value(page)).toHaveText("Words this chapter: 25", { timeout: 6000 });
 		});

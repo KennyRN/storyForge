@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { openPreview, shot } from "./helpers";
+import { DOC_END, DOC_START, LINE_START, openPreview, shot } from "./helpers";
 
 const CH1 = "_story-library/aaa/ch-a1.md";
 const CH2 = "_story-library/aaa/ch-a2.md";
@@ -28,7 +28,7 @@ test.describe("the editor", () => {
 		await openProject(page);
 		await open(page, "centre", CH1);
 		await content(page).click();
-		await page.keyboard.press("ControlOrMeta+ArrowUp");
+		await page.keyboard.press(DOC_START);
 		await page.keyboard.type("Hello. ");
 		await page.waitForTimeout(900);
 		expect(await onDisk(page, CH1)).not.toContain("Hello. ");
@@ -47,7 +47,7 @@ test.describe("the editor", () => {
 		await expect(content(page)).not.toContainText("custom-key");
 		await expect(content(page)).toContainText("The first line.");
 		await content(page).click();
-		await page.keyboard.press("ControlOrMeta+ArrowDown");
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.type(" Added.");
 		await expect.poll(() => onDisk(page, CH2), { timeout: 4000 }).toContain("Added.");
 		expect(await onDisk(page, CH2)).toMatch(/^---\nplot: kept\ncustom-key: also kept\n---\nThe first line\./);
@@ -78,7 +78,7 @@ test.describe("the editor", () => {
 		test("markers are hidden off the caret's line and shown on it", async ({ page }) => {
 			// the caret starts at the top: the heading line shows its marker, the others do not
 			await content(page).click();
-			await page.keyboard.press("ControlOrMeta+ArrowUp");
+			await page.keyboard.press(DOC_START);
 			await expect(lines(page).nth(0)).toHaveText("# A heading");
 			await expect(lines(page).nth(2)).toHaveText("Some italic and bold text and both.");
 			await expect(lines(page).nth(4)).toHaveText("A <!-- hidden --> note."); // comments are dimmed, not hidden
@@ -92,7 +92,7 @@ test.describe("the editor", () => {
 
 		test("emphasis and headings are styled; comments are dimmed; the old [[wiki link]] stays plain text", async ({ page }) => {
 			await content(page).click();
-			await page.keyboard.press("ControlOrMeta+ArrowDown");
+			await page.keyboard.press(DOC_END);
 			await expect(page.locator(".sf-em", { hasText: "italic" })).toBeVisible();
 			expect(await page.locator(".sf-em", { hasText: "italic" }).first().evaluate((e) => getComputedStyle(e).fontStyle)).toBe("italic");
 			expect(await page.locator(".sf-strong", { hasText: "bold" }).first().evaluate((e) => Number(getComputedStyle(e).fontWeight))).toBeGreaterThanOrEqual(600);
@@ -103,8 +103,8 @@ test.describe("the editor", () => {
 
 		test("⌘B and ⌘I wrap and unwrap the selection", async ({ page }) => {
 			await content(page).click();
-			await page.keyboard.press("ControlOrMeta+ArrowDown");
-			await page.keyboard.press("ControlOrMeta+ArrowLeft");
+			await page.keyboard.press(DOC_END);
+			await page.keyboard.press(LINE_START);
 			await page.keyboard.press("Shift+Alt+ArrowRight");
 			await page.keyboard.press(`${MOD}+b`);
 			await expect(lines(page).nth(6)).toHaveText("**Last** line, with [[a link]] left alone.");
@@ -119,7 +119,7 @@ test.describe("the editor", () => {
 		await openProject(page);
 		await open(page, "centre", CH1);
 		await content(page).click();
-		await page.keyboard.press("ControlOrMeta+ArrowDown");
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.type(" My unsaved words.");
 		await outsideChange(page, CH1, "Changed in another editor.\n");
 		const notice = page.getByRole("alert");
@@ -140,7 +140,7 @@ test.describe("the editor", () => {
 		await openProject(page);
 		await open(page, "centre", CH1);
 		await content(page).click();
-		await page.keyboard.press("ControlOrMeta+ArrowDown");
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.type(" Typed before the other edit.");
 		await page.evaluate(([p, t]) => window.__preview.touch(p, t), [CH1, "Written elsewhere, unnoticed.\n"]); // no watcher batch: the save finds out
 		const notice = page.getByRole("alert");
@@ -154,7 +154,7 @@ test.describe("the editor", () => {
 		await openProject(page);
 		await open(page, "centre", CH1);
 		await content(page).click();
-		await page.keyboard.press("ControlOrMeta+ArrowUp");
+		await page.keyboard.press(DOC_START);
 		await page.keyboard.type("Q");
 		await expect.poll(() => onDisk(page, CH1), { timeout: 4000 }).toContain("QSynthetic");
 		// another editor appends a line; the author has no unsaved text
@@ -188,7 +188,7 @@ test.describe("the editor", () => {
 		await openProject(page);
 		await page.evaluate(() => Promise.all([window.__app.editors!.open("centre", "_story-library/aaa/ch-a3.md"), window.__app.editors!.open("centre", "_story-library/aaa/ch-a3.md"), window.__app.editors!.open("lore", "_story-library/aaa/ch-a3.md")]));
 		await content(page).click();
-		await page.keyboard.press("ControlOrMeta+ArrowDown");
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.type(" Still alive.");
 		await expect.poll(() => onDisk(page, CH3), { timeout: 4000 }).toContain("Still alive.");
 		await expect(page.locator(".sf-slot--lore .cm-content")).toHaveCount(0);
@@ -199,7 +199,7 @@ test.describe("the editor", () => {
 		await openProject(page);
 		await open(page, "centre", CH1);
 		await content(page).click();
-		await page.keyboard.press("ControlOrMeta+ArrowDown");
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.type(" Before switching.");
 		await open(page, "centre", CH2);
 		expect(await onDisk(page, CH1)).toContain("Before switching.");
@@ -235,7 +235,7 @@ test.describe("the editor", () => {
 		await page.evaluate((p) => window.__preview.emit("watch-batch", { paths: [p], rescan: false }), CH2);
 		await open(page, "centre", CH2);
 		await content(page).click();
-		await page.keyboard.press("ControlOrMeta+ArrowDown");
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.type("!");
 		const notice = page.getByRole("status").filter({ hasText: "mixed line endings" });
 		await expect(notice).toBeVisible({ timeout: 5000 });
@@ -273,7 +273,7 @@ test.describe("the editor", () => {
 		await expect(pinned).toBeVisible();
 		await expect(pinned.getByRole("button", { name: "Dismiss" })).toHaveCount(0);
 		await content(page).click();
-		await page.keyboard.press("ControlOrMeta+ArrowDown");
+		await page.keyboard.press(DOC_END);
 		await page.keyboard.type(" ok");
 		await expect(pinned).toHaveCount(0, { timeout: 5000 });
 	});

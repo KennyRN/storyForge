@@ -1,4 +1,5 @@
 import { NUMBERING_STYLE_OPTIONS, type NumberingStyle } from "../../core/numberingStyle";
+import { openWindowsNames } from "./summary";
 import { settingLabel } from "./settingNames";
 import type { AutomaticBackupFrequency } from "../../core/backup";
 import { APPEARANCE_BASE_PX, APPEARANCE_PARTS, APPEARANCE_SIZE_RANGE, APPEARANCE_SIZE_STEP, APPEARANCE_SIZE_STEP_SHIFT, CHAPTER_BAR_COLOURS, CODEX_COLOURS, DATA_COLOURS, EMPHASIS_COLOURS, LABEL_COLOURS, RAIL_COLOURS, SELECTION_COLOURS, SESSION_LIMITS, appearanceKey, typeKey, setSetting, type AppearancePart, type ChapterBarColour, type CodexColour, type DataColour, type EmphasisColour, type LabelColour, type RailColour, type SelectionColour, type ProjectSettings, type StoryKind } from "../../app/settings";
@@ -438,6 +439,7 @@ export function openSettings(model: AppModel): void {
 			}
 			return el("div", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: settingLabel("This story is") }), group);
 		};
+		const windowsNamesRow = (): HTMLElement => el("div", { class: "sf-setting-row" }, el("span", { class: "sf-setting-label", text: settingLabel("Names Windows can't use") }), button({ label: "Show…", kind: "quiet", onClick: () => openWindowsNames(model) }));
 		const pick = (m: Record<string, HTMLElement[]>): HTMLElement[] => m[subPage] ?? []; // the sub-page of General or Appearance
 		const pages: Record<Page, HTMLElement[]> = {
 			General: pick({
@@ -446,7 +448,7 @@ export function openSettings(model: AppModel): void {
 						select("autoFocus", "Opens in", [["true", "storytelling"], ["false", "library"]], (v) => v === "true"),
 						...(settings.values.storyKind === "standalone" ? [check("hideSeriesPane", "Hide the series pane (for one standalone book)")] : []), // only a standalone story can hide it (Brief 19)
 					]),
-					section("Story", [storyKind()]),
+					section("Story", [storyKind(), windowsNamesRow()]),
 					section("Numbering", [
 						select("seriesNumberingStyle", "Series numbering", numbering, (v) => v as NumberingStyle),
 						select("chapterNumberingStyle", "Chapter numbering", numbering, (v) => v as NumberingStyle),

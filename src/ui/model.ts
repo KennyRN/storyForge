@@ -44,6 +44,8 @@ export interface Nav {
 	libraryBook: string | null;
 	/** The last chapter written in each novel (by folder), remembered on this computer for "Write this novel" (Brief 19). */
 	lastChapters: Record<string, string>;
+	/** The names Windows can't hold that the author was told about (Brief 22): the list is shown again only when others appear. */
+	windowsNamesSeen: string[];
 	/** The selected chapter's filename. */
 	chapter: string | null;
 	collapsedCodex: Set<string>;
@@ -116,7 +118,7 @@ export class AppModel {
 	readonly notices = new NoticeCenter();
 	/** Set by the shell once the slots exist. */
 	editors: EditorHost | null = null;
-	nav: Nav = { face: "storytelling", forgeTab: "novel", centreView: "chapter", book: null, libraryBook: null, lastChapters: {}, chapter: null, collapsedCodex: new Set(), ...initialWidths(machineDefaults(), windowWidth()), loreHidden: false, cardTiers: {}, statsCount: "day" };
+	nav: Nav = { face: "storytelling", forgeTab: "novel", centreView: "chapter", book: null, libraryBook: null, lastChapters: {}, windowsNamesSeen: [], chapter: null, collapsedCodex: new Set(), ...initialWidths(machineDefaults(), windowWidth()), loreHidden: false, cardTiers: {}, statsCount: "day" };
 	selection: Selection | null = null;
 	private persistTimer: ReturnType<typeof setTimeout> | undefined;
 	private listeners = new Map<Topic, Set<() => void>>();
@@ -179,6 +181,7 @@ export class AppModel {
 			book,
 			libraryBook: null,
 			lastChapters: { ...(machine.lastChapters ?? {}) },
+			windowsNamesSeen: [...(machine.windowsNamesSeen ?? [])],
 			chapter,
 			collapsedCodex: new Set(machine.collapsedCodexFolderIds),
 			...initialWidths(machine, windowWidth()),
@@ -614,9 +617,9 @@ export class AppModel {
 	async persistNow(): Promise<void> {
 		clearTimeout(this.persistTimer);
 		if (!this.running) return;
-		const { book, chapter, collapsedCodex, storyWidth, libraryWidth, loreWidth, viewWidths, widthUnit, widthsLinked, linkedViews, loreHidden, cardTiers, statsCount, lastChapters } = this.nav;
+		const { book, chapter, collapsedCodex, storyWidth, libraryWidth, loreWidth, viewWidths, widthUnit, widthsLinked, linkedViews, loreHidden, cardTiers, statsCount, lastChapters, windowsNamesSeen } = this.nav;
 		try {
-			await this.controller.saveMachineState({ selectedNovel: book, selectedObject: chapter, collapsedCodexFolderIds: [...collapsedCodex], leftWidth: storyWidth, libraryWidth, loreWidth, widthUnit, widthsLinked, ...(Object.keys(linkedViews).length ? { widthsLinkedViews: linkedViews } : {}), storytellingWidths: viewWidths.storytelling, seriesWidths: viewWidths.series, novelWidths: viewWidths.novel, codexWidths: viewWidths.codex, archiveWidths: viewWidths.archive, ...(loreHidden ? { loreHidden } : {}), ...(cardTiers !== undefined ? { cardTiers } : {}), ...(statsCount !== "day" ? { statsCount } : {}), ...(Object.keys(lastChapters).length ? { lastChapters } : {}) });
+			await this.controller.saveMachineState({ selectedNovel: book, selectedObject: chapter, collapsedCodexFolderIds: [...collapsedCodex], leftWidth: storyWidth, libraryWidth, loreWidth, widthUnit, widthsLinked, ...(Object.keys(linkedViews).length ? { widthsLinkedViews: linkedViews } : {}), storytellingWidths: viewWidths.storytelling, seriesWidths: viewWidths.series, novelWidths: viewWidths.novel, codexWidths: viewWidths.codex, archiveWidths: viewWidths.archive, ...(loreHidden ? { loreHidden } : {}), ...(cardTiers !== undefined ? { cardTiers } : {}), ...(statsCount !== "day" ? { statsCount } : {}), ...(Object.keys(lastChapters).length ? { lastChapters } : {}), ...(windowsNamesSeen.length ? { windowsNamesSeen } : {}) });
 		} catch {
 			/* where you were is a convenience: never worth a notice */
 		}
