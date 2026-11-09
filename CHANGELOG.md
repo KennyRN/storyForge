@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.13.0: a Windows preview
+
+- New: **storyForge runs on Windows** (64-bit Windows 10 and 11), as a clearly labelled **preview**: a per-user installer (no administrator rights) that fetches Microsoft's WebView2 if it is missing, built and attested by GitHub, unsigned (Windows shows "Windows protected your PC"; the README has the steps). The app itself still makes no network requests. Keep backups. `docs/windows.md` is the survey and what was built; `docs/windows-test.md` is a checklist for testers, with a small invented sample project (`storyForge-sample-project.zip`).
+- New: **the writing is as safe on Windows as on the Mac.** Saving waits out a program that has the file for a moment (antivirus, the search indexer, a sync client) instead of failing; other writers are kept out while a save compares and replaces; renames are exclusive and atomic (never two names for one file) and case-only renames work; a junction that leaves the project is refused like a symbolic link; a file's line endings are kept, and new files are LF everywhere. The disk-safety suite and the tests of the real Rust code now run on a Windows machine in CI, which is blocking, and **a missing test bridge now fails CI on every platform** instead of skipping the safety suites.
+- New: **new names are checked for Windows** (on both systems): a Codex note can't be named with a Windows reserved name (`CON`, `NUL`, `COM1`…), and a trailing dot or space is removed, with the box showing the shortened name before anything is made. Names already in a project that Windows can't hold are **listed, never renamed**: a list is shown when it first appears and again only when new names appear, and **Settings ▸ General ▸ names windows can't use** shows it at any time.
+- New: **on Windows**: the menu has File, Edit, View, Story, Window and Help (Settings and Exit are in File); Ctrl-click and Ctrl-Return open a Codex link; "Show in File Explorer"; Shift-Ctrl-Z redoes; saving is attempted at log-off and shutdown, briefly, never holding Windows up; machine settings live in local (not roaming) app data; the title bar is Windows' own, so the invisible band and its traffic-light space are gone and the panels start at the top.
+- Changed: tests and tooling: `.gitattributes` (LF text everywhere), `icons/icon.ico`, the interface tests run in Chromium on Windows (reported only), and the tests' keys differ by system. The Mac behaves as before.
+
 ## 1.12.4: going public (the first release built by GitHub)
 
 - Changed: **the special-characters icon is brighter at rest** (the theme's brightest background, `bg4`), and no longer changes colour on hover or while its palette is open.
