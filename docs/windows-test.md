@@ -1,6 +1,6 @@
 # Windows preview: a test for someone who has never used storyForge
 
-Thank you for trying this. It is a **preview**: the Mac version has been used for months; this one has been tested only by automatic tests on a Windows machine at GitHub, and by you. **Please keep a copy of anything you care about.** Use the sample project below, **never your own writing**, for this test.
+Thank you for trying this. It is a **preview**: the Mac version has been used for months; this one has been tested only by automatic tests on a Windows machine at GitHub, and by you. **Please keep a copy of anything you care about.** Use the sample project (`storyForge-sample-project.zip` on the release page), **never your own writing**, for this test.
 
 ## Before you start
 
@@ -35,3 +35,15 @@ Tick each step; write down anything odd, with a screenshot.
 - Anything that felt slow.
 
 Send it to Kenny. Thank you.
+
+## What is in the sample project
+
+Made from scratch by `scripts/sample-project.mjs`; every word is invented. **Nothing that exists only for the app's own tests is in it** (no deliberately broken cover images, no legacy or unknown keys, no comments the app has to keep): a series, "The Sample Series", with two novels ("The Harbour Wakes", three chapters; "The Long Night", two chapters), planned lengths, a Codex of five notes in two folders (Jane, Sam, "Zoë Åberg" with accents, one with a long name, Harbour) and one archived note (Retired), with types, aliases and one link between notes. Nothing else.
+
+## Things to look at that the automatic tests cannot judge
+
+- The look of the text: Windows draws fonts differently from the Mac. Does anything look too heavy, cut off or misaligned?
+- The top of the window: Windows' own title bar is used, and the panels start right under it. Does the top of the panels feel cramped against the bar?
+- Red underlines under misspelt words in the chapter.
+- Typing: curly quotes, `--` becoming a dash, `~th` offering "the Right Honourable…" and Tab accepting it. Press Ctrl+Z straight after one of these: you should get back exactly what you typed. Then Ctrl+Shift+Z or Ctrl+Y: the correction again.
+- Ctrl+click on a link to a Codex entry, and Ctrl+Return with the cursor on it, open the entry (on the Codex tab and the storytelling side).
