@@ -311,7 +311,7 @@ try {
 	}
 
 	// The library side's Codex list, and a plot note (Fields style, 14 px since 1.10.0: ten "w" is 105 px at 13 px in SN Pro, so 113 at 14).
-	if (!(await until(() => clickAny("Open the novel on the library side")))) fail("could not reach the library side");
+	if (!(await until(() => clickAny("Open the series on the library side")))) fail("could not reach the library side");
 	await sleep(600);
 	clickAny("codex");
 	await sleep(800);

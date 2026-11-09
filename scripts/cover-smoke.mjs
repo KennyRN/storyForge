@@ -97,7 +97,7 @@ try {
 	find("AXButton", "The Lantern Cycle", "click");
 	if (!(await until("an editor", () => find("AXTextArea", "Text").startsWith("found")))) fail("the project did not open");
 	await sleep(500);
-	if (!(await until("the novel name", () => clickAny("Open the novel on the library side")))) fail("could not reach the library side");
+	if (!(await until("the novel name", () => clickAny("Open the series on the library side")))) fail("could not reach the library side");
 	if (!(await until("the novel tab", () => clickAny("novel"), 8000))) fail("could not reach the novel tab");
 	if (!(await until("the novel's cover", () => drawnCover(), 6000))) problems.push("the novel overview shows no cover image (saved cover, recorded in novel-aaa.md)");
 	if (!(await until("the series tab", () => clickAny("series"), 8000))) fail("could not reach the series tab");

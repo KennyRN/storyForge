@@ -148,14 +148,14 @@ async function route(name, send, { expectJoin = false, target = "chapter" } = {}
 		if (target === "plot") {
 			// To the library side, the novel tab, and into the plot note of the chosen chapter, in the context panel (Brief 14): it has focus, nothing has been committed.
 			const clickAny = (name) => ["AXButton", "AXCheckBox", "AXToggle", "AXRadioButton", "AXTab"].some((role) => find(role, name, "click").startsWith("found"));
-			await until("the novel name", () => clickAny("Open the novel on the library side"));
+			await until("the novel name", () => clickAny("Open the series on the library side"));
 			await until("the novel tab", () => clickAny("novel"), 8000);
 			await until("a plot note", () => find("AXTextArea", "Plot note for", "focus").startsWith("found"));
 		}
 		if (target === "synopsis") {
 			// To the library side, the series tab, and into the synopsis of the chosen novel, in the context panel (Brief 19): it has focus, nothing has been committed.
 			const clickAny = (name) => ["AXButton", "AXCheckBox", "AXToggle", "AXRadioButton", "AXTab"].some((role) => find(role, name, "click").startsWith("found"));
-			await until("the novel name", () => clickAny("Open the novel on the library side"));
+			await until("the novel name", () => clickAny("Open the series on the library side"));
 			await until("the series tab", () => clickAny("series"), 8000);
 			// the novel's name on the storytelling side chose the novel being written (Book 1) for the library: its synopsis is in the context panel already
 			await until("a synopsis", () => find("AXTextArea", "Synopsis of", "focus").startsWith("found"));

@@ -129,6 +129,7 @@ test.describe("the menus", () => {
 		await openProject(page);
 		await page.getByRole("button", { name: "Chapters" }).click();
 		await page.locator(".sf-select-row", { hasText: "The Storm" }).click();
+		await expect(page.locator(".sf-slot--centre .cm-content")).toContainText("Opening line of a second chapter"); // the chapter has finished opening: its redraw would otherwise wipe the rename box (a race in the test)
 		await menu(page, "rename");
 		await expect(page.getByLabel("Name")).toHaveValue("The Storm: Part Two");
 	});
